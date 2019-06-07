@@ -29,8 +29,8 @@
 #define MAX_PLANETS 20    // Does not affect test, just for allocating space in uniform block. Must match with shader.
 
 //tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
@@ -38,8 +38,8 @@
 #include "../../../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/GpuProfiler.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
 //Math
@@ -78,6 +78,9 @@ struct UniformBlock
 };
 
 const uint32_t gImageCount = 3;
+bool           bToggleMicroProfiler = false;
+bool           bPrevToggleMicroProfiler = false;
+
 const uint32_t gViewCount = 2;
 bool           gToggleVSync = false;
 // Simulate heavy gpu workload by rendering high resolution spheres
@@ -195,6 +198,10 @@ class MultiGPU: public IApp
 				addQueue(pRenderer, &queueDesc, &pGraphicsQueue[i]);
 		}
 
+		initProfiler(pRenderer, gImageCount);
+		profileRegisterInput();
+		char gpu_profile_name[16] = { 0 };
+
 		for (uint32_t i = 0; i < gViewCount; ++i)
 		{
 			addCmdPool(pRenderer, pGraphicsQueue[i], false, &pCmdPool[i]);
@@ -205,7 +212,8 @@ class MultiGPU: public IApp
 				addFence(pRenderer, &pRenderCompleteFences[i][frameIdx]);
 				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i][frameIdx]);
 			}
-			addGpuProfiler(pRenderer, pGraphicsQueue[i], &pGpuProfilers[i]);
+			sprintf(gpu_profile_name, "GpuProfiler%d", i);
+			addGpuProfiler(pRenderer, pGraphicsQueue[i], &pGpuProfilers[i], gpu_profile_name);
 		}
 
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
@@ -466,6 +474,8 @@ class MultiGPU: public IApp
 		GuiDesc guiDesc = {};
 		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
+    pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		pGui->AddWidget(CheckboxWidget("Toggle VSync", &gToggleVSync));
 #endif
@@ -498,6 +508,8 @@ class MultiGPU: public IApp
 			waitQueueIdle(pGraphicsQueue[i]);
 
 		destroyCameraController(pCameraController);
+
+		exitProfiler(pRenderer);
 
 		if (!gMultiGPURestart)
 		{
@@ -715,7 +727,23 @@ class MultiGPU: public IApp
 		/************************************************************************/
 		/************************************************************************/
 
-		gAppUI.Update(deltaTime);
+    // ProfileSetDisplayMode()
+    // TODO: need to change this better way 
+    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+    {
+      Profile& S = *ProfileGet();
+      int nValue = bToggleMicroProfiler ? 1 : 0;
+      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+      S.nDisplay = nValue;
+
+      bPrevToggleMicroProfiler = bToggleMicroProfiler;
+    }
+
+    /************************************************************************/
+    // Update GUI
+    /************************************************************************/
+    gAppUI.Update(deltaTime);
+
 		gPanini.SetParams(gPaniniParams);
 		gPanini.Update(deltaTime);
 
@@ -854,44 +882,49 @@ class MultiGPU: public IApp
 
 				gAppUI.Gui(pGui);
 
-				gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+				gAppUI.DrawText(
+					cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
 
 				if (gMultiGPU)
 				{
 					gAppUI.DrawText(
 						cmd, float2(8, 40),
-						tinystl::string::format(
-							"GPU %f ms", max(pGpuProfilers[0]->mCumulativeTime, pGpuProfilers[1]->mCumulativeTime) * 1000.0),
+						eastl::string()
+							.sprintf("GPU %f ms", max(pGpuProfilers[0]->mCumulativeTime, pGpuProfilers[1]->mCumulativeTime) * 1000.0)
+							.c_str(),
 						&gFrameTimeDraw);
 
 					gAppUI.DrawText(
-						cmd, float2(8, 75), tinystl::string::format("First GPU %f ms", pGpuProfilers[0]->mCumulativeTime * 1000.0),
+						cmd, float2(8, 75), eastl::string().sprintf("First GPU %f ms", pGpuProfilers[0]->mCumulativeTime * 1000.0).c_str(),
 						&gFrameTimeDraw);
 					gAppUI.DrawDebugGpuProfile(cmd, float2(8, 100), pGpuProfilers[0], NULL);
 
 					gAppUI.DrawText(
-						cmd, float2(8, 275), tinystl::string::format("Second GPU %f ms", pGpuProfilers[1]->mCumulativeTime * 1000.0),
-						&gFrameTimeDraw);
+						cmd, float2(8, 275),
+						eastl::string().sprintf("Second GPU %f ms", pGpuProfilers[1]->mCumulativeTime * 1000.0).c_str(), &gFrameTimeDraw);
 					gAppUI.DrawDebugGpuProfile(cmd, float2(8, 300), pGpuProfilers[1], NULL);
 				}
 				else
 				{
 					gAppUI.DrawText(
 						cmd, float2(8, 40),
-						tinystl::string::format(
-							"GPU %f ms", (pGpuProfilers[0]->mCumulativeTime + pGpuProfilers[1]->mCumulativeTime) * 1000.0),
+						eastl::string()
+							.sprintf("GPU %f ms", (pGpuProfilers[0]->mCumulativeTime + pGpuProfilers[1]->mCumulativeTime) * 1000.0)
+							.c_str(),
 						&gFrameTimeDraw);
 
 					gAppUI.DrawText(
-						cmd, float2(8, 75), tinystl::string::format("First CMD %f ms", pGpuProfilers[0]->mCumulativeTime * 1000.0),
+						cmd, float2(8, 75), eastl::string().sprintf("First CMD %f ms", pGpuProfilers[0]->mCumulativeTime * 1000.0).c_str(),
 						&gFrameTimeDraw);
 					gAppUI.DrawDebugGpuProfile(cmd, float2(8, 100), pGpuProfilers[0], NULL);
 
 					gAppUI.DrawText(
-						cmd, float2(8, 275), tinystl::string::format("Second CMD %f ms", pGpuProfilers[1]->mCumulativeTime * 1000.0),
-						&gFrameTimeDraw);
+						cmd, float2(8, 275),
+						eastl::string().sprintf("Second CMD %f ms", pGpuProfilers[1]->mCumulativeTime * 1000.0).c_str(), &gFrameTimeDraw);
 					gAppUI.DrawDebugGpuProfile(cmd, float2(8, 300), pGpuProfilers[1], NULL);
 				}
+
+				cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
 
 				gAppUI.Draw(cmd);
 
@@ -931,11 +964,12 @@ class MultiGPU: public IApp
 				waitForFences(pRenderer, 1, &pNextFence);
 			}
 		}
+		flipProfiler();
 
 		gTimer.GetUSec(true);
 	}
 
-	tinystl::string GetName() { return "11_MultiGPU"; }
+	const char* GetName() { return "11_MultiGPU"; }
 
 	bool addSwapChain()
 	{

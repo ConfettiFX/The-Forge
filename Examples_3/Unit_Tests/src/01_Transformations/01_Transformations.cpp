@@ -27,16 +27,13 @@
 
 #define MAX_PLANETS 20    // Does not affect test, just for allocating space in uniform block. Must match with shader.
 
-//tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
-
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
@@ -47,6 +44,7 @@
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
+
 /// Demo structures
 struct PlanetInfoStruct
 {
@@ -72,6 +70,8 @@ struct UniformBlock
 };
 
 const uint32_t gImageCount = 3;
+bool           bToggleMicroProfiler = false;
+bool           bPrevToggleMicroProfiler = false;
 const int      gSphereResolution = 30;    // Increase for higher resolution spheres
 const float    gSphereDiameter = 0.5f;
 const uint     gNumPlanets = 11;        // Sun, Mercury -> Neptune, Pluto, Moon
@@ -124,7 +124,7 @@ ICameraController* pCameraController = NULL;
 
 /// UI
 UIApp gAppUI;
-
+GpuProfiler*       pGpuProfiler = NULL;
 FileSystem gFileSystem;
 
 const char* pSkyBoxImageFileNames[] = { "Skybox_right1.png",  "Skybox_left2.png",  "Skybox_top3.png",
@@ -145,6 +145,8 @@ const char* pszBases[FSR_Count] = {
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
+GuiComponent* pGui = NULL;
+
 class Transformations: public IApp
 {
 	public:
@@ -159,6 +161,7 @@ class Transformations: public IApp
 
 		QueueDesc queueDesc = {};
 		queueDesc.mType = CMD_POOL_DIRECT;
+    queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
 		addCmdPool(pRenderer, pGraphicsQueue, false, &pCmdPool);
 		addCmd_n(pCmdPool, false, gImageCount, &ppCmds);
@@ -171,6 +174,12 @@ class Transformations: public IApp
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer);
+
+    // Initialize profile
+    initProfiler(pRenderer, gImageCount);
+    profileRegisterInput();
+
+    addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		// Loads Skybox Textures
 		for (int i = 0; i < 6; ++i)
@@ -411,6 +420,16 @@ class Transformations: public IApp
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
+    GuiDesc guiDesc = {};
+    float   dpiScale = getDpiScale().x;
+    guiDesc.mStartSize = vec2(140.0f / dpiScale, 320.0f / dpiScale);
+    guiDesc.mStartPosition = vec2( mSettings.mWidth - guiDesc.mStartSize.getX() * 1.1f, guiDesc.mStartSize.getY() * 0.5f);
+
+    pGui = gAppUI.AddGuiComponent("Micro profiler", &guiDesc);
+
+    pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+
+
 		CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
 		vec3                   camPos{ 48.0f, 48.0f, 20.0f };
 		vec3                   lookAt{ 0 };
@@ -438,6 +457,9 @@ class Transformations: public IApp
 #endif
 
 		gAppUI.Exit();
+
+    // Exit profile
+    exitProfiler(pRenderer);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -471,6 +493,7 @@ class Transformations: public IApp
 		removeCmd_n(pCmdPool, gImageCount, ppCmds);
 		removeCmdPool(pRenderer, pCmdPool);
 
+    removeGpuProfiler(pRenderer, pGpuProfiler);
 		removeResourceLoaderInterface(pRenderer);
 		removeQueue(pGraphicsQueue);
 		removeRenderer(pRenderer);
@@ -613,6 +636,23 @@ class Transformations: public IApp
 		gUniformDataSky.mProjectView = projMat * viewMat;
 		/************************************************************************/
 		/************************************************************************/
+
+    // ProfileSetDisplayMode()
+    // TODO: need to change this better way 
+    if(bToggleMicroProfiler != bPrevToggleMicroProfiler)
+    {
+       Profile& S = *ProfileGet();
+       int nValue = bToggleMicroProfiler ? 1 : 0;
+       nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+       S.nDisplay = nValue;
+
+       bPrevToggleMicroProfiler = bToggleMicroProfiler;
+    }
+
+    /************************************************************************/
+    // Update GUI
+    /************************************************************************/
+    gAppUI.Update(deltaTime);  
 	}
 
 	void Draw()
@@ -650,6 +690,8 @@ class Transformations: public IApp
 		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
 
+    cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
+
 		TextureBarrier barriers[] = {
 			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
 			{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE },
@@ -660,8 +702,9 @@ class Transformations: public IApp
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
+    
 		//// draw skybox
-		cmdBeginDebugMarker(cmd, 0, 0, 1, "Draw skybox");
+    cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw skybox", true);
 		cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
 
 		DescriptorData params[7] = {};
@@ -682,18 +725,18 @@ class Transformations: public IApp
 		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignature, 7, params);
 		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, NULL);
 		cmdDraw(cmd, 36, 0);
-		cmdEndDebugMarker(cmd);
+    cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
 		////// draw planets
-		cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Planets");
+    cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Planets", true);
 		cmdBindPipeline(cmd, pSpherePipeline);
 		params[0].ppBuffers = &pProjViewUniformBuffer[gFrameIndex];
 		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignature, 1, params);
 		cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, NULL);
 		cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, gNumPlanets, 0);
-		cmdEndDebugMarker(cmd);
+    cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
-		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
+    cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw UI", true);
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
 
@@ -701,20 +744,35 @@ class Transformations: public IApp
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
+
+#if !defined(__ANDROID__)
+    gAppUI.DrawText(
+      cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
+      &gFrameTimeDraw);
+    gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
+#endif
+
+    gAppUI.Gui(pGui);
+
+    cmdDrawProfiler(cmd, static_cast<uint32_t>(mSettings.mWidth), static_cast<uint32_t>(mSettings.mHeight));
+
 		gAppUI.Draw(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndDebugMarker(cmd);
+    cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
 		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, true);
+
+    cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 		endCmd(cmd);
 
 		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+    flipProfiler();
 	}
 
-	tinystl::string GetName() { return "01_Transformations"; }
+	const char* GetName() { return "01_Transformations"; }
 
 	bool addSwapChain()
 	{

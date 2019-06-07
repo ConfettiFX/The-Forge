@@ -2,7 +2,7 @@
 #define ENTT_RESOURCE_LOADER_HPP
 
 
-#include "../../TinySTL/memory.h"
+#include "../../EASTL/shared_ptr.h"
 
 
 namespace entt {
@@ -25,9 +25,9 @@ class ResourceCache;
  * struct MyResource {};
  *
  * struct MyLoader: entt::ResourceLoader<MyLoader, MyResource> {
- *     std::shared_ptr<MyResource> load(int) const {
+ *     eastl::shared_ptr<MyResource> load(int) const {
  *         // use the integer value somehow
- *         return std::make_shared<MyResource>();
+ *         return eastl::make_shared<MyResource>();
  *     }
  * };
  * @endcode
@@ -50,8 +50,8 @@ class ResourceLoader {
     friend class ResourceCache<Resource>;
 
     template<typename... Args>
-    tinystl::shared_ptr<Resource> get(Args &&... args) const {
-        return static_cast<const Loader *>(this)->load(std::forward<Args>(args)...);
+    eastl::shared_ptr<Resource> get(Args &&... args) const {
+        return static_cast<const Loader *>(this)->load(eastl::forward<Args>(args)...);
     }
 };
 

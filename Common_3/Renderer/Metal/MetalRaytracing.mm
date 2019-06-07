@@ -39,6 +39,7 @@
 #import <MetalKit/MetalKit.h>
 #import <MetalPerformanceShaders/MetalPerformanceShaders.h>
 
+#include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 #import "../IRenderer.h"
 #import "../IRay.h"
 #import "../ResourceLoader.h"
@@ -47,7 +48,7 @@
 
 #define MAX_BUFFER_BINDINGS 31
 
-extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, tinystl::unordered_map<uint32_t, MTLVertexFormat>* vertexAttributeFormats, ShaderReflection* pOutReflection);
+extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, eastl::unordered_map<uint32_t, MTLVertexFormat>* vertexAttributeFormats, ShaderReflection* pOutReflection);
     
     struct AccelerationStructure
     {
@@ -59,7 +60,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         id <MTLBuffer> mMasks;
         id <MTLBuffer> mInstanceIDs;
         id <MTLBuffer> mHitGroupIndices;
-        tinystl::vector<uint32_t> mActiveHitGroups;
+        eastl::vector<uint32_t> mActiveHitGroups;
     };
     
     struct ShaderReference
@@ -190,9 +191,9 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
     //////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////////////////////////////////////////////////////////
     struct ASOffset{
-        tinystl::vector<unsigned> vbGeometriesOffsets;
-        tinystl::vector<unsigned> ibGeometriesOffsets;
-        tinystl::vector<unsigned> masksGeometriesOffsets;
+        eastl::vector<unsigned> vbGeometriesOffsets;
+        eastl::vector<unsigned> ibGeometriesOffsets;
+        eastl::vector<unsigned> masksGeometriesOffsets;
         unsigned vbSize;
         unsigned ibSize;
         unsigned trianglesCount;
@@ -208,7 +209,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
     
     void createVertexAndIndexBuffers(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc,
                                      id <MTLBuffer>* pVbBuffer, id <MTLBuffer>* pIbBuffer, id <MTLBuffer>* pMasksBuffer,
-                                     tinystl::vector<ASOffset>& outOffsets)
+                                     eastl::vector<ASOffset>& outOffsets)
     {
         outOffsets.resize(pDesc->mBottomASDescsCount);
         // Vertex data should be stored in private or managed buffers on discrete GPU systems (AMD, NVIDIA).
@@ -237,7 +238,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
             ibDstPtr = static_cast<uint8_t*>(_indexBuffer.contents);
         }
         
-        tinystl::vector<uint32_t> masksVector;
+        eastl::vector<uint32_t> masksVector;
         masksVector.reserve(pDesc->mBottomASDescsCount * 1000); //initial reservation
 
         for (unsigned i = 0; i < pDesc->mBottomASDescsCount; ++i)
@@ -353,7 +354,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
     
     id <MTLBuffer> createInstancesIndicesBuffer(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc)
     {
-        tinystl::vector<uint32_t> instancesIndices(pDesc->mInstancesDescCount);
+        eastl::vector<uint32_t> instancesIndices(pDesc->mInstancesDescCount);
         for (unsigned i = 0; i < pDesc->mInstancesDescCount; ++i)
             instancesIndices[i] = pDesc->pInstanceDescs[i].mAccelerationStructureIndex;
         
@@ -468,14 +469,14 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         
         AccelerationStructure* AS = (AccelerationStructure*)conf_malloc(sizeof(AccelerationStructure));
         memset(AS, 0, sizeof(*AS));
-        conf_placement_new<tinystl::vector<uint32_t> >(&AS->mActiveHitGroups);
+        conf_placement_new<eastl::vector<uint32_t> >(&AS->mActiveHitGroups);
         AS->pBottomAS = [[NSMutableArray alloc] init];
         
         //pDesc->mFlags. Just ignore this
         id <MTLBuffer> _vertexPositionBuffer = nil;
         id <MTLBuffer> _indexBuffer = nil;
         id <MTLBuffer> _masks = nil;
-        tinystl::vector<ASOffset> offsets;
+        eastl::vector<ASOffset> offsets;
         
         //copy vertices and indices to buffer
         createVertexAndIndexBuffers(pRaytracing, pDesc, &_vertexPositionBuffer, &_indexBuffer, &_masks, offsets);
@@ -493,7 +494,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         {
             uint32_t hitID = pDesc->pInstanceDescs[i].mInstanceContributionToHitGroupIndex;
             //find for vector is O(n) but this is done once. It is faster for iteration (than iteration over set) which will happen often
-            auto it = AS->mActiveHitGroups.find(hitID);
+			auto it = eastl::find(AS->mActiveHitGroups.begin(), AS->mActiveHitGroups.end(), hitID);
             if (it == AS->mActiveHitGroups.end())
                 AS->mActiveHitGroups.push_back(hitID);
         }
@@ -911,42 +912,42 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         pRootSignature->mPipelineType = PIPELINE_TYPE_COMPUTE;
         
         // Collect static samplers
-        tinystl::vector <tinystl::pair<ShaderResource const*, Sampler*> > staticSamplers;
-        tinystl::unordered_map<tinystl::string, Sampler*> staticSamplerMap;
+        eastl::vector <eastl::pair<ShaderResource const*, Sampler*> > staticSamplers;
+        eastl::string_hash_map<Sampler*> staticSamplerMap;
         if (pRootDesc != NULL)
         {
             for (uint32_t i = 0; i < pRootDesc->mStaticSamplerCount; ++i)
-                staticSamplerMap.insert({ pRootDesc->ppStaticSamplerNames[i], pRootDesc->ppStaticSamplers[i] });
+                staticSamplerMap.insert(pRootDesc->ppStaticSamplerNames[i], pRootDesc->ppStaticSamplers[i]);
         }
         
-        conf_placement_new<tinystl::unordered_map<uint32_t, uint32_t>>(&pRootSignature->pDescriptorNameToIndexMap);
+        conf_placement_new<eastl::unordered_map<uint32_t, uint32_t>>(&pRootSignature->pDescriptorNameToIndexMap);
         
         for (uint32_t i = 0; i < resourceCount; ++i)
         {
             ShaderResource const* pRes = &pResources[i];
             
             // Find all unique resources
-            tinystl::unordered_hash_node<uint32_t, uint32_t>* pNode = pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pRes->name)).node;
-            if (!pNode)
+			eastl::string_hash_map<uint32_t>::iterator pNode = pRootSignature->pDescriptorNameToIndexMap.find(pRes->name);
+            if (pNode == pRootSignature->pDescriptorNameToIndexMap.end())
             {
                 if (pRes->type == DESCRIPTOR_TYPE_SAMPLER)
                 {
                     // If the sampler is a static sampler, no need to put it in the descriptor table
-                    const tinystl::unordered_hash_node<tinystl::string, Sampler*>* pNode = staticSamplerMap.find(pRes->name).node;
-                    
-                    if (pNode)
+					eastl::string_hash_map<Sampler*>::const_iterator pNode = staticSamplerMap.find(pRes->name);
+
+                    if (pNode != staticSamplerMap.end())
                     {
                         LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Static Sampler", pRes->name);
                         staticSamplers.push_back({ pRes, pNode->second });
                     }
                     else
                     {
-                        pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), i });
+                        pRootSignature->pDescriptorNameToIndexMap.insert(pRes->name, i);
                     }
                 }
                 else
                 {
-                    pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), i });
+                    pRootSignature->pDescriptorNameToIndexMap.insert(pRes->name, i);
                 }
             } else
             {

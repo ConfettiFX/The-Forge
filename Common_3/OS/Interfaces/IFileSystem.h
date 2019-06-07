@@ -27,11 +27,11 @@
 //#define USE_VFS
 
 #include "../Interfaces/IOperatingSystem.h"
-#include "../../ThirdParty/OpenSource/TinySTL/string.h"
-#include "../../ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../ThirdParty/OpenSource/EASTL/string.h"
+#include "../../ThirdParty/OpenSource/EASTL/vector.h"
 
 typedef void* FileHandle;
-typedef void (*FileDialogCallbackFn)(tinystl::string url, void* userData);
+typedef void (*FileDialogCallbackFn)(eastl::string url, void* userData);
 /************************************************************************************************
 * If you change this class please check the following projects to ensure you don't break them:  *
 * 1) BlackFootBlade																			 *
@@ -55,21 +55,21 @@ time_t     get_file_last_modified_time(const char* _fileName);
 time_t     get_file_last_accessed_time(const char* _fileName);
 time_t     get_file_creation_time(const char* _fileName);
 
-tinystl::string get_current_dir();
-tinystl::string get_exe_path();
-tinystl::string get_app_prefs_dir(const char* org, const char* app);
-tinystl::string get_user_documents_dir();
-void            get_files_with_extension(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut);
-void            get_sub_directories(const char* dir, tinystl::vector<tinystl::string>& subDirectoriesOut);
+eastl::string get_current_dir();
+eastl::string get_exe_path();
+eastl::string get_app_prefs_dir(const char* org, const char* app);
+eastl::string get_user_documents_dir();
+void            get_files_with_extension(const char* dir, const char* ext, eastl::vector<eastl::string>& filesOut);
+void            get_sub_directories(const char* dir, eastl::vector<eastl::string>& subDirectoriesOut);
 bool            file_exists(const char* fileFullPath);
 bool            absolute_path(const char* fileFullPath);
 bool            copy_file(const char* src, const char* dst);
 void            open_file_dialog(
 			   const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
-			   const tinystl::vector<tinystl::string>& fileExtensions);
+			   const eastl::vector<eastl::string>& fileExtensions);
 void save_file_dialog(
 	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
-	const tinystl::vector<tinystl::string>& fileExtensions);
+	const eastl::vector<eastl::string>& fileExtensions);
 #if defined(TARGET_IOS)
 void add_uti_to_map(const char* extension, const char* uti);
 #endif
@@ -140,7 +140,7 @@ class Deserializer
 	virtual unsigned               Read(void* dest, unsigned size) = 0;
 	virtual unsigned               Seek(unsigned position, SeekDir seekDir = SEEK_DIR_BEGIN) = 0;
     virtual unsigned               Tell() = 0;
-	virtual const tinystl::string& GetName() const = 0;
+	virtual const eastl::string& GetName() const = 0;
 	virtual unsigned               GetChecksum();
 
 	unsigned        GetPosition() const { return mPosition; }
@@ -160,9 +160,9 @@ class Deserializer
 	float3          ReadVector3();
 	float3          ReadPackedVector3(float maxAbsCoord);
 	float4          ReadVector4();
-	tinystl::string ReadString();
-	tinystl::string ReadFileID();
-	tinystl::string ReadLine();
+	eastl::string ReadString();
+	eastl::string ReadFileID();
+	eastl::string ReadLine();
 
 	protected:
 	unsigned mPosition;
@@ -191,9 +191,9 @@ class Serializer
 	bool WriteVector3(const float3& value);
 	bool WritePackedVector3(const float3& value, float maxAbsCoord);
 	bool WriteVector4(const float4& value);
-	bool WriteString(const tinystl::string& value);
-	bool WriteFileID(const tinystl::string& value);
-	bool WriteLine(const tinystl::string& value);
+	bool WriteString(const eastl::string& value);
+	bool WriteFileID(const eastl::string& value);
+	bool WriteLine(const eastl::string& value);
 };
 
 /// Text / binary file loaded from disk
@@ -202,7 +202,7 @@ class File: public Deserializer, public Serializer
 	public:
 	File();
 
-	virtual bool Open(const tinystl::string& fileName, FileMode mode, FSRoot root);
+	virtual bool Open(const eastl::string& fileName, FileMode mode, FSRoot root);
 	virtual bool Close();
 	virtual void Flush();
 
@@ -211,18 +211,18 @@ class File: public Deserializer, public Serializer
     unsigned Tell() override;
 	unsigned Write(const void* data, unsigned size) override;
 
-	tinystl::string ReadText();
+	eastl::string ReadText();
 
-	virtual unsigned               GetChecksum() override;
-	virtual const tinystl::string& GetName() const override { return mFileName; }
-	virtual FileMode               GetMode() const { return mMode; }
-	virtual bool                   IsOpen() const { return pHandle != NULL; }
-	virtual bool                   IsReadOnly() const { return !(mMode & FileMode::FM_Write || mMode & FileMode::FM_Append); }
-	virtual bool                   IsWriteOnly() const { return !(mMode & FileMode::FM_Read); }
-	virtual void*                  GetHandle() const { return pHandle; }
+	virtual unsigned             GetChecksum() override;
+	virtual const eastl::string& GetName() const override { return mFileName; }
+	virtual FileMode             GetMode() const { return mMode; }
+	virtual bool                 IsOpen() const { return pHandle != NULL; }
+	virtual bool                 IsReadOnly() const { return !(mMode & FileMode::FM_Write || mMode & FileMode::FM_Append); }
+	virtual bool                 IsWriteOnly() const { return !(mMode & FileMode::FM_Read); }
+	virtual void*                GetHandle() const { return pHandle; }
 
 	protected:
-	tinystl::string mFileName;
+	eastl::string mFileName;
 	FileMode        mMode;
 	FileHandle      pHandle;
 	unsigned        mOffset;
@@ -238,7 +238,7 @@ class MemoryBuffer: public Deserializer, public Serializer
 	MemoryBuffer(void* data, unsigned size);
 	MemoryBuffer(const void* data, unsigned size);
 
-	const tinystl::string& GetName() const override { return mName; }
+	const eastl::string& GetName() const override { return mName; }
 
 	unsigned Read(void* dest, unsigned size) override;
 	unsigned Seek(unsigned position, SeekDir seekDir = SEEK_DIR_BEGIN) override;
@@ -249,7 +249,7 @@ class MemoryBuffer: public Deserializer, public Serializer
 	bool           IsReadOnly() { return mReadOnly; }
 
 	private:
-	tinystl::string mName;
+	eastl::string mName;
 	unsigned char*  pBuffer;
 	bool            mReadOnly;
 };
@@ -260,71 +260,71 @@ class FileSystem
 	public:
 	static unsigned GetFileSize(FileHandle handle);
 	// Allows to modify root paths at runtime
-	static void SetRootPath(FSRoot root, const tinystl::string& rootPath);
+	static void SetRootPath(FSRoot root, const eastl::string& rootPath);
 	// Reverts back to App static defined pszRoots[]
 	static void     ClearModifiedRootPaths();
-	static time_t GetLastModifiedTime(const tinystl::string& _fileName);
-	static time_t GetLastAccessedTime(const tinystl::string& _fileName);
-	static time_t GetCreationTime(const tinystl::string& _fileName);
+	static time_t GetLastModifiedTime(const eastl::string& _fileName);
+	static time_t GetLastAccessedTime(const eastl::string& _fileName);
+	static time_t GetCreationTime(const eastl::string& _fileName);
 
 	// First looks it root exists in m_ModifiedRootPaths
 	// otherwise uses App static defined pszRoots[]
-	static tinystl::string FixPath(const tinystl::string& pszFileName, FSRoot root);
-	static tinystl::string GetRootPath(FSRoot root);
-	static bool            FileExists(const tinystl::string& pszFileName, FSRoot root);
+	static eastl::string FixPath(const eastl::string& pszFileName, FSRoot root);
+	static eastl::string GetRootPath(FSRoot root);
+	static bool            FileExists(const eastl::string& pszFileName, FSRoot root);
 
-	static tinystl::string GetCurrentDir() { return AddTrailingSlash(get_current_dir()); }
-	static tinystl::string GetProgramDir() { return GetPath(get_exe_path()); }
-	static tinystl::string GetProgramFileName() { return GetFileName(get_exe_path()); }
-	static tinystl::string GetUserDocumentsDir() { return AddTrailingSlash(get_user_documents_dir()); }
-	static tinystl::string GetAppPreferencesDir(const tinystl::string& org, const tinystl::string& app)
+	static eastl::string GetCurrentDir() { return AddTrailingSlash(get_current_dir()); }
+	static eastl::string GetProgramDir() { return GetPath(get_exe_path()); }
+	static eastl::string GetProgramFileName() { return GetFileName(get_exe_path()); }
+	static eastl::string GetUserDocumentsDir() { return AddTrailingSlash(get_user_documents_dir()); }
+	static eastl::string GetAppPreferencesDir(const eastl::string& org, const eastl::string& app)
 	{
-		return AddTrailingSlash(get_app_prefs_dir(org, app));
+		return AddTrailingSlash(get_app_prefs_dir(org.c_str(), app.c_str()));
 	}
-	static void GetFilesWithExtension(const tinystl::string& dir, const tinystl::string& ext, tinystl::vector<tinystl::string>& files)
+	static void GetFilesWithExtension(const eastl::string& dir, const eastl::string& ext, eastl::vector<eastl::string>& files)
 	{
 		get_files_with_extension(dir.c_str(), ext.c_str(), files);
 	}
-	static void GetSubDirectories(const tinystl::string& dir, tinystl::vector<tinystl::string>& subDirectories)
+	static void GetSubDirectories(const eastl::string& dir, eastl::vector<eastl::string>& subDirectories)
 	{
 		get_sub_directories(dir.c_str(), subDirectories);
 	}
 
-	static void SetCurrentDir(const tinystl::string& path) { set_current_dir(path.c_str()); }
+	static void SetCurrentDir(const eastl::string& path) { set_current_dir(path.c_str()); }
 
-	static tinystl::string CombinePaths(const tinystl::string& path1, const tinystl::string& path2);
+	static eastl::string CombinePaths(const eastl::string& path1, const eastl::string& path2);
 	static void SplitPath(
-		const tinystl::string& fullPath, tinystl::string* pathName, tinystl::string* fileName, tinystl::string* extension,
+		const eastl::string& fullPath, eastl::string* pathName, eastl::string* fileName, eastl::string* extension,
 		bool lowercaseExtension = true);
-	static tinystl::string GetPath(const tinystl::string& fullPath);
-	static tinystl::string GetFileName(const tinystl::string& fullPath);
-	static tinystl::string GetExtension(const tinystl::string& fullPath, bool lowercaseExtension = true);
-	static tinystl::string GetFileNameAndExtension(const tinystl::string& fullPath, bool lowercaseExtension = false);
-	static tinystl::string ReplaceExtension(const tinystl::string& fullPath, const tinystl::string& newExtension);
-	static tinystl::string AddTrailingSlash(const tinystl::string& pathName);
-	static tinystl::string RemoveTrailingSlash(const tinystl::string& pathName);
-	static tinystl::string GetParentPath(const tinystl::string& pathName);
-	static tinystl::string GetInternalPath(const tinystl::string& pathName);
-	static tinystl::string GetNativePath(const tinystl::string& pathName);
+	static eastl::string GetPath(const eastl::string& fullPath);
+	static eastl::string GetFileName(const eastl::string& fullPath);
+	static eastl::string GetExtension(const eastl::string& fullPath, bool lowercaseExtension = true);
+	static eastl::string GetFileNameAndExtension(const eastl::string& fullPath, bool lowercaseExtension = false);
+	static eastl::string ReplaceExtension(const eastl::string& fullPath, const eastl::string& newExtension);
+	static eastl::string AddTrailingSlash(const eastl::string& pathName);
+	static eastl::string RemoveTrailingSlash(const eastl::string& pathName);
+	static eastl::string GetParentPath(const eastl::string& pathName);
+	static eastl::string GetInternalPath(const eastl::string& pathName);
+	static eastl::string GetNativePath(const eastl::string& pathName);
 
-	static bool CopyFile(const tinystl::string& src, const tinystl::string& dst, bool bFailIfExists);
-	static bool DirExists(const tinystl::string& pathName);
-	static bool CreateDir(const tinystl::string& pathName);
-	static int  SystemRun(const tinystl::string& fileName, const tinystl::vector<tinystl::string>& arguments, tinystl::string stdOut = "");
-	static bool Delete(const tinystl::string& fileName);
+	static bool CopyFile(const eastl::string& src, const eastl::string& dst, bool bFailIfExists);
+	static bool DirExists(const eastl::string& pathName);
+	static bool CreateDir(const eastl::string& pathName);
+	static int  SystemRun(const eastl::string& fileName, const eastl::vector<eastl::string>& arguments, eastl::string stdOut = "");
+	static bool Delete(const eastl::string& fileName);
 
 	static void OpenFileDialog(
-		const tinystl::string& title, const tinystl::string& dir, FileDialogCallbackFn callback, void* userData,
-		const tinystl::string& fileDesc, const tinystl::vector<tinystl::string>& allowedExtentions)
+		const eastl::string& title, const eastl::string& dir, FileDialogCallbackFn callback, void* userData,
+		const eastl::string& fileDesc, const eastl::vector<eastl::string>& allowedExtentions)
 	{
-		open_file_dialog(title, dir, callback, userData, fileDesc, allowedExtentions);
+		open_file_dialog(title.c_str(), dir.c_str(), callback, userData, fileDesc.c_str(), allowedExtentions);
 	}
 
 	static void SaveFileDialog(
-		const tinystl::string& title, const tinystl::string& dir, FileDialogCallbackFn callback, void* userData,
-		const tinystl::string& fileDesc, const tinystl::vector<tinystl::string>& allowedExtentions)
+		const eastl::string& title, const eastl::string& dir, FileDialogCallbackFn callback, void* userData,
+		const eastl::string& fileDesc, const eastl::vector<eastl::string>& allowedExtentions)
 	{
-		save_file_dialog(title, dir, callback, userData, fileDesc, allowedExtentions);
+		save_file_dialog(title.c_str(), dir.c_str(), callback, userData, fileDesc.c_str(), allowedExtentions);
 	}
 
 
@@ -350,6 +350,6 @@ class FileSystem
 
 	private:
 	// The following root paths are the ones that were modified at run-time
-	static tinystl::string mModifiedRootPaths[FSRoot::FSR_Count];
-	static tinystl::string mProgramDir;
+	static eastl::string mModifiedRootPaths[FSRoot::FSR_Count];
+	static eastl::string mProgramDir;
 };

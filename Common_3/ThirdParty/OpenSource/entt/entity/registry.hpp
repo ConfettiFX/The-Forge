@@ -3,8 +3,9 @@
 
 
 #include <tuple>
-#include "../../TinySTL/vector.h"
-#include "../../TinySTL/memory.h"
+#include "../../EASTL/vector.h"
+#include "../../EASTL/unique_ptr.h"
+#include "../../EASTL/numeric.h"
 #include <utility>
 #include <cstddef>
 #include "../../../../OS/Interfaces/IOperatingSystem.h"
@@ -54,7 +55,7 @@ class Registry {
 
         template<typename... Args>
         Component & construct(const Entity entity, Args &&... args) {
-            auto &component = SparseSet<Entity, Component>::construct(entity, std::forward<Args>(args)...);
+            auto &component = SparseSet<Entity, Component>::construct(entity, eastl::forward<Args>(args)...);
             ctor.publish(*registry, entity);
             return component;
         }
@@ -86,7 +87,7 @@ class Registry {
 
         template<typename... Args>
         Tag & construct(const Entity entity, Args &&... args) ENTT_NOEXCEPT {
-            auto &tag = Attachee<Entity, Tag>::construct(entity, std::forward<Args>(args)...);
+            auto &tag = Attachee<Entity, Tag>::construct(entity, eastl::forward<Args>(args)...);
             ctor.publish(*registry, entity);
             return tag;
         }
@@ -166,29 +167,29 @@ class Registry {
     }
 
     template<typename Comp, size_t Pivot, typename... Component, size_t... Indexes>
-    void connect(std::index_sequence<Indexes...>) {
-        pool<Comp>().construction().template connect<&Registry::creating<&handler_family::type<Component...>, std::tuple_element_t<(Indexes < Pivot ? Indexes : (Indexes+1)), std::tuple<Component...>>...>>();
+    void connect(eastl::index_sequence<Indexes...>) {
+        pool<Comp>().construction().template connect<&Registry::creating<&handler_family::type<Component...>, eastl::tuple_element_t<(Indexes < Pivot ? Indexes : (Indexes+1)), eastl::tuple<Component...>>...>>();
         pool<Comp>().destruction().template connect<&Registry::destroying<Component...>>();
     }
 
     template<typename... Component, size_t... Indexes>
-    void connect(std::index_sequence<Indexes...>) {
+    void connect(eastl::index_sequence<Indexes...>) {
         using accumulator_type = int[];
-        accumulator_type accumulator = { (assure<Component>(), connect<Component, Indexes, Component...>(std::make_index_sequence<sizeof...(Component)-1>{}), 0)... };
+        accumulator_type accumulator = { (assure<Component>(), connect<Component, Indexes, Component...>(eastl::make_index_sequence<sizeof...(Component)-1>{}), 0)... };
         (void)accumulator;
     }
 
     template<typename Comp, size_t Pivot, typename... Component, size_t... Indexes>
-    void disconnect(std::index_sequence<Indexes...>) {
-        pool<Comp>().construction().template disconnect<&Registry::creating<&handler_family::type<Component...>, std::tuple_element_t<(Indexes < Pivot ? Indexes : (Indexes+1)), std::tuple<Component...>>...>>();
+    void disconnect(eastl::index_sequence<Indexes...>) {
+        pool<Comp>().construction().template disconnect<&Registry::creating<&handler_family::type<Component...>, eastl::tuple_element_t<(Indexes < Pivot ? Indexes : (Indexes+1)), eastl::tuple<Component...>>...>>();
         pool<Comp>().destruction().template disconnect<&Registry::destroying<Component...>>();
     }
 
     template<typename... Component, size_t... Indexes>
-    void disconnect(std::index_sequence<Indexes...>) {
+    void disconnect(eastl::index_sequence<Indexes...>) {
         using accumulator_type = int[];
         // if a set exists, pools have already been created for it
-        accumulator_type accumulator = { (disconnect<Component, Indexes, Component...>(std::make_index_sequence<sizeof...(Component)-1>{}), 0)... };
+        accumulator_type accumulator = { (disconnect<Component, Indexes, Component...>(eastl::make_index_sequence<sizeof...(Component)-1>{}), 0)... };
         (void)accumulator;
     }
 
@@ -201,7 +202,7 @@ class Registry {
         }
 
         if(!pools[ctype]) {
-            pools[ctype] = tinystl::make_unique<Pool<Component>>(this);
+            pools[ctype] = eastl::make_unique<Pool<Component>>(this);
         }
     }
 
@@ -214,7 +215,7 @@ class Registry {
         }
 
         if(!tags[ttype]) {
-            tags[ttype] = tinystl::make_unique<Attaching<Tag>>(this);
+            tags[ttype] = eastl::make_unique<Attaching<Tag>>(this);
         }
     }
 
@@ -224,7 +225,7 @@ public:
     /*! @brief Underlying version type. */
     using version_type = typename traits_type::version_type;
     /*! @brief Unsigned integer type. */
-    using size_type = std::size_t;
+    using size_type = size_t;
     /*! @brief Unsigned integer type. */
     using tag_type = typename tag_family::family_type;
     /*! @brief Unsigned integer type. */
@@ -658,7 +659,7 @@ public:
         assert(valid(entity));
         assert(!has<Tag>());
         assure<Tag>(tag_t{});
-        return pool<Tag>(tag_t{}).construct(entity, std::forward<Args>(args)...);
+        return pool<Tag>(tag_t{}).construct(entity, eastl::forward<Args>(args)...);
     }
 
     /**
@@ -685,7 +686,7 @@ public:
     Component & assign(const entity_type entity, Args &&... args) {
         assert(valid(entity));
         assure<Component>();
-        return pool<Component>().construct(entity, std::forward<Args>(args)...);
+        return pool<Component>().construct(entity, eastl::forward<Args>(args)...);
     }
 
     /**
@@ -857,9 +858,9 @@ public:
      * @return References to the components owned by the entity.
      */
     template<typename... Component>
-    inline std::enable_if_t<(sizeof...(Component) > 1), std::tuple<const Component &...>>
+    inline eastl::enable_if_t<(sizeof...(Component) > 1), eastl::tuple<const Component &...>>
     get(const entity_type entity) const ENTT_NOEXCEPT {
-        return std::tuple<const Component &...>{get<Component>(entity)...};
+        return eastl::tuple<const Component &...>{get<Component>(entity)...};
     }
 
     /**
@@ -877,9 +878,9 @@ public:
      * @return References to the components owned by the entity.
      */
     template<typename... Component>
-    inline std::enable_if_t<(sizeof...(Component) > 1), std::tuple<Component &...>>
+    inline eastl::enable_if_t<(sizeof...(Component) > 1), eastl::tuple<Component &...>>
     get(const entity_type entity) ENTT_NOEXCEPT {
-        return std::tuple<Component &...>{get<Component>(entity)...};
+        return eastl::tuple<Component &...>{get<Component>(entity)...};
     }
 
     /**
@@ -902,7 +903,7 @@ public:
      */
     template<typename Tag, typename... Args>
     Tag & replace(tag_t, Args &&... args) {
-        return (get<Tag>() = Tag{std::forward<Args>(args)...});
+        return (get<Tag>() = Tag{eastl::forward<Args>(args)...});
     }
 
     /**
@@ -927,7 +928,7 @@ public:
      */
     template<typename Component, typename... Args>
     Component & replace(const entity_type entity, Args &&... args) {
-        return (get<Component>(entity) = Component{std::forward<Args>(args)...});
+        return (get<Component>(entity) = Component{eastl::forward<Args>(args)...});
     }
 
     /**
@@ -996,8 +997,8 @@ public:
         auto &cpool = pool<Component>();
 
         return cpool.has(entity)
-                ? cpool.get(entity) = Component{std::forward<Args>(args)...}
-                : cpool.construct(entity, std::forward<Args>(args)...);
+                ? cpool.get(entity) = Component{eastl::forward<Args>(args)...}
+                : cpool.construct(entity, eastl::forward<Args>(args)...);
     }
 
     /**
@@ -1160,7 +1161,7 @@ public:
     template<typename Component, typename Compare, typename Sort = StdSort, typename... Args>
     void sort(Compare compare, Sort sort = Sort{}, Args &&... args) {
         assure<Component>();
-        pool<Component>().sort(std::move(compare), std::move(sort), std::forward<Args>(args)...);
+        pool<Component>().sort(eastl::move(compare), eastl::move(sort), eastl::forward<Args>(args)...);
     }
 
     /**
@@ -1341,7 +1342,7 @@ public:
      */
     template<typename Func>
     void orphans(Func func) const {
-        each([func = std::move(func), this](const auto entity) {
+        each([func = eastl::move(func), this](const auto entity) {
             if(orphan(entity)) {
                 func(entity);
             }
@@ -1413,8 +1414,8 @@ public:
         }
 
         if(!handlers[htype]) {
-            connect<Component...>(std::make_index_sequence<sizeof...(Component)>{});
-            handlers[htype] = tinystl::make_unique<SparseSet<entity_type>>();
+            connect<Component...>(eastl::make_index_sequence<sizeof...(Component)>{});
+            handlers[htype] = eastl::make_unique<SparseSet<entity_type>>();
             auto &handler = *handlers[htype];
 
             for(auto entity: view<Component...>()) {
@@ -1441,7 +1442,7 @@ public:
     template<typename... Component>
     void discard() {
         if(contains<Component...>()) {
-            disconnect<Component...>(std::make_index_sequence<sizeof...(Component)>{});
+            disconnect<Component...>(eastl::make_index_sequence<sizeof...(Component)>{});
             handlers[handler_family::type<Component...>()].reset();
         }
     }
@@ -1561,14 +1562,14 @@ public:
      */
     template<typename It>
     RuntimeView<Entity> view(It first, It last) {
-        static_assert(std::is_convertible<typename std::iterator_traits<It>::value_type, component_type>::value, "!");
-        tinystl::vector<const SparseSet<Entity> *> set(last - first);
+        static_assert(eastl::is_convertible<typename eastl::iterator_traits<It>::value_type, component_type>::value, "!");
+        eastl::vector<const SparseSet<Entity> *> set(last - first);
 
-        std::transform(first, last, set.begin(), [this](const component_type ctype) {
+        eastl::transform(first, last, set.begin(), [this](const component_type ctype) {
             return ctype < pools.size() ? pools[ctype].get() : nullptr;
         });
 
-        return RuntimeView<Entity>{std::move(set)};
+        return RuntimeView<Entity>{eastl::move(set)};
     }
 
     /**
@@ -1614,15 +1615,15 @@ public:
         using assure_fn_type = void(Registry &, const entity_type, const bool);
 
         assure_fn_type *assure = [](Registry &registry, const entity_type entity, const bool destroyed) {
-            using promotion_type = std::conditional_t<sizeof(size_type) >= sizeof(entity_type), size_type, entity_type>;
-            // explicit promotion to avoid warnings with std::uint16_t
+            using promotion_type = eastl::conditional_t<sizeof(size_type) >= sizeof(entity_type), size_type, entity_type>;
+            // explicit promotion to avoid warnings with eastl::uint16_t
             const auto entt = promotion_type{entity} & traits_type::entity_mask;
             auto &entities = registry.entities;
 
             if(!(entt < entities.size())) {
                 auto curr = entities.size();
                 entities.resize(entt + 1);
-                std::iota(entities.data() + curr, entities.data() + entt, entity_type(curr));
+                eastl::iota(entities.data() + curr, entities.data() + entt, entity_type(curr));
             }
 
             entities[entt] = entity;
@@ -1638,10 +1639,10 @@ public:
     }
 
 private:
-    tinystl::vector<tinystl::unique_ptr<SparseSet<Entity>>> handlers;
-    tinystl::vector<tinystl::unique_ptr<SparseSet<Entity>>> pools;
-    tinystl::vector<tinystl::unique_ptr<Attachee<Entity>>> tags;
-    tinystl::vector<entity_type> entities;
+    eastl::vector<eastl::unique_ptr<SparseSet<Entity>>> handlers;
+    eastl::vector<eastl::unique_ptr<SparseSet<Entity>>> pools;
+    eastl::vector<eastl::unique_ptr<Attachee<Entity>>> tags;
+    eastl::vector<entity_type> entities;
     size_type available{};
     entity_type next{};
 };

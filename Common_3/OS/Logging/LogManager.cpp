@@ -26,20 +26,29 @@
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/IOperatingSystem.h"
-#include "../../ThirdParty/OpenSource/TinySTL/unordered_map.h"
+#include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 
 #include "../Interfaces/IMemoryManager.h"
 
 #define LOG_PREAMBLE_SIZE (56 + MAX_THREAD_NAME_LENGTH + FILENAME_NAME_LENGTH_LOG)
 
-tinystl::unordered_map<uint32_t, tinystl::string> logLevelPrefixes{};
+static LogManager gLogger;
 
-tinystl::string GetTimeStamp()
+// Fill unordered map for log level prefixes
+static eastl::unordered_map<uint32_t, eastl::string> logLevelPrefixes{
+	eastl::pair<uint32_t, eastl::string>{ LogLevel::eWARNING, eastl::string{ "WARN" } },
+	eastl::pair<uint32_t, eastl::string>{ LogLevel::eINFO, eastl::string{ "INFO" } },
+	eastl::pair<uint32_t, eastl::string>{ LogLevel::eDEBUG, eastl::string{ " DBG" } },
+	eastl::pair<uint32_t, eastl::string>{ LogLevel::eERROR, eastl::string{ " ERR" } }
+};
+static bool gOnce = true;
+
+eastl::string GetTimeStamp()
 {
 	time_t sysTime;
 	time(&sysTime);
-	tinystl::string dateTime = ctime(&sysTime);
-	dateTime.replace('\n', ' ');
+	eastl::string dateTime = ctime(&sysTime);
+	eastl::replace(dateTime.begin(), dateTime.end(), '\n', ' ');
 	return dateTime;
 }
 
@@ -55,7 +64,7 @@ const char* get_filename(const char* path)
 }
 
 // Default callback
-void log_write(void * user_data, const tinystl::string & message)
+void log_write(void * user_data, const eastl::string & message)
 {
 	File * file = static_cast<File *>(user_data);
 	file->WriteLine(message);
@@ -94,9 +103,8 @@ LogManager::LogScope::LogScope(uint32_t log_level, const char * file, int line, 
 	// Write to log and update indentation
 	LogManager::Write(mLevel, "{ " + mMessage, mFile, mLine);
 	{
-		LogManager & log = LogManager::Get();
-		MutexLock lock{ log.mLogMutex };
-		++log.mIndentation;
+		MutexLock lock{ gLogger.mLogMutex };
+		++gLogger.mIndentation;
 	}
 }
 
@@ -104,53 +112,28 @@ LogManager::LogScope::~LogScope()
 {
 	// Update indentation and write to log
 	{
-		LogManager & log = LogManager::Get();
-		MutexLock lock{ log.mLogMutex };
-		--log.mIndentation;
+		MutexLock lock{ gLogger.mLogMutex };
+		--gLogger.mIndentation;
 	}
 	LogManager::Write(mLevel, "} " + mMessage, mFile, mLine);
 }
 
+// Settors
+void LogManager::SetLevel(LogLevel level)             { gLogger.mLogLevel = level; }
+void LogManager::SetQuiet(bool bQuiet)                { gLogger.mQuietMode = bQuiet; }
+void LogManager::SetTimeStamp(bool bEnable)           { gLogger.mRecordTimestamp = bEnable; }
+void LogManager::SetRecordingFile(bool bEnable)       { gLogger.mRecordFile = bEnable; }
+void LogManager::SetRecordingThreadName(bool bEnable) { gLogger.mRecordThreadName = bEnable; }
+
+// Gettors
+uint32_t LogManager::GetLevel()            { return gLogger.mLogLevel; }
+eastl::string LogManager::GetLastMessage() { return gLogger.mLastMessage; }
+bool LogManager::IsQuiet()                 { return gLogger.mQuietMode; }
+bool LogManager::IsRecordingTimeStamp()    { return gLogger.mRecordTimestamp; }
+bool LogManager::IsRecordingFile()         { return gLogger.mRecordFile; }
+bool LogManager::IsRecordingThreadName()   { return gLogger.mRecordThreadName; }
+
 void LogManager::AddFile(const char * filename, FileMode file_mode, LogLevel log_level)
-{
-	AddFile(Get(), filename, file_mode, log_level);
-}
-
-void LogManager::AddCallback(const char * id, uint32_t log_level, void * user_data, log_callback_t callback, log_close_t close, log_flush_t flush)
-{
-	AddCallback(Get(), id, log_level, user_data, callback, close, flush);
-}
-
-void LogManager::SetLevel(LogLevel level)
-{
-	Get().mLogLevel = level;
-}
-
-void LogManager::SetQuiet(bool quiet) { Get().mQuietMode = quiet; }
-
-void LogManager::SetTimeStamp(bool enable) { Get().mRecordTimestamp = enable; }
-
-void LogManager::SetRecordingFile(bool enable) { Get().mRecordFile = enable; }
-
-void LogManager::SetRecordingThreadName(bool enable) { Get().mRecordThreadName = enable; }
-
-void LogManager::Write(uint32_t level, const tinystl::string& message, const char * filename, int line_number)
-{
-	Write(Get(), level, message, filename, line_number);
-}
-
-void LogManager::WriteRaw(uint32_t level, const tinystl::string& message, bool error)
-{
-	WriteRaw(Get(), level, message, error);
-}
-
-LogManager & LogManager::Get()
-{
-	static LogManager logger;
-	return logger;
-}
-
-void LogManager::AddFile(LogManager & log, const char * filename, FileMode file_mode, LogLevel log_level)
 {
 	if (filename == 0)
 		return;
@@ -158,49 +141,54 @@ void LogManager::AddFile(LogManager & log, const char * filename, FileMode file_
 	File * file = conf_placement_new<File>(conf_calloc(1, sizeof(File)));
 	if (file->Open(filename, file_mode, FSR_Absolute))
 	{
-		AddCallback(log, FileSystem::GetCurrentDir() + filename, log_level, file, log_write, log_close, log_flush);
+		// AddCallback will try to acquire mutex
+		AddCallback((FileSystem::GetCurrentDir() + filename).c_str(), log_level, file, log_write, log_close, log_flush);
 
-		// Header
-		tinystl::string header;
-		if (log.mRecordTimestamp)
-			header += "date       time     "; 
-		if (log.mRecordThreadName)
-			header += "[thread name/id ]";
-		if (log.mRecordFile)
-			header += "                   file:line  ";
-		header += "  v |\n";
-		file->Write(header.c_str(), (unsigned)header.size());
-		file->Flush();
+		{
+			MutexLock lock{ gLogger.mLogMutex }; // scope lock as Write will try to acquire mutex
 
-		Write(log, LogLevel::eINFO, "Opened log file " + tinystl::string{ filename }, __FILE__, __LINE__);
+			// Header
+			eastl::string header;
+			if (gLogger.mRecordTimestamp)
+				header += "date       time     ";
+			if (gLogger.mRecordThreadName)
+				header += "[thread name/id ]";
+			if (gLogger.mRecordFile)
+				header += "                   file:line  ";
+			header += "  v |\n";
+			file->Write(header.c_str(), (unsigned)header.size());
+			file->Flush();
+		}
+
+		Write(LogLevel::eINFO, "Opened log file " + eastl::string{ filename }, __FILE__, __LINE__);
 	}
 	else
 	{
 		file->~File();
 		conf_free(file);
-		Write(log, LogLevel::eERROR, "Failed to create log file " + tinystl::string{ filename }, __FILE__, __LINE__);
+		Write(LogLevel::eERROR, "Failed to create log file " + eastl::string{ filename }, __FILE__, __LINE__); // will try to acquire mutex
 	}
 }
 
-void LogManager::AddCallback(LogManager & log, const char * id, uint32_t log_level, void * user_data, log_callback_t callback, log_close_t close, log_flush_t flush)
+void LogManager::AddCallback(const char * id, uint32_t log_level, void * user_data, log_callback_t callback, log_close_t close, log_flush_t flush)
 {
-	MutexLock lock{ log.mLogMutex };
-	if (!CallbackExists(log, id))
+	MutexLock lock{ gLogger.mLogMutex };
+	if (!CallbackExists(id))
 	{
-		log.mCallbacks.emplace_back(LogCallback{ id, user_data, callback, close, flush, log_level });
+		gLogger.mCallbacks.emplace_back(LogCallback{ id, user_data, callback, close, flush, log_level });
 	}
 	else
 		close(user_data);
 }
 
-void LogManager::Write(LogManager & log, uint32_t level, const tinystl::string & message, const char * filename, int line_number)
+void LogManager::Write(uint32_t level, const eastl::string & message, const char * filename, int line_number)
 {
-	tinystl::string log_level_strings[LEVELS_LOG];
+	eastl::string log_level_strings[LEVELS_LOG];
 	uint32_t log_levels[LEVELS_LOG];
 	uint32_t log_level_count = 0;
 
 	// Check flags
-	for (tinystl::unordered_map<uint32_t, tinystl::string>::iterator it = logLevelPrefixes.begin(); it != logLevelPrefixes.end(); ++it)
+	for (eastl::unordered_map<uint32_t, eastl::string>::iterator it = logLevelPrefixes.begin(); it != logLevelPrefixes.end(); ++it)
 	{
 		if (it->first & level)
 		{
@@ -210,24 +198,32 @@ void LogManager::Write(LogManager & log, uint32_t level, const tinystl::string &
 		}
 	}
 	
-	MutexLock lock{ log.mLogMutex };
+	bool do_once = false;
+	{
+		MutexLock lock{ gLogger.mLogMutex }; // scope lock as stack frames from calling AddInitialLogFile will attempt to lock mutex
+		do_once = gOnce;
+		gOnce = false;
+	}
+	if (do_once)
+		AddInitialLogFile();
 
-	log.mLastMessage = message;
+	MutexLock lock{ gLogger.mLogMutex };
+	gLogger.mLastMessage = message;
 
 	char preamble[LOG_PREAMBLE_SIZE] = { 0 };
-	WritePreamble(log, preamble, LOG_PREAMBLE_SIZE, filename, line_number);
+	WritePreamble(preamble, LOG_PREAMBLE_SIZE, filename, line_number);
 
 	// Prepare indentation
-	tinystl::string indentation;
-	indentation.resize(log.mIndentation * INDENTATION_SIZE_LOG);
+	eastl::string indentation;
+	indentation.resize(gLogger.mIndentation * INDENTATION_SIZE_LOG);
 	memset(indentation.begin(), ' ', indentation.size());
 
 	// Log for each flag
 	for (uint32_t i = 0; i < log_level_count; ++i)
 	{
-        tinystl::string formattedMessage = preamble + log_level_strings[i] + indentation + message;
+        eastl::string formattedMessage = preamble + log_level_strings[i] + indentation + message;
 
-		if (log.mQuietMode)
+		if (gLogger.mQuietMode)
 		{
 			if (level & LogLevel::eERROR)
 				_PrintUnicodeLine(formattedMessage, true);
@@ -238,7 +234,7 @@ void LogManager::Write(LogManager & log, uint32_t level, const tinystl::string &
 		}
 	}
 	
-	for (LogCallback & callback : log.mCallbacks)
+	for (LogCallback & callback : gLogger.mCallbacks)
 	{
 		// Log for each flag
 		for (uint32_t i = 0; i < log_level_count; ++i)
@@ -249,13 +245,22 @@ void LogManager::Write(LogManager & log, uint32_t level, const tinystl::string &
 	}
 }
 
-void LogManager::WriteRaw(LogManager & log, uint32_t level, const tinystl::string & message, bool error)
+void LogManager::WriteRaw(uint32_t level, const eastl::string & message, bool error)
 {
-	MutexLock lock{ log.mLogMutex };
+	bool do_once = false;
+	{
+		MutexLock lock{ gLogger.mLogMutex }; // scope lock as stack frames from calling AddInitialLogFile will attempt to lock mutex
+		do_once = gOnce;
+		gOnce = false;
+	}
+	if (do_once)
+		AddInitialLogFile();
 	
-	log.mLastMessage = message;
+	MutexLock lock{ gLogger.mLogMutex };
 	
-	if (log.mQuietMode)
+	gLogger.mLastMessage = message;
+	
+	if (gLogger.mQuietMode)
 	{
 		if (error)
 			_PrintUnicode(message, true);
@@ -263,14 +268,24 @@ void LogManager::WriteRaw(LogManager & log, uint32_t level, const tinystl::strin
 	else
 		_PrintUnicode(message, error);
 	
-	for (LogCallback & callback : log.mCallbacks)
+	for (LogCallback & callback : gLogger.mCallbacks)
 	{
 		if (callback.mLevel & level)
 			callback.mCallback(callback.mUserData, message);
 	}
 }
 
-void LogManager::WritePreamble(LogManager & log, char * buffer, uint32_t buffer_size, const char * file, int line)
+void LogManager::AddInitialLogFile()
+{
+	// Add new file with executable name
+	eastl::string exeFileName = FileSystem::GetProgramFileName();
+	//Minimum Length check
+	if (exeFileName.size() < 2)
+		exeFileName = "Log";
+	AddFile((exeFileName + ".log").c_str(), FileMode::FM_WriteBinary, LogLevel::eALL);
+}
+
+void LogManager::WritePreamble(char * buffer, uint32_t buffer_size, const char * file, int line)
 {
 	time_t  t = time(NULL);
 	tm time_info;
@@ -282,7 +297,7 @@ void LogManager::WritePreamble(LogManager & log, char * buffer, uint32_t buffer_
 
 	uint32_t pos = 0;
 	// Date and time
-	if (log.mRecordTimestamp && pos < buffer_size)
+	if (gLogger.mRecordTimestamp && pos < buffer_size)
 	{
 		pos += snprintf(buffer + pos, buffer_size - pos, "%04d-%02d-%02d ",
 			1900 + time_info.tm_year, 1 + time_info.tm_mon, time_info.tm_mday);
@@ -290,7 +305,7 @@ void LogManager::WritePreamble(LogManager & log, char * buffer, uint32_t buffer_
 			time_info.tm_hour, time_info.tm_min, time_info.tm_sec);
 	}
 
-	if (log.mRecordThreadName && pos < buffer_size)
+	if (gLogger.mRecordThreadName && pos < buffer_size)
 	{
 		char thread_name[MAX_THREAD_NAME_LENGTH + 1] = { 0 };
 		Thread::GetCurrentThreadName(thread_name, MAX_THREAD_NAME_LENGTH + 1);
@@ -299,25 +314,23 @@ void LogManager::WritePreamble(LogManager & log, char * buffer, uint32_t buffer_
 		if (thread_name[0] == 0)
 			snprintf(thread_name, MAX_THREAD_NAME_LENGTH + 1, "NoName");
 
-		pos += snprintf(buffer + pos, buffer_size - pos, "[%-*s]",
-			MAX_THREAD_NAME_LENGTH, thread_name);
+		pos += snprintf(buffer + pos, buffer_size - pos, "[%-15s]", thread_name);
 	}
 
 	// File and line
-	if (log.mRecordFile && pos < buffer_size)
+	if (gLogger.mRecordFile && pos < buffer_size)
 	{
 		file = get_filename(file);
 
 		char shortened_filename[FILENAME_NAME_LENGTH_LOG + 1];
 		snprintf(shortened_filename, FILENAME_NAME_LENGTH_LOG + 1, "%s", file);
-		pos += snprintf(buffer + pos, buffer_size - pos, "%*s:%-5u ",
-			FILENAME_NAME_LENGTH_LOG, shortened_filename, line);
+		pos += snprintf(buffer + pos, buffer_size - pos, " %22s:%-5u ", shortened_filename, line);
 	}
 }
 
-bool LogManager::CallbackExists(const LogManager & log, const char * id)
+bool LogManager::CallbackExists(const char * id)
 {
-	for (const LogCallback & callback : log.mCallbacks)
+	for (const LogCallback & callback : gLogger.mCallbacks)
 	{
 		if (callback.mID == id)
 			return true;
@@ -336,18 +349,6 @@ LogManager::LogManager(LogLevel level)
 {
 	Thread::SetMainThread();
 	Thread::SetCurrentThreadName("MainThread");
-
-	// Fill unordered map for log level prefixes
-	logLevelPrefixes.insert(tinystl::pair<uint32_t, tinystl::string>{ LogLevel::eWARNING, tinystl::string{ "WARN" } });
-	logLevelPrefixes.insert(tinystl::pair<uint32_t, tinystl::string>{ LogLevel::eINFO, tinystl::string{ "INFO" } });
-	logLevelPrefixes.insert(tinystl::pair<uint32_t, tinystl::string>{ LogLevel::eDEBUG, tinystl::string{ " DBG" } });
-	logLevelPrefixes.insert(tinystl::pair<uint32_t, tinystl::string>{ LogLevel::eERROR, tinystl::string{ " ERR" } });
-
-	tinystl::string exeFileName = FileSystem::GetProgramFileName();
-	//Minimum Length check
-	if (exeFileName.size() < 2)
-		exeFileName = "Log";
-	AddFile(*this, exeFileName + ".log", FileMode::FM_WriteBinary, LogLevel::eALL);
 }
 
 LogManager::~LogManager()
@@ -359,10 +360,9 @@ LogManager::~LogManager()
 	}
 	
 	mCallbacks.clear();
-	logLevelPrefixes.clear();
 }
 
-tinystl::string ToString(const char* format, ...)
+eastl::string ToString(const char* format, ...)
 {
 	const unsigned BUFFER_SIZE = 4096;
 	char           buf[BUFFER_SIZE];
@@ -372,5 +372,5 @@ tinystl::string ToString(const char* format, ...)
 	vsprintf_s(buf, BUFFER_SIZE, format, arglist);
 	va_end(arglist);
 
-	return tinystl::string(buf);
+	return eastl::string(buf);
 }

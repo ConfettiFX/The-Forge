@@ -2,10 +2,10 @@
 #define ENTT_RESOURCE_CACHE_HPP
 
 
-#include "../../TinySTL/memory.h"
+#include "../../EASTL/shared_ptr.h"
 #include <utility>
 #include <type_traits>
-#include "../../TinySTL/unordered_map.h"
+#include "../../EASTL/unordered_map.h"
 #include "../config/config.h"
 #include "../core/hashed_string.hpp"
 #include "handle.hpp"
@@ -27,7 +27,7 @@ namespace entt {
  */
 template<typename Resource>
 class ResourceCache {
-    using container_type = tinystl::unordered_map<HashedString::hash_type, tinystl::shared_ptr<Resource>>;
+    using container_type = eastl::unordered_map<HashedString::hash_type, eastl::shared_ptr<Resource>>;
 
 public:
     /*! @brief Unsigned integer type. */
@@ -94,13 +94,13 @@ public:
      */
     template<typename Loader, typename... Args>
     bool load(const resource_type id, Args &&... args) {
-        static_assert(std::is_base_of<ResourceLoader<Loader, Resource>, Loader>::value, "!");
+        static_assert(eastl::is_base_of<ResourceLoader<Loader, Resource>, Loader>::value, "!");
 
         bool loaded = true;
 
         if(resources.find(id) == resources.cend()) {
-            tinystl::shared_ptr<Resource> resource = Loader{}.get(std::forward<Args>(args)...);
-            loaded = (static_cast<bool>(resource) ? (resources[id] = std::move(resource), loaded) : false);
+            eastl::shared_ptr<Resource> resource = Loader{}.get(eastl::forward<Args>(args)...);
+            loaded = (static_cast<bool>(resource) ? (resources[id] = eastl::move(resource), loaded) : false);
         }
 
         return loaded;
@@ -127,7 +127,7 @@ public:
      */
     template<typename Loader, typename... Args>
     bool reload(const resource_type id, Args &&... args) {
-        return (discard(id), load<Loader>(id, std::forward<Args>(args)...));
+        return (discard(id), load<Loader>(id, eastl::forward<Args>(args)...));
     }
 
     /**
@@ -144,7 +144,7 @@ public:
      */
     template<typename Loader, typename... Args>
     ResourceHandle<Resource> temp(Args &&... args) const {
-        return { Loader{}.get(std::forward<Args>(args)...) };
+        return { Loader{}.get(eastl::forward<Args>(args)...) };
     }
 
     /**

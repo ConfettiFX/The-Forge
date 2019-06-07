@@ -24,33 +24,36 @@
 #else // !_MSC_VER
     #if defined(__SSE__)
         #define VECTORMATH_CPU_HAS_SSE1_OR_BETTER 1
+	#elif defined(__arm64) || defined(__aarch64__) || defined(__arm__ )
+		#define VECTORMATH_CPU_HAS_NEON 1
     #else // !__SSE__
         #define VECTORMATH_CPU_HAS_SSE1_OR_BETTER 0
+		#define VECTORMATH_CPU_HAS_NEON 0
     #endif // __SSE__
 #endif // _MSC_VER
 
 // Sony's library includes:
 #define VECTORMATH_FORCE_SCALAR_MODE 0
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-// SSE mat4 implementation doesn't work well (produces incorrect results)
-#ifdef VECTORMATH_FORCE_SCALAR_MODE
-#undef VECTORMATH_FORCE_SCALAR_MODE
-#endif
 
-#define VECTORMATH_FORCE_SCALAR_MODE 1
-#endif
-
-#if (VECTORMATH_CPU_HAS_SSE1_OR_BETTER && !VECTORMATH_FORCE_SCALAR_MODE)
+#if (VECTORMATH_CPU_HAS_SSE1_OR_BETTER && !VECTORMATH_FORCE_SCALAR_MODE) // SSE
     #include "sse/vectormath.hpp"
     using namespace Vectormath::SSE;
     #define VECTORMATH_MODE_SCALAR 0
     #define VECTORMATH_MODE_SSE    1
+	#define VECTORMATH_MODE_NEON   0
+#elif (VECTORMATH_CPU_HAS_NEON && !VECTORMATH_FORCE_SCALAR_MODE) // NEON
+	#include "neon/vectormath.hpp"
+	using namespace Vectormath::Neon;
+	#define VECTORMATH_MODE_SCALAR 0
+    #define VECTORMATH_MODE_SSE    0
+	#define VECTORMATH_MODE_NEON   1
 #else // !SSE
     #include "scalar/vectormath.hpp"
     using namespace Vectormath::Scalar;
     #define VECTORMATH_MODE_SCALAR 1
     #define VECTORMATH_MODE_SSE    0
+	#define VECTORMATH_MODE_NEON   0
 #endif // Vectormath mode selection
 
 //========================================= #ConfettiMathExtensionsBegin ================================================

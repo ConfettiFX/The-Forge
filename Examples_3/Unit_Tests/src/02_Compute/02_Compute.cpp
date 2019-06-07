@@ -27,17 +27,17 @@
 // Unit Test for testing Compute Shaders
 // using Julia 4D demonstration
 //tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
-#include "../../../../Common_3/Renderer/GpuProfiler.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
 //Math
@@ -45,9 +45,6 @@
 
 //ui
 #include "../../../../Middleware_3/UI/AppUI.h"
-
-//profiler
-#include "../../../../Common_3/Tools/Profiler/Profiler.h"
 
 //input
 #include "../../../../Common_3/OS/Input/InputSystem.h"
@@ -109,6 +106,8 @@ const char* pszBases[FSR_Count] = {
 };
 
 const uint32_t gImageCount = 3;
+bool           bToggleMicroProfiler = false;
+bool           bPrevToggleMicroProfiler = false;
 
 Renderer* pRenderer = NULL;
 Buffer*   pUniformBuffer[gImageCount] = { NULL };
@@ -153,7 +152,7 @@ struct ObjectProperty
 } gObjSettings;
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
-
+GuiComponent* pGui = NULL;
 
 class Compute: public IApp
 {
@@ -192,8 +191,11 @@ class Compute: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
-		ActivateMicroProfile(&gAppUI, true);
+		// Initialize profile
+		initProfiler(pRenderer, gImageCount);
+		profileRegisterInput();
+
+		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 #if defined(MOBILE_PLATFORM)
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
 			return false;
@@ -256,10 +258,6 @@ class Compute: public IApp
 			addResource(&ubDesc);
 		}
 
-		// Initialize profile
-		ProfileInitialize(pRenderer, gImageCount);
-		ProfileRegisterInput();
-
 		// Width and height needs to be same as Texture's
 		gUniformData.mHeight = mSettings.mHeight;
 		gUniformData.mWidth = mSettings.mWidth;
@@ -268,6 +266,15 @@ class Compute: public IApp
 			return false;
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+
+    GuiDesc guiDesc = {};
+    float   dpiScale = getDpiScale().x;
+    guiDesc.mStartSize = vec2(140.0f / dpiScale, 320.0f / dpiScale);
+    guiDesc.mStartPosition = vec2(mSettings.mWidth - guiDesc.mStartSize.getX() * 1.1f, guiDesc.mStartSize.getY() * 0.5f);
+
+    pGui = gAppUI.AddGuiComponent("Micro profiler", &guiDesc);
+
+    pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
 
 		CameraMotionParameters cmp{ 100.0f, 150.0f, 300.0f };
 		vec3                   camPos{ 48.0f, 48.0f, 20.0f };
@@ -300,7 +307,7 @@ class Compute: public IApp
 		gAppUI.Exit();
 
 		// Exit profile
-		ProfileExit(pRenderer);
+		exitProfiler(pRenderer);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -362,9 +369,6 @@ class Compute: public IApp
 		pipelineSettings.pShaderProgram = pShader;
 		addPipeline(pRenderer, &desc, &pPipeline);
 
-		// Load profile
-		ProfileLoad(pRenderer, pSwapChain);
-
 		return true;
 	}
 
@@ -377,9 +381,6 @@ class Compute: public IApp
 #endif
 
 		gAppUI.Unload();
-
-		// Unload profile
-		ProfileUnload(pRenderer);
 
 		removePipeline(pRenderer, pPipeline);
 
@@ -427,6 +428,24 @@ class Compute: public IApp
 		gUniformData.mMu = vec4(gMuC[0], gMuC[1], gMuC[2], gMuC[3]);
 		gUniformData.mWidth = mSettings.mWidth;
 		gUniformData.mHeight = mSettings.mHeight;
+
+
+    // ProfileSetDisplayMode()
+    // TODO: need to change this better way 
+    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+    {
+      Profile& S = *ProfileGet();
+      int nValue = bToggleMicroProfiler ? 1 : 0;
+      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+      S.nDisplay = nValue;
+
+      bPrevToggleMicroProfiler = bToggleMicroProfiler;
+    }
+
+    /************************************************************************/
+    // Update GUI
+    /************************************************************************/
+    gAppUI.Update(deltaTime);
 	}
 
 	void Draw()
@@ -504,17 +523,19 @@ class Compute: public IApp
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-#if (PROFILE_ENABLED)
-		ProfileDraw(cmd, static_cast<uint32_t>(mSettings.mWidth), static_cast<uint32_t>(mSettings.mHeight));
-#else
-		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
 
 #if !defined(__ANDROID__)
-		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
+			&gFrameTimeDraw);
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
 #endif
-#endif
 
+    gAppUI.Gui(pGui);
+
+    cmdDrawProfiler(cmd, static_cast<uint32_t>(mSettings.mWidth), static_cast<uint32_t>(mSettings.mHeight));
 		gAppUI.Draw(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -528,9 +549,10 @@ class Compute: public IApp
 
 		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		flipProfiler();
 	}
 
-	tinystl::string GetName() { return "02_Compute"; }
+	const char* GetName() { return "02_Compute"; }
 
 	bool addSwapChain()
 	{

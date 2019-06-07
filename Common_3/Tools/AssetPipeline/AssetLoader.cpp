@@ -35,7 +35,7 @@
 bool AssetLoader::LoadSkeleton(const char* skeletonFile, FSRoot root, ozz::animation::Skeleton* skeleton)
 {
 	// Fix path
-	tinystl::string path = FileSystem::FixPath(skeletonFile, root);
+	eastl::string path = FileSystem::FixPath(skeletonFile, root);
 
 	// Load skeleton from disk
 	ozz::io::File file(path.c_str(), "rb");
@@ -51,7 +51,7 @@ bool AssetLoader::LoadSkeleton(const char* skeletonFile, FSRoot root, ozz::anima
 bool AssetLoader::LoadAnimation(const char* animationFile, FSRoot root, ozz::animation::Animation* animation)
 {
 	// Fix path
-	tinystl::string path = FileSystem::FixPath(animationFile, root);
+	eastl::string path = FileSystem::FixPath(animationFile, root);
 
 	// Load animation from disk
 	ozz::io::File file(path.c_str(), "rb");

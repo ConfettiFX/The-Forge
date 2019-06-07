@@ -101,12 +101,12 @@ static bool mHideMouseCursorWhileCaptured = true;
 static bool mVirtualKeyboardActive = false;
 
 // we should have more than one map
-static tinystl::unordered_map<uint32_t, tinystl::vector<KeyMappingDescription>>     mKeyMappings;
-static tinystl::unordered_map<uint32_t, tinystl::vector<GestureMappingDescription>> mGestureMappings;
-static tinystl::unordered_map<uint32_t, tinystl::vector<UserToDeviceMap>>           mDeviceToUserMappings;
+static eastl::unordered_map<uint32_t, eastl::vector<KeyMappingDescription>>     mKeyMappings;
+static eastl::unordered_map<uint32_t, eastl::vector<GestureMappingDescription>> mGestureMappings;
+static eastl::unordered_map<uint32_t, eastl::vector<UserToDeviceMap>>           mDeviceToUserMappings;
 
-static tinystl::vector<InputSystem::InputEventHandler> mInputCallbacks;
-static tinystl::vector<uint32_t>                       mInputPriorities;
+static eastl::vector<InputSystem::InputEventHandler> mInputCallbacks;
+static eastl::vector<uint32_t>                       mInputPriorities;
 
 // gainput systems
 static gainput::InputManager* pInputManager = NULL;
@@ -235,7 +235,7 @@ void RegisterInputEvent(InputEventHandler callback, uint32_t priority)
 
 void UnregisterInputEvent(InputEventHandler callback)
 {
-	InputEventHandler* it = mInputCallbacks.find(callback);
+	decltype(mInputCallbacks)::iterator it = eastl::find(mInputCallbacks.begin(), mInputCallbacks.end(), callback);
 	if (it != mInputCallbacks.end())
 	{
 		uint64_t index = it - mInputCallbacks.begin();
@@ -305,7 +305,7 @@ bool IsButtonMapped(uint32_t userKey)
 
 bool GetBoolInput(uint32_t inputId)
 {
-	tinystl::vector<KeyMappingDescription> keyMappings = mKeyMappings[inputId];
+	eastl::vector<KeyMappingDescription> keyMappings = mKeyMappings[inputId];
 
 	if (keyMappings.size() == 0)
 	{
@@ -350,7 +350,7 @@ bool GetBoolInput(uint32_t inputId)
 
 float GetFloatInput(uint32_t inputId, uint32_t axis)
 {
-	tinystl::vector<KeyMappingDescription> keyMappings = mKeyMappings[inputId];
+	eastl::vector<KeyMappingDescription> keyMappings = mKeyMappings[inputId];
 
 	if (keyMappings.size() == 0)
 	{
@@ -531,7 +531,7 @@ void GetVirtualKeyboardTextInput(char* inputBuffer, uint32_t inputBufferSize)
 
 bool GatherInputEventButton(gainput::DeviceId deviceId, gainput::DeviceButtonId deviceButton, float oldValue, float newValue)
 {
-	tinystl::vector<UserToDeviceMap>& userButtons = mDeviceToUserMappings[deviceButton];
+	eastl::vector<UserToDeviceMap>& userButtons = mDeviceToUserMappings[deviceButton];
 
 	GainputDeviceType deviceType = GetDeviceType(deviceId);
 	bool              isMapped = false;
@@ -550,7 +550,7 @@ bool GatherInputEventButton(gainput::DeviceId deviceId, gainput::DeviceButtonId 
 
 		//here it means one user key maps to multiple device button
 		//such as left stick with w-a-s-d or left stick with touchx, touchy
-		tinystl::vector<KeyMappingDescription> keyMappings = mKeyMappings[userButtons[i].userMapping];
+		eastl::vector<KeyMappingDescription> keyMappings = mKeyMappings[userButtons[i].userMapping];
 
 		if (keyMappings.size() == 0)
 		{

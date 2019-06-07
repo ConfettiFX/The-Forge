@@ -24,8 +24,8 @@
 
 // Unit Test for testing wave intrinsic operations
 
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
@@ -521,7 +521,8 @@ class WaveIntrinsics: public IApp
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
 
-		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
 
 		gAppUI.Gui(pGui);
 		gAppUI.Draw(cmd);
@@ -536,7 +537,7 @@ class WaveIntrinsics: public IApp
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
 	}
 
-	tinystl::string GetName() { return "14_WaveIntrinsics"; }
+	const char* GetName() { return "14_WaveIntrinsics"; }
 
 	bool addSwapChain()
 	{

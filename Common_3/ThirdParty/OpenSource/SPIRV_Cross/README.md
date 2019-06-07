@@ -90,7 +90,7 @@ int main()
 #### Integrating SPIRV-Cross in a custom build system
 
 To add SPIRV-Cross to your own codebase, just copy the source and header files from root directory
-and build the relevant .cpp files you need. Make sure to build with C++11 support, e.g. `-std=c++11` in GCC and Clang.
+and build the relevant .cpp files you need. Make sure to build with C++11 support, e.g. `-std=c++14` in GCC and Clang.
 Alternatively, the Makefile generates a libspirv-cross.a static library during build that can be linked in.
 
 ### Creating a SPIR-V file from GLSL with glslang

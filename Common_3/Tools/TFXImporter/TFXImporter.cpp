@@ -80,7 +80,7 @@ bool TFXImporter::ImportTFXMesh(const char* filename, FSRoot root, TFXMesh* tfxM
 	if (!file.Open(filename, FileMode::FM_ReadBinary, root))
 		return false;
 
-	tinystl::vector<tinystl::string> splitLine;
+	eastl::vector<eastl::string> splitLine;
 	uint                             numOfBones = 0;
 	uint                             bonesFound = 0;
 	uint                             numOfVertices = 0;
@@ -90,12 +90,18 @@ bool TFXImporter::ImportTFXMesh(const char* filename, FSRoot root, TFXMesh* tfxM
 
 	while (!file.IsEof())
 	{
-		tinystl::string line = file.ReadLine();
+		eastl::string line = file.ReadLine();
 
 		if (line[0] == '#')
 			continue;
 
-		splitLine = line.split(' ');
+		size_t pos = 0;
+		while (pos != eastl::string::npos)
+		{
+			size_t prev = line.find_first_not_of(' ', pos);
+			pos = line.find_first_of(' ', prev);
+			splitLine.push_back(line.substr(pos, pos != eastl::string::npos ? pos-prev : eastl::string::npos));
+		}
 		if (splitLine.empty())
 			continue;
 

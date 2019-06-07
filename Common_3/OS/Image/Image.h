@@ -27,7 +27,7 @@
 
 #include "ImageEnums.h"
 #include "../Interfaces/IFileSystem.h"
-#include "../../ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../ThirdParty/OpenSource/EASTL/string.h"
 
 #define ALL_MIPLEVELS 127
 
@@ -63,23 +63,23 @@ class Image
 		mOwnsMemory = false;
 		pData = pixelData;
 	}
-	void SetName(const tinystl::string& name) { mLoadFileName = name; }
+	void SetName(const eastl::string& name) { mLoadFileName = name; }
 
-	uint                   GetWidth() const { return mWidth; }
-	uint                   GetHeight() const { return mHeight; }
-	uint                   GetDepth() const { return mDepth; }
-	uint                   GetWidth(const int mipMapLevel) const;
-	uint                   GetHeight(const int mipMapLevel) const;
-	uint                   GetDepth(const int mipMapLevel) const;
-	uint                   GetMipMapCount() const { return mMipMapCount; }
-	const tinystl::string& GetName() const { return mLoadFileName; }
-	uint                   GetMipMapCountFromDimensions() const;
-	uint                   GetArraySliceSize(const uint mipMapLevel = 0, ImageFormat::Enum srcFormat = ImageFormat::NONE) const;
-	uint                   GetNumberOfPixels(const uint firstMipLevel = 0, uint numMipLevels = ALL_MIPLEVELS) const;
-	bool                   GetColorRange(float& min, float& max);
-	bool                   Normalize();
-	bool                   Uncompress();
-	bool                   Unpack();
+	uint                 GetWidth() const { return mWidth; }
+	uint                 GetHeight() const { return mHeight; }
+	uint                 GetDepth() const { return mDepth; }
+	uint                 GetWidth(const int mipMapLevel) const;
+	uint                 GetHeight(const int mipMapLevel) const;
+	uint                 GetDepth(const int mipMapLevel) const;
+	uint                 GetMipMapCount() const { return mMipMapCount; }
+	const eastl::string& GetName() const { return mLoadFileName; }
+	uint                 GetMipMapCountFromDimensions() const;
+	uint                 GetArraySliceSize(const uint mipMapLevel = 0, ImageFormat::Enum srcFormat = ImageFormat::NONE) const;
+	uint                 GetNumberOfPixels(const uint firstMipLevel = 0, uint numMipLevels = ALL_MIPLEVELS) const;
+	bool                 GetColorRange(float& min, float& max);
+	bool                 Normalize();
+	bool                 Uncompress();
+	bool                 Unpack();
 
 	bool Convert(const ImageFormat::Enum newFormat);
 	bool GenerateMipMaps(const uint32_t mipMaps = ALL_MIPLEVELS);
@@ -139,7 +139,7 @@ class Image
 
 	protected:
 	unsigned char*    pData;
-	tinystl::string   mLoadFileName;
+	eastl::string   mLoadFileName;
 	uint              mWidth, mHeight, mDepth;
 	uint              mMipMapCount;
 	uint              mArrayCount;

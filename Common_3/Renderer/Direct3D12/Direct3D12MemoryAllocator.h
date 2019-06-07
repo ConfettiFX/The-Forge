@@ -797,7 +797,7 @@ static void resourceAlloc_delete_array(T* ptr, size_t count)
 	}
 }
 
-#define AllocatorVector tinystl::vector
+#define AllocatorVector eastl::vector
 
 template <typename T>
 static void VectorInsert(AllocatorVector<T>& vec, size_t index, const T& item)
@@ -1373,8 +1373,8 @@ class AllocatorList
 ////////////////////////////////////////////////////////////////////////////////
 // class AllocatorMap
 
-#define AllocatorPair tinystl::pair
-#define RESOURCE_MAP_TYPE(KeyT, ValueT) tinystl::unordered_map<KeyT, ValueT>
+#define AllocatorPair eastl::pair
+#define RESOURCE_MAP_TYPE(KeyT, ValueT) eastl::unordered_map<KeyT, ValueT>
 
 ////////////////////////////////////////////////////////////////////////////////
 

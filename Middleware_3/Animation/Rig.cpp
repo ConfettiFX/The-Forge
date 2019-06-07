@@ -43,9 +43,9 @@ void Rig::Initialize(const char* skeletonFile)
 		}
 	}
 
-	mJointWorldMats = tinystl::vector<Matrix4>(mNumJoints, Matrix4::identity());
-	mBoneWorldMats = tinystl::vector<Matrix4>(mNumJoints, Matrix4::identity());
-	mJointScales = tinystl::vector<Vector3>(mNumJoints, Vector3(1.0f, 1.0f, 1.0f));
+	mJointWorldMats = eastl::vector<Matrix4>(mNumJoints, Matrix4::identity());
+	mBoneWorldMats = eastl::vector<Matrix4>(mNumJoints, Matrix4::identity());
+	mJointScales = eastl::vector<Vector3>(mNumJoints, Vector3(1.0f, 1.0f, 1.0f));
 
 	// Allocates joint model matrix buffer
 	ozz::memory::Allocator* allocator = ozz::memory::default_allocator();

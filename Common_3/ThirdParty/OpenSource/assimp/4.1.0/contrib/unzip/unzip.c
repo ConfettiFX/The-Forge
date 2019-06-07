@@ -57,7 +57,7 @@ typedef unsigned long z_crc_t;
 #endif
 
 extern void* conf_malloc(size_t);
-extern void  conf_free(size_t);
+extern void  conf_free(void*);
 
 #ifndef local
 #  define local static

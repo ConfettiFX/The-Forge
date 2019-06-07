@@ -37,8 +37,8 @@
 #import <simd/simd.h>
 #import <MetalKit/MetalKit.h>
 
+#include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 #import "../IRenderer.h"
-#include "../../Tools/Profiler/Profiler.h"
 #include "MetalMemoryAllocator.h"
 #include "../../OS/Interfaces/ILogManager.h"
 #include "../../OS/Core/GPUConfig.h"
@@ -49,7 +49,7 @@
 
 extern void mtl_createShaderReflection(
 	Renderer* pRenderer, Shader* shader, const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage,
-	tinystl::unordered_map<uint32_t, MTLVertexFormat>* vertexAttributeFormats, ShaderReflection* pOutReflection);
+	eastl::unordered_map<uint32_t, MTLVertexFormat>* vertexAttributeFormats, ShaderReflection* pOutReflection);
 
 #if defined(__cplusplus) && defined(RENDERER_CPP_NAMESPACE)
 namespace RENDERER_CPP_NAMESPACE {
@@ -432,18 +432,18 @@ static DepthState*      pDefaultDepthState = NULL;
 static RasterizerState* pDefaultRasterizerState = NULL;
 
 // Since there are no descriptor tables in Metal, we just hold a map of all descriptors.
-using DescriptorMap = tinystl::unordered_map<uint64_t, DescriptorInfo>;
-using ConstDescriptorMapIterator = tinystl::unordered_map<uint64_t, DescriptorInfo>::const_iterator;
-using DescriptorMapNode = tinystl::unordered_hash_node<uint64_t, DescriptorInfo>;
-using DescriptorNameToIndexMap = tinystl::unordered_map<uint32_t, uint32_t>;
+using DescriptorMap = eastl::unordered_map<uint64_t, DescriptorInfo>;
+using ConstDescriptorMapIterator = eastl::unordered_map<uint64_t, DescriptorInfo>::const_iterator;
+using DescriptorMapIterator = eastl::unordered_map<uint64_t, DescriptorInfo>::iterator;
+using DescriptorNameToIndexMap = eastl::unordered_map<uint32_t, uint32_t>;
 
 const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName, uint32_t* pIndex)
 {
-	DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pResName));
-	if (it.node)
+	decltype(pRootSignature->pDescriptorNameToIndexMap)::const_iterator it = pRootSignature->pDescriptorNameToIndexMap.find(pResName);
+	if (it != pRootSignature->pDescriptorNameToIndexMap.end())
 	{
-		*pIndex = it.node->second;
-		return &pRootSignature->pDescriptors[it.node->second];
+		*pIndex = it->second;
+		return &pRootSignature->pDescriptors[it->second];
 	}
 	else
 	{
@@ -475,12 +475,12 @@ typedef struct DescriptorBinderNode
 	bool  mBoundStaticSamplers = false;
 
 	/// Map that holds all the argument buffers bound by this descriptor biner for each root signature.
-	tinystl::unordered_map<uint32_t, tinystl::pair<Buffer*, bool>> mArgumentBuffers;
+	eastl::string_hash_map<eastl::pair<Buffer*, bool>> mArgumentBuffers;
 } DescriptorBinderNode;
 
 typedef struct DescriptorBinder
 {
-	tinystl::unordered_map<const RootSignature*, DescriptorBinderNode> mRootSignatureNodes;
+	eastl::unordered_map<const RootSignature*, DescriptorBinderNode> mRootSignatureNodes;
 } DescriptorBinder;
 
 /************************************************************************/
@@ -504,7 +504,7 @@ void util_barrier_required(Cmd* pCmd, const CmdPoolType& encoderType);
 	
 void reset_bound_resources(DescriptorBinder* pDescriptorBinder, RootSignature* pRootSignature)
 {
-	DescriptorBinderNode& node = pDescriptorBinder->mRootSignatureNodes.find(pRootSignature).node->second;
+	DescriptorBinderNode& node = pDescriptorBinder->mRootSignatureNodes.find(pRootSignature)->second;
 
 	node.mBoundStaticSamplers = false;
 	for (uint32_t i = 0; i < pRootSignature->mDescriptorCount; ++i)
@@ -561,7 +561,7 @@ void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, Roo
 	// If the values match, no op is required
 	reset_bound_resources(pDescriptorBinder, pRootSignature);
 
-	DescriptorBinderNode& node = pDescriptorBinder->mRootSignatureNodes.find(pRootSignature).node->second;
+	DescriptorBinderNode& node = pDescriptorBinder->mRootSignatureNodes.find(pRootSignature)->second;
 
 	// Loop through input params to check for new data
 	for (uint32_t paramIdx = 0; paramIdx < numDescriptors; ++paramIdx)
@@ -574,7 +574,6 @@ void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, Roo
 			return;
 		}
 
-		uint32_t hash = tinystl::hash(pParam->pName);
 		uint32_t descIndex = -1;
 		const DescriptorInfo* pDesc = get_descriptor(pRootSignature, pParam->pName, &descIndex);
 		if (!pDesc)
@@ -620,7 +619,7 @@ void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, Roo
 				node.pDescriptorDataArray[descIndex].ppBuffers = pParam->ppBuffers;
 
 				// In case we're binding an argument buffer, signal that we need to re-encode the resources into the buffer.
-				if(arrayCount > 1 && node.mArgumentBuffers.find(hash).node) node.mArgumentBuffers[hash].second = true;
+				if(arrayCount > 1 && node.mArgumentBuffers.find(pParam->pName) != node.mArgumentBuffers.end()) node.mArgumentBuffers[pParam->pName].second = true;
 
 				break;
 			default: break;
@@ -774,7 +773,7 @@ void addDescriptorBinder(
 		const DescriptorBinderDesc* pDesc = pDescs + idesc;
 		RootSignature*              pRootSignature = pDesc->pRootSignature;
 
-		tinystl::unordered_map<const RootSignature*, DescriptorBinderNode>::const_iterator it = descriptorBinder->mRootSignatureNodes.find(pRootSignature);
+		eastl::unordered_map<const RootSignature*, DescriptorBinderNode>::const_iterator it = descriptorBinder->mRootSignatureNodes.find(pRootSignature);
 		if (it != descriptorBinder->mRootSignatureNodes.end())
 			continue;  // we only need to store data per unique root signature. It is safe to skip repeated ones in Metal renderer.
 
@@ -831,16 +830,16 @@ void addDescriptorBinder(
 				}
 			}
 		}
-		descriptorBinder->mRootSignatureNodes.insert({ pRootSignature, node });
+		descriptorBinder->mRootSignatureNodes.insert({{ pRootSignature, node }});
 	}
 	*ppDescriptorBinder = descriptorBinder;
 }
 
 void removeDescriptorBinder(Renderer* pRenderer, DescriptorBinder* pDescriptorBinder)
 {
-	for (tinystl::unordered_hash_node<const RootSignature*, DescriptorBinderNode>& node : pDescriptorBinder->mRootSignatureNodes)
+	for (eastl::unordered_map<const RootSignature*, DescriptorBinderNode>::value_type& node : pDescriptorBinder->mRootSignatureNodes)
 	{
-		tinystl::unordered_map<uint32_t, tinystl::pair<Buffer*, bool>>::iterator it = node.second.mArgumentBuffers.begin();
+		eastl::string_hash_map<eastl::pair<Buffer*, bool>>::iterator it = node.second.mArgumentBuffers.begin();
 			for(; it != node.second.mArgumentBuffers.end(); ++it)
 		{
 			if(it->second.first != NULL)
@@ -861,7 +860,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 	ASSERT(pDescriptorBinder);
 	ASSERT(pRootSignature);
 
-	DescriptorBinderNode& node = pDescriptorBinder->mRootSignatureNodes.find(pRootSignature).node->second;
+	DescriptorBinderNode& node = pDescriptorBinder->mRootSignatureNodes.find(pRootSignature)->second;
 
 	// Compare the currently bound descriptor binder with the new descriptor binder
 	// If these values dont match, we must bind the new descriptor binder
@@ -885,7 +884,6 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 			return;
 		}
 
-		uint32_t              hash = tinystl::hash(pParam->pName);
 		uint32_t              descIndex = -1;
 		const DescriptorInfo* pDesc = get_descriptor(pRootSignature, pParam->pName, &descIndex);
 		if (!pDesc)
@@ -935,8 +933,8 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 				node.pDescriptorDataArray[descIndex].ppBuffers = pParam->ppBuffers;
 
 				// In case we're binding an argument buffer, signal that we need to re-encode the resources into the buffer.
-				if (arrayCount > 1 && node.mArgumentBuffers.find(hash).node)
-					node.mArgumentBuffers[hash].second = true;
+				if (arrayCount > 1 && node.mArgumentBuffers.find(pParam->pName) != node.mArgumentBuffers.end())
+					node.mArgumentBuffers[pParam->pName].second = true;
 
 				break;
 			default: break;
@@ -1284,7 +1282,7 @@ CFArrayRef getItemsArrayFromDictionary(const CFDictionaryRef inDictionary)
 	return (itemsArray);
 }
 //Used to call system profiler to retrieve GPU information such as vendor id and model id
-void retrieveSystemProfilerInformation(tinystl::string& outVendorId)
+void retrieveSystemProfilerInformation(eastl::string& outVendorId)
 {
 	FILE*           sys_profile;
 	size_t          bytesRead = 0;
@@ -1304,7 +1302,7 @@ void retrieveSystemProfilerInformation(tinystl::string& outVendorId)
         if (bytesRead == 0)
         {
             LOGF(LogLevel::eERROR, "Couldn't read SPDisplaysData from system_profiler");
-            outVendorId = tinystl::string("0x0000");
+            outVendorId = eastl::string("0x0000");
             return;
         }
 	// Create a CFDataRef with the xml data
@@ -1354,7 +1352,7 @@ void retrieveSystemProfilerInformation(tinystl::string& outVendorId)
 //Used to go through the given registry ID for the select device.
 //Multiple id's can be found so they get filtered using the inModel id that was taken
 //from system profile
-void displayGraphicsInfo(uint64_t regId, tinystl::string inModel, GPUVendorPreset& vendorVecOut)
+void displayGraphicsInfo(uint64_t regId, eastl::string inModel, GPUVendorPreset& vendorVecOut)
 {
 	// Get dictionary of all the PCI Devices
 	//CFMutableDictionaryRef matchDict = IOServiceMatching("IOPCIDevice");
@@ -1399,8 +1397,8 @@ void displayGraphicsInfo(uint64_t regId, tinystl::string inModel, GPUVendorPrese
 					NSString* modelId = [vendor substringToIndex:6];
 					NSString* vendorId = [vendor substringFromIndex:6];
 					vendorId = [@"0x" stringByAppendingString:vendorId];
-					tinystl::string modelIdString = [modelId.lowercaseString UTF8String];
-					tinystl::string vendorIdString = [vendorId.lowercaseString UTF8String];
+					eastl::string modelIdString = [modelId.lowercaseString UTF8String];
+					eastl::string vendorIdString = [vendorId.lowercaseString UTF8String];
 					//filter out unwated model id's
 					if (modelIdString != inModel)
 						continue;
@@ -1478,10 +1476,10 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 		GPUVendorPreset gpuVendor;
 		gpuVendor.mPresetLevel = GPUPresetLevel::GPU_PRESET_LOW;
 #ifndef TARGET_IOS
-		tinystl::string outModelId;
+		eastl::string outModelId;
 		retrieveSystemProfilerInformation(outModelId);
 		displayGraphicsInfo(pRenderer->pDevice.registryID, outModelId, gpuVendor);
-		tinystl::string mDeviceName = [pRenderer->pDevice.name UTF8String];
+		eastl::string mDeviceName = [pRenderer->pDevice.name UTF8String];
 		strncpy(gpuVendor.mGpuName, mDeviceName.c_str(), MAX_GPU_VENDOR_STRING_LENGTH);
 		LOGF(LogLevel::eINFO, "Current Gpu Name: %s", gpuVendor.mGpuName);
 		LOGF(LogLevel::eINFO, "Current Gpu Vendor ID: %s", gpuVendor.mVendorId);
@@ -1977,16 +1975,16 @@ void addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShaderPr
 	Shader* pShaderProgram = (Shader*)conf_calloc(1, sizeof(*pShaderProgram));
 	pShaderProgram->mStages = pDesc->mStages;
 
-	tinystl::unordered_map<uint32_t, MTLVertexFormat> vertexAttributeFormats;
+	eastl::unordered_map<uint32_t, MTLVertexFormat> vertexAttributeFormats;
 
 	uint32_t         shaderReflectionCounter = 0;
 	ShaderReflection stageReflections[SHADER_STAGE_COUNT];
 	for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
 	{
-		tinystl::string              source = NULL;
+		eastl::string              source = NULL;
 		const char*                  entry_point = NULL;
 		const char*                  shader_name = NULL;
-		tinystl::vector<ShaderMacro> shader_macros;
+		eastl::vector<ShaderMacro> shader_macros;
 		__strong id<MTLFunction>* compiled_code = NULL;
 
 		ShaderStage stage_mask = (ShaderStage)(1 << i);
@@ -2036,10 +2034,10 @@ void addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShaderPr
 			NSArray* valArray = [[NSArray alloc] init];
 			for (uint i = 0; i < shader_macros.size(); i++)
 			{
-				defArray = [defArray arrayByAddingObject:[[NSString alloc] initWithUTF8String:shader_macros[i].definition]];
+				defArray = [defArray arrayByAddingObject:[[NSString alloc] initWithUTF8String:shader_macros[i].definition.c_str()]];
 
 				// Try reading the macro value as a NSNumber. If failed, use it as an NSString.
-				NSString* valueString = [[NSString alloc] initWithUTF8String:shader_macros[i].value];
+				NSString* valueString = [[NSString alloc] initWithUTF8String:shader_macros[i].value.c_str()];
 				NSNumber* valueNumber = [numberFormatter numberFromString:valueString];
 				if (valueNumber)
 					valArray = [valArray arrayByAddingObject:valueNumber];
@@ -2104,7 +2102,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 
 	pShaderProgram->mStages = pDesc->mStages;
 
-	tinystl::unordered_map<uint32_t, MTLVertexFormat> vertexAttributeFormats;
+	eastl::unordered_map<uint32_t, MTLVertexFormat> vertexAttributeFormats;
 
 	uint32_t reflectionCount = 0;
 	for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
@@ -2112,7 +2110,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 		ShaderStage                  stage_mask = (ShaderStage)(1 << i);
 		const BinaryShaderStageDesc* pStage = NULL;
 		__strong id<MTLFunction>* compiled_code = NULL;
-        tinystl::string* entryPointName = NULL;
+        eastl::string* entryPointName = NULL;
 
 		if (stage_mask == (pShaderProgram->mStages & stage_mask))
 		{
@@ -2148,7 +2146,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 			id<MTLLibrary> lib = [pRenderer->pDevice newLibraryWithData:byteCode error:nil];
 
 			// Create a MTLFunction from the loaded MTLLibrary.
-			NSString*       entryPointNStr = [[NSString alloc] initWithUTF8String:pStage->mEntryPoint];
+			NSString*       entryPointNStr = [[NSString alloc] initWithUTF8String:pStage->mEntryPoint.c_str()];
 			id<MTLFunction> function = [lib newFunctionWithName:entryPointNStr];
 			*compiled_code = function;
 
@@ -2182,16 +2180,16 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 	ASSERT(pRenderer);
 	ASSERT(pRenderer->pDevice != nil);
 
-	RootSignature*                         pRootSignature = (RootSignature*)conf_calloc(1, sizeof(*pRootSignature));
-	tinystl::vector<ShaderResource const*> shaderResources;
+	RootSignature*                       pRootSignature = (RootSignature*)conf_calloc(1, sizeof(*pRootSignature));
+	eastl::vector<ShaderResource const*> shaderResources;
 
 	// Collect static samplers
-	tinystl::vector<tinystl::pair<ShaderResource const*, Sampler*>> staticSamplers;
-	tinystl::unordered_map<tinystl::string, Sampler*>               staticSamplerMap;
+	eastl::vector<eastl::pair<ShaderResource const*, Sampler*>> staticSamplers;
+	eastl::string_hash_map<Sampler*>                            staticSamplerMap;
 	for (uint32_t i = 0; i < pRootSignatureDesc->mStaticSamplerCount; ++i)
-		staticSamplerMap.insert({ pRootSignatureDesc->ppStaticSamplerNames[i], pRootSignatureDesc->ppStaticSamplers[i] });
+		staticSamplerMap.insert(pRootSignatureDesc->ppStaticSamplerNames[i], pRootSignatureDesc->ppStaticSamplers[i]);
 
-	conf_placement_new<tinystl::unordered_map<uint32_t, uint32_t>>(&pRootSignature->pDescriptorNameToIndexMap);
+	conf_placement_new<eastl::unordered_map<uint32_t, uint32_t>>(&pRootSignature->pDescriptorNameToIndexMap);
 
 	// Collect all unique shader resources in the given shaders
 	// Resources are parsed by name (two resources named "XYZ" in two shaders will be considered the same resource)
@@ -2209,29 +2207,29 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 			ShaderResource const* pRes = &pReflection->pShaderResources[i];
 
 			// Find all unique resources
-			tinystl::unordered_hash_node<uint32_t, uint32_t>* pNode =
-				pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pRes->name)).node;
-			if (!pNode)
+			decltype(pRootSignature->pDescriptorNameToIndexMap)::iterator pNode =
+				pRootSignature->pDescriptorNameToIndexMap.find(pRes->name);
+			if (pNode == pRootSignature->pDescriptorNameToIndexMap.end())
 			{
 				if (pRes->type == DESCRIPTOR_TYPE_SAMPLER)
 				{
 					// If the sampler is a static sampler, no need to put it in the descriptor table
-					const tinystl::unordered_hash_node<tinystl::string, Sampler*>* pNode = staticSamplerMap.find(pRes->name).node;
+					eastl::string_hash_map<Sampler*>::const_iterator pNode = staticSamplerMap.find(pRes->name);
 
-					if (pNode)
+					if (pNode != staticSamplerMap.end())
 					{
 						LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Static Sampler", pRes->name);
 						staticSamplers.push_back({ pRes, pNode->second });
 					}
 					else
 					{
-						pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), (uint32_t)shaderResources.size() });
+						pRootSignature->pDescriptorNameToIndexMap.insert(pRes->name, (uint32_t)shaderResources.size());
 						shaderResources.emplace_back(pRes);
 					}
 				}
 				else
 				{
-					pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), (uint32_t)shaderResources.size() });
+					pRootSignature->pDescriptorNameToIndexMap.insert(pRes->name, (uint32_t)shaderResources.size());
 					shaderResources.emplace_back(pRes);
 				}
 			}
@@ -2322,7 +2320,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 
 void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 {
-	pRootSignature->pDescriptorNameToIndexMap.~unordered_map();
+	pRootSignature->pDescriptorNameToIndexMap.~string_hash_map();
 
 	for (uint32_t i = 0; i < pRootSignature->mDescriptorCount; ++i)
 	{
@@ -2858,7 +2856,7 @@ void cmdBindRenderTargets(
 				(uint32_t)ppRenderTargets[i]->mDesc.mSampleCount,
 				(uint32_t)ppRenderTargets[i]->mDesc.mSrgb,
 			};
-			renderPassHash = tinystl::hash_state(hashValues, 3, renderPassHash);
+			renderPassHash = eastl::mem_hash<uint32_t>()(hashValues, 3, renderPassHash);
 		}
 
 		if (pDepthStencil != nil)
@@ -2937,7 +2935,7 @@ void cmdBindRenderTargets(
 				(uint32_t)pDepthStencil->mDesc.mSampleCount,
 				(uint32_t)pDepthStencil->mDesc.mSrgb,
 			};
-			renderPassHash = tinystl::hash_state(hashValues, 3, renderPassHash);
+			renderPassHash = eastl::mem_hash<uint32_t>()(hashValues, 3, renderPassHash);
 		}
 		else
 		{
@@ -3291,6 +3289,9 @@ void cmdExecuteIndirect(
 				IndirectDrawArguments* pDrawArgs = (IndirectDrawArguments*)(pIndirectBuffer->pCpuMappedAddress) + indirectBufferOffset;
 				unmapBuffer(pCmd->pRenderer, pIndirectBuffer);
 
+				if (pDrawArgs->mVertexCount)
+				{
+				
 				[pCmd->mtlRenderEncoder drawPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
 										 patchStart:pDrawArgs->mStartVertex
 										 patchCount:pDrawArgs->mVertexCount
@@ -3298,6 +3299,7 @@ void cmdExecuteIndirect(
 							 patchIndexBufferOffset:0
 									  instanceCount:pDrawArgs->mInstanceCount
 									   baseInstance:pDrawArgs->mStartInstance];
+				}
 #endif
 			}
 		}
@@ -3620,10 +3622,6 @@ void queuePresent(
 	// after committing a command buffer no more commands can be encoded on it: create a new command buffer for future commands
 	pSwapChain->presentCommandBuffer = [pQueue->mtlCommandQueue commandBuffer];
 	pSwapChain->mMTKDrawable = nil;
-	
-#ifdef PROFILE_ENABLED
-	ProfileFlip();
-#endif
 }
 
 void waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
@@ -3687,16 +3685,6 @@ void getRawTextureHandle(Renderer* pRenderer, Texture* pTexture, void** ppHandle
 
 void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
-    ProfileGpuSetContext(nullptr);
-    // Convert float3 color to *rgb8.
-    uint32 scope_color = static_cast<uint32>(r * 255) << 16
-    | static_cast<uint32>(g * 255) << 8
-    | static_cast<uint32>(b * 255);
-    
-    // This micro gets g_mp_temp token for the current gpu timestamp. Token is created per pName which mean passing in same name will return the same token.
-    // Create new scope on top of the current stack and enter
-    PROFILE_GPU_ENTER(temp, pName, scope_color);
-    
 	if (pCmd->mtlRenderEncoder)
 		[pCmd->mtlRenderEncoder pushDebugGroup:[NSString stringWithFormat:@"%s", pName]];
 	else if (pCmd->mtlComputeEncoder)
@@ -3727,9 +3715,6 @@ void cmdEndDebugMarker(Cmd* pCmd)
 		[pCmd->mtlBlitEncoder popDebugGroup];
 	else
 		[pCmd->mtlCommandBuffer popDebugGroup];
-    
-    // Leave the current scope and pop up the scope stack
-    PROFILE_GPU_LEAVE();
 }
 
 void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
@@ -3791,57 +3776,6 @@ void cmdResolveQuery(Cmd* pCmd, QueryHeap* pQueryHeap, Buffer* pReadbackBuffer, 
     memcpy(&data[0], &pQueryHeap->gpuTimestampStart, sizeof(uint64_t));
     memcpy(&data[1], &pQueryHeap->gpuTimestampEnd, sizeof(uint64_t));
 }
-
-    
-// -------------------------------------------------------------------------------------------------
-// MicroProfile GPU timers
-// -------------------------------------------------------------------------------------------------
-#if MICROPROFILE_GPU_TIMERS_METAL
-#define S g_MicroProfile
-   
-struct MicroProfileGpuTimerStateInternal
-{
-        
-};
-    
-MICROPROFILE_GPU_STATE_DECL(Internal);
-    
-void MicroProfileGpuInitInternal()
-{
-}
-
-void MicroProfileGpuShutdownInternal()
-{
-}
-
-uint32_t MicroProfileGpuFlipInternal()
-{
-    return 0;
-}
-    
-uint32_t MicroProfileGpuInsertTimerInternal(void* pContext)
-{
-    return 0;
-}
-    
-uint64_t MicroProfileGpuGetTimeStampInternal(uint32_t nIndex)
-{
-    return 0;
-}
-    
-uint64_t MicroProfileTicksPerSecondGpuInternal()
-{
-    return 0;
-}
-    
-bool MicroProfileGetGpuTickReferenceInternal(int64_t* pOutCpu, int64_t* pOutGpu)
-{
-    return true;
-}
-    
-MICROPROFILE_GPU_STATE_IMPL(Internal);
-    
-#endif
     
 // -------------------------------------------------------------------------------------------------
 // Utility functions
@@ -4029,11 +3963,10 @@ void util_bind_argument_buffer(Cmd* pCmd, DescriptorBinderNode& node, const Desc
 	id<MTLFunction>        shaderStage = nil;
 
 	// Look for the argument buffer (or create one if needed).
-	uint32_t hash = tinystl::hash(descData->pName);
 	{
-		tinystl::unordered_map<uint32_t, tinystl::pair<Buffer*, bool>>::iterator jt = node.mArgumentBuffers.find(hash);
+		eastl::string_hash_map<eastl::pair<Buffer*, bool>>::iterator jt = node.mArgumentBuffers.find(descData->pName);
 		// If not previous argument buffer was found, create a new bufffer.
-		if (jt.node == nil)
+		if (jt == node.mArgumentBuffers.end())
 		{
 			// Find a shader stage using this argument buffer.
 			ShaderStage stageMask = descInfo->mDesc.used_stages;
@@ -4053,7 +3986,7 @@ void util_bind_argument_buffer(Cmd* pCmd, DescriptorBinderNode& node, const Desc
 			bufferDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 			addBuffer(pCmd->pRenderer, &bufferDesc, &argumentBuffer);
 
-			node.mArgumentBuffers[hash] = { argumentBuffer, true };
+			node.mArgumentBuffers[descData->pName] = { argumentBuffer, true };
 			bufferNeedsReencoding = true;
 		}
 		else
@@ -4089,7 +4022,7 @@ void util_bind_argument_buffer(Cmd* pCmd, DescriptorBinderNode& node, const Desc
 			}
 		}
 
-		node.mArgumentBuffers[hash].second = false;
+		node.mArgumentBuffers[descData->pName].second = false;
 	}
 
 	// Bind the argument buffer.

@@ -35,7 +35,7 @@
 #include "../../Common_3/Renderer/IRenderer.h"
 #include "../../Common_3/Renderer/ResourceLoader.h"
 
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 
 #include "../../Common_3/OS/Interfaces/IMemoryManager.h"
 
@@ -210,7 +210,7 @@ class _Impl_FontStash
 		{
 			removeShader(pRenderer, pShaders[i]);
 			for (PipelineMap::iterator it = mPipelines[i].begin(); it != mPipelines[i].end(); ++it)
-				removePipeline(pRenderer, it.node->second);
+				removePipeline(pRenderer, it->second);
 
 			mPipelines[i].clear();
 		}
@@ -234,7 +234,7 @@ class _Impl_FontStash
 	static void fonsImplementationRenderText(void* userPtr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts);
 	static void fonsImplementationRemoveTexture(void* userPtr);
 
-	using PipelineMap = tinystl::unordered_map<uint64_t, Pipeline*>;
+	using PipelineMap = eastl::hash_map<uint64_t, Pipeline*>;
 
 	Renderer*    pRenderer;
 	FONScontext* pContext;
@@ -245,10 +245,10 @@ class _Impl_FontStash
 	uint32_t mWidth;
 	uint32_t mHeight;
 
-	tinystl::vector<void*>           mFontBuffers;
-	tinystl::vector<uint32_t>        mFontBufferSizes;
-	tinystl::vector<tinystl::string> mFontNames;
-	tinystl::vector<Texture*>        mTextureList;
+	eastl::vector<void*>           mFontBuffers;
+	eastl::vector<uint32_t>        mFontBufferSizes;
+	eastl::vector<eastl::string> mFontNames;
+	eastl::vector<Texture*>        mTextureList;
 
 	mat4 mProjView;
 	mat4 mWorldMat;
@@ -321,7 +321,7 @@ int Fontstash::getFontID(const char* identification)
 const char* Fontstash::getFontName(const char* identification)
 {
 	FONScontext* fs = impl->pContext;
-	return impl->mFontNames[fonsGetFontByName(fs, identification)];
+	return impl->mFontNames[fonsGetFontByName(fs, identification)].c_str();
 }
 
 void* Fontstash::getFontBuffer(const char* identification)
@@ -511,7 +511,7 @@ void _Impl_FontStash::fonsImplementationRenderText(
 	}
 	else
 	{
-		pPipeline = it.node->second;
+		pPipeline = it->second;
 	}
 
 	cmdBindPipeline(pCmd, pPipeline);

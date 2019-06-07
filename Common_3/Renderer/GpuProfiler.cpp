@@ -22,9 +22,10 @@
  * under the License.
 */
 
-#include "IRenderer.h"
 #include "GpuProfiler.h"
+#include "IRenderer.h"
 #include "ResourceLoader.h"
+#include "../ThirdParty/OpenSource/MicroProfile/ProfilerBase.h"
 #include "../OS/Interfaces/IThread.h"
 #include "../OS/Interfaces/ILogManager.h"
 #include "../OS/Interfaces/IMemoryManager.h"
@@ -128,10 +129,12 @@ double getAverageCpuTime(struct GpuProfiler* pGpuProfiler, struct GpuTimer* pGpu
 	return ((double)elapsedTime / GpuTimer::LENGTH_OF_HISTORY) / 1e6;
 }
 
-void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfiler, uint32_t maxTimers)
+void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfiler, const char * pName, uint32_t maxTimers)
 {
 	GpuProfiler* pGpuProfiler = (GpuProfiler*)conf_calloc(1, sizeof(*pGpuProfiler));
 	ASSERT(pGpuProfiler);
+
+	conf_placement_new<GpuProfiler>(pGpuProfiler);
 
 #if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11) || defined(METAL)
 	const uint32_t nodeIndex = pQueue->mQueueDesc.mNodeIndex;
@@ -165,6 +168,16 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
 	pGpuProfiler->mCpuTimeStampFrequency = (double)getTimerFrequency();
 #endif
 
+	// Create buffer to sample from MicroProfile and log for current GpuProfiler
+#if (PROFILE_ENABLED)
+	pGpuProfiler->pTimeStampBuffer = static_cast<uint64_t *>(conf_malloc(maxTimers * sizeof(uint64_t)));
+	memset(pGpuProfiler->pTimeStampBuffer, 0, maxTimers * sizeof(uint64_t));
+	memcpy(pGpuProfiler->mGroupName, pName, strlen(pName));
+	pGpuProfiler->pLog = ProfileCreateThreadLog(pName);
+	pGpuProfiler->pLog->pGpuProfiler = pGpuProfiler;
+	pGpuProfiler->pLog->nGpu = 1;
+#endif
+
 	pGpuProfiler->mMaxTimerCount = maxTimers;
 	pGpuProfiler->pGpuTimerPool = (GpuTimerTree*)conf_calloc(maxTimers, sizeof(*pGpuProfiler->pGpuTimerPool));
 	pGpuProfiler->pCurrentNode = &pGpuProfiler->mRoot;
@@ -186,12 +199,16 @@ void removeGpuProfiler(Renderer* pRenderer, GpuProfiler* pGpuProfiler)
 	for (uint32_t i = 0; i < pGpuProfiler->mMaxTimerCount; ++i)
 	{
 		pGpuProfiler->pGpuTimerPool[i].mChildren.~vector();
-		pGpuProfiler->pGpuTimerPool[i].mGpuTimer.mName.~string();
+		pGpuProfiler->pGpuTimerPool[i].mGpuTimer.mName.~basic_string();
 	}
 
 	pGpuProfiler->mRoot.mChildren.~vector();
-	pGpuProfiler->mGpuPoolHash.~unordered_map();
+	pGpuProfiler->mGpuPoolHash.~string_hash_map();
 
+#if (PROFILE_ENABLED)
+	ProfileRemoveThreadLog(pGpuProfiler->pLog);
+	conf_free(pGpuProfiler->pTimeStampBuffer);
+#endif
 	conf_free(pGpuProfiler->pGpuTimerPool);
 	conf_free(pGpuProfiler);
 }
@@ -201,14 +218,12 @@ void cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, cons
 	// hash name
 	char _buffer[128] = {};    //Initialize to empty
 	sprintf(_buffer, "%s_%u", pName, pGpuProfiler->mCurrentTimerCount);
-	uint32_t _hash = tinystl::hash(_buffer);
-
 	GpuTimerTree* node = NULL;
-	if (pGpuProfiler->mGpuPoolHash.find(_hash) == pGpuProfiler->mGpuPoolHash.end())
+	if (pGpuProfiler->mGpuPoolHash.find(_buffer) == pGpuProfiler->mGpuPoolHash.end())
 	{
 		// frist time seeing this
 		node = &pGpuProfiler->pGpuTimerPool[pGpuProfiler->mCurrentPoolIndex];
-		pGpuProfiler->mGpuPoolHash[_hash] = pGpuProfiler->mCurrentPoolIndex;
+		pGpuProfiler->mGpuPoolHash[_buffer] = pGpuProfiler->mCurrentPoolIndex;
 
 		++pGpuProfiler->mCurrentPoolIndex;
 
@@ -219,7 +234,7 @@ void cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, cons
 	}
 	else
 	{
-		uint32_t index = pGpuProfiler->mGpuPoolHash[_hash];
+		uint32_t index = pGpuProfiler->mGpuPoolHash[_buffer];
 		node = &pGpuProfiler->pGpuTimerPool[index];
 	}
 
@@ -238,6 +253,16 @@ void cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, cons
 #endif
         QueryDesc desc = { 2 * node->mGpuTimer.mIndex };
         cmdBeginQuery(pCmd, pGpuProfiler->pQueryHeap[pGpuProfiler->mBufferIndex], &desc);
+
+#if (PROFILE_ENABLED)
+				// Send data to MicroProfile
+				uint32 scope_color = static_cast<uint32>(color.getX() * 255) << 16
+						| static_cast<uint32>(color.getY() * 255) << 8
+						| static_cast<uint32>(color.getZ() * 255);
+				node->mMicroProfileToken = ProfileGetToken(pGpuProfiler->mGroupName, pName, scope_color, ProfileTokenTypeGpu);
+				if (ProfileEnterGpu(node->mMicroProfileToken, desc.mIndex) == PROFILE_INVALID_TICK)
+					node->mMicroProfileToken = PROFILE_INVALID_TOKEN;
+#endif
 #if defined(METAL)
     }
 #endif
@@ -267,6 +292,11 @@ void cmdEndGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, GpuTim
 	// Record gpu time
 	QueryDesc desc = { 2 * pGpuProfiler->pCurrentNode->mGpuTimer.mIndex + 1 };
 	cmdEndQuery(pCmd, pGpuProfiler->pQueryHeap[pGpuProfiler->mBufferIndex], &desc);
+
+#if (PROFILE_ENABLED)
+	// Send data to MicroProfile
+	ProfileLeaveGpu(pGpuProfiler->pCurrentNode->mMicroProfileToken, desc.mIndex);
+#endif
 #if defined(METAL)
     }
 #endif
@@ -304,7 +334,11 @@ void cmdBeginGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler, bool bUseMark
 	pGpuProfiler->mCumulativeCpuTimeInternal = 0.0;
 	pGpuProfiler->pCurrentNode = &pGpuProfiler->mRoot;
 
-    cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "ROOT", bUseMarker, {1, 1, 0}, true);
+#if (PROFILE_ENABLED)
+	// Attach GpuProfiler to MicroProfile log of the current thread
+	ProfileGpuSetContext(pGpuProfiler);
+#endif
+  cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "GPU", bUseMarker, {1, 1, 0}, true);
 }
 
 void cmdEndGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler)
@@ -325,6 +359,11 @@ void cmdEndGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler)
 	range.mSize = max(sizeof(uint64_t) * 2, (pGpuProfiler->mCurrentTimerCount) * sizeof(uint64_t) * 2);
 	mapBuffer(pCmd->pRenderer, pGpuProfiler->pReadbackBuffer[pGpuProfiler->mBufferIndex], &range);
 	pGpuProfiler->pTimeStamp = (uint64_t*)pGpuProfiler->pReadbackBuffer[pGpuProfiler->mBufferIndex]->pCpuMappedAddress;
+
+#if (PROFILE_ENABLED)
+	// Copy to data to buffer so we can sample from MicroProfile
+	memcpy(pGpuProfiler->pTimeStampBuffer, pGpuProfiler->pTimeStamp, (pGpuProfiler->mCurrentTimerCount) * sizeof(uint64_t) * 2);
+#endif
 #endif
 
 	calculateTimes(pCmd, pGpuProfiler, &pGpuProfiler->mRoot);

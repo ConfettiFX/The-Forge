@@ -26,7 +26,7 @@
 
 #include "../../Common_3/OS/Math/MathTypes.h"
 
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 
 #include "../../Common_3/ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/skeleton.h"
 #include "../../Common_3/ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/skeleton_utils.h"
@@ -37,6 +37,12 @@
 #include "../../Common_3/ThirdParty/OpenSource/ozz-animation/include/ozz/base/memory/allocator.h"
 
 #include "../../Common_3/OS/Interfaces/ILogManager.h"
+
+namespace eastl
+{
+	template <>
+	struct has_equality<Vector3> : eastl::false_type {};
+}
 
 // Stores skeleton properties and posable by animations
 class Rig
@@ -161,14 +167,14 @@ class Rig
 	bool mUpdateBones = true;
 
 	// Buffer of world model space matrices for joints.
-	tinystl::vector<Matrix4> mJointWorldMats;
+	eastl::vector<Matrix4> mJointWorldMats;
 
 	// Buffer of world model space matrices for bones.
-	tinystl::vector<Matrix4> mBoneWorldMats;
+	eastl::vector<Matrix4> mBoneWorldMats;
 
 	// Buffer of joint model space matrices set by animations
 	ozz::Range<Matrix4> mJointModelMats;
 
 	// Scales to apply to each joint - will be proportional to length of its child's bone
-	tinystl::vector<Vector3> mJointScales;
+	eastl::vector<Vector3> mJointScales;
 };

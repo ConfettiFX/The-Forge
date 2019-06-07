@@ -24,10 +24,24 @@
 
 #pragma once
 
+#include "../OS/Math/MathTypes.h"
+#include "../ThirdParty/OpenSource/EASTL/string.h"
+#include "../ThirdParty/OpenSource/EASTL/string_hash_map.h"
+#include "../ThirdParty/OpenSource/EASTL/vector.h"
+
+#include <stdint.h>
+
+struct Cmd;
+struct Renderer;
+struct Buffer;
+struct Queue;
+struct QueryHeap;
+struct ProfileThreadLog;
+
 typedef struct GpuTimer
 {
 	const static int32_t LENGTH_OF_HISTORY = 60;
-	tinystl::string      mName;
+	eastl::string      mName;
 	uint32_t             mIndex;
 	uint32_t             mHistoryIndex;
 
@@ -47,7 +61,8 @@ typedef struct GpuTimerTree
 {
 	GpuTimerTree*                  pParent;
 	GpuTimer                       mGpuTimer;
-	tinystl::vector<GpuTimerTree*> mChildren;
+	eastl::vector<GpuTimerTree*>   mChildren;
+	uint64_t                       mMicroProfileToken;
 	bool                           mDebugMarker;
 } GpuTimerTree;
 
@@ -58,6 +73,7 @@ typedef struct GpuProfiler
 	Buffer*               pReadbackBuffer[NUM_OF_FRAMES];
 	QueryHeap*            pQueryHeap[NUM_OF_FRAMES];
 	uint64_t*             pTimeStamp;
+	uint64_t*             pTimeStampBuffer;
 	double                mGpuTimeStampFrequency;
 	double                mCpuTimeStampFrequency;
 
@@ -66,10 +82,10 @@ typedef struct GpuProfiler
 	uint32_t mCurrentTimerCount;
 	uint32_t mCurrentPoolIndex;
 
-	tinystl::unordered_map<uint32_t, uint32_t> mGpuPoolHash;
-	GpuTimerTree*                              pGpuTimerPool;
-	GpuTimerTree                               mRoot;
-	GpuTimerTree*                              pCurrentNode;
+	eastl::string_hash_map<uint32_t> mGpuPoolHash;
+	GpuTimerTree*                    pGpuTimerPool;
+	GpuTimerTree                     mRoot;
+	GpuTimerTree*                    pCurrentNode;
 
 	double mCumulativeTimeInternal;
 	double mCumulativeTime;
@@ -77,23 +93,27 @@ typedef struct GpuProfiler
 	double mCumulativeCpuTimeInternal;
 	double mCumulativeCpuTime;
 
+	// MicroProfile
+	char mGroupName[256] = "GPU";
+	ProfileThreadLog * pLog = nullptr;
+
 	bool mUpdate;
 } GpuProfiler;
 
 double getAverageGpuTime(struct GpuProfiler* pGpuProfiler, struct GpuTimer* pGpuTimer);
 double getAverageCpuTime(struct GpuProfiler* pGpuProfiler, struct GpuTimer* pGpuTimer);
 
-void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, struct GpuProfiler** ppGpuProfiler, uint32_t maxTimers = 4096);
+void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, struct GpuProfiler** ppGpuProfiler, const char * pName, uint32_t maxTimers = 4096);
 void removeGpuProfiler(Renderer* pRenderer, struct GpuProfiler* pGpuProfiler);
 
 void cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, const char* pName, bool addMarker = true, const float3& color = { 1,1,0 }, bool isRoot = false);
 
 void cmdEndGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, GpuTimer** ppGpuTimer = NULL, bool isRoot = false);
 
-/// Must be called before any call to cmdBeginGpuTimestampQuery
-/// Preferred time to call this function is right after calling beginCmd
+// Must be called before any call to cmdBeginGpuTimestampQuery
+// Preferred time to call this function is right after calling beginCmd
 void cmdBeginGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler, bool bUseMarker = true);
-/// Must be called after all gpu profiles are finished.
-/// This function cannot be called inside a render pass (cmdBeginRender-cmdEndRender)
-/// Preferred time to call this function is right before calling endCmd
+// Must be called after all gpu profiles are finished.
+// This function cannot be called inside a render pass (cmdBeginRender-cmdEndRender)
+// Preferred time to call this function is right before calling endCmd
 void cmdEndGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler);

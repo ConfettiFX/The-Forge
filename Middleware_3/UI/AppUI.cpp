@@ -32,8 +32,8 @@
 #include "../../Common_3/Renderer/GpuProfiler.h"
 #include "../../Common_3/Renderer/ResourceLoader.h"
 
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/unordered_map.h"
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../Common_3/ThirdParty/OpenSource/EASTL/unordered_map.h"
+#include "../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 
 #include "../../Middleware_3/Text/Fontstash.h"
 
@@ -47,7 +47,7 @@ extern bool skipMouseCapture;
 }
 
 FSRoot                         FSR_MIDDLEWARE_UI = FSR_Middleware1;
-static tinystl::vector<UIApp*> gInstances;
+static eastl::vector<UIApp*> gInstances;
 static Mutex                   gMutex;
 
 extern void initGUIDriver(Renderer* pRenderer, GUIDriver** ppDriver, uint32_t const maxDynamicUIUpdatesPerBatch);
@@ -318,7 +318,7 @@ bool UIApp::Init(Renderer* renderer)
 
 void UIApp::Exit()
 {
-	UIApp** it = gInstances.find(this);
+	UIApp** it = eastl::find(gInstances.begin(), gInstances.end(), this);
 	ASSERT(it != gInstances.end());
 	if (it != gInstances.end())
 	{
@@ -455,12 +455,12 @@ void UIApp::RemoveGuiComponent(GuiComponent* pComponent)
 	ASSERT(pComponent);
 
 	pComponent->RemoveAllWidgets();
-	GuiComponent** it = pImpl->mComponents.find(pComponent);
+	GuiComponent** it = eastl::find(pImpl->mComponents.begin(), pImpl->mComponents.end(), pComponent);
 	if (it != pImpl->mComponents.end())
 	{
 		(*it)->RemoveAllWidgets();
 		pImpl->mComponents.erase(it);
-		GuiComponent** active_it = pImpl->mComponentsToUpdate.find(pComponent);
+		GuiComponent** active_it = eastl::find(pImpl->mComponentsToUpdate.begin(), pImpl->mComponentsToUpdate.end(), pComponent);
 		if (active_it != pImpl->mComponentsToUpdate.end())
 			pImpl->mComponentsToUpdate.erase(active_it);
 		pComponent->mWidgets.clear();
@@ -487,7 +487,7 @@ void UIApp::Update(float deltaTime)
 {
 	pImpl->mUpdated = true;
 
-	tinystl::vector<GuiComponent*> activeComponents(pImpl->mComponentsToUpdate.size());
+	eastl::vector<GuiComponent*> activeComponents(pImpl->mComponentsToUpdate.size());
 	uint32_t                       activeComponentCount = 0;
 	for (uint32_t i = 0; i < (uint32_t)pImpl->mComponentsToUpdate.size(); ++i)
 		if (pImpl->mComponentsToUpdate[i]->mActive)
@@ -542,7 +542,7 @@ IWidget* GuiComponent::AddWidget(const IWidget& widget, bool clone /* = true*/)
 
 void GuiComponent::RemoveWidget(IWidget* pWidget)
 {
-	decltype(mWidgets)::iterator it = mWidgets.find(pWidget);
+	decltype(mWidgets)::iterator it = eastl::find(mWidgets.begin(), mWidgets.end(), pWidget);
 	if (it != mWidgets.end())
 	{
 		IWidget* pWidget = *it;

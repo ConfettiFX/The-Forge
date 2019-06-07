@@ -99,22 +99,22 @@ time_t get_file_creation_time(const char* _fileName)
 	return fileInfo.st_ctime;
 }
 
-tinystl::string get_current_dir()
+eastl::string get_current_dir()
 {
 	char curDir[MAX_PATH];
 	GetCurrentDirectoryA(MAX_PATH, curDir);
-	return tinystl::string(curDir);
+	return eastl::string(curDir);
 }
 
-tinystl::string get_exe_path()
+eastl::string get_exe_path()
 {
 	char exeName[MAX_PATH];
 	exeName[0] = 0;
 	GetModuleFileNameA(0, exeName, MAX_PATH);
-	return tinystl::string(exeName);
+	return eastl::string(exeName);
 }
 
-tinystl::string get_app_prefs_dir(const char* org, const char* app)
+eastl::string get_app_prefs_dir(const char* org, const char* app)
 {
 	/*
 	* Vista and later has a new API for this, but SHGetFolderPath works there,
@@ -165,24 +165,24 @@ tinystl::string get_app_prefs_dir(const char* org, const char* app)
 	}
 
 	strcat(path, "\\");
-	return tinystl::string(path);
+	return eastl::string(path);
 }
 
-tinystl::string get_user_documents_dir()
+eastl::string get_user_documents_dir()
 {
 	char pathName[MAX_PATH];
 	pathName[0] = 0;
 	SHGetSpecialFolderPathA(0, pathName, CSIDL_PERSONAL, 0);
-	return tinystl::string(pathName);
+	return eastl::string(pathName);
 }
 
 void set_current_dir(const char* path) { SetCurrentDirectoryA(path); }
 
-void get_files_with_extension(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesOut)
+void get_files_with_extension(const char* dir, const char* ext, eastl::vector<eastl::string>& filesOut)
 {
-	tinystl::string  path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
+	eastl::string  path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
 	WIN32_FIND_DATAA fd;
-	HANDLE           hFind = ::FindFirstFileA(path + "*" + ext, &fd);
+	HANDLE           hFind = ::FindFirstFileA((path + "*" + ext).c_str(), &fd);
 	size_t           fileIndex = filesOut.size();
 	if (hFind != INVALID_HANDLE_VALUE)
 	{
@@ -197,11 +197,11 @@ void get_files_with_extension(const char* dir, const char* ext, tinystl::vector<
 	}
 }
 
-void get_sub_directories(const char* dir, tinystl::vector<tinystl::string>& subDirectoriesOut)
+void get_sub_directories(const char* dir, eastl::vector<eastl::string>& subDirectoriesOut)
 {
-	tinystl::string  path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
+	eastl::string  path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
 	WIN32_FIND_DATAA fd;
-	HANDLE           hFind = ::FindFirstFileA(path + "*", &fd);
+	HANDLE           hFind = ::FindFirstFileA((path + "*").c_str(), &fd);
 	size_t           fileIndex = subDirectoriesOut.size();
 	if (hFind != INVALID_HANDLE_VALUE)
 	{
@@ -223,13 +223,13 @@ void get_sub_directories(const char* dir, tinystl::vector<tinystl::string>& subD
 bool copy_file(const char* src, const char* dst) { return CopyFileA(src, dst, FALSE) ? true : false; }
 
 static void
-	FormatFileExtensionsFilter(const char* fileDesc, const tinystl::vector<tinystl::string>& extFiltersIn, tinystl::string& extFiltersOut)
+	FormatFileExtensionsFilter(const char* fileDesc, const eastl::vector<eastl::string>& extFiltersIn, eastl::string& extFiltersOut)
 {
 	extFiltersOut = fileDesc;
 	extFiltersOut.push_back('\0');
 	for (size_t i = 0; i < extFiltersIn.size(); ++i)
 	{
-		tinystl::string ext = extFiltersIn[i];
+		eastl::string ext = extFiltersIn[i];
 		if (ext.size() && ext[0] == '.')
 			ext = (ext.begin() + 1);
 		extFiltersOut += "*.";
@@ -243,9 +243,9 @@ static void
 
 void open_file_dialog(
 	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
-	const tinystl::vector<tinystl::string>& fileExtensions)
+	const eastl::vector<eastl::string>& fileExtensions)
 {
-	tinystl::string extFilter;
+	eastl::string extFilter;
 	FormatFileExtensionsFilter(fileDesc, fileExtensions, extFilter);
 	OPENFILENAMEA ofn;                 // common dialog box structure
 	char          szFile[MAX_PATH];    // buffer for file name
@@ -259,7 +259,7 @@ void open_file_dialog(
 	// use the contents of szFile to initialize itself.
 	ofn.lpstrFile[0] = '\0';
 	ofn.nMaxFile = sizeof(szFile);
-	ofn.lpstrFilter = extFilter;
+	ofn.lpstrFilter = extFilter.c_str();
 	ofn.nFilterIndex = 1;
 	ofn.lpstrFileTitle = NULL;
 	ofn.nMaxFileTitle = 0;
@@ -274,9 +274,9 @@ void open_file_dialog(
 
 void save_file_dialog(
 	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
-	const tinystl::vector<tinystl::string>& fileExtensions)
+	const eastl::vector<eastl::string>& fileExtensions)
 {
-	tinystl::string extFilter;
+	eastl::string extFilter;
 	FormatFileExtensionsFilter(fileDesc, fileExtensions, extFilter);
 	OPENFILENAMEA ofn;
 	// buffer for file name
@@ -291,7 +291,7 @@ void save_file_dialog(
 	// use the contents of szFile to initialize itself.
 	ofn.lpstrFile[0] = '\0';
 	ofn.nMaxFile = sizeof(szFile);
-	ofn.lpstrFilter = extFilter;
+	ofn.lpstrFilter = extFilter.c_str();
 	ofn.nFilterIndex = 1;
 	ofn.lpstrFileTitle = NULL;
 	ofn.nMaxFileTitle = 0;
@@ -306,7 +306,7 @@ void save_file_dialog(
 
 struct FileSystem::Watcher::Data
 {
-	tinystl::string  mWatchDir;
+	eastl::string  mWatchDir;
 	DWORD            mNotifyFilter;
 	FileSystem::Watcher::Callback    mCallback;
 	HANDLE           hExitEvt;
@@ -355,7 +355,7 @@ static void fswThreadFunc(void* data)
 			FILE_NOTIFY_INFORMATION* fni = reinterpret_cast<FILE_NOTIFY_INFORMATION*>(p);
 			memset(fileName, '\0', sizeof(fileName));
 			WideCharToMultiByte(CP_UTF8, 0, fni->FileName, fni->FileNameLength / sizeof(WCHAR), fileName, sizeof(fileName), NULL, NULL);
-			tinystl::string path = fs->mWatchDir + fileName;
+			eastl::string path = fs->mWatchDir + fileName;
 			uint32_t        action = 0;
 			switch (fni->Action)
 			{

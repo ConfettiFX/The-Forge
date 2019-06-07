@@ -7,9 +7,9 @@
 #include <algorithm>
 #include <utility>
 #include "../../../../OS/Interfaces/IOperatingSystem.h"
-#include "../../TinySTL/memory.h"
-#include "../../TinySTL/vector.h"
-#include "../../TinySTL/list.h"
+#include "../../EASTL/unique_ptr.h"
+#include "../../EASTL/vector.h"
+#include "../../EASTL/list.h"
 #include "../config/config.h"
 #include "../core/family.hpp"
 
@@ -50,23 +50,23 @@ class Emitter {
 
     template<typename Event>
     struct Handler final: BaseHandler {
-        using listener_type = std::function<void(const Event &, Derived &)>;
-        using element_type = tinystl::pair<bool, listener_type>;
-        using container_type = tinystl::list<element_type>;
+        using listener_type = eastl::function<void(const Event &, Derived &)>;
+        using element_type = eastl::pair<bool, listener_type>;
+        using container_type = eastl::list<element_type>;
         using connection_type = typename container_type::iterator;
 
         bool empty() const ENTT_NOEXCEPT override {
             auto pred = [](auto &&element) { return element.first; };
 
-            return std::all_of(onceL.cbegin(), onceL.cend(), pred) &&
-                    std::all_of(onL.cbegin(), onL.cend(), pred);
+            return eastl::all_of(onceL.cbegin(), onceL.cend(), pred) &&
+                    eastl::all_of(onL.cbegin(), onL.cend(), pred);
         }
 
         void clear() ENTT_NOEXCEPT override {
             if(publishing) {
                 auto func = [](auto &&element) { element.first = true; };
-                std::for_each(onceL.begin(), onceL.end(), func);
-                std::for_each(onL.begin(), onL.end(), func);
+                eastl::for_each(onceL.begin(), onceL.end(), func);
+                eastl::for_each(onL.begin(), onL.end(), func);
             } else {
                 onceL.clear();
                 onL.clear();
@@ -74,11 +74,11 @@ class Emitter {
         }
 
         inline connection_type once(listener_type listener) {
-            return onceL.emplace(onceL.cend(), false, std::move(listener));
+            return onceL.emplace(onceL.cend(), false, eastl::move(listener));
         }
 
         inline connection_type on(listener_type listener) {
-            return onL.emplace(onL.cend(), false, std::move(listener));
+            return onL.emplace(onL.cend(), false, eastl::move(listener));
         }
 
         void erase(connection_type conn) ENTT_NOEXCEPT {
@@ -101,8 +101,8 @@ class Emitter {
 
             publishing = true;
 
-            std::for_each(onL.rbegin(), onL.rend(), func);
-            std::for_each(currentL.rbegin(), currentL.rend(), func);
+            eastl::for_each(onL.rbegin(), onL.rend(), func);
+            eastl::for_each(currentL.rbegin(), currentL.rend(), func);
 
             publishing = false;
 
@@ -124,7 +124,7 @@ class Emitter {
         }
 
         if(!handlers[family]) {
-            handlers[family] = tinystl::make_unique<Handler<Event>>();
+            handlers[family] = eastl::make_unique<Handler<Event>>();
         }
 
         return static_cast<Handler<Event> &>(*handlers[family]);
@@ -157,7 +157,7 @@ public:
          * @param conn A connection object to wrap.
          */
         Connection(typename Handler<Event>::connection_type conn)
-            : Handler<Event>::connection_type{std::move(conn)}
+            : Handler<Event>::connection_type{eastl::move(conn)}
         {}
 
         /*! @brief Default copy constructor. */
@@ -183,7 +183,7 @@ public:
 
     /*! @brief Default destructor. */
     virtual ~Emitter() ENTT_NOEXCEPT {
-        static_assert(std::is_base_of<Emitter<Derived>, Derived>::value, "!");
+        static_assert(eastl::is_base_of<Emitter<Derived>, Derived>::value, "!");
     }
 
     /*! @brief Copying an emitter isn't allowed. */
@@ -209,7 +209,7 @@ public:
      */
     template<typename Event, typename... Args>
     void publish(Args &&... args) {
-        handler<Event>().publish({ std::forward<Args>(args)... }, *static_cast<Derived *>(this));
+        handler<Event>().publish({ eastl::forward<Args>(args)... }, *static_cast<Derived *>(this));
     }
 
     /**
@@ -234,7 +234,7 @@ public:
      */
     template<typename Event>
     Connection<Event> on(Listener<Event> listener) {
-        return handler<Event>().on(std::move(listener));
+        return handler<Event>().on(eastl::move(listener));
     }
 
     /**
@@ -259,7 +259,7 @@ public:
      */
     template<typename Event>
     Connection<Event> once(Listener<Event> listener) {
-        return handler<Event>().once(std::move(listener));
+        return handler<Event>().once(eastl::move(listener));
     }
 
     /**
@@ -273,7 +273,7 @@ public:
      */
     template<typename Event>
     void erase(Connection<Event> conn) ENTT_NOEXCEPT {
-        handler<Event>().erase(std::move(conn));
+        handler<Event>().erase(eastl::move(conn));
     }
 
     /**
@@ -296,7 +296,7 @@ public:
      * results in undefined behavior.
      */
     void clear() ENTT_NOEXCEPT {
-        std::for_each(handlers.begin(), handlers.end(), [](auto &&handler) {
+        eastl::for_each(handlers.begin(), handlers.end(), [](auto &&handler) {
             return handler ? handler->clear() : void();
         });
     }
@@ -320,13 +320,13 @@ public:
      * @return True if there are no listeners registered, false otherwise.
      */
     bool empty() const ENTT_NOEXCEPT {
-        return std::all_of(handlers.cbegin(), handlers.cend(), [](auto &&handler) {
+        return eastl::all_of(handlers.cbegin(), handlers.cend(), [](auto &&handler) {
             return !handler || handler->empty();
         });
     }
 
 private:
-    tinystl::vector<tinystl::unique_ptr<BaseHandler>> handlers{};
+    eastl::vector<eastl::unique_ptr<BaseHandler>> handlers{};
 };
 
 

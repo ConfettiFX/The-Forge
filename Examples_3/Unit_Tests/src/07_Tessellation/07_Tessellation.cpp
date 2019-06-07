@@ -28,17 +28,17 @@
 // using Responsive Real-Time Grass Rendering for General 3D Scenes
 
 //tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/GpuProfiler.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
 //Math
@@ -137,7 +137,7 @@ struct HullOut
 };
 #endif
 
-tinystl::vector<Blade> gBlades;
+eastl::vector<Blade> gBlades;
 
 FileSystem gFileSystem;
 Timer      gAccumTimer;
@@ -160,6 +160,8 @@ const char* pszBases[FSR_Count] = {
 };
 
 const uint32_t gImageCount = 3;
+bool           bToggleMicroProfiler = false;
+bool           bPrevToggleMicroProfiler = false;
 
 Renderer* pRenderer = NULL;
 
@@ -285,7 +287,9 @@ class Tessellation: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
+		initProfiler(pRenderer, gImageCount);
+		profileRegisterInput();
+		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 #ifdef TARGET_IOS
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
@@ -317,7 +321,7 @@ class Tessellation: public IApp
 		addRootSignature(pRenderer, &grassRootDesc, &pGrassRootSignature);
 		addRootSignature(pRenderer, &computeRootDesc, &pComputeRootSignature);
 
-		tinystl::vector<DescriptorBinderDesc> descriptorBinderDesc;
+		eastl::vector<DescriptorBinderDesc> descriptorBinderDesc;
 		descriptorBinderDesc.push_back({ pGrassRootSignature });
 		descriptorBinderDesc.push_back({ pComputeRootSignature });
 
@@ -447,7 +451,7 @@ class Tessellation: public IApp
 		addResource(&hullOutputBufferDesc);
 #endif
 
-		tinystl::vector<IndirectArgumentDescriptor> indirectArgDescs(1);
+		eastl::vector<IndirectArgumentDescriptor> indirectArgDescs(1);
 		indirectArgDescs[0] = {};
 		indirectArgDescs[0].mType = INDIRECT_DRAW;    // Indirect Index Draw Arguments
 		CommandSignatureDesc cmdDesc = {};
@@ -471,6 +475,8 @@ class Tessellation: public IApp
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 		pGui = gAppUI.AddGuiComponent("Tessellation Properties", &guiDesc);
+
+    pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
 
 		static const char* enumNames[] = {
 			"SOLID",
@@ -525,6 +531,8 @@ class Tessellation: public IApp
 	void Exit()
 	{
 		waitQueueIdle(pGraphicsQueue);
+
+		exitProfiler(pRenderer);
 
 		destroyCameraController(pCameraController);
 
@@ -743,6 +751,19 @@ class Tessellation: public IApp
 		gGrassUniformData.mWindSpeed = gWindSpeed;
 		gGrassUniformData.mWindWidth = gWindWidth;
 		gGrassUniformData.mWindStrength = gWindStrength;
+
+    // ProfileSetDisplayMode()
+      // TODO: need to change this better way 
+    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+    {
+      Profile& S = *ProfileGet();
+      int nValue = bToggleMicroProfiler ? 1 : 0;
+      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+      S.nDisplay = nValue;
+
+      bPrevToggleMicroProfiler = bToggleMicroProfiler;
+    }
+
 		/************************************************************************/
 		// Update GUI
 		/************************************************************************/
@@ -772,7 +793,7 @@ class Tessellation: public IApp
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
 		loadActions.mClearDepth = { 1.0f, 0.0f };    // Clear depth to the far plane and stencil to 0
 
-		tinystl::vector<Cmd*> allCmds;
+		eastl::vector<Cmd*> allCmds;
 
 		//update grass uniform buffer
 		//this need to be done after acquireNextImage because we are using gFrameIndex which
@@ -889,14 +910,19 @@ class Tessellation: public IApp
 		static HiresTimer timer;
 		timer.GetUSec(true);
 
-		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", timer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
 
 #ifdef TARGET_IOS
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
+			&gFrameTimeDraw);
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
+
+		cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
 
 		gAppUI.Gui(pGui);
 		gAppUI.Draw(cmd);
@@ -911,9 +937,10 @@ class Tessellation: public IApp
 			pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1,
 			&pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		flipProfiler();
 	}
 
-	tinystl::string GetName() { return "07_Tessellation"; }
+	const char* GetName() { return "07_Tessellation"; }
 
 	bool addSwapChain()
 	{

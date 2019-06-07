@@ -7,8 +7,8 @@ extern "C"
 #include "../../Common_3/ThirdParty/OpenSource/lua-5.3.5/src/lauxlib.h"
 }
 
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
-#include "../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
+#include "../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 
 #include "../../Common_3/OS/Interfaces/ILogManager.h"
 #include "LunaV.hpp"
@@ -23,8 +23,8 @@ struct LuaStateWrap: public ILuaStateWrap
 	virtual int             GetArgumentsCount() override;
 	virtual double          GetNumberArg(int argIdx) override;
 	virtual long long int   GetIntegerArg(int argIdx) override;
-	virtual tinystl::string GetStringArg(int argIdx) override;
-	virtual void            GetStringArrayArg(int argIdx, tinystl::vector<const char*>& outResult) override;
+	virtual eastl::string GetStringArg(int argIdx) override;
+	virtual void            GetStringArrayArg(int argIdx, eastl::vector<const char*>& outResult) override;
 
 	virtual void PushResultNumber(double d) override;
 	virtual void PushResultInteger(int i) override;
@@ -37,7 +37,7 @@ struct ScriptTaskInfo
 {
 	lua_State*           luaState;
 	Mutex*               mutex;
-	tinystl::string      scriptName;
+	eastl::string      scriptName;
 	ScriptDoneCallback   callback;
 	IScriptCallbackWrap* callbackLambda;
 };
@@ -70,10 +70,10 @@ class LuaManagerImpl
 	Mutex       m_AsyncLuaStatesMutex[MAX_LUA_WORKERS];
 	Mutex       m_AddAsyncScriptMutex;
 
-	tinystl::vector<ILuaFunctionWrap*> m_Functions;
-	tinystl::string                    m_UpdateFunctonName;
-	tinystl::string                    m_UpdatableScriptName;
-	tinystl::string                    m_UpdatableScriptExitName;
+	eastl::vector<ILuaFunctionWrap*> m_Functions;
+	eastl::string                    m_UpdateFunctonName;
+	eastl::string                    m_UpdatableScriptName;
+	eastl::string                    m_UpdatableScriptExitName;
 
 	uint32_t m_AsyncScriptsCounter;
 

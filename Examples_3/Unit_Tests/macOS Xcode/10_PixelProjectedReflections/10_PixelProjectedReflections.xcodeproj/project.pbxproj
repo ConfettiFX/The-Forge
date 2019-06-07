@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5B17816322A5C79E00991DCB /* profile.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5B17816122A5C79E00991DCB /* profile.frag.metal */; };
+		5B17816422A5C79E00991DCB /* profile.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5B17816222A5C79E00991DCB /* profile.vert.metal */; };
 		5C172FB321414BB80074EE71 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C172FB121414BB80074EE71 /* AppDelegate.m */; };
 		5C172FB721414BC90074EE71 /* AssimpImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C172FB621414BC90074EE71 /* AssimpImporter.cpp */; };
 		5C172FB821414BCB0074EE71 /* AssimpImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C172FB621414BC90074EE71 /* AssimpImporter.cpp */; };
@@ -216,6 +218,8 @@
 			dstPath = Shaders/Metal;
 			dstSubfolderSpec = 7;
 			files = (
+				5B17816322A5C79E00991DCB /* profile.frag.metal in Copy Shaders */,
+				5B17816422A5C79E00991DCB /* profile.vert.metal in Copy Shaders */,
 				5CA80FA821F0A21E00C99983 /* imgui.frag.metal in Copy Shaders */,
 				5CA80FA921F0A21E00C99983 /* imgui.vert.metal in Copy Shaders */,
 				5CA80FAA21F0A21E00C99983 /* textured_mesh.frag.metal in Copy Shaders */,
@@ -260,6 +264,8 @@
 
 /* Begin PBXFileReference section */
 		28A5AB89201F3A77000E571F /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = ../../../UnitTestResources/Fonts/TitilliumText; sourceTree = "<group>"; };
+		5B17816122A5C79E00991DCB /* profile.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.frag.metal; path = ../../src/10_PixelProjectedReflections/Shaders/Metal/profile.frag.metal; sourceTree = "<group>"; };
+		5B17816222A5C79E00991DCB /* profile.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.vert.metal; path = ../../src/10_PixelProjectedReflections/Shaders/Metal/profile.vert.metal; sourceTree = "<group>"; };
 		5C172FB121414BB80074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/macOS/AppDelegate.m; sourceTree = "<group>"; };
 		5C172FB221414BB80074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/macOS/AppDelegate.h; sourceTree = "<group>"; };
 		5C172FB521414BC90074EE71 /* AssimpImporter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AssimpImporter.h; path = ../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h; sourceTree = "<group>"; };
@@ -497,6 +503,8 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
+				5B17816122A5C79E00991DCB /* profile.frag.metal */,
+				5B17816222A5C79E00991DCB /* profile.vert.metal */,
 				5CA80E1921F09F9300C99983 /* CommonShaders */,
 				5C172FB921414BD90074EE71 /* The-Forge.xcodeproj */,
 				5C172FB421414BBB0074EE71 /* AssimpImporter */,
@@ -893,7 +901,7 @@
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -951,7 +959,7 @@
 				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
@@ -999,6 +1007,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++14";
 				CLANG_WARN_COMMA = NO;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
@@ -1032,6 +1041,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "c++14";
 				CLANG_WARN_COMMA = NO;
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";

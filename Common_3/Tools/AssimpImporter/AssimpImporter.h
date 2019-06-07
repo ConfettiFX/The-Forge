@@ -24,11 +24,10 @@
 
 #pragma once
 
-#include "../../ThirdParty/OpenSource/TinySTL/string.h"
-#include "../../ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../ThirdParty/OpenSource/TinySTL/hash.h"
-#include "../../ThirdParty/OpenSource/TinySTL/unordered_set.h"
-#include "../../ThirdParty/OpenSource/TinySTL/unordered_map.h"
+#include "../../ThirdParty/OpenSource/EASTL/string.h"
+#include "../../ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../ThirdParty/OpenSource/EASTL/unordered_set.h"
+#include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 #include "../../OS/Math/MathTypes.h"
 #include "../../OS/Interfaces/IOperatingSystem.h"
 
@@ -183,7 +182,7 @@ class IModelImporter
 
 	struct TextureMap
 	{
-		tinystl::string   mName;
+		eastl::string   mName;
 		TextureFilterMode mFilterMode;
 		TextureTilingMode mTilingModeU;
 		TextureTilingMode mTilingModeV;
@@ -204,67 +203,67 @@ class IModelImporter
 
 	struct MaterialData
 	{
-		tinystl::string                                           mName;
-		tinystl::vector<TextureMap>                               mTextureMaps[TEXTURE_MAP_COUNT];
-		tinystl::unordered_map<tinystl::string, MaterialProperty> mProperties;
+		eastl::string                                           mName;
+		eastl::vector<TextureMap>                               mTextureMaps[TEXTURE_MAP_COUNT];
+		eastl::unordered_map<eastl::string, MaterialProperty> mProperties;
 		MaterialSourceType                                        mSourceType;
 	};
 
 	struct EmbeddedTextureData
 	{
-		tinystl::string                mName;
-		tinystl::string                mFormat;
-		tinystl::vector<unsigned char> mData;
+		eastl::string                mName;
+		eastl::string                mFormat;
+		eastl::vector<unsigned char> mData;
 		uint32_t                       mWidth;
 		uint32_t                       mHeight;
 	};
 
 	struct BoneNames
 	{
-		tinystl::string mNames[4];
+		eastl::string mNames[4];
 	};
 
 	struct Bone
 	{
-		tinystl::string mName;
+		eastl::string mName;
 		mat4            mOffsetMatrix;
 	};
 
 	struct Mesh
 	{
-		tinystl::vector<float3>    mPositions;
-		tinystl::vector<float3>    mNormals;
-		tinystl::vector<float3>    mTangents;
-		tinystl::vector<float3>    mBitangents;
-		tinystl::vector<float2>    mUvs;
-		tinystl::vector<float4>    mBoneWeights;
-		tinystl::vector<BoneNames> mBoneNames;
-		tinystl::vector<Bone>      mBones;
-		tinystl::vector<uint32_t>  mIndices;
+		eastl::vector<float3>    mPositions;
+		eastl::vector<float3>    mNormals;
+		eastl::vector<float3>    mTangents;
+		eastl::vector<float3>    mBitangents;
+		eastl::vector<float2>    mUvs;
+		eastl::vector<float4>    mBoneWeights;
+		eastl::vector<BoneNames> mBoneNames;
+		eastl::vector<Bone>      mBones;
+		eastl::vector<uint32_t>  mIndices;
 		BoundingBox                mBounds;
 		uint32_t                   mMaterialId;
 	};
 
 	struct Node
 	{
-		tinystl::string           mName;
+		eastl::string           mName;
 		Node*                     pParent;
-		tinystl::vector<Node>     mChildren;
-		tinystl::vector<uint32_t> mMeshIndices;
+		eastl::vector<Node>     mChildren;
+		eastl::vector<uint32_t> mMeshIndices;
 		mat4                      mTransform;
 	};
 
 	struct Model
 	{
 		/// Short name of scene
-		tinystl::string       mSceneName;
-		tinystl::vector<Mesh> mMeshArray;
+		eastl::string       mSceneName;
+		eastl::vector<Mesh> mMeshArray;
 		/// This is a look up table to map the assimp mesh ID to a geometry component
-		tinystl::vector<tinystl::string> mGeometryNameList;
+		eastl::vector<eastl::string> mGeometryNameList;
 		/// Load all the mateiral in the scene
-		tinystl::vector<MaterialData> mMaterialList;
+		eastl::vector<MaterialData> mMaterialList;
 		/// Load all the embedded textures in the scene
-		tinystl::vector<EmbeddedTextureData> mEmbeddedTextureList;
+		eastl::vector<EmbeddedTextureData> mEmbeddedTextureList;
 		/// Scene graph
 		Node mRootNode;
 		/// The type of the file the model was loaded from
@@ -273,29 +272,29 @@ class IModelImporter
 
 	virtual bool ImportModel(const char* filename, Model* outModel) = 0;
 
-	virtual tinystl::string MATKEY_NAME() = 0;
-	virtual tinystl::string MATKEY_TWOSIDED() = 0;
-	virtual tinystl::string MATKEY_SHADING_MODEL() = 0;
-	virtual tinystl::string MATKEY_ENABLE_WIREFRAME() = 0;
-	virtual tinystl::string MATKEY_BLEND_FUNC() = 0;
-	virtual tinystl::string MATKEY_OPACITY() = 0;
-	virtual tinystl::string MATKEY_BUMPSCALING() = 0;
-	virtual tinystl::string MATKEY_SHININESS() = 0;
-	virtual tinystl::string MATKEY_REFLECTIVITY() = 0;
-	virtual tinystl::string MATKEY_SHININESS_STRENGTH() = 0;
-	virtual tinystl::string MATKEY_REFRACTI() = 0;
-	virtual tinystl::string MATKEY_COLOR_DIFFUSE() = 0;
-	virtual tinystl::string MATKEY_COLOR_AMBIENT() = 0;
-	virtual tinystl::string MATKEY_COLOR_SPECULAR() = 0;
-	virtual tinystl::string MATKEY_COLOR_EMISSIVE() = 0;
-	virtual tinystl::string MATKEY_COLOR_TRANSPARENT() = 0;
-	virtual tinystl::string MATKEY_COLOR_REFLECTIVE() = 0;
-	virtual tinystl::string MATKEY_GLOBAL_BACKGROUND_IMAGE() = 0;
+	virtual eastl::string MATKEY_NAME() = 0;
+	virtual eastl::string MATKEY_TWOSIDED() = 0;
+	virtual eastl::string MATKEY_SHADING_MODEL() = 0;
+	virtual eastl::string MATKEY_ENABLE_WIREFRAME() = 0;
+	virtual eastl::string MATKEY_BLEND_FUNC() = 0;
+	virtual eastl::string MATKEY_OPACITY() = 0;
+	virtual eastl::string MATKEY_BUMPSCALING() = 0;
+	virtual eastl::string MATKEY_SHININESS() = 0;
+	virtual eastl::string MATKEY_REFLECTIVITY() = 0;
+	virtual eastl::string MATKEY_SHININESS_STRENGTH() = 0;
+	virtual eastl::string MATKEY_REFRACTI() = 0;
+	virtual eastl::string MATKEY_COLOR_DIFFUSE() = 0;
+	virtual eastl::string MATKEY_COLOR_AMBIENT() = 0;
+	virtual eastl::string MATKEY_COLOR_SPECULAR() = 0;
+	virtual eastl::string MATKEY_COLOR_EMISSIVE() = 0;
+	virtual eastl::string MATKEY_COLOR_TRANSPARENT() = 0;
+	virtual eastl::string MATKEY_COLOR_REFLECTIVE() = 0;
+	virtual eastl::string MATKEY_GLOBAL_BACKGROUND_IMAGE() = 0;
 
 	// GLTF specific keys
-	virtual tinystl::string MATKEY_GLTF_BASE_COLOR() = 0;
-	virtual tinystl::string MATKEY_GLTF_METALLIC_FACTOR() = 0;
-	virtual tinystl::string MATKEY_GLTF_ROUGHNESS_FACTOR() = 0;
+	virtual eastl::string MATKEY_GLTF_BASE_COLOR() = 0;
+	virtual eastl::string MATKEY_GLTF_METALLIC_FACTOR() = 0;
+	virtual eastl::string MATKEY_GLTF_ROUGHNESS_FACTOR() = 0;
 };
 
 class AssimpImporter: public IModelImporter
@@ -305,27 +304,27 @@ class AssimpImporter: public IModelImporter
 	bool ImportModel(const char* filename, Model* outModel);
     const Node* FindMeshNode(const Node* rootNode, int meshIndex);
 
-	tinystl::string MATKEY_NAME() { return "?mat.name"; }
-	tinystl::string MATKEY_TWOSIDED() { return "$mat.twosided"; }
-	tinystl::string MATKEY_SHADING_MODEL() { return "$mat.shadingm"; }
-	tinystl::string MATKEY_ENABLE_WIREFRAME() { return "$mat.wireframe"; }
-	tinystl::string MATKEY_BLEND_FUNC() { return "$mat.blend"; }
-	tinystl::string MATKEY_OPACITY() { return "$mat.opacity"; }
-	tinystl::string MATKEY_BUMPSCALING() { return "$mat.bumpscaling"; }
-	tinystl::string MATKEY_SHININESS() { return "$mat.shininess"; }
-	tinystl::string MATKEY_REFLECTIVITY() { return "$mat.reflectivity"; }
-	tinystl::string MATKEY_SHININESS_STRENGTH() { return "$mat.shinpercent"; }
-	tinystl::string MATKEY_REFRACTI() { return "$mat.refracti"; }
-	tinystl::string MATKEY_COLOR_DIFFUSE() { return "$clr.diffuse"; }
-	tinystl::string MATKEY_COLOR_AMBIENT() { return "$clr.ambient"; }
-	tinystl::string MATKEY_COLOR_SPECULAR() { return "$clr.specular"; }
-	tinystl::string MATKEY_COLOR_EMISSIVE() { return "$clr.emissive"; }
-	tinystl::string MATKEY_COLOR_TRANSPARENT() { return "$clr.transparent"; }
-	tinystl::string MATKEY_COLOR_REFLECTIVE() { return "$clr.reflective"; }
-	tinystl::string MATKEY_GLOBAL_BACKGROUND_IMAGE() { return "?bg.global"; }
+	eastl::string MATKEY_NAME() { return "?mat.name"; }
+	eastl::string MATKEY_TWOSIDED() { return "$mat.twosided"; }
+	eastl::string MATKEY_SHADING_MODEL() { return "$mat.shadingm"; }
+	eastl::string MATKEY_ENABLE_WIREFRAME() { return "$mat.wireframe"; }
+	eastl::string MATKEY_BLEND_FUNC() { return "$mat.blend"; }
+	eastl::string MATKEY_OPACITY() { return "$mat.opacity"; }
+	eastl::string MATKEY_BUMPSCALING() { return "$mat.bumpscaling"; }
+	eastl::string MATKEY_SHININESS() { return "$mat.shininess"; }
+	eastl::string MATKEY_REFLECTIVITY() { return "$mat.reflectivity"; }
+	eastl::string MATKEY_SHININESS_STRENGTH() { return "$mat.shinpercent"; }
+	eastl::string MATKEY_REFRACTI() { return "$mat.refracti"; }
+	eastl::string MATKEY_COLOR_DIFFUSE() { return "$clr.diffuse"; }
+	eastl::string MATKEY_COLOR_AMBIENT() { return "$clr.ambient"; }
+	eastl::string MATKEY_COLOR_SPECULAR() { return "$clr.specular"; }
+	eastl::string MATKEY_COLOR_EMISSIVE() { return "$clr.emissive"; }
+	eastl::string MATKEY_COLOR_TRANSPARENT() { return "$clr.transparent"; }
+	eastl::string MATKEY_COLOR_REFLECTIVE() { return "$clr.reflective"; }
+	eastl::string MATKEY_GLOBAL_BACKGROUND_IMAGE() { return "?bg.global"; }
 
 	// GLTF specific keys
-	tinystl::string MATKEY_GLTF_BASE_COLOR() { return "$mat.gltf.pbrMetallicRoughness.baseColorFactor"; }
-	tinystl::string MATKEY_GLTF_METALLIC_FACTOR() { return "$mat.gltf.pbrMetallicRoughness.metallicFactor"; }
-	tinystl::string MATKEY_GLTF_ROUGHNESS_FACTOR() { return "$mat.gltf.pbrMetallicRoughness.roughnessFactor"; }
+	eastl::string MATKEY_GLTF_BASE_COLOR() { return "$mat.gltf.pbrMetallicRoughness.baseColorFactor"; }
+	eastl::string MATKEY_GLTF_METALLIC_FACTOR() { return "$mat.gltf.pbrMetallicRoughness.metallicFactor"; }
+	eastl::string MATKEY_GLTF_ROUGHNESS_FACTOR() { return "$mat.gltf.pbrMetallicRoughness.roughnessFactor"; }
 };

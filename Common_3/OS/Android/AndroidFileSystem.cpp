@@ -126,25 +126,25 @@ time_t get_file_creation_time(const char* _fileName)
 	return -1;
 }
 
-tinystl::string get_current_dir()
+eastl::string get_current_dir()
 {
-	return tinystl::string ("");
+	return eastl::string ("");
 }
 
-tinystl::string get_exe_path()
+eastl::string get_exe_path()
 {
 	char exeName[MAX_PATH];
 	exeName[0] = 0;
 	readlink("/proc/self/exe", exeName, MAX_PATH);
-	return tinystl::string(exeName);
+	return eastl::string(exeName);
 }
 
-tinystl::string get_app_prefs_dir(const char *org, const char *app)
+eastl::string get_app_prefs_dir(const char *org, const char *app)
 {
 	return "";
 }
 
-tinystl::string get_user_documents_dir()
+eastl::string get_user_documents_dir()
 {
 	return "";
 }
@@ -163,14 +163,14 @@ bool copy_file(const char* src, const char* dst)
 
 void open_file_dialog(
 	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
-	const tinystl::vector<tinystl::string>& fileExtensions)
+	const eastl::vector<eastl::string>& fileExtensions)
 {
 	LOGF(LogLevel::eERROR, "Not supported in Android!");
 }
 
 void save_file_dialog(
 	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
-	const tinystl::vector<tinystl::string>& fileExtensions)
+	const eastl::vector<eastl::string>& fileExtensions)
 {
 	LOGF(LogLevel::eERROR, "Not supported in Android!");
 }

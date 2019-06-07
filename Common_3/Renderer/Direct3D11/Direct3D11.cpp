@@ -31,14 +31,13 @@
 #define RENDERER_IMPLEMENTATION
 #define IID_ARGS IID_PPV_ARGS
 
-#include "../../ThirdParty/OpenSource/TinySTL/string.h"
-#include "../../ThirdParty/OpenSource/TinySTL/unordered_map.h"
-#include "../../ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../ThirdParty/OpenSource/EASTL/string.h"
+#include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
+#include "../../ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../OS/Interfaces/ILogManager.h"
 #include "../IRenderer.h"
-#include "../../Tools/Profiler/Profiler.h"
 #include "../../OS/Core/RingBuffer.h"
-#include "../../ThirdParty/OpenSource/TinySTL/hash.h"
+#include "../../ThirdParty/OpenSource/EASTL/functional.h"
 #include "../../ThirdParty/OpenSource/winpixeventruntime/Include/WinPixEventRuntime/pix3.h"
 #include "../../OS/Core/GPUConfig.h"
 #include "../../OS/Image/Image.h"
@@ -325,8 +324,8 @@ const DXGI_FORMAT gFormatTranslator[] = {
 
 // DX Commands cache which gets processed on queue submission.
 // Actual implementation of the processing is done in Direct3D11Commands.cpp.
-typedef tinystl::unordered_map<Cmd*, tinystl::vector<CachedCmd> > CachedCmds;
-tinystl::unordered_map<Cmd*, tinystl::vector<CachedCmd> >         gCachedCmds;
+typedef eastl::unordered_map<Cmd*, eastl::vector<CachedCmd> > CachedCmds;
+eastl::unordered_map<Cmd*, eastl::vector<CachedCmd> >         gCachedCmds;
 
 // =================================================================================================
 // IMPLEMENTATION
@@ -1114,28 +1113,11 @@ static void AddDevice(Renderer* pRenderer)
 	ASSERT(SUCCEEDED(hr));
 	if (FAILED(hr))
 		LOGF(LogLevel::eERROR, "Failed to create D3D11 device and context.");
-
-#if PROFILE_ENABLED
-	ProfileOnThreadCreate("RenderThread");
-	ProfileGpuInitInternal(pRenderer->pDxDevice);
-	ProfileSetEnableAllGroups(true);
-	ProfileSetForceMetaCounters(true);
-	//ProfileSetCurrentNodeD3D12(0);
-	ProfileSetForceEnable(true);
-	ProfileSetEnableAllGroups(true);
-	ProfileSetForceMetaCounters(true);
-	ProfileWebServerStart();
-	ProfileContextSwitchTraceStart();
-#endif
 }
 
 static void RemoveDevice(Renderer* pRenderer)
 {
 	SAFE_RELEASE(pRenderer->pDXGIFactory);
-
-#if PROFILE_ENABLED
-	ProfileGpuShutdown();
-#endif
 
 	for (uint32_t i = 0; i < pRenderer->mNumOfGPUs; ++i)
 	{
@@ -1321,7 +1303,7 @@ void addQueue(Renderer* pRenderer, QueueDesc* pQDesc, Queue** ppQueue)
 	// what the client is intending to do.
 	pQueue->mQueueDesc = *pQDesc;
 	pQueue->mUploadGranularity = { 1, 1, 1 };
-	tinystl::string queueType = "DUMMY QUEUE FOR DX11 BACKEND";
+	eastl::string queueType = "DUMMY QUEUE FOR DX11 BACKEND";
 	pQueue->pRenderer = pRenderer;
 
 	*ppQueue = pQueue;
@@ -1774,15 +1756,15 @@ void compileShader(
 		break;
 	}
 
-	tinystl::string target;
+	eastl::string target;
 	switch (stage)
 	{
-		case SHADER_STAGE_VERT: target = tinystl::string::format("vs_%d_%d", major, minor); break;
-		case SHADER_STAGE_TESC: target = tinystl::string::format("hs_%d_%d", major, minor); break;
-		case SHADER_STAGE_TESE: target = tinystl::string::format("ds_%d_%d", major, minor); break;
-		case SHADER_STAGE_GEOM: target = tinystl::string::format("gs_%d_%d", major, minor); break;
-		case SHADER_STAGE_FRAG: target = tinystl::string::format("ps_%d_%d", major, minor); break;
-		case SHADER_STAGE_COMP: target = tinystl::string::format("cs_%d_%d", major, minor); break;
+		case SHADER_STAGE_VERT: target = eastl::string().sprintf("vs_%d_%d", major, minor); break;
+		case SHADER_STAGE_TESC: target = eastl::string().sprintf("hs_%d_%d", major, minor); break;
+		case SHADER_STAGE_TESE: target = eastl::string().sprintf("ds_%d_%d", major, minor); break;
+		case SHADER_STAGE_GEOM: target = eastl::string().sprintf("gs_%d_%d", major, minor); break;
+		case SHADER_STAGE_FRAG: target = eastl::string().sprintf("ps_%d_%d", major, minor); break;
+		case SHADER_STAGE_COMP: target = eastl::string().sprintf("cs_%d_%d", major, minor); break;
 		default: break;
 	}
 
@@ -1792,26 +1774,26 @@ void compileShader(
 	macros[0] = { "D3D12", "1" };
 	for (uint32_t j = 0; j < macroCount; ++j)
 	{
-		macros[j + 1] = { pMacros[j].definition, pMacros[j].value };
+		macros[j + 1] = { pMacros[j].definition.c_str(), pMacros[j].value.c_str() };
 	}
 	macros[macroCount + 1] = { NULL, NULL };
 
 	//if (fnHookShaderCompileFlags != NULL)
 	//  fnHookShaderCompileFlags(compile_flags);
 
-	tinystl::string entryPoint = pEntryPoint ? tinystl::string(pEntryPoint) : "main";
+	eastl::string entryPoint = pEntryPoint ? eastl::string(pEntryPoint) : "main";
 	ID3DBlob*       compiled_code = NULL;
 	ID3DBlob*       error_msgs = NULL;
 	HRESULT         hres = D3DCompile2(
-        code, (size_t)codeSize, fileName, macros, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint.c_str(), target, compile_flags, 0, 0, NULL,
+        code, (size_t)codeSize, fileName, macros, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint.c_str(), target.c_str(), compile_flags, 0, 0, NULL,
         0, &compiled_code, &error_msgs);
 	if (FAILED(hres))
 	{
 		char* msg = (char*)conf_calloc(error_msgs->GetBufferSize() + 1, sizeof(*msg));
 		ASSERT(msg);
 		memcpy(msg, error_msgs->GetBufferPointer(), error_msgs->GetBufferSize());
-		tinystl::string error = tinystl::string(fileName) + " " + msg;
-		ErrorMsg(error);
+		eastl::string error = eastl::string(fileName) + " " + msg;
+		ErrorMsg(error.c_str());
 		SAFE_FREE(msg);
 	}
 	ASSERT(SUCCEEDED(hres));
@@ -2465,17 +2447,17 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 	RootSignature* pRootSignature = (RootSignature*)conf_calloc(1, sizeof(*pRootSignature));
 	ASSERT(pRootSignature);
 
-	tinystl::vector<ShaderResource>                            shaderResources;
-	tinystl::vector<uint32_t>                                  constantSizes;
-	tinystl::vector<tinystl::pair<DescriptorInfo*, Sampler*> > staticSamplers;
+	eastl::vector<ShaderResource>                            shaderResources;
+	eastl::vector<uint32_t>                                  constantSizes;
+	eastl::vector<eastl::pair<DescriptorInfo*, Sampler*> > staticSamplers;
 	ShaderStage                                                shaderStages = SHADER_STAGE_NONE;
 	bool                                                       useInputLayout = false;
 
-	tinystl::unordered_map<tinystl::string, Sampler*> staticSamplerMap;
+	eastl::unordered_map<eastl::string, Sampler*> staticSamplerMap;
 	for (uint32_t i = 0; i < pRootSignatureDesc->mStaticSamplerCount; ++i)
-		staticSamplerMap.insert({ pRootSignatureDesc->ppStaticSamplerNames[i], pRootSignatureDesc->ppStaticSamplers[i] });
+		staticSamplerMap.insert({{ pRootSignatureDesc->ppStaticSamplerNames[i], pRootSignatureDesc->ppStaticSamplers[i] }});
 
-	conf_placement_new<tinystl::unordered_map<uint32_t, uint32_t> >(&pRootSignature->pDescriptorNameToIndexMap);
+	conf_placement_new<eastl::unordered_map<uint32_t, uint32_t> >(&pRootSignature->pDescriptorNameToIndexMap);
 
 	// Collect all unique shader resources in the given shaders
 	// Resources are parsed by name (two resources named "XYZ" in two shaders will be considered the same resource)
@@ -2509,11 +2491,11 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 				setIndex = 0;
 
 			// Find all unique resources
-			tinystl::unordered_hash_node<uint32_t, uint32_t>* pNode =
-				pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pRes->name)).node;
-			if (!pNode)
+			decltype(pRootSignature->pDescriptorNameToIndexMap)::iterator pNode =
+				pRootSignature->pDescriptorNameToIndexMap.find(pRes->name);
+			if (pNode == pRootSignature->pDescriptorNameToIndexMap.end())
 			{
-				pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), (uint32_t)shaderResources.size() });
+				pRootSignature->pDescriptorNameToIndexMap.insert(pRes->name, (uint32_t)shaderResources.size());
 				shaderResources.push_back(*pRes);
 
 				uint32_t constantSize = 0;
@@ -2557,7 +2539,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 
 				for (ShaderResource& res : shaderResources)
 				{
-					if (tinystl::hash(res.name) == pNode->first)
+					if (res.name == pNode->first)
 					{
 						res.used_stages |= pRes->used_stages;
 						break;
@@ -2600,9 +2582,9 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 		if (pDesc->mDesc.type == DESCRIPTOR_TYPE_SAMPLER)
 		{
 			// If the sampler is a static sampler, no need to put it in the descriptor table
-			const tinystl::unordered_hash_node<tinystl::string, Sampler*>* pNode = staticSamplerMap.find(pDesc->mDesc.name).node;
+			decltype(staticSamplerMap)::iterator pNode = staticSamplerMap.find(pDesc->mDesc.name);
 
-			if (pNode)
+			if (pNode != staticSamplerMap.end())
 			{
 				LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Static Sampler", pDesc->mDesc.name);
 				// Set the index to invalid value so we can use this later for error checking if user tries to update a static sampler
@@ -2621,8 +2603,9 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 		{
 			// D3D12 has no special syntax to declare root constants like Vulkan
 			// So we assume that all constant buffers with the word "rootconstant" (case insensitive) are root constants
-			if (tinystl::string(pRes->name).to_lower().find("rootconstant", 0) != tinystl::string::npos ||
-				pDesc->mDesc.type == DESCRIPTOR_TYPE_ROOT_CONSTANT)
+			eastl::string name = pRes->name;
+			name.make_lower();
+			if (name.find("rootconstant", 0) != eastl::string::npos || pDesc->mDesc.type == DESCRIPTOR_TYPE_ROOT_CONSTANT)
 			{
 				// Make the root param a 32 bit constant if the user explicitly specifies it in the shader
 				pDesc->mDesc.type = DESCRIPTOR_TYPE_ROOT_CONSTANT;
@@ -2668,7 +2651,7 @@ void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 		SAFE_FREE((void*)pRootSignature->pDescriptors[i].mDesc.name);
 	}
 
-	pRootSignature->pDescriptorNameToIndexMap.~unordered_map();
+	pRootSignature->pDescriptorNameToIndexMap.~string_hash_map();
 
 	SAFE_FREE(pRootSignature->pDescriptors);
 	SAFE_FREE(pRootSignature->ppStaticSamplers);
@@ -3226,12 +3209,12 @@ void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 
 const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName, uint32_t* pIndex)
 {
-	using DescriptorNameToIndexMap = tinystl::unordered_map<uint32_t, uint32_t>;
-	DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pResName));
-	if (it.node)
+	using DescriptorNameToIndexMap = eastl::string_hash_map<uint32_t>;
+	DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap.find(pResName);
+	if (it != pRootSignature->pDescriptorNameToIndexMap.end())
 	{
-		*pIndex = it.node->second;
-		return &pRootSignature->pDescriptors[it.node->second];
+		*pIndex = it->second;
+		return &pRootSignature->pDescriptors[it->second];
 	}
 	else
 	{
@@ -3646,7 +3629,7 @@ void queueSubmit(
 	for (uint32_t i = 0; i < cmdCount; ++i)
 	{
 		Cmd*                              pCmd = ppCmds[i];
-		const tinystl::vector<CachedCmd>& cmds = gCachedCmds[pCmd];
+		const eastl::vector<CachedCmd>& cmds = gCachedCmds[pCmd];
 		for (uint32_t cmdIndex = 0; cmdIndex < (uint32_t)cmds.size(); ++cmdIndex)
 		{
 			const CachedCmd& cmd = cmds[cmdIndex];
@@ -3961,27 +3944,6 @@ void queueSubmit(
 					}
 					break;
 				}
-
-				case CMD_TYPE_cmdBeginDebugMarker:
-				{
-					ProfileGpuSetContext(pContext);
-
-					// Convert float3 color to *rgb8.
-					uint32 scope_color = static_cast<uint32>(cmd.mBeginDebugMarkerCmd.r * 255) << 16 
-									   | static_cast<uint32>(cmd.mBeginDebugMarkerCmd.g * 255) << 8 
-									   | static_cast<uint32>(cmd.mBeginDebugMarkerCmd.b * 255);
-
-					// This micro gets g_mp_temp token for the current gpu timestamp. Token is created per pName which mean passing in same name will return the same token.
-					// Create new scope on top of the current stack and enter
-					PROFILE_GPU_ENTER(temp, cmd.mBeginDebugMarkerCmd.pName, scope_color);
-					break;
-				}
-				case CMD_TYPE_cmdEndDebugMarker:
-				{
-					// Leave the current scope and pop up the scope stack
-					PROFILE_GPU_LEAVE();
-					break;
-				}
 				case CMD_TYPE_cmdAddDebugMarker:
 					break;
 				case CMD_TYPE_cmdUpdateBuffer:
@@ -4025,10 +3987,6 @@ void queuePresent(
 	Queue* pQueue, SwapChain* pSwapChain, uint32_t swapChainImageIndex, uint32_t waitSemaphoreCount, Semaphore** ppWaitSemaphores)
 {
 	pSwapChain->pDxSwapChain->Present(pSwapChain->mDxSyncInterval, 0);
-#if PROFILE_ENABLED
-		// Call profile flip to indicate a new frame
-		ProfileFlip();
-#endif
 }
 
 void getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatus) { *pFenceStatus = FENCE_STATUS_COMPLETE; }

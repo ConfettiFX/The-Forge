@@ -1262,10 +1262,10 @@ struct ImGuiTextFilter
         const char*     begin() const   { return b; }
         const char*     end () const    { return e; }
         bool            empty() const   { return b == e; }
-		IMGUI_API void  split(char separator, tinystl::vector<TextRange>* out) const;
+		IMGUI_API void  split(char separator, eastl::vector<TextRange>* out) const;
     };
     char                InputBuf[256];
-	tinystl::vector<TextRange> Filters;
+	eastl::vector<TextRange> Filters;
     int                 CountGrep;
 };
 
@@ -1287,7 +1287,7 @@ struct ImGuiStorage
         Pair(ImGuiID _key, float _val_f) { key = _key; val_f = _val_f; }
         Pair(ImGuiID _key, void* _val_p) { key = _key; val_p = _val_p; }
     };
-    tinystl::vector<Pair>      Data;
+    eastl::vector<Pair>      Data;
 
     // - Get***() functions find pair, never add/allocate. Pairs are sorted so a query is O(log N)
     // - Set***() functions find pair, insertion on demand if missing.
@@ -1505,8 +1505,8 @@ IMGUI_OVERRIDE_DRAWVERT_STRUCT_LAYOUT;
 // You can also use them to simulate drawing layers and submit primitives in a different order than how they will be rendered.
 struct ImDrawChannel
 {
-    tinystl::vector<ImDrawCmd>     CmdBuffer;
-    tinystl::vector<ImDrawIdx>     IdxBuffer;
+    eastl::vector<ImDrawCmd>     CmdBuffer;
+    eastl::vector<ImDrawIdx>     IdxBuffer;
 };
 
 enum ImDrawCornerFlags_
@@ -1537,23 +1537,23 @@ enum ImDrawListFlags_
 struct ImDrawList
 {
     // This is what you have to render
-    tinystl::vector<ImDrawCmd>     CmdBuffer;          // Draw commands. Typically 1 command = 1 GPU draw call, unless the command is a callback.
-    tinystl::vector<ImDrawIdx>     IdxBuffer;          // Index buffer. Each command consume ImDrawCmd::ElemCount of those
-    tinystl::vector<ImDrawVert>    VtxBuffer;          // Vertex buffer.
+    eastl::vector<ImDrawCmd>     CmdBuffer;          // Draw commands. Typically 1 command = 1 GPU draw call, unless the command is a callback.
+    eastl::vector<ImDrawIdx>     IdxBuffer;          // Index buffer. Each command consume ImDrawCmd::ElemCount of those
+    eastl::vector<ImDrawVert>    VtxBuffer;          // Vertex buffer.
     ImDrawListFlags         Flags;              // Flags, you may poke into these to adjust anti-aliasing settings per-primitive.
 
     // [Internal, used while building lists]
     const ImDrawListSharedData* _Data;          // Pointer to shared draw data (you can use ImGui::GetDrawListSharedData() to get the one from current ImGui context)
     const char*             _OwnerName;         // Pointer to owner window's name for debugging
     unsigned int            _VtxCurrentIdx;     // [Internal] == VtxBuffer.Size
-    ImDrawVert*             _VtxWritePtr;       // [Internal] point within VtxBuffer.Data after each add command (to avoid using the tinystl::vector<> operators too much)
-    ImDrawIdx*              _IdxWritePtr;       // [Internal] point within IdxBuffer.Data after each add command (to avoid using the tinystl::vector<> operators too much)
-    tinystl::vector<float4>        _ClipRectStack;     // [Internal]
-    tinystl::vector<ImTextureID>   _TextureIdStack;    // [Internal]
-    tinystl::vector<float2>        _Path;              // [Internal] current path building
+    ImDrawVert*             _VtxWritePtr;       // [Internal] point within VtxBuffer.Data after each add command (to avoid using the eastl::vector<> operators too much)
+    ImDrawIdx*              _IdxWritePtr;       // [Internal] point within IdxBuffer.Data after each add command (to avoid using the eastl::vector<> operators too much)
+    eastl::vector<float4>        _ClipRectStack;     // [Internal]
+    eastl::vector<ImTextureID>   _TextureIdStack;    // [Internal]
+    eastl::vector<float2>        _Path;              // [Internal] current path building
     int                     _ChannelsCurrent;   // [Internal] current channel number (0)
     int                     _ChannelsCount;     // [Internal] number of active channels (1+)
-    tinystl::vector<ImDrawChannel> _Channels;          // [Internal] draw channels for columns API (not resized down so _ChannelsCount may be smaller than _Channels.Size)
+    eastl::vector<ImDrawChannel> _Channels;          // [Internal] draw channels for columns API (not resized down so _ChannelsCount may be smaller than _Channels.Size)
 
     // If you want to create ImDrawList instances, pass them ImGui::GetDrawListSharedData() or create and use your own ImDrawListSharedData (so you can use ImDrawList without ImGui)
     ImDrawList(const ImDrawListSharedData* shared_data) { _Data = shared_data; _OwnerName = NULL; Clear(); }
@@ -1746,14 +1746,14 @@ struct ImFontAtlas
     // Helpers to build glyph ranges from text data. Feed your application strings/characters to it then call BuildRanges().
     struct GlyphRangesBuilder
     {
-        tinystl::vector<unsigned char> UsedChars;  // Store 1-bit per Unicode code point (0=unused, 1=used)
+        eastl::vector<unsigned char> UsedChars;  // Store 1-bit per Unicode code point (0=unused, 1=used)
         GlyphRangesBuilder()                { UsedChars.resize(0x10000 / 8); memset(UsedChars.data(), 0, 0x10000 / 8); }
         bool           GetBit(int n) const  { return (UsedChars[n >> 3] & (1 << (n & 7))) != 0; }
         void           SetBit(int n)        { UsedChars[n >> 3] |= 1 << (n & 7); }  // Set bit 'c' in the array
         void           AddChar(ImWchar c)   { SetBit(c); }                          // Add character
         IMGUI_API void AddText(const char* text, const char* text_end = NULL);      // Add string (each character of the UTF-8 string are added)
         IMGUI_API void AddRanges(const ImWchar* ranges);                            // Add ranges, e.g. builder.AddRanges(ImFontAtlas::GetGlyphRangesDefault()) to force add all of ASCII/Latin+Ext
-        IMGUI_API void BuildRanges(tinystl::vector<ImWchar>* out_ranges);                  // Output new ranges
+        IMGUI_API void BuildRanges(eastl::vector<ImWchar>* out_ranges);                  // Output new ranges
     };
 
     //-------------------------------------------
@@ -1800,9 +1800,9 @@ struct ImFontAtlas
     int                         TexHeight;          // Texture height calculated during Build().
     float2                      TexUvScale;         // = (1.0f/TexWidth, 1.0f/TexHeight)
     float2                      TexUvWhitePixel;    // Texture coordinates to a white pixel
-    tinystl::vector<ImFont*>           Fonts;              // Hold all the fonts returned by AddFont*. Fonts[0] is the default font upon calling ImGui::NewFrame(), use ImGui::PushFont()/PopFont() to change the current font.
-    tinystl::vector<CustomRect>        CustomRects;        // Rectangles for packing custom texture data into the atlas.
-    tinystl::vector<ImFontConfig>      ConfigData;         // Internal data
+    eastl::vector<ImFont*>           Fonts;              // Hold all the fonts returned by AddFont*. Fonts[0] is the default font upon calling ImGui::NewFrame(), use ImGui::PushFont()/PopFont() to change the current font.
+    eastl::vector<CustomRect>        CustomRects;        // Rectangles for packing custom texture data into the atlas.
+    eastl::vector<ImFontConfig>      ConfigData;         // Internal data
     int                         CustomRectIds[1];   // Identifiers of custom texture rectangle used by ImFontAtlas/ImDrawList
 };
 
@@ -1814,9 +1814,9 @@ struct ImFont
     float                       FontSize;           // <user set>   // Height of characters, set during loading (don't change after loading)
     float                       Scale;              // = 1.f        // Base font scale, multiplied by the per-window font scale which you can adjust with SetFontScale()
     float2                      DisplayOffset;      // = (0.f,0.f)  // Offset font rendering by xx pixels
-    tinystl::vector<ImFontGlyph>       Glyphs;             //              // All glyphs.
-    tinystl::vector<float>             IndexAdvanceX;      //              // Sparse. Glyphs->AdvanceX in a directly indexable way (more cache-friendly, for CalcTextSize functions which are often bottleneck in large UI).
-    tinystl::vector<unsigned short>    IndexLookup;        //              // Sparse. Index glyphs by Unicode code-point.
+    eastl::vector<ImFontGlyph>       Glyphs;             //              // All glyphs.
+    eastl::vector<float>             IndexAdvanceX;      //              // Sparse. Glyphs->AdvanceX in a directly indexable way (more cache-friendly, for CalcTextSize functions which are often bottleneck in large UI).
+    eastl::vector<unsigned short>    IndexLookup;        //              // Sparse. Index glyphs by Unicode code-point.
     const ImFontGlyph*          FallbackGlyph;      // == FindGlyph(FontFallbackChar)
     float                       FallbackAdvanceX;   // == FallbackGlyph->AdvanceX
     ImWchar                     FallbackChar;       // = '?'        // Replacement glyph if one isn't found. Only set via SetFallbackChar()

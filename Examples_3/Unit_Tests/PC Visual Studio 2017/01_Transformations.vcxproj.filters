@@ -46,5 +46,17 @@
     <None Include="..\src\01_Transformations\Shaders\D3D12\basic.vert">
       <Filter>Shaders\D3D12</Filter>
     </None>
+    <None Include="..\src\01_Transformations\Shaders\D3D12\profile.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\01_Transformations\Shaders\D3D12\profile.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\01_Transformations\Shaders\Vulkan\profile.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\01_Transformations\Shaders\Vulkan\profile.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
   </ItemGroup>
 </Project>

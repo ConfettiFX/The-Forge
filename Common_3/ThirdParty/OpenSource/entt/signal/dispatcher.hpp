@@ -3,9 +3,9 @@
 
 
 //#include <vector>
-#include "../../TinySTL/vector.h"
+#include "../../EASTL/vector.h"
 //#include <memory>
-#include "../../TinySTL/memory.h"
+#include "../../EASTL/unique_ptr.h"
 #include <utility>
 #include <cstdint>
 #include <algorithm>
@@ -51,8 +51,8 @@ class Dispatcher final {
 
         void publish() override {
             const auto &curr = current++;
-            current %= std::extent<decltype(events)>::value;
-            std::for_each(events[curr].cbegin(), events[curr].cend(), [this](const auto &event) { signal.publish(event); });
+            current %= eastl::extent<decltype(events)>::value;
+            eastl::for_each(events[curr].cbegin(), events[curr].cend(), [this](const auto &event) { signal.publish(event); });
             events[curr].clear();
         }
 
@@ -62,17 +62,17 @@ class Dispatcher final {
 
         template<typename... Args>
         inline void trigger(Args &&... args) {
-            signal.publish({ std::forward<Args>(args)... });
+            signal.publish({ eastl::forward<Args>(args)... });
         }
 
         template<typename... Args>
         inline void enqueue(Args &&... args) {
-            events[current].push_back({ std::forward<Args>(args)... });
+            events[current].push_back({ eastl::forward<Args>(args)... });
         }
 
     private:
         SigH<void(const Event &)> signal{};
-        tinystl::vector<Event> events[2];
+        eastl::vector<Event> events[2];
         int current{};
     };
 
@@ -85,7 +85,7 @@ class Dispatcher final {
         }
 
         if(!wrappers[type]) {
-            wrappers[type] = tinystl::make_unique<SignalWrapper<Event>>();
+            wrappers[type] = eastl::make_unique<SignalWrapper<Event>>();
         }
 
         return static_cast<SignalWrapper<Event> &>(*wrappers[type]);
@@ -130,7 +130,7 @@ public:
      */
     template<typename Event, typename... Args>
     inline void trigger(Args &&... args) {
-        wrapper<Event>().trigger(std::forward<Args>(args)...);
+        wrapper<Event>().trigger(eastl::forward<Args>(args)...);
     }
 
     /**
@@ -145,7 +145,7 @@ public:
      */
     template<typename Event, typename... Args>
     inline void enqueue(Args &&... args) {
-        wrapper<Event>().enqueue(std::forward<Args>(args)...);
+        wrapper<Event>().enqueue(eastl::forward<Args>(args)...);
     }
 
     /**
@@ -180,7 +180,7 @@ public:
     }
 
 private:
-    tinystl::vector<tinystl::unique_ptr<BaseSignalWrapper>> wrappers;
+    eastl::vector<eastl::unique_ptr<BaseSignalWrapper>> wrappers;
 };
 
 

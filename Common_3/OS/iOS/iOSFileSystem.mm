@@ -25,7 +25,7 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
-#include "../../ThirdParty/OpenSource/TinySTL/unordered_map.h"
+#include "../../ThirdParty/OpenSource/EASTL/string_hash_map.h"
 
 #include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/ILogManager.h"
@@ -93,24 +93,24 @@ FileHandle open_file(const char* filename, const char* flags)
 	// Hence, if we request to open a file with write permissions, we will use Documents for that.
 	if (strstr(flags, "w") != NULL)
 	{
-		const tinystl::string currDir = get_current_dir();
-		tinystl::string       strFileName(filename);
+		const eastl::string currDir = get_current_dir();
+		eastl::string       strFileName(filename);
 
 		// @filename will have absolute path before being passed into this function.
 		// if we want to write, we want to change the directory. Hence, strip away the
 		// resolved bundle path (which as prepended to the actual file name the App wants to open)
 		// and prepend the 'Documents' folder to the filename
-		const unsigned findPos = strFileName.find(currDir, 0);
-		if (findPos != tinystl::string::npos)
+		size_t findPos = strFileName.find(currDir, 0);
+		if (findPos != eastl::string::npos)
 		{
-			strFileName.replace(currDir, "");
+			strFileName.replace(findPos, currDir.size(), "");
 		}
 
 		NSString*       documentsDirectory = [NSHomeDirectory() stringByAppendingPathComponent:@"Documents"];
-		tinystl::string docDirStr([documentsDirectory UTF8String]);
+		eastl::string docDirStr([documentsDirectory UTF8String]);
 
 		// Don't want to append if already in the incoming file name
-		if (strFileName.find_last(docDirStr) == tinystl::string::npos)
+		if (strFileName.find(docDirStr) == eastl::string::npos)
 			filename =
 				[[documentsDirectory stringByAppendingString:[NSString stringWithUTF8String:strFileName.c_str()]] fileSystemRepresentation];
 	}
@@ -150,15 +150,15 @@ size_t write_file(const void* buffer, size_t byteCount, FileHandle handle)
 	return fwrite(buffer, 1, byteCount, (::FILE*)handle);
 }
 
-tinystl::string get_current_dir()
+eastl::string get_current_dir()
 {
-	return tinystl::string([[[NSBundle mainBundle] bundlePath] cStringUsingEncoding:NSUTF8StringEncoding]);
+	return eastl::string([[[NSBundle mainBundle] bundlePath] cStringUsingEncoding:NSUTF8StringEncoding]);
 }
 
-tinystl::string get_exe_path()
+eastl::string get_exe_path()
 {
 	const char*     exeDir = [[[[NSBundle mainBundle] bundlePath] stringByStandardizingPath] cStringUsingEncoding:NSUTF8StringEncoding];
-	tinystl::string str(exeDir);
+	eastl::string str(exeDir);
 	return str;
 }
 
@@ -186,16 +186,16 @@ time_t get_file_creation_time(const char* _fileName)
 	return fileInfo.st_ctime;
 }
 
-tinystl::string get_app_prefs_dir(const char* org, const char* app)
+eastl::string get_app_prefs_dir(const char* org, const char* app)
 {
 	ASSERT(false && "Unsupported on target iOS");
-	return tinystl::string();
+	return eastl::string();
 }
 
-tinystl::string get_user_documents_dir()
+eastl::string get_user_documents_dir()
 {
 	ASSERT(false && "Unsupported on target iOS");
-	return tinystl::string();
+	return eastl::string();
 }
 
 void set_current_dir(const char* path)
@@ -203,7 +203,7 @@ void set_current_dir(const char* path)
 	chdir(path);
 }
 
-void get_files_with_extension(const char* dir, const char* ext, tinystl::vector<tinystl::string>& filesIn)
+void get_files_with_extension(const char* dir, const char* ext, eastl::vector<eastl::string>& filesIn)
 {
 	if (!dir || strlen(dir) == 0)
 	{
@@ -446,9 +446,9 @@ typedef void (*ActionPickDocumentCallbackFn)(NSURL*, void*, void*);
 }
 @end
 
-static tinystl::unordered_map<tinystl::string, tinystl::string> gExtensionToUtiId;
-extern UIViewController*                                        pMainViewController;
-static UIBarButtonItem*                                         gDoneBtnItem;
+static eastl::string_hash_map<eastl::string> gExtensionToUtiId;
+extern UIViewController*                     pMainViewController;
+static UIBarButtonItem*                      gDoneBtnItem;
 
 @interface DocumentBrowserCancelDelegate: NSObject
 {
@@ -473,11 +473,11 @@ void on_document_picked(NSURL* url, void* callback, void* userData)
 	fn(url.fileSystemRepresentation, userData);
 }
 
-void add_uti_to_map(const char* extension, const char* uti) { gExtensionToUtiId.insert({ extension, uti }); }
+void add_uti_to_map(const char* extension, const char* uti) { gExtensionToUtiId.insert(extension, uti); }
 /************************************************************************/
 /************************************************************************/
 static void format_file_extensions_filter(
-	tinystl::string const& fileDesc, tinystl::vector<tinystl::string> const& extFiltersIn, tinystl::string& extFiltersOut)
+	eastl::string const& fileDesc, eastl::vector<eastl::string> const& extFiltersIn, eastl::string& extFiltersOut)
 {
 	extFiltersOut = "";
 
@@ -486,7 +486,7 @@ static void format_file_extensions_filter(
 
 	for (size_t i = 0; i < extFiltersIn.size(); ++i)
 	{
-		tinystl::unordered_map<tinystl::string, tinystl::string>::iterator iter = gExtensionToUtiId.find(extFiltersIn[i]);
+		eastl::string_hash_map<eastl::string>::iterator iter = gExtensionToUtiId.find(extFiltersIn[i].c_str());
 		if (iter != gExtensionToUtiId.end())
 		{
 			extFiltersOut += iter->second;
@@ -527,34 +527,34 @@ static void create_document_browser(
 
 void open_file_dialog(
 	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
-	const tinystl::vector<tinystl::string>& fileExtensions)
+	const eastl::vector<eastl::string>& fileExtensions)
 {
-	tinystl::string extFilter;
+	eastl::string extFilter;
 	format_file_extensions_filter(fileDesc, fileExtensions, extFilter);
 	// Create array of filtered extentions
-	NSString* extString = [NSString stringWithCString:extFilter encoding:[NSString defaultCStringEncoding]];
+	NSString* extString = [NSString stringWithCString:extFilter.c_str() encoding:[NSString defaultCStringEncoding]];
 	NSArray*  extList = [extString componentsSeparatedByString:@";"];
 	create_document_browser(title, (void*)callback, (void*)userData, extList, nil, false, false);
 }
 
 void save_file_dialog(
 	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
-	const tinystl::vector<tinystl::string>& fileExtensions)
+	const eastl::vector<eastl::string>& fileExtensions)
 {
-	tinystl::string extFilter;
+	eastl::string extFilter;
 	format_file_extensions_filter(fileDesc, fileExtensions, extFilter);
 	// Create array of filtered extentions
-	NSString* extString = [NSString stringWithCString:extFilter encoding:[NSString defaultCStringEncoding]];
+	NSString* extString = [NSString stringWithCString:extFilter.c_str() encoding:[NSString defaultCStringEncoding]];
 	NSArray*  extList = [extString componentsSeparatedByString:@";"];
 
 	// Create default extension string
 	NSString* defaultExt = nil;
 	if (!fileExtensions.empty())
 	{
-		tinystl::string ext = fileExtensions[0];
+		eastl::string ext = fileExtensions[0];
 		if (ext[0] != '.')
 			ext.insert(0, ".", 1);
-		defaultExt = [NSString stringWithCString:ext encoding:[NSString defaultCStringEncoding]];
+		defaultExt = [NSString stringWithCString:ext.c_str() encoding:[NSString defaultCStringEncoding]];
 	}
 	create_document_browser(title, (void*)callback, (void*)userData, extList, defaultExt, true, false);
 }

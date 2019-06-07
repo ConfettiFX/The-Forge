@@ -22,18 +22,18 @@
  * under the License.
 */
 
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
-#include "../../../../Common_3/Renderer/GpuProfiler.h"
 
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
 #include "../../../../Middleware_3/UI/AppUI.h"
@@ -49,6 +49,8 @@ struct UniformBlock
 };
 
 const uint32_t gImageCount = 3;
+bool           bToggleMicroProfiler = false;
+bool           bPrevToggleMicroProfiler = false;
 
 Renderer* pRenderer = NULL;
 
@@ -77,6 +79,8 @@ uint32_t gFrameIndex = 0;
 UniformBlock gUniformData;
 
 ICameraController* pCameraController = NULL;
+
+GuiComponent*			pGuiWindow;
 
 GpuProfiler* pGpuProfiler = NULL;
 
@@ -134,7 +138,10 @@ class SphereTracing: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
+		initProfiler(pRenderer, gImageCount);
+		profileRegisterInput();
+
+		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 #if defined(__ANDROID__) || defined(TARGET_IOS)
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
@@ -180,6 +187,16 @@ class SphereTracing: public IApp
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
+    /************************************************************************/
+    // GUI
+    /************************************************************************/
+    GuiDesc guiDesc = {};
+    guiDesc.mStartSize = vec2(300.0f, 250.0f);
+    guiDesc.mStartPosition = vec2(0.0f, guiDesc.mStartSize.getY());
+    pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
+
+    pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+
 		CameraMotionParameters cmp{ 1.6f, 6.0f, 2.0f };
 		vec3                   camPos{ 3.5, 1.0, 0.5 };
 		vec3                   lookAt{ -0.5f, -0.4f, 0.5f };
@@ -201,6 +218,8 @@ class SphereTracing: public IApp
 	void Exit()
 	{
 		waitQueueIdle(pGraphicsQueue);
+
+		exitProfiler(pRenderer);
 
 		destroyCameraController(pCameraController);
 
@@ -305,6 +324,20 @@ class SphereTracing: public IApp
 
 		/************************************************************************/
 		/************************************************************************/
+
+    // ProfileSetDisplayMode()
+    // TODO: need to change this better way 
+    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+    {
+      Profile& S = *ProfileGet();
+      int nValue = bToggleMicroProfiler ? 1 : 0;
+      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+      S.nDisplay = nValue;
+
+      bPrevToggleMicroProfiler = bToggleMicroProfiler;
+    }
+
+    gAppUI.Update(deltaTime);
 	}
 
 	void Draw()
@@ -371,13 +404,19 @@ class SphereTracing: public IApp
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
 
 #if !defined(__ANDROID__)    // Metal doesn't support GPU profilers
-		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
+			&gFrameTimeDraw);
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
 #endif
 
+		cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
+
+    gAppUI.Gui(pGuiWindow);
 		gAppUI.Draw(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndDebugMarker(cmd);
@@ -389,9 +428,10 @@ class SphereTracing: public IApp
 
 		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		flipProfiler();
 	}
 
-	tinystl::string GetName() { return "16a_SphereTracing"; }
+	const char* GetName() { return "16a_SphereTracing"; }
 
 	bool addSwapChain()
 	{

@@ -2,8 +2,8 @@
 #define ENTT_PROCESS_SCHEDULER_HPP
 
 
-#include "../../TinySTL/vector.h"
-#include "../../TinySTL/memory.h"
+#include "../../EASTL/vector.h"
+#include "../../EASTL/unique_ptr.h"
 #include <utility>
 #include <algorithm>
 #include <type_traits>
@@ -43,10 +43,10 @@ namespace entt {
 template<typename Delta>
 class Scheduler final {
     struct ProcessHandler final {
-        using instance_type = tinystl::unique_ptr<void>;
+        using instance_type = eastl::unique_ptr<void>;
         using update_fn_type = bool(ProcessHandler &, Delta, void *);
         using abort_fn_type = void(ProcessHandler &, bool);
-        using next_type = tinystl::unique_ptr<ProcessHandler>;
+        using next_type = eastl::unique_ptr<ProcessHandler>;
 
         instance_type instance;
         update_fn_type *update;
@@ -61,15 +61,15 @@ class Scheduler final {
 
         template<typename Proc, typename... Args>
         decltype(auto) then(Args &&... args) && {
-            static_assert(std::is_base_of<Process<Proc, Delta>, Proc>::value, "!");
-            handler = Scheduler::then<Proc>(handler, std::forward<Args>(args)...);
-            return std::move(*this);
+            static_assert(eastl::is_base_of<Process<Proc, Delta>, Proc>::value, "!");
+            handler = Scheduler::then<Proc>(handler, eastl::forward<Args>(args)...);
+            return eastl::move(*this);
         }
 
         template<typename Func>
         decltype(auto) then(Func &&func) && {
-            using Proc = ProcessAdaptor<std::decay_t<Func>, Delta>;
-            return std::move(*this).template then<Proc>(std::forward<Func>(func));
+            using Proc = ProcessAdaptor<eastl::decay_t<Func>, Delta>;
+            return eastl::move(*this).template then<Proc>(eastl::forward<Func>(func));
         }
 
     private:
@@ -85,7 +85,7 @@ class Scheduler final {
 
         if(dead) {
             if(handler.next && !process->rejected()) {
-                handler = std::move(*handler.next);
+                handler = eastl::move(*handler.next);
                 dead = handler.update(handler, delta, data);
             } else {
                 handler.instance.reset();
@@ -108,8 +108,8 @@ class Scheduler final {
     template<typename Proc, typename... Args>
     static auto then(ProcessHandler *handler, Args &&... args) {
         if(handler) {
-            auto proc = typename ProcessHandler::instance_type{new Proc{std::forward<Args>(args)...}, &Scheduler::deleter<Proc>};
-            handler->next.reset(new ProcessHandler{std::move(proc), &Scheduler::update<Proc>, &Scheduler::abort<Proc>, nullptr});
+            auto proc = typename ProcessHandler::instance_type{new Proc{eastl::forward<Args>(args)...}, &Scheduler::deleter<Proc>};
+            handler->next.reset(new ProcessHandler{eastl::move(proc), &Scheduler::update<Proc>, &Scheduler::abort<Proc>, nullptr});
             handler = handler->next.get();
         }
 
@@ -118,7 +118,7 @@ class Scheduler final {
 
 public:
     /*! @brief Unsigned integer type. */
-    using size_type = typename tinystl::vector<ProcessHandler>::size_type;
+    using size_type = typename eastl::vector<ProcessHandler>::size_type;
 
     /*! @brief Default constructor. */
     Scheduler() ENTT_NOEXCEPT = default;
@@ -186,11 +186,11 @@ public:
      */
     template<typename Proc, typename... Args>
     auto attach(Args &&... args) {
-        static_assert(std::is_base_of<Process<Proc, Delta>, Proc>::value, "!");
+        static_assert(eastl::is_base_of<Process<Proc, Delta>, Proc>::value, "!");
 
-        auto proc = typename ProcessHandler::instance_type{new Proc{std::forward<Args>(args)...}, &Scheduler::deleter<Proc>};
-        ProcessHandler handler{std::move(proc), &Scheduler::update<Proc>, &Scheduler::abort<Proc>, nullptr};
-        handlers.push_back(std::move(handler));
+        auto proc = typename ProcessHandler::instance_type{new Proc{eastl::forward<Args>(args)...}, &Scheduler::deleter<Proc>};
+        ProcessHandler handler{eastl::move(proc), &Scheduler::update<Proc>, &Scheduler::abort<Proc>, nullptr};
+        handlers.push_back(eastl::move(handler));
 
         return Then{&handlers.back()};
     }
@@ -247,8 +247,8 @@ public:
      */
     template<typename Func>
     auto attach(Func &&func) {
-        using Proc = ProcessAdaptor<std::decay_t<Func>, Delta>;
-        return attach<Proc>(std::forward<Func>(func));
+        using Proc = ProcessAdaptor<eastl::decay_t<Func>, Delta>;
+        return attach<Proc>(eastl::forward<Func>(func));
     }
 
     /**
@@ -272,7 +272,7 @@ public:
         }
 
         if(clean) {
-            handlers.erase(std::remove_if(handlers.begin(), handlers.end(), [](auto &handler) {
+            handlers.erase(eastl::remove_if(handlers.begin(), handlers.end(), [](auto &handler) {
                 return !handler.instance;
             }), handlers.end());
         }
@@ -292,16 +292,16 @@ public:
         decltype(handlers) exec;
         exec.swap(handlers);
 
-        std::for_each(exec.begin(), exec.end(), [immediately](auto &handler) {
+        eastl::for_each(exec.begin(), exec.end(), [immediately](auto &handler) {
             handler.abort(handler, immediately);
         });
 
-        std::move(handlers.begin(), handlers.end(), std::back_inserter(exec));
+        eastl::move(handlers.begin(), handlers.end(), eastl::back_inserter(exec));
         handlers.swap(exec);
     }
 
 private:
-    tinystl::vector<ProcessHandler> handlers{};
+    eastl::vector<ProcessHandler> handlers{};
 };
 
 

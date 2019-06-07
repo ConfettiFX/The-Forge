@@ -27,7 +27,7 @@
 
 #include "TressFXAsset.h"
 
-#include "../../ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../OS/Interfaces/ILogManager.h"
 #include "../../OS/Interfaces/IMemoryManager.h"
 

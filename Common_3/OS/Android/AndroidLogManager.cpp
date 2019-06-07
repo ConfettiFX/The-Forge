@@ -127,7 +127,7 @@ void _FailedAssert(const char* file, int line, const char* statement)
 	assert(0);
 }
 
-void _PrintUnicode(const tinystl::string& str, bool error) { outputLogString(str.c_str()); }
+void _PrintUnicode(const eastl::string& str, bool error) { outputLogString(str.c_str()); }
 
-void _PrintUnicodeLine(const tinystl::string& str, bool error) { _PrintUnicode(str, error); }
+void _PrintUnicodeLine(const eastl::string& str, bool error) { _PrintUnicode(str, error); }
 #endif    // ifdef __ANDROID__

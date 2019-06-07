@@ -1,53 +1,85 @@
 #pragma once
 
 #ifndef TARGET_IOS
-#include "../../ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../ThirdParty/OpenSource/EASTL/string.h"
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/IFileSystem.h"
 #include "../../Renderer/IRenderer.h"
 
-#ifndef METAL
-static GPUPresetLevel getSinglePresetLevel(
-	tinystl::string line, const tinystl::string& inVendorId, const tinystl::string& inModelId, const tinystl::string& inRevId)
+static bool parseConfigLine(
+	eastl::string line, eastl::string& vendorId, eastl::string& deviceId, eastl::string& revId, eastl::string& deviceName,
+    eastl::string& presetLevel)
 {
-	//remove extra whitespace to check if line is a comment (starts with #)
-	line = line.trimmed();
+	auto parseNext = [](eastl::string line, size_t& it) {
+		if (it == eastl::string::npos) return eastl::string();
+		size_t prev = it;
+		it = line.find_first_of(';', it);
+		it += (it != eastl::string::npos);
+		return line.substr(prev, it == eastl::string::npos ? eastl::string::npos : it - prev - 1);
+	};
 
+	line.trim();
 	//don't parse if commented line
-	if (line.at(0) == '#')
+	if (line.empty() || line.at(0) == '#')
+		return false;
+
+	size_t pos = 0;
+
+	vendorId = parseNext(line, pos);
+	if (pos == eastl::string::npos)
+		return false;
+
+	deviceId = parseNext(line, pos);
+	if (pos == eastl::string::npos)
+		return false;
+
+	presetLevel = parseNext(line, pos);
+	deviceName = parseNext(line, pos);
+	revId = parseNext(line, pos);
+
+	vendorId.trim();
+	vendorId.make_lower();
+	deviceId.trim();
+	deviceId.make_lower();
+	presetLevel.trim();
+	presetLevel.make_lower();
+	deviceName.trim();
+	revId.trim();
+
+	if (revId.empty())
+		revId = "0x00";
+
+	return true;
+}
+
+static GPUPresetLevel stringToPresetLevel(eastl::string& presetLevel)
+{
+	if (presetLevel == "office")
+		return GPU_PRESET_OFFICE;
+	if (presetLevel == "low")
+		return GPU_PRESET_LOW;
+	if (presetLevel == "medium")
+		return GPU_PRESET_MEDIUM;
+	if (presetLevel == "high")
+		return GPU_PRESET_HIGH;
+	if (presetLevel == "ultra")
+		return GPU_PRESET_ULTRA;
+
+	return GPU_PRESET_NONE;
+}
+
+#ifndef METAL
+static GPUPresetLevel
+	getSinglePresetLevel(eastl::string line, const eastl::string& inVendorId, const eastl::string& inModelId, const eastl::string& inRevId)
+{
+	eastl::string vendorId;
+	eastl::string deviceId;
+	eastl::string presetLevel;
+	eastl::string gpuName;
+	eastl::string revisionId;
+
+	if (!parseConfigLine(line, vendorId, deviceId, revisionId, gpuName, presetLevel))
 		return GPU_PRESET_NONE;
-
-	//remote comment from line
-	tinystl::vector<tinystl::string> parsedString = line.split(';');
-
-	//We need at least 3 entries (vendor, Model, Preset)
-	//The file is layed out the following way:
-	//Model ID; Vendor ID; Preset; GPU Name; Revision ID;
-	if (parsedString.size() < 3)
-		return GPU_PRESET_NONE;
-
-	tinystl::string vendorId = parsedString[0].to_lower();
-	tinystl::string deviceId = parsedString[1].to_lower();
-	tinystl::string presetLevel = parsedString[2].to_lower();
-	tinystl::string gpuName = "";
-	tinystl::string revisionId = "0x00";
-
-	if (parsedString.size() >= 4)
-	{
-		gpuName = parsedString[3];
-	}
-
-	if (parsedString.size() >= 5)
-	{
-		revisionId = parsedString[4].to_lower();
-	}
-
-	//trim whitespace
-	vendorId = vendorId.trimmed();
-	deviceId = deviceId.trimmed();
-	presetLevel = presetLevel.trimmed();
-	gpuName = gpuName.trimmed();
-	revisionId = revisionId.trimmed();
 
 	//check if current vendor line is one of the selected gpu's
 	//compare both ModelId and VendorId
@@ -57,19 +89,7 @@ static GPUPresetLevel getSinglePresetLevel(
 		if (inRevId != "0x00" && revisionId != "0x00" && inRevId != revisionId)
 			return GPU_PRESET_NONE;
 
-		//assign preset to gpu that's been identified.
-		if (presetLevel == "office")
-			return GPU_PRESET_OFFICE;
-		else if (presetLevel == "low")
-			return GPU_PRESET_LOW;
-		else if (presetLevel == "medium")
-			return GPU_PRESET_MEDIUM;
-		else if (presetLevel == "high")
-			return GPU_PRESET_HIGH;
-		else if (presetLevel == "ultra")
-			return GPU_PRESET_ULTRA;
-		else
-			return GPU_PRESET_NONE;
+		return stringToPresetLevel(presetLevel);
 	}
 
 	return GPU_PRESET_NONE;
@@ -78,46 +98,16 @@ static GPUPresetLevel getSinglePresetLevel(
 
 #ifndef __ANDROID__
 //TODO: Add name matching as well.
-static void checkForPresetLevel(tinystl::string line, Renderer* pRenderer)
+static void checkForPresetLevel(eastl::string line, Renderer* pRenderer)
 {
-	//remove extra whitespace to check if line is a comment (starts with #)
-	line = line.trimmed();
+	eastl::string vendorId;
+	eastl::string deviceId;
+	eastl::string presetLevel;
+	eastl::string gpuName;
+	eastl::string revisionId;
 
-	//don't parse if commented line
-	if (line.at(0) == '#')
+	if (!parseConfigLine(line, vendorId, deviceId, revisionId, gpuName, presetLevel))
 		return;
-
-	//remote comment from line
-	tinystl::vector<tinystl::string> parsedString = line.split(';');
-
-	//We need at least 3 entries (vendor, Model, Preset)
-	//The file is layed out the following way:
-	//Model ID; Vendor ID; Preset; GPU Name; Revision ID;
-	if (parsedString.size() < 3)
-		return;
-
-	tinystl::string vendorId = parsedString[0].to_lower();
-	tinystl::string deviceId = parsedString[1].to_lower();
-	tinystl::string presetLevel = parsedString[2].to_lower();
-	tinystl::string gpuName = "";
-	tinystl::string revisionId = "0x00";
-
-	if (parsedString.size() >= 4)
-	{
-		gpuName = parsedString[3];
-	}
-
-	if (parsedString.size() >= 5)
-	{
-		revisionId = parsedString[4].to_lower();
-	}
-
-	//trim whitespace
-	vendorId = vendorId.trimmed();
-	deviceId = deviceId.trimmed();
-	presetLevel = presetLevel.trimmed();
-	gpuName = gpuName.trimmed();
-	revisionId = revisionId.trimmed();
 
 	//search if any of the current gpu's match the current gpu cfg entry
 	for (uint32_t i = 0; i < pRenderer->mNumOfGPUs; i++)
@@ -129,23 +119,11 @@ static void checkForPresetLevel(tinystl::string line, Renderer* pRenderer)
 			strcmp(currentSettings->mGpuVendorPreset.mModelId, deviceId.c_str()) == 0)
 		{
 			//if we have a revision Id then we want to match it as well
-			if (strcmp(currentSettings->mGpuVendorPreset.mRevisionId, "0x00") != 0 && strcmp(revisionId, "0x00") != 0 &&
+			if (strcmp(currentSettings->mGpuVendorPreset.mRevisionId, "0x00") != 0 && revisionId.compare("0x00") != 0 &&
 				strcmp(currentSettings->mGpuVendorPreset.mRevisionId, revisionId.c_str()) == 0)
 				continue;
 
-			//assign preset to gpu that's been identified.
-			if (presetLevel == "office")
-				currentSettings->mGpuVendorPreset.mPresetLevel = GPU_PRESET_OFFICE;
-			else if (presetLevel == "low")
-				currentSettings->mGpuVendorPreset.mPresetLevel = GPU_PRESET_LOW;
-			else if (presetLevel == "medium")
-				currentSettings->mGpuVendorPreset.mPresetLevel = GPU_PRESET_MEDIUM;
-			else if (presetLevel == "high")
-				currentSettings->mGpuVendorPreset.mPresetLevel = GPU_PRESET_HIGH;
-			else if (presetLevel == "ultra")
-				currentSettings->mGpuVendorPreset.mPresetLevel = GPU_PRESET_ULTRA;
-			else
-				currentSettings->mGpuVendorPreset.mPresetLevel = GPU_PRESET_NONE;
+			currentSettings->mGpuVendorPreset.mPresetLevel = stringToPresetLevel(presetLevel);
 
 			//Extra information for GPU
 			//Not all gpu's will have that info in the gpu.cfg file
@@ -157,45 +135,16 @@ static void checkForPresetLevel(tinystl::string line, Renderer* pRenderer)
 
 #ifndef METAL
 #ifndef __ANDROID__
-static bool checkForActiveGPU(tinystl::string line, GPUVendorPreset& pActiveGpu)
+static bool checkForActiveGPU(eastl::string line, GPUVendorPreset& pActiveGpu)
 {
-	//remove extra whitespace to check if line is a comment (starts with #)
-	line = line.trimmed();
+	eastl::string vendorId;
+	eastl::string deviceId;
+	eastl::string presetLevel;
+	eastl::string gpuName;
+	eastl::string revisionId;
 
-	//remote comment from line
-	if (line.at(0) == '#')
+	if (!parseConfigLine(line, vendorId, deviceId, revisionId, gpuName, presetLevel))
 		return false;
-
-	tinystl::vector<tinystl::string> parsedString = line.split(';');
-
-	//for every valid entry there's a comment
-	if (parsedString.size() < 3)
-		return false;
-
-	//TODO: Parse SLI
-	tinystl::string vendorId = parsedString[0].to_lower();
-	tinystl::string deviceId = parsedString[1].to_lower();
-	tinystl::string presetLevel = parsedString[2].to_lower();
-
-	tinystl::string gpuName = "";
-	tinystl::string revisionId = "0x00";
-
-	if (parsedString.size() >= 4)
-	{
-		gpuName = parsedString[3];
-	}
-
-	if (parsedString.size() >= 5)
-	{
-		revisionId = parsedString[4].to_lower();
-	}
-
-	//trim whitespace
-	vendorId = vendorId.trimmed();
-	deviceId = deviceId.trimmed();
-	presetLevel = presetLevel.trimmed();
-	gpuName = gpuName.trimmed();
-	revisionId = revisionId.trimmed();
 
 	strncpy(pActiveGpu.mModelId, deviceId.c_str(), MAX_GPU_VENDOR_STRING_LENGTH);
 	strncpy(pActiveGpu.mVendorId, vendorId.c_str(), MAX_GPU_VENDOR_STRING_LENGTH);
@@ -225,7 +174,7 @@ static void setGPUPresetLevel(Renderer* pRenderer)
 
 	while (!gpuCfgFile.IsEof())
 	{
-		tinystl::string gpuCfgString = gpuCfgFile.ReadLine();
+		eastl::string gpuCfgString = gpuCfgFile.ReadLine();
 		checkForPresetLevel(gpuCfgString, pRenderer);
 		// Do something with the tok
 	}
@@ -234,9 +183,21 @@ static void setGPUPresetLevel(Renderer* pRenderer)
 }
 #endif
 
-#ifndef METAL
+
+#ifdef __ANDROID__
 //Reads the gpu config and sets the preset level of all available gpu's
-static GPUPresetLevel getGPUPresetLevel(const tinystl::string vendorId, const tinystl::string modelId, const tinystl::string revId)
+static GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::string modelId, const eastl::string revId)
+{
+	LOGF(LogLevel::eINFO, "No gpu.cfg support. Preset set to Low");
+	GPUPresetLevel foundLevel = GPU_PRESET_LOW;
+	return foundLevel;
+}
+#endif
+
+
+#if !defined(METAL) && !defined(__ANDROID__)
+//Reads the gpu config and sets the preset level of all available gpu's
+static GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::string modelId, const eastl::string revId)
 {
 	File gpuCfgFile = {};
 	gpuCfgFile.Open("gpu.cfg", FM_ReadBinary, FSR_GpuConfig);
@@ -250,8 +211,8 @@ static GPUPresetLevel getGPUPresetLevel(const tinystl::string vendorId, const ti
 
 	while (!gpuCfgFile.IsEof())
 	{
-		tinystl::string gpuCfgString = gpuCfgFile.ReadLine();
-		GPUPresetLevel  level = getSinglePresetLevel(gpuCfgString, vendorId, modelId, revId);
+		eastl::string  gpuCfgString = gpuCfgFile.ReadLine();
+		GPUPresetLevel level = getSinglePresetLevel(gpuCfgString, vendorId, modelId, revId);
 		// Do something with the tok
 		if (level != GPU_PRESET_NONE)
 		{
@@ -278,7 +239,7 @@ static bool getActiveGpuConfig(GPUVendorPreset& pActiveGpu)
 	bool successFinal = false;
 	while (!gpuCfgFile.IsEof() && !successFinal)
 	{
-		tinystl::string gpuCfgString = gpuCfgFile.ReadLine();
+		eastl::string gpuCfgString = gpuCfgFile.ReadLine();
 		successFinal = checkForActiveGPU(gpuCfgString, pActiveGpu);
 	}
 

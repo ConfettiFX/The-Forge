@@ -40,8 +40,9 @@
 #define PT_USE_CAUSTICS (0 & USE_SHADOWS)
 
 //tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/sort.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
@@ -49,13 +50,11 @@
 #include "../../../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 #include "../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"
-
-//GPU Profiler
-#include "../../../../Common_3/Renderer/GpuProfiler.h"
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
@@ -66,7 +65,15 @@
 
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
+namespace eastl
+{
+	template <>
+	struct has_equality<vec3> : eastl::false_type {};
+}
+
 const uint32_t gImageCount = 3;
+bool           bToggleMicroProfiler = false;
+bool           bPrevToggleMicroProfiler = false;
 
 typedef struct Vertex
 {
@@ -123,16 +130,16 @@ typedef struct ParticleSystem
 	Buffer* pParticleBuffer;
 	Object  mObject;
 
-	tinystl::vector<vec3>  mParticlePositions;
-	tinystl::vector<vec3>  mParticleVelocities;
-	tinystl::vector<float> mParticleLifetimes;
-	size_t                 mLifeParticleCount;
+	eastl::vector<vec3>  mParticlePositions;
+	eastl::vector<vec3>  mParticleVelocities;
+	eastl::vector<float> mParticleLifetimes;
+	size_t               mLifeParticleCount;
 } ParticleSystem;
 
 typedef struct Scene
 {
-	tinystl::vector<Object>         mObjects;
-	tinystl::vector<ParticleSystem> mParticleSystems;
+	eastl::vector<Object>         mObjects;
+	eastl::vector<ParticleSystem> mParticleSystems;
 } Scene;
 
 typedef struct DrawCall
@@ -469,8 +476,8 @@ WBOITSettings          gWBOITSettingsData;
 WBOITVolitionSettings  gWBOITVolitionSettingsData;
 
 Scene                     gScene;
-tinystl::vector<DrawCall> gOpaqueDrawCalls;
-tinystl::vector<DrawCall> gTransparentDrawCalls;
+eastl::vector<DrawCall> gOpaqueDrawCalls;
+eastl::vector<DrawCall> gTransparentDrawCalls;
 vec3                      gObjectsCenter = { 0, 0, 0 };
 
 ICameraController* pCameraController = NULL;
@@ -541,13 +548,10 @@ void AddParticleSystem(vec3 position, vec4 color, vec3 translucency = vec3(0.0f)
 	particleBufferDesc.ppBuffer = &pParticleBuffer;
 	addResource(&particleBufferDesc);
 
-	gScene.mParticleSystems.push_back(
-		{ pParticleBuffer,
-		  { position, scale, orientation, MESH_PARTICLE_SYSTEM, { v4ToF4(color), float4(v3ToF3(translucency), 0.0f), 1.0f, 1.0f } },
-		  MAX_NUM_PARTICLES,
-		  MAX_NUM_PARTICLES,
-		  MAX_NUM_PARTICLES,
-		  0 });
+	gScene.mParticleSystems.push_back(ParticleSystem{
+		pParticleBuffer,
+		Object{ position, scale, orientation, MESH_PARTICLE_SYSTEM, { v4ToF4(color), float4(v3ToF3(translucency), 0.0f), 1.0f, 1.0f } },
+		eastl::vector<vec3>(MAX_NUM_PARTICLES), eastl::vector<vec3>(MAX_NUM_PARTICLES), eastl::vector<float>(MAX_NUM_PARTICLES), 0 });
 }
 
 static void CreateScene()
@@ -611,28 +615,23 @@ static void CreateScene()
 	AddObject(MESH_SPHERE, vec3(-12.5f - 5.0f, 5.0f, -20.0f), vec4(0.3f, 0.3f, 1.0f, 0.9f), vec3(0.3f, 0.3f, 1.0f), 1.5f, 1.0f, vec3(1.0f));
 }
 
-int DistanceCompare(const float3& a, const float3& b)
+bool DistanceCompare(const float3& a, const float3& b)
 {
 	if (a.getX() < b.getX())
-		return -1;
+		return false;
 	else if (a.getX() > b.getX())
-		return 1;
+		return true;
 	if (a.getY() < b.getY())
-		return -1;
+		return false;
 	else if (a.getY() > b.getY())
-		return 1;
+		return true;
 
-	return 0;
+	return false;
 }
 
-int MeshCompare(const float2& a, const float2& b)
+bool MeshCompare(const float2& a, const float2& b)
 {
-	if (a.getX() < b.getX())
-		return -1;
-	if (a.getX() == b.getX())
-		return 0;
-
-	return 1;
+	return a.getX() > b.getX();
 }
 
 void SwapParticles(ParticleSystem* pParticleSystem, size_t a, size_t b)
@@ -710,7 +709,9 @@ class Transparency: public IApp
 		/************************************************************************/
 		// Add GPU profiler
 		/************************************************************************/
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
+		initProfiler(pRenderer, gImageCount);
+		profileRegisterInput();
+		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		CreateScene();
 		finishResourceLoading();
@@ -722,9 +723,8 @@ class Transparency: public IApp
 		GuiDesc guiDesc = {};
 		float   dpiScale = getDpiScale().x;
 		guiDesc.mStartPosition = vec2(5, 200.0f) / dpiScale;
-		;
 		guiDesc.mStartSize = vec2(450, 600) / dpiScale;
-		;
+
 		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 		GuiController::AddGui();
 
@@ -753,6 +753,8 @@ class Transparency: public IApp
 		waitQueueIdle(pGraphicsQueue);
 		destroyCameraController(pCameraController);
 		destroyCameraController(pLightView);
+
+		exitProfiler(pRenderer);
 
 		gAppUI.Exit();
 
@@ -887,13 +889,27 @@ class Transparency: public IApp
 		gLightUniformData.mLightViewProj = lightVPMatrix;
 		gLightUniformData.mLightColor = vec4(1, 1, 1, 1);
 		/************************************************************************/
+
+
+    // ProfileSetDisplayMode()
+    // TODO: need to change this better way 
+    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+    {
+      Profile& S = *ProfileGet();
+      int nValue = bToggleMicroProfiler ? 1 : 0;
+      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+      S.nDisplay = nValue;
+
+      bPrevToggleMicroProfiler = bToggleMicroProfiler;
+    }
+
 		////////////////////////////////////////////////////////////////
 		gAppUI.Update(deltaTime);
 	}
 
 	void UpdateParticleSystems(float deltaTime, mat4 viewMat, vec3 camPos)
 	{
-		tinystl::vector<Vertex> tempVertexBuffer(6 * MAX_NUM_PARTICLES);
+		eastl::vector<Vertex> tempVertexBuffer(6 * MAX_NUM_PARTICLES);
 		const float             particleSize = 0.2f;
 		const vec3              camRight = vec3(viewMat[0][0], viewMat[1][0], viewMat[2][0]) * particleSize;
 		const vec3              camUp = vec3(viewMat[0][1], viewMat[1][1], viewMat[2][1]) * particleSize;
@@ -940,12 +956,12 @@ class Transparency: public IApp
 			// Update vertex buffers
 			if (gTransparencyType == TRANSPARENCY_TYPE_ALPHA_BLEND && gAlphaBlendSettings.mSortParticles)
 			{
-				tinystl::vector<float2> sortedArray;
+				eastl::vector<float2> sortedArray;
 
 				for (size_t j = 0; j < pParticleSystem->mLifeParticleCount; ++j)
 					sortedArray.push_back({ (float)distSqr(Point3(camPos), Point3(pParticleSystem->mParticlePositions[j])), (float)j });
 
-				sortedArray.sort(MeshCompare);
+				eastl::quick_sort(sortedArray.begin(), sortedArray.end(), MeshCompare);
 
 				for (uint j = 0; j < sortedArray.size(); ++j)
 				{
@@ -980,7 +996,7 @@ class Transparency: public IApp
 
 	void CreateDrawCalls(
 		float* pSortedObjects, uint objectCount, uint sizeOfObject, ObjectInfoUniformBlock* pObjectUniformBlock,
-		MaterialUniformBlock* pMaterialUniformBlock, uint* pMaterialCount, tinystl::vector<DrawCall>* pDrawCalls)
+		MaterialUniformBlock* pMaterialUniformBlock, uint* pMaterialCount, eastl::vector<DrawCall>* pDrawCalls)
 	{
 		const uint meshIndexOffset = sizeOfObject - 2;
 		const uint objectIndexOffset = sizeOfObject - 1;
@@ -1044,7 +1060,7 @@ class Transparency: public IApp
 		gOpaqueDrawCalls.clear();
 		uint opaqueObjectCount = 0;
 		{
-			tinystl::vector<float2> sortedArray = {};
+			eastl::vector<float2> sortedArray = {};
 
 			for (size_t i = 0; i < gScene.mObjects.size(); ++i)
 			{
@@ -1061,7 +1077,7 @@ class Transparency: public IApp
 
 			opaqueObjectCount = (int)sortedArray.size();
 			ASSERT(opaqueObjectCount < MAX_NUM_OBJECTS);
-			sortedArray.sort(MeshCompare);    // Sorts by mesh
+			eastl::quick_sort(sortedArray.begin(), sortedArray.end(), MeshCompare);    // Sorts by mesh
 
 			CreateDrawCalls(
 				(float*)sortedArray.data(), opaqueObjectCount, sizeof(sortedArray[0]) / sizeof(float), &gObjectInfoUniformData,
@@ -1073,7 +1089,7 @@ class Transparency: public IApp
 		uint transparentObjectCount = 0;
 		if (gTransparencyType == TRANSPARENCY_TYPE_ALPHA_BLEND && gAlphaBlendSettings.mSortObjects)
 		{
-			tinystl::vector<float3> sortedArray = {};
+			eastl::vector<float3> sortedArray = {};
 
 			for (size_t i = 0; i < gScene.mObjects.size(); ++i)
 			{
@@ -1092,7 +1108,7 @@ class Transparency: public IApp
 
 			transparentObjectCount = (int)sortedArray.size();
 			ASSERT(transparentObjectCount < MAX_NUM_OBJECTS);
-			sortedArray.sort(DistanceCompare);    // Sorts by distance first, then by mesh
+			eastl::quick_sort(sortedArray.begin(), sortedArray.end(), DistanceCompare);     // Sorts by distance first, then by mesh
 
 			CreateDrawCalls(
 				(float*)sortedArray.data(), transparentObjectCount, sizeof(sortedArray[0]) / sizeof(float),
@@ -1100,7 +1116,7 @@ class Transparency: public IApp
 		}
 		else
 		{
-			tinystl::vector<float2> sortedArray = {};
+			eastl::vector<float2> sortedArray = {};
 
 			for (size_t i = 0; i < gScene.mObjects.size(); ++i)
 			{
@@ -1117,7 +1133,7 @@ class Transparency: public IApp
 
 			transparentObjectCount = (int)sortedArray.size();
 			ASSERT(transparentObjectCount < MAX_NUM_OBJECTS);
-			sortedArray.sort(MeshCompare);    // Sorts by mesh
+			eastl::quick_sort(sortedArray.begin(), sortedArray.end(), MeshCompare);    // Sorts by mesh
 
 			CreateDrawCalls(
 				(float*)sortedArray.data(), transparentObjectCount, sizeof(sortedArray[0]) / sizeof(float),
@@ -1427,7 +1443,7 @@ class Transparency: public IApp
 	}
 
 	void DrawObjects(
-		Cmd* pCmd, tinystl::vector<DrawCall>* pDrawCalls, RootSignature* pRootSignature, Buffer* pObjectTransforms, Buffer* cameraBuffer,
+		Cmd* pCmd, eastl::vector<DrawCall>* pDrawCalls, RootSignature* pRootSignature, Buffer* pObjectTransforms, Buffer* cameraBuffer,
 		bool bindMaterials = true, bool bindLights = true)
 	{
 		static MeshResource boundMesh = (MeshResource)0xFFFFFFFF;
@@ -2021,16 +2037,23 @@ class Transparency: public IApp
 		gTimer.GetUSec(true);
 
 
-		gAppUI.DrawText(pCmd, float2(8.0f, 15.0f), tinystl::string::format("CPU Time: %f ms", gCpuTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 		gAppUI.DrawText(
-			pCmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
-		gAppUI.DrawText(pCmd, float2(8.0f, 65.0f), tinystl::string::format("Frame Time: %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+			pCmd, float2(8.0f, 15.0f), eastl::string().sprintf("CPU Time: %f ms", gCpuTimer.GetUSecAverage() / 1000.0f).c_str(),
+			&gFrameTimeDraw);
+		gAppUI.DrawText(
+			pCmd, float2(8.0f, 40.0f), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
+			&gFrameTimeDraw);
+		gAppUI.DrawText(
+			pCmd, float2(8.0f, 65.0f), eastl::string().sprintf("Frame Time: %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(),
+			&gFrameTimeDraw);
 
 		gAppUI.DrawDebugGpuProfile(pCmd, float2(8.0f, 90.0f), pGpuProfiler, NULL);
 
 #ifdef TARGET_IOS
 		gVirtualJoystick.Draw(pCmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
+
+		cmdDrawProfiler(pCmd, mSettings.mWidth, mSettings.mHeight);
 
 		gAppUI.Gui(pGuiWindow);
 		gAppUI.Draw(pCmd);
@@ -2047,9 +2070,10 @@ class Transparency: public IApp
 
 		queueSubmit(pGraphicsQueue, 1, &pCmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		flipProfiler();
 	}
 
-	tinystl::string GetName() override { return "15_Transparency"; }
+	const char* GetName() override { return "15_Transparency"; }
 
 	void RecenterCameraView(float maxDistance, vec3 lookAt = vec3(0)) const
 	{
@@ -2319,13 +2343,13 @@ class Transparency: public IApp
 	void CreateShaders()
 	{
 		// Define shader macros
-		ShaderMacro maxNumObjectsMacro = { "MAX_NUM_OBJECTS", tinystl::string::format("%i", MAX_NUM_OBJECTS) };
-		ShaderMacro maxNumTexturesMacro = { "MAX_NUM_TEXTURES", tinystl::string::format("%i", TEXTURE_COUNT) };
-		ShaderMacro aoitNodeCountMacro = { "AOIT_NODE_COUNT", tinystl::string::format("%i", AOIT_NODE_COUNT) };
-		ShaderMacro useShadowsMacro = { "USE_SHADOWS", tinystl::string::format("%i", USE_SHADOWS) };
-		ShaderMacro useRefractionMacro = { "PT_USE_REFRACTION", tinystl::string::format("%i", PT_USE_REFRACTION) };
-		ShaderMacro useDiffusionMacro = { "PT_USE_DIFFUSION", tinystl::string::format("%i", PT_USE_DIFFUSION) };
-		ShaderMacro useCausticsMacro = { "PT_USE_CAUSTICS", tinystl::string::format("%i", PT_USE_CAUSTICS) };
+		ShaderMacro maxNumObjectsMacro = { "MAX_NUM_OBJECTS", eastl::string().sprintf("%i", MAX_NUM_OBJECTS) };
+		ShaderMacro maxNumTexturesMacro = { "MAX_NUM_TEXTURES", eastl::string().sprintf("%i", TEXTURE_COUNT) };
+		ShaderMacro aoitNodeCountMacro = { "AOIT_NODE_COUNT", eastl::string().sprintf("%i", AOIT_NODE_COUNT) };
+		ShaderMacro useShadowsMacro = { "USE_SHADOWS", eastl::string().sprintf("%i", USE_SHADOWS) };
+		ShaderMacro useRefractionMacro = { "PT_USE_REFRACTION", eastl::string().sprintf("%i", PT_USE_REFRACTION) };
+		ShaderMacro useDiffusionMacro = { "PT_USE_DIFFUSION", eastl::string().sprintf("%i", PT_USE_DIFFUSION) };
+		ShaderMacro useCausticsMacro = { "PT_USE_CAUSTICS", eastl::string().sprintf("%i", PT_USE_CAUSTICS) };
 
 		ShaderMacro shaderMacros[] = { maxNumObjectsMacro, maxNumTexturesMacro, aoitNodeCountMacro, useShadowsMacro,
 									   useRefractionMacro, useDiffusionMacro,   useCausticsMacro };
@@ -2693,7 +2717,7 @@ class Transparency: public IApp
 
 	void CreateDescriptorBinders()
 	{
-		tinystl::vector<DescriptorBinderDesc> descriptorBinderDesc;
+		eastl::vector<DescriptorBinderDesc> descriptorBinderDesc;
 		descriptorBinderDesc.push_back({ pRootSignatureSkybox });
 #if USE_SHADOWS != 0
 		descriptorBinderDesc.push_back({ pRootSignatureShadow });
@@ -2895,8 +2919,8 @@ class Transparency: public IApp
 	void LoadModels()
 	{
 		AssimpImporter          importer;
-		tinystl::vector<Vertex> vertices = {};
-		tinystl::vector<uint>   indices = {};
+		eastl::vector<Vertex> vertices = {};
+		eastl::vector<uint>   indices = {};
 
 		const char* modelNames[MESH_COUNT] = { "cube.obj", "sphere.obj", "plane.obj", "lion.obj" };
 
@@ -3777,6 +3801,8 @@ void GuiController::AddGui()
 	if (pRenderer->pActiveGpuSettings->mROVsSupported)
 		dropDownCount = 5;
 #endif
+
+  pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
 
 	pGuiWindow->AddWidget(
 		DropdownWidget("Transparency Type", &gTransparencyType, transparencyTypeNames, transparencyTypeValues, dropDownCount));

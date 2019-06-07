@@ -50,7 +50,7 @@
 
 #pragma once
 
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 #include <cstdint>
 
@@ -84,9 +84,9 @@ struct AsteroidSimulation
 
 	void update(float deltaTime, unsigned startIdx, unsigned endIdx, const vec3& cameraPosition);
 
-	tinystl::vector<AsteroidStatic>  asteroidsStatic;
-	tinystl::vector<AsteroidDynamic> asteroidsDynamic;
-	//tinystl::vector<Asteroid> asteroids;
+	eastl::vector<AsteroidStatic>  asteroidsStatic;
+	eastl::vector<AsteroidDynamic> asteroidsDynamic;
+	//eastl::vector<Asteroid> asteroids;
 	int*     indexOffsets;
 	unsigned numLODs;
 };

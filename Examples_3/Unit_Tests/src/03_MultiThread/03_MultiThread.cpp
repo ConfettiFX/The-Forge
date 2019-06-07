@@ -25,8 +25,8 @@
 #define _USE_MATH_DEFINES
 
 //tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
@@ -34,6 +34,7 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
 #include "../../../../Common_3/OS/Interfaces/IThread.h"
+#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 
@@ -127,6 +128,9 @@ struct CpuGraph
 	ViewPortState mViewPort;                     //view port for different core
 	GraphVertex   mPoints[gSampleCount * 3];
 };
+
+bool           bToggleMicroProfiler = false;
+bool           bPrevToggleMicroProfiler = false;
 
 const int gTotalParticleCount = 2000000;
 uint32_t  gGraphWidth = 200;
@@ -233,6 +237,8 @@ const char* pszBases[FSR_Count] = {
 };
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+
+GuiComponent* pGui = NULL;
 
 class MultiThread: public IApp
 {
@@ -514,7 +520,20 @@ class MultiThread: public IApp
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
+		// Initialize profiler
+		initProfiler(pRenderer, gImageCount);
+		profileRegisterInput();
+
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+
+    GuiDesc guiDesc = {};
+    float   dpiScale = getDpiScale().x;
+    guiDesc.mStartSize = vec2(140.0f / dpiScale, 320.0f / dpiScale);
+    guiDesc.mStartPosition = vec2(mSettings.mWidth - guiDesc.mStartSize.getX() * 4.1f, guiDesc.mStartSize.getY() * 0.5f);
+
+    pGui = gAppUI.AddGuiComponent("Micro profiler", &guiDesc);
+
+    pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
 
 		initThreadSystem(&pThreadSystem);
 
@@ -534,7 +553,11 @@ class MultiThread: public IApp
 		InputSystem::RegisterInputEvent(cameraInputEvent);
 
 		for (uint32_t i = 0; i < gThreadCount; ++i)
-			addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfilers[i]);
+		{
+			char name[16];
+			sprintf(name, "GpuProfiler%d", i);
+			addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfilers[i], name);
+		}
 
 		return true;
 	}
@@ -548,6 +571,8 @@ class MultiThread: public IApp
 
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 			removeGpuProfiler(pRenderer, pGpuProfilers[i]);
+
+		exitProfiler(pRenderer);
 
 		gAppUI.Exit();
 
@@ -812,6 +837,23 @@ class MultiThread: public IApp
 
 			currentTime = 0.0f;
 		}
+
+    // ProfileSetDisplayMode()
+       // TODO: need to change this better way 
+    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+    {
+      Profile& S = *ProfileGet();
+      int nValue = bToggleMicroProfiler ? 1 : 0;
+      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+      S.nDisplay = nValue;
+
+      bPrevToggleMicroProfiler = bToggleMicroProfiler;
+    }
+
+    /************************************************************************/
+    // Update GUI
+    /************************************************************************/
+    gAppUI.Update(deltaTime);
 	}
 
 	void Draw()
@@ -898,7 +940,8 @@ class MultiThread: public IApp
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", timer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", timer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
 
 #if !defined(METAL)
 		gAppUI.DrawText(cmd, float2(8, 65), "Particle CPU Times", NULL);
@@ -906,7 +949,8 @@ class MultiThread: public IApp
 		{
 			gAppUI.DrawText(
 				cmd, float2(8.f, 90.0f + i * 25.0f),
-				tinystl::string::format("- Thread %u  %f ms", i, (float)pGpuProfilers[i]->mCumulativeCpuTime * 1000.0f), &gFrameTimeDraw);
+				eastl::string().sprintf("- Thread %u  %f ms", i, (float)pGpuProfilers[i]->mCumulativeCpuTime * 1000.0f).c_str(),
+				&gFrameTimeDraw);
 		}
 
 		gAppUI.DrawText(cmd, float2(8.f, 105 + gThreadCount * 25.0f), "Particle GPU Times", NULL);
@@ -914,9 +958,12 @@ class MultiThread: public IApp
 		{
 			gAppUI.DrawText(
 				cmd, float2(8.f, (130 + gThreadCount * 25.0f) + i * 25.0f),
-				tinystl::string::format("- Thread %u  %f ms", i, (float)pGpuProfilers[i]->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+				eastl::string().sprintf("- Thread %u  %f ms", i, (float)pGpuProfilers[i]->mCumulativeTime * 1000.0f).c_str(),
+				&gFrameTimeDraw);
 		}
 #endif
+
+    gAppUI.Gui(pGui);
 
 		gAppUI.Draw(cmd);
 		endCmd(cmd);
@@ -955,6 +1002,9 @@ class MultiThread: public IApp
 			cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &pCpuGraph[i].mVertexBuffer[frameIdx], NULL);
 			cmdDraw(ppGraphCmds[frameIdx], gSampleCount, 2 * gSampleCount);
 		}
+		cmdSetViewport(ppGraphCmds[frameIdx], 0.0f, 0.0f, static_cast<float>(mSettings.mWidth), static_cast<float>(mSettings.mHeight), 0.0f, 1.0f);
+		cmdSetScissor(ppGraphCmds[frameIdx], 0, 0, mSettings.mWidth, mSettings.mHeight);
+		cmdDrawProfiler(ppGraphCmds[frameIdx], mSettings.mWidth, mSettings.mHeight);
 
 		cmdBindRenderTargets(ppGraphCmds[frameIdx], 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
@@ -980,9 +1030,10 @@ class MultiThread: public IApp
 		queueSubmit(
 			pGraphicsQueue, gThreadCount + 2, allCmds, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		flipProfiler();
 	}
 
-	tinystl::string GetName() { return "03_MultiThread"; }
+	const char* GetName() { return "03_MultiThread"; }
 
 	bool addSwapChain()
 	{
@@ -1022,7 +1073,7 @@ class MultiThread: public IApp
 					NUM_CPU_STATES };
 	typedef struct CPUData
 	{
-		tinystl::string cpu;
+		eastl::string cpu;
 		size_t          times[NUM_CPU_STATES];
 	} CPUData;
 
@@ -1093,7 +1144,7 @@ class MultiThread: public IApp
         pEnumerator->Release();
 #endif    //#if defined(_DURANGO)
 #elif (__linux__)
-		tinystl::vector<CPUData> entries;
+		eastl::vector<CPUData> entries;
 		entries.reserve(gCoresCount);
 		// Open cpu stat file
 		File fileStat = {};

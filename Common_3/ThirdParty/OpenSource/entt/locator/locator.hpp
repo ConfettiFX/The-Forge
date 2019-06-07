@@ -2,7 +2,7 @@
 #define ENTT_LOCATOR_LOCATOR_HPP
 
 
-#include "../../TinySTL/memory.h"
+#include "../../EASTL/shared_ptr.h"
 #include <utility>
 #include <cassert>
 #include "../config/config.h"
@@ -50,7 +50,7 @@ struct ServiceLocator final {
      *
      * @return A reference to the service implementation currently set, if any.
      */
-    inline static tinystl::weak_ptr<Service> get() ENTT_NOEXCEPT {
+    inline static eastl::weak_ptr<Service> get() ENTT_NOEXCEPT {
         return service;
     }
 
@@ -80,16 +80,16 @@ struct ServiceLocator final {
      */
     template<typename Impl = Service, typename... Args>
     inline static void set(Args &&... args) {
-        service = tinystl::make_shared<Impl>(std::forward<Args>(args)...);
+        service = eastl::make_shared<Impl>(eastl::forward<Args>(args)...);
     }
 
     /**
      * @brief Sets or replaces a service.
      * @param ptr Service to use to replace the current one.
      */
-    inline static void set(tinystl::shared_ptr<Service> ptr) {
+    inline static void set(eastl::shared_ptr<Service> ptr) {
         assert(static_cast<bool>(ptr));
-        service = std::move(ptr);
+        service = eastl::move(ptr);
     }
 
     /**
@@ -102,12 +102,12 @@ struct ServiceLocator final {
     }
 
 private:
-    static tinystl::shared_ptr<Service> service;
+    static eastl::shared_ptr<Service> service;
 };
 
 
 template<typename Service>
-tinystl::shared_ptr<Service> ServiceLocator<Service>::service{};
+eastl::shared_ptr<Service> ServiceLocator<Service>::service{};
 
 
 }

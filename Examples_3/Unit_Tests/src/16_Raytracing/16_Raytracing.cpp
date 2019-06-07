@@ -25,8 +25,8 @@
 // Unit Test to create Bottom and Top Level Acceleration Structures using Raytracing API.
 
 //tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
@@ -34,9 +34,9 @@
 #include "../../../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/GpuProfiler.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
 // Raytracing
@@ -115,7 +115,10 @@ public:
 			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
 		}
 
-		addGpuProfiler(pRenderer, pQueue, &pGpuProfiler);
+		initProfiler(pRenderer, gImageCount);
+		profileRegisterInput();
+
+		addGpuProfiler(pRenderer, pQueue, &pGpuProfiler, "GpuProfiler");
 
 		if (!mAppUI.Init(pRenderer))
 			return false;
@@ -129,6 +132,9 @@ public:
 		guiDesc.mStartSize = vec2(300.0f, 250.0f);
 		guiDesc.mStartPosition = vec2(0.0f, guiDesc.mStartSize.getY());
 		pGuiWindow = mAppUI.AddGuiComponent(GetName(), &guiDesc);
+
+    pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+
 
         /************************************************************************/
         // Blit texture
@@ -159,7 +165,7 @@ public:
         rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
         addRasterizerState(pRenderer, &rasterizerStateDesc, &pRast);
 
-		tinystl::vector<DescriptorBinderDesc> descBinderDesc;
+		eastl::vector<DescriptorBinderDesc> descBinderDesc;
 		descBinderDesc.push_back({ pDisplayTextureSignature });
         
 		if (!isRaytracingSupported(pRenderer))
@@ -441,6 +447,8 @@ public:
 	{
 		waitQueueIdle(pQueue);
 
+		exitProfiler(pRenderer);
+
 		mAppUI.Exit();
 
 		removeGpuProfiler(pRenderer, pGpuProfiler);
@@ -561,6 +569,18 @@ public:
 
 	void Update(float deltaTime)
 	{
+    // ProfileSetDisplayMode()
+    // TODO: need to change this better way 
+    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+    {
+      Profile& S = *ProfileGet();
+      int nValue = bToggleMicroProfiler ? 1 : 0;
+      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+      S.nDisplay = nValue;
+
+      bPrevToggleMicroProfiler = bToggleMicroProfiler;
+    }
+
 		mAppUI.Update(deltaTime);
 	}
 
@@ -669,6 +689,9 @@ public:
 			cmdDraw(pCmd, 3, 0);
 			cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
         }
+
+		cmdDrawProfiler(pCmd, mSettings.mWidth, mSettings.mHeight);
+
 		mAppUI.Gui(pGuiWindow);
 		mAppUI.Draw(pCmd);
 
@@ -680,11 +703,12 @@ public:
 		endCmd(pCmd);
 		queueSubmit(pQueue, 1, &pCmd, pRenderCompleteFences[mFrameIdx], 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphores[mFrameIdx]);
 		queuePresent(pQueue, pSwapChain, mFrameIdx, 1, &pRenderCompleteSemaphores[mFrameIdx]);
+		flipProfiler();
 		/************************************************************************/
 		/************************************************************************/
 	}
 
-	tinystl::string GetName()
+	const char* GetName()
 	{
 		return "Raytrace Triangles!";
 	}
@@ -694,6 +718,9 @@ public:
 	/************************************************************************/
 private:
 	static const uint32_t   gImageCount = 3;
+
+  bool           bToggleMicroProfiler = false;
+  bool           bPrevToggleMicroProfiler = false;
 
 	Renderer*			   pRenderer;
 	Raytracing*			 pRaytracing;

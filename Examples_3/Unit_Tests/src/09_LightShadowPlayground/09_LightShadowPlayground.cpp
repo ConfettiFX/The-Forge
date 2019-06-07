@@ -37,8 +37,8 @@
 #endif
 
 //tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
@@ -46,11 +46,10 @@
 #include "../../../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
-//GPU Profiler
-#include "../../../../Common_3/Renderer/GpuProfiler.h"
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
@@ -143,6 +142,8 @@ typedef struct SdfInputConstants
 } SdfInputUniformBlock;
 
 constexpr uint32_t gImageCount = 3;
+bool           bToggleMicroProfiler = false;
+bool           bPrevToggleMicroProfiler = false;
 
 /************************************************************************/
 // Render targets
@@ -604,17 +605,17 @@ class LightShadowPlayground: public IApp
 		constexpr size_t GlobalMacroCount = 6u;
 		ShaderMacro      macros[GlobalMacroCount];
 		macros[0].definition = "SPHERE_EACH_ROW";
-		macros[0].value = tinystl::string::format("%d", SPHERE_EACH_ROW);
+		macros[0].value = eastl::string().sprintf("%d", SPHERE_EACH_ROW);
 		macros[1].definition = "SPHERE_EACH_COL";
-		macros[1].value = tinystl::string::format("%d", SPHERE_EACH_COL);
+		macros[1].value = eastl::string().sprintf("%d", SPHERE_EACH_COL);
 		macros[2].definition = "SPHERE_NUM";
-		macros[2].value = tinystl::string::format("%d", SPHERE_EACH_ROW * SPHERE_EACH_COL + 1);
+		macros[2].value = eastl::string().sprintf("%d", SPHERE_EACH_ROW * SPHERE_EACH_COL + 1);
 		macros[3].definition = "ESM_SHADOWMAP_RES";
-		macros[3].value = tinystl::string::format("%d", ESM_SHADOWMAP_RES);
+		macros[3].value = eastl::string().sprintf("%d", ESM_SHADOWMAP_RES);
 		macros[4].definition = "ESM_MSAA_SAMPLES";
-		macros[4].value = tinystl::string::format("%d", ESM_MSAA_SAMPLES);
+		macros[4].value = eastl::string().sprintf("%d", ESM_MSAA_SAMPLES);
 		macros[5].definition = "WORKGROUP_SIZE";
-		macros[5].value = tinystl::string::format("%d", COPY_BUFFER_WORKGROUP);
+		macros[5].value = eastl::string().sprintf("%d", COPY_BUFFER_WORKGROUP);
 
 		ShaderLoadDesc forwardPassShaderDesc = {};
 		forwardPassShaderDesc.mStages[0] = { "forwardSphere.vert", macros, GlobalMacroCount, FSR_SrcShaders };
@@ -646,7 +647,9 @@ class LightShadowPlayground: public IApp
 		/************************************************************************/
 		// Add GPU profiler
 		/************************************************************************/
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
+		initProfiler(pRenderer, gImageCount);
+		profileRegisterInput();
+		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		/************************************************************************/
 		// Add samplers
@@ -796,9 +799,11 @@ class LightShadowPlayground: public IApp
 		GuiDesc guiDesc = {};
 		float   dpiScale = getDpiScale().x;
 		guiDesc.mStartPosition = vec2(5, 200.0f) / dpiScale;
-		;
 		guiDesc.mStartSize = vec2(450, 600) / dpiScale;
 		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
+
+    pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+
 		GuiController::addGui();
 
 		CameraMotionParameters cmp{ 16.0f, 60.0f, 20.0f };
@@ -834,6 +839,8 @@ class LightShadowPlayground: public IApp
 		waitQueueIdle(pGraphicsQueue);
 		destroyCameraController(pCameraController);
 		destroyCameraController(pLightView);
+
+		exitProfiler(pRenderer);
 
 		gAppUI.Exit();
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -1170,6 +1177,19 @@ class LightShadowPlayground: public IApp
 			//gObjectInfoUniformData[SHADOWMAP].mWorldMat[i] = //redundant
 			//gObjectInfoUniformData[MAIN_CAMERA].mWorldBoundingSphereRadius[i] = // redundant
 		}
+
+    // ProfileSetDisplayMode()
+    // TODO: need to change this better way 
+    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+    {
+      Profile& S = *ProfileGet();
+      int nValue = bToggleMicroProfiler ? 1 : 0;
+      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+      S.nDisplay = nValue;
+
+      bPrevToggleMicroProfiler = bToggleMicroProfiler;
+    }
+
 		/************************************************************************/
 		gAppUI.Update(deltaTime);
 	}
@@ -1419,7 +1439,7 @@ class LightShadowPlayground: public IApp
 		beginCmd(cmd);
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
 
-		tinystl::vector<TextureBarrier> barriers(8);
+		eastl::vector<TextureBarrier> barriers(8);
 
 		////////////////////////////////////////////////////////
 		///// Draw Z-Prepass if needed
@@ -1546,15 +1566,21 @@ class LightShadowPlayground: public IApp
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
 
-		gAppUI.DrawText(cmd, float2(8.0f, 15.0f), tinystl::string::format("CPU Time: %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			cmd, float2(8.0f, 15.0f), eastl::string().sprintf("CPU Time: %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(),
+			&gFrameTimeDraw);
 
-		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
+			&gFrameTimeDraw);
 
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
 
 #ifdef TARGET_IOS
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
+
+		cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
 
 		gAppUI.Gui(pGuiWindow);
 		gAppUI.Draw(cmd);
@@ -1573,9 +1599,10 @@ class LightShadowPlayground: public IApp
 
 		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		flipProfiler();
 	}
 
-	tinystl::string GetName() override { return "09_LightShadowPlayground"; }
+	const char* GetName() override { return "09_LightShadowPlayground"; }
 
 	bool addSwapChain() const
 	{

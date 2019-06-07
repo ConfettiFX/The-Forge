@@ -37,11 +37,11 @@
 #include "../../../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 
 // Rendering
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
-#include "../../../../Common_3/Renderer/GpuProfiler.h"
 
 // Middleware packages
 #include "../../../../Middleware_3/Animation/SkeletonBatcher.h"
@@ -56,8 +56,8 @@
 #include "../../../../Common_3/OS/Input/InputMappings.h"
 
 // tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 // Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
@@ -84,6 +84,8 @@ const char* pszBases[FSR_Count] = {
 #define MAX_INSTANCES 815    // For allocating space in uniform block. Must match with shader.
 
 const uint32_t gImageCount = 3;
+bool           bToggleMicroProfiler = false;
+bool           bPrevToggleMicroProfiler = false;
 uint32_t       gFrameIndex = 0;
 Renderer*      pRenderer = NULL;
 
@@ -280,7 +282,10 @@ class JointAttachment: public IApp
 			return false;
 #endif
 
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
+		initProfiler(pRenderer, gImageCount);
+		profileRegisterInput();
+
+		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		// INITIALIZE PIPILINE STATES
 		//
@@ -432,7 +437,7 @@ class JointAttachment: public IApp
 
 		// RIGS
 		//
-		tinystl::string fullPath = FileSystem::FixPath(gStickFigureName, FSR_Animation);
+		eastl::string fullPath = FileSystem::FixPath(gStickFigureName, FSR_Animation);
 
 		// Initialize the rig with the path to its ozz file and its rendering details
 		gStickFigureRig.Initialize(fullPath.c_str());
@@ -501,6 +506,7 @@ class JointAttachment: public IApp
 		vec2    UIPanelSize = { 650, 1000 };
 		GuiDesc guiDesc(UIPosition, UIPanelSize, UIPanelWindowTitleTextDesc);
 		pStandaloneControlsGUIWindow = gAppUI.AddGuiComponent("Walk Animation", &guiDesc);
+    pStandaloneControlsGUIWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
 
 		// SET gUIData MEMBERS THAT NEED POINTERS TO ANIMATION DATA
 		//
@@ -651,6 +657,8 @@ class JointAttachment: public IApp
 	{
 		// wait for rendering to finish before freeing resources
 		waitQueueIdle(pGraphicsQueue);
+
+		exitProfiler(pRenderer);
 
 		// Animation data
 		gSkeletonBatcher.Destroy();
@@ -877,6 +885,19 @@ class JointAttachment: public IApp
 		gUniformDataPlane.mProjectView = projMat * viewMat;
 		gUniformDataPlane.mToWorldMat = mat4::identity();
 
+
+    // ProfileSetDisplayMode()
+    // TODO: need to change this better way 
+    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+    {
+      Profile& S = *ProfileGet();
+      int nValue = bToggleMicroProfiler ? 1 : 0;
+      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+      S.nDisplay = nValue;
+
+      bPrevToggleMicroProfiler = bToggleMicroProfiler;
+    }
+
 		/************************************************************************/
 		// GUI
 		/************************************************************************/
@@ -977,14 +998,18 @@ class JointAttachment: public IApp
 #endif
 
 		gAppUI.Gui(pStandaloneControlsGUIWindow);    // adds the gui element to AppUI::ComponentsToUpdate list
-		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
 		gAppUI.DrawText(
-			cmd, float2(8, 65), tinystl::string::format("Animation Update %f ms", gAnimationUpdateTimer.GetUSecAverage() / 1000.0f),
+			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			cmd, float2(8, 65), eastl::string().sprintf("Animation Update %f ms", gAnimationUpdateTimer.GetUSecAverage() / 1000.0f).c_str(),
 			&gFrameTimeDraw);
 
-		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
+			&gFrameTimeDraw);
 
-        gAppUI.Draw(cmd);
+		cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
+		gAppUI.Draw(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndDebugMarker(cmd);
@@ -998,9 +1023,10 @@ class JointAttachment: public IApp
 
 		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		flipProfiler();
 	}
 
-	tinystl::string GetName() { return "20_JointAttachment"; }
+	const char* GetName() { return "20_JointAttachment"; }
 
 	bool addSwapChain()
 	{

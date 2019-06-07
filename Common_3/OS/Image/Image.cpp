@@ -1465,11 +1465,11 @@ bool Image::iLoadGNFFromMemory(const char* memory, size_t memSize, const bool us
 // struct of table for file format to loading function
 struct ImageLoaderDefinition
 {
-	tinystl::string            Extension;
+	eastl::string            Extension;
 	Image::ImageLoaderFunction Loader;
 };
 
-static tinystl::vector<ImageLoaderDefinition> gImageLoaders;
+static eastl::vector<ImageLoaderDefinition> gImageLoaders;
 
 struct StaticImageLoader
 {
@@ -1537,7 +1537,7 @@ bool Image::loadFromMemory(
 	for (uint32_t i = 0; i < (uint32_t)gImageLoaders.size(); ++i)
 	{
 		ImageLoaderDefinition const& def = gImageLoaders[i];
-		if (stricmp(extension, def.Extension) == 0)
+		if (stricmp(extension, def.Extension.c_str()) == 0)
 		{
 			loaded = (this->*(def.Loader))((char const*)mem, size, useMipmaps, pAllocator, pUserData);
 			break;
@@ -1585,7 +1585,7 @@ bool Image::loadImage(const char* fileName, bool useMipmaps, memoryAllocationFun
 	bool support = false;
 	for (int i = 0; i < (int)gImageLoaders.size(); i++)
 	{
-		if (stricmp(extension, gImageLoaders[i].Extension) == 0)
+		if (stricmp(extension, gImageLoaders[i].Extension.c_str()) == 0)
 		{
 			support = true;
 			loaded = (this->*(gImageLoaders[i].Loader))(data, length, useMipmaps, pAllocator, pUserData);

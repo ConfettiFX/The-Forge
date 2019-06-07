@@ -33,13 +33,12 @@
 #define IID_ARGS IID_PPV_ARGS
 #endif
 
-#include "../../Tools/Profiler/Profiler.h"
-#include "../../ThirdParty/OpenSource/TinySTL/string.h"
-#include "../../ThirdParty/OpenSource/TinySTL/unordered_map.h"
+#include "../../ThirdParty/OpenSource/EASTL/sort.h"
+#include "../../ThirdParty/OpenSource/EASTL/string.h"
+#include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 #include "../../OS/Interfaces/ILogManager.h"
 #include "../IRenderer.h"
 #include "../../OS/Core/RingBuffer.h"
-#include "../../ThirdParty/OpenSource/TinySTL/hash.h"
 #include "../../ThirdParty/OpenSource/winpixeventruntime/Include/WinPixEventRuntime/pix3.h"
 #include "../../ThirdParty/OpenSource/renderdoc/renderdoc_app.h"
 #include "../../OS/Core/GPUConfig.h"
@@ -100,7 +99,8 @@ extern "C"
 #include "Direct3D12MemoryAllocator.h"
 #include "../../OS/Interfaces/IMemoryManager.h"
 
-extern void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection);
+extern void
+			d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection);
 extern long d3d12_createBuffer(
 	MemoryAllocator* pAllocator, const BufferCreateInfo* pCreateInfo, const AllocatorMemoryRequirements* pMemoryRequirements,
 	Buffer* pBuffer);
@@ -110,17 +110,17 @@ extern long d3d12_createTexture(
 	Texture* pTexture);
 extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pTexture);
 extern void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPipeline);
-extern void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount,
-	bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc = NULL);
+extern void addRaytracingRootSignature(
+	Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount, bool local, RootSignature** ppRootSignature,
+	const RootSignatureDesc* pRootDesc = NULL);
 
 //stubs for durango because Direct3D12Raytracing.cpp is not used on XBOX
 #ifdef _DURANGO
-void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPipeline)
-{
-}
+void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPipeline) {}
 
-void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount,
-	bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc)
+void addRaytracingRootSignature(
+	Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount, bool local, RootSignature** ppRootSignature,
+	const RootSignatureDesc* pRootDesc)
 {
 }
 #endif
@@ -575,7 +575,7 @@ add_cpu_descriptor_handles(DescriptorStoreHeap* pHeap, uint32_t numDescriptors, 
 	int       result = -1;
 	MutexLock lockGuard(*pHeap->pAllocationMutex);
 
-	tinystl::vector<D3D12_CPU_DESCRIPTOR_HANDLE> handles;
+	eastl::vector<D3D12_CPU_DESCRIPTOR_HANDLE> handles;
 
 	for (uint32_t i = 0; i < pHeap->mNumDescriptors / 32; ++i)
 	{
@@ -631,14 +631,14 @@ void add_gpu_descriptor_handles(
 	int       result = -1;
 	MutexLock lockGuard(*pHeap->pAllocationMutex);
 
-	tinystl::vector<tinystl::pair<D3D12_CPU_DESCRIPTOR_HANDLE, D3D12_GPU_DESCRIPTOR_HANDLE> > handles;
+	eastl::vector<eastl::pair<D3D12_CPU_DESCRIPTOR_HANDLE, D3D12_GPU_DESCRIPTOR_HANDLE> > handles;
 
 	for (uint32_t i = 0; i < pHeap->mNumDescriptors / 32; ++i)
 	{
 		const uint32_t flag = pHeap->pFlags[i];
 		if (flag == 0xffffffff)
 		{
-			for (tinystl::pair<D3D12_CPU_DESCRIPTOR_HANDLE, D3D12_GPU_DESCRIPTOR_HANDLE>& handle : handles)
+			for (eastl::pair<D3D12_CPU_DESCRIPTOR_HANDLE, D3D12_GPU_DESCRIPTOR_HANDLE>& handle : handles)
 			{
 				uint32_t       id = (uint32_t)((handle.first.ptr - pHeap->mStartCpuHandle.ptr) / pHeap->mDescriptorSize);
 				const uint32_t x = id / 32;
@@ -745,9 +745,9 @@ typedef struct DescriptorTable
 	uint32_t                    mNodeIndex;
 } DescriptorTable;
 
-using HashMap = tinystl::unordered_map<uint64_t, uint32_t>;
-using ConstHashMapIterator = tinystl::unordered_map<uint64_t, uint32_t>::const_iterator;
-using DescriptorNameToIndexMap = tinystl::unordered_map<uint32_t, uint32_t>;
+using HashMap = eastl::unordered_map<uint64_t, uint32_t>;
+using ConstHashMapIterator = eastl::unordered_map<uint64_t, uint32_t>::const_iterator;
+using DescriptorNameToIndexMap = eastl::string_hash_map<uint32_t>;
 
 typedef struct DescriptorBinderNode
 {
@@ -755,7 +755,7 @@ typedef struct DescriptorBinderNode
 	DescriptorTable* pSamplerTables[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
 	uint32_t         mCbvSrvUavUsageCount[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
 	uint32_t         mSamplerUsageCount[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
-	uint64_t         mUpdatedNoneFreqHash[MAX_FRAMES_IN_FLIGHT][2];  // 2 is for CbvSrvUav (0) and Sampler (1)
+	uint64_t         mUpdatedNoneFreqHash[MAX_FRAMES_IN_FLIGHT][2];    // 2 is for CbvSrvUav (0) and Sampler (1)
 	uint64_t         mUpdatedFrameFreqHash[MAX_FRAMES_IN_FLIGHT][2];
 	HashMap          mUpdatedHashes[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT][2];
 	uint32_t         mCbvSrvUavUpdatesThisFrame[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
@@ -776,8 +776,7 @@ typedef struct DescriptorBinderNode
 	uint32_t mDescriptorTableCount[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
 } DescriptorBinderNode;
 
-using DescriptorBinderMap = tinystl::unordered_map<const RootSignature*, DescriptorBinderNode>;
-using DescriptorBinderMapNode = tinystl::unordered_hash_node<const RootSignature*, DescriptorBinderNode>;
+using DescriptorBinderMap = eastl::hash_map<const RootSignature*, DescriptorBinderNode>;
 
 typedef struct DescriptorBinder
 {
@@ -790,11 +789,11 @@ typedef struct DescriptorBinder
 
 const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName, uint32_t* pIndex)
 {
-	DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pResName));
-	if (it.node)
+	DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap.find(pResName);
+	if (it != pRootSignature->pDescriptorNameToIndexMap.end())
 	{
-		*pIndex = it.node->second;
-		return &pRootSignature->pDescriptors[it.node->second];
+		*pIndex = it->second;
+		return &pRootSignature->pDescriptors[it->second];
 	}
 	else
 	{
@@ -1197,11 +1196,11 @@ static GpuVendor util_to_internal_gpu_vendor(UINT vendorId)
 /************************************************************************/
 typedef struct UpdateFrequencyLayoutInfo
 {
-	tinystl::vector<DescriptorInfo*>                  mCbvSrvUavTable;
-	tinystl::vector<DescriptorInfo*>                  mSamplerTable;
-	tinystl::vector<DescriptorInfo*>                  mConstantParams;
-	tinystl::vector<DescriptorInfo*>                  mRootConstants;
-	tinystl::unordered_map<DescriptorInfo*, uint32_t> mDescriptorIndexMap;
+	eastl::vector<DescriptorInfo*>                  mCbvSrvUavTable;
+	eastl::vector<DescriptorInfo*>                  mSamplerTable;
+	eastl::vector<DescriptorInfo*>                  mConstantParams;
+	eastl::vector<DescriptorInfo*>                  mRootConstants;
+	eastl::unordered_map<DescriptorInfo*, uint32_t> mDescriptorIndexMap;
 } UpdateFrequencyLayoutInfo;
 
 /// Calculates the total size of the root signature (in DWORDS) from the input layouts
@@ -1917,9 +1916,9 @@ static void AddDevice(Renderer* pRenderer)
 		DXGI_ADAPTER_DESC adapterDesc;
 		pRenderer->pDxGPUs[i]->GetDesc(&adapterDesc);
 		pRenderer->mGpuSettings[i].mMaxRootSignatureDWORDS = gRootSignatureDWORDS[util_to_internal_gpu_vendor(adapterDesc.VendorId)];
-		LOGF(LogLevel::eINFO, 
-			"GPU[%i] detected. Vendor ID: %x, Revision ID: %x, GPU Name: %S", i, adapterDesc.VendorId, adapterDesc.Revision,
-			adapterDesc.Description);
+		LOGF(
+			LogLevel::eINFO, "GPU[%i] detected. Vendor ID: %x, Revision ID: %x, GPU Name: %S", i, adapterDesc.VendorId,
+			adapterDesc.Revision, adapterDesc.Description);
 
 		// Check that gpu supports at least graphics
 		if (gpuIndex == UINT32_MAX || isDeviceBetter(i, gpuIndex))
@@ -1997,8 +1996,6 @@ static void AddDevice(Renderer* pRenderer)
 
 static void RemoveDevice(Renderer* pRenderer)
 {
-	ProfileGpuShutdown();
-
 	SAFE_RELEASE(pRenderer->pDXGIFactory);
 
 	for (uint32_t i = 0; i < pRenderer->mNumOfGPUs; ++i)
@@ -2108,12 +2105,12 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 			// If the device doesn't support SM6 or Wave Intrinsics, try enabling the experimental feature for Shader Model 6 and creating the device again.
 			if (shaderModelSupport.HighestShaderModel != D3D_SHADER_MODEL_6_0 || m_WaveIntrinsicsSupport.WaveOps != TRUE)
 			{
-				RENDERDOC_API_1_1_2 *rdoc_api = NULL;
+				RENDERDOC_API_1_1_2* rdoc_api = NULL;
 				// At init, on windows
 				if (HMODULE mod = GetModuleHandleA("renderdoc.dll"))
 				{
 					pRENDERDOC_GetAPI RENDERDOC_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
-					RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&rdoc_api);
+					RENDERDOC_GetAPI(eRENDERDOC_API_Version_1_1_2, (void**)&rdoc_api);
 				}
 
 				// If RenderDoc is connected shader model 6 is not detected but it still works
@@ -2121,8 +2118,8 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 				{
 					// If the device still doesn't support SM6 or Wave Intrinsics after enabling the experimental feature, you could set up your application to use the highest supported shader model.
 					// For simplicity we just exit the application here.
-					if (shaderModelSupport.HighestShaderModel != D3D_SHADER_MODEL_6_0 || m_WaveIntrinsicsSupport.WaveOps != TRUE
-						&& !SUCCEEDED(EnableExperimentalShaderModels()))
+					if (shaderModelSupport.HighestShaderModel != D3D_SHADER_MODEL_6_0 ||
+						m_WaveIntrinsicsSupport.WaveOps != TRUE && !SUCCEEDED(EnableExperimentalShaderModels()))
 					{
 						RemoveDevice(pRenderer);
 						LOGF(LogLevel::eERROR, "Hardware does not support Shader Model 6.0");
@@ -2131,7 +2128,9 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 				}
 				else
 				{
-					WarningMsg("\nRenderDoc does not support SM 6.0 or higher. Application might work but you won't be able to debug the SM 6.0+ shaders or view their bytecode.");
+					WarningMsg(
+						"\nRenderDoc does not support SM 6.0 or higher. Application might work but you won't be able to debug the SM 6.0+ "
+						"shaders or view their bytecode.");
 				}
 			}
 		}
@@ -2155,7 +2154,7 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 		pRenderer->mLinkedNodeCount = gpuCount;
 		if (pRenderer->mLinkedNodeCount < 2)
 			pRenderer->mSettings.mGpuMode = GPU_MODE_SINGLE;
-		
+
 		AllocatorCreateInfo info = { 0 };
 		info.pRenderer = pRenderer;
 		info.device = pRenderer->pDxDevice;
@@ -2282,7 +2281,6 @@ void addQueue(Renderer* pRenderer, QueueDesc* pQDesc, Queue** ppQueue)
 	if (pQDesc->mNodeIndex)
 	{
 		ASSERT(pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED && "Node Masking can only be used with Linked Multi GPU");
-
 	}
 
 	//provided description for queue creation
@@ -2298,7 +2296,7 @@ void addQueue(Renderer* pRenderer, QueueDesc* pQDesc, Queue** ppQueue)
 
 	ASSERT(SUCCEEDED(hr));
 
-	tinystl::string queueType;
+	eastl::string queueType;
 	switch (queueDesc.Type)
 	{
 		case D3D12_COMMAND_LIST_TYPE_DIRECT: queueType = "GRAPHICS QUEUE"; break;
@@ -2307,8 +2305,9 @@ void addQueue(Renderer* pRenderer, QueueDesc* pQDesc, Queue** ppQueue)
 		default: break;
 	}
 
-	tinystl::string queueName = tinystl::string::format("%s %u", queueType.c_str(), pQDesc->mNodeIndex);
-	WCHAR           finalName[MAX_PATH] = {};
+	eastl::string queueName;
+	queueName.sprintf("%s %u", queueType.c_str(), pQDesc->mNodeIndex);
+	WCHAR finalName[MAX_PATH] = {};
 	mbstowcs(finalName, queueName.c_str(), queueName.size());
 	pQueue->pDxQueue->SetName(finalName);
 
@@ -2319,17 +2318,6 @@ void addQueue(Renderer* pRenderer, QueueDesc* pQDesc, Queue** ppQueue)
 	::addFence(pQueue->pRenderer, &pQueue->pQueueFence);
 
 	*ppQueue = pQueue;
-
-	if (pQDesc->mFlag == QUEUE_FLAG_INIT_MICROPROFILE)
-	{
-		ProfileOnThreadCreate("RenderThread");
-		ProfileGpuInitInternal(pRenderer->pDxDevice, pQueue->pDxQueue);
-		ProfileSetForceEnable(true);
-		ProfileSetEnableAllGroups(true);
-		ProfileSetForceMetaCounters(true);
-		ProfileWebServerStart();
-		ProfileContextSwitchTraceStart();
-	}
 }
 
 void removeQueue(Queue* pQueue)
@@ -2940,7 +2928,9 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		pRenderer->pDxDevice->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &data, sizeof(data));
 		while (data.NumQualityLevels == 0 && data.SampleCount > 0)
 		{
-			LOGF(LogLevel::eWARNING, "Sample Count (%u) not supported. Trying a lower sample count (%u)", data.SampleCount, data.SampleCount / 2);
+			LOGF(
+				LogLevel::eWARNING, "Sample Count (%u) not supported. Trying a lower sample count (%u)", data.SampleCount,
+				data.SampleCount / 2);
 			data.SampleCount = desc.SampleDesc.Count / 2;
 			pRenderer->pDxDevice->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &data, sizeof(data));
 		}
@@ -3016,8 +3006,8 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	// Compute texture size
 	UINT64 buffer_size = 0;
 	pRenderer->pDxDevice->GetCopyableFootprints(
-		&desc, 0, desc.MipLevels * (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D ? 1 : desc.DepthOrArraySize), 0, NULL, NULL,
-		NULL, &buffer_size);
+		&desc, 0, desc.MipLevels * (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D ? 1 : desc.DepthOrArraySize), 0, NULL, NULL, NULL,
+		&buffer_size);
 	pTexture->mTextureSize = buffer_size;
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC  srvDesc = {};
@@ -3168,8 +3158,8 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
 		{
 			uavDesc.Texture1DArray.MipSlice = i;
-			if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
-					uavDesc.Texture3D.WSize = desc.DepthOrArraySize / (UINT)pow(2, i);
+			if (desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+				uavDesc.Texture3D.WSize = desc.DepthOrArraySize / (UINT)pow(2, i);
 			add_uav(pRenderer, pTexture->pDxResource, NULL, &uavDesc, &pTexture->pDxUAVDescriptors[i]);
 		}
 	}
@@ -3213,20 +3203,23 @@ void removeTexture(Renderer* pRenderer, Texture* pTexture)
 	SAFE_FREE(pTexture);
 }
 
-void addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCount, const DescriptorBinderDesc* pDescs, DescriptorBinder** ppDescriptorBinder)
+void addDescriptorBinder(
+	Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCount, const DescriptorBinderDesc* pDescs, DescriptorBinder** ppDescriptorBinder)
 {
-	const uint32_t       setCount = DESCRIPTOR_UPDATE_FREQ_COUNT;
+	const uint32_t    setCount = DESCRIPTOR_UPDATE_FREQ_COUNT;
 	DescriptorBinder* pDescriptorBinder = (DescriptorBinder*)conf_calloc(1, sizeof(*pDescriptorBinder));
+
+	conf_placement_new<DescriptorBinder>(pDescriptorBinder);
 
 	// Allocate all unique root signatures in the map
 	for (uint32_t i = 0; i < descCount; i++)
 	{
 		const DescriptorBinderDesc* pDesc = pDescs + i;
-		const RootSignature* rootSignature = pDesc->pRootSignature;
+		const RootSignature*        rootSignature = pDesc->pRootSignature;
 
 		DescriptorBinderMap::const_iterator it = pDescriptorBinder->mRootSignatureNodes.find(rootSignature);
 		if (it != pDescriptorBinder->mRootSignatureNodes.end())
-			continue; // we want unique root signatures because we are going to get data indexing the map by root signature
+			continue;    // we want unique root signatures because we are going to get data indexing the map by root signature
 
 		DescriptorBinderNode descriptorBinderNode = {};
 		descriptorBinderNode.mLastFrameUpdated = (uint32_t)-1;
@@ -3238,15 +3231,17 @@ void addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCo
 
 			if (descriptorInfo->mDesc.type == DESCRIPTOR_TYPE_SAMPLER)
 			{
-				descriptorBinderNode.numDescriptorsPerSet[descriptorInfo->mUpdateFrquency][D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER] += descriptorInfo->mDesc.size;
+				descriptorBinderNode.numDescriptorsPerSet[descriptorInfo->mUpdateFrquency][D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER] +=
+					descriptorInfo->mDesc.size;
 			}
 			else if (descriptorInfo->mDesc.type != DESCRIPTOR_TYPE_UNDEFINED && descriptorInfo->mDesc.type != DESCRIPTOR_TYPE_ROOT_CONSTANT)
 			{
-				descriptorBinderNode.numDescriptorsPerSet[descriptorInfo->mUpdateFrquency][D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] += descriptorInfo->mDesc.size;
+				descriptorBinderNode.numDescriptorsPerSet[descriptorInfo->mUpdateFrquency][D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] +=
+					descriptorInfo->mDesc.size;
 			}
 		}
 
-		pDescriptorBinder->mRootSignatureNodes.insert({rootSignature, descriptorBinderNode });
+		pDescriptorBinder->mRootSignatureNodes.insert({{ rootSignature, descriptorBinderNode }});
 	}
 
 	// Calculate total required pool data based on root signature and usage data
@@ -3258,9 +3253,10 @@ void addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCo
 	for (uint32_t i = 0; i < descCount; i++)
 	{
 		const DescriptorBinderDesc* pDesc = pDescs + i;
-		const RootSignature *pRootSignature = pDesc->pRootSignature;
-		const uint32_t maxUpdatesPerFrequency[DESCRIPTOR_UPDATE_FREQ_COUNT] = { 1, 1, pDesc->mMaxDynamicUpdatesPerBatch, pDesc->mMaxDynamicUpdatesPerDraw };
-		DescriptorBinderNode& descriptorBinderNode = pDescriptorBinder->mRootSignatureNodes[pRootSignature];
+		const RootSignature*        pRootSignature = pDesc->pRootSignature;
+		const uint32_t              maxUpdatesPerFrequency[DESCRIPTOR_UPDATE_FREQ_COUNT] = { 1, 1, pDesc->mMaxDynamicUpdatesPerBatch,
+                                                                                pDesc->mMaxDynamicUpdatesPerDraw };
+		DescriptorBinderNode&       descriptorBinderNode = pDescriptorBinder->mRootSignatureNodes[pRootSignature];
 
 		for (uint32_t setIndex = 0; setIndex < DESCRIPTOR_UPDATE_FREQ_COUNT; setIndex++)
 		{
@@ -3271,8 +3267,8 @@ void addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCo
 		for (uint32_t j = 0; j < pRootSignature->mDescriptorCount; j++)
 		{
 			DescriptorInfo* descriptorInfo = pRootSignature->pDescriptors + j;
-			uint32_t arraySize = descriptorInfo->mDesc.size;
-			uint32_t count = maxUpdatesPerFrequency[descriptorInfo->mUpdateFrquency] * arraySize * MAX_FRAMES_IN_FLIGHT;
+			uint32_t        arraySize = descriptorInfo->mDesc.size;
+			uint32_t        count = maxUpdatesPerFrequency[descriptorInfo->mUpdateFrquency] * arraySize * MAX_FRAMES_IN_FLIGHT;
 
 			if (descriptorInfo->mDesc.type == DESCRIPTOR_TYPE_SAMPLER)
 			{
@@ -3295,23 +3291,21 @@ void addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCo
 			break;
 
 		uint32_t nodeMask = util_calculate_node_mask(pRenderer, i);
-			   
+
 		add_descriptor_heap(
 			pRenderer->pDxDevice, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-			gpuDescriptorHeapProperties[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].mFlags,
-			maxViews > 0 ? maxViews : 1, nodeMask,
+			gpuDescriptorHeapProperties[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].mFlags, maxViews > 0 ? maxViews : 1, nodeMask,
 			&pDescriptorBinder->pCbvSrvUavHeap[i]);
 
 		add_descriptor_heap(
 			pRenderer->pDxDevice, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
-			gpuDescriptorHeapProperties[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER].mFlags,
-			maxSamplers > 0 ? maxSamplers : 1, nodeMask,
+			gpuDescriptorHeapProperties[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER].mFlags, maxSamplers > 0 ? maxSamplers : 1, nodeMask,
 			&pDescriptorBinder->pSamplerHeap[i]);
 	}
 
-	for (DescriptorBinderMapNode& it : pDescriptorBinder->mRootSignatureNodes)
+	for (DescriptorBinderMap::value_type& it : pDescriptorBinder->mRootSignatureNodes)
 	{
-		const RootSignature* rootSignature = it.first;
+		const RootSignature*  rootSignature = it.first;
 		DescriptorBinderNode& node = it.second;
 
 		// Consume all necessary descriptor tables from the heaps
@@ -3334,14 +3328,18 @@ void addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCo
 					if (viewCount > 0)
 					{
 						DescriptorTable* descriptorTable = node.pCbvSrvUavTables[frameIdx][setIndex] + usageIdx;
-						add_gpu_descriptor_handles(pDescriptorBinder->pCbvSrvUavHeap[gpuIndex], &descriptorTable->mBaseCpuHandle, &descriptorTable->mBaseGpuHandle, viewCount);
+						add_gpu_descriptor_handles(
+							pDescriptorBinder->pCbvSrvUavHeap[gpuIndex], &descriptorTable->mBaseCpuHandle, &descriptorTable->mBaseGpuHandle,
+							viewCount);
 						descriptorTable->mDescriptorCount = viewCount;
 						descriptorTable->mNodeIndex = gpuIndex;
 					}
 					if (samplerCount > 0)
 					{
 						DescriptorTable* descriptorTable = node.pSamplerTables[frameIdx][setIndex] + usageIdx;
-						add_gpu_descriptor_handles(pDescriptorBinder->pSamplerHeap[gpuIndex], &descriptorTable->mBaseCpuHandle, &descriptorTable->mBaseGpuHandle, samplerCount);
+						add_gpu_descriptor_handles(
+							pDescriptorBinder->pSamplerHeap[gpuIndex], &descriptorTable->mBaseCpuHandle, &descriptorTable->mBaseGpuHandle,
+							samplerCount);
 						descriptorTable->mDescriptorCount = samplerCount;
 						descriptorTable->mNodeIndex = gpuIndex;
 					}
@@ -3351,9 +3349,9 @@ void addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCo
 	}
 
 	// Fill the descriptor handles with null descriptors
-	for (DescriptorBinderMapNode& it : pDescriptorBinder->mRootSignatureNodes)
+	for (DescriptorBinderMap::value_type& it : pDescriptorBinder->mRootSignatureNodes)
 	{
-		const RootSignature* pRootSignature = it.first;
+		const RootSignature*  pRootSignature = it.first;
 		DescriptorBinderNode& node = it.second;
 		for (uint32_t setIndex = 0; setIndex < setCount; ++setIndex)
 		{
@@ -3372,62 +3370,61 @@ void addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCo
 					DescriptorType        type = pDesc->mDesc.type;
 					switch (type)
 					{
-					case DESCRIPTOR_TYPE_TEXTURE:
-					{
-						D3D12_CPU_DESCRIPTOR_HANDLE nullSRV = pRenderer->mNullTextureSRV[pDesc->mDesc.dim];
-
-						for (uint32_t j = 0; j < pDesc->mDesc.size; ++j)
-							node.pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = nullSRV;
-
-						break;
-					}
-					case DESCRIPTOR_TYPE_BUFFER:
-					{
-						for (uint32_t j = 0; j < pDesc->mDesc.size; ++j)
-							node.pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = pRenderer->mNullBufferSRV;
-						break;
-					}
-					case DESCRIPTOR_TYPE_RW_TEXTURE:
-					{
-						TextureDimension     dim = pDesc->mDesc.dim;
-						D3D12_CPU_DESCRIPTOR_HANDLE nullUAV = pRenderer->mNullTextureUAV[dim];
-
-						switch (dim)
+						case DESCRIPTOR_TYPE_TEXTURE:
 						{
-						case TEXTURE_DIM_2DMS:
-							LOGF(LogLevel::eERROR, "Texture2DMS not supported for UAV (%s)", pDesc->mDesc.name);
-							break;
-						case TEXTURE_DIM_2DMS_ARRAY:
-							LOGF(LogLevel::eERROR, "Texture2DMSArray not supported for UAV (%s)", pDesc->mDesc.name);
-							break;
-						case TEXTURE_DIM_CUBE:
-							LOGF(LogLevel::eERROR, "TextureCube not supported for UAV (%s)", pDesc->mDesc.name);
-							break;
-						case TEXTURE_DIM_CUBE_ARRAY:
-							LOGF(LogLevel::eERROR, "TextureCubeArray not supported for UAV (%s)", pDesc->mDesc.name);
-							break;
-						default:
+							D3D12_CPU_DESCRIPTOR_HANDLE nullSRV = pRenderer->mNullTextureSRV[pDesc->mDesc.dim];
+
+							for (uint32_t j = 0; j < pDesc->mDesc.size; ++j)
+								node.pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = nullSRV;
+
 							break;
 						}
+						case DESCRIPTOR_TYPE_BUFFER:
+						{
+							for (uint32_t j = 0; j < pDesc->mDesc.size; ++j)
+								node.pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = pRenderer->mNullBufferSRV;
+							break;
+						}
+						case DESCRIPTOR_TYPE_RW_TEXTURE:
+						{
+							TextureDimension            dim = pDesc->mDesc.dim;
+							D3D12_CPU_DESCRIPTOR_HANDLE nullUAV = pRenderer->mNullTextureUAV[dim];
 
-						for (uint32_t j = 0; j < pDesc->mDesc.size; ++j)
-							node.pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = nullUAV;
+							switch (dim)
+							{
+								case TEXTURE_DIM_2DMS:
+									LOGF(LogLevel::eERROR, "Texture2DMS not supported for UAV (%s)", pDesc->mDesc.name);
+									break;
+								case TEXTURE_DIM_2DMS_ARRAY:
+									LOGF(LogLevel::eERROR, "Texture2DMSArray not supported for UAV (%s)", pDesc->mDesc.name);
+									break;
+								case TEXTURE_DIM_CUBE:
+									LOGF(LogLevel::eERROR, "TextureCube not supported for UAV (%s)", pDesc->mDesc.name);
+									break;
+								case TEXTURE_DIM_CUBE_ARRAY:
+									LOGF(LogLevel::eERROR, "TextureCubeArray not supported for UAV (%s)", pDesc->mDesc.name);
+									break;
+								default: break;
+							}
 
-						break;
-					}
-					case DESCRIPTOR_TYPE_RW_BUFFER:
-					{
-						for (uint32_t j = 0; j < pDesc->mDesc.size; ++j)
-							node.pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = pRenderer->mNullBufferUAV;
-						break;
-					}
-					case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-					{
-						for (uint32_t j = 0; j < pDesc->mDesc.size; ++j)
-							node.pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = pRenderer->mNullBufferCBV;
-						break;
-					}
-					default: break;
+							for (uint32_t j = 0; j < pDesc->mDesc.size; ++j)
+								node.pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = nullUAV;
+
+							break;
+						}
+						case DESCRIPTOR_TYPE_RW_BUFFER:
+						{
+							for (uint32_t j = 0; j < pDesc->mDesc.size; ++j)
+								node.pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = pRenderer->mNullBufferUAV;
+							break;
+						}
+						case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+						{
+							for (uint32_t j = 0; j < pDesc->mDesc.size; ++j)
+								node.pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = pRenderer->mNullBufferCBV;
+							break;
+						}
+						default: break;
 					}
 				}
 			}
@@ -3451,7 +3448,7 @@ void removeDescriptorBinder(Renderer* pRenderer, DescriptorBinder* pDescriptorBi
 	const uint32_t setCount = DESCRIPTOR_UPDATE_FREQ_COUNT;
 	const uint32_t frameCount = MAX_FRAMES_IN_FLIGHT;
 
-	for (DescriptorBinderMapNode& it : pDescriptorBinder->mRootSignatureNodes)
+	for (DescriptorBinderMap::value_type& it : pDescriptorBinder->mRootSignatureNodes)
 	{
 		DescriptorBinderNode& node = it.second;
 
@@ -3469,12 +3466,16 @@ void removeDescriptorBinder(Renderer* pRenderer, DescriptorBinder* pDescriptorBi
 				for (uint32_t usageIdx = 0; usageIdx < node.mCbvSrvUavUsageCount[frameIdx][setIndex]; usageIdx++)
 				{
 					DescriptorTable* descriptorTable = node.pCbvSrvUavTables[frameIdx][setIndex] + usageIdx;
-					remove_gpu_descriptor_handles(pDescriptorBinder->pCbvSrvUavHeap[descriptorTable->mNodeIndex], &descriptorTable->mBaseGpuHandle, descriptorTable->mDescriptorCount);
+					remove_gpu_descriptor_handles(
+						pDescriptorBinder->pCbvSrvUavHeap[descriptorTable->mNodeIndex], &descriptorTable->mBaseGpuHandle,
+						descriptorTable->mDescriptorCount);
 				}
 				for (uint32_t usageIdx = 0; usageIdx < node.mSamplerUsageCount[frameIdx][setIndex]; usageIdx++)
 				{
 					DescriptorTable* descriptorTable = node.pSamplerTables[frameIdx][setIndex] + usageIdx;
-					remove_gpu_descriptor_handles(pDescriptorBinder->pSamplerHeap[descriptorTable->mNodeIndex], &descriptorTable->mBaseGpuHandle, descriptorTable->mDescriptorCount);
+					remove_gpu_descriptor_handles(
+						pDescriptorBinder->pSamplerHeap[descriptorTable->mNodeIndex], &descriptorTable->mBaseGpuHandle,
+						descriptorTable->mDescriptorCount);
 				}
 			}
 		}
@@ -3489,7 +3490,7 @@ void removeDescriptorBinder(Renderer* pRenderer, DescriptorBinder* pDescriptorBi
 		}
 	}
 
-	pDescriptorBinder->mRootSignatureNodes.~unordered_map();
+	pDescriptorBinder->mRootSignatureNodes.~hash_map();
 
 	uint32_t gpuCount = 1;
 	if (pRenderer->mSettings.mGpuMode == GPU_MODE_LINKED)
@@ -3672,12 +3673,12 @@ void removeSampler(Renderer* pRenderer, Sampler* pSampler)
 // Shader Functions
 /************************************************************************/
 template <typename BlobType>
-static inline tinystl::string convertBlobToString(BlobType* pBlob)
+static inline eastl::string convertBlobToString(BlobType* pBlob)
 {
-	tinystl::vector<char> infoLog(pBlob->GetBufferSize() + 1);
+	eastl::vector<char> infoLog(pBlob->GetBufferSize() + 1);
 	memcpy(infoLog.data(), pBlob->GetBufferPointer(), pBlob->GetBufferSize());
 	infoLog[pBlob->GetBufferSize()] = 0;
-	return tinystl::string(infoLog.data());
+	return eastl::string(infoLog.data());
 }
 
 void compileShader(
@@ -3740,17 +3741,18 @@ void compileShader(
 				break;
 			}
 		}
-		tinystl::string target;
+		eastl::string target;
 		switch (stage)
 		{
-			case SHADER_STAGE_VERT: target = tinystl::string::format("vs_%d_%d", major, minor); break;
-			case SHADER_STAGE_TESC: target = tinystl::string::format("hs_%d_%d", major, minor); break;
-			case SHADER_STAGE_TESE: target = tinystl::string::format("ds_%d_%d", major, minor); break;
-			case SHADER_STAGE_GEOM: target = tinystl::string::format("gs_%d_%d", major, minor); break;
-			case SHADER_STAGE_FRAG: target = tinystl::string::format("ps_%d_%d", major, minor); break;
-			case SHADER_STAGE_COMP: target = tinystl::string::format("cs_%d_%d", major, minor); break;
-			case SHADER_STAGE_LIB: {
-				target = tinystl::string::format("lib_%d_%d", major, minor); 
+			case SHADER_STAGE_VERT: target.sprintf("vs_%d_%d", major, minor); break;
+			case SHADER_STAGE_TESC: target.sprintf("hs_%d_%d", major, minor); break;
+			case SHADER_STAGE_TESE: target.sprintf("ds_%d_%d", major, minor); break;
+			case SHADER_STAGE_GEOM: target.sprintf("gs_%d_%d", major, minor); break;
+			case SHADER_STAGE_FRAG: target.sprintf("ps_%d_%d", major, minor); break;
+			case SHADER_STAGE_COMP: target.sprintf("cs_%d_%d", major, minor); break;
+			case SHADER_STAGE_LIB:
+			{
+				target.sprintf("lib_%d_%d", major, minor);
 				ASSERT(shaderTarget >= shader_target_6_3);
 				break;
 			}
@@ -3794,7 +3796,7 @@ void compileShader(
 		/************************************************************************/
 		// Compiler args
 		/************************************************************************/
-		tinystl::vector<const WCHAR*> compilerArgs;
+		eastl::vector<const WCHAR*> compilerArgs;
 		compilerArgs.push_back(L"-Zi");
 		compilerArgs.push_back(L"-all_resources_bound");
 #if defined(_DEBUG)
@@ -3842,7 +3844,7 @@ void compileShader(
 		{
 			IDxcBlobEncoding* pError;
 			d3d_call(pResult->GetErrorBuffer(&pError));
-			tinystl::string log = convertBlobToString(pError);
+			eastl::string log = convertBlobToString(pError);
 			ErrorMsg(log.c_str());
 			pError->Release();
 			return;
@@ -3893,15 +3895,15 @@ void compileShader(
 			break;
 		}
 
-		tinystl::string target;
+		eastl::string target;
 		switch (stage)
 		{
-			case SHADER_STAGE_VERT: target = tinystl::string::format("vs_%d_%d", major, minor); break;
-			case SHADER_STAGE_TESC: target = tinystl::string::format("hs_%d_%d", major, minor); break;
-			case SHADER_STAGE_TESE: target = tinystl::string::format("ds_%d_%d", major, minor); break;
-			case SHADER_STAGE_GEOM: target = tinystl::string::format("gs_%d_%d", major, minor); break;
-			case SHADER_STAGE_FRAG: target = tinystl::string::format("ps_%d_%d", major, minor); break;
-			case SHADER_STAGE_COMP: target = tinystl::string::format("cs_%d_%d", major, minor); break;
+			case SHADER_STAGE_VERT: target.sprintf("vs_%d_%d", major, minor); break;
+			case SHADER_STAGE_TESC: target.sprintf("hs_%d_%d", major, minor); break;
+			case SHADER_STAGE_TESE: target.sprintf("ds_%d_%d", major, minor); break;
+			case SHADER_STAGE_GEOM: target.sprintf("gs_%d_%d", major, minor); break;
+			case SHADER_STAGE_FRAG: target.sprintf("ps_%d_%d", major, minor); break;
+			case SHADER_STAGE_COMP: target.sprintf("cs_%d_%d", major, minor); break;
 			default: break;
 		}
 
@@ -3911,26 +3913,26 @@ void compileShader(
 		macros[0] = { "D3D12", "1" };
 		for (uint32_t j = 0; j < macroCount; ++j)
 		{
-			macros[j + 1] = { pMacros[j].definition, pMacros[j].value };
+			macros[j + 1] = { pMacros[j].definition.c_str(), pMacros[j].value.c_str() };
 		}
 		macros[macroCount + 1] = { NULL, NULL };
 
 		if (fnHookShaderCompileFlags != NULL)
 			fnHookShaderCompileFlags(compile_flags);
 
-		tinystl::string entryPoint = "main";
-		ID3DBlob*       compiled_code = NULL;
-		ID3DBlob*       error_msgs = NULL;
-		HRESULT         hres = D3DCompile2(
-            code, (size_t)codeSize, fileName, macros, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint.c_str(), target, compile_flags, 0, 0,
-            NULL, 0, &compiled_code, &error_msgs);
+		eastl::string entryPoint = "main";
+		ID3DBlob*     compiled_code = NULL;
+		ID3DBlob*     error_msgs = NULL;
+		HRESULT       hres = D3DCompile2(
+            code, (size_t)codeSize, fileName, macros, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint.c_str(), target.c_str(), compile_flags,
+            0, 0, NULL, 0, &compiled_code, &error_msgs);
 		if (FAILED(hres))
 		{
 			char* msg = (char*)conf_calloc(error_msgs->GetBufferSize() + 1, sizeof(*msg));
 			ASSERT(msg);
 			memcpy(msg, error_msgs->GetBufferPointer(), error_msgs->GetBufferSize());
-			tinystl::string error = tinystl::string(fileName) + " " + msg;
-			ErrorMsg(error);
+			eastl::string error = eastl::string(fileName) + " " + msg;
+			ErrorMsg(error.c_str());
 			SAFE_FREE(msg);
 		}
 		ASSERT(SUCCEEDED(hres));
@@ -3963,9 +3965,9 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 	ASSERT(pShaderProgram);
 	pShaderProgram->mStages = pDesc->mStages;
 
-	uint32_t                   reflectionCount = 0;
-	tinystl::vector<ID3DBlob*> blobs(SHADER_STAGE_COUNT);
-	tinystl::vector<LPCWSTR> entriesNames(SHADER_STAGE_COUNT);
+	uint32_t                 reflectionCount = 0;
+	eastl::vector<ID3DBlob*> blobs(SHADER_STAGE_COUNT);
+	eastl::vector<LPCWSTR>   entriesNames(SHADER_STAGE_COUNT);
 
 	for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
 	{
@@ -3975,39 +3977,25 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 		{
 			switch (stage_mask)
 			{
-				case SHADER_STAGE_VERT:
-				{
-					pStage = &pDesc->mVert;
+				case SHADER_STAGE_VERT: { pStage = &pDesc->mVert;
 				}
 				break;
-				case SHADER_STAGE_HULL:
-				{
-					pStage = &pDesc->mHull;
+				case SHADER_STAGE_HULL: { pStage = &pDesc->mHull;
 				}
 				break;
-				case SHADER_STAGE_DOMN:
-				{
-					pStage = &pDesc->mDomain;
+				case SHADER_STAGE_DOMN: { pStage = &pDesc->mDomain;
 				}
 				break;
-				case SHADER_STAGE_GEOM:
-				{
-					pStage = &pDesc->mGeom;
+				case SHADER_STAGE_GEOM: { pStage = &pDesc->mGeom;
 				}
 				break;
-				case SHADER_STAGE_FRAG:
-				{
-					pStage = &pDesc->mFrag;
+				case SHADER_STAGE_FRAG: { pStage = &pDesc->mFrag;
 				}
 				break;
-				case SHADER_STAGE_COMP:
-				{
-					pStage = &pDesc->mComp;
+				case SHADER_STAGE_COMP: { pStage = &pDesc->mComp;
 				}
 				break;
-				case SHADER_STAGE_LIB:
-				{
-					pStage = &pDesc->mComp;
+				case SHADER_STAGE_LIB: { pStage = &pDesc->mComp;
 				}
 				break;
 			}
@@ -4069,19 +4057,19 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 	RootSignature* pRootSignature = (RootSignature*)conf_calloc(1, sizeof(*pRootSignature));
 	ASSERT(pRootSignature);
 
-	tinystl::vector<UpdateFrequencyLayoutInfo>                 layouts(DESCRIPTOR_UPDATE_FREQ_COUNT);
-	tinystl::vector<ShaderResource>                            shaderResources;
-	tinystl::vector<uint32_t>                                  constantSizes;
-	tinystl::vector<tinystl::pair<DescriptorInfo*, Sampler*> > staticSamplers;
-	ShaderStage                                                shaderStages = SHADER_STAGE_NONE;
-	bool                                                       useInputLayout = false;
+	eastl::vector<UpdateFrequencyLayoutInfo>               layouts(DESCRIPTOR_UPDATE_FREQ_COUNT);
+	eastl::vector<ShaderResource>                          shaderResources;
+	eastl::vector<uint32_t>                                constantSizes;
+	eastl::vector<eastl::pair<DescriptorInfo*, Sampler*> > staticSamplers;
+	ShaderStage                                            shaderStages = SHADER_STAGE_NONE;
+	bool                                                   useInputLayout = false;
 
-	tinystl::unordered_map<tinystl::string, Sampler*> staticSamplerMap;
+	eastl::string_hash_map<Sampler*> staticSamplerMap;
 	for (uint32_t i = 0; i < pRootSignatureDesc->mStaticSamplerCount; ++i)
-		staticSamplerMap.insert({ pRootSignatureDesc->ppStaticSamplerNames[i], pRootSignatureDesc->ppStaticSamplers[i] });
+		staticSamplerMap.insert(pRootSignatureDesc->ppStaticSamplerNames[i], pRootSignatureDesc->ppStaticSamplers[i]);
 
 	//pRootSignature->pDescriptorNameToIndexMap;
-	conf_placement_new<tinystl::unordered_map<uint32_t, uint32_t> >(&pRootSignature->pDescriptorNameToIndexMap);
+	conf_placement_new<eastl::unordered_map<uint32_t, uint32_t> >(&pRootSignature->pDescriptorNameToIndexMap);
 
 	// Collect all unique shader resources in the given shaders
 	// Resources are parsed by name (two resources named "XYZ" in two shaders will be considered the same resource)
@@ -4115,11 +4103,11 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 				setIndex = 0;
 
 			// Find all unique resources
-			tinystl::unordered_hash_node<uint32_t, uint32_t>* pNode =
-				pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pRes->name)).node;
-			if (!pNode)
+			decltype(pRootSignature->pDescriptorNameToIndexMap)::iterator it =
+				pRootSignature->pDescriptorNameToIndexMap.find(pRes->name);
+			if (it == pRootSignature->pDescriptorNameToIndexMap.end())
 			{
-				pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), (uint32_t)shaderResources.size() });
+				pRootSignature->pDescriptorNameToIndexMap.insert(pRes->name, (uint32_t)shaderResources.size());
 				shaderResources.push_back(*pRes);
 
 				uint32_t constantSize = 0;
@@ -4140,7 +4128,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 			// shader stage in this case
 			else
 			{
-				if (shaderResources[pNode->second].reg != pRes->reg)
+				if (shaderResources[it->second].reg != pRes->reg)
 				{
 					ErrorMsg(
 						"\nFailed to create root signature\n"
@@ -4150,7 +4138,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 						pRes->name);
 					return;
 				}
-				if (shaderResources[pNode->second].set != pRes->set)
+				if (shaderResources[it->second].set != pRes->set)
 				{
 					ErrorMsg(
 						"\nFailed to create root signature\n"
@@ -4163,7 +4151,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 
 				for (ShaderResource& res : shaderResources)
 				{
-					if (tinystl::hash(res.name) == pNode->first)
+					if (res.name == it->first)
 					{
 						res.used_stages |= pRes->used_stages;
 						break;
@@ -4211,9 +4199,9 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 		if (pDesc->mDesc.type == DESCRIPTOR_TYPE_SAMPLER)
 		{
 			// If the sampler is a static sampler, no need to put it in the descriptor table
-			const tinystl::unordered_hash_node<tinystl::string, Sampler*>* pNode = staticSamplerMap.find(pDesc->mDesc.name).node;
+			const decltype(staticSamplerMap)::iterator pNode = staticSamplerMap.find(pDesc->mDesc.name);
 
-			if (pNode)
+			if (pNode != staticSamplerMap.end())
 			{
 				LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Static Sampler", pDesc->mDesc.name);
 				// Set the index to invalid value so we can use this later for error checking if user tries to update a static sampler
@@ -4231,7 +4219,9 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 		{
 			// D3D12 has no special syntax to declare root constants like Vulkan
 			// So we assume that all constant buffers with the word "rootconstant" (case insensitive) are root constants
-			if (tinystl::string(pRes->name).to_lower().find("rootconstant", 0) != tinystl::string::npos ||
+			eastl::string name = pRes->name;
+			name.make_lower();
+			if (name.find("rootconstant", 0) != eastl::string::npos ||
 				pDesc->mDesc.type == DESCRIPTOR_TYPE_ROOT_CONSTANT)
 			{
 				// Make the root param a 32 bit constant if the user explicitly specifies it in the shader
@@ -4278,11 +4268,12 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 				   convertIt >= endIt)
 			{
 				layout.mConstantParams.push_back(*convertIt);
-				layout.mRootConstants.erase(layout.mRootConstants.find(*convertIt));
+				layout.mRootConstants.erase(eastl::find(layout.mRootConstants.begin(), layout.mRootConstants.end(), *convertIt));
 				(*convertIt)->mDxType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 
-				LOGF(LogLevel::eWARNING, 
-					"Converting root constant (%s) to root cbv to keep root signature size below hardware limit", (*convertIt)->mDesc.name);
+				LOGF(
+					LogLevel::eWARNING, "Converting root constant (%s) to root cbv to keep root signature size below hardware limit",
+					(*convertIt)->mDesc.name);
 			}
 		}
 
@@ -4305,9 +4296,10 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 				if ((constantIt != endIt) || (constantIt == layout.mConstantParams.begin() && endIt == layout.mConstantParams.begin()))
 				{
 					layout.mCbvSrvUavTable.push_back(*constantIt);
-					layout.mConstantParams.erase(layout.mConstantParams.find(*constantIt));
+					layout.mConstantParams.erase(eastl::find(layout.mConstantParams.begin(), layout.mConstantParams.end(), *constantIt));
 
-					LOGF(LogLevel::eWARNING, 
+					LOGF(
+						LogLevel::eWARNING,
 						"Placing root descriptor (%s) in descriptor table to keep root signature size below hardware limit",
 						(*constantIt)->mDesc.name);
 				}
@@ -4324,15 +4316,15 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 
 	// D3D12 currently has two versions of root signatures (1_0, 1_1)
 	// So we fill the structs of both versions and in the end use the structs compatible with the supported version
-	tinystl::vector<tinystl::vector<D3D12_DESCRIPTOR_RANGE1> > cbvSrvUavRange((uint32_t)layouts.size());
-	tinystl::vector<tinystl::vector<D3D12_DESCRIPTOR_RANGE1> > samplerRange((uint32_t)layouts.size());
-	tinystl::vector<D3D12_ROOT_PARAMETER1>                     rootParams;
+	eastl::vector<eastl::vector<D3D12_DESCRIPTOR_RANGE1> > cbvSrvUavRange((uint32_t)layouts.size());
+	eastl::vector<eastl::vector<D3D12_DESCRIPTOR_RANGE1> > samplerRange((uint32_t)layouts.size());
+	eastl::vector<D3D12_ROOT_PARAMETER1>                   rootParams;
 
-	tinystl::vector<tinystl::vector<D3D12_DESCRIPTOR_RANGE> > cbvSrvUavRange_1_0((uint32_t)layouts.size());
-	tinystl::vector<tinystl::vector<D3D12_DESCRIPTOR_RANGE> > samplerRange_1_0((uint32_t)layouts.size());
-	tinystl::vector<D3D12_ROOT_PARAMETER>                     rootParams_1_0;
+	eastl::vector<eastl::vector<D3D12_DESCRIPTOR_RANGE> > cbvSrvUavRange_1_0((uint32_t)layouts.size());
+	eastl::vector<eastl::vector<D3D12_DESCRIPTOR_RANGE> > samplerRange_1_0((uint32_t)layouts.size());
+	eastl::vector<D3D12_ROOT_PARAMETER>                   rootParams_1_0;
 
-	tinystl::vector<D3D12_STATIC_SAMPLER_DESC> staticSamplerDescs(staticSamplers.size());
+	eastl::vector<D3D12_STATIC_SAMPLER_DESC> staticSamplerDescs(staticSamplers.size());
 	for (uint32_t i = 0; i < (uint32_t)staticSamplers.size(); ++i)
 	{
 		staticSamplerDescs[i].Filter = staticSamplers[i].second->mDxSamplerDesc.Filter;
@@ -4435,7 +4427,8 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 				//Root constants - Number of 32 bit constants
 				//Descriptor tables - 1
 				//Static samplers - 0
-				LOGF(LogLevel::eINFO, 
+				LOGF(
+					LogLevel::eINFO,
 					"Root constant (%s) has (%u) 32 bit values. It is recommended to have root constant number less or equal than 13",
 					pDesc->mDesc.name, pDesc->mDesc.size);
 			}
@@ -4454,12 +4447,15 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 		if (layout.mCbvSrvUavTable.size())
 		{
 			// sort table by type (CBV/SRV/UAV) by register by space
-			layout.mCbvSrvUavTable.sort(
-				[](DescriptorInfo* const& lhs, DescriptorInfo* const& rhs) { return (int)(lhs->mDesc.reg - rhs->mDesc.reg); });
-			layout.mCbvSrvUavTable.sort(
-				[](DescriptorInfo* const& lhs, DescriptorInfo* const& rhs) { return (int)(lhs->mDesc.set - rhs->mDesc.set); });
-			layout.mCbvSrvUavTable.sort(
-				[](DescriptorInfo* const& lhs, DescriptorInfo* const& rhs) { return (int)(lhs->mDesc.type - rhs->mDesc.type); });
+			eastl::stable_sort(
+				layout.mCbvSrvUavTable.begin(), layout.mCbvSrvUavTable.end(),
+				[](DescriptorInfo* const lhs, DescriptorInfo* const rhs) { return lhs->mDesc.reg > rhs->mDesc.reg; });
+			eastl::stable_sort(
+				layout.mCbvSrvUavTable.begin(), layout.mCbvSrvUavTable.end(),
+				[](DescriptorInfo* const& lhs, DescriptorInfo* const& rhs) { return lhs->mDesc.set > rhs->mDesc.set; });
+			eastl::stable_sort(
+				layout.mCbvSrvUavTable.begin(), layout.mCbvSrvUavTable.end(),
+				[](DescriptorInfo* const& lhs, DescriptorInfo* const& rhs) { return lhs->mDesc.type > rhs->mDesc.type; });
 
 			D3D12_ROOT_PARAMETER1 rootParam;
 			create_descriptor_table(
@@ -4619,7 +4615,7 @@ void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 		SAFE_FREE((void*)pRootSignature->pDescriptors[i].mDesc.name);
 	}
 
-	pRootSignature->pDescriptorNameToIndexMap.~unordered_map();
+	pRootSignature->pDescriptorNameToIndexMap.~string_hash_map();
 
 	SAFE_FREE(pRootSignature->pDescriptors);
 	SAFE_FREE(pRootSignature->pDxRootDescriptorRootIndices);
@@ -4635,26 +4631,26 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 {
 	switch (pRootSignatureDesc->mSignatureType)
 	{
-		case(ROOT_SIGNATURE_GRAPHICS_COMPUTE):
+		case (ROOT_SIGNATURE_GRAPHICS_COMPUTE):
 		{
 			addGraphicsComputeRootSignature(pRenderer, pRootSignatureDesc, ppRootSignature);
 			break;
 		}
-		case(ROOT_SIGNATURE_RAYTRACING_EMPTY):
+		case (ROOT_SIGNATURE_RAYTRACING_EMPTY):
 		{
-			addRaytracingRootSignature(pRenderer, pRootSignatureDesc->pRaytracingShaderResources, pRootSignatureDesc->pRaytracingResourcesCount, 
-										true, ppRootSignature, pRootSignatureDesc);
+			addRaytracingRootSignature(
+				pRenderer, pRootSignatureDesc->pRaytracingShaderResources, pRootSignatureDesc->pRaytracingResourcesCount, true,
+				ppRootSignature, pRootSignatureDesc);
 			break;
 		}
-		case(ROOT_SIGNATURE_RAYTRACING_GLOBAL):
+		case (ROOT_SIGNATURE_RAYTRACING_GLOBAL):
 		{
-			addRaytracingRootSignature(pRenderer, pRootSignatureDesc->pRaytracingShaderResources, pRootSignatureDesc->pRaytracingResourcesCount,
-										false, ppRootSignature, pRootSignatureDesc);
+			addRaytracingRootSignature(
+				pRenderer, pRootSignatureDesc->pRaytracingShaderResources, pRootSignatureDesc->pRaytracingResourcesCount, false,
+				ppRootSignature, pRootSignatureDesc);
 			break;
 		}
-		default: 
-		{
-			ASSERT(false);
+		default: { ASSERT(false);
 		}
 	}
 }
@@ -4727,10 +4723,10 @@ void addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipelin
 	uint32_t input_elementCount = 0;
 	DECLARE_ZERO(D3D12_INPUT_ELEMENT_DESC, input_elements[MAX_VERTEX_ATTRIBS]);
 
+	DECLARE_ZERO(char, semantic_names[MAX_VERTEX_ATTRIBS][MAX_SEMANTIC_NAME_LENGTH]);
 	// Make sure there's attributes
 	if (pVertexLayout != NULL)
 	{
-		DECLARE_ZERO(char, semantic_names[MAX_VERTEX_ATTRIBS][MAX_SEMANTIC_NAME_LENGTH]);
 
 		//uint32_t attrib_count = min(pVertexLayout->mAttribCount, MAX_VERTEX_ATTRIBS);  //Not used
 		for (uint32_t attrib_index = 0; attrib_index < pVertexLayout->mAttribCount; ++attrib_index)
@@ -4757,28 +4753,25 @@ void addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipelin
 			}
 			else
 			{
-				DECLARE_ZERO(char, name[MAX_SEMANTIC_NAME_LENGTH]);
 				switch (attrib->mSemantic)
 				{
-					case SEMANTIC_POSITION: sprintf_s(name, "POSITION"); break;
-					case SEMANTIC_NORMAL: sprintf_s(name, "NORMAL"); break;
-					case SEMANTIC_COLOR: sprintf_s(name, "COLOR"); break;
-					case SEMANTIC_TANGENT: sprintf_s(name, "TANGENT"); break;
-					case SEMANTIC_BITANGENT: sprintf_s(name, "BINORMAL"); break;
-					case SEMANTIC_TEXCOORD0: sprintf_s(name, "TEXCOORD"); break;
-					case SEMANTIC_TEXCOORD1: sprintf_s(name, "TEXCOORD"); break;
-					case SEMANTIC_TEXCOORD2: sprintf_s(name, "TEXCOORD"); break;
-					case SEMANTIC_TEXCOORD3: sprintf_s(name, "TEXCOORD"); break;
-					case SEMANTIC_TEXCOORD4: sprintf_s(name, "TEXCOORD"); break;
-					case SEMANTIC_TEXCOORD5: sprintf_s(name, "TEXCOORD"); break;
-					case SEMANTIC_TEXCOORD6: sprintf_s(name, "TEXCOORD"); break;
-					case SEMANTIC_TEXCOORD7: sprintf_s(name, "TEXCOORD"); break;
-					case SEMANTIC_TEXCOORD8: sprintf_s(name, "TEXCOORD"); break;
-					case SEMANTIC_TEXCOORD9: sprintf_s(name, "TEXCOORD"); break;
-					default: break;
+					case SEMANTIC_POSITION: strcpy_s(semantic_names[attrib_index], "POSITION"); break;
+					case SEMANTIC_NORMAL: strcpy_s(semantic_names[attrib_index], "NORMAL"); break;
+					case SEMANTIC_COLOR: strcpy_s(semantic_names[attrib_index], "COLOR"); break;
+					case SEMANTIC_TANGENT: strcpy_s(semantic_names[attrib_index], "TANGENT"); break;
+					case SEMANTIC_BITANGENT: strcpy_s(semantic_names[attrib_index], "BINORMAL"); break;
+					case SEMANTIC_TEXCOORD0:
+					case SEMANTIC_TEXCOORD1:
+					case SEMANTIC_TEXCOORD2:
+					case SEMANTIC_TEXCOORD3:
+					case SEMANTIC_TEXCOORD4:
+					case SEMANTIC_TEXCOORD5:
+					case SEMANTIC_TEXCOORD6:
+					case SEMANTIC_TEXCOORD7:
+					case SEMANTIC_TEXCOORD8:
+					case SEMANTIC_TEXCOORD9: strcpy_s(semantic_names[attrib_index], "TEXCOORD"); break;
+					default: ASSERT(false); break;
 				}
-				ASSERT(0 != strlen(name));
-				strncpy_s(semantic_names[attrib_index], name, strlen(name));
 			}
 
 			UINT semantic_index = 0;
@@ -4948,17 +4941,17 @@ void addPipeline(Renderer* pRenderer, const PipelineDesc* p_pipeline_settings, P
 {
 	switch (p_pipeline_settings->mType)
 	{
-		case(PIPELINE_TYPE_COMPUTE):
+		case (PIPELINE_TYPE_COMPUTE):
 		{
 			addComputePipeline(pRenderer, &p_pipeline_settings->mComputeDesc, pp_pipeline);
 			break;
 		}
-		case(PIPELINE_TYPE_GRAPHICS):
+		case (PIPELINE_TYPE_GRAPHICS):
 		{
 			addPipeline(pRenderer, &p_pipeline_settings->mGraphicsDesc, pp_pipeline);
 			break;
 		}
-		case(PIPELINE_TYPE_RAYTRACING):
+		case (PIPELINE_TYPE_RAYTRACING):
 		{
 			addRaytracingPipeline(&p_pipeline_settings->mRaytracingDesc, pp_pipeline);
 			break;
@@ -5177,7 +5170,7 @@ void cmdBindRenderTargets(
 			(uint32_t)ppRenderTargets[i]->mDesc.mSampleCount,
 			(uint32_t)ppRenderTargets[i]->mDesc.mSrgb,
 		};
-		renderPassHash = tinystl::hash_state(hashValues, 3, renderPassHash);
+		renderPassHash = eastl::mem_hash<uint32_t>()(hashValues, 3, renderPassHash);
 	}
 
 	if (pDepthStencil)
@@ -5205,7 +5198,7 @@ void cmdBindRenderTargets(
 			(uint32_t)pDepthStencil->mDesc.mSampleCount,
 			(uint32_t)pDepthStencil->mDesc.mSrgb,
 		};
-		renderPassHash = tinystl::hash_state(hashValues, 3, renderPassHash);
+		renderPassHash = eastl::mem_hash<uint32_t>()(hashValues, 3, renderPassHash);
 	}
 
 	SampleCount sampleCount = renderTargetCount ? ppRenderTargets[0]->mDesc.mSampleCount : pDepthStencil->mDesc.mSampleCount;
@@ -5395,13 +5388,14 @@ void cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t
 	pCmd->pDxCmdList->Dispatch(groupCountX, groupCountY, groupCountZ);
 }
 
-void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams)
+void cmdBindDescriptors(
+	Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams)
 {
-	const uint32_t       nodeIndex = pCmd->mNodeIndex;
-	const uint32_t       setCount = DESCRIPTOR_UPDATE_FREQ_COUNT;
+	const uint32_t nodeIndex = pCmd->mNodeIndex;
+	const uint32_t setCount = DESCRIPTOR_UPDATE_FREQ_COUNT;
 
-	Renderer*            pRenderer = pCmd->pRenderer;
-	DescriptorBinderNode& node = pDescriptorBinder->mRootSignatureNodes.find(pRootSignature).node->second;
+	Renderer*             pRenderer = pCmd->pRenderer;
+	DescriptorBinderNode& node = pDescriptorBinder->mRootSignatureNodes.find(pRootSignature)->second;
 
 	DescriptorStoreHeap* pCbvSrvUavHeap = pDescriptorBinder->pCbvSrvUavHeap[nodeIndex];
 	DescriptorStoreHeap* pSamplerHeap = pDescriptorBinder->pSamplerHeap[nodeIndex];
@@ -5508,7 +5502,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 					// 4KB ring buffer should be enough since size of root constant data is usually pretty small (< 32 bytes)
 					addUniformGPURingBuffer(pRenderer, 4000U, &pCmd->pRootConstantRingBuffer, true);
 				}
-				uint32_t         size = pDesc->mDesc.size * sizeof(uint32_t);
+				uint32_t            size = pDesc->mDesc.size * sizeof(uint32_t);
 				GPURingBufferOffset offset = getGPURingBufferOffset(pCmd->pRootConstantRingBuffer, size);
 				memcpy((uint8_t*)offset.pBuffer->pCpuMappedAddress + offset.mOffset, pParam->pRootConstant, size);
 				cbv = offset.pBuffer->mDxGpuAddress + offset.mOffset;
@@ -5539,7 +5533,8 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 			case DESCRIPTOR_TYPE_SAMPLER:
 				if (pDesc->mIndexInParent == -1)
 				{
-					LOGF(LogLevel::eERROR, 
+					LOGF(
+						LogLevel::eERROR,
 						"Trying to bind a static sampler (%s). All static samplers must be bound in addRootSignature through "
 						"RootSignatureDesc::mStaticSamplers",
 						pParam->pName);
@@ -5557,7 +5552,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 						LOGF(LogLevel::eERROR, "Sampler descriptor (%s) at array index (%u) is NULL", pParam->pName, j);
 						return;
 					}
-					pSamplerHash[setIndex] = tinystl::hash_state(&pParam->ppSamplers[j]->mSamplerId, 1, pSamplerHash[setIndex]);
+					pSamplerHash[setIndex] = eastl::mem_hash<uint64_t>()(&pParam->ppSamplers[j]->mSamplerId, 1, pSamplerHash[setIndex]);
 					node.pSamplerDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = pParam->ppSamplers[j]->mDxSamplerHandle;
 				}
 				break;
@@ -5583,7 +5578,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 					//if (j < arrayCount - 1)
 					//  _mm_prefetch((char*)&ppTextures[j]->mTextureId, _MM_HINT_T0);
 					Texture* tex = ppTextures[j];
-					pCbvSrvUavHash[setIndex] = tinystl::hash_state(&tex->mTextureId, 1, pCbvSrvUavHash[setIndex]);
+					pCbvSrvUavHash[setIndex] = eastl::mem_hash<uint64_t>()(&tex->mTextureId, 1, pCbvSrvUavHash[setIndex]);
 					handlePtr[j] = tex->mDxSRVDescriptor;
 					//pDescriptorBinder->pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = tex->mDxSrvHandle;
 				}
@@ -5599,7 +5594,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 				D3D12_CPU_DESCRIPTOR_HANDLE* handlePtr = &node.pViewDescriptorHandles[setIndex][pDesc->mHandleIndex];
 				Texture* const*              ppTextures = pParam->ppTextures;
 				if (pParam->mUAVMipSlice)
-					pCbvSrvUavHash[setIndex] = tinystl::hash_state(&pParam->mUAVMipSlice, 1, pCbvSrvUavHash[setIndex]);
+					pCbvSrvUavHash[setIndex] = eastl::mem_hash<uint32_t>()(&pParam->mUAVMipSlice, 1, pCbvSrvUavHash[setIndex]);
 
 				for (uint32_t j = 0; j < arrayCount; ++j)
 				{
@@ -5613,7 +5608,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 					//if (j < arrayCount - 1)
 					//  _mm_prefetch((char*)&ppTextures[j]->mTextureId, _MM_HINT_T0);
 					Texture* tex = ppTextures[j];
-					pCbvSrvUavHash[setIndex] = tinystl::hash_state(&tex->mTextureId, 1, pCbvSrvUavHash[setIndex]);
+					pCbvSrvUavHash[setIndex] = eastl::mem_hash<uint64_t>()(&tex->mTextureId, 1, pCbvSrvUavHash[setIndex]);
 					handlePtr[j] = tex->pDxUAVDescriptors[pParam->mUAVMipSlice];
 					//pDescriptorBinder->pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = tex->mDxSrvHandle;
 				}
@@ -5632,7 +5627,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 						LOGF(LogLevel::eERROR, "Buffer descriptor (%s) at array index (%u) is NULL", pParam->pName, j);
 						return;
 					}
-					pCbvSrvUavHash[setIndex] = tinystl::hash_state(&pParam->ppBuffers[j]->mBufferId, 1, pCbvSrvUavHash[setIndex]);
+					pCbvSrvUavHash[setIndex] = eastl::mem_hash<uint64_t>()(&pParam->ppBuffers[j]->mBufferId, 1, pCbvSrvUavHash[setIndex]);
 					node.pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = pParam->ppBuffers[j]->mDxSrvHandle;
 #ifdef _DURANGO
 					ResourceState state = RESOURCE_STATE_SHADER_RESOURCE;
@@ -5660,7 +5655,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 						LOGF(LogLevel::eERROR, "Buffer descriptor (%s) at array index (%u) is NULL", pParam->pName, j);
 						return;
 					}
-					pCbvSrvUavHash[setIndex] = tinystl::hash_state(&pParam->ppBuffers[j]->mBufferId, 1, pCbvSrvUavHash[setIndex]);
+					pCbvSrvUavHash[setIndex] = eastl::mem_hash<uint64_t>()(&pParam->ppBuffers[j]->mBufferId, 1, pCbvSrvUavHash[setIndex]);
 					node.pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = pParam->ppBuffers[j]->mDxUavHandle;
 #ifdef _DURANGO
 					BufferBarrier bufferBarriers[] = { { pParam->ppBuffers[j], RESOURCE_STATE_UNORDERED_ACCESS } };
@@ -5686,7 +5681,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 						return;
 					}
 
-					pCbvSrvUavHash[setIndex] = tinystl::hash_state(&pParam->ppBuffers[j]->mBufferId, 1, pCbvSrvUavHash[setIndex]);
+					pCbvSrvUavHash[setIndex] = eastl::mem_hash<uint64_t>()(&pParam->ppBuffers[j]->mBufferId, 1, pCbvSrvUavHash[setIndex]);
 
 					if ((pParam->ppBuffers[j]->mDesc.mFlags & BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION) ||
 						(pParam->pOffsets && pParam->pOffsets[j] != 0))
@@ -5707,9 +5702,9 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 						node.pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j] = handle;
 
 						if (pParam->pOffsets)
-							pCbvSrvUavHash[setIndex] = tinystl::hash_state(&pParam->pOffsets[j], 1, pCbvSrvUavHash[setIndex]);
+							pCbvSrvUavHash[setIndex] = eastl::mem_hash<uint64_t>()(&pParam->pOffsets[j], 1, pCbvSrvUavHash[setIndex]);
 						if (pParam->pSizes)
-							pCbvSrvUavHash[setIndex] = tinystl::hash_state(&pParam->pSizes[j], 1, pCbvSrvUavHash[setIndex]);
+							pCbvSrvUavHash[setIndex] = eastl::mem_hash<uint64_t>()(&pParam->pSizes[j], 1, pCbvSrvUavHash[setIndex]);
 					}
 					else
 					{
@@ -5726,10 +5721,11 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 	cmdFlushBarriers(pCmd);
 #endif
 
-	if (node.mLastFrameUpdated != gFrameNumber) 
+	if (node.mLastFrameUpdated != gFrameNumber)
 	{
 		// Frame changed: reuse descriptors from the beginning since all allocations are per frame
-		for (uint32_t setIndex = 0; setIndex < setCount; ++setIndex) {
+		for (uint32_t setIndex = 0; setIndex < setCount; ++setIndex)
+		{
 			node.mCbvSrvUavUpdatesThisFrame[pRenderer->mCurrentFrameIdx][setIndex] = 0;
 			node.mSamplerUpdatesThisFrame[pRenderer->mCurrentFrameIdx][setIndex] = 0;
 			node.mUpdatedHashes[pRenderer->mCurrentFrameIdx][setIndex][D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].clear();
@@ -5746,12 +5742,12 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 
 		if (descCount)
 		{
-			const uint64_t setCbvSrvUavHash = pCbvSrvUavHash[setIndex];
+			const uint64_t  setCbvSrvUavHash = pCbvSrvUavHash[setIndex];
 			DescriptorTable cbvSrvUavTable = {};
-			uint32_t descriptorSetSlotToUse = 0;
+			uint32_t        descriptorSetSlotToUse = 0;
 
-			// Determine if we have to update the descriptor set depending on the hashed states. Frequencies BATCH and DRAW are considered dynamic (multiple updates per frame). 
-			// DRAW and are always updated to a new (pre-allocated) slot every time they are bound. This allows to avoid a dictionary lookup for them. 
+			// Determine if we have to update the descriptor set depending on the hashed states. Frequencies BATCH and DRAW are considered dynamic (multiple updates per frame).
+			// DRAW and are always updated to a new (pre-allocated) slot every time they are bound. This allows to avoid a dictionary lookup for them.
 			// BATCH use a dictionary lookup to reuse descriptors that are already updated. This avoids updating them every time.
 			// Frequencies NONE and FRAME only allow 1 update per frame by definition. They allow for 1 update per frame each.
 			if (viewCount && !node.mBoundCbvSrvUavTables[setIndex])
@@ -5760,9 +5756,11 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 
 				if (setIndex != DESCRIPTOR_UPDATE_FREQ_PER_DRAW)
 				{
-					ConstHashMapIterator it = node.mUpdatedHashes[pRenderer->mCurrentFrameIdx][setIndex][D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].find(setCbvSrvUavHash);
-					if (it.node != NULL) {
-						descriptorSetSlotToUse = it.node->second;
+					HashMap& hashMap = node.mUpdatedHashes[pRenderer->mCurrentFrameIdx][setIndex][D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV];
+					ConstHashMapIterator it = hashMap.find(setCbvSrvUavHash);
+					if (it != hashMap.end())
+					{
+						descriptorSetSlotToUse = it->second;
 						mustUpdateDescriptorSet = false;
 					}
 					else
@@ -5772,8 +5770,10 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 				if (mustUpdateDescriptorSet)
 				{
 					descriptorSetSlotToUse = node.mCbvSrvUavUpdatesThisFrame[pRenderer->mCurrentFrameIdx][setIndex]++;
-					if (descriptorSetSlotToUse >= node.mMaxUsagePerSet[setIndex]) {
-						LOGF(LogLevel::eERROR, "Trying to update more descriptors than allocated for set (%d)", setIndex); ASSERT(0);
+					if (descriptorSetSlotToUse >= node.mMaxUsagePerSet[setIndex])
+					{
+						LOGF(LogLevel::eERROR, "Trying to update more descriptors than allocated for set (%d)", setIndex);
+						ASSERT(0);
 						return;
 					}
 
@@ -5787,16 +5787,18 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 							node.pViewDescriptorHandles[setIndex][i], pCbvSrvUavHeap->mType);
 
 					if (setIndex != DESCRIPTOR_UPDATE_FREQ_PER_DRAW)
-						node.mUpdatedHashes[pRenderer->mCurrentFrameIdx][setIndex][D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].insert({ setCbvSrvUavHash, descriptorSetSlotToUse });
+						node.mUpdatedHashes[pRenderer->mCurrentFrameIdx][setIndex][D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV].insert(
+							{{ setCbvSrvUavHash, descriptorSetSlotToUse }});
 				}
-				else {
+				else
+				{
 					// No need to update descriptors. Just point to a pre-allocated available descriptor set.
 					cbvSrvUavTable = node.pCbvSrvUavTables[pRenderer->mCurrentFrameIdx][setIndex][descriptorSetSlotToUse];
 					//TODO: // we need to use the default descriptor, since none was specified in the params list but one is in the root signature
 				}
 			}
 
-			const uint64_t setSamplerHash = pSamplerHash[setIndex];
+			const uint64_t  setSamplerHash = pSamplerHash[setIndex];
 			DescriptorTable samplerTable = {};
 			descriptorSetSlotToUse = 0;
 
@@ -5806,9 +5808,13 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 
 				if (setIndex != DESCRIPTOR_UPDATE_FREQ_PER_DRAW)
 				{
-					ConstHashMapIterator it = node.mUpdatedHashes[pRenderer->mCurrentFrameIdx][setIndex][D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER].find(setSamplerHash);
-					if (it.node != NULL) {
-						descriptorSetSlotToUse = it.node->second;
+					HashMap& hashMap =
+						node.mUpdatedHashes[pRenderer->mCurrentFrameIdx][setIndex][D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER];
+					ConstHashMapIterator it =
+						hashMap.find(setSamplerHash);
+					if (it != hashMap.end())
+					{
+						descriptorSetSlotToUse = it->second;
 						mustUpdateDescriptorSet = false;
 					}
 					else
@@ -5818,8 +5824,10 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 				if (mustUpdateDescriptorSet)
 				{
 					uint32_t descriptorSetSlotToUse = node.mSamplerUpdatesThisFrame[pRenderer->mCurrentFrameIdx][setIndex]++;
-					if (descriptorSetSlotToUse >= node.mMaxUsagePerSet[setIndex]) {
-						LOGF(LogLevel::eERROR, "Trying to update more descriptors than allocated for set (%d)", setIndex); ASSERT(0);
+					if (descriptorSetSlotToUse >= node.mMaxUsagePerSet[setIndex])
+					{
+						LOGF(LogLevel::eERROR, "Trying to update more descriptors than allocated for set (%d)", setIndex);
+						ASSERT(0);
 						return;
 					}
 
@@ -5833,13 +5841,16 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 							node.pSamplerDescriptorHandles[setIndex][i], pSamplerHeap->mType);
 
 					if (setIndex != DESCRIPTOR_UPDATE_FREQ_PER_DRAW)
-						node.mUpdatedHashes[pRenderer->mCurrentFrameIdx][setIndex][D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER].insert({ setSamplerHash, descriptorSetSlotToUse });
+						node.mUpdatedHashes[pRenderer->mCurrentFrameIdx][setIndex][D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER].insert(
+							{{ setSamplerHash, descriptorSetSlotToUse }});
 				}
-				else {
+				else
+				{
 					// No need to update descriptors. Just point to a pre-allocated available descriptor set.
 					samplerTable = node.pSamplerTables[pRenderer->mCurrentFrameIdx][setIndex][descriptorSetSlotToUse];
 
-					if (pSamplerHash[setIndex] == 0) // we need to use the default descriptor, since none was specified in the params list but one is in the root signature
+					if (pSamplerHash[setIndex] ==
+						0)    // we need to use the default descriptor, since none was specified in the params list but one is in the root signature
 					{
 						for (uint32_t i = 0; i < samplerCount; ++i)
 							pRenderer->pDxDevice->CopyDescriptorsSimple(
@@ -5871,7 +5882,6 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 			// Bind the sampler descriptor table if one exists
 			if (samplerTable.mBaseGpuHandle.ptr != D3D12_GPU_VIRTUAL_ADDRESS_NULL)
 			{
-
 				if (pRootSignature->mPipelineType == PIPELINE_TYPE_COMPUTE)
 				{
 					pCmd->pDxCmdList->SetComputeRootDescriptorTable(
@@ -6125,10 +6135,8 @@ static uint32_t updateSubresourceDimension(DXGI_FORMAT format, uint32_t dim)
 		case DXGI_FORMAT_BC6H_SF16:
 		case DXGI_FORMAT_BC7_TYPELESS:
 		case DXGI_FORMAT_BC7_UNORM:
-		case DXGI_FORMAT_BC7_UNORM_SRGB:
-			return (dim + 3) & ~3u;
-		default:
-			return dim;
+		case DXGI_FORMAT_BC7_UNORM_SRGB: return (dim + 3) & ~3u;
+		default: return dim;
 	}
 }
 
@@ -6201,7 +6209,7 @@ void queueSubmit(
 		pQueue->pDxQueue->Wait(ppWaitSemaphores[i]->pFence->pDxFence, ppWaitSemaphores[i]->pFence->mFenceValue - 1);
 
 	pQueue->pDxQueue->ExecuteCommandLists(cmdCount, cmds);
-	
+
 	if (pFence)
 		pQueue->pDxQueue->Signal(pFence->pDxFence, pFence->mFenceValue++);
 
@@ -6267,8 +6275,6 @@ void queuePresent(
 			ASSERT(false);    //TODO: let's do something with the error
 	}
 #endif
-		// Call profile flip to indicate a new frame
-		ProfileFlip();
 }
 
 bool queueSignal(Queue* pQueue, Fence* fence, uint64_t value)
@@ -6567,18 +6573,6 @@ void freeMemoryStats(Renderer* pRenderer, char* stats) { resourceAllocFreeStatsS
 /************************************************************************/
 void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
-	ProfileGpuSetContext(pCmd->pDxCmdList);
-	//MICROPROFILE_GPU_SET_CONTEXT(pCmd->pDxCmdList, MicroProfileGetGlobalGpuThreadLog());
-
-	// Convert float3 color to *rgb8.
-	uint32 scope_color = static_cast<uint32>(r * 255) << 16
-		| static_cast<uint32>(g * 255) << 8
-		| static_cast<uint32>(b * 255);
-
-	// This macro gets g_mp_temp token for the current gpu timestamp. Token is created per pName which mean passing in same name will return the same token.
-	// Create new scope on top of the current stack and enter
-	PROFILE_GPU_ENTER(temp, pName, scope_color);
-
 	// note: USE_PIX isn't the ideal test because we might be doing a debug build where pix
 	// is not installed, or a variety of other reasons. It should be a separate #ifdef flag?
 #ifndef FORGE_JHABLE_EDITS_V01
@@ -6597,8 +6591,6 @@ void cmdEndDebugMarker(Cmd* pCmd)
 	PIXEndEvent(pCmd->pDxCmdList);
 #endif
 #endif
-	// Leave the current scope and pop up the scope stack
-	PROFILE_GPU_LEAVE();
 }
 
 void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)

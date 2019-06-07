@@ -26,9 +26,9 @@
 #include "AssetLoader.h"
 
 // Tiny stl
-#include "../../ThirdParty/OpenSource/TinySTL/string.h"
-#include "../../ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../ThirdParty/OpenSource/TinySTL/unordered_map.h"
+#include "../../ThirdParty/OpenSource/EASTL/string.h"
+#include "../../ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 
 // Assimp
 #include "../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/Importer.hpp"
@@ -53,13 +53,13 @@
 #include "../../OS/Interfaces/ILogManager.h"
 #include "../../OS/Interfaces/IMemoryManager.h"    //NOTE: this should be the last include in a .cpp
 
-typedef tinystl::unordered_map<tinystl::string, tinystl::vector<tinystl::string>> AnimationAssetMap;
+typedef eastl::unordered_map<eastl::string, eastl::vector<eastl::string>> AnimationAssetMap;
 
 struct NodeInfo
 {
-	tinystl::string      mName;
+	eastl::string      mName;
 	int                  pParentNodeIndex;
-	tinystl::vector<int> mChildNodeIndices;
+	eastl::vector<int> mChildNodeIndices;
 	bool                 mUsedInSkeleton;
 	aiNode*              pNode;
 };
@@ -109,33 +109,37 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 	}
 
 	// Check if output directory exists
-	tinystl::string outputDir = FileSystem::AddTrailingSlash(outputDirectory);
+	eastl::string outputDir = FileSystem::AddTrailingSlash(outputDirectory);
 	bool            outputDirExists = FileSystem::DirExists(outputDir);
 
 	// Check for assets containing animations in animationDirectory
 	AnimationAssetMap                animationAssets;
-	tinystl::vector<tinystl::string> subDirectories = {};
+	eastl::vector<eastl::string> subDirectories = {};
 	FileSystem::GetSubDirectories(animationDirectory, subDirectories);
-	for (const tinystl::string& subDir : subDirectories)
+	for (const eastl::string& subDir : subDirectories)
 	{
 		// Get all fbx files
-		tinystl::vector<tinystl::string> filesInDirectory;
+		eastl::vector<eastl::string> filesInDirectory;
 		FileSystem::GetFilesWithExtension(subDir, ".fbx", filesInDirectory);
 
-		for (const tinystl::string& file : filesInDirectory)
+		for (const eastl::string& file : filesInDirectory)
 		{
-			if (FileSystem::GetFileName(file).to_lower() == "riggedmesh")
+			eastl::string fileName = FileSystem::GetFileName(file);
+			fileName.make_lower();
+			if (fileName == "riggedmesh")
 			{
 				// Add new animation asset named after the folder it is in
-				tinystl::string assetName = FileSystem::GetFileName(subDir);
+				eastl::string assetName = FileSystem::GetFileName(subDir);
 				animationAssets[assetName].push_back(file);
 
 				// Find sub directory called animations
-				tinystl::vector<tinystl::string> assetSubDirectories;
+				eastl::vector<eastl::string> assetSubDirectories;
 				FileSystem::GetSubDirectories(subDir, assetSubDirectories);
-				for (const tinystl::string& assetSubDir : assetSubDirectories)
+				for (const eastl::string& assetSubDir : assetSubDirectories)
 				{
-					if (FileSystem::GetFileName(assetSubDir).to_lower() == "animations")
+					eastl::string subDir = FileSystem::GetFileName(assetSubDir);
+					subDir.make_lower();
+					if (subDir == "animations")
 					{
 						// Add all files in animations to the animation asset
 						filesInDirectory.clear();
@@ -173,11 +177,11 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 	bool success = true;
 	for (AnimationAssetMap::iterator it = animationAssets.begin(); it != animationAssets.end(); ++it)
 	{
-		const tinystl::string& skinnedMesh = it->second[0];
+		const eastl::string& skinnedMesh = it->second[0];
 
 		// Create skeleton output file name
-		tinystl::string skeletonOutputDir = outputDir + it->first;
-		tinystl::string skeletonOutput = skeletonOutputDir + "/skeleton.ozz";
+		eastl::string skeletonOutputDir = outputDir + it->first;
+		eastl::string skeletonOutput = skeletonOutputDir + "/skeleton.ozz";
 
 		// Check if the skeleton is already up-to-date
 		bool processSkeleton = true;
@@ -215,7 +219,7 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 			}
 
 			// Process the skeleton
-			if (!CreateRuntimeSkeleton(skinnedMesh, it->first.c_str(), skeletonOutput.c_str(), &skeleton, settings))
+			if (!CreateRuntimeSkeleton(skinnedMesh.c_str(), it->first.c_str(), skeletonOutput.c_str(), &skeleton, settings))
 			{
 				success = false;
 				continue;
@@ -230,7 +234,7 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 		}
 
 		// If output directory doesn't exist, create it.
-		tinystl::string animationOutputDir = skeletonOutputDir + "/animations";
+		eastl::string animationOutputDir = skeletonOutputDir + "/animations";
 		if (!FileSystem::DirExists(animationOutputDir))
 		{
 			if (!FileSystem::CreateDir(animationOutputDir))
@@ -245,12 +249,12 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 		// Process animations
 		for (size_t i = 1; i < it->second.size(); ++i)
 		{
-			const tinystl::string& animationFile = it->second[i];
+			const eastl::string& animationFile = it->second[i];
 			;
-			tinystl::string animationName = FileSystem::GetFileName(animationFile);
+			eastl::string animationName = FileSystem::GetFileName(animationFile);
 
 			// Create animation output file name
-			tinystl::string animationOutput = outputDir + it->first + "/animations/" + animationName + ".ozz";
+			eastl::string animationOutput = outputDir + it->first + "/animations/" + animationName + ".ozz";
 
 			// Check if the animation is already up-to-date
 			bool processAnimation = true;
@@ -267,7 +271,7 @@ bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char
 			{
 				// Process the animation
 				if (!CreateRuntimeAnimation(
-						animationFile, &skeleton, it->first.c_str(), animationName.c_str(), animationOutput.c_str(), settings))
+						animationFile.c_str(), &skeleton, it->first.c_str(), animationName.c_str(), animationOutput.c_str(), settings))
 					continue;
 
 				++assetsProcessed;
@@ -305,7 +309,7 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 
 	// Gather node info
 	// Used to mark nodes that should be included in the skeleton
-	tinystl::vector<NodeInfo> nodeData(1);
+	eastl::vector<NodeInfo> nodeData(1);
 	nodeData[0] = { scene->mRootNode->mName.C_Str(), -1, {}, false, scene->mRootNode };
 
 	const int queueSize = 128;
@@ -355,7 +359,7 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 			aiBone* bone = mesh->mBones[j];
 			for (uint k = 0; k < (uint)nodeData.size(); ++k)
 			{
-				if (nodeData[k].mName == tinystl::string(bone->mName.C_Str()))
+				if (nodeData[k].mName == eastl::string(bone->mName.C_Str()))
 				{
 					int nodeIndex = k;
 					while (nodeIndex != -1)
@@ -373,7 +377,7 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 	// Create raw skeleton
 	ozz::animation::offline::RawSkeleton rawSkeleton;
 
-	tinystl::vector<BoneInfo> boneData(1);
+	eastl::vector<BoneInfo> boneData(1);
 	boneData[0] = { 0, -1, NULL };
 
 	while (!boneData.empty())
@@ -499,7 +503,7 @@ bool AssetPipeline::CreateRuntimeAnimation(
 	rawAnimation.name = animationName;
 	rawAnimation.duration = (float)(animationData->mDuration * (1.0 / animationData->mTicksPerSecond));
 
-	tinystl::unordered_map<tinystl::string, aiNodeAnim*> jointMap;
+	eastl::unordered_map<eastl::string, aiNodeAnim*> jointMap;
 	for (uint i = 0; i < animationData->mNumChannels; ++i)
 	{
 		aiNodeAnim* node = animationData->mChannels[i];
@@ -514,7 +518,7 @@ bool AssetPipeline::CreateRuntimeAnimation(
 
 		ozz::animation::offline::RawAnimation::JointTrack* track = &rawAnimation.tracks[i];
 
-		tinystl::unordered_map<tinystl::string, aiNodeAnim*>::iterator it = jointMap.find(jointName);
+		eastl::unordered_map<eastl::string, aiNodeAnim*>::iterator it = jointMap.find(jointName);
 		if (it != jointMap.end())
 		{
 			// There is a track for this bone

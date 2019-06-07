@@ -76,8 +76,8 @@ static const char * g_hackSemanticList[] =
 #endif
 
 #include "../IRenderer.h"
-#include "../../Tools/Profiler/Profiler.h"
-#include "../../ThirdParty/OpenSource/TinySTL/hash.h"
+#include "../../ThirdParty/OpenSource/EASTL/functional.h"
+#include "../../ThirdParty/OpenSource/EASTL/sort.h"
 #include "../../OS/Interfaces/ILogManager.h"
 #include "../../ThirdParty/OpenSource/VulkanMemoryAllocator/VulkanMemoryAllocator.h"
 #include "../../OS/Core/Atomics.h"
@@ -518,9 +518,9 @@ VkPipelineBindPoint gPipelineBindPoint[PIPELINE_TYPE_COUNT] = {
 #endif
 };
 
-using HashMap = tinystl::unordered_map<uint64_t, uint32_t>;
-using ConstHashMapIterator = tinystl::unordered_map<uint64_t, uint32_t>::const_iterator;
-using DescriptorNameToIndexMap = tinystl::unordered_map<uint32_t, uint32_t>;
+using HashMap = eastl::hash_map<uint64_t, uint32_t>;
+using ConstHashMapIterator = eastl::hash_map<uint64_t, uint32_t>::const_iterator;
+using DescriptorNameToIndexMap = eastl::string_hash_map<uint32_t>;
 
 union DescriptorUpdateData
 {
@@ -554,8 +554,8 @@ typedef struct DescriptorBinderNode
 
 } DescriptorBinderNode;
 
-using DescriptorBinderMap = tinystl::unordered_map<const RootSignature*, DescriptorBinderNode*>;
-using DescriptorBinderMapNode = tinystl::unordered_hash_node<const RootSignature*, DescriptorBinderNode*>;
+using DescriptorBinderMap = eastl::hash_map<const RootSignature*, DescriptorBinderNode*>;
+using DescriptorBinderMapNode = DescriptorBinderMap::value_type;
 
 typedef struct DescriptorBinder
 {
@@ -566,10 +566,10 @@ typedef struct DescriptorBinder
 
 static const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName)
 {
-	DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pResName));
-	if (it.node)
+	DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap.find(pResName);
+	if (it != pRootSignature->pDescriptorNameToIndexMap.end())
 	{
-		return &pRootSignature->pDescriptors[it.node->second];
+		return &pRootSignature->pDescriptors[it->second];
 	}
 	else
 	{
@@ -862,44 +862,46 @@ static void remove_framebuffer(Renderer* pRenderer, FrameBuffer* pFrameBuffer)
 /************************************************************************/
 /// Render-passes are not exposed to the app code since they are not available on all apis
 /// This map takes care of hashing a render pass based on the render targets passed to cmdBeginRender
-using RenderPassMap = tinystl::unordered_map<uint64_t, struct RenderPass*>;
-using RenderPassMapNode = tinystl::unordered_hash_node<uint64_t, struct RenderPass*>;
-using FrameBufferMap = tinystl::unordered_map<uint64_t, struct FrameBuffer*>;
-using FrameBufferMapNode = tinystl::unordered_hash_node<uint64_t, struct FrameBuffer*>;
+using RenderPassMap = eastl::hash_map<uint64_t, struct RenderPass*>;
+using RenderPassMapNode = RenderPassMap::value_type;
+using RenderPassMapIt = RenderPassMap::iterator;
+using FrameBufferMap = eastl::hash_map<uint64_t, struct FrameBuffer*>;
+using FrameBufferMapNode = FrameBufferMap::value_type;
+using FrameBufferMapIt = FrameBufferMap::iterator;
 
 // RenderPass map per thread (this will make lookups lock free and we only need a lock when inserting a RenderPass Map for the first time)
-tinystl::unordered_map<ThreadID, RenderPassMap> gRenderPassMap;
+eastl::hash_map<ThreadID, RenderPassMap> gRenderPassMap;
 // FrameBuffer map per thread (this will make lookups lock free and we only need a lock when inserting a FrameBuffer map for the first time)
-tinystl::unordered_map<ThreadID, FrameBufferMap> gFrameBufferMap;
+eastl::hash_map<ThreadID, FrameBufferMap> gFrameBufferMap;
 Mutex                                            gRenderPassMutex;
 
 static RenderPassMap& get_render_pass_map()
 {
-	tinystl::unordered_hash_node<ThreadID, RenderPassMap>* pNode = gRenderPassMap.find(Thread::GetCurrentThreadID()).node;
-	if (pNode == NULL)
+	decltype(gRenderPassMap)::iterator it = gRenderPassMap.find(Thread::GetCurrentThreadID());
+	if (it == gRenderPassMap.end())
 	{
 		// Only need a lock when creating a new renderpass map for this thread
 		MutexLock lock(gRenderPassMutex);
-		return gRenderPassMap.insert({ Thread::GetCurrentThreadID(), {} }).first->second;
+		return gRenderPassMap.insert(Thread::GetCurrentThreadID()).first->second;
 	}
 	else
 	{
-		return pNode->second;
+		return it->second;
 	}
 }
 
 static FrameBufferMap& get_frame_buffer_map()
 {
-	tinystl::unordered_hash_node<ThreadID, FrameBufferMap>* pNode = gFrameBufferMap.find(Thread::GetCurrentThreadID()).node;
-	if (pNode == NULL)
+	decltype(gFrameBufferMap)::iterator it = gFrameBufferMap.find(Thread::GetCurrentThreadID());
+	if (it == gFrameBufferMap.end())
 	{
 		// Only need a lock when creating a new framebuffer map for this thread
 		MutexLock lock(gRenderPassMutex);
-		return gFrameBufferMap.insert({ Thread::GetCurrentThreadID(), {} }).first->second;
+		return gFrameBufferMap.insert(Thread::GetCurrentThreadID()).first->second;
 	}
 	else
 	{
-		return pNode->second;
+		return it->second;
 	}
 }
 /************************************************************************/
@@ -1114,8 +1116,8 @@ static void create_default_resources(Renderer* pRenderer)
 	// Transition resources
 	beginCmd(cmd);
 
-	tinystl::vector<BufferBarrier> bufferBarriers;
-	tinystl::vector<TextureBarrier> textureBarriers;
+	eastl::vector<BufferBarrier> bufferBarriers;
+	eastl::vector<TextureBarrier> textureBarriers;
 
 	for (uint32_t i = 0; i < pRenderer->mLinkedNodeCount; ++i)
 	{
@@ -1715,21 +1717,21 @@ void CreateInstance(const char* app_name, Renderer* pRenderer)
 				internal_log(LOG_TYPE_WARN, pRenderer->mInstanceLayers[i], "vkinstance-layer-missing");
 				// deleate layer and get new index
 				i = (uint32_t)(
-					pRenderer->mInstanceLayers.erase_unordered(pRenderer->mInstanceLayers.data() + i) - pRenderer->mInstanceLayers.data());
+					pRenderer->mInstanceLayers.erase(pRenderer->mInstanceLayers.begin() + i) - pRenderer->mInstanceLayers.begin());
 			}
 		}
 
 		uint32_t                     extension_count = 0;
 		const uint32_t               initialCount = sizeof(gVkWantedInstanceExtensions) / sizeof(gVkWantedInstanceExtensions[0]);
 		const uint32_t               userRequestedCount = (uint32_t)pRenderer->mSettings.mInstanceExtensions.size();
-		tinystl::vector<const char*> wantedInstanceExtensions(initialCount + userRequestedCount);
+		eastl::vector<const char*> wantedInstanceExtensions(initialCount + userRequestedCount);
 		for (uint32_t i = 0; i < initialCount; ++i)
 		{
 			wantedInstanceExtensions[i] = gVkWantedInstanceExtensions[i];
 		}
 		for (uint32_t i = 0; i < userRequestedCount; ++i)
 		{
-			wantedInstanceExtensions[initialCount + i] = pRenderer->mSettings.mInstanceExtensions[i];
+			wantedInstanceExtensions[initialCount + i] = pRenderer->mSettings.mInstanceExtensions[i].c_str();
 		}
 		const uint32_t wanted_extension_count = (uint32_t)wantedInstanceExtensions.size();
 		// Layer extensions
@@ -1870,7 +1872,7 @@ static void AddDevice(Renderer* pRenderer)
 	ASSERT(VK_NULL_HANDLE != pRenderer->pVkInstance);
 
 	VkDeviceGroupDeviceCreateInfoKHR                    deviceGroupInfo = { VK_STRUCTURE_TYPE_DEVICE_GROUP_DEVICE_CREATE_INFO_KHR };
-	tinystl::vector<VkPhysicalDeviceGroupPropertiesKHR> props;
+	eastl::vector<VkPhysicalDeviceGroupPropertiesKHR> props;
 	VkResult                                            vk_res = VK_RESULT_MAX_ENUM;
 
 	pRenderer->mLinkedNodeCount = 1;
@@ -2114,14 +2116,14 @@ static void AddDevice(Renderer* pRenderer)
 		const char*                  layer_name = NULL;
 		uint32_t                     initialCount = sizeof(gVkWantedDeviceExtensions) / sizeof(gVkWantedDeviceExtensions[0]);
 		const uint32_t               userRequestedCount = (uint32_t)pRenderer->mSettings.mDeviceExtensions.size();
-		tinystl::vector<const char*> wantedDeviceExtensions(initialCount + userRequestedCount);
+		eastl::vector<const char*> wantedDeviceExtensions(initialCount + userRequestedCount);
 		for (uint32_t i = 0; i < initialCount; ++i)
 		{
 			wantedDeviceExtensions[i] = gVkWantedDeviceExtensions[i];
 		}
 		for (uint32_t i = 0; i < userRequestedCount; ++i)
 		{
-			wantedDeviceExtensions[initialCount + i] = pRenderer->mSettings.mDeviceExtensions[i];
+			wantedDeviceExtensions[initialCount + i] = pRenderer->mSettings.mDeviceExtensions[i].c_str();
 		}
 		const uint32_t wanted_extension_count = (uint32_t)wantedDeviceExtensions.size();
 		uint32_t       count = 0;
@@ -2189,7 +2191,7 @@ static void AddDevice(Renderer* pRenderer)
 	// need a queue_priorite for each queue in the queue family we create
 	uint32_t queueFamiliesCount = pRenderer->mVkQueueFamilyPropertyCount[pRenderer->mActiveGPUIndex];
 	VkQueueFamilyProperties* queueFamiliesProperties = pRenderer->mVkQueueFamilyProperties[pRenderer->mActiveGPUIndex];
-	tinystl::vector<tinystl::vector<float> > queue_priorities(queueFamiliesCount);
+	eastl::vector<eastl::vector<float> > queue_priorities(queueFamiliesCount);
 		uint32_t queue_create_infos_count = 0;
 	DECLARE_ZERO(VkDeviceQueueCreateInfo, queue_create_infos[4]);
 
@@ -2286,9 +2288,6 @@ static void AddDevice(Renderer* pRenderer)
 
 static void RemoveDevice(Renderer* pRenderer)
 {
-#if PROFILE_ENABLED
-	ProfileGpuShutdown();
-#endif
 	for (uint32_t i = 0; i < pRenderer->mNumOfGPUs; ++i)
 	{
 		SAFE_FREE(pRenderer->mVkQueueFamilyProperties[i]);
@@ -2329,7 +2328,7 @@ void initRenderer(const char* app_name, const RendererDesc* settings, Renderer**
 
 		// Add user specified instance layers for instance creation
 		for (uint32_t i = 0; i < (uint32_t)settings->mInstanceLayers.size(); ++i)
-			pRenderer->mInstanceLayers.push_back(settings->mInstanceLayers[i]);
+			pRenderer->mInstanceLayers.push_back(settings->mInstanceLayers[i].c_str());
 
 		VkResult vkRes = volkInitialize();
 		if (vkRes != VK_SUCCESS)
@@ -2415,11 +2414,11 @@ void removeRenderer(Renderer* pRenderer)
 	destroy_default_resources(pRenderer);
 
 	// Remove the renderpasses
-	for (tinystl::unordered_hash_node<ThreadID, RenderPassMap>& t : gRenderPassMap)
+	for (decltype(gRenderPassMap)::value_type& t : gRenderPassMap)
 		for (RenderPassMapNode& it : t.second)
 			remove_render_pass(pRenderer, it.second);
 
-	for (tinystl::unordered_hash_node<ThreadID, FrameBufferMap>& t : gFrameBufferMap)
+	for (decltype(gFrameBufferMap)::value_type& t : gFrameBufferMap)
 		for (FrameBufferMapNode& it : t.second)
 			remove_framebuffer(pRenderer, it.second);
 
@@ -2572,19 +2571,6 @@ void addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 		*ppQueue = pQueueToCreate;
 
 		++pRenderer->mVkUsedQueueCount[nodeIndex][queueProps.queueFlags];
-
-#if PROFILE_ENABLED
-		if (pDesc->mFlag == QUEUE_FLAG_INIT_MICROPROFILE)
-		{
-			ProfileOnThreadCreate("RenderThread");
-			ProfileGpuInitInternal(pRenderer->pVkDevice, pRenderer->pVkActiveGPU, pQueueToCreate->pVkQueue);
-			ProfileSetForceEnable(true);
-			ProfileSetEnableAllGroups(true);
-			ProfileSetForceMetaCounters(true);
-			ProfileWebServerStart();
-			ProfileContextSwitchTraceStart();
-		}
-#endif
 	}
 	else
 	{
@@ -3722,6 +3708,9 @@ void addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCo
 	const uint32_t setCount = DESCRIPTOR_UPDATE_FREQ_COUNT;
 
 	DescriptorBinder* pDescriptorBinder = (DescriptorBinder*)conf_calloc(1, sizeof(DescriptorBinder));
+	
+	conf_placement_new<DescriptorBinder>(pDescriptorBinder);
+
 	pDescriptorBinder->mRootSignatureNodes.clear();
 
 	// Allocate all unique root signatures in the map
@@ -3734,8 +3723,11 @@ void addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCo
 			continue; // we want unique root signatures because we are going to get data indexing the map by root signature
 
 		DescriptorBinderNode* descriptorBinderNode = (DescriptorBinderNode*)conf_calloc(1, sizeof(DescriptorBinderNode));
+
+		conf_placement_new<DescriptorBinderNode>(descriptorBinderNode);
+
 		descriptorBinderNode->mLastFrameUpdated = (uint32_t)-1;
-		pDescriptorBinder->mRootSignatureNodes.insert({ rootSignature, descriptorBinderNode });
+		pDescriptorBinder->mRootSignatureNodes.insert({{ rootSignature, descriptorBinderNode }});
 	}
 
 	// Calculate total required pool data based on root signature and usage data
@@ -3948,13 +3940,13 @@ void removeDescriptorBinder(Renderer* pRenderer, DescriptorBinder* pDescriptorBi
 		for (uint32_t frameIdx = 0; frameIdx < MAX_FRAMES_IN_FLIGHT; frameIdx++)
 		{
 			for (uint32_t setIndex = 0; setIndex < DESCRIPTOR_UPDATE_FREQ_COUNT; setIndex++) {
-				node->mUpdatedHashes[frameIdx][setIndex].~unordered_map();
+				node->mUpdatedHashes[frameIdx][setIndex].~hash_map();
 				SAFE_FREE(node->pDescriptorSets_FrameFreqUsage[frameIdx][setIndex]);
 			}
 		}			
 		SAFE_FREE(node);
 	}
-	pDescriptorBinder->mRootSignatureNodes.~unordered_map();
+	pDescriptorBinder->mRootSignatureNodes.~hash_map();
 	SAFE_FREE(pDescriptorBinder);
 }
 
@@ -3967,10 +3959,10 @@ const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer)
 {
 	// Set shader macro based on runtime information
 	gRendererShaderDefines[0].definition = "VK_EXT_DESCRIPTOR_INDEXING_ENABLED";
-	gRendererShaderDefines[0].value = tinystl::string::format("%d", static_cast<int>(gDescriptorIndexingExtension));
+	gRendererShaderDefines[0].value = eastl::string().sprintf("%d", static_cast<int>(gDescriptorIndexingExtension));
 
 	gRendererShaderDefines[1].definition = "VK_FEATURE_TEXTURE_ARRAY_DYNAMIC_INDEXING_ENABLED";
-	gRendererShaderDefines[1].value = tinystl::string::format("%d", static_cast<int>(pRenderer->mVkGpuFeatures[0].shaderSampledImageArrayDynamicIndexing));
+	gRendererShaderDefines[1].value = eastl::string().sprintf("%d", static_cast<int>(pRenderer->mVkGpuFeatures[0].shaderSampledImageArrayDynamicIndexing));
 
 	RendererShaderDefinesDesc defineDesc = { gRendererShaderDefines, 2 };
 	return defineDesc;
@@ -3979,13 +3971,16 @@ const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer)
 void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader** ppShaderProgram)
 {
 	Shader* pShaderProgram = (Shader*)conf_calloc(1, sizeof(*pShaderProgram));
+
+	conf_placement_new<Shader>(pShaderProgram);
+
 	pShaderProgram->mStages = pDesc->mStages;
 
 	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
 
 	uint32_t                        counter = 0;
 	ShaderReflection                stageReflections[SHADER_STAGE_COUNT] = {};
-	tinystl::vector<VkShaderModule> modules(SHADER_STAGE_COUNT);
+	eastl::vector<VkShaderModule> modules(SHADER_STAGE_COUNT);
 
 	for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
 	{
@@ -4155,32 +4150,34 @@ void removeShader(Renderer* pRenderer, Shader* pShaderProgram)
 typedef struct UpdateFrequencyLayoutInfo
 {
 	/// Array of all bindings in the descriptor set
-	tinystl::vector<VkDescriptorSetLayoutBinding> mBindings;
+	eastl::vector<VkDescriptorSetLayoutBinding> mBindings;
 	/// Array of all descriptors in this descriptor set
-	tinystl::vector<DescriptorInfo*> mDescriptors;
+	eastl::vector<DescriptorInfo*> mDescriptors;
 	/// Array of all descriptors marked as dynamic in this descriptor set (applicable to DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-	tinystl::vector<DescriptorInfo*> mDynamicDescriptors;
+	eastl::vector<DescriptorInfo*> mDynamicDescriptors;
 	/// Hash map to get index of the descriptor in the root signature
-	tinystl::unordered_map<DescriptorInfo*, uint32_t> mDescriptorIndexMap;
+	eastl::hash_map<DescriptorInfo*, uint32_t> mDescriptorIndexMap;
 } UpdateFrequencyLayoutInfo;
 
 void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
 {
 	RootSignature* pRootSignature = (RootSignature*)conf_calloc(1, sizeof(*pRootSignature));
 
-	tinystl::vector<UpdateFrequencyLayoutInfo> layouts(DESCRIPTOR_UPDATE_FREQ_COUNT);
-	tinystl::vector<DescriptorInfo*>           pushConstantDescriptors;
-	tinystl::vector<ShaderResource const*>     shaderResources;
+	conf_placement_new<RootSignature>(pRootSignature);
 
-	tinystl::unordered_map<tinystl::string, Sampler*> staticSamplerMap;
-	tinystl::vector<tinystl::string>                  dynamicUniformBuffers;
+	eastl::vector<UpdateFrequencyLayoutInfo> layouts(DESCRIPTOR_UPDATE_FREQ_COUNT);
+	eastl::vector<DescriptorInfo*>           pushConstantDescriptors;
+	eastl::vector<ShaderResource const*>     shaderResources;
+
+	eastl::hash_map<eastl::string, Sampler*> staticSamplerMap;
+	eastl::vector<eastl::string>                  dynamicUniformBuffers;
 
 	for (uint32_t i = 0; i < pRootSignatureDesc->mStaticSamplerCount; ++i)
-		staticSamplerMap.insert({ pRootSignatureDesc->ppStaticSamplerNames[i], pRootSignatureDesc->ppStaticSamplers[i] });
+		staticSamplerMap.insert({{ pRootSignatureDesc->ppStaticSamplerNames[i], pRootSignatureDesc->ppStaticSamplers[i] }});
 	for (uint32_t i = 0; i < pRootSignatureDesc->mDynamicUniformBufferCount; ++i)
 		dynamicUniformBuffers.push_back(pRootSignatureDesc->ppDynamicUniformBufferNames[i]);
 
-	conf_placement_new<tinystl::unordered_map<uint32_t, uint32_t> >(&pRootSignature->pDescriptorNameToIndexMap);
+	conf_placement_new<eastl::hash_map<uint32_t, uint32_t> >(&pRootSignature->pDescriptorNameToIndexMap);
 
 	// Collect all unique shader resources in the given shaders
 	// Resources are parsed by name (two resources named "XYZ" in two shaders will be considered the same resource)
@@ -4201,16 +4198,16 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 			if (pRes->type == DESCRIPTOR_TYPE_ROOT_CONSTANT)
 				setIndex = 0;
 
-			tinystl::unordered_hash_node<uint32_t, uint32_t>* pNode =
-				pRootSignature->pDescriptorNameToIndexMap.find(tinystl::hash(pRes->name)).node;
-			if (!pNode)
+			eastl::string_hash_map<uint32_t>::iterator it =
+				pRootSignature->pDescriptorNameToIndexMap.find(pRes->name);
+			if (it == pRootSignature->pDescriptorNameToIndexMap.end())
 			{
-				pRootSignature->pDescriptorNameToIndexMap.insert({ tinystl::hash(pRes->name), (uint32_t)shaderResources.size() });
+				pRootSignature->pDescriptorNameToIndexMap.insert(pRes->name, (uint32_t)shaderResources.size());
 				shaderResources.emplace_back(pRes);
 			}
 			else
 			{
-				if (shaderResources[pNode->second]->reg != pRes->reg)
+				if (shaderResources[it->second]->reg != pRes->reg)
 				{
 					ErrorMsg(
 						"\nFailed to create root signature\n"
@@ -4220,7 +4217,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 						pRes->name);
 					return;
 				}
-				if (shaderResources[pNode->second]->set != pRes->set)
+				if (shaderResources[it->second]->set != pRes->set)
 				{
 					ErrorMsg(
 						"\nFailed to create root signature\n"
@@ -4270,7 +4267,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 
 			// If a user specified a uniform buffer to be used as a dynamic uniform buffer change its type to VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
 			// Also log a message for debugging purpose
-			if (dynamicUniformBuffers.find(pDesc->mDesc.name) != dynamicUniformBuffers.end())
+			if (eastl::find(dynamicUniformBuffers.begin(), dynamicUniformBuffers.end(), pDesc->mDesc.name) != dynamicUniformBuffers.end())
 			{
 				if (pDesc->mDesc.size == 1)
 				{
@@ -4279,7 +4276,9 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 				}
 				else
 				{
-					LOGF(LogLevel::eWARNING, "Descriptor (%s) : Cannot use VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC for arrays", pDesc->mDesc.name);
+					LOGF(
+						LogLevel::eWARNING, "Descriptor (%s) : Cannot use VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC for arrays",
+						pDesc->mDesc.name);
 				}
 			}
 
@@ -4296,14 +4295,14 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 			}
 
 			// Find if the given descriptor is a static sampler
-			const tinystl::unordered_hash_node<tinystl::string, Sampler*>* pNode = staticSamplerMap.find(pDesc->mDesc.name).node;
-			if (pNode)
+			decltype(staticSamplerMap)::iterator it = staticSamplerMap.find(pDesc->mDesc.name);
+			if (it != staticSamplerMap.end())
 			{
 				LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Static Sampler", pDesc->mDesc.name);
 
 				// Set the index to an invalid value so we can use this later for error checking if user tries to update a static sampler
 				pDesc->mIndexInParent = -1;
-				binding.pImmutableSamplers = &pNode->second->pVkSampler;
+				binding.pImmutableSamplers = &it->second->pVkSampler;
 			}
 			else
 			{
@@ -4349,11 +4348,11 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 		if (layouts[i].mBindings.size())
 		{
 			// sort table by type (CBV/SRV/UAV) by register
-			layout.mBindings.sort([](const VkDescriptorSetLayoutBinding& lhs, const VkDescriptorSetLayoutBinding& rhs) {
-				return (int)(lhs.binding - rhs.binding);
+			eastl::stable_sort(layout.mBindings.begin(), layout.mBindings.end(), [](const VkDescriptorSetLayoutBinding& lhs, const VkDescriptorSetLayoutBinding& rhs) {
+				return lhs.binding > rhs.binding;
 			});
-			layout.mBindings.sort([](const VkDescriptorSetLayoutBinding& lhs, const VkDescriptorSetLayoutBinding& rhs) {
-				return (int)(lhs.descriptorType - rhs.descriptorType);
+			eastl::stable_sort(layout.mBindings.begin(), layout.mBindings.end(), [](const VkDescriptorSetLayoutBinding& lhs, const VkDescriptorSetLayoutBinding& rhs) {
+				return lhs.descriptorType > rhs.descriptorType;
 			});
 		}
 
@@ -4382,8 +4381,9 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 			pRootSignature->mVkCumulativeDescriptorCounts[i] += pDesc->mDesc.size;
 		}
 
-		layout.mDynamicDescriptors.sort(
-			[](DescriptorInfo* const& lhs, DescriptorInfo* const& rhs) { return (int)(lhs->mDesc.reg - rhs->mDesc.reg); });
+		eastl::sort(
+			layout.mDynamicDescriptors.begin(), layout.mDynamicDescriptors.end(),
+			[](DescriptorInfo* const lhs, DescriptorInfo* const rhs) { return lhs->mDesc.reg > rhs->mDesc.reg; });
 
 		pRootSignature->mVkDynamicDescriptorCounts[i] = (uint32_t)layout.mDynamicDescriptors.size();
 		for (uint32_t descIndex = 0; descIndex < pRootSignature->mVkDynamicDescriptorCounts[i]; ++descIndex)
@@ -4395,8 +4395,8 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 	/************************************************************************/
 	// Pipeline layout
 	/************************************************************************/
-	tinystl::vector<VkDescriptorSetLayout> descriptorSetLayouts(DESCRIPTOR_UPDATE_FREQ_COUNT);
-	tinystl::vector<VkPushConstantRange>   pushConstants(pRootSignature->mVkPushConstantCount);
+	eastl::vector<VkDescriptorSetLayout> descriptorSetLayouts(DESCRIPTOR_UPDATE_FREQ_COUNT);
+	eastl::vector<VkPushConstantRange>   pushConstants(pRootSignature->mVkPushConstantCount);
 	for (uint32_t i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
 		descriptorSetLayouts[i] = pRootSignature->mVkDescriptorSetLayouts[i];
 	for (uint32_t i = 0; i < pRootSignature->mVkPushConstantCount; ++i)
@@ -4433,7 +4433,7 @@ void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 	}
 
 	// Need delete since the destructor frees allocated memory
-	pRootSignature->pDescriptorNameToIndexMap.~unordered_map();
+	pRootSignature->pDescriptorNameToIndexMap.~string_hash_map();
 
 	SAFE_FREE(pRootSignature->pDescriptors);
 	SAFE_FREE(pRootSignature->pVkPushConstantRanges);
@@ -4573,6 +4573,8 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 
 	Pipeline* pPipeline = (Pipeline*)conf_calloc(1, sizeof(*pPipeline));
 	ASSERT(pPipeline);
+
+	conf_placement_new<Pipeline>(pPipeline);
 
 	const Shader*       pShaderProgram = pDesc->pShaderProgram;
 	const VertexLayout* pVertexLayout = pDesc->pVertexLayout;
@@ -4963,6 +4965,8 @@ void addComputePipelineImpl(Renderer* pRenderer, const ComputePipelineDesc* pDes
 	Pipeline* pPipeline = (Pipeline*)conf_calloc(1, sizeof(*pPipeline));
 	ASSERT(pPipeline);
 
+	conf_placement_new<Pipeline>(pPipeline);
+
 	memcpy(&(pPipeline->mCompute), pDesc, sizeof(*pDesc));
 	pPipeline->mType = PIPELINE_TYPE_COMPUTE;
 
@@ -5253,8 +5257,8 @@ void cmdBindRenderTargets(
 			(uint32_t)ppRenderTargets[i]->mDesc.mSrgb,
 			pLoadActions ? (uint32_t)pLoadActions->mLoadActionsColor[i] : 0,
 		};
-		renderPassHash = tinystl::hash_state(hashValues, 4, renderPassHash);
-		frameBufferHash = tinystl::hash_state(&ppRenderTargets[i]->pTexture->mTextureId, 1, frameBufferHash);
+		renderPassHash = eastl::mem_hash<uint32_t>()(hashValues, 4, renderPassHash);
+		frameBufferHash = eastl::mem_hash<uint64_t>()(&ppRenderTargets[i]->pTexture->mTextureId, 1, frameBufferHash);
 
 		pCmd->pBoundColorFormats[i] = ppRenderTargets[i]->mDesc.mFormat;
 		pCmd->pBoundSrgbValues[i] = ppRenderTargets[i]->mDesc.mSrgb;
@@ -5268,19 +5272,19 @@ void cmdBindRenderTargets(
 			pLoadActions ? (uint32_t)pLoadActions->mLoadActionDepth : 0,
 			pLoadActions ? (uint32_t)pLoadActions->mLoadActionStencil : 0,
 		};
-		renderPassHash = tinystl::hash_state(hashValues, 5, renderPassHash);
-		frameBufferHash = tinystl::hash_state(&pDepthStencil->pTexture->mTextureId, 1, frameBufferHash);
+		renderPassHash = eastl::mem_hash<uint32_t>()(hashValues, 5, renderPassHash);
+		frameBufferHash = eastl::mem_hash<uint64_t>()(&pDepthStencil->pTexture->mTextureId, 1, frameBufferHash);
 
 		pCmd->mBoundDepthStencilFormat = pDepthStencil->mDesc.mFormat;
 	}
 	if (pColorArraySlices)
-		frameBufferHash = tinystl::hash_state(pColorArraySlices, renderTargetCount, frameBufferHash);
+		frameBufferHash = eastl::mem_hash<uint32_t>()(pColorArraySlices, renderTargetCount, frameBufferHash);
 	if (pColorMipSlices)
-		frameBufferHash = tinystl::hash_state(pColorMipSlices, renderTargetCount, frameBufferHash);
+		frameBufferHash = eastl::mem_hash<uint32_t>()(pColorMipSlices, renderTargetCount, frameBufferHash);
 	if (depthArraySlice != -1)
-		frameBufferHash = tinystl::hash_state(&depthArraySlice, 1, frameBufferHash);
+		frameBufferHash = eastl::mem_hash<uint32_t>()(&depthArraySlice, 1, frameBufferHash);
 	if (depthMipSlice != -1)
-		frameBufferHash = tinystl::hash_state(&depthMipSlice, 1, frameBufferHash);
+		frameBufferHash = eastl::mem_hash<uint32_t>()(&depthMipSlice, 1, frameBufferHash);
 
 	SampleCount sampleCount = renderTargetCount ? ppRenderTargets[0]->mDesc.mSampleCount : pDepthStencil->mDesc.mSampleCount;
 	pCmd->mBoundSampleCount = sampleCount;
@@ -5290,14 +5294,14 @@ void cmdBindRenderTargets(
 	RenderPassMap&  renderPassMap = get_render_pass_map();
 	FrameBufferMap& frameBufferMap = get_frame_buffer_map();
 
-	const RenderPassMapNode*  pNode = renderPassMap.find(renderPassHash).node;
-	const FrameBufferMapNode* pFrameBufferNode = frameBufferMap.find(frameBufferHash).node;
+	const RenderPassMapIt  pNode = renderPassMap.find(renderPassHash);
+	const FrameBufferMapIt pFrameBufferNode = frameBufferMap.find(frameBufferHash);
 
 	RenderPass*  pRenderPass = NULL;
 	FrameBuffer* pFrameBuffer = NULL;
 
 	// If a render pass of this combination already exists just use it or create a new one
-	if (pNode)
+	if (pNode != renderPassMap.end())
 	{
 		pRenderPass = pNode->second;
 	}
@@ -5328,11 +5332,11 @@ void cmdBindRenderTargets(
 		add_render_pass(pCmd->pRenderer, &renderPassDesc, &pRenderPass);
 
 		// No need of a lock here since this map is per thread
-		renderPassMap.insert({ renderPassHash, pRenderPass });
+		renderPassMap.insert({{ renderPassHash, pRenderPass }});
 	}
 
 	// If a frame buffer of this combination already exists just use it or create a new one
-	if (pFrameBufferNode)
+	if (pFrameBufferNode != frameBufferMap.end())
 	{
 		pFrameBuffer = pFrameBufferNode->second;
 	}
@@ -5350,7 +5354,7 @@ void cmdBindRenderTargets(
 		add_framebuffer(pCmd->pRenderer, &desc, &pFrameBuffer);
 
 		// No need of a lock here since this map is per thread
-		frameBufferMap.insert({ frameBufferHash, pFrameBuffer });
+		frameBufferMap.insert({{ frameBufferHash, pFrameBuffer }});
 	}
 
 	DECLARE_ZERO(VkRect2D, render_area);
@@ -5528,7 +5532,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 
 	Renderer*          pRenderer = pCmd->pRenderer;
 	const uint32_t     setCount = DESCRIPTOR_UPDATE_FREQ_COUNT;
-	DescriptorBinderNode* node = pDescriptorBinder->mRootSignatureNodes.find(pRootSignature).node->second;
+	DescriptorBinderNode* node = pDescriptorBinder->mRootSignatureNodes.find(pRootSignature)->second;
 
 	// Logic to detect beginning of a new frame so we dont run this code everytime user calls cmdBindDescriptors
 	for (uint32_t setIndex = 0; setIndex < setCount; ++setIndex)
@@ -5612,7 +5616,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 					LOGF(LogLevel::eERROR, "Sampler descriptor (%s) at array index (%u) is NULL", pParam->pName, i);
 					return;
 				}
-				pHash[setIndex] = tinystl::hash_state(&pParam->ppSamplers[i]->mSamplerId, 1, pHash[setIndex]);
+				pHash[setIndex] = eastl::mem_hash<uint64_t>()(&pParam->ppSamplers[i]->mSamplerId, 1, pHash[setIndex]);
 				node->pUpdateData[setIndex][pDesc->mHandleIndex + i].mImageInfo = pParam->ppSamplers[i]->mVkSamplerView;
 			}
 		}
@@ -5632,9 +5636,9 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 					return;
 				}
 
-				pHash[setIndex] = tinystl::hash_state(&pParam->ppTextures[i]->mTextureId, 1, pHash[setIndex]);
+				pHash[setIndex] = eastl::mem_hash<uint64_t>()(&pParam->ppTextures[i]->mTextureId, 1, pHash[setIndex]);
 				uint32_t bindStencilResource = (uint32_t)pParam->mBindStencilResource;	// Needed to meet alignment requirements
-				pHash[setIndex] = tinystl::hash_state(&bindStencilResource, 1, pHash[setIndex]);
+				pHash[setIndex] = eastl::mem_hash<uint32_t>()(&bindStencilResource, 1, pHash[setIndex]);
 
 				// Store the new descriptor so we can use it in vkUpdateDescriptorSet later
 				if(!pParam->mBindStencilResource)
@@ -5654,7 +5658,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 			}
 
 			if (pParam->mUAVMipSlice)
-				pHash[setIndex] = tinystl::hash_state(&pParam->mUAVMipSlice, 1, pHash[setIndex]);
+				pHash[setIndex] = eastl::mem_hash<uint32_t>()(&pParam->mUAVMipSlice, 1, pHash[setIndex]);
 
 			for (uint32_t i = 0; i < arrayCount; ++i)
 			{
@@ -5664,7 +5668,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 					return;
 				}
 
-				pHash[setIndex] = tinystl::hash_state(&pParam->ppTextures[i]->mTextureId, 1, pHash[setIndex]);
+				pHash[setIndex] = eastl::mem_hash<uint64_t>()(&pParam->ppTextures[i]->mTextureId, 1, pHash[setIndex]);
 
 				// Store the new descriptor so we can use it in vkUpdateDescriptorSet later
 				node->pUpdateData[setIndex][pDesc->mHandleIndex + i].mImageInfo.imageView =
@@ -5687,7 +5691,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 					LOGF(LogLevel::eERROR, "Buffer descriptor (%s) at array index (%u) is NULL", pParam->pName, i);
 					return;
 				}
-				pHash[setIndex] = tinystl::hash_state(&pParam->ppBuffers[i]->mBufferId, 1, pHash[setIndex]);
+				pHash[setIndex] = eastl::mem_hash<uint64_t>()(&pParam->ppBuffers[i]->mBufferId, 1, pHash[setIndex]);
 
 				if (pDesc->mVkType == VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER)
 					node->pUpdateData[setIndex][pDesc->mHandleIndex + i].mBuferView = pParam->ppBuffers[i]->pVkUniformTexelView;
@@ -5724,9 +5728,9 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 				else
 				{
 					if (pParam->pOffsets)
-						pHash[setIndex] = tinystl::hash_state(&pParam->pOffsets[i], 1, pHash[setIndex]);
+						pHash[setIndex] = eastl::mem_hash<uint64_t>()(&pParam->pOffsets[i], 1, pHash[setIndex]);
 					if (pParam->pSizes)
-						pHash[setIndex] = tinystl::hash_state(&pParam->pSizes[i], 1, pHash[setIndex]);
+						pHash[setIndex] = eastl::mem_hash<uint64_t>()(&pParam->pSizes[i], 1, pHash[setIndex]);
 				}
 			}
 		}
@@ -5764,9 +5768,10 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 
 			if (setIndex != DESCRIPTOR_UPDATE_FREQ_PER_DRAW)
 			{
-				ConstHashMapIterator it = node->mUpdatedHashes[pRenderer->mCurrentFrameIdx][setIndex].find(setIndexHash);
-				if (it.node != NULL) {
-					descriptorSetSlotToUse = it.node->second;
+				HashMap& activeSet = node->mUpdatedHashes[pRenderer->mCurrentFrameIdx][setIndex];
+				ConstHashMapIterator it = activeSet.find(setIndexHash);
+				if (it != activeSet.end()) {
+					descriptorSetSlotToUse = it->second;
 					mustUpdateDescriptorSet = false;
 				}
 				else
@@ -5785,7 +5790,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 				vkUpdateDescriptorSetWithTemplateKHR(pRenderer->pVkDevice, pDescriptorSet, node->mUpdateTemplates[setIndex], node->pUpdateData[setIndex]);
 
 				if (setIndex != DESCRIPTOR_UPDATE_FREQ_PER_DRAW)
-					node->mUpdatedHashes[pRenderer->mCurrentFrameIdx][setIndex].insert({ setIndexHash, descriptorSetSlotToUse });
+					node->mUpdatedHashes[pRenderer->mCurrentFrameIdx][setIndex].insert({{ setIndexHash, descriptorSetSlotToUse }});
 			}
 			else {
 				// No need to update descriptors. Just point to a pre-allocated available descriptor set given by descriptorSetSlotToUse.
@@ -6122,11 +6127,6 @@ void queueSubmit(
 			ppSignalSemaphores[signalCount]->mSignaled = true;
 			++signalCount;
 		}
-
-#if PROFILE_ENABLED
-		// Call profile flip to indicate a new frame
-		ProfileFlip();
-#endif
 	}
 
 	DECLARE_ZERO(VkSubmitInfo, submit_info);
@@ -6449,16 +6449,6 @@ void freeMemoryStats(Renderer* pRenderer, char* stats) { vmaFreeStatsString(pRen
 /************************************************************************/
 void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
-	ProfileGpuSetContext(pCmd->pVkCmdBuf);
-	// Convert float3 color to *rgb8.
-	uint32 scope_color = static_cast<uint32>(r * 255) << 16
-		| static_cast<uint32>(g * 255) << 8
-		| static_cast<uint32>(b * 255);
-
-	// This micro gets g_mp_temp token for the current gpu timestamp. Token is created per pName which mean passing in same name will return the same token.
-	// Create new scope on top of the current stack and enter
-	PROFILE_GPU_ENTER(temp, pName, scope_color);
-
 	if (gDebugMarkerSupport)
 	{
 #ifdef USE_DEBUG_UTILS_EXTENSION
@@ -6494,9 +6484,6 @@ void cmdEndDebugMarker(Cmd* pCmd)
 		vkCmdDebugMarkerEndEXT(pCmd->pVkCmdBuf);
 #endif
 	}
-
-	// Leave the current scope and pop up the scope stack
-	PROFILE_GPU_LEAVE();
 }
 
 void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)

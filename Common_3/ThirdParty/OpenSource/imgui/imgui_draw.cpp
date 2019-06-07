@@ -935,7 +935,7 @@ void ImDrawList::PathArcTo(const float2& centre, float radius, float a_min, floa
     }
 }
 
-static void PathBezierToCasteljau(tinystl::vector<float2>* path, float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, float tess_tol, int level)
+static void PathBezierToCasteljau(eastl::vector<float2>* path, float x1, float y1, float x2, float y2, float x3, float y3, float x4, float y4, float tess_tol, int level)
 {
     float dx = x4 - x1;
     float dy = y4 - y1;
@@ -1236,7 +1236,7 @@ void ImDrawList::AddImageRounded(ImTextureID user_texture_id, const float2& a, c
 // For backward compatibility: convert all buffers from indexed to de-indexed, in case you cannot render indexed. Note: this is slow and most likely a waste of resources. Always prefer indexed rendering!
 void ImDrawData::DeIndexAllBuffers()
 {
-    tinystl::vector<ImDrawVert> new_vtx_buffer;
+    eastl::vector<ImDrawVert> new_vtx_buffer;
     TotalVtxCount = TotalIdxCount = 0;
     for (int i = 0; i < CmdListsCount; i++)
     {
@@ -1965,10 +1965,10 @@ void ImFontAtlasBuildPackCustomRects(ImFontAtlas* atlas, void* pack_context_opaq
 {
     stbrp_context* pack_context = (stbrp_context*)pack_context_opaque;
 
-    tinystl::vector<ImFontAtlas::CustomRect>& user_rects = atlas->CustomRects;
+    eastl::vector<ImFontAtlas::CustomRect>& user_rects = atlas->CustomRects;
     IM_ASSERT(user_rects.size() >= 1); // We expect at least the default custom rects to be registered, else something went wrong.
 
-    tinystl::vector<stbrp_rect> pack_rects;
+    eastl::vector<stbrp_rect> pack_rects;
     pack_rects.resize(user_rects.size());
     memset(pack_rects.data(), 0, sizeof(stbrp_rect) * user_rects.size());
     for (int i = 0; i < user_rects.size(); i++)
@@ -2263,7 +2263,7 @@ void ImFontAtlas::GlyphRangesBuilder::AddRanges(const ImWchar* ranges)
             AddChar(c);
 }
 
-void ImFontAtlas::GlyphRangesBuilder::BuildRanges(tinystl::vector<ImWchar>* out_ranges)
+void ImFontAtlas::GlyphRangesBuilder::BuildRanges(eastl::vector<ImWchar>* out_ranges)
 {
     for (int n = 0; n < 0x10000; n++)
         if (GetBit(n))

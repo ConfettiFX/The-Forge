@@ -15,7 +15,7 @@
 
 #include "../../../OS/Interfaces/ILogManager.h"
 #include "../../../OS/Math/MathTypes.h"
-#include "../TinySTL/vector.h"
+#include "../EASTL/vector.h"
 
 //---- Define assertion handler. Defaults to calling assert().
 #define IM_ASSERT(_EXPR)  ASSERT((_EXPR))

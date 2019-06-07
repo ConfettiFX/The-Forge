@@ -2,7 +2,7 @@
 #define ENTT_RESOURCE_HANDLE_HPP
 
 
-#include "../../TinySTL/memory.h"
+#include "../../EASTL/shared_ptr.h"
 #include <utility>
 #include <cassert>
 #include "../config/config.h"
@@ -32,8 +32,8 @@ class ResourceHandle final {
     /*! @brief Resource handles are friends of their caches. */
     friend class ResourceCache<Resource>;
 
-    ResourceHandle(tinystl::shared_ptr<Resource> res) ENTT_NOEXCEPT
-        : resource{std::move(res)}
+    ResourceHandle(eastl::shared_ptr<Resource> res) ENTT_NOEXCEPT
+        : resource{eastl::move(res)}
     {}
 
 public:
@@ -106,7 +106,7 @@ public:
     explicit operator bool() const { return static_cast<bool>(resource); }
 
 private:
-    tinystl::shared_ptr<Resource> resource;
+    eastl::shared_ptr<Resource> resource;
 };
 
 

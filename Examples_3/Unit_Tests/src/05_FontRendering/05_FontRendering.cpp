@@ -31,8 +31,8 @@
 *********************************************************************************************************/
 
 // tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 // Interfaces
 #include "../../../../Common_3/OS/Interfaces/ILogManager.h"
@@ -40,8 +40,8 @@
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
+#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/GpuProfiler.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
 // Math
@@ -82,7 +82,7 @@ struct Fonts
 
 struct ScreenText
 {
-	tinystl::string mText;
+	eastl::string mText;
 	TextDrawDesc    mDrawDesc;
 
 	// screen space position:
@@ -94,7 +94,7 @@ struct ScreenText
 struct SceneData
 {
 	size_t                                       sceneTextArrayIndex = 0;
-	tinystl::vector<tinystl::vector<ScreenText>> sceneTextArray;
+	eastl::vector<eastl::vector<ScreenText>> sceneTextArray;
 
 	uint32_t theme = 1;              // enable dark theme (its better <3) | spacebar to change theme
 	bool     bFitToScreen = true;    // scales all the text down if any scene text is off screen
@@ -124,6 +124,8 @@ uint32_t GetSkinColorOfProperty(PropertiesWithSkinColor EProp, bool bDarkSkin)
 uint32_t GetSkinColorOfProperty(PropertiesWithSkinColor EProp, uint32_t theme) { return GetSkinColorOfProperty(EProp, (bool)theme); }
 
 const uint32_t gImageCount = 3;
+bool           bToggleMicroProfiler = false;
+bool           bPrevToggleMicroProfiler = false;
 
 Renderer*    pRenderer = NULL;
 Queue*       pGraphicsQueue = NULL;
@@ -284,7 +286,10 @@ class FontRendering: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
+		initProfiler(pRenderer, gImageCount);
+		profileRegisterInput();
+
+		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 		finishResourceLoading();
 
 		// initialize UI middleware
@@ -311,6 +316,8 @@ class FontRendering: public IApp
 		const size_t   NUM_THEMES = sizeof(pThemeLabels) / sizeof(const char*) - 1;    // -1 for the NULL element
 		DropdownWidget ThemeDropdown("Theme", &gSceneData.theme, pThemeLabels, (uint32_t*)ColorThemes, NUM_THEMES);
 
+    pUIWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+
 		pUIWindow->AddWidget(ThemeDropdown);
 		pUIWindow->AddWidget(fitScreenCheckbox);
 
@@ -323,6 +330,8 @@ class FontRendering: public IApp
 	void Exit()
 	{
 		waitQueueIdle(pGraphicsQueue);
+
+		exitProfiler(pRenderer);
 
 		gAppUI.Exit();
 
@@ -395,6 +404,18 @@ class FontRendering: public IApp
 			gbShowSceneControlsUIWindow = !gbShowSceneControlsUIWindow;
 		}
 
+    // ProfileSetDisplayMode()
+    // TODO: need to change this better way 
+    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+    {
+      Profile& S = *ProfileGet();
+      int nValue = bToggleMicroProfiler ? 1 : 0;
+      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+      S.nDisplay = nValue;
+
+      bPrevToggleMicroProfiler = bToggleMicroProfiler;
+    }
+
 		gAppUI.Update(deltaTime);
 
 		// detect dropdown value change
@@ -451,11 +472,11 @@ class FontRendering: public IApp
 
 		if (!gSceneData.sceneTextArray.empty())
 		{
-			const tinystl::vector<ScreenText>& texts = gSceneData.sceneTextArray[gSceneData.sceneTextArrayIndex];
+			const eastl::vector<ScreenText>& texts = gSceneData.sceneTextArray[gSceneData.sceneTextArrayIndex];
 			for (int i = 0; i < texts.size(); ++i)
 			{
 				const float2 pxPosition = texts[i].mScreenPosition * float2(mSettings.mWidth, mSettings.mHeight);
-				gAppUI.DrawText(cmd, pxPosition, texts[i].mText, &texts[i].mDrawDesc);
+				gAppUI.DrawText(cmd, pxPosition, texts[i].mText.c_str(), &texts[i].mDrawDesc);
 			}
 		}
 
@@ -465,13 +486,17 @@ class FontRendering: public IApp
 		TextDrawDesc uiTextDesc;    // default
 		uiTextDesc.mFontColor = gSceneData.theme ? 0xff21D8DE : 0xff444444;
 		uiTextDesc.mFontSize = 18;
-		gAppUI.DrawText(cmd, float2(8.0f, 15.0f), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &uiTextDesc);
+		gAppUI.DrawText(
+			cmd, float2(8.0f, 15.0f), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &uiTextDesc);
 
-		gAppUI.DrawText(cmd, float2(8.0f, 40.0f), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &uiTextDesc);
+		gAppUI.DrawText(
+			cmd, float2(8.0f, 40.0f), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
+			&uiTextDesc);
 
 		if (gbShowSceneControlsUIWindow)
 			gAppUI.Gui(pUIWindow);
 
+		cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
 		gAppUI.Draw(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -482,14 +507,15 @@ class FontRendering: public IApp
 
 		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		flipProfiler();
 	}
 
-	tinystl::string GetName() { return "05_FontRendering"; }
+	const char* GetName() { return "05_FontRendering"; }
 
 	void InitializeSceneText()
 	{
 		gSceneData.sceneTextArray.clear();
-		tinystl::vector<ScreenText> sceneTexts;
+		eastl::vector<ScreenText> sceneTexts;
 		TextDrawDesc                drawDescriptor;
 		const char*                 txt = "";
 
@@ -824,7 +850,7 @@ class FontRendering: public IApp
 		// for different sets of text.
 		//
 		//for(int textSet = 0; textSet < gSceneData.sceneTextArray.size(); ++ textSet)
-		tinystl::vector<ScreenText>& AllSceneText = gSceneData.sceneTextArray.back();
+		eastl::vector<ScreenText>& AllSceneText = gSceneData.sceneTextArray.back();
 
 		float offScreenExtentLeft = 0.0f;
 		float offScreenExtentRight = 0.0f;
@@ -832,7 +858,8 @@ class FontRendering: public IApp
 		float offScreenExtentBottom = 0.0f;
 		for (const ScreenText& screenText : AllSceneText)
 		{
-			const float2 textMeasure = gAppUI.MeasureText(screenText.mText, screenText.mDrawDesc) / float2(SCREEN_WIDTH, SCREEN_HEIGHT);
+			const float2 textMeasure =
+				gAppUI.MeasureText(screenText.mText.c_str(), screenText.mDrawDesc) / float2(SCREEN_WIDTH, SCREEN_HEIGHT);
 			const float  textExtentLeft = screenText.mScreenPosition.getX();
 			const float  textExtentRight = textExtentLeft + textMeasure.getX();
 			const float  textExtentTop = screenText.mScreenPosition.getY();

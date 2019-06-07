@@ -26,7 +26,7 @@
 
 #include <ctime>
 
-#include "../../ThirdParty/OpenSource/TinySTL/vector.h"
+#include "../../ThirdParty/OpenSource/EASTL/vector.h"
 
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IPlatformEvents.h"
@@ -42,10 +42,10 @@
 
 static bool                         gAppRunning;
 static WindowsDesc*                 gCurrentWindow = NULL;
-static tinystl::vector<MonitorDesc> gMonitors;
+static eastl::vector<MonitorDesc> gMonitors;
 static int                          gCurrentTouchEvent = 0;
 
-static tinystl::vector<MonitorDesc> monitors;
+static eastl::vector<MonitorDesc> monitors;
 
 // Update the state of the keys based on state previous frame
 void updateTouchEvent(int numTaps) { gCurrentTouchEvent = numTaps; }

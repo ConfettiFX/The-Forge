@@ -37,8 +37,8 @@
 #include "../../../../Common_3/Tools/TFXImporter/TFXImporter.h"
 
 //tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/TinySTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
@@ -49,9 +49,7 @@
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
-
-//Renderer
-#include "../../../../Common_3/Renderer/GpuProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
@@ -191,6 +189,8 @@ static const char* woodEnumNames[] = { "Wooden Plank 05", "Wooden Plank 06", "Wo
 static const int MATERIAL_INSTANCE_COUNT = sizeof(metalEnumNames) / sizeof(metalEnumNames[0]) - 1;
 
 const uint32_t gImageCount = 3;
+bool           bToggleMicroProfiler = false;
+bool           bPrevToggleMicroProfiler = false;
 
 //--------------------------------------------------------------------------------------------
 // STRUCT DEFINTIONS
@@ -306,7 +306,7 @@ struct Capsule
 
 struct NamedCapsule
 {
-	tinystl::string mName;
+	eastl::string mName;
 	Capsule         mCapsule;
 	int             mAttachedBone = -1;
 };
@@ -320,7 +320,7 @@ struct Transform
 
 struct NamedTransform
 {
-	tinystl::string mName;
+	eastl::string mName;
 	Transform       mTransform;
 	int             mAttachedBone = -1;
 };
@@ -374,7 +374,7 @@ struct UniformDataHairSimulation
 
 struct HairBuffer
 {
-	tinystl::string           mName = NULL;
+	eastl::string           mName = NULL;
 	Buffer*                   pBufferHairVertexPositions = NULL;
 	Buffer*                   pBufferHairVertexTangents = NULL;
 	Buffer*                   pBufferTriangleIndices = NULL;
@@ -604,7 +604,7 @@ Buffer* pBufferHairDepth = NULL;
 // VERTEX BUFFERS
 //--------------------------------------------------------------------------------------------
 Buffer*                     pVertexBufferSkybox = NULL;
-tinystl::vector<HairBuffer> gHair;
+eastl::vector<HairBuffer> gHair;
 Buffer*                     pVertexBufferSkeletonJoint = NULL;
 int                         gVertexCountSkeletonJoint = 0;
 Buffer*                     pVertexBufferSkeletonBone = NULL;
@@ -617,7 +617,7 @@ int                         gVertexCountSkeletonBone = 0;
 //--------------------------------------------------------------------------------------------
 // MESHES
 //--------------------------------------------------------------------------------------------
-tinystl::vector<MeshData*> pMeshes;
+eastl::vector<MeshData*> pMeshes;
 
 //--------------------------------------------------------------------------------------------
 // UNIFORM BUFFERS
@@ -640,8 +640,8 @@ const int gMaterialTextureCount = MATERIAL_INSTANCE_COUNT * MATERIAL_TEXTURE_COU
 
 Texture*                  pTextureSkybox = NULL;
 Texture*                  pTextureBRDFIntegrationMap = NULL;
-tinystl::vector<Texture*> pTextureMaterialMaps;          // objects
-tinystl::vector<Texture*> pTextureMaterialMapsGround;    // ground
+eastl::vector<Texture*> pTextureMaterialMaps;          // objects
+eastl::vector<Texture*> pTextureMaterialMapsGround;    // ground
 
 Texture* pTextureIrradianceMap = NULL;
 Texture* pTextureSpecularMap = NULL;
@@ -670,9 +670,9 @@ Rig             gAnimationRig[HAIR_TYPE_COUNT];
 AnimatedObject  gAnimatedObject[HAIR_TYPE_COUNT];
 SkeletonBatcher gSkeletonBatcher;
 
-tinystl::vector<NamedCapsule>   gCapsules;
-tinystl::vector<NamedTransform> gTransforms;
-tinystl::vector<Capsule>        gFinalCapsules[HAIR_TYPE_COUNT];    // Stores the capsule transformed by the bone matrix
+eastl::vector<NamedCapsule>   gCapsules;
+eastl::vector<NamedTransform> gTransforms;
+eastl::vector<Capsule>        gFinalCapsules[HAIR_TYPE_COUNT];    // Stores the capsule transformed by the bone matrix
 
 //--------------------------------------------------------------------------------------------
 // UI & OTHER
@@ -680,7 +680,7 @@ tinystl::vector<Capsule>        gFinalCapsules[HAIR_TYPE_COUNT];    // Stores th
 bool                  gVSyncEnabled = false;
 bool                  gShowCapsules = false;
 uint                  gHairType = 0;
-tinystl::vector<uint> gHairTypeIndices[HAIR_TYPE_COUNT];
+eastl::vector<uint> gHairTypeIndices[HAIR_TYPE_COUNT];
 HairTypeInfo		gHairTypeInfo[HAIR_TYPE_COUNT];
 bool				gEnvironmentLighting = true;
 bool				gDrawSkybox = true;
@@ -689,7 +689,7 @@ uint32_t			gDiffuseReflectionModel = LAMBERT_REFLECTION;
 bool				gbLuaScriptingSystemLoadedSuccessfully = false;
 bool				gbAnimateCamera = false;
 
-tinystl::unordered_map< EMaterialTypes, EDiffuseReflectionModels > gMaterialLightingModelMap;
+eastl::unordered_map< EMaterialTypes, EDiffuseReflectionModels > gMaterialLightingModelMap;
 
 const int			gSphereResolution = 30; // Increase for higher resolution spheres
 const float			gSphereDiameter = 0.5f;
@@ -719,16 +719,16 @@ bool gFirstHairSimulationFrame = true;
 GPUPresetLevel gGPUPresetLevel;
 
 mat4                  gTextProjView;
-tinystl::vector<mat4> gTextWorldMats;
+eastl::vector<mat4> gTextWorldMats;
 
 void ReloadScriptButtonCallback() { gLuaManager.ReloadUpdatableScript(); }
 
 // Generates an array of vertices and normals for a sphere
 void createSpherePoints(Vertex** ppPoints, int* pNumberOfPoints, int numberOfDivisions, float radius = 1.0f)
 {
-	tinystl::vector<Vector3> vertices;
-	tinystl::vector<Vector3> normals;
-	tinystl::vector<Vector3> uvs;
+	eastl::vector<Vector3> vertices;
+	eastl::vector<Vector3> normals;
+	eastl::vector<Vector3> uvs;
 
 	float numStacks = (float)numberOfDivisions;
 	float numSlices = (float)numberOfDivisions;
@@ -851,7 +851,7 @@ struct GuiController
 		DynamicUIWidgets         hairShading;
 		DynamicUIWidgets         hairSimulation;
 	};
-	static tinystl::vector<HairDynamicWidgets> hairDynamicWidgets;
+	static eastl::vector<HairDynamicWidgets> hairDynamicWidgets;
 
 	static DynamicUIWidgets hairShadingDynamicWidgets;
 	static DynamicUIWidgets hairSimulationDynamicWidgets;
@@ -861,7 +861,7 @@ struct GuiController
 	static MaterialType currentMaterialType;
 	static uint         currentHairType;
 };
-tinystl::vector<GuiController::HairDynamicWidgets> GuiController::hairDynamicWidgets;
+eastl::vector<GuiController::HairDynamicWidgets> GuiController::hairDynamicWidgets;
 DynamicUIWidgets                                  GuiController::hairShadingDynamicWidgets;
 DynamicUIWidgets                                  GuiController::hairSimulationDynamicWidgets;
 DynamicUIWidgets                                  GuiController::materialDynamicWidgets;
@@ -880,13 +880,13 @@ class MaterialPlayground: public IApp
 
 	struct StagingData
 	{
-		tinystl::vector<tinystl::string> mModelList;
-		tinystl::vector<tinystl::vector<Vertex>> mModelVerticesList;
-		tinystl::vector<tinystl::vector<uint>> mModelIndicesList;
-		tinystl::vector<tinystl::string> mMaterialNamesStorage;
-		tinystl::vector<tinystl::string> mGroundNamesStorage;
-		tinystl::vector<const char*> mMaterialTextureList;
-		tinystl::vector<const char*> mGroundTextureList;
+		eastl::vector<eastl::string> mModelList;
+		eastl::vector<eastl::vector<Vertex>> mModelVerticesList;
+		eastl::vector<eastl::vector<uint>> mModelIndicesList;
+		eastl::vector<eastl::string> mMaterialNamesStorage;
+		eastl::vector<eastl::string> mGroundNamesStorage;
+		eastl::vector<const char*> mMaterialTextureList;
+		eastl::vector<const char*> mGroundTextureList;
 		TextureLoadTaskData mMaterialTexturesData = {};
 		TextureLoadTaskData mGroundTexturesData = {};
 		float* pJointPoints;
@@ -940,7 +940,9 @@ class MaterialPlayground: public IApp
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
 			return false;
 #endif
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler);
+		initProfiler(pRenderer, gImageCount);
+		profileRegisterInput();
+		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		pStagingData = conf_new<StagingData>();
 		// CREATE RENDERING RESOURCES
@@ -982,13 +984,13 @@ class MaterialPlayground: public IApp
 		computePBRMaps(&pPBRMapLoadData);
 		queueSubmit(pGraphicsQueue, 1, &ppCmds[0], NULL, 0, NULL, 0, NULL);
 
+		CreateShaders();
 		LoadModelsAndTextures();
 
 		CreateRasterizerStates();
 		CreateDepthStates();
 		CreateBlendStates();
 		CreateSamplers();
-		CreateShaders();
 		CreateRootSignatures();
 		CreateUniformBuffers();
 
@@ -1073,7 +1075,7 @@ class MaterialPlayground: public IApp
 			state->PushResultInteger(gbAnimateCamera ? 1 : 0);
 			return 1;    // return amount of arguments
 		});
-		tinystl::string updateCameraFilename = FileSystem::FixPath("updateCamera.lua", FSR_Middleware2);
+		eastl::string updateCameraFilename = FileSystem::FixPath("updateCamera.lua", FSR_Middleware2);
 		gbLuaScriptingSystemLoadedSuccessfully = gLuaManager.SetUpdatableScript(updateCameraFilename.c_str(), "Update", "Exit");
 
 		// SET MATERIAL LIGHTING MODELS
@@ -1094,6 +1096,8 @@ class MaterialPlayground: public IApp
 		shutdownThreadSystem(pIOThreads);
 
 		waitQueueIdle(pGraphicsQueue);
+
+		exitProfiler(pRenderer);
 
 		destroyCameraController(pCameraController);
 		destroyCameraController(pLightView);
@@ -1186,6 +1190,18 @@ class MaterialPlayground: public IApp
 		}
 
 		// rest of the input callbacks are in 'static bool pFnInputEvent(const ButtonData* data)'
+
+    // ProfileSetDisplayMode()
+    // TODO: need to change this better way 
+    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+    {
+      Profile& S = *ProfileGet();
+      int nValue = bToggleMicroProfiler ? 1 : 0;
+      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+      S.nDisplay = nValue;
+
+      bPrevToggleMicroProfiler = bToggleMicroProfiler;
+    }
 
 		// UPDATE UI & CAMERA
 		//
@@ -1489,7 +1505,7 @@ class MaterialPlayground: public IApp
 			gSkeletonBatcher.SetPerInstanceUniforms(gFrameIndex);
 
 		// Draw
-		tinystl::vector<Cmd*> allCmds;
+		eastl::vector<Cmd*> allCmds;
 		Cmd*                  cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
 
@@ -2250,9 +2266,12 @@ class MaterialPlayground: public IApp
 		}
 
 		// draw HUD text
-		gAppUI.DrawText(cmd, float2(8, 15), tinystl::string::format("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
 #ifndef METAL    // Metal doesn't support GPU profilers
-		gAppUI.DrawText(cmd, float2(8, 40), tinystl::string::format("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f), &gFrameTimeDraw);
+		gAppUI.DrawText(
+			cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
+			&gFrameTimeDraw);
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8.0f, 90.0f), pGpuProfiler, NULL);
 #endif
 
@@ -2270,6 +2289,8 @@ class MaterialPlayground: public IApp
 		else
 			gAppUI.Gui(pGuiWindowMaterial);
 
+		cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
+
 		gAppUI.Draw(cmd);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);	// UI
 
@@ -2286,9 +2307,10 @@ class MaterialPlayground: public IApp
 			pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1,
 			&pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		flipProfiler();
 	}
 
-	tinystl::string GetName() { return "06_MaterialPlayground"; }
+	const char* GetName() { return "06_MaterialPlayground"; }
 
 	void RecenterCameraView(float maxDistance, vec3 lookAt = vec3(0))
 	{
@@ -2516,9 +2538,9 @@ class MaterialPlayground: public IApp
 
 	void CreateShaders()
 	{
-		ShaderMacro pointLightsShaderMacro = { "MAX_NUM_POINT_LIGHTS", tinystl::string::format("%i", MAX_NUM_POINT_LIGHTS) };
+		ShaderMacro pointLightsShaderMacro = { "MAX_NUM_POINT_LIGHTS", eastl::string().sprintf("%i", MAX_NUM_POINT_LIGHTS) };
 		ShaderMacro directionalLightsShaderMacro = { "MAX_NUM_DIRECTIONAL_LIGHTS",
-													 tinystl::string::format("%i", MAX_NUM_DIRECTIONAL_LIGHTS) };
+													 eastl::string().sprintf("%i", MAX_NUM_DIRECTIONAL_LIGHTS) };
 		ShaderMacro lightMacros[] = { pointLightsShaderMacro, directionalLightsShaderMacro };
 
 		ShaderLoadDesc skyboxShaderDesc = {};
@@ -2539,7 +2561,7 @@ class MaterialPlayground: public IApp
 
 #ifndef DIRECT3D11
 		const uint  macroCount = 4;
-		ShaderMacro shaderMacros[macroCount] = { { "HAIR_MAX_CAPSULE_COUNT", tinystl::string::format("%i", HAIR_MAX_CAPSULE_COUNT) } };
+		ShaderMacro shaderMacros[macroCount] = { { "HAIR_MAX_CAPSULE_COUNT", eastl::string().sprintf("%i", HAIR_MAX_CAPSULE_COUNT) } };
 		shaderMacros[1] = pointLightsShaderMacro;
 		shaderMacros[2] = directionalLightsShaderMacro;
 		shaderMacros[3] = { "SHORT_CUT_CLEAR", "" };
@@ -2813,13 +2835,13 @@ class MaterialPlayground: public IApp
 	{
 		bool modelsAreLoaded = false;
 		gLuaManager.SetFunction("LoadModel", [this](ILuaStateWrap* state) -> int {
-			tinystl::string filename = state->GetStringArg(1);    //indexing in Lua starts from 1 (NOT 0) !!
+			eastl::string filename = state->GetStringArg(1);    //indexing in Lua starts from 1 (NOT 0) !!
 			pStagingData->mModelList.push_back(filename);
 			//this->LoadModel(filename);
 			return 0;    //return amount of arguments that we want to send back to script
 		});
 
-		tinystl::string loadModelsFilename = FileSystem::FixPath("loadModels.lua", FSR_Middleware2);
+		eastl::string loadModelsFilename = FileSystem::FixPath("loadModels.lua", FSR_Middleware2);
 		gLuaManager.AddAsyncScript(loadModelsFilename.c_str(), [&modelsAreLoaded](ScriptState state) { modelsAreLoaded = true; });
 
 		while (!modelsAreLoaded)
@@ -2842,17 +2864,22 @@ class MaterialPlayground: public IApp
 			return 1;
 		});
 		gLuaManager.SetFunction("LoadTextureMaps", [this](ILuaStateWrap* state) -> int {
-			tinystl::vector<const char*> texturesNames;
+			eastl::vector<const char*> texturesNames;
 			state->GetStringArrayArg(1, texturesNames);
 			pStagingData->mMaterialTexturesData.mDesc.mUseMipmaps = state->GetIntegerArg(2) != 0;    //bool for Lua is integer
 			for (const char* name : texturesNames)
 			{
 				pStagingData->mMaterialNamesStorage.push_back(name);
-				pStagingData->mMaterialTextureList.push_back(pStagingData->mMaterialNamesStorage.back().c_str());
 			}
+
+			for (eastl::string& name : pStagingData->mMaterialNamesStorage)
+			{
+				pStagingData->mMaterialTextureList.push_back(name.c_str());
+			}
+
 			return 0;
 		});
-		tinystl::string loadTexturesFilename = FileSystem::FixPath("loadTextures.lua", FSR_Middleware2);
+		eastl::string loadTexturesFilename = FileSystem::FixPath("loadTextures.lua", FSR_Middleware2);
 		gLuaManager.AddAsyncScript(loadTexturesFilename.c_str(), [&texturesAreLoaded](ScriptState state) { texturesAreLoaded = true; });
 
 		while (!texturesAreLoaded)
@@ -2868,17 +2895,21 @@ class MaterialPlayground: public IApp
 		bool groundTexturesAreLoaded = false;
 		//This is how we can replace function in runtime.
 		gLuaManager.SetFunction("LoadTextureMaps", [this](ILuaStateWrap* state) -> int {
-			tinystl::vector<const char*> texturesNames;
+			eastl::vector<const char*> texturesNames;
 			state->GetStringArrayArg(1, texturesNames);
 			pStagingData->mGroundTexturesData.mDesc.mUseMipmaps = state->GetIntegerArg(2) != 0;
 			for (const char* name : texturesNames)
 			{
 				pStagingData->mGroundNamesStorage.push_back(name);
-				pStagingData->mGroundTextureList.push_back(pStagingData->mGroundNamesStorage.back().c_str());
 			}
+			for (eastl::string& name : pStagingData->mGroundNamesStorage)
+			{
+				pStagingData->mGroundTextureList.push_back(name.c_str());
+			}
+
 			return 0;
 		});
-		tinystl::string loadGroundTexturesFilename = FileSystem::FixPath("loadGroundTextures.lua", FSR_Middleware2);
+		eastl::string loadGroundTexturesFilename = FileSystem::FixPath("loadGroundTextures.lua", FSR_Middleware2);
 		gLuaManager.AddAsyncScript(
 			loadGroundTexturesFilename.c_str(), [&groundTexturesAreLoaded](ScriptState state) { groundTexturesAreLoaded = true; });
 
@@ -2895,8 +2926,8 @@ class MaterialPlayground: public IApp
 
 	void LoadModel(uintptr_t i)
 	{
-		tinystl::vector<Vertex>& vertices = pStagingData->mModelVerticesList[i];
-		tinystl::vector<uint>&   indices = pStagingData->mModelIndicesList[i];
+		eastl::vector<Vertex>& vertices = pStagingData->mModelVerticesList[i];
+		eastl::vector<uint>&   indices = pStagingData->mModelIndicesList[i];
 		AssimpImporter          importer;
 
 		AssimpImporter::Model model;
@@ -3699,7 +3730,7 @@ class MaterialPlayground: public IApp
 		gSkeletonBatcher.Initialize(skeletonRenderDesc);
 
 		// Load rigs
-		tinystl::string rigPath = FileSystem::FixPath("stickFigure/skeleton.ozz", FSR_Animation);
+		eastl::string rigPath = FileSystem::FixPath("stickFigure/skeleton.ozz", FSR_Animation);
 		for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 		{
 			gAnimationRig[hairType].Initialize(rigPath.c_str());
@@ -4287,6 +4318,7 @@ void GuiController::AddGui()
 	};
 	const uint32_t dropDownCount3 = (sizeof(renderModeNames) / sizeof(renderModeNames[0])) - 1;
 
+  pGuiWindowMain->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
 
 	// SCENE GUI
 #if !defined(TARGET_IOS) && !defined(_DURANGO)

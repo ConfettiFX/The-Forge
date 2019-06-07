@@ -1799,7 +1799,7 @@
 					"-fno-strict-aliasing",
 					"-Wall",
 					"-Wno-long-long",
-					"-std=c++11",
+					"-std=c++14",
 					"-DNDEBUG",
 					"-g",
 				);
@@ -1861,7 +1861,7 @@
 					"-fno-strict-aliasing",
 					"-Wall",
 					"-Wno-long-long",
-					"-std=c++11",
+					"-std=c++14",
 				);
 				OTHER_LIBTOOLFLAGS = " ";
 				OTHER_REZFLAGS = "";
@@ -1928,7 +1928,7 @@
 					"-fno-strict-aliasing",
 					"-Wall",
 					"-Wno-long-long",
-					"-std=c++11",
+					"-std=c++14",
 				);
 				OTHER_LIBTOOLFLAGS = " ";
 				OTHER_REZFLAGS = "";
@@ -1975,7 +1975,7 @@
 					"-fno-strict-aliasing",
 					"-Wall",
 					"-Wno-long-long",
-					"-std=c++11",
+					"-std=c++14",
 					"-DNDEBUG",
 				);
 				OTHER_LIBTOOLFLAGS = " ";
@@ -2037,7 +2037,7 @@
 					"-fno-strict-aliasing",
 					"-Wall",
 					"-Wno-long-long",
-					"-std=c++11",
+					"-std=c++14",
 				);
 				OTHER_LIBTOOLFLAGS = " ";
 				OTHER_REZFLAGS = "";
@@ -2099,7 +2099,7 @@
 					"-fno-strict-aliasing",
 					"-Wall",
 					"-Wno-long-long",
-					"-std=c++11",
+					"-std=c++14",
 					"-DNDEBUG",
 					"-g",
 				);
@@ -2234,7 +2234,7 @@
 					"-fno-strict-aliasing",
 					"-Wall",
 					"-Wno-long-long",
-					"-std=c++11",
+					"-std=c++14",
 					"-DNDEBUG",
 				);
 				OTHER_LIBTOOLFLAGS = " ";
@@ -2321,7 +2321,7 @@
 					"-fno-strict-aliasing",
 					"-Wall",
 					"-Wno-long-long",
-					"-std=c++11",
+					"-std=c++14",
 				);
 				OTHER_LIBTOOLFLAGS = " ";
 				OTHER_REZFLAGS = "";

@@ -24,7 +24,7 @@
 
 #include "Geometry.h"
 
-#include "../../../Common_3/ThirdParty/OpenSource/TinySTL/unordered_set.h"
+#include "../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_set.h"
 
 #include "../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include/assimp/cimport.h"
 #include "../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include/assimp/scene.h"
@@ -32,9 +32,9 @@
 #include "../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../../Common_3/OS/Core/Compiler.h"
-#include "../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 #include "../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"
+#include "../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 #ifdef ORBIS
 #define DEFAULT_ALBEDO "default.gnf"
@@ -47,7 +47,7 @@
 #define DEFAULT_SPEC_TRANSPARENT "Default_SPEC_TRANS.dds"
 #endif
 
-static void SetAlphaTestMaterials(tinystl::unordered_set<tinystl::string>& mats)
+static void SetAlphaTestMaterials(eastl::unordered_set<eastl::string>& mats)
 {
 	// San Miguel
 	mats.insert("lambert3");
@@ -103,7 +103,7 @@ static void SetAlphaTestMaterials(tinystl::unordered_set<tinystl::string>& mats)
 	mats.insert("zebrina_Leaf");
 }
 
-static void SetTwoSidedMaterials(tinystl::unordered_set<tinystl::string>& mats)
+static void SetTwoSidedMaterials(eastl::unordered_set<eastl::string>& mats)
 {
 	// San Miguel
 	mats.insert("aglaonema_Leaf");
@@ -1006,11 +1006,11 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 	AssimpImporter::Model model;
 	importer.ImportModel(fileName, &model);
 
-	tinystl::vector<SceneVertexPos> positions;
-	tinystl::vector<float2>         texcoords;
-	tinystl::vector<float3>         normals;
-	tinystl::vector<float3>         tangents;
-	tinystl::vector<uint32_t>       indices;
+	eastl::vector<SceneVertexPos> positions;
+	eastl::vector<float2>         texcoords;
+	eastl::vector<float3>         normals;
+	eastl::vector<float3>         tangents;
+	eastl::vector<uint32_t>       indices;
 
 	uint32_t accIndex_ = 0;
 
@@ -1081,9 +1081,9 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 	scene->indices = indices;
 	scene->positions = positions;
 
-	scene->texCoords = tinystl::vector<SceneVertexTexCoord>(scene->totalVertices, SceneVertexTexCoord{ 0 });
-	scene->normals = tinystl::vector<SceneVertexNormal>(scene->totalVertices, SceneVertexNormal{ 0 });
-	scene->tangents = tinystl::vector<SceneVertexTangent>(scene->totalVertices, SceneVertexTangent{ 0 });
+	scene->texCoords = eastl::vector<SceneVertexTexCoord>(scene->totalVertices, SceneVertexTexCoord{ 0 });
+	scene->normals = eastl::vector<SceneVertexNormal>(scene->totalVertices, SceneVertexNormal{ 0 });
+	scene->tangents = eastl::vector<SceneVertexTangent>(scene->totalVertices, SceneVertexTangent{ 0 });
 
 	for (uint32_t v = 0; v < scene->totalVertices; v++)
 	{
@@ -1132,10 +1132,10 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 		LOGF(LogLevel::eINFO, "%d vertexCount: %d total: %d", i, batch.vertexCount, accIndex);
 	}
 
-	tinystl::unordered_set<tinystl::string> twoSidedMaterials;
+	eastl::unordered_set<eastl::string> twoSidedMaterials;
 	SetTwoSidedMaterials(twoSidedMaterials);
 
-	tinystl::unordered_set<tinystl::string> alphaTestMaterials;
+	eastl::unordered_set<eastl::string> alphaTestMaterials;
 	SetAlphaTestMaterials(alphaTestMaterials);
 
 	scene->numMaterials = scene->numMeshes;
@@ -1202,15 +1202,15 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 	scene->totalTriangles = scene->totalTriangles / 3;
 
 	scene->meshes = (MeshIn*)conf_calloc(scene->numMeshes, sizeof(MeshIn));
-	scene->indices = tinystl::vector<uint32>(scene->totalTriangles * 3, uint32_t(0));
-	scene->positions = tinystl::vector<SceneVertexPos>(scene->totalVertices, SceneVertexPos{ 0 });
-	scene->texCoords = tinystl::vector<SceneVertexTexCoord>(scene->totalVertices, SceneVertexTexCoord{ 0 });
-	scene->normals = tinystl::vector<SceneVertexNormal>(scene->totalVertices, SceneVertexNormal{ 0 });
-	scene->tangents = tinystl::vector<SceneVertexTangent>(scene->totalVertices, SceneVertexTangent{ 0 });
+	scene->indices = eastl::vector<uint32>(scene->totalTriangles * 3, uint32_t(0));
+	scene->positions = eastl::vector<SceneVertexPos>(scene->totalVertices, SceneVertexPos{ 0 });
+	scene->texCoords = eastl::vector<SceneVertexTexCoord>(scene->totalVertices, SceneVertexTexCoord{ 0 });
+	scene->normals = eastl::vector<SceneVertexNormal>(scene->totalVertices, SceneVertexNormal{ 0 });
+	scene->tangents = eastl::vector<SceneVertexTangent>(scene->totalVertices, SceneVertexTangent{ 0 });
 
-	tinystl::vector<float2> texcoords(scene->totalVertices);
-	tinystl::vector<float3> normals(scene->totalVertices);
-	tinystl::vector<float3> tangents(scene->totalVertices);
+	eastl::vector<float2> texcoords(scene->totalVertices);
+	eastl::vector<float3> normals(scene->totalVertices);
+	eastl::vector<float3> tangents(scene->totalVertices);
 
 	assimpScene.Read(scene->indices.data(), sizeof(uint32_t) * scene->totalTriangles * 3);
 	assimpScene.Read(scene->positions.data(), sizeof(float3) * scene->totalVertices);
@@ -1257,10 +1257,10 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 #endif
 	}
 
-	tinystl::unordered_set<tinystl::string> twoSidedMaterials;
+	eastl::unordered_set<eastl::string> twoSidedMaterials;
 	SetTwoSidedMaterials(twoSidedMaterials);
 
-	tinystl::unordered_set<tinystl::string> alphaTestMaterials;
+	eastl::unordered_set<eastl::string> alphaTestMaterials;
 	SetAlphaTestMaterials(alphaTestMaterials);
 
 	assimpScene.Read(&scene->numMaterials, sizeof(uint32_t));
@@ -1290,18 +1290,18 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 		uint32_t matNameLength = 0;
 		assimpScene.Read(&matNameLength, sizeof(uint32_t));
 
-		tinystl::vector<char> matName(matNameLength);
+		eastl::vector<char> matName(matNameLength);
 		assimpScene.Read(matName.data(), sizeof(char) * matNameLength);
 
 		uint32_t albedoNameLength = 0;
 		assimpScene.Read(&albedoNameLength, sizeof(uint32_t));
 
-		tinystl::vector<char> albedoName(albedoNameLength);
+		eastl::vector<char> albedoName(albedoNameLength);
 		assimpScene.Read(albedoName.data(), sizeof(char) * albedoNameLength);
 
 		if (albedoName[0] != '\0')
 		{
-			tinystl::string path(albedoName.data());
+			eastl::string path(albedoName.data());
 			uint            dotPos = 0;
 #ifdef ORBIS
 			// try to load the GNF version instead: change extension to GNF
@@ -1310,16 +1310,16 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 			path[dotPos] = '\0';
 			path.append(".gnf", 4);
 #endif
-			tinystl::string albedoMap(path);
+			eastl::string albedoMap(path);
 
-			tinystl::vector<tinystl::string> columnas;
+			eastl::vector<eastl::string> columnas;
 
-			tinystl::string columnaA3("columna_a_color_3");
-			tinystl::string columnaA2("columna_a_color_2");
-			tinystl::string columnaA1("columna_a_color");
+			eastl::string columnaA3("columna_a_color_3");
+			eastl::string columnaA2("columna_a_color_2");
+			eastl::string columnaA1("columna_a_color");
 
-			tinystl::string columnaB3("columna_b_color_3");
-			tinystl::string columnaB2("columna_b_color_2");
+			eastl::string columnaB3("columna_b_color_3");
+			eastl::string columnaB2("columna_b_color_2");
 
 			columnas.push_back(columnaA3);
 			columnas.push_back(columnaA2);
@@ -1327,7 +1327,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 			columnas.push_back(columnaB2);
 			columnas.push_back(columnaA1);
 
-			tinystl::string columnaB1("columna_b_color");
+			eastl::string columnaB1("columna_b_color");
 
 			for (size_t c = 0; c < columnas.size(); c++)
 			{
@@ -1340,13 +1340,13 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 				}
 			}
 
-			tinystl::vector<tinystl::string> macetas;
+			eastl::vector<eastl::string> macetas;
 
-			tinystl::string macetasA2("Maceta_A2_Color");
-			tinystl::string macetasC("Maceta_C_Color");
-			tinystl::string macetasC2("Maceta_C2_Color");
-			tinystl::string macetasB("Maceta_B_Color");
-			tinystl::string macetasD2("Maceta_D2_Color_0");
+			eastl::string macetasA2("Maceta_A2_Color");
+			eastl::string macetasC("Maceta_C_Color");
+			eastl::string macetasC2("Maceta_C2_Color");
+			eastl::string macetasB("Maceta_B_Color");
+			eastl::string macetasD2("Maceta_D2_Color_0");
 
 			macetas.push_back(macetasA2);
 			macetas.push_back(macetasC);
@@ -1354,7 +1354,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 			macetas.push_back(macetasB);
 			macetas.push_back(macetasD2);
 
-			tinystl::string macetasA("Maceta_A_Color");
+			eastl::string macetasA("Maceta_A_Color");
 
 			for (size_t c = 0; c < macetas.size(); c++)
 			{
@@ -1367,8 +1367,8 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 				}
 			}
 
-			tinystl::string muros_q3("muros_q3");
-			tinystl::string muros_q4("muros_q4");
+			eastl::string muros_q3("muros_q3");
+			eastl::string muros_q4("muros_q4");
 
 			int res = path.find(muros_q3, 0);
 
@@ -1378,8 +1378,8 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 			}
 
 			//muros_q_patio2
-			tinystl::string muros_n("muros_n");
-			tinystl::string muros_q_patio2("muros_q_patio2");
+			eastl::string muros_n("muros_n");
+			eastl::string muros_q_patio2("muros_q_patio2");
 
 			res = path.find(muros_n, 0);
 
@@ -1390,8 +1390,8 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 
 			if (!FileSystem::FileExists(path, FSR_Textures))
 			{
-				tinystl::string base_filename2 = FileSystem::GetFileName(path);
-				tinystl::string pTemp(".dds");
+				eastl::string base_filename2 = FileSystem::GetFileName(path);
+				eastl::string pTemp(".dds");
 				base_filename2.append(pTemp.begin(), pTemp.end());
 
 				// try load the associated normal map
@@ -1409,14 +1409,14 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 			strcpy(scene->textures[i], albedoMap.c_str());
 
 			// try load the associated normal map
-			tinystl::string normalMap(path);
+			eastl::string normalMap(path);
 			normalMap.rfind('.', -1, &dotPos);
 			normalMap.insert(dotPos, "_NRM", 4);
 
 			if (!FileSystem::FileExists(normalMap, FSR_Textures))
 			{
-				tinystl::string base_filename2 = FileSystem::GetFileName(path);
-				tinystl::string pTemp(".dds");
+				eastl::string base_filename2 = FileSystem::GetFileName(path);
+				eastl::string pTemp(".dds");
 				base_filename2.append(pTemp.begin(), pTemp.end());
 
 				// try load the associated normal map
@@ -1437,15 +1437,15 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 			strcpy(scene->normalMaps[i], normalMap.c_str());
 
 			// try load the associated spec map
-			tinystl::string specMap(path);
+			eastl::string specMap(path);
 			dotPos = 0;
 			specMap.rfind('.', -1, &dotPos);
 			specMap.insert(dotPos, "_SPEC", 5);
 
 			if (!FileSystem::FileExists(specMap, FSR_Textures))
 			{
-				tinystl::string base_filename2 = FileSystem::GetFileName(path);
-				tinystl::string pTemp(".dds");
+				eastl::string base_filename2 = FileSystem::GetFileName(path);
+				eastl::string pTemp(".dds");
 				base_filename2.append(pTemp.begin(), pTemp.end());
 
 				// try load the associated specular map
@@ -1503,7 +1503,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 		assimpScene.Read(&twoSided, sizeof(float));    // load two sided
 		m.twoSided = (twoSided != 0);
 
-		tinystl::string tinyMatName(matName.data());
+		eastl::string tinyMatName(matName.data());
 		if (twoSidedMaterials.find(tinyMatName) != twoSidedMaterials.end())
 			m.twoSided = true;
 
@@ -1576,9 +1576,7 @@ void removeScene(Scene* scene)
 	scene->texCoords.~vector();
 	scene->normals.~vector();
 	scene->tangents.~vector();
-#ifndef METAL
 	scene->indices.~vector();
-#endif
 
 	conf_free(scene->textures);
 	conf_free(scene->normalMaps);
@@ -1653,7 +1651,7 @@ void createAABB(const Scene* pScene, MeshIn* mesh)
 	mesh->AABB.corners[7].w = 1.0f;
 }
 
-void loadModel(const tinystl::string& FileName, Buffer*& pVertexBuffer, uint& vertexCount, Buffer*& pIndexBuffer, uint& indexCount)
+void loadModel(const eastl::string& FileName, Buffer*& pVertexBuffer, uint& vertexCount, Buffer*& pIndexBuffer, uint& indexCount)
 {
 	AssimpImporter::Model model;
 
@@ -1668,8 +1666,8 @@ void loadModel(const tinystl::string& FileName, Buffer*& pVertexBuffer, uint& ve
 	AssimpImporter::Mesh mesh = model.mMeshArray[0];
 
 	size_t                  size = mesh.mIndices.size();
-	tinystl::vector<Vertex> meshVertices;
-	tinystl::vector<uint>   meshIndices;
+	eastl::vector<Vertex> meshVertices;
+	eastl::vector<uint>   meshIndices;
 	int                     index = 0;
 	for (int i = 0; i < size; i++)
 	{

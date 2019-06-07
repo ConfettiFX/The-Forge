@@ -50,7 +50,13 @@
       <UniqueIdentifier>{12705cd5-7862-4903-995a-a9f1700c6f7a}</UniqueIdentifier>
     </Filter>
     <Filter Include="OS\Profiler">
-      <UniqueIdentifier>{d9b2db1f-cd3f-4e4f-9265-29af1dba4c86}</UniqueIdentifier>
+      <UniqueIdentifier>{5c34fb4b-91ae-4758-9092-8d5e5c718e91}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dependencies\EASTL">
+      <UniqueIdentifier>{daee9ce9-77ed-4b1f-95d7-5939acfc21ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dependencies\EASTL\EAStdC">
+      <UniqueIdentifier>{a0cc15cd-6446-41b5-922b-61d2903717de}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -129,23 +135,23 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.h">
       <Filter>OS\Core</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerEnableMacro.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerBase.h">
       <Filter>OS\Profiler</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerHTML.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerEnableMacro.h">
       <Filter>OS\Profiler</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerInput.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerHTML.h">
       <Filter>OS\Profiler</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerUI.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerInput.h">
       <Filter>OS\Profiler</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\Profiler.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerUI.h">
       <Filter>OS\Profiler</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerBase.h">
-      <Filter>OS\Profiler</Filter>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IProfiler.h">
+      <Filter>OS\Interfaces</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -215,26 +221,56 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Input\InputSystem.cpp">
       <Filter>OS\Input</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerInput.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\Profiler.cpp">
       <Filter>OS\Profiler</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerUI.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerBase.cpp">
       <Filter>OS\Profiler</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerVulkan.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerDraw.cpp">
       <Filter>OS\Profiler</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerBase.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerInput.cpp">
       <Filter>OS\Profiler</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerDirect3D11.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerUI.cpp">
       <Filter>OS\Profiler</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\ProfilerDirect3D12.cpp">
-      <Filter>OS\Profiler</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\allocator_eastl.cpp">
+      <Filter>Dependencies\EASTL</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Tools\Profiler\Profiler.cpp">
-      <Filter>OS\Profiler</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\allocator_forge.cpp">
+      <Filter>Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\assert.cpp">
+      <Filter>Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\fixed_pool.cpp">
+      <Filter>Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\hashtable.cpp">
+      <Filter>Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\intrusive_list.cpp">
+      <Filter>Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\numeric_limits.cpp">
+      <Filter>Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\red_black_tree.cpp">
+      <Filter>Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\string.cpp">
+      <Filter>Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\thread_support.cpp">
+      <Filter>Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EAStdC\EAMemory.cpp">
+      <Filter>Dependencies\EASTL\EAStdC</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EAStdC\EASprintf.cpp">
+      <Filter>Dependencies\EASTL\EAStdC</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

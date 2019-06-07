@@ -147,7 +147,7 @@ void computePBRMaps(ComputePBRMapsTaskData* pTaskData)
 	GPUPresetLevel presetLevel = pTaskData->mPresetLevel;
 	uint32_t       importanceSampleCounts[GPUPresetLevel::GPU_PRESET_COUNT] = { 0, 0, 64, 128, 256, 1024 };
 	uint32_t       importanceSampleCount = importanceSampleCounts[presetLevel];
-	ShaderMacro    importanceSampleMacro = { "IMPORTANCE_SAMPLE_COUNT", tinystl::string::format("%u", importanceSampleCount) };
+	ShaderMacro    importanceSampleMacro = { "IMPORTANCE_SAMPLE_COUNT", eastl::string().sprintf("%u", importanceSampleCount) };
 
 	ShaderLoadDesc brdfIntegrationShaderDesc = {};
 	brdfIntegrationShaderDesc.mStages[0] = { "BRDFIntegration.comp", &importanceSampleMacro, 1, FSR_SrcShaders };

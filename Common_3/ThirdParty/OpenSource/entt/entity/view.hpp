@@ -4,9 +4,10 @@
 
 #include <iterator>
 #include <cassert>
-#include "../../TinySTL/array.h"
+#include "../../EASTL/array.h"
+#include <array>
 #include <tuple>
-#include "../../TinySTL/vector.h"
+#include "../../EASTL/vector.h"
 #include <utility>
 #include <algorithm>
 #include <type_traits>
@@ -477,7 +478,7 @@ class View final {
 
     using view_type = SparseSet<Entity>;
     using underlying_iterator_type = typename view_type::const_iterator_type;
-    using unchecked_type = tinystl::array<const view_type *, (sizeof...(Component) - 1)>;
+    using unchecked_type = std::array<const view_type *, (sizeof...(Component) - 1)>;
     using pattern_type = std::tuple<pool_type<Component> &...>;
     using traits_type = entt_traits<Entity>;
 
@@ -590,7 +591,7 @@ class View final {
     template<typename Comp, typename Func, std::size_t... Indexes>
     void each(const pool_type<Comp> &cpool, Func func, std::index_sequence<Indexes...>) const {
         const auto other = unchecked(&cpool);
-        tinystl::array<underlying_iterator_type, sizeof...(Indexes)> data{{std::get<Indexes>(other)->cbegin()...}};
+        eastl::array<underlying_iterator_type, sizeof...(Indexes)> data{{std::get<Indexes>(other)->cbegin()...}};
         const auto extent = std::min({ pool<Component>().extent()... });
         auto raw = std::make_tuple(pool<Component>().cbegin()...);
         const auto end = cpool.view_type::cend();
@@ -1593,7 +1594,7 @@ class RuntimeView {
 
     using view_type = SparseSet<Entity>;
     using underlying_iterator_type = typename view_type::const_iterator_type;
-    using pattern_type = tinystl::vector<const view_type *>;
+    using pattern_type = eastl::vector<const view_type *>;
     using extent_type = typename view_type::size_type;
     using traits_type = entt_traits<Entity>;
 
