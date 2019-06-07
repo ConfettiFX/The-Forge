@@ -24,7 +24,7 @@ The Forge can be used to provide the rendering layer for custom next-gen game en
 - [Lua Scripting System](https://www.lua.org/) - currently used in 06_Playground to load models and textures and animate the camera
 - Animation System based on [Ozz Animation System](https://github.com/guillaumeblanc/ozz-animation)
 - Consistent Math Library  based on an extended version of [Vectormath](https://github.com/glampert/vectormath)
-- Extended version of [TinySTL](https://github.com/mendsley/tinystl)
+- Extended version of [EASTL](https://github.com/electronicarts/EASTL/)
 - For loading art assets we have a modified and integrated version of [Assimp](https://github.com/assimp/assimp)
 - Consistent Memory Managament: on GPU following [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
 - Input system with Gestures for Touch devices based on an extended version of [gainput](https://github.com/jkuhlmann/gainput)
