@@ -53,7 +53,7 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
    * Multithreaded GPU Profiling is now supported
    * Microprofiler is now enabled on all the Unit-tests and togglable using UI checkbox.
    * Added new common interface, IProfiler.h
- * Issue list: 
+ * Issue fixed: 
    * #105 - 04_ExecuteIndirect crash on macOS
 
 
