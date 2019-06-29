@@ -33,7 +33,23 @@
 		B22BBEB221C432DC0071950F /* 17_EntityComponentSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B22BBEB021C432DC0071950F /* 17_EntityComponentSystem.cpp */; };
 		B238509621C9C09300291CA6 /* basic.frag.metal in Copy Files */ = {isa = PBXBuildFile; fileRef = B22BBEAC21C4322E0071950F /* basic.frag.metal */; };
 		B238509721C9C09300291CA6 /* basic.vert.metal in Copy Files */ = {isa = PBXBuildFile; fileRef = B22BBEAD21C4322E0071950F /* basic.vert.metal */; };
-		B238509921C9C1BA00291CA6 /* sprites.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = B238509821C9C1B500291CA6 /* sprites.png */; };
+		B238509921C9C1BA00291CA6 /* sprites.ktx in CopyFiles */ = {isa = PBXBuildFile; fileRef = B238509821C9C1B500291CA6 /* sprites.ktx */; };
+		B27403F722BC661500F7660D /* MoveComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27403F622BC661500F7660D /* MoveComponent.cpp */; };
+		B27403F822BC661500F7660D /* MoveComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27403F622BC661500F7660D /* MoveComponent.cpp */; };
+		B27403FF22BC663F00F7660D /* PositionComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27403F922BC663F00F7660D /* PositionComponent.cpp */; };
+		B274040022BC663F00F7660D /* PositionComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27403F922BC663F00F7660D /* PositionComponent.cpp */; };
+		B274040122BC663F00F7660D /* WorldBoundsComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27403FC22BC663F00F7660D /* WorldBoundsComponent.cpp */; };
+		B274040222BC663F00F7660D /* WorldBoundsComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27403FC22BC663F00F7660D /* WorldBoundsComponent.cpp */; };
+		B274040322BC663F00F7660D /* SpriteComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27403FD22BC663F00F7660D /* SpriteComponent.cpp */; };
+		B274040422BC663F00F7660D /* SpriteComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B27403FD22BC663F00F7660D /* SpriteComponent.cpp */; };
+		B274040D22BC666800F7660D /* PositionRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274040522BC666700F7660D /* PositionRepresentation.cpp */; };
+		B274040E22BC666800F7660D /* PositionRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274040522BC666700F7660D /* PositionRepresentation.cpp */; };
+		B274040F22BC666800F7660D /* SpriteRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274040922BC666800F7660D /* SpriteRepresentation.cpp */; };
+		B274041022BC666800F7660D /* SpriteRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274040922BC666800F7660D /* SpriteRepresentation.cpp */; };
+		B274041122BC666800F7660D /* MoveRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274040A22BC666800F7660D /* MoveRepresentation.cpp */; };
+		B274041222BC666800F7660D /* MoveRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274040A22BC666800F7660D /* MoveRepresentation.cpp */; };
+		B274041322BC666800F7660D /* WorldBoundsRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274040C22BC666800F7660D /* WorldBoundsRepresentation.cpp */; };
+		B274041422BC666800F7660D /* WorldBoundsRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274040C22BC666800F7660D /* WorldBoundsRepresentation.cpp */; };
 		C95132FF2010E68A002E584B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C95132FE2010E68A002E584B /* Assets.xcassets */; };
 		C95133022010E68A002E584B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C95133002010E68A002E584B /* LaunchScreen.storyboard */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
@@ -88,7 +104,7 @@
 			dstPath = Textures;
 			dstSubfolderSpec = 7;
 			files = (
-				B238509921C9C1BA00291CA6 /* sprites.png in CopyFiles */,
+				B238509921C9C1BA00291CA6 /* sprites.ktx in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -116,13 +132,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		281FA9DF2033059C00CD5D9C /* circlepad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = circlepad.png; path = ../../../UnitTestResources/Textures/circlepad.png; sourceTree = "<group>"; };
-		28A5AB7B201F3A35000E571F /* Skybox_right1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_right1.png; path = ../../../UnitTestResources/Textures/Skybox_right1.png; sourceTree = "<group>"; };
-		28A5AB7C201F3A35000E571F /* Skybox_left2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_left2.png; path = ../../../UnitTestResources/Textures/Skybox_left2.png; sourceTree = "<group>"; };
-		28A5AB7D201F3A35000E571F /* Skybox_bottom4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_bottom4.png; path = ../../../UnitTestResources/Textures/Skybox_bottom4.png; sourceTree = "<group>"; };
-		28A5AB7E201F3A35000E571F /* Skybox_front5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_front5.png; path = ../../../UnitTestResources/Textures/Skybox_front5.png; sourceTree = "<group>"; };
-		28A5AB7F201F3A35000E571F /* Skybox_top3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_top3.png; path = ../../../UnitTestResources/Textures/Skybox_top3.png; sourceTree = "<group>"; };
-		28A5AB80201F3A35000E571F /* Skybox_back6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_back6.png; path = ../../../UnitTestResources/Textures/Skybox_back6.png; sourceTree = "<group>"; };
+		281FA9DF2033059C00CD5D9C /* circlepad.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = circlepad.ktx; path = ../../../UnitTestResources/Textures/circlepad.ktx; sourceTree = "<group>"; };
+		28A5AB7B201F3A35000E571F /* Skybox_right1.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_right1.ktx; path = ../../../UnitTestResources/Textures/Skybox_right1.ktx; sourceTree = "<group>"; };
+		28A5AB7C201F3A35000E571F /* Skybox_left2.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_left2.ktx; path = ../../../UnitTestResources/Textures/Skybox_left2.ktx; sourceTree = "<group>"; };
+		28A5AB7D201F3A35000E571F /* Skybox_bottom4.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_bottom4.ktx; path = ../../../UnitTestResources/Textures/Skybox_bottom4.ktx; sourceTree = "<group>"; };
+		28A5AB7E201F3A35000E571F /* Skybox_front5.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_front5.ktx; path = ../../../UnitTestResources/Textures/Skybox_front5.ktx; sourceTree = "<group>"; };
+		28A5AB7F201F3A35000E571F /* Skybox_top3.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_top3.ktx; path = ../../../UnitTestResources/Textures/Skybox_top3.ktx; sourceTree = "<group>"; };
+		28A5AB80201F3A35000E571F /* Skybox_back6.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_back6.ktx; path = ../../../UnitTestResources/Textures/Skybox_back6.ktx; sourceTree = "<group>"; };
 		28A5AB89201F3A77000E571F /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = ../../../UnitTestResources/Fonts/TitilliumText; sourceTree = "<group>"; };
 		5B17816922A5C82400991DCB /* profile.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.vert.metal; path = ../../src/17_EntityComponentSystem/Shaders/Metal/profile.vert.metal; sourceTree = "<group>"; };
 		5B17816A22A5C82400991DCB /* profile.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.frag.metal; path = ../../src/17_EntityComponentSystem/Shaders/Metal/profile.frag.metal; sourceTree = "<group>"; };
@@ -149,7 +165,23 @@
 		B22BBEAC21C4322E0071950F /* basic.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = basic.frag.metal; path = ../../../src/17_EntityComponentSystem/Shaders/Metal/basic.frag.metal; sourceTree = "<group>"; };
 		B22BBEAD21C4322E0071950F /* basic.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = basic.vert.metal; path = ../../../src/17_EntityComponentSystem/Shaders/Metal/basic.vert.metal; sourceTree = "<group>"; };
 		B22BBEB021C432DC0071950F /* 17_EntityComponentSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 17_EntityComponentSystem.cpp; path = ../../../src/17_EntityComponentSystem/17_EntityComponentSystem.cpp; sourceTree = "<group>"; };
-		B238509821C9C1B500291CA6 /* sprites.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = sprites.png; path = ../../../UnitTestResources/Textures/sprites.png; sourceTree = "<group>"; };
+		B238509821C9C1B500291CA6 /* sprites.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = sprites.ktx; path = ../../../UnitTestResources/Textures/sprites.ktx; sourceTree = "<group>"; };
+		B27403F522BC661500F7660D /* MoveComponent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MoveComponent.h; path = ../../../../src/17_EntityComponentSystem/Components/MoveComponent.h; sourceTree = "<group>"; };
+		B27403F622BC661500F7660D /* MoveComponent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MoveComponent.cpp; path = ../../../../src/17_EntityComponentSystem/Components/MoveComponent.cpp; sourceTree = "<group>"; };
+		B27403F922BC663F00F7660D /* PositionComponent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = PositionComponent.cpp; path = ../../../../src/17_EntityComponentSystem/Components/PositionComponent.cpp; sourceTree = "<group>"; };
+		B27403FA22BC663F00F7660D /* SpriteComponent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SpriteComponent.h; path = ../../../../src/17_EntityComponentSystem/Components/SpriteComponent.h; sourceTree = "<group>"; };
+		B27403FB22BC663F00F7660D /* WorldBoundsComponent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = WorldBoundsComponent.h; path = ../../../../src/17_EntityComponentSystem/Components/WorldBoundsComponent.h; sourceTree = "<group>"; };
+		B27403FC22BC663F00F7660D /* WorldBoundsComponent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = WorldBoundsComponent.cpp; path = ../../../../src/17_EntityComponentSystem/Components/WorldBoundsComponent.cpp; sourceTree = "<group>"; };
+		B27403FD22BC663F00F7660D /* SpriteComponent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SpriteComponent.cpp; path = ../../../../src/17_EntityComponentSystem/Components/SpriteComponent.cpp; sourceTree = "<group>"; };
+		B27403FE22BC663F00F7660D /* PositionComponent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PositionComponent.h; path = ../../../../src/17_EntityComponentSystem/Components/PositionComponent.h; sourceTree = "<group>"; };
+		B274040522BC666700F7660D /* PositionRepresentation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = PositionRepresentation.cpp; path = ../../../../src/17_EntityComponentSystem/Representations/PositionRepresentation.cpp; sourceTree = "<group>"; };
+		B274040622BC666700F7660D /* WorldBoundsRepresentation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = WorldBoundsRepresentation.h; path = ../../../../src/17_EntityComponentSystem/Representations/WorldBoundsRepresentation.h; sourceTree = "<group>"; };
+		B274040722BC666800F7660D /* MoveRepresentation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MoveRepresentation.h; path = ../../../../src/17_EntityComponentSystem/Representations/MoveRepresentation.h; sourceTree = "<group>"; };
+		B274040822BC666800F7660D /* PositionRepresentation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PositionRepresentation.h; path = ../../../../src/17_EntityComponentSystem/Representations/PositionRepresentation.h; sourceTree = "<group>"; };
+		B274040922BC666800F7660D /* SpriteRepresentation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SpriteRepresentation.cpp; path = ../../../../src/17_EntityComponentSystem/Representations/SpriteRepresentation.cpp; sourceTree = "<group>"; };
+		B274040A22BC666800F7660D /* MoveRepresentation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MoveRepresentation.cpp; path = ../../../../src/17_EntityComponentSystem/Representations/MoveRepresentation.cpp; sourceTree = "<group>"; };
+		B274040B22BC666800F7660D /* SpriteRepresentation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SpriteRepresentation.h; path = ../../../../src/17_EntityComponentSystem/Representations/SpriteRepresentation.h; sourceTree = "<group>"; };
+		B274040C22BC666800F7660D /* WorldBoundsRepresentation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = WorldBoundsRepresentation.cpp; path = ../../../../src/17_EntityComponentSystem/Representations/WorldBoundsRepresentation.cpp; sourceTree = "<group>"; };
 		C95132ED2010E68A002E584B /* 17_EntityComponentSystem_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 17_EntityComponentSystem_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C95132FE2010E68A002E584B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C95133012010E68A002E584B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -201,14 +233,14 @@
 		28A5AB7A201F399E000E571F /* Textures */ = {
 			isa = PBXGroup;
 			children = (
-				B238509821C9C1B500291CA6 /* sprites.png */,
-				281FA9DF2033059C00CD5D9C /* circlepad.png */,
-				28A5AB80201F3A35000E571F /* Skybox_back6.png */,
-				28A5AB7D201F3A35000E571F /* Skybox_bottom4.png */,
-				28A5AB7E201F3A35000E571F /* Skybox_front5.png */,
-				28A5AB7C201F3A35000E571F /* Skybox_left2.png */,
-				28A5AB7B201F3A35000E571F /* Skybox_right1.png */,
-				28A5AB7F201F3A35000E571F /* Skybox_top3.png */,
+				B238509821C9C1B500291CA6 /* sprites.ktx */,
+				281FA9DF2033059C00CD5D9C /* circlepad.ktx */,
+				28A5AB80201F3A35000E571F /* Skybox_back6.ktx */,
+				28A5AB7D201F3A35000E571F /* Skybox_bottom4.ktx */,
+				28A5AB7E201F3A35000E571F /* Skybox_front5.ktx */,
+				28A5AB7C201F3A35000E571F /* Skybox_left2.ktx */,
+				28A5AB7B201F3A35000E571F /* Skybox_right1.ktx */,
+				28A5AB7F201F3A35000E571F /* Skybox_top3.ktx */,
 			);
 			name = Textures;
 			path = 17_EntityComponentSystem_iOS;
@@ -261,6 +293,36 @@
 			name = CommonShaders;
 			sourceTree = "<group>";
 		};
+		B2A3552122BC5C0D00E1844E /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				B27403F922BC663F00F7660D /* PositionComponent.cpp */,
+				B27403FE22BC663F00F7660D /* PositionComponent.h */,
+				B27403FD22BC663F00F7660D /* SpriteComponent.cpp */,
+				B27403FA22BC663F00F7660D /* SpriteComponent.h */,
+				B27403FC22BC663F00F7660D /* WorldBoundsComponent.cpp */,
+				B27403FB22BC663F00F7660D /* WorldBoundsComponent.h */,
+				B27403F622BC661500F7660D /* MoveComponent.cpp */,
+				B27403F522BC661500F7660D /* MoveComponent.h */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		B2A3552222BC5C1500E1844E /* Representations */ = {
+			isa = PBXGroup;
+			children = (
+				B274040A22BC666800F7660D /* MoveRepresentation.cpp */,
+				B274040722BC666800F7660D /* MoveRepresentation.h */,
+				B274040522BC666700F7660D /* PositionRepresentation.cpp */,
+				B274040822BC666800F7660D /* PositionRepresentation.h */,
+				B274040922BC666800F7660D /* SpriteRepresentation.cpp */,
+				B274040B22BC666800F7660D /* SpriteRepresentation.h */,
+				B274040C22BC666800F7660D /* WorldBoundsRepresentation.cpp */,
+				B274040622BC666700F7660D /* WorldBoundsRepresentation.h */,
+			);
+			path = Representations;
+			sourceTree = "<group>";
+		};
 		C95132EE2010E68A002E584B /* 17_EntityComponentSystem_iOS */ = {
 			isa = PBXGroup;
 			children = (
@@ -302,6 +364,8 @@
 		EA463C941EF81E8F005AC8C7 /* 17_EntityComponentSystem */ = {
 			isa = PBXGroup;
 			children = (
+				B2A3552222BC5C1500E1844E /* Representations */,
+				B2A3552122BC5C0D00E1844E /* Components */,
 				B22BBEB021C432DC0071950F /* 17_EntityComponentSystem.cpp */,
 				5C172F33214147700074EE71 /* AppDelegate.h */,
 				5C172F32214147700074EE71 /* AppDelegate.m */,
@@ -443,8 +507,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B274041422BC666800F7660D /* WorldBoundsRepresentation.cpp in Sources */,
 				B22BBEB221C432DC0071950F /* 17_EntityComponentSystem.cpp in Sources */,
 				5C17300521414D110074EE71 /* AppDelegate.m in Sources */,
+				B274040422BC663F00F7660D /* SpriteComponent.cpp in Sources */,
+				B274041022BC666800F7660D /* SpriteRepresentation.cpp in Sources */,
+				B274040222BC663F00F7660D /* WorldBoundsComponent.cpp in Sources */,
+				B274041222BC666800F7660D /* MoveRepresentation.cpp in Sources */,
+				B274040E22BC666800F7660D /* PositionRepresentation.cpp in Sources */,
+				B274040022BC663F00F7660D /* PositionComponent.cpp in Sources */,
+				B27403F822BC661500F7660D /* MoveComponent.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -452,8 +524,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B274041322BC666800F7660D /* WorldBoundsRepresentation.cpp in Sources */,
+				B274040122BC663F00F7660D /* WorldBoundsComponent.cpp in Sources */,
+				B274040322BC663F00F7660D /* SpriteComponent.cpp in Sources */,
 				5C172F34214147700074EE71 /* AppDelegate.m in Sources */,
+				B274040F22BC666800F7660D /* SpriteRepresentation.cpp in Sources */,
 				B22BBEB121C432DC0071950F /* 17_EntityComponentSystem.cpp in Sources */,
+				B274041122BC666800F7660D /* MoveRepresentation.cpp in Sources */,
+				B274040D22BC666800F7660D /* PositionRepresentation.cpp in Sources */,
+				B27403FF22BC663F00F7660D /* PositionComponent.cpp in Sources */,
+				B27403F722BC661500F7660D /* MoveComponent.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

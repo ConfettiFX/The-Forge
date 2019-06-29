@@ -40,6 +40,14 @@
         <File Name="../../../../Common_3/ThirdParty/OpenSource/imgui/imgui_internal.h"/>
       </VirtualDirectory>
     </VirtualDirectory>
+    <VirtualDirectory Name="ECS">
+      <File Name="../../../../Middleware_3/ECS/BaseComponent.cpp"/>
+      <File Name="../../../../Middleware_3/ECS/BaseComponent.h"/>
+      <File Name="../../../../Middleware_3/ECS/ComponentRepresentation.cpp"/>
+      <File Name="../../../../Middleware_3/ECS/ComponentRepresentation.h"/>
+      <File Name="../../../../Middleware_3/ECS/EntityManager.cpp"/>
+      <File Name="../../../../Middleware_3/ECS/EntityManager.h"/>
+    </VirtualDirectory>
   </VirtualDirectory>
   <Description/>
   <Dependencies/>

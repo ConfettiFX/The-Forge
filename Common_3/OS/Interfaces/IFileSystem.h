@@ -104,6 +104,7 @@ enum FSRoot
 	FSR_Builtin_Fonts,
 	FSR_GpuConfig,
 	FSR_Animation,    // Animation Ozz files
+	FSR_Audio,
 	FSR_OtherFiles,
 
 	// libraries will want there own directories

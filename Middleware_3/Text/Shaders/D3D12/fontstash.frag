@@ -10,7 +10,7 @@ cbuffer uRootConstants : register(b0)
 	float2 scaleBias;
 };
 
-Texture2D uTex0 : register(t1, space2);
+Texture2D uTex0 : register(t1);
 SamplerState uSampler0 : register(s2);
 
 float4 main(PsIn In) : SV_Target

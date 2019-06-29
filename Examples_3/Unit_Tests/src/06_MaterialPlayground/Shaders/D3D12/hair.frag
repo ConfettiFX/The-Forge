@@ -86,7 +86,13 @@ struct Camera
 	float fNormalMapIntensity;
 };
 
-cbuffer cbCamera : register(b0, space3)
+#if defined(HAIR_SHADOW)
+#define CB_CAMERA_SET space2
+#else
+#define CB_CAMERA_SET space0
+#endif
+
+cbuffer cbCamera : register(b0, CB_CAMERA_SET)
 {
 	Camera Cam;
 }
@@ -119,12 +125,12 @@ cbuffer cbDirectionalLights : register(b4)
 	uint NumDirectionalLights;
 }
 
-cbuffer cbDirectionalLightShadowCameras : register(b6, space3)
+cbuffer cbDirectionalLightShadowCameras : register(b6, space2)
 {
 	Camera ShadowCameras[MAX_NUM_DIRECTIONAL_LIGHTS];
 }
 
-Texture2D<float> DirectionalLightShadowMaps[MAX_NUM_DIRECTIONAL_LIGHTS] : register(t3, space3);
+Texture2D<float> DirectionalLightShadowMaps[MAX_NUM_DIRECTIONAL_LIGHTS] : register(t3, space2);
 SamplerState PointSampler : register(s1);
 
 cbuffer cbHairGlobal : register(b5)

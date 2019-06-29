@@ -48,10 +48,10 @@
 		971BCF3421701A9C007F2B2F /* lion in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8B4D42141D09E00C20D67 /* lion */; };
 		971BCF3521701A9C007F2B2F /* SponzaPBR_Textures in Copy Textures */ = {isa = PBXBuildFile; fileRef = B20A6316213F8DC900FE4944 /* SponzaPBR_Textures */; };
 		971BCF3621701A9C007F2B2F /* skybox in Copy Textures */ = {isa = PBXBuildFile; fileRef = B256247620EC3277007C672A /* skybox */; };
-		971BCF3721701A9C007F2B2F /* rect.tga in Copy Textures */ = {isa = PBXBuildFile; fileRef = B256247120EC31BC007C672A /* rect.tga */; };
-		971BCF3821701A9C007F2B2F /* Warehouse-with-lights.tga in Copy Textures */ = {isa = PBXBuildFile; fileRef = B23CFB8320EC313A0053944B /* Warehouse-with-lights.tga */; };
-		971BCF3921701A9C007F2B2F /* circlepad.png in Copy Textures */ = {isa = PBXBuildFile; fileRef = 281FA9ED20333E9200CD5D9C /* circlepad.png */; };
-		971BCF3A21701A9C007F2B2F /* environment_sky.png in Copy Textures */ = {isa = PBXBuildFile; fileRef = 28A5AE32201F7DB4000E571F /* environment_sky.png */; };
+		971BCF3721701A9C007F2B2F /* rect.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = B256247120EC31BC007C672A /* rect.ktx */; };
+		971BCF3821701A9C007F2B2F /* Warehouse-with-lights.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = B23CFB8320EC313A0053944B /* Warehouse-with-lights.ktx */; };
+		971BCF3921701A9C007F2B2F /* circlepad.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = 281FA9ED20333E9200CD5D9C /* circlepad.ktx */; };
+		971BCF3A21701A9C007F2B2F /* environment_sky.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = 28A5AE32201F7DB4000E571F /* environment_sky.ktx */; };
 		971BCF3C21701AB6007F2B2F /* sponza.mtl in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B22902F92141DD2E004A09DE /* sponza.mtl */; };
 		971BCF3D21701AB6007F2B2F /* lion.obj in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B262F4B32141CF4A00B12385 /* lion.obj */; };
 		971BCF3E21701AB6007F2B2F /* sponza.obj in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B20A6262213F8D5600FE4944 /* sponza.obj */; };
@@ -229,10 +229,10 @@
 				971BCF3421701A9C007F2B2F /* lion in Copy Textures */,
 				971BCF3521701A9C007F2B2F /* SponzaPBR_Textures in Copy Textures */,
 				971BCF3621701A9C007F2B2F /* skybox in Copy Textures */,
-				971BCF3721701A9C007F2B2F /* rect.tga in Copy Textures */,
-				971BCF3821701A9C007F2B2F /* Warehouse-with-lights.tga in Copy Textures */,
-				971BCF3921701A9C007F2B2F /* circlepad.png in Copy Textures */,
-				971BCF3A21701A9C007F2B2F /* environment_sky.png in Copy Textures */,
+				971BCF3721701A9C007F2B2F /* rect.ktx in Copy Textures */,
+				971BCF3821701A9C007F2B2F /* Warehouse-with-lights.ktx in Copy Textures */,
+				971BCF3921701A9C007F2B2F /* circlepad.ktx in Copy Textures */,
+				971BCF3A21701A9C007F2B2F /* environment_sky.ktx in Copy Textures */,
 			);
 			name = "Copy Textures";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -253,13 +253,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		281FA9ED20333E9200CD5D9C /* circlepad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = circlepad.png; path = ../../../UnitTestResources/Textures/circlepad.png; sourceTree = "<group>"; };
+		281FA9ED20333E9200CD5D9C /* circlepad.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = circlepad.ktx; path = ../../../UnitTestResources/Textures/circlepad.ktx; sourceTree = "<group>"; };
 		28A5AE08201F7D41000E571F /* 09a_HybridRaytracing_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 09a_HybridRaytracing_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		28A5AE19201F7D41000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		28A5AE1C201F7D41000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		28A5AE1E201F7D41000E571F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		28A5AE30201F7D9E000E571F /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = ../../../UnitTestResources/Fonts/TitilliumText; sourceTree = "<group>"; };
-		28A5AE32201F7DB4000E571F /* environment_sky.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = environment_sky.png; path = ../../../UnitTestResources/Textures/environment_sky.png; sourceTree = "<group>"; };
+		28A5AE32201F7DB4000E571F /* environment_sky.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = environment_sky.ktx; path = ../../../UnitTestResources/Textures/environment_sky.ktx; sourceTree = "<group>"; };
 		28EE9FF6201B30B200D42AD7 /* 09a_HybridRaytracing.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 09a_HybridRaytracing.cpp; path = ../../../src/09a_HybridRaytracing/09a_HybridRaytracing.cpp; sourceTree = "<group>"; };
 		5B17815D22A5C78200991DCB /* profile.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.frag.metal; path = ../../src/09a_HybridRaytracing/Shaders/Metal/profile.frag.metal; sourceTree = "<group>"; };
 		5B17815E22A5C78200991DCB /* profile.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.vert.metal; path = ../../src/09a_HybridRaytracing/Shaders/Metal/profile.vert.metal; sourceTree = "<group>"; };
@@ -292,8 +292,8 @@
 		B21F76EC21420EE900DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76ED21420EE900DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		B22902F92141DD2E004A09DE /* sponza.mtl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = sponza.mtl; path = ../../../../../Art/Sponza/Meshes/sponza.mtl; sourceTree = "<group>"; };
-		B23CFB8320EC313A0053944B /* Warehouse-with-lights.tga */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Warehouse-with-lights.tga"; path = "../../../UnitTestResources/Textures/Warehouse-with-lights.tga"; sourceTree = "<group>"; };
-		B256247120EC31BC007C672A /* rect.tga */ = {isa = PBXFileReference; lastKnownFileType = file; name = rect.tga; path = ../../../UnitTestResources/Textures/rect.tga; sourceTree = "<group>"; };
+		B23CFB8320EC313A0053944B /* Warehouse-with-lights.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Warehouse-with-lights.ktx"; path = "../../../UnitTestResources/Textures/Warehouse-with-lights.ktx"; sourceTree = "<group>"; };
+		B256247120EC31BC007C672A /* rect.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = rect.ktx; path = ../../../UnitTestResources/Textures/rect.ktx; sourceTree = "<group>"; };
 		B256247620EC3277007C672A /* skybox */ = {isa = PBXFileReference; lastKnownFileType = folder; name = skybox; path = ../../../UnitTestResources/Textures/skybox; sourceTree = "<group>"; };
 		B262F4A92141CAFC00B12385 /* gbufferPass_iOS.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = gbufferPass_iOS.frag.metal; path = ../../../src/09a_HybridRaytracing/Shaders/Metal/gbufferPass_iOS.frag.metal; sourceTree = "<group>"; };
 		B262F4B32141CF4A00B12385 /* lion.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = lion.obj; path = ../../../../../Art/Sponza/Meshes/lion.obj; sourceTree = "<group>"; };
@@ -405,10 +405,10 @@
 				B2F8B4D42141D09E00C20D67 /* lion */,
 				B20A6316213F8DC900FE4944 /* SponzaPBR_Textures */,
 				B256247620EC3277007C672A /* skybox */,
-				B256247120EC31BC007C672A /* rect.tga */,
-				B23CFB8320EC313A0053944B /* Warehouse-with-lights.tga */,
-				281FA9ED20333E9200CD5D9C /* circlepad.png */,
-				28A5AE32201F7DB4000E571F /* environment_sky.png */,
+				B256247120EC31BC007C672A /* rect.ktx */,
+				B23CFB8320EC313A0053944B /* Warehouse-with-lights.ktx */,
+				281FA9ED20333E9200CD5D9C /* circlepad.ktx */,
+				28A5AE32201F7DB4000E571F /* environment_sky.ktx */,
 			);
 			name = Textures;
 			path = 09a_HybridRaytracing_iOS;

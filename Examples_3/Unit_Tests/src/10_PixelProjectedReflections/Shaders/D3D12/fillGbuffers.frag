@@ -47,9 +47,17 @@ SamplerState defaultSampler : register(s2);
 // material parameters
 Texture2D textureMaps[] : register(t3, space1);
 
+float3 reconstructNormal(in float4 sampleNormal)
+{
+	float3 tangentNormal;
+	tangentNormal.xy = sampleNormal.rg * 2 - 1;
+	tangentNormal.z = sqrt(1 - saturate(dot(tangentNormal.xy, tangentNormal.xy)));
+	return tangentNormal;
+}
+
 float3 getNormalFromMap(float3 pos, float3 normal, float2 uv)
 {
-    float3 tangentNormal =  textureMaps[normalMap].Sample(defaultSampler, uv).xyz * 2.0 - 1.0;
+	float3 tangentNormal = reconstructNormal(textureMaps[normalMap].Sample(defaultSampler, uv));
 
     float3 Q1  = ddx(pos);
     float3 Q2  = ddy(pos);

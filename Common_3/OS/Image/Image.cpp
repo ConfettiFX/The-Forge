@@ -22,9 +22,17 @@
  * under the License.
 */
 
+//this is needed for unix as PATH_MAX is defined instead of MAX_PATH
+#ifndef _WIN32
+#include <limits.h>
+#define MAX_PATH PATH_MAX
+#endif
+
+#include "../../ThirdParty/OpenSource/EASTL/functional.h"
+#include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
+
 #include "Image.h"
 #include "../Interfaces/ILogManager.h"
-#include "../Interfaces/IMemoryManager.h"
 #include "../../ThirdParty/OpenSource/TinyEXR/tinyexr.h"
 //stb_image
 #define STB_IMAGE_IMPLEMENTATION
@@ -43,6 +51,9 @@
 #define STBIW_FREE conf_free
 #define STBIW_ASSERT ASSERT
 #include "../../ThirdParty/OpenSource/Nothings/stb_image_write.h"
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "../../ThirdParty/OpenSource/Nothings/stb_image_resize.h"
+#include "../Interfaces/IMemoryManager.h"
 
 // --- IMAGE HEADERS ---
 
@@ -127,26 +138,337 @@ struct DDSHeaderDX10
 	uint32 mReserved;
 };
 
-#ifdef TARGET_IOS
 // Describes the header of a PVR header-texture
 typedef struct PVR_Header_Texture_TAG
 {
-	unsigned int 	mVersion;
-	unsigned int 	mFlags; //!< Various format flags.
-	unsigned long 	mPixelFormat; //!< The pixel format, 8cc value storing the 4 channel identifiers and their respective sizes.
-	unsigned int 	mColorSpace; //!< The Color Space of the texture, currently either linear RGB or sRGB.
-	unsigned int 	mChannelType; //!< Variable type that the channel is stored in. Supports signed/unsigned int/short/char/float.
-	unsigned int 	mHeight; //!< Height of the texture.
-	unsigned int	mWidth; //!< Width of the texture.
-	unsigned int 	mDepth; //!< Depth of the texture. (Z-slices)
-	unsigned int 	mNumSurfaces; //!< Number of members in a Texture Array.
-	unsigned int 	mNumFaces; //!< Number of faces in a Cube Map. Maybe be a value other than 6.
-	unsigned int 	mNumMipMaps; //!< Number of MIP Maps in the texture - NB: Includes top level.
-	unsigned int 	mMetaDataSize; //!< Size of the accompanying meta data.
+	uint32_t 	mVersion;
+	uint32_t 	mFlags; //!< Various format flags.
+	uint64_t 	mPixelFormat; //!< The pixel format, 8cc value storing the 4 channel identifiers and their respective sizes.
+	uint32_t 	mColorSpace; //!< The Color Space of the texture, currently either linear RGB or sRGB.
+	uint32_t 	mChannelType; //!< Variable type that the channel is stored in. Supports signed/uint32_t/short/char/float.
+	uint32_t 	mHeight; //!< Height of the texture.
+	uint32_t	mWidth; //!< Width of the texture.
+	uint32_t 	mDepth; //!< Depth of the texture. (Z-slices)
+	uint32_t 	mNumSurfaces; //!< Number of members in a Texture Array.
+	uint32_t 	mNumFaces; //!< Number of faces in a Cube Map. Maybe be a value other than 6.
+	uint32_t 	mNumMipMaps; //!< Number of MIP Maps in the texture - NB: Includes top level.
+	uint32_t 	mMetaDataSize; //!< Size of the accompanying meta data.
 } PVR_Texture_Header;
 
-const unsigned int gPvrtexV3HeaderVersion = 0x03525650;
+#ifdef TARGET_IOS
+const uint32_t gPvrtexV3HeaderVersion = 0x03525650;
 #endif
+
+// KTX Container Data
+typedef enum KTXInternalFormat
+{
+	KTXInternalFormat_RGB_UNORM = 0x1907,			//GL_RGB
+	KTXInternalFormat_BGR_UNORM = 0x80E0,		//GL_BGR
+	KTXInternalFormat_RGBA_UNORM = 0x1908,		//GL_RGBA
+	KTXInternalFormat_BGRA_UNORM = 0x80E1,		//GL_BGRA
+	KTXInternalFormat_BGRA8_UNORM = 0x93A1,		//GL_BGRA8_EXT
+
+	// unorm formats
+	KTXInternalFormat_R8_UNORM = 0x8229,			//GL_R8
+	KTXInternalFormat_RG8_UNORM = 0x822B,		//GL_RG8
+	KTXInternalFormat_RGB8_UNORM = 0x8051,		//GL_RGB8
+	KTXInternalFormat_RGBA8_UNORM = 0x8058,		//GL_RGBA8
+
+	KTXInternalFormat_R16_UNORM = 0x822A,		//GL_R16
+	KTXInternalFormat_RG16_UNORM = 0x822C,		//GL_RG16
+	KTXInternalFormat_RGB16_UNORM = 0x8054,		//GL_RGB16
+	KTXInternalFormat_RGBA16_UNORM = 0x805B,		//GL_RGBA16
+
+	KTXInternalFormat_RGB10A2_UNORM = 0x8059,	//GL_RGB10_A2
+	KTXInternalFormat_RGB10A2_SNORM_EXT = 0xFFFC,
+
+	// snorm formats
+	KTXInternalFormat_R8_SNORM = 0x8F94,			//GL_R8_SNORM
+	KTXInternalFormat_RG8_SNORM = 0x8F95,		//GL_RG8_SNORM
+	KTXInternalFormat_RGB8_SNORM = 0x8F96,		//GL_RGB8_SNORM
+	KTXInternalFormat_RGBA8_SNORM = 0x8F97,		//GL_RGBA8_SNORM
+
+	KTXInternalFormat_R16_SNORM = 0x8F98,		//GL_R16_SNORM
+	KTXInternalFormat_RG16_SNORM = 0x8F99,		//GL_RG16_SNORM
+	KTXInternalFormat_RGB16_SNORM = 0x8F9A,		//GL_RGB16_SNORM
+	KTXInternalFormat_RGBA16_SNORM = 0x8F9B,		//GL_RGBA16_SNORM
+
+	// unsigned integer formats
+	KTXInternalFormat_R8U = 0x8232,				//GL_R8UI
+	KTXInternalFormat_RG8U = 0x8238,				//GL_RG8UI
+	KTXInternalFormat_RGB8U = 0x8D7D,			//GL_RGB8UI
+	KTXInternalFormat_RGBA8U = 0x8D7C,			//GL_RGBA8UI
+
+	KTXInternalFormat_R16U = 0x8234,				//GL_R16UI
+	KTXInternalFormat_RG16U = 0x823A,			//GL_RG16UI
+	KTXInternalFormat_RGB16U = 0x8D77,			//GL_RGB16UI
+	KTXInternalFormat_RGBA16U = 0x8D76,			//GL_RGBA16UI
+
+	KTXInternalFormat_R32U = 0x8236,				//GL_R32UI
+	KTXInternalFormat_RG32U = 0x823C,			//GL_RG32UI
+	KTXInternalFormat_RGB32U = 0x8D71,			//GL_RGB32UI
+	KTXInternalFormat_RGBA32U = 0x8D70,			//GL_RGBA32UI
+
+	KTXInternalFormat_RGB10A2U = 0x906F,			//GL_RGB10_A2UI
+	KTXInternalFormat_RGB10A2I_EXT = 0xFFFB,
+
+	// signed integer formats
+	KTXInternalFormat_R8I = 0x8231,				//GL_R8I
+	KTXInternalFormat_RG8I = 0x8237,				//GL_RG8I
+	KTXInternalFormat_RGB8I = 0x8D8F,			//GL_RGB8I
+	KTXInternalFormat_RGBA8I = 0x8D8E,			//GL_RGBA8I
+
+	KTXInternalFormat_R16I = 0x8233,				//GL_R16I
+	KTXInternalFormat_RG16I = 0x8239,			//GL_RG16I
+	KTXInternalFormat_RGB16I = 0x8D89,			//GL_RGB16I
+	KTXInternalFormat_RGBA16I = 0x8D88,			//GL_RGBA16I
+
+	KTXInternalFormat_R32I = 0x8235,				//GL_R32I
+	KTXInternalFormat_RG32I = 0x823B,			//GL_RG32I
+	KTXInternalFormat_RGB32I = 0x8D83,			//GL_RGB32I
+	KTXInternalFormat_RGBA32I = 0x8D82,			//GL_RGBA32I
+
+	// Floating formats
+	KTXInternalFormat_R16F = 0x822D,				//GL_R16F
+	KTXInternalFormat_RG16F = 0x822F,			//GL_RG16F
+	KTXInternalFormat_RGB16F = 0x881B,			//GL_RGB16F
+	KTXInternalFormat_RGBA16F = 0x881A,			//GL_RGBA16F
+
+	KTXInternalFormat_R32F = 0x822E,				//GL_R32F
+	KTXInternalFormat_RG32F = 0x8230,			//GL_RG32F
+	KTXInternalFormat_RGB32F = 0x8815,			//GL_RGB32F
+	KTXInternalFormat_RGBA32F = 0x8814,			//GL_RGBA32F
+
+	KTXInternalFormat_R64F_EXT = 0xFFFA,			//GL_R64F
+	KTXInternalFormat_RG64F_EXT = 0xFFF9,		//GL_RG64F
+	KTXInternalFormat_RGB64F_EXT = 0xFFF8,		//GL_RGB64F
+	KTXInternalFormat_RGBA64F_EXT = 0xFFF7,		//GL_RGBA64F
+
+	// sRGB formats
+	KTXInternalFormat_SR8 = 0x8FBD,				//GL_SR8_EXT
+	KTXInternalFormat_SRG8 = 0x8FBE,				//GL_SRG8_EXT
+	KTXInternalFormat_SRGB8 = 0x8C41,			//GL_SRGB8
+	KTXInternalFormat_SRGB8_ALPHA8 = 0x8C43,		//GL_SRGB8_ALPHA8
+
+	// Packed formats
+	KTXInternalFormat_RGB9E5 = 0x8C3D,			//GL_RGB9_E5
+	KTXInternalFormat_RG11B10F = 0x8C3A,			//GL_R11F_G11F_B10F
+	KTXInternalFormat_RG3B2 = 0x2A10,			//GL_R3_G3_B2
+	KTXInternalFormat_R5G6B5 = 0x8D62,			//GL_RGB565
+	KTXInternalFormat_RGB5A1 = 0x8057,			//GL_RGB5_A1
+	KTXInternalFormat_RGBA4 = 0x8056,			//GL_RGBA4
+
+	KTXInternalFormat_RG4_EXT = 0xFFFE,
+
+	// Luminance Alpha formats
+	KTXInternalFormat_LA4 = 0x8043,				//GL_LUMINANCE4_ALPHA4
+	KTXInternalFormat_L8 = 0x8040,				//GL_LUMINANCE8
+	KTXInternalFormat_A8 = 0x803C,				//GL_ALPHA8
+	KTXInternalFormat_LA8 = 0x8045,				//GL_LUMINANCE8_ALPHA8
+	KTXInternalFormat_L16 = 0x8042,				//GL_LUMINANCE16
+	KTXInternalFormat_A16 = 0x803E,				//GL_ALPHA16
+	KTXInternalFormat_LA16 = 0x8048,				//GL_LUMINANCE16_ALPHA16
+
+	// Depth formats
+	KTXInternalFormat_D16 = 0x81A5,				//GL_DEPTH_COMPONENT16
+	KTXInternalFormat_D24 = 0x81A6,				//GL_DEPTH_COMPONENT24
+	KTXInternalFormat_D16S8_EXT = 0xFFF6,
+	KTXInternalFormat_D24S8 = 0x88F0,			//GL_DEPTH24_STENCIL8
+	KTXInternalFormat_D32 = 0x81A7,				//GL_DEPTH_COMPONENT32
+	KTXInternalFormat_D32F = 0x8CAC,				//GL_DEPTH_COMPONENT32F
+	KTXInternalFormat_D32FS8X24 = 0x8CAD,		//GL_DEPTH32F_STENCIL8
+	KTXInternalFormat_S8_EXT = 0x8D48,			//GL_STENCIL_INDEX8
+
+	// Compressed formats
+	KTXInternalFormat_RGB_DXT1 = 0x83F0,						//GL_COMPRESSED_RGB_S3TC_DXT1_EXT
+	KTXInternalFormat_RGBA_DXT1 = 0x83F1,					//GL_COMPRESSED_RGBA_S3TC_DXT1_EXT
+	KTXInternalFormat_RGBA_DXT3 = 0x83F2,					//GL_COMPRESSED_RGBA_S3TC_DXT3_EXT
+	KTXInternalFormat_RGBA_DXT5 = 0x83F3,					//GL_COMPRESSED_RGBA_S3TC_DXT5_EXT
+	KTXInternalFormat_R_ATI1N_UNORM = 0x8DBB,				//GL_COMPRESSED_RED_RGTC1
+	KTXInternalFormat_R_ATI1N_SNORM = 0x8DBC,				//GL_COMPRESSED_SIGNED_RED_RGTC1
+	KTXInternalFormat_RG_ATI2N_UNORM = 0x8DBD,				//GL_COMPRESSED_RG_RGTC2
+	KTXInternalFormat_RG_ATI2N_SNORM = 0x8DBE,				//GL_COMPRESSED_SIGNED_RG_RGTC2
+	KTXInternalFormat_RGB_BP_UNSIGNED_FLOAT = 0x8E8F,		//GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT
+	KTXInternalFormat_RGB_BP_SIGNED_FLOAT = 0x8E8E,			//GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT
+	KTXInternalFormat_RGB_BP_UNORM = 0x8E8C,					//GL_COMPRESSED_RGBA_BPTC_UNORM
+	KTXInternalFormat_RGB_PVRTC_4BPPV1 = 0x8C00,				//GL_COMPRESSED_RGB_PVRTC_4BPPV1_IMG
+	KTXInternalFormat_RGB_PVRTC_2BPPV1 = 0x8C01,				//GL_COMPRESSED_RGB_PVRTC_2BPPV1_IMG
+	KTXInternalFormat_RGBA_PVRTC_4BPPV1 = 0x8C02,			//GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG
+	KTXInternalFormat_RGBA_PVRTC_2BPPV1 = 0x8C03,			//GL_COMPRESSED_RGBA_PVRTC_2BPPV1_IMG
+	KTXInternalFormat_RGBA_PVRTC_4BPPV2 = 0x9137,			//GL_COMPRESSED_RGBA_PVRTC_4BPPV2_IMG
+	KTXInternalFormat_RGBA_PVRTC_2BPPV2 = 0x9138,			//GL_COMPRESSED_RGBA_PVRTC_2BPPV2_IMG
+	KTXInternalFormat_ATC_RGB = 0x8C92,						//GL_ATC_RGB_AMD
+	KTXInternalFormat_ATC_RGBA_EXPLICIT_ALPHA = 0x8C93,		//GL_ATC_RGBA_EXPLICIT_ALPHA_AMD
+	KTXInternalFormat_ATC_RGBA_INTERPOLATED_ALPHA = 0x87EE,	//GL_ATC_RGBA_INTERPOLATED_ALPHA_AMD
+
+	KTXInternalFormat_RGB_ETC = 0x8D64,						//GL_COMPRESSED_RGB8_ETC1
+	KTXInternalFormat_RGB_ETC2 = 0x9274,						//GL_COMPRESSED_RGB8_ETC2
+	KTXInternalFormat_RGBA_PUNCHTHROUGH_ETC2 = 0x9276,		//GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2
+	KTXInternalFormat_RGBA_ETC2 = 0x9278,					//GL_COMPRESSED_RGBA8_ETC2_EAC
+	KTXInternalFormat_R11_EAC = 0x9270,						//GL_COMPRESSED_R11_EAC
+	KTXInternalFormat_SIGNED_R11_EAC = 0x9271,				//GL_COMPRESSED_SIGNED_R11_EAC
+	KTXInternalFormat_RG11_EAC = 0x9272,						//GL_COMPRESSED_RG11_EAC
+	KTXInternalFormat_SIGNED_RG11_EAC = 0x9273,				//GL_COMPRESSED_SIGNED_RG11_EAC
+
+	KTXInternalFormat_RGBA_ASTC_4x4 = 0x93B0,				//GL_COMPRESSED_RGBA_ASTC_4x4_KHR
+	KTXInternalFormat_RGBA_ASTC_5x4 = 0x93B1,				//GL_COMPRESSED_RGBA_ASTC_5x4_KHR
+	KTXInternalFormat_RGBA_ASTC_5x5 = 0x93B2,				//GL_COMPRESSED_RGBA_ASTC_5x5_KHR
+	KTXInternalFormat_RGBA_ASTC_6x5 = 0x93B3,				//GL_COMPRESSED_RGBA_ASTC_6x5_KHR
+	KTXInternalFormat_RGBA_ASTC_6x6 = 0x93B4,				//GL_COMPRESSED_RGBA_ASTC_6x6_KHR
+	KTXInternalFormat_RGBA_ASTC_8x5 = 0x93B5,				//GL_COMPRESSED_RGBA_ASTC_8x5_KHR
+	KTXInternalFormat_RGBA_ASTC_8x6 = 0x93B6,				//GL_COMPRESSED_RGBA_ASTC_8x6_KHR
+	KTXInternalFormat_RGBA_ASTC_8x8 = 0x93B7,				//GL_COMPRESSED_RGBA_ASTC_8x8_KHR
+	KTXInternalFormat_RGBA_ASTC_10x5 = 0x93B8,				//GL_COMPRESSED_RGBA_ASTC_10x5_KHR
+	KTXInternalFormat_RGBA_ASTC_10x6 = 0x93B9,				//GL_COMPRESSED_RGBA_ASTC_10x6_KHR
+	KTXInternalFormat_RGBA_ASTC_10x8 = 0x93BA,				//GL_COMPRESSED_RGBA_ASTC_10x8_KHR
+	KTXInternalFormat_RGBA_ASTC_10x10 = 0x93BB,				//GL_COMPRESSED_RGBA_ASTC_10x10_KHR
+	KTXInternalFormat_RGBA_ASTC_12x10 = 0x93BC,				//GL_COMPRESSED_RGBA_ASTC_12x10_KHR
+	KTXInternalFormat_RGBA_ASTC_12x12 = 0x93BD,				//GL_COMPRESSED_RGBA_ASTC_12x12_KHR
+
+	// sRGB formats
+	KTXInternalFormat_SRGB_DXT1 = 0x8C4C,					//GL_COMPRESSED_SRGB_S3TC_DXT1_EXT
+	KTXInternalFormat_SRGB_ALPHA_DXT1 = 0x8C4D,				//GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT
+	KTXInternalFormat_SRGB_ALPHA_DXT3 = 0x8C4E,				//GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT
+	KTXInternalFormat_SRGB_ALPHA_DXT5 = 0x8C4F,				//GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT
+	KTXInternalFormat_SRGB_BP_UNORM = 0x8E8D,				//GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM
+	KTXInternalFormat_SRGB_PVRTC_2BPPV1 = 0x8A54,			//GL_COMPRESSED_SRGB_PVRTC_2BPPV1_EXT
+	KTXInternalFormat_SRGB_PVRTC_4BPPV1 = 0x8A55,			//GL_COMPRESSED_SRGB_PVRTC_4BPPV1_EXT
+	KTXInternalFormat_SRGB_ALPHA_PVRTC_2BPPV1 = 0x8A56,		//GL_COMPRESSED_SRGB_ALPHA_PVRTC_2BPPV1_EXT
+	KTXInternalFormat_SRGB_ALPHA_PVRTC_4BPPV1 = 0x8A57,		//GL_COMPRESSED_SRGB_ALPHA_PVRTC_4BPPV1_EXT
+	KTXInternalFormat_SRGB_ALPHA_PVRTC_2BPPV2 = 0x93F0,		//COMPRESSED_SRGB_ALPHA_PVRTC_2BPPV2_IMG
+	KTXInternalFormat_SRGB_ALPHA_PVRTC_4BPPV2 = 0x93F1,		//GL_COMPRESSED_SRGB_ALPHA_PVRTC_4BPPV2_IMG
+	KTXInternalFormat_SRGB8_ETC2 = 0x9275,						//GL_COMPRESSED_SRGB8_ETC2
+	KTXInternalFormat_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2 = 0x9277,	//GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2
+	KTXInternalFormat_SRGB8_ALPHA8_ETC2_EAC = 0x9279,			//GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC
+	KTXInternalFormat_SRGB8_ALPHA8_ASTC_4x4 = 0x93D0,		//GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR
+	KTXInternalFormat_SRGB8_ALPHA8_ASTC_5x4 = 0x93D1,		//GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR
+	KTXInternalFormat_SRGB8_ALPHA8_ASTC_5x5 = 0x93D2,		//GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR
+	KTXInternalFormat_SRGB8_ALPHA8_ASTC_6x5 = 0x93D3,		//GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR
+	KTXInternalFormat_SRGB8_ALPHA8_ASTC_6x6 = 0x93D4,		//GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR
+	KTXInternalFormat_SRGB8_ALPHA8_ASTC_8x5 = 0x93D5,		//GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR
+	KTXInternalFormat_SRGB8_ALPHA8_ASTC_8x6 = 0x93D6,		//GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR
+	KTXInternalFormat_SRGB8_ALPHA8_ASTC_8x8 = 0x93D7,		//GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR
+	KTXInternalFormat_SRGB8_ALPHA8_ASTC_10x5 = 0x93D8,		//GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR
+	KTXInternalFormat_SRGB8_ALPHA8_ASTC_10x6 = 0x93D9,		//GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR
+	KTXInternalFormat_SRGB8_ALPHA8_ASTC_10x8 = 0x93DA,		//GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR
+	KTXInternalFormat_SRGB8_ALPHA8_ASTC_10x10 = 0x93DB,		//GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR
+	KTXInternalFormat_SRGB8_ALPHA8_ASTC_12x10 = 0x93DC,		//GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR
+	KTXInternalFormat_SRGB8_ALPHA8_ASTC_12x12 = 0x93DD,		//GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR
+
+	KTXInternalFormat_ALPHA8 = 0x803C,
+	KTXInternalFormat_ALPHA16 = 0x803E,
+	KTXInternalFormat_LUMINANCE8 = 0x8040,
+	KTXInternalFormat_LUMINANCE16 = 0x8042,
+	KTXInternalFormat_LUMINANCE8_ALPHA8 = 0x8045,
+	KTXInternalFormat_LUMINANCE16_ALPHA16 = 0x8048,
+
+	KTXInternalFormat_R8_USCALED_GTC = 0xF000,
+	KTXInternalFormat_R8_SSCALED_GTC,
+	KTXInternalFormat_RG8_USCALED_GTC,
+	KTXInternalFormat_RG8_SSCALED_GTC,
+	KTXInternalFormat_RGB8_USCALED_GTC,
+	KTXInternalFormat_RGB8_SSCALED_GTC,
+	KTXInternalFormat_RGBA8_USCALED_GTC,
+	KTXInternalFormat_RGBA8_SSCALED_GTC,
+	KTXInternalFormat_RGB10A2_USCALED_GTC,
+	KTXInternalFormat_RGB10A2_SSCALED_GTC,
+	KTXInternalFormat_R16_USCALED_GTC,
+	KTXInternalFormat_R16_SSCALED_GTC,
+	KTXInternalFormat_RG16_USCALED_GTC,
+	KTXInternalFormat_RG16_SSCALED_GTC,
+	KTXInternalFormat_RGB16_USCALED_GTC,
+	KTXInternalFormat_RGB16_SSCALED_GTC,
+	KTXInternalFormat_RGBA16_USCALED_GTC,
+	KTXInternalFormat_RGBA16_SSCALED_GTC,
+} KTXInternalFormat;
+
+typedef enum KTXExternalFormat
+{
+	KTXExternalFormat_NONE = 0,					//GL_NONE
+	KTXExternalFormat_RED = 0x1903,				//GL_RED
+	KTXExternalFormat_RG = 0x8227,				//GL_RG
+	KTXExternalFormat_RGB = 0x1907,				//GL_RGB
+	KTXExternalFormat_BGR = 0x80E0,				//GL_BGR
+	KTXExternalFormat_RGBA = 0x1908,				//GL_RGBA
+	KTXExternalFormat_BGRA = 0x80E1,				//GL_BGRA
+	KTXExternalFormat_RED_INTEGER = 0x8D94,		//GL_RED_INTEGER
+	KTXExternalFormat_RG_INTEGER = 0x8228,		//GL_RG_INTEGER
+	KTXExternalFormat_RGB_INTEGER = 0x8D98,		//GL_RGB_INTEGER
+	KTXExternalFormat_BGR_INTEGER = 0x8D9A,		//GL_BGR_INTEGER
+	KTXExternalFormat_RGBA_INTEGER = 0x8D99,		//GL_RGBA_INTEGER
+	KTXExternalFormat_BGRA_INTEGER = 0x8D9B,		//GL_BGRA_INTEGER
+	KTXExternalFormat_DEPTH = 0x1902,			//GL_DEPTH_COMPONENT
+	KTXExternalFormat_DEPTH_STENCIL = 0x84F9,	//GL_DEPTH_STENCIL
+	KTXExternalFormat_STENCIL = 0x1901,			//GL_STENCIL_INDEX
+
+	KTXExternalFormat_LUMINANCE = 0x1909,				//GL_LUMINANCE
+	KTXExternalFormat_ALPHA = 0x1906,					//GL_ALPHA
+	KTXExternalFormat_LUMINANCE_ALPHA = 0x190A,			//GL_LUMINANCE_ALPHA
+
+	KTXExternalFormat_SRGB_EXT = 0x8C40,					//SRGB_EXT
+	KTXExternalFormat_SRGB_ALPHA_EXT = 0x8C42			//SRGB_ALPHA_EXT
+} KTXExternalFormat;
+
+typedef enum KTXType
+{
+	KTXType_NONE = 0,						//GL_NONE
+	KTXType_I8 = 0x1400,					//GL_BYTE
+	KTXType_U8 = 0x1401,					//GL_UNSIGNED_BYTE
+	KTXType_I16 = 0x1402,					//GL_SHORT
+	KTXType_U16 = 0x1403,					//GL_UNSIGNED_SHORT
+	KTXType_I32 = 0x1404,					//GL_INT
+	KTXType_U32 = 0x1405,					//GL_UNSIGNED_INT
+	KTXType_I64 = 0x140E,					//GL_INT64_ARB
+	KTXType_U64 = 0x140F,					//GL_UNSIGNED_INT64_ARB
+	KTXType_F16 = 0x140B,					//GL_HALF_FLOAT
+	KTXType_F16_OES = 0x8D61,				//GL_HALF_FLOAT_OES
+	KTXType_F32 = 0x1406,					//GL_FLOAT
+	KTXType_F64 = 0x140A,					//GL_DOUBLE
+	KTXType_UINT32_RGB9_E5_REV = 0x8C3E,	//GL_UNSIGNED_INT_5_9_9_9_REV
+	KTXType_UINT32_RG11B10F_REV = 0x8C3B,	//GL_UNSIGNED_INT_10F_11F_11F_REV
+	KTXType_UINT8_RG3B2 = 0x8032,			//GL_UNSIGNED_BYTE_3_3_2
+	KTXType_UINT8_RG3B2_REV = 0x8362,		//GL_UNSIGNED_BYTE_2_3_3_REV
+	KTXType_UINT16_RGB5A1 = 0x8034,		//GL_UNSIGNED_SHORT_5_5_5_1
+	KTXType_UINT16_RGB5A1_REV = 0x8366,	//GL_UNSIGNED_SHORT_1_5_5_5_REV
+	KTXType_UINT16_R5G6B5 = 0x8363,		//GL_UNSIGNED_SHORT_5_6_5
+	KTXType_UINT16_R5G6B5_REV = 0x8364,	//GL_UNSIGNED_SHORT_5_6_5_REV
+	KTXType_UINT16_RGBA4 = 0x8033,			//GL_UNSIGNED_SHORT_4_4_4_4
+	KTXType_UINT16_RGBA4_REV = 0x8365,		//GL_UNSIGNED_SHORT_4_4_4_4_REV
+	KTXType_UINT32_RGBA8 = 0x8035,			//GL_UNSIGNED_SHORT_8_8_8_8
+	KTXType_UINT32_RGBA8_REV = 0x8367,		//GL_UNSIGNED_SHORT_8_8_8_8_REV
+	KTXType_UINT32_RGB10A2 = 0x8036,		//GL_UNSIGNED_INT_10_10_10_2
+	KTXType_UINT32_RGB10A2_REV = 0x8368,	//GL_UNSIGNED_INT_2_10_10_10_REV
+
+	KTXType_UINT8_RG4_REV_GTC = 0xFFFD,
+	KTXType_UINT16_A1RGB5_GTC = 0xFFFC
+} KTXType;
+
+typedef struct KTXFormatDesc
+{
+	KTXExternalFormat mExternal;
+	KTXType           mType;
+} KTXFormatDesc;
+
+static KTXFormatDesc gKTXFormatToImageFormat[ImageFormat::COUNT] = {};
+static eastl::unordered_map<KTXInternalFormat, bool> gKTXSrgbFormats;
+
+typedef struct KTXHeader
+{
+	uint8_t  mIdentifier[12];
+	uint32_t mEndianness;
+	uint32_t mGlType;
+	uint32_t mGlTypeSize;
+	uint32_t mGlFormat;
+	uint32_t mGlInternalFormat;
+	uint32_t mGlBaseInternalFormat;
+	uint32_t mWidth;
+	uint32_t mHeight;
+	uint32_t mDepth;
+	uint32_t mArrayElementCount;
+	uint32_t mFaceCount;
+	uint32_t mMipmapCount;
+	uint32_t mKeyValueDataLength;
+} KTXHeader;
 
 #pragma pack(pop)
 
@@ -330,7 +652,7 @@ Image::Image()
 	mFormat = ImageFormat::NONE;
 	mAdditionalDataSize = 0;
 	pAdditionalData = NULL;
-	mIsRendertarget = false;
+	mSrgb = false;
 	mOwnsMemory = true;
 	mLinearLayout = true;
 }
@@ -344,6 +666,7 @@ Image::Image(const Image& img)
 	mArrayCount = img.mArrayCount;
 	mFormat = img.mFormat;
 	mLinearLayout = img.mLinearLayout;
+	mSrgb = img.mSrgb;
 	
 	int size = GetMipMappedSize(0, mMipMapCount) * mArrayCount;
 	pData = (unsigned char*)conf_malloc(sizeof(unsigned char) * size);
@@ -390,7 +713,7 @@ unsigned char* Image::Create(const ImageFormat::Enum fmt, const int w, const int
 }
 
 void Image::RedefineDimensions(
-	const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize)
+	const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize, bool srgb)
 {
 	//Redefine image that was loaded in
 	mFormat = fmt;
@@ -399,6 +722,19 @@ void Image::RedefineDimensions(
 	mDepth = d;
 	mMipMapCount = mipMapCount;
 	mArrayCount = arraySize;
+	mSrgb = srgb;
+
+	switch (mFormat)
+	{
+	case ImageFormat::PVR_2BPP:
+	case ImageFormat::PVR_2BPPA:
+	case ImageFormat::PVR_4BPP:
+	case ImageFormat::PVR_4BPPA:
+		mLinearLayout = false;
+		break;
+	default:
+		mLinearLayout = true;
+	}
 }
 
 void Image::Destroy()
@@ -579,7 +915,6 @@ bool Image::Normalize()
 bool Image::Uncompress()
 {
 	if (((mFormat >= ImageFormat::PVR_2BPP) && (mFormat <= ImageFormat::PVR_4BPPA)) ||
-		((mFormat >= ImageFormat::PVR_2BPP_SRGB) && (mFormat <= ImageFormat::PVR_4BPPA_SRGB)) ||
 		((mFormat >= ImageFormat::ETC1) && (mFormat <= ImageFormat::ATCI)))
 	{
 		//  no decompression
@@ -706,8 +1041,7 @@ uint Image::GetMipMappedSize(const uint firstMipMapLevel, uint nMipMapLevels, Im
 		srcFormat = mFormat;
 	
 	// PVR formats get special case
-	if ( (srcFormat >= ImageFormat::PVR_2BPP && srcFormat <= ImageFormat::PVR_4BPPA) ||
-		 (srcFormat >= ImageFormat::PVR_2BPP_SRGB && srcFormat <= ImageFormat::PVR_4BPPA_SRGB) )
+	if ( (srcFormat >= ImageFormat::PVR_2BPP && srcFormat <= ImageFormat::PVR_4BPPA))
 	{
 		uint totalSize = 0;
 		uint sizeX = w;
@@ -720,7 +1054,7 @@ uint Image::GetMipMappedSize(const uint firstMipMapLevel, uint nMipMapLevels, Im
 		uint minDepth = 1;
 		int bpp = 4;
 		
-		if (srcFormat == ImageFormat::PVR_2BPP || srcFormat == ImageFormat::PVR_2BPPA || srcFormat == ImageFormat::PVR_2BPP_SRGB || srcFormat == ImageFormat::PVR_2BPPA_SRGB)
+		if (srcFormat == ImageFormat::PVR_2BPP || srcFormat == ImageFormat::PVR_2BPPA)
 		{
 			minWidth = 16;
 			minHeight = 8;
@@ -753,7 +1087,11 @@ uint Image::GetMipMappedSize(const uint firstMipMapLevel, uint nMipMapLevels, Im
 	{
 		if (ImageFormat::IsCompressedFormat(srcFormat))
 		{
-			size += ((w + 3) >> 2) * ((h + 3) >> 2) * d;
+			uint3 blockSize = ImageFormat::GetBlockSize(srcFormat);
+			uint32_t bx = blockSize.x;
+			uint32_t by = blockSize.y;
+			uint32_t bz = blockSize.z;
+			size += ((w + bx - 1) / bx) * ((h + by - 1) / by) * ((d + bz - 1) / bz);
 		}
 		else
 		{
@@ -788,8 +1126,8 @@ uint Image::GetMipMappedSize(const uint firstMipMapLevel, uint nMipMapLevels, Im
 
 // Load Image Data form mData functions
 
-bool Image::iLoadDDSFromMemory(
-	const char* memory, uint32_t memSize, const bool useMipMaps, memoryAllocationFunc pAllocator, void* pUserData)
+bool iLoadDDSFromMemory(Image* pImage,
+	const char* memory, uint32_t memSize, memoryAllocationFunc pAllocator, void* pUserData)
 {
 	DDSHeader header;
 
@@ -797,67 +1135,67 @@ bool Image::iLoadDDSFromMemory(
 		return false;
 
 	MemoryBuffer file(memory, (unsigned)memSize);
-	//MemFopen file(memory, memSize);
-
 	file.Read(&header, sizeof(header));
-	//MemFopen::FileRead(&header, sizeof(header), 1, file);
 
 	if (header.mDWMagic != MAKE_CHAR4('D', 'D', 'S', ' '))
 	{
 		return false;
 	}
 
-	mWidth = header.mDWWidth;
-	mHeight = header.mDWHeight;
-	mDepth = (header.mCaps.mDWCaps2 & DDSCAPS2_CUBEMAP) ? 0 : (header.mDWDepth == 0) ? 1 : header.mDWDepth;
-	mMipMapCount = (useMipMaps == false || (header.mDWMipMapCount == 0)) ? 1 : header.mDWMipMapCount;
-	mArrayCount = 1;
+	uint32_t width = header.mDWWidth;
+	uint32_t height = header.mDWHeight;
+	uint32_t depth = (header.mCaps.mDWCaps2 & DDSCAPS2_CUBEMAP) ? 0 : (header.mDWDepth == 0) ? 1 : header.mDWDepth;
+	uint32_t mipMapCount = max(1U, header.mDWMipMapCount);
+	uint32_t arrayCount = 1;
+	ImageFormat::Enum imageFormat = ImageFormat::NONE;
+	bool srgb = false;
 
 	if (header.mPixelFormat.mDWFourCC == MAKE_CHAR4('D', 'X', '1', '0'))
 	{
 		DDSHeaderDX10 dx10Header;
 		file.Read(&dx10Header, sizeof(dx10Header));
-		//MemFopen::FileRead(&dx10Header, sizeof(dx10Header), 1, file);
 
 		switch (dx10Header.mDXGIFormat)
 		{
-			case 61: mFormat = ImageFormat::R8; break;
-			case 49: mFormat = ImageFormat::RG8; break;
-			case 28: mFormat = ImageFormat::RGBA8; break;
+			case 61: imageFormat = ImageFormat::R8; break;
+			case 49: imageFormat = ImageFormat::RG8; break;
+			case 28: imageFormat = ImageFormat::RGBA8; break;
+			case 29: imageFormat = ImageFormat::RGBA8; srgb = true; break;
 
-			case 56: mFormat = ImageFormat::R16; break;
-			case 35: mFormat = ImageFormat::RG16; break;
-			case 11: mFormat = ImageFormat::RGBA16; break;
+			case 56: imageFormat = ImageFormat::R16; break;
+			case 35: imageFormat = ImageFormat::RG16; break;
+			case 11: imageFormat = ImageFormat::RGBA16; break;
 
-			case 54: mFormat = ImageFormat::R16F; break;
-			case 34: mFormat = ImageFormat::RG16F; break;
-			case 10: mFormat = ImageFormat::RGBA16F; break;
+			case 54: imageFormat = ImageFormat::R16F; break;
+			case 34: imageFormat = ImageFormat::RG16F; break;
+			case 10: imageFormat = ImageFormat::RGBA16F; break;
 
-			case 41: mFormat = ImageFormat::R32F; break;
-			case 16: mFormat = ImageFormat::RG32F; break;
-			case 6: mFormat = ImageFormat::RGB32F; break;
-			case 2: mFormat = ImageFormat::RGBA32F; break;
+			case 41: imageFormat = ImageFormat::R32F; break;
+			case 16: imageFormat = ImageFormat::RG32F; break;
+			case 6: imageFormat = ImageFormat::RGB32F; break;
+			case 2: imageFormat = ImageFormat::RGBA32F; break;
 
-			case 67: mFormat = ImageFormat::RGB9E5; break;
-			case 26: mFormat = ImageFormat::RG11B10F; break;
-			case 24: mFormat = ImageFormat::RGB10A2; break;
+			case 67: imageFormat = ImageFormat::RGB9E5; break;
+			case 26: imageFormat = ImageFormat::RG11B10F; break;
+			case 24: imageFormat = ImageFormat::RGB10A2; break;
 
-			case 71:
-			case 72: mFormat = ImageFormat::DXT1; break;
-			case 74: mFormat = ImageFormat::DXT3; break;
-			case 77: mFormat = ImageFormat::DXT5; break;
-			case 80: mFormat = ImageFormat::ATI1N; break;
-			case 83: mFormat = ImageFormat::ATI2N; break;
+			case 71: imageFormat = ImageFormat::DXT1; break;
+			case 72: imageFormat = ImageFormat::DXT1; srgb = true; break;
+			case 74: imageFormat = ImageFormat::DXT3; break;
+			case 75: imageFormat = ImageFormat::DXT3; srgb = true; break;
+			case 77: imageFormat = ImageFormat::DXT5; break;
+			case 78: imageFormat = ImageFormat::DXT5; srgb = true; break;
+			case 80: imageFormat = ImageFormat::ATI1N; break;
+			case 83: imageFormat = ImageFormat::ATI2N; break;
 
-				// these two should be different
 			case 95:    // unsigned float
+				imageFormat = ImageFormat::GNF_BC6HUF; break;
 			case 96:    // signed float
-				mFormat = ImageFormat::GNF_BC6;
-				break;
+				imageFormat = ImageFormat::GNF_BC6HSF; break;
 			case 98:    // regular
+				imageFormat = ImageFormat::GNF_BC7; break;
 			case 99:    // srgb
-				mFormat = ImageFormat::GNF_BC7;
-				break;
+				imageFormat = ImageFormat::GNF_BC7; srgb = true; break;
 
 			default: return false;
 		}
@@ -866,98 +1204,88 @@ bool Image::iLoadDDSFromMemory(
 	{
 		switch (header.mPixelFormat.mDWFourCC)
 		{
-			case 34: mFormat = ImageFormat::RG16; break;
-			case 36: mFormat = ImageFormat::RGBA16; break;
-			case 111: mFormat = ImageFormat::R16F; break;
-			case 112: mFormat = ImageFormat::RG16F; break;
-			case 113: mFormat = ImageFormat::RGBA16F; break;
-			case 114: mFormat = ImageFormat::R32F; break;
-			case 115: mFormat = ImageFormat::RG32F; break;
-			case 116: mFormat = ImageFormat::RGBA32F; break;
-			case MAKE_CHAR4('A', 'T', 'C', ' '): mFormat = ImageFormat::ATC; break;
-			case MAKE_CHAR4('A', 'T', 'C', 'A'): mFormat = ImageFormat::ATCA; break;
-			case MAKE_CHAR4('A', 'T', 'C', 'I'): mFormat = ImageFormat::ATCI; break;
-			case MAKE_CHAR4('A', 'T', 'I', '1'): mFormat = ImageFormat::ATI1N; break;
-			case MAKE_CHAR4('A', 'T', 'I', '2'): mFormat = ImageFormat::ATI2N; break;
-			case MAKE_CHAR4('E', 'T', 'C', ' '): mFormat = ImageFormat::ETC1; break;
-			case MAKE_CHAR4('D', 'X', 'T', '1'): mFormat = ImageFormat::DXT1; break;
-			case MAKE_CHAR4('D', 'X', 'T', '3'): mFormat = ImageFormat::DXT3; break;
-			case MAKE_CHAR4('D', 'X', 'T', '5'): mFormat = ImageFormat::DXT5; break;
+			case 34: imageFormat = ImageFormat::RG16; break;
+			case 36: imageFormat = ImageFormat::RGBA16; break;
+			case 111: imageFormat = ImageFormat::R16F; break;
+			case 112: imageFormat = ImageFormat::RG16F; break;
+			case 113: imageFormat = ImageFormat::RGBA16F; break;
+			case 114: imageFormat = ImageFormat::R32F; break;
+			case 115: imageFormat = ImageFormat::RG32F; break;
+			case 116: imageFormat = ImageFormat::RGBA32F; break;
+			case MAKE_CHAR4('A', 'T', 'C', ' '): imageFormat = ImageFormat::ATC; break;
+			case MAKE_CHAR4('A', 'T', 'C', 'A'): imageFormat = ImageFormat::ATCA; break;
+			case MAKE_CHAR4('A', 'T', 'C', 'I'): imageFormat = ImageFormat::ATCI; break;
+			case MAKE_CHAR4('A', 'T', 'I', '1'): imageFormat = ImageFormat::ATI1N; break;
+			case MAKE_CHAR4('A', 'T', 'I', '2'): imageFormat = ImageFormat::ATI2N; break;
+			case MAKE_CHAR4('E', 'T', 'C', ' '): imageFormat = ImageFormat::ETC1; break;
+			case MAKE_CHAR4('D', 'X', 'T', '1'): imageFormat = ImageFormat::DXT1; break;
+			case MAKE_CHAR4('D', 'X', 'T', '3'): imageFormat = ImageFormat::DXT3; break;
+			case MAKE_CHAR4('D', 'X', 'T', '5'): imageFormat = ImageFormat::DXT5; break;
 			default:
 				switch (header.mPixelFormat.mDWRGBBitCount)
 				{
-					case 8: mFormat = ImageFormat::I8; break;
+					case 8: imageFormat = ImageFormat::I8; break;
 					case 16:
-						mFormat = (header.mPixelFormat.mDWRGBAlphaBitMask == 0xF000)
+						imageFormat = (header.mPixelFormat.mDWRGBAlphaBitMask == 0xF000)
 									  ? ImageFormat::RGBA4
 									  : (header.mPixelFormat.mDWRGBAlphaBitMask == 0xFF00)
 											? ImageFormat::IA8
 											: (header.mPixelFormat.mDWBBitMask == 0x1F) ? ImageFormat::RGB565 : ImageFormat::I16;
 						break;
-					case 24: mFormat = ImageFormat::RGB8; break;
-					case 32: mFormat = (header.mPixelFormat.mDWRBitMask == 0x3FF00000) ? ImageFormat::RGB10A2 : ImageFormat::RGBA8; break;
+					case 24: imageFormat = ImageFormat::RGB8; break;
+					case 32: imageFormat = (header.mPixelFormat.mDWRBitMask == 0x3FF00000) ? ImageFormat::RGB10A2 : ImageFormat::RGBA8; break;
 					default: return false;
 				}
 		}
 	}
 
-	int size = GetMipMappedSize(0, mMipMapCount);
+	pImage->RedefineDimensions(imageFormat, width, height, depth, mipMapCount, arrayCount, srgb);
+
+	int size = pImage->GetMipMappedSize();
 
 	if (pAllocator)
 	{
-		pData = (unsigned char*)pAllocator(this, size, pUserData);
-		mOwnsMemory = false;
+		pImage->SetPixels((unsigned char*)pAllocator(pImage, size, pUserData));
 	}
 	else
 	{
-		pData = (unsigned char*)conf_malloc(sizeof(unsigned char) * size);
+		pImage->SetPixels((unsigned char*)conf_malloc(sizeof(unsigned char) * size), true);
 	}
 
-	if (IsCube())
+	if (pImage->IsCube())
 	{
 		for (int face = 0; face < 6; face++)
 		{
-			for (uint mipMapLevel = 0; mipMapLevel < mMipMapCount; mipMapLevel++)
+			for (uint mipMapLevel = 0; mipMapLevel < pImage->GetMipMapCount(); mipMapLevel++)
 			{
-				int            faceSize = GetMipMappedSize(mipMapLevel, 1) / 6;
-				unsigned char* src = GetPixels(pData, mipMapLevel, 0) + face * faceSize;
+				int            faceSize = pImage->GetMipMappedSize(mipMapLevel, 1) / 6;
+				unsigned char* src = pImage->GetPixels(mipMapLevel, 0) + face * faceSize;
 
 				file.Read(src, faceSize);
-				//MemFopen::FileRead(src, 1, faceSize, file);
-			}
-			// skip mipmaps if needed
-			if (useMipMaps == false && header.mDWMipMapCount > 1)
-			{
-				file.Seek(GetMipMappedSize(1, header.mDWMipMapCount - 1) / 6);
-				//MemFopen::FileSeek(file, GetMipMappedSize(1, header.mDWMipMapCount - 1) / 6, SEEK_CUR);
 			}
 		}
 	}
 	else
 	{
-		file.Read(pData, size);
-		//MemFopen::FileRead(pData, 1, size, file);
+		file.Read(pImage->GetPixels(), size);
 	}
 
-	if ((mFormat == ImageFormat::RGB8 || mFormat == ImageFormat::RGBA8) && header.mPixelFormat.mDWBBitMask == 0xFF)
+	if ((imageFormat == ImageFormat::RGB8 || imageFormat == ImageFormat::RGBA8) && header.mPixelFormat.mDWBBitMask == 0xFF)
 	{
-		int nChannels = ImageFormat::GetChannelCount(mFormat);
-		swapPixelChannels(pData, size / nChannels, nChannels, 0, 2);
+		int nChannels = ImageFormat::GetChannelCount(imageFormat);
+		swapPixelChannels(pImage->GetPixels(), size / nChannels, nChannels, 0, 2);
 	}
 
 	return true;
 }
 
-bool Image::iLoadPVRFromMemory(const char* memory, uint32_t size, const bool useMipmaps, memoryAllocationFunc pAllocator, void* pUserData)
+bool iLoadPVRFromMemory(Image* pImage, const char* memory, uint32_t size, memoryAllocationFunc pAllocator, void* pUserData)
 {
 #ifndef TARGET_IOS
 	LOGF(LogLevel::eERROR, "Load PVR failed: Only supported on iOS targets.");
-	return 0;
+	return false;
 #else
 	
-	UNREF_PARAM(useMipmaps);
-	UNREF_PARAM(pAllocator);
-	UNREF_PARAM(pUserData);
 	// TODO: Image
 	// - no support for PVRTC2 at the moment since it isn't supported on iOS devices.
 	// - only new PVR header V3 is supported at the moment.  Should we add legacy for V2 and V1?
@@ -987,287 +1315,183 @@ bool Image::iLoadPVRFromMemory(const char* memory, uint32_t size, const bool use
 		return 0;
 	}
 
-	mArrayCount = psPVRHeader->mNumSurfaces * psPVRHeader->mNumFaces;
-	mWidth = psPVRHeader->mWidth;
-	mHeight = psPVRHeader->mHeight;
-	mDepth = psPVRHeader->mDepth;
-	mMipMapCount = psPVRHeader->mNumMipMaps;
-	
-	bool isSrgb = (psPVRHeader->mColorSpace == 1);
+	uint32_t width = psPVRHeader->mWidth;
+	uint32_t height = psPVRHeader->mHeight;
+	uint32_t depth = (psPVRHeader->mNumFaces > 1) ? 0 : psPVRHeader->mDepth;
+	uint32_t mipMapCount = psPVRHeader->mNumMipMaps;
+	uint32_t arrayCount = psPVRHeader->mNumSurfaces;
+	bool srgb = (psPVRHeader->mColorSpace == 1);
+	ImageFormat::Enum imageFormat = ImageFormat::NONE;
 
 	switch (psPVRHeader->mPixelFormat)
 	{
-		case 0:
-			mFormat = isSrgb ? ImageFormat::PVR_2BPP_SRGB : ImageFormat::PVR_2BPP;
-			mLinearLayout = false;
-			break;
-		case 1:
-			mFormat = isSrgb ? ImageFormat::PVR_2BPPA_SRGB : ImageFormat::PVR_2BPPA;
-			mLinearLayout = false;
-			break;
-		case 2:
-			mFormat = isSrgb ? ImageFormat::PVR_4BPP_SRGB : ImageFormat::PVR_4BPP;
-			mLinearLayout = false;
-			break;
-		case 3:
-			mFormat = isSrgb ? ImageFormat::PVR_4BPPA_SRGB : ImageFormat::PVR_4BPPA;
-			mLinearLayout = false;
-			break;
-		default:    // NOT SUPPORTED
-			LOGF(LogLevel::eERROR, "Load PVR failed: pixel type not supported. ");
-			ASSERT(0);
-			return 0;
+	case 0:
+		imageFormat = ImageFormat::PVR_2BPP;
+		break;
+	case 1:
+		imageFormat = ImageFormat::PVR_2BPPA;
+		break;
+	case 2:
+		imageFormat = ImageFormat::PVR_4BPP;
+		break;
+	case 3:
+		imageFormat = ImageFormat::PVR_4BPPA;
+		break;
+	default:    // NOT SUPPORTED
+		LOGF(LogLevel::eERROR, "Load PVR failed: pixel type not supported. ");
+		ASSERT(0);
+		return false;
 	}
+
+	if (depth != 0)
+		arrayCount *= psPVRHeader->mNumFaces;
+
+	pImage->RedefineDimensions(imageFormat, width, height, depth, mipMapCount, arrayCount, srgb);
+
 
 	// Extract the pixel data
 	size_t totalHeaderSizeWithMetadata = sizeof(PVR_Texture_Header) + psPVRHeader->mMetaDataSize;
-	size_t pixelDataSize = GetMipMappedSize(0, mMipMapCount, mFormat);
-	pData = (unsigned char*)conf_malloc(sizeof(unsigned char) * pixelDataSize);
-	memcpy(pData, (unsigned char*)psPVRHeader + totalHeaderSizeWithMetadata, pixelDataSize);
+	size_t pixelDataSize = pImage->GetMipMappedSize();
+
+	if (pAllocator)
+	{
+		pImage->SetPixels((unsigned char*)pAllocator(pImage, sizeof(unsigned char) * pixelDataSize, pUserData));
+	}
+	else
+	{
+		pImage->SetPixels((unsigned char*)conf_malloc(sizeof(unsigned char) * pixelDataSize), true);
+	}
+
+	memcpy(pImage->GetPixels(), (unsigned char*)psPVRHeader + totalHeaderSizeWithMetadata, pixelDataSize);
 
 	return true;
 #endif
 }
 
-bool Image::iLoadSTBIFromMemory(
-	const char* buffer, uint32_t memSize, const bool useMipmaps, memoryAllocationFunc pAllocator, void* pUserData)
+bool iLoadKTXFromMemory(Image* pImage, const char* memory, uint32_t memSize, memoryAllocationFunc pAllocator /*= NULL*/, void* pUserData /*= NULL*/)
 {
-	// stbi does not generate or load mipmaps. (useMipmaps is ignored)
-	if (buffer == 0 || memSize == 0)
-		return false;
+#define byte_swap(num) ((((num) >> 24) & 0xff) | (((num) << 8) & 0xff0000) | (((num) >> 8) & 0xff00) | (((num) << 24) & 0xff000000))
 
-	int w = 0, h = 0, cmp = 0, requiredCmp = 0;
-	stbi_info_from_memory((stbi_uc*)buffer, memSize, &w, &h, &cmp);
+	// KTX File Structure
+	// Header
+	// MetaData
+	// ImageSize for Mip 0 [ header.arrayCount x header.faceCount ]
+	// ImageData for Mip 0
+	//   Array 0 to header.arrayCount
+	//     Face 0 to header.faceCount
+	// ImageSize for Mip 1
+	//   Array 0 to header.arrayCount
+	//     Face 0 to header.faceCount
+	// ...
+	
+	MemoryBuffer file(memory, (unsigned)memSize);
+	KTXHeader header = {};
+	
+	file.Read(&header, sizeof(header));
 
-	if (w == 0 || h == 0 || cmp == 0)
+	char *format = (char *)(header.mIdentifier + 1);
+	if (strncmp(format, "KTX 11", 6) != 0)
 	{
+		LOGF(LogLevel::eERROR, "Load KTX failed: Not a valid KTX header.");
 		return false;
 	}
 
-	requiredCmp = cmp;
-	if (cmp == 3)
-		requiredCmp = 4;
+	bool endianSwap = (header.mEndianness == 0x01020304);
 
-	mWidth = w;
-	mHeight = h;
-	mDepth = 1;
-	mMipMapCount = 1;
-	mArrayCount = 1;
+	uint32_t width = endianSwap ? (uint32_t)byte_swap(header.mWidth) : header.mWidth;
+	uint32_t height = endianSwap ? (uint32_t)byte_swap(header.mHeight) : header.mHeight;
+	uint32_t depth = max(1U, endianSwap ? (uint32_t)byte_swap(header.mDepth) : header.mDepth);
+	uint32_t arrayCount = max(1U, endianSwap ? (uint32_t)byte_swap(header.mArrayElementCount) : header.mArrayElementCount);
+	uint32_t faceCount = endianSwap ? (uint32_t)byte_swap(header.mFaceCount) : header.mFaceCount;
+	uint32_t internalFormat = endianSwap ? (uint32_t)byte_swap(header.mGlInternalFormat) : header.mGlInternalFormat;
+	uint32_t externalFormat = endianSwap ? (uint32_t)byte_swap(header.mGlFormat) : header.mGlFormat;
+	uint32_t type = endianSwap ? (uint32_t)byte_swap(header.mGlType) : header.mGlType;
+	uint32_t mipCount = endianSwap ? (uint32_t)byte_swap(header.mMipmapCount) : header.mMipmapCount;
+	uint32_t keyValueDataLength = endianSwap ? (uint32_t)byte_swap(header.mKeyValueDataLength) : header.mKeyValueDataLength;
+	bool srgb = false;
+	ImageFormat::Enum imageFormat = ImageFormat::NONE;
 
-	uint64_t memoryRequirement = sizeof(stbi_uc) * mWidth * mHeight * requiredCmp;
-
-	switch (requiredCmp)
+	if (arrayCount > 1 && faceCount > 1)
 	{
-		case 1: mFormat = ImageFormat::R8; break;
-		case 2: mFormat = ImageFormat::RG8; break;
-		case 3: mFormat = ImageFormat::RGB8; break;
-		case 4: mFormat = ImageFormat::RGBA8; break;
+		LOGF(LogLevel::eERROR, "Load KTX failed: Loading arrays of cubemaps isn't supported.");
+		return false;
 	}
 
-	stbi_uc* uncompressed = stbi_load_from_memory((stbi_uc*)buffer, (int)memSize, &w, &h, &cmp, requiredCmp);
-
-	if (uncompressed == NULL)
-		return false;
-
-	if (pAllocator && !useMipmaps)
+	if (gKTXSrgbFormats.find((KTXInternalFormat)internalFormat) != gKTXSrgbFormats.end())
 	{
-		//uint32_t mipMapCount = GetMipMapCountFromDimensions(); //unused
-		pData = (stbi_uc*)pAllocator(this, memoryRequirement, pUserData);
-		if (pData == NULL)
+		srgb = true;
+	}
+
+	// Uncompressed
+	if (externalFormat != 0)
+	{
+		for (uint32_t i = 0; i < ImageFormat::COUNT; ++i)
 		{
-			LOGF(LogLevel::eERROR, "Allocator returned NULL", mLoadFileName.c_str());
+			if (externalFormat == gKTXFormatToImageFormat[i].mExternal && type == gKTXFormatToImageFormat[i].mType)
+			{
+				imageFormat = (ImageFormat::Enum)i;
+				break;
+			}
+		}
+	}
+	// Compressed - Support only ASTC for now
+	else
+	{
+#if !defined(TARGET_IOS) && !defined(__ANDROID__)
+		LOGF(LogLevel::eERROR, "Load KTX failed: Compressed formats supported on mobile targets only.");
+		return false;
+#else
+
+		if (!(internalFormat >= KTXInternalFormat_RGBA_ASTC_4x4 && internalFormat <= KTXInternalFormat_SRGB8_ALPHA8_ASTC_12x12))
+		{
+			LOGF(LogLevel::eERROR, "Load KTX failed: Support for loading ASTC compressed textures only.");
 			return false;
 		}
 
-		memcpy(pData, uncompressed, memoryRequirement);
-
-		mOwnsMemory = false;
-	}
-	else
-	{
-		pData = (unsigned char*)conf_malloc(memoryRequirement);
-		memcpy(pData, uncompressed, memoryRequirement);
-		if (useMipmaps)
-			GenerateMipMaps(GetMipMapCountFromDimensions());
+		imageFormat = (ImageFormat::Enum)(ImageFormat::ASTC_4x4 + (internalFormat - (srgb ? KTXInternalFormat_SRGB8_ALPHA8_ASTC_4x4 : KTXInternalFormat_RGBA_ASTC_4x4)));
+#endif
 	}
 
-	stbi_image_free(uncompressed);
+	depth = (faceCount > 1) ? 0 : depth;
+	if (depth != 0)
+		arrayCount *= faceCount;
 
-	return true;
-}
+	pImage->RedefineDimensions(imageFormat, width, height, depth, mipCount, arrayCount, srgb);
 
-bool Image::iLoadSTBIFP32FromMemory(
-	const char* buffer, uint32_t memSize, const bool useMipmaps, memoryAllocationFunc pAllocator, void* pUserData)
-{
-	// stbi does not generate or load mipmaps. (useMipmaps is ignored)
-	if (buffer == 0 || memSize == 0)
-		return false;
-
-	int w = 0, h = 0, cmp = 0, requiredCmp = 0;
-	stbi_info_from_memory((stbi_uc*)buffer, memSize, &w, &h, &cmp);
-
-	if (w == 0 || h == 0 || cmp == 0)
-	{
-		return false;
-	}
-
-	requiredCmp = cmp;
-
-	if (cmp == 3)
-		requiredCmp = 4;
-
-	mWidth = w;
-	mHeight = h;
-	mDepth = 1;
-	mMipMapCount = 1;
-	mArrayCount = 1;
-
-	switch (requiredCmp)
-	{
-		case 1: mFormat = ImageFormat::R32F; break;
-		case 2: mFormat = ImageFormat::RG32F; break;
-		case 3: mFormat = ImageFormat::RGB32F; break;
-		case 4: mFormat = ImageFormat::RGBA32F; break;
-	}
-
-	uint64_t memoryRequirement = sizeof(float) * mWidth * mHeight * requiredCmp;
-
-	// stbi does not generate or load mipmaps. (useMipmaps is ignored)
-	if (buffer == 0 || memSize == 0)
-		return false;
-
-	float* uncompressed = stbi_loadf_from_memory((stbi_uc*)buffer, (int)memSize, &w, &h, &cmp, requiredCmp);
-
-	if (uncompressed == 0)
-		return false;
-
+	// Skip ahead to the pixel data
+	const uint32_t offsetToPixelData = sizeof(KTXHeader) + keyValueDataLength;
+	file.Seek(offsetToPixelData, SEEK_DIR_BEGIN);
+	const uint32_t dataLength = file.GetSize() - offsetToPixelData;
+	
 	if (pAllocator)
 	{
-		//uint32_t mipMapCount = GetMipMapCountFromDimensions(); //unused
-		pData = (stbi_uc*)pAllocator(this, memoryRequirement, pUserData);
-		if (pData == NULL)
-		{
-			LOGF(LogLevel::eERROR, "Allocator returned NULL", mLoadFileName.c_str());
-			return false;
-		}
-
-		memcpy(pData, uncompressed, memoryRequirement);
-
-		mOwnsMemory = false;
+		pImage->SetPixels((uint8_t*)pAllocator(pImage, dataLength, pUserData));
 	}
 	else
 	{
-		pData = (unsigned char*)conf_malloc(memoryRequirement);
-		memcpy(pData, uncompressed, memoryRequirement);
-		if (useMipmaps)
-			GenerateMipMaps(GetMipMapCountFromDimensions());
+		pImage->SetPixels((uint8_t*)conf_malloc(sizeof(uint8_t) * dataLength), true);
 	}
 
-	stbi_image_free(uncompressed);
-
-	return true;
-}
-
-bool Image::iLoadEXRFP32FromMemory(
-	const char* buffer, uint32_t memSize, const bool useMipmaps, memoryAllocationFunc pAllocator, void* pUserData)
-{
-	UNREF_PARAM(useMipmaps);
-	UNREF_PARAM(pAllocator);
-	UNREF_PARAM(pUserData);
-	// tinyexr does not generate or load mipmaps. (useMipmaps is ignored)
-	if (buffer == 0 || memSize == 0)
-		return false;
-
-	const char* err;
-
-	EXRImage exrImage;
-	InitEXRImage(&exrImage);
-
-	int ret = ParseMultiChannelEXRHeaderFromMemory(&exrImage, (const unsigned char*)buffer, &err);
-	if (ret != 0)
+	uint8_t* pData = pImage->GetPixels();
+	uint32_t levelOffset = 0;
+	while (!file.IsEof())
 	{
-		LOGF(LogLevel::eERROR, "Parse EXR err: %s\n", err);
-		return false;
-	}
-
-	// Read HALF image as FLOAT.
-	for (int i = 0; i < exrImage.num_channels; i++)
-	{
-		if (exrImage.pixel_types[i] == TINYEXR_PIXELTYPE_HALF)
-			exrImage.requested_pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT;
-	}
-
-	ret = LoadMultiChannelEXRFromMemory(&exrImage, (const unsigned char*)buffer, &err);
-	if (ret != 0)
-	{
-		LOGF(LogLevel::eERROR, "Load EXR err: %s\n", err);
-		return false;
-	}
-
-	// RGBA
-	int idxR = -1;
-	int idxG = -1;
-	int idxB = -1;
-	int idxA = -1;
-	int numChannels = 0;
-	for (int c = 0; c < exrImage.num_channels; c++)
-	{
-		if (strcmp(exrImage.channel_names[c], "R") == 0)
+		uint32_t levelSize = file.ReadUInt() / pImage->GetArrayCount();
+		if (pImage->GetArrayCount() > 1)
+			levelSize /= faceCount;
+		
+		for (uint32_t i = 0; i < pImage->GetArrayCount(); ++i)
 		{
-			idxR = c;
-			numChannels++;
+			for (uint32_t j = 0; j < faceCount; ++j)
+			{
+				file.Read(pData + levelOffset, levelSize);
+				levelOffset += levelSize;
+				
+				// No need to worry about cube padding since block size is a multiple of 4
+			}
 		}
-		else if (strcmp(exrImage.channel_names[c], "G") == 0)
-		{
-			idxG = c;
-			numChannels++;
-		}
-		else if (strcmp(exrImage.channel_names[c], "B") == 0)
-		{
-			idxB = c;
-			numChannels++;
-		}
-		else if (strcmp(exrImage.channel_names[c], "A") == 0)
-		{
-			idxA = c;
-			numChannels++;
-		}
-	}
-
-	int idxChannels[] = { -1, -1, -1, -1 };
-	int idxCur = 0;
-	if (idxR != -1)
-		idxChannels[idxCur++] = idxR;
-	if (idxG != -1)
-		idxChannels[idxCur++] = idxG;
-	if (idxB != -1)
-		idxChannels[idxCur++] = idxB;
-	if (idxA != -1)
-		idxChannels[idxCur++] = idxA;
-
-	unsigned int* out = (unsigned int*)conf_malloc(numChannels * sizeof(float) * exrImage.width * exrImage.height);
-	for (int i = 0; i < exrImage.width * exrImage.height; i++)
-		for (int chn = 0; chn < numChannels; chn++)
-			out[i * numChannels + chn] = ((unsigned int**)exrImage.images)[idxChannels[chn]][i];
-
-	pData = (unsigned char*)out;
-
-	mWidth = exrImage.width;
-	mHeight = exrImage.height;
-	mDepth = 1;
-	mMipMapCount = 1;
-	mArrayCount = 1;
-
-	switch (numChannels)
-	{
-		case 1: mFormat = ImageFormat::R32F; break;
-		case 2: mFormat = ImageFormat::RG32F; break;
-		// RGB32F format not supported on all APIs so convert to RGBA32F
-		case 3:
-			mFormat = ImageFormat::RGB32F;
-			Convert(ImageFormat::RGBA32F);
-			break;
-		case 4: mFormat = ImageFormat::RGBA32F; break;
+		
+		// No need to worry about mip padding since block size is a multiple of 4
 	}
 
 	return true;
@@ -1465,8 +1689,8 @@ bool Image::iLoadGNFFromMemory(const char* memory, size_t memSize, const bool us
 // struct of table for file format to loading function
 struct ImageLoaderDefinition
 {
-	eastl::string            Extension;
-	Image::ImageLoaderFunction Loader;
+	eastl::string              mExtension;
+	Image::ImageLoaderFunction pLoader;
 };
 
 static eastl::vector<ImageLoaderDefinition> gImageLoaders;
@@ -1475,30 +1699,66 @@ struct StaticImageLoader
 {
 	StaticImageLoader()
 	{
-#if !defined(NO_STBI)
-		gImageLoaders.push_back({ ".hdr", &Image::iLoadSTBIFP32FromMemory });
-		gImageLoaders.push_back({ ".jpg", &Image::iLoadSTBIFromMemory });
-		gImageLoaders.push_back({ ".jpeg", &Image::iLoadSTBIFromMemory });
-		gImageLoaders.push_back({ ".png", &Image::iLoadSTBIFromMemory });
-		gImageLoaders.push_back({ ".tga", &Image::iLoadSTBIFromMemory });
-		gImageLoaders.push_back({ ".bmp", &Image::iLoadSTBIFromMemory });
-		gImageLoaders.push_back({ ".gif", &Image::iLoadSTBIFromMemory });
-		gImageLoaders.push_back({ ".psd", &Image::iLoadSTBIFromMemory });
-		gImageLoaders.push_back({ ".pic", &Image::iLoadSTBIFromMemory });
-		gImageLoaders.push_back({ ".ppm", &Image::iLoadSTBIFromMemory });
-#endif
-//#if !defined(TARGET_IOS)
-		gImageLoaders.push_back({ ".dds", &Image::iLoadDDSFromMemory });
-//#endif
-		gImageLoaders.push_back({ ".pvr", &Image::iLoadPVRFromMemory });
-		// #TODO: Add KTX loader
-#ifdef _WIN32
-		gImageLoaders.push_back({ ".ktx", NULL });
-#endif
-		gImageLoaders.push_back({ ".exr", &Image::iLoadEXRFP32FromMemory });
+		gImageLoaders.push_back({ ".dds", iLoadDDSFromMemory });
+		gImageLoaders.push_back({ ".pvr", iLoadPVRFromMemory });
+		gImageLoaders.push_back({ ".ktx", iLoadKTXFromMemory });
 #if defined(ORBIS)
-		gImageLoaders.push_back({ ".gnf", &Image::iLoadGNFFromMemory });
+		gImageLoaders.push_back({ ".gnf", iLoadGNFFromMemory });
 #endif
+
+		gKTXFormatToImageFormat[ImageFormat::R8] = { KTXExternalFormat::KTXExternalFormat_RED, KTXType_U8 };
+		gKTXFormatToImageFormat[ImageFormat::RG8] = { KTXExternalFormat::KTXExternalFormat_RG, KTXType_U8 };
+		gKTXFormatToImageFormat[ImageFormat::RGB8] = { KTXExternalFormat::KTXExternalFormat_RGB, KTXType_U8 };
+		gKTXFormatToImageFormat[ImageFormat::RGBA8] = { KTXExternalFormat::KTXExternalFormat_RGBA, KTXType_U8 };
+
+		gKTXFormatToImageFormat[ImageFormat::R8S] = { KTXExternalFormat::KTXExternalFormat_RED, KTXType_I8 };
+		gKTXFormatToImageFormat[ImageFormat::RG8S] = { KTXExternalFormat::KTXExternalFormat_RG, KTXType_I8 };
+		gKTXFormatToImageFormat[ImageFormat::RGB8S] = { KTXExternalFormat::KTXExternalFormat_RGB, KTXType_I8 };
+		gKTXFormatToImageFormat[ImageFormat::RGBA8S] = { KTXExternalFormat::KTXExternalFormat_RGBA, KTXType_I8 };
+
+		gKTXFormatToImageFormat[ImageFormat::R16F] = { KTXExternalFormat::KTXExternalFormat_RED, KTXType_F16 };
+		gKTXFormatToImageFormat[ImageFormat::RG16F] = { KTXExternalFormat::KTXExternalFormat_RG, KTXType_F16 };
+		gKTXFormatToImageFormat[ImageFormat::RGB16F] = { KTXExternalFormat::KTXExternalFormat_RGB, KTXType_F16 };
+		gKTXFormatToImageFormat[ImageFormat::RGBA16F] = { KTXExternalFormat::KTXExternalFormat_RGBA, KTXType_F16 };
+
+		gKTXFormatToImageFormat[ImageFormat::R32F] = { KTXExternalFormat::KTXExternalFormat_RED, KTXType_F32 };
+		gKTXFormatToImageFormat[ImageFormat::RG32F] = { KTXExternalFormat::KTXExternalFormat_RG, KTXType_F32 };
+		gKTXFormatToImageFormat[ImageFormat::RGB32F] = { KTXExternalFormat::KTXExternalFormat_RGB, KTXType_F32 };
+		gKTXFormatToImageFormat[ImageFormat::RGBA32F] = { KTXExternalFormat::KTXExternalFormat_RGBA, KTXType_F32 };
+
+		gKTXSrgbFormats[KTXInternalFormat_SR8] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRG8] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB8] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB8_ALPHA8] = true;
+		// Compressed sRGB formats
+		gKTXSrgbFormats[KTXInternalFormat_SRGB_DXT1] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB_ALPHA_DXT1] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB_ALPHA_DXT3] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB_ALPHA_DXT5] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB_BP_UNORM] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB_PVRTC_2BPPV1] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB_PVRTC_4BPPV1] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB_ALPHA_PVRTC_2BPPV1] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB_ALPHA_PVRTC_4BPPV1] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB_ALPHA_PVRTC_2BPPV2] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB_ALPHA_PVRTC_4BPPV2] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB8_ETC2] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB8_ALPHA8_ETC2_EAC] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB8_ALPHA8_ASTC_4x4] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB8_ALPHA8_ASTC_5x4] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB8_ALPHA8_ASTC_5x5] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB8_ALPHA8_ASTC_6x5] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB8_ALPHA8_ASTC_6x6] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB8_ALPHA8_ASTC_8x5] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB8_ALPHA8_ASTC_8x6] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB8_ALPHA8_ASTC_8x8] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB8_ALPHA8_ASTC_10x5] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB8_ALPHA8_ASTC_10x6] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB8_ALPHA8_ASTC_10x8] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB8_ALPHA8_ASTC_10x10] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB8_ALPHA8_ASTC_12x10] = true;
+		gKTXSrgbFormats[KTXInternalFormat_SRGB8_ALPHA8_ASTC_12x12] = true;
 	}
 } gImageLoaderInst;
 
@@ -1530,30 +1790,63 @@ void Image::loadFromMemoryXY(
 }
 
 bool Image::loadFromMemory(
-	void const* mem, uint32_t size, bool useMipmaps, char const* extension, memoryAllocationFunc pAllocator, void* pUserData)
+	void const* mem, uint32_t size, char const* extension, memoryAllocationFunc pAllocator, void* pUserData)
 {
 	// try loading the format
 	bool loaded = false;
 	for (uint32_t i = 0; i < (uint32_t)gImageLoaders.size(); ++i)
 	{
 		ImageLoaderDefinition const& def = gImageLoaders[i];
-		if (stricmp(extension, def.Extension.c_str()) == 0)
+		if (stricmp(extension, def.mExtension.c_str()) == 0)
 		{
-			loaded = (this->*(def.Loader))((char const*)mem, size, useMipmaps, pAllocator, pUserData);
+			loaded = def.pLoader(this, (char const*)mem, size, pAllocator, pUserData);
 			break;
 		}
 	}
 	return loaded;
 }
 
-bool Image::loadImage(const char* fileName, bool useMipmaps, memoryAllocationFunc pAllocator, void* pUserData, FSRoot root)
+bool Image::loadImage(const char* origFileName, memoryAllocationFunc pAllocator, void* pUserData, FSRoot root)
 {
 	// clear current image
 	Clear();
 
-	const char* extension = strrchr(fileName, '.');
-	if (extension == NULL)
-		return false;
+	eastl::string extension = FileSystem::GetExtension(origFileName);
+	uint32_t loaderIndex = -1;
+
+	if (extension.size())
+	{
+		for (int i = 0; i < (int)gImageLoaders.size(); i++)
+		{
+			if (stricmp(extension.c_str(), gImageLoaders[i].mExtension.c_str()) == 0)
+			{
+				loaderIndex = i;
+				break;
+			}
+		}
+
+		if (loaderIndex == -1)
+			extension = "";
+	}
+
+	char fileName[MAX_PATH] = {};
+	strcpy(fileName, origFileName);
+	if (!extension.size())
+	{
+#if defined(__ANDROID__)
+		extension = ".ktx";
+#elif defined(TARGET_IOS)
+		extension = ".ktx";
+#elif defined(__linux__)
+		extension = ".dds";
+#elif defined(__APPLE__)
+		extension = ".dds";
+#else
+		extension = ".dds";
+#endif
+
+		strcpy(fileName + strlen(origFileName), extension.c_str());
+	}
 
 	// open file
 	File file = {};
@@ -1585,10 +1878,10 @@ bool Image::loadImage(const char* fileName, bool useMipmaps, memoryAllocationFun
 	bool support = false;
 	for (int i = 0; i < (int)gImageLoaders.size(); i++)
 	{
-		if (stricmp(extension, gImageLoaders[i].Extension.c_str()) == 0)
+		if (stricmp(extension.c_str(), gImageLoaders[i].mExtension.c_str()) == 0)
 		{
 			support = true;
-			loaded = (this->*(gImageLoaders[i].Loader))(data, length, useMipmaps, pAllocator, pUserData);
+			loaded = gImageLoaders[i].pLoader(this, data, length, pAllocator, pUserData);
 			if (loaded)
 			{
 				break;
@@ -1597,24 +1890,7 @@ bool Image::loadImage(const char* fileName, bool useMipmaps, memoryAllocationFun
 	}
 	if (!support)
 	{
-#if !defined(TARGET_IOS)
 		LOGF(LogLevel::eERROR, "Can't load this file format for image  :  %s", fileName);
-#else
-		// Try fallback with uncompressed textures: TODO: this shouldn't be here
-		char* uncompressedFileName = strdup(fileName);
-		char* uncompressedExtension = strrchr(uncompressedFileName, '.');
-		uncompressedExtension[0] = '.';
-		uncompressedExtension[1] = 't';
-		uncompressedExtension[2] = 'g';
-		uncompressedExtension[3] = 'a';
-		uncompressedExtension[4] = '\0';
-		loaded = loadImage(uncompressedFileName, useMipmaps, pAllocator, pUserData, root);
-		conf_free(uncompressedFileName);
-		if (!loaded)
-		{
-			LOGF(LogLevel::eERROR, "Can't load this file format for image  :  %s", fileName);
-		}
-#endif
 	}
 	else
 	{

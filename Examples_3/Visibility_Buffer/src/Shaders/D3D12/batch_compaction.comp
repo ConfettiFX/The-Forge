@@ -24,12 +24,12 @@
 
 #include "shader_defs.h"
 
-StructuredBuffer<UncompactedDrawArguments> uncompactedDrawArgs[NUM_CULLING_VIEWPORTS];
-StructuredBuffer<uint> materialProps;
+StructuredBuffer<UncompactedDrawArguments> uncompactedDrawArgs[NUM_CULLING_VIEWPORTS] : register(UNIT_UNCOMPACTED_ARGS);
+StructuredBuffer<uint> materialProps : register(UNIT_MATERIAL_PROPS);
 
-RWStructuredBuffer<uint> indirectMaterialBuffer;
-RWStructuredBuffer<uint> indirectDrawArgsBufferAlpha[NUM_CULLING_VIEWPORTS];
-RWStructuredBuffer<uint> indirectDrawArgsBufferNoAlpha[NUM_CULLING_VIEWPORTS];
+RWStructuredBuffer<uint> indirectMaterialBuffer : register(UNIT_INDIRECT_MATERIAL_RW);
+RWStructuredBuffer<uint> indirectDrawArgsBufferAlpha[NUM_CULLING_VIEWPORTS] : register(UNIT_INDIRECT_DRAW_ARGS_ALPHA_RW);
+RWStructuredBuffer<uint> indirectDrawArgsBufferNoAlpha[NUM_CULLING_VIEWPORTS] : register(UNIT_INDIRECT_DRAW_ARGS_RW);
 
 [numthreads(CLEAR_THREAD_COUNT, 1, 1)]
 void main(uint3 threadID : SV_DispatchThreadID)

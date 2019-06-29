@@ -126,17 +126,6 @@
 #define ProfileWebServerPort() 0
 
 #define ProfileGpuSetContext(c) do{} while(0)
-#define ProfileGpuBegin(c) do{} while(0)
-#define ProfileGpuEnd() 0
-#define ProfileGpuSubmit(w) do{} while(0)
-
-#define PROFILE_GPU_ENTER(var, name, color) do{} while(0)
-#define PROFILE_GPU_LEAVE() do{} while(0)
-
-// TODO(AITOR): Fix this
-#define ProfileGpuShutdown() do{} while(0)
-#define ProfileGpuInitInternal(cmd, queue) do{} while(0)
-#define ProfileActivate(app, active) do{} while(0)
 
 #else
 

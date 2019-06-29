@@ -3,7 +3,7 @@
   <Project Name="OS" Path="OSBase/OSBase.project" Active="No"/>
   <Project Name="Renderer" Path="Renderer/Renderer.project" Active="No"/>
   <Project Name="SpirVTools" Path="SpirVTools/SpirVTools.project" Active="No"/>
-  <Project Name="01_Transformation" Path="01_Transformation/01_Transformation.project" Active="Yes"/>
+  <Project Name="01_Transformation" Path="01_Transformation/01_Transformation.project" Active="No"/>
   <Project Name="02_Compute" Path="02_Compute/02_Compute.project" Active="No"/>
   <Project Name="03_MultiThread" Path="03_MultiThread/03_MultiThread.project" Active="No"/>
   <Project Name="04_ExecuteIndirect" Path="04_ExecuteIndirect/04_ExecuteIndirect.project" Active="No"/>
@@ -19,7 +19,7 @@
   <Project Name="15_Transparency" Path="15_Transparency/15_Transparency.project" Active="No"/>
   <Project Name="16_Raytracing" Path="16_Raytracing/16_Raytracing.project" Active="No"/>
   <Project Name="16a_SphereTracing" Path="16a_SphereTracing/16a_SphereTracing.project" Active="No"/>
-  <Project Name="17_EntityComponentSystem" Path="17_EntityComponentSystem/17_EntityComponentSystem.project" Active="No"/>
+  <Project Name="17_EntityComponentSystem" Path="17_EntityComponentSystem/17_EntityComponentSystem.project" Active="Yes"/>
   <Project Name="18_Playback" Path="18_Playback/18_Playback.project" Active="No"/>
   <Project Name="19_Blending" Path="19_Blending/19_Blending.project" Active="No"/>
   <Project Name="20_JointAttachment" Path="20_JointAttachment/20_JointAttachment.project" Active="No"/>
@@ -38,6 +38,7 @@
   <Project Name="ozz_animation" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation.project" Active="No"/>
   <Project Name="ozz_animation_offline" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation_offline.project" Active="No"/>
   <Project Name="EASTL" Path="../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/EASTL.project" Active="No"/>
+  <Project Name="26_Audio" Path="26_Audio/26_Audio.project" Active="Yes"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>
@@ -81,49 +82,51 @@
       <Project Name="AssetPipeline" ConfigName="Debug"/>
       <Project Name="AssetPipelineCmd" ConfigName="Debug"/>
       <Project Name="EASTL" ConfigName="Debug"/>
+      <Project Name="26_Audio" ConfigName="Debug"/>
+      <Project Name="26_Audio" ConfigName="Debug"/>
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release" Selected="no">
       <Environment/>
-      <Project Name="OS" ConfigName="Release"/>
-      <Project Name="gainput" ConfigName="Release"/>
-      <Project Name="01_Transformation" ConfigName="Release"/>
-      <Project Name="Renderer" ConfigName="Release"/>
-      <Project Name="SpirVTools" ConfigName="Release"/>
-      <Project Name="LuaManager" ConfigName="Release"/>
-      <Project Name="02_Compute" ConfigName="Release"/>
-      <Project Name="03_MultiThread" ConfigName="Release"/>
-      <Project Name="04_ExecuteIndirect" ConfigName="Release"/>
-      <Project Name="05_FontRendering" ConfigName="Release"/>
-      <Project Name="06_MaterialPlayground" ConfigName="Release"/>
-      <Project Name="07_Tessellation" ConfigName="Release"/>
-      <Project Name="08_Procedural" ConfigName="Release"/>
-      <Project Name="06_MaterialPlayground" ConfigName="Release"/>
-      <Project Name="09_LightShadowPlayground" ConfigName="Release"/>
-      <Project Name="09a_HybridRaytracing" ConfigName="Release"/>
-      <Project Name="10_PixelProjectedReflections" ConfigName="Release"/>
-      <Project Name="13_UserInterface" ConfigName="Release"/>
-      <Project Name="14_WaveIntrinsics" ConfigName="Release"/>
-      <Project Name="15_Transparency" ConfigName="Release"/>
-      <Project Name="16_Raytracing" ConfigName="Release"/>
-      <Project Name="16a_SphereTracing" ConfigName="Release"/>
-      <Project Name="17_EntityComponentSystem" ConfigName="Release"/>
-      <Project Name="18_Playback" ConfigName="Release"/>
-      <Project Name="19_Blending" ConfigName="Release"/>
-      <Project Name="20_JointAttachment" ConfigName="Release"/>
-      <Project Name="21_PartialBlending" ConfigName="Release"/>
-      <Project Name="22_AdditiveBlending" ConfigName="Release"/>
-      <Project Name="23_BakedPhysics" ConfigName="Release"/>
-      <Project Name="24_MultiThread" ConfigName="Release"/>
-      <Project Name="25_Skinning" ConfigName="Release"/>
-      <Project Name="assimp" ConfigName="NoConfig"/>
       <Project Name="zlibstatic" ConfigName="NoConfig"/>
-      <Project Name="assimp" ConfigName="NoConfig"/>
+      <Project Name="SpirVTools" ConfigName="Release"/>
+      <Project Name="Renderer" ConfigName="Release"/>
       <Project Name="ozz_base" ConfigName="Release"/>
-      <Project Name="ozz_animation" ConfigName="Release"/>
       <Project Name="ozz_animation_offline" ConfigName="Release"/>
-      <Project Name="AssetPipeline" ConfigName="Release"/>
-      <Project Name="AssetPipelineCmd" ConfigName="Release"/>
+      <Project Name="ozz_animation" ConfigName="Release"/>
+      <Project Name="OS" ConfigName="Release"/>
+      <Project Name="LuaManager" ConfigName="Release"/>
+      <Project Name="gainput" ConfigName="Release"/>
       <Project Name="EASTL" ConfigName="Release"/>
+      <Project Name="assimp" ConfigName="NoConfig"/>
+      <Project Name="AssetPipelineCmd" ConfigName="Release"/>
+      <Project Name="AssetPipeline" ConfigName="Release"/>
+	  <Project Name="26_Audio" ConfigName="Release"/>
+      <Project Name="26_Audio" ConfigName="Release"/>
+      <Project Name="25_Skinning" ConfigName="Release"/>
+      <Project Name="24_MultiThread" ConfigName="Release"/>
+      <Project Name="23_BakedPhysics" ConfigName="Release"/>
+      <Project Name="22_AdditiveBlending" ConfigName="Release"/>
+      <Project Name="21_PartialBlending" ConfigName="Release"/>
+      <Project Name="20_JointAttachment" ConfigName="Release"/>
+      <Project Name="19_Blending" ConfigName="Release"/>
+      <Project Name="18_Playback" ConfigName="Release"/>
+      <Project Name="17_EntityComponentSystem" ConfigName="Release"/>
+      <Project Name="16a_SphereTracing" ConfigName="Release"/>
+      <Project Name="16_Raytracing" ConfigName="Release"/>
+      <Project Name="15_Transparency" ConfigName="Release"/>
+      <Project Name="14_WaveIntrinsics" ConfigName="Release"/>
+      <Project Name="13_UserInterface" ConfigName="Release"/>
+      <Project Name="10_PixelProjectedReflections" ConfigName="Release"/>
+      <Project Name="09a_HybridRaytracing" ConfigName="Release"/>
+      <Project Name="09_LightShadowPlayground" ConfigName="Release"/>
+      <Project Name="08_Procedural" ConfigName="Release"/>
+      <Project Name="07_Tessellation" ConfigName="Release"/>
+      <Project Name="06_MaterialPlayground" ConfigName="Release"/>
+      <Project Name="05_FontRendering" ConfigName="Release"/>
+      <Project Name="04_ExecuteIndirect" ConfigName="Release"/>
+      <Project Name="03_MultiThread" ConfigName="Release"/>
+      <Project Name="02_Compute" ConfigName="Release"/>
+      <Project Name="01_Transformation" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

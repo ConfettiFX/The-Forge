@@ -29,9 +29,9 @@
 
 #include "../../ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../OS/Interfaces/ILogManager.h"
-#include "../../OS/Interfaces/IMemoryManager.h"
 
 #include <math.h>
+#include "../../OS/Interfaces/IMemoryManager.h"
 
 #define AMD_TRESSFX_V4 4
 #define AMD_TRESSFX_V3 3

@@ -152,4 +152,17 @@ struct LightData
 	float3 position;
 	float3 color;
 };
+
+#define UNIT_UNCOMPACTED_ARGS t0
+#define UNIT_MATERIAL_PROPS   t11
+#define UNIT_VERTEX_DATA t12
+#define UNIT_INDEX_DATA t13
+#define UNIT_MESH_CONSTANTS   t14
+#define UNIT_BATCH_DATA_CBV b15
+#define UNIT_UNIFORMS_CBV b16
+#define UNIT_INDIRECT_MATERIAL_RW u19
+#define UNIT_INDIRECT_DRAW_ARGS_ALPHA_RW u20
+#define UNIT_INDIRECT_DRAW_ARGS_RW u30
+#define UNIT_UNCOMPACTED_ARGS_RW u40
+#define UNIT_INDEX_DATA_RW u50
 #endif

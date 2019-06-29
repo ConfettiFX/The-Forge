@@ -27,7 +27,6 @@ Index of this file:
 //#endif
 #include "imgui_internal.h"
 #include "../../../OS/Interfaces/IFileSystem.h"
-#include "../../../OS/Interfaces/IMemoryManager.h"
 
 #include <stdio.h>      // vsnprintf, sscanf, printf
 #if !defined(alloca)
@@ -42,6 +41,8 @@ Index of this file:
 #include <stdlib.h>     // alloca
 #endif
 #endif
+
+#include "../../../OS/Interfaces/IMemoryManager.h"
 
 // Visual Studio warnings
 #ifdef _MSC_VER

@@ -27,15 +27,15 @@
 // Just include the cpp here so we don't have to add it to the all projects
 #include "../../ThirdParty/OpenSource/FluidStudios/MemoryManager/mmgr.cpp"
 
-void* conf_malloc(size_t size) { return m_allocator(__FILE__, __LINE__, __FUNCTION__, m_alloc_malloc, 0, size); }
+void* conf_malloc_internal(size_t size, const char *f, int l, const char *sf) { return m_allocator(f, l, sf, m_alloc_malloc, 0, size); }
 
-void* conf_memalign(size_t alignment, size_t size) { return m_allocator(__FILE__, __LINE__, __FUNCTION__, m_alloc_memalign, alignment, size); }
+void* conf_memalign_internal(size_t align, size_t size, const char *f, int l, const char *sf) { return m_allocator(f, l, sf, m_alloc_memalign, align, size); }
 
-void* conf_calloc(size_t count, size_t size) { return m_allocator(__FILE__, __LINE__, __FUNCTION__, m_alloc_calloc, 0, size * count); }
+void* conf_calloc_internal(size_t count, size_t size, const char *f, int l, const char *sf) { return m_allocator(f, l, sf, m_alloc_calloc, 0, size * count); }
 
-void* conf_realloc(void* ptr, size_t size) { return m_reallocator(__FILE__, __LINE__, __FUNCTION__, m_alloc_realloc, size, ptr); }
+void* conf_realloc_internal(void* ptr, size_t size, const char *f, int l, const char *sf) { return m_reallocator(f, l, sf, m_alloc_realloc, size, ptr); }
 
-void conf_free(void* ptr) { m_deallocator(__FILE__, __LINE__, __FUNCTION__, m_alloc_free, ptr); }
+void conf_free_internal(void* ptr, const char *f, int l, const char *sf) { m_deallocator(f, l, sf, m_alloc_free, ptr); }
 
 #else
 
@@ -75,5 +75,15 @@ void* conf_realloc(void* ptr, size_t size) { return realloc(ptr, size); }
 
 void conf_free(void* ptr) { free(ptr); }
 #endif
+
+void* conf_malloc_internal(size_t size, const char *f, int l, const char *sf) { return conf_malloc(size); }
+
+void* conf_memalign_internal(size_t align, size_t size, const char *f, int l, const char *sf) { return conf_memalign(align, size); }
+
+void* conf_calloc_internal(size_t count, size_t size, const char *f, int l, const char *sf) { return conf_calloc(count, size); }
+
+void* conf_realloc_internal(void* ptr, size_t size, const char *f, int l, const char *sf) { return conf_realloc(ptr, size); }
+
+void conf_free_internal(void* ptr, const char *f, int l, const char *sf) { conf_free(ptr); }
 
 #endif

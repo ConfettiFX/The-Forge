@@ -79,7 +79,6 @@
 
 #define MAX_LOD_OFFSETS 10
 
-FileSystem gFileSystem;
 Timer      gAccumTimer;
 HiresTimer mFrameTimer;
 
@@ -93,6 +92,7 @@ const char* pszBases[FSR_Count] = {
 	"../../../UnitTestResources/",                      // FSR_Builtin_Fonts
 	"../../../src/04_ExecuteIndirect/",                 // FSR_GpuConfig
 	"",                                                 // FSR_Animation
+	"",                                                 // FSR_Audio
 	"",                                                 // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",                // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",                  // FSR_MIDDLEWARE_UI
@@ -267,8 +267,8 @@ GpuProfiler* pGpuProfiler = NULL;
 
 uint32_t gFrameIndex = 0;
 
-const char* pSkyBoxImageFileNames[] = { "Skybox_right1.png",  "Skybox_left2.png",  "Skybox_top3.png",
-										"Skybox_bottom4.png", "Skybox_front5.png", "Skybox_back6.png" };
+const char* pSkyBoxImageFileNames[] = { "Skybox_right1",  "Skybox_left2",  "Skybox_top3",
+										"Skybox_bottom4", "Skybox_front5", "Skybox_back6" };
 
 float skyBoxPoints[] = {
 	10.0f,  -10.0f, -10.0f, 6.0f,    // -z
@@ -353,14 +353,13 @@ class ExecuteIndirect: public IApp
 		{
 			TextureLoadDesc textureDesc = {};
 			textureDesc.mRoot = FSR_Textures;
-			textureDesc.mUseMipmaps = true;
 			textureDesc.pFilename = pSkyBoxImageFileNames[i];
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
 			addResource(&textureDesc);
 		}
 
 #ifdef TARGET_IOS
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 			return false;
 #endif
 

@@ -27,7 +27,7 @@ struct PsIn {
 	float2 texCoord: TEXCOORD;
 };
 
-Texture2D uTex0 : register(t0);
+Texture2D uTex0 : register(t0, space1);
 SamplerState uSampler0 : register(s1);
 
 cbuffer RootConstantSCurveInfo : register(b0)

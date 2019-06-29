@@ -30,8 +30,8 @@
 
 // interfaces
 #include "../Interfaces/ILogManager.h"
-#include "../Interfaces/IMemoryManager.h"
 #include <assert.h>
+#include "../Interfaces/IMemoryManager.h"
 
 void outputLogString(const char* pszStr)
 {

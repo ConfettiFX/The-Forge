@@ -1,0 +1,5 @@
+Source was modified:
+- to clean up memory allocations that would not integrate with the Forge's mem allocator
+- deleted unecessary files
+- assertions/logs uses Forge logger
+- made further small adjustments to the source code to ease integration with the Forge

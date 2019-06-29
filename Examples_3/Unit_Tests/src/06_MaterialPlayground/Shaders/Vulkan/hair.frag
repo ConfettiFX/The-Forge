@@ -88,7 +88,13 @@ struct Camera
 	float fNormalMapIntensity;
 };
 
-layout(set = 3, binding = 0) uniform cbCamera
+#if defined(HAIR_SHADOW)
+#define CB_CAMERA_SET 2
+#else
+#define CB_CAMERA_SET 0
+#endif
+
+layout(set = CB_CAMERA_SET, binding = 0) uniform cbCamera
 {
 	Camera Cam;
 };
@@ -129,12 +135,12 @@ layout(set = 0, binding = 7) uniform cbDirectionalLights
 	uint NumDirectionalLights;
 };
 
-layout(set = 3, binding = 10) uniform cbDirectionalLightShadowCameras
+layout(set = 2, binding = 10) uniform cbDirectionalLightShadowCameras
 {
 	Camera ShadowCameras[MAX_NUM_DIRECTIONAL_LIGHTS];
 };
 
-layout(set = 3, binding = 8) uniform texture2D DirectionalLightShadowMaps[MAX_NUM_DIRECTIONAL_LIGHTS];
+layout(set = 2, binding = 8) uniform texture2D DirectionalLightShadowMaps[MAX_NUM_DIRECTIONAL_LIGHTS];
 layout(set = 0, binding = 9) uniform sampler PointSampler;
 
 vec3 ScreenPosToNDC(vec3 screenPos, vec4 viewport)

@@ -212,16 +212,15 @@ GpuProfiler*       pGpuProfilers[gThreadCount] = { NULL };
 UIApp              gAppUI;
 ICameraController* pCameraController = NULL;
 
-FileSystem    gFileSystem;
 ThreadSystem* pThreadSystem;
 
 GraphVertex   gBackGroundPoints[gImageCount][gSampleCount];
 CpuGraphData* pCpuData;
 CpuGraph*     pCpuGraph;
 
-const char* pImageFileNames[] = { "Palette_Fire.png", "Palette_Purple.png", "Palette_Muted.png", "Palette_Rainbow.png", "Palette_Sky.png" };
-const char* pSkyBoxImageFileNames[] = { "Skybox_right1.png",  "Skybox_left2.png",  "Skybox_top3.png",
-										"Skybox_bottom4.png", "Skybox_front5.png", "Skybox_back6.png" };
+const char* pImageFileNames[] = { "Palette_Fire", "Palette_Purple", "Palette_Muted", "Palette_Rainbow", "Palette_Sky" };
+const char* pSkyBoxImageFileNames[] = { "Skybox_right1",  "Skybox_left2",  "Skybox_top3",
+										"Skybox_bottom4", "Skybox_front5", "Skybox_back6" };
 
 const char* pszBases[FSR_Count] = {
 	"../../../src/03_MultiThread/",         // FSR_BinShaders
@@ -231,6 +230,7 @@ const char* pszBases[FSR_Count] = {
 	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
 	"../../../src/03_MultiThread/",         // FSR_GpuConfig
 	"",                                     // FSR_Animation
+	"",                                     // FSR_Audio
 	"",                                     // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
@@ -300,7 +300,6 @@ class MultiThread: public IApp
 		{
 			TextureLoadDesc textureDesc = {};
 			textureDesc.mRoot = FSR_Textures;
-			textureDesc.mUseMipmaps = true;
 			textureDesc.pFilename = pImageFileNames[i];
 			textureDesc.ppTexture = &pTextures[i];
 			addResource(&textureDesc, true);
@@ -310,14 +309,13 @@ class MultiThread: public IApp
 		{
 			TextureLoadDesc textureDesc = {};
 			textureDesc.mRoot = FSR_Textures;
-			textureDesc.mUseMipmaps = true;
 			textureDesc.pFilename = pSkyBoxImageFileNames[i];
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
 			addResource(&textureDesc, true);
 		}
 
 #ifdef TARGET_IOS
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 			return false;
 #endif
 
@@ -1336,12 +1334,9 @@ class MultiThread: public IApp
 	void RemoveCpuUsage()
 	{
 		conf_free(pCpuData);
-#ifdef _WIN32
-#if defined(_DURANGO)
-#else
+#if (defined(_WIN32) && !defined(_DURANGO)) || defined(__linux__)
         conf_free(pOldTimeStamp);
         conf_free(pOldPprocUsage);
-#endif
 #endif
 		conf_free(pCoresLoadData);
 	}

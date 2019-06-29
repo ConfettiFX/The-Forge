@@ -39,16 +39,7 @@
 
 #include "../../../include/ozz/base/maths/math_ex.h"
 
-#ifndef conf_malloc
-extern void* conf_malloc(size_t size);
-#endif
-#ifndef conf_realloc
-extern void* conf_realloc(void* ptr, size_t size);
-#endif
-#ifndef conf_free
-extern void conf_free(void* ptr);
-#endif
-
+#include "../../../../OS/Interfaces/IMemoryManager.h"
 //CONFFX_END
 
 

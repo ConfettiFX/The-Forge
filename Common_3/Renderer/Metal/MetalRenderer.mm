@@ -42,8 +42,8 @@
 #include "MetalMemoryAllocator.h"
 #include "../../OS/Interfaces/ILogManager.h"
 #include "../../OS/Core/GPUConfig.h"
-#include "../../OS/Interfaces/IMemoryManager.h"
 #include "../../OS/Image/Image.h"
+#include "../../OS/Interfaces/IMemoryManager.h"
 
 #define MAX_BUFFER_BINDINGS 31
 
@@ -249,33 +249,65 @@ namespace RENDERER_CPP_NAMESPACE {
 		MTLPixelFormatInvalid, // RAWZ = 69, //depth only, Nvidia (requires recombination of data) //FIX IT: PS3 as well?
 		MTLPixelFormatInvalid, // DF16 = 70, //depth only, Intel/AMD
 		MTLPixelFormatInvalid, // STENCILONLY = 71, // stencil ony usage
-		MTLPixelFormatInvalid, // GNF_BC1 = 72,
-		MTLPixelFormatInvalid, // GNF_BC2 = 73,
-		MTLPixelFormatInvalid, // GNF_BC3 = 74,
-		MTLPixelFormatInvalid, // GNF_BC4 = 75,
-		MTLPixelFormatInvalid, // GNF_BC5 = 76,
-		MTLPixelFormatInvalid, // GNF_BC6 = 77,
-		MTLPixelFormatInvalid, // GNF_BC7 = 78,
+		
+		// BC formats
+#ifndef TARGET_IOS
+		MTLPixelFormatBC1_RGBA,       // GNF_BC1    = 72,
+		MTLPixelFormatBC2_RGBA,       // GNF_BC2    = 73,
+		MTLPixelFormatBC3_RGBA,       // GNF_BC3    = 74,
+		MTLPixelFormatBC4_RUnorm,     // GNF_BC4    = 75,
+		MTLPixelFormatBC5_RGUnorm,    // GNF_BC5    = 76,
+		MTLPixelFormatBC6H_RGBUfloat, // GNF_BC6HUF = 77,
+		MTLPixelFormatBC6H_RGBFloat,  // GNF_BC6HSF = 78,
+		MTLPixelFormatBC7_RGBAUnorm,  // GNF_BC7    = 79,
+#else
+		MTLPixelFormatInvalid, // GNF_BC1    = 72,
+		MTLPixelFormatInvalid, // GNF_BC2    = 73,
+		MTLPixelFormatInvalid, // GNF_BC3    = 74,
+		MTLPixelFormatInvalid, // GNF_BC4    = 75,
+		MTLPixelFormatInvalid, // GNF_BC5    = 76,
+		MTLPixelFormatInvalid, // GNF_BC6HUF = 77,
+		MTLPixelFormatInvalid, // GNF_BC6HSF = 78,
+		MTLPixelFormatInvalid, // GNF_BC7    = 79,
+#endif
 		// Reveser Form
-		MTLPixelFormatBGRA8Unorm, // BGRA8 = 79,
+		MTLPixelFormatBGRA8Unorm, // BGRA8 = 80,
 		// Extend for DXGI
-		MTLPixelFormatInvalid, // X8D24PAX32 = 80,
-		MTLPixelFormatStencil8,// S8 = 81,
-		MTLPixelFormatInvalid, // D16S8 = 82,
-		MTLPixelFormatDepth32Float_Stencil8, // D32S8 = 83,
+		MTLPixelFormatInvalid, // X8D24PAX32 = 81,
+		MTLPixelFormatStencil8,// S8 = 82,
+		MTLPixelFormatInvalid, // D16S8 = 83,
+		MTLPixelFormatDepth32Float_Stencil8, // D32S8 = 84,
 		
 #ifndef TARGET_IOS
-		// PVR formats
-		MTLPixelFormatInvalid, // PVR_2BPP_SRGB = 84,
-		MTLPixelFormatInvalid, // PVR_2BPPA_SRGB = 85,
-		MTLPixelFormatInvalid, // PVR_4BPP_SRGB = 86,
-		MTLPixelFormatInvalid, // PVR_4BPPA_SRGB = 87,
+		MTLPixelFormatInvalid,
+		MTLPixelFormatInvalid,
+		MTLPixelFormatInvalid,
+		MTLPixelFormatInvalid,
+		MTLPixelFormatInvalid,
+		MTLPixelFormatInvalid,
+		MTLPixelFormatInvalid,
+		MTLPixelFormatInvalid,
+		MTLPixelFormatInvalid,
+		MTLPixelFormatInvalid,
+		MTLPixelFormatInvalid,
+		MTLPixelFormatInvalid,
+		MTLPixelFormatInvalid,
+		MTLPixelFormatInvalid,
 #else
-		// PVR formats
-		MTLPixelFormatPVRTC_RGB_2BPP_sRGB, // PVR_2BPP_SRGB = 84,
-		MTLPixelFormatPVRTC_RGBA_2BPP_sRGB, // PVR_2BPPA_SRGB = 85,
-		MTLPixelFormatPVRTC_RGB_4BPP_sRGB, // PVR_4BPP_SRGB = 86,
-		MTLPixelFormatPVRTC_RGBA_4BPP_sRGB, // PVR_4BPPA_SRGB = 87,
+		MTLPixelFormatASTC_4x4_LDR,
+		MTLPixelFormatASTC_5x4_LDR,
+		MTLPixelFormatASTC_5x5_LDR,
+		MTLPixelFormatASTC_6x5_LDR,
+		MTLPixelFormatASTC_6x6_LDR,
+		MTLPixelFormatASTC_8x5_LDR,
+		MTLPixelFormatASTC_8x6_LDR,
+		MTLPixelFormatASTC_8x8_LDR,
+		MTLPixelFormatASTC_10x5_LDR,
+		MTLPixelFormatASTC_10x6_LDR,
+		MTLPixelFormatASTC_10x8_LDR,
+		MTLPixelFormatASTC_10x10_LDR,
+		MTLPixelFormatASTC_12x10_LDR,
+		MTLPixelFormatASTC_12x12_LDR,
 #endif
 	};
 // clang-format on
@@ -459,6 +491,11 @@ const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const 
 const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer)
 {
 	RendererShaderDefinesDesc defineDesc = { NULL, 0 };
+#ifdef TARGET_IOS
+	static ShaderMacro osMacro = { "TARGET_IOS", "" };
+	defineDesc.rendererShaderDefines = &osMacro;
+	defineDesc.rendererShaderDefinesCnt = 1;
+#endif
 	return defineDesc;
 }
 
@@ -766,7 +803,7 @@ void addDescriptorBinder(
 	Renderer* pRenderer, uint32_t gpuIndex, uint32_t numDescriptorDescs, const DescriptorBinderDesc* pDescs,
 	DescriptorBinder** ppDescriptorBinder)
 {
-	DescriptorBinder* descriptorBinder = conf_new<DescriptorBinder>();
+	DescriptorBinder* descriptorBinder = conf_new(DescriptorBinder);
 
 	for (uint32_t idesc = 0; idesc < numDescriptorDescs; idesc++)
 	{
@@ -3447,8 +3484,7 @@ void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pIntermediate, S
 #ifndef TARGET_IOS
 	MTLBlitOption blitOptions = MTLBlitOptionNone;
 #else
-	bool isPvrtc = (pTexture->mDesc.mFormat >= ImageFormat::PVR_2BPP && pTexture->mDesc.mFormat <= ImageFormat::PVR_4BPPA) ||
-				   (pTexture->mDesc.mFormat >= ImageFormat::PVR_2BPP_SRGB && pTexture->mDesc.mFormat <= ImageFormat::PVR_4BPPA_SRGB);
+	bool isPvrtc = (pTexture->mDesc.mFormat >= ImageFormat::PVR_2BPP && pTexture->mDesc.mFormat <= ImageFormat::PVR_4BPPA);
 	MTLBlitOption blitOptions = isPvrtc ? MTLBlitOptionRowLinearPVRTC : MTLBlitOptionNone;
 #endif
 
@@ -3853,6 +3889,17 @@ MTLPixelFormat util_to_mtl_pixel_format(const ImageFormat::Enum& format, const b
 				result = MTLPixelFormatBC3_RGBA_sRGB;
 			else if (result == MTLPixelFormatBC7_RGBAUnorm)
 				result = MTLPixelFormatBC7_RGBAUnorm_sRGB;
+#else
+		else if (result == MTLPixelFormatPVRTC_RGB_2BPP)
+			result = MTLPixelFormatPVRTC_RGB_2BPP_sRGB;
+		else if (result == MTLPixelFormatPVRTC_RGBA_2BPP)
+			result = MTLPixelFormatPVRTC_RGBA_2BPP_sRGB;
+		else if (result == MTLPixelFormatPVRTC_RGB_4BPP)
+			result = MTLPixelFormatPVRTC_RGB_4BPP_sRGB;
+		else if (result == MTLPixelFormatPVRTC_RGBA_4BPP)
+			result = MTLPixelFormatPVRTC_RGBA_4BPP_sRGB;
+		else if (result >= MTLPixelFormatASTC_4x4_LDR && result <= MTLPixelFormatASTC_12x12_LDR)
+			result = (MTLPixelFormat)(result - (MTLPixelFormatASTC_4x4_LDR - MTLPixelFormatASTC_4x4_sRGB));
 #endif
 		}
 	}
@@ -3872,21 +3919,9 @@ bool util_is_mtl_depth_pixel_format(const MTLPixelFormat& format)
 bool util_is_mtl_compressed_pixel_format(const MTLPixelFormat& format)
 {
 #ifndef TARGET_IOS
-	return format == MTLPixelFormatBC1_RGBA || format == MTLPixelFormatBC1_RGBA_sRGB || format == MTLPixelFormatBC2_RGBA ||
-		   format == MTLPixelFormatBC2_RGBA_sRGB || format == MTLPixelFormatBC3_RGBA || format == MTLPixelFormatBC3_RGBA_sRGB ||
-		   format == MTLPixelFormatBC4_RUnorm || format == MTLPixelFormatBC4_RSnorm || format == MTLPixelFormatBC5_RGUnorm ||
-		   format == MTLPixelFormatBC5_RGSnorm || format == MTLPixelFormatBC6H_RGBFloat || format == MTLPixelFormatBC6H_RGBUfloat ||
-		   format == MTLPixelFormatBC7_RGBAUnorm || format == MTLPixelFormatBC7_RGBAUnorm_sRGB;
+	return format >= MTLPixelFormatBC1_RGBA;
 #else
-	// Note: BC texture formats are not supported on iOS.
-	return 	format == MTLPixelFormatPVRTC_RGB_2BPP ||
-			format == MTLPixelFormatPVRTC_RGB_2BPP_sRGB ||
-			format == MTLPixelFormatPVRTC_RGB_4BPP ||
-			format == MTLPixelFormatPVRTC_RGB_4BPP_sRGB ||
-			format == MTLPixelFormatPVRTC_RGBA_2BPP ||
-			format == MTLPixelFormatPVRTC_RGBA_2BPP_sRGB ||
-			format == MTLPixelFormatPVRTC_RGBA_4BPP ||
-			format == MTLPixelFormatPVRTC_RGBA_4BPP_sRGB;
+	return format >= MTLPixelFormatPVRTC_RGB_2BPP;
 #endif
 }
 

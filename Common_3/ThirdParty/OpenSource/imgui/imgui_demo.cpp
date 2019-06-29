@@ -33,6 +33,7 @@
 #else
 #include <stdint.h>         // intptr_t
 #endif
+#include "../../../OS/Interfaces/IMemoryManager.h"
 
 #ifdef _MSC_VER
 #pragma warning (disable: 4996) // 'This function or variable may be unsafe': strcpy, strdup, sprintf, vsnprintf, sscanf, fopen
@@ -56,9 +57,6 @@
 #pragma GCC diagnostic ignored "-Wmisleading-indentation"       // warning: this 'if' clause does not guard this statement      // GCC 6.0+ only. See #883 on GitHub.
 #endif
 #endif
-
-extern void* conf_malloc(size_t);
-extern void  conf_free(void*);
 
 // Play it nice with Windows users. Notepad in 2017 still doesn't display text data with Unix-style \n.
 #ifdef _WIN32

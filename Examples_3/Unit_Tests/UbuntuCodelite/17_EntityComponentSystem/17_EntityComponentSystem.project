@@ -24,6 +24,26 @@
     <Project Name="gainput"/>
     <Project Name="EASTL"/>
   </Dependencies>
+  <VirtualDirectory Name="Components">
+    <File Name="../../src/17_EntityComponentSystem/Components/MoveComponent.cpp"/>
+    <File Name="../../src/17_EntityComponentSystem/Components/MoveComponent.h"/>
+    <File Name="../../src/17_EntityComponentSystem/Components/PositionComponent.cpp"/>
+    <File Name="../../src/17_EntityComponentSystem/Components/PositionComponent.h"/>
+    <File Name="../../src/17_EntityComponentSystem/Components/SpriteComponent.cpp"/>
+    <File Name="../../src/17_EntityComponentSystem/Components/SpriteComponent.h"/>
+    <File Name="../../src/17_EntityComponentSystem/Components/WorldBoundsComponent.cpp"/>
+    <File Name="../../src/17_EntityComponentSystem/Components/WorldBoundsComponent.h"/>
+  </VirtualDirectory>
+  <VirtualDirectory Name="Representations">
+    <File Name="../../src/17_EntityComponentSystem/Representations/MoveRepresentation.cpp"/>
+    <File Name="../../src/17_EntityComponentSystem/Representations/MoveRepresentation.h"/>
+    <File Name="../../src/17_EntityComponentSystem/Representations/PositionRepresentation.cpp"/>
+    <File Name="../../src/17_EntityComponentSystem/Representations/PositionRepresentation.h"/>
+    <File Name="../../src/17_EntityComponentSystem/Representations/SpriteRepresentation.cpp"/>
+    <File Name="../../src/17_EntityComponentSystem/Representations/SpriteRepresentation.h"/>
+    <File Name="../../src/17_EntityComponentSystem/Representations/WorldBoundsRepresentation.cpp"/>
+    <File Name="../../src/17_EntityComponentSystem/Representations/WorldBoundsRepresentation.h"/>
+  </VirtualDirectory>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -38,7 +58,6 @@
       <Compiler Options="-g;-O0;-std=c++17;-Wall;-Wno-unknown-pragmas; " C_Options="-g;-O0;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
-        <IncludePath Value="$(VULKAN_SDK)/include/"/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
         <Preprocessor Value="USE_MEMORY_TRACKING"/>
@@ -48,7 +67,6 @@
         <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
-        <LibraryPath Value="$(VULKAN_SDK)/lib/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
         <Library Value="libOS.a"/>
         <Library Value="libRenderer.a"/>
@@ -96,7 +114,6 @@
       <Compiler Options="-O2;-std=c++17;-Wall;-Wno-unknown-pragmas; " C_Options="-O2;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
-        <IncludePath Value="$(VULKAN_SDK)/include/"/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>
       </Compiler>
@@ -105,7 +122,6 @@
         <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
-        <LibraryPath Value="$(VULKAN_SDK)/lib/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
         <Library Value="libOS.a"/>
         <Library Value="libRenderer.a"/>

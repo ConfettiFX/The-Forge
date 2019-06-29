@@ -719,12 +719,17 @@ void VirtualJoystickUI::Unload()
 		return;
 	removePipeline(pRenderer, pPipeline);
 }
-
+#ifdef __ANDROID__
+extern float getDensity();
+#endif
 void VirtualJoystickUI::InitLRSticks(float insideRad, float outsideRad, float deadzone)
 {
 	float contentScaleFactor = getDpiScale().getX();
 #ifdef TARGET_IOS
 	contentScaleFactor /= [UIScreen.mainScreen nativeScale];
+#endif
+#ifdef __ANDROID__
+	contentScaleFactor /= getDensity();
 #endif
 	mInsideRadius = insideRad * contentScaleFactor;
 	mOutsideRadius = outsideRad * contentScaleFactor;

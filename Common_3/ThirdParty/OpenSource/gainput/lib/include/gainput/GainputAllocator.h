@@ -2,14 +2,8 @@
 #ifndef GAINPUTALLOCATOR_H_
 #define GAINPUTALLOCATOR_H_
 
-#ifndef conf_malloc
-extern void* conf_malloc(size_t size);
-#endif
-#ifndef conf_free
-extern void conf_free(void* ptr);
-#endif
-
-#undef new
+#define MEM_MANAGER_FROM_HEADER
+#include "../../../../../../OS/Interfaces/IMemoryManager.h"
 
 namespace gainput
 {

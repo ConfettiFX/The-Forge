@@ -22,8 +22,8 @@
 
 #include "TFXImporter.h"
 #include <cstdlib>
-#include "../../OS/Interfaces/IMemoryManager.h"
 #include "TressFXAsset.h"
+#include "../../OS/Interfaces/IMemoryManager.h"
 
 bool TFXImporter::ImportTFX(
 	const char* filename, FSRoot root, int numFollowHairs, float tipSeperationFactor, float maxRadiusAroundGuideHair, TFXAsset* tfxAsset)

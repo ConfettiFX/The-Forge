@@ -1,11 +1,11 @@
 local TEXTURE_RESOLUTION = "2K"
 
 local groundTextures = {
-    "PBR/snow_white_tiles_02/" .. TEXTURE_RESOLUTION .. "/Albedo.png",
-    "PBR/snow_white_tiles_02/" .. TEXTURE_RESOLUTION .. "/Normal.png",
-    "PBR/Metallic_off.png",
-    "PBR/snow_white_tiles_02/" .. TEXTURE_RESOLUTION .. "/Roughness2.png",
-    "PBR/snow_white_tiles_02/" .. TEXTURE_RESOLUTION .. "/AO.png"
+    "PBR/snow_white_tiles_02/" .. TEXTURE_RESOLUTION .. "/Albedo",
+    "PBR/snow_white_tiles_02/" .. TEXTURE_RESOLUTION .. "/Normal",
+    "PBR/Metallic_off",
+    "PBR/snow_white_tiles_02/" .. TEXTURE_RESOLUTION .. "/Roughness2",
+    "PBR/snow_white_tiles_02/" .. TEXTURE_RESOLUTION .. "/AO"
 }
 
-loader.LoadTextureMaps(groundTextures, 1)
+loader.LoadTextureMaps(groundTextures)

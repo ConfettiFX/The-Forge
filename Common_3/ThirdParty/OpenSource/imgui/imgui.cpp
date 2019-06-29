@@ -948,10 +948,8 @@ ImGuiContext*   GImGui = NULL;
 // If you use DLL hotreloading you might need to call SetAllocatorFunctions() after reloading code from this file.
 // Otherwise, you probably don't want to modify them mid-program, and if you use global/static e.g. eastl::vector<> instances you may need to keep them accessible during program destruction.
 #ifndef IMGUI_DISABLE_DEFAULT_ALLOCATORS
-extern void* conf_malloc(size_t);
-extern void  conf_free(void*);
-static void*   MallocWrapper(size_t size, void* user_data)    { (void)user_data; return conf_malloc(size); }
-static void    FreeWrapper(void* ptr, void* user_data)        { (void)user_data; conf_free(ptr); }
+static void*   MallocWrapper(size_t size, void* user_data)    { (void)user_data; return malloc(size); }
+static void    FreeWrapper(void* ptr, void* user_data)        { (void)user_data; free(ptr); }
 #else
 static void*   MallocWrapper(size_t size, void* user_data)    { (void)user_data; (void)size; IM_ASSERT(0); return NULL; }
 static void    FreeWrapper(void* ptr, void* user_data)        { (void)user_data; (void)ptr; IM_ASSERT(0); }

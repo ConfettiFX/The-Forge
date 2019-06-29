@@ -25,13 +25,13 @@
 		650CCC7D2223CDB6003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC7C2223CDB6003533D9 /* MetalPerformanceShaders.framework */; };
 		971BCE672170013C007F2B2F /* 16a_SphereTracing.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D204ED801F348A5B005F2CEA /* 16a_SphereTracing.cpp */; };
 		97CF923F216FCDBD0036A63B /* TitilliumText in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5AB89201F3A77000E571F /* TitilliumText */; };
-		97CF9241216FCDDB0036A63B /* circlepad.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 281FA9DF2033059C00CD5D9C /* circlepad.png */; };
-		97CF9242216FCDDB0036A63B /* Skybox_back6.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5AB80201F3A35000E571F /* Skybox_back6.png */; };
-		97CF9243216FCDDB0036A63B /* Skybox_bottom4.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5AB7D201F3A35000E571F /* Skybox_bottom4.png */; };
-		97CF9244216FCDDB0036A63B /* Skybox_front5.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5AB7E201F3A35000E571F /* Skybox_front5.png */; };
-		97CF9245216FCDDB0036A63B /* Skybox_left2.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5AB7C201F3A35000E571F /* Skybox_left2.png */; };
-		97CF9246216FCDDB0036A63B /* Skybox_right1.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5AB7B201F3A35000E571F /* Skybox_right1.png */; };
-		97CF9247216FCDDB0036A63B /* Skybox_top3.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5AB7F201F3A35000E571F /* Skybox_top3.png */; };
+		97CF9241216FCDDB0036A63B /* circlepad.ktx in CopyFiles */ = {isa = PBXBuildFile; fileRef = 281FA9DF2033059C00CD5D9C /* circlepad.ktx */; };
+		97CF9242216FCDDB0036A63B /* Skybox_back6.ktx in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5AB80201F3A35000E571F /* Skybox_back6.ktx */; };
+		97CF9243216FCDDB0036A63B /* Skybox_bottom4.ktx in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5AB7D201F3A35000E571F /* Skybox_bottom4.ktx */; };
+		97CF9244216FCDDB0036A63B /* Skybox_front5.ktx in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5AB7E201F3A35000E571F /* Skybox_front5.ktx */; };
+		97CF9245216FCDDB0036A63B /* Skybox_left2.ktx in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5AB7C201F3A35000E571F /* Skybox_left2.ktx */; };
+		97CF9246216FCDDB0036A63B /* Skybox_right1.ktx in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5AB7B201F3A35000E571F /* Skybox_right1.ktx */; };
+		97CF9247216FCDDB0036A63B /* Skybox_top3.ktx in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5AB7F201F3A35000E571F /* Skybox_top3.ktx */; };
 		B2087DD321421A13006F372D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DD121421A13006F372D /* MetalKit.framework */; };
 		B2087DD421421A13006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DD221421A13006F372D /* Metal.framework */; };
 		B211BA26219CBD3200101502 /* fstri.vert.metal in Resources */ = {isa = PBXBuildFile; fileRef = B2E8E64F219C9E1E00FDC78B /* fstri.vert.metal */; };
@@ -96,13 +96,13 @@
 			dstPath = Textures;
 			dstSubfolderSpec = 7;
 			files = (
-				97CF9241216FCDDB0036A63B /* circlepad.png in CopyFiles */,
-				97CF9242216FCDDB0036A63B /* Skybox_back6.png in CopyFiles */,
-				97CF9243216FCDDB0036A63B /* Skybox_bottom4.png in CopyFiles */,
-				97CF9244216FCDDB0036A63B /* Skybox_front5.png in CopyFiles */,
-				97CF9245216FCDDB0036A63B /* Skybox_left2.png in CopyFiles */,
-				97CF9246216FCDDB0036A63B /* Skybox_right1.png in CopyFiles */,
-				97CF9247216FCDDB0036A63B /* Skybox_top3.png in CopyFiles */,
+				97CF9241216FCDDB0036A63B /* circlepad.ktx in CopyFiles */,
+				97CF9242216FCDDB0036A63B /* Skybox_back6.ktx in CopyFiles */,
+				97CF9243216FCDDB0036A63B /* Skybox_bottom4.ktx in CopyFiles */,
+				97CF9244216FCDDB0036A63B /* Skybox_front5.ktx in CopyFiles */,
+				97CF9245216FCDDB0036A63B /* Skybox_left2.ktx in CopyFiles */,
+				97CF9246216FCDDB0036A63B /* Skybox_right1.ktx in CopyFiles */,
+				97CF9247216FCDDB0036A63B /* Skybox_top3.ktx in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -130,13 +130,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		281FA9DF2033059C00CD5D9C /* circlepad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = circlepad.png; path = ../../../UnitTestResources/Textures/circlepad.png; sourceTree = "<group>"; };
-		28A5AB7B201F3A35000E571F /* Skybox_right1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_right1.png; path = ../../../UnitTestResources/Textures/Skybox_right1.png; sourceTree = "<group>"; };
-		28A5AB7C201F3A35000E571F /* Skybox_left2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_left2.png; path = ../../../UnitTestResources/Textures/Skybox_left2.png; sourceTree = "<group>"; };
-		28A5AB7D201F3A35000E571F /* Skybox_bottom4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_bottom4.png; path = ../../../UnitTestResources/Textures/Skybox_bottom4.png; sourceTree = "<group>"; };
-		28A5AB7E201F3A35000E571F /* Skybox_front5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_front5.png; path = ../../../UnitTestResources/Textures/Skybox_front5.png; sourceTree = "<group>"; };
-		28A5AB7F201F3A35000E571F /* Skybox_top3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_top3.png; path = ../../../UnitTestResources/Textures/Skybox_top3.png; sourceTree = "<group>"; };
-		28A5AB80201F3A35000E571F /* Skybox_back6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_back6.png; path = ../../../UnitTestResources/Textures/Skybox_back6.png; sourceTree = "<group>"; };
+		281FA9DF2033059C00CD5D9C /* circlepad.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = circlepad.ktx; path = ../../../UnitTestResources/Textures/circlepad.ktx; sourceTree = "<group>"; };
+		28A5AB7B201F3A35000E571F /* Skybox_right1.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_right1.ktx; path = ../../../UnitTestResources/Textures/Skybox_right1.ktx; sourceTree = "<group>"; };
+		28A5AB7C201F3A35000E571F /* Skybox_left2.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_left2.ktx; path = ../../../UnitTestResources/Textures/Skybox_left2.ktx; sourceTree = "<group>"; };
+		28A5AB7D201F3A35000E571F /* Skybox_bottom4.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_bottom4.ktx; path = ../../../UnitTestResources/Textures/Skybox_bottom4.ktx; sourceTree = "<group>"; };
+		28A5AB7E201F3A35000E571F /* Skybox_front5.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_front5.ktx; path = ../../../UnitTestResources/Textures/Skybox_front5.ktx; sourceTree = "<group>"; };
+		28A5AB7F201F3A35000E571F /* Skybox_top3.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_top3.ktx; path = ../../../UnitTestResources/Textures/Skybox_top3.ktx; sourceTree = "<group>"; };
+		28A5AB80201F3A35000E571F /* Skybox_back6.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_back6.ktx; path = ../../../UnitTestResources/Textures/Skybox_back6.ktx; sourceTree = "<group>"; };
 		28A5AB89201F3A77000E571F /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = ../../../UnitTestResources/Fonts/TitilliumText; sourceTree = "<group>"; };
 		5B17816522A5C80B00991DCB /* profile.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.frag.metal; path = ../../src/16a_SphereTracing/Shaders/Metal/profile.frag.metal; sourceTree = "<group>"; };
 		5B17816622A5C80B00991DCB /* profile.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.vert.metal; path = ../../src/16a_SphereTracing/Shaders/Metal/profile.vert.metal; sourceTree = "<group>"; };
@@ -214,13 +214,13 @@
 		28A5AB7A201F399E000E571F /* Textures */ = {
 			isa = PBXGroup;
 			children = (
-				281FA9DF2033059C00CD5D9C /* circlepad.png */,
-				28A5AB80201F3A35000E571F /* Skybox_back6.png */,
-				28A5AB7D201F3A35000E571F /* Skybox_bottom4.png */,
-				28A5AB7E201F3A35000E571F /* Skybox_front5.png */,
-				28A5AB7C201F3A35000E571F /* Skybox_left2.png */,
-				28A5AB7B201F3A35000E571F /* Skybox_right1.png */,
-				28A5AB7F201F3A35000E571F /* Skybox_top3.png */,
+				281FA9DF2033059C00CD5D9C /* circlepad.ktx */,
+				28A5AB80201F3A35000E571F /* Skybox_back6.ktx */,
+				28A5AB7D201F3A35000E571F /* Skybox_bottom4.ktx */,
+				28A5AB7E201F3A35000E571F /* Skybox_front5.ktx */,
+				28A5AB7C201F3A35000E571F /* Skybox_left2.ktx */,
+				28A5AB7B201F3A35000E571F /* Skybox_right1.ktx */,
+				28A5AB7F201F3A35000E571F /* Skybox_top3.ktx */,
 			);
 			name = Textures;
 			path = 16a_SphereTracing_iOS;

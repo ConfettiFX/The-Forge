@@ -54,6 +54,7 @@ const char* pszBases[FSR_Count] = {
 	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
 	"../../../src/08_Procedural/",          // FSR_GpuConfig
 	"",                                     // FSR_Animation
+	"",                                     // FSR_Audio
 	"",                                     // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
@@ -177,7 +178,7 @@ const int gSphereResolution = 1024;    // Increase for higher resolution spheres
 #else
 const int gSphereResolution = 512;    // Halve the resolution of the planet on iOS.
 #endif
-const char* pEnvImageFileNames[] = { "environment_sky.png" };
+const char* pEnvImageFileNames[] = { "environment_sky" };
 
 int gNumOfSpherePoints;
 
@@ -243,13 +244,12 @@ class Procedural: public IApp
 
 		TextureLoadDesc textureDesc = {};
 		textureDesc.mRoot = FSR_Textures;
-		textureDesc.mUseMipmaps = true;
 		textureDesc.pFilename = pEnvImageFileNames[0];
 		textureDesc.ppTexture = &pEnvTex;
 		addResource(&textureDesc);
 
 #ifdef TARGET_IOS
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 			return false;
 #endif
 

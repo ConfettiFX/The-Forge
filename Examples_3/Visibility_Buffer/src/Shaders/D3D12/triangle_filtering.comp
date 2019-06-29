@@ -50,19 +50,19 @@
 
 #include "shader_defs.h"
 
-StructuredBuffer<float3> vertexDataBuffer;
-StructuredBuffer<uint> indexDataBuffer;
-StructuredBuffer<MeshConstants> meshConstantsBuffer;
+StructuredBuffer<float3> vertexDataBuffer : register(UNIT_VERTEX_DATA);
+StructuredBuffer<uint> indexDataBuffer : register(UNIT_INDEX_DATA);
+StructuredBuffer<MeshConstants> meshConstantsBuffer : register(UNIT_MESH_CONSTANTS);
 
-RWStructuredBuffer<uint> filteredIndicesBuffer[NUM_CULLING_VIEWPORTS];
-RWStructuredBuffer<UncompactedDrawArguments> uncompactedDrawArgs[NUM_CULLING_VIEWPORTS];
+RWStructuredBuffer<uint> filteredIndicesBuffer[NUM_CULLING_VIEWPORTS] : register(UNIT_INDEX_DATA_RW);
+RWStructuredBuffer<UncompactedDrawArguments> uncompactedDrawArgsRW[NUM_CULLING_VIEWPORTS] : register(UNIT_UNCOMPACTED_ARGS_RW);
 
-cbuffer batchData : register(b0, space3)
+cbuffer batchData : register(UNIT_BATCH_DATA_CBV)
 {
 	SmallBatchData smallBatchDataBuffer[BATCH_COUNT];
 };
 
-ConstantBuffer<PerFrameConstants> uniforms;
+ConstantBuffer<PerFrameConstants> uniforms : register(UNIT_UNIFORMS_CBV);
 
 groupshared uint workGroupOutputSlot[NUM_CULLING_VIEWPORTS];
 groupshared uint workGroupIndexCount[NUM_CULLING_VIEWPORTS];
@@ -270,7 +270,7 @@ void main(uint3 inGroupId : SV_GroupThreadID,
 		[unroll(NUM_CULLING_VIEWPORTS)]
 		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 		{
-			InterlockedAdd(uncompactedDrawArgs[i][accumBatchDrawIndex].numIndices, workGroupIndexCount[i], workGroupOutputSlot[i]);
+			InterlockedAdd(uncompactedDrawArgsRW[i][accumBatchDrawIndex].numIndices, workGroupIndexCount[i], workGroupOutputSlot[i]);
 		}
 	}
 
@@ -294,8 +294,8 @@ void main(uint3 inGroupId : SV_GroupThreadID,
 		[unroll(NUM_CULLING_VIEWPORTS)]
 		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 		{
-			uncompactedDrawArgs[i][accumBatchDrawIndex].startIndex = outIndexOffset;
-			uncompactedDrawArgs[i][accumBatchDrawIndex].materialID = meshConstantsBuffer[batchMeshIndex].materialID;
+			uncompactedDrawArgsRW[i][accumBatchDrawIndex].startIndex = outIndexOffset;
+			uncompactedDrawArgsRW[i][accumBatchDrawIndex].materialID = meshConstantsBuffer[batchMeshIndex].materialID;
 		}
 	}
 }

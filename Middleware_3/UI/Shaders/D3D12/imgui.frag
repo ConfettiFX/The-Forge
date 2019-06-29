@@ -6,7 +6,7 @@ struct PS_INPUT
 };
 
 Texture2D uTex : register(t1, space2);
-SamplerState uSampler : register(s2, space2);
+SamplerState uSampler : register(s2);
 
 float4 main(PS_INPUT input) : SV_Target
 {

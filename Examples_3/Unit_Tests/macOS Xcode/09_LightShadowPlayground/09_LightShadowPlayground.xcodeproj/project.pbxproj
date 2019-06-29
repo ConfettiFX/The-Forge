@@ -37,10 +37,10 @@
 		650CCC612223C8BB003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC602223C8BB003533D9 /* MetalPerformanceShaders.framework */; };
 		650CCC632223C8C7003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC622223C8C7003533D9 /* MetalPerformanceShaders.framework */; };
 		971BCF1321701934007F2B2F /* skybox in Copy Textures */ = {isa = PBXBuildFile; fileRef = B256247620EC3277007C672A /* skybox */; };
-		971BCF1421701934007F2B2F /* rect.tga in Copy Textures */ = {isa = PBXBuildFile; fileRef = B256247120EC31BC007C672A /* rect.tga */; };
-		971BCF1521701934007F2B2F /* Warehouse-with-lights.tga in Copy Textures */ = {isa = PBXBuildFile; fileRef = B23CFB8320EC313A0053944B /* Warehouse-with-lights.tga */; };
-		971BCF1621701934007F2B2F /* circlepad.png in Copy Textures */ = {isa = PBXBuildFile; fileRef = 281FA9ED20333E9200CD5D9C /* circlepad.png */; };
-		971BCF1721701934007F2B2F /* environment_sky.png in Copy Textures */ = {isa = PBXBuildFile; fileRef = 28A5AE32201F7DB4000E571F /* environment_sky.png */; };
+		971BCF1421701934007F2B2F /* rect.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = B256247120EC31BC007C672A /* rect.ktx */; };
+		971BCF1521701934007F2B2F /* Warehouse-with-lights.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = B23CFB8320EC313A0053944B /* Warehouse-with-lights.ktx */; };
+		971BCF1621701934007F2B2F /* circlepad.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = 281FA9ED20333E9200CD5D9C /* circlepad.ktx */; };
+		971BCF1721701934007F2B2F /* environment_sky.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = 28A5AE32201F7DB4000E571F /* environment_sky.ktx */; };
 		971BCF182170193A007F2B2F /* TitilliumText in Copy Fonts */ = {isa = PBXBuildFile; fileRef = 28A5AE30201F7D9E000E571F /* TitilliumText */; };
 		B2087DF321421A66006F372D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DF121421A66006F372D /* MetalKit.framework */; };
 		B2087DF421421A66006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DF221421A66006F372D /* Metal.framework */; };
@@ -90,10 +90,10 @@
 			dstSubfolderSpec = 7;
 			files = (
 				971BCF1321701934007F2B2F /* skybox in Copy Textures */,
-				971BCF1421701934007F2B2F /* rect.tga in Copy Textures */,
-				971BCF1521701934007F2B2F /* Warehouse-with-lights.tga in Copy Textures */,
-				971BCF1621701934007F2B2F /* circlepad.png in Copy Textures */,
-				971BCF1721701934007F2B2F /* environment_sky.png in Copy Textures */,
+				971BCF1421701934007F2B2F /* rect.ktx in Copy Textures */,
+				971BCF1521701934007F2B2F /* Warehouse-with-lights.ktx in Copy Textures */,
+				971BCF1621701934007F2B2F /* circlepad.ktx in Copy Textures */,
+				971BCF1721701934007F2B2F /* environment_sky.ktx in Copy Textures */,
 			);
 			name = "Copy Textures";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -140,13 +140,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		281FA9ED20333E9200CD5D9C /* circlepad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = circlepad.png; path = ../../../UnitTestResources/Textures/circlepad.png; sourceTree = "<group>"; };
+		281FA9ED20333E9200CD5D9C /* circlepad.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = circlepad.ktx; path = ../../../UnitTestResources/Textures/circlepad.ktx; sourceTree = "<group>"; };
 		28A5AE08201F7D41000E571F /* 09_LightShadowPlayground_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 09_LightShadowPlayground_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		28A5AE19201F7D41000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		28A5AE1C201F7D41000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		28A5AE1E201F7D41000E571F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		28A5AE30201F7D9E000E571F /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = ../../../UnitTestResources/Fonts/TitilliumText; sourceTree = "<group>"; };
-		28A5AE32201F7DB4000E571F /* environment_sky.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = environment_sky.png; path = ../../../UnitTestResources/Textures/environment_sky.png; sourceTree = "<group>"; };
+		28A5AE32201F7DB4000E571F /* environment_sky.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = environment_sky.ktx; path = ../../../UnitTestResources/Textures/environment_sky.ktx; sourceTree = "<group>"; };
 		28EE9FF6201B30B200D42AD7 /* 09_LightShadowPlayground.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 09_LightShadowPlayground.cpp; path = ../../../src/09_LightShadowPlayground/09_LightShadowPlayground.cpp; sourceTree = "<group>"; };
 		5B17815922A5C76D00991DCB /* profile.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.frag.metal; path = ../../src/09_LightShadowPlayground/Shaders/Metal/profile.frag.metal; sourceTree = "<group>"; };
 		5B17815A22A5C76D00991DCB /* profile.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.vert.metal; path = ../../src/09_LightShadowPlayground/Shaders/Metal/profile.vert.metal; sourceTree = "<group>"; };
@@ -179,8 +179,8 @@
 		B21F76E521420EDB00DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76E621420EDB00DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76E721420EDB00DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
-		B23CFB8320EC313A0053944B /* Warehouse-with-lights.tga */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Warehouse-with-lights.tga"; path = "../../../UnitTestResources/Textures/Warehouse-with-lights.tga"; sourceTree = "<group>"; };
-		B256247120EC31BC007C672A /* rect.tga */ = {isa = PBXFileReference; lastKnownFileType = file; name = rect.tga; path = ../../../UnitTestResources/Textures/rect.tga; sourceTree = "<group>"; };
+		B23CFB8320EC313A0053944B /* Warehouse-with-lights.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Warehouse-with-lights.ktx"; path = "../../../UnitTestResources/Textures/Warehouse-with-lights.ktx"; sourceTree = "<group>"; };
+		B256247120EC31BC007C672A /* rect.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = rect.ktx; path = ../../../UnitTestResources/Textures/rect.ktx; sourceTree = "<group>"; };
 		B256247620EC3277007C672A /* skybox */ = {isa = PBXFileReference; lastKnownFileType = folder; name = skybox; path = ../../../UnitTestResources/Textures/skybox; sourceTree = "<group>"; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../02_Compute/02_Compute/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
@@ -264,10 +264,10 @@
 			isa = PBXGroup;
 			children = (
 				B256247620EC3277007C672A /* skybox */,
-				B256247120EC31BC007C672A /* rect.tga */,
-				B23CFB8320EC313A0053944B /* Warehouse-with-lights.tga */,
-				281FA9ED20333E9200CD5D9C /* circlepad.png */,
-				28A5AE32201F7DB4000E571F /* environment_sky.png */,
+				B256247120EC31BC007C672A /* rect.ktx */,
+				B23CFB8320EC313A0053944B /* Warehouse-with-lights.ktx */,
+				281FA9ED20333E9200CD5D9C /* circlepad.ktx */,
+				28A5AE32201F7DB4000E571F /* environment_sky.ktx */,
 			);
 			name = Textures;
 			path = 09_LightShadowPlayground_iOS;

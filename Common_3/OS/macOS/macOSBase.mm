@@ -185,7 +185,7 @@ void openWindow(const char* app_name, WindowsDesc* winDesc, id<MTLDevice> device
                                              defer:YES];
     [Window setAcceptsMouseMovedEvents:YES];
     [Window setTitle:[NSString stringWithUTF8String:app_name]];
-    [Window setMinSize:NSSizeFromCGSize(CGSizeMake(800, 600))];
+    [Window setMinSize:NSSizeFromCGSize(CGSizeMake(128, 128))];
     
     [Window setOpaque:YES];
     [Window setRestorable:NO];

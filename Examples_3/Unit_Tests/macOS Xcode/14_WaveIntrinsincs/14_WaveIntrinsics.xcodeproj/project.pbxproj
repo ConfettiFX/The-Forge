@@ -21,7 +21,7 @@
 		D062DAE52211033700CF2B1B /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = D062DAE32211033700CF2B1B /* AppDelegate.m */; };
 		D062DAE62211038200CF2B1B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D062DADA2211030400CF2B1B /* LaunchScreen.storyboard */; };
 		D062DAF6221104D500CF2B1B /* TitilliumText in Copy Fonts */ = {isa = PBXBuildFile; fileRef = D062DAF4221104C700CF2B1B /* TitilliumText */; };
-		D062DAF8221104FC00CF2B1B /* circlepad.png in Copy Textures */ = {isa = PBXBuildFile; fileRef = 281FA9DF2033059C00CD5D9C /* circlepad.png */; };
+		D062DAF8221104FC00CF2B1B /* circlepad.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = 281FA9DF2033059C00CD5D9C /* circlepad.ktx */; };
 		D062DAF92211052700CF2B1B /* imgui.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80F0E21F0A08D00C99983 /* imgui.frag.metal */; };
 		D062DAFA2211052700CF2B1B /* imgui.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80F0F21F0A08D00C99983 /* imgui.vert.metal */; };
 		D062DAFB2211052700CF2B1B /* textured_mesh.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80F0D21F0A08D00C99983 /* textured_mesh.frag.metal */; };
@@ -109,7 +109,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 7;
 			files = (
-				D062DAF8221104FC00CF2B1B /* circlepad.png in Copy Textures */,
+				D062DAF8221104FC00CF2B1B /* circlepad.ktx in Copy Textures */,
 			);
 			name = "Copy Textures";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -117,13 +117,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		281FA9DF2033059C00CD5D9C /* circlepad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = circlepad.png; path = ../../UnitTestResources/Textures/circlepad.png; sourceTree = "<group>"; };
-		28A5AB7B201F3A35000E571F /* Skybox_right1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_right1.png; path = ../../UnitTestResources/Textures/Skybox_right1.png; sourceTree = "<group>"; };
-		28A5AB7C201F3A35000E571F /* Skybox_left2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_left2.png; path = ../../UnitTestResources/Textures/Skybox_left2.png; sourceTree = "<group>"; };
-		28A5AB7D201F3A35000E571F /* Skybox_bottom4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_bottom4.png; path = ../../UnitTestResources/Textures/Skybox_bottom4.png; sourceTree = "<group>"; };
-		28A5AB7E201F3A35000E571F /* Skybox_front5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_front5.png; path = ../../UnitTestResources/Textures/Skybox_front5.png; sourceTree = "<group>"; };
-		28A5AB7F201F3A35000E571F /* Skybox_top3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_top3.png; path = ../../UnitTestResources/Textures/Skybox_top3.png; sourceTree = "<group>"; };
-		28A5AB80201F3A35000E571F /* Skybox_back6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Skybox_back6.png; path = ../../UnitTestResources/Textures/Skybox_back6.png; sourceTree = "<group>"; };
+		281FA9DF2033059C00CD5D9C /* circlepad.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = circlepad.ktx; path = ../../UnitTestResources/Textures/circlepad.ktx; sourceTree = "<group>"; };
+		28A5AB7B201F3A35000E571F /* Skybox_right1.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_right1.ktx; path = ../../UnitTestResources/Textures/Skybox_right1.ktx; sourceTree = "<group>"; };
+		28A5AB7C201F3A35000E571F /* Skybox_left2.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_left2.ktx; path = ../../UnitTestResources/Textures/Skybox_left2.ktx; sourceTree = "<group>"; };
+		28A5AB7D201F3A35000E571F /* Skybox_bottom4.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_bottom4.ktx; path = ../../UnitTestResources/Textures/Skybox_bottom4.ktx; sourceTree = "<group>"; };
+		28A5AB7E201F3A35000E571F /* Skybox_front5.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_front5.ktx; path = ../../UnitTestResources/Textures/Skybox_front5.ktx; sourceTree = "<group>"; };
+		28A5AB7F201F3A35000E571F /* Skybox_top3.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_top3.ktx; path = ../../UnitTestResources/Textures/Skybox_top3.ktx; sourceTree = "<group>"; };
+		28A5AB80201F3A35000E571F /* Skybox_back6.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_back6.ktx; path = ../../UnitTestResources/Textures/Skybox_back6.ktx; sourceTree = "<group>"; };
 		5C512C3E2141555200E7A798 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/macOS/AppDelegate.m; sourceTree = "<group>"; };
 		5C512C3F2141555200E7A798 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/macOS/AppDelegate.h; sourceTree = "<group>"; };
 		5C512C442141556900E7A798 /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
@@ -204,13 +204,13 @@
 		28A5AB7A201F399E000E571F /* Textures */ = {
 			isa = PBXGroup;
 			children = (
-				281FA9DF2033059C00CD5D9C /* circlepad.png */,
-				28A5AB80201F3A35000E571F /* Skybox_back6.png */,
-				28A5AB7D201F3A35000E571F /* Skybox_bottom4.png */,
-				28A5AB7E201F3A35000E571F /* Skybox_front5.png */,
-				28A5AB7C201F3A35000E571F /* Skybox_left2.png */,
-				28A5AB7B201F3A35000E571F /* Skybox_right1.png */,
-				28A5AB7F201F3A35000E571F /* Skybox_top3.png */,
+				281FA9DF2033059C00CD5D9C /* circlepad.ktx */,
+				28A5AB80201F3A35000E571F /* Skybox_back6.ktx */,
+				28A5AB7D201F3A35000E571F /* Skybox_bottom4.ktx */,
+				28A5AB7E201F3A35000E571F /* Skybox_front5.ktx */,
+				28A5AB7C201F3A35000E571F /* Skybox_left2.ktx */,
+				28A5AB7B201F3A35000E571F /* Skybox_right1.ktx */,
+				28A5AB7F201F3A35000E571F /* Skybox_top3.ktx */,
 			);
 			name = Textures;
 			sourceTree = "<group>";

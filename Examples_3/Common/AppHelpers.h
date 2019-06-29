@@ -47,6 +47,7 @@ struct ComputePBRMapsTaskData
 
 	// Input data
 	const char*    mSourceName;
+	uint32_t       mSourceRoot;
 	GPUPresetLevel mPresetLevel;
 	uint32_t       mSkyboxSize;
 	uint32_t       mSkyboxMips;

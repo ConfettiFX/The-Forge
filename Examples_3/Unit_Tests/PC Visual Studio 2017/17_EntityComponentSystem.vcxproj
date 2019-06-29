@@ -28,6 +28,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\17_EntityComponentSystem\17_EntityComponentSystem.cpp" />
+    <ClCompile Include="..\src\17_EntityComponentSystem\Components\MoveComponent.cpp" />
+    <ClCompile Include="..\src\17_EntityComponentSystem\Components\PositionComponent.cpp" />
+    <ClCompile Include="..\src\17_EntityComponentSystem\Components\SpriteComponent.cpp" />
+    <ClCompile Include="..\src\17_EntityComponentSystem\Components\WorldBoundsComponent.cpp" />
+    <ClCompile Include="..\src\17_EntityComponentSystem\Representations\MoveRepresentation.cpp" />
+    <ClCompile Include="..\src\17_EntityComponentSystem\Representations\PositionRepresentation.cpp" />
+    <ClCompile Include="..\src\17_EntityComponentSystem\Representations\SpriteRepresentation.cpp" />
+    <ClCompile Include="..\src\17_EntityComponentSystem\Representations\WorldBoundsRepresentation.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\17_EntityComponentSystem\Shaders\D3D11\basic.frag" />
@@ -36,6 +44,16 @@
     <None Include="..\src\17_EntityComponentSystem\Shaders\D3D12\basic.vert" />
     <None Include="..\src\17_EntityComponentSystem\Shaders\Vulkan\basic.frag" />
     <None Include="..\src\17_EntityComponentSystem\Shaders\Vulkan\basic.vert" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\17_EntityComponentSystem\Components\MoveComponent.h" />
+    <ClInclude Include="..\src\17_EntityComponentSystem\Components\PositionComponent.h" />
+    <ClInclude Include="..\src\17_EntityComponentSystem\Components\SpriteComponent.h" />
+    <ClInclude Include="..\src\17_EntityComponentSystem\Components\WorldBoundsComponent.h" />
+    <ClInclude Include="..\src\17_EntityComponentSystem\Representations\MoveRepresentation.h" />
+    <ClInclude Include="..\src\17_EntityComponentSystem\Representations\PositionRepresentation.h" />
+    <ClInclude Include="..\src\17_EntityComponentSystem\Representations\SpriteRepresentation.h" />
+    <ClInclude Include="..\src\17_EntityComponentSystem\Representations\WorldBoundsRepresentation.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{A6E3EA66-19D5-46EE-B111-877DD965AB89}</ProjectGuid>

@@ -55,8 +55,8 @@ public:
 			const float y = AMotionEvent_getY(event, i);
 			const int32_t w = manager_.GetDisplayWidth();
 			const int32_t h = manager_.GetDisplayHeight();
-			HandleFloat(Touch0X + i*TouchDataElems, x/float(w));
-			HandleFloat(Touch0Y + i*TouchDataElems, y/float(h));
+			HandleFloat(Touch0X + i*TouchDataElems, x);
+			HandleFloat(Touch0Y + i*TouchDataElems, y);
 			const int motionAction = AMotionEvent_getAction(event);
 			const bool down = (motionAction == AMOTION_EVENT_ACTION_DOWN || motionAction == AMOTION_EVENT_ACTION_MOVE);
 			HandleBool(Touch0Down + i*TouchDataElems, down);

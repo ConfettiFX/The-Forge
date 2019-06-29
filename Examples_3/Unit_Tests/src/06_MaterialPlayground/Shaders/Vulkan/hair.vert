@@ -48,7 +48,13 @@
 
 #define EPSILON 1e-7f
 
-layout(set = 3, binding = 0) uniform cbCamera
+#if defined(HAIR_SHADOW)
+#define CB_CAMERA_SET 2
+#else
+#define CB_CAMERA_SET 0
+#endif
+
+layout(set = CB_CAMERA_SET, binding = 0) uniform cbCamera
 {
 	mat4 CamVPMatrix;
 	mat4 CamInvVPMatrix;

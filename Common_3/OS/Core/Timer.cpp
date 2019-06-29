@@ -24,13 +24,13 @@
 
 #include "../Interfaces/ITimeManager.h"
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/IMemoryManager.h"
 
 #ifndef _WIN32
 #include <unistd.h>    // for sleep()
 #include <time.h>      // for CLOCK_REALTIME
 #include <cstring>     // for memset
 #endif
+#include "../Interfaces/IMemoryManager.h"
 
 Timer::Timer() { Reset(); }
 

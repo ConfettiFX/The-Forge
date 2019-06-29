@@ -39,9 +39,6 @@
 
 #include "../../Common_3/OS/Interfaces/IMemoryManager.h"
 
-// TODO: this should be configurable
-#define MAX_SHADER_RESOURCE_UPDATES_PER_FRAME 40 
-
 FSRoot FSR_MIDDLEWARE_TEXT = FSR_Middleware0;
 
 class _Impl_FontStash
@@ -62,7 +59,22 @@ class _Impl_FontStash
 		pRenderer = renderer;
 
 		// create image
-		mStagingImage.Create(ImageFormat::R8, width_, height_, 1, 1, 1);
+		TextureDesc desc = {};
+		desc.mArraySize = 1;
+		desc.mDepth = 1;
+		desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+		desc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
+		desc.mFormat = ImageFormat::R8;
+		desc.mHeight = height_;
+		desc.mMipLevels = 1;
+		desc.mSampleCount = SAMPLE_COUNT_1;
+		desc.mStartState = RESOURCE_STATE_COPY_DEST;
+		desc.mWidth = width_;
+		desc.pDebugName = L"Fontstash Texture";
+		TextureLoadDesc loadDesc = {};
+		loadDesc.ppTexture = &pCurrentTexture;
+		loadDesc.pDesc = &desc;
+		addResource(&loadDesc);
 
 		// create FONS context
 		FONSparams params;
@@ -71,10 +83,9 @@ class _Impl_FontStash
 		params.height = height_;
 		params.flags = (unsigned char)FONS_ZERO_TOPLEFT;
 		params.renderCreate = fonsImplementationGenerateTexture;
-		params.renderResize = fonsImplementationResizeTexture;
 		params.renderUpdate = fonsImplementationModifyTexture;
-		params.renderDraw = fonsImplementationRenderText;
 		params.renderDelete = fonsImplementationRemoveTexture;
+		params.renderDraw = fonsImplementationRenderText;
 		params.userPtr = this;
 
 		pContext = fonsCreateInternal(&params);
@@ -143,8 +154,12 @@ class _Impl_FontStash
 		textureRootDesc.ppStaticSamplers = &pDefaultSampler;
 		addRootSignature(pRenderer, &textureRootDesc, &pRootSignature);
 
-		DescriptorBinderDesc descriptorBinderDesc = { pRootSignature, MAX_SHADER_RESOURCE_UPDATES_PER_FRAME };
-		addDescriptorBinder(pRenderer, 0, 1, &descriptorBinderDesc, &pDescriptorBinder);
+		DescriptorBinderDesc descriptorBinderDescs[] =
+		{
+			{ pRootSignature }, // 2D
+			{ pRootSignature }  // 3D
+		};
+		addDescriptorBinder(pRenderer, 0, 2, descriptorBinderDescs, &pDescriptorBinder);
 
 		addUniformGPURingBuffer(pRenderer, 65536, &pUniformRingBuffer, true);
 
@@ -195,13 +210,11 @@ class _Impl_FontStash
 		fonsDeleteInternal(pContext);
 
 		mStagingImage.Destroy();
+		removeResource(pCurrentTexture);
 
 		// unload font buffers
 		for (unsigned int i = 0; i < (uint32_t)mFontBuffers.size(); i++)
 			conf_free(mFontBuffers[i]);
-
-		for (uint32_t i = 0; i < (uint32_t)mTextureList.size(); ++i)
-			removeResource(mTextureList[i]);
 
 		removeDescriptorBinder(pRenderer, pDescriptorBinder);
 		removeRootSignature(pRenderer, pRootSignature);
@@ -224,12 +237,9 @@ class _Impl_FontStash
 		}
 		removeBlendState(pBlendAlpha);
 		removeSampler(pRenderer, pDefaultSampler);
-
-		mTextureList.clear();
 	}
 
 	static int  fonsImplementationGenerateTexture(void* userPtr, int width, int height);
-	static int  fonsImplementationResizeTexture(void* userPtr, int width, int height);
 	static void fonsImplementationModifyTexture(void* userPtr, int* rect, const unsigned char* data);
 	static void fonsImplementationRenderText(void* userPtr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts);
 	static void fonsImplementationRemoveTexture(void* userPtr);
@@ -239,8 +249,10 @@ class _Impl_FontStash
 	Renderer*    pRenderer;
 	FONScontext* pContext;
 
+	// #NOTE: Image holds data allocated by fontstash. Does not allocate any data of its own
 	Image    mStagingImage;
 	Texture* pCurrentTexture;
+	bool     mUpdateTexture;
 
 	uint32_t mWidth;
 	uint32_t mHeight;
@@ -248,7 +260,6 @@ class _Impl_FontStash
 	eastl::vector<void*>           mFontBuffers;
 	eastl::vector<uint32_t>        mFontBufferSizes;
 	eastl::vector<eastl::string> mFontNames;
-	eastl::vector<Texture*>        mTextureList;
 
 	mat4 mProjView;
 	mat4 mWorldMat;
@@ -417,49 +428,21 @@ int _Impl_FontStash::fonsImplementationGenerateTexture(void* userPtr, int width,
 	ctx->mWidth = width;
 	ctx->mHeight = height;
 
-	Texture* oldTex = ctx->pCurrentTexture;
-
-	RawImageData rawData;
-	rawData.pRawData = ctx->mStagingImage.GetPixels();
-	rawData.mFormat = ctx->mStagingImage.getFormat();
-	rawData.mWidth = ctx->mStagingImage.GetWidth();
-	rawData.mHeight = ctx->mStagingImage.GetHeight();
-	rawData.mDepth = ctx->mStagingImage.GetDepth();
-	rawData.mArraySize = ctx->mStagingImage.GetArrayCount();
-	rawData.mMipLevels = ctx->mStagingImage.GetMipMapCount();
-
-	TextureLoadDesc loadDesc = {};
-	loadDesc.ppTexture = &ctx->pCurrentTexture;
-	loadDesc.pRawImageData = &rawData;
-	loadDesc.mCreationFlag = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-	// R8 mode
-	//addTexture2d(ctx->renderer, width, height, SampleCount::SAMPLE_COUNT_1, ctx->img.getFormat(), ctx->img.GetMipMapCount(), NULL, false, TextureUsage::TEXTURE_USAGE_SAMPLED_IMAGE, &ctx->tex);
-	addResource(&loadDesc);
-
-	// Create may be called multiple times, delete existing texture.
-	// NOTE: deleting the texture afterwards seems to fix a driver bug on Intel where it would reuse the old contents of ctx->img, causing the texture not to update.
-	if (oldTex)
-	{
-		ctx->mTextureList.emplace_back(oldTex);
-	}
+	ctx->mUpdateTexture = true;
 
 	return 1;
 }
 
-int _Impl_FontStash::fonsImplementationResizeTexture(void* userPtr, int width, int height)
-{
-	// Reuse create to resize too.
-	return fonsImplementationGenerateTexture(userPtr, width, height);
-}
-
 void _Impl_FontStash::fonsImplementationModifyTexture(void* userPtr, int* rect, const unsigned char* data)
 {
+	UNREF_PARAM(rect);
+
 	_Impl_FontStash* ctx = (_Impl_FontStash*)userPtr;
 
-	// TODO: Update the GPU texture instead of changing the CPU texture and rebuilding it on GPU.
-	ctx->mStagingImage.loadFromMemoryXY(data + rect[0] + rect[1] * ctx->mWidth, rect[0], rect[1], rect[2], rect[3], ctx->mWidth);
+	ctx->mStagingImage.RedefineDimensions(ImageFormat::R8, ctx->mWidth, ctx->mHeight, 1, 1, 1);
+	ctx->mStagingImage.SetPixels((uint8_t*)data);
 
-	fonsImplementationGenerateTexture(userPtr, ctx->mWidth, ctx->mHeight);    // rebuild texture
+	ctx->mUpdateTexture = true;
 }
 
 void _Impl_FontStash::fonsImplementationRenderText(
@@ -470,6 +453,27 @@ void _Impl_FontStash::fonsImplementationRenderText(
 		return;
 
 	Cmd* pCmd = ctx->pCmd;
+
+	if (ctx->mUpdateTexture)
+	{
+		waitQueueIdle(pCmd->pCmdPool->pQueue);
+
+		RawImageData rawData;
+		rawData.pRawData = ctx->mStagingImage.GetPixels();
+		rawData.mFormat = ctx->mStagingImage.getFormat();
+		rawData.mWidth = ctx->mStagingImage.GetWidth();
+		rawData.mHeight = ctx->mStagingImage.GetHeight();
+		rawData.mDepth = ctx->mStagingImage.GetDepth();
+		rawData.mArraySize = ctx->mStagingImage.GetArrayCount();
+		rawData.mMipLevels = ctx->mStagingImage.GetMipMapCount();
+
+		TextureUpdateDesc updateDesc = {};
+		updateDesc.pTexture = ctx->pCurrentTexture;
+		updateDesc.pRawImageData = &rawData;
+		updateResource(&updateDesc);
+
+		ctx->mUpdateTexture = false;
+	}
 
 	float4* vtx = (float4*)alloca(nverts * sizeof(float4));
 
@@ -493,8 +497,9 @@ void _Impl_FontStash::fonsImplementationRenderText(
 		color[i] = ((float)colorByte[i]) / 255.0f;
 
 	Pipeline*                              pPipeline = NULL;
-	_Impl_FontStash::PipelineMap::iterator it = ctx->mPipelines[ctx->mText3D].find(pCmd->mRenderPassHash);
-	if (it == ctx->mPipelines[ctx->mText3D].end())
+	uint32_t                               pipelineIndex = ctx->mText3D ? 1 : 0;
+	_Impl_FontStash::PipelineMap::iterator it = ctx->mPipelines[pipelineIndex].find(pCmd->mRenderPassHash);
+	if (it == ctx->mPipelines[pipelineIndex].end())
 	{
 		GraphicsPipelineDesc& pipelineDesc = ctx->mPipelineDesc.mGraphicsDesc;
 		pipelineDesc.mDepthStencilFormat = (ImageFormat::Enum)pCmd->mBoundDepthStencilFormat;
@@ -502,12 +507,12 @@ void _Impl_FontStash::fonsImplementationRenderText(
 		pipelineDesc.mSampleCount = pCmd->mBoundSampleCount;
 		pipelineDesc.mSampleQuality = pCmd->mBoundSampleQuality;
 		pipelineDesc.pColorFormats = (ImageFormat::Enum*)pCmd->pBoundColorFormats;
-		pipelineDesc.pDepthState = ctx->pDepthStates[ctx->mText3D];
-		pipelineDesc.pRasterizerState = ctx->pRasterizerStates[ctx->mText3D];
+		pipelineDesc.pDepthState = ctx->pDepthStates[pipelineIndex];
+		pipelineDesc.pRasterizerState = ctx->pRasterizerStates[pipelineIndex];
 		pipelineDesc.pSrgbValues = pCmd->pBoundSrgbValues;
-		pipelineDesc.pShaderProgram = ctx->pShaders[ctx->mText3D];
+		pipelineDesc.pShaderProgram = ctx->pShaders[pipelineIndex];
 		addPipeline(pCmd->pRenderer, &ctx->mPipelineDesc, &pPipeline);
-		ctx->mPipelines[ctx->mText3D].insert({ pCmd->mRenderPassHash, pPipeline });
+		ctx->mPipelines[pipelineIndex].insert({ pCmd->mRenderPassHash, pPipeline });
 	}
 	else
 	{
@@ -536,12 +541,15 @@ void _Impl_FontStash::fonsImplementationRenderText(
 		BufferUpdateDesc updateDesc = { uniformBlock.pBuffer, &mvp, 0, uniformBlock.mOffset, sizeof(mvp) };
 		updateResource(&updateDesc);
 
+		uint64_t size = sizeof(mvp);
+
 		DescriptorData params[3] = {};
 		params[0].pName = "uRootConstants";
 		params[0].pRootConstant = &data;
 		params[1].pName = "uniformBlock";
 		params[1].ppBuffers = &uniformBlock.pBuffer;
 		params[1].pOffsets = &uniformBlock.mOffset;
+		params[1].pSizes = &size;
 		params[2].pName = "uTex0";
 		params[2].ppTextures = &ctx->pCurrentTexture;
 		cmdBindDescriptors(pCmd, ctx->pDescriptorBinder, ctx->pRootSignature, 3, params);
@@ -563,10 +571,5 @@ void _Impl_FontStash::fonsImplementationRenderText(
 
 void _Impl_FontStash::fonsImplementationRemoveTexture(void* userPtr)
 {
-	_Impl_FontStash* ctx = (_Impl_FontStash*)userPtr;
-	if (ctx->pCurrentTexture)
-	{
-		ctx->mTextureList.emplace_back(ctx->pCurrentTexture);
-		ctx->pCurrentTexture = NULL;
-	}
+	UNREF_PARAM(userPtr);
 }

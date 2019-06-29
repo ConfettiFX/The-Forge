@@ -51,7 +51,13 @@ StructuredBuffer<float4> GuideHairVertexTangents : register(t1, space3);
 StructuredBuffer<float> HairThicknessCoefficients : register(t2, space3);
 SamplerState LinearSampler : register(s0);
 
-cbuffer cbCamera : register(b0, space3)
+#if defined(HAIR_SHADOW)
+#define CB_CAMERA_SET space2
+#else
+#define CB_CAMERA_SET space0
+#endif
+
+cbuffer cbCamera : register(b0, CB_CAMERA_SET)
 {
 	float4x4 CamVPMatrix;
 	float4x4 CamInvVPMatrix;

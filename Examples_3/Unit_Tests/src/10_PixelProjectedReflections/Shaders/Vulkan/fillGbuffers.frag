@@ -58,9 +58,17 @@ layout(location = 2) out vec4 outRoughness;
 layout(set = 0, binding = 6) uniform texture2D textureMaps[TOTAL_IMGS];
 layout(set = 0, binding = 7) uniform sampler defaultSampler;
 
+vec3 reconstructNormal(in vec4 sampleNormal)
+{
+	vec3 tangentNormal;
+	tangentNormal.xy = sampleNormal.rg * 2 - 1;
+	tangentNormal.z = sqrt(1.0f - clamp(dot(tangentNormal.xy, tangentNormal.xy), 0.0f, 1.0f));
+	return tangentNormal;
+}
+
 vec3 getNormalFromMap()
 {
-    vec3 tangentNormal = texture(sampler2D(textureMaps[cbTextureRootConstants.normalMap], defaultSampler),uv).xyz * 2.0 - 1.0;
+    vec3 tangentNormal = reconstructNormal(texture(sampler2D(textureMaps[cbTextureRootConstants.normalMap], defaultSampler),uv));
 
     vec3 Q1  = dFdx(pos);
     vec3 Q2  = dFdy(pos);

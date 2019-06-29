@@ -30,13 +30,14 @@
 #include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/IMemoryManager.h"
 
 #include <unistd.h>
 #include <limits.h>       // for UINT_MAX
 #include <sys/stat.h>     // for mkdir
 #include <sys/errno.h>    // for errno
 #include <dirent.h>
+
+#include "../Interfaces/IMemoryManager.h"
 
 #define RESOURCE_DIR "Shaders/Metal"
 
@@ -48,6 +49,7 @@ const char* pszRoots[FSR_Count] = {
 	"Fonts/",                   // FSR_Builtin_Fonts
 	"GPUCfg/",                  // FSR_GpuConfig
 	"Animation/",               // FSR_Animation
+	"Audio/",                   // FSR_Audio
 	"",                         // FSR_OtherFiles
 };
 
@@ -317,7 +319,7 @@ static void fswCbFunc(ConstFSEventStreamRef streamRef, void* data, size_t numEve
 
 FileSystem::Watcher::Watcher(const char* pWatchPath, FSRoot root, uint32_t eventMask, Callback callback)
 {
-	pData = conf_new<FileSystem::Watcher::Data>();
+	pData = conf_new(FileSystem::Watcher::Data);
 	pData->mEventMask = eventMask;
 	pData->mCallback = callback;
 	CFStringRef paths[] = {CFStringCreateWithCString(NULL, pWatchPath, kCFStringEncodingUTF8)};

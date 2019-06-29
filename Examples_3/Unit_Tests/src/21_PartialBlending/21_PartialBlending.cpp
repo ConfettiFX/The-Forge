@@ -72,7 +72,8 @@ const char* pszBases[FSR_Count] = {
 	"../../../UnitTestResources/",          // FSR_Meshes
 	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
 	"../../../src/21_PartialBlending/",     // FSR_GpuConfig
-	"../../../UnitTestResources/",          // FSR_Animtion
+	"../../../UnitTestResources/",          // FSR_Animation
+	"",                                     // FSR_Audio
 	"",                                     // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
@@ -133,8 +134,6 @@ Buffer* pPlaneUniformBuffer[gImageCount] = { NULL };
 //--------------------------------------------------------------------------------------------
 
 ICameraController* pCameraController = NULL;
-FileSystem         gFileSystem;
-
 UIApp         gAppUI;
 GuiComponent* pStandaloneControlsGUIWindow = NULL;
 
@@ -173,7 +172,7 @@ SkeletonBatcher gSkeletonBatcher;
 const char* gStickFigureName = "stickFigure/skeleton.ozz";
 const char* gStandClipName = "stickFigure/animations/stand.ozz";
 const char* gWalkClipName = "stickFigure/animations/walk.ozz";
-const char* pPlaneImageFileName = "Skybox_right1.png";
+const char* pPlaneImageFileName = "Skybox_right1";
 
 const int   gSphereResolution = 30;                   // Increase for higher resolution joint spheres
 const float gBoneWidthRatio = 0.2f;                   // Determines how far along the bone to put the max width [0,1]
@@ -336,7 +335,7 @@ class Blending: public IApp
 		initResourceLoaderInterface(pRenderer);
 
 #ifdef TARGET_IOS
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Absolute))
 			return false;
 #endif
 

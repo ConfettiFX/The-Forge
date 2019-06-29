@@ -61,8 +61,6 @@
 #define MSAASAMPLECOUNT 1
 #endif
 
-File       mFile;
-FileSystem mFileSystem;
 HiresTimer gTimer;
 
 ThreadSystem* pThreadSystem;
@@ -82,6 +80,7 @@ const char* pszBases[FSR_Count] = {
 	"../../../Resources/",                         // FSR_Builtin_Fonts
 	"../../../src/",                               // FSR_GpuConfig
 	"",                                            // FSR_Animation
+	"",                                            // FSR_Audio
 	"../../../Resources/",                         // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",           // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",             // FSR_MIDDLEWARE_UI
@@ -269,12 +268,7 @@ typedef struct AppSettings
 	// Cluster culling increases CPU time and does not provide enough benefit in terms of culling results to keep it enabled by default
 	bool mClusterCulling = false;
 	
-	// TODO: there is an issue that prevents to launch this in async mode by default. The problem is that the renderer needs to be notified
-	// of when a frame starts, so that it updates the internal frameIdx (which is needed for handling the multiple frames in-flight for
-	// descriptor binding) . The problem is that the renderer assumes that acquireNextImage image is always called at the begining of the
-	// frame, but it is not the case for this application. So the frame starts, and the renderer doesn't update the frameIdx accordingly.
-	// Changing to async compute at runtime is fine (because this app only skips calling acquireNextImage during the first 3 frames).
-	bool mAsyncCompute = false;
+	bool mAsyncCompute = true;
 	
 	// toggle rendering of local point lights
 	bool mRenderLocalLights = false;
@@ -438,7 +432,6 @@ SwapChain* pSwapChain = NULL;
 /************************************************************************/
 Shader*           pShaderClearBuffers = nullptr;
 Pipeline*         pPipelineClearBuffers = nullptr;
-RootSignature*    pRootSignatureClearBuffers = nullptr;
 /************************************************************************/
 // Triangle filtering pipeline
 /************************************************************************/
@@ -451,7 +444,6 @@ RootSignature*    pRootSignatureTriangleFiltering = nullptr;
 #if !defined(METAL)
 Shader*           pShaderBatchCompaction = nullptr;
 Pipeline*         pPipelineBatchCompaction = nullptr;
-RootSignature*    pRootSignatureBatchCompaction = nullptr;
 #endif
 /************************************************************************/
 // Clear light clusters pipeline
@@ -861,9 +853,10 @@ public:
 		
 		//Camera Walking
 		eastl::string fn("cameraPath.bin");
-		mFile.Open(fn, FM_ReadBinary, FSR_OtherFiles);
-		mFile.Read(CameraPathData, sizeof(float3) * 29084);
-		mFile.Close();
+		File          cameraPathFile;
+		cameraPathFile.Open(fn, FM_ReadBinary, FSR_OtherFiles);
+		cameraPathFile.Read(CameraPathData, sizeof(float3) * 29084);
+		cameraPathFile.Close();
 		
 		cameraPoints = (uint)29084 / 2;
 		totalElpasedTime = (float)cameraPoints * 0.00833f;
@@ -890,8 +883,7 @@ public:
 		addFence(pRenderer, &pTransitionFences);
 		
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
-		// Load shaders
-		addShaders();
+		
 		/************************************************************************/
 		// Initialize helper interfaces (resource loader, profiler)
 		/************************************************************************/
@@ -906,7 +898,8 @@ public:
 		// Start timing the scene load
 		/************************************************************************/
 		HiresTimer timer;
-		
+		// Load shaders
+		addShaders();
 		HiresTimer shaderTimer;
 		LOGF(LogLevel::eINFO, "Load shaders : %f ms", shaderTimer.GetUSec(true) / 1000.0f);
 		/************************************************************************/
@@ -1100,7 +1093,6 @@ public:
 		
 		TextureLoadDesc desc = {};
 		desc.mRoot = FSR_Textures;
-		desc.mUseMipmaps = true;
 		desc.mSrgb = false;
 		
 		TextureLoadTaskData diffuseData{ gDiffuseMaps.data(), (const char**)pScene->textures, desc };
@@ -1178,20 +1170,19 @@ public:
 		addRootSignature(pRenderer, &resolveGodrayRootDesc, &pRootSignatureGodrayResolve);
 		
 		// Triangle filtering root signatures
-		RootSignatureDesc clearBuffersRootDesc = { &pShaderClearBuffers, 1 };
-		addRootSignature(pRenderer, &clearBuffersRootDesc, &pRootSignatureClearBuffers);
-		RootSignatureDesc triangleFilteringRootDesc = { &pShaderTriangleFiltering, 1 };
+#if !defined(METAL)
+		Shader* pCullingShaders[] = { pShaderClearBuffers, pShaderTriangleFiltering, pShaderBatchCompaction };
+		RootSignatureDesc triangleFilteringRootDesc = { pCullingShaders, 3 };
+#else
+		Shader* pCullingShaders[] = { pShaderClearBuffers, pShaderTriangleFiltering };
+		RootSignatureDesc triangleFilteringRootDesc = { pCullingShaders, 2 };
+#endif
 #if defined(VULKAN)
 		const char* pBatchBufferName = "batchData";
 		triangleFilteringRootDesc.mDynamicUniformBufferCount = 1;
 		triangleFilteringRootDesc.ppDynamicUniformBufferNames = &pBatchBufferName;
 #endif
 		addRootSignature(pRenderer, &triangleFilteringRootDesc, &pRootSignatureTriangleFiltering);
-		
-#if !defined(METAL)
-		RootSignatureDesc batchCompactionRootDesc = { &pShaderBatchCompaction, 1 };
-		addRootSignature(pRenderer, &batchCompactionRootDesc, &pRootSignatureBatchCompaction);
-#endif
 		
 		RootSignatureDesc clearLightRootDesc = { &pShaderClearLightClusters, 1 };
 		addRootSignature(pRenderer, &clearLightRootDesc, &pRootSignatureClearLightClusters);
@@ -1213,36 +1204,7 @@ public:
 		/************************************************************************/
 		// Setup descriptor binder
 		/************************************************************************/
-		
-		uint32_t maxSceneClustersToFilter = 0;
-		for (uint32_t i = 0; i < pScene->numMeshes; i++)
-			maxSceneClustersToFilter += pScene->meshes[i].clusterCount;
-		
-		DescriptorBinderDesc descriptorBinderDesc[] = {
-			{ pRootSignatureClearBuffers },
-			{ pRootSignatureTriangleFiltering, 0, maxSceneClustersToFilter },
-#if !defined(METAL)
-			{ pRootSignatureBatchCompaction },
-#endif
-			{ pRootSignatureClearLightClusters },
-			{ pRootSignatureClusterLights },
-			{ pRootSignatureVBPass },
-			{ pRootSignatureVBShade },
-			{ pRootSignatureDeferredPass },
-			{ pRootSignatureDeferredShade },
-			{ pRootSignatureDeferredShadePointLight },
-			{ pRootSignatureAO },
-			{ pRootSignatureResolve },
-			{ pRootSignatureGodrayResolve },
-			{ pRootSingatureSkybox },
-			{ pRootSigSunPass },
-			{ pRootSigGodRayPass, 0, gAppSettings.gGodrayInteration + 1 },
-			{ pRootSigCurveConversionPass },
-			{ pRootSigPresentPass },
-		};
-		
-		addDescriptorBinder(pRenderer, 0, (uint32_t)sizeof(descriptorBinderDesc) / sizeof(*descriptorBinderDesc), descriptorBinderDesc, &pDescriptorBinder);
-		
+		addDescriptorBinders();
 		/************************************************************************/
 		// Setup indirect command signatures
 		/************************************************************************/
@@ -1289,7 +1251,7 @@ public:
 		pipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
 		ComputePipelineDesc& pipelineSettings = pipelineDesc.mComputeDesc;
 		pipelineSettings.pShaderProgram = pShaderClearBuffers;
-		pipelineSettings.pRootSignature = pRootSignatureClearBuffers;
+		pipelineSettings.pRootSignature = pRootSignatureTriangleFiltering;
 		addPipeline(pRenderer, &pipelineDesc, &pPipelineClearBuffers);
 		
 		// Create the compute pipeline for GPU triangle filtering
@@ -1299,7 +1261,7 @@ public:
 		
 #ifndef METAL
 		pipelineSettings.pShaderProgram = pShaderBatchCompaction;
-		pipelineSettings.pRootSignature = pRootSignatureBatchCompaction;
+		pipelineSettings.pRootSignature = pRootSignatureTriangleFiltering;
 		addPipeline(pRenderer, &pipelineDesc, &pPipelineBatchCompaction);
 #endif
 		
@@ -1617,11 +1579,7 @@ public:
 		
 		removeRootSignature(pRenderer, pRootSignatureClusterLights);
 		removeRootSignature(pRenderer, pRootSignatureClearLightClusters);
-#if !defined(METAL)
-		removeRootSignature(pRenderer, pRootSignatureBatchCompaction);
-#endif
 		removeRootSignature(pRenderer, pRootSignatureTriangleFiltering);
-		removeRootSignature(pRenderer, pRootSignatureClearBuffers);
 		removeRootSignature(pRenderer, pRootSignatureDeferredShadePointLight);
 		removeRootSignature(pRenderer, pRootSignatureDeferredShade);
 		removeRootSignature(pRenderer, pRootSignatureDeferredPass);
@@ -2394,6 +2352,20 @@ public:
 		gAppUI.Update(deltaTime);
 		
 		updateDynamicUIElements();
+
+		{
+			static bool prevFilterTriangles = gAppSettings.mFilterTriangles;
+			if (prevFilterTriangles != gAppSettings.mFilterTriangles)
+			{
+				pRenderer->mCurrentFrameIdx = 0;
+				gFrameCount = 0;
+				prevFilterTriangles = gAppSettings.mFilterTriangles;
+				waitQueueIdle(pGraphicsQueue);
+				waitQueueIdle(pComputeQueue);
+				removeDescriptorBinder(pRenderer, pDescriptorBinder);
+				addDescriptorBinders();
+			}
+		}
 	}
 	
 	void Draw()
@@ -2417,6 +2389,7 @@ public:
 				// Set gPresentFrameIdx as gFrameCount
 				// This gaurantees that every precomputed resources with compute shader have data
 				gPresentFrameIdx = (uint)gFrameCount;
+				pRenderer->mCurrentFrameIdx = (pRenderer->mCurrentFrameIdx + 1) % pSwapChain->mDesc.mImageCount;
 			}
 			else
 			{
@@ -2642,6 +2615,35 @@ public:
 	
 	const char* GetName() { return "Visibility Buffer"; }
 	
+	bool addDescriptorBinders()
+	{
+		DescriptorBinderDesc descriptorBinderDesc[] = {
+			{ pRootSignatureTriangleFiltering }, // Clear Buffers
+			{ pRootSignatureTriangleFiltering }, // Triangle filtering
+#if !defined(METAL)
+			{ pRootSignatureTriangleFiltering }, // Batch compaction
+#endif
+			{ pRootSignatureClearLightClusters },
+			{ pRootSignatureClusterLights },
+			{ pRootSignatureVBPass },
+			{ pRootSignatureVBShade },
+			{ pRootSignatureDeferredPass },
+			{ pRootSignatureDeferredShade },
+			{ pRootSignatureDeferredShadePointLight },
+			{ pRootSignatureAO },
+			{ pRootSignatureResolve },
+			{ pRootSignatureGodrayResolve },
+			{ pRootSingatureSkybox },
+			{ pRootSigSunPass },
+			{ pRootSigGodRayPass, 0, (gAppSettings.gGodrayInteration + 1) * 2 },
+			{ pRootSigCurveConversionPass },
+			{ pRootSigPresentPass },
+		};
+
+		addDescriptorBinder(pRenderer, 0, (uint32_t)sizeof(descriptorBinderDesc) / sizeof(*descriptorBinderDesc), descriptorBinderDesc, &pDescriptorBinder);
+
+		return pDescriptorBinder != NULL;
+	}
 	/************************************************************************/
 	// Add render targets
 	/************************************************************************/
@@ -4628,9 +4630,11 @@ public:
 		BufferUpdateDesc updateDesc = { offset.pBuffer, batchChunk->batches, 0, offset.mOffset, batchSize };
 		updateResource(&updateDesc, true);
 		
+		uint64_t size = BATCH_COUNT * sizeof(SmallBatchData);
 		DescriptorData params[1] = {};
 		params[0].pName = "batchData";
 		params[0].pOffsets = &offset.mOffset;
+		params[0].pSizes = &size;
 		params[0].ppBuffers = &offset.pBuffer;
 		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureTriangleFiltering, 1, params);
 		cmdDispatch(cmd, batchChunk->currentBatchCount, 1, 1);
@@ -4790,7 +4794,7 @@ public:
 		clearParams[2].pRootConstant = (void*)&pScene->numMeshes;
 		
 		cmdBindPipeline(cmd, pPipelineClearBuffers);
-		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureClearBuffers, 3, clearParams);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureTriangleFiltering, 3, clearParams);
 		uint32_t numGroups = (pScene->numMeshes / CLEAR_THREAD_COUNT) + 1;
 		
 		cmdDispatch(cmd, numGroups, 1, 1);
@@ -4871,10 +4875,10 @@ public:
 		clearParams[1].pName = "indirectDrawArgsBufferNoAlpha";
 		clearParams[1].mCount = gNumViews;
 		clearParams[1].ppBuffers = pFilteredIndirectDrawArgumentsBuffer[frameIdx][GEOMSET_OPAQUE];
-		clearParams[2].pName = "uncompactedDrawArgs";
+		clearParams[2].pName = "uncompactedDrawArgsRW";
 		clearParams[2].mCount = gNumViews;
 		clearParams[2].ppBuffers = pUncompactedDrawArgumentsBuffer[frameIdx];
-		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureClearBuffers, 3, clearParams);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureTriangleFiltering, 3, clearParams);
 		cmdBindPipeline(cmd, pPipelineClearBuffers);
 		uint32_t numGroups = (MAX_DRAWS_INDIRECT / CLEAR_THREAD_COUNT) + 1;
 		cmdDispatch(cmd, numGroups, 1, 1);
@@ -4902,10 +4906,13 @@ public:
 		uint accumNumTriangles = 0;
 		uint accumNumTrianglesAtStartOfBatch = 0;
 		uint batchStart = 0;
+
+		resetGPURingBuffer(pFilterBatchDataBuffer[frameIdx]);
 		
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Filter Triangles", true);
 		cmdBindPipeline(cmd, pPipelineTriangleFiltering);
-		DescriptorData filterParams[6] = {};
+		uint64_t batchSize = BATCH_COUNT * sizeof(SmallBatchData);
+		DescriptorData filterParams[8] = {};
 		filterParams[0].pName = "vertexDataBuffer";
 		filterParams[0].ppBuffers = &pVertexBufferPosition;
 		filterParams[1].pName = "indexDataBuffer";
@@ -4915,12 +4922,15 @@ public:
 		filterParams[3].pName = "filteredIndicesBuffer";
 		filterParams[3].mCount = gNumViews;
 		filterParams[3].ppBuffers = pFilteredIndexBuffer[frameIdx];
-		filterParams[4].pName = "uncompactedDrawArgs";
+		filterParams[4].pName = "uncompactedDrawArgsRW";
 		filterParams[4].mCount = gNumViews;
 		filterParams[4].ppBuffers = pUncompactedDrawArgumentsBuffer[frameIdx];
 		filterParams[5].pName = "uniforms";
 		filterParams[5].ppBuffers = &pPerFrameUniformBuffers[frameIdx];
-		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureTriangleFiltering, 6, filterParams);
+		filterParams[6].pName = "batchData";
+		filterParams[6].ppBuffers = &pFilterBatchDataBuffer[frameIdx]->pBuffer;
+		filterParams[6].pSizes = &batchSize;
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureTriangleFiltering, 7, filterParams);
 #if 0
 #define SORT_CLUSTERS 1
 		
@@ -5135,7 +5145,7 @@ public:
 		compactParams[4].pName = "uncompactedDrawArgs";
 		compactParams[4].mCount = gNumViews;
 		compactParams[4].ppBuffers = pUncompactedDrawArgumentsBuffer[frameIdx];
-		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureBatchCompaction, 5, compactParams);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureTriangleFiltering, 5, compactParams);
 		numGroups = (MAX_DRAWS_INDIRECT / CLEAR_THREAD_COUNT) + 1;
 		cmdDispatch(cmd, numGroups, 1, 1);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -5296,8 +5306,7 @@ public:
 #else
 		panoDesc.mRoot = FSRoot::FSR_Absolute;    // Resources on iOS are bundled with the application.
 #endif
-		panoDesc.mUseMipmaps = true;
-		panoDesc.pFilename = "daytime.hdr";
+		panoDesc.pFilename = "daytime";
 		//panoDesc.pFilename = "LA_Helipad.hdr";
 		panoDesc.ppTexture = &pPanoSkybox;
 		addResource(&panoDesc, true);

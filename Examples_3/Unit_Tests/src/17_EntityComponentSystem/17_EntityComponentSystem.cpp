@@ -27,12 +27,14 @@
 
 #define MAX_PLANETS 20    // Does not affect test, just for allocating space in uniform block. Must match with shader.
 
-//tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
+// ECS
+#include "../../../../Middleware_3/ECS/EntityManager.h"
 
-// entt: https://github.com/skypjack/entt
-#include "../../../../Common_3/ThirdParty/OpenSource/entt/entt.hpp"
+// COMPONENTS
+#include "../17_EntityComponentSystem/Components/WorldBoundsComponent.h"
+#include "../17_EntityComponentSystem/Components/PositionComponent.h"
+#include "../17_EntityComponentSystem/Components/SpriteComponent.h"
+#include "../17_EntityComponentSystem/Components/MoveComponent.h"
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
@@ -40,17 +42,19 @@
 #include "../../../../Common_3/OS/Interfaces/ILogManager.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
-#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
+#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+//#include "../../../../Common_3/Renderer/GpuProfiler.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/OS/Core/ThreadSystem.h"
 
 #include "../../../../Common_3/OS/Input/InputSystem.h"
 #include "../../../../Common_3/OS/Input/InputMappings.h"
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
-#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"    // Must be the last include in a cpp file
 
 // Profilers
 GuiComponent*			pGuiWindow;
@@ -111,8 +115,6 @@ uint        gDrawSpriteCount = 0;
 /// UI
 UIApp gAppUI;
 
-FileSystem gFileSystem;
-
 const char* pszBases[FSR_Count] = {
 	"../../../src/17_EntityComponentSystem/",    // FSR_BinShaders
 	"../../../src/17_EntityComponentSystem/",    // FSR_SrcShaders
@@ -121,7 +123,8 @@ const char* pszBases[FSR_Count] = {
 	"../../../UnitTestResources/",               // FSR_Builtin_Fonts
 	"../../../src/17_EntityComponentSystem/",    // FSR_GpuConfig
 	"",                                          // FSR_Animation
-	"",                                          // FSR_OtherFiles
+	"",                                          // FSR_Audio
+	"../../../src/17_EntityComponentSystem/",    // FSR_OtherFiles - mentioned entities directory
 	"../../../../../Middleware_3/Text/",         // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",           // FSR_MIDDLEWARE_UI
 };
@@ -132,43 +135,6 @@ TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 static float RandomFloat01() { return (float)rand() / (float)RAND_MAX; }
 static float RandomFloat(float from, float to) { return RandomFloat01() * (to - from) + from; }
 
-// 2D position: just x,y coordinates
-struct PositionComponent
-{
-	float x, y;
-};
-
-// Sprite: color, sprite index (in the sprite atlas), and scale for rendering it
-struct SpriteComponent
-{
-	float colorR, colorG, colorB;
-	int   spriteIndex;
-	float scale;
-};
-
-// World bounds for our "game" logic: x,y minimum & maximum values
-struct WorldBoundsComponent
-{
-	float xMin, xMax, yMin, yMax;
-};
-
-// Move around with constant velocity. When reached world bounds, reflect back from them.
-struct MoveComponent
-{
-	float velx, vely;
-
-	void Initialize(float minSpeed, float maxSpeed)
-	{
-		// random angle
-		float angle = RandomFloat01() * 3.1415926f * 2;
-		// random movement speed between given min & max
-		float speed = RandomFloat(minSpeed, maxSpeed);
-		// velocity x & y components
-		velx = cosf(angle) * speed;
-		vely = sinf(angle) * speed;
-	}
-};
-
 const uint MaxSpriteCount = 11000;
 #ifdef _DEBUG
 const uint SpriteEntityCount = 5000;
@@ -177,52 +143,98 @@ const uint SpriteEntityCount = 10000;
 #endif
 const uint AvoidCount = 20;
 
-using EntityID = uint;
+static Entity* worldBoundsEntity;
+static Entity* spriteEntities[SpriteEntityCount];
+static Entity* avoidEntities[AvoidCount];
 
-entt::Registry<EntityID> registry;
-EntityID                 worldBoundsEntity;
-EntityID                 spriteEntities[SpriteEntityCount];
-EntityID                 avoidEntities[AvoidCount];
+File* pFileSystem			  = nullptr;
+EntityManager* pEntityManager = nullptr;
+
+ThreadSystem* pThreadSystem = nullptr;
+bool multiThread			= false;
+
+GuiComponent* GUIWindow = nullptr;
+
+void MoveEntities(PositionComponent& position, MoveComponent& move, float& deltaTime, const WorldBoundsComponent& bounds)
+{
+	// update position based on movement velocity & delta time
+	position.x += move.velx * deltaTime;
+	position.y += move.vely * deltaTime;
+
+	// check against world bounds; put back onto bounds and mirror the velocity component to "bounce" back
+	if (position.x < bounds.xMin)
+	{
+		move.velx = -move.velx;
+		position.x = bounds.xMin;
+	}
+	if (position.x > bounds.xMax)
+	{
+		move.velx = -move.velx;
+		position.x = bounds.xMax;
+	}
+	if (position.y < bounds.yMin)
+	{
+		move.vely = -move.vely;
+		position.y = bounds.yMin;
+	}
+	if (position.y > bounds.yMax)
+	{
+		move.vely = -move.vely;
+		position.y = bounds.yMax;
+	}
+}
+
+struct timeAndBounds {
+	Entity** entities;
+	float deltaTime;
+	const WorldBoundsComponent* bounds;
+};
 
 struct MoveSystem
 {
-	void Update(float deltaTime)
+	static void Update(float deltaTime)
 	{
-		const WorldBoundsComponent& bounds = registry.get<WorldBoundsComponent>(worldBoundsEntity);
+		const WorldBoundsComponent& bounds = *worldBoundsEntity->getComponent<WorldBoundsComponent>();
 
-		// go through all the objects
-		entt::View<EntityID, PositionComponent, MoveComponent> view = registry.view<PositionComponent, MoveComponent>();
-		for (EntityID entity : view)
+		timeAndBounds data		= { spriteEntities, deltaTime, &bounds};
+		timeAndBounds avoidData = { avoidEntities, deltaTime, &bounds };
+		
+		if (multiThread)
 		{
-			PositionComponent& position = view.get<PositionComponent>(entity);
-			MoveComponent&     move = view.get<MoveComponent>(entity);
+			for (size_t i = 0; i < SpriteEntityCount; ++i)
+			{
+				addThreadSystemTask(pThreadSystem, &MoveSystem::threadedUpdate, &data, i);
+			}
 
-			// update position based on movement velocity & delta time
-			position.x += move.velx * deltaTime;
-			position.y += move.vely * deltaTime;
+			for (size_t i = 0; i < AvoidCount; ++i)
+			{
+				addThreadSystemTask(pThreadSystem, &MoveSystem::threadedUpdate, &avoidData, i);
+			}
 
-			// check against world bounds; put back onto bounds and mirror the velocity component to "bounce" back
-			if (position.x < bounds.xMin)
+			waitThreadSystemIdle(pThreadSystem);
+		}
+		else
+		{
+			for (size_t i = 0; i < SpriteEntityCount; ++i)
 			{
-				move.velx = -move.velx;
-				position.x = bounds.xMin;
+				threadedUpdate(&data, i);
 			}
-			if (position.x > bounds.xMax)
+
+			for (size_t i = 0; i < AvoidCount; ++i)
 			{
-				move.velx = -move.velx;
-				position.x = bounds.xMax;
-			}
-			if (position.y < bounds.yMin)
-			{
-				move.vely = -move.vely;
-				position.y = bounds.yMin;
-			}
-			if (position.y > bounds.yMax)
-			{
-				move.vely = -move.vely;
-				position.y = bounds.yMax;
+				threadedUpdate(&avoidData, i);
 			}
 		}
+	}
+
+	static void threadedUpdate(void* pData, uintptr_t id)
+	{	
+		timeAndBounds& data			= *(timeAndBounds*)pData;
+		Entity* pEntity				= (data.entities)[id];
+		PositionComponent& position = *(pEntity->getComponent<PositionComponent>());
+		MoveComponent& move			= *(pEntity->getComponent<MoveComponent>());
+
+		MoveEntities(position, move, data.deltaTime, *data.bounds);
 	}
 };
 
@@ -235,19 +247,24 @@ static float DistanceSq(const PositionComponent& a, const PositionComponent& b)
 
 struct AvoidanceSystem
 {
-	eastl::vector<float>    avoidDistanceList;
-	eastl::vector<uint32_t> avoidList;
+	static eastl::vector<float>    avoidDistanceList;
+	eastl::vector<Entity*>		   avoidList;
 
-	void AddAvoidThisObjectToSystem(uint32_t id, float distance)
+	Mutex emplaceMutex;
+
+	void addAvoidThisObjectToSystem(Entity* entity, float distance)
 	{
-		avoidList.emplace_back(id);
-		avoidDistanceList.emplace_back(distance * distance);
+		{
+			MutexLock lock(emplaceMutex);
+			avoidList.emplace_back(entity);
+			avoidDistanceList.emplace_back(distance * distance);
+		}
 	}
 
-	void ResolveCollision(EntityID id, float deltaTime)
+	static void resolveCollision(Entity* pEntity, float deltaTime)
 	{
-		PositionComponent& pos = registry.get<PositionComponent>(id);
-		MoveComponent&     move = registry.get<MoveComponent>(id);
+		PositionComponent& pos  = *(pEntity->getComponent<PositionComponent>());
+		MoveComponent&     move = *(pEntity->getComponent<MoveComponent>());
 
 		// flip velocity
 		move.velx = -move.velx;
@@ -258,45 +275,126 @@ struct AvoidanceSystem
 		pos.y += move.vely * deltaTime * 1.1f;
 	}
 
-	void Update(float deltaTime)
+	static void Update(float deltaTime)
 	{
-		entt::View<EntityID, PositionComponent> view = registry.view<PositionComponent>();
-		for (EntityID entity : view)
+		const WorldBoundsComponent& bounds = *worldBoundsEntity->getComponent<WorldBoundsComponent>();
+
+		timeAndBounds data = { spriteEntities, deltaTime, &bounds };
+		
+		if (multiThread)
 		{
-			PositionComponent& position = view.get(entity);
-
-			// check each thing in avoid list
-			for (size_t ia = 0, na = avoidList.size(); ia != na; ++ia)
+			for (size_t i = 0; i < SpriteEntityCount; ++i)
 			{
-				float                    avDistance = avoidDistanceList[ia];
-				uint32_t                 avoidEntity = avoidList[ia];
-				const PositionComponent& avoidposition = registry.get<PositionComponent>(avoidEntity);
+				addThreadSystemTask(pThreadSystem, &AvoidanceSystem::threadedUpdate, &data, i);
+			}
 
-				// is our position closer to "thing to avoid" position than the avoid distance?
-				if (DistanceSq(position, avoidposition) < avDistance)
-				{
-					ResolveCollision(entity, deltaTime);
+			waitThreadSystemIdle(pThreadSystem);
+		}
+		else
+		{
+			for (size_t i = 0; i < SpriteEntityCount; ++i)
+			{
+				threadedUpdate(&data, i);
+			}
+		}
+	}
 
-					// also make our sprite take the color of the thing we just bumped into
-					SpriteComponent& avoidSprite = registry.get<SpriteComponent>(avoidEntity);
-					SpriteComponent& mySprite = registry.get<SpriteComponent>(entity);
-					mySprite.colorR = avoidSprite.colorR;
-					mySprite.colorG = avoidSprite.colorG;
-					mySprite.colorB = avoidSprite.colorB;
-				}
+	static void threadedUpdate(void* pData, uintptr_t i)
+	{
+		timeAndBounds& data			= *(timeAndBounds*)pData;
+		Entity* pEntity				= spriteEntities[i];
+		PositionComponent& position = *(pEntity->getComponent<PositionComponent>());
+
+		for (size_t j = 0; j < AvoidCount; ++j)
+		{
+			Entity*					pAvoidEntity = avoidEntities[j];
+			float                    avDistance  = avoidDistanceList[j];
+			PositionComponent&	  avoidPosition  = *(pAvoidEntity->getComponent<PositionComponent>());
+
+			// is our position closer to "thing to avoid" position than the avoid distance?
+			if (DistanceSq(position, avoidPosition) < avDistance)
+			{
+				resolveCollision(pEntity, data.deltaTime);
+				// also make our sprite take the color of the thing we just bumped into
+				SpriteComponent& avoidSprite = *(pAvoidEntity->getComponent<SpriteComponent>());
+				SpriteComponent& mySprite	 = *(pEntity->getComponent<SpriteComponent>());
+				mySprite.colorR = avoidSprite.colorR;
+				mySprite.colorG = avoidSprite.colorG;
+				mySprite.colorB = avoidSprite.colorB;
 			}
 		}
 	}
 };
 
+eastl::vector<float>    AvoidanceSystem::avoidDistanceList;
+
 static MoveSystem      moveSystem;
 static AvoidanceSystem avoidanceSystem;
+
+struct CreationData
+{
+	Entity** entities;
+	WorldBoundsComponent* bounds;
+	const char* entityTypeName;
+};
+
+static void createEntities(void* pData, uintptr_t i)
+{
+	// NOT DESERIALIZED WAY TO CREATE ENTITIES
+	//spriteEntities[i] = pEntityManager->createEntity();
+	
+	CreationData data = *(CreationData*)pData;
+
+	// DESERIALIZED WAY
+	EntityId entityId = pEntityManager->createEntity();
+	(data.entities)[i] = pEntityManager->getEntityById(entityId);
+
+	float x = RandomFloat(data.bounds->xMin, data.bounds->xMax);
+	float y = RandomFloat(data.bounds->yMin, data.bounds->yMax);
+
+	PositionComponent* position = (data.entities)[i]->getComponent<PositionComponent>();
+	if (!position)
+		position = &(pEntityManager->addComponentToEntity<PositionComponent>(entityId));	// ADD CUSTOM COMPONENTS
+	position->x = x;
+	position->y = y;
+	
+	MoveComponent* move = (data.entities)[i]->getComponent<MoveComponent>();
+	if (!move)
+		move = &( pEntityManager->addComponentToEntity<MoveComponent>(entityId) );
+	move->Initialize(0.3f, 0.6f);
+
+	SpriteComponent* sprite = (data.entities)[i]->getComponent<SpriteComponent>();
+	if (!sprite)
+		sprite = &( pEntityManager->addComponentToEntity<SpriteComponent>(entityId) );
+
+	if (strcmp(data.entityTypeName, "avoid")) {
+		avoidanceSystem.addAvoidThisObjectToSystem((data.entities)[i], 1.3f);
+		
+		sprite->colorR = 1.0f;
+		sprite->colorG = 1.0f;
+		sprite->colorB = 1.0f;
+		sprite->scale = 1.0f;
+		sprite->spriteIndex = rand() % 5;
+	}
+	else {
+		position->x *= 0.2f;
+		position->y *= 0.2f;
+		sprite->colorR = RandomFloat(0.5f, 1.0f);
+		sprite->colorG = RandomFloat(0.5f, 1.0f);
+		sprite->colorB = RandomFloat(0.5f, 1.0f);
+		sprite->scale = 2.0f;
+		sprite->spriteIndex = 5;
+	}
+}
 
 class EntityComponentSystem: public IApp
 {
 	public:
 	bool Init()
 	{
+		pEntityManager = conf_new(EntityManager);
+		pFileSystem	   = conf_new(File);
+
 		// window and renderer setup
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
@@ -369,7 +467,6 @@ class EntityComponentSystem: public IApp
 		blendStateDesc.mIndependentBlend = false;
 		addBlendState(pRenderer, &blendStateDesc, &pBlendState);
 
-		//
 		gSpriteData = (SpriteData*)conf_malloc(MaxSpriteCount * sizeof(SpriteData));
 
 		// Instance buffer
@@ -418,75 +515,77 @@ class EntityComponentSystem: public IApp
 		TextureLoadDesc textureDesc = {};
 		textureDesc.mRoot = FSR_Textures;
 		textureDesc.ppTexture = &pSpriteTexture;
-		textureDesc.mUseMipmaps = false;
-		textureDesc.pFilename = "sprites.png";
+		textureDesc.pFilename = "sprites";
 		addResource(&textureDesc);
 
 		finishResourceLoading();
+
+		initThreadSystem(&pThreadSystem);
 
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
-    /************************************************************************/
-    // GUI
-    /************************************************************************/
-    
-    GuiDesc guiDesc = {};
-    guiDesc.mStartSize = vec2(300.0f, 250.0f);
-    guiDesc.mStartPosition = vec2(0.0f, guiDesc.mStartSize.getY());
-    pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
+	/************************************************************************/
+	// GUI
+	/************************************************************************/
 
-    pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+		GuiDesc guiDesc = {};
+		guiDesc.mStartSize = vec2(300.0f, 250.0f);
+		guiDesc.mStartPosition = vec2(0.0f, guiDesc.mStartSize.getY());
+		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
-		// Create sprite entities and components.
-		worldBoundsEntity = registry.create();
-		WorldBoundsComponent& bounds = registry.assign<WorldBoundsComponent>(worldBoundsEntity);
-		bounds.xMin = -80.0f;
-		bounds.xMax = 80.0f;
-		bounds.yMin = -50.0f;
-		bounds.yMax = 50.0f;
+		pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler)); 
+		
+		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 16 };
 
-		for (uint i = 0; i < SpriteEntityCount; i++)
+		float   dpiScale = getDpiScale().x;
+		vec2    UIPosition = { mSettings.mWidth * 0.01f, mSettings.mHeight * 0.5f };
+		vec2    UIPanelSize = vec2(650.f, 1000.f) / dpiScale;
+		GuiDesc guiDesc2(UIPosition, UIPanelSize, UIPanelWindowTitleTextDesc);
+		GUIWindow = gAppUI.AddGuiComponent("MultiThread", &guiDesc2);
+		
+		CheckboxWidget Checkbox("Threading", &multiThread);
+		GUIWindow->AddWidget(Checkbox);
+
+
+		// Create entities
+		EntityId worldBoundsEntityId = pEntityManager->createEntity();
+		worldBoundsEntity = pEntityManager->getEntityById(worldBoundsEntityId);
+		WorldBoundsComponent* bounds = &(pEntityManager->addComponentToEntity<WorldBoundsComponent>(worldBoundsEntityId));
+		bounds->xMin = -80.0f;
+		bounds->xMax = 80.0f;
+		bounds->yMin = -50.0f;
+		bounds->yMax = 50.0f;
+
+		// THIS IS HOW YOU SERIALIZE AN ENTITY
+		//pSerializer->SerializeEntity(worldBoundsEntityId, "serializedWorldBounds", "../../../src/17_EntityComponentSystem/Entities/");
+
+		CreationData data	   = { spriteEntities, bounds, "sprite" };
+		CreationData avoidData = { avoidEntities,  bounds, "avoid" };
+		
+		if (multiThread)
 		{
-			spriteEntities[i] = registry.create();
-			float x = RandomFloat(bounds.xMin, bounds.xMax);
-			float y = RandomFloat(bounds.yMin, bounds.yMax);
-			registry.assign<PositionComponent>(spriteEntities[i], x, y);
+			for (size_t i = 0; i < SpriteEntityCount; ++i) {
+				addThreadSystemTask(pThreadSystem, &createEntities, &data, i);
+			}
+			
+			for (size_t i = 0; i < AvoidCount; ++i) {
+				addThreadSystemTask(pThreadSystem, &createEntities, &avoidData, i);
+			}
 
-			SpriteComponent& sprite = registry.assign<SpriteComponent>(spriteEntities[i]);
-			sprite.colorR = 1.0f;
-			sprite.colorG = 1.0f;
-			sprite.colorB = 1.0f;
-			sprite.spriteIndex = rand() % 5;
-			sprite.scale = 1.0f;
-
-			// Move component
-			MoveComponent& move = registry.assign<MoveComponent>(spriteEntities[i]);
-			move.Initialize(0.7f, 1.0f);
+			waitThreadSystemIdle(pThreadSystem);
 		}
-
-		for (uint i = 0; i < AvoidCount; ++i)
+		else
 		{
-			avoidEntities[i] = registry.create();
-			float x = RandomFloat(bounds.xMin, bounds.xMax) * 0.2f;
-			float y = RandomFloat(bounds.yMin, bounds.yMax) * 0.2f;
-			registry.assign<PositionComponent>(avoidEntities[i], x, y);
+			for (size_t i = 0; i < SpriteEntityCount; ++i) {
+				createEntities(&data, i);
+			}
 
-			SpriteComponent& sprite = registry.assign<SpriteComponent>(avoidEntities[i]);
-			sprite.colorR = RandomFloat(0.5f, 1.0f);
-			sprite.colorG = RandomFloat(0.5f, 1.0f);
-			sprite.colorB = RandomFloat(0.5f, 1.0f);
-			sprite.spriteIndex = 5;
-			sprite.scale = 2.0f;
-
-			// Move component
-			MoveComponent& move = registry.assign<MoveComponent>(avoidEntities[i]);
-			move.Initialize(0.3f, 0.6f);
-
-			// add to avoidance this as "Avoid This" object
-			avoidanceSystem.AddAvoidThisObjectToSystem(avoidEntities[i], 1.3f);
+			for (size_t i = 0; i < AvoidCount; ++i) {
+				createEntities(&avoidData, i);
+			}
 		}
 
 		return true;
@@ -494,6 +593,11 @@ class EntityComponentSystem: public IApp
 
 	void Exit()
 	{
+		shutdownThreadSystem(pThreadSystem);
+		
+		conf_delete(pEntityManager);
+		conf_delete(pFileSystem);
+
 		waitQueueIdle(pGraphicsQueue);
 
 		exitProfiler(pRenderer);
@@ -594,35 +698,49 @@ class EntityComponentSystem: public IApp
 		gDrawSpriteCount = 0;
 		float globalScale = 0.05f;
 
-		entt::View<EntityID, PositionComponent, SpriteComponent> view = registry.view<PositionComponent, SpriteComponent>();
-		for (EntityID entity : view)
-		{
-			PositionComponent& position = view.get<PositionComponent>(entity);
-			SpriteComponent&   sprite = view.get<SpriteComponent>(entity);
-
+		for (size_t i = 0; i < SpriteEntityCount; ++i) {
+			Entity* pEntity				= spriteEntities[i];
+			PositionComponent& position = *(pEntity->getComponent<PositionComponent>());
+			SpriteComponent&     sprite = *(pEntity->getComponent<SpriteComponent>());
+			
 			SpriteData& spriteData = gSpriteData[gDrawSpriteCount++];
-			spriteData.posX = position.x * globalScale;
-			spriteData.posY = position.y * globalScale;
-			spriteData.scale = sprite.scale * globalScale;
-			spriteData.colR = sprite.colorR;
-			spriteData.colG = sprite.colorG;
-			spriteData.colB = sprite.colorB;
+			spriteData.posX   = position.x * globalScale;
+			spriteData.posY   = position.y * globalScale;
+			spriteData.scale  = sprite.scale * globalScale;
+			spriteData.colR   = sprite.colorR;
+			spriteData.colG   = sprite.colorG;
+			spriteData.colB   = sprite.colorB;
 			spriteData.sprite = (float)sprite.spriteIndex;
 		}
 
-    // ProfileSetDisplayMode()
-    // TODO: need to change this better way 
-    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
-    {
-      Profile& S = *ProfileGet();
-      int nValue = bToggleMicroProfiler ? 1 : 0;
-      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
-      S.nDisplay = nValue;
+		for (size_t i = 0; i < AvoidCount; ++i) {
+			Entity* pEntity				= avoidEntities[i];
+			PositionComponent& position = *(pEntity->getComponent<PositionComponent>());
+			SpriteComponent&     sprite = *(pEntity->getComponent<SpriteComponent>());
 
-      bPrevToggleMicroProfiler = bToggleMicroProfiler;
-    }
+			SpriteData& spriteData = gSpriteData[gDrawSpriteCount++];
+			spriteData.posX   = position.x * globalScale;
+			spriteData.posY   = position.y * globalScale;
+			spriteData.scale  = sprite.scale * globalScale;
+			spriteData.colR   = sprite.colorR;
+			spriteData.colG   = sprite.colorG;
+			spriteData.colB   = sprite.colorB;
+			spriteData.sprite = (float)sprite.spriteIndex;
+		}
 
-    gAppUI.Update(deltaTime);
+		// ProfileSetDisplayMode()
+		// TODO: need to change this better way 
+		if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+		{
+			Profile& S = *ProfileGet();
+			int nValue = bToggleMicroProfiler ? 1 : 0;
+			nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+			S.nDisplay = nValue;
+
+			bPrevToggleMicroProfiler = bToggleMicroProfiler;
+		}
+
+		gAppUI.Update(deltaTime);
 	}
 
 	void Draw()
@@ -706,21 +824,24 @@ class EntityComponentSystem: public IApp
 
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
 
+		gAppUI.Gui(GUIWindow);
+
 		TextDrawDesc uiTextDesc;    // default
 		uiTextDesc.mFontColor = 0xff00cc00;
 		uiTextDesc.mFontSize = 18;
+		 
 		gAppUI.DrawText(
 			cmd, float2(8.0f, 15.0f), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &uiTextDesc);
-
+		
 		gAppUI.DrawText(
 			cmd, float2(8.0f, 40.0f), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
 			&uiTextDesc);
 
 		cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
 
-    gAppUI.Gui(pGuiWindow);
+		gAppUI.Gui(pGuiWindow);
 
-		gAppUI.Draw(cmd);
+        gAppUI.Draw(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndDebugMarker(cmd);
 

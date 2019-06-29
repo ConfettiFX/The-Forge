@@ -35,7 +35,7 @@ layout (location = 3) flat in uint MatID;
 layout(location = 0) out vec4 Accumulation;
 layout(location = 1) out float Revealage;
 
-layout(set = 3, binding = 20) uniform WBOITSettings
+layout(set = 1, binding = 20) uniform WBOITSettings
 {
 	float colorResistance;	// Increase if low-coverage foreground transparents are affecting background transparent color.
 	float rangeAdjustment;	// Change to avoid saturating at the clamp bounds.

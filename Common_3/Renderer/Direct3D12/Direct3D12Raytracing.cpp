@@ -58,40 +58,12 @@ typedef struct DescriptorTable
 #define MAX_FRAMES_IN_FLIGHT 3U
 //using HashMap = eastl::unordered_map<uint64_t, uint32_t>;
 
-typedef struct DescriptorBinderNode
-{
-	DescriptorTable* pCbvSrvUavTables[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
-	DescriptorTable* pSamplerTables[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
-	uint32_t         mCbvSrvUavUsageCount[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
-	uint32_t         mSamplerUsageCount[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
-	uint64_t         mUpdatedNoneFreqHash[MAX_FRAMES_IN_FLIGHT][2];  // 2 is for CbvSrvUav (0) and Sampler (1)
-	uint64_t         mUpdatedFrameFreqHash[MAX_FRAMES_IN_FLIGHT][2];
-	//HashMap          mUpdatedBatchFreqHashes[MAX_FRAMES_IN_FLIGHT][2];
-	uint32_t         mCbvSrvUavUpdatesThisFrame[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
-	uint32_t         mSamplerUpdatesThisFrame[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
-	uint32_t         mLastFrameUpdated;
-	uint32_t         mMaxUsagePerSet[DESCRIPTOR_UPDATE_FREQ_COUNT];
-	uint32_t         numDescriptorsPerSet[DESCRIPTOR_UPDATE_FREQ_COUNT][2];
-
-	/// Array of flags to check whether a descriptor table of the update frequency is already bound to avoid unnecessary rebinding of descriptor tables
-	bool mBoundCbvSrvUavTables[DESCRIPTOR_UPDATE_FREQ_COUNT];
-	bool mBoundSamplerTables[DESCRIPTOR_UPDATE_FREQ_COUNT];
-	/// Array of view descriptor handles per update frequency to be copied into the gpu visible view heap
-	D3D12_CPU_DESCRIPTOR_HANDLE* pViewDescriptorHandles[DESCRIPTOR_UPDATE_FREQ_COUNT];
-	/// Array of sampler descriptor handles per update frequency to be copied into the gpu visible sampler heap
-	D3D12_CPU_DESCRIPTOR_HANDLE* pSamplerDescriptorHandles[DESCRIPTOR_UPDATE_FREQ_COUNT];
-	/// Triple buffered array of number of descriptor tables allocated per update frequency
-	/// Only used for recording stats
-	uint32_t mDescriptorTableCount[MAX_FRAMES_IN_FLIGHT][DESCRIPTOR_UPDATE_FREQ_COUNT];
-} DescriptorBinderNode;
-
-using DescriptorBinderMap = eastl::hash_map<const RootSignature*, DescriptorBinderNode>;
+using DescriptorBinderMap = eastl::hash_map<const RootSignature*, struct DescriptorBinderNode*>;
 
 typedef struct DescriptorBinder
 {
 	DescriptorStoreHeap* pCbvSrvUavHeap[MAX_GPUS];
 	DescriptorStoreHeap* pSamplerHeap[MAX_GPUS];
-	Cmd*                 pCurrentCmd;
 	DescriptorBinderMap  mRootSignatureNodes;
 } DescriptorBinder;
 

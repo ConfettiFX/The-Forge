@@ -41,7 +41,7 @@
 		B28C6CDC21B075A300FBA1BF /* libassimp_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6CAB21AF852800FBA1BF /* libassimp_iOS.a */; };
 		B28C6CDD21B075A300FBA1BF /* libIrrXML_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6CA921AF852800FBA1BF /* libIrrXML_iOS.a */; };
 		B28C6CDE21B075A300FBA1BF /* libzlibstatic_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6CAD21AF852800FBA1BF /* libzlibstatic_iOS.a */; };
-		B28C6CE621B0799600FBA1BF /* Stormtrooper_D.png in Copy Files */ = {isa = PBXBuildFile; fileRef = B28C6CE321B0799000FBA1BF /* Stormtrooper_D.png */; };
+		B28C6CE621B0799600FBA1BF /* Stormtrooper_D.ktx in Copy Files */ = {isa = PBXBuildFile; fileRef = B28C6CE321B0799000FBA1BF /* Stormtrooper_D.ktx */; };
 		B28C6F7721B227FD00FBA1BF /* AssimpImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B28C6F7621B227FC00FBA1BF /* AssimpImporter.cpp */; };
 		B28C6F7821B2280000FBA1BF /* AssimpImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B28C6F7621B227FC00FBA1BF /* AssimpImporter.cpp */; };
 		B2B73FC721754A3B00324803 /* 25_Skinning.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B73FC621754A3B00324803 /* 25_Skinning.cpp */; };
@@ -49,7 +49,7 @@
 		B2B73FEA2175504F00324803 /* 25_Skinning.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B73FC621754A3B00324803 /* 25_Skinning.cpp */; };
 		B2B7400F2175533E00324803 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = B2B7400E2175533E00324803 /* AppDelegate.m */; };
 		B2B740162175553800324803 /* TitilliumText in Copy Files */ = {isa = PBXBuildFile; fileRef = B2B740152175553800324803 /* TitilliumText */; };
-		B2B7406C21755F2C00324803 /* circlepad.png in Copy Files */ = {isa = PBXBuildFile; fileRef = B2B7406A21755F1200324803 /* circlepad.png */; };
+		B2B7406C21755F2C00324803 /* circlepad.ktx in Copy Files */ = {isa = PBXBuildFile; fileRef = B2B7406A21755F1200324803 /* circlepad.ktx */; };
 		B2C44078211E2563008F57D5 /* ozz_animation.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B23FA458211E24F70059929A /* ozz_animation.a */; };
 		B2C44079211E2563008F57D5 /* ozz_base.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B23FA45C211E24F70059929A /* ozz_base.a */; };
 		B2D1CEB420EAECDB001BB8C4 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D1CEB320EAECDB001BB8C4 /* UIKit.framework */; };
@@ -57,7 +57,7 @@
 		D0296BEC211EE433000C9281 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D0296BEA211EE433000C9281 /* LaunchScreen.storyboard */; };
 		D0796AEA211ED7A70028AFFD /* ozz_animation_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0796AE7211ED7950028AFFD /* ozz_animation_IOS.a */; };
 		D0796AEB211ED7A70028AFFD /* ozz_base_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0796AE9211ED7950028AFFD /* ozz_base_IOS.a */; };
-		D0A0FAFF21B27F670059AEDB /* circlepad.png in Resources */ = {isa = PBXBuildFile; fileRef = B2B7406A21755F1200324803 /* circlepad.png */; };
+		D0A0FAFF21B27F670059AEDB /* circlepad.ktx in Resources */ = {isa = PBXBuildFile; fileRef = B2B7406A21755F1200324803 /* circlepad.ktx */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
 /* End PBXBuildFile section */
@@ -286,8 +286,8 @@
 			dstPath = Textures;
 			dstSubfolderSpec = 7;
 			files = (
-				B28C6CE621B0799600FBA1BF /* Stormtrooper_D.png in Copy Files */,
-				B2B7406C21755F2C00324803 /* circlepad.png in Copy Files */,
+				B28C6CE621B0799600FBA1BF /* Stormtrooper_D.ktx in Copy Files */,
+				B2B7406C21755F2C00324803 /* circlepad.ktx in Copy Files */,
 			);
 			name = "Copy Files";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -357,7 +357,7 @@
 		B28C6C9121AF806500FBA1BF /* skinning.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = skinning.frag.metal; path = ../../src/25_Skinning/Shaders/Metal/skinning.frag.metal; sourceTree = "<group>"; };
 		B28C6C9221AF806500FBA1BF /* skinning.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = skinning.vert.metal; path = ../../src/25_Skinning/Shaders/Metal/skinning.vert.metal; sourceTree = "<group>"; };
 		B28C6C9921AF852800FBA1BF /* Assimp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Assimp.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple/Assimp.xcodeproj; sourceTree = "<group>"; };
-		B28C6CE321B0799000FBA1BF /* Stormtrooper_D.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Stormtrooper_D.png; sourceTree = "<group>"; };
+		B28C6CE321B0799000FBA1BF /* Stormtrooper_D.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; path = Stormtrooper_D.ktx; sourceTree = "<group>"; };
 		B28C6D1221B07B4B00FBA1BF /* fbx */ = {isa = PBXFileReference; lastKnownFileType = folder; path = fbx; sourceTree = "<group>"; };
 		B28C6F7521B227FC00FBA1BF /* AssimpImporter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AssimpImporter.h; sourceTree = "<group>"; };
 		B28C6F7621B227FC00FBA1BF /* AssimpImporter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AssimpImporter.cpp; sourceTree = "<group>"; };
@@ -368,7 +368,7 @@
 		B2B7400C2175532600324803 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/iOS/AppDelegate.h; sourceTree = "<group>"; };
 		B2B7400E2175533E00324803 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/iOS/AppDelegate.m; sourceTree = "<group>"; };
 		B2B740152175553800324803 /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; path = TitilliumText; sourceTree = "<group>"; };
-		B2B7406A21755F1200324803 /* circlepad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = circlepad.png; sourceTree = "<group>"; };
+		B2B7406A21755F1200324803 /* circlepad.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; path = circlepad.ktx; sourceTree = "<group>"; };
 		B2D1CEB320EAECDB001BB8C4 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		C95132ED2010E68A002E584B /* 25_Skinning_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 25_Skinning_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C95132FE2010E68A002E584B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -525,8 +525,8 @@
 		B2B73FC821754A5900324803 /* Textures */ = {
 			isa = PBXGroup;
 			children = (
-				B28C6CE321B0799000FBA1BF /* Stormtrooper_D.png */,
-				B2B7406A21755F1200324803 /* circlepad.png */,
+				B28C6CE321B0799000FBA1BF /* Stormtrooper_D.ktx */,
+				B2B7406A21755F1200324803 /* circlepad.ktx */,
 			);
 			name = Textures;
 			path = ../../UnitTestResources/Textures;
@@ -827,7 +827,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D0296BEC211EE433000C9281 /* LaunchScreen.storyboard in Resources */,
-				D0A0FAFF21B27F670059AEDB /* circlepad.png in Resources */,
+				D0A0FAFF21B27F670059AEDB /* circlepad.ktx in Resources */,
 				C95132FF2010E68A002E584B /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

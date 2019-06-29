@@ -14,7 +14,8 @@ const char* pszBases[] = {
 	"",    // FSR_Meshes
 	"",    // FSR_Builtin_Fonts
 	"",    // FSR_GpuConfig
-	"",    // FSR_Animtion
+	"",    // FSR_Animation
+	"",    // FSR_Audio
 	"",    // FSR_OtherFiles
 };
 

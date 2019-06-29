@@ -24,7 +24,6 @@
 
 #include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/ILogManager.h"
-#include "../Interfaces/IMemoryManager.h"
 
 #ifdef __APPLE__
 #include <unistd.h>
@@ -38,7 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #endif
-#ifdef __linux__
+#if defined(__linux__)
 #include <unistd.h>
 #include <limits.h>       // for UINT_MAX
 #include <sys/stat.h>     // for mkdir
@@ -46,6 +45,7 @@
 #include <sys/wait.h>
 #include <dirent.h>
 #endif
+#include "../Interfaces/IMemoryManager.h"
 
 void translateFileAccessFlags(FileMode modeFlags, char* fileAccesString, int strLength)
 {
@@ -604,11 +604,23 @@ unsigned MemoryBuffer::Read(void* dest, unsigned size)
 
 unsigned MemoryBuffer::Seek(unsigned position, SeekDir seekDir /* = SeekDir::SEEK_DIR_BEGIN*/)
 {
-	UNREF_PARAM(seekDir);
 	if (position > mSize)
-		position = mSize;
+		position = (mSize - 1);
 
-	mPosition = position;
+	switch (seekDir)
+	{
+	case SEEK_DIR_BEGIN:
+		mPosition = position;
+		break;
+	case SEEK_DIR_CUR:
+		mPosition += position;
+		break;
+	case SEEK_DIR_END:
+		mPosition = mSize - 1 - position;
+		break;
+	default:
+		break;
+	}
 	return mPosition;
 }
 
@@ -683,7 +695,7 @@ bool FileSystem::FileExists(const eastl::string& _fileName, FSRoot _root)
 #ifdef _DURANGO
 	return (fopen(fileName.c_str(), "rb") != NULL);
 #else
-	return ((access(fileName.c_str(), 0)) != -1);
+		return ((access(fileName.c_str(), 0)) != -1);
 #endif
 }
 
@@ -1007,15 +1019,17 @@ int FileSystem::SystemRun(const eastl::string& fileName, const eastl::vector<eas
 	int res = system(cmd.c_str());
 	return res;
 #else
+	
+	// NOTE:  do not use eastl in the forked process!  It will use unsafe functions (such as malloc) which will hang the whole thing
+	eastl::vector<const char*> argPtrs;
+	argPtrs.push_back(fixedFileName.c_str());
+	for (unsigned i = 0; i < (unsigned)arguments.size(); ++i)
+		argPtrs.push_back(arguments[i].c_str());
+	argPtrs.push_back(NULL);
+	
 	pid_t pid = fork();
 	if (!pid)
 	{
-		eastl::vector<const char*> argPtrs;
-		argPtrs.push_back(fixedFileName.c_str());
-		for (unsigned i = 0; i < (unsigned)arguments.size(); ++i)
-			argPtrs.push_back(arguments[i].c_str());
-		argPtrs.push_back(NULL);
-
 		execvp(argPtrs[0], (char**)&argPtrs[0]);
 		return -1;    // Return -1 if we could not spawn the process
 	}

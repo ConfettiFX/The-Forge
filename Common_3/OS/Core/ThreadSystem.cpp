@@ -26,9 +26,9 @@
 
 #include "../Interfaces/IThread.h"
 #include "../Interfaces/ILogManager.h"
-#include "../Interfaces/IMemoryManager.h"
 
 #include "ThreadSystem.h"
+#include "../Interfaces/IMemoryManager.h"
 
 struct ThreadedTask
 {
@@ -92,7 +92,7 @@ static void taskThreadFunc(void* pThreadData)
 
 void initThreadSystem(ThreadSystem** ppThreadSystem)
 {
-	ThreadSystem* pThreadSystem = conf_new<ThreadSystem>();
+	ThreadSystem* pThreadSystem = conf_new(ThreadSystem);
 
 	uint32_t numThreads = max<uint32_t>(Thread::GetNumCPUCores() - 1, 1);
 	uint32_t numLoaders = min<uint32_t>(numThreads, MAX_LOAD_THREADS);

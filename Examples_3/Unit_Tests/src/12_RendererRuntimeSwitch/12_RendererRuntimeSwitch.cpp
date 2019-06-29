@@ -104,8 +104,7 @@ Shader*           pSkyBoxDrawShader = NULL;
 Buffer*           pSkyBoxVertexBuffer = NULL;
 Pipeline*         pSkyBoxDrawPipeline = NULL;
 RootSignature*    pRootSignature = NULL;
-DescriptorBinder* pSkyBoxDescriptorBinder = NULL;
-DescriptorBinder* pPlanetsDescriptorBinder = NULL;
+DescriptorBinder* pDescriptorBinder = NULL;
 Sampler*          pSamplerSkyBox = NULL;
 Texture*          pSkyBoxTextures[6];
 #ifdef TARGET_IOS
@@ -130,10 +129,8 @@ ICameraController* pCameraController = NULL;
 UIApp         gAppUI;
 GuiComponent* pGui;
 
-FileSystem gFileSystem;
-
-const char* pSkyBoxImageFileNames[] = { "Skybox_right1.png",  "Skybox_left2.png",  "Skybox_top3.png",
-										"Skybox_bottom4.png", "Skybox_front5.png", "Skybox_back6.png" };
+const char* pSkyBoxImageFileNames[] = { "Skybox_right1",  "Skybox_left2",  "Skybox_top3",
+										"Skybox_bottom4", "Skybox_front5", "Skybox_back6" };
 
 const char* pszBases[FSR_Count] = {
 	"../../../src/12_RendererRuntimeSwitch/",    // FSR_BinShaders
@@ -143,6 +140,7 @@ const char* pszBases[FSR_Count] = {
 	"../../../UnitTestResources/",               // FSR_Builtin_Fonts
 	"../../../src/12_RendererRuntimeSwitch/",    // FSR_GpuConfig
 	"",                                          // FSR_Animation
+	"",                                          // FSR_Audio
 	"",                                          // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",         // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",           // FSR_MIDDLEWARE_UI
@@ -200,14 +198,13 @@ public:
 #else
 			textureDesc.mRoot = FSRoot::FSR_Absolute;    // Resources on iOS are bundled with the application.
 #endif
-			textureDesc.mUseMipmaps = true;
 			textureDesc.pFilename = pSkyBoxImageFileNames[i];
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
 			addResource(&textureDesc, true);
 		}
 
 #ifdef TARGET_IOS
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Absolute))
 			return false;
 #endif
 
@@ -239,11 +236,8 @@ public:
 		rootDesc.ppShaders = shaders;
 		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
-		DescriptorBinderDesc skyBoxDescriptorBinderDesc = { pRootSignature };
-		addDescriptorBinder(pRenderer, 0, 1, &skyBoxDescriptorBinderDesc, &pSkyBoxDescriptorBinder);
-
-		DescriptorBinderDesc planetsDescriptorBinderDesc = { pRootSignature };
-		addDescriptorBinder(pRenderer, 0, 1, &planetsDescriptorBinderDesc, &pPlanetsDescriptorBinder);
+		DescriptorBinderDesc descriptorBinderDesc[] = { { pRootSignature }, { pRootSignature } };
+		addDescriptorBinder(pRenderer, 0, 2, descriptorBinderDesc, &pDescriptorBinder);
 
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
@@ -480,8 +474,7 @@ public:
 		removeShader(pRenderer, pSphereShader);
 		removeShader(pRenderer, pSkyBoxDrawShader);
 		removeRootSignature(pRenderer, pRootSignature);
-		removeDescriptorBinder(pRenderer, pSkyBoxDescriptorBinder);
-		removeDescriptorBinder(pRenderer, pPlanetsDescriptorBinder);
+		removeDescriptorBinder(pRenderer, pDescriptorBinder);
 
 		removeDepthState(pDepth);
 		removeRasterizerState(pSkyboxRast);
@@ -718,7 +711,7 @@ public:
 		params[5].ppTextures = &pSkyBoxTextures[4];
 		params[6].pName = "BackText";
 		params[6].ppTextures = &pSkyBoxTextures[5];
-		cmdBindDescriptors(cmd, pSkyBoxDescriptorBinder, pRootSignature, 7, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignature, 7, params);
 		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, NULL);
 		cmdDraw(cmd, 36, 0);
 		cmdEndDebugMarker(cmd);
@@ -727,7 +720,7 @@ public:
 		cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Planets");
 		cmdBindPipeline(cmd, pSpherePipeline);
 		params[0].ppBuffers = &pProjViewUniformBuffer[gFrameIndex];
-		cmdBindDescriptors(cmd, pPlanetsDescriptorBinder, pRootSignature, 1, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignature, 1, params);
 		cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, NULL);
 		cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, gNumPlanets, 0);
 		cmdEndDebugMarker(cmd);

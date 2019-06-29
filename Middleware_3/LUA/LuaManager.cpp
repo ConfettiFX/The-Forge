@@ -1,8 +1,8 @@
 #include "LuaManager.h"
 #include "LuaManagerImpl.h"
 
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
 #include "../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 void LuaManager::Init()
 {

@@ -15,8 +15,8 @@ layout(push_constant) uniform uRootConstants_Block
     vec2 scaleBias;
 } uRootConstants;
 
-layout(set = 2, binding = 2) uniform texture2D uTex0;
-layout(set = 2, binding = 3) uniform sampler uSampler0; // todo: set should be 0. Temporarily set this to 1 due to a bug.
+layout(set = 0, binding = 2) uniform texture2D uTex0;
+layout(set = 0, binding = 3) uniform sampler uSampler0;
 
 vec4 HLSLmain(PsIn In)
 {

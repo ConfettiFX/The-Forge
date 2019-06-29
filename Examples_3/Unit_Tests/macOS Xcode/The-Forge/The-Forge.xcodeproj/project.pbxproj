@@ -159,6 +159,15 @@
 		81FF8E2D2237A9D30009402D /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81FF8E292237A9D30009402D /* InputSystem.cpp */; };
 		81FF8E2E2237A9D30009402D /* InputMappings.h in Headers */ = {isa = PBXBuildFile; fileRef = 81FF8E2A2237A9D30009402D /* InputMappings.h */; };
 		81FF8E2F2237A9D30009402D /* InputSystem.h in Headers */ = {isa = PBXBuildFile; fileRef = 81FF8E2B2237A9D30009402D /* InputSystem.h */; };
+		B274041B22BC66AD00F7660D /* BaseComponent.h in Headers */ = {isa = PBXBuildFile; fileRef = B274041522BC66AD00F7660D /* BaseComponent.h */; };
+		B274041C22BC66AD00F7660D /* ComponentRepresentation.h in Headers */ = {isa = PBXBuildFile; fileRef = B274041622BC66AD00F7660D /* ComponentRepresentation.h */; };
+		B274041D22BC66AD00F7660D /* BaseComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041722BC66AD00F7660D /* BaseComponent.cpp */; };
+		B274041E22BC66AD00F7660D /* BaseComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041722BC66AD00F7660D /* BaseComponent.cpp */; };
+		B274041F22BC66AD00F7660D /* EntityManager.h in Headers */ = {isa = PBXBuildFile; fileRef = B274041822BC66AD00F7660D /* EntityManager.h */; };
+		B274042022BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041922BC66AD00F7660D /* ComponentRepresentation.cpp */; };
+		B274042122BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041922BC66AD00F7660D /* ComponentRepresentation.cpp */; };
+		B274042222BC66AD00F7660D /* EntityManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041A22BC66AD00F7660D /* EntityManager.cpp */; };
+		B274042322BC66AD00F7660D /* EntityManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041A22BC66AD00F7660D /* EntityManager.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -281,11 +290,18 @@
 		81FF8E2B2237A9D30009402D /* InputSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = InputSystem.h; path = Input/InputSystem.h; sourceTree = "<group>"; };
 		B25AC24020EFF14500ED50CF /* Fontstash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Fontstash.h; path = ../../Middleware_3/Text/Fontstash.h; sourceTree = "<group>"; };
 		B25AC24120EFF14500ED50CF /* Fontstash.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Fontstash.cpp; path = ../../Middleware_3/Text/Fontstash.cpp; sourceTree = "<group>"; };
+		B274041522BC66AD00F7660D /* BaseComponent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BaseComponent.h; path = ../../../../../Middleware_3/ECS/BaseComponent.h; sourceTree = "<group>"; };
+		B274041622BC66AD00F7660D /* ComponentRepresentation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ComponentRepresentation.h; path = ../../../../../Middleware_3/ECS/ComponentRepresentation.h; sourceTree = "<group>"; };
+		B274041722BC66AD00F7660D /* BaseComponent.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = BaseComponent.cpp; path = ../../../../../Middleware_3/ECS/BaseComponent.cpp; sourceTree = "<group>"; };
+		B274041822BC66AD00F7660D /* EntityManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = EntityManager.h; path = ../../../../../Middleware_3/ECS/EntityManager.h; sourceTree = "<group>"; };
+		B274041922BC66AD00F7660D /* ComponentRepresentation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ComponentRepresentation.cpp; path = ../../../../../Middleware_3/ECS/ComponentRepresentation.cpp; sourceTree = "<group>"; };
+		B274041A22BC66AD00F7660D /* EntityManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = EntityManager.cpp; path = ../../../../../Middleware_3/ECS/EntityManager.cpp; sourceTree = "<group>"; };
 		B2D1CEA320EAD15F001BB8C4 /* gainput.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = gainput.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/gainput/Apple/lib/gainput.xcodeproj; sourceTree = "<group>"; };
 		C91D461A1FD9974F00564C8B /* MemoryTrackingManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryTrackingManager.cpp; path = MemoryTracking/MemoryTrackingManager.cpp; sourceTree = "<group>"; };
 		C951330A2010E6B1002E584B /* iOSFileSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = iOSFileSystem.mm; path = iOS/iOSFileSystem.mm; sourceTree = "<group>"; };
 		C95133102010E6B1002E584B /* iOSThreadManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = iOSThreadManager.cpp; path = iOS/iOSThreadManager.cpp; sourceTree = "<group>"; };
 		C95133122010E6B2002E584B /* iOSLogManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = iOSLogManager.cpp; path = iOS/iOSLogManager.cpp; sourceTree = "<group>"; };
+		D09CF41A22968419001D13F2 /* Interfaces */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Interfaces; sourceTree = "<group>"; };
 		D205E2821F9F9EC600040CCE /* FileSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = FileSystem.cpp; path = Core/FileSystem.cpp; sourceTree = "<group>"; };
 		D205E2831F9F9EC600040CCE /* RingBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RingBuffer.h; path = Core/RingBuffer.h; sourceTree = "<group>"; };
 		D20D92101F3879C4004B3A42 /* GuiCameraController.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = GuiCameraController.cpp; sourceTree = "<group>"; };
@@ -441,6 +457,7 @@
 		B22D906C20E3F8BC0036B88E /* Middleware_3 */ = {
 			isa = PBXGroup;
 			children = (
+				B2A3551222BC5B4C00E1844E /* ECS */,
 				654D978521E922C800113964 /* Animation */,
 				B25AC23F20EFF13100ED50CF /* Text */,
 				5CD2BBB32080FCC1008E3A2C /* UI */,
@@ -456,6 +473,19 @@
 			);
 			name = Text;
 			path = ../../../../Common_3/OS;
+			sourceTree = "<group>";
+		};
+		B2A3551222BC5B4C00E1844E /* ECS */ = {
+			isa = PBXGroup;
+			children = (
+				B274041722BC66AD00F7660D /* BaseComponent.cpp */,
+				B274041522BC66AD00F7660D /* BaseComponent.h */,
+				B274041922BC66AD00F7660D /* ComponentRepresentation.cpp */,
+				B274041622BC66AD00F7660D /* ComponentRepresentation.h */,
+				B274041A22BC66AD00F7660D /* EntityManager.cpp */,
+				B274041822BC66AD00F7660D /* EntityManager.h */,
+			);
+			path = ECS;
 			sourceTree = "<group>";
 		};
 		B2D1CEA420EAD15F001BB8C4 /* Products */ = {
@@ -559,6 +589,7 @@
 		EA463CDC1EF81FC5005AC8C7 /* OS */ = {
 			isa = PBXGroup;
 			children = (
+				D09CF41A22968419001D13F2 /* Interfaces */,
 				81FF8E282237A9C00009402D /* Input */,
 				C95133092010E6A5002E584B /* iOS */,
 				D205E2811F9F9C1500040CCE /* FileSystem */,
@@ -681,10 +712,13 @@
 				654D979421E922F400113964 /* ClipController.h in Headers */,
 				81FF8E2F2237A9D30009402D /* InputSystem.h in Headers */,
 				5B2144A122A6983F000B20D4 /* ProfilerHTML.h in Headers */,
+				B274041B22BC66AD00F7660D /* BaseComponent.h in Headers */,
 				654D979521E922F400113964 /* Rig.h in Headers */,
 				5B2144A322A6983F000B20D4 /* ProfilerUI.h in Headers */,
 				5C172F56214148840074EE71 /* MetalMemoryAllocator.h in Headers */,
+				B274041C22BC66AD00F7660D /* ComponentRepresentation.h in Headers */,
 				5C512C652141561E00E7A798 /* imgui_internal.h in Headers */,
+				B274041F22BC66AD00F7660D /* EntityManager.h in Headers */,
 				5C172F50214148840074EE71 /* IRenderer.h in Headers */,
 				5C512C622141561E00E7A798 /* imconfig.h in Headers */,
 			);
@@ -807,6 +841,7 @@
 				81856F01229D729000F3A92B /* allocator_forge.cpp in Sources */,
 				81856F14229D72EF00F3A92B /* assert.cpp in Sources */,
 				654D97BA21E92F8A00113964 /* ClipController.cpp in Sources */,
+				B274042322BC66AD00F7660D /* EntityManager.cpp in Sources */,
 				5C172FE421414CC60074EE71 /* MemoryTrackingManager.cpp in Sources */,
 				81856F0D229D729000F3A92B /* intrusive_list.cpp in Sources */,
 				5C172FE521414CC60074EE71 /* FpsCameraController.cpp in Sources */,
@@ -827,6 +862,7 @@
 				81856F11229D729000F3A92B /* fixed_pool.cpp in Sources */,
 				654D97B721E92F8100113964 /* AnimatedObject.cpp in Sources */,
 				5C172FEE21414CC60074EE71 /* IRenderer.h in Sources */,
+				B274041E22BC66AD00F7660D /* BaseComponent.cpp in Sources */,
 				5C172FEF21414CC60074EE71 /* IShaderReflection.h in Sources */,
 				5C172FF021414CC60074EE71 /* MetalMemoryAllocator.h in Sources */,
 				5C172FF121414CC60074EE71 /* MetalRenderer.mm in Sources */,
@@ -847,6 +883,7 @@
 				5B2144A622A6989E000B20D4 /* Profiler.cpp in Sources */,
 				81856F03229D729000F3A92B /* hashtable.cpp in Sources */,
 				81FF8E2D2237A9D30009402D /* InputSystem.cpp in Sources */,
+				B274042122BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */,
 				5C172FF821414CC60074EE71 /* LogManager.h in Sources */,
 				654D97BB21E92F8D00113964 /* ClipMask.cpp in Sources */,
 				5C172FFB21414CC60074EE71 /* PlatformEvents.cpp in Sources */,
@@ -879,10 +916,12 @@
 				5C172F57214148840074EE71 /* ResourceLoader.cpp in Sources */,
 				81856F13229D72EF00F3A92B /* assert.cpp in Sources */,
 				5C512C692141561E00E7A798 /* imgui_widgets.cpp in Sources */,
+				B274042022BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */,
 				81FF8E2C2237A9D30009402D /* InputSystem.cpp in Sources */,
 				81856F0A229D729000F3A92B /* allocator_eastl.cpp in Sources */,
 				5C172F55214148840074EE71 /* MetalShaderReflection.mm in Sources */,
 				5C5582F421413D550019960B /* FileSystem.cpp in Sources */,
+				B274042222BC66AD00F7660D /* EntityManager.cpp in Sources */,
 				5C5582F521413D550019960B /* RingBuffer.h in Sources */,
 				5C512C662141561E00E7A798 /* imgui.cpp in Sources */,
 				5C5582F621413D550019960B /* MemoryTrackingManager.cpp in Sources */,
@@ -917,6 +956,7 @@
 				5B21449D22A6983F000B20D4 /* ProfilerInput.cpp in Sources */,
 				654D979D21E922F400113964 /* Rig.cpp in Sources */,
 				5C172F54214148840074EE71 /* MetalRenderer.mm in Sources */,
+				B274041D22BC66AD00F7660D /* BaseComponent.cpp in Sources */,
 				5C55830F21413D550019960B /* PlatformEvents.cpp in Sources */,
 				81856F06229D729000F3A92B /* string.cpp in Sources */,
 				81856EF3229D725000F3A92B /* EASprintf.cpp in Sources */,

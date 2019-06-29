@@ -39,7 +39,7 @@ struct PSOutput
 	float4 Revealage : SV_Target1;
 };
 
-cbuffer WBOITSettings : register(b0, space3)
+cbuffer WBOITSettings : register(b0, space1)
 {
 	float opacitySensitivity = 3.0; // Should be greater than 1, so that we only downweight nearly transparent things. Otherwise, everything at the same depth should get equal weight. Can be artist controlled
 	float weightBias = 5.0; //Must be greater than zero. Weight bias helps prevent distant things from getting hugely lower weight than near things, as well as preventing floating point underflow
