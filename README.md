@@ -89,10 +89,11 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
  * Linux: following STEAM, we are switching to the Mesa RADV driver in our test environment for AMD GPUs. For NVIDIA GPUs we are still using the NVIDIA driver.
 
  * Texture Asset pipeline: we did a first pass on a unified texture asset pipeline. On the app level only the name of the texture needs to be provided and then depending on the underlying platform it will attempt to load the "optimal compressed" texture, which in the moment is either KTX or dds. In the future there will be Google Basis support as well.
-  * Removed support for various non-optimal texture file formats - png, jpg, tga, hdr, exr
-  * Add ASTC support for iOS through KTX container
-  * Add compressed textures for all unit test resources
-  * Add BC6H signed and unsigned float variants
+   * Removed support for various non-optimal texture file formats - png, jpg, tga, hdr, exr
+   * Add ASTC support for iOS through KTX container
+   * Add compressed textures for all unit test resources
+   * Add BC6H signed and unsigned float variants
+   
   Please make sure you download the art asset zip file again with the help of the batch file.
 
 * Issue list:
