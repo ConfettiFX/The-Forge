@@ -49,7 +49,7 @@ class Image
 	unsigned char* Create(const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize = 1);
 	// The following Create function will use passed in data as reference without allocating memory for internal pData (meaning the Image object will not own the data)
 	unsigned char* Create(const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize, unsigned char* rawData);
-	void RedefineDimensions(const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize = 1);
+	void RedefineDimensions(const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize = 1, bool srgb = false);
 	void Destroy();
 	void Clear();
 
@@ -58,9 +58,9 @@ class Image
 	unsigned char* GetPixels(unsigned char* pDstData, const uint mipMapLevel, const uint dummy);
 	unsigned char* GetPixels(const uint mipMapLevel, const uint arraySlice) const;
 
-	void SetPixels(unsigned char* pixelData)
+	void SetPixels(unsigned char* pixelData, bool own = false)
 	{
-		mOwnsMemory = false;
+		mOwnsMemory = own;
 		pData = pixelData;
 	}
 	void SetName(const eastl::string& name) { mLoadFileName = name; }
@@ -96,34 +96,17 @@ class Image
 	bool Is3D() const { return (mDepth > 1); }
 	bool IsArray() const { return (mArrayCount > 1); }
 	bool IsCube() const { return (mDepth == 0); }
-	bool IsRenderTarget() const { return mIsRendertarget; }
-	bool IsLinearLayout() const {return mLinearLayout;}
-	
-	// Image Format Loading from mData
-	bool iLoadDDSFromMemory(
-		const char* memory, uint32_t memsize, const bool useMipMaps, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL);
-	bool iLoadPVRFromMemory(
-		const char* memory, uint32_t memsize, const bool useMipmaps, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL);
-	// #TODO: Implement this method
-	//bool iLoadKTXFromMemory(const char* memory, uint32_t memsize, const bool useMipmaps, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL);
-	bool iLoadSTBIFromMemory(
-		const char* buffer, uint32_t memsize, const bool useMipmaps, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL);
-	bool iLoadSTBIFP32FromMemory(
-		const char* buffer, uint32_t memsize, const bool useMipmaps, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL);
-	bool iLoadEXRFP32FromMemory(
-		const char* buffer, uint32_t memsize, const bool useMipmaps, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL);
-#if defined(ORBIS)
-	bool iLoadGNFFromMemory(struct sce::Gnf::Header* outHeader, MemoryBuffer* mp);
-#endif
+	bool IsSrgb() const { return mSrgb; }
+	bool IsLinearLayout() const { return mLinearLayout; }
 
 	void loadFromMemoryXY(
 		const void* mem, const int topLeftX, const int topLeftY, const int bottomRightX, const int bottomRightY, const int pitch);
 
 	//load image
 	bool loadImage(
-		const char* fileName, bool useMipmaps, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL, FSRoot root = FSR_Textures);
+		const char* fileName, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL, FSRoot root = FSR_Textures);
 	bool loadFromMemory(
-		void const* mem, uint32_t size, bool mipMapCount, char const* extension, memoryAllocationFunc pAllocator = NULL,
+		void const* mem, uint32_t size, char const* extension, memoryAllocationFunc pAllocator = NULL,
 		void* pUserData = NULL);
 
 	bool iSwap(const int c0, const int c1);
@@ -147,12 +130,12 @@ class Image
 	int               mAdditionalDataSize;
 	unsigned char*    pAdditionalData;
 	bool              mLinearLayout;
-	bool              mIsRendertarget;
+	bool              mSrgb;
 	bool              mOwnsMemory;
 
 	public:
-	typedef bool (Image::*ImageLoaderFunction)(
-		const char* memory, uint32_t memSize, const bool useMipmaps, memoryAllocationFunc pAllocator, void* pUserData);
+	typedef bool (*ImageLoaderFunction)(
+		Image* pImage, const char* memory, uint32_t memSize, memoryAllocationFunc pAllocator, void* pUserData);
 	static void AddImageLoader(const char* pExtension, ImageLoaderFunction pFunc);
 };
 

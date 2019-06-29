@@ -26,7 +26,7 @@
 		5CABF3822141549D00EFD76A /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CABF3152141512000EFD76A /* GameController.framework */; };
 		650CCC3E2223C36A003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC3D2223C36A003533D9 /* MetalPerformanceShaders.framework */; };
 		650CCC452223C438003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC442223C438003533D9 /* MetalPerformanceShaders.framework */; };
-		97CF9250216FDBED0036A63B /* circlepad.png in CopyFiles */ = {isa = PBXBuildFile; fileRef = 281FA9E220333E1300CD5D9C /* circlepad.png */; };
+		97CF9250216FDBED0036A63B /* circlepad.ktx in CopyFiles */ = {isa = PBXBuildFile; fileRef = 281FA9E220333E1300CD5D9C /* circlepad.ktx */; };
 		97CF9251216FDBFA0036A63B /* TitilliumText in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5ABB6201F465B000E571F /* TitilliumText */; };
 		97CF9252216FDC190036A63B /* compute.comp.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5ABB2201F4637000E571F /* compute.comp.metal */; };
 		97CF9253216FDC190036A63B /* display.vert.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5ABB3201F4637000E571F /* display.vert.metal */; };
@@ -79,7 +79,7 @@
 			dstPath = Textures;
 			dstSubfolderSpec = 7;
 			files = (
-				97CF9250216FDBED0036A63B /* circlepad.png in CopyFiles */,
+				97CF9250216FDBED0036A63B /* circlepad.ktx in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -117,7 +117,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		281FA9E220333E1300CD5D9C /* circlepad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = circlepad.png; path = ../../../UnitTestResources/Textures/circlepad.png; sourceTree = "<group>"; };
+		281FA9E220333E1300CD5D9C /* circlepad.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = circlepad.ktx; path = ../../../UnitTestResources/Textures/circlepad.ktx; sourceTree = "<group>"; };
 		288F62FC20359FBE00B758DE /* display.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = display.frag.metal; path = ../../../src/02_Compute/Shaders/Metal/display.frag.metal; sourceTree = "<group>"; };
 		28A5AB92201F459F000E571F /* 02_Compute_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 02_Compute_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		28A5ABA3201F459F000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -186,7 +186,7 @@
 		281FA9E120333E0000CD5D9C /* Textures */ = {
 			isa = PBXGroup;
 			children = (
-				281FA9E220333E1300CD5D9C /* circlepad.png */,
+				281FA9E220333E1300CD5D9C /* circlepad.ktx */,
 			);
 			name = Textures;
 			path = 02_Compute_iOS;

@@ -24,9 +24,9 @@
 
 #include "shader_defs.h"
 
-RWStructuredBuffer<UncompactedDrawArguments> uncompactedDrawArgs[NUM_CULLING_VIEWPORTS];
-RWStructuredBuffer<uint> indirectDrawArgsBufferAlpha[NUM_CULLING_VIEWPORTS];
-RWStructuredBuffer<uint> indirectDrawArgsBufferNoAlpha[NUM_CULLING_VIEWPORTS];
+RWStructuredBuffer<UncompactedDrawArguments> uncompactedDrawArgsRW[NUM_CULLING_VIEWPORTS] : register(UNIT_UNCOMPACTED_ARGS_RW);
+RWStructuredBuffer<uint> indirectDrawArgsBufferAlpha[NUM_CULLING_VIEWPORTS] : register(UNIT_INDIRECT_DRAW_ARGS_ALPHA_RW);
+RWStructuredBuffer<uint> indirectDrawArgsBufferNoAlpha[NUM_CULLING_VIEWPORTS] : register(UNIT_INDIRECT_DRAW_ARGS_RW);
 
 [numthreads(CLEAR_THREAD_COUNT, 1, 1)]
 void main(uint3 threadID : SV_DispatchThreadID)
@@ -37,7 +37,7 @@ void main(uint3 threadID : SV_DispatchThreadID)
 	[unroll(NUM_CULLING_VIEWPORTS)]
 	for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 	{
-		uncompactedDrawArgs[i][threadID.x].numIndices = 0;
+		uncompactedDrawArgsRW[i][threadID.x].numIndices = 0;
 	}
 
     if (threadID.x == 0)

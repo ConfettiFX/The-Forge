@@ -25,6 +25,7 @@
     <Project Name="gainput"/>
     <Project Name="zlibstatic"/>
     <Project Name="assimp"/>
+    <Project Name="EASTL"/>
   </Dependencies>
   <Dependencies Name="Release">
     <Project Name="OS"/>

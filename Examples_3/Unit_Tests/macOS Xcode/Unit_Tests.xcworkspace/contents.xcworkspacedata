@@ -31,7 +31,10 @@
    </Group>
    <Group
       location = "container:"
-      name = "Examples Rendering">
+      name = "Examples">
+      <FileRef
+         location = "group:26_Audio/26_Audio.xcodeproj">
+      </FileRef>
       <FileRef
          location = "group:01_Transformations/01_Transformations.xcodeproj">
       </FileRef>

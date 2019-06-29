@@ -92,9 +92,9 @@ cbuffer cbDirectionalLights : register(b3)
 	uint NumDirectionalLights;
 }
 
-Texture2D<float2> brdfIntegrationMap : register(t3, space3);
-TextureCube<float4> irradianceMap : register(t4, space3);
-TextureCube<float4> specularMap : register(t5, space3);
+Texture2D<float2> brdfIntegrationMap : register(t3);
+TextureCube<float4> irradianceMap : register(t4);
+TextureCube<float4> specularMap : register(t5);
 
 Texture2D albedoMap : register(t7, space3);
 Texture2D normalMap : register(t8, space3);
@@ -102,7 +102,7 @@ Texture2D metallicMap : register(t9, space3);
 Texture2D roughnessMap : register(t10, space3);
 Texture2D aoMap : register(t11, space3);
 
-Texture2D shadowMap : register(t12, space3);
+Texture2D shadowMap : register(t12);
 
 SamplerState bilinearSampler : register(s12);
 SamplerState bilinearClampedSampler : register(s6);
@@ -129,12 +129,17 @@ inline bool HasAOTexture(int textureConfig)        { return (textureConfig & (1 
 
 inline bool IsOrenNayarDiffuse(int textureConfig)  { return (textureConfig & (1 << 5)) != 0; }
 
+float3 ReconstructNormal(in float4 sampleNormal, in float intensity)
+{
+	float3 tangentNormal;
+	tangentNormal.xy = (sampleNormal.rg * 2 - 1) * intensity;
+	tangentNormal.z = sqrt(1 - saturate(dot(tangentNormal.xy, tangentNormal.xy)));
+	return tangentNormal;
+}
+
 inline float3 UnpackNormals(float2 uv, float3 pos, in Texture2D normalMap, in SamplerState samplerState, float3 normal, float intensity)
 {
-	float3 tangentNormal = normalMap.Sample(samplerState, uv).rgb * 2.0 - 1.0;
-
-	tangentNormal.xy *= intensity;
-	tangentNormal.z = sqrt(1.0f - saturate(dot(tangentNormal.xy, tangentNormal.xy)));
+	float3 tangentNormal = ReconstructNormal(normalMap.Sample(samplerState, uv), intensity);
 
 	float3 Q1 = ddx(pos);
 	float3 Q2 = ddy(pos);
@@ -149,21 +154,6 @@ inline float3 UnpackNormals(float2 uv, float3 pos, in Texture2D normalMap, in Sa
 	float3 res = mul(tangentNormal, TBN);
 	return res;//normalize();
 }
-
-// in case we have Tangent vectors in the vertex data
-inline float3 UnpackNormals(float2 uv, in Texture2D normalMap, in SamplerState samplerState, float3 vertexNormal, float3 vertexTangent)
-{
-	// uncompressed normal in tangent space
-	const float3 SampledNormal = normalMap.Sample(samplerState, uv).xyz * 2.0f - 1.0f;
-
-	const float3 T = normalize(vertexTangent - dot(vertexNormal, vertexTangent) * vertexNormal);
-	const float3 N = normalize(vertexNormal);
-	const float3 B = normalize(cross(T, N));
-	const float3x3 TBN = float3x3(T, B, N);
-	return mul(SampledNormal, TBN);
-}
-
-
 
 
 //

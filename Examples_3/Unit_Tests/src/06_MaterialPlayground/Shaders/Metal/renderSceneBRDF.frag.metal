@@ -139,9 +139,23 @@ bool HasRoughnessTexture(int textureConfig) { return (textureConfig & (1 << 3)) 
 bool HasAOTexture(int textureConfig) { return (textureConfig & (1 << 4)) != 0; }
 bool IsOrenNayarDiffuse(int textureConfig)  { return (textureConfig & (1 << 5)) != 0; }
 
+float3 reconstructNormal(float4 sampleNormal, float intensity)
+{
+	float3 tangentNormal;
+#ifdef TARGET_IOS
+	// ASTC texture stores normal map components in red and alpha channels
+	// Once MTLTextureSwizzle becomes part of final API, we can do this in the renderer side so the shader can treat ASTC normal_psnr like a BC5 texture
+	tangentNormal.xy = (sampleNormal.ra * 2 - 1) * intensity;
+#else
+	tangentNormal.xy = (sampleNormal.rg * 2 - 1) * intensity;
+#endif
+	tangentNormal.z = sqrt(1 - saturate(dot(tangentNormal.xy, tangentNormal.xy)));
+	return tangentNormal;
+}
+
 float3 getNormalFromMap(texture2d<float> normalMap, sampler bilinearSampler, float2 uv, float3 pos, float3 normal, float intensity)
 {
-	float3 tangentNormal = normalMap.sample(bilinearSampler, uv).rgb * 2.0 - 1.0;
+	float3 tangentNormal = reconstructNormal(normalMap.sample(bilinearSampler, uv), intensity);
 
 	tangentNormal.xy *= intensity;
 	tangentNormal.z = sqrt(1.0f - saturate(dot(tangentNormal.xy, tangentNormal.xy)));

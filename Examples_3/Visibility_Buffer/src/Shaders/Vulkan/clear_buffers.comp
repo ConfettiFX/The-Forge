@@ -36,20 +36,20 @@
 // This compute shader resets the vertex count property of the IndirectDrawArguments struct.
 // This needs to be done before triangle filtering is executed to reset it to 0.
 
-layout(std430, set = 0, binding = 0) restrict writeonly buffer indirectDrawArgsBufferAlphaBlock
+layout(std430, set = 0, UNIT_INDIRECT_DRAW_ARGS_ALPHA_RW) restrict writeonly buffer indirectDrawArgsBufferAlphaBlock
 {
 	uint data[];
 } indirectDrawArgsBufferAlpha[NUM_CULLING_VIEWPORTS];
 
-layout(std430, set = 0, binding = 0 + NUM_CULLING_VIEWPORTS) restrict writeonly buffer indirectDrawArgsBufferNoAlphaBlock
+layout(std430, set = 0, UNIT_INDIRECT_DRAW_ARGS_RW) restrict writeonly buffer indirectDrawArgsBufferNoAlphaBlock
 {
 	uint data[];
 } indirectDrawArgsBufferNoAlpha[NUM_CULLING_VIEWPORTS];
 
-layout(std430, set = 0, binding = NUM_CULLING_VIEWPORTS * 2) restrict writeonly buffer uncompactedDrawArgsBlock
+layout(std430, set = 0, UNIT_UNCOMPACTED_ARGS_RW) restrict writeonly buffer uncompactedDrawArgsBlock
 {
 	UncompactedDrawArguments data[];
-} uncompactedDrawArgs[NUM_CULLING_VIEWPORTS];
+} uncompactedDrawArgsRW[NUM_CULLING_VIEWPORTS];
 
 layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
 void main()
@@ -59,7 +59,7 @@ void main()
 
 	for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 	{
-		uncompactedDrawArgs[i].data[gl_GlobalInvocationID.x].numIndices = 0;
+		uncompactedDrawArgsRW[i].data[gl_GlobalInvocationID.x].numIndices = 0;
 	}
 
 	if (gl_GlobalInvocationID.x == 0)

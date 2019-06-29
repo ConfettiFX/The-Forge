@@ -218,15 +218,16 @@ const DXGI_FORMAT gFormatTranslatorTypeless[] = {
 	DXGI_FORMAT_UNKNOWN, // GNF_BC3 = 74,
 	DXGI_FORMAT_UNKNOWN, // GNF_BC4 = 75,
 	DXGI_FORMAT_UNKNOWN, // GNF_BC5 = 76,
-	DXGI_FORMAT_BC6H_SF16, // GNF_BC6 = 77,
-	DXGI_FORMAT_BC7_UNORM, // GNF_BC7 = 78,
+	DXGI_FORMAT_BC6H_TYPELESS, // GNF_BC6HUF = 77,
+	DXGI_FORMAT_BC6H_TYPELESS, // GNF_BC6HSF = 78,
+	DXGI_FORMAT_BC7_UNORM, // GNF_BC7 = 79,
 	// Reveser Form
-	DXGI_FORMAT_B8G8R8A8_UNORM, // BGRA8 = 79,
+	DXGI_FORMAT_B8G8R8A8_UNORM, // BGRA8 = 80,
 	// Extend for DXGI
-	DXGI_FORMAT_UNKNOWN, // X8D24PAX32 = 80,
-	DXGI_FORMAT_UNKNOWN, // S8 = 81,
-	DXGI_FORMAT_UNKNOWN, // D16S8 = 82,
-	DXGI_FORMAT_UNKNOWN, // D32S8 = 83,
+	DXGI_FORMAT_UNKNOWN, // X8D24PAX32 = 81,
+	DXGI_FORMAT_UNKNOWN, // S8 = 82,
+	DXGI_FORMAT_UNKNOWN, // D16S8 = 83,
+	DXGI_FORMAT_UNKNOWN, // D32S8 = 84,
 };
 
 const DXGI_FORMAT gFormatTranslator[] = {
@@ -310,15 +311,16 @@ const DXGI_FORMAT gFormatTranslator[] = {
 	DXGI_FORMAT_UNKNOWN, // GNF_BC3 = 74,
 	DXGI_FORMAT_UNKNOWN, // GNF_BC4 = 75,
 	DXGI_FORMAT_UNKNOWN, // GNF_BC5 = 76,
-	DXGI_FORMAT_BC6H_SF16, // GNF_BC6 = 77,
-	DXGI_FORMAT_BC7_UNORM, // GNF_BC7 = 78,
+	DXGI_FORMAT_BC6H_UF16, // GNF_BC6 = 77,
+	DXGI_FORMAT_BC6H_SF16, // GNF_BC6 = 78,
+	DXGI_FORMAT_BC7_UNORM, // GNF_BC7 = 79,
 	// Reveser Form
-	DXGI_FORMAT_B8G8R8A8_UNORM, // BGRA8 = 79,
+	DXGI_FORMAT_B8G8R8A8_UNORM, // BGRA8 = 80,
 	// Extend for DXGI
-	DXGI_FORMAT_UNKNOWN, // X8D24PAX32 = 80,
-	DXGI_FORMAT_UNKNOWN, // S8 = 81,
-	DXGI_FORMAT_UNKNOWN, // D16S8 = 82,
-	DXGI_FORMAT_UNKNOWN, // D32S8 = 83,
+	DXGI_FORMAT_UNKNOWN, // X8D24PAX32 = 81,
+	DXGI_FORMAT_UNKNOWN, // S8 = 82,
+	DXGI_FORMAT_UNKNOWN, // D16S8 = 83,
+	DXGI_FORMAT_UNKNOWN, // D32S8 = 84,
 };
 // clang-format on
 
@@ -863,7 +865,7 @@ API_INTERFACE void FORGE_CALLCONV mapBuffer(Renderer* pRenderer, Buffer* pBuffer
 API_INTERFACE void FORGE_CALLCONV unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 API_INTERFACE void FORGE_CALLCONV cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
 API_INTERFACE void FORGE_CALLCONV cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, SubresourceDataDesc* pSubresourceDesc);
-API_INTERFACE void FORGE_CALLCONV compileShader(Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint);
+API_INTERFACE void FORGE_CALLCONV compileShader(Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a, const char *f, int l, const char *sf), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint);
 API_INTERFACE const RendererShaderDefinesDesc FORGE_CALLCONV get_renderer_shaderdefines(Renderer* pRenderer);
 
 // clang-format on
@@ -1725,7 +1727,7 @@ void removeSampler(Renderer* pRenderer, Sampler* pSampler)
 /************************************************************************/
 void compileShader(
 	Renderer* pRenderer, ShaderTarget shaderTarget, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code,
-	uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint)
+	uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a, const char *f, int l, const char *sf), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint)
 {
 	if (shaderTarget > pRenderer->mSettings.mShaderTarget)
 	{
@@ -1798,7 +1800,7 @@ void compileShader(
 	}
 	ASSERT(SUCCEEDED(hres));
 
-	char* pByteCode = (char*)allocator(compiled_code->GetBufferSize());
+	char* pByteCode = (char*)allocator(compiled_code->GetBufferSize(), __FILE__, __LINE__, __FUNCTION__);
 	memcpy(pByteCode, compiled_code->GetBufferPointer(), compiled_code->GetBufferSize());
 
 	*pByteCodeSize = (uint32_t)compiled_code->GetBufferSize();

@@ -26,8 +26,8 @@
 
 #include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 #include "../IRenderer.h"
-#include "../../OS/Interfaces/IMemoryManager.h"
 #include <string.h>
+#include "../../OS/Interfaces/IMemoryManager.h"
 
 #define MAX_REFLECT_STRING_LENGTH 128
 #define MAX_BUFFER_BINDINGS 31

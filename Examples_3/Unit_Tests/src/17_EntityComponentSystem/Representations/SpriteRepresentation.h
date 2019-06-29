@@ -1,0 +1,14 @@
+#pragma once
+
+#include "../Components/SpriteComponent.h"
+#include "../../../../../Middleware_3/ECS/ComponentRepresentation.h"
+
+FORGE_START_GENERATE_COMPONENT_REPRESENTATION(SpriteComponent)
+
+FORGE_REGISTER_COMPONENT_VAR(colorR)
+FORGE_REGISTER_COMPONENT_VAR(colorG)
+FORGE_REGISTER_COMPONENT_VAR(colorB)
+FORGE_REGISTER_COMPONENT_VAR(spriteIndex)
+FORGE_REGISTER_COMPONENT_VAR(scale)
+
+FORGE_END_GENERATE_COMPONENT_REPRESENTATION

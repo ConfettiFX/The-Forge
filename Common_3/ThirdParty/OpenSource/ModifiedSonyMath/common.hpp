@@ -10,12 +10,8 @@
 #ifndef VECTORMATH_COMMON_HPP
 #define VECTORMATH_COMMON_HPP
 
-#ifndef conf_malloc
-extern void* conf_malloc(size_t size);
-#endif
-#ifndef conf_free
-extern void conf_free(void* ptr);
-#endif
+#define MEM_MANAGER_FROM_HEADER
+#include "../../../OS/Interfaces/IMemoryManager.h"
 
 namespace Vectormath
 {

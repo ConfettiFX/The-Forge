@@ -94,9 +94,9 @@ layout(set = 0, binding = 3) uniform cbDirectionalLights
 };
 
 
-layout(set = 3, binding = 4) uniform texture2D brdfIntegrationMap;
-layout(set = 3, binding = 5) uniform textureCube irradianceMap;
-layout(set = 3, binding = 6) uniform textureCube  specularMap;
+layout(set = 0, binding = 4) uniform texture2D brdfIntegrationMap;
+layout(set = 0, binding = 5) uniform textureCube irradianceMap;
+layout(set = 0, binding = 6) uniform textureCube  specularMap;
 
 // material parameters
 layout(set = 3, binding = 7)  uniform texture2D albedoMap;
@@ -105,7 +105,7 @@ layout(set = 3, binding = 9)  uniform texture2D metallicMap;
 layout(set = 3, binding = 10) uniform texture2D roughnessMap;
 layout(set = 3, binding = 11) uniform texture2D aoMap;
 
-layout(set = 3, binding = 12) uniform texture2D shadowMap;
+layout(set = 0, binding = 12) uniform texture2D shadowMap;
 
 layout(set = 0, binding = 13) uniform sampler bilinearSampler;
 layout(set = 0, binding = 14) uniform sampler bilinearClampedSampler;
@@ -208,12 +208,17 @@ vec3 OrenNayarDiffuse(vec3 L, vec3 V, vec3 N, float roughness, vec3 albedo, vec3
 	return (A + B) * albedo * kD / PI;
 }
 
+vec3 ReconstructNormal(in vec4 sampleNormal, in float intensity)
+{
+	vec3 tangentNormal;
+	tangentNormal.xy = (sampleNormal.rg * 2 - 1) * intensity;
+	tangentNormal.z = sqrt(1.0f - clamp(dot(tangentNormal.xy, tangentNormal.xy), 0.0f, 1.0f));
+	return tangentNormal;
+}
 
 vec3 GetNormalFromMap(float fNormalMapIntensity)
 {
-	vec3 tangentNormal = texture(sampler2D(normalMap, bilinearSampler),uv).xyz * 2.0 - 1.0;
-	tangentNormal.xy *= fNormalMapIntensity;
-	tangentNormal.z = sqrt(1.0f - clamp(dot(tangentNormal.xy, tangentNormal.xy), 0, 1));
+	vec3 tangentNormal = ReconstructNormal(texture(sampler2D(normalMap, bilinearSampler),uv), fNormalMapIntensity);
 
 	vec3 Q1  = dFdx(pos);
 	vec3 Q2  = dFdy(pos);

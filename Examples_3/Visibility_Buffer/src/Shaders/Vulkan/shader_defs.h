@@ -172,4 +172,17 @@ struct LightData
 	vec4 color;
 #endif
 };
+
+#define UNIT_UNCOMPACTED_ARGS binding = 0
+#define UNIT_MATERIAL_PROPS   binding = 1
+#define UNIT_VERTEX_DATA binding = 2
+#define UNIT_INDEX_DATA binding = 3
+#define UNIT_MESH_CONSTANTS   binding = 4
+#define UNIT_BATCH_DATA_CBV binding = 5
+#define UNIT_UNIFORMS_CBV binding = 6
+#define UNIT_INDIRECT_MATERIAL_RW binding = 7
+#define UNIT_INDIRECT_DRAW_ARGS_ALPHA_RW binding = 8
+#define UNIT_INDIRECT_DRAW_ARGS_RW binding = 9
+#define UNIT_UNCOMPACTED_ARGS_RW binding = 10
+#define UNIT_INDEX_DATA_RW binding = 11
 #endif

@@ -138,7 +138,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
 
     bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
     {
-        Raytracing* pRaytracing = conf_new<Raytracing>();
+        Raytracing* pRaytracing = conf_new(Raytracing);
         // Create a raytracer for our Metal device
         pRaytracing->pIntersector = [[MPSRayIntersector alloc] initWithDevice: pRenderer->pDevice];
         

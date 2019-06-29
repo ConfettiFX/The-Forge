@@ -2,6 +2,30 @@
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClCompile Include="..\src\17_EntityComponentSystem\17_EntityComponentSystem.cpp" />
+    <ClCompile Include="..\src\17_EntityComponentSystem\Components\MoveComponent.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\17_EntityComponentSystem\Components\PositionComponent.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\17_EntityComponentSystem\Components\SpriteComponent.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\17_EntityComponentSystem\Components\WorldBoundsComponent.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\17_EntityComponentSystem\Representations\MoveRepresentation.cpp">
+      <Filter>Representations</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\17_EntityComponentSystem\Representations\PositionRepresentation.cpp">
+      <Filter>Representations</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\17_EntityComponentSystem\Representations\SpriteRepresentation.cpp">
+      <Filter>Representations</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\17_EntityComponentSystem\Representations\WorldBoundsRepresentation.cpp">
+      <Filter>Representations</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\17_EntityComponentSystem\Shaders\D3D12\basic.frag">
@@ -36,5 +60,37 @@
     <Filter Include="Shaders\D3D11">
       <UniqueIdentifier>{db18915c-e926-4316-9e3d-6e656484aa48}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Components">
+      <UniqueIdentifier>{e6bf42dd-b348-4c11-9bdb-5fb2f819c7fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Representations">
+      <UniqueIdentifier>{be2b7103-3d84-494b-ad3b-48b047e8ba67}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\17_EntityComponentSystem\Components\MoveComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\17_EntityComponentSystem\Components\PositionComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\17_EntityComponentSystem\Components\SpriteComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\17_EntityComponentSystem\Components\WorldBoundsComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\17_EntityComponentSystem\Representations\MoveRepresentation.h">
+      <Filter>Representations</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\17_EntityComponentSystem\Representations\PositionRepresentation.h">
+      <Filter>Representations</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\17_EntityComponentSystem\Representations\SpriteRepresentation.h">
+      <Filter>Representations</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\17_EntityComponentSystem\Representations\WorldBoundsRepresentation.h">
+      <Filter>Representations</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

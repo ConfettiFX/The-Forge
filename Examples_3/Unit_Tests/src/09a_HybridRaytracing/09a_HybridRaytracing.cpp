@@ -57,7 +57,6 @@
 
 const float gTimeScale = 0.2f;
 
-FileSystem gFileSystem;
 Timer      gAccumTimer;
 HiresTimer gTimer;
 
@@ -69,6 +68,7 @@ const char* pszBases[FSR_Count] = {
 	"../../../UnitTestResources/",           // FSR_Builtin_Fonts
 	"../../../src/09a_HybridRaytracing/",    // FSR_GpuConfig
 	"",                                      // FSR_Animation
+	"",                                      // FSR_Audio
 	"",                                      // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",     // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",       // FSR_MIDDLEWARE_UI
@@ -279,137 +279,137 @@ const char*           gModel_Sponza_File = "sponza.obj";
 AssimpImporter::Model gModel_Sponza;
 
 const char* pMaterialImageFileNames[] = {
-	"SponzaPBR_Textures/ao.png",
-	"SponzaPBR_Textures/ao.png",
-	"SponzaPBR_Textures/ao.png",
-	"SponzaPBR_Textures/ao.png",
-	"SponzaPBR_Textures/ao.png",
+	"SponzaPBR_Textures/ao",
+	"SponzaPBR_Textures/ao",
+	"SponzaPBR_Textures/ao",
+	"SponzaPBR_Textures/ao",
+	"SponzaPBR_Textures/ao",
 
 	//common
-	"SponzaPBR_Textures/ao.png",
-	"SponzaPBR_Textures/Dielectric_metallic.tga",
-	"SponzaPBR_Textures/Metallic_metallic.tga",
-	"SponzaPBR_Textures/gi_flag.png",
+	"SponzaPBR_Textures/ao",
+	"SponzaPBR_Textures/Dielectric_metallic",
+	"SponzaPBR_Textures/Metallic_metallic",
+	"SponzaPBR_Textures/gi_flag",
 
 	//Background
-	"SponzaPBR_Textures/Background/Background_Albedo.tga",
-	"SponzaPBR_Textures/Background/Background_Normal.tga",
-	"SponzaPBR_Textures/Background/Background_Roughness.tga",
+	"SponzaPBR_Textures/Background/Background_Albedo",
+	"SponzaPBR_Textures/Background/Background_Normal",
+	"SponzaPBR_Textures/Background/Background_Roughness",
 
 	//ChainTexture
-	"SponzaPBR_Textures/ChainTexture/ChainTexture_Albedo.tga",
-	"SponzaPBR_Textures/ChainTexture/ChainTexture_Metallic.tga",
-	"SponzaPBR_Textures/ChainTexture/ChainTexture_Normal.tga",
-	"SponzaPBR_Textures/ChainTexture/ChainTexture_Roughness.tga",
+	"SponzaPBR_Textures/ChainTexture/ChainTexture_Albedo",
+	"SponzaPBR_Textures/ChainTexture/ChainTexture_Metallic",
+	"SponzaPBR_Textures/ChainTexture/ChainTexture_Normal",
+	"SponzaPBR_Textures/ChainTexture/ChainTexture_Roughness",
 
 	//Lion
-	"SponzaPBR_Textures/Lion/Lion_Albedo.tga",
-	"SponzaPBR_Textures/Lion/Lion_Normal.tga",
-	"SponzaPBR_Textures/Lion/Lion_Roughness.tga",
+	"SponzaPBR_Textures/Lion/Lion_Albedo",
+	"SponzaPBR_Textures/Lion/Lion_Normal",
+	"SponzaPBR_Textures/Lion/Lion_Roughness",
 
 	//Sponza_Arch
-	"SponzaPBR_Textures/Sponza_Arch/Sponza_Arch_diffuse.tga",
-	"SponzaPBR_Textures/Sponza_Arch/Sponza_Arch_normal.tga",
-	"SponzaPBR_Textures/Sponza_Arch/Sponza_Arch_roughness.tga",
+	"SponzaPBR_Textures/Sponza_Arch/Sponza_Arch_diffuse",
+	"SponzaPBR_Textures/Sponza_Arch/Sponza_Arch_normal",
+	"SponzaPBR_Textures/Sponza_Arch/Sponza_Arch_roughness",
 
 	//Sponza_Bricks
-	"SponzaPBR_Textures/Sponza_Bricks/Sponza_Bricks_a_Albedo.tga",
-	"SponzaPBR_Textures/Sponza_Bricks/Sponza_Bricks_a_Normal.tga",
-	"SponzaPBR_Textures/Sponza_Bricks/Sponza_Bricks_a_Roughness.tga",
+	"SponzaPBR_Textures/Sponza_Bricks/Sponza_Bricks_a_Albedo",
+	"SponzaPBR_Textures/Sponza_Bricks/Sponza_Bricks_a_Normal",
+	"SponzaPBR_Textures/Sponza_Bricks/Sponza_Bricks_a_Roughness",
 
 	//Sponza_Ceiling
-	"SponzaPBR_Textures/Sponza_Ceiling/Sponza_Ceiling_diffuse.tga",
-	"SponzaPBR_Textures/Sponza_Ceiling/Sponza_Ceiling_normal.tga",
-	"SponzaPBR_Textures/Sponza_Ceiling/Sponza_Ceiling_roughness.tga",
+	"SponzaPBR_Textures/Sponza_Ceiling/Sponza_Ceiling_diffuse",
+	"SponzaPBR_Textures/Sponza_Ceiling/Sponza_Ceiling_normal",
+	"SponzaPBR_Textures/Sponza_Ceiling/Sponza_Ceiling_roughness",
 
 	//Sponza_Column
-	"SponzaPBR_Textures/Sponza_Column/Sponza_Column_a_diffuse.tga",
-	"SponzaPBR_Textures/Sponza_Column/Sponza_Column_a_normal.tga",
-	"SponzaPBR_Textures/Sponza_Column/Sponza_Column_a_roughness.tga",
+	"SponzaPBR_Textures/Sponza_Column/Sponza_Column_a_diffuse",
+	"SponzaPBR_Textures/Sponza_Column/Sponza_Column_a_normal",
+	"SponzaPBR_Textures/Sponza_Column/Sponza_Column_a_roughness",
 
-	"SponzaPBR_Textures/Sponza_Column/Sponza_Column_b_diffuse.tga",
-	"SponzaPBR_Textures/Sponza_Column/Sponza_Column_b_normal.tga",
-	"SponzaPBR_Textures/Sponza_Column/Sponza_Column_b_roughness.tga",
+	"SponzaPBR_Textures/Sponza_Column/Sponza_Column_b_diffuse",
+	"SponzaPBR_Textures/Sponza_Column/Sponza_Column_b_normal",
+	"SponzaPBR_Textures/Sponza_Column/Sponza_Column_b_roughness",
 
-	"SponzaPBR_Textures/Sponza_Column/Sponza_Column_c_diffuse.tga",
-	"SponzaPBR_Textures/Sponza_Column/Sponza_Column_c_normal.tga",
-	"SponzaPBR_Textures/Sponza_Column/Sponza_Column_c_roughness.tga",
+	"SponzaPBR_Textures/Sponza_Column/Sponza_Column_c_diffuse",
+	"SponzaPBR_Textures/Sponza_Column/Sponza_Column_c_normal",
+	"SponzaPBR_Textures/Sponza_Column/Sponza_Column_c_roughness",
 
 	//Sponza_Curtain
-	"SponzaPBR_Textures/Sponza_Curtain/Sponza_Curtain_Blue_diffuse.tga",
-	"SponzaPBR_Textures/Sponza_Curtain/Sponza_Curtain_Blue_normal.tga",
+	"SponzaPBR_Textures/Sponza_Curtain/Sponza_Curtain_Blue_diffuse",
+	"SponzaPBR_Textures/Sponza_Curtain/Sponza_Curtain_Blue_normal",
 
-	"SponzaPBR_Textures/Sponza_Curtain/Sponza_Curtain_Green_diffuse.tga",
-	"SponzaPBR_Textures/Sponza_Curtain/Sponza_Curtain_Green_normal.tga",
+	"SponzaPBR_Textures/Sponza_Curtain/Sponza_Curtain_Green_diffuse",
+	"SponzaPBR_Textures/Sponza_Curtain/Sponza_Curtain_Green_normal",
 
-	"SponzaPBR_Textures/Sponza_Curtain/Sponza_Curtain_Red_diffuse.tga",
-	"SponzaPBR_Textures/Sponza_Curtain/Sponza_Curtain_Red_normal.tga",
+	"SponzaPBR_Textures/Sponza_Curtain/Sponza_Curtain_Red_diffuse",
+	"SponzaPBR_Textures/Sponza_Curtain/Sponza_Curtain_Red_normal",
 
-	"SponzaPBR_Textures/Sponza_Curtain/Sponza_Curtain_metallic.tga",
-	"SponzaPBR_Textures/Sponza_Curtain/Sponza_Curtain_roughness.tga",
+	"SponzaPBR_Textures/Sponza_Curtain/Sponza_Curtain_metallic",
+	"SponzaPBR_Textures/Sponza_Curtain/Sponza_Curtain_roughness",
 
 	//Sponza_Details
-	"SponzaPBR_Textures/Sponza_Details/Sponza_Details_diffuse.tga",
-	"SponzaPBR_Textures/Sponza_Details/Sponza_Details_metallic.tga",
-	"SponzaPBR_Textures/Sponza_Details/Sponza_Details_normal.tga",
-	"SponzaPBR_Textures/Sponza_Details/Sponza_Details_roughness.tga",
+	"SponzaPBR_Textures/Sponza_Details/Sponza_Details_diffuse",
+	"SponzaPBR_Textures/Sponza_Details/Sponza_Details_metallic",
+	"SponzaPBR_Textures/Sponza_Details/Sponza_Details_normal",
+	"SponzaPBR_Textures/Sponza_Details/Sponza_Details_roughness",
 
 	//Sponza_Fabric
-	"SponzaPBR_Textures/Sponza_Fabric/Sponza_Fabric_Blue_diffuse.tga",
-	"SponzaPBR_Textures/Sponza_Fabric/Sponza_Fabric_Blue_normal.tga",
+	"SponzaPBR_Textures/Sponza_Fabric/Sponza_Fabric_Blue_diffuse",
+	"SponzaPBR_Textures/Sponza_Fabric/Sponza_Fabric_Blue_normal",
 
-	"SponzaPBR_Textures/Sponza_Fabric/Sponza_Fabric_Green_diffuse.tga",
-	"SponzaPBR_Textures/Sponza_Fabric/Sponza_Fabric_Green_normal.tga",
+	"SponzaPBR_Textures/Sponza_Fabric/Sponza_Fabric_Green_diffuse",
+	"SponzaPBR_Textures/Sponza_Fabric/Sponza_Fabric_Green_normal",
 
-	"SponzaPBR_Textures/Sponza_Fabric/Sponza_Fabric_metallic.tga",
-	"SponzaPBR_Textures/Sponza_Fabric/Sponza_Fabric_roughness.tga",
+	"SponzaPBR_Textures/Sponza_Fabric/Sponza_Fabric_metallic",
+	"SponzaPBR_Textures/Sponza_Fabric/Sponza_Fabric_roughness",
 
-	"SponzaPBR_Textures/Sponza_Fabric/Sponza_Fabric_Red_diffuse.tga",
-	"SponzaPBR_Textures/Sponza_Fabric/Sponza_Fabric_Red_normal.tga",
+	"SponzaPBR_Textures/Sponza_Fabric/Sponza_Fabric_Red_diffuse",
+	"SponzaPBR_Textures/Sponza_Fabric/Sponza_Fabric_Red_normal",
 
 	//Sponza_FlagPole
-	"SponzaPBR_Textures/Sponza_FlagPole/Sponza_FlagPole_diffuse.tga",
-	"SponzaPBR_Textures/Sponza_FlagPole/Sponza_FlagPole_normal.tga",
-	"SponzaPBR_Textures/Sponza_FlagPole/Sponza_FlagPole_roughness.tga",
+	"SponzaPBR_Textures/Sponza_FlagPole/Sponza_FlagPole_diffuse",
+	"SponzaPBR_Textures/Sponza_FlagPole/Sponza_FlagPole_normal",
+	"SponzaPBR_Textures/Sponza_FlagPole/Sponza_FlagPole_roughness",
 
 	//Sponza_Floor
-	"SponzaPBR_Textures/Sponza_Floor/Sponza_Floor_diffuse.tga",
-	"SponzaPBR_Textures/Sponza_Floor/Sponza_Floor_normal.tga",
-	"SponzaPBR_Textures/Sponza_Floor/Sponza_Floor_roughness.tga",
+	"SponzaPBR_Textures/Sponza_Floor/Sponza_Floor_diffuse",
+	"SponzaPBR_Textures/Sponza_Floor/Sponza_Floor_normal",
+	"SponzaPBR_Textures/Sponza_Floor/Sponza_Floor_roughness",
 
 	//Sponza_Roof
-	"SponzaPBR_Textures/Sponza_Roof/Sponza_Roof_diffuse.tga",
-	"SponzaPBR_Textures/Sponza_Roof/Sponza_Roof_normal.tga",
-	"SponzaPBR_Textures/Sponza_Roof/Sponza_Roof_roughness.tga",
+	"SponzaPBR_Textures/Sponza_Roof/Sponza_Roof_diffuse",
+	"SponzaPBR_Textures/Sponza_Roof/Sponza_Roof_normal",
+	"SponzaPBR_Textures/Sponza_Roof/Sponza_Roof_roughness",
 
 	//Sponza_Thorn
-	"SponzaPBR_Textures/Sponza_Thorn/Sponza_Thorn_diffuse.tga",
-	"SponzaPBR_Textures/Sponza_Thorn/Sponza_Thorn_normal.tga",
-	"SponzaPBR_Textures/Sponza_Thorn/Sponza_Thorn_roughness.tga",
+	"SponzaPBR_Textures/Sponza_Thorn/Sponza_Thorn_diffuse",
+	"SponzaPBR_Textures/Sponza_Thorn/Sponza_Thorn_normal",
+	"SponzaPBR_Textures/Sponza_Thorn/Sponza_Thorn_roughness",
 
 	//Vase
-	"SponzaPBR_Textures/Vase/Vase_diffuse.tga",
-	"SponzaPBR_Textures/Vase/Vase_normal.tga",
-	"SponzaPBR_Textures/Vase/Vase_roughness.tga",
+	"SponzaPBR_Textures/Vase/Vase_diffuse",
+	"SponzaPBR_Textures/Vase/Vase_normal",
+	"SponzaPBR_Textures/Vase/Vase_roughness",
 
 	//VaseHanging
-	"SponzaPBR_Textures/VaseHanging/VaseHanging_diffuse.tga",
-	"SponzaPBR_Textures/VaseHanging/VaseHanging_normal.tga",
-	"SponzaPBR_Textures/VaseHanging/VaseHanging_roughness.tga",
+	"SponzaPBR_Textures/VaseHanging/VaseHanging_diffuse",
+	"SponzaPBR_Textures/VaseHanging/VaseHanging_normal",
+	"SponzaPBR_Textures/VaseHanging/VaseHanging_roughness",
 
 	//VasePlant
-	"SponzaPBR_Textures/VasePlant/VasePlant_diffuse.tga",
-	"SponzaPBR_Textures/VasePlant/VasePlant_normal.tga",
-	"SponzaPBR_Textures/VasePlant/VasePlant_roughness.tga",
+	"SponzaPBR_Textures/VasePlant/VasePlant_diffuse",
+	"SponzaPBR_Textures/VasePlant/VasePlant_normal",
+	"SponzaPBR_Textures/VasePlant/VasePlant_roughness",
 
 	//VaseRound
-	"SponzaPBR_Textures/VaseRound/VaseRound_diffuse.tga",
-	"SponzaPBR_Textures/VaseRound/VaseRound_normal.tga",
-	"SponzaPBR_Textures/VaseRound/VaseRound_roughness.tga",
+	"SponzaPBR_Textures/VaseRound/VaseRound_diffuse",
+	"SponzaPBR_Textures/VaseRound/VaseRound_normal",
+	"SponzaPBR_Textures/VaseRound/VaseRound_roughness",
 
-	"lion/lion_albedo.png",
-	"lion/lion_specular.png",
-	"lion/lion_normal.png",
+	"lion/lion_albedo",
+	"lion/lion_specular",
+	"lion/lion_normal",
 
 };
 
@@ -1103,7 +1103,7 @@ if (!gAppUI.Init(pRenderer))
 	return false;
 
 #ifdef TARGET_IOS
-if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
+if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 	return false;
 #endif
 
@@ -1431,7 +1431,6 @@ bool LoadSponza()
 	{
 		TextureLoadDesc textureDesc = {};
 		textureDesc.mRoot = FSR_Textures;
-		textureDesc.mUseMipmaps = true;
 		textureDesc.pFilename = pMaterialImageFileNames[i];
 		textureDesc.ppTexture = &pMaterialTextures[i];
 		addResource(&textureDesc, true);

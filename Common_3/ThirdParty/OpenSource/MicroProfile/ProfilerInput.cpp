@@ -19,7 +19,11 @@ extern void ProfileSetPreviousMousePosition(uint32_t x, uint32_t y);
 
 bool microprofiler_input(const ButtonData * button)
 {
+	if (button->mEventConsumed)
+		return false;
+	
 	static bool clicked = false;
+	bool prev_clicked_state = clicked;
 
 #if defined(_DURANGO)
     static float mouse_x = 0;
@@ -74,12 +78,17 @@ bool microprofiler_input(const ButtonData * button)
     {
         clicked = false;
         ProfileMouseButton(clicked, false);
-        return true;
+        return prev_clicked_state != clicked;
     }
 #endif
 
 	if (button->mUserId == KEY_UI_MOVE)
-		ProfileMousePosition(static_cast<uint32_t>(button->mValue[0]), static_cast<uint32_t>(button->mValue[1]), 0);
+	{
+#if defined(TARGET_IOS) || defined(__ANDROID__)
+        ProfileSetPreviousMousePosition(static_cast<uint32_t>(button->mValue[0]), static_cast<uint32_t>(button->mValue[1]));
+#endif
+        ProfileMousePosition(static_cast<uint32_t>(button->mValue[0]), static_cast<uint32_t>(button->mValue[1]), 0);
+    }
 #if defined(TARGET_IOS) || defined(__ANDROID__)
     else if(button->mUserId == KEY_CONFIRM)
 #else
@@ -95,7 +104,9 @@ bool microprofiler_input(const ButtonData * button)
             const uint32_t reopen_size_y = static_cast<uint32_t>(20 * getDpiScale().y)	;
             if(ProfileGet()->nDisplay == 0 && pos_x < reopen_size_x && pos_y < reopen_size_y)
                 ProfileSetDisplayMode(1);
-            
+			else if (ProfileGet()->nDisplay == 1 && pos_x < reopen_size_x && pos_y < reopen_size_y)
+				ProfileSetDisplayMode(0);
+
             clicked = true;
 #if defined(TARGET_IOS) || defined(__ANDROID__)
             // Reset mouse position, so the display does not disappear due to how MicroProfile handles changes in mouse position
@@ -111,7 +122,7 @@ bool microprofiler_input(const ButtonData * button)
 
 	PlatformEvents::skipMouseCapture = (ProfileIsDetailed() ? true : PlatformEvents::skipMouseCapture);
 #endif
-	return true;
+	return prev_clicked_state != clicked;
 }
 
 void profileRegisterInput()

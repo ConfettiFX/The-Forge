@@ -64,40 +64,40 @@ struct VertexPos
 	float x, y, z;
 };
 
-layout(std430, set = 0, binding = 0) restrict readonly buffer vertexDataBuffer
+layout(std430, set = 0, UNIT_VERTEX_DATA) restrict readonly buffer vertexDataBuffer
 {
 	VertexPos VertexDataBufferData[];
 };
 
-layout(std430, set = 0, binding = 1) restrict readonly buffer indexDataBuffer
+layout(std430, set = 0, UNIT_INDEX_DATA) restrict readonly buffer indexDataBuffer
 {
 	uint IndexDataBufferData[];
 };
 
-layout(std430, set = 0, binding = 2) restrict readonly buffer meshConstantsBuffer
+layout(std430, set = 0, UNIT_MESH_CONSTANTS) restrict readonly buffer meshConstantsBuffer
 {
 	MeshConstants MeshConstantsBufferData[];
 };
 
-layout(set = 3, binding = 3) uniform batchData
+layout(set = 0, UNIT_BATCH_DATA_CBV) uniform batchData
 {
 	SmallBatchData SmallBatchDataBufferData[BATCH_COUNT];
 };
 
-layout(set = 0, binding = 4) uniform uniforms
+layout(set = 0, UNIT_UNIFORMS_CBV) uniform uniforms
 {
 	PerFrameConstants uniformsData;
 };
 
-layout(std430, set = 0, binding = 5) restrict writeonly buffer filteredIndicesBufferBlock
+layout(std430, set = 0, UNIT_INDEX_DATA_RW) restrict writeonly buffer filteredIndicesBufferBlock
 {
 	uint data[];
 } filteredIndicesBuffer[NUM_CULLING_VIEWPORTS];
 
-layout(std430, set = 0, binding = 5 + NUM_CULLING_VIEWPORTS) restrict buffer uncompactedDrawArgsBlock
+layout(std430, set = 0, UNIT_UNCOMPACTED_ARGS_RW) restrict buffer uncompactedDrawArgsBlock
 {
 	UncompactedDrawArguments data[];
-} uncompactedDrawArgs[NUM_CULLING_VIEWPORTS];
+} uncompactedDrawArgsRW[NUM_CULLING_VIEWPORTS];
 
 shared uint workGroupOutputSlot[NUM_CULLING_VIEWPORTS];
 shared uint workGroupIndexCount[NUM_CULLING_VIEWPORTS];
@@ -304,7 +304,7 @@ void main()
 		{
 			for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 			{
-				workGroupOutputSlot[i] = atomicAdd(uncompactedDrawArgs[i].data[accumBatchDrawIndex].numIndices, workGroupIndexCount[i]); //TODO: check if there's something to add to avoid entering the lock?
+				workGroupOutputSlot[i] = atomicAdd(uncompactedDrawArgsRW[i].data[accumBatchDrawIndex].numIndices, workGroupIndexCount[i]); //TODO: check if there's something to add to avoid entering the lock?
 			}
 		}
 
@@ -328,8 +328,8 @@ void main()
 
 			for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 			{
-				uncompactedDrawArgs[i].data[accumBatchDrawIndex].startIndex = outIndexOffset;
-				uncompactedDrawArgs[i].data[accumBatchDrawIndex].materialID = MeshConstantsBufferData[batchMeshIndex].materialID;
+				uncompactedDrawArgsRW[i].data[accumBatchDrawIndex].startIndex = outIndexOffset;
+				uncompactedDrawArgsRW[i].data[accumBatchDrawIndex].materialID = MeshConstantsBufferData[batchMeshIndex].materialID;
 			}
 		}
 	}

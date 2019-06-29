@@ -125,10 +125,9 @@ ICameraController* pCameraController = NULL;
 /// UI
 UIApp gAppUI;
 GpuProfiler*       pGpuProfiler = NULL;
-FileSystem gFileSystem;
 
-const char* pSkyBoxImageFileNames[] = { "Skybox_right1.png",  "Skybox_left2.png",  "Skybox_top3.png",
-										"Skybox_bottom4.png", "Skybox_front5.png", "Skybox_back6.png" };
+const char* pSkyBoxImageFileNames[] = { "Skybox_right1",  "Skybox_left2",  "Skybox_top3",
+										"Skybox_bottom4", "Skybox_front5", "Skybox_back6" };
 
 const char* pszBases[FSR_Count] = {
 	"../../../src/01_Transformations/",     // FSR_BinShaders
@@ -138,6 +137,7 @@ const char* pszBases[FSR_Count] = {
 	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
 	"../../../src/01_Transformations/",     // FSR_GpuConfig
 	"",                                     // FSR_Animation
+	"",                                     // FSR_Audio
 	"",                                     // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
@@ -149,7 +149,7 @@ GuiComponent* pGui = NULL;
 
 class Transformations: public IApp
 {
-	public:
+public:
 	bool Init()
 	{
 		// window and renderer setup
@@ -186,14 +186,13 @@ class Transformations: public IApp
 		{
 			TextureLoadDesc textureDesc = {};
 			textureDesc.mRoot = FSR_Textures;
-			textureDesc.mUseMipmaps = true;
 			textureDesc.pFilename = pSkyBoxImageFileNames[i];
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
 			addResource(&textureDesc, true);
 		}
 
 #if defined(__ANDROID__) || defined(TARGET_IOS)
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 		{
 			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
 			return false;
@@ -591,6 +590,7 @@ class Transformations: public IApp
 		}
 
 		pCameraController->update(deltaTime);
+
 		/************************************************************************/
 		// Scene Update
 		/************************************************************************/
@@ -808,7 +808,7 @@ class Transformations: public IApp
 
 		return pDepthBuffer != NULL;
 	}
-
+	
 	void RecenterCameraView(float maxDistance, vec3 lookAt = vec3(0))
 	{
 		vec3 p = pCameraController->getViewPosition();

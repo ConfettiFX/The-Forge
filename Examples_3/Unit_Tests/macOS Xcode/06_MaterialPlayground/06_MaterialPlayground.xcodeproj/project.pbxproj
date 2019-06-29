@@ -75,8 +75,8 @@
 		971BCEE2217012E2007F2B2F /* renderSceneBRDF.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = B2637CBA20C9A2DC00D76037 /* renderSceneBRDF.vert.metal */; };
 		971BCEE3217012E2007F2B2F /* skybox.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = B2637CBB20C9A2DC00D76037 /* skybox.frag.metal */; };
 		971BCEE4217012E2007F2B2F /* skybox.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = B2637CB620C9A2DB00D76037 /* skybox.vert.metal */; };
-		971BCEEA217012FB007F2B2F /* circlepad.png in Copy Textures */ = {isa = PBXBuildFile; fileRef = 281FA9E820333E5700CD5D9C /* circlepad.png */; };
-		971BCEEB217012FB007F2B2F /* LA_Helipad.hdr in Copy Textures */ = {isa = PBXBuildFile; fileRef = 2874FDB8202CA418007239DC /* LA_Helipad.hdr */; };
+		971BCEEA217012FB007F2B2F /* circlepad.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = 281FA9E820333E5700CD5D9C /* circlepad.ktx */; };
+		971BCEEB217012FB007F2B2F /* LA_Helipad.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = 2874FDB8202CA418007239DC /* LA_Helipad.ktx */; };
 		971BCEED2170133F007F2B2F /* TitilliumText in Copy Fonts */ = {isa = PBXBuildFile; fileRef = 28A5AD6A201F7300000E571F /* TitilliumText */; };
 		971BCEEF2170135B007F2B2F /* cube.obj in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B2A9284620C7606200F06BFD /* cube.obj */; };
 		971BCEF02170135B007F2B2F /* matBall.obj in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B2A9284720C7606200F06BFD /* matBall.obj */; };
@@ -336,8 +336,8 @@
 			dstPath = Textures;
 			dstSubfolderSpec = 7;
 			files = (
-				971BCEEA217012FB007F2B2F /* circlepad.png in Copy Textures */,
-				971BCEEB217012FB007F2B2F /* LA_Helipad.hdr in Copy Textures */,
+				971BCEEA217012FB007F2B2F /* circlepad.ktx in Copy Textures */,
+				971BCEEB217012FB007F2B2F /* LA_Helipad.ktx in Copy Textures */,
 			);
 			name = "Copy Textures";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -417,8 +417,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		281FA9E820333E5700CD5D9C /* circlepad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = circlepad.png; path = ../../../UnitTestResources/Textures/circlepad.png; sourceTree = "<group>"; };
-		2874FDB8202CA418007239DC /* LA_Helipad.hdr */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = LA_Helipad.hdr; path = ../../../UnitTestResources/Textures/LA_Helipad.hdr; sourceTree = "<group>"; };
+		281FA9E820333E5700CD5D9C /* circlepad.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = circlepad.ktx; path = ../../../UnitTestResources/Textures/circlepad.ktx; sourceTree = "<group>"; };
+		2874FDB8202CA418007239DC /* LA_Helipad.ktx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = LA_Helipad.ktx; path = ../../../UnitTestResources/Textures/LA_Helipad.ktx; sourceTree = "<group>"; };
 		28A5AD43201F7276000E571F /* 06_MaterialPlayground_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 06_MaterialPlayground_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		28A5AD54201F7276000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		28A5AD57201F7276000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -542,8 +542,8 @@
 		2874FDB7202CA3FE007239DC /* Textures */ = {
 			isa = PBXGroup;
 			children = (
-				281FA9E820333E5700CD5D9C /* circlepad.png */,
-				2874FDB8202CA418007239DC /* LA_Helipad.hdr */,
+				281FA9E820333E5700CD5D9C /* circlepad.ktx */,
+				2874FDB8202CA418007239DC /* LA_Helipad.ktx */,
 			);
 			name = Textures;
 			path = 06_MaterialPlayground_iOS;

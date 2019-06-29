@@ -87,8 +87,6 @@ GpuProfiler* pGpuProfiler = NULL;
 /// UI
 UIApp gAppUI;
 
-FileSystem gFileSystem;
-
 const char* pszBases[FSR_Count] = {
 	"../../../src/16a_SphereTracing/",       // FSR_BinShaders
 	"../../../src/16a_SphereTracing/",       // FSR_SrcShaders
@@ -97,6 +95,7 @@ const char* pszBases[FSR_Count] = {
 	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
 	"../../../src/16a_SphereTracing/",       // FSR_GpuConfig
 	"",                                     // FSR_Animation
+	"",                                     // FSR_Audio
 	"",                                     // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
@@ -144,7 +143,7 @@ class SphereTracing: public IApp
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 #if defined(__ANDROID__) || defined(TARGET_IOS)
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 		{
 			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
 			return false;

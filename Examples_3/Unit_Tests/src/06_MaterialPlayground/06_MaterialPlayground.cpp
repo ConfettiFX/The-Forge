@@ -71,12 +71,11 @@
 //LUA
 #include "../../../../Middleware_3/LUA/LuaManager.h"
 
-//mmgr
-#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"    // Must be the last include in a cpp file
-
 #include "../../../../Common_3/OS/Core/ThreadSystem.h"
 
 #include "../../../Common/AppHelpers.h"
+
+#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"    // Must be the last include in a cpp file
 
 // define folders for resources
 const char* pszBases[FSR_Count] = {
@@ -86,7 +85,8 @@ const char* pszBases[FSR_Count] = {
 	"../../../UnitTestResources/",            // FSR_Meshes
 	"../../../UnitTestResources/",            // FSR_Builtin_Fonts
 	"../../../src/06_MaterialPlayground/",    // FSR_GpuConfig
-	"../../../UnitTestResources/",            // FSR_Animtion
+	"../../../UnitTestResources/",            // FSR_Animation
+	"",                                       // FSR_Audio
 	"../../../../../Art/",                    // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",      // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",        // FSR_MIDDLEWARE_UI
@@ -107,12 +107,7 @@ const char* pszBases[FSR_Count] = {
 // and the BRDF shader won't sample those textures
 #define SKIP_LOADING_TEXTURES 0
 
-#if defined(TARGET_IOS) || defined(ANDROID)
-#define TEXTURE_RESOLUTION "1K"
-#else
 #define TEXTURE_RESOLUTION "2K"
-#endif
-
 //--------------------------------------------------------------------------------------------
 // MATERIAL DEFINTIONS
 //--------------------------------------------------------------------------------------------
@@ -937,14 +932,14 @@ class MaterialPlayground: public IApp
 		initResourceLoaderInterface(pRenderer);
 
 #ifdef TARGET_IOS
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 			return false;
 #endif
 		initProfiler(pRenderer, gImageCount);
 		profileRegisterInput();
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
-		pStagingData = conf_new<StagingData>();
+		pStagingData = conf_new(StagingData);
 		// CREATE RENDERING RESOURCES
 		//
 		// PBR Texture values (these values are mirrored on the shaders).
@@ -957,12 +952,7 @@ class MaterialPlayground: public IApp
 
 		const char * skyboxNames[] =
 		{
-			"LA_Helipad.hdr",
-			"LA_Helipad.exr",
-			"LA_Helipad.png",
-			"LA_Helipad_DXT1.DDS",
-			"LA_Helipad_BC7.DDS",
-			"LA_Helipad_BC6H_SF.DDS"
+			"LA_Helipad.ktx",
 		};
 
 		static const int skyboxIndex = 0;
@@ -974,6 +964,7 @@ class MaterialPlayground: public IApp
 		pPBRMapLoadData.pFence = NULL;
 		pPBRMapLoadData.pSemaphore = NULL;
 		pPBRMapLoadData.mSourceName = skyboxNames[skyboxIndex];
+		pPBRMapLoadData.mSourceRoot = FSR_Textures;
 		pPBRMapLoadData.mPresetLevel = pRenderer->mGpuSettings->mGpuVendorPreset.mPresetLevel;
 		pPBRMapLoadData.mSkyboxSize = gSkyboxSize;
 		pPBRMapLoadData.mSkyboxMips = gSkyboxMips;
@@ -983,14 +974,14 @@ class MaterialPlayground: public IApp
 		pPBRMapLoadData.mIrradianceSize = gIrradianceSize;
 		computePBRMaps(&pPBRMapLoadData);
 		queueSubmit(pGraphicsQueue, 1, &ppCmds[0], NULL, 0, NULL, 0, NULL);
-
-		CreateShaders();
+		
 		LoadModelsAndTextures();
 
 		CreateRasterizerStates();
 		CreateDepthStates();
 		CreateBlendStates();
 		CreateSamplers();
+		CreateShaders();
 		CreateRootSignatures();
 		CreateUniformBuffers();
 
@@ -1647,17 +1638,15 @@ class MaterialPlayground: public IApp
 		cmdBindVertexBuffer(cmd, 1, &pMeshes[MESH_CUBE]->pVertexBuffer, NULL);
 		cmdBindIndexBuffer(cmd, pMeshes[MESH_CUBE]->pIndexBuffer, 0);
 
-		params[0].pName = "cbObject";
-		params[0].ppBuffers = &pUniformBufferGroundPlane;
-		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureBRDF, 1, params);
-
 		for (int j = 0; j < MATERIAL_TEXTURE_COUNT; ++j)
 		{
 			params[j].pName = pTextureName[j];
 			params[j].ppTextures = &pTextureMaterialMapsGround[j];
 		}
+		params[MATERIAL_TEXTURE_COUNT].pName = "cbObject";
+		params[MATERIAL_TEXTURE_COUNT].ppBuffers = &pUniformBufferGroundPlane;
 
-		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureBRDF, MATERIAL_TEXTURE_COUNT, params);
+		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureBRDF, MATERIAL_TEXTURE_COUNT + 1, params);
 		cmdDrawIndexed(cmd, pMeshes[MESH_CUBE]->mIndexCount, 0, 0);
 
 
@@ -1669,18 +1658,16 @@ class MaterialPlayground: public IApp
 
 			// DRAW THE LABEL PLATES
 			//
-			for (int j = 0; j < MATERIAL_TEXTURE_COUNT; ++j)
-			{
-				params[j].pName = pTextureName[j];
-				params[j].ppTextures = &pTextureMaterialMaps[j + 4];
-			}
-			cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureBRDF, MATERIAL_TEXTURE_COUNT, params);
-
 			for (int j = 0; j < MATERIAL_INSTANCE_COUNT; ++j)
 			{
-				params[0].pName = "cbObject";
-				params[0].ppBuffers = &pUniformBufferNamePlates[j];
-				cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureBRDF, 1, params);
+				for (int j = 0; j < MATERIAL_TEXTURE_COUNT; ++j)
+				{
+					params[j].pName = pTextureName[j];
+					params[j].ppTextures = &pTextureMaterialMaps[j + 4];
+				}
+				params[MATERIAL_TEXTURE_COUNT].pName = "cbObject";
+				params[MATERIAL_TEXTURE_COUNT].ppBuffers = &pUniformBufferNamePlates[j];
+				cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureBRDF, MATERIAL_TEXTURE_COUNT + 1, params);
 				cmdDrawIndexed(cmd, pMeshes[MESH_CUBE]->mIndexCount, 0, 0);
 			}
 
@@ -1692,10 +1679,6 @@ class MaterialPlayground: public IApp
 #if 1    // toggle for rendering objects
 			for (int i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
 			{
-				params[0].pName = "cbObject";
-				params[0].ppBuffers = &pUniformBufferMatBall[gFrameIndex][i];
-				cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureBRDF, 1, params);
-
 				//binding pbr material textures
 				for (int j = 0; j < MATERIAL_TEXTURE_COUNT; ++j)
 				{
@@ -1710,7 +1693,10 @@ class MaterialPlayground: public IApp
 					params[j].ppTextures = &pTextureMaterialMaps[textureIndex];
 				}
 
-				cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureBRDF, MATERIAL_TEXTURE_COUNT, params);
+				params[MATERIAL_TEXTURE_COUNT].pName = "cbObject";
+				params[MATERIAL_TEXTURE_COUNT].ppBuffers = &pUniformBufferMatBall[gFrameIndex][i];
+
+				cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureBRDF, MATERIAL_TEXTURE_COUNT + 1, params);
 				cmdDrawIndexed(cmd, pMeshes[MESH_MAT_BALL]->mIndexCount, 0, 0);
 			}
 #endif
@@ -2196,15 +2182,17 @@ class MaterialPlayground: public IApp
 				cmdBindIndexBuffer(cmd, pMeshes[MESH_CAPSULE]->pIndexBuffer, 0);
 
 				cmdBindPipeline(cmd, pPipelineShowCapsules);
+				hairParams[0].pName = "cbCamera";
+				hairParams[0].ppBuffers = &pUniformBufferCamera[gFrameIndex];
+				cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureShowCapsules, 1, hairParams);
+
 				for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 				{
 					for (size_t i = 0; i < gCapsules.size(); ++i)
 					{
 						hairParams[0].pName = "CapsuleRootConstant";
 						hairParams[0].pRootConstant = &gFinalCapsules[hairType][i];
-						hairParams[1].pName = "cbCamera";
-						hairParams[1].ppBuffers = &pUniformBufferCamera[gFrameIndex];
-						cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureShowCapsules, 2, hairParams);
+						cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureShowCapsules, 1, hairParams);
 						cmdDrawIndexed(cmd, pMeshes[MESH_CAPSULE]->mIndexCount, 0, 0);
 					}
 				}
@@ -2771,13 +2759,13 @@ class MaterialPlayground: public IApp
 
 		DescriptorBinderDesc descriptorBinderDesc[] = {
 			{ pRootSignatureSkybox },
-			{ pRootSignatureBRDF, 1, MATERIAL_TEXTURE_COUNT * MATERIAL_INSTANCE_COUNT },
+			{ pRootSignatureBRDF, 1, MATERIAL_INSTANCE_COUNT * 2 + 1 },
 			{ pRootSignatureShadowPass, 4 * MATERIAL_INSTANCE_COUNT },
 #ifndef DIRECT3D11
 			{ pRootSignatureHairClear, 0, hairDynamicDescriptorSets},
-			{ pRootSignatureHairDepthPeeling, 0, hairDynamicDescriptorSets + HAIR_TYPE_COUNT },
+			{ pRootSignatureHairDepthPeeling, 0, hairDynamicDescriptorSets },
 			{ pRootSignatureHairDepthResolve, 0, hairDynamicDescriptorSets },
-			{ pRootSignatureHairFillColors, 0, hairDynamicDescriptorSets + HAIR_TYPE_COUNT + 1},
+			{ pRootSignatureHairFillColors, HAIR_TYPE_COUNT, hairDynamicDescriptorSets },
 			{ pRootSignatureHairColorResolve, 0, hairDynamicDescriptorSets },
 			{ pRootSignatureHairIntegrate, 0, hairDynamicDescriptorSets },
 			{ pRootSignatureHairShockPropagation, 0, hairDynamicDescriptorSets },
@@ -2786,8 +2774,7 @@ class MaterialPlayground: public IApp
 			{ pRootSignatureHairUpdateFollowHairs, 0, hairDynamicDescriptorSets },
 			{ pRootSignatureHairPreWarm, 0, hairDynamicDescriptorSets },
 			{ pRootSignatureShowCapsules },
-			{ pRootSignatureSkeleton, 0, 20 },
-			{ pRootSignatureHairShadow, 0, hairDynamicDescriptorSets * MAX_NUM_DIRECTIONAL_LIGHTS + HAIR_TYPE_COUNT * MAX_NUM_DIRECTIONAL_LIGHTS }
+			{ pRootSignatureHairShadow, HAIR_TYPE_COUNT * MAX_NUM_DIRECTIONAL_LIGHTS, hairDynamicDescriptorSets * MAX_NUM_DIRECTIONAL_LIGHTS }
 #endif
 		};
 
@@ -2866,7 +2853,6 @@ class MaterialPlayground: public IApp
 		gLuaManager.SetFunction("LoadTextureMaps", [this](ILuaStateWrap* state) -> int {
 			eastl::vector<const char*> texturesNames;
 			state->GetStringArrayArg(1, texturesNames);
-			pStagingData->mMaterialTexturesData.mDesc.mUseMipmaps = state->GetIntegerArg(2) != 0;    //bool for Lua is integer
 			for (const char* name : texturesNames)
 			{
 				pStagingData->mMaterialNamesStorage.push_back(name);
@@ -2897,7 +2883,6 @@ class MaterialPlayground: public IApp
 		gLuaManager.SetFunction("LoadTextureMaps", [this](ILuaStateWrap* state) -> int {
 			eastl::vector<const char*> texturesNames;
 			state->GetStringArrayArg(1, texturesNames);
-			pStagingData->mGroundTexturesData.mDesc.mUseMipmaps = state->GetIntegerArg(2) != 0;
 			for (const char* name : texturesNames)
 			{
 				pStagingData->mGroundNamesStorage.push_back(name);

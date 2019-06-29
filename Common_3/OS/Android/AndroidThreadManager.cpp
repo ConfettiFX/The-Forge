@@ -27,10 +27,10 @@
 #include "../Interfaces/IThread.h"
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/ILogManager.h"
-#include "../Interfaces/IMemoryManager.h"
 
 #include <pthread.h>
 #include <unistd.h>
+#include "../Interfaces/IMemoryManager.h"
 
 AtomicUint::AtomicUint()
 {

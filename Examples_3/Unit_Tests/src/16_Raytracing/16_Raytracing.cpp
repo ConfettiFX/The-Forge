@@ -55,6 +55,7 @@ const char* pszBases[FSR_Count] =
 	"../../../UnitTestResources/",                  // FSR_Builtin_Fonts
 	"../../../src/16_Raytracing/",       // FSR_GpuConfig
 	"",                                             // FSR_Animation
+	"",                                             // FSR_Audio
 	"",                                             // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",            // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",              // FSR_MIDDLEWARE_UI

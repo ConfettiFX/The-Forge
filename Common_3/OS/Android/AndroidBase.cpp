@@ -41,8 +41,8 @@
 
 #include "../Input/InputSystem.h"
 #include "../Input/InputMappings.h"
-#include "../Interfaces/IMemoryManager.h"
 #include "AndroidFileSystem.cpp"
+#include "../Interfaces/IMemoryManager.h"
 
 #define CONFETTI_WINDOW_CLASS L"confetti"
 #define MAX_KEYS 256
@@ -111,6 +111,19 @@ int64_t getTimerFrequency()
 
 static IApp* pApp = NULL;
 
+struct DisplayMetrics
+{
+    uint32_t widthPixels;
+    uint32_t heightPixels;
+    float density;
+    uint32_t densityDpi;
+    float scaledDensity;
+    float xdpi;
+    float ydpi;
+};
+
+DisplayMetrics metrics = {};
+
 static void onResize(const WindowResizeEventData* pData)
 {
 	pApp->mSettings.mWidth = getRectWidth(pData->rect);
@@ -123,10 +136,109 @@ static void onResize(const WindowResizeEventData* pData)
 float2 getDpiScale()
 {
 	float2 ret = {};
-	ret.x = 1.0f;
-	ret.y = 1.0f;
+	ret.x = metrics.scaledDensity;
+	ret.y = metrics.scaledDensity;
 
 	return ret;
+}
+
+float getDensity()
+{
+    return metrics.density;
+}
+
+void getDisplayMetrics(struct android_app* _android_app, DisplayMetrics& metrics, RectDesc& rect)
+{
+    if (!_android_app || !_android_app->activity || !_android_app->activity->vm )
+        return;
+
+    JNIEnv* jni = 0;
+    _android_app->activity->vm->AttachCurrentThread(&jni, NULL);
+    if (!jni )
+        return;
+
+    // get all the classes we want to access from the JVM
+    jclass classNativeActivity = jni->FindClass("android/app/NativeActivity");
+    jclass classWindowManager = jni->FindClass("android/view/WindowManager");
+    jclass classDisplay = jni->FindClass("android/view/Display");
+    jclass classDisplayMetrics = jni->FindClass("android/util/DisplayMetrics");
+
+    if (!classNativeActivity || !classWindowManager || !classDisplay || !classDisplayMetrics)
+    {
+        _android_app->activity->vm->DetachCurrentThread();
+        return;
+    }
+
+    // Get all the methods we want to access from the JVM classes
+    // Note: You can get the signatures (third parameter of GetMethodID) for all
+    // functions of a class with the javap tool, like in the following example for class DisplayMetrics:
+    // javap -s -classpath myandroidpath/adt-bundle-linux-x86_64-20131030/sdk/platforms/android-10/android.jar android/util/DisplayMetrics
+    jmethodID idNativeActivity_getWindowManager = jni->GetMethodID( classNativeActivity
+            , "getWindowManager"
+            , "()Landroid/view/WindowManager;");
+    jmethodID idWindowManager_getDefaultDisplay = jni->GetMethodID( classWindowManager
+            , "getDefaultDisplay"
+            , "()Landroid/view/Display;");
+    jmethodID idDisplayMetrics_constructor = jni->GetMethodID( classDisplayMetrics
+            , "<init>"
+            , "()V");
+    jmethodID idDisplay_getMetrics = jni->GetMethodID( classDisplay
+            , "getMetrics"
+            , "(Landroid/util/DisplayMetrics;)V");
+
+    if (!idNativeActivity_getWindowManager || !idWindowManager_getDefaultDisplay || !idDisplayMetrics_constructor
+        || !idDisplay_getMetrics)
+    {
+        _android_app->activity->vm->DetachCurrentThread();
+        return;
+    }
+
+    jobject windowManager = jni->CallObjectMethod(_android_app->activity->clazz, idNativeActivity_getWindowManager);
+
+    if (!windowManager)
+    {
+        _android_app->activity->vm->DetachCurrentThread();
+        return;
+    }
+    jobject display = jni->CallObjectMethod(windowManager, idWindowManager_getDefaultDisplay);
+    if (!display)
+    {
+        _android_app->activity->vm->DetachCurrentThread();
+        return;
+    }
+    jobject displayMetrics = jni->NewObject( classDisplayMetrics, idDisplayMetrics_constructor);
+    if (!displayMetrics)
+    {
+        _android_app->activity->vm->DetachCurrentThread();
+        return;
+    }
+    jni->CallVoidMethod(display, idDisplay_getMetrics, displayMetrics);
+
+    // access the fields of DisplayMetrics (we ignore the DENSITY constants)
+    jfieldID idDisplayMetrics_widthPixels = jni->GetFieldID( classDisplayMetrics, "widthPixels", "I");
+    jfieldID idDisplayMetrics_heightPixels = jni->GetFieldID( classDisplayMetrics, "heightPixels", "I");
+    jfieldID idDisplayMetrics_density = jni->GetFieldID( classDisplayMetrics, "density", "F");
+    jfieldID idDisplayMetrics_densityDpi = jni->GetFieldID( classDisplayMetrics, "densityDpi", "I");
+    jfieldID idDisplayMetrics_scaledDensity = jni->GetFieldID( classDisplayMetrics, "scaledDensity", "F");
+    jfieldID idDisplayMetrics_xdpi = jni->GetFieldID(classDisplayMetrics, "xdpi", "F");
+    jfieldID idDisplayMetrics_ydpi = jni->GetFieldID(classDisplayMetrics, "ydpi", "F");
+
+    if ( idDisplayMetrics_widthPixels )
+        metrics.widthPixels = jni->GetIntField(displayMetrics, idDisplayMetrics_widthPixels);
+    if ( idDisplayMetrics_heightPixels )
+        metrics.heightPixels = jni->GetIntField(displayMetrics, idDisplayMetrics_heightPixels);
+    if (idDisplayMetrics_density )
+        metrics.density = jni->GetFloatField(displayMetrics, idDisplayMetrics_density);
+    if (idDisplayMetrics_densityDpi)
+        metrics.densityDpi = jni->GetIntField(displayMetrics, idDisplayMetrics_densityDpi);
+    if (idDisplayMetrics_scaledDensity)
+        metrics.scaledDensity = jni->GetFloatField(displayMetrics, idDisplayMetrics_scaledDensity);
+    if ( idDisplayMetrics_xdpi )
+        metrics.xdpi = jni->GetFloatField(displayMetrics, idDisplayMetrics_xdpi);
+    if ( idDisplayMetrics_ydpi )
+        metrics.ydpi = jni->GetFloatField(displayMetrics, idDisplayMetrics_ydpi);
+
+    _android_app->activity->vm->DetachCurrentThread();
 }
 
 void openWindow(const char* app_name, WindowsDesc* winDesc) {}
@@ -222,7 +334,7 @@ int AndroidMain(void* param, IApp* app)
 	struct android_app* android_app = (struct android_app*)param;
 
 	// Set the callback to process system events
-	android_app->onAppCmd = handle_cmd;
+    android_app->onAppCmd = handle_cmd;
 
 	pApp = app;
 
@@ -238,16 +350,6 @@ int AndroidMain(void* param, IApp* app)
 	FileSystem::SetCurrentDir(FileSystem::GetProgramDir());
 
 	IApp::Settings* pSettings = &pApp->mSettings;
-
-	if (!pApp->Init())
-		abort();
-
-	InputSystem::Init(pSettings->mWidth, pSettings->mHeight);
-	// Set the callback to process input events
-	android_app->onInputEvent = handle_input;
-
-	InputSystem::SetMouseCapture(true);
-
 	Timer deltaTimer;
 	if (pSettings->mWidth == -1 || pSettings->mHeight == -1)
 	{
@@ -255,7 +357,19 @@ int AndroidMain(void* param, IApp* app)
 		getRecommendedResolution(&rect);
 		pSettings->mWidth = getRectWidth(rect);
 		pSettings->mHeight = getRectHeight(rect);
+		getDisplayMetrics(android_app, metrics, rect);
 	}
+
+	InputSystem::Init(pSettings->mWidth, pSettings->mHeight);
+    InputSystem::SetMouseCapture(true);
+    InputSystem::SetHideMouseCursorWhileCaptured(false);
+	// Set the callback to process input events
+    android_app->onInputEvent = handle_input;
+
+	if (!pApp->Init())
+		abort();
+
+	InputSystem::SetMouseCapture(true);
 
 	registerWindowResizeEvent(onResize);
 

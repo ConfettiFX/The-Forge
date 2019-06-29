@@ -53,9 +53,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 #endif
 
-extern void* conf_malloc(size_t);
-extern void* conf_realloc(void*, size_t);
-extern void  conf_free(void*);
+#define MEM_MANAGER_FROM_HEADER
+#include "../../../OS/Interfaces/IMemoryManager.h"
 
 namespace {
 	namespace miniz {

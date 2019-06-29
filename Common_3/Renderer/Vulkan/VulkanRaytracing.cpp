@@ -65,8 +65,8 @@ struct VkGeometryInstanceNV {
 
 extern void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
 extern void removeBuffer(Renderer* pRenderer, Buffer* p_buffer);
-extern VkDeviceMemory getDeviceMemory(Buffer* buffer);
-extern VkDeviceSize getDeviceMemoryOffset(Buffer* buffer);
+extern VkDeviceMemory get_vk_device_memory(Renderer* pRenderer, Buffer* pBuffer);
+extern VkDeviceSize get_vk_device_memory_offset(Renderer* pRenderer, Buffer* pBuffer);
 extern VkDescriptorType util_to_vk_descriptor_type(DescriptorType type);
 extern VkShaderStageFlags util_to_vk_shader_stage_flags(ShaderStage stages);
 extern const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName, uint32_t* pIndex);
@@ -261,8 +261,8 @@ AccelerationStructureBottom* createBottomAS(Raytracing* pRaytracing, const Accel
 		bindInfo.sType					= VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV;
 		bindInfo.pNext					= nullptr;
 		bindInfo.accelerationStructure	= pResult[i].pAccelerationStructure;
-		bindInfo.memory					= getDeviceMemory(pResult[i].pASBuffer);
-		bindInfo.memoryOffset			= getDeviceMemoryOffset(pResult[i].pASBuffer);
+		bindInfo.memory					= get_vk_device_memory(pRaytracing->pRenderer, pResult[i].pASBuffer);
+		bindInfo.memoryOffset			= get_vk_device_memory_offset(pRaytracing->pRenderer, pResult[i].pASBuffer);
 		bindInfo.deviceIndexCount		= 0;
 		bindInfo.pDeviceIndices			= nullptr;
 
@@ -364,8 +364,8 @@ Buffer* createTopAS(Raytracing* pRaytracing, const AccelerationStructureDescTop*
 	VkBindAccelerationStructureMemoryInfoNV bindInfo = {};
 	bindInfo.sType = VK_STRUCTURE_TYPE_BIND_ACCELERATION_STRUCTURE_MEMORY_INFO_NV;
 	bindInfo.accelerationStructure = *pAccelerationStructure;
-	bindInfo.memory = getDeviceMemory(pTopASBuffer);
-	bindInfo.memoryOffset = getDeviceMemoryOffset(pTopASBuffer);
+	bindInfo.memory = get_vk_device_memory(pRaytracing->pRenderer, pTopASBuffer);
+	bindInfo.memoryOffset = get_vk_device_memory_offset(pRaytracing->pRenderer, pTopASBuffer);
 	vkBindAccelerationStructureMemoryNV(pRaytracing->pRenderer->pVkDevice, 1, &bindInfo);
 
 	*pScratchBufferSize = scratchBufferSize;

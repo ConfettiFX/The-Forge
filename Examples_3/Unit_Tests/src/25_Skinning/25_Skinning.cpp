@@ -78,7 +78,8 @@ const char* pszBases[FSR_Count] = {
 	"../../../UnitTestResources/",          // FSR_Meshes
 	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
 	"../../../src/25_Skinning/",            // FSR_GpuConfig
-	"../../../UnitTestResources/",          // FSR_Animtion
+	"../../../UnitTestResources/",          // FSR_Animation
+	"",                                     // FSR_Audio
 	"",                                     // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
@@ -168,8 +169,6 @@ Buffer* pPlaneUniformBuffer[gImageCount] = { NULL };
 //--------------------------------------------------------------------------------------------
 
 ICameraController* pCameraController = NULL;
-FileSystem         gFileSystem;
-
 UIApp         gAppUI;
 GuiComponent* pStandaloneControlsGUIWindow = NULL;
 
@@ -201,7 +200,7 @@ SkeletonBatcher gSkeletonBatcher;
 // Filenames
 const char* gStickFigureName = "stormtrooper/skeleton.ozz";
 const char* gClipName = "stormtrooper/animations/dance.ozz";
-const char* gDiffuseTexture = "Stormtrooper_D.png";
+const char* gDiffuseTexture = "Stormtrooper_D";
 
 const int   gSphereResolution = 30;                   // Increase for higher resolution joint spheres
 const float gBoneWidthRatio = 0.2f;                   // Determines how far along the bone to put the max width [0,1]
@@ -280,7 +279,7 @@ class Skinning: public IApp
 		initResourceLoaderInterface(pRenderer);
 
 #ifdef TARGET_IOS
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Absolute))
 			return false;
 #endif
 
@@ -561,7 +560,6 @@ class Skinning: public IApp
 
 		TextureLoadDesc diffuseTextureDesc = {};
 		diffuseTextureDesc.mRoot = FSR_Textures;
-		diffuseTextureDesc.mUseMipmaps = true;
 		diffuseTextureDesc.pFilename = gDiffuseTexture;
 		diffuseTextureDesc.ppTexture = &pTextureDiffuse;
 		addResource(&diffuseTextureDesc);

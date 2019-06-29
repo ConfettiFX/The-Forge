@@ -27,7 +27,6 @@
 #include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/IMemoryManager.h"
 #include "../Interfaces/IThread.h"
 
 #include <sys/types.h>
@@ -38,6 +37,9 @@
 #include <fcntl.h>           //for open and O_* enums
 #include <linux/limits.h>    //PATH_MAX declaration
 #include <dirent.h>
+
+#include "../Interfaces/IMemoryManager.h"
+
 #define MAX_PATH PATH_MAX
 
 #define RESOURCE_DIR "Shaders/Vulkan"
@@ -50,6 +52,7 @@ const char* pszRoots[FSR_Count] = {
 	"Fonts/",                   // FSR_Builtin_Fonts
 	"GPUCfg/",                  // FSR_GpuConfig
 	"Animation/",               // FSR_Animation
+	"Audio/",                   // FSR_Audio
 	"",                         // FSR_OtherFiles
 };
 

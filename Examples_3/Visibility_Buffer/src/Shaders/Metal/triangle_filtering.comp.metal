@@ -226,13 +226,13 @@ void DoViewCulling(uint triangleIdGlobal, float3 pos0, float3 pos1, float3 pos2,
 //[numthreads(256, 1, 1)]
 kernel void stageMain(uint inGroupId [[thread_position_in_threadgroup]],
                       uint groupId [[threadgroup_position_in_grid]],
-                      constant SceneVertexPos* vertexPos [[buffer(0)]],
-                      constant BatchData* perBatch [[buffer(1)]],
-                      device uint* filteredTrianglesCamera [[buffer(2)]],
-                      device uint* filteredTrianglesShadow [[buffer(3)]],
-                      device IndirectDrawArguments* indirectDrawArgsCamera [[buffer(4)]],
-                      device IndirectDrawArguments* indirectDrawArgsShadow [[buffer(5)]],
-                      constant PerFrameConstants& uniforms [[buffer(6)]])
+                      constant SceneVertexPos* vertexPos [[buffer(3)]],
+                      constant BatchData* perBatch [[buffer(4)]],
+                      device uint* filteredTrianglesCamera [[buffer(5)]],
+                      device uint* filteredTrianglesShadow [[buffer(6)]],
+                      device IndirectDrawArguments* indirectDrawArgsCamera [[buffer(0)]],
+                      device IndirectDrawArguments* indirectDrawArgsShadow [[buffer(1)]],
+                      constant PerFrameConstants& uniforms [[buffer(7)]])
 {
     // Don't run anything if we run out of triangles
     if (inGroupId >= perBatch[groupId].triangleCount)

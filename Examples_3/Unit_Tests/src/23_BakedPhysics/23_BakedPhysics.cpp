@@ -72,7 +72,8 @@ const char* pszBases[FSR_Count] = {
 	"../../../UnitTestResources/",          // FSR_Meshes
 	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
 	"../../../src/23_BakedPhysics/",        // FSR_GpuConfig
-	"../../../UnitTestResources/",          // FSR_Animtion
+	"../../../UnitTestResources/",          // FSR_Animation
+	"",                                     // FSR_Audio
 	"",                                     // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
@@ -131,8 +132,6 @@ Buffer* pPlaneUniformBuffer[gImageCount] = { NULL };
 //--------------------------------------------------------------------------------------------
 
 ICameraController* pCameraController = NULL;
-FileSystem         gFileSystem;
-
 UIApp         gAppUI;
 GuiComponent* pStandaloneControlsGUIWindow = NULL;
 
@@ -164,7 +163,7 @@ SkeletonBatcher gSkeletonBatcher;
 // Filenames
 const char* gOzzLogoName = "ozzLogo/skeleton.ozz";
 const char* gShatterClipName = "ozzLogo/animations/shatter.ozz";
-const char* pPlaneImageFileName = "Skybox_right1.png";
+const char* pPlaneImageFileName = "Skybox_right1";
 
 // The index of the joint in the rig that will control the camera (set in init)
 int gCameraIndex;
@@ -233,7 +232,7 @@ class BakedPhysics: public IApp
 		initResourceLoaderInterface(pRenderer);
 
 #ifdef TARGET_IOS
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Absolute))
 			return false;
 #endif
 

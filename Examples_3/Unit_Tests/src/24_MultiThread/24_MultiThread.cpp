@@ -63,10 +63,11 @@
 // Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
+#include "../../../../Common_3/OS/Core/ThreadSystem.h"
+
 // Memory
 #include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
 
-#include "../../../../Common_3/OS/Core/ThreadSystem.h"
 
 const char* pszBases[FSR_Count] = {
 	"../../../src/24_MultiThread/",         // FSR_BinShaders
@@ -75,7 +76,8 @@ const char* pszBases[FSR_Count] = {
 	"../../../UnitTestResources/",          // FSR_Meshes
 	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
 	"../../../src/24_MultiThread/",         // FSR_GpuConfig
-	"../../../UnitTestResources/",          // FSR_Animtion
+	"../../../UnitTestResources/",          // FSR_Animation
+	"",                                     // FSR_Audio
 	"",                                     // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
@@ -136,8 +138,6 @@ Buffer* pPlaneUniformBuffer[gImageCount] = { NULL };
 //--------------------------------------------------------------------------------------------
 
 ICameraController* pCameraController = NULL;
-FileSystem         gFileSystem;
-
 UIApp         gAppUI;
 GuiComponent* pStandaloneControlsGUIWindow = NULL;
 
@@ -172,7 +172,7 @@ SkeletonBatcher gSkeletonBatcher;
 // Filenames
 const char* gStickFigureName = "stickFigure/skeleton.ozz";
 const char* gWalkClipName = "stickFigure/animations/walk.ozz";
-const char* pPlaneImageFileName = "Skybox_right1.png";
+const char* pPlaneImageFileName = "Skybox_right1";
 
 const int   gSphereResolution = 3;                    // Increase for higher resolution joint spheres
 const float gBoneWidthRatio = 0.2f;                   // Determines how far along the bone to put the max width [0,1]
@@ -265,7 +265,7 @@ class MultiThread: public IApp
 		initResourceLoaderInterface(pRenderer);
 
 #ifdef TARGET_IOS
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Absolute))
 			return false;
 #endif
 
@@ -755,7 +755,7 @@ class MultiThread: public IApp
 		// Threading
 		if (gEnableThreading)
 		{
-			unsigned int taskCount = gNumRigs / gGrainSize;
+			unsigned int taskCount = max(1U, gNumRigs / gGrainSize);
 
 			// Submit taskCount number of jobs
 			for (unsigned int i = 0; i < taskCount; i++)
@@ -767,7 +767,7 @@ class MultiThread: public IApp
 			addThreadSystemRangeTask(pThreadSystem, &MultiThread::AnimatedObjectThreadedUpdate, gThreadData, taskCount);
 
 			// If there is a remainder, submit another job to finish it
-			unsigned int remainder = gNumRigs - (taskCount * gGrainSize);
+			unsigned int remainder = (uint32_t)max(0, (int32_t)gNumRigs - (int32_t)(taskCount * gGrainSize));
 			if (remainder != 0)
 			{
 				gThreadData[taskCount].mAnimatedObject = &gStickFigureAnimObjects[gGrainSize * taskCount];

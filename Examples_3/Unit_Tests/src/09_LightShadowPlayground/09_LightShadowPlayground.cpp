@@ -277,7 +277,7 @@ struct
 
 /************************************************************************/
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 VirtualJoystickUI gVirtualJoystick;
 #endif
 
@@ -304,8 +304,6 @@ UIApp         gAppUI;
 GuiComponent* pGuiWindow = NULL;
 TextDrawDesc  gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
-FileSystem gFileSystem;
-
 const int   gSphereResolution = 120;    // Increase for higher resolution spheres
 const float gSphereRadius = 1.33f;
 
@@ -321,8 +319,8 @@ Semaphore* pImageAcquiredSemaphore = NULL;
 Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
 
 const char* pSceneFileNames[] = {
-	"Warehouse-with-lights.tga",
-	"rect.tga",
+	"Warehouse-with-lights",
+	"rect",
 };
 
 const char* pszBases[FSR_Count] = {
@@ -333,6 +331,7 @@ const char* pszBases[FSR_Count] = {
 	"../../../UnitTestResources/",               // FSR_Builtin_Fonts
 	"../../../src/09_LightShadowPlayground/",    // FSR_GpuConfig
 	"",                                          // FSR_Animation
+	"",                                          // FSR_Audio
 	"",                                          // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",         // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",           // FSR_MIDDLEWARE_UI
@@ -468,7 +467,6 @@ class LightShadowPlayground: public IApp
 		{
 			TextureLoadDesc textureDesc = {};
 			textureDesc.mRoot = FSR_Textures;
-			textureDesc.mUseMipmaps = false;
 			textureDesc.pFilename = "skybox/hw_sahara/sahara_cubemap.dds";
 			textureDesc.ppTexture = &pTextureSkybox;
 			addResource(&textureDesc, true);
@@ -477,7 +475,6 @@ class LightShadowPlayground: public IApp
 		{
 			TextureLoadDesc textureDesc = {};
 			textureDesc.mRoot = FSR_Textures;
-			textureDesc.mUseMipmaps = true;
 			textureDesc.pFilename = pSceneFileNames[i];
 			textureDesc.ppTexture = &pTextureScene[i];
 			addResource(&textureDesc, true);
@@ -597,8 +594,8 @@ class LightShadowPlayground: public IApp
 		esmImdtSSBDesc.ppBuffer = &pBufferESMBlurIntermediate;
 		addResource(&esmImdtSSBDesc);
 
-#ifdef TARGET_IOS
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
+#if defined(TARGET_IOS) || defined(__ANDROID__)
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 			return false;
 #endif
 
@@ -747,9 +744,9 @@ class LightShadowPlayground: public IApp
 			{ pRootSignatureForwardPass, 0, 1 },
 			{ pRootSignatureShadowPass, 0, 1 },
 			{ pRootSignatureSkybox, 0, 1 },
-			{ pRootSignatureSdfSphere, 1, 1 },
-			{ pRootSignatureESMBlur, 0, 2 },
-			{ pRootSignatureCopyBuffer, 0, 1 }
+			{ pRootSignatureSdfSphere, 1, 3 },
+			{ pRootSignatureESMBlur, 0, 6 },
+			{ pRootSignatureCopyBuffer, 0, 3 }
 		};
 		const uint32_t descBinderSize = sizeof(descriptorBinderDesc) / sizeof(*descriptorBinderDesc);
 		addDescriptorBinder(pRenderer, 0, descBinderSize, descriptorBinderDesc, &pDescriptorBinder);
@@ -856,7 +853,7 @@ class LightShadowPlayground: public IApp
 		removeResource(pBufferESMBlurIntermediate);
 		removeResource(pBufferBoxIndex);
 		removeResource(pBufferSphereVertex);
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Exit();
 #endif
 		removeGpuProfiler(pRenderer, pGpuProfiler);
@@ -916,7 +913,7 @@ class LightShadowPlayground: public IApp
 			return false;
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], ImageFormat::Enum::NONE))
 			return false;
 #endif
@@ -1063,7 +1060,7 @@ class LightShadowPlayground: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Unload();
 #endif
 
@@ -1576,7 +1573,7 @@ class LightShadowPlayground: public IApp
 
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
@@ -1617,7 +1614,10 @@ class LightShadowPlayground: public IApp
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 		swapChainDesc.mColorFormat = ImageFormat::BGRA8;
-		swapChainDesc.mColorClearValue = { 1, 1, 1, 1 };
+        swapChainDesc.mColorClearValue.r = 1.0f;
+        swapChainDesc.mColorClearValue.g = 1.0f;
+        swapChainDesc.mColorClearValue.b = 1.0f;
+        swapChainDesc.mColorClearValue.a = 1.0f;
 		swapChainDesc.mSrgb = false;
 
 		swapChainDesc.mEnableVsync = false;
@@ -1630,9 +1630,19 @@ class LightShadowPlayground: public IApp
 		const uint32_t width = mSettings.mWidth;
 		const uint32_t height = mSettings.mHeight;
 
-		const ClearValue depthStencilClear = { 0.0f, 0 };
-		const ClearValue colorClearBlack = { 0.0f, 0.0f, 0.0f, 0.0f };
-		const ClearValue colorClearWhite = { 1.0f, 1.0f, 1.0f, 1.0f };
+		ClearValue depthStencilClear;
+		depthStencilClear.depth = 0.0f;
+		depthStencilClear.stencil = 0;
+		ClearValue colorClearBlack;
+        colorClearBlack.r = 0.0f;
+        colorClearBlack.g = 0.0f;
+        colorClearBlack.b = 0.0f;
+        colorClearBlack.a = 0.0f;
+		ClearValue colorClearWhite;
+        colorClearWhite.r = 1.0f;
+        colorClearWhite.g = 1.0f;
+        colorClearWhite.b = 1.0f;
+        colorClearWhite.a = 1.0f;
 
 		/************************************************************************/
 		// Main depth buffer

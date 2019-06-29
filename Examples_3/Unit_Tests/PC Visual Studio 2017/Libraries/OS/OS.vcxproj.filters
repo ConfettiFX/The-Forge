@@ -4,21 +4,6 @@
     <Filter Include="Dependencies">
       <UniqueIdentifier>{f279652a-57c2-4291-932a-ee9f98aba841}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Middleware_3">
-      <UniqueIdentifier>{a9268313-8233-4fcd-8b2f-daa1ea49d480}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Middleware_3\UI">
-      <UniqueIdentifier>{67dcb179-77f7-4735-ba7a-9d47f2c86c55}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Middleware_3\Text">
-      <UniqueIdentifier>{ea71056b-4bfe-454e-b0e4-312881420a89}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Middleware_3\UI\imgui">
-      <UniqueIdentifier>{724e49bb-b5bc-44a6-8d6c-f9363f9a504b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Middleware_3\Animation">
-      <UniqueIdentifier>{1f453981-a767-4c40-af2e-0f8c18732ab7}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Dependencies\EASTL">
       <UniqueIdentifier>{4d35b274-f888-4766-aed3-701214301ff7}</UniqueIdentifier>
     </Filter>
@@ -78,6 +63,9 @@
     </Filter>
     <Filter Include="OS\Profiler">
       <UniqueIdentifier>{dcb22600-d19a-42d3-b830-c802db82bb93}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Middleware_3\ECS">
+      <UniqueIdentifier>{14ae8217-971e-4a70-ad78-9db44812b0b9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -197,6 +185,15 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IProfiler.h">
       <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.h">
+      <Filter>Middleware_3\ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.h">
+      <Filter>Middleware_3\ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.h">
+      <Filter>Middleware_3\ECS</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -334,6 +331,15 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerUI.cpp">
       <Filter>OS\Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.cpp">
+      <Filter>Middleware_3\ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.cpp">
+      <Filter>Middleware_3\ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.cpp">
+      <Filter>Middleware_3\ECS</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

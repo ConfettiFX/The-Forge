@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.28922.388
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.572
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{21A6980D-04AA-430D-BE3D-74F151226C8B}"
 EndProject
@@ -351,6 +351,13 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AssetPipeline", "..\..\..\C
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ozz_animation_offline", "..\..\..\Common_3\ThirdParty\OpenSource\ozz-animation\Win64\src\animation\offline\ozz_animation_offline.vcxproj", "{AC91B515-5B5E-399D-BF31-B6272AF9D139}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "26_Audio", "26_Audio.vcxproj", "{9E3FF620-A4E1-421B-8869-57551145772E}"
+	ProjectSection(ProjectDependencies) = postProject
+		{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3} = {DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}
+		{8EBB17A6-12AC-46AF-AE55-A7159C9CD2E1} = {8EBB17A6-12AC-46AF-AE55-A7159C9CD2E1}
+		{EBC1C8D7-D49B-409A-A575-5AB53111E4D7} = {EBC1C8D7-D49B-409A-A575-5AB53111E4D7}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -1159,6 +1166,24 @@ Global
 		{AC91B515-5B5E-399D-BF31-B6272AF9D139}.ReleaseVk|x64.ActiveCfg = ReleaseVk|x64
 		{AC91B515-5B5E-399D-BF31-B6272AF9D139}.ReleaseVk|x64.Build.0 = ReleaseVk|x64
 		{AC91B515-5B5E-399D-BF31-B6272AF9D139}.ReleaseVk|x86.ActiveCfg = ReleaseVk|x64
+		{9E3FF620-A4E1-421B-8869-57551145772E}.DebugDx|x64.ActiveCfg = DebugDx|x64
+		{9E3FF620-A4E1-421B-8869-57551145772E}.DebugDx|x64.Build.0 = DebugDx|x64
+		{9E3FF620-A4E1-421B-8869-57551145772E}.DebugDx|x86.ActiveCfg = DebugDx|x64
+		{9E3FF620-A4E1-421B-8869-57551145772E}.DebugDx11|x64.ActiveCfg = DebugDx11|x64
+		{9E3FF620-A4E1-421B-8869-57551145772E}.DebugDx11|x64.Build.0 = DebugDx11|x64
+		{9E3FF620-A4E1-421B-8869-57551145772E}.DebugDx11|x86.ActiveCfg = DebugDx11|x64
+		{9E3FF620-A4E1-421B-8869-57551145772E}.DebugVk|x64.ActiveCfg = DebugVk|x64
+		{9E3FF620-A4E1-421B-8869-57551145772E}.DebugVk|x64.Build.0 = DebugVk|x64
+		{9E3FF620-A4E1-421B-8869-57551145772E}.DebugVk|x86.ActiveCfg = DebugVk|x64
+		{9E3FF620-A4E1-421B-8869-57551145772E}.ReleaseDx|x64.ActiveCfg = ReleaseDx|x64
+		{9E3FF620-A4E1-421B-8869-57551145772E}.ReleaseDx|x64.Build.0 = ReleaseDx|x64
+		{9E3FF620-A4E1-421B-8869-57551145772E}.ReleaseDx|x86.ActiveCfg = ReleaseDx|x64
+		{9E3FF620-A4E1-421B-8869-57551145772E}.ReleaseDx11|x64.ActiveCfg = ReleaseDx11|x64
+		{9E3FF620-A4E1-421B-8869-57551145772E}.ReleaseDx11|x64.Build.0 = ReleaseDx11|x64
+		{9E3FF620-A4E1-421B-8869-57551145772E}.ReleaseDx11|x86.ActiveCfg = ReleaseDx11|x64
+		{9E3FF620-A4E1-421B-8869-57551145772E}.ReleaseVk|x64.ActiveCfg = ReleaseVk|x64
+		{9E3FF620-A4E1-421B-8869-57551145772E}.ReleaseVk|x64.Build.0 = ReleaseVk|x64
+		{9E3FF620-A4E1-421B-8869-57551145772E}.ReleaseVk|x86.ActiveCfg = ReleaseVk|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1209,6 +1234,7 @@ Global
 		{9BB45EC2-8F3A-4D98-A235-40EBBB559F64} = {21A6980D-04AA-430D-BE3D-74F151226C8B}
 		{86CCE738-AAA1-4327-9DE0-AAB5B23B7852} = {21A6980D-04AA-430D-BE3D-74F151226C8B}
 		{AC91B515-5B5E-399D-BF31-B6272AF9D139} = {9ED95EE6-DA38-473E-9346-84061786CDDC}
+		{9E3FF620-A4E1-421B-8869-57551145772E} = {6CF62059-3AC3-43CD-A29E-2F1E01EA4115}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {948F21A0-5B36-35C9-B219-88B1DAC0D0C2}

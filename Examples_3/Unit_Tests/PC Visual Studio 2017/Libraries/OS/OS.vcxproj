@@ -62,6 +62,9 @@
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\ClipMask.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Rig.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Text\Fontstash.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\ImguiGUIDriver.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp" />
@@ -101,6 +104,9 @@
     <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\ClipMask.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Rig.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\Text\Fontstash.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\UI\AppUI.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\UI\UIShaders.h" />

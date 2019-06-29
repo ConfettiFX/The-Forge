@@ -25,9 +25,8 @@
 #include "../../Common_3/Renderer/ResourceLoader.h"
 #include "../../Common_3/OS/Image/Image.h"
 #include "../../Common_3/OS/Image/ImageEnums.h"
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
-
 #include "AppHelpers.h"
+#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 void loadTexturesTask(void* data, uintptr_t i)
 {
@@ -64,8 +63,7 @@ void computePBRMaps(ComputePBRMapsTaskData* pTaskData)
 	// Load the skybox panorama texture.
 	SyncToken       token;
 	TextureLoadDesc panoDesc = {};
-	panoDesc.mRoot = FSR_Textures;
-	panoDesc.mUseMipmaps = true;
+	panoDesc.mRoot = (FSRoot)pTaskData->mSourceRoot;
 	panoDesc.pFilename = pTaskData->mSourceName;
 	panoDesc.ppTexture = &pTaskData->pPanoSkybox;
 	addResource(&panoDesc, &token);

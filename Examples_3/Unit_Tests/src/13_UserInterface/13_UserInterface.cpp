@@ -60,6 +60,7 @@ const char* pszBases[FSR_Count] = {
 	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
 	"../../../src/13_UserInterface/",       // FSR_GpuConfig
 	"",                                     // FSR_Animation
+	"",                                     // FSR_Audio
 	"",                                     // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
@@ -83,7 +84,7 @@ Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
 
 Texture*	  pSpriteTexture = NULL;
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 VirtualJoystickUI gVirtualJoystick;
 #endif
 DepthState* pDepth = NULL;
@@ -95,8 +96,6 @@ uint32_t gFrameIndex = 0;
 // CAMERA CONTROLLER & SYSTEMS (File/Log/UI)
 //--------------------------------------------------------------------------------------------
 ICameraController* pCameraController = NULL;
-FileSystem         gFileSystem;
-
 UIApp         gAppUI;
 GuiComponent* pStandaloneControlsGUIWindow = NULL;
 GuiComponent* pGroupedGUIWindow = NULL;
@@ -239,16 +238,15 @@ public:
 		// INITIALIZE RESOURCE/DEBUG SYSTEMS
 		//
 		initResourceLoaderInterface(pRenderer);
-#ifdef TARGET_IOS
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
+#if defined(TARGET_IOS) || defined(__ANDROID__)
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 			return false;
 #endif
 
 		TextureLoadDesc textureDesc = {};
 		textureDesc.mRoot = FSR_Textures;
 		textureDesc.ppTexture = &pSpriteTexture;
-		textureDesc.mUseMipmaps = false;
-		textureDesc.pFilename = "sprites.png";
+		textureDesc.pFilename = "sprites";
 		addResource(&textureDesc);
 
 		finishResourceLoading();
@@ -425,7 +423,7 @@ public:
 
 		destroyCameraController(pCameraController);
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Exit();
 #endif
 
@@ -469,7 +467,7 @@ public:
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], pDepthBuffer->mDesc.mFormat))
 			return false;
 #endif
@@ -483,7 +481,7 @@ public:
 
 		gAppUI.Unload();
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Unload();
 #endif
 
@@ -530,7 +528,11 @@ public:
 	{
 		static HiresTimer gTimer;
 		const vec4        backgroundColor = unpackColorU32(gUIData.mStandalone.mColorForSlider);
-		const ClearValue  clearVal = { backgroundColor.getX(), backgroundColor.getY(), backgroundColor.getZ(), backgroundColor.getW() };
+		ClearValue  clearVal;
+		clearVal.r = backgroundColor.getX();
+		clearVal.g = backgroundColor.getY();
+		clearVal.b = backgroundColor.getZ();
+		clearVal.a = backgroundColor.getW();
 
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 
@@ -562,7 +564,8 @@ public:
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		loadActions.mClearColorValues[0] = clearVal;
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth = { 1.0f, 0 };
+		loadActions.mClearDepth.depth = 1.0f;
+		loadActions.mClearDepth.stencil = 0;
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
@@ -575,7 +578,7 @@ public:
 		//
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
 		gTimer.GetUSec(true);
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
@@ -619,7 +622,8 @@ public:
 	{
 		RenderTargetDesc depthRT = {};
 		depthRT.mArraySize = 1;
-		depthRT.mClearValue = { 1.0f, 0 };
+		depthRT.mClearValue.depth = 1.0f;
+		depthRT.mClearValue.stencil = 0;
 		depthRT.mDepth = 1;
 		depthRT.mFormat = ImageFormat::D32F;
 		depthRT.mHeight = mSettings.mHeight;

@@ -2,9 +2,29 @@
 #include "allocator_forge.h"
 
 #if EASTL_ALLOCATOR_FORGE
+#include "../../../OS/Interfaces/IMemoryManager.h"
 
 	namespace eastl
 	{
+
+		void* allocator_forge::allocate(size_t n, int /*flags*/)
+		{ 
+			return conf_malloc(n);
+		}
+
+		void* allocator_forge::allocate(size_t n, size_t alignment, size_t alignmentOffset, int /*flags*/)
+		{
+		    if ((alignmentOffset % alignment) == 0) // We check for (offset % alignmnent == 0) instead of (offset == 0) because any block which is
+													// aligned on e.g. 64 also is aligned at an offset of 64 by definition.
+			    return conf_memalign(alignment, n);
+
+		    return NULL;
+		}
+
+		void allocator_forge::deallocate(void* p, size_t /*n*/)
+		{ 
+			conf_free(p);
+		}
 
 		/// gDefaultAllocator
 		/// Default global allocator_forge instance. 

@@ -22,28 +22,22 @@
  * under the License.
 */
 
-#pragma once
-//--------------------------------------------------------------------------------------------
-//
-// Copyright (C) 2009 - 2016 Confetti Special Effects Inc.
-// All rights reserved.
-//
-// This source may not be distributed and/or modified without expressly written permission
-// from Confetti Special Effects Inc.
-//
-//--------------------------------------------------------------------------------------------
-
 //--------------------------------------------------------------------------------------------
 // NOTE: Make sure this is the last include in a .cpp file!
+//       Never include this file from a header!!  If you must use the mem manager from a
+//       header (which should be in rare cases, and usually only in core Forge source), 
+//       define "MEM_MANAGER_FROM_HEADER" before including it.
 //--------------------------------------------------------------------------------------------
 
+#ifndef I_MEM_MANAGER_H
+#define I_MEM_MANAGER_H
 #include <new>
 
-void* conf_malloc(size_t size);
-void* conf_calloc(size_t count, size_t size);
-void* conf_memalign(size_t align, size_t size);
-void* conf_realloc(void* ptr, size_t size);
-void  conf_free(void* ptr);
+void* conf_malloc_internal(size_t size, const char *f, int l, const char *sf);
+void* conf_memalign_internal(size_t align, size_t size, const char *f, int l, const char *sf);
+void* conf_calloc_internal(size_t count, size_t size, const char *f, int l, const char *sf);
+void* conf_realloc_internal(void* ptr, size_t size, const char *f, int l, const char *sf);
+void  conf_free_internal(void* ptr, const char *f, int l, const char *sf);
 
 template <typename T, typename... Args>
 static T* conf_placement_new(void* ptr, Args... args)
@@ -52,23 +46,70 @@ static T* conf_placement_new(void* ptr, Args... args)
 }
 
 template <typename T, typename... Args>
-static T* conf_new(Args... args)
+static T* conf_new_internal(const char *f, int l, const char *sf, Args... args)
 {
-	T* ptr = (T*)conf_malloc(sizeof(T));
+	T* ptr = (T*)conf_malloc_internal(sizeof(T), f, l, sf);
 	return new (ptr) T(args...);
 }
 
 template <typename T>
-static void conf_delete(T* ptr)
+static void conf_delete_internal(T* ptr, const char *f, int l, const char *sf)
 {
-	ptr->~T();
-	conf_free(ptr);
+	if (ptr)
+	{
+		ptr->~T();
+		conf_free_internal(ptr, f, l, sf);
+	}
 }
 
+#ifndef conf_malloc
+#define conf_malloc(size) conf_malloc_internal(size, __FILE__, __LINE__, __FUNCTION__)
+#endif
+#ifndef conf_memalign
+#define conf_memalign(align,size) conf_memalign_internal(align, size, __FILE__, __LINE__, __FUNCTION__)
+#endif
+#ifndef conf_calloc
+#define conf_calloc(count,size) conf_calloc_internal(count, size, __FILE__, __LINE__, __FUNCTION__)
+#endif
+#ifndef conf_realloc
+#define conf_realloc(ptr,size) conf_realloc_internal(ptr, size, __FILE__, __LINE__, __FUNCTION__)
+#endif
+#ifndef conf_free
+#define conf_free(ptr) conf_free_internal(ptr,  __FILE__, __LINE__, __FUNCTION__)
+#endif
+#ifndef conf_new
+#define conf_new(ObjectType, ...) conf_new_internal<ObjectType>(__FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
+#endif
+#ifndef conf_delete
+#define conf_delete(ptr) conf_delete_internal(ptr,  __FILE__, __LINE__, __FUNCTION__)
+#endif
+
+#endif 
+
+#ifndef MEM_MANAGER_FROM_HEADER
+#ifndef malloc
 #define malloc(size) static_assert(false, "Please use conf_malloc");
+#endif
+#ifndef calloc
 #define calloc(count, size) static_assert(false, "Please use conf_calloc");
+#endif
+#ifndef memalign
 #define memalign(align, size) static_assert(false, "Please use conf_memalign");
+#endif
+#ifndef realloc
 #define realloc(ptr, size) static_assert(false, "Please use conf_realloc");
+#endif
+#ifndef free
 #define free(ptr) static_assert(false, "Please use conf_free");
+#endif
+#ifndef new
 #define new static_assert(false, "Please use conf_placement_new");
+#endif
+#ifndef delete
 #define delete static_assert(false, "Please use conf_free with explicit destructor call");
+#endif
+#endif
+
+#ifdef MEM_MANAGER_FROM_HEADER
+#undef MEM_MANAGER_FROM_HEADER
+#endif

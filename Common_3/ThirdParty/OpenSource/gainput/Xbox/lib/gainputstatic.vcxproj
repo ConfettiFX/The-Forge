@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
-	<DefaultLanguage>en-US</DefaultLanguage>
+    <DefaultLanguage>en-US</DefaultLanguage>
   </PropertyGroup>
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Durango">
@@ -104,6 +104,7 @@
       <AdditionalUsingDirectories>$(Console_SdkPackagesRoot);$(Console_SdkWindowsMetadataPath);%(AdditionalUsingDirectories)</AdditionalUsingDirectories>
       <AdditionalOptions>/await /std:c++latest /d2Qvec-mathlib- /Wv:19.10.25000 %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;GAINPUT_LIB_DYNAMIC=0;CMAKE_INTDIR=\"Debug\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -138,6 +139,7 @@
       <DebugInformationFormat>
       </DebugInformationFormat>
       <AdditionalOptions>/std:c++latest /d2Qvec-mathlib- /Wv:19.10.25000 %(AdditionalOptions)</AdditionalOptions>
+      <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;GAINPUT_LIB_DYNAMIC=0;CMAKE_INTDIR=\"Release\";%(PreprocessorDefinitions)</PreprocessorDefinitions>
@@ -172,6 +174,7 @@
       <DebugInformationFormat>
       </DebugInformationFormat>
       <AdditionalOptions>/std:c++latest /d2Qvec-mathlib- /Wv:19.10.25000 %(AdditionalOptions)</AdditionalOptions>
+      <CompileAsWinRT>false</CompileAsWinRT>
     </ClCompile>
     <ResourceCompile>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;GAINPUT_LIB_DYNAMIC=0;CMAKE_INTDIR=\"Release\";%(PreprocessorDefinitions)</PreprocessorDefinitions>

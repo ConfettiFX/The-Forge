@@ -28,8 +28,6 @@
 
 #include "../../ThirdParty/OpenSource/SPIRV_Cross/spirv_cross.hpp"
 
-//#include "OS/Interfaces/IMemoryManager.h" //NOTE: this should be the last include in a .cpp
-
 // helper functions
 void ReflectBoundResources(
    spirv_cross::Compiler* pCompiler,

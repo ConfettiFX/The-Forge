@@ -97,8 +97,6 @@ SceneConstantBuffer gSceneData;
 UIApp         gAppUI;
 GuiComponent* pGui = NULL;
 
-FileSystem gFileSystem;
-
 enum RenderMode
 {
 	RenderMode1,
@@ -122,6 +120,7 @@ const char* pszBases[FSR_Count] = {
 	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
 	"../../../src/14_WaveIntrinsics/",      // FSR_GpuConfig
 	"",                                     // FSR_Animation
+	"",                                     // FSR_Audio
 	"",                                     // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
@@ -156,6 +155,8 @@ class WaveIntrinsics: public IApp
 			stricmp(pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId, "0x67df") == 0)
 		{
 			LOGF(LogLevel::eERROR, "This GPU model causes Internal Shader compiler errors on Metal when compiling the wave instrinsics.");
+			removeRenderer(pRenderer);
+			InputSystem::Shutdown();
 			//exit instead of returning not to trigger failure in Jenkins
 			exit(0);
 		}

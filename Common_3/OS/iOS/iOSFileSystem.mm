@@ -45,6 +45,7 @@ const char* pszRoots[FSR_Count] = {
 	"Fonts/",                   // FSR_Builtin_Fonts
 	"GPUCfg/",                  // FSR_GpuConfig
 	"Animation/",               // FSR_Animation
+	"Audio/",                   // FSR_Audio
 	"",                         // FSR_OtherFiles
 };
 

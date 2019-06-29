@@ -168,6 +168,17 @@ LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 
+	case WM_GETMINMAXINFO:
+	{
+		if (gCurrentWindow)
+		{
+			LPMINMAXINFO lpMMI = (LPMINMAXINFO)lParam;
+			lpMMI->ptMinTrackSize.x = 128;
+			lpMMI->ptMinTrackSize.y = 128;
+			break;
+		}
+	}
+
 	case WM_SIZE:
 		if (gCurrentWindow)
 		{

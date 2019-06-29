@@ -15,6 +15,7 @@
 		5C172FC321414BF70074EE71 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172FBE21414BD90074EE71 /* libThe-Forge.a */; };
 		5C17305B21414EB40074EE71 /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C17305A21414EB40074EE71 /* libThe-Forge_iOS.a */; };
 		5C17306021414EC40074EE71 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C17305F21414EC40074EE71 /* AppDelegate.m */; };
+		5CA611C222C48AC60076B100 /* LA_Helipad.ktx in Copy Unit Test Resources */ = {isa = PBXBuildFile; fileRef = B2C0C08D20F5849800BD4BAA /* LA_Helipad.ktx */; };
 		5CA80FA821F0A21E00C99983 /* imgui.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80EE721F0A06F00C99983 /* imgui.frag.metal */; };
 		5CA80FA921F0A21E00C99983 /* imgui.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80EE821F0A06F00C99983 /* imgui.vert.metal */; };
 		5CA80FAA21F0A21E00C99983 /* textured_mesh.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80EE621F0A06F00C99983 /* textured_mesh.frag.metal */; };
@@ -35,8 +36,7 @@
 		81B986B52269FF420078E5F4 /* AppHelpers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81B986B22269FF420078E5F4 /* AppHelpers.cpp */; };
 		971BCF95217040D3007F2B2F /* lion in Copy Textures */ = {isa = PBXBuildFile; fileRef = B277221F20F701D00074529C /* lion */; };
 		971BCF96217040D3007F2B2F /* SponzaPBR_Textures in Copy Textures */ = {isa = PBXBuildFile; fileRef = B277221E20F701D00074529C /* SponzaPBR_Textures */; };
-		971BCF97217040D3007F2B2F /* LA_Helipad.hdr in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2C0C08D20F5849800BD4BAA /* LA_Helipad.hdr */; };
-		971BCF98217040D3007F2B2F /* circlepad.png in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2C0C08B20F5847E00BD4BAA /* circlepad.png */; };
+		971BCF98217040D3007F2B2F /* circlepad.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2C0C08B20F5847E00BD4BAA /* circlepad.ktx */; };
 		971BCF99217040DE007F2B2F /* TitilliumText in Copy Fonts */ = {isa = PBXBuildFile; fileRef = 28A5AB89201F3A77000E571F /* TitilliumText */; };
 		971BCF9A217040F9007F2B2F /* fillGbuffers_iOS.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = B277222C20F7CBE80074529C /* fillGbuffers_iOS.frag.metal */; };
 		971BCF9B217040F9007F2B2F /* fillGbuffers.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = B277222320F7077B0074529C /* fillGbuffers.frag.metal */; };
@@ -187,6 +187,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		5CA611C122C48AA40076B100 /* Copy Unit Test Resources */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 7;
+			files = (
+				5CA611C222C48AC60076B100 /* LA_Helipad.ktx in Copy Unit Test Resources */,
+			);
+			name = "Copy Unit Test Resources";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		971BCF92217040B4007F2B2F /* Copy Textures */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -195,8 +206,7 @@
 			files = (
 				971BCF95217040D3007F2B2F /* lion in Copy Textures */,
 				971BCF96217040D3007F2B2F /* SponzaPBR_Textures in Copy Textures */,
-				971BCF97217040D3007F2B2F /* LA_Helipad.hdr in Copy Textures */,
-				971BCF98217040D3007F2B2F /* circlepad.png in Copy Textures */,
+				971BCF98217040D3007F2B2F /* circlepad.ktx in Copy Textures */,
 			);
 			name = "Copy Textures";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -302,8 +312,8 @@
 		B277222220F7077B0074529C /* fillGbuffers.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fillGbuffers.vert.metal; path = ../../../src/10_PixelProjectedReflections/Shaders/Metal/fillGbuffers.vert.metal; sourceTree = "<group>"; };
 		B277222320F7077B0074529C /* fillGbuffers.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fillGbuffers.frag.metal; path = ../../../src/10_PixelProjectedReflections/Shaders/Metal/fillGbuffers.frag.metal; sourceTree = "<group>"; };
 		B277222C20F7CBE80074529C /* fillGbuffers_iOS.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fillGbuffers_iOS.frag.metal; path = ../../../src/10_PixelProjectedReflections/Shaders/Metal/fillGbuffers_iOS.frag.metal; sourceTree = "<group>"; };
-		B2C0C08B20F5847E00BD4BAA /* circlepad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = circlepad.png; path = ../../../UnitTestResources/Textures/circlepad.png; sourceTree = "<group>"; };
-		B2C0C08D20F5849800BD4BAA /* LA_Helipad.hdr */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = LA_Helipad.hdr; path = ../../../UnitTestResources/Textures/LA_Helipad.hdr; sourceTree = "<group>"; };
+		B2C0C08B20F5847E00BD4BAA /* circlepad.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = circlepad.ktx; path = ../../../UnitTestResources/Textures/circlepad.ktx; sourceTree = "<group>"; };
+		B2C0C08D20F5849800BD4BAA /* LA_Helipad.ktx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = LA_Helipad.ktx; path = ../../../UnitTestResources/Textures/LA_Helipad.ktx; sourceTree = "<group>"; };
 		C95132ED2010E68A002E584B /* 10_PixelProjectedReflections_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 10_PixelProjectedReflections_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C95132FE2010E68A002E584B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C95133012010E68A002E584B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -394,8 +404,8 @@
 			children = (
 				B277221F20F701D00074529C /* lion */,
 				B277221E20F701D00074529C /* SponzaPBR_Textures */,
-				B2C0C08D20F5849800BD4BAA /* LA_Helipad.hdr */,
-				B2C0C08B20F5847E00BD4BAA /* circlepad.png */,
+				B2C0C08D20F5849800BD4BAA /* LA_Helipad.ktx */,
+				B2C0C08B20F5847E00BD4BAA /* circlepad.ktx */,
 			);
 			name = Textures;
 			path = 10_PixelProjectedReflections_iOS;
@@ -557,6 +567,7 @@
 				971BCF93217040B6007F2B2F /* Copy Fonts */,
 				971BCF94217040B8007F2B2F /* Copy Shaders */,
 				971BD0B0218A17B2007F2B2F /* Copy Meshes */,
+				5CA611C122C48AA40076B100 /* Copy Unit Test Resources */,
 			);
 			buildRules = (
 			);

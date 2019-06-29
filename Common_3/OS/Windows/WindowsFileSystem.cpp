@@ -32,8 +32,8 @@
 #include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/ILogManager.h"
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/IMemoryManager.h"
 #include "../Interfaces/IThread.h"
+#include "../Interfaces/IMemoryManager.h"
 
 #if defined(DIRECT3D12)
 #define RESOURCE_DIR "Shaders/D3D12"
@@ -53,6 +53,7 @@ const char* pszRoots[FSR_Count] = {
 	"Fonts/",                   // FSR_Builtin_Fonts
 	"GPUCfg/",                  // FSR_GpuConfig
 	"Animation/",               // FSR_Animation
+	"Audio/",                   // FSR_Audio
 	"",                         // FSR_OtherFiles
 };
 
@@ -385,7 +386,7 @@ static void fswThreadFunc(void* data)
 
 FileSystem::Watcher::Watcher(const char* pWatchPath, FSRoot root, uint32_t eventMask, Callback callback)
 {
-	pData = conf_new<FileSystem::Watcher::Data>();
+	pData = conf_new(FileSystem::Watcher::Data);
 	pData->mWatchDir = FileSystem::FixPath(FileSystem::AddTrailingSlash(pWatchPath), root);
 	uint32_t notifyFilter = 0;
 	if (eventMask & EVENT_MODIFIED)

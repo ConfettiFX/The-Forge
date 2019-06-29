@@ -489,8 +489,6 @@ GuiComponent* pGuiWindow = NULL;
 TextDrawDesc  gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 HiresTimer    gCpuTimer;
 
-FileSystem gFileSystem;
-
 Renderer* pRenderer = NULL;
 
 Queue*   pGraphicsQueue = NULL;
@@ -504,11 +502,6 @@ Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
 
 uint32_t gTransparencyType = TRANSPARENCY_TYPE_PHENOMENOLOGICAL;
 
-const char* pSkyboxImageFileNames[] = {
-	"skybox/hw_sahara/sahara_rt.tga", "skybox/hw_sahara/sahara_lf.tga", "skybox/hw_sahara/sahara_up.tga",
-	"skybox/hw_sahara/sahara_dn.tga", "skybox/hw_sahara/sahara_ft.tga", "skybox/hw_sahara/sahara_bk.tga",
-};
-
 const char* pszBases[FSR_Count] = {
 	"../../../src/15_Transparency/",        // FSR_BinShaders
 	"../../../src/15_Transparency/",        // FSR_SrcShaders
@@ -517,6 +510,7 @@ const char* pszBases[FSR_Count] = {
 	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
 	"../../../src/15_Transparency/",        // FSR_GpuConfig
 	"",                                     // FSR_Animation
+	"",                                     // FSR_Audio
 	"",                                     // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
@@ -692,7 +686,7 @@ class Transparency: public IApp
 		initResourceLoaderInterface(pRenderer);
 
 #ifdef TARGET_IOS
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Absolute))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Absolute))
 			return false;
 #endif
 
@@ -2998,20 +2992,19 @@ class Transparency: public IApp
 	void LoadTextures()
 	{
 		const char* textureNames[TEXTURE_COUNT] = {
-			"skybox/hw_sahara/sahara_rt.tga",
-			"skybox/hw_sahara/sahara_lf.tga",
-			"skybox/hw_sahara/sahara_up.tga",
-			"skybox/hw_sahara/sahara_dn.tga",
-			"skybox/hw_sahara/sahara_ft.tga",
-			"skybox/hw_sahara/sahara_bk.tga",
-			"grid.jpg",
+			"skybox/hw_sahara/sahara_rt",
+			"skybox/hw_sahara/sahara_lf",
+			"skybox/hw_sahara/sahara_up",
+			"skybox/hw_sahara/sahara_dn",
+			"skybox/hw_sahara/sahara_ft",
+			"skybox/hw_sahara/sahara_bk",
+			"grid",
 		};
 
 		for (int i = 0; i < TEXTURE_COUNT; ++i)
 		{
 			TextureLoadDesc textureDesc = {};
 			textureDesc.mRoot = FSR_Textures;
-			textureDesc.mUseMipmaps = true;
 			textureDesc.pFilename = textureNames[i];
 			textureDesc.ppTexture = &pTextures[i];
 			addResource(&textureDesc, true);

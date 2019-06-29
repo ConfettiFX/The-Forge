@@ -88,7 +88,6 @@ struct UniformBlock
 	int mRenderSoftShadows;
 };
 
-FileSystem gFileSystem;
 Timer      gAccumTimer;
 HiresTimer gTimer;
 
@@ -100,6 +99,7 @@ const char* pszBases[FSR_Count] = {
 	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
 	"../../../src/02_Compute/",             // FSR_GpuConfig
 	"",                                     // FSR_Animation
+	"",                                     // FSR_Audio
 	"",                                     // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
@@ -197,7 +197,7 @@ class Compute: public IApp
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 #if defined(MOBILE_PLATFORM)
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 			return false;
 #endif
 
@@ -585,6 +585,7 @@ class Compute: public IApp
 		desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 		desc.mSampleCount = SAMPLE_COUNT_1;
 		desc.mHostVisible = false;
+		desc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		textureDesc.pDesc = &desc;
 		textureDesc.ppTexture = &pTextureComputeOutput;
 		addResource(&textureDesc);

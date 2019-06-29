@@ -26,12 +26,13 @@
 #include "../Interfaces/IThread.h"
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/ILogManager.h"
-#include "../Interfaces/IMemoryManager.h"
 
 #ifndef _WIN32
 #include <unistd.h>
 #include <sys/sysctl.h>
 #endif
+
+#include "../Interfaces/IMemoryManager.h"
 
 Mutex::Mutex()
 {

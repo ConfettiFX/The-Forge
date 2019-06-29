@@ -821,8 +821,6 @@ typedef struct Texture
 	VkImageView* pVkSRVStencilDescriptor;
 	/// Native handle of the underlying resource
 	VkImage pVkImage;
-	/// Device memory handle
-	VkDeviceMemory pVkMemory;
 	/// Contains resource allocation info such as parent heap, offset in heap
 	struct VmaAllocation_T* pVkAllocation;
 	/// Flags specifying which aspects (COLOR,DEPTH,STENCIL) are included in the pVkImageView
@@ -1122,7 +1120,6 @@ typedef struct Cmd
 	Renderer* pRenderer;
 	CmdPool*  pCmdPool;
 
-	DescriptorBinder*    pBoundDescriptorBinder;
 	uint32_t*            pBoundColorFormats;
 	bool*                pBoundSrgbValues;
 	uint32_t             mBoundDepthStencilFormat;
@@ -1177,6 +1174,8 @@ typedef struct Cmd
 	Buffer*  pRootConstantBuffer;
 	Buffer*  pTransientConstantBuffer;
 #endif
+	void*                        pBoundDescriptorBinderNode;
+	struct DescriptorBinder*     pBoundDescriptorBinder;
 } Cmd;
 
 typedef struct QueueDesc
@@ -1845,11 +1844,12 @@ typedef struct Renderer
 	VkPhysicalDeviceProperties2*      pVkActiveGPUProperties;
 	VkDevice                          pVkDevice;
 #ifdef USE_DEBUG_UTILS_EXTENSION
-	VkDebugUtilsMessengerEXT pVkDebugUtilsMessenger;
+	VkDebugUtilsMessengerEXT          pVkDebugUtilsMessenger;
+#else
+	VkDebugReportCallbackEXT          pVkDebugReport;
 #endif
-	VkDebugReportCallbackEXT     pVkDebugReport;
-	eastl::vector<const char*> mInstanceLayers;
-	uint32_t                     mVkUsedQueueCount[MAX_GPUS][16];
+	eastl::vector<const char*>        mInstanceLayers;
+	uint32_t                          mVkUsedQueueCount[MAX_GPUS][16];
 
 	Texture* pDefaultTextureSRV[MAX_GPUS][TEXTURE_DIM_COUNT];
 	Texture* pDefaultTextureUAV[MAX_GPUS][TEXTURE_DIM_COUNT];

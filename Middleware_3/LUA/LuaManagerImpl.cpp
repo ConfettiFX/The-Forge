@@ -2,8 +2,8 @@
 
 #include "../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 #include "../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
 #include "../../Common_3/OS/Interfaces/ICameraController.h"
+#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 const char LuaManagerImpl::className[] = "LuaManager";
 bool       LuaManagerImpl::m_registered = false;
@@ -42,7 +42,7 @@ Luna<LuaManagerImpl>::PropertyType LuaManagerImpl::properties[] = { { NULL, NULL
 
 LuaManagerImpl::LuaManagerImpl(lua_State* L): m_SyncLuaState(nullptr) { memset(m_AsyncLuaStates, 0, MAX_LUA_WORKERS * sizeof(lua_State*)); }
 
-LuaManagerImpl::LuaManagerImpl(): m_AsyncScriptsCounter(0), m_SyncLuaState(nullptr)
+LuaManagerImpl::LuaManagerImpl(): m_SyncLuaState(nullptr), m_AsyncScriptsCounter(0)
 {
 	memset(m_AsyncLuaStates, 0, MAX_LUA_WORKERS * sizeof(lua_State*));
 

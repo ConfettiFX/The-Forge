@@ -76,6 +76,7 @@ void drawFrame(float deltaTime);
 #ifndef _IAPP_H_
 #define _IAPP_H_
 
+#include "IOperatingSystem.h"
 #include "../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 class IApp

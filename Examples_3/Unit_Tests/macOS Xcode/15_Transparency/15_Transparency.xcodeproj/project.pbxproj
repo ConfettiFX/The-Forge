@@ -109,12 +109,12 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		281FA9ED20333E9200CD5D9C /* circlepad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = circlepad.png; path = ../../../UnitTestResources/Textures/circlepad.png; sourceTree = "<group>"; };
+		281FA9ED20333E9200CD5D9C /* circlepad.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = circlepad.ktx; path = ../../../UnitTestResources/Textures/circlepad.ktx; sourceTree = "<group>"; };
 		28A5AE19201F7D41000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		28A5AE1C201F7D41000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		28A5AE1E201F7D41000E571F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		28A5AE30201F7D9E000E571F /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = ../../../UnitTestResources/Fonts/TitilliumText; sourceTree = "<group>"; };
-		28A5AE32201F7DB4000E571F /* environment_sky.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = environment_sky.png; path = ../../../UnitTestResources/Textures/environment_sky.png; sourceTree = "<group>"; };
+		28A5AE32201F7DB4000E571F /* environment_sky.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = environment_sky.ktx; path = ../../../UnitTestResources/Textures/environment_sky.ktx; sourceTree = "<group>"; };
 		28EE9FF6201B30B200D42AD7 /* 15_Transparency.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 15_Transparency.cpp; path = ../../../src/15_Transparency/15_Transparency.cpp; sourceTree = "<group>"; };
 		5C172FA521414B560074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/macOS/AppDelegate.m; sourceTree = "<group>"; };
 		5C172FA621414B560074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/macOS/AppDelegate.h; sourceTree = "<group>"; };
@@ -160,8 +160,8 @@
 		B21F76E521420EDB00DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76E621420EDB00DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76E721420EDB00DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
-		B23CFB8320EC313A0053944B /* Warehouse-with-lights.tga */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Warehouse-with-lights.tga"; path = "../../../UnitTestResources/Textures/Warehouse-with-lights.tga"; sourceTree = "<group>"; };
-		B256247120EC31BC007C672A /* rect.tga */ = {isa = PBXFileReference; lastKnownFileType = file; name = rect.tga; path = ../../../UnitTestResources/Textures/rect.tga; sourceTree = "<group>"; };
+		B23CFB8320EC313A0053944B /* Warehouse-with-lights.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Warehouse-with-lights.ktx"; path = "../../../UnitTestResources/Textures/Warehouse-with-lights.ktx"; sourceTree = "<group>"; };
+		B256247120EC31BC007C672A /* rect.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = rect.ktx; path = ../../../UnitTestResources/Textures/rect.ktx; sourceTree = "<group>"; };
 		B256247620EC3277007C672A /* skybox */ = {isa = PBXFileReference; lastKnownFileType = folder; name = skybox; path = ../../../UnitTestResources/Textures/skybox; sourceTree = "<group>"; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../02_Compute/02_Compute/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
@@ -221,10 +221,10 @@
 			isa = PBXGroup;
 			children = (
 				B256247620EC3277007C672A /* skybox */,
-				B256247120EC31BC007C672A /* rect.tga */,
-				B23CFB8320EC313A0053944B /* Warehouse-with-lights.tga */,
-				281FA9ED20333E9200CD5D9C /* circlepad.png */,
-				28A5AE32201F7DB4000E571F /* environment_sky.png */,
+				B256247120EC31BC007C672A /* rect.ktx */,
+				B23CFB8320EC313A0053944B /* Warehouse-with-lights.ktx */,
+				281FA9ED20333E9200CD5D9C /* circlepad.ktx */,
+				28A5AE32201F7DB4000E571F /* environment_sky.ktx */,
 			);
 			name = Textures;
 			path = 15_Transparency_iOS;

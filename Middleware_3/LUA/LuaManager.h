@@ -1,6 +1,8 @@
 #pragma once
 
 #include "LuaManagerCommon.h"
+
+#define MEM_MANAGER_FROM_HEADER
 #include "../../Common_3/OS/Interfaces/IMemoryManager.h"
 
 class LuaManagerImpl;

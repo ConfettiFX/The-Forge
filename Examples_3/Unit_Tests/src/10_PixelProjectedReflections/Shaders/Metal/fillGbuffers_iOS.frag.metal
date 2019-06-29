@@ -39,8 +39,23 @@ struct ObjectData
 	int pbrMaterials;
 };
 
-float3 getNormalFromMap( texture2d<float> normalMap, sampler defaultSampler, float2 uv, float3 pos, float3 normal) {
-	float3 tangentNormal = normalMap.sample(defaultSampler,uv).rgb*2.0 - 1.0;
+float3 reconstructNormal(float4 sampleNormal)
+{
+	float3 tangentNormal;
+#ifdef TARGET_IOS
+	// ASTC texture stores normal map components in red and alpha channels
+	// Once MTLTextureSwizzle becomes part of final API, we can do this in the renderer side so the shader can treat ASTC normal_psnr like a BC5 texture
+	tangentNormal.xy = (sampleNormal.ra * 2 - 1);
+#else
+	tangentNormal.xy = (sampleNormal.rg * 2 - 1);
+#endif
+	tangentNormal.z = sqrt(1 - saturate(dot(tangentNormal.xy, tangentNormal.xy)));
+	return tangentNormal;
+}
+
+float3 getNormalFromMap( texture2d<float> normalMap, sampler defaultSampler, float2 uv, float3 pos, float3 normal)
+{
+	float3 tangentNormal = reconstructNormal(normalMap.sample(defaultSampler,uv));
 
 	float3 Q1 = dfdx(pos);
 	float3 Q2 = dfdy(pos);

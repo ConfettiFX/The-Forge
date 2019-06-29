@@ -97,13 +97,13 @@ Renderer* pRenderer = NULL;
 Queue*        pGraphicsQueue[gViewCount] = { NULL };
 CmdPool*      pCmdPool[gViewCount] = { NULL };
 Cmd**         ppCmds[gViewCount] = { NULL };
-Fence*        pRenderCompleteFences[gViewCount][gImageCount] = { NULL };
-Semaphore*    pRenderCompleteSemaphores[gViewCount][gImageCount] = { NULL };
+Fence*        pRenderCompleteFences[gViewCount][gImageCount] = { { NULL } };
+Semaphore*    pRenderCompleteSemaphores[gViewCount][gImageCount] = {{ NULL }};
 Buffer*       pSphereVertexBuffer[gViewCount] = { NULL };
 Buffer*       pSkyBoxVertexBuffer[gViewCount] = { NULL };
 Texture*      pSkyBoxTextures[gViewCount][6];
 GpuProfiler*  pGpuProfilers[gViewCount] = { NULL };
-RenderTarget* pRenderTargets[gViewCount][gImageCount] = { NULL };
+RenderTarget* pRenderTargets[gViewCount][gImageCount] = {{ NULL }};
 RenderTarget* pDepthBuffers[gViewCount] = { NULL };
 
 Semaphore* pImageAcquiredSemaphore = NULL;
@@ -137,10 +137,8 @@ ICameraController* pCameraController = NULL;
 UIApp         gAppUI;
 GuiComponent* pGui;
 
-FileSystem gFileSystem;
-
-const char* pSkyBoxImageFileNames[] = { "Skybox_right1.png",  "Skybox_left2.png",  "Skybox_top3.png",
-										"Skybox_bottom4.png", "Skybox_front5.png", "Skybox_back6.png" };
+const char* pSkyBoxImageFileNames[] = { "Skybox_right1",  "Skybox_left2",  "Skybox_top3",
+										"Skybox_bottom4", "Skybox_front5", "Skybox_back6" };
 
 const char* pszBases[FSR_Count] = {
 	"../../../src/11_MultiGPU/",                        // FSR_BinShaders
@@ -150,6 +148,7 @@ const char* pszBases[FSR_Count] = {
 	"../../../UnitTestResources/",                      // FSR_Builtin_Fonts
 	"../../../src/11_MultiGPU/",                        // FSR_GpuConfig
 	"",                                                 // FSR_Animation
+	"",                                                 // FSR_Audio
 	"",                                                 // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",                // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",                  // FSR_MIDDLEWARE_UI
@@ -157,8 +156,8 @@ const char* pszBases[FSR_Count] = {
 };
 
 TextDrawDesc     gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
-ClearValue       gClearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
-ClearValue       gClearDepth = { 1.0f, 0 };
+ClearValue       gClearColor; // initialization in Init
+ClearValue       gClearDepth;
 Panini           gPanini = {};
 PaniniParameters gPaniniParams = {};
 bool             gMultiGPU = true;
@@ -170,6 +169,14 @@ class MultiGPU: public IApp
 	public:
 	bool Init()
 	{
+		gClearColor.r = 0.0f;
+		gClearColor.g = 0.0f;
+		gClearColor.b = 0.0f;
+		gClearColor.a = 0.0f;
+
+		gClearDepth.depth = 1.0f;
+		gClearDepth.stencil = 0;
+
 		// window and renderer setup
 		RendererDesc settings = { 0 };
 		settings.mGpuMode = gMultiGPU ? GPU_MODE_LINKED : GPU_MODE_SINGLE;
@@ -315,7 +322,6 @@ class MultiGPU: public IApp
 #else
 		textureDesc.mRoot = FSRoot::FSR_Absolute;    // Resources on iOS are bundled with the application.
 #endif
-		textureDesc.mUseMipmaps = true;
 
 		for (uint32_t view = 0; view < gViewCount; ++view)
 		{
