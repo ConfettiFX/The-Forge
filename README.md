@@ -6,12 +6,13 @@ The Forge is a cross-platform rendering framework supporting
      * with DirectX 12 / Vulkan 1.1
      * with DirectX Ray Tracing API
      * DirectX 11 Fallback Layer for Windows 7 support (not extensively tested)
-  * Linux Ubuntu 18.04 LTS with Vulkan 1.1
+  * Linux Ubuntu 18.04 LTS with Vulkan 1.1 and RTX Ray Tracing API
 - Android Pie with Vulkan 1.1
-- macOS with Metal 2
-- iOS with Metal 2
+- macOS / iOS / iPad OS with Metal 2
 - XBOX One / XBOX One X (only available for accredited developers on request)
 - PS4 (only available for accredited developers on request)
+- Switch (in development) (only available for accredited developers on request)
+- Google Stadia (in development) (only available for accredited developers on request)
 
 Particularly, the graphics layer of The Forge supports cross-platform
 - Descriptor management
@@ -23,13 +24,16 @@ The Forge can be used to provide the rendering layer for custom next-gen game en
 - Asynchronous Resource loading with a resource loader task system as shown in 10_PixelProjectedReflections
 - [Lua Scripting System](https://www.lua.org/) - currently used in 06_Playground to load models and textures and animate the camera
 - Animation System based on [Ozz Animation System](https://github.com/guillaumeblanc/ozz-animation)
-- Consistent Math Library  based on an extended version of [Vectormath](https://github.com/glampert/vectormath)
+- Consistent Math Library  based on an extended version of [Vectormath](https://github.com/glampert/vectormath) with NEON intrinsics for mobile platforms
 - Extended version of [EASTL](https://github.com/electronicarts/EASTL/)
 - For loading art assets we have a modified and integrated version of [Assimp](https://github.com/assimp/assimp)
-- Consistent Memory Managament: on GPU following [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
+- Consistent Memory Managament: 
+  * on GPU following [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
+  * on CPU [Fluid Studios Memory Manager](http://www.paulnettle.com/)
 - Input system with Gestures for Touch devices based on an extended version of [gainput](https://github.com/jkuhlmann/gainput)
-- Very fast Entity Component System based on [ENTT](https://github.com/skypjack/entt)
+- Fast Entity Component System based on our internally developed ECS
 - UI system based on [imGui](https://github.com/ocornut/imgui) with a dedicated unit test extended for touch input devices
+- Audio based on integrating [SoLoud](https://github.com/jarikomppa/soloud)
 - Various implementations of high-end Graphics Effects as shown in the unit tests below
 
 Please find a link and credits for all open-source packages used at the end of this readme.
@@ -45,6 +49,55 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 
 # News
 
+## Release 1.30 - June 28th, 2019 - Ephemeris 2 - New Skydome System | Android Unit Tests | New Entity Component System | SoLoud Audio 
+ * Ephemeris 2: this is a new volumetric skydome system developed for PS4 / XBOX One class of hardware. Click on the image to watch a video:
+
+ [![Ephemeris 2](Screenshots/Ephemeris2.png)](https://vimeo.com/344675521)
+
+ For Ephemeris and the rest of our commercial custom middleware there is now a new GitHub repository here [Custom-Middleware](https://github.com/ConfettiFX/Custom-Middleware) 
+
+ We also have a skydome system for mobile hardware called Ephemeris 1, that will be released on GitHub later.
+
+ * Android: we are supporting now more and more unit tests in Android by improving the run-time support. Here are screenshots:
+
+01_Transformations
+ ![01_Transformations](Screenshots/Screenshot_20190620-060535_Transformation.jpg)
+
+02_Compute
+![02_Compute](Screenshots/Screenshot_20190620-060638_Compute.jpg)
+
+05_FontRendering
+![05_FontRendering](Screenshots/Screenshot_20190620-061732_FontRendering.jpg)
+
+09_LightAndShadow
+![09_LightAndShadow](Screenshots/09_LightAndShadow_Android.jpg)
+
+13_imGUI
+![13_imGuI](Screenshots/13_imGUI_Android.jpg)
+
+17_EntityComponentSystem
+![17_EntityComponentSystem](Screenshots/Screenshot_20190620-060737_EntityComponentSystem.jpg)
+
+ We added the Samsung S10 Galaxy phone (Qualcomm Adreno 640 Graphics Card (Vulkan 1.1.87)) to the test devices for Android. 
+
+ * ENTT: we decided to remove ENTT and replace it with our own ECS system that we use internally for tools. ENTT in debug is too slow for practical usage because it decreases execution speed and increases compile times substantially. It appears that "modern C++ 17" and probably also "modern C++ 14" is not ready for usage in a team environment because it decreases productivity too much. We tried to remove C++ 17 and 14 features to make it run faster but it ended up too much work. We went from more than 200 ms with ENTT to 60 ms with our own ECS running a Debug build on a Intel Core i7-6700T 2.8GHz. In release our own system is in the moment not as fast as ENTT but we will fix that.
+
+ * Audio: we did a first pass on integrating [SoLoud](https://github.com/jarikomppa/soloud) for all our platforms. There is a new unit test:
+
+![26_Audio](Screenshots/26_Audio.png)
+ 
+ * Linux: following STEAM, we are switching to the Mesa RADV driver in our test environment for AMD GPUs. For NVIDIA GPUs we are still using the NVIDIA driver.
+
+ * Texture Asset pipeline: we did a first pass on a unified texture asset pipeline. On the app level only the name of the texture needs to be provided and then depending on the underlying platform it will attempt to load the "optimal compressed" texture, which in the moment is either KTX or dds. In the future there will be Google Basis support as well.
+  * Removed support for various non-optimal texture file formats - png, jpg, tga, hdr, exr
+  * Add ASTC support for iOS through KTX container
+  * Add compressed textures for all unit test resources
+  * Add BC6H signed and unsigned float variants
+  Please make sure you download the art asset zip file again with the help of the batch file.
+
+* Issue list:
+   * issue #109 "Texture updates broken" is fixed now
+   * NVIDIA GTX 1660 bug: this card with the Vulkan run-time and driver 419.35 became unresponsive, while the DirectX 12 run-time works as expected. Any other NVIDIA GPU works fine ... this looks like a driver bug ...
 
 ## Release 1.29 - June 6th, 2019 - EASTL Integration | Micro-profiler improvements | Neon intrinsic Support
  * We replaced for all platforms TinySTL with [EASTL](https://github.com/electronicarts/EASTL/) for support of additional data structures and functionality. This was a major change and we still expect a few bugs to appear.
@@ -137,11 +190,8 @@ See the release notes from previous releases in the [Release section](https://gi
 
 1. Windows 10 
 
-
 2. Drivers
-* AMD / NVIDIA - latest drivers 
-* Intel - need to install the latest driver (currently Version: 25.20.100.6326, October 9th, 2018) [Intel® Graphics Driver for Windows® 10](https://downloadcenter.intel.com/download/28240/Intel-Graphics-Driver-for-Windows-10?product=80939). As mentioned before this driver still doesn't have full DirectX 12 and Vulkan support.
-
+* AMD / NVIDIA / Intel - latest drivers 
 
 3. Visual Studio 2017 with Windows SDK / DirectX version 17763.132 (you need to get it via the Visual Studio Intaller)
 https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
@@ -172,7 +222,7 @@ We will not test any Hackintosh configuration.
 
 # iOS Requirements:
 
-1. iOS 12.2 beta (16E5181f)
+1. iOS 13 12.2 beta (16E5181f)
 
 2. XCode: see macOS
 
@@ -180,8 +230,17 @@ To run the unit tests, The Forge requires an iOS device with an A9 or higher CPU
 
 We are currently testing on 
 * iPhone 7 (Model A1778)
-* iPad (Model A1893)
 * iPhone Xs Max (Model MT5D2LL/A)
+
+
+# iPad OS Requirements:
+
+1. iPad OS beta 2 
+
+2. XCode: see macOS
+
+We are currently testing on:
+* iPad (Model A1893)
 
 
 # PC Linux Requirements:
@@ -189,9 +248,8 @@ We are currently testing on
 1. [Ubuntu 18.04 LTS](https://www.ubuntu.com/download/desktop) Kernel Version: 4.15.0-20-generic
 
 2. GPU Drivers:
-* [AMDGpu-Pro 18.30-641594](https://www.amd.com/en/support/graphics/radeon-500-series/radeon-rx-500-series/radeon-rx-580)
-* [NVIDIA Linux x86_64/AMD64/EM64T 418.56](http://www.nvidia.com/object/unix.html) You can update using the command line too https://tecadmin.net/install-latest-nvidia-drivers-ubuntu/
-* Ubuntu comes with open souce Intel and AMD drivers, but for the latest driver you can use the stable Mesa packages supplied here: https://launchpad.net/~paulo-miguel-dias/+archive/ubuntu/pkppa/
+  * AMD GPUs: we are testing on the [Mesa RADV driver](https://launchpad.net/~paulo-miguel-dias/+archive/ubuntu/pkppa/)
+  * NVIDIA GPUs: we are testing with the [NVIDIA driver](http://www.nvidia.com/object/unix.html)
 
 3. Workspace file is provided for [codelite 12.0.6](https://codelite.org/)
 
@@ -208,12 +266,12 @@ We are currently testing on
 
 1. Android Phone with Android Pie (9.x) for Vulkan 1.1 support
 
-2. Android Studio with API level 28 and follow the instructions
+2. Android Studio with API level 28 
 
 3. We are currently testing on 
+* [Samsung S10 Galaxy (Qualcomm Adreno 640 Graphics Cardv(Vulkan 1.1.87))](https://www.samsung.com/us/mobile/galaxy-s10/) with Android 9.0. Please note this is the version with the Qualcomm based chipset.
 * [Essential Phone](https://en.wikipedia.org/wiki/Essential_Phone) with Android 9.0 - Build PPR1.181005.034
 
-In the moment we only support the first two unit tests. We are waiting for devkits with more stable drivers before we bring over the other unit tests. The Essential phone uses an Adreno 540 GPU. Please check out [Vulkan Gpuinfo.org](http://vulkan.gpuinfo.org/) for the supported feature list of this GPU with Android 9.0.
 
 
 # Install 
@@ -269,6 +327,7 @@ This unit test shows the current state of our font rendering library that is bas
 This unit test shows a range of game related materials:
 
 Hair:
+Many years ago in 2012 / 2013, we helped AMD and Crystal Dynamics with the development of TressFX for Tomb Raider. We also wrote an article about the implementation in GPU Pro 5 and gave a few joint presentations on conferences like FMX. At the end of last year we revisited TressFX. We took the current code in the GitHub repository, changed it a bit and ported it to The Forge. It now runs on PC with DirectX 12 / Vulkan, macOS and iOS with Metal 2 and on the XBOX One. We also created a few new hair assets so that we can showcase it. Here is a screenshot of our programmer art:
 
 ![Hair on PC](Screenshots/MaterialPlayground/06_MaterialPlayground_Hair_closup.gif)
 
@@ -364,8 +423,8 @@ This unit test was originally posted on ShaderToy by [Inigo Quilez](https://www.
 
 ![Image of the Sphere Tracing  unit test in The Forge](Screenshots/16_RayMarching_Linux.png)
 
-## 17. ENTT - Entity Component System Test
-This unit test shows how to use a high-performance entity component system in The Forge.
+## 17. Entity Component System Test
+This unit test shows how to use the high-performance entity component system in The Forge. This unit test is based on a ECS system that we developed internally for tools.
 
 ![Image of the Entity Component System unit test in The Forge](Screenshots/17_EntityComponentSystem.png)
 
@@ -410,6 +469,12 @@ This unit test shows how to use skinning with Ozz
 
 ![Image of the Ozz Skinning unit test](Screenshots/Skinning_PC.gif)
 
+## 26. Audio Integration of SoLoud
+We integrated SoLoad. Here is a unit test that allow's you make noise ...
+
+![26_Audio](Screenshots/26_Audio.png)
+
+
 
 # Examples
 There is an example implementation of the Triangle Visibility Buffer as covered in various conference talks. [Here](https://diaryofagraphicsprogrammer.blogspot.com/2018/03/triangle-visibility-buffer.html) is a blog entry that details the implementation in The Forge.
@@ -434,11 +499,7 @@ It's supported on the following platforms:
  - Linux
  - macOS (GPU profiling is disabled)
  - iOS (GPU profiling is disabled)
- - Android(WIP will be enabled later on)
-
-We can find MicroProfile integrated in the follwing examples:
- - Unit Test 02_Compute
- - VisibilityBuffer
+ - Android 
 
 MicroProfile provides us an easy to use UI and visualization our frame.
 
@@ -464,8 +525,6 @@ without it being updated every frame. This will be useful when displaying in Det
 mode.
 
 For any doubt on the use of the MicroProfile, hover Help.
-
-
 
 
 # Releases / Maintenance
@@ -516,10 +575,11 @@ The Forge utilizes the following Open-Source libraries:
 * [imGui](https://github.com/ocornut/imgui)
 * [DirectX Shader Compiler](https://github.com/Microsoft/DirectXShaderCompiler)
 * [Ozz Animation System](https://github.com/guillaumeblanc/ozz-animation)
-* [ENTT](https://github.com/skypjack/entt)
 * [Lua Scripting System](https://www.lua.org/)
 * [TressFX](https://github.com/GPUOpen-Effects/TressFX)
 * [Micro Profiler](https://github.com/zeux/microprofile)
 * [MTuner](https://github.com/milostosic/MTuner) 
 * [EASTL](https://github.com/electronicarts/EASTL/)
+* [enkiTS](https://github.com/dougbinks/enkiTS)
+* [SoLoud](https://github.com/jarikomppa/soloud)
 
