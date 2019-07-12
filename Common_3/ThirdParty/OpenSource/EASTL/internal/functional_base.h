@@ -75,11 +75,17 @@ namespace eastl
 		return (*eastl::forward<T>(obj)).*member;
 	}
 
-	template <typename F, typename... Args>
-	inline decltype(auto) invoke(F&& func, Args&&... args)
+	// FORGE_EASTL_CHANGES_START
+	template <class F, class... Args, class Fd = typename eastl::decay<F>::type>
+	auto invoke(F&& f, Args&&... args) -> decltype(invoke_impl(eastl::forward<F>(f), eastl::forward<Args>(args)...))
 	{
-		return invoke_impl(eastl::forward<F>(func), eastl::forward<Args>(args)...);
+		return invoke_impl(eastl::forward<F>(f), eastl::forward<Args>(args)...);
 	}
+
+	// template <class F, class... Args, class Fd = typename eastl::decay<F>::type>
+	// auto invoke(F&& f, Args&&... args)
+	//-> decltype(invoke_impl(eastl::forward<F>(f), eastl::forward<Args>(args)...));
+	// FORGE_EASTL_CHANGES_END
 
 	template <typename F, typename = void, typename... Args>
 	struct invoke_result_impl {

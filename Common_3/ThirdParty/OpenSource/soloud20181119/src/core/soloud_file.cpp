@@ -29,7 +29,7 @@ distribution.
 #include <string.h>
 #include "soloud.h"
 #include "soloud_file.h"
-#include "../../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../../OS/Interfaces/IMemory.h"
 
 namespace SoLoud
 {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../Common_3/OS/Interfaces/ILog.h"
 #include "../../Common_3/OS/Interfaces/IThread.h"
 
 #include "../../Common_3/ThirdParty/OpenSource/EASTL/string.h"

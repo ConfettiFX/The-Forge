@@ -50,7 +50,7 @@
 
 #include "AsteroidSim.h"
 #include "Random.h"
-#if !defined(TARGET_IOS)
+#if !defined(TARGET_IOS) && !defined(__ANDROID__)
 #include <immintrin.h>
 #endif
 

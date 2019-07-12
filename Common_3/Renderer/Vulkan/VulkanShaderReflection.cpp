@@ -27,13 +27,13 @@
 #include "../IRenderer.h"
 
 #include "../../Tools/SpirvTools/SpirvTools.h"
-#include "../../OS/Interfaces/ILogManager.h"
-#include "../../OS/Interfaces/IMemoryManager.h"
+#include "../../OS/Interfaces/ILog.h"
+#include "../../OS/Interfaces/IMemory.h"
 
 static DescriptorType sSPIRV_TO_DESCRIPTOR[SPIRV_TYPE_COUNT] = {
 	DESCRIPTOR_TYPE_UNDEFINED,        DESCRIPTOR_TYPE_UNDEFINED,    DESCRIPTOR_TYPE_UNIFORM_BUFFER,  DESCRIPTOR_TYPE_RW_BUFFER,
 	DESCRIPTOR_TYPE_TEXTURE,          DESCRIPTOR_TYPE_RW_TEXTURE,   DESCRIPTOR_TYPE_SAMPLER,         DESCRIPTOR_TYPE_ROOT_CONSTANT,
-	DESCRIPTOR_TYPE_INPUT_ATTACHMENT, DESCRIPTOR_TYPE_TEXEL_BUFFER, DESCRIPTOR_TYPE_RW_TEXEL_BUFFER,
+	DESCRIPTOR_TYPE_INPUT_ATTACHMENT, DESCRIPTOR_TYPE_TEXEL_BUFFER, DESCRIPTOR_TYPE_RW_TEXEL_BUFFER, DESCRIPTOR_TYPE_RAY_TRACING,
 };
 
 static TextureDimension sSPIRV_TO_RESOURCE_DIM[SPIRV_DIM_COUNT] = {
@@ -63,9 +63,6 @@ bool filterResouce(SPIRV_Resource* resource, ShaderStage currentStage)
 
 	// remove stage inputs that are not on the vertex shader
 	filter = filter || (resource->type == SPIRV_Resource_Type::SPIRV_TYPE_STAGE_INPUTS && currentStage != SHADER_STAGE_VERT);
-
-	// we support push constants
-	//filter = filter || (resource->type == SPIRV_Resource_Type::SPIRV_TYPE_PUSH_CONSTANT);
 
 	return filter;
 }

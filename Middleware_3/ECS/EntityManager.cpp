@@ -1,4 +1,4 @@
-#include "../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../Common_3/OS/Interfaces/ILog.h"
 
 #include "EntityManager.h"
 // Components ////////////////////////////////////
@@ -7,7 +7,7 @@
 #include "ComponentRepresentation.h"
 // Component Representations -- as to get component ids /////////////////////////////////////////
 //----
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h" // NOTE: this should be the last include in a .cpp
+#include "../../Common_3/OS/Interfaces/IMemory.h" // NOTE: this should be the last include in a .cpp
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
 Entity::~Entity()

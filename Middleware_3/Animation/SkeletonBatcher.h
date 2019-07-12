@@ -39,12 +39,13 @@ const uint32_t ImageCount = 3;    // must match the application
 struct UniformSkeletonBlock
 {
 	mat4 mProjectView;
-	mat4 mToWorldMat[MAX_INSTANCES];
-	vec4 mColor[MAX_INSTANCES];
 
+	vec4 mColor[MAX_INSTANCES];
 	// Point Light Information
-	vec3 mLightPosition;
-	vec3 mLightColor;
+	vec4 mLightPosition;
+	vec4 mLightColor;
+
+	mat4 mToWorldMat[MAX_INSTANCES];
 };
 
 // Description needed to handle buffer updates and draw calls

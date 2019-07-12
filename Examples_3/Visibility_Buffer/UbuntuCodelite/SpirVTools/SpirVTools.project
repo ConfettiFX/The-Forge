@@ -6,12 +6,16 @@
     <File Name="../../../../Common_3/Tools/SpirvTools/dllmain.cpp" ExcludeProjConfig="Debug"/>
     <File Name="../../../../Common_3/Tools/SpirvTools/SpirvTools.cpp"/>
     <File Name="../../../../Common_3/Tools/SpirvTools/SpirvTools.h"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv.hpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_cpp.cpp"/>
     <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_cfg.cpp"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_cfg.hpp"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_common.hpp"/>
     <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_cross.cpp"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_cross.hpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_cross_parsed_ir.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_cross_util.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_glsl.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_hlsl.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_msl.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_parser.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_reflect.cpp"/>
   </VirtualDirectory>
   <Settings Type="Static Library">
     <GlobalSettings>

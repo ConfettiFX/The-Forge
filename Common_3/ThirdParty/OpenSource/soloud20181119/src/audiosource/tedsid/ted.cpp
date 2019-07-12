@@ -1,6 +1,6 @@
 #include <string.h>
 #include "ted.h"
-#include "../../../../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../../../../OS/Interfaces/IMemory.h"
 
 
 #define PRECISION 0

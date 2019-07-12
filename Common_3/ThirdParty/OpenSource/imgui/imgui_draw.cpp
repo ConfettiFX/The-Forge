@@ -42,7 +42,7 @@ Index of this file:
 #endif
 #endif
 
-#include "../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../OS/Interfaces/IMemory.h"
 
 // Visual Studio warnings
 #ifdef _MSC_VER

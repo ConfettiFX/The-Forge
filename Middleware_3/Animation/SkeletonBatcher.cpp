@@ -85,14 +85,14 @@ void SkeletonBatcher::Destroy()
 void SkeletonBatcher::SetSharedUniforms(const Matrix4& projViewMat, const Vector3& lightPos, const Vector3& lightColor)
 {
 	mUniformDataJoints.mProjectView = projViewMat;
-	mUniformDataJoints.mLightPosition = lightPos;
-	mUniformDataJoints.mLightColor = lightColor;
+	mUniformDataJoints.mLightPosition = Vector4(lightPos);
+	mUniformDataJoints.mLightColor = Vector4(lightColor);
 
 	if (mDrawBones)
 	{
 		mUniformDataBones.mProjectView = projViewMat;
-		mUniformDataBones.mLightPosition = lightPos;
-		mUniformDataBones.mLightColor = lightColor;
+		mUniformDataBones.mLightPosition = Vector4(lightPos);
+		mUniformDataBones.mLightColor = Vector4(lightColor);
 	}
 }
 

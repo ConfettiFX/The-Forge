@@ -30,9 +30,9 @@
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IThread.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
@@ -67,7 +67,7 @@
 #include "../../../../Common_3/OS/Input/InputSystem.h"
 #include "../../../../Common_3/OS/Input/InputMappings.h"
 
-#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../../../Common_3/OS/Interfaces/IMemory.h"
 
 // startdust hash function, use this to generate all the seed and update the position of all particles
 #define RND_GEN(x) (x = x * 196314165 + 907633515)

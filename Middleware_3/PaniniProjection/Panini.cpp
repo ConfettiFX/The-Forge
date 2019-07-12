@@ -28,8 +28,8 @@
 #include "../../Common_3/Renderer/ResourceLoader.h"
 #include "../../Common_3/Renderer/GpuProfiler.h"
 
-#include "../../Common_3/OS/Interfaces/ILogManager.h"
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../Common_3/OS/Interfaces/ILog.h"
+#include "../../Common_3/OS/Interfaces/IMemory.h"
 
 namespace eastl
 {

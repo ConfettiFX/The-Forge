@@ -842,7 +842,7 @@ CODE
 #endif
 
 #include "../../../OS/Interfaces/IFileSystem.h"
-#include "../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../OS/Interfaces/IMemory.h"
 
 #define IMGUI_DEBUG_NAV_SCORING     0
 #define IMGUI_DEBUG_NAV_RECTS       0

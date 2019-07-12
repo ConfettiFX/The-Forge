@@ -17,7 +17,7 @@ kernel void missShadow(uint2 tid                               [[thread_position
                        device uint *hitGroupID                 [[buffer(7)]],
                        device ShaderSettings &shaderSettings   [[buffer(8)]],
                        
-                       texture2d<float, access::write> dstTex  [[texture(0)]])
+                       texture2d<float, access::write> gOutput  [[texture(0)]])
 {
     if (tid.x < uniforms.width && tid.y < uniforms.height) {
         unsigned int rayIdx = tid.y * uniforms.width + tid.x;
@@ -29,7 +29,7 @@ kernel void missShadow(uint2 tid                               [[thread_position
             ray.maxDistance = -1.0f;
 
             device Payload & pload = payload[rayIdx];
-            dstTex.write(float4(pload.color, 0.0f), tid);
+            gOutput.write(float4(pload.color, 0.0f), tid);
         }
     }
 }

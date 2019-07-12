@@ -26,7 +26,7 @@
 #include "../../Common_3/OS/Image/Image.h"
 #include "../../Common_3/OS/Image/ImageEnums.h"
 #include "AppHelpers.h"
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../Common_3/OS/Interfaces/IMemory.h"
 
 void loadTexturesTask(void* data, uintptr_t i)
 {

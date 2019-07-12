@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "../Interfaces/ITimeManager.h"
+#include "../Interfaces/ITime.h"
 #include "../Interfaces/IOperatingSystem.h"
 
 #ifndef _WIN32
@@ -30,7 +30,7 @@
 #include <time.h>      // for CLOCK_REALTIME
 #include <cstring>     // for memset
 #endif
-#include "../Interfaces/IMemoryManager.h"
+#include "../Interfaces/IMemory.h"
 
 Timer::Timer() { Reset(); }
 
@@ -90,7 +90,3 @@ float HiresTimer::GetSeconds(bool reset) { return (float)(GetUSec(reset) / 1e6);
 float HiresTimer::GetSecondsAverage() { return (float)(GetUSecAverage() / 1e6); }
 
 void HiresTimer::Reset() { mStartTime = getUSec(); }
-
-unsigned TimeManager::GetSystemTime() { return getSystemTime(); }
-
-unsigned TimeManager::GetTimeSinceStart() { return getTimeSinceStart(); }

@@ -24,10 +24,10 @@
 
 #ifdef DIRECT3D11
 #include "../IRenderer.h"
-#include "../../OS/Interfaces/ILogManager.h"
+#include "../../OS/Interfaces/ILog.h"
 #include <d3dcompiler.h>
 
-#include "../../OS/Interfaces/IMemoryManager.h"
+#include "../../OS/Interfaces/IMemory.h"
 
 static DescriptorType sD3D11_TO_DESCRIPTOR[] = {
 	DESCRIPTOR_TYPE_UNIFORM_BUFFER,    //D3D_SIT_CBUFFER

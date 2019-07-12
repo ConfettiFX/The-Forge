@@ -17,20 +17,19 @@ add_library(os STATIC
         # core common
         ${COMMON_DIR}/OS/Android/AndroidFileSystem.cpp
         ${COMMON_DIR}/OS/Android/AndroidBase.cpp
-        ${COMMON_DIR}/OS/Android/AndroidLogManager.cpp
-        ${COMMON_DIR}/OS/Android/AndroidThreadManager.cpp
+        ${COMMON_DIR}/OS/Android/AndroidLog.cpp
+        ${COMMON_DIR}/OS/Android/AndroidThread.cpp
+        ${COMMON_DIR}/OS/Android/AndroidTime.cpp
         ${COMMON_DIR}/OS/Camera/FpsCameraController.cpp
         ${COMMON_DIR}/OS/Camera/GuiCameraController.cpp
         ${COMMON_DIR}/OS/Core/FileSystem.cpp
         ${COMMON_DIR}/OS/Core/PlatformEvents.cpp
         ${COMMON_DIR}/OS/Core/ThreadSystem.cpp
         ${COMMON_DIR}/OS/Core/Timer.cpp
-        ${COMMON_DIR}/OS/Core/Timer.cpp
         ${COMMON_DIR}/OS/Image/Image.cpp
-        ${COMMON_DIR}/OS/Logging/LogManager.cpp
-        ${COMMON_DIR}/OS/Image/Image.cpp
+        ${COMMON_DIR}/OS/Logging/Log.cpp
         ${COMMON_DIR}/OS/Input/InputSystem.cpp
-        ${COMMON_DIR}/OS/MemoryTracking/MemoryTrackingManager.cpp
+        ${COMMON_DIR}/OS/MemoryTracking/MemoryTracking.cpp
         ${COMMON_DIR}/ThirdParty/OpenSource/TinyEXR/tinyexr.cpp
         ${COMMON_DIR}/ThirdParty/OpenSource/MicroProfile/Profiler.cpp
         ${COMMON_DIR}/ThirdParty/OpenSource/MicroProfile/ProfilerBase.cpp
@@ -76,9 +75,17 @@ add_library(renderer STATIC
         ${COMMON_DIR}/Renderer/ResourceLoader.cpp
 
         # spirv tools
+        ${COMMON_DIR}/Tools/SpirvTools/SpirvTools.cpp
+        ${COMMON_DIR}/ThirdParty/OpenSource/SPIRV_Cross/spirv_cpp.cpp
         ${COMMON_DIR}/ThirdParty/OpenSource/SPIRV_Cross/spirv_cfg.cpp
         ${COMMON_DIR}/ThirdParty/OpenSource/SPIRV_Cross/spirv_cross.cpp
-        ${COMMON_DIR}/Tools/SpirvTools/SpirvTools.cpp
+        ${COMMON_DIR}/ThirdParty/OpenSource/SPIRV_Cross/spirv_cross_parsed_ir.cpp
+        ${COMMON_DIR}/ThirdParty/OpenSource/SPIRV_Cross/spirv_cross_util.cpp
+        ${COMMON_DIR}/ThirdParty/OpenSource/SPIRV_Cross/spirv_glsl.cpp
+        ${COMMON_DIR}/ThirdParty/OpenSource/SPIRV_Cross/spirv_hlsl.cpp
+        ${COMMON_DIR}/ThirdParty/OpenSource/SPIRV_Cross/spirv_msl.cpp
+        ${COMMON_DIR}/ThirdParty/OpenSource/SPIRV_Cross/spirv_parser.cpp
+        ${COMMON_DIR}/ThirdParty/OpenSource/SPIRV_Cross/spirv_reflect.cpp
         )
 target_compile_definitions(renderer PUBLIC VULKAN)
 target_include_directories(renderer PUBLIC ${SHADERC_DIR}/include)

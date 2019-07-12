@@ -30,10 +30,10 @@
 #endif
 
 #include "../Interfaces/IFileSystem.h"
-#include "../Interfaces/ILogManager.h"
+#include "../Interfaces/ILog.h"
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IThread.h"
-#include "../Interfaces/IMemoryManager.h"
+#include "../Interfaces/IMemory.h"
 
 #if defined(DIRECT3D12)
 #define RESOURCE_DIR "Shaders/D3D12"

@@ -24,36 +24,106 @@
 
 #pragma once
 
-#include "../../ThirdParty/OpenSource/EnkiTS/Atomics.h"
+#include "Compiler.h"
 
-typedef volatile BASE_ALIGN(4) uint32_t tfrg_atomic32_t;
-typedef volatile BASE_ALIGN(8) uint64_t tfrg_atomic64_t;
+typedef volatile ALIGNAS(4) uint32_t tfrg_atomic32_t;
+typedef volatile ALIGNAS(8) uint64_t tfrg_atomic64_t;
+typedef volatile ALIGNAS(PTR_SIZE) uintptr_t tfrg_atomicptr_t;
 
-#define tfrg_memorybarrier_acquire() BASE_MEMORYBARRIER_ACQUIRE()
-#define tfrg_memorybarrier_release() BASE_MEMORYBARRIER_RELEASE()
+#ifdef _MSC_VER
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
 
-#define tfrg_atomic32_add_relaxed(pVar, val) enki::AtomicAdd((pVar), (val))
+	#include <windows.h>
+	#include <intrin.h>
 
-#define tfrg_atomic64_add_relaxed(pVar, val) enki::AtomicAdd((pVar), (val))
+	#define tfrg_memorybarrier_acquire() _ReadWriteBarrier()
+	#define tfrg_memorybarrier_release() _ReadWriteBarrier()
 
-#define tfrg_atomic64_max_relaxed(pVar, val) enki::AtomicUpdateMax((pVar), (val))
+	#define tfrg_atomic32_load_relaxed(pVar) (*(pVar))
+	#define tfrg_atomic32_store_relaxed(dst, val) _InterlockedExchange( (volatile long*)(dst), val )
+	#define tfrg_atomic32_add_relaxed(dst, val) _InterlockedExchangeAdd( (volatile long*)(dst), (val) )
+	#define tfrg_atomic32_cas_relaxed(dst, cmp_val, new_val) _InterlockedCompareExchange( (volatile long*)(dst), (new_val), (cmp_val) )
 
-#define tfrg_atomic32_load_relaxed(pVar) (*pVar)
-#define tfrg_atomic32_store_relaxed(pVar, val) ((*pVar) = (val))
+	#define tfrg_atomic64_load_relaxed(pVar) (*(pVar))
+	#define tfrg_atomic64_store_relaxed(dst, val) _InterlockedExchange64( (volatile LONG64*)(dst), val )
+	#define tfrg_atomic64_add_relaxed(dst, val) _InterlockedExchangeAdd64( (volatile LONG64*)(dst), (val) )
+	#define tfrg_atomic64_cas_relaxed(dst, cmp_val, new_val) _InterlockedCompareExchange64( (volatile LONG64*)(dst), (new_val), (cmp_val) )
 
-#define tfrg_atomic64_load_relaxed(pVar) (*pVar)
-#define tfrg_atomic64_store_relaxed(pVar, val) ((*pVar) = (val))
+#else
+    #define tfrg_memorybarrier_acquire() __asm__ __volatile__("": : :"memory")
+    #define tfrg_memorybarrier_release() __asm__ __volatile__("": : :"memory")
 
-inline uint64_t tfrg_atomic64_load_acquire(tfrg_atomic64_t* pVar)
+	#define tfrg_atomic32_load_relaxed(pVar) (*(pVar))
+	#define tfrg_atomic32_store_relaxed(dst, val) __sync_lock_test_and_set ( (dst), val )
+	#define tfrg_atomic32_add_relaxed(dst, val) __sync_fetch_and_add( (dst), (val) )
+	#define tfrg_atomic32_cas_relaxed(dst, cmp_val, new_val) __sync_val_compare_and_swap( (dst), (cmp_val), (new_val) )
+
+	#define tfrg_atomic64_load_relaxed(pVar) (*(pVar))
+	#define tfrg_atomic64_store_relaxed(dst, val) __sync_lock_test_and_set ( (dst), val )
+	#define tfrg_atomic64_add_relaxed(dst, val) __sync_fetch_and_add( (dst), (val) )
+	#define tfrg_atomic64_cas_relaxed(dst, cmp_val, new_val) __sync_val_compare_and_swap( (dst), (cmp_val), (new_val) )
+
+#endif
+
+static inline uint32_t tfrg_atomic32_load_acquire(tfrg_atomic32_t* pVar)
+{
+	uint32_t value = tfrg_atomic32_load_relaxed(pVar);
+	tfrg_memorybarrier_acquire();
+	return value;
+}
+
+static inline uint32_t tfrg_atomic32_store_release(tfrg_atomic32_t* pVar, uint32_t val)
+{
+	tfrg_memorybarrier_release();
+	return tfrg_atomic32_store_relaxed(pVar, val);
+}
+
+static inline uint32_t tfrg_atomic32_max_relaxed(tfrg_atomic32_t* dst, uint32_t val)
+{
+    uint32_t prev_val = val;
+    do { prev_val = tfrg_atomic32_cas_relaxed(dst, prev_val, val); } while (prev_val < val);
+    return prev_val;
+}
+
+static inline uint64_t tfrg_atomic64_load_acquire(tfrg_atomic64_t* pVar)
 {
 	uint64_t value = tfrg_atomic64_load_relaxed(pVar);
 	tfrg_memorybarrier_acquire();
 	return value;
 }
 
-inline void tfrg_atomic64_store_release(tfrg_atomic64_t* pVar, uint64_t val)
+static inline uint64_t tfrg_atomic64_store_release(tfrg_atomic64_t* pVar, uint64_t val)
 {
 	tfrg_memorybarrier_release();
-	tfrg_atomic64_store_relaxed(pVar, val);
+	return tfrg_atomic64_store_relaxed(pVar, val);
 }
 
+static inline uint64_t tfrg_atomic64_max_relaxed(tfrg_atomic64_t* dst, uint64_t val)
+{
+    uint64_t prev_val = val;
+    do { prev_val = tfrg_atomic64_cas_relaxed(dst, prev_val, val); } while (prev_val < val);
+    return prev_val;
+}
+
+#if PTR_SIZE == 4
+	#define tfrg_atomicptr_load_relaxed tfrg_atomic32_load_relaxed
+	#define tfrg_atomicptr_load_acquire tfrg_atomic32_load_acquire
+	#define tfrg_atomicptr_store_relaxed tfrg_atomic32_store_relaxed
+	#define tfrg_atomicptr_store_release tfrg_atomic32_store_release
+	#define tfrg_atomicptr_add_relaxed tfrg_atomic32_add_relaxed
+	#define tfrg_atomicptr_cas_relaxed tfrg_atomic32_cas_relaxed
+	#define tfrg_atomicptr_max_relaxed tfrg_atomic32_max_relaxed
+#elif PTR_SIZE == 8
+	#define tfrg_atomicptr_load_relaxed tfrg_atomic64_load_relaxed
+	#define tfrg_atomicptr_load_acquire tfrg_atomic64_load_acquire
+	#define tfrg_atomicptr_store_relaxed tfrg_atomic64_store_relaxed
+	#define tfrg_atomicptr_store_release tfrg_atomic64_store_release
+	#define tfrg_atomicptr_add_relaxed tfrg_atomic64_add_relaxed
+	#define tfrg_atomicptr_cas_relaxed tfrg_atomic64_cas_relaxed
+	#define tfrg_atomicptr_max_relaxed tfrg_atomic64_max_relaxed
+#endif

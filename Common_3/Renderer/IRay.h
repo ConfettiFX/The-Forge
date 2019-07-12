@@ -1,6 +1,8 @@
 #pragma once
 
+#if !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 #include "IRenderer.h"
+#endif
 
 #ifdef __cplusplus
 #ifndef MAKE_ENUM_FLAG
@@ -155,17 +157,18 @@ typedef struct RaytracingHitGroup
 
 typedef struct RaytracingShaderTableRecordDesc
 {
-	const char*		  pName;
-    bool              mInvokeTraceRay;
+	const char*		pName;
+#if defined(METAL)
+	bool            mInvokeTraceRay;
     uint32_t        mHitShaderIndex;
     uint32_t        mMissShaderIndex;
+#endif
 } RaytracingShaderTableRecordDesc;
 
 typedef struct RaytracingShaderTableDesc
 {
 	Pipeline*						    pPipeline;
 	RootSignature*						pEmptyRootSignature;
-	DescriptorBinder*					pDescriptorBinder;
 	RaytracingShaderTableRecordDesc*	pRayGenShader;
 	RaytracingShaderTableRecordDesc*	pMissShaders;
 	RaytracingShaderTableRecordDesc*	pHitGroups;
@@ -177,13 +180,12 @@ typedef struct RaytracingDispatchDesc
 {
 	uint32_t				mWidth;
 	uint32_t				mHeight;
-    uint32_t                mRootSignatureDescriptorsCount;
-	AccelerationStructure*  pTopLevelAccelerationStructure;
 	RaytracingShaderTable*  pShaderTable;
-    DescriptorData*         pRootSignatureDescriptorData;
-	RootSignature*          pRootSignature;
-	DescriptorBinder*		pDescriptorBinder;
-    Pipeline*				pPipeline;
+#if defined(METAL)
+	AccelerationStructure*  pTopLevelAccelerationStructure;
+	DescriptorData*         pParams;
+	uint32_t                mParamCount;
+#endif
 } RaytracingDispatchDesc;
 
 typedef struct RaytracingBuildASDesc
@@ -212,23 +214,20 @@ struct Raytracing
 #endif
 };
 
-const static char* RaytracingShaderSettingsBufferName = "gSettings";
-const uint32_t RaytracingUserdataStartBufferRegister = 10;
-
 #if !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 
-bool isRaytracingSupported(Renderer* pRenderer);
-bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing);
-void removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing);
+API_INTERFACE bool FORGE_CALLCONV isRaytracingSupported(Renderer* pRenderer);
+API_INTERFACE bool FORGE_CALLCONV initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing);
+API_INTERFACE void FORGE_CALLCONV removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing);
 
 /// pScratchBufferSize - Holds the size of scratch buffer to be passed to cmdBuildAccelerationStructure
-void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, AccelerationStructure** ppAccelerationStructure);
-void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
+API_INTERFACE void FORGE_CALLCONV addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, AccelerationStructure** ppAccelerationStructure);
+API_INTERFACE void FORGE_CALLCONV removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
 
-void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTableDesc* pDesc, RaytracingShaderTable** ppTable);
-void removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable);
+API_INTERFACE void FORGE_CALLCONV addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTableDesc* pDesc, RaytracingShaderTable** ppTable);
+API_INTERFACE void FORGE_CALLCONV removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable);
 
-void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc);
-void cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatchDesc* pDesc);
+API_INTERFACE void FORGE_CALLCONV cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc);
+API_INTERFACE void FORGE_CALLCONV cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatchDesc* pDesc);
 
 #endif

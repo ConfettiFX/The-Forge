@@ -34,8 +34,8 @@
 
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IPlatformEvents.h"
-#include "../Interfaces/ILogManager.h"
-#include "../Interfaces/ITimeManager.h"
+#include "../Interfaces/ILog.h"
+#include "../Interfaces/ITime.h"
 #include "../Interfaces/IThread.h"
 #include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/IApp.h"
@@ -43,7 +43,7 @@
 #include "../Input/InputSystem.h"
 #include "../Input/InputMappings.h"
 
-#include "../Interfaces/IMemoryManager.h"
+#include "../Interfaces/IMemory.h"
 
 #define CONFETTI_WINDOW_CLASS L"confetti"
 #define MAX_KEYS 256
@@ -176,7 +176,7 @@ void getRecommendedResolution(RectDesc* rect) { *rect = RectDesc{ 0, 0, 1920, 10
 
 void requestShutdown() { [[NSApplication sharedApplication] terminate:[NSApplication sharedApplication]]; }
 
-void openWindow(const char* app_name, WindowsDesc* winDesc, id<MTLDevice> device)
+void openWindow(const char* app_name, WindowsDesc* winDesc, id<MTLDevice> device, id<RenderDestinationProvider> delegateRenderProvider)
 {
     NSRect ViewRect {0,0, (float)winDesc->windowedRect.right - winDesc->windowedRect.left, (float)winDesc->windowedRect.bottom - winDesc->windowedRect.top };
     NSWindow* Window = [[NSWindow alloc] initWithContentRect:ViewRect
@@ -201,6 +201,7 @@ void openWindow(const char* app_name, WindowsDesc* winDesc, id<MTLDevice> device
     ForgeMTLView *View = [[ForgeMTLView alloc] initWithFrame:ViewRect device: device display:0 hdr:NO vsync:NO];
     [Window setContentView: View];
     [Window setDelegate: View];
+    View.delegate = delegateRenderProvider;
 
     NSSize windowSize = CGSizeMake(ViewRect.size.width / gRetinaScale.x, ViewRect.size.height / gRetinaScale.y);
     [Window setContentSize:windowSize];
@@ -389,7 +390,15 @@ int macOSMain(int argc, const char** argv, IApp* app)
 // Called whenever view changes orientation or layout is changed
 - (void)didResize:(CGSize)size
 {
-	[_application drawRectResized:size];
+    // On initial resize we might not be having the application which, thus we schedule a resize later on
+    if (!_application)
+    {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [self didResize:size];
+        });
+    }
+    else
+        [_application drawRectResized:size];
 }
 
 // Called whenever the view needs to render
@@ -440,9 +449,8 @@ uint32_t testingMaxFrameCount = 120;
 		gCurrentWindow.windowedRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
 		gCurrentWindow.fullScreen = pSettings->mFullScreen;
 		gCurrentWindow.maximized = false;
-		openWindow(pApp->GetName(), &gCurrentWindow, device);
+		openWindow(pApp->GetName(), &gCurrentWindow, device, renderDestinationProvider);
         ForgeMTLView *forgeView = ((__bridge NSWindow*)gCurrentWindow.handle).contentView;
-        forgeView.delegate = renderDestinationProvider;
 
 		pSettings->mWidth =
 			gCurrentWindow.fullScreen ? getRectWidth(gCurrentWindow.fullscreenRect) : getRectWidth(gCurrentWindow.windowedRect);

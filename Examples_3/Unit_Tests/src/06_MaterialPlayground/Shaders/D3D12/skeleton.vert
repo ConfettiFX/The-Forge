@@ -29,13 +29,14 @@
 
 cbuffer uniformBlock : register(b0, space3)
 {
-	  float4x4 mvp;
-    float4x4 toWorld[MAX_INSTANCES];
-    float4 color[MAX_INSTANCES];
+	float4x4 mvp;
 
+    float4 color[MAX_INSTANCES];
     // Point Light Information
-    float3 lightPosition;
-    float3 lightColor;
+    float4 lightPosition;
+    float4 lightColor;
+
+    float4x4 toWorld[MAX_INSTANCES];
 };
 
 struct VSInput

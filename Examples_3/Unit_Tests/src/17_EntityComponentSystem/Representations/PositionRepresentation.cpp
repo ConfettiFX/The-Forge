@@ -1,6 +1,6 @@
 #include "PositionRepresentation.h"
 
-#include "../../../../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../../../../Common_3/OS/Interfaces/IMemory.h"
 using namespace FCR;
 
 FORGE_INIT_COMPONENT_ID(PositionComponent)

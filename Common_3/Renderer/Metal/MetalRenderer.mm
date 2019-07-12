@@ -40,10 +40,10 @@
 #include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 #import "../IRenderer.h"
 #include "MetalMemoryAllocator.h"
-#include "../../OS/Interfaces/ILogManager.h"
+#include "../../OS/Interfaces/ILog.h"
 #include "../../OS/Core/GPUConfig.h"
 #include "../../OS/Image/Image.h"
-#include "../../OS/Interfaces/IMemoryManager.h"
+#include "../../OS/Interfaces/IMemory.h"
 
 #define MAX_BUFFER_BINDINGS 31
 
@@ -502,17 +502,27 @@ const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer)
 /************************************************************************/
 // Descriptor Binder implementation
 /************************************************************************/
-
+struct ArgumentBuffer
+{
+	Buffer* 	mBuffers[10]; // double bufferred
+	uint		mBufferId;
+	uint		mBuffersCount;
+	bool		mNeedsReencoding;
+};
+	
+typedef eastl::string_hash_map<ArgumentBuffer> ArgumentBufferMap;
+	
 typedef struct DescriptorBinderNode
 {
 	/// The descriptor data bound to the current rootSignature;
 	DescriptorData* pDescriptorDataArray = NULL;
+	
 	/// Array of flags to check whether a descriptor has already been bound.
 	bool* pBoundDescriptors = NULL;
 	bool  mBoundStaticSamplers = false;
 
 	/// Map that holds all the argument buffers bound by this descriptor biner for each root signature.
-	eastl::string_hash_map<eastl::pair<Buffer*, bool>> mArgumentBuffers;
+	ArgumentBufferMap mArgumentBuffers;
 } DescriptorBinderNode;
 
 typedef struct DescriptorBinder
@@ -656,7 +666,7 @@ void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, Roo
 				node.pDescriptorDataArray[descIndex].ppBuffers = pParam->ppBuffers;
 
 				// In case we're binding an argument buffer, signal that we need to re-encode the resources into the buffer.
-				if(arrayCount > 1 && node.mArgumentBuffers.find(pParam->pName) != node.mArgumentBuffers.end()) node.mArgumentBuffers[pParam->pName].second = true;
+				if(arrayCount > 1 && node.mArgumentBuffers.find(pParam->pName) != node.mArgumentBuffers.end()) node.mArgumentBuffers[pParam->pName].mNeedsReencoding = true;
 
 				break;
 			default: break;
@@ -876,15 +886,16 @@ void removeDescriptorBinder(Renderer* pRenderer, DescriptorBinder* pDescriptorBi
 {
 	for (eastl::unordered_map<const RootSignature*, DescriptorBinderNode>::value_type& node : pDescriptorBinder->mRootSignatureNodes)
 	{
-		eastl::string_hash_map<eastl::pair<Buffer*, bool>>::iterator it = node.second.mArgumentBuffers.begin();
-			for(; it != node.second.mArgumentBuffers.end(); ++it)
+		ArgumentBufferMap::iterator it = node.second.mArgumentBuffers.begin();
+		for(; it != node.second.mArgumentBuffers.end(); ++it)
 		{
-			if(it->second.first != NULL)
+			for (uint32_t j = 0; j < it->second.mBuffersCount; ++j)
 			{
-				removeBuffer(pRenderer, it->second.first);
+				removeBuffer(pRenderer, it->second.mBuffers[j]);
 			}
 		}
 		node.second.mArgumentBuffers.clear();
+		
 		SAFE_FREE(node.second.pDescriptorDataArray);
 		SAFE_FREE(node.second.pBoundDescriptors);
 	}
@@ -971,7 +982,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 
 				// In case we're binding an argument buffer, signal that we need to re-encode the resources into the buffer.
 				if (arrayCount > 1 && node.mArgumentBuffers.find(pParam->pName) != node.mArgumentBuffers.end())
-					node.mArgumentBuffers[pParam->pName].second = true;
+					node.mArgumentBuffers[pParam->pName].mNeedsReencoding = true;
 
 				break;
 			default: break;
@@ -997,6 +1008,7 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 		if (!node.pBoundDescriptors[i])
 		{
 			ShaderStage usedStagesMask = descriptorInfo->mDesc.used_stages;
+			
 			switch (descriptorInfo->mDesc.type)
 			{
 				case DESCRIPTOR_TYPE_RW_TEXTURE:
@@ -1865,7 +1877,7 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 	if (pBuffer->mDesc.mFlags & BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT)
 		mem_reqs.flags |= RESOURCE_MEMORY_REQUIREMENT_PERSISTENT_MAP_BIT;
 
-	BufferCreateInfo alloc_info = { pBuffer->mDesc.mSize };
+	BufferCreateInfo alloc_info = { pBuffer->mDesc.pDebugName, pBuffer->mDesc.mSize };
 	bool             allocSuccess;
 	allocSuccess = createBuffer(pRenderer->pResourceAllocator, &alloc_info, &mem_reqs, pBuffer);
 	ASSERT(allocSuccess);
@@ -2212,16 +2224,16 @@ void removeShader(Renderer* pRenderer, Shader* pShaderProgram)
 	SAFE_FREE(pShaderProgram);
 }
 
-void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
+void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
 {
 	ASSERT(pRenderer);
 	ASSERT(pRenderer->pDevice != nil);
 
 	RootSignature*                       pRootSignature = (RootSignature*)conf_calloc(1, sizeof(*pRootSignature));
-	eastl::vector<ShaderResource const*> shaderResources;
+	eastl::vector<ShaderResource>        shaderResources;
 
 	// Collect static samplers
-	eastl::vector<eastl::pair<ShaderResource const*, Sampler*>> staticSamplers;
+	eastl::vector<eastl::pair<ShaderResource const*, Sampler*> > staticSamplers;
 	eastl::string_hash_map<Sampler*>                            staticSamplerMap;
 	for (uint32_t i = 0; i < pRootSignatureDesc->mStaticSamplerCount; ++i)
 		staticSamplerMap.insert(pRootSignatureDesc->ppStaticSamplerNames[i], pRootSignatureDesc->ppStaticSamplers[i]);
@@ -2261,13 +2273,47 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 					else
 					{
 						pRootSignature->pDescriptorNameToIndexMap.insert(pRes->name, (uint32_t)shaderResources.size());
-						shaderResources.emplace_back(pRes);
+						shaderResources.emplace_back(*pRes);
 					}
 				}
 				else
 				{
 					pRootSignature->pDescriptorNameToIndexMap.insert(pRes->name, (uint32_t)shaderResources.size());
-					shaderResources.emplace_back(pRes);
+					shaderResources.emplace_back(*pRes);
+				}
+			}
+			// If the resource was already collected, just update the shader stage mask in case it is used in a different
+			// shader stage in this case
+			else
+			{
+				if (shaderResources[pNode->second].reg != pRes->reg)
+				{
+					ErrorMsg(
+							 "\nFailed to create root signature\n"
+							 "Shared shader resource %s has mismatching register. All shader resources "
+							 "shared by multiple shaders specified in addRootSignature "
+							 "have the same register and space",
+							 pRes->name);
+					return;
+				}
+				if (shaderResources[pNode->second].set != pRes->set)
+				{
+					ErrorMsg(
+							 "\nFailed to create root signature\n"
+							 "Shared shader resource %s has mismatching space. All shader resources "
+							 "shared by multiple shaders specified in addRootSignature "
+							 "have the same register and space",
+							 pRes->name);
+					return;
+				}
+				
+				for (ShaderResource& res : shaderResources)
+				{
+					if (strcmp(res.name, pNode->first) == 0)
+					{
+						res.used_stages |= pRes->used_stages;
+						break;
+					}
 				}
 			}
 		}
@@ -2283,7 +2329,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 	for (uint32_t i = 0; i < (uint32_t)shaderResources.size(); ++i)
 	{
 		DescriptorInfo*           pDesc = &pRootSignature->pDescriptors[i];
-		ShaderResource const*     pRes = shaderResources[i];
+		ShaderResource const*     pRes = &shaderResources[i];
 		uint32_t                  setIndex = pRes->set;
 		DescriptorUpdateFrequency updateFreq = (DescriptorUpdateFrequency)setIndex;
 
@@ -2322,37 +2368,6 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 	}
 
 	*ppRootSignature = pRootSignature;
-}
-    
-extern void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount,
-                                       bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc = NULL);
-
-void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
-{
-    switch (pRootSignatureDesc->mSignatureType)
-    {
-        case(ROOT_SIGNATURE_GRAPHICS_COMPUTE):
-        {
-            addGraphicsComputeRootSignature(pRenderer, pRootSignatureDesc, ppRootSignature);
-            break;
-        }
-        case(ROOT_SIGNATURE_RAYTRACING_EMPTY):
-        {
-            addRaytracingRootSignature(pRenderer, pRootSignatureDesc->pRaytracingShaderResources, pRootSignatureDesc->pRaytracingResourcesCount,
-                                       true, ppRootSignature, pRootSignatureDesc);
-            break;
-        }
-        case(ROOT_SIGNATURE_RAYTRACING_GLOBAL):
-        {
-            addRaytracingRootSignature(pRenderer, pRootSignatureDesc->pRaytracingShaderResources, pRootSignatureDesc->pRaytracingResourcesCount,
-                                       false, ppRootSignature, pRootSignatureDesc);
-            break;
-        }
-        default:
-        {
-            ASSERT(false);
-        }
-    }
 }
 
 void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
@@ -2802,6 +2817,8 @@ void endCmd(Cmd* pCmd)
 		}
 	}
 
+//	[pCmd->mtlCommandBuffer waitUntilCompleted];
+	
 	pCmd->mRenderPassActive = false;
 	pCmd->mBoundRenderTargetCount = 0;
 	pCmd->mBoundDepthStencilFormat = ImageFormat::NONE;
@@ -3085,7 +3102,7 @@ void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 				default: pCmd->selectedPrimitiveType = MTLPrimitiveTypeTriangle; break;
 			}
 		}
-		else
+		else if (pPipeline->mType == PIPELINE_TYPE_COMPUTE)
 		{
 			if (!pCmd->mtlComputeEncoder)
 			{
@@ -3350,6 +3367,8 @@ void cmdExecuteIndirect(
 
 			if (pCmd->pShader->mtlVertexShader.patchType == MTLPatchTypeNone)
 			{
+				[pCmd->mtlRenderEncoder setFragmentBytes:&i length:sizeof(i) atIndex:20]; // drawId
+				
 				[pCmd->mtlRenderEncoder drawIndexedPrimitives:pCmd->selectedPrimitiveType
 													indexType:indexType
 												  indexBuffer:indexBuffer->mtlBuffer
@@ -3359,8 +3378,6 @@ void cmdExecuteIndirect(
 			}
 			else    // Tessellated draw version.
 			{
-				util_barrier_required(pCmd, CMD_POOL_DIRECT);
-				
 #ifndef TARGET_IOS
 				[pCmd->mtlRenderEncoder drawPatches:pCmd->pShader->mtlVertexShader.patchControlPointCount
 								   patchIndexBuffer:indexBuffer->mtlBuffer
@@ -3444,9 +3461,21 @@ void cmdResourceBarrier(
         }
     }
 }
+	
 void cmdSynchronizeResources(Cmd* pCmd, uint32_t numBuffers, Buffer** ppBuffers, uint32_t numTextures, Texture** ppTextures, bool batch)
 {
+	if (numBuffers)
+	{
+		pCmd->pCmdPool->pQueue->mBarrierFlags |= BARRIER_FLAG_BUFFERS;
+	}
+	
+	if (numTextures)
+	{
+		pCmd->pCmdPool->pQueue->mBarrierFlags |= BARRIER_FLAG_TEXTURES;
+		pCmd->pCmdPool->pQueue->mBarrierFlags |= BARRIER_FLAG_RENDERTARGETS;
+	}
 }
+	
 void cmdFlushBarriers(Cmd* pCmd)
 {
 	
@@ -3991,88 +4020,138 @@ MTLLoadAction util_to_mtl_load_action(const LoadActionType& loadActionType)
 
 void util_bind_argument_buffer(Cmd* pCmd, DescriptorBinderNode& node, const DescriptorInfo* descInfo, const DescriptorData* descData)
 {
+	const ShaderStage shaderStage = descInfo->mDesc.used_stages;
+	
+	assert(shaderStage == SHADER_STAGE_VERT || shaderStage == SHADER_STAGE_FRAG || shaderStage == SHADER_STAGE_COMP); // multistages todo
+	
 	Buffer* argumentBuffer;
 	bool    bufferNeedsReencoding = false;
 
 	id<MTLArgumentEncoder> argumentEncoder = nil;
-	id<MTLFunction>        shaderStage = nil;
-
+	id<MTLFunction>        shader = nil;
+	
+	switch (shaderStage) {
+		case SHADER_STAGE_VERT:
+			shader = pCmd->pShader->mtlVertexShader;
+			break;
+		case SHADER_STAGE_FRAG:
+			shader = pCmd->pShader->mtlFragmentShader;
+			break;
+		case SHADER_STAGE_COMP:
+			shader = pCmd->pShader->mtlComputeShader;
+		default:
+			break;
+	}
+	
+	// not used in this shader stage
+	if (shader == nil)
+		return;
+	
 	// Look for the argument buffer (or create one if needed).
 	{
-		eastl::string_hash_map<eastl::pair<Buffer*, bool>>::iterator jt = node.mArgumentBuffers.find(descData->pName);
+		ArgumentBufferMap::iterator jt = node.mArgumentBuffers.find(descData->pName);
 		// If not previous argument buffer was found, create a new bufffer.
 		if (jt == node.mArgumentBuffers.end())
 		{
-			// Find a shader stage using this argument buffer.
-			ShaderStage stageMask = descInfo->mDesc.used_stages;
-			if ((stageMask & SHADER_STAGE_VERT) != 0)
-				shaderStage = pCmd->pShader->mtlVertexShader;
-			else if ((stageMask & SHADER_STAGE_FRAG) != 0)
-				shaderStage = pCmd->pShader->mtlFragmentShader;
-			else if ((stageMask & SHADER_STAGE_COMP) != 0)
-				shaderStage = pCmd->pShader->mtlComputeShader;
-			assert(shaderStage != nil);
-
 			// Create the argument buffer/encoder pair.
-			argumentEncoder = [shaderStage newArgumentEncoderWithBufferIndex:descInfo->mDesc.reg];
+			argumentEncoder = [shader newArgumentEncoderWithBufferIndex:descInfo->mDesc.reg];
 			BufferDesc bufferDesc = {};
-			bufferDesc.mSize = argumentEncoder.encodedLength;
-			bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-			bufferDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
-			addBuffer(pCmd->pRenderer, &bufferDesc, &argumentBuffer);
-
-			node.mArgumentBuffers[descData->pName] = { argumentBuffer, true };
+			
+			ArgumentBuffer newElement;
+			newElement.mBufferId = 0;
+			newElement.mNeedsReencoding = true;
+			newElement.mBuffersCount = 10;
+			
+			for (uint32_t i = 0; i < newElement.mBuffersCount; ++i)
+			{
+				bufferDesc.pDebugName = L"Argument Buffer";
+				bufferDesc.mSize = argumentEncoder.encodedLength;
+				bufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+				bufferDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+				addBuffer(pCmd->pRenderer, &bufferDesc, &newElement.mBuffers[i]);
+			}
+			
+			argumentBuffer = newElement.mBuffers[0];
+			
+			node.mArgumentBuffers.insert(descData->pName, newElement);
 			bufferNeedsReencoding = true;
 		}
 		else
 		{
-			argumentBuffer = jt->second.first;
-			bufferNeedsReencoding = jt->second.second;
+			ArgumentBuffer& el = jt->second;
+			
+			el.mBufferId = (el.mBufferId + 1) % el.mBuffersCount;
+			argumentBuffer = el.mBuffers[el.mBufferId];
+			bufferNeedsReencoding = true; //el.mNeedsReencoding;
 		}
 	}
 
+	assert(argumentBuffer != nil);
+	
 	// Update the argument buffer's data.
-	if (bufferNeedsReencoding)
+	//if (bufferNeedsReencoding)
 	{
 		if (!argumentEncoder)
-			argumentEncoder = [shaderStage newArgumentEncoderWithBufferIndex:descInfo->mDesc.reg];
+			argumentEncoder = [shader newArgumentEncoderWithBufferIndex:descInfo->mDesc.reg];
 
 		[argumentEncoder setArgumentBuffer:argumentBuffer->mtlBuffer offset:0];
 		for (uint32_t i = 0; i < descData->mCount; i++)
 		{
 			switch (descInfo->mDesc.mtlArgumentBufferType)
 			{
-				case DESCRIPTOR_TYPE_SAMPLER: [argumentEncoder setSamplerState:descData->ppSamplers[i]->mtlSamplerState atIndex:i]; break;
+				case DESCRIPTOR_TYPE_SAMPLER:
+					[argumentEncoder setSamplerState:descData->ppSamplers[i]->mtlSamplerState atIndex:i];
+					break;
 				case DESCRIPTOR_TYPE_BUFFER:
-					[pCmd->mtlRenderEncoder useResource:descData->ppBuffers[i]->mtlBuffer
-												  usage:(MTLResourceUsageRead | MTLResourceUsageSample)];
+					if (((shaderStage == SHADER_STAGE_VERT) || (shaderStage == SHADER_STAGE_FRAG)) && pCmd->mtlRenderEncoder != nil)
+					{
+						[pCmd->mtlRenderEncoder useResource:descData->ppBuffers[i]->mtlBuffer
+												  usage:( MTLResourceUsageRead | MTLResourceUsageWrite )];
+					}
+					else if ((shaderStage == SHADER_STAGE_COMP) && pCmd->mtlComputeEncoder)
+					{
+						[pCmd->mtlComputeEncoder useResource:descData->ppBuffers[i]->mtlBuffer
+												  usage:( MTLResourceUsageRead | MTLResourceUsageWrite )];
+					}
+			
 					[argumentEncoder setBuffer:descData->ppBuffers[i]->mtlBuffer
 										offset:(descData->ppBuffers[i]->mPositionInHeap + (descData->pOffsets ? descData->pOffsets[i] : 0))
 									   atIndex:i];
 					break;
 				case DESCRIPTOR_TYPE_TEXTURE:
-					[pCmd->mtlRenderEncoder useResource:descData->ppTextures[i]->mtlTexture usage:MTLResourceUsageRead];
+					if (((shaderStage == SHADER_STAGE_VERT) || (shaderStage == SHADER_STAGE_FRAG)) && pCmd->mtlRenderEncoder != nil)
+					{
+						[pCmd->mtlRenderEncoder useResource:descData->ppTextures[i]->mtlTexture
+												usage:MTLResourceUsageRead | MTLResourceUsageSample];
+					}
+					
+					if ((shaderStage == SHADER_STAGE_COMP) && pCmd->mtlComputeEncoder != nil)
+					{
+						[pCmd->mtlComputeEncoder useResource:descData->ppTextures[i]->mtlTexture
+													  usage:MTLResourceUsageRead | MTLResourceUsageSample];
+					}
+					
 					[argumentEncoder setTexture:descData->ppTextures[i]->mtlTexture atIndex:i];
 					break;
 			}
 		}
 
-		node.mArgumentBuffers[descData->pName].second = false;
+		node.mArgumentBuffers[descData->pName].mNeedsReencoding = false;
 	}
 
 	// Bind the argument buffer.
-	if ((descInfo->mDesc.used_stages & SHADER_STAGE_VERT) != 0)
+	if (descInfo->mDesc.used_stages == SHADER_STAGE_VERT)
 		[pCmd->mtlRenderEncoder setVertexBuffer:argumentBuffer->mtlBuffer
 										 offset:argumentBuffer->mPositionInHeap
 										atIndex:descInfo->mDesc.reg];
-	if ((descInfo->mDesc.used_stages & SHADER_STAGE_FRAG) != 0)
+	if (descInfo->mDesc.used_stages == SHADER_STAGE_FRAG)
 		[pCmd->mtlRenderEncoder setFragmentBuffer:argumentBuffer->mtlBuffer
 										   offset:argumentBuffer->mPositionInHeap
 										  atIndex:descInfo->mDesc.reg];
-	if ((descInfo->mDesc.used_stages & SHADER_STAGE_COMP) != 0)
+	if (descInfo->mDesc.used_stages == SHADER_STAGE_COMP)
 		[pCmd->mtlComputeEncoder setBuffer:argumentBuffer->mtlBuffer offset:argumentBuffer->mPositionInHeap atIndex:descInfo->mDesc.reg];
 }
-
+	
 void util_end_current_encoders(Cmd* pCmd)
 {
 	const bool barrierRequired(pCmd->pCmdPool->pQueue->mBarrierFlags);
@@ -4361,7 +4440,7 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 		if (pDesc->mFlags & TEXTURE_CREATION_FLAG_EXPORT_ADAPTER_BIT)
 			mem_reqs.flags |= RESOURCE_MEMORY_REQUIREMENT_SHARED_ADAPTER_BIT;
 
-		TextureCreateInfo alloc_info = { textureDesc, isRT || isDepthBuffer, isMultiSampled };
+		TextureCreateInfo alloc_info = { textureDesc, isRT || isDepthBuffer, isMultiSampled, pDesc->pDebugName };
 		bool              allocSuccess;
 		allocSuccess = createTexture(pRenderer->pResourceAllocator, &alloc_info, &mem_reqs, pTexture);
 		ASSERT(allocSuccess);

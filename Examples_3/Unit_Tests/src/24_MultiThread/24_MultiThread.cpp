@@ -34,9 +34,9 @@
 // Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
-#include "../../../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IThread.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 
@@ -66,7 +66,7 @@
 #include "../../../../Common_3/OS/Core/ThreadSystem.h"
 
 // Memory
-#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../../../Common_3/OS/Interfaces/IMemory.h"
 
 
 const char* pszBases[FSR_Count] = {
@@ -103,7 +103,7 @@ Fence*        pRenderCompleteFences[gImageCount] = { NULL };
 Semaphore*    pImageAcquiredSemaphore = NULL;
 Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 VirtualJoystickUI gVirtualJoystick;
 #endif
 DepthState* pDepth = NULL;
@@ -264,8 +264,8 @@ class MultiThread: public IApp
 		//
 		initResourceLoaderInterface(pRenderer);
 
-#ifdef TARGET_IOS
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Absolute))
+#if defined(TARGET_IOS) || defined(__ANDROID__)
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 			return false;
 #endif
 
@@ -584,7 +584,7 @@ class MultiThread: public IApp
 
 		destroyCameraController(pCameraController);
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Exit();
 #endif
 
@@ -640,7 +640,7 @@ class MultiThread: public IApp
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], pDepthBuffer->mDesc.mFormat))
 			return false;
 #endif
@@ -707,7 +707,7 @@ class MultiThread: public IApp
 
 		gAppUI.Unload();
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Unload();
 #endif
 
@@ -867,9 +867,13 @@ class MultiThread: public IApp
 		// bind and clear the render target
 		LoadActionsDesc loadActions = {};    // render target clean command
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-		loadActions.mClearColorValues[0] = { 0.39f, 0.41f, 0.37f, 1.0f };
+        loadActions.mClearColorValues[0].r = 0.39f;
+        loadActions.mClearColorValues[0].g = 0.41f;
+        loadActions.mClearColorValues[0].b = 0.37f;
+        loadActions.mClearColorValues[0].a = 1.0f;
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth = { 1.0f, 0 };
+        loadActions.mClearDepth.depth = 1.0f;
+        loadActions.mClearDepth.stencil = 0;
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
@@ -897,7 +901,7 @@ class MultiThread: public IApp
 		//// draw the UI
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
 		gTimer.GetUSec(true);
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
@@ -955,7 +959,8 @@ class MultiThread: public IApp
 		// Add depth buffer
 		RenderTargetDesc depthRT = {};
 		depthRT.mArraySize = 1;
-		depthRT.mClearValue = { 1.0f, 0 };
+        depthRT.mClearValue.depth = 1.0f;
+        depthRT.mClearValue.stencil = 0;
 		depthRT.mDepth = 1;
 		depthRT.mFormat = ImageFormat::D32F;
 		depthRT.mHeight = mSettings.mHeight;

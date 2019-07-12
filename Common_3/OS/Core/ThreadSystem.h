@@ -48,5 +48,7 @@ void addThreadSystemRangeTask(ThreadSystem* pThreadSystem, TaskFunc task, void* 
 void addThreadSystemRangeTask(ThreadSystem* pThreadSystem, TaskFunc task, void* user, uintptr_t start, uintptr_t end);
 void addThreadSystemTask(ThreadSystem* pThreadSystem, TaskFunc task, void* user, uintptr_t index = 0);
 
+bool assistThreadSystem(ThreadSystem* pThreadSystem);
+
 bool isThreadSystemIdle(ThreadSystem* pThreadSystem);
 void waitThreadSystemIdle(ThreadSystem* pThreadSystem);

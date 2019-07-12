@@ -24,7 +24,7 @@ freely, subject to the following restrictions:
 
 #include <math.h>
 #include "soloud_internal.h"
-#include "../../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../../OS/Interfaces/IMemory.h"
 
 // 3d audio operations
 

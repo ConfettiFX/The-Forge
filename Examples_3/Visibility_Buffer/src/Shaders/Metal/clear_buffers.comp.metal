@@ -28,29 +28,47 @@
 #include <metal_stdlib>
 using namespace metal;
 
+#include "shader_defs.h"
+
 struct RootConstantData
 {
     uint numBatches;
 };
 
-struct IndirectDrawArguments
-{
-    uint vertexCount;
-    uint instanceCount;
-    uint startVertex;
-    uint startInstance;
+struct IndirectDrawArgsBufferAlphaBlock {
+	device uint* data[NUM_CULLING_VIEWPORTS];
+};
+
+struct IndirectDrawArgsBufferNoAlphaBlock {
+	device uint* data[NUM_CULLING_VIEWPORTS];
+};
+
+struct uncompactedDrawArgsBlock {
+	device UncompactedDrawArguments* data[NUM_CULLING_VIEWPORTS];
 };
 
 //[numthreads(256, 1, 1)]
 kernel void stageMain(uint tid [[thread_position_in_grid]],
-                      device IndirectDrawArguments* indirectDrawArgsCamera [[buffer(0)]],
-                      device IndirectDrawArguments* indirectDrawArgsShadow [[buffer(1)]],
-                      constant RootConstantData& rootConstant [[buffer(2)]])
+                      device IndirectDrawArgsBufferAlphaBlock& indirectDrawArgsBufferAlpha      [[buffer(UNIT_INDIRECT_DRAW_ARGS_ALPHA_RW)]],
+                      device IndirectDrawArgsBufferNoAlphaBlock& indirectDrawArgsBufferNoAlpha  [[buffer(UNIT_INDIRECT_DRAW_ARGS_RW)]],
+                      device uncompactedDrawArgsBlock& uncompactedDrawArgsRW                    [[buffer(UNIT_UNCOMPACTED_ARGS_RW)]]
+)
 {
-    if (tid >= rootConstant.numBatches)
-        return;
-    
-    indirectDrawArgsCamera[tid].vertexCount = 0;
-    indirectDrawArgsShadow[tid].vertexCount = 0;
+	if (tid >= MAX_DRAWS_INDIRECT - 1)
+		return;
+	
+	for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+	{
+		uncompactedDrawArgsRW.data[i][tid].numIndices = 0;
+	}
+	
+	if (tid == 0)
+	{
+		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
+		{
+			indirectDrawArgsBufferAlpha.data[i][DRAW_COUNTER_SLOT_POS] = 0;
+			indirectDrawArgsBufferNoAlpha.data[i][DRAW_COUNTER_SLOT_POS] = 0;
+		}
+	}
 }
 

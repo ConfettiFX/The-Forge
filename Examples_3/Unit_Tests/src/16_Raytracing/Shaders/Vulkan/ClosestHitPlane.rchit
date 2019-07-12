@@ -1,21 +1,19 @@
 #version 460
 #extension GL_NV_ray_tracing : require
 
-layout(binding = 0, set=1) uniform accelerationStructureNV gRtScene;
+layout(binding = 0, set=0) uniform accelerationStructureNV gRtScene;
 
-layout(shaderRecordNV) buffer block
+layout(binding = 2, set=0, std140) uniform gSettings
 {
-    uint HitGroupIndex;
-    uint MissGroupIndex;
+	vec3 CameraPosition;
+	uint _pad0;
+	vec3 LightDirection;
+	uint _pad1;
+	uint HitGroupIndex;
+	uint MissGroupIndex;
+	uint PlaneHitGroupIndex;
+	uint PlaneMissGroupIndex;
 };
-
-layout(binding = 10, set=0, std140) uniform Settings
-{
-	vec3 cameraPosition;
-	float pad1;
-	vec3 lightDirection;
-	float pad2;
-} gSettings;
 
 hitAttributeNV vec3 attribs;
 layout(location = 0) rayPayloadInNV vec3 hitValue;
@@ -31,12 +29,12 @@ void main()
 	vec3 posW = rayOriginW + hitT * rayDirW;
 
 	vec4 origin 	= vec4(posW, 1.0);
-    vec3 direction 	= normalize(gSettings.lightDirection);
+    vec3 direction 	= normalize(LightDirection);
     uint rayFlags 	= gl_RayFlagsNoneNV;//settings.RayFlags; //gl_RayFlagsOpaqueNV;
     uint cullMask 	= 0xff;
     float tmin = 0.1;
     float tmax = 10000.0;
-    traceNV(gRtScene, rayFlags, cullMask, HitGroupIndex, 0, MissGroupIndex, origin.xyz, tmin, direction.xyz, tmax, 2);
+    traceNV(gRtScene, rayFlags, cullMask, PlaneHitGroupIndex, 0, PlaneMissGroupIndex, origin.xyz, tmin, direction.xyz, tmax, 2);
 
 	hitValue = vec3(0.8f, 0.9f, 0.9f) * hitValueShadow;
 }

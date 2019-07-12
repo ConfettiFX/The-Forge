@@ -38,8 +38,8 @@
 
 #include "AssimpImporter.h"
 
-#include "../../OS/Interfaces/ILogManager.h"       //NOTE: this should be the last include in a .cpp
-#include "../../OS/Interfaces/IMemoryManager.h"    // NOTE: this should be the last include in a .cpp
+#include "../../OS/Interfaces/ILog.h"       //NOTE: this should be the last include in a .cpp
+#include "../../OS/Interfaces/IMemory.h"    // NOTE: this should be the last include in a .cpp
 
 static inline mat4 AssimpMat4ToMatrix(const aiMatrix4x4& mat)
 {

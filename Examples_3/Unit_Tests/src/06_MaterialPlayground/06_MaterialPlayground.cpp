@@ -42,9 +42,9 @@
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
@@ -75,7 +75,7 @@
 
 #include "../../../Common/AppHelpers.h"
 
-#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"    // Must be the last include in a cpp file
+#include "../../../../Common_3/OS/Interfaces/IMemory.h"    // Must be the last include in a cpp file
 
 // define folders for resources
 const char* pszBases[FSR_Count] = {
@@ -90,7 +90,7 @@ const char* pszBases[FSR_Count] = {
 	"../../../../../Art/",                    // FSR_OtherFiles
 	"../../../../../Middleware_3/Text/",      // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",        // FSR_MIDDLEWARE_UI
-#if defined(TARGET_IOS) || defined(_DURANGO)
+#if defined(TARGET_IOS) || defined(_DURANGO) || defined(__ANDROID__)
 	"",    // FSR_Middleware2 //used to load lua scripts
 #else
 	"../../../src/06_MaterialPlayground/",    // FSR_Middleware2 //used to load lua scripts
@@ -473,7 +473,7 @@ GuiComponent*      pGuiWindowMaterial = NULL;
 LuaManager         gLuaManager;
 ThreadSystem*      pIOThreads = NULL;
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 VirtualJoystickUI gVirtualJoystick;
 #endif
 
@@ -588,7 +588,7 @@ RenderTarget* pRenderTargetShadowMap = NULL;
 RenderTarget* pRenderTargetDepth = NULL;
 RenderTarget* pRenderTargetDepthPeeling = NULL;
 RenderTarget* pRenderTargetFillColors = NULL;
-RenderTarget* pRenderTargetHairShadows[HAIR_TYPE_COUNT][MAX_NUM_DIRECTIONAL_LIGHTS] = { NULL };
+RenderTarget* pRenderTargetHairShadows[HAIR_TYPE_COUNT][MAX_NUM_DIRECTIONAL_LIGHTS] = {{ NULL }};
 #ifndef METAL
 Texture* pTextureHairDepth = NULL;
 #else
@@ -931,7 +931,7 @@ class MaterialPlayground: public IApp
 		gLuaManager.Init();
 		initResourceLoaderInterface(pRenderer);
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 			return false;
 #endif
@@ -1062,7 +1062,7 @@ class MaterialPlayground: public IApp
 			cameraLocalPtr->lookAt(vec3(0, 0, 0));
 			return 0;    // return amount of arguments
 		});
-		gLuaManager.SetFunction("GetIsCameraAnimated", [cameraLocalPtr](ILuaStateWrap* state) -> int {
+		gLuaManager.SetFunction("GetIsCameraAnimated", [](ILuaStateWrap* state) -> int {
 			state->PushResultInteger(gbAnimateCamera ? 1 : 0);
 			return 1;    // return amount of arguments
 		});
@@ -1116,7 +1116,7 @@ class MaterialPlayground: public IApp
 		DestroyDepthStates();
 		DestroyRasterizerStates();
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Exit();
 #endif
 		removeGpuProfiler(pRenderer, pGpuProfiler);
@@ -1145,7 +1145,7 @@ class MaterialPlayground: public IApp
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], pRenderTargetDepth->mDesc.mFormat))
 			return false;
 #endif
@@ -1159,7 +1159,7 @@ class MaterialPlayground: public IApp
 
 		gAppUI.Unload();
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Unload();
 #endif
 
@@ -1517,8 +1517,9 @@ class MaterialPlayground: public IApp
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth = { 1.0f, 0 };
-		
+		loadActions.mClearDepth.depth = 1.0f;
+		loadActions.mClearDepth.stencil = 0;
+
 		cmdBindRenderTargets(cmd, 0, NULL, pRenderTargetShadowMap, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetShadowMap->mDesc.mWidth, (float)pRenderTargetShadowMap->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTargetShadowMap->mDesc.mWidth, pRenderTargetShadowMap->mDesc.mHeight);
@@ -2222,7 +2223,7 @@ class MaterialPlayground: public IApp
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
 
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
@@ -2829,6 +2830,7 @@ class MaterialPlayground: public IApp
 		});
 
 		eastl::string loadModelsFilename = FileSystem::FixPath("loadModels.lua", FSR_Middleware2);
+		auto str = loadModelsFilename.c_str();
 		gLuaManager.AddAsyncScript(loadModelsFilename.c_str(), [&modelsAreLoaded](ScriptState state) { modelsAreLoaded = true; });
 
 		while (!modelsAreLoaded)
@@ -2842,11 +2844,11 @@ class MaterialPlayground: public IApp
 
 		bool texturesAreLoaded = false;
 		TextureLoadDesc textureDesc = {};
-		gLuaManager.SetFunction("GetTextureResolution", [this](ILuaStateWrap* state) -> int {
+		gLuaManager.SetFunction("GetTextureResolution", [](ILuaStateWrap* state) -> int {
 			state->PushResultString(TEXTURE_RESOLUTION);
 			return 1;
 		});
-		gLuaManager.SetFunction("GetSkipLoadingTexturesFlag", [this](ILuaStateWrap* state) -> int {
+		gLuaManager.SetFunction("GetSkipLoadingTexturesFlag", [](ILuaStateWrap* state) -> int {
 			state->PushResultInteger(SKIP_LOADING_TEXTURES);
 			return 1;
 		});
@@ -2855,12 +2857,12 @@ class MaterialPlayground: public IApp
 			state->GetStringArrayArg(1, texturesNames);
 			for (const char* name : texturesNames)
 			{
-				pStagingData->mMaterialNamesStorage.push_back(name);
+				this->pStagingData->mMaterialNamesStorage.push_back(name);
 			}
 
-			for (eastl::string& name : pStagingData->mMaterialNamesStorage)
+			for (eastl::string& name : this->pStagingData->mMaterialNamesStorage)
 			{
-				pStagingData->mMaterialTextureList.push_back(name.c_str());
+				this->pStagingData->mMaterialTextureList.push_back(name.c_str());
 			}
 
 			return 0;
@@ -4076,8 +4078,11 @@ class MaterialPlayground: public IApp
 		depthPeelingRenderTargetDesc.mMipLevels = 1;
 		depthPeelingRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
 		depthPeelingRenderTargetDesc.mFormat = ImageFormat::R16F;
-		depthPeelingRenderTargetDesc.mClearValue = { 1.0f, 1.0f, 1.0f, 1.0f };
-		depthPeelingRenderTargetDesc.mSampleQuality = 0;
+        depthPeelingRenderTargetDesc.mClearValue.r = 1.0f;
+        depthPeelingRenderTargetDesc.mClearValue.g = 1.0f;
+        depthPeelingRenderTargetDesc.mClearValue.b = 1.0f;
+        depthPeelingRenderTargetDesc.mClearValue.a = 1.0f;
+        depthPeelingRenderTargetDesc.mSampleQuality = 0;
 		depthPeelingRenderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		depthPeelingRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
 		depthPeelingRenderTargetDesc.pDebugName = L"Depth peeling RT";
@@ -4092,7 +4097,10 @@ class MaterialPlayground: public IApp
 		hairDepthsTextureDesc.mMipLevels = 1;
 		hairDepthsTextureDesc.mSampleCount = SAMPLE_COUNT_1;
 		hairDepthsTextureDesc.mFormat = ImageFormat::R32UI;
-		hairDepthsTextureDesc.mClearValue = { 1.0f, 1.0f, 1.0f, 1.0f };
+        hairDepthsTextureDesc.mClearValue.r = 1.0f;
+        hairDepthsTextureDesc.mClearValue.g = 1.0f;
+        hairDepthsTextureDesc.mClearValue.b = 1.0f;
+        hairDepthsTextureDesc.mClearValue.a = 1.0f;
 		hairDepthsTextureDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE | DESCRIPTOR_TYPE_TEXTURE;
 		hairDepthsTextureDesc.pDebugName = L"Hair depths texture";
 
@@ -4121,7 +4129,10 @@ class MaterialPlayground: public IApp
 		fillColorsRenderTargetDesc.mMipLevels = 1;
 		fillColorsRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
 		fillColorsRenderTargetDesc.mFormat = ImageFormat::RGBA16F;
-		fillColorsRenderTargetDesc.mClearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+        fillColorsRenderTargetDesc.mClearValue.r = 0.0f;
+        fillColorsRenderTargetDesc.mClearValue.g = 0.0f;
+        fillColorsRenderTargetDesc.mClearValue.b = 0.0f;
+        fillColorsRenderTargetDesc.mClearValue.a = 0.0f;
 		fillColorsRenderTargetDesc.mSampleQuality = 0;
 		fillColorsRenderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		fillColorsRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
@@ -4136,7 +4147,8 @@ class MaterialPlayground: public IApp
 		hairShadowRenderTargetDesc.mMipLevels = 1;
 		hairShadowRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
 		hairShadowRenderTargetDesc.mFormat = ImageFormat::D16;
-		hairShadowRenderTargetDesc.mClearValue = { 1.0f, 0 };
+        hairShadowRenderTargetDesc.mClearValue.depth = 1.0f;
+        hairShadowRenderTargetDesc.mClearValue.stencil = 0;
 		hairShadowRenderTargetDesc.mSampleQuality = 0;
 		hairShadowRenderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		hairShadowRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
@@ -4149,7 +4161,8 @@ class MaterialPlayground: public IApp
 
 		RenderTargetDesc depthRenderTargetDesc = {};
 		depthRenderTargetDesc.mArraySize = 1;
-		depthRenderTargetDesc.mClearValue = { 1.0f, 0 };
+        depthRenderTargetDesc.mClearValue.depth = 1.0f;
+        depthRenderTargetDesc.mClearValue.stencil = 0;
 		depthRenderTargetDesc.mDepth = 1;
 		depthRenderTargetDesc.mFormat = ImageFormat::D32F;
 		depthRenderTargetDesc.mHeight = mSettings.mHeight;
@@ -4162,7 +4175,8 @@ class MaterialPlayground: public IApp
 
 		RenderTargetDesc shadowPassRenderTargetDesc = {};
 		shadowPassRenderTargetDesc.mArraySize = 1;
-		shadowPassRenderTargetDesc.mClearValue = { 1.0f, 0 };
+        shadowPassRenderTargetDesc.mClearValue.depth = 1.0f;
+        shadowPassRenderTargetDesc.mClearValue.stencil = 0;
 		shadowPassRenderTargetDesc.mDepth = 1;
 		shadowPassRenderTargetDesc.mFormat = ImageFormat::D32F;
 		shadowPassRenderTargetDesc.mHeight = gShadowMapDimensions;
@@ -4182,7 +4196,10 @@ class MaterialPlayground: public IApp
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
-		swapChainDesc.mColorClearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+        swapChainDesc.mColorClearValue.r = 0.0f;
+        swapChainDesc.mColorClearValue.g = 0.0f;
+        swapChainDesc.mColorClearValue.b = 0.0f;
+        swapChainDesc.mColorClearValue.a = 0.0f;
 		swapChainDesc.mSrgb = false;
 		swapChainDesc.mEnableVsync = false;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
@@ -4254,7 +4271,7 @@ void GuiController::UpdateDynamicUI()
 		GuiController::hairDynamicWidgets[gHairType].hairSimulation.ShowWidgets(pGuiWindowHairSimulation);
 	}
 
-#if !defined(TARGET_IOS) && !defined(_DURANGO)
+#if !defined(TARGET_IOS) && !defined(_DURANGO) && !defined(__ANDROID__)
 	if (pSwapChain->mDesc.mEnableVsync != gVSyncEnabled)
 	{
 		waitQueueIdle(pGraphicsQueue);
@@ -4299,14 +4316,14 @@ void GuiController::AddGui()
 
 	static const char*    renderModeNames[] = { "Shaded", "Albedo", "Normals", "Roughness", "Metallic", "AO", NULL };
 	static const uint32_t renderModeVals[] = {
-		RENDER_MODE_SHADED, RENDER_MODE_ALBEDO, RENDER_MODE_NORMALS, RENDER_MODE_ROUGHNESS, RENDER_MODE_METALLIC, RENDER_MODE_AO, NULL
+		RENDER_MODE_SHADED, RENDER_MODE_ALBEDO, RENDER_MODE_NORMALS, RENDER_MODE_ROUGHNESS, RENDER_MODE_METALLIC, RENDER_MODE_AO, (uint32_t)NULL
 	};
 	const uint32_t dropDownCount3 = (sizeof(renderModeNames) / sizeof(renderModeNames[0])) - 1;
 
   pGuiWindowMain->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
 
 	// SCENE GUI
-#if !defined(TARGET_IOS) && !defined(_DURANGO)
+#if !defined(TARGET_IOS) && !defined(_DURANGO) && !defined(__ANDROID__)
 	pGuiWindowMain->AddWidget(CheckboxWidget("V-Sync", &gVSyncEnabled));
 #endif
 	pGuiWindowMain->AddWidget(DropdownWidget("Material Type", &gMaterialType, materialTypeNames, materialTypeValues, dropDownCount));

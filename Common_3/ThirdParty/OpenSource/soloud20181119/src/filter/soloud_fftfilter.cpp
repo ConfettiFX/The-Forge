@@ -26,7 +26,7 @@ freely, subject to the following restrictions:
 #include "soloud.h"
 #include "soloud_fftfilter.h"
 #include "soloud_fft.h"
-#include "../../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../../OS/Interfaces/IMemory.h"
 
 
 namespace SoLoud

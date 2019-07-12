@@ -46,6 +46,8 @@ namespace eastl
 
 		void set_name(const char*) {}
 	};
+	inline bool operator==(const allocator_forge&, const allocator_forge&) { return true; }
+	inline bool operator!=(const allocator_forge&, const allocator_forge&) { return false; }
 
 	EASTL_API allocator_forge* GetDefaultAllocatorForge();
 	EASTL_API allocator_forge* SetDefaultAllocatorForge(allocator_forge* pAllocator);

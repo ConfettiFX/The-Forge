@@ -13,11 +13,11 @@ struct Vertex_Shader
     struct Uniforms_uniformBlock {
 
         float4x4 mvp;
-        float4x4 toWorld[MAX_JOINTS];
         float4 color[MAX_JOINTS];
 
-        float3 lightPosition;
-        float3 lightColor;
+        float4 lightPosition;
+        float4 lightColor;
+        float4x4 toWorld[MAX_JOINTS];
     };
     constant Uniforms_uniformBlock & uniformBlock;
     struct VSInput
@@ -45,10 +45,10 @@ struct Vertex_Shader
         float lightIntensity = 1.0;
 		float ambientCoeff = 0.4;
 
-        float3 lightDir = (float3)(normalize(uniformBlock.lightPosition - pos.xyz));
+        float3 lightDir = (float3)(normalize(uniformBlock.lightPosition.xyz - pos.xyz));
 		
         float3 baseColor = uniformBlock.color[InstanceID].xyz;
-        float3 blendedColor = ((uniformBlock.lightColor * baseColor)*(lightIntensity));
+        float3 blendedColor = ((uniformBlock.lightColor.xyz * baseColor)*(lightIntensity));
         float3 diffuse = ((blendedColor)*(max(dot(normal.xyz, lightDir), 0.0)));
         float3 ambient = ((baseColor)*(ambientCoeff));
         result.Color = float4(diffuse + ambient, 1.0);

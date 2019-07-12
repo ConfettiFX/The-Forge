@@ -30,11 +30,11 @@
 #include "../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include/assimp/scene.h"
 #include "../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include/assimp/postprocess.h"
 #include "../../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../Common_3/OS/Core/Compiler.h"
 
 #include "../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"
-#include "../../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../../Common_3/OS/Interfaces/IMemory.h"
 
 #define DEFAULT_ALBEDO "Default"
 #define DEFAULT_NORMAL "Default_NRM"
@@ -1113,15 +1113,9 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 		batch.materialId = (uint32_t)i;
 		batch.vertexCount = (uint32_t)mesh.mPositions.size();
 
-#if defined(METAL)
-		batch.startVertex = accIndex;
-		batch.vertexCount = (uint32_t)mesh.mIndices.size();
-		accIndex += batch.vertexCount;
-#else
 		batch.startIndex = accIndex;
 		batch.indexCount = (uint32_t)mesh.mIndices.size();
 		accIndex += batch.indexCount;
-#endif
 
 		LOGF(LogLevel::eINFO, "%d vertexCount: %d total: %d", i, batch.vertexCount, accIndex);
 	}
@@ -1140,39 +1134,6 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 	scene->specularMaps = (char**)conf_calloc(scene->numMaterials, sizeof(char*));
 
 	SetMaterials(scene);
-
-#ifdef METAL
-	// Once we have read all the geometry from the original asset, expand indices into vertices so the models are compatible with Metal implementation.
-	Scene originalScene = *scene;
-
-	scene->totalTriangles = 0;
-	scene->totalVertices = 0;
-	scene->positions.clear();
-	scene->texCoords.clear();
-	scene->normals.clear();
-	scene->tangents.clear();
-
-	uint32_t originalIdx = 0;
-	for (uint32_t i = 0; i < scene->numMeshes; i++)
-	{
-		scene->meshes[i].startVertex = (uint32_t)scene->positions.size();
-
-		uint32_t idxCount =
-			originalScene.meshes[i].vertexCount;    // Index count is stored in the vertex count member when reading the mesh on Metal.
-		for (uint32_t j = 0; j < idxCount; j++)
-		{
-			uint32_t idx = originalScene.indices[originalIdx++];
-			scene->positions.push_back(originalScene.positions[idx]);
-			scene->texCoords.push_back(originalScene.texCoords[idx]);
-			scene->normals.push_back(originalScene.normals[idx]);
-			scene->tangents.push_back(originalScene.tangents[idx]);
-		}
-		scene->meshes[i].vertexCount = (uint32_t)scene->positions.size() - scene->meshes[i].startVertex;
-		scene->meshes[i].triangleCount = scene->meshes[i].vertexCount / 3;
-		scene->totalTriangles += scene->meshes[i].triangleCount;
-		scene->totalVertices += scene->meshes[i].vertexCount;
-	}
-#endif
 
 #else
 
@@ -1242,13 +1203,9 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 
 		assimpScene.Read(&batch.materialId, sizeof(uint32_t));
 		assimpScene.Read(&batch.vertexCount, sizeof(uint32_t));
-#if defined(METAL)
-		assimpScene.Read(&batch.startVertex, sizeof(uint32_t));
-		assimpScene.Read(&batch.vertexCount, sizeof(uint32_t));
-#else
+
 		assimpScene.Read(&batch.startIndex, sizeof(uint32_t));
 		assimpScene.Read(&batch.indexCount, sizeof(uint32_t));
-#endif
 	}
 
 	eastl::unordered_set<eastl::string> twoSidedMaterials;
@@ -1506,39 +1463,6 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 
 	assimpScene.Close();
 
-#ifdef METAL
-	// Once we have read all the geometry from the original asset, expand indices into vertices so the models are compatible with Metal implementation.
-	Scene originalScene = *scene;
-
-	scene->totalTriangles = 0;
-	scene->totalVertices = 0;
-	scene->positions.clear();
-	scene->texCoords.clear();
-	scene->normals.clear();
-	scene->tangents.clear();
-
-	uint32_t originalIdx = 0;
-	for (uint32_t i = 0; i < scene->numMeshes; i++)
-	{
-		scene->meshes[i].startVertex = (uint32_t)scene->positions.size();
-
-		uint32_t idxCount =
-			originalScene.meshes[i].vertexCount;    // Index count is stored in the vertex count member when reading the mesh on Metal.
-		for (uint32_t j = 0; j < idxCount; j++)
-		{
-			uint32_t idx = originalScene.indices[originalIdx++];
-			scene->positions.push_back(originalScene.positions[idx]);
-			scene->texCoords.push_back(originalScene.texCoords[idx]);
-			scene->normals.push_back(originalScene.normals[idx]);
-			scene->tangents.push_back(originalScene.tangents[idx]);
-		}
-		scene->meshes[i].vertexCount = (uint32_t)scene->positions.size() - scene->meshes[i].startVertex;
-		scene->meshes[i].triangleCount = scene->meshes[i].vertexCount / 3;
-		scene->totalTriangles += scene->meshes[i].triangleCount;
-		scene->totalVertices += scene->meshes[i].vertexCount;
-	}
-#endif
-
 #endif
 	return scene;
 }
@@ -1587,11 +1511,6 @@ void createAABB(const Scene* pScene, MeshIn* mesh)
 	vec4 aabbMin = vec4(INFINITY, INFINITY, INFINITY, INFINITY);
 	vec4 aabbMax = -aabbMin;
 
-#ifndef METAL
-	uint32_t triangleCount = mesh->indexCount / 3;
-
-	uint32_t totalSize = (uint32_t)pScene->indices.size();
-
 	for (uint t = 0; t < mesh->indexCount; ++t)
 	{
 		vec4 currentVertex;
@@ -1603,19 +1522,6 @@ void createAABB(const Scene* pScene, MeshIn* mesh)
 		aabbMin = minPerElem(aabbMin, currentVertex);
 		aabbMax = maxPerElem(aabbMax, currentVertex);
 	}
-#else
-	for (uint t = 0; t < mesh->vertexCount; ++t)
-	{
-		vec4 currentVertex;
-
-		uint32_t currentIndex = pScene->indices[mesh->startVertex + t];
-
-		currentVertex = vec4(makeVec3(pScene->positions[currentIndex]), 1.0);
-
-		aabbMin = minPerElem(aabbMin, currentVertex);
-		aabbMax = maxPerElem(aabbMax, currentVertex);
-	}
-#endif
 
 	mesh->AABB.maxPt = float4(aabbMax.getX(), aabbMax.getY(), aabbMax.getZ(), aabbMax.getW());
 	mesh->AABB.minPt = float4(aabbMin.getX(), aabbMin.getY(), aabbMin.getZ(), aabbMin.getW());
@@ -1705,139 +1611,6 @@ void loadModel(const eastl::string& FileName, Buffer*& pVertexBuffer, uint& vert
 // all the clusters that passed the CPU test.
 void createClusters(bool twoSided, const Scene* pScene, MeshIn* mesh)
 {
-#if defined(METAL)
-	struct Triangle
-	{
-		vec3 vtx[3];
-	};
-
-	Triangle triangleCache[CLUSTER_SIZE * 3];
-
-	mesh->clusterCount = (mesh->triangleCount + CLUSTER_SIZE - 1) / CLUSTER_SIZE;
-	mesh->clusters = (Cluster*)conf_malloc(mesh->clusterCount * sizeof(Cluster));
-	mesh->clusterCompacts = (ClusterCompact*)conf_calloc(mesh->clusterCount, sizeof(ClusterCompact));
-	memset(mesh->clusters, 0, mesh->clusterCount * sizeof(Cluster));
-
-	const uint32_t triangleStart =
-		mesh->startVertex / 3;    // Assumes that we have no indices and every 3 vertices are a triangle (due to Metal limitation).
-
-	for (uint32_t i = 0; i < mesh->clusterCount; ++i)
-	{
-		const int      clusterStart = i * CLUSTER_SIZE;
-		const uint32_t clusterEnd = min<uint32_t>(clusterStart + CLUSTER_SIZE, mesh->triangleCount);
-
-		const int clusterTriangleCount = clusterEnd - clusterStart;
-
-		// Load all triangles into our local cache
-		for (uint32_t triangleIndex = clusterStart; triangleIndex < clusterEnd; ++triangleIndex)
-		{
-			triangleCache[triangleIndex - clusterStart].vtx[0] = makeVec3(pScene->positions[triangleStart + triangleIndex * 3]);
-			triangleCache[triangleIndex - clusterStart].vtx[1] = makeVec3(pScene->positions[triangleStart + triangleIndex * 3 + 1]);
-			triangleCache[triangleIndex - clusterStart].vtx[2] = makeVec3(pScene->positions[triangleStart + triangleIndex * 3 + 2]);
-		}
-
-		vec3 aabbMin = vec3(INFINITY, INFINITY, INFINITY);
-		vec3 aabbMax = -aabbMin;
-
-		vec3 coneAxis = vec3(0, 0, 0);
-
-		for (int triangleIndex = 0; triangleIndex < clusterTriangleCount; ++triangleIndex)
-		{
-			const Triangle& triangle = triangleCache[triangleIndex];
-			for (int j = 0; j < 3; ++j)
-			{
-				aabbMin = minPerElem(aabbMin, triangle.vtx[j]);
-				aabbMax = maxPerElem(aabbMax, triangle.vtx[j]);
-			}
-
-			vec3 triangleNormal = cross(triangle.vtx[1] - triangle.vtx[0], triangle.vtx[2] - triangle.vtx[0]);
-			//if(!(triangleNormal == vec3(0,0,0)))
-			if (lengthSqr(triangleNormal) > 0.01f)
-				triangleNormal = normalize(triangleNormal);
-
-			coneAxis = coneAxis - triangleNormal;
-		}
-
-		// This is the cosine of the cone opening angle - 1 means it's 0??,
-		// we're minimizing this value (at 0, it would mean the cone is 90?? open)
-		float coneOpening = 1;
-
-		// dont cull two sided meshes
-		bool validCluster = !twoSided;
-
-		vec3 center = (aabbMin + aabbMax) / 2;
-		// if the axis is 0 then we have a invalid cluster
-		if (coneAxis == vec3(0, 0, 0))
-			validCluster = false;
-
-		coneAxis = normalize(coneAxis);
-
-		float t = -INFINITY;
-
-		// cant find a cluster for 2 sided objects
-		if (validCluster)
-		{
-			// We nee a second pass to find the intersection of the line center + t * coneAxis with the plane defined by each triangle
-			for (int triangleIndex = 0; triangleIndex < clusterTriangleCount; ++triangleIndex)
-			{
-				const Triangle& triangle = triangleCache[triangleIndex];
-				// Compute the triangle plane from the three vertices
-
-				const vec3 triangleNormal = normalize(cross(triangle.vtx[1] - triangle.vtx[0], triangle.vtx[2] - triangle.vtx[0]));
-
-				//Check Nan
-				if ((triangleNormal.getX() != triangleNormal.getX()) || (triangleNormal.getY() != triangleNormal.getY()) ||
-					(triangleNormal.getZ() != triangleNormal.getZ()))
-				{
-					validCluster = false;
-					break;
-				}
-
-				const float directionalPart = dot(coneAxis, -triangleNormal);
-
-				if (directionalPart <= 0.0f)    //AMD BUG?: changed to <= 0 because directionalPart is used to divide a quantity
-				{
-					// No solution for this cluster - at least two triangles are facing each other
-					validCluster = false;
-					break;
-				}
-
-				// We need to intersect the plane with our cone ray which is center + t * coneAxis, and find the max
-				// t along the cone ray (which points into the empty space) See: https://en.wikipedia.org/wiki/Line%E2%80%93plane_intersection
-				const float td = dot(center - triangle.vtx[0], triangleNormal) / -directionalPart;
-
-				t = max(t, td);
-
-				coneOpening = min(coneOpening, directionalPart);
-			}
-		}
-
-		mesh->clusters[i].aabbMax = v3ToF3(aabbMax);
-		mesh->clusters[i].aabbMin = v3ToF3(aabbMin);
-
-		mesh->clusters[i].coneAngleCosine = sqrtf(1 - coneOpening * coneOpening);
-		mesh->clusters[i].coneCenter = v3ToF3(center + coneAxis * t);
-		mesh->clusters[i].coneAxis = v3ToF3(coneAxis);
-
-		mesh->clusterCompacts[i].triangleCount = clusterTriangleCount;
-		mesh->clusterCompacts[i].clusterStart = clusterStart;
-
-		//#if AMD_GEOMETRY_FX_ENABLE_CLUSTER_CENTER_SAFETY_CHECK
-		// If distance of coneCenter to the bounding box center is more than 16x the bounding box extent, the cluster is also invalid
-		// This is mostly a safety measure - if triangles are nearly parallel to coneAxis, t may become very large and unstable
-		if (validCluster)
-		{
-			const float aabbSize = length(aabbMax - aabbMin);
-			const float coneCenterToCenterDistance = length(f3Tov3(mesh->clusters[i].coneCenter - v3ToF3(center)));
-
-			if (coneCenterToCenterDistance > (16 * aabbSize))
-				validCluster = false;
-		}
-		//#endif
-
-		mesh->clusters[i].valid = validCluster;
-	}
-#else
 	// 12 KiB stack space
 	struct Triangle
 	{
@@ -1961,7 +1734,6 @@ void createClusters(bool twoSided, const Scene* pScene, MeshIn* mesh)
 
 		mesh->clusters[i].valid = validCluster;
 	}
-#endif
 }
 
 void destroyClusters(MeshIn* pMesh)
@@ -1971,18 +1743,6 @@ void destroyClusters(MeshIn* pMesh)
 	conf_free(pMesh->clusterCompacts);
 }
 
-#if defined(METAL)
-void addClusterToBatchChunk(
-	const ClusterCompact* cluster, const MeshIn* mesh, uint32_t meshIdx, bool isTwoSided, FilterBatchChunk* batchChunk)
-{
-	FilterBatchData* batchData = &batchChunk->batches[batchChunk->currentBatchCount++];
-
-	batchData->triangleCount = cluster->triangleCount;
-	batchData->triangleOffset = cluster->clusterStart + mesh->startVertex / 3;    // each 3 vertices form a triangle
-	batchData->meshIdx = meshIdx;
-	batchData->twoSided = (isTwoSided ? 1 : 0);
-}
-#else
 void addClusterToBatchChunk(
 	const ClusterCompact* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex,
 	FilterBatchChunk* batchChunk)
@@ -2000,7 +1760,6 @@ void addClusterToBatchChunk(
 	smallBatchData->outputIndexOffset = filteredIndexBufferStartOffset;
 	smallBatchData->drawBatchStart = batchStart;
 }
-#endif
 
 void createCubeBuffers(Renderer* pRenderer, CmdPool* cmdPool, Buffer** ppVertexBuffer, Buffer** ppIndexBuffer)
 {

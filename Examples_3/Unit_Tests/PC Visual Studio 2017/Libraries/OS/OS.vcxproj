@@ -34,6 +34,7 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Timer.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Input\InputSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsTime.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\allocator_forge.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\assert.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EAStdC\EAMemory.cpp" />
@@ -80,15 +81,15 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IApp.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ICameraController.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFileSystem.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ILogManager.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IMemoryManager.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ILog.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IMemory.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IMiddleware.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IOperatingSystem.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IPlatformEvents.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IProfiler.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IThread.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ITimeManager.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Logging\LogManager.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ITime.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Logging\Log.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\MathTypes.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imconfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui.h" />
@@ -113,12 +114,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Image\Image.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Logging\LogManager.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\MemoryTracking\MemoryTrackingManager.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsLogManager.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Logging\Log.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\MemoryTracking\MemoryTracking.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsLog.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsBase.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsFileSystem.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsThreadManager.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsThread.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EASTL.natvis" />

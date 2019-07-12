@@ -4,7 +4,7 @@
 #include <string.h>
 #include "darray.h"
 #include "tts.h"
-#include "../../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../../OS/Interfaces/IMemory.h"
 
 static const char *ASCII[] =
 {

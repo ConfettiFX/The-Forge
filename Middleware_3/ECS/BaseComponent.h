@@ -5,7 +5,7 @@
 #include "../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 #include "../../Common_3/ThirdParty/OpenSource/EASTL/unordered_map.h"
 
-//#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
+//#include "../../Common_3/OS/Interfaces/IMemory.h"
 
 #define MAX_COMPONENT_STRING_SIZE 256
 

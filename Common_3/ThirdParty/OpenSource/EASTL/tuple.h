@@ -954,19 +954,41 @@ inline EA_CONSTEXPR tuple<Ts&...> tie(Ts&... ts) EA_NOEXCEPT
 //
 namespace detail
 {
+	//FORGE_EASTL_CHANGES_START
+	//template <class F, class Tuple, size_t... I>
+	//EA_CONSTEXPR decltype(auto) apply_impl(F&& f, Tuple&& t, index_sequence<I...>)
+	//{
+	//	return invoke(forward<F>(f), get<I>(forward<Tuple>(t))...);
+	//}
+
 	template <class F, class Tuple, size_t... I>
-	EA_CONSTEXPR decltype(auto) apply_impl(F&& f, Tuple&& t, index_sequence<I...>)
+	auto apply_impl(F&& f, Tuple&& t, index_sequence<I...>)
+		-> decltype(invoke(forward<F>(f), get<I>(forward<Tuple>(t))...))
 	{
 		return invoke(forward<F>(f), get<I>(forward<Tuple>(t))...);
 	}
+	//FORGE_EASTL_CHANGES_END
+	
 } // namespace detail
 
+//template <class F, class Tuple>
+//EA_CONSTEXPR decltype(auto) apply(F&& f, Tuple&& t)
+//{
+//	return detail::apply_impl(forward<F>(f), forward<Tuple>(t),
+//		                      make_index_sequence<tuple_size_v<remove_reference_t<Tuple>>>{});
+//}
+
+//FORGE_EASTL_CHANGES_START
 template <class F, class Tuple>
-EA_CONSTEXPR decltype(auto) apply(F&& f, Tuple&& t)
+auto apply(F&& f, Tuple&& t)
+	-> decltype(detail::apply_impl(forward<F>(f),
+	                               forward<Tuple>(t),
+	                               make_index_sequence<tuple_size<typename remove_reference<Tuple>::type>::value>{}))
 {
 	return detail::apply_impl(forward<F>(f), forward<Tuple>(t),
-		                      make_index_sequence<tuple_size_v<remove_reference_t<Tuple>>>{});
+		                      make_index_sequence<tuple_size<typename remove_reference<Tuple>::type>::value>{});
 }
+//FORGE_EASTL_CHANGES_END
 
 }  // namespace eastl
 

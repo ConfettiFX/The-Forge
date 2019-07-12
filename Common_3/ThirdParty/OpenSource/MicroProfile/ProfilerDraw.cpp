@@ -9,7 +9,7 @@
 #include "../EASTL/unordered_map.h"
 #include "../../../Renderer/ResourceLoader.h"
 #include "../../../../Middleware_3/Text/Fontstash.h"
-#include "../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../OS/Interfaces/IMemory.h"
 
 struct ProfileVertex
 {

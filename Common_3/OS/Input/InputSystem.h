@@ -180,7 +180,7 @@ namespace InputSystem
 	void ShutdownSubView(void* view);
 #endif
 
-#ifdef _WINDOWS
+#if defined(_WIN32) && !defined(_DURANGO)
 	void HandleMessage(MSG& msg);
 #elif defined __ANDROID__
 	int32_t HandleMessage(AInputEvent* msg);
@@ -227,7 +227,7 @@ namespace InputSystem
 	void ShutdownSubView(void* view) {}
 #endif
 
-#ifdef _WINDOWS
+#if defined(_WIN32) && !defined(_DURANGO)
 	void HandleMessage(MSG& msg) {}
 #elif defined __ANDROID__
 	int32_t HandleMessage(AInputEvent* msg) { return 0; }

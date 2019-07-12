@@ -19,15 +19,19 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv.hpp" />
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv_cfg.hpp" />
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv_common.hpp" />
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv_cross.hpp" />
     <ClInclude Include="..\..\..\..\..\Common_3\Tools\SpirvTools\SpirvTools.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv_cfg.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv_cpp.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv_cross.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv_cross_parsed_ir.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv_cross_util.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv_glsl.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv_hlsl.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv_msl.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv_parser.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\SPIRV_Cross\spirv_reflect.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Tools\SpirvTools\dllmain.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Tools\SpirvTools\SpirvTools.cpp" />
   </ItemGroup>

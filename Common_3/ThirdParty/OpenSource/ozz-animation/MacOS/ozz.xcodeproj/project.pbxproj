@@ -676,8 +676,8 @@
 					"-DNDEBUG",
 					"-Wall",
 					"-Wno-ignored-attributes",
-					"-Werror",
 					"'-std=gnu++11'",
+					"-Wno-c++14-extensions",
 				);
 				OTHER_LIBTOOLFLAGS = " ";
 				OTHER_REZFLAGS = "";
@@ -727,8 +727,8 @@
 				OTHER_CPLUSPLUSFLAGS = (
 					"-Wall",
 					"-Wno-ignored-attributes",
-					"-Werror",
 					"'-std=gnu++11'",
+					"-Wno-c++14-extensions",
 				);
 				OTHER_LIBTOOLFLAGS = " ";
 				OTHER_REZFLAGS = "";
@@ -845,8 +845,8 @@
 				OTHER_CPLUSPLUSFLAGS = (
 					"-Wall",
 					"-Wno-ignored-attributes",
-					"-Werror",
 					"'-std=gnu++11'",
+					"-Wno-c++14-extensions",
 				);
 				OTHER_LIBTOOLFLAGS = " ";
 				OTHER_REZFLAGS = "";
@@ -885,8 +885,8 @@
 				OTHER_CPLUSPLUSFLAGS = (
 					"-Wall",
 					"-Wno-ignored-attributes",
-					"-Werror",
 					"'-std=gnu++11'",
+					"-Wno-c++14-extensions",
 				);
 				OTHER_LIBTOOLFLAGS = " ";
 				OTHER_REZFLAGS = "";
@@ -928,8 +928,8 @@
 					"-DNDEBUG",
 					"-Wall",
 					"-Wno-ignored-attributes",
-					"-Werror",
 					"'-std=gnu++11'",
+					"-Wno-c++14-extensions",
 				);
 				OTHER_LIBTOOLFLAGS = " ";
 				OTHER_REZFLAGS = "";
@@ -974,8 +974,8 @@
 				OTHER_CPLUSPLUSFLAGS = (
 					"-Wall",
 					"-Wno-ignored-attributes",
-					"-Werror",
 					"'-std=gnu++11'",
+					"-Wno-c++14-extensions",
 				);
 				OTHER_LIBTOOLFLAGS = " ";
 				OTHER_REZFLAGS = "";
@@ -1019,8 +1019,8 @@
 					"-DNDEBUG",
 					"-Wall",
 					"-Wno-ignored-attributes",
-					"-Werror",
 					"'-std=gnu++11'",
+					"-Wno-c++14-extensions",
 				);
 				OTHER_LIBTOOLFLAGS = " ";
 				OTHER_REZFLAGS = "";
@@ -1060,8 +1060,8 @@
 					"-DNDEBUG",
 					"-Wall",
 					"-Wno-ignored-attributes",
-					"-Werror",
 					"'-std=gnu++11'",
+					"-Wno-c++14-extensions",
 				);
 				OTHER_LIBTOOLFLAGS = " ";
 				OTHER_REZFLAGS = "";

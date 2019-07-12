@@ -10,8 +10,8 @@
 #ifndef VECTORMATH_COMMON_HPP
 #define VECTORMATH_COMMON_HPP
 
-#define MEM_MANAGER_FROM_HEADER
-#include "../../../OS/Interfaces/IMemoryManager.h"
+#define IMEMORY_FROM_HEADER
+#include "../../../OS/Interfaces/IMemory.h"
 
 namespace Vectormath
 {

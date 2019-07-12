@@ -37,12 +37,13 @@ layout(location = 0) out vec4 Color;
 
 layout (std140, set=3, binding=0) uniform uniformBlock {
 	uniform mat4 mvp;
-    uniform mat4 toWorld[MAX_INSTANCES];
-    uniform vec4 color[MAX_INSTANCES];
 
+    uniform vec4 color[MAX_INSTANCES];
     // Point Light Information
-    uniform vec3 lightPosition;
-    uniform vec3 lightColor;
+    uniform vec4 lightPosition;
+    uniform vec4 lightColor;
+
+    uniform mat4 toWorld[MAX_INSTANCES];
 };
 
 void main ()
@@ -57,14 +58,14 @@ void main ()
     float quadraticCoeff = 1.2;
     float ambientCoeff = 0.4;
 	
-	vec3 lightDir = normalize(lightPosition - pos.xyz);
+	vec3 lightDir = normalize(lightPosition.xyz - pos.xyz);
 	
     float distance = length(lightDir);
     float attenuation = 1.0 / (quadraticCoeff * distance * distance);
     float intensity = lightIntensity * attenuation;
 
     vec3 baseColor = color[gl_InstanceIndex].xyz;
-    vec3 blendedColor = lightColor * baseColor * lightIntensity;
+    vec3 blendedColor = lightColor.xyz * baseColor * lightIntensity;
     vec3 diffuse = blendedColor * max(dot(normal.xyz, lightDir), 0.0);
     vec3 ambient = baseColor * ambientCoeff;
     Color = vec4(diffuse + ambient, 1.0);

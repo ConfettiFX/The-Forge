@@ -30,10 +30,10 @@
 
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IPlatformEvents.h"
-#include "../Interfaces/ILogManager.h"
-#include "../Interfaces/ITimeManager.h"
+#include "../Interfaces/ILog.h"
+#include "../Interfaces/ITime.h"
 #include "../Interfaces/IThread.h"
-#include "../Interfaces/IMemoryManager.h"
+#include "../Interfaces/IMemory.h"
 
 #define CONFETTI_WINDOW_CLASS L"confetti"
 #define MAX_KEYS 256

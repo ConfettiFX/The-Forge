@@ -24,11 +24,11 @@
 
 #ifdef __ANDROID__
 #include "../Interfaces/IFileSystem.h"
-#include "../Interfaces/ILogManager.h"
+#include "../Interfaces/ILog.h"
 #include "../Interfaces/IOperatingSystem.h"
 #include <unistd.h>
 #include <android/asset_manager.h>
-#include "../Interfaces/IMemoryManager.h"
+#include "../Interfaces/IMemory.h"
 #define MAX_PATH PATH_MAX
 
 #define RESOURCE_DIR "Shaders"
@@ -75,10 +75,15 @@ bool close_file(FileHandle handle)
 
 bool anDirExists(const char* path)
 {
-	AAssetDir* assetDir = AAssetManager_openDir(_mgr, path );
-	bool exist = AAssetDir_getNextFileName(assetDir) != NULL;
-	AAssetDir_close( assetDir );
-	return exist;
+	AAsset* file = AAssetManager_open(_mgr, path, AASSET_MODE_BUFFER);
+	if(file == NULL) {
+		AAssetDir* assetDir = AAssetManager_openDir(_mgr, path );
+		bool exist = AAssetDir_getNextFileName(assetDir) != NULL;
+		AAssetDir_close( assetDir );
+		return exist;
+	}
+	AAsset_close(file);
+	return true;
 }
 
 void get_files_with_extension(const char* dir, const char* ext, eastl::vector<eastl::string>& filesOut)

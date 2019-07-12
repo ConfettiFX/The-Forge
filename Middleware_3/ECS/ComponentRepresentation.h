@@ -7,7 +7,7 @@
 #include "../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 #include "../../Common_3/OS/Math/MathTypes.h"
 
-#include "../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../Common_3/OS/Interfaces/ILog.h"
 #undef alignment
 
 #ifdef METAL

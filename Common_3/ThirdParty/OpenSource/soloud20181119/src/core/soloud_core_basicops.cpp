@@ -24,7 +24,7 @@ freely, subject to the following restrictions:
 
 #include <string.h>
 #include "soloud_internal.h"
-#include "../../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../../OS/Interfaces/IMemory.h"
 
 // Core "basic" operations - play, stop, etc
 

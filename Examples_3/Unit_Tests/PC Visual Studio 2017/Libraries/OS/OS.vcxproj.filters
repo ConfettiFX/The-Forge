@@ -64,18 +64,9 @@
     <Filter Include="OS\Profiler">
       <UniqueIdentifier>{dcb22600-d19a-42d3-b830-c802db82bb93}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Middleware_3\ECS">
-      <UniqueIdentifier>{14ae8217-971e-4a70-ad78-9db44812b0b9}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFileSystem.h">
-      <Filter>OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ILogManager.h">
-      <Filter>OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IMemoryManager.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IOperatingSystem.h">
@@ -87,17 +78,11 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IThread.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Logging\LogManager.h">
-      <Filter>OS\Logging</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\Image.h">
       <Filter>OS\Image</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\ImageEnums.h">
       <Filter>OS\Image</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ITimeManager.h">
-      <Filter>OS\Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IPlatformEvents.h">
       <Filter>OS\Interfaces</Filter>
@@ -186,27 +171,24 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IProfiler.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.h">
-      <Filter>Middleware_3\ECS</Filter>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ITime.h">
+      <Filter>OS\Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.h">
-      <Filter>Middleware_3\ECS</Filter>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IMemory.h">
+      <Filter>OS\Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.h">
-      <Filter>Middleware_3\ECS</Filter>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ILog.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Logging\Log.h">
+      <Filter>OS\Logging</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsBase.cpp">
-      <Filter>OS\Windows</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\MemoryTracking\MemoryTrackingManager.cpp">
-      <Filter>OS\MemoryTracking</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Logging\LogManager.cpp">
-      <Filter>OS\Logging</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsLogManager.cpp">
       <Filter>OS\Windows</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsFileSystem.cpp">
@@ -220,9 +202,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Timer.cpp">
       <Filter>OS\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsThreadManager.cpp">
-      <Filter>OS\Windows</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.cpp">
       <Filter>OS\Core</Filter>
@@ -332,14 +311,23 @@
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerUI.cpp">
       <Filter>OS\Profiler</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.cpp">
-      <Filter>Middleware_3\ECS</Filter>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsTime.cpp">
+      <Filter>OS\Windows</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.cpp">
-      <Filter>Middleware_3\ECS</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsThread.cpp">
+      <Filter>OS\Windows</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.cpp">
-      <Filter>Middleware_3\ECS</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsLog.cpp">
+      <Filter>OS\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Logging\Log.cpp">
+      <Filter>OS\Logging</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\MemoryTracking\MemoryTracking.cpp">
+      <Filter>OS\MemoryTracking</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

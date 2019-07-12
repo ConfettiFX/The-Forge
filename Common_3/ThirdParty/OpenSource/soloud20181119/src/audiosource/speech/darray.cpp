@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "darray.h"
-#include "../../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../../OS/Interfaces/IMemory.h"
 
 darray::darray()
 {

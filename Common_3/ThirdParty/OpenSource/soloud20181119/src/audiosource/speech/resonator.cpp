@@ -1,7 +1,7 @@
 #include <math.h>
 #include "resonator.h"
 
-#include "../../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../../OS/Interfaces/IMemory.h"
 
 #ifndef PI
 #define PI 3.1415926535897932384626433832795f

@@ -25,12 +25,28 @@
 //This file contains abstractions for compiler specific things
 #pragma once
 
+#include <stdint.h>
+
 //For getting rid of unreferenced parameter warnings
 #ifdef _MSC_VER    //If on Visual Studio
 #define UNREF_PARAM(x) (x)
 #else
 //Add more compilers and platforms as we need them
 #define UNREF_PARAM(x)
+#endif
+
+#if   INTPTR_MAX == 0x7FFFFFFFFFFFFFFFLL
+# define PTR_SIZE 8
+#elif INTPTR_MAX == 0x7FFFFFFF
+# define PTR_SIZE 4
+#else
+#error unsupported platform
+#endif
+
+#ifdef _MSC_VER
+    #define ALIGNAS(x) __declspec( align( x ) ) 
+#else
+    #define ALIGNAS(x)  __attribute__ ((aligned( x )))
 #endif
 
 #if __cplusplus >= 201103

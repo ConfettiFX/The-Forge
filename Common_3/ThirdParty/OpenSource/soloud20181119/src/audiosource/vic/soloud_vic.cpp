@@ -30,7 +30,7 @@ freely, subject to the following restrictions:
 #include <string.h>
 #include <math.h>
 #include "soloud_vic.h"
-#include "../../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../../OS/Interfaces/IMemory.h"
 
 namespace SoLoud
 {

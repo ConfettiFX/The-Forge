@@ -38,23 +38,24 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-#include <stdio.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <string.h>
-#include <algorithm>
 
-#include <string>
-#include <vector>
+#include "../EASTL/string.h"
+#include "../EASTL/unordered_set.h"
+#include "../EASTL/unordered_map.h"
+#include "../EASTL/vector.h"
+#include "../EASTL/heap.h"
 
 #include "tinyexr.h"
+
+#include "../../../OS/Interfaces/ILog.h"
 
 #ifdef _OPENMP
 #include <omp.h>
 #endif
 
-#define MEM_MANAGER_FROM_HEADER
-#include "../../../OS/Interfaces/IMemoryManager.h"
+#define IMEMORY_FROM_HEADER
+#include "../../../OS/Interfaces/IMemory.h"
+
 
 namespace {
 	namespace miniz {
@@ -318,8 +319,6 @@ namespace {
 #ifdef ORBIS
 #define MINIZ_NO_TIME
 #endif
-
-#include <stdlib.h>
 
 		// Defines to completely disable specific portions of miniz.c:
 		// If all macros here are defined the only functionality remaining will be
@@ -1384,7 +1383,7 @@ namespace {
 #include <string.h>
 #include <assert.h>
 
-#define MZ_ASSERT(x) assert(x)
+#define MZ_ASSERT(x) ASSERT(x)
 
 #ifdef MINIZ_NO_MALLOC
 #define MZ_MALLOC(x) NULL
@@ -6768,20 +6767,20 @@ namespace {
 	// #define IMF_B44_COMPRESSION 6
 	// #define IMF_B44A_COMPRESSION  7
 
-	const char *ReadString(std::string &s, const char *ptr) {
+	const char *ReadString(eastl::string &s, const char *ptr) {
 		// Read untile NULL(\0).
 		const char *p = ptr;
 		const char *q = ptr;
 		while ((*q) != 0)
 			q++;
 
-		s = std::string(p, q);
+		s = eastl::string(p, q);
 
 		return q + 1; // skip '\0'
 	}
 
-	const char *ReadAttribute(std::string &name, std::string &ty,
-		std::vector<unsigned char> &data, const char *ptr) {
+	const char *ReadAttribute(eastl::string &name, eastl::string &ty,
+		eastl::vector<unsigned char> &data, const char *ptr) {
 		if ((*ptr) == 0) {
 			// end of attribute.
 			return NULL;
@@ -6809,23 +6808,22 @@ namespace {
 	void WriteAttribute(FILE *fp, const char *name, const char *type,
 		const unsigned char *data, int len) {
 		size_t n = fwrite(name, 1, strlen(name) + 1, fp);
-		assert(n == strlen(name) + 1);
-
+		MZ_ASSERT(n == strlen(name) + 1);
 		n = fwrite(type, 1, strlen(type) + 1, fp);
-		assert(n == strlen(type) + 1);
+		MZ_ASSERT(n == strlen(type) + 1);
 
 		int outLen = len;
 		if (IsBigEndian()) {
 			swap4(reinterpret_cast<unsigned int *>(&outLen));
 		}
 		n = fwrite(&outLen, 1, sizeof(int), fp);
-		assert(n == sizeof(int));
+		MZ_ASSERT(n == sizeof(int));
 
 		n = fwrite(data, 1, len, fp);
-		assert(n == len);
+		MZ_ASSERT(n == len);
 	}
 
-	void WriteAttributeToMemory(std::vector<unsigned char> &out, const char *name,
+	void WriteAttributeToMemory(eastl::vector<unsigned char> &out, const char *name,
 		const char *type, const unsigned char *data,
 		int len) {
 		out.insert(out.end(), name, name + strlen(name) + 1);
@@ -6841,15 +6839,15 @@ namespace {
 	}
 
 	typedef struct {
-		std::string name; // less than 255 bytes long
+		eastl::string name; // less than 255 bytes long
 		int pixelType;
 		unsigned char pLinear;
 		int xSampling;
 		int ySampling;
 	} ChannelInfo;
 
-	void ReadChannelInfo(std::vector<ChannelInfo> &channels,
-		const std::vector<unsigned char> &data) {
+	void ReadChannelInfo(eastl::vector<ChannelInfo> &channels,
+		const eastl::vector<unsigned char> &data) {
 		const char *p = reinterpret_cast<const char *>(&data.at(0));
 
 		for (;;) {
@@ -6878,8 +6876,8 @@ namespace {
 		}
 	}
 
-	void WriteChannelInfo(std::vector<unsigned char> &data,
-		const std::vector<ChannelInfo> &channels) {
+	void WriteChannelInfo(eastl::vector<unsigned char> &data,
+		const eastl::vector<ChannelInfo> &channels) {
 		size_t sz = 0;
 
 		// Calculate total size.
@@ -6924,7 +6922,7 @@ namespace {
 
 	void CompressZip(unsigned char *dst, unsigned long long &compressedSize,
 		const unsigned char *src, unsigned long srcSize) {
-		std::vector<unsigned char> tmpBuf(srcSize);
+		eastl::vector<unsigned char> tmpBuf(srcSize);
 
 		//
 		// Apply EXR-specific? postprocess. Grabbed from OpenEXR's
@@ -6977,18 +6975,18 @@ namespace {
 		miniz::mz_ulong outSize = miniz::mz_compressBound(srcSize);
 		int ret = miniz::mz_compress(dst, &outSize,
 			(const unsigned char *)&tmpBuf.at(0), srcSize);
-		assert(ret == miniz::MZ_OK);
+		MZ_ASSERT(ret == miniz::MZ_OK);
 
 		compressedSize = outSize;
 	}
 
 	void DecompressZip(unsigned char *dst, unsigned long &uncompressedSize,
 		const unsigned char *src, unsigned long srcSize) {
-		std::vector<unsigned char> tmpBuf(uncompressedSize);
+		eastl::vector<unsigned char> tmpBuf(uncompressedSize);
 
 		int ret =
 			miniz::mz_uncompress(&tmpBuf.at(0), &uncompressedSize, src, srcSize);
-		assert(ret == miniz::MZ_OK);
+		MZ_ASSERT(ret == miniz::MZ_OK);
 
 		//
 		// Apply EXR-specific? postprocess. Grabbed from OpenEXR's
@@ -7569,7 +7567,7 @@ namespace {
 		// of the tree) are incremented by one.
 		//
 
-		std::make_heap(&fHeap[0], &fHeap[nf], FHeapCompare());
+		eastl::make_heap(&fHeap[0], &fHeap[nf], FHeapCompare());
 
 		long long scode[HUF_ENCSIZE];
 		memset(scode, 0, sizeof(long long) * HUF_ENCSIZE);
@@ -7582,14 +7580,14 @@ namespace {
 			//
 
 			long long mm = fHeap[0] - frq;
-			std::pop_heap(&fHeap[0], &fHeap[nf], FHeapCompare());
+			eastl::pop_heap(&fHeap[0], &fHeap[nf], FHeapCompare());
 			--nf;
 
 			long long m = fHeap[0] - frq;
-			std::pop_heap(&fHeap[0], &fHeap[nf], FHeapCompare());
+			eastl::pop_heap(&fHeap[0], &fHeap[nf], FHeapCompare());
 
 			frq[m] += frq[mm];
-			std::push_heap(&fHeap[0], &fHeap[nf], FHeapCompare());
+			eastl::push_heap(&fHeap[0], &fHeap[nf], FHeapCompare());
 
 			//
 			// The entries in scode are linked into lists with the
@@ -7613,7 +7611,7 @@ namespace {
 			for (long long j = m; true; j = hlink[j]) {
 				scode[j]++;
 
-				assert(scode[j] <= 58);
+				MZ_ASSERT(scode[j] <= 58);
 
 				if (hlink[j] == j) {
 					//
@@ -7632,7 +7630,7 @@ namespace {
 			for (long long j = mm; true; j = hlink[j]) {
 				scode[j]++;
 
-				assert(scode[j] <= 58);
+				MZ_ASSERT(scode[j] <= 58);
 
 				if (hlink[j] == j)
 					break;
@@ -7846,15 +7844,16 @@ namespace {
 
 				if (pl->p) {
 					int *p = pl->p;
-					pl->p = new int[pl->lit];
+					pl->p = (int*)MZ_MALLOC(sizeof(int)*pl->lit);
+
 
 					for (int i = 0; i < pl->lit - 1; ++i)
 						pl->p[i] = p[i];
 
-					delete[] p;
+					conf_delete(p);
 				}
 				else {
-					pl->p = new int[1];
+					pl->p = (int*)MZ_MALLOC(sizeof(int)*1);
 				}
 
 				pl->p[pl->lit - 1] = im;
@@ -7894,7 +7893,7 @@ namespace {
 	{
 		for (int i = 0; i < HUF_DECSIZE; i++) {
 			if (hdecod[i].p) {
-				delete[] hdecod[i].p;
+				conf_delete(hdecod[i].p);
 				hdecod[i].p = 0;
 			}
 		}
@@ -8217,8 +8216,8 @@ namespace {
 		//}
 		// else
 		{
-			std::vector<long long> freq(HUF_ENCSIZE);
-			std::vector<HufDec> hdec(HUF_DECSIZE);
+			eastl::vector<long long> freq(HUF_ENCSIZE);
+			eastl::vector<HufDec> hdec(HUF_DECSIZE);
 
 			hufClearDecTable(&hdec.at(0));
 
@@ -8320,11 +8319,11 @@ namespace {
 
 		if (IsBigEndian()) {
 			// @todo { PIZ compression on BigEndian architecture. }
-			assert(0);
+			MZ_ASSERT(0);
 			return false;
 		}
 
-		std::vector<unsigned short> tmpBuffer;
+		eastl::vector<unsigned short> tmpBuffer;
 		int nData = (int)tmpBuffer.size();
 
 		bitmapFromData(&tmpBuffer.at(0), nData, bitmap, minNonZero, maxNonZero);
@@ -8382,14 +8381,14 @@ namespace {
 		outPtr = _outBuffer;
 		return buf - _outBuffer + length;
 #endif
-		assert(0);
+		MZ_ASSERT(0);
 
 		return true;
 	}
 
 	bool DecompressPiz(unsigned char *outPtr, unsigned int &outSize,
 		const unsigned char *inPtr, size_t tmpBufSize,
-		const std::vector<ChannelInfo> &channelInfo, int dataWidth,
+		const eastl::vector<ChannelInfo> &channelInfo, int dataWidth,
 		int numLines) {
 		unsigned char bitmap[BITMAP_SIZE];
 		unsigned short minNonZero;
@@ -8397,7 +8396,7 @@ namespace {
 
 		if (IsBigEndian()) {
 			// @todo { PIZ compression on BigEndian architecture. }
-			assert(0);
+			MZ_ASSERT(0);
 			return false;
 		}
 
@@ -8430,14 +8429,14 @@ namespace {
 		length = *(reinterpret_cast<const int *>(ptr));
 		ptr += sizeof(int);
 
-		std::vector<unsigned short> tmpBuffer(tmpBufSize);
+		eastl::vector<unsigned short> tmpBuffer(tmpBufSize);
 		hufUncompress(reinterpret_cast<const char *>(ptr), length, &tmpBuffer.at(0), (int)tmpBufSize);
 
 		//
 		// Wavelet decoding
 		//
 
-		std::vector<PIZChannelData> channelData(channelInfo.size());
+		eastl::vector<PIZChannelData> channelData(channelInfo.size());
 
 		unsigned short *tmpBufferEnd = &tmpBuffer.at(0);
 
@@ -8584,7 +8583,7 @@ int LoadEXR(float **out_rgba, int *width, int *height, const char *filename,
 	//}
 
 	(*out_rgba) =
-		(float *)conf_malloc(4 * sizeof(float) * exrImage.width * exrImage.height);
+		(float *)MZ_MALLOC(4 * sizeof(float) * exrImage.width * exrImage.height);
 	for (size_t i = 0; i < exrImage.width * exrImage.height; i++) {
 		(*out_rgba)[4 * i + 0] =
 			reinterpret_cast<float **>(exrImage.images)[idxR][i];
@@ -8653,13 +8652,13 @@ int ParseEXRHeaderFromMemory(int *width, int *height,
 	int numScanlineBlocks = 1; // 16 for ZIP compression. 32 for PIZ compression
 	int compressionType = -1;
 	int numChannels = -1;
-	std::vector<ChannelInfo> channels;
+	eastl::vector<ChannelInfo> channels;
 
 	// Read attributes
 	for (;;) {
-		std::string attrName;
-		std::string attrType;
-		std::vector<unsigned char> data;
+		eastl::string attrName;
+		eastl::string attrType;
+		eastl::vector<unsigned char> data;
 		const char *marker_next = ReadAttribute(attrName, attrType, data, marker);
 		if (marker_next == NULL) {
 			marker++; // skip '\0'
@@ -8736,11 +8735,11 @@ int ParseEXRHeaderFromMemory(int *width, int *height,
 		marker = marker_next;
 	}
 
-	assert(dx >= 0);
-	assert(dy >= 0);
-	assert(dw >= 0);
-	assert(dh >= 0);
-	assert(numChannels >= 1);
+	MZ_ASSERT(dx >= 0);
+	MZ_ASSERT(dy >= 0);
+	MZ_ASSERT(dw >= 0);
+	MZ_ASSERT(dh >= 0);
+	MZ_ASSERT(numChannels >= 1);
 
 	int dataWidth = dw - dx + 1;
 	int dataHeight = dh - dy + 1;
@@ -8860,11 +8859,11 @@ int LoadMultiChannelEXRFromFile(EXRImage *exrImage, const char *filename,
 	filesize = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
 
-	std::vector<unsigned char> buf(filesize); // @todo { use mmap }
+	eastl::vector<unsigned char> buf(filesize); // @todo { use mmap }
 	{
 		size_t ret;
 		ret = fread(&buf[0], 1, filesize, fp);
-		assert(ret == filesize);
+		ASSERT(ret == filesize);
 		fclose(fp);
 	}
 
@@ -8920,13 +8919,13 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 	int compressionType = -1;
 	int numChannels = -1;
 	unsigned char lineOrder = 0; // 0 -> increasing y; 1 -> decreasing
-	std::vector<ChannelInfo> channels;
+	eastl::vector<ChannelInfo> channels;
 
 	// Read attributes
 	for (;;) {
-		std::string attrName;
-		std::string attrType;
-		std::vector<unsigned char> data;
+		eastl::string attrName;
+		eastl::string attrType;
+		eastl::vector<unsigned char> data;
 		const char *marker_next = ReadAttribute(attrName, attrType, data, marker);
 		if (marker_next == NULL) {
 			marker++; // skip '\0'
@@ -9007,11 +9006,11 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 		marker = marker_next;
 	}
 
-	assert(dx >= 0);
-	assert(dy >= 0);
-	assert(dw >= 0);
-	assert(dh >= 0);
-	assert(numChannels >= 1);
+	ASSERT(dx >= 0);
+	ASSERT(dy >= 0);
+	ASSERT(dw >= 0);
+	ASSERT(dh >= 0);
+	ASSERT(numChannels >= 1);
 
 	int dataWidth = dw - dx + 1;
 	int dataHeight = dh - dy + 1;
@@ -9022,7 +9021,7 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 		numBlocks++;
 	}
 
-	std::vector<long long> offsets(numBlocks);
+	eastl::vector<long long> offsets(numBlocks);
 
 	for (int y = 0; y < numBlocks; y++) {
 		long long offset;
@@ -9045,9 +9044,9 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 	}
 
 	exrImage->images = reinterpret_cast<unsigned char **>(
-		(float **)conf_malloc(sizeof(float *) * numChannels));
+		(float **)MZ_MALLOC(sizeof(float *) * numChannels));
 
-	std::vector<size_t> channelOffsetList(numChannels);
+	eastl::vector<size_t> channelOffsetList(numChannels);
 	int pixelDataSize = 0;
 	size_t channelOffset = 0;
 	for (int c = 0; c < numChannels; c++) {
@@ -9058,32 +9057,32 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 			// Alloc internal image for half type.
 			if (exrImage->requested_pixel_types[c] == TINYEXR_PIXELTYPE_HALF) {
 				exrImage->images[c] =
-					reinterpret_cast<unsigned char *>((unsigned short *)conf_malloc(
+					reinterpret_cast<unsigned char *>((unsigned short *)MZ_MALLOC(
 						sizeof(unsigned short) * dataWidth * dataHeight));
 			}
 			else if (exrImage->requested_pixel_types[c] ==
 				TINYEXR_PIXELTYPE_FLOAT) {
 				exrImage->images[c] = reinterpret_cast<unsigned char *>(
-					(float *)conf_malloc(sizeof(float) * dataWidth * dataHeight));
+					(float *)MZ_MALLOC(sizeof(float) * dataWidth * dataHeight));
 			}
 			else {
-				assert(0);
+				MZ_ASSERT(0);
 			}
 		}
 		else if (channels[c].pixelType == TINYEXR_PIXELTYPE_FLOAT) {
 			pixelDataSize += sizeof(float);
 			channelOffset += sizeof(float);
 			exrImage->images[c] = reinterpret_cast<unsigned char *>(
-				(float *)conf_malloc(sizeof(float) * dataWidth * dataHeight));
+				(float *)MZ_MALLOC(sizeof(float) * dataWidth * dataHeight));
 		}
 		else if (channels[c].pixelType == TINYEXR_PIXELTYPE_UINT) {
 			pixelDataSize += sizeof(unsigned int);
 			channelOffset += sizeof(unsigned int);
 			exrImage->images[c] = reinterpret_cast<unsigned char *>((
-				unsigned int *)conf_malloc(sizeof(unsigned int) * dataWidth * dataHeight));
+				unsigned int *)MZ_MALLOC(sizeof(unsigned int) * dataWidth * dataHeight));
 		}
 		else {
-			assert(0);
+			MZ_ASSERT(0);
 		}
 	}
 
@@ -9105,13 +9104,13 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 			swap4(reinterpret_cast<unsigned int *>(&dataLen));
 		}
 
-		int endLineNo = (std::min)(lineNo + numScanlineBlocks, dataHeight);
+		int endLineNo = (eastl::min)(lineNo + numScanlineBlocks, dataHeight);
 
 		int numLines = endLineNo - lineNo;
 
 		if (compressionType == 4) { // PIZ
 		  // Allocate original data size.
-			std::vector<unsigned char> outBuf(dataWidth * numLines * pixelDataSize);
+			eastl::vector<unsigned char> outBuf(dataWidth * numLines * pixelDataSize);
 			unsigned int dstLen;
 			size_t tmpBufLen = dataWidth * numLines * pixelDataSize;
 
@@ -9172,7 +9171,7 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 					}
 				}
 				else if (channels[c].pixelType == TINYEXR_PIXELTYPE_UINT) {
-					assert(exrImage->requested_pixel_types[c] == TINYEXR_PIXELTYPE_UINT);
+					MZ_ASSERT(exrImage->requested_pixel_types[c] == TINYEXR_PIXELTYPE_UINT);
 
 					for (int v = 0; v < numLines; v++) {
 						const unsigned int *linePtr = reinterpret_cast<unsigned int *>(
@@ -9198,7 +9197,7 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 					}
 				}
 				else if (channels[c].pixelType == TINYEXR_PIXELTYPE_FLOAT) {
-					assert(exrImage->requested_pixel_types[c] == TINYEXR_PIXELTYPE_FLOAT);
+					MZ_ASSERT(exrImage->requested_pixel_types[c] == TINYEXR_PIXELTYPE_FLOAT);
 					for (int v = 0; v < numLines; v++) {
 						const float *linePtr = reinterpret_cast<float *>(
 							&outBuf.at(v * pixelDataSize * dataWidth +
@@ -9222,7 +9221,7 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 					}
 				}
 				else {
-					assert(0);
+					MZ_ASSERT(0);
 				}
 			}
 
@@ -9230,7 +9229,7 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 		}
 		else if (compressionType == 2 || compressionType == 3) { // ZIP
 	   // Allocate original data size.
-			std::vector<unsigned char> outBuf(dataWidth * numLines * pixelDataSize);
+			eastl::vector<unsigned char> outBuf(dataWidth * numLines * pixelDataSize);
 
 			unsigned long dstLen = outBuf.size();
 			DecompressZip(reinterpret_cast<unsigned char *>(&outBuf.at(0)), dstLen,
@@ -9290,7 +9289,7 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 					}
 				}
 				else if (channels[c].pixelType == TINYEXR_PIXELTYPE_UINT) {
-					assert(exrImage->requested_pixel_types[c] == TINYEXR_PIXELTYPE_UINT);
+					MZ_ASSERT(exrImage->requested_pixel_types[c] == TINYEXR_PIXELTYPE_UINT);
 
 					for (int v = 0; v < numLines; v++) {
 						const unsigned int *linePtr = reinterpret_cast<unsigned int *>(
@@ -9316,7 +9315,7 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 					}
 				}
 				else if (channels[c].pixelType == TINYEXR_PIXELTYPE_FLOAT) {
-					assert(exrImage->requested_pixel_types[c] == TINYEXR_PIXELTYPE_FLOAT);
+					MZ_ASSERT(exrImage->requested_pixel_types[c] == TINYEXR_PIXELTYPE_FLOAT);
 					for (int v = 0; v < numLines; v++) {
 						const float *linePtr = reinterpret_cast<float *>(
 							&outBuf.at(v * pixelDataSize * dataWidth +
@@ -9340,7 +9339,7 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 					}
 				}
 				else {
-					assert(0);
+					MZ_ASSERT(0);
 				}
 			}
 		}
@@ -9400,7 +9399,7 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 						}
 					}
 					else {
-						assert(0);
+						MZ_ASSERT(0);
 					}
 				}
 				else if (channels[c].pixelType == TINYEXR_PIXELTYPE_FLOAT) {
@@ -9454,7 +9453,7 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 
 	{
 		exrImage->channel_names =
-			(const char **)conf_malloc(sizeof(const char *) * numChannels);
+			(const char **)MZ_MALLOC(sizeof(const char *) * numChannels);
 		for (int c = 0; c < numChannels; c++) {
 #ifdef _WIN32
 			exrImage->channel_names[c] = _strdup(channels[c].name.c_str());
@@ -9468,7 +9467,7 @@ int LoadMultiChannelEXRFromMemory(EXRImage *exrImage,
 		exrImage->height = dataHeight;
 
 		// Fill with requested_pixel_types.
-		exrImage->pixel_types = (int *)conf_malloc(sizeof(int *) * numChannels);
+		exrImage->pixel_types = (int *)MZ_MALLOC(sizeof(int *) * numChannels);
 		for (int c = 0; c < numChannels; c++) {
 			exrImage->pixel_types[c] = exrImage->requested_pixel_types[c];
 		}
@@ -9500,14 +9499,14 @@ int SaveEXR(const float *in_rgba, int width, int height, const char *filename,
 	{
 		const char header[] = { 0x76, 0x2f, 0x31, 0x01 };
 		size_t n = fwrite(header, 1, 4, fp);
-		assert(n == 4);
+		MZ_ASSERT(n == 4);
 	}
 
 	// Version, scanline.
 	{
 		const char marker[] = { 2, 0, 0, 0 };
 		size_t n = fwrite(marker, 1, 4, fp);
-		assert(n == 4);
+		MZ_ASSERT(n == 4);
 	}
 
 	int numScanlineBlocks = 16; // 16 for ZIP compression.
@@ -9576,21 +9575,21 @@ int SaveEXR(const float *in_rgba, int width, int height, const char *filename,
 		numBlocks++;
 	}
 
-	std::vector<long long> offsets(numBlocks);
+	eastl::vector<long long> offsets(numBlocks);
 
 	size_t headerSize = ftell(fp); // sizeof(header)
 	long long offset =
 		headerSize +
 		numBlocks * sizeof(long long); // sizeof(header) + sizeof(offsetTable)
 
-	std::vector<unsigned char> data;
+	eastl::vector<unsigned char> data;
 
 	for (int i = 0; i < numBlocks; i++) {
 		int startY = numScanlineBlocks * i;
-		int endY = (std::min)(numScanlineBlocks * (i + 1), height);
+		int endY = (eastl::min)(numScanlineBlocks * (i + 1), height);
 		int h = endY - startY;
 
-		std::vector<unsigned short> buf(4 * width * h);
+		eastl::vector<unsigned short> buf(4 * width * h);
 
 		for (int y = 0; y < h; y++) {
 			for (int x = 0; x < width; x++) {
@@ -9616,7 +9615,7 @@ int SaveEXR(const float *in_rgba, int width, int height, const char *filename,
 
 		int bound = miniz::mz_compressBound(buf.size() * sizeof(unsigned short));
 
-		std::vector<unsigned char> block(
+		eastl::vector<unsigned char> block(
 			miniz::mz_compressBound(buf.size() * sizeof(unsigned short)));
 		unsigned long long outSize = block.size();
 
@@ -9627,7 +9626,7 @@ int SaveEXR(const float *in_rgba, int width, int height, const char *filename,
 		// 4 byte: scan line
 		// 4 byte: data size
 		// ~     : pixel data(compressed)
-		std::vector<unsigned char> header(8);
+		eastl::vector<unsigned char> header(8);
 		unsigned int dataLen = outSize; // truncate
 		memcpy(&header.at(0), &startY, sizeof(int));
 		memcpy(&header.at(4), &dataLen, sizeof(unsigned int));
@@ -9659,7 +9658,7 @@ size_t SaveMultiChannelEXRToMemory(const EXRImage *exrImage,
 		return -1;
 	}
 
-	std::vector<unsigned char> memory;
+	eastl::vector<unsigned char> memory;
 
 	// Header
 	{
@@ -9678,16 +9677,16 @@ size_t SaveMultiChannelEXRToMemory(const EXRImage *exrImage,
 
 	// Write attributes.
 	{
-		std::vector<unsigned char> data;
+		eastl::vector<unsigned char> data;
 
-		std::vector<ChannelInfo> channels;
+		eastl::vector<ChannelInfo> channels;
 		for (int c = 0; c < exrImage->num_channels; c++) {
 			ChannelInfo info;
 			info.pLinear = 0;
 			info.pixelType = exrImage->requested_pixel_types[c];
 			info.xSampling = 1;
 			info.ySampling = 1;
-			info.name = std::string(exrImage->channel_names[c]);
+			info.name = eastl::string(exrImage->channel_names[c]);
 			channels.push_back(info);
 		}
 
@@ -9768,19 +9767,19 @@ size_t SaveMultiChannelEXRToMemory(const EXRImage *exrImage,
 		numBlocks++;
 	}
 
-	std::vector<long long> offsets(numBlocks);
+	eastl::vector<long long> offsets(numBlocks);
 
 	size_t headerSize = memory.size();
 	long long offset =
 		headerSize +
 		numBlocks * sizeof(long long); // sizeof(header) + sizeof(offsetTable)
 
-	std::vector<unsigned char> data;
+	eastl::vector<unsigned char> data;
 
 	bool isBigEndian = IsBigEndian();
 
-	std::vector<std::vector<unsigned char> > dataList(numBlocks);
-	std::vector<size_t> channelOffsetList(exrImage->num_channels);
+	eastl::vector<eastl::vector<unsigned char> > dataList(numBlocks);
+	eastl::vector<size_t> channelOffsetList(exrImage->num_channels);
 
 	int pixelDataSize = 0;
 	size_t channelOffset = 0;
@@ -9799,7 +9798,7 @@ size_t SaveMultiChannelEXRToMemory(const EXRImage *exrImage,
 			channelOffset += sizeof(unsigned int);
 		}
 		else {
-			assert(0);
+			MZ_ASSERT(0);
 		}
 	}
 
@@ -9808,10 +9807,10 @@ size_t SaveMultiChannelEXRToMemory(const EXRImage *exrImage,
 #endif
 	for (int i = 0; i < numBlocks; i++) {
 		int startY = numScanlineBlocks * i;
-		int endY = (std::min)(numScanlineBlocks * (i + 1), exrImage->height);
+		int endY = (eastl::min)(numScanlineBlocks * (i + 1), exrImage->height);
 		int h = endY - startY;
 
-		std::vector<unsigned char> buf(exrImage->width * h * pixelDataSize);
+		eastl::vector<unsigned char> buf(exrImage->width * h * pixelDataSize);
 
 		for (int c = 0; c < exrImage->num_channels; c++) {
 			if (exrImage->pixel_types[c] == TINYEXR_PIXELTYPE_HALF) {
@@ -9856,7 +9855,7 @@ size_t SaveMultiChannelEXRToMemory(const EXRImage *exrImage,
 					}
 				}
 				else {
-					assert(0);
+					MZ_ASSERT(0);
 				}
 			}
 			else if (exrImage->pixel_types[c] == TINYEXR_PIXELTYPE_FLOAT) {
@@ -9902,7 +9901,7 @@ size_t SaveMultiChannelEXRToMemory(const EXRImage *exrImage,
 					}
 				}
 				else {
-					assert(0);
+					MZ_ASSERT(0);
 				}
 			}
 			else if (exrImage->pixel_types[c] == TINYEXR_PIXELTYPE_UINT) {
@@ -9927,7 +9926,7 @@ size_t SaveMultiChannelEXRToMemory(const EXRImage *exrImage,
 
 		/*int bound = */ miniz::mz_compressBound(buf.size());
 
-		std::vector<unsigned char> block(miniz::mz_compressBound(buf.size()));
+		eastl::vector<unsigned char> block(miniz::mz_compressBound(buf.size()));
 		unsigned long long outSize = block.size();
 
 		CompressZip(&block.at(0), outSize,
@@ -9937,7 +9936,7 @@ size_t SaveMultiChannelEXRToMemory(const EXRImage *exrImage,
 		// 4 byte: scan line
 		// 4 byte: data size
 		// ~     : pixel data(compressed)
-		std::vector<unsigned char> header(8);
+		eastl::vector<unsigned char> header(8);
 		unsigned int dataLen = (unsigned int)outSize; // truncate
 		memcpy(&header.at(0), &startY, sizeof(int));
 		memcpy(&header.at(4), &dataLen, sizeof(unsigned int));
@@ -9980,9 +9979,9 @@ size_t SaveMultiChannelEXRToMemory(const EXRImage *exrImage,
 
 	{ memory.insert(memory.end(), data.begin(), data.end()); }
 
-	assert(memory.size() > 0);
+	MZ_ASSERT(memory.size() > 0);
 
-	(*memory_out) = (unsigned char *)conf_malloc(memory.size());
+	(*memory_out) = (unsigned char *)MZ_MALLOC(memory.size());
 	memcpy((*memory_out), &memory.at(0), memory.size());
 
 	return memory.size(); // OK
@@ -10011,7 +10010,7 @@ int SaveMultiChannelEXRToFile(const EXRImage *exrImage, const char *filename,
 	if ((mem_size > 0) && mem) {
 		fwrite(mem, 1, mem_size, fp);
 	}
-	conf_free(mem);
+	MZ_FREE(mem);
 
 	fclose(fp);
 
@@ -10048,11 +10047,11 @@ int LoadDeepEXR(DeepImage *deepImage, const char *filename, const char **err) {
 		return -1;
 	}
 
-	std::vector<char> buf(filesize); // @todo { use mmap }
+	eastl::vector<char> buf(filesize); // @todo { use mmap }
 	{
 		size_t ret;
 		ret = fread(&buf[0], 1, filesize, fp);
-		assert(ret == filesize);
+		MZ_ASSERT(ret == filesize);
 	}
 	fclose(fp);
 
@@ -10093,13 +10092,13 @@ int LoadDeepEXR(DeepImage *deepImage, const char *filename, const char **err) {
 	int numScanlineBlocks = 1; // 16 for ZIP compression.
 	int compressionType = -1;
 	int numChannels = -1;
-	std::vector<ChannelInfo> channels;
+	eastl::vector<ChannelInfo> channels;
 
 	// Read attributes
 	for (;;) {
-		std::string attrName;
-		std::string attrType;
-		std::vector<unsigned char> data;
+		eastl::string attrName;
+		eastl::string attrType;
+		eastl::vector<unsigned char> data;
 		const char *marker_next = ReadAttribute(attrName, attrType, data, marker);
 		if (marker_next == NULL) {
 			marker++; // skip '\0'
@@ -10172,16 +10171,16 @@ int LoadDeepEXR(DeepImage *deepImage, const char *filename, const char **err) {
 		marker = marker_next;
 	}
 
-	assert(dx >= 0);
-	assert(dy >= 0);
-	assert(dw >= 0);
-	assert(dh >= 0);
-	assert(numChannels >= 1);
+	MZ_ASSERT(dx >= 0);
+	MZ_ASSERT(dy >= 0);
+	MZ_ASSERT(dw >= 0);
+	MZ_ASSERT(dh >= 0);
+	MZ_ASSERT(numChannels >= 1);
 
 	int dataWidth = dw - dx + 1;
 	int dataHeight = dh - dy + 1;
 
-	std::vector<float> image(dataWidth * dataHeight * 4); // 4 = RGBA
+	eastl::vector<float> image(dataWidth * dataHeight * 4); // 4 = RGBA
 
 	// Read offset tables.
 	int numBlocks = dataHeight / numScanlineBlocks;
@@ -10189,7 +10188,7 @@ int LoadDeepEXR(DeepImage *deepImage, const char *filename, const char **err) {
 		numBlocks++;
 	}
 
-	std::vector<long long> offsets(numBlocks);
+	eastl::vector<long long> offsets(numBlocks);
 
 	for (int y = 0; y < numBlocks; y++) {
 		long long offset;
@@ -10208,16 +10207,16 @@ int LoadDeepEXR(DeepImage *deepImage, const char *filename, const char **err) {
 		return -10;
 	}
 
-	deepImage->image = (float ***)conf_malloc(sizeof(float **) * numChannels);
+	deepImage->image = (float ***)MZ_MALLOC(sizeof(float **) * numChannels);
 	for (int c = 0; c < numChannels; c++) {
-		deepImage->image[c] = (float **)conf_malloc(sizeof(float *) * dataHeight);
+		deepImage->image[c] = (float **)MZ_MALLOC(sizeof(float *) * dataHeight);
 		for (int y = 0; y < dataHeight; y++) {
 		}
 	}
 
-	deepImage->offset_table = (int **)conf_malloc(sizeof(int *) * dataHeight);
+	deepImage->offset_table = (int **)MZ_MALLOC(sizeof(int *) * dataHeight);
 	for (int y = 0; y < dataHeight; y++) {
-		deepImage->offset_table[y] = (int *)conf_malloc(sizeof(int) * dataWidth);
+		deepImage->offset_table[y] = (int *)MZ_MALLOC(sizeof(int) * dataWidth);
 	}
 
 	for (int y = 0; y < numBlocks; y++) {
@@ -10246,9 +10245,9 @@ int LoadDeepEXR(DeepImage *deepImage, const char *filename, const char **err) {
 			swap8(reinterpret_cast<unsigned long long *>(&unpackedSampleDataSize));
 		}
 
-		/* int endLineNo =  (std::min)(lineNo + numScanlineBlocks, dataHeight); */
+		/* int endLineNo =  (eastl::min)(lineNo + numScanlineBlocks, dataHeight); */
 
-		std::vector<int> pixelOffsetTable(dataWidth);
+		eastl::vector<int> pixelOffsetTable(dataWidth);
 
 		// decode pixel offset table.
 		{
@@ -10256,13 +10255,13 @@ int LoadDeepEXR(DeepImage *deepImage, const char *filename, const char **err) {
 			DecompressZip(reinterpret_cast<unsigned char *>(&pixelOffsetTable.at(0)),
 				dstLen, dataPtr + 28, packedOffsetTableSize);
 
-			assert(dstLen == pixelOffsetTable.size() * sizeof(int));
+			MZ_ASSERT(dstLen == pixelOffsetTable.size() * sizeof(int));
 			for (int i = 0; i < dataWidth; i++) {
 				deepImage->offset_table[y][i] = pixelOffsetTable[i];
 			}
 		}
 
-		std::vector<unsigned char> sampleData(unpackedSampleDataSize);
+		eastl::vector<unsigned char> sampleData(unpackedSampleDataSize);
 
 		// decode sample data.
 		{
@@ -10270,12 +10269,12 @@ int LoadDeepEXR(DeepImage *deepImage, const char *filename, const char **err) {
 			DecompressZip(reinterpret_cast<unsigned char *>(&sampleData.at(0)),
 				dstLen, dataPtr + 28 + packedOffsetTableSize,
 				packedSampleDataSize);
-			assert(dstLen == unpackedSampleDataSize);
+			MZ_ASSERT(dstLen == unpackedSampleDataSize);
 		}
 
 		// decode sample
 		int sampleSize = -1;
-		std::vector<int> channelOffsetList(numChannels);
+		eastl::vector<int> channelOffsetList(numChannels);
 		{
 			int channelOffset = 0;
 			for (int i = 0; i < numChannels; i++) {
@@ -10290,14 +10289,14 @@ int LoadDeepEXR(DeepImage *deepImage, const char *filename, const char **err) {
 					channelOffset += 4;
 				}
 				else {
-					assert(0);
+					MZ_ASSERT(0);
 				}
 			}
 			sampleSize = channelOffset;
 		}
-		assert(sampleSize >= 2);
+		MZ_ASSERT(sampleSize >= 2);
 
-		assert(pixelOffsetTable[dataWidth - 1] * sampleSize == sampleData.size());
+		MZ_ASSERT(pixelOffsetTable[dataWidth - 1] * sampleSize == sampleData.size());
 		unsigned long samplesPerLine = sampleData.size() / sampleSize;
 
 		//
@@ -10311,7 +10310,7 @@ int LoadDeepEXR(DeepImage *deepImage, const char *filename, const char **err) {
 			unsigned long long dataOffset = 0;
 			for (int c = 0; c < numChannels; c++) {
 				deepImage->image[c][y] =
-					(float *)conf_malloc(sizeof(float) * samplesPerLine);
+					(float *)MZ_MALLOC(sizeof(float) * samplesPerLine);
 
 				if (channels[c].pixelType == 0) { // UINT
 					for (int x = 0; x < samplesPerLine; x++) {
@@ -10347,7 +10346,7 @@ int LoadDeepEXR(DeepImage *deepImage, const char *filename, const char **err) {
 	deepImage->height = dataHeight;
 
 	deepImage->channel_names =
-		(const char **)conf_malloc(sizeof(const char *) * numChannels);
+		(const char **)MZ_MALLOC(sizeof(const char *) * numChannels);
 	for (int c = 0; c < numChannels; c++) {
 #ifdef _WIN32
 		deepImage->channel_names[c] = _strdup(channels[c].name.c_str());
@@ -10429,9 +10428,9 @@ int SaveDeepEXR(const DeepImage *deepImage, const char *filename,
 	}
 
 #if 0 // @todo
-	std::vector<long long> offsets(numBlocks);
+	eastl::vector<long long> offsets(numBlocks);
 
-	//std::vector<int> pixelOffsetTable(dataWidth);
+	//eastl::vector<int> pixelOffsetTable(dataWidth);
 
 	// compress pixel offset table.
 	{
@@ -10439,7 +10438,7 @@ int SaveDeepEXR(const DeepImage *deepImage, const char *filename,
 		Compresses(reinterpret_cast<unsigned char *>(&pixelOffsetTable.at(0)),
 			dstLen, dataPtr + 28, packedOffsetTableSize);
 
-		assert(dstLen == pixelOffsetTable.size() * sizeof(int));
+		MZ_ASSERT(dstLen == pixelOffsetTable.size() * sizeof(int));
 		//      int ret =
 		//          miniz::mz_uncompress(reinterpret_cast<unsigned char
 		//          *>(&pixelOffsetTable.at(0)), &dstLen, dataPtr + 28,
@@ -10482,12 +10481,12 @@ int SaveDeepEXR(const DeepImage *deepImage, const char *filename,
 		// printf("line: %d, %lld/%lld/%lld\n", lineNo, packedOffsetTableSize,
 		// packedSampleDataSize, unpackedSampleDataSize);
 
-		int endLineNo = (std::min)(lineNo + numScanlineBlocks, dataHeight);
+		int endLineNo = (eastl::min)(lineNo + numScanlineBlocks, dataHeight);
 
 		int numLines = endLineNo - lineNo;
 		// printf("numLines: %d\n", numLines);
 
-		std::vector<int> pixelOffsetTable(dataWidth);
+		eastl::vector<int> pixelOffsetTable(dataWidth);
 
 		// decode pixel offset table.
 		{
@@ -10495,7 +10494,7 @@ int SaveDeepEXR(const DeepImage *deepImage, const char *filename,
 			DecompressZip(reinterpret_cast<unsigned char *>(&pixelOffsetTable.at(0)),
 				dstLen, dataPtr + 28, packedOffsetTableSize);
 
-			assert(dstLen == pixelOffsetTable.size() * sizeof(int));
+			MZ_ASSERT(dstLen == pixelOffsetTable.size() * sizeof(int));
 			//      int ret =
 			//          miniz::mz_uncompress(reinterpret_cast<unsigned char
 			//          *>(&pixelOffsetTable.at(0)), &dstLen, dataPtr + 28,
@@ -10508,7 +10507,7 @@ int SaveDeepEXR(const DeepImage *deepImage, const char *filename,
 			}
 		}
 
-		std::vector<unsigned char> sampleData(unpackedSampleDataSize);
+		eastl::vector<unsigned char> sampleData(unpackedSampleDataSize);
 
 		// decode sample data.
 		{
@@ -10518,12 +10517,12 @@ int SaveDeepEXR(const DeepImage *deepImage, const char *filename,
 			DecompressZip(reinterpret_cast<unsigned char *>(&sampleData.at(0)),
 				dstLen, dataPtr + 28 + packedOffsetTableSize,
 				packedSampleDataSize);
-			assert(dstLen == unpackedSampleDataSize);
+			MZ_ASSERT(dstLen == unpackedSampleDataSize);
 		}
 
 		// decode sample
 		int sampleSize = -1;
-		std::vector<int> channelOffsetList(numChannels);
+		eastl::vector<int> channelOffsetList(numChannels);
 		{
 			int channelOffset = 0;
 			for (int i = 0; i < numChannels; i++) {
@@ -10539,14 +10538,14 @@ int SaveDeepEXR(const DeepImage *deepImage, const char *filename,
 					channelOffset += 4;
 				}
 				else {
-					assert(0);
+					MZ_ASSERT(0);
 				}
 			}
 			sampleSize = channelOffset;
 		}
-		assert(sampleSize >= 2);
+		MZ_ASSERT(sampleSize >= 2);
 
-		assert(pixelOffsetTable[dataWidth - 1] * sampleSize == sampleData.size());
+		MZ_ASSERT(pixelOffsetTable[dataWidth - 1] * sampleSize == sampleData.size());
 		int samplesPerLine = sampleData.size() / sampleSize;
 
 		//
@@ -10560,7 +10559,7 @@ int SaveDeepEXR(const DeepImage *deepImage, const char *filename,
 			unsigned long long dataOffset = 0;
 			for (int c = 0; c < numChannels; c++) {
 				deepImage->image[c][y] =
-					(float *)conf_malloc(sizeof(float) * samplesPerLine);
+					(float *)MZ_MALLOC(sizeof(float) * samplesPerLine);
 
 				// unsigned int channelOffset = channelOffsetList[c];
 				// unsigned int i = channelOffset;
@@ -10626,28 +10625,28 @@ int FreeEXRImage(EXRImage *exrImage) {
 
 	for (int i = 0; i < exrImage->num_channels; i++) {
 		if (exrImage->channel_names && exrImage->channel_names[i]) {
-			conf_free((char *)exrImage->channel_names[i]); // remove const
+			MZ_FREE((char *)exrImage->channel_names[i]); // remove const
 		}
 
 		if (exrImage->images && exrImage->images[i]) {
-			conf_free(exrImage->images[i]);
+			MZ_FREE(exrImage->images[i]);
 		}
 	}
 
 	if (exrImage->channel_names) {
-		conf_free(exrImage->channel_names);
+		MZ_FREE(exrImage->channel_names);
 	}
 
 	if (exrImage->images) {
-		conf_free(exrImage->images);
+		MZ_FREE(exrImage->images);
 	}
 
 	if (exrImage->pixel_types) {
-		conf_free(exrImage->pixel_types);
+		MZ_FREE(exrImage->pixel_types);
 	}
 
 	if (exrImage->requested_pixel_types) {
-		conf_free(exrImage->requested_pixel_types);
+		MZ_FREE(exrImage->requested_pixel_types);
 	}
 
 	return 0;
@@ -10676,11 +10675,11 @@ int ParseMultiChannelEXRHeaderFromFile(EXRImage *exrImage, const char *filename,
 	filesize = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
 
-	std::vector<unsigned char> buf(filesize); // @todo { use mmap }
+	eastl::vector<unsigned char> buf(filesize); // @todo { use mmap }
 	{
 		size_t ret;
 		ret = fread(&buf[0], 1, filesize, fp);
-		assert(ret == filesize);
+		MZ_ASSERT(ret == filesize);
 		fclose(fp);
 	}
 
@@ -10735,13 +10734,13 @@ int ParseMultiChannelEXRHeaderFromMemory(EXRImage *exrImage,
 	int compressionType = -1;
 	int numChannels = -1;
 	unsigned char lineOrder = 0; // 0 -> increasing y; 1 -> decreasing
-	std::vector<ChannelInfo> channels;
+	eastl::vector<ChannelInfo> channels;
 
 	// Read attributes
 	for (;;) {
-		std::string attrName;
-		std::string attrType;
-		std::vector<unsigned char> data;
+		eastl::string attrName;
+		eastl::string attrType;
+		eastl::vector<unsigned char> data;
 		const char *marker_next = ReadAttribute(attrName, attrType, data, marker);
 		if (marker_next == NULL) {
 			marker++; // skip '\0'
@@ -10810,18 +10809,18 @@ int ParseMultiChannelEXRHeaderFromMemory(EXRImage *exrImage,
 		marker = marker_next;
 	}
 
-	assert(dx >= 0);
-	assert(dy >= 0);
-	assert(dw >= 0);
-	assert(dh >= 0);
-	assert(numChannels >= 1);
+	MZ_ASSERT(dx >= 0);
+	MZ_ASSERT(dy >= 0);
+	MZ_ASSERT(dw >= 0);
+	MZ_ASSERT(dh >= 0);
+	MZ_ASSERT(numChannels >= 1);
 
 	int dataWidth = dw - dx + 1;
 	int dataHeight = dh - dy + 1;
 
 	{
 		exrImage->channel_names =
-			(const char **)conf_malloc(sizeof(const char *) * numChannels);
+			(const char **)MZ_MALLOC(sizeof(const char *) * numChannels);
 		for (int c = 0; c < numChannels; c++) {
 #ifdef _WIN32
 			exrImage->channel_names[c] = _strdup(channels[c].name.c_str());
@@ -10834,13 +10833,13 @@ int ParseMultiChannelEXRHeaderFromMemory(EXRImage *exrImage,
 		exrImage->width = dataWidth;
 		exrImage->height = dataHeight;
 
-		exrImage->pixel_types = (int *)conf_malloc(sizeof(int) * numChannels);
+		exrImage->pixel_types = (int *)MZ_MALLOC(sizeof(int) * numChannels);
 		for (int c = 0; c < numChannels; c++) {
 			exrImage->pixel_types[c] = channels[c].pixelType;
 		}
 
 		// Initially fill with values of `pixel-types`
-		exrImage->requested_pixel_types = (int *)conf_malloc(sizeof(int) * numChannels);
+		exrImage->requested_pixel_types = (int *)MZ_MALLOC(sizeof(int) * numChannels);
 		for (int c = 0; c < numChannels; c++) {
 			exrImage->requested_pixel_types[c] = channels[c].pixelType;
 		}

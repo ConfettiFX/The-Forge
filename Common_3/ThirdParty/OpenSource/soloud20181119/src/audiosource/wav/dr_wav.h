@@ -810,8 +810,8 @@ void drwav_free(void* pDataReturnedByOpenAndRead);
 #include <stdio.h>
 #endif
 
-#include "../../../../OS/Interfaces/ILogManager.h"
-#include "../../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../../OS/Interfaces/ILog.h"
+#include "../../../../OS/Interfaces/IMemory.h"
 
 // Standard library stuff.
 #ifndef DRWAV_ASSERT

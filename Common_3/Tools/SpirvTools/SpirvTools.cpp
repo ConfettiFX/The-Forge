@@ -31,7 +31,7 @@
 // helper functions
 void ReflectBoundResources(
    spirv_cross::Compiler* pCompiler,
-   const std::vector<spirv_cross::Resource>& allResources,
+   const spirv_cross::SmallVector<spirv_cross::Resource>& allResources,
    const std::unordered_set<uint32_t>& usedResouces,
    SPIRV_Resource* resources,
    uint32_t* current_resource,
@@ -177,7 +177,7 @@ SPIRV_INTERFACE void CALLTYPE ReflectEntryPoint(CrossCompiler* pCompiler)
 	}
 
 	spirv_cross::Compiler* compiler = (spirv_cross::Compiler*)pCompiler->pCompiler;
-	std::string entryPoint = compiler->get_entry_points()[0];
+	std::string entryPoint = compiler->get_entry_points_and_stages()[0].name;
 
 	pCompiler->EntryPointSize = (uint32_t)entryPoint.size();
 
@@ -205,14 +205,15 @@ SPIRV_INTERFACE  void CALLTYPE ReflectShaderResources(CrossCompiler* pCompiler)
    uint32_t resource_count = 0;
    // resources we want to reflect
    resource_count += (uint32_t)allResources.stage_inputs.size();			// inputs
-   resource_count += (uint32_t)allResources.stage_outputs.size();		   // outputs
-   resource_count += (uint32_t)allResources.uniform_buffers.size();		 // const buffers
-   resource_count += (uint32_t)allResources.storage_buffers.size();		 // buffers
-   resource_count += (uint32_t)allResources.separate_images.size();		 // textures
-   resource_count += (uint32_t)allResources.storage_images.size();		  // uav textures
-   resource_count += (uint32_t)allResources.separate_samplers.size();	   // samplers
-   resource_count += (uint32_t)allResources.push_constant_buffers.size();   // push const
-   resource_count += (uint32_t)allResources.subpass_inputs.size();
+   resource_count += (uint32_t)allResources.stage_outputs.size();		    // outputs
+   resource_count += (uint32_t)allResources.uniform_buffers.size();		    // const buffers
+   resource_count += (uint32_t)allResources.storage_buffers.size();		    // buffers
+   resource_count += (uint32_t)allResources.separate_images.size();		    // textures
+   resource_count += (uint32_t)allResources.storage_images.size();		    // uav textures
+   resource_count += (uint32_t)allResources.separate_samplers.size();	    // samplers
+   resource_count += (uint32_t)allResources.push_constant_buffers.size();   // push constants
+   resource_count += (uint32_t)allResources.subpass_inputs.size();          // input attachments
+   resource_count += (uint32_t)allResources.acceleration_structures.size(); // raytracing structures
 
    // these we dont care about right
    // subpass_inputs - we are not going to use this   TODO: warn when found
@@ -289,6 +290,8 @@ SPIRV_INTERFACE  void CALLTYPE ReflectShaderResources(CrossCompiler* pCompiler)
    ReflectBoundResources(compiler, allResources.separate_images, usedResouces, resources, &current_resource, SPIRV_TYPE_IMAGES);
    ReflectBoundResources(compiler, allResources.separate_samplers, usedResouces, resources, &current_resource, SPIRV_TYPE_SAMPLERS);
    ReflectBoundResources(compiler, allResources.subpass_inputs, usedResouces, resources, &current_resource, SPIRV_TYPE_SUBPASS_INPUTS);
+   ReflectBoundResources(compiler, allResources.subpass_inputs, usedResouces, resources, &current_resource, SPIRV_TYPE_SUBPASS_INPUTS);
+   ReflectBoundResources(compiler, allResources.acceleration_structures, usedResouces, resources, &current_resource, SPIRV_TYPE_ACCELERATION_STRUCTURES);
 
    // 6. reflect push buffers
    for(size_t i = 0; i < allResources.push_constant_buffers.size(); ++i)
@@ -385,7 +388,7 @@ SPIRV_INTERFACE  void CALLTYPE ReflectShaderVariables(CrossCompiler* pCompiler)
 			((char*)variable.name)[variable.name_size] = 0;
 		 }
 
-		 std::vector<spirv_cross::BufferRange> range = compiler->get_active_buffer_ranges(resource.SPIRV_code.id);
+		 spirv_cross::SmallVector<spirv_cross::BufferRange> range = compiler->get_active_buffer_ranges(resource.SPIRV_code.id);
 
 		 for(uint32_t j = 0; j < (uint32_t)range.size(); ++j)
 		 {
@@ -401,7 +404,7 @@ SPIRV_INTERFACE  void CALLTYPE ReflectShaderVariables(CrossCompiler* pCompiler)
 SPIRV_INTERFACE  void CALLTYPE ReflectComputeShaderWorkGroupSize(CrossCompiler* pCompiler, uint32_t* pSizeX, uint32_t* pSizeY, uint32_t* pSizeZ)
 {
 	spirv_cross::Compiler* compiler = (spirv_cross::Compiler*)pCompiler->pCompiler;
-	spirv_cross::SPIREntryPoint* pEntryPoint = &compiler->get_entry_point("main");
+	spirv_cross::SPIREntryPoint* pEntryPoint = &compiler->get_entry_point(pCompiler->pEntryPoint, compiler->get_execution_model());
 
 	*pSizeX = pEntryPoint->workgroup_size.x;
 	*pSizeY = pEntryPoint->workgroup_size.y;
@@ -411,7 +414,7 @@ SPIRV_INTERFACE  void CALLTYPE ReflectComputeShaderWorkGroupSize(CrossCompiler* 
 SPIRV_INTERFACE  void CALLTYPE ReflectHullShaderControlPoint(CrossCompiler* pCompiler, uint32_t* pSizeX)
 {
 	spirv_cross::Compiler* compiler = (spirv_cross::Compiler*)pCompiler->pCompiler;
-	spirv_cross::SPIREntryPoint* pEntryPoint = &compiler->get_entry_point("main");
+	spirv_cross::SPIREntryPoint* pEntryPoint = &compiler->get_entry_point(pCompiler->pEntryPoint, compiler->get_execution_model());
 
 	*pSizeX = pEntryPoint->output_vertices;
 }

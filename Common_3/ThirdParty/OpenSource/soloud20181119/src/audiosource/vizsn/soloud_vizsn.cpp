@@ -15,7 +15,7 @@ released under same license.
 #include <string.h>
 #include <math.h>
 #include "soloud_vizsn.h"
-#include "../../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../../OS/Interfaces/IMemory.h"
 
 /*
 

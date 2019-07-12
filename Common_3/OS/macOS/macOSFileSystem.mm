@@ -28,7 +28,7 @@
 #include <AppKit/NSOpenPanel.h>
 
 #include "../Interfaces/IFileSystem.h"
-#include "../Interfaces/ILogManager.h"
+#include "../Interfaces/ILog.h"
 #include "../Interfaces/IOperatingSystem.h"
 
 #include <unistd.h>
@@ -37,7 +37,7 @@
 #include <sys/errno.h>    // for errno
 #include <dirent.h>
 
-#include "../Interfaces/IMemoryManager.h"
+#include "../Interfaces/IMemory.h"
 
 #define RESOURCE_DIR "Shaders/Metal"
 

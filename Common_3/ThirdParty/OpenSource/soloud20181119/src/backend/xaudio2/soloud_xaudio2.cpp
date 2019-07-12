@@ -48,7 +48,7 @@ namespace SoLoud
 #include "backend/xaudio2/xaudio2.h"
 #endif
 
-#include "../../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../../OS/Interfaces/IMemory.h"
 
 namespace SoLoud
 {

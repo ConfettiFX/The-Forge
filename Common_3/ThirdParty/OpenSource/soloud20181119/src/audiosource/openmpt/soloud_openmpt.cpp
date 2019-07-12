@@ -26,7 +26,7 @@ freely, subject to the following restrictions:
 #include <stdio.h>
 #include "soloud_openmpt.h"
 #include "soloud_file.h"
-#include "../../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../../OS/Interfaces/IMemory.h"
 
 extern "C"
 {

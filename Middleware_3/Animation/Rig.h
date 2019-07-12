@@ -36,7 +36,7 @@
 #include "../../Common_3/ThirdParty/OpenSource/ozz-animation/include/ozz/base/log.h"
 #include "../../Common_3/ThirdParty/OpenSource/ozz-animation/include/ozz/base/memory/allocator.h"
 
-#include "../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../Common_3/OS/Interfaces/ILog.h"
 
 namespace eastl
 {

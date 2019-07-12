@@ -72,9 +72,9 @@ kernel void chsPlane(uint2 tid                                       [[thread_po
                 device uint *hitGroupID                 [[buffer(7)]],
                 device ShaderSettings &shaderSettings   [[buffer(8)]],
                      
-                constant RayGenConfigBlock & configBlock [[buffer(10)]],
+                constant RayGenConfigBlock & gSettings [[buffer(10)]],
                 
-                texture2d<float, access::write> dstTex  [[texture(0)]])
+                texture2d<float, access::write> gOutput  [[texture(0)]])
 {
     if (tid.x < uniforms.width && tid.y < uniforms.height) {
         unsigned int rayIdx = tid.y * uniforms.width + tid.x;
@@ -107,12 +107,12 @@ kernel void chsPlane(uint2 tid                                       [[thread_po
             float3 color = A * uvw.x + B * uvw.y + C * uvw.z;
             
             // Clear the destination image to black
-            //dstTex.write(float4(color, 1.0f), tid);
+            //gOutput.write(float4(color, 1.0f), tid);
             pload.color = color;
             
             float3 normal = float3(0.0, 1.0, 0.0);
             ray.origin = ray.origin + ray.direction * intersection.distance + normal * 0.001;
-            ray.direction = normalize(configBlock.mLightDirection);
+            ray.direction = normalize(gSettings.mLightDirection);
 
             ray.mask = 0xFF;
             ray.maxDistance = 10000;//INFINITY;

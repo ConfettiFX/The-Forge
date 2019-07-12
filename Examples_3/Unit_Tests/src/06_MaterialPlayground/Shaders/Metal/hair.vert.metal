@@ -105,9 +105,9 @@ struct VSOutput
 };
 
 vertex VSOutput stageMain(uint vertexID[[vertex_id]],
-    device float4* GuideHairVertexPositions[[buffer(0)]],
-    device float4* GuideHairVertexTangents[[buffer(1)]],
-    device float* HairThicknessCoefficients[[buffer(2)]],
+    constant float4* GuideHairVertexPositions[[buffer(0)]],
+    constant float4* GuideHairVertexTangents[[buffer(1)]],
+    constant float* HairThicknessCoefficients[[buffer(2)]],
     constant CameraData& cbCamera [[buffer(3)]],
     constant HairData& cbHair [[buffer(4)]])
 {
@@ -145,9 +145,9 @@ struct VSOutput
 };
 
 vertex VSOutput stageMain(uint vertexID[[vertex_id]],
-    device float4* GuideHairVertexPositions[[buffer(0)]],
-    device float4* GuideHairVertexTangents[[buffer(1)]],
-    device float* HairThicknessCoefficients[[buffer(2)]],
+    constant float4* GuideHairVertexPositions[[buffer(0)]],
+    constant float4* GuideHairVertexTangents[[buffer(1)]],
+    constant float* HairThicknessCoefficients[[buffer(2)]],
     constant CameraData& cbCamera [[buffer(3)]],
     constant HairData& cbHair [[buffer(4)]],
     constant GlobalHairData& cbHairGlobal [[buffer(5)]])

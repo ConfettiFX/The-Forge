@@ -3,7 +3,7 @@
 #include "../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 #include "../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../Common_3/OS/Interfaces/ICameraController.h"
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../Common_3/OS/Interfaces/IMemory.h"
 
 const char LuaManagerImpl::className[] = "LuaManager";
 bool       LuaManagerImpl::m_registered = false;
@@ -107,9 +107,20 @@ static int msghandler(lua_State* L)
 	return 1; /* return the traceback */
 }
 
+const char* luaReaderFunction(lua_State *L, void *ud, size_t *sz)
+{
+	FileHandle pHandle = (FileHandle)ud;
+	const size_t size = 1024;
+	static char buffer[size];
+	*sz = read_file((void*)buffer, size, pHandle);
+	return buffer;
+}
+
 int RunScriptFile(const char* scriptname, lua_State* L)
 {
-	int loadfile_error = luaL_loadfile(L, scriptname);
+	//int loadfile_error = luaL_loadfile(L, scriptname);
+	lua_Reader reader = luaReaderFunction;
+	int loadfile_error = lua_load(L, reader, open_file(scriptname, "rb"), NULL, NULL);
 	if (loadfile_error != 0)
 	{
 		ErrorMsg("Can't load script %s\n", scriptname);
@@ -157,7 +168,9 @@ bool LuaManagerImpl::SetUpdatableScript(const char* scriptname, const char* upda
 	m_UpdateFunctonName = updateFunctionName;
 	m_UpdatableScriptName = scriptname;
 	m_UpdatableScriptExitName = exitFunctionName;
-	int loadfile_error = luaL_loadfile(m_UpdatableScriptLuaState, m_UpdatableScriptName.c_str());
+	//int loadfile_error = luaL_loadfile(m_UpdatableScriptLuaState, m_UpdatableScriptName.c_str());
+	lua_Reader reader = luaReaderFunction;
+	int loadfile_error = lua_load(m_UpdatableScriptLuaState, reader, open_file(scriptname, "rb"), NULL, NULL);
 	if (loadfile_error != 0)
 	{
 		ErrorMsg("Can't load script %s\n", scriptname);

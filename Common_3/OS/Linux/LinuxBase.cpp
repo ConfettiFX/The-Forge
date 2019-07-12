@@ -34,14 +34,14 @@
 
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IPlatformEvents.h"
-#include "../Interfaces/ILogManager.h"
-#include "../Interfaces/ITimeManager.h"
+#include "../Interfaces/ILog.h"
+#include "../Interfaces/ITime.h"
 #include "../Interfaces/IThread.h"
 
 #include "../Input/InputSystem.h"
 #include "../Input/InputMappings.h"
 
-#include "../Interfaces/IMemoryManager.h"
+#include "../Interfaces/IMemory.h"
 
 #define CONFETTI_WINDOW_CLASS L"confetti"
 #define MAX_CURSOR_DELTA 200
@@ -85,43 +85,6 @@ void requestShutdown()
 	XSendEvent(gWindow.display, gWindow.xlib_window, false, 0, &event);
 }
 
-/************************************************************************/
-// Time Related Functions
-/************************************************************************/
-
-unsigned getSystemTime()
-{
-	long            ms;    // Milliseconds
-	time_t          s;     // Seconds
-	struct timespec spec;
-
-	clock_gettime(CLOCK_REALTIME, &spec);
-
-	s = spec.tv_sec;
-	ms = round(spec.tv_nsec / 1.0e6);    // Convert nanoseconds to milliseconds
-
-	ms += s * 1000;
-
-	return (unsigned int)ms;
-}
-
-long getUSec()
-{
-	timespec ts;
-	clock_gettime(CLOCK_REALTIME, &ts);
-	long us = (ts.tv_nsec / 1000);
-	us += ts.tv_sec * 1e6;
-	return us;
-}
-
-unsigned getTimeSinceStart() { return (unsigned)time(NULL); }
-
-int64_t getTimerFrequency()
-{
-	// This is us to s
-	return 1000000LL;
-}
-
 float2 getDpiScale() { return { gRetinaScale, gRetinaScale }; }
 /************************************************************************/
 // App Entrypoint
@@ -147,7 +110,7 @@ static double PlatformGetMonitorDPI(Display* display)
 	XrmDatabase db;
 	XrmValue    value;
 	char*       type = NULL;
-	double      dpi = 0.0;
+	double      dpi = 96.0;
 
 	XrmInitialize(); /* Need to initialize the DB before calling Xrm* functions */
 
@@ -161,6 +124,7 @@ static double PlatformGetMonitorDPI(Display* display)
 			{
 				dpi = atof(value.addr);
 			}
+			XrmDestroyDatabase(db);
 		}
 	}
 

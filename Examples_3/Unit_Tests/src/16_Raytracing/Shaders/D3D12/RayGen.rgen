@@ -1,16 +1,16 @@
 RaytracingAccelerationStructure		gRtScene	: register(t0);
 RWTexture2D<float4>					gOutput		: register(u0);
 
-cbuffer gSettings : register(b1)
-{
-	uint HitGroupIndex;
-	uint MissGroupIndex;
-}
-
-cbuffer Settings : register(b10)
+cbuffer gSettings : register(b0)
 {
 	float3 CameraPosition;
+	uint  _pad0;
 	float3 LightDirection;
+	uint  _pad1;
+	uint  HitGroupIndex;
+	uint  MissGroupIndex;
+	uint  PlaneHitGroupIndex;
+	uint  PlaneMissGroupIndex;
 }
 
 struct RayPayload

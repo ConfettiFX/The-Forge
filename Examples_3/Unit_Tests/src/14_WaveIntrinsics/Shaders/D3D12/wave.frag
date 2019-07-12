@@ -25,8 +25,10 @@ float texPattern(float2 position)
 	return c;
 }
 
+
 float4 main(PSInput input) : SV_TARGET
 {
+	
 	float4 outputColor;
 
 	// Add grid-like texture pattern on top of the color
@@ -44,42 +46,48 @@ float4 main(PSInput input) : SV_TARGET
 		{
 			// Example of query intrinsics: WaveGetLaneIndex
 			// Gradiently color the wave block by their lane id. Black for the smallest lane id and White for the largest lane id.
-			outputColor = WaveGetLaneIndex() / float(laneSize);
+				outputColor = WaveGetLaneIndex() / float(laneSize);
 			break;
 		}
 		case 3:
 		{
 			// Example of query intrinsics: WaveIsFirstLane
 			// Mark the first lane as white pixel
-			if (WaveIsFirstLane())
-				outputColor = float4(1., 1., 1., 1.);
+				if (WaveIsFirstLane())
+				 outputColor = float4(1., 1., 1., 1.);
+						
 			break;
 		}
 		case 4:
 		{
-			// Example of query intrinsics: WaveIsFirstLane
-			// Mark the first active lane as white pixel. Mark the last active lane as red pixel.
+			// example of query intrinsics: waveisfirstlane
+			// mark the first active lane as white pixel. mark the last active lane as red pixel.
 			if (WaveIsFirstLane())
 				outputColor = float4(1., 1., 1., 1.);
 			if (WaveGetLaneIndex() == WaveActiveMax(WaveGetLaneIndex()))
 				outputColor = float4(1., 0., 0., 1.);
+			
 			break;
 		}
 		case 5:
 		{
 			// Example of vote intrinsics: WaveActiveBallot
 			// Active lanes ratios (# of total activelanes / # of total lanes).
+			
 			uint4 activeLaneMask = WaveActiveBallot(true);
 			uint numActiveLanes = countbits(activeLaneMask.x) + countbits(activeLaneMask.y) + countbits(activeLaneMask.z) + countbits(activeLaneMask.w);
 			float activeRatio = (float)numActiveLanes / float(laneSize);
 			outputColor = float4(activeRatio, activeRatio, activeRatio, 1.0);
+						
 			break;
 		}
 		case 6:
 		{
 			// Example of wave broadcast intrinsics: WaveReadLaneFirst
 			// Broadcast the color in first lan to the wave.
+			
 			outputColor = WaveReadLaneFirst(outputColor);
+			
 			break;
 		}
 
@@ -91,6 +99,7 @@ float4 main(PSInput input) : SV_TARGET
 			uint numActiveLanes = countbits(activeLaneMask.x) + countbits(activeLaneMask.y) + countbits(activeLaneMask.z) + countbits(activeLaneMask.w);
 			float4 avgColor = WaveActiveSum(outputColor) / float(numActiveLanes);
 			outputColor = avgColor;
+			
 			break;
 		}
 
@@ -101,13 +110,13 @@ float4 main(PSInput input) : SV_TARGET
 			// Then, use the prefix sum value to color each pixel.
 			float4 basePos = WaveReadLaneFirst(input.position);
 			float4 prefixSumPos = WavePrefixSum(input.position - basePos);
-
+			
 			// Get the number of total active lanes.
 			uint4 activeLaneMask = WaveActiveBallot(true);
 			uint numActiveLanes = countbits(activeLaneMask.x) + countbits(activeLaneMask.y) + countbits(activeLaneMask.z) + countbits(activeLaneMask.w);
-
+			
 			outputColor = prefixSumPos / numActiveLanes;
-
+			
 			break;
 		}
 
@@ -126,10 +135,11 @@ float4 main(PSInput input) : SV_TARGET
 			//  V
 			//  Y
 			//
+			
 			float dx = QuadReadAcrossX(input.position.x) - input.position.x;
 			float dy = QuadReadAcrossY(input.position.y) - input.position.y;
-
-
+	
+	
 			// q0
 			if (dx > 0 && dy > 0)
 				outputColor = float4(1, 0, 0, 1);
@@ -144,6 +154,8 @@ float4 main(PSInput input) : SV_TARGET
 				outputColor = float4(1, 1, 1, 1);
 			else
 				outputColor = float4(0, 0, 0, 1);
+
+						
 
 			break;
 		}

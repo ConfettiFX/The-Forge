@@ -41,7 +41,6 @@ header_file.write(message)
 
 source_file.write(message)
 source_file.write("#include \"IRenderer.h\"\n")
-source_file.write("#include \"../../Common_3/OS/Interfaces/ILogManager.h\"\n")
 source_file.write("\n")
 
 def function_valid(functionName):

@@ -27,7 +27,7 @@
 #include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 #include "../IRenderer.h"
 #include <string.h>
-#include "../../OS/Interfaces/IMemoryManager.h"
+#include "../../OS/Interfaces/IMemory.h"
 
 #define MAX_REFLECT_STRING_LENGTH 128
 #define MAX_BUFFER_BINDINGS 31
@@ -148,6 +148,7 @@ int getSizeFromDataType(MTLDataType dataType)
 		case MTLDataTypeBool3: return 3;
 		case MTLDataTypeBool4: return 4;
 		case MTLDataTypeTexture: return 8;
+		case MTLDataTypePointer: return 8;
 		default: break;
 	}
 	assert(0 && "Unknown metal type");
@@ -573,7 +574,7 @@ void mtl_createShaderReflection(
 				pResources, resourceIdx, texInfo.isUAV ? DESCRIPTOR_TYPE_RW_TEXTURE : DESCRIPTOR_TYPE_TEXTURE, texInfo.slotIndex,
 				0 /*size*/, shaderStage, &pCurrentName, (char*)texInfo.name);
 
-			pResources[resourceIdx].mtlTextureType = texInfo.type;
+			pResources[resourceIdx].mtlTextureType = static_cast<uint32_t>(texInfo.type);
 			pResources[resourceIdx].mtlArgumentBufferType = RESOURCE_STATE_UNDEFINED;
 		}
 		for (uint32_t i = 0; i < pReflectionInfo->samplers.size(); ++i, ++resourceIdx)
