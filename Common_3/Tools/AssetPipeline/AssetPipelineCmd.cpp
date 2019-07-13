@@ -1,6 +1,6 @@
 #include "AssetPipeline.h"
 #include "../../ThirdParty/OpenSource/EASTL/string.h"
-#include "../../OS/Interfaces/ILogManager.h"
+#include "../../OS/Interfaces/ILog.h"
 
 #include <cstdio>
 #include <sys/stat.h>

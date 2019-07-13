@@ -19,7 +19,7 @@ kernel void miss(uint2 tid                                       [[thread_positi
                  device uint *hitGroupID                 [[buffer(7)]],
                  device ShaderSettings &shaderSettings   [[buffer(8)]],
                  
-                 texture2d<float, access::write> dstTex  [[texture(0)]])
+                 texture2d<float, access::write> gOutput  [[texture(0)]])
 {
     if (tid.x < uniforms.width && tid.y < uniforms.height) {
         unsigned int rayIdx = tid.y * uniforms.width + tid.x;
@@ -31,7 +31,7 @@ kernel void miss(uint2 tid                                       [[thread_positi
             // The ray missed the scene, so terminate the ray's path
             ray.maxDistance = -1.0f;
             
-            dstTex.write(float4(0.1, 0.0, 0.3, 1.0f), tid);
+            gOutput.write(float4(0.1, 0.0, 0.3, 1.0f), tid);
             
         }
         

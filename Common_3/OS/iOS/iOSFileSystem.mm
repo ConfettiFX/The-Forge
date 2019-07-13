@@ -28,9 +28,9 @@
 #include "../../ThirdParty/OpenSource/EASTL/string_hash_map.h"
 
 #include "../Interfaces/IFileSystem.h"
-#include "../Interfaces/ILogManager.h"
+#include "../Interfaces/ILog.h"
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/IMemoryManager.h"
+#include "../Interfaces/IMemory.h"
 
 #include <sys/stat.h>
 #include <unistd.h>

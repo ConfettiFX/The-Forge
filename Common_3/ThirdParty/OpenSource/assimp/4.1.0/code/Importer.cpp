@@ -83,7 +83,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <cctype>
 
 #include <assimp/DefaultIOStream.h>
+
+#ifdef __ANDROID__
+#include <assimp/port/AndroidJNI/AndroidJNIIOSystem.h>
+extern ANativeActivity* android_activity;
+#else
 #include <assimp/DefaultIOSystem.h>
+#endif
 
 #ifndef ASSIMP_BUILD_NO_VALIDATEDS_PROCESS
 #   include "ValidateDataStructure.h"
@@ -152,7 +158,12 @@ Importer::Importer()
     pimpl->mErrorString = "";
 
     // Allocate a default IO handler
+#ifdef __ANDROID__
+    pimpl->mIOHandler = new Assimp::AndroidJNIIOSystem(android_activity);
+#else
     pimpl->mIOHandler = new DefaultIOSystem;
+#endif
+
     pimpl->mIsDefaultHandler = true;
     pimpl->bExtraVerbose     = false; // disable extra verbose mode by default
 

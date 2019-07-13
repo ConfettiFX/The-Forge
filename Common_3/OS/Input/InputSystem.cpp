@@ -21,7 +21,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-#include "../Interfaces/ILogManager.h"
+#include "../Interfaces/ILog.h"
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IFileSystem.h"
 
@@ -44,7 +44,7 @@
 #endif
 #endif
 
-#include "../Interfaces/IMemoryManager.h"
+#include "../Interfaces/IMemory.h"
 
 /**
 //List of TODO:
@@ -184,7 +184,7 @@ void Shutdown()
 	mInputCallbacks.clear();
 }
 
-#ifdef _WINDOWS
+#if defined(_WIN32) && !defined(_DURANGO)
 void HandleMessage(MSG& msg)
 {
 	pInputManager->HandleMessage(msg);

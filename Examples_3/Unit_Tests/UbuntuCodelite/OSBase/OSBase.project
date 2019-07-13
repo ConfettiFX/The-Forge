@@ -82,30 +82,31 @@
     <File Name="../../../../Common_3/OS/Interfaces/IApp.h"/>
     <File Name="../../../../Common_3/OS/Interfaces/ICameraController.h"/>
     <File Name="../../../../Common_3/OS/Interfaces/IFileSystem.h"/>
-    <File Name="../../../../Common_3/OS/Interfaces/ILogManager.h"/>
-    <File Name="../../../../Common_3/OS/Interfaces/IMemoryManager.h"/>
+    <File Name="../../../../Common_3/OS/Interfaces/ILog.h"/>
+    <File Name="../../../../Common_3/OS/Interfaces/IMemory.h"/>
     <File Name="../../../../Common_3/OS/Interfaces/IMiddleware.h"/>
     <File Name="../../../../Common_3/OS/Interfaces/IOperatingSystem.h"/>
     <File Name="../../../../Common_3/OS/Interfaces/IPlatformEvents.h"/>
     <File Name="../../../../Common_3/OS/Interfaces/IThread.h"/>
-    <File Name="../../../../Common_3/OS/Interfaces/ITimeManager.h"/>
+    <File Name="../../../../Common_3/OS/Interfaces/ITime.h"/>
     <File Name="../../../../Common_3/OS/Interfaces/IUIManager.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Logging">
-    <File Name="../../../../Common_3/OS/Logging/LogManager.cpp"/>
-    <File Name="../../../../Common_3/OS/Logging/LogManager.h"/>
+    <File Name="../../../../Common_3/OS/Logging/Log.cpp"/>
+    <File Name="../../../../Common_3/OS/Logging/Log.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Math">
     <File Name="../../../../Common_3/OS/Math/MathTypes.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="MemoryTracking">
-    <File Name="../../../../Common_3/OS/MemoryTracking/MemoryTrackingManager.cpp"/>
+    <File Name="../../../../Common_3/OS/MemoryTracking/MemoryTracking.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Linux">
     <File Name="../../../../Common_3/OS/Linux/LinuxBase.cpp"/>
     <File Name="../../../../Common_3/OS/Linux/LinuxFileSystem.cpp"/>
-    <File Name="../../../../Common_3/OS/Linux/LinuxLogManager.cpp"/>
-    <File Name="../../../../Common_3/OS/Linux/LinuxThreadManager.cpp"/>
+    <File Name="../../../../Common_3/OS/Linux/LinuxLog.cpp"/>
+    <File Name="../../../../Common_3/OS/Linux/LinuxThread.cpp"/>
+    <File Name="../../../../Common_3/OS/Linux/LinuxTime.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Dependencies">
     <File Name="../../../../Common_3/ThirdParty/OpenSource/TinyEXR/tinyexr.cpp"/>

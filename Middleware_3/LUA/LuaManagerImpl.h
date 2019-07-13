@@ -10,7 +10,7 @@ extern "C"
 #include "../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 #include "../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 
-#include "../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../Common_3/OS/Interfaces/ILog.h"
 #include "LunaV.hpp"
 #include "LuaManagerCommon.h"
 

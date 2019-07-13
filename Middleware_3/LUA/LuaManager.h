@@ -2,8 +2,8 @@
 
 #include "LuaManagerCommon.h"
 
-#define MEM_MANAGER_FROM_HEADER
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
+#define IMEMORY_FROM_HEADER
+#include "../../Common_3/OS/Interfaces/IMemory.h"
 
 class LuaManagerImpl;
 

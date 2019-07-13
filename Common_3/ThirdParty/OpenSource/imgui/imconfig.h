@@ -13,7 +13,7 @@
 
 #pragma once
 
-#include "../../../OS/Interfaces/ILogManager.h"
+#include "../../../OS/Interfaces/ILog.h"
 #include "../../../OS/Math/MathTypes.h"
 #include "../EASTL/vector.h"
 

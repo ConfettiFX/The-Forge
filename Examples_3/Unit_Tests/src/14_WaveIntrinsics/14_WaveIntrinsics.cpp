@@ -30,9 +30,9 @@
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
-#include "../../../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
@@ -42,7 +42,7 @@
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
-#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../../../Common_3/OS/Interfaces/IMemory.h"
 
 /// Demo structures
 struct SceneConstantBuffer
@@ -112,6 +112,7 @@ enum RenderMode
 };
 int32_t gRenderModeToggles = 0;
 
+
 const char* pszBases[FSR_Count] = {
 	"../../../src/14_WaveIntrinsics/",      // FSR_BinShaders
 	"../../../src/14_WaveIntrinsics/",      // FSR_SrcShaders
@@ -125,6 +126,7 @@ const char* pszBases[FSR_Count] = {
 	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
 	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
 };
+
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
@@ -143,7 +145,13 @@ class WaveIntrinsics: public IApp
 	{
 		// window and renderer setup
 		RendererDesc settings = { 0 };
+
+#if defined(_DURANGO)
+		settings.mShaderTarget = shader_target_5_1;
+#else
 		settings.mShaderTarget = shader_target_6_0;
+#endif
+
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
 		if (!pRenderer)
@@ -180,7 +188,13 @@ class WaveIntrinsics: public IApp
 		ShaderLoadDesc waveShader = {};
 		waveShader.mStages[0] = { "wave.vert", NULL, 0, FSR_SrcShaders };
 		waveShader.mStages[1] = { "wave.frag", NULL, 0, FSR_SrcShaders };
+
+#if defined(_DURANGO)
+		waveShader.mTarget = shader_target_5_1;
+#else
 		waveShader.mTarget = shader_target_6_0;
+#endif
+
 #ifdef TARGET_IOS
 		ShaderMacro iosMacro;
 		iosMacro.definition = "TARGET_IOS";
@@ -188,6 +202,7 @@ class WaveIntrinsics: public IApp
 		waveShader.mStages[1].mMacroCount = 1;
 		waveShader.mStages[1].pMacros = &iosMacro;
 #endif
+
 		ShaderLoadDesc magnifyShader = {};
 		magnifyShader.mStages[0] = { "magnify.vert", NULL, 0, FSR_SrcShaders };
 		magnifyShader.mStages[1] = { "magnify.frag", NULL, 0, FSR_SrcShaders };
@@ -289,6 +304,10 @@ class WaveIntrinsics: public IApp
 		m_labels[RenderMode2] = "2. Color pixels by lane indices.\n";
 #ifdef TARGET_IOS
 		m_labels[RenderMode9] = "3. Color pixels by their quad id.\n";
+
+#elif _DURANGO
+		m_labels[RenderMode3] = "3. Show first lane (white dot) in each wave.\n";
+		m_labels[RenderMode4] = "4. Show first(white dot) and last(red dot) lanes in each wave.\n";
 #else
 		m_labels[RenderMode3] = "3. Show first lane (white dot) in each wave.\n";
 		m_labels[RenderMode4] = "4. Show first(white dot) and last(red dot) lanes in each wave.\n";
@@ -305,8 +324,13 @@ class WaveIntrinsics: public IApp
 #ifdef TARGET_IOS
 			//Subset of supported render modes on iOS
 			if(i == RenderMode1 || i == RenderMode2 || i == RenderMode9)
-#endif
+				pGui->AddWidget(RadioButtonWidget(m_labels[i], &gRenderModeToggles, i));
+#elif _DURANGO
+			if (i == RenderMode1 || i == RenderMode2 || i == RenderMode3 || i == RenderMode4)
+				pGui->AddWidget(RadioButtonWidget(m_labels[i], &gRenderModeToggles, i));
+#else
 			pGui->AddWidget(RadioButtonWidget(m_labels[i], &gRenderModeToggles, i));
+#endif
 		}
 
 		requestMouseCapture(true);
@@ -576,6 +600,16 @@ class WaveIntrinsics: public IApp
 
 	static bool onInput(const ButtonData* pData)
 	{
+		
+#ifdef _DURANGO
+		if(pData->mUserId == KEY_RIGHT_STICK)
+		{
+			gSceneData.mousePosition.x += pData->mValue[0];
+			gSceneData.mousePosition.y += pData->mValue[1];
+
+			return true;
+		}
+#else
 		if (InputSystem::IsMouseCaptured())
 		{
 			if (pData->mUserId == KEY_UI_MOVE)
@@ -587,8 +621,14 @@ class WaveIntrinsics: public IApp
 
 					return true;
 				}
+
 			}
 		}
+
+#endif
+
+		
+
 		return false;
 	}
 };

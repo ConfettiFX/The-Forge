@@ -27,6 +27,8 @@
 #include <metal_stdlib>
 using namespace metal;
 
+#include "shader_defs.h"
+
 struct PackedVertexPosData {
     packed_float3 position;
 };
@@ -38,7 +40,6 @@ struct PackedVertexTexcoord {
 struct VSOutput {
 	float4 position [[position]];
     float2 texCoord;
-    uint triangleID;
 };
 
 struct PerBatchUniforms {
@@ -52,16 +53,27 @@ uint packVisBufData(bool opaque, uint drawId, uint triangleId)
     return (opaque ? packed : (1 << 31) | packed);
 }
 
+struct BindlessDiffuseData
+{
+	array<texture2d<float>,MATERIAL_BUFFER_SIZE> textures;
+};
+
 // Pixel shader for alpha tested geometry
 fragment float4 stageMain(VSOutput input                                [[stage_in]],
-                          constant PerBatchUniforms& perBatch           [[buffer(2)]],
-                          texture2d<float, access::sample> diffuseMap   [[texture(0)]],
-                          sampler textureFilter                         [[sampler(0)]])
+						  uint primitiveID                              [[primitive_id]],
+						  constant uint* indirectMaterialBuffer         [[buffer(0)]],
+                          constant BindlessDiffuseData& diffuseMaps     [[buffer(1)]],
+                          sampler textureFilter                         [[sampler(0)]],
+						  constant uint& drawID							[[buffer(20)]])
 {
+	uint matBaseSlot = BaseMaterialBuffer(true, VIEW_CAMERA);
+	uint materialID = indirectMaterialBuffer[matBaseSlot + drawID];
+	texture2d<float> diffuseMap = diffuseMaps.textures[materialID];
+	
     // Perform alpha testing: sample the texture and discard the fragment if alpha is under a threshold
     float4 texColor = diffuseMap.sample(textureFilter,input.texCoord);
     if (texColor.a < 0.5) discard_fragment();
     
     // Pack draw / triangle Id data into a 32-bit uint and store it in a RGBA8 texture
-    return unpack_unorm4x8_to_float(packVisBufData(false, perBatch.drawId, input.triangleID));
+    return unpack_unorm4x8_to_float(packVisBufData(false, drawID, primitiveID));
 }

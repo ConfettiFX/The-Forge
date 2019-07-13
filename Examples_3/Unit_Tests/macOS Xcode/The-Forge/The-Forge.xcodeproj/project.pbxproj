@@ -32,15 +32,15 @@
 		5C172F57214148840074EE71 /* ResourceLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F4D214148840074EE71 /* ResourceLoader.cpp */; };
 		5C172FD221414C670074EE71 /* iOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2875912420286FBA00D89997 /* iOSBase.mm */; };
 		5C172FD321414C670074EE71 /* iOSFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = C951330A2010E6B1002E584B /* iOSFileSystem.mm */; };
-		5C172FD421414C670074EE71 /* iOSLogManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C95133122010E6B2002E584B /* iOSLogManager.cpp */; };
-		5C172FD521414C670074EE71 /* iOSThreadManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C95133102010E6B1002E584B /* iOSThreadManager.cpp */; };
+		5C172FD421414C670074EE71 /* iOSLog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C95133122010E6B2002E584B /* iOSLog.cpp */; };
+		5C172FD521414C670074EE71 /* iOSThread.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C95133102010E6B1002E584B /* iOSThread.cpp */; };
 		5C172FD921414CC60074EE71 /* Fontstash.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B25AC24120EFF14500ED50CF /* Fontstash.cpp */; };
 		5C172FDA21414CC60074EE71 /* Fontstash.h in Sources */ = {isa = PBXBuildFile; fileRef = B25AC24020EFF14500ED50CF /* Fontstash.h */; };
 		5C172FDC21414CC60074EE71 /* AppUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BBE92080FED8008E3A2C /* AppUI.cpp */; };
 		5C172FDD21414CC60074EE71 /* AppUI.h in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BBEA2080FED8008E3A2C /* AppUI.h */; };
 		5C172FE221414CC60074EE71 /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D205E2821F9F9EC600040CCE /* FileSystem.cpp */; };
 		5C172FE321414CC60074EE71 /* RingBuffer.h in Sources */ = {isa = PBXBuildFile; fileRef = D205E2831F9F9EC600040CCE /* RingBuffer.h */; };
-		5C172FE421414CC60074EE71 /* MemoryTrackingManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D461A1FD9974F00564C8B /* MemoryTrackingManager.cpp */; };
+		5C172FE421414CC60074EE71 /* MemoryTracking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D461A1FD9974F00564C8B /* MemoryTracking.cpp */; };
 		5C172FE521414CC60074EE71 /* FpsCameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D20D92111F3879C4004B3A42 /* FpsCameraController.cpp */; };
 		5C172FE621414CC60074EE71 /* GuiCameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D20D92101F3879C4004B3A42 /* GuiCameraController.cpp */; };
 		5C172FE721414CC60074EE71 /* MathTypes.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CBF1EF81FC5005AC8C7 /* MathTypes.h */; };
@@ -59,8 +59,8 @@
 		5C172FF421414CC60074EE71 /* ResourceLoader.h in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F44214148830074EE71 /* ResourceLoader.h */; };
 		5C172FF521414CC60074EE71 /* tinyexr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE11EF81FC5005AC8C7 /* tinyexr.cpp */; };
 		5C172FF621414CC60074EE71 /* tinyexr.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE21EF81FC5005AC8C7 /* tinyexr.h */; };
-		5C172FF721414CC60074EE71 /* LogManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE61EF81FC5005AC8C7 /* LogManager.cpp */; };
-		5C172FF821414CC60074EE71 /* LogManager.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE71EF81FC5005AC8C7 /* LogManager.h */; };
+		5C172FF721414CC60074EE71 /* Log.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE61EF81FC5005AC8C7 /* Log.cpp */; };
+		5C172FF821414CC60074EE71 /* Log.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE71EF81FC5005AC8C7 /* Log.h */; };
 		5C172FFB21414CC60074EE71 /* PlatformEvents.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D151EF94E43005AC8C7 /* PlatformEvents.cpp */; };
 		5C172FFC21414CC60074EE71 /* ThreadSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */; };
 		5C172FFD21414CC60074EE71 /* Timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */; };
@@ -87,7 +87,7 @@
 		5C5582F021413D550019960B /* AppUI.h in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BBEA2080FED8008E3A2C /* AppUI.h */; };
 		5C5582F421413D550019960B /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D205E2821F9F9EC600040CCE /* FileSystem.cpp */; };
 		5C5582F521413D550019960B /* RingBuffer.h in Sources */ = {isa = PBXBuildFile; fileRef = D205E2831F9F9EC600040CCE /* RingBuffer.h */; };
-		5C5582F621413D550019960B /* MemoryTrackingManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D461A1FD9974F00564C8B /* MemoryTrackingManager.cpp */; };
+		5C5582F621413D550019960B /* MemoryTracking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D461A1FD9974F00564C8B /* MemoryTracking.cpp */; };
 		5C5582F721413D550019960B /* FpsCameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D20D92111F3879C4004B3A42 /* FpsCameraController.cpp */; };
 		5C5582F821413D550019960B /* GuiCameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D20D92101F3879C4004B3A42 /* GuiCameraController.cpp */; };
 		5C5582F921413D550019960B /* MathTypes.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CBF1EF81FC5005AC8C7 /* MathTypes.h */; };
@@ -96,12 +96,12 @@
 		5C5582FC21413D550019960B /* ImageEnums.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCE1EF81FC5005AC8C7 /* ImageEnums.h */; };
 		5C5582FF21413D550019960B /* macOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = 2875911F2028622600D89997 /* macOSBase.mm */; };
 		5C55830021413D550019960B /* macOSFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = EA463CD71EF81FC5005AC8C7 /* macOSFileSystem.mm */; };
-		5C55830121413D550019960B /* macOSLogManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CD81EF81FC5005AC8C7 /* macOSLogManager.cpp */; };
-		5C55830221413D550019960B /* macOSThreadManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CD91EF81FC5005AC8C7 /* macOSThreadManager.cpp */; };
+		5C55830121413D550019960B /* macOSLog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CD81EF81FC5005AC8C7 /* macOSLog.cpp */; };
+		5C55830221413D550019960B /* macOSThread.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CD91EF81FC5005AC8C7 /* macOSThread.cpp */; };
 		5C55830921413D550019960B /* tinyexr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE11EF81FC5005AC8C7 /* tinyexr.cpp */; };
 		5C55830A21413D550019960B /* tinyexr.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE21EF81FC5005AC8C7 /* tinyexr.h */; };
-		5C55830B21413D550019960B /* LogManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE61EF81FC5005AC8C7 /* LogManager.cpp */; };
-		5C55830C21413D550019960B /* LogManager.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE71EF81FC5005AC8C7 /* LogManager.h */; };
+		5C55830B21413D550019960B /* Log.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE61EF81FC5005AC8C7 /* Log.cpp */; };
+		5C55830C21413D550019960B /* Log.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE71EF81FC5005AC8C7 /* Log.h */; };
 		5C55830F21413D550019960B /* PlatformEvents.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D151EF94E43005AC8C7 /* PlatformEvents.cpp */; };
 		5C55831021413D550019960B /* ThreadSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */; };
 		5C55831121413D550019960B /* Timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */; };
@@ -297,10 +297,10 @@
 		B274041922BC66AD00F7660D /* ComponentRepresentation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ComponentRepresentation.cpp; path = ../../../../../Middleware_3/ECS/ComponentRepresentation.cpp; sourceTree = "<group>"; };
 		B274041A22BC66AD00F7660D /* EntityManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = EntityManager.cpp; path = ../../../../../Middleware_3/ECS/EntityManager.cpp; sourceTree = "<group>"; };
 		B2D1CEA320EAD15F001BB8C4 /* gainput.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = gainput.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/gainput/Apple/lib/gainput.xcodeproj; sourceTree = "<group>"; };
-		C91D461A1FD9974F00564C8B /* MemoryTrackingManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryTrackingManager.cpp; path = MemoryTracking/MemoryTrackingManager.cpp; sourceTree = "<group>"; };
+		C91D461A1FD9974F00564C8B /* MemoryTracking.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryTracking.cpp; path = MemoryTracking/MemoryTracking.cpp; sourceTree = "<group>"; };
 		C951330A2010E6B1002E584B /* iOSFileSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = iOSFileSystem.mm; path = iOS/iOSFileSystem.mm; sourceTree = "<group>"; };
-		C95133102010E6B1002E584B /* iOSThreadManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = iOSThreadManager.cpp; path = iOS/iOSThreadManager.cpp; sourceTree = "<group>"; };
-		C95133122010E6B2002E584B /* iOSLogManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = iOSLogManager.cpp; path = iOS/iOSLogManager.cpp; sourceTree = "<group>"; };
+		C95133102010E6B1002E584B /* iOSThread.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = iOSThread.cpp; path = iOS/iOSThread.cpp; sourceTree = "<group>"; };
+		C95133122010E6B2002E584B /* iOSLog.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = iOSLog.cpp; path = iOS/iOSLog.cpp; sourceTree = "<group>"; };
 		D09CF41A22968419001D13F2 /* Interfaces */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Interfaces; sourceTree = "<group>"; };
 		D205E2821F9F9EC600040CCE /* FileSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = FileSystem.cpp; path = Core/FileSystem.cpp; sourceTree = "<group>"; };
 		D205E2831F9F9EC600040CCE /* RingBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RingBuffer.h; path = Core/RingBuffer.h; sourceTree = "<group>"; };
@@ -311,12 +311,12 @@
 		EA463CCD1EF81FC5005AC8C7 /* Image.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Image.h; path = ../../../../Common_3/OS/Image/Image.h; sourceTree = SOURCE_ROOT; };
 		EA463CCE1EF81FC5005AC8C7 /* ImageEnums.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ImageEnums.h; path = ../../../../Common_3/OS/Image/ImageEnums.h; sourceTree = SOURCE_ROOT; };
 		EA463CD71EF81FC5005AC8C7 /* macOSFileSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = macOSFileSystem.mm; path = ../../../../Common_3/OS/macOS/macOSFileSystem.mm; sourceTree = SOURCE_ROOT; };
-		EA463CD81EF81FC5005AC8C7 /* macOSLogManager.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = macOSLogManager.cpp; path = ../../../../Common_3/OS/macOS/macOSLogManager.cpp; sourceTree = SOURCE_ROOT; };
-		EA463CD91EF81FC5005AC8C7 /* macOSThreadManager.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = macOSThreadManager.cpp; path = ../../../../Common_3/OS/macOS/macOSThreadManager.cpp; sourceTree = SOURCE_ROOT; };
+		EA463CD81EF81FC5005AC8C7 /* macOSLog.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = macOSLog.cpp; path = ../../../../Common_3/OS/macOS/macOSLog.cpp; sourceTree = SOURCE_ROOT; };
+		EA463CD91EF81FC5005AC8C7 /* macOSThread.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = macOSThread.cpp; path = ../../../../Common_3/OS/macOS/macOSThread.cpp; sourceTree = SOURCE_ROOT; };
 		EA463CE11EF81FC5005AC8C7 /* tinyexr.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tinyexr.cpp; path = ../../../../Common_3/ThirdParty/OpenSource/TinyEXR/tinyexr.cpp; sourceTree = SOURCE_ROOT; };
 		EA463CE21EF81FC5005AC8C7 /* tinyexr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tinyexr.h; path = ../../../../Common_3/ThirdParty/OpenSource/TinyEXR/tinyexr.h; sourceTree = SOURCE_ROOT; };
-		EA463CE61EF81FC5005AC8C7 /* LogManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = LogManager.cpp; path = ../../../../Common_3/OS/Logging/LogManager.cpp; sourceTree = SOURCE_ROOT; };
-		EA463CE71EF81FC5005AC8C7 /* LogManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LogManager.h; path = ../../../../Common_3/OS/Logging/LogManager.h; sourceTree = SOURCE_ROOT; };
+		EA463CE61EF81FC5005AC8C7 /* Log.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Log.cpp; path = ../../../../Common_3/OS/Logging/Log.cpp; sourceTree = SOURCE_ROOT; };
+		EA463CE71EF81FC5005AC8C7 /* Log.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Log.h; path = ../../../../Common_3/OS/Logging/Log.h; sourceTree = SOURCE_ROOT; };
 		EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ThreadSystem.cpp; path = ../../../../Common_3/OS/Core/ThreadSystem.cpp; sourceTree = SOURCE_ROOT; };
 		EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Timer.cpp; path = ../../../../Common_3/OS/Core/Timer.cpp; sourceTree = SOURCE_ROOT; };
 		EA463D151EF94E43005AC8C7 /* PlatformEvents.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = PlatformEvents.cpp; path = ../../../../Common_3/OS/Core/PlatformEvents.cpp; sourceTree = SOURCE_ROOT; };
@@ -502,8 +502,8 @@
 			children = (
 				2875912420286FBA00D89997 /* iOSBase.mm */,
 				C951330A2010E6B1002E584B /* iOSFileSystem.mm */,
-				C95133122010E6B2002E584B /* iOSLogManager.cpp */,
-				C95133102010E6B1002E584B /* iOSThreadManager.cpp */,
+				C95133122010E6B2002E584B /* iOSLog.cpp */,
+				C95133102010E6B1002E584B /* iOSThread.cpp */,
 			);
 			name = iOS;
 			path = ../../../../Common_3/OS;
@@ -532,7 +532,7 @@
 		D2111E771F4457910014FFE6 /* MemoryManager */ = {
 			isa = PBXGroup;
 			children = (
-				C91D461A1FD9974F00564C8B /* MemoryTrackingManager.cpp */,
+				C91D461A1FD9974F00564C8B /* MemoryTracking.cpp */,
 			);
 			name = MemoryManager;
 			sourceTree = "<group>";
@@ -580,8 +580,8 @@
 			children = (
 				2875911F2028622600D89997 /* macOSBase.mm */,
 				EA463CD71EF81FC5005AC8C7 /* macOSFileSystem.mm */,
-				EA463CD81EF81FC5005AC8C7 /* macOSLogManager.cpp */,
-				EA463CD91EF81FC5005AC8C7 /* macOSThreadManager.cpp */,
+				EA463CD81EF81FC5005AC8C7 /* macOSLog.cpp */,
+				EA463CD91EF81FC5005AC8C7 /* macOSThread.cpp */,
 			);
 			name = macOS;
 			sourceTree = "<group>";
@@ -659,8 +659,8 @@
 		EA463CE81EF81FC5005AC8C7 /* Logging */ = {
 			isa = PBXGroup;
 			children = (
-				EA463CE61EF81FC5005AC8C7 /* LogManager.cpp */,
-				EA463CE71EF81FC5005AC8C7 /* LogManager.h */,
+				EA463CE61EF81FC5005AC8C7 /* Log.cpp */,
+				EA463CE71EF81FC5005AC8C7 /* Log.h */,
 			);
 			name = Logging;
 			path = OS/Logging;
@@ -842,7 +842,7 @@
 				81856F14229D72EF00F3A92B /* assert.cpp in Sources */,
 				654D97BA21E92F8A00113964 /* ClipController.cpp in Sources */,
 				B274042322BC66AD00F7660D /* EntityManager.cpp in Sources */,
-				5C172FE421414CC60074EE71 /* MemoryTrackingManager.cpp in Sources */,
+				5C172FE421414CC60074EE71 /* MemoryTracking.cpp in Sources */,
 				81856F0D229D729000F3A92B /* intrusive_list.cpp in Sources */,
 				5C172FE521414CC60074EE71 /* FpsCameraController.cpp in Sources */,
 				5C172FE621414CC60074EE71 /* GuiCameraController.cpp in Sources */,
@@ -879,21 +879,21 @@
 				81856F09229D729000F3A92B /* thread_support.cpp in Sources */,
 				81856F0F229D729000F3A92B /* numeric_limits.cpp in Sources */,
 				654D97B921E92F8700113964 /* Clip.cpp in Sources */,
-				5C172FF721414CC60074EE71 /* LogManager.cpp in Sources */,
+				5C172FF721414CC60074EE71 /* Log.cpp in Sources */,
 				5B2144A622A6989E000B20D4 /* Profiler.cpp in Sources */,
 				81856F03229D729000F3A92B /* hashtable.cpp in Sources */,
 				81FF8E2D2237A9D30009402D /* InputSystem.cpp in Sources */,
 				B274042122BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */,
-				5C172FF821414CC60074EE71 /* LogManager.h in Sources */,
+				5C172FF821414CC60074EE71 /* Log.h in Sources */,
 				654D97BB21E92F8D00113964 /* ClipMask.cpp in Sources */,
 				5C172FFB21414CC60074EE71 /* PlatformEvents.cpp in Sources */,
 				5C172FFC21414CC60074EE71 /* ThreadSystem.cpp in Sources */,
 				81856EF4229D725000F3A92B /* EASprintf.cpp in Sources */,
 				5C172FFD21414CC60074EE71 /* Timer.cpp in Sources */,
 				5C512C612141561E00E7A798 /* imgui_draw.cpp in Sources */,
-				5C172FD521414C670074EE71 /* iOSThreadManager.cpp in Sources */,
+				5C172FD521414C670074EE71 /* iOSThread.cpp in Sources */,
 				5C172FD221414C670074EE71 /* iOSBase.mm in Sources */,
-				5C172FD421414C670074EE71 /* iOSLogManager.cpp in Sources */,
+				5C172FD421414C670074EE71 /* iOSLog.cpp in Sources */,
 				5C172FD321414C670074EE71 /* iOSFileSystem.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -924,7 +924,7 @@
 				B274042222BC66AD00F7660D /* EntityManager.cpp in Sources */,
 				5C5582F521413D550019960B /* RingBuffer.h in Sources */,
 				5C512C662141561E00E7A798 /* imgui.cpp in Sources */,
-				5C5582F621413D550019960B /* MemoryTrackingManager.cpp in Sources */,
+				5C5582F621413D550019960B /* MemoryTracking.cpp in Sources */,
 				81856F04229D729000F3A92B /* red_black_tree.cpp in Sources */,
 				5C5582F721413D550019960B /* FpsCameraController.cpp in Sources */,
 				5C5582F821413D550019960B /* GuiCameraController.cpp in Sources */,
@@ -943,16 +943,16 @@
 				5C55830021413D550019960B /* macOSFileSystem.mm in Sources */,
 				654D979B21E922F400113964 /* Animation.cpp in Sources */,
 				81856F0E229D729000F3A92B /* numeric_limits.cpp in Sources */,
-				5C55830121413D550019960B /* macOSLogManager.cpp in Sources */,
-				5C55830221413D550019960B /* macOSThreadManager.cpp in Sources */,
+				5C55830121413D550019960B /* macOSLog.cpp in Sources */,
+				5C55830221413D550019960B /* macOSThread.cpp in Sources */,
 				654D97A021E922F400113964 /* Clip.cpp in Sources */,
 				81856F0C229D729000F3A92B /* intrusive_list.cpp in Sources */,
 				654D979821E922F400113964 /* SkeletonBatcher.cpp in Sources */,
 				5C55830921413D550019960B /* tinyexr.cpp in Sources */,
 				5C55830A21413D550019960B /* tinyexr.h in Sources */,
-				5C55830B21413D550019960B /* LogManager.cpp in Sources */,
+				5C55830B21413D550019960B /* Log.cpp in Sources */,
 				81856EF5229D725000F3A92B /* EAMemory.cpp in Sources */,
-				5C55830C21413D550019960B /* LogManager.h in Sources */,
+				5C55830C21413D550019960B /* Log.h in Sources */,
 				5B21449D22A6983F000B20D4 /* ProfilerInput.cpp in Sources */,
 				654D979D21E922F400113964 /* Rig.cpp in Sources */,
 				5C172F54214148840074EE71 /* MetalRenderer.mm in Sources */,

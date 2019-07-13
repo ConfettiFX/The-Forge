@@ -39,7 +39,7 @@
 
 #include "../../../include/ozz/base/maths/math_ex.h"
 
-#include "../../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../../OS/Interfaces/IMemory.h"
 //CONFFX_END
 
 

@@ -64,7 +64,7 @@ int64_t ProfileGetTick()
 
 #endif 
 
-#include "../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../OS/Interfaces/IMemory.h"
 
 #if PROFILE_WEBSERVER || PROFILE_CONTEXT_SWITCH_TRACE
 typedef ThreadFunction ProfileThreadFunc;

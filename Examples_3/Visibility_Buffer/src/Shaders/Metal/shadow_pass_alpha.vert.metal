@@ -53,35 +53,19 @@ struct IndirectDrawArguments
     uint startInstance;
 };
 
-vertex VSOut stageMain(uint vertexId                                    [[vertex_id]],
-                       constant PackedVertexPosData* vertexPos          [[buffer(0)]],
-                       constant PackedVertexTexcoord* vertexTexcoord    [[buffer(1)]],
-                       constant PerBatchUniforms& perBatch              [[buffer(2)]],
-                       constant PerFrameConstants& uniforms             [[buffer(3)]],
-                       constant uint* filteredTriangles                 [[buffer(4)]],
-                       constant IndirectDrawArguments* indirectDrawArgs [[buffer(5)]])
+struct VSInput
 {
-    // Get the indirect draw arguments data for this batch
-    IndirectDrawArguments batchData = indirectDrawArgs[perBatch.drawId];
-    
-    // Calculate the current triangleID from vertexId
-    uint startTriangle = indirectDrawArgs[perBatch.drawId].startVertex / 3;
-    uint vertexInBatch = vertexId - batchData.startVertex;
-    uint triangleInBatch = vertexInBatch/3;
-    
-    // Load the triangleId from the filteredTriangles buffer which contains all triangles that passed the culling tests
-    uint triangleId = filteredTriangles[startTriangle + triangleInBatch];
-    
-    // Calculate global vertexId
-    uint vertInTri = vertexInBatch % 3;
-    uint vId = batchData.startVertex + triangleId*3 + vertInTri;
-    
-    // Load vertex data from vertex buffer using global vertexId
-    PackedVertexPosData vertPos = vertexPos[vId];
-    PackedVertexTexcoord vertTexcoord = vertexTexcoord[vId];
-    
-    VSOut output;
-    output.position = uniforms.transform[VIEW_SHADOW].mvp * float4(vertPos.position, 1.0f);
-    output.texCoord = vertTexcoord.texCoord;
-    return output;
+	float4 Position [[attribute(0)]];
+	float2 TexCoord [[attribute(1)]];
+};
+
+vertex VSOut stageMain(
+					   VSInput input [[stage_in]],
+					   constant PerFrameConstants& uniforms             [[buffer(2)]]
+)
+{
+	VSOut output;
+	output.position = uniforms.transform[VIEW_SHADOW].mvp * input.Position;
+	output.texCoord = input.TexCoord;
+	return output;
 }

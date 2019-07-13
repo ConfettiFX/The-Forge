@@ -27,12 +27,12 @@
 #include "ResourceLoader.h"
 #include "../ThirdParty/OpenSource/MicroProfile/ProfilerBase.h"
 #include "../OS/Interfaces/IThread.h"
-#include "../OS/Interfaces/ILogManager.h"
+#include "../OS/Interfaces/ILog.h"
 #if __linux__
 #include <linux/limits.h>    //PATH_MAX declaration
 #define MAX_PATH PATH_MAX
 #endif
-#include "../OS/Interfaces/IMemoryManager.h"
+#include "../OS/Interfaces/IMemory.h"
 
 #if !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 extern void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);

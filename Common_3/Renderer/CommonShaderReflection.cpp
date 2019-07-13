@@ -23,9 +23,9 @@
 */
 
 #include "IRenderer.h"
-#include "../OS/Interfaces/ILogManager.h"
+#include "../OS/Interfaces/ILog.h"
 
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../Common_3/OS/Interfaces/IMemory.h"
 
 //This file contains shader reflection code that is the same for all platforms.
 //We know it's the same for all platforms since it only interacts with the

@@ -27,6 +27,8 @@
 #include <metal_stdlib>
 using namespace metal;
 
+#include "shader_defs.h"
+
 struct PackedVertexPosData {
     packed_float3 position;
 };
@@ -59,29 +61,59 @@ struct PSOutput
     float4 simulation   [[color(3)]];
 };
 
+struct BindlessDiffuseData
+{
+	array<texture2d<float>,MATERIAL_BUFFER_SIZE> textures;
+};
+
+struct BindlessNormalData
+{
+	array<texture2d<float>,MATERIAL_BUFFER_SIZE> textures;
+};
+
+struct BindlessSpecularData
+{
+	array<texture2d<float>,MATERIAL_BUFFER_SIZE> textures;
+};
+
 // Pixel shader for opaque geometry
-[[early_fragment_tests]] fragment PSOutput stageMain(VSOutput input                 [[stage_in]],
-                                                     sampler textureSampler         [[sampler(0)]],
-                                                     texture2d<float> diffuseMap    [[texture(0)]],
-                                                     texture2d<float> normalMap     [[texture(1)]],
-                                                     texture2d<float> specularMap   [[texture(2)]])
-{    
-    PSOutput Out;
-    
-    float4 normalMapRG = normalMap.sample(textureSampler,input.texCoord);
-    
-    float3 reconstructedNormalMap;
-    reconstructedNormalMap.xy = normalMapRG.ga * 2 - 1;
-    reconstructedNormalMap.z = sqrt(1 - dot(reconstructedNormalMap.xy, reconstructedNormalMap.xy));
-    
-    float3 normal = input.normal;
-    float3 tangent = input.tangent;
-    float3 binormal = cross(tangent, normal);
-    
-    Out.normal = float4((reconstructedNormalMap.x * tangent + reconstructedNormalMap.y * binormal + reconstructedNormalMap.z * normal) * 0.5 + 0.5, 0.0);
-    Out.albedo = diffuseMap.sample(textureSampler,input.texCoord);
+[[early_fragment_tests]] fragment PSOutput stageMain(VSOutput input                                     [[stage_in]],
+//                                                     constant RootConstant& indirectRootConstant        [[buffer(0)]],
+                                                     constant uint* indirectMaterialBuffer              [[buffer(1)]],
+//                                                     constant MeshConstants* meshConstantsBuffer        [[buffer(2)]],
+                                                     sampler textureFilter                              [[sampler(0)]],
+                                                     device BindlessDiffuseData& diffuseMaps            [[buffer(12)]],
+                                                     device BindlessNormalData& normalMaps              [[buffer(13)]],
+                                                     device BindlessSpecularData& specularMaps          [[buffer(14)]],
+                                                     constant uint& drawID                              [[buffer(20)]]
+)
+{
+	PSOutput Out;
+	
+	uint matBaseSlot = BaseMaterialBuffer(false, VIEW_CAMERA); //1 is camera view, 0 is shadow map view
+	uint materialID = indirectMaterialBuffer[matBaseSlot + drawID];
+	
+	Out.albedo = diffuseMaps.textures[materialID].sample(textureFilter, input.texCoord);
+	
+	// CALCULATE PIXEL COLOR USING INTERPOLATED ATTRIBUTES
+	// Reconstruct normal map Z from X and Y
+	float4 normalData = normalMaps.textures[materialID].sample(textureFilter, input.texCoord);
+	
+	float2 normalMapRG = normalData.ga;
+	
+	float3 reconstructedNormalMap;
+	reconstructedNormalMap.xy = normalMapRG * 2 - 1;
+	reconstructedNormalMap.z = sqrt(1 - dot(reconstructedNormalMap.xy, reconstructedNormalMap.xy));
+	
+	float3 normal = normalize(input.normal);
+	float3 tangent = normalize(input.tangent);
+	// Calculate vertex binormal from normal and tangent
+	float3 binormal = normalize(cross(tangent, normal));
+	// Calculate pixel normal using the normal map and the tangent space vectors
+	Out.normal = float4((reconstructedNormalMap.x * tangent + reconstructedNormalMap.y * binormal + reconstructedNormalMap.z * normal) * 0.5 + 0.5, 0.0);
 	Out.albedo.a = 0.0;
-    Out.specular = specularMap.sample(textureSampler, input.texCoord);
-    Out.simulation = float4(0.0f);
-    return Out;
+	Out.specular = specularMaps.textures[materialID].sample(textureFilter, input.texCoord);
+	Out.simulation = 0.0;
+	
+	return Out;
 }

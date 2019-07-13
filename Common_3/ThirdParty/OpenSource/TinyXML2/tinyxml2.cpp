@@ -29,7 +29,7 @@ distribution.
 #include <cstddef>
 
 #include "Common_3/OS/Interfaces/IFileSystem.h"
-#include "Common_3/OS/Interfaces/IMemoryManager.h" //NOTE: this should be the last include in a .cpp
+#include "Common_3/OS/Interfaces/IMemory.h" //NOTE: this should be the last include in a .cpp
 
 namespace tinyxml2
 {

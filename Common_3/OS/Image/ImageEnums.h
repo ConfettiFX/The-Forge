@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include "../Interfaces/ILogManager.h"
+#include "../Interfaces/ILog.h"
 
 #if defined(ORBIS)
 // Indicates the result of a GNF load operation

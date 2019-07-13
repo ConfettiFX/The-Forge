@@ -63,10 +63,10 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFileSystem.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ILogManager.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ILog.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IMemoryManager.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IMemory.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IOperatingSystem.h">
@@ -78,7 +78,7 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IThread.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Logging\LogManager.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Logging\Log.h">
       <Filter>OS\Logging</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\Image.h">
@@ -87,7 +87,7 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\ImageEnums.h">
       <Filter>OS\Image</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ITimeManager.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ITime.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IPlatformEvents.h">
@@ -158,13 +158,13 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsBase.cpp">
       <Filter>OS\Windows</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\MemoryTracking\MemoryTrackingManager.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\MemoryTracking\MemoryTracking.cpp">
       <Filter>OS\MemoryTracking</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Logging\LogManager.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Logging\Log.cpp">
       <Filter>OS\Logging</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsLogManager.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsLog.cpp">
       <Filter>OS\Windows</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsFileSystem.cpp">
@@ -179,7 +179,7 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Timer.cpp">
       <Filter>OS\Core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsThreadManager.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsThread.cpp">
       <Filter>OS\Windows</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.cpp">
@@ -272,9 +272,12 @@
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EAStdC\EASprintf.cpp">
       <Filter>Dependencies\EASTL\EAStdC</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsTime.cpp">
+      <Filter>OS\Windows</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <Natvis Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\TinySTL\tinystl.natvis">
+    <Natvis Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EASTL.natvis">
       <Filter>Utils</Filter>
     </Natvis>
   </ItemGroup>

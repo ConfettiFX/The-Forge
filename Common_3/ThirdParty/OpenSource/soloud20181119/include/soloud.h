@@ -34,6 +34,8 @@ freely, subject to the following restrictions:
 #endif
 #elif __APPLE__
 #define WITH_COREAUDIO
+#elif __ANDROID__
+#define WITH_OPENSLES
 #elif __linux__
 #define WITH_ALSA
 #endif
@@ -42,7 +44,7 @@ freely, subject to the following restrictions:
 #include <stdlib.h> // rand
 #include <math.h> // sin
 
-#include "../../../../OS/Interfaces/ILogManager.h"
+#include "../../../../OS/Interfaces/ILog.h"
 
 #ifdef SOLOUD_NO_ASSERTS
 #define SOLOUD_ASSERT(x)

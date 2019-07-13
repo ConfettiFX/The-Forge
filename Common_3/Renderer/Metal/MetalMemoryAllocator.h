@@ -25,13 +25,14 @@
 #ifndef RESOURCE_RESOURCE_H
 #define RESOURCE_RESOURCE_H
 
-#include "../../OS/Interfaces/ILogManager.h"
-#include "../../OS/Interfaces/IMemoryManager.h"
+#include "../../OS/Interfaces/ILog.h"
+#include "../../OS/Interfaces/IMemory.h"
 
 typedef struct ResourceAllocator MemoryAllocator;
 
 typedef struct BufferCreateInfo
 {
+	const wchar_t* pDebugName;
 	const uint64_t mSize;
 	//const uint64_t	mAlignment;
 } BufferCreateInfo;
@@ -41,6 +42,7 @@ typedef struct TextureCreateInfo
 	MTLTextureDescriptor* pDesc;
 	const bool            mIsRT;
 	const bool            mIsMS;
+	const wchar_t*        pDebugName;
 } TextureCreateInfo;
 
 // -------------------------------------------------------------------------------------------------
@@ -3515,8 +3517,8 @@ long createBuffer(
 		if (pBuffer->pMtlAllocation->GetType() == ResourceAllocation::ALLOCATION_TYPE_BLOCK)
 		{
 			pBuffer->mtlBuffer = [pBuffer->pMtlAllocation->GetMemory() newBufferWithLength:pCreateInfo->mSize options:mtlResourceOptions];
-			pBuffer->mtlBuffer.label = @"Placed Buffer";
 			assert(pBuffer->mtlBuffer);
+			pBuffer->mtlBuffer.label = @"Placed Texture";
 
 			if (pMemoryRequirements->flags & RESOURCE_MEMORY_REQUIREMENT_PERSISTENT_MAP_BIT)
 			{
@@ -3535,14 +3537,19 @@ long createBuffer(
 		else
 		{
 			pBuffer->mtlBuffer = [allocator->m_Device newBufferWithLength:pCreateInfo->mSize options:mtlResourceOptions];
-			pBuffer->mtlBuffer.label = @"Owned Buffer";
 			assert(pBuffer->mtlBuffer);
-
+			pBuffer->mtlBuffer.label = @"Owned Texture";
+			
 			if (pMemoryRequirements->flags & RESOURCE_MEMORY_REQUIREMENT_PERSISTENT_MAP_BIT &&
 				pMemoryRequirements->usage != RESOURCE_MEMORY_USAGE_GPU_ONLY)
 			{
 				pBuffer->pMtlAllocation->GetOwnAllocation()->m_pMappedData = pBuffer->mtlBuffer.contents;
 			}
+		}
+		
+		if (pCreateInfo->pDebugName)
+		{
+			pBuffer->mtlBuffer.label = [[NSString alloc] initWithBytesNoCopy:(void*)pCreateInfo->pDebugName length: wcslen(pCreateInfo->pDebugName)*4 encoding:NSUTF32LittleEndianStringEncoding freeWhenDone:NO];
 		}
 
 		// Bind buffer with memory.
@@ -3616,6 +3623,11 @@ long createTexture(
 			pTexture->mtlTexture.label = @"Owned Texture";
 		}
 
+		if (pCreateInfo->pDebugName)
+		{
+			pTexture->mtlTexture.label = [[NSString alloc] initWithBytesNoCopy:(void*)pCreateInfo->pDebugName length: wcslen(pCreateInfo->pDebugName)*4 encoding:NSUTF32LittleEndianStringEncoding freeWhenDone:NO];
+		}
+		
 		// Bind texture with memory.
 		if (pTexture->pMtlAllocation)
 		{

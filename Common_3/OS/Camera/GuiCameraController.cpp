@@ -29,7 +29,7 @@
 #include "../../../Middleware_3/UI/AppUI.h"
 
 // Include this file as last include in all cpp files allocating memory
-#include "../Interfaces/IMemoryManager.h"
+#include "../Interfaces/IMemory.h"
 
 static const float k_mouseTranslationScale = 0.05f;
 static const float k_rotationSpeed = 0.003f;

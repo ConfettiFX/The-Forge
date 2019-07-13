@@ -1,19 +1,19 @@
 #version 460
 #extension GL_NV_ray_tracing : require
 
-layout(binding = 0, set=1) uniform accelerationStructureNV gRtScene;
-layout(binding = 0, rgba8) uniform image2D gOutput;
+layout(binding = 0, set=0) uniform accelerationStructureNV gRtScene;
+layout(binding = 1, rgba8) uniform image2D gOutput;
 
-layout(binding = 10, set=0, std140) uniform Settings
+layout(binding = 2, set=0, std140) uniform gSettings
 {
-	vec3 cameraPosition;
-	vec3 lightDirection;
-} gSettings;
-
-layout(shaderRecordNV) buffer block
-{
-    uint HitGroupIndex;
-    uint MissGroupIndex;
+	vec3 CameraPosition;
+	uint _pad0;
+	vec3 LightDirection;
+	uint _pad1;
+	uint HitGroupIndex;
+	uint MissGroupIndex;
+	uint PlaneHitGroupIndex;
+	uint PlaneMissGroupIndex;
 };
 
 layout(location = 0) rayPayloadNV vec3 hitValue;
@@ -29,7 +29,7 @@ void main()
     vec2 d = ((crd / dims) * 2.f - 1.f);
     float aspectRatio = dims.x / dims.y;
 
-	vec4 origin = vec4(gSettings.cameraPosition.x, gSettings.cameraPosition.y, gSettings.cameraPosition.z, 1.0);
+	vec4 origin = vec4(CameraPosition.xyz, 1.0);
     vec4 direction = vec4(normalize(vec3(d.x * aspectRatio, -d.y, 1.0)), 1.0);
 
     uint rayFlags = gl_RayFlagsNoneNV ;//gl_RayFlagsOpaqueNV;

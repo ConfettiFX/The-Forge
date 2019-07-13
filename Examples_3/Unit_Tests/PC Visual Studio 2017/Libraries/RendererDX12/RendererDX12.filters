@@ -54,10 +54,10 @@
     <ClInclude Include="..\..\..\Common_3\OSBase\Interfaces\IFileSystem.h">
       <Filter>OSBase\Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Common_3\OSBase\Interfaces\ILogManager.h">
+    <ClInclude Include="..\..\..\Common_3\OSBase\Interfaces\ILog.h">
       <Filter>OSBase\Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Common_3\OSBase\Interfaces\IMemoryManager.h">
+    <ClInclude Include="..\..\..\Common_3\OSBase\Interfaces\IMemory.h">
       <Filter>OSBase\Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Common_3\OSBase\Interfaces\IOperatingSystem.h">

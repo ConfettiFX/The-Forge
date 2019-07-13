@@ -39,7 +39,7 @@ namespace SoLoud
 
 #include <windows.h>
 #include <mmsystem.h>
-#include "../../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../../OS/Interfaces/IMemory.h"
 
 
 #ifdef _MSC_VER

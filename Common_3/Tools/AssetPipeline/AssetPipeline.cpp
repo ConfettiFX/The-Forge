@@ -50,8 +50,8 @@
 
 #include "../../OS/Interfaces/IOperatingSystem.h"
 #include "../../OS/Interfaces/IFileSystem.h"
-#include "../../OS/Interfaces/ILogManager.h"
-#include "../../OS/Interfaces/IMemoryManager.h"    //NOTE: this should be the last include in a .cpp
+#include "../../OS/Interfaces/ILog.h"
+#include "../../OS/Interfaces/IMemory.h"    //NOTE: this should be the last include in a .cpp
 
 typedef eastl::unordered_map<eastl::string, eastl::vector<eastl::string>> AnimationAssetMap;
 
@@ -587,6 +587,9 @@ bool AssetPipeline::CreateRuntimeAnimation(
 	ozz::io::OArchive archive(&file);
 	archive << animation;
 	file.Close();
+
+	//Deallocate animation
+	animation.Deallocate();
 
 	return true;
 }

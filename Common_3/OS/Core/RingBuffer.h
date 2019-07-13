@@ -26,10 +26,10 @@
 
 #include "../../Renderer/IRenderer.h"
 #include "../../Renderer/ResourceLoader.h"
-#include "../Interfaces/ILogManager.h"
+#include "../Interfaces/ILog.h"
 
-#define MEM_MANAGER_FROM_HEADER
-#include "../../OS/Interfaces/IMemoryManager.h"
+#define IMEMORY_FROM_HEADER
+#include "../../OS/Interfaces/IMemory.h"
 
 /************************************************************************/
 /* RING BUFFER MANAGEMENT											  */

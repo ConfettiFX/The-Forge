@@ -35,14 +35,14 @@
 
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IPlatformEvents.h"
-#include "../Interfaces/ILogManager.h"
-#include "../Interfaces/ITimeManager.h"
+#include "../Interfaces/ILog.h"
+#include "../Interfaces/ITime.h"
 #include "../Interfaces/IThread.h"
 
 #include "../Input/InputSystem.h"
 #include "../Input/InputMappings.h"
 #include "AndroidFileSystem.cpp"
-#include "../Interfaces/IMemoryManager.h"
+#include "../Interfaces/IMemory.h"
 
 #define CONFETTI_WINDOW_CLASS L"confetti"
 #define MAX_KEYS 256
@@ -68,48 +68,13 @@ void getRecommendedResolution(RectDesc* rect) { *rect = { 0, 0, 1920, 1080 }; }
 void requestShutdown() { LOGF(LogLevel::eERROR, "Cannot manually shutdown on Android"); }
 
 /************************************************************************/
-// Time Related Functions
-/************************************************************************/
-
-unsigned getSystemTime()
-{
-	long            ms;    // Milliseconds
-	time_t          s;     // Seconds
-	struct timespec spec;
-
-	clock_gettime(CLOCK_REALTIME, &spec);
-
-	s = spec.tv_sec;
-	ms = round(spec.tv_nsec / 1.0e6);    // Convert nanoseconds to milliseconds
-
-	ms += s * 1000;
-
-	return (unsigned int)ms;
-}
-
-int64_t getUSec()
-{
-	timespec ts;
-	clock_gettime(CLOCK_REALTIME, &ts);
-	long us = (ts.tv_nsec / 1000);
-	us += ts.tv_sec * 1e6;
-	return us;
-}
-
-unsigned getTimeSinceStart() { return (unsigned)time(NULL); }
-
-int64_t getTimerFrequency()
-{
-	// This is us to s
-	return 1000000LL;
-}
-/************************************************************************/
 // App Entrypoint
 /************************************************************************/
 #include "../Interfaces/IApp.h"
 #include "../Interfaces/IFileSystem.h"
 
 static IApp* pApp = NULL;
+ANativeActivity* android_activity = NULL;
 
 struct DisplayMetrics
 {
@@ -147,7 +112,7 @@ float getDensity()
     return metrics.density;
 }
 
-void getDisplayMetrics(struct android_app* _android_app, DisplayMetrics& metrics, RectDesc& rect)
+void getDisplayMetrics(struct android_app* _android_app)
 {
     if (!_android_app || !_android_app->activity || !_android_app->activity->vm )
         return;
@@ -337,6 +302,7 @@ int AndroidMain(void* param, IApp* app)
     android_app->onAppCmd = handle_cmd;
 
 	pApp = app;
+	android_activity = android_app->activity;
 
 	//Used for automated testing, if enabled app will exit after 120 frames
 #ifdef AUTOMATED_TESTING
@@ -357,8 +323,8 @@ int AndroidMain(void* param, IApp* app)
 		getRecommendedResolution(&rect);
 		pSettings->mWidth = getRectWidth(rect);
 		pSettings->mHeight = getRectHeight(rect);
-		getDisplayMetrics(android_app, metrics, rect);
 	}
+	getDisplayMetrics(android_app);
 
 	InputSystem::Init(pSettings->mWidth, pSettings->mHeight);
     InputSystem::SetMouseCapture(true);

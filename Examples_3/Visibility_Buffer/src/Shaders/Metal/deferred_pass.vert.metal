@@ -45,20 +45,19 @@ struct PackedVertexTangent {
     packed_float3 tangent;
 };
 
+struct VSInput
+{
+	float4 position [[attribute(0)]];
+	float2 texCoord [[attribute(1)]];
+	float3 normal   [[attribute(2)]];
+	float3 tangent  [[attribute(3)]];
+};
+
 struct VSOutput {
 	float4 position [[position]];
     float2 texCoord;
     float3 normal;
     float3 tangent;
-    uint twoSided;
-};
-
-struct PSOutput
-{
-    float4 albedo       [[color(0)]];
-    float4 normal       [[color(1)]];
-    float4 specular     [[color(2)]];
-    float4 simulation   [[color(3)]];
 };
 
 struct PerBatchUniforms {
@@ -75,43 +74,13 @@ struct IndirectDrawArguments
 };
 
 // Vertex shader
-vertex VSOutput stageMain(uint vertexId                                     [[vertex_id]],
-                          constant PackedVertexPosData* vertexPos           [[buffer(0)]],
-                          constant PerFrameConstants& uniforms              [[buffer(1)]],
-                          constant uint* filteredTriangles                  [[buffer(2)]],
-                          constant PerBatchUniforms& perBatch               [[buffer(3)]],
-                          constant IndirectDrawArguments* indirectDrawArgs  [[buffer(4)]],
-                          constant PackedVertexTexcoord* vertexTexcoord     [[buffer(5)]],
-                          constant PackedVertexNormal* vertexNormal         [[buffer(6)]],
-                          constant PackedVertexTangent* vertexTangent       [[buffer(7)]])
+vertex VSOutput stageMain(VSInput input                                     [[stage_in]],
+                          constant PerFrameConstants& uniforms              [[buffer(4)]])
 {
-    // Get the indirect draw arguments data for this batch
-    IndirectDrawArguments batchData = indirectDrawArgs[perBatch.drawId];
-    
-    // Calculate the current triangleID from vertexId
-    uint startTriangle = indirectDrawArgs[perBatch.drawId].startVertex / 3;
-    uint vertexInBatch = vertexId - batchData.startVertex;
-    uint triangleInBatch = vertexInBatch/3;
-    
-    // Load the triangleId from the filteredTriangles buffer which contains all triangles that passed the culling tests
-    uint triangleId = filteredTriangles[startTriangle + triangleInBatch];
-    
-    // Calculate global vertexId
-    uint vertInTri = vertexInBatch % 3;
-    uint vId = batchData.startVertex + triangleId*3 + vertInTri;
-    
-    // Load vertex data from vertex bfufer using global vertexId
-    PackedVertexPosData vertPos = vertexPos[vId];
-    PackedVertexTexcoord vertTexcoord = vertexTexcoord[vId];
-    PackedVertexNormal vertNormal = vertexNormal[vId];
-    PackedVertexTangent vertTangent = vertexTangent[vId];
-    
-    // Output data to the pixel shader
-	VSOutput result;
-    result.position = uniforms.transform[VIEW_CAMERA].mvp * float4(vertPos.position, 1.0f);
-    result.texCoord = vertTexcoord.texCoord;
-    result.normal = vertNormal.normal;
-    result.tangent = vertTangent.tangent;
-    result.twoSided = perBatch.twoSided;
-	return result;
+	VSOutput Out;
+	Out.position = uniforms.transform[VIEW_CAMERA].mvp * input.position;
+	Out.texCoord = input.texCoord;
+	Out.normal = input.normal;
+	Out.tangent = input.tangent;
+	return Out;
 }

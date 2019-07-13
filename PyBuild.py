@@ -79,7 +79,9 @@ def FindMSBuild17():
 	msbuildPath = ""
 	try:
 		#open vswhere and parse the output
-		proc = subprocess.Popen(["C:/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe","-latest","-requires" ,"Microsoft.Component.MSBuild"], stdout=subprocess.PIPE)
+		proc = subprocess.Popen(["C:/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe","-latest","-requires" ,"Microsoft.Component.MSBuild"], stdout=subprocess.PIPE,stderr = subprocess.STDOUT,
+    encoding='utf8')
+
 		ls_output = proc.communicate()[0]
 		#check if vswhere opened correctly
 		if proc.returncode != 0:
@@ -148,8 +150,8 @@ def AddTestingPreProcessor(enabledGpuSelection):
 	if setMemTracker == True:
 		print("Adding Memory tracking preprocessor defines")
 		macro = "#define USE_MEMORY_TRACKING 1"
-		AddPreprocessorToFile("Common_3/OS/Interfaces/IMemoryManager.h", macro + "\n", "#pragma")
-		AddPreprocessorToFile("Common_3/OS/MemoryTracking/MemoryTrackingManager.cpp", macro, "#if")
+		AddPreprocessorToFile("Common_3/OS/Interfaces/IMemory.h", macro + "\n", "#pragma")
+		AddPreprocessorToFile("Common_3/OS/MemoryTracking/MemoryTracking.cpp", macro, "#if")
 
 
 
@@ -161,8 +163,8 @@ def RemoveTestingPreProcessor():
 		RemovePreprocessorFromFile("Common_3/OS/Interfaces/IOperatingSystem.h", testingDefines)
 	if setMemTracker == True:
 		print("Removing memory tracking preprocessor defines")
-		RemovePreprocessorFromFile("Common_3/OS/Interfaces/IMemoryManager.h", memTrackingDefines)
-		RemovePreprocessorFromFile("Common_3/OS/MemoryTracking/MemoryTrackingManager.cpp", memTrackingDefines)
+		RemovePreprocessorFromFile("Common_3/OS/Interfaces/IMemory.h", memTrackingDefines)
+		RemovePreprocessorFromFile("Common_3/OS/MemoryTracking/MemoryTracking.cpp", memTrackingDefines)
 	
 
 def ExecuteTimedCommand(cmdList,outStream=subprocess.PIPE):
@@ -186,7 +188,7 @@ def ExecuteTimedCommand(cmdList,outStream=subprocess.PIPE):
 			if result is not None:
 				break
 			if time.time() >= end:
-				print "Killed Application. Something went wrong with the app, it was idle for too long."
+				print ("Killed Application. Something went wrong with the app, it was idle for too long.")
 				proc.kill()
 				proc.wait()
 				break
@@ -308,9 +310,11 @@ def GetBundleIDFromIOSApp(filename):
 			return ""
 
 		fileContents = ExecuteCommandWOutput(["plutil", "-convert", "json", "-o", "-", "--",filename])
+		fileContents = (b"".join(fileContents)).decode('utf-8')
+		
 		if fileContents == "":
 			return fileContents
-		plistJson = json.loads("".join(fileContents))
+		plistJson = json.loads(fileContents)
 		return plistJson["CFBundleIdentifier"]
 	except Exception as ex:
 		print("Failed retrieving plist file")
@@ -361,7 +365,7 @@ def GetFilesPathByExtension(rootToSearch, extension, wantDirectory, maxDepth=-1)
 	return filesPathList
 
 def GetMemLeakFile(exeFilePath):
-	print exeFilePath
+	print (exeFilePath)
 	exeFileWithoutExt = exeFilePath.split('.')[0]
 	memLeakFile = exeFileWithoutExt + ".memleaks"
 	return memLeakFile
@@ -424,7 +428,7 @@ def selectActiveGpuConfig(forgeDir, projRootFolder, projectName, runIndex):
 				removedMatch = True
 				continue
 			if removedMatch and not line.startswith('#'):
-				print "Found line", line
+				print("Found line", line)
 				lineMatch = line
 				foundMatch = True
 				break		
@@ -443,8 +447,10 @@ def selectActiveGpuConfig(forgeDir, projRootFolder, projectName, runIndex):
 	if not foundMatch and os.path.exists(filename):
 		try:
 			os.remove(filename)
-		except OSError, e:  ## if failed, report it back to the user ##
-			print ("Error: %s - %s." % (e.filename, e.strerror))
+		except OSError as e:  ## if failed, report it back to the user ##
+			print(("Error: %s - %s." % (e.filename, e.strerror)))
+
+
 
 	return {'running':foundMatch, 'lineMatch': lineMatch}
 
@@ -546,11 +552,11 @@ def GetXcodeSchemes(targetPath, getMacOS, getIOS):
 	#As fas as I've seen the information lines all have : at the end
 	schemesStartFound = False
 	for line in schemesList:
-		if "error" in line:
+		if b"error" in line:
 			print("Error retrieving the schemes from: " + targetPath)
 			print(line)
 			return []
-		if "Schemes:" in line:
+		if b"Schemes:" in line:
 			schemesStartFound = True
 			continue
 		
@@ -559,9 +565,9 @@ def GetXcodeSchemes(targetPath, getMacOS, getIOS):
 			line = line.strip()
 			if line.isspace() or not line:
 				break
-			if ":" in line:
+			if b":" in line:
 				break
-			if "BuildAll" in line:
+			if b"BuildAll" in line:
 				buildAllFound = True
 			#add scheme
 			parsedSchemes.append(line)
@@ -571,11 +577,11 @@ def GetXcodeSchemes(targetPath, getMacOS, getIOS):
 		
 		#current scheme is build all but we not building both platforms
 		#filter it out
-		if "BuildAll" in scheme and not buildBothOS:
+		if b"BuildAll" in scheme and not buildBothOS:
 			continue
 		#building both platforms and we found a build all scheme
 		#filter all the other schemes out
-		if not "BuildAll" in scheme and buildBothOS and buildAllFound:
+		if not b"BuildAll" in scheme and buildBothOS and buildAllFound:
 			continue
 		#filter macos scheme if necessary
 		if not getMacOS and "iOS" not in scheme:
@@ -675,7 +681,7 @@ def BuildXcodeProjects(skipMacos, skipIos, skipIosCodeSigning, skipDebugBuild, s
 			schemesList = [filename]
 		else:
 			for scheme in schemesList:
-				if "BuildAll" in scheme:
+				if b"BuildAll" in scheme:
 					#remove all other schemes
 					schemesList = ["BuildAll"]
 					break
@@ -885,7 +891,6 @@ def TestWindowsProjects(useActiveGpuConfig):
 
 def TestXboxProjects():
 	errorOccured = False
-	
 	FNULL = open(os.devnull, 'w')
 	
 	#Get console IP
@@ -894,25 +899,33 @@ def TestXboxProjects():
 	command = [xdkDir+'xbconnect', '/QG']
 	output = subprocess.Popen(command, stdin=None, stdout=subprocess.PIPE, stderr=FNULL)
 	output = output.communicate()[0]
-	connection = re.search('Connections at (.+?), ', output)
+	connection = re.search(b'Connections at (.+?), ', output)
 	if connection:
 		consoleIP = connection.group(1)
+		consoleIP = consoleIP.decode('utf-8')
 	
-	for output_line in output.split('\n'):
-		if "TITLE: Unreachable." in output_line:
-			print "Unable to connect to: "+consoleIP
+	for output_line in output.split(b'\n'):
+		if b"TITLE: Unreachable." in output_line:
+			print ("Unable to connect to: "+consoleIP)
 			return 1
 
-	crashdump_path = "\\\\"+consoleIP+"\TitleScratch\LocalDumps"
+	crashdump_path = '\\\\'+consoleIP+"\TitleScratch\LocalDumps"
+	
+	#Clean all apps
+	print ("Cleaning XBox apps and data (this will reboot the console)")
+	command = [xdkDir+'xbcleanup', '/U /D /P /C /L']
+	output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
+	print ("Done cleaning...")
 
 	#Set console setting to genereate crash dumps
 	command = [xdkDir+'xbconfig','CrashDumpType=mini',"/X"+consoleIP]
-	output = subprocess.check_output(command)
+	output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
+
 
 	#Get count of existing crash dumps
 	command = ["cmd", "/c", "dir", crashdump_path]
-	output = subprocess.check_output(command)
-	output = output.split('.exe')
+	output	= subprocess.check_output(command)
+	output = output.split(b'.exe')
 	crashDumpCount = len(output) - 1
 	
 	#get paths for exe in Loose folder
@@ -928,46 +941,47 @@ def TestXboxProjects():
 	for filename in fileList:
 		#deploy app to xbox
 		command = [xdkDir+'xbapp',"deploy",filename,"/X"+consoleIP]
-		print "Deploying: " + filename
-		output = subprocess.check_output(command)
+		print ("Deploying: " + filename)
+		output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
+		output = output.decode('utf-8')
 		#Extract App Name from output
 		appName = "InvalidAppName"
 		for item in output.split("\n"):
 			if "App" in item:
 				appName = item.strip()
 				appList.append(appName)
-				print "Successfully deployed: " + appName
+				print ("Successfully deployed: " + appName)
 		if appName == "InvalidAppName":
-			print "Failed to deploy: " + filename
-			failedTests.append({'name':filename, 'gpu':""})
+			print ("Failed to deploy: " + filename)
+			failedTests.append({'name':filename, 'gpu':"", 'reason':"Invalid app name"})
 			errorOccured = True
-		print ""
+		print ("")
 
 	#Launch the deployed apps
 	for appName in appList:
 		command = [xdkDir+'xbapp',"launch","/X"+consoleIP, appName]
-		print "Executing command: " + ' '.join(command)
-		output = subprocess.check_output(command)
+		print ("Executing command: " + ' '.join(command))
+		output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
 
 		#Make sure app launches
 		isRunning = int(0)
 		command = [xdkDir+'xbapp',"query","/X"+consoleIP, appName]
-		output = subprocess.check_output(command)
+		output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
 		for s in output.split():
 			if s.isdigit():
 				isRunning = int(s)
-				print "The operation completed successfully"
+				print ("The operation completed successfully")
 
 		if isRunning == 0:
 			errorOccured = True
-			print "The operation failed"
-			failedTests.append({'name':appName, 'gpu':""})
+			print ("The operation failed")
+			failedTests.append({'name':appName, 'gpu':"", 'reason':"Failed to launch app"})
 			continue
 
 		#Check if app terminatese or times out
 		timeout = time.time() + float(maxIdleTime)
 		while isRunning != 0 and time.time() < timeout:
-			output = subprocess.check_output(command)
+			output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
 			for s in output.split():
 				if s.isdigit():
 					isRunning = int(s)
@@ -975,10 +989,10 @@ def TestXboxProjects():
 		# Timeout Error
 		if isRunning != 0:
 			errorOccured = True
-			print "Timeout: " + appName + "\n"
+			print ("Timeout: " + appName + "\n")
 			command = [xdkDir+'xbapp',"terminate","/X"+consoleIP, appName]
-			output = subprocess.check_output(command)
-			failedTests.append({'name':appName, 'gpu':""})
+			output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
+			failedTests.append({'name':appName, 'gpu':"", 'reason':"Runtime failure"})
 		else:
 			testingComplete = True
 			
@@ -987,8 +1001,8 @@ def TestXboxProjects():
 			rc = 1
 			while rc != 0:
 				rc = subprocess.call(command, stdin=None, stdout=FNULL, stderr=FNULL)
-			output = subprocess.check_output(command)
-			output = output.split('.exe')
+			output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
+			output = output.decode('utf-8').split('.exe')
 			
 			#Check if a new crash dump was generated
 			if (len(output) - 1 > crashDumpCount):
@@ -996,16 +1010,16 @@ def TestXboxProjects():
 				testingComplete = False
 			
 			if testingComplete:
-				print "Successfully ran " + appName + "\n"
+				print ("Successfully ran " + appName + "\n")
 				successfulTests.append({'name':appName, 'gpu':""})
 			else:
 				errorOccured = True
-				print "Application Terminated Early: " + appName + "\n"
-				failedTests.append({'name':appName, 'gpu':""})
+				print ("Application Terminated Early: " + appName + "\n")
+				failedTests.append({'name':appName, 'gpu':"", 'reason':"Runtime failure"})
 
 	#Copy crash dumps to PC and delete them from the console
 	command = ["xcopy", crashdump_path, "C:\\dumptemp\\", "/s", "/e"]
-	output = subprocess.check_output(command)
+	output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
 	copy_tree("C:\\dumptemp", "C:\\XboxOneCrashDumps")
 	shutil.rmtree("C:\\dumptemp")
 	shutil.rmtree(crashdump_path)
@@ -1015,33 +1029,34 @@ def TestXboxProjects():
 
 	if errorOccured == True:
 		return -1
-	return 0	
+	return 0
+	
 
 def GetImmediateSubdirectories(dir):
 	return [os.path.join(dir, name) for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]
 	
 def DirtyTrickAndroid(root_src_dir, root_target_dir, operation, ignore_dirs, ignore_files):
 	for src_dir, dirs, files in os.walk(root_src_dir):
-	    dst_dir = src_dir.replace(root_src_dir, root_target_dir)
-	    dir_ignore = False
-	    for ig_dir in ignore_dirs:
-	    	if(ig_dir in dst_dir):
-	    		dir_ignore = True
-	    if(dir_ignore):
-	    	continue
-	    if not os.path.exists(dst_dir):
-	        os.mkdir(dst_dir)
-	    for file_ in files:
-	    	if (file_ in ignore_files):
-	    		continue
-	        src_file = os.path.join(src_dir, file_)
-	        dst_file = os.path.join(dst_dir, file_)
-	        if os.path.exists(dst_file):
-	            os.remove(dst_file)
-	        if operation is 'copy':
-	            shutil.copy(src_file, dst_dir)
-	        elif operation is 'move':
-	            shutil.move(src_file, dst_dir)
+		dst_dir = src_dir.replace(root_src_dir, root_target_dir)
+		dir_ignore = False
+		for ig_dir in ignore_dirs:
+			if(ig_dir in dst_dir):
+				dir_ignore = True
+		if(dir_ignore):
+			continue
+		if not os.path.exists(dst_dir):
+			os.mkdir(dst_dir)
+		for file_ in files:
+			if (file_ in ignore_files):
+				continue
+			src_file = os.path.join(src_dir, file_)
+			dst_file = os.path.join(dst_dir, file_)
+			if os.path.exists(dst_file):
+				os.remove(dst_file)
+			if operation is 'copy':
+				shutil.copy(src_file, dst_dir)
+			elif operation is 'move':
+				shutil.move(src_file, dst_dir)
 
 #this needs the JAVA_HOME environment variable set up correctly
 def BuildAndroidProjects():
@@ -1050,9 +1065,8 @@ def BuildAndroidProjects():
 	source = "./"
 	dest   = "C:/The-Forge/"
 
-	if(os.path.exists(dest)):
-		print(dest + " directory already exist")
-		return -1
+	if(os.path.exists(dest)):		
+		shutil.rmtree(dest) #remove temporary directory
 
 	operation = "move"
 
@@ -1076,24 +1090,24 @@ def BuildAndroidProjects():
 		#print "chdir to the root directory"
 		#print rootPath
 		
-		confs = ["assembleDebug", "assembleRelease"]
+		confs = ["assembleDebug"]
 		for conf in confs:					
 			command = ["gradlew.bat", conf, "-w", "-parallel"]
 			sucess = ExecuteBuildAndroid(command, projname,conf, "android")
 			#sucess = os.system(command + " " + buildcmd)
 			#sucess = ExecuteCommand(command, sys.stdout)
 			if sucess != 0:
-				print "Building Android projects FAILED " + rootPath
+				print ("Building Android projects FAILED " + rootPath)
 				errorOccured = True
 
 		#set working dir to initial
 		os.chdir(currDir)
 	
 	DirtyTrickAndroid(dest, source, operation, ignore_dirs, ignore_files)
-	shutil.rmtree(dest); #remove temporary directory
+	shutil.rmtree(dest) #remove temporary directory
 
 	if errorOccured == True:
-		print "Building Android projects FAILED"
+		print ("Building Android projects FAILED")
 		return -1
 	return 0
 	
@@ -1227,10 +1241,10 @@ def FindMemoryLeaks(memLeakLog):
 		print("Detected the following leaks")
 		#try to print only section containing the source of leaks
 		if len(iterList) > 3:
-			print lineContents[iterList[2].start(0):iterList[3].end(0)]
+			print (lineContents[iterList[2].start(0):iterList[3].end(0)])
 		else:
 		#if failed to get correct section then print whole file
-			print lineContents
+			print (lineContents)
 		return True
 	
 	print("No Leaks detected.")
@@ -1300,7 +1314,7 @@ def MainLogic():
 	signal.signal(signal.SIGINT, CleanupHandler)
 
 	#change path to scripts location
-	print sys.path[0]
+	print (sys.path[0])
 	os.chdir(sys.path[0])
 	returnCode = 0
 	
@@ -1346,7 +1360,7 @@ def MainLogic():
 		if arguments.clean == True:
 			print("Cleaning the repo")
 			ExecuteCommand(["git", "clean" , "--exclude=Art","--exclude=/**/OpenSource/*", "-fdx"],sys.stdout)
-			ExecuteCommand(["git", "submodule", "foreach", "--recursive","git", "clean" , "-fdfx"],sys.stdout)
+			ExecuteCommand(["git", "submodule", "foreach", "--recursive","git clean -fdfx"], sys.stdout)
 		#Build for Mac OS (Darwin system)
 		if systemOS== "Darwin":
 			returnCode = BuildXcodeProjects(arguments.skipmacosbuild,arguments.skipiosbuild, arguments.skipioscodesigning, arguments.skipdebugbuild, arguments.skipreleasebuild, arguments.printbuildoutput, arguments.xcodederiveddatapath)

@@ -2109,8 +2109,8 @@ void drmp3dec_f32_to_s16(const float *in, drmp3_int16 *out, int num_samples)
 #define DR_MP3_DEFAULT_SAMPLE_RATE   44100
 #endif
 
-#include "../../../../OS/Interfaces/ILogManager.h"
-#include "../../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../../OS/Interfaces/ILog.h"
+#include "../../../../OS/Interfaces/IMemory.h"
 
 // Standard library stuff.
 #ifndef DRMP3_ASSERT

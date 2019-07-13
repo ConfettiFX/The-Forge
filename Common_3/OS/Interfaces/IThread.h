@@ -38,16 +38,7 @@
 typedef unsigned ThreadID;
 #endif
 
-struct AtomicUint
-{
-	AtomicUint();
-	~AtomicUint();
-	unsigned int AtomicIncrement();
-	unsigned int AtomicDecrement();
-	void AtomicStore(unsigned int i);
-
-	volatile unsigned int mAtomicInt;
-};
+#define TIMEOUT_INFINITE UINT32_MAX
 
 /// Operating system mutual exclusion primitive.
 struct Mutex
@@ -83,10 +74,9 @@ struct ConditionVariable
 	ConditionVariable();
 	~ConditionVariable();
 
-	void Wait(const Mutex& mutex);
-	void Wait(const Mutex& mutex, unsigned md);
-	void Set();
-	void SetAll();
+	void Wait(const Mutex& mutex, uint32_t md = TIMEOUT_INFINITE);
+	void WakeOne();
+	void WakeAll();
 
 #ifdef _WIN32
 	void* pHandle;
@@ -130,6 +120,10 @@ struct Thread
 // Max thread name should be 15 + null character
 #ifndef MAX_THREAD_NAME_LENGTH
 #define MAX_THREAD_NAME_LENGTH 15
+#endif
+
+#ifdef _WIN32
+void sleep(unsigned mSec);
 #endif
 
 #endif

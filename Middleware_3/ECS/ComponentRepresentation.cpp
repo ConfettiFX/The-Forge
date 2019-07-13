@@ -1,6 +1,6 @@
 #include "ComponentRepresentation.h"
 #include <string.h>
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h" // NOTE: this should be the last include in a .cpp
+#include "../../Common_3/OS/Interfaces/IMemory.h" // NOTE: this should be the last include in a .cpp
 using namespace FCR;
 
 uint32_t const UniqueIdGenerator::generateUniqueId(eastl::string component_name, BaseComponent* (*func)())

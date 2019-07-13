@@ -29,8 +29,8 @@
 #include "../../ThirdParty/OpenSource/ozz-animation/include/ozz/base/io/archive.h"
 
 #include "../../OS/Interfaces/IOperatingSystem.h"
-#include "../../OS/Interfaces/ILogManager.h"
-#include "../../OS/Interfaces/IMemoryManager.h"    //NOTE: this should be the last include in a .cpp
+#include "../../OS/Interfaces/ILog.h"
+#include "../../OS/Interfaces/IMemory.h"    //NOTE: this should be the last include in a .cpp
 
 bool AssetLoader::LoadSkeleton(const char* skeletonFile, FSRoot root, ozz::animation::Skeleton* skeleton)
 {

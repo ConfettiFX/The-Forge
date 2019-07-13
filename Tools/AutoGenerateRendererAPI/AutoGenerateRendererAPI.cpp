@@ -86,7 +86,6 @@ int main(int argc, char** argv)
 
 	source_file_ss << (message);
 	source_file_ss << ("#include \"IRenderer.h\"\n");
-	source_file_ss << ("#include \"../../Common_3/OS/Interfaces/ILogManager.h\"\n");
 	source_file_ss << ("\n");
 
 	auto function_valid = [&ignore_functions, &function_names](String functionName) {

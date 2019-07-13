@@ -29,13 +29,14 @@
 
 cbuffer uniformBlock : register(b0)
 {
-	  float4x4 mvp;
-    float4x4 toWorld[MAX_INSTANCES];
-    float4 color[MAX_INSTANCES];
+	float4x4 mvp;
 
+    float4 color[MAX_INSTANCES];
     // Point Light Information
-    float3 lightPosition;
-    float3 lightColor;
+    float4 lightPosition;
+    float4 lightColor;
+    
+	float4x4 toWorld[MAX_INSTANCES];
 };
 
 struct VSInput
@@ -62,14 +63,14 @@ VSOutput main(VSInput input, uint InstanceID : SV_InstanceID)
     float quadraticCoeff = 1.2;
     float ambientCoeff = 0.4;
 
-    float3 lightDir = normalize(lightPosition - pos.xyz);
+    float3 lightDir = normalize(lightPosition.xyz - pos.xyz);
 
     float distance = length(lightDir);
     float attenuation = 1.0 / (quadraticCoeff * distance * distance);
     float intensity = lightIntensity * attenuation;
 
     float3 baseColor = color[InstanceID].xyz;
-    float3 blendedColor = mul(lightColor * baseColor, lightIntensity);
+    float3 blendedColor = mul(lightColor.xyz * baseColor, lightIntensity);
     float3 diffuse = mul(blendedColor, max(dot(normal.xyz, lightDir), 0.0));
     float3 ambient = mul(baseColor, ambientCoeff);
     result.Color = float4(diffuse + ambient, 1.0);

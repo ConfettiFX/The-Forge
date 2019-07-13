@@ -43,8 +43,8 @@
 #import "../IRenderer.h"
 #import "../IRay.h"
 #import "../ResourceLoader.h"
-#include "../../OS/Interfaces/ILogManager.h"
-#include "../../OS/Interfaces/IMemoryManager.h"
+#include "../../OS/Interfaces/ILog.h"
+#include "../../OS/Interfaces/IMemory.h"
 
 #define MAX_BUFFER_BINDINGS 31
 
@@ -82,9 +82,9 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
     
     struct RaytracingShaderTable
     {
+		Pipeline* pPipeline;
         RaytracingShaderInfoSet mHitShadersInfo;
         RaytracingShaderInfoSet mMissShadersInfo;
-		DescriptorBinder* pDescriptorBinder;
         uint32_t mRayGenHitRef;
         uint32_t mRayGenMissRef;
         bool mInvokeShaders;
@@ -862,8 +862,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         table->mRayGenHitRef = pDesc->pRayGenShader->mHitShaderIndex;
         table->mRayGenMissRef = pDesc->pRayGenShader->mMissShaderIndex;
         table->mInvokeShaders = pDesc->pRayGenShader->mInvokeTraceRay;
-		table->pDescriptorBinder = pDesc->pDescriptorBinder;
-
+		table->pPipeline = pDesc->pPipeline;
         /***************************************************************/
         /*Setup shaders settings*/
         /***************************************************************/
@@ -900,113 +899,6 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         memset(pTable, 0, sizeof(*pTable));
         conf_free(pTable);
     }
-    
-    void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount,
- bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc = NULL)
-    {
-        ASSERT(pRenderer);
-        ASSERT(pRenderer->pDevice);
-        
-        RootSignature* pRootSignature = (RootSignature*)conf_calloc(1, sizeof(*pRootSignature));
-        memset(pRootSignature, 0, sizeof(*pRootSignature));
-        pRootSignature->mPipelineType = PIPELINE_TYPE_COMPUTE;
-        
-        // Collect static samplers
-        eastl::vector <eastl::pair<ShaderResource const*, Sampler*> > staticSamplers;
-        eastl::string_hash_map<Sampler*> staticSamplerMap;
-        if (pRootDesc != NULL)
-        {
-            for (uint32_t i = 0; i < pRootDesc->mStaticSamplerCount; ++i)
-                staticSamplerMap.insert(pRootDesc->ppStaticSamplerNames[i], pRootDesc->ppStaticSamplers[i]);
-        }
-        
-        conf_placement_new<eastl::unordered_map<uint32_t, uint32_t>>(&pRootSignature->pDescriptorNameToIndexMap);
-        
-        for (uint32_t i = 0; i < resourceCount; ++i)
-        {
-            ShaderResource const* pRes = &pResources[i];
-            
-            // Find all unique resources
-			eastl::string_hash_map<uint32_t>::iterator pNode = pRootSignature->pDescriptorNameToIndexMap.find(pRes->name);
-            if (pNode == pRootSignature->pDescriptorNameToIndexMap.end())
-            {
-                if (pRes->type == DESCRIPTOR_TYPE_SAMPLER)
-                {
-                    // If the sampler is a static sampler, no need to put it in the descriptor table
-					eastl::string_hash_map<Sampler*>::const_iterator pNode = staticSamplerMap.find(pRes->name);
-
-                    if (pNode != staticSamplerMap.end())
-                    {
-                        LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Static Sampler", pRes->name);
-                        staticSamplers.push_back({ pRes, pNode->second });
-                    }
-                    else
-                    {
-                        pRootSignature->pDescriptorNameToIndexMap.insert(pRes->name, i);
-                    }
-                }
-                else
-                {
-                    pRootSignature->pDescriptorNameToIndexMap.insert(pRes->name, i);
-                }
-            } else
-            {
-                ASSERT(false && "Provided resources should be unique");
-            }
-        }
-        
-        if (resourceCount > 0)
-        {
-            pRootSignature->mDescriptorCount = resourceCount;
-            pRootSignature->pDescriptors = (DescriptorInfo*)conf_calloc(pRootSignature->mDescriptorCount, sizeof(DescriptorInfo));
-        }
-        
-        // Fill the descriptor array to be stored in the root signature
-        for (uint32_t i = 0; i < resourceCount; ++i)
-        {
-            DescriptorInfo* pDesc = &pRootSignature->pDescriptors[i];
-            ShaderResource const* pRes = &pResources[i];
-            uint32_t setIndex = pRes->set;
-            DescriptorUpdateFrequency updateFreq = (DescriptorUpdateFrequency)setIndex;
-            
-            pDesc->mDesc.reg = pRes->reg;
-            pDesc->mDesc.set = pRes->set;
-            pDesc->mDesc.size = pRes->size;
-            pDesc->mDesc.type = pRes->type;
-            pDesc->mDesc.used_stages = pRes->used_stages;
-            pDesc->mDesc.name_size = pRes->name_size;
-            pDesc->mDesc.name = (const char*)conf_calloc(pDesc->mDesc.name_size + 1, sizeof(char));
-            memcpy((char*)pDesc->mDesc.name, pRes->name, pRes->name_size);
-            pDesc->mUpdateFrquency = updateFreq;
-            
-            // In case we're binding a texture, we need to specify the texture type so the bound resource type matches the one defined in the shader.
-            if(pRes->type == DESCRIPTOR_TYPE_TEXTURE || pRes->type == DESCRIPTOR_TYPE_RW_TEXTURE)
-            {
-                pDesc->mDesc.mtlTextureType = pRes->mtlTextureType;
-            }
-            
-            // If we're binding an argument buffer, we also need to get the type of the resources that this buffer will store.
-            if(pRes->mtlArgumentBufferType != DESCRIPTOR_TYPE_UNDEFINED)
-            {
-                pDesc->mDesc.mtlArgumentBufferType = pRes->mtlArgumentBufferType;
-            }
-        }
-        
-        pRootSignature->mStaticSamplerCount = (uint32_t)staticSamplers.size();
-        pRootSignature->ppStaticSamplers = (Sampler**)conf_calloc(staticSamplers.size(), sizeof(Sampler*));
-        pRootSignature->pStaticSamplerStages = (ShaderStage*)conf_calloc(staticSamplers.size(), sizeof(ShaderStage));
-        pRootSignature->pStaticSamplerSlots = (uint32_t*)conf_calloc(staticSamplers.size(), sizeof(uint32_t));
-        for (uint32_t i = 0; i < pRootSignature->mStaticSamplerCount; ++i)
-        {
-            pRootSignature->ppStaticSamplers[i] = staticSamplers[i].second;
-            pRootSignature->pStaticSamplerStages[i] = staticSamplers[i].first->used_stages;
-            pRootSignature->pStaticSamplerSlots[i] = staticSamplers[i].first->reg;
-        }
-        
-        *ppRootSignature = pRootSignature;
-    }
-    
-    extern void cmdBindLocalDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams);
     
     void dispatch(id <MTLComputeCommandEncoder> computeEncoder,
                   id <MTLBuffer> raysBuffer,
@@ -1073,7 +965,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         }
         
         //Bind "Global Root Signature" again
-        cmdBindDescriptors(pCmd, pDesc->pShaderTable->pDescriptorBinder, pDesc->pRootSignature, pDesc->mRootSignatureDescriptorsCount, pDesc->pRootSignatureDescriptorData);
+        cmdBindDescriptors(pCmd, pCmd->pBoundDescriptorBinder, pCmd->pBoundRootSignature, pDesc->mParamCount, pDesc->pParams);
         id <MTLComputeCommandEncoder> computeEncoder = pCmd->mtlComputeEncoder;
         dispatch(computeEncoder, raysBufferLocal, globalSettingsBuffer, intersectionsBuffer,
                  indexBuffer, instancesIDsBuffer, payloadBuffer, masksBuffer, hitGroupIndices,
@@ -1089,7 +981,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
             NSUInteger height = (NSUInteger)pDesc->mHeight;
             
             id <MTLBuffer> intersectionBufferLocal = pShadersInfo->mIntersectionBuffer[shaderId];
-            RaytracingPipeline* pPipeline = pDesc->pPipeline->pRaytracingPipeline;
+            RaytracingPipeline* pPipeline = pShaderTable->pPipeline->pRaytracingPipeline;
             [pPipeline->mIntersector encodeIntersectionToCommandBuffer:pCmd->mtlCommandBuffer      // Command buffer to encode into
                                              intersectionType:MPSIntersectionTypeNearest  // Intersection test type //Rustam: Get this from RayFlags from shader
                                                     rayBuffer:raysBufferLocal   // Ray buffer
@@ -1120,7 +1012,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         NSUInteger width = (NSUInteger)pDesc->mWidth;
         NSUInteger height = (NSUInteger)pDesc->mHeight;
         
-        RaytracingPipeline* pRaytracingPipeline = pDesc->pPipeline->pRaytracingPipeline;
+        RaytracingPipeline* pRaytracingPipeline = pDesc->pShaderTable->pPipeline->pRaytracingPipeline;
         /*setup settings values in buffer*/
         //Rustam: implement ring-buffer
         RaysDispatchUniformBuffer *uniforms = (RaysDispatchUniformBuffer *)pRaytracingPipeline->mSettingsBuffer.contents;
@@ -1145,8 +1037,6 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         
         // First, we will generate rays on the GPU. We create a compute command encoder which will be used to add
         // commands to the command buffer.
-        //In terms of DXR here we bind "Global Root Signature"
-        cmdBindDescriptors(pCmd, pDesc->pShaderTable->pDescriptorBinder, pDesc->pRootSignature, pDesc->mRootSignatureDescriptorsCount, pDesc->pRootSignatureDescriptorData);
         id <MTLComputeCommandEncoder> computeEncoder = pCmd->mtlComputeEncoder;
         /*********************************************************************************/
         //Now we work with initial RayGen shader
@@ -1210,6 +1100,12 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
                      pDesc->pTopLevelAccelerationStructure->mHitGroupIndices,
                      threadgroups, threadsPerThreadgroup);
     }
+
+void mtl_cmdBindRaytracingPipeline(Cmd* pCmd, Pipeline* pPipeline)
+{
+	UNREF_PARAM(pCmd);
+	UNREF_PARAM(pPipeline);
+}
 
 #endif
 

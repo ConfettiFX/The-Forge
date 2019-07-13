@@ -28,10 +28,10 @@
 #include "TressFXAsset.h"
 
 #include "../../ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../OS/Interfaces/ILogManager.h"
+#include "../../OS/Interfaces/ILog.h"
 
 #include <math.h>
-#include "../../OS/Interfaces/IMemoryManager.h"
+#include "../../OS/Interfaces/IMemory.h"
 
 #define AMD_TRESSFX_V4 4
 #define AMD_TRESSFX_V3 3

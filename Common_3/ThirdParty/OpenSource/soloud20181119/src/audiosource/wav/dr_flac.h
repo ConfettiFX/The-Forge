@@ -993,8 +993,8 @@ static DRFLAC_INLINE drflac_bool32 drflac_has_sse41()
     #endif
 #endif
 
-#include "../../../../OS/Interfaces/ILogManager.h"
-#include "../../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../../OS/Interfaces/ILog.h"
+#include "../../../../OS/Interfaces/IMemory.h"
 
 // Standard library stuff.
 #ifndef DRFLAC_ASSERT

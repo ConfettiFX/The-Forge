@@ -24,7 +24,7 @@
 
 #include "AppUI.h"
 
-#include "../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../Common_3/OS/Interfaces/ILog.h"
 #include "../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../Common_3/OS/Image/Image.h"
 #include "../../Common_3/OS/Interfaces/ICameraController.h"
@@ -40,7 +40,7 @@
 #include "../../Common_3/OS/Input/InputSystem.h"
 #include "../../Common_3/OS/Input/InputMappings.h"
 
-#include "../../Common_3/OS/Interfaces/IMemoryManager.h"
+#include "../../Common_3/OS/Interfaces/IMemory.h"
 
 namespace PlatformEvents {
 extern bool skipMouseCapture;

@@ -1,4 +1,6 @@
-#include "../../OS/Interfaces/ILogManager.h"
+#ifdef VULKAN
+
+#include "../../OS/Interfaces/ILog.h"
 
 #include "../../ThirdParty/OpenSource/EASTL/sort.h"
 
@@ -7,9 +9,10 @@
 #include "../IRay.h"
 #include "../ResourceLoader.h"
 
-#include "../../OS/Interfaces/IMemoryManager.h"
+#include "../../OS/Interfaces/IMemory.h"
 
-#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
+#ifdef ENABLE_RAYTRACING
+
 struct AccelerationStructureBottom
 {
 	Buffer*											pVertexBuffer;
@@ -54,7 +57,8 @@ struct RaytracingShaderTable
 
 //This structure is not defined in Vulkan headers but this layout is used on GPU side for
 //top level AS
-struct VkGeometryInstanceNV {
+struct VkGeometryInstanceNV
+{
 	float          transform[12];
 	uint32_t       instanceCustomIndex : 24;
 	uint32_t       mask : 8;
@@ -63,22 +67,25 @@ struct VkGeometryInstanceNV {
 	uint64_t       accelerationStructureHandle;
 };
 
+#ifndef ENABLE_RENDERER_RUNTIME_SWITCH
 extern void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
 extern void removeBuffer(Renderer* pRenderer, Buffer* p_buffer);
+extern const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer);
+#endif
+
 extern VkDeviceMemory get_vk_device_memory(Renderer* pRenderer, Buffer* pBuffer);
 extern VkDeviceSize get_vk_device_memory_offset(Renderer* pRenderer, Buffer* pBuffer);
-extern VkDescriptorType util_to_vk_descriptor_type(DescriptorType type);
-extern VkShaderStageFlags util_to_vk_shader_stage_flags(ShaderStage stages);
-extern const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName, uint32_t* pIndex);
-extern const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer);
-extern bool load_shader_stage_byte_code( Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, FSRoot root, uint32_t macroCount,
-	ShaderMacro* pMacros, uint32_t rendererMacroCount, ShaderMacro* pRendererMacros, eastl::vector<char>& byteCode);
-extern void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams);
+
 VkBuildAccelerationStructureFlagsNV util_to_vk_acceleration_structure_build_flags(AccelerationStructureBuildFlags flags);
 VkGeometryFlagsNV util_to_vk_geometry_flags(AccelerationStructureGeometryFlags flags);
 VkGeometryInstanceFlagsNV util_to_vk_instance_flags(AccelerationStructureInstanceFlags flags);
 
-bool isRaytracingSupported(Renderer* pRenderer) {
+#if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)
+namespace vk {
+#endif
+
+bool isRaytracingSupported(Renderer* pRenderer)
+{
 	for (int i = 0; i < MAX_DEVICE_EXTENSIONS; ++i)
 	{
 		if (pRenderer->gVkDeviceExtensions[i] == nullptr) continue; //for some reason 0th element is nullptr
@@ -88,7 +95,8 @@ bool isRaytracingSupported(Renderer* pRenderer) {
 	return false;
 }
 
-bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing) {
+bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
+{
 	ASSERT(pRenderer);
 	ASSERT(ppRaytracing);
 
@@ -104,7 +112,8 @@ bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing) {
 	return true;
 }
 
-void removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing) {
+void removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
+{
 	//Do nothing here because in case of Vulkan struct Raytracing contains
 	//only shorthands
 	conf_free(pRaytracing);
@@ -372,7 +381,8 @@ Buffer* createTopAS(Raytracing* pRaytracing, const AccelerationStructureDescTop*
 	return pTopASBuffer;
 }
 
-void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, AccelerationStructure** ppAccelerationStructure) {
+void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, AccelerationStructure** ppAccelerationStructure)
+{
 	ASSERT(pRaytracing);
 	ASSERT(pDesc);
 	ASSERT(ppAccelerationStructure);
@@ -406,380 +416,74 @@ void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructu
 	*ppAccelerationStructure = pAccelerationStructure;
 }
 
-void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, Buffer* pScratchBuffer, 
-	VkAccelerationStructureNV accelerationStructure,
-	VkAccelerationStructureTypeNV ASType,
-	VkBuildAccelerationStructureFlagsNV ASFlags,
-	const VkGeometryNV * pGeometryDescs,
+void util_build_acceleration_structure(VkCommandBuffer pCmd, VkBuffer pScratchBuffer, 
+	VkAccelerationStructureNV pAccelerationStructure,
+	VkAccelerationStructureTypeNV type,
+	VkBuildAccelerationStructureFlagsNV flags,
+	const VkGeometryNV* pGeometryDescs,
 	uint32_t geometriesCount,
-	const Buffer* pInstanceDescBuffer,
+	const VkBuffer pInstanceDescBuffer,
 	uint32_t descCount)
 {
 	ASSERT(pCmd);
-	ASSERT(pRaytracing);
 
 	VkAccelerationStructureInfoNV info = {};
 	info.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_INFO_NV;
-	info.type = ASType;
-	info.flags = ASFlags;
+	info.type = type;
+	info.flags = flags;
 	info.pGeometries = pGeometryDescs;
 	info.geometryCount = geometriesCount;
 	info.instanceCount = descCount;
 
 	VkBuffer instanceData = VK_NULL_HANDLE;
 	if (descCount > 0)
-		instanceData = pInstanceDescBuffer->pVkBuffer;
+		instanceData = pInstanceDescBuffer;
 
-	VkBuffer scratchBuffer = pScratchBuffer->pVkBuffer;
-	VkAccelerationStructureNV astruct = accelerationStructure;
+	VkBuffer scratchBuffer = pScratchBuffer;
 
-	vkCmdBuildAccelerationStructureNV(pCmd->pVkCmdBuf, &info, instanceData, 0, VK_FALSE, astruct, VK_NULL_HANDLE, scratchBuffer, 0);
+	vkCmdBuildAccelerationStructureNV(pCmd, &info, instanceData, 0, VK_FALSE, pAccelerationStructure, VK_NULL_HANDLE, scratchBuffer, 0);
 
 	VkMemoryBarrier memoryBarrier;
 	memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
 	memoryBarrier.pNext = nullptr;
 	memoryBarrier.srcAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
-	memoryBarrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_NV | VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
-	vkCmdPipelineBarrier(pCmd->pVkCmdBuf, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV, 0, 1, &memoryBarrier, 0, 0, 0, 0);
-}
-
-void cmdBuildTopAS(Cmd* pCmd, Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
-{
-	cmdBuildAccelerationStructure(pCmd, pRaytracing,
-		pAccelerationStructure->pScratchBuffer,
-		pAccelerationStructure->mAccelerationStructure,
-		VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV,
-		pAccelerationStructure->mFlags,
-		nullptr, 0,
-		pAccelerationStructure->pInstanceDescBuffer,
-		pAccelerationStructure->mInstanceDescCount);
-}
-
-void cmdBuildBottomAS(Cmd* pCmd, Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure, unsigned bottomASIndex)
-{
-	cmdBuildAccelerationStructure(pCmd, pRaytracing,
-		pAccelerationStructure->pScratchBuffer,
-		pAccelerationStructure->ppBottomAS[bottomASIndex].pAccelerationStructure,
-		VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV,
-		pAccelerationStructure->ppBottomAS[bottomASIndex].mFlags,
-		pAccelerationStructure->ppBottomAS[bottomASIndex].pGeometryDescs,
-		pAccelerationStructure->ppBottomAS[bottomASIndex].mDescCount,
-		nullptr, 0);
+	memoryBarrier.dstAccessMask = VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_NV;
+	vkCmdPipelineBarrier(pCmd, VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_NV, VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV, 0, 1, &memoryBarrier, 0, 0, 0, 0);
 }
 
 void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc)
 {
 	ASSERT(pDesc);
 	ASSERT(pDesc->pAccelerationStructure);
+
+	AccelerationStructure* pAccelerationStructure = pDesc->pAccelerationStructure;
+
 	for (unsigned i = 0; i < pDesc->mBottomASIndicesCount; ++i)
 	{
-		cmdBuildBottomAS(pCmd, pRaytracing, pDesc->pAccelerationStructure, pDesc->pBottomASIndices[i]);
-	}
-	cmdBuildTopAS(pCmd, pRaytracing, pDesc->pAccelerationStructure);
-}
+		uint32_t index = pDesc->pBottomASIndices[i];
 
-typedef struct UpdateFrequencyLayoutInfo
-{
-	/// Array of all bindings in the descriptor set
-	eastl::vector<VkDescriptorSetLayoutBinding> mBindings;
-	/// Array of all descriptors in this descriptor set
-	eastl::vector<DescriptorInfo*> mDescriptors;
-	/// Array of all descriptors marked as dynamic in this descriptor set (applicable to DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-	eastl::vector<DescriptorInfo*> mDynamicDescriptors;
-	/// Hash map to get index of the descriptor in the root signature
-	eastl::hash_map<DescriptorInfo*, uint32_t> mDescriptorIndexMap;
-} UpdateFrequencyLayoutInfo;
-
-void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount, bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc) 
-{
-	//////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////
-
-	RootSignature* pRootSignature = (RootSignature*)conf_calloc(1, sizeof(*pRootSignature));
-	conf_placement_new<RootSignature>(pRootSignature);
-	if (local)
-	{
-		*ppRootSignature = pRootSignature;
-		return;
+		util_build_acceleration_structure(pCmd->pVkCmdBuf,
+			pAccelerationStructure->pScratchBuffer->pVkBuffer,
+			pAccelerationStructure->ppBottomAS[index].pAccelerationStructure,
+			VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_NV,
+			pAccelerationStructure->ppBottomAS[index].mFlags,
+			pAccelerationStructure->ppBottomAS[index].pGeometryDescs,
+			pAccelerationStructure->ppBottomAS[index].mDescCount,
+			NULL, 0);
 	}
 
-	//////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////
-	eastl::vector<UpdateFrequencyLayoutInfo> layouts(DESCRIPTOR_UPDATE_FREQ_COUNT);
-	eastl::vector<DescriptorInfo*>           pushConstantDescriptors;
-
-	eastl::hash_map<eastl::string, Sampler*> staticSamplerMap;
-	eastl::vector<eastl::string>             dynamicUniformBuffers;
-
-	if (pRootDesc)
-	{
-		for (uint32_t i = 0; i < pRootDesc->mStaticSamplerCount; ++i)
-			staticSamplerMap.insert({{ pRootDesc->ppStaticSamplerNames[i], pRootDesc->ppStaticSamplers[i] }});
-		for (uint32_t i = 0; i < pRootDesc->mDynamicUniformBufferCount; ++i)
-			dynamicUniformBuffers.push_back(pRootDesc->ppDynamicUniformBufferNames[i]);
-	}
-
-	uint32_t additionalResources = local ? 0 : 1;
-
-	if (resourceCount + additionalResources)
-	{
-		pRootSignature->mDescriptorCount = resourceCount + additionalResources;
-		pRootSignature->pDescriptors = (DescriptorInfo*)conf_calloc(pRootSignature->mDescriptorCount, sizeof(DescriptorInfo));
-	}
-
-	// Fill the descriptor array to be stored in the root signature
-	for (uint32_t i = 0; i < resourceCount; ++i)
-	{
-		DescriptorInfo*           pDesc = &pRootSignature->pDescriptors[i];
-		ShaderResource const*     pRes = &pResources[i];
-		uint32_t                  setIndex = pRes->set;
-		DescriptorUpdateFrequency updateFreq = (DescriptorUpdateFrequency)setIndex;
-
-		// Copy the binding information generated from the shader reflection into the descriptor
-		pDesc->mDesc.reg = pRes->reg;
-		pDesc->mDesc.set = pRes->set;
-		pDesc->mDesc.size = pRes->size;
-		pDesc->mDesc.type = pRes->type;
-		pDesc->mDesc.used_stages = pRes->used_stages;
-		pDesc->mDesc.name_size = pRes->name_size;
-		pDesc->mDesc.name = (const char*)conf_calloc(pDesc->mDesc.name_size + 1, sizeof(char));
-		pDesc->mDesc.dim = pRes->dim;
-		memcpy((char*)pDesc->mDesc.name, pRes->name, pRes->name_size);
-
-		pRootSignature->pDescriptorNameToIndexMap.insert(pRes->name, i );
-
-		// If descriptor is not a root constant create a new layout binding for this descriptor and add it to the binding array
-		if (pDesc->mDesc.type != DESCRIPTOR_TYPE_ROOT_CONSTANT)
-		{
-			VkDescriptorSetLayoutBinding binding = {};
-			binding.binding = pDesc->mDesc.reg;
-			binding.descriptorCount = pDesc->mDesc.size;
-
-			binding.descriptorType = util_to_vk_descriptor_type(pDesc->mDesc.type);
-
-			// If a user specified a uniform buffer to be used as a dynamic uniform buffer change its type to VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
-			// Also log a message for debugging purpose
-			if (eastl::find(dynamicUniformBuffers.begin(), dynamicUniformBuffers.end(), pDesc->mDesc.name) != dynamicUniformBuffers.end())
-			{
-				if (pDesc->mDesc.size == 1)
-				{
-					LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC", pDesc->mDesc.name);
-					binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-				}
-				else
-				{
-					LOGF(LogLevel::eWARNING, "Descriptor (%s) : Cannot use VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC for arrays", pDesc->mDesc.name);
-				}
-			}
-
-			binding.stageFlags =	VK_SHADER_STAGE_RAYGEN_BIT_NV | 
-									VK_SHADER_STAGE_ANY_HIT_BIT_NV |
-									VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV |
-									VK_SHADER_STAGE_MISS_BIT_NV |
-									VK_SHADER_STAGE_INTERSECTION_BIT_NV |
-									VK_SHADER_STAGE_CALLABLE_BIT_NV;
-
-			// Store the vulkan related info in the descriptor to avoid constantly calling the util_to_vk mapping functions
-			pDesc->mVkType = binding.descriptorType;
-			pDesc->mVkStages = binding.stageFlags;
-			pDesc->mUpdateFrquency = updateFreq;
-
-			if (binding.descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
-			{
-				layouts[setIndex].mDynamicDescriptors.emplace_back(pDesc);
-			}
-
-			// Find if the given descriptor is a static sampler
-			decltype(staticSamplerMap)::const_iterator pNode = staticSamplerMap.find(pDesc->mDesc.name);
-			if (pNode != staticSamplerMap.end())
-			{
-				LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Static Sampler", pDesc->mDesc.name);
-
-				// Set the index to an invalid value so we can use this later for error checking if user tries to update a static sampler
-				pDesc->mIndexInParent = -1;
-				binding.pImmutableSamplers = &pNode->second->pVkSampler;
-			}
-			else
-			{
-				layouts[setIndex].mDescriptors.emplace_back(pDesc);
-			}
-
-			layouts[setIndex].mBindings.push_back(binding);
-		}
-		// If descriptor is a root constant, add it to the root constant array
-		else
-		{
-			pDesc->mDesc.set = 0;
-			pDesc->mVkStages = util_to_vk_shader_stage_flags(pDesc->mDesc.used_stages);
-			setIndex = 0;
-			pushConstantDescriptors.emplace_back(pDesc);
-		}
-
-		layouts[setIndex].mDescriptorIndexMap[pDesc] = i;
-	}
-
-	//Add acceleration structure
-	if (!local)
-	{
-		const uint32_t setIndex = 1;
-		DescriptorInfo* pDesc = &pRootSignature->pDescriptors[resourceCount];
-		*pDesc = DescriptorInfo{};
-		// Copy the binding information generated from the shader reflection into the descriptor
-		pDesc->mDesc.reg = 0;
-		pDesc->mDesc.set = setIndex;
-		pDesc->mDesc.size = 1;
-		pDesc->mDesc.type = DESCRIPTOR_TYPE_BUFFER;
-		pDesc->mDesc.used_stages = SHADER_STAGE_COMP;
-		const char* name = "gRtScene";
-		pDesc->mDesc.name_size = (uint32_t)strlen(name);
-		pDesc->mDesc.name = (const char*)conf_calloc(pDesc->mDesc.name_size + 1, sizeof(char));
-		memcpy((char*)pDesc->mDesc.name, name, pDesc->mDesc.name_size);
-		pRootSignature->pDescriptorNameToIndexMap.insert(name, resourceCount );
-
-		{
-			VkDescriptorSetLayoutBinding binding = {};
-			binding.binding = pDesc->mDesc.reg;
-			binding.descriptorCount = pDesc->mDesc.size;
-
-			binding.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
-			binding.stageFlags =	VK_SHADER_STAGE_RAYGEN_BIT_NV		|
-									VK_SHADER_STAGE_ANY_HIT_BIT_NV		|
-									VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV	|
-									VK_SHADER_STAGE_MISS_BIT_NV			|
-									VK_SHADER_STAGE_INTERSECTION_BIT_NV |
-									VK_SHADER_STAGE_CALLABLE_BIT_NV;
-
-			// Store the vulkan related info in the descriptor to avoid constantly calling the util_to_vk mapping functions
-			pDesc->mVkType = binding.descriptorType;
-			pDesc->mVkStages = binding.stageFlags;
-			pDesc->mUpdateFrquency = (DescriptorUpdateFrequency)setIndex; //set index
-
-			layouts[setIndex].mDescriptors.emplace_back(pDesc);
-			layouts[setIndex].mBindings.push_back(binding);
-		}
-		layouts[setIndex].mDescriptorIndexMap[pDesc] = resourceCount;
-	}
-
-	pRootSignature->mVkPushConstantCount = (uint32_t)pushConstantDescriptors.size();
-	if (pRootSignature->mVkPushConstantCount)
-		pRootSignature->pVkPushConstantRanges =
-		(VkPushConstantRange*)conf_calloc(pRootSignature->mVkPushConstantCount, sizeof(*pRootSignature->pVkPushConstantRanges));
-
-	// Create push constant ranges
-	for (uint32_t i = 0; i < pRootSignature->mVkPushConstantCount; ++i)
-	{
-		VkPushConstantRange* pConst = &pRootSignature->pVkPushConstantRanges[i];
-		DescriptorInfo*      pDesc = pushConstantDescriptors[i];
-		pDesc->mIndexInParent = i;
-		pConst->offset = 0;
-		pConst->size = pDesc->mDesc.size;
-		pConst->stageFlags = util_to_vk_shader_stage_flags(pDesc->mDesc.used_stages);
-	}
-
-	// Create descriptor layouts
-	// Put most frequently changed params first
-	for (uint32_t i = (uint32_t)layouts.size(); i-- > 0U;)
-	{
-		UpdateFrequencyLayoutInfo& layout = layouts[i];
-
-		if (layouts[i].mBindings.size())
-		{
-			// sort table by type (CBV/SRV/UAV) by register
-			eastl::stable_sort(layout.mBindings.begin(), layout.mBindings.end(), [](const VkDescriptorSetLayoutBinding& lhs, const VkDescriptorSetLayoutBinding& rhs) {
-				return lhs.binding > rhs.binding;
-			});
-			eastl::stable_sort(layout.mBindings.begin(), layout.mBindings.end(), [](const VkDescriptorSetLayoutBinding& lhs, const VkDescriptorSetLayoutBinding& rhs) {
-				return lhs.descriptorType > rhs.descriptorType;
-			});
-		}
-
-		VkDescriptorSetLayoutCreateInfo layoutInfo = {};
-		layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-		layoutInfo.pNext = NULL;
-		layoutInfo.bindingCount = (uint32_t)layout.mBindings.size();
-		layoutInfo.pBindings = layout.mBindings.data();
-		layoutInfo.flags = 0;
-
-		vkCreateDescriptorSetLayout(pRenderer->pVkDevice, &layoutInfo, NULL, &pRootSignature->mVkDescriptorSetLayouts[i]);
-
-		if (!layouts[i].mBindings.size())
-			continue;
-
-		pRootSignature->mVkDescriptorCounts[i] = (uint32_t)layout.mDescriptors.size();
-		pRootSignature->pVkDescriptorIndices[i] = (uint32_t*)conf_calloc(layout.mDescriptors.size(), sizeof(uint32_t));
-
-		// Loop through descriptors belonging to this update frequency and increment the cumulative descriptor count
-		for (uint32_t descIndex = 0; descIndex < (uint32_t)layout.mDescriptors.size(); ++descIndex)
-		{
-			DescriptorInfo* pDesc = layout.mDescriptors[descIndex];
-			pDesc->mIndexInParent = descIndex;
-			pDesc->mHandleIndex = pRootSignature->mVkCumulativeDescriptorCounts[i];
-			pRootSignature->pVkDescriptorIndices[i][descIndex] = layout.mDescriptorIndexMap[pDesc];
-			pRootSignature->mVkCumulativeDescriptorCounts[i] += pDesc->mDesc.size;
-		}
-
-		eastl::stable_sort(
-			layout.mDynamicDescriptors.begin(), layout.mDynamicDescriptors.end(),
-			[](DescriptorInfo* const& lhs, DescriptorInfo* const& rhs) { return lhs->mDesc.reg > rhs->mDesc.reg; });
-
-		pRootSignature->mVkDynamicDescriptorCounts[i] = (uint32_t)layout.mDynamicDescriptors.size();
-		for (uint32_t descIndex = 0; descIndex < pRootSignature->mVkDynamicDescriptorCounts[i]; ++descIndex)
-		{
-			DescriptorInfo* pDesc = layout.mDynamicDescriptors[descIndex];
-			pDesc->mDynamicUniformIndex = descIndex;
-		}
-	}
-	/************************************************************************/
-	// Pipeline layout
-	/************************************************************************/
-	eastl::vector<VkDescriptorSetLayout> descriptorSetLayouts(DESCRIPTOR_UPDATE_FREQ_COUNT);
-	eastl::vector<VkPushConstantRange>   pushConstants(pRootSignature->mVkPushConstantCount);
-	for (uint32_t i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
-		descriptorSetLayouts[i] = pRootSignature->mVkDescriptorSetLayouts[i];
-	for (uint32_t i = 0; i < pRootSignature->mVkPushConstantCount; ++i)
-		pushConstants[i] = pRootSignature->pVkPushConstantRanges[i];
-
-	VkPipelineLayoutCreateInfo add_info = {};
-	add_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	add_info.pNext = NULL;
-	add_info.flags = 0;
-	add_info.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
-	add_info.pSetLayouts = descriptorSetLayouts.data();
-	add_info.pushConstantRangeCount = pRootSignature->mVkPushConstantCount;
-	add_info.pPushConstantRanges = pushConstants.data();
-	VkResult vk_res = vkCreatePipelineLayout(pRenderer->pVkDevice, &add_info, NULL, &(pRootSignature->pPipelineLayout));
-	ASSERT(VK_SUCCESS == vk_res);
-	/************************************************************************/
-	/************************************************************************/
-
-	pRootSignature->mPipelineType = PIPELINE_TYPE_RAYTRACING;
-	*ppRootSignature = pRootSignature;
+	util_build_acceleration_structure(pCmd->pVkCmdBuf,
+		pAccelerationStructure->pScratchBuffer->pVkBuffer,
+		pAccelerationStructure->mAccelerationStructure,
+		VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV,
+		pAccelerationStructure->mFlags,
+		NULL, 0,
+		pAccelerationStructure->pInstanceDescBuffer->pVkBuffer,
+		pAccelerationStructure->mInstanceDescCount);
 }
 
 void CalculateMaxShaderRecordSize(const RaytracingShaderTableRecordDesc* pRecords, uint32_t shaderCount, uint64_t& maxShaderTableSize)
 {
-	for (uint32_t i = 0; i < shaderCount; ++i)
-	{
-		const RaytracingShaderTableRecordDesc* pRecord = &pRecords[i];
-		uint32_t shaderSize = 0;
-		
-		//add place for hit shader index and miss shader index
-		shaderSize += pRecord->mInvokeTraceRay ? sizeof(uint32) * 2 : 0;
-
-		maxShaderTableSize = maxShaderTableSize > shaderSize ? maxShaderTableSize : shaderSize;
-	}
-}
-
-uint32_t GetShaderStageIndex(Pipeline* pipeline, const char* name)
-{
-	eastl::string nameStr(name);
-	for (uint32_t i = 0; i < pipeline->mShadersStagesNames.size(); ++i)
-	{
-		if (pipeline->mShadersStagesNames[i] == nameStr)
-			return i;
-	}
-	ASSERT(false);
-	return 0;
 }
 
 void FillShaderIdentifiers(	const RaytracingShaderTableRecordDesc* pRecords, uint32_t shaderCount,
@@ -791,25 +495,27 @@ void FillShaderIdentifiers(	const RaytracingShaderTableRecordDesc* pRecords, uin
 
 	for (uint32_t idx = 0; idx < shaderCount; ++idx)
 	{
-		uint32_t index = GetShaderStageIndex(pipeline, pRecords[idx].pName);
+		uint32_t index = -1;
+		eastl::string nameStr(pRecords[idx].pName);
+		eastl::vector<eastl::string>::const_iterator it = eastl::find(pipeline->mShadersStagesNames.begin(), pipeline->mShadersStagesNames.end(), nameStr);
+		if (it != pipeline->mShadersStagesNames.end())
+		{
+			index = (uint32_t)(it - pipeline->mShadersStagesNames.begin());
+		}
+		else
+		{
+			ASSERT(false);
+			LOGF(LogLevel::eERROR, "Could not find shader name %s identifier", nameStr.c_str());
+			continue;
+		}
 
 		uint64_t currentPosition = maxShaderTableSize * dstIndex++;
 		uint8_t* dst = (uint8_t*)pTable->pBuffer->pCpuMappedAddress + currentPosition;
 		size_t handleSize = pRaytracing->pRenderer->mVkRaytracingProperties->shaderGroupHandleSize;
 		const uint8_t* src = &shaderHandleStorage[index * handleSize];
 		memcpy(dst, src, handleSize);
-
-		const RaytracingShaderTableRecordDesc* pRecord = &pRecords[idx];
-
-		if (pRecord->mInvokeTraceRay)
-		{
-			dst += handleSize;
-			memcpy(dst, &pRecord->mHitShaderIndex, sizeof(uint32_t));
-			dst += sizeof(uint32_t);
-			memcpy(dst, &pRecord->mMissShaderIndex, sizeof(uint32_t));
-		}
 	}
-};
+}
 
 void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTableDesc* pDesc, RaytracingShaderTable** ppTable) 
 {
@@ -876,11 +582,114 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 	*ppTable = pTable;
 }
 
-void GenerateStagesGroupsData(const RaytracingPipelineDesc* pDesc, 
-								eastl::vector<VkPipelineShaderStageCreateInfo>& stages,
-								eastl::vector<eastl::string>&	stagesNames,
-								eastl::vector<VkRayTracingShaderGroupCreateInfoNV>& groups)
+void cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatchDesc* pDesc)
 {
+	RaytracingShaderTable* table = pDesc->pShaderTable;
+	vkCmdTraceRaysNV(
+		pCmd->pVkCmdBuf,
+		table->pBuffer->pVkBuffer, 0,
+		table->pBuffer->pVkBuffer, table->mMaxEntrySize, table->mMaxEntrySize,
+		table->pBuffer->pVkBuffer, table->mMaxEntrySize + table->mMissRecordSize, table->mMaxEntrySize,
+		VK_NULL_HANDLE, 0, 0,
+		pDesc->mWidth, pDesc->mHeight, 1
+	);
+}
+
+void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure) 
+{
+	ASSERT(pRaytracing);
+	ASSERT(pAccelerationStructure);
+
+	removeBuffer(pRaytracing->pRenderer, pAccelerationStructure->pASBuffer);
+	removeBuffer(pRaytracing->pRenderer, pAccelerationStructure->pInstanceDescBuffer);
+	removeBuffer(pRaytracing->pRenderer, pAccelerationStructure->pScratchBuffer);
+	vkDestroyAccelerationStructureNV(pRaytracing->pRenderer->pVkDevice, pAccelerationStructure->mAccelerationStructure, nullptr);
+
+	for (unsigned i = 0; i < pAccelerationStructure->mBottomASCount; ++i)
+	{
+		removeBuffer(pRaytracing->pRenderer, pAccelerationStructure->ppBottomAS[i].pASBuffer);
+		removeBuffer(pRaytracing->pRenderer, pAccelerationStructure->ppBottomAS[i].pVertexBuffer);
+		if (pAccelerationStructure->ppBottomAS[i].pIndexBuffer != nullptr)
+			removeBuffer(pRaytracing->pRenderer, pAccelerationStructure->ppBottomAS[i].pIndexBuffer);
+		conf_free(pAccelerationStructure->ppBottomAS[i].pGeometryDescs);
+		vkDestroyAccelerationStructureNV(pRaytracing->pRenderer->pVkDevice, pAccelerationStructure->ppBottomAS[i].pAccelerationStructure, nullptr);
+	}
+	conf_free(pAccelerationStructure->ppBottomAS);
+	conf_free(pAccelerationStructure);
+}
+
+void removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable) 
+{
+	ASSERT(pRaytracing);
+	ASSERT(pTable);
+
+	removeBuffer(pRaytracing->pRenderer, pTable->pBuffer);
+	pTable->~RaytracingShaderTable();
+	conf_free(pTable);
+}
+
+#if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)
+}
+#endif
+
+VkBuildAccelerationStructureFlagsNV util_to_vk_acceleration_structure_build_flags(AccelerationStructureBuildFlags flags)
+{
+	VkBuildAccelerationStructureFlagsNV ret = 0;
+	if (flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_COMPACTION)
+		ret |= VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_NV;
+	if (flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE)
+		ret |= VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_NV;
+	if (flags & ACCELERATION_STRUCTURE_BUILD_FLAG_MINIMIZE_MEMORY)
+		ret |= VK_BUILD_ACCELERATION_STRUCTURE_LOW_MEMORY_BIT_NV;
+	if (flags & ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE)
+		ret |= VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_NV;
+	if (flags & ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD)
+		ret |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_NV;
+	if (flags & ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE)
+		ret |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV;
+
+	return ret;
+}
+
+VkGeometryFlagsNV util_to_vk_geometry_flags(AccelerationStructureGeometryFlags flags)
+{
+	VkGeometryFlagsNV ret = 0;
+	if (flags & ACCELERATION_STRUCTURE_GEOMETRY_FLAG_OPAQUE)
+		ret |= VK_GEOMETRY_OPAQUE_BIT_NV;
+	if (flags & ACCELERATION_STRUCTURE_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION)
+		ret |= VK_GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_NV;
+
+	return ret;
+}
+
+VkGeometryInstanceFlagsNV util_to_vk_instance_flags(AccelerationStructureInstanceFlags flags)
+{
+	VkGeometryInstanceFlagsNV ret = 0;
+	if (flags & ACCELERATION_STRUCTURE_INSTANCE_FLAG_FORCE_OPAQUE)
+		ret |= VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_NV;
+	if (flags & ACCELERATION_STRUCTURE_INSTANCE_FLAG_FORCE_OPAQUE)
+		ret |= VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_NV;
+	if (flags & ACCELERATION_STRUCTURE_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE)
+		ret |= VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV;
+	if (flags & ACCELERATION_STRUCTURE_INSTANCE_FLAG_TRIANGLE_FRONT_COUNTERCLOCKWISE)
+		ret |= VK_GEOMETRY_INSTANCE_TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT_NV;
+
+	return ret;
+}
+
+void vk_addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPipeline)
+{
+	Pipeline* pResult = (Pipeline*)conf_calloc(1, sizeof(Pipeline));
+	conf_placement_new<Pipeline>(pResult);
+
+	pResult->mType = PIPELINE_TYPE_RAYTRACING;
+
+	eastl::vector<VkPipelineShaderStageCreateInfo> stages;
+	eastl::vector<VkRayTracingShaderGroupCreateInfoNV> groups;
+	eastl::vector<eastl::string>& stagesNames = pResult->mShadersStagesNames;
+	/************************************************************************/
+	// Generate Stage Names
+	/************************************************************************/
 	stages.clear();
 	stages.reserve(1 + pDesc->mMissShaderCount + pDesc->mHitGroupCount);
 	groups.clear();
@@ -1004,19 +813,9 @@ void GenerateStagesGroupsData(const RaytracingPipelineDesc* pDesc,
 			groups.push_back(groupInfo);
 		}
 	}
-}
-
-void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPipeline) 
-{
-	Pipeline* pResult = (Pipeline*)conf_calloc(1, sizeof(Pipeline));
-	conf_placement_new<Pipeline>(pResult);
-
-	//////////////////////////////////////////////////////////////////////////
-	//////////////////////////////////////////////////////////////////////////
-	eastl::vector<VkPipelineShaderStageCreateInfo> stages;
-	eastl::vector<VkRayTracingShaderGroupCreateInfoNV> groups;
-	GenerateStagesGroupsData(pDesc, stages, pResult->mShadersStagesNames, groups);
-
+	/************************************************************************/
+	// Create Pipeline
+	/************************************************************************/
 	VkRayTracingPipelineCreateInfoNV createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_NV;
 	createInfo.flags = 0;			//VkPipelineCreateFlagBits
@@ -1028,162 +827,35 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 	createInfo.layout = pDesc->pGlobalRootSignature->pPipelineLayout;
 	createInfo.basePipelineHandle = VK_NULL_HANDLE;
 	createInfo.basePipelineIndex = 0;
-	
-	vkCreateRayTracingPipelinesNV(pDesc->pRaytracing->pRenderer->pVkDevice, VK_NULL_HANDLE, 1, &createInfo, nullptr, &pResult->pVkPipeline);
+
+	VkResult vk_result = vkCreateRayTracingPipelinesNV(pDesc->pRaytracing->pRenderer->pVkDevice, VK_NULL_HANDLE, 1, &createInfo, nullptr, &pResult->pVkPipeline);
+	ASSERT(VK_SUCCESS == vk_result);
 
 	*ppPipeline = pResult;
 }
 
-extern VkPipelineBindPoint gPipelineBindPoint[PIPELINE_TYPE_COUNT];
-
-void get_descriptor_set_update_info(RootSignature* rootSignature, struct DescriptorBinder* pDescriptorPool,
-									const int setIndex, VkDescriptorUpdateTemplate* updateTemplate,
-									void** pUpdateData, uint32_t** pDynamicOffset,
-									VkDescriptorPool* pDescriptorPoolHeap);
-void get_descriptor_set(DescriptorBinder* pDescriptorBinder, Renderer* pRenderer, int setIndex, RootSignature* pRootSignature, VkDescriptorSet* pDescriptorSet);
-
-void cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatchDesc* pDesc)
+void vk_FillRaytracingDescriptorData(const AccelerationStructure* pAccelerationStructure, uint64_t* pHash, void* pHandle)
 {
-	vkCmdBindPipeline(pCmd->pVkCmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV, pDesc->pPipeline->pVkPipeline);
-	cmdBindDescriptors(pCmd, pDesc->pDescriptorBinder,
-						pDesc->pRootSignature,
-						pDesc->mRootSignatureDescriptorsCount,
-						pDesc->pRootSignatureDescriptorData);
+	VkWriteDescriptorSetAccelerationStructureNV* pWriteNV = (VkWriteDescriptorSetAccelerationStructureNV*)pHandle;
+	pWriteNV->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV;
+	pWriteNV->pNext = NULL;
+	pWriteNV->accelerationStructureCount = 1;
+	pWriteNV->pAccelerationStructures = &pAccelerationStructure->mAccelerationStructure;
 
-	//Here is the initial code to bind acceleration structure.
-	//It is required because cmdBindDescriptors do not support it yet
-	const uint32_t accelStructSetIndex = 1;
-	const uint32_t accelStructBindingPoint = 0;
-	void* pUpdateData = nullptr;
-	uint32_t* pDynamicOffset = nullptr;
-	VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
-	VkDescriptorUpdateTemplate updateTemplate = VK_NULL_HANDLE;
-	VkDescriptorSet descriptorSet = VK_NULL_HANDLE;
-
-	get_descriptor_set(pDesc->pDescriptorBinder, pRaytracing->pRenderer, accelStructSetIndex, pDesc->pRootSignature, &descriptorSet);
-	get_descriptor_set_update_info(pDesc->pRootSignature, pDesc->pDescriptorBinder, accelStructSetIndex,
-		&updateTemplate, &pUpdateData, &pDynamicOffset, &descriptorPool);
-
-	VkWriteDescriptorSetAccelerationStructureNV descriptorAccelerationStructureInfo;
-	descriptorAccelerationStructureInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV;
-	descriptorAccelerationStructureInfo.pNext = nullptr;
-	descriptorAccelerationStructureInfo.accelerationStructureCount = 1;
-	descriptorAccelerationStructureInfo.pAccelerationStructures = &pDesc->pTopLevelAccelerationStructure->mAccelerationStructure;
-
-	VkWriteDescriptorSet accelerationStructureWrite;
-	accelerationStructureWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	accelerationStructureWrite.pNext = &descriptorAccelerationStructureInfo; // Notice that pNext is assigned here!
-	accelerationStructureWrite.dstSet = descriptorSet;
-	accelerationStructureWrite.dstBinding = 0;
-	accelerationStructureWrite.dstArrayElement = 0;
-	accelerationStructureWrite.descriptorCount = 1;
-	accelerationStructureWrite.descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
-	accelerationStructureWrite.pImageInfo = nullptr;
-	accelerationStructureWrite.pBufferInfo = nullptr;
-	accelerationStructureWrite.pTexelBufferView = nullptr;
-	vkUpdateDescriptorSets(pRaytracing->pRenderer->pVkDevice, 1, &accelerationStructureWrite, 0, VK_NULL_HANDLE);
-	vkCmdBindDescriptorSets(pCmd->pVkCmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_NV,
-		pDesc->pRootSignature->pPipelineLayout, accelStructSetIndex, 1, &descriptorSet, 0, nullptr);
-
-	RaytracingShaderTable* table = pDesc->pShaderTable;
-	vkCmdTraceRaysNV(
-		pCmd->pVkCmdBuf,
-		table->pBuffer->pVkBuffer, 0,
-		table->pBuffer->pVkBuffer, table->mMaxEntrySize, table->mMaxEntrySize,
-		table->pBuffer->pVkBuffer, table->mMaxEntrySize + table->mMissRecordSize, table->mMaxEntrySize,
-		VK_NULL_HANDLE, 0, 0,
-		pDesc->mWidth, pDesc->mHeight, 1
-	);
+	*pHash = eastl::mem_hash<uint64_t>()(&pAccelerationStructure->pInstanceDescBuffer->mBufferId, 1, *pHash);
 }
-
-void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure) 
-{
-	ASSERT(pRaytracing);
-	ASSERT(pAccelerationStructure);
-
-	removeBuffer(pRaytracing->pRenderer, pAccelerationStructure->pASBuffer);
-	removeBuffer(pRaytracing->pRenderer, pAccelerationStructure->pInstanceDescBuffer);
-	removeBuffer(pRaytracing->pRenderer, pAccelerationStructure->pScratchBuffer);
-	vkDestroyAccelerationStructureNV(pRaytracing->pRenderer->pVkDevice, pAccelerationStructure->mAccelerationStructure, nullptr);
-
-	for (unsigned i = 0; i < pAccelerationStructure->mBottomASCount; ++i)
-	{
-		removeBuffer(pRaytracing->pRenderer, pAccelerationStructure->ppBottomAS[i].pASBuffer);
-		removeBuffer(pRaytracing->pRenderer, pAccelerationStructure->ppBottomAS[i].pVertexBuffer);
-		if (pAccelerationStructure->ppBottomAS[i].pIndexBuffer != nullptr)
-			removeBuffer(pRaytracing->pRenderer, pAccelerationStructure->ppBottomAS[i].pIndexBuffer);
-		conf_free(pAccelerationStructure->ppBottomAS[i].pGeometryDescs);
-		vkDestroyAccelerationStructureNV(pRaytracing->pRenderer->pVkDevice, pAccelerationStructure->ppBottomAS[i].pAccelerationStructure, nullptr);
-	}
-	conf_free(pAccelerationStructure->ppBottomAS);
-	conf_free(pAccelerationStructure);
-}
-
-void removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable) 
-{
-	ASSERT(pRaytracing);
-	ASSERT(pTable);
-
-	removeBuffer(pRaytracing->pRenderer, pTable->pBuffer);
-	pTable->~RaytracingShaderTable();
-	conf_free(pTable);
-}
-
-
-VkBuildAccelerationStructureFlagsNV util_to_vk_acceleration_structure_build_flags(AccelerationStructureBuildFlags flags)
-{
-	VkBuildAccelerationStructureFlagsNV ret = 0;
-	if (flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_COMPACTION)
-		ret |= VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_COMPACTION_BIT_NV;
-	if (flags & ACCELERATION_STRUCTURE_BUILD_FLAG_ALLOW_UPDATE)
-		ret |= VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_NV;
-	if (flags & ACCELERATION_STRUCTURE_BUILD_FLAG_MINIMIZE_MEMORY)
-		ret |= VK_BUILD_ACCELERATION_STRUCTURE_LOW_MEMORY_BIT_NV;
-	if (flags & ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE)
-		ret |= VK_BUILD_ACCELERATION_STRUCTURE_ALLOW_UPDATE_BIT_NV;
-	if (flags & ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_BUILD)
-		ret |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_BUILD_BIT_NV;
-	if (flags & ACCELERATION_STRUCTURE_BUILD_FLAG_PREFER_FAST_TRACE)
-		ret |= VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV;
-
-	return ret;
-}
-
-VkGeometryFlagsNV util_to_vk_geometry_flags(AccelerationStructureGeometryFlags flags)
-{
-	VkGeometryFlagsNV ret = 0;
-	if (flags & ACCELERATION_STRUCTURE_GEOMETRY_FLAG_OPAQUE)
-		ret |= VK_GEOMETRY_OPAQUE_BIT_NV;
-	if (flags & ACCELERATION_STRUCTURE_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION)
-		ret |= VK_GEOMETRY_NO_DUPLICATE_ANY_HIT_INVOCATION_BIT_NV;
-
-	return ret;
-}
-
-VkGeometryInstanceFlagsNV util_to_vk_instance_flags(AccelerationStructureInstanceFlags flags)
-{
-	VkGeometryInstanceFlagsNV ret = 0;
-	if (flags & ACCELERATION_STRUCTURE_INSTANCE_FLAG_FORCE_OPAQUE)
-		ret |= VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_NV;
-	if (flags & ACCELERATION_STRUCTURE_INSTANCE_FLAG_FORCE_OPAQUE)
-		ret |= VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_NV;
-	if (flags & ACCELERATION_STRUCTURE_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE)
-		ret |= VK_GEOMETRY_INSTANCE_TRIANGLE_CULL_DISABLE_BIT_NV;
-	if (flags & ACCELERATION_STRUCTURE_INSTANCE_FLAG_TRIANGLE_FRONT_COUNTERCLOCKWISE)
-		ret |= VK_GEOMETRY_INSTANCE_TRIANGLE_FRONT_COUNTERCLOCKWISE_BIT_NV;
-
-	return ret;
-}
-
 #else
+#if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)
+namespace vk {
+#endif
 
-bool isRaytracingSupported(Renderer* pRenderer) {
+bool isRaytracingSupported(Renderer* pRenderer)
+{
 	return false;
 }
 
 bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 {
-	*ppRaytracing = NULL;
 	return false;
 }
 
@@ -1191,22 +863,15 @@ void removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
 {
 }
 
-/// pScratchBufferSize - Holds the size of scratch buffer to be passed to cmdBuildAccelerationStructure
 void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, AccelerationStructure** ppAccelerationStructure)
 {
-	*ppAccelerationStructure = NULL;
 }
 
-void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+void cmdBuildTopAS(Cmd* pCmd, Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
 {
 }
 
-void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTableDesc* pDesc, RaytracingShaderTable** ppTable)
-{
-	*ppTable = NULL;
-}
-
-void removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable)
+void cmdBuildBottomAS(Cmd* pCmd, Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure, unsigned bottomASIndex)
 {
 }
 
@@ -1214,8 +879,24 @@ void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, Raytracin
 {
 }
 
+void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTableDesc* pDesc, RaytracingShaderTable** ppTable)
+{
+}
+
 void cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatchDesc* pDesc)
 {
 }
 
+void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure)
+{
+}
+
+void removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable)
+{
+}
+
+#if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)
+}
+#endif
+#endif
 #endif

@@ -36,7 +36,7 @@
 #include "../../ThirdParty/OpenSource/EASTL/sort.h"
 #include "../../ThirdParty/OpenSource/EASTL/string.h"
 #include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
-#include "../../OS/Interfaces/ILogManager.h"
+#include "../../OS/Interfaces/ILog.h"
 #include "../IRenderer.h"
 #include "../../OS/Core/RingBuffer.h"
 #include "../../ThirdParty/OpenSource/winpixeventruntime/Include/WinPixEventRuntime/pix3.h"
@@ -97,7 +97,10 @@ extern "C"
 #endif
 
 #include "Direct3D12MemoryAllocator.h"
-#include "../../OS/Interfaces/IMemoryManager.h"
+#include "../../OS/Interfaces/IMemory.h"
+
+#define D3D12_GPU_VIRTUAL_ADDRESS_NULL ((D3D12_GPU_VIRTUAL_ADDRESS)0)
+#define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN ((D3D12_GPU_VIRTUAL_ADDRESS)-1)
 
 extern void
 			d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection);
@@ -109,20 +112,13 @@ extern long d3d12_createTexture(
 	MemoryAllocator* pAllocator, const TextureCreateInfo* pCreateInfo, const AllocatorMemoryRequirements* pMemoryRequirements,
 	Texture* pTexture);
 extern void d3d12_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pTexture);
-extern void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPipeline);
-extern void addRaytracingRootSignature(
-	Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount, bool local, RootSignature** ppRootSignature,
-	const RootSignatureDesc* pRootDesc = NULL);
 
 //stubs for durango because Direct3D12Raytracing.cpp is not used on XBOX
-#ifdef _DURANGO
-void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPipeline) {}
-
-void addRaytracingRootSignature(
-	Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount, bool local, RootSignature** ppRootSignature,
-	const RootSignatureDesc* pRootDesc)
-{
-}
+#if defined(ENABLE_RAYTRACING)
+extern void d3d12_addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPipeline);
+extern void d3d12_fillRaytracingRootDescriptorData(AccelerationStructure* pAccelerationStructure, D3D12_GPU_VIRTUAL_ADDRESS* pAddress);
+extern void d3d12_fillRaytracingDescriptorHandle(AccelerationStructure* pAccelerationStructure, uint64_t* pHandle, uint64_t* pHash);
+extern void d3d12_cmdBindRaytracingPipeline(Cmd* pCmd, Pipeline* pPipeline);
 #endif
 
 // clang-format off
@@ -478,16 +474,14 @@ PFN_HOOK_RESOURCE_FLAGS                    fnHookResourceFlags = NULL;
 /************************************************************************/
 // Descriptor Heap Defines
 /************************************************************************/
-#define D3D12_GPU_VIRTUAL_ADDRESS_NULL ((D3D12_GPU_VIRTUAL_ADDRESS)0)
-#define D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN ((D3D12_GPU_VIRTUAL_ADDRESS)-1)
-
 typedef struct DescriptorHeapProperties
 {
 	uint32_t                    mMaxDescriptors;
 	D3D12_DESCRIPTOR_HEAP_FLAGS mFlags;
 } DescriptorHeapProperties;
 
-DescriptorHeapProperties gCpuDescriptorHeapProperties[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] = {
+DescriptorHeapProperties gCpuDescriptorHeapProperties[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES] =
+{
 	{ 1024 * 256, D3D12_DESCRIPTOR_HEAP_FLAG_NONE },    // CBV SRV UAV
 	{ 2048, D3D12_DESCRIPTOR_HEAP_FLAG_NONE },          // Sampler
 	{ 512, D3D12_DESCRIPTOR_HEAP_FLAG_NONE },           // RTV
@@ -1209,7 +1203,7 @@ typedef struct UpdateFrequencyLayoutInfo
 {
 	eastl::vector<DescriptorInfo*>                  mCbvSrvUavTable;
 	eastl::vector<DescriptorInfo*>                  mSamplerTable;
-	eastl::vector<DescriptorInfo*>                  mConstantParams;
+	eastl::vector<DescriptorInfo*>                  mRootDescriptorParams;
 	eastl::vector<DescriptorInfo*>                  mRootConstants;
 	eastl::unordered_map<DescriptorInfo*, uint32_t> mDescriptorIndexMap;
 } UpdateFrequencyLayoutInfo;
@@ -1225,7 +1219,7 @@ uint32_t calculate_root_signature_size(UpdateFrequencyLayoutInfo* pLayouts, uint
 		if ((uint32_t)pLayouts[i].mSamplerTable.size())
 			size += gDescriptorTableDWORDS;
 
-		for (uint32_t c = 0; c < (uint32_t)pLayouts[i].mConstantParams.size(); ++c)
+		for (uint32_t c = 0; c < (uint32_t)pLayouts[i].mRootDescriptorParams.size(); ++c)
 		{
 			size += gRootDescriptorDWORDS;
 		}
@@ -1288,7 +1282,7 @@ void create_descriptor_table_1_0(
 void create_root_descriptor(const DescriptorInfo* pDesc, D3D12_ROOT_PARAMETER1* pRootParam)
 {
 	pRootParam->ShaderVisibility = util_to_dx_shader_visibility(pDesc->mDesc.used_stages);
-	pRootParam->ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	pRootParam->ParameterType = pDesc->mDxType;
 	pRootParam->Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_DATA_STATIC;
 	pRootParam->Descriptor.ShaderRegister = pDesc->mDesc.reg;
 	pRootParam->Descriptor.RegisterSpace = pDesc->mDesc.set;
@@ -1298,7 +1292,7 @@ void create_root_descriptor(const DescriptorInfo* pDesc, D3D12_ROOT_PARAMETER1* 
 void create_root_descriptor_1_0(const DescriptorInfo* pDesc, D3D12_ROOT_PARAMETER* pRootParam)
 {
 	pRootParam->ShaderVisibility = util_to_dx_shader_visibility(pDesc->mDesc.used_stages);
-	pRootParam->ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+	pRootParam->ParameterType = pDesc->mDxType;
 	pRootParam->Descriptor.ShaderRegister = pDesc->mDesc.reg;
 	pRootParam->Descriptor.RegisterSpace = pDesc->mDesc.set;
 }
@@ -1569,7 +1563,7 @@ D3D12_SHADER_VISIBILITY util_to_dx_shader_visibility(ShaderStage stages)
 	D3D12_SHADER_VISIBILITY res = D3D12_SHADER_VISIBILITY_ALL;
 	uint32_t                stageCount = 0;
 
-	if (stages & SHADER_STAGE_COMP)
+	if (stages == SHADER_STAGE_COMP)
 	{
 		return D3D12_SHADER_VISIBILITY_ALL;
 	}
@@ -1598,6 +1592,12 @@ D3D12_SHADER_VISIBILITY util_to_dx_shader_visibility(ShaderStage stages)
 		res = D3D12_SHADER_VISIBILITY_PIXEL;
 		++stageCount;
 	}
+#ifdef ENABLE_RAYTRACING
+	if (stages == SHADER_STAGE_RAYTRACING)
+	{
+		return D3D12_SHADER_VISIBILITY_ALL;
+	}
+#endif
 	ASSERT(stageCount > 0);
 	return stageCount > 1 ? D3D12_SHADER_VISIBILITY_ALL : res;
 }
@@ -1613,6 +1613,9 @@ D3D12_DESCRIPTOR_RANGE_TYPE util_to_dx_descriptor_range(DescriptorType type)
 		case DESCRIPTOR_TYPE_RW_BUFFER:
 		case DESCRIPTOR_TYPE_RW_TEXTURE: return D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
 		case DESCRIPTOR_TYPE_SAMPLER: return D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
+#ifdef ENABLE_RAYTRACING
+		case DESCRIPTOR_TYPE_RAY_TRACING: return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+#endif
 		default: ASSERT("Invalid DescriptorInfo Type"); return (D3D12_DESCRIPTOR_RANGE_TYPE)-1;
 	}
 }
@@ -3889,12 +3892,16 @@ void compileShader(
 			case SHADER_STAGE_GEOM: target.sprintf("gs_%d_%d", major, minor); break;
 			case SHADER_STAGE_FRAG: target.sprintf("ps_%d_%d", major, minor); break;
 			case SHADER_STAGE_COMP: target.sprintf("cs_%d_%d", major, minor); break;
-			case SHADER_STAGE_LIB:
+#ifdef ENABLE_RAYTRACING
+			case SHADER_STAGE_RAYTRACING:
 			{
 				target.sprintf("lib_%d_%d", major, minor);
 				ASSERT(shaderTarget >= shader_target_6_3);
 				break;
 			}
+#else
+			return;
+#endif
 			default: break;
 		}
 		WCHAR* wTarget = (WCHAR*)alloca((target.size() + 1) * sizeof(WCHAR));
@@ -4134,18 +4141,19 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 				case SHADER_STAGE_COMP: { pStage = &pDesc->mComp;
 				}
 				break;
-				case SHADER_STAGE_LIB: { pStage = &pDesc->mComp;
+#ifdef ENABLE_RAYTRACING
+				case SHADER_STAGE_RAYTRACING: { pStage = &pDesc->mComp;
 				}
 				break;
+#endif
 			}
 
 			D3DCreateBlob(pStage->mByteCodeSize, &blobs[reflectionCount]);
 			memcpy(blobs[reflectionCount]->GetBufferPointer(), pStage->pByteCode, pStage->mByteCodeSize);
 
-			if (stage_mask != SHADER_STAGE_LIB)
-				d3d12_createShaderReflection(
-					(uint8_t*)(blobs[reflectionCount]->GetBufferPointer()), (uint32_t)blobs[reflectionCount]->GetBufferSize(), stage_mask,
-					&pShaderProgram->mReflection.mStageReflections[reflectionCount]);
+			d3d12_createShaderReflection(
+				(uint8_t*)(blobs[reflectionCount]->GetBufferPointer()), (uint32_t)blobs[reflectionCount]->GetBufferSize(), stage_mask,
+				&pShaderProgram->mReflection.mStageReflections[reflectionCount]);
 
 			WCHAR* entryPointName = (WCHAR*)conf_calloc(pStage->mEntryPoint.size() + 1, sizeof(WCHAR));
 			mbstowcs((WCHAR*)entryPointName, pStage->mEntryPoint.c_str(), pStage->mEntryPoint.size());
@@ -4189,7 +4197,7 @@ void removeShader(Renderer* pRenderer, Shader* pShaderProgram)
 /************************************************************************/
 // Root Signature Functions
 /************************************************************************/
-void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
+void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
 {
 	ASSERT(pRenderer->pActiveGpuSettings->mMaxRootSignatureDWORDS > 0);
 
@@ -4221,6 +4229,11 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 
 		if (pReflection->mShaderStages & SHADER_STAGE_COMP)
 			pRootSignature->mPipelineType = PIPELINE_TYPE_COMPUTE;
+#ifdef ENABLE_RAYTRACING
+		// All raytracing shader bindings use the SetComputeXXX methods to bind descriptors
+		else if (pReflection->mShaderStages == SHADER_STAGE_RAYTRACING)
+			pRootSignature->mPipelineType = PIPELINE_TYPE_COMPUTE;
+#endif
 		else
 			pRootSignature->mPipelineType = PIPELINE_TYPE_GRAPHICS;
 
@@ -4290,7 +4303,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 
 				for (ShaderResource& res : shaderResources)
 				{
-					if (res.name == it->first)
+					if (strcmp(res.name, it->first) == 0)
 					{
 						res.used_stages |= pRes->used_stages;
 						break;
@@ -4375,10 +4388,18 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 				// By default DESCRIPTOR_TYPE_UNIFORM_BUFFER maps to D3D12_ROOT_PARAMETER_TYPE_CBV
 				// But since the size of root descriptors is 2 DWORDS, some of these uniform buffers might get placed in descriptor tables
 				// if the size of the root signature goes over the max recommended size on the specific hardware
-				layouts[setIndex].mConstantParams.emplace_back(pDesc);
+				layouts[setIndex].mRootDescriptorParams.emplace_back(pDesc);
 				pDesc->mDxType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 			}
 		}
+#ifdef ENABLE_RAYTRACING
+		// No support for arrays of srv buffers to be used as root descriptors as this might bloat the root signature size
+		else if (pDesc->mDesc.type == DESCRIPTOR_TYPE_RAY_TRACING && pDesc->mDesc.size == 1)
+		{
+			layouts[setIndex].mRootDescriptorParams.emplace_back(pDesc);
+			pDesc->mDxType = D3D12_ROOT_PARAMETER_TYPE_SRV;
+		}
+#endif
 		else
 		{
 			layouts[setIndex].mCbvSrvUavTable.emplace_back(pDesc);
@@ -4406,7 +4427,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 					   calculate_root_signature_size(layouts.data(), (uint32_t)layouts.size()) &&
 				   convertIt >= endIt)
 			{
-				layout.mConstantParams.push_back(*convertIt);
+				layout.mRootDescriptorParams.push_back(*convertIt);
 				layout.mRootConstants.erase(eastl::find(layout.mRootConstants.begin(), layout.mRootConstants.end(), *convertIt));
 				(*convertIt)->mDxType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 
@@ -4420,7 +4441,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 		// in descriptor tables of the same update frequency
 		for (uint32_t i = 0; i < (uint32_t)layouts.size(); ++i)
 		{
-			if (!layouts[i].mConstantParams.size())
+			if (!layouts[i].mRootDescriptorParams.size())
 				continue;
 
 			UpdateFrequencyLayoutInfo& layout = layouts[i];
@@ -4428,14 +4449,14 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 			while (pRenderer->pActiveGpuSettings->mMaxRootSignatureDWORDS <
 				   calculate_root_signature_size(layouts.data(), (uint32_t)layouts.size()))
 			{
-				if (!layout.mConstantParams.size())
+				if (!layout.mRootDescriptorParams.size())
 					break;
-				DescriptorInfo** constantIt = layout.mConstantParams.end() - 1;
-				DescriptorInfo** endIt = layout.mConstantParams.begin();
-				if ((constantIt != endIt) || (constantIt == layout.mConstantParams.begin() && endIt == layout.mConstantParams.begin()))
+				DescriptorInfo** constantIt = layout.mRootDescriptorParams.end() - 1;
+				DescriptorInfo** endIt = layout.mRootDescriptorParams.begin();
+				if ((constantIt != endIt) || (constantIt == layout.mRootDescriptorParams.begin() && endIt == layout.mRootDescriptorParams.begin()))
 				{
 					layout.mCbvSrvUavTable.push_back(*constantIt);
-					layout.mConstantParams.erase(eastl::find(layout.mConstantParams.begin(), layout.mConstantParams.end(), *constantIt));
+					layout.mRootDescriptorParams.erase(eastl::find(layout.mRootDescriptorParams.begin(), layout.mRootDescriptorParams.end(), *constantIt));
 
 					LOGF(
 						LogLevel::eWARNING,
@@ -4495,7 +4516,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 	for (uint32_t i = 0; i < (uint32_t)layouts.size(); ++i)
 	{
 		pRootSignature->mDxRootConstantCount += (uint32_t)layouts[i].mRootConstants.size();
-		pRootSignature->mDxRootDescriptorCount += (uint32_t)layouts[i].mConstantParams.size();
+		pRootSignature->mDxRootDescriptorCount += (uint32_t)layouts[i].mRootDescriptorParams.size();
 	}
 	if (pRootSignature->mDxRootConstantCount)
 		pRootSignature->pDxRootConstantRootIndices =
@@ -4513,11 +4534,11 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 	for (uint32_t i = (uint32_t)layouts.size(); i-- > 0U;)
 	{
 		UpdateFrequencyLayoutInfo& layout = layouts[i];
-		if (layout.mConstantParams.size())
+		if (layout.mRootDescriptorParams.size())
 		{
-			for (uint32_t descIndex = 0; descIndex < (uint32_t)layout.mConstantParams.size(); ++descIndex)
+			for (uint32_t descIndex = 0; descIndex < (uint32_t)layout.mRootDescriptorParams.size(); ++descIndex)
 			{
-				DescriptorInfo* pDesc = layout.mConstantParams[descIndex];
+				DescriptorInfo* pDesc = layout.mRootDescriptorParams[descIndex];
 				pDesc->mIndexInParent = rootDescriptorIndex;
 				pRootSignature->pDxRootDescriptorRootIndices[pDesc->mIndexInParent] = (uint32_t)rootParams.size();
 
@@ -4687,6 +4708,10 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 		rootSignatureFlags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_GEOMETRY_SHADER_ROOT_ACCESS;
 	if (!(shaderStages & SHADER_STAGE_FRAG))
 		rootSignatureFlags |= D3D12_ROOT_SIGNATURE_FLAG_DENY_PIXEL_SHADER_ROOT_ACCESS;
+#ifdef ENABLE_RAYTRACING
+	if (pRootSignatureDesc->mFlags & ROOT_SIGNATURE_FLAG_LOCAL_BIT)
+		rootSignatureFlags |= D3D12_ROOT_SIGNATURE_FLAG_LOCAL_ROOT_SIGNATURE;
+#endif
 
 	ID3DBlob* error_msgs = NULL;
 #ifdef _DURANGO
@@ -4764,34 +4789,6 @@ void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 	SAFE_RELEASE(pRootSignature->pDxSerializedRootSignatureString);
 
 	SAFE_FREE(pRootSignature);
-}
-
-void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
-{
-	switch (pRootSignatureDesc->mSignatureType)
-	{
-		case (ROOT_SIGNATURE_GRAPHICS_COMPUTE):
-		{
-			addGraphicsComputeRootSignature(pRenderer, pRootSignatureDesc, ppRootSignature);
-			break;
-		}
-		case (ROOT_SIGNATURE_RAYTRACING_EMPTY):
-		{
-			addRaytracingRootSignature(
-				pRenderer, pRootSignatureDesc->pRaytracingShaderResources, pRootSignatureDesc->pRaytracingResourcesCount, true,
-				ppRootSignature, pRootSignatureDesc);
-			break;
-		}
-		case (ROOT_SIGNATURE_RAYTRACING_GLOBAL):
-		{
-			addRaytracingRootSignature(
-				pRenderer, pRootSignatureDesc->pRaytracingShaderResources, pRootSignatureDesc->pRaytracingResourcesCount, false,
-				ppRootSignature, pRootSignatureDesc);
-			break;
-		}
-		default: { ASSERT(false);
-		}
-	}
 }
 /************************************************************************/
 // Pipeline State Functions
@@ -5090,11 +5087,13 @@ void addPipeline(Renderer* pRenderer, const PipelineDesc* p_pipeline_settings, P
 			addPipeline(pRenderer, &p_pipeline_settings->mGraphicsDesc, pp_pipeline);
 			break;
 		}
+#ifdef ENABLE_RAYTRACING
 		case (PIPELINE_TYPE_RAYTRACING):
 		{
-			addRaytracingPipeline(&p_pipeline_settings->mRaytracingDesc, pp_pipeline);
+			d3d12_addRaytracingPipeline(&p_pipeline_settings->mRaytracingDesc, pp_pipeline);
 			break;
 		}
+#endif
 		default:
 		{
 			ASSERT(false);
@@ -5111,6 +5110,9 @@ void removePipeline(Renderer* pRenderer, Pipeline* pPipeline)
 
 	//delete pipeline from device
 	SAFE_RELEASE(pPipeline->pDxPipelineState);
+#ifdef ENABLE_RAYTRACING
+	SAFE_RELEASE(pPipeline->pDxrPipeline);
+#endif
 
 	SAFE_FREE(pPipeline);
 }
@@ -5454,14 +5456,22 @@ void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 
 	//bind given pipeline
 	ASSERT(pCmd->pDxCmdList);
-	ASSERT(pPipeline->pDxPipelineState);
 
 	if (pPipeline->mType == PIPELINE_TYPE_GRAPHICS)
 	{
 		pCmd->pDxCmdList->IASetPrimitiveTopology(pPipeline->mDxPrimitiveTopology);
 	}
-
-	pCmd->pDxCmdList->SetPipelineState(pPipeline->pDxPipelineState);
+#ifdef ENABLE_RAYTRACING
+	if (pPipeline->mType == PIPELINE_TYPE_RAYTRACING)
+	{
+		d3d12_cmdBindRaytracingPipeline(pCmd, pPipeline);
+	}
+	else
+#endif
+	{
+		ASSERT(pPipeline->pDxPipelineState);
+		pCmd->pDxCmdList->SetPipelineState(pPipeline->pDxPipelineState);
+	}
 }
 
 void cmdBindIndexBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t offset)
@@ -5711,6 +5721,20 @@ void cmdBindDescriptors(
 			}
 			continue;
 		}
+		else if (pDesc->mDxType == D3D12_ROOT_PARAMETER_TYPE_SRV)
+		{
+#ifdef ENABLE_RAYTRACING
+			ASSERT(pDesc->mDesc.type == DESCRIPTOR_TYPE_RAY_TRACING);
+
+			D3D12_GPU_VIRTUAL_ADDRESS srv = D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN;
+			d3d12_fillRaytracingRootDescriptorData(pParam->ppAccelerationStructures[0], &srv);
+			ASSERT(srv != D3D12_GPU_VIRTUAL_ADDRESS_UNKNOWN);
+
+			pCmd->pDxCmdList->SetComputeRootShaderResourceView(
+				pRootSignature->pDxRootDescriptorRootIndices[pDesc->mIndexInParent], srv);
+#endif
+			continue;
+		}
 
 		node->mBoundSamplerTables[setIndex] = false;
 		node->mBoundCbvSrvUavTables[setIndex] = false;
@@ -5915,6 +5939,29 @@ void cmdBindDescriptors(
 
 				break;
 			}
+#ifdef ENABLE_RAYTRACING
+			case DESCRIPTOR_TYPE_RAY_TRACING:
+			{
+				if (!pParam->ppAccelerationStructures)
+				{
+					LOGF(LogLevel::eERROR, "Acceleration Structure descriptor (%s) is NULL", pParam->pName);
+					return;
+				}
+				for (uint32_t j = 0; j < arrayCount; ++j)
+				{
+					if (!pParam->ppAccelerationStructures[j])
+					{
+						LOGF(LogLevel::eERROR, "Acceleration Structure descriptor (%s) at array index (%u) is NULL", pParam->pName, j);
+						return;
+					}
+
+					d3d12_fillRaytracingDescriptorHandle(pParam->ppAccelerationStructures[j],
+						&node->pViewDescriptorHandles[setIndex][pDesc->mHandleIndex + j].ptr, &pCbvSrvUavHash[setIndex]);
+				}
+
+				break;
+			}
+#endif
 			default: break;
 		}
 	}

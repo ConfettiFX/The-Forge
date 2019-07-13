@@ -35,9 +35,9 @@
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 // Interfaces
-#include "../../../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../../../Common_3/OS/Interfaces/ITimeManager.h"
+#include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
@@ -52,7 +52,7 @@
 #include "../../../../Common_3/OS/Input/InputMappings.h"
 
 // Memory
-#include "../../../../Common_3/OS/Interfaces/IMemoryManager.h"    // NOTE: should be the last include in a .cpp!
+#include "../../../../Common_3/OS/Interfaces/IMemory.h"    // NOTE: should be the last include in a .cpp!
 
 // Define App directories
 const char* pszBases[FSR_Count] = {

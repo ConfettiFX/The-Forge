@@ -25,10 +25,10 @@
 #include "../../ThirdParty/OpenSource/EASTL/deque.h"
 
 #include "../Interfaces/IThread.h"
-#include "../Interfaces/ILogManager.h"
+#include "../Interfaces/ILog.h"
 
 #include "ThreadSystem.h"
-#include "../Interfaces/IMemoryManager.h"
+#include "../Interfaces/IMemory.h"
 
 struct ThreadedTask
 {
@@ -56,6 +56,28 @@ struct ThreadSystem
 	volatile bool              mRun;
 };
 
+bool assistThreadSystem(ThreadSystem* pThreadSystem)
+{
+	pThreadSystem->mQueueMutex.Acquire();
+	if (!pThreadSystem->mLoadQueue.empty())
+	{
+		ThreadedTask resourceTask = pThreadSystem->mLoadQueue.front();
+		if (resourceTask.mStart + 1 == resourceTask.mEnd)
+			pThreadSystem->mLoadQueue.pop_front();
+		else
+			++pThreadSystem->mLoadQueue.front().mStart;
+		pThreadSystem->mQueueMutex.Release();
+		resourceTask.mTask(resourceTask.mUser, resourceTask.mStart);
+
+		return true;
+	}
+	else
+	{
+		pThreadSystem->mQueueMutex.Release();
+		return false;
+	}
+}
+
 static void taskThreadFunc(void* pThreadData)
 {
 	ThreadSystem* pThreadSystem = (ThreadSystem*)pThreadData;
@@ -65,7 +87,7 @@ static void taskThreadFunc(void* pThreadData)
 		++pThreadSystem->mNumIdleLoaders;
 		while (pThreadSystem->mRun && pThreadSystem->mLoadQueue.empty())
 		{
-			pThreadSystem->mIdleCond.SetAll();
+			pThreadSystem->mIdleCond.WakeAll();
 			pThreadSystem->mQueueCond.Wait(pThreadSystem->mQueueMutex);
 		}
 		--pThreadSystem->mNumIdleLoaders;
@@ -86,7 +108,7 @@ static void taskThreadFunc(void* pThreadData)
 	}
 	pThreadSystem->mQueueMutex.Acquire();
 	++pThreadSystem->mNumIdleLoaders;
-	pThreadSystem->mIdleCond.SetAll();
+	pThreadSystem->mIdleCond.WakeAll();
 	pThreadSystem->mQueueMutex.Release();
 }
 
@@ -117,7 +139,7 @@ void addThreadSystemTask(ThreadSystem* pThreadSystem, TaskFunc task, void* user,
 	pThreadSystem->mQueueMutex.Acquire();
 	pThreadSystem->mLoadQueue.emplace_back(ThreadedTask{ task, user, index, index+1 });
 	pThreadSystem->mQueueMutex.Release();
-	pThreadSystem->mQueueCond.Set();
+	pThreadSystem->mQueueCond.WakeOne();
 }
 
 void addThreadSystemRangeTask(ThreadSystem* pThreadSystem, TaskFunc task, void* user, uintptr_t count)
@@ -125,7 +147,7 @@ void addThreadSystemRangeTask(ThreadSystem* pThreadSystem, TaskFunc task, void* 
 	pThreadSystem->mQueueMutex.Acquire();
 	pThreadSystem->mLoadQueue.emplace_back(ThreadedTask{ task, user, 0, count });
 	pThreadSystem->mQueueMutex.Release();
-	pThreadSystem->mQueueCond.Set();
+	pThreadSystem->mQueueCond.WakeOne();
 }
 
 void addThreadSystemRangeTask(ThreadSystem* pThreadSystem, TaskFunc task, void* user, uintptr_t start, uintptr_t end)
@@ -133,7 +155,7 @@ void addThreadSystemRangeTask(ThreadSystem* pThreadSystem, TaskFunc task, void* 
 	pThreadSystem->mQueueMutex.Acquire();
 	pThreadSystem->mLoadQueue.emplace_back(ThreadedTask{ task, user, start, end });
 	pThreadSystem->mQueueMutex.Release();
-	pThreadSystem->mQueueCond.Set();
+	pThreadSystem->mQueueCond.WakeOne();
 }
 
 void shutdownThreadSystem(ThreadSystem* pThreadSystem)
@@ -141,7 +163,7 @@ void shutdownThreadSystem(ThreadSystem* pThreadSystem)
 	pThreadSystem->mQueueMutex.Acquire();
 	pThreadSystem->mRun = false;
 	pThreadSystem->mQueueMutex.Release();
-	pThreadSystem->mQueueCond.SetAll();
+	pThreadSystem->mQueueCond.WakeAll();
 
 	uint32_t numLoaders = pThreadSystem->mNumLoaders;
 	for (uint32_t i = 0; i < numLoaders; ++i)

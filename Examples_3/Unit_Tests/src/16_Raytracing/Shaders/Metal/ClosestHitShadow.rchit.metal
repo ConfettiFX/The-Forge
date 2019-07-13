@@ -17,7 +17,7 @@ kernel void chsShadow(uint2 tid                     [[thread_position_in_grid]],
                       device uint *hitGroupID                 [[buffer(7)]],
                       device ShaderSettings &shaderSettings   [[buffer(8)]],
                       
-                      texture2d<float, access::write> dstTex  [[texture(0)]])
+                      texture2d<float, access::write> gOutput  [[texture(0)]])
 {
     if (tid.x < uniforms.width && tid.y < uniforms.height) {
         unsigned int rayIdx = tid.y * uniforms.width + tid.x;
@@ -48,7 +48,7 @@ kernel void chsShadow(uint2 tid                     [[thread_position_in_grid]],
             
             
             // Clear the destination image to black
-            dstTex.write(float4(0.8 * pload.color, 1.0f), tid);
+            gOutput.write(float4(0.8 * pload.color, 1.0f), tid);
         }
 
     }

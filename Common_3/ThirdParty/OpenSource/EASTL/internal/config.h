@@ -166,6 +166,13 @@
 	#endif
 #endif
 
+//FORGE_EASTL_CHANGES_START
+#if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1900)
+	#define EASTL_VARIABLE_TEMPLATES_ENABLED 1
+#else
+	#define EASTL_VARIABLE_TEMPLATES_ENABLED 0
+#endif
+//FORGE_EASTL_CHANGES_END
 
 ///////////////////////////////////////////////////////////////////////////////
 // EASTL namespace

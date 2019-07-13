@@ -29,7 +29,7 @@ freely, subject to the following restrictions:
 
 /* SoLoud Lookup Table Generator (c)2015 Jari Komppa http://iki.fi/sol/ */
 
-#include "../../../../OS/Interfaces/IMemoryManager.h"
+#include "../../../../OS/Interfaces/IMemory.h"
 
 int Soloud_fft_bitrev_10[1024] = {
 0, 512, 256, 768, 128, 640, 384, 896, 64, 576, 320, 832, 192, 704, 448, 

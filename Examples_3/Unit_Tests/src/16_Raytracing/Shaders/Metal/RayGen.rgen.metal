@@ -22,9 +22,9 @@ kernel void rayGen(uint2 tid                     [[thread_position_in_grid]],
                       // used for writable data or data which will only be used by a single thread.
                       device Ray *rays              [[buffer(0)]],
                       constant Uniforms & uniforms  [[buffer(1)]],
-                      constant RayGenConfigBlock & configBlock [[buffer(10)]],
+                      constant RayGenConfigBlock & gSettings [[buffer(10)]],
                    
-                      texture2d<float, access::write> dstTex  [[texture(0)]] )
+                      texture2d<float, access::write> gOutput  [[texture(0)]] )
 {
     // Since we aligned the thread count to the threadgroup size, the thread index may be out of bounds
     // of the render target size.
@@ -44,7 +44,7 @@ kernel void rayGen(uint2 tid                     [[thread_position_in_grid]],
         float2 d = ((crd / dims) * 2.f - 1.f);
         float aspectRatio = dims.x / dims.y;
         
-        ray.origin = configBlock.mCameraPosition;//float3(0, 0, -2);
+        ray.origin = gSettings.mCameraPosition;//float3(0, 0, -2);
         ray.direction = normalize(float3(d.x * aspectRatio, -d.y, 1.0f));
 
         // The camera emits primary rays
@@ -55,6 +55,6 @@ kernel void rayGen(uint2 tid                     [[thread_position_in_grid]],
         //Set this to 0 when you configure ray in Hit/Miss shader. Set 1 in raygen shader.
         ray.isPrimaryRay = 1;
         //cleanup
-        dstTex.write(float4(0.0, 0.0, 0.0, 0.0f), tid);
+        gOutput.write(float4(0.0, 0.0, 0.0, 0.0f), tid);
     }
 }

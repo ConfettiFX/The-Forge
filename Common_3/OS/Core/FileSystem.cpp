@@ -23,7 +23,7 @@
 */
 
 #include "../Interfaces/IFileSystem.h"
-#include "../Interfaces/ILogManager.h"
+#include "../Interfaces/ILog.h"
 
 #ifdef __APPLE__
 #include <unistd.h>
@@ -45,7 +45,7 @@
 #include <sys/wait.h>
 #include <dirent.h>
 #endif
-#include "../Interfaces/IMemoryManager.h"
+#include "../Interfaces/IMemory.h"
 
 void translateFileAccessFlags(FileMode modeFlags, char* fileAccesString, int strLength)
 {

@@ -219,19 +219,6 @@ MonitorDesc* getMonitor(uint32_t index);
 float2       getDpiScale();
 
 bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes);
-
-// Time related functions
-unsigned getSystemTime();
-unsigned getTimeSinceStart();
-
-#ifdef _WIN32
-void sleep(unsigned mSec);
-#endif
-
-// High res timer functions
-int64_t getUSec();
-int64_t getTimerFrequency();
-
 //
 // failure research ...
 //

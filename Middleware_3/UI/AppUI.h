@@ -26,7 +26,7 @@
 #include "../../Common_3/Renderer/IRenderer.h"
 #include "../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../Common_3/OS/Interfaces/IMiddleware.h"
-#include "../../Common_3/OS/Interfaces/ILogManager.h"
+#include "../../Common_3/OS/Interfaces/ILog.h"
 #include "../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 #include "../Text/Fontstash.h"

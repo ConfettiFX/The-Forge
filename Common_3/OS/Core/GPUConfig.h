@@ -2,7 +2,7 @@
 
 #ifndef TARGET_IOS
 #include "../../ThirdParty/OpenSource/EASTL/string.h"
-#include "../Interfaces/ILogManager.h"
+#include "../Interfaces/ILog.h"
 #include "../Interfaces/IFileSystem.h"
 #include "../../Renderer/IRenderer.h"
 

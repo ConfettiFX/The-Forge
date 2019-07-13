@@ -78,13 +78,13 @@ static const char * g_hackSemanticList[] =
 #include "../IRenderer.h"
 #include "../../ThirdParty/OpenSource/EASTL/functional.h"
 #include "../../ThirdParty/OpenSource/EASTL/sort.h"
-#include "../../OS/Interfaces/ILogManager.h"
+#include "../../OS/Interfaces/ILog.h"
 #include "../../ThirdParty/OpenSource/VulkanMemoryAllocator/VulkanMemoryAllocator.h"
 #include "../../OS/Core/Atomics.h"
 #include "../../OS/Core/GPUConfig.h"
 #include "../../OS/Image/Image.h"
 
-#include "../../OS/Interfaces/IMemoryManager.h"
+#include "../../OS/Interfaces/IMemory.h"
 
 extern void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection);
 extern long vk_createBuffer(
@@ -95,9 +95,11 @@ extern long vk_createTexture(
 	MemoryAllocator* pAllocator, const TextureCreateInfo* pCreateInfo, const AllocatorMemoryRequirements* pMemoryRequirements,
 	Texture* pTexture);
 extern void vk_destroyTexture(MemoryAllocator* pAllocator, struct Texture* pTexture);
-extern void addRaytracingRootSignature(Renderer* pRenderer, const ShaderResource* pResources, uint32_t resourceCount,
-	bool local, RootSignature** ppRootSignature, const RootSignatureDesc* pRootDesc = NULL);
-extern void addRaytracingPipeline(const RaytracingPipelineDesc*, Pipeline**);
+
+#ifdef ENABLE_RAYTRACING
+extern void vk_addRaytracingPipeline(const RaytracingPipelineDesc*, Pipeline**);
+extern void vk_FillRaytracingDescriptorData(const AccelerationStructure* pAccelerationStructure, uint64_t* pHash, void* pWriteNV);
+#endif
 
 // clang-format off
 VkBlendOp gVkBlendOpTranslator[BlendMode::MAX_BLEND_MODES] =
@@ -387,7 +389,7 @@ const char* gVkWantedDeviceExtensions[] =
 	/************************************************************************/
 	// Raytracing
 	/************************************************************************/
-#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
+#ifdef ENABLE_RAYTRACING
 	VK_NV_RAY_TRACING_EXTENSION_NAME,
 #endif
 	/************************************************************************/
@@ -529,7 +531,7 @@ VkPipelineBindPoint gPipelineBindPoint[PIPELINE_TYPE_COUNT] = {
 	VK_PIPELINE_BIND_POINT_MAX_ENUM,
 	VK_PIPELINE_BIND_POINT_COMPUTE,
 	VK_PIPELINE_BIND_POINT_GRAPHICS,
-#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
+#ifdef ENABLE_RAYTRACING
 	VK_PIPELINE_BIND_POINT_RAY_TRACING_NV
 #endif
 };
@@ -575,6 +577,7 @@ typedef struct DescriptorBinderNode
 
 	uint32_t              mFrameIdx;
 
+	uint32_t              mRaytracingDescriptorCount[DESCRIPTOR_UPDATE_FREQ_COUNT];
 } DescriptorBinderNode;
 
 using DescriptorBinderMap = eastl::hash_map<const RootSignature*, DescriptorBinderNode*>;
@@ -643,26 +646,6 @@ typedef struct FrameBuffer
 	uint32_t      mHeight;
 	uint32_t      mArraySize;
 } FrameBuffer;
-
-void get_descriptor_set_update_info(RootSignature* rootSignature, DescriptorBinder* pDescriptorBinder,
-	const int setIndex, VkDescriptorUpdateTemplate* updateTemplate,
-	void** pUpdateData, uint32_t** pDynamicOffset,
-	VkDescriptorPool* pDescriptorPoolHeap)
-{
-	DescriptorBinderNode* node = pDescriptorBinder->mRootSignatureNodes.find(rootSignature)->second;
-
-	if (updateTemplate != nullptr)
-		*updateTemplate = node->mUpdateTemplates[setIndex];
-
-	if (pUpdateData != nullptr)
-		*pUpdateData = node->pUpdateData[setIndex];
-
-	if (pDynamicOffset != nullptr)
-		*pDynamicOffset = node->pDynamicOffsets[setIndex];
-
-	if (pDescriptorPoolHeap != nullptr)
-		*pDescriptorPoolHeap = pDescriptorBinder->pDescriptorPool->pCurrentHeap;
-}
 
 static void add_render_pass(Renderer* pRenderer, const RenderPassDesc* pDesc, RenderPass** ppRenderPass)
 {
@@ -1018,7 +1001,7 @@ static void create_default_resources(Renderer* pRenderer)
 		textureDesc.mNodeIndex = i;
 		textureDesc.mArraySize = 1;
 		textureDesc.mDepth = 1;
-		textureDesc.mFormat = ImageFormat::R8;
+		textureDesc.mFormat = ImageFormat::RGBA8;
 		textureDesc.mHeight = 1;
 		textureDesc.mMipLevels = 1;
 		textureDesc.mSampleCount = SAMPLE_COUNT_1;
@@ -1476,12 +1459,12 @@ VkBufferUsageFlags util_to_vk_buffer_usage(DescriptorType usage, bool typed)
 	{
 		result |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 	}
+#ifdef ENABLE_RAYTRACING
 	if (usage & DESCRIPTOR_TYPE_RAY_TRACING)
 	{
-#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
 		result |= VK_BUFFER_USAGE_RAY_TRACING_BIT_NV;
-#endif
 	}
+#endif
 	return result;
 }
 
@@ -1646,6 +1629,9 @@ VkDescriptorType util_to_vk_descriptor_type(DescriptorType type)
 		case DESCRIPTOR_TYPE_INPUT_ATTACHMENT: return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
 		case DESCRIPTOR_TYPE_TEXEL_BUFFER: return VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
 		case DESCRIPTOR_TYPE_RW_TEXEL_BUFFER: return VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
+#ifdef ENABLE_RAYTRACING
+		case DESCRIPTOR_TYPE_RAY_TRACING: return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV;
+#endif
 		default:
 			ASSERT("Invalid DescriptorInfo Type");
 			return VK_DESCRIPTOR_TYPE_MAX_ENUM;
@@ -1669,6 +1655,16 @@ VkShaderStageFlags util_to_vk_shader_stage_flags(ShaderStage stages)
 		res |= VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
 	if (stages & SHADER_STAGE_COMP)
 		res |= VK_SHADER_STAGE_COMPUTE_BIT;
+#ifdef ENABLE_RAYTRACING
+	if (stages & SHADER_STAGE_RAYTRACING)
+		res |= (
+			VK_SHADER_STAGE_RAYGEN_BIT_NV |
+			VK_SHADER_STAGE_ANY_HIT_BIT_NV |
+			VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV |
+			VK_SHADER_STAGE_MISS_BIT_NV |
+			VK_SHADER_STAGE_INTERSECTION_BIT_NV |
+			VK_SHADER_STAGE_CALLABLE_BIT_NV);
+#endif
 
 	ASSERT(res != 0);
 	return res;
@@ -2011,7 +2007,7 @@ static void AddDevice(Renderer* pRenderer)
 		subgroupProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SUBGROUP_PROPERTIES;
 		subgroupProperties.pNext = NULL;
 
-#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
+#ifdef ENABLE_RAYTRACING
 		pRenderer->mVkRaytracingProperties[i].sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_NV;
 		pRenderer->mVkRaytracingProperties[i].pNext = &subgroupProperties;
 
@@ -2023,7 +2019,7 @@ static void AddDevice(Renderer* pRenderer)
 #endif
 		vkGetPhysicalDeviceProperties2(pRenderer->pVkGPUs[i], &(pRenderer->mVkGpuProperties[i]));
 
-#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
+#ifdef ENABLE_RAYTRACING
 		pRenderer->mVkRaytracingProperties[i].pNext = nullptr;
 #endif
 
@@ -2107,7 +2103,7 @@ static void AddDevice(Renderer* pRenderer)
 	pRenderer->pVkActiveGPUProperties = &pRenderer->mVkGpuProperties[gpuIndex];
 	pRenderer->pVkActiveGpuMemoryProperties = &pRenderer->mVkGpuMemoryProperties[gpuIndex];
 	pRenderer->pActiveGpuSettings = &pRenderer->mGpuSettings[gpuIndex];
-#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
+#ifdef ENABLE_RAYTRACING
 	pRenderer->pVkActiveCPURaytracingProperties = &pRenderer->mVkRaytracingProperties[gpuIndex];
 #endif
 	ASSERT(VK_NULL_HANDLE != pRenderer->pVkActiveGPU);
@@ -2340,6 +2336,20 @@ static void RemoveDevice(Renderer* pRenderer)
 	}
 
 	vkDestroyDevice(pRenderer->pVkDevice, NULL);
+}
+
+VkDeviceMemory get_vk_device_memory(Renderer* pRenderer, Buffer* pBuffer)
+{
+	VmaAllocationInfo allocInfo = {};
+	vmaGetAllocationInfo(pRenderer->pVmaAllocator, pBuffer->pVkAllocation, &allocInfo);
+	return allocInfo.deviceMemory;
+}
+
+uint64_t get_vk_device_memory_offset(Renderer* pRenderer, Buffer* pBuffer)
+{
+	VmaAllocationInfo allocInfo = {};
+	vmaGetAllocationInfo(pRenderer->pVmaAllocator, pBuffer->pVkAllocation, &allocInfo);
+	return (uint64_t)allocInfo.offset;
 }
 
 #if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)
@@ -2914,7 +2924,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 		}
 		if (i < swapChainImageCount)
 		{
-			present_mode = mode;
+            present_mode = mode;
 			break;
 		}
 	}
@@ -3819,7 +3829,7 @@ void addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCo
 	{
 		if (descriptorHeapPoolSizes[i].descriptorCount == 0) 
 		{
-#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
+#ifdef ENABLE_RAYTRACING
 			if (i <= VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT)
 				descriptorHeapPoolSizes[i].type = (VkDescriptorType)i;
 			else
@@ -3873,6 +3883,7 @@ void addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCo
 			if (rootSignature->mVkDescriptorCounts[setIndex])
 			{
 				VkDescriptorUpdateTemplateEntry* pEntries = (VkDescriptorUpdateTemplateEntry*)alloca(rootSignature->mVkDescriptorCounts[setIndex] * sizeof(VkDescriptorUpdateTemplateEntry));
+				uint32_t entryCount = 0;
 
 				node->pDefaultUpdateData[setIndex] = (DescriptorUpdateData*)conf_calloc(rootSignature->mVkCumulativeDescriptorCounts[setIndex], sizeof(DescriptorUpdateData));
 
@@ -3881,6 +3892,14 @@ void addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCo
 				{
 					const DescriptorInfo* pDesc = &rootSignature->pDescriptors[rootSignature->pVkDescriptorIndices[setIndex][i]];
 					const uint64_t        offset = pDesc->mHandleIndex * sizeof(DescriptorUpdateData);
+
+#ifdef ENABLE_RAYTRACING
+					if (pDesc->mDesc.type == DESCRIPTOR_TYPE_RAY_TRACING)
+					{
+						node->mRaytracingDescriptorCount[setIndex] += pDesc->mDesc.size;
+						continue;
+					}
+#endif
 
 					pEntries[i].descriptorCount = pDesc->mDesc.size;
 					pEntries[i].descriptorType = pDesc->mVkType;
@@ -3943,13 +3962,15 @@ void addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCo
 						for (uint32_t arr = 0; arr < pDesc->mDesc.size; ++arr)
 							node->pDefaultUpdateData[setIndex][pDesc->mHandleIndex + arr].mBufferInfo = bufferDescriptor;
 					}
+
+					++entryCount;
 				}
 
 				VkDescriptorUpdateTemplateCreateInfoKHR createInfo = {};
 				createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_UPDATE_TEMPLATE_CREATE_INFO_KHR;
 				createInfo.pNext = NULL;
 				createInfo.descriptorSetLayout = rootSignature->mVkDescriptorSetLayouts[setIndex];
-				createInfo.descriptorUpdateEntryCount = rootSignature->mVkDescriptorCounts[setIndex];
+				createInfo.descriptorUpdateEntryCount = entryCount;
 				createInfo.pDescriptorUpdateEntries = pEntries;
 				createInfo.pipelineBindPoint = gPipelineBindPoint[rootSignature->mPipelineType];
 				createInfo.pipelineLayout = rootSignature->pPipelineLayout;
@@ -4055,7 +4076,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 				case SHADER_STAGE_VERT:
 				{
 					vk_createShaderReflection(
-						(const uint8_t*)pDesc->mVert.pByteCode, (uint32_t)pDesc->mVert.mByteCodeSize, SHADER_STAGE_VERT,
+						(const uint8_t*)pDesc->mVert.pByteCode, (uint32_t)pDesc->mVert.mByteCodeSize, stage_mask,
 						&stageReflections[counter]);
 
 					create_info.codeSize = pDesc->mVert.mByteCodeSize;
@@ -4068,7 +4089,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 				case SHADER_STAGE_TESC:
 				{
 					vk_createShaderReflection(
-						(const uint8_t*)pDesc->mHull.pByteCode, (uint32_t)pDesc->mHull.mByteCodeSize, SHADER_STAGE_TESC,
+						(const uint8_t*)pDesc->mHull.pByteCode, (uint32_t)pDesc->mHull.mByteCodeSize, stage_mask,
 						&stageReflections[counter]);
 
 					create_info.codeSize = pDesc->mHull.mByteCodeSize;
@@ -4081,7 +4102,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 				case SHADER_STAGE_TESE:
 				{
 					vk_createShaderReflection(
-						(const uint8_t*)pDesc->mDomain.pByteCode, (uint32_t)pDesc->mDomain.mByteCodeSize, SHADER_STAGE_TESE,
+						(const uint8_t*)pDesc->mDomain.pByteCode, (uint32_t)pDesc->mDomain.mByteCodeSize, stage_mask,
 						&stageReflections[counter]);
 
 					create_info.codeSize = pDesc->mDomain.mByteCodeSize;
@@ -4094,7 +4115,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 				case SHADER_STAGE_GEOM:
 				{
 					vk_createShaderReflection(
-						(const uint8_t*)pDesc->mGeom.pByteCode, (uint32_t)pDesc->mGeom.mByteCodeSize, SHADER_STAGE_GEOM,
+						(const uint8_t*)pDesc->mGeom.pByteCode, (uint32_t)pDesc->mGeom.mByteCodeSize, stage_mask,
 						&stageReflections[counter]);
 
 					create_info.codeSize = pDesc->mGeom.mByteCodeSize;
@@ -4107,7 +4128,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 				case SHADER_STAGE_FRAG:
 				{
 					vk_createShaderReflection(
-						(const uint8_t*)pDesc->mFrag.pByteCode, (uint32_t)pDesc->mFrag.mByteCodeSize, SHADER_STAGE_FRAG,
+						(const uint8_t*)pDesc->mFrag.pByteCode, (uint32_t)pDesc->mFrag.mByteCodeSize, stage_mask,
 						&stageReflections[counter]);
 
 					create_info.codeSize = pDesc->mFrag.mByteCodeSize;
@@ -4118,20 +4139,14 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 				}
 				break;
 				case SHADER_STAGE_COMP:
+#ifdef ENABLE_RAYTRACING
+				case SHADER_STAGE_RAYTRACING:
+#endif
 				{
 					vk_createShaderReflection(
-						(const uint8_t*)pDesc->mComp.pByteCode, (uint32_t)pDesc->mComp.mByteCodeSize, SHADER_STAGE_COMP,
+						(const uint8_t*)pDesc->mComp.pByteCode, (uint32_t)pDesc->mComp.mByteCodeSize, stage_mask,
 						&stageReflections[counter]);
 
-					create_info.codeSize = pDesc->mComp.mByteCodeSize;
-					create_info.pCode = (const uint32_t*)pDesc->mComp.pByteCode;
-					pStageDesc = &pDesc->mComp;
-					VkResult vk_res = vkCreateShaderModule(pRenderer->pVkDevice, &create_info, NULL, &(modules[counter]));
-					ASSERT(VK_SUCCESS == vk_res);
-				}
-				break;
-				case SHADER_STAGE_LIB:
-				{
 					create_info.codeSize = pDesc->mComp.mByteCodeSize;
 					create_info.pCode = (const uint32_t*)pDesc->mComp.pByteCode;
 					pStageDesc = &pDesc->mComp;
@@ -4190,11 +4205,12 @@ void removeShader(Renderer* pRenderer, Shader* pShaderProgram)
 	{
 		vkDestroyShaderModule(pRenderer->pVkDevice, pShaderProgram->pShaderModules[0], NULL);
 	}
-
-	if (pShaderProgram->mStages & SHADER_STAGE_LIB)
+#ifdef ENABLE_RAYTRACING
+	if (pShaderProgram->mStages & SHADER_STAGE_RAYTRACING)
 	{
 		vkDestroyShaderModule(pRenderer->pVkDevice, pShaderProgram->pShaderModules[0], NULL);
 	}
+#endif
 
 	destroyPipelineReflection(&pShaderProgram->mReflection);
 	pShaderProgram->~Shader();
@@ -4216,7 +4232,7 @@ typedef struct UpdateFrequencyLayoutInfo
 	eastl::hash_map<DescriptorInfo*, uint32_t> mDescriptorIndexMap;
 } UpdateFrequencyLayoutInfo;
 
-void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
+void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
 {
 	RootSignature* pRootSignature = (RootSignature*)conf_calloc(1, sizeof(*pRootSignature));
 
@@ -4224,7 +4240,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 
 	eastl::vector<UpdateFrequencyLayoutInfo> layouts(DESCRIPTOR_UPDATE_FREQ_COUNT);
 	eastl::vector<DescriptorInfo*>           pushConstantDescriptors;
-	eastl::vector<ShaderResource const*>     shaderResources;
+	eastl::vector<ShaderResource>            shaderResources;
 
 	eastl::hash_map<eastl::string, Sampler*> staticSamplerMap;
 	eastl::vector<eastl::string>                  dynamicUniformBuffers;
@@ -4244,6 +4260,10 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 
 		if (pReflection->mShaderStages & SHADER_STAGE_COMP)
 			pRootSignature->mPipelineType = PIPELINE_TYPE_COMPUTE;
+#ifdef ENABLE_RAYTRACING
+		else if (pReflection->mShaderStages & SHADER_STAGE_RAYTRACING)
+			pRootSignature->mPipelineType = PIPELINE_TYPE_RAYTRACING;
+#endif
 		else
 			pRootSignature->mPipelineType = PIPELINE_TYPE_GRAPHICS;
 
@@ -4260,11 +4280,11 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 			if (it == pRootSignature->pDescriptorNameToIndexMap.end())
 			{
 				pRootSignature->pDescriptorNameToIndexMap.insert(pRes->name, (uint32_t)shaderResources.size());
-				shaderResources.emplace_back(pRes);
+				shaderResources.emplace_back(*pRes);
 			}
 			else
 			{
-				if (shaderResources[it->second]->reg != pRes->reg)
+				if (shaderResources[it->second].reg != pRes->reg)
 				{
 					ErrorMsg(
 						"\nFailed to create root signature\n"
@@ -4274,7 +4294,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 						pRes->name);
 					return;
 				}
-				if (shaderResources[it->second]->set != pRes->set)
+				if (shaderResources[it->second].set != pRes->set)
 				{
 					ErrorMsg(
 						"\nFailed to create root signature\n"
@@ -4283,6 +4303,15 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 						"must have the same binding and set",
 						pRes->name);
 					return;
+				}
+
+				for (ShaderResource& res : shaderResources)
+				{
+					if (strcmp(res.name, it->first) == 0)
+					{
+						res.used_stages |= pRes->used_stages;
+						break;
+					}
 				}
 			}
 		}
@@ -4298,7 +4327,7 @@ void addGraphicsComputeRootSignature(Renderer* pRenderer, const RootSignatureDes
 	for (uint32_t i = 0; i < (uint32_t)shaderResources.size(); ++i)
 	{
 		DescriptorInfo*           pDesc = &pRootSignature->pDescriptors[i];
-		ShaderResource const*     pRes = shaderResources[i];
+		ShaderResource const*     pRes = &shaderResources[i];
 		uint32_t                  setIndex = pRes->set;
 		DescriptorUpdateFrequency updateFreq = (DescriptorUpdateFrequency)setIndex;
 
@@ -4510,42 +4539,6 @@ void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 	vkDestroyPipelineLayout(pRenderer->pVkDevice, pRootSignature->pPipelineLayout, NULL);
 
 	SAFE_FREE(pRootSignature);
-}
-
-void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
-{
-	switch (pRootSignatureDesc->mSignatureType)
-	{
-	case(ROOT_SIGNATURE_GRAPHICS_COMPUTE):
-	{
-		addGraphicsComputeRootSignature(pRenderer, pRootSignatureDesc, ppRootSignature);
-		break;
-	}
-	case(ROOT_SIGNATURE_RAYTRACING_EMPTY):
-	{
-#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
-		addRaytracingRootSignature(pRenderer, pRootSignatureDesc->pRaytracingShaderResources, pRootSignatureDesc->pRaytracingResourcesCount,
-			true, ppRootSignature, pRootSignatureDesc);
-#else
-		*ppRootSignature = NULL;
-#endif
-		break;
-	}
-	case(ROOT_SIGNATURE_RAYTRACING_GLOBAL):
-	{
-#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
-		addRaytracingRootSignature(pRenderer, pRootSignatureDesc->pRaytracingShaderResources, pRootSignatureDesc->pRaytracingResourcesCount,
-			false, ppRootSignature, pRootSignatureDesc);
-#else
-		*ppRootSignature = NULL;
-#endif
-		break;
-	}
-	default:
-	{
-		ASSERT(false);
-	}
-	}
 }
 
 #ifdef FORGE_JHABLE_EDITS_V01
@@ -5084,15 +5077,13 @@ void addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPi
 			addGraphicsPipelineImpl(pRenderer, &pDesc->mGraphicsDesc, ppPipeline);
 			break;
 		}
+#ifdef ENABLE_RAYTRACING
 		case(PIPELINE_TYPE_RAYTRACING):
 		{
-#ifdef VK_NV_RAY_TRACING_SPEC_VERSION
-			addRaytracingPipeline(&pDesc->mRaytracingDesc, ppPipeline);
-#else
-			*ppPipeline = NULL;
-#endif
+			vk_addRaytracingPipeline(&pDesc->mRaytracingDesc, ppPipeline);
 			break;
 		}
+#endif
 		default:
 		{
 			ASSERT(false);
@@ -5502,9 +5493,7 @@ void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 	ASSERT(pPipeline);
 	ASSERT(pCmd->pVkCmdBuf != VK_NULL_HANDLE);
 
-	VkPipelineBindPoint pipeline_bind_point =
-		(pPipeline->mType == PIPELINE_TYPE_COMPUTE) ? VK_PIPELINE_BIND_POINT_COMPUTE : VK_PIPELINE_BIND_POINT_GRAPHICS;
-
+	VkPipelineBindPoint pipeline_bind_point = gPipelineBindPoint[pPipeline->mType];
 	vkCmdBindPipeline(pCmd->pVkCmdBuf, pipeline_bind_point, pPipeline->pVkPipeline);
 }
 
@@ -5584,20 +5573,6 @@ void cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t
 	vkCmdDispatch(pCmd->pVkCmdBuf, groupCountX, groupCountY, groupCountZ);
 }
 
-void get_descriptor_set(DescriptorBinder* pDescriptorBinder, Renderer* pRenderer, int setIndex,
-	RootSignature* pRootSignature, VkDescriptorSet* pDescriptorSet)
-{
-	DescriptorBinderNode* node = pDescriptorBinder->mRootSignatureNodes.find(pRootSignature)->second;
-	if (node->pEmptyDescriptorSets[setIndex] == VK_NULL_HANDLE)
-	{
-		VkDescriptorSet* pSets[] = { &node->pEmptyDescriptorSets[setIndex] };
-		consume_descriptor_sets_lock_free(
-			pRenderer, &pRootSignature->mVkDescriptorSetLayouts[setIndex], pSets, 1, pDescriptorBinder->pDescriptorPool);
-		
-	}
-	*pDescriptorSet = node->pEmptyDescriptorSets[setIndex];
-}
-
 void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams)
 {
 	ASSERT(pDescriptorBinder);
@@ -5609,12 +5584,23 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 	DescriptorBinderNode* node = pDescriptorBinder->mRootSignatureNodes.find(pRootSignature)->second;
 	const VkDeviceSize    maxUniformRange = (VkDeviceSize)pRenderer->pVkActiveGPUProperties->properties.limits.maxUniformBufferRange;
 
+#ifdef ENABLE_RAYTRACING
+	VkWriteDescriptorSet* raytracingWrites[setCount] = {};
+	VkWriteDescriptorSetAccelerationStructureNV* raytracingWritesNV[setCount] = {};
+	uint32_t raytracingWriteCount[setCount] = {};
+
 	// Logic to detect beginning of a new frame so we dont run this code everytime user calls cmdBindDescriptors
 	for (uint32_t setIndex = 0; setIndex < setCount; ++setIndex)
 	{
 		// Reset other data
 		node->mBoundSets[setIndex] = true;
+		if (node->mRaytracingDescriptorCount[setIndex])
+		{
+			raytracingWrites[setIndex] = (VkWriteDescriptorSet*)alloca(node->mRaytracingDescriptorCount[setIndex] * sizeof(VkWriteDescriptorSet));
+			raytracingWritesNV[setIndex] = (VkWriteDescriptorSetAccelerationStructureNV*)alloca(node->mRaytracingDescriptorCount[setIndex] * sizeof(VkWriteDescriptorSetAccelerationStructureNV));
+		}
 	}
+#endif
 
 	pCmd->pBoundDescriptorBinder = pDescriptorBinder;
 
@@ -5730,8 +5716,8 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 				}
 
 				pHash[setIndex] = eastl::mem_hash<uint64_t>()(&pParam->ppTextures[i]->mTextureId, 1, pHash[setIndex]);
-				uint32_t bindStencilResource = (uint32_t)pParam->mBindStencilResource;	// Needed to meet alignment requirements
-				pHash[setIndex] = eastl::mem_hash<uint32_t>()(&bindStencilResource, 1, pHash[setIndex]);
+				uint64_t bindStencilResource = (uint64_t)pParam->mBindStencilResource;	// Needed to meet alignment requirements
+				pHash[setIndex] = eastl::mem_hash<uint64_t>()(&bindStencilResource, 1, pHash[setIndex]);
 
 				// Store the new descriptor so we can use it in vkUpdateDescriptorSet later
 				if(!pParam->mBindStencilResource)
@@ -5829,6 +5815,30 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 		}
 		else
 		{
+#ifdef ENABLE_RAYTRACING
+			if (pDesc->mDesc.type == DESCRIPTOR_TYPE_RAY_TRACING)
+			{
+				for (uint32_t i = 0; i < arrayCount; ++i)
+				{
+					VkWriteDescriptorSet* pWrite = raytracingWrites[setIndex] + raytracingWriteCount[setIndex];
+					VkWriteDescriptorSetAccelerationStructureNV* pWriteNV = raytracingWritesNV[setIndex] + raytracingWriteCount[setIndex];
+
+					pWrite->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+					pWrite->pNext = pWriteNV;
+					pWrite->descriptorCount = 1;
+					pWrite->descriptorType = pDesc->mVkType;
+					pWrite->dstArrayElement = i;
+					pWrite->dstBinding = pDesc->mDesc.reg;
+
+					vk_FillRaytracingDescriptorData(pParam->ppAccelerationStructures[i], pHash, pWriteNV);
+
+					++raytracingWriteCount[setIndex];
+				}
+
+				continue;
+			}
+#endif
+
 			if (!pParam->ppBuffers)
 			{
 				LOGF(LogLevel::eERROR, "Buffer descriptor (%s) is NULL", pParam->pName);
@@ -5909,6 +5919,19 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 
 				pDescriptorSet = node->pDescriptorSets_FrameFreqUsage[frameIdx][setIndex][descriptorSetSlotToUse];
 				vkUpdateDescriptorSetWithTemplateKHR(pRenderer->pVkDevice, pDescriptorSet, node->mUpdateTemplates[setIndex], node->pUpdateData[setIndex]);
+
+#ifdef ENABLE_RAYTRACING
+				// Raytracing Update Descriptor Set since it does not support update template
+				if (raytracingWriteCount[setIndex])
+				{
+					for (uint32_t i = 0; i < raytracingWriteCount[setIndex]; ++i)
+					{
+						raytracingWrites[setIndex][i].dstSet = pDescriptorSet;
+					}
+
+					vkUpdateDescriptorSets(pRenderer->pVkDevice, raytracingWriteCount[setIndex], raytracingWrites[setIndex], 0, NULL);
+				}
+#endif
 
 				if (setIndex != DESCRIPTOR_UPDATE_FREQ_PER_DRAW)
 				{
@@ -6693,20 +6716,6 @@ void setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
 		vkDebugMarkerSetObjectNameEXT(pRenderer->pVkDevice, &nameInfo);
 #endif
 	}
-}
-
-VkDeviceMemory get_vk_device_memory(Renderer* pRenderer, Buffer* pBuffer)
-{
-	VmaAllocationInfo allocInfo = {};
-	vmaGetAllocationInfo(pRenderer->pVmaAllocator, pBuffer->pVkAllocation, &allocInfo);
-	return allocInfo.deviceMemory;
-}
-
-uint64_t get_vk_device_memory_offset(Renderer* pRenderer, Buffer* pBuffer)
-{
-	VmaAllocationInfo allocInfo = {};
-	vmaGetAllocationInfo(pRenderer->pVmaAllocator, pBuffer->pVkAllocation, &allocInfo);
-	return (uint64_t)allocInfo.offset;
 }
 #endif
 #if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)

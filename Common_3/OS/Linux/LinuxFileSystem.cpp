@@ -25,7 +25,7 @@
 #ifdef __linux__
 
 #include "../Interfaces/IFileSystem.h"
-#include "../Interfaces/ILogManager.h"
+#include "../Interfaces/ILog.h"
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IThread.h"
 
@@ -38,7 +38,7 @@
 #include <linux/limits.h>    //PATH_MAX declaration
 #include <dirent.h>
 
-#include "../Interfaces/IMemoryManager.h"
+#include "../Interfaces/IMemory.h"
 
 #define MAX_PATH PATH_MAX
 
