@@ -53,7 +53,7 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 # News
 
 ## Release 1.31 - July 12th - Metal 2.2 | More Android Support | Discord Channel | User Group Meetings | Support for Education
-* macOS / iOS - we are now supporting Metal 2.2 on those platforms. The macOS version of the Visibility Buffer now uses `primitive_id` argument that allows to use indexed geometry similar to the Vulkan and DirectX 12 versions. There is a significantly increase in performance and reduction in memory consumption
+* macOS / iOS - we are now supporting Metal 2.2 on those platforms. The macOS version of the Visibility Buffer now uses primitive_id argument that allows to use indexed geometry similar to the Vulkan and DirectX 12 versions. There is a significantly increase in performance and reduction in memory consumption
   * Debug labels for buffers and textures now present in frame captures;
   * cmdSynchronizeResources for MacOS and iOS;
   * Minor fixes in GPU synchronization with memory barriers
@@ -103,8 +103,8 @@ alt="Twitter" width="20" height="20" border="0" /> Join the Discord channel at h
         Oshawa, ON, L1H 7K4
  ```
 * Writing Guidelines - For contributions to The Forge we apply the following writing guidelines:
- * We limit now all code to C++ 11 by setting the Clang and other compiler flags
- * We follow the [Orthodox C++ guidelines] (https://gist.github.com/bkaradzic/2e39896bc7d8c34e042b) minus C++ 14 support (see above)
+  * We limit now all code to C++ 11 by setting the Clang and other compiler flags
+  * We follow the [Orthodox C++ guidelines] (https://gist.github.com/bkaradzic/2e39896bc7d8c34e042b) minus C++ 14 support (see above)
 
 
 
