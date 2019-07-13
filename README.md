@@ -8,9 +8,9 @@ The Forge is a cross-platform rendering framework supporting
      * DirectX 11 Fallback Layer for Windows 7 support (not extensively tested)
   * Linux Ubuntu 18.04 LTS with Vulkan 1.1 and RTX Ray Tracing API
 - Android Pie with Vulkan 1.1
-- macOS / iOS / iPad OS with Metal 2
+- macOS / iOS / iPad OS with Metal 2.2
 - XBOX One / XBOX One X (only available for accredited developers on request)
-- PS4 (only available for accredited developers on request)
+- PS4 / PS4 Pro (only available for accredited developers on request)
 - Switch (in development) (only available for accredited developers on request)
 - Google Stadia (in development) (only available for accredited developers on request)
 
@@ -38,16 +38,75 @@ The Forge can be used to provide the rendering layer for custom next-gen game en
 
 Please find a link and credits for all open-source packages used at the end of this readme.
 
+<a href="https://discord.gg/hJS54bz" target="_blank"><img src="Screenshots/Discord.png" 
+alt="Twitter" width="20" height="20" border="0" /> Join the Discord channel at https://discord.gg/hJS54bz</a>
 
 <a href="https://twitter.com/TheForge_FX?lang=en" target="_blank"><img src="Screenshots/twitter.png" 
 alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://twitter.com/TheForge_FX?lang=en</a>
  
+
 # Build Status 
 
 * Windows [![Build status](https://ci.appveyor.com/api/projects/status/leqbpaqtqj549yhh/branch/master?svg=true)](https://ci.appveyor.com/project/wolfgangfengel/the-forge/branch/master)
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+
+## Release 1.31 - July 12th - Metal 2.2 | More Android Support | Discord Channel | User Group Meetings | Support for Education
+* macOS / iOS - we are now supporting Metal 2.2 on those platforms. The macOS version of the Visibility Buffer now uses `primitive_id` argument that allows to use indexed geometry similar to the Vulkan and DirectX 12 versions. There is a significantly increase in performance and reduction in memory consumption
+  * Debug labels for buffers and textures now present in frame captures;
+  * cmdSynchronizeResources for MacOS and iOS;
+  * Minor fixes in GPU synchronization with memory barriers
+  * Minor fixes in ArgumentBuffers implementation
+
+Please note that we use the early beta system and XCode versions for development. So there might some instabilities.
+
+Here is a screenshot: Macbook Pro 2017 with Radeon Pro 560 3360x2100 resolution
+![Visibility Buffer with Metal 2.2](Screenshots/Visibility_Buffer_macOS.png)
+
+* Android - we increased the number of unit tests support. With this release we additionally support on the devices mentioned below:
+  * 06_MaterialPlayground
+  * 18_Playback
+  * 19_Blending
+  * 20_JoinAttachment
+  * 21_PartialBlending
+  * 22_AdditiveBlending
+  * 23_BakedPhysics
+  * 24_MultiThread
+  * 25_Skinning
+  * 26_Audio
+* Vulkan:
+  * Updated [volk Metaloader for Vulkan](https://github.com/zeux/volk) to latest
+  * The Forge supports now as the min spec for the Vulkan SDK 1.1.82.0 and as the max spec is 1.1.101.0
+
+* Discord: we offer now also support through a discord channel. Sign up here: 
+<a href="https://discord.gg/hJS54bz" target="_blank"><img src="Screenshots/Discord.png" 
+alt="Twitter" width="20" height="20" border="0" /> Join the Discord channel at https://discord.gg/hJS54bz</a>
+
+* User Group Meetings - there will be a user group meeting during GDC. In case you want to organize a user group meeting in your country / town at any other point in time, we would like to support this. We could send an engineer for a talk.
+* Support for Education - in case your School / College / University uses The Forge for education, we would like to support this as well. We could send an engineer or help create material. So far the following schools use The Forge for teaching:
+
+[Breda University of Applied Sciences](https://www.buas.nl) 
+```
+        Contact:
+        Jeremiah van Oosten 
+        Monseigneur Hopmansstraat 1
+        4817 JT Breda
+ ```
+[Ontario Tech University](https://uoit.ca/) 
+```
+        Contact:
+        Andrew Hogue
+        Ontario Tech University
+        SIRC 4th floor
+        2000 Simcoe St N
+        Oshawa, ON, L1H 7K4
+ ```
+* Writing Guidelines - For contributions to The Forge we apply the following writing guidelines:
+ * We limit now all code to C++ 11 by setting the Clang and other compiler flags
+ * We follow the [Orthodox C++ guidelines] (https://gist.github.com/bkaradzic/2e39896bc7d8c34e042b) minus C++ 14 support (see above)
+
+
 
 ## Release 1.30 - June 28th, 2019 - Ephemeris 2 - New Skydome System | Android Unit Tests | New Entity Component System | SoLoud Audio 
  * Ephemeris 2: this is a new volumetric skydome system developed for PS4 / XBOX One class of hardware. Click on the image to watch a video:
@@ -100,89 +159,6 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
    * issue #109 "Texture updates broken" is fixed now
    * NVIDIA GTX 1660 bug: this card with the Vulkan run-time and driver 419.35 became unresponsive, while the DirectX 12 run-time works as expected. Any other NVIDIA GPU works fine ... this looks like a driver bug ...
 
-## Release 1.29 - June 6th, 2019 - EASTL Integration | Micro-profiler improvements | Neon intrinsic Support
- * We replaced for all platforms TinySTL with [EASTL](https://github.com/electronicarts/EASTL/) for support of additional data structures and functionality. This was a major change and we still expect a few bugs to appear.
- * ARM based platforms (iOS/Android) can pick a new NEON intrinsics code path in our math library
- * Microprofiler  
-   * Multithreaded GPU Profiling is now supported
-   * Microprofiler is now enabled on all the Unit-tests and togglable using UI checkbox.
-   * Added new common interface, IProfiler.h
- * Issue fixed: 
-   * #105 - 04_ExecuteIndirect crash on macOS
-
-
-## Release 1.28 - May 24th, 2019 - SWB Level Editor | Micro Profiler Re-Write | Log and File System improvements | better macOS/iOS support 
-We added a new section below the Examples to show screenshots and an explanation of some of the Tools that we integrated. We will fill this up over the next few releases.
-* We were helping James Webb with his level editor for 'Star Wars Galaxies' called SWB that now uses The Forge
-
-Here is a screenshot
-
-![SWB Level Editor](Screenshots/SWB.png)
-
-SWB is an editor for the 2003 game 'Star Wars Galaxies' that can edit terrains, scenes, particles and import/export models via FBX. The editor uses an engine called 'atlas' that will be made open source in the future. It focuses on making efficient use of the new graphics APIs (with help from The-Forge!), ease-of-use and terrain rendering.
-* Memory tracking: 
-  * Fluid memory tracker cross-platform for Windows, macOS and Linux
-  * We used MTuner to remove many memory leaks and improve memory usage. MTuner might be integrated in the future.
-* [Micro Profiler](https://github.com/zeux/microprofile): our initial implementation of Microprofiler needed to be re-done from scratch. This time we wanted to do the integration right and also implemented the dedicated UI. 
-
-![Microprofiler in Visibility Buffer](Screenshots/MicroProfileExampleVisibilityBuffer.png)
-
-![Microprofiler in Visibility Buffer](Screenshots/MicroProfileExampleVisibilityBuffer2.png)
-
-To enable/disable profiling, go to file ProfileEnableMacro.h line 9 and set it
-to 0(disabled) or 1(enabled). 
-It's supported on the following platforms:
- - Windows
- - Linux
- - macOS (GPU profiling is disabled)
- - iOS (GPU profiling is disabled)
- - Android(WIP will be enabled later on)
-
-We can find MicroProfile integrated in the follwing examples (more will follow):
- - Unit Test 02_Compute
- - VisibilityBuffer
-
-How to use it:
-MicroProfile has different display modes. The most useful one when running inside
-the application is Timers. We can change the display mode going to Mode and right
-clicking the one we want.
-
-If we are on Timer, we will be able to right click on the labels. This will enable
-a graph at the bottom left.
-
-If we wanted to just see some of the groups inside the profile display, go to Groups
-and select the ones you want.
-
-The other options are self explanatory.
-
-If the user wants to dump the profile to a file, we just need to go to dump,
-and right click on the amount of frames we want. This generates a html file in the
-executable folder. Open it with your prefered web browser to have a look.
-
-Dumping is useful, because we will be able to see the profile frame by frame,
-without it being updated every frame. This will be useful when displaying in Detailed
-mode.
-
-There is also a Help menu item.
-* Log system improvements: 
-  * Support for multiple log files
-  * Easy to use log macros
-  * Scoped logging
-  * Multithreaded support
-  * New log format: date, time, thread, file, line, log level and message
-  * No need to declare global LogManager, it will be created on demand
-* Filesystem improvements: this is fed  back from one of our game engine integrations of The Forge
-  * file time functions now use time_t
-  * added FileWatcher class for Windows/Linux/macOS
-  * added CombinePaths function
-* macOS / iOS Metal: 
-  * added Barriers with memoryBarrierWithScope for Buffers,Textures and Render targets
-  * added GPU sync with MTLFence as fallback (for cross encoder synchranization and BlitEncoder where memoryBarrier isn't available). Removed force fence on render targets change because it is no longer necessary. There might be a small performance improvements coming from this
-  * support of Microprofiler see above
-  * refactor of windows support code: replaced MTKView for iOS and macOS with a custom NSview and NSWindow implementation. We have more explicit control now over the window.
-* Issues fixed:
-  * #112 - cmdBindDescriptors performance issue (DX12)
-  * #110 - RenderDoc compatibility with SM6+
 
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
 
@@ -197,7 +173,7 @@ See the release notes from previous releases in the [Release section](https://gi
 3. Visual Studio 2017 with Windows SDK / DirectX version 17763.132 (you need to get it via the Visual Studio Intaller)
 https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
-4. Vulkan [1.1.101.0](https://vulkan.lunarg.com/sdk/home)
+4. The Forge supports now as the min spec for the Vulkan SDK 1.1.82.0 and as the max spec is  [1.1.101.0](https://vulkan.lunarg.com/sdk/home)
 
 6. The Forge is currently tested on 
 * AMD 5x, VEGA GPUs (various)
@@ -207,9 +183,9 @@ https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
 # macOS Requirements:
 
-1. macOS Mojave 10.14.4 beta (18E174f)
+1. macOS 10.15 Beta (19A487m)
 
-2. Xcode 10.2 beta (10P82s)
+2. Xcode 11.0 beta 2 (11M337n)
 
 3. The Forge is currently tested on the following macOS devices:
 * iMac with AMD RADEON 560 (Part No. MNDY2xx/A)
@@ -223,7 +199,7 @@ We will not test any Hackintosh configuration.
 
 # iOS Requirements:
 
-1. iOS 13 12.2 beta (16E5181f)
+1. iOS 13 beta 
 
 2. XCode: see macOS
 
@@ -550,6 +526,34 @@ alt="Torque 3D" width="417" height="106" border="0" /></a>
 SWB is an editor for the 2003 game 'Star Wars Galaxies' that can edit terrains, scenes, particles and import/export models via FBX. The editor uses an engine called 'atlas' that will be made open source in the future. It focuses on making efficient use of the new graphics APIs (with help from The-Forge!), ease-of-use and terrain rendering.
 
 ![SWB Level Editor](Screenshots/SWB.png)
+
+# Writing Guidelines
+For contributions to The Forge we apply the following writing guidelines:
+ * We limit all code to C++ 11 by setting the Clang and other compiler flags
+ * We follow the [Orthodox C++ guidelines] (https://gist.github.com/bkaradzic/2e39896bc7d8c34e042b) minus C++ 14 support (see above)
+
+# User Group Meetings 
+There will be a user group meeting during GDC. In case you want to organize a user group meeting in your country / town at any other point in time, we would like to support this. We could send an engineer for a talk.
+
+# Support for Education 
+In case your School / College / University uses The Forge for education, we would like to support this as well. We could send an engineer or help create material. So far the following schools use The Forge for teaching:
+
+[Breda University of Applied Sciences](https://www.buas.nl) 
+```
+        Contact:
+        Jeremiah van Oosten 
+        Monseigneur Hopmansstraat 1
+        4817 JT Breda
+ ```
+[Ontario Tech University](https://uoit.ca/) 
+```
+        Contact:
+        Andrew Hogue
+        Ontario Tech University
+        SIRC 4th floor
+        2000 Simcoe St N
+        Oshawa, ON, L1H 7K4
+ ```
 
 
 # Open-Source Libraries
