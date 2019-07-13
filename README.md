@@ -53,7 +53,7 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 # News
 
 ## Release 1.31 - July 12th - Metal 2.2 | More Android Support | Discord Channel | User Group Meetings | Support for Education
-* macOS / iOS - we are now supporting Metal 2.2 on those platforms. The macOS version of the Visibility Buffer now uses primitive_id argument that allows to use indexed geometry similar to the Vulkan and DirectX 12 versions. There is a significantly increase in performance and reduction in memory consumption
+* macOS / iOS - we are now supporting Metal 2.2 on those platforms. The macOS version of the Visibility Buffer now uses primitive_id argument that allows to use indexed geometry similar to the Vulkan and DirectX 12 versions. There is a significant increase in performance and reduction in memory consumption
   * Debug labels for buffers and textures now present in frame captures;
   * cmdSynchronizeResources for MacOS and iOS;
   * Minor fixes in GPU synchronization with memory barriers
