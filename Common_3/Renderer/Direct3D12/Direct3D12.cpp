@@ -405,7 +405,7 @@ const D3D12_COMMAND_QUEUE_PRIORITY gDx12QueuePriorityTranslator[QueuePriority::M
 #if defined(RENDERER_IMPLEMENTATION)
 
 #ifndef _DURANGO
-#include "../../../Common_3/ThirdParty/OpenSource/DirectXShaderCompiler/dxcapi.use.h"
+#include "../../ThirdParty/OpenSource/DirectXShaderCompiler/dxcapi.use.h"
 #include <d3dcompiler.h>
 #pragma comment(lib, "d3d12.lib")
 #pragma comment(lib, "dxgi.lib")

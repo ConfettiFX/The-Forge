@@ -1742,7 +1742,7 @@ typedef enum ShaderTarget
 	shader_target_6_2,
 	shader_target_6_3, //required for Raytracing
 #endif
-} DXShaderTarget;
+} ShaderTarget;
 
 typedef enum GpuMode
 {
