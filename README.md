@@ -60,7 +60,7 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 
 Click on the following screenshot to see a movie:
 
- [![Ephemeris 2](Screenshots/NightSky02.png)](https://vimeo.com/352541826)
+ [![Ephemeris 2](https://github.com/ConfettiFX/Custom-Middleware/Screenshots/NightSky02.png)](https://vimeo.com/352541826)
 
 * New Light and Shadow Playground: we rebuild the light and shadow playground by using the St. Miguel art assets and adding some new shadowing techniques:
   * Exponential Shadow Map - this is based on [Marco Salvi's](https://pixelstoomany.wordpress.com/category/shadows/exponential-shadow-maps/) @marcosalvi papers. This technique filters out the edge of the shadow map by approximating the shadow test using exponential function that involves three subjects: the depth value rendered by the light source, the actual depth value that is being tested against, and the constant value defined by the user to control the softness of the shadow
