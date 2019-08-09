@@ -1,4 +1,4 @@
-# ![The Forge Logo](Screenshots/TheForge-on-white.jpg)
+# ![The Forge Logo](Screenshots/TheForge-10.png)
 
 The Forge is a cross-platform rendering framework supporting
 - PC 
@@ -51,6 +51,73 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+
+## Release 1.32 - August 9th - Ephemeris Night Sky update | New Light and Shadow Playground | Android Visual Studio Support
+* [Ephemeris - Skydome System](https://github.com/ConfettiFX/Custom-Middleware) 
+  * Added Procedural Night Sky and Star-field - the night sky's nebula colors are now customizable
+  * Added Glow effects on Sun and Moon
+  * Fix the issue that Godrays can be drawn on unexpected area
+
+Click on the following screenshot to see a movie:
+
+ [![Ephemeris 2](Screenshots/NightSky02.png)](https://vimeo.com/352541826)
+
+* New Light and Shadow Playground: we rebuild the light and shadow playground by using the St. Miguel art assets and adding some new shadowing techniques:
+  * Exponential Shadow Map - this is based on [Marco Salvi's](https://pixelstoomany.wordpress.com/category/shadows/exponential-shadow-maps/) @marcosalvi papers. This technique filters out the edge of the shadow map by approximating the shadow test using exponential function that involves three subjects: the depth value rendered by the light source, the actual depth value that is being tested against, and the constant value defined by the user to control the softness of the shadow
+  * Adaptive Shadow Map with Parallax Correction Cache - this is based on the article "Parallax-Corrected Cached Shadow Maps" by Pavlo Turchyn in [GPU Zen 2](https://gpuzen.blogspot.com/2019/05/gpu-zen-2-parallax-corrected-cached.htm). It adaptively chooses which light source view to be used when rendering a shadow map based on a hiearchical grid structure. The grid structure is constantly updated depending on the user's point of view and it uses caching system that only renders uncovered part of the scene. The algorithm greatly reduce shadow aliasing that is normally found in traditional shadow map due to insufficient resolution. Pavlo Turchyn's paper from GPU Pro 2 added an additional improvement by implementing multi resolution filtering, a technique that approximates larger size PCF kernel using multiple mipmaps to achieve cheap soft shadow. He also describes how he integrated a Parallax Correction Cache to Adaptive Shadow Map, an algorithm that approximates moving sun's shadow on static scene without rendering tiles of shadow map every frame. The algorithm is generally used in an open world game to approximate the simulation of day & night’s shadow cycle more realistically without too much CPU/GPU cost.
+  * Signed Distance Field Soft Shadow - this is based on [Daniel Wright's Siggraph 2015](http://advances.realtimerendering.com/s2015/DynamicOcclusionWithSignedDistanceFields.pdf) @EpicShaders presentation. To achieve real time SDF shadow, we store the distance to the nearest surface for every unique Meshes to a 3D volume texture atlas. The Mesh SDF is generated offline using triangle ray tracing, and half precision float 3D volume texture atlas is accurate enough to represent 3D meshes with SDF. The current implementation only supports rigid meshes and uniform transformations (non-uniform scale is not supported). An approximate cone intersection can be achieved  by measuring the closest distance of a passed ray to an occluder which gives us a cheap soft shadow when using SDF.
+
+To achieve  high-performance, the playground runs on our signature rendering architecture called Triangle Visibility Buffer. The step that generates the SDF data also uses this architecture.
+
+Click on the following screenshot to see a movie:
+
+[![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_Visualize.png)](https://vimeo.com/352985038)
+
+
+The following PC screenshots are taken on Windows 10 with a AMD RX550 GPU (driver 19.7.1) with a resolution of 1920x1080. 
+
+Exponential Shadow Maps:
+
+![Light and Shadow Playground - Exponential Shadow Map](Screenshots/LightNShadowPlayground/ExponentialShadowMap.png)
+
+Adaptive Shadow Map with Parallax Correction Cache
+
+![Adaptive Shadow Map with Parallax Correction Cache](Screenshots/LightNShadowPlayground/ASM_Two.png)
+
+Signed Distance Field Soft Shadow:
+
+![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_1.png)
+
+Signed Distance Field Soft Shadows - Debug Visualization
+
+![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_Visualize.png)
+
+The following shots show Signed Distance Field Soft Shadows running on iMac with a AMD RADEON Pro 580
+
+![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_macOS_1.png)
+
+![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_macOS_2.png)
+
+The following shots show Signed Distance Field Soft Shadows running on XBOX One:
+
+![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_XBOX_1.png)
+
+![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_XBOX_2.png)
+
+![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_XBOX_3.png)
+
+Readme for Signed Distance Field Soft Shadow Maps:
+
+To generate the SDF Mesh data you should select “Signed Distance Field” as the selected shadow type in the Light and Shadow Playground. There is a button called “Generate Missing SDF” and once its clicked, it shows a progress bar that represents the remaining SDF mesh objects utilized for SDF data generation. This process is multithreaded, so the user can still move around the scene while waiting for the SDF process to be finished. This is a long process and it could consume up to 8+ hours depending on your CPU specs. To check how many SDF objects there are presently in the scene, you can mark the checkbox "Visualize SDF Geometry On The Scene".
+
+* Android: we switched from AndroidStudio to Visual Studio, because the AndroidStudio environment didn't allow us to work effectively and integrating it into our Jenkins test system made the build time explode. 
+* Vulkan: 
+  * support of GPU assisted validation
+  * new Vulkan SDK 1.1.114 is supported
+* Art package: we updated the St. Miguel scene with colored flags for the future Aura Global Illumination example. Because it is used by several unit tests, you want to download the art package again. See the Install instructions below for how to do this.
+
+P.S: we have a new logo :-) ![The Forge Logo](Screenshots/TheForge-10.png)
+
 
 ## Release 1.31 - July 12th - Metal 2.2 | More Android Support | Discord Channel | User Group Meetings | Support for Education
 * macOS / iOS - we are now supporting Metal 2.2 on those platforms. The macOS version of the Visibility Buffer now uses primitive_id argument that allows to use indexed geometry similar to the Vulkan and DirectX 12 versions. There is a significant increase in performance and reduction in memory consumption
@@ -173,7 +240,7 @@ See the release notes from previous releases in the [Release section](https://gi
 3. Visual Studio 2017 with Windows SDK / DirectX version 17763.132 (you need to get it via the Visual Studio Intaller)
 https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
-4. The Forge supports now as the min spec for the Vulkan SDK 1.1.82.0 and as the max spec is  [1.1.101.0](https://vulkan.lunarg.com/sdk/home)
+4. The Forge supports now as the min spec for the Vulkan SDK 1.1.82.0 and as the max spec is  [1.1.114](https://vulkan.lunarg.com/sdk/home)
 
 6. The Forge is currently tested on 
 * AMD 5x, VEGA GPUs (various)
@@ -243,7 +310,20 @@ We are currently testing on:
 
 1. Android Phone with Android Pie (9.x) for Vulkan 1.1 support
 
-2. Android Studio with API level 28 
+2. Visual Studio 2017 with support for Android API level 28
+
+At the moment, the Android run-time does not support the following unit tests due to -what we consider- driver bugs:
+* 04_ExecuteIndirect
+* 07_Tesselation 
+* 08_Procedural
+* 09a_HybridRayTracing
+* 10_PixelProjectedReflections
+* 12_RendererRuntimeSwitch
+* 14_WaveIntrinsics
+* 15_Transparency 
+* 16_RayTracing 
+* 16a_SphereTracing
+* Visibility Buffer 
 
 3. We are currently testing on 
 * [Samsung S10 Galaxy (Qualcomm Adreno 640 Graphics Cardv(Vulkan 1.1.87))](https://www.samsung.com/us/mobile/galaxy-s10/) with Android 9.0. Please note this is the version with the Qualcomm based chipset.
@@ -330,14 +410,51 @@ In the spirit of the shadertoy examples this unit test shows a procedurally gene
 ## 9. Light and Shadow Playground
 This unit test shows various shadow and lighting techniques that can be chosen from a drop down menu. There will be more in the future.
 
-iMac with AMD RADEON 580 (Part No. MNED2xxA) with resolution of 5120x2880:
-![Light & Shadow Playground](Screenshots/09_LightShadowPlayground.png)
+ * Exponential Shadow Map - this is based on [Marco Salvi's](https://pixelstoomany.wordpress.com/category/shadows/exponential-shadow-maps/) @marcosalvi papers. This technique filters out the edge of the shadow map by approximating the shadow test using exponential function that involves three subjects: the depth value rendered by the light source, the actual depth value that is being tested against, and the constant value defined by the user to control the softness of the shadow
+  * Adaptive Shadow Map with Parallax Correction Cache - this is based on the article "Parallax-Corrected Cached Shadow Maps" by Pavlo Turchyn in [GPU Zen 2](https://gpuzen.blogspot.com/2019/05/gpu-zen-2-parallax-corrected-cached.htm). It adaptively chooses which light source view to be used when rendering a shadow map based on a hiearchical grid structure. The grid structure is constantly updated depending on the user's point of view and it uses caching system that only renders uncovered part of the scene. The algorithm greatly reduce shadow aliasing that is normally found in traditional shadow map due to insufficient resolution. Pavlo Turchyn's paper from GPU Pro 2 added an additional improvement by implementing multi resolution filtering, a technique that approximates larger size PCF kernel using multiple mipmaps to achieve cheap soft shadow. He also describes how he integrated a Parallax Correction Cache to Adaptive Shadow Map, an algorithm that approximates moving sun's shadow on static scene without rendering tiles of shadow map every frame. The algorithm is generally used in an open world game to approximate the simulation of day & night’s shadow cycle more realistically without too much CPU/GPU cost.
+  * Signed Distance Field Soft Shadow - this is based on [Daniel Wright's Siggraph 2015](http://advances.realtimerendering.com/s2015/DynamicOcclusionWithSignedDistanceFields.pdf) @EpicShaders presentation. To achieve real time SDF shadow, we store the distance to the nearest surface for every unique Meshes to a 3D volume texture atlas. The Mesh SDF is generated offline using triangle ray tracing, and half precision float 3D volume texture atlas is accurate enough to represent 3D meshes with SDF. The current implementation only supports rigid meshes and uniform transformations (non-uniform scale is not supported). An approximate cone intersection can be achieved  by measuring the closest distance of a passed ray to an occluder which gives us a cheap soft shadow when using SDF.
 
-iPhone 7 iOS 12.1.4 (16D57) with a resolution of 1334x750:
-![Light & Shadow Playground](Screenshots/09_LightShadowPlayground_iOS.png)
+To achieve  high-performance, the playground runs on our signature rendering architecture called Triangle Visibility Buffer. The step that generates the SDF data also uses this architecture.
 
-Linux Ubuntu 18.04.1 LTS Vulkan 1.1.92 RADEON 480 Driver 18.30 with a resolution of 1920x1080:
-![Light & Shadow Playground](Screenshots/09_LightShadowPlayground_Linux.png)
+Click on the following screenshot to see a movie:
+
+[![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_Visualize.png)](https://vimeo.com/352985038)
+
+The following PC screenshots are taken on Windows 10 with a AMD RX550 GPU (driver 19.7.1) with a resolution of 1920x1080. 
+
+Exponential Shadow Maps:
+
+![Light and Shadow Playground - Exponential Shadow Map](Screenshots/LightNShadowPlayground/ExponentialShadowMap.png)
+
+Adaptive Shadow Map with Parallax Correction Cache
+
+![Adaptive Shadow Map with Parallax Correction Cache](Screenshots/LightNShadowPlayground/ASM_Two.png)
+
+Signed Distance Field Soft Shadow:
+
+![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_1.png)
+
+Signed Distance Field Soft Shadows - Debug Visualization
+
+![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_Visualize.png)
+
+The following shots show Signed Distance Field Soft Shadows running on iMac with a AMD RADEON Pro 580
+
+![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_macOS_1.png)
+
+![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_macOS_2.png)
+
+The following shots show Signed Distance Field Soft Shadows running on XBOX One:
+
+![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_XBOX_1.png)
+
+![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_XBOX_2.png)
+
+![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_XBOX_3.png)
+
+Readme for Signed Distance Field Soft Shadow Maps:
+
+To generate the SDF Mesh data you should select “Signed Distance Field” as the selected shadow type in the Light and Shadow Playground. There is a button called “Generate Missing SDF” and once its clicked, it shows a progress bar that represents the remaining SDF mesh objects utilized for SDF data generation. This process is multithreaded, so the user can still move around the scene while waiting for the SDF process to be finished. This is a long process and it could consume up to 8+ hours depending on your CPU specs. To check how many SDF objects there are presently in the scene, you can mark the checkbox "Visualize SDF Geometry On The Scene".
 
 ## 9a. Hybrid Ray-Traced Shadows
 This unit test was build by Kostas Anagnostou @KostasAAA to show how to ray trace shadows without using a ray tracing API like DXR / RTX. It should run on all GPUs (not just NVIDIA RTX GPUs) and the expectation is that it should run comparable with a DXR / RTX based version even on a NVIDIA RTX GPU. That means the users of your game do not have to buy a NVIDIA RTX GPU to enjoy HRT shadows :-)
