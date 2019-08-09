@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Workspace
    version = "1.0">
+   <FileRef
+      location = "group:../src/09_LightShadowPlayground/CPUImage.cpp">
+   </FileRef>
+   <FileRef
+      location = "group:../src/09_LightShadowPlayground/CPUImage.h">
+   </FileRef>
    <Group
       location = "container:"
       name = "Examples Animation">
@@ -33,6 +39,9 @@
       location = "container:"
       name = "Examples">
       <FileRef
+         location = "group:09_LightShadowPlayground/09_LightShadowPlayground.xcodeproj">
+      </FileRef>
+      <FileRef
          location = "group:26_Audio/26_Audio.xcodeproj">
       </FileRef>
       <FileRef
@@ -58,9 +67,6 @@
       </FileRef>
       <FileRef
          location = "group:08_Procedural/08_Procedural.xcodeproj">
-      </FileRef>
-      <FileRef
-         location = "group:09_LightShadowPlayground/09_LightShadowPlayground.xcodeproj">
       </FileRef>
       <FileRef
          location = "group:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">

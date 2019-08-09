@@ -100,7 +100,7 @@
     <ProjectGuid>{30DD3D57-0026-48C8-BFD1-6392F319E23A}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>Samples_GLFW</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
     <ProjectName>OS</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

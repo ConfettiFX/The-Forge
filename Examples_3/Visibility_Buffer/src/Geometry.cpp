@@ -205,7 +205,7 @@ static void SetMaterials(Scene* pScene)
 	int index = 0;
 
 	// 0	flags
-	//setTextures(pScene, index++, "SponzaFlagsNoAlpha", "SponzaFlags_SPEC", "SponzaFlags_NRM", false, true);
+	setTextures(pScene, index++, "ForgeFlags", DEFAULT_SPEC, DEFAULT_NORMAL, true, true);
 
 	// 0	arc034
 	setTextures(pScene, index++, "arco_frente", "arco_frente_SPEC", "arco_frente_NRM", false, false);
@@ -986,6 +986,8 @@ static inline uint encodeDir(const float3& n)
 }
 #endif
 
+static const char* gModelVersion = "1.01";
+
 // Loads a scene using ASSIMP and returns a Scene object with scene information
 Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY, float offsetZ)
 {
@@ -995,129 +997,182 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 #endif
 
 #if 1
-
-	AssimpImporter        importer;
-	AssimpImporter::Model model;
-	importer.ImportModel(fileName, &model);
-
-	eastl::vector<SceneVertexPos> positions;
-	eastl::vector<float2>         texcoords;
-	eastl::vector<float3>         normals;
-	eastl::vector<float3>         tangents;
-	eastl::vector<uint32_t>       indices;
-
-	uint32_t accIndex_ = 0;
-
-	for (int i = 0; i < model.mMeshArray.size(); i++)
-	{
-		AssimpImporter::Mesh mesh = model.mMeshArray[i];
-
-		for (int j = 0; j < mesh.mPositions.size(); j++)
-		{
-			SceneVertexPos tempPos;
-			tempPos.x = mesh.mPositions[j].getX() * scale + offsetX;
-			tempPos.y = mesh.mPositions[j].getY() * scale + offsetY;
-			tempPos.z = mesh.mPositions[j].getZ() * scale + offsetZ;
-
-			positions.push_back(tempPos);
-		}
-
-		for (int j = 0; j < mesh.mUvs.size(); j++)
-		{
-			float2 tempTex;
-			tempTex.x = mesh.mUvs[j].getX();
-			tempTex.y = 1.0f - mesh.mUvs[j].getY();
-
-			texcoords.push_back(tempTex);
-		}
-
-		for (int j = 0; j < mesh.mNormals.size(); j++)
-		{
-			float3 tempNorm;
-			tempNorm.x = mesh.mNormals[j].getX();
-			tempNorm.y = mesh.mNormals[j].getY();
-			tempNorm.z = mesh.mNormals[j].getZ();
-
-			normals.push_back(tempNorm);
-		}
-
-		for (int j = 0; j < mesh.mTangents.size(); j++)
-		{
-			float3 tempTangent;
-			tempTangent.x = mesh.mTangents[j].getX();
-			tempTangent.y = mesh.mTangents[j].getY();
-			tempTangent.z = mesh.mTangents[j].getZ();
-
-			tangents.push_back(tempTangent);
-		}
-
-		for (int j = 0; j < mesh.mIndices.size(); j++)
-		{
-			int indd = mesh.mIndices[j];
-
-			if (indd < 0)
-				indices.push_back(accIndex_);
-			else
-				indices.push_back(indd + accIndex_);
-		}
-
-		accIndex_ += (uint32_t)mesh.mPositions.size();
-	}
-
 	Scene* scene = (Scene*)conf_calloc(1, sizeof(Scene));
 
-	scene->numMeshes = (uint32_t)model.mMeshArray.size();
-	scene->totalVertices = (uint32_t)positions.size();
-	scene->totalTriangles = (uint32_t)indices.size() / 3;
+	eastl::string cachedModelFileName = eastl::string(fileName) + ".cached";
+	File cached = {};
+	eastl::string modelVersion;
+	if (cached.Open(cachedModelFileName, FileMode::FM_ReadBinary, FSR_Absolute))
+		modelVersion = cached.ReadFileID();
 
-	scene->meshes = (MeshIn*)conf_calloc(scene->numMeshes, sizeof(MeshIn));
-
-	scene->indices = indices;
-	scene->positions = positions;
-
-	scene->texCoords = eastl::vector<SceneVertexTexCoord>(scene->totalVertices, SceneVertexTexCoord{ 0 });
-	scene->normals = eastl::vector<SceneVertexNormal>(scene->totalVertices, SceneVertexNormal{ 0 });
-	scene->tangents = eastl::vector<SceneVertexTangent>(scene->totalVertices, SceneVertexTangent{ 0 });
-
-	for (uint32_t v = 0; v < scene->totalVertices; v++)
+	if (modelVersion == gModelVersion)
 	{
-		const float3& normal = normals[v];
-		const float3& tangent = tangents[v];
-		const float2& tc = texcoords[v];
+		scene->numMeshes = cached.ReadUInt();
+		scene->totalVertices = cached.ReadUInt();
+		scene->totalTriangles = cached.ReadUInt();
+
+		scene->meshes = (MeshIn*)conf_calloc(scene->numMeshes, sizeof(MeshIn));
+		cached.Read(scene->meshes, scene->numMeshes * sizeof(MeshIn));
+
+		scene->indices = eastl::vector<uint32_t>(scene->totalTriangles * 3);
+		cached.Read(scene->indices.data(), scene->totalTriangles * 3 * sizeof(uint32_t));
+
+		scene->positions = eastl::vector< SceneVertexPos>(scene->totalVertices);
+		cached.Read(scene->positions.data(), scene->totalVertices * sizeof(SceneVertexPos));
+
+		scene->texCoords = eastl::vector<SceneVertexTexCoord>(scene->totalVertices);
+		cached.Read(scene->texCoords.data(), scene->totalVertices * sizeof(SceneVertexTexCoord));
+
+		scene->normals = eastl::vector<SceneVertexNormal>(scene->totalVertices);
+		cached.Read(scene->normals.data(), scene->totalVertices * sizeof(SceneVertexNormal));
+
+		scene->tangents = eastl::vector<SceneVertexTangent>(scene->totalVertices);
+		cached.Read(scene->tangents.data(), scene->totalVertices * sizeof(SceneVertexTangent));
+
+		cached.Close();
+	}
+	else
+	{
+		HiresTimer timer = {};
+		AssimpImporter        importer;
+		AssimpImporter::Model model;
+		importer.ImportModel(fileName, &model);
+		LOGF(LogLevel::eINFO, "Assimp Load %f ms", timer.GetUSec(true) / 1000.0f);
+
+		eastl::vector<SceneVertexPos> positions;
+		eastl::vector<float2>         texcoords;
+		eastl::vector<float3>         normals;
+		eastl::vector<float3>         tangents;
+		eastl::vector<uint32_t>       indices;
+
+		uint32_t accIndex_ = 0;
+
+		for (int i = 0; i < model.mMeshArray.size(); i++)
+		{
+			AssimpImporter::Mesh mesh = model.mMeshArray[i];
+
+			for (int j = 0; j < mesh.mPositions.size(); j++)
+			{
+				SceneVertexPos tempPos;
+				tempPos.x = mesh.mPositions[j].getX() * scale + offsetX;
+				tempPos.y = mesh.mPositions[j].getY() * scale + offsetY;
+				tempPos.z = mesh.mPositions[j].getZ() * scale + offsetZ;
+
+				positions.push_back(tempPos);
+			}
+
+			for (int j = 0; j < mesh.mUvs.size(); j++)
+			{
+				float2 tempTex;
+				tempTex.x = mesh.mUvs[j].getX();
+				tempTex.y = 1.0f - mesh.mUvs[j].getY();
+
+				texcoords.push_back(tempTex);
+			}
+
+			for (int j = 0; j < mesh.mNormals.size(); j++)
+			{
+				float3 tempNorm;
+				tempNorm.x = mesh.mNormals[j].getX();
+				tempNorm.y = mesh.mNormals[j].getY();
+				tempNorm.z = mesh.mNormals[j].getZ();
+
+				normals.push_back(tempNorm);
+			}
+
+			for (int j = 0; j < mesh.mTangents.size(); j++)
+			{
+				float3 tempTangent;
+				tempTangent.x = mesh.mTangents[j].getX();
+				tempTangent.y = mesh.mTangents[j].getY();
+				tempTangent.z = mesh.mTangents[j].getZ();
+
+				tangents.push_back(tempTangent);
+			}
+
+			for (int j = 0; j < mesh.mIndices.size(); j++)
+			{
+				int indd = mesh.mIndices[j];
+
+				if (indd < 0)
+					indices.push_back(accIndex_);
+				else
+					indices.push_back(indd + accIndex_);
+			}
+
+			accIndex_ += (uint32_t)mesh.mPositions.size();
+		}
+
+		LOGF(LogLevel::eINFO, "Generate Vertex Data %f ms", timer.GetUSec(true) / 1000.0f);
+
+		scene->numMeshes = (uint32_t)model.mMeshArray.size();
+		scene->totalVertices = (uint32_t)positions.size();
+		scene->totalTriangles = (uint32_t)indices.size() / 3;
+
+		scene->meshes = (MeshIn*)conf_calloc(scene->numMeshes, sizeof(MeshIn));
+
+		scene->indices = indices;
+		scene->positions = positions;
+
+		scene->texCoords = eastl::vector<SceneVertexTexCoord>(scene->totalVertices, SceneVertexTexCoord{ 0 });
+		scene->normals = eastl::vector<SceneVertexNormal>(scene->totalVertices, SceneVertexNormal{ 0 });
+		scene->tangents = eastl::vector<SceneVertexTangent>(scene->totalVertices, SceneVertexTangent{ 0 });
+
+		for (uint32_t v = 0; v < scene->totalVertices; v++)
+		{
+			const float3& normal = normals[v];
+			const float3& tangent = tangents[v];
+			const float2& tc = texcoords[v];
 
 #if defined(METAL) || defined(__linux__)
-		scene->normals[v].nx = normal.x;
-		scene->normals[v].ny = normal.y;
-		scene->normals[v].nz = normal.z;
+			scene->normals[v].nx = normal.x;
+			scene->normals[v].ny = normal.y;
+			scene->normals[v].nz = normal.z;
 
-		scene->tangents[v].tx = tangent.x;
-		scene->tangents[v].ty = tangent.y;
-		scene->tangents[v].tz = tangent.z;
+			scene->tangents[v].tx = tangent.x;
+			scene->tangents[v].ty = tangent.y;
+			scene->tangents[v].tz = tangent.z;
 
-		scene->texCoords[v].u = tc.x;
-		scene->texCoords[v].v = 1.0f - tc.y;
+			scene->texCoords[v].u = tc.x;
+			scene->texCoords[v].v = 1.0f - tc.y;
 #else
-		scene->normals[v].normal = encodeDir(normal);
-		scene->tangents[v].tangent = encodeDir(tangent);
-		scene->texCoords[v].texCoord = pack2Floats(float2(tc.x, 1.0f - tc.y));
+			scene->normals[v].normal = encodeDir(normal);
+			scene->tangents[v].tangent = encodeDir(tangent);
+			scene->texCoords[v].texCoord = pack2Floats(float2(tc.x, 1.0f - tc.y));
 #endif
-	}
+		}
 
-	uint32_t accIndex = 0;
+		uint32_t accIndex = 0;
 
-	for (uint32_t i = 0; i < scene->numMeshes; ++i)
-	{
-		MeshIn& batch = scene->meshes[i];
+		for (uint32_t i = 0; i < scene->numMeshes; ++i)
+		{
+			MeshIn& batch = scene->meshes[i];
 
-		AssimpImporter::Mesh mesh = model.mMeshArray[i];
-		batch.materialId = (uint32_t)i;
-		batch.vertexCount = (uint32_t)mesh.mPositions.size();
+			AssimpImporter::Mesh mesh = model.mMeshArray[i];
+			batch.materialId = (uint32_t)i;
+			batch.vertexCount = (uint32_t)mesh.mPositions.size();
 
-		batch.startIndex = accIndex;
-		batch.indexCount = (uint32_t)mesh.mIndices.size();
-		accIndex += batch.indexCount;
+			batch.startIndex = accIndex;
+			batch.indexCount = (uint32_t)mesh.mIndices.size();
+			accIndex += batch.indexCount;
 
-		LOGF(LogLevel::eINFO, "%d vertexCount: %d total: %d", i, batch.vertexCount, accIndex);
+			LOGF(LogLevel::eINFO, "%d vertexCount: %d total: %d", i, batch.vertexCount, accIndex);
+		}
+
+		if (cached.Open(cachedModelFileName, FileMode::FM_WriteBinary, FSR_Absolute))
+		{
+			cached.WriteFileID(gModelVersion);
+			cached.WriteUInt(scene->numMeshes);
+			cached.WriteUInt(scene->totalVertices);
+			cached.WriteUInt(scene->totalTriangles);
+			cached.Write(scene->meshes, scene->numMeshes * sizeof(MeshIn));
+			cached.Write(scene->indices.data(), scene->totalTriangles * 3 * sizeof(uint32_t));
+			cached.Write(scene->positions.data(), scene->totalVertices * sizeof(SceneVertexPos));
+			cached.Write(scene->texCoords.data(), scene->totalVertices * sizeof(SceneVertexTexCoord));
+			cached.Write(scene->normals.data(), scene->totalVertices * sizeof(SceneVertexNormal));
+			cached.Write(scene->tangents.data(), scene->totalVertices * sizeof(SceneVertexTangent));
+			cached.Close();
+		}
 	}
 
 	eastl::unordered_set<eastl::string> twoSidedMaterials;
@@ -1134,7 +1189,6 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 	scene->specularMaps = (char**)conf_calloc(scene->numMaterials, sizeof(char*));
 
 	SetMaterials(scene);
-
 #else
 
 	Scene* scene = (Scene*)conf_calloc(1, sizeof(Scene));
@@ -1551,59 +1605,40 @@ void createAABB(const Scene* pScene, MeshIn* mesh)
 	mesh->AABB.corners[7].w = 1.0f;
 }
 
-void loadModel(const eastl::string& FileName, Buffer*& pVertexBuffer, uint& vertexCount, Buffer*& pIndexBuffer, uint& indexCount)
+bool loadModel(const eastl::string& FileName, eastl::vector<Vertex>& meshVertices, eastl::vector<uint16_t>& meshIndices)
 {
 	AssimpImporter::Model model;
 
 #ifdef TARGET_IOS
 	//TODO: need to unify this using filsystem interface
 	//iOS requires path using bundle identifier
-	NSString* fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String:gModelName] ofType:@""];
+	NSString* fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String : gModelName] ofType : @""];
 	sceneFullPath = [fileUrl fileSystemRepresentation];
 #endif
 	AssimpImporter importer;
-	importer.ImportModel(FileName.c_str(), &model);
-	AssimpImporter::Mesh mesh = model.mMeshArray[0];
-
-	size_t                  size = mesh.mIndices.size();
-	eastl::vector<Vertex> meshVertices;
-	eastl::vector<uint>   meshIndices;
-	int                     index = 0;
-	for (int i = 0; i < size; i++)
+	if (importer.ImportModel(FileName.c_str(), &model))
 	{
-		index = mesh.mIndices[i];
-		Vertex toAdd = { mesh.mPositions[index], mesh.mNormals[index], mesh.mUvs[index] };
-		meshVertices.push_back(toAdd);
-		meshIndices.push_back(i);
+		AssimpImporter::Mesh mesh = model.mMeshArray[0];
+
+		if (mesh.mPositions.size() > (1 << 16))
+		{
+			LOGF(eERROR, "Model (%s) contains more than %u vertices which exceeds the limit of a 16 bit index buffer", FileName.c_str(), (uint32_t)(1 << 16));
+			return false;
+		}
+
+		for (uint32_t i = 0; i < (uint32_t)mesh.mPositions.size(); ++i)
+		{
+			meshVertices.push_back({ mesh.mPositions[i], mesh.mNormals[i], mesh.mUvs[i] });
+		}
+		for (uint32_t i = 0; i < (uint32_t)mesh.mIndices.size(); i++)
+		{
+			meshIndices.emplace_back((uint16_t)mesh.mIndices[i]);
+		}
+
+		return true;
 	}
 
-	vertexCount = (int)meshVertices.size();
-
-	// Vertex position buffer for the scene
-	BufferLoadDesc vbPosDesc = {};
-	vbPosDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-	vbPosDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-	vbPosDesc.mDesc.mVertexStride = sizeof(Vertex);
-	vbPosDesc.mDesc.mSize = meshVertices.size() * vbPosDesc.mDesc.mVertexStride;
-	vbPosDesc.pData = meshVertices.data();
-	vbPosDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-	vbPosDesc.ppBuffer = &pVertexBuffer;
-	vbPosDesc.mDesc.pDebugName = L"Vertex Position Buffer Desc";
-	addResource(&vbPosDesc, true);
-
-	indexCount = (int)meshIndices.size();
-
-	BufferLoadDesc ibPosDesc = {};
-	ibPosDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
-	ibPosDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-	ibPosDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
-	ibPosDesc.mDesc.mSize = sizeof(uint) * meshIndices.size();
-	ibPosDesc.mDesc.mIndexType = INDEX_TYPE_UINT32;
-	ibPosDesc.pData = meshIndices.data();
-	ibPosDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-	ibPosDesc.ppBuffer = &pIndexBuffer;
-	ibPosDesc.mDesc.pDebugName = L"Vertex Position Buffer Desc";
-	addResource(&ibPosDesc, true);
+	return false;
 }
 
 // Compute an array of clusters from the mesh vertices. Clusters are sub batches of the original mesh limited in number

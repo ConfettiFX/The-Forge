@@ -1060,56 +1060,52 @@ def DirtyTrickAndroid(root_src_dir, root_target_dir, operation, ignore_dirs, ign
 
 #this needs the JAVA_HOME environment variable set up correctly
 def BuildAndroidProjects():
-	errorOccured = False
-	
-	source = "./"
-	dest   = "C:/The-Forge/"
+    errorOccured = False
+    msBuildPath = FindMSBuild17()
 
-	if(os.path.exists(dest)):		
-		shutil.rmtree(dest) #remove temporary directory
+    androidConfigurations = ["Debug", "Release"]
+    androidPlatform = ["ARM64"]
 
-	operation = "move"
+    if msBuildPath == "":
+        print("Could not find MSBuild 17, Is Visual Studio 17 installed ?")
+        sys.exit(-1)
 
-	ignore_dirs  = [".git", ".externalNativeBuild", ".gradle"]
-	ignore_files = ["PyBuild.py"]
+    projects = GetFilesPathByExtension("./Examples_3/Unit_Tests/Android_VisualStudio2017/","sln",False)
+    #print(projects)
+    fileList = projects
+    msbuildVerbosity = "/verbosity:minimal"
+    msbuildVerbosityClp = "/clp:ErrorsOnly;WarningsOnly;Summary"
+                
+    for proj in fileList:
+        #get current path for sln file
+        #strip the . from ./ in the path
+        #replace / by the os separator in case we need // or \\
+        rootPath = os.getcwd() + proj.strip('.')
+        rootPath = rootPath.replace("/",os.sep)
+        #need to get root folder of path by stripping the filename from path
+        rootPath = rootPath.split(os.sep)[0:-1]
+        rootPath = os.sep.join(rootPath)
+        
+        configurations = androidConfigurations
+        
+        #strip extension
+        filename = proj.split(os.sep)[-1]
+       
+        
+        for platform in androidPlatform:
+            for conf in androidConfigurations:
+                command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=" + platform,"/nr:false",msbuildVerbosityClp,msbuildVerbosity,"/t:Build"]
+                #print(command)
+                retCode = ExecuteBuild(command, filename, conf, platform)
+        
+        
+        if retCode != 0:
+            errorOccured = True
+                
 
-	DirtyTrickAndroid(source, dest, operation, ignore_dirs, ignore_files)
-	
-	projsToBuild = GetImmediateSubdirectories(dest + "Examples_3/Unit_Tests/Android_AndroidStudio/")
-	for projectPath in projsToBuild:
-		#get working directory (excluding the workspace in path)
-		rootPath = projectPath
-		#save current work dir
-		currDir = os.getcwd()
-		#get name
-		projname = os.path.basename(projectPath)
-		if projname == "app":
-			continue
-		#change dir to workspace location
-		os.chdir(rootPath)
-		#print "chdir to the root directory"
-		#print rootPath
-		
-		confs = ["assembleDebug"]
-		for conf in confs:					
-			command = ["gradlew.bat", conf, "-w", "-parallel"]
-			sucess = ExecuteBuildAndroid(command, projname,conf, "android")
-			#sucess = os.system(command + " " + buildcmd)
-			#sucess = ExecuteCommand(command, sys.stdout)
-			if sucess != 0:
-				print ("Building Android projects FAILED " + rootPath)
-				errorOccured = True
-
-		#set working dir to initial
-		os.chdir(currDir)
-	
-	DirtyTrickAndroid(dest, source, operation, ignore_dirs, ignore_files)
-	shutil.rmtree(dest) #remove temporary directory
-
-	if errorOccured == True:
-		print ("Building Android projects FAILED")
-		return -1
-	return 0
+    if errorOccured == True:
+        return -1
+    return 0  
 	
 def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSBuild, skipAura):
 	errorOccured = False

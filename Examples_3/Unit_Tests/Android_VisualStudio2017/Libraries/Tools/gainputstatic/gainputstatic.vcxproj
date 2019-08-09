@@ -1,0 +1,284 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x86">
+      <Configuration>Debug</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x86">
+      <Configuration>Release</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\builtin\GainputInputDeviceBuiltIn.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\dev\GainputDev.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\dev\GainputMemoryStream.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\gainput.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\GainputAllocator.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\GainputInputDeltaState.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\GainputInputDevice.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\GainputInputManager.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\GainputInputMap.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\GainputInputState.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\GainputMapFilters.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\keyboard\GainputInputDeviceKeyboard.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\mouse\GainputInputDeviceMouse.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\pad\GainputInputDevicePad.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\touch\GainputInputDeviceTouch.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include\gainput\gainput.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include\gainput\GainputAllocator.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include\gainput\GainputContainers.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include\gainput\GainputDebugRenderer.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include\gainput\GainputHelpers.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include\gainput\GainputInputDeltaState.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include\gainput\GainputInputDevice.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include\gainput\GainputInputDeviceBuiltIn.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include\gainput\GainputInputDeviceKeyboard.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include\gainput\GainputInputDeviceMouse.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include\gainput\GainputInputDevicePad.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include\gainput\GainputInputDeviceTouch.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include\gainput\GainputInputListener.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include\gainput\GainputInputManager.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include\gainput\GainputInputMap.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include\gainput\GainputInputState.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include\gainput\GainputIos.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include\gainput\GainputLog.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include\gainput\GainputMapFilters.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\builtin\GainputInputDeviceBuiltInAndroid.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\builtin\GainputInputDeviceBuiltInImpl.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\builtin\GainputInputDeviceBuiltInNull.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\dev\GainputDev.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\dev\GainputMemoryStream.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\GainputHelpersEvdev.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\keyboard\GainputInputDeviceKeyboardAndroid.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\keyboard\GainputInputDeviceKeyboardImpl.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\keyboard\GainputInputDeviceKeyboardNull.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\keyboard\GainputKeyboardKeyNames.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\pad\GainputInputDevicePadAndroid.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\pad\GainputInputDevicePadImpl.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\touch\GainputInputDeviceTouchAndroid.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\source\gainput\touch\GainputInputDeviceTouchImpl.h" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{a4c073ab-608b-4e1c-b24a-9e3919235f0c}</ProjectGuid>
+    <Keyword>Android</Keyword>
+    <RootNamespace>gainputstatic</RootNamespace>
+    <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
+    <ApplicationType>Android</ApplicationType>
+    <ApplicationTypeRevision>3.0</ApplicationTypeRevision>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <UseOfStl>c++_shared</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <UseOfStl>c++_shared</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <UseOfStl>c++_shared</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <UseOfStl>c++_shared</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>Disabled</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>Disabled</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>ARM</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>ARM</ThumbMode>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <Import Project="..\..\..\ARM.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <Import Project="..\..\..\ARM64.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <Import Project="..\..\..\ARM.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <Import Project="..\..\..\ARM64.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(VS_Ndkroot)\toolchains\llvm\prebuilt\windows-x86_64\lib64\clang\8.0.7\include</IncludePath>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(VS_Ndkroot)\toolchains\llvm\prebuilt\windows-x86_64\lib64\clang\8.0.7\include</IncludePath>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(VS_Ndkroot)\toolchains\llvm\prebuilt\windows-x86_64\lib64\clang\8.0.7\include</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <CppLanguageStandard>c++11</CppLanguageStandard>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;ANDROID;GAINPUT_LIB_DYNAMIC=0;CMAKE_INTDIR="Debug";GAINPUT_BUILD_STATIC=ON;GAINPUT_BUILD_SHARED=OFF;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Disabled</ExceptionHandling>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <CppLanguageStandard>c++11</CppLanguageStandard>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;ANDROID;GAINPUT_LIB_DYNAMIC=0;CMAKE_INTDIR="Release";GAINPUT_BUILD_STATIC=ON;GAINPUT_BUILD_SHARED=OFF;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Disabled</ExceptionHandling>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <EnableNeonCodegen>false</EnableNeonCodegen>
+      <FloatABI>softfp</FloatABI>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;ANDROID;GAINPUT_LIB_DYNAMIC=0;CMAKE_INTDIR="Debug";GAINPUT_BUILD_STATIC=ON;GAINPUT_BUILD_SHARED=OFF;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PositionIndependentCode>false</PositionIndependentCode>
+      <AdditionalOptions>
+      </AdditionalOptions>
+      <PrecompiledHeaderCompileAs>CompileAsC</PrecompiledHeaderCompileAs>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+    </ClCompile>
+    <PostBuildEvent>
+      <Command>
+      </Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <ExceptionHandling>Disabled</ExceptionHandling>
+      <FloatABI>softfp</FloatABI>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;ANDROID;GAINPUT_LIB_DYNAMIC=0;CMAKE_INTDIR="Release";GAINPUT_BUILD_STATIC=ON;GAINPUT_BUILD_SHARED=OFF;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\gainput\lib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PrecompiledHeaderCompileAs>CompileAsC</PrecompiledHeaderCompileAs>
+      <AdditionalOptions>-Wno-c++14-extensions </AdditionalOptions>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

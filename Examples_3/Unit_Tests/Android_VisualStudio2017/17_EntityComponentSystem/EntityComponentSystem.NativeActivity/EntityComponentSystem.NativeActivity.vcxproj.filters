@@ -1,0 +1,83 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="android_native_app_glue.h" />
+    <ClInclude Include="..\..\..\src\17_EntityComponentSystem\Components\MoveComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\17_EntityComponentSystem\Components\PositionComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\17_EntityComponentSystem\Components\SpriteComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\17_EntityComponentSystem\Components\WorldBoundsComponent.h">
+      <Filter>Components</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\17_EntityComponentSystem\Representations\MoveRepresentation.h">
+      <Filter>Representations</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\17_EntityComponentSystem\Representations\PositionRepresentation.h">
+      <Filter>Representations</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\17_EntityComponentSystem\Representations\SpriteRepresentation.h">
+      <Filter>Representations</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\src\17_EntityComponentSystem\Representations\WorldBoundsRepresentation.h">
+      <Filter>Representations</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="android_native_app_glue.c" />
+    <ClCompile Include="..\..\..\src\17_EntityComponentSystem\Components\MoveComponent.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\17_EntityComponentSystem\Components\PositionComponent.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\17_EntityComponentSystem\Components\SpriteComponent.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\17_EntityComponentSystem\Components\WorldBoundsComponent.cpp">
+      <Filter>Components</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\17_EntityComponentSystem\Representations\MoveRepresentation.cpp">
+      <Filter>Representations</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\17_EntityComponentSystem\Representations\PositionRepresentation.cpp">
+      <Filter>Representations</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\17_EntityComponentSystem\Representations\SpriteRepresentation.cpp">
+      <Filter>Representations</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\17_EntityComponentSystem\Representations\WorldBoundsRepresentation.cpp">
+      <Filter>Representations</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\17_EntityComponentSystem\17_EntityComponentSystem.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Components">
+      <UniqueIdentifier>{6ea24f0b-c0ef-409f-a95f-62260a94495d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Representations">
+      <UniqueIdentifier>{4e376ffc-6560-4ec7-9b27-eebdc86173fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{4a224e2e-e679-4b2a-a8d9-565ad66888ac}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\src\17_EntityComponentSystem\Shaders\Vulkan\basic.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\17_EntityComponentSystem\Shaders\Vulkan\basic.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\17_EntityComponentSystem\Shaders\Vulkan\profile.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\17_EntityComponentSystem\Shaders\Vulkan\profile.vert">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+</Project>

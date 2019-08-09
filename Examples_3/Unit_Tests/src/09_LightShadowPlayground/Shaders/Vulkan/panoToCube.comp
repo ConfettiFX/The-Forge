@@ -1,0 +1,105 @@
+/*
+ * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * 
+ * This file is part of The-Forge
+ * (see https://github.com/ConfettiFX/The-Forge).
+ * 
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+*/
+#version 450 core
+#if !defined(WINDOWS) && !defined(ANDROID) && !defined(LINUX)
+#define WINDOWS 	// Assume windows if no platform define has been added to the shader
+#endif
+
+
+#extension GL_EXT_samplerless_texture_functions : enable
+
+
+#define NUM_THREADS_X 16
+#define NUM_THREADS_Y 16
+#define NUM_THREADS_Z 1
+struct Data
+{
+    uint mip;
+    uint maxSize;
+};
+layout(push_constant) uniform RootConstant_Block
+{
+    uint mip;
+    uint maxSize;
+}RootConstant;
+
+layout(set = 1, binding = 1) uniform texture2D srcTexture;
+layout(set = 3, binding = 2, rgba32f) uniform image2DArray dstTexture;
+layout(set = 0, binding = 3) uniform sampler skyboxSampler;
+#define Pi 3.14159274
+#define CubeSide 1.1547005
+#define SLICES 6
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+void HLSLmain(uvec3 DTid)
+{
+    float PI = float (3.14159274);
+    vec2 invAtan = vec2(0.1591, 0.31830000);
+    vec3 threadPos = vec3 (DTid);
+    uint pixelOffset = uint (0);
+    uint mip = (RootConstant).mip;
+    {
+        uint mipSize = ((RootConstant).maxSize >> mip);
+        if((((threadPos).x >= float (mipSize)) || ((threadPos).y >= float (mipSize))))
+        {
+            return;
+        }
+        vec2 texcoords = vec2((float(((threadPos).x + float (0.5))) / float (mipSize)), (1.0 - (float(((threadPos).y + float (0.5))) / float (mipSize))));
+        vec3 sphereDir;
+        if(((threadPos).z <= float (0)))
+        {
+            (sphereDir = normalize(vec3(0.5, (-((texcoords).y - float (0.5))), (-((texcoords).x - float (0.5))))));
+        }
+        else if (((threadPos).z <= float (1)))
+        {
+            (sphereDir = normalize(vec3((-0.5), (-((texcoords).y - float (0.5))), ((texcoords).x - float (0.5)))));
+        }
+        else if (((threadPos).z <= float (2)))
+        {
+            (sphereDir = normalize(vec3(((texcoords).x - float (0.5)), (-0.5), (-((texcoords).y - float (0.5))))));
+        }
+        else if (((threadPos).z <= float (3)))
+        {
+            (sphereDir = normalize(vec3(((texcoords).x - float (0.5)), 0.5, ((texcoords).y - float (0.5)))));
+        }
+        else if (((threadPos).z <= float (4)))
+        {
+            (sphereDir = normalize(vec3(((texcoords).x - float (0.5)), (-((texcoords).y - float (0.5))), 0.5)));
+        }
+        else if (((threadPos).z <= float (5)))
+        {
+            (sphereDir = normalize(vec3((-((texcoords).x - float (0.5))), (-((texcoords).y - float (0.5))), (-0.5))));
+        }
+        vec2 panoUVs = vec2(atan((sphereDir).z, (sphereDir).x), asin((sphereDir).y));
+        (panoUVs *= invAtan);
+        (panoUVs += vec2 (0.5));
+        imageStore(dstTexture, ivec3(uvec3((threadPos).x, (threadPos).y, (threadPos).z)), textureLod(sampler2D( srcTexture, skyboxSampler), vec2(panoUVs), float (mip)));
+    }
+}
+void main()
+{
+    uvec3 DTid;
+    DTid = gl_GlobalInvocationID;
+    HLSLmain(DTid);
+}

@@ -232,8 +232,6 @@ public:
 		depthStateDesc.mDepthFunc = CMP_LEQUAL;
 		addDepthState(pRenderer, &depthStateDesc, &pDepth);
 
-		requestMouseCapture(true);		
-
 		// INITIALIZE THE USER INTERFACE
 		//
 		if (!gAppUI.Init(pRenderer))
@@ -454,7 +452,7 @@ public:
 	bool addSwapChain()
 	{
 		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.mWindowHandle = pWindow->handle;
 		swapChainDesc.mPresentQueueCount = 1;
 		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mWidth = mSettings.mWidth;

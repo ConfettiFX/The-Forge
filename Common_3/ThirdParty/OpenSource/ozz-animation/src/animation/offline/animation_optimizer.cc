@@ -135,7 +135,7 @@ void BuildHierarchicalSpecs(const RawAnimation& _animation,
       max_length =
           max(max_length, (float)lengthSqr(track.translations[j].value)); //CONFFX_BEGIN
     }
-    local_joint_specs[i].length = std::sqrt(max_length);
+    local_joint_specs[i].length = sqrt(max_length);
 
     float max_scale = 0.f;
     if (track.scales.size() != 0) {
@@ -234,14 +234,14 @@ bool CompareRotation(const Quat& _a, const Quat& _b,
   // Compute the shortest unsigned angle between the 2 quaternions.
   // diff_w is w component of a-1 * b.
   const float diff_w = _a.getX() * _b.getX() + _a.getY() * _b.getY() + _a.getZ() * _b.getZ() + _a.getW() * _b.getW();
-  const float angle = 2.f * acos(min(std::abs(diff_w), 1.f));
-  if (std::abs(angle) > _tolerance) {
+  const float angle = 2.f * acos(min(abs(diff_w), 1.f));
+  if (abs(angle) > _tolerance) {
     return false;
   }
 
   // Deduces the length of the opposite segment at a distance _hierarchy_length.
-  const float arc_length = std::sin(angle) * _hierarchy_length;
-  return std::abs(arc_length) < _hierarchical_tolerance;
+  const float arc_length = sin(angle) * _hierarchy_length;
+  return abs(arc_length) < _hierarchical_tolerance;
 }
 
 // Scale filtering comparator.

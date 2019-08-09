@@ -1,0 +1,338 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x86">
+      <Configuration>Debug</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x86">
+      <Configuration>Release</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidBase.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidFileSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidLog.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidThread.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidTime.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Camera\FpsCameraController.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Camera\GuiCameraController.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\FileSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\PlatformEvents.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Timer.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Input\InputSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Logging\Log.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\MemoryTracking\MemoryTracking.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\allocator_forge.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\assert.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EAStdC\EAMemory.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EAStdC\EASprintf.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\fixed_pool.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\hashtable.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\intrusive_list.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\numeric_limits.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\red_black_tree.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\string.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\thread_support.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\TinyEXR\tinyexr.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\AnimatedObject.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Animation.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Clip.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\ClipController.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\ClipMask.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Rig.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Text\Fontstash.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\ImguiGUIDriver.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Atomics.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Compiler.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\GPUConfig.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\RingBuffer.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\InputMappings.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\InputSystem.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IApp.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ICameraController.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFileSystem.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ILog.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IMemory.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IMiddleware.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IOperatingSystem.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IPlatformEvents.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IProfiler.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IThread.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ITimeManager.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Logging\Log.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\MathTypes.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\MemoryTracking\NoMemoryDefines.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imconfig.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_internal.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\AnimatedObject.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Animation.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Clip.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\ClipController.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\ClipMask.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Rig.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Text\Fontstash.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\AppUI.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EASTL.natvis" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{3062376a-ea3d-4573-9a3f-cefdbe63c3aa}</ProjectGuid>
+    <Keyword>Android</Keyword>
+    <RootNamespace>OS</RootNamespace>
+    <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
+    <ApplicationType>Android</ApplicationType>
+    <ApplicationTypeRevision>3.0</ApplicationTypeRevision>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <UseOfStl>c++_shared</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <UseOfStl>c++_shared</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-29</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <UseOfStl>c++_shared</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>Disabled</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>Disabled</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>ARM</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>ARM</ThumbMode>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <Import Project="..\..\ARM.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x86'" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <Import Project="..\..\ARM64.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <Import Project="..\..\ARM.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <Import Project="..\..\ARM64.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\toolchains\llvm\prebuilt\windows-x86_64\lib64\clang\8.0.7\include</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;D:\Android_SDK\ndk-bundle\sources\cxx-stl\llvm-libc++\include;D:\Android_SDK\ndk-bundle\sources\cxx-stl\llvm-libc++abi\include;D:\Android_SDK\ndk-bundle\sources\cxx-stl\system\include;$(IncludePath)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(VS_Ndkroot)\toolchains\llvm\prebuilt\windows-x86_64\lib64\clang\8.0.7\include</IncludePath>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(VS_Ndkroot)\toolchains\llvm\prebuilt\windows-x86_64\lib64\clang\8.0.7\include</IncludePath>
+    <TargetName>lib$(RootNamespace)</TargetName>
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <ExcludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(VS_Ndkroot)\toolchains\llvm\prebuilt\windows-x86_64\lib64\clang\8.0.7\include</ExcludePath>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PreprocessorDefinitions>VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;API_EXPORT;ANDROID;USE_MEMORY_TRACKING;VULKAN;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <EnableNeonCodegen>false</EnableNeonCodegen>
+      <CppLanguageStandard>c++11</CppLanguageStandard>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Lib>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <CppLanguageStandard>c++11</CppLanguageStandard>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <PreprocessorDefinitions>VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;API_EXPORT;ANDROID;USE_MEMORY_TRACKING;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <EnableNeonCodegen>false</EnableNeonCodegen>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Lib>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
+    <CustomBuildStep>
+      <Message />
+    </CustomBuildStep>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <PreprocessorDefinitions>VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;API_EXPORT;ANDROID;USE_MEMORY_TRACKING;VULKAN;_DEBUG</PreprocessorDefinitions>
+      <EnableNeonCodegen>true</EnableNeonCodegen>
+      <FloatABI>softfp</FloatABI>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <AdditionalOptions>-std=c++14 -mfloat-abi=softfp -mfpu=neon -Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Lib />
+    <Lib />
+    <Lib />
+    <Lib />
+    <Lib>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+      <FloatABI>softfp</FloatABI>
+      <PreprocessorDefinitions>VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;API_EXPORT;ANDROID;USE_MEMORY_TRACKING;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>-mfloat-abi=softfp -mfpu=neon -Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
+    </ClCompile>
+    <Lib />
+    <Lib />
+    <Lib>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

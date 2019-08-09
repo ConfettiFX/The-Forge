@@ -34,7 +34,6 @@
 #include "../../ThirdParty/OpenSource/EASTL/vector.h"
 
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/IPlatformEvents.h"
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/ITime.h"
 #include "../Interfaces/IThread.h"
@@ -204,7 +203,7 @@ void openWindow(const char* app_name, WindowsDesc* winDesc, id<MTLDevice> device
     
     [Window setOpaque:YES];
     [Window makeKeyAndVisible];
-    winDesc->handle = (void*)CFBridgingRetain(Window);
+    winDesc->handle.window = (void*)CFBridgingRetain(Window);
     
     // Adjust window size to match retina scaling.
     CGFloat scale = UIScreen.mainScreen.scale;
@@ -348,7 +347,7 @@ uint32_t testingMaxFrameCount = 120;
 
         gCurrentWindow = {};
         openWindow(pApp->GetName(), &gCurrentWindow, device);
-        UIApplication.sharedApplication.delegate.window = (__bridge UIWindow*)gCurrentWindow.handle;
+        UIApplication.sharedApplication.delegate.window = (__bridge UIWindow*)gCurrentWindow.handle.window;
         
 		if (pSettings->mWidth == -1 || pSettings->mHeight == -1)
 		{
@@ -363,7 +362,7 @@ uint32_t testingMaxFrameCount = 120;
 		gCurrentWindow.fullScreen = pSettings->mFullScreen;
 		gCurrentWindow.maximized = false;
 
-        ForgeMTLView *forgeView = (ForgeMTLView*)((__bridge UIWindow*)(gCurrentWindow.handle)).rootViewController.view;
+        ForgeMTLView *forgeView = (ForgeMTLView*)((__bridge UIWindow*)(gCurrentWindow.handle.window)).rootViewController.view;
         forgeView.delegate = self;
         
 		pSettings->mWidth = getRectWidth(gCurrentWindow.fullscreenRect);

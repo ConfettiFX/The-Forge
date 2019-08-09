@@ -1,0 +1,203 @@
+/*
+* Copyright (c) 2018-2019 Confetti Interactive Inc.
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
+
+#include "SDF_Constant.h"
+
+
+Texture2D<float> DepthTexture;
+Texture3D<float> SDFVolumeTextureAtlas;
+
+RWTexture2D<float4> OutTexture;
+
+
+SamplerState clampToEdgeTrillinearSampler : register(s0);
+SamplerState clampToEdgeNearSampler : register(s1);
+
+
+cbuffer cameraUniformBlock : register(b0)
+{
+    float4x4 View;
+    float4x4 Project;
+    float4x4 ViewProject;
+    row_major float4x4 InvView;
+	float4x4 InvProj;
+	float4x4 InvViewProject;
+	float4  mCameraPos;
+	float mNear;
+	float mFarNearDiff;
+	float mFarNear;
+	float paddingForAlignment0;
+	float2 mTwoOverRes;
+	float _pad1;
+	float _pad2;
+	float2 mWindowSize;
+};
+
+
+cbuffer meshSDFUniformBlock : register(b1)
+{
+	float4x4 mWorldToVolumeMat[SDF_MAX_OBJECT_COUNT];
+	float4 mUVScaleAndVolumeScale[SDF_MAX_OBJECT_COUNT];
+	float4 mLocalPositionExtent[SDF_MAX_OBJECT_COUNT];
+	float4 mUVAddAndSelfShadowBias[SDF_MAX_OBJECT_COUNT];
+	float4 mSDFMAD[SDF_MAX_OBJECT_COUNT];
+	uint mNumObjects;
+};
+
+
+
+float2 LineBoxIntersect(float3 RayOrigin, float3 RayEnd, float3 BoxMin, float3 BoxMax)
+{
+	float3 InvRayDir = 1.0f / (RayEnd - RayOrigin);
+	float3 FirstPlaneIntersections = (BoxMin - RayOrigin) * InvRayDir;
+	float3 SecondPlaneIntersections = (BoxMax - RayOrigin) * InvRayDir;
+	float3 ClosestPlaneIntersections = min(FirstPlaneIntersections, SecondPlaneIntersections);
+	float3 FurthestPlaneIntersections = max(FirstPlaneIntersections, SecondPlaneIntersections);
+
+	float2 BoxIntersections;
+	BoxIntersections.x = max(ClosestPlaneIntersections.x, max(ClosestPlaneIntersections.y, ClosestPlaneIntersections.z));
+	BoxIntersections.y = min(FurthestPlaneIntersections.x, min(FurthestPlaneIntersections.y, FurthestPlaneIntersections.z));
+	return saturate(BoxIntersections);
+}
+
+
+float3 SDFVolumeDimensionPositionToUV(float3 volumePos, float3 uvScale, float3 uvAdd)
+{
+	return volumePos * uvScale + uvAdd;
+}
+
+float SampleSDFVolumeTextureAtlas(float3 volumeUV)
+{
+	return SDFVolumeTextureAtlas.SampleLevel(clampToEdgeTrillinearSampler, volumeUV, 0);
+}
+
+
+
+void RayTraceScene(float3 rayWorldStartPos, float3 rayWorldEndPos, float maxRayTime , 
+	out float minRayTime, out float stepsTaken)
+{
+	minRayTime = maxRayTime;
+	stepsTaken = 0;
+	
+
+	for(uint index = 0; index < mNumObjects; ++index)
+	{
+
+		float3 volumeRayStart = mul(mWorldToVolumeMat[index], float4(rayWorldStartPos.xyz, 1.0)).xyz;
+		float3 volumeRayEnd = mul(mWorldToVolumeMat[index], float4(rayWorldEndPos.xyz, 1.0)).xyz;
+		float3 volumeRayDir = volumeRayEnd - volumeRayStart;
+		float volumeRayLength = length(volumeRayDir);
+		volumeRayDir /= volumeRayLength;
+
+		float2 intersectionTimes = LineBoxIntersect(volumeRayStart, 
+			volumeRayEnd, -mLocalPositionExtent[index].xyz, mLocalPositionExtent[index].xyz);
+
+		if(intersectionTimes.x < intersectionTimes.y && intersectionTimes.x < 1)
+		{
+			//we jump straight the position of the ray when it hits the volume dimension bbox
+			float sampleRayTime = intersectionTimes.x * volumeRayLength;
+			
+			float minDist = 1000000;
+			
+			uint stepIndex = 0;
+			uint maxSteps = 256;
+		
+			[loop]
+			for(; stepIndex < maxSteps; ++stepIndex)
+			{
+				float3 sampleVolumePos = volumeRayStart + volumeRayDir * sampleRayTime;
+				float3 clampedSamplePos = clamp(sampleVolumePos, 
+					-mLocalPositionExtent[index].xyz, mLocalPositionExtent[index].xyz);
+				float3 volumeUV = SDFVolumeDimensionPositionToUV(clampedSamplePos,
+					mUVScaleAndVolumeScale[index].xyz,  mUVAddAndSelfShadowBias[index].xyz);
+			
+				float sdfValue = SampleSDFVolumeTextureAtlas(volumeUV);
+
+				minDist = min(minDist, sdfValue);
+
+				float minStepSize = 1.0f / (4.f * maxSteps);
+				float curStepDist = max(sdfValue, minStepSize);
+
+				sampleRayTime += curStepDist;
+
+				if(sdfValue < 0 || sampleRayTime > intersectionTimes.y * volumeRayLength)
+				{
+					break;
+				}
+
+			}
+
+			if(minDist * mUVScaleAndVolumeScale[index].w < 0 || stepIndex == maxSteps)
+			{
+				minRayTime = min(minRayTime, sampleRayTime * mUVScaleAndVolumeScale[index].w);
+			}
+			stepsTaken += stepIndex;
+		}
+	}
+
+}
+
+[numthreads(SDF_MESH_VISUALIZATION_THREAD_X, SDF_MESH_VISUALIZATION_THREAD_Y, 1)]
+void main(uint3 GroupID : SV_GroupID,
+	uint3 DispatchThreadID : SV_DispatchThreadID,
+    uint3 GroupThreadID : SV_GroupThreadID)
+{
+	uint3 localDispatchThreadID = DispatchThreadID * SDF_SHADOW_DOWNSAMPLE_VALUE;
+
+	float xClip = (( float(localDispatchThreadID.x) * 2.f) / mWindowSize.x) - 1.f;
+	float yClip = 1.f - (( float(localDispatchThreadID.y) * 2.f) / mWindowSize.y);
+
+	float2 depthSize =  mWindowSize;
+	float2 depthUV = localDispatchThreadID.xy / depthSize;
+	float depthVal = DepthTexture.SampleLevel(clampToEdgeNearSampler, depthUV, 0).r;
+
+	float4 worldPosW =  mul(InvViewProject, float4(xClip, yClip, depthVal, 1.0));
+	float3 worldPos = (worldPosW / worldPosW.w).xyz;
+	
+
+	float traceDistance = 40000;
+	float3 cameraWorldPos = mCameraPos.xyz;
+	float3 rayDir = normalize( worldPos - cameraWorldPos );
+	float3 rayEndPos = cameraWorldPos + rayDir * traceDistance;
+
+	float minRayTime = traceDistance;
+	float totalStepsTaken = 0;
+
+	RayTraceScene(cameraWorldPos, rayEndPos, traceDistance, 
+		minRayTime, totalStepsTaken);
+
+	float saturatedStepsTaken =  saturate(totalStepsTaken / 200.0f);
+
+	float3 Result = float3(saturatedStepsTaken, saturatedStepsTaken, saturatedStepsTaken);
+
+
+	if(minRayTime < traceDistance)
+	{
+		Result += 0.1f;
+	}
+
+	OutTexture[DispatchThreadID.xy] = float4(Result, 1.0);
+	
+}

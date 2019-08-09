@@ -26,7 +26,6 @@
 
 #include "../../Common_3/OS/Interfaces/ILog.h"
 #include "../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../Common_3/OS/Image/Image.h"
 #include "../../Common_3/OS/Interfaces/ICameraController.h"
 
 #include "../../Common_3/Renderer/GpuProfiler.h"
@@ -50,7 +49,7 @@ FSRoot                         FSR_MIDDLEWARE_UI = FSR_Middleware1;
 static eastl::vector<UIApp*> gInstances;
 static Mutex                   gMutex;
 
-extern void initGUIDriver(Renderer* pRenderer, GUIDriver** ppDriver, uint32_t const maxDynamicUIUpdatesPerBatch);
+extern void initGUIDriver(Renderer* pRenderer, GUIDriver** ppDriver);
 extern void removeGUIDriver(GUIDriver* pDriver);
 
 static bool uiInputEvent(const ButtonData* pData);
@@ -301,9 +300,11 @@ bool UIApp::Init(Renderer* renderer)
 	if (mFontAtlasSize <= 0) // then we assume we'll only draw debug text in the UI, in which case the atlas size can be kept small
 		mFontAtlasSize = 256;
 
-	pImpl->pFontStash =
-		conf_placement_new<Fontstash>(conf_calloc(1, sizeof(Fontstash)), renderer, mFontAtlasSize, mFontAtlasSize);
-	initGUIDriver(pImpl->pRenderer, &pDriver, mMaxDynamicUIUpdatesPerBatch);
+	pImpl->pFontStash = (Fontstash*)conf_calloc(1, sizeof(Fontstash));
+	bool success = pImpl->pFontStash->init(renderer, mFontAtlasSize, mFontAtlasSize);
+
+	initGUIDriver(pImpl->pRenderer, &pDriver);
+	success &= pDriver->init(pImpl->pRenderer, mMaxDynamicUIUpdatesPerBatch);
 
 	MutexLock lock(gMutex);
 	gInstances.emplace_back(this);
@@ -313,7 +314,7 @@ bool UIApp::Init(Renderer* renderer)
 		InputSystem::RegisterInputEvent(uiInputEvent, UINT_MAX);
 	}
 
-	return pImpl->pFontStash != NULL;
+	return success;
 }
 
 void UIApp::Exit()
@@ -327,10 +328,10 @@ void UIApp::Exit()
 
 	RemoveAllGuiComponents();
 
-	pImpl->pFontStash->destroy();
+	pImpl->pFontStash->exit();
 	conf_free(pImpl->pFontStash);
 
-	pDriver->unload();
+	pDriver->exit();
 	removeGUIDriver(pDriver);
 	pDriver = NULL;
 
@@ -338,15 +339,23 @@ void UIApp::Exit()
 	conf_free(pImpl);
 }
 
-bool UIApp::Load(RenderTarget** rts)
+bool UIApp::Load(RenderTarget** rts, uint32_t count)
 { 
 	ASSERT(rts && rts[0]);
 	mWidth = (float)rts[0]->mDesc.mWidth;
 	mHeight = (float)rts[0]->mDesc.mHeight;
-	return true;
+
+	bool success = pDriver->load(rts, count);
+	success &= pImpl->pFontStash->load(rts, count);
+
+	return success;
 }
 
-void UIApp::Unload() {}
+void UIApp::Unload()
+{
+	pDriver->unload();
+	pImpl->pFontStash->unload();
+}
 
 uint32_t UIApp::LoadFont(const char* pFontPath, uint root)
 {
@@ -436,7 +445,7 @@ GuiComponent* UIApp::AddGuiComponent(const char* pTitle, const GuiDesc* pDesc)
 	pComponent->mHasCloseButton = false;
 	pComponent->mFlags = GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE;
 
-	pDriver->load(pImpl->pFontStash, pDesc->mDefaultTextDrawDesc.mFontSize, NULL);
+	pDriver->addGui(pImpl->pFontStash, pDesc->mDefaultTextDrawDesc.mFontSize, NULL);
 
 	pComponent->mInitialWindowRect = { pDesc->mStartPosition.getX(), pDesc->mStartPosition.getY(), pDesc->mStartSize.getX(),
 									   pDesc->mStartSize.getY() };
@@ -671,7 +680,7 @@ void VirtualJoystickUI::Exit()
 	removeResource(pTexture);
 }
 
-bool VirtualJoystickUI::Load(RenderTarget* pScreenRT, uint depthFormat)
+bool VirtualJoystickUI::Load(RenderTarget* pScreenRT)
 {
 	if (!mInitialized)
 		return false;
@@ -694,7 +703,7 @@ bool VirtualJoystickUI::Load(RenderTarget* pScreenRT, uint depthFormat)
 	desc.mType = PIPELINE_TYPE_GRAPHICS;
 	GraphicsPipelineDesc& pipelineDesc = desc.mGraphicsDesc;
 	pipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_STRIP;
-	pipelineDesc.mDepthStencilFormat = (ImageFormat::Enum)depthFormat;
+	pipelineDesc.mDepthStencilFormat = ImageFormat::NONE;
 	pipelineDesc.mRenderTargetCount = 1;
 	pipelineDesc.mSampleCount = pScreenRT->mDesc.mSampleCount;
 	pipelineDesc.mSampleQuality = pScreenRT->mDesc.mSampleQuality;
@@ -864,18 +873,13 @@ void VirtualJoystickUI::Draw(Cmd* pCmd, const float4& color)
 
 	cmdBindPipeline(pCmd, pPipeline);
 	data.color = color;
-	data.scaleBias = { 2.0f / (float)pCmd->mBoundWidth, -2.0f / (float)pCmd->mBoundHeight };
+	data.scaleBias = { 2.0f / (float)mRenderSize[0], -2.0f / (float)mRenderSize[1] };
 	DescriptorData params[2] = {};
 	params[0].pName = "uRootConstants";
 	params[0].pRootConstant = &data;
 	params[1].pName = "uTex";
 	params[1].ppTextures = &pTexture;
 	cmdBindDescriptors(pCmd, pDescriptorBinder, pRootSignature, 2, params);
-
-	if (mRenderSize[0] != (float)pCmd->mBoundWidth)
-		mRenderSize[0] = (float)pCmd->mBoundWidth;
-	if (mRenderSize[1] != (float)pCmd->mBoundHeight)
-		mRenderSize[1] = (float)pCmd->mBoundHeight;
 
 	// Draw the camera controller's virtual joysticks.
 	float extSide = mOutsideRadius;

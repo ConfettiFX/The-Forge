@@ -977,7 +977,7 @@ int FileSystem::SystemRun(const eastl::string& fileName, const eastl::vector<eas
 		sa.lpSecurityDescriptor = NULL;
 		sa.bInheritHandle = TRUE;
 
-		stdOut = CreateFileA(stdOutFile.c_str(), GENERIC_ALL, FILE_SHARE_WRITE | FILE_SHARE_READ, &sa, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		stdOut = CreateFileA(stdOutFile.c_str(), GENERIC_ALL, FILE_SHARE_WRITE | FILE_SHARE_READ, &sa, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	}
 
 	STARTUPINFOA        startupInfo;

@@ -27,10 +27,10 @@
 #include "../../OS/Interfaces/ILog.h"
 
 #ifdef _DURANGO
-#include "..\..\..\Xbox\CommonXBOXOne_3\OS\XBoxPrivateHeaders.h"
+#include "../../../Xbox/CommonXBOXOne_3/OS/XBoxPrivateHeaders.h"
 #else
 #include <d3dcompiler.h>
-#include "../../../Common_3/ThirdParty/OpenSource/DirectXShaderCompiler/dxcapi.use.h"
+#include "../../ThirdParty/OpenSource/DirectXShaderCompiler/dxcapi.use.h"
 extern dxc::DxcDllSupport gDxcDllHelper;
 #endif
 

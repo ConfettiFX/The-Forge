@@ -111,7 +111,7 @@ size_t read_file(void *buffer, size_t byteCount, FileHandle handle)
 {
 	AAsset* assetHandle = reinterpret_cast<AAsset*>(handle);
 	size_t  readSize = AAsset_read(assetHandle, buffer, byteCount);
-	ASSERT(readSize == byteCount);
+	//ASSERT(readSize == byteCount);
 	return readSize;
 }
 

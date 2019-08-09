@@ -33,10 +33,13 @@
 #include "../../../include/ozz/base/maths/math_archive.h"
 #include "../../../include/ozz/base/maths/math_ex.h"
 #include "../../../include/ozz/base/memory/allocator.h"
+
+#include "../../EASTL/internal/char_traits.h"
 //CONFFX_END
 
 #include <cassert>
 #include <cstring>
+
 
 // Internal include file
 #define OZZ_INCLUDE_PRIVATE_HEADER  // Allows to include private headers.
@@ -113,7 +116,7 @@ void Animation::Save(ozz::io::OArchive& _archive) const {
   _archive << duration_;
   _archive << static_cast<int32_t>(num_tracks_);
 
-  const size_t name_len = name_ ? std::strlen(name_) : 0;
+  const size_t name_len = name_ ? eastl::CharStrlen(name_) : 0;
   _archive << static_cast<int32_t>(name_len);
 
   const ptrdiff_t translation_count = translations_.count();

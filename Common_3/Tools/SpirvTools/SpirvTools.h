@@ -24,34 +24,7 @@
 
 #pragma once
 
-#include <stdint.h>
-#if defined _WIN32 || defined __CYGWIN__ || defined __MINGW32__
-  #ifdef API_EXPORT
-	#ifdef __GNUC__
-	  #define SPIRV_INTERFACE __attribute__ ((dllexport))
-	#else
-	  #define SPIRV_INTERFACE __declspec(dllexport) // Note: actually gcc seems to also supports this syntax.
-	#endif
-  #else
-	#ifdef __GNUC__
-	  #define SPIRV_INTERFACE __attribute__ ((dllimport))
-	#else
-	  #define SPIRV_INTERFACE __declspec(dllimport) // Note: actually gcc seems to also supports this syntax.
-	#endif
-  #endif
-#else
-  #if __GNUC__ >= 4
-	#define SPIRV_INTERFACE __attribute__ ((visibility ("default")))
-  #else
-	#define SPIRV_INTERFACE
-  #endif
-#endif
-
-#if defined( _WIN32 )
-#define CALLTYPE __cdecl
-#else
-#define CALLTYPE
-#endif
+#include "../../OS/Interfaces/IOperatingSystem.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // spirv cross
@@ -186,13 +159,13 @@ struct CrossCompiler
    uint32_t EntryPointSize;
 };
 
-SPIRV_INTERFACE  void CALLTYPE CreateCrossCompiler(const uint32_t* SpirvBinary, uint32_t BinarySize, CrossCompiler* outCompiler);
-SPIRV_INTERFACE  void CALLTYPE DestroyCrossCompiler(CrossCompiler* compiler);
+void CreateCrossCompiler(const uint32_t* SpirvBinary, uint32_t BinarySize, CrossCompiler* outCompiler);
+void DestroyCrossCompiler(CrossCompiler* compiler);
 
-SPIRV_INTERFACE  void CALLTYPE ReflectEntryPoint(CrossCompiler* compiler);
+void ReflectEntryPoint(CrossCompiler* compiler);
 
-SPIRV_INTERFACE  void CALLTYPE ReflectShaderResources(CrossCompiler* compiler);
-SPIRV_INTERFACE  void CALLTYPE ReflectShaderVariables(CrossCompiler* compiler);
+void ReflectShaderResources(CrossCompiler* compiler);
+void ReflectShaderVariables(CrossCompiler* compiler);
 
-SPIRV_INTERFACE  void CALLTYPE ReflectComputeShaderWorkGroupSize(CrossCompiler* compiler, uint32_t* pSizeX, uint32_t* pSizeY, uint32_t* pSizeZ);
-SPIRV_INTERFACE  void CALLTYPE ReflectHullShaderControlPoint(CrossCompiler* pCompiler, uint32_t* pSizeX);
+void ReflectComputeShaderWorkGroupSize(CrossCompiler* compiler, uint32_t* pSizeX, uint32_t* pSizeY, uint32_t* pSizeZ);
+void ReflectHullShaderControlPoint(CrossCompiler* pCompiler, uint32_t* pSizeX);

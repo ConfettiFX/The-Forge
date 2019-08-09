@@ -33,9 +33,6 @@
     <ClCompile Include="..\..\..\Common_3\Tools\TFXImporter\TFXImporter.cpp">
       <Filter>Source Files\TFXImporter</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Common\AppHelpers.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\06_MaterialPlayground\Shaders\Vulkan\BRDFIntegration.comp">
@@ -199,8 +196,5 @@
     <None Include="..\src\06_MaterialPlayground\updateCamera.lua">
       <Filter>Lua</Filter>
     </None>
-    <ClInclude Include="..\..\Common\AppHelpers.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>

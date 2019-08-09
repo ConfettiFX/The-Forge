@@ -42,7 +42,7 @@
 #include "MetalMemoryAllocator.h"
 #include "../../OS/Interfaces/ILog.h"
 #include "../../OS/Core/GPUConfig.h"
-#include "../../OS/Image/Image.h"
+#include "../../OS/Image/ImageEnums.h"
 #include "../../OS/Interfaces/IMemory.h"
 
 #define MAX_BUFFER_BINDINGS 31
@@ -1693,12 +1693,6 @@ void addCmd(CmdPool* pCmdPool, bool secondary, Cmd** ppCmd)
 	pCmd->pCmdPool = pCmdPool;
 	pCmd->mtlEncoderFence = [pCmd->pRenderer->pDevice newFence];
 
-	if (pCmdPool->mCmdPoolDesc.mCmdPoolType == CMD_POOL_DIRECT)
-	{
-		pCmd->pBoundColorFormats = (uint32_t*)conf_calloc(MAX_RENDER_TARGET_ATTACHMENTS, sizeof(uint32_t));
-		pCmd->pBoundSrgbValues = (bool*)conf_calloc(MAX_RENDER_TARGET_ATTACHMENTS, sizeof(bool));
-	}
-
 	*ppCmd = pCmd;
 }
 void removeCmd(CmdPool* pCmdPool, Cmd* pCmd)
@@ -1707,12 +1701,6 @@ void removeCmd(CmdPool* pCmdPool, Cmd* pCmd)
 	pCmd->mtlEncoderFence = nil;
 	pCmd->mtlCommandBuffer = nil;
 	pCmd->pRenderPassDesc = nil;
-
-	if (pCmd->pBoundColorFormats)
-		SAFE_FREE(pCmd->pBoundColorFormats);
-	
-	if (pCmd->pBoundSrgbValues)
-		SAFE_FREE(pCmd->pBoundSrgbValues);
 	
 	SAFE_FREE(pCmd);
 }
@@ -1771,7 +1759,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 
 #if !defined(TARGET_IOS)
 
-    NSWindow* window = (__bridge NSWindow*)pDesc->pWindow->handle;
+    NSWindow* window = (__bridge NSWindow*)pDesc->mWindowHandle.window;
 	pSwapChain->pForgeView = window.contentView;
 	pSwapChain->pForgeView.autoresizesSubviews = TRUE;
 
@@ -1791,7 +1779,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 		//This needs to be set to false to have working vsync
 		layer.displaySyncEnabled = true;
 #else
-    UIWindow* window = (__bridge UIWindow*)pDesc->pWindow->handle;
+    UIWindow* window = (__bridge UIWindow*)pDesc->mWindowHandle.window;
     pSwapChain->pForgeView = window.rootViewController.view;
     pSwapChain->pForgeView.autoresizesSubviews = TRUE;
    
@@ -2441,9 +2429,13 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 			//setup layout for all bindings instead of just 0.
 			renderPipelineDesc.vertexDescriptor.layouts[inputBindingCount - 1].stride += ImageFormat::GetImageFormatStride(attrib->mFormat);
 			renderPipelineDesc.vertexDescriptor.layouts[inputBindingCount - 1].stepRate = 1;
-			renderPipelineDesc.vertexDescriptor.layouts[inputBindingCount - 1].stepFunction =
-				pPipeline->pShader->mtlVertexShader.patchType != MTLPatchTypeNone ? MTLVertexStepFunctionPerPatchControlPoint
-																				  : MTLVertexStepFunctionPerVertex;
+			
+			if(pPipeline->pShader->mtlVertexShader.patchType != MTLPatchTypeNone)
+				renderPipelineDesc.vertexDescriptor.layouts[inputBindingCount - 1].stepFunction = MTLVertexStepFunctionPerPatchControlPoint;
+			else if(attrib->mRate == VERTEX_ATTRIB_RATE_INSTANCE)
+				renderPipelineDesc.vertexDescriptor.layouts[inputBindingCount - 1].stepFunction = MTLVertexStepFunctionPerInstance;
+			else
+				renderPipelineDesc.vertexDescriptor.layouts[inputBindingCount - 1].stepFunction = MTLVertexStepFunctionPerVertex;
 		}
 	}
 
@@ -2820,8 +2812,6 @@ void endCmd(Cmd* pCmd)
 //	[pCmd->mtlCommandBuffer waitUntilCompleted];
 	
 	pCmd->mRenderPassActive = false;
-	pCmd->mBoundRenderTargetCount = 0;
-	pCmd->mBoundDepthStencilFormat = ImageFormat::NONE;
 
 	// Reset the bound resources flags for the current root signature's descriptor binder.
 	if (pCmd->pBoundDescriptorBinder && pCmd->pBoundRootSignature)
@@ -2854,14 +2844,10 @@ void cmdBindRenderTargets(
 		}
 
 		pCmd->mRenderPassActive = false;
-		pCmd->mBoundRenderTargetCount = 0;
-		pCmd->mBoundDepthStencilFormat = ImageFormat::NONE;
 	}
 
 	if (!renderTargetCount && !pDepthStencil)
 		return;
-
-	uint64_t renderPassHash = 0;
 
 	@autoreleasepool
 	{
@@ -2901,16 +2887,6 @@ void cmdBindRenderTargets(
 				pCmd->pRenderPassDesc.colorAttachments[i].clearColor =
 					MTLClearColorMake(clearValue.r, clearValue.g, clearValue.b, clearValue.a);
 			}
-
-			pCmd->pBoundColorFormats[i] = ppRenderTargets[i]->mDesc.mFormat;
-			pCmd->pBoundSrgbValues[i] = ppRenderTargets[i]->mDesc.mSrgb;
-
-			uint32_t hashValues[] = {
-				(uint32_t)ppRenderTargets[i]->mDesc.mFormat,
-				(uint32_t)ppRenderTargets[i]->mDesc.mSampleCount,
-				(uint32_t)ppRenderTargets[i]->mDesc.mSrgb,
-			};
-			renderPassHash = eastl::mem_hash<uint32_t>()(hashValues, 3, renderPassHash);
 		}
 
 		if (pDepthStencil != nil)
@@ -2981,15 +2957,6 @@ void cmdBindRenderTargets(
 				if (isStencilEnabled)
 					pCmd->pRenderPassDesc.stencilAttachment.clearStencil = 0;
 			}
-
-			pCmd->mBoundDepthStencilFormat = pDepthStencil->mDesc.mFormat;
-
-			uint32_t hashValues[] = {
-				(uint32_t)pDepthStencil->mDesc.mFormat,
-				(uint32_t)pDepthStencil->mDesc.mSampleCount,
-				(uint32_t)pDepthStencil->mDesc.mSrgb,
-			};
-			renderPassHash = eastl::mem_hash<uint32_t>()(hashValues, 3, renderPassHash);
 		}
 		else
 		{
@@ -2997,14 +2964,7 @@ void cmdBindRenderTargets(
 			pCmd->pRenderPassDesc.stencilAttachment.loadAction = MTLLoadActionDontCare;
 			pCmd->pRenderPassDesc.depthAttachment.storeAction = MTLStoreActionDontCare;
 			pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
-			pCmd->mBoundDepthStencilFormat = ImageFormat::NONE;
 		}
-
-		SampleCount sampleCount = renderTargetCount ? ppRenderTargets[0]->mDesc.mSampleCount : pDepthStencil->mDesc.mSampleCount;
-		pCmd->mBoundWidth = renderTargetCount ? ppRenderTargets[0]->mDesc.mWidth : pDepthStencil->mDesc.mWidth;
-		pCmd->mBoundHeight = renderTargetCount ? ppRenderTargets[0]->mDesc.mHeight : pDepthStencil->mDesc.mHeight;
-		pCmd->mBoundSampleCount = sampleCount;
-		pCmd->mBoundRenderTargetCount = renderTargetCount;
 
 		util_end_current_encoders(pCmd);
 		pCmd->mtlRenderEncoder = [pCmd->mtlCommandBuffer renderCommandEncoderWithDescriptor:pCmd->pRenderPassDesc];
@@ -3825,6 +3785,10 @@ void removeQueryHeap(Renderer* pRenderer, QueryHeap* pQueryHeap)
     SAFE_FREE(pQueryHeap);
 }
 
+void cmdResetQueryHeap(Cmd* pCmd, QueryHeap* pQueryHeap, uint32_t startQuery, uint32_t queryCount)
+{
+}
+
 void cmdBeginQuery(Cmd* pCmd, QueryHeap* pQueryHeap, QueryDesc* pQuery)
 {
     lastFrameQuery = pQueryHeap;
@@ -4326,10 +4290,9 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 #endif
 
 	pTexture->mIsCompressed = util_is_mtl_compressed_pixel_format(pTexture->mtlPixelFormat);
-	Image img;
-	img.RedefineDimensions(
-		pTexture->mDesc.mFormat, pTexture->mDesc.mWidth, pTexture->mDesc.mHeight, pTexture->mDesc.mDepth, pTexture->mDesc.mMipLevels);
-	pTexture->mTextureSize = img.GetMipMappedSize(0, pTexture->mDesc.mMipLevels);
+	pTexture->mTextureSize = pTexture->mDesc.mArraySize * ImageFormat::GetMipMappedSize(
+		pTexture->mDesc.mWidth, pTexture->mDesc.mHeight, pTexture->mDesc.mDepth,
+		pTexture->mDesc.mMipLevels, pTexture->mDesc.mFormat);
 	if (pTexture->mDesc.mHostVisible)
 	{
 		internal_log(

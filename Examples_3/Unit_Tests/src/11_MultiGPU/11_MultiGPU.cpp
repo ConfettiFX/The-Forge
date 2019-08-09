@@ -205,7 +205,7 @@ class MultiGPU: public IApp
 				addQueue(pRenderer, &queueDesc, &pGraphicsQueue[i]);
 		}
 
-		initProfiler(pRenderer, gImageCount);
+		initProfiler(pRenderer);
 		profileRegisterInput();
 		char gpu_profile_name[16] = { 0 };
 
@@ -497,7 +497,6 @@ class MultiGPU: public IApp
 		vec3                   lookAt{ 0 };
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
-		requestMouseCapture(true);
 
 		pCameraController->setMotionParameters(cmp);
 		InputSystem::RegisterInputEvent(cameraInputEvent);
@@ -515,7 +514,7 @@ class MultiGPU: public IApp
 
 		destroyCameraController(pCameraController);
 
-		exitProfiler(pRenderer);
+		exitProfiler();
 
 		if (!gMultiGPURestart)
 		{
@@ -598,6 +597,8 @@ class MultiGPU: public IApp
 		if (!gPanini.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
+		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
+
 		//layout and pipeline for sphere draw
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 2;
@@ -651,6 +652,7 @@ class MultiGPU: public IApp
 		for (uint32_t i = 0; i < gViewCount; ++i)
 			waitQueueIdle(pGraphicsQueue[i]);
 
+		unloadProfiler();
 		gPanini.Unload();
 		gAppUI.Unload();
 
@@ -930,7 +932,7 @@ class MultiGPU: public IApp
 					gAppUI.DrawDebugGpuProfile(cmd, float2(8, 300), pGpuProfilers[1], NULL);
 				}
 
-				cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
+				cmdDrawProfiler(cmd);
 
 				gAppUI.Draw(cmd);
 
@@ -980,7 +982,7 @@ class MultiGPU: public IApp
 	bool addSwapChain()
 	{
 		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.mWindowHandle = pWindow->handle;
 		swapChainDesc.mPresentQueueCount = 1;
 		swapChainDesc.ppPresentQueues = &pGraphicsQueue[0];
 		swapChainDesc.mWidth = mSettings.mWidth;

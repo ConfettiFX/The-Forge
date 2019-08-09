@@ -1,0 +1,209 @@
+
+/* Write your header comments here */
+#version 450 core
+
+#extension GL_EXT_samplerless_texture_functions : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_control_flow_attributes : require
+
+
+vec4 MulMat(mat4 lhs, vec4 rhs)
+{
+    vec4 dst;
+	dst[0] = lhs[0][0]*rhs[0] + lhs[0][1]*rhs[1] + lhs[0][2]*rhs[2] + lhs[0][3]*rhs[3];
+	dst[1] = lhs[1][0]*rhs[0] + lhs[1][1]*rhs[1] + lhs[1][2]*rhs[2] + lhs[1][3]*rhs[3];
+	dst[2] = lhs[2][0]*rhs[0] + lhs[2][1]*rhs[1] + lhs[2][2]*rhs[2] + lhs[2][3]*rhs[3];
+	dst[3] = lhs[3][0]*rhs[0] + lhs[3][1]*rhs[1] + lhs[3][2]*rhs[2] + lhs[3][3]*rhs[3];
+    return dst;
+}
+
+
+
+#include "../../SDF_Constant.h"
+#define PI 3.14159274
+
+layout(set = 1, binding = 0) uniform texture2D DepthTexture;
+layout(set = 0, binding = 0) uniform texture3D SDFVolumeTextureAtlas;
+
+layout(set = 0, binding = 2, rg32f) uniform image2D OutTexture;
+layout(set = 0, binding = 3) uniform sampler clampToEdgeTrillinearSampler;
+layout(set = 0, binding = 4) uniform sampler clampToEdgeNearSampler;
+layout(column_major, set = 0, binding = 5) uniform cameraUniformBlock
+{
+    mat4 View;
+    mat4 Project;
+    mat4 ViewProject;
+    layout(row_major) mat4 InvView;
+    mat4 InvProj;
+    mat4 InvViewProject;
+    vec4 mCameraPos;
+    float mNear;
+    float mFarNearDiff;
+    float mFarNear;
+    float paddingForAlignment0;
+    vec2 mTwoOverRes;
+    float _pad1;
+    float _pad2;
+    vec2 mWindowSize;
+    float _pad3;
+    float _pad4;
+    vec4 mDeviceZToWorldZ;
+};
+
+layout(column_major, set = 0, binding = 6) uniform meshSDFUniformBlock
+{
+    mat4 mWorldToVolumeMat[SDF_MAX_OBJECT_COUNT];
+    vec4 mUVScaleAndVolumeScale[SDF_MAX_OBJECT_COUNT];
+    vec4 mLocalPositionExtent[SDF_MAX_OBJECT_COUNT];
+    vec4 mUVAddAndSelfShadowBias[SDF_MAX_OBJECT_COUNT];
+    vec4 mSDFMAD[SDF_MAX_OBJECT_COUNT];
+    uint mNumObjects;
+};
+
+layout(row_major, set = 0, binding = 7) uniform lightUniformBlock
+{
+    mat4 lightViewProj;
+    vec4 lightPosition;
+    vec4 lightColor;
+    vec4 mLightUpVec;
+    vec4 mTanLightAngleAndThresholdValue;
+	vec3 mLightDir;
+};
+
+vec2 LineBoxIntersect(vec3 RayOrigin, vec3 RayEnd, vec3 BoxMin, vec3 BoxMax)
+{
+    vec3 InvRayDir = (vec3 (1.0) / (RayEnd - RayOrigin));
+    vec3 FirstPlaneIntersections = ((BoxMin - RayOrigin) * InvRayDir);
+    vec3 SecondPlaneIntersections = ((BoxMax - RayOrigin) * InvRayDir);
+    vec3 ClosestPlaneIntersections = min(FirstPlaneIntersections, SecondPlaneIntersections);
+    vec3 FurthestPlaneIntersections = max(FirstPlaneIntersections, SecondPlaneIntersections);
+    vec2 BoxIntersections;
+    ((BoxIntersections).x = max((ClosestPlaneIntersections).x, max((ClosestPlaneIntersections).y, (ClosestPlaneIntersections).z)));
+    ((BoxIntersections).y = min((FurthestPlaneIntersections).x, min((FurthestPlaneIntersections).y, (FurthestPlaneIntersections).z)));
+    return clamp(BoxIntersections, 0.0, 1.0);
+}
+
+
+vec3 SDFVolumeDimensionPositionToUV(vec3 volumePos, vec3 uvScale, vec3 uvAdd)
+{
+    return ((volumePos * uvScale) + uvAdd);
+}
+float SampleSDFVolumeTextureAtlas(vec3 volumeUV)
+{
+    return (textureLod(sampler3D( SDFVolumeTextureAtlas, clampToEdgeTrillinearSampler), vec3(volumeUV), 0)).r;
+}
+float ShadowRayMarch(vec3 rayWorldStartPos, vec3 rayWorldEndPos, float tanLightAngle, float minSphereRadius, float maxSphereRadius)
+{
+    const float shadowZeroThereshold = 0.010000000;
+    float minShadow = float (1.0);
+    for (uint index = uint (0); (index < mNumObjects); (++index))
+    {
+        const float twoSidedMeshDistanceBias = (mSDFMAD[index]).z;
+        //vec3 volumeRayStart = (MulMat(mWorldToVolumeMat[index],vec4((rayWorldStartPos).xyz, 1.0))).xyz;
+        //vec3 volumeRayEnd = (MulMat(mWorldToVolumeMat[index],vec4((rayWorldEndPos).xyz, 1.0))).xyz;
+
+		vec3 volumeRayStart = vec3(mWorldToVolumeMat[index] * vec4(rayWorldStartPos, 1.0));
+		vec3 volumeRayEnd = vec3(mWorldToVolumeMat[index] * vec4(rayWorldEndPos, 1.0));
+
+        vec3 volumeRayDir = (volumeRayEnd - volumeRayStart);
+        float volumeRayLength = length(volumeRayDir);
+        (volumeRayDir /= vec3 (volumeRayLength));
+        bool isTwoSided = ((((mUVScaleAndVolumeScale[index]).w < float (0.0)))?(true):(false));
+        float finalVolumeScale = abs((mUVScaleAndVolumeScale[index]).w);
+        float worldToVolumeScale = (1.0 / finalVolumeScale);
+        float volumeMinSphereRadius = (minSphereRadius * worldToVolumeScale);
+        float volumeMaxSphereRadius = (maxSphereRadius * worldToVolumeScale);
+        float volumeTwoSidedMeshDistanceBias = (twoSidedMeshDistanceBias * worldToVolumeScale);
+        float objectCenterDistAlongRay = dot((-volumeRayStart), volumeRayDir);
+        float localConeRadiusAtObject = min((tanLightAngle * max(objectCenterDistAlongRay, float (0))), volumeMaxSphereRadius);
+        vec2 intersectionTimes = LineBoxIntersect(volumeRayStart, volumeRayEnd, (((-(mLocalPositionExtent[index]).xyz) * vec3 (0.9)) - vec3 (localConeRadiusAtObject)), (((mLocalPositionExtent[index]).xyz * vec3 (0.9)) + vec3 (localConeRadiusAtObject)));
+        if(((intersectionTimes).x < (intersectionTimes).y))
+        {
+            float selfShadowScale = (1.0 / max(((mUVAddAndSelfShadowBias[index]).w * worldToVolumeScale), 0.00010000000));
+            float sampleRayTime = ((intersectionTimes).x * volumeRayLength);
+            uint stepIndex = uint (0);
+            uint maxSteps = uint (64);
+            float minStepSize = (1.0 / (4.0 * float (maxSteps)));
+            for (; (stepIndex < maxSteps); (++stepIndex))
+            {
+                vec3 sampleVolumePos = (volumeRayStart + (volumeRayDir * vec3 (sampleRayTime)));
+                vec3 clampedSamplePos = clamp(sampleVolumePos, (-(mLocalPositionExtent[index]).xyz), (mLocalPositionExtent[index]).xyz);
+                float distanceToClamped = length((clampedSamplePos - sampleVolumePos));
+                vec3 volumeUV = SDFVolumeDimensionPositionToUV(clampedSamplePos, (mUVScaleAndVolumeScale[index]).xyz, (mUVAddAndSelfShadowBias[index]).xyz);
+                float sdfValue = (SampleSDFVolumeTextureAtlas(volumeUV) + distanceToClamped);
+                if(isTwoSided)
+                {
+                    (sdfValue -= volumeTwoSidedMeshDistanceBias);
+                }
+                float selfShadowVisibility = (1.0 - clamp((sampleRayTime * selfShadowScale), 0.0, 1.0));
+                float sphereRadius = clamp((tanLightAngle * sampleRayTime), volumeMinSphereRadius, volumeMaxSphereRadius);
+                float stepVisibility = max(clamp((sdfValue / sphereRadius), 0.0, 1.0), selfShadowVisibility);
+                (minShadow = min(minShadow, stepVisibility));
+                float nextStepIncrement = abs(sdfValue);
+                (nextStepIncrement = ((nextStepIncrement * 0.1) + 0.010000000));
+                float curStepDist = max(nextStepIncrement, minStepSize);
+                (sampleRayTime += curStepDist);
+                if(((minShadow < shadowZeroThereshold) || (sampleRayTime > ((intersectionTimes).y * volumeRayLength))))
+                {
+                    break;
+                }
+            }
+        }
+        if((minShadow < shadowZeroThereshold))
+        {
+            (minShadow = 0.0);
+            break;
+        }
+    }
+    return minShadow;
+}
+float ConvertFromDeviceZ(float deviceZ)
+{
+    return (((deviceZ * mDeviceZToWorldZ[0]) + mDeviceZToWorldZ[1]) + (1.0 / ((deviceZ * mDeviceZToWorldZ[2]) - mDeviceZToWorldZ[3])));
+}
+
+layout(local_size_x = SDF_MESH_SHADOW_THREAD_X, local_size_y = SDF_MESH_SHADOW_THREAD_Y, local_size_z = 1) in;
+void HLSLmain(uvec3 GroupID, uvec3 DispatchThreadID, uvec3 GroupThreadID)
+{
+    uvec3 localDispatchThreadID = (DispatchThreadID * uvec3 (2));
+    float xClip = (((float((localDispatchThreadID).x) * 2.0) / (mWindowSize).x) - 1.0);
+    float yClip = (1.0 - ((float((localDispatchThreadID).y) * 2.0) / (mWindowSize).y));
+
+	vec2 depthSize = mWindowSize;
+	vec2 depthUV = localDispatchThreadID.xy / depthSize;
+	float depthVal = textureLod(sampler2D(DepthTexture, 
+		clampToEdgeNearSampler), depthUV, 0).r;
+
+    if((depthVal == 0.0))
+    {
+        imageStore(OutTexture, ivec2((DispatchThreadID).xy), vec4(0.0));
+        return;
+    }
+    //vec4 worldPosW = MulMat(InvViewProject,vec4(xClip, yClip, depthVal, 1.0));
+
+	vec4 worldPosW = InvViewProject * vec4(xClip, yClip, depthVal, 1.0);
+
+    vec3 worldPos = ((worldPosW / vec4 ((worldPosW).w))).xyz;
+    float worldZ = ConvertFromDeviceZ(depthVal);
+    float RayStartOffset = 0.75f + 0.005f * worldZ;
+    float minSphereRadius = 0.3;
+    float maxSphereRadius = 10.0;
+    float traceDistance = float (10000);
+    vec3 rayOrigin = worldPos;
+    //vec3 rayDir = normalize(((lightPosition).xyz - vec3(0.0, 0.0, 0.0)));
+	vec3 rayDir = mLightDir;
+    (rayOrigin += (vec3 (RayStartOffset) * rayDir));
+    vec3 rayEnd = (worldPos + (rayDir * vec3 (traceDistance)));
+    float shadow = ShadowRayMarch(rayOrigin, rayEnd, (mTanLightAngleAndThresholdValue).x, minSphereRadius, maxSphereRadius);
+    imageStore(OutTexture, ivec2((DispatchThreadID).xy), vec4(vec2(shadow, worldZ), 0.0, 0.0));
+}
+void main()
+{
+    uvec3 GroupID;
+    GroupID = gl_WorkGroupID;
+    uvec3 DispatchThreadID;
+    DispatchThreadID = gl_GlobalInvocationID;
+    uvec3 GroupThreadID;
+    GroupThreadID = gl_LocalInvocationID;
+    HLSLmain(GroupID, DispatchThreadID, GroupThreadID);
+}

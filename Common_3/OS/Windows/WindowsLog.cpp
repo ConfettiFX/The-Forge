@@ -53,7 +53,8 @@ void _ErrorMsg(int line, const char* file, const char* string, ...)
 	//  vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
 	vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
 	va_end(arglist);
-	// no log, just output to a message box
+	OutputDebugStringA(buf);
+	OutputDebugStringA("\n");
 	MessageBoxA(NULL, buf, "Error", MB_OK | MB_ICONERROR);
 }
 
@@ -75,7 +76,8 @@ void _WarningMsg(int line, const char* file, const char* string, ...)
 	vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
 	va_end(arglist);
 
-	// no log, just output to a message box
+	OutputDebugStringA(buf);
+	OutputDebugStringA("\n");
 	MessageBoxA(NULL, buf, "Warning", MB_OK | MB_ICONWARNING);
 }
 
@@ -97,7 +99,9 @@ void _InfoMsg(int line, const char* file, const char* string, ...)
 	vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
 	va_end(arglist);
 
-	_OutputDebugString(buf);
+	OutputDebugStringA(buf);
+	OutputDebugStringA("\n");
+	MessageBoxA(NULL, buf, "Info", MB_OK);
 }
 
 void _OutputDebugString(const char* str, ...)
@@ -138,7 +142,7 @@ void _FailedAssert(const char* file, int line, const char* statement)
 #if _MSC_VER >= 1400
 				__debugbreak();
 #else
-				_asm int 0x03;
+				_asm int 0x03;  
 #endif
 			}
 			else if (res == IDCANCEL)

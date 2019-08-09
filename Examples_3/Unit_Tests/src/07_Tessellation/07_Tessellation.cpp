@@ -287,7 +287,7 @@ class Tessellation: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		initProfiler(pRenderer, gImageCount);
+		initProfiler(pRenderer);
 		profileRegisterInput();
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
@@ -519,7 +519,6 @@ class Tessellation: public IApp
 		gVirtualJoystick.InitLRSticks();
 		pCameraController->setVirtualJoystick(&gVirtualJoystick);
 #endif
-		requestMouseCapture(true);
 		pCameraController->setMotionParameters(cmp);
 
 		InputSystem::RegisterInputEvent(cameraInputEvent);
@@ -532,7 +531,7 @@ class Tessellation: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		exitProfiler(pRenderer);
+		exitProfiler();
 
 		destroyCameraController(pCameraController);
 
@@ -614,8 +613,9 @@ class Tessellation: public IApp
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
+		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
 #ifdef TARGET_IOS
-		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], ImageFormat::Enum::NONE))
+		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
 #endif
 
@@ -693,6 +693,7 @@ class Tessellation: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
+		unloadProfiler();
 #ifdef TARGET_IOS
 		gVirtualJoystick.Unload();
 #endif
@@ -902,7 +903,7 @@ class Tessellation: public IApp
 		// Draw UI
 		cmd = ppUICmds[gFrameIndex];
 		beginCmd(cmd);
-
+		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
@@ -922,10 +923,11 @@ class Tessellation: public IApp
 			&gFrameTimeDraw);
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
 
-		cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
+		cmdDrawProfiler(cmd);
 
 		gAppUI.Gui(pGui);
 		gAppUI.Draw(cmd);
+		cmdEndDebugMarker(cmd);
 
 		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, true);
@@ -945,7 +947,7 @@ class Tessellation: public IApp
 	bool addSwapChain()
 	{
 		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.mWindowHandle = pWindow->handle;
 		swapChainDesc.mPresentQueueCount = 1;
 		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mWidth = mSettings.mWidth;

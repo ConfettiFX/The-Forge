@@ -176,7 +176,7 @@ public:
 		initResourceLoaderInterface(pRenderer);
 
     // Initialize profile
-    initProfiler(pRenderer, gImageCount);
+    initProfiler(pRenderer);
     profileRegisterInput();
 
     addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
@@ -434,7 +434,6 @@ public:
 		vec3                   lookAt{ 0 };
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
-		requestMouseCapture(true);
 
 		pCameraController->setMotionParameters(cmp);
 #if defined(TARGET_IOS) || defined(__ANDROID__)
@@ -457,8 +456,8 @@ public:
 
 		gAppUI.Exit();
 
-    // Exit profile
-    exitProfiler(pRenderer);
+		// Exit profile
+		exitProfiler();
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -510,9 +509,11 @@ public:
 			return false;
 
 #if defined(TARGET_IOS) || defined(__ANDROID__)
-		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], pDepthBuffer->mDesc.mFormat))
+		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
 #endif
+
+		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
 
 		//layout and pipeline for sphere draw
 		VertexLayout vertexLayout = {};
@@ -566,6 +567,7 @@ public:
 	{
 		waitQueueIdle(pGraphicsQueue);
 
+		unloadProfiler();
 		gAppUI.Unload();
 
 #if defined(TARGET_IOS) || defined(__ANDROID__)
@@ -596,7 +598,7 @@ public:
 		/************************************************************************/
 		static float currentTime = 0.0f;
 		currentTime += deltaTime * 1000.0f;
-
+	
 		// update camera with time
 		mat4 viewMat = pCameraController->getViewMatrix();
 
@@ -736,6 +738,10 @@ public:
 		cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, gNumPlanets, 0);
     cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
+
+	loadActions = {};
+	loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+	cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
     cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw UI", true);
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
@@ -755,7 +761,7 @@ public:
 
     gAppUI.Gui(pGui);
 
-    cmdDrawProfiler(cmd, static_cast<uint32_t>(mSettings.mWidth), static_cast<uint32_t>(mSettings.mHeight));
+    cmdDrawProfiler(cmd);
 
 		gAppUI.Draw(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -777,7 +783,7 @@ public:
 	bool addSwapChain()
 	{
 		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.mWindowHandle = pWindow->handle;
 		swapChainDesc.mPresentQueueCount = 1;
 		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mWidth = mSettings.mWidth;

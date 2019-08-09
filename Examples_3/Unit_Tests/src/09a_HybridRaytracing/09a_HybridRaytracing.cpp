@@ -27,7 +27,7 @@
 // Unit Test for testing Hybrid Raytracing
 // based on https://interplayoflight.wordpress.com/2018/07/04/hybrid-raytraced-shadows-and-reflections/
 
-//tiny stl
+//EASTL includes
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
@@ -900,7 +900,7 @@ class HybridRaytracing: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		initProfiler(pRenderer, gImageCount);
+		initProfiler(pRenderer);
 		profileRegisterInput();
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
@@ -1128,8 +1128,6 @@ gVirtualJoystick.InitLRSticks();
 pCameraController->setVirtualJoystick(&gVirtualJoystick);
 #endif
 
-requestMouseCapture(true);
-
 pCameraController->setMotionParameters(cmp);
 InputSystem::RegisterInputEvent(cameraInputEvent);
 
@@ -1145,7 +1143,7 @@ void Exit()
 {
 	waitQueueIdle(pGraphicsQueue);
 
-	exitProfiler(pRenderer);
+	exitProfiler();
 
 	destroyCameraController(pCameraController);
 
@@ -1827,9 +1825,10 @@ bool Load()
 	pCameraController->lookAt(midpoint - vec3(0, 450, 0));
 
 #ifdef TARGET_IOS
-	if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], 0))
+	if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 		return false;
 #endif
+	loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
 
 	return true;
 }
@@ -1838,6 +1837,7 @@ void Unload()
 {
 	waitQueueIdle(pGraphicsQueue);
 
+	unloadProfiler();
 	gAppUI.Unload();
 
 #ifdef TARGET_IOS
@@ -2254,6 +2254,8 @@ void Draw()
 
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
+		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 		gTimer.GetUSec(true);
 
 #ifdef TARGET_IOS
@@ -2268,10 +2270,11 @@ void Draw()
 			&gFrameTimeDraw);
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
 
-		cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
+		cmdDrawProfiler(cmd);
 
-    gAppUI.Gui(pGuiWindow);
+		gAppUI.Gui(pGuiWindow);
 		gAppUI.Draw(cmd);
+		cmdEndDebugMarker(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		TextureBarrier barriers[] = {
@@ -2299,7 +2302,7 @@ const char* GetName() { return "09a_HybridRaytracing"; }
 bool addSwapChain()
 {
 	SwapChainDesc swapChainDesc = {};
-	swapChainDesc.pWindow = pWindow;
+	swapChainDesc.mWindowHandle = pWindow->handle;
 	swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 	swapChainDesc.mPresentQueueCount = 1;
 	swapChainDesc.mWidth = mSettings.mWidth;

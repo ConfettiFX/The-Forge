@@ -122,8 +122,10 @@ class ImguiGUIDriver: public GUIDriver
 	bool init(Renderer* pRenderer, uint32_t const maxDynamicUIUpdatesPerBatch);
 	void exit();
 
-	bool load(Fontstash* fontID, float fontSize, Texture* cursorTexture = 0, float uiwidth = 600, float uiheight = 400);
+	bool load(RenderTarget** ppRts, uint32_t count);
 	void unload();
+
+	bool addGui(Fontstash* fontID, float fontSize, Texture* cursorTexture = 0, float uiwidth = 600, float uiheight = 400);
 
 	void* getContext();
 
@@ -146,13 +148,11 @@ class ImguiGUIDriver: public GUIDriver
 	bool                  loaded;
 	uint32_t              frameIdx;
 
-	using PipelineMap = eastl::unordered_map<uint64_t, Pipeline*>;
-
 	Renderer*          pRenderer;
 	Shader*            pShaderTextured;
 	RootSignature*     pRootSignatureTextured;
 	DescriptorBinder*  pDescriptorBinderTextured;
-	PipelineMap        mPipelinesTextured;
+	Pipeline*          pPipelineTextured;
 	Buffer*            pVertexBuffer;
 	Buffer*            pIndexBuffer;
 	Buffer*            pUniformBuffer;
@@ -168,16 +168,14 @@ class ImguiGUIDriver: public GUIDriver
 static const uint64_t VERTEX_BUFFER_SIZE = 1024 * 64 * sizeof(ImDrawVert);
 static const uint64_t INDEX_BUFFER_SIZE = 128 * 1024 * sizeof(ImDrawIdx);
 
-void initGUIDriver(Renderer* pRenderer, GUIDriver** ppDriver, uint32_t const maxDynamicUIUpdatesPerBatch)
+void initGUIDriver(Renderer* pRenderer, GUIDriver** ppDriver)
 {
 	ImguiGUIDriver* pDriver = conf_placement_new<ImguiGUIDriver>(conf_calloc(1, sizeof(ImguiGUIDriver)));
-	pDriver->init(pRenderer, maxDynamicUIUpdatesPerBatch);
 	*ppDriver = pDriver;
 }
 
 void removeGUIDriver(GUIDriver* pDriver)
 {
-	pDriver->exit();
 	(reinterpret_cast<ImguiGUIDriver*>(pDriver))->~ImguiGUIDriver();
 	conf_free(pDriver);
 }
@@ -571,13 +569,6 @@ bool ImguiGUIDriver::init(Renderer* renderer, uint32_t const maxDynamicUIUpdates
 
 void ImguiGUIDriver::exit()
 {
-	for (PipelineMap::iterator it = mPipelinesTextured.begin(); it != mPipelinesTextured.end(); ++it)
-	{
-		removePipeline(pRenderer, it->second);
-	}
-
-	mPipelinesTextured.clear();
-
 	removeSampler(pRenderer, pDefaultSampler);
 	removeBlendState(pBlendAlpha);
 	removeDepthState(pDepthState);
@@ -588,9 +579,16 @@ void ImguiGUIDriver::exit()
 	removeResource(pVertexBuffer);
 	removeResource(pIndexBuffer);
 	removeResource(pUniformBuffer);
+
+	if (pFontTexture)
+	{
+		removeResource(pFontTexture);
+	}
+
+	ImGui::DestroyContext(context);
 }
 
-bool ImguiGUIDriver::load(Fontstash* fontstash, float fontSize, Texture* cursorTexture, float uiwidth, float uiheight)
+bool ImguiGUIDriver::addGui(Fontstash* fontstash, float fontSize, Texture* cursorTexture, float uiwidth, float uiheight)
 {
 	if (!loaded)
 	{
@@ -654,13 +652,34 @@ bool ImguiGUIDriver::load(Fontstash* fontstash, float fontSize, Texture* cursorT
 	return true;
 }
 
+bool ImguiGUIDriver::load(RenderTarget** ppRts, uint32_t count)
+{
+	UNREF_PARAM(count);
+	
+	PipelineDesc desc = {};
+	desc.mType = PIPELINE_TYPE_GRAPHICS;
+	GraphicsPipelineDesc& pipelineDesc = desc.mGraphicsDesc;
+	pipelineDesc.mDepthStencilFormat = ImageFormat::NONE;
+	pipelineDesc.mRenderTargetCount = 1;
+	pipelineDesc.mSampleCount = ppRts[0]->mDesc.mSampleCount;
+	pipelineDesc.pBlendState = pBlendAlpha;
+	pipelineDesc.mSampleQuality = ppRts[0]->mDesc.mSampleQuality;
+	pipelineDesc.pColorFormats = &ppRts[0]->mDesc.mFormat;
+	pipelineDesc.pDepthState = pDepthState;
+	pipelineDesc.pRasterizerState = pRasterizerState;
+	pipelineDesc.pSrgbValues = &ppRts[0]->mDesc.mSrgb;
+	pipelineDesc.pRootSignature = pRootSignatureTextured;
+	pipelineDesc.pShaderProgram = pShaderTextured;
+	pipelineDesc.pVertexLayout = &mVertexLayoutTextured;
+	pipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+	addPipeline(pRenderer, &desc, &pPipelineTextured);
+
+	return true;
+}
+
 void ImguiGUIDriver::unload()
 {
-	if (pFontTexture)
-	{
-		removeResource(pFontTexture);
-	}
-	ImGui::DestroyContext(context);
+	removePipeline(pRenderer, pPipelineTextured);
 }
 
 void* ImguiGUIDriver::getContext() { return context; }
@@ -912,33 +931,8 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 
 	ImDrawData* draw_data = ImGui::GetDrawData();
 
-	Pipeline*            pPipeline = NULL;
-	PipelineDesc desc = {};
-	desc.mType = PIPELINE_TYPE_GRAPHICS;
-	GraphicsPipelineDesc& pipelineDesc = desc.mGraphicsDesc;
-	pipelineDesc.mDepthStencilFormat = (ImageFormat::Enum)pCmd->mBoundDepthStencilFormat;
-	pipelineDesc.mRenderTargetCount = pCmd->mBoundRenderTargetCount;
-	pipelineDesc.mSampleCount = pCmd->mBoundSampleCount;
-	pipelineDesc.pBlendState = pBlendAlpha;
-	pipelineDesc.mSampleQuality = pCmd->mBoundSampleQuality;
-	pipelineDesc.pColorFormats = (ImageFormat::Enum*)pCmd->pBoundColorFormats;
-	pipelineDesc.pDepthState = pDepthState;
-	pipelineDesc.pRasterizerState = pRasterizerState;
-	pipelineDesc.pSrgbValues = pCmd->pBoundSrgbValues;
-	PipelineMap::iterator it = mPipelinesTextured.find(pCmd->mRenderPassHash);
-	if (it == mPipelinesTextured.end())
-	{
-		pipelineDesc.pRootSignature = pRootSignatureTextured;
-		pipelineDesc.pShaderProgram = pShaderTextured;
-		pipelineDesc.pVertexLayout = &mVertexLayoutTextured;
-		pipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		addPipeline(pCmd->pRenderer, &desc, &pPipeline);
-		mPipelinesTextured.insert({ pCmd->mRenderPassHash, pPipeline });
-	}
-	else
-	{
-		pPipeline = it->second;
-	}
+	Pipeline*            pPipeline = pPipelineTextured;
+
 	uint32_t vSize = 0;
 	uint32_t iSize = 0;
 	for (int n = 0; n < draw_data->CmdListsCount; n++)

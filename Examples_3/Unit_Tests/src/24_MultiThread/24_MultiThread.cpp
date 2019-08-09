@@ -269,7 +269,7 @@ class MultiThread: public IApp
 			return false;
 #endif
 
-		initProfiler(pRenderer, gImageCount);
+		initProfiler(pRenderer);
 		profileRegisterInput();
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
@@ -469,7 +469,6 @@ class MultiThread: public IApp
 		pCameraController->setVirtualJoystick(&gVirtualJoystick);
 #endif
 
-		requestMouseCapture(true);
 		InputSystem::RegisterInputEvent(cameraInputEvent);
 
 		// INITIALIZE THREAD SYSTEM
@@ -554,7 +553,7 @@ class MultiThread: public IApp
 		// wait for rendering to finish before freeing resources
 		waitQueueIdle(pGraphicsQueue);
 
-		exitProfiler(pRenderer);
+		exitProfiler();
 
 		// Animation data
 
@@ -641,9 +640,10 @@ class MultiThread: public IApp
 			return false;
 
 #if defined(TARGET_IOS) || defined(__ANDROID__)
-		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], pDepthBuffer->mDesc.mFormat))
+		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
 #endif
+		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
 
 		//layout and pipeline for skeleton draw
 		VertexLayout vertexLayout = {};
@@ -706,6 +706,8 @@ class MultiThread: public IApp
 		waitQueueIdle(pGraphicsQueue);
 
 		gAppUI.Unload();
+
+		unloadProfiler();
 
 #if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Unload();
@@ -900,6 +902,9 @@ class MultiThread: public IApp
 
 		//// draw the UI
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
+		loadActions = {};
+		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		gTimer.GetUSec(true);
 #if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
@@ -916,7 +921,7 @@ class MultiThread: public IApp
 			cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
 			&gFrameTimeDraw);
 
-		cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
+		cmdDrawProfiler(cmd);
 
 		gAppUI.Draw(cmd);
 
@@ -940,7 +945,7 @@ class MultiThread: public IApp
 	bool addSwapChain()
 	{
 		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.mWindowHandle = pWindow->handle;
 		swapChainDesc.mPresentQueueCount = 1;
 		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mWidth = mSettings.mWidth;

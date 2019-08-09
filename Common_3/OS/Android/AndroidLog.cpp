@@ -109,6 +109,7 @@ void _OutputDebugString(const char* str, ...)
 
   va_list arglist;
   va_start(arglist, str);
+  //vsnprintf_s(buf, BUFFER_SIZE, str, arglist);
   vsnprintf(buf, BUFFER_SIZE, str, arglist);
   va_end(arglist);
 

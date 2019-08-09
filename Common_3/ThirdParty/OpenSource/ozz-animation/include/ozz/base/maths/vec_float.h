@@ -236,15 +236,15 @@ OZZ_INLINE Float3 Cross(const Float3& _a, const Float3& _b) {
 // Returns the length |_v| of _v.
 OZZ_INLINE float Length(const Float4& _v) {
   const float len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
-  return std::sqrt(len2);
+  return sqrt(len2);
 }
 OZZ_INLINE float Length(const Float3& _v) {
   const float len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
-  return std::sqrt(len2);
+  return sqrt(len2);
 }
 OZZ_INLINE float Length(const Float2& _v) {
   const float len2 = _v.x * _v.x + _v.y * _v.y;
-  return std::sqrt(len2);
+  return sqrt(len2);
 }
 
 // Returns the square length |_v|^2 of _v.
@@ -262,34 +262,34 @@ OZZ_INLINE float LengthSqr(const Float2& _v) {
 OZZ_INLINE Float4 Normalize(const Float4& _v) {
   const float len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
   assert(len2 != 0.f && "_v is not normalizable");
-  const float len = std::sqrt(len2);
+  const float len = sqrt(len2);
   return Float4(_v.x / len, _v.y / len, _v.z / len, _v.w / len);
 }
 OZZ_INLINE Float3 Normalize(const Float3& _v) {
   const float len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
   assert(len2 != 0.f && "_v is not normalizable");
-  const float len = std::sqrt(len2);
+  const float len = sqrt(len2);
   return Float3(_v.x / len, _v.y / len, _v.z / len);
 }
 OZZ_INLINE Float2 Normalize(const Float2& _v) {
   const float len2 = _v.x * _v.x + _v.y * _v.y;
   assert(len2 != 0.f && "_v is not normalizable");
-  const float len = std::sqrt(len2);
+  const float len = sqrt(len2);
   return Float2(_v.x / len, _v.y / len);
 }
 
 // Returns true if _v is normalized.
 OZZ_INLINE bool IsNormalized(const Float4& _v) {
   const float len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
-  return std::abs(len2 - 1.f) < kNormalizationToleranceSq;
+  return abs(len2 - 1.f) < kNormalizationToleranceSq;
 }
 OZZ_INLINE bool IsNormalized(const Float3& _v) {
   const float len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
-  return std::abs(len2 - 1.f) < kNormalizationToleranceSq;
+  return abs(len2 - 1.f) < kNormalizationToleranceSq;
 }
 OZZ_INLINE bool IsNormalized(const Float2& _v) {
   const float len2 = _v.x * _v.x + _v.y * _v.y;
-  return std::abs(len2 - 1.f) < kNormalizationToleranceSq;
+  return abs(len2 - 1.f) < kNormalizationToleranceSq;
 }
 
 // Returns the normalized vector _v if the norm of _v is not 0.
@@ -300,7 +300,7 @@ OZZ_INLINE Float4 NormalizeSafe(const Float4& _v, const Float4& _safer) {
   if (len2 <= 0.f) {
     return _safer;
   }
-  const float len = std::sqrt(len2);
+  const float len = sqrt(len2);
   return Float4(_v.x / len, _v.y / len, _v.z / len, _v.w / len);
 }
 OZZ_INLINE Float3 NormalizeSafe(const Float3& _v, const Float3& _safer) {
@@ -309,7 +309,7 @@ OZZ_INLINE Float3 NormalizeSafe(const Float3& _v, const Float3& _safer) {
   if (len2 <= 0.f) {
     return _safer;
   }
-  const float len = std::sqrt(len2);
+  const float len = sqrt(len2);
   return Float3(_v.x / len, _v.y / len, _v.z / len);
 }
 OZZ_INLINE Float2 NormalizeSafe(const Float2& _v, const Float2& _safer) {
@@ -318,7 +318,7 @@ OZZ_INLINE Float2 NormalizeSafe(const Float2& _v, const Float2& _safer) {
   if (len2 <= 0.f) {
     return _safer;
   }
-  const float len = std::sqrt(len2);
+  const float len = sqrt(len2);
   return Float2(_v.x / len, _v.y / len);
 }
 

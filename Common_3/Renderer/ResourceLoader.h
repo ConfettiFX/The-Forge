@@ -45,7 +45,7 @@ typedef struct BufferLoadDesc
 
 typedef struct RawImageData
 {
-	unsigned char* pRawData;
+	uint8_t* pRawData;
 	ImageFormat::Enum mFormat;
 	uint32_t mWidth, mHeight, mDepth, mArraySize, mMipLevels;
 } RawImageData;

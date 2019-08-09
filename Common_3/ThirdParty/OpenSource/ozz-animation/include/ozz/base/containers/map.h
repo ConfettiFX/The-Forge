@@ -41,14 +41,18 @@
 #endif  // _MSC_VER
 
 #include "ozz/base/containers/std_allocator.h"
+#include "../../../../../EASTL/vector_map.h"
+#include "../../../../../EASTL/map.h"
+#include "../../../../../EASTL/utility.h"
+#include "../../../../../EASTL/string.h"
 
 namespace ozz {
 // Redirects std::map to ozz::Map in order to replace std default allocator by
 // ozz::StdAllocator.
-template <class _Key, class _Ty, class _Pred = std::less<_Key>,
-          class _Allocator = ozz::StdAllocator<std::pair<const _Key, _Ty> > >
+template <class _Key, class _Ty, class _Pred = eastl::less<_Key>,
+          class _Allocator = ozz::StdAllocator<eastl::pair<const _Key, _Ty> > >
 struct Map {
-  typedef std::map<_Key, _Ty, _Pred, _Allocator> Std;
+  typedef eastl::map<_Key, _Ty, _Pred, _Allocator> Std;
 };
 
 // Implements a string comparator that can be used by std algorithm like maps.
@@ -60,17 +64,17 @@ struct str_less {
 
 // Specializes std::map to use c-string as a key.
 template <class _Ty, class _Allocator =
-                         ozz::StdAllocator<std::pair<const char* const, _Ty> > >
+              ozz::StdAllocator<eastl::pair<const char* const, _Ty> > >
 struct CStringMap {
-  typedef std::map<const char*, _Ty, str_less, _Allocator> Std;
+  typedef eastl::map<const char*, _Ty, str_less, _Allocator> Std;
 };
 
 // Redirects std::multimap to ozz::MultiMap in order to replace std default
 // allocator by ozz::StdAllocator.
-template <class _Key, class _Ty, class _Pred = std::less<_Key>,
-          class _Allocator = ozz::StdAllocator<std::pair<const _Key, _Ty> > >
+template <class _Key, class _Ty, class _Pred = eastl::less<_Key>,
+          class _Allocator = ozz::StdAllocator<eastl::pair<const _Key, _Ty> > >
 struct MultiMap {
-  typedef std::multimap<_Key, _Ty, _Pred, _Allocator> Std;
+  typedef eastl::multimap<_Key, _Ty, _Pred, _Allocator> Std;
 };
 }  // namespace ozz
 #endif  // OZZ_OZZ_BASE_CONTAINERS_MAP_H_

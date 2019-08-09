@@ -34,7 +34,6 @@
 #include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/IPlatformEvents.h"
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/ITime.h"
 #include "../Interfaces/IThread.h"
@@ -58,10 +57,6 @@ static eastl::unordered_map<void*, WindowsDesc*> gHWNDMap;
 static WindowsDesc                                 gWindow;
 
 void adjustWindow(WindowsDesc* winDesc);
-
-namespace PlatformEvents {
-extern void onWindowResize(const WindowResizeEventData* pData);
-}
 
 void getRecommendedResolution(RectDesc* rect) { *rect = { 0, 0, 1920, 1080 }; }
 
@@ -88,15 +83,6 @@ struct DisplayMetrics
 };
 
 DisplayMetrics metrics = {};
-
-static void onResize(const WindowResizeEventData* pData)
-{
-	pApp->mSettings.mWidth = getRectWidth(pData->rect);
-	pApp->mSettings.mHeight = getRectHeight(pData->rect);
-	pApp->mSettings.mFullScreen = pData->pWindow->fullScreen;
-	pApp->Unload();
-	pApp->Load();
-}
 
 float2 getDpiScale()
 {
@@ -236,7 +222,7 @@ void handle_cmd(android_app* app, int32_t cmd)
 			gWindow.maximized = false;
 			openWindow(pApp->GetName(), &gWindow);
 
-			gWindow.handle = reinterpret_cast<WindowHandle>(app->window);
+			gWindow.handle.window = reinterpret_cast<void*>(app->window);
 
 			pSettings->mWidth = ANativeWindow_getWidth(app->window);
 			pSettings->mHeight = ANativeWindow_getHeight(app->window);
@@ -336,8 +322,6 @@ int AndroidMain(void* param, IApp* app)
 		abort();
 
 	InputSystem::SetMouseCapture(true);
-
-	registerWindowResizeEvent(onResize);
 
 	bool quit = false;
 

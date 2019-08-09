@@ -33,6 +33,8 @@
 #include "ozz/base/maths/math_ex.h"
 #include "ozz/base/memory/allocator.h"
 
+#include "../../EASTL/internal/char_traits.h"
+
 #include <cassert>
 
 namespace ozz {
@@ -110,7 +112,7 @@ void Track<_ValueType>::Save(ozz::io::OArchive& _archive) const {
   uint32_t num_keys = static_cast<uint32_t>(ratios_.count());
   _archive << num_keys;
 
-  const size_t name_len = name_ ? std::strlen(name_) : 0;
+  const size_t name_len = name_ ? eastl::CharStrlen(name_) : 0;
   _archive << static_cast<int32_t>(name_len);
 
   _archive << ozz::io::MakeArray(ratios_);

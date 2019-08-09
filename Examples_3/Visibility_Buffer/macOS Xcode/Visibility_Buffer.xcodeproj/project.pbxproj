@@ -31,7 +31,6 @@
 		81856F46229D7E8F00F3A92B /* string.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81856F45229D7E8F00F3A92B /* string.cpp */; };
 		81856F4A229D7EB000F3A92B /* EAMemory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81856F48229D7EB000F3A92B /* EAMemory.cpp */; };
 		81856F4B229D7EB000F3A92B /* EASprintf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81856F49229D7EB000F3A92B /* EASprintf.cpp */; };
-		81B986802269FC9A0078E5F4 /* AppHelpers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81B9867F2269FC9A0078E5F4 /* AppHelpers.cpp */; };
 		81FF8E3A2237ADE70009402D /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81FF8E382237ADE70009402D /* InputSystem.cpp */; };
 		97FD71DA2141D5E00051A203 /* ImguiGUIDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97FD71D82141D5E00051A203 /* ImguiGUIDriver.cpp */; };
 		97FD71E32141D6400051A203 /* imgui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 97FD71DD2141D6400051A203 /* imgui.cpp */; };
@@ -197,8 +196,6 @@
 		81856F45229D7E8F00F3A92B /* string.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = string.cpp; path = OpenSource/EASTL/string.cpp; sourceTree = "<group>"; };
 		81856F48229D7EB000F3A92B /* EAMemory.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = EAMemory.cpp; path = OpenSource/EASTL/EAStdC/EAMemory.cpp; sourceTree = "<group>"; };
 		81856F49229D7EB000F3A92B /* EASprintf.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = EASprintf.cpp; path = OpenSource/EASTL/EAStdC/EASprintf.cpp; sourceTree = "<group>"; };
-		81B9867C2269FAFA0078E5F4 /* AppHelpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppHelpers.h; path = ../../../Common/AppHelpers.h; sourceTree = "<group>"; };
-		81B9867F2269FC9A0078E5F4 /* AppHelpers.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AppHelpers.cpp; path = ../../../Common/AppHelpers.cpp; sourceTree = "<group>"; };
 		81FF8E372237ADE70009402D /* InputSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = InputSystem.h; path = Input/InputSystem.h; sourceTree = "<group>"; };
 		81FF8E382237ADE70009402D /* InputSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = InputSystem.cpp; path = Input/InputSystem.cpp; sourceTree = "<group>"; };
 		81FF8E392237ADE70009402D /* InputMappings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = InputMappings.h; path = Input/InputMappings.h; sourceTree = "<group>"; };
@@ -561,8 +558,6 @@
 		EA463C941EF81E8F005AC8C7 /* Visibility_Buffer */ = {
 			isa = PBXGroup;
 			children = (
-				81B9867F2269FC9A0078E5F4 /* AppHelpers.cpp */,
-				81B9867C2269FAFA0078E5F4 /* AppHelpers.h */,
 				D2C8A3CA1F138C410099B68D /* Visibility_Buffer.cpp */,
 				EA463C951EF81E8F005AC8C7 /* Assets.xcassets */,
 				EA463CA61EF81E8F005AC8C7 /* MainMenu.xib */,
@@ -883,7 +878,6 @@
 				EA463D031EF81FC5005AC8C7 /* Log.cpp in Sources */,
 				B28506F71F4FB0280013C61A /* MemoryTracking.cpp in Sources */,
 				5CD2BC6C2080FFCB008E3A2C /* AppUI.cpp in Sources */,
-				81B986802269FC9A0078E5F4 /* AppHelpers.cpp in Sources */,
 				5B1781B422A5C96C00991DCB /* ProfilerUI.cpp in Sources */,
 				EA463D051EF81FC5005AC8C7 /* Timer.cpp in Sources */,
 				81856F3E229D7E6E00F3A92B /* intrusive_list.cpp in Sources */,

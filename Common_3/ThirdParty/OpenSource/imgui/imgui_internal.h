@@ -761,8 +761,6 @@ struct ImGuiContext
     float2                  PlatformImePos, PlatformImeLastPos; // Cursor position request & last passed to the OS Input Method Editor
 
     // Settings
-    bool                           SettingsLoaded;
-    float                          SettingsDirtyTimer;          // Save .ini Settings to memory when time reaches zero
     eastl::string                SettingsIniData;             // In memory .ini settings
     eastl::vector<ImGuiSettingsHandler> SettingsHandlers;            // List of .ini settings handlers
     eastl::vector<ImGuiWindowSettings>  SettingsWindows;             // ImGuiWindow .ini settings entries (parsed from the last loaded .ini file and maintained on saving)

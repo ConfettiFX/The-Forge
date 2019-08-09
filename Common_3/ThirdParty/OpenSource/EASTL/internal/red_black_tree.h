@@ -115,7 +115,7 @@ namespace eastl
 		// Potentially we could provide a constructor that would satisfy the compiler and change the code to use this constructor
 		// instead of constructing mValue in place within an unconstructed rbtree_node.
 		#if defined(_MSC_VER)
-			rbtree_node(const rbtree_node&) = delete;
+			rbtree_node(const rbtree_node&);
 		#endif
 	};
 

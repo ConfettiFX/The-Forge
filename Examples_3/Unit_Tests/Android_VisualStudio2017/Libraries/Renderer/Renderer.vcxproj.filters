@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Renderer">
+      <UniqueIdentifier>{cb9abde3-fc61-410f-94cf-fcf129a3156d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Profiler">
+      <UniqueIdentifier>{468fa3e2-17ae-4835-8e35-cfd639ad057d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Image">
+      <UniqueIdentifier>{ab6cd5e0-738c-4799-9ccd-ebfa778228c0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\CommonShaderReflection.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\Vulkan.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanRaytracing.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanShaderReflection.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\ResourceLoader.cpp">
+      <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\GpuProfiler.cpp">
+      <Filter>Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\Profiler.cpp">
+      <Filter>Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerBase.cpp">
+      <Filter>Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerDraw.cpp">
+      <Filter>Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerInput.cpp">
+      <Filter>Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerUI.cpp">
+      <Filter>Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Image\Image.cpp">
+      <Filter>Image</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerBase.h">
+      <Filter>Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerUI.h">
+      <Filter>Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\Image.h">
+      <Filter>Image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\ImageEnums.h">
+      <Filter>Image</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

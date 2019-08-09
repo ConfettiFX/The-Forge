@@ -438,7 +438,6 @@ public:
 		vec3                   lookAt{ 0 };
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
-		requestMouseCapture(true);
 
 		pCameraController->setMotionParameters(cmp);
 
@@ -726,6 +725,7 @@ public:
 		cmdEndDebugMarker(cmd);
 
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
 
@@ -753,7 +753,7 @@ public:
 	bool addSwapChain()
 	{
 		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.mWindowHandle = pWindow->handle;
 		swapChainDesc.mPresentQueueCount = 1;
 		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mWidth = mSettings.mWidth;

@@ -29,7 +29,6 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\Common_3\Tools\TFXImporter\TFXImporter.cpp" />
     <ClCompile Include="..\..\..\Common_3\Tools\TFXImporter\TressFXAsset.cpp" />
-    <ClCompile Include="..\..\Common\AppHelpers.cpp" />
     <ClCompile Include="..\src\06_MaterialPlayground\06_MaterialPlayground.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -88,7 +87,6 @@
     <ClInclude Include="..\..\..\Common_3\Tools\TFXImporter\TFXImporter.h" />
     <ClInclude Include="..\..\..\Common_3\Tools\TFXImporter\TressFXAsset.h" />
     <ClInclude Include="..\..\..\Common_3\Tools\TFXImporter\TressFXFileFormat.h" />
-    <ClInclude Include="..\..\Common\AppHelpers.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{611831C0-6301-4DB2-A61E-2596129C9239}</ProjectGuid>

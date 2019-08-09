@@ -4,6 +4,9 @@
 
 #include "ProfilerBase.h"
 
+#include "../EASTL/sort.h"
+
+
 #include "../../../OS/Interfaces/ILog.h"
 #include "../../../OS/Interfaces/IFileSystem.h"
 
@@ -1199,7 +1202,7 @@ void ProfileDrawDetailedBars(uint32_t nWidth, uint32_t nHeight, int nBaseY, int 
 		uint32_t nNumThreadsBase = 0;
 		uint32_t nNumThreads = ProfileContextSwitchGatherThreads(nContextSwitchStart, nContextSwitchSearchEnd, Threads, &nNumThreadsBase);
 
-		std::sort(&Threads[nNumThreadsBase], &Threads[nNumThreads],
+		eastl::sort(&Threads[nNumThreadsBase], &Threads[nNumThreads],
 					[](const ProfileThreadInfo& l, const ProfileThreadInfo& r)
 		{
 			return l.nProcessId == r.nProcessId ? l.nThreadId < r.nThreadId : l.nProcessId > r.nProcessId;
@@ -2743,7 +2746,7 @@ void ProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 			UI.GroupMenu[idx].nIndex = i;
 			UI.GroupMenu[idx].pName = S.GroupInfo[i].pName;
 		}
-		std::sort(&UI.GroupMenu[0], &UI.GroupMenu[UI.GroupMenuCount],
+		eastl::sort(&UI.GroupMenu[0], &UI.GroupMenu[UI.GroupMenuCount],
 			[] (const ProfileGroupMenuItem& l, const ProfileGroupMenuItem& r) -> bool
 			{
 				if(l.nCategoryIndex < r.nCategoryIndex)
@@ -3031,17 +3034,21 @@ void ProfileDrawCustom(uint32_t nWidth, uint32_t nHeight)
 }
 
 
-extern void ProfileBeginDraw(uint32_t width, uint32_t height);
+extern uint2 ProfileGetDrawDimensions();
+extern void ProfileBeginDraw();
 extern void ProfileEndDraw(Cmd * pCmd);
 
-void ProfileDraw(Cmd* pCmd, uint32_t nWidth, uint32_t nHeight)
+void ProfileDraw(Cmd* pCmd)
 {
 	PROFILE_SCOPEI("ProfileUI", "Draw", 0x737373);
 	ProfileUI & UI = g_ProfileUI;
 	Profile& S = *ProfileGet();
 
+	uint32_t nWidth = ProfileGetDrawDimensions().x;
+	uint32_t nHeight = ProfileGetDrawDimensions().y;
+
 	// Start our own drawing
-	ProfileBeginDraw(nWidth, nHeight);
+	ProfileBeginDraw();
 
 	if (S.nDisplay)
 	{

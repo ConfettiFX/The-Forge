@@ -77,7 +77,6 @@ CmdPool* pCmdPool = NULL;
 Cmd**    ppCmds = NULL;
 
 SwapChain*    pSwapChain = NULL;
-RenderTarget* pDepthBuffer = NULL;
 Fence*        pRenderCompleteFences[gImageCount] = { NULL };
 Semaphore*    pImageAcquiredSemaphore = NULL;
 Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
@@ -272,7 +271,6 @@ public:
 #endif
 		pCameraController->setMotionParameters(cmp);
 
-		requestMouseCapture(true);
 		InputSystem::RegisterInputEvent(cameraInputEvent);
 
 		// INITIALIZE THE USER INTERFACE
@@ -459,8 +457,6 @@ public:
 		//
 		if (!addSwapChain())
 			return false;
-		if (!addDepthBuffer())
-			return false;
 
 		// LOAD USER INTERFACE
 		//
@@ -468,7 +464,7 @@ public:
 			return false;
 
 #if defined(TARGET_IOS) || defined(__ANDROID__)
-		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], pDepthBuffer->mDesc.mFormat))
+		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
 #endif
 
@@ -486,7 +482,6 @@ public:
 #endif
 
 		removeSwapChain(pRenderer, pSwapChain);
-		removeRenderTarget(pRenderer, pDepthBuffer);
 	}
 
 	void Update(float deltaTime)
@@ -555,18 +550,14 @@ public:
 		TextureBarrier barriers[] =    // wait for resource transition
 		{
 			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
-			{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE },
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 2, barriers, false);
+		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, false);
 
 		// bind and clear the render target
 		LoadActionsDesc loadActions = {};    // render target clean command
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		loadActions.mClearColorValues[0] = clearVal;
-		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth.depth = 1.0f;
-		loadActions.mClearDepth.stencil = 0;
-		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
@@ -604,7 +595,7 @@ public:
 	bool addSwapChain()
 	{
 		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.mWindowHandle = pWindow->handle;
 		swapChainDesc.mPresentQueueCount = 1;
 		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mWidth = mSettings.mWidth;
@@ -616,23 +607,6 @@ public:
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;
-	}
-
-	bool addDepthBuffer()
-	{
-		RenderTargetDesc depthRT = {};
-		depthRT.mArraySize = 1;
-		depthRT.mClearValue.depth = 1.0f;
-		depthRT.mClearValue.stencil = 0;
-		depthRT.mDepth = 1;
-		depthRT.mFormat = ImageFormat::D32F;
-		depthRT.mHeight = mSettings.mHeight;
-		depthRT.mSampleCount = SAMPLE_COUNT_1;
-		depthRT.mSampleQuality = 0;
-		depthRT.mWidth = mSettings.mWidth;
-		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
-
-		return pDepthBuffer != NULL;
 	}
 
 	void RecenterCameraView(float maxDistance, vec3 lookAt = vec3(0))

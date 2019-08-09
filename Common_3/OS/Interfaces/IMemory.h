@@ -49,7 +49,7 @@ template <typename T, typename... Args>
 static T* conf_new_internal(const char *f, int l, const char *sf, Args... args)
 {
 	T* ptr = (T*)conf_malloc_internal(sizeof(T), f, l, sf);
-	return new (ptr) T(args...);
+	return conf_placement_new<T>(ptr, args...);
 }
 
 template <typename T>
