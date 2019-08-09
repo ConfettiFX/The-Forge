@@ -1,0 +1,293 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Dependencies">
+      <UniqueIdentifier>{64184d1f-1a84-4875-99f5-b5676061bcee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dependencies\EASTL">
+      <UniqueIdentifier>{0500aa0c-8183-4522-9085-34fff211e4c3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dependencies\EASTL\EAStdC">
+      <UniqueIdentifier>{2aa5aa3d-ac74-41a6-ae85-2d01f17c4b6f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS">
+      <UniqueIdentifier>{922b1f67-3a9c-41c6-8a03-4b00f84dfccf}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Android">
+      <UniqueIdentifier>{8d7c3b0b-2de3-4f27-ba78-34d8735dde4e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Camera">
+      <UniqueIdentifier>{eb0dee49-6dec-49ac-a246-21f4a344120f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Core">
+      <UniqueIdentifier>{8371e341-212e-4b6d-8412-185520f9b775}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Input">
+      <UniqueIdentifier>{8f73aca5-2905-4788-b5ea-649ab0c7e6eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Interfaces">
+      <UniqueIdentifier>{73462d13-5c82-47aa-9a63-01a5a822879f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Logging">
+      <UniqueIdentifier>{9a73cb4c-ee13-4cef-80d6-0527d9b78ec4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Math">
+      <UniqueIdentifier>{89c1ba4e-2d53-4312-9f0a-f471359dd239}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\MemoryTracking">
+      <UniqueIdentifier>{00dcfe4c-bbee-4ba7-b231-4c53a9ed1e65}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Middleware_3">
+      <UniqueIdentifier>{0e50e309-a9a2-473f-9c72-1b2d3db5dce2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="utils">
+      <UniqueIdentifier>{13610df1-50b4-4382-82a4-28c7a33bce8f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Middleware_3\Animation">
+      <UniqueIdentifier>{cdc6af0c-a764-4dff-9ded-31cd5a4818fc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Middleware_3\Text">
+      <UniqueIdentifier>{dd981cd1-99db-439f-94b1-910fe743f1d6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Middleware_3\UI">
+      <UniqueIdentifier>{a6bda321-f588-4bcb-a276-5358daebc5ee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Middleware_3\UI\imgui">
+      <UniqueIdentifier>{d26a2315-b096-4aa4-84b4-b1b9fb9ee885}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EAStdC\EAMemory.cpp">
+      <Filter>Dependencies\EASTL\EAStdC</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EAStdC\EASprintf.cpp">
+      <Filter>Dependencies\EASTL\EAStdC</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\allocator_forge.cpp">
+      <Filter>Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\assert.cpp">
+      <Filter>Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\fixed_pool.cpp">
+      <Filter>Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\hashtable.cpp">
+      <Filter>Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\intrusive_list.cpp">
+      <Filter>Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\numeric_limits.cpp">
+      <Filter>Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\red_black_tree.cpp">
+      <Filter>Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\string.cpp">
+      <Filter>Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\thread_support.cpp">
+      <Filter>Dependencies\EASTL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\TinyEXR\tinyexr.cpp">
+      <Filter>Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\FileSystem.cpp">
+      <Filter>OS\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\PlatformEvents.cpp">
+      <Filter>OS\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.cpp">
+      <Filter>OS\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Timer.cpp">
+      <Filter>OS\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Input\InputSystem.cpp">
+      <Filter>OS\Input</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidBase.cpp">
+      <Filter>OS\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidFileSystem.cpp">
+      <Filter>OS\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Camera\FpsCameraController.cpp">
+      <Filter>OS\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Camera\GuiCameraController.cpp">
+      <Filter>OS\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Text\Fontstash.cpp">
+      <Filter>OS\Middleware_3\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp">
+      <Filter>OS\Middleware_3\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\UI\ImguiGUIDriver.cpp">
+      <Filter>OS\Middleware_3\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui.cpp">
+      <Filter>OS\Middleware_3\UI\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_demo.cpp">
+      <Filter>OS\Middleware_3\UI\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_draw.cpp">
+      <Filter>OS\Middleware_3\UI\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_widgets.cpp">
+      <Filter>OS\Middleware_3\UI\imgui</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\AnimatedObject.cpp">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Animation.cpp">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Clip.cpp">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\ClipController.cpp">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\ClipMask.cpp">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Rig.cpp">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.cpp">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.cpp" />
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Logging\Log.cpp">
+      <Filter>OS\Logging</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidLog.cpp">
+      <Filter>OS\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidThread.cpp">
+      <Filter>OS\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidTime.cpp">
+      <Filter>OS\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\MemoryTracking\MemoryTracking.cpp">
+      <Filter>OS\MemoryTracking</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Atomics.h">
+      <Filter>OS\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Compiler.h">
+      <Filter>OS\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\GPUConfig.h">
+      <Filter>OS\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\RingBuffer.h">
+      <Filter>OS\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.h">
+      <Filter>OS\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\InputMappings.h">
+      <Filter>OS\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\InputSystem.h">
+      <Filter>OS\Input</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IApp.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ICameraController.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFileSystem.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IMiddleware.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IOperatingSystem.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IPlatformEvents.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IProfiler.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IThread.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ITimeManager.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\MathTypes.h">
+      <Filter>OS\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Text\Fontstash.h">
+      <Filter>OS\Middleware_3\Text</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\UI\AppUI.h">
+      <Filter>OS\Middleware_3\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imconfig.h">
+      <Filter>OS\Middleware_3\UI\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui.h">
+      <Filter>OS\Middleware_3\UI\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_internal.h">
+      <Filter>OS\Middleware_3\UI\imgui</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\AnimatedObject.h">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Animation.h">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Clip.h">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\ClipController.h">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\ClipMask.h">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Rig.h">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.h">
+      <Filter>OS\Middleware_3\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.h" />
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ILog.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IMemory.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Logging\Log.h">
+      <Filter>OS\Logging</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\MemoryTracking\NoMemoryDefines.h">
+      <Filter>OS\MemoryTracking</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EASTL.natvis">
+      <Filter>utils</Filter>
+    </Natvis>
+  </ItemGroup>
+</Project>

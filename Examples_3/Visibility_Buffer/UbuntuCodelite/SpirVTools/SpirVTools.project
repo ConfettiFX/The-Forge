@@ -3,7 +3,6 @@
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
-    <File Name="../../../../Common_3/Tools/SpirvTools/dllmain.cpp" ExcludeProjConfig="Debug"/>
     <File Name="../../../../Common_3/Tools/SpirvTools/SpirvTools.cpp"/>
     <File Name="../../../../Common_3/Tools/SpirvTools/SpirvTools.h"/>
     <File Name="../../../../Common_3/ThirdParty/OpenSource/SPIRV_Cross/spirv_cpp.cpp"/>

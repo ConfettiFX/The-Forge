@@ -622,4 +622,90 @@ static inline uint32_t GetImageFormatChannelCount(Enum format)
 	}
 }
 
+static inline uint32_t GetMipMappedSize(uint32_t w, uint32_t h, uint32_t d,
+	uint32_t nMipMapLevels, ImageFormat::Enum srcFormat)
+{
+	// PVR formats get special case
+	if ((srcFormat >= ImageFormat::PVR_2BPP && srcFormat <= ImageFormat::PVR_4BPPA))
+	{
+		uint totalSize = 0;
+		uint sizeX = w;
+		uint sizeY = h;
+		uint sizeD = d;
+		int level = nMipMapLevels;
+
+		uint minWidth = 8;
+		uint minHeight = 8;
+		uint minDepth = 1;
+		int bpp = 4;
+
+		if (srcFormat == ImageFormat::PVR_2BPP || srcFormat == ImageFormat::PVR_2BPPA)
+		{
+			minWidth = 16;
+			minHeight = 8;
+			bpp = 2;
+		}
+
+		while (level > 0)
+		{
+			// If pixel format is compressed, the dimensions need to be padded.
+			uint paddedWidth = sizeX + ((-1 * sizeX) % minWidth);
+			uint paddedHeight = sizeY + ((-1 * sizeY) % minHeight);
+			uint paddedDepth = sizeD + ((-1 * sizeD) % minDepth);
+
+			int mipSize = paddedWidth * paddedHeight * paddedDepth * bpp / 8;
+
+			totalSize += mipSize;
+
+			unsigned int MinimumSize = 1;
+			sizeX = max(sizeX / 2, MinimumSize);
+			sizeY = max(sizeY / 2, MinimumSize);
+			sizeD = max(sizeD / 2, MinimumSize);
+			level--;
+		}
+
+		return totalSize;
+	}
+
+	int size = 0;
+	while (nMipMapLevels)
+	{
+		if (ImageFormat::IsCompressedFormat(srcFormat))
+		{
+			uint3 blockSize = ImageFormat::GetBlockSize(srcFormat);
+			uint32_t bx = blockSize.x;
+			uint32_t by = blockSize.y;
+			uint32_t bz = blockSize.z;
+			size += ((w + bx - 1) / bx) * ((h + by - 1) / by) * ((d + bz - 1) / bz);
+		}
+		else
+		{
+			size += w * h * d;
+		}
+		w >>= 1;
+		h >>= 1;
+		d >>= 1;
+		if (w + h + d == 0)
+			break;
+		if (w == 0)
+			w = 1;
+		if (h == 0)
+			h = 1;
+		if (d == 0)
+			d = 1;
+
+		nMipMapLevels--;
+	}
+
+	if (ImageFormat::IsCompressedFormat(srcFormat))
+	{
+		size *= ImageFormat::GetBytesPerBlock(srcFormat);
+	}
+	else
+	{
+		size *= ImageFormat::GetBytesPerPixel(srcFormat);
+	}
+
+	return size;
+}
 }    // namespace ImageFormat

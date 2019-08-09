@@ -605,9 +605,10 @@ class GUIDriver
 	virtual bool init(Renderer* pRenderer, uint32_t const maxDynamicUIUpdatesPerBatch) = 0;
 	virtual void exit() = 0;
 
-	virtual bool
-				 load(class Fontstash* fontID, float fontSize, struct Texture* cursorTexture = 0, float uiwidth = 600, float uiheight = 400) = 0;
+	virtual bool load(RenderTarget** ppRts, uint32_t count) = 0;
 	virtual void unload() = 0;
+
+	virtual bool addGui(class Fontstash* fontID, float fontSize, struct Texture* cursorTexture = 0, float uiwidth = 600, float uiheight = 400) = 0;
 
 	virtual void* getContext() = 0;
 
@@ -652,7 +653,7 @@ class UIApp: public IMiddleware
 	bool Init(Renderer* renderer);
 	void Exit();
 
-	bool Load(RenderTarget** rts);
+	bool Load(RenderTarget** rts, uint32_t count = 1);
 	void Unload();
 
 	void Update(float deltaTime);
@@ -712,7 +713,7 @@ class VirtualJoystickUI
 	// This can be called many times in case different camera want to have different values.
 	void InitLRSticks(float insideRad = 150.f, float outsideRad = 300.f, float deadzone = 20.f);
 	void Exit();
-	bool Load(RenderTarget* pScreenRT, uint depthFormat = 0);
+	bool Load(RenderTarget* pScreenRT);
 	void Unload();
 	void Update(float dt);
 

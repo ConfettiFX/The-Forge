@@ -21,6 +21,15 @@
 #include "spirv_cfg.hpp"
 #include "spirv_cross_parsed_ir.hpp"
 
+
+
+ //EASTL related Includes
+#include "../EASTL/string.h"
+#include "../EASTL/unordered_map.h"
+#include "../EASTL/unordered_set.h"
+
+
+
 namespace SPIRV_CROSS_NAMESPACE
 {
 struct Resource

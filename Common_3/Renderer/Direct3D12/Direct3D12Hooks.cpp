@@ -25,12 +25,18 @@
 #if defined(DIRECT3D12)
 #include "../IRenderer.h"
 #include "Direct3D12Hooks.h"
-#include "../../../Common_3/OS/Interfaces/IMemory.h"
+#include "../../OS/Interfaces/IMemory.h"
 
 static void enable_debug_layer_hook(Renderer* pRenderer)
 {
 #if defined(_DEBUG) || defined(PROFILE)
 	pRenderer->pDXDebug->EnableDebugLayer();
+	ID3D12Debug1* pDebug1 = NULL;
+	if (S_OK == pRenderer->pDXDebug->QueryInterface(IID_PPV_ARGS(&pDebug1)))
+	{
+		pDebug1->SetEnableGPUBasedValidation(pRenderer->mSettings.mEnableGPUBasedValidation);
+		pDebug1->Release();
+	}
 #endif
 }
 

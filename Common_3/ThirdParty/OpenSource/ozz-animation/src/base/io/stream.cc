@@ -36,15 +36,17 @@
 #include "ozz/base/memory/allocator.h"
 #include "../../../../../Common_3/OS/Interfaces/IFileSystem.h"
 
+#include "../../EASTL/numeric_limits.h"
+
 namespace ozz {
     namespace io {
 
 // Starts File implementation.
 
         bool File::Exist(const char* _filename) {
-          FILE* file = std::fopen(_filename, "r");
+      FILE* file = (FILE*)open_file(_filename, "r");
           if (file) {
-            std::fclose(file);
+			close_file(file);
             return true;
           }
           return false;
@@ -75,7 +77,7 @@ namespace ozz {
 
         size_t File::Write(const void* _buffer, size_t _size) {
           std::FILE* file = reinterpret_cast<std::FILE*>(file_);
-          return std::fwrite(_buffer, 1, _size, file);
+          return write_file(_buffer, _size, file);
         }
 
         int File::Seek(int _offset, Origin _origin) {
@@ -110,7 +112,7 @@ namespace ozz {
 
 // Starts MemoryStream implementation.
         const size_t MemoryStream::kBufferSizeIncrement = 16 << 10;
-        const size_t MemoryStream::kMaxSize = std::numeric_limits<int>::max();
+        const size_t MemoryStream::kMaxSize = eastl::numeric_limits<int>::max();
 
         MemoryStream::MemoryStream()
                 : buffer_(NULL), alloc_size_(0), end_(0), tell_(0) {}

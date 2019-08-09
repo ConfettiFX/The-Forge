@@ -115,7 +115,7 @@ public:
 			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
 		}
 
-		initProfiler(pRenderer, gImageCount);
+		initProfiler(pRenderer);
 		profileRegisterInput();
 
 		addGpuProfiler(pRenderer, pQueue, &pGpuProfiler, "GpuProfiler");
@@ -392,7 +392,7 @@ public:
 	{
 		waitQueueIdle(pQueue);
 
-		exitProfiler(pRenderer);
+		exitProfiler();
 
 		mAppUI.Exit();
 
@@ -470,7 +470,7 @@ public:
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.ppPresentQueues = &pQueue;
 		swapChainDesc.mPresentQueueCount = 1;
-		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.mWindowHandle = pWindow->handle;
 		addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
         
         VertexLayout vertexLayout = {};
@@ -495,6 +495,8 @@ public:
 		if (!mAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
+		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
+
 		return true;
 	}
 
@@ -502,6 +504,7 @@ public:
 	{
 		waitQueueIdle(pQueue);
 
+		unloadProfiler();
 		mAppUI.Unload();
 
 		removePipeline(pRenderer, pDisplayTexturePipeline);
@@ -630,7 +633,7 @@ public:
 			cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
         }
 
-		cmdDrawProfiler(pCmd, mSettings.mWidth, mSettings.mHeight);
+		cmdDrawProfiler(pCmd);
 
 		mAppUI.Gui(pGuiWindow);
 		mAppUI.Draw(pCmd);

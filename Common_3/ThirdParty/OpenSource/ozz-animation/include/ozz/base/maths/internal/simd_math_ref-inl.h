@@ -495,13 +495,13 @@ OZZ_INLINE SimdFloat4 RcpEstX(_SimdFloat4 _v) {
 }
 
 OZZ_INLINE SimdFloat4 Sqrt(_SimdFloat4 _v) {
-  const SimdFloat4 ret = {std::sqrt(_v.x), std::sqrt(_v.y), std::sqrt(_v.z),
-                          std::sqrt(_v.w)};
+  const SimdFloat4 ret = {sqrt(_v.x), std::sqrt(_v.y), std::sqrt(_v.z),
+                          sqrt(_v.w)};
   return ret;
 }
 
 OZZ_INLINE SimdFloat4 SqrtX(_SimdFloat4 _v) {
-  const SimdFloat4 ret = {std::sqrt(_v.x), _v.y, _v.z, _v.w};
+  const SimdFloat4 ret = {sqrt(_v.x), _v.y, _v.z, _v.w};
   return ret;
 }
 
@@ -533,8 +533,8 @@ OZZ_INLINE SimdFloat4 RSqrtEstX(_SimdFloat4 _v) {
 }
 
 OZZ_INLINE SimdFloat4 Abs(_SimdFloat4 _v) {
-  const SimdFloat4 ret = {std::abs(_v.x), std::abs(_v.y), std::abs(_v.z),
-                          std::abs(_v.w)};
+  const SimdFloat4 ret = {abs(_v.x), std::abs(_v.y), std::abs(_v.z),
+                          abs(_v.w)};
   return ret;
 }
 
@@ -549,19 +549,19 @@ OZZ_INLINE SimdInt4 Sign(_SimdFloat4 _v) {
 
 OZZ_INLINE SimdFloat4 Length2(_SimdFloat4 _v) {
   const float sq_len = _v.x * _v.x + _v.y * _v.y;
-  const SimdFloat4 ret = {std::sqrt(sq_len), _v.y, _v.z, _v.w};
+  const SimdFloat4 ret = {sqrt(sq_len), _v.y, _v.z, _v.w};
   return ret;
 }
 
 OZZ_INLINE SimdFloat4 Length3(_SimdFloat4 _v) {
   const float sq_len = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
-  const SimdFloat4 ret = {std::sqrt(sq_len), _v.y, _v.z, _v.w};
+  const SimdFloat4 ret = {sqrt(sq_len), _v.y, _v.z, _v.w};
   return ret;
 }
 
 OZZ_INLINE SimdFloat4 Length4(_SimdFloat4 _v) {
   const float sq_len = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
-  const SimdFloat4 ret = {std::sqrt(sq_len), _v.y, _v.z, _v.w};
+  const SimdFloat4 ret = {sqrt(sq_len), _v.y, _v.z, _v.w};
   return ret;
 }
 
@@ -586,7 +586,7 @@ OZZ_INLINE SimdFloat4 Length4Sqr(_SimdFloat4 _v) {
 OZZ_INLINE SimdFloat4 Normalize2(_SimdFloat4 _v) {
   const float sq_len = _v.x * _v.x + _v.y * _v.y;
   assert(sq_len != 0.f && "_v is not normalizable");
-  const float inv_len = 1.f / std::sqrt(sq_len);
+  const float inv_len = 1.f / sqrt(sq_len);
   const SimdFloat4 ret = {_v.x * inv_len, _v.y * inv_len, _v.z, _v.w};
   return ret;
 }
@@ -594,7 +594,7 @@ OZZ_INLINE SimdFloat4 Normalize2(_SimdFloat4 _v) {
 OZZ_INLINE SimdFloat4 Normalize3(_SimdFloat4 _v) {
   const float sq_len = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
   assert(sq_len != 0.f && "_v is not normalizable");
-  const float inv_len = 1.f / std::sqrt(sq_len);
+  const float inv_len = 1.f / sqrt(sq_len);
   const SimdFloat4 ret = {_v.x * inv_len, _v.y * inv_len, _v.z * inv_len, _v.w};
   return ret;
 }
@@ -602,7 +602,7 @@ OZZ_INLINE SimdFloat4 Normalize3(_SimdFloat4 _v) {
 OZZ_INLINE SimdFloat4 Normalize4(_SimdFloat4 _v) {
   const float sq_len = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
   assert(sq_len != 0.f && "_v is not normalizable");
-  const float inv_len = 1.f / std::sqrt(sq_len);
+  const float inv_len = 1.f / sqrt(sq_len);
   const SimdFloat4 ret = {_v.x * inv_len, _v.y * inv_len, _v.z * inv_len,
                           _v.w * inv_len};
   return ret;
@@ -638,42 +638,42 @@ OZZ_INLINE SimdFloat4 NormalizeEst4(_SimdFloat4 _v) {
 
 OZZ_INLINE SimdInt4 IsNormalized2(_SimdFloat4 _v) {
   const float sq_len = _v.x * _v.x + _v.y * _v.y;
-  const bool normalized = std::abs(sq_len - 1.f) < kNormalizationToleranceSq;
+  const bool normalized = abs(sq_len - 1.f) < kNormalizationToleranceSq;
   const SimdInt4 ret = {-static_cast<int>(normalized), 0, 0, 0};
   return ret;
 }
 
 OZZ_INLINE SimdInt4 IsNormalized3(_SimdFloat4 _v) {
   const float sq_len = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
-  const bool normalized = std::abs(sq_len - 1.f) < kNormalizationToleranceSq;
+  const bool normalized = abs(sq_len - 1.f) < kNormalizationToleranceSq;
   const SimdInt4 ret = {-static_cast<int>(normalized), 0, 0, 0};
   return ret;
 }
 
 OZZ_INLINE SimdInt4 IsNormalized4(_SimdFloat4 _v) {
   const float sq_len = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
-  const bool normalized = std::abs(sq_len - 1.f) < kNormalizationToleranceSq;
+  const bool normalized = abs(sq_len - 1.f) < kNormalizationToleranceSq;
   const SimdInt4 ret = {-static_cast<int>(normalized), 0, 0, 0};
   return ret;
 }
 
 OZZ_INLINE SimdInt4 IsNormalizedEst2(_SimdFloat4 _v) {
   const float sq_len = _v.x * _v.x + _v.y * _v.y;
-  const bool normalized = std::abs(sq_len - 1.f) < kNormalizationToleranceEstSq;
+  const bool normalized = abs(sq_len - 1.f) < kNormalizationToleranceEstSq;
   const SimdInt4 ret = {-static_cast<int>(normalized), 0, 0, 0};
   return ret;
 }
 
 OZZ_INLINE SimdInt4 IsNormalizedEst3(_SimdFloat4 _v) {
   const float sq_len = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
-  const bool normalized = std::abs(sq_len - 1.f) < kNormalizationToleranceEstSq;
+  const bool normalized = abs(sq_len - 1.f) < kNormalizationToleranceEstSq;
   const SimdInt4 ret = {-static_cast<int>(normalized), 0, 0, 0};
   return ret;
 }
 
 OZZ_INLINE SimdInt4 IsNormalizedEst4(_SimdFloat4 _v) {
   const float sq_len = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
-  const bool normalized = std::abs(sq_len - 1.f) < kNormalizationToleranceEstSq;
+  const bool normalized = abs(sq_len - 1.f) < kNormalizationToleranceEstSq;
   const SimdInt4 ret = {-static_cast<int>(normalized), 0, 0, 0};
   return ret;
 }
@@ -684,7 +684,7 @@ OZZ_INLINE SimdFloat4 NormalizeSafe2(_SimdFloat4 _v, _SimdFloat4 _safe) {
     const SimdFloat4 ret = {_safe.x, _safe.y, _v.z, _v.w};
     return ret;
   }
-  const float inv_len = 1.f / std::sqrt(sq_len);
+  const float inv_len = 1.f / sqrt(sq_len);
   const SimdFloat4 ret = {_v.x * inv_len, _v.y * inv_len, _v.z, _v.w};
   return ret;
 }
@@ -695,7 +695,7 @@ OZZ_INLINE SimdFloat4 NormalizeSafe3(_SimdFloat4 _v, _SimdFloat4 _safe) {
     const SimdFloat4 ret = {_safe.x, _safe.y, _safe.z, _v.w};
     return ret;
   }
-  const float inv_len = 1.f / std::sqrt(sq_len);
+  const float inv_len = 1.f / sqrt(sq_len);
   const SimdFloat4 ret = {_v.x * inv_len, _v.y * inv_len, _v.z * inv_len, _v.w};
   return ret;
 }
@@ -705,7 +705,7 @@ OZZ_INLINE SimdFloat4 NormalizeSafe4(_SimdFloat4 _v, _SimdFloat4 _safe) {
   if (sq_len == 0.f) {
     return _safe;
   }
-  const float inv_len = 1.f / std::sqrt(sq_len);
+  const float inv_len = 1.f / sqrt(sq_len);
   const SimdFloat4 ret = {_v.x * inv_len, _v.y * inv_len, _v.z * inv_len,
                           _v.w * inv_len};
   return ret;
@@ -907,68 +907,68 @@ OZZ_INLINE SimdFloat4 Xor(_SimdFloat4 _a, _SimdInt4 _b) {
 }
 
 OZZ_INLINE SimdFloat4 Cos(_SimdFloat4 _v) {
-  const SimdFloat4 ret = {std::cos(_v.x), std::cos(_v.y), std::cos(_v.z),
-                          std::cos(_v.w)};
+  const SimdFloat4 ret = {cos(_v.x), cos(_v.y), cos(_v.z),
+                          cos(_v.w)};
   return ret;
 }
 
 OZZ_INLINE SimdFloat4 CosX(_SimdFloat4 _v) {
-  const SimdFloat4 ret = {std::cos(_v.x), _v.y, _v.z, _v.w};
+  const SimdFloat4 ret = {cos(_v.x), _v.y, _v.z, _v.w};
   return ret;
 }
 
 OZZ_INLINE SimdFloat4 ACos(_SimdFloat4 _v) {
-  const SimdFloat4 ret = {std::acos(_v.x), std::acos(_v.y), std::acos(_v.z),
-                          std::acos(_v.w)};
+  const SimdFloat4 ret = {acos(_v.x), acos(_v.y), acos(_v.z),
+                          acos(_v.w)};
   return ret;
 }
 
 OZZ_INLINE SimdFloat4 ACosX(_SimdFloat4 _v) {
-  const SimdFloat4 ret = {std::acos(_v.x), _v.y, _v.z, _v.w};
+  const SimdFloat4 ret = {acos(_v.x), _v.y, _v.z, _v.w};
   return ret;
 }
 
 OZZ_INLINE SimdFloat4 Sin(_SimdFloat4 _v) {
-  const SimdFloat4 ret = {std::sin(_v.x), std::sin(_v.y), std::sin(_v.z),
-                          std::sin(_v.w)};
+  const SimdFloat4 ret = {sin(_v.x), sin(_v.y), sin(_v.z),
+                          sin(_v.w)};
   return ret;
 }
 
 OZZ_INLINE SimdFloat4 SinX(_SimdFloat4 _v) {
-  const SimdFloat4 ret = {std::sin(_v.x), _v.y, _v.z, _v.w};
+  const SimdFloat4 ret = {sin(_v.x), _v.y, _v.z, _v.w};
   return ret;
 }
 
 OZZ_INLINE SimdFloat4 ASin(_SimdFloat4 _v) {
-  const SimdFloat4 ret = {std::asin(_v.x), std::asin(_v.y), std::asin(_v.z),
-                          std::asin(_v.w)};
+  const SimdFloat4 ret = {asin(_v.x), std::asin(_v.y), asin(_v.z),
+                          asin(_v.w)};
   return ret;
 }
 
 OZZ_INLINE SimdFloat4 ASinX(_SimdFloat4 _v) {
-  const SimdFloat4 ret = {std::asin(_v.x), _v.y, _v.z, _v.w};
+  const SimdFloat4 ret = {asin(_v.x), _v.y, _v.z, _v.w};
   return ret;
 }
 
 OZZ_INLINE SimdFloat4 Tan(_SimdFloat4 _v) {
-  const SimdFloat4 ret = {std::tan(_v.x), std::tan(_v.y), std::tan(_v.z),
-                          std::tan(_v.w)};
+  const SimdFloat4 ret = {tan(_v.x), tan(_v.y), tan(_v.z),
+                          tan(_v.w)};
   return ret;
 }
 
 OZZ_INLINE SimdFloat4 TanX(_SimdFloat4 _v) {
-  const SimdFloat4 ret = {std::tan(_v.x), _v.y, _v.z, _v.w};
+  const SimdFloat4 ret = {tan(_v.x), _v.y, _v.z, _v.w};
   return ret;
 }
 
 OZZ_INLINE SimdFloat4 ATan(_SimdFloat4 _v) {
-  const SimdFloat4 ret = {std::atan(_v.x), std::atan(_v.y), std::atan(_v.z),
-                          std::atan(_v.w)};
+  const SimdFloat4 ret = {atan(_v.x), atan(_v.y), atan(_v.z),
+                          atan(_v.w)};
   return ret;
 }
 
 OZZ_INLINE SimdFloat4 ATanX(_SimdFloat4 _v) {
-  const SimdFloat4 ret = {std::atan(_v.x), _v.y, _v.z, _v.w};
+  const SimdFloat4 ret = {atan(_v.x), _v.y, _v.z, _v.w};
   return ret;
 }
 
@@ -1638,7 +1638,7 @@ OZZ_INLINE SimdInt4 IsOrthogonal(const Float4x4& _m) {
   const SimdFloat4 at = NormalizeSafe3(_m.cols[2], simd_float4::zero());
 
   const float sq_len = cross.x * at.x + cross.y * at.y + cross.z * at.z;
-  const bool same = std::abs(sq_len - 1.f) < kNormalizationToleranceSq;
+  const bool same = abs(sq_len - 1.f) < kNormalizationToleranceSq;
   const SimdInt4 ret = {-static_cast<int>(same), 0, 0, 0};
   return ret;
 }
@@ -1650,28 +1650,28 @@ OZZ_INLINE SimdFloat4 ToQuaternion(const Float4x4& _m) {
   SimdFloat4 ret;
   if (_m.cols[0].x + _m.cols[1].y + _m.cols[2].z > .0f) {
     const float t = _m.cols[0].x + _m.cols[1].y + _m.cols[2].z + 1.0f;
-    const float s = (1.f / std::sqrt(t)) * .5f;
+    const float s = (1.f / sqrt(t)) * .5f;
     ret.x = (_m.cols[1].z - _m.cols[2].y) * s;
     ret.y = (_m.cols[2].x - _m.cols[0].z) * s;
     ret.z = (_m.cols[0].y - _m.cols[1].x) * s;
     ret.w = s * t;
   } else if (_m.cols[0].x > _m.cols[1].y && _m.cols[0].x > _m.cols[2].z) {
     const float t = _m.cols[0].x - _m.cols[1].y - _m.cols[2].z + 1.0f;
-    const float s = (1.f / std::sqrt(t)) * .5f;
+    const float s = (1.f / sqrt(t)) * .5f;
     ret.x = s * t;
     ret.y = (_m.cols[0].y + _m.cols[1].x) * s;
     ret.z = (_m.cols[2].x + _m.cols[0].z) * s;
     ret.w = (_m.cols[1].z - _m.cols[2].y) * s;
   } else if (_m.cols[1].y > _m.cols[2].z) {
     const float t = -_m.cols[0].x + _m.cols[1].y - _m.cols[2].z + 1.0f;
-    const float s = (1.f / std::sqrt(t)) * .5f;
+    const float s = (1.f / sqrt(t)) * .5f;
     ret.x = (_m.cols[0].y + _m.cols[1].x) * s;
     ret.y = s * t;
     ret.z = (_m.cols[1].z + _m.cols[2].y) * s;
     ret.w = (_m.cols[2].x - _m.cols[0].z) * s;
   } else {
     const float t = -_m.cols[0].x - _m.cols[1].y + _m.cols[2].z + 1.0f;
-    const float s = (1.f / std::sqrt(t)) * .5f;
+    const float s = (1.f / sqrt(t)) * .5f;
     ret.x = (_m.cols[2].x + _m.cols[0].z) * s;
     ret.y = (_m.cols[1].z + _m.cols[2].y) * s;
     ret.z = s * t;
@@ -1690,16 +1690,16 @@ OZZ_INLINE bool ToAffine(const Float4x4& _m, SimdFloat4* _translation,
 
   // Extracts scale.
   const float sq_scale_x = Length3Sqr(_m.cols[0]).x;
-  const float scale_x = std::sqrt(sq_scale_x);
+  const float scale_x = sqrt(sq_scale_x);
   const float sq_scale_y = Length3Sqr(_m.cols[1]).x;
-  const float scale_y = std::sqrt(sq_scale_y);
+  const float scale_y = sqrt(sq_scale_y);
   const float sq_scale_z = Length3Sqr(_m.cols[2]).x;
-  const float scale_z = std::sqrt(sq_scale_z);
+  const float scale_z = sqrt(sq_scale_z);
 
   // Builds an orthonormal matrix in order to support quaternion extraction.
-  const bool x_zero = std::abs(sq_scale_x) < kOrthogonalisationToleranceSq;
-  const bool y_zero = std::abs(sq_scale_y) < kOrthogonalisationToleranceSq;
-  const bool z_zero = std::abs(sq_scale_z) < kOrthogonalisationToleranceSq;
+  const bool x_zero = abs(sq_scale_x) < kOrthogonalisationToleranceSq;
+  const bool y_zero = abs(sq_scale_y) < kOrthogonalisationToleranceSq;
+  const bool z_zero = abs(sq_scale_z) < kOrthogonalisationToleranceSq;
 
   Float4x4 orthonormal;
   if (x_zero) {
@@ -1754,12 +1754,12 @@ OZZ_INLINE bool ToAffine(const Float4x4& _m, SimdFloat4* _translation,
 }
 
 OZZ_INLINE Float4x4 Float4x4::FromEuler(_SimdFloat4 _v) {
-  const float ch = std::cos(_v.x);
-  const float sh = std::sin(_v.x);
-  const float ca = std::cos(_v.y);
-  const float sa = std::sin(_v.y);
-  const float cb = std::cos(_v.z);
-  const float sb = std::sin(_v.z);
+  const float ch = cos(_v.x);
+  const float sh = sin(_v.x);
+  const float ca = cos(_v.y);
+  const float sa = sin(_v.y);
+  const float cb = cos(_v.z);
+  const float sb = sin(_v.z);
 
   const float sa_cb = sa * cb;
   const float sa_sb = sa * sb;
@@ -1775,8 +1775,14 @@ OZZ_INLINE Float4x4 Float4x4::FromEuler(_SimdFloat4 _v) {
 OZZ_INLINE Float4x4 Float4x4::FromAxisAngle(_SimdFloat4 _v) {
   assert(AreAllTrue1(IsNormalizedEst3(_v)));
 
+#if defined(__ANDROID__) || defined(TARGET_IOS)
   const float cos = std::cos(_v.w);
   const float sin = std::sin(_v.w);
+#else
+  const float cos = cos(_v.w);
+  const float sin = sin(_v.w);
+#endif
+
   const float t = 1.f - cos;
 
   const float a = _v.x * _v.y * t;

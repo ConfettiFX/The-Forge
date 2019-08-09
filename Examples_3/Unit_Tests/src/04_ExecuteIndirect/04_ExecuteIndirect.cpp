@@ -345,7 +345,7 @@ class ExecuteIndirect: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		initProfiler(pRenderer, gImageCount);
+		initProfiler(pRenderer);
 		profileRegisterInput();
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
@@ -673,7 +673,6 @@ class ExecuteIndirect: public IApp
 		gVirtualJoystick.InitLRSticks();
 		pCameraController->setVirtualJoystick(&gVirtualJoystick);
 #endif
-		requestMouseCapture(true);
 
 		pCameraController->setMotionParameters(cmp);
 
@@ -705,7 +704,7 @@ class ExecuteIndirect: public IApp
 
 		removeGpuProfiler(pRenderer, pGpuProfiler);
 
-		exitProfiler(pRenderer);
+		exitProfiler();
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -801,9 +800,10 @@ class ExecuteIndirect: public IApp
 			return false;
 
 #ifdef TARGET_IOS
-		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], ImageFormat::Enum::NONE))
+		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
 #endif
+		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
 
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 2;
@@ -885,6 +885,7 @@ class ExecuteIndirect: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
+		unloadProfiler();
 #ifdef TARGET_IOS
 		gVirtualJoystick.Unload();
 #endif
@@ -1183,7 +1184,7 @@ class ExecuteIndirect: public IApp
 		/************************************************************************/
 		cmd = ppUICmds[frameIdx];
 		beginCmd(cmd);
-
+		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw PostProcess & UI");
 		LoadActionsDesc* pLoadAction = NULL;
 
 		// we want to clear the render target for Panini post process if its enabled.
@@ -1253,8 +1254,9 @@ class ExecuteIndirect: public IApp
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 110), pGpuProfiler, NULL);
 #endif
 
-		cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
+		cmdDrawProfiler(cmd);
 		gAppUI.Draw(cmd);
+		cmdEndDebugMarker(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		barrier = { pSwapchainRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
@@ -1277,7 +1279,7 @@ class ExecuteIndirect: public IApp
 	bool addSwapChain()
 	{
 		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.mWindowHandle = pWindow->handle;
 		swapChainDesc.mPresentQueueCount = 1;
 		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mWidth = mSettings.mWidth;

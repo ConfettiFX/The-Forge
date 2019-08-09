@@ -46,16 +46,16 @@ void Mutex::Release() { pthread_mutex_unlock(&pHandle); }
 
 void* ThreadFunctionStatic(void* data)
 {
-    ThreadDesc* pItem = static_cast<ThreadDesc*>(data);
-    pItem->pFunc(pItem->pData);
-    return 0;
+	ThreadDesc* pItem = static_cast<ThreadDesc*>(data);
+	pItem->pFunc(pItem->pData);
+	return 0;
 }
 
 ConditionVariable::ConditionVariable()
 {
-    pHandle = PTHREAD_COND_INITIALIZER;
-    int res = pthread_cond_init(&pHandle, NULL);
-    assert(res == 0);
+	pHandle = PTHREAD_COND_INITIALIZER;
+	int res = pthread_cond_init(&pHandle, NULL);
+	assert(res == 0);
 }
 
 ConditionVariable::~ConditionVariable() { pthread_cond_destroy(&pHandle); }

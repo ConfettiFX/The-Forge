@@ -287,7 +287,7 @@ class FontRendering: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		initProfiler(pRenderer, gImageCount);
+		initProfiler(pRenderer);
 		profileRegisterInput();
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
@@ -324,7 +324,6 @@ class FontRendering: public IApp
 
 		gPreviousTheme = gSceneData.theme;
 
-		requestMouseCapture(false);
 		return true;
 	}
 
@@ -332,7 +331,7 @@ class FontRendering: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		exitProfiler(pRenderer);
+		exitProfiler();
 
 		gAppUI.Exit();
 
@@ -354,7 +353,7 @@ class FontRendering: public IApp
 	bool Load()
 	{
 		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.mWindowHandle = pWindow->handle;
 		swapChainDesc.mPresentQueueCount = 1;
 		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mWidth = mSettings.mWidth;
@@ -372,12 +371,16 @@ class FontRendering: public IApp
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
+		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
+
 		return true;
 	}
 
 	void Unload()
 	{
 		waitQueueIdle(pGraphicsQueue);
+		unloadProfiler();
+		gAppUI.Unload();
 		removeSwapChain(pRenderer, pSwapChain);
 	}
 
@@ -505,7 +508,7 @@ class FontRendering: public IApp
 		if (gbShowSceneControlsUIWindow)
 			gAppUI.Gui(pUIWindow);
 
-		cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
+		cmdDrawProfiler(cmd);
 		gAppUI.Draw(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);

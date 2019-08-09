@@ -32,8 +32,6 @@
 		655D673B21ACD5FD00A5BB07 /* libassimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 655D673221ACD4E400A5BB07 /* libassimp.a */; };
 		655D673C21ACD5FD00A5BB07 /* libIrrXML.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 655D673021ACD4E400A5BB07 /* libIrrXML.a */; };
 		655D673D21ACD5FD00A5BB07 /* libzlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 655D673421ACD4E400A5BB07 /* libzlibstatic.a */; };
-		81B986B42269FF420078E5F4 /* AppHelpers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81B986B22269FF420078E5F4 /* AppHelpers.cpp */; };
-		81B986B52269FF420078E5F4 /* AppHelpers.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81B986B22269FF420078E5F4 /* AppHelpers.cpp */; };
 		971BCF95217040D3007F2B2F /* lion in Copy Textures */ = {isa = PBXBuildFile; fileRef = B277221F20F701D00074529C /* lion */; };
 		971BCF96217040D3007F2B2F /* SponzaPBR_Textures in Copy Textures */ = {isa = PBXBuildFile; fileRef = B277221E20F701D00074529C /* SponzaPBR_Textures */; };
 		971BCF98217040D3007F2B2F /* circlepad.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2C0C08B20F5847E00BD4BAA /* circlepad.ktx */; };
@@ -294,8 +292,6 @@
 		650CCC682223CC61003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		650CCC6A2223CC6C003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
 		655D672621ACD4E400A5BB07 /* Assimp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Assimp.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple/Assimp.xcodeproj; sourceTree = "<group>"; };
-		81B986B22269FF420078E5F4 /* AppHelpers.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AppHelpers.cpp; path = ../../../../Common/AppHelpers.cpp; sourceTree = "<group>"; };
-		81B986B32269FF420078E5F4 /* AppHelpers.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppHelpers.h; path = ../../../../Common/AppHelpers.h; sourceTree = "<group>"; };
 		B2087DF921421A76006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B2087DFA21421A76006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		B212C48220DD6CCA00211A33 /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/assimp.a"; sourceTree = "<group>"; };
@@ -541,8 +537,6 @@
 		EA463C941EF81E8F005AC8C7 /* 10_PixelProjectedReflections */ = {
 			isa = PBXGroup;
 			children = (
-				81B986B22269FF420078E5F4 /* AppHelpers.cpp */,
-				81B986B32269FF420078E5F4 /* AppHelpers.h */,
 				5C172FB221414BB80074EE71 /* AppDelegate.h */,
 				5C172FB121414BB80074EE71 /* AppDelegate.m */,
 				D00A0D8120DB6B6A00895D71 /* 10_PixelProjectedReflections.cpp */,
@@ -742,7 +736,6 @@
 				5C172FB821414BCB0074EE71 /* AssimpImporter.cpp in Sources */,
 				B212C47E20DD6C6D00211A33 /* 10_PixelProjectedReflections.cpp in Sources */,
 				5C17306021414EC40074EE71 /* AppDelegate.m in Sources */,
-				81B986B52269FF420078E5F4 /* AppHelpers.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -753,7 +746,6 @@
 				5C172FB721414BC90074EE71 /* AssimpImporter.cpp in Sources */,
 				5C172FB321414BB80074EE71 /* AppDelegate.m in Sources */,
 				D00A0D8220DB6B6A00895D71 /* 10_PixelProjectedReflections.cpp in Sources */,
-				81B986B42269FF420078E5F4 /* AppHelpers.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

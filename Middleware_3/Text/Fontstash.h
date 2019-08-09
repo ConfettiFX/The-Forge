@@ -27,6 +27,7 @@
 #include "../../Common_3/OS/Interfaces/IFileSystem.h"
 
 struct Renderer;
+struct RenderTarget;
 
 extern FSRoot FSR_MIDDLEWARE_TEXT;
 
@@ -50,9 +51,12 @@ typedef struct TextDrawDesc
 
 class Fontstash
 {
-	public:
-	Fontstash(Renderer* renderer, int width, int height);
-	void destroy();
+public:
+	bool init(Renderer* pRenderer, uint32_t width, uint32_t height);
+	void exit();
+
+	bool load(RenderTarget** ppRts, uint32_t count);
+	void unload();
 
 	//! Makes a font available to the font stash.
 	//! - Fonts can not be undefined in a FontStash due to its dynamic nature (once packed into an atlas, they cannot be unpacked, unless it is fully rebuilt)

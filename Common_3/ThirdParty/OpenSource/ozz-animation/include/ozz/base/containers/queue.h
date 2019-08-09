@@ -31,21 +31,24 @@
 #include <queue>
 
 #include "deque.h"
+#include "../../EASTL/deque.h"
+#include "../../EASTL/queue.h"
+#include "../../EASTL/priority_queue.h"
 
 namespace ozz {
 // Redirects std::queue to ozz::Queue in order to replace std default allocator
 // by ozz::StdAllocator.
 template <class _Ty, class _Container = typename ozz::Deque<_Ty>::Std>
 struct Queue {
-  typedef std::queue<_Ty, _Container> Std;
+  typedef eastl::queue<_Ty, _Container> Std;
 };
 
 // Redirects std::priority_queue to ozz::PriorityQueue in order to replace std
 // default allocator by ozz::StdAllocator.
 template <class _Ty, class _Container = typename ozz::Deque<_Ty>::Std,
-          class _Pred = std::less<typename _Container::value_type> >
+          class _Pred = eastl::less<typename _Container::value_type> >
 struct PriorityQueue {
-  typedef std::priority_queue<_Ty, _Container, _Pred> Std;
+  typedef eastl::priority_queue<_Ty, _Container, _Pred> Std;
 };
 }  // namespace ozz
 #endif  // OZZ_OZZ_BASE_CONTAINERS_QUEUE_H_

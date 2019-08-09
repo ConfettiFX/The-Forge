@@ -8,7 +8,7 @@ void flipProfiler()
 	ProfileFlip();
 }
 
-void cmdDrawProfiler(Cmd * pCmd, uint32_t Width, uint32_t Height)
+void cmdDrawProfiler(Cmd * pCmd)
 {
-	ProfileDraw(pCmd, Width, Height);
+	ProfileDraw(pCmd);
 }

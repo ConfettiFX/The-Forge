@@ -703,7 +703,7 @@ class Transparency: public IApp
 		/************************************************************************/
 		// Add GPU profiler
 		/************************************************************************/
-		initProfiler(pRenderer, gImageCount);
+		initProfiler(pRenderer);
 		profileRegisterInput();
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
@@ -733,7 +733,6 @@ class Transparency: public IApp
 		gVirtualJoystick.InitLRSticks();
 		pCameraController->setVirtualJoystick(&gVirtualJoystick);
 #endif
-		requestMouseCapture(true);
 
 		pCameraController->setMotionParameters(cmp);
 
@@ -748,7 +747,7 @@ class Transparency: public IApp
 		destroyCameraController(pCameraController);
 		destroyCameraController(pLightView);
 
-		exitProfiler(pRenderer);
+		exitProfiler();
 
 		gAppUI.Exit();
 
@@ -792,9 +791,10 @@ class Transparency: public IApp
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 #ifdef TARGET_IOS
-		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], ImageFormat::Enum::NONE))
+		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
 #endif
+		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
 
 		CreatePipelines();
 
@@ -805,6 +805,7 @@ class Transparency: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
+		unloadProfiler();
 #ifdef TARGET_IOS
 		gVirtualJoystick.Unload();
 #endif
@@ -2047,7 +2048,7 @@ class Transparency: public IApp
 		gVirtualJoystick.Draw(pCmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-		cmdDrawProfiler(pCmd, mSettings.mWidth, mSettings.mHeight);
+		cmdDrawProfiler(pCmd);
 
 		gAppUI.Gui(pGuiWindow);
 		gAppUI.Draw(pCmd);
@@ -3163,7 +3164,7 @@ class Transparency: public IApp
 			const uint32_t width = mSettings.mWidth;
 			const uint32_t height = mSettings.mHeight;
 			SwapChainDesc  swapChainDesc = {};
-			swapChainDesc.pWindow = pWindow;
+			swapChainDesc.mWindowHandle = pWindow->handle;
 			swapChainDesc.mPresentQueueCount = 1;
 			swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 			swapChainDesc.mWidth = width;

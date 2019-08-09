@@ -1,0 +1,638 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x86">
+      <Configuration>Debug</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x86">
+      <Configuration>Release</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\code\Assimp.cpp" />
+    <ClCompile Include="..\..\code\AssimpCExport.cpp" />
+    <ClCompile Include="..\..\code\BaseImporter.cpp" />
+    <ClCompile Include="..\..\code\BaseProcess.cpp" />
+    <ClCompile Include="..\..\code\Bitmap.cpp" />
+    <ClCompile Include="..\..\code\BlenderBMesh.cpp" />
+    <ClCompile Include="..\..\code\BlenderCustomData.cpp" />
+    <ClCompile Include="..\..\code\BlenderDNA.cpp" />
+    <ClCompile Include="..\..\code\BlenderLoader.cpp" />
+    <ClCompile Include="..\..\code\BlenderModifier.cpp" />
+    <ClCompile Include="..\..\code\BlenderScene.cpp" />
+    <ClCompile Include="..\..\code\BlenderTessellator.cpp" />
+    <ClCompile Include="..\..\code\CalcTangentsProcess.cpp" />
+    <ClCompile Include="..\..\code\CInterfaceIOWrapper.cpp" />
+    <ClCompile Include="..\..\code\ColladaExporter.cpp" />
+    <ClCompile Include="..\..\code\ColladaLoader.cpp" />
+    <ClCompile Include="..\..\code\ColladaParser.cpp" />
+    <ClCompile Include="..\..\code\ComputeUVMappingProcess.cpp" />
+    <ClCompile Include="..\..\code\ConvertToLHProcess.cpp" />
+    <ClCompile Include="..\..\code\CreateAnimMesh.cpp" />
+    <ClCompile Include="..\..\code\DeboneProcess.cpp" />
+    <ClCompile Include="..\..\code\DefaultIOStream.cpp" />
+    <ClCompile Include="..\..\code\DefaultIOSystem.cpp" />
+    <ClCompile Include="..\..\code\DefaultLogger.cpp" />
+    <ClCompile Include="..\..\code\DropFaceNormalsProcess.cpp" />
+    <ClCompile Include="..\..\code\EmbedTexturesProcess.cpp" />
+    <ClCompile Include="..\..\code\Exporter.cpp" />
+    <ClCompile Include="..\..\code\FBXAnimation.cpp" />
+    <ClCompile Include="..\..\code\FBXBinaryTokenizer.cpp" />
+    <ClCompile Include="..\..\code\FBXConverter.cpp" />
+    <ClCompile Include="..\..\code\FBXDeformer.cpp" />
+    <ClCompile Include="..\..\code\FBXDocument.cpp" />
+    <ClCompile Include="..\..\code\FBXDocumentUtil.cpp" />
+    <ClCompile Include="..\..\code\FBXExporter.cpp" />
+    <ClCompile Include="..\..\code\FBXExportNode.cpp" />
+    <ClCompile Include="..\..\code\FBXExportProperty.cpp" />
+    <ClCompile Include="..\..\code\FBXImporter.cpp" />
+    <ClCompile Include="..\..\code\FBXMaterial.cpp" />
+    <ClCompile Include="..\..\code\FBXMeshGeometry.cpp" />
+    <ClCompile Include="..\..\code\FBXModel.cpp" />
+    <ClCompile Include="..\..\code\FBXNodeAttribute.cpp" />
+    <ClCompile Include="..\..\code\FBXParser.cpp" />
+    <ClCompile Include="..\..\code\FBXProperties.cpp" />
+    <ClCompile Include="..\..\code\FBXTokenizer.cpp" />
+    <ClCompile Include="..\..\code\FBXUtil.cpp" />
+    <ClCompile Include="..\..\code\FindDegenerates.cpp" />
+    <ClCompile Include="..\..\code\FindInstancesProcess.cpp" />
+    <ClCompile Include="..\..\code\FindInvalidDataProcess.cpp" />
+    <ClCompile Include="..\..\code\FixNormalsStep.cpp" />
+    <ClCompile Include="..\..\code\GenFaceNormalsProcess.cpp" />
+    <ClCompile Include="..\..\code\GenVertexNormalsProcess.cpp" />
+    <ClCompile Include="..\..\code\glTF2Exporter.cpp" />
+    <ClCompile Include="..\..\code\glTF2Importer.cpp" />
+    <ClCompile Include="..\..\code\glTFExporter.cpp" />
+    <ClCompile Include="..\..\code\glTFImporter.cpp" />
+    <ClCompile Include="..\..\code\Importer.cpp" />
+    <ClCompile Include="..\..\code\ImporterRegistry.cpp" />
+    <ClCompile Include="..\..\code\Importer\StepFile\StepFileGen1.cpp" />
+    <ClCompile Include="..\..\code\Importer\StepFile\StepFileGen2.cpp" />
+    <ClCompile Include="..\..\code\Importer\StepFile\StepFileGen3.cpp" />
+    <ClCompile Include="..\..\code\Importer\StepFile\StepFileImporter.cpp" />
+    <ClCompile Include="..\..\code\ImproveCacheLocality.cpp" />
+    <ClCompile Include="..\..\code\IRRLoader.cpp" />
+    <ClCompile Include="..\..\code\IRRMeshLoader.cpp" />
+    <ClCompile Include="..\..\code\IRRShared.cpp" />
+    <ClCompile Include="..\..\code\JoinVerticesProcess.cpp" />
+    <ClCompile Include="..\..\code\LimitBoneWeightsProcess.cpp" />
+    <ClCompile Include="..\..\code\MakeVerboseFormat.cpp" />
+    <ClCompile Include="..\..\code\MaterialSystem.cpp" />
+    <ClCompile Include="..\..\code\ObjExporter.cpp" />
+    <ClCompile Include="..\..\code\ObjFileImporter.cpp" />
+    <ClCompile Include="..\..\code\ObjFileMtlImporter.cpp" />
+    <ClCompile Include="..\..\code\ObjFileParser.cpp" />
+    <ClCompile Include="..\..\code\OgreBinarySerializer.cpp" />
+    <ClCompile Include="..\..\code\OgreImporter.cpp" />
+    <ClCompile Include="..\..\code\OgreMaterial.cpp" />
+    <ClCompile Include="..\..\code\OgreStructs.cpp" />
+    <ClCompile Include="..\..\code\OgreXmlSerializer.cpp" />
+    <ClCompile Include="..\..\code\OptimizeGraph.cpp" />
+    <ClCompile Include="..\..\code\OptimizeMeshes.cpp" />
+    <ClCompile Include="..\..\code\PostStepRegistry.cpp" />
+    <ClCompile Include="..\..\code\PretransformVertices.cpp" />
+    <ClCompile Include="..\..\code\ProcessHelper.cpp" />
+    <ClCompile Include="..\..\code\RawLoader.cpp" />
+    <ClCompile Include="..\..\code\RemoveComments.cpp" />
+    <ClCompile Include="..\..\code\RemoveRedundantMaterials.cpp" />
+    <ClCompile Include="..\..\code\RemoveVCProcess.cpp" />
+    <ClCompile Include="..\..\code\ScaleProcess.cpp" />
+    <ClCompile Include="..\..\code\scene.cpp" />
+    <ClCompile Include="..\..\code\SceneCombiner.cpp" />
+    <ClCompile Include="..\..\code\ScenePreprocessor.cpp" />
+    <ClCompile Include="..\..\code\SGSpatialSort.cpp" />
+    <ClCompile Include="..\..\code\simd.cpp" />
+    <ClCompile Include="..\..\code\SkeletonMeshBuilder.cpp" />
+    <ClCompile Include="..\..\code\SortByPTypeProcess.cpp" />
+    <ClCompile Include="..\..\code\SpatialSort.cpp" />
+    <ClCompile Include="..\..\code\SplitByBoneCountProcess.cpp" />
+    <ClCompile Include="..\..\code\SplitLargeMeshes.cpp" />
+    <ClCompile Include="..\..\code\StandardShapes.cpp" />
+    <ClCompile Include="..\..\code\StepExporter.cpp" />
+    <ClCompile Include="..\..\code\STLExporter.cpp" />
+    <ClCompile Include="..\..\code\STLLoader.cpp" />
+    <ClCompile Include="..\..\code\Subdivision.cpp" />
+    <ClCompile Include="..\..\code\TargetAnimation.cpp" />
+    <ClCompile Include="..\..\code\TextureTransform.cpp" />
+    <ClCompile Include="..\..\code\TriangulateProcess.cpp" />
+    <ClCompile Include="..\..\code\UnrealLoader.cpp" />
+    <ClCompile Include="..\..\code\ValidateDataStructure.cpp" />
+    <ClCompile Include="..\..\code\Version.cpp" />
+    <ClCompile Include="..\..\code\VertexTriangleAdjacency.cpp" />
+    <ClCompile Include="..\..\contrib\clipper\clipper.cpp" />
+    <ClCompile Include="..\..\contrib\Open3DGC\o3dgcArithmeticCodec.cpp" />
+    <ClCompile Include="..\..\contrib\Open3DGC\o3dgcDynamicVectorDecoder.cpp" />
+    <ClCompile Include="..\..\contrib\Open3DGC\o3dgcDynamicVectorEncoder.cpp" />
+    <ClCompile Include="..\..\contrib\Open3DGC\o3dgcTools.cpp" />
+    <ClCompile Include="..\..\contrib\Open3DGC\o3dgcTriangleFans.cpp" />
+    <ClCompile Include="..\..\contrib\openddlparser\code\DDLNode.cpp" />
+    <ClCompile Include="..\..\contrib\openddlparser\code\OpenDDLCommon.cpp" />
+    <ClCompile Include="..\..\contrib\openddlparser\code\OpenDDLExport.cpp" />
+    <ClCompile Include="..\..\contrib\openddlparser\code\OpenDDLParser.cpp" />
+    <ClCompile Include="..\..\contrib\openddlparser\code\OpenDDLStream.cpp" />
+    <ClCompile Include="..\..\contrib\openddlparser\code\Value.cpp" />
+    <ClCompile Include="..\..\contrib\poly2tri\poly2tri\common\shapes.cc" />
+    <ClCompile Include="..\..\contrib\poly2tri\poly2tri\sweep\advancing_front.cc" />
+    <ClCompile Include="..\..\contrib\poly2tri\poly2tri\sweep\cdt.cc" />
+    <ClCompile Include="..\..\contrib\poly2tri\poly2tri\sweep\sweep.cc" />
+    <ClCompile Include="..\..\contrib\poly2tri\poly2tri\sweep\sweep_context.cc" />
+    <ClCompile Include="..\..\contrib\unzip\ioapi.c" />
+    <ClCompile Include="..\..\contrib\unzip\unzip.c" />
+    <ClCompile Include="..\..\port\AndroidJNI\AndroidJNIIOSystem.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\code\BaseProcess.h" />
+    <ClInclude Include="..\..\code\BlenderBMesh.h" />
+    <ClInclude Include="..\..\code\BlenderCustomData.h" />
+    <ClInclude Include="..\..\code\BlenderDNA.h" />
+    <ClInclude Include="..\..\code\BlenderIntermediate.h" />
+    <ClInclude Include="..\..\code\BlenderLoader.h" />
+    <ClInclude Include="..\..\code\BlenderModifier.h" />
+    <ClInclude Include="..\..\code\BlenderScene.h" />
+    <ClInclude Include="..\..\code\BlenderSceneGen.h" />
+    <ClInclude Include="..\..\code\BlenderTessellator.h" />
+    <ClInclude Include="..\..\code\CalcTangentsProcess.h" />
+    <ClInclude Include="..\..\code\CInterfaceIOWrapper.h" />
+    <ClInclude Include="..\..\code\ColladaExporter.h" />
+    <ClInclude Include="..\..\code\ColladaHelper.h" />
+    <ClInclude Include="..\..\code\ColladaLoader.h" />
+    <ClInclude Include="..\..\code\ColladaParser.h" />
+    <ClInclude Include="..\..\code\ComputeUVMappingProcess.h" />
+    <ClInclude Include="..\..\code\ConvertToLHProcess.h" />
+    <ClInclude Include="..\..\code\DeboneProcess.h" />
+    <ClInclude Include="..\..\code\DefaultProgressHandler.h" />
+    <ClInclude Include="..\..\code\DropFaceNormalsProcess.h" />
+    <ClInclude Include="..\..\code\EmbedTexturesProcess.h" />
+    <ClInclude Include="..\..\code\FBXCommon.h" />
+    <ClInclude Include="..\..\code\FBXCompileConfig.h" />
+    <ClInclude Include="..\..\code\FBXConverter.h" />
+    <ClInclude Include="..\..\code\FBXDocument.h" />
+    <ClInclude Include="..\..\code\FBXDocumentUtil.h" />
+    <ClInclude Include="..\..\code\FBXExporter.h" />
+    <ClInclude Include="..\..\code\FBXExportNode.h" />
+    <ClInclude Include="..\..\code\FBXExportProperty.h" />
+    <ClInclude Include="..\..\code\FBXImporter.h" />
+    <ClInclude Include="..\..\code\FBXImportSettings.h" />
+    <ClInclude Include="..\..\code\FBXMeshGeometry.h" />
+    <ClInclude Include="..\..\code\FBXParser.h" />
+    <ClInclude Include="..\..\code\FBXProperties.h" />
+    <ClInclude Include="..\..\code\FBXTokenizer.h" />
+    <ClInclude Include="..\..\code\FBXUtil.h" />
+    <ClInclude Include="..\..\code\FileLogStream.h" />
+    <ClInclude Include="..\..\code\FindDegenerates.h" />
+    <ClInclude Include="..\..\code\FindInstancesProcess.h" />
+    <ClInclude Include="..\..\code\FindInvalidDataProcess.h" />
+    <ClInclude Include="..\..\code\FixNormalsStep.h" />
+    <ClInclude Include="..\..\code\GenFaceNormalsProcess.h" />
+    <ClInclude Include="..\..\code\GenVertexNormalsProcess.h" />
+    <ClInclude Include="..\..\code\glTF2Asset.h" />
+    <ClInclude Include="..\..\code\glTF2AssetWriter.h" />
+    <ClInclude Include="..\..\code\glTF2Exporter.h" />
+    <ClInclude Include="..\..\code\glTF2Importer.h" />
+    <ClInclude Include="..\..\code\glTFAsset.h" />
+    <ClInclude Include="..\..\code\glTFAssetWriter.h" />
+    <ClInclude Include="..\..\code\glTFExporter.h" />
+    <ClInclude Include="..\..\code\glTFImporter.h" />
+    <ClInclude Include="..\..\code\IFF.h" />
+    <ClInclude Include="..\..\code\Importer.h" />
+    <ClInclude Include="..\..\code\Importer\StepFile\StepFileImporter.h" />
+    <ClInclude Include="..\..\code\Importer\StepFile\StepReaderGen.h" />
+    <ClInclude Include="..\..\code\ImproveCacheLocality.h" />
+    <ClInclude Include="..\..\code\IRRLoader.h" />
+    <ClInclude Include="..\..\code\IRRMeshLoader.h" />
+    <ClInclude Include="..\..\code\IRRShared.h" />
+    <ClInclude Include="..\..\code\JoinVerticesProcess.h" />
+    <ClInclude Include="..\..\code\LimitBoneWeightsProcess.h" />
+    <ClInclude Include="..\..\code\MakeVerboseFormat.h" />
+    <ClInclude Include="..\..\code\MaterialSystem.h" />
+    <ClInclude Include="..\..\code\ObjExporter.h" />
+    <ClInclude Include="..\..\code\ObjFileData.h" />
+    <ClInclude Include="..\..\code\ObjFileImporter.h" />
+    <ClInclude Include="..\..\code\ObjFileMtlImporter.h" />
+    <ClInclude Include="..\..\code\ObjFileParser.h" />
+    <ClInclude Include="..\..\code\ObjTools.h" />
+    <ClInclude Include="..\..\code\OgreBinarySerializer.h" />
+    <ClInclude Include="..\..\code\OgreImporter.h" />
+    <ClInclude Include="..\..\code\OgreParsingUtils.h" />
+    <ClInclude Include="..\..\code\OgreStructs.h" />
+    <ClInclude Include="..\..\code\OgreXmlSerializer.h" />
+    <ClInclude Include="..\..\code\OptimizeGraph.h" />
+    <ClInclude Include="..\..\code\OptimizeMeshes.h" />
+    <ClInclude Include="..\..\code\PolyTools.h" />
+    <ClInclude Include="..\..\code\PretransformVertices.h" />
+    <ClInclude Include="..\..\code\ProcessHelper.h" />
+    <ClInclude Include="..\..\code\RawLoader.h" />
+    <ClInclude Include="..\..\code\RemoveRedundantMaterials.h" />
+    <ClInclude Include="..\..\code\RemoveVCProcess.h" />
+    <ClInclude Include="..\..\code\ScaleProcess.h" />
+    <ClInclude Include="..\..\code\ScenePreprocessor.h" />
+    <ClInclude Include="..\..\code\ScenePrivate.h" />
+    <ClInclude Include="..\..\code\simd.h" />
+    <ClInclude Include="..\..\code\SortByPTypeProcess.h" />
+    <ClInclude Include="..\..\code\SplitByBoneCountProcess.h" />
+    <ClInclude Include="..\..\code\SplitLargeMeshes.h" />
+    <ClInclude Include="..\..\code\StdOStreamLogStream.h" />
+    <ClInclude Include="..\..\code\StepExporter.h" />
+    <ClInclude Include="..\..\code\STEPFile.h" />
+    <ClInclude Include="..\..\code\STLExporter.h" />
+    <ClInclude Include="..\..\code\STLLoader.h" />
+    <ClInclude Include="..\..\code\TargetAnimation.h" />
+    <ClInclude Include="..\..\code\TextureTransform.h" />
+    <ClInclude Include="..\..\code\TriangulateProcess.h" />
+    <ClInclude Include="..\..\code\UnrealLoader.h" />
+    <ClInclude Include="..\..\code\ValidateDataStructure.h" />
+    <ClInclude Include="..\..\code\VertexTriangleAdjacency.h" />
+    <ClInclude Include="..\..\code\Win32DebugLogStream.h" />
+    <ClInclude Include="..\..\contrib\clipper\clipper.hpp" />
+    <ClInclude Include="..\..\contrib\Open3DGC\o3dgcAdjacencyInfo.h" />
+    <ClInclude Include="..\..\contrib\Open3DGC\o3dgcArithmeticCodec.h" />
+    <ClInclude Include="..\..\contrib\Open3DGC\o3dgcBinaryStream.h" />
+    <ClInclude Include="..\..\contrib\Open3DGC\o3dgcCommon.h" />
+    <ClInclude Include="..\..\contrib\Open3DGC\o3dgcDVEncodeParams.h" />
+    <ClInclude Include="..\..\contrib\Open3DGC\o3dgcDynamicVector.h" />
+    <ClInclude Include="..\..\contrib\Open3DGC\o3dgcDynamicVectorDecoder.h" />
+    <ClInclude Include="..\..\contrib\Open3DGC\o3dgcDynamicVectorEncoder.h" />
+    <ClInclude Include="..\..\contrib\Open3DGC\o3dgcFIFO.h" />
+    <ClInclude Include="..\..\contrib\Open3DGC\o3dgcIndexedFaceSet.h" />
+    <ClInclude Include="..\..\contrib\Open3DGC\o3dgcSC3DMCDecoder.h" />
+    <ClInclude Include="..\..\contrib\Open3DGC\o3dgcSC3DMCEncodeParams.h" />
+    <ClInclude Include="..\..\contrib\Open3DGC\o3dgcSC3DMCEncoder.h" />
+    <ClInclude Include="..\..\contrib\Open3DGC\o3dgcTimer.h" />
+    <ClInclude Include="..\..\contrib\Open3DGC\o3dgcTriangleFans.h" />
+    <ClInclude Include="..\..\contrib\Open3DGC\o3dgcTriangleListDecoder.h" />
+    <ClInclude Include="..\..\contrib\Open3DGC\o3dgcTriangleListEncoder.h" />
+    <ClInclude Include="..\..\contrib\Open3DGC\o3dgcVector.h" />
+    <ClInclude Include="..\..\contrib\openddlparser\include\openddlparser\DDLNode.h" />
+    <ClInclude Include="..\..\contrib\openddlparser\include\openddlparser\OpenDDLCommon.h" />
+    <ClInclude Include="..\..\contrib\openddlparser\include\openddlparser\OpenDDLExport.h" />
+    <ClInclude Include="..\..\contrib\openddlparser\include\openddlparser\OpenDDLParser.h" />
+    <ClInclude Include="..\..\contrib\openddlparser\include\openddlparser\OpenDDLParserUtils.h" />
+    <ClInclude Include="..\..\contrib\openddlparser\include\openddlparser\OpenDDLStream.h" />
+    <ClInclude Include="..\..\contrib\openddlparser\include\openddlparser\Value.h" />
+    <ClInclude Include="..\..\contrib\poly2tri\poly2tri\common\shapes.h" />
+    <ClInclude Include="..\..\contrib\poly2tri\poly2tri\common\utils.h" />
+    <ClInclude Include="..\..\contrib\poly2tri\poly2tri\sweep\advancing_front.h" />
+    <ClInclude Include="..\..\contrib\poly2tri\poly2tri\sweep\cdt.h" />
+    <ClInclude Include="..\..\contrib\poly2tri\poly2tri\sweep\sweep.h" />
+    <ClInclude Include="..\..\contrib\poly2tri\poly2tri\sweep\sweep_context.h" />
+    <ClInclude Include="..\..\contrib\unzip\crypt.h" />
+    <ClInclude Include="..\..\contrib\unzip\ioapi.h" />
+    <ClInclude Include="..\..\contrib\unzip\unzip.h" />
+    <ClInclude Include="..\..\include\assimp\ai_assert.h" />
+    <ClInclude Include="..\..\include\assimp\anim.h" />
+    <ClInclude Include="..\..\include\assimp\BaseImporter.h" />
+    <ClInclude Include="..\..\include\assimp\Bitmap.h" />
+    <ClInclude Include="..\..\include\assimp\BlobIOSystem.h" />
+    <ClInclude Include="..\..\include\assimp\ByteSwapper.h" />
+    <ClInclude Include="..\..\include\assimp\camera.h" />
+    <ClInclude Include="..\..\include\assimp\cexport.h" />
+    <ClInclude Include="..\..\include\assimp\cfileio.h" />
+    <ClInclude Include="..\..\include\assimp\cimport.h" />
+    <ClInclude Include="..\..\include\assimp\color4.h" />
+    <ClInclude Include="..\..\include\assimp\Compiler\poppack1.h" />
+    <ClInclude Include="..\..\include\assimp\Compiler\pstdint.h" />
+    <ClInclude Include="..\..\include\assimp\Compiler\pushpack1.h" />
+    <ClInclude Include="..\..\include\assimp\config.h" />
+    <ClInclude Include="..\..\include\assimp\CreateAnimMesh.h" />
+    <ClInclude Include="..\..\include\assimp\DefaultIOStream.h" />
+    <ClInclude Include="..\..\include\assimp\DefaultIOSystem.h" />
+    <ClInclude Include="..\..\include\assimp\DefaultLogger.hpp" />
+    <ClInclude Include="..\..\include\assimp\Defines.h" />
+    <ClInclude Include="..\..\include\assimp\defs.h" />
+    <ClInclude Include="..\..\include\assimp\Exceptional.h" />
+    <ClInclude Include="..\..\include\assimp\Exporter.hpp" />
+    <ClInclude Include="..\..\include\assimp\fast_atof.h" />
+    <ClInclude Include="..\..\include\assimp\GenericProperty.h" />
+    <ClInclude Include="..\..\include\assimp\Hash.h" />
+    <ClInclude Include="..\..\include\assimp\Importer.hpp" />
+    <ClInclude Include="..\..\include\assimp\importerdesc.h" />
+    <ClInclude Include="..\..\include\assimp\IOStream.hpp" />
+    <ClInclude Include="..\..\include\assimp\IOStreamBuffer.h" />
+    <ClInclude Include="..\..\include\assimp\IOSystem.hpp" />
+    <ClInclude Include="..\..\include\assimp\irrXMLWrapper.h" />
+    <ClInclude Include="..\..\include\assimp\light.h" />
+    <ClInclude Include="..\..\include\assimp\LineSplitter.h" />
+    <ClInclude Include="..\..\include\assimp\LogAux.h" />
+    <ClInclude Include="..\..\include\assimp\Logger.hpp" />
+    <ClInclude Include="..\..\include\assimp\LogStream.hpp" />
+    <ClInclude Include="..\..\include\assimp\Macros.h" />
+    <ClInclude Include="..\..\include\assimp\material.h" />
+    <ClInclude Include="..\..\include\assimp\MathFunctions.h" />
+    <ClInclude Include="..\..\include\assimp\matrix3x3.h" />
+    <ClInclude Include="..\..\include\assimp\matrix4x4.h" />
+    <ClInclude Include="..\..\include\assimp\MemoryIOWrapper.h" />
+    <ClInclude Include="..\..\include\assimp\mesh.h" />
+    <ClInclude Include="..\..\include\assimp\metadata.h" />
+    <ClInclude Include="..\..\include\assimp\NullLogger.hpp" />
+    <ClInclude Include="..\..\include\assimp\ParsingUtils.h" />
+    <ClInclude Include="..\..\include\assimp\pbrmaterial.h" />
+    <ClInclude Include="..\..\include\assimp\postprocess.h" />
+    <ClInclude Include="..\..\include\assimp\Profiler.h" />
+    <ClInclude Include="..\..\include\assimp\ProgressHandler.hpp" />
+    <ClInclude Include="..\..\include\assimp\qnan.h" />
+    <ClInclude Include="..\..\include\assimp\quaternion.h" />
+    <ClInclude Include="..\..\include\assimp\RemoveComments.h" />
+    <ClInclude Include="..\..\include\assimp\scene.h" />
+    <ClInclude Include="..\..\include\assimp\SceneCombiner.h" />
+    <ClInclude Include="..\..\include\assimp\SGSpatialSort.h" />
+    <ClInclude Include="..\..\include\assimp\SkeletonMeshBuilder.h" />
+    <ClInclude Include="..\..\include\assimp\SmoothingGroups.h" />
+    <ClInclude Include="..\..\include\assimp\SpatialSort.h" />
+    <ClInclude Include="..\..\include\assimp\StandardShapes.h" />
+    <ClInclude Include="..\..\include\assimp\StreamReader.h" />
+    <ClInclude Include="..\..\include\assimp\StreamWriter.h" />
+    <ClInclude Include="..\..\include\assimp\StringComparison.h" />
+    <ClInclude Include="..\..\include\assimp\StringUtils.h" />
+    <ClInclude Include="..\..\include\assimp\Subdivision.h" />
+    <ClInclude Include="..\..\include\assimp\texture.h" />
+    <ClInclude Include="..\..\include\assimp\TinyFormatter.h" />
+    <ClInclude Include="..\..\include\assimp\types.h" />
+    <ClInclude Include="..\..\include\assimp\vector2.h" />
+    <ClInclude Include="..\..\include\assimp\vector3.h" />
+    <ClInclude Include="..\..\include\assimp\version.h" />
+    <ClInclude Include="..\..\include\assimp\Vertex.h" />
+    <ClInclude Include="..\..\include\assimp\XMLTools.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\code\BlenderDNA.inl" />
+    <None Include="..\..\code\glTF2Asset.inl" />
+    <None Include="..\..\code\glTF2AssetWriter.inl" />
+    <None Include="..\..\code\glTFAsset.inl" />
+    <None Include="..\..\code\glTFAssetWriter.inl" />
+    <None Include="..\..\contrib\Open3DGC\o3dgcIndexedFaceSet.inl" />
+    <None Include="..\..\contrib\Open3DGC\o3dgcSC3DMCDecoder.inl" />
+    <None Include="..\..\contrib\Open3DGC\o3dgcSC3DMCEncoder.inl" />
+    <None Include="..\..\contrib\Open3DGC\o3dgcTriangleListDecoder.inl" />
+    <None Include="..\..\contrib\Open3DGC\o3dgcTriangleListEncoder.inl" />
+    <None Include="..\..\contrib\Open3DGC\o3dgcVector.inl" />
+    <None Include="..\..\include\assimp\color4.inl" />
+    <None Include="..\..\include\assimp\material.inl" />
+    <None Include="..\..\include\assimp\matrix3x3.inl" />
+    <None Include="..\..\include\assimp\matrix4x4.inl" />
+    <None Include="..\..\include\assimp\quaternion.inl" />
+    <None Include="..\..\include\assimp\SmoothingGroups.inl" />
+    <None Include="..\..\include\assimp\vector2.inl" />
+    <None Include="..\..\include\assimp\vector3.inl" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{9d500b06-e658-4115-b00e-a564c32d17e8}</ProjectGuid>
+    <Keyword>Android</Keyword>
+    <RootNamespace>assimp</RootNamespace>
+    <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
+    <ApplicationType>Android</ApplicationType>
+    <ApplicationTypeRevision>3.0</ApplicationTypeRevision>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-29</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-29</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-29</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-29</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <Import Project="..\ARM.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <Import Project="..\ARM.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <Import Project="..\ARM64.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <Import Project="..\ARM64.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Temp\$(Configuration)\$(TargetName)\</IntDir>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Temp\$(Configuration)\$(TargetName)\</IntDir>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Temp\$(Configuration)\$(TargetName)\</IntDir>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Temp\$(Configuration)\$(TargetName)\</IntDir>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <OutDir>$(ProjectDir)..\Bin\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Temp\$(Configuration)\$(TargetName)\</IntDir>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <OutDir>$(ProjectDir)..\Bin\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Temp\$(Configuration)\$(TargetName)\</IntDir>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <OutDir>$(ProjectDir)..\Bin\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Temp\$(Configuration)\$(TargetName)\</IntDir>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <OutDir>$(ProjectDir)..\Bin\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)Temp\$(Configuration)\$(TargetName)\</IntDir>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>../../.;../../include;../../android_visualstudio2017;../../code/../contrib/rapidjson/include;../../contrib/zlib;../../code/../contrib/unzip;../../code/../contrib;../../contrib/irrXML;../../code/../contrib/openddlparser/include;../../code/../include;../../code/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <PreprocessorDefinitions>ANDROID;_DEBUG;WIN32_LEAN_AND_MEAN;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;ANDROID_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>../../.;../../include;../../android_visualstudio2017;../../code/../contrib/rapidjson/include;../../contrib/zlib;../../code/../contrib/unzip;../../code/../contrib;../../contrib/irrXML;../../code/../contrib/openddlparser/include;../../code/../include;../../code/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <PreprocessorDefinitions>NDEBUG;ANDROID;WIN32_LEAN_AND_MEAN;ANDROID_LEAN_AND_MEAN;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>../../.;../../include;../../android_visualstudio2017;../../code/../contrib/rapidjson/include;../../contrib/zlib;../../code/../contrib/unzip;../../code/../contrib;../../contrib/irrXML;../../code/../contrib/openddlparser/include;../../code/../include;../../code/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <PreprocessorDefinitions>ANDROID;_DEBUG;WIN32_LEAN_AND_MEAN;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;ANDROID_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>../../.;../../include;../../android_visualstudio2017;../../code/../contrib/rapidjson/include;../../contrib/zlib;../../code/../contrib/unzip;../../code/../contrib;../../contrib/irrXML;../../code/../contrib/openddlparser/include;../../code/../include;../../code/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <PreprocessorDefinitions>NDEBUG;ANDROID;WIN32_LEAN_AND_MEAN;ANDROID_LEAN_AND_MEAN;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>../../.;../../include;../../android_visualstudio2017;../../code/../contrib/rapidjson/include;../../contrib/zlib;../../code/../contrib/unzip;../../code/../contrib;../../contrib/irrXML;../../code/../contrib/openddlparser/include;../../code/../include;../../code/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <PreprocessorDefinitions>ANDROID;_DEBUG;WIN32_LEAN_AND_MEAN;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;ANDROID_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>../../.;../../include;../../android_visualstudio2017;../../code/../contrib/rapidjson/include;../../contrib/zlib;../../code/../contrib/unzip;../../code/../contrib;../../contrib/irrXML;../../code/../contrib/openddlparser/include;../../code/../include;../../code/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <PreprocessorDefinitions>NDEBUG;ANDROID;WIN32_LEAN_AND_MEAN;ANDROID_LEAN_AND_MEAN;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>../../.;../../include;../../android_visualstudio2017;../../code/../contrib/rapidjson/include;../../contrib/zlib;../../code/../contrib/unzip;../../code/../contrib;../../contrib/irrXML;../../code/../contrib/openddlparser/include;../../code/../include;../../code/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <PreprocessorDefinitions>ANDROID;_DEBUG;WIN32_LEAN_AND_MEAN;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;ANDROID_LEAN_AND_MEAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>../../.;../../include;../../android_visualstudio2017;../../code/../contrib/rapidjson/include;../../contrib/zlib;../../code/../contrib/unzip;../../code/../contrib;../../contrib/irrXML;../../code/../contrib/openddlparser/include;../../code/../include;../../code/..;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <PreprocessorDefinitions>NDEBUG;ANDROID;WIN32_LEAN_AND_MEAN;ANDROID_LEAN_AND_MEAN;ASSIMP_IMPORTER_GLTF_USE_OPEN3DGC=1;ASSIMP_BUILD_DLL_EXPORT;_SCL_SECURE_NO_WARNINGS;_CRT_SECURE_NO_WARNINGS;OPENDDLPARSER_BUILD;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

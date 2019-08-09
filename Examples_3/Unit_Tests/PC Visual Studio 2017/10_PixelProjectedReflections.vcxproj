@@ -19,7 +19,6 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\Common\AppHelpers.cpp" />
     <ClCompile Include="..\src\10_PixelProjectedReflections\10_PixelProjectedReflections.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -67,9 +66,6 @@
     <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\renderSceneBRDF.vert" />
     <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\skybox.frag" />
     <None Include="..\src\10_PixelProjectedReflections\Shaders\Vulkan\skybox.vert" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\Common\AppHelpers.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{DA983663-04B7-47D2-8EFC-DD627FD14403}</ProjectGuid>

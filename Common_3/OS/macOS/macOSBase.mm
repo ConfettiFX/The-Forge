@@ -33,7 +33,6 @@
 #include "../../ThirdParty/OpenSource/EASTL/vector.h"
 
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/IPlatformEvents.h"
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/ITime.h"
 #include "../Interfaces/IThread.h"
@@ -192,7 +191,7 @@ void openWindow(const char* app_name, WindowsDesc* winDesc, id<MTLDevice> device
     [Window invalidateRestorableState];
     [Window makeKeyAndOrderFront: nil];
     [Window makeMainWindow];
-    winDesc->handle = (void*)CFBridgingRetain(Window);
+    winDesc->handle.window = (void*)CFBridgingRetain(Window);
     
     // Adjust window size to match retina scaling.
     CGFloat scale = [Window backingScaleFactor];
@@ -223,7 +222,7 @@ void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
 	winRect.size.width = currentRect.right - currentRect.left;
 	winRect.size.height = currentRect.top - currentRect.bottom;
 
-	NSWindow* window = (__bridge NSWindow*)(winDesc->handle);
+	NSWindow* window = (__bridge NSWindow*)(winDesc->handle.window);
 	[window setFrame:winRect display:true];
 }
 
@@ -231,7 +230,7 @@ void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height) { setW
 
 void toggleFullscreen(WindowsDesc* winDesc)
 {
-    NSWindow* window = (__bridge NSWindow*)(winDesc->handle);
+    NSWindow* window = (__bridge NSWindow*)(winDesc->handle.window);
 	if (!window)
 		return;
 
@@ -256,14 +255,14 @@ void hideWindow(WindowsDesc* winDesc)
 void maximizeWindow(WindowsDesc* winDesc)
 {
 	winDesc->visible = true;
-	NSWindow* window = (__bridge NSWindow*)(winDesc->handle);
+	NSWindow* window = (__bridge NSWindow*)(winDesc->handle.window);
 	[window deminiaturize:nil];
 }
 
 void minimizeWindow(WindowsDesc* winDesc)
 {
 	winDesc->visible = false;
-	NSWindow* window = (__bridge NSWindow*)(winDesc->handle);
+	NSWindow* window = (__bridge NSWindow*)(winDesc->handle.window);
 	[window miniaturize:nil];
 }
 
@@ -450,7 +449,7 @@ uint32_t testingMaxFrameCount = 120;
 		gCurrentWindow.fullScreen = pSettings->mFullScreen;
 		gCurrentWindow.maximized = false;
 		openWindow(pApp->GetName(), &gCurrentWindow, device, renderDestinationProvider);
-        ForgeMTLView *forgeView = ((__bridge NSWindow*)gCurrentWindow.handle).contentView;
+        ForgeMTLView *forgeView = ((__bridge NSWindow*)gCurrentWindow.handle.window).contentView;
 
 		pSettings->mWidth =
 			gCurrentWindow.fullScreen ? getRectWidth(gCurrentWindow.fullscreenRect) : getRectWidth(gCurrentWindow.windowedRect);

@@ -1,0 +1,271 @@
+/*
+* Copyright (c) 2018-2019 Confetti Interactive Inc.
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
+#include "SDF_Constant.h"
+
+#define PI 3.1415926289793f
+
+
+Texture2D<float> DepthTexture : register(t0, space1);
+Texture3D<float> SDFVolumeTextureAtlas : register(t0, space0);
+RWTexture2D<float2> OutTexture : register(u0, space0);
+
+SamplerState clampToEdgeTrillinearSampler : register(s0, space0);
+SamplerState clampToEdgeNearSampler : register(s1, space0);
+
+cbuffer cameraUniformBlock : register(b0, space0)
+{
+    float4x4 View;
+    float4x4 Project;
+    float4x4 ViewProject;
+    row_major float4x4 InvView;
+	float4x4 InvProj;
+	float4x4 InvViewProject;
+	float4  mCameraPos;
+	float mNear;
+	float mFarNearDiff;
+	float mFarNear;
+	float paddingForAlignment0;
+	float2 mTwoOverRes;
+	float _pad1;
+	float _pad2;
+	float2 mWindowSize;
+	float _pad3;
+	float _pad4;
+	float4 mDeviceZToWorldZ;
+};
+
+cbuffer meshSDFUniformBlock : register(b1, space0)
+{
+	float4x4 mWorldToVolumeMat[SDF_MAX_OBJECT_COUNT];
+	float4 mUVScaleAndVolumeScale[SDF_MAX_OBJECT_COUNT];
+	float4 mLocalPositionExtent[SDF_MAX_OBJECT_COUNT];
+	float4 mUVAddAndSelfShadowBias[SDF_MAX_OBJECT_COUNT];
+	float4 mSDFMAD[SDF_MAX_OBJECT_COUNT];
+	uint mNumObjects;
+
+};
+
+cbuffer lightUniformBlock : register(b2, space0)
+{
+    float4x4 lightViewProj;
+    float4 lightPosition;
+    float4 lightColor;
+	float4  mLightUpVec;
+	float4 mTanLightAngleAndThresholdValue;
+	float3 mLightDir;
+};
+
+
+float2 LineBoxIntersect(float3 RayOrigin, float3 RayEnd, float3 BoxMin, float3 BoxMax)
+{
+	float3 InvRayDir = 1.0f / (RayEnd - RayOrigin);
+
+	float3 FirstPlaneIntersections = (BoxMin - RayOrigin) * InvRayDir;
+	float3 SecondPlaneIntersections = (BoxMax - RayOrigin) * InvRayDir;
+	float3 ClosestPlaneIntersections = min(FirstPlaneIntersections, SecondPlaneIntersections);
+	float3 FurthestPlaneIntersections = max(FirstPlaneIntersections, SecondPlaneIntersections);
+
+	float2 BoxIntersections;
+	BoxIntersections.x = max(ClosestPlaneIntersections.x, max(ClosestPlaneIntersections.y, ClosestPlaneIntersections.z));
+	BoxIntersections.y = min(FurthestPlaneIntersections.x, min(FurthestPlaneIntersections.y, FurthestPlaneIntersections.z));
+	return saturate(BoxIntersections);
+}
+
+
+float3 SDFVolumeDimensionPositionToUV(float3 volumePos, float3 uvScale, float3 uvAdd)
+{
+	return volumePos * uvScale + uvAdd;
+}
+
+float SampleSDFVolumeTextureAtlas(float3 volumeUV)
+{
+	return SDFVolumeTextureAtlas.SampleLevel(clampToEdgeTrillinearSampler, volumeUV, 0).r;
+}
+
+
+float ShadowRayMarch(float3 rayWorldStartPos, 
+	float3 rayWorldEndPos, 
+	float tanLightAngle, 
+	float minSphereRadius, 
+	float maxSphereRadius)
+{
+	const float shadowZeroThereshold = 0.01f;
+
+	float minShadow = 1.0;
+
+	for(uint index = 0; index < mNumObjects; ++index)
+	{
+		const float twoSidedMeshDistanceBias = mSDFMAD[index].z;
+		
+
+		float4x4 worldToVolumeMat = mWorldToVolumeMat[index];
+
+		float3 volumeRayStart = mul(worldToVolumeMat, float4(rayWorldStartPos.xyz, 1.0)).xyz;
+		float3 volumeRayEnd = mul(worldToVolumeMat, float4(rayWorldEndPos.xyz, 1.0)).xyz;
+		float3 volumeRayDir = volumeRayEnd - volumeRayStart;
+		float volumeRayLength = length(volumeRayDir);
+		volumeRayDir /= volumeRayLength;
+
+
+		float4 uvScaleAndVolumeScale = mUVScaleAndVolumeScale[index];
+
+		bool isTwoSided = (uvScaleAndVolumeScale.w < 0.0) ? true : false;
+
+		float finalVolumeScale = abs(uvScaleAndVolumeScale.w);
+
+		float worldToVolumeScale = 1.0f / finalVolumeScale;
+		float volumeMinSphereRadius = minSphereRadius * worldToVolumeScale;
+		float volumeMaxSphereRadius = maxSphereRadius * worldToVolumeScale;
+
+		float volumeTwoSidedMeshDistanceBias = twoSidedMeshDistanceBias * worldToVolumeScale;
+
+
+		float objectCenterDistAlongRay = dot(-volumeRayStart, volumeRayDir);
+		float localConeRadiusAtObject = min(tanLightAngle *
+			max(objectCenterDistAlongRay, 0), volumeMaxSphereRadius);
+
+
+		float3 localPositionExtent = mLocalPositionExtent[index].xyz;
+
+		float2 intersectionTimes = LineBoxIntersect(volumeRayStart, 
+			volumeRayEnd, -localPositionExtent.xyz * SDF_APPROX_MARGIN - localConeRadiusAtObject,
+			localPositionExtent.xyz * SDF_APPROX_MARGIN + localConeRadiusAtObject);
+
+		if(intersectionTimes.x < intersectionTimes.y)
+		{
+			float4 uvAddAndSelfShadowBias = mUVAddAndSelfShadowBias[index];
+			float selfShadowScale = 1.0f / max(uvAddAndSelfShadowBias.w * worldToVolumeScale, .0001f);
+
+			//we jump straight the position of the ray when it hits the volume dimension bbox
+			float sampleRayTime = intersectionTimes.x * volumeRayLength;
+						
+			uint stepIndex = 0;
+			uint maxSteps = 64;
+
+			float minStepSize = 1.0f / (4.f * maxSteps);
+			
+
+			[loop]
+			for(; stepIndex < maxSteps; ++stepIndex)
+			{
+				float3 sampleVolumePos = volumeRayStart + volumeRayDir * sampleRayTime;
+				float3 clampedSamplePos = clamp(sampleVolumePos, 
+					-localPositionExtent.xyz, localPositionExtent.xyz);
+
+				float distanceToClamped = length(clampedSamplePos - sampleVolumePos);
+
+				float3 volumeUV = SDFVolumeDimensionPositionToUV(clampedSamplePos,
+					uvScaleAndVolumeScale.xyz,  uvAddAndSelfShadowBias.xyz);
+			
+				float sdfValue = SampleSDFVolumeTextureAtlas(volumeUV) + distanceToClamped;
+			
+				[flatten]
+				if(isTwoSided)
+				{
+					sdfValue -= volumeTwoSidedMeshDistanceBias;
+				}
+
+				//prevent occlusion within an object's self shadow distance
+				float selfShadowVisibility = 1.f - saturate(sampleRayTime * selfShadowScale);
+
+				float sphereRadius = clamp(tanLightAngle * sampleRayTime, volumeMinSphereRadius, volumeMaxSphereRadius);
+				float stepVisibility = max(saturate(sdfValue / sphereRadius), selfShadowVisibility);
+
+
+				//how soft shadow is achieved, we trace it through cone intersection
+				minShadow = min(minShadow, stepVisibility);
+				
+				float nextStepIncrement = abs(sdfValue);
+				//magic number here to improve the shadow quality
+				nextStepIncrement = nextStepIncrement * 0.1f + 0.01f;
+				float curStepDist = max(nextStepIncrement, minStepSize);
+
+				sampleRayTime += curStepDist;
+				if(minShadow < shadowZeroThereshold || sampleRayTime > intersectionTimes.y * volumeRayLength)
+				{
+					break;
+				}
+			}
+		}
+
+		if(minShadow < shadowZeroThereshold)
+		{
+			minShadow = 0.0f;
+			break;
+		}
+	}
+
+	return minShadow;
+}
+
+
+float ConvertFromDeviceZ(float deviceZ)
+{
+	return deviceZ * mDeviceZToWorldZ[0] + mDeviceZToWorldZ[1] + 1.0f / (deviceZ * mDeviceZToWorldZ[2] - mDeviceZToWorldZ[3]);
+}
+
+
+[numthreads(SDF_MESH_SHADOW_THREAD_X, SDF_MESH_SHADOW_THREAD_Y, 1)]
+void main(uint3 GroupID : SV_GroupID,
+	uint3 DispatchThreadID : SV_DispatchThreadID,
+    uint3 GroupThreadID : SV_GroupThreadID)
+{
+	uint3 localDispatchThreadID = DispatchThreadID * SDF_SHADOW_DOWNSAMPLE_VALUE;
+
+	float xClip = (( float(localDispatchThreadID.x) * 2.f) / mWindowSize.x) - 1.f;
+	float yClip = 1.f - (( float(localDispatchThreadID.y) * 2.f) / mWindowSize.y);
+
+	float2 depthSize = mWindowSize;
+	float2 depthUV = localDispatchThreadID.xy / depthSize;
+	float depthVal = DepthTexture.SampleLevel(clampToEdgeNearSampler, depthUV, 0).r;
+
+	if(depthVal == 0.f)
+	{
+		OutTexture[DispatchThreadID.xy] = float2(0.00, 0.00);
+		return;
+	}
+
+	float4 worldPosW =  mul(InvViewProject, float4(xClip, yClip, depthVal, 1.0));
+	float3 worldPos = (worldPosW / worldPosW.w).xyz;
+
+	float worldZ = ConvertFromDeviceZ(depthVal);
+
+	float RayStartOffset = 0.75f + 0.005f * worldZ;
+		
+	float minSphereRadius = .4f;
+	float maxSphereRadius = 10.f;
+
+	float traceDistance = 10000;
+	float3 rayOrigin = worldPos;
+	//float3 rayDir = normalize(lightPosition.xyz - float3(0.0, 0.0, 0.0));
+	float3 rayDir = mLightDir;
+	rayOrigin += RayStartOffset * rayDir;
+	float3 rayEnd = worldPos + rayDir * traceDistance;
+
+	float shadow = ShadowRayMarch(rayOrigin, rayEnd, 
+		mTanLightAngleAndThresholdValue.x, minSphereRadius, maxSphereRadius);
+
+	OutTexture[DispatchThreadID.xy] = float2(shadow, worldZ);
+}

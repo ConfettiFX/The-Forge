@@ -189,7 +189,7 @@ void Panini::Exit()
 	removeResource(pIndexBufferTessellatedQuad);
 }
 
-bool Panini::Load(RenderTarget** rts)
+bool Panini::Load(RenderTarget** rts, uint32_t count)
 {
 	// Vertexlayout
 	VertexLayout vertexLayoutPanini = {};

@@ -35,6 +35,8 @@
 #include "vec_float.h"
 #include "../platform.h"
 
+//#include "../../ThirdParty/OpenSource/ModifiedSonyMath/vectormath.hpp"
+
 namespace ozz {
 namespace math {
 
@@ -111,21 +113,22 @@ OZZ_INLINE bool Compare(const math::Quaternion& _a, const math::Quaternion& _b,
   // Computes w component of a-1 * b.
   const float diff_w = _a.x * _b.x + _a.y * _b.y + _a.z * _b.z + _a.w * _b.w;
   // Converts w back to an angle.
-  const float angle = 2.f * std::acos(Min(std::abs(diff_w), 1.f));
-  return std::abs(angle) <= _tolerance;
+  const float angle = 2.f * acos(Min(abs(diff_w), 1.f));
+  return abs(angle) <= _tolerance;
 }
+
 
 // Returns true if _q is a normalized quaternion.
 OZZ_INLINE bool IsNormalized(const Quaternion& _q) {
   const float sq_len = _q.x * _q.x + _q.y * _q.y + _q.z * _q.z + _q.w * _q.w;
-  return std::abs(sq_len - 1.f) < kNormalizationToleranceSq;
+  return abs(sq_len - 1.f) < kNormalizationToleranceSq;
 }
 
 // Returns the normalized quaternion _q.
 OZZ_INLINE Quaternion Normalize(const Quaternion& _q) {
   const float sq_len = _q.x * _q.x + _q.y * _q.y + _q.z * _q.z + _q.w * _q.w;
   assert(sq_len != 0.f && "_q is not normalizable");
-  const float inv_len = 1.f / std::sqrt(sq_len);
+  const float inv_len = 1.f / sqrt(sq_len);
   return Quaternion(_q.x * inv_len, _q.y * inv_len, _q.z * inv_len,
                     _q.w * inv_len);
 }
@@ -139,7 +142,7 @@ OZZ_INLINE Quaternion NormalizeSafe(const Quaternion& _q,
   if (sq_len == 0) {
     return _safer;
   }
-  const float inv_len = 1.f / std::sqrt(sq_len);
+  const float inv_len = 1.f / sqrt(sq_len);
   return Quaternion(_q.x * inv_len, _q.y * inv_len, _q.z * inv_len,
                     _q.w * inv_len);
 }
@@ -147,8 +150,8 @@ OZZ_INLINE Quaternion NormalizeSafe(const Quaternion& _q,
 OZZ_INLINE Quaternion Quaternion::FromAxisAngle(const Float4& _axis_angle) {
   assert(IsNormalized(Float3(_axis_angle.x, _axis_angle.y, _axis_angle.z)));
   const float half_angle = _axis_angle.w * .5f;
-  const float sin_half = std::sin(half_angle);
-  const float cos_half = std::cos(half_angle);
+  const float sin_half = sin(half_angle);
+  const float cos_half = cos(half_angle);
   return Quaternion(_axis_angle.x * sin_half, _axis_angle.y * sin_half,
                     _axis_angle.z * sin_half, cos_half);
 }
@@ -158,8 +161,8 @@ OZZ_INLINE Quaternion Quaternion::FromAxisAngle(const Float4& _axis_angle) {
 OZZ_INLINE Float4 ToAxisAngle(const Quaternion& _q) {
   assert(IsNormalized(_q));
   const float clamped_w = Clamp(-1.f, _q.w, 1.f);
-  const float angle = 2.f * std::acos(clamped_w);
-  const float s = std::sqrt(1.f - clamped_w * clamped_w);
+  const float angle = 2.f * acos(clamped_w);
+  const float s = sqrt(1.f - clamped_w * clamped_w);
 
   // Assuming quaternion normalized then s always positive.
   if (s < .001f) {  // Tests to avoid divide by zero.
@@ -174,12 +177,12 @@ OZZ_INLINE Float4 ToAxisAngle(const Quaternion& _q) {
 
 OZZ_INLINE Quaternion Quaternion::FromEuler(const Float3& _euler) {
   const Float3 half_euler = _euler * .5f;
-  const float c1 = std::cos(half_euler.x);
-  const float s1 = std::sin(half_euler.x);
-  const float c2 = std::cos(half_euler.y);
-  const float s2 = std::sin(half_euler.y);
-  const float c3 = std::cos(half_euler.z);
-  const float s3 = std::sin(half_euler.z);
+  const float c1 = cos(half_euler.x);
+  const float s1 = sin(half_euler.x);
+  const float c2 = cos(half_euler.y);
+  const float s2 = sin(half_euler.y);
+  const float c3 = cos(half_euler.z);
+  const float s3 = sin(half_euler.z);
   const float c1c2 = c1 * c2;
   const float s1s2 = s1 * s2;
   return Quaternion(c1c2 * s3 + s1s2 * c3, s1 * c2 * c3 + c1 * s2 * s3,
@@ -198,18 +201,18 @@ OZZ_INLINE Float3 ToEuler(const Quaternion& _q) {
   const float test = _q.x * _q.y + _q.z * _q.w;
   Float3 euler;
   if (test > .499f * unit) {  // Singularity at north pole
-    euler.x = 2.f * std::atan2(_q.x, _q.w);
+    euler.x = 2.f * atan2(_q.x, _q.w);
     euler.y = ozz::math::kPi_2;
     euler.z = 0;
   } else if (test < -.499f * unit) {  // Singularity at south pole
-    euler.x = -2 * std::atan2(_q.x, _q.w);
+    euler.x = -2 * atan2(_q.x, _q.w);
     euler.y = -kPi_2;
     euler.z = 0;
   } else {
-    euler.x = std::atan2(2.f * _q.y * _q.w - 2.f * _q.x * _q.z,
+    euler.x = atan2(2.f * _q.y * _q.w - 2.f * _q.x * _q.z,
                          sqx - sqy - sqz + sqw);
-    euler.y = std::asin(2.f * test / unit);
-    euler.z = std::atan2(2.f * _q.x * _q.w - 2.f * _q.y * _q.z,
+    euler.y = asin(2.f * test / unit);
+    euler.z = atan2(2.f * _q.x * _q.w - 2.f * _q.y * _q.z,
                          -sqx + sqy - sqz + sqw);
   }
   return euler;
@@ -229,7 +232,7 @@ OZZ_INLINE Quaternion NLerp(const Quaternion& _a, const Quaternion& _b,
                     (_b.z - _a.z) * _f + _a.z, (_b.w - _a.w) * _f + _a.w);
   const float sq_len =
       lerp.x * lerp.x + lerp.y * lerp.y + lerp.z * lerp.z + lerp.w * lerp.w;
-  const float inv_len = 1.f / std::sqrt(sq_len);
+  const float inv_len = 1.f / sqrt(sq_len);
   return Quaternion(lerp.x * inv_len, lerp.y * inv_len, lerp.z * inv_len,
                     lerp.w * inv_len);
 }
@@ -244,13 +247,13 @@ OZZ_INLINE Quaternion SLerp(const Quaternion& _a, const Quaternion& _b,
   float cos_half_theta = _a.x * _b.x + _a.y * _b.y + _a.z * _b.z + _a.w * _b.w;
 
   // If _a=_b or _a=-_b then theta = 0 and we can return _a.
-  if (std::abs(cos_half_theta) >= .999f) {
+  if (abs(cos_half_theta) >= .999f) {
     return _a;
   }
 
   // Calculate temporary values.
-  const float half_theta = std::acos(cos_half_theta);
-  const float sin_half_theta = std::sqrt(1.f - cos_half_theta * cos_half_theta);
+  const float half_theta = acos(cos_half_theta);
+  const float sin_half_theta = sqrt(1.f - cos_half_theta * cos_half_theta);
 
   // If theta = pi then result is not fully defined, we could rotate around any
   // axis normal to _a or _b.
@@ -259,8 +262,8 @@ OZZ_INLINE Quaternion SLerp(const Quaternion& _a, const Quaternion& _b,
                       (_a.z + _b.z) * .5f, (_a.w + _b.w) * .5f);
   }
 
-  const float ratio_a = std::sin((1.f - _f) * half_theta) / sin_half_theta;
-  const float ratio_b = std::sin(_f * half_theta) / sin_half_theta;
+  const float ratio_a = sin((1.f - _f) * half_theta) / sin_half_theta;
+  const float ratio_b = sin(_f * half_theta) / sin_half_theta;
 
   // Calculate Quaternion.
   return Quaternion(

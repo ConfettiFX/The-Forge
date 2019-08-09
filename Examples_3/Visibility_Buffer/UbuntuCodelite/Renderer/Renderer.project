@@ -7,7 +7,12 @@
   </Plugins>
   <Description/>
   <Dependencies/>
-  <VirtualDirectory Name="src">
+  <VirtualDirectory Name="Common">
+    <VirtualDirectory Name="Image">
+      <File Name="../../../../Common_3/OS/Image/Image.cpp"/>
+      <File Name="../../../../Common_3/OS/Image/Image.h"/>
+      <File Name="../../../../Common_3/OS/Image/ImageEnums.h"/>
+    </VirtualDirectory>
     <VirtualDirectory Name="Profiler">
       <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerUI.h"/>
       <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerUI.cpp"/>

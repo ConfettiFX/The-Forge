@@ -11,7 +11,7 @@
   <Project Name="07_Tessellation" Path="07_Tessellation/07_Tessellation.project" Active="No"/>
   <Project Name="08_Procedural" Path="08_Procedural/08_Procedural.project" Active="No"/>
   <Project Name="06_MaterialPlayground" Path="06_MaterialPlayground/06_MaterialPlayground.project" Active="No"/>
-  <Project Name="09_LightShadowPlayground" Path="09_LightShadowPlayground/09_LightShadowPlayground.project" Active="No"/>
+  <Project Name="09_LightShadowPlayground" Path="09_LightShadowPlayground/09_LightShadowPlayground.project" Active="Yes"/>
   <Project Name="09a_HybridRaytracing" Path="09a_HybridRaytracing/09a_HybridRaytracing.project" Active="No"/>
   <Project Name="10_PixelProjectedReflections" Path="10_PixelProjectedReflections/10_PixelProjectedReflections.project" Active="No"/>
   <Project Name="13_UserInterface" Path="13_UserInterface/13_UserInterface.project" Active="No"/>
@@ -19,7 +19,7 @@
   <Project Name="15_Transparency" Path="15_Transparency/15_Transparency.project" Active="No"/>
   <Project Name="16_Raytracing" Path="16_Raytracing/16_Raytracing.project" Active="No"/>
   <Project Name="16a_SphereTracing" Path="16a_SphereTracing/16a_SphereTracing.project" Active="No"/>
-  <Project Name="17_EntityComponentSystem" Path="17_EntityComponentSystem/17_EntityComponentSystem.project" Active="Yes"/>
+  <Project Name="17_EntityComponentSystem" Path="17_EntityComponentSystem/17_EntityComponentSystem.project" Active="No"/>
   <Project Name="18_Playback" Path="18_Playback/18_Playback.project" Active="No"/>
   <Project Name="19_Blending" Path="19_Blending/19_Blending.project" Active="No"/>
   <Project Name="20_JointAttachment" Path="20_JointAttachment/20_JointAttachment.project" Active="No"/>
@@ -38,9 +38,9 @@
   <Project Name="ozz_animation" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation.project" Active="No"/>
   <Project Name="ozz_animation_offline" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation_offline.project" Active="No"/>
   <Project Name="EASTL" Path="../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/EASTL.project" Active="No"/>
-  <Project Name="26_Audio" Path="26_Audio/26_Audio.project" Active="Yes"/>
+  <Project Name="26_Audio" Path="26_Audio/26_Audio.project" Active="No"/>
   <BuildMatrix>
-    <WorkspaceConfiguration Name="Debug" Selected="yes">
+    <WorkspaceConfiguration Name="Debug" Selected="no">
       <Environment/>
       <Project Name="SpirVTools" ConfigName="Debug"/>
       <Project Name="LuaManager" ConfigName="Debug"/>
@@ -85,7 +85,7 @@
       <Project Name="26_Audio" ConfigName="Debug"/>
       <Project Name="26_Audio" ConfigName="Debug"/>
     </WorkspaceConfiguration>
-    <WorkspaceConfiguration Name="Release" Selected="no">
+    <WorkspaceConfiguration Name="Release" Selected="yes">
       <Environment/>
       <Project Name="zlibstatic" ConfigName="NoConfig"/>
       <Project Name="SpirVTools" ConfigName="Release"/>
@@ -100,7 +100,7 @@
       <Project Name="assimp" ConfigName="NoConfig"/>
       <Project Name="AssetPipelineCmd" ConfigName="Release"/>
       <Project Name="AssetPipeline" ConfigName="Release"/>
-	  <Project Name="26_Audio" ConfigName="Release"/>
+      <Project Name="26_Audio" ConfigName="Release"/>
       <Project Name="26_Audio" ConfigName="Release"/>
       <Project Name="25_Skinning" ConfigName="Release"/>
       <Project Name="24_MultiThread" ConfigName="Release"/>

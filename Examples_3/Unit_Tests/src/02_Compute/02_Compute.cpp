@@ -192,7 +192,7 @@ class Compute: public IApp
 		initResourceLoaderInterface(pRenderer);
 
 		// Initialize profile
-		initProfiler(pRenderer, gImageCount);
+		initProfiler(pRenderer);
 		profileRegisterInput();
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
@@ -286,7 +286,6 @@ class Compute: public IApp
 		gVirtualJoystick.InitLRSticks();
 		pCameraController->setVirtualJoystick(&gVirtualJoystick);
 #endif
-		requestMouseCapture(true);
 
 		pCameraController->setMotionParameters(cmp);
 		InputSystem::RegisterInputEvent(cameraInputEvent);
@@ -307,7 +306,7 @@ class Compute: public IApp
 		gAppUI.Exit();
 
 		// Exit profile
-		exitProfiler(pRenderer);
+		exitProfiler();
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -348,9 +347,11 @@ class Compute: public IApp
 			return false;
 
 #if defined(MOBILE_PLATFORM)
-		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], 0))
+		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
 #endif
+
+		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
 
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 0;
@@ -375,6 +376,8 @@ class Compute: public IApp
 	void Unload()
 	{
 		waitQueueIdle(pGraphicsQueue);
+
+		unloadProfiler();
 
 #if defined(MOBILE_PLATFORM)
 		gVirtualJoystick.Unload();
@@ -535,7 +538,7 @@ class Compute: public IApp
 
     gAppUI.Gui(pGui);
 
-    cmdDrawProfiler(cmd, static_cast<uint32_t>(mSettings.mWidth), static_cast<uint32_t>(mSettings.mHeight));
+    cmdDrawProfiler(cmd);
 		gAppUI.Draw(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -557,7 +560,7 @@ class Compute: public IApp
 	bool addSwapChain()
 	{
 		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.mWindowHandle = pWindow->handle;
 		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mPresentQueueCount = 1;
 		swapChainDesc.mWidth = mSettings.mWidth;

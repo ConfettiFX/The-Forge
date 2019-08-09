@@ -32,7 +32,7 @@
     <ProjectGuid>{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>Samples_GLFW</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
     <ProjectName>RendererDX12</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

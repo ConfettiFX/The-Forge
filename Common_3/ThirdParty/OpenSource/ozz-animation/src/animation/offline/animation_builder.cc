@@ -36,6 +36,8 @@
 #include "ozz/base/containers/vector.h"
 #include "ozz/base/memory/allocator.h"
 
+#include "../../EASTL/sort.h"
+
 //#include "ozz/base/maths/simd_math.h" //CONFFX_BEGIN
 
 #include "ozz/animation/offline/raw_animation.h"
@@ -178,7 +180,7 @@ void CopyToAnimation(ozz::Vector<SortingTranslationKey>::Std* _src,
   }
 
   // Sort animation keys to favor cache coherency.
-  std::sort(&_src->front(), (&_src->back()) + 1,
+  eastl::sort(&_src->front(), (&_src->back()) + 1,
             &SortingKeyLess<SortingTranslationKey>);
 
   // Fills output.
@@ -203,7 +205,7 @@ void CopyToAnimation(ozz::Vector<SortingScaleKey>::Std* _src,
   }
 
   // Sort animation keys to favor cache coherency.
-  std::sort(&_src->front(), (&_src->back()) + 1,
+  eastl::sort(&_src->front(), (&_src->back()) + 1,
             &SortingKeyLess<SortingScaleKey>);
 
   // Fills output.
@@ -222,7 +224,7 @@ void CopyToAnimation(ozz::Vector<SortingScaleKey>::Std* _src,
 
 // Compares float absolute values.
 bool LessAbs(float _left, float _right) {
-  return std::abs(_left) < std::abs(_right);
+  return abs(_left) < abs(_right);
 }
 
 // Compresses quaternion to ozz::animation::RotationKey format.
@@ -306,7 +308,7 @@ void CopyToAnimation(ozz::Vector<SortingRotationKey>::Std* _src,
   //CONFFX_END
 
   // Sort.
-  std::sort(array_begin(*_src), array_end(*_src),
+  eastl::sort(array_begin(*_src), array_end(*_src),
             &SortingKeyLess<SortingRotationKey>);
 
   // Fills rotation keys output.

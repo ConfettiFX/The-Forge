@@ -38,7 +38,11 @@ int64_t ProfileGetTick()
 #include <stdio.h>
 #include <stdarg.h>
 #include <math.h>
-#include <algorithm>
+//#include <algorithm>
+
+//EASTL Includes
+#include "../EASTL/sort.h"
+#include "../EASTL/algorithm.h"
 
 
 
@@ -2389,14 +2393,14 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 	{
 		nTimerCounterSort[i] = i;
 	}
-	std::sort(nGroupCounterSort, nGroupCounterSort + S.nGroupCount,
+	eastl::sort(nGroupCounterSort, nGroupCounterSort + S.nGroupCount,
 		[nGroupCounter](const uint32_t l, const uint32_t r)
 	{
 		return nGroupCounter[l] > nGroupCounter[r];
 	}
 	);
 
-	std::sort(nTimerCounterSort, nTimerCounterSort + S.nTotalTimers,
+	eastl::sort(nTimerCounterSort, nTimerCounterSort + S.nTotalTimers,
 		[nTimerCounter](const uint32_t l, const uint32_t r)
 	{
 		return nTimerCounter[l] > nTimerCounter[r];

@@ -73,8 +73,6 @@
 
 #include "../../../../Common_3/OS/Core/ThreadSystem.h"
 
-#include "../../../Common/AppHelpers.h"
-
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"    // Must be the last include in a cpp file
 
 // define folders for resources
@@ -880,10 +878,6 @@ class MaterialPlayground: public IApp
 		eastl::vector<eastl::vector<uint>> mModelIndicesList;
 		eastl::vector<eastl::string> mMaterialNamesStorage;
 		eastl::vector<eastl::string> mGroundNamesStorage;
-		eastl::vector<const char*> mMaterialTextureList;
-		eastl::vector<const char*> mGroundTextureList;
-		TextureLoadTaskData mMaterialTexturesData = {};
-		TextureLoadTaskData mGroundTexturesData = {};
 		float* pJointPoints;
 		float* pBonePoints;
 		TFXAsset tfxAsset[9];
@@ -935,45 +929,15 @@ class MaterialPlayground: public IApp
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 			return false;
 #endif
-		initProfiler(pRenderer, gImageCount);
+		initProfiler(pRenderer);
 		profileRegisterInput();
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		pStagingData = conf_new(StagingData);
 		// CREATE RENDERING RESOURCES
 		//
-		// PBR Texture values (these values are mirrored on the shaders).
-		static const uint32_t gBRDFIntegrationSize = 512;
-		static const uint32_t gSkyboxSize = 1024;
-		static const uint32_t gSkyboxMips = 11;
-		static const uint32_t gIrradianceSize = 32;
-		static const uint32_t gSpecularSize = 128;
-		static const uint32_t gSpecularMips = (uint)log2(gSpecularSize) + 1;
 
-		const char * skyboxNames[] =
-		{
-			"LA_Helipad.ktx",
-		};
-
-		static const int skyboxIndex = 0;
-
-		ComputePBRMapsTaskData pPBRMapLoadData;
-		pPBRMapLoadData.pRenderer = pRenderer;
-		pPBRMapLoadData.pQueue = pGraphicsQueue;
-		pPBRMapLoadData.pCmd = ppCmds[0];
-		pPBRMapLoadData.pFence = NULL;
-		pPBRMapLoadData.pSemaphore = NULL;
-		pPBRMapLoadData.mSourceName = skyboxNames[skyboxIndex];
-		pPBRMapLoadData.mSourceRoot = FSR_Textures;
-		pPBRMapLoadData.mPresetLevel = pRenderer->mGpuSettings->mGpuVendorPreset.mPresetLevel;
-		pPBRMapLoadData.mSkyboxSize = gSkyboxSize;
-		pPBRMapLoadData.mSkyboxMips = gSkyboxMips;
-		pPBRMapLoadData.mSpecularSize = gSpecularSize;
-		pPBRMapLoadData.mSpecularMips = gSpecularMips;
-		pPBRMapLoadData.mBRDFIntegrationSize = gBRDFIntegrationSize;
-		pPBRMapLoadData.mIrradianceSize = gIrradianceSize;
-		computePBRMaps(&pPBRMapLoadData);
-		queueSubmit(pGraphicsQueue, 1, &ppCmds[0], NULL, 0, NULL, 0, NULL);
+		ComputePBRMaps();
 		
 		LoadModelsAndTextures();
 
@@ -991,14 +955,6 @@ class MaterialPlayground: public IApp
 
 		waitThreadSystemIdle(pIOThreads);
 		waitBatchCompleted();
-		waitQueueIdle(pGraphicsQueue);
-
-		pTextureSkybox = pPBRMapLoadData.pSkybox;
-		pTextureBRDFIntegrationMap = pPBRMapLoadData.pBRDFIntegrationMap;
-		pTextureIrradianceMap = pPBRMapLoadData.pIrradianceMap;
-		pTextureSpecularMap = pPBRMapLoadData.pSpecularMap;
-
-		cleanupPBRMapsTaskData(&pPBRMapLoadData);
 
 		conf_delete(pStagingData);
 
@@ -1038,7 +994,6 @@ class MaterialPlayground: public IApp
 		gVirtualJoystick.InitLRSticks();
 		pCameraController->setVirtualJoystick(&gVirtualJoystick);
 #endif
-		requestMouseCapture(true);
 		pCameraController->setMotionParameters(camParameters);
 		InputSystem::RegisterInputEvent(cameraInputEvent);
 		InputSystem::RegisterInputEvent(pFnInputEvent);
@@ -1088,7 +1043,7 @@ class MaterialPlayground: public IApp
 
 		waitQueueIdle(pGraphicsQueue);
 
-		exitProfiler(pRenderer);
+		exitProfiler();
 
 		destroyCameraController(pCameraController);
 		destroyCameraController(pLightView);
@@ -1142,13 +1097,15 @@ class MaterialPlayground: public IApp
 		CreateRenderTargets();
 		CreatePipelines();
 
-		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
+		RenderTarget* pRenderTargets[] = { pSwapChain->ppSwapchainRenderTargets[0], pRenderTargetDepth };
+		if (!gAppUI.Load(pRenderTargets, 2))
 			return false;
 
 #if defined(TARGET_IOS) || defined(__ANDROID__)
-		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], pRenderTargetDepth->mDesc.mFormat))
+		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
 #endif
+		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
 
 		return true;
 	}
@@ -1157,6 +1114,7 @@ class MaterialPlayground: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
+		unloadProfiler();
 		gAppUI.Unload();
 
 #if defined(TARGET_IOS) || defined(__ANDROID__)
@@ -2220,13 +2178,6 @@ class MaterialPlayground: public IApp
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
-		static HiresTimer gTimer;
-		gTimer.GetUSec(true);
-
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
-#endif
-
 		// draw world-space text
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Text", true);
 		const char** ppMaterialNames = NULL;
@@ -2254,6 +2205,17 @@ class MaterialPlayground: public IApp
 			}
 		}
 
+		loadActions = {};
+		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+
+		static HiresTimer gTimer;
+		gTimer.GetUSec(true);
+
+#ifdef TARGET_IOS
+		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
+#endif
+
 		// draw HUD text
 		gAppUI.DrawText(
 			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
@@ -2278,7 +2240,7 @@ class MaterialPlayground: public IApp
 		else
 			gAppUI.Gui(pGuiWindowMaterial);
 
-		cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
+		cmdDrawProfiler(cmd);
 
 		gAppUI.Draw(cmd);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);	// UI
@@ -2860,11 +2822,6 @@ class MaterialPlayground: public IApp
 				this->pStagingData->mMaterialNamesStorage.push_back(name);
 			}
 
-			for (eastl::string& name : this->pStagingData->mMaterialNamesStorage)
-			{
-				this->pStagingData->mMaterialTextureList.push_back(name.c_str());
-			}
-
 			return 0;
 		});
 		eastl::string loadTexturesFilename = FileSystem::FixPath("loadTextures.lua", FSR_Middleware2);
@@ -2873,12 +2830,9 @@ class MaterialPlayground: public IApp
 		while (!texturesAreLoaded)
 			Thread::Sleep(0);
 
-		uintptr_t materialTextureCount = pStagingData->mMaterialTextureList.size();
+		uintptr_t materialTextureCount = pStagingData->mMaterialNamesStorage.size();
 		pTextureMaterialMaps.resize(materialTextureCount);
-		pStagingData->mMaterialTexturesData.mDesc.mRoot = FSR_OtherFiles;
-		pStagingData->mMaterialTexturesData.mTextures = pTextureMaterialMaps.data();
-		pStagingData->mMaterialTexturesData.mNames = pStagingData->mMaterialTextureList.data();
-		addThreadSystemRangeTask(pIOThreads, loadTexturesTask, &pStagingData->mMaterialTexturesData, materialTextureCount);
+		addThreadSystemRangeTask(pIOThreads, LoadMaterialTexturesTask, pStagingData, materialTextureCount);
 
 		bool groundTexturesAreLoaded = false;
 		//This is how we can replace function in runtime.
@@ -2888,10 +2842,6 @@ class MaterialPlayground: public IApp
 			for (const char* name : texturesNames)
 			{
 				pStagingData->mGroundNamesStorage.push_back(name);
-			}
-			for (eastl::string& name : pStagingData->mGroundNamesStorage)
-			{
-				pStagingData->mGroundTextureList.push_back(name.c_str());
 			}
 
 			return 0;
@@ -2903,12 +2853,338 @@ class MaterialPlayground: public IApp
 		while (!groundTexturesAreLoaded)
 			Thread::Sleep(0);
 
-		uintptr_t groundTextureCount = pStagingData->mGroundTextureList.size();
+		uintptr_t groundTextureCount = pStagingData->mGroundNamesStorage.size();
 		pTextureMaterialMapsGround.resize(groundTextureCount);
-		pStagingData->mGroundTexturesData.mDesc.mRoot = FSR_OtherFiles;
-		pStagingData->mGroundTexturesData.mTextures = pTextureMaterialMapsGround.data();
-		pStagingData->mGroundTexturesData.mNames = pStagingData->mGroundTextureList.data();
-		addThreadSystemRangeTask(pIOThreads, &loadTexturesTask, &pStagingData->mGroundTexturesData, groundTextureCount);
+		addThreadSystemRangeTask(pIOThreads, &LoadGroundTexturesTask, pStagingData, groundTextureCount);
+	}
+
+	static void LoadMaterialTexturesTask(void* data, uintptr_t i)
+	{
+		StagingData*    pTaskData = (StagingData*)data;
+		TextureLoadDesc desc = {};
+		desc.mRoot = FSR_OtherFiles;
+		desc.pFilename = pTaskData->mMaterialNamesStorage[i].c_str();
+		desc.ppTexture = &pTextureMaterialMaps[i];
+		addResource(&desc, true);
+	}
+
+	static void LoadGroundTexturesTask(void* data, uintptr_t i)
+	{
+		StagingData*    pTaskData = (StagingData*)data;
+		TextureLoadDesc desc = {};
+		desc.mRoot = FSR_OtherFiles;
+		desc.pFilename = pTaskData->mGroundNamesStorage[i].c_str();
+		desc.ppTexture = &pTextureMaterialMapsGround[i];
+		addResource(&desc, true);
+	}
+
+	void ComputePBRMaps()
+	{
+		Texture*          pPanoSkybox = NULL;
+		Shader*           pPanoToCubeShader = NULL;
+		RootSignature*    pPanoToCubeRootSignature = NULL;
+		Pipeline*         pPanoToCubePipeline = NULL;
+		Shader*           pBRDFIntegrationShader = NULL;
+		RootSignature*    pBRDFIntegrationRootSignature = NULL;
+		Pipeline*         pBRDFIntegrationPipeline = NULL;
+		Shader*           pIrradianceShader = NULL;
+		RootSignature*    pIrradianceRootSignature = NULL;
+		Pipeline*         pIrradiancePipeline = NULL;
+		Shader*           pSpecularShader = NULL;
+		RootSignature*    pSpecularRootSignature = NULL;
+		Pipeline*         pSpecularPipeline = NULL;
+		Sampler*          pSkyboxSampler = NULL;
+		DescriptorBinder* pPBRDescriptorBinder = NULL;
+
+		static const int skyboxIndex = 0;
+		const char*      skyboxNames[] = {
+			"LA_Helipad.ktx",
+		};
+		// PBR Texture values (these values are mirrored on the shaders).
+		static const uint32_t gBRDFIntegrationSize = 512;
+		static const uint32_t gSkyboxSize = 1024;
+		static const uint32_t gSkyboxMips = 11;
+		static const uint32_t gIrradianceSize = 32;
+		static const uint32_t gSpecularSize = 128;
+		static const uint32_t gSpecularMips = (uint)log2(gSpecularSize) + 1;
+
+		SamplerDesc samplerDesc = {
+			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, 0, 16
+		};
+		addSampler(pRenderer, &samplerDesc, &pSkyboxSampler);
+
+		// Load the skybox panorama texture.
+		SyncToken       token;
+		TextureLoadDesc panoDesc = {};
+		panoDesc.mRoot = FSR_Textures;
+		panoDesc.pFilename = skyboxNames[skyboxIndex];
+		panoDesc.ppTexture = &pPanoSkybox;
+		addResource(&panoDesc, &token);
+
+		TextureDesc skyboxImgDesc = {};
+		skyboxImgDesc.mArraySize = 6;
+		skyboxImgDesc.mDepth = 1;
+		skyboxImgDesc.mFormat = ImageFormat::RGBA32F;
+		skyboxImgDesc.mHeight = gSkyboxSize;
+		skyboxImgDesc.mWidth = gSkyboxSize;
+		skyboxImgDesc.mMipLevels = gSkyboxMips;
+		skyboxImgDesc.mSampleCount = SAMPLE_COUNT_1;
+		skyboxImgDesc.mSrgb = false;
+		skyboxImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+		skyboxImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
+		skyboxImgDesc.pDebugName = L"skyboxImgBuff";
+
+		TextureLoadDesc skyboxLoadDesc = {};
+		skyboxLoadDesc.pDesc = &skyboxImgDesc;
+		skyboxLoadDesc.ppTexture = &pTextureSkybox;
+		addResource(&skyboxLoadDesc);
+
+		TextureDesc irrImgDesc = {};
+		irrImgDesc.mArraySize = 6;
+		irrImgDesc.mDepth = 1;
+		irrImgDesc.mFormat = ImageFormat::RGBA32F;
+		irrImgDesc.mHeight = gIrradianceSize;
+		irrImgDesc.mWidth = gIrradianceSize;
+		irrImgDesc.mMipLevels = 1;
+		irrImgDesc.mSampleCount = SAMPLE_COUNT_1;
+		irrImgDesc.mSrgb = false;
+		irrImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+		irrImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
+		irrImgDesc.pDebugName = L"irrImgBuff";
+
+		TextureLoadDesc irrLoadDesc = {};
+		irrLoadDesc.pDesc = &irrImgDesc;
+		irrLoadDesc.ppTexture = &pTextureIrradianceMap;
+		addResource(&irrLoadDesc);
+
+		TextureDesc specImgDesc = {};
+		specImgDesc.mArraySize = 6;
+		specImgDesc.mDepth = 1;
+		specImgDesc.mFormat = ImageFormat::RGBA32F;
+		specImgDesc.mHeight = gSpecularSize;
+		specImgDesc.mWidth = gSpecularSize;
+		specImgDesc.mMipLevels = gSpecularMips;
+		specImgDesc.mSampleCount = SAMPLE_COUNT_1;
+		specImgDesc.mSrgb = false;
+		specImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+		specImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
+		specImgDesc.pDebugName = L"specImgBuff";
+
+		TextureLoadDesc specImgLoadDesc = {};
+		specImgLoadDesc.pDesc = &specImgDesc;
+		specImgLoadDesc.ppTexture = &pTextureSpecularMap;
+		addResource(&specImgLoadDesc);
+
+		// Create empty texture for BRDF integration map.
+		TextureLoadDesc brdfIntegrationLoadDesc = {};
+		TextureDesc     brdfIntegrationDesc = {};
+		brdfIntegrationDesc.mWidth = gBRDFIntegrationSize;
+		brdfIntegrationDesc.mHeight = gBRDFIntegrationSize;
+		brdfIntegrationDesc.mDepth = 1;
+		brdfIntegrationDesc.mArraySize = 1;
+		brdfIntegrationDesc.mMipLevels = 1;
+		brdfIntegrationDesc.mFormat = ImageFormat::RG32F;
+		brdfIntegrationDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
+		brdfIntegrationDesc.mSampleCount = SAMPLE_COUNT_1;
+		brdfIntegrationDesc.mHostVisible = false;
+		brdfIntegrationLoadDesc.pDesc = &brdfIntegrationDesc;
+		brdfIntegrationLoadDesc.ppTexture = &pTextureBRDFIntegrationMap;
+		addResource(&brdfIntegrationLoadDesc);
+
+		// Load pre-processing shaders.
+		ShaderLoadDesc panoToCubeShaderDesc = {};
+		panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", NULL, 0, FSR_SrcShaders };
+
+		GPUPresetLevel presetLevel = pRenderer->mGpuSettings->mGpuVendorPreset.mPresetLevel;
+		uint32_t       importanceSampleCounts[GPUPresetLevel::GPU_PRESET_COUNT] = { 0, 0, 64, 128, 256, 1024 };
+		uint32_t       importanceSampleCount = importanceSampleCounts[presetLevel];
+		ShaderMacro    importanceSampleMacro = { "IMPORTANCE_SAMPLE_COUNT", eastl::string().sprintf("%u", importanceSampleCount) };
+
+		ShaderLoadDesc brdfIntegrationShaderDesc = {};
+		brdfIntegrationShaderDesc.mStages[0] = { "BRDFIntegration.comp", &importanceSampleMacro, 1, FSR_SrcShaders };
+
+		ShaderLoadDesc irradianceShaderDesc = {};
+		irradianceShaderDesc.mStages[0] = { "computeIrradianceMap.comp", NULL, 0, FSR_SrcShaders };
+
+		ShaderLoadDesc specularShaderDesc = {};
+		specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", &importanceSampleMacro, 1, FSR_SrcShaders };
+
+		addShader(pRenderer, &panoToCubeShaderDesc, &pPanoToCubeShader);
+		addShader(pRenderer, &brdfIntegrationShaderDesc, &pBRDFIntegrationShader);
+		addShader(pRenderer, &irradianceShaderDesc, &pIrradianceShader);
+		addShader(pRenderer, &specularShaderDesc, &pSpecularShader);
+
+		const char*       pStaticSamplerNames[] = { "skyboxSampler" };
+		RootSignatureDesc panoRootDesc = { &pPanoToCubeShader, 1 };
+		panoRootDesc.mStaticSamplerCount = 1;
+		panoRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+		panoRootDesc.ppStaticSamplers = &pSkyboxSampler;
+		RootSignatureDesc brdfRootDesc = { &pBRDFIntegrationShader, 1 };
+		brdfRootDesc.mStaticSamplerCount = 1;
+		brdfRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+		brdfRootDesc.ppStaticSamplers = &pSkyboxSampler;
+		RootSignatureDesc irradianceRootDesc = { &pIrradianceShader, 1 };
+		irradianceRootDesc.mStaticSamplerCount = 1;
+		irradianceRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+		irradianceRootDesc.ppStaticSamplers = &pSkyboxSampler;
+		RootSignatureDesc specularRootDesc = { &pSpecularShader, 1 };
+		specularRootDesc.mStaticSamplerCount = 1;
+		specularRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
+		specularRootDesc.ppStaticSamplers = &pSkyboxSampler;
+		addRootSignature(pRenderer, &panoRootDesc, &pPanoToCubeRootSignature);
+		addRootSignature(pRenderer, &brdfRootDesc, &pBRDFIntegrationRootSignature);
+		addRootSignature(pRenderer, &irradianceRootDesc, &pIrradianceRootSignature);
+		addRootSignature(pRenderer, &specularRootDesc, &pSpecularRootSignature);
+
+		DescriptorBinderDesc descriptorBinderDesc[4] = {
+			{ pPanoToCubeRootSignature, gSkyboxMips + 1, gSkyboxMips + 1 },
+			{ pBRDFIntegrationRootSignature },
+			{ pIrradianceRootSignature },
+			{ pSpecularRootSignature, gSkyboxMips + 1, gSpecularMips + 1 }
+		};
+
+		addDescriptorBinder(pRenderer, 0, 4, descriptorBinderDesc, &pPBRDescriptorBinder);
+
+		PipelineDesc desc = {};
+		desc.mType = PIPELINE_TYPE_COMPUTE;
+		ComputePipelineDesc& pipelineSettings = desc.mComputeDesc;
+		pipelineSettings.pShaderProgram = pPanoToCubeShader;
+		pipelineSettings.pRootSignature = pPanoToCubeRootSignature;
+		addPipeline(pRenderer, &desc, &pPanoToCubePipeline);
+		pipelineSettings.pShaderProgram = pBRDFIntegrationShader;
+		pipelineSettings.pRootSignature = pBRDFIntegrationRootSignature;
+		addPipeline(pRenderer, &desc, &pBRDFIntegrationPipeline);
+		pipelineSettings.pShaderProgram = pIrradianceShader;
+		pipelineSettings.pRootSignature = pIrradianceRootSignature;
+		addPipeline(pRenderer, &desc, &pIrradiancePipeline);
+		pipelineSettings.pShaderProgram = pSpecularShader;
+		pipelineSettings.pRootSignature = pSpecularRootSignature;
+		addPipeline(pRenderer, &desc, &pSpecularPipeline);
+
+		// Compute the BRDF Integration map.
+		beginCmd(ppCmds[0]);
+
+		TextureBarrier uavBarriers[4] = {
+			{ pTextureSkybox, RESOURCE_STATE_UNORDERED_ACCESS },
+			{ pTextureIrradianceMap, RESOURCE_STATE_UNORDERED_ACCESS },
+			{ pTextureSpecularMap, RESOURCE_STATE_UNORDERED_ACCESS },
+			{ pTextureBRDFIntegrationMap, RESOURCE_STATE_UNORDERED_ACCESS },
+		};
+		cmdResourceBarrier(ppCmds[0], 0, NULL, 4, uavBarriers, false);
+
+		cmdBindPipeline(ppCmds[0], pBRDFIntegrationPipeline);
+		DescriptorData params[2] = {};
+		params[0].pName = "dstTexture";
+		params[0].ppTextures = &pTextureBRDFIntegrationMap;
+		cmdBindDescriptors(ppCmds[0], pPBRDescriptorBinder, pBRDFIntegrationRootSignature, 1, params);
+		const uint32_t* pThreadGroupSize = pBRDFIntegrationShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
+		cmdDispatch(
+			ppCmds[0], gBRDFIntegrationSize / pThreadGroupSize[0], gBRDFIntegrationSize / pThreadGroupSize[1],
+			pThreadGroupSize[2]);
+
+		TextureBarrier srvBarrier[1] = { { pTextureBRDFIntegrationMap, RESOURCE_STATE_SHADER_RESOURCE } };
+
+		cmdResourceBarrier(ppCmds[0], 0, NULL, 1, srvBarrier, true);
+
+		// Store the panorama texture inside a cubemap.
+		cmdBindPipeline(ppCmds[0], pPanoToCubePipeline);
+		params[0].pName = "srcTexture";
+		params[0].ppTextures = &pPanoSkybox;
+		cmdBindDescriptors(ppCmds[0], pPBRDescriptorBinder, pPanoToCubeRootSignature, 1, params);
+
+		struct
+		{
+			uint32_t mip;
+			uint32_t textureSize;
+		} rootConstantData = { 0, gSkyboxSize };
+
+		for (uint32_t i = 0; i < gSkyboxMips; ++i)
+		{
+			rootConstantData.mip = i;
+			params[0].pName = "RootConstant";
+			params[0].pRootConstant = &rootConstantData;
+			params[1].pName = "dstTexture";
+			params[1].ppTextures = &pTextureSkybox;
+			params[1].mUAVMipSlice = i;
+			cmdBindDescriptors(ppCmds[0], pPBRDescriptorBinder, pPanoToCubeRootSignature, 2, params);
+
+			pThreadGroupSize = pPanoToCubeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
+			cmdDispatch(
+				ppCmds[0], max(1u, (uint32_t)(rootConstantData.textureSize >> i) / pThreadGroupSize[0]),
+				max(1u, (uint32_t)(rootConstantData.textureSize >> i) / pThreadGroupSize[1]), 6);
+		}
+
+		TextureBarrier srvBarriers[1] = { { pTextureSkybox, RESOURCE_STATE_SHADER_RESOURCE } };
+		cmdResourceBarrier(ppCmds[0], 0, NULL, 1, srvBarriers, false);
+		/************************************************************************/
+		// Compute sky irradiance
+		/************************************************************************/
+		params[0] = {};
+		params[1] = {};
+		cmdBindPipeline(ppCmds[0], pIrradiancePipeline);
+		params[0].pName = "srcTexture";
+		params[0].ppTextures = &pTextureSkybox;
+		params[1].pName = "dstTexture";
+		params[1].ppTextures = &pTextureIrradianceMap;
+		cmdBindDescriptors(ppCmds[0], pPBRDescriptorBinder, pIrradianceRootSignature, 2, params);
+		pThreadGroupSize = pIrradianceShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
+		cmdDispatch(ppCmds[0], gIrradianceSize / pThreadGroupSize[0], gIrradianceSize / pThreadGroupSize[1], 6);
+		/************************************************************************/
+		// Compute specular sky
+		/************************************************************************/
+		cmdBindPipeline(ppCmds[0], pSpecularPipeline);
+		params[0].pName = "srcTexture";
+		params[0].ppTextures = &pTextureSkybox;
+		cmdBindDescriptors(ppCmds[0], pPBRDescriptorBinder, pSpecularRootSignature, 1, params);
+
+		struct PrecomputeSkySpecularData
+		{
+			uint  mipSize;
+			float roughness;
+		};
+
+		for (uint32_t i = 0; i < gSpecularMips; i++)
+		{
+			PrecomputeSkySpecularData data = {};
+			data.roughness = (float)i / (float)(gSpecularMips - 1);
+			data.mipSize = gSpecularSize >> i;
+			params[0].pName = "RootConstant";
+			params[0].pRootConstant = &data;
+			params[1].pName = "dstTexture";
+			params[1].ppTextures = &pTextureSpecularMap;
+			params[1].mUAVMipSlice = i;
+			cmdBindDescriptors(ppCmds[0], pPBRDescriptorBinder, pSpecularRootSignature, 2, params);
+			pThreadGroupSize = pIrradianceShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
+			cmdDispatch(
+				ppCmds[0], eastl::max(1u, (gSpecularSize >> i) / pThreadGroupSize[0]),
+				eastl::max(1u, (gSpecularSize >> i) / pThreadGroupSize[1]), 6);
+		}
+		/************************************************************************/
+		/************************************************************************/
+		TextureBarrier srvBarriers2[2] = { { pTextureIrradianceMap, RESOURCE_STATE_SHADER_RESOURCE },
+										   { pTextureSpecularMap, RESOURCE_STATE_SHADER_RESOURCE } };
+		cmdResourceBarrier(ppCmds[0], 0, NULL, 2, srvBarriers2, false);
+
+		endCmd(ppCmds[0]);
+		waitTokenCompleted(token);
+		queueSubmit(pGraphicsQueue, 1, &ppCmds[0], NULL, 0, NULL, 0, NULL);
+		waitQueueIdle(pGraphicsQueue);
+
+		removePipeline(pRenderer, pSpecularPipeline);
+		removeRootSignature(pRenderer, pSpecularRootSignature);
+		removeShader(pRenderer, pSpecularShader);
+		removePipeline(pRenderer, pIrradiancePipeline);
+		removeRootSignature(pRenderer, pIrradianceRootSignature);
+		removeShader(pRenderer, pIrradianceShader);
+		removePipeline(pRenderer, pBRDFIntegrationPipeline);
+		removeRootSignature(pRenderer, pBRDFIntegrationRootSignature);
+		removeShader(pRenderer, pBRDFIntegrationShader);
+		removePipeline(pRenderer, pPanoToCubePipeline);
+		removeRootSignature(pRenderer, pPanoToCubeRootSignature);
+		removeShader(pRenderer, pPanoToCubeShader);
+		removeDescriptorBinder(pRenderer, pPBRDescriptorBinder);
+		removeResource(pPanoSkybox);
+		removeSampler(pRenderer, pSkyboxSampler);
 	}
 
 	void LoadModel(uintptr_t i)
@@ -4188,7 +4464,7 @@ class MaterialPlayground: public IApp
 		addRenderTarget(pRenderer, &shadowPassRenderTargetDesc, &pRenderTargetShadowMap);
 
 		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.mWindowHandle = pWindow->handle;
 		swapChainDesc.mPresentQueueCount = 1;
 		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mWidth = mSettings.mWidth;
