@@ -79,7 +79,7 @@ def FindMSBuild17():
 	msbuildPath = ""
 	try:
 		#open vswhere and parse the output
-		proc = subprocess.Popen(["C:/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe","-latest","-requires" ,"Microsoft.Component.MSBuild"], stdout=subprocess.PIPE,stderr = subprocess.STDOUT,
+		proc = subprocess.Popen(["C:/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe","-version","14","-requires" ,"Microsoft.Component.MSBuild"], stdout=subprocess.PIPE,stderr = subprocess.STDOUT,
     encoding='utf8')
 
 		ls_output = proc.communicate()[0]
@@ -1148,6 +1148,8 @@ def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSB
 	if not xboxOnly:
 		for proj in projects:
 			if skipAura == True and "Aura" in proj:
+				continue
+			if "Android" in proj:
 				continue
 			#we don't want to build Xbox one solutions when building PC
 			if "Xbox" not in proj and "XBOXOne" not in proj:
