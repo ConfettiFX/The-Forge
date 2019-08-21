@@ -1049,9 +1049,6 @@ ImGuiContext::ImGuiContext(ImFontAtlas* shared_font_atlas) : OverlayDrawList(NUL
 	TooltipOverrideCount = 0;
 	PlatformImePos = PlatformImeLastPos = float2(FLT_MAX, FLT_MAX);
 	
-	SettingsLoaded = false;
-	SettingsDirtyTimer = 0.0f;
-	
 	LogEnabled = false;
 	LogStartDepth = 0;
 	LogAutoExpandMaxDepth = 2;
@@ -1138,8 +1135,6 @@ ImGuiIO::ImGuiIO()
     BackendFlags = 0x00;
     DisplaySize = float2(-1.0f, -1.0f);
     DeltaTime = 1.0f/60.0f;
-    IniSavingRate = 5.0f;
-    IniFilename = "imgui.ini";
     LogFilename = "imgui_log.txt";
     MouseDoubleClickTime = 0.30f;
     MouseDoubleClickMaxDist = 6.0f;
@@ -2881,29 +2876,6 @@ void ImGui::NewFrame()
     if (g.IO.ConfigResizeWindowsFromEdges && !(g.IO.BackendFlags & ImGuiBackendFlags_HasMouseCursors))
         g.IO.ConfigResizeWindowsFromEdges = false;
 
-    // Load settings on first frame (if not explicitly loaded manually before)
-    if (!g.SettingsLoaded)
-    {
-        IM_ASSERT(g.SettingsWindows.empty());
-        if (g.IO.IniFilename)
-            LoadIniSettingsFromDisk(g.IO.IniFilename);
-        g.SettingsLoaded = true;
-    }
-
-    // Save settings (with a delay after the last modification, so we don't spam disk too much)
-    if (g.SettingsDirtyTimer > 0.0f)
-    {
-        g.SettingsDirtyTimer -= g.IO.DeltaTime;
-        if (g.SettingsDirtyTimer <= 0.0f)
-        {
-            if (g.IO.IniFilename != NULL)
-                SaveIniSettingsToDisk(g.IO.IniFilename);
-            else
-                g.IO.WantSaveIniSettings = true;  // Let user know they can call SaveIniSettingsToMemory(). user will need to clear io.WantSaveIniSettings themselves.
-            g.SettingsDirtyTimer = 0.0f;
-        }
-    }
-
     g.Time += g.IO.DeltaTime;
     g.FrameScopeActive = true;
     g.FrameCount += 1;
@@ -3029,7 +3001,7 @@ void ImGui::NewFrame()
 void ImGui::Initialize(ImGuiContext* context)
 {
     ImGuiContext& g = *context;
-    IM_ASSERT(!g.Initialized && !g.SettingsLoaded);
+    IM_ASSERT(!g.Initialized);
 
     // Add .ini handle for ImGuiWindow type
     ImGuiSettingsHandler ini_handler;
@@ -3056,10 +3028,6 @@ void ImGui::Shutdown(ImGuiContext* context)
     // Cleanup of other data are conditional on actually having initialized ImGui.
     if (!g.Initialized)
         return;
-
-    // Save settings (unless we haven't attempted to load them: CreateContext/DestroyContext without a call to NewFrame shouldn't save an empty file)
-    if (g.SettingsLoaded && g.IO.IniFilename != NULL)
-        SaveIniSettingsToDisk(g.IO.IniFilename);
 
     // Clear everything else
     for (int i = 0; i < g.Windows.size(); i++)
@@ -8529,17 +8497,17 @@ void ImGui::LogButtons()
 
 void ImGui::MarkIniSettingsDirty()
 {
-    ImGuiContext& g = *GImGui;
-    if (g.SettingsDirtyTimer <= 0.0f)
-        g.SettingsDirtyTimer = g.IO.IniSavingRate;
+    //ImGuiContext& g = *GImGui;
+    //if (g.SettingsDirtyTimer <= 0.0f)
+    //    g.SettingsDirtyTimer = g.IO.IniSavingRate;
 }
 
 void ImGui::MarkIniSettingsDirty(ImGuiWindow* window)
 {
-    ImGuiContext& g = *GImGui;
-    if (!(window->Flags & ImGuiWindowFlags_NoSavedSettings))
-        if (g.SettingsDirtyTimer <= 0.0f)
-            g.SettingsDirtyTimer = g.IO.IniSavingRate;
+    //ImGuiContext& g = *GImGui;
+    //if (!(window->Flags & ImGuiWindowFlags_NoSavedSettings))
+    //    if (g.SettingsDirtyTimer <= 0.0f)
+    //        g.SettingsDirtyTimer = g.IO.IniSavingRate;
 }
 
 static ImGuiWindowSettings* CreateNewWindowSettings(const char* name)
@@ -8589,7 +8557,7 @@ void ImGui::LoadIniSettingsFromMemory(const char* ini_data, size_t ini_size)
 {
     ImGuiContext& g = *GImGui;
     IM_ASSERT(g.Initialized);
-    IM_ASSERT(g.SettingsLoaded == false && g.FrameCount == 0);
+    IM_ASSERT(g.FrameCount == 0);
 
     // For user convenience, we allow passing a non zero-terminated string (hence the ini_size parameter).
     // For our convenience and to make the code simpler, we'll also write zero-terminators within the buffer. So let's create a writable copy..
@@ -8642,13 +8610,11 @@ void ImGui::LoadIniSettingsFromMemory(const char* ini_data, size_t ini_size)
         }
     }
     ImGui::MemFree(buf);
-    g.SettingsLoaded = true;
 }
 
 void ImGui::SaveIniSettingsToDisk(const char* ini_filename)
 {
     ImGuiContext& g = *GImGui;
-    g.SettingsDirtyTimer = 0.0f;
     if (!ini_filename)
         return;
 
@@ -8666,7 +8632,6 @@ void ImGui::SaveIniSettingsToDisk(const char* ini_filename)
 const char* ImGui::SaveIniSettingsToMemory(size_t* out_size)
 {
     ImGuiContext& g = *GImGui;
-    g.SettingsDirtyTimer = 0.0f;
     g.SettingsIniData.resize(0);
     for (int handler_n = 0; handler_n < g.SettingsHandlers.size(); handler_n++)
     {

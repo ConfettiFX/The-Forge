@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ImportGroup Label="PropertySheets" />
+  <PropertyGroup Label="UserMacros">
+    <CustomSysroot>$(VS_Ndkroot)\toolchains\llvm\prebuilt\windows-x86_64\sysroot</CustomSysroot>
+    <TRIPLE>arm-linux-androideabi</TRIPLE>
+  </PropertyGroup>
+  <PropertyGroup>
+    <_PropertySheetDisplayName>ARM</_PropertySheetDisplayName>
+  </PropertyGroup>
+  <ItemGroup>
+    <BuildMacro Include="CustomSysroot">
+      <Value>$(CustomSysroot)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+    <BuildMacro Include="TRIPLE">
+      <Value>$(TRIPLE)</Value>
+      <EnvironmentVariable>true</EnvironmentVariable>
+    </BuildMacro>
+  </ItemGroup>
+</Project>

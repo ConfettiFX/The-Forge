@@ -76,7 +76,19 @@ typedef uint64_t uint64;
 #endif
 
 typedef void* IconHandle;
-typedef void* WindowHandle;
+
+typedef struct WindowHandle
+{
+#if defined(VK_USE_PLATFORM_XLIB_KHR)
+	Display* display;
+	Window   window;
+#elif defined(VK_USE_PLATFORM_XCB_KHR)
+	xcb_connection_t* connection;
+	xcb_window_t      window;
+#else
+	void* window = NULL;    //hWnd
+#endif
+} WindowHandle;
 
 typedef struct RectDesc
 {
@@ -90,21 +102,26 @@ inline int getRectWidth(const RectDesc& rect) { return rect.right - rect.left; }
 
 inline int getRectHeight(const RectDesc& rect) { return rect.bottom - rect.top; }
 
+struct WindowsDesc;
+
+struct WindowCallbacks
+{
+	void (*onResize)(WindowsDesc* window, int newSizeX, int newSizeY);
+};
+
 typedef struct WindowsDesc
 {
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
-	Display* display;
-	Window   xlib_window;
-	Atom     xlib_wm_delete_window;
+	Atom xlib_wm_delete_window;
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
 	Display*                 display;
-	xcb_connection_t*        connection;
 	xcb_screen_t*            screen;
-	xcb_window_t             xcb_window;
 	xcb_intern_atom_reply_t* atom_wm_delete_window;
-#else
-	WindowHandle handle = NULL;    //hWnd
 #endif
+	WindowHandle handle;    //hWnd
+
+	WindowCallbacks callbacks;
+
 	RectDesc   windowedRect;
 	RectDesc   fullscreenRect;
 	RectDesc   clientRect;

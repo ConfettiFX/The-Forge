@@ -26,6 +26,11 @@
 
 #define SPIRV_CROSS_EXCEPTIONS_TO_ASSERTIONS
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4996)    // warning C4996: 'std::move_backward::_Unchecked_iterators::_Deprecate'
+#endif
+
 #include "../../ThirdParty/OpenSource/SPIRV_Cross/spirv_cross.hpp"
 
 // helper functions
@@ -118,7 +123,7 @@ void ReflectBoundResources(
 }
 
 
-SPIRV_INTERFACE  void CALLTYPE CreateCrossCompiler(uint32_t const* SpirvBinary, uint32_t BinarySize, CrossCompiler* outCompiler)
+void CreateCrossCompiler(uint32_t const* SpirvBinary, uint32_t BinarySize, CrossCompiler* outCompiler)
 {
    if(outCompiler == NULL)
    {
@@ -136,7 +141,7 @@ SPIRV_INTERFACE  void CALLTYPE CreateCrossCompiler(uint32_t const* SpirvBinary, 
    outCompiler->UniformVariablesCount = 0;
 }
 
-SPIRV_INTERFACE  void CALLTYPE DestroyCrossCompiler(CrossCompiler* pCompiler)
+void DestroyCrossCompiler(CrossCompiler* pCompiler)
 {
    if(pCompiler == NULL)
    {
@@ -169,7 +174,7 @@ SPIRV_INTERFACE  void CALLTYPE DestroyCrossCompiler(CrossCompiler* pCompiler)
    pCompiler->UniformVariablesCount = 0;
 }
 
-SPIRV_INTERFACE void CALLTYPE ReflectEntryPoint(CrossCompiler* pCompiler)
+void ReflectEntryPoint(CrossCompiler* pCompiler)
 {
 	if (pCompiler == NULL)
 	{
@@ -186,7 +191,7 @@ SPIRV_INTERFACE void CALLTYPE ReflectEntryPoint(CrossCompiler* pCompiler)
 	pCompiler->pEntryPoint[pCompiler->EntryPointSize] = 0;
 }
 
-SPIRV_INTERFACE  void CALLTYPE ReflectShaderResources(CrossCompiler* pCompiler)
+void ReflectShaderResources(CrossCompiler* pCompiler)
 {
    if(pCompiler == NULL)
    {
@@ -326,7 +331,7 @@ SPIRV_INTERFACE  void CALLTYPE ReflectShaderResources(CrossCompiler* pCompiler)
    pCompiler->ShaderResourceCount = resource_count;
 }
 
-SPIRV_INTERFACE  void CALLTYPE ReflectShaderVariables(CrossCompiler* pCompiler)
+void ReflectShaderVariables(CrossCompiler* pCompiler)
 {
    if(pCompiler == NULL)
    {
@@ -401,7 +406,7 @@ SPIRV_INTERFACE  void CALLTYPE ReflectShaderVariables(CrossCompiler* pCompiler)
    pCompiler->UniformVariablesCount = variable_count;
 }
 
-SPIRV_INTERFACE  void CALLTYPE ReflectComputeShaderWorkGroupSize(CrossCompiler* pCompiler, uint32_t* pSizeX, uint32_t* pSizeY, uint32_t* pSizeZ)
+void ReflectComputeShaderWorkGroupSize(CrossCompiler* pCompiler, uint32_t* pSizeX, uint32_t* pSizeY, uint32_t* pSizeZ)
 {
 	spirv_cross::Compiler* compiler = (spirv_cross::Compiler*)pCompiler->pCompiler;
 	spirv_cross::SPIREntryPoint* pEntryPoint = &compiler->get_entry_point(pCompiler->pEntryPoint, compiler->get_execution_model());
@@ -411,7 +416,7 @@ SPIRV_INTERFACE  void CALLTYPE ReflectComputeShaderWorkGroupSize(CrossCompiler* 
 	*pSizeZ = pEntryPoint->workgroup_size.z;
 }
 
-SPIRV_INTERFACE  void CALLTYPE ReflectHullShaderControlPoint(CrossCompiler* pCompiler, uint32_t* pSizeX)
+void ReflectHullShaderControlPoint(CrossCompiler* pCompiler, uint32_t* pSizeX)
 {
 	spirv_cross::Compiler* compiler = (spirv_cross::Compiler*)pCompiler->pCompiler;
 	spirv_cross::SPIREntryPoint* pEntryPoint = &compiler->get_entry_point(pCompiler->pEntryPoint, compiler->get_execution_model());
@@ -419,3 +424,6 @@ SPIRV_INTERFACE  void CALLTYPE ReflectHullShaderControlPoint(CrossCompiler* pCom
 	*pSizeX = pEntryPoint->output_vertices;
 }
 
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif

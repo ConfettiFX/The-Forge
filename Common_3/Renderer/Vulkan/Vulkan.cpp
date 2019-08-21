@@ -50,24 +50,6 @@
 #include <Windows.h>
 #endif
 
-#ifdef FORGE_JHABLE_EDITS_V01
-// These are placed separately in Vulkan.cpp and Direct3D12.cpp, but they should be in one place
-// with an option for the user to append custom attributes. However, it should be initialized once
-// so that we can parse them during shader reflection, not during pipeline binding.
-// clang-format off
-static const char * g_hackSemanticList[] =
-{
-	"POSITION",
-	"NORMAL",
-	"UV",
-	"COLOR",
-	"TANGENT",
-	"BINORMAL",
-	"TANGENT_TW",
-	"TEXCOORD",
-};
-// clang-format on
-#endif
 
 #if defined(__linux__)
 #define stricmp(a, b) strcasecmp(a, b)
@@ -82,7 +64,6 @@ static const char * g_hackSemanticList[] =
 #include "../../ThirdParty/OpenSource/VulkanMemoryAllocator/VulkanMemoryAllocator.h"
 #include "../../OS/Core/Atomics.h"
 #include "../../OS/Core/GPUConfig.h"
-#include "../../OS/Image/Image.h"
 
 #include "../../OS/Interfaces/IMemory.h"
 
@@ -361,8 +342,12 @@ const char* gVkWantedDeviceExtensions[] =
 	VK_EXT_DEBUG_MARKER_EXTENSION_NAME,
 #endif
 
-#ifdef VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME
+#if VK_KHR_draw_indirect_count
 	VK_KHR_DRAW_INDIRECT_COUNT_EXTENSION_NAME,
+#endif
+	// Fragment shader interlock extension to be used for ROV type functionality in Vulkan
+#if VK_EXT_fragment_shader_interlock
+	VK_EXT_FRAGMENT_SHADER_INTERLOCK_EXTENSION_NAME,
 #endif
 	/************************************************************************/
 	// NVIDIA Specific Extensions
@@ -1554,6 +1539,74 @@ VkImageLayout util_to_vk_image_layout(ResourceState usage)
 	return VK_IMAGE_LAYOUT_UNDEFINED;
 }
 
+// Determines pipeline stages involved for given accesses
+VkPipelineStageFlags util_determine_pipeline_stage_flags(VkAccessFlags accessFlags, CmdPoolType cmdPoolType)
+{
+	VkPipelineStageFlags flags = 0;
+
+	switch (cmdPoolType)
+	{
+	case CMD_POOL_DIRECT:
+	case CMD_POOL_BUNDLE:
+	{
+		if ((accessFlags & (VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT)) != 0)
+			flags |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+
+		if ((accessFlags & (VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT)) != 0)
+		{
+			flags |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+			flags |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			flags |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+			flags |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
+			flags |= VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
+			flags |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		}
+
+		if ((accessFlags & VK_ACCESS_INPUT_ATTACHMENT_READ_BIT) != 0)
+			flags |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+
+		if ((accessFlags & (VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)) != 0)
+			flags |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+		if ((accessFlags & (VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)) != 0)
+			flags |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+		break;
+	}
+	case CMD_POOL_COMPUTE:
+	{
+		if ((accessFlags & (VK_ACCESS_INDEX_READ_BIT | VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT)) != 0 ||
+			(accessFlags & VK_ACCESS_INPUT_ATTACHMENT_READ_BIT) != 0 ||
+			(accessFlags & (VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT)) != 0 ||
+			(accessFlags & (VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT)) != 0)
+			return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+
+		if ((accessFlags & (VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT)) != 0)
+			flags |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+
+		break;
+	}
+	case CMD_POOL_COPY:
+		return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+	default:
+		break;
+	}
+
+	// Compatible with both compute and graphics queues
+	if ((accessFlags & VK_ACCESS_INDIRECT_COMMAND_READ_BIT) != 0)
+		flags |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
+
+	if ((accessFlags & (VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT)) != 0)
+		flags |= VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+	if ((accessFlags & (VK_ACCESS_HOST_READ_BIT | VK_ACCESS_HOST_WRITE_BIT)) != 0)
+		flags |= VK_PIPELINE_STAGE_HOST_BIT;
+
+	if (flags == 0)
+		flags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+
+	return flags;
+}
+
 VkImageAspectFlags util_vk_determine_aspect_mask(VkFormat format, bool includeStencilBit)
 {
 	VkImageAspectFlags result = 0;
@@ -1815,10 +1868,26 @@ void CreateInstance(const char* app_name, Renderer* pRenderer)
 			}
 		}
 
+#if VK_HEADER_VERSION >= 108
+		VkValidationFeaturesEXT validationFeaturesExt = { VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT };
+		VkValidationFeatureEnableEXT enabledValidationFeatures[] =
+		{
+			VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT,
+		};
+
+		if (pRenderer->mSettings.mEnableGPUBasedValidation)
+		{
+			validationFeaturesExt.enabledValidationFeatureCount = 1;
+			validationFeaturesExt.pEnabledValidationFeatures = enabledValidationFeatures;
+		}
+#endif
+
 		// Add more extensions here
 		DECLARE_ZERO(VkInstanceCreateInfo, create_info);
 		create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-		create_info.pNext = NULL;
+#if VK_HEADER_VERSION >= 108
+		create_info.pNext = &validationFeaturesExt;
+#endif
 		create_info.flags = 0;
 		create_info.pApplicationInfo = &app_info;
 		create_info.enabledLayerCount = (uint32_t)pRenderer->mInstanceLayers.size();
@@ -2191,18 +2260,6 @@ static void AddDevice(Renderer* pRenderer)
 							gAMDGCNShaderExtension = true;
 						if (strcmp(wantedDeviceExtensions[k], VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME) == 0)
 							gDescriptorIndexingExtension = true;
-						if (strcmp(wantedDeviceExtensions[k], VK_EXT_SHADER_SUBGROUP_BALLOT_EXTENSION_NAME) == 0)
-						{
-							//ballot supported
-							int i = 0;
-							i++;
-						}
-						if (strcmp(wantedDeviceExtensions[k], VK_EXT_SHADER_SUBGROUP_VOTE_EXTENSION_NAME) == 0)
-						{
-							//ballot supported
-							int i = 0;
-							i++;
-						}
 #ifdef VK_NV_RAY_TRACING_SPEC_VERSION
 						if (strcmp(wantedDeviceExtensions[k], VK_NV_RAY_TRACING_EXTENSION_NAME) == 0)
 						{
@@ -2219,7 +2276,13 @@ static void AddDevice(Renderer* pRenderer)
 	}
 
 	// Add more extensions here
+#if VK_EXT_fragment_shader_interlock
+	VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT fragmentShaderInterlockFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT };
+	VkPhysicalDeviceDescriptorIndexingFeaturesEXT descriptorIndexingFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT, &fragmentShaderInterlockFeatures };
+#else
 	VkPhysicalDeviceDescriptorIndexingFeaturesEXT descriptorIndexingFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT };
+#endif // VK_EXT_fragment_shader_interlock
+
 	VkPhysicalDeviceFeatures2KHR gpuFeatures2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR };
 	gpuFeatures2.pNext = &descriptorIndexingFeatures;
 
@@ -2703,12 +2766,6 @@ void addCmd(CmdPool* pCmdPool, bool secondary, Cmd** ppCmd)
 	VkResult vk_res = vkAllocateCommandBuffers(pCmd->pRenderer->pVkDevice, &alloc_info, &(pCmd->pVkCmdBuf));
 	ASSERT(VK_SUCCESS == vk_res);
 
-	if (pCmdPool->mCmdPoolDesc.mCmdPoolType == CMD_POOL_DIRECT)
-	{
-		pCmd->pBoundColorFormats = (uint32_t*)conf_calloc(MAX_RENDER_TARGET_ATTACHMENTS, sizeof(uint32_t));
-		pCmd->pBoundSrgbValues = (bool*)conf_calloc(MAX_RENDER_TARGET_ATTACHMENTS, sizeof(bool));
-	}
-
 	*ppCmd = pCmd;
 }
 
@@ -2719,12 +2776,6 @@ void removeCmd(CmdPool* pCmdPool, Cmd* pCmd)
 	ASSERT(VK_NULL_HANDLE != pCmd->pRenderer->pVkDevice);
 	ASSERT(VK_NULL_HANDLE != pCmdPool->pVkCmdPool);
 	ASSERT(VK_NULL_HANDLE != pCmd->pVkCmdBuf);
-
-	if (pCmd->pBoundColorFormats)
-		SAFE_FREE(pCmd->pBoundColorFormats);
-
-	if (pCmd->pBoundSrgbValues)
-		SAFE_FREE(pCmd->pBoundSrgbValues);
 
 	vkFreeCommandBuffers(pCmd->pRenderer->pVkDevice, pCmdPool->pVkCmdPool, 1, &(pCmd->pVkCmdBuf));
 
@@ -2789,15 +2840,15 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	add_info.pNext = NULL;
 	add_info.flags = 0;
 	add_info.hinstance = ::GetModuleHandle(NULL);
-	add_info.hwnd = (HWND)pDesc->pWindow->handle;
+	add_info.hwnd = (HWND)pDesc->mWindowHandle.window;
 	vk_res = vkCreateWin32SurfaceKHR(pRenderer->pVkInstance, &add_info, NULL, &pSwapChain->pVkSurface);
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
 	DECLARE_ZERO(VkXlibSurfaceCreateInfoKHR, add_info);
 	add_info.sType = VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
 	add_info.pNext = NULL;
 	add_info.flags = 0;
-	add_info.dpy = pDesc->pWindow->display;           //TODO
-	add_info.window = pDesc->pWindow->xlib_window;    //TODO
+	add_info.dpy = pDesc->mWindowHandle.display;      //TODO
+	add_info.window = pDesc->mWindowHandle.window;    //TODO
 
 	vk_res = vkCreateXlibSurfaceKHR(pRenderer->pVkInstance, &add_info, NULL, &pSwapChain->pVkSurface);
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
@@ -2805,8 +2856,8 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	add_info.sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR;
 	add_info.pNext = NULL;
 	add_info.flags = 0;
-	add_info.connection = pDesc->pWindow->connection;    //TODO
-	add_info.window = pDesc->pWindow->xcb_window;        //TODO
+	add_info.connection = pDesc->mWindowHandle.connection;    //TODO
+	add_info.window = pDesc->mWindowHandle.window;        //TODO
 
 	vk_res = vkCreateXcbSurfaceKHR(pRenderer->pVkInstance, &add_info, NULL, &pSwapChain->pVkSurface);
 #elif defined(VK_USE_PLATFORM_IOS_MVK)
@@ -2818,7 +2869,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	add_info.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
 	add_info.pNext = NULL;
 	add_info.flags = 0;
-	add_info.window = (ANativeWindow*)pDesc->pWindow->handle;
+	add_info.window = (ANativeWindow*)pDesc->mWindowHandle.window;
 	vk_res = vkCreateAndroidSurfaceKHR(pRenderer->pVkInstance, &add_info, NULL, &pSwapChain->pVkSurface);
 #else
 #error PLATFORM NOT SUPPORTED
@@ -4541,86 +4592,6 @@ void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 	SAFE_FREE(pRootSignature);
 }
 
-#ifdef FORGE_JHABLE_EDITS_V01
-static bool convertVertInputToSemantic(int& semanticType, int& semanticIndex, const char attrName[], int attrLen)
-{
-	semanticType = -1;
-	semanticIndex = -1;
-
-	int baseOffset = 0;
-
-	{
-		// glslangvalidator and glslc prepend vertex attributes with input_
-		int cmp0 = strncmp(attrName, "input_", 6);
-		if (cmp0 == 0)
-		{
-			baseOffset = 6;
-		}
-
-		// special case for the shaders in TextShaders.h which prepend with in_var_
-		int cmp1 = strncmp(attrName, "in_var_", 7);
-		if (cmp1 == 0)
-		{
-			baseOffset = 7;
-		}
-	}
-
-	// figure out the semantic index, just go backwards until we find a non-number
-	int startIndex = attrLen;
-	while (startIndex - 1 >= baseOffset && '0' <= attrName[startIndex - 1] && attrName[startIndex - 1] < '9')
-	{
-		startIndex--;
-	}
-
-	if (startIndex != attrLen)
-	{
-		int numDigits = attrLen - startIndex;
-		int sum = 0;
-		for (int digitIter = 0; digitIter < numDigits; digitIter++)
-		{
-			sum *= 10;
-			sum += int(attrName[startIndex + digitIter] - '0');
-		}
-		semanticIndex = sum;
-	}
-	else
-	{
-		// if no digit, then semantic is 0
-		semanticIndex = 0;
-	}
-
-	int semanticNum = sizeof(g_hackSemanticList) / sizeof(g_hackSemanticList[0]);
-
-	for (int i = 0; i < semanticNum; i++)
-	{
-		int len = strlen(g_hackSemanticList[i]);
-
-		if (attrLen >= baseOffset + len)
-		{
-			bool ok = true;
-			for (int j = 0; j < len; j++)
-			{
-				int lhs = tolower(g_hackSemanticList[i][j]);
-				int rhs = tolower(attrName[baseOffset + j]);
-				if (lhs != rhs)
-				{
-					ok = false;
-					break;
-				}
-			}
-
-			if (ok)
-			{
-				semanticType = i;
-				break;
-			}
-		}
-	}
-
-	return semanticType >= 0;
-}
-
-#endif
 
 /************************************************************************/
 // Pipeline State Functions
@@ -4734,99 +4705,6 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 			uint32_t attrib_count = pVertexLayout->mAttribCount > MAX_VERTEX_ATTRIBS ? MAX_VERTEX_ATTRIBS : pVertexLayout->mAttribCount;
 			uint32_t binding_value = UINT32_MAX;
 
-#ifdef FORGE_JHABLE_EDITS_V01
-			ASSERT(pShaderProgram->mReflection.mVertexStageIndex >= 0);
-			ASSERT(attrib_count <= MAX_VERTEX_BINDINGS);
-
-			int vertAttrSemanticType[MAX_VERTEX_BINDINGS];
-			int vertAttrSemanticIndex[MAX_VERTEX_BINDINGS];
-			int vertLocation[MAX_VERTEX_BINDINGS];
-			for (int i = 0; i < MAX_VERTEX_BINDINGS; i++)
-			{
-				vertAttrSemanticType[i] = -1;
-				vertAttrSemanticIndex[i] = -1;
-				vertLocation[i] = -1;
-			}
-
-			const ShaderReflection* pVertReflection =
-				&pShaderProgram->mReflection.mStageReflections[pShaderProgram->mReflection.mVertexStageIndex];
-			int numVertexInputs = 0;
-			if (pVertReflection != NULL)
-			{
-				numVertexInputs = pVertReflection->mVertexInputsCount;
-				for (uint32_t i = 0; i < numVertexInputs; ++i)
-				{
-					int  semanticType = -1;
-					int  semanticIndex = -1;
-					bool isFound = convertVertInputToSemantic(
-						semanticType, semanticIndex, pVertReflection->pVertexInputs[i].name, pVertReflection->pVertexInputs[i].name_size);
-					if (isFound)
-					{
-						vertAttrSemanticType[i] = semanticType;
-						vertAttrSemanticIndex[i] = semanticIndex;
-					}
-					else
-					{
-						printf("Faild to find vertex input: %s\n", pVertReflection->pVertexInputs[i].name);
-						int temp = 0;
-						temp++;
-					}
-				}
-			}
-
-			// for each attrib, find the matching input in the reflection
-			for (uint32_t i = 0; i < attrib_count; ++i)
-			{
-				const VertexAttrib* attrib = &(pVertexLayout->mAttribs[i]);
-				int                 foundIndex = -1;
-				int                 expectedType = attrib->mSemanticType;
-				int                 expectedIndex = attrib->mSemanticIndex;
-
-				vertLocation[i] = -1;
-				for (int j = 0; j < numVertexInputs; j++)
-				{
-					if (vertAttrSemanticType[j] == expectedType && vertAttrSemanticIndex[j] == expectedIndex)
-					{
-						vertLocation[i] = j;
-					}
-				}
-			}
-#endif
-
-#ifdef FORGE_JHABLE_EDITS_V01
-			// Initial values
-			for (uint32_t i = 0; i < attrib_count; ++i)
-			{
-				const VertexAttrib* attrib = &(pVertexLayout->mAttribs[i]);
-
-				if (binding_value != attrib->mBinding)
-				{
-					binding_value = attrib->mBinding;
-					++input_binding_count;
-				}
-
-				input_bindings[input_binding_count - 1].stride += ImageFormat::GetImageFormatStride(attrib->mFormat);
-
-				if (vertLocation[i] >= 0)
-				{
-					input_bindings[input_binding_count - 1].binding = binding_value;
-					if (attrib->mRate == VERTEX_ATTRIB_RATE_INSTANCE)
-					{
-						input_bindings[input_binding_count - 1].inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
-					}
-					else
-					{
-						input_bindings[input_binding_count - 1].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
-					}
-
-					input_attributes[input_attribute_count].location = vertLocation[i];    //attrib->mLocation;
-					input_attributes[input_attribute_count].binding = attrib->mBinding;
-					input_attributes[input_attribute_count].format = util_to_vk_image_format(attrib->mFormat, false);
-					input_attributes[input_attribute_count].offset = attrib->mOffset;
-					++input_attribute_count;
-				}
-			}
-#else
 			// Initial values
 			for (uint32_t i = 0; i < attrib_count; ++i)
 			{
@@ -4855,7 +4733,6 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 				input_attributes[input_attribute_count].offset = attrib->mOffset;
 				++input_attribute_count;
 			}
-#endif
 		}
 
 		DECLARE_ZERO(VkPipelineVertexInputStateCreateInfo, vi);
@@ -5276,8 +5153,6 @@ void endCmd(Cmd* pCmd)
 	}
 
 	pCmd->pVkActiveRenderPass = VK_NULL_HANDLE;
-	pCmd->mBoundDepthStencilFormat = ImageFormat::NONE;
-	pCmd->mBoundRenderTargetCount = 0;
 
 	cmdFlushBarriers(pCmd);
 
@@ -5297,8 +5172,6 @@ void cmdBindRenderTargets(
 	{
 		vkCmdEndRenderPass(pCmd->pVkCmdBuf);
 		pCmd->pVkActiveRenderPass = VK_NULL_HANDLE;
-		pCmd->mBoundDepthStencilFormat = ImageFormat::NONE;
-		pCmd->mBoundRenderTargetCount = 0;
 	}
 
 	if (!renderTargetCount && !pDepthStencil)
@@ -5323,9 +5196,6 @@ void cmdBindRenderTargets(
 		};
 		renderPassHash = eastl::mem_hash<uint32_t>()(hashValues, 4, renderPassHash);
 		frameBufferHash = eastl::mem_hash<uint64_t>()(&ppRenderTargets[i]->pTexture->mTextureId, 1, frameBufferHash);
-
-		pCmd->pBoundColorFormats[i] = ppRenderTargets[i]->mDesc.mFormat;
-		pCmd->pBoundSrgbValues[i] = ppRenderTargets[i]->mDesc.mSrgb;
 	}
 	if (pDepthStencil)
 	{
@@ -5338,8 +5208,6 @@ void cmdBindRenderTargets(
 		};
 		renderPassHash = eastl::mem_hash<uint32_t>()(hashValues, 5, renderPassHash);
 		frameBufferHash = eastl::mem_hash<uint64_t>()(&pDepthStencil->pTexture->mTextureId, 1, frameBufferHash);
-
-		pCmd->mBoundDepthStencilFormat = pDepthStencil->mDesc.mFormat;
 	}
 	if (pColorArraySlices)
 		frameBufferHash = eastl::mem_hash<uint32_t>()(pColorArraySlices, renderTargetCount, frameBufferHash);
@@ -5351,9 +5219,6 @@ void cmdBindRenderTargets(
 		frameBufferHash = eastl::mem_hash<uint32_t>()(&depthMipSlice, 1, frameBufferHash);
 
 	SampleCount sampleCount = renderTargetCount ? ppRenderTargets[0]->mDesc.mSampleCount : pDepthStencil->mDesc.mSampleCount;
-	pCmd->mBoundSampleCount = sampleCount;
-	pCmd->mBoundRenderTargetCount = renderTargetCount;
-	pCmd->mRenderPassHash = renderPassHash;
 
 	RenderPassMap&  renderPassMap = get_render_pass_map();
 	FrameBufferMap& frameBufferMap = get_frame_buffer_map();
@@ -5426,9 +5291,6 @@ void cmdBindRenderTargets(
 	render_area.offset.y = 0;
 	render_area.extent.width = pFrameBuffer->mWidth;
 	render_area.extent.height = pFrameBuffer->mHeight;
-
-	pCmd->mBoundWidth = pFrameBuffer->mWidth;
-	pCmd->mBoundHeight = pFrameBuffer->mHeight;
 
 	uint32_t     clearValueCount = renderTargetCount;
 	VkClearValue clearValues[MAX_RENDER_TARGET_ATTACHMENTS + 1] = {};
@@ -5972,6 +5834,9 @@ void cmdResourceBarrier(
 		numBufferBarriers ? (VkBufferMemoryBarrier*)alloca(numBufferBarriers * sizeof(VkBufferMemoryBarrier)) : NULL;
 	uint32_t bufferBarrierCount = 0;
 
+	VkAccessFlags srcAccessFlags = 0;
+	VkAccessFlags dstAccessFlags = 0;
+
 	for (uint32_t i = 0; i < numBufferBarriers; ++i)
 	{
 		BufferBarrier* pTrans = &pBufferBarriers[i];
@@ -5993,6 +5858,9 @@ void cmdResourceBarrier(
 			pBufferBarrier->dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
 			pBuffer->mCurrentState = pTrans->mNewState;
+
+			srcAccessFlags |= pBufferBarrier->srcAccessMask;
+			dstAccessFlags |= pBufferBarrier->dstAccessMask;
 		}
 	}
 	for (uint32_t i = 0; i < numTextureBarriers; ++i)
@@ -6021,8 +5889,14 @@ void cmdResourceBarrier(
 			pImageBarrier->dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
 			pTexture->mCurrentState = pTrans->mNewState;
+
+			srcAccessFlags |= pImageBarrier->srcAccessMask;
+			dstAccessFlags |= pImageBarrier->dstAccessMask;
 		}
 	}
+
+	VkPipelineStageFlags srcStageMask = util_determine_pipeline_stage_flags(srcAccessFlags, pCmd->pCmdPool->mCmdPoolDesc.mCmdPoolType);
+	VkPipelineStageFlags dstStageMask = util_determine_pipeline_stage_flags(dstAccessFlags, pCmd->pCmdPool->mCmdPoolDesc.mCmdPoolType);
 
 	if (bufferBarrierCount || imageBarrierCount)
 	{
@@ -6040,13 +5914,13 @@ void cmdResourceBarrier(
 				pCmd->pBatchImageMemoryBarriers + pCmd->mBatchImageMemoryBarrierCount, imageBarriers,
 				imageBarrierCount * sizeof(VkImageMemoryBarrier));
 			pCmd->mBatchImageMemoryBarrierCount += imageBarrierCount;
+			pCmd->mSrcStageMask |= srcStageMask;
+			pCmd->mDstStageMask |= dstStageMask;
 		}
 		else
 		{
-			VkPipelineStageFlags srcPipelineFlags = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-			VkPipelineStageFlags dstPipelineFlags = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 			vkCmdPipelineBarrier(
-				pCmd->pVkCmdBuf, srcPipelineFlags, dstPipelineFlags, 0, 0, NULL, bufferBarrierCount, bufferBarriers, imageBarrierCount,
+				pCmd->pVkCmdBuf, srcStageMask, dstStageMask, 0, 0, NULL, bufferBarrierCount, bufferBarriers, imageBarrierCount,
 				imageBarriers);
 		}
 	}
@@ -6060,6 +5934,9 @@ void cmdSynchronizeResources(Cmd* pCmd, uint32_t numBuffers, Buffer** ppBuffers,
 	VkBufferMemoryBarrier* bufferBarriers = numBuffers ? (VkBufferMemoryBarrier*)alloca(numBuffers * sizeof(VkBufferMemoryBarrier)) : NULL;
 	uint32_t               bufferBarrierCount = 0;
 
+	VkAccessFlags srcAccessFlags = VK_ACCESS_SHADER_WRITE_BIT;
+	VkAccessFlags dstAccessFlags = srcAccessFlags | VK_ACCESS_SHADER_READ_BIT;
+
 	for (uint32_t i = 0; i < numBuffers; ++i)
 	{
 		VkBufferMemoryBarrier* pBufferBarrier = &bufferBarriers[bufferBarrierCount++];
@@ -6070,8 +5947,8 @@ void cmdSynchronizeResources(Cmd* pCmd, uint32_t numBuffers, Buffer** ppBuffers,
 		pBufferBarrier->size = VK_WHOLE_SIZE;
 		pBufferBarrier->offset = 0;
 
-		pBufferBarrier->srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-		pBufferBarrier->dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+		pBufferBarrier->srcAccessMask = srcAccessFlags;
+		pBufferBarrier->dstAccessMask = dstAccessFlags;
 
 		pBufferBarrier->srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		pBufferBarrier->dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -6089,14 +5966,17 @@ void cmdSynchronizeResources(Cmd* pCmd, uint32_t numBuffers, Buffer** ppBuffers,
 		pImageBarrier->subresourceRange.baseArrayLayer = 0;
 		pImageBarrier->subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
 
-		pImageBarrier->srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-		pImageBarrier->dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+		pImageBarrier->srcAccessMask = srcAccessFlags;
+		pImageBarrier->dstAccessMask = dstAccessFlags;
 		pImageBarrier->oldLayout = VK_IMAGE_LAYOUT_GENERAL;
 		pImageBarrier->newLayout = VK_IMAGE_LAYOUT_GENERAL;
 
 		pImageBarrier->srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		pImageBarrier->dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	}
+
+	VkPipelineStageFlags srcStageMask = util_determine_pipeline_stage_flags(srcAccessFlags, pCmd->pCmdPool->mCmdPoolDesc.mCmdPoolType);
+	VkPipelineStageFlags dstStageMask = util_determine_pipeline_stage_flags(dstAccessFlags, pCmd->pCmdPool->mCmdPoolDesc.mCmdPoolType);
 
 	if (bufferBarrierCount || imageBarrierCount)
 	{
@@ -6113,14 +5993,15 @@ void cmdSynchronizeResources(Cmd* pCmd, uint32_t numBuffers, Buffer** ppBuffers,
 			memcpy(
 				pCmd->pBatchImageMemoryBarriers + pCmd->mBatchImageMemoryBarrierCount, imageBarriers,
 				imageBarrierCount * sizeof(VkImageMemoryBarrier));
+
 			pCmd->mBatchImageMemoryBarrierCount += imageBarrierCount;
+			pCmd->mSrcStageMask |= srcStageMask;
+			pCmd->mDstStageMask |= dstStageMask;
 		}
 		else
 		{
-			VkPipelineStageFlags srcPipelineFlags = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-			VkPipelineStageFlags dstPipelineFlags = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 			vkCmdPipelineBarrier(
-				pCmd->pVkCmdBuf, srcPipelineFlags, dstPipelineFlags, 0, 0, NULL, bufferBarrierCount, bufferBarriers, imageBarrierCount,
+				pCmd->pVkCmdBuf, srcStageMask, dstStageMask, 0, 0, NULL, bufferBarrierCount, bufferBarriers, imageBarrierCount,
 				imageBarriers);
 		}
 	}
@@ -6130,14 +6011,16 @@ void cmdFlushBarriers(Cmd* pCmd)
 {
 	if (pCmd->mBatchBufferMemoryBarrierCount || pCmd->mBatchImageMemoryBarrierCount)
 	{
-		VkPipelineStageFlags srcPipelineFlags = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-		VkPipelineStageFlags dstPipelineFlags = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+		VkPipelineStageFlags srcPipelineFlags = pCmd->mSrcStageMask;
+		VkPipelineStageFlags dstPipelineFlags = pCmd->mDstStageMask;
 		vkCmdPipelineBarrier(
 			pCmd->pVkCmdBuf, srcPipelineFlags, dstPipelineFlags, 0, 0, NULL, pCmd->mBatchBufferMemoryBarrierCount,
 			pCmd->pBatchBufferMemoryBarriers, pCmd->mBatchImageMemoryBarrierCount, pCmd->pBatchImageMemoryBarriers);
 
 		pCmd->mBatchBufferMemoryBarrierCount = 0;
 		pCmd->mBatchImageMemoryBarrierCount = 0;
+		pCmd->mSrcStageMask = 0;
+		pCmd->mDstStageMask = 0;
 	}
 }
 
@@ -6554,6 +6437,11 @@ void removeQueryHeap(Renderer* pRenderer, QueryHeap* pQueryHeap)
 {
 	vkDestroyQueryPool(pRenderer->pVkDevice, pQueryHeap->pVkQueryPool, NULL);
 	SAFE_FREE(pQueryHeap);
+}
+
+void cmdResetQueryHeap(Cmd* pCmd, QueryHeap* pQueryHeap, uint32_t startQuery, uint32_t queryCount)
+{
+	vkCmdResetQueryPool(pCmd->pVkCmdBuf, pQueryHeap->pVkQueryPool, startQuery, queryCount);
 }
 
 void cmdBeginQuery(Cmd* pCmd, QueryHeap* pQueryHeap, QueryDesc* pQuery)

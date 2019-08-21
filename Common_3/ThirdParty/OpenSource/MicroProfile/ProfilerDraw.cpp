@@ -17,9 +17,6 @@ struct ProfileVertex
 	uint32_t mColor/*, mUV*/;
 };
 
-using PipelineMap = eastl::unordered_map<uint64_t, eastl::pair<Pipeline*, Pipeline*>>;
-static PipelineMap DrawPipelines;
-
 #define PROFILE_MAX_VERTEX_COUNT 8192
 static eastl::vector<ProfileVertex> ProfileVertices(PROFILE_MAX_VERTEX_COUNT);
 
@@ -50,27 +47,32 @@ static eastl::vector<ProfileDrawCommand> DrawCommands;
 
 static float HalfWidth;
 static float HalfHeight;
+static uint2 gDimensions = {};
+static const uint32_t MAX_FRAMES = 3;
 
 // Pipeline data
-static RootSignature * pProfileRootSignature = nullptr;
-static DescriptorBinder * pProfileDescriptorBinder = nullptr;
-static DepthState * pDepthState = nullptr;
-static RasterizerState * pProfileRasterizerState = nullptr;
-static BlendState * pBlendState = nullptr;
-static Pipeline * pProfilePipelineBox = nullptr;
-static Pipeline * pProfilePipelineLine = nullptr;
+static RootSignature* pProfileRootSignature = nullptr;
+static DescriptorBinder* pProfileDescriptorBinder = nullptr;
+static DepthState* pDepthState = nullptr;
+static RasterizerState* pProfileRasterizerState = nullptr;
+static BlendState* pBlendState = nullptr;
+static Pipeline* pProfilePipelineBox = nullptr;
+static Pipeline* pProfilePipelineLine = nullptr;
 
 // Draw data
-static int BufferCount;
-static Buffer ** ppProfileBuffers = nullptr;
-static Shader * pProfileShader = nullptr;
-static Fontstash * pFontStash = nullptr;
+static Buffer* pProfileBuffers[MAX_FRAMES] = { nullptr };
+static Shader* pProfileShader = nullptr;
+static Fontstash* pFontStash = nullptr;
+static Renderer* pRenderer = nullptr;
 
 extern void ProfileInitUI();
 extern void ProfileInit();
 
-void initProfiler(Renderer * pRenderer, int image_count)
+
+void initProfiler(Renderer* renderer)
 {
+	pRenderer = renderer;
+
 	// Initialize Profile and UI
 	ProfileInit();
 	ProfileInitUI();
@@ -81,13 +83,9 @@ void initProfiler(Renderer * pRenderer, int image_count)
 	// Create fontstash used to render
 	// then we assume we'll only draw debug text in the UI, in which case the atlas size can be kept small
 	const int mFontAtlasSize = 256;
-	pFontStash = conf_placement_new<Fontstash>(conf_calloc(1, sizeof(Fontstash)), pRenderer, mFontAtlasSize, mFontAtlasSize);
+	pFontStash = (Fontstash*)(conf_calloc(1, sizeof(Fontstash)));
+	pFontStash->init(pRenderer, mFontAtlasSize, mFontAtlasSize);
 	pFontStash->defineFont("defaultProfileUI", "TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
-
-	// Reserve pointer for line resources
-	BufferCount = image_count;
-	ppProfileBuffers = (Buffer **)conf_malloc(sizeof(Buffer *) * image_count);
-	memset(ppProfileBuffers, 0, sizeof(Buffer *) * image_count);
 
 	// Box shader
 	ShaderLoadDesc shader_descriptor{};
@@ -141,23 +139,17 @@ void initProfiler(Renderer * pRenderer, int image_count)
 	line_buffer_descriptor.mDesc.mVertexStride = sizeof(ProfileVertex);
 	line_buffer_descriptor.pData = nullptr;
 
-	for (int i = 0; i < image_count; ++i)
+	for (int i = 0; i < MAX_FRAMES; ++i)
 	{
-		line_buffer_descriptor.ppBuffer = &ppProfileBuffers[i];
+		line_buffer_descriptor.ppBuffer = &pProfileBuffers[i];
 		addResource(&line_buffer_descriptor);
 	}
 }
 
 extern void ProfileShutdown();
 
-void exitProfiler(Renderer * pRenderer)
+void exitProfiler()
 {
-    for (PipelineMap::iterator it = DrawPipelines.begin(); it != DrawPipelines.end(); ++it)
-    {
-        removePipeline(pRenderer, it->second.first);
-        removePipeline(pRenderer, it->second.second);
-    }
-    
 	removeBlendState(pBlendState);
     removeDepthState(pDepthState);
 	removeRasterizerState(pProfileRasterizerState);
@@ -168,19 +160,68 @@ void exitProfiler(Renderer * pRenderer)
 	removeShader(pRenderer, pProfileShader);
 
 	// Free line buffers if any
-	for (int i = 0; i < BufferCount; ++i)
+	for (int i = 0; i < MAX_FRAMES; ++i)
 	{
-		if (ppProfileBuffers[i])
-			removeResource(ppProfileBuffers[i]);
+		if (pProfileBuffers[i])
+			removeResource(pProfileBuffers[i]);
 	}
-	
-	conf_free(ppProfileBuffers);
-	BufferCount = 0;
 
-	pFontStash->destroy();
+	pFontStash->exit();
 	conf_free(pFontStash);
 
 	ProfileShutdown();
+}
+
+void loadProfiler(RenderTarget* pRenderTarget)
+{
+	gDimensions = { pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight };
+
+	pFontStash->load(&pRenderTarget, 1);
+
+	// Box pipeline
+	// Vertex input layout
+	VertexLayout vertex_layout{};
+	vertex_layout.mAttribCount = 2;
+	vertex_layout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+	vertex_layout.mAttribs[0].mFormat = ImageFormat::RG32F;
+	vertex_layout.mAttribs[0].mBinding = 0;
+	vertex_layout.mAttribs[0].mLocation = 0;
+	vertex_layout.mAttribs[0].mOffset = 0;
+	vertex_layout.mAttribs[1].mSemantic = SEMANTIC_COLOR;
+	vertex_layout.mAttribs[1].mFormat = ImageFormat::RGBA8;
+	vertex_layout.mAttribs[1].mBinding = 0;
+	vertex_layout.mAttribs[1].mLocation = 1;
+	vertex_layout.mAttribs[1].mOffset = sizeof(float) * 2;
+
+	PipelineDesc pipeline_descriptor{};
+	pipeline_descriptor.mType = PIPELINE_TYPE_GRAPHICS;
+	GraphicsPipelineDesc & pipeline_settings = pipeline_descriptor.mGraphicsDesc;
+	pipeline_settings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+	pipeline_settings.mRenderTargetCount = 1;
+	pipeline_settings.pDepthState = pDepthState;
+	pipeline_settings.pColorFormats = &pRenderTarget->mDesc.mFormat;
+	pipeline_settings.pSrgbValues = &pRenderTarget->mDesc.mSrgb;
+	pipeline_settings.mSampleCount = pRenderTarget->mDesc.mSampleCount;
+	pipeline_settings.mSampleQuality = pRenderTarget->mDesc.mSampleQuality;
+	pipeline_settings.mDepthStencilFormat = ImageFormat::NONE;
+	pipeline_settings.pRootSignature = pProfileRootSignature;
+	pipeline_settings.pShaderProgram = pProfileShader;
+	pipeline_settings.pVertexLayout = &vertex_layout;
+	pipeline_settings.pRasterizerState = pProfileRasterizerState;
+	pipeline_settings.pBlendState = pBlendState;
+	addPipeline(pRenderer, &pipeline_descriptor, &pProfilePipelineBox);
+
+	// Line pipeline
+	pipeline_settings.mPrimitiveTopo = PRIMITIVE_TOPO_LINE_LIST;
+	addPipeline(pRenderer, &pipeline_descriptor, &pProfilePipelineLine);
+}
+
+void unloadProfiler()
+{
+	removePipeline(pRenderer, pProfilePipelineLine);
+	removePipeline(pRenderer, pProfilePipelineBox);
+
+	pFontStash->unload();
 }
 
 static float ConvertToNDCX(int value)
@@ -270,13 +311,18 @@ void ProfileDrawLine2D(uint32_t nVertices, float* pVertices, uint32_t nColor)
 	}
 }
 
-void ProfileBeginDraw(uint32_t width, uint32_t height)
+void ProfileBeginDraw()
 {
-	HalfWidth = static_cast<float>(width) / 2.0f;
-	HalfHeight = static_cast<float>(height) / 2.0f;
+	HalfWidth = static_cast<float>(gDimensions.x) / 2.0f;
+	HalfHeight = static_cast<float>(gDimensions.y) / 2.0f;
 	ProfileVertices.clear();
 	DrawCommands.clear();
 	TextCounter = 0;
+}
+
+uint2 ProfileGetDrawDimensions()
+{
+	return gDimensions;
 }
 
 #if defined(_DURANGO)
@@ -300,55 +346,6 @@ void DrawMousePosition(int32_t x, int32_t y)
 
 void ProfileEndDraw(Cmd * pCmd)
 {
-    // Create pipeline if we don't have one that fits the current Cmd
-    PipelineMap::iterator it = DrawPipelines.find(pCmd->mRenderPassHash);
-    if(it == DrawPipelines.end())
-    {
-        // Box pipeline
-        // Vertex input layout
-        VertexLayout vertex_layout{};
-        vertex_layout.mAttribCount = 2;
-        vertex_layout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-        vertex_layout.mAttribs[0].mFormat = ImageFormat::RG32F;
-        vertex_layout.mAttribs[0].mBinding = 0;
-        vertex_layout.mAttribs[0].mLocation = 0;
-        vertex_layout.mAttribs[0].mOffset = 0;
-        vertex_layout.mAttribs[1].mSemantic = SEMANTIC_COLOR;
-        vertex_layout.mAttribs[1].mFormat = ImageFormat::RGBA8;
-        vertex_layout.mAttribs[1].mBinding = 0;
-        vertex_layout.mAttribs[1].mLocation = 1;
-        vertex_layout.mAttribs[1].mOffset = sizeof(float) * 2;
-        
-        PipelineDesc pipeline_descriptor{};
-        pipeline_descriptor.mType = PIPELINE_TYPE_GRAPHICS;
-        GraphicsPipelineDesc & pipeline_settings = pipeline_descriptor.mGraphicsDesc;
-        pipeline_settings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-        pipeline_settings.mRenderTargetCount = pCmd->mBoundRenderTargetCount;
-        pipeline_settings.pDepthState = pDepthState;
-        pipeline_settings.pColorFormats = (ImageFormat::Enum*)pCmd->pBoundColorFormats;
-        pipeline_settings.pSrgbValues = pCmd->pBoundSrgbValues;
-        pipeline_settings.mSampleCount = pCmd->mBoundSampleCount;
-        pipeline_settings.mSampleQuality = pCmd->mBoundSampleQuality;
-        pipeline_settings.mDepthStencilFormat = (ImageFormat::Enum)pCmd->mBoundDepthStencilFormat;
-        pipeline_settings.pRootSignature = pProfileRootSignature;
-        pipeline_settings.pShaderProgram = pProfileShader;
-        pipeline_settings.pVertexLayout = &vertex_layout;
-        pipeline_settings.pRasterizerState = pProfileRasterizerState;
-        pipeline_settings.pBlendState = pBlendState;
-        addPipeline(pCmd->pRenderer, &pipeline_descriptor, &pProfilePipelineBox);
-        
-        // Line pipeline
-        pipeline_settings.mPrimitiveTopo = PRIMITIVE_TOPO_LINE_LIST;
-        addPipeline(pCmd->pRenderer, &pipeline_descriptor, &pProfilePipelineLine);
-        
-        DrawPipelines.insert({ pCmd->mRenderPassHash, { pProfilePipelineBox, pProfilePipelineLine } });
-    }
-    else
-    {
-        pProfilePipelineBox = it->second.first;
-        pProfilePipelineLine = it->second.second;
-    }
-    
 #if defined(_DURANGO)
     if(draw_mouse)
     {
@@ -371,7 +368,7 @@ void ProfileEndDraw(Cmd * pCmd)
         
     
 	// Update buffer
-	Buffer * frame_buffer = ppProfileBuffers[pCmd->pRenderer->mCurrentFrameIdx];
+	Buffer * frame_buffer = pProfileBuffers[pCmd->pRenderer->mCurrentFrameIdx];
 	BufferUpdateDesc update_desc{ frame_buffer, ProfileVertices.data(), 0, 0, ProfileVertices.size() * sizeof(ProfileVertex) };
 	updateResource(&update_desc);
 

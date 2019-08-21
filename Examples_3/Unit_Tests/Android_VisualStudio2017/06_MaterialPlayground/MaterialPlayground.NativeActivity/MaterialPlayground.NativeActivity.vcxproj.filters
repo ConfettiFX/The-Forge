@@ -1,0 +1,115 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="android_native_app_glue.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\TFXImporter\TFXImporter.h">
+      <Filter>Source Files\TFXImporter</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\TFXImporter\TressFXAsset.h">
+      <Filter>Source Files\TFXImporter</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\TFXImporter\TressFXFileFormat.h">
+      <Filter>Source Files\TFXImporter</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="android_native_app_glue.c" />
+    <ClCompile Include="..\..\..\src\06_MaterialPlayground\06_MaterialPlayground.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\TFXImporter\TFXImporter.cpp">
+      <Filter>Source Files\TFXImporter</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\TFXImporter\TressFXAsset.cpp">
+      <Filter>Source Files\TFXImporter</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{eef23cb1-e192-41b6-8601-6c2e68af214a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Lua">
+      <UniqueIdentifier>{9e766f1e-a886-4a71-b7f5-03de99f6c623}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{8e817bae-f53d-41f2-af20-e869d1a276a0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\TFXImporter">
+      <UniqueIdentifier>{73fd4a1d-0d82-416c-928f-0d5b8dd7df84}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\BRDFIntegration.comp">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\computeIrradianceMap.comp">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\computeSpecularMap.comp">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\fullscreen.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\hair.comp">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\hair.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\hair.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\panoToCube.comp">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\profile.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\profile.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\renderSceneBRDF.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\renderSceneBRDF.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\renderSceneShadows.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\renderSceneShadows.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\showCapsules.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\showCapsules.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\skeleton.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\skeleton.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\skybox.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\skybox.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\loadGroundTextures.lua">
+      <Filter>Lua</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\loadModels.lua">
+      <Filter>Lua</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\loadTextures.lua">
+      <Filter>Lua</Filter>
+    </None>
+    <None Include="..\..\..\src\06_MaterialPlayground\updateCamera.lua">
+      <Filter>Lua</Filter>
+    </None>
+  </ItemGroup>
+</Project>

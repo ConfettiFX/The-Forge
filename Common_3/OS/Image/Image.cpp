@@ -31,6 +31,7 @@
 #include "../../ThirdParty/OpenSource/EASTL/functional.h"
 #include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 
+#define IMAGE_CLASS_ALLOWED
 #include "Image.h"
 #include "../Interfaces/ILog.h"
 #include "../../ThirdParty/OpenSource/TinyEXR/tinyexr.h"
@@ -696,7 +697,7 @@ unsigned char* Image::Create(const ImageFormat::Enum fmt, const int w, const int
 	return pData;
 }
 
-unsigned char* Image::Create(const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize, unsigned char* rawData)
+unsigned char* Image::Create(const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize, const unsigned char* rawData)
 {
 	mFormat = fmt;
 	mWidth = w;
@@ -706,7 +707,7 @@ unsigned char* Image::Create(const ImageFormat::Enum fmt, const int w, const int
 	mArrayCount = arraySize;
 	mOwnsMemory = false;
 
-	pData = rawData;	
+	pData = (uint8_t*)rawData;
 	mLoadFileName = "Undefined";
 
 	return pData;
@@ -1039,89 +1040,8 @@ uint Image::GetMipMappedSize(const uint firstMipMapLevel, uint nMipMapLevels, Im
 
 	if (srcFormat == ImageFormat::NONE)
 		srcFormat = mFormat;
-	
-	// PVR formats get special case
-	if ( (srcFormat >= ImageFormat::PVR_2BPP && srcFormat <= ImageFormat::PVR_4BPPA))
-	{
-		uint totalSize = 0;
-		uint sizeX = w;
-		uint sizeY = h;
-		uint sizeD = d;
-		int level = nMipMapLevels;
-		
-		uint minWidth = 8;
-		uint minHeight = 8;
-		uint minDepth = 1;
-		int bpp = 4;
-		
-		if (srcFormat == ImageFormat::PVR_2BPP || srcFormat == ImageFormat::PVR_2BPPA)
-		{
-			minWidth = 16;
-			minHeight = 8;
-			bpp = 2;
-		}
-		
-		while (level > 0)
-		{
-			// If pixel format is compressed, the dimensions need to be padded.
-			uint paddedWidth = sizeX + ((-1 * sizeX) % minWidth);
-			uint paddedHeight = sizeY + ((-1 * sizeY) % minHeight);
-			uint paddedDepth = sizeD + ((-1 * sizeD) % minDepth);
-			
-			int mipSize = paddedWidth * paddedHeight * paddedDepth * bpp / 8;
-			
-			totalSize += mipSize;
-			
-			unsigned int MinimumSize = 1;
-			sizeX = max(sizeX / 2, MinimumSize);
-			sizeY = max(sizeY / 2, MinimumSize);
-			sizeD = max(sizeD / 2, MinimumSize);
-			level--;
-		}
-		
-		return totalSize;
-	}
-	
-	int size = 0;
-	while (nMipMapLevels)
-	{
-		if (ImageFormat::IsCompressedFormat(srcFormat))
-		{
-			uint3 blockSize = ImageFormat::GetBlockSize(srcFormat);
-			uint32_t bx = blockSize.x;
-			uint32_t by = blockSize.y;
-			uint32_t bz = blockSize.z;
-			size += ((w + bx - 1) / bx) * ((h + by - 1) / by) * ((d + bz - 1) / bz);
-		}
-		else
-		{
-			size += w * h * d;
-		}
-		w >>= 1;
-		h >>= 1;
-		d >>= 1;
-		if (w + h + d == 0)
-			break;
-		if (w == 0)
-			w = 1;
-		if (h == 0)
-			h = 1;
-		if (d == 0)
-			d = 1;
 
-		nMipMapLevels--;
-	}
-
-	if (ImageFormat::IsCompressedFormat(srcFormat))
-	{
-		size *= ImageFormat::GetBytesPerBlock(srcFormat);
-	}
-	else
-	{
-		size *= ImageFormat::GetBytesPerPixel(srcFormat);
-	}
-
-	return (mDepth == 0) ? 6 * size : size;
+	return (mDepth == 0 ? 6 : 1) * ImageFormat::GetMipMappedSize(w, h, d, nMipMapLevels - firstMipMapLevel, srcFormat);
 }
 
 // Load Image Data form mData functions
@@ -1764,32 +1684,7 @@ struct StaticImageLoader
 
 void Image::AddImageLoader(const char* pExtension, ImageLoaderFunction pFunc) { gImageLoaders.push_back({ pExtension, pFunc }); }
 
-void Image::loadFromMemoryXY(
-	const void* mem, const int topLeftX, const int topLeftY, const int bottomRightX, const int bottomRightY, const int pitch)
-{
-	if (ImageFormat::IsPlainFormat(getFormat()) == false)
-		return;    // unsupported
-
-	int bpp_dest = ImageFormat::GetBytesPerPixel(getFormat());
-	int rowOffset_dest = bpp_dest * mWidth;
-	int subHeight = bottomRightY - topLeftY;
-	int subWidth = bottomRightX - topLeftX;
-	int subRowSize = subWidth * ImageFormat::GetBytesPerPixel(getFormat());
-
-	unsigned char* start = pData;
-	start = start + topLeftY * rowOffset_dest + topLeftX * bpp_dest;
-
-	unsigned char* from = (unsigned char*)mem;
-
-	for (int i = 0; i < subHeight; i++)
-	{
-		memcpy(start, from, subRowSize);
-		start += rowOffset_dest;
-		from += pitch;
-	}
-}
-
-bool Image::loadFromMemory(
+bool Image::LoadFromMemory(
 	void const* mem, uint32_t size, char const* extension, memoryAllocationFunc pAllocator, void* pUserData)
 {
 	// try loading the format
@@ -1806,7 +1701,7 @@ bool Image::loadFromMemory(
 	return loaded;
 }
 
-bool Image::loadImage(const char* origFileName, memoryAllocationFunc pAllocator, void* pUserData, FSRoot root)
+bool Image::LoadFromFile(const char* origFileName, memoryAllocationFunc pAllocator, void* pUserData, FSRoot root)
 {
 	// clear current image
 	Clear();
@@ -2455,7 +2350,7 @@ static ImageSaverDefinition gImageSavers[] = {
 	{ ".dds", &Image::iSaveDDS }
 };
 
-bool Image::SaveImage(const char* fileName)
+bool Image::Save(const char* fileName)
 {
 	const char* extension = strrchr(fileName, '.');
 	bool        support = false;

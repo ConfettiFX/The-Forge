@@ -4,9 +4,6 @@
     <ClCompile Include="..\src\10_PixelProjectedReflections\10_PixelProjectedReflections.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\Common\AppHelpers.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
@@ -113,10 +110,5 @@
     <None Include="..\src\10_PixelProjectedReflections\Shaders\D3D12\PPR_Reflection.vert">
       <Filter>Shaders\D3D12</Filter>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\Common\AppHelpers.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>

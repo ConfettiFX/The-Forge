@@ -25,23 +25,30 @@ struct GpuProfiler;
 struct Renderer;
 struct GpuTimer;
 struct SwapChain;
+struct RenderTarget;
 
 // Call on application initialize to generate the resources needed for UI drawing
 // Must be called before adding any GpuProfiler
-void initProfiler(Renderer * pRenderer, int image_count);
+void initProfiler(Renderer* pRenderer);
+
+// Must be called to specify render target format to draw into
+void loadProfiler(RenderTarget* pRenderTarget);
 
 // Call on application initialize for Profiler's UI input handling
 // To modify inputs go to file /Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerInput.cpp
 void profileRegisterInput();
 
+// Call on application load
+void unloadProfiler();
+
 // Call on application exit to release resources needed for UI drawing
-void exitProfiler(Renderer * pRenderer);
+void exitProfiler();
 
 // Call once per frame to update profiler, ideally after presenting the frame so GPU timestamps are as accurate as possible
 void flipProfiler();
 
 // Call once per frame to draw UI
-void cmdDrawProfiler(Cmd * pCmd, uint32_t Width, uint32_t Height);
+void cmdDrawProfiler(Cmd* pCmd);
 
 // Check this file for how to CPU profile
 #include "../../ThirdParty/OpenSource/MicroProfile/ProfilerBase.h"

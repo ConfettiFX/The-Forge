@@ -768,6 +768,7 @@
 					"-Wno-ignored-attributes",
 					"-Werror",
 					"'-std=gnu++11'",
+					"-Wno-c++14-extensions",
 				);
 				OTHER_LIBTOOLFLAGS = " ";
 				OTHER_REZFLAGS = "";
@@ -808,6 +809,7 @@
 					"-Wno-ignored-attributes",
 					"-Werror",
 					"'-std=gnu++11'",
+					"-Wno-c++14-extensions",
 				);
 				OTHER_LIBTOOLFLAGS = " ";
 				OTHER_REZFLAGS = "";

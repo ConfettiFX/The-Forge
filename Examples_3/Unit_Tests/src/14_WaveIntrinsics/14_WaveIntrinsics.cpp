@@ -333,7 +333,6 @@ class WaveIntrinsics: public IApp
 #endif
 		}
 
-		requestMouseCapture(true);
 		InputSystem::RegisterInputEvent(onInput);
 
 		return true;
@@ -567,7 +566,7 @@ class WaveIntrinsics: public IApp
 	bool addSwapChain()
 	{
 		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.mWindowHandle = pWindow->handle;
 		swapChainDesc.mPresentQueueCount = 1;
 		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mWidth = mSettings.mWidth;

@@ -97,6 +97,7 @@ typedef struct GpuProfiler
 	char mGroupName[256] = "GPU";
 	ProfileThreadLog * pLog = nullptr;
 
+	bool mReset = true;
 	bool mUpdate;
 } GpuProfiler;
 

@@ -248,7 +248,10 @@ static void CreateGeom(const aiMesh* mesh, const char* name, AssimpImporter::Mes
 			}
 
 			aiMatrix4x4 mat = bone->mOffsetMatrix;
-			mat4        offsetMat = *(mat4*)&mat;
+			mat4        offsetMat = mat4(vec4(mat[0][0], mat[0][1], mat[0][2], mat[0][3]),
+										 vec4(mat[1][0], mat[1][1], mat[1][2], mat[1][3]),
+										 vec4(mat[2][0], mat[2][1], mat[2][2], mat[2][3]),
+										 vec4(mat[3][0], mat[3][1], mat[3][2], mat[3][3]));
 			pMesh->mBones[i] = { bone->mName.C_Str(), transpose(offsetMat) };
 		}
 	}

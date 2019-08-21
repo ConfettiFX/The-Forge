@@ -30,7 +30,6 @@
 #include "../../../Common_3/Renderer/IRenderer.h"
 #include "../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../Common_3/OS/Core/RingBuffer.h"
-#include "../../../Common_3/OS/Image/Image.h"
 #include "../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../Common_3/OS/Interfaces/IThread.h"
@@ -38,7 +37,6 @@
 #include "../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../Common_3/OS/Core/ThreadSystem.h"
-#include "../../Common/AppHelpers.h"
 
 #include "../../../Middleware_3/UI/AppUI.h"
 
@@ -520,11 +518,9 @@ Shader*           pGodRayPass = nullptr;
 Pipeline*         pPipelineGodRayPass = nullptr;
 RootSignature*    pRootSigGodRayPass = nullptr;
 
-uint SunVertexCount;
-uint SunIndexCount;
-
-Buffer* pSunVertexBuffer = NULL;
-Buffer* pSunIndexBuffer = NULL;
+Buffer*           pSunVertexBuffer = NULL;
+Buffer*           pSunIndexBuffer = NULL;
+uint32_t          gSunIndexCount = 0;
 /************************************************************************/
 // Curve Conversion pipeline
 /************************************************************************/
@@ -781,7 +777,23 @@ IWidget* addResolutionProperty(
 
 class VisibilityBuffer: public IApp
 {
-public:
+	struct TextureLoadTaskData
+	{
+		Texture**       mTextures;
+		const char**    mNames;
+		TextureLoadDesc mDesc;
+	};
+
+	static void loadTexturesTask(void* data, uintptr_t i)
+	{
+		TextureLoadTaskData* pTaskData = (TextureLoadTaskData*)data;
+		TextureLoadDesc      desc = pTaskData->mDesc;
+		desc.pFilename = pTaskData->mNames[i];
+		desc.ppTexture = &pTaskData->mTextures[i];
+		addResource(&desc, true);
+	};
+
+	public:
 #if defined(DIRECT3D12)
 	void SetHDRMetaData(float MaxOutputNits, float MinOutputNits, float MaxCLL, float MaxFALL)
 	{
@@ -864,7 +876,7 @@ public:
 		/************************************************************************/
 		initResourceLoaderInterface(pRenderer);
 
-		initProfiler(pRenderer, gImageCount);
+		initProfiler(pRenderer);
 		profileRegisterInput();
 		
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGraphicsGpuProfiler, "GraphicsGpuProfiler");
@@ -950,6 +962,14 @@ public:
 		addSampler(pRenderer, &bilinearDesc, &pSamplerBilinear);
 		addSampler(pRenderer, &pointDesc, &pSamplerPointClamp);
 		addSampler(pRenderer, &bilinearClampDesc, &pSamplerBilinearClamp);
+		
+		/************************************************************************/
+		// Setup the UI components for text rendering, UI controls...
+		/************************************************************************/
+		if (!gAppUI.Init(pRenderer))
+			return false;
+		
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 		
 		/************************************************************************/
 		// Load resources for skybox
@@ -1149,6 +1169,12 @@ public:
 		RootSignatureDesc finalShaderRootSigDesc = { &pShaderPresentPass, 1 };
 		addRootSignature(pRenderer, &finalShaderRootSigDesc, &pRootSigPresentPass);
 		
+		const char*       pSkyboxSamplerName = "skyboxSampler";
+		RootSignatureDesc skyboxRootDesc = { &pShaderSkybox, 1 };
+		skyboxRootDesc.mStaticSamplerCount = 1;
+		skyboxRootDesc.ppStaticSamplerNames = &pSkyboxSamplerName;
+		skyboxRootDesc.ppStaticSamplers = &pSamplerBilinear;
+		addRootSignature(pRenderer, &skyboxRootDesc, &pRootSingatureSkybox);
 		/************************************************************************/
 		// Setup descriptor binder
 		/************************************************************************/
@@ -1186,6 +1212,80 @@ public:
 		
 		// Create geometry for light rendering
 		createCubeBuffers(pRenderer, pCmdPool, &pVertexBufferCube, &pIndexBufferCube);
+
+		//Generate sky box vertex buffer
+		static const float skyBoxPoints[] =
+		{
+			0.5f,  -0.5f, -0.5f, 1.0f,    // -z
+			-0.5f, -0.5f, -0.5f, 1.0f,  -0.5f, 0.5f,  -0.5f, 1.0f,  -0.5f, 0.5f,
+			-0.5f, 1.0f,  0.5f,  0.5f,  -0.5f, 1.0f,  0.5f,  -0.5f, -0.5f, 1.0f,
+
+			-0.5f, -0.5f, 0.5f,  1.0f,    //-x
+			-0.5f, -0.5f, -0.5f, 1.0f,  -0.5f, 0.5f,  -0.5f, 1.0f,  -0.5f, 0.5f,
+			-0.5f, 1.0f,  -0.5f, 0.5f,  0.5f,  1.0f,  -0.5f, -0.5f, 0.5f,  1.0f,
+
+			0.5f,  -0.5f, -0.5f, 1.0f,    //+x
+			0.5f,  -0.5f, 0.5f,  1.0f,  0.5f,  0.5f,  0.5f,  1.0f,  0.5f,  0.5f,
+			0.5f,  1.0f,  0.5f,  0.5f,  -0.5f, 1.0f,  0.5f,  -0.5f, -0.5f, 1.0f,
+
+			-0.5f, -0.5f, 0.5f,  1.0f,    // +z
+			-0.5f, 0.5f,  0.5f,  1.0f,  0.5f,  0.5f,  0.5f,  1.0f,  0.5f,  0.5f,
+			0.5f,  1.0f,  0.5f,  -0.5f, 0.5f,  1.0f,  -0.5f, -0.5f, 0.5f,  1.0f,
+
+			-0.5f, 0.5f,  -0.5f, 1.0f,    //+y
+			0.5f,  0.5f,  -0.5f, 1.0f,  0.5f,  0.5f,  0.5f,  1.0f,  0.5f,  0.5f,
+			0.5f,  1.0f,  -0.5f, 0.5f,  0.5f,  1.0f,  -0.5f, 0.5f,  -0.5f, 1.0f,
+
+			0.5f,  -0.5f, 0.5f,  1.0f,    //-y
+			0.5f,  -0.5f, -0.5f, 1.0f,  -0.5f, -0.5f, -0.5f, 1.0f,  -0.5f, -0.5f,
+			-0.5f, 1.0f,  -0.5f, -0.5f, 0.5f,  1.0f,  0.5f,  -0.5f, 0.5f,  1.0f,
+		};
+
+		uint64_t       skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
+		BufferLoadDesc skyboxVbDesc = {};
+		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
+		skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
+		skyboxVbDesc.pData = skyBoxPoints;
+		skyboxVbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		skyboxVbDesc.ppBuffer = &pSkyboxVertexBuffer;
+		addResource(&skyboxVbDesc, true);
+
+		eastl::vector<Vertex> sunVertices;
+		eastl::vector<uint16_t> sunIndices;
+		eastl::string sunFullPath = FileSystem::FixPath(gSunName, FSRoot::FSR_Meshes);
+		if (loadModel(sunFullPath, sunVertices, sunIndices))
+		{
+			// Vertex position buffer for the scene
+			BufferLoadDesc vbPosDesc = {};
+			vbPosDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+			vbPosDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+			vbPosDesc.mDesc.mVertexStride = sizeof(Vertex);
+			vbPosDesc.mDesc.mSize = sunVertices.size() * vbPosDesc.mDesc.mVertexStride;
+			vbPosDesc.pData = sunVertices.data();
+			vbPosDesc.ppBuffer = &pSunVertexBuffer;
+			vbPosDesc.mDesc.pDebugName = L"Sun Vertex Buffer";
+			addResource(&vbPosDesc, true);
+
+			BufferLoadDesc ibPosDesc = {};
+			ibPosDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
+			ibPosDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+			ibPosDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+			ibPosDesc.mDesc.mSize = sizeof(uint16_t) * sunIndices.size();
+			ibPosDesc.mDesc.mIndexType = INDEX_TYPE_UINT16;
+			ibPosDesc.pData = sunIndices.data();
+			ibPosDesc.ppBuffer = &pSunIndexBuffer;
+			ibPosDesc.mDesc.pDebugName = L"Sun Index Buffer";
+			addResource(&ibPosDesc, true);
+
+			gSunIndexCount = (uint32_t)sunIndices.size();
+		}
+		else
+		{
+			LOGF(eERROR, "Failed to load Sun model (%s)", sunFullPath.c_str());
+			return false;
+		}
 		/************************************************************************/
 		// Setup compute pipelines for triangle filtering
 		/************************************************************************/
@@ -1214,13 +1314,6 @@ public:
 		pipelineSettings.pShaderProgram = pShaderClusterLights;
 		pipelineSettings.pRootSignature = pRootSignatureClusterLights;
 		addPipeline(pRenderer, &pipelineDesc, &pPipelineClusterLights);
-		/************************************************************************/
-		// Setup the UI components for text rendering, UI controls...
-		/************************************************************************/
-		if (!gAppUI.Init(pRenderer))
-			return false;
-		
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 		
 		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(225.0f, 100.0f);
@@ -1431,7 +1524,6 @@ public:
 		camParams.maxSpeed = 200 * 2.5f;
 		pCameraController = createFpsCameraController(startPosition, startLookAt);
 		pCameraController->setMotionParameters(camParams);
-		requestMouseCapture(true);
 		/************************************************************************/
 		/************************************************************************/
 		// Finish the resource loading process since the next code depends on the loaded resources
@@ -1488,7 +1580,7 @@ public:
 		
 		gAppSettings.mDynamicUIWidgetsAO.Destroy();
 		
-		exitProfiler(pRenderer);
+		exitProfiler();
 
 		gAppUI.Exit();
 		
@@ -1636,6 +1728,7 @@ public:
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
+		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
 #if defined(DIRECT3D12)
 		if (gAppSettings.mOutputMode == OUTPUT_MODE_HDR10)
 		{
@@ -2131,6 +2224,7 @@ public:
 			removeSemaphore(pRenderer, pComputeCompleteSemaphores[i]);
 		}
 
+		unloadProfiler();
 		gAppUI.Unload();
 		
 		for (uint32_t i = 0; i < 4; ++i)
@@ -2574,7 +2668,7 @@ public:
 		const uint32_t height = mSettings.mHeight;
 		
 		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.mWindowHandle = pWindow->handle;
 		swapChainDesc.mPresentQueueCount = 1;
 		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mWidth = width;
@@ -2931,7 +3025,11 @@ public:
 		
 		presentShaderDesc.mStages[0] = { "display.vert", NULL, 0, FSR_SrcShaders };
 		presentShaderDesc.mStages[1] = { "display.frag", NULL, 0, FSR_SrcShaders };
-		
+
+		ShaderLoadDesc skyboxShaderDesc = {};
+		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0, FSR_SrcShaders };
+		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0, FSR_SrcShaders };
+
 		addShader(pRenderer, &presentShaderDesc, &pShaderPresentPass);
 		
 		addShader(pRenderer, &shadowPass, &pShaderShadowPass[GEOMSET_OPAQUE]);
@@ -2954,6 +3052,7 @@ public:
 		addShader(pRenderer, &resolvePass, &pShaderResolve);
 		addShader(pRenderer, &resolveGodrayPass, &pShaderGodrayResolve);
 		addShader(pRenderer, &batchCompaction, &pShaderBatchCompaction);
+		addShader(pRenderer, &skyboxShaderDesc, &pShaderSkybox);
 	}
 	
 	void removeShaders()
@@ -4933,60 +5032,6 @@ public:
 		
 		removeResource(pPanoSkybox);
 		removeSampler(pRenderer, pSkyboxSampler);
-		
-		ShaderLoadDesc skyboxShaderDesc = {};
-		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0, FSR_SrcShaders };
-		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0, FSR_SrcShaders };
-		
-		addShader(pRenderer, &skyboxShaderDesc, &pShaderSkybox);
-		
-		const char*       pSkyboxSamplerName = "skyboxSampler";
-		RootSignatureDesc skyboxRootDesc = { &pShaderSkybox, 1 };
-		skyboxRootDesc.mStaticSamplerCount = 1;
-		skyboxRootDesc.ppStaticSamplerNames = &pSkyboxSamplerName;
-		skyboxRootDesc.ppStaticSamplers = &pSamplerBilinear;
-		addRootSignature(pRenderer, &skyboxRootDesc, &pRootSingatureSkybox);
-		
-		//Generate sky box vertex buffer
-		static const float skyBoxPoints[] = {
-			0.5f,  -0.5f, -0.5f, 1.0f,    // -z
-			-0.5f, -0.5f, -0.5f, 1.0f,  -0.5f, 0.5f,  -0.5f, 1.0f,  -0.5f, 0.5f,
-			-0.5f, 1.0f,  0.5f,  0.5f,  -0.5f, 1.0f,  0.5f,  -0.5f, -0.5f, 1.0f,
-			
-			-0.5f, -0.5f, 0.5f,  1.0f,    //-x
-			-0.5f, -0.5f, -0.5f, 1.0f,  -0.5f, 0.5f,  -0.5f, 1.0f,  -0.5f, 0.5f,
-			-0.5f, 1.0f,  -0.5f, 0.5f,  0.5f,  1.0f,  -0.5f, -0.5f, 0.5f,  1.0f,
-			
-			0.5f,  -0.5f, -0.5f, 1.0f,    //+x
-			0.5f,  -0.5f, 0.5f,  1.0f,  0.5f,  0.5f,  0.5f,  1.0f,  0.5f,  0.5f,
-			0.5f,  1.0f,  0.5f,  0.5f,  -0.5f, 1.0f,  0.5f,  -0.5f, -0.5f, 1.0f,
-			
-			-0.5f, -0.5f, 0.5f,  1.0f,    // +z
-			-0.5f, 0.5f,  0.5f,  1.0f,  0.5f,  0.5f,  0.5f,  1.0f,  0.5f,  0.5f,
-			0.5f,  1.0f,  0.5f,  -0.5f, 0.5f,  1.0f,  -0.5f, -0.5f, 0.5f,  1.0f,
-			
-			-0.5f, 0.5f,  -0.5f, 1.0f,    //+y
-			0.5f,  0.5f,  -0.5f, 1.0f,  0.5f,  0.5f,  0.5f,  1.0f,  0.5f,  0.5f,
-			0.5f,  1.0f,  -0.5f, 0.5f,  0.5f,  1.0f,  -0.5f, 0.5f,  -0.5f, 1.0f,
-			
-			0.5f,  -0.5f, 0.5f,  1.0f,    //-y
-			0.5f,  -0.5f, -0.5f, 1.0f,  -0.5f, -0.5f, -0.5f, 1.0f,  -0.5f, -0.5f,
-			-0.5f, 1.0f,  -0.5f, -0.5f, 0.5f,  1.0f,  0.5f,  -0.5f, 0.5f,  1.0f,
-		};
-		
-		uint64_t       skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
-		BufferLoadDesc skyboxVbDesc = {};
-		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
-		skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
-		skyboxVbDesc.pData = skyBoxPoints;
-		skyboxVbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-		skyboxVbDesc.ppBuffer = &pSkyboxVertexBuffer;
-		addResource(&skyboxVbDesc, true);
-		
-		eastl::string sunFullPath = FileSystem::FixPath(gSunName, FSRoot::FSR_Meshes);
-		loadModel(sunFullPath, pSunVertexBuffer, SunVertexCount, pSunIndexBuffer, SunIndexCount);
 	}
 	
 	void drawSkybox(Cmd* cmd, int frameIdx)
@@ -5050,7 +5095,7 @@ public:
 		cmdBindVertexBuffer(cmd, 1, &pSunVertexBuffer, NULL);
 		cmdBindIndexBuffer(cmd, pSunIndexBuffer, 0);
 		
-		cmdDrawIndexed(cmd, SunIndexCount, 0, 0);
+		cmdDrawIndexed(cmd, gSunIndexCount, 0, 0);
 		
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		
@@ -5212,8 +5257,10 @@ public:
 #if !defined(TARGET_IOS)
 		cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 
-		if(gAppSettings.mActivateMicroProfiler)
-			cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
+		if (gAppSettings.mActivateMicroProfiler)
+		{
+			cmdDrawProfiler(cmd);
+		}
 		else
 		{
 			gTimer.GetUSec(true);

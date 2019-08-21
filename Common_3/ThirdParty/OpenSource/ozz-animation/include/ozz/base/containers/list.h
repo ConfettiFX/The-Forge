@@ -41,13 +41,14 @@
 #endif  // _MSC_VER
 
 #include "ozz/base/containers/std_allocator.h"
+#include "../../../../../../OpenSource/EASTL/list.h"
 
 namespace ozz {
 // Redirects std::list to ozz::List in order to replace std default allocator by
 // ozz::StdAllocator.
 template <class _Ty, class _Allocator = ozz::StdAllocator<_Ty> >
 struct List {
-  typedef std::list<_Ty, _Allocator> Std;
+  typedef eastl::list<_Ty, _Allocator> Std;
 };
 }  // namespace ozz
 #endif  // OZZ_OZZ_BASE_CONTAINERS_LIST_H_

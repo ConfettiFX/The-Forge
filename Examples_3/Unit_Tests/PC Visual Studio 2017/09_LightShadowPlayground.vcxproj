@@ -28,26 +28,122 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\09_LightShadowPlayground\09_LightShadowPlayground.cpp" />
+    <ClCompile Include="..\src\09_LightShadowPlayground\ASM.cpp" />
+    <ClCompile Include="..\src\09_LightShadowPlayground\AABBox.cpp" />
+    <ClCompile Include="..\src\09_LightShadowPlayground\ASMFrustum.cpp" />
+    <ClCompile Include="..\src\09_LightShadowPlayground\ASMQuadTree.cpp" />
+    <ClCompile Include="..\src\09_LightShadowPlayground\ASMTileCache.cpp" />
+    <ClCompile Include="..\src\09_LightShadowPlayground\BVHTree.cpp" />
+    <ClCompile Include="..\src\09_LightShadowPlayground\CPUImage.cpp" />
+    <ClCompile Include="..\src\09_LightShadowPlayground\Geometry.cpp" />
+    <ClCompile Include="..\src\09_LightShadowPlayground\Helper.cpp" />
+    <ClCompile Include="..\src\09_LightShadowPlayground\Interval.cpp" />
+    <ClCompile Include="..\src\09_LightShadowPlayground\SDFVolumeData.cpp" />
+    <ClCompile Include="..\src\09_LightShadowPlayground\SDFVolumeTextureAtlas.cpp" />
+    <ClCompile Include="..\src\09_LightShadowPlayground\SDFVolumeTextureAtlasLayout.cpp" />
+    <ClCompile Include="..\src\09_LightShadowPlayground\Triangle.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\blurESM.comp" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\copyBuffer.comp" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\forwardSphere.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\forwardSphere.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\fsTriangle.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\sdfBBox.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\sdfSphere.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\visibilityBufferShade.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\visibilityBufferShade.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\bakedSDFMeshShadow.comp" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\batchCompaction.comp" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\clearVisibilityBuffers.comp" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\copyDEMQuads.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\copyDEMQuads.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\copyDepthQuads.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\copyDepthQuads.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\display.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\display.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\fill_Indirection.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\fill_Indirection.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\generateAsmDEM.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\generateAsmDEM.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\meshDepthPassAlpha.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\meshDepthPass.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\meshDepthPassAlpha.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\panoToCube.comp" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\quad.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\quad.vert" />
     <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\skybox.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\zPass.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\blurESM.comp" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\copyBuffer.comp" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\forwardSphere.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\forwardSphere.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\fsTriangle.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\sdfBBox.vert" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\sdfSphere.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\skybox.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\triangleFiltering.comp" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\updateRegion3DTexture.comp" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\upsampleSDFShadow.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\upsampleSDFShadow.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\visibilityBufferPassAlpha.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\visibilityBufferPassAlpha.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\visibilityBufferPass.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\visibilityBufferPass.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\visualizeSDFMesh.comp" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\bakedSDFMeshShadow.comp" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\batchCompaction.comp" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\clearVisibilityBuffers.comp" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\copyDEMQuads.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\copyDEMQuads.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\copyDepthQuads.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\copyDepthQuads.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\display.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\display.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\fill_Indirection.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\fill_Indirection.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\generateAsmDEM.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\generateAsmDEM.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\meshDepthPass.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\meshDepthPassAlpha.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\meshDepthPassAlpha.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\panoToCube.comp" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\quad.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\quad.vert" />
     <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\skybox.frag" />
-    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\zPass.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\skybox.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\triangleFiltering.comp" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\updateRegion3DTexture.comp" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\upsampleSDFShadow.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\upsampleSDFShadow.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\visibilityBufferPass.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\visibilityBufferPass.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\visibilityBufferPassAlpha.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\visibilityBufferPassAlpha.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\visibilityBufferShade.frag" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\visibilityBufferShade.vert" />
+    <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\visualizeSDFMesh.comp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\09_LightShadowPlayground\ASM.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\ASMConstant.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\BVHTree.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Constant.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\AtlasQuads.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Camera.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\ConvexHull2D.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\AABBox.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\ASMFrustum.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\ASMQuadTree.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\ASMTileCache.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\CPUImage.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Geometry.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Helper.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Intersection.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Interval.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\IntrusiveUnorderedPtrSet.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Ray.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\SDFVolumeData.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\SDFVolumeTextureAtlas.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\SDFVolumeTextureAtlasLayout.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\SDF_Constant.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\D3D12\ASMShader_Defs.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\D3D12\Packing.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\D3D12\SDF_Constant.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\D3D12\Shader_Defs.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\D3D12\shading.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\ASMShader_Defs.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\non_uniform_resource_index.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\Packing.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\Shader_Defs.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\shading.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Slab.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Triangle.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{57CC1131-660E-458B-A41F-29D60F3ECE41}</ProjectGuid>
@@ -121,15 +217,15 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug\;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug\;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx11|x64'">
@@ -142,15 +238,15 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\..\..\..\Common_3;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release\;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <IncludePath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\include;$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)\..\..\..\glfw-3.2.1.bin.WIN64\lib-vc2015;$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)\..\..\..\Common_3;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release\;$(LibraryPath)</LibraryPath>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">
@@ -179,7 +275,7 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;AssimpImporter.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -220,7 +316,7 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX12.lib;OS.lib;AssimpImporter.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -307,7 +403,7 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;AssimpImporter.lib;assimp.lib;zlibstatic.lib;IrrXML.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -352,7 +448,7 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX12.lib;OS.lib;gainputstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX12.lib;OS.lib;AssimpImporter.lib;assimp.lib;IrrXML.lib;zlibstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>

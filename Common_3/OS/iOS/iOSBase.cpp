@@ -29,7 +29,6 @@
 #include "../../ThirdParty/OpenSource/EASTL/vector.h"
 
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/IPlatformEvents.h"
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/ITime.h"
 #include "../Interfaces/IThread.h"

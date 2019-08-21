@@ -30,7 +30,6 @@
 
 #include "../../Common_3/OS/Interfaces/ILog.h"
 #include "../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../Common_3/OS/Image/Image.h"
 #include "../../Common_3/OS/Core/RingBuffer.h"
 #include "../../Common_3/Renderer/IRenderer.h"
 #include "../../Common_3/Renderer/ResourceLoader.h"
@@ -43,7 +42,7 @@ FSRoot FSR_MIDDLEWARE_TEXT = FSR_Middleware0;
 
 class _Impl_FontStash
 {
-	public:
+public:
 	_Impl_FontStash()
 	{
 		pCurrentTexture = NULL;
@@ -54,7 +53,7 @@ class _Impl_FontStash
 		mText3D = false;
 	}
 
-	void init(Renderer* renderer, int width_, int height_)
+	bool init(Renderer* renderer, int width_, int height_)
 	{
 		pRenderer = renderer;
 
@@ -68,7 +67,7 @@ class _Impl_FontStash
 		desc.mHeight = height_;
 		desc.mMipLevels = 1;
 		desc.mSampleCount = SAMPLE_COUNT_1;
-		desc.mStartState = RESOURCE_STATE_COPY_DEST;
+		desc.mStartState = RESOURCE_STATE_COMMON;
 		desc.mWidth = width_;
 		desc.pDebugName = L"Fontstash Texture";
 		TextureLoadDesc loadDesc = {};
@@ -170,46 +169,17 @@ class _Impl_FontStash
 		vbDesc.mVertexStride = sizeof(float4);
 		vbDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 		addGPURingBuffer(pRenderer, &vbDesc, &pMeshRingBuffer);
-
-		mVertexLayout.mAttribCount = 2;
-		mVertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		mVertexLayout.mAttribs[0].mFormat = ImageFormat::RG32F;
-		mVertexLayout.mAttribs[0].mBinding = 0;
-		mVertexLayout.mAttribs[0].mLocation = 0;
-		mVertexLayout.mAttribs[0].mOffset = 0;
-
-		mVertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
-		mVertexLayout.mAttribs[1].mFormat = ImageFormat::RG32F;
-		mVertexLayout.mAttribs[1].mBinding = 0;
-		mVertexLayout.mAttribs[1].mLocation = 1;
-		mVertexLayout.mAttribs[1].mOffset = ImageFormat::GetImageFormatStride(ImageFormat::RG32F);
-
-#ifdef FORGE_JHABLE_EDITS_V01
-		mVertexLayout.mAttribs[0].mSemanticType = 0;
-		mVertexLayout.mAttribs[0].mSemanticIndex = 0;
-
-		mVertexLayout.mAttribs[1].mSemanticType = 7;
-		mVertexLayout.mAttribs[1].mSemanticIndex = 0;
-#endif
-
-		mPipelineDesc = {};
-		mPipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
-		mPipelineDesc.mGraphicsDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		mPipelineDesc.mGraphicsDesc.mRenderTargetCount = 1;
-		mPipelineDesc.mGraphicsDesc.mSampleCount = SAMPLE_COUNT_1;
-		mPipelineDesc.mGraphicsDesc.pBlendState = pBlendAlpha;
-		mPipelineDesc.mGraphicsDesc.pRootSignature = pRootSignature;
-		mPipelineDesc.mGraphicsDesc.pVertexLayout = &mVertexLayout;
 		/************************************************************************/
 		/************************************************************************/
+
+		return true;
 	}
 
-	void destroy()
+	void exit()
 	{
 		// unload fontstash context
 		fonsDeleteInternal(pContext);
 
-		mStagingImage.Destroy();
 		removeResource(pCurrentTexture);
 
 		// unload font buffers
@@ -222,10 +192,6 @@ class _Impl_FontStash
 		for (uint32_t i = 0; i < 2; ++i)
 		{
 			removeShader(pRenderer, pShaders[i]);
-			for (PipelineMap::iterator it = mPipelines[i].begin(); it != mPipelines[i].end(); ++it)
-				removePipeline(pRenderer, it->second);
-
-			mPipelines[i].clear();
 		}
 
 		removeGPURingBuffer(pMeshRingBuffer);
@@ -239,36 +205,88 @@ class _Impl_FontStash
 		removeSampler(pRenderer, pDefaultSampler);
 	}
 
+	bool load(RenderTarget** ppRts, uint32_t count)
+	{
+		VertexLayout vertexLayout = {};
+		vertexLayout.mAttribCount = 2;
+		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayout.mAttribs[0].mFormat = ImageFormat::RG32F;
+		vertexLayout.mAttribs[0].mBinding = 0;
+		vertexLayout.mAttribs[0].mLocation = 0;
+		vertexLayout.mAttribs[0].mOffset = 0;
+
+		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
+		vertexLayout.mAttribs[1].mFormat = ImageFormat::RG32F;
+		vertexLayout.mAttribs[1].mBinding = 0;
+		vertexLayout.mAttribs[1].mLocation = 1;
+		vertexLayout.mAttribs[1].mOffset = ImageFormat::GetImageFormatStride(ImageFormat::RG32F);
+
+		PipelineDesc pipelineDesc = {};
+		pipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
+		pipelineDesc.mGraphicsDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
+		pipelineDesc.mGraphicsDesc.mRenderTargetCount = 1;
+		pipelineDesc.mGraphicsDesc.mSampleCount = SAMPLE_COUNT_1;
+		pipelineDesc.mGraphicsDesc.pBlendState = pBlendAlpha;
+		pipelineDesc.mGraphicsDesc.pRootSignature = pRootSignature;
+		pipelineDesc.mGraphicsDesc.pVertexLayout = &vertexLayout;
+		pipelineDesc.mGraphicsDesc.mRenderTargetCount = 1;
+		pipelineDesc.mGraphicsDesc.mSampleCount = ppRts[0]->mDesc.mSampleCount;
+		pipelineDesc.mGraphicsDesc.mSampleQuality = ppRts[0]->mDesc.mSampleQuality;
+		pipelineDesc.mGraphicsDesc.pColorFormats = &ppRts[0]->mDesc.mFormat;
+		pipelineDesc.mGraphicsDesc.pSrgbValues = &ppRts[0]->mDesc.mSrgb;
+		for (uint32_t i = 0; i < min(count, 2U); ++i)
+		{
+			pipelineDesc.mGraphicsDesc.mDepthStencilFormat = (i > 0) ? ppRts[1]->mDesc.mFormat : ImageFormat::NONE;
+			pipelineDesc.mGraphicsDesc.pShaderProgram = pShaders[i];
+			pipelineDesc.mGraphicsDesc.pDepthState = pDepthStates[i];
+			pipelineDesc.mGraphicsDesc.pRasterizerState = pRasterizerStates[i];
+			addPipeline(pRenderer, &pipelineDesc, &pPipelines[i]);
+		}
+
+		mScaleBias = { 2.0f / (float)ppRts[0]->mDesc.mWidth, -2.0f / (float)ppRts[0]->mDesc.mHeight };
+
+		return true;
+	}
+
+	void unload()
+	{
+		for (uint32_t i = 0; i < 2; ++i)
+		{
+			if (pPipelines[i])
+				removePipeline(pRenderer, pPipelines[i]);
+
+			pPipelines[i] = NULL;
+		}
+	}
+
 	static int  fonsImplementationGenerateTexture(void* userPtr, int width, int height);
 	static void fonsImplementationModifyTexture(void* userPtr, int* rect, const unsigned char* data);
 	static void fonsImplementationRenderText(void* userPtr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts);
 	static void fonsImplementationRemoveTexture(void* userPtr);
 
-	using PipelineMap = eastl::hash_map<uint64_t, Pipeline*>;
-
 	Renderer*    pRenderer;
 	FONScontext* pContext;
 
-	// #NOTE: Image holds data allocated by fontstash. Does not allocate any data of its own
-	Image    mStagingImage;
-	Texture* pCurrentTexture;
-	bool     mUpdateTexture;
+	const uint8_t* pPixels;
+	Texture*       pCurrentTexture;
+	bool           mUpdateTexture;
 
 	uint32_t mWidth;
 	uint32_t mHeight;
+	float2   mScaleBias;
 
 	eastl::vector<void*>           mFontBuffers;
 	eastl::vector<uint32_t>        mFontBufferSizes;
-	eastl::vector<eastl::string> mFontNames;
+	eastl::vector<eastl::string>   mFontNames;
 
 	mat4 mProjView;
 	mat4 mWorldMat;
 	Cmd* pCmd;
 
-	Shader*        pShaders[2];
-	RootSignature* pRootSignature;
+	Shader*           pShaders[2];
+	RootSignature*    pRootSignature;
 	DescriptorBinder* pDescriptorBinder;
-	PipelineMap    mPipelines[2];
+	Pipeline*         pPipelines[2];
 	/// Default states
 	BlendState*          pBlendAlpha;
 	DepthState*          pDepthStates[2];
@@ -276,14 +294,12 @@ class _Impl_FontStash
 	Sampler*             pDefaultSampler;
 	GPURingBuffer*       pUniformRingBuffer;
 	GPURingBuffer*       pMeshRingBuffer;
-	VertexLayout         mVertexLayout = {};
-	PipelineDesc		 mPipelineDesc = {};
 	float2               mDpiScale;
 	float                mDpiScaleMin;
 	bool                 mText3D;
 };
 
-Fontstash::Fontstash(Renderer* renderer, int width, int height)
+bool Fontstash::init(Renderer* renderer, uint32_t width, uint32_t height)
 {
 	impl = conf_placement_new<_Impl_FontStash>(conf_calloc(1, sizeof(_Impl_FontStash)));
 	impl->mDpiScale = getDpiScale();
@@ -292,15 +308,27 @@ Fontstash::Fontstash(Renderer* renderer, int width, int height)
 	width = width * (int)ceilf(impl->mDpiScale.x);
 	height = height * (int)ceilf(impl->mDpiScale.y);
 
-	impl->init(renderer, width, height);
+	bool success = impl->init(renderer, width, height);
 	m_fFontMaxSize = min(width, height) / 10.0f;    // see fontstash.h, line 1271, for fontSize calculation
+
+	return success;
 }
 
-void Fontstash::destroy()
+void Fontstash::exit()
 {
-	impl->destroy();
+	impl->exit();
 	impl->~_Impl_FontStash();
 	conf_free(impl);
+}
+
+bool Fontstash::load(RenderTarget** ppRts, uint32_t count)
+{
+	return impl->load(ppRts, count);
+}
+
+void Fontstash::unload()
+{
+	impl->unload();
 }
 
 int Fontstash::defineFont(const char* identification, const char* filename, uint32_t root)
@@ -439,9 +467,7 @@ void _Impl_FontStash::fonsImplementationModifyTexture(void* userPtr, int* rect, 
 
 	_Impl_FontStash* ctx = (_Impl_FontStash*)userPtr;
 
-	ctx->mStagingImage.RedefineDimensions(ImageFormat::R8, ctx->mWidth, ctx->mHeight, 1, 1, 1);
-	ctx->mStagingImage.SetPixels((uint8_t*)data);
-
+	ctx->pPixels = data;
 	ctx->mUpdateTexture = true;
 }
 
@@ -459,13 +485,13 @@ void _Impl_FontStash::fonsImplementationRenderText(
 		waitQueueIdle(pCmd->pCmdPool->pQueue);
 
 		RawImageData rawData;
-		rawData.pRawData = ctx->mStagingImage.GetPixels();
-		rawData.mFormat = ctx->mStagingImage.getFormat();
-		rawData.mWidth = ctx->mStagingImage.GetWidth();
-		rawData.mHeight = ctx->mStagingImage.GetHeight();
-		rawData.mDepth = ctx->mStagingImage.GetDepth();
-		rawData.mArraySize = ctx->mStagingImage.GetArrayCount();
-		rawData.mMipLevels = ctx->mStagingImage.GetMipMapCount();
+		rawData.pRawData = (uint8_t*)ctx->pPixels;
+		rawData.mFormat = ImageFormat::R8;
+		rawData.mWidth = ctx->mWidth;
+		rawData.mHeight = ctx->mHeight;
+		rawData.mDepth = 1;
+		rawData.mArraySize = 1;
+		rawData.mMipLevels = 1;
 
 		TextureUpdateDesc updateDesc = {};
 		updateDesc.pTexture = ctx->pCurrentTexture;
@@ -496,28 +522,9 @@ void _Impl_FontStash::fonsImplementationRenderText(
 	for (int i = 0; i < 4; i++)
 		color[i] = ((float)colorByte[i]) / 255.0f;
 
-	Pipeline*                              pPipeline = NULL;
 	uint32_t                               pipelineIndex = ctx->mText3D ? 1 : 0;
-	_Impl_FontStash::PipelineMap::iterator it = ctx->mPipelines[pipelineIndex].find(pCmd->mRenderPassHash);
-	if (it == ctx->mPipelines[pipelineIndex].end())
-	{
-		GraphicsPipelineDesc& pipelineDesc = ctx->mPipelineDesc.mGraphicsDesc;
-		pipelineDesc.mDepthStencilFormat = (ImageFormat::Enum)pCmd->mBoundDepthStencilFormat;
-		pipelineDesc.mRenderTargetCount = pCmd->mBoundRenderTargetCount;
-		pipelineDesc.mSampleCount = pCmd->mBoundSampleCount;
-		pipelineDesc.mSampleQuality = pCmd->mBoundSampleQuality;
-		pipelineDesc.pColorFormats = (ImageFormat::Enum*)pCmd->pBoundColorFormats;
-		pipelineDesc.pDepthState = ctx->pDepthStates[pipelineIndex];
-		pipelineDesc.pRasterizerState = ctx->pRasterizerStates[pipelineIndex];
-		pipelineDesc.pSrgbValues = pCmd->pBoundSrgbValues;
-		pipelineDesc.pShaderProgram = ctx->pShaders[pipelineIndex];
-		addPipeline(pCmd->pRenderer, &ctx->mPipelineDesc, &pPipeline);
-		ctx->mPipelines[pipelineIndex].insert({ pCmd->mRenderPassHash, pPipeline });
-	}
-	else
-	{
-		pPipeline = it->second;
-	}
+	Pipeline*                              pPipeline = ctx->pPipelines[pipelineIndex];
+	ASSERT(pPipeline);
 
 	cmdBindPipeline(pCmd, pPipeline);
 
@@ -528,7 +535,7 @@ void _Impl_FontStash::fonsImplementationRenderText(
 	} data;
 
 	data.color = color;
-	data.scaleBias = { 2.0f / (float)pCmd->mBoundWidth, -2.0f / (float)pCmd->mBoundHeight };
+	data.scaleBias = ctx->mScaleBias;
 
 	if (ctx->mText3D)
 	{

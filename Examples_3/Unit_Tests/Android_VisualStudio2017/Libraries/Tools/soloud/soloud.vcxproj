@@ -1,0 +1,345 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x86">
+      <Configuration>Debug</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x86">
+      <Configuration>Release</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\monotone\soloud_monotone.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\openmpt\soloud_openmpt.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\openmpt\soloud_openmpt_dll.c" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\sfxr\soloud_sfxr.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\speech\darray.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\speech\klatt.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\speech\resonator.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\speech\soloud_speech.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\speech\tts.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\tedsid\sid.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\tedsid\soloud_tedsid.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\tedsid\ted.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\vic\soloud_vic.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\vizsn\soloud_vizsn.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\wav\dr_impl.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\wav\soloud_wav.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\wav\soloud_wavstream.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\wav\stb_vorbis.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\backend\opensles\soloud_opensles.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\core\soloud.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\core\soloud_audiosource.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\core\soloud_bus.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\core\soloud_core_3d.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\core\soloud_core_basicops.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\core\soloud_core_faderops.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\core\soloud_core_filterops.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\core\soloud_core_getters.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\core\soloud_core_setters.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\core\soloud_core_voicegroup.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\core\soloud_core_voiceops.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\core\soloud_fader.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\core\soloud_fft.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\core\soloud_fft_lut.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\core\soloud_file.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\core\soloud_filter.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\core\soloud_queue.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\core\soloud_thread.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\filter\soloud_bassboostfilter.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\filter\soloud_biquadresonantfilter.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\filter\soloud_dcremovalfilter.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\filter\soloud_echofilter.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\filter\soloud_fftfilter.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\filter\soloud_flangerfilter.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\filter\soloud_lofifilter.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\filter\soloud_robotizefilter.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\filter\soloud_waveshaperfilter.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_audiosource.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_bassboostfilter.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_biquadresonantfilter.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_bus.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_dcremovalfilter.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_echofilter.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_error.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_fader.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_fft.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_fftfilter.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_file.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_file_hack_off.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_file_hack_on.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_filter.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_flangerfilter.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_internal.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_lofifilter.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_monotone.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_openmpt.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_queue.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_robotizefilter.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_sfxr.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_speech.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_tedsid.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_thread.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_vic.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_vizsn.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_wav.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_waveshaperfilter.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include\soloud_wavstream.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\speech\darray.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\speech\klatt.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\speech\resonator.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\speech\tts.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\tedsid\sid.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\tedsid\ted.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\wav\dr_flac.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\wav\dr_mp3.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\wav\dr_wav.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\wav\stb_vorbis.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\src\audiosource\speech\Elements.def" />
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{fc6985ae-5862-4ea4-b664-d003e84ae2f5}</ProjectGuid>
+    <Keyword>Android</Keyword>
+    <RootNamespace>soloud</RootNamespace>
+    <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
+    <ApplicationType>Android</ApplicationType>
+    <ApplicationTypeRevision>3.0</ApplicationTypeRevision>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-29</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>ARM</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-29</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>ARM</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-29</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>ARM</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-29</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>ARM</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>Disabled</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>Disabled</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>ARM</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>ARM</ThumbMode>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <Import Project="..\..\..\ARM.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <Import Project="..\..\..\ARM.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <Import Project="..\..\..\ARM64.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <Import Project="..\..\..\ARM64.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(ProjectDir)..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include;$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(ProjectDir)..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include;$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(ProjectDir)..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include;$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(ProjectDir)..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include;$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(ProjectDir)..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include;$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(ProjectDir)..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include;$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(ProjectDir)..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include;$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <UseMultiToolTask>true</UseMultiToolTask>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(ProjectDir)..\..\..\..\..\..\Common_3\ThirdParty\OpenSource\soloud20181119\include;$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <ExceptionHandling>Enabled</ExceptionHandling>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <ExceptionHandling>Disabled</ExceptionHandling>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Lib />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <ExceptionHandling>Disabled</ExceptionHandling>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Lib />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <ExceptionHandling>Disabled</ExceptionHandling>
+      <EnableNeonCodegen>true</EnableNeonCodegen>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>__ANDROID__;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Lib />
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <ExceptionHandling>Disabled</ExceptionHandling>
+      <EnableNeonCodegen>true</EnableNeonCodegen>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Lib />
+  </ItemDefinitionGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets" />
+</Project>

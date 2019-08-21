@@ -193,7 +193,7 @@ void   createAABB(const Scene* pScene, MeshIn* mesh);
 void   createClusters(bool twoSided, const Scene* pScene, MeshIn* mesh);
 void   destroyClusters(MeshIn* mesh);
 
-void loadModel(const eastl::string& FileName, Buffer*& pVertexBuffer, uint& vertexCount, Buffer*& IndexBuffer, uint& indexCount);
+bool   loadModel(const eastl::string& FileName, eastl::vector<Vertex>& vertices, eastl::vector<uint16_t>& indices);
 
 #if 0 //defined(METAL)
 void addClusterToBatchChunk(

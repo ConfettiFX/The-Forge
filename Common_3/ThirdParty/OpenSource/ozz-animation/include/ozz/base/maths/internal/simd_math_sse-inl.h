@@ -768,8 +768,8 @@ OZZ_INLINE SimdFloat4 Xor(_SimdFloat4 _a, _SimdInt4 _b) {
 }
 
 OZZ_INLINE SimdFloat4 Cos(_SimdFloat4 _v) {
-  return _mm_set_ps(std::cos(GetW(_v)), std::cos(GetZ(_v)), std::cos(GetY(_v)),
-                    std::cos(GetX(_v)));
+  return _mm_set_ps(cos(GetW(_v)), (GetZ(_v)), (GetY(_v)),
+                    cos(GetX(_v)));
 }
 
 OZZ_INLINE SimdFloat4 CosX(_SimdFloat4 _v) {
@@ -777,48 +777,48 @@ OZZ_INLINE SimdFloat4 CosX(_SimdFloat4 _v) {
 }
 
 OZZ_INLINE SimdFloat4 ACos(_SimdFloat4 _v) {
-  return _mm_set_ps(std::acos(GetW(_v)), std::acos(GetZ(_v)),
-                    std::acos(GetY(_v)), std::acos(GetX(_v)));
+  return _mm_set_ps(acos(GetW(_v)), acos(GetZ(_v)),
+                    acos(GetY(_v)), acos(GetX(_v)));
 }
 
 OZZ_INLINE SimdFloat4 ACosX(_SimdFloat4 _v) {
-  return _mm_set_ps(GetW(_v), GetZ(_v), GetY(_v), std::acos(GetX(_v)));
+  return _mm_set_ps(GetW(_v), GetZ(_v), GetY(_v), acos(GetX(_v)));
 }
 
 OZZ_INLINE SimdFloat4 Sin(_SimdFloat4 _v) {
-  return _mm_set_ps(std::sin(GetW(_v)), std::sin(GetZ(_v)), std::sin(GetY(_v)),
-                    std::sin(GetX(_v)));
+  return _mm_set_ps(sin(GetW(_v)), sin(GetZ(_v)), sin(GetY(_v)),
+                    sin(GetX(_v)));
 }
 
 OZZ_INLINE SimdFloat4 SinX(_SimdFloat4 _v) {
-  return _mm_set_ps(GetW(_v), GetZ(_v), GetY(_v), std::sin(GetX(_v)));
+  return _mm_set_ps(GetW(_v), GetZ(_v), GetY(_v), sin(GetX(_v)));
 }
 
 OZZ_INLINE SimdFloat4 ASin(_SimdFloat4 _v) {
-  return _mm_set_ps(std::asin(GetW(_v)), std::asin(GetZ(_v)),
-                    std::asin(GetY(_v)), std::asin(GetX(_v)));
+  return _mm_set_ps(asin(GetW(_v)), asin(GetZ(_v)),
+                    asin(GetY(_v)), asin(GetX(_v)));
 }
 
 OZZ_INLINE SimdFloat4 ASinX(_SimdFloat4 _v) {
-  return _mm_set_ps(GetW(_v), GetZ(_v), GetY(_v), std::asin(GetX(_v)));
+  return _mm_set_ps(GetW(_v), GetZ(_v), GetY(_v), asin(GetX(_v)));
 }
 
 OZZ_INLINE SimdFloat4 Tan(_SimdFloat4 _v) {
-  return _mm_set_ps(std::tan(GetW(_v)), std::tan(GetZ(_v)), std::tan(GetY(_v)),
-                    std::tan(GetX(_v)));
+  return _mm_set_ps(tan(GetW(_v)), tan(GetZ(_v)), tan(GetY(_v)),
+                    tan(GetX(_v)));
 }
 
 OZZ_INLINE SimdFloat4 TanX(_SimdFloat4 _v) {
-  return _mm_set_ps(GetW(_v), GetZ(_v), GetY(_v), std::tan(GetX(_v)));
+  return _mm_set_ps(GetW(_v), GetZ(_v), GetY(_v), tan(GetX(_v)));
 }
 
 OZZ_INLINE SimdFloat4 ATan(_SimdFloat4 _v) {
-  return _mm_set_ps(std::atan(GetW(_v)), std::atan(GetZ(_v)),
-                    std::atan(GetY(_v)), std::atan(GetX(_v)));
+  return _mm_set_ps(atan(GetW(_v)), atan(GetZ(_v)),
+                    atan(GetY(_v)), atan(GetX(_v)));
 }
 
 OZZ_INLINE SimdFloat4 ATanX(_SimdFloat4 _v) {
-  return _mm_set_ps(GetW(_v), GetZ(_v), GetY(_v), std::atan(GetX(_v)));
+  return _mm_set_ps(GetW(_v), GetZ(_v), GetY(_v), atan(GetX(_v)));
 }
 
 namespace simd_int4 {

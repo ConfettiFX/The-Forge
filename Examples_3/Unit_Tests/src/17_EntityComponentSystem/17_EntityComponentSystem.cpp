@@ -86,7 +86,6 @@ CmdPool* pCmdPool = NULL;
 Cmd**    ppCmds = NULL;
 
 SwapChain*    pSwapChain = NULL;
-RenderTarget* pDepthBuffer = NULL;
 Fence*        pRenderCompleteFences[gImageCount] = { NULL };
 Semaphore*    pImageAcquiredSemaphore = NULL;
 Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
@@ -417,7 +416,7 @@ class EntityComponentSystem: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		initProfiler(pRenderer, gImageCount);
+		initProfiler(pRenderer);
 		profileRegisterInput();
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
@@ -452,9 +451,8 @@ class EntityComponentSystem: public IApp
 		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRasterizerStateCullNone);
 
 		DepthStateDesc depthStateDesc = {};
-		depthStateDesc.mDepthTest = true;
-		depthStateDesc.mDepthWrite = true;
-		depthStateDesc.mDepthFunc = CMP_LEQUAL;
+		depthStateDesc.mDepthTest = false;
+		depthStateDesc.mDepthWrite = false;
 		addDepthState(pRenderer, &depthStateDesc, &pDepthState);
 
 		BlendStateDesc blendStateDesc = {};
@@ -600,7 +598,7 @@ class EntityComponentSystem: public IApp
 
 		waitQueueIdle(pGraphicsQueue);
 
-		exitProfiler(pRenderer);
+		exitProfiler();
 
 		gAppUI.Exit();
 
@@ -645,11 +643,10 @@ class EntityComponentSystem: public IApp
 		if (!addMainSwapChain())
 			return false;
 
-		if (!addDepthBuffer())
-			return false;
-
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
+
+		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
 
 		// VertexLayout for sprite drawing.
 		PipelineDesc desc = {};
@@ -662,7 +659,7 @@ class EntityComponentSystem: public IApp
 		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
 		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
 		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
+		pipelineSettings.mDepthStencilFormat = ImageFormat::NONE;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pSpriteShader;
 		pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
@@ -676,12 +673,12 @@ class EntityComponentSystem: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
+		unloadProfiler();
 		gAppUI.Unload();
 
 		removePipeline(pRenderer, pSpritePipeline);
 
 		removeSwapChain(pRenderer, pSwapChain);
-		removeRenderTarget(pRenderer, pDepthBuffer);
 	}
 
 	void Update(float deltaTime)
@@ -783,9 +780,6 @@ class EntityComponentSystem: public IApp
 		loadActions.mClearColorValues[0].g = 0.1f;
 		loadActions.mClearColorValues[0].b = 0.1f;
 		loadActions.mClearColorValues[0].a = 1.0f;
-		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth.depth = 1.0f;
-		loadActions.mClearDepth.stencil = 0;
 
 		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
@@ -793,11 +787,10 @@ class EntityComponentSystem: public IApp
 
 		TextureBarrier barriers[] = {
 			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
-			{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE },
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 2, barriers, false);
+		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, false);
 
-		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
@@ -837,7 +830,7 @@ class EntityComponentSystem: public IApp
 			cmd, float2(8.0f, 40.0f), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
 			&uiTextDesc);
 
-		cmdDrawProfiler(cmd, mSettings.mWidth, mSettings.mHeight);
+		cmdDrawProfiler(cmd);
 
 		gAppUI.Gui(pGuiWindow);
 
@@ -861,7 +854,7 @@ class EntityComponentSystem: public IApp
 	bool addMainSwapChain()
 	{
 		SwapChainDesc swapChainDesc = {};
-		swapChainDesc.pWindow = pWindow;
+		swapChainDesc.mWindowHandle = pWindow->handle;
 		swapChainDesc.mPresentQueueCount = 1;
 		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
 		swapChainDesc.mWidth = mSettings.mWidth;
@@ -873,24 +866,6 @@ class EntityComponentSystem: public IApp
 		addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;
-	}
-
-	bool addDepthBuffer()
-	{
-		// Add depth buffer
-		RenderTargetDesc depthRT = {};
-		depthRT.mArraySize = 1;
-		depthRT.mClearValue.depth = 1.0f;
-		depthRT.mClearValue.stencil = 0;
-		depthRT.mDepth = 1;
-		depthRT.mFormat = ImageFormat::D32F;
-		depthRT.mHeight = mSettings.mHeight;
-		depthRT.mSampleCount = SAMPLE_COUNT_1;
-		depthRT.mSampleQuality = 0;
-		depthRT.mWidth = mSettings.mWidth;
-		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
-
-		return pDepthBuffer != NULL;
 	}
 };
 

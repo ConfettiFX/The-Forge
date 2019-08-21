@@ -33,7 +33,6 @@
 #include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/IPlatformEvents.h"
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/ITime.h"
 #include "../Interfaces/IThread.h"
@@ -82,7 +81,7 @@ void requestShutdown()
 	XEvent event = {};
 	event.type = ClientMessage;
 	event.xclient.data.l[0] == gWindow.xlib_wm_delete_window;
-	XSendEvent(gWindow.display, gWindow.xlib_window, false, 0, &event);
+	XSendEvent(gWindow.handle.display, gWindow.handle.window, false, 0, &event);
 }
 
 float2 getDpiScale() { return { gRetinaScale, gRetinaScale }; }
@@ -94,11 +93,11 @@ float2 getDpiScale() { return { gRetinaScale, gRetinaScale }; }
 
 static IApp* pApp = NULL;
 
-static void onResize(const WindowResizeEventData* pData)
+static void onResize(WindowsDesc* wnd, int32_t newSizeX, int32_t newSizeY)
 {
-	pApp->mSettings.mWidth = getRectWidth(pData->rect);
-	pApp->mSettings.mHeight = getRectHeight(pData->rect);
-	pApp->mSettings.mFullScreen = pData->pWindow->fullScreen;
+	pApp->mSettings.mWidth = newSizeX;
+	pApp->mSettings.mHeight = newSizeY;
+	pApp->mSettings.mFullScreen = wnd->fullScreen;
 	pApp->Unload();
 	pApp->Load();
 }
@@ -142,15 +141,15 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 	}
 
 	XInitThreads();
-	winDesc->display = XOpenDisplay(NULL);
+	winDesc->handle.display = XOpenDisplay(NULL);
 	long        visualMask = VisualScreenMask;
 	int         numberOfVisuals;
 	XVisualInfo vInfoTemplate = {};
-	vInfoTemplate.screen = DefaultScreen(winDesc->display);
-	XVisualInfo* visualInfo = XGetVisualInfo(winDesc->display, visualMask, &vInfoTemplate, &numberOfVisuals);
+	vInfoTemplate.screen = DefaultScreen(winDesc->handle.display);
+	XVisualInfo* visualInfo = XGetVisualInfo(winDesc->handle.display, visualMask, &vInfoTemplate, &numberOfVisuals);
 
 	Colormap colormap =
-		XCreateColormap(winDesc->display, RootWindow(winDesc->display, vInfoTemplate.screen), visualInfo->visual, AllocNone);
+		XCreateColormap(winDesc->handle.display, RootWindow(winDesc->handle.display, vInfoTemplate.screen), visualInfo->visual, AllocNone);
 
 	XSetWindowAttributes windowAttributes = {};
 	windowAttributes.colormap = colormap;
@@ -158,14 +157,14 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 	windowAttributes.border_pixel = 0;
 	windowAttributes.event_mask = KeyPressMask | KeyReleaseMask | StructureNotifyMask | ExposureMask;
 
-	winDesc->xlib_window = XCreateWindow(
-		winDesc->display, RootWindow(winDesc->display, vInfoTemplate.screen), winDesc->windowedRect.left, winDesc->windowedRect.top,
+	winDesc->handle.window = XCreateWindow(
+		winDesc->handle.display, RootWindow(winDesc->handle.display, vInfoTemplate.screen), winDesc->windowedRect.left, winDesc->windowedRect.top,
 		winDesc->windowedRect.right - winDesc->windowedRect.left, winDesc->windowedRect.bottom - winDesc->windowedRect.top, 0,
 		visualInfo->depth, InputOutput, visualInfo->visual, CWBackPixel | CWBorderPixel | CWEventMask | CWColormap, &windowAttributes);
 
 	//Added
 	//set window title name
-	XStoreName(winDesc->display, winDesc->xlib_window, app_name);
+	XStoreName(winDesc->handle.display, winDesc->handle.window, app_name);
 
 	char windowName[200];
 	sprintf(windowName, "%s", app_name);
@@ -174,10 +173,10 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 	XClassHint hint;
 	hint.res_class = windowName;    //class name
 	hint.res_name = windowName;     //application name
-	XSetClassHint(winDesc->display, winDesc->xlib_window, &hint);
+	XSetClassHint(winDesc->handle.display, winDesc->handle.window, &hint);
 
 	XSelectInput(
-		winDesc->display, winDesc->xlib_window,
+		winDesc->handle.display, winDesc->handle.window,
 		ExposureMask | KeyPressMask |    //Key press
 			KeyReleaseMask |             //Key release
 			ButtonPressMask |            //Mouse click
@@ -185,21 +184,21 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 			StructureNotifyMask |        //Resize
 			PointerMotionMask            //Mouse movement
 	);
-	XMapWindow(winDesc->display, winDesc->xlib_window);
-	XFlush(winDesc->display);
-	winDesc->xlib_wm_delete_window = XInternAtom(winDesc->display, "WM_DELETE_WINDOW", False);
-	XSetWMProtocols(winDesc->display, winDesc->xlib_window, &winDesc->xlib_wm_delete_window, 1);
+	XMapWindow(winDesc->handle.display, winDesc->handle.window);
+	XFlush(winDesc->handle.display);
+	winDesc->xlib_wm_delete_window = XInternAtom(winDesc->handle.display, "WM_DELETE_WINDOW", False);
+	XSetWMProtocols(winDesc->handle.display, winDesc->handle.window, &winDesc->xlib_wm_delete_window, 1);
 	
 	// Restrict window min size
 	XSizeHints* size_hints = XAllocSizeHints();
 	size_hints->flags = PMinSize;
     size_hints->min_width = 128;
     size_hints->min_height = 128;
-    XSetWMNormalHints(winDesc->display, winDesc->xlib_window, size_hints);
+    XSetWMNormalHints(winDesc->handle.display, winDesc->handle.window, size_hints);
     XFree(size_hints);
 
 	double baseDpi = 96.0;
-	gRetinaScale = (float)(PlatformGetMonitorDPI(winDesc->display) / baseDpi);
+	gRetinaScale = (float)(PlatformGetMonitorDPI(winDesc->handle.display) / baseDpi);
 }
 
 bool handleMessages(WindowsDesc* winDesc)
@@ -216,16 +215,16 @@ bool handleMessages(WindowsDesc* winDesc)
 			float y = 0;
 			x = (gWindow.windowedRect.right - gWindow.windowedRect.left) / 2;
 			y = (gWindow.windowedRect.bottom - gWindow.windowedRect.top) / 2;
-			XWarpPointer(gWindow.display, None, gWindow.xlib_window, 0, 0, 0, 0, x, y);
+			XWarpPointer(gWindow.handle.display, None, gWindow.handle.window, 0, 0, 0, 0, x, y);
 			InputSystem::WarpMouse(x, y);
-			XFlush(winDesc->display);
+			XFlush(winDesc->handle.display);
 		}
 	}
 
 	XEvent event;
-	while (XPending(winDesc->display) > 0)
+	while (XPending(winDesc->handle.display) > 0)
 	{
-		XNextEvent(winDesc->display, &event);
+		XNextEvent(winDesc->handle.display, &event);
 		InputSystem::HandleMessage(event);
 		switch (event.type)
 		{
@@ -247,8 +246,8 @@ bool handleMessages(WindowsDesc* winDesc)
 							 (int)event.xconfigure.height + (int)event.xconfigure.y };
 					gWindow.windowedRect = rect;
 
-					WindowResizeEventData eventData = { rect, &gWindow };
-					PlatformEvents::onWindowResize(&eventData);
+					if (gWindow.callbacks.onResize)
+						gWindow.callbacks.onResize(&gWindow, getRectWidth(rect), getRectHeight(rect));
 					InputSystem::UpdateSize(event.xconfigure.width, event.xconfigure.height);
 				}
 				break;
@@ -257,7 +256,7 @@ bool handleMessages(WindowsDesc* winDesc)
 		}
 	}
 
-	XFlush(winDesc->display);
+	XFlush(winDesc->handle.display);
 
 	if (InputSystem::GetBoolInput(KEY_CANCEL_TRIGGERED))
 	{
@@ -267,7 +266,7 @@ bool handleMessages(WindowsDesc* winDesc)
 		}
 		else
 		{
-			XUngrabPointer(gWindow.display, CurrentTime);
+			XUngrabPointer(gWindow.handle.display, CurrentTime);
 			isCaptured = false;
 			InputSystem::SetMouseCapture(false);
 		}
@@ -281,14 +280,14 @@ bool handleMessages(WindowsDesc* winDesc)
 		XColor      emptyColor;
 		static char emptyData[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 		emptyColor.red = emptyColor.green = emptyColor.blue = 0;
-		bitmapEmpty = XCreateBitmapFromData(gWindow.display, gWindow.xlib_window, emptyData, 8, 8);
-		invisibleCursor = XCreatePixmapCursor(gWindow.display, bitmapEmpty, bitmapEmpty, &emptyColor, &emptyColor, 0, 0);
+		bitmapEmpty = XCreateBitmapFromData(gWindow.handle.display, gWindow.handle.window, emptyData, 8, 8);
+		invisibleCursor = XCreatePixmapCursor(gWindow.handle.display, bitmapEmpty, bitmapEmpty, &emptyColor, &emptyColor, 0, 0);
 		// Capture mouse
 		unsigned int masks = PointerMotionMask |    //Mouse movement
 							 ButtonPressMask |      //Mouse click
 							 ButtonReleaseMask;     // Mouse release
 		int XRes = XGrabPointer(
-			gWindow.display, gWindow.xlib_window, 1 /*reports with respect to the grab window*/, masks, GrabModeAsync, GrabModeAsync, None,
+			gWindow.handle.display, gWindow.handle.window, 1 /*reports with respect to the grab window*/, masks, GrabModeAsync, GrabModeAsync, None,
 			invisibleCursor, CurrentTime);
 
 		isCaptured = true;
@@ -321,6 +320,8 @@ int LinuxMain(int argc, char** argv, IApp* app)
 		pSettings->mHeight = getRectHeight(rect);
 	}
 
+	gWindow.callbacks.onResize = onResize;
+
 	gWindow.windowedRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
 	gWindow.fullScreen = pSettings->mFullScreen;
 	gWindow.maximized = false;
@@ -337,8 +338,6 @@ int LinuxMain(int argc, char** argv, IApp* app)
 		return EXIT_FAILURE;
 
 	InputSystem::Init(pSettings->mWidth, pSettings->mHeight);
-
-	registerWindowResizeEvent(onResize);
 
 	bool quit = false;
 

@@ -23,6 +23,9 @@
 #ifndef AMD_VULKAN_MEMORY_ALLOCATOR_H
 #define AMD_VULKAN_MEMORY_ALLOCATOR_H
 
+//EASTL Include [Do not removed from here]
+#include "../EASTL/list.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -1640,6 +1643,13 @@ Features deliberately excluded from the scope of this library:
   are not going to be included into this repository.
 
 */
+
+//EASTL includes
+#include "../EASTL/algorithm.h"
+#include "../EASTL/utility.h"
+#include "../EASTL/sort.h"
+#include "../EASTL/vector.h"
+
 
 /*
 Define this macro to 0/1 to disable/enable support for recording functionality,
@@ -3269,19 +3279,19 @@ void *aligned_alloc(size_t alignment, size_t size)
 #endif
 
 #ifndef VMA_MIN
-   #define VMA_MIN(v1, v2)    (std::min((v1), (v2)))
+   #define VMA_MIN(v1, v2)    (eastl::min((v1), (v2)))
 #endif
 
 #ifndef VMA_MAX
-   #define VMA_MAX(v1, v2)    (std::max((v1), (v2)))
+   #define VMA_MAX(v1, v2)    (eastl::max((v1), (v2)))
 #endif
 
 #ifndef VMA_SWAP
-   #define VMA_SWAP(v1, v2)   std::swap((v1), (v2))
+   #define VMA_SWAP(v1, v2)   eastl::swap((v1), (v2))
 #endif
 
 #ifndef VMA_SORT
-   #define VMA_SORT(beg, end, cmp)  std::sort(beg, end, cmp)
+   #define VMA_SORT(beg, end, cmp)  eastl::sort(beg, end, cmp)
 #endif
 
 #ifndef VMA_DEBUG_LOG
@@ -3929,16 +3939,16 @@ public:
 
 #if VMA_USE_STL_VECTOR
 
-#define VmaVector std::vector
+#define VmaVector eastl::vector
 
 template<typename T, typename allocatorT>
-static void VmaVectorInsert(std::vector<T, allocatorT>& vec, size_t index, const T& item)
+static void VmaVectorInsert(eastl::vector<T, allocatorT>& vec, size_t index, const T& item)
 {
     vec.insert(vec.begin() + index, item);
 }
 
 template<typename T, typename allocatorT>
-static void VmaVectorRemove(std::vector<T, allocatorT>& vec, size_t index)
+static void VmaVectorRemove(eastl::vector<T, allocatorT>& vec, size_t index)
 {
     vec.erase(vec.begin() + index);
 }
@@ -4343,7 +4353,7 @@ typename VmaPoolAllocator<T>::ItemBlock& VmaPoolAllocator<T>::CreateNewBlock()
 
 #if VMA_USE_STL_LIST
 
-#define VmaList std::list
+#define VmaList eastl::list
 
 #else // #if VMA_USE_STL_LIST
 
@@ -4818,10 +4828,10 @@ private:
 
 #if VMA_USE_STL_UNORDERED_MAP
 
-#define VmaPair std::pair
+#define VmaPair eastl::pair
 
 #define VMA_MAP_TYPE(KeyT, ValueT) \
-    std::unordered_map< KeyT, ValueT, std::hash<KeyT>, std::equal_to<KeyT>, VmaStlAllocator< std::pair<KeyT, ValueT> > >
+    eastl::unordered_map< KeyT, ValueT, std::hash<KeyT>, std::equal_to<KeyT>, VmaStlAllocator< std::pair<KeyT, ValueT> > >
 
 #else // #if VMA_USE_STL_UNORDERED_MAP
 

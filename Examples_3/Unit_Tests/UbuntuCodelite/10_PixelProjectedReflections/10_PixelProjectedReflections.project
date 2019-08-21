@@ -9,8 +9,6 @@
   <Dependencies/>
   <VirtualDirectory Name="src">
     <File Name="../../src/10_PixelProjectedReflections/10_PixelProjectedReflections.cpp"/>
-    <File Name="../../../Common/AppHelpers.h"/>
-    <File Name="../../../Common/AppHelpers.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="AssimpImporter">
     <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.cpp"/>

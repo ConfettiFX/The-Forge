@@ -42,8 +42,6 @@
 #include "../../ThirdParty/OpenSource/winpixeventruntime/Include/WinPixEventRuntime/pix3.h"
 #include "../../ThirdParty/OpenSource/renderdoc/renderdoc_app.h"
 #include "../../OS/Core/GPUConfig.h"
-#include "../../OS/Image/Image.h"
-
 
 #include "Direct3D12Hooks.h"
 
@@ -68,24 +66,6 @@
 #endif
 #include <Windows.h>
 
-#ifdef FORGE_JHABLE_EDITS_V01
-// These are placed separately in Vulkan.cpp and Direct3D12.cpp, but they should be in one place
-// with an option for the user to append custom attributes. However, it should be initialized once
-// so that we can parse them during shader reflection, not during pipeline binding.
-// clang-format off
-static const char * g_hackSemanticList[] =
-{
-	"POSITION",
-	"NORMAL",
-	"UV",
-	"COLOR",
-	"TANGENT",
-	"BINORMAL",
-	"TANGENT_TW",
-	"TEXCOORD",
-};
-// clang-format on
-#endif
 
 #if !defined(_DURANGO)
 // Prefer Higher Performance GPU on switchable GPU systems
@@ -2416,12 +2396,6 @@ void addCmd(CmdPool* pCmdPool, bool secondary, Cmd** ppCmd)
 	hres = pCmd->pDxCmdList->Close();
 	ASSERT(SUCCEEDED(hres));
 
-	if (pCmdPool->mCmdPoolDesc.mCmdPoolType == CMD_POOL_DIRECT)
-	{
-		pCmd->pBoundColorFormats = (uint32_t*)conf_calloc(MAX_RENDER_TARGET_ATTACHMENTS, sizeof(uint32_t));
-		pCmd->pBoundSrgbValues = (bool*)conf_calloc(MAX_RENDER_TARGET_ATTACHMENTS, sizeof(bool));
-	}
-
 	//set new command
 	*ppCmd = pCmd;
 }
@@ -2465,12 +2439,6 @@ void addCmd(CmdPool* pCmdPool, bool secondary, DmaCmd** ppCmd)
 	hres = pCmd->pDxCmdList->Close();
 	ASSERT(SUCCEEDED(hres));
 
-	if (pCmdPool->mCmdPoolDesc.mCmdPoolType == CMD_POOL_DIRECT)
-	{
-		pCmd->pBoundColorFormats = (uint32_t*)conf_calloc(MAX_RENDER_TARGET_ATTACHMENTS, sizeof(uint32_t));
-		pCmd->pBoundSrgbValues = (bool*)conf_calloc(MAX_RENDER_TARGET_ATTACHMENTS, sizeof(bool));
-	}
-
 	//set new command
 	*ppCmd = pCmd;
 }
@@ -2489,12 +2457,6 @@ void removeCmd(CmdPool* pCmdPool, Cmd* pCmd)
 
 	if (pCmd->pRootConstantRingBuffer)
 		removeGPURingBuffer(pCmd->pRootConstantRingBuffer);
-
-	if (pCmd->pBoundColorFormats)
-		SAFE_FREE(pCmd->pBoundColorFormats);
-
-	if (pCmd->pBoundSrgbValues)
-		SAFE_FREE(pCmd->pBoundSrgbValues);
 
 	//remove command from pool
 	SAFE_RELEASE(pCmd->pDxCmdAlloc);
@@ -2518,12 +2480,6 @@ void removeCmd(CmdPool* pCmdPool, DmaCmd* pCmd)
 
 	if (pCmd->pRootConstantRingBuffer)
 		removeGPURingBuffer(pCmd->pRootConstantRingBuffer);
-
-	if (pCmd->pBoundColorFormats)
-		SAFE_FREE(pCmd->pBoundColorFormats);
-
-	if (pCmd->pBoundSrgbValues)
-		SAFE_FREE(pCmd->pBoundSrgbValues);
 
 	//remove command from pool
 	SAFE_RELEASE(pCmd->pDxCmdAlloc);
@@ -2681,7 +2637,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	HRESULT hres = create_swap_chain(pRenderer, pSwapChain, &desc, &swapchain);
 	ASSERT(SUCCEEDED(hres));
 #else
-	HWND hwnd = (HWND)pSwapChain->mDesc.pWindow->handle;
+	HWND hwnd = (HWND)pSwapChain->mDesc.mWindowHandle.window;
 
 	HRESULT hres =
 		pRenderer->pDXGIFactory->CreateSwapChainForHwnd(pDesc->ppPresentQueues[0]->pDxQueue, hwnd, &desc, NULL, NULL, &swapchain);
@@ -4869,17 +4825,6 @@ void addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipelin
 		{
 			const VertexAttrib* attrib = &(pVertexLayout->mAttribs[attrib_index]);
 
-#ifdef FORGE_JHABLE_EDITS_V01
-			input_elements[input_elementCount].SemanticName = g_hackSemanticList[attrib->mSemanticType];
-			input_elements[input_elementCount].SemanticIndex = attrib->mSemanticIndex;
-
-			if (attrib->mSemanticNameLength > 0)
-			{
-				uint32_t name_length = min(MAX_SEMANTIC_NAME_LENGTH, attrib->mSemanticNameLength);
-				strncpy_s(semantic_names[attrib_index], attrib->mSemanticName, name_length);
-			}
-
-#else
 			ASSERT(SEMANTIC_UNDEFINED != attrib->mSemantic);
 
 			if (attrib->mSemanticNameLength > 0)
@@ -4928,7 +4873,7 @@ void addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipelin
 
 			input_elements[input_elementCount].SemanticName = semantic_names[attrib_index];
 			input_elements[input_elementCount].SemanticIndex = semantic_index;
-#endif
+
 			input_elements[input_elementCount].Format = util_to_dx_image_format(attrib->mFormat, false);
 			input_elements[input_elementCount].InputSlot = attrib->mBinding;
 			input_elements[input_elementCount].AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT;
@@ -5315,7 +5260,6 @@ void cmdBindRenderTargets(
 	if (!renderTargetCount && !pDepthStencil)
 		return;
 
-	uint64_t                     renderPassHash = 0;
 	D3D12_CPU_DESCRIPTOR_HANDLE* p_dsv_handle = NULL;
 	D3D12_CPU_DESCRIPTOR_HANDLE* p_rtv_handles =
 		renderTargetCount ? (D3D12_CPU_DESCRIPTOR_HANDLE*)alloca(renderTargetCount * sizeof(D3D12_CPU_DESCRIPTOR_HANDLE)) : NULL;
@@ -5335,17 +5279,6 @@ void cmdBindRenderTargets(
 		}
 
 		p_rtv_handles[i] = ppRenderTargets[i]->pDxDescriptors[handle];
-		pCmd->pBoundColorFormats[i] = ppRenderTargets[i]->mDesc.mFormat;
-		pCmd->pBoundSrgbValues[i] = ppRenderTargets[i]->mDesc.mSrgb;
-		pCmd->mBoundWidth = ppRenderTargets[i]->mDesc.mWidth;
-		pCmd->mBoundHeight = ppRenderTargets[i]->mDesc.mHeight;
-
-		uint32_t hashValues[] = {
-			(uint32_t)ppRenderTargets[i]->mDesc.mFormat,
-			(uint32_t)ppRenderTargets[i]->mDesc.mSampleCount,
-			(uint32_t)ppRenderTargets[i]->mDesc.mSrgb,
-		};
-		renderPassHash = eastl::mem_hash<uint32_t>()(hashValues, 3, renderPassHash);
 	}
 
 	if (pDepthStencil)
@@ -5364,22 +5297,7 @@ void cmdBindRenderTargets(
 		}
 
 		p_dsv_handle = &pDepthStencil->pDxDescriptors[handle];
-		pCmd->mBoundDepthStencilFormat = pDepthStencil->mDesc.mFormat;
-		pCmd->mBoundWidth = pDepthStencil->mDesc.mWidth;
-		pCmd->mBoundHeight = pDepthStencil->mDesc.mHeight;
-
-		uint32_t hashValues[] = {
-			(uint32_t)pDepthStencil->mDesc.mFormat,
-			(uint32_t)pDepthStencil->mDesc.mSampleCount,
-			(uint32_t)pDepthStencil->mDesc.mSrgb,
-		};
-		renderPassHash = eastl::mem_hash<uint32_t>()(hashValues, 3, renderPassHash);
 	}
-
-	SampleCount sampleCount = renderTargetCount ? ppRenderTargets[0]->mDesc.mSampleCount : pDepthStencil->mDesc.mSampleCount;
-	pCmd->mBoundSampleCount = sampleCount;
-	pCmd->mBoundRenderTargetCount = renderTargetCount;
-	pCmd->mRenderPassHash = renderPassHash;
 
 	pCmd->pDxCmdList->OMSetRenderTargets(renderTargetCount, p_rtv_handles, FALSE, p_dsv_handle);
 
@@ -6993,6 +6911,14 @@ void removeQueryHeap(Renderer* pRenderer, QueryHeap* pQueryHeap)
 	SAFE_FREE(pQueryHeap);
 }
 
+void cmdResetQueryHeap(Cmd* pCmd, QueryHeap* pQueryHeap, uint32_t startQuery, uint32_t queryCount)
+{
+	UNREF_PARAM(pCmd);
+	UNREF_PARAM(pQueryHeap);
+	UNREF_PARAM(startQuery);
+	UNREF_PARAM(queryCount);
+}
+
 void cmdBeginQuery(Cmd* pCmd, QueryHeap* pQueryHeap, QueryDesc* pQuery)
 {
 	D3D12_QUERY_TYPE type = util_to_dx_query_type(pQueryHeap->mDesc.mType);
@@ -7046,12 +6972,10 @@ void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName
 {
 	// note: USE_PIX isn't the ideal test because we might be doing a debug build where pix
 	// is not installed, or a variety of other reasons. It should be a separate #ifdef flag?
-#ifndef FORGE_JHABLE_EDITS_V01
 #if defined(USE_PIX)
 	//color is in B8G8R8X8 format where X is padding
 	uint64_t color = packColorF32(r, g, b, 0 /*there is no alpha, that's padding*/);
 	PIXBeginEvent(pCmd->pDxCmdList, color, pName);
-#endif
 #endif
 }
 
@@ -7066,12 +6990,10 @@ void cmdEndDebugMarker(Cmd* pCmd)
 
 void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
-#ifndef FORGE_JHABLE_EDITS_V01
 #if defined(USE_PIX)
 	//color is in B8G8R8X8 format where X is padding
 	uint64_t color = packColorF32(r, g, b, 0 /*there is no alpha, that's padding*/);
 	PIXSetMarker(pCmd->pDxCmdList, color, pName);
-#endif
 #endif
 }
 /************************************************************************/

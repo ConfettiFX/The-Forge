@@ -22,6 +22,7 @@
  * under the License.
 */
 
+#define IMAGE_CLASS_ALLOWED
 
 // this is needed for the CopyEngine on XBox
 #ifdef _DURANGO
@@ -331,6 +332,69 @@ typedef struct UpdateState
 	uint64_t      mSize;
 } UpdateState;
 
+class ResourceLoader
+{
+public:
+	Renderer* pRenderer;
+
+	ResourceLoaderDesc mDesc;
+
+	volatile int mRun;
+	ThreadDesc   mThreadDesc;
+	ThreadHandle mThread;
+
+	Mutex mQueueMutex;
+	ConditionVariable mQueueCond;
+	Mutex mTokenMutex;
+	ConditionVariable mTokenCond;
+	eastl::deque <UpdateRequest> mRequestQueue[MAX_GPUS];
+
+	tfrg_atomic64_t mTokenCompleted;
+	tfrg_atomic64_t mTokenCounter;
+
+	static Image* AllocImage()
+	{
+		return conf_new(Image);
+	}
+
+	static Image* CreateImage(const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize, const unsigned char* rawData)
+	{
+		Image* pImage = AllocImage();
+		pImage->Create(fmt, w, h, d, mipMapCount, arraySize, rawData);
+		return pImage;
+	}
+
+	static Image* CreateImage(const char* origFileName, memoryAllocationFunc pAllocator, void* pUserData, FSRoot root)
+	{
+		Image* pImage = AllocImage();
+		if (!pImage->LoadFromFile(origFileName, pAllocator, pUserData, root))
+		{
+			DestroyImage(pImage);
+			return NULL;
+		}
+
+		return pImage;
+	}
+
+	static Image* CreateImage(uint8_t const* mem, uint32_t size, char const* extension, memoryAllocationFunc pAllocator, void* pUserData)
+	{
+		Image* pImage = AllocImage();
+		if (!pImage->LoadFromMemory(mem, size, extension, pAllocator, pUserData))
+		{
+			DestroyImage(pImage);
+			return NULL;
+		}
+
+		return pImage;
+	}
+
+	static void DestroyImage(Image* pImage)
+	{
+		pImage->Destroy();
+		conf_delete(pImage);
+	}
+};
+
 uint32 SplitBitsWith0(uint32 x)
 {
 	x &= 0x0000ffff;
@@ -450,7 +514,7 @@ static bool updateTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t a
 		cmdResourceBarrier(pCmd, 0, NULL, 1, &preCopyBarrier, false);
 	}
 
-	ImageFormat::Enum fmt = img.getFormat();
+	ImageFormat::Enum fmt = img.GetFormat();
 	Extent3D          uploadGran = pCopyEngine->pQueue->mUploadGranularity;
 	const uint32_t    blockSize = ImageFormat::GetBytesPerBlock(fmt);
 	const uint32      pxPerRow = max<uint32_t>(round_down(textureRowAlignment / blockSize, uploadGran.mWidth), uploadGran.mWidth);
@@ -552,11 +616,14 @@ static bool updateTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t a
 		TextureBarrier postCopyBarrier = { pTexture, util_determine_resource_start_state(pTexture->mDesc.mDescriptors) };
 		cmdResourceBarrier(pCmd, 0, NULL, 1, &postCopyBarrier, true);
 	}
+	else
+	{
+		pTexture->mCurrentState = util_determine_resource_start_state(pTexture->mDesc.mDescriptors);
+	}
 	
 	if (texUpdateDesc.mFreeImage)
 	{
-		texUpdateDesc.pImage->Destroy();
-		conf_delete(texUpdateDesc.pImage);
+		ResourceLoader::DestroyImage(texUpdateDesc.pImage);
 	}
 
 	return true;
@@ -659,26 +726,6 @@ static bool updateResourceState(Renderer* pRenderer, CopyEngine* pCopyEngine, si
 //////////////////////////////////////////////////////////////////////////
 // Resource Loader Implementation
 //////////////////////////////////////////////////////////////////////////
-typedef struct ResourceLoader
-{
-	Renderer* pRenderer;
-
-	ResourceLoaderDesc mDesc;
-
-	volatile int mRun;
-	ThreadDesc   mThreadDesc;
-	ThreadHandle mThread;
-
-	Mutex mQueueMutex;
-	ConditionVariable mQueueCond;
-	Mutex mTokenMutex;
-	ConditionVariable mTokenCond;
-	eastl::deque <UpdateRequest> mRequestQueue[MAX_GPUS];
-
-	tfrg_atomic64_t mTokenCompleted;
-	tfrg_atomic64_t mTokenCounter;
-} ResourceLoader;
-
 static bool allQueuesEmpty(ResourceLoader* pLoader)
 {
 	for (size_t i = 0; i < MAX_GPUS; ++i)
@@ -981,10 +1028,9 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 	Image* pImage = NULL;
 	if (pTextureDesc->pFilename)
 	{
-		pImage = conf_new(Image);
-		if (!pImage->loadImage(pTextureDesc->pFilename, NULL, NULL, pTextureDesc->mRoot))
+		pImage = ResourceLoader::CreateImage(pTextureDesc->pFilename, NULL, NULL, pTextureDesc->mRoot);
+		if (!pImage)
 		{
-			conf_delete(pImage);
 			return;
 		}
 		freeImage = true;
@@ -1003,17 +1049,15 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 	}
 	else if (pTextureDesc->pRawImageData && !pTextureDesc->pBinaryImageData)
 	{
-		pImage = conf_new(Image);
-		pImage->Create(pTextureDesc->pRawImageData->mFormat, pTextureDesc->pRawImageData->mWidth, pTextureDesc->pRawImageData->mHeight, pTextureDesc->pRawImageData->mDepth, pTextureDesc->pRawImageData->mMipLevels, pTextureDesc->pRawImageData->mArraySize, pTextureDesc->pRawImageData->pRawData);
+		pImage = ResourceLoader::CreateImage(pTextureDesc->pRawImageData->mFormat, pTextureDesc->pRawImageData->mWidth, pTextureDesc->pRawImageData->mHeight, pTextureDesc->pRawImageData->mDepth, pTextureDesc->pRawImageData->mMipLevels, pTextureDesc->pRawImageData->mArraySize, pTextureDesc->pRawImageData->pRawData);
 		freeImage = true;
 	}
 	else if (pTextureDesc->pBinaryImageData)
 	{
-		pImage = conf_new(Image);
+		pImage = ResourceLoader::CreateImage(pTextureDesc->pBinaryImageData->pBinaryData, pTextureDesc->pBinaryImageData->mSize, pTextureDesc->pBinaryImageData->pExtension, NULL, NULL);
 #ifdef _DEBUG
-		bool success =
+		bool success = pImage;
 #endif
-		pImage->loadFromMemory(pTextureDesc->pBinaryImageData->pBinaryData, pTextureDesc->pBinaryImageData->mSize, pTextureDesc->pBinaryImageData->pExtension);
 #ifdef _DEBUG
 		ASSERT(success);
 #endif
@@ -1032,10 +1076,10 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 	desc.mMipLevels = pImage->GetMipMapCount();
 	desc.mSampleCount = SAMPLE_COUNT_1;
 	desc.mSampleQuality = 0;
-	desc.mFormat = pImage->getFormat();
+	desc.mFormat = pImage->GetFormat();
 	desc.mClearValue = ClearValue();
 	desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-	desc.mStartState = RESOURCE_STATE_COPY_DEST;
+	desc.mStartState = RESOURCE_STATE_COMMON;
 	desc.pNativeHandle = NULL;
 	desc.mHostVisible = false;
 	desc.mSrgb = pImage->IsSrgb() || pTextureDesc->mSrgb;
@@ -1108,9 +1152,7 @@ void updateResource(TextureUpdateDesc* pTextureUpdate, SyncToken* token)
 	desc.pTexture = pTextureUpdate->pTexture;
 	if (pTextureUpdate->pRawImageData)
 	{
-		Image* pImage = conf_new(Image);
-		pImage->Create(
-			pTextureUpdate->pRawImageData->mFormat, pTextureUpdate->pRawImageData->mWidth, pTextureUpdate->pRawImageData->mHeight,
+		Image* pImage = ResourceLoader::CreateImage(pTextureUpdate->pRawImageData->mFormat, pTextureUpdate->pRawImageData->mWidth, pTextureUpdate->pRawImageData->mHeight,
 			pTextureUpdate->pRawImageData->mDepth, pTextureUpdate->pRawImageData->mMipLevels, pTextureUpdate->pRawImageData->mArraySize,
 			pTextureUpdate->pRawImageData->pRawData);
 		desc.mFreeImage = true;
@@ -1318,10 +1360,9 @@ void vk_compileShader(
 		else
 		{
 			eastl::string errorLog = errorFile.ReadText();
-			errorFile.Close();
 			ErrorMsg("Failed to compile shader %s with error\n%s", fileName.c_str(), errorLog.c_str());
-			errorFile.Close();
 		}
+		errorFile.Close();
 	}
 }
 #endif
@@ -1355,8 +1396,8 @@ void mtl_compileShader(
 	args.push_back(intermediateFile.c_str());
 
 	//enable the 2 below for shader debugging on xcode
-//	args.push_back("-MO");
-//	args.push_back("-gline-tables-only");
+	//args.push_back("-MO");
+	//args.push_back("-gline-tables-only");
 	args.push_back("-D");
 	args.push_back("MTL_SHADER=1");    // Add MTL_SHADER macro to differentiate structs in headers shared by app/shader code.
 	// Add user defined macros to the command line
@@ -1769,6 +1810,15 @@ bool find_shader_stage(
 #endif
 void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShader)
 {
+	if (pDesc->mTarget > pRenderer->mSettings.mShaderTarget)
+	{
+		eastl::string error = eastl::string().sprintf("Requested shader target (%u) is higher than the shader target that the renderer supports (%u). Shader wont be compiled",
+			(uint32_t)pDesc->mTarget, (uint32_t)pRenderer->mSettings.mShaderTarget);
+		LOGF(eERROR, error.c_str());
+		_FailedAssert(__FILE__, __LINE__, error.c_str());
+		return;
+	}
+
 #ifndef TARGET_IOS
 	BinaryShaderDesc      binaryDesc = {};
 	eastl::vector<char> byteCodes[SHADER_STAGE_COUNT] = {};

@@ -41,7 +41,6 @@
 #include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 
 #include "../Interfaces/IOperatingSystem.h"
-#include "../Interfaces/IPlatformEvents.h"
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/ITime.h"
 #include "../Interfaces/IThread.h"
@@ -92,18 +91,18 @@ static bool captureMouse(bool shouldCapture, bool shouldHide)
 			currentWind->lastCursorPosX = lastCursorPoint.x;
 			currentWind->lastCursorPosY = lastCursorPoint.y;
 
-			SetCapture((HWND)currentWind->handle);
+			SetCapture((HWND)currentWind->handle.window);
 
 			RECT clientRect;
-			GetClientRect((HWND)currentWind->handle, &clientRect);
+			GetClientRect((HWND)currentWind->handle.window, &clientRect);
 			//convert screen rect to client coordinates.
 			POINT ptClientUL = { clientRect.left, clientRect.top };
 			// Add one to the right and bottom sides, because the
 			// coordinates retrieved by GetClientRect do not
 			// include the far left and lowermost pixels.
 			POINT ptClientLR = { clientRect.right + 1, clientRect.bottom + 1 };
-			ClientToScreen((HWND)currentWind->handle, &ptClientUL);
-			ClientToScreen((HWND)currentWind->handle, &ptClientLR);
+			ClientToScreen((HWND)currentWind->handle.window, &ptClientUL);
+			ClientToScreen((HWND)currentWind->handle.window, &ptClientLR);
 
 			// Copy the client coordinates of the client area
 			// to the rcClient structure. Confine the mouse cursor
@@ -207,8 +206,8 @@ LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 				gCurrentWindow->windowedRect = rect;
 			}
 
-			WindowResizeEventData eventData = { rect, gCurrentWindow };
-			PlatformEvents::onWindowResize(&eventData);
+			if (gCurrentWindow->callbacks.onResize)
+				gCurrentWindow->callbacks.onResize(gCurrentWindow, getRectWidth(rect), getRectHeight(rect));
 		}
 		break;
 	case WM_DESTROY:
@@ -428,7 +427,7 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 		GetClientRect(hwnd, &clientRect);
 		winDesc->windowedRect = { (int)clientRect.left, (int)clientRect.top, (int)clientRect.right, (int)clientRect.bottom };
 
-		winDesc->handle = hwnd;
+		winDesc->handle.window = hwnd;
 		gHWNDMap[hwnd] = winDesc;
 
 		if (winDesc->visible)
@@ -516,13 +515,13 @@ bool handleMessages()
 
 void closeWindow(const WindowsDesc* winDesc)
 {
-	DestroyWindow((HWND)winDesc->handle);
+	DestroyWindow((HWND)winDesc->handle.window);
 	handleMessages();
 }
 
 void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
 {
-	HWND hwnd = (HWND)winDesc->handle;
+	HWND hwnd = (HWND)winDesc->handle.window;
 	RectDesc& currentRect = winDesc->fullScreen ? winDesc->fullscreenRect : winDesc->windowedRect;
 	currentRect = rect;
 	MoveWindow(hwnd, rect.left, rect.top, getRectWidth(rect), getRectHeight(rect), TRUE);
@@ -532,7 +531,7 @@ void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height) { setW
 
 void adjustWindow(WindowsDesc* winDesc)
 {
-	HWND hwnd = (HWND)winDesc->handle;
+	HWND hwnd = (HWND)winDesc->handle.window;
 
 	if (winDesc->fullScreen)
 	{
@@ -586,31 +585,31 @@ void toggleFullscreen(WindowsDesc* winDesc)
 void showWindow(WindowsDesc* winDesc)
 {
 	winDesc->visible = true;
-	ShowWindow((HWND)winDesc->handle, SW_SHOW);
+	ShowWindow((HWND)winDesc->handle.window, SW_SHOW);
 }
 
 void hideWindow(WindowsDesc* winDesc)
 {
 	winDesc->visible = false;
-	ShowWindow((HWND)winDesc->handle, SW_HIDE);
+	ShowWindow((HWND)winDesc->handle.window, SW_HIDE);
 }
 
 void maximizeWindow(WindowsDesc* winDesc)
 {
 	winDesc->maximized = true;
-	ShowWindow((HWND)winDesc->handle, SW_MAXIMIZE);
+	ShowWindow((HWND)winDesc->handle.window, SW_MAXIMIZE);
 }
 
 void minimizeWindow(WindowsDesc* winDesc)
 {
 	winDesc->maximized = false;
-	ShowWindow((HWND)winDesc->handle, SW_MINIMIZE);
+	ShowWindow((HWND)winDesc->handle.window, SW_MINIMIZE);
 }
 
 void setMousePositionRelative(const WindowsDesc* winDesc, int32_t x, int32_t y)
 {
 	POINT point = { (LONG)x, (LONG)y };
-	ClientToScreen((HWND)winDesc->handle, &point);
+	ClientToScreen((HWND)winDesc->handle.window, &point);
 	//SetCursorPos(point.x, point.y);
 }
 
@@ -658,15 +657,15 @@ bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes)
 /************************************************************************/
 // App Entrypoint
 /************************************************************************/
-static void onResize(const WindowResizeEventData* pData)
+static void onResize(WindowsDesc* wnd, int32_t newSizeX, int32_t newSizeY)
 {
 	if (!pApp)
 		return;
 
-	pApp->mSettings.mWidth = getRectWidth(pData->rect);
-	pApp->mSettings.mHeight = getRectHeight(pData->rect);
+	pApp->mSettings.mWidth = newSizeX;
+	pApp->mSettings.mHeight = newSizeY;
 
-	pApp->mSettings.mFullScreen = pData->pWindow->fullScreen;
+	pApp->mSettings.mFullScreen = wnd->fullScreen;
 	pApp->Unload();
 	pApp->Load();
 
@@ -697,6 +696,8 @@ int WindowsMain(int argc, char** argv, IApp* app)
 		pSettings->mHeight = getRectHeight(rect);
 	}
 
+	window.callbacks.onResize = onResize;
+
 	window.windowedRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
 	window.fullScreen = pSettings->mFullScreen;
 	window.maximized = false;
@@ -722,7 +723,6 @@ int WindowsMain(int argc, char** argv, IApp* app)
 			return EXIT_FAILURE;
 		LOGF(LogLevel::eINFO, "Application Init+Load %f", t.GetMSec(false)/1000.0f);
 	}
-	registerWindowResizeEvent(onResize);
 
 	bool quit = false;
 

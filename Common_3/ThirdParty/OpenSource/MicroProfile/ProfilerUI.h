@@ -118,7 +118,7 @@ enum ProfileBoxType
 
 struct Cmd;
 
-void ProfileDraw(Cmd* pCmd, uint32_t nWidth, uint32_t nHeight); //! call if drawing microprofilers
+void ProfileDraw(Cmd* pCmd); //! call if drawing microprofilers
 bool ProfileIsDrawing();
 void ProfileToggleGraph(ProfileToken nToken);
 bool ProfileDrawGraph(uint32_t nScreenWidth, uint32_t nScreenHeight);

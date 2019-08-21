@@ -3,7 +3,6 @@
   <ItemGroup>
     <ClCompile Include="..\src\Geometry.cpp" />
     <ClCompile Include="..\src\Visibility_Buffer.cpp" />
-    <ClCompile Include="..\..\Common\AppHelpers.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\Geometry.h" />
@@ -28,7 +27,6 @@
     <ClInclude Include="..\src\Shaders\D3D12\shader_defs.h">
       <Filter>D3D12</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\Common\AppHelpers.h" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\src\Shaders\Vulkan\batch_compaction.comp">

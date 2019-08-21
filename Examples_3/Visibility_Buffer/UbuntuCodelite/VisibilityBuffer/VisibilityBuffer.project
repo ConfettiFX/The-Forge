@@ -12,8 +12,6 @@
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
-    <File Name="../../../Common/AppHelpers.h"/>
-    <File Name="../../../Common/AppHelpers.cpp"/>
     <File Name="../../src/Geometry.cpp"/>
     <File Name="../../src/Geometry.h"/>
     <File Name="../../src/Visibility_Buffer.cpp"/>

@@ -111,7 +111,7 @@ class Panini: public IMiddleware
 	// app is responsible to keep track of these render targets until load is called again
 	// app will use the -first- rendertarget as texture to render to
 	// make sure to always supply at least one render target with texture!
-	bool Load(RenderTarget** rts);
+	bool Load(RenderTarget** rts, uint32_t count = 1);
 	void Unload();
 
 	// draws Panini Projection into first render target supplied at the Load call

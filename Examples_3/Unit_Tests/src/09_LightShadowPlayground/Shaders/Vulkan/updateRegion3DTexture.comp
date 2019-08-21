@@ -1,0 +1,54 @@
+/* Write your header comments here */
+#version 450 core
+
+#extension GL_GOOGLE_include_directive : enable
+
+
+#include "../../SDF_Constant.h"
+
+layout(set = 0, binding = 0) buffer SDFVolumeDataBuffer
+{
+    float SDFVolumeDataBuffer_Data[];
+};
+
+layout(set = 0, binding = 1) uniform  UpdateSDFVolumeTextureAtlasCB
+{
+    uvec3 mSourceAtlasVolumeMinCoord;
+    uvec3 mSourceDimensionSize;
+    uvec3 mSourceAtlasVolumeMaxCoord;
+};
+
+
+layout(set = 0, binding = 2, r16f) uniform image3D SDFVolumeTextureAtlas;
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
+void HLSLmain(uvec3 threadID, uvec3 GTid, uvec3 Gid)
+{
+	if(
+		(mSourceAtlasVolumeMinCoord.x > threadID.x) || 
+		(mSourceAtlasVolumeMinCoord.y > threadID.y) || 
+		(mSourceAtlasVolumeMinCoord.z > threadID.z) || 
+		(mSourceAtlasVolumeMaxCoord.x < threadID.x) || 
+		(mSourceAtlasVolumeMaxCoord.y < threadID.y) || 
+		(mSourceAtlasVolumeMaxCoord.z < threadID.z)
+	)
+    {
+        return;
+    }
+   
+    uvec3 localThreadID = (threadID - mSourceAtlasVolumeMinCoord);
+    uint finalLocalIndex = (((((localThreadID).z * (mSourceDimensionSize).x) * (mSourceDimensionSize).y) +
+		((localThreadID).y * (mSourceDimensionSize).x)) + (localThreadID).x);
+	
+	imageStore(SDFVolumeTextureAtlas, ivec3(threadID), vec4(SDFVolumeDataBuffer_Data[finalLocalIndex]));
+}
+void main()
+{
+    uvec3 threadID;
+    threadID = gl_GlobalInvocationID;
+    uvec3 GTid;
+    GTid = gl_LocalInvocationID;
+	uvec3 Gid;
+	Gid = gl_WorkGroupID;
+    HLSLmain(threadID, GTid, Gid);
+}

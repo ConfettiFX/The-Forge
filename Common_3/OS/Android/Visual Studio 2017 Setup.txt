@@ -1,0 +1,63 @@
+Steps to setup android environment in Visual Studio
+
+1)Using Visual Studio Installer install "Mobile Development with C++". 
+We don't need NDK that comes with this packages so that can be unchecked.
+
+2) Download latest NDK. -- https://developer.android.com/ndk/downloads
+
+3) Add NDK path in Visual Studio (Tools->Options->Android).
+
+
+Steps if You want to creat a new Project(--there are quite a few steps but we got you covered :) )
+1) Create A new Native-Activity Application for apk or Satitc Library if you want to build a library.
+
+2) 
+- copy all the includes from pch.h to android_native_app_glue.c and add #include <malloc.h>
+- Delete pch.h and main.cpp 
+- unselect the Use precompiled header files option from project property.
+
+3) Since we need to add UserMacros  
+-> CustomSysroot ->  $(VS_NdkRoot)\sysroot
+-> TRIPLE  : Refer the table below for values
+
+For respective architecture we insert the corresponding triple value in the macro(we only support ARM and ARM64)
+Arch		Triple
+ARM		arm-linux-androideabi
+ARM64		aarch64-linux-android
+MIPS		mipsel-linux-android
+MIPS64		mips64el-linux-android
+x86		i686-linux-android
+x86_64		x86_64-linux-android
+
+
+You can either add property sheets given by us which are included in Android_VisualStudio2017 folder, to your project's current target by selecting Add existing property sheet.
+or create your own and just add those two Macros.
+
+4) add path to include directories and uncheck inherit from parents
+$(CustomSysroot)\usr\include
+$(CustomSysroot)\usr\include\$(TRIPLE)
+$(VS_Ndkroot)\sources\android\native_app_glue
+
+5)add path to library 
+$(SolutionDir)$(Platform)\$(Configuration)\ (this is where we have all our libs. set it accordingly)
+$(VS_Ndkroot)\sources\third_party\shaderc\libs\c++_static\$(TargetArchAbi)
+
+6)add path to executable directory and uncheck inherit from parent
+$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin
+ 
+------------------------------------------------------------------------------------------
+Notes:
+Add -lm to you project Linker Command Line options for if you get any undefined math  operations error
+
+If you get error related to "cannot use 'throw' with exceptions disabled"
+- Enable exceptions in C++ Project settings
+
+If you get error related to multiple instances of ioctl 
+ add BIONIC_IOCTL_NO_SIGNEDNESS_OVERLOAD in preprocessor definitions
+ 
+ If you get errors related to neon supprt not enabled
+ -Enable Advance SIMD to Yes
+ -Set floating point ABI to softfp
+ 
+ 
+-------------------------------------------------------------------------------------------------

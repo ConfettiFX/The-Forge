@@ -28,8 +28,7 @@
 #ifndef OZZ_OZZ_BASE_CONTAINERS_DEQUE_H_
 #define OZZ_OZZ_BASE_CONTAINERS_DEQUE_H_
 
-#include <deque>
-
+#include "../../../../../../OpenSource/EASTL/deque.h"
 #include "ozz/base/containers/std_allocator.h"
 
 namespace ozz {
@@ -38,7 +37,7 @@ namespace ozz {
 // ozz::StdAllocator.
 template <class _Ty, class _Allocator = ozz::StdAllocator<_Ty> >
 struct Deque {
-  typedef std::deque<_Ty, _Allocator> Std;
+  typedef eastl::deque<_Ty, _Allocator> Std;
 };
 }  // namespace ozz
 #endif  // OZZ_OZZ_BASE_CONTAINERS_DEQUE_H_

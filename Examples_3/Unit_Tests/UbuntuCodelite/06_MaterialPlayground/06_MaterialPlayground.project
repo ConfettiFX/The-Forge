@@ -16,8 +16,6 @@
   <Dependencies/>
   <VirtualDirectory Name="src">
     <File Name="../../src/06_MaterialPlayground/06_MaterialPlayground.cpp"/>
-    <File Name="../../../Common/AppHelpers.h"/>
-    <File Name="../../../Common/AppHelpers.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="AssimpImporter">
     <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.cpp"/>
