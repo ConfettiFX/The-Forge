@@ -1,4 +1,4 @@
-# ![The Forge Logo](Screenshots/TheForge-10.png)
+<img src="Screenshots/TheForge-10_480.png" width="60" height="60" />
 
 The Forge is a cross-platform rendering framework supporting
 - PC 
@@ -51,6 +51,45 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+
+## Release 1.33 - August 30th - glTF model viewer | Basis Universal Texture Support | Updated Shader Translator | New Input System Architecture
+* glTF model viewer - we build a simple cross-platform glTF model viewer by integrating Arseny Kapoulkine @zeuxcg excellent [meshoptimizer](https://github.com/zeux/meshoptimizer) and the same PBR as used in the Material Playground unit test.
+  * It optimizes the geometry data set with all the features meshoptimizer offers
+  * It will be extended in the future with more functionality, following some of our internal tools
+  * Uses the cgltf reader from the same repository
+
+glTF model viewer running on iPad with 2048x1536 resolution
+
+![glTF model viewer](Screenshots/ModelViewer/Metal_a1893_ipad_6th_gen_2048x1536_0.png)
+
+![glTF model viewer](Screenshots/ModelViewer/Metal_a1893_ipad_6th_gen_2048x1536_1.png)
+
+glTF model viewer running on Samsung Galaxy S10 with Vulkan with 1995x945 resolution
+
+![glTF model viewer](Screenshots/ModelViewer/Vulkan_Samsung_GalaxyS10_1995x945_0.jpeg)
+
+![glTF model viewer](Screenshots/ModelViewer/Vulkan_Samsung_GalaxyS10_1995x945_1.jpeg)
+
+glTF model viewer running on Ubuntu AMD RX 480 with Vulkan with 1920x1080 resolution
+
+![glTF model viewer](Screenshots/ModelViewer/Vulkan_Ubuntu_RX480_1920x1080_0.png)
+
+![glTF model viewer](Screenshots/ModelViewer/Vulkan_Ubuntu_RX480_1920x1080_1.png)
+
+* Basis Universal Texture Support: TF now supports Binomials @richgel999 @google [Basis Universal Texture Support](https://github.com/binomialLLC/basis_universal) as on option to load textures. Support was added to the Image class as a "new image format". So you can pick basis like you can pick DDS or KTX.
+* Shader Translator: since more than a year we are developing on and off a shader translator that allows us to define our own shader language. This shader language is an extension to HLSL and will in the future offer the opportunity to store more data for the various platforms. For example we will able to pre-compile pipelines with this setup. We are using it extensively to translate all the shaders you see in The Forge. You can find the source code in 
+
+  [Common_3/ThirdParty/OpenSource/hlslparser](https://github.com/ConfettiFX/The-Forge/tree/master/Common_3/ThirdParty/OpenSource/hlslparser)
+
+  The public version translates at the moment to HLSL, GLSL and Metal. Metal support is still work in progress. There is a test scenario where the shader translator translates most of the shaders of the unit tests and examples to HLSL and GLSL. It will be integrated into our Jenkins test system and it gets tested with every code change.
+* Input system: we re-architected the app level interface for our cross-platform input system based on [gainput](https://github.com/jkuhlmann/gainput). Our previous interface somehow leaned toward PC input systems and we wanted to better focus on our main target platforms.
+* Ozz animation system: we cleaned up the code base. There was a lot of unused code because we wired up the system with all the "service providers" of The Forge. So Ozz like any other third party library is using the math, log, error, assert, file system, memory management and others sub-systems from The Forge. Previously, it had a lot of those implemented on its own.
+* Issues resolved:
+  * 104 "Tiled resources / reserve resources support ?"
+  * 128 "The DepthStateDesc.mDepthTest is ignored on the Metal backend"
+  * 130 "Vulkan and D3D12 backend set sampler maxLod to zero for nearest mipmap mode"
+  * 131 "Vulkan sampler set the anistropy flag to false always."
+
 
 ## Release 1.32 - August 9th - Ephemeris Night Sky update | New Light and Shadow Playground | Android Visual Studio Support
 * [Ephemeris - Skydome System](https://github.com/ConfettiFX/Custom-Middleware) 
@@ -240,7 +279,7 @@ See the release notes from previous releases in the [Release section](https://gi
 3. Visual Studio 2017 with Windows SDK / DirectX version 17763.132 (you need to get it via the Visual Studio Intaller)
 https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
-4. The Forge supports now as the min spec for the Vulkan SDK 1.1.82.0 and as the max spec is  [1.1.114](https://vulkan.lunarg.com/sdk/home)
+4. The Forge supports now as the min spec for the Vulkan SDK 1.1.82.0 and as the max spec  [1.1.114](https://vulkan.lunarg.com/sdk/home)
 
 6. The Forge is currently tested on 
 * AMD 5x, VEGA GPUs (various)
@@ -676,7 +715,6 @@ In case your School / College / University uses The Forge for education, we woul
 # Open-Source Libraries
 The Forge utilizes the following Open-Source libraries:
 * [Assimp](https://github.com/assimp/assimp)
-* [Bullet Physics](https://github.com/bulletphysics)
 * [Fontstash](https://github.com/memononen/fontstash)
 * [Vectormath](https://github.com/glampert/vectormath)
 * [Nothings](https://github.com/nothings/stb) single file libs 
@@ -702,6 +740,6 @@ The Forge utilizes the following Open-Source libraries:
 * [Micro Profiler](https://github.com/zeux/microprofile)
 * [MTuner](https://github.com/milostosic/MTuner) 
 * [EASTL](https://github.com/electronicarts/EASTL/)
-* [enkiTS](https://github.com/dougbinks/enkiTS)
 * [SoLoud](https://github.com/jarikomppa/soloud)
-
+* [meshoptimizer](https://github.com/zeux/meshoptimizer)
+* [Basis Universal Texture Support](https://github.com/binomialLLC/basis_universal)
