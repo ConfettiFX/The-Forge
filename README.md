@@ -76,7 +76,7 @@ glTF model viewer running on Ubuntu AMD RX 480 with Vulkan with 1920x1080 resolu
 
 ![glTF model viewer](Screenshots/ModelViewer/Vulkan_Ubuntu_RX480_1920x1080_1.png)
 
-* Basis Universal Texture Support: TF now supports Binomials @richgel999 @google [Basis Universal Texture Support](https://github.com/binomialLLC/basis_universal) as on option to load textures. Support was added to the Image class as a "new image format". So you can pick basis like you can pick DDS or KTX.
+* Basis Universal Texture Support: TF now supports Binomials @richgel999 @google [Basis Universal Texture Support](https://github.com/binomialLLC/basis_universal) as an option to load textures. Support was added to the Image class as a "new image format". So you can pick basis like you can pick DDS or KTX.
 * Shader Translator: since more than a year we are developing on and off a shader translator that allows us to define our own shader language. This shader language is an extension to HLSL and will in the future offer the opportunity to store more data for the various platforms. For example we will able to pre-compile pipelines with this setup. We are using it extensively to translate all the shaders you see in The Forge. You can find the source code in 
 
   [Common_3/ThirdParty/OpenSource/hlslparser](https://github.com/ConfettiFX/The-Forge/tree/master/Common_3/ThirdParty/OpenSource/hlslparser)
@@ -440,10 +440,31 @@ This unit test showcases the rendering of grass with the help of hardware tessel
 
 ![Image of the Hardware Tessellation Unit test](Screenshots/07_Hardware_Tessellation.PNG)
 
-## 8. Procedural 
-In the spirit of the shadertoy examples this unit test shows a procedurally generated planet.
+## 8. glTF Model Viewer
+This is a simple cross-platform glTF model viewer by integrating Arseny Kapoulkine @zeuxcg excellent [meshoptimizer](https://github.com/zeux/meshoptimizer) and the same PBR as used in the Material Playground unit test.
+  * It optimizes the geometry data set with all the features meshoptimizer offers
+  * It will be extended in the future with more functionality, following some of our internal tools
+  * Uses the cgltf reader from the same repository
 
-![Image of the Procedural Unit test](Screenshots/08_Procedural.PNG)
+glTF model viewer running on iPad with 2048x1536 resolution
+
+![glTF model viewer](Screenshots/ModelViewer/Metal_a1893_ipad_6th_gen_2048x1536_0.png)
+
+![glTF model viewer](Screenshots/ModelViewer/Metal_a1893_ipad_6th_gen_2048x1536_1.png)
+
+glTF model viewer running on Samsung Galaxy S10 with Vulkan with 1995x945 resolution
+
+![glTF model viewer](Screenshots/ModelViewer/Vulkan_Samsung_GalaxyS10_1995x945_0.jpeg)
+
+![glTF model viewer](Screenshots/ModelViewer/Vulkan_Samsung_GalaxyS10_1995x945_1.jpeg)
+
+glTF model viewer running on Ubuntu AMD RX 480 with Vulkan with 1920x1080 resolution
+
+![glTF model viewer](Screenshots/ModelViewer/Vulkan_Ubuntu_RX480_1920x1080_0.png)
+
+![glTF model viewer](Screenshots/ModelViewer/Vulkan_Ubuntu_RX480_1920x1080_1.png)
+
+This modelviewer can also utilize Binomials [Basis Universal Texture Support](https://github.com/binomialLLC/basis_universal) as an option to load textures. Support was added to the Image class as a "new image format". So you can pick basis like you can pick DDS or KTX.
 
 ## 9. Light and Shadow Playground
 This unit test shows various shadow and lighting techniques that can be chosen from a drop down menu. There will be more in the future.
