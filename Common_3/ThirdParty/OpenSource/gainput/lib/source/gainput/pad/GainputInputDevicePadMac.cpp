@@ -291,6 +291,7 @@ InputDevicePadImplMac::InputDevicePadImplMac(InputManager& manager, InputDevice&
 	state_(state),
 	previousState_(previousState),
 	nextState_(manager.GetAllocator(), PadButtonCount_ + PadButtonAxisCount_),
+    delta_(NULL),
 	deviceState_(InputDevice::DS_UNAVAILABLE),
     ioManager_(0)
 {

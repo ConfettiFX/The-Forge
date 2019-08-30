@@ -29,10 +29,6 @@
 		5CE86AD021D21B9B00B4778F /* libLuaManager_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CE86ACA21D0F56100B4778F /* libLuaManager_iOS.a */; };
 		650CCC552223C54C003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC522223C54C003533D9 /* MetalPerformanceShaders.framework */; };
 		650CCC572223C55A003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC562223C55A003533D9 /* MetalPerformanceShaders.framework */; };
-		654D976621E9215F00113964 /* TressFXAsset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 654D976221E9215F00113964 /* TressFXAsset.cpp */; };
-		654D976721E9215F00113964 /* TFXImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 654D976421E9215F00113964 /* TFXImporter.cpp */; };
-		654D976821E9216200113964 /* TFXImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 654D976421E9215F00113964 /* TFXImporter.cpp */; };
-		654D976921E9216700113964 /* TressFXAsset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 654D976221E9215F00113964 /* TressFXAsset.cpp */; };
 		654D977F21E9219800113964 /* ozz_animation.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 654D977621E9218B00113964 /* ozz_animation.a */; };
 		654D978021E9219800113964 /* ozz_base.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 654D977821E9218B00113964 /* ozz_base.a */; };
 		654D97BF21E92FC300113964 /* ozz_base_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 654D977C21E9218B00113964 /* ozz_base_IOS.a */; };
@@ -90,6 +86,10 @@
 		B2637CC620C9A2E800D76037 /* 06_MaterialPlayground.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2637CC420C9A2E800D76037 /* 06_MaterialPlayground.cpp */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
+		E9BF1A9723186620001F2264 /* TressFXAsset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9BF1A9223186620001F2264 /* TressFXAsset.cpp */; };
+		E9BF1A9823186620001F2264 /* TressFXAsset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9BF1A9223186620001F2264 /* TressFXAsset.cpp */; };
+		E9BF1A9923186620001F2264 /* TFXImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9BF1A9423186620001F2264 /* TFXImporter.cpp */; };
+		E9BF1A9A23186620001F2264 /* TFXImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9BF1A9423186620001F2264 /* TFXImporter.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -442,11 +442,6 @@
 		5CE86AC221D0F56100B4778F /* LuaManager.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = LuaManager.xcodeproj; path = "../The-Forge/LuaManager.xcodeproj"; sourceTree = "<group>"; };
 		650CCC522223C54C003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		650CCC562223C55A003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
-		654D976121E9215F00113964 /* TFXImporter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TFXImporter.h; path = ../../../../Common_3/Tools/TFXImporter/TFXImporter.h; sourceTree = "<group>"; };
-		654D976221E9215F00113964 /* TressFXAsset.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = TressFXAsset.cpp; path = ../../../../Common_3/Tools/TFXImporter/TressFXAsset.cpp; sourceTree = "<group>"; };
-		654D976321E9215F00113964 /* TressFXFileFormat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TressFXFileFormat.h; path = ../../../../Common_3/Tools/TFXImporter/TressFXFileFormat.h; sourceTree = "<group>"; };
-		654D976421E9215F00113964 /* TFXImporter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = TFXImporter.cpp; path = ../../../../Common_3/Tools/TFXImporter/TFXImporter.cpp; sourceTree = "<group>"; };
-		654D976521E9215F00113964 /* TressFXAsset.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TressFXAsset.h; path = ../../../../Common_3/Tools/TFXImporter/TressFXAsset.h; sourceTree = "<group>"; };
 		654D976A21E9218B00113964 /* ozz.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ozz.xcodeproj; path = "../../../../Common_3/ThirdParty/OpenSource/ozz-animation/MacOS/ozz.xcodeproj"; sourceTree = "<group>"; };
 		655D676221ACD7F100A5BB07 /* Assimp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Assimp.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple/Assimp.xcodeproj; sourceTree = "<group>"; };
 		65DB594421F267FD00636935 /* capsule.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = capsule.obj; path = ../../../UnitTestResources/Meshes/capsule.obj; sourceTree = "<group>"; };
@@ -491,6 +486,11 @@
 		D0D223C520CB87A600910DF0 /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/IrrXML.a"; sourceTree = "<group>"; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../02_Compute/02_Compute/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		E9BF1A9223186620001F2264 /* TressFXAsset.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = TressFXAsset.cpp; path = ../../../../Common_3/Tools/AssetPipeline/src/TressFXAsset.cpp; sourceTree = "<group>"; };
+		E9BF1A9323186620001F2264 /* TFXImporter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TFXImporter.h; path = ../../../../Common_3/Tools/AssetPipeline/src/TFXImporter.h; sourceTree = "<group>"; };
+		E9BF1A9423186620001F2264 /* TFXImporter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = TFXImporter.cpp; path = ../../../../Common_3/Tools/AssetPipeline/src/TFXImporter.cpp; sourceTree = "<group>"; };
+		E9BF1A9523186620001F2264 /* TressFXAsset.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TressFXAsset.h; path = ../../../../Common_3/Tools/AssetPipeline/src/TressFXAsset.h; sourceTree = "<group>"; };
+		E9BF1A9623186620001F2264 /* TressFXFileFormat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TressFXFileFormat.h; path = ../../../../Common_3/Tools/AssetPipeline/src/TressFXFileFormat.h; sourceTree = "<group>"; };
 		EA463C8B1EF81E8F005AC8C7 /* 06_MaterialPlayground.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 06_MaterialPlayground.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EADF9D661EFD160E00B2008B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../02_Compute/02_Compute/Info.plist; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -658,11 +658,11 @@
 		654D976021E9214100113964 /* TFXImporter */ = {
 			isa = PBXGroup;
 			children = (
-				654D976421E9215F00113964 /* TFXImporter.cpp */,
-				654D976121E9215F00113964 /* TFXImporter.h */,
-				654D976221E9215F00113964 /* TressFXAsset.cpp */,
-				654D976521E9215F00113964 /* TressFXAsset.h */,
-				654D976321E9215F00113964 /* TressFXFileFormat.h */,
+				E9BF1A9423186620001F2264 /* TFXImporter.cpp */,
+				E9BF1A9323186620001F2264 /* TFXImporter.h */,
+				E9BF1A9223186620001F2264 /* TressFXAsset.cpp */,
+				E9BF1A9523186620001F2264 /* TressFXAsset.h */,
+				E9BF1A9623186620001F2264 /* TressFXFileFormat.h */,
 			);
 			name = TFXImporter;
 			sourceTree = "<group>";
@@ -1039,11 +1039,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				654D976821E9216200113964 /* TFXImporter.cpp in Sources */,
+				E9BF1A9823186620001F2264 /* TressFXAsset.cpp in Sources */,
 				5C172F8C21414A5E0074EE71 /* AssimpImporter.cpp in Sources */,
 				B2637CC620C9A2E800D76037 /* 06_MaterialPlayground.cpp in Sources */,
+				E9BF1A9A23186620001F2264 /* TFXImporter.cpp in Sources */,
 				5C17303C21414E500074EE71 /* AppDelegate.m in Sources */,
-				654D976921E9216700113964 /* TressFXAsset.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1051,10 +1051,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				654D976621E9215F00113964 /* TressFXAsset.cpp in Sources */,
+				E9BF1A9723186620001F2264 /* TressFXAsset.cpp in Sources */,
 				5C172F8B21414A5E0074EE71 /* AssimpImporter.cpp in Sources */,
 				5C172F7E214149FD0074EE71 /* AppDelegate.m in Sources */,
-				654D976721E9215F00113964 /* TFXImporter.cpp in Sources */,
+				E9BF1A9923186620001F2264 /* TFXImporter.cpp in Sources */,
 				B2637CC520C9A2E800D76037 /* 06_MaterialPlayground.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

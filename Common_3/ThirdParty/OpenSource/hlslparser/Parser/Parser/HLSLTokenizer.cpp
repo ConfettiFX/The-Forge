@@ -1,5 +1,3 @@
-//#include "Engine/Log.h"
-//#include "Engine/String.h"
 #include "Engine.h"
 
 #include "HLSLTokenizer.h"
@@ -48,7 +46,6 @@ HLSLTokenizer::HLSLTokenizer(const char* fileName, const char* buffer, size_t le
     m_lineNumber        = 1;
     m_tokenLineNumber   = 1;
     m_error             = false;
-	//m_storedPreprocessorCounter = 0;
 	m_historyCounter = 0;
 	
     Next();
@@ -85,16 +82,8 @@ void HLSLTokenizer::Next()
     }
 
     const char* start = m_buffer;
-
-	if (strncmp(m_buffer, "// USERMACRO", 12) == 0)
-	{
-		m_token = HLSLToken_USERMACRO;
-		m_buffer += 12;
-		return;
-	}
-
     // +=, -=, *=, /=, ==, <=, >=, <<, >>
-    else if (m_buffer[0] == '+' && m_buffer[1] == '=')
+    if (m_buffer[0] == '+' && m_buffer[1] == '=')
     {
         m_token = HLSLToken_PlusEqual;
         m_buffer += 2;
@@ -206,7 +195,6 @@ void HLSLTokenizer::Next()
     // Check for the start of a number.
     if (ScanNumber())
     {
-		//deleteIdentifier
 		size_t length = 1;
 		memcpy(m_identifier, "", length);
 		m_identifier[length] = 0;
@@ -415,34 +403,6 @@ bool HLSLTokenizer::SkipPragmaDirective()
 	return result;
 }
 
-/*
-bool HLSLTokenizer::StorePreprocessor()
-{
-	bool result = false;
-
-	if (m_buffer[0] == '#')
-	{		
-		const char* ptr = m_buffer + 1;
-		while (isspace(*ptr))
-		{
-			ptr++;
-		}
-
-		if(!(strncmp(ptr, "define", 6) == 0 && isspace(ptr[6])))
-		{
-
-			preprocessorPackage[m_storedPreprocessorCounter].m_line = m_lineNumber;
-			GetRestofWholeline(preprocessorPackage[m_storedPreprocessorCounter].m_storedPreprocessors);
-
-			m_storedPreprocessorCounter++;	
-			result = true;
-		}
-	}
-
-	return result;
-}
-*/
-
 bool HLSLTokenizer::ScanNumber()
 {
 	m_fValue = 0.0;
@@ -454,8 +414,6 @@ bool HLSLTokenizer::ScanNumber()
     {
         return false;
     }
-
-	
 
     // Parse hex literals.
 	if (m_bufferEnd - m_buffer > 2 && m_buffer[0] == '0' && m_buffer[1] == 'x')
@@ -730,7 +688,6 @@ const char* HLSLTokenizer::GetIndentifierHistoryAddress(int index) const
 {
 	return m_identifierHistoryAddress[index];
 }
-
 
 int HLSLTokenizer::GetToken() const
 {

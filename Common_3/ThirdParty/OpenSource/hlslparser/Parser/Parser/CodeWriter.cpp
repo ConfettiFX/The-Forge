@@ -15,7 +15,6 @@
 
 #include <stdarg.h>
 
-
 static const int _maxLineLength = 2048;
 
 CodeWriter::CodeWriter(bool writeFileNames)
@@ -132,7 +131,7 @@ void CodeWriter::WriteLine(int indent, const char* format, ...)
 	char buffer[_maxLineLength];
 
 	int result = String_PrintfArgList(buffer, sizeof(buffer), format, args);
-	ASSERT(result != -1);
+	ASSERT_PARSER(result != -1);
 
 	for (int i = 0; i < indent * m_spacesPerIndent; ++i)
 	{
@@ -154,7 +153,7 @@ void CodeWriter::WriteLineTagged(int indent, const char* fileName, int lineNumbe
 
 	char buffer[_maxLineLength];
 	int result = String_PrintfArgList(buffer, sizeof(buffer), format, args);
-	ASSERT(result != -1);
+	ASSERT_PARSER(result != -1);
 
 	m_buffer += buffer;
 
@@ -170,6 +169,6 @@ const char* CodeWriter::GetResult() const
 
 void CodeWriter::Reset()
 {
-	m_buffer.clear();
+	m_buffer = "";// .clear();
 }
 

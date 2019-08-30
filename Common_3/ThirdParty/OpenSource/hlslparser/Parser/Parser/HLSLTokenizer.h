@@ -146,7 +146,6 @@ enum HLSLToken
 
 	HLSLToken_Groupshared,
 
-
     HLSLToken_Texture,	//336
 
 	HLSLToken_Texture1D,
@@ -214,7 +213,6 @@ enum HLSLToken
 	HLSLToken_RasterizerOrderedStructuredBuffer,
 	HLSLToken_RasterizerOrderedByteAddressBuffer,
 		
-
 	HLSLToken_Last_Buffer_Type = HLSLToken_RasterizerOrderedByteAddressBuffer,
 
     HLSLToken_Register,
@@ -223,7 +221,9 @@ enum HLSLToken
     HLSLToken_Discard,
     HLSLToken_Const,
     HLSLToken_Static,
-    HLSLToken_Inline,	
+	HLSLToken_Inline,
+	HLSLToken_RowMajor,
+	HLSLToken_ColumnMajor,
 
 	// sampler state
 	HLSLToken_AddressU,
@@ -292,21 +292,6 @@ enum HLSLToken
 	HLSLToken_GREATER_EQUAL,
 	HLSLToken_ALWAYS,
 		
-	// Preprocessors
-	HLSLToken_P_Define,
-	HLSLToken_P_If,
-	HLSLToken_P_Elif,	
-	HLSLToken_P_IfDef,
-	HLSLToken_P_IfnDef,
-	HLSLToken_P_Undef,
-	HLSLToken_P_Include,
-	HLSLToken_P_Line,
-	HLSLToken_P_Pragma,
-	HLSLToken_P_Error,
-	HLSLToken_P_Else,
-	HLSLToken_P_Endif,
-
-
     // Input modifiers.
     HLSLToken_Uniform,
     HLSLToken_In,
@@ -317,7 +302,6 @@ enum HLSLToken
 	HLSLToken_Triangle,
 	HLSLToken_Lineadj,
 	HLSLToken_Triangleadj,
-	
 
     // Effect keywords.    
     HLSLToken_Technique,
@@ -346,16 +330,14 @@ enum HLSLToken
 	HLSLToken_BarEqual,		// |=
 	HLSLToken_XorEqual,		// ^=
 
-
-
     // Other token types.
     HLSLToken_FloatLiteral,
 	HLSLToken_HalfLiteral,
+	HLSLToken_Min16FloatLiteral,
+	HLSLToken_Min10FloatLiteral,
     HLSLToken_IntLiteral,
 	HLSLToken_UintLiteral,
     HLSLToken_Identifier,
-
-	HLSLToken_USERMACRO,
 
     HLSLToken_EndOfStream,
 };
@@ -562,6 +544,8 @@ static const char* _reservedWords[] =
 	"const",
 	"static",
 	"inline",
+	"row_major",
+	"column_major",
 
 	// sampler state
 	"AddressU",
@@ -631,20 +615,6 @@ static const char* _reservedWords[] =
 	"GREATER_EQUAL",
 	"ALWAYS",
 
-	// Preprocessors
-	"#define",
-	"#if",
-	"#elif",		
-	"#ifdef",
-	"#ifndef",
-	"#undef",
-	"#include",
-	"#line",
-	"#pragma",	
-	"#error",
-	"#else",
-	"#endif",	
-
 	// Input modifiers.
 	"uniform",
 	"in",
@@ -656,19 +626,11 @@ static const char* _reservedWords[] =
 	"lineadj",
 	"triangleadj",
 		
-
 	// Effect keywords.	
 	"technique",
 	"pass",
 
-
 	"sizeof",
-};
-
-struct PreprocessorPackage
-{
-	char	m_storedPreprocessors[256];
-	int		m_line = -100;
 };
 
 class HLSLTokenizer
@@ -718,11 +680,6 @@ public:
     /** Gets a human readable text description of the specified token. */
     static void GetTokenName(int token, char buffer[s_maxIdentifier]);
 
-	bool GetRestofWholeline(char* strBuffer);
-	bool GetRestofWholelineWOSpace(char* strBuffer);
-
-	//PreprocessorPackage	preprocessorPackage[128];
-
 	const char* GetBufferAddress() const;
 	const char* GetIndentifierHistoryAddress(int index) const;
 
@@ -733,17 +690,14 @@ public:
 	int	m_historyCounter;
 
 private:
-
-	
     bool SkipWhitespace();
     bool SkipComment();
 	bool SkipPragmaDirective();
     bool ScanNumber();
     bool ScanLineDirective();
 
-	bool StorePreprocessor();
-
-	
+	bool GetRestofWholeline(char* strBuffer);
+	bool GetRestofWholelineWOSpace(char* strBuffer);
 
 private:
 
@@ -769,12 +723,6 @@ private:
 	
     char                m_lineDirectiveFileName[s_maxIdentifier];
     int                 m_tokenLineNumber;
-
-
-	
-	
-	//int					m_storedPreprocessorCounter;
-
 };
 
 #endif

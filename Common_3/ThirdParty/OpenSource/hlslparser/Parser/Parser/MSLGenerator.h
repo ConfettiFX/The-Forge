@@ -4,11 +4,17 @@
 #include "CodeWriter.h"
 #include "HLSLTree.h"
 
+#include "../../../EASTL/vector.h"
+#include "../../../EASTL/string.h"
+#include "../../../EASTL/hash_set.h"
+#include "Parser.h"
 
 class  HLSLTree;
 struct HLSLFunction;
 struct HLSLStruct;
-    
+
+class StringLibrary;
+
 /**
  * This class is used to generate MSL shaders.
  */
@@ -39,6 +45,10 @@ public:
 		unsigned int textureRegisterOffset;
 		unsigned int bufferRegisterOffset;
 
+		bool bindingRequired;
+		eastl::vector < BindingOverride > bindingOverrides;
+
+
         int (*attributeCallback)(const char* name, unsigned int index);
 
         Options()
@@ -47,37 +57,18 @@ public:
             bufferRegisterOffset = 0;
 			textureRegisterOffset = 0;
             attributeCallback = NULL;
+
+			bindingRequired = false;
+			bindingOverrides.clear();
         }
     };
 
     MSLGenerator();
 	~MSLGenerator()
 	{
-		/*
-		if (m_InputStructure)
-		{
-			HLSLStructField* field = m_InputStructure->field;
-
-			while (field)
-			{
-				HLSLStructField* prevField = field;
-
-				if (field->nextField)
-				{					
-					field = field->nextField;
-				}
-
-				delete prevField;
-				prevField = NULL;
-			}
-
-			delete m_InputStructure;
-			m_InputStructure = NULL;
-		}
-		*/
 	}
 
-    bool Generate(HLSLTree* tree, Target target, const char* entryName, const Options& options = Options());
+    bool Generate(StringLibrary * stringLibrary, HLSLTree* tree, Target target, const char* entryName, const Options& options = Options());
     const char* GetResult() const;
 
 private:
@@ -85,47 +76,45 @@ private:
     // @@ Rename class argument. Add buffers & textures.
     struct ClassArgument
     {
-        const char* name;
+        CachedString name;
         HLSLType type;
-        //const char* typeName;     // @@ Do we need more than the type name?
-        const char* registerName;
+        CachedString registerName;
 		bool bStructuredBuffer;	
-
-		const char* preprocessorContents;
 
         ClassArgument * nextArg;
         
-        ClassArgument(const char* name, HLSLType type, const char * registerName, bool bStructuredBuffer = false) :
-            name(name), type(type), registerName(registerName), bStructuredBuffer(bStructuredBuffer)
-		{
-			nextArg = NULL;
-			preprocessorContents = NULL;
-		}
-
-		ClassArgument(const char* name, const char* preprocessorContents, HLSLType type, const char * registerName = NULL, bool bStructuredBuffer = false) :
-			name(name), preprocessorContents(preprocessorContents), type(type), registerName(registerName), bStructuredBuffer(bStructuredBuffer)
+        ClassArgument(CachedString nameParam, HLSLType typeParam, CachedString registerNameParam, bool bStructuredBufferParam = false) :
+            name(nameParam), type(typeParam), registerName(registerNameParam), bStructuredBuffer(bStructuredBufferParam)
 		{
 			nextArg = NULL;
 		}
 
-
-		/*
-		ClassArgument(const char* name, HLSLBaseType baseType, const char * registerName) :
-			name(name), baseType(baseType), registerName(registerName)
+		ClassArgument(CachedString nameParam, const char* preprocessorContents, HLSLType typeParam, CachedString registerNameParam = CachedString(), bool bStructuredBufferParam = false) :
+			name(nameParam), type(typeParam), registerName(registerNameParam), bStructuredBuffer(bStructuredBufferParam)
 		{
-
-
-
 			nextArg = NULL;
 		}
-		*/
+
     };
 
     void AddClassArgument(ClassArgument * arg);
 
     void Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFunction, HLSLFunction* secondaryEntryFunction);
     void CleanPrepass();
-    
+	
+	int GetBufferRegister(const CachedString & cachedName);
+	int GetTextureRegister(const CachedString & cachedName);
+	int GetSamplerRegister(const CachedString & cachedName);
+
+
+
+	//bool DoesEntryUseName(HLSLFunction* entryFunction, const CachedString & name);
+	void GetAllEntryUsedNames(StringLibrary & foundNames,
+		eastl::hash_set < const HLSLFunction * > & foundFuncs,
+		HLSLFunction* entryFunction);
+
+    void HideUnusedStatementDeclarations(HLSLFunction * entryFunction);
+
     void PrependDeclarations();
     
     void OutputStatements(int indent, HLSLStatement* statement, const HLSLFunction* function);
@@ -137,34 +126,43 @@ private:
     void OutputExpression(HLSLExpression* expression, const HLSLType* dstType, HLSLExpression* parentExpression, const HLSLFunction* function, bool needsEndParen);
     void OutputCast(const HLSLType& type);
     
-    void OutputArguments(HLSLArgument* argument, const HLSLFunction* function);
-    void OutputDeclaration(const HLSLType& type, const char* name, HLSLExpression* assignment, const HLSLFunction* function, bool isRef = false, bool isConst = false, int alignment = 0);
+    //void OutputArguments(HLSLArgument* argument, const HLSLFunction* function);
+	void OutputArgumentsVec(eastl::vector < HLSLArgument* > & arguments, const HLSLFunction* function);
+	void OutputDeclaration(const HLSLType& type, const CachedString & name, HLSLExpression* assignment, const HLSLFunction* function, bool isRef = false, bool isConst = false, int alignment = 0);
     void OutputDeclarationType(const HLSLType& type, bool isConst = false, bool isRef = false, int alignment = 0);
-    void OutputDeclarationBody(const HLSLType& type, const char* name, HLSLExpression* assignment, const HLSLFunction* function, bool isRef = false);
+    void OutputDeclarationBody(const HLSLType& type, const CachedString & name, HLSLExpression* assignment, const HLSLFunction* function, bool isRef = false);
     void OutputExpressionList(HLSLExpression* expression, const HLSLFunction* function);
-    void OutputFunctionCallStatement(int indent, HLSLFunctionCall* functionCall);
+	void OutputExpressionListConstructor(HLSLExpression* expression, const HLSLFunction* function, HLSLBaseType expectedScalarType);
+
+	void OutputExpressionListVec(eastl::vector < HLSLExpression* > expressionVec, const HLSLFunction* function);
+	void OutputFunctionCallStatement(int indent, HLSLFunctionCall* functionCall);
     void OutputFunctionCall(HLSLFunctionCall* functionCall);
 
-    const char* TranslateInputSemantic(const char* semantic);
-    const char* TranslateOutputSemantic(const char* semantic);
+	CachedString GetTypeName(const HLSLType& type);
 
-    void Error(const char* format, ...);
+    CachedString TranslateInputSemantic(const CachedString & semantic, int incr);
+	CachedString TranslateOutputSemantic(const CachedString & semantic);
+
+
+	void Error(const char* format, ...);
 
 	void OutPushConstantIdentifierTextureStateExpression(int size, int counter, const HLSLTextureStateExpression* pTextureStateExpression, bool* bWritten);
-	//void OutPushConstantIdentifierRWTextureStateExpression(int size, int counter, const HLSLRWTextureStateExpression* pRWTextureStateExpression, bool* bWritten);
 
-	bool matchFunctionArgumentsIdentifiers(HLSLArgument* argument, const char* name);
+	bool matchFunctionArgumentsIdentifiersVec(const eastl::vector < HLSLArgument* > & arguments, const CachedString & name);
 
 
-	const char* GetBuiltInSemantic(const char* semantic, HLSLArgumentModifier modifier, const char* argument = NULL, const char* field = NULL);
+	CachedString GetBuiltInSemantic(const CachedString & semantic, HLSLArgumentModifier modifier, const CachedString & argument = CachedString(), const CachedString & field = CachedString());
+
+
+	CachedString MakeCached(const char * str);
 
 private:
 
     CodeWriter      m_writer;
 
     HLSLTree*       m_tree;
-    const char*     m_entryName;
-	const char*     m_secondaryEntryName;
+    CachedString     m_entryName;
+	CachedString     m_secondaryEntryName;
     Target          m_target;
     Options         m_options;
 
@@ -173,25 +171,20 @@ private:
     ClassArgument * m_firstClassArgument;
     ClassArgument * m_lastClassArgument;
 
-	//HLSLStruct*		m_InputStructure = NULL;
+	CachedString m_texIndexFuncName;
 
+	int	attributeCounter;
 
-	unsigned int	attributeCounter;
+	eastl::vector < HLSLBuffer* > m_RWBuffers;
+	eastl::vector < HLSLBuffer* > m_RWStructuredBuffers;
+	eastl::vector < HLSLBuffer* > m_PushConstantBuffers;
+	eastl::vector < HLSLStruct* > m_StructBuffers;
 
+	StringLibrary * m_stringLibrary;
 
-	HLSLBuffer*  m_RWBuffers[64];
-	int			   m_RWBufferCounter;
-
-	HLSLBuffer*  m_RWStructuredBuffers[64];
-	int					m_RWStructuredBufferCounter;
-
-	HLSLBuffer*  m_PushConstantBuffers[64];
-	int					m_PushConstantBufferCounter;
-
-	HLSLStruct* m_StructBuffers[64];
-	int			m_StructBuffersCounter;
-
-
+	int m_nextTextureRegister;
+	int m_nextSamplerRegister;
+	int m_nextBufferRegister; // options start at 1
 
 };
 

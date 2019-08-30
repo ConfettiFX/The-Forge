@@ -22,11 +22,10 @@
  * under the License.
  */
 
-#include "../../../Common_3/OS/Input/InputSystem.h"
-#include "../../../Common_3/OS/Input/InputMappings.h"
-
 #include "../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
+#include "../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_map.h"
+
 #include "../../../Common_3/Renderer/IRenderer.h"
 #include "../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../Common_3/OS/Core/RingBuffer.h"
@@ -36,6 +35,8 @@
 #include "../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../Common_3/OS/Interfaces/IApp.h"
+#include "../../../Common_3/OS/Interfaces/IInput.h"
+
 #include "../../../Common_3/OS/Core/ThreadSystem.h"
 
 #include "../../../Middleware_3/UI/AppUI.h"
@@ -322,7 +323,7 @@ typedef struct AppSettings
 	bool  cameraWalking = false;
 	float cameraWalkingSpeed = 1.0f;
 	
-	bool mActivateMicroProfiler = false;
+	bool mMicroProfiler = false;
 	bool mToggleVSync = false;
 	
 } AppSettings;
@@ -877,7 +878,6 @@ class VisibilityBuffer: public IApp
 		initResourceLoaderInterface(pRenderer);
 
 		initProfiler(pRenderer);
-		profileRegisterInput();
 		
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGraphicsGpuProfiler, "GraphicsGpuProfiler");
 		addGpuProfiler(pRenderer, pComputeQueue, &pComputeGpuProfiler, "ComputeGpuProfiler");
@@ -1325,7 +1325,7 @@ class VisibilityBuffer: public IApp
 		pGuiWindow->AddWidget(vsyncProp);
 #endif
 		
-		CheckboxWidget microprofile("Activate Microprofile", &gAppSettings.mActivateMicroProfiler);
+		CheckboxWidget microprofile("Activate Microprofile", &gAppSettings.mMicroProfiler);
 		pGuiWindow->AddWidget(microprofile);
 		
 		CheckboxWidget debugTargets("Draw Debug Targets", &gAppSettings.mDrawDebugTargets);
@@ -1564,13 +1564,51 @@ class VisibilityBuffer: public IApp
 		
 		LOGF(LogLevel::eINFO, "Total Load Time : %f ms", timer.GetUSec(true) / 1000.0f);
 		
-		InputSystem::RegisterInputEvent(onInputEventHandler);
+		if (!initInputSystem(pWindow))
+			return false;
+
+		// Microprofiler Actions
+		// #TODO: Remove this once the profiler UI is ported to use our UI system
+		InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gAppSettings.mMicroProfiler; } };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
+		addInputAction(&actionDesc);
+
+		// App Actions
+		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		addInputAction(&actionDesc);
+		actionDesc =
+		{
+			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
+			{
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gAppSettings.mMicroProfiler);
+				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+				return true;
+			}, this
+		};
+		addInputAction(&actionDesc);
+		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
+		{
+			if (!gAppSettings.mMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
+				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+			return true;
+		};
+		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+		addInputAction(&actionDesc);
 		
 		return true;
 	}
 	
 	void Exit()
 	{
+		exitInputSystem();
 		shutdownThreadSystem(pThreadSystem);
 		removeResource(pSkybox);
 		
@@ -2275,6 +2313,8 @@ class VisibilityBuffer: public IApp
 	
 	void Update(float deltaTime)
 	{
+		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
+
 #if !defined(TARGET_IOS)
 		if (pSwapChain->mDesc.mEnableVsync != gAppSettings.mToggleVSync)
 		{
@@ -2339,9 +2379,6 @@ class VisibilityBuffer: public IApp
 			}
 #endif
 		}
-		
-		// Process user input
-		handleKeyboardInput(deltaTime);
 		
 #if !defined(TARGET_IOS)
 		pCameraController->update(deltaTime);
@@ -3665,35 +3702,6 @@ class VisibilityBuffer: public IApp
 		gSCurveInfomation.outputMode = (uint)gAppSettings.mOutputMode;
 	}
 	/************************************************************************/
-	// Process user keyboard input
-	/************************************************************************/
-	void handleKeyboardInput(float deltaTime)
-	{
-		UNREF_PARAM(deltaTime);
-		
-		// Pressing space holds / unholds triangle filtering results
-		if (InputSystem::GetBoolInput(KEY_LEFT_TRIGGER_TRIGGERED))
-			gAppSettings.mHoldFilteredResults = !gAppSettings.mHoldFilteredResults;
-		
-		if (InputSystem::GetBoolInput(KEY_MENU_TRIGGERED))
-			gAppSettings.mFilterTriangles = !gAppSettings.mFilterTriangles;
-		
-		if (InputSystem::GetBoolInput(KEY_RIGHT_TRIGGER_TRIGGERED))
-		{
-			gAppSettings.mRenderMode = (RenderMode)((gAppSettings.mRenderMode + 1) % RENDERMODE_COUNT);
-			SetupDebugTexturesWindow();
-		}
-		
-		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
-			gAppSettings.mRenderLocalLights = !gAppSettings.mRenderLocalLights;
-		
-		if (InputSystem::GetBoolInput(KEY_BUTTON_Y_TRIGGERED))
-		{
-			gAppSettings.mDrawDebugTargets = !gAppSettings.mDrawDebugTargets;
-			SetupDebugTexturesWindow();
-		}
-	}
-	/************************************************************************/
 	// UI
 	/************************************************************************/
 	void updateDynamicUIElements()
@@ -3805,18 +3813,18 @@ class VisibilityBuffer: public IApp
 		}
 #endif
 		
-		static bool wasMicroProfileActivated = gAppSettings.mActivateMicroProfiler;
-		if (wasMicroProfileActivated != gAppSettings.mActivateMicroProfiler)
+		static bool wasMicroProfileActivated = gAppSettings.mMicroProfiler;
+		if (wasMicroProfileActivated != gAppSettings.mMicroProfiler)
 		{
-			wasMicroProfileActivated = gAppSettings.mActivateMicroProfiler;
+			wasMicroProfileActivated = gAppSettings.mMicroProfiler;
 
-      // ProfileSetDisplayMode()
-      // TODO: need to change this better way 
+			// ProfileSetDisplayMode()
+			// TODO: need to change this better way 
 
-      Profile& S = *ProfileGet();
-      int nValue = wasMicroProfileActivated ? 1 : 0;
-      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
-      S.nDisplay = nValue;
+			Profile& S = *ProfileGet();
+			int nValue = wasMicroProfileActivated ? 1 : 0;
+			nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+			S.nDisplay = nValue;
 
 			//ActivateMicroProfile(&gAppUI, gAppSettings.mActivateMicroProfiler);
 			//ProfileSetDisplayMode(P_DRAW_BARS);
@@ -5257,7 +5265,7 @@ class VisibilityBuffer: public IApp
 #if !defined(TARGET_IOS)
 		cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 
-		if (gAppSettings.mActivateMicroProfiler)
+		if (gAppSettings.mMicroProfiler)
 		{
 			cmdDrawProfiler(cmd);
 		}
@@ -5314,15 +5322,6 @@ class VisibilityBuffer: public IApp
 #endif
 		
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-	}
-	/************************************************************************/
-	// Event handling
-	/************************************************************************/
-	// Set the camera handlers
-	static bool onInputEventHandler(const ButtonData* data)
-	{
-		pCameraController->onInputEvent(data);
-		return true;
 	}
 };
 

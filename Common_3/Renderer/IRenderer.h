@@ -562,6 +562,10 @@ typedef enum TextureCreationFlags
 	TEXTURE_CREATION_FLAG_ON_TILE = 0x20,
 	/// Prevent compression meta data from generating (XBox)
 	TEXTURE_CREATION_FLAG_NO_COMPRESSION = 0x40,
+	/// Force 2D instead of automatically determining dimension based on width, height, depth
+	TEXTURE_CREATION_FLAG_FORCE_2D = 0x80,
+	/// Force 3D instead of automatically determining dimension based on width, height, depth
+	TEXTURE_CREATION_FLAG_FORCE_3D = 0x100,
 } TextureCreationFlags;
 MAKE_ENUM_FLAG(uint32_t, TextureCreationFlags)
 

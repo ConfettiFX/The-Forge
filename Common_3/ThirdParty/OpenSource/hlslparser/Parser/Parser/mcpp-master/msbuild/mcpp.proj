@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+
+    <PropertyGroup Condition="'$(Configuration)' == ''">
+      <Configuration>Debug</Configuration>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Platform)' == ''">
+      <Platform>Win32</Platform>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(DefaultPlatformToolset)' == ''">
+      <DefaultPlatformToolset>v100</DefaultPlatformToolset>
+    </PropertyGroup>
+    <!-- Custom task to download files -->
+    <UsingTask TaskName="DownloadFile"
+               TaskFactory="CodeTaskFactory"
+               AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.v4.0.dll">
+        <ParameterGroup>
+            <Address ParameterType="System.String" Required="true"/>
+            <FileName ParameterType="System.String" Required="true" />
+        </ParameterGroup>
+        <Task>
+            <Reference Include="System" />
+            <Code Type="Fragment" Language="cs">
+                <![CDATA[
+                new System.Net.WebClient().DownloadFile(Address, FileName);
+                ]]>
+            </Code>
+        </Task>
+    </UsingTask>
+
+    <!-- Download nuget.exe if not present -->
+    <Target Name="GetNuget" Condition="!Exists('$(MSBuildThisFileDirectory)nuget.exe')">
+        <DownloadFile Address="http://nuget.org/nuget.exe" FileName="$(MSBuildThisFileDirectory)nuget.exe" />
+    </Target>
+
+    <ItemGroup>
+      <!-- Dynamic run-time library builds -->
+      <Projects Include="mcpp.vcxproj">
+        <Properties>Configuration=Debug;Platform=Win32;DefaultPlatformToolset=$(DefaultPlatformToolset)</Properties>
+      </Projects>
+      <Projects Include="mcpp.vcxproj">
+        <Properties>Configuration=Debug;Platform=x64;DefaultPlatformToolset=$(DefaultPlatformToolset)</Properties>
+      </Projects>
+      <Projects Include="mcpp.vcxproj">
+        <Properties>Configuration=Release;Platform=Win32;DefaultPlatformToolset=$(DefaultPlatformToolset)</Properties>
+      </Projects>
+      <Projects Include="mcpp.vcxproj">
+        <Properties>Configuration=Release;Platform=x64;DefaultPlatformToolset=$(DefaultPlatformToolset)</Properties>
+      </Projects>
+      <!-- Static run-time library builds -->
+      <Projects Include="mcpp.vcxproj">
+        <Properties>Configuration=Debug;Platform=Win32;DefaultPlatformToolset=$(DefaultPlatformToolset);StaticRuntimeLibrary=yes</Properties>
+      </Projects>
+      <Projects Include="mcpp.vcxproj">
+        <Properties>Configuration=Debug;Platform=x64;DefaultPlatformToolset=$(DefaultPlatformToolset);StaticRuntimeLibrary=yes</Properties>
+      </Projects>
+      <Projects Include="mcpp.vcxproj">
+        <Properties>Configuration=Release;Platform=Win32;DefaultPlatformToolset=$(DefaultPlatformToolset);StaticRuntimeLibrary=yes</Properties>
+      </Projects>
+      <Projects Include="mcpp.vcxproj">
+        <Properties>Configuration=Release;Platform=x64;DefaultPlatformToolset=$(DefaultPlatformToolset);StaticRuntimeLibrary=yes</Properties>
+      </Projects>
+    </ItemGroup>
+
+    <Target Name="Build" DependsOnTargets="GetNuget">
+        <MSBuild Projects="@(Projects)"
+                 BuildInParallel="true"
+                 Properties="%(Properties)"/>
+    </Target>
+
+    <Target Name="Clean">
+        <MSBuild Projects="@(Projects)" Properties="%(Properties)" Targets="Clean" />
+    </Target>
+
+    <PropertyGroup>
+        <PackageDirectory>mcpp.$(DefaultPlatformToolset)</PackageDirectory>
+    </PropertyGroup>
+
+    <Target Name="NugetPack"
+            DependsOnTargets="Build">
+            <RemoveDir Directories="$(PackageDirectory)" />
+            <MSBuild Projects="mcpp.nuget.targets"
+                     Properties="Configuration=Debug;Platform=Win32;PackageDirectory=$(PackageDirectory);DefaultPlatformToolset=$(DefaultPlatformToolset)" />
+            <MSBuild Projects="mcpp.nuget.targets"
+                     Properties="Configuration=Debug;Platform=x64;PackageDirectory=$(PackageDirectory);DefaultPlatformToolset=$(DefaultPlatformToolset)" />
+            <MSBuild Projects="mcpp.nuget.targets"
+                     Properties="Configuration=Release;Platform=Win32;PackageDirectory=$(PackageDirectory);DefaultPlatformToolset=$(DefaultPlatformToolset)" />
+            <MSBuild Projects="mcpp.nuget.targets"
+                     Properties="Configuration=Release;Platform=x64;PackageDirectory=$(PackageDirectory);DefaultPlatformToolset=$(DefaultPlatformToolset)" />
+            <Copy SourceFiles="README.$(DefaultPlatformToolset).md"
+                  DestinationFiles="$(PackageDirectory)\README.md" />
+            <Copy SourceFiles="mcpp.$(DefaultPlatformToolset).nuspec"
+                  DestinationFolder="$(PackageDirectory)" />
+            <Copy SourceFiles="mcpp.$(DefaultPlatformToolset).targets"
+                  DestinationFolder="$(PackageDirectory)\build\native" />
+            <Exec Command="$(MSBuildThisFileDirectory)nuget pack -NoPackageAnalysis -NonInteractive"
+                  WorkingDirectory="$(PackageDirectory)"/>
+    </Target>
+</Project>

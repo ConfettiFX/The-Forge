@@ -8,10 +8,17 @@
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
-    <File Name="../AssetPipeline.h"/>
-    <File Name="../AssetPipeline.cpp"/>
-    <File Name="../AssetLoader.h"/>
-    <File Name="../AssetLoader.cpp"/>
+    <File Name="../src/AssetLoader.cpp"/>
+    <File Name="../src/AssetLoader.h"/>
+    <File Name="../src/AssetPipeline.cpp"/>
+    <File Name="../src/AssetPipeline.h"/>
+    <File Name="../src/gltfpack.cpp"/>
+    <File Name="../src/gltfpack.h"/>
+    <File Name="../src/TFXImporter.cpp"/>
+    <File Name="../src/TFXImporter.h"/>
+    <File Name="../src/TressFXAsset.cpp"/>
+    <File Name="../src/TressFXAsset.h"/>
+    <File Name="../src/TressFXFileFormat.h"/>
   </VirtualDirectory>
   <Settings Type="Static Library">
     <GlobalSettings>
@@ -23,9 +30,8 @@
       </Linker>
       <ResourceCompiler Options=""/>
     </GlobalSettings>
-    <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+    <Configuration Name="Debug" CompilerType="gnu g++" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="-g" C_Options="-g" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
-        <IncludePath Value="."/>
         <IncludePath Value="../../../ThirdParty/OpenSource/assimp/4.1.0/include"/>
         <IncludePath Value="../../../ThirdParty/OpenSource/ozz-animation/include"/>
       </Compiler>
@@ -111,11 +117,18 @@
     <Project Name="ozz_base"/>
     <Project Name="ozz_animation_offline"/>
     <Project Name="EASTL"/>
+    <Project Name="ozz_animation"/>
+    <Project Name="assimp"/>
+    <Project Name="zlibstatic"/>
+    <Project Name="MeshOptimizer"/>
   </Dependencies>
   <Dependencies Name="Release">
     <Project Name="OS"/>
     <Project Name="ozz_base"/>
     <Project Name="ozz_animation_offline"/>
     <Project Name="EASTL"/>
+    <Project Name="MeshOptimizer"/>
+    <Project Name="ozz_animation"/>
+    <Project Name="zlibstatic"/>
   </Dependencies>
 </CodeLite_Project>

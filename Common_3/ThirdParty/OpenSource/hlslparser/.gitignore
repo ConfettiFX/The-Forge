@@ -11,6 +11,8 @@
 *.bak
 /Debug
 /Release
+/DebugTest
+/ReleaseTest
 *.log
 *.sdf
 *.opensdf

@@ -51,6 +51,7 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
@@ -60,9 +61,6 @@
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
 //input
-#include "../../../../Common_3/OS/Input/InputSystem.h"
-#include "../../../../Common_3/OS/Input/InputMappings.h"
-
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
 
 namespace eastl
@@ -72,7 +70,7 @@ namespace eastl
 }
 
 const uint32_t gImageCount = 3;
-bool           bToggleMicroProfiler = false;
+bool           gMicroProfiler = false;
 bool           bPrevToggleMicroProfiler = false;
 
 typedef struct Vertex
@@ -455,9 +453,7 @@ struct
 
 /************************************************************************/
 
-#ifdef TARGET_IOS
 VirtualJoystickUI gVirtualJoystick;
-#endif
 
 // Constants
 uint32_t     gFrameIndex = 0;
@@ -685,10 +681,8 @@ class Transparency: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-#ifdef TARGET_IOS
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Absolute))
 			return false;
-#endif
 
 		CreateSamplers();
 		CreateRasterizerStates();
@@ -704,7 +698,6 @@ class Transparency: public IApp
 		// Add GPU profiler
 		/************************************************************************/
 		initProfiler(pRenderer);
-		profileRegisterInput();
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		CreateScene();
@@ -728,15 +721,50 @@ class Transparency: public IApp
 
 		pLightView = createGuiCameraController(camPos, lookAt);
 		pCameraController = createFpsCameraController(camPos, lookAt);
-
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-		gVirtualJoystick.InitLRSticks();
-		pCameraController->setVirtualJoystick(&gVirtualJoystick);
-#endif
-
 		pCameraController->setMotionParameters(cmp);
 
-		InputSystem::RegisterInputEvent(cameraInputEvent);
+		if (!initInputSystem(pWindow))
+			return false;
+
+		// Microprofiler Actions
+		// #TODO: Remove this once the profiler UI is ported to use our UI system
+		InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gMicroProfiler; } };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
+		addInputAction(&actionDesc);
+
+		// App Actions
+		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		addInputAction(&actionDesc);
+		actionDesc =
+		{
+			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
+			{
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gMicroProfiler);
+				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+				return true;
+			}, this
+		};
+		addInputAction(&actionDesc);
+		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
+		{
+			if (!gMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
+			{
+				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
+				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+			}
+			return true;
+		};
+		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+		addInputAction(&actionDesc);
+
 
 		return true;
 	}
@@ -744,6 +772,8 @@ class Transparency: public IApp
 	void Exit() override
 	{
 		waitQueueIdle(pGraphicsQueue);
+
+		exitInputSystem();
 		destroyCameraController(pCameraController);
 		destroyCameraController(pLightView);
 
@@ -754,9 +784,8 @@ class Transparency: public IApp
 		for (size_t i = 0; i < gScene.mParticleSystems.size(); ++i)
 			removeResource(gScene.mParticleSystems[i].pParticleBuffer);
 
-#ifdef TARGET_IOS
 		gVirtualJoystick.Exit();
-#endif
+
 		removeGpuProfiler(pRenderer, pGpuProfiler);
 
 		DestroySamplers();
@@ -790,10 +819,8 @@ class Transparency: public IApp
 			return false;
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
-#ifdef TARGET_IOS
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
-#endif
 		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
 
 		CreatePipelines();
@@ -806,9 +833,8 @@ class Transparency: public IApp
 		waitQueueIdle(pGraphicsQueue);
 
 		unloadProfiler();
-#ifdef TARGET_IOS
+
 		gVirtualJoystick.Unload();
-#endif
 
 		gAppUI.Unload();
 
@@ -819,16 +845,14 @@ class Transparency: public IApp
 
 	void Update(float deltaTime) override
 	{
+		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
+
 		gCpuTimer.Reset();
 
 		gCurrentTime += deltaTime;
 
-		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
-			RecenterCameraView(170.0f);
-
 		// Dynamic UI elements
 		GuiController::UpdateDynamicUI();
-
 		/************************************************************************/
 		// Camera Update
 		/************************************************************************/
@@ -841,7 +865,6 @@ class Transparency: public IApp
 		mat4        projMat = mat4::perspective(horizontal_fov, aspectInverse, zNear, zFar);    //view matrix
 		vec3        camPos = pCameraController->getViewPosition();
 		mat4        vpMatrix = projMat * viewMat;
-
 		/************************************************************************/
 		// Light Update
 		/************************************************************************/
@@ -854,7 +877,6 @@ class Transparency: public IApp
 		mat4 lightViewMat = pLightView->getViewMatrix();
 		mat4 lightProjMat = mat4::orthographic(-50.0f, 50.0f, -50.0f, 50.0f, 0.0f, lightZFar - lightZNear);
 		mat4 lightVPMatrix = lightProjMat * lightViewMat;
-
 		/************************************************************************/
 		// Scene Update
 		/************************************************************************/
@@ -888,14 +910,14 @@ class Transparency: public IApp
 
     // ProfileSetDisplayMode()
     // TODO: need to change this better way 
-    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+    if (gMicroProfiler != bPrevToggleMicroProfiler)
     {
       Profile& S = *ProfileGet();
-      int nValue = bToggleMicroProfiler ? 1 : 0;
+      int nValue = gMicroProfiler ? 1 : 0;
       nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
       S.nDisplay = nValue;
 
-      bPrevToggleMicroProfiler = bToggleMicroProfiler;
+      bPrevToggleMicroProfiler = gMicroProfiler;
     }
 
 		////////////////////////////////////////////////////////////////
@@ -2044,9 +2066,7 @@ class Transparency: public IApp
 
 		gAppUI.DrawDebugGpuProfile(pCmd, float2(8.0f, 90.0f), pGpuProfiler, NULL);
 
-#ifdef TARGET_IOS
-		gVirtualJoystick.Draw(pCmd, pCameraController, { 1.0f, 1.0f, 1.0f, 1.0f });
-#endif
+		gVirtualJoystick.Draw(pCmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 
 		cmdDrawProfiler(pCmd);
 
@@ -2069,28 +2089,6 @@ class Transparency: public IApp
 	}
 
 	const char* GetName() override { return "15_Transparency"; }
-
-	void RecenterCameraView(float maxDistance, vec3 lookAt = vec3(0)) const
-	{
-		vec3 p = pCameraController->getViewPosition();
-		vec3 d = p - lookAt;
-
-		float lenSqr = lengthSqr(d);
-		if (lenSqr > maxDistance * maxDistance)
-		{
-			d *= maxDistance / sqrtf(lenSqr);
-		}
-
-		p = d + lookAt;
-		pCameraController->moveTo(p);
-		pCameraController->lookAt(lookAt);
-	}
-
-	static bool cameraInputEvent(const ButtonData* data)
-	{
-		pCameraController->onInputEvent(data);
-		return true;
-	}
 
 	/************************************************************************/
 	// Init and Exit functions
@@ -3796,7 +3794,7 @@ void GuiController::AddGui()
 		dropDownCount = 5;
 #endif
 
-  pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+  pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
 
 	pGuiWindow->AddWidget(
 		DropdownWidget("Transparency Type", &gTransparencyType, transparencyTypeNames, transparencyTypeValues, dropDownCount));

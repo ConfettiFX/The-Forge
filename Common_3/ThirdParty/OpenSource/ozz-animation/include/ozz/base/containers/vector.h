@@ -28,24 +28,24 @@
 #ifndef OZZ_OZZ_BASE_CONTAINERS_VECTOR_H_
 #define OZZ_OZZ_BASE_CONTAINERS_VECTOR_H_
 
-#include <vector>
-
-#include "ozz/base/containers/std_allocator.h"
+#include "../../../../../EASTL/vector.h"
+#include "../platform.h"
 
 namespace ozz {
-// Redirects std::vector to ozz::Vector in order to replace std default
-// allocator by ozz::StdAllocator.
+// Redirects std::vector to ozz::Vector
 // Extends std::vector with two functions that gives access to the begin and the
 // end of its array of elements.
-template <class _Ty, class _Allocator = ozz::StdAllocator<_Ty> >
+template <class _Ty, class _Allocator = EASTLAllocatorType >
 struct Vector {
-  typedef std::vector<_Ty, _Allocator> Std;
+  typedef eastl::vector<_Ty, _Allocator> Std;
 };
+
+
 
 // Returns the mutable begin of the array of elements, or NULL if
 // vector's empty.
 template <class _Ty, class _Allocator>
-inline _Ty* array_begin(std::vector<_Ty, _Allocator>& _vector) {
+inline _Ty* array_begin(eastl::vector<_Ty, _Allocator>& _vector) {
   size_t size = _vector.size();
   return size != 0 ? &_vector[0] : NULL;
 }
@@ -53,7 +53,7 @@ inline _Ty* array_begin(std::vector<_Ty, _Allocator>& _vector) {
 // Returns the non-mutable begin of the array of elements, or NULL if
 // vector's empty.
 template <class _Ty, class _Allocator>
-inline const _Ty* array_begin(const std::vector<_Ty, _Allocator>& _vector) {
+inline const _Ty* array_begin(const eastl::vector<_Ty, _Allocator>& _vector) {
   size_t size = _vector.size();
   return size != 0 ? &_vector[0] : NULL;
 }
@@ -62,7 +62,7 @@ inline const _Ty* array_begin(const std::vector<_Ty, _Allocator>& _vector) {
 // vector's empty. Array end is one element past the last element of the
 // array, it cannot be dereferenced.
 template <class _Ty, class _Allocator>
-inline _Ty* array_end(std::vector<_Ty, _Allocator>& _vector) {
+inline _Ty* array_end(eastl::vector<_Ty, _Allocator>& _vector) {
   size_t size = _vector.size();
   return size != 0 ? (&_vector[size - 1]) + 1 : NULL;
 }
@@ -71,14 +71,14 @@ inline _Ty* array_end(std::vector<_Ty, _Allocator>& _vector) {
 // vector's empty. Array end is one element past the last element of the
 // array, it cannot be dereferenced.
 template <class _Ty, class _Allocator>
-inline const _Ty* array_end(const std::vector<_Ty, _Allocator>& _vector) {
+inline const _Ty* array_end(const eastl::vector<_Ty, _Allocator>& _vector) {
   size_t size = _vector.size();
   return size != 0 ? (&_vector[size - 1]) + 1 : NULL;
 }
 
 // Returns a mutable ozz::Range from a vector.
 template <typename _Ty, class _Allocator>
-inline Range<_Ty> make_range(std::vector<_Ty, _Allocator>& _vector) {
+inline Range<_Ty> make_range(eastl::vector<_Ty, _Allocator>& _vector) {
   const size_t size = _vector.size();
   return Range<_Ty>(size != 0 ? &_vector[0] : NULL, size);
 }
@@ -86,7 +86,7 @@ inline Range<_Ty> make_range(std::vector<_Ty, _Allocator>& _vector) {
 // Returns a non mutable ozz::Range from a vector.
 template <typename _Ty, class _Allocator>
 inline Range<const _Ty> make_range(
-    const std::vector<_Ty, _Allocator>& _vector) {
+    const eastl::vector<_Ty, _Allocator>& _vector) {
   const size_t size = _vector.size();
   return Range<const _Ty>(size != 0 ? &_vector[0] : NULL, size);
 }

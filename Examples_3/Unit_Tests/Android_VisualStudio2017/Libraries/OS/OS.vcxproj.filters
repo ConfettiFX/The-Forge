@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Dependencies">
@@ -96,9 +96,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\FileSystem.cpp">
       <Filter>OS\Core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\PlatformEvents.cpp">
-      <Filter>OS\Core</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.cpp">
       <Filter>OS\Core</Filter>
     </ClCompile>
@@ -114,10 +111,7 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidFileSystem.cpp">
       <Filter>OS\Android</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Camera\FpsCameraController.cpp">
-      <Filter>OS\Camera</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Camera\GuiCameraController.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Camera\CameraController.cpp">
       <Filter>OS\Camera</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Middleware_3\Text\Fontstash.cpp">
@@ -197,11 +191,19 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.h">
       <Filter>OS\Core</Filter>
     </ClInclude>
+<<<<<<< HEAD
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\Image.h">
+      <Filter>OS\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\ImageEnums.h">
+      <Filter>OS\Image</Filter>
+=======
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\InputMappings.h">
       <Filter>OS\Input</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\InputSystem.h">
       <Filter>OS\Input</Filter>
+>>>>>>> master
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IApp.h">
       <Filter>OS\Interfaces</Filter>
@@ -218,7 +220,7 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IOperatingSystem.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IPlatformEvents.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IInput.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IProfiler.h">

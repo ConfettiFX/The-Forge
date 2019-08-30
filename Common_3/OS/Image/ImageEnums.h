@@ -562,53 +562,56 @@ static inline int32_t GetChannelCount(const Enum format)
 
 static inline uint32_t GetImageFormatStride(Enum format)
 {
-	uint32_t result = 0;
-	switch (format)
-	{
-		// 1 channel
-	case R8: result = 1; break;
-	case R16: result = 2; break;
-	case R16F: result = 2; break;
-	case R32UI: result = 4; break;
-	case R32F:
-		result = 4;
-		break;
-		// 2 channel
-	case RG8: result = 2; break;
-	case RG16: result = 4; break;
-	case RG16F: result = 4; break;
-	case RG32UI: result = 8; break;
-	case RG32F:
-		result = 8;
-		break;
-		// 3 channel
-	case RGB8: result = 3; break;
-	case RGB16: result = 6; break;
-	case RGB16F: result = 6; break;
-	case RGB32UI: result = 12; break;
-	case RGB32F:
-		result = 12;
-		break;
-		// 4 channel
-	case BGRA8: result = 4; break;
-	case RGBA8: result = 4; break;
-	case RGBA16: result = 8; break;
-	case RGBA16F: result = 8; break;
-	case RGBA32UI: result = 16; break;
-	case RGBA32F:
-		result = 16;
-		break;
-		// Depth/stencil
-	case D16: result = 0; break;
-	case X8D24PAX32: result = 0; break;
-	case D32F: result = 0; break;
-	case S8: result = 0; break;
-	case D16S8: result = 0; break;
-	case D24S8: result = 0; break;
-	case D32S8: result = 0; break;
-	default: break;
-	}
-	return result;
+    uint32_t result = 0;
+    switch (format)
+    {
+            // 1 channel
+        case R8: result = 1; break;
+        case R16: result = 2; break;
+        case R16F: result = 2; break;
+        case R32UI: result = 4; break;
+        case R32F:
+            result = 4;
+            break;
+            // 2 channel
+        case RG8: result = 2; break;
+        case RG16: result = 4; break;
+        case RG16UI: result = 4; break;
+        case RG16F: result = 4; break;
+        case RG32UI: result = 8; break;
+        case RG32F:
+            result = 8;
+            break;
+            // 3 channel
+        case RGB8: result = 3; break;
+        case RGB16: result = 6; break;
+        case RGB16F: result = 6; break;
+        case RGB32UI: result = 12; break;
+        case RGB32F:
+            result = 12;
+            break;
+            // 4 channel
+        case BGRA8: result = 4; break;
+        case RGBA8: result = 4; break;
+        case RGBA16: result = 8; break;
+        case RGBA16I: result = 8; break;
+        case RGBA16UI: result = 8; break;
+        case RGBA16F: result = 8; break;
+        case RGBA32UI: result = 16; break;
+        case RGBA32F:
+            result = 16;
+            break;
+            // Depth/stencil
+        case D16: result = 0; break;
+        case X8D24PAX32: result = 0; break;
+        case D32F: result = 0; break;
+        case S8: result = 0; break;
+        case D16S8: result = 0; break;
+        case D24S8: result = 0; break;
+        case D32S8: result = 0; break;
+        default: break;
+    }
+    return result;
 }
 
 static inline uint32_t GetImageFormatChannelCount(Enum format)

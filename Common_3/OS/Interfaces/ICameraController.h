@@ -27,7 +27,6 @@
 #include "IOperatingSystem.h"
 #include "../Math/MathTypes.h"
 
-struct ButtonData;
 class VirtualJoystickUI;
 
 struct CameraMotionParameters
@@ -42,7 +41,6 @@ class ICameraController
 	public:
 	virtual ~ICameraController() {}
 	virtual void setMotionParameters(const CameraMotionParameters&) = 0;
-	virtual bool onInputEvent(const ButtonData* pData) = 0;
 	virtual void update(float deltaTime) = 0;
 
 	// there are also implicit dependencies on the keyboard state.
@@ -50,9 +48,13 @@ class ICameraController
 	virtual mat4 getViewMatrix() const = 0;
 	virtual vec3 getViewPosition() const = 0;
 	virtual vec2 getRotationXY() const = 0;
-	virtual void setVirtualJoystick(VirtualJoystickUI* virtualJoystick = NULL) = 0;
 	virtual void moveTo(const vec3& location) = 0;
 	virtual void lookAt(const vec3& lookAt) = 0;
+	virtual void resetView() = 0;
+
+	virtual void onMove(const float2& vec) = 0;
+	virtual void onRotate(const float2& vec) = 0;
+	virtual void onZoom(const float2& vec) = 0;
 };
 
 /// \c createGuiCameraController assumes that the camera is not rotated around the look direction;

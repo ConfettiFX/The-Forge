@@ -26,6 +26,7 @@ InputDeviceKeyboardImplMac::InputDeviceKeyboardImplMac(InputManager& manager, In
 	device_(device),
 	deviceState_(InputDevice::DS_OK),
 	textInputEnabled_(true),
+    textCount_(0),
 	dialect_(manager_.GetAllocator()),
 	state_(&state),
 	previousState_(&previousState),
@@ -165,10 +166,7 @@ void InputDeviceKeyboardImplMac::HandleKey(int keycode, bool isPressed, char * i
 		
 		if(inputChar && inputChar[0] != '\0' && isPressed)
 		{
-			InputCharDesc inputDesc;
-			inputDesc.buttonId = buttonId;
-			inputDesc.inputChar = inputChar[0];
-			textBuffer_.Put(inputDesc);
+			textBuffer_[textCount_++] = (wchar_t)inputChar[0];
 		}
 	}
 #ifdef GAINPUT_DEBUG

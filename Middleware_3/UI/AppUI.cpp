@@ -36,13 +36,9 @@
 
 #include "../../Middleware_3/Text/Fontstash.h"
 
-#include "../../Common_3/OS/Input/InputSystem.h"
-#include "../../Common_3/OS/Input/InputMappings.h"
-
 #include "../../Common_3/OS/Interfaces/IMemory.h"
 
 namespace PlatformEvents {
-extern bool skipMouseCapture;
 }
 
 FSRoot                         FSR_MIDDLEWARE_UI = FSR_Middleware1;
@@ -51,8 +47,6 @@ static Mutex                   gMutex;
 
 extern void initGUIDriver(Renderer* pRenderer, GUIDriver** ppDriver);
 extern void removeGUIDriver(GUIDriver* pDriver);
-
-static bool uiInputEvent(const ButtonData* pData);
 
 typedef struct GpuProfileDrawDesc
 {
@@ -309,11 +303,6 @@ bool UIApp::Init(Renderer* renderer)
 	MutexLock lock(gMutex);
 	gInstances.emplace_back(this);
 
-	if (gInstances.size() == 1)
-	{
-		InputSystem::RegisterInputEvent(uiInputEvent, UINT_MAX);
-	}
-
 	return success;
 }
 
@@ -445,14 +434,15 @@ GuiComponent* UIApp::AddGuiComponent(const char* pTitle, const GuiDesc* pDesc)
 	pComponent->mHasCloseButton = false;
 	pComponent->mFlags = GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE;
 
-	pDriver->addGui(pImpl->pFontStash, pDesc->mDefaultTextDrawDesc.mFontSize, NULL);
+	void* pFontBuffer = pImpl->pFontStash->getFontBuffer(pDesc->mDefaultTextDrawDesc.mFontID);
+	uint32_t fontBufferSize = pImpl->pFontStash->getFontBufferSize(pDesc->mDefaultTextDrawDesc.mFontID);
+	pDriver->addFont(pFontBuffer, fontBufferSize, NULL, pDesc->mDefaultTextDrawDesc.mFontSize, &pComponent->pFont);
 
 	pComponent->mInitialWindowRect = { pDesc->mStartPosition.getX(), pDesc->mStartPosition.getY(), pDesc->mStartSize.getX(),
 									   pDesc->mStartSize.getY() };
 
 	pComponent->mActive = true;
 	pComponent->mTitle = pTitle;
-	pComponent->pDriver = pDriver;
 
 	pImpl->mComponents.emplace_back(pComponent);
 
@@ -494,6 +484,9 @@ void UIApp::RemoveAllGuiComponents()
 
 void UIApp::Update(float deltaTime)
 {
+	if (pImpl->mUpdated)
+		return;
+
 	pImpl->mUpdated = true;
 
 	eastl::vector<GuiComponent*> activeComponents(pImpl->mComponentsToUpdate.size());
@@ -503,30 +496,7 @@ void UIApp::Update(float deltaTime)
 			activeComponents[activeComponentCount++] = pImpl->mComponentsToUpdate[i];
 
 	GUIDriver::GUIUpdate guiUpdate{ activeComponents.data(), activeComponentCount, deltaTime, mWidth, mHeight, mShowDemoUiWindow };
-	mHovering = pDriver->update(&guiUpdate);
-
-	// Only on iOS as this only applies to virtual keyboard.
-	// TODO: add Durango at a later stage
-#ifdef TARGET_IOS
-	//stores whether or not we need text input for
-	//any gui component
-	//if any component requires textInput then this is true.
-	int wantsTextInput = 0;
-
-	//check if current component requires textInput
-	//only support one type of text
-	//check for bigger that way we enable keyboard with all characters
-	//if there's one widget that requires digits only and one that requires all text
-	if (pDriver->needsTextInput() > wantsTextInput)
-		wantsTextInput = pDriver->needsTextInput();
-
-	//if current Virtual keyboard state is not equal to
-	//text input status then toggle the appropriate behavior (hide, show)
-	if (InputSystem::IsVirtualKeyboardActive() != (wantsTextInput > 0))
-	{
-		InputSystem::ToggleVirtualKeyboard(wantsTextInput);
-	}
-#endif
+	pDriver->update(&guiUpdate);
 
 	pImpl->mComponentsToUpdate.clear();
 }
@@ -580,10 +550,15 @@ void GuiComponent::RemoveAllWidgets()
 	mWidgetsClone.clear();
 }
 
+#if defined(TARGET_IOS) || defined(__ANDROID__)
+#define TOUCH_INPUT 1
+#endif
+
 /************************************************************************/
 /************************************************************************/
 bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, uint root)
 {
+#if TOUCH_INPUT
 	pRenderer = renderer;
 
 	TextureLoadDesc loadDesc = {};
@@ -659,16 +634,13 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 	addResource(&vbDesc);
 	/************************************************************************/
 	/************************************************************************/
-
-	mInitialized = true;
+#endif
 	return true;
 }
 
 void VirtualJoystickUI::Exit()
 {
-	if (!mInitialized)
-		return;
-
+#if TOUCH_INPUT
 	removeSampler(pRenderer, pSampler);
 	removeResource(pMeshBuffer);
 	removeRasterizerState(pRasterizerState);
@@ -678,13 +650,12 @@ void VirtualJoystickUI::Exit()
 	removeRootSignature(pRenderer, pRootSignature);
 	removeShader(pRenderer, pShader);
 	removeResource(pTexture);
+#endif
 }
 
 bool VirtualJoystickUI::Load(RenderTarget* pScreenRT)
 {
-	if (!mInitialized)
-		return false;
-
+#if TOUCH_INPUT
 	VertexLayout vertexLayout = {};
 	vertexLayout.mAttribCount = 2;
 	vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
@@ -719,150 +690,46 @@ bool VirtualJoystickUI::Load(RenderTarget* pScreenRT)
 
 	mRenderSize[0] = (float)pScreenRT->mDesc.mWidth;
 	mRenderSize[1] = (float)pScreenRT->mDesc.mHeight;
+#endif
 	return true;
 }
 
 void VirtualJoystickUI::Unload()
 {
-	if (!mInitialized)
-		return;
+#if TOUCH_INPUT
 	removePipeline(pRenderer, pPipeline);
+#endif
 }
-#ifdef __ANDROID__
-extern float getDensity();
-#endif
-void VirtualJoystickUI::InitLRSticks(float insideRad, float outsideRad, float deadzone)
-{
-	float contentScaleFactor = getDpiScale().getX();
-#ifdef TARGET_IOS
-	contentScaleFactor /= [UIScreen.mainScreen nativeScale];
-#endif
-#ifdef __ANDROID__
-	contentScaleFactor /= getDensity();
-#endif
-	mInsideRadius = insideRad * contentScaleFactor;
-	mOutsideRadius = outsideRad * contentScaleFactor;
-	mDeadzone = deadzone * contentScaleFactor;
-	mSticks[0].mTouchIndex = mSticks[1].mTouchIndex = -1;
-	mActive = mInitialized;
-}
-
-vec2 VirtualJoystickUI::GetLeftStickDir() { return mSticks[0].mIsPressed ? mSticks[0].mDir : vec2(0.f, 0.f); }
-
-vec2 VirtualJoystickUI::GetRightStickDir() { return mSticks[1].mIsPressed ? mSticks[1].mDir : vec2(0.f, 0.f); }
-
-vec2 VirtualJoystickUI::GetStickRadius() { return vec2(mOutsideRadius, mInsideRadius); }
 
 void VirtualJoystickUI::Update(float dt)
 {
-	if (!mActive)
-		return;
-
-	const float halfRad = mOutsideRadius * 0.5f;
-	for (uint i = 0; i < 2; i++)
-	{
-		if (mSticks[i].mIsPressed)
-		{
-			vec2  joystickDir = (mSticks[i].mCurrPos - mSticks[i].mStartPos);
-			float dirLength = length(joystickDir);
-			// Update velocity vector
-			if (dirLength > mDeadzone)
-			{
-				vec2 normalizedJoystickDir = (joystickDir) / halfRad;
-				if (dirLength > halfRad)
-					normalizedJoystickDir = normalize(joystickDir) * (halfRad);
-
-				mSticks[i].mDir = normalizedJoystickDir;
-			}
-			else
-			{
-				mSticks[i].mDir = vec2(0, 0);
-				mSticks[i].mCurrPos = mSticks[i].mStartPos;
-			}
-		}
-	}
 }
 
-bool VirtualJoystickUI::IsActive(bool left) { return mActive && (left ? mSticks[0].mIsPressed : mSticks[1].mIsPressed); }
-
-bool VirtualJoystickUI::IsAnyActive() { return mActive && (mSticks[0].mIsPressed || mSticks[1].mIsPressed); }
-
-void VirtualJoystickUI::SetActive(bool state)
+bool VirtualJoystickUI::OnMove(uint32_t id, bool press, const float2* vec)
 {
-	if (mInitialized)
-		mActive = state;
-}
+#if TOUCH_INPUT
+	ASSERT(vec);
 
-bool VirtualJoystickUI::OnInputEvent(const ButtonData* pData)
-{
-	if (pData->mEventConsumed || !mActive)
-		return false;
-
-	if (pData->mActiveDevicesMask & GAINPUT_TOUCH && (pData->mUserId == VIRTUAL_JOYSTICK_TOUCH0 || pData->mUserId == VIRTUAL_JOYSTICK_TOUCH1))
-	{
-		// Get normalized touch pos
-		vec2 touchPos = vec2(pData->mValue[0], pData->mValue[1]);
-
-		// if true then finger is at left half of screen
-		// otherwise right half
-		int stickIndex = touchPos.getX() > mRenderSize[0] / 2.f ? 1 : 0;
-
-		if (mSticks[0].mTouchIndex != -1 || mSticks[1].mTouchIndex != -1)
-		{
-			if (mSticks[0].mTouchIndex == pData->mTouchIndex && mSticks[0].mIsPressed)
-			{
-				stickIndex = 0;
-			}
-			else if (mSticks[1].mTouchIndex == pData->mTouchIndex && mSticks[1].mIsPressed)
-				stickIndex = 1;
-		}
-
-		if (mSticks[stickIndex].mTouchIndex != pData->mTouchIndex && mSticks[stickIndex].mIsPressed)
-			return false;
-
-		bool firstTouch = false;
-
-		// If jostick is being triggered for first first
-		// we need to place it there.
-		if (pData->mIsReleased || !pData->mIsPressed)
-		{
-			mSticks[stickIndex].mIsPressed = false;
-			mSticks[stickIndex].mTouchIndex = -1;
-			return false;
-		}
-		else if (pData->mIsPressed)
-		{
-			if (!mSticks[stickIndex].mIsPressed)
-				firstTouch = true;
-		}
-
-		// Spawn joystick at desired position
-		if (firstTouch)
-		{
-			mSticks[stickIndex].mIsPressed = true;
-			mSticks[stickIndex].mStartPos = touchPos;
-			mSticks[stickIndex].mCurrPos = touchPos;
-			mSticks[stickIndex].mTouchIndex = pData->mTouchIndex;
-		}
-
-		// Calculate the new joystick positions.
-		vec2 normalizedDelta(
-			pData->mValue[0] - mSticks[stickIndex].mStartPos.getX(), pData->mValue[1] - mSticks[stickIndex].mStartPos.getY());
-
-		vec2  newPos(pData->mValue[0], pData->mValue[1]);
-		float halfRad = mOutsideRadius / 2.f - mDeadzone;
-		if (length(normalizedDelta) > halfRad)
-			newPos = mSticks[stickIndex].mStartPos + normalize(normalizedDelta) * halfRad;
-
-		mSticks[stickIndex].mCurrPos = newPos;
-	}
-
-	return true;
+    if (!mSticks[id].mPressed)
+    {
+        mSticks[id].mStartPos = *vec;
+        mSticks[id].mCurrPos = *vec;
+    }
+    else
+    {
+        mSticks[id].mCurrPos = *vec;
+    }
+    mSticks[id].mPressed = press;
+    return true;
+#else
+    return false;
+#endif
 }
 
 void VirtualJoystickUI::Draw(Cmd* pCmd, const float4& color)
 {
-	if (!mActive)
+#if TOUCH_INPUT
+	if (!(mSticks[0].mPressed || mSticks[1].mPressed))
 		return;
 
 	struct RootConstants
@@ -888,11 +755,11 @@ void VirtualJoystickUI::Draw(Cmd* pCmd, const float4& color)
 	uint64_t bufferOffset = 0;
 	for (uint i = 0; i < 2; i++)
 	{
-		if (mSticks[i].mIsPressed)
+		if (mSticks[i].mPressed)
 		{
 			float2 joystickSize = float2(extSide);
-			vec2   joystickCenter = mSticks[i].mStartPos;
-			float2 joystickPos = float2(joystickCenter.getX(), joystickCenter.getY()) - 0.5f * joystickSize;
+			float2 joystickCenter = mSticks[i].mStartPos - float2(0.0f, mRenderSize.y * 0.1f);
+            float2 joystickPos = joystickCenter - joystickSize * 0.5f;
 
 			// the last variable can be used to create a border
 			TexVertex        vertices[4] = { MAKETEXQUAD(
@@ -904,7 +771,7 @@ void VirtualJoystickUI::Draw(Cmd* pCmd, const float4& color)
 			bufferOffset += sizeof(vertices);
 
 			joystickSize = float2(intSide);
-			joystickCenter = mSticks[i].mCurrPos;
+			joystickCenter = mSticks[i].mCurrPos - float2(0.0f, mRenderSize.y * 0.1f);
 			joystickPos = float2(joystickCenter.getX(), joystickCenter.getY()) - 0.5f * joystickSize;
 
 			// the last variable can be used to create a border
@@ -917,86 +784,5 @@ void VirtualJoystickUI::Draw(Cmd* pCmd, const float4& color)
 			bufferOffset += sizeof(verticesInner);
 		}
 	}
-}
-/************************************************************************/
-// Event Handlers
-/************************************************************************/
-// returns: 0: no input handled, 1: input handled
-void OnInput(const struct ButtonData* pData, GUIDriver* pDriver)
-{
-	ButtonData toSend = *pData;
-	// Handle the mouse click events:
-	// We want to send ButtonData with click position to the UI system
-	//
-	if (pData->mUserId == KEY_CONFIRM    // left  click
-		|| pData->mUserId == KEY_RIGHT_BUMPER)
-	{
-		// Query the latest UI_MOVE event since the current event
-		// which is a click event, doesn't contain the mouse position.
-		// Here we construct the 'toSend' data to contain both the
-		// position (from the latest Move event) and click info from the
-		// current event.
-		toSend.mValue[0] = InputSystem::GetFloatInput(KEY_UI_MOVE, 0);
-		toSend.mValue[1] = InputSystem::GetFloatInput(KEY_UI_MOVE, 1);
-	}
-
-	// just relay the rest of the events to the UI and let the UI system process the events
-	pDriver->onInput(&toSend);
-}
-
-static bool uiInputEvent(const ButtonData* pData)
-{
-	// KEY_LEFT_STICK_BUTTON <-> F1 Key : See InputMapphings.h for details
-	// F1: Toggle Displaying UI
-	if (pData->mUserId == KEY_LEFT_STICK_BUTTON && pData->mIsTriggered)
-	{
-		for (uint32_t app = 0; app < (uint32_t)gInstances.size(); ++app)
-		{
-			UIAppImpl* pImpl = gInstances[app]->pImpl;
-			for (uint32_t i = 0; i < (uint32_t)pImpl->mComponents.size(); ++i)
-			{
-				pImpl->mComponents[i]->mActive = !pImpl->mComponents[i]->mActive;
-			}
-		}
-
-		PlatformEvents::skipMouseCapture = false;
-		return true;
-	}
-
-	// if cursor is hidden on capture, and mosue is captured then we can't use the UI. so we shouldn't parse input events.
-	// Otherwise UI receives input events when fps camera is active.
-	// another approach would be to change input events priorities when fps camera is active.
-	if (InputSystem::GetHideMouseCursorWhileCaptured() && InputSystem::IsMouseCaptured() && !pData->mIsReleased)
-		return false;
-
-	// if input event was consumed and it's a press/triggered event
-	// then we ignore it.
-	// We want to use the input event if it was a release so we can correctly
-	// release internally set values.
-	if (pData->mEventConsumed && !pData->mIsReleased)
-		return false;
-
-	if (gInstances.size())
-	{
-		for (uint32_t app = 0; app < (uint32_t)gInstances.size(); ++app)
-		{
-			UIApp* pApp = gInstances[app];
-			OnInput(pData, pApp->pDriver);
-			for (uint32_t i = 0; i < (uint32_t)pApp->pImpl->mComponents.size(); ++i)
-			{
-				GuiComponent* pGui = pApp->pImpl->mComponents[i];
-				// consume the input event
-				// if UI requires text input
-				// Or if any element is hovered and active.
-				if ((pGui->mActive && pApp->pDriver->isHovering(pGui->mCurrentWindowRect)) || pApp->pDriver->needsTextInput())
-				{
-					PlatformEvents::skipMouseCapture = true;
-					return true;
-				}
-			}
-		}
-	}
-
-	PlatformEvents::skipMouseCapture = false;
-	return false;
+#endif
 }

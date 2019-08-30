@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="android_native_app_glue.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="android_native_app_glue.c" />
+    <ClCompile Include="..\..\..\src\08_GltfViewer\08_GltfViewer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{06daa5db-c4db-4bf3-bc10-5f016b9e6d19}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{bc56b9a6-308e-430c-be7b-bc3eee7a54c9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\basic.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\basic.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\basicMOBILE.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\floor.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\floor.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\floorMOBILE.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\FXAA.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\profile.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\profile.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\Triangular.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\vignette.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\watermark.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\watermark.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\zPass.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\zPassFloor.vert">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+</Project>

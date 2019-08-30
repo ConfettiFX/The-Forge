@@ -92,7 +92,7 @@ extern const char* pszRoots[];
 // Remove device, on the other hand, can only access files within project root dir.
 // When we run on remote device, we ignore pszbase.
 extern const char* pszBases[];
-#if defined(__ANDROID__) || defined(_DURANGO) || defined(TARGET_IOS)
+#if defined(__ANDROID__) || defined(_DURANGO) || defined(TARGET_IOS) || defined(FORGE_IGNORE_PSZBASE)
 #define __IGNORE_PSZBASE 1
 #else
 #define __IGNORE_PSZBASE 0

@@ -351,28 +351,14 @@ int Fontstash::defineFont(const char* identification, const char* filename, uint
 	return fonsAddFontMem(fs, identification, (unsigned char*)buffer, (int)bytes, 0);
 }
 
-int Fontstash::getFontID(const char* identification)
+void* Fontstash::getFontBuffer(uint32_t index)
 {
-	FONScontext* fs = impl->pContext;
-	return fonsGetFontByName(fs, identification);
+	return impl->mFontBuffers[index];
 }
 
-const char* Fontstash::getFontName(const char* identification)
+uint32_t Fontstash::getFontBufferSize(uint32_t index)
 {
-	FONScontext* fs = impl->pContext;
-	return impl->mFontNames[fonsGetFontByName(fs, identification)].c_str();
-}
-
-void* Fontstash::getFontBuffer(const char* identification)
-{
-	FONScontext* fs = impl->pContext;
-	return impl->mFontBuffers[fonsGetFontByName(fs, identification)];
-}
-
-uint32_t Fontstash::getFontBufferSize(const char* identification)
-{
-	FONScontext* fs = impl->pContext;
-	return impl->mFontBufferSizes[fonsGetFontByName(fs, identification)];
+	return impl->mFontBufferSizes[index];
 }
 
 void Fontstash::drawText(

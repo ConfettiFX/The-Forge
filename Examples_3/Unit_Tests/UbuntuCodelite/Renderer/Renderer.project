@@ -12,6 +12,7 @@
       <File Name="../../../../Common_3/OS/Image/Image.cpp"/>
       <File Name="../../../../Common_3/OS/Image/Image.h"/>
       <File Name="../../../../Common_3/OS/Image/ImageEnums.h"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp"/>
     </VirtualDirectory>
     <VirtualDirectory Name="Profiler">
       <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerUI.h"/>
@@ -37,7 +38,6 @@
     <File Name="../../../../Common_3/Renderer/Vulkan/VulkanRaytracing.cpp"/>
     <File Name="../../../../Common_3/Renderer/Vulkan/VulkanShaderReflection.cpp"/>
   </VirtualDirectory>
-  <Dependencies Name="Debug"/>
   <Settings Type="Static Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -132,4 +132,6 @@
       </Completion>
     </Configuration>
   </Settings>
+  <Dependencies Name="Debug"/>
+  <Dependencies Name="Release"/>
 </CodeLite_Project>

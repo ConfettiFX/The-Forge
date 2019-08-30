@@ -185,7 +185,9 @@ void HLSLmain(uvec3 GroupID, uvec3 DispatchThreadID, uvec3 GroupThreadID)
 
     vec3 worldPos = ((worldPosW / vec4 ((worldPosW).w))).xyz;
     float worldZ = ConvertFromDeviceZ(depthVal);
-    float RayStartOffset = 0.75f + 0.005f * worldZ;
+
+	float RayStartOffset = 1.75f + 0.005f * worldZ;
+
     float minSphereRadius = 0.3;
     float maxSphereRadius = 10.0;
     float traceDistance = float (10000);

@@ -40,9 +40,6 @@
 #include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/IApp.h"
 
-#include "../Input/InputSystem.h"
-#include "../Input/InputMappings.h"
-
 #include "../Interfaces/IMemory.h"
 
 #define CONFETTI_WINDOW_CLASS L"confetti"
@@ -59,6 +56,9 @@ static int gDeviceWidth;
 static int gDeviceHeight;
 
 static eastl::vector<MonitorDesc> monitors;
+
+void requestShutdown() {}
+void toggleFullscreen(WindowsDesc* pWindow) {}
 
 // Update the state of the keys based on state previous frame
 void updateTouchEvent(int numTaps) { gCurrentTouchEvent = numTaps; }
@@ -212,8 +212,8 @@ void openWindow(const char* app_name, WindowsDesc* winDesc, id<MTLDevice> device
     else
         gRetinaScale = { (float)scale, (float)scale };
     
-    gDeviceWidth = UIScreen.mainScreen.bounds.size.width;
-    gDeviceHeight = UIScreen.mainScreen.bounds.size.height;
+    gDeviceWidth = UIScreen.mainScreen.bounds.size.width * gRetinaScale.x;
+    gDeviceHeight = UIScreen.mainScreen.bounds.size.height * gRetinaScale.y;
     
     ForgeMTLViewController *ViewController = [[ForgeMTLViewController alloc] initWithFrame:ViewRect device:device display:0 hdr:NO vsync:NO];
     [Window setRootViewController:ViewController];
@@ -369,14 +369,6 @@ uint32_t testingMaxFrameCount = 120;
 		pSettings->mHeight = getRectHeight(gCurrentWindow.fullscreenRect);
 		pApp->pWindow = &gCurrentWindow;
 
-        InputSystem::Init(gDeviceWidth, gDeviceHeight);
-        InputSystem::InitSubView((__bridge void*)forgeView);
-		// App init may override those
-		// Mouse captured to true on iOS
-		// Set HideMouse to false so that UI can always be picked.
-        InputSystem::SetMouseCapture(true);
-		InputSystem::SetHideMouseCursorWhileCaptured(false);
-
 		@autoreleasepool
 		{
 			if (!pApp->Init())
@@ -420,7 +412,6 @@ uint32_t testingMaxFrameCount = 120;
 	if (deltaTime > 0.15f)
 		deltaTime = 0.05f;
 
-	InputSystem::Update();
 	pApp->Update(deltaTime);
 	pApp->Draw();
 
@@ -436,7 +427,6 @@ uint32_t testingMaxFrameCount = 120;
 
 - (void)shutdown
 {
-	InputSystem::Shutdown();
 	pApp->Unload();
 	pApp->Exit();
 }

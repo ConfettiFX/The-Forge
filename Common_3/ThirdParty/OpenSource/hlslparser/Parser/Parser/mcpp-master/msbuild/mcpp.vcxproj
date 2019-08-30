@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{F22D082B-B83C-4DE1-AB1E-E82006982C8C}</ProjectGuid>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup>
+    <RuntimeLibrary Condition="'$(Configuration)' == 'Debug' and '$(StaticRuntimeLibrary)' != 'yes'">MultiThreadedDebugDLL</RuntimeLibrary>
+    <RuntimeLibrary Condition="'$(Configuration)' == 'Release' and '$(StaticRuntimeLibrary)' != 'yes'">MultiThreadedDLL</RuntimeLibrary>
+    <RuntimeLibrary Condition="'$(Configuration)' == 'Debug' and '$(StaticRuntimeLibrary)' == 'yes'">MultiThreadedDebug</RuntimeLibrary>
+    <RuntimeLibrary Condition="'$(Configuration)' == 'Release' and '$(StaticRuntimeLibrary)' == 'yes'">MultiThreaded</RuntimeLibrary>
+    <TargetName Condition="'$(RuntimeLibrary)' == 'MultiThreadedDebugDLL'">mcppd</TargetName>
+    <TargetName Condition="'$(RuntimeLibrary)' == 'MultiThreadedDLL'">mcpp</TargetName>
+    <TargetName Condition="'$(RuntimeLibrary)' == 'MultiThreadedDebug'">mcppmtd</TargetName>
+    <TargetName Condition="'$(RuntimeLibrary)' == 'MultiThreaded'">mcppmt</TargetName>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>$(DefaultPlatformToolset)</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <IntDir Condition="'$(RuntimeLibrary)' == 'MultiThreadedDebug' or '$(RuntimeLibrary)' == 'MultiThreaded'">$(DefaultPlatformToolset)\$(Platform)\$(Configuration)\mt\</IntDir>
+    <IntDir Condition="'$(RuntimeLibrary)' == 'MultiThreadedDebugDLL' or '$(RuntimeLibrary)' == 'MultiThreadedDLL'">$(DefaultPlatformToolset)\$(Platform)\$(Configuration)\md\</IntDir>
+    <OutDir>$(DefaultPlatformToolset)\$(Platform)\$(Configuration)\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <PreprocessorDefinitions>_WIN32_WINNT=0x600;WIN32_LEAN_AND_MEAN;_CONSOLE</PreprocessorDefinitions>
+      <WarningLevel>Level3</WarningLevel>
+      <DisableSpecificWarnings>4996;4244;4246;4267;4146;4018</DisableSpecificWarnings>
+      <RuntimeLibrary>$(RuntimeLibrary)</RuntimeLibrary>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
+    <ClCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <!--
+      GenerateDebugInformation supported values change from v120 to v140 and v141,
+      we set it conditionally to the platform tool set.
+  -->
+  <ItemDefinitionGroup>
+    <Link>
+      <GenerateDebugInformation>Yes</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(DefaultPlatformToolset)'=='v140'">
+    <Link>
+      <FullProgramDatabaseFile>true</FullProgramDatabaseFile>
+      <GenerateDebugInformation>Debug</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(DefaultPlatformToolset)'=='v141'">
+    <Link>
+      <FullProgramDatabaseFile>true</FullProgramDatabaseFile>
+      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\directive.c" />
+    <ClCompile Include="..\eval.c" />
+    <ClCompile Include="..\expand.c" />
+    <ClCompile Include="..\main.c" />
+    <ClCompile Include="..\mbchar.c" />
+    <ClCompile Include="..\support.c" />
+    <ClCompile Include="..\system.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\config.h" />
+    <ClInclude Include="..\configed.H" />
+    <ClInclude Include="..\internal.H" />
+    <ClInclude Include="..\mcpp_lib.h" />
+    <ClInclude Include="..\mcpp_out.h" />
+    <ClInclude Include="..\system.H" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Targets" />
+</Project>

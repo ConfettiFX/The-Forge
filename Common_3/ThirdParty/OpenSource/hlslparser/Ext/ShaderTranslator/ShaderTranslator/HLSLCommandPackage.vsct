@@ -102,10 +102,10 @@
             bitmap strip containing the bitmaps and then there are the numeric ids of the elements used
             inside a button definition. An important aspect of this declaration is that the element id
             must be the actual index (1-based) of the bitmap inside the bitmap strip. -->
-      <Bitmap guid="guidImages" href="Resources\conffxlogo.png" usedList="bmpPic1" />
-      <Bitmap guid="guidImages1" href="Resources\conffxlogo.png" usedList="bmpPic1" />
-      <Bitmap guid="guidImages2" href="Resources\conffxlogo.png" usedList="bmpPic1" />
-      <Bitmap guid="guidImages3" href="Resources\conffxlogo.png" usedList="bmpPic1" />
+      <Bitmap guid="guidImages" href="Resources\The-Forge.png" usedList="bmpPic1" />
+      <Bitmap guid="guidImages1" href="Resources\The-Forge.png" usedList="bmpPic1" />
+      <Bitmap guid="guidImages2" href="Resources\The-Forge.png" usedList="bmpPic1" />
+      <Bitmap guid="guidImages3" href="Resources\The-Forge.png" usedList="bmpPic1" />
     </Bitmaps>
   </Commands>
 

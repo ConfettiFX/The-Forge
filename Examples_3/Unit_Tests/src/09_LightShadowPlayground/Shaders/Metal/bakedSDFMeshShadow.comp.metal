@@ -142,43 +142,19 @@ struct Compute_Shader
         return (((deviceZ * cameraUniformBlock.mDeviceZToWorldZ[0]) + cameraUniformBlock.mDeviceZToWorldZ[1]) + (1.0 / ((deviceZ * cameraUniformBlock.mDeviceZToWorldZ[2]) - cameraUniformBlock.mDeviceZToWorldZ[3])));
     };
 	
-	float LinearizeDepth(float depth)
-	{
-		const float nearPlane = 0.1f;
-		const float farPlane = 4000.f;
-
-		float z = depth * 2.0 - 1.0;
-		return (2.0 * nearPlane * farPlane) / (farPlane + nearPlane - z * (farPlane - nearPlane));
-	};
     void main(uint3 GroupID, uint3 DispatchThreadID, uint3 GroupThreadID)
     {
         uint3 localDispatchThreadID = (DispatchThreadID * (uint3)(2));
-		//localDispatchThreadID = DispatchThreadID;
         float xClip = (((float((localDispatchThreadID).x) * 2.0) / (cameraUniformBlock.mWindowSize).x) - 1.0);
         float yClip = (1.0 - ((float((localDispatchThreadID).y) * 2.0) / (cameraUniformBlock.mWindowSize).y));
         float2 depthSize = cameraUniformBlock.mWindowSize;
         float2 depthUV = float2((float)(localDispatchThreadID.x) / depthSize.x, (float)(localDispatchThreadID.y) / depthSize.y);
         float depthVal = (DepthTexture.sample(clampToEdgeNearSampler, depthUV, 0));
 		
-		//OutTexture.write(float4(LinearizeDepth(depthVal), 0.0, 0.0, 0.0), DispatchThreadID.xy, 0);
-		//return;
-        /*if (depthVal == 0.0f)
-        {
-            (OutTexture.write(float4(1.0, 0.0, 0.0, 0.0), uint2((DispatchThreadID).xy)), 0);
-            return;
-        }
-		else
-		{
-			
-			(OutTexture.write(float4(0.0, 0.0, 0.0, 0.0), uint2((DispatchThreadID).xy)), 0);
-			return;
-		}*/
-		//(OutTexture.write(float4(DispatchThreadID.x, 0.0, 0.0, 0.0), uint2((DispatchThreadID).xy)), 0);
-		//return;
         float4 worldPosW = ((cameraUniformBlock.InvViewProject)*(float4(xClip, yClip, depthVal, 1.0)));
         float3 worldPos = ((worldPosW / (float4)((worldPosW).w))).xyz;
         float worldZ = ConvertFromDeviceZ(depthVal);
-        float RayStartOffset = 0.75f + 0.005f * worldZ;
+        float RayStartOffset = 1.75f + 0.005f * worldZ;
         float minSphereRadius = 0.3;
         float maxSphereRadius = 10.0;
         float traceDistance = (float)(10000);

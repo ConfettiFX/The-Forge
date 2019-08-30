@@ -25,7 +25,8 @@ public:
 		state_(&state),
 		previousState_(&previousState),
 		nextState_(manager.GetAllocator(), KeyCount_),
-		delta_(0)
+		delta_(0),
+		textCount_(0)
 	{
 		// Cf. <X11/keysymdef.h>
 		dialect_[XK_Escape] = KeyEscape;
@@ -174,6 +175,8 @@ public:
 	{
 		delta_ = delta;
 		*state_ = nextState_;
+		textCount_ = 0;
+        memset(textBuffer_, 0, sizeof(textBuffer_));
 	}
 
 	virtual InputState * GetNextInputState() override {
@@ -182,31 +185,10 @@ public:
 
 	bool IsTextInputEnabled() const { return textInputEnabled_; }
 	void SetTextInputEnabled(bool enabled) { textInputEnabled_ = enabled; }
-
-	char GetNextCharacter(gainput::DeviceButtonId buttonId)
+	wchar_t* GetTextInput(uint32_t* count)
 	{
-		if (!textBuffer_.CanGet())
-		{
-			return 0;
-		}
-		InputCharDesc currentDesc = textBuffer_.Get();
-
-		//Removed buffered inputs for which we didn't call GetNextCharacter
-		if (buttonId != gainput::InvalidDeviceButtonId && buttonId < gainput::KeyCount_)
-		{
-			while (currentDesc.buttonId != buttonId)
-			{
-				if (!textBuffer_.CanGet())
-				{
-					return 0;
-				}
-				currentDesc = textBuffer_.Get();
-			}
-		}
-
-		//if button id was provided then we return the appropriate character
-		//else we return the first buffered character
-		return currentDesc.inputChar;
+		*count = textCount_;
+		return textBuffer_;
 	}
 
 	void HandleEvent(XEvent& event)
@@ -245,10 +227,7 @@ public:
 					int len = XLookupString(&keyEvent, buf, 32, 0, 0);
 					if (len == 1)
 					{
-						InputCharDesc inputDesc;
-						inputDesc.buttonId = buttonId;
-						inputDesc.inputChar = buf[0];
-						textBuffer_.Put(inputDesc);
+						textBuffer_[textCount_++] = (wchar_t)buf[0];
 					}
 				}
 			}
@@ -266,12 +245,8 @@ private:
 	InputManager& manager_;
 	InputDevice& device_;
 	bool textInputEnabled_;
-	struct InputCharDesc
-	{
-		char inputChar;
-		gainput::DeviceButtonId buttonId;
-	};
-	RingBuffer<GAINPUT_TEXT_INPUT_QUEUE_LENGTH, InputCharDesc> textBuffer_;
+	wchar_t textBuffer_[GAINPUT_TEXT_INPUT_QUEUE_LENGTH];
+	uint32_t textCount_;
 	HashMap<unsigned, DeviceButtonId> dialect_;
 	InputState* state_;
 	InputState* previousState_;

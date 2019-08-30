@@ -325,48 +325,30 @@ uint2 ProfileGetDrawDimensions()
 	return gDimensions;
 }
 
-#if defined(_DURANGO)
-
-static bool draw_mouse = false;
-static int32_t mouse_x = 0;
-static int32_t mouse_y = 0;
-
-void DrawMouse(bool bEnabled)
-{
-    draw_mouse = bEnabled;
-}
-
-void DrawMousePosition(int32_t x, int32_t y)
-{
-    mouse_x = x;
-    mouse_y = y;
-}
-
-#endif
-
 void ProfileEndDraw(Cmd * pCmd)
 {
-#if defined(_DURANGO)
-    if(draw_mouse)
-    {
-        DrawCommands.emplace_back(ProfileDrawCommand{ ProfileDrawCommand::BOX, 6u });
-        float left = ConvertToNDCX(mouse_x - 5);
-        float right = ConvertToNDCX(mouse_x + 5);
-        float top = ConvertToNDCY(mouse_y - 5);
-        float bot = ConvertToNDCY(mouse_y + 5);
-        uint32_t nColor = 0xff000000;
-        
-        // Create box
-        ProfileVertices.emplace_back(ProfileVertex{ left, top, nColor/*, 0*/ });
-        ProfileVertices.emplace_back(ProfileVertex{ left, bot, nColor/*, 0*/ });
-        ProfileVertices.emplace_back(ProfileVertex{ right, bot, nColor/*, 0*/ });
-        ProfileVertices.emplace_back(ProfileVertex{ left, top, nColor/*, 0*/ });
-        ProfileVertices.emplace_back(ProfileVertex{ right, bot, nColor/*, 0*/ });
-        ProfileVertices.emplace_back(ProfileVertex{ right, top, nColor/*, 0*/ });
-    }
-#endif
-        
-    
+	if (DrawCommands.size())
+	{
+		uint32_t mouseX = 0;
+		uint32_t mouseY = 0;
+		ProfileGetMousePosition(&mouseX, &mouseY);
+
+		DrawCommands.emplace_back(ProfileDrawCommand{ ProfileDrawCommand::BOX, 6u });
+		float left = ConvertToNDCX((int32_t)mouseX - 5);
+		float right = ConvertToNDCX((int32_t)mouseX + 5);
+		float top = ConvertToNDCY((int32_t)mouseY - 5);
+		float bot = ConvertToNDCY((int32_t)mouseY + 5);
+		uint32_t nColor = 0xffffffff;
+
+		// Create box
+		ProfileVertices.emplace_back(ProfileVertex{ left, top, nColor/*, 0*/ });
+		ProfileVertices.emplace_back(ProfileVertex{ left, bot, nColor/*, 0*/ });
+		ProfileVertices.emplace_back(ProfileVertex{ right, bot, nColor/*, 0*/ });
+		ProfileVertices.emplace_back(ProfileVertex{ left, top, nColor/*, 0*/ });
+		ProfileVertices.emplace_back(ProfileVertex{ right, bot, nColor/*, 0*/ });
+		ProfileVertices.emplace_back(ProfileVertex{ right, top, nColor/*, 0*/ });
+	}
+
 	// Update buffer
 	Buffer * frame_buffer = pProfileBuffers[pCmd->pRenderer->mCurrentFrameIdx];
 	BufferUpdateDesc update_desc{ frame_buffer, ProfileVertices.data(), 0, 0, ProfileVertices.size() * sizeof(ProfileVertex) };

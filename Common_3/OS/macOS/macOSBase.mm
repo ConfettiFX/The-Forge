@@ -38,10 +38,6 @@
 #include "../Interfaces/IThread.h"
 #include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/IApp.h"
-
-#include "../Input/InputSystem.h"
-#include "../Input/InputMappings.h"
-
 #include "../Interfaces/IMemory.h"
 
 #define CONFETTI_WINDOW_CLASS L"confetti"
@@ -125,37 +121,6 @@ static WindowsDesc gCurrentWindow;
 //static eastl::unordered_map<void*, WindowsDesc*> gWindowMap;
 
 void adjustWindow(WindowsDesc* winDesc);
-
-namespace PlatformEvents {
-extern bool wantsMouseCapture;
-extern bool skipMouseCapture;
-
-}
-
-static bool captureMouse(bool shouldCapture, bool shouldHide)
-{
-	if (shouldCapture != isCaptured)
-	{
-		if (shouldCapture)
-		{
-			if (shouldHide)
-			{
-				CGDisplayHideCursor(kCGDirectMainDisplay);
-				CGAssociateMouseAndMouseCursorPosition(false);
-			}
-			isCaptured = true;
-		}
-		else
-		{
-			CGDisplayShowCursor(kCGDirectMainDisplay);
-			CGAssociateMouseAndMouseCursorPosition(true);
-			isCaptured = false;
-		}
-	}
-
-	InputSystem::SetMouseCapture(isCaptured && shouldHide);
-	return true;
-}
 
 #if !defined(METAL)
 // TODO: Add multiple monitor handling functionality.
@@ -254,14 +219,14 @@ void hideWindow(WindowsDesc* winDesc)
 
 void maximizeWindow(WindowsDesc* winDesc)
 {
-	winDesc->visible = true;
+	winDesc->hide = false;
 	NSWindow* window = (__bridge NSWindow*)(winDesc->handle.window);
 	[window deminiaturize:nil];
 }
 
 void minimizeWindow(WindowsDesc* winDesc)
 {
-	winDesc->visible = false;
+	winDesc->hide = true;
 	NSWindow* window = (__bridge NSWindow*)(winDesc->handle.window);
 	[window miniaturize:nil];
 }
@@ -332,7 +297,6 @@ int macOSMain(int argc, const char** argv, IApp* app)
 				  renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider;
 
 - (void)drawRectResized:(CGSize)size;
-- (void)updateInput;
 - (void)update;
 - (void)shutdown;
 
@@ -404,8 +368,6 @@ int macOSMain(int argc, const char** argv, IApp* app)
 - (void)draw
 {
 	[_application update];
-	[_application updateInput];
-	InputSystem::Update();
 }
 
 @end
@@ -449,17 +411,12 @@ uint32_t testingMaxFrameCount = 120;
 		gCurrentWindow.fullScreen = pSettings->mFullScreen;
 		gCurrentWindow.maximized = false;
 		openWindow(pApp->GetName(), &gCurrentWindow, device, renderDestinationProvider);
-        ForgeMTLView *forgeView = ((__bridge NSWindow*)gCurrentWindow.handle.window).contentView;
 
 		pSettings->mWidth =
 			gCurrentWindow.fullScreen ? getRectWidth(gCurrentWindow.fullscreenRect) : getRectWidth(gCurrentWindow.windowedRect);
 		pSettings->mHeight =
 			gCurrentWindow.fullScreen ? getRectHeight(gCurrentWindow.fullscreenRect) : getRectHeight(gCurrentWindow.windowedRect);
 		pApp->pWindow = &gCurrentWindow;
-
-		InputSystem::Init(pSettings->mWidth, pSettings->mHeight);
-        
-		InputSystem::InitSubView((__bridge void*)forgeView);
 
 		@autoreleasepool
 		{
@@ -502,40 +459,6 @@ uint32_t testingMaxFrameCount = 120;
 		pApp->Unload();
 		pApp->Load();
 	}
-	// Used to notify input backend of new display size
-	InputSystem::UpdateSize(newWidth, newHeight);
-}
-
-- (void)updateInput
-{
-	if (InputSystem::GetBoolInput(UserInputKeys::KEY_CANCEL_TRIGGERED))
-	{
-		if (!isCaptured && !gCurrentWindow.fullScreen)
-		{
-			[NSApp terminate:self];
-		}
-		else
-		{
-			captureMouse(false, InputSystem::GetHideMouseCursorWhileCaptured());
-		}
-	}
-
-	if (InputSystem::GetBoolInput(UserInputKeys::KEY_CONFIRM_TRIGGERED))
-	{
-		if (!InputSystem::IsMouseCaptured() && !PlatformEvents::skipMouseCapture)
-		{
-			captureMouse(true, InputSystem::GetHideMouseCursorWhileCaptured());
-		}
-	}
-
-	//if alt (left or right) is pressed and Enter is triggered then toggle fullscreen
-	if ((InputSystem::GetBoolInput(UserInputKeys::KEY_LEFT_ALT_PRESSED) || InputSystem::GetBoolInput(UserInputKeys::KEY_RIGHT_ALT_PRESSED)) &&
-		InputSystem::GetBoolInput(UserInputKeys::KEY_MENU_TRIGGERED))
-	{
-		//get first window available.
-		//TODO:Fix this once we have multiple window handles
-		toggleFullscreen(&gCurrentWindow);
-	}
 }
 
 - (void)update
@@ -564,7 +487,6 @@ uint32_t testingMaxFrameCount = 120;
 
 - (void)shutdown
 {
-	InputSystem::Shutdown();
 	pApp->Unload();
 	pApp->Exit();
 }

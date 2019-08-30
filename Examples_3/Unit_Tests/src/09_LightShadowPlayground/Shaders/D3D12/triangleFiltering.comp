@@ -67,7 +67,6 @@ cbuffer visibilityBufferConstants : register(UNIT_UNIFORMS_CBV)
 {
 	float4x4 mWorldViewProjMat[NUM_CULLING_VIEWPORTS];
 	CullingViewPort mCullingViewports[NUM_CULLING_VIEWPORTS];
-	uint mValidNumCull;
 };
 
 groupshared uint workGroupOutputSlot[NUM_CULLING_VIEWPORTS];

@@ -27,9 +27,6 @@
 
 #include "ozz/animation/offline/animation_optimizer.h"
 
-#include <cassert>
-#include <cstddef>
-
 #include "ozz/base/maths/math_constant.h"
 #include "ozz/base/maths/math_ex.h"
 

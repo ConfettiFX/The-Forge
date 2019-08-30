@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>mcpp.v110</id>
+    <version>2.7.2.16</version>
+    <authors>Kiyoshi Matsui</authors>
+    <licenseUrl>https://raw.githubusercontent.com/zeroc-ice/mcpp/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/zeroc-ice/mcpp</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>mcpp built as a static library. mcpp is a C/C++ preprocessor used by the Ice Slice compilers.</description>
+    <releaseNotes>mcpp 2.7.2 simplified for Ice.</releaseNotes>
+    <tags>mcpp native</tags>
+  </metadata>
+</package>

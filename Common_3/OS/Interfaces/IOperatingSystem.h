@@ -65,6 +65,10 @@ typedef uint64_t uint64;
 #include <time.h>
 #include <ctime>
 
+#include <float.h>
+#include <limits.h>
+#include <stddef.h>
+
 #ifndef _WIN32
 #define stricmp(a, b) strcasecmp(a, b)
 #define vsprintf_s vsnprintf
@@ -80,22 +84,25 @@ typedef void* IconHandle;
 typedef struct WindowHandle
 {
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
-	Display* display;
-	Window   window;
+	Display*                 display;
+	Window                   window;
+	Atom                     xlib_wm_delete_window;
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
-	xcb_connection_t* connection;
-	xcb_window_t      window;
+	xcb_connection_t*        connection;
+	xcb_window_t             window;
+	xcb_screen_t*            screen;
+	xcb_intern_atom_reply_t* atom_wm_delete_window;
 #else
-	void* window = NULL;    //hWnd
+	void*                    window;    //hWnd
 #endif
 } WindowHandle;
 
 typedef struct RectDesc
 {
-	int left;
-	int top;
-	int right;
-	int bottom;
+	int32_t left;
+	int32_t top;
+	int32_t right;
+	int32_t bottom;
 } RectDesc;
 
 inline int getRectWidth(const RectDesc& rect) { return rect.right - rect.left; }
@@ -106,39 +113,29 @@ struct WindowsDesc;
 
 struct WindowCallbacks
 {
-	void (*onResize)(WindowsDesc* window, int newSizeX, int newSizeY);
+	void    (*onResize)(WindowsDesc* window, int32_t newSizeX, int32_t newSizeY);
+	int32_t (*onHandleMessage)(WindowsDesc* window, void* msg);
 };
 
 typedef struct WindowsDesc
 {
-#if defined(VK_USE_PLATFORM_XLIB_KHR)
-	Atom xlib_wm_delete_window;
-#elif defined(VK_USE_PLATFORM_XCB_KHR)
-	Display*                 display;
-	xcb_screen_t*            screen;
-	xcb_intern_atom_reply_t* atom_wm_delete_window;
-#endif
-	WindowHandle handle;    //hWnd
+	WindowHandle              handle;    //hWnd
 
-	WindowCallbacks callbacks;
+	WindowCallbacks           callbacks;
 
-	RectDesc   windowedRect;
-	RectDesc   fullscreenRect;
-	RectDesc   clientRect;
-	bool       fullScreen = false;
-	unsigned   windowsFlags = 0;
-	IconHandle bigIcon = NULL;
-	IconHandle smallIcon = NULL;
+	RectDesc                  windowedRect;
+	RectDesc                  fullscreenRect;
+	RectDesc                  clientRect;
+	IconHandle                bigIcon;
+	IconHandle                smallIcon;
 
-	bool cursorTracked = false;
-	bool iconified = false;
-	bool maximized = false;
-	bool minimized = false;
-	bool visible = true;
-
-	// maybe that should go to the input system?
-	// The last received cursor position, regardless of source
-	int lastCursorPosX, lastCursorPosY;
+	uint32_t                  windowsFlags;
+	bool                      fullScreen;
+	bool                      cursorTracked;
+	bool                      iconified;
+	bool                      maximized;
+	bool                      minimized;
+	bool                      hide;
 } WindowsDesc;
 
 typedef struct Resolution
@@ -160,10 +157,10 @@ typedef struct MonitorDesc
 	WCHAR publicAdapterName[64];
 	WCHAR publicDisplayName[64];
 #else
-	char                     adapterName[32];
-	char                     displayName[32];
-	char                     publicAdapterName[64];
-	char                     publicDisplayName[64];
+	char  adapterName[32];
+	char  displayName[32];
+	char  publicAdapterName[64];
+	char  publicDisplayName[64];
 #endif
 	bool modesPruned;
 	bool modeChanged;
@@ -172,9 +169,6 @@ typedef struct MonitorDesc
 	Resolution* resolutions;
 	uint32_t    resolutionCount;
 } MonitorDesc;
-
-#include <float.h>
-#include <limits.h>
 
 // Define some sized types
 typedef uint8_t uint8;
@@ -186,7 +180,6 @@ typedef int16_t  int16;
 typedef uint32_t uint32;
 typedef int32_t  int32;
 
-#include <stddef.h>
 typedef ptrdiff_t intptr;
 
 #ifdef _WIN32
@@ -239,4 +232,3 @@ bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes);
 //
 // failure research ...
 //
-#include "IPlatformEvents.h"

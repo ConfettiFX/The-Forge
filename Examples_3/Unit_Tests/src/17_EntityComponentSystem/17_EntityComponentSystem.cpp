@@ -45,12 +45,10 @@
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
-//#include "../../../../Common_3/Renderer/GpuProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 #include "../../../../Common_3/OS/Core/ThreadSystem.h"
 
-#include "../../../../Common_3/OS/Input/InputSystem.h"
-#include "../../../../Common_3/OS/Input/InputMappings.h"
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
@@ -76,7 +74,7 @@ struct SpriteData
 };
 
 const uint32_t gImageCount = 3;
-bool           bToggleMicroProfiler = false;
+bool           gMicroProfiler = false;
 bool           bPrevToggleMicroProfiler = false;
 
 Renderer* pRenderer = NULL;
@@ -417,7 +415,6 @@ class EntityComponentSystem: public IApp
 		initResourceLoaderInterface(pRenderer);
 
 		initProfiler(pRenderer);
-		profileRegisterInput();
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
@@ -534,7 +531,7 @@ class EntityComponentSystem: public IApp
 		guiDesc.mStartPosition = vec2(0.0f, guiDesc.mStartSize.getY());
 		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
-		pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler)); 
+		pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler)); 
 		
 		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 16 };
 
@@ -586,11 +583,39 @@ class EntityComponentSystem: public IApp
 			}
 		}
 
+		if (!initInputSystem(pWindow))
+			return false;
+
+		// Microprofiler Actions
+		// #TODO: Remove this once the profiler UI is ported to use our UI system
+		InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gMicroProfiler; } };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
+		addInputAction(&actionDesc);
+
+		// App Actions
+		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		addInputAction(&actionDesc);
+		actionDesc =
+		{
+			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
+			{
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gMicroProfiler);
+				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+				return true;
+			}, this
+		};
+		addInputAction(&actionDesc);
+
 		return true;
 	}
 
 	void Exit()
 	{
+		exitInputSystem();
+
 		shutdownThreadSystem(pThreadSystem);
 		
 		conf_delete(pEntityManager);
@@ -683,6 +708,8 @@ class EntityComponentSystem: public IApp
 
 	void Update(float deltaTime)
 	{
+		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
+
 		// Scene Update
 		static float currentTime = 0.0f;
 		currentTime += deltaTime * 1000.0f;
@@ -727,14 +754,14 @@ class EntityComponentSystem: public IApp
 
 		// ProfileSetDisplayMode()
 		// TODO: need to change this better way 
-		if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+		if (gMicroProfiler != bPrevToggleMicroProfiler)
 		{
 			Profile& S = *ProfileGet();
-			int nValue = bToggleMicroProfiler ? 1 : 0;
+			int nValue = gMicroProfiler ? 1 : 0;
 			nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
 			S.nDisplay = nValue;
 
-			bPrevToggleMicroProfiler = bToggleMicroProfiler;
+			bPrevToggleMicroProfiler = gMicroProfiler;
 		}
 
 		gAppUI.Update(deltaTime);
@@ -754,7 +781,7 @@ class EntityComponentSystem: public IApp
 		updateResource(&uboUpdateDesc);
 
 		// Update vertex buffer
-		assert(gDrawSpriteCount >= 0 && gDrawSpriteCount <= MaxSpriteCount);
+		ASSERT(gDrawSpriteCount >= 0 && gDrawSpriteCount <= MaxSpriteCount);
 		BufferUpdateDesc vboUpdateDesc = { pSpriteVertexBuffers[gFrameIndex], gSpriteData };
 		vboUpdateDesc.mSize = gDrawSpriteCount * sizeof(SpriteData);
 		updateResource(&vboUpdateDesc);

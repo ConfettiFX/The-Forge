@@ -2,13 +2,13 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClInclude Include="android_native_app_glue.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Tools\TFXImporter\TFXImporter.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\AssetPipeline\src\TFXImporter.h">
       <Filter>Source Files\TFXImporter</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Tools\TFXImporter\TressFXAsset.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\AssetPipeline\src\TressFXAsset.h">
       <Filter>Source Files\TFXImporter</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Tools\TFXImporter\TressFXFileFormat.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\AssetPipeline\src\TressFXFileFormat.h">
       <Filter>Source Files\TFXImporter</Filter>
     </ClInclude>
   </ItemGroup>
@@ -17,10 +17,10 @@
     <ClCompile Include="..\..\..\src\06_MaterialPlayground\06_MaterialPlayground.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Tools\TFXImporter\TFXImporter.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\AssetPipeline\src\TFXImporter.cpp">
       <Filter>Source Files\TFXImporter</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Tools\TFXImporter\TressFXAsset.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\AssetPipeline\src\TressFXAsset.cpp">
       <Filter>Source Files\TFXImporter</Filter>
     </ClCompile>
   </ItemGroup>

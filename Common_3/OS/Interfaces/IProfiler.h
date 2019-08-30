@@ -18,7 +18,7 @@
 
 #endif
 
-#include <stdint.h>
+#include "IOperatingSystem.h"
 
 struct Cmd;
 struct GpuProfiler;
@@ -34,10 +34,6 @@ void initProfiler(Renderer* pRenderer);
 // Must be called to specify render target format to draw into
 void loadProfiler(RenderTarget* pRenderTarget);
 
-// Call on application initialize for Profiler's UI input handling
-// To modify inputs go to file /Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerInput.cpp
-void profileRegisterInput();
-
 // Call on application load
 void unloadProfiler();
 
@@ -49,6 +45,9 @@ void flipProfiler();
 
 // Call once per frame to draw UI
 void cmdDrawProfiler(Cmd* pCmd);
+
+// To modify inputs go to file /Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerInput.cpp
+bool onProfilerButton(bool press, float2* pPos, bool delta);
 
 // Check this file for how to CPU profile
 #include "../../ThirdParty/OpenSource/MicroProfile/ProfilerBase.h"

@@ -24,7 +24,8 @@ public:
 	state_(&state),
 	previousState_(&previousState),
 	nextState_(manager.GetAllocator(), KeyCount_),
-	delta_(0)
+	delta_(0),
+	textCount_(0)
 	{
 		dialect_['['] = KeyBracketLeft;
 		dialect_[']'] = KeyBracketRight;
@@ -132,8 +133,8 @@ public:
 	{
 		delta_ = delta;
 		*state_ = nextState_;
-		
-
+		textCount_ = 0;
+        memset(textBuffer_, 0, sizeof(textBuffer_));
 	}
 	
 	void TriggerBackspace()
@@ -149,64 +150,37 @@ public:
 		HandleBool(gainput::KeySpace,true);
 	}
 
-	void HandleKey(char inputChar)
+	void HandleKey(wchar_t inputChar)
 	{
 		//if we pass in empty char that means backspace
 		if(inputChar != '\0' && dialect_.count(inputChar))
 		{
-			const DeviceButtonId buttonId = dialect_[inputChar];
-			//HandleButton(device_, nextState_, delta_, buttonId, true);
+            const DeviceButtonId buttonId = dialect_[inputChar];
+			textBuffer_[textCount_++] = inputChar;
 			HandleBool(buttonId,true);
-			InputCharDesc inputDesc;
-			inputDesc.buttonId = buttonId;
-			inputDesc.inputChar = inputChar;
-			textBuffer_.Put(inputDesc);
 		}
 	}
 	
 	bool IsTextInputEnabled() const override{ return textInputEnabled_; }
 	void SetTextInputEnabled(bool enabled) override{ textInputEnabled_ = enabled; }
-	char GetNextCharacter(gainput::DeviceButtonId buttonId) override
+	wchar_t* GetTextInput(uint32_t* count) override
 	{
-		if (!textBuffer_.CanGet())
-		{
-			return 0;
-		}
-		InputCharDesc currentDesc = textBuffer_.Get();
-		
-		//Removed buffered inputs for which we didn't call GetNextCharacter
-		if(buttonId != gainput::InvalidDeviceButtonId && buttonId < gainput::KeyCount_)
-		{
-			while(currentDesc.buttonId != buttonId)
-			{
-				if (!textBuffer_.CanGet())
-				{
-					return 0;
-				}
-				currentDesc = textBuffer_.Get();
-			}
-		}
-		
-		//if button id was provided then we return the appropriate character
-		//else we return the first buffered character
-		return currentDesc.inputChar;
+		*count = textCount_;
+		return textBuffer_;
 	}
+
 private:
 	InputManager& manager_;
 	InputDevice& device_;
 	InputDevice::DeviceState deviceState_;
 	bool textInputEnabled_;
-	struct InputCharDesc
-	{
-		char inputChar;
-		gainput::DeviceButtonId buttonId;
-	};
-	RingBuffer<GAINPUT_TEXT_INPUT_QUEUE_LENGTH, InputCharDesc> textBuffer_;
+	wchar_t textBuffer_[GAINPUT_TEXT_INPUT_QUEUE_LENGTH];
 	HashMap<unsigned, DeviceButtonId> dialect_;
 	InputState* state_;
 	__unused InputState* previousState_;
 	InputState nextState_;
 	InputDeltaState* delta_;
+	uint32_t textCount_;
 
 	void HandleBool(DeviceButtonId buttonId, bool value)
 	{

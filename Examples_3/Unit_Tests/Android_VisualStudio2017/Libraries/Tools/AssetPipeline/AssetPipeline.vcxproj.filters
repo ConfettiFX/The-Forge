@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\..\Common_3\Tools\AssetPipeline\src\AssetLoader.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\Tools\AssetPipeline\src\AssetPipeline.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\Tools\AssetPipeline\src\AssetPipelineCmd.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\Tools\AssetPipeline\src\gltfpack.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\Tools\AssetPipeline\src\TFXImporter.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\Tools\AssetPipeline\src\TressFXAsset.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\..\Common_3\Tools\AssetPipeline\src\AssetLoader.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\Tools\AssetPipeline\src\AssetPipeline.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\Tools\AssetPipeline\src\gltfpack.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\Tools\AssetPipeline\src\TFXImporter.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\Tools\AssetPipeline\src\TressFXAsset.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\Tools\AssetPipeline\src\TressFXFileFormat.h" />
+  </ItemGroup>
+</Project>

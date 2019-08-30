@@ -185,10 +185,10 @@ InputDeviceKeyboard::SetTextInputEnabled(bool enabled)
 	impl_->SetTextInputEnabled(enabled);
 }
 
-char
-InputDeviceKeyboard::GetNextCharacter(gainput::DeviceButtonId buttonId)
+wchar_t*
+InputDeviceKeyboard::GetTextInput(uint32_t* count)
 {
-	return impl_->GetNextCharacter(buttonId);
+	return impl_->GetTextInput(count);
 }
 
 void

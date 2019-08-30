@@ -38,24 +38,15 @@
     <ClCompile Include="..\..\..\..\src\base\containers\string_archive.cc" />
     <ClCompile Include="..\..\..\..\src\base\io\archive.cc" />
     <ClCompile Include="..\..\..\..\src\base\io\stream.cc" />
-    <ClCompile Include="..\..\..\..\src\base\log.cc" />
-    <ClCompile Include="..\..\..\..\src\base\maths\box.cc" />
     <ClCompile Include="..\..\..\..\src\base\maths\math_archive.cc" />
-    <ClCompile Include="..\..\..\..\src\base\maths\simd_math.cc" />
     <ClCompile Include="..\..\..\..\src\base\maths\simd_math_archive.cc" />
     <ClCompile Include="..\..\..\..\src\base\maths\soa_math_archive.cc" />
     <ClCompile Include="..\..\..\..\src\base\memory\allocator.cc" />
     <ClCompile Include="..\..\..\..\src\base\platform.cc" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\include\ozz\base\containers\deque.h" />
-    <ClInclude Include="..\..\..\..\include\ozz\base\containers\intrusive_list.h" />
-    <ClInclude Include="..\..\..\..\include\ozz\base\containers\list.h" />
     <ClInclude Include="..\..\..\..\include\ozz\base\containers\map.h" />
-    <ClInclude Include="..\..\..\..\include\ozz\base\containers\queue.h" />
     <ClInclude Include="..\..\..\..\include\ozz\base\containers\set.h" />
-    <ClInclude Include="..\..\..\..\include\ozz\base\containers\stack.h" />
-    <ClInclude Include="..\..\..\..\include\ozz\base\containers\std_allocator.h" />
     <ClInclude Include="..\..\..\..\include\ozz\base\containers\string.h" />
     <ClInclude Include="..\..\..\..\include\ozz\base\containers\string_archive.h" />
     <ClInclude Include="..\..\..\..\include\ozz\base\containers\vector.h" />
@@ -65,26 +56,12 @@
     <ClInclude Include="..\..\..\..\include\ozz\base\io\archive.h" />
     <ClInclude Include="..\..\..\..\include\ozz\base\io\archive_traits.h" />
     <ClInclude Include="..\..\..\..\include\ozz\base\io\stream.h" />
-    <ClInclude Include="..\..\..\..\include\ozz\base\log.h" />
-    <ClInclude Include="..\..\..\..\include\ozz\base\maths\box.h" />
     <ClInclude Include="..\..\..\..\include\ozz\base\maths\gtest_math_helper.h" />
-    <ClInclude Include="..\..\..\..\include\ozz\base\maths\internal\simd_math_config.h" />
-    <ClInclude Include="..\..\..\..\include\ozz\base\maths\internal\simd_math_ref-inl.h" />
-    <ClInclude Include="..\..\..\..\include\ozz\base\maths\internal\simd_math_sse-inl.h" />
     <ClInclude Include="..\..\..\..\include\ozz\base\maths\math_archive.h" />
     <ClInclude Include="..\..\..\..\include\ozz\base\maths\math_constant.h" />
     <ClInclude Include="..\..\..\..\include\ozz\base\maths\math_ex.h" />
-    <ClInclude Include="..\..\..\..\include\ozz\base\maths\quaternion.h" />
-    <ClInclude Include="..\..\..\..\include\ozz\base\maths\rect.h" />
-    <ClInclude Include="..\..\..\..\include\ozz\base\maths\simd_math.h" />
     <ClInclude Include="..\..\..\..\include\ozz\base\maths\simd_math_archive.h" />
-    <ClInclude Include="..\..\..\..\include\ozz\base\maths\soa_float.h" />
-    <ClInclude Include="..\..\..\..\include\ozz\base\maths\soa_float4x4.h" />
     <ClInclude Include="..\..\..\..\include\ozz\base\maths\soa_math_archive.h" />
-    <ClInclude Include="..\..\..\..\include\ozz\base\maths\soa_quaternion.h" />
-    <ClInclude Include="..\..\..\..\include\ozz\base\maths\soa_transform.h" />
-    <ClInclude Include="..\..\..\..\include\ozz\base\maths\transform.h" />
-    <ClInclude Include="..\..\..\..\include\ozz\base\maths\vec_float.h" />
     <ClInclude Include="..\..\..\..\include\ozz\base\memory\allocator.h" />
     <ClInclude Include="..\..\..\..\include\ozz\base\platform.h" />
   </ItemGroup>

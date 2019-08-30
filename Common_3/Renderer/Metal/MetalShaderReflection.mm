@@ -431,9 +431,10 @@ void mtl_createShaderReflection(
 				const char* start = strstr(p, pattern);
 				if (start != nil)
 				{
-					// vertex attribute definitino found: create a vertex descriptor for this
+					// vertex attribute definition found: create a vertex descriptor for this
 					int             attrNumber = atoi(start + strlen(pattern));
-					MTLVertexFormat vf = (strstr((const char*)p, "uint") ? MTLVertexFormatUInt : MTLVertexFormatFloat);
+					MTLVertexFormat vf = (strstr((const char*)p, "int") ? MTLVertexFormatInt : MTLVertexFormatFloat);
+					vf = (strstr((const char*)p, "uint") ? MTLVertexFormatUInt : vf);
 					(*vertexAttributeFormats)[attrNumber] = vf;
 				}
 			} while ((p = strtok_r(NULL, "\n", &temp)) != NULL);

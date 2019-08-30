@@ -143,9 +143,9 @@
 	{
 		return;
 	}
-	const char * utfString = [text UTF8String];
+	const char* utfString = [text UTF8String];
 	if(utfString)
-		deviceImpl->HandleKey(utfString[0]);
+		deviceImpl->HandleKey((wchar_t)utfString[0]);
 }
 @end
 
@@ -564,7 +564,7 @@
 			
 			GainputPanGestureRecognizer* uiPan = [[GainputPanGestureRecognizer alloc] initWithTarget:self action:NULL];
 			uiPan.minimumNumberOfTouches = 1;
-			uiPan.maximumNumberOfTouches = 1;
+			uiPan.maximumNumberOfTouches = 8;
 			uiPan.inputManager = gestureRecognizerImpl;
 			
 			[self addGestureRecognizer:uiPan];
@@ -646,10 +646,10 @@
 }
 
 - (void)addGestureMapping:
-(unsigned)gestureType
-forId:(unsigned)gestureId
+(unsigned)gestureId
 withConfig:(gainput::GestureConfig&)gestureConfig
 {
+    const gainput::GestureType gestureType = gestureConfig.mType;
 	gainput::DeviceId deviceId = inputManager_->FindDeviceId(gainput::InputDevice::DT_TOUCH, 0);
 	gainput::InputDeviceTouch* device = static_cast<gainput::InputDeviceTouch*>(inputManager_->GetDevice(deviceId));
 	gainput::InputDeviceTouchImplIos* deviceImpl = static_cast<gainput::InputDeviceTouchImplIos*>(device->GetPimpl());

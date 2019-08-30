@@ -37,6 +37,7 @@
 #include "../../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 
 // Rendering
 #include "../../../../Common_3/Renderer/IRenderer.h"
@@ -44,8 +45,6 @@
 
 // Middleware packages
 #include "../../../../Middleware_3/UI/AppUI.h"
-#include "../../../../Common_3/OS/Input/InputSystem.h"
-#include "../../../../Common_3/OS/Input/InputMappings.h"
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
@@ -83,9 +82,6 @@ Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
 
 Texture*	  pSpriteTexture = NULL;
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-VirtualJoystickUI gVirtualJoystick;
-#endif
 DepthState* pDepth = NULL;
 
 //Buffer*			pProjViewUniformBuffer[gImageCount] = { NULL };
@@ -94,13 +90,11 @@ uint32_t gFrameIndex = 0;
 //--------------------------------------------------------------------------------------------
 // CAMERA CONTROLLER & SYSTEMS (File/Log/UI)
 //--------------------------------------------------------------------------------------------
-ICameraController* pCameraController = NULL;
 UIApp         gAppUI;
 GuiComponent* pStandaloneControlsGUIWindow = NULL;
 GuiComponent* pGroupedGUIWindow = NULL;
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00dddd, 18);
-
 //--------------------------------------------------------------------------------------------
 // UI UNIT TEST DATA
 //--------------------------------------------------------------------------------------------
@@ -211,7 +205,6 @@ class UserInterfaceUnitTest : public IApp
 public:
 	bool Init()
 	{
-		InputSystem::SetHideMouseCursorWhileCaptured(false);
 		// WINDOW AND RENDERER SETUP
 		//
 		RendererDesc settings = { 0 };
@@ -237,10 +230,6 @@ public:
 		// INITIALIZE RESOURCE/DEBUG SYSTEMS
 		//
 		initResourceLoaderInterface(pRenderer);
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
-			return false;
-#endif
 
 		TextureLoadDesc textureDesc = {};
 		textureDesc.mRoot = FSR_Textures;
@@ -263,15 +252,6 @@ public:
 		const CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
 		const vec3                   camPos{ 48.0f, 48.0f, 20.0f };
 		const vec3                   lookAt{ 0 };
-		pCameraController = createFpsCameraController(camPos, lookAt);
-
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-		gVirtualJoystick.InitLRSticks();
-		pCameraController->setVirtualJoystick(&gVirtualJoystick);
-#endif
-		pCameraController->setMotionParameters(cmp);
-
-		InputSystem::RegisterInputEvent(cameraInputEvent);
 
 		// INITIALIZE THE USER INTERFACE
 		//
@@ -411,6 +391,33 @@ public:
 			pStandaloneControlsGUIWindow->AddWidget(CollapsingTexPreviewWidgets);
 		}
 
+		if (!initInputSystem(pWindow))
+			return false;
+
+		// App Actions
+		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		addInputAction(&actionDesc);
+		actionDesc =
+		{
+			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
+			{
+				static uint8_t virtualKeyboard = 0;
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, true);
+				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+				if (gAppUI.WantTextInput() != virtualKeyboard)
+				{
+					virtualKeyboard = gAppUI.WantTextInput();
+					setVirtualKeyboard(virtualKeyboard);
+				}
+				return true;
+			}, this
+		};
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::TEXT, [](InputActionContext* ctx) { return gAppUI.OnText(ctx->pText); } };
+		addInputAction(&actionDesc);
+
 		return true;
 	}
 
@@ -419,11 +426,7 @@ public:
 		// wait for rendering to finish before freeing resources
 		waitQueueIdle(pGraphicsQueue);
 
-		destroyCameraController(pCameraController);
-
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-		gVirtualJoystick.Exit();
-#endif
+		exitInputSystem();
 
 		gAppUI.Exit();
 
@@ -463,11 +466,6 @@ public:
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
-			return false;
-#endif
-
 		return true;
 	}
 
@@ -477,41 +475,12 @@ public:
 
 		gAppUI.Unload();
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-		gVirtualJoystick.Unload();
-#endif
-
 		removeSwapChain(pRenderer, pSwapChain);
 	}
 
 	void Update(float deltaTime)
 	{
-		/************************************************************************/
-		// Input
-		/************************************************************************/
-		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
-		{
-			RecenterCameraView(170.0f);
-		}
-
-		pCameraController->update(deltaTime);
-
-		/************************************************************************/
-		// Scene Update
-		/************************************************************************/
-		static float currentTime = 0.0f;
-		currentTime += deltaTime * 1000.0f;
-
-#if 0    // quick code template in case we decide to user viewProj matrices \
-		 // update camera with time
-		mat4 viewMat = pCameraController->getViewMatrix();
-
-		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
-		const float horizontal_fov = PI / 2.0f;
-		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
-		gUniformData.mProjectView = projMat * viewMat;
-#endif
-
+		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 		/************************************************************************/
 		// GUI
 		/************************************************************************/
@@ -569,9 +538,6 @@ public:
 		//
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
 		gTimer.GetUSec(true);
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
-#endif
 
 		gAppUI.Gui(pStandaloneControlsGUIWindow);    // adds the gui element to AppUI::ComponentsToUpdate list
 		gAppUI.DrawText(
@@ -607,28 +573,6 @@ public:
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;
-	}
-
-	void RecenterCameraView(float maxDistance, vec3 lookAt = vec3(0))
-	{
-		vec3 p = pCameraController->getViewPosition();
-		vec3 d = p - lookAt;
-
-		float lenSqr = lengthSqr(d);
-		if (lenSqr > (maxDistance * maxDistance))
-		{
-			d *= (maxDistance / sqrtf(lenSqr));
-		}
-
-		p = d + lookAt;
-		pCameraController->moveTo(p);
-		pCameraController->lookAt(lookAt);
-	}
-
-	static bool cameraInputEvent(const ButtonData* data)
-	{
-		pCameraController->onInputEvent(data);
-		return true;
 	}
 };
 

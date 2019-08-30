@@ -34,7 +34,7 @@
 
 //asimp importer
 #include "../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"
-#include "../../../../Common_3/Tools/TFXImporter/TFXImporter.h"
+#include "../../../../Common_3/Tools/AssetPipeline/src/TFXImporter.h"
 
 //tiny stl
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
@@ -50,14 +50,12 @@
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
 //input
-#include "../../../../Common_3/OS/Input/InputSystem.h"
-#include "../../../../Common_3/OS/Input/InputMappings.h"
-
 // Animations
 #undef min
 #undef max
@@ -182,7 +180,7 @@ static const char* woodEnumNames[] = { "Wooden Plank 05", "Wooden Plank 06", "Wo
 static const int MATERIAL_INSTANCE_COUNT = sizeof(metalEnumNames) / sizeof(metalEnumNames[0]) - 1;
 
 const uint32_t gImageCount = 3;
-bool           bToggleMicroProfiler = false;
+bool           gMicroProfiler = false;
 bool           bPrevToggleMicroProfiler = false;
 
 //--------------------------------------------------------------------------------------------
@@ -471,9 +469,7 @@ GuiComponent*      pGuiWindowMaterial = NULL;
 LuaManager         gLuaManager;
 ThreadSystem*      pIOThreads = NULL;
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
 VirtualJoystickUI gVirtualJoystick;
-#endif
 
 //--------------------------------------------------------------------------------------------
 // RASTERIZER STATES
@@ -925,12 +921,10 @@ class MaterialPlayground: public IApp
 		gLuaManager.Init();
 		initResourceLoaderInterface(pRenderer);
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 			return false;
-#endif
+
 		initProfiler(pRenderer);
-		profileRegisterInput();
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		pStagingData = conf_new(StagingData);
@@ -990,13 +984,7 @@ class MaterialPlayground: public IApp
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
 		pLightView = createGuiCameraController(f3Tov3(gDirectionalLightPosition), vec3(0,0,0));
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-		gVirtualJoystick.InitLRSticks();
-		pCameraController->setVirtualJoystick(&gVirtualJoystick);
-#endif
 		pCameraController->setMotionParameters(camParameters);
-		InputSystem::RegisterInputEvent(cameraInputEvent);
-		InputSystem::RegisterInputEvent(pFnInputEvent);
 
 		ICameraController* cameraLocalPtr = pCameraController;
 		gLuaManager.SetFunction("GetCameraPosition", [cameraLocalPtr](ILuaStateWrap* state) -> int {
@@ -1033,11 +1021,54 @@ class MaterialPlayground: public IApp
 
 		// ... add more as new mateirals are introduced.
 
+		if (!initInputSystem(pWindow))
+			return false;
+
+		// Microprofiler Actions
+		// #TODO: Remove this once the profiler UI is ported to use our UI system
+		InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gMicroProfiler; } };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
+		addInputAction(&actionDesc);
+
+		// App Actions
+		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		addInputAction(&actionDesc);
+		actionDesc =
+		{
+			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
+			{
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gMicroProfiler);
+				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+				return true;
+			}, this
+		};
+		addInputAction(&actionDesc);
+		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
+		{
+			if (!gMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
+			{
+				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
+				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+			}
+			return true;
+		};
+		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 0.5f };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+		addInputAction(&actionDesc);
+
 		return true;
 	}
 
 	void Exit()
 	{
+		exitInputSystem();
 		gLuaManager.Exit();
 		shutdownThreadSystem(pIOThreads);
 
@@ -1071,9 +1102,8 @@ class MaterialPlayground: public IApp
 		DestroyDepthStates();
 		DestroyRasterizerStates();
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Exit();
-#endif
+
 		removeGpuProfiler(pRenderer, pGpuProfiler);
 
 		GuiController::Exit();
@@ -1101,10 +1131,9 @@ class MaterialPlayground: public IApp
 		if (!gAppUI.Load(pRenderTargets, 2))
 			return false;
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
-#endif
+
 		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
 
 		return true;
@@ -1117,9 +1146,7 @@ class MaterialPlayground: public IApp
 		unloadProfiler();
 		gAppUI.Unload();
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Unload();
-#endif
 
 		DestroyPipelines();
 		DestroyRenderTargets();
@@ -1127,30 +1154,19 @@ class MaterialPlayground: public IApp
 
 	void Update(float deltaTime)
 	{
-		// HANDLE INPUT
-		//
-		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
+		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
+
+		// ProfileSetDisplayMode()
+		// TODO: need to change this better way 
+		if (gMicroProfiler != bPrevToggleMicroProfiler)
 		{
-			RecenterCameraView(170.0f);
+			Profile& S = *ProfileGet();
+			int nValue = gMicroProfiler ? 1 : 0;
+			nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+			S.nDisplay = nValue;
+
+			bPrevToggleMicroProfiler = gMicroProfiler;
 		}
-		if (InputSystem::GetBoolInput(KEY_LEFT_TRIGGER_TRIGGERED) && gMaterialType == MATERIAL_WOOD)    // KEY_LEFT_TRIGGER = spacebar
-		{
-			gDiffuseReflectionModel = (gDiffuseReflectionModel + 1) == DIFFUSE_REFLECTION_MODEL_COUNT ? 0 : gDiffuseReflectionModel + 1;
-		}
-
-		// rest of the input callbacks are in 'static bool pFnInputEvent(const ButtonData* data)'
-
-    // ProfileSetDisplayMode()
-    // TODO: need to change this better way 
-    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
-    {
-      Profile& S = *ProfileGet();
-      int nValue = bToggleMicroProfiler ? 1 : 0;
-      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
-      S.nDisplay = nValue;
-
-      bPrevToggleMicroProfiler = bToggleMicroProfiler;
-    }
 
 		// UPDATE UI & CAMERA
 		//
@@ -2212,9 +2228,7 @@ class MaterialPlayground: public IApp
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
 
-#ifdef TARGET_IOS
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
-#endif
 
 		// draw HUD text
 		gAppUI.DrawText(
@@ -2262,55 +2276,6 @@ class MaterialPlayground: public IApp
 	}
 
 	const char* GetName() { return "06_MaterialPlayground"; }
-
-	void RecenterCameraView(float maxDistance, vec3 lookAt = vec3(0))
-	{
-		vec3 p = pCameraController->getViewPosition();
-		vec3 d = p - lookAt;
-
-		float lenSqr = lengthSqr(d);
-		if (lenSqr > (maxDistance * maxDistance))
-		{
-			d *= (maxDistance / sqrtf(lenSqr));
-		}
-
-		p = d + lookAt;
-		pCameraController->moveTo(p);
-		pCameraController->lookAt(lookAt);
-	}
-
-	static bool cameraInputEvent(const ButtonData* data)
-	{
-		pCameraController->onInputEvent(data);
-		return true;
-	}
-	static bool pFnInputEvent(const ButtonData* data)
-	{
-		// Handle Keyboard Events
-		if (data->mActiveDevicesMask == GAINPUT_KEYBOARD && data->mIsTriggered)
-		{
-			switch (data->mCharacter)
-			{
-			case '1': gMaterialType = MATERIAL_METAL;	break;
-			case '2': gMaterialType = MATERIAL_WOOD;	break;
-			case '3': gMaterialType = MATERIAL_HAIR;	break;
-			case 'c': gbAnimateCamera = !gbAnimateCamera; break;
-			case 'v': gDrawSkybox = !gDrawSkybox; break;
-			case 'b': gEnvironmentLighting = !gEnvironmentLighting; break;
-
-			// shift + number combinations (works for US keyboard layout)
-			case '!': gRenderMode = 0; break; // Key 1
-			case '@': gRenderMode = 1; break; // Key 2
-			case '#': gRenderMode = 2; break; // Key 3
-			case '$': gRenderMode = 3; break; // Key 4
-			case '%': gRenderMode = 4; break; // Key 5
-			case '^': gRenderMode = 5; break; // Key 6
-			default:
-				break;
-			}
-		}
-		return true;
-	}
 
 	void GetCorrectedBoneTranformation(uint rigIndex, uint boneIndex, mat4* boneMatrix, mat3* boneRotation)
 	{
@@ -4596,7 +4561,7 @@ void GuiController::AddGui()
 	};
 	const uint32_t dropDownCount3 = (sizeof(renderModeNames) / sizeof(renderModeNames[0])) - 1;
 
-  pGuiWindowMain->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+  pGuiWindowMain->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
 
 	// SCENE GUI
 #if !defined(TARGET_IOS) && !defined(_DURANGO) && !defined(__ANDROID__)

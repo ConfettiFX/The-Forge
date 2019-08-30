@@ -40,6 +40,7 @@
 #include "../../../../Common_3/OS/Interfaces/IThread.h"
 #include "../../../../Common_3/OS/Core/ThreadSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
@@ -54,9 +55,6 @@
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
 //input
-#include "../../../../Common_3/OS/Input/InputSystem.h"
-#include "../../../../Common_3/OS/Input/InputMappings.h"
-
 #include "ASM.h"
 #include "Constant.h"
 #include "ASMTileCache.h"
@@ -104,7 +102,7 @@ struct
 	bool mHoldFilteredTriangles = false;
 	bool mAsyncCompute = true;
 	bool mIsGeneratingSDF = false;
-	bool mActivateMicroProfiler = false;
+	bool mMicroProfiler = false;
 	bool mToggleVsync = false;
 }gAppSettings;
 
@@ -135,10 +133,6 @@ struct PerFrameData
 {
 	// Stores the camera/eye position in object space for cluster culling
 	vec3              gEyeObjectSpace[NUM_CULLING_VIEWPORTS] = {};
-	
-	uint32_t mValidNumCull = 0;
-
-
 	uint32_t gDrawCount[gNumGeomSets] = { 0 };
 };
 
@@ -619,9 +613,7 @@ ASMCpuSettings gASMCpuSettings;
 
 /************************************************************************/
 
-#ifdef TARGET_IOS
 VirtualJoystickUI gVirtualJoystick;
-#endif
 
 ASM* pASM;
 
@@ -645,9 +637,9 @@ GpuProfiler*				pGpuProfilerCompute = NULL;
 
 RenderSettingsUniformData gRenderSettings;
 
-MeshInfoUniformBlock   gMeshInfoUniformData[MESH_COUNT];
+MeshInfoUniformBlock   gMeshInfoUniformData[MESH_COUNT][gImageCount];
 
-PerFrameData gPerFrameData = {};
+PerFrameData gPerFrameData[gImageCount] = {};
 
 /************************************************************************/
 // Triangle filtering data
@@ -661,7 +653,7 @@ GPURingBuffer* pBufferFilterBatchData[gImageCount] = { NULL };
 ///
 
 
-MeshInfoUniformBlock   gMeshASMProjectionInfoUniformData[MESH_COUNT];
+MeshInfoUniformBlock   gMeshASMProjectionInfoUniformData[MESH_COUNT][gImageCount];
 
 ASMUniformBlock gAsmModelUniformBlockData = {};
 
@@ -671,8 +663,7 @@ ESMInputConstants      gESMUniformData;
 //TODO remove this
 QuadDataUniform gQuadUniformData;
 MeshInfoStruct gMeshInfoData[MESH_COUNT] = {};
-VisibilityBufferConstants gVisibilityBufferConstants = {};
-
+VisibilityBufferConstants gVisibilityBufferConstants[gImageCount] = {};
 
 vec3 gObjectsCenter = { SAN_MIGUEL_OFFSETX, 0, 0 };
 
@@ -973,7 +964,6 @@ class LightShadowPlayground: public IApp
 		initResourceLoaderInterface(pRenderer);
 
 		initProfiler(pRenderer);
-		profileRegisterInput();
 			   		
 
 		/************************************************************************/
@@ -998,10 +988,6 @@ class LightShadowPlayground: public IApp
 		quadVbDesc.pData = gQuadVertices;
 		quadVbDesc.ppBuffer = &pBufferQuadVertex;
 		addResource(&quadVbDesc);
-
-
-		
-
 
 		/************************************************************************/
 		// Setup constant buffer data
@@ -1209,16 +1195,10 @@ class LightShadowPlayground: public IApp
 			addResource(&updateSDFVolumeTextureAtlasUniformDesc);
 		}
 
-		
-
-#ifdef TARGET_IOS
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
 			return false;
-#endif
-		eastl::string str_formatter = "";
 
-	
-		
+		eastl::string str_formatter = "";
 		
 		ShaderLoadDesc indirectDepthPassShaderDesc = {};
 		indirectDepthPassShaderDesc.mStages[0] = {
@@ -1890,10 +1870,11 @@ class LightShadowPlayground: public IApp
 			*(((UINT*)indirectArgsAlpha.data()) + DRAW_COUNTER_SLOT_POS) = iAlpha;
 			*(((UINT*)indirectArgsNoAlpha.data()) + DRAW_COUNTER_SLOT_POS) = iNoAlpha;
 
-
-			gPerFrameData.gDrawCount[GEOMSET_OPAQUE] = iNoAlpha;
-			gPerFrameData.gDrawCount[GEOMSET_ALPHATESTED] = iAlpha;
-
+			for(int frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
+			{
+				gPerFrameData[frameIdx].gDrawCount[GEOMSET_OPAQUE] = iNoAlpha;
+				gPerFrameData[frameIdx].gDrawCount[GEOMSET_ALPHATESTED] = iAlpha;
+			}
 		}
 
 		for (uint32_t i = 0; i < gNumGeomSets; ++i)
@@ -2149,13 +2130,50 @@ class LightShadowPlayground: public IApp
 #endif
 		pLightView = createGuiCameraController(camPos, lookAt);
 		pCameraController = createFpsCameraController(camPos, lookAt);
-
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-		gVirtualJoystick.InitLRSticks();
-		pCameraController->setVirtualJoystick(&gVirtualJoystick);
-#endif
 		pCameraController->setMotionParameters(cmp);
-		InputSystem::RegisterInputEvent(cameraInputEvent);
+
+		if (!initInputSystem(pWindow))
+			return false;
+
+		// Microprofiler Actions
+		// #TODO: Remove this once the profiler UI is ported to use our UI system
+		InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gAppSettings.mMicroProfiler; } };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
+		addInputAction(&actionDesc);
+
+		// App Actions
+		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		addInputAction(&actionDesc);
+		actionDesc =
+		{
+			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
+			{
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gAppSettings.mMicroProfiler);
+				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+				return true;
+			}, this
+		};
+		addInputAction(&actionDesc);
+		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
+		{
+			if (!gAppSettings.mMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
+			{
+				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
+				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+			}
+			return true;
+		};
+		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+		addInputAction(&actionDesc);
+
 		return true;
 	}
 
@@ -2426,6 +2444,7 @@ class LightShadowPlayground: public IApp
 	}
 	void Exit() override
 	{
+		exitInputSystem();
 		shutdownThreadSystem(pThreadSystem);
 		destroyCameraController(pCameraController);
 		destroyCameraController(pLightView);
@@ -2559,9 +2578,8 @@ class LightShadowPlayground: public IApp
 			}
 		}
 
-#ifdef TARGET_IOS
 		gVirtualJoystick.Exit();
-#endif
+
 		removeGpuProfiler(pRenderer, pGpuProfilerGraphics);
 		removeGpuProfiler(pRenderer, pGpuProfilerCompute);
 
@@ -2701,10 +2719,10 @@ class LightShadowPlayground: public IApp
 			return false;
 
 		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
-#ifdef TARGET_IOS
-		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0], ImageFormat::Enum::NONE))
+
+		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
-#endif
+
 		Load_ASM_RenderTargets();
 		/************************************************************************/
 		// Setup vertex layout for all shaders
@@ -3265,9 +3283,7 @@ class LightShadowPlayground: public IApp
 			removeSemaphore(pRenderer, pComputeCompleteSemaphores[i]);
 		}
 
-#ifdef TARGET_IOS
 		gVirtualJoystick.Unload();
-#endif
 
 		gAppUI.Unload();
 		unloadProfiler();
@@ -3401,6 +3417,8 @@ class LightShadowPlayground: public IApp
 
 	void Update(float deltaTime) override
 	{
+		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
+
 #if !defined(TARGET_IOS)
 		if (pSwapChain->mDesc.mEnableVsync != gAppSettings.mToggleVsync)
 		{
@@ -3453,71 +3471,12 @@ class LightShadowPlayground: public IApp
 		{
 			asmCurrentTime += deltaTime * 1000.0f;
 		}
-		// update camera with time
-		mat4 viewMat = pCameraController->getViewMatrix();
-
-	
-		/************************************************************************/
-		// Update Camera
-		/************************************************************************/
-		const uint32_t width = pSwapChain->mDesc.mWidth;
-		const uint32_t height = pSwapChain->mDesc.mHeight;
-
-		float aspectInverse = (float)height / (float)width;
-		constexpr float horizontal_fov = PI / 2.0f;
-		constexpr float nearValue = 0.1f;
-		constexpr float farValue = 4000.f;
-		mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, farValue, nearValue);
 		
-
-		gCameraUniformData.mView = viewMat;
-		gCameraUniformData.mProject = projMat;
-		gCameraUniformData.mViewProject = projMat * viewMat;
-		gCameraUniformData.mInvProj = inverse(projMat);
-		gCameraUniformData.mInvView = inverse(viewMat);
-		gCameraUniformData.mInvViewProject = inverse(gCameraUniformData.mViewProject);
-		gCameraUniformData.mNear = nearValue;
-		gCameraUniformData.mFarNearDiff = farValue - nearValue;    // if OpenGL convention was used this would be 2x the value
-		gCameraUniformData.mFarNear = nearValue * farValue;
-		gCameraUniformData.mCameraPos = vec4(pCameraController->getViewPosition(), 1.f);
-
-		gCameraUniformData.mTwoOverRes = vec2(1.5f / width, 1.5f / height);
-		
-		float depthMul = projMat[2][2];
-		float depthAdd = projMat[3][2];
-
-		if (depthAdd == 0.f)
+		if (gCurrentShadowType == SHADOW_TYPE_ESM)
 		{
-			//avoid dividing by 0 in this case
-			depthAdd = 0.00000001f;
+			gESMUniformData.mEsmControl = gEsmCpuSettings.mEsmControl;
 		}
-
-		if (projMat[3][3] < 1.0f)
-		{
-			float subtractValue = depthMul / depthAdd;
-			subtractValue -= 0.00000001f;
-			gCameraUniformData.mDeviceZToWorldZ = vec4(0.f, 0.f, 1.f / depthAdd, subtractValue);
-		}
-		gCameraUniformData.mWindowSize = vec2((float)width, (float)height);
-		//only for view camera, for shadow it depends on the alggorithm being uysed
-		gPerFrameData.gEyeObjectSpace[VIEW_CAMERA] = (gCameraUniformData.mInvView
-			* vec4(0.f, 0.f, 0.f, 1.f)).getXYZ();
 		
-		gVisibilityBufferConstants.mWorldViewProjMat[VIEW_CAMERA] = gCameraUniformData.mViewProject * gMeshInfoUniformData[0].mWorldMat;
-		gVisibilityBufferConstants.mCullingViewports[VIEW_CAMERA].mWindowSize = { (float)width, (float)height };
-		gVisibilityBufferConstants.mCullingViewports[VIEW_CAMERA].mSampleCount = 1;
-		gPerFrameData.mValidNumCull = 1;
-
-		/************************************************************************/
-		// Skybox
-		/************************************************************************/
-		viewMat.setTranslation(vec3(0));
-		gUniformDataSky.mCamPos = pCameraController->getViewPosition();
-		gUniformDataSky.mProjectView = mat4::perspective(horizontal_fov, aspectInverse, nearValue, farValue) * viewMat;
-
-		/************************************************************************/
-		// Light Matrix Update
-		/************************************************************************/
 		Point3 lightSourcePos(10.f, 000.0f, 10.f);
 		lightSourcePos[0] += (20.f);
 		lightSourcePos[0] += (SAN_MIGUEL_OFFSETX);
@@ -3530,25 +3489,6 @@ class LightShadowPlayground: public IApp
 		vec3 newLightDir = vec4((inverse(rotation) * vec4(0, 0, 1, 0))).getXYZ() * -1.f;
 		mat4 lightProjMat = mat4::orthographic(-140, 140, -210, 90, -220, 100);
 		mat4 lightView = rotation * translation;
-
-		
-
-		gLightUniformData.mLightPosition = vec4(0.f);
-		gLightUniformData.mLightViewProj = lightProjMat * lightView;
-		gLightUniformData.mLightColor = vec4(1, 1, 1, 1);
-		gLightUniformData.mLightUpVec = transpose(lightView)[1];
-		gLightUniformData.mLightDir = newLightDir;
-		
-
-		const float lightSourceAngle = clamp(gLightCpuSettings.mSourceAngle, 0.001f, 4.0f) * PI / 180.0f;
-		gLightUniformData.mTanLightAngleAndThresholdValue = vec4(tan(lightSourceAngle), 
-			cos(PI / 2 + lightSourceAngle), SDF_LIGHT_THERESHOLD_VAL, 0.f);
-
-
-		if (gCurrentShadowType == SHADOW_TYPE_ESM)
-		{
-			gESMUniformData.mEsmControl = gEsmCpuSettings.mEsmControl;
-		}
 
 		//
 		/************************************************************************/
@@ -3577,31 +3517,6 @@ class LightShadowPlayground: public IApp
 			
 		}
 
-
-		for (int i = 0; i < MESH_COUNT; ++i)
-		{
-			gMeshInfoData[i].mTranslationMat = mat4::translation(vec3(gMeshInfoData[i].mTranslation.x,
-				gMeshInfoData[i].mTranslation.y, gMeshInfoData[i].mTranslation.z));
-
-			gMeshInfoData[i].mScaleMat = mat4::scale(vec3(gMeshInfoData[i].mScale.x, 
-				gMeshInfoData[i].mScale.y, gMeshInfoData[i].mScale.z));
-
-			mat4 offsetTranslationMat = mat4::translation(f3Tov3(gMeshInfoData[i].mOffsetTranslation));
-
-			gMeshInfoUniformData[i].mWorldMat =  gMeshInfoData[i].mTranslationMat * gMeshInfoData[i].mScaleMat * offsetTranslationMat;
-			gMeshInfoUniformData[i].mWorldViewProjMat = gCameraUniformData.mViewProject * gMeshInfoUniformData[i].mWorldMat;
-
-			gMeshASMProjectionInfoUniformData[i].mWorldMat = gMeshInfoUniformData[i].mWorldMat;
-
-			if (gCurrentShadowType == SHADOW_TYPE_ASM)
-			{
-				gMeshASMProjectionInfoUniformData[i].mWorldViewProjMat = mat4::identity();
-			}
-			else if (gCurrentShadowType == SHADOW_TYPE_ESM)
-			{
-				gMeshASMProjectionInfoUniformData[i].mWorldViewProjMat = gLightUniformData.mLightViewProj * gMeshInfoUniformData[i].mWorldMat;
-			}
-		}
 	}
 
 	static void setRenderTarget(
@@ -3622,7 +3537,7 @@ class LightShadowPlayground: public IApp
 	static void drawEsmShadowMap(Cmd* cmd)
 	{
 		BufferUpdateDesc bufferUpdate = { pBufferMeshShadowProjectionTransforms[0][gFrameIndex], 
-			&gMeshASMProjectionInfoUniformData[0] };
+			&gMeshASMProjectionInfoUniformData[0][gFrameIndex] };
 		updateResource(&bufferUpdate);
 
 		LoadActionsDesc loadActions = {};
@@ -3657,7 +3572,7 @@ class LightShadowPlayground: public IApp
 #endif
 		cmdExecuteIndirect(
 			cmd, pCmdSignatureVBPass,
-			gPerFrameData.gDrawCount[GEOMSET_OPAQUE],
+			gPerFrameData[gFrameIndex].gDrawCount[GEOMSET_OPAQUE],
 			pBufferFilteredIndirectDrawArguments[gFrameIndex][GEOMSET_OPAQUE][VIEW_SHADOW],
 			0,
 			pBufferFilteredIndirectDrawArguments[gFrameIndex][GEOMSET_OPAQUE][VIEW_SHADOW],
@@ -3678,7 +3593,7 @@ class LightShadowPlayground: public IApp
 		
 		cmdExecuteIndirect(
 			cmd, pCmdSignatureVBPass,
-			gPerFrameData.gDrawCount[GEOMSET_ALPHATESTED],
+			gPerFrameData[gFrameIndex].gDrawCount[GEOMSET_ALPHATESTED],
 			pBufferFilteredIndirectDrawArguments[gFrameIndex][GEOMSET_ALPHATESTED][VIEW_SHADOW],
 			0,
 			pBufferFilteredIndirectDrawArguments[gFrameIndex][GEOMSET_ALPHATESTED][VIEW_SHADOW],
@@ -4070,8 +3985,8 @@ class LightShadowPlayground: public IApp
 				accumNumTrianglesAtStartOfBatch = accumNumTriangles;
 			}
 		}
-		gPerFrameData.gDrawCount[GEOMSET_OPAQUE] = accumDrawCount;
-		gPerFrameData.gDrawCount[GEOMSET_ALPHATESTED] = accumDrawCount;
+		gPerFrameData[gFrameIndex].gDrawCount[GEOMSET_OPAQUE] = accumDrawCount;
+		gPerFrameData[gFrameIndex].gDrawCount[GEOMSET_ALPHATESTED] = accumDrawCount;
 		filterTriangles(cmd, frameIdx, pFilterBatchChunk[frameIdx][currentSmallBatchChunk]);
 
 		cmdEndGpuTimestampQuery(cmd, pGpuProfilerGraphics);
@@ -4227,7 +4142,7 @@ class LightShadowPlayground: public IApp
 		
 		Buffer* pIndirectBufferPositionOnly = pBufferFilteredIndirectDrawArguments[gFrameIndex][GEOMSET_OPAQUE][VIEW_CAMERA];
 		cmdExecuteIndirect(
-			cmd, pCmdSignatureVBPass, gPerFrameData.gDrawCount[GEOMSET_OPAQUE], pIndirectBufferPositionOnly, 0, pIndirectBufferPositionOnly,
+			cmd, pCmdSignatureVBPass, gPerFrameData[gFrameIndex].gDrawCount[GEOMSET_OPAQUE], pIndirectBufferPositionOnly, 0, pIndirectBufferPositionOnly,
 			DRAW_COUNTER_SLOT_OFFSET_IN_BYTES);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfilerGraphics);
 
@@ -4245,7 +4160,7 @@ class LightShadowPlayground: public IApp
 		Buffer* pIndirectBufferPositionAndTex = 
 			pBufferFilteredIndirectDrawArguments[gFrameIndex][GEOMSET_ALPHATESTED][VIEW_CAMERA];
 		cmdExecuteIndirect(
-			cmd, pCmdSignatureVBPass, gPerFrameData.gDrawCount[GEOMSET_ALPHATESTED],
+			cmd, pCmdSignatureVBPass, gPerFrameData[gFrameIndex].gDrawCount[GEOMSET_ALPHATESTED],
 			pIndirectBufferPositionAndTex, 0, pIndirectBufferPositionAndTex,
 			DRAW_COUNTER_SLOT_OFFSET_IN_BYTES);
 
@@ -4429,7 +4344,7 @@ class LightShadowPlayground: public IApp
 
 		indirectMeshRenderData.m_pBufferObjectInfoUniform = pBufferMeshShadowProjectionTransforms[0][gFrameIndex];
 		//indirectMeshRenderData.m_pObjectInfoUniformBlock = &gMeshASMProjectionInfoUniformData[0];
-		indirectMeshRenderData.mObjectInfoUniformBlock = gMeshASMProjectionInfoUniformData[0];
+		indirectMeshRenderData.mObjectInfoUniformBlock = gMeshASMProjectionInfoUniformData[0][gFrameIndex];
 		indirectMeshRenderData.m_pGraphicsPipeline[GEOMSET_OPAQUE] = pPipelineIndirectDepthPass;
 		indirectMeshRenderData.m_pGraphicsPipeline[GEOMSET_ALPHATESTED] = pPipelineIndirectAlphaDepthPass;
 		//indirectMeshRenderData.m_pRootSignature[GEOMSET_OPAQUE] = pRootSignatureASMIndirectDepthPass;
@@ -4437,8 +4352,8 @@ class LightShadowPlayground: public IApp
 		//indirectMeshRenderData.m_pRootSignature = pRootSignatureASMIndirectDepthPass;
 		indirectMeshRenderData.m_pRootSignature = pRootSignatureVBPass;
 
-		indirectMeshRenderData.mDrawCount[0] = gPerFrameData.gDrawCount[GEOMSET_OPAQUE];
-		indirectMeshRenderData.mDrawCount[1] = gPerFrameData.gDrawCount[GEOMSET_ALPHATESTED];
+		indirectMeshRenderData.mDrawCount[0] = gPerFrameData[gFrameIndex].gDrawCount[GEOMSET_OPAQUE];
+		indirectMeshRenderData.mDrawCount[1] = gPerFrameData[gFrameIndex].gDrawCount[GEOMSET_ALPHATESTED];
 		//WARNING:
 		//indirectMeshRenderData.m_pCmdSignatureVBPass = pCmdSignatureASMDepthPass;
 		indirectMeshRenderData.m_pCmdSignatureVBPass = pCmdSignatureVBPass;
@@ -4525,24 +4440,21 @@ class LightShadowPlayground: public IApp
 		const Camera* firstRenderBatchCamera = pASM->m_cache->GetFirstRenderBatchCamera();
 		if (firstRenderBatchCamera)
 		{
-			gPerFrameData.gEyeObjectSpace[VIEW_SHADOW] =
+			gPerFrameData[gFrameIndex].gEyeObjectSpace[VIEW_SHADOW] =
 				(firstRenderBatchCamera->GetViewMatrixInverse() * vec4(0.f, 0.f, 0.f, 1.f)).getXYZ();
 
-			gVisibilityBufferConstants.mWorldViewProjMat[VIEW_SHADOW] =
-				firstRenderBatchCamera->GetViewProjection() * gMeshInfoUniformData[0].mWorldMat;
-			gVisibilityBufferConstants.mCullingViewports[VIEW_SHADOW].mSampleCount = 1;
+			gVisibilityBufferConstants[gFrameIndex].mWorldViewProjMat[VIEW_SHADOW] =
+				firstRenderBatchCamera->GetViewProjection() * gMeshInfoUniformData[0][gFrameIndex].mWorldMat;
+			gVisibilityBufferConstants[gFrameIndex].mCullingViewports[VIEW_SHADOW].mSampleCount = 1;
 
 
 			vec2 windowSize = vec2(gs_ASMDepthAtlasTextureWidth, gs_ASMDepthAtlasTextureHeight);
 #if defined(DIRECT3D12) || defined(METAL)
-			gVisibilityBufferConstants.mCullingViewports[VIEW_SHADOW].mWindowSize = v2ToF2(windowSize);
+			gVisibilityBufferConstants[gFrameIndex].mCullingViewports[VIEW_SHADOW].mWindowSize = v2ToF2(windowSize);
 #elif defined(VULKAN)
-			gVisibilityBufferConstants.mCullingViewports[VIEW_SHADOW].mWindowSize = windowSize;
+			gVisibilityBufferConstants[gFrameIndex].mCullingViewports[VIEW_SHADOW].mWindowSize = windowSize;
 #endif
-			++gPerFrameData.mValidNumCull;
-
 		}
-		gVisibilityBufferConstants.mValidNumCull = gPerFrameData.mValidNumCull;
 	}
 
 	void drawASM(Cmd* cmd)
@@ -4631,7 +4543,130 @@ class LightShadowPlayground: public IApp
 
 	}
 
+	void UpdateInDraw()
+	{
+		// update camera with time
+			mat4 viewMat = pCameraController->getViewMatrix();
 
+		
+			/************************************************************************/
+			// Update Camera
+			/************************************************************************/
+			const uint32_t width = pSwapChain->mDesc.mWidth;
+			const uint32_t height = pSwapChain->mDesc.mHeight;
+
+			float aspectInverse = (float)height / (float)width;
+			constexpr float horizontal_fov = PI / 2.0f;
+			constexpr float nearValue = 0.1f;
+			constexpr float farValue = 1000.f;
+			mat4 projMat = mat4::perspective(horizontal_fov, aspectInverse, farValue, nearValue);
+			
+
+			gCameraUniformData.mView = viewMat;
+			gCameraUniformData.mProject = projMat;
+			gCameraUniformData.mViewProject = projMat * viewMat;
+			gCameraUniformData.mInvProj = inverse(projMat);
+			gCameraUniformData.mInvView = inverse(viewMat);
+			gCameraUniformData.mInvViewProject = inverse(gCameraUniformData.mViewProject);
+			gCameraUniformData.mNear = nearValue;
+			gCameraUniformData.mFarNearDiff = farValue - nearValue;    // if OpenGL convention was used this would be 2x the value
+			gCameraUniformData.mFarNear = nearValue * farValue;
+			gCameraUniformData.mCameraPos = vec4(pCameraController->getViewPosition(), 1.f);
+
+			gCameraUniformData.mTwoOverRes = vec2(1.5f / width, 1.5f / height);
+			
+			float depthMul = projMat[2][2];
+			float depthAdd = projMat[3][2];
+
+			if (depthAdd == 0.f)
+			{
+				//avoid dividing by 0 in this case
+				depthAdd = 0.00000001f;
+			}
+
+			if (projMat[3][3] < 1.0f)
+			{
+				float subtractValue = depthMul / depthAdd;
+				subtractValue -= 0.00000001f;
+				gCameraUniformData.mDeviceZToWorldZ = vec4(0.f, 0.f, 1.f / depthAdd, subtractValue);
+			}
+			gCameraUniformData.mWindowSize = vec2((float)width, (float)height);
+			
+
+			/************************************************************************/
+			// Skybox
+			/************************************************************************/
+			viewMat.setTranslation(vec3(0));
+			gUniformDataSky.mCamPos = pCameraController->getViewPosition();
+			gUniformDataSky.mProjectView = mat4::perspective(horizontal_fov, aspectInverse, nearValue, farValue) * viewMat;
+
+			/************************************************************************/
+			// Light Matrix Update
+			/************************************************************************/
+			Point3 lightSourcePos(10.f, 000.0f, 10.f);
+			lightSourcePos[0] += (20.f);
+			lightSourcePos[0] += (SAN_MIGUEL_OFFSETX);
+			// directional light rotation & translation
+			mat4 rotation = mat4::rotationXY(gLightCpuSettings.mSunControl.x,
+				gLightCpuSettings.mSunControl.y);
+			mat4 translation = mat4::translation(-vec3(lightSourcePos));
+
+
+			vec3 newLightDir = vec4((inverse(rotation) * vec4(0, 0, 1, 0))).getXYZ() * -1.f;
+			mat4 lightProjMat = mat4::orthographic(-140, 140, -210, 90, -220, 100);
+			mat4 lightView = rotation * translation;
+
+			
+
+			gLightUniformData.mLightPosition = vec4(0.f);
+			gLightUniformData.mLightViewProj = lightProjMat * lightView;
+			gLightUniformData.mLightColor = vec4(1, 1, 1, 1);
+			gLightUniformData.mLightUpVec = transpose(lightView)[1];
+			gLightUniformData.mLightDir = newLightDir;
+			
+
+			const float lightSourceAngle = clamp(gLightCpuSettings.mSourceAngle, 0.001f, 4.0f) * PI / 180.0f;
+			gLightUniformData.mTanLightAngleAndThresholdValue = vec4(tan(lightSourceAngle),
+				cos(PI / 2 + lightSourceAngle), SDF_LIGHT_THERESHOLD_VAL, 0.f);
+
+
+		
+		
+		
+		for (int i = 0; i < MESH_COUNT; ++i)
+		{
+			gMeshInfoData[i].mTranslationMat = mat4::translation(vec3(gMeshInfoData[i].mTranslation.x,
+				gMeshInfoData[i].mTranslation.y, gMeshInfoData[i].mTranslation.z));
+
+			gMeshInfoData[i].mScaleMat = mat4::scale(vec3(gMeshInfoData[i].mScale.x,
+				gMeshInfoData[i].mScale.y, gMeshInfoData[i].mScale.z));
+
+			mat4 offsetTranslationMat = mat4::translation(f3Tov3(gMeshInfoData[i].mOffsetTranslation));
+
+			gMeshInfoUniformData[i][gFrameIndex].mWorldMat =  gMeshInfoData[i].mTranslationMat * gMeshInfoData[i].mScaleMat * offsetTranslationMat;
+			
+			gMeshInfoUniformData[i][gFrameIndex].mWorldViewProjMat = gCameraUniformData.mViewProject * gMeshInfoUniformData[i][gFrameIndex].mWorldMat;
+
+			gMeshASMProjectionInfoUniformData[i][gFrameIndex].mWorldMat = gMeshInfoUniformData[i][gFrameIndex].mWorldMat;
+
+			if (gCurrentShadowType == SHADOW_TYPE_ASM)
+			{
+				gMeshASMProjectionInfoUniformData[i][gFrameIndex].mWorldViewProjMat = mat4::identity();
+			}
+			else if (gCurrentShadowType == SHADOW_TYPE_ESM)
+			{
+				gMeshASMProjectionInfoUniformData[i][gFrameIndex].mWorldViewProjMat = gLightUniformData.mLightViewProj * gMeshInfoUniformData[i][gFrameIndex].mWorldMat;
+			}
+		}
+		
+		//only for view camera, for shadow it depends on the alggorithm being uysed
+		gPerFrameData[gFrameIndex].gEyeObjectSpace[VIEW_CAMERA] = (gCameraUniformData.mInvView
+			* vec4(0.f, 0.f, 0.f, 1.f)).getXYZ();
+		
+		gVisibilityBufferConstants[gFrameIndex].mWorldViewProjMat[VIEW_CAMERA] = gCameraUniformData.mViewProject * gMeshInfoUniformData[0][gFrameIndex].mWorldMat;
+		gVisibilityBufferConstants[gFrameIndex].mCullingViewports[VIEW_CAMERA].mWindowSize = { (float)pSwapChain->mDesc.mWidth, (float)pSwapChain->mDesc.mHeight };
+		gVisibilityBufferConstants[gFrameIndex].mCullingViewports[VIEW_CAMERA].mSampleCount = 1;
+	}
 
 	void Draw() override
 	{
@@ -4682,37 +4717,34 @@ class LightShadowPlayground: public IApp
 			}
 
 		}
-
+		UpdateInDraw();
 		if (gCurrentShadowType == SHADOW_TYPE_ASM)
 		{
 			prepareASM();
 		}
 		else if (gCurrentShadowType == SHADOW_TYPE_ESM)
 		{
-			gPerFrameData.gEyeObjectSpace[VIEW_SHADOW] =
+			gPerFrameData[gFrameIndex].gEyeObjectSpace[VIEW_SHADOW] =
 				(inverse(gLightUniformData.mLightViewProj) * vec4(0.f, 0.f, 0.f, 1.f)).getXYZ();
 
-			gVisibilityBufferConstants.mWorldViewProjMat[VIEW_SHADOW] =
-				gLightUniformData.mLightViewProj * gMeshInfoUniformData[0].mWorldMat;
-			gVisibilityBufferConstants.mCullingViewports[VIEW_SHADOW].mSampleCount = 1;
+			gVisibilityBufferConstants[gFrameIndex].mWorldViewProjMat[VIEW_SHADOW] =
+				gLightUniformData.mLightViewProj * gMeshInfoUniformData[0][gFrameIndex].mWorldMat;
+			gVisibilityBufferConstants[gFrameIndex].mCullingViewports[VIEW_SHADOW].mSampleCount = 1;
 
 			vec2 windowSize(ESM_SHADOWMAP_RES, ESM_SHADOWMAP_RES);
 #if defined(DIRECT3D12) || defined(METAL)
-			gVisibilityBufferConstants.mCullingViewports[VIEW_SHADOW].mWindowSize = v2ToF2(windowSize);
+			gVisibilityBufferConstants[gFrameIndex].mCullingViewports[VIEW_SHADOW].mWindowSize = v2ToF2(windowSize);
 #elif defined(VULKAN)
-			gVisibilityBufferConstants.mCullingViewports[VIEW_SHADOW].mWindowSize = windowSize;
+			gVisibilityBufferConstants[gFrameIndex].mCullingViewports[VIEW_SHADOW].mWindowSize = windowSize;
 #endif
-			++gPerFrameData.mValidNumCull;
-			gVisibilityBufferConstants.mValidNumCull = gPerFrameData.mValidNumCull;
 		}
 		else if (gCurrentShadowType == SHADOW_TYPE_MESH_BAKED_SDF)
 		{
-			gPerFrameData.gEyeObjectSpace[VIEW_SHADOW] = gPerFrameData.gEyeObjectSpace[VIEW_CAMERA];
+			gPerFrameData[gFrameIndex].gEyeObjectSpace[VIEW_SHADOW] = gPerFrameData[gFrameIndex].gEyeObjectSpace[VIEW_CAMERA];
 
-			gVisibilityBufferConstants.mWorldViewProjMat[VIEW_SHADOW] =
-				gVisibilityBufferConstants.mWorldViewProjMat[VIEW_CAMERA];
-			gVisibilityBufferConstants.mCullingViewports[VIEW_SHADOW] = gVisibilityBufferConstants.mCullingViewports[VIEW_CAMERA];
-			++gPerFrameData.mValidNumCull;
+			gVisibilityBufferConstants[gFrameIndex].mWorldViewProjMat[VIEW_SHADOW] =
+				gVisibilityBufferConstants[gFrameIndex].mWorldViewProjMat[VIEW_CAMERA];
+			gVisibilityBufferConstants[gFrameIndex].mCullingViewports[VIEW_SHADOW] = gVisibilityBufferConstants[gFrameIndex].mCullingViewports[VIEW_CAMERA];
 		}
 
 		/************************************************************************/
@@ -4725,7 +4757,7 @@ class LightShadowPlayground: public IApp
 
 		for (uint32_t j = 0; j < MESH_COUNT; ++j)
 		{
-			BufferUpdateDesc viewProjCbv = { pBufferMeshTransforms[j][gFrameIndex], gMeshInfoUniformData + j };
+			BufferUpdateDesc viewProjCbv = { pBufferMeshTransforms[j][gFrameIndex], &gMeshInfoUniformData[j][gFrameIndex] };
 			updateResource(&viewProjCbv);
 		}
 
@@ -4752,7 +4784,7 @@ class LightShadowPlayground: public IApp
 		if (gAppSettings.mAsyncCompute && !gAppSettings.mHoldFilteredTriangles)
 		{
 			BufferUpdateDesc updateVisibilityBufferConstantDesc = {
-				pBufferVisibilityBufferConstants[gFrameIndex], &gVisibilityBufferConstants };
+				pBufferVisibilityBufferConstants[gFrameIndex], &gVisibilityBufferConstants[gFrameIndex] };
 
 			updateResource(&updateVisibilityBufferConstantDesc);
 
@@ -4779,7 +4811,7 @@ class LightShadowPlayground: public IApp
 			if (gFrameIndex != -1)
 			{
 				BufferUpdateDesc updateVisibilityBufferConstantDesc = {
-					pBufferVisibilityBufferConstants[gFrameIndex], &gVisibilityBufferConstants };
+					pBufferVisibilityBufferConstants[gFrameIndex], &gVisibilityBufferConstants[gFrameIndex] };
 
 				updateResource(&updateVisibilityBufferConstantDesc);
 			}
@@ -4961,7 +4993,7 @@ class LightShadowPlayground: public IApp
 #if !defined(TARGET_IOS)
 		cmdBindRenderTargets(cmd, 1, &pRenderTargetScreen, NULL, NULL, NULL, NULL, -1, -1);
 
-		if (gAppSettings.mActivateMicroProfiler)
+		if (gAppSettings.mMicroProfiler)
 		{
 			cmdDrawProfiler(cmd);
 		}
@@ -5110,23 +5142,7 @@ class LightShadowPlayground: public IApp
 		depthRT.mArraySize = 1;
 		depthRT.mClearValue = depthStencilClear;
 		depthRT.mDepth = 1;
-#define STENCIL_SDF_OPTIMIZATION
-#ifdef STENCIL_SDF_OPTIMIZATION
-		// When using stencil optimization, use a packed depth-stencil format.
-		// However mobile doesn't support D32S8, while AMD does not support D24S8 under Vulkan, etc.
-		if (isImageFormatSupported(ImageFormat::D32S8))
-			depthRT.mFormat = ImageFormat::D32S8;
-		else if (isImageFormatSupported(ImageFormat::D24S8))
-			depthRT.mFormat = ImageFormat::D24S8;
-		else if (isImageFormatSupported(ImageFormat::X8D24PAX32))
-			depthRT.mFormat = ImageFormat::X8D24PAX32;
-		else if (isImageFormatSupported(ImageFormat::D16S8))
-			depthRT.mFormat = ImageFormat::D16S8;
-		else
-			ASSERT(false); // no supported packed depth stencil format to use
-#else
 		depthRT.mFormat = ImageFormat::D32F;
-#endif
 		depthRT.mWidth = width;
 		depthRT.mHeight = height;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
@@ -5374,28 +5390,6 @@ class LightShadowPlayground: public IApp
 		addRenderTarget(pRenderer, &lodClampRTDesc, &pRenderTargetASMPrerenderLodClamp);
 		return true;
 	}
-
-	void RecenterCameraView(float maxDistance, vec3 lookAt = vec3(0)) const
-	{
-		vec3 p = pCameraController->getViewPosition();
-		vec3 d = p - lookAt;
-
-		float lenSqr = lengthSqr(d);
-		if (lenSqr > maxDistance * maxDistance)
-		{
-			d *= maxDistance / sqrtf(lenSqr);
-		}
-
-		p = d + lookAt;
-		pCameraController->moveTo(p);
-		pCameraController->lookAt(lookAt);
-	}
-
-	static bool cameraInputEvent(const ButtonData* data)
-	{
-		pCameraController->onInputEvent(data);
-		return true;
-	}
 };
 
 void GuiController::updateDynamicUI()
@@ -5429,10 +5423,10 @@ void GuiController::updateDynamicUI()
 		GuiController::currentlyShadowType = (ShadowType)gRenderSettings.mShadowType;
 	}
 
-	static bool wasMicroProfileActivated = gAppSettings.mActivateMicroProfiler;
-	if (wasMicroProfileActivated != gAppSettings.mActivateMicroProfiler)
+	static bool wasMicroProfileActivated = gAppSettings.mMicroProfiler;
+	if (wasMicroProfileActivated != gAppSettings.mMicroProfiler)
 	{
-		wasMicroProfileActivated = gAppSettings.mActivateMicroProfiler;
+		wasMicroProfileActivated = gAppSettings.mMicroProfiler;
 
 		// ProfileSetDisplayMode()
 		// TODO: need to change this better way 
@@ -5467,7 +5461,7 @@ void GuiController::addGui()
 		float2(-PI), float2(PI), float2(0.00001f));
 	SliderFloatWidget esmControlUI("ESM Control", &gEsmCpuSettings.mEsmControl, 1.f, 300.f);
 
-	CheckboxWidget microprofile("Activate Microprofile", &gAppSettings.mActivateMicroProfiler);
+	CheckboxWidget microprofile("Activate Microprofile", &gAppSettings.mMicroProfiler);
 	pGuiWindow->AddWidget(microprofile);
 	pGuiWindow->AddWidget(CheckboxWidget("Hold triangles", &gAppSettings.mHoldFilteredTriangles));
 	pGuiWindow->AddWidget(CheckboxWidget("Async Compute", &gAppSettings.mAsyncCompute));

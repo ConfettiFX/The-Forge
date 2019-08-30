@@ -2939,8 +2939,12 @@ void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
 		range.Begin += pRange->mOffset;
 		range.End = range.Begin + pRange->mSize;
 	}
-	HRESULT hr = pBuffer->pDxResource->Map(0, &range, &pBuffer->pCpuMappedAddress);
-	ASSERT(SUCCEEDED(hr) && pBuffer->pCpuMappedAddress);
+
+	void* pData = NULL;
+	HRESULT hr = pBuffer->pDxResource->Map(0, &range, &pData);
+	ASSERT(SUCCEEDED(hr) && pData);
+
+	pBuffer->pCpuMappedAddress = (uint8_t*)pData + pBuffer->mPositionInHeap;
 }
 
 void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer)
@@ -2991,12 +2995,24 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	if (NULL == pTexture->pDxResource)
 	{
 		D3D12_RESOURCE_DIMENSION res_dim = D3D12_RESOURCE_DIMENSION_UNKNOWN;
-		if (pDesc->mDepth > 1)
-			res_dim = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
-		else if (pDesc->mHeight > 1)
+		if (pDesc->mFlags & TEXTURE_CREATION_FLAG_FORCE_2D)
+		{
+			ASSERT(pDesc->mDepth == 1);
 			res_dim = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+		}
+		else if (pDesc->mFlags & TEXTURE_CREATION_FLAG_FORCE_3D)
+		{
+			res_dim = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+		}
 		else
-			res_dim = D3D12_RESOURCE_DIMENSION_TEXTURE1D;
+		{
+			if (pDesc->mDepth > 1)
+				res_dim = D3D12_RESOURCE_DIMENSION_TEXTURE3D;
+			else if (pDesc->mHeight > 1)
+				res_dim = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+			else
+				res_dim = D3D12_RESOURCE_DIMENSION_TEXTURE1D;
+		}
 
 		desc.Dimension = res_dim;
 		//On PC, If Alignment is set to 0, the runtime will use 4MB for MSAA textures and 64KB for everything else.
@@ -3746,7 +3762,7 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampl
 	pSampler->mDxSamplerDesc.BorderColor[2] = 0.0f;
 	pSampler->mDxSamplerDesc.BorderColor[3] = 0.0f;
 	pSampler->mDxSamplerDesc.MinLOD = 0.0f;
-	pSampler->mDxSamplerDesc.MaxLOD = ((pDesc->mMipMapMode == MIPMAP_MODE_LINEAR) ? D3D12_FLOAT32_MAX : 0.0f);
+	pSampler->mDxSamplerDesc.MaxLOD = D3D12_FLOAT32_MAX;
 
 	add_sampler(pRenderer, &pSampler->mDxSamplerDesc, &pSampler->mDxSamplerHandle);
 

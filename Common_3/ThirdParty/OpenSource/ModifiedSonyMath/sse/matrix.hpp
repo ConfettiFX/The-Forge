@@ -1473,6 +1473,18 @@ inline const Matrix4 Matrix4::orthographic(float left, float right, float bottom
 #endif
 }
 
+inline const Matrix4 Matrix4::orthographicReverseZ(float left, float right, float bottom, float top, float zNear, float zFar)
+{
+	Matrix4 orthoMatrix = orthographic(left, right, bottom, top, zNear, zFar);
+
+	const Vector4 &col2 = orthoMatrix.mCol2;
+	const Vector4 &col3 = orthoMatrix.mCol3;
+	orthoMatrix.mCol2.setZ(-col2.getZ());
+	orthoMatrix.mCol3.setZ(-col3.getZ() * zFar / zNear);
+
+	return orthoMatrix;
+}
+
 inline const Matrix4 Matrix4::cubeProjection(const float zNear, const float zFar)
 {
 #if USE_DIRECTX_PROJECTION_MATRIX_CONVENTION

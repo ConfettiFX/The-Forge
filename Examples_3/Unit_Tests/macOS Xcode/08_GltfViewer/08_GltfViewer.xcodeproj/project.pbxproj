@@ -1,0 +1,1333 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		28A5AE1A201F7D41000E571F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AE19201F7D41000E571F /* Assets.xcassets */; };
+		28A5AE1D201F7D41000E571F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AE1B201F7D41000E571F /* LaunchScreen.storyboard */; };
+		5C0F3AE921418BF50088BBB0 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C0F3AE421418BD30088BBB0 /* libThe-Forge.a */; };
+		5C0F3AEA21418BFC0088BBB0 /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C0F3AE621418BD30088BBB0 /* libThe-Forge_iOS.a */; };
+		5C0F3AEC21418C010088BBB0 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C0F3AEB21418C010088BBB0 /* GameController.framework */; };
+		5C0F3AF121418C1F0088BBB0 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C0F3AEF21418C1F0088BBB0 /* AppDelegate.m */; };
+		5C0F3AF421418C290088BBB0 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C0F3AF321418C290088BBB0 /* AppDelegate.m */; };
+		5C0F3AF821418C680088BBB0 /* AssimpImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C0F3AF721418C680088BBB0 /* AssimpImporter.cpp */; };
+		5C0F3AF921418C680088BBB0 /* AssimpImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C0F3AF721418C680088BBB0 /* AssimpImporter.cpp */; };
+		5CA80FA121F0A21100C99983 /* fontstash.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80ED521F0A06000C99983 /* fontstash.frag.metal */; };
+		5CA80FA221F0A21100C99983 /* fontstash2D.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80ED421F0A06000C99983 /* fontstash2D.vert.metal */; };
+		5CA80FA321F0A21100C99983 /* fontstash3D.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80ED321F0A06000C99983 /* fontstash3D.vert.metal */; };
+		5CA80FA421F0A21100C99983 /* imgui.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80EC921F0A05800C99983 /* imgui.frag.metal */; };
+		5CA80FA521F0A21100C99983 /* imgui.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80ECA21F0A05800C99983 /* imgui.vert.metal */; };
+		5CA80FA621F0A21100C99983 /* textured_mesh.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80EC821F0A05800C99983 /* textured_mesh.frag.metal */; };
+		5CA80FA721F0A21100C99983 /* textured_mesh.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80EC721F0A05800C99983 /* textured_mesh.vert.metal */; };
+		650CCC652223CB56003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC642223CB56003533D9 /* MetalPerformanceShaders.framework */; };
+		650CCC672223CB6C003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC662223CB6C003533D9 /* MetalPerformanceShaders.framework */; };
+		971BCF3321701A8C007F2B2F /* TitilliumText in Copy Fonts */ = {isa = PBXBuildFile; fileRef = 28A5AE30201F7D9E000E571F /* TitilliumText */; };
+		B2087DF721421A6E006F372D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DF521421A6E006F372D /* MetalKit.framework */; };
+		B2087DF821421A6E006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DF621421A6E006F372D /* Metal.framework */; };
+		B21F76EE21420EE900DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76EB21420EE900DF2297 /* UIKit.framework */; };
+		B21F76EF21420EE900DF2297 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76EC21420EE900DF2297 /* MetalKit.framework */; };
+		B21F76F021420EE900DF2297 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76ED21420EE900DF2297 /* Metal.framework */; };
+		B2F8D2932317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic4.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D27D2317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic4.basis */; };
+		B2F8D2952317279B0010C631 /* Lantern_baseColor.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D27E2317279A0010C631 /* Lantern_baseColor.basis */; };
+		B2F8D2972317279B0010C631 /* FlightHelmet_normal.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D27F2317279A0010C631 /* FlightHelmet_normal.basis */; };
+		B2F8D2992317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic1.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2802317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic1.basis */; };
+		B2F8D29B2317279B0010C631 /* FlightHelmet_baseColor3.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2812317279A0010C631 /* FlightHelmet_baseColor3.basis */; };
+		B2F8D29D2317279B0010C631 /* FlightHelmet_baseColor4.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2822317279A0010C631 /* FlightHelmet_baseColor4.basis */; };
+		B2F8D29F2317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic2.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2832317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic2.basis */; };
+		B2F8D2A12317279B0010C631 /* Lantern_emissive.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2842317279A0010C631 /* Lantern_emissive.basis */; };
+		B2F8D2A32317279B0010C631 /* Lantern_roughnessMetallic.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2852317279A0010C631 /* Lantern_roughnessMetallic.basis */; };
+		B2F8D2A52317279B0010C631 /* Lantern_normal.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2862317279A0010C631 /* Lantern_normal.basis */; };
+		B2F8D2A72317279B0010C631 /* FlightHelmet_baseColor1.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2872317279A0010C631 /* FlightHelmet_baseColor1.basis */; };
+		B2F8D2A92317279B0010C631 /* FlightHelmet_normal2.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2882317279A0010C631 /* FlightHelmet_normal2.basis */; };
+		B2F8D2AB2317279B0010C631 /* FlightHelmet_normal3.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2892317279A0010C631 /* FlightHelmet_normal3.basis */; };
+		B2F8D2AD2317279B0010C631 /* FlightHelmet_baseColor.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D28A2317279A0010C631 /* FlightHelmet_baseColor.basis */; };
+		B2F8D2AF2317279B0010C631 /* circlepad.dds in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D28B2317279A0010C631 /* circlepad.dds */; };
+		B2F8D2B12317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D28C2317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic.basis */; };
+		B2F8D2B32317279B0010C631 /* FlightHelmet_normal1.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D28D2317279A0010C631 /* FlightHelmet_normal1.basis */; };
+		B2F8D2B52317279B0010C631 /* FlightHelmet_baseColor2.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D28E2317279B0010C631 /* FlightHelmet_baseColor2.basis */; };
+		B2F8D2B72317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic3.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D28F2317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic3.basis */; };
+		B2F8D2B92317279B0010C631 /* FlightHelmet_normal4.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2902317279B0010C631 /* FlightHelmet_normal4.basis */; };
+		B2F8D2BB2317279B0010C631 /* circlepad.ktx in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2912317279B0010C631 /* circlepad.ktx */; };
+		B2F8D2BF231727D50010C631 /* circlepad.dds in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D28B2317279A0010C631 /* circlepad.dds */; };
+		B2F8D2C0231727D50010C631 /* circlepad.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2912317279B0010C631 /* circlepad.ktx */; };
+		B2F8D2C1231727D50010C631 /* FlightHelmet_baseColor.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D28A2317279A0010C631 /* FlightHelmet_baseColor.basis */; };
+		B2F8D2C2231727D50010C631 /* FlightHelmet_baseColor1.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2872317279A0010C631 /* FlightHelmet_baseColor1.basis */; };
+		B2F8D2C3231727D50010C631 /* FlightHelmet_baseColor2.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D28E2317279B0010C631 /* FlightHelmet_baseColor2.basis */; };
+		B2F8D2C4231727D50010C631 /* FlightHelmet_baseColor3.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2812317279A0010C631 /* FlightHelmet_baseColor3.basis */; };
+		B2F8D2C5231727D50010C631 /* FlightHelmet_baseColor4.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2822317279A0010C631 /* FlightHelmet_baseColor4.basis */; };
+		B2F8D2C6231727D50010C631 /* FlightHelmet_normal.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D27F2317279A0010C631 /* FlightHelmet_normal.basis */; };
+		B2F8D2C7231727D50010C631 /* FlightHelmet_normal1.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D28D2317279A0010C631 /* FlightHelmet_normal1.basis */; };
+		B2F8D2C8231727D50010C631 /* FlightHelmet_normal2.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2882317279A0010C631 /* FlightHelmet_normal2.basis */; };
+		B2F8D2C9231727D50010C631 /* FlightHelmet_normal3.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2892317279A0010C631 /* FlightHelmet_normal3.basis */; };
+		B2F8D2CA231727D50010C631 /* FlightHelmet_normal4.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2902317279B0010C631 /* FlightHelmet_normal4.basis */; };
+		B2F8D2CB231727D50010C631 /* FlightHelmet_occlusionRoughnessMetallic.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D28C2317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic.basis */; };
+		B2F8D2CC231727D50010C631 /* FlightHelmet_occlusionRoughnessMetallic1.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2802317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic1.basis */; };
+		B2F8D2CD231727D50010C631 /* FlightHelmet_occlusionRoughnessMetallic2.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2832317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic2.basis */; };
+		B2F8D2CE231727D50010C631 /* FlightHelmet_occlusionRoughnessMetallic3.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D28F2317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic3.basis */; };
+		B2F8D2CF231727D50010C631 /* FlightHelmet_occlusionRoughnessMetallic4.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D27D2317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic4.basis */; };
+		B2F8D2D0231727D50010C631 /* Lantern_baseColor.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D27E2317279A0010C631 /* Lantern_baseColor.basis */; };
+		B2F8D2D1231727D50010C631 /* Lantern_emissive.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2842317279A0010C631 /* Lantern_emissive.basis */; };
+		B2F8D2D2231727D50010C631 /* Lantern_normal.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2862317279A0010C631 /* Lantern_normal.basis */; };
+		B2F8D2D3231727D50010C631 /* Lantern_roughnessMetallic.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2852317279A0010C631 /* Lantern_roughnessMetallic.basis */; };
+		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
+		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
+		E921B7D622C6E45D0082D103 /* 08_GltfViewer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E921B7D522C6E45D0082D103 /* 08_GltfViewer.cpp */; };
+		E921B80822C6E81D0082D103 /* 08_GltfViewer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E921B7D522C6E45D0082D103 /* 08_GltfViewer.cpp */; };
+		E921BB2E22CAB5910082D103 /* profile.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E921B7D122C6E44B0082D103 /* profile.frag.metal */; };
+		E921BB2F22CAB5910082D103 /* profile.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E921B7D222C6E44B0082D103 /* profile.vert.metal */; };
+		E921BB3122CAB5D10082D103 /* basic.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E921B7CB22C6E4300082D103 /* basic.vert.metal */; };
+		E921BE1A22CFD1800082D103 /* libAssetPipeline.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E921BE1522CFD14C0082D103 /* libAssetPipeline.a */; };
+		E921BE1D22CFD7B70082D103 /* libAssetPipeline_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E921BE1722CFD14C0082D103 /* libAssetPipeline_iOS.a */; };
+		E9BF150322FE2699001F2264 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = E9BF150122FE2699001F2264 /* Main.storyboard */; };
+		E9BF15F72315B479001F2264 /* floor.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9BF15AB2314C0E2001F2264 /* floor.vert.metal */; };
+		E9BF15F82315B482001F2264 /* FXAA.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9BF159E2314C0E1001F2264 /* FXAA.frag.metal */; };
+		E9BF15F92315B489001F2264 /* Triangular.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9BF15A82314C0E1001F2264 /* Triangular.vert.metal */; };
+		E9BF15FA2315B491001F2264 /* vignette.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9BF15AD2314C0E2001F2264 /* vignette.frag.metal */; };
+		E9BF15FB2315B499001F2264 /* watermark.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9BF15AC2314C0E2001F2264 /* watermark.frag.metal */; };
+		E9BF15FC2315B4A3001F2264 /* watermark.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9BF15AE2314C0E2001F2264 /* watermark.vert.metal */; };
+		E9BF15FD2315B4AA001F2264 /* zPass.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9BF15A92314C0E2001F2264 /* zPass.vert.metal */; };
+		E9BF15FE2315B4B4001F2264 /* zPassFloor.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9BF15AA2314C0E2001F2264 /* zPassFloor.vert.metal */; };
+		E9BF164F23161466001F2264 /* Lantern.bin in Resources */ = {isa = PBXBuildFile; fileRef = E9BF164B23161465001F2264 /* Lantern.bin */; };
+		E9BF165023161466001F2264 /* FlightHelmet.bin in Resources */ = {isa = PBXBuildFile; fileRef = E9BF164C23161465001F2264 /* FlightHelmet.bin */; };
+		E9BF165123161466001F2264 /* FlightHelmet.gltf in Resources */ = {isa = PBXBuildFile; fileRef = E9BF164D23161465001F2264 /* FlightHelmet.gltf */; };
+		E9BF165223161466001F2264 /* Lantern.gltf in Resources */ = {isa = PBXBuildFile; fileRef = E9BF164E23161466001F2264 /* Lantern.gltf */; };
+		E9BF16B4231615B7001F2264 /* FlightHelmet.bin in Copy Meshes */ = {isa = PBXBuildFile; fileRef = E9BF164C23161465001F2264 /* FlightHelmet.bin */; };
+		E9BF16B5231615B7001F2264 /* FlightHelmet.gltf in Copy Meshes */ = {isa = PBXBuildFile; fileRef = E9BF164D23161465001F2264 /* FlightHelmet.gltf */; };
+		E9BF16B6231615B7001F2264 /* Lantern.bin in Copy Meshes */ = {isa = PBXBuildFile; fileRef = E9BF164B23161465001F2264 /* Lantern.bin */; };
+		E9BF16B7231615B7001F2264 /* Lantern.gltf in Copy Meshes */ = {isa = PBXBuildFile; fileRef = E9BF164E23161466001F2264 /* Lantern.gltf */; };
+		E9BF193F23175E50001F2264 /* FlightHelmet_baseColor.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF191D23175E25001F2264 /* FlightHelmet_baseColor.ktx */; };
+		E9BF194023175E50001F2264 /* FlightHelmet_baseColor1.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192023175E25001F2264 /* FlightHelmet_baseColor1.ktx */; };
+		E9BF194123175E50001F2264 /* FlightHelmet_baseColor2.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192523175E25001F2264 /* FlightHelmet_baseColor2.ktx */; };
+		E9BF194223175E50001F2264 /* FlightHelmet_baseColor3.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192623175E25001F2264 /* FlightHelmet_baseColor3.ktx */; };
+		E9BF194323175E50001F2264 /* FlightHelmet_baseColor4.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192823175E25001F2264 /* FlightHelmet_baseColor4.ktx */; };
+		E9BF194423175E50001F2264 /* FlightHelmet_normal.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF191E23175E25001F2264 /* FlightHelmet_normal.ktx */; };
+		E9BF194523175E50001F2264 /* FlightHelmet_normal1.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192723175E25001F2264 /* FlightHelmet_normal1.ktx */; };
+		E9BF194623175E50001F2264 /* FlightHelmet_normal2.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF191123175E24001F2264 /* FlightHelmet_normal2.ktx */; };
+		E9BF194723175E50001F2264 /* FlightHelmet_normal3.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192923175E25001F2264 /* FlightHelmet_normal3.ktx */; };
+		E9BF194823175E50001F2264 /* FlightHelmet_normal4.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF191A23175E24001F2264 /* FlightHelmet_normal4.ktx */; };
+		E9BF194923175E50001F2264 /* FlightHelmet_occlusionRoughnessMetallic.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192A23175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic.ktx */; };
+		E9BF194A23175E50001F2264 /* FlightHelmet_occlusionRoughnessMetallic1.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192223175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic1.ktx */; };
+		E9BF194B23175E50001F2264 /* FlightHelmet_occlusionRoughnessMetallic2.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192B23175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic2.ktx */; };
+		E9BF194C23175E50001F2264 /* FlightHelmet_occlusionRoughnessMetallic3.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192323175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic3.ktx */; };
+		E9BF194D23175E50001F2264 /* FlightHelmet_occlusionRoughnessMetallic4.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF191B23175E24001F2264 /* FlightHelmet_occlusionRoughnessMetallic4.ktx */; };
+		E9BF194E23175E50001F2264 /* Lantern_baseColor.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192423175E25001F2264 /* Lantern_baseColor.ktx */; };
+		E9BF194F23175E50001F2264 /* Lantern_emissive.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF191C23175E24001F2264 /* Lantern_emissive.ktx */; };
+		E9BF195023175E50001F2264 /* Lantern_normal.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192123175E25001F2264 /* Lantern_normal.ktx */; };
+		E9BF195123175E50001F2264 /* Lantern_roughnessMetallic.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF191F23175E25001F2264 /* Lantern_roughnessMetallic.ktx */; };
+		E9BF19AE23183075001F2264 /* floor.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9BF15A72314C0E1001F2264 /* floor.frag.metal */; };
+		E9BF19AF23183075001F2264 /* basic.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E921B7CD22C6E4300082D103 /* basic.frag.metal */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		5C0F3AE321418BD30088BBB0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5C0F3ADE21418BD20088BBB0 /* The-Forge.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 5C5582E021413D180019960B;
+			remoteInfo = "The-Forge";
+		};
+		5C0F3AE521418BD30088BBB0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5C0F3ADE21418BD20088BBB0 /* The-Forge.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 5C172FC821414C490074EE71;
+			remoteInfo = "The-Forge_iOS";
+		};
+		5C0F3AE721418BDF0088BBB0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5C0F3ADE21418BD20088BBB0 /* The-Forge.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C5582DF21413D180019960B;
+			remoteInfo = "The-Forge";
+		};
+		5C0F3AED21418C0B0088BBB0 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5C0F3ADE21418BD20088BBB0 /* The-Forge.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C172FC721414C490074EE71;
+			remoteInfo = "The-Forge_iOS";
+		};
+		655D675621ACD7DC00A5BB07 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 655D674D21ACD7DC00A5BB07 /* Assimp.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 2FDC53974E8D4A618B9B34FA;
+			remoteInfo = IrrXML;
+		};
+		655D675821ACD7DC00A5BB07 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 655D674D21ACD7DC00A5BB07 /* Assimp.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 15841309FEE7495581162767;
+			remoteInfo = assimp;
+		};
+		655D675A21ACD7DC00A5BB07 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 655D674D21ACD7DC00A5BB07 /* Assimp.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 18FE7A9470BE4F97B6CC443B;
+			remoteInfo = zlibstatic;
+		};
+		655D675C21ACD7DC00A5BB07 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 655D674D21ACD7DC00A5BB07 /* Assimp.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 6549BFDA21ACD08900537773;
+			remoteInfo = IrrXML_iOS;
+		};
+		655D675E21ACD7DC00A5BB07 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 655D674D21ACD7DC00A5BB07 /* Assimp.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 6549C05A21ACD08C00537773;
+			remoteInfo = assimp_iOS;
+		};
+		655D676021ACD7DC00A5BB07 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 655D674D21ACD7DC00A5BB07 /* Assimp.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 6549C06F21ACD08E00537773;
+			remoteInfo = zlibstatic_iOS;
+		};
+		E921BE1422CFD14C0082D103 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E921BE0F22CFD14C0082D103 /* AssetPipeline.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = B28C6E4B21B204A200FBA1BF;
+			remoteInfo = AssetPipeline;
+		};
+		E921BE1622CFD14C0082D103 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E921BE0F22CFD14C0082D103 /* AssetPipeline.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = E921BDBC22CFC7700082D103;
+			remoteInfo = AssetPipeline_iOS;
+		};
+		E921BE1822CFD16F0082D103 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E921BE0F22CFD14C0082D103 /* AssetPipeline.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = B28C6E4A21B204A200FBA1BF;
+			remoteInfo = AssetPipeline;
+		};
+		E921BE1B22CFD7A30082D103 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E921BE0F22CFD14C0082D103 /* AssetPipeline.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = E921BD9522CFC7700082D103;
+			remoteInfo = AssetPipeline_iOS;
+		};
+		E96F272E22C3E8C400416F6C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E96F272A22C3E8C400416F6C /* MeshOptimizer.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = B28C6E4B21B204A200FBA1BF;
+			remoteInfo = MeshOptimizer;
+		};
+		E96F27C322C4050400416F6C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E96F27BF22C4050300416F6C /* MeshOptimizer_iOS.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = B28C6E4B21B204A200FBA1BF;
+			remoteInfo = MeshOptimizer;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		971BCF2721701A18007F2B2F /* Copy Shaders */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Shaders/Metal;
+			dstSubfolderSpec = 7;
+			files = (
+				E9BF19AE23183075001F2264 /* floor.frag.metal in Copy Shaders */,
+				E9BF19AF23183075001F2264 /* basic.frag.metal in Copy Shaders */,
+				E9BF15FE2315B4B4001F2264 /* zPassFloor.vert.metal in Copy Shaders */,
+				E9BF15FD2315B4AA001F2264 /* zPass.vert.metal in Copy Shaders */,
+				E9BF15FC2315B4A3001F2264 /* watermark.vert.metal in Copy Shaders */,
+				E9BF15FB2315B499001F2264 /* watermark.frag.metal in Copy Shaders */,
+				E9BF15FA2315B491001F2264 /* vignette.frag.metal in Copy Shaders */,
+				E9BF15F92315B489001F2264 /* Triangular.vert.metal in Copy Shaders */,
+				E9BF15F82315B482001F2264 /* FXAA.frag.metal in Copy Shaders */,
+				E9BF15F72315B479001F2264 /* floor.vert.metal in Copy Shaders */,
+				E921BB3122CAB5D10082D103 /* basic.vert.metal in Copy Shaders */,
+				E921BB2E22CAB5910082D103 /* profile.frag.metal in Copy Shaders */,
+				E921BB2F22CAB5910082D103 /* profile.vert.metal in Copy Shaders */,
+				5CA80FA121F0A21100C99983 /* fontstash.frag.metal in Copy Shaders */,
+				5CA80FA221F0A21100C99983 /* fontstash2D.vert.metal in Copy Shaders */,
+				5CA80FA321F0A21100C99983 /* fontstash3D.vert.metal in Copy Shaders */,
+				5CA80FA421F0A21100C99983 /* imgui.frag.metal in Copy Shaders */,
+				5CA80FA521F0A21100C99983 /* imgui.vert.metal in Copy Shaders */,
+				5CA80FA621F0A21100C99983 /* textured_mesh.frag.metal in Copy Shaders */,
+				5CA80FA721F0A21100C99983 /* textured_mesh.vert.metal in Copy Shaders */,
+			);
+			name = "Copy Shaders";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		971BCF3121701A75007F2B2F /* Copy Fonts */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Fonts;
+			dstSubfolderSpec = 7;
+			files = (
+				971BCF3321701A8C007F2B2F /* TitilliumText in Copy Fonts */,
+			);
+			name = "Copy Fonts";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		971BCF3221701A78007F2B2F /* Copy Textures */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Textures;
+			dstSubfolderSpec = 7;
+			files = (
+				E9BF193F23175E50001F2264 /* FlightHelmet_baseColor.ktx in Copy Textures */,
+				E9BF194023175E50001F2264 /* FlightHelmet_baseColor1.ktx in Copy Textures */,
+				E9BF194123175E50001F2264 /* FlightHelmet_baseColor2.ktx in Copy Textures */,
+				E9BF194223175E50001F2264 /* FlightHelmet_baseColor3.ktx in Copy Textures */,
+				E9BF194323175E50001F2264 /* FlightHelmet_baseColor4.ktx in Copy Textures */,
+				E9BF194423175E50001F2264 /* FlightHelmet_normal.ktx in Copy Textures */,
+				E9BF194523175E50001F2264 /* FlightHelmet_normal1.ktx in Copy Textures */,
+				E9BF194623175E50001F2264 /* FlightHelmet_normal2.ktx in Copy Textures */,
+				E9BF194723175E50001F2264 /* FlightHelmet_normal3.ktx in Copy Textures */,
+				E9BF194823175E50001F2264 /* FlightHelmet_normal4.ktx in Copy Textures */,
+				E9BF194923175E50001F2264 /* FlightHelmet_occlusionRoughnessMetallic.ktx in Copy Textures */,
+				E9BF194A23175E50001F2264 /* FlightHelmet_occlusionRoughnessMetallic1.ktx in Copy Textures */,
+				E9BF194B23175E50001F2264 /* FlightHelmet_occlusionRoughnessMetallic2.ktx in Copy Textures */,
+				E9BF194C23175E50001F2264 /* FlightHelmet_occlusionRoughnessMetallic3.ktx in Copy Textures */,
+				E9BF194D23175E50001F2264 /* FlightHelmet_occlusionRoughnessMetallic4.ktx in Copy Textures */,
+				E9BF194E23175E50001F2264 /* Lantern_baseColor.ktx in Copy Textures */,
+				E9BF194F23175E50001F2264 /* Lantern_emissive.ktx in Copy Textures */,
+				E9BF195023175E50001F2264 /* Lantern_normal.ktx in Copy Textures */,
+				E9BF195123175E50001F2264 /* Lantern_roughnessMetallic.ktx in Copy Textures */,
+				B2F8D2BF231727D50010C631 /* circlepad.dds in Copy Textures */,
+				B2F8D2C0231727D50010C631 /* circlepad.ktx in Copy Textures */,
+				B2F8D2C1231727D50010C631 /* FlightHelmet_baseColor.basis in Copy Textures */,
+				B2F8D2C2231727D50010C631 /* FlightHelmet_baseColor1.basis in Copy Textures */,
+				B2F8D2C3231727D50010C631 /* FlightHelmet_baseColor2.basis in Copy Textures */,
+				B2F8D2C4231727D50010C631 /* FlightHelmet_baseColor3.basis in Copy Textures */,
+				B2F8D2C5231727D50010C631 /* FlightHelmet_baseColor4.basis in Copy Textures */,
+				B2F8D2C6231727D50010C631 /* FlightHelmet_normal.basis in Copy Textures */,
+				B2F8D2C7231727D50010C631 /* FlightHelmet_normal1.basis in Copy Textures */,
+				B2F8D2C8231727D50010C631 /* FlightHelmet_normal2.basis in Copy Textures */,
+				B2F8D2C9231727D50010C631 /* FlightHelmet_normal3.basis in Copy Textures */,
+				B2F8D2CA231727D50010C631 /* FlightHelmet_normal4.basis in Copy Textures */,
+				B2F8D2CB231727D50010C631 /* FlightHelmet_occlusionRoughnessMetallic.basis in Copy Textures */,
+				B2F8D2CC231727D50010C631 /* FlightHelmet_occlusionRoughnessMetallic1.basis in Copy Textures */,
+				B2F8D2CD231727D50010C631 /* FlightHelmet_occlusionRoughnessMetallic2.basis in Copy Textures */,
+				B2F8D2CE231727D50010C631 /* FlightHelmet_occlusionRoughnessMetallic3.basis in Copy Textures */,
+				B2F8D2CF231727D50010C631 /* FlightHelmet_occlusionRoughnessMetallic4.basis in Copy Textures */,
+				B2F8D2D0231727D50010C631 /* Lantern_baseColor.basis in Copy Textures */,
+				B2F8D2D1231727D50010C631 /* Lantern_emissive.basis in Copy Textures */,
+				B2F8D2D2231727D50010C631 /* Lantern_normal.basis in Copy Textures */,
+				B2F8D2D3231727D50010C631 /* Lantern_roughnessMetallic.basis in Copy Textures */,
+			);
+			name = "Copy Textures";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		971BCF3B21701AAB007F2B2F /* Copy Meshes */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 12;
+			dstPath = Meshes;
+			dstSubfolderSpec = 7;
+			files = (
+				E9BF16B4231615B7001F2264 /* FlightHelmet.bin in Copy Meshes */,
+				E9BF16B5231615B7001F2264 /* FlightHelmet.gltf in Copy Meshes */,
+				E9BF16B6231615B7001F2264 /* Lantern.bin in Copy Meshes */,
+				E9BF16B7231615B7001F2264 /* Lantern.gltf in Copy Meshes */,
+			);
+			name = "Copy Meshes";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		28A5AE19201F7D41000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		28A5AE1C201F7D41000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		28A5AE1E201F7D41000E571F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		28A5AE30201F7D9E000E571F /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = ../../../UnitTestResources/Fonts/TitilliumText; sourceTree = "<group>"; };
+		5C0F3ADE21418BD20088BBB0 /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
+		5C0F3AEB21418C010088BBB0 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
+		5C0F3AEF21418C1F0088BBB0 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/macOS/AppDelegate.m; sourceTree = "<group>"; };
+		5C0F3AF021418C1F0088BBB0 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/macOS/AppDelegate.h; sourceTree = "<group>"; };
+		5C0F3AF221418C290088BBB0 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/iOS/AppDelegate.h; sourceTree = "<group>"; };
+		5C0F3AF321418C290088BBB0 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/iOS/AppDelegate.m; sourceTree = "<group>"; };
+		5C0F3AF621418C680088BBB0 /* AssimpImporter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AssimpImporter.h; path = ../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h; sourceTree = "<group>"; };
+		5C0F3AF721418C680088BBB0 /* AssimpImporter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AssimpImporter.cpp; path = ../../../../Common_3/Tools/AssimpImporter/AssimpImporter.cpp; sourceTree = "<group>"; };
+		5CA80EC721F0A05800C99983 /* textured_mesh.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = textured_mesh.vert.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/textured_mesh.vert.metal; sourceTree = "<group>"; };
+		5CA80EC821F0A05800C99983 /* textured_mesh.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = textured_mesh.frag.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/textured_mesh.frag.metal; sourceTree = "<group>"; };
+		5CA80EC921F0A05800C99983 /* imgui.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = imgui.frag.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/imgui.frag.metal; sourceTree = "<group>"; };
+		5CA80ECA21F0A05800C99983 /* imgui.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = imgui.vert.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/imgui.vert.metal; sourceTree = "<group>"; };
+		5CA80ED321F0A06000C99983 /* fontstash3D.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash3D.vert.metal; path = ../../../../Middleware_3/Text/Shaders/Metal/fontstash3D.vert.metal; sourceTree = "<group>"; };
+		5CA80ED421F0A06000C99983 /* fontstash2D.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash2D.vert.metal; path = ../../../../Middleware_3/Text/Shaders/Metal/fontstash2D.vert.metal; sourceTree = "<group>"; };
+		5CA80ED521F0A06000C99983 /* fontstash.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash.frag.metal; path = ../../../../Middleware_3/Text/Shaders/Metal/fontstash.frag.metal; sourceTree = "<group>"; };
+		650CCC642223CB56003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
+		650CCC662223CB6C003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
+		655D674D21ACD7DC00A5BB07 /* Assimp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Assimp.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple/Assimp.xcodeproj; sourceTree = "<group>"; };
+		B2087DF521421A6E006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
+		B2087DF621421A6E006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		B20A6318213F8E2800FE4944 /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/assimp.a"; sourceTree = "<group>"; };
+		B20A6319213F8E2800FE4944 /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/zlibstatic.a"; sourceTree = "<group>"; };
+		B20A631A213F8E2900FE4944 /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/IrrXML.a"; sourceTree = "<group>"; };
+		B21F76EB21420EE900DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
+		B21F76EC21420EE900DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
+		B21F76ED21420EE900DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
+		B2F8D27D2317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic4.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_occlusionRoughnessMetallic4.basis; path = ../../UnitTestResources/Textures/FlightHelmet_occlusionRoughnessMetallic4.basis; sourceTree = "<group>"; };
+		B2F8D27E2317279A0010C631 /* Lantern_baseColor.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = Lantern_baseColor.basis; path = ../../UnitTestResources/Textures/Lantern_baseColor.basis; sourceTree = "<group>"; };
+		B2F8D27F2317279A0010C631 /* FlightHelmet_normal.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_normal.basis; path = ../../UnitTestResources/Textures/FlightHelmet_normal.basis; sourceTree = "<group>"; };
+		B2F8D2802317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic1.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_occlusionRoughnessMetallic1.basis; path = ../../UnitTestResources/Textures/FlightHelmet_occlusionRoughnessMetallic1.basis; sourceTree = "<group>"; };
+		B2F8D2812317279A0010C631 /* FlightHelmet_baseColor3.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_baseColor3.basis; path = ../../UnitTestResources/Textures/FlightHelmet_baseColor3.basis; sourceTree = "<group>"; };
+		B2F8D2822317279A0010C631 /* FlightHelmet_baseColor4.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_baseColor4.basis; path = ../../UnitTestResources/Textures/FlightHelmet_baseColor4.basis; sourceTree = "<group>"; };
+		B2F8D2832317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic2.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_occlusionRoughnessMetallic2.basis; path = ../../UnitTestResources/Textures/FlightHelmet_occlusionRoughnessMetallic2.basis; sourceTree = "<group>"; };
+		B2F8D2842317279A0010C631 /* Lantern_emissive.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = Lantern_emissive.basis; path = ../../UnitTestResources/Textures/Lantern_emissive.basis; sourceTree = "<group>"; };
+		B2F8D2852317279A0010C631 /* Lantern_roughnessMetallic.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = Lantern_roughnessMetallic.basis; path = ../../UnitTestResources/Textures/Lantern_roughnessMetallic.basis; sourceTree = "<group>"; };
+		B2F8D2862317279A0010C631 /* Lantern_normal.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = Lantern_normal.basis; path = ../../UnitTestResources/Textures/Lantern_normal.basis; sourceTree = "<group>"; };
+		B2F8D2872317279A0010C631 /* FlightHelmet_baseColor1.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_baseColor1.basis; path = ../../UnitTestResources/Textures/FlightHelmet_baseColor1.basis; sourceTree = "<group>"; };
+		B2F8D2882317279A0010C631 /* FlightHelmet_normal2.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_normal2.basis; path = ../../UnitTestResources/Textures/FlightHelmet_normal2.basis; sourceTree = "<group>"; };
+		B2F8D2892317279A0010C631 /* FlightHelmet_normal3.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_normal3.basis; path = ../../UnitTestResources/Textures/FlightHelmet_normal3.basis; sourceTree = "<group>"; };
+		B2F8D28A2317279A0010C631 /* FlightHelmet_baseColor.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_baseColor.basis; path = ../../UnitTestResources/Textures/FlightHelmet_baseColor.basis; sourceTree = "<group>"; };
+		B2F8D28B2317279A0010C631 /* circlepad.dds */ = {isa = PBXFileReference; lastKnownFileType = file; name = circlepad.dds; path = ../../UnitTestResources/Textures/circlepad.dds; sourceTree = "<group>"; };
+		B2F8D28C2317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_occlusionRoughnessMetallic.basis; path = ../../UnitTestResources/Textures/FlightHelmet_occlusionRoughnessMetallic.basis; sourceTree = "<group>"; };
+		B2F8D28D2317279A0010C631 /* FlightHelmet_normal1.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_normal1.basis; path = ../../UnitTestResources/Textures/FlightHelmet_normal1.basis; sourceTree = "<group>"; };
+		B2F8D28E2317279B0010C631 /* FlightHelmet_baseColor2.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_baseColor2.basis; path = ../../UnitTestResources/Textures/FlightHelmet_baseColor2.basis; sourceTree = "<group>"; };
+		B2F8D28F2317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic3.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_occlusionRoughnessMetallic3.basis; path = ../../UnitTestResources/Textures/FlightHelmet_occlusionRoughnessMetallic3.basis; sourceTree = "<group>"; };
+		B2F8D2902317279B0010C631 /* FlightHelmet_normal4.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_normal4.basis; path = ../../UnitTestResources/Textures/FlightHelmet_normal4.basis; sourceTree = "<group>"; };
+		B2F8D2912317279B0010C631 /* circlepad.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = circlepad.ktx; path = ../../UnitTestResources/Textures/circlepad.ktx; sourceTree = "<group>"; };
+		D01089FC213CC5CB0038EA0F /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/zlibstatic.a"; sourceTree = "<group>"; };
+		D01089FD213CC5CC0038EA0F /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/assimp.a"; sourceTree = "<group>"; };
+		D01089FE213CC5CC0038EA0F /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/IrrXML.a"; sourceTree = "<group>"; };
+		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../02_Compute/02_Compute/Assets.xcassets; sourceTree = SOURCE_ROOT; };
+		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		E921B7CB22C6E4300082D103 /* basic.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = basic.vert.metal; path = ../../src/08_GltfViewer/Shaders/Metal/basic.vert.metal; sourceTree = "<group>"; };
+		E921B7CD22C6E4300082D103 /* basic.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = basic.frag.metal; path = ../../src/08_GltfViewer/Shaders/Metal/basic.frag.metal; sourceTree = "<group>"; };
+		E921B7D122C6E44B0082D103 /* profile.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = profile.frag.metal; path = ../../src/08_GltfViewer/Shaders/Metal/profile.frag.metal; sourceTree = "<group>"; };
+		E921B7D222C6E44B0082D103 /* profile.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = profile.vert.metal; path = ../../src/08_GltfViewer/Shaders/Metal/profile.vert.metal; sourceTree = "<group>"; };
+		E921B7D522C6E45D0082D103 /* 08_GltfViewer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 08_GltfViewer.cpp; path = ../../src/08_GltfViewer/08_GltfViewer.cpp; sourceTree = "<group>"; };
+		E921BAA122CAAF5A0082D103 /* 08_GltfViewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 08_GltfViewer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E921BAA222CAAF5A0082D103 /* 08_GltfViewer_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 08_GltfViewer_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E921BE0F22CFD14C0082D103 /* AssetPipeline.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = AssetPipeline.xcodeproj; path = ../../../../Common_3/Tools/AssetPipeline/Apple/AssetPipeline.xcodeproj; sourceTree = "<group>"; };
+		E96F272A22C3E8C400416F6C /* MeshOptimizer.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = MeshOptimizer.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/Apple/MeshOptimizer.xcodeproj; sourceTree = "<group>"; };
+		E96F27BF22C4050300416F6C /* MeshOptimizer_iOS.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = MeshOptimizer_iOS.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/Apple/MeshOptimizer_iOS.xcodeproj; sourceTree = "<group>"; };
+		E9BF135122E8D39C001F2264 /* 08_GltfViewer_iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = 08_GltfViewer_iOS.entitlements; sourceTree = "<group>"; };
+		E9BF150222FE2699001F2264 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		E9BF159E2314C0E1001F2264 /* FXAA.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = FXAA.frag.metal; path = ../../src/08_GltfViewer/Shaders/Metal/FXAA.frag.metal; sourceTree = "<group>"; };
+		E9BF15A72314C0E1001F2264 /* floor.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = floor.frag.metal; path = ../../src/08_GltfViewer/Shaders/Metal/floor.frag.metal; sourceTree = "<group>"; };
+		E9BF15A82314C0E1001F2264 /* Triangular.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Triangular.vert.metal; path = ../../src/08_GltfViewer/Shaders/Metal/Triangular.vert.metal; sourceTree = "<group>"; };
+		E9BF15A92314C0E2001F2264 /* zPass.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = zPass.vert.metal; path = ../../src/08_GltfViewer/Shaders/Metal/zPass.vert.metal; sourceTree = "<group>"; };
+		E9BF15AA2314C0E2001F2264 /* zPassFloor.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = zPassFloor.vert.metal; path = ../../src/08_GltfViewer/Shaders/Metal/zPassFloor.vert.metal; sourceTree = "<group>"; };
+		E9BF15AB2314C0E2001F2264 /* floor.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = floor.vert.metal; path = ../../src/08_GltfViewer/Shaders/Metal/floor.vert.metal; sourceTree = "<group>"; };
+		E9BF15AC2314C0E2001F2264 /* watermark.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = watermark.frag.metal; path = ../../src/08_GltfViewer/Shaders/Metal/watermark.frag.metal; sourceTree = "<group>"; };
+		E9BF15AD2314C0E2001F2264 /* vignette.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = vignette.frag.metal; path = ../../src/08_GltfViewer/Shaders/Metal/vignette.frag.metal; sourceTree = "<group>"; };
+		E9BF15AE2314C0E2001F2264 /* watermark.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = watermark.vert.metal; path = ../../src/08_GltfViewer/Shaders/Metal/watermark.vert.metal; sourceTree = "<group>"; };
+		E9BF164B23161465001F2264 /* Lantern.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = Lantern.bin; path = ../../UnitTestResources/Meshes/Lantern.bin; sourceTree = "<group>"; };
+		E9BF164C23161465001F2264 /* FlightHelmet.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = FlightHelmet.bin; path = ../../UnitTestResources/Meshes/FlightHelmet.bin; sourceTree = "<group>"; };
+		E9BF164D23161465001F2264 /* FlightHelmet.gltf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = FlightHelmet.gltf; path = ../../UnitTestResources/Meshes/FlightHelmet.gltf; sourceTree = "<group>"; };
+		E9BF164E23161466001F2264 /* Lantern.gltf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Lantern.gltf; path = ../../UnitTestResources/Meshes/Lantern.gltf; sourceTree = "<group>"; };
+		E9BF191123175E24001F2264 /* FlightHelmet_normal2.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_normal2.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_normal2.ktx; sourceTree = "<group>"; };
+		E9BF191A23175E24001F2264 /* FlightHelmet_normal4.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_normal4.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_normal4.ktx; sourceTree = "<group>"; };
+		E9BF191B23175E24001F2264 /* FlightHelmet_occlusionRoughnessMetallic4.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_occlusionRoughnessMetallic4.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_occlusionRoughnessMetallic4.ktx; sourceTree = "<group>"; };
+		E9BF191C23175E24001F2264 /* Lantern_emissive.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = Lantern_emissive.ktx; path = ../../UnitTestResources/Textures/Lantern_emissive.ktx; sourceTree = "<group>"; };
+		E9BF191D23175E25001F2264 /* FlightHelmet_baseColor.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_baseColor.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_baseColor.ktx; sourceTree = "<group>"; };
+		E9BF191E23175E25001F2264 /* FlightHelmet_normal.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_normal.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_normal.ktx; sourceTree = "<group>"; };
+		E9BF191F23175E25001F2264 /* Lantern_roughnessMetallic.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = Lantern_roughnessMetallic.ktx; path = ../../UnitTestResources/Textures/Lantern_roughnessMetallic.ktx; sourceTree = "<group>"; };
+		E9BF192023175E25001F2264 /* FlightHelmet_baseColor1.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_baseColor1.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_baseColor1.ktx; sourceTree = "<group>"; };
+		E9BF192123175E25001F2264 /* Lantern_normal.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = Lantern_normal.ktx; path = ../../UnitTestResources/Textures/Lantern_normal.ktx; sourceTree = "<group>"; };
+		E9BF192223175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic1.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_occlusionRoughnessMetallic1.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_occlusionRoughnessMetallic1.ktx; sourceTree = "<group>"; };
+		E9BF192323175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic3.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_occlusionRoughnessMetallic3.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_occlusionRoughnessMetallic3.ktx; sourceTree = "<group>"; };
+		E9BF192423175E25001F2264 /* Lantern_baseColor.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = Lantern_baseColor.ktx; path = ../../UnitTestResources/Textures/Lantern_baseColor.ktx; sourceTree = "<group>"; };
+		E9BF192523175E25001F2264 /* FlightHelmet_baseColor2.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_baseColor2.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_baseColor2.ktx; sourceTree = "<group>"; };
+		E9BF192623175E25001F2264 /* FlightHelmet_baseColor3.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_baseColor3.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_baseColor3.ktx; sourceTree = "<group>"; };
+		E9BF192723175E25001F2264 /* FlightHelmet_normal1.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_normal1.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_normal1.ktx; sourceTree = "<group>"; };
+		E9BF192823175E25001F2264 /* FlightHelmet_baseColor4.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_baseColor4.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_baseColor4.ktx; sourceTree = "<group>"; };
+		E9BF192923175E25001F2264 /* FlightHelmet_normal3.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_normal3.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_normal3.ktx; sourceTree = "<group>"; };
+		E9BF192A23175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_occlusionRoughnessMetallic.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_occlusionRoughnessMetallic.ktx; sourceTree = "<group>"; };
+		E9BF192B23175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic2.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_occlusionRoughnessMetallic2.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_occlusionRoughnessMetallic2.ktx; sourceTree = "<group>"; };
+		EADF9D661EFD160E00B2008B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../02_Compute/02_Compute/Info.plist; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		28A5AE05201F7D41000E571F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E921BE1D22CFD7B70082D103 /* libAssetPipeline_iOS.a in Frameworks */,
+				650CCC672223CB6C003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
+				B21F76EE21420EE900DF2297 /* UIKit.framework in Frameworks */,
+				B21F76EF21420EE900DF2297 /* MetalKit.framework in Frameworks */,
+				B21F76F021420EE900DF2297 /* Metal.framework in Frameworks */,
+				5C0F3AEC21418C010088BBB0 /* GameController.framework in Frameworks */,
+				5C0F3AEA21418BFC0088BBB0 /* libThe-Forge_iOS.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA463C881EF81E8F005AC8C7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E921BE1A22CFD1800082D103 /* libAssetPipeline.a in Frameworks */,
+				650CCC652223CB56003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
+				B2087DF721421A6E006F372D /* MetalKit.framework in Frameworks */,
+				B2087DF821421A6E006F372D /* Metal.framework in Frameworks */,
+				5C0F3AE921418BF50088BBB0 /* libThe-Forge.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		28A5AE09201F7D41000E571F /* 08_GltfViewer_iOS */ = {
+			isa = PBXGroup;
+			children = (
+				E9BF135122E8D39C001F2264 /* 08_GltfViewer_iOS.entitlements */,
+				5C0F3AF221418C290088BBB0 /* AppDelegate.h */,
+				5C0F3AF321418C290088BBB0 /* AppDelegate.m */,
+				28A5AE19201F7D41000E571F /* Assets.xcassets */,
+				E9BF150122FE2699001F2264 /* Main.storyboard */,
+				28A5AE1B201F7D41000E571F /* LaunchScreen.storyboard */,
+				28A5AE1E201F7D41000E571F /* Info.plist */,
+				E921B80722C6E6360082D103 /* Products */,
+			);
+			path = 08_GltfViewer_iOS;
+			sourceTree = "<group>";
+		};
+		28A5AE24201F7D5C000E571F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				650CCC642223CB56003533D9 /* MetalPerformanceShaders.framework */,
+				650CCC662223CB6C003533D9 /* MetalPerformanceShaders.framework */,
+				B21F76ED21420EE900DF2297 /* Metal.framework */,
+				B2087DF621421A6E006F372D /* Metal.framework */,
+				B21F76EC21420EE900DF2297 /* MetalKit.framework */,
+				B2087DF521421A6E006F372D /* MetalKit.framework */,
+				B21F76EB21420EE900DF2297 /* UIKit.framework */,
+				5C0F3AEB21418C010088BBB0 /* GameController.framework */,
+				D01089FD213CC5CC0038EA0F /* assimp.a */,
+				D01089FE213CC5CC0038EA0F /* IrrXML.a */,
+				B20A631A213F8E2900FE4944 /* IrrXML.a */,
+				D01089FC213CC5CB0038EA0F /* zlibstatic.a */,
+				B20A6318213F8E2800FE4944 /* assimp.a */,
+				B20A6319213F8E2800FE4944 /* zlibstatic.a */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		28A5AE2D201F7D82000E571F /* Shaders */ = {
+			isa = PBXGroup;
+			children = (
+				E9BF15A72314C0E1001F2264 /* floor.frag.metal */,
+				E9BF15AB2314C0E2001F2264 /* floor.vert.metal */,
+				E9BF159E2314C0E1001F2264 /* FXAA.frag.metal */,
+				E9BF15A82314C0E1001F2264 /* Triangular.vert.metal */,
+				E9BF15AD2314C0E2001F2264 /* vignette.frag.metal */,
+				E9BF15AC2314C0E2001F2264 /* watermark.frag.metal */,
+				E9BF15AE2314C0E2001F2264 /* watermark.vert.metal */,
+				E9BF15A92314C0E2001F2264 /* zPass.vert.metal */,
+				E9BF15AA2314C0E2001F2264 /* zPassFloor.vert.metal */,
+				E921B7CD22C6E4300082D103 /* basic.frag.metal */,
+				E921B7CB22C6E4300082D103 /* basic.vert.metal */,
+			);
+			name = Shaders;
+			sourceTree = "<group>";
+		};
+		28A5AE2F201F7D91000E571F /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				28A5AE30201F7D9E000E571F /* TitilliumText */,
+			);
+			name = Fonts;
+			path = 09a_HybridRaytracing_iOS;
+			sourceTree = "<group>";
+		};
+		5C0F3ADF21418BD20088BBB0 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5C0F3AE421418BD30088BBB0 /* libThe-Forge.a */,
+				5C0F3AE621418BD30088BBB0 /* libThe-Forge_iOS.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		5C0F3AF521418C580088BBB0 /* AssimpImporter */ = {
+			isa = PBXGroup;
+			children = (
+				655D674D21ACD7DC00A5BB07 /* Assimp.xcodeproj */,
+				5C0F3AF721418C680088BBB0 /* AssimpImporter.cpp */,
+				5C0F3AF621418C680088BBB0 /* AssimpImporter.h */,
+			);
+			name = AssimpImporter;
+			sourceTree = "<group>";
+		};
+		5CA80E1821F09F8700C99983 /* CommonShaders */ = {
+			isa = PBXGroup;
+			children = (
+				5CA80ED521F0A06000C99983 /* fontstash.frag.metal */,
+				5CA80ED421F0A06000C99983 /* fontstash2D.vert.metal */,
+				5CA80ED321F0A06000C99983 /* fontstash3D.vert.metal */,
+				5CA80EC921F0A05800C99983 /* imgui.frag.metal */,
+				5CA80ECA21F0A05800C99983 /* imgui.vert.metal */,
+				5CA80EC821F0A05800C99983 /* textured_mesh.frag.metal */,
+				5CA80EC721F0A05800C99983 /* textured_mesh.vert.metal */,
+			);
+			name = CommonShaders;
+			sourceTree = "<group>";
+		};
+		655D674E21ACD7DC00A5BB07 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				655D675721ACD7DC00A5BB07 /* libIrrXML.a */,
+				655D675921ACD7DC00A5BB07 /* libassimp.a */,
+				655D675B21ACD7DC00A5BB07 /* libzlibstatic.a */,
+				655D675D21ACD7DC00A5BB07 /* libIrrXML_iOS.a */,
+				655D675F21ACD7DC00A5BB07 /* libassimp_iOS.a */,
+				655D676121ACD7DC00A5BB07 /* libzlibstatic_iOS.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B20A6264213F8D6400FE4944 /* Meshes */ = {
+			isa = PBXGroup;
+			children = (
+				E9BF164C23161465001F2264 /* FlightHelmet.bin */,
+				E9BF164D23161465001F2264 /* FlightHelmet.gltf */,
+				E9BF164B23161465001F2264 /* Lantern.bin */,
+				E9BF164E23161466001F2264 /* Lantern.gltf */,
+			);
+			name = Meshes;
+			sourceTree = "<group>";
+		};
+		E921B80722C6E6360082D103 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			path = ..;
+			sourceTree = "<group>";
+		};
+		E921BE1022CFD14C0082D103 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E921BE1522CFD14C0082D103 /* libAssetPipeline.a */,
+				E921BE1722CFD14C0082D103 /* libAssetPipeline_iOS.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E96F272722C3E86800416F6C /* MeshOptimizer */ = {
+			isa = PBXGroup;
+			children = (
+				E96F27BF22C4050300416F6C /* MeshOptimizer_iOS.xcodeproj */,
+				E96F272A22C3E8C400416F6C /* MeshOptimizer.xcodeproj */,
+			);
+			name = MeshOptimizer;
+			sourceTree = "<group>";
+		};
+		E96F272B22C3E8C400416F6C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E96F272F22C3E8C400416F6C /* libMeshOptimizer.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E96F27C022C4050300416F6C /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E96F27C422C4050400416F6C /* libMeshOptimizer_iOS.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		E9BF165423161548001F2264 /* Textures */ = {
+			isa = PBXGroup;
+			children = (
+				E9BF191D23175E25001F2264 /* FlightHelmet_baseColor.ktx */,
+				E9BF192023175E25001F2264 /* FlightHelmet_baseColor1.ktx */,
+				E9BF192523175E25001F2264 /* FlightHelmet_baseColor2.ktx */,
+				E9BF192623175E25001F2264 /* FlightHelmet_baseColor3.ktx */,
+				E9BF192823175E25001F2264 /* FlightHelmet_baseColor4.ktx */,
+				E9BF191E23175E25001F2264 /* FlightHelmet_normal.ktx */,
+				E9BF192723175E25001F2264 /* FlightHelmet_normal1.ktx */,
+				E9BF191123175E24001F2264 /* FlightHelmet_normal2.ktx */,
+				E9BF192923175E25001F2264 /* FlightHelmet_normal3.ktx */,
+				E9BF191A23175E24001F2264 /* FlightHelmet_normal4.ktx */,
+				E9BF192A23175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic.ktx */,
+				E9BF192223175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic1.ktx */,
+				E9BF192B23175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic2.ktx */,
+				E9BF192323175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic3.ktx */,
+				E9BF191B23175E24001F2264 /* FlightHelmet_occlusionRoughnessMetallic4.ktx */,
+				E9BF192423175E25001F2264 /* Lantern_baseColor.ktx */,
+				E9BF191C23175E24001F2264 /* Lantern_emissive.ktx */,
+				E9BF192123175E25001F2264 /* Lantern_normal.ktx */,
+				E9BF191F23175E25001F2264 /* Lantern_roughnessMetallic.ktx */,
+				B2F8D28B2317279A0010C631 /* circlepad.dds */,
+				B2F8D2912317279B0010C631 /* circlepad.ktx */,
+				B2F8D28A2317279A0010C631 /* FlightHelmet_baseColor.basis */,
+				B2F8D2872317279A0010C631 /* FlightHelmet_baseColor1.basis */,
+				B2F8D28E2317279B0010C631 /* FlightHelmet_baseColor2.basis */,
+				B2F8D2812317279A0010C631 /* FlightHelmet_baseColor3.basis */,
+				B2F8D2822317279A0010C631 /* FlightHelmet_baseColor4.basis */,
+				B2F8D27F2317279A0010C631 /* FlightHelmet_normal.basis */,
+				B2F8D28D2317279A0010C631 /* FlightHelmet_normal1.basis */,
+				B2F8D2882317279A0010C631 /* FlightHelmet_normal2.basis */,
+				B2F8D2892317279A0010C631 /* FlightHelmet_normal3.basis */,
+				B2F8D2902317279B0010C631 /* FlightHelmet_normal4.basis */,
+				B2F8D28C2317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic.basis */,
+				B2F8D2802317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic1.basis */,
+				B2F8D2832317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic2.basis */,
+				B2F8D28F2317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic3.basis */,
+				B2F8D27D2317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic4.basis */,
+				B2F8D27E2317279A0010C631 /* Lantern_baseColor.basis */,
+				B2F8D2842317279A0010C631 /* Lantern_emissive.basis */,
+				B2F8D2862317279A0010C631 /* Lantern_normal.basis */,
+				B2F8D2852317279A0010C631 /* Lantern_roughnessMetallic.basis */,
+			);
+			name = Textures;
+			sourceTree = "<group>";
+		};
+		EA463C821EF81E8F005AC8C7 = {
+			isa = PBXGroup;
+			children = (
+				E921BE0F22CFD14C0082D103 /* AssetPipeline.xcodeproj */,
+				E921B7D522C6E45D0082D103 /* 08_GltfViewer.cpp */,
+				E921B7D122C6E44B0082D103 /* profile.frag.metal */,
+				E921B7D222C6E44B0082D103 /* profile.vert.metal */,
+				E96F272722C3E86800416F6C /* MeshOptimizer */,
+				5CA80E1821F09F8700C99983 /* CommonShaders */,
+				5C0F3AF521418C580088BBB0 /* AssimpImporter */,
+				5C0F3ADE21418BD20088BBB0 /* The-Forge.xcodeproj */,
+				B20A6264213F8D6400FE4944 /* Meshes */,
+				E9BF165423161548001F2264 /* Textures */,
+				28A5AE2F201F7D91000E571F /* Fonts */,
+				28A5AE2D201F7D82000E571F /* Shaders */,
+				EA463C941EF81E8F005AC8C7 /* 08_GltfViewer */,
+				28A5AE09201F7D41000E571F /* 08_GltfViewer_iOS */,
+				28A5AE24201F7D5C000E571F /* Frameworks */,
+				E921BAA122CAAF5A0082D103 /* 08_GltfViewer.app */,
+				E921BAA222CAAF5A0082D103 /* 08_GltfViewer_iOS.app */,
+			);
+			sourceTree = "<group>";
+		};
+		EA463C941EF81E8F005AC8C7 /* 08_GltfViewer */ = {
+			isa = PBXGroup;
+			children = (
+				5C0F3AF021418C1F0088BBB0 /* AppDelegate.h */,
+				5C0F3AEF21418C1F0088BBB0 /* AppDelegate.m */,
+				D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */,
+				D28782EF1F0A7F52004DC624 /* Assets.xcassets */,
+				EADF9D661EFD160E00B2008B /* Info.plist */,
+			);
+			path = 08_GltfViewer;
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		28A5AE07201F7D41000E571F /* 08_GltfViewer_iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 28A5AE23201F7D41000E571F /* Build configuration list for PBXNativeTarget "08_GltfViewer_iOS" */;
+			buildPhases = (
+				28A5AE04201F7D41000E571F /* Sources */,
+				28A5AE05201F7D41000E571F /* Frameworks */,
+				28A5AE06201F7D41000E571F /* Resources */,
+				971BCF2721701A18007F2B2F /* Copy Shaders */,
+				971BCF3121701A75007F2B2F /* Copy Fonts */,
+				971BCF3221701A78007F2B2F /* Copy Textures */,
+				971BCF3B21701AAB007F2B2F /* Copy Meshes */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E921BE1C22CFD7A30082D103 /* PBXTargetDependency */,
+				5C0F3AEE21418C0B0088BBB0 /* PBXTargetDependency */,
+			);
+			name = 08_GltfViewer_iOS;
+			productName = 09a_HybridRaytracing_iOS;
+			productReference = E921BAA222CAAF5A0082D103 /* 08_GltfViewer_iOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+		EA463C8A1EF81E8F005AC8C7 /* 08_GltfViewer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA463CAC1EF81E8F005AC8C7 /* Build configuration list for PBXNativeTarget "08_GltfViewer" */;
+			buildPhases = (
+				EA463C871EF81E8F005AC8C7 /* Sources */,
+				EA463C881EF81E8F005AC8C7 /* Frameworks */,
+				EA463C891EF81E8F005AC8C7 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				E921BE1922CFD16F0082D103 /* PBXTargetDependency */,
+				5C0F3AE821418BDF0088BBB0 /* PBXTargetDependency */,
+			);
+			name = 08_GltfViewer;
+			productName = 02_Texture;
+			productReference = E921BAA122CAAF5A0082D103 /* 08_GltfViewer.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		EA463C831EF81E8F005AC8C7 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1020;
+				ORGANIZATIONNAME = "Confetti-FX";
+				TargetAttributes = {
+					28A5AE07201F7D41000E571F = {
+						CreatedOnToolsVersion = 9.2;
+						DevelopmentTeam = BT67ZY58A8;
+						ProvisioningStyle = Automatic;
+						SystemCapabilities = {
+							com.apple.DataProtection = {
+								enabled = 0;
+							};
+						};
+					};
+					EA463C8A1EF81E8F005AC8C7 = {
+						CreatedOnToolsVersion = 8.3.3;
+						DevelopmentTeam = BT67ZY58A8;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = EA463C861EF81E8F005AC8C7 /* Build configuration list for PBXProject "08_GltfViewer" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = EA463C821EF81E8F005AC8C7;
+			productRefGroup = EA463C821EF81E8F005AC8C7;
+			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = E921BE1022CFD14C0082D103 /* Products */;
+					ProjectRef = E921BE0F22CFD14C0082D103 /* AssetPipeline.xcodeproj */;
+				},
+				{
+					ProductGroup = 655D674E21ACD7DC00A5BB07 /* Products */;
+					ProjectRef = 655D674D21ACD7DC00A5BB07 /* Assimp.xcodeproj */;
+				},
+				{
+					ProductGroup = E96F272B22C3E8C400416F6C /* Products */;
+					ProjectRef = E96F272A22C3E8C400416F6C /* MeshOptimizer.xcodeproj */;
+				},
+				{
+					ProductGroup = E96F27C022C4050300416F6C /* Products */;
+					ProjectRef = E96F27BF22C4050300416F6C /* MeshOptimizer_iOS.xcodeproj */;
+				},
+				{
+					ProductGroup = 5C0F3ADF21418BD20088BBB0 /* Products */;
+					ProjectRef = 5C0F3ADE21418BD20088BBB0 /* The-Forge.xcodeproj */;
+				},
+			);
+			projectRoot = "";
+			targets = (
+				EA463C8A1EF81E8F005AC8C7 /* 08_GltfViewer */,
+				28A5AE07201F7D41000E571F /* 08_GltfViewer_iOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		5C0F3AE421418BD30088BBB0 /* libThe-Forge.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = "libThe-Forge.a";
+			remoteRef = 5C0F3AE321418BD30088BBB0 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		5C0F3AE621418BD30088BBB0 /* libThe-Forge_iOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = "libThe-Forge_iOS.a";
+			remoteRef = 5C0F3AE521418BD30088BBB0 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		655D675721ACD7DC00A5BB07 /* libIrrXML.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libIrrXML.a;
+			remoteRef = 655D675621ACD7DC00A5BB07 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		655D675921ACD7DC00A5BB07 /* libassimp.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libassimp.a;
+			remoteRef = 655D675821ACD7DC00A5BB07 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		655D675B21ACD7DC00A5BB07 /* libzlibstatic.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libzlibstatic.a;
+			remoteRef = 655D675A21ACD7DC00A5BB07 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		655D675D21ACD7DC00A5BB07 /* libIrrXML_iOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libIrrXML_iOS.a;
+			remoteRef = 655D675C21ACD7DC00A5BB07 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		655D675F21ACD7DC00A5BB07 /* libassimp_iOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libassimp_iOS.a;
+			remoteRef = 655D675E21ACD7DC00A5BB07 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		655D676121ACD7DC00A5BB07 /* libzlibstatic_iOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libzlibstatic_iOS.a;
+			remoteRef = 655D676021ACD7DC00A5BB07 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		E921BE1522CFD14C0082D103 /* libAssetPipeline.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libAssetPipeline.a;
+			remoteRef = E921BE1422CFD14C0082D103 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		E921BE1722CFD14C0082D103 /* libAssetPipeline_iOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libAssetPipeline_iOS.a;
+			remoteRef = E921BE1622CFD14C0082D103 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		E96F272F22C3E8C400416F6C /* libMeshOptimizer.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libMeshOptimizer.a;
+			remoteRef = E96F272E22C3E8C400416F6C /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		E96F27C422C4050400416F6C /* libMeshOptimizer_iOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libMeshOptimizer_iOS.a;
+			remoteRef = E96F27C322C4050400416F6C /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
+
+/* Begin PBXResourcesBuildPhase section */
+		28A5AE06201F7D41000E571F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E9BF150322FE2699001F2264 /* Main.storyboard in Resources */,
+				28A5AE1D201F7D41000E571F /* LaunchScreen.storyboard in Resources */,
+				28A5AE1A201F7D41000E571F /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA463C891EF81E8F005AC8C7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B2F8D2A52317279B0010C631 /* Lantern_normal.basis in Resources */,
+				B2F8D2B32317279B0010C631 /* FlightHelmet_normal1.basis in Resources */,
+				B2F8D2B12317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic.basis in Resources */,
+				E9BF165023161466001F2264 /* FlightHelmet.bin in Resources */,
+				B2F8D2AD2317279B0010C631 /* FlightHelmet_baseColor.basis in Resources */,
+				B2F8D2B92317279B0010C631 /* FlightHelmet_normal4.basis in Resources */,
+				B2F8D2B52317279B0010C631 /* FlightHelmet_baseColor2.basis in Resources */,
+				D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */,
+				B2F8D2B72317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic3.basis in Resources */,
+				B2F8D2A92317279B0010C631 /* FlightHelmet_normal2.basis in Resources */,
+				E9BF164F23161466001F2264 /* Lantern.bin in Resources */,
+				E9BF165223161466001F2264 /* Lantern.gltf in Resources */,
+				B2F8D2952317279B0010C631 /* Lantern_baseColor.basis in Resources */,
+				B2F8D29B2317279B0010C631 /* FlightHelmet_baseColor3.basis in Resources */,
+				D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */,
+				B2F8D2AB2317279B0010C631 /* FlightHelmet_normal3.basis in Resources */,
+				B2F8D2BB2317279B0010C631 /* circlepad.ktx in Resources */,
+				B2F8D29D2317279B0010C631 /* FlightHelmet_baseColor4.basis in Resources */,
+				B2F8D2A72317279B0010C631 /* FlightHelmet_baseColor1.basis in Resources */,
+				B2F8D2AF2317279B0010C631 /* circlepad.dds in Resources */,
+				B2F8D2A12317279B0010C631 /* Lantern_emissive.basis in Resources */,
+				B2F8D2932317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic4.basis in Resources */,
+				B2F8D2992317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic1.basis in Resources */,
+				B2F8D2A32317279B0010C631 /* Lantern_roughnessMetallic.basis in Resources */,
+				B2F8D2972317279B0010C631 /* FlightHelmet_normal.basis in Resources */,
+				B2F8D29F2317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic2.basis in Resources */,
+				E9BF165123161466001F2264 /* FlightHelmet.gltf in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		28A5AE04201F7D41000E571F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5C0F3AF921418C680088BBB0 /* AssimpImporter.cpp in Sources */,
+				5C0F3AF421418C290088BBB0 /* AppDelegate.m in Sources */,
+				E921B80822C6E81D0082D103 /* 08_GltfViewer.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA463C871EF81E8F005AC8C7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5C0F3AF821418C680088BBB0 /* AssimpImporter.cpp in Sources */,
+				E921B7D622C6E45D0082D103 /* 08_GltfViewer.cpp in Sources */,
+				5C0F3AF121418C1F0088BBB0 /* AppDelegate.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5C0F3AE821418BDF0088BBB0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "The-Forge";
+			targetProxy = 5C0F3AE721418BDF0088BBB0 /* PBXContainerItemProxy */;
+		};
+		5C0F3AEE21418C0B0088BBB0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "The-Forge_iOS";
+			targetProxy = 5C0F3AED21418C0B0088BBB0 /* PBXContainerItemProxy */;
+		};
+		E921BE1922CFD16F0082D103 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = AssetPipeline;
+			targetProxy = E921BE1822CFD16F0082D103 /* PBXContainerItemProxy */;
+		};
+		E921BE1C22CFD7A30082D103 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = AssetPipeline_iOS;
+			targetProxy = E921BE1B22CFD7A30082D103 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		28A5AE1B201F7D41000E571F /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				28A5AE1C201F7D41000E571F /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D2E631E01F3472DF005BFBA7 /* Base */,
+			);
+			name = MainMenu.xib;
+			sourceTree = "<group>";
+		};
+		E9BF150122FE2699001F2264 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				E9BF150222FE2699001F2264 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		28A5AE21201F7D41000E571F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_WARN_COMMA = NO;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				COMPRESS_PNG_FILES = NO;
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
+				DEVELOPMENT_TEAM = BT67ZY58A8;
+				ENABLE_BITCODE = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					METAL,
+					_DEBUG,
+					TARGET_IOS,
+					USE_MEMORY_TRACKING,
+				);
+				HEADER_SEARCH_PATHS = (
+					../../Common_3,
+					../../,
+					../,
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include",
+					"$(PROJECT_DIR)/../../../../",
+				);
+				INFOPLIST_FILE = "$(SRCROOT)/08_GltfViewer_iOS/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-9a-HybridRaytracing-iOS";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRIP_PNG_TEXT = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		28A5AE22201F7D41000E571F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_WARN_COMMA = NO;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				COMPRESS_PNG_FILES = NO;
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
+				DEVELOPMENT_TEAM = BT67ZY58A8;
+				ENABLE_BITCODE = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					METAL,
+					TARGET_IOS,
+				);
+				HEADER_SEARCH_PATHS = (
+					../../Common_3,
+					../../,
+					../,
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include",
+					"$(PROJECT_DIR)/../../../../",
+				);
+				INFOPLIST_FILE = "$(SRCROOT)/08_GltfViewer_iOS/Info.plist";
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-9a-HybridRaytracing-iOS";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRIP_PNG_TEXT = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		EA463CAA1EF81E8F005AC8C7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = NO;
+				GCC_WARN_UNUSED_VALUE = NO;
+				GCC_WARN_UNUSED_VARIABLE = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		EA463CAB1EF81E8F005AC8C7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = NO;
+				GCC_WARN_UNUSED_VALUE = NO;
+				GCC_WARN_UNUSED_VARIABLE = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		EA463CAD1EF81E8F005AC8C7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_WARN_COMMA = NO;
+				COMBINE_HIDPI_IMAGES = YES;
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
+				DEVELOPMENT_TEAM = BT67ZY58A8;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					METAL,
+					_DEBUG,
+					USE_MEMORY_TRACKING,
+				);
+				HEADER_SEARCH_PATHS = (
+					../../Common_3,
+					../../,
+					../,
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include",
+					"$(PROJECT_DIR)/../../../../",
+				);
+				INFOPLIST_FILE = "$(SRCROOT)/../02_Compute/02_Compute/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-9a-HybridRaytracing";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		EA463CAE1EF81E8F005AC8C7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_WARN_COMMA = NO;
+				COMBINE_HIDPI_IMAGES = YES;
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
+				DEVELOPMENT_TEAM = BT67ZY58A8;
+				GCC_PREPROCESSOR_DEFINITIONS = METAL;
+				HEADER_SEARCH_PATHS = (
+					../../Common_3,
+					../../,
+					../,
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include",
+					"$(PROJECT_DIR)/../../../../",
+				);
+				INFOPLIST_FILE = "$(SRCROOT)/../02_Compute/02_Compute/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-9a-HybridRaytracing";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		28A5AE23201F7D41000E571F /* Build configuration list for PBXNativeTarget "08_GltfViewer_iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				28A5AE21201F7D41000E571F /* Debug */,
+				28A5AE22201F7D41000E571F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EA463C861EF81E8F005AC8C7 /* Build configuration list for PBXProject "08_GltfViewer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA463CAA1EF81E8F005AC8C7 /* Debug */,
+				EA463CAB1EF81E8F005AC8C7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EA463CAC1EF81E8F005AC8C7 /* Build configuration list for PBXNativeTarget "08_GltfViewer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA463CAD1EF81E8F005AC8C7 /* Debug */,
+				EA463CAE1EF81E8F005AC8C7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = EA463C831EF81E8F005AC8C7 /* Project object */;
+}

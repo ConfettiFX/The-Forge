@@ -19,10 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\Common_3\OS\Camera\FpsCameraController.cpp" />
-    <ClCompile Include="..\..\..\Common_3\OS\Camera\GuiCameraController.cpp" />
+    <ClCompile Include="..\..\..\Common_3\OS\Camera\CameraController.cpp" />
     <ClCompile Include="..\..\..\Common_3\OS\Core\FileSystem.cpp" />
-    <ClCompile Include="..\..\..\Common_3\OS\Core\PlatformEvents.cpp" />
     <ClCompile Include="..\..\..\Common_3\OS\Core\ThreadSystem.cpp" />
     <ClCompile Include="..\..\..\Common_3\OS\Core\Timer.cpp" />
     <ClCompile Include="..\..\..\Common_3\OS\Image\Image.cpp" />
@@ -86,11 +84,12 @@
     <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IApp.h" />
     <ClInclude Include="..\..\..\Common_3\OS\Interfaces\ICameraController.h" />
     <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IFileSystem.h" />
+    <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IInput.h" />
     <ClInclude Include="..\..\..\Common_3\OS\Interfaces\ILog.h" />
     <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IMemory.h" />
     <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IMiddleware.h" />
     <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IOperatingSystem.h" />
-    <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IPlatformEvents.h" />
+    <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IProfiler.h" />
     <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IThread.h" />
     <ClInclude Include="..\..\..\Common_3\OS\Interfaces\ITime.h" />
     <ClInclude Include="..\..\..\Common_3\OS\Logging\Log.h" />
@@ -108,7 +107,6 @@
     <ClInclude Include="..\..\..\Common_3\Tools\SpirvTools\SpirvTools.h" />
     <ClInclude Include="..\..\..\Middleware_3\Text\Fontstash.h" />
     <ClInclude Include="..\..\..\Middleware_3\UI\AppUI.h" />
-    <ClInclude Include="..\..\..\Middleware_3\UI\UIShaders.h" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="Libraries\OS\OS.vcxproj">

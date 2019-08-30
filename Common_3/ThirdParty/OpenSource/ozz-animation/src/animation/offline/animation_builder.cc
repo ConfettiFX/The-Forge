@@ -27,11 +27,13 @@
 
 #include "ozz/animation/offline/animation_builder.h"
 
-#include <algorithm>
+#include "../../EASTL/algorithm.h"
+#include "../../EASTL/numeric_limits.h"
+#include "../../EASTL/sort.h"
+
 #include <cassert>
 #include <cstddef>
 #include <cstring>
-#include <limits>
 
 #include "ozz/base/containers/vector.h"
 #include "ozz/base/memory/allocator.h"
@@ -238,7 +240,7 @@ void CompressQuat(const Quat& _src,
                   ozz::animation::RotationKey* _dest) {
   // Finds the largest quaternion component.
   const float quat[4] = {_src.getX(), _src.getY(), _src.getZ(), _src.getW()};
-  const size_t largest = std::max_element(quat, quat + 4, LessAbs) - quat;
+  const size_t largest = eastl::max_element(quat, quat + 4, LessAbs) - quat;
   assert(largest <= 3);
   _dest->largest = largest & 0x3;
 
@@ -275,7 +277,7 @@ void CopyToAnimation(ozz::Vector<SortingRotationKey>::Std* _src,
   // Note that keys are still sorted per-track at that point, which allows this
   // algorithm to process all consecutive keys.
   //CONFFX_BEGIN
-  size_t track = std::numeric_limits<size_t>::max();
+  size_t track = eastl::numeric_limits<size_t>::max();
   const Quat identity = Quat::identity();
   SortingRotationKey* src = &_src->front();
   for (size_t i = 0; i < src_count; ++i) {

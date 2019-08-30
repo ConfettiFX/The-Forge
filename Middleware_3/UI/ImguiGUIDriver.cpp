@@ -22,20 +22,16 @@
  * under the License.
 */
 
-#include "../../Middleware_3/Text/Fontstash.h"
-
 #include "../../Common_3/ThirdParty/OpenSource/imgui/imgui.h"
 #include "../../Common_3/ThirdParty/OpenSource/imgui/imgui_internal.h"
 
 #include "AppUI.h"
 
 #include "../../Common_3/OS/Interfaces/IOperatingSystem.h"
+#include "../../Common_3/OS/Interfaces/IInput.h"
 #include "../../Common_3/OS/Interfaces/ILog.h"
 #include "../../Common_3/Renderer/IRenderer.h"
 #include "../../Common_3/Renderer/ResourceLoader.h"
-
-#include "../../Common_3/OS/Input/InputSystem.h"
-#include "../../Common_3/OS/Input/InputMappings.h"
 
 #include "../../Common_3/OS/Interfaces/IMemory.h"    //NOTE: this should be the last include in a .cpp
 
@@ -125,16 +121,106 @@ class ImguiGUIDriver: public GUIDriver
 	bool load(RenderTarget** ppRts, uint32_t count);
 	void unload();
 
-	bool addGui(Fontstash* fontID, float fontSize, Texture* cursorTexture = 0, float uiwidth = 600, float uiheight = 400);
+	bool addFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGlyphRanges, float fontSize, uintptr_t* pFont);
 
 	void* getContext();
 
 	bool update(GUIUpdate* pGuiUpdate);
 	void draw(Cmd* q);
+	
+	// #NOTE: We can remove this once the profiler UI is integrated into our UI system
+	bool mPrevFocus = true;
+	bool mFocus = true;
+	bool mToggleFocus = false;
 
-	void onInput(const ButtonData* data);
-	bool isHovering(const float4& windowRect);
-	int  needsTextInput() const;
+	bool onButton(uint32_t button, bool press, const float2* vec, bool focus)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		pMovePosition = vec;
+		
+		switch (button)
+		{
+		case InputBindings::BUTTON_DPAD_LEFT: mNavInputs[ImGuiNavInput_DpadLeft] = (float)press; break;
+		case InputBindings::BUTTON_DPAD_RIGHT: mNavInputs[ImGuiNavInput_DpadRight] = (float)press; break;
+		case InputBindings::BUTTON_DPAD_UP: mNavInputs[ImGuiNavInput_DpadUp] = (float)press; break;
+		case InputBindings::BUTTON_DPAD_DOWN: mNavInputs[ImGuiNavInput_DpadDown] = (float)press; break;
+		case InputBindings::BUTTON_EAST: mNavInputs[ImGuiNavInput_Cancel] = (float)press; break;
+		case InputBindings::BUTTON_WEST: mNavInputs[ImGuiNavInput_Menu] = (float)press; break;
+		case InputBindings::BUTTON_NORTH: mNavInputs[ImGuiNavInput_Input] = (float)press; break;
+		case InputBindings::BUTTON_L1: mNavInputs[ImGuiNavInput_FocusPrev] = (float)press; break;
+		case InputBindings::BUTTON_R1: mNavInputs[ImGuiNavInput_FocusNext] = (float)press; break;
+		case InputBindings::BUTTON_L2: mNavInputs[ImGuiNavInput_TweakSlow] = (float)press; break;
+		case InputBindings::BUTTON_R2: mNavInputs[ImGuiNavInput_TweakFast] = (float)press; break;
+		case InputBindings::BUTTON_R3: if (!press) { mActive = !mActive; } break;
+		case InputBindings::BUTTON_BACK: io.KeysDown[InputBindings::BUTTON_BACK] = press; break;
+		case InputBindings::BUTTON_SOUTH:
+		{
+			mNavInputs[ImGuiNavInput_Activate] = (float)press;
+			if (pMovePosition)
+				io.MouseDown[0] = press;
+			if (!mActive)
+				return true;
+			if (io.MousePos.x != -FLT_MAX && io.MousePos.y != -FLT_MAX)
+			{
+				return !(io.WantCaptureMouse);
+			}
+			else if (pMovePosition)
+			{
+				io.MousePos = *pMovePosition;
+				for (uint32_t i = 0; i < mLastUpdateCount; ++i)
+				{
+					if (ImGui::IsMouseHoveringRect(mLastUpdateMin[i], mLastUpdateMax[i], false))
+					{
+						io.WantCaptureMouse = true;
+						return false;
+					}
+				}
+				return true;
+			}
+			
+			mFocus = focus;
+		}
+		default:
+			break;
+		}
+
+		return false;
+	}
+
+	bool onText(const wchar_t* pText)
+	{
+		ImGuiIO& io = ImGui::GetIO();
+		uint32_t len = (uint32_t)wcslen(pText);
+		for (uint32_t i = 0; i < len; ++i)
+			io.AddInputCharacter(pText[i]);
+
+		return !ImGui::GetIO().WantCaptureMouse;
+	}
+
+	uint8_t wantTextInput() const
+	{
+		//The User flags are not what I expect them to be.
+		//We need access to Per-Component InputFlags
+		ImGuiContext*       guiContext = (ImGuiContext*)this->context;
+		ImGuiInputTextFlags currentInputFlags = guiContext->InputTextState.UserFlags;
+
+		//0 -> Not pressed
+		//1 -> Digits Only keyboard
+		//2 -> Full Keyboard (Chars + Digits)
+		int inputState = ImGui::GetIO().WantTextInput ? 2 : 0;
+		//keyboard only Numbers
+		if (inputState > 0 && (currentInputFlags & ImGuiInputTextFlags_CharsDecimal))
+		{
+			inputState = 1;
+		}
+
+		return inputState;
+	}
+	
+	bool isFocused()
+	{
+		return ImGui::GetIO().WantCaptureMouse;
+	}
 
 	static void* alloc_func(size_t size, void* user_data) { return conf_malloc(size); }
 
@@ -142,11 +228,10 @@ class ImguiGUIDriver: public GUIDriver
 
 	protected:
 	static const uint32_t MAX_FRAMES = 3;
-	ImGuiContext*         context;
-	Texture*              pFontTexture;
-	float2                dpiScale;
-	bool                  loaded;
-	uint32_t              frameIdx;
+	ImGuiContext*           context;
+	eastl::vector<Texture*> mFontTextures;
+	float2                  dpiScale;
+	uint32_t                frameIdx;
 
 	Renderer*          pRenderer;
 	Shader*            pShaderTextured;
@@ -163,6 +248,12 @@ class ImguiGUIDriver: public GUIDriver
 	RasterizerState* pRasterizerState;
 	Sampler*         pDefaultSampler;
 	VertexLayout     mVertexLayoutTextured = {};
+	float            mNavInputs[ImGuiNavInput_COUNT];
+	const float2*    pMovePosition;
+	uint32_t         mLastUpdateCount;
+	float2           mLastUpdateMin[64] = {};
+	float2           mLastUpdateMax[64] = {};
+	bool             mActive;
 };
 
 static const uint64_t VERTEX_BUFFER_SIZE = 1024 * 64 * sizeof(ImDrawVert);
@@ -461,7 +552,7 @@ bool ImguiGUIDriver::init(Renderer* renderer, uint32_t const maxDynamicUIUpdates
 {
 	mHandledGestures = false;
 	pRenderer = renderer;
-	loaded = false;
+	mActive = true;
 	/************************************************************************/
 	// Rendering resources
 	/************************************************************************/
@@ -564,6 +655,13 @@ bool ImguiGUIDriver::init(Renderer* renderer, uint32_t const maxDynamicUIUpdates
 	context = ImGui::CreateContext();
 	ImGui::SetCurrentContext(context);
 
+	SetDefaultStyle();
+
+	ImGuiIO& io = ImGui::GetIO();
+	io.NavActive = true;
+	io.WantCaptureMouse = true;
+	io.KeyMap[ImGuiKey_Backspace] = InputBindings::BUTTON_BACK;
+
 	return true;
 }
 
@@ -580,75 +678,53 @@ void ImguiGUIDriver::exit()
 	removeResource(pIndexBuffer);
 	removeResource(pUniformBuffer);
 
-	if (pFontTexture)
-	{
+	for (Texture* pFontTexture : mFontTextures)
 		removeResource(pFontTexture);
-	}
 
+	mFontTextures.clear();
 	ImGui::DestroyContext(context);
 }
 
-bool ImguiGUIDriver::addGui(Fontstash* fontstash, float fontSize, Texture* cursorTexture, float uiwidth, float uiheight)
+bool ImguiGUIDriver::addFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGlyphRanges, float fontSize, uintptr_t* pFont)
 {
-	if (!loaded)
+	// Build and load the texture atlas into a texture
+	int            width, height;
+	unsigned char* pixels = NULL;
+	ImGuiIO& io = ImGui::GetIO();
+
+	ImFontConfig   config = {};
+	config.FontDataOwnedByAtlas = false;
+	ImFont* font = io.Fonts->AddFontFromMemoryTTF(pFontBuffer, fontBufferSize,
+		fontSize * min(dpiScale.x, dpiScale.y), &config,
+		(const ImWchar*)pFontGlyphRanges);
+	if (font != NULL)
 	{
-		// Build and load the texture atlas into a texture
-		// (In the examples/ app this is usually done within the ImGui_ImplXXX_Init() function from one of the demo Renderer)
-		int            width, height;
-		unsigned char* pixels = NULL;
-		ImFontConfig   config = {};
-		config.FontDataOwnedByAtlas = false;
-		ImFont* font = ImGui::GetIO().Fonts->AddFontFromMemoryTTF(
-			fontstash->getFontBuffer("default"), fontstash->getFontBufferSize("default"), fontSize * min(dpiScale.x, dpiScale.y), &config);
-		if (font != NULL)
-		{
-			ImGui::GetIO().FontDefault = font;
-		}
-		else
-		{
-			ImGui::GetIO().Fonts->AddFontDefault();
-		}
-		ImGui::GetIO().Fonts->Build();
-		ImGui::GetIO().Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
-		// At this point you've got the texture data and you need to upload that your your graphic system:
-		// After we have created the texture, store its pointer/identifier (_in whichever format your engine uses_) in 'io.Fonts->TexID'.
-		// This will be passed back to your via the renderer. Basically ImTextureID == void*. Read FAQ below for details about ImTextureID.
-		RawImageData    rawData{ pixels, ImageFormat::RGBA8, (uint32_t)width, (uint32_t)height, 1, 1, 1 };
-		TextureLoadDesc loadDesc = {};
-		loadDesc.pRawImageData = &rawData;
-		loadDesc.ppTexture = &pFontTexture;
-		loadDesc.mCreationFlag = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-		addResource(&loadDesc);
-		ImGui::GetIO().Fonts->TexID = (void*)pFontTexture;
-
-		SetDefaultStyle();
-
-		ImGuiIO& io = ImGui::GetIO();
-		//io.KeyMap[ImGuiKey_Tab] = VK_TAB;
-		//io.KeyMap[ImGuiKey_PageUp] = VK_PRIOR;
-		//io.KeyMap[ImGuiKey_PageDown] = VK_NEXT;
-		//io.KeyMap[ImGuiKey_Home] = VK_HOME;
-		//io.KeyMap[ImGuiKey_End] = VK_END;
-		//io.KeyMap[ImGuiKey_Insert] = VK_INSERT;
-		//io.KeyMap[ImGuiKey_Delete] = VK_DELETE;
-		io.KeyMap[ImGuiKey_LeftArrow] = KEY_PAD_LEFT;
-		io.KeyMap[ImGuiKey_RightArrow] = KEY_PAD_RIGHT;
-		io.KeyMap[ImGuiKey_UpArrow] = KEY_PAD_UP;
-		io.KeyMap[ImGuiKey_DownArrow] = KEY_PAD_DOWN;
-		io.KeyMap[ImGuiKey_Backspace] = KEY_RIGHT_STICK_BUTTON;
-		io.KeyMap[ImGuiKey_Delete] = KEY_DELETE;
-		io.KeyMap[ImGuiKey_Space] = KEY_LEFT_TRIGGER;
-		io.KeyMap[ImGuiKey_Enter] = KEY_MENU;
-		io.KeyMap[ImGuiKey_Escape] = KEY_CANCEL;
-		io.KeyMap[ImGuiKey_A] = 'A';
-		io.KeyMap[ImGuiKey_C] = 'C';
-		io.KeyMap[ImGuiKey_V] = 'V';
-		io.KeyMap[ImGuiKey_X] = 'X';
-		io.KeyMap[ImGuiKey_Y] = 'Y';
-		io.KeyMap[ImGuiKey_Z] = 'Z';
-
-		loaded = true;
+		io.FontDefault = font;
 	}
+	else
+	{
+		io.Fonts->AddFontDefault();
+	}
+
+	*pFont = (uintptr_t)font;
+
+	io.Fonts->Build();
+	io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+
+	Texture* pFontTexture = NULL;
+	// At this point you've got the texture data and you need to upload that your your graphic system:
+	// After we have created the texture, store its pointer/identifier (_in whichever format your engine uses_) in 'io.Fonts->TexID'.
+	// This will be passed back to your via the renderer. Basically ImTextureID == void*. Read FAQ below for details about ImTextureID.
+	RawImageData    rawData = { pixels, ImageFormat::RGBA8, (uint32_t)width, (uint32_t)height, 1, 1, 1 };
+	TextureLoadDesc loadDesc = {};
+	loadDesc.pRawImageData = &rawData;
+	loadDesc.ppTexture = &pFontTexture;
+	loadDesc.mCreationFlag = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
+	addResource(&loadDesc);
+	io.Fonts->TexID = (void*)pFontTexture;
+
+	mFontTextures.emplace_back(pFontTexture);
+
 	return true;
 }
 
@@ -682,102 +758,9 @@ void ImguiGUIDriver::unload()
 	removePipeline(pRenderer, pPipelineTextured);
 }
 
-void* ImguiGUIDriver::getContext() { return context; }
-
-void ImguiGUIDriver::onInput(const ButtonData* data)
+void* ImguiGUIDriver::getContext()
 {
-	ImGui::SetCurrentContext(context);
-	ImGuiIO& io = ImGui::GetIO();
-
-	if (GAINPUT_GAMEPAD & data->mActiveDevicesMask)
-	{
-		io.NavActive = true;
-		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
-		io.BackendFlags |= ImGuiBackendFlags_HasGamepad;
-		return;
-	}
-
-	io.NavActive = false;
-
-	// Always handle gestures first
-	if (GESTURE_SWIPE_2 == data->mUserId)
-	{
-		// Divide by extra multiple that ImGUI applies when using the MouseWheel values
-		// We do that because swiping is different than mousewheel and matches exactly pixels
-		// Removing this division will cause the scroll to not match the fingers movement.
-		float scroll_amount = 1.0f;
-		if (context->HoveredWindow)
-			scroll_amount = 5.f * context->HoveredWindow->CalcFontSize();
-		io.MouseWheel += data->mValue[INPUT_Y_AXIS] * getDpiScale().y / scroll_amount;
-
-		mHandledGestures = true;
-
-		for (int i = 0; i < 5; i++)
-		{
-			io.MouseDown[0] = false;
-		}
-	}
-
-	if (mHandledGestures)
-		return;
-
-	if (data->mUserId == KEY_UI_MOVE)
-	{
-		io.MousePos = float2((float)data->mValue[0], (float)data->mValue[1]);
-	}
-	else if (data->mUserId == KEY_CONFIRM || data->mUserId == KEY_RIGHT_BUMPER || data->mUserId == KEY_MOUSE_WHEEL_BUTTON)
-	{
-		uint32_t index = data->mUserId == KEY_CONFIRM ? 0 : (data->mUserId == KEY_RIGHT_BUMPER ? 1 : 2);
-		io.MouseDown[index] = data->mIsPressed;
-		io.MousePos = float2((float)data->mValue[0], (float)data->mValue[1]);
-	}
-	else if (KEY_MOUSE_WHEEL == data->mUserId)
-	{
-		io.MouseWheel += data->mValue[0];
-	}
-	else if (KEY_CHAR == data->mUserId)
-	{
-		if (data->mIsPressed && needsTextInput())
-			io.AddInputCharacter(data->mCharacter);
-	}
-	else if (KEY_LEFT_STICK == data->mUserId)
-	{
-		io.KeysDown[(int)'A'] = data->mIsPressed;
-	}
-	else if (KEY_RIGHT_STICK_BUTTON == data->mUserId || KEY_DELETE == data->mUserId)
-	{
-		io.KeysDown[data->mUserId] = data->mIsPressed;
-	}
-	else if (KEY_RIGHT_CTRL == data->mUserId || KEY_LEFT_CTRL == data->mUserId)
-	{
-		io.KeysDown[data->mUserId] = data->mIsPressed;
-		io.KeyCtrl = data->mIsPressed;
-	}
-	else if (KEY_RIGHT_SHIFT == data->mUserId || KEY_LEFT_BUMPER == data->mUserId)
-	{
-		io.KeysDown[data->mUserId] = data->mIsPressed;
-		io.KeyShift = data->mIsPressed;
-	}
-	else if (KEY_RIGHT_SUPER == data->mUserId || KEY_LEFT_SUPER == data->mUserId)
-	{
-		io.KeysDown[data->mUserId] = data->mIsPressed;
-		io.KeySuper = data->mIsPressed;
-	}
-	else if (
-		KEY_PAD_LEFT == data->mUserId || KEY_PAD_RIGHT == data->mUserId || KEY_PAD_UP == data->mUserId || KEY_PAD_DOWN == data->mUserId)
-	{
-		io.KeysDown[data->mUserId] = data->mIsPressed;
-	}
-	else if (KEY_MENU == data->mUserId)
-	{
-		io.KeysDown[data->mUserId] = data->mIsPressed;
-	}
-}
-
-bool ImguiGUIDriver::isHovering(const float4& windowRect)
-{
-	return ImGui::IsMouseHoveringRect(
-		float2(windowRect.x, windowRect.y), float2(windowRect.x + windowRect.z, windowRect.y + windowRect.w), false);
+	return context;
 }
 
 bool ImguiGUIDriver::update(GUIUpdate* pGuiUpdate)
@@ -788,134 +771,147 @@ bool ImguiGUIDriver::update(GUIUpdate* pGuiUpdate)
 	io.DisplaySize.x = pGuiUpdate->width;
 	io.DisplaySize.y = pGuiUpdate->height;
 	io.DeltaTime = pGuiUpdate->deltaTime;
-
-	if (io.NavActive)
-	{
-		io.NavInputs[ImGuiNavInput_Activate] = InputSystem::GetFloatInput(IMGUI_NAVINPUT_ACTIVATE);
-		io.NavInputs[ImGuiNavInput_Cancel] = InputSystem::GetFloatInput(IMGUI_NAVINPUT_CANCEL);
-		io.NavInputs[ImGuiNavInput_Menu] = InputSystem::GetFloatInput(IMGUI_NAVINPUT_MENU);
-		io.NavInputs[ImGuiNavInput_Input] = InputSystem::GetFloatInput(IMGUI_NAVINPUT_INPUT);
-		io.NavInputs[ImGuiNavInput_DpadLeft] = InputSystem::GetFloatInput(IMGUI_NAVINPUT_DPADLEFT);
-		io.NavInputs[ImGuiNavInput_DpadRight] = InputSystem::GetFloatInput(IMGUI_NAVINPUT_DPADRIGHT);
-		io.NavInputs[ImGuiNavInput_DpadUp] = InputSystem::GetFloatInput(IMGUI_NAVINPUT_DPADUP);
-		io.NavInputs[ImGuiNavInput_DpadDown] = InputSystem::GetFloatInput(IMGUI_NAVINPUT_DPADDOWN);
-		io.NavInputs[ImGuiNavInput_FocusNext] = InputSystem::GetFloatInput(IMGUI_NAVINPUT_FOCUSNEXT);
-		io.NavInputs[ImGuiNavInput_FocusPrev] = InputSystem::GetFloatInput(IMGUI_NAVINPUT_FOCUSPREV);
-		io.NavInputs[ImGuiNavInput_TweakFast] = InputSystem::GetFloatInput(IMGUI_NAVINPUT_TWEAKFAST);
-		io.NavInputs[ImGuiNavInput_TweakSlow] = InputSystem::GetFloatInput(IMGUI_NAVINPUT_TWEAKSLOW);
-	}
-
+	if (pMovePosition)
+		io.MousePos = *pMovePosition;
+	
+	memcpy(io.NavInputs, mNavInputs, sizeof(mNavInputs));
+	
 	ImGui::NewFrame();
-
-	if (pGuiUpdate->showDemoWindow)
-		ImGui::ShowDemoWindow();
 
 	bool ret = false;
 
-	for (uint32_t compIndex = 0; compIndex < pGuiUpdate->componentCount; ++compIndex)
+	if (mActive)
 	{
-		GuiComponent*                           pComponent = pGuiUpdate->pGuiComponents[compIndex];
-		eastl::string                         title = pComponent->mTitle;
-		int32_t                                 guiComponentFlags = pComponent->mFlags;
-		bool*                                   pCloseButtonActiveValue = pComponent->mHasCloseButton ? &pComponent->mHasCloseButton : NULL;
-		const eastl::vector<eastl::string>& contextualMenuLabels = pComponent->mContextualMenuLabels;
-		const eastl::vector<WidgetCallback>&  contextualMenuCallbacks = pComponent->mContextualMenuCallbacks;
-		const float4&                           windowRect = pComponent->mInitialWindowRect;
-		float4&                                 currentWindowRect = pComponent->mCurrentWindowRect;
-		IWidget**                               pProps = pComponent->mWidgets.data();
-		uint32_t                                propCount = (uint32_t)pComponent->mWidgets.size();
+		if (pGuiUpdate->showDemoWindow)
+			ImGui::ShowDemoWindow();
 
-		if (title == "")
-			title.sprintf("##%llu", (uint64_t)pComponent);
-		// Setup the ImGuiWindowFlags
-		ImGuiWindowFlags guiWinFlags = GUI_COMPONENT_FLAGS_NONE;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_TITLE_BAR)
-			guiWinFlags |= ImGuiWindowFlags_NoTitleBar;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_RESIZE)
-			guiWinFlags |= ImGuiWindowFlags_NoResize;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_MOVE)
-			guiWinFlags |= ImGuiWindowFlags_NoMove;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_SCROLLBAR)
-			guiWinFlags |= ImGuiWindowFlags_NoScrollbar;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_COLLAPSE)
-			guiWinFlags |= ImGuiWindowFlags_NoCollapse;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE)
-			guiWinFlags |= ImGuiWindowFlags_AlwaysAutoResize;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_INPUTS)
-			guiWinFlags |= ImGuiWindowFlags_NoInputs;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_MEMU_BAR)
-			guiWinFlags |= ImGuiWindowFlags_MenuBar;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_HORIZONTAL_SCROLLBAR)
-			guiWinFlags |= ImGuiWindowFlags_HorizontalScrollbar;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_FOCUS_ON_APPEARING)
-			guiWinFlags |= ImGuiWindowFlags_NoFocusOnAppearing;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_BRING_TO_FRONT_ON_FOCUS)
-			guiWinFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_VERTICAL_SCROLLBAR)
-			guiWinFlags |= ImGuiWindowFlags_AlwaysVerticalScrollbar;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_HORIZONTAL_SCROLLBAR)
-			guiWinFlags |= ImGuiWindowFlags_AlwaysHorizontalScrollbar;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_USE_WINDOW_PADDING)
-			guiWinFlags |= ImGuiWindowFlags_AlwaysUseWindowPadding;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_NAV_INPUT)
-			guiWinFlags |= ImGuiWindowFlags_NoNavInputs;
-		if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_NAV_FOCUS)
-			guiWinFlags |= ImGuiWindowFlags_NoNavFocus;
 
-		bool result = ImGui::Begin(title.c_str(), pCloseButtonActiveValue, guiWinFlags);
-		if (result)
+		mLastUpdateCount = pGuiUpdate->componentCount;
+
+		for (uint32_t compIndex = 0; compIndex < pGuiUpdate->componentCount; ++compIndex)
 		{
-			// Setup the contextual menus
-			if (!contextualMenuLabels.empty() && ImGui::BeginPopupContextItem())    // <-- This is using IsItemHovered()
+			GuiComponent*                           pComponent = pGuiUpdate->pGuiComponents[compIndex];
+			eastl::string                           title = pComponent->mTitle;
+			int32_t                                 guiComponentFlags = pComponent->mFlags;
+			bool*                                   pCloseButtonActiveValue = pComponent->mHasCloseButton ? &pComponent->mHasCloseButton : NULL;
+			const eastl::vector<eastl::string>& contextualMenuLabels = pComponent->mContextualMenuLabels;
+			const eastl::vector<WidgetCallback>&  contextualMenuCallbacks = pComponent->mContextualMenuCallbacks;
+			const float4&                           windowRect = pComponent->mInitialWindowRect;
+			float4&                                 currentWindowRect = pComponent->mCurrentWindowRect;
+			IWidget**                               pProps = pComponent->mWidgets.data();
+			uint32_t                                propCount = (uint32_t)pComponent->mWidgets.size();
+
+			if (title == "")
+				title.sprintf("##%llu", (uint64_t)pComponent);
+			// Setup the ImGuiWindowFlags
+			ImGuiWindowFlags guiWinFlags = GUI_COMPONENT_FLAGS_NONE;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_TITLE_BAR)
+				guiWinFlags |= ImGuiWindowFlags_NoTitleBar;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_RESIZE)
+				guiWinFlags |= ImGuiWindowFlags_NoResize;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_MOVE)
+				guiWinFlags |= ImGuiWindowFlags_NoMove;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_SCROLLBAR)
+				guiWinFlags |= ImGuiWindowFlags_NoScrollbar;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_COLLAPSE)
+				guiWinFlags |= ImGuiWindowFlags_NoCollapse;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE)
+				guiWinFlags |= ImGuiWindowFlags_AlwaysAutoResize;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_INPUTS)
+				guiWinFlags |= ImGuiWindowFlags_NoInputs;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_MEMU_BAR)
+				guiWinFlags |= ImGuiWindowFlags_MenuBar;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_HORIZONTAL_SCROLLBAR)
+				guiWinFlags |= ImGuiWindowFlags_HorizontalScrollbar;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_FOCUS_ON_APPEARING)
+				guiWinFlags |= ImGuiWindowFlags_NoFocusOnAppearing;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_BRING_TO_FRONT_ON_FOCUS)
+				guiWinFlags |= ImGuiWindowFlags_NoBringToFrontOnFocus;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_VERTICAL_SCROLLBAR)
+				guiWinFlags |= ImGuiWindowFlags_AlwaysVerticalScrollbar;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_HORIZONTAL_SCROLLBAR)
+				guiWinFlags |= ImGuiWindowFlags_AlwaysHorizontalScrollbar;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_USE_WINDOW_PADDING)
+				guiWinFlags |= ImGuiWindowFlags_AlwaysUseWindowPadding;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_NAV_INPUT)
+				guiWinFlags |= ImGuiWindowFlags_NoNavInputs;
+			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_NAV_FOCUS)
+				guiWinFlags |= ImGuiWindowFlags_NoNavFocus;
+
+			ImGui::PushFont((ImFont*)pComponent->pFont);
+
+			bool result = ImGui::Begin(title.c_str(), pCloseButtonActiveValue, guiWinFlags);
+			if (result)
 			{
-				for (size_t i = 0; i < contextualMenuLabels.size(); i++)
+				// Setup the contextual menus
+				if (!contextualMenuLabels.empty() && ImGui::BeginPopupContextItem())    // <-- This is using IsItemHovered()
 				{
-					if (ImGui::MenuItem(contextualMenuLabels[i].c_str()))
+					for (size_t i = 0; i < contextualMenuLabels.size(); i++)
 					{
-						if (i < contextualMenuCallbacks.size())
-							contextualMenuCallbacks[i]();
+						if (ImGui::MenuItem(contextualMenuLabels[i].c_str()))
+						{
+							if (i < contextualMenuCallbacks.size())
+								contextualMenuCallbacks[i]();
+						}
 					}
+					ImGui::EndPopup();
 				}
-				ImGui::EndPopup();
+
+				bool overrideSize = false;
+				bool overridePos = false;
+
+				if ((guiComponentFlags & GUI_COMPONENT_FLAGS_NO_RESIZE) && !(guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE))
+					overrideSize = true;
+
+				if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_MOVE)
+					overridePos = true;
+
+				ImGui::SetWindowSize(
+					float2(windowRect.z * dpiScale.x, windowRect.w * dpiScale.y), overrideSize ? ImGuiCond_Always : ImGuiCond_Once);
+				ImGui::SetWindowPos(
+					float2(windowRect.x * dpiScale.x, windowRect.y * dpiScale.y), overridePos ? ImGuiCond_Always : ImGuiCond_Once);
+
+				for (uint32_t i = 0; i < propCount; ++i)
+					if (pProps[i])
+						pProps[i]->Draw();
+
+				ret = ret || ImGui::GetIO().WantCaptureMouse;
 			}
 
-			bool overrideSize = false;
-			bool overridePos = false;
+			float2 pos = ImGui::GetWindowPos();
+			float2 size = ImGui::GetWindowSize();
+			currentWindowRect.x = pos.x;
+			currentWindowRect.y = pos.y;
+			currentWindowRect.z = size.x;
+			currentWindowRect.w = size.y;
+			mLastUpdateMin[compIndex] = pos;
+			mLastUpdateMax[compIndex] = pos + size;
 
-			if ((guiComponentFlags & GUI_COMPONENT_FLAGS_NO_RESIZE) && !(guiComponentFlags & GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE))
-				overrideSize = true;
+			// Need to call ImGui::End event if result is false since we called ImGui::Begin
+			ImGui::End();
 
-			if (guiComponentFlags & GUI_COMPONENT_FLAGS_NO_MOVE)
-				overridePos = true;
-
-			ImGui::SetWindowSize(
-				float2(windowRect.z * dpiScale.x, windowRect.w * dpiScale.y), overrideSize ? ImGuiCond_Always : ImGuiCond_Once);
-			ImGui::SetWindowPos(
-				float2(windowRect.x * dpiScale.x, windowRect.y * dpiScale.y), overridePos ? ImGuiCond_Always : ImGuiCond_Once);
-
-			float2 min = ImGui::GetWindowPos();
-			float2 max = ImGui::GetWindowSize();
-			currentWindowRect.x = min.x;
-			currentWindowRect.y = min.y;
-			currentWindowRect.z = max.x;
-			currentWindowRect.w = max.y;
-
-			for (uint32_t i = 0; i < propCount; ++i)
-				if (pProps[i])
-					pProps[i]->Draw();
-
-			if (!ret)
-				ret = ImGui::GetIO().WantCaptureMouse;
+			ImGui::PopFont();
 		}
-		// Need to call ImGui::End event if result is false since we called ImGui::Begin
-		ImGui::End();
 	}
-
 	ImGui::EndFrame();
-
-	// Flush key down array since onInput will apply the right states again next frame
-	for (int i = 0; i < IM_ARRAYSIZE(io.KeysDown); i++)
-		io.KeysDown[i] = 0;
+	
+	if (mToggleFocus)
+	{
+		mToggleFocus = false;
+		mNavInputs[ImGuiNavInput_Cancel] = 0.0f;
+	}
+	
+	if (mFocus != mPrevFocus)
+	{
+		mToggleFocus = true;
+		mNavInputs[ImGuiNavInput_Cancel] = 1.0f;
+		mPrevFocus = mFocus;
+	}
+	
+	if (!io.MouseDown[0])
+	{
+		io.MousePos = float2(-FLT_MAX);
+	}
 
 	mHandledGestures = false;
 
@@ -954,7 +950,7 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 	{
 		const ImDrawList* cmd_list = draw_data->CmdLists[n];
 		BufferUpdateDesc  update = { pVertexBuffer, cmd_list->VtxBuffer.data(), 0, vtx_dst,
-                                    cmd_list->VtxBuffer.size() * sizeof(ImDrawVert) };
+									cmd_list->VtxBuffer.size() * sizeof(ImDrawVert) };
 		updateResource(&update);
 		update = { pIndexBuffer, cmd_list->IdxBuffer.data(), 0, idx_dst, cmd_list->IdxBuffer.size() * sizeof(ImDrawIdx) };
 		updateResource(&update);
@@ -1026,24 +1022,4 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 		}
 		vtx_offset += (int)cmd_list->VtxBuffer.size();
 	}
-}
-
-int ImguiGUIDriver::needsTextInput() const
-{
-	//The User flags are not what I expect them to be.
-	//We need access to Per-Component InputFlags
-	ImGuiContext*       guiContext = (ImGuiContext*)this->context;
-	ImGuiInputTextFlags currentInputFlags = guiContext->InputTextState.UserFlags;
-
-	//0 -> Not pressed
-	//1 -> Digits Only keyboard
-	//2 -> Full Keyboard (Chars + Digits)
-	int inputState = ImGui::GetIO().WantTextInput ? 2 : 0;
-	//keyboard only Numbers
-	if (inputState > 0 && (currentInputFlags & ImGuiInputTextFlags_CharsDecimal))
-	{
-		inputState = 1;
-	}
-
-	return inputState;
 }

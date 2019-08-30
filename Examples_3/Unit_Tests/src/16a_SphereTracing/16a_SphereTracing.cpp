@@ -34,12 +34,10 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
 #include "../../../../Middleware_3/UI/AppUI.h"
-#include "../../../../Common_3/OS/Input/InputSystem.h"
-#include "../../../../Common_3/OS/Input/InputMappings.h"
-
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"    // Must be last include in cpp file
 
 struct UniformBlock
@@ -49,7 +47,7 @@ struct UniformBlock
 };
 
 const uint32_t gImageCount = 3;
-bool           bToggleMicroProfiler = false;
+bool           gMicroProfiler = false;
 bool           bPrevToggleMicroProfiler = false;
 
 Renderer* pRenderer = NULL;
@@ -67,9 +65,7 @@ Shader*           pRTDemoShader = NULL;
 Pipeline*         pRTDemoPipeline = NULL;
 RootSignature*    pRootSignature = NULL;
 DescriptorBinder* pDescriptorBinder = NULL;
-#if defined(TARGET_IOS) || defined(__ANDROID__)
 VirtualJoystickUI gVirtualJoystick;
-#endif
 RasterizerState* pRast = NULL;
 
 Buffer* pUniformBuffer[gImageCount] = { NULL };
@@ -138,17 +134,14 @@ class SphereTracing: public IApp
 		initResourceLoaderInterface(pRenderer);
 
 		initProfiler(pRenderer);
-		profileRegisterInput();
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
-#if defined(__ANDROID__) || defined(TARGET_IOS)
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 		{
 			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
 			return false;
 		}
-#endif
 
 		ShaderLoadDesc rtDemoShader = {};
 		rtDemoShader.mStages[0] = { "fstri.vert", NULL, 0, FSR_SrcShaders };
@@ -186,30 +179,66 @@ class SphereTracing: public IApp
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
-    /************************************************************************/
-    // GUI
-    /************************************************************************/
-    GuiDesc guiDesc = {};
-    guiDesc.mStartSize = vec2(300.0f, 250.0f);
-    guiDesc.mStartPosition = vec2(0.0f, guiDesc.mStartSize.getY());
-    pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
+		/************************************************************************/
+		// GUI
+		/************************************************************************/
+		GuiDesc guiDesc = {};
+		guiDesc.mStartSize = vec2(300.0f, 250.0f);
+		guiDesc.mStartPosition = vec2(0.0f, guiDesc.mStartSize.getY());
+		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
-    pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+		pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
 
 		CameraMotionParameters cmp{ 1.6f, 6.0f, 2.0f };
 		vec3                   camPos{ 3.5, 1.0, 0.5 };
 		vec3                   lookAt{ -0.5f, -0.4f, 0.5f };
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
-
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-		gVirtualJoystick.InitLRSticks();
-		pCameraController->setVirtualJoystick(&gVirtualJoystick);
-#endif
-
 		pCameraController->setMotionParameters(cmp);
 
-		InputSystem::RegisterInputEvent(cameraInputEvent);
+		if (!initInputSystem(pWindow))
+			return false;
+
+		// Microprofiler Actions
+		// #TODO: Remove this once the profiler UI is ported to use our UI system
+		InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gMicroProfiler; } };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
+		addInputAction(&actionDesc);
+
+		// App Actions
+		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		addInputAction(&actionDesc);
+		actionDesc =
+		{
+			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
+			{
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gMicroProfiler);
+				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+				return true;
+			}, this
+		};
+		addInputAction(&actionDesc);
+		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
+		{
+			if (!gMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
+			{
+				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
+				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+			}
+			return true;
+		};
+		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+		addInputAction(&actionDesc);
+
+
 		return true;
 	}
 
@@ -217,13 +246,13 @@ class SphereTracing: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
+		exitInputSystem();
+
 		exitProfiler();
 
 		destroyCameraController(pCameraController);
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Exit();
-#endif
 
 		gAppUI.Exit();
 
@@ -262,10 +291,9 @@ class SphereTracing: public IApp
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
-#endif
+
 		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
 
 		PipelineDesc desc = {};
@@ -295,9 +323,8 @@ class SphereTracing: public IApp
 		gAppUI.Unload();
 
 		unloadProfiler();
-#if defined(TARGET_IOS) || defined(__ANDROID__)
+
 		gVirtualJoystick.Unload();
-#endif
 
 		removePipeline(pRenderer, pRTDemoPipeline);
 
@@ -306,13 +333,7 @@ class SphereTracing: public IApp
 
 	void Update(float deltaTime)
 	{
-		/************************************************************************/
-		// Input
-		/************************************************************************/
-		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
-		{
-			RecenterCameraView(5.0f, vec3(-0.5f, -0.4f, 0.5f));
-		}
+		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
 		pCameraController->update(deltaTime);
 		/************************************************************************/
@@ -327,14 +348,14 @@ class SphereTracing: public IApp
 
     // ProfileSetDisplayMode()
     // TODO: need to change this better way 
-    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+    if (gMicroProfiler != bPrevToggleMicroProfiler)
     {
       Profile& S = *ProfileGet();
-      int nValue = bToggleMicroProfiler ? 1 : 0;
+      int nValue = gMicroProfiler ? 1 : 0;
       nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
       S.nDisplay = nValue;
 
-      bPrevToggleMicroProfiler = bToggleMicroProfiler;
+      bPrevToggleMicroProfiler = gMicroProfiler;
     }
 
     gAppUI.Update(deltaTime);
@@ -400,9 +421,7 @@ class SphereTracing: public IApp
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
-#endif
 
 		gAppUI.DrawText(
 			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
@@ -449,28 +468,6 @@ class SphereTracing: public IApp
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;
-	}
-
-	void RecenterCameraView(float maxDistance, vec3 lookAt = vec3(0))
-	{
-		vec3 p = pCameraController->getViewPosition();
-		vec3 d = p - lookAt;
-
-		float lenSqr = lengthSqr(d);
-		if (lenSqr > (maxDistance * maxDistance))
-		{
-			d *= (maxDistance / sqrtf(lenSqr));
-		}
-
-		p = d + lookAt;
-		pCameraController->moveTo(p);
-		pCameraController->lookAt(lookAt);
-	}
-
-	static bool cameraInputEvent(const ButtonData* data)
-	{
-		pCameraController->onInputEvent(data);
-		return true;
 	}
 };
 

@@ -37,9 +37,6 @@
 #include "../Interfaces/ITime.h"
 #include "../Interfaces/IThread.h"
 
-#include "../Input/InputSystem.h"
-#include "../Input/InputMappings.h"
-
 #include "../Interfaces/IMemory.h"
 
 #define CONFETTI_WINDOW_CLASS L"confetti"
@@ -50,14 +47,7 @@
 
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 
-namespace {
-bool isCaptured = false;
-}
-
 static bool gWindowClassInitialized = false;
-//static WNDCLASSW  gWindowClass;
-
-static int gCursorLastX = 0, gCursorLastY = 0;
 
 static eastl::vector<MonitorDesc>                gMonitors;
 static eastl::unordered_map<void*, WindowsDesc*> gHWNDMap;
@@ -66,13 +56,6 @@ static float                                       gRetinaScale = 1.0f;
 
 void adjustWindow(WindowsDesc* winDesc);
 
-namespace PlatformEvents {
-extern bool wantsMouseCapture;
-extern bool skipMouseCapture;
-
-extern void onWindowResize(const WindowResizeEventData* pData);
-}    // namespace PlatformEvents
-
 void getRecommendedResolution(RectDesc* rect) { *rect = { 0, 0, 1920, 1080 }; }
 
 void requestShutdown()
@@ -80,8 +63,12 @@ void requestShutdown()
 	// #TODO: Test this
 	XEvent event = {};
 	event.type = ClientMessage;
-	event.xclient.data.l[0] == gWindow.xlib_wm_delete_window;
+	event.xclient.data.l[0] == gWindow.handle.xlib_wm_delete_window;
 	XSendEvent(gWindow.handle.display, gWindow.handle.window, false, 0, &event);
+}
+
+void toggleFullscreen(WindowsDesc* window)
+{
 }
 
 float2 getDpiScale() { return { gRetinaScale, gRetinaScale }; }
@@ -186,8 +173,8 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 	);
 	XMapWindow(winDesc->handle.display, winDesc->handle.window);
 	XFlush(winDesc->handle.display);
-	winDesc->xlib_wm_delete_window = XInternAtom(winDesc->handle.display, "WM_DELETE_WINDOW", False);
-	XSetWMProtocols(winDesc->handle.display, winDesc->handle.window, &winDesc->xlib_wm_delete_window, 1);
+	winDesc->handle.xlib_wm_delete_window = XInternAtom(winDesc->handle.display, "WM_DELETE_WINDOW", False);
+	XSetWMProtocols(winDesc->handle.display, winDesc->handle.window, &winDesc->handle.xlib_wm_delete_window, 1);
 	
 	// Restrict window min size
 	XSizeHints* size_hints = XAllocSizeHints();
@@ -204,32 +191,18 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 bool handleMessages(WindowsDesc* winDesc)
 {
 	bool quit = false;
-	//this needs to be done before updating the events
-	//that way current frame data will be delta after resetting mouse position
-	if (InputSystem::IsMouseCaptured())
-	{
-		gCursorLastX = InputSystem::GetFloatInput(KEY_UI_MOVE, 0);
-		gCursorLastY = InputSystem::GetFloatInput(KEY_UI_MOVE, 1);
-		{
-			float x = 0;
-			float y = 0;
-			x = (gWindow.windowedRect.right - gWindow.windowedRect.left) / 2;
-			y = (gWindow.windowedRect.bottom - gWindow.windowedRect.top) / 2;
-			XWarpPointer(gWindow.handle.display, None, gWindow.handle.window, 0, 0, 0, 0, x, y);
-			InputSystem::WarpMouse(x, y);
-			XFlush(winDesc->handle.display);
-		}
-	}
 
 	XEvent event;
 	while (XPending(winDesc->handle.display) > 0)
 	{
 		XNextEvent(winDesc->handle.display, &event);
-		InputSystem::HandleMessage(event);
+        if (winDesc->callbacks.onHandleMessage)
+            winDesc->callbacks.onHandleMessage(winDesc, &event);
+
 		switch (event.type)
 		{
 			case ClientMessage:
-				if ((Atom)event.xclient.data.l[0] == winDesc->xlib_wm_delete_window)
+				if ((Atom)event.xclient.data.l[0] == winDesc->handle.xlib_wm_delete_window)
 					quit = true;
 				break;
 			case DestroyNotify:
@@ -248,7 +221,6 @@ bool handleMessages(WindowsDesc* winDesc)
 
 					if (gWindow.callbacks.onResize)
 						gWindow.callbacks.onResize(&gWindow, getRectWidth(rect), getRectHeight(rect));
-					InputSystem::UpdateSize(event.xconfigure.width, event.xconfigure.height);
 				}
 				break;
 			}
@@ -257,42 +229,6 @@ bool handleMessages(WindowsDesc* winDesc)
 	}
 
 	XFlush(winDesc->handle.display);
-
-	if (InputSystem::GetBoolInput(KEY_CANCEL_TRIGGERED))
-	{
-		if (!isCaptured)
-		{
-			quit = true;
-		}
-		else
-		{
-			XUngrabPointer(gWindow.handle.display, CurrentTime);
-			isCaptured = false;
-			InputSystem::SetMouseCapture(false);
-		}
-	}
-
-	if (InputSystem::GetBoolInput(KEY_CONFIRM_PRESSED) && !PlatformEvents::skipMouseCapture && !isCaptured)
-	{
-		// Create invisible cursor that will be used when mouse is captured
-		Cursor      invisibleCursor;
-		Pixmap      bitmapEmpty;
-		XColor      emptyColor;
-		static char emptyData[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-		emptyColor.red = emptyColor.green = emptyColor.blue = 0;
-		bitmapEmpty = XCreateBitmapFromData(gWindow.handle.display, gWindow.handle.window, emptyData, 8, 8);
-		invisibleCursor = XCreatePixmapCursor(gWindow.handle.display, bitmapEmpty, bitmapEmpty, &emptyColor, &emptyColor, 0, 0);
-		// Capture mouse
-		unsigned int masks = PointerMotionMask |    //Mouse movement
-							 ButtonPressMask |      //Mouse click
-							 ButtonReleaseMask;     // Mouse release
-		int XRes = XGrabPointer(
-			gWindow.handle.display, gWindow.handle.window, 1 /*reports with respect to the grab window*/, masks, GrabModeAsync, GrabModeAsync, None,
-			invisibleCursor, CurrentTime);
-
-		isCaptured = true;
-		InputSystem::SetMouseCapture(true);
-	}
 
 	return quit;
 }
@@ -337,8 +273,6 @@ int LinuxMain(int argc, char** argv, IApp* app)
 	if (!pApp->Load())
 		return EXIT_FAILURE;
 
-	InputSystem::Init(pSettings->mWidth, pSettings->mHeight);
-
 	bool quit = false;
 
 	while (!quit)
@@ -347,8 +281,6 @@ int LinuxMain(int argc, char** argv, IApp* app)
 		// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
 		if (deltaTime > 0.15f)
 			deltaTime = 0.05f;
-
-		InputSystem::Update();
 
 		quit = handleMessages(&gWindow);
 
@@ -363,7 +295,6 @@ int LinuxMain(int argc, char** argv, IApp* app)
 #endif
 	}
 
-	InputSystem::Shutdown();
 	pApp->Unload();
 	pApp->Exit();
 

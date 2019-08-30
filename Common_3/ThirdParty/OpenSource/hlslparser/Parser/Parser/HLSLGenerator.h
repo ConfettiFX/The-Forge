@@ -20,11 +20,7 @@ class  HLSLTree;
 struct HLSLFunction;
 struct HLSLStruct;
 
-struct HLSLPreprocessorPackage
-{
-	char	m_storedPreprocessors[256];
-	int		m_line = -100;
-};
+class StringLibrary;
 
 /**
  * This class is used to generate HLSL which is compatible with the D3D9
@@ -47,28 +43,30 @@ public:
 
     HLSLGenerator();
     
-    bool Generate(HLSLTree* tree, Target target, const char* entryName, bool legacy);
+    bool Generate(StringLibrary * stringLibrary, HLSLTree* tree, Target target, const char* entryName, bool legacy);
     const char* GetResult() const;
-
-	//void PrintPreprocessors(int currentLine);
 
 private:
 
     void OutputExpressionList(HLSLExpression* expression);
     void OutputExpression(HLSLExpression* expression, bool needsEndParen);
-    void OutputArguments(HLSLArgument* argument);
-    void OutputAttributes(int indent, HLSLAttribute* attribute);
+	void OutputArgumentsVec(const eastl::vector < HLSLArgument* > & arguments);
+	void OutputAttributes(int indent, HLSLAttribute* attribute);
     void OutputStatements(int indent, HLSLStatement* statement);
     void OutputDeclaration(HLSLDeclaration* declaration);
-    void OutputDeclaration(const HLSLType& type, const char* name, const char* semantic = NULL, const char* registerName = NULL, HLSLExpression* defaultValue = NULL);
+    void OutputDeclaration(const HLSLType& type, const CachedString & name, const CachedString & semantic = CachedString(), const CachedString & registerName = CachedString(), HLSLExpression* defaultValue = NULL);
     void OutputDeclarationType(const HLSLType& type);
-    void OutputDeclarationBody(const HLSLType& type, const char* name, const char* semantic =NULL, const char* registerName = NULL, HLSLExpression * assignment = NULL);
+    void OutputDeclarationBody(const HLSLType& type, const CachedString & name, const CachedString & semantic = CachedString(), const CachedString & registerName = CachedString(), HLSLExpression * assignment = NULL);
 
     /** Generates a name of the format "base+n" where n is an integer such that the name
      * isn't used in the syntax tree. */
-    bool ChooseUniqueName(const char* base, char* dst, int dstLength) const;
+    bool ChooseUniqueName(const char* base, CachedString & dstName, int dstLength) const;
+	CachedString GetTypeName(const HLSLType& type);
 
-	
+	void WriteRegisterAndSpace(const CachedString & registerName, const CachedString & spaceName);
+
+public:
+	CachedString MakeCached(const char * str);
 
 private:
 
@@ -80,39 +78,42 @@ private:
     bool            m_legacy;
     bool            m_isInsideBuffer;
 
-    char            m_textureSampler2DStruct[64];
-    char            m_textureSampler2DCtor[64];
-    char            m_textureSampler2DShadowStruct[64];
-    char            m_textureSampler2DShadowCtor[64];
-    char            m_textureSampler3DStruct[64];
-    char            m_textureSampler3DCtor[64];
-    char            m_textureSamplerCubeStruct[64];
-    char            m_textureSamplerCubeCtor[64];
-    char            m_tex2DFunction[64];
-    char            m_tex2DProjFunction[64];
-    char            m_tex2DLodFunction[64];
-    char            m_tex2DBiasFunction[64];
-    char            m_tex2DGradFunction[64];
-    char            m_tex2DGatherFunction[64];
-    char            m_tex2DSizeFunction[64];
-    char            m_tex2DFetchFunction[64];
-    char            m_tex2DCmpFunction[64];
-    char            m_tex2DMSFetchFunction[64];
-    char            m_tex2DMSSizeFunction[64];
-    char            m_tex3DFunction[64];
-    char            m_tex3DLodFunction[64];
-    char            m_tex3DBiasFunction[64];
-    char            m_tex3DSizeFunction[64];
-    char            m_texCubeFunction[64];
-    char            m_texCubeLodFunction[64];
-    char            m_texCubeBiasFunction[64];
-    char            m_texCubeSizeFunction[64];
+	int				m_defaultSpaceIndex;
+	CachedString	m_defaultSpaceName;
 
-	char			m_Sample[64];
-	char			m_SampleLevel[64];
-	char			m_SampleBias[64];
+    CachedString    m_textureSampler2DStruct;
+    CachedString    m_textureSampler2DCtor;
+    CachedString    m_textureSampler2DShadowStruct;
+    CachedString    m_textureSampler2DShadowCtor;
+    CachedString    m_textureSampler3DStruct;
+    CachedString    m_textureSampler3DCtor;
+    CachedString    m_textureSamplerCubeStruct;
+    CachedString    m_textureSamplerCubeCtor;
+    CachedString    m_tex2DFunction;
+    CachedString    m_tex2DProjFunction;
+    CachedString    m_tex2DLodFunction;
+    CachedString    m_tex2DBiasFunction;
+    CachedString    m_tex2DGradFunction;
+    CachedString    m_tex2DGatherFunction;
+    CachedString    m_tex2DSizeFunction;
+    CachedString    m_tex2DFetchFunction;
+    CachedString    m_tex2DCmpFunction;
+    CachedString    m_tex2DMSFetchFunction;
+    CachedString    m_tex2DMSSizeFunction;
+    CachedString    m_tex3DFunction;
+    CachedString    m_tex3DLodFunction;
+    CachedString    m_tex3DBiasFunction;
+    CachedString    m_tex3DSizeFunction;
+    CachedString    m_texCubeFunction;
+    CachedString    m_texCubeLodFunction;
+    CachedString    m_texCubeBiasFunction;
+    CachedString    m_texCubeSizeFunction;
+
+	CachedString	m_Sample;
+	CachedString	m_SampleLevel;
+	CachedString	m_SampleBias;
 	
-	HLSLPreprocessorPackage m_preprocessorPackage[128];
+	StringLibrary * m_stringLibrary;
 };
 
 

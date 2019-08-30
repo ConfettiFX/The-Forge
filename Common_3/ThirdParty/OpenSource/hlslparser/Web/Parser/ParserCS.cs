@@ -98,7 +98,6 @@ namespace Parser
 
                 tempFileIn.Dispose();
 
-
                 var result = File.ReadAllText(outputFilePath).Replace("\r\n", "\n");
 
                 File.Delete(outputFilePath);

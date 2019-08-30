@@ -78,21 +78,21 @@ def FindMSBuild17():
 	ls_output = ""
 	msbuildPath = ""
 	try:
+		#proc = subprocess.Popen(["C:/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe", "-latest", "-products", "*", "-requires" ,"Microsoft.Component.MSBuild", "-find", "MSBuild\**\Bin\MSBuild.exe"], stdout=subprocess.PIPE,stderr = subprocess.STDOUT, encoding='utf8')
+
 		#open vswhere and parse the output
-		proc = subprocess.Popen(["C:/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe","-version","14","-requires" ,"Microsoft.Component.MSBuild"], stdout=subprocess.PIPE,stderr = subprocess.STDOUT,
-    encoding='utf8')
+		proc = subprocess.Popen(["C:/Program Files (x86)/Microsoft Visual Studio/Installer/vswhere.exe", "-version", "[15.0,16.0)", "-requires" ,"Microsoft.Component.MSBuild", "-property", "installationPath"], stdout=subprocess.PIPE,stderr = subprocess.STDOUT, encoding='utf8')
 
 		ls_output = proc.communicate()[0]
+		# In case there is more than 1 Visual studio (community, professional, ...) installed on the machine use the first one
+		ls_output = ls_output.split('\n')[0]
+
 		#check if vswhere opened correctly
 		if proc.returncode != 0:
 			print("Could not find vswhere")
 		else:			
-			#parse vswhere output
-			for line in ls_output.split("\n"):
-				#if installation path was found then get path from it and add the MSBuild location
-				if "installationPath:" in line:
-					msbuildPath = line.split("installationPath:")[1].strip() + "/MSBuild/15.0/Bin/MSBuild.exe"
-					break
+			msbuildPath = ls_output.strip() + "/MSBuild/15.0/Bin/MSBuild.exe"
+
 	except Exception as ex:
 		#ERROR
 		print(ex)
@@ -791,7 +791,7 @@ def TestLinuxProjects():
 			ubuntuProjects = []
 			for child in xmlRoot:
 				if child.tag == "Project":
-					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "EASTL" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection" and child.attrib["Name"] != "gainput" and child.attrib["Name"] != "ozz_base" and child.attrib["Name"] != "ozz_animation" and child.attrib["Name"] != "Assimp" and child.attrib["Name"] != "zlib" and child.attrib["Name"] != "LuaManager" and child.attrib["Name"] != "AssetPipeline" and child.attrib["Name"] != "AssetPipelineCmd" and child.attrib["Name"] != "ozz_animation_offline":
+					if child.attrib["Name"] != "OSBase" and child.attrib["Name"] != "EASTL" and child.attrib["Name"] != "OS" and child.attrib["Name"] != "Renderer" and  child.attrib["Name"] != "SpirVTools" and child.attrib["Name"] != "PaniniProjection" and child.attrib["Name"] != "gainput" and child.attrib["Name"] != "ozz_base" and child.attrib["Name"] != "ozz_animation" and child.attrib["Name"] != "Assimp" and child.attrib["Name"] != "zlib" and child.attrib["Name"] != "LuaManager" and child.attrib["Name"] != "AssetPipeline" and child.attrib["Name"] != "AssetPipelineCmd" and  child.attrib["Name"] != "MeshOptimizer" and child.attrib["Name"] != "ozz_animation_offline":
 						ubuntuProjects.append(child.attrib["Name"])
 			
 			for proj in ubuntuProjects:
@@ -821,13 +821,24 @@ def TestLinuxProjects():
 def TestWindowsProjects(useActiveGpuConfig):
 	errorOccured = False
 	
-	projects = GetFilesPathByExtension("./Examples_3","exe",False)
+	try:
+		bat_dir = os.path.join(os.getcwd(), 'Common_3\\ThirdParty\\OpenSource\\hlslparser\\Test')
+		bat_path = os.path.join(bat_dir, 'compile.bat')
+		testout = subprocess.Popen([bat_path], cwd=bat_dir, stderr=subprocess.STDOUT, stdout=subprocess.PIPE, encoding='utf-8').communicate()[0]
+		if re.search(r'\berror\b', testout, re.M|re.I):
+			print("HLSLParser test failed: there are errors in output")
+			return -1
+	except Exception as ex:
+		return -1
+
+	projects = GetFilesPathByExtension("./Examples_3","exe",False, 0)
 	fileList = []
 
 	for proj in projects:
 		#we don't want to build Xbox one solutions when building PC
 		if "PC Visual Studio 2017" in proj and "Release" in proj:
 			fileList.append(proj)
+	fileList.append('.\\Common_3\\ThirdParty\\OpenSource\\hlslparser\\Parser\\x64_ReleaseTest\\Parser.exe')
 
 	for proj in fileList:
 		leaksDetected = False
@@ -853,7 +864,7 @@ def TestWindowsProjects(useActiveGpuConfig):
 			filename = "VK_" + filename
 		elif "Dx11" in proj:
 			filename = "Dx11_" + filename
-		else:
+		elif "hlslparser" not in proj:
 			filename = "Dx12_" + filename
 
 		parentFolder = proj.split(os.sep)[1]
@@ -1176,7 +1187,7 @@ def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSB
 		currDir = os.getcwd()
 		#change working directory to sln file
 		os.chdir(rootPath)
-		
+
 		configurations = pcConfigurations
 		
 		#strip extension
@@ -1191,6 +1202,8 @@ def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSB
 		elif filename == "VisibilityBuffer.sln":
 			if "DebugDx11" in configurations : configurations.remove("DebugDx11")
 			if "ReleaseDx11" in configurations : configurations.remove("ReleaseDx11")
+		elif filename == "HLSLParser.sln":
+			configurations = ["Debug", "Release"]
 			
 		if "Xbox" in proj or "XBOXOne" in proj:
 			platform = xboxPlatform

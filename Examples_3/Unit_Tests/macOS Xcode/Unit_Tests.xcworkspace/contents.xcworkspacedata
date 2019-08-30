@@ -39,6 +39,9 @@
       location = "container:"
       name = "Examples">
       <FileRef
+         location = "group:08_GltfViewer/08_GltfViewer.xcodeproj">
+      </FileRef>
+      <FileRef
          location = "group:09_LightShadowPlayground/09_LightShadowPlayground.xcodeproj">
       </FileRef>
       <FileRef
@@ -64,9 +67,6 @@
       </FileRef>
       <FileRef
          location = "group:07_Tessellation/07_Tessellation.xcodeproj">
-      </FileRef>
-      <FileRef
-         location = "group:08_Procedural/08_Procedural.xcodeproj">
       </FileRef>
       <FileRef
          location = "group:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">

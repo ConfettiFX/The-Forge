@@ -656,6 +656,9 @@ Image::Image()
 	mSrgb = false;
 	mOwnsMemory = true;
 	mLinearLayout = true;
+
+	// Init basisu
+	basist::basisu_transcoder_init();
 }
 
 Image::Image(const Image& img)
@@ -1605,6 +1608,122 @@ bool Image::iLoadGNFFromMemory(const char* memory, size_t memSize, const bool us
 }
 #endif
 
+//------------------------------------------------------------------------------
+//  Loads a Basis data from memory.
+//
+bool iLoadBASISFromMemory(Image* pImage, const char* memory, uint32_t memSize, memoryAllocationFunc pAllocator /*= NULL*/, void* pUserData /*= NULL*/)
+{
+	if (memory == NULL || memSize == 0)
+		return false;
+
+	basist::etc1_global_selector_codebook sel_codebook(basist::g_global_selector_cb_size, basist::g_global_selector_cb);
+
+	eastl::vector<uint8_t> basis_data;
+	basis_data.resize(memSize);
+	memcpy(basis_data.data(), memory, memSize);
+
+	basist::basisu_transcoder decoder(&sel_codebook);
+
+	basist::basisu_file_info fileinfo;
+	if (!decoder.get_file_info(basis_data.data(), (uint32_t)basis_data.size(), fileinfo))
+	{
+		LOGF(LogLevel::eERROR, "Failed retrieving Basis file information!");
+		return false;
+	}
+
+	ASSERT(fileinfo.m_total_images == fileinfo.m_image_mipmap_levels.size());
+	ASSERT(fileinfo.m_total_images == decoder.get_total_images(&basis_data[0], (uint32_t)basis_data.size()));
+
+	basist::basisu_image_info imageinfo;
+	decoder.get_image_info(basis_data.data(), (uint32_t)basis_data.size(), imageinfo, 0);
+
+	uint32_t width = imageinfo.m_width;
+	uint32_t height = imageinfo.m_height;
+	uint32_t depth = 1;
+	uint32_t mipMapCount = max(1U, fileinfo.m_image_mipmap_levels[0]);
+	uint32_t arrayCount = fileinfo.m_total_images;
+
+	ImageFormat::Enum imageFormat = ImageFormat::NONE;
+	bool srgb = false;
+
+	bool isNormalMap;
+
+	if (fileinfo.m_userdata0 == 1)
+		isNormalMap = true;
+	else
+		isNormalMap = false;
+
+	basist::transcoder_texture_format basisTextureFormat;
+
+	if (!isNormalMap)
+	{
+		if (!imageinfo.m_alpha_flag)
+		{
+			imageFormat = ImageFormat::GNF_BC1;
+			basisTextureFormat = basist::transcoder_texture_format::cTFBC1;
+		}
+		else
+		{
+			imageFormat = ImageFormat::GNF_BC3;
+			basisTextureFormat = basist::transcoder_texture_format::cTFBC3;
+		}
+	}
+	else
+	{
+        imageFormat = ImageFormat::GNF_BC5;
+        basisTextureFormat = basist::transcoder_texture_format::cTFBC5;
+	}
+
+	pImage->RedefineDimensions(imageFormat, width, height, depth, mipMapCount, arrayCount, srgb);
+
+	int size = pImage->GetMipMappedSize();
+
+	if (pAllocator)
+	{
+		pImage->SetPixels((unsigned char*)pAllocator(pImage, size, pUserData));
+	}
+	else
+	{
+		pImage->SetPixels((unsigned char*)conf_malloc(sizeof(unsigned char) * size), true);
+	}
+
+	decoder.start_transcoding(basis_data.data(), (uint32_t)basis_data.size());
+
+
+	for (uint32_t image_index = 0; image_index < fileinfo.m_total_images; image_index++)
+	{
+		for (uint32_t level_index = 0; level_index < fileinfo.m_image_mipmap_levels[image_index]; level_index++)
+		{
+			basist::basisu_image_level_info level_info;
+
+			if (!decoder.get_image_level_info(&basis_data[0], (uint32_t)basis_data.size(), level_info, image_index, level_index))
+			{
+				LOGF(LogLevel::eERROR, "Failed retrieving image level information (%u %u)!\n", image_index, level_index);
+				return false;
+			}
+
+			if (basisTextureFormat == basist::cTFPVRTC1_4_OPAQUE_ONLY)
+			{
+				if (!isPowerOf2(level_info.m_width) || !isPowerOf2(level_info.m_height))
+				{
+					LOGF(LogLevel::eWARNING, "Warning: Will not transcode image %u level %u res %ux%u to PVRTC1 (one or more dimension is not a power of 2)\n", image_index, level_index, level_info.m_width, level_info.m_height);
+
+					// Can't transcode this image level to PVRTC because it's not a pow2 (we're going to support transcoding non-pow2 to the next larger pow2 soon)
+					continue;
+				}
+			}
+
+			if (!decoder.transcode_image_level(&basis_data[0], (uint32_t)basis_data.size(), image_index, level_index, pImage->GetPixels(), (uint32_t)(imageinfo.m_num_blocks_x * imageinfo.m_num_blocks_y), basisTextureFormat, 0))
+			{
+				LOGF(LogLevel::eERROR, "Failed transcoding image level (%u %u)!\n", image_index, level_index);
+				return false;
+			}
+		}
+	}
+
+	return true;
+}
+
 // Image loading
 // struct of table for file format to loading function
 struct ImageLoaderDefinition
@@ -1625,6 +1744,7 @@ struct StaticImageLoader
 #if defined(ORBIS)
 		gImageLoaders.push_back({ ".gnf", iLoadGNFFromMemory });
 #endif
+		gImageLoaders.push_back({ ".basis", iLoadBASISFromMemory });
 
 		gKTXFormatToImageFormat[ImageFormat::R8] = { KTXExternalFormat::KTXExternalFormat_RED, KTXType_U8 };
 		gKTXFormatToImageFormat[ImageFormat::RG8] = { KTXExternalFormat::KTXExternalFormat_RG, KTXType_U8 };
@@ -1726,6 +1846,7 @@ bool Image::LoadFromFile(const char* origFileName, memoryAllocationFunc pAllocat
 
 	char fileName[MAX_PATH] = {};
 	strcpy(fileName, origFileName);
+	// For loading basis file, it should have its extension
 	if (!extension.size())
 	{
 #if defined(__ANDROID__)

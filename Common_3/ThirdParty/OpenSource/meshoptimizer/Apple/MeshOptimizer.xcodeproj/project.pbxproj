@@ -1,0 +1,337 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 51;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		E96F26E922C3E7D700416F6C /* meshoptimizer.h in Headers */ = {isa = PBXBuildFile; fileRef = E96F26DB22C3E7D700416F6C /* meshoptimizer.h */; };
+		E96F26EA22C3E7D700416F6C /* vertexcodec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E96F26DC22C3E7D700416F6C /* vertexcodec.cpp */; };
+		E96F26EB22C3E7D700416F6C /* clusterizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E96F26DD22C3E7D700416F6C /* clusterizer.cpp */; };
+		E96F26EC22C3E7D700416F6C /* simplifier.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E96F26DE22C3E7D700416F6C /* simplifier.cpp */; };
+		E96F26ED22C3E7D700416F6C /* indexcodec.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E96F26DF22C3E7D700416F6C /* indexcodec.cpp */; };
+		E96F26EE22C3E7D700416F6C /* indexgenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E96F26E022C3E7D700416F6C /* indexgenerator.cpp */; };
+		E96F26EF22C3E7D700416F6C /* overdrawanalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E96F26E122C3E7D700416F6C /* overdrawanalyzer.cpp */; };
+		E96F26F022C3E7D700416F6C /* vfetchoptimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E96F26E222C3E7D700416F6C /* vfetchoptimizer.cpp */; };
+		E96F26F122C3E7D700416F6C /* overdrawoptimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E96F26E322C3E7D700416F6C /* overdrawoptimizer.cpp */; };
+		E96F26F222C3E7D700416F6C /* vcacheoptimizer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E96F26E422C3E7D700416F6C /* vcacheoptimizer.cpp */; };
+		E96F26F422C3E7D700416F6C /* stripifier.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E96F26E622C3E7D700416F6C /* stripifier.cpp */; };
+		E96F26F522C3E7D700416F6C /* vfetchanalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E96F26E722C3E7D700416F6C /* vfetchanalyzer.cpp */; };
+		E96F26F622C3E7D700416F6C /* vcacheanalyzer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E96F26E822C3E7D700416F6C /* vcacheanalyzer.cpp */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		B28C6E4B21B204A200FBA1BF /* libMeshOptimizer.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libMeshOptimizer.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		E96F26DB22C3E7D700416F6C /* meshoptimizer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = meshoptimizer.h; path = ../src/meshoptimizer.h; sourceTree = "<group>"; };
+		E96F26DC22C3E7D700416F6C /* vertexcodec.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = vertexcodec.cpp; path = ../src/vertexcodec.cpp; sourceTree = "<group>"; };
+		E96F26DD22C3E7D700416F6C /* clusterizer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = clusterizer.cpp; path = ../src/clusterizer.cpp; sourceTree = "<group>"; };
+		E96F26DE22C3E7D700416F6C /* simplifier.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = simplifier.cpp; path = ../src/simplifier.cpp; sourceTree = "<group>"; };
+		E96F26DF22C3E7D700416F6C /* indexcodec.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = indexcodec.cpp; path = ../src/indexcodec.cpp; sourceTree = "<group>"; };
+		E96F26E022C3E7D700416F6C /* indexgenerator.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = indexgenerator.cpp; path = ../src/indexgenerator.cpp; sourceTree = "<group>"; };
+		E96F26E122C3E7D700416F6C /* overdrawanalyzer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = overdrawanalyzer.cpp; path = ../src/overdrawanalyzer.cpp; sourceTree = "<group>"; };
+		E96F26E222C3E7D700416F6C /* vfetchoptimizer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = vfetchoptimizer.cpp; path = ../src/vfetchoptimizer.cpp; sourceTree = "<group>"; };
+		E96F26E322C3E7D700416F6C /* overdrawoptimizer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = overdrawoptimizer.cpp; path = ../src/overdrawoptimizer.cpp; sourceTree = "<group>"; };
+		E96F26E422C3E7D700416F6C /* vcacheoptimizer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = vcacheoptimizer.cpp; path = ../src/vcacheoptimizer.cpp; sourceTree = "<group>"; };
+		E96F26E622C3E7D700416F6C /* stripifier.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = stripifier.cpp; path = ../src/stripifier.cpp; sourceTree = "<group>"; };
+		E96F26E722C3E7D700416F6C /* vfetchanalyzer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = vfetchanalyzer.cpp; path = ../src/vfetchanalyzer.cpp; sourceTree = "<group>"; };
+		E96F26E822C3E7D700416F6C /* vcacheanalyzer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = vcacheanalyzer.cpp; path = ../src/vcacheanalyzer.cpp; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		B28C6E4921B204A200FBA1BF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		B28C6E4221B204A200FBA1BF = {
+			isa = PBXGroup;
+			children = (
+				E96F26DD22C3E7D700416F6C /* clusterizer.cpp */,
+				E96F26DF22C3E7D700416F6C /* indexcodec.cpp */,
+				E96F26E022C3E7D700416F6C /* indexgenerator.cpp */,
+				E96F26DB22C3E7D700416F6C /* meshoptimizer.h */,
+				E96F26E122C3E7D700416F6C /* overdrawanalyzer.cpp */,
+				E96F26E322C3E7D700416F6C /* overdrawoptimizer.cpp */,
+				E96F26DE22C3E7D700416F6C /* simplifier.cpp */,
+				E96F26E622C3E7D700416F6C /* stripifier.cpp */,
+				E96F26E822C3E7D700416F6C /* vcacheanalyzer.cpp */,
+				E96F26E422C3E7D700416F6C /* vcacheoptimizer.cpp */,
+				E96F26DC22C3E7D700416F6C /* vertexcodec.cpp */,
+				E96F26E722C3E7D700416F6C /* vfetchanalyzer.cpp */,
+				E96F26E222C3E7D700416F6C /* vfetchoptimizer.cpp */,
+				B28C6E4C21B204A200FBA1BF /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		B28C6E4C21B204A200FBA1BF /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B28C6E4B21B204A200FBA1BF /* libMeshOptimizer.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		B28C6E4721B204A200FBA1BF /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E96F26E922C3E7D700416F6C /* meshoptimizer.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
+
+/* Begin PBXNativeTarget section */
+		B28C6E4A21B204A200FBA1BF /* MeshOptimizer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B28C6E4F21B204A200FBA1BF /* Build configuration list for PBXNativeTarget "MeshOptimizer" */;
+			buildPhases = (
+				B28C6E4721B204A200FBA1BF /* Headers */,
+				B28C6E4821B204A200FBA1BF /* Sources */,
+				B28C6E4921B204A200FBA1BF /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MeshOptimizer;
+			productName = AssetPipeline;
+			productReference = B28C6E4B21B204A200FBA1BF /* libMeshOptimizer.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		B28C6E4321B204A200FBA1BF /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1010;
+				ORGANIZATIONNAME = "Confetti Interactive Inc";
+				TargetAttributes = {
+					B28C6E4A21B204A200FBA1BF = {
+						CreatedOnToolsVersion = 10.1;
+					};
+				};
+			};
+			buildConfigurationList = B28C6E4621B204A200FBA1BF /* Build configuration list for PBXProject "MeshOptimizer" */;
+			compatibilityVersion = "Xcode 10.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = B28C6E4221B204A200FBA1BF;
+			productRefGroup = B28C6E4C21B204A200FBA1BF /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B28C6E4A21B204A200FBA1BF /* MeshOptimizer */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B28C6E4821B204A200FBA1BF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E96F26EB22C3E7D700416F6C /* clusterizer.cpp in Sources */,
+				E96F26F022C3E7D700416F6C /* vfetchoptimizer.cpp in Sources */,
+				E96F26EE22C3E7D700416F6C /* indexgenerator.cpp in Sources */,
+				E96F26F122C3E7D700416F6C /* overdrawoptimizer.cpp in Sources */,
+				E96F26ED22C3E7D700416F6C /* indexcodec.cpp in Sources */,
+				E96F26F622C3E7D700416F6C /* vcacheanalyzer.cpp in Sources */,
+				E96F26F222C3E7D700416F6C /* vcacheoptimizer.cpp in Sources */,
+				E96F26EA22C3E7D700416F6C /* vertexcodec.cpp in Sources */,
+				E96F26EC22C3E7D700416F6C /* simplifier.cpp in Sources */,
+				E96F26F522C3E7D700416F6C /* vfetchanalyzer.cpp in Sources */,
+				E96F26EF22C3E7D700416F6C /* overdrawanalyzer.cpp in Sources */,
+				E96F26F422C3E7D700416F6C /* stripifier.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		B28C6E4D21B204A200FBA1BF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = NO;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../../ThirdParty/OpenSource/ozz-animation/include",
+					"$(PROJECT_DIR)/../../../ThirdParty/OpenSource/assimp/4.1.0/include",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		B28C6E4E21B204A200FBA1BF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = NO;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../../ThirdParty/OpenSource/ozz-animation/include",
+					"$(PROJECT_DIR)/../../../ThirdParty/OpenSource/assimp/4.1.0/include",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		B28C6E5021B204A200FBA1BF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "-";
+				EXECUTABLE_PREFIX = lib;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					METAL,
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		B28C6E5121B204A200FBA1BF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "-";
+				EXECUTABLE_PREFIX = lib;
+				GCC_PREPROCESSOR_DEFINITIONS = METAL;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		B28C6E4621B204A200FBA1BF /* Build configuration list for PBXProject "MeshOptimizer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B28C6E4D21B204A200FBA1BF /* Debug */,
+				B28C6E4E21B204A200FBA1BF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B28C6E4F21B204A200FBA1BF /* Build configuration list for PBXNativeTarget "MeshOptimizer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B28C6E5021B204A200FBA1BF /* Debug */,
+				B28C6E5121B204A200FBA1BF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = B28C6E4321B204A200FBA1BF /* Project object */;
+}
