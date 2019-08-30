@@ -448,15 +448,15 @@ This is a simple cross-platform glTF model viewer by integrating Arseny Kapoulki
 
 glTF model viewer running on iPad with 2048x1536 resolution
 
-![glTF model viewer](Screenshots/ModelViewer/Metal_a1893_ipad_6th_gen_2048x1536_0.png)
+![glTF model viewer](Screenshots/ModelViewer/Metal_a1893_ipad_6th_gen_2048x1536_0.PNG)
 
-![glTF model viewer](Screenshots/ModelViewer/Metal_a1893_ipad_6th_gen_2048x1536_1.png)
+![glTF model viewer](Screenshots/ModelViewer/Metal_a1893_ipad_6th_gen_2048x1536_1.PNG)
 
 glTF model viewer running on Samsung Galaxy S10 with Vulkan with 1995x945 resolution
 
-![glTF model viewer](Screenshots/ModelViewer/Vulkan_Samsung_GalaxyS10_1995x945_0.jpeg)
+![glTF model viewer](Screenshots/ModelViewer/Vulkan_Samsung_GalaxyS10_1995x945_0.JPEG)
 
-![glTF model viewer](Screenshots/ModelViewer/Vulkan_Samsung_GalaxyS10_1995x945_1.jpeg)
+![glTF model viewer](Screenshots/ModelViewer/Vulkan_Samsung_GalaxyS10_1995x945_1.JPEG)
 
 glTF model viewer running on Ubuntu AMD RX 480 with Vulkan with 1920x1080 resolution
 
