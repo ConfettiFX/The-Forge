@@ -85,7 +85,6 @@ glTF model viewer running on Ubuntu AMD RX 480 with Vulkan with 1920x1080 resolu
 * Input system: we re-architected the app level interface for our cross-platform input system based on [gainput](https://github.com/jkuhlmann/gainput). Our previous interface somehow leaned toward PC input systems and we wanted to better focus on our main target platforms.
 * Ozz animation system: we cleaned up the code base. There was a lot of unused code because we wired up the system with all the "service providers" of The Forge. So Ozz like any other third party library is using the math, log, error, assert, file system, memory management and others sub-systems from The Forge. Previously, it had a lot of those implemented on its own.
 * Issues resolved:
-  * 104 "Tiled resources / reserve resources support ?"
   * 128 "The DepthStateDesc.mDepthTest is ignored on the Metal backend"
   * 130 "Vulkan and D3D12 backend set sampler maxLod to zero for nearest mipmap mode"
   * 131 "Vulkan sampler set the anistropy flag to false always."
