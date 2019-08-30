@@ -10,7 +10,6 @@
 		0BB7DF96B6F04DB8B519DB24 /* blending_job.cc in Sources */ = {isa = PBXBuildFile; fileRef = 5B38A8427D024BAAAD5D5BAE /* blending_job.cc */; };
 		11E0A627A9074C7592DC9D2C /* skeleton_utils.cc in Sources */ = {isa = PBXBuildFile; fileRef = 8CD3CA6CE9CB41BE81431880 /* skeleton_utils.cc */; };
 		27B2FBEDDD824C47AB37E3A6 /* track_triggering_job.cc in Sources */ = {isa = PBXBuildFile; fileRef = D972F37C2FA644DBA3708689 /* track_triggering_job.cc */; };
-		40B72BAAA4914375B9E1C709 /* log.cc in Sources */ = {isa = PBXBuildFile; fileRef = 8DD497EDA2BD4B71A74C1FA7 /* log.cc */; };
 		423BC752D25E4DCBA154DCC6 /* soa_math_archive.cc in Sources */ = {isa = PBXBuildFile; fileRef = 76E86DCA018846688B72C202 /* soa_math_archive.cc */; };
 		49C0D02BEB1A47FFBB35B2A2 /* skeleton.cc in Sources */ = {isa = PBXBuildFile; fileRef = D7BD5A5DCF3C49D19939AC50 /* skeleton.cc */; };
 		563C44DBF8704CFF9811865B /* string_archive.cc in Sources */ = {isa = PBXBuildFile; fileRef = C18117F6C1244768A3B5599C /* string_archive.cc */; };
@@ -46,7 +45,6 @@
 		B28C6EFD21B209DA00FBA1BF /* track_optimizer.cc in Sources */ = {isa = PBXBuildFile; fileRef = B28C6ECE21B2099C00FBA1BF /* track_optimizer.cc */; };
 		B6381419971842EBB8EAABC9 /* track_sampling_job.cc in Sources */ = {isa = PBXBuildFile; fileRef = 9ABB4E6D540E4DD4ACF65A28 /* track_sampling_job.cc */; };
 		B801EDBB768047B3A81F5124 /* archive.cc in Sources */ = {isa = PBXBuildFile; fileRef = CE555E630AA54F0BA66F7B64 /* archive.cc */; };
-		C12EB9AC19F14645AF0BDE86 /* box.cc in Sources */ = {isa = PBXBuildFile; fileRef = EDCAFC3D156347EB8EAFE949 /* box.cc */; };
 		D0796AC1211ED7370028AFFD /* animation.cc in Sources */ = {isa = PBXBuildFile; fileRef = 0F0A5A4A9672470898FE1AA8 /* animation.cc */; };
 		D0796AC2211ED7370028AFFD /* blending_job.cc in Sources */ = {isa = PBXBuildFile; fileRef = 5B38A8427D024BAAAD5D5BAE /* blending_job.cc */; };
 		D0796AC3211ED7370028AFFD /* local_to_model_job.cc in Sources */ = {isa = PBXBuildFile; fileRef = 6598CCF06AB74D6996FB0582 /* local_to_model_job.cc */; };
@@ -59,15 +57,11 @@
 		D0796AD0211ED7430028AFFD /* string_archive.cc in Sources */ = {isa = PBXBuildFile; fileRef = C18117F6C1244768A3B5599C /* string_archive.cc */; };
 		D0796AD1211ED7430028AFFD /* archive.cc in Sources */ = {isa = PBXBuildFile; fileRef = CE555E630AA54F0BA66F7B64 /* archive.cc */; };
 		D0796AD2211ED7430028AFFD /* stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 6A3B6F2847154CC9BFA7A72F /* stream.cc */; };
-		D0796AD3211ED7430028AFFD /* log.cc in Sources */ = {isa = PBXBuildFile; fileRef = 8DD497EDA2BD4B71A74C1FA7 /* log.cc */; };
-		D0796AD4211ED7430028AFFD /* box.cc in Sources */ = {isa = PBXBuildFile; fileRef = EDCAFC3D156347EB8EAFE949 /* box.cc */; };
 		D0796AD5211ED7430028AFFD /* math_archive.cc in Sources */ = {isa = PBXBuildFile; fileRef = 375D86465F184D0E8FCAFB18 /* math_archive.cc */; };
-		D0796AD6211ED7430028AFFD /* simd_math.cc in Sources */ = {isa = PBXBuildFile; fileRef = 44569D7E86F84F64A84FCB43 /* simd_math.cc */; };
 		D0796AD7211ED7430028AFFD /* simd_math_archive.cc in Sources */ = {isa = PBXBuildFile; fileRef = 055CE43F9F89417FBB9EED25 /* simd_math_archive.cc */; };
 		D0796AD8211ED7430028AFFD /* soa_math_archive.cc in Sources */ = {isa = PBXBuildFile; fileRef = 76E86DCA018846688B72C202 /* soa_math_archive.cc */; };
 		D0796AD9211ED7430028AFFD /* allocator.cc in Sources */ = {isa = PBXBuildFile; fileRef = 93B830B3E8C54EEB91FA9060 /* allocator.cc */; };
 		D0796ADA211ED7430028AFFD /* platform.cc in Sources */ = {isa = PBXBuildFile; fileRef = 3CB2E8B31E9840C6B93C8023 /* platform.cc */; };
-		DDB07799C16143AFAC44347C /* simd_math.cc in Sources */ = {isa = PBXBuildFile; fileRef = 44569D7E86F84F64A84FCB43 /* simd_math.cc */; };
 		E3ED88036C354D2A94F5F5E9 /* stream.cc in Sources */ = {isa = PBXBuildFile; fileRef = 6A3B6F2847154CC9BFA7A72F /* stream.cc */; };
 		EC7870AD472447B9B4AA0DAA /* animation.cc in Sources */ = {isa = PBXBuildFile; fileRef = 0F0A5A4A9672470898FE1AA8 /* animation.cc */; };
 		FD36AE85B1D0408AAEDB71BD /* math_archive.cc in Sources */ = {isa = PBXBuildFile; fileRef = 375D86465F184D0E8FCAFB18 /* math_archive.cc */; };
@@ -103,7 +97,6 @@
 		09F68FFBAE4349E6907961DE /* simd_math_archive.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = simd_math_archive.h; path = include/ozz/base/maths/simd_math_archive.h; sourceTree = SOURCE_ROOT; };
 		0CDA539DA89D46C6859BA90A /* animation.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = animation.h; path = include/ozz/animation/runtime/animation.h; sourceTree = SOURCE_ROOT; };
 		0F0A5A4A9672470898FE1AA8 /* animation.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = animation.cc; path = src/animation/runtime/animation.cc; sourceTree = SOURCE_ROOT; };
-		118A27722325415FA33BC207 /* simd_math.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = simd_math.h; path = include/ozz/base/maths/simd_math.h; sourceTree = SOURCE_ROOT; };
 		15CECFD6503A4A3C933B384F /* track_sampling_job.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = track_sampling_job.h; path = include/ozz/animation/runtime/track_sampling_job.h; sourceTree = SOURCE_ROOT; };
 		166F7EDB2B8A49D0BC3C05B3 /* animation_keyframe.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = animation_keyframe.h; path = src/animation/runtime/animation_keyframe.h; sourceTree = SOURCE_ROOT; };
 		1E022C10C1F5468C8EB6633C /* soa_math_archive.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = soa_math_archive.h; path = include/ozz/base/maths/soa_math_archive.h; sourceTree = SOURCE_ROOT; };
@@ -111,39 +104,27 @@
 		34100AA7E46F4BDA9FB99008 /* math_archive.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = math_archive.h; path = include/ozz/base/maths/math_archive.h; sourceTree = SOURCE_ROOT; };
 		375D86465F184D0E8FCAFB18 /* math_archive.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = math_archive.cc; path = src/base/maths/math_archive.cc; sourceTree = SOURCE_ROOT; };
 		3CB2E8B31E9840C6B93C8023 /* platform.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = platform.cc; path = src/base/platform.cc; sourceTree = SOURCE_ROOT; };
-		44569D7E86F84F64A84FCB43 /* simd_math.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = simd_math.cc; path = src/base/maths/simd_math.cc; sourceTree = SOURCE_ROOT; };
 		457E0924FA4740679E3FD2A1 /* skeleton_utils.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = skeleton_utils.h; path = include/ozz/animation/runtime/skeleton_utils.h; sourceTree = SOURCE_ROOT; };
 		498477EC8DEF417AA10D6FE9 /* set.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = set.h; path = include/ozz/base/containers/set.h; sourceTree = SOURCE_ROOT; };
-		4CC75F7AC1CB4D0D977B94FD /* queue.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = queue.h; path = include/ozz/base/containers/queue.h; sourceTree = SOURCE_ROOT; };
 		4EBF42935CF04A3C9DBACCB1 /* math_constant.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = math_constant.h; path = include/ozz/base/maths/math_constant.h; sourceTree = SOURCE_ROOT; };
 		5B38A8427D024BAAAD5D5BAE /* blending_job.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = blending_job.cc; path = src/animation/runtime/blending_job.cc; sourceTree = SOURCE_ROOT; };
 		654BB0292F2C41408255742C /* gtest_helper.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = gtest_helper.h; path = include/ozz/base/gtest_helper.h; sourceTree = SOURCE_ROOT; };
 		6598CCF06AB74D6996FB0582 /* local_to_model_job.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = local_to_model_job.cc; path = src/animation/runtime/local_to_model_job.cc; sourceTree = SOURCE_ROOT; };
 		6A3B6F2847154CC9BFA7A72F /* stream.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = stream.cc; path = src/base/io/stream.cc; sourceTree = SOURCE_ROOT; };
-		7158264D15F04484B34D8642 /* intrusive_list.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = intrusive_list.h; path = include/ozz/base/containers/intrusive_list.h; sourceTree = SOURCE_ROOT; };
 		75782F5DE21D4E79B5D65C1C /* blending_job.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = blending_job.h; path = include/ozz/animation/runtime/blending_job.h; sourceTree = SOURCE_ROOT; };
 		76C882D97F4A4B8885E9A86B /* track_triggering_job.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = track_triggering_job.h; path = include/ozz/animation/runtime/track_triggering_job.h; sourceTree = SOURCE_ROOT; };
 		76E86DCA018846688B72C202 /* soa_math_archive.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = soa_math_archive.cc; path = src/base/maths/soa_math_archive.cc; sourceTree = SOURCE_ROOT; };
-		799A1F5A59A648BF98B155E9 /* soa_transform.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = soa_transform.h; path = include/ozz/base/maths/soa_transform.h; sourceTree = SOURCE_ROOT; };
 		7D429F4EACC545598471D16B /* map.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = map.h; path = include/ozz/base/containers/map.h; sourceTree = SOURCE_ROOT; };
-		802CF500CE1E4949959B05E0 /* soa_float4x4.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = soa_float4x4.h; path = include/ozz/base/maths/soa_float4x4.h; sourceTree = SOURCE_ROOT; };
 		812DB072C4224A1C8307E7FE /* sampling_job.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = sampling_job.h; path = include/ozz/animation/runtime/sampling_job.h; sourceTree = SOURCE_ROOT; };
-		88688B4D708D437B8A7B97A7 /* box.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = box.h; path = include/ozz/base/maths/box.h; sourceTree = SOURCE_ROOT; };
 		88DF3489E6364B89869CC71D /* json_d.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = json_d.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		8CD3CA6CE9CB41BE81431880 /* skeleton_utils.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = skeleton_utils.cc; path = src/animation/runtime/skeleton_utils.cc; sourceTree = SOURCE_ROOT; };
-		8DD497EDA2BD4B71A74C1FA7 /* log.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = log.cc; path = src/base/log.cc; sourceTree = SOURCE_ROOT; };
-		92D966A022AB4EE0B3F99633 /* rect.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = rect.h; path = include/ozz/base/maths/rect.h; sourceTree = SOURCE_ROOT; };
 		93B830B3E8C54EEB91FA9060 /* allocator.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = allocator.cc; path = src/base/memory/allocator.cc; sourceTree = SOURCE_ROOT; };
 		94EAC6ABFD4D4744A3898F77 /* gtest_math_helper.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = gtest_math_helper.h; path = include/ozz/base/maths/gtest_math_helper.h; sourceTree = SOURCE_ROOT; };
 		9518D2BCB9314E0A9A565665 /* vector.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = vector.h; path = include/ozz/base/containers/vector.h; sourceTree = SOURCE_ROOT; };
-		99FA7AE2CF4B43F0A3FC53B9 /* soa_quaternion.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = soa_quaternion.h; path = include/ozz/base/maths/soa_quaternion.h; sourceTree = SOURCE_ROOT; };
 		9AA5BDCFC54E45F5B8B20BF4 /* archive.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = archive.h; path = include/ozz/base/io/archive.h; sourceTree = SOURCE_ROOT; };
 		9ABB4E6D540E4DD4ACF65A28 /* track_sampling_job.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = track_sampling_job.cc; path = src/animation/runtime/track_sampling_job.cc; sourceTree = SOURCE_ROOT; };
-		9CF3ED33D0C949C2A8A4F140 /* simd_math_sse-inl.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = "simd_math_sse-inl.h"; path = "include/ozz/base/maths/internal/simd_math_sse-inl.h"; sourceTree = SOURCE_ROOT; };
-		A2A8C0FCAD18436DA03F289F /* soa_float.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = soa_float.h; path = include/ozz/base/maths/soa_float.h; sourceTree = SOURCE_ROOT; };
 		A4AA01DEFA984C0AB14AE956 /* local_to_model_job.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = local_to_model_job.h; path = include/ozz/animation/runtime/local_to_model_job.h; sourceTree = SOURCE_ROOT; };
 		A69A1ECFEC9145D3A46BAA96 /* ozz_base.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = ozz_base.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		A986F49E17AC4A838EE4D16D /* vec_float.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = vec_float.h; path = include/ozz/base/maths/vec_float.h; sourceTree = SOURCE_ROOT; };
 		AAAE3499BA404142983AF82A /* platform.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = platform.h; path = include/ozz/base/platform.h; sourceTree = SOURCE_ROOT; };
 		AD14F53CA01347BBA91C7F42 /* ozz_animation.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = ozz_animation.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		ADF637FDC8EB43B7913A3776 /* archive_traits.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = archive_traits.h; path = include/ozz/base/io/archive_traits.h; sourceTree = SOURCE_ROOT; };
@@ -175,31 +156,21 @@
 		B28C6ECF21B2099C00FBA1BF /* raw_skeleton_archive.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = raw_skeleton_archive.cc; path = src/animation/offline/raw_skeleton_archive.cc; sourceTree = "<group>"; };
 		B28C6ED021B2099C00FBA1BF /* fbx */ = {isa = PBXFileReference; lastKnownFileType = folder; name = fbx; path = src/animation/offline/fbx; sourceTree = "<group>"; };
 		B28C6EEE21B209AA00FBA1BF /* ozz_animation offline.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "ozz_animation offline.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		B4196D8BCBE2413D8AE40DFA /* deque.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = deque.h; path = include/ozz/base/containers/deque.h; sourceTree = SOURCE_ROOT; };
 		B44448DFAAED4B1697211D87 /* track.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = track.cc; path = src/animation/runtime/track.cc; sourceTree = SOURCE_ROOT; };
-		B4D68514FC3C4F71961EE8C9 /* transform.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = transform.h; path = include/ozz/base/maths/transform.h; sourceTree = SOURCE_ROOT; };
-		BA4A7CED23F84D868F3AEA3D /* list.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = list.h; path = include/ozz/base/containers/list.h; sourceTree = SOURCE_ROOT; };
 		C18117F6C1244768A3B5599C /* string_archive.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = string_archive.cc; path = src/base/containers/string_archive.cc; sourceTree = SOURCE_ROOT; };
-		C3EA4A2E6EF74AAC93727A32 /* quaternion.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = quaternion.h; path = include/ozz/base/maths/quaternion.h; sourceTree = SOURCE_ROOT; };
 		C4D6DB89B7CD4004BA48BD7D /* vector_archive.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = vector_archive.h; path = include/ozz/base/containers/vector_archive.h; sourceTree = SOURCE_ROOT; };
 		CE555E630AA54F0BA66F7B64 /* archive.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = archive.cc; path = src/base/io/archive.cc; sourceTree = SOURCE_ROOT; };
 		D0796ACD211ED7370028AFFD /* ozz_animation_IOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = ozz_animation_IOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0796ADE211ED7430028AFFD /* ozz_base_IOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = ozz_base_IOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		D1F71A6AEC084E7587D22385 /* stream.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = stream.h; path = include/ozz/base/io/stream.h; sourceTree = SOURCE_ROOT; };
 		D202876FC00C490281BA4158 /* allocator.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = allocator.h; path = include/ozz/base/memory/allocator.h; sourceTree = SOURCE_ROOT; };
-		D46DFCC301AC4495A9809A09 /* simd_math_ref-inl.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = "simd_math_ref-inl.h"; path = "include/ozz/base/maths/internal/simd_math_ref-inl.h"; sourceTree = SOURCE_ROOT; };
 		D7BD5A5DCF3C49D19939AC50 /* skeleton.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = skeleton.cc; path = src/animation/runtime/skeleton.cc; sourceTree = SOURCE_ROOT; };
 		D972F37C2FA644DBA3708689 /* track_triggering_job.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = track_triggering_job.cc; path = src/animation/runtime/track_triggering_job.cc; sourceTree = SOURCE_ROOT; };
 		DE7C5D5A0F294E65A6C47BEA /* skeleton.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = skeleton.h; path = include/ozz/animation/runtime/skeleton.h; sourceTree = SOURCE_ROOT; };
 		DF634E75A03247EDB6518229 /* string_archive.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = string_archive.h; path = include/ozz/base/containers/string_archive.h; sourceTree = SOURCE_ROOT; };
 		E0A6231C3B3240EE94E96B1E /* string.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = string.h; path = include/ozz/base/containers/string.h; sourceTree = SOURCE_ROOT; };
-		E1D30F5F45294A4A838456BB /* std_allocator.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = std_allocator.h; path = include/ozz/base/containers/std_allocator.h; sourceTree = SOURCE_ROOT; };
-		E6C80315A2FD4740A84E6F46 /* stack.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = stack.h; path = include/ozz/base/containers/stack.h; sourceTree = SOURCE_ROOT; };
 		EB2A3DFD625041939F553AF9 /* sampling_job.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = sampling_job.cc; path = src/animation/runtime/sampling_job.cc; sourceTree = SOURCE_ROOT; };
-		EDCAFC3D156347EB8EAFE949 /* box.cc */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = box.cc; path = src/base/maths/box.cc; sourceTree = SOURCE_ROOT; };
 		F05568EE5BD04437BB8B8DC4 /* track_triggering_job_stl.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = track_triggering_job_stl.h; path = include/ozz/animation/runtime/track_triggering_job_stl.h; sourceTree = SOURCE_ROOT; };
-		F7A8242076F440639E83AF97 /* log.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = log.h; path = include/ozz/base/log.h; sourceTree = SOURCE_ROOT; };
-		F96E7F00750F41198019CB26 /* simd_math_config.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = simd_math_config.h; path = include/ozz/base/maths/internal/simd_math_config.h; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -209,10 +180,7 @@
 				C18117F6C1244768A3B5599C /* string_archive.cc */,
 				CE555E630AA54F0BA66F7B64 /* archive.cc */,
 				6A3B6F2847154CC9BFA7A72F /* stream.cc */,
-				8DD497EDA2BD4B71A74C1FA7 /* log.cc */,
-				EDCAFC3D156347EB8EAFE949 /* box.cc */,
 				375D86465F184D0E8FCAFB18 /* math_archive.cc */,
-				44569D7E86F84F64A84FCB43 /* simd_math.cc */,
 				055CE43F9F89417FBB9EED25 /* simd_math_archive.cc */,
 				76E86DCA018846688B72C202 /* soa_math_archive.cc */,
 				93B830B3E8C54EEB91FA9060 /* allocator.cc */,
@@ -356,14 +324,8 @@
 		F27D3C6B98C54E7099CC7923 /* Header Files */ = {
 			isa = PBXGroup;
 			children = (
-				B4196D8BCBE2413D8AE40DFA /* deque.h */,
-				7158264D15F04484B34D8642 /* intrusive_list.h */,
-				BA4A7CED23F84D868F3AEA3D /* list.h */,
 				7D429F4EACC545598471D16B /* map.h */,
-				4CC75F7AC1CB4D0D977B94FD /* queue.h */,
 				498477EC8DEF417AA10D6FE9 /* set.h */,
-				E6C80315A2FD4740A84E6F46 /* stack.h */,
-				E1D30F5F45294A4A838456BB /* std_allocator.h */,
 				E0A6231C3B3240EE94E96B1E /* string.h */,
 				DF634E75A03247EDB6518229 /* string_archive.h */,
 				9518D2BCB9314E0A9A565665 /* vector.h */,
@@ -373,26 +335,12 @@
 				9AA5BDCFC54E45F5B8B20BF4 /* archive.h */,
 				ADF637FDC8EB43B7913A3776 /* archive_traits.h */,
 				D1F71A6AEC084E7587D22385 /* stream.h */,
-				F7A8242076F440639E83AF97 /* log.h */,
-				88688B4D708D437B8A7B97A7 /* box.h */,
 				94EAC6ABFD4D4744A3898F77 /* gtest_math_helper.h */,
-				F96E7F00750F41198019CB26 /* simd_math_config.h */,
-				D46DFCC301AC4495A9809A09 /* simd_math_ref-inl.h */,
-				9CF3ED33D0C949C2A8A4F140 /* simd_math_sse-inl.h */,
 				34100AA7E46F4BDA9FB99008 /* math_archive.h */,
 				4EBF42935CF04A3C9DBACCB1 /* math_constant.h */,
 				3159790D7843448187DB23A0 /* math_ex.h */,
-				C3EA4A2E6EF74AAC93727A32 /* quaternion.h */,
-				92D966A022AB4EE0B3F99633 /* rect.h */,
-				118A27722325415FA33BC207 /* simd_math.h */,
 				09F68FFBAE4349E6907961DE /* simd_math_archive.h */,
-				A2A8C0FCAD18436DA03F289F /* soa_float.h */,
-				802CF500CE1E4949959B05E0 /* soa_float4x4.h */,
 				1E022C10C1F5468C8EB6633C /* soa_math_archive.h */,
-				99FA7AE2CF4B43F0A3FC53B9 /* soa_quaternion.h */,
-				799A1F5A59A648BF98B155E9 /* soa_transform.h */,
-				B4D68514FC3C4F71961EE8C9 /* transform.h */,
-				A986F49E17AC4A838EE4D16D /* vec_float.h */,
 				D202876FC00C490281BA4158 /* allocator.h */,
 				AAAE3499BA404142983AF82A /* platform.h */,
 			);
@@ -534,10 +482,7 @@
 				563C44DBF8704CFF9811865B /* string_archive.cc in Sources */,
 				B801EDBB768047B3A81F5124 /* archive.cc in Sources */,
 				E3ED88036C354D2A94F5F5E9 /* stream.cc in Sources */,
-				40B72BAAA4914375B9E1C709 /* log.cc in Sources */,
-				C12EB9AC19F14645AF0BDE86 /* box.cc in Sources */,
 				FD36AE85B1D0408AAEDB71BD /* math_archive.cc in Sources */,
-				DDB07799C16143AFAC44347C /* simd_math.cc in Sources */,
 				8B4D4D75A1034FA6BF32DA76 /* simd_math_archive.cc in Sources */,
 				423BC752D25E4DCBA154DCC6 /* soa_math_archive.cc in Sources */,
 				AD40FA742B2D42F0A6D76D61 /* allocator.cc in Sources */,
@@ -622,10 +567,7 @@
 				D0796AD0211ED7430028AFFD /* string_archive.cc in Sources */,
 				D0796AD1211ED7430028AFFD /* archive.cc in Sources */,
 				D0796AD2211ED7430028AFFD /* stream.cc in Sources */,
-				D0796AD3211ED7430028AFFD /* log.cc in Sources */,
-				D0796AD4211ED7430028AFFD /* box.cc in Sources */,
 				D0796AD5211ED7430028AFFD /* math_archive.cc in Sources */,
-				D0796AD6211ED7430028AFFD /* simd_math.cc in Sources */,
 				D0796AD7211ED7430028AFFD /* simd_math_archive.cc in Sources */,
 				D0796AD8211ED7430028AFFD /* soa_math_archive.cc in Sources */,
 				D0796AD9211ED7430028AFFD /* allocator.cc in Sources */,

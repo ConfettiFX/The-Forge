@@ -64,12 +64,8 @@ public:
 	//! - When it is paramount to be able to unload individual fonts, use multiple fontstashes.
 	int defineFont(const char* identification, const char* filename, uint32_t root);
 
-	//! Find a font by user defined identification.
-	int getFontID(const char* identification);
-
-	const char* getFontName(const char* identification);
-	void*       getFontBuffer(const char* identification);
-	uint32_t    getFontBufferSize(const char* identification);
+	void*       getFontBuffer(uint32_t index);
+	uint32_t    getFontBufferSize(uint32_t index);
 
 	//! Draw text.
 	void drawText(

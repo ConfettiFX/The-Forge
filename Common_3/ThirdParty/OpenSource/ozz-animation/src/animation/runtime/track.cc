@@ -28,12 +28,12 @@
 #include "ozz/animation/runtime/track.h"
 
 #include "ozz/base/io/archive.h"
-#include "ozz/base/log.h"
 #include "ozz/base/maths/math_archive.h"
 #include "ozz/base/maths/math_ex.h"
 #include "ozz/base/memory/allocator.h"
 
 #include "../../EASTL/internal/char_traits.h"
+#include "../../../../../Common_3/OS/Interfaces/ILog.h"
 
 #include <cassert>
 
@@ -128,7 +128,7 @@ void Track<_ValueType>::Load(ozz::io::IArchive& _archive, uint32_t _version) {
   Deallocate();
 
   if (_version > 1) {
-    log::Err() << "Unsupported Track version " << _version << "." << std::endl;
+    LOGF(LogLevel::eERROR, "Unsupported Track version %d.", _version);
     return;
   }
 

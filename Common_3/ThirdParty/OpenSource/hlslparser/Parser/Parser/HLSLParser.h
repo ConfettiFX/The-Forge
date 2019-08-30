@@ -10,77 +10,86 @@
 #ifndef HLSL_PARSER_H
 #define HLSL_PARSER_H
 
-//#include "Engine/StringPool.h"
-//#include "Engine/Array.h"
 #include "Engine.h"
 
 #include "HLSLTokenizer.h"
 #include "HLSLTree.h"
+#include "FullTokenizer.h"
 
-#define MAX_INCLUDE_FILE 16
+#include "StringLibrary.h"
 
-enum Target
-{
-	Target_VertexShader,
-	Target_FragmentShader,
-	Target_HullShader,
-	Target_DomainShader,
-	Target_GeometryShader,
-	Target_ComputeShader,
-};
-
-enum Language
-{
-	Language_HLSL,
-	Language_GLSL,	
-	Language_MSL,
-	Language_LegacyHLSL,	
-	Language_ORBIS,
-	Language_SWITCH,
-};
-
+#include "Parser.h"
 
 struct EffectState;
 
-struct PrepropStackData
-{
-	bool branchProp;
-
-	//now three languagues
-	bool passed[6];
-
-	PrepropStackData()
-	{
-		branchProp = false;
-		passed[0] = false;
-		passed[1] = false;
-		passed[2] = false;
-		passed[3] = false;
-		passed[4] = false;
-		passed[5] = false;
-	}
-};
 
 class HLSLParser
 {
 
 public:
+	/** This structure stores a HLSLFunction-like declaration for an intrinsic function */
+	struct Intrinsic
+	{
+		void AllocArgs(int num);
 
-    HLSLParser(Allocator* allocator, const char* fileName[], const char* buffer, size_t length, const char* entryName, Target target, Language language, const char* bufferForInlcuded[], int includedCounter);
+		~Intrinsic();
+
+		CachedString MakeCached(StringLibrary & stringLibrary, const char * name);
+
+		explicit Intrinsic(StringLibrary & stringLibrary, const char* name, HLSLBaseType returnType);
+		explicit Intrinsic(StringLibrary & stringLibrary, const char* name, HLSLBaseType returnType, HLSLBaseType arg1);
+		explicit Intrinsic(StringLibrary & stringLibrary, const char* name, HLSLBaseType returnType, HLSLBaseType arg1, HLSLBaseType arg2);
+		explicit Intrinsic(StringLibrary & stringLibrary, const char* name, HLSLBaseType returnType, HLSLBaseType arg1, HLSLBaseType arg2, HLSLBaseType arg3);
+		explicit Intrinsic(StringLibrary & stringLibrary, const char* name, HLSLBaseType returnType, HLSLBaseType arg1, HLSLBaseType arg2, HLSLBaseType arg3, HLSLBaseType arg4);
+		explicit Intrinsic(StringLibrary & stringLibrary, const char* name, HLSLBaseType returnType, HLSLBaseType arg1, HLSLBaseType arg2, HLSLBaseType arg3, HLSLBaseType arg4, HLSLBaseType arg5);
+
+		HLSLFunction    fullFunction;
+		HLSLArgument    argument[5];
+
+		const char *    rawName;
+
+	};
+
+	struct IntrinsicHelper
+	{
+		IntrinsicHelper();
+
+		~IntrinsicHelper();
+		void BuildIntrinsics();
+
+		StringLibrary m_intrinsicStringLibrary;
+		eastl::vector < Intrinsic * > m_intrinsics;
+	};
+
+    HLSLParser(StringLibrary * stringLibrary, IntrinsicHelper * intrinsicHelper, FullTokenizer * pTokenizer, const char* entryName, Parser::Target target, Parser::Language language, const char debugTokenFileName[]);
 
 	~HLSLParser()
 	{
-		delete mainTokenizer;
+		m_pFullTokenizer = NULL;
+
+		m_intrinsicHelper = NULL;
+		m_pStringLibrary = NULL;
 	}
 
-    bool Parse(HLSLTree* tree/*, PreprocessorPackage packageArray[]*/);
+    bool Parse(HLSLTree* tree);
 
-	HLSLTokenizer*   currentTokenizer;
+	FullTokenizer * m_pFullTokenizer;
+	StringLibrary * m_pStringLibrary;
 
-	HLSLTokenizer*   mainTokenizer;
+	const char * GetCstr(const CachedString & currStr) const;
 
-	HLSLTokenizer*	pTokenizerForIncluded[MAX_INCLUDE_FILE];
-	int				pTokenizerForIncludedCount;
+	void RevertParentStackToSize(int dstSize)
+	{
+		m_parentStackIdentifiers.resize(dstSize);
+	}
+
+	int GetParentStackSize() const
+	{
+		return (int)m_parentStackIdentifiers.size();
+	}
+
+	static bool GetBinaryOpResultType(HLSLBinaryOp binaryOp, const HLSLType& type1, const HLSLType& type2, HLSLType& result);
+
 
 private:
 
@@ -96,28 +105,33 @@ private:
     bool Accept(const char* token);
     bool Expect(const char* token);
 
-    bool AcceptIdentifier(const char*& identifier);
-	int AcceptMacroIdentifier(const char*& identifier);
-    bool ExpectIdentifier(const char*& identifier);
-	bool ExpectIdentifierForDefine(const char*& identifier);
     bool AcceptFloat(float& value);
 	bool AcceptHalf( float& value );
+	bool AcceptMin16Float(float& value);
+	bool AcceptMin10Float(float& value);
     bool AcceptInt(int& value);
 	bool AcceptUint(unsigned int& value);
-    bool AcceptType(bool allowVoid, HLSLBaseType& type, const char*& typeName, int* typeFlags);
-    bool ExpectType(bool allowVoid, HLSLBaseType& type, const char*& typeName, int* typeFlags);
+    bool AcceptType(bool allowVoid, HLSLBaseType& type, CachedString & typeName, int* typeFlags);
+    bool ExpectType(bool allowVoid, HLSLBaseType& type, CachedString & typeName, int* typeFlags);
     bool AcceptBinaryOperator(int priority, HLSLBinaryOp& binaryOp);
     bool AcceptUnaryOperator(bool pre, HLSLUnaryOp& unaryOp);
     bool AcceptAssign(HLSLBinaryOp& binaryOp);
     bool AcceptTypeModifier(int & typeFlags);
     bool AcceptInterpolationModifier(int& flags);
 
+	bool ApplyMemberAccessToNode(HLSLExpression * & expression);
+
+	bool AcceptIdentifier(CachedString & identifier);
+	bool ExpectIdentifier(CachedString & identifier);
+
+
+
     /**
      * Handles a declaration like: "float2 name[5]". If allowUnsizedArray is true, it is
      * is acceptable for the declaration to not specify the bounds of the array (i.e. name[]).
      */
-    bool AcceptDeclaration(bool allowUnsizedArray, HLSLType& type, const char*& name);
-    bool ExpectDeclaration(bool allowUnsizedArray, HLSLType& type, const char*& name);
+    bool AcceptDeclaration(bool allowUnsizedArray, HLSLType& type, CachedString & name);
+    bool ExpectDeclaration(bool allowUnsizedArray, HLSLType& type, CachedString & name);
 
     bool ParseTopLevel(HLSLStatement*& statement);
     bool ParseBlock(HLSLStatement*& firstStatement, const HLSLType& returnType);
@@ -126,19 +140,16 @@ private:
     bool ParseStatement(HLSLStatement*& statement, const HLSLType& returnType);
     bool ParseDeclaration(HLSLDeclaration*& declaration);
     bool ParseFieldDeclaration(HLSLStructField*& field);
-	//bool ParseSamplerStateFieldDeclaration(HLSLSamplerStateField*& field);
-    //bool ParseBufferFieldDeclaration(HLSLBufferField*& field);
 	bool ParseSamplerStateExpression(HLSLSamplerStateExpression*& expression);
-    bool ParseExpression(HLSLExpression*& expression);
+    bool ParseExpression(HLSLExpression*& expression, bool allowCommaOperator, int binaryPriority);
     bool ParseBinaryExpression(int priority, HLSLExpression*& expression);
     bool ParseTerminalExpression(HLSLExpression*& expression, bool& needsEndParen, bool bPreprocessor);
     bool ParseExpressionList(int endToken, bool allowEmptyEnd, HLSLExpression*& firstExpression, int& numExpressions);
-    bool ParseArgumentList(HLSLArgument*& firstArgument, int& numArguments);
-	bool ParseMacroFunctionArgumentList(HLSLArgument*& firstArgument, int& numArguments, HLSLBaseType &baseType);
+	bool ParseArgumentVec(eastl::vector< HLSLArgument* > & argVec);
     bool ParseDeclarationAssignment(HLSLDeclaration* declaration);
-    bool ParsePartialConstructor(HLSLExpression*& expression, HLSLBaseType type, const char* typeName);
+    bool ParsePartialConstructor(HLSLExpression*& expression, HLSLBaseType type, const CachedString & typeName);
 
-    bool ParseStateName(bool isSamplerState, bool isPipelineState, const char*& name, const EffectState *& state);
+    bool ParseStateName(bool isSamplerState, bool isPipelineState, CachedString & name, const EffectState *& state);
     bool ParseColorMask(int& mask);
     bool ParseStateValue(const EffectState * state, HLSLStateAssignment* stateAssignment);
     bool ParseStateAssignment(HLSLStateAssignment*& stateAssignment, bool isSamplerState, bool isPipelineState);
@@ -153,59 +164,46 @@ private:
 
     bool CheckForUnexpectedEndOfStream(int endToken);
 
+	bool GetRegisterAssignment(HLSLStatement* pStatement, const char* errorMsg);
+
 	bool AcceptBufferType(HLSLBuffer* pBuffer);
 
 	bool GetBufferElementType(HLSLBuffer* pBuffer, bool bAllowVoid, int* pTypeFlag, bool optional);
-	bool GetRegisterAssignment(HLSLBuffer* pBuffer, const char* errorMsg_bufferType);
 	bool GetBufferBody(HLSLBuffer* pBuffer);
 	void GetBufferArray(HLSLBuffer* pBuffer);
 	
-	bool GetRegisterAssignment(HLSLTextureState* pTextureState, const char* errorMsg_bufferType);
 	void GetTextureArray(HLSLTextureState* pTextureState);		
 	bool GetTextureElementType(HLSLTextureState* pTextureState, bool bAllowVoid, int* pTypeFlag, bool optional);
 	bool AcceptTextureType(HLSLTextureState* pTextureState);
 
-	
-    HLSLStruct* FindUserDefinedType(const char* name) const;
+    HLSLStruct* FindUserDefinedType(const CachedString & name) const;
+
+	const HLSLTextureState* FindTextureStateDefinedType(const CachedString & name) const;
+	const HLSLTextureState* FindTextureStateDefinedTypeWithAddress(const CachedString & name) const;
+
+	const HLSLSamplerState* FindSamplerStateDefinedType(const CachedString & name) const;
+	HLSLBuffer* FindBuffer(const CachedString & name) const;
+
+	HLSLBuffer* FindConstantBuffer(const CachedString & name) const;
+
+	CachedString FindParentTextureOrBuffer(const HLSLTextureState* & foundTexture, HLSLBuffer * & foundBuffer) const;
 
 
-
-	
-
-	const HLSLpreprocessor* FindPreprocessorDefinedType(const char* name) const;
-	const HLSLTextureState* FindTextureStateDefinedType(const char* name) const;
-	const HLSLTextureState* FindTextureStateDefinedTypeWithAddress(const char* name) const;
-
-	//const HLSLRWTextureState* FindRWTextureStateDefinedType(const char* name) const;
-	const HLSLSamplerState* FindSamplerStateDefinedType(const char* name) const;
-
-	HLSLBuffer* FindBuffer(const char* name) const;
-
-	HLSLBuffer* FindConstantBuffer(const char* name) const;
-
-	//HLSLConstantBuffer* FindCBufferDefinedType(const char* name) const;
-	//HLSLRWBuffer* FindRWBuffer(const char* name) const;
-	//HLSLRWStructuredBuffer* FindRWStructuredBuffer(const char* name) const;
-	//HLSLStructuredBuffer* FindStructuredBuffer(const char* name) const;
-
-	//void FindClosestTextureIdentifier(const HLSLTextureState* pTextureState, char* functionCaller, HLSLFunctionCall* functionCall, int i, const char* pIdentifierName);
-	//void FindClosestTextureIdentifier(const HLSLRWTextureState* pTextureState, char* functionCaller, HLSLFunctionCall* functionCall, int i, const char* pIdentifierName);
-	
     void BeginScope();
     void EndScope();
 
-    void DeclareVariable(const char* name, const HLSLType& type);
+    void DeclareVariable(const CachedString & name, const HLSLType& type);
 
     /** Returned pointer is only valid until Declare or Begin/EndScope is called. */
-    const HLSLType* FindVariable(const char* name, bool& global) const;
+    const HLSLType* FindVariable(const CachedString & name, bool& global) const;
 
-    HLSLFunction* FindFunction(const char* name);
+    HLSLFunction* FindFunction(const CachedString & name);
     const HLSLFunction* FindFunction(const HLSLFunction* fun) const;
 
-    bool GetIsFunction(const char* name) const;
+    bool GetIsFunction(const CachedString & name) const;
     
     /** Finds the overloaded function that matches the specified call. */
-    const HLSLFunction* MatchFunctionCall(const HLSLFunctionCall* functionCall, const char* name);
+    const HLSLFunction* MatchFunctionCall(const HLSLFunctionCall* functionCall, const CachedString & name);
 
     /** Gets the type of the named field on the specified object type (fieldName can also specify a swizzle. ) */
     bool GetMemberType(HLSLType& objectType, HLSLMemberAccess * memberAccess);
@@ -215,68 +213,67 @@ private:
     const char* GetFileName();
     int GetLineNumber() const;
 
-	
-	bool GenerateMacroFunctions(HLSLFunction* originalFunction, HLSLBaseType baseType);
-	bool IsEmptyDefineIdentifier(HLSLStatement* &statement);
+	CachedString GetTypeName(const HLSLType& type);
 
-
-	HLSLpreprocessor* HandleBranchPreprofessor(const char* fileName, int line, bool *doesNotExpectSemicolon, bool *pValid);
 
 	HLSLBaseType GetBaseTypeFromElement(const char* element);
 
-
     struct Variable
     {
-        const char*     name;
+        CachedString     name;
         HLSLType        type;
     };
+	    
+    eastl::vector<HLSLStruct*>					m_userTypes;
+	eastl::vector<HLSLBuffer*>					m_Buffers;
+	eastl::vector<HLSLSamplerState*>				m_samplerStates;
+	eastl::vector<HLSLTextureState*>				m_textureStates;
+	eastl::vector<HLSLTextureStateExpression*>	m_textureStateExpressions;
+	eastl::vector<Variable>						m_variables;
+	eastl::vector<HLSLFunction*>					m_functions;
+    int												m_numGlobals;
 
-    
-    Array<HLSLStruct*>      m_userTypes;
+	IntrinsicHelper *		m_intrinsicHelper;
 
-	Array<HLSLBuffer*>		m_Buffers;
+	// This requires some explanation. During the parsing steps, in nodes do not care about their parents,
+	// and while parsing each node we only know about the nodes below us, or above us.
+	// This causes a problem when dealing with certain nodes that could either be a buffer or a texture.
+	// The example that caused this bug was:
+	//
+	//    TextureCube srcTexture : register(t1, space1);
+	//    ...
+	//    float dim[2];
+	//    srcTexture.GetDimensions(dim[0], dim[1]);
+	//
+	// When GetDimensions() is parsed, it does not know if its parent is a texture or a buffer. If it's a texture,
+	// we need to point to the last expression:
+	//
+	//     functionCall->pTextureStateExpression = m_textureStateExpressions[m_textureStateExpressions.size() - 1];
+	//
+	// and if it is a buffer we need to point to it.
+	//
+	//     functionCall->pBuffer = FindBuffer(prevIdentifier);
+	//
+	// The original code would look backwards in the history to estimate the identifier, but that would have problems
+	// with nested function calls. So the new solution is to keep a special stack of nodes for the current parsed tree.
+	// Then if we need to find out if our parent is a Texture/Buffer/something else, we can just go backwards through
+	// this stack. The stack is only for the current statement as well.
+	//
+	// Also, note that this stack does not handle every node type and path in the parser. It has only been tested
+	// for a few cases, namely resolving if a parent is a Texture or a Buffer.
+	eastl::vector < CachedString > m_parentStackIdentifiers;
 
-	/*
-	Array<HLSLConstantBuffer*>    m_cBuffers;
-	Array<HLSLRWBuffer*>			  m_rwBuffer;
-	Array<HLSLRWStructuredBuffer*>    m_rwStructuredBuffer;
-	Array<HLSLStructuredBuffer*>	  m_structuredBuffer;
-	*/
+	eastl::deque< size_t > m_variableScopes;
+	eastl::deque< size_t > m_textureStateScopes;
+	eastl::deque< size_t > m_textureStateExpressionScopes;
 
-	Array<HLSLSamplerState*>      m_samplerStates;
-	
-	Array<HLSLTextureState*>      m_textureStates;
-	//Array<HLSLRWTextureState*>    m_rwtextureStates;
-	
+	HLSLTree*               m_tree;
+	eastl::string			m_entryNameStr;
+	CachedString 			m_entryName;
 
-	Array<HLSLTextureStateExpression*>      m_textureStateExpressions;
-	//Array<HLSLRWTextureStateExpression*>      m_rwtextureStateExpressions;
-
-	Array<HLSLpreprocessor*>    m_preProcessors;
-    Array<Variable>         m_variables;
-    Array<HLSLFunction*>    m_functions;
-    int                     m_numGlobals;
-
-    HLSLTree*               m_tree;
-	const char*				m_entryName;
-
-	Target					m_target;
-	Language				m_language;
-
-
-	Array<PrepropStackData*> m_PrepropStack;
-	int						m_CurrentPrePropStack;
-
-
-
-	int						m_BranchCurrentStack;
-	int						m_BranchValidStack;
-	bool					m_bEmbrace;
-
-	const HLSLpreprocessor*	currentPreprocessor;
+	Parser::Target			m_target;
+	Parser::Language		m_language;
 
 };
-
-
 
 #endif

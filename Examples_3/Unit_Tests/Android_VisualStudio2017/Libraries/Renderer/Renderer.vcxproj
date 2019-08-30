@@ -42,6 +42,7 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\Vulkan.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanRaytracing.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanShaderReflection.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\Profiler.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerBase.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerDraw.cpp" />

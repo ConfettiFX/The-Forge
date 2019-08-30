@@ -1,0 +1,392 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|ARM">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM">
+      <Configuration>Release</Configuration>
+      <Platform>ARM</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|ARM64">
+      <Configuration>Debug</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|ARM64">
+      <Configuration>Release</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x86">
+      <Configuration>Debug</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x86">
+      <Configuration>Release</Configuration>
+      <Platform>x86</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{68f48840-8afc-444f-b7ca-96905009d8e6}</ProjectGuid>
+    <Keyword>Android</Keyword>
+    <RootNamespace>GltfViewer</RootNamespace>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <MinimumVisualStudioVersion>14.0</MinimumVisualStudioVersion>
+    <ApplicationType>Android</ApplicationType>
+    <ApplicationTypeRevision>3.0</ApplicationTypeRevision>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>ARM</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>ARM</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>ARM</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>ARM</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>ARM</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>ARM</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>ARM</ThumbMode>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>Clang_5_0</PlatformToolset>
+    <AndroidAPILevel>android-28</AndroidAPILevel>
+    <UseOfStl>c++_shared</UseOfStl>
+    <ThumbMode>ARM</ThumbMode>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <Import Project="..\..\ARM64.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <Import Project="..\..\ARM64.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <Import Project="..\..\ARM.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <Import Project="..\..\ARM.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(IncludePath)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(IncludePath)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(IncludePath)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(IncludePath)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(IncludePath)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(IncludePath)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(IncludePath)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
+    <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
+    <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue;$(IncludePath)</IncludePath>
+    <UseMultiToolTask>true</UseMultiToolTask>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <EnableNeonCodegen>true</EnableNeonCodegen>
+      <FloatABI>softfp</FloatABI>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>_DEBUG;ANDROID;VULKAN;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <LibraryDependencies>OS;Renderer;SpirvTools;LuaManager;gainputstatic;AssetPipeline;ozz_animation;ozz_base;AssimpImporter;assimp;zlibstatic;IrrXML;MeshOptimizer;shaderc;</LibraryDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <PostBuildEvent>
+      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <EnableNeonCodegen>true</EnableNeonCodegen>
+      <FloatABI>softfp</FloatABI>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>ANDROID;VULKAN;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <LibraryDependencies>OS;Renderer;SpirvTools;LuaManager;gainputstatic;AssetPipeline;ozz_animation;ozz_base;AssimpImporter;assimp;zlibstatic;IrrXML;MeshOptimizer;shaderc;</LibraryDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
+    </Link>
+    <PostBuildEvent>
+      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <EnableNeonCodegen>true</EnableNeonCodegen>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>_DEBUG;ANDROID;VULKAN;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <LibraryDependencies>OS;Renderer;SpirvTools;LuaManager;gainputstatic;AssetPipeline;ozz_animation;ozz_base;AssimpImporter;assimp;zlibstatic;IrrXML;MeshOptimizer;shaderc;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <PostBuildEvent>
+      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <EnableNeonCodegen>true</EnableNeonCodegen>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>ANDROID;VULKAN;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <LibraryDependencies>OS;Renderer;SpirvTools;LuaManager;gainputstatic;AssetPipeline;ozz_animation;ozz_base;AssimpImporter;assimp;zlibstatic;IrrXML;MeshOptimizer;shaderc;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <PostBuildEvent>
+      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <EnableNeonCodegen>true</EnableNeonCodegen>
+      <FloatABI>softfp</FloatABI>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>_DEBUG;ANDROID;VULKAN;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <LibraryDependencies>OS;Renderer;SpirvTools;LuaManager;gainputstatic;AssetPipeline;ozz_animation;ozz_base;AssimpImporter;assimp;zlibstatic;IrrXML;MeshOptimizer;shaderc;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <PostBuildEvent>
+      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <EnableNeonCodegen>true</EnableNeonCodegen>
+      <FloatABI>softfp</FloatABI>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>ANDROID;VULKAN;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <LibraryDependencies>OS;Renderer;SpirvTools;LuaManager;gainputstatic;AssetPipeline;ozz_animation;ozz_base;AssimpImporter;assimp;zlibstatic;IrrXML;MeshOptimizer;shaderc;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <PostBuildEvent>
+      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <EnableNeonCodegen>true</EnableNeonCodegen>
+      <FloatABI>softfp</FloatABI>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>_DEBUG;ANDROID;VULKAN;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <LibraryDependencies>OS;Renderer;SpirvTools;LuaManager;gainputstatic;AssetPipeline;ozz_animation;ozz_base;AssimpImporter;assimp;zlibstatic;IrrXML;MeshOptimizer;shaderc;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <PostBuildEvent>
+      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
+    <ClCompile>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <EnableNeonCodegen>true</EnableNeonCodegen>
+      <FloatABI>softfp</FloatABI>
+      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>ANDROID;VULKAN;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <LibraryDependencies>OS;Renderer;SpirvTools;LuaManager;gainputstatic;AssetPipeline;ozz_animation;ozz_base;AssimpImporter;assimp;zlibstatic;IrrXML;MeshOptimizer;shaderc;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+    </Link>
+    <PostBuildEvent>
+      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y</Command>
+    </PostBuildEvent>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="android_native_app_glue.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\src\08_GltfViewer\08_GltfViewer.cpp" />
+    <ClCompile Include="android_native_app_glue.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\basic.frag" />
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\basic.vert" />
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\basicMOBILE.frag" />
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\floor.frag" />
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\floor.vert" />
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\floorMOBILE.frag" />
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\FXAA.frag" />
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\profile.frag" />
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\profile.vert" />
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\Triangular.vert" />
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\vignette.frag" />
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\watermark.frag" />
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\watermark.vert" />
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\zPass.vert" />
+    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\zPassFloor.vert" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

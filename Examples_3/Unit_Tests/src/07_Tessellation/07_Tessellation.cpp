@@ -38,6 +38,7 @@
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
@@ -48,9 +49,6 @@
 #include "../../../../Middleware_3/UI/AppUI.h"
 
 //input
-#include "../../../../Common_3/OS/Input/InputSystem.h"
-#include "../../../../Common_3/OS/Input/InputMappings.h"
-
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
 
 ICameraController* pCameraController = NULL;
@@ -160,7 +158,7 @@ const char* pszBases[FSR_Count] = {
 };
 
 const uint32_t gImageCount = 3;
-bool           bToggleMicroProfiler = false;
+bool           gMicroProfiler = false;
 bool           bPrevToggleMicroProfiler = false;
 
 Renderer* pRenderer = NULL;
@@ -213,9 +211,7 @@ RootSignature* pGrassRootSignature = NULL;
 RootSignature* pGrassVertexHullRootSignature = NULL;
 #endif
 
-#ifdef TARGET_IOS
 VirtualJoystickUI gVirtualJoystick;
-#endif
 
 Shader*           pComputeShader = NULL;
 Pipeline*         pComputePipeline = NULL;
@@ -250,8 +246,6 @@ class Tessellation: public IApp
 	
 	bool Init()
 	{
-		HiresTimer startTime;
-
 		initNoise();
 
 		initBlades();
@@ -288,13 +282,13 @@ class Tessellation: public IApp
 		initResourceLoaderInterface(pRenderer);
 
 		initProfiler(pRenderer);
-		profileRegisterInput();
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
-#ifdef TARGET_IOS
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Absolute))
+		{
+			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
 			return false;
-#endif
+		}
 
 #if defined(DIRECT3D12) || defined(VULKAN)
 		ShaderLoadDesc grassShader = {};
@@ -476,7 +470,7 @@ class Tessellation: public IApp
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 		pGui = gAppUI.AddGuiComponent("Tessellation Properties", &guiDesc);
 
-    pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+    pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
 
 		static const char* enumNames[] = {
 			"SOLID",
@@ -515,21 +509,58 @@ class Tessellation: public IApp
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-		gVirtualJoystick.InitLRSticks();
-		pCameraController->setVirtualJoystick(&gVirtualJoystick);
-#endif
 		pCameraController->setMotionParameters(cmp);
 
-		InputSystem::RegisterInputEvent(cameraInputEvent);
+		if (!initInputSystem(pWindow))
+			return false;
 
-		LOGF(LogLevel::eINFO, "Load time %f ms", startTime.GetUSec(true) / 1000.0f);
+		// Microprofiler Actions
+		// #TODO: Remove this once the profiler UI is ported to use our UI system
+		InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gMicroProfiler; } };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
+		addInputAction(&actionDesc);
+
+		// App Actions
+		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		addInputAction(&actionDesc);
+		actionDesc =
+		{
+			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
+			{
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gMicroProfiler);
+				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+				return true;
+			}, this
+		};
+		addInputAction(&actionDesc);
+		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
+		{
+			if (!gMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
+			{
+				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
+				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+			}
+			return true;
+		};
+		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+		addInputAction(&actionDesc);
+
 		return true;
 	}
 
 	void Exit()
 	{
 		waitQueueIdle(pGraphicsQueue);
+
+		exitInputSystem();
 
 		exitProfiler();
 
@@ -547,9 +578,7 @@ class Tessellation: public IApp
 		removeResource(pHullOutputBuffer);
 #endif
 
-#ifdef TARGET_IOS
 		gVirtualJoystick.Exit();
-#endif
 
 		removeIndirectCommandSignature(pRenderer, pIndirectCommandSignature);
 
@@ -613,11 +642,10 @@ class Tessellation: public IApp
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
-		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
-#ifdef TARGET_IOS
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
-#endif
+
+		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
 
 		VertexLayout vertexLayout = {};
 #ifndef METAL
@@ -694,9 +722,8 @@ class Tessellation: public IApp
 		waitQueueIdle(pGraphicsQueue);
 
 		unloadProfiler();
-#ifdef TARGET_IOS
+
 		gVirtualJoystick.Unload();
-#endif
 
 		gAppUI.Unload();
 
@@ -709,6 +736,8 @@ class Tessellation: public IApp
 
 	void Update(float deltaTime)
 	{
+		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
+
 		//check for Vsync toggle
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
@@ -717,15 +746,9 @@ class Tessellation: public IApp
 			::toggleVSync(pRenderer, &pSwapChain);
 		}
 #endif
-
 		/************************************************************************/
 		// Update camera
 		/************************************************************************/
-		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
-		{
-			RecenterCameraView(170.0f);
-		}
-
 		pCameraController->update(deltaTime);
 		/************************************************************************/
 		// Update uniform buffer
@@ -755,14 +778,14 @@ class Tessellation: public IApp
 
     // ProfileSetDisplayMode()
       // TODO: need to change this better way 
-    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+    if (gMicroProfiler != bPrevToggleMicroProfiler)
     {
       Profile& S = *ProfileGet();
-      int nValue = bToggleMicroProfiler ? 1 : 0;
+      int nValue = gMicroProfiler ? 1 : 0;
       nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
       S.nDisplay = nValue;
 
-      bPrevToggleMicroProfiler = bToggleMicroProfiler;
+      bPrevToggleMicroProfiler = gMicroProfiler;
     }
 
 		/************************************************************************/
@@ -914,9 +937,7 @@ class Tessellation: public IApp
 		gAppUI.DrawText(
 			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", timer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
 
-#ifdef TARGET_IOS
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
-#endif
 
 		gAppUI.DrawText(
 			cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
@@ -1024,28 +1045,6 @@ class Tessellation: public IApp
 		waitForFences(pRenderer, 1, &pRenderCompleteFences[0]);
 	}
 #endif
-
-	void RecenterCameraView(float maxDistance, vec3 lookAt = vec3(0))
-	{
-		vec3 p = pCameraController->getViewPosition();
-		vec3 d = p - lookAt;
-
-		float lenSqr = lengthSqr(d);
-		if (lenSqr > (maxDistance * maxDistance))
-		{
-			d *= (maxDistance / sqrtf(lenSqr));
-		}
-
-		p = d + lookAt;
-		pCameraController->moveTo(p);
-		pCameraController->lookAt(lookAt);
-	}
-
-	static bool cameraInputEvent(const ButtonData* data)
-	{
-		pCameraController->onInputEvent(data);
-		return true;
-	}
 };
 
 DEFINE_APPLICATION_MAIN(Tessellation)

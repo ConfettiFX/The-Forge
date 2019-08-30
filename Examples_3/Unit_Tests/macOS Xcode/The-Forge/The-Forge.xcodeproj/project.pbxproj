@@ -41,8 +41,7 @@
 		5C172FE221414CC60074EE71 /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D205E2821F9F9EC600040CCE /* FileSystem.cpp */; };
 		5C172FE321414CC60074EE71 /* RingBuffer.h in Sources */ = {isa = PBXBuildFile; fileRef = D205E2831F9F9EC600040CCE /* RingBuffer.h */; };
 		5C172FE421414CC60074EE71 /* MemoryTracking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D461A1FD9974F00564C8B /* MemoryTracking.cpp */; };
-		5C172FE521414CC60074EE71 /* FpsCameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D20D92111F3879C4004B3A42 /* FpsCameraController.cpp */; };
-		5C172FE621414CC60074EE71 /* GuiCameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D20D92101F3879C4004B3A42 /* GuiCameraController.cpp */; };
+		5C172FE521414CC60074EE71 /* CameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D20D92111F3879C4004B3A42 /* CameraController.cpp */; };
 		5C172FE721414CC60074EE71 /* MathTypes.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CBF1EF81FC5005AC8C7 /* MathTypes.h */; };
 		5C172FE821414CC60074EE71 /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCC1EF81FC5005AC8C7 /* Image.cpp */; };
 		5C172FE921414CC60074EE71 /* Image.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCD1EF81FC5005AC8C7 /* Image.h */; };
@@ -61,7 +60,6 @@
 		5C172FF621414CC60074EE71 /* tinyexr.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE21EF81FC5005AC8C7 /* tinyexr.h */; };
 		5C172FF721414CC60074EE71 /* Log.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE61EF81FC5005AC8C7 /* Log.cpp */; };
 		5C172FF821414CC60074EE71 /* Log.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE71EF81FC5005AC8C7 /* Log.h */; };
-		5C172FFB21414CC60074EE71 /* PlatformEvents.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D151EF94E43005AC8C7 /* PlatformEvents.cpp */; };
 		5C172FFC21414CC60074EE71 /* ThreadSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */; };
 		5C172FFD21414CC60074EE71 /* Timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */; };
 		5C17301221414D880074EE71 /* libgainputstatic_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D1CEAB20EAD160001BB8C4 /* libgainputstatic_iOS.a */; };
@@ -88,8 +86,7 @@
 		5C5582F421413D550019960B /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D205E2821F9F9EC600040CCE /* FileSystem.cpp */; };
 		5C5582F521413D550019960B /* RingBuffer.h in Sources */ = {isa = PBXBuildFile; fileRef = D205E2831F9F9EC600040CCE /* RingBuffer.h */; };
 		5C5582F621413D550019960B /* MemoryTracking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D461A1FD9974F00564C8B /* MemoryTracking.cpp */; };
-		5C5582F721413D550019960B /* FpsCameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D20D92111F3879C4004B3A42 /* FpsCameraController.cpp */; };
-		5C5582F821413D550019960B /* GuiCameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D20D92101F3879C4004B3A42 /* GuiCameraController.cpp */; };
+		5C5582F721413D550019960B /* CameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D20D92111F3879C4004B3A42 /* CameraController.cpp */; };
 		5C5582F921413D550019960B /* MathTypes.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CBF1EF81FC5005AC8C7 /* MathTypes.h */; };
 		5C5582FA21413D550019960B /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCC1EF81FC5005AC8C7 /* Image.cpp */; };
 		5C5582FB21413D550019960B /* Image.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCD1EF81FC5005AC8C7 /* Image.h */; };
@@ -102,7 +99,6 @@
 		5C55830A21413D550019960B /* tinyexr.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE21EF81FC5005AC8C7 /* tinyexr.h */; };
 		5C55830B21413D550019960B /* Log.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE61EF81FC5005AC8C7 /* Log.cpp */; };
 		5C55830C21413D550019960B /* Log.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE71EF81FC5005AC8C7 /* Log.h */; };
-		5C55830F21413D550019960B /* PlatformEvents.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463D151EF94E43005AC8C7 /* PlatformEvents.cpp */; };
 		5C55831021413D550019960B /* ThreadSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */; };
 		5C55831121413D550019960B /* Timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */; };
 		650CCC3C2223C17A003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172FBF21414BE60074EE71 /* MetalPerformanceShaders.framework */; };
@@ -157,8 +153,6 @@
 		81856F14229D72EF00F3A92B /* assert.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81856F12229D72EF00F3A92B /* assert.cpp */; };
 		81FF8E2C2237A9D30009402D /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81FF8E292237A9D30009402D /* InputSystem.cpp */; };
 		81FF8E2D2237A9D30009402D /* InputSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81FF8E292237A9D30009402D /* InputSystem.cpp */; };
-		81FF8E2E2237A9D30009402D /* InputMappings.h in Headers */ = {isa = PBXBuildFile; fileRef = 81FF8E2A2237A9D30009402D /* InputMappings.h */; };
-		81FF8E2F2237A9D30009402D /* InputSystem.h in Headers */ = {isa = PBXBuildFile; fileRef = 81FF8E2B2237A9D30009402D /* InputSystem.h */; };
 		B274041B22BC66AD00F7660D /* BaseComponent.h in Headers */ = {isa = PBXBuildFile; fileRef = B274041522BC66AD00F7660D /* BaseComponent.h */; };
 		B274041C22BC66AD00F7660D /* ComponentRepresentation.h in Headers */ = {isa = PBXBuildFile; fileRef = B274041622BC66AD00F7660D /* ComponentRepresentation.h */; };
 		B274041D22BC66AD00F7660D /* BaseComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041722BC66AD00F7660D /* BaseComponent.cpp */; };
@@ -168,6 +162,8 @@
 		B274042122BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041922BC66AD00F7660D /* ComponentRepresentation.cpp */; };
 		B274042222BC66AD00F7660D /* EntityManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041A22BC66AD00F7660D /* EntityManager.cpp */; };
 		B274042322BC66AD00F7660D /* EntityManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041A22BC66AD00F7660D /* EntityManager.cpp */; };
+		E9BF1A27231861BD001F2264 /* basisu_transcoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */; };
+		E9BF1A28231861BD001F2264 /* basisu_transcoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -286,8 +282,6 @@
 		81856EFF229D729000F3A92B /* fixed_pool.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = fixed_pool.cpp; path = OpenSource/EASTL/fixed_pool.cpp; sourceTree = "<group>"; };
 		81856F12229D72EF00F3A92B /* assert.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = assert.cpp; path = OpenSource/EASTL/assert.cpp; sourceTree = "<group>"; };
 		81FF8E292237A9D30009402D /* InputSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = InputSystem.cpp; path = Input/InputSystem.cpp; sourceTree = "<group>"; };
-		81FF8E2A2237A9D30009402D /* InputMappings.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = InputMappings.h; path = Input/InputMappings.h; sourceTree = "<group>"; };
-		81FF8E2B2237A9D30009402D /* InputSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = InputSystem.h; path = Input/InputSystem.h; sourceTree = "<group>"; };
 		B25AC24020EFF14500ED50CF /* Fontstash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Fontstash.h; path = ../../Middleware_3/Text/Fontstash.h; sourceTree = "<group>"; };
 		B25AC24120EFF14500ED50CF /* Fontstash.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Fontstash.cpp; path = ../../Middleware_3/Text/Fontstash.cpp; sourceTree = "<group>"; };
 		B274041522BC66AD00F7660D /* BaseComponent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BaseComponent.h; path = ../../../../../Middleware_3/ECS/BaseComponent.h; sourceTree = "<group>"; };
@@ -304,8 +298,8 @@
 		D09CF41A22968419001D13F2 /* Interfaces */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Interfaces; sourceTree = "<group>"; };
 		D205E2821F9F9EC600040CCE /* FileSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = FileSystem.cpp; path = Core/FileSystem.cpp; sourceTree = "<group>"; };
 		D205E2831F9F9EC600040CCE /* RingBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = RingBuffer.h; path = Core/RingBuffer.h; sourceTree = "<group>"; };
-		D20D92101F3879C4004B3A42 /* GuiCameraController.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = GuiCameraController.cpp; sourceTree = "<group>"; };
-		D20D92111F3879C4004B3A42 /* FpsCameraController.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = FpsCameraController.cpp; sourceTree = "<group>"; };
+		D20D92111F3879C4004B3A42 /* CameraController.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = CameraController.cpp; sourceTree = "<group>"; };
+		E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = basisu_transcoder.cpp; path = ../ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp; sourceTree = "<group>"; };
 		EA463CBF1EF81FC5005AC8C7 /* MathTypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MathTypes.h; path = ../../../../Common_3/OS/Math/MathTypes.h; sourceTree = SOURCE_ROOT; };
 		EA463CCC1EF81FC5005AC8C7 /* Image.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Image.cpp; path = ../../../../Common_3/OS/Image/Image.cpp; sourceTree = SOURCE_ROOT; };
 		EA463CCD1EF81FC5005AC8C7 /* Image.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Image.h; path = ../../../../Common_3/OS/Image/Image.h; sourceTree = SOURCE_ROOT; };
@@ -319,7 +313,6 @@
 		EA463CE71EF81FC5005AC8C7 /* Log.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Log.h; path = ../../../../Common_3/OS/Logging/Log.h; sourceTree = SOURCE_ROOT; };
 		EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ThreadSystem.cpp; path = ../../../../Common_3/OS/Core/ThreadSystem.cpp; sourceTree = SOURCE_ROOT; };
 		EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Timer.cpp; path = ../../../../Common_3/OS/Core/Timer.cpp; sourceTree = SOURCE_ROOT; };
-		EA463D151EF94E43005AC8C7 /* PlatformEvents.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = PlatformEvents.cpp; path = ../../../../Common_3/OS/Core/PlatformEvents.cpp; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -440,9 +433,7 @@
 		81FF8E282237A9C00009402D /* Input */ = {
 			isa = PBXGroup;
 			children = (
-				81FF8E2A2237A9D30009402D /* InputMappings.h */,
 				81FF8E292237A9D30009402D /* InputSystem.cpp */,
-				81FF8E2B2237A9D30009402D /* InputSystem.h */,
 			);
 			name = Input;
 			sourceTree = "<group>";
@@ -522,8 +513,7 @@
 		D20D920F1F3879A4004B3A42 /* Camera */ = {
 			isa = PBXGroup;
 			children = (
-				D20D92111F3879C4004B3A42 /* FpsCameraController.cpp */,
-				D20D92101F3879C4004B3A42 /* GuiCameraController.cpp */,
+				D20D92111F3879C4004B3A42 /* CameraController.cpp */,
 			);
 			name = Camera;
 			path = ../../../../Common_3/OS/Camera;
@@ -568,6 +558,7 @@
 		EA463CD01EF81FC5005AC8C7 /* Image */ = {
 			isa = PBXGroup;
 			children = (
+				E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */,
 				EA463CCC1EF81FC5005AC8C7 /* Image.cpp */,
 				EA463CCD1EF81FC5005AC8C7 /* Image.h */,
 				EA463CCE1EF81FC5005AC8C7 /* ImageEnums.h */,
@@ -669,7 +660,6 @@
 		EA463CEB1EF81FC5005AC8C7 /* Core */ = {
 			isa = PBXGroup;
 			children = (
-				EA463D151EF94E43005AC8C7 /* PlatformEvents.cpp */,
 				EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */,
 				EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */,
 			);
@@ -707,10 +697,8 @@
 				654D979E21E922F400113964 /* Animation.h in Headers */,
 				654D979A21E922F400113964 /* AnimatedObject.h in Headers */,
 				5B2144A422A6983F000B20D4 /* ProfilerBase.h in Headers */,
-				81FF8E2E2237A9D30009402D /* InputMappings.h in Headers */,
 				5C512C682141561E00E7A798 /* imgui.h in Headers */,
 				654D979421E922F400113964 /* ClipController.h in Headers */,
-				81FF8E2F2237A9D30009402D /* InputSystem.h in Headers */,
 				5B2144A122A6983F000B20D4 /* ProfilerHTML.h in Headers */,
 				B274041B22BC66AD00F7660D /* BaseComponent.h in Headers */,
 				654D979521E922F400113964 /* Rig.h in Headers */,
@@ -844,8 +832,7 @@
 				B274042322BC66AD00F7660D /* EntityManager.cpp in Sources */,
 				5C172FE421414CC60074EE71 /* MemoryTracking.cpp in Sources */,
 				81856F0D229D729000F3A92B /* intrusive_list.cpp in Sources */,
-				5C172FE521414CC60074EE71 /* FpsCameraController.cpp in Sources */,
-				5C172FE621414CC60074EE71 /* GuiCameraController.cpp in Sources */,
+				5C172FE521414CC60074EE71 /* CameraController.cpp in Sources */,
 				5C172FE721414CC60074EE71 /* MathTypes.h in Sources */,
 				5B2144AA22A698A6000B20D4 /* ProfilerUI.cpp in Sources */,
 				5C172FE821414CC60074EE71 /* Image.cpp in Sources */,
@@ -857,6 +844,7 @@
 				5C172FEB21414CC60074EE71 /* CommonShaderReflection.cpp in Sources */,
 				5C172FEC21414CC60074EE71 /* GpuProfiler.cpp in Sources */,
 				5B2144A822A698A6000B20D4 /* ProfilerDraw.cpp in Sources */,
+				E9BF1A28231861BD001F2264 /* basisu_transcoder.cpp in Sources */,
 				5C172FED21414CC60074EE71 /* GpuProfiler.h in Sources */,
 				81856F05229D729000F3A92B /* red_black_tree.cpp in Sources */,
 				81856F11229D729000F3A92B /* fixed_pool.cpp in Sources */,
@@ -886,7 +874,6 @@
 				B274042122BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */,
 				5C172FF821414CC60074EE71 /* Log.h in Sources */,
 				654D97BB21E92F8D00113964 /* ClipMask.cpp in Sources */,
-				5C172FFB21414CC60074EE71 /* PlatformEvents.cpp in Sources */,
 				5C172FFC21414CC60074EE71 /* ThreadSystem.cpp in Sources */,
 				81856EF4229D725000F3A92B /* EASprintf.cpp in Sources */,
 				5C172FFD21414CC60074EE71 /* Timer.cpp in Sources */,
@@ -926,8 +913,7 @@
 				5C512C662141561E00E7A798 /* imgui.cpp in Sources */,
 				5C5582F621413D550019960B /* MemoryTracking.cpp in Sources */,
 				81856F04229D729000F3A92B /* red_black_tree.cpp in Sources */,
-				5C5582F721413D550019960B /* FpsCameraController.cpp in Sources */,
-				5C5582F821413D550019960B /* GuiCameraController.cpp in Sources */,
+				5C5582F721413D550019960B /* CameraController.cpp in Sources */,
 				5C5582F921413D550019960B /* MathTypes.h in Sources */,
 				654D979721E922F400113964 /* ClipMask.cpp in Sources */,
 				5C512C55214155FE00E7A798 /* ImguiGUIDriver.cpp in Sources */,
@@ -948,6 +934,7 @@
 				654D97A021E922F400113964 /* Clip.cpp in Sources */,
 				81856F0C229D729000F3A92B /* intrusive_list.cpp in Sources */,
 				654D979821E922F400113964 /* SkeletonBatcher.cpp in Sources */,
+				E9BF1A27231861BD001F2264 /* basisu_transcoder.cpp in Sources */,
 				5C55830921413D550019960B /* tinyexr.cpp in Sources */,
 				5C55830A21413D550019960B /* tinyexr.h in Sources */,
 				5C55830B21413D550019960B /* Log.cpp in Sources */,
@@ -957,7 +944,6 @@
 				654D979D21E922F400113964 /* Rig.cpp in Sources */,
 				5C172F54214148840074EE71 /* MetalRenderer.mm in Sources */,
 				B274041D22BC66AD00F7660D /* BaseComponent.cpp in Sources */,
-				5C55830F21413D550019960B /* PlatformEvents.cpp in Sources */,
 				81856F06229D729000F3A92B /* string.cpp in Sources */,
 				81856EF3229D725000F3A92B /* EASprintf.cpp in Sources */,
 				65F9793221ED9F9B008EC741 /* MetalRaytracing.mm in Sources */,

@@ -30,31 +30,16 @@
 #include <android/native_activity.h>
 #include <android/log.h>
 
-#include "../../ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
-
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/ITime.h"
 #include "../Interfaces/IThread.h"
 
-#include "../Input/InputSystem.h"
-#include "../Input/InputMappings.h"
 #include "AndroidFileSystem.cpp"
+
 #include "../Interfaces/IMemory.h"
 
-#define CONFETTI_WINDOW_CLASS L"confetti"
-#define MAX_KEYS 256
-#define MAX_CURSOR_DELTA 200
-
-#define GETX(l) (int(l & 0xFFFF))
-#define GETY(l) (int(l) >> 16)
-
-#define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
-
-static eastl::vector<MonitorDesc>                gMonitors;
-static eastl::unordered_map<void*, WindowsDesc*> gHWNDMap;
-static WindowsDesc                                 gWindow;
+static WindowsDesc gWindow;
 
 void adjustWindow(WindowsDesc* winDesc);
 
@@ -62,6 +47,9 @@ void getRecommendedResolution(RectDesc* rect) { *rect = { 0, 0, 1920, 1080 }; }
 
 void requestShutdown() { LOGF(LogLevel::eERROR, "Cannot manually shutdown on Android"); }
 
+void toggleFullscreen(WindowsDesc* window)
+{
+}
 /************************************************************************/
 // App Entrypoint
 /************************************************************************/
@@ -202,9 +190,9 @@ static bool    windowReady = false;
 static bool    isActive = false;
 static int32_t handle_input(struct android_app* app, AInputEvent* event)
 {
-	// Forward input events to Gainput
-	InputSystem::UpdateSize(ANativeWindow_getWidth(app->window), ANativeWindow_getHeight(app->window));
-	return InputSystem::HandleMessage(event);
+    if (gWindow.callbacks.onHandleMessage)
+        return gWindow.callbacks.onHandleMessage(&gWindow, event);
+    return 0;
 }
 
 // Process the next main command.
@@ -232,8 +220,6 @@ void handle_cmd(android_app* app, int32_t cmd)
 			if (!windowReady)
 				pApp->Load();
 			windowReady = true;
-
-			InputSystem::UpdateSize(pSettings->mWidth, pSettings->mHeight);
 			break;
 		}
 		case APP_CMD_TERM_WINDOW:
@@ -312,16 +298,12 @@ int AndroidMain(void* param, IApp* app)
 	}
 	getDisplayMetrics(android_app);
 
-	InputSystem::Init(pSettings->mWidth, pSettings->mHeight);
-    InputSystem::SetMouseCapture(true);
-    InputSystem::SetHideMouseCursorWhileCaptured(false);
+	pApp->pWindow = &gWindow;
 	// Set the callback to process input events
     android_app->onInputEvent = handle_input;
 
 	if (!pApp->Init())
 		abort();
-
-	InputSystem::SetMouseCapture(true);
 
 	bool quit = false;
 
@@ -346,7 +328,6 @@ int AndroidMain(void* param, IApp* app)
 		if (deltaTime > 0.15f)
 			deltaTime = 0.05f;
 
-		InputSystem::Update();
 		handleMessages(&gWindow);
 
 		pApp->Update(deltaTime);

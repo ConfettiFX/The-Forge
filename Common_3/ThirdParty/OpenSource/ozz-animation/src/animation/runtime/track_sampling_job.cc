@@ -29,8 +29,9 @@
 #include "ozz/animation/runtime/track.h"
 #include "ozz/base/maths/math_ex.h"
 
-#include <algorithm>
 #include <cassert>
+
+#include "../../EASTL/algorithm.h"
 
 namespace ozz {
 namespace animation {
@@ -71,7 +72,7 @@ bool TrackSamplingJob<_Track>::Run() const {
 
   // Search for the first key frame with a ratio value greater than input ratio.
   // Our ratio is between this one and the previous one.
-  const float* ptk1 = std::upper_bound(ratios.begin, ratios.end, clamped_ratio);
+  const float* ptk1 = eastl::upper_bound(ratios.begin, ratios.end, clamped_ratio);
 
   // Deduce keys indices.
   const size_t id1 = ptk1 - ratios.begin;

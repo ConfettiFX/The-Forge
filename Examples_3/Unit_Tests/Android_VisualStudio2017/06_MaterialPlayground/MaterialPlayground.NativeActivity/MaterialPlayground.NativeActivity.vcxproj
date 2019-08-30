@@ -401,14 +401,14 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\PBR\*.* $(SolutionD
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\Common_3\Tools\TFXImporter\TFXImporter.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Tools\TFXImporter\TressFXAsset.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Tools\TFXImporter\TressFXFileFormat.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\AssetPipeline\src\TFXImporter.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\AssetPipeline\src\TressFXAsset.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\Tools\AssetPipeline\src\TressFXFileFormat.h" />
     <ClInclude Include="android_native_app_glue.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\Common_3\Tools\TFXImporter\TFXImporter.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Tools\TFXImporter\TressFXAsset.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\AssetPipeline\src\TFXImporter.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\Tools\AssetPipeline\src\TressFXAsset.cpp" />
     <ClCompile Include="..\..\..\src\06_MaterialPlayground\06_MaterialPlayground.cpp" />
     <ClCompile Include="android_native_app_glue.c" />
   </ItemGroup>

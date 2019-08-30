@@ -33,12 +33,11 @@
 #include "../../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
-#include "../../../../Common_3/OS/Input/InputSystem.h"
-#include "../../../../Common_3/OS/Input/InputMappings.h"
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
@@ -92,6 +91,8 @@ Buffer* pVertexBufferQuad = NULL;
 uint32_t gFrameIndex = 0;
 
 SceneConstantBuffer gSceneData;
+float2* pMovePosition = NULL;
+float2 gMoveDelta = {};
 
 /// UI
 UIApp         gAppUI;
@@ -164,7 +165,6 @@ class WaveIntrinsics: public IApp
 		{
 			LOGF(LogLevel::eERROR, "This GPU model causes Internal Shader compiler errors on Metal when compiling the wave instrinsics.");
 			removeRenderer(pRenderer);
-			InputSystem::Shutdown();
 			//exit instead of returning not to trigger failure in Jenkins
 			exit(0);
 		}
@@ -333,7 +333,28 @@ class WaveIntrinsics: public IApp
 #endif
 		}
 
-		InputSystem::RegisterInputEvent(onInput);
+		if (!initInputSystem(pWindow))
+			return false;
+
+		// App Actions
+		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		addInputAction(&actionDesc);
+		actionDesc =
+		{
+			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
+			{
+				if (gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, true) && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase)
+					pMovePosition = ctx->pPosition;
+				else
+					pMovePosition = NULL;
+				return true;
+			}, this
+		};
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { pMovePosition = NULL; gMoveDelta = ctx->mFloat2; return true; } };
+		addInputAction(&actionDesc);
 
 		return true;
 	}
@@ -341,6 +362,8 @@ class WaveIntrinsics: public IApp
 	void Exit()
 	{
 		waitQueueIdle(pGraphicsQueue);
+
+		exitInputSystem();
 
 		gAppUI.Exit();
 
@@ -449,6 +472,8 @@ class WaveIntrinsics: public IApp
 
 	void Update(float deltaTime)
 	{
+		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
+
 		gAppUI.Update(deltaTime);
 		/************************************************************************/
 		// Uniforms
@@ -462,8 +487,12 @@ class WaveIntrinsics: public IApp
 		gSceneData.time = currentTime;
 		gSceneData.resolution.x = (float)(mSettings.mWidth);
 		gSceneData.resolution.y = (float)(mSettings.mHeight);
-
 		gSceneData.renderMode = (gRenderModeToggles + 1);
+
+		if (pMovePosition)
+			gSceneData.mousePosition = *pMovePosition;
+
+		gSceneData.mousePosition += gMoveDelta;
 	}
 
 	void Draw()
@@ -595,40 +624,6 @@ class WaveIntrinsics: public IApp
 		addRenderTarget(pRenderer, &depthRT, &pRenderTargetIntermediate);
 
 		return pRenderTargetIntermediate != NULL;
-	}
-
-	static bool onInput(const ButtonData* pData)
-	{
-		
-#ifdef _DURANGO
-		if(pData->mUserId == KEY_RIGHT_STICK)
-		{
-			gSceneData.mousePosition.x += pData->mValue[0];
-			gSceneData.mousePosition.y += pData->mValue[1];
-
-			return true;
-		}
-#else
-		if (InputSystem::IsMouseCaptured())
-		{
-			if (pData->mUserId == KEY_UI_MOVE)
-			{
-				if (InputSystem::GetBoolInput(KEY_CONFIRM_PRESSED))
-				{
-					gSceneData.mousePosition.x = pData->mValue[0];
-					gSceneData.mousePosition.y = pData->mValue[1];
-
-					return true;
-				}
-
-			}
-		}
-
-#endif
-
-		
-
-		return false;
 	}
 };
 

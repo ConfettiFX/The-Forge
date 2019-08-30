@@ -34,9 +34,6 @@
 #pragma comment(lib, "shlwapi.lib")
 #endif
 
-#include "../Input/InputSystem.h"
-#include "../Input/InputMappings.h"
-
 #include "../../ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 
@@ -48,171 +45,102 @@
 #include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/IMemory.h"
 
-static IApp* pApp = NULL;
-
 #define CONFETTI_WINDOW_CLASS L"confetti"
 #define MAX_KEYS 256
-#define MAX_CURSOR_DELTA 200
 
 #define GETX(l) ((int)LOWORD(l))
 #define GETY(l) ((int)HIWORD(l))
 
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 
-namespace {
-bool isCaptured = false;
-}
-
-static bool		 gWindowClassInitialized = false;
-static WNDCLASSW	gWindowClass;
-
+static IApp*                                     pApp = NULL;
+static bool		                                 gWindowClassInitialized = false;
+static WNDCLASSW	                             gWindowClass;
 static eastl::vector<MonitorDesc>                gMonitors;
 static eastl::unordered_map<void*, WindowsDesc*> gHWNDMap;
 
-void adjustWindow(WindowsDesc* winDesc);
-
-namespace PlatformEvents {
-extern bool wantsMouseCapture;
-extern bool skipMouseCapture;
-
-extern void onWindowResize(const WindowResizeEventData* pData);
-}    // namespace PlatformEvents
-
-static bool captureMouse(bool shouldCapture, bool shouldHide)
-{
-	if (shouldCapture != isCaptured)
-	{
-		WindowsDesc* currentWind = gHWNDMap.begin()->second;
-		if (shouldCapture)
-		{
-			//TODO:Fix this once we have multiple window handles
-			POINT lastCursorPoint;
-			GetCursorPos(&lastCursorPoint);
-			currentWind->lastCursorPosX = lastCursorPoint.x;
-			currentWind->lastCursorPosY = lastCursorPoint.y;
-
-			SetCapture((HWND)currentWind->handle.window);
-
-			RECT clientRect;
-			GetClientRect((HWND)currentWind->handle.window, &clientRect);
-			//convert screen rect to client coordinates.
-			POINT ptClientUL = { clientRect.left, clientRect.top };
-			// Add one to the right and bottom sides, because the
-			// coordinates retrieved by GetClientRect do not
-			// include the far left and lowermost pixels.
-			POINT ptClientLR = { clientRect.right + 1, clientRect.bottom + 1 };
-			ClientToScreen((HWND)currentWind->handle.window, &ptClientUL);
-			ClientToScreen((HWND)currentWind->handle.window, &ptClientLR);
-
-			// Copy the client coordinates of the client area
-			// to the rcClient structure. Confine the mouse cursor
-			// to the client area by passing the rcClient structure
-			// to the ClipCursor function.
-			SetRect(&clientRect, ptClientUL.x, ptClientUL.y, ptClientLR.x, ptClientLR.y);
-			ClipCursor(&clientRect);
-
-			if (shouldHide)
-				ShowCursor(FALSE);
-
-			isCaptured = true;
-		}
-		else
-		{
-			ShowCursor(TRUE);
-			ReleaseCapture();
-			isCaptured = false;
-
-			if (shouldHide)
-				SetCursorPos(currentWind->lastCursorPosX, currentWind->lastCursorPosY);
-		}
-	}
-
-	InputSystem::SetMouseCapture(isCaptured);
-
-	return true;
-}
+static void adjustWindow(WindowsDesc* winDesc);
 
 // Window event handler - Use as less as possible
 LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 {
-	WindowsDesc* gCurrentWindow = NULL;
+	WindowsDesc* pCurrentWindow = NULL;
 	decltype(gHWNDMap)::iterator pNode = gHWNDMap.find(_hwnd);
 	if (pNode != gHWNDMap.end())
-		gCurrentWindow = pNode->second;
+		pCurrentWindow = pNode->second;
 	else
 		return DefWindowProcW(_hwnd, _id, wParam, lParam);
 
+	ASSERT(pCurrentWindow);
+
 	switch (_id)
 	{
-	case WM_ACTIVATE:
-		if (LOWORD(wParam) == WA_INACTIVE)
-		{
-			captureMouse(false, InputSystem::GetHideMouseCursorWhileCaptured());
-		}
-		break;
-
 	case WM_DISPLAYCHANGE:
 	{
-		if (gCurrentWindow)
+		if (pCurrentWindow->fullScreen)
 		{
-			if (gCurrentWindow->fullScreen)
-			{
-				adjustWindow(gCurrentWindow);
-			}
-			else
-			{
-				adjustWindow(gCurrentWindow);
-			}
+			adjustWindow(pCurrentWindow);
+		}
+		else
+		{
+			adjustWindow(pCurrentWindow);
 		}
 		break;
 	}
-
 	case WM_GETMINMAXINFO:
 	{
-		if (gCurrentWindow)
-		{
-			LPMINMAXINFO lpMMI = (LPMINMAXINFO)lParam;
-			lpMMI->ptMinTrackSize.x = 128;
-			lpMMI->ptMinTrackSize.y = 128;
-			break;
-		}
-	}
-
-	case WM_SIZE:
-		if (gCurrentWindow)
-		{
-			if (wParam == SIZE_MINIMIZED)
-			{
-				gCurrentWindow->minimized = true;
-			}
-			else
-			{
-				gCurrentWindow->minimized = false;
-			}
-			RectDesc rect = { 0 };
-			if (gCurrentWindow->fullScreen)
-			{
-				gCurrentWindow->fullscreenRect = { 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
-				rect = gCurrentWindow->fullscreenRect;
-			}
-			else
-			{
-				if (IsIconic(_hwnd))
-					return 0;
-
-				RECT windowRect;
-				GetClientRect(_hwnd, &windowRect);
-				rect = { (int)windowRect.left, (int)windowRect.top, (int)windowRect.right, (int)windowRect.bottom };
-				gCurrentWindow->windowedRect = rect;
-			}
-
-			if (gCurrentWindow->callbacks.onResize)
-				gCurrentWindow->callbacks.onResize(gCurrentWindow, getRectWidth(rect), getRectHeight(rect));
-		}
+		LPMINMAXINFO lpMMI = (LPMINMAXINFO)lParam;
+		lpMMI->ptMinTrackSize.x = 128;
+		lpMMI->ptMinTrackSize.y = 128;
 		break;
+	}
+	case WM_SIZE:
+	{
+		if (wParam == SIZE_MINIMIZED)
+		{
+			pCurrentWindow->minimized = true;
+		}
+		else
+		{
+			pCurrentWindow->minimized = false;
+		}
+		RectDesc rect = { 0 };
+		if (pCurrentWindow->fullScreen)
+		{
+			pCurrentWindow->fullscreenRect = { 0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN) };
+			rect = pCurrentWindow->fullscreenRect;
+		}
+		else
+		{
+			if (IsIconic(_hwnd))
+				return 0;
+
+			RECT windowRect;
+			GetClientRect(_hwnd, &windowRect);
+			rect = { (int)windowRect.left, (int)windowRect.top, (int)windowRect.right, (int)windowRect.bottom };
+			pCurrentWindow->windowedRect = rect;
+		}
+
+		if (pCurrentWindow->callbacks.onResize)
+			pCurrentWindow->callbacks.onResize(pCurrentWindow, getRectWidth(rect), getRectHeight(rect));
+		break;
+	}
 	case WM_DESTROY:
-		case WM_CLOSE: PostQuitMessage(0); break;
-		default: return DefWindowProcW(_hwnd, _id, wParam, lParam); break;
+	case WM_CLOSE:
+		PostQuitMessage(0); break;
+	default:
+	{
+		if (pCurrentWindow->callbacks.onHandleMessage)
+		{
+			MSG msg = {};
+			msg.hwnd = _hwnd;
+			msg.lParam = lParam;
+			msg.message = _id;
+			msg.wParam = wParam;
+			pCurrentWindow->callbacks.onHandleMessage(pCurrentWindow, &msg);
+		}
+		return DefWindowProcW(_hwnd, _id, wParam, lParam); break;
+	}
 	}
 	return 0;
 }
@@ -419,7 +347,7 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 	mbstowcs_s(&charConverted, app, app_name, MAX_PATH);
 
 	HWND hwnd = CreateWindowW(
-		CONFETTI_WINDOW_CLASS, app, WS_OVERLAPPEDWINDOW | ((winDesc->visible) ? WS_VISIBLE : 0), CW_USEDEFAULT, CW_USEDEFAULT,
+		CONFETTI_WINDOW_CLASS, app, WS_OVERLAPPEDWINDOW | ((winDesc->hide) ? 0 : WS_VISIBLE), CW_USEDEFAULT, CW_USEDEFAULT,
 		rect.right - rect.left, rect.bottom - rect.top, NULL, NULL, (HINSTANCE)GetModuleHandle(NULL), 0);
 
 	if (hwnd)
@@ -430,7 +358,7 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 		winDesc->handle.window = hwnd;
 		gHWNDMap[hwnd] = winDesc;
 
-		if (winDesc->visible)
+		if (!winDesc->hide)
 		{
 			if (winDesc->maximized)
 			{
@@ -466,49 +394,7 @@ bool handleMessages()
 
 		if (WM_CLOSE == msg.message || WM_QUIT == msg.message)
 			quit = true;
-
-		// Forward any input messages to Gainput
-		InputSystem::HandleMessage(msg);
 	}
-
-#ifndef NO_GAINPUT
-	if (InputSystem::GetBoolInput(UserInputKeys::KEY_CANCEL_TRIGGERED))
-	{
-		if (!isCaptured)
-		{
-			quit = true;
-		}
-		else
-		{
-			captureMouse(false, InputSystem::GetHideMouseCursorWhileCaptured());
-			ClipCursor(NULL);
-		}
-	}
-
-	if (InputSystem::GetBoolInput(UserInputKeys::KEY_CONFIRM_TRIGGERED))
-	{
-		if (!InputSystem::IsMouseCaptured() && !PlatformEvents::skipMouseCapture)
-		{
-			if (gHWNDMap.size() == 0)
-				return quit;
-
-			captureMouse(true, InputSystem::GetHideMouseCursorWhileCaptured());
-		}
-	}
-
-	if (InputSystem::GetBoolInput(UserInputKeys::KEY_MENU_TRIGGERED) &&
-		(InputSystem::GetBoolInput(UserInputKeys::KEY_LEFT_ALT_PRESSED) || InputSystem::GetBoolInput(UserInputKeys::KEY_RIGHT_ALT_PRESSED)))
-	{
-		if (gHWNDMap.size() == 0)
-			return quit;
-
-		//TODO:Fix this once we have multiple window handles
-		WindowsDesc* currentWind = gHWNDMap.begin()->second;
-
-		if (currentWind)
-			toggleFullscreen(currentWind);
-	}
-#endif
 
 	return quit;
 }
@@ -527,7 +413,10 @@ void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
 	MoveWindow(hwnd, rect.left, rect.top, getRectWidth(rect), getRectHeight(rect), TRUE);
 }
 
-void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height) { setWindowRect(winDesc, { 0, 0, (int)width, (int)height }); }
+void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height)
+{
+	setWindowRect(winDesc, { 0, 0, (int)width, (int)height });
+}
 
 void adjustWindow(WindowsDesc* winDesc)
 {
@@ -584,13 +473,13 @@ void toggleFullscreen(WindowsDesc* winDesc)
 
 void showWindow(WindowsDesc* winDesc)
 {
-	winDesc->visible = true;
+	winDesc->hide = false;
 	ShowWindow((HWND)winDesc->handle.window, SW_SHOW);
 }
 
 void hideWindow(WindowsDesc* winDesc)
 {
-	winDesc->visible = false;
+	winDesc->hide = true;
 	ShowWindow((HWND)winDesc->handle.window, SW_HIDE);
 }
 
@@ -668,8 +557,6 @@ static void onResize(WindowsDesc* wnd, int32_t newSizeX, int32_t newSizeY)
 	pApp->mSettings.mFullScreen = wnd->fullScreen;
 	pApp->Unload();
 	pApp->Load();
-
-	InputSystem::UpdateSize(pApp->mSettings.mWidth, pApp->mSettings.mHeight);
 }
 
 int WindowsMain(int argc, char** argv, IApp* app)
@@ -708,12 +595,8 @@ int WindowsMain(int argc, char** argv, IApp* app)
 	pSettings->mWidth = window.fullScreen ? getRectWidth(window.fullscreenRect) : getRectWidth(window.windowedRect);
 	pSettings->mHeight = window.fullScreen ? getRectHeight(window.fullscreenRect) : getRectHeight(window.windowedRect);
 
-	//Init Input System
-	InputSystem::Init(pSettings->mWidth, pSettings->mHeight);
-
 	pApp->pWindow = &window;
 	pApp->mCommandLine = GetCommandLineA();
-
 	{
 		Timer t;
 		if (!pApp->Init())
@@ -732,9 +615,6 @@ int WindowsMain(int argc, char** argv, IApp* app)
 		// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
 		if (deltaTime > 0.15f)
 			deltaTime = 0.05f;
-
-		//Update Input after message handling
-		InputSystem::Update();
 
 		quit = handleMessages();
 
@@ -755,9 +635,6 @@ int WindowsMain(int argc, char** argv, IApp* app)
 			quit = true;
 #endif
 	}
-
-	//Clean input resources
-	InputSystem::Shutdown();
 
 	pApp->Unload();
 	pApp->Exit();

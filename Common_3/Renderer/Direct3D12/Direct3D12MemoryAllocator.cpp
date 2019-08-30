@@ -432,10 +432,9 @@ long d3d12_createBuffer(
 
 	AllocatorSuballocationType suballocType = RESOURCE_SUBALLOCATION_TYPE_BUFFER;
 
-	// For GPU buffers, use special memory type
-	// For CPU mapped UAV / SRV buffers, just use suballocation strategy
-	if (((pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER) || (pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_BUFFER)) &&
-		pMemoryRequirements->usage == RESOURCE_MEMORY_USAGE_GPU_ONLY)
+	// For GPU buffers, CPU mapped UAV / SRV buffers, we cannot use block allocation since it can lead to complications
+	// with determining FirstElement when creating the SRV / UAV and resource transitions
+	if (((pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER) || (pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_BUFFER)))
 		suballocType = RESOURCE_SUBALLOCATION_TYPE_BUFFER_SRV_UAV;
 
 	// 2. vkGetBufferMemoryRequirements.

@@ -29,12 +29,12 @@
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 //Interfaces
-#include "../../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
@@ -93,6 +93,37 @@ public:
 	
 	bool Init()
 	{
+		if (!initInputSystem(pWindow))
+			return false;
+
+		// Microprofiler Actions
+		// #TODO: Remove this once the profiler UI is ported to use our UI system
+		InputActionDesc actionDesc =
+		{
+			InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx)
+			{
+				onProfilerButton(false, &ctx->mFloat2, true);
+				return !((UnitTest_NativeRaytracing*)ctx->pUserData)->mMicroProfiler;
+			}, this
+		};
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
+		addInputAction(&actionDesc);
+
+		// App Actions
+		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		addInputAction(&actionDesc);
+		actionDesc =
+		{
+			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
+			{
+				UnitTest_NativeRaytracing* pApp = (UnitTest_NativeRaytracing*)ctx->pUserData;
+				return pApp->mAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, pApp->mMicroProfiler);
+			}, this
+		};
+		addInputAction(&actionDesc);
 		/************************************************************************/
 		// 01 Init Raytracing
 		/************************************************************************/
@@ -116,7 +147,6 @@ public:
 		}
 
 		initProfiler(pRenderer);
-		profileRegisterInput();
 
 		addGpuProfiler(pRenderer, pQueue, &pGpuProfiler, "GpuProfiler");
 
@@ -133,7 +163,7 @@ public:
 		guiDesc.mStartPosition = vec2(0.0f, guiDesc.mStartSize.getY());
 		pGuiWindow = mAppUI.AddGuiComponent(GetName(), &guiDesc);
 
-		pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+		pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &mMicroProfiler));
         /************************************************************************/
         // Blit texture
         /************************************************************************/
@@ -392,6 +422,8 @@ public:
 	{
 		waitQueueIdle(pQueue);
 
+		exitInputSystem();
+
 		exitProfiler();
 
 		mAppUI.Exit();
@@ -515,17 +547,19 @@ public:
 
 	void Update(float deltaTime)
 	{
-    // ProfileSetDisplayMode()
-    // TODO: need to change this better way 
-    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
-    {
-      Profile& S = *ProfileGet();
-      int nValue = bToggleMicroProfiler ? 1 : 0;
-      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
-      S.nDisplay = nValue;
+		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
-      bPrevToggleMicroProfiler = bToggleMicroProfiler;
-    }
+		// ProfileSetDisplayMode()
+		// TODO: need to change this better way 
+		if (mMicroProfiler != bPrevToggleMicroProfiler)
+		{
+		  Profile& S = *ProfileGet();
+		  int nValue = mMicroProfiler ? 1 : 0;
+		  nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+		  S.nDisplay = nValue;
+
+		  bPrevToggleMicroProfiler = mMicroProfiler;
+		}
 
 		mAppUI.Update(deltaTime);
 	}
@@ -662,7 +696,7 @@ public:
 private:
 	static const uint32_t   gImageCount = 3;
 
-  bool           bToggleMicroProfiler = false;
+  bool           mMicroProfiler = false;
   bool           bPrevToggleMicroProfiler = false;
 
 	Renderer*			   pRenderer;

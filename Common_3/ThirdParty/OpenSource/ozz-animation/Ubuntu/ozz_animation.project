@@ -29,14 +29,6 @@
     <File Name="../include/ozz/animation/runtime/track_triggering_job.h"/>
     <File Name="../include/ozz/animation/runtime/track_triggering_job_stl.h"/>
   </VirtualDirectory>
-  <Dependencies Name="Debug">
-    <Project Name="OS"/>
-    <Project Name="ozz_base"/>
-  </Dependencies>
-  <Dependencies Name="Release">
-    <Project Name="OS"/>
-    <Project Name="ozz_base"/>
-  </Dependencies>
   <Settings Type="Static Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -133,4 +125,12 @@
       </Completion>
     </Configuration>
   </Settings>
+  <Dependencies Name="Debug">
+    <Project Name="OS"/>
+    <Project Name="ozz_base"/>
+  </Dependencies>
+  <Dependencies Name="Release">
+    <Project Name="OS"/>
+    <Project Name="ozz_base"/>
+  </Dependencies>
 </CodeLite_Project>

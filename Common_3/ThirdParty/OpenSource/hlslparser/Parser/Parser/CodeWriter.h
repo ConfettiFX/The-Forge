@@ -11,15 +11,13 @@
 #define CODE_WRITER_H
 
 #include "Engine.h"
-#include <string>
+#include "../../../EASTL/string.h"
 
 #if defined(__GNUC__)
 #define M4_PRINTF_ATTR(string_index, first_to_check) __attribute__((format(printf, string_index, first_to_check)))
 #else
 #define M4_PRINTF_ATTR(string_index, first_to_check)
 #endif
-
-class Allocator;
 
 /**
  * This class is used for outputting code. It handles indentation and inserting #line markers
@@ -49,7 +47,7 @@ public:
 
 private:
 
-    std::string     m_buffer;
+    eastl::string     m_buffer;
     
     const char*     m_currentFileName;
     int             m_spacesPerIndent;

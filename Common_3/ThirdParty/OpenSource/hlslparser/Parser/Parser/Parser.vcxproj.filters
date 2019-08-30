@@ -5,43 +5,22 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Header Files">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="CodeWriter.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="GLSLGenerator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="HLSLGenerator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="HLSLParser.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="HLSLTokenizer.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="HLSLTree.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="MSLGenerator.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Parser.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
+    <Filter Include="Source Files\mcpp-master">
+      <UniqueIdentifier>{ef74b0b7-5825-45ad-ba10-9823e2d928e7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="eastl">
+      <UniqueIdentifier>{b55cdea1-78e0-4ecc-ae91-e6bb6e798d4c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="eastl\eastdc">
+      <UniqueIdentifier>{c9485c6f-f36a-4525-8b78-7ea9f41e3e81}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS">
+      <UniqueIdentifier>{553e2610-3910-4bae-b7ee-7bfe0a3fc12e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CodeWriter.cpp">
@@ -74,5 +53,141 @@
     <ClCompile Include="Parser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="StringLibrary.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FullTokenizer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MCPPPreproc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\EASTL\EAStdC\EASprintf.cpp">
+      <Filter>eastl\eastdc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\EASTL\EAStdC\EAMemory.cpp">
+      <Filter>eastl\eastdc</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\EASTL\string.cpp">
+      <Filter>eastl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\EASTL\thread_support.cpp">
+      <Filter>eastl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\EASTL\assert.cpp">
+      <Filter>eastl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\EASTL\fixed_pool.cpp">
+      <Filter>eastl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\EASTL\hashtable.cpp">
+      <Filter>eastl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\EASTL\intrusive_list.cpp">
+      <Filter>eastl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\EASTL\numeric_limits.cpp">
+      <Filter>eastl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\EASTL\red_black_tree.cpp">
+      <Filter>eastl</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\EASTL\allocator_forge.cpp">
+      <Filter>eastl</Filter>
+    </ClCompile>
+    <ClCompile Include="mcpp-master\support.c">
+      <Filter>Source Files\mcpp-master</Filter>
+    </ClCompile>
+    <ClCompile Include="mcpp-master\system.c">
+      <Filter>Source Files\mcpp-master</Filter>
+    </ClCompile>
+    <ClCompile Include="mcpp-master\directive.c">
+      <Filter>Source Files\mcpp-master</Filter>
+    </ClCompile>
+    <ClCompile Include="mcpp-master\eval.c">
+      <Filter>Source Files\mcpp-master</Filter>
+    </ClCompile>
+    <ClCompile Include="mcpp-master\expand.c">
+      <Filter>Source Files\mcpp-master</Filter>
+    </ClCompile>
+    <ClCompile Include="mcpp-master\mbchar.c">
+      <Filter>Source Files\mcpp-master</Filter>
+    </ClCompile>
+    <ClCompile Include="mcpp-master\mcpp_fopen.c">
+      <Filter>Source Files\mcpp-master</Filter>
+    </ClCompile>
+    <ClCompile Include="mcpp-master\mcpp_main.c">
+      <Filter>Source Files\mcpp-master</Filter>
+    </ClCompile>
+    <ClCompile Include="ParserTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\OS\MemoryTracking\MemoryTracking.cpp">
+      <Filter>OS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\OS\Core\FileSystem.cpp">
+      <Filter>OS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsFileSystem.cpp">
+      <Filter>OS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsLog.cpp">
+      <Filter>OS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsThread.cpp">
+      <Filter>OS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\OS\Logging\Log.cpp">
+      <Filter>OS</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Parser.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="StringLibrary.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CodeWriter.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FullTokenizer.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GLSLGenerator.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HLSLGenerator.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HLSLParser.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HLSLTokenizer.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HLSLTree.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MCPPPreproc.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MSLGenerator.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mcpp-master\mcpp_lib.h">
+      <Filter>Source Files\mcpp-master</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="mcpp-master\mcpp.gyp">
+      <Filter>Source Files\mcpp-master</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="..\..\..\EASTL\EASTL.natvis" />
   </ItemGroup>
 </Project>

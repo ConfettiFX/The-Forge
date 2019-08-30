@@ -41,6 +41,7 @@
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
@@ -48,9 +49,6 @@
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
 // Input
-#include "../../../../Common_3/OS/Input/InputSystem.h"
-#include "../../../../Common_3/OS/Input/InputMappings.h"
-
 // Memory
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"    // NOTE: should be the last include in a .cpp!
 
@@ -125,7 +123,7 @@ uint32_t GetSkinColorOfProperty(PropertiesWithSkinColor EProp, bool bDarkSkin)
 uint32_t GetSkinColorOfProperty(PropertiesWithSkinColor EProp, uint32_t theme) { return GetSkinColorOfProperty(EProp, (bool)theme); }
 
 const uint32_t gImageCount = 3;
-bool           bToggleMicroProfiler = false;
+bool           gMicroProfiler = false;
 bool           bPrevToggleMicroProfiler = false;
 
 Renderer*    pRenderer = NULL;
@@ -288,7 +286,6 @@ class FontRendering: public IApp
 		initResourceLoaderInterface(pRenderer);
 
 		initProfiler(pRenderer);
-		profileRegisterInput();
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 		finishResourceLoading();
@@ -317,12 +314,30 @@ class FontRendering: public IApp
 		const size_t   NUM_THEMES = sizeof(pThemeLabels) / sizeof(const char*) - 1;    // -1 for the NULL element
 		DropdownWidget ThemeDropdown("Theme", &gSceneData.theme, pThemeLabels, (uint32_t*)ColorThemes, NUM_THEMES);
 
-    pUIWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+		pUIWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
 
 		pUIWindow->AddWidget(ThemeDropdown);
 		pUIWindow->AddWidget(fitScreenCheckbox);
 
 		gPreviousTheme = gSceneData.theme;
+
+		if (!initInputSystem(pWindow))
+			return false;
+
+		// Microprofiler Actions
+		// #TODO: Remove this once the profiler UI is ported to use our UI system
+		InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gMicroProfiler; } };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
+		addInputAction(&actionDesc);
+
+		// App Actions
+		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_ANY, [](InputActionContext* ctx) { return gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gMicroProfiler); } };
+		addInputAction(&actionDesc);
 
 		return true;
 	}
@@ -330,6 +345,8 @@ class FontRendering: public IApp
 	void Exit()
 	{
 		waitQueueIdle(pGraphicsQueue);
+
+		exitInputSystem();
 
 		exitProfiler();
 
@@ -386,39 +403,19 @@ class FontRendering: public IApp
 
 	void Update(float deltaTime)
 	{
-		// PROCESS INPUT
-		//-------------------------------------------------------------------------------------
+		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
-		// Toggle Theme
-		if (InputSystem::GetBoolInput(KEY_LEFT_TRIGGER_TRIGGERED))    // KEY_LEFT_TRIGGER = spacebar
+		// ProfileSetDisplayMode()
+		// TODO: need to change this better way 
+		if (gMicroProfiler != bPrevToggleMicroProfiler)
 		{
-			gSceneData.theme = !gSceneData.theme;    // dark/light theme
-													 // no need to call InitializeSceneText() here,
-													 // change of value event will be handled further down this function.
+			Profile& S = *ProfileGet();
+			int nValue = gMicroProfiler ? 1 : 0;
+			nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
+			S.nDisplay = nValue;
+
+			bPrevToggleMicroProfiler = gMicroProfiler;
 		}
-
-		// --------------------------------------------------------------------
-		// old code fot switching the set of text to be displayed -------------
-		// gSceneData.sceneTextArrayIndex = (gSceneData.sceneTextArrayIndex + offset) % gSceneData.sceneTextArray.size();
-		// --------------------------------------------------------------------
-
-		// Toggle Displaying UI Window
-		if (InputSystem::GetBoolInput(KEY_LEFT_STICK_BUTTON_TRIGGERED))    // F1 key
-		{
-			gbShowSceneControlsUIWindow = !gbShowSceneControlsUIWindow;
-		}
-
-    // ProfileSetDisplayMode()
-    // TODO: need to change this better way 
-    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
-    {
-      Profile& S = *ProfileGet();
-      int nValue = bToggleMicroProfiler ? 1 : 0;
-      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
-      S.nDisplay = nValue;
-
-      bPrevToggleMicroProfiler = bToggleMicroProfiler;
-    }
 
 		gAppUI.Update(deltaTime);
 

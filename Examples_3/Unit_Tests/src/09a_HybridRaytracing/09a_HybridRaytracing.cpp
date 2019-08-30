@@ -37,6 +37,7 @@
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
@@ -48,9 +49,6 @@
 #include "../../../../Middleware_3/UI/AppUI.h"
 
 //input
-#include "../../../../Common_3/OS/Input/InputSystem.h"
-#include "../../../../Common_3/OS/Input/InputMappings.h"
-
 //asimp importer
 #include "../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
@@ -130,7 +128,7 @@ struct BVHNode
 };
 
 const uint32_t gImageCount = 3;
-bool           bToggleMicroProfiler = false;
+bool           gMicroProfiler = false;
 bool           bPrevToggleMicroProfiler = false;
 
 class RenderPassData
@@ -273,6 +271,9 @@ UIApp              gAppUI;
 GuiComponent*      pGuiWindow = NULL;
 GpuProfiler*       pGpuProfiler = NULL;
 ICameraController* pCameraController = NULL;
+
+float gLightRotationX = 0.0f;
+float gLightRotationZ = 0.0f;
 
 //Sponza
 const char*           gModel_Sponza_File = "sponza.obj";
@@ -418,8 +419,8 @@ const char* pMaterialImageFileNames[] = {
 #ifdef TARGET_IOS
 const char* pTextureName[] = { "albedoMap", "normalMap", "metallicMap", "roughnessMap", "aoMap" };
 
-VirtualJoystickUI gVirtualJoystick;
 #endif
+VirtualJoystickUI gVirtualJoystick;
 
 PropData SponzaProp;
 
@@ -901,7 +902,6 @@ class HybridRaytracing: public IApp
 		initResourceLoaderInterface(pRenderer);
 
 		initProfiler(pRenderer);
-		profileRegisterInput();
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		//Load shaders
@@ -1102,10 +1102,8 @@ addDescriptorBinder(pRenderer, 0, descBinderSize, descriptorBinderDesc, &pDescri
 if (!gAppUI.Init(pRenderer))
 	return false;
 
-#ifdef TARGET_IOS
 if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 	return false;
-#endif
 
 gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
@@ -1115,7 +1113,9 @@ guiDesc.mStartPosition = vec2(5, 200.0f) / dpiScale;
 guiDesc.mStartSize = vec2(450, 600) / dpiScale;
 pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
-pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
+pGuiWindow->AddWidget(SliderFloatWidget("Light Rotation X", &gLightRotationX, (float)-M_PI, (float)M_PI));
+pGuiWindow->AddWidget(SliderFloatWidget("Light Rotation Z", &gLightRotationZ, (float)-M_PI, (float)M_PI));
 
 CameraMotionParameters cmp{ 200.0f, 250.0f, 300.0f };
 vec3                   camPos{ 100.0f, 25.0f, 0.0f };
@@ -1123,18 +1123,55 @@ vec3                   lookAt{ 0 };
 
 pCameraController = createFpsCameraController(camPos, lookAt);
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-gVirtualJoystick.InitLRSticks();
-pCameraController->setVirtualJoystick(&gVirtualJoystick);
-#endif
-
 pCameraController->setMotionParameters(cmp);
-InputSystem::RegisterInputEvent(cameraInputEvent);
 
 if (!LoadSponza())
 	return false;
 
 CreateBVHBuffers();
+
+if (!initInputSystem(pWindow))
+return false;
+
+// Microprofiler Actions
+// #TODO: Remove this once the profiler UI is ported to use our UI system
+InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gMicroProfiler; } };
+addInputAction(&actionDesc);
+actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
+addInputAction(&actionDesc);
+
+// App Actions
+actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+addInputAction(&actionDesc);
+actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+addInputAction(&actionDesc);
+actionDesc =
+{
+	InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
+	{
+		bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gMicroProfiler);
+		setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+		return true;
+	}, this
+};
+addInputAction(&actionDesc);
+typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
+{
+	if (!gMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
+	{
+		gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
+		index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+	}
+	return true;
+};
+actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f };
+addInputAction(&actionDesc);
+actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+addInputAction(&actionDesc);
+actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+addInputAction(&actionDesc);
+
 
 return true;
 }
@@ -1143,15 +1180,15 @@ void Exit()
 {
 	waitQueueIdle(pGraphicsQueue);
 
+	exitInputSystem();
+
 	exitProfiler();
 
 	destroyCameraController(pCameraController);
 
 	gAppUI.Exit();
 
-#ifdef TARGET_IOS
 	gVirtualJoystick.Exit();
-#endif
 
 	removeDescriptorBinder(pRenderer, pDescriptorBinder);
 
@@ -1824,10 +1861,9 @@ bool Load()
 	pCameraController->moveTo(midpoint - vec3(1050, 350, 0));
 	pCameraController->lookAt(midpoint - vec3(0, 450, 0));
 
-#ifdef TARGET_IOS
 	if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 		return false;
-#endif
+
 	loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
 
 	return true;
@@ -1840,9 +1876,7 @@ void Unload()
 	unloadProfiler();
 	gAppUI.Unload();
 
-#ifdef TARGET_IOS
 	gVirtualJoystick.Unload();
-#endif
 
 	//Delete rendering passes Textures and Render targets
 	for (RenderPassMap::iterator iter = RenderPasses.begin(); iter != RenderPasses.end(); ++iter)
@@ -1876,21 +1910,12 @@ void Unload()
 
 void Update(float deltaTime)
 {
-	if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
-	{
-		RecenterCameraView(85.0f);
-	}
-
-	static float LightRotationX = 0.0f;
-	static float LightRotationZ = 0.0f;
-
-	LightRotationX += 0.004f * (InputSystem::GetFloatInput(KEY_PAD_RIGHT_PRESSED) - InputSystem::GetFloatInput(KEY_PAD_LEFT_PRESSED));
-	LightRotationZ += 0.004f * (InputSystem::GetFloatInput(KEY_PAD_UP_PRESSED) - InputSystem::GetFloatInput(KEY_PAD_DOWN_PRESSED));
+	updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
 	pCameraController->update(deltaTime);
 
 	Vector4 lightDir = { 0, 1, 0, 0 };
-	mat4    lightRotMat = mat4::rotationX(LightRotationX) * mat4::rotationZ(LightRotationZ);
+	mat4    lightRotMat = mat4::rotationX(gLightRotationX) * mat4::rotationZ(gLightRotationZ);
 
 	lightDir = lightRotMat * lightDir;
 
@@ -1953,14 +1978,14 @@ void Update(float deltaTime)
 
   // ProfileSetDisplayMode()
       // TODO: need to change this better way 
-  if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+  if (gMicroProfiler != bPrevToggleMicroProfiler)
   {
     Profile& S = *ProfileGet();
-    int nValue = bToggleMicroProfiler ? 1 : 0;
+    int nValue = gMicroProfiler ? 1 : 0;
     nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
     S.nDisplay = nValue;
 
-    bPrevToggleMicroProfiler = bToggleMicroProfiler;
+    bPrevToggleMicroProfiler = gMicroProfiler;
   }
 
   /************************************************************************/
@@ -2258,9 +2283,7 @@ void Draw()
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 		gTimer.GetUSec(true);
 
-#ifdef TARGET_IOS
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
-#endif
 
 		gAppUI.DrawText(
 			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
@@ -2315,30 +2338,6 @@ bool addSwapChain()
 
 	return pSwapChain != NULL;
 }
-
-void RecenterCameraView(float maxDistance, vec3 lookAt = vec3(0))
-{
-	vec3 p = pCameraController->getViewPosition();
-	vec3 d = p - lookAt;
-
-	float lenSqr = lengthSqr(d);
-	if (lenSqr > (maxDistance * maxDistance))
-	{
-		d *= (maxDistance / sqrtf(lenSqr));
-	}
-
-	p = d + lookAt;
-	pCameraController->moveTo(p);
-	pCameraController->lookAt(lookAt);
-}
-
-/// Camera controller functionality
-static bool cameraInputEvent(const ButtonData* data)
-{
-	pCameraController->onInputEvent(data);
-	return true;
-}
-}
-;
+};
 
 DEFINE_APPLICATION_MAIN(HybridRaytracing)

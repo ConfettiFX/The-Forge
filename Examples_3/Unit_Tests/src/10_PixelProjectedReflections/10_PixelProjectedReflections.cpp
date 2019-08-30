@@ -43,6 +43,7 @@
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
@@ -51,9 +52,6 @@
 #include "../../../../Middleware_3/UI/AppUI.h"
 
 //Input
-#include "../../../../Common_3/OS/Input/InputSystem.h"
-#include "../../../../Common_3/OS/Input/InputMappings.h"
-
 #include "../../../../Common_3/OS/Core/ThreadSystem.h"
 
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
@@ -329,7 +327,7 @@ const uint32_t gSpecularSize = 128;
 const uint32_t gSpecularMips = 5;
 
 const uint32_t gImageCount = 3;
-bool           bToggleMicroProfiler = false;
+bool           gMicroProfiler = false;
 bool           bPrevToggleMicroProfiler = false;
 
 bool           gToggleVSync = false;
@@ -409,9 +407,7 @@ eastl::vector<int> gSponzaTextureIndexforMaterial;
 //For clearing Intermediate Buffer
 eastl::vector<uint32_t> gInitializeVal;
 
-#ifdef TARGET_IOS
 VirtualJoystickUI gVirtualJoystick;
-#endif
 
 UniformObjData pUniformDataMVP;
 
@@ -587,13 +583,10 @@ class PixelProjectedReflections: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-#ifdef TARGET_IOS
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 			return false;
-#endif
 
 		initProfiler(pRenderer);
-		profileRegisterInput();
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 		ComputePBRMaps();
@@ -946,7 +939,7 @@ class PixelProjectedReflections: public IApp
 
 		pGui = gAppUI.AddGuiComponent("Pixel-Projected Reflections", &guiDesc);
 
-    pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+		pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
 
 		static const uint32_t enumRenderModes[] = { SCENE_ONLY, PPR_ONLY, SCENE_WITH_PPR, SCENE_EXCLU_PPR, 0 };
 
@@ -984,14 +977,7 @@ class PixelProjectedReflections: public IApp
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-		gVirtualJoystick.InitLRSticks();
-		pCameraController->setVirtualJoystick(&gVirtualJoystick);
-#endif
-
 		pCameraController->setMotionParameters(camParameters);
-
-		InputSystem::RegisterInputEvent(cameraInputEvent);
 
 		// In case copy queue should be externally synchronized(e.g. Vulkan with 1 queueu)
 		// do resource streaming after resource loading completed.
@@ -1005,12 +991,56 @@ class PixelProjectedReflections: public IApp
 
 		assignSponzaTextures();
 
+		if (!initInputSystem(pWindow))
+			return false;
+
+		// Microprofiler Actions
+		// #TODO: Remove this once the profiler UI is ported to use our UI system
+		InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gMicroProfiler; } };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
+		addInputAction(&actionDesc);
+
+		// App Actions
+		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		addInputAction(&actionDesc);
+		actionDesc =
+		{
+			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
+			{
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gMicroProfiler);
+				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+				return true;
+			}, this
+		};
+		addInputAction(&actionDesc);
+		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
+		{
+			if (!gMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
+			{
+				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
+				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+			}
+			return true;
+		};
+		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+		addInputAction(&actionDesc);
+
 		return true;
 	}
 
 	void Exit()
 	{
 		waitQueueIdle(pGraphicsQueue);
+
+		exitInputSystem();
 		destroyCameraController(pCameraController);
 
 		exitProfiler();
@@ -1030,9 +1060,7 @@ class PixelProjectedReflections: public IApp
 		removeResource(pSponzaBuffer);
 		removeResource(pLionBuffer);
 
-#ifdef TARGET_IOS
 		gVirtualJoystick.Exit();
-#endif
 
 		removeGpuProfiler(pRenderer, pGpuProfiler);
 
@@ -1585,10 +1613,9 @@ class PixelProjectedReflections: public IApp
 			return false;
 
 		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
-#ifdef TARGET_IOS
+
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
-#endif
 
 		// fill Gbuffers
 		// Create vertex layout
@@ -1769,9 +1796,7 @@ class PixelProjectedReflections: public IApp
 		unloadProfiler();
 		gAppUI.Unload();
 
-#ifdef TARGET_IOS
 		gVirtualJoystick.Unload();
-#endif
 
 		removePipeline(pRenderer, pPipelineBRDF);
 		removePipeline(pRenderer, pSkyboxPipeline);
@@ -1793,6 +1818,8 @@ class PixelProjectedReflections: public IApp
 
 	void Update(float deltaTime)
 	{
+		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
+
 		processWaitQueue();
 
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
@@ -1801,11 +1828,6 @@ class PixelProjectedReflections: public IApp
 			::toggleVSync(pRenderer, &pSwapChain);
 		}
 #endif
-
-		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
-		{
-			RecenterCameraView(170.0f);
-		}
 
 		pCameraController->update(deltaTime);
 
@@ -1885,14 +1907,14 @@ class PixelProjectedReflections: public IApp
 
     // ProfileSetDisplayMode()
     // TODO: need to change this better way 
-    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+    if (gMicroProfiler != bPrevToggleMicroProfiler)
     {
       Profile& S = *ProfileGet();
-      int nValue = bToggleMicroProfiler ? 1 : 0;
+      int nValue = gMicroProfiler ? 1 : 0;
       nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
       S.nDisplay = nValue;
 
-      bPrevToggleMicroProfiler = bToggleMicroProfiler;
+      bPrevToggleMicroProfiler = gMicroProfiler;
     }
 
 		/************************************************************************/
@@ -2341,9 +2363,7 @@ class PixelProjectedReflections: public IApp
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
 
-#ifdef TARGET_IOS
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
-#endif
 
 		gAppUI.DrawText(
 			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
@@ -2519,28 +2539,6 @@ class PixelProjectedReflections: public IApp
 		addResource(&IntermediateBufferDesc);
 
 		return pIntermediateBuffer != NULL;
-	}
-
-	void RecenterCameraView(float maxDistance, vec3 lookAt = vec3(0))
-	{
-		vec3 p = pCameraController->getViewPosition();
-		vec3 d = p - lookAt;
-
-		float lenSqr = lengthSqr(d);
-		if (lenSqr > (maxDistance * maxDistance))
-		{
-			d *= (maxDistance / sqrtf(lenSqr));
-		}
-
-		p = d + lookAt;
-		pCameraController->moveTo(p);
-		pCameraController->lookAt(lookAt);
-	}
-
-	static bool cameraInputEvent(const ButtonData* data)
-	{
-		pCameraController->onInputEvent(data);
-		return true;
 	}
 };
 

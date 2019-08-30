@@ -50,7 +50,6 @@ struct VisibilityBufferConstants
 {
 	mat4 mWorldViewProjMat[2];
 	CullingViewPort mCullingViewports[2];
-	uint32_t mValidNumCull = 0;
 };
 
 

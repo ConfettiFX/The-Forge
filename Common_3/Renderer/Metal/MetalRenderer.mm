@@ -2662,7 +2662,8 @@ void addDepthState(Renderer* pRenderer, const DepthStateDesc* pDesc, DepthState*
 	ASSERT(pDesc->mStencilBackPass < StencilOp::MAX_STENCIL_OPS);
 
 	MTLDepthStencilDescriptor* descriptor = [[MTLDepthStencilDescriptor alloc] init];
-	descriptor.depthCompareFunction = gMtlComparisonFunctionTranslator[pDesc->mDepthFunc];
+	// Set comparison function to always if depth test is disabled
+	descriptor.depthCompareFunction = pDesc->mDepthTest ? gMtlComparisonFunctionTranslator[pDesc->mDepthFunc] : MTLCompareFunctionAlways;
 	descriptor.depthWriteEnabled = pDesc->mDepthWrite;
 	descriptor.backFaceStencil.stencilCompareFunction = gMtlComparisonFunctionTranslator[pDesc->mStencilBackFunc];
 	descriptor.backFaceStencil.depthFailureOperation = gMtlStencilOpTranslator[pDesc->mDepthBackFail];
@@ -4323,12 +4324,35 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 		textureDesc.arrayLength = pTexture->mDesc.mArraySize;
 		textureDesc.storageMode = forceNonPrivate ? MTLStorageModeShared : MTLStorageModePrivate;
 		textureDesc.cpuCacheMode = MTLCPUCacheModeDefaultCache;
+		
+		MTLTextureType textureType = {};
+		if (pDesc->mFlags & TEXTURE_CREATION_FLAG_FORCE_2D)
+		{
+			ASSERT(pDesc->mDepth == 1);
+			textureType = MTLTextureType2D;
+		}
+		else if (pDesc->mFlags & TEXTURE_CREATION_FLAG_FORCE_3D)
+		{
+			textureType = MTLTextureType3D;
+		}
+		else
+		{
+			if (pDesc->mDepth > 1)
+				textureType = MTLTextureType3D;
+			else if (pDesc->mHeight > 1)
+				textureType = MTLTextureType2D;
+			else
+				textureType = MTLTextureType1D;
+		}
 
-		if (pDesc->mDepth > 1)
+		switch(textureType)
+		{
+		case MTLTextureType3D:
 		{
 			textureDesc.textureType = MTLTextureType3D;
+			break;
 		}
-		else if (pDesc->mHeight > 1)
+		case MTLTextureType2D:
 		{
 			if (DESCRIPTOR_TYPE_TEXTURE_CUBE == (pDesc->mDescriptors & DESCRIPTOR_TYPE_TEXTURE_CUBE))
 			{
@@ -4364,13 +4388,20 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 				else
 					textureDesc.textureType = MTLTextureType2D;
 			}
+			
+			break;
 		}
-		else
+		case MTLTextureType1D:
 		{
 			if (pDesc->mArraySize > 1)
 				textureDesc.textureType = MTLTextureType1DArray;
 			else
 				textureDesc.textureType = MTLTextureType1D;
+			
+			break;
+		}
+		default:
+			break;
 		}
 
 		bool isDepthBuffer = util_is_mtl_depth_pixel_format(pTexture->mtlPixelFormat);

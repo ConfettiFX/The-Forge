@@ -39,6 +39,7 @@
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IThread.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 
 // Rendering
 #include "../../../../Common_3/Renderer/IRenderer.h"
@@ -53,9 +54,6 @@
 #include "../../../../Middleware_3/Animation/Rig.h"
 
 #include "../../../../Middleware_3/UI/AppUI.h"
-#include "../../../../Common_3/OS/Input/InputSystem.h"
-#include "../../../../Common_3/OS/Input/InputMappings.h"
-
 // tiny stl
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
@@ -87,7 +85,7 @@ const char* pszBases[FSR_Count] = {
 // RENDERING PIPELINE DATA
 //--------------------------------------------------------------------------------------------
 const uint32_t gImageCount = 3;
-bool           bToggleMicroProfiler = false;
+bool           gMicroProfiler = false;
 bool           bPrevToggleMicroProfiler = false;
 
 uint32_t       gFrameIndex = 0;
@@ -103,9 +101,7 @@ Fence*        pRenderCompleteFences[gImageCount] = { NULL };
 Semaphore*    pImageAcquiredSemaphore = NULL;
 Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
 VirtualJoystickUI gVirtualJoystick;
-#endif
 DepthState* pDepth = NULL;
 
 RasterizerState* pPlaneRast = NULL;
@@ -264,13 +260,10 @@ class MultiThread: public IApp
 		//
 		initResourceLoaderInterface(pRenderer);
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 			return false;
-#endif
 
 		initProfiler(pRenderer);
-		profileRegisterInput();
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
@@ -464,13 +457,6 @@ class MultiThread: public IApp
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
 		pCameraController->setMotionParameters(cmp);
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-		gVirtualJoystick.InitLRSticks();
-		pCameraController->setVirtualJoystick(&gVirtualJoystick);
-#endif
-
-		InputSystem::RegisterInputEvent(cameraInputEvent);
-
 		// INITIALIZE THREAD SYSTEM
 		//
 		initThreadSystem(&pThreadSystem);
@@ -489,7 +475,7 @@ class MultiThread: public IApp
 		vec2    UIPanelSize = { 650, 1000 };
 		GuiDesc guiDesc(UIPosition, UIPanelSize, UIPanelWindowTitleTextDesc);
 		pStandaloneControlsGUIWindow = gAppUI.AddGuiComponent("Multiple Rigs", &guiDesc);
-    pStandaloneControlsGUIWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
+    pStandaloneControlsGUIWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
 
 		// SET gUIData MEMBERS THAT NEED POINTERS TO ANIMATION DATA
 		//
@@ -544,11 +530,54 @@ class MultiThread: public IApp
 			pStandaloneControlsGUIWindow->AddWidget(CollapsingGeneralSettingsWidgets);
 		}
 
+		if (!initInputSystem(pWindow))
+			return false;
+
+		// Microprofiler Actions
+		// #TODO: Remove this once the profiler UI is ported to use our UI system
+		InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gMicroProfiler; } };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
+		addInputAction(&actionDesc);
+
+		// App Actions
+		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		addInputAction(&actionDesc);
+		actionDesc =
+		{
+			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
+			{
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gMicroProfiler);
+				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+				return true;
+			}, this
+		};
+		addInputAction(&actionDesc);
+		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
+		{
+			if (!gMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
+			{
+				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
+				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+			}
+			return true;
+		};
+		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 0.5f };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+		addInputAction(&actionDesc);
+
 		return true;
 	}
 
 	void Exit()
 	{
+		exitInputSystem();
 		shutdownThreadSystem(pThreadSystem);
 		// wait for rendering to finish before freeing resources
 		waitQueueIdle(pGraphicsQueue);
@@ -583,9 +612,7 @@ class MultiThread: public IApp
 
 		destroyCameraController(pCameraController);
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Exit();
-#endif
 
 		removeGpuProfiler(pRenderer, pGpuProfiler);
 
@@ -639,10 +666,9 @@ class MultiThread: public IApp
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
-#endif
+
 		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
 
 		//layout and pipeline for skeleton draw
@@ -709,9 +735,7 @@ class MultiThread: public IApp
 
 		unloadProfiler();
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Unload();
-#endif
 
 		removePipeline(pRenderer, pPlaneDrawPipeline);
 		removePipeline(pRenderer, pSkeletonPipeline);
@@ -722,13 +746,7 @@ class MultiThread: public IApp
 
 	void Update(float deltaTime)
 	{
-		/************************************************************************/
-		// Input
-		/************************************************************************/
-		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
-		{
-			RecenterCameraView(170.0f);
-		}
+		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
 		pCameraController->update(deltaTime);
 
@@ -808,14 +826,14 @@ class MultiThread: public IApp
 
     // ProfileSetDisplayMode()
     // TODO: need to change this better way 
-    if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
+    if (gMicroProfiler != bPrevToggleMicroProfiler)
     {
       Profile& S = *ProfileGet();
-      int nValue = bToggleMicroProfiler ? 1 : 0;
+      int nValue = gMicroProfiler ? 1 : 0;
       nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
       S.nDisplay = nValue;
 
-      bPrevToggleMicroProfiler = bToggleMicroProfiler;
+      bPrevToggleMicroProfiler = gMicroProfiler;
     }
 
 		/************************************************************************/
@@ -906,9 +924,8 @@ class MultiThread: public IApp
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		gTimer.GetUSec(true);
-#if defined(TARGET_IOS) || defined(__ANDROID__)
+
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
-#endif
 
 		gAppUI.Gui(pStandaloneControlsGUIWindow);    // adds the gui element to AppUI::ComponentsToUpdate list
 		gAppUI.DrawText(
@@ -975,28 +992,6 @@ class MultiThread: public IApp
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 
 		return pDepthBuffer != NULL;
-	}
-
-	void RecenterCameraView(float maxDistance, vec3 lookAt = vec3(0))
-	{
-		vec3 p = pCameraController->getViewPosition();
-		vec3 d = p - lookAt;
-
-		float lenSqr = lengthSqr(d);
-		if (lenSqr > (maxDistance * maxDistance))
-		{
-			d *= (maxDistance / sqrtf(lenSqr));
-		}
-
-		p = d + lookAt;
-		pCameraController->moveTo(p);
-		pCameraController->lookAt(lookAt);
-	}
-
-	static bool cameraInputEvent(const ButtonData* data)
-	{
-		pCameraController->onInputEvent(data);
-		return true;
 	}
 
 	// Threaded animated object update call

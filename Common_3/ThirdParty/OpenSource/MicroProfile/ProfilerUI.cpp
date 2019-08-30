@@ -111,6 +111,9 @@ struct ProfileUI
 
 	uint32_t 				nMouseX;
 	uint32_t 				nMouseY;
+    float2*                 pMouse;
+	float 					nMouseDeltaX;
+	float 					nMouseDeltaY;
 	uint32_t 				nMouseDownX;
 	uint32_t 				nMouseDownY;
 	int						nMouseWheelDelta;
@@ -2867,29 +2870,10 @@ void ProfileDrawMenu(uint32_t nWidth, uint32_t nHeight)
 	}
 }
 
-static int g_PrevX = 0;
-static int g_PrevY = 0;
-
-void ProfileSetPreviousMousePosition(uint32_t x, uint32_t y)
-{
-    g_PrevX = x;
-    g_PrevY = y;
-}
-
 void ProfileMoveGraph()
 {
-
     ProfileUI & UI = g_ProfileUI;
 	int nZoom = UI.nMouseWheelDelta;
-	int nPanX = 0;
-	int nPanY = 0;
-	if (UI.nMouseDownLeft && !UI.nModDown)
-	{
-		nPanX = UI.nMouseX - g_PrevX;
-		nPanY = UI.nMouseY - g_PrevY;
-	}
-	g_PrevX = UI.nMouseX;
-	g_PrevY = UI.nMouseY;
 
 	if (nZoom)
 	{
@@ -2911,15 +2895,9 @@ void ProfileMoveGraph()
 		UI.fDetailedOffsetTarget = UI.fDetailedOffset += fDiff * fMousePrc;
 
 	}
-	if (nPanX)
-	{
-		UI.fDetailedOffsetTarget = UI.fDetailedOffset += -nPanX * UI.fDetailedRange / UI.nWidth;
-	}
 	int nMode = ProfileGet()->nDisplay;
 	if (nMode < P_DRAW_SIZE)
 	{
-		UI.nOffsetY[nMode] -= nPanY;
-		UI.nOffsetX[nMode] += nPanX;
 		if (UI.nOffsetX[nMode] > 0)
 			UI.nOffsetX[nMode] = 0;
 		if (UI.nOffsetY[nMode] < 0)
@@ -3046,6 +3024,16 @@ void ProfileDraw(Cmd* pCmd)
 
 	uint32_t nWidth = ProfileGetDrawDimensions().x;
 	uint32_t nHeight = ProfileGetDrawDimensions().y;
+
+    if (UI.pMouse)
+    {
+        UI.nMouseX = (uint32_t)UI.pMouse->x;
+        UI.nMouseY = (uint32_t)UI.pMouse->y;
+    }
+	if (UI.nMouseDeltaX)
+		UI.nMouseX += UI.nMouseDeltaX > 0.0f ? 1 : -1;
+	if (UI.nMouseDeltaY)
+		UI.nMouseY += UI.nMouseDeltaY > 0.0f ? -1 : 1;
 
 	// Start our own drawing
 	ProfileBeginDraw();
@@ -3377,12 +3365,31 @@ void ProfileClearGraph()
 	}
 }
 
-void ProfileMousePosition(uint32_t nX, uint32_t nY, int nWheelDelta)
+void ProfileMousePosition(float2* pPos, int nWheelDelta)
 {
     ProfileUI & UI = g_ProfileUI;
-	UI.nMouseX = nX;
-	UI.nMouseY = nY;
+	UI.pMouse = pPos;
 	UI.nMouseWheelDelta = nWheelDelta;
+    if (pPos)
+    {
+        UI.nMouseX = (uint32_t)UI.pMouse->x;
+        UI.nMouseY = (uint32_t)UI.pMouse->y;
+    }
+}
+
+void ProfileMousePositionDelta(float nX, float nY)
+{
+	ProfileUI & UI = g_ProfileUI;
+	UI.nMouseDeltaX = nX;
+	UI.nMouseDeltaY = nY;
+    UI.pMouse = NULL;
+}
+
+void ProfileGetMousePosition(uint32_t* nX, uint32_t* nY)
+{
+	ProfileUI& UI = g_ProfileUI;
+	*nX = UI.nMouseX;
+	*nY = UI.nMouseY;
 }
 
 void ProfileMouseButton(uint32_t nLeft, uint32_t nRight)

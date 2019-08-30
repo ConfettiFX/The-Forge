@@ -9,9 +9,8 @@
   <Project Name="04_ExecuteIndirect" Path="04_ExecuteIndirect/04_ExecuteIndirect.project" Active="No"/>
   <Project Name="05_FontRendering" Path="05_FontRendering/05_FontRendering.project" Active="No"/>
   <Project Name="07_Tessellation" Path="07_Tessellation/07_Tessellation.project" Active="No"/>
-  <Project Name="08_Procedural" Path="08_Procedural/08_Procedural.project" Active="No"/>
   <Project Name="06_MaterialPlayground" Path="06_MaterialPlayground/06_MaterialPlayground.project" Active="No"/>
-  <Project Name="09_LightShadowPlayground" Path="09_LightShadowPlayground/09_LightShadowPlayground.project" Active="Yes"/>
+  <Project Name="09_LightShadowPlayground" Path="09_LightShadowPlayground/09_LightShadowPlayground.project" Active="No"/>
   <Project Name="09a_HybridRaytracing" Path="09a_HybridRaytracing/09a_HybridRaytracing.project" Active="No"/>
   <Project Name="10_PixelProjectedReflections" Path="10_PixelProjectedReflections/10_PixelProjectedReflections.project" Active="No"/>
   <Project Name="13_UserInterface" Path="13_UserInterface/13_UserInterface.project" Active="No"/>
@@ -27,18 +26,20 @@
   <Project Name="22_AdditiveBlending" Path="22_AdditiveBlending/22_AdditiveBlending.project" Active="No"/>
   <Project Name="23_BakedPhysics" Path="23_BakedPhysics/23_BakedPhysics.project" Active="No"/>
   <Project Name="24_MultiThread" Path="24_MultiThread/24_MultiThread.project" Active="No"/>
-  <Project Name="25_Skinning" Path="25_Skinning/25_Skinning.project" Active="No"/>
+  <Project Name="25_Skinning" Path="25_Skinning/25_Skinning.project" Active="Yes"/>
   <Project Name="zlib" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/contrib/zlib/zlib.project" Active="No"/>
   <Project Name="gainput" Path="../../../Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
   <Project Name="Assimp" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Assimp.project" Active="No"/>
   <Project Name="LuaManager" Path="LuaManager/LuaManager.project" Active="No"/>
-  <Project Name="AssetPipeline" Path="../../../Common_3/Tools/AssetPipeline/Linux/AssetPipeline.project" Active="No"/>
-  <Project Name="AssetPipelineCmd" Path="../../../Common_3/Tools/AssetPipeline/Linux/AssetPipelineCmd.project" Active="No"/>
   <Project Name="ozz_base" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_base.project" Active="No"/>
   <Project Name="ozz_animation" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation.project" Active="No"/>
   <Project Name="ozz_animation_offline" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation_offline.project" Active="No"/>
   <Project Name="EASTL" Path="../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/EASTL.project" Active="No"/>
   <Project Name="26_Audio" Path="26_Audio/26_Audio.project" Active="No"/>
+  <Project Name="08_GltfViewer" Path="08_GltfViewer/08_GltfViewer.project" Active="No"/>
+  <Project Name="AssetPipeline" Path="../../../Common_3/Tools/AssetPipeline/Linux/AssetPipeline.project" Active="No"/>
+  <Project Name="AssetPipelineCmd" Path="../../../Common_3/Tools/AssetPipeline/Linux/AssetPipelineCmd.project" Active="No"/>
+  <Project Name="MeshOptimizer" Path="MeshOptimizer/MeshOptimizer.project" Active="No"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="no">
       <Environment/>
@@ -54,7 +55,6 @@
       <Project Name="05_FontRendering" ConfigName="Debug"/>
       <Project Name="06_MaterialPlayground" ConfigName="Debug"/>
       <Project Name="07_Tessellation" ConfigName="Debug"/>
-      <Project Name="08_Procedural" ConfigName="Debug"/>
       <Project Name="06_MaterialPlayground" ConfigName="Debug"/>
       <Project Name="09_LightShadowPlayground" ConfigName="Debug"/>
       <Project Name="09a_HybridRaytracing" ConfigName="Debug"/>
@@ -79,11 +79,13 @@
       <Project Name="ozz_base" ConfigName="Debug"/>
       <Project Name="ozz_animation" ConfigName="Debug"/>
       <Project Name="ozz_animation_offline" ConfigName="Debug"/>
-      <Project Name="AssetPipeline" ConfigName="Debug"/>
-      <Project Name="AssetPipelineCmd" ConfigName="Debug"/>
       <Project Name="EASTL" ConfigName="Debug"/>
       <Project Name="26_Audio" ConfigName="Debug"/>
       <Project Name="26_Audio" ConfigName="Debug"/>
+      <Project Name="08_GltfViewer" ConfigName="Debug"/>
+      <Project Name="AssetPipeline" ConfigName="Debug"/>
+      <Project Name="AssetPipelineCmd" ConfigName="Debug"/>
+      <Project Name="MeshOptimizer" ConfigName="Debug"/>
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release" Selected="yes">
       <Environment/>
@@ -98,8 +100,6 @@
       <Project Name="gainput" ConfigName="Release"/>
       <Project Name="EASTL" ConfigName="Release"/>
       <Project Name="assimp" ConfigName="NoConfig"/>
-      <Project Name="AssetPipelineCmd" ConfigName="Release"/>
-      <Project Name="AssetPipeline" ConfigName="Release"/>
       <Project Name="26_Audio" ConfigName="Release"/>
       <Project Name="26_Audio" ConfigName="Release"/>
       <Project Name="25_Skinning" ConfigName="Release"/>
@@ -119,7 +119,6 @@
       <Project Name="10_PixelProjectedReflections" ConfigName="Release"/>
       <Project Name="09a_HybridRaytracing" ConfigName="Release"/>
       <Project Name="09_LightShadowPlayground" ConfigName="Release"/>
-      <Project Name="08_Procedural" ConfigName="Release"/>
       <Project Name="07_Tessellation" ConfigName="Release"/>
       <Project Name="06_MaterialPlayground" ConfigName="Release"/>
       <Project Name="05_FontRendering" ConfigName="Release"/>
@@ -127,6 +126,10 @@
       <Project Name="03_MultiThread" ConfigName="Release"/>
       <Project Name="02_Compute" ConfigName="Release"/>
       <Project Name="01_Transformation" ConfigName="Release"/>
+      <Project Name="08_GltfViewer" ConfigName="Release"/>
+      <Project Name="AssetPipeline" ConfigName="Release"/>
+      <Project Name="AssetPipelineCmd" ConfigName="Release"/>
+      <Project Name="MeshOptimizer" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

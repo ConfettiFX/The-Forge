@@ -8,7 +8,8 @@ typedef uint16_t ProfileGroupId;
 
 #if 0 == PROFILE_ENABLED 
 #define ProfileMouseButton(foo, bar) do{}while(0)
-#define ProfileMousePosition(foo, bar, z) do{}while(0)
+#define ProfileMousePosition(bar, z) do{}while(0)
+#define ProfileGetMousePosition(x, y) do{}while(0)
 #define ProfileModKey(key) do{}while(0)
 #define ProfileDraw(cmd, width, height) do{}while(0)
 #define ProfileIsDrawing() 0
@@ -125,7 +126,9 @@ bool ProfileDrawGraph(uint32_t nScreenWidth, uint32_t nScreenHeight);
 void ProfileToggleDisplayMode(); //switch between off, bars, detailed
 void ProfileSetDisplayMode(int); //switch between off, bars, detailed
 void ProfileClearGraph();
-void ProfileMousePosition(uint32_t nX, uint32_t nY, int nWheelDelta);
+void ProfileMousePosition(float2* pPos, int nWheelDelta);
+void ProfileGetMousePosition(uint32_t* nX, uint32_t* nY);
+void ProfileMousePositionDelta(float nX, float nY);
 void ProfileModKey(uint32_t nKeyState);
 void ProfileMouseButton(uint32_t nLeft, uint32_t nRight);
 void ProfileDrawLineVertical(int nX, int nTop, int nBottom, uint32_t nColor);

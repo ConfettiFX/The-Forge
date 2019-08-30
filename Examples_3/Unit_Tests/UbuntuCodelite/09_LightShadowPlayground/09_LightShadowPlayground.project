@@ -23,13 +23,6 @@
     <File Name="../../src/09_LightShadowPlayground/CPUImage.cpp"/>
     <File Name="../../src/09_LightShadowPlayground/CPUImage.h"/>
   </VirtualDirectory>
-  <Dependencies Name="Release">
-    <Project Name="SpirVTools"/>
-    <Project Name="Renderer"/>
-    <Project Name="OS"/>
-    <Project Name="gainput"/>
-    <Project Name="EASTL"/>
-  </Dependencies>
   <VirtualDirectory Name="ASM">
     <File Name="../../src/09_LightShadowPlayground/ASM.cpp"/>
     <File Name="../../src/09_LightShadowPlayground/ASM.h"/>
@@ -69,15 +62,6 @@
     <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.cpp"/>
     <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"/>
   </VirtualDirectory>
-  <Dependencies Name="Debug">
-    <Project Name="SpirVTools"/>
-    <Project Name="Renderer"/>
-    <Project Name="OS"/>
-    <Project Name="gainput"/>
-    <Project Name="EASTL"/>
-    <Project Name="assimp"/>
-    <Project Name="zlibstatic"/>
-  </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -209,4 +193,20 @@
       </Completion>
     </Configuration>
   </Settings>
+  <Dependencies Name="Debug">
+    <Project Name="SpirVTools"/>
+    <Project Name="Renderer"/>
+    <Project Name="OS"/>
+    <Project Name="gainput"/>
+    <Project Name="EASTL"/>
+    <Project Name="assimp"/>
+    <Project Name="zlibstatic"/>
+  </Dependencies>
+  <Dependencies Name="Release">
+    <Project Name="SpirVTools"/>
+    <Project Name="Renderer"/>
+    <Project Name="OS"/>
+    <Project Name="gainput"/>
+    <Project Name="EASTL"/>
+  </Dependencies>
 </CodeLite_Project>

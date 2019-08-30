@@ -37,12 +37,10 @@
 #include "../../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
-
-#include "../../../../Common_3/OS/Input/InputSystem.h"
-#include "../../../../Common_3/OS/Input/InputMappings.h"
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
@@ -107,9 +105,7 @@ RootSignature*    pRootSignature = NULL;
 DescriptorBinder* pDescriptorBinder = NULL;
 Sampler*          pSamplerSkyBox = NULL;
 Texture*          pSkyBoxTextures[6];
-#ifdef TARGET_IOS
 VirtualJoystickUI gVirtualJoystick;
-#endif
 DepthState*      pDepth = NULL;
 RasterizerState* pSkyboxRast = NULL;
 
@@ -203,10 +199,8 @@ public:
 			addResource(&textureDesc, true);
 		}
 
-#ifdef TARGET_IOS
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Absolute))
 			return false;
-#endif
 
 		ShaderLoadDesc skyShader = {};
 		skyShader.mStages[0] = { "skybox.vert", NULL, 0, FSR_SrcShaders };
@@ -441,13 +435,50 @@ public:
 
 		pCameraController->setMotionParameters(cmp);
 
-		InputSystem::RegisterInputEvent(cameraInputEvent);
+		if (!initInputSystem(pWindow))
+			return false;
+
+		// App Actions
+		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		addInputAction(&actionDesc);
+		actionDesc =
+		{
+			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
+			{
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, true);
+				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
+				return true;
+			}, this
+		};
+		addInputAction(&actionDesc);
+		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
+		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
+		{
+			if (!gAppUI.IsFocused() && *ctx->pCaptured)
+			{
+				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
+				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
+			}
+			return true;
+		};
+		actionDesc = { InputBindings::FLOAT_RIGHTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 1); }, NULL, 20.0f, 200.0f, 1.0f };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { return onCameraInput(ctx, 0); }, NULL, 20.0f, 200.0f, 1.0f };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
+		addInputAction(&actionDesc);
+
+
 		return true;
 	}
 
 	void Exit()
 	{
 		waitQueueIdle(pGraphicsQueue);
+
+		exitInputSystem();
 
 		destroyCameraController(pCameraController);
 
@@ -465,9 +496,7 @@ public:
 		for (uint i = 0; i < 6; ++i)
 			removeResource(pSkyBoxTextures[i]);
 
-#ifdef TARGET_IOS
 		gVirtualJoystick.Exit();
-#endif
 
 		removeSampler(pRenderer, pSamplerSkyBox);
 		removeShader(pRenderer, pSphereShader);
@@ -506,11 +535,9 @@ public:
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
-#ifdef TARGET_IOS
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
-#endif
-
+		
 		//layout and pipeline for sphere draw
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 2;
@@ -567,9 +594,7 @@ public:
 
 		gAppUI.Unload();
 
-#ifdef TARGET_IOS
 		gVirtualJoystick.Unload();
-#endif
 
 		removePipeline(pRenderer, pSkyBoxDrawPipeline);
 		removePipeline(pRenderer, pSpherePipeline);
@@ -580,13 +605,7 @@ public:
 
 	void Update(float deltaTime)
 	{
-		/************************************************************************/
-		// Input
-		/************************************************************************/
-		if (InputSystem::GetBoolInput(KEY_BUTTON_X_TRIGGERED))
-		{
-			RecenterCameraView(170.0f);
-		}
+		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
 		pCameraController->update(deltaTime);
 		/************************************************************************/
@@ -729,9 +748,7 @@ public:
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
 
-#ifdef TARGET_IOS
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
-#endif
 
 		gAppUI.DrawText(
 			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
@@ -782,28 +799,6 @@ public:
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 
 		return pDepthBuffer != NULL;
-	}
-
-	void RecenterCameraView(float maxDistance, vec3 lookAt = vec3(0))
-	{
-		vec3 p = pCameraController->getViewPosition();
-		vec3 d = p - lookAt;
-
-		float lenSqr = lengthSqr(d);
-		if (lenSqr > (maxDistance * maxDistance))
-		{
-			d *= (maxDistance / sqrtf(lenSqr));
-		}
-
-		p = d + lookAt;
-		pCameraController->moveTo(p);
-		pCameraController->lookAt(lookAt);
-	}
-
-	static bool cameraInputEvent(const ButtonData* data)
-	{
-		pCameraController->onInputEvent(data);
-		return true;
 	}
 };
 

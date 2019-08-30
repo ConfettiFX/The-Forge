@@ -33,6 +33,8 @@ static_assert(false, "Image.h can only be included by ResourceLoader.cpp and Ima
 #include "../Interfaces/IFileSystem.h"
 #include "../../ThirdParty/OpenSource/EASTL/string.h"
 
+//Google basis Transcoder
+#include "../../ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.h"
 #define ALL_MIPLEVELS 127
 
 /************************************************************************************/

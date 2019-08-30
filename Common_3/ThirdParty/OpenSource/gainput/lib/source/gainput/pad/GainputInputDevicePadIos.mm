@@ -154,7 +154,11 @@ InputDevicePadImplIos::InputDevicePadImplIos(InputManager& manager, InputDevice&
 
 InputDevicePadImplIos::~InputDevicePadImplIos()
 {
-	manager_.GetAllocator().Delete(mappedControllers_);
+	if (mappedControllers_)
+	{
+		manager_.GetAllocator().Delete(mappedControllers_);
+		mappedControllers_ = NULL;
+	}
 }
 
 void InputDevicePadImplIos::Update(InputDeltaState* delta)
@@ -209,7 +213,7 @@ void InputDevicePadImplIos::Update(InputDeltaState* delta)
 #else
     isMicro_ = false;
 #endif
-    isNormal_ = [controller gamepad] != 0;
+    isNormal_ = [controller extendedGamepad] != 0;
     supportsMotion_ = [controller motion] != 0;
     
     if (isRemote_)
@@ -296,7 +300,7 @@ void InputDevicePadImplIos::UpdateGamepad_(InputDeltaState* delta)
     }
     else if (isNormal_)
     {
-        GCGamepad* gamepad = [controller gamepad];
+        GCExtendedGamepad* gamepad = [controller extendedGamepad];
         
         HandleButton(device_, state_, delta, PadButtonL1, gamepad.leftShoulder.pressed);
         HandleButton(device_, state_, delta, PadButtonR1, gamepad.rightShoulder.pressed);

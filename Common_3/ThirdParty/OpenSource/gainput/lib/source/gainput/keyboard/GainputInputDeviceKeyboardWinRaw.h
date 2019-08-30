@@ -183,7 +183,7 @@ public:
 
 	bool IsTextInputEnabled() const { return false; }
 	void SetTextInputEnabled(bool enabled) { }
-	char GetNextCharacter(gainput::DeviceButtonId buttonId) { return 0; }
+	wchar_t* GetTextInput(uint32_t* count) { return NULL; }
 
 	void HandleMessage(const MSG& msg)
 	{

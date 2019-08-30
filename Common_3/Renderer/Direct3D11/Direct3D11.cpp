@@ -1692,7 +1692,7 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampl
 	desc.BorderColor[2] = 0.0f;
 	desc.BorderColor[3] = 0.0f;
 	desc.MinLOD = 0.0f;
-	desc.MaxLOD = ((pDesc->mMipMapMode == MIPMAP_MODE_LINEAR) ? D3D11_FLOAT32_MAX : 0.0f);
+	desc.MaxLOD = D3D11_FLOAT32_MAX;
 
 	if (FAILED(pRenderer->pDxDevice->CreateSamplerState(&desc, &pSampler->pSamplerState)))
 		LOGF(LogLevel::eERROR, "Failed to create sampler state.");
@@ -2145,12 +2145,33 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	//add to gpu
 	DXGI_FORMAT    dxFormat = util_to_dx_image_format(pDesc->mFormat, pDesc->mSrgb);
 	DescriptorType descriptors = pDesc->mDescriptors;
+	D3D11_RESOURCE_DIMENSION res_dim = {};
+	if (pDesc->mFlags & TEXTURE_CREATION_FLAG_FORCE_2D)
+	{
+		ASSERT(pDesc->mDepth == 1);
+		res_dim = D3D11_RESOURCE_DIMENSION_TEXTURE2D;
+	}
+	else if (pDesc->mFlags & TEXTURE_CREATION_FLAG_FORCE_3D)
+	{
+		res_dim = D3D11_RESOURCE_DIMENSION_TEXTURE3D;
+	}
+	else
+	{
+		if (pDesc->mDepth > 1)
+			res_dim = D3D11_RESOURCE_DIMENSION_TEXTURE3D;
+		else if (pDesc->mHeight > 1)
+			res_dim = D3D11_RESOURCE_DIMENSION_TEXTURE2D;
+		else
+			res_dim = D3D11_RESOURCE_DIMENSION_TEXTURE1D;
+	}
 
 	ASSERT(DXGI_FORMAT_UNKNOWN != dxFormat);
 
 	if (NULL == pTexture->pDxResource)
 	{
-		if (pDesc->mDepth > 1)
+		switch (res_dim)
+		{
+		case D3D11_RESOURCE_DIMENSION_TEXTURE1D:
 		{
 			ID3D11Texture3D*     pTex2D;
 			D3D11_TEXTURE3D_DESC desc = {};
@@ -2167,8 +2188,9 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 			desc.Width = pDesc->mWidth;
 			pRenderer->pDxDevice->CreateTexture3D(&desc, NULL, &pTex2D);
 			pTexture->pDxResource = pTex2D;
+			break;
 		}
-		else if (pDesc->mHeight > 1)
+		case D3D11_RESOURCE_DIMENSION_TEXTURE2D:
 		{
 			ID3D11Texture2D*     pTex2D;
 			D3D11_TEXTURE2D_DESC desc = {};
@@ -2185,8 +2207,9 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 			desc.Width = pDesc->mWidth;
 			pRenderer->pDxDevice->CreateTexture2D(&desc, NULL, &pTex2D);
 			pTexture->pDxResource = pTex2D;
+			break;
 		}
-		else
+		case D3D11_RESOURCE_DIMENSION_TEXTURE3D:
 		{
 			ID3D11Texture1D*     pTex1D;
 			D3D11_TEXTURE1D_DESC desc = {};
@@ -2200,6 +2223,10 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 			desc.Width = pDesc->mWidth;
 			pRenderer->pDxDevice->CreateTexture1D(&desc, NULL, &pTex1D);
 			pTexture->pDxResource = pTex1D;
+			break;
+		}
+		default:
+			break;
 		}
 
 		pTexture->mCurrentState = pDesc->mStartState;

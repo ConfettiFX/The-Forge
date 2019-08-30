@@ -28,17 +28,11 @@
 #ifndef OZZ_OZZ_BASE_CONTAINERS_STRING_H_
 #define OZZ_OZZ_BASE_CONTAINERS_STRING_H_
 
-#include <string>
-
-#include "ozz/base/containers/std_allocator.h"
+#include "../../../../../EASTL/string.h"
 
 namespace ozz {
-// Redirects std::string to ozz::String::Std in order to replace std default
-// allocator by ozz::StdAllocator.
 struct String {
-  typedef std::basic_string<char, std::char_traits<char>,
-                            ozz::StdAllocator<char> >
-      Std;
+  typedef eastl::string Std;
 };
 }  // namespace ozz
 #endif  // OZZ_OZZ_BASE_CONTAINERS_STRING_H_

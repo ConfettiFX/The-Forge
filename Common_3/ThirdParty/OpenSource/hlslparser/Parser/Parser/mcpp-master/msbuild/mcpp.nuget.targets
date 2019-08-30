@@ -1,0 +1,15 @@
+<Project DefaultTargets="NugetPack" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <ItemGroup>
+        <Libraries Include="$(MSBuildThisFileDirectory)$(DefaultPlatformToolset)\$(Platform)\$(Configuration)\*.lib" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PDBs Include="$(MSBuildThisFileDirectory)$(DefaultPlatformToolset)\$(Platform)\$(Configuration)\*.pdb" />
+    </ItemGroup>
+
+    <!-- Copy required files to the package specific directories -->
+    <Target Name="NugetPack">
+        <Copy SourceFiles="@(Libraries)" DestinationFolder="$(PackageDirectory)\build\native\lib\$(Platform)\$(Configuration)" />
+        <Copy SourceFiles="@(PDBs)" DestinationFolder="$(PackageDirectory)\build\native\lib\$(Platform)\$(Configuration)" />
+    </Target>
+</Project>

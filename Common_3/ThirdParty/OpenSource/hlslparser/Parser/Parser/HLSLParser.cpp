@@ -7,7 +7,6 @@
 //
 //=============================================================================
 
-//#include "Engine/String.h"
 #include "Engine.h"
 
 #include "HLSLParser.h"
@@ -24,94 +23,148 @@ enum CompareFunctionsResult
 	Function2Better
 };
 
-/** This structure stores a HLSLFunction-like declaration for an intrinsic function */
-struct Intrinsic
+// In the original code, there are several areas where it finds the type of a parent expression
+// by looking through the recent identifiers list. Unfortunately, this is not robust and the
+// only real solution is to keep a proper stack of the nodes/identifiers.
+// 
+// The catch is that the original code has many divergent paths, and keeping track of the
+// stack state is quite messy because of the mix of return/continue/break statements.
+//
+// So the solution is the HLSLStackTracker. When entering a function, create one of these.
+// Add any identifiers that you need to the stack, and when the function exits the destructor
+// reverts the stack to its original size.
+class HLSLScopedStackTracker
 {
-	explicit Intrinsic(const char* name, HLSLBaseType returnType)
+public:
+	HLSLScopedStackTracker(HLSLParser * parser)
 	{
-		function.name                   = name;
-		function.returnType.baseType    = returnType;
-		function.numArguments           = 0;
-	}
-	explicit Intrinsic(const char* name, HLSLBaseType returnType, HLSLBaseType arg1)
-	{
-		function.name                   = name;
-		function.returnType.baseType    = returnType;
-		function.numArguments           = 1;
-		function.argument               = argument + 0;
-		argument[0].type.baseType       = arg1;
-		argument[0].type.flags          = HLSLTypeFlag_Const;
-	}
-	explicit Intrinsic(const char* name, HLSLBaseType returnType, HLSLBaseType arg1, HLSLBaseType arg2)
-	{
-		function.name                   = name;
-		function.returnType.baseType    = returnType;
-		function.argument               = argument + 0;
-		function.numArguments           = 2;
-		argument[0].type.baseType       = arg1;
-		argument[0].type.flags          = HLSLTypeFlag_Const;
-		argument[0].nextArgument        = argument + 1;
-		argument[1].type.baseType       = arg2;
-		argument[1].type.flags          = HLSLTypeFlag_Const;
-	}
-	explicit Intrinsic(const char* name, HLSLBaseType returnType, HLSLBaseType arg1, HLSLBaseType arg2, HLSLBaseType arg3)
-	{
-		function.name                   = name;
-		function.returnType.baseType    = returnType;
-		function.argument               = argument + 0;
-		function.numArguments           = 3;
-		argument[0].type.baseType       = arg1;
-		argument[0].type.flags          = HLSLTypeFlag_Const;
-		argument[0].nextArgument        = argument + 1;
-		argument[1].type.baseType       = arg2;
-		argument[1].type.flags          = HLSLTypeFlag_Const;
-		argument[1].nextArgument        = argument + 2;
-		argument[2].type.baseType       = arg3;
-		argument[2].type.flags          = HLSLTypeFlag_Const;
-	}
-	explicit Intrinsic(const char* name, HLSLBaseType returnType, HLSLBaseType arg1, HLSLBaseType arg2, HLSLBaseType arg3, HLSLBaseType arg4)
-	{
-		function.name                   = name;
-		function.returnType.baseType    = returnType;
-		function.argument               = argument + 0;
-		function.numArguments           = 4;
-		argument[0].type.baseType       = arg1;
-		argument[0].type.flags          = HLSLTypeFlag_Const;
-		argument[0].nextArgument        = argument + 1;
-		argument[1].type.baseType       = arg2;
-		argument[1].type.flags          = HLSLTypeFlag_Const;
-		argument[1].nextArgument        = argument + 2;
-		argument[2].type.baseType       = arg3;
-		argument[2].type.flags          = HLSLTypeFlag_Const;
-		argument[2].nextArgument        = argument + 3;
-		argument[3].type.baseType       = arg4;
-		argument[3].type.flags          = HLSLTypeFlag_Const;
+		ASSERT_PARSER(parser != NULL);
+		m_parser = parser;
+
+		m_stackSize = m_parser->GetParentStackSize();
 	}
 
-	explicit Intrinsic(const char* name, HLSLBaseType returnType, HLSLBaseType arg1, HLSLBaseType arg2, HLSLBaseType arg3, HLSLBaseType arg4, HLSLBaseType arg5)
+	~HLSLScopedStackTracker()
 	{
-		function.name = name;
-		function.returnType.baseType = returnType;
-		function.argument = argument + 0;
-		function.numArguments = 5;
-		argument[0].type.baseType = arg1;
-		argument[0].type.flags = HLSLTypeFlag_Const;
-		argument[0].nextArgument = argument + 1;
-		argument[1].type.baseType = arg2;
-		argument[1].type.flags = HLSLTypeFlag_Const;
-		argument[1].nextArgument = argument + 2;
-		argument[2].type.baseType = arg3;
-		argument[2].type.flags = HLSLTypeFlag_Const;
-		argument[2].nextArgument = argument + 3;
-		argument[3].type.baseType = arg4;
-		argument[3].type.flags = HLSLTypeFlag_Const;
-		argument[4].type.baseType = arg5;
-		argument[4].type.flags = HLSLTypeFlag_Const;
+		ASSERT_PARSER(m_parser != NULL);
+
+		m_parser->RevertParentStackToSize(m_stackSize);
+		m_parser = NULL;
 	}
 
-	HLSLFunction    function;
-	HLSLArgument    argument[5];
+	HLSLParser * m_parser;
+	int m_stackSize;
 };
+
+
+
+void HLSLParser::Intrinsic::AllocArgs(int num)
+{
+	fullFunction.argumentVec.resize(num);
+	for (int i = 0; i < num; i++)
+	{
+		fullFunction.argumentVec[i] = &argument[i];
+	}
+}
+
+HLSLParser::Intrinsic::~Intrinsic()
+{
+}
+
+CachedString HLSLParser::Intrinsic::MakeCached(StringLibrary & stringLibrary, const char * name)
+{
+	CachedString ret;
+	ret.m_string = name;
+	stringLibrary.InsertDirect(eastl::string(name));
+	return ret;
+}
+
+HLSLParser::Intrinsic::Intrinsic(StringLibrary & stringLibrary, const char* name, HLSLBaseType returnType)
+{
+	rawName = name;
+	fullFunction.name = MakeCached(stringLibrary, name);
+	fullFunction.returnType.baseType = returnType;
+	AllocArgs(0);
+}
+
+HLSLParser::Intrinsic::Intrinsic(StringLibrary & stringLibrary, const char* name, HLSLBaseType returnType, HLSLBaseType arg1)
+{
+	rawName = name;
+	fullFunction.name = MakeCached(stringLibrary, name);
+	fullFunction.returnType.baseType = returnType;
+	AllocArgs(1);
+	argument[0].argType.baseType = arg1;
+	argument[0].argType.flags = HLSLTypeFlag_Const;
+}
+HLSLParser::Intrinsic::Intrinsic(StringLibrary & stringLibrary, const char* name, HLSLBaseType returnType, HLSLBaseType arg1, HLSLBaseType arg2)
+{
+	rawName = name;
+	fullFunction.name = MakeCached(stringLibrary, name);
+	fullFunction.returnType.baseType = returnType;
+	AllocArgs(2);
+	argument[0].argType.baseType = arg1;
+	argument[0].argType.flags = HLSLTypeFlag_Const;
+	argument[1].argType.baseType = arg2;
+	argument[1].argType.flags = HLSLTypeFlag_Const;
+}
+HLSLParser::Intrinsic::Intrinsic(StringLibrary & stringLibrary, const char* name, HLSLBaseType returnType, HLSLBaseType arg1, HLSLBaseType arg2, HLSLBaseType arg3)
+{
+	rawName = name;
+	fullFunction.name = MakeCached(stringLibrary, name);
+	fullFunction.returnType.baseType = returnType;
+	AllocArgs(3);
+	argument[0].argType.baseType = arg1;
+	argument[0].argType.flags = HLSLTypeFlag_Const;
+	argument[1].argType.baseType = arg2;
+	argument[1].argType.flags = HLSLTypeFlag_Const;
+	argument[2].argType.baseType = arg3;
+	argument[2].argType.flags = HLSLTypeFlag_Const;
+}
+HLSLParser::Intrinsic::Intrinsic(StringLibrary & stringLibrary, const char* name, HLSLBaseType returnType, HLSLBaseType arg1, HLSLBaseType arg2, HLSLBaseType arg3, HLSLBaseType arg4)
+{
+	rawName = name;
+	fullFunction.name = MakeCached(stringLibrary, name);
+	fullFunction.returnType.baseType = returnType;
+	AllocArgs(4);
+	argument[0].argType.baseType = arg1;
+	argument[0].argType.flags = HLSLTypeFlag_Const;
+	argument[1].argType.baseType = arg2;
+	argument[1].argType.flags = HLSLTypeFlag_Const;
+	argument[2].argType.baseType = arg3;
+	argument[2].argType.flags = HLSLTypeFlag_Const;
+	argument[3].argType.baseType = arg4;
+	argument[3].argType.flags = HLSLTypeFlag_Const;
+}
+
+HLSLParser::Intrinsic::Intrinsic(StringLibrary & stringLibrary, const char* name, HLSLBaseType returnType, HLSLBaseType arg1, HLSLBaseType arg2, HLSLBaseType arg3, HLSLBaseType arg4, HLSLBaseType arg5)
+{
+	rawName = name;
+	fullFunction.name = MakeCached(stringLibrary, name);
+	fullFunction.returnType.baseType = returnType;
+	AllocArgs(5);
+	argument[0].argType.baseType = arg1;
+	argument[0].argType.flags = HLSLTypeFlag_Const;
+	argument[1].argType.baseType = arg2;
+	argument[1].argType.flags = HLSLTypeFlag_Const;
+	argument[2].argType.baseType = arg3;
+	argument[2].argType.flags = HLSLTypeFlag_Const;
+	argument[3].argType.baseType = arg4;
+	argument[3].argType.flags = HLSLTypeFlag_Const;
+	argument[4].argType.baseType = arg5;
+	argument[4].argType.flags = HLSLTypeFlag_Const;
+}
+/*
+static HLSLParser::Intrinsic * MakeIntrinsicInOut(StringLibrary & stringLibrary, const char* name, HLSLBaseType returnType, HLSLBaseType arg1, HLSLBaseType arg2)
+{
+	HLSLParser::Intrinsic * pIntrinsic = new HLSLParser::Intrinsic(stringLibrary,name,returnType,arg1,arg2);
+	for (int i = 0; i < pIntrinsic->fullFunction.argumentVec.size(); i++)
+	{
+		pIntrinsic->fullFunction.argumentVec[i]->argType.flags = (HLSLTypeFlag_Input | HLSLTypeFlag_Output);
+	}
+}
+*/
+
+
 
 enum NumericType
 {
@@ -126,14 +179,20 @@ enum NumericType
 	NumericType_NaN,
 };
 
+
+
+// note: going from float to int is more expensive than from int to float, so that things like:
+// max(float,int) -> max(float,float) instead of mac(int,int)
 static const int _numberTypeRank[NumericType_Count][NumericType_Count] = 
 {
-	//F  H  B  I  U    
-	{ 0, 4, 4, 4, 4 },  // NumericType_Float
-	{ 1, 0, 4, 4, 4 },  // NumericType_Half
-	{ 5, 5, 0, 5, 5 },  // NumericType_Bool
-	{ 5, 5, 4, 0, 3 },  // NumericType_Int
-	{ 5, 5, 4, 2, 0 }   // NumericType_Uint
+	//F  H  m16  m10  B  I  U    
+	{ 0, 6,   7,   8, 6, 6, 6 },  // NumericType_Float
+	{ 1, 0,   5,   6, 4, 4, 4 },  // NumericType_Half
+	{ 6, 7,   0,   7, 6, 6, 6 },  // NumericType_Min16Float
+	{ 6, 7,   7,   0, 6, 6, 6 },  // NumericType_Min10Float
+	{ 5, 5,   6,   7, 0, 5, 5 },  // NumericType_Bool
+	{ 5, 5,   6,   7, 4, 0, 3 },  // NumericType_Int
+	{ 5, 5,   6,   7, 4, 2, 0 }   // NumericType_Uint
 };
 
 
@@ -402,7 +461,6 @@ static const EffectState pipelineStates[] = {
 };
 
 
-
 struct BaseTypeDescription
 {
 	const char*     typeName;
@@ -413,1272 +471,2520 @@ struct BaseTypeDescription
 	int             binaryOpRank;
 };
 
-#define INTRINSIC_VOID_FUNCTION(name) \
-		Intrinsic( name, HLSLBaseType_Void )
+#define INTRINSIC_VOID_FUNCTION_CACHED(name) \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Void ));
 
 
-#define INTRINSIC_FLOAT1_FUNCTION(name) \
-		Intrinsic( name, HLSLBaseType_Float,   HLSLBaseType_Float  ),   \
-		Intrinsic( name, HLSLBaseType_Float2,  HLSLBaseType_Float2 ),   \
-		Intrinsic( name, HLSLBaseType_Float3,  HLSLBaseType_Float3 ),   \
-		Intrinsic( name, HLSLBaseType_Float4,  HLSLBaseType_Float4 ),   \
-		Intrinsic( name, HLSLBaseType_Half,    HLSLBaseType_Half   ),   \
-		Intrinsic( name, HLSLBaseType_Half2,   HLSLBaseType_Half2  ),   \
-		Intrinsic( name, HLSLBaseType_Half3,   HLSLBaseType_Half3  ),   \
-		Intrinsic( name, HLSLBaseType_Half4,   HLSLBaseType_Half4  ),	\
-		Intrinsic( name, HLSLBaseType_Min16Float,   HLSLBaseType_Min16Float  ),   \
-		Intrinsic( name, HLSLBaseType_Min16Float2,  HLSLBaseType_Min16Float2 ),   \
-		Intrinsic( name, HLSLBaseType_Min16Float3,  HLSLBaseType_Min16Float3 ),   \
-		Intrinsic( name, HLSLBaseType_Min16Float4,  HLSLBaseType_Min16Float4 ),	  \
-		Intrinsic( name, HLSLBaseType_Min10Float,   HLSLBaseType_Min10Float  ),   \
-		Intrinsic( name, HLSLBaseType_Min10Float2,  HLSLBaseType_Min10Float2 ),   \
-		Intrinsic( name, HLSLBaseType_Min10Float3,  HLSLBaseType_Min10Float3 ),   \
-		Intrinsic( name, HLSLBaseType_Min10Float4,  HLSLBaseType_Min10Float4 )
+#define INTRINSIC_FLOAT1_FUNCTION_CACHED(name) \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Float,   HLSLBaseType_Float  ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Float2,  HLSLBaseType_Float2 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Float3,  HLSLBaseType_Float3 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Float4,  HLSLBaseType_Float4 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Half,    HLSLBaseType_Half   ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Half2,   HLSLBaseType_Half2  ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Half3,   HLSLBaseType_Half3  ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Half4,   HLSLBaseType_Half4  ));	\
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min16Float,   HLSLBaseType_Min16Float  ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min16Float2,  HLSLBaseType_Min16Float2 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min16Float3,  HLSLBaseType_Min16Float3 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min16Float4,  HLSLBaseType_Min16Float4 ));	  \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min10Float,   HLSLBaseType_Min10Float  ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min10Float2,  HLSLBaseType_Min10Float2 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min10Float3,  HLSLBaseType_Min10Float3 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min10Float4,  HLSLBaseType_Min10Float4 ));
 
-#define INTRINSIC_FLOAT2_FUNCTION(name) \
-		Intrinsic( name, HLSLBaseType_Float,   HLSLBaseType_Float,   HLSLBaseType_Float  ),   \
-		Intrinsic( name, HLSLBaseType_Float2,  HLSLBaseType_Float2,  HLSLBaseType_Float2 ),   \
-		Intrinsic( name, HLSLBaseType_Float3,  HLSLBaseType_Float3,  HLSLBaseType_Float3 ),   \
-		Intrinsic( name, HLSLBaseType_Float4,  HLSLBaseType_Float4,  HLSLBaseType_Float4 ),   \
-		Intrinsic( name, HLSLBaseType_Half,    HLSLBaseType_Half,    HLSLBaseType_Half   ),   \
-		Intrinsic( name, HLSLBaseType_Half2,   HLSLBaseType_Half2,   HLSLBaseType_Half2  ),   \
-		Intrinsic( name, HLSLBaseType_Half3,   HLSLBaseType_Half3,   HLSLBaseType_Half3  ),   \
-		Intrinsic( name, HLSLBaseType_Half4,   HLSLBaseType_Half4,   HLSLBaseType_Half4  ),	  \
-		Intrinsic( name, HLSLBaseType_Min16Float,   HLSLBaseType_Min16Float,  HLSLBaseType_Min16Float ),   \
-		Intrinsic( name, HLSLBaseType_Min16Float2,  HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2),   \
-		Intrinsic( name, HLSLBaseType_Min16Float3,  HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3 ),   \
-		Intrinsic( name, HLSLBaseType_Min16Float4,  HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4 ),	  \
-		Intrinsic( name, HLSLBaseType_Min10Float,   HLSLBaseType_Min10Float,  HLSLBaseType_Min10Float ),   \
-		Intrinsic( name, HLSLBaseType_Min10Float2,  HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2 ),   \
-		Intrinsic( name, HLSLBaseType_Min10Float3,  HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3 ),   \
-		Intrinsic( name, HLSLBaseType_Min10Float4,  HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4 )
+#define INTRINSIC_FLOAT2_FUNCTION_CACHED(name) \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Float,   HLSLBaseType_Float,   HLSLBaseType_Float  ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Float2,  HLSLBaseType_Float2,  HLSLBaseType_Float2 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Float3,  HLSLBaseType_Float3,  HLSLBaseType_Float3 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Float4,  HLSLBaseType_Float4,  HLSLBaseType_Float4 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Half,    HLSLBaseType_Half,    HLSLBaseType_Half   ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Half2,   HLSLBaseType_Half2,   HLSLBaseType_Half2  ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Half3,   HLSLBaseType_Half3,   HLSLBaseType_Half3  ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Half4,   HLSLBaseType_Half4,   HLSLBaseType_Half4  ));	  \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min16Float,   HLSLBaseType_Min16Float,  HLSLBaseType_Min16Float ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min16Float2,  HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min16Float3,  HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min16Float4,  HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4 ));	  \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min10Float,   HLSLBaseType_Min10Float,  HLSLBaseType_Min10Float ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min10Float2,  HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min10Float3,  HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min10Float4,  HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4 ));
 
-#define INTRINSIC_FLOAT3_FUNCTION(name) \
-		Intrinsic( name, HLSLBaseType_Float,   HLSLBaseType_Float,   HLSLBaseType_Float,  HLSLBaseType_Float ),   \
-		Intrinsic( name, HLSLBaseType_Float2,  HLSLBaseType_Float2,  HLSLBaseType_Float,  HLSLBaseType_Float2 ),  \
-		Intrinsic( name, HLSLBaseType_Float3,  HLSLBaseType_Float3,  HLSLBaseType_Float,  HLSLBaseType_Float3 ),  \
-		Intrinsic( name, HLSLBaseType_Float4,  HLSLBaseType_Float4,  HLSLBaseType_Float,  HLSLBaseType_Float4 ),  \
-		Intrinsic( name, HLSLBaseType_Half,    HLSLBaseType_Half,    HLSLBaseType_Half,   HLSLBaseType_Half ),    \
-		Intrinsic( name, HLSLBaseType_Half2,   HLSLBaseType_Half2,   HLSLBaseType_Half2,  HLSLBaseType_Half2 ),   \
-		Intrinsic( name, HLSLBaseType_Half3,   HLSLBaseType_Half3,   HLSLBaseType_Half3,  HLSLBaseType_Half3 ),   \
-		Intrinsic( name, HLSLBaseType_Half4,   HLSLBaseType_Half4,   HLSLBaseType_Half4,  HLSLBaseType_Half4 ),	  \
-		Intrinsic( name, HLSLBaseType_Min16Float,   HLSLBaseType_Min16Float,  HLSLBaseType_Min16Float, HLSLBaseType_Min16Float ),   \
-		Intrinsic( name, HLSLBaseType_Min16Float2,  HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2),   \
-		Intrinsic( name, HLSLBaseType_Min16Float3,  HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3 ),   \
-		Intrinsic( name, HLSLBaseType_Min16Float4,  HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4 ),	  \
-		Intrinsic( name, HLSLBaseType_Min10Float,   HLSLBaseType_Min10Float,  HLSLBaseType_Min10Float, HLSLBaseType_Min10Float ),   \
-		Intrinsic( name, HLSLBaseType_Min10Float2,  HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2 ),   \
-		Intrinsic( name, HLSLBaseType_Min10Float3,  HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3 ),   \
-		Intrinsic( name, HLSLBaseType_Min10Float4,  HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4 )
+#define INTRINSIC_FLOAT3_FUNCTION_CACHED(name) \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Float,   HLSLBaseType_Float,   HLSLBaseType_Float,  HLSLBaseType_Float ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Float2,  HLSLBaseType_Float2,  HLSLBaseType_Float2,  HLSLBaseType_Float2 ));  \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Float3,  HLSLBaseType_Float3,  HLSLBaseType_Float3,  HLSLBaseType_Float3 ));  \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Float4,  HLSLBaseType_Float4,  HLSLBaseType_Float4,  HLSLBaseType_Float4 ));  \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Half,    HLSLBaseType_Half,    HLSLBaseType_Half,   HLSLBaseType_Half ));    \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Half2,   HLSLBaseType_Half2,   HLSLBaseType_Half2,  HLSLBaseType_Half2 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Half3,   HLSLBaseType_Half3,   HLSLBaseType_Half3,  HLSLBaseType_Half3 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Half4,   HLSLBaseType_Half4,   HLSLBaseType_Half4,  HLSLBaseType_Half4 ));	  \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min16Float,   HLSLBaseType_Min16Float,  HLSLBaseType_Min16Float, HLSLBaseType_Min16Float ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min16Float2,  HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min16Float3,  HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min16Float4,  HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4 ));	  \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min10Float,   HLSLBaseType_Min10Float,  HLSLBaseType_Min10Float, HLSLBaseType_Min10Float ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min10Float2,  HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min10Float3,  HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min10Float4,  HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4 ));
 
-const Intrinsic _intrinsic[] = 
+#define INTRINSIC_INT2_FUNCTION_CACHED(name) \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Int,   HLSLBaseType_Int,   HLSLBaseType_Int  ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Int2,  HLSLBaseType_Int2,  HLSLBaseType_Int2 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Int3,  HLSLBaseType_Int3,  HLSLBaseType_Int3 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Int4,  HLSLBaseType_Int4,  HLSLBaseType_Int4 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Uint,   HLSLBaseType_Uint,   HLSLBaseType_Uint  ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Uint2,  HLSLBaseType_Uint2,  HLSLBaseType_Uint2 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Uint3,  HLSLBaseType_Uint3,  HLSLBaseType_Uint3 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Uint4,  HLSLBaseType_Uint4,  HLSLBaseType_Uint4 ));   \
+
+
+#define INTRINSIC_FLOAT1_BOOL_FUNCTION_CACHED(name) \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Bool,   HLSLBaseType_Float  ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Bool2,  HLSLBaseType_Float2 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Bool3,  HLSLBaseType_Float3 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Bool4,  HLSLBaseType_Float4 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Bool,    HLSLBaseType_Half   ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Bool2,   HLSLBaseType_Half2  ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Bool3,   HLSLBaseType_Half3  ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Bool4,   HLSLBaseType_Half4  ));	\
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min16Float,   HLSLBaseType_Min16Float  ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min16Float2,  HLSLBaseType_Min16Float2 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min16Float3,  HLSLBaseType_Min16Float3 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min16Float4,  HLSLBaseType_Min16Float4 ));	  \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min10Float,   HLSLBaseType_Min10Float  ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min10Float2,  HLSLBaseType_Min10Float2 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min10Float3,  HLSLBaseType_Min10Float3 ));   \
+		m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, name, HLSLBaseType_Min10Float4,  HLSLBaseType_Min10Float4 ));
+
+
+
+void HLSLParser::IntrinsicHelper::BuildIntrinsics()
+{
+
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("abs")
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("acos")
+
+#if 1
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "any", HLSLBaseType_Bool, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Float2x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Float3x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Float4x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Float4x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Float4x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Half4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Half2x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Half3x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Half4x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Half4x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Half4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "any", HLSLBaseType_Bool, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "any", HLSLBaseType_Bool, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "any", HLSLBaseType_Bool, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "any", HLSLBaseType_Bool, HLSLBaseType_Min16Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "any", HLSLBaseType_Bool, HLSLBaseType_Min16Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "any", HLSLBaseType_Bool, HLSLBaseType_Min16Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "any", HLSLBaseType_Bool, HLSLBaseType_Min16Float4x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "any", HLSLBaseType_Bool, HLSLBaseType_Min16Float4x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "any", HLSLBaseType_Bool, HLSLBaseType_Min16Float4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "any", HLSLBaseType_Bool, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "any", HLSLBaseType_Bool, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "any", HLSLBaseType_Bool, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "any", HLSLBaseType_Bool, HLSLBaseType_Min10Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "any", HLSLBaseType_Bool, HLSLBaseType_Min10Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "any", HLSLBaseType_Bool, HLSLBaseType_Min10Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "any", HLSLBaseType_Bool, HLSLBaseType_Min10Float4x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "any", HLSLBaseType_Bool, HLSLBaseType_Min10Float4x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "any", HLSLBaseType_Bool, HLSLBaseType_Min10Float4x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"any", HLSLBaseType_Bool, HLSLBaseType_Uint4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Float1x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Float1x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Float1x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Float2x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Float3x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Float4x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Float4x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Float4x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Half1x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Half1x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Half1x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Half4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Half2x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Half3x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Half4x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Half4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "all", HLSLBaseType_Bool, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "all", HLSLBaseType_Bool, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "all", HLSLBaseType_Bool, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "all", HLSLBaseType_Bool, HLSLBaseType_Min16Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "all", HLSLBaseType_Bool, HLSLBaseType_Min16Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "all", HLSLBaseType_Bool, HLSLBaseType_Min16Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "all", HLSLBaseType_Bool, HLSLBaseType_Min16Float4x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "all", HLSLBaseType_Bool, HLSLBaseType_Min16Float4x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "all", HLSLBaseType_Bool, HLSLBaseType_Min16Float4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "all", HLSLBaseType_Bool, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "all", HLSLBaseType_Bool, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "all", HLSLBaseType_Bool, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "all", HLSLBaseType_Bool, HLSLBaseType_Min10Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "all", HLSLBaseType_Bool, HLSLBaseType_Min10Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "all", HLSLBaseType_Bool, HLSLBaseType_Min10Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "all", HLSLBaseType_Bool, HLSLBaseType_Min10Float4x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "all", HLSLBaseType_Bool, HLSLBaseType_Min10Float4x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "all", HLSLBaseType_Bool, HLSLBaseType_Min10Float4x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Bool1x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Bool1x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Bool1x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Int1x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Int1x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Int1x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Uint1x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Uint1x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Uint1x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"all", HLSLBaseType_Bool, HLSLBaseType_Uint4));
+
+	/*
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"sizeof", HLSLBaseType_Uint, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"sizeof", HLSLBaseType_Uint, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"sizeof", HLSLBaseType_Uint, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"sizeof", HLSLBaseType_Uint, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"sizeof", HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"sizeof", HLSLBaseType_Uint, HLSLBaseType_Unknown));
+	*/
+
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("asin")
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("atan")
+	INTRINSIC_FLOAT2_FUNCTION_CACHED("atan2")
+	INTRINSIC_FLOAT3_FUNCTION_CACHED("clamp")
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("cos")
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("tan")
+
+	INTRINSIC_FLOAT3_FUNCTION_CACHED("lerp")
+	INTRINSIC_FLOAT3_FUNCTION_CACHED("smoothstep")
+
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("round")
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("floor")
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("ceil")
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("frac")
+
+	INTRINSIC_FLOAT2_FUNCTION_CACHED("fmod")
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"clip", HLSLBaseType_Void, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"clip", HLSLBaseType_Void, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"clip", HLSLBaseType_Void, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"clip", HLSLBaseType_Void, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"clip", HLSLBaseType_Void, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"clip", HLSLBaseType_Void, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"clip", HLSLBaseType_Void, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"clip", HLSLBaseType_Void, HLSLBaseType_Half4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "clip", HLSLBaseType_Void, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "clip", HLSLBaseType_Void, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "clip", HLSLBaseType_Void, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "clip", HLSLBaseType_Void, HLSLBaseType_Min16Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "clip", HLSLBaseType_Void, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "clip", HLSLBaseType_Void, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "clip", HLSLBaseType_Void, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "clip", HLSLBaseType_Void, HLSLBaseType_Min10Float4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"dot", HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"dot", HLSLBaseType_Float, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"dot", HLSLBaseType_Float, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"dot", HLSLBaseType_Float, HLSLBaseType_Float4, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"dot", HLSLBaseType_Half, HLSLBaseType_Half, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"dot", HLSLBaseType_Half, HLSLBaseType_Half2, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"dot", HLSLBaseType_Half, HLSLBaseType_Half3, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"dot", HLSLBaseType_Half, HLSLBaseType_Half4, HLSLBaseType_Half4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "dot", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "dot", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "dot", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "dot", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "dot", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "dot", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "dot", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "dot", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"distance", HLSLBaseType_Float, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"distance", HLSLBaseType_Float, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "distance", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "distance", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "distance", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "distance", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"determinant", HLSLBaseType_Float, HLSLBaseType_Float2x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"determinant", HLSLBaseType_Float, HLSLBaseType_Float3x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"determinant", HLSLBaseType_Float, HLSLBaseType_Float4x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "determinant", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "determinant", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "determinant", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float4x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "determinant", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "determinant", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "determinant", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float4x4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"cross", HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "cross", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "cross", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3));
+
+
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"f16tof32", HLSLBaseType_Float, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"f16tof32", HLSLBaseType_Float2, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"f16tof32", HLSLBaseType_Float3, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"f16tof32", HLSLBaseType_Float4, HLSLBaseType_Uint4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"f32tof16", HLSLBaseType_Uint, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"f32tof16", HLSLBaseType_Uint2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"f32tof16", HLSLBaseType_Uint3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"f32tof16", HLSLBaseType_Uint4, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"NonUniformResourceIndex", HLSLBaseType_Uint, HLSLBaseType_Uint));
+
+
+
+	INTRINSIC_VOID_FUNCTION_CACHED("GroupMemoryBarrierWithGroupSync")
+	INTRINSIC_VOID_FUNCTION_CACHED("GroupMemoryBarrier")
+	INTRINSIC_VOID_FUNCTION_CACHED("DeviceMemoryBarrierWithGroupSync")
+	INTRINSIC_VOID_FUNCTION_CACHED("DeviceMemoryBarrier")
+	INTRINSIC_VOID_FUNCTION_CACHED("AllMemoryBarrierWithGroupSync")
+	INTRINSIC_VOID_FUNCTION_CACHED("AllMemoryBarrier")
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"length", HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"length", HLSLBaseType_Float, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"length", HLSLBaseType_Float, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"length", HLSLBaseType_Float, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"length", HLSLBaseType_Half, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"length", HLSLBaseType_Half, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"length", HLSLBaseType_Half, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"length", HLSLBaseType_Half, HLSLBaseType_Half4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "length", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "length", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "length", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "length", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "length", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "length", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "length", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "length", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float4));
+
+	//Buffer.Load
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float1x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float1x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float1x4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2x4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3x4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4x4, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half1x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half1x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half1x4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2x4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3x4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4x4, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float1x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float1x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float1x4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2x4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3x4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4x4, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float1x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float1x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float1x4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2x4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3x4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4x4, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint1x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint1x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint1x4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint2x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint2x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint2x4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint3x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint3x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint3x4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint4x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint4x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint4x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint4x4, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int1x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int1x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int1x4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int2x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int2x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int2x4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int3x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int3x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int3x4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int4x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int4x2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int4x3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int4x4, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_UserDefined, HLSLBaseType_Int));
+
+	//Texture.Load
+	//Texture1D
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint3, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint4, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int3, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int4, HLSLBaseType_Int2));
+
+	//Texture1DArray, Texture 2D, Texture2DMSArray
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float4, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Int3));
+
+
+	//Texture2DMS Texture2DMSArray (Sample Index)
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float2, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float3, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float4, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float2, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float3, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float4, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+
+
+	//Texture2DMS
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float2, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float3, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4, HLSLBaseType_Int2, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Int2, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Int2, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Int2, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float2, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint2, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint4, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int2, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int4, HLSLBaseType_Int3));
+
+	//Texture2DArray, Texture 3D
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint2, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint3, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint4, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int2, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int3, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int4, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Store", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Store", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int));
+
+	//Texture1D
+	//UINT MipLevel, UINT Width, UINT NumberOfLevels
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	//UINT Width
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint));
+	//UINT MipLevel, float Width, float NumberOfLevels
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Float, HLSLBaseType_Float));
+	//float Width
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Float));
+
+	//Texture1DArray
+	//UINT MipLevel, UINT Width, UINT Elements, UINT NumberOfLevels
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	//UINT Width, UINT Elements
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	//UINT MipLevel, float Width, float Elements, float NumberOfLevels
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
+	//float Width, float Elements
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Float, HLSLBaseType_Float));
+
+	//UINT MipLevel, UINT Width, UINT Height, UINT Elements, UINT NumberOfLevels
+
+	//Texture2DArray
+	//UINT MipLevel, UINT Width, UINT Height, UINT Elements, UINT NumberOfLevels
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	//UINT Width, UINT Height, UINT Elements
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	//UINT MipLevel, float Width, float Height, float Elements, float NumberOfLevels
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
+	//float Width, float Height, float Elements
+	//float Width, float Height, float Depth
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
+
+	//TextureCube
+	//UINT MipLevel, float Width, float Height, UINT NumberOfLevels
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Uint));
+
+	//Texture2DMSArray
+	//float Width, float Height, float Elements, float Samples
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
+
+
+	INTRINSIC_FLOAT2_FUNCTION_CACHED("max")
+	INTRINSIC_FLOAT2_FUNCTION_CACHED("min")
+
+	INTRINSIC_INT2_FUNCTION_CACHED("max")
+	INTRINSIC_INT2_FUNCTION_CACHED("min")
+
+	// @@ Add all combinations.
+
+	// vector<N> = mul(vector<N>, scalar)
+	// vector<N> = mul(vector<N>, vector<N>)
+
+	// vector<N> = mul(matrix<N,M>, vector<M>)
+	// matrix<N,N> = mul(matrix<N,M>, matrix<M,N>)
+
+	// https://msdn.microsoft.com/en-us/library/windows/desktop/bb509628(v=vs.85).aspx
+	// Multiplies x and y using matrix math. The inner dimension x-columns and y-rows must be equal.
+	// x : [in] The x input value.If x is a vector, it treated as a row vector.
+	// y : [in] The y input value.If y is a vector, it treated as a column vector.
+
+	INTRINSIC_FLOAT2_FUNCTION_CACHED("mul")
+
+	// scalar = mul(scalar, scalar)
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half, HLSLBaseType_Half, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float, HLSLBaseType_Min10Float));
+
+	// vector<N> = mul(scalar, vector<N>)
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2, HLSLBaseType_Half, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3, HLSLBaseType_Half, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4, HLSLBaseType_Half, HLSLBaseType_Half4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float, HLSLBaseType_Min16Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float, HLSLBaseType_Min10Float4));
+
+	// vector<NxM> = mul(scalar, Matrix<NxM>)
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2x2, HLSLBaseType_Float, HLSLBaseType_Float2x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2x3, HLSLBaseType_Float, HLSLBaseType_Float2x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2x4, HLSLBaseType_Float, HLSLBaseType_Float2x4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3x2, HLSLBaseType_Float, HLSLBaseType_Float3x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3x3, HLSLBaseType_Float, HLSLBaseType_Float3x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3x4, HLSLBaseType_Float, HLSLBaseType_Float3x4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4x2, HLSLBaseType_Float, HLSLBaseType_Float4x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4x3, HLSLBaseType_Float, HLSLBaseType_Float4x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4x4, HLSLBaseType_Float, HLSLBaseType_Float4x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2x2, HLSLBaseType_Half, HLSLBaseType_Half2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2x3, HLSLBaseType_Half, HLSLBaseType_Half2x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2x4, HLSLBaseType_Half, HLSLBaseType_Half2x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3x2, HLSLBaseType_Half, HLSLBaseType_Half3x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3x3, HLSLBaseType_Half, HLSLBaseType_Half3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3x4, HLSLBaseType_Half, HLSLBaseType_Half3x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4x2, HLSLBaseType_Half, HLSLBaseType_Half4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4x3, HLSLBaseType_Half, HLSLBaseType_Half4x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4x4, HLSLBaseType_Half, HLSLBaseType_Half4x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2x2, HLSLBaseType_Min16Float, HLSLBaseType_Min16Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2x3, HLSLBaseType_Min16Float, HLSLBaseType_Min16Float2x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2x4, HLSLBaseType_Min16Float, HLSLBaseType_Min16Float2x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3x2, HLSLBaseType_Min16Float, HLSLBaseType_Min16Float3x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3x3, HLSLBaseType_Min16Float, HLSLBaseType_Min16Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3x4, HLSLBaseType_Min16Float, HLSLBaseType_Min16Float3x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4x2, HLSLBaseType_Min16Float, HLSLBaseType_Min16Float4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4x3, HLSLBaseType_Min16Float, HLSLBaseType_Min16Float4x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4x4, HLSLBaseType_Min16Float, HLSLBaseType_Min16Float4x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2x2, HLSLBaseType_Min10Float, HLSLBaseType_Min10Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2x3, HLSLBaseType_Min10Float, HLSLBaseType_Min10Float2x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2x4, HLSLBaseType_Min10Float, HLSLBaseType_Min10Float2x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3x2, HLSLBaseType_Min10Float, HLSLBaseType_Min10Float3x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3x3, HLSLBaseType_Min10Float, HLSLBaseType_Min10Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3x4, HLSLBaseType_Min10Float, HLSLBaseType_Min10Float3x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4x2, HLSLBaseType_Min10Float, HLSLBaseType_Min10Float4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4x3, HLSLBaseType_Min10Float, HLSLBaseType_Min10Float4x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4x4, HLSLBaseType_Min10Float, HLSLBaseType_Min10Float4x4));
+
+	// vector<N> = mul(vector<N>, scalar)
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4, HLSLBaseType_Float4, HLSLBaseType_Float));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4, HLSLBaseType_Half4, HLSLBaseType_Half));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float));
+
+	// scalar = mul(vector<N>, vector<N>) !!!!
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float, HLSLBaseType_Float4, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half, HLSLBaseType_Half2, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half, HLSLBaseType_Half3, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half, HLSLBaseType_Half4, HLSLBaseType_Half4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4));
+
+	// vector<N> = mul(vector<M>, matrix<M,N>) rows = same dimension(s) as input x, columns = any
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4, HLSLBaseType_Float2, HLSLBaseType_Float2x4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float3x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4, HLSLBaseType_Float3, HLSLBaseType_Float3x4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2, HLSLBaseType_Float4, HLSLBaseType_Float4x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3, HLSLBaseType_Float4, HLSLBaseType_Float4x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4, HLSLBaseType_Float4, HLSLBaseType_Float4x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3, HLSLBaseType_Half2, HLSLBaseType_Half2x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4, HLSLBaseType_Half2, HLSLBaseType_Half2x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2, HLSLBaseType_Half3, HLSLBaseType_Half3x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Half3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4, HLSLBaseType_Half3, HLSLBaseType_Half3x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2, HLSLBaseType_Half4, HLSLBaseType_Half4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3, HLSLBaseType_Half4, HLSLBaseType_Half4x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4, HLSLBaseType_Half4, HLSLBaseType_Half4x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4x4));
+
+	// matrix<MxN> = mul(matrix<MxN>, scalar)
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2x2, HLSLBaseType_Float2x2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2x3, HLSLBaseType_Float2x3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2x4, HLSLBaseType_Float2x4, HLSLBaseType_Float));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3x2, HLSLBaseType_Float3x2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3x3, HLSLBaseType_Float3x3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3x4, HLSLBaseType_Float3x4, HLSLBaseType_Float));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4x2, HLSLBaseType_Float4x2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4x3, HLSLBaseType_Float4x3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4x4, HLSLBaseType_Float4x4, HLSLBaseType_Float));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2x2, HLSLBaseType_Half2x2, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2x3, HLSLBaseType_Half2x3, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2x4, HLSLBaseType_Half2x4, HLSLBaseType_Half));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3x2, HLSLBaseType_Half3x2, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3x3, HLSLBaseType_Half3x3, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3x4, HLSLBaseType_Half3x4, HLSLBaseType_Half));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4x2, HLSLBaseType_Half4x2, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4x3, HLSLBaseType_Half4x3, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4x4, HLSLBaseType_Half4x4, HLSLBaseType_Half));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2x2, HLSLBaseType_Min16Float2x2, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2x3, HLSLBaseType_Min16Float2x3, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2x4, HLSLBaseType_Min16Float2x4, HLSLBaseType_Min16Float));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3x2, HLSLBaseType_Min16Float3x2, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3x3, HLSLBaseType_Min16Float3x3, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3x4, HLSLBaseType_Min16Float3x4, HLSLBaseType_Min16Float));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4x2, HLSLBaseType_Min16Float4x2, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4x3, HLSLBaseType_Min16Float4x3, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4x4, HLSLBaseType_Min16Float4x4, HLSLBaseType_Min16Float));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2x2, HLSLBaseType_Min10Float2x2, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2x3, HLSLBaseType_Min10Float2x3, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2x4, HLSLBaseType_Min10Float2x4, HLSLBaseType_Min10Float));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3x2, HLSLBaseType_Min10Float3x2, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3x3, HLSLBaseType_Min10Float3x3, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3x4, HLSLBaseType_Min10Float3x4, HLSLBaseType_Min10Float));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4x2, HLSLBaseType_Min10Float4x2, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4x3, HLSLBaseType_Min10Float4x3, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4x4, HLSLBaseType_Min10Float4x4, HLSLBaseType_Min10Float));
+
+	// vector<M> = mul(matrix<MxN>, vector<N>)
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2, HLSLBaseType_Float2x2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2, HLSLBaseType_Float2x3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2, HLSLBaseType_Float2x4, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3, HLSLBaseType_Float3x2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3, HLSLBaseType_Float3x3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3, HLSLBaseType_Float3x4, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4, HLSLBaseType_Float4x2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4, HLSLBaseType_Float4x3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4, HLSLBaseType_Float4x4, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2, HLSLBaseType_Half2x2, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2, HLSLBaseType_Half2x3, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2, HLSLBaseType_Half2x4, HLSLBaseType_Half4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3, HLSLBaseType_Half3x2, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3, HLSLBaseType_Half3x3, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3, HLSLBaseType_Half3x4, HLSLBaseType_Half4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4, HLSLBaseType_Half4x2, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4, HLSLBaseType_Half4x3, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4, HLSLBaseType_Half4x4, HLSLBaseType_Half4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2x2, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2x3, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2x4, HLSLBaseType_Min16Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3x2, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3x3, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3x4, HLSLBaseType_Min16Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4x2, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4x3, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4x4, HLSLBaseType_Min16Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2x2, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2x3, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2x4, HLSLBaseType_Min10Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3x2, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3x3, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3x4, HLSLBaseType_Min10Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4x2, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4x3, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4x4, HLSLBaseType_Min10Float4));
+
+	// vector<MxL> = mul(matrix<MxN>, matrix<NxL>)
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2x2, HLSLBaseType_Float2x2, HLSLBaseType_Float2x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2x3, HLSLBaseType_Float2x2, HLSLBaseType_Float2x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2x4, HLSLBaseType_Float2x2, HLSLBaseType_Float2x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2x2, HLSLBaseType_Float2x3, HLSLBaseType_Float3x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2x3, HLSLBaseType_Float2x3, HLSLBaseType_Float3x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2x4, HLSLBaseType_Float2x3, HLSLBaseType_Float3x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2x2, HLSLBaseType_Float2x4, HLSLBaseType_Float4x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2x3, HLSLBaseType_Float2x4, HLSLBaseType_Float4x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float2x4, HLSLBaseType_Float2x4, HLSLBaseType_Float4x4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3x2, HLSLBaseType_Float3x2, HLSLBaseType_Float2x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3x3, HLSLBaseType_Float3x2, HLSLBaseType_Float2x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3x4, HLSLBaseType_Float3x2, HLSLBaseType_Float2x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3x2, HLSLBaseType_Float3x3, HLSLBaseType_Float3x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3x3, HLSLBaseType_Float3x3, HLSLBaseType_Float3x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3x4, HLSLBaseType_Float3x3, HLSLBaseType_Float3x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3x2, HLSLBaseType_Float3x4, HLSLBaseType_Float4x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3x3, HLSLBaseType_Float3x4, HLSLBaseType_Float4x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float3x4, HLSLBaseType_Float3x4, HLSLBaseType_Float4x4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4x2, HLSLBaseType_Float4x2, HLSLBaseType_Float2x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4x3, HLSLBaseType_Float4x2, HLSLBaseType_Float2x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4x4, HLSLBaseType_Float4x2, HLSLBaseType_Float2x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4x2, HLSLBaseType_Float4x3, HLSLBaseType_Float3x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4x3, HLSLBaseType_Float4x3, HLSLBaseType_Float3x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4x4, HLSLBaseType_Float4x3, HLSLBaseType_Float3x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4x2, HLSLBaseType_Float4x4, HLSLBaseType_Float4x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4x3, HLSLBaseType_Float4x4, HLSLBaseType_Float4x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mul", HLSLBaseType_Float4x4, HLSLBaseType_Float4x4, HLSLBaseType_Float4x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2x2, HLSLBaseType_Half2x2, HLSLBaseType_Half2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2x3, HLSLBaseType_Half2x2, HLSLBaseType_Half2x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2x4, HLSLBaseType_Half2x2, HLSLBaseType_Half2x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2x2, HLSLBaseType_Half2x3, HLSLBaseType_Half3x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2x3, HLSLBaseType_Half2x3, HLSLBaseType_Half3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2x4, HLSLBaseType_Half2x3, HLSLBaseType_Half3x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2x2, HLSLBaseType_Half2x4, HLSLBaseType_Half4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2x3, HLSLBaseType_Half2x4, HLSLBaseType_Half4x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half2x4, HLSLBaseType_Half2x4, HLSLBaseType_Half4x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3x2, HLSLBaseType_Half3x2, HLSLBaseType_Half2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3x3, HLSLBaseType_Half3x2, HLSLBaseType_Half2x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3x4, HLSLBaseType_Half3x2, HLSLBaseType_Half2x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3x2, HLSLBaseType_Half3x3, HLSLBaseType_Half3x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3x3, HLSLBaseType_Half3x3, HLSLBaseType_Half3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3x4, HLSLBaseType_Half3x3, HLSLBaseType_Half3x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3x2, HLSLBaseType_Half3x4, HLSLBaseType_Half4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3x3, HLSLBaseType_Half3x4, HLSLBaseType_Half4x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half3x4, HLSLBaseType_Half3x4, HLSLBaseType_Half4x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4x2, HLSLBaseType_Half4x2, HLSLBaseType_Half2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4x3, HLSLBaseType_Half4x2, HLSLBaseType_Half2x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4x4, HLSLBaseType_Half4x2, HLSLBaseType_Half2x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4x2, HLSLBaseType_Half4x3, HLSLBaseType_Half3x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4x3, HLSLBaseType_Half4x3, HLSLBaseType_Half3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4x4, HLSLBaseType_Half4x3, HLSLBaseType_Half3x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4x2, HLSLBaseType_Half4x4, HLSLBaseType_Half4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4x3, HLSLBaseType_Half4x4, HLSLBaseType_Half4x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Half4x4, HLSLBaseType_Half4x4, HLSLBaseType_Half4x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2x2, HLSLBaseType_Min16Float2x2, HLSLBaseType_Min16Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2x3, HLSLBaseType_Min16Float2x2, HLSLBaseType_Min16Float2x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2x4, HLSLBaseType_Min16Float2x2, HLSLBaseType_Min16Float2x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2x2, HLSLBaseType_Min16Float2x3, HLSLBaseType_Min16Float3x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2x3, HLSLBaseType_Min16Float2x3, HLSLBaseType_Min16Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2x4, HLSLBaseType_Min16Float2x3, HLSLBaseType_Min16Float3x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2x2, HLSLBaseType_Min16Float2x4, HLSLBaseType_Min16Float4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2x3, HLSLBaseType_Min16Float2x4, HLSLBaseType_Min16Float4x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float2x4, HLSLBaseType_Min16Float2x4, HLSLBaseType_Min16Float4x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3x2, HLSLBaseType_Min16Float3x2, HLSLBaseType_Min16Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3x3, HLSLBaseType_Min16Float3x2, HLSLBaseType_Min16Float2x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3x4, HLSLBaseType_Min16Float3x2, HLSLBaseType_Min16Float2x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3x2, HLSLBaseType_Min16Float3x3, HLSLBaseType_Min16Float3x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3x3, HLSLBaseType_Min16Float3x3, HLSLBaseType_Min16Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3x4, HLSLBaseType_Min16Float3x3, HLSLBaseType_Min16Float3x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3x2, HLSLBaseType_Min16Float3x4, HLSLBaseType_Min16Float4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3x3, HLSLBaseType_Min16Float3x4, HLSLBaseType_Min16Float4x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float3x4, HLSLBaseType_Min16Float3x4, HLSLBaseType_Min16Float4x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4x2, HLSLBaseType_Min16Float4x2, HLSLBaseType_Min16Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4x3, HLSLBaseType_Min16Float4x2, HLSLBaseType_Min16Float2x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4x4, HLSLBaseType_Min16Float4x2, HLSLBaseType_Min16Float2x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4x2, HLSLBaseType_Min16Float4x3, HLSLBaseType_Min16Float3x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4x3, HLSLBaseType_Min16Float4x3, HLSLBaseType_Min16Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4x4, HLSLBaseType_Min16Float4x3, HLSLBaseType_Min16Float3x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4x2, HLSLBaseType_Min16Float4x4, HLSLBaseType_Min16Float4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4x3, HLSLBaseType_Min16Float4x4, HLSLBaseType_Min16Float4x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min16Float4x4, HLSLBaseType_Min16Float4x4, HLSLBaseType_Min16Float4x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2x2, HLSLBaseType_Min10Float2x2, HLSLBaseType_Min10Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2x3, HLSLBaseType_Min10Float2x2, HLSLBaseType_Min10Float2x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2x4, HLSLBaseType_Min10Float2x2, HLSLBaseType_Min10Float2x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2x2, HLSLBaseType_Min10Float2x3, HLSLBaseType_Min10Float3x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2x3, HLSLBaseType_Min10Float2x3, HLSLBaseType_Min10Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2x4, HLSLBaseType_Min10Float2x3, HLSLBaseType_Min10Float3x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2x2, HLSLBaseType_Min10Float2x4, HLSLBaseType_Min10Float4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2x3, HLSLBaseType_Min10Float2x4, HLSLBaseType_Min10Float4x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float2x4, HLSLBaseType_Min10Float2x4, HLSLBaseType_Min10Float4x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3x2, HLSLBaseType_Min10Float3x2, HLSLBaseType_Min10Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3x3, HLSLBaseType_Min10Float3x2, HLSLBaseType_Min10Float2x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3x4, HLSLBaseType_Min10Float3x2, HLSLBaseType_Min10Float2x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3x2, HLSLBaseType_Min10Float3x3, HLSLBaseType_Min10Float3x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3x3, HLSLBaseType_Min10Float3x3, HLSLBaseType_Min10Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3x4, HLSLBaseType_Min10Float3x3, HLSLBaseType_Min10Float3x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3x2, HLSLBaseType_Min10Float3x4, HLSLBaseType_Min10Float4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3x3, HLSLBaseType_Min10Float3x4, HLSLBaseType_Min10Float4x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float3x4, HLSLBaseType_Min10Float3x4, HLSLBaseType_Min10Float4x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4x2, HLSLBaseType_Min10Float4x2, HLSLBaseType_Min10Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4x3, HLSLBaseType_Min10Float4x2, HLSLBaseType_Min10Float2x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4x4, HLSLBaseType_Min10Float4x2, HLSLBaseType_Min10Float2x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4x2, HLSLBaseType_Min10Float4x3, HLSLBaseType_Min10Float3x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4x3, HLSLBaseType_Min10Float4x3, HLSLBaseType_Min10Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4x4, HLSLBaseType_Min10Float4x3, HLSLBaseType_Min10Float3x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4x2, HLSLBaseType_Min10Float4x4, HLSLBaseType_Min10Float4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4x3, HLSLBaseType_Min10Float4x4, HLSLBaseType_Min10Float4x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mul", HLSLBaseType_Min10Float4x4, HLSLBaseType_Min10Float4x4, HLSLBaseType_Min10Float4x4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"transpose", HLSLBaseType_Float2x2, HLSLBaseType_Float2x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"transpose", HLSLBaseType_Float3x3, HLSLBaseType_Float3x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"transpose", HLSLBaseType_Float4x4, HLSLBaseType_Float4x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "transpose", HLSLBaseType_Half2x2, HLSLBaseType_Half2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "transpose", HLSLBaseType_Half3x3, HLSLBaseType_Half3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "transpose", HLSLBaseType_Half4x4, HLSLBaseType_Half4x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "transpose", HLSLBaseType_Min16Float2x2, HLSLBaseType_Min16Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "transpose", HLSLBaseType_Min16Float3x3, HLSLBaseType_Min16Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "transpose", HLSLBaseType_Min16Float4x4, HLSLBaseType_Min16Float4x4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "transpose", HLSLBaseType_Min10Float2x2, HLSLBaseType_Min10Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "transpose", HLSLBaseType_Min10Float3x3, HLSLBaseType_Min10Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "transpose", HLSLBaseType_Min10Float4x4, HLSLBaseType_Min10Float4x4));
+
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("normalize")
+	INTRINSIC_FLOAT2_FUNCTION_CACHED("pow")
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("saturate")
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("sin")
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("sqrt")
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("rsqrt")
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("rcp")
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("exp")
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("exp2")
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("log")
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("log2")
+
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("ddx")
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("ddy")
+
+	INTRINSIC_FLOAT1_FUNCTION_CACHED("sign")
+	INTRINSIC_FLOAT2_FUNCTION_CACHED("step")
+	INTRINSIC_FLOAT2_FUNCTION_CACHED("reflect")
+
+	INTRINSIC_FLOAT1_BOOL_FUNCTION_CACHED("isnan")
+	INTRINSIC_FLOAT1_BOOL_FUNCTION_CACHED("isinf")
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Float1x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Float1x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Float1x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Float2x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Float3x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Float4x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Float4x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Float4x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Half1x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Half1x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Half1x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Half4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Half2x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Half3x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Half4x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Half4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min16Float1x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min16Float1x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min16Float1x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min16Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min16Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min16Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min16Float4x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min16Float4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min10Float1x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min10Float1x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min10Float1x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min10Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min10Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min10Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min10Float4x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Min10Float4x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Bool1x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Bool1x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Bool1x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Int1x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Int1x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Int1x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Uint1x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Uint1x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Uint1x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Uint4));
+
+
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Float1x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Float1x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Float1x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Float2x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Float3x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Float4x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Float4x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Float4x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Half1x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Half1x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Half1x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Half4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Half2x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Half3x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Half4x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Half4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min16Float1x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min16Float1x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min16Float1x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min16Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min16Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min16Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min16Float4x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min16Float4x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min10Float1x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min10Float1x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min10Float1x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min10Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min10Float2x2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min10Float3x3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min10Float4x4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asfloat", HLSLBaseType_Float, HLSLBaseType_Min10Float4x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Bool1x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Bool1x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Bool1x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Int1x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Int1x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Int1x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Uint1x2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Uint1x3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Uint1x4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Uint4));
+
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"countbits", HLSLBaseType_Uint, HLSLBaseType_Uint));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2D", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2Dproj", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2Dlod", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2Dlod", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float4, HLSLBaseType_Int2));   // With offset.
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2Dbias", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2Dgrad", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2Dgather", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2Dgather", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float2, HLSLBaseType_Int2, HLSLBaseType_Int));    // With offset.
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2Dsize", HLSLBaseType_Int2, HLSLBaseType_Sampler2D));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2Dfetch", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Int3));    // u,v,mipmap
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2Dcmp", HLSLBaseType_Float4, HLSLBaseType_Sampler2DShadow, HLSLBaseType_Float4));                // @@ IC: This really takes a float3 (uvz) and returns a float.
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2DMSfetch", HLSLBaseType_Float4, HLSLBaseType_Sampler2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2DMSsize", HLSLBaseType_Int3, HLSLBaseType_Sampler2DMS));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2DArray", HLSLBaseType_Float4, HLSLBaseType_Sampler2DArray, HLSLBaseType_Float3));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex3D", HLSLBaseType_Float4, HLSLBaseType_Sampler3D, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex3Dlod", HLSLBaseType_Float4, HLSLBaseType_Sampler3D, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex3Dbias", HLSLBaseType_Float4, HLSLBaseType_Sampler3D, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex3Dsize", HLSLBaseType_Int3, HLSLBaseType_Sampler3D));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Sample", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Sample", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Sample", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Sample", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Int));
+
+	//Offset
+
+	//Texture1D
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int, HLSLBaseType_Uint));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int, HLSLBaseType_Uint));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int, HLSLBaseType_Uint));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int, HLSLBaseType_Uint));
+
+	//Texture1DArray
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Uint));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Uint));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Uint));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Uint));
+
+	//Texture2D
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Uint2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Uint2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Uint2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Uint2));
+
+	//Texture2DArray
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Uint2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Uint2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Uint2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Uint2));
+
+	//Texture3D
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Uint3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Uint3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Uint3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Uint3));
+
+	//Texture1D
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	//Texture1DArray
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	//Texture2D
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
+
+	//Texture2DArray
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
+
+	//TextureCube
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
+
+	//TextureCubeArray
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
+
+	//Texture1D
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	//Texture1DArray
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	//Texture2D
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
+
+	//Texture2DArray
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
+
+	//TextureCube
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
+
+	//TextureCubeArray
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
+
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Int));
+
+	//Texture1D
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	//Texture1DArray
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	//Texture2D
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	//Texture2DArray
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	//Texture3D //TextureCube
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Int3));
+
+
+	//TextureCubeArray
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float3, HLSLBaseType_Float3));
+
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GatherRed", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GatherRed", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"texCUBE", HLSLBaseType_Float4, HLSLBaseType_SamplerCube, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"texCUBElod", HLSLBaseType_Float4, HLSLBaseType_SamplerCube, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"texCUBEbias", HLSLBaseType_Float4, HLSLBaseType_SamplerCube, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"texCUBEsize", HLSLBaseType_Int, HLSLBaseType_SamplerCube));
+
+	//GLSL doesn't support float type atomic functions, thus resticted Interlocked functions' data type
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedAdd", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedAdd", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedAdd", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedAdd", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedCompareExchange", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedCompareExchange", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedCompareExchange", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[3].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedCompareExchange", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[3].modifier = HLSLArgumentModifier_Out;
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedCompareStore", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedCompareStore", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedExchange", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedExchange", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedExchange", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedExchange", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedMax", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedMax", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedMax", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedMax", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedMax", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedMax", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedMax", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedMax", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedMax", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Uint, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedMax", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedMin", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedMin", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedMin", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedMin", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedMin", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedMin", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedMin", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedMin", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedMin", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Uint, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedMin", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedOr", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedOr", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedOr", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedOr", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedOr", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedOr", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedOr", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedOr", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedOr", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Uint, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedOr", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedXor", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedXor", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedXor", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedXor", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedXor", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedXor", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedXor", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedXor", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedXor", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Uint, HLSLBaseType_Int));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedXor", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[0].modifier = HLSLArgumentModifier_Inout;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"sincos", HLSLBaseType_Void, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"sincos", HLSLBaseType_Void, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"sincos", HLSLBaseType_Void, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"sincos", HLSLBaseType_Void, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"sincos", HLSLBaseType_Void, HLSLBaseType_Half, HLSLBaseType_Half, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"sincos", HLSLBaseType_Void, HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"sincos", HLSLBaseType_Void, HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"sincos", HLSLBaseType_Void, HLSLBaseType_Half4, HLSLBaseType_Half4, HLSLBaseType_Half4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "sincos", HLSLBaseType_Void, HLSLBaseType_Min16Float, HLSLBaseType_Min16Float, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "sincos", HLSLBaseType_Void, HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "sincos", HLSLBaseType_Void, HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "sincos", HLSLBaseType_Void, HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "sincos", HLSLBaseType_Void, HLSLBaseType_Min10Float, HLSLBaseType_Min10Float, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "sincos", HLSLBaseType_Void, HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "sincos", HLSLBaseType_Void, HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "sincos", HLSLBaseType_Void, HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mad", HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mad", HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mad", HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mad", HLSLBaseType_Float4, HLSLBaseType_Float4, HLSLBaseType_Float4, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mad", HLSLBaseType_Half, HLSLBaseType_Half, HLSLBaseType_Half, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mad", HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mad", HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"mad", HLSLBaseType_Half4, HLSLBaseType_Half4, HLSLBaseType_Half4, HLSLBaseType_Half4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mad", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float, HLSLBaseType_Min16Float, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mad", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mad", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mad", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mad", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float, HLSLBaseType_Min10Float, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mad", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mad", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "mad", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"refract", HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"refract", HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"refract", HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"refract", HLSLBaseType_Half, HLSLBaseType_Half, HLSLBaseType_Half, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"refract", HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"refract", HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "refract", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float, HLSLBaseType_Min16Float, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "refract", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "refract", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "refract", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float, HLSLBaseType_Min10Float, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "refract", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "refract", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float));
+
+
+	//Shader Model 6.0
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveGetLaneCount", HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveGetLaneIndex", HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveIsHelperLane", HLSLBaseType_Bool));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveAnyTrue", HLSLBaseType_Bool, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveAllTrue", HLSLBaseType_Bool, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBallot", HLSLBaseType_Uint4, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveBallot", HLSLBaseType_Uint4, HLSLBaseType_Bool));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneAt", HLSLBaseType_Bool, HLSLBaseType_Bool, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneAt", HLSLBaseType_Bool2, HLSLBaseType_Bool2, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneAt", HLSLBaseType_Bool3, HLSLBaseType_Bool3, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneAt", HLSLBaseType_Bool4, HLSLBaseType_Bool4, HLSLBaseType_Uint));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneAt", HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneAt", HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneAt", HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneAt", HLSLBaseType_Float4, HLSLBaseType_Float4, HLSLBaseType_Uint));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneAt", HLSLBaseType_Half, HLSLBaseType_Half, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneAt", HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneAt", HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneAt", HLSLBaseType_Half4, HLSLBaseType_Half4, HLSLBaseType_Uint));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneAt", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneAt", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneAt", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneAt", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4, HLSLBaseType_Uint));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneAt", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneAt", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneAt", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneAt", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4, HLSLBaseType_Uint));
+
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneAt", HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneAt", HLSLBaseType_Int2, HLSLBaseType_Int2, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneAt", HLSLBaseType_Int3, HLSLBaseType_Int3, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneAt", HLSLBaseType_Int4, HLSLBaseType_Int4, HLSLBaseType_Uint));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneAt", HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneAt", HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneAt", HLSLBaseType_Uint3, HLSLBaseType_Uint3, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneAt", HLSLBaseType_Uint4, HLSLBaseType_Uint4, HLSLBaseType_Uint));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneAt", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined, HLSLBaseType_Uint));
+
+
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneFirst", HLSLBaseType_Bool, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneFirst", HLSLBaseType_Bool2, HLSLBaseType_Bool2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneFirst", HLSLBaseType_Bool3, HLSLBaseType_Bool3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneFirst", HLSLBaseType_Bool4, HLSLBaseType_Bool4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneFirst", HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneFirst", HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneFirst", HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneFirst", HLSLBaseType_Float4, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneFirst", HLSLBaseType_Half, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneFirst", HLSLBaseType_Half2, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneFirst", HLSLBaseType_Half3, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneFirst", HLSLBaseType_Half4, HLSLBaseType_Half4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneFirst", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneFirst", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneFirst", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneFirst", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneFirst", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneFirst", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneFirst", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveReadLaneFirst", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneFirst", HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneFirst", HLSLBaseType_Int2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneFirst", HLSLBaseType_Int3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneFirst", HLSLBaseType_Int4, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneFirst", HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneFirst", HLSLBaseType_Uint2, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneFirst", HLSLBaseType_Uint3, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneFirst", HLSLBaseType_Uint4, HLSLBaseType_Uint4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveReadLaneFirst", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined));
+
+
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Bool2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Bool3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Bool4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Half4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Min16Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Min10Float4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Uint4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_UserDefined));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Bool2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Bool3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Bool4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Half4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Min16Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Min10Float4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Uint4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_UserDefined));
+
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitOr", HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitOr", HLSLBaseType_Int2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitOr", HLSLBaseType_Int3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitOr", HLSLBaseType_Int4, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitXor", HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitXor", HLSLBaseType_Int2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitXor", HLSLBaseType_Int3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitXor", HLSLBaseType_Int4, HLSLBaseType_Int4));
+
+	//WaveActiveCountBits 
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Uint, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Uint, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Uint, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveBitAnd", HLSLBaseType_Uint, HLSLBaseType_Bool));
+
+	/*
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMax", HLSLBaseType_Bool, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMax", HLSLBaseType_Bool2, HLSLBaseType_Bool2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMax", HLSLBaseType_Bool3, HLSLBaseType_Bool3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMax", HLSLBaseType_Bool4, HLSLBaseType_Bool4));
+	*/
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMax", HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMax", HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMax", HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMax", HLSLBaseType_Float4, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMax", HLSLBaseType_Half, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMax", HLSLBaseType_Half2, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMax", HLSLBaseType_Half3, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMax", HLSLBaseType_Half4, HLSLBaseType_Half4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMax", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMax", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMax", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMax", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMax", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMax", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMax", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMax", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4));
+
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMax", HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMax", HLSLBaseType_Int2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMax", HLSLBaseType_Int3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMax", HLSLBaseType_Int4, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMax", HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMax", HLSLBaseType_Uint2, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMax", HLSLBaseType_Uint3, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMax", HLSLBaseType_Uint4, HLSLBaseType_Uint4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMax", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined));
+
+	/*
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMin", HLSLBaseType_Bool, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMin", HLSLBaseType_Bool2, HLSLBaseType_Bool2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMin", HLSLBaseType_Bool3, HLSLBaseType_Bool3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMin", HLSLBaseType_Bool4, HLSLBaseType_Bool4));
+	*/
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMin", HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMin", HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMin", HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMin", HLSLBaseType_Float4, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMin", HLSLBaseType_Half, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMin", HLSLBaseType_Half2, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMin", HLSLBaseType_Half3, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMin", HLSLBaseType_Half4, HLSLBaseType_Half4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMin", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMin", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMin", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMin", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMin", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMin", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMin", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveMin", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMin", HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMin", HLSLBaseType_Int2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMin", HLSLBaseType_Int3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMin", HLSLBaseType_Int4, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMin", HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMin", HLSLBaseType_Uint2, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMin", HLSLBaseType_Uint3, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMin", HLSLBaseType_Uint4, HLSLBaseType_Uint4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveMin", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined));
+
+	/*
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveProduct", HLSLBaseType_Bool, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveProduct", HLSLBaseType_Bool2, HLSLBaseType_Bool2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveProduct", HLSLBaseType_Bool3, HLSLBaseType_Bool3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveProduct", HLSLBaseType_Bool4, HLSLBaseType_Bool4));
+	*/
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveProduct", HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveProduct", HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveProduct", HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveProduct", HLSLBaseType_Float4, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveProduct", HLSLBaseType_Half, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveProduct", HLSLBaseType_Half2, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveProduct", HLSLBaseType_Half3, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveProduct", HLSLBaseType_Half4, HLSLBaseType_Half4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveProduct", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveProduct", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveProduct", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveProduct", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveProduct", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveProduct", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveProduct", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveProduct", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveProduct", HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveProduct", HLSLBaseType_Int2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveProduct", HLSLBaseType_Int3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveProduct", HLSLBaseType_Int4, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveProduct", HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveProduct", HLSLBaseType_Uint2, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveProduct", HLSLBaseType_Uint3, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveProduct", HLSLBaseType_Uint4, HLSLBaseType_Uint4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveProduct", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined));
+
+	/*
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveSum", HLSLBaseType_Bool, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveSum", HLSLBaseType_Bool2, HLSLBaseType_Bool2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveSum", HLSLBaseType_Bool3, HLSLBaseType_Bool3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveSum", HLSLBaseType_Bool4, HLSLBaseType_Bool4));
+	*/
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveSum", HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveSum", HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveSum", HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveSum", HLSLBaseType_Float4, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveSum", HLSLBaseType_Half, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveSum", HLSLBaseType_Half2, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveSum", HLSLBaseType_Half3, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveSum", HLSLBaseType_Half4, HLSLBaseType_Half4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveSum", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveSum", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveSum", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveSum", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveSum", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveSum", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveSum", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WaveActiveSum", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveSum", HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveSum", HLSLBaseType_Int2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveSum", HLSLBaseType_Int3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveSum", HLSLBaseType_Int4, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveSum", HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveSum", HLSLBaseType_Uint2, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveSum", HLSLBaseType_Uint3, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveSum", HLSLBaseType_Uint4, HLSLBaseType_Uint4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveActiveSum", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined));
+
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveGetLaneIndex", HLSLBaseType_Uint, HLSLBaseType_Bool));
+
+	/*
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixSum", HLSLBaseType_Bool, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixSum", HLSLBaseType_Bool2, HLSLBaseType_Bool2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixSum", HLSLBaseType_Bool3, HLSLBaseType_Bool3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixSum", HLSLBaseType_Bool4, HLSLBaseType_Bool4));
+	*/
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixSum", HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixSum", HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixSum", HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixSum", HLSLBaseType_Float4, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixSum", HLSLBaseType_Half, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixSum", HLSLBaseType_Half2, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixSum", HLSLBaseType_Half3, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixSum", HLSLBaseType_Half4, HLSLBaseType_Half4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixSum", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixSum", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixSum", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixSum", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixSum", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixSum", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixSum", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixSum", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixSum", HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixSum", HLSLBaseType_Int2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixSum", HLSLBaseType_Int3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixSum", HLSLBaseType_Int4, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixSum", HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixSum", HLSLBaseType_Uint2, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixSum", HLSLBaseType_Uint3, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixSum", HLSLBaseType_Uint4, HLSLBaseType_Uint4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixSum", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined));
+
+	/*
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixProduct", HLSLBaseType_Bool, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixProduct", HLSLBaseType_Bool2, HLSLBaseType_Bool2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixProduct", HLSLBaseType_Bool3, HLSLBaseType_Bool3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixProduct", HLSLBaseType_Bool4, HLSLBaseType_Bool4));
+	*/
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixProduct", HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixProduct", HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixProduct", HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixProduct", HLSLBaseType_Float4, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixProduct", HLSLBaseType_Half, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixProduct", HLSLBaseType_Half2, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixProduct", HLSLBaseType_Half3, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixProduct", HLSLBaseType_Half4, HLSLBaseType_Half4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixProduct", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixProduct", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixProduct", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixProduct", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixProduct", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixProduct", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixProduct", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "WavePrefixProduct", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixProduct", HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixProduct", HLSLBaseType_Int2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixProduct", HLSLBaseType_Int3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixProduct", HLSLBaseType_Int4, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixProduct", HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixProduct", HLSLBaseType_Uint2, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixProduct", HLSLBaseType_Uint3, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixProduct", HLSLBaseType_Uint4, HLSLBaseType_Uint4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WavePrefixProduct", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveIsHelperLane", HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"WaveIsFirstLane", HLSLBaseType_Bool));
+
+	/*
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadLaneAt", HLSLBaseType_Bool, HLSLBaseType_Bool, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadLaneAt", HLSLBaseType_Bool2, HLSLBaseType_Bool2, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadLaneAt", HLSLBaseType_Bool3, HLSLBaseType_Bool3, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadLaneAt", HLSLBaseType_Bool4, HLSLBaseType_Bool4, HLSLBaseType_Uint));
+	*/
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadLaneAt", HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadLaneAt", HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadLaneAt", HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadLaneAt", HLSLBaseType_Float4, HLSLBaseType_Float4, HLSLBaseType_Uint));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadLaneAt", HLSLBaseType_Half, HLSLBaseType_Half, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadLaneAt", HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadLaneAt", HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadLaneAt", HLSLBaseType_Half4, HLSLBaseType_Half4, HLSLBaseType_Uint));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadLaneAt", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadLaneAt", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadLaneAt", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadLaneAt", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4, HLSLBaseType_Uint));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadLaneAt", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadLaneAt", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadLaneAt", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadLaneAt", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4, HLSLBaseType_Uint));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadLaneAt", HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadLaneAt", HLSLBaseType_Int2, HLSLBaseType_Int2, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadLaneAt", HLSLBaseType_Int3, HLSLBaseType_Int3, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadLaneAt", HLSLBaseType_Int4, HLSLBaseType_Int4, HLSLBaseType_Uint));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadLaneAt", HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadLaneAt", HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadLaneAt", HLSLBaseType_Uint3, HLSLBaseType_Uint3, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadLaneAt", HLSLBaseType_Uint4, HLSLBaseType_Uint4, HLSLBaseType_Uint));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadLaneAt", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined, HLSLBaseType_Uint));
+
+	/*
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapX", HLSLBaseType_Bool, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapX", HLSLBaseType_Bool2, HLSLBaseType_Bool2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapX", HLSLBaseType_Bool3, HLSLBaseType_Bool3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapX", HLSLBaseType_Bool4, HLSLBaseType_Bool4));
+	*/
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapX", HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapX", HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapX", HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapX", HLSLBaseType_Float4, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapX", HLSLBaseType_Half, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapX", HLSLBaseType_Half2, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapX", HLSLBaseType_Half3, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapX", HLSLBaseType_Half4, HLSLBaseType_Half4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapX", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapX", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapX", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapX", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapX", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapX", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapX", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapX", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapX", HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapX", HLSLBaseType_Int2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapX", HLSLBaseType_Int3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapX", HLSLBaseType_Int4, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapX", HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapX", HLSLBaseType_Uint2, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapX", HLSLBaseType_Uint3, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapX", HLSLBaseType_Uint4, HLSLBaseType_Uint4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapX", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined));
+
+	/*
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapY", HLSLBaseType_Bool, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapY", HLSLBaseType_Bool2, HLSLBaseType_Bool2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapY", HLSLBaseType_Bool3, HLSLBaseType_Bool3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapY", HLSLBaseType_Bool4, HLSLBaseType_Bool4));
+	*/
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapY", HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapY", HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapY", HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapY", HLSLBaseType_Float4, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapY", HLSLBaseType_Half, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapY", HLSLBaseType_Half2, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapY", HLSLBaseType_Half3, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapY", HLSLBaseType_Half4, HLSLBaseType_Half4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapY", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapY", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapY", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapY", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapY", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapY", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapY", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadSwapY", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapY", HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapY", HLSLBaseType_Int2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapY", HLSLBaseType_Int3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapY", HLSLBaseType_Int4, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapY", HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapY", HLSLBaseType_Uint2, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapY", HLSLBaseType_Uint3, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapY", HLSLBaseType_Uint4, HLSLBaseType_Uint4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadSwapY", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined));
+
+	/*
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossX", HLSLBaseType_Bool, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossX", HLSLBaseType_Bool2, HLSLBaseType_Bool2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossX", HLSLBaseType_Bool3, HLSLBaseType_Bool3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossX", HLSLBaseType_Bool4, HLSLBaseType_Bool4));
+	*/
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossX", HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossX", HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossX", HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossX", HLSLBaseType_Float4, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossX", HLSLBaseType_Half, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossX", HLSLBaseType_Half2, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossX", HLSLBaseType_Half3, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossX", HLSLBaseType_Half4, HLSLBaseType_Half4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossX", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossX", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossX", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossX", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossX", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossX", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossX", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossX", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossX", HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossX", HLSLBaseType_Int2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossX", HLSLBaseType_Int3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossX", HLSLBaseType_Int4, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossX", HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossX", HLSLBaseType_Uint2, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossX", HLSLBaseType_Uint3, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossX", HLSLBaseType_Uint4, HLSLBaseType_Uint4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossX", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined));
+
+	/*
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossY", HLSLBaseType_Bool, HLSLBaseType_Bool));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossY", HLSLBaseType_Bool2, HLSLBaseType_Bool2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossY", HLSLBaseType_Bool3, HLSLBaseType_Bool3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossY", HLSLBaseType_Bool4, HLSLBaseType_Bool4));
+	*/
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossY", HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossY", HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossY", HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossY", HLSLBaseType_Float4, HLSLBaseType_Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossY", HLSLBaseType_Half, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossY", HLSLBaseType_Half2, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossY", HLSLBaseType_Half3, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossY", HLSLBaseType_Half4, HLSLBaseType_Half4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossY", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossY", HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossY", HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossY", HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossY", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossY", HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossY", HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "QuadReadAcrossY", HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossY", HLSLBaseType_Int, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossY", HLSLBaseType_Int2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossY", HLSLBaseType_Int3, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossY", HLSLBaseType_Int4, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossY", HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossY", HLSLBaseType_Uint2, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossY", HLSLBaseType_Uint3, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossY", HLSLBaseType_Uint4, HLSLBaseType_Uint4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"QuadReadAcrossY", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined));
+#endif
+}
+
+
+HLSLParser::IntrinsicHelper::IntrinsicHelper()
+{
+}
+
+HLSLParser::IntrinsicHelper::~IntrinsicHelper()
+{
+	for (int i = 0; i < m_intrinsics.size(); i++)
 	{
-		INTRINSIC_FLOAT1_FUNCTION( "abs" ),
-		INTRINSIC_FLOAT1_FUNCTION( "acos" ),
+		if (m_intrinsics[i] != NULL)
+		{
+			delete m_intrinsics[i];
+			m_intrinsics[i] = NULL;
+		}
+	}
 
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Float ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Float2 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Float3 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Float4 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Float2x2 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Float3x3 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Float4x4 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Float4x3 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Float4x2 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Half ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Half2 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Half3 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Half4 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Half2x2 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Half3x3 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Half4x4 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Half4x3 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Half4x2 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Bool ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Int ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Int2 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Int3 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Int4 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Uint ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Uint2 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Uint3 ),
-		Intrinsic( "any", HLSLBaseType_Bool, HLSLBaseType_Uint4 ),
+}
 
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float1x2),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float1x3),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float1x4),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float2),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float3),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float4),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float2x2),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float3x3),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float4x4),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float4x3),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Float4x2),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Half),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Half1x2),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Half1x3),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Half1x4),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Half2),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Half3),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Half4),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Half2x2),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Half3x3),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Half4x4),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Half4x2),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Bool),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Bool1x2),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Bool1x3),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Bool1x4),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Int),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Int1x2),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Int1x3),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Int1x4),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Int2),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Int3),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Int4),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Uint),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Uint1x2),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Uint1x3),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Uint1x4),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Uint2),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Uint3),
-		Intrinsic("all", HLSLBaseType_Bool, HLSLBaseType_Uint4),
 
-		/*
-		Intrinsic("sizeof", HLSLBaseType_Uint, HLSLBaseType_Float),
-		Intrinsic("sizeof", HLSLBaseType_Uint, HLSLBaseType_Half),
-		Intrinsic("sizeof", HLSLBaseType_Uint, HLSLBaseType_Bool),
-		Intrinsic("sizeof", HLSLBaseType_Uint, HLSLBaseType_Int),
-		Intrinsic("sizeof", HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("sizeof", HLSLBaseType_Uint, HLSLBaseType_Unknown),
-		*/
-
-		INTRINSIC_FLOAT1_FUNCTION( "asin" ),
-		INTRINSIC_FLOAT1_FUNCTION( "atan" ),
-		INTRINSIC_FLOAT2_FUNCTION( "atan2" ),
-		INTRINSIC_FLOAT3_FUNCTION( "clamp" ),
-		INTRINSIC_FLOAT1_FUNCTION( "cos" ),
-		INTRINSIC_FLOAT1_FUNCTION( "tan" ),
-
-		INTRINSIC_FLOAT3_FUNCTION( "lerp" ),
-		INTRINSIC_FLOAT3_FUNCTION( "smoothstep" ),
-
-		INTRINSIC_FLOAT1_FUNCTION( "round" ),
-		INTRINSIC_FLOAT1_FUNCTION( "floor" ),
-		INTRINSIC_FLOAT1_FUNCTION( "ceil" ),
-		INTRINSIC_FLOAT1_FUNCTION( "frac" ),
-
-		INTRINSIC_FLOAT2_FUNCTION( "fmod" ),
-
-		Intrinsic( "clip", HLSLBaseType_Void,  HLSLBaseType_Float    ),
-		Intrinsic( "clip", HLSLBaseType_Void,  HLSLBaseType_Float2   ),
-		Intrinsic( "clip", HLSLBaseType_Void,  HLSLBaseType_Float3   ),
-		Intrinsic( "clip", HLSLBaseType_Void,  HLSLBaseType_Float4   ),
-		Intrinsic( "clip", HLSLBaseType_Void,  HLSLBaseType_Half     ),
-		Intrinsic( "clip", HLSLBaseType_Void,  HLSLBaseType_Half2    ),
-		Intrinsic( "clip", HLSLBaseType_Void,  HLSLBaseType_Half3    ),
-		Intrinsic( "clip", HLSLBaseType_Void,  HLSLBaseType_Half4    ),
-
-		Intrinsic( "dot", HLSLBaseType_Float,  HLSLBaseType_Float,   HLSLBaseType_Float  ),
-		Intrinsic( "dot", HLSLBaseType_Float,  HLSLBaseType_Float2,  HLSLBaseType_Float2 ),
-		Intrinsic( "dot", HLSLBaseType_Float,  HLSLBaseType_Float3,  HLSLBaseType_Float3 ),
-		Intrinsic( "dot", HLSLBaseType_Float,  HLSLBaseType_Float4,  HLSLBaseType_Float4 ),
-		Intrinsic( "dot", HLSLBaseType_Half,   HLSLBaseType_Half,    HLSLBaseType_Half   ),
-		Intrinsic( "dot", HLSLBaseType_Half,   HLSLBaseType_Half2,   HLSLBaseType_Half2  ),
-		Intrinsic( "dot", HLSLBaseType_Half,   HLSLBaseType_Half3,   HLSLBaseType_Half3  ),
-		Intrinsic( "dot", HLSLBaseType_Half,   HLSLBaseType_Half4,   HLSLBaseType_Half4  ),
-
-		Intrinsic( "distance", HLSLBaseType_Float, HLSLBaseType_Float2, HLSLBaseType_Float2),
-		Intrinsic( "distance", HLSLBaseType_Float,   HLSLBaseType_Float3,   HLSLBaseType_Float3),
-
-		Intrinsic( "determinant", HLSLBaseType_Float, HLSLBaseType_Float2x2),
-		Intrinsic( "determinant", HLSLBaseType_Float, HLSLBaseType_Float3x3),
-		Intrinsic( "determinant", HLSLBaseType_Float, HLSLBaseType_Float4x4),
-
-		Intrinsic( "cross", HLSLBaseType_Float3,  HLSLBaseType_Float3,  HLSLBaseType_Float3 ),
-
-
-
-		Intrinsic("f16tof32", HLSLBaseType_Float, HLSLBaseType_Uint),
-		Intrinsic("f16tof32", HLSLBaseType_Float2, HLSLBaseType_Uint2),
-		Intrinsic("f16tof32", HLSLBaseType_Float3, HLSLBaseType_Uint3),
-		Intrinsic("f16tof32", HLSLBaseType_Float4, HLSLBaseType_Uint4),
-
-		Intrinsic("f32tof16", HLSLBaseType_Uint, HLSLBaseType_Float),
-		Intrinsic("f32tof16", HLSLBaseType_Uint2, HLSLBaseType_Float2),
-		Intrinsic("f32tof16", HLSLBaseType_Uint3, HLSLBaseType_Float3),
-		Intrinsic("f32tof16", HLSLBaseType_Uint4, HLSLBaseType_Float4),
-
-		Intrinsic("NonUniformResourceIndex", HLSLBaseType_Uint, HLSLBaseType_Uint),
-			
-
-
-		INTRINSIC_VOID_FUNCTION("GroupMemoryBarrierWithGroupSync"),
-		INTRINSIC_VOID_FUNCTION("GroupMemoryBarrier"),
-		INTRINSIC_VOID_FUNCTION("DeviceMemoryBarrierWithGroupSync"),
-		INTRINSIC_VOID_FUNCTION("DeviceMemoryBarrier"),
-		INTRINSIC_VOID_FUNCTION("AllMemoryBarrierWithGroupSync"),
-		INTRINSIC_VOID_FUNCTION("AllMemoryBarrier"),
-
-		Intrinsic( "length", HLSLBaseType_Float,  HLSLBaseType_Float  ),
-		Intrinsic( "length", HLSLBaseType_Float,  HLSLBaseType_Float2 ),
-		Intrinsic( "length", HLSLBaseType_Float,  HLSLBaseType_Float3 ),
-		Intrinsic( "length", HLSLBaseType_Float,  HLSLBaseType_Float4 ),
-		Intrinsic( "length", HLSLBaseType_Half,   HLSLBaseType_Half   ),
-		Intrinsic( "length", HLSLBaseType_Half,   HLSLBaseType_Half2  ),
-		Intrinsic( "length", HLSLBaseType_Half,   HLSLBaseType_Half3  ),
-		Intrinsic( "length", HLSLBaseType_Half,   HLSLBaseType_Half4  ),
-
-		//Buffer.Load
-		Intrinsic("Load", HLSLBaseType_Float,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Float1x2,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Float1x3,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Float1x4,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Float2,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Float2x2,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Float2x3,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Float2x4,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Float3,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Float3x2,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Float3x3,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Float3x4,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Float4,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Float4x2,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Float4x2,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Float4x3,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Float4x4,  HLSLBaseType_Int),
-
-		Intrinsic("Load", HLSLBaseType_Uint,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Uint1x2,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Uint1x3,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Uint1x4,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Uint2,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Uint2x2,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Uint2x3,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Uint2x4,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Uint3,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Uint3x2,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Uint3x3,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Uint3x4,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Uint4,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Uint4x2,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Uint4x2,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Uint4x3,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Uint4x4,  HLSLBaseType_Int),
-
-		Intrinsic("Load", HLSLBaseType_Int,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Int1x2,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Int1x3,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Int1x4,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Int2,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Int2x2,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Int2x3,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Int2x4,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Int3,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Int3x2,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Int3x3,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Int3x4,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Int4,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Int4x2,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Int4x2,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Int4x3,  HLSLBaseType_Int),
-		Intrinsic("Load", HLSLBaseType_Int4x4,  HLSLBaseType_Int),
-
-		Intrinsic("Load", HLSLBaseType_UserDefined,  HLSLBaseType_Int),
-
-		//Texture.Load
-		//Texture1D
-		Intrinsic("Load", HLSLBaseType_Float, HLSLBaseType_Int2),
-		Intrinsic("Load", HLSLBaseType_Float2, HLSLBaseType_Int2),
-		Intrinsic("Load", HLSLBaseType_Float3, HLSLBaseType_Int2),
-		Intrinsic("Load", HLSLBaseType_Float4, HLSLBaseType_Int2),
-
-		Intrinsic("Load", HLSLBaseType_Uint, HLSLBaseType_Int2),
-		Intrinsic("Load", HLSLBaseType_Uint2, HLSLBaseType_Int2),
-		Intrinsic("Load", HLSLBaseType_Uint3, HLSLBaseType_Int2),
-		Intrinsic("Load", HLSLBaseType_Uint4, HLSLBaseType_Int2),
-
-		Intrinsic("Load", HLSLBaseType_Int, HLSLBaseType_Int2),
-		Intrinsic("Load", HLSLBaseType_Int2, HLSLBaseType_Int2),
-		Intrinsic("Load", HLSLBaseType_Int3, HLSLBaseType_Int2),
-		Intrinsic("Load", HLSLBaseType_Int4, HLSLBaseType_Int2),
-
-		
-
-		//Texture1DArray, Texture 2D, Texture2DMSArray
-		Intrinsic("Load", HLSLBaseType_Float, HLSLBaseType_Int3),
-		Intrinsic("Load", HLSLBaseType_Float2, HLSLBaseType_Int3),
-		Intrinsic("Load", HLSLBaseType_Float3, HLSLBaseType_Int3),
-
-
-		//Texture2DMS Texture2DMSArray (Sample Index)
-		Intrinsic("Load", HLSLBaseType_Float, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2),
-		Intrinsic("Load", HLSLBaseType_Float2, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2),
-
-		//Texture2DMS
-		Intrinsic("Load", HLSLBaseType_Float4, HLSLBaseType_Int2, HLSLBaseType_Int),
-
-		Intrinsic("Load", HLSLBaseType_Float4, HLSLBaseType_Int3),
-
-		Intrinsic("Load", HLSLBaseType_Uint, HLSLBaseType_Int3),
-		Intrinsic("Load", HLSLBaseType_Uint2, HLSLBaseType_Int3),
-		Intrinsic("Load", HLSLBaseType_Uint3, HLSLBaseType_Int3),
-		Intrinsic("Load", HLSLBaseType_Uint4, HLSLBaseType_Int3),
-
-		Intrinsic("Load", HLSLBaseType_Int, HLSLBaseType_Int3),
-		Intrinsic("Load", HLSLBaseType_Int2, HLSLBaseType_Int3),
-		Intrinsic("Load", HLSLBaseType_Int3, HLSLBaseType_Int3),
-		Intrinsic("Load", HLSLBaseType_Int4, HLSLBaseType_Int3),
-
-		//Texture2DArray, Texture 3D
-		Intrinsic("Load", HLSLBaseType_Float, HLSLBaseType_Int4),
-		Intrinsic("Load", HLSLBaseType_Float2, HLSLBaseType_Int4),
-		Intrinsic("Load", HLSLBaseType_Float3, HLSLBaseType_Int4),
-		Intrinsic("Load", HLSLBaseType_Float4, HLSLBaseType_Int4),
-
-		Intrinsic("Load", HLSLBaseType_Uint, HLSLBaseType_Int4),
-		Intrinsic("Load", HLSLBaseType_Uint2, HLSLBaseType_Int4),
-		Intrinsic("Load", HLSLBaseType_Uint3, HLSLBaseType_Int4),
-		Intrinsic("Load", HLSLBaseType_Uint4, HLSLBaseType_Int4),
-
-		Intrinsic("Load", HLSLBaseType_Int, HLSLBaseType_Int4),
-		Intrinsic("Load", HLSLBaseType_Int2, HLSLBaseType_Int4),
-		Intrinsic("Load", HLSLBaseType_Int3, HLSLBaseType_Int4),
-		Intrinsic("Load", HLSLBaseType_Int4, HLSLBaseType_Int4),
-
-
-
-		//Buffer.Store (RWByteAddressBuffer)		
-
-		Intrinsic("Store", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint),	
-		Intrinsic("Store", HLSLBaseType_Void,  HLSLBaseType_Int, HLSLBaseType_Int),
-
-
-		//Texture1D
-		//UINT MipLevel, UINT Width, UINT NumberOfLevels
-		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		//UINT Width
-		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint),
-		//UINT MipLevel, float Width, float NumberOfLevels
-		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Float, HLSLBaseType_Float),
-		//float Width
-		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Float),
-		
-		//Texture1DArray
-		//UINT MipLevel, UINT Width, UINT Elements, UINT NumberOfLevels
-		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		//UINT Width, UINT Elements
-		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		//UINT MipLevel, float Width, float Elements, float NumberOfLevels
-		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float),
-		//float Width, float Elements
-		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Float, HLSLBaseType_Float),
-
-		//UINT MipLevel, UINT Width, UINT Height, UINT Elements, UINT NumberOfLevels
-
-		//Texture2DArray
-		//UINT MipLevel, UINT Width, UINT Height, UINT Elements, UINT NumberOfLevels
-		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		//UINT Width, UINT Height, UINT Elements
-		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		//UINT MipLevel, float Width, float Height, float Elements, float NumberOfLevels
-		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float),
-		//float Width, float Height, float Elements
-		//float Width, float Height, float Depth
-		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float),
-
-
-		//TextureCube
-		//UINT MipLevel, float Width, float Height, UINT NumberOfLevels
-		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Uint),
-
-		//Texture2DMSArray
-		//float Width, float Height, float Elements, float Samples
-		Intrinsic("GetDimensions", HLSLBaseType_Void, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float),
-
-
-		INTRINSIC_FLOAT2_FUNCTION( "max" ),
-		INTRINSIC_FLOAT2_FUNCTION( "min" ),
-
-		// @@ Add all combinations.
-		
-		
-		// vector<N> = mul(vector<N>, scalar)
-		// vector<N> = mul(vector<N>, vector<N>)
-
-		// vector<N> = mul(matrix<N,M>, vector<M>)
-		// matrix<N,N> = mul(matrix<N,M>, matrix<M,N>)
-		
-		// https://msdn.microsoft.com/en-us/library/windows/desktop/bb509628(v=vs.85).aspx
-		// Multiplies x and y using matrix math. The inner dimension x-columns and y-rows must be equal.
-		// x : [in] The x input value.If x is a vector, it treated as a row vector.
-		// y : [in] The y input value.If y is a vector, it treated as a column vector.
-		
-		INTRINSIC_FLOAT2_FUNCTION( "mul" ),
-
-		// scalar = mul(scalar, scalar)
-		Intrinsic("mul", HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float),
-
-		// vector<N> = mul(scalar, vector<N>)
-		Intrinsic("mul", HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float2),
-		Intrinsic("mul", HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Float3),
-		Intrinsic("mul", HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Float4),
-
-		// vector<NxM> = mul(scalar, Matrix<NxM>)
-		Intrinsic("mul", HLSLBaseType_Float2x2, HLSLBaseType_Float, HLSLBaseType_Float2x2),
-		Intrinsic("mul", HLSLBaseType_Float2x3, HLSLBaseType_Float, HLSLBaseType_Float2x3),
-		Intrinsic("mul", HLSLBaseType_Float2x4, HLSLBaseType_Float, HLSLBaseType_Float2x4),
-		
-		Intrinsic("mul", HLSLBaseType_Float3x2, HLSLBaseType_Float, HLSLBaseType_Float3x2),
-		Intrinsic("mul", HLSLBaseType_Float3x3, HLSLBaseType_Float, HLSLBaseType_Float3x3),
-		Intrinsic("mul", HLSLBaseType_Float3x4, HLSLBaseType_Float, HLSLBaseType_Float3x4),
-
-		Intrinsic("mul", HLSLBaseType_Float4x2, HLSLBaseType_Float, HLSLBaseType_Float4x2),
-		Intrinsic("mul", HLSLBaseType_Float4x3, HLSLBaseType_Float, HLSLBaseType_Float4x3),
-		Intrinsic("mul", HLSLBaseType_Float4x4, HLSLBaseType_Float, HLSLBaseType_Float4x4),
-
-		// vector<N> = mul(vector<N>, scalar)
-		Intrinsic("mul", HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float),
-		Intrinsic("mul", HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float),
-		Intrinsic("mul", HLSLBaseType_Float4, HLSLBaseType_Float4, HLSLBaseType_Float),
-		
-		// scalar = mul(vector<N>, vector<N>) !!!!
-		Intrinsic("mul", HLSLBaseType_Float, HLSLBaseType_Float2, HLSLBaseType_Float2),
-		Intrinsic("mul", HLSLBaseType_Float, HLSLBaseType_Float3, HLSLBaseType_Float3),
-		Intrinsic("mul", HLSLBaseType_Float, HLSLBaseType_Float4, HLSLBaseType_Float4),
-
-		// vector<N> = mul(vector<M>, matrix<M,N>) rows = same dimension(s) as input x, columns = any
-
-		Intrinsic("mul", HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2x2),
-		Intrinsic("mul", HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2x3),
-		Intrinsic("mul", HLSLBaseType_Float4, HLSLBaseType_Float2, HLSLBaseType_Float2x4),
-
-		Intrinsic("mul", HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float3x2),
-		Intrinsic("mul", HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3x3),
-		Intrinsic("mul", HLSLBaseType_Float4, HLSLBaseType_Float3, HLSLBaseType_Float3x4),
-
-		Intrinsic("mul", HLSLBaseType_Float2, HLSLBaseType_Float4, HLSLBaseType_Float4x2),
-		Intrinsic("mul", HLSLBaseType_Float3, HLSLBaseType_Float4, HLSLBaseType_Float4x3),
-		Intrinsic("mul", HLSLBaseType_Float4, HLSLBaseType_Float4, HLSLBaseType_Float4x4),
-
-		// matrix<MxN> = mul(matrix<MxN>, scalar)
-		Intrinsic("mul", HLSLBaseType_Float2x2, HLSLBaseType_Float2x2, HLSLBaseType_Float),
-		Intrinsic("mul", HLSLBaseType_Float2x3, HLSLBaseType_Float2x3, HLSLBaseType_Float),
-		Intrinsic("mul", HLSLBaseType_Float2x4, HLSLBaseType_Float2x4, HLSLBaseType_Float),
-
-		Intrinsic("mul", HLSLBaseType_Float3x2, HLSLBaseType_Float3x2, HLSLBaseType_Float),
-		Intrinsic("mul", HLSLBaseType_Float3x3, HLSLBaseType_Float3x3, HLSLBaseType_Float),
-		Intrinsic("mul", HLSLBaseType_Float3x4, HLSLBaseType_Float3x4, HLSLBaseType_Float),
-
-		Intrinsic("mul", HLSLBaseType_Float4x2, HLSLBaseType_Float4x2, HLSLBaseType_Float),
-		Intrinsic("mul", HLSLBaseType_Float4x3, HLSLBaseType_Float4x3, HLSLBaseType_Float),
-		Intrinsic("mul", HLSLBaseType_Float4x4, HLSLBaseType_Float4x4, HLSLBaseType_Float),
-
-		// vector<M> = mul(matrix<MxN>, vector<N>)
-		Intrinsic("mul", HLSLBaseType_Float2, HLSLBaseType_Float2x2, HLSLBaseType_Float2),
-		Intrinsic("mul", HLSLBaseType_Float2, HLSLBaseType_Float2x3, HLSLBaseType_Float3),
-		Intrinsic("mul", HLSLBaseType_Float2, HLSLBaseType_Float2x4, HLSLBaseType_Float4),
-
-		Intrinsic("mul", HLSLBaseType_Float3, HLSLBaseType_Float3x2, HLSLBaseType_Float2),
-		Intrinsic("mul", HLSLBaseType_Float3, HLSLBaseType_Float3x3, HLSLBaseType_Float3),
-		Intrinsic("mul", HLSLBaseType_Float3, HLSLBaseType_Float3x4, HLSLBaseType_Float4),
-
-		Intrinsic("mul", HLSLBaseType_Float4, HLSLBaseType_Float4x2, HLSLBaseType_Float2),
-		Intrinsic("mul", HLSLBaseType_Float4, HLSLBaseType_Float4x3, HLSLBaseType_Float3),
-		Intrinsic("mul", HLSLBaseType_Float4, HLSLBaseType_Float4x4, HLSLBaseType_Float4),
-
-		// vector<MxL> = mul(matrix<MxN>, matrix<NxL>)
-		Intrinsic("mul", HLSLBaseType_Float2x2, HLSLBaseType_Float2x2, HLSLBaseType_Float2x2),
-		Intrinsic("mul", HLSLBaseType_Float2x3, HLSLBaseType_Float2x2, HLSLBaseType_Float2x3),
-		Intrinsic("mul", HLSLBaseType_Float2x4, HLSLBaseType_Float2x2, HLSLBaseType_Float2x4),
-		Intrinsic("mul", HLSLBaseType_Float2x2, HLSLBaseType_Float2x3, HLSLBaseType_Float3x2),
-		Intrinsic("mul", HLSLBaseType_Float2x3, HLSLBaseType_Float2x3, HLSLBaseType_Float3x3),
-		Intrinsic("mul", HLSLBaseType_Float2x4, HLSLBaseType_Float2x3, HLSLBaseType_Float3x4),
-		Intrinsic("mul", HLSLBaseType_Float2x2, HLSLBaseType_Float2x4, HLSLBaseType_Float4x2),
-		Intrinsic("mul", HLSLBaseType_Float2x3, HLSLBaseType_Float2x4, HLSLBaseType_Float4x3),
-		Intrinsic("mul", HLSLBaseType_Float2x4, HLSLBaseType_Float2x4, HLSLBaseType_Float4x4),
-
-		Intrinsic("mul", HLSLBaseType_Float3x2, HLSLBaseType_Float3x2, HLSLBaseType_Float2x2),
-		Intrinsic("mul", HLSLBaseType_Float3x3, HLSLBaseType_Float3x2, HLSLBaseType_Float2x3),
-		Intrinsic("mul", HLSLBaseType_Float3x4, HLSLBaseType_Float3x2, HLSLBaseType_Float2x4),
-		Intrinsic("mul", HLSLBaseType_Float3x2, HLSLBaseType_Float3x3, HLSLBaseType_Float3x2),
-		Intrinsic("mul", HLSLBaseType_Float3x3, HLSLBaseType_Float3x3, HLSLBaseType_Float3x3),
-		Intrinsic("mul", HLSLBaseType_Float3x4, HLSLBaseType_Float3x3, HLSLBaseType_Float3x4),
-		Intrinsic("mul", HLSLBaseType_Float3x2, HLSLBaseType_Float3x4, HLSLBaseType_Float4x2),
-		Intrinsic("mul", HLSLBaseType_Float3x3, HLSLBaseType_Float3x4, HLSLBaseType_Float4x3),
-		Intrinsic("mul", HLSLBaseType_Float3x4, HLSLBaseType_Float3x4, HLSLBaseType_Float4x4),
-
-		Intrinsic("mul", HLSLBaseType_Float4x2, HLSLBaseType_Float4x2, HLSLBaseType_Float2x2),
-		Intrinsic("mul", HLSLBaseType_Float4x3, HLSLBaseType_Float4x2, HLSLBaseType_Float2x3),
-		Intrinsic("mul", HLSLBaseType_Float4x4, HLSLBaseType_Float4x2, HLSLBaseType_Float2x4),
-		Intrinsic("mul", HLSLBaseType_Float4x2, HLSLBaseType_Float4x3, HLSLBaseType_Float3x2),
-		Intrinsic("mul", HLSLBaseType_Float4x3, HLSLBaseType_Float4x3, HLSLBaseType_Float3x3),
-		Intrinsic("mul", HLSLBaseType_Float4x4, HLSLBaseType_Float4x3, HLSLBaseType_Float3x4),
-		Intrinsic("mul", HLSLBaseType_Float4x2, HLSLBaseType_Float4x4, HLSLBaseType_Float4x2),
-		Intrinsic("mul", HLSLBaseType_Float4x3, HLSLBaseType_Float4x4, HLSLBaseType_Float4x3),
-		Intrinsic("mul", HLSLBaseType_Float4x4, HLSLBaseType_Float4x4, HLSLBaseType_Float4x4),			
-
-		Intrinsic( "transpose", HLSLBaseType_Float2x2, HLSLBaseType_Float2x2 ),
-		Intrinsic( "transpose", HLSLBaseType_Float3x3, HLSLBaseType_Float3x3 ),
-		Intrinsic( "transpose", HLSLBaseType_Float4x4, HLSLBaseType_Float4x4 ),
-
-		INTRINSIC_FLOAT1_FUNCTION( "normalize" ),
-		INTRINSIC_FLOAT2_FUNCTION( "pow" ),
-		INTRINSIC_FLOAT1_FUNCTION( "saturate" ),
-		INTRINSIC_FLOAT1_FUNCTION( "sin" ),
-		INTRINSIC_FLOAT1_FUNCTION( "sqrt" ),
-		INTRINSIC_FLOAT1_FUNCTION( "rsqrt" ),
-		INTRINSIC_FLOAT1_FUNCTION( "rcp" ),
-		INTRINSIC_FLOAT1_FUNCTION( "exp" ),
-		INTRINSIC_FLOAT1_FUNCTION( "exp2" ),
-		INTRINSIC_FLOAT1_FUNCTION( "log" ),
-		INTRINSIC_FLOAT1_FUNCTION( "log2" ),
-		
-		INTRINSIC_FLOAT1_FUNCTION( "ddx" ),
-		INTRINSIC_FLOAT1_FUNCTION( "ddy" ),
-		
-		INTRINSIC_FLOAT1_FUNCTION( "sign" ),
-		INTRINSIC_FLOAT2_FUNCTION( "step" ),
-		INTRINSIC_FLOAT2_FUNCTION( "reflect" ),
-
-		INTRINSIC_FLOAT1_FUNCTION("isnan"),
-		INTRINSIC_FLOAT1_FUNCTION("isinf"),
-
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float1x2),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float1x3),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float1x4),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float2),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float3),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float4),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float2x2),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float3x3),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float4x4),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float4x3),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Float4x2),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half1x2),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half1x3),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half1x4),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half2),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half3),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half4),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half2x2),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half3x3),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half4x4),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Half4x2),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Bool),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Bool1x2),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Bool1x3),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Bool1x4),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Int),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Int1x2),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Int1x3),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Int1x4),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Int2),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Int3),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Int4),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Uint1x2),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Uint1x3),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Uint1x4),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Uint2),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Uint3),
-		Intrinsic("asuint", HLSLBaseType_Uint, HLSLBaseType_Uint4),
-
-
-
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float1x2),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float1x3),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float1x4),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float2),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float3),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float4),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float2x2),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float3x3),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float4x4),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float4x3),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Float4x2),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half1x2),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half1x3),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half1x4),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half2),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half3),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half4),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half2x2),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half3x3),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half4x4),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Half4x2),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Bool),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Bool1x2),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Bool1x3),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Bool1x4),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Int),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Int1x2),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Int1x3),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Int1x4),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Int2),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Int3),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Int4),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Uint),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Uint1x2),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Uint1x3),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Uint1x4),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Uint2),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Uint3),
-		Intrinsic("asfloat", HLSLBaseType_Float, HLSLBaseType_Uint4),
-		
-			
-		Intrinsic("countbits", HLSLBaseType_Uint, HLSLBaseType_Uint),
-
-		Intrinsic("asuint",    HLSLBaseType_Uint, HLSLBaseType_Float),
-		Intrinsic("tex2D",     HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float2),
-		Intrinsic("tex2Dproj", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float4),
-		Intrinsic("tex2Dlod",  HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float4),
-		Intrinsic("tex2Dlod",  HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float4, HLSLBaseType_Int2),   // With offset.
-		Intrinsic("tex2Dbias", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float4),
-		Intrinsic("tex2Dgrad", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2),
-		Intrinsic("tex2Dgather", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float2, HLSLBaseType_Int),
-		Intrinsic("tex2Dgather", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float2, HLSLBaseType_Int2, HLSLBaseType_Int),    // With offset.
-		Intrinsic("tex2Dsize", HLSLBaseType_Int2, HLSLBaseType_Sampler2D),
-		Intrinsic("tex2Dfetch", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Int3),    // u,v,mipmap
-
-		Intrinsic("tex2Dcmp", HLSLBaseType_Float4, HLSLBaseType_Sampler2DShadow, HLSLBaseType_Float4),                // @@ IC: This really takes a float3 (uvz) and returns a float.
-
-		Intrinsic("tex2DMSfetch", HLSLBaseType_Float4, HLSLBaseType_Sampler2DMS, HLSLBaseType_Int2, HLSLBaseType_Int),
-		Intrinsic("tex2DMSsize", HLSLBaseType_Int3, HLSLBaseType_Sampler2DMS),
-
-		Intrinsic("tex2DArray", HLSLBaseType_Float4, HLSLBaseType_Sampler2DArray, HLSLBaseType_Float3),
-
-		Intrinsic("tex3D",     HLSLBaseType_Float4, HLSLBaseType_Sampler3D, HLSLBaseType_Float3),
-		Intrinsic("tex3Dlod",  HLSLBaseType_Float4, HLSLBaseType_Sampler3D, HLSLBaseType_Float4),
-		Intrinsic("tex3Dbias", HLSLBaseType_Float4, HLSLBaseType_Sampler3D, HLSLBaseType_Float4),
-		Intrinsic("tex3Dsize", HLSLBaseType_Int3, HLSLBaseType_Sampler3D),
-
-		Intrinsic("Sample", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float),
-		Intrinsic("Sample", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2),
-		Intrinsic("Sample", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3),
-		Intrinsic("Sample", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4),
-
-		
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Int),
-
-
-		//Offset
-
-		//Texture1D
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Uint),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int, HLSLBaseType_Uint),
-
-		//Texture1DArray
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Uint),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Uint),
-			
-		//Texture2D
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Uint2),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Int2),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Uint2),
-
-		//Texture2DArray
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Uint2),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Int2),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Uint2),
-
-		//Texture3D
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Uint3),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Int3),
-		Intrinsic("SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Uint3),
-
-		//Texture1D
-		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float),
-		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int),
-
-		//Texture1DArray
-		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float),
-		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int),
-			
-		//Texture2D
-		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float),
-		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2),
-
-		//Texture2DArray
-		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float),
-		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2),
-
-		//TextureCube
-		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float),
-		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3),
-
-		//TextureCubeArray
-		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float),
-		Intrinsic("SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3),
-
-		//Texture1D
-		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float),
-		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int),
-
-		//Texture1DArray
-		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float),
-		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int),
-			
-		//Texture2D
-		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float),
-		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2),
-
-		//Texture2DArray
-		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float),
-		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2),
-
-		//TextureCube
-		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float),
-		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3),
-
-		//TextureCubeArray
-		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float),
-		Intrinsic("SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3),
-
-
-		Intrinsic("SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float),
-		Intrinsic("SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int),
-		Intrinsic("SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float),
-		Intrinsic("SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int),
-		Intrinsic("SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float),
-		Intrinsic("SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int),
-		Intrinsic("SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float),
-		Intrinsic("SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Int),
-			
-		//Texture1D
-		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float),
-		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int),
-
-		//Texture1DArray
-		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float),
-		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int),
-
-		//Texture2D
-		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2),
-		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2),
-
-		//Texture2DArray
-		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2),
-		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2),
-
-		//Texture3D //TextureCube
-		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3),
-		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Int3),
-		
-
-		//TextureCubeArray
-		Intrinsic("SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float3, HLSLBaseType_Float3),
-
-
-		Intrinsic("GatherRed", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2),
-		Intrinsic("GatherRed", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2),
-
-		Intrinsic("texCUBE",    HLSLBaseType_Float4, HLSLBaseType_SamplerCube, HLSLBaseType_Float3),
-		Intrinsic("texCUBElod", HLSLBaseType_Float4, HLSLBaseType_SamplerCube, HLSLBaseType_Float4),
-		Intrinsic("texCUBEbias", HLSLBaseType_Float4, HLSLBaseType_SamplerCube, HLSLBaseType_Float4),
-		Intrinsic("texCUBEsize", HLSLBaseType_Int, HLSLBaseType_SamplerCube),
-
-		//GLSL doesn't support float type atomic functions, thus resticted Interlocked functions' data type
-		Intrinsic("InterlockedAdd", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("InterlockedAdd", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("InterlockedAdd", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("InterlockedAdd", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Int),
-
-		Intrinsic("InterlockedCompareExchange", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("InterlockedCompareExchange", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("InterlockedCompareExchange", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("InterlockedCompareExchange", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Int),
-
-		Intrinsic("InterlockedCompareStore", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("InterlockedCompareStore", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Int),
-
-		Intrinsic("InterlockedExchange", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("InterlockedExchange", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("InterlockedExchange", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("InterlockedExchange", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Int),
-
-		Intrinsic("InterlockedMax", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("InterlockedMax", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("InterlockedMax", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int),
-		Intrinsic("InterlockedMax", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int),
-		Intrinsic("InterlockedMax", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("InterlockedMax", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("InterlockedMax", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Int),
-		Intrinsic("InterlockedMax", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int, HLSLBaseType_Uint),
-		Intrinsic("InterlockedMax", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Uint, HLSLBaseType_Int),
-		Intrinsic("InterlockedMax", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Uint),
-
-		Intrinsic("InterlockedMin", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("InterlockedMin", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("InterlockedMin", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int),
-		Intrinsic("InterlockedMin", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int),
-		Intrinsic("InterlockedMin", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("InterlockedMin", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("InterlockedMin", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Int),
-		Intrinsic("InterlockedMin", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int, HLSLBaseType_Uint),
-		Intrinsic("InterlockedMin", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Uint, HLSLBaseType_Int),
-		Intrinsic("InterlockedMin", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Uint),
-
-		Intrinsic("InterlockedOr", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("InterlockedOr", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("InterlockedOr", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int),
-		Intrinsic("InterlockedOr", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int),
-		Intrinsic("InterlockedOr", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("InterlockedOr", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("InterlockedOr", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Int),
-		Intrinsic("InterlockedOr", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int, HLSLBaseType_Uint),
-		Intrinsic("InterlockedOr", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Uint, HLSLBaseType_Int),
-		Intrinsic("InterlockedOr", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Uint),
-
-		Intrinsic("InterlockedXor", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("InterlockedXor", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("InterlockedXor", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int),
-		Intrinsic("InterlockedXor", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int),
-		Intrinsic("InterlockedXor", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("InterlockedXor", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("InterlockedXor", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Int),
-		Intrinsic("InterlockedXor", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Int, HLSLBaseType_Uint),
-		Intrinsic("InterlockedXor", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Uint, HLSLBaseType_Int),
-		Intrinsic("InterlockedXor", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Uint),
-
-
-		Intrinsic( "sincos", HLSLBaseType_Void,  HLSLBaseType_Float,   HLSLBaseType_Float,  HLSLBaseType_Float ),
-		Intrinsic( "sincos", HLSLBaseType_Void,  HLSLBaseType_Float2,  HLSLBaseType_Float,  HLSLBaseType_Float2 ),
-		Intrinsic( "sincos", HLSLBaseType_Void,  HLSLBaseType_Float3,  HLSLBaseType_Float,  HLSLBaseType_Float3 ),
-		Intrinsic( "sincos", HLSLBaseType_Void,  HLSLBaseType_Float4,  HLSLBaseType_Float,  HLSLBaseType_Float4 ),
-		Intrinsic( "sincos", HLSLBaseType_Void,  HLSLBaseType_Half,    HLSLBaseType_Half,   HLSLBaseType_Half ),
-		Intrinsic( "sincos", HLSLBaseType_Void,  HLSLBaseType_Half2,   HLSLBaseType_Half2,  HLSLBaseType_Half2 ),
-		Intrinsic( "sincos", HLSLBaseType_Void,  HLSLBaseType_Half3,   HLSLBaseType_Half3,  HLSLBaseType_Half3 ),
-		Intrinsic( "sincos", HLSLBaseType_Void,  HLSLBaseType_Half4,   HLSLBaseType_Half4,  HLSLBaseType_Half4 ),
-
-		Intrinsic( "mad", HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float ),
-		Intrinsic( "mad", HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2 ),
-		Intrinsic( "mad", HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3 ),
-		Intrinsic( "mad", HLSLBaseType_Float4, HLSLBaseType_Float4, HLSLBaseType_Float4, HLSLBaseType_Float4 ),
-		Intrinsic( "mad", HLSLBaseType_Half, HLSLBaseType_Half, HLSLBaseType_Half, HLSLBaseType_Half ),
-		Intrinsic( "mad", HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2 ),
-		Intrinsic( "mad", HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Half3 ),
-		Intrinsic( "mad", HLSLBaseType_Half4, HLSLBaseType_Half4, HLSLBaseType_Half4, HLSLBaseType_Half4 ),
-
-		Intrinsic("refract", HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float),
-		Intrinsic("refract", HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float),
-		Intrinsic("refract", HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float),
-
-		Intrinsic("refract", HLSLBaseType_Half, HLSLBaseType_Half, HLSLBaseType_Half, HLSLBaseType_Half),
-		Intrinsic("refract", HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half2, HLSLBaseType_Half),
-		Intrinsic("refract", HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Half3, HLSLBaseType_Half),
-
-		//Shader Model 6.0
-		Intrinsic("WaveGetLaneCount", HLSLBaseType_Uint),
-		Intrinsic("WaveGetLaneIndex", HLSLBaseType_Uint),
-		Intrinsic("WaveIsHelperLane", HLSLBaseType_Bool),
-
-		Intrinsic("WaveActiveAnyTrue", HLSLBaseType_Bool, HLSLBaseType_Bool),
-		Intrinsic("WaveActiveAllTrue", HLSLBaseType_Bool, HLSLBaseType_Bool),
-		Intrinsic("WaveActiveBallot", HLSLBaseType_Uint4, HLSLBaseType_Bool),
-		Intrinsic("WaveBallot", HLSLBaseType_Uint4, HLSLBaseType_Bool),
-
-		Intrinsic("WaveReadLaneAt", HLSLBaseType_Bool, HLSLBaseType_Bool, HLSLBaseType_Uint),
-		Intrinsic("WaveReadLaneAt", HLSLBaseType_Bool2, HLSLBaseType_Bool2, HLSLBaseType_Uint),
-		Intrinsic("WaveReadLaneAt", HLSLBaseType_Bool3, HLSLBaseType_Bool3, HLSLBaseType_Uint),
-		Intrinsic("WaveReadLaneAt", HLSLBaseType_Bool4, HLSLBaseType_Bool4, HLSLBaseType_Uint),
-
-		Intrinsic("WaveReadLaneAt", HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Uint),
-		Intrinsic("WaveReadLaneAt", HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Uint),
-		Intrinsic("WaveReadLaneAt", HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Uint),
-		Intrinsic("WaveReadLaneAt", HLSLBaseType_Float4, HLSLBaseType_Float4, HLSLBaseType_Uint),
-
-		Intrinsic("WaveReadLaneAt", HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Uint),
-		Intrinsic("WaveReadLaneAt", HLSLBaseType_Int2, HLSLBaseType_Int2, HLSLBaseType_Uint),
-		Intrinsic("WaveReadLaneAt", HLSLBaseType_Int3, HLSLBaseType_Int3, HLSLBaseType_Uint),
-		Intrinsic("WaveReadLaneAt", HLSLBaseType_Int4, HLSLBaseType_Int4, HLSLBaseType_Uint),
-
-		Intrinsic("WaveReadLaneAt", HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("WaveReadLaneAt", HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint),
-		Intrinsic("WaveReadLaneAt", HLSLBaseType_Uint3, HLSLBaseType_Uint3, HLSLBaseType_Uint),
-		Intrinsic("WaveReadLaneAt", HLSLBaseType_Uint4, HLSLBaseType_Uint4, HLSLBaseType_Uint),
-
-		Intrinsic("WaveReadLaneAt", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined, HLSLBaseType_Uint),
-
-
-
-		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Bool, HLSLBaseType_Bool),
-		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
-		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
-		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
-
-		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Float, HLSLBaseType_Float),
-		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Float2, HLSLBaseType_Float2),
-		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Float3, HLSLBaseType_Float3),
-		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Float4, HLSLBaseType_Float4),
-
-		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Int2, HLSLBaseType_Int2),
-		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Int3, HLSLBaseType_Int3),
-		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Int4, HLSLBaseType_Int4),
-
-		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
-		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
-		Intrinsic("WaveReadLaneFirst", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
-
-		Intrinsic("WaveReadLaneFirst", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
-
-
-
-		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Bool),
-		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Bool2),
-		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Bool3),
-		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Bool4),
-
-		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Float),
-		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Float2),
-		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Float3),
-		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Float4),
-
-		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Int),
-		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Int2),
-		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Int3),
-		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Int4),
-
-		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Uint),
-		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Uint2),
-		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Uint3),
-		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_Uint4),
-
-		Intrinsic("WaveActiveAllEqual", HLSLBaseType_Bool, HLSLBaseType_UserDefined),
-
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Bool),
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Bool2),
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Bool3),
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Bool4),
-
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Float),
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Float2),
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Float3),
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Float4),
-
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Int),
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Int2),
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Int3),
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Int4),
-
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Uint),
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Uint2),
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Uint3),
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_Uint4),
-
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Bool, HLSLBaseType_UserDefined),
-
-
-		Intrinsic("WaveActiveBitOr", HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("WaveActiveBitOr", HLSLBaseType_Int2, HLSLBaseType_Int2),
-		Intrinsic("WaveActiveBitOr", HLSLBaseType_Int3, HLSLBaseType_Int3),
-		Intrinsic("WaveActiveBitOr", HLSLBaseType_Int4, HLSLBaseType_Int4),
-
-		Intrinsic("WaveActiveBitXor", HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("WaveActiveBitXor", HLSLBaseType_Int2, HLSLBaseType_Int2),
-		Intrinsic("WaveActiveBitXor", HLSLBaseType_Int3, HLSLBaseType_Int3),
-		Intrinsic("WaveActiveBitXor", HLSLBaseType_Int4, HLSLBaseType_Int4),
-
-		//WaveActiveCountBits 
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Uint, HLSLBaseType_Bool),
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Uint, HLSLBaseType_Bool),
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Uint, HLSLBaseType_Bool),
-		Intrinsic("WaveActiveBitAnd", HLSLBaseType_Uint, HLSLBaseType_Bool),
-
-		/*
-		Intrinsic("WaveActiveMax", HLSLBaseType_Bool, HLSLBaseType_Bool),
-		Intrinsic("WaveActiveMax", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
-		Intrinsic("WaveActiveMax", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
-		Intrinsic("WaveActiveMax", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
-		*/
-		Intrinsic("WaveActiveMax", HLSLBaseType_Float, HLSLBaseType_Float),
-		Intrinsic("WaveActiveMax", HLSLBaseType_Float2, HLSLBaseType_Float2),
-		Intrinsic("WaveActiveMax", HLSLBaseType_Float3, HLSLBaseType_Float3),
-		Intrinsic("WaveActiveMax", HLSLBaseType_Float4, HLSLBaseType_Float4),
-		
-
-		Intrinsic("WaveActiveMax", HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("WaveActiveMax", HLSLBaseType_Int2, HLSLBaseType_Int2),
-		Intrinsic("WaveActiveMax", HLSLBaseType_Int3, HLSLBaseType_Int3),
-		Intrinsic("WaveActiveMax", HLSLBaseType_Int4, HLSLBaseType_Int4),
-
-		Intrinsic("WaveActiveMax", HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("WaveActiveMax", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
-		Intrinsic("WaveActiveMax", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
-		Intrinsic("WaveActiveMax", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
-
-		Intrinsic("WaveActiveMax", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
-
-		/*
-		Intrinsic("WaveActiveMin", HLSLBaseType_Bool, HLSLBaseType_Bool),
-		Intrinsic("WaveActiveMin", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
-		Intrinsic("WaveActiveMin", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
-		Intrinsic("WaveActiveMin", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
-		*/
-		Intrinsic("WaveActiveMin", HLSLBaseType_Float, HLSLBaseType_Float),
-		Intrinsic("WaveActiveMin", HLSLBaseType_Float2, HLSLBaseType_Float2),
-		Intrinsic("WaveActiveMin", HLSLBaseType_Float3, HLSLBaseType_Float3),
-		Intrinsic("WaveActiveMin", HLSLBaseType_Float4, HLSLBaseType_Float4),
-		
-
-		Intrinsic("WaveActiveMin", HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("WaveActiveMin", HLSLBaseType_Int2, HLSLBaseType_Int2),
-		Intrinsic("WaveActiveMin", HLSLBaseType_Int3, HLSLBaseType_Int3),
-		Intrinsic("WaveActiveMin", HLSLBaseType_Int4, HLSLBaseType_Int4),
-
-		Intrinsic("WaveActiveMin", HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("WaveActiveMin", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
-		Intrinsic("WaveActiveMin", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
-		Intrinsic("WaveActiveMin", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
-
-		Intrinsic("WaveActiveMin", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
-
-		/*
-		Intrinsic("WaveActiveProduct", HLSLBaseType_Bool, HLSLBaseType_Bool),
-		Intrinsic("WaveActiveProduct", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
-		Intrinsic("WaveActiveProduct", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
-		Intrinsic("WaveActiveProduct", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
-		*/
-		Intrinsic("WaveActiveProduct", HLSLBaseType_Float, HLSLBaseType_Float),
-		Intrinsic("WaveActiveProduct", HLSLBaseType_Float2, HLSLBaseType_Float2),
-		Intrinsic("WaveActiveProduct", HLSLBaseType_Float3, HLSLBaseType_Float3),
-		Intrinsic("WaveActiveProduct", HLSLBaseType_Float4, HLSLBaseType_Float4),
-		
-
-		Intrinsic("WaveActiveProduct", HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("WaveActiveProduct", HLSLBaseType_Int2, HLSLBaseType_Int2),
-		Intrinsic("WaveActiveProduct", HLSLBaseType_Int3, HLSLBaseType_Int3),
-		Intrinsic("WaveActiveProduct", HLSLBaseType_Int4, HLSLBaseType_Int4),
-
-		Intrinsic("WaveActiveProduct", HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("WaveActiveProduct", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
-		Intrinsic("WaveActiveProduct", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
-		Intrinsic("WaveActiveProduct", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
-
-		Intrinsic("WaveActiveProduct", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
-
-		/*
-		Intrinsic("WaveActiveSum", HLSLBaseType_Bool, HLSLBaseType_Bool),
-		Intrinsic("WaveActiveSum", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
-		Intrinsic("WaveActiveSum", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
-		Intrinsic("WaveActiveSum", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
-		*/
-		Intrinsic("WaveActiveSum", HLSLBaseType_Float, HLSLBaseType_Float),
-		Intrinsic("WaveActiveSum", HLSLBaseType_Float2, HLSLBaseType_Float2),
-		Intrinsic("WaveActiveSum", HLSLBaseType_Float3, HLSLBaseType_Float3),
-		Intrinsic("WaveActiveSum", HLSLBaseType_Float4, HLSLBaseType_Float4),
-		
-
-		Intrinsic("WaveActiveSum", HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("WaveActiveSum", HLSLBaseType_Int2, HLSLBaseType_Int2),
-		Intrinsic("WaveActiveSum", HLSLBaseType_Int3, HLSLBaseType_Int3),
-		Intrinsic("WaveActiveSum", HLSLBaseType_Int4, HLSLBaseType_Int4),
-
-		Intrinsic("WaveActiveSum", HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("WaveActiveSum", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
-		Intrinsic("WaveActiveSum", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
-		Intrinsic("WaveActiveSum", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
-
-		Intrinsic("WaveActiveSum", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
-
-
-		Intrinsic("WaveGetLaneIndex", HLSLBaseType_Uint, HLSLBaseType_Bool),
-
-		/*
-		Intrinsic("WavePrefixSum", HLSLBaseType_Bool, HLSLBaseType_Bool),
-		Intrinsic("WavePrefixSum", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
-		Intrinsic("WavePrefixSum", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
-		Intrinsic("WavePrefixSum", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
-		*/
-		Intrinsic("WavePrefixSum", HLSLBaseType_Float, HLSLBaseType_Float),
-		Intrinsic("WavePrefixSum", HLSLBaseType_Float2, HLSLBaseType_Float2),
-		Intrinsic("WavePrefixSum", HLSLBaseType_Float3, HLSLBaseType_Float3),
-		Intrinsic("WavePrefixSum", HLSLBaseType_Float4, HLSLBaseType_Float4),
-		
-
-		Intrinsic("WavePrefixSum", HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("WavePrefixSum", HLSLBaseType_Int2, HLSLBaseType_Int2),
-		Intrinsic("WavePrefixSum", HLSLBaseType_Int3, HLSLBaseType_Int3),
-		Intrinsic("WavePrefixSum", HLSLBaseType_Int4, HLSLBaseType_Int4),
-
-		Intrinsic("WavePrefixSum", HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("WavePrefixSum", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
-		Intrinsic("WavePrefixSum", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
-		Intrinsic("WavePrefixSum", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
-
-		Intrinsic("WavePrefixSum", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
-
-		/*
-		Intrinsic("WavePrefixProduct", HLSLBaseType_Bool, HLSLBaseType_Bool),
-		Intrinsic("WavePrefixProduct", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
-		Intrinsic("WavePrefixProduct", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
-		Intrinsic("WavePrefixProduct", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
-		*/
-		Intrinsic("WavePrefixProduct", HLSLBaseType_Float, HLSLBaseType_Float),
-		Intrinsic("WavePrefixProduct", HLSLBaseType_Float2, HLSLBaseType_Float2),
-		Intrinsic("WavePrefixProduct", HLSLBaseType_Float3, HLSLBaseType_Float3),
-		Intrinsic("WavePrefixProduct", HLSLBaseType_Float4, HLSLBaseType_Float4),
-		
-
-		Intrinsic("WavePrefixProduct", HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("WavePrefixProduct", HLSLBaseType_Int2, HLSLBaseType_Int2),
-		Intrinsic("WavePrefixProduct", HLSLBaseType_Int3, HLSLBaseType_Int3),
-		Intrinsic("WavePrefixProduct", HLSLBaseType_Int4, HLSLBaseType_Int4),
-
-		Intrinsic("WavePrefixProduct", HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("WavePrefixProduct", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
-		Intrinsic("WavePrefixProduct", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
-		Intrinsic("WavePrefixProduct", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
-
-		Intrinsic("WavePrefixProduct", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
-
-		Intrinsic("WaveIsHelperLane", HLSLBaseType_Bool),
-		Intrinsic("WaveIsFirstLane", HLSLBaseType_Bool),
-					
-		/*
-		Intrinsic("QuadReadLaneAt", HLSLBaseType_Bool, HLSLBaseType_Bool, HLSLBaseType_Uint),
-		Intrinsic("QuadReadLaneAt", HLSLBaseType_Bool2, HLSLBaseType_Bool2, HLSLBaseType_Uint),
-		Intrinsic("QuadReadLaneAt", HLSLBaseType_Bool3, HLSLBaseType_Bool3, HLSLBaseType_Uint),
-		Intrinsic("QuadReadLaneAt", HLSLBaseType_Bool4, HLSLBaseType_Bool4, HLSLBaseType_Uint),
-		*/
-		Intrinsic("QuadReadLaneAt", HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Uint),
-		Intrinsic("QuadReadLaneAt", HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Uint),
-		Intrinsic("QuadReadLaneAt", HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Uint),
-		Intrinsic("QuadReadLaneAt", HLSLBaseType_Float4, HLSLBaseType_Float4, HLSLBaseType_Uint),
-		
-
-		Intrinsic("QuadReadLaneAt", HLSLBaseType_Int, HLSLBaseType_Int, HLSLBaseType_Uint),
-		Intrinsic("QuadReadLaneAt", HLSLBaseType_Int2, HLSLBaseType_Int2, HLSLBaseType_Uint),
-		Intrinsic("QuadReadLaneAt", HLSLBaseType_Int3, HLSLBaseType_Int3, HLSLBaseType_Uint),
-		Intrinsic("QuadReadLaneAt", HLSLBaseType_Int4, HLSLBaseType_Int4, HLSLBaseType_Uint),
-
-		Intrinsic("QuadReadLaneAt", HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("QuadReadLaneAt", HLSLBaseType_Uint2, HLSLBaseType_Uint2, HLSLBaseType_Uint),
-		Intrinsic("QuadReadLaneAt", HLSLBaseType_Uint3, HLSLBaseType_Uint3, HLSLBaseType_Uint),
-		Intrinsic("QuadReadLaneAt", HLSLBaseType_Uint4, HLSLBaseType_Uint4, HLSLBaseType_Uint),
-
-		Intrinsic("QuadReadLaneAt", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined, HLSLBaseType_Uint),
-
-		/*
-		Intrinsic("QuadSwapX", HLSLBaseType_Bool, HLSLBaseType_Bool),
-		Intrinsic("QuadSwapX", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
-		Intrinsic("QuadSwapX", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
-		Intrinsic("QuadSwapX", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
-		*/
-		Intrinsic("QuadSwapX", HLSLBaseType_Float, HLSLBaseType_Float),
-		Intrinsic("QuadSwapX", HLSLBaseType_Float2, HLSLBaseType_Float2),
-		Intrinsic("QuadSwapX", HLSLBaseType_Float3, HLSLBaseType_Float3),
-		Intrinsic("QuadSwapX", HLSLBaseType_Float4, HLSLBaseType_Float4),
-		
-
-		Intrinsic("QuadSwapX", HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("QuadSwapX", HLSLBaseType_Int2, HLSLBaseType_Int2),
-		Intrinsic("QuadSwapX", HLSLBaseType_Int3, HLSLBaseType_Int3),
-		Intrinsic("QuadSwapX", HLSLBaseType_Int4, HLSLBaseType_Int4),
-
-		Intrinsic("QuadSwapX", HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("QuadSwapX", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
-		Intrinsic("QuadSwapX", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
-		Intrinsic("QuadSwapX", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
-
-		Intrinsic("QuadSwapX", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
-
-		/*
-		Intrinsic("QuadSwapY", HLSLBaseType_Bool, HLSLBaseType_Bool),
-		Intrinsic("QuadSwapY", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
-		Intrinsic("QuadSwapY", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
-		Intrinsic("QuadSwapY", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
-		*/
-		Intrinsic("QuadSwapY", HLSLBaseType_Float, HLSLBaseType_Float),
-		Intrinsic("QuadSwapY", HLSLBaseType_Float2, HLSLBaseType_Float2),
-		Intrinsic("QuadSwapY", HLSLBaseType_Float3, HLSLBaseType_Float3),
-		Intrinsic("QuadSwapY", HLSLBaseType_Float4, HLSLBaseType_Float4),
-		
-
-		Intrinsic("QuadSwapY", HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("QuadSwapY", HLSLBaseType_Int2, HLSLBaseType_Int2),
-		Intrinsic("QuadSwapY", HLSLBaseType_Int3, HLSLBaseType_Int3),
-		Intrinsic("QuadSwapY", HLSLBaseType_Int4, HLSLBaseType_Int4),
-
-		Intrinsic("QuadSwapY", HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("QuadSwapY", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
-		Intrinsic("QuadSwapY", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
-		Intrinsic("QuadSwapY", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
-
-		Intrinsic("QuadSwapY", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
-
-		/*
-		Intrinsic("QuadReadAcrossX", HLSLBaseType_Bool, HLSLBaseType_Bool),
-		Intrinsic("QuadReadAcrossX", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
-		Intrinsic("QuadReadAcrossX", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
-		Intrinsic("QuadReadAcrossX", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
-		*/
-		Intrinsic("QuadReadAcrossX", HLSLBaseType_Float, HLSLBaseType_Float),
-		Intrinsic("QuadReadAcrossX", HLSLBaseType_Float2, HLSLBaseType_Float2),
-		Intrinsic("QuadReadAcrossX", HLSLBaseType_Float3, HLSLBaseType_Float3),
-		Intrinsic("QuadReadAcrossX", HLSLBaseType_Float4, HLSLBaseType_Float4),
-		
-
-		Intrinsic("QuadReadAcrossX", HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("QuadReadAcrossX", HLSLBaseType_Int2, HLSLBaseType_Int2),
-		Intrinsic("QuadReadAcrossX", HLSLBaseType_Int3, HLSLBaseType_Int3),
-		Intrinsic("QuadReadAcrossX", HLSLBaseType_Int4, HLSLBaseType_Int4),
-
-		Intrinsic("QuadReadAcrossX", HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("QuadReadAcrossX", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
-		Intrinsic("QuadReadAcrossX", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
-		Intrinsic("QuadReadAcrossX", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
-
-		Intrinsic("QuadReadAcrossX", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
-
-		/*
-		Intrinsic("QuadReadAcrossY", HLSLBaseType_Bool, HLSLBaseType_Bool),
-		Intrinsic("QuadReadAcrossY", HLSLBaseType_Bool2, HLSLBaseType_Bool2),
-		Intrinsic("QuadReadAcrossY", HLSLBaseType_Bool3, HLSLBaseType_Bool3),
-		Intrinsic("QuadReadAcrossY", HLSLBaseType_Bool4, HLSLBaseType_Bool4),
-		*/
-		Intrinsic("QuadReadAcrossY", HLSLBaseType_Float, HLSLBaseType_Float),
-		Intrinsic("QuadReadAcrossY", HLSLBaseType_Float2, HLSLBaseType_Float2),
-		Intrinsic("QuadReadAcrossY", HLSLBaseType_Float3, HLSLBaseType_Float3),
-		Intrinsic("QuadReadAcrossY", HLSLBaseType_Float4, HLSLBaseType_Float4),
-		
-		Intrinsic("QuadReadAcrossY", HLSLBaseType_Int, HLSLBaseType_Int),
-		Intrinsic("QuadReadAcrossY", HLSLBaseType_Int2, HLSLBaseType_Int2),
-		Intrinsic("QuadReadAcrossY", HLSLBaseType_Int3, HLSLBaseType_Int3),
-		Intrinsic("QuadReadAcrossY", HLSLBaseType_Int4, HLSLBaseType_Int4),
-
-		Intrinsic("QuadReadAcrossY", HLSLBaseType_Uint, HLSLBaseType_Uint),
-		Intrinsic("QuadReadAcrossY", HLSLBaseType_Uint2, HLSLBaseType_Uint2),
-		Intrinsic("QuadReadAcrossY", HLSLBaseType_Uint3, HLSLBaseType_Uint3),
-		Intrinsic("QuadReadAcrossY", HLSLBaseType_Uint4, HLSLBaseType_Uint4),
-
-		Intrinsic("QuadReadAcrossY", HLSLBaseType_UserDefined, HLSLBaseType_UserDefined),
-
-	};
-
-const int _numIntrinsics = sizeof(_intrinsic) / sizeof(Intrinsic);
 
 // The order in this array must match up with HLSLBinaryOp
 const int _binaryOpPriority[] =
@@ -1702,7 +3008,6 @@ const int _binaryOpPriority[] =
 		 8, // >>
 		 9 // %
 	};
-
 
 const BaseTypeDescription _baseTypeDescriptions[HLSLBaseType_Count] = 
 	{
@@ -1745,40 +3050,40 @@ const BaseTypeDescription _baseTypeDescriptions[HLSLBaseType_Count] =
 		{ "half4x4",            NumericType_Half,      4, 2, 4,  1 },      // HLSLBaseType_Half4x4
 
 
-		{ "min16float",              NumericType_Min16Float,      1, 0, 1,  1 },      // HLSLBaseType_Float
-		{ "min16float1x2",           NumericType_Min16Float,      1, 2, 2,  1 },      // HLSLBaseType_Float1x2
-		{ "min16float1x3",           NumericType_Min16Float,      1, 2, 3,  1 },      // HLSLBaseType_Float1x3
-		{ "min16float1x4",           NumericType_Min16Float,      1, 2, 4,  1 },      // HLSLBaseType_Float1x4
-		{ "min16float2",             NumericType_Min16Float,      2, 1, 1,  1 },      // HLSLBaseType_Float2
-		{ "min16float2x2",           NumericType_Min16Float,      2, 2, 2,  1 },      // HLSLBaseType_Float2x2
-		{ "min16float2x3",           NumericType_Min16Float,      2, 2, 3,  1 },      // HLSLBaseType_Float2x3
-		{ "min16float2x4",           NumericType_Min16Float,      2, 2, 4,  1 },      // HLSLBaseType_Float2x4
-		{ "min16float3",             NumericType_Min16Float,      3, 1, 1,  1 },      // HLSLBaseType_Float3
-		{ "min16float3x2",           NumericType_Min16Float,      3, 2, 2,  1 },      // HLSLBaseType_Float3x2
-		{ "min16float3x3",           NumericType_Min16Float,      3, 2, 3,  1 },      // HLSLBaseType_Float3x3
-		{ "min16float3x4",           NumericType_Min16Float,      3, 2, 4,  1 },      // HLSLBaseType_Float3x4
-		{ "min16float4",             NumericType_Min16Float,      4, 1, 1,  1 },      // HLSLBaseType_Float4
-		{ "min16float4x2",           NumericType_Min16Float,      4, 2, 2,  1 },      // HLSLBaseType_Float4x2
-		{ "min16float4x3",           NumericType_Min16Float,      4, 2, 3,  1 },      // HLSLBaseType_Float4x3
-		{ "min16float4x4",           NumericType_Min16Float,      4, 2, 4,  1 },      // HLSLBaseType_Float4x4
+		{ "min16float",              NumericType_Min16Float,      1, 0, 1,  1 },      // HLSLBaseType_Min16Float
+		{ "min16float1x2",           NumericType_Min16Float,      1, 2, 2,  1 },      // HLSLBaseType_Min16Float1x2
+		{ "min16float1x3",           NumericType_Min16Float,      1, 2, 3,  1 },      // HLSLBaseType_Min16Float1x3
+		{ "min16float1x4",           NumericType_Min16Float,      1, 2, 4,  1 },      // HLSLBaseType_Min16Float1x4
+		{ "min16float2",             NumericType_Min16Float,      2, 1, 1,  1 },      // HLSLBaseType_Min16Float2
+		{ "min16float2x2",           NumericType_Min16Float,      2, 2, 2,  1 },      // HLSLBaseType_Min16Float2x2
+		{ "min16float2x3",           NumericType_Min16Float,      2, 2, 3,  1 },      // HLSLBaseType_Min16Float2x3
+		{ "min16float2x4",           NumericType_Min16Float,      2, 2, 4,  1 },      // HLSLBaseType_Min16Float2x4
+		{ "min16float3",             NumericType_Min16Float,      3, 1, 1,  1 },      // HLSLBaseType_Min16Float3
+		{ "min16float3x2",           NumericType_Min16Float,      3, 2, 2,  1 },      // HLSLBaseType_Min16Float3x2
+		{ "min16float3x3",           NumericType_Min16Float,      3, 2, 3,  1 },      // HLSLBaseType_Min16Float3x3
+		{ "min16float3x4",           NumericType_Min16Float,      3, 2, 4,  1 },      // HLSLBaseType_Min16Float3x4
+		{ "min16float4",             NumericType_Min16Float,      4, 1, 1,  1 },      // HLSLBaseType_Min16Float4
+		{ "min16float4x2",           NumericType_Min16Float,      4, 2, 2,  1 },      // HLSLBaseType_Min16Float4x2
+		{ "min16float4x3",           NumericType_Min16Float,      4, 2, 3,  1 },      // HLSLBaseType_Min16Float4x3
+		{ "min16float4x4",           NumericType_Min16Float,      4, 2, 4,  1 },      // HLSLBaseType_Min16Float4x4
 
 
-		{ "min10float",              NumericType_Min10Float,      1, 0, 1,  1 },      // HLSLBaseType_Float
-		{ "min10float1x2",           NumericType_Min10Float,      1, 2, 2,  1 },      // HLSLBaseType_Float1x2
-		{ "min10float1x3",           NumericType_Min10Float,      1, 2, 3,  1 },      // HLSLBaseType_Float1x3
-		{ "min10float1x4",           NumericType_Min10Float,      1, 2, 4,  1 },      // HLSLBaseType_Float1x4
-		{ "min10float2",             NumericType_Min10Float,      2, 1, 1,  1 },      // HLSLBaseType_Float2
-		{ "min10float2x2",           NumericType_Min10Float,      2, 2, 2,  1 },      // HLSLBaseType_Float2x2
-		{ "min10float2x3",           NumericType_Min10Float,      2, 2, 3,  1 },      // HLSLBaseType_Float2x3
-		{ "min10float2x4",           NumericType_Min10Float,      2, 2, 4,  1 },      // HLSLBaseType_Float2x4
-		{ "min10float3",             NumericType_Min10Float,      3, 1, 1,  1 },      // HLSLBaseType_Float3
-		{ "min10float3x2",           NumericType_Min10Float,      3, 2, 2,  1 },      // HLSLBaseType_Float3x2
-		{ "min10float3x3",           NumericType_Min10Float,      3, 2, 3,  1 },      // HLSLBaseType_Float3x3
-		{ "min10float3x4",           NumericType_Min10Float,      3, 2, 4,  1 },      // HLSLBaseType_Float3x4
-		{ "min10float4",             NumericType_Min10Float,      4, 1, 1,  1 },      // HLSLBaseType_Float4
-		{ "min10float4x2",           NumericType_Min10Float,      4, 2, 2,  1 },      // HLSLBaseType_Float4x2
-		{ "min10float4x3",           NumericType_Min10Float,      4, 2, 3,  1 },      // HLSLBaseType_Float4x3
-		{ "min10float4x4",           NumericType_Min10Float,      4, 2, 4,  1 },      // HLSLBaseType_Float4x4
+		{ "min10float",              NumericType_Min10Float,      1, 0, 1,  1 },      // HLSLBaseType_Min10Float
+		{ "min10float1x2",           NumericType_Min10Float,      1, 2, 2,  1 },      // HLSLBaseType_Min10Float1x2
+		{ "min10float1x3",           NumericType_Min10Float,      1, 2, 3,  1 },      // HLSLBaseType_Min10Float1x3
+		{ "min10float1x4",           NumericType_Min10Float,      1, 2, 4,  1 },      // HLSLBaseType_Min10Float1x4
+		{ "min10float2",             NumericType_Min10Float,      2, 1, 1,  1 },      // HLSLBaseType_Min10Float2
+		{ "min10float2x2",           NumericType_Min10Float,      2, 2, 2,  1 },      // HLSLBaseType_Min10Float2x2
+		{ "min10float2x3",           NumericType_Min10Float,      2, 2, 3,  1 },      // HLSLBaseType_Min10Float2x3
+		{ "min10float2x4",           NumericType_Min10Float,      2, 2, 4,  1 },      // HLSLBaseType_Min10Float2x4
+		{ "min10float3",             NumericType_Min10Float,      3, 1, 1,  1 },      // HLSLBaseType_Min10Float3
+		{ "min10float3x2",           NumericType_Min10Float,      3, 2, 2,  1 },      // HLSLBaseType_Min10Float3x2
+		{ "min10float3x3",           NumericType_Min10Float,      3, 2, 3,  1 },      // HLSLBaseType_Min10Float3x3
+		{ "min10float3x4",           NumericType_Min10Float,      3, 2, 4,  1 },      // HLSLBaseType_Min10Float3x4
+		{ "min10float4",             NumericType_Min10Float,      4, 1, 1,  1 },      // HLSLBaseType_Min10Float4
+		{ "min10float4x2",           NumericType_Min10Float,      4, 2, 2,  1 },      // HLSLBaseType_Min10Float4x2
+		{ "min10float4x3",           NumericType_Min10Float,      4, 2, 3,  1 },      // HLSLBaseType_Min10Float4x3
+		{ "min10float4x4",           NumericType_Min10Float,      4, 2, 4,  1 },      // HLSLBaseType_Min10Float4x4
 
 		{ "bool",               NumericType_Bool,      1, 0, 1,  4 },      // HLSLBaseType_Bool
 		{ "bool1x2",            NumericType_Bool,      1, 2, 2,  4 },      // HLSLBaseType_Bool1x2
@@ -1876,6 +3181,7 @@ const BaseTypeDescription _baseTypeDescriptions[HLSLBaseType_Count] =
 // IC: I'm not sure this table is right, but any errors should be caught by the backend compiler.
 // Also, this is operator dependent. The type resulting from (float4 * float4x4) is not the same as (float4 + float4x4).
 // We should probably distinguish between component-wise operator and only allow same dimensions
+// jhable: Adding the component types to use the min. I.e. (float3 + float4) => float3
 HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_NumericCount] = 
 	{
 		{   // float 
@@ -1889,15 +3195,15 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Float3, HLSLBaseType_Float3x2, HLSLBaseType_Float3x3, HLSLBaseType_Float3x4,
 			HLSLBaseType_Float4, HLSLBaseType_Float4x2, HLSLBaseType_Float4x3, HLSLBaseType_Float4x4,
 			
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float, HLSLBaseType_Float1x2, HLSLBaseType_Float1x3, HLSLBaseType_Float1x4,
+			HLSLBaseType_Float2, HLSLBaseType_Float2x2, HLSLBaseType_Float2x3, HLSLBaseType_Float2x4,
+			HLSLBaseType_Float3, HLSLBaseType_Float3x2, HLSLBaseType_Float3x3, HLSLBaseType_Float3x4,
+			HLSLBaseType_Float4, HLSLBaseType_Float4x2, HLSLBaseType_Float4x3, HLSLBaseType_Float4x4,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float, HLSLBaseType_Float1x2, HLSLBaseType_Float1x3, HLSLBaseType_Float1x4,
+			HLSLBaseType_Float2, HLSLBaseType_Float2x2, HLSLBaseType_Float2x3, HLSLBaseType_Float2x4,
+			HLSLBaseType_Float3, HLSLBaseType_Float3x2, HLSLBaseType_Float3x3, HLSLBaseType_Float3x4,
+			HLSLBaseType_Float4, HLSLBaseType_Float4x2, HLSLBaseType_Float4x3, HLSLBaseType_Float4x4,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -1925,12 +3231,12 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float1x2, HLSLBaseType_Float1x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float1x2, HLSLBaseType_Float1x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -1961,12 +3267,12 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float1x3, HLSLBaseType_Unknown, HLSLBaseType_Float1x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float1x3, HLSLBaseType_Unknown, HLSLBaseType_Float1x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -1997,12 +3303,12 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float1x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float1x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float1x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float1x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -2034,13 +3340,13 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
@@ -2070,13 +3376,13 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
@@ -2106,13 +3412,13 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float2x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float2x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
@@ -2142,13 +3448,13 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float2x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float2x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
@@ -2179,14 +3485,14 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 		   HLSLBaseType_Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+		   HLSLBaseType_Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+		   HLSLBaseType_Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+		   HLSLBaseType_Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+		   HLSLBaseType_Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -2196,12 +3502,12 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 
 		   HLSLBaseType_Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+		   HLSLBaseType_Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 		   HLSLBaseType_Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+		   HLSLBaseType_Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 	   },
 		{   // float 3x2
@@ -2215,14 +3521,14 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Float3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Float3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Float3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Float3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Float3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -2251,14 +3557,14 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float3x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Float3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float3x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Float3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float3x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -2287,14 +3593,14 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float3x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Float3x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float3x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Float3x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float3x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -2324,15 +3630,15 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -2342,12 +3648,12 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
+			HLSLBaseType_Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 
 		},
 		{   // float 4x2
@@ -2361,30 +3667,30 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
+			HLSLBaseType_Unknown, HLSLBaseType_Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // float 4x3
 			HLSLBaseType_Float4x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -2397,30 +3703,30 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float4x3, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Float4x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float4x3, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Float4x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float4x3, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Float4x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float4x3, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Float4x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float4x3, HLSLBaseType_Unknown
 		},
 		{   // float 4x4
 			HLSLBaseType_Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -2433,30 +3739,30 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float4x4,
 
+			HLSLBaseType_Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float4x4,
+
+			HLSLBaseType_Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float4x4,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float4x4,
 
+			HLSLBaseType_Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float4x4
 		},
 
 
@@ -2471,33 +3777,43 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Half3, HLSLBaseType_Half3x2, HLSLBaseType_Half3x3, HLSLBaseType_Half3x4,
 			HLSLBaseType_Half4, HLSLBaseType_Half4x2, HLSLBaseType_Half4x3, HLSLBaseType_Half4x4,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half, HLSLBaseType_Half1x2, HLSLBaseType_Half1x3, HLSLBaseType_Half1x4,
+			HLSLBaseType_Half2, HLSLBaseType_Half2x2, HLSLBaseType_Half2x3, HLSLBaseType_Half2x4,
+			HLSLBaseType_Half3, HLSLBaseType_Half3x2, HLSLBaseType_Half3x3, HLSLBaseType_Half3x4,
+			HLSLBaseType_Half4, HLSLBaseType_Half4x2, HLSLBaseType_Half4x3, HLSLBaseType_Half4x4,
+
+			HLSLBaseType_Half, HLSLBaseType_Half1x2, HLSLBaseType_Half1x3, HLSLBaseType_Half1x4,
+			HLSLBaseType_Half2, HLSLBaseType_Half2x2, HLSLBaseType_Half2x3, HLSLBaseType_Half2x4,
+			HLSLBaseType_Half3, HLSLBaseType_Half3x2, HLSLBaseType_Half3x3, HLSLBaseType_Half3x4,
+			HLSLBaseType_Half4, HLSLBaseType_Half4x2, HLSLBaseType_Half4x3, HLSLBaseType_Half4x4,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half, HLSLBaseType_Half1x2, HLSLBaseType_Half1x3, HLSLBaseType_Half1x4,
+			HLSLBaseType_Half2, HLSLBaseType_Half2x2, HLSLBaseType_Half2x3, HLSLBaseType_Half2x4,
+			HLSLBaseType_Half3, HLSLBaseType_Half3x2, HLSLBaseType_Half3x3, HLSLBaseType_Half3x4,
+			HLSLBaseType_Half4, HLSLBaseType_Half4x2, HLSLBaseType_Half4x3, HLSLBaseType_Half4x4,
 
-			HLSLBaseType_Half, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Half, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
+			HLSLBaseType_Half, HLSLBaseType_Half1x2, HLSLBaseType_Half1x3, HLSLBaseType_Half1x4,
+			HLSLBaseType_Half2, HLSLBaseType_Half2x2, HLSLBaseType_Half2x3, HLSLBaseType_Half2x4,
+			HLSLBaseType_Half3, HLSLBaseType_Half3x2, HLSLBaseType_Half3x3, HLSLBaseType_Half3x4,
+			HLSLBaseType_Half4, HLSLBaseType_Half4x2, HLSLBaseType_Half4x3, HLSLBaseType_Half4x4
 		},
 		{   // half 1x2
 			HLSLBaseType_Float1x2, HLSLBaseType_Float1x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half1x2, HLSLBaseType_Half1x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half1x2, HLSLBaseType_Half1x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -2512,22 +3828,12 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half1x2, HLSLBaseType_Half1x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half1x2, HLSLBaseType_Half1x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
@@ -2543,7 +3849,12 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half1x3, HLSLBaseType_Unknown, HLSLBaseType_Half1x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half1x3, HLSLBaseType_Unknown, HLSLBaseType_Half1x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -2553,17 +3864,12 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half1x3, HLSLBaseType_Unknown, HLSLBaseType_Half1x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half1x3, HLSLBaseType_Unknown, HLSLBaseType_Half1x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
@@ -2579,7 +3885,12 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half1x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half1x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half1x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half1x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -2589,17 +3900,12 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half1x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half1x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half1x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half1x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
@@ -2608,42 +3914,52 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 		{   // half2
 			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // half2x2
 			HLSLBaseType_Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Half2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Half2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
@@ -2657,23 +3973,13 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Half2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Half2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
@@ -2688,8 +3994,13 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half2x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half2x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half2x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half2x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
@@ -2698,18 +4009,13 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half2x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half2x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
@@ -2724,8 +4030,13 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half2x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half2x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half2x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half2x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
@@ -2734,18 +4045,13 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half2x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half2x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
@@ -2760,9 +4066,14 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Half3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -2770,19 +4081,14 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // half3x2
@@ -2796,9 +4102,14 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Half3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Half3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Half3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -2806,19 +4117,14 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Half3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Half3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // half3x3
@@ -2832,9 +4138,14 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half3x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half3x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half3x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -2842,19 +4153,14 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half3x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half3x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // half3x4
@@ -2868,9 +4174,14 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half3x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half3x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half3x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half3x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half3x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -2878,19 +4189,14 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half3x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half3x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half3x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half3x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // half4
@@ -2904,30 +4210,30 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Half4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
+			HLSLBaseType_Half4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // half4x2
 			HLSLBaseType_Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -2940,30 +4246,30 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Half4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Half4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Half4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Half4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
+			HLSLBaseType_Unknown, HLSLBaseType_Half4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // half4x3
 			HLSLBaseType_Float4x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -2976,30 +4282,30 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half4x3, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half4x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half4x3, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half4x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half4x3, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half4x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half4x3, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half4x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half4x3, HLSLBaseType_Unknown
 		},
 		{   // half4x4
 			HLSLBaseType_Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -3012,43 +4318,43 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half4x4,
 
+			HLSLBaseType_Half4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half4x4,
+
+			HLSLBaseType_Half4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half4x4,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half4x4,
 
+			HLSLBaseType_Half4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half4x4
 		},
 	
 
 		{   // min16float 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float, HLSLBaseType_Float1x2, HLSLBaseType_Float1x3, HLSLBaseType_Float1x4,
+			HLSLBaseType_Float2, HLSLBaseType_Float2x2, HLSLBaseType_Float2x3, HLSLBaseType_Float2x4,
+			HLSLBaseType_Float3, HLSLBaseType_Float3x2, HLSLBaseType_Float3x3, HLSLBaseType_Float3x4,
+			HLSLBaseType_Float4, HLSLBaseType_Float4x2, HLSLBaseType_Float4x3, HLSLBaseType_Float4x4,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half, HLSLBaseType_Half1x2, HLSLBaseType_Half1x3, HLSLBaseType_Half1x4,
+			HLSLBaseType_Half2, HLSLBaseType_Half2x2, HLSLBaseType_Half2x3, HLSLBaseType_Half2x4,
+			HLSLBaseType_Half3, HLSLBaseType_Half3x2, HLSLBaseType_Half3x3, HLSLBaseType_Half3x4,
+			HLSLBaseType_Half4, HLSLBaseType_Half4x2, HLSLBaseType_Half4x3, HLSLBaseType_Half4x4,
 			
 			HLSLBaseType_Min16Float, HLSLBaseType_Min16Float1x2, HLSLBaseType_Min16Float1x3, HLSLBaseType_Min16Float1x4,
 			HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2x2, HLSLBaseType_Min16Float2x3, HLSLBaseType_Min16Float2x4,
@@ -3065,23 +4371,23 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Float, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float, HLSLBaseType_Min16Float1x2, HLSLBaseType_Min16Float1x3, HLSLBaseType_Min16Float1x4,
+			HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2x2, HLSLBaseType_Min16Float2x3, HLSLBaseType_Min16Float2x4,
+			HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3x2, HLSLBaseType_Min16Float3x3, HLSLBaseType_Min16Float3x4,
+			HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4x2, HLSLBaseType_Min16Float4x3, HLSLBaseType_Min16Float4x4,
 
-			HLSLBaseType_Float, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
+			HLSLBaseType_Min16Float, HLSLBaseType_Min16Float1x2, HLSLBaseType_Min16Float1x3, HLSLBaseType_Min16Float1x4,
+			HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2x2, HLSLBaseType_Min16Float2x3, HLSLBaseType_Min16Float2x4,
+			HLSLBaseType_Min16Float3, HLSLBaseType_Min16Float3x2, HLSLBaseType_Min16Float3x3, HLSLBaseType_Min16Float3x4,
+			HLSLBaseType_Min16Float4, HLSLBaseType_Min16Float4x2, HLSLBaseType_Min16Float4x3, HLSLBaseType_Min16Float4x4,
 		},
-		{   // float 1x2
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+		{   // min16float 1x2
+			HLSLBaseType_Float1x2, HLSLBaseType_Float1x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half1x2, HLSLBaseType_Half1x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -3102,23 +4408,23 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float1x2, HLSLBaseType_Min16Float1x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float1x2, HLSLBaseType_Min16Float1x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
-		{   // float 1x3
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+		{   // min16float 1x3
+			HLSLBaseType_Float1x3, HLSLBaseType_Unknown, HLSLBaseType_Float1x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half1x3, HLSLBaseType_Unknown, HLSLBaseType_Half1x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -3138,23 +4444,23 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float1x3, HLSLBaseType_Unknown, HLSLBaseType_Min16Float1x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float1x3, HLSLBaseType_Unknown, HLSLBaseType_Min16Float1x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // float 1x4
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float1x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float1x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half1x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half1x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -3174,25 +4480,25 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float1x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min16Float1x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float1x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min16Float1x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 
 		{   // float2
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			
@@ -3211,24 +4517,24 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // float 2x2
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Half2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			
@@ -3247,24 +4553,24 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Min16Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Min16Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // float 2x3
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float2x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half2x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			
@@ -3283,24 +4589,24 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float2x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min16Float2x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float2x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min16Float2x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // float 2x4
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float2x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half2x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			
@@ -3319,27 +4625,27 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float2x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min16Float2x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float2x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min16Float2x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 
 	   {   // float3
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   
 		   HLSLBaseType_Min16Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -3350,8 +4656,6 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Min16Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-		  
 
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -3369,14 +4673,14 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 	   },
 		{   // float 3x2
+			HLSLBaseType_Float3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Float3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Half3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			
 			HLSLBaseType_Min16Float3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -3388,8 +4692,6 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Min16Float3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -3407,14 +4709,14 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // float 3x3
+			HLSLBaseType_Float3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float3x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half3x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			
 			HLSLBaseType_Min16Float3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -3427,32 +4729,30 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min16Float3x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			
-
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Min16Float3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min16Float3x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Min16Float3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min16Float3x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // float 3x4
+			HLSLBaseType_Float3x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float3x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half3x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half3x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			
@@ -3472,22 +4772,37 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Min16Float3x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min16Float3x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Min16Float3x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min16Float3x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 
 		{   // float4
+			HLSLBaseType_Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Min16Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Min16Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -3502,31 +4817,28 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Min16Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Min16Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Min16Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Min16Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
-
+			HLSLBaseType_Min16Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // float 4x2
+			HLSLBaseType_Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Half4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Min16Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Min16Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Min16Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Min16Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -3541,30 +4853,28 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Min16Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Min16Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-		
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
+			HLSLBaseType_Unknown, HLSLBaseType_Min16Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // float 4x3
+			HLSLBaseType_Float4x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float4x3, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Half4x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half4x3, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Min16Float4x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min16Float4x3, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Min16Float4x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min16Float4x3, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -3579,30 +4889,28 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Min16Float4x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min16Float4x3, HLSLBaseType_Unknown,
-
-		
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min16Float4x3, HLSLBaseType_Unknown
 		},
 		{   // float 4x4
+			HLSLBaseType_Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float4x4,
+
+			HLSLBaseType_Half4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half4x4,
+
+			HLSLBaseType_Min16Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min16Float4x4,
+
+			HLSLBaseType_Min16Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min16Float4x4,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -3617,35 +4925,20 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Min16Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min16Float4x4,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min16Float4x4
 		},
 
 
 		{   // min10float 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float, HLSLBaseType_Float1x2, HLSLBaseType_Float1x3, HLSLBaseType_Float1x4,
+			HLSLBaseType_Float2, HLSLBaseType_Float2x2, HLSLBaseType_Float2x3, HLSLBaseType_Float2x4,
+			HLSLBaseType_Float3, HLSLBaseType_Float3x2, HLSLBaseType_Float3x3, HLSLBaseType_Float3x4,
+			HLSLBaseType_Float4, HLSLBaseType_Float4x2, HLSLBaseType_Float4x3, HLSLBaseType_Float4x4,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half, HLSLBaseType_Half1x2, HLSLBaseType_Half1x3, HLSLBaseType_Half1x4,
+			HLSLBaseType_Half2, HLSLBaseType_Half2x2, HLSLBaseType_Half2x3, HLSLBaseType_Half2x4,
+			HLSLBaseType_Half3, HLSLBaseType_Half3x2, HLSLBaseType_Half3x3, HLSLBaseType_Half3x4,
+			HLSLBaseType_Half4, HLSLBaseType_Half4x2, HLSLBaseType_Half4x3, HLSLBaseType_Half4x4,
 
 			HLSLBaseType_Min16Float, HLSLBaseType_Min16Float1x2, HLSLBaseType_Min16Float1x3, HLSLBaseType_Min16Float1x4,
 			HLSLBaseType_Min16Float2, HLSLBaseType_Min16Float2x2, HLSLBaseType_Min16Float2x3, HLSLBaseType_Min16Float2x4,
@@ -3662,23 +4955,23 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Float, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float, HLSLBaseType_Min10Float1x2, HLSLBaseType_Min10Float1x3, HLSLBaseType_Min10Float1x4,
+			HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2x2, HLSLBaseType_Min10Float2x3, HLSLBaseType_Min10Float2x4,
+			HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3x2, HLSLBaseType_Min10Float3x3, HLSLBaseType_Min10Float3x4,
+			HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4x2, HLSLBaseType_Min10Float4x3, HLSLBaseType_Min10Float4x4,
 
-			HLSLBaseType_Float, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
+			HLSLBaseType_Min10Float, HLSLBaseType_Min10Float1x2, HLSLBaseType_Min10Float1x3, HLSLBaseType_Min10Float1x4,
+			HLSLBaseType_Min10Float2, HLSLBaseType_Min10Float2x2, HLSLBaseType_Min10Float2x3, HLSLBaseType_Min10Float2x4,
+			HLSLBaseType_Min10Float3, HLSLBaseType_Min10Float3x2, HLSLBaseType_Min10Float3x3, HLSLBaseType_Min10Float3x4,
+			HLSLBaseType_Min10Float4, HLSLBaseType_Min10Float4x2, HLSLBaseType_Min10Float4x3, HLSLBaseType_Min10Float4x4,
 		},
 		{   // float 1x2
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float1x2, HLSLBaseType_Float1x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half1x2, HLSLBaseType_Half1x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -3693,29 +4986,28 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float1x2, HLSLBaseType_Min10Float1x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float1x2, HLSLBaseType_Min10Float1x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // float 1x3
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float1x3, HLSLBaseType_Unknown, HLSLBaseType_Float1x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half1x3, HLSLBaseType_Unknown, HLSLBaseType_Half1x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -3735,28 +5027,23 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float1x3, HLSLBaseType_Unknown, HLSLBaseType_Min10Float1x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float1x3, HLSLBaseType_Unknown, HLSLBaseType_Min10Float1x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // float 1x4
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float1x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float1x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Min16Float1x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min16Float1x4,
+			HLSLBaseType_Half1x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half1x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -3766,30 +5053,35 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float1x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min10Float1x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Min10Float1x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min10Float1x4,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+
+			HLSLBaseType_Min10Float1x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min10Float1x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 
 		{   // float2
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
@@ -3808,24 +5100,24 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // float 2x2
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Half2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
@@ -3844,24 +5136,24 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Min10Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Min10Float2x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // float 2x3
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float2x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half2x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
@@ -3880,24 +5172,24 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float2x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min10Float2x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float2x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min10Float2x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // float 2x4
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float2x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half2x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
@@ -3916,27 +5208,27 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float2x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min10Float2x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float2x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min10Float2x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 
 	   {   // float3
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 		   HLSLBaseType_Min16Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -3948,32 +5240,30 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 		   HLSLBaseType_Min10Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-
-
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-		   HLSLBaseType_Min16Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+		   HLSLBaseType_Min10Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+		   HLSLBaseType_Min10Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-		   HLSLBaseType_Min16Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+		   HLSLBaseType_Min10Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+		   HLSLBaseType_Min10Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 		   HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 	   },
 		{   // float 3x2
+			HLSLBaseType_Float3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Float3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Half3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Min16Float3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -3986,32 +5276,30 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Min10Float3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-
-
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Min10Float3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Min10Float3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Min10Float3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Min10Float3x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // float 3x3
+			HLSLBaseType_Float3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float3x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half3x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Min16Float3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -4024,34 +5312,31 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min10Float3x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-
-
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Min10Float3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min10Float3x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Min10Float3x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min10Float3x3, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // float 3x4
+			HLSLBaseType_Float3x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float3x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half3x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half3x4,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Min16Float3x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -4063,33 +5348,32 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min10Float3x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Min10Float3x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min10Float3x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Min10Float3x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min10Float3x4,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 
 		{   // float4
+			HLSLBaseType_Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Min16Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -4101,34 +5385,31 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Min10Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-
-
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Min16Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Min16Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
-
+			HLSLBaseType_Min10Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // float 4x2
+			HLSLBaseType_Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Half4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Min16Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -4140,33 +5421,31 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Min10Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-
-
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Min10Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Min10Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Min10Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
+			HLSLBaseType_Unknown, HLSLBaseType_Min10Float4x2, HLSLBaseType_Unknown, HLSLBaseType_Unknown
 		},
 		{   // float 4x3
+			HLSLBaseType_Float4x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float4x3, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Half4x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half4x3, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Min16Float4x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -4178,33 +5457,31 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min10Float4x3, HLSLBaseType_Unknown,
 
-
-
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Min10Float4x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min10Float4x3, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Min10Float4x3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min10Float4x3, HLSLBaseType_Unknown
 		},
 		{   // float 4x4
+			HLSLBaseType_Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Float4x4,
 
+			HLSLBaseType_Half4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Half4x4,
 
 			HLSLBaseType_Min16Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -4221,19 +5498,16 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
+			HLSLBaseType_Min10Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min10Float4x4,
 
+			HLSLBaseType_Min10Float4x4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown
+			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Min10Float4x4
 		},
-
-
-
 
 		{   // bool
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
@@ -4821,18 +6095,18 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 
 			HLSLBaseType_Half, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Int, HLSLBaseType_Int1x2, HLSLBaseType_Int1x3, HLSLBaseType_Int1x4,
 			HLSLBaseType_Int2, HLSLBaseType_Int2x2, HLSLBaseType_Int2x3, HLSLBaseType_Int2x4,
@@ -5395,24 +6669,24 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 		},
 		{   // uint
 			HLSLBaseType_Float, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Half, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min16Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float3, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Min10Float4, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
 			HLSLBaseType_Uint, HLSLBaseType_Uint1x2, HLSLBaseType_Uint1x3, HLSLBaseType_Uint1x4,
 			HLSLBaseType_Uint2, HLSLBaseType_Uint2x2, HLSLBaseType_Uint2x3, HLSLBaseType_Uint2x4,
@@ -5545,8 +6819,8 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
-			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
-			HLSLBaseType_Float2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
+			HLSLBaseType_Half2, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 			HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown, HLSLBaseType_Unknown,
 
@@ -5978,7 +7252,7 @@ HLSLBaseType _binaryOpTypeLookup[HLSLBaseType_NumericCount][HLSLBaseType_Numeric
 // Priority of the ? : operator.
 const int _conditionalOpPriority = 1;
 
-static const char* GetTypeName(const HLSLType& type)
+CachedString HLSLParser::GetTypeName(const HLSLType& type)
 {
 	if (type.baseType == HLSLBaseType_UserDefined)
 	{
@@ -5995,12 +7269,12 @@ static const char* GetTypeName(const HLSLType& type)
 		}
 		else
 		{
-			return _baseTypeDescriptions[type.elementType].typeName;
+			return m_tree->AddStringCached(_baseTypeDescriptions[type.elementType].typeName);
 		}
 	}
 	else
 	{
-		return _baseTypeDescriptions[type.baseType].typeName;
+		return m_tree->AddStringCached(_baseTypeDescriptions[type.baseType].typeName);
 	}
 }
 
@@ -6038,11 +7312,15 @@ static const char* GetBinaryOpName(HLSLBinaryOp binaryOp)
 	case HLSLBinaryOp_BitXorAssign: return "^=";
 
 	default:
-		ASSERT(0);
+		ASSERT_PARSER(0);
 		return "???";
 	}
 }
 
+static std::string SafeString(const char * pStr)
+{
+	return pStr != NULL ? std::string(pStr) : "";
+}
 
 /*
  * 1.) Match
@@ -6054,34 +7332,6 @@ static const char* GetBinaryOpName(HLSLBinaryOp binaryOp)
  */    
 static int GetTypeCastRank(HLSLTree * tree, const HLSLType& srcType, const HLSLType& dstType)
 {
-	/*if (srcType.array != dstType.array || srcType.arraySize != dstType.arraySize)
-	{
-		return -1;
-	}*/
-	
-	/*
-	if (srcType.array != dstType.array)
-	{
-		return -1;
-	}
-	*/
-
-	/*
-	if (srcType.array == true)
-	{
-		ASSERT(dstType.array == true);
-		int srcArraySize = -1;
-		int dstArraySize = -1;
-
-		tree->GetExpressionValue(srcType.arraySize, srcArraySize);
-		tree->GetExpressionValue(dstType.arraySize, dstArraySize);
-
-		if (srcArraySize != dstArraySize) {
-			return -1;
-		}
-	}
-	*/
-
 	HLSLBaseType comparingType = HLSLBaseType_Unknown;
 	HLSLBaseType comparedType = HLSLBaseType_Unknown;
 
@@ -6098,10 +7348,6 @@ static int GetTypeCastRank(HLSLTree * tree, const HLSLType& srcType, const HLSLT
 		comparingType = srcType.elementType;
 	else
 		comparingType = srcType.baseType;
-
-	
-
-
 	
 	if (dstType.baseType >= HLSLBaseType_Texture1D && dstType.baseType <= HLSLBaseType_RWTexture3D)
 	{
@@ -6115,7 +7361,7 @@ static int GetTypeCastRank(HLSLTree * tree, const HLSLType& srcType, const HLSLT
 
 	if (comparingType == HLSLBaseType_UserDefined && comparedType == HLSLBaseType_UserDefined)
 	{
-		return strcmp(srcType.typeName, dstType.typeName) == 0 ? 0 : -1;
+		return String_Equal(srcType.typeName, dstType.typeName) ? 0 : -1;
 	}
 
 	if ((comparingType == HLSLBaseType_UserDefined && comparedType != HLSLBaseType_UserDefined) ||
@@ -6125,9 +7371,7 @@ static int GetTypeCastRank(HLSLTree * tree, const HLSLType& srcType, const HLSLT
 		return 0;
 	}
 
-
-
-	if (comparingType == comparedType || ((srcType.typeName != NULL && dstType.typeName != NULL) && String_Equal(srcType.typeName , dstType.typeName))  )
+	if (comparingType == comparedType || ((srcType.typeName.IsNotEmpty() && dstType.typeName.IsNotEmpty()) && String_Equal(srcType.typeName , dstType.typeName))  )
 	{
 		return 0;
 	}
@@ -6147,6 +7391,12 @@ static int GetTypeCastRank(HLSLTree * tree, const HLSLType& srcType, const HLSLT
 		// Scalar dimension promotion
 		result |= (1 << 0);
 	}
+	else if ((srcDesc.numDimensions == dstDesc.numDimensions && (srcDesc.numComponents > dstDesc.numComponents || srcDesc.height > dstDesc.height)) ||
+		(srcDesc.numDimensions > 0 && dstDesc.numDimensions == 0))
+	{
+		// Truncation
+		result |= (1 << 4);
+	}
 	else if (srcDesc.numDimensions != dstDesc.numDimensions ||
 		srcDesc.numComponents != dstDesc.numComponents ||
 		srcDesc.height != dstDesc.height)
@@ -6160,12 +7410,6 @@ static int GetTypeCastRank(HLSLTree * tree, const HLSLType& srcType, const HLSLT
 		else// Can't convert
 			return -1;
 	}
-	else if ((srcDesc.numDimensions == dstDesc.numDimensions && (srcDesc.numComponents > dstDesc.numComponents || srcDesc.height > dstDesc.height)) ||
-			 (srcDesc.numDimensions > 0 && dstDesc.numDimensions == 0))
-	{
-		// Truncation
-		result |= (1 << 4);
-	}
 	
 	
 	return result;
@@ -6174,52 +7418,72 @@ static int GetTypeCastRank(HLSLTree * tree, const HLSLType& srcType, const HLSLT
 
 static bool GetFunctionCallCastRanks(HLSLTree* tree, const HLSLFunctionCall* call, const HLSLFunction* function, int* rankBuffer)
 {
-
-	//if (function == NULL || function->numArguments < call->numArguments)
-	if (function == NULL || function->numArguments != call->numArguments)
+	// Note theat the arguments do not need to be the same, because of default parameters.
+	if (function == NULL || function->argumentVec.size() < call->numArguments)
 	{
 		// Function not viable
 		return false;
 	}
 
-	HLSLExpression* expression = call->argument;
+	eastl::vector < HLSLExpression * > expressionVec = call->GetArguments();
 
-	/*
-	//if elementType exists only
-	if (		expression->expressionType.elementType != HLSLBaseType_Unknown)
+	eastl::vector < HLSLArgument * > argumentVec = function->GetArguments();
+	ASSERT_PARSER(expressionVec.size() <= argumentVec.size());
+
+	for (int i = 0; i < expressionVec.size(); ++i)
 	{
-		expression->expressionType.baseType = expression->expressionType.elementType;
-		expression->expressionType.elementType = HLSLBaseType_Unknown;		
-	}
-	*/
+		HLSLExpression* expression = expressionVec[i];// call->callArgument;
+		HLSLType expType = expression->expressionType;
 
-
-	const HLSLArgument* argument = function->argument;
-   
-	for (int i = 0; i < call->numArguments; ++i)
-	{
-		//handle preprossesor branch
-		if (argument->type.baseType == HLSLBaseType_Unknown)
+		// if we are a texture state expression, and we hae an index type, then we want to return the type
+		// of data inside the texture, not the texture itself.
+		if (expression->nodeType == HLSLTextureStateExpression::s_type)
 		{
-			argument = argument->nextArgument;
-			i--;
-			continue;
+			HLSLTextureStateExpression * texExpression = static_cast<HLSLTextureStateExpression*>(expression);
+
+			if (texExpression->indexExpression != NULL)
+			{
+				HLSLType elemType;
+				elemType.baseType = expType.elementType;
+
+				expType = elemType;
+			}
+			else if(texExpression->functionExpression != NULL)
+			{
+				HLSLType elemType;
+				elemType.baseType = texExpression->functionExpression->expressionType.baseType;
+
+				expType = elemType;
+
+			}
 		}
 
-		int rank = GetTypeCastRank(tree, expression->expressionType, argument->type);
+		const HLSLArgument* argument = argumentVec[i];
+
+		int rank = GetTypeCastRank(tree, expType, argument->argType);
 		if (rank == -1)
 		{
 			return false;
 		}
 
+		// if it is an in/out param, don't allow any casts
+		if (argument->modifier == HLSLArgumentModifier_Inout ||
+			argument->modifier == HLSLArgumentModifier_Out)
+		{
+			if (rank != 0)
+			{
+				return false;
+			}
+		}
+
+
+
 		rankBuffer[i] = rank;
-		
-		argument = argument->nextArgument;
-		expression = expression->nextExpression;
 	}
 
-	for (int i = call->numArguments; i < function->numArguments; ++i)
+	for (int i = (int)expressionVec.size(); i < (int)argumentVec.size(); ++i)
 	{
+		const HLSLArgument* argument = argumentVec[i];
 		if (argument->defaultValue == NULL)
 		{
 			// Function not viable.
@@ -6228,7 +7492,6 @@ static bool GetFunctionCallCastRanks(HLSLTree* tree, const HLSLFunctionCall* cal
 	}
 
 	return true;
-
 }
 
 struct CompareRanks
@@ -6281,7 +7544,7 @@ static CompareFunctionsResult CompareFunctions(HLSLTree* tree, const HLSLFunctio
 
 }
 
-static bool GetBinaryOpResultType(HLSLBinaryOp binaryOp, const HLSLType& type1, const HLSLType& type2, HLSLType& result)
+bool HLSLParser::GetBinaryOpResultType(HLSLBinaryOp binaryOp, const HLSLType& type1, const HLSLType& type2, HLSLType& result)
 {
 
 	if (type1.baseType < HLSLBaseType_FirstNumeric || type1.baseType > HLSLBaseType_LastNumeric || type1.array ||
@@ -6318,60 +7581,49 @@ static bool GetBinaryOpResultType(HLSLBinaryOp binaryOp, const HLSLType& type1, 
 		break;
 	}
 
-	result.typeName     = NULL;
+	result.typeName.Reset();
 	result.array        = false;
 	result.arraySize    = NULL;
 	result.flags        = (type1.flags & type2.flags) & HLSLTypeFlag_Const; // Propagate constness.
 	
+
 	return result.baseType != HLSLBaseType_Unknown;
 
 }
 
-HLSLParser::HLSLParser(Allocator* allocator, const char* fileName[], const char* buffer, size_t length, const char* entryName, Target target, Language language, const char* bufferForInlcuded[], int includedCounter) :
-	//m_tokenizer(fileName, buffer, length),
-	m_userTypes(allocator),
-	m_Buffers(allocator),
-	m_samplerStates(allocator),
-	m_preProcessors(allocator),
-	m_textureStates(allocator),
-	//m_rwtextureStates(allocator),
-	//m_structuredBuffer(allocator),
-	//m_rwBuffer(allocator),
-	//m_rwStructuredBuffer(allocator),
-	m_textureStateExpressions(allocator),
-	//m_rwtextureStateExpressions(allocator),
-	m_variables(allocator),
-	m_functions(allocator),
-	m_target(target),
-	m_language(language),
-	m_PrepropStack(allocator)
+HLSLParser::HLSLParser(StringLibrary * stringLibrary, IntrinsicHelper * intrinsicHelper, FullTokenizer * pTokenizer, const char* entryName, Parser::Target target, Parser::Language language, const char debugTokenFileName[])
 {
-	
+	m_pStringLibrary = stringLibrary;
+	m_pFullTokenizer = pTokenizer;
 
-	pTokenizerForIncludedCount = includedCounter;
-
-	for (int i = 0; i < pTokenizerForIncludedCount; i++)
+	if (debugTokenFileName != nullptr)
 	{
-		pTokenizerForIncluded[i] = new HLSLTokenizer(fileName[i], bufferForInlcuded[i], strlen(bufferForInlcuded[i]) );
+		if (strlen(debugTokenFileName) > 0)
+		{
+			m_pFullTokenizer->DumpTokensToFile(debugTokenFileName);
+		}
 	}
-	
-
-	mainTokenizer = new HLSLTokenizer(fileName[pTokenizerForIncludedCount], buffer, length);
 
 	m_numGlobals = 0;
 	m_tree = NULL;
-	m_entryName = entryName;
-	
-	m_CurrentPrePropStack = -1;
-	m_BranchCurrentStack = 0;
-	m_BranchValidStack = 0;
 
-	m_bEmbrace = true;
+	m_entryNameStr = entryName;
+
+	m_intrinsicHelper = intrinsicHelper;
+
+	eastl::vector < eastl::string > allNames = m_pFullTokenizer->GetAllFileNames();
+
+	// add strings to string library
+	for (int i = 0; i < allNames.size(); i++)
+	{
+		stringLibrary->InsertDirect(allNames[i]);
+	}
+
 }
 
 bool HLSLParser::Check(int token)
 {
-	if (currentTokenizer->GetToken() == token)
+	if (m_pFullTokenizer->GetToken() == token)
 	{
 		return true;
 	}
@@ -6380,9 +7632,9 @@ bool HLSLParser::Check(int token)
 
 bool HLSLParser::Accept(int token)
 {
-	if (currentTokenizer->GetToken() == token)
+	if (m_pFullTokenizer->GetToken() == token)
 	{
-		currentTokenizer->Next();
+		m_pFullTokenizer->Next();
 	   return true;
 	}
 	return false;
@@ -6390,9 +7642,9 @@ bool HLSLParser::Accept(int token)
 
 bool HLSLParser::Accept(const char* token)
 {
-	if (currentTokenizer->GetToken() == HLSLToken_Identifier && String_Equal( token, currentTokenizer->GetIdentifier() ) )
+	if (m_pFullTokenizer->GetToken() == HLSLToken_Identifier && String_Equal( token, m_pFullTokenizer->GetIdentifier() ) )
 	{
-		currentTokenizer->Next();
+		m_pFullTokenizer->Next();
 		return true;
 	}
 	return false;
@@ -6403,10 +7655,10 @@ bool HLSLParser::Expect(int token)
 	if (!Accept(token))
 	{
 		char want[HLSLTokenizer::s_maxIdentifier];
-		currentTokenizer->GetTokenName(token, want);
-		char near[HLSLTokenizer::s_maxIdentifier];
-		currentTokenizer->GetTokenName(near);
-		currentTokenizer->Error("Syntax error: expected '%s' near '%s'", want, near);
+		m_pFullTokenizer->GetTokenName(token, want);
+		char nearToken[HLSLTokenizer::s_maxIdentifier];
+		m_pFullTokenizer->GetTokenName(nearToken);
+		m_pFullTokenizer->Error("Syntax error: expected '%s' near '%s'", want, nearToken);
 		return false;
 	}
 	return true;
@@ -6417,85 +7669,48 @@ bool HLSLParser::Expect(const char * token)
 	if (!Accept(token))
 	{
 		const char * want = token;
-		char near[HLSLTokenizer::s_maxIdentifier];
-		currentTokenizer->GetTokenName(near);
-		currentTokenizer->Error("Syntax error: expected '%s' near '%s'", want, near);
+		char nearToken[HLSLTokenizer::s_maxIdentifier];
+		m_pFullTokenizer->GetTokenName(nearToken);
+		m_pFullTokenizer->Error("Syntax error: expected '%s' near '%s'", want, nearToken);
 		return false;
 	}
 	return true;
 }
 
-
-bool HLSLParser::AcceptIdentifier(const char*& identifier)
+bool HLSLParser::AcceptIdentifier(CachedString & identifier)
 {
-	if (currentTokenizer->GetToken() == HLSLToken_Identifier)
+	//return AcceptIdentifier(identifier.m_str);
+
+	if (m_pFullTokenizer->GetToken() == HLSLToken_Identifier)
 	{
-		identifier = m_tree->AddString(currentTokenizer->GetIdentifier() );
-		currentTokenizer->Next();
+		identifier = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
+		m_pFullTokenizer->Next();
 		return true;
 	}
 	return false;
 }
 
-int HLSLParser::AcceptMacroIdentifier(const char*& identifier)
-{
-	if (currentTokenizer->GetToken() == HLSLToken_Identifier)
-	{
-		identifier = m_tree->AddString(currentTokenizer->GetIdentifier());
-		
-		const char* buffer = currentTokenizer->GetBufferAddress();
-
-		//if it is space
-		if (buffer[0] == ' ' || buffer[0] == '\t')
-		{
-			currentTokenizer->Next();
-			return 1;
-		}		
-		else if (buffer[0] == '\n')
-		{
-			currentTokenizer->Next();
-			return 2;
-		}
-		else
-		{
-			
-
-			currentTokenizer->Next();
-			return 0;
-		}		
-	}
-	return -1;
-}
-
-bool HLSLParser::ExpectIdentifier(const char*& identifier)
+bool HLSLParser::ExpectIdentifier(CachedString & identifier)
 {
 	if (!AcceptIdentifier(identifier))
 	{
-		
-		char near[HLSLTokenizer::s_maxIdentifier];
-		currentTokenizer->GetTokenName(near);
-		currentTokenizer->Error("Syntax error: expected identifier near '%s'", near);
+
+		char nearToken[HLSLTokenizer::s_maxIdentifier];
+		m_pFullTokenizer->GetTokenName(nearToken);
+		m_pFullTokenizer->Error("Syntax error: expected identifier near '%s'", nearToken);
 		return false;
 	}
 
 	return true;
-}
 
-bool HLSLParser::ExpectIdentifierForDefine(const char*& identifier)
-{
-	if (!AcceptIdentifier(identifier))
-	{
-		return false;
-	}
-	return true;
 }
 
 bool HLSLParser::AcceptFloat(float& value)
 {
-	if (currentTokenizer->GetToken() == HLSLToken_FloatLiteral)
+	if (m_pFullTokenizer->GetToken() == HLSLToken_FloatLiteral)
 	{
-		value = currentTokenizer->GetFloat();
-		currentTokenizer->Next();
+		value = m_pFullTokenizer->GetFloat();
+		m_pFullTokenizer->Next();
 		return true;
 	}
 	return false;
@@ -6503,10 +7718,32 @@ bool HLSLParser::AcceptFloat(float& value)
 
 bool HLSLParser::AcceptHalf( float& value )
 {
-	if(currentTokenizer->GetToken() == HLSLToken_HalfLiteral )
+	if(m_pFullTokenizer->GetToken() == HLSLToken_HalfLiteral )
 	{
-		value = currentTokenizer->GetFloat();
-		currentTokenizer->Next();
+		value = m_pFullTokenizer->GetFloat();
+		m_pFullTokenizer->Next();
+		return true;
+	}
+	return false;
+}
+
+bool HLSLParser::AcceptMin16Float(float& value)
+{
+	if (m_pFullTokenizer->GetToken() == HLSLToken_Min16FloatLiteral)
+	{
+		value = m_pFullTokenizer->GetFloat();
+		m_pFullTokenizer->Next();
+		return true;
+	}
+	return false;
+}
+
+bool HLSLParser::AcceptMin10Float(float& value)
+{
+	if (m_pFullTokenizer->GetToken() == HLSLToken_Min10FloatLiteral)
+	{
+		value = m_pFullTokenizer->GetFloat();
+		m_pFullTokenizer->Next();
 		return true;
 	}
 	return false;
@@ -6514,10 +7751,10 @@ bool HLSLParser::AcceptHalf( float& value )
 
 bool HLSLParser::AcceptInt(int& value)
 {
-	if (currentTokenizer->GetToken() == HLSLToken_IntLiteral)
+	if (m_pFullTokenizer->GetToken() == HLSLToken_IntLiteral)
 	{
-		value = currentTokenizer->GetInt();
-		currentTokenizer->Next();
+		value = m_pFullTokenizer->GetInt();
+		m_pFullTokenizer->Next();
 		return true;
 	}
 	return false;
@@ -6525,61 +7762,19 @@ bool HLSLParser::AcceptInt(int& value)
 
 bool HLSLParser::AcceptUint(unsigned int& value)
 {
-	if (currentTokenizer->GetToken() == HLSLToken_UintLiteral)
+	if (m_pFullTokenizer->GetToken() == HLSLToken_UintLiteral)
 	{
-		value = currentTokenizer->GetuInt();
-		currentTokenizer->Next();
+		value = m_pFullTokenizer->GetuInt();
+		m_pFullTokenizer->Next();
 		return true;
 	}
 	return false;
 }
 
-bool HLSLParser::GenerateMacroFunctions(HLSLFunction* originalFunction, HLSLBaseType baseType)
+const char * HLSLParser::GetCstr(const CachedString & currStr) const
 {
-
-	HLSLFunction* function = m_tree->AddNode<HLSLFunction>(currentTokenizer->GetFileName(), currentTokenizer->GetLineNumber());
-	function->name = originalFunction->name;
-	function->returnType.baseType = baseType;
-	function->returnType.typeName = "";
-
-	BeginScope();
-
-	HLSLArgument* currentArgument = originalFunction->argument;
-	
-	HLSLArgument* currentDestArgumentPointer = NULL;
-	
-
-	while (currentArgument)
-	{
-
-		HLSLArgument* currentDestArgument = m_tree->AddNode<HLSLArgument>(currentTokenizer->GetFileName(), currentTokenizer->GetLineNumber());		
-
-		if (function->argument == NULL)
-		{
-			function->argument = currentDestArgument;
-			currentDestArgumentPointer = function->argument;
-		}
-		else
-		{
-			currentDestArgumentPointer->nextArgument = currentDestArgument;
-			currentDestArgumentPointer = currentDestArgumentPointer->nextArgument;
-		}
-
-		
-		currentDestArgument->type.baseType = function->returnType.baseType;
-		currentDestArgument->modifier = currentArgument->modifier;
-
-		currentArgument = currentArgument->nextArgument;
-	}
-
-	function->numArguments = originalFunction->numArguments;
-
-	m_functions.PushBack(function);
-
-	return true;
+	return FetchCstr(m_pStringLibrary, currStr);
 }
-
-
 
 
 bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
@@ -6590,194 +7785,23 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 	int line             = GetLineNumber();
 	const char* fileName = GetFileName();
 	
-#ifdef _DEBUG
-	if (line == 125)
-	{
-		int debug = 345;
-	}
-#endif
-
 	HLSLBaseType type;
-	const char*  typeName = NULL;
+	CachedString typeName;
 	int          typeFlags = false;
 
 	bool doesNotExpectSemicolon = false;
-	bool ValidPreprocessor = false;
 
-
-	if (Check(HLSLToken_USERMACRO))
-	{
-		//Confetti's rule
-		//Handle UserMacro Comment
-
-		currentTokenizer->Next();
-
-		if (!Accept(':'))
-		{
-			return false;
-		}
-
-		HLSLpreprocessor * preProcessor = m_tree->AddNode<HLSLpreprocessor>(fileName, line);
-		preProcessor->type = HLSLBaseType_UserMacro;
-		
-		if (!AcceptIdentifier(preProcessor->name))
-			return false;
-
-
-		if (Accept('['))
-		{
-			HLSLExpression* exp = NULL;
-
-			while (!Accept(']'))
-			{
-				if (preProcessor->userMacroExpression == NULL)
-				{
-					ParseExpression(preProcessor->userMacroExpression);
-					exp = preProcessor->userMacroExpression;
-				}
-				else
-				{
-					ParseExpression(exp->nextExpression);
-					exp = exp->nextExpression;
-				}
-
-				 Accept(',');
-			}			
-		}
-
-		m_preProcessors.PushBack(preProcessor);
-		doesNotExpectSemicolon = true;
-
-		statement = preProcessor;
-	}
-	else if (Accept(HLSLToken_P_Define))
-	{		
-		
-		//Define preprocessor
-		//Doesn't support Macro function yet
-		const char* defineIndentifier = NULL;
-
-		int result = AcceptMacroIdentifier(defineIndentifier);
-
-		if (result == -1)
-		{			
-			return false;
-		}
-		HLSLpreprocessor * preProcessor = m_tree->AddNode<HLSLpreprocessor>(defineIndentifier, line);
-		preProcessor->type = HLSLBaseType_PreProcessorDefine;
-		preProcessor->preprocessorType = HLSLToken_P_Define;
-
-		preProcessor->name = defineIndentifier;
-		strcpy(preProcessor->identifier, currentTokenizer->GetIdentifier());
-
-		bool needEndParen;
-				
-		//Macro Function
-		if (result == 0)
-		{
-			if (Accept('('))
-			{
-				//make functions for every basic type
-
-				HLSLFunction* function = m_tree->AddNode<HLSLFunction>(fileName, line);
-				function->name = preProcessor->name;
-				function->returnType.baseType = HLSLBaseType_Int;
-				function->returnType.typeName = "";
-
-				BeginScope();
-
-				if (!ParseMacroFunctionArgumentList(function->argument, function->numArguments, function->returnType.baseType))
-				{
-					return false;
-				}
-
-
-				m_functions.PushBack(function);
-
-				char macroFunctionBody[1024];
-				currentTokenizer->GetRestofWholeline(macroFunctionBody);
-				function->macroFunctionBody = m_tree->AddString(macroFunctionBody);
-
-				EndScope();
-
-				currentTokenizer->Next();
-
-				preProcessor->macroFunction = function;
-
-
-				//GenerateMacroFunctions(function, HLSLBaseType_Half);
-				GenerateMacroFunctions(function, HLSLBaseType_Int);
-				GenerateMacroFunctions(function, HLSLBaseType_Uint);
-
-			}
-			else
-			{
-				return false;
-			}
-
-			
-		}
-		else if (result == 2)
-		{
-			//if define macro is empty
-			preProcessor->preprocessorType = HLSLBaseType_Empty;
-
-			HLSLType temp;
-			temp.array = false;
-			temp.baseType = preProcessor->type;
-
-			DeclareVariable(preProcessor->name, temp);
-		}
-		else
-		{			
-			if (!ParseTerminalExpression(preProcessor->expression, needEndParen, true))
-			{
-				return false;
-			}		
-
-			preProcessor->type = preProcessor->expression->expressionType.baseType;
-
-			HLSLType temp;
-			temp.array = false;
-			temp.baseType = preProcessor->type;
-
-			DeclareVariable(preProcessor->name, temp);
-		}
-		
-
-		m_preProcessors.PushBack(preProcessor);
-		doesNotExpectSemicolon = true;
-
-		statement = preProcessor;
-	}
-	else if (statement = HandleBranchPreprofessor(fileName, line, &doesNotExpectSemicolon, &ValidPreprocessor))
-	{
-		if (!ValidPreprocessor)
-			return false;
-		else
-		{			
-			currentPreprocessor = (HLSLpreprocessor*)statement;
-
-
-			if (currentPreprocessor->preprocessorType == HLSLToken_P_Endif)
-			{
-				currentPreprocessor = NULL;
-			}
-
-			return true;
-		}
-	}	
-	else if (Accept(HLSLToken_Struct))
+	if (Accept(HLSLToken_Struct))
 	{
 		// Struct declaration
 
 		// 00. add new Struct to the main tree
 		HLSLStruct* structure = m_tree->AddNode<HLSLStruct>(fileName, line);
 
-		m_userTypes.PushBack(structure);
+		m_userTypes.push_back(structure);
 
 		// 01. get Identifier
-		const char* structName = NULL;
+		CachedString structName;
 		if (!ExpectIdentifier(structName))
 			return false;
 		else
@@ -6786,7 +7810,7 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 		// If it is a Hull shader for MSL, hide it to avoid to print same duplicated one
 		if (FindUserDefinedType(structName) != NULL)
 		{
-			if (m_target == Target_HullShader && m_language == Language_MSL)
+			if (m_target == Parser::Target_HullShader && m_language == Parser::Language_MSL)
 				structure->hidden = true;
 		}
 
@@ -6810,12 +7834,6 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 					return false;
 				}			
 
-				if (m_bEmbrace == false)
-				{
-					if (field)
-						field->hidden = true;
-				}
-
 				if (lastField == NULL)
 				{
 					structure->field = field;
@@ -6837,7 +7855,7 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 
 		statement = structure;
 	}
-	else if(HLSLToken_First_Buffer_Type <= currentTokenizer->GetToken() && HLSLToken_Last_Buffer_Type >= currentTokenizer->GetToken())
+	else if(HLSLToken_First_Buffer_Type <= m_pFullTokenizer->GetToken() && HLSLToken_Last_Buffer_Type >= m_pFullTokenizer->GetToken())
 	{
 		// Buffer declaration
 
@@ -6862,24 +7880,24 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 				buffer->userDefinedElementTypeStr = buffer->type.typeName;
 			}
 
-
 			// 02. get Identifier			
-			if (!ExpectIdentifier(buffer->name))
+			if (!ExpectIdentifier(buffer->cachedName))
 				return false;
 
 			// If it is a Hull shader for MSL, hide it to avoid to print same duplicated one
-			if (FindBuffer(buffer->name) != NULL)
+			if (FindBuffer(buffer->cachedName) != NULL)
 			{
-				if (m_target == Target_HullShader && m_language == Language_MSL)
+				if (m_target == Parser::Target_HullShader && m_language == Parser::Language_MSL)
 					buffer->hidden = true;
 			}			
 
 			// Confetti's Rule : if buffer name includes "rootconstant", it is constant buffer			
-			if(stristr(buffer->name, "rootconstant"))
+			if(stristr(GetCstr(buffer->cachedName), "rootconstant"))
 				buffer->bPushConstant = true;
 
 			// 03. get assigned register (necessary)
-			GetRegisterAssignment(buffer, "Constant Buffer (register b)");
+			if (!GetRegisterAssignment(buffer, "Constant Buffer (register b)"))
+				return false;
 			
 			// 04. get Body (optional)
 			GetBufferBody(buffer);
@@ -6890,7 +7908,7 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 			else
 				buffer->type.array = false;
 
-			DeclareVariable(buffer->name, buffer->type);
+			DeclareVariable(buffer->cachedName, buffer->type);
 
 			// free to use semicolon
 			if (!Check(';'))
@@ -6903,16 +7921,15 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 				return false;					
 
 			// 02. get Identifier			
-			if (!ExpectIdentifier(buffer->name))
+			if (!ExpectIdentifier(buffer->cachedName))
 				return false;
 
 			// 03. get array (optional)
 			GetBufferArray(buffer);
 
-
 			// 04. get assigned register (necessary)
-			GetRegisterAssignment(buffer, "RWBuffer (register u)");
-
+			if (!GetRegisterAssignment(buffer, "RWBuffer (register u)"))
+				return false;
 			
 			// 05. add it as a Global variable
 			if (buffer->bArray)
@@ -6920,9 +7937,7 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 			else
 				buffer->type.array = false;
 
-			DeclareVariable(buffer->name, buffer->type);
-
-			//m_rwBuffer.PushBack(buffer);
+			DeclareVariable(buffer->cachedName, buffer->type);
 		}
 		else if (buffer->type.baseType == HLSLBaseType_StructuredBuffer || buffer->type.baseType == HLSLBaseType_RasterizerOrderedStructuredBuffer)
 		{
@@ -6931,14 +7946,15 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 				return false;
 
 			// 02. get Identifier			
-			if (!ExpectIdentifier(buffer->name))
+			if (!ExpectIdentifier(buffer->cachedName))
 				return false;
 
 			// 03. get array (optional)
 			GetBufferArray(buffer);
 
 			// 04. get assigned register (necessary)
-			GetRegisterAssignment(buffer, "Structure Buffer (register t)");
+			if (!GetRegisterAssignment(buffer, "Structure Buffer (register t)"))
+				return false;
 
 			// 05. add it as a Global variable
 			if (buffer->bArray)
@@ -6946,7 +7962,7 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 			else
 				buffer->type.array = false;
 
-			DeclareVariable(buffer->name, buffer->type);
+			DeclareVariable(buffer->cachedName, buffer->type);
 		}
 		else if (buffer->type.baseType == HLSLBaseType_PureBuffer)
 		{
@@ -6955,14 +7971,15 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 				return false;
 
 			// 02. get Identifier			
-			if (!ExpectIdentifier(buffer->name))
+			if (!ExpectIdentifier(buffer->cachedName))
 				return false;
 
 			// 03. get array (optional)
 			GetBufferArray(buffer);
 
 			// 04. get assigned register (necessary)
-			GetRegisterAssignment(buffer, "Buffer (register t)");
+			if (!GetRegisterAssignment(buffer, "Buffer (register t)"))
+				return false;
 
 			// 05. add it as a Global variable
 			if (buffer->bArray)
@@ -6970,7 +7987,7 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 			else
 				buffer->type.array = false;
 
-			DeclareVariable(buffer->name, buffer->type);
+			DeclareVariable(buffer->cachedName, buffer->type);
 		}
 		else if (buffer->type.baseType == HLSLBaseType_RWStructuredBuffer)
 		{
@@ -6979,14 +7996,15 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 				return false;
 
 			// 02. get Identifier			
-			if (!ExpectIdentifier(buffer->name))
+			if (!ExpectIdentifier(buffer->cachedName))
 				return false;
 
 			// 03. get array (optional)
 			GetBufferArray(buffer);
 
 			// 04. get assigned register (necessary)
-			GetRegisterAssignment(buffer, "RWStructure Buffer (register u)");
+			if (!GetRegisterAssignment(buffer, "RWStructure Buffer (register u)"))
+				return false;
 
 			// 05. add it as a Global variable			
 
@@ -6995,59 +8013,55 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 			else
 				buffer->type.array = false;
 			
-			DeclareVariable(buffer->name, buffer->type);
-
-			//m_rwStructuredBuffer.PushBack(buffer);
+			DeclareVariable(buffer->cachedName, buffer->type);
 		}
 		else if (buffer->type.baseType == HLSLBaseType_ByteAddressBuffer)
 		{
 			// 01. get Identifier			
-			if (!ExpectIdentifier(buffer->name))
+			if (!ExpectIdentifier(buffer->cachedName))
 				return false;
 
 			// 02. get array (optional)
 			GetBufferArray(buffer);
 
 			// 03. get assigned register (necessary)
-			GetRegisterAssignment(buffer, "ByteAddress Buffer (register t)");
-			
+			if (!GetRegisterAssignment(buffer, "ByteAddress Buffer (register t)"))
+				return false;
+
 			buffer->type.array = true;
 
 			//assume that ByteAddressBuffer is using for Int
 			buffer->type.elementType = HLSLBaseType_Int;
 
 
-			DeclareVariable(buffer->name, buffer->type);
+			DeclareVariable(buffer->cachedName, buffer->type);
 		}
 		else if (buffer->type.baseType == HLSLBaseType_RWByteAddressBuffer || buffer->type.baseType == HLSLBaseType_RasterizerOrderedByteAddressBuffer)
 		{
 			// 01. get Identifier			
-			if (!ExpectIdentifier(buffer->name))
+			if (!ExpectIdentifier(buffer->cachedName))
 				return false;
 
 			// 02. get array (optional)
 			GetBufferArray(buffer);
 
 			// 03. get assigned register (necessary)
-			GetRegisterAssignment(buffer, "ByteAddress Buffer (register t)");
+			if (!GetRegisterAssignment(buffer, "ByteAddress Buffer (register t)"))
+				return false;
 
 			buffer->type.array = true;
 
 			//assume that ByteAddressBuffer is using for Int
 			buffer->type.elementType = HLSLBaseType_Int;
 
-			DeclareVariable(buffer->name, buffer->type);
+			DeclareVariable(buffer->cachedName, buffer->type);
 		}
 				
-
-		//buffer->userDefinedElementTypeStr = typeName;
-
 		statement = buffer;
-		m_Buffers.PushBack(buffer);
+		m_Buffers.push_back(buffer);
 	}	
-	else if (HLSLToken_First_Texture_Type <= currentTokenizer->GetToken() && HLSLToken_Last_Texture_Type >= currentTokenizer->GetToken())
+	else if (HLSLToken_First_Texture_Type <= m_pFullTokenizer->GetToken() && HLSLToken_Last_Texture_Type >= m_pFullTokenizer->GetToken())
 	{
-
 		// 00. add new texture to the main tree
 		HLSLTextureState* texturestate = m_tree->AddNode<HLSLTextureState>(fileName, line);
 		
@@ -7058,16 +8072,17 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 		GetTextureElementType(texturestate, false, &typeFlags, true);
 
 		// 03. get Identifier
-		if (!ExpectIdentifier(texturestate->name))
+		if (!ExpectIdentifier(texturestate->cachedName))
 			return false;
 
 		// 04. get array (optional)
 		GetTextureArray(texturestate);
 
 		// 05. get register (necessary)
-		GetRegisterAssignment(texturestate, "Texture (register t for Read only, register u for R/W)");
+		if (!GetRegisterAssignment(texturestate, "Texture (register t for Read only, register u for R/W)"))
+			return false;
 
-		m_textureStates.PushBack(texturestate);
+		m_textureStates.push_back(texturestate);
 
 		statement = texturestate;
 
@@ -7088,32 +8103,27 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 		//SamplerState can be declared or be passed from outside
 		HLSLSamplerState* samplerstate = m_tree->AddNode<HLSLSamplerState>(fileName, line);
 
-		if (currentTokenizer->GetToken() == HLSLToken_SamplerComparisonState)
+		if (m_pFullTokenizer->GetToken() == HLSLToken_SamplerComparisonState)
 		{
 			samplerstate->IsComparisionState = true;
-			currentTokenizer->Next();
+			m_pFullTokenizer->Next();
 		}
 
 		// SamplerState declaration.
-		const char* samplerStateName = NULL;
+		CachedString samplerStateName;
 		if (!ExpectIdentifier(samplerStateName))
 		{
 			return false;
 		}
-
 		
-		samplerstate->name = samplerStateName;
-
-
-		
-	
+		samplerstate->cachedName = samplerStateName;
 
 		// Handle array syntax.
 		if (Accept('['))
 		{
 			if (!Accept(']'))
 			{
-				if (!ParseExpression(samplerstate->type.arraySize) || !Expect(']'))
+				if (!ParseExpression(samplerstate->type.arraySize,true,0) || !Expect(']'))
 				{
 					return false;
 				}
@@ -7121,11 +8131,11 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 			samplerstate->type.array = true;
 		}
 
-		m_samplerStates.PushBack(samplerstate);
+		m_samplerStates.push_back(samplerstate);
 
 		if (Check('{'))
 		{
-			currentTokenizer->Next();
+			m_pFullTokenizer->Next();
 			samplerstate->bStructured = true;
 			HLSLSamplerStateExpression* lastExpression = NULL;
 
@@ -7141,8 +8151,7 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 
 				ParseSamplerStateExpression(expression);
 
-
-				ASSERT(expression != NULL);
+				ASSERT_PARSER(expression != NULL);
 				if (lastExpression == NULL)
 				{
 					samplerstate->expression = expression;
@@ -7153,46 +8162,18 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 				}
 				lastExpression = expression;
 			}
-
-			statement = samplerstate;
 		}
-		else if (Accept(':'))// Handle optional register.
-		{			
-			if (!Expect(HLSLToken_Register) || !Expect('(') || !ExpectIdentifier(samplerstate->registerName))
-			{
-				return false;
-			}
-
-			// if there is space
-			if (Check(','))
-			{
-				currentTokenizer->Next();
-				//get space name
-				ExpectIdentifier(samplerstate->registerSpaceName);
-			}
-			else
-			{
-				//default Sapce Name
-				samplerstate->registerSpaceName = "space0";
-			}
-
-			if (!Expect(')'))
-			{
-				return false;
-			}
-
-			statement = samplerstate;
-		}	
-		else
+		else if (!GetRegisterAssignment(samplerstate, "Sampler (register s)"))
 		{
-			currentTokenizer->Error("Missed SamplerState's register");
 			return false;
 		}
-	}	
+
+		statement = samplerstate;
+	}
 	else if (AcceptType(true, type, typeName, &typeFlags))
 	{
 		// Global declaration (uniform or function).
-		const char* globalName = NULL;
+		CachedString globalName;
 		if (!ExpectIdentifier(globalName))
 		{
 			return false;
@@ -7203,15 +8184,23 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 			// Function declaration.
 
 			HLSLFunction* function = m_tree->AddNode<HLSLFunction>(fileName, line);
-			function->name                  = globalName;
+			function->name = globalName;
 			function->returnType.baseType   = type;
-			function->returnType.typeName   = typeName;
+			function->returnType.typeName = typeName;
 
 			BeginScope();
 
-			if (!ParseArgumentList(function->argument, function->numArguments))
+			eastl::vector < HLSLArgument * > argVec;
+
+			if (!ParseArgumentVec(argVec))
 			{
 				return false;
+			}
+
+			function->argumentVec.resize(argVec.size());
+			for (int i = 0; i < argVec.size(); i++)
+			{
+				function->argumentVec[i] = argVec[i];
 			}
 
 			const HLSLFunction* declaration = FindFunction(function);
@@ -7222,7 +8211,7 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 				// Add a function entry so that calls can refer to it
 				if (!declaration)
 				{
-					m_functions.PushBack( function );
+					m_functions.push_back( function );
 					statement = function;
 				}
 				EndScope();
@@ -7241,7 +8230,7 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 				/*
 				if (declaration->forward || declaration->statement)
 				{
-					currentTokenizer->Error("Duplicate function definition");
+					m_pFullTokenizer->Error("Duplicate function definition");
 					return false;
 				}
 				*/
@@ -7250,7 +8239,7 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 			}
 			else
 			{
-				m_functions.PushBack( function );
+				m_functions.push_back( function );
 			}
 
 			if (!Expect('{') || !ParseBlock(function->statement, function->returnType))
@@ -7269,7 +8258,7 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 		{
 			// Uniform declaration.
 			HLSLDeclaration* declaration = m_tree->AddNode<HLSLDeclaration>(fileName, line);
-			declaration->name            = globalName;
+			declaration->cachedName = globalName;
 			declaration->type.baseType   = type;
 			declaration->type.flags      = typeFlags;
 
@@ -7278,7 +8267,7 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 			{
 				if (!Accept(']'))
 				{
-					if (!ParseExpression(declaration->type.arraySize) || !Expect(']'))
+					if (!ParseExpression(declaration->type.arraySize,true,0) || !Expect(']'))
 					{
 						return false;
 					}
@@ -7307,13 +8296,8 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 			}
 
 			// TODO: Multiple variables declared on one line.
-			
 			statement = declaration;
 		}
-	}
-	else if(IsEmptyDefineIdentifier(statement))
-	{
-		doesNotExpectSemicolon = true;			
 	}
 	else if (ParseTechnique(statement)) {
 		doesNotExpectSemicolon = true;
@@ -7331,31 +8315,6 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 
 	return doesNotExpectSemicolon || Expect(';');
 }
-
-bool HLSLParser::IsEmptyDefineIdentifier(HLSLStatement* &statement)
-{
-	const HLSLpreprocessor* preprocessorExp = FindPreprocessorDefinedType(currentTokenizer->GetIdentifier());
-	if (preprocessorExp != NULL)
-	{
-		if (preprocessorExp->preprocessorType == HLSLBaseType_Empty)
-		{
-			if (String_Equal(preprocessorExp->name, "CONF_EARLY_DEPTH_STENCIL"))
-			{
-				statement = m_tree->AddNode<HLSLpreprocessor>(GetFileName(), GetLineNumber());
-
-				HLSLpreprocessor* pPreprocessor = (HLSLpreprocessor*)statement;
-				pPreprocessor->type = HLSLBaseType_Empty;
-				pPreprocessor->name = preprocessorExp->name;
-			}
-
-			currentTokenizer->Next();
-			return true; //just skip
-		}
-	}
-
-	return false;
-}
-
 
 bool HLSLParser::ParseStatementOrBlock(HLSLStatement*& firstStatement, const HLSLType& returnType, bool bSwitchStatement)
 {
@@ -7379,8 +8338,6 @@ bool HLSLParser::ParseStatementOrBlock(HLSLStatement*& firstStatement, const HLS
 		{
 			return ParseStatement(firstStatement, returnType);
 		}
-
-		
 	}
 }
 
@@ -7400,17 +8357,6 @@ bool HLSLParser::ParseSwitchBlocks(HLSLStatement*& firstStatement, const HLSLTyp
 		if (!ParseStatement(curStatement, returnType))
 		{
 			return false;
-		}
-
-		if (currentPreprocessor && curStatement)
-		{
-			curStatement->preprocessor = currentPreprocessor->contents;
-		}
-
-		if (m_bEmbrace == false)
-		{
-			if (curStatement)
-				curStatement->hidden = true;
 		}
 
 		if (curStatement != NULL)
@@ -7445,17 +8391,6 @@ bool HLSLParser::ParseBlock(HLSLStatement*& firstStatement, const HLSLType& retu
 			return false;
 		}
 
-		if (currentPreprocessor && statement)
-		{
-			statement->preprocessor = currentPreprocessor->contents;
-		}
-
-		if (m_bEmbrace == false)
-		{
-			if (statement)
-				statement->hidden = true;
-		}
-
 		if (statement != NULL)
 		{
 			if (firstStatement == NULL)
@@ -7483,17 +8418,9 @@ bool HLSLParser::ParseStatement(HLSLStatement*& statement, const HLSLType& retur
 		return true;
 	}
 
-#ifdef _DEBUG
-	if (line == 413)
-	{
-		int debug = 345;
-	}
-#endif // DEBUG
-
-	
+	FullToken baseToken = m_pFullTokenizer->GetFullToken();
 
 	bool doesNotExpectSemicolon = false;
-	bool ValidPreprocessor = false;
 
 	HLSLAttribute * attributes = NULL;
 	ParseAttributeBlock(attributes);    // @@ Leak if not assigned to node? 
@@ -7504,7 +8431,7 @@ bool HLSLParser::ParseStatement(HLSLStatement*& statement, const HLSLType& retur
 		HLSLIfStatement* ifStatement = m_tree->AddNode<HLSLIfStatement>(fileName, line);
 		ifStatement->attributes = attributes;
 					
-		if (!Expect('(') || !ParseExpression(ifStatement->condition) || !Expect(')'))
+		if (!Expect('(') || !ParseExpression(ifStatement->condition,true,0) || !Expect(')'))
 		{
 			return false;
 		}
@@ -7515,22 +8442,23 @@ bool HLSLParser::ParseStatement(HLSLStatement*& statement, const HLSLType& retur
 			return false;
 		}
 
-		for (int i = 0; i < 128; i++)
+		//for (int i = 0; i < 128; i++)
+		while (1)
 		{
 			if (Accept(HLSLToken_ElseIf))
 			{
 				HLSLIfStatement* elseifStatement = m_tree->AddNode<HLSLIfStatement>(fileName, line);
 				elseifStatement->attributes = attributes;
 
-				if (!Expect('(') || !ParseExpression(elseifStatement->condition) || !Expect(')'))
+				if (!Expect('(') || !ParseExpression(elseifStatement->condition,true,0) || !Expect(')'))
 				{
 					return false;
 				}
 
-				ifStatement->elseifStatementCounter++;
-				ifStatement->elseifStatement[i] = elseifStatement;
+				int index = (int)ifStatement->elseifStatement.size();
+				ifStatement->elseifStatement.push_back(elseifStatement);
 
-				bool result = ParseStatementOrBlock(ifStatement->elseifStatement[i]->statement, returnType, false);
+				bool result = ParseStatementOrBlock(ifStatement->elseifStatement[index]->statement, returnType, false);
 
 				if (!result)
 					return false;
@@ -7553,7 +8481,7 @@ bool HLSLParser::ParseStatement(HLSLStatement*& statement, const HLSLType& retur
 		HLSLSwitchStatement* switchStatement = m_tree->AddNode<HLSLSwitchStatement>(fileName, line);
 		switchStatement->attributes = attributes;
 
-		if (!Expect('(') || !ParseExpression(switchStatement->condition) || !Expect(')'))
+		if (!Expect('(') || !ParseExpression(switchStatement->condition,true,0) || !Expect(')'))
 		{
 			return false;
 		}
@@ -7562,7 +8490,16 @@ bool HLSLParser::ParseStatement(HLSLStatement*& statement, const HLSLType& retur
 				
 		if (!Expect('{'))
 			return false;
-
+		// For reference, the original parsing logic is below. It does assumes that "default:" is always last, but it can be anywhere.
+		// So we changed the logic to allow default to be intermixed.
+		//
+		// The other problem is that it does not support fall through. So this case is not supported by the original logic:
+		// case 0:
+		// case 1:
+		//     x = 34;
+		// That's because it expects to find an expression after the colon. Instead, after parsing a case and a colon, we need to check
+		// the next token. If the next token is "case", "default", or "}" then we skip the expression parsing.
+#if 0
 		while (Accept(HLSLToken_Case))
 		{
 			//get case numbering
@@ -7589,6 +8526,74 @@ bool HLSLParser::ParseStatement(HLSLStatement*& statement, const HLSLType& retur
 				return false;
 			}
 		}
+#endif
+
+		bool isCaseFound = false;
+		bool isDefaultFound = false;
+
+		do
+		{
+			isCaseFound = false;
+			isDefaultFound = false;
+
+			// check if we have a case, or if not, then a default
+			isCaseFound = Accept(HLSLToken_Case);
+			if (isCaseFound)
+			{
+
+				HLSLExpression* currNumber = NULL;
+				HLSLStatement* currStatement = NULL;
+
+				// the comma operator is actually legal here, but I've never seen anyone do it
+				ParseExpression(currNumber,true,0);
+
+				if (!Expect(':'))
+					return false;
+
+				HLSLToken nextToken = (HLSLToken)m_pFullTokenizer->GetToken();
+				if (nextToken == HLSLToken_Case || nextToken == HLSLToken_Default || nextToken == '}')
+				{
+					// we do not need to parse this expression
+				}
+				else
+				{
+					if (!ParseStatementOrBlock(currStatement, returnType, true))
+					{
+						return false;
+					}
+				}
+
+				switchStatement->caseNumber.push_back(currNumber);
+				switchStatement->caseStatement.push_back(currStatement);
+			}
+			else
+			{
+				// check for default
+				isDefaultFound = Accept(HLSLToken_Default);
+				if (isDefaultFound)
+				{
+					if (!Expect(':'))
+						return false;
+
+					switchStatement->caseDefaultIndex = (int)switchStatement->caseNumber.size();
+
+					HLSLToken nextToken = (HLSLToken)m_pFullTokenizer->GetToken();
+					if (nextToken == HLSLToken_Case || nextToken == HLSLToken_Default || nextToken == '}')
+					{
+						// we do not need to parse this expression
+					}
+					else
+					{
+						if (!ParseStatementOrBlock(switchStatement->caseDefault, returnType, false))
+						{
+							return false;
+						}
+					}
+				}
+			}
+
+		}
+		while (isCaseFound || isDefaultFound);
 
 		if (!Expect('}'))
 			return false;
@@ -7607,27 +8612,55 @@ bool HLSLParser::ParseStatement(HLSLStatement*& statement, const HLSLType& retur
 			return false;
 		}
 		BeginScope();
-		if (!ParseDeclaration(forStatement->initialization))
+
+		// Initializer is allowed to be empty.
+		if (Accept(';'))
 		{
-			if (!ParseExpression(forStatement->initializationWithoutDeclaration))
+			// empty initializer, so keep going
+		}
+		else
+		{
+			if (!ParseDeclaration(forStatement->initialization))
+			{
+				if (!ParseExpression(forStatement->initializationWithoutDeclaration,true,0))
+				{
+					return false;
+				}
+			}
+			if (!Expect(';'))
 			{
 				return false;
 			}
 		}
-		if (!Expect(';'))
+
+		// Allow empty condition
+		if (Accept(';'))
 		{
-			return false;
+			// empty condition, so keep going
 		}
-		ParseExpression(forStatement->condition);
-		if (!Expect(';'))
+		else
 		{
-			return false;
+			ParseExpression(forStatement->condition,true,0);
+			if (!Expect(';'))
+			{
+				return false;
+			}
 		}
-		ParseExpression(forStatement->increment);
-		if (!Expect(')'))
+
+		// Allow empty iterator
+		if (Accept(')'))
 		{
-			return false;
+			// iterator is empty
 		}
+		else
+		{
+			ParseExpression(forStatement->increment,true,0);
+			if (!Expect(')'))
+			{
+				return false;
+			}
+		}
+
 		statement = forStatement;
 		if (!ParseStatementOrBlock(forStatement->statement, returnType, false))
 		{
@@ -7647,23 +8680,8 @@ bool HLSLParser::ParseStatement(HLSLStatement*& statement, const HLSLType& retur
 		}
 		BeginScope();
 
-		/*(
-		if (!ParseDeclaration(whileStatement->initialization))
-		{
-			return false;
-		}
-		if (!Expect(';'))
-		{
-			return false;
-		}
-		*/
-		ParseExpression(whileStatement->condition);		
-		/*
-		if (!Expect(';'))
-		{
-			return false;
-		}
-		*/
+		ParseExpression(whileStatement->condition,true,0);		
+
 		EndScope();
 		if (!Expect(')'))
 		{
@@ -7678,24 +8696,6 @@ bool HLSLParser::ParseStatement(HLSLStatement*& statement, const HLSLType& retur
 		
 		return true;
 	}
-	
-	if (statement = HandleBranchPreprofessor(fileName, line, &doesNotExpectSemicolon, &ValidPreprocessor))
-	{
-		if (!ValidPreprocessor)
-			return false;
-		else
-		{
-			currentPreprocessor = (HLSLpreprocessor*)statement;
-
-
-			if (currentPreprocessor->preprocessorType == HLSLToken_P_Endif)
-			{
-				currentPreprocessor = NULL;
-			}
-
-			return true;
-		}
-	}	
 
 	if (attributes != NULL)
 	{
@@ -7746,7 +8746,7 @@ bool HLSLParser::ParseStatement(HLSLStatement*& statement, const HLSLType& retur
 		{
 
 		}
-		else if (/*!Accept(';') &&*/ !ParseExpression(returnStatement->expression))
+		else if (/*!Accept(';') &&*/ !ParseExpression(returnStatement->expression,true,0))
 		{
 			 return false;
 		}
@@ -7769,7 +8769,7 @@ bool HLSLParser::ParseStatement(HLSLStatement*& statement, const HLSLType& retur
 	{
 		statement = declaration;
 	}
-	else if (ParseExpression(expression))
+	else if (ParseExpression(expression,true,0))
 	{
 		HLSLExpressionStatement* expressionStatement;
 		expressionStatement = m_tree->AddNode<HLSLExpressionStatement>(fileName, line);
@@ -7780,7 +8780,6 @@ bool HLSLParser::ParseStatement(HLSLStatement*& statement, const HLSLType& retur
 	return Expect(';');
 }
 
-
 // IC: This is only used in block statements, or within control flow statements. So, it doesn't support semantics or layout modifiers.
 // @@ We should add suport for semantics for inline input/output declarations.
 bool HLSLParser::ParseDeclaration(HLSLDeclaration*& declaration)
@@ -7788,12 +8787,25 @@ bool HLSLParser::ParseDeclaration(HLSLDeclaration*& declaration)
 	const char* fileName    = GetFileName();
 	int         line        = GetLineNumber();
 
-#ifdef _DEBUG
-	if (line == 200)
+	bool modifierDone = false;
+	do
 	{
-		int debug = 345;
-	}
-#endif
+		modifierDone = true;
+		int startToken = m_pFullTokenizer->GetToken();
+		if (startToken == HLSLToken_RowMajor)
+		{
+			// TODO: add row major flag
+			m_pFullTokenizer->Next();
+			modifierDone = false;
+		}
+		else if (startToken == HLSLToken_ColumnMajor)
+		{
+			// TODO: add column major flag
+			m_pFullTokenizer->Next();
+			modifierDone = false;
+		}
+
+	} while (!modifierDone);
 
 	HLSLType type;
 	if (!AcceptType(/*allowVoid=*/false, type.baseType, type.typeName, &type.flags))
@@ -7807,7 +8819,7 @@ bool HLSLParser::ParseDeclaration(HLSLDeclaration*& declaration)
 	HLSLDeclaration * lastDeclaration = NULL;
 
 	do {
-		const char* name;
+		CachedString name;
 		if (!ExpectIdentifier(name))
 		{
 			// TODO: false means we didn't accept a declaration and we had an error!
@@ -7822,7 +8834,8 @@ bool HLSLParser::ParseDeclaration(HLSLDeclaration*& declaration)
 			{
 				return true;
 			}
-			if (!ParseExpression(type.arraySize) || !Expect(']'))
+			// the '[' resets priority
+			if (!ParseExpression(type.arraySize,true,0) || !Expect(']'))
 			{
 				return false;
 			}
@@ -7830,9 +8843,9 @@ bool HLSLParser::ParseDeclaration(HLSLDeclaration*& declaration)
 
 		HLSLDeclaration * declaration = m_tree->AddNode<HLSLDeclaration>(fileName, line);
 		declaration->type  = type;
-		declaration->name  = name;
+		declaration->cachedName = name;
 
-		DeclareVariable( declaration->name, declaration->type );
+		DeclareVariable( declaration->cachedName, declaration->type );
 
 		// Handle option assignment of the declared variables(s).
 		if (!ParseDeclarationAssignment( declaration )) {
@@ -7888,7 +8901,7 @@ bool HLSLParser::ParseDeclarationAssignment(HLSLDeclaration* declaration)
 				return false;
 			}
 		}
-		else if (!ParseExpression(declaration->assignment))
+		else if (!ParseExpression(declaration->assignment,false,0))
 		{
 			return false;
 		}
@@ -7900,23 +8913,7 @@ bool HLSLParser::ParseFieldDeclaration(HLSLStructField*& field)
 {
 	field = m_tree->AddNode<HLSLStructField>( GetFileName(), GetLineNumber() );
 
-
 	bool doesNotExpectSemicolon = false;
-	bool ValidPreprocessor = false;
-
-	field->preProcessor = HandleBranchPreprofessor(GetFileName(), GetLineNumber(), &doesNotExpectSemicolon, &ValidPreprocessor);
-
-	if (ValidPreprocessor)
-	{
-		currentPreprocessor = (HLSLpreprocessor*)field->preProcessor;
-
-
-		if (currentPreprocessor->preprocessorType == HLSLToken_P_Endif)
-		{
-			currentPreprocessor = NULL;
-		}
-		return true;
-	}
 
 	if (!ExpectDeclaration(false, field->type, field->name))
 	{
@@ -7935,18 +8932,11 @@ bool HLSLParser::ParseFieldDeclaration(HLSLStructField*& field)
 
 bool HLSLParser::CheckTypeCast(const HLSLType& srcType, const HLSLType& dstType)
 {
-#ifdef _DEBUG
-	if (currentTokenizer->GetLineNumber() == 243)
-	{
-		int debug = 354;
-	}
-#endif
-
 	if (GetTypeCastRank(m_tree, srcType, dstType) == -1)
 	{
-		const char* srcTypeName = GetTypeName(srcType);
-		const char* dstTypeName = GetTypeName(dstType);
-		currentTokenizer->Error("Cannot implicitly convert from '%s' to '%s'", srcTypeName, dstTypeName);
+		const char* srcTypeName = GetCstr(GetTypeName(srcType));
+		const char* dstTypeName = GetCstr(GetTypeName(dstType));
+		m_pFullTokenizer->Error("Cannot implicitly convert from '%s' to '%s'", srcTypeName, dstTypeName);
 		return false;
 	}
 	return true;
@@ -7968,9 +8958,9 @@ bool HLSLParser::ParseSamplerStateExpression(HLSLSamplerStateExpression*& expres
 		Check(HLSLToken_MipLODBias) ||
 		Check(HLSLToken_ComparisonFunc))
 	{
-		lvalueType = currentTokenizer->GetToken();
-		strcpy( expression->lvalue, currentTokenizer->GetIdentifier());
-		currentTokenizer->Next();
+		lvalueType = m_pFullTokenizer->GetToken();
+		expression->lvalue = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
+		m_pFullTokenizer->Next();
 	}
 	else
 		return false;
@@ -7987,24 +8977,24 @@ bool HLSLParser::ParseSamplerStateExpression(HLSLSamplerStateExpression*& expres
 			Check(HLSLToken_BORDER) ||
 			Check(HLSLToken_MIRROR_ONCE))
 		{
-			strcpy(expression->rvalue, currentTokenizer->GetIdentifier());
-			currentTokenizer->Next();
+			expression->rvalue = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
+			m_pFullTokenizer->Next();
 		}
 	}
 	else if (lvalueType == HLSLToken_Filter)
 	{
-		if (HLSLToken_MIN_MAG_MIP_POINT <= currentTokenizer->GetToken() && currentTokenizer->GetToken() <= HLSLToken_MAXIMUM_ANISOTROPIC)
+		if (HLSLToken_MIN_MAG_MIP_POINT <= m_pFullTokenizer->GetToken() && m_pFullTokenizer->GetToken() <= HLSLToken_MAXIMUM_ANISOTROPIC)
 		{
-			strcpy(expression->rvalue, currentTokenizer->GetIdentifier());
-			currentTokenizer->Next();
+			expression->rvalue = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
+			m_pFullTokenizer->Next();
 		}
 	}
 	else if (lvalueType == HLSLToken_ComparisonFunc)
 	{
-		if (HLSLToken_NEVER <= currentTokenizer->GetToken() && currentTokenizer->GetToken() <= HLSLToken_ALWAYS)
+		if (HLSLToken_NEVER <= m_pFullTokenizer->GetToken() && m_pFullTokenizer->GetToken() <= HLSLToken_ALWAYS)
 		{
-			strcpy(expression->rvalue, currentTokenizer->GetIdentifier());
-			currentTokenizer->Next();
+			expression->rvalue = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
+			m_pFullTokenizer->Next();
 		}
 	}
 	
@@ -8014,295 +9004,42 @@ bool HLSLParser::ParseSamplerStateExpression(HLSLSamplerStateExpression*& expres
 	return true;
 }
 
-bool HLSLParser::ParseExpression(HLSLExpression*& expression)
+// How does the comma operator work?
+// The comma operator is the lowest precedence operator, below even assignment. So we
+// should parse the statement:
+//     y = x + 3, z *= 9;
+// as
+//              ,
+//       =          *=  
+//     y     +    z    9
+//         x   3 
+//
+// We are only allowing the comma operator if the left side of the subexpression
+// does not have any operator. As we parse the expression from left to right, if we know
+// that there is no existing operator far to the left, we are allowing the comma operator.
+// So in this example, 
+//     y = x + 3, z *= 9;
+// We eventually hit the point where we have this built tree:
+//       =      
+//     y     +  
+//         x   3
+// and need to add the remaining tokens: 
+//    , z *= 9;
+// 
+// The 3 would not be allowed to connect to the comma operator, because it has a + above it in the
+// heirarchy. We have to allow the comma operator on a case by case basis.
+//
+// For example, when we parse a statement, at the top level, we will allow a comma. But if we go into
+// a binary subexpression then we are no longer allowed to have a comma (because a comma has lower
+// precedence than everything in the tree). However, if a new ( ) block opens up, we can allow
+// the comma operator again. We also need similar rules with for(), if(), while(), etc blocks,
+// but in general the comma operator is disallowed for all other binary expressions.
+
+bool HLSLParser::ParseExpression(HLSLExpression*& expression, bool allowCommaOperator, int binaryPriority)
 {
 	bool doesNotExpectSemicolon = false;
-	bool ValidPreprocessor = false;
 
-	/*
-	if (HandleBranchPreprofessor( GetFileName(), GetLineNumber(), &doesNotExpectSemicolon, &ValidPreprocessor, expression))
-	{
-		fileName, line, &doesNotExpectSemicolon, &ValidPreprocessor, statement
-	}
-	*/
-
-	
-	if (HLSLToken_P_If <= currentTokenizer->GetToken() && HLSLToken_P_Error >= currentTokenizer->GetToken())
-	{
-		HLSLPreprocessorExpression * preProcessorExpression = m_tree->AddNode<HLSLPreprocessorExpression>(GetFileName(), GetLineNumber());
-
-		switch (currentTokenizer->GetToken())
-		{
-		case HLSLToken_P_If: preProcessorExpression->type = HLSLBaseType_PreProcessorIf;
-			break;
-		case HLSLToken_P_Elif: preProcessorExpression->type = HLSLBaseType_PreProcessorElif;
-			break;
-		case HLSLToken_P_IfDef: preProcessorExpression->type = HLSLBaseType_PreProcessorIfDef;
-			break;
-		case HLSLToken_P_IfnDef: preProcessorExpression->type = HLSLBaseType_PreProcessorIfnDef;
-			break;
-		case HLSLToken_P_Undef: preProcessorExpression->type = HLSLBaseType_PreProcessorUndef;
-			break;
-		case HLSLToken_P_Include: preProcessorExpression->type = HLSLBaseType_PreProcessorInclude;
-			break;
-		case HLSLToken_P_Line: preProcessorExpression->type = HLSLBaseType_PreProcessorLine;
-			break;
-		case HLSLToken_P_Pragma: preProcessorExpression->type = HLSLBaseType_PreProcessorPragma;
-			break;
-		default:
-			break;
-		}
-	
-		preProcessorExpression->preprocessorType = currentTokenizer->GetToken();
-
-		char preprocessorContents[1024];
-		currentTokenizer->GetRestofWholelineWOSpace(preprocessorContents);
-
-		const HLSLpreprocessor* pre = FindPreprocessorDefinedType(preprocessorContents);
-
-		if (pre)
-		{
-			preProcessorExpression->contents = pre->contents;
-		}
-		else
-		{
-			preProcessorExpression->contents = m_tree->AddString(preprocessorContents);
-		}
-
-		currentTokenizer->Next();
-
-
-		//Handle branch preprocessors
-		if (preProcessorExpression->type == HLSLBaseType_PreProcessorIf ||
-			preProcessorExpression->type == HLSLBaseType_PreProcessorIfDef)
-		{
-			PrepropStackData* pStack = new PrepropStackData;
-
-			m_PrepropStack.PushBack(pStack);
-			m_CurrentPrePropStack++;
-
-			//!!!!!!!!! need to hide
-
-			if (String_Equal(preProcessorExpression->contents, "HLSL") ||
-				String_Equal(preProcessorExpression->contents, "GLSL") ||
-				String_Equal(preProcessorExpression->contents, "MSL") ||
-				String_Equal(preProcessorExpression->contents, "ORBIS") ||
-				String_Equal(preProcessorExpression->contents, "SWITCH") ||
-				String_Equal(preProcessorExpression->contents, "NO_HLSL_DEFINITIONS"))
-			{
-				pStack->branchProp = true;
-				
-				if (String_Equal(preProcessorExpression->contents, "HLSL"))
-				{
-					pStack->passed[Language::Language_HLSL] = true;
-
-					if (m_language == Language::Language_HLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessorExpression->contents, "GLSL"))
-				{
-					pStack->passed[Language::Language_GLSL] = true;
-
-					if (m_language == Language::Language_GLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessorExpression->contents, "MSL"))
-				{
-					pStack->passed[Language::Language_MSL] = true;
-
-					if (m_language == Language::Language_MSL)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessorExpression->contents, "ORBIS"))
-				{
-					pStack->passed[Language::Language_ORBIS] = true;
-
-					if (m_language == Language::Language_ORBIS)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessorExpression->contents, "SWITCH"))
-				{
-					pStack->passed[Language::Language_SWITCH] = true;
-
-					if (m_language == Language::Language_SWITCH)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessorExpression->contents, "NO_HLSL_DEFINITIONS"))
-				{
-					pStack->passed[m_language] = true;
-
-					if (m_language != Language::Language_HLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-
-				return true;
-			}
-		}
-		else if (preProcessorExpression->type = HLSLBaseType_PreProcessorElif)
-		{
-			PrepropStackData* pStack = m_PrepropStack[m_CurrentPrePropStack];
-
-			if (pStack->branchProp)
-			{
-
-				if (String_Equal(preProcessorExpression->contents, "HLSL"))
-				{
-					pStack->passed[Language::Language_HLSL] = true;
-
-					if (m_language == Language::Language_HLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessorExpression->contents, "GLSL"))
-				{
-					pStack->passed[Language::Language_GLSL] = true;
-
-					if (m_language == Language::Language_GLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessorExpression->contents, "MSL"))
-				{
-					pStack->passed[Language::Language_MSL] = true;
-
-					if (m_language == Language::Language_MSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessorExpression->contents, "ORBIS"))
-				{
-					pStack->passed[Language::Language_ORBIS] = true;
-
-					if (m_language == Language::Language_ORBIS)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessorExpression->contents, "SWITCH"))
-				{
-					pStack->passed[Language::Language_SWITCH] = true;
-
-					if (m_language == Language::Language_SWITCH)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessorExpression->contents, "NO_HLSL_DEFINITIONS"))
-				{
-					pStack->passed[m_language] = true;
-
-					if (m_language != Language::Language_HLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-
-				return true;
-			}
-		}
-
-		expression = preProcessorExpression;
-		return true;
-	}
-	else if (HLSLToken_P_Else <= currentTokenizer->GetToken() && HLSLToken_P_Endif >= currentTokenizer->GetToken())
-	{
-		HLSLPreprocessorExpression * preProcessorExpression = m_tree->AddNode<HLSLPreprocessorExpression>(GetFileName(), GetLineNumber());
-		
-		switch (currentTokenizer->GetToken())
-		{		
-		case HLSLToken_P_Else: preProcessorExpression->type = HLSLBaseType_PreProcessorElse;
-			break;
-		case HLSLToken_P_Endif: preProcessorExpression->type = HLSLBaseType_PreProcessorEndif;
-			break;
-		default:
-			break;
-		}
-				
-		preProcessorExpression->preprocessorType = currentTokenizer->GetToken();
-
-		
-		currentTokenizer->Next();
-
-
-		if (preProcessorExpression->type == HLSLBaseType_PreProcessorEndif)
-		{
-			PrepropStackData* pStack = m_PrepropStack.PopBack();
-			m_CurrentPrePropStack--;
-
-			if (pStack->branchProp)
-			{
-				m_bEmbrace = true;
-				return true;
-			}
-		}
-		else if (preProcessorExpression->type = HLSLBaseType_PreProcessorElse)
-		{
-			PrepropStackData* pStack = m_PrepropStack[m_CurrentPrePropStack];
-
-			if (pStack->branchProp)
-			{
-				if (pStack->passed[m_language] == false)
-				{
-					pStack->passed[m_language] = true;
-					m_bEmbrace = true;
-				}
-				else
-					m_bEmbrace = false;
-
-				return true;
-			}
-		}
-
-		expression = preProcessorExpression;
-		return true;
-	}
-	
-
-	if (!ParseBinaryExpression(0, expression))
+	if (!ParseBinaryExpression(binaryPriority, expression))
 	{
 		return false;
 	}
@@ -8310,11 +9047,14 @@ bool HLSLParser::ParseExpression(HLSLExpression*& expression)
 	HLSLBinaryOp assignOp;
 	if (AcceptAssign(assignOp))
 	{
+		// anything on the right side is not allowed to have a , operator because it should be lower precedence than the assignment
+		// also, the assign resets priority
 		HLSLExpression* expression2 = NULL;
-		if (!ParseExpression(expression2))
+		if (!ParseExpression(expression2,false,0))
 		{
 			return false;
 		}
+
 		HLSLBinaryExpression* binaryExpression = m_tree->AddNode<HLSLBinaryExpression>(expression->fileName, expression->line);
 		binaryExpression->binaryOp = assignOp;
 		binaryExpression->expression1 = expression;
@@ -8323,44 +9063,50 @@ bool HLSLParser::ParseExpression(HLSLExpression*& expression)
 		// However, for our usage of the types it should be sufficient.
 		binaryExpression->expressionType = expression->expressionType;
 
-		//it can be from #define
-		if (expression2->expressionType.baseType == HLSLBaseType_UserDefined)
-		{
-			HLSLPreprocessorExpression* preprecessorExpression = static_cast<HLSLPreprocessorExpression*>(expression2);
-
-			if (preprecessorExpression != NULL)
-			{
-				for (int i = 0; i < m_preProcessors.GetSize(); i++)
-				{
-					if (String_Equal(m_preProcessors[i]->name, preprecessorExpression->name))
-					{
-						HLSLType newType;
-						newType.flags = HLSLTypeFlag_Const;
-
-						expression2->expressionType.baseType = preprecessorExpression->expressionType.baseType;
-					}
-				}
-			}
-		}
-
 		if (!CheckTypeCast(expression2->expressionType, expression->expressionType))
 		{
-			const char* srcTypeName = GetTypeName(expression2->expressionType);
-			const char* dstTypeName = GetTypeName(expression->expressionType);
-			currentTokenizer->Error("Cannot implicitly convert from '%s' to '%s'", srcTypeName, dstTypeName);
+			const char* srcTypeName = GetCstr(GetTypeName(expression2->expressionType));
+			const char* dstTypeName = GetCstr(GetTypeName(expression->expressionType));
+			m_pFullTokenizer->Error("Cannot implicitly convert from '%s' to '%s'", srcTypeName, dstTypeName);
+
 			return false;
 		}
 
 		expression = binaryExpression;
 	}
 
+	if (allowCommaOperator)
+	{
+		// comma operator, the only operator with lower precedence than assign
+		while (Accept(','))
+		{
+			HLSLExpression* expression2 = NULL;
+			if (!ParseExpression(expression2,false,0))
+			{
+				return false;
+			}
+
+			HLSLBinaryExpression* binaryExpression = m_tree->AddNode<HLSLBinaryExpression>(expression->fileName, expression->line);
+			binaryExpression->binaryOp = HLSLBinaryOp_Comma;
+			binaryExpression->expression1 = expression;
+			binaryExpression->expression2 = expression2;
+		
+			// In the case of the comma operator, the left side result is discarded and the right side result is returned
+			binaryExpression->expressionType = expression2->expressionType;
+
+			// Note: No need to check type casts
+
+			// Save the expression
+			expression = binaryExpression;
+		}
+	}
 
 	return true;
 }
 
 bool HLSLParser::AcceptBinaryOperator(int priority, HLSLBinaryOp& binaryOp)
 {
-	int token = currentTokenizer->GetToken();
+	int token = m_pFullTokenizer->GetToken();
 	switch (token)
 	{
 	case HLSLToken_AndAnd:          binaryOp = HLSLBinaryOp_And;          break;
@@ -8387,7 +9133,7 @@ bool HLSLParser::AcceptBinaryOperator(int priority, HLSLBinaryOp& binaryOp)
 	}
 	if (_binaryOpPriority[binaryOp] > priority)
 	{
-		currentTokenizer->Next();
+		m_pFullTokenizer->Next();
 		return true;
 	}
 	return false;
@@ -8395,7 +9141,7 @@ bool HLSLParser::AcceptBinaryOperator(int priority, HLSLBinaryOp& binaryOp)
 
 bool HLSLParser::AcceptUnaryOperator(bool pre, HLSLUnaryOp& unaryOp)
 {
-	int token = currentTokenizer->GetToken();
+	int token = m_pFullTokenizer->GetToken();
 	if (token == HLSLToken_PlusPlus)
 	{
 		unaryOp = pre ? HLSLUnaryOp_PreIncrement : HLSLUnaryOp_PostIncrement;
@@ -8424,7 +9170,7 @@ bool HLSLParser::AcceptUnaryOperator(bool pre, HLSLUnaryOp& unaryOp)
 	{
 		return false;
 	}
-	currentTokenizer->Next();
+	m_pFullTokenizer->Next();
 	return true;
 }
 
@@ -8475,16 +9221,9 @@ bool HLSLParser::ParseBinaryExpression(int priority, HLSLExpression*& expression
 	const char* fileName = GetFileName();
 	int         line     = GetLineNumber();
 
-#if _DEBUG
-	if (line == 162)
-	{
-		int x = 3;
-	}
-
-#endif
-
 	bool needsEndParen;
 
+	// so, ParseTerminalExpression is stopping too early??
 	if (!ParseTerminalExpression(expression, needsEndParen, false))
 	{
 		return false;
@@ -8501,7 +9240,7 @@ bool HLSLParser::ParseBinaryExpression(int priority, HLSLExpression*& expression
 		{
 
 			HLSLExpression* expression2 = NULL;
-			ASSERT( binaryOp < sizeof(_binaryOpPriority) / sizeof(int) );
+			ASSERT_PARSER( binaryOp < sizeof(_binaryOpPriority) / sizeof(int) );
 			if (!ParseBinaryExpression(_binaryOpPriority[binaryOp], expression2))
 			{
 				return false;
@@ -8511,10 +9250,8 @@ bool HLSLParser::ParseBinaryExpression(int priority, HLSLExpression*& expression
 			binaryExpression->expression1 = expression;
 			binaryExpression->expression2 = expression2;
 
-
 			HLSLType exp1Type = expression->expressionType;
 			HLSLType exp2Type = expression2->expressionType;
-
 
 			if (expression->functionExpression)
 			{
@@ -8549,116 +9286,18 @@ bool HLSLParser::ParseBinaryExpression(int priority, HLSLExpression*& expression
 			{
 				exp2Type.baseType = HLSLBaseType_Uint;
 			}
+
+			if (!GetBinaryOpResultType( binaryOp, exp1Type, exp2Type, binaryExpression->expressionType ))
+			{
+				const char* typeName1 = GetCstr(GetTypeName( binaryExpression->expression1->expressionType ));
+				const char* typeName2 = GetCstr(GetTypeName( binaryExpression->expression2->expressionType ));
+
+				// debug
+				bool temp = GetBinaryOpResultType(binaryOp, exp1Type, exp2Type, binaryExpression->expressionType);
+
+				m_pFullTokenizer->Error("binary '%s' : no global operator found which takes types '%s' and '%s' (or there is no acceptable conversion)",
+					CHECK_CSTR(GetBinaryOpName(binaryOp)), CHECK_CSTR(typeName1), CHECK_CSTR(typeName2));
 			
-
-			//it can be from #define
-			if (exp1Type.baseType == HLSLBaseType_UserDefined && exp2Type.baseType == HLSLBaseType_UserDefined)
-			{
-				HLSLPreprocessorExpression* preprecessorExpression = static_cast<HLSLPreprocessorExpression*>(expression);
-				HLSLPreprocessorExpression* preprecessorExpression2 = static_cast<HLSLPreprocessorExpression*>(expression2);
-
-				if (preprecessorExpression != NULL && preprecessorExpression2 != NULL)
-				{
-					HLSLType newType;
-					HLSLType newType2;
-
-					bool findFirst = false;
-					bool findSecond = false;
-
-					for (int i = 0; i < m_preProcessors.GetSize(); i++)
-					{
-						if (String_Equal(m_preProcessors[i]->name, preprecessorExpression->name) && !findFirst)
-						{
-							expression->expressionType.baseType = m_preProcessors[i]->type;
-							findFirst = true;
-						}
-
-						if (String_Equal(m_preProcessors[i]->name, preprecessorExpression2->name) && !findSecond)
-						{
-							expression2->expressionType.baseType = m_preProcessors[i]->type;
-							findFirst = true;
-
-							findSecond = true;
-						}
-
-						if (findFirst && findSecond)
-						{
-							if (!GetBinaryOpResultType(binaryOp, expression2->expressionType, expression2->expressionType, binaryExpression->expressionType))
-							{
-								const char* typeName1 = GetTypeName(binaryExpression->expression1->expressionType);
-								const char* typeName2 = GetTypeName(binaryExpression->expression2->expressionType);
-								currentTokenizer->Error("binary '%s' : no global operator found which takes types '%s' and '%s' (or there is no acceptable conversion)",
-									GetBinaryOpName(binaryOp), typeName1, typeName2);
-
-								return false;
-							}
-							else
-								break;
-						}
-					}
-				}
-			}
-			else if (exp1Type.baseType == HLSLBaseType_UserDefined)
-			{
-				HLSLPreprocessorExpression* preprecessorExpression = static_cast<HLSLPreprocessorExpression*>(expression);
-
-				if (preprecessorExpression != NULL)
-				{
-					for (int i = 0; i < m_preProcessors.GetSize(); i++)
-					{
-						if (String_Equal(m_preProcessors[i]->name, preprecessorExpression->name))
-						{
-							expression->expressionType.baseType = m_preProcessors[i]->type;
-							
-							if (!GetBinaryOpResultType(binaryOp, expression->expressionType, expression2->expressionType, binaryExpression->expressionType))
-							{
-								const char* typeName1 = GetTypeName(binaryExpression->expression1->expressionType);
-								const char* typeName2 = GetTypeName(binaryExpression->expression2->expressionType);
-								currentTokenizer->Error("binary '%s' : no global operator found which takes types '%s' and '%s' (or there is no acceptable conversion)",
-									GetBinaryOpName(binaryOp), typeName1, typeName2);
-
-								return false;
-							}
-							else
-								break;
-						}
-					}
-				}
-			}
-			else if (exp2Type.baseType == HLSLBaseType_UserDefined)
-			{
-				HLSLPreprocessorExpression* preprecessorExpression = static_cast<HLSLPreprocessorExpression*>(expression2);
-
-				if (preprecessorExpression != NULL)
-				{
-					for (int i = 0; i < m_preProcessors.GetSize(); i++)
-					{
-						if (String_Equal(m_preProcessors[i]->name, preprecessorExpression->name))
-						{
-							expression2->expressionType.baseType = m_preProcessors[i]->type;
-
-							if (!GetBinaryOpResultType(binaryOp, expression->expressionType, expression2->expressionType, binaryExpression->expressionType))
-							{
-								const char* typeName1 = GetTypeName(binaryExpression->expression1->expressionType);
-								const char* typeName2 = GetTypeName(binaryExpression->expression2->expressionType);
-								currentTokenizer->Error("binary '%s' : no global operator found which takes types '%s' and '%s' (or there is no acceptable conversion)",
-									GetBinaryOpName(binaryOp), typeName1, typeName2);
-
-								return false;
-							}
-							else
-								break;
-						}
-					}
-				}
-			}
-			else if (!GetBinaryOpResultType( binaryOp, exp1Type, exp2Type, binaryExpression->expressionType ))
-			{
-				const char* typeName1 = GetTypeName( binaryExpression->expression1->expressionType );
-				const char* typeName2 = GetTypeName( binaryExpression->expression2->expressionType );
-				currentTokenizer->Error("binary '%s' : no global operator found which takes types '%s' and '%s' (or there is no acceptable conversion)",
-					GetBinaryOpName(binaryOp), typeName1, typeName2);
-
 				return false;
 			}
 
@@ -8680,9 +9319,9 @@ bool HLSLParser::ParseBinaryExpression(int priority, HLSLExpression*& expression
 			// Make sure both cases have compatible types.
 			if (GetTypeCastRank(m_tree, expression1->expressionType, expression2->expressionType) == -1)
 			{
-				const char* srcTypeName = GetTypeName(expression2->expressionType);
-				const char* dstTypeName = GetTypeName(expression1->expressionType);
-				currentTokenizer->Error("':' no possible conversion from from '%s' to '%s'", srcTypeName, dstTypeName);
+				const char* srcTypeName = GetCstr(GetTypeName(expression2->expressionType));
+				const char* dstTypeName = GetCstr(GetTypeName(expression1->expressionType));
+				m_pFullTokenizer->Error("':' no possible conversion from from '%s' to '%s'", srcTypeName, dstTypeName);
 				return false;
 			}
 
@@ -8708,8 +9347,10 @@ bool HLSLParser::ParseBinaryExpression(int priority, HLSLExpression*& expression
 	return !needsEndParen || Expect(')');
 }
 
-bool HLSLParser::ParsePartialConstructor(HLSLExpression*& expression, HLSLBaseType type, const char* typeName)
+bool HLSLParser::ParsePartialConstructor(HLSLExpression*& expression, HLSLBaseType type, const CachedString & typeName)
 {
+	HLSLScopedStackTracker stackTracker(this);
+
 	const char* fileName = GetFileName();
 	int         line     = GetLineNumber();
 
@@ -8727,24 +9368,47 @@ bool HLSLParser::ParsePartialConstructor(HLSLExpression*& expression, HLSLBaseTy
 	return true;
 }
 
+// If the next token is a . then replace expression with the new swizzle node.
+// Otherwise, do nothing. This helper function was added to avoiding duplicating the code
+// a bunch of times for literal expressions.
+bool HLSLParser::ApplyMemberAccessToNode(HLSLExpression * & expression)
+{
+	const char* fileName = GetFileName();
+	int         line = GetLineNumber();
+
+	if (Accept('.'))
+	{
+		HLSLMemberAccess* memberAccess = m_tree->AddNode<HLSLMemberAccess>(fileName, line);
+		memberAccess->object = expression;
+		if (!ExpectIdentifier(memberAccess->field))
+		{
+			return false;
+		}
+
+		if (!GetMemberType(expression->expressionType, memberAccess))
+		{
+			m_pFullTokenizer->Error("Couldn't access '%s'", GetCstr(memberAccess->field));
+			return false;
+		}
+		expression = memberAccess;
+	}
+
+	return true;
+}
+
 bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& needsEndParen, bool bPreprocessor)
 {
+	HLSLScopedStackTracker stackTracker(this);
+
 	const char* fileName = GetFileName();
 	int         line     = GetLineNumber();
 
-#ifdef _DEBUG
-	if (line == 125)
-	{
-		int debug = 345;
-	}
-#endif
-
 	needsEndParen = false;
 
-	if(currentTokenizer->GetToken() == HLSLToken_Sizeof)
+	if(m_pFullTokenizer->GetToken() == HLSLToken_Sizeof)
 	{
 		//accept
-		currentTokenizer->Next();
+		m_pFullTokenizer->Next();
 
 		if (Accept('('))
 		{
@@ -8756,11 +9420,19 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 
 			if (type.baseType == HLSLBaseType_Float)
 			{
-				literalExpression->uiValue = sizeof(double);
+				literalExpression->uiValue = sizeof(float);
 			}
 			else if (type.baseType == HLSLBaseType_Half)
 			{
-				literalExpression->uiValue = sizeof(float);
+				literalExpression->uiValue = sizeof(short);
+			}
+			else if (type.baseType == HLSLBaseType_Min16Float)
+			{
+				literalExpression->uiValue = sizeof(short);
+			}
+			else if (type.baseType == HLSLBaseType_Min10Float)
+			{
+				literalExpression->uiValue = sizeof(short);
 			}
 			else if (type.baseType == HLSLBaseType_Int)
 			{
@@ -8787,7 +9459,6 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			return false;
 	}
 
-
 	HLSLUnaryOp unaryOp;
 	if (AcceptUnaryOperator(true, unaryOp))
 	{
@@ -8802,8 +9473,8 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			if (unaryExpression->expression->expressionType.baseType < HLSLBaseType_FirstInteger || 
 				unaryExpression->expression->expressionType.baseType > HLSLBaseType_LastInteger)
 			{
-				const char * typeName = GetTypeName(unaryExpression->expression->expressionType);
-				currentTokenizer->Error("unary '~' : no global operator found which takes type '%s' (or there is no acceptable conversion)", typeName);
+				const char * typeName = GetCstr(GetTypeName(unaryExpression->expression->expressionType));
+				m_pFullTokenizer->Error("unary '~' : no global operator found which takes type '%s' (or there is no acceptable conversion)", typeName);
 				return false;
 			}
 		}
@@ -8822,12 +9493,14 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 	// Expressions inside parenthesis or casts.
 	if (Accept('('))
 	{
+		// original logic
+#if 0
 		// Check for a casting operator.
 		
 		HLSLType type;
 		if (AcceptType(false, type.baseType, type.typeName, &type.flags))
 		{
-			if(!FindPreprocessorDefinedType(type.typeName))
+			//if(!FindPreprocessorDefinedType(type.typeName))
 			{
 				// This is actually a type constructor like (float2(...
 				if (Accept('('))
@@ -8841,16 +9514,113 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 				castingExpression->expressionType = type;
 				return Expect(')') && ParseExpression(castingExpression->expression);
 			}
-			else
-			{
-				
-				currentTokenizer->Undo();
-			}
-
-			
+			//else
+			//{
+			//	
+			//	m_pFullTokenizer->Undo();
+			//}
+		
 		}
 		
 		if (!ParseExpression(expression) || !Expect(')'))
+		{
+			return false;
+		}
+#endif
+
+		// The original logic is incorrect because it fails on this line:
+		// float saSample = 1.2 / (float(SampleCount) * pdf + 0.0001);
+		// 
+		// The correct heirarchy that it should be making looks like this:
+		// float saSample = 
+		//                      /
+		//                  1.2                             +
+		//                        (                   *       0.0001);
+		//                         float(SampleCount)   pdf
+		// In that example, it started creating the following heirarchy:
+		//
+		// float saSample = 
+		//                      /
+		//                  1.2                       *              ;
+		//                        (float(SampleCount)   pdf + 0.0001);
+		//                                                 ^
+		//                                                ERROR
+		// because (float(SampleCount) was a single unit, it expected the right hand expression
+		// of the '*' to end after "pdf", which caused an error because the parser
+		// is expecting a ')', not a '+'.
+		//
+		// After accepting the initial '(' above, the initial logic assumes
+		// that the next level of should be a type constructor "float(SampleCount)",
+		// but it should actually be trying to parse a binary expression, which causes the error.
+		//
+		// The original logic is:
+		// 1) If it is a '(', type "float", ')', return a HLSLCastingExpression
+		// 2) If it is a '(', type "float", '(', return the float using ParsePartialConstructor
+		// 3) If it is a '(', and not a type, then ParseExpression and Expect(')')
+		//
+		// But the correct logic is:
+		// 1) If it is a '(', type "float", ')', return a HLSLCastingExpression     ***SAME***
+		// 2) If it is a '(', type "float", and not a ')', then undo the "float", and
+		//    follow the same logic as #3.
+		// 3) If it is a '(', and not a type, then ParseExpression and Expect(')')  ***SAME***
+
+		// Check for a casting operator.
+
+		HLSLType type;
+		if (AcceptType(false, type.baseType, type.typeName, &type.flags))
+		{
+			// This is actually a type constructor like (float2(...
+			// This logic is changed from above.
+			if (Accept(')'))
+			{
+				// Case 1.
+				HLSLCastingExpression* castingExpression = m_tree->AddNode<HLSLCastingExpression>(fileName, line);
+				castingExpression->type = type;
+				expression = castingExpression;
+				castingExpression->expressionType = type;
+
+				// This was the other mistake in the original parser: ParseExpression would reset priority. The specific case
+				// we ran into is this line:
+				//
+				// (float)indices.localVertexIndex < GlobalConstraintRange * (float)NumVerticesPerStrand
+				//
+				// Since ParseExpression() in the original parser reset the priority, any following binary expressions would
+				// be under the casting operator. So that line was parsed like this:
+				//
+				// (float)
+				//                                 <
+				//        indices.localVertexIndex                         *
+				//                                   GlobalConstraintRange   (float)
+				//                                                                  NumVerticesPerStrand
+				//
+				// that's incorrect because indices.localVertexIndex was not casted, and the binary result
+				// of the < was casted to a float. The fix is to set a high priority after casting expressions
+				// so that the result is parsed as:
+				//
+				//                                 <
+				// (float)                                                 *
+				//         indices.localVertexIndex  GlobalConstraintRange   (float)
+				//                                                                  NumVerticesPerStrand
+
+				//
+				// And that's why we need the 11, so that the priority is high enough to disallow binary expressions.
+
+				// the cast has higher priority than every binary expression, so a priority of 11 should stop it from
+				// parsing any binary expressions
+				return ParseExpression(castingExpression->expression,false,11);
+			}
+			else
+			{
+				// Case 2: Accepted a '(', accepted a type "float", but REJECTED a ')',
+				//         so Undo() the "float", and fall to case 3.
+				m_pFullTokenizer->Undo();
+			}
+		}
+
+		// Case 3: Accepted a '(', so ParseExpression() and Expect(')')
+		// Also, since we are inside a ( ) block and thus have to operator on the left,
+		// we are allowed to use a comma operator.
+		if (!ParseExpression(expression,true,0) || !Expect(')'))
 		{
 			return false;
 		}
@@ -8870,9 +9640,9 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			literalExpression->expressionType.baseType = literalExpression->type;
 			literalExpression->expressionType.flags = HLSLTypeFlag_Const;
 			expression = literalExpression;
-			return true;
+			return ApplyMemberAccessToNode(expression);
 		}
-		if( AcceptHalf( fValue ) )
+		else if( AcceptHalf( fValue ) )
 		{
 			HLSLLiteralExpression* literalExpression = m_tree->AddNode<HLSLLiteralExpression>( fileName, line );
 			literalExpression->type = HLSLBaseType_Half;
@@ -8880,7 +9650,27 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			literalExpression->expressionType.baseType = literalExpression->type;
 			literalExpression->expressionType.flags = HLSLTypeFlag_Const;
 			expression = literalExpression;
-			return true;
+			return ApplyMemberAccessToNode(expression);
+		}
+		else if (AcceptMin16Float(fValue))
+		{
+			HLSLLiteralExpression* literalExpression = m_tree->AddNode<HLSLLiteralExpression>(fileName, line);
+			literalExpression->type = HLSLBaseType_Min16Float;
+			literalExpression->fValue = fValue;
+			literalExpression->expressionType.baseType = literalExpression->type;
+			literalExpression->expressionType.flags = HLSLTypeFlag_Const;
+			expression = literalExpression;
+			return ApplyMemberAccessToNode(expression);
+		}
+		else if (AcceptMin10Float(fValue))
+		{
+			HLSLLiteralExpression* literalExpression = m_tree->AddNode<HLSLLiteralExpression>(fileName, line);
+			literalExpression->type = HLSLBaseType_Min10Float;
+			literalExpression->fValue = fValue;
+			literalExpression->expressionType.baseType = literalExpression->type;
+			literalExpression->expressionType.flags = HLSLTypeFlag_Const;
+			expression = literalExpression;
+			return ApplyMemberAccessToNode(expression);
 		}
 		else if (AcceptInt(iValue))
 		{
@@ -8890,7 +9680,7 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			literalExpression->expressionType.baseType = literalExpression->type;
 			literalExpression->expressionType.flags = HLSLTypeFlag_Const;
 			expression = literalExpression;
-			return true;
+			return ApplyMemberAccessToNode(expression);
 		}
 		else if (AcceptUint(uiValue))
 		{
@@ -8900,7 +9690,7 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			literalExpression->expressionType.baseType = literalExpression->type;
 			literalExpression->expressionType.flags = HLSLTypeFlag_Const;
 			expression = literalExpression;
-			return true;
+			return ApplyMemberAccessToNode(expression);
 		}
 		else if (Accept(HLSLToken_True))
 		{
@@ -8910,7 +9700,7 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			literalExpression->expressionType.baseType = literalExpression->type;
 			literalExpression->expressionType.flags = HLSLTypeFlag_Const;
 			expression = literalExpression;
-			return true;
+			return ApplyMemberAccessToNode(expression);
 		}
 		else if (Accept(HLSLToken_False))
 		{
@@ -8920,52 +9710,16 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			literalExpression->expressionType.baseType = literalExpression->type;
 			literalExpression->expressionType.flags = HLSLTypeFlag_Const;
 			expression = literalExpression;
-			return true;
+			return ApplyMemberAccessToNode(expression);
 		}
-		
-		if (currentTokenizer->GetToken() == HLSLToken_Identifier)
-		{
-			//if it is preprocessor's m_identifier
-			for (int i = 0; i < m_preProcessors.GetSize(); ++i)
-			{				
-				if (String_Equal(currentTokenizer->GetIdentifier(), m_preProcessors[i]->name ))
-				{
-					if (m_preProcessors[i]->macroFunction)
-					{
-						HLSLIdentifierExpression* identifierExpression = m_tree->AddNode<HLSLIdentifierExpression>(fileName, line);
 
-						identifierExpression->name = m_preProcessors[i]->name;
-						
-						if (!GetIsFunction(identifierExpression->name))
-						{
-							currentTokenizer->Error("Undeclared identifier '%s'", identifierExpression->name);
-							return false;
-						}
-						
-						// Functions are always global scope.
-						identifierExpression->global = true;
-						
-						expression = identifierExpression;
-						break;
-					}
+		HLSLScopedStackTracker stackTracker(this);
 
-					HLSLPreprocessorExpression* preprocessorExpression = m_tree->AddNode<HLSLPreprocessorExpression>(fileName, line);
-
-					preprocessorExpression->expressionType.baseType = m_preProcessors[i]->type;
-					strcpy(preprocessorExpression->name, m_preProcessors[i]->name);
-
-					preprocessorExpression->expressionType.flags = HLSLTypeFlag_Const;
-					expression = preprocessorExpression;
-
-					currentTokenizer->Next();
-					return true;
-				}
-			}
-		}
+		CachedString baseIdentifierName = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
 
 		// Type constructor.
 		HLSLBaseType    type;
-		const char*     typeName = NULL;
+		CachedString    typeName;
 		if (AcceptType(/*allowVoid=*/false, type, typeName, NULL) && expression == NULL)
 		{
 			Expect('(');
@@ -8974,147 +9728,145 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 				return false;
 			}
 		}	
-		else if (const HLSLTextureState* pTS = FindTextureStateDefinedType(currentTokenizer->GetIdentifier()) )
+		else if (const HLSLTextureState* pTS = FindTextureStateDefinedType(baseIdentifierName))
 		{
-			//if it is texture's m_identifier
-			//for (int i = 0; i < m_textureStates.GetSize(); ++i)
-			//{
-				if (String_Equal(currentTokenizer->GetIdentifier(), pTS->name))
+			m_parentStackIdentifiers.push_back(baseIdentifierName);
+
+			if (String_Equal(m_pFullTokenizer->GetIdentifier(), pTS->cachedName))
+			{
+				HLSLTextureStateExpression* textureStateExpression = m_tree->AddNode<HLSLTextureStateExpression>(fileName, line);
+
+				textureStateExpression->name = pTS->cachedName;
+
+				textureStateExpression->expressionType = pTS->type;
+
+
+				m_textureStateExpressions.push_back(textureStateExpression);
+
+				m_pFullTokenizer->Next();
+
+				textureStateExpression->arrayDimension = pTS->arrayDimension;
+
+				//handle Array
+				for (int index = 0; index < (int)pTS->arrayDimension ; index++)
 				{
-					HLSLTextureStateExpression* textureStateExpression = m_tree->AddNode<HLSLTextureStateExpression>(fileName, line);
-					//textureStateExpression->type = HLSLBaseType_TextureState;
+					textureStateExpression->bArray = true;
 
-					strcpy(textureStateExpression->name, pTS->name);
-
-					textureStateExpression->expressionType = pTS->type;
-
-
-					m_textureStateExpressions.PushBack(textureStateExpression);
-
-					currentTokenizer->Next();
-
-					textureStateExpression->arrayDimension = pTS->arrayDimension;
-
-					//handle Array
-					for (int index = 0; index < (int)pTS->arrayDimension ; index++)
+					if (Accept('['))
 					{
-						textureStateExpression->bArray = true;
+						HLSLScopedStackTracker stackTracker(this);
 
-						if (Accept('['))
+						int innerIndex = 0;
+						while (!Accept(']'))
 						{
-							int innerIndex = 0;
-							while (!Accept(']'))
-							{
-								if (!ParseExpression(textureStateExpression->arrayExpression))
-									return false;								
-							}
+							// after parsing each expression, pop them off the stack
+							HLSLScopedStackTracker stackTracker(this);
+
+							// inside we have no precedence, so comma is allowed
+							if (!ParseExpression(textureStateExpression->arrayExpression,true,0))
+								return false;								
 						}
 					}
+				}
 
-					//handle [] operator
-					if(textureStateExpression->expressionType.baseType >= HLSLBaseType_Texture1D &&
-						textureStateExpression->expressionType.baseType <= HLSLBaseType_RWTexture3D &&
-						Accept('[')
+				//handle [] operator
+				if(textureStateExpression->expressionType.baseType >= HLSLBaseType_Texture1D &&
+					textureStateExpression->expressionType.baseType <= HLSLBaseType_RWTexture3D &&
+					Accept('[')
+					)
+				{
+					HLSLScopedStackTracker stackTracker(this);
+
+					if (!ParseExpression(textureStateExpression->indexExpression,true,0))
+						return false;
+
+					if (!Accept(']'))
+						return false;
+
+					m_tree->gExtension[USE_SAMPLESS] = true;
+				}
+						
+				if (Accept('.'))
+				{
+					if (String_Equal(m_pFullTokenizer->GetIdentifier(), "Sample") ||
+						String_Equal(m_pFullTokenizer->GetIdentifier(), "SampleLevel") ||
+						String_Equal(m_pFullTokenizer->GetIdentifier(), "SampleGrad") ||
+						String_Equal(m_pFullTokenizer->GetIdentifier(), "SampleCmp") ||
+						String_Equal(m_pFullTokenizer->GetIdentifier(), "SampleCmpLevelZero") ||
+						String_Equal(m_pFullTokenizer->GetIdentifier(), "Load") ||
+						String_Equal(m_pFullTokenizer->GetIdentifier(), "Store") ||
+						String_Equal(m_pFullTokenizer->GetIdentifier(), "SampleBias") ||
+						String_Equal(m_pFullTokenizer->GetIdentifier(), "GatherRed") ||
+						String_Equal(m_pFullTokenizer->GetIdentifier(), "GetDimensions")							
 						)
 					{
-						if (!ParseExpression(textureStateExpression->indexExpression))
-							return false;
+						HLSLScopedStackTracker stackTracker(this);
 
-						if (!Accept(']'))
-							return false;
+						ParseExpression(textureStateExpression->functionExpression,false,0);
 
-						m_tree->gExtension[USE_SAMPLESS] = true;
-					}
-						
-
-					
-					if (Accept('.'))
-					{
-						if (String_Equal(currentTokenizer->GetIdentifier(), "Sample") ||
-							String_Equal(currentTokenizer->GetIdentifier(), "SampleLevel") ||
-							String_Equal(currentTokenizer->GetIdentifier(), "SampleGrad") ||
-							String_Equal(currentTokenizer->GetIdentifier(), "SampleCmp") ||
-							String_Equal(currentTokenizer->GetIdentifier(), "SampleCmpLevelZero") ||
-							String_Equal(currentTokenizer->GetIdentifier(), "Load") ||
-							String_Equal(currentTokenizer->GetIdentifier(), "Store") ||
-							String_Equal(currentTokenizer->GetIdentifier(), "SampleBias") ||
-							String_Equal(currentTokenizer->GetIdentifier(), "GatherRed") ||
-							String_Equal(currentTokenizer->GetIdentifier(), "GetDimensions")							
-							)
+						if (textureStateExpression->functionExpression)
 						{
-							ParseExpression(textureStateExpression->functionExpression);
-
-							if (textureStateExpression->functionExpression)
-							{
-								//HLSLFunctionCall* pF = static_cast<HLSLFunctionCall*>(textureStateExpression->functionExpression);
-								//pF->pTextureStateExpression = textureStateExpression;
-								expression = textureStateExpression;
-							}
+							expression = textureStateExpression;
 						}
-						else
-						{
-							// if it is failed, it's swizzling
-
-							HLSLMemberAccess* memberAccess = m_tree->AddNode<HLSLMemberAccess>(fileName, line);
-
-							memberAccess->object = textureStateExpression;
-							textureStateExpression->memberAccessExpression = memberAccess;
-
-							if (!ExpectIdentifier(memberAccess->field))
-							{
-								return false;
-							}
-
-							HLSLType type;
-							type.typeName = textureStateExpression->expressionType.typeName; //  currentElementType;
-							type.baseType = HLSLBaseType_Float4; //  HLSLBaseType_UserDefined;
-
-							if (!GetMemberType(type, memberAccess))
-							{
-								currentTokenizer->Error("Couldn't access '%s'", memberAccess->field);
-								return false;
-							}
-
-							//textureStateExpression->nextExpression = memberAccess;
-							//textureStateExpression = textureStateExpression->nextExpression;
-
-							expression = memberAccess;
-						}
-
-						return true;
 					}
 					else
 					{
-						// not it can be just argument
-						//return false;
+						// if it is failed, it's swizzling
+						HLSLMemberAccess* memberAccess = m_tree->AddNode<HLSLMemberAccess>(fileName, line);
 
-						//textureStateExpression->expressionType.baseType = m_textureStates[i]->baseType;
-						textureStateExpression->expressionType.baseType = pTS->type.baseType;
+						memberAccess->object = textureStateExpression;
+						textureStateExpression->memberAccessExpression = memberAccess;
 
-						expression = textureStateExpression;
-						return true;
+						if (!ExpectIdentifier(memberAccess->field))
+						{
+							return false;
+						}
+
+						HLSLType type;
+						type.typeName = textureStateExpression->expressionType.typeName; //  currentElementType;
+						type.baseType = HLSLBaseType_Float4; //  HLSLBaseType_UserDefined;
+
+						if (!GetMemberType(type, memberAccess))
+						{
+							m_pFullTokenizer->Error("Couldn't access '%s'", GetCstr(memberAccess->field));
+							return false;
+						}
+
+						expression = memberAccess;
 					}
-					//break;
+
+					return true;
 				}
-			//}
-		}
-		else if (FindSamplerStateDefinedType(currentTokenizer->GetIdentifier()) != NULL)
-		{
-			//if it is SamplerState's m_identifier
-			for (int i = 0; i < m_samplerStates.GetSize(); ++i)
-			{
-				if (String_Equal(currentTokenizer->GetIdentifier(), m_samplerStates[i]->name))
+				else
 				{
-					
+					// not it can be just argument
+					//return false;
+
+					textureStateExpression->expressionType.baseType = pTS->type.baseType;
+
+					expression = textureStateExpression;
+					return true;
+				}
+			}
+		}
+		else if (FindSamplerStateDefinedType(baseIdentifierName) != NULL)
+		{
+			m_parentStackIdentifiers.push_back(baseIdentifierName);
+
+			//if it is SamplerState's m_identifier
+			for (int i = 0; i < m_samplerStates.size(); ++i)
+			{
+				if (String_Equal(m_pFullTokenizer->GetIdentifier(), m_samplerStates[i]->cachedName))
+				{
 					HLSLSamplerStateExpression* samplerStateExpression = m_tree->AddNode<HLSLSamplerStateExpression>(fileName, line);
 				
-					strcpy(samplerStateExpression->name, m_samplerStates[i]->name);
+					samplerStateExpression->name = m_samplerStates[i]->cachedName;
 
 					samplerStateExpression->expressionType.baseType = HLSLBaseType_SamplerState;
 					samplerStateExpression->expressionType.flags = HLSLTypeFlag_Const;
 					expression = samplerStateExpression;
 					
-					currentTokenizer->Next();
+					m_pFullTokenizer->Next();
 
 					if (m_samplerStates[i]->type.array)
 					{
@@ -9122,7 +9874,7 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 						{
 							HLSLArrayAccess* arrayAccess = m_tree->AddNode<HLSLArrayAccess>(fileName, line);
 							arrayAccess->array = samplerStateExpression;
-							if (!ParseExpression(arrayAccess->index) || !Expect(']'))
+							if (!ParseExpression(arrayAccess->index,true,0) || !Expect(']'))
 							{
 								return false;
 							}
@@ -9133,42 +9885,34 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 							arrayAccess->expressionType.flags = HLSLTypeFlag_Const;
 
 							expression = arrayAccess;
-							//samplerStateExpression->arrayAcess = arrayAccess;						
 						}
 
 					}
 
-
-					//break;
 					return true;
 				}
 			}
 		}
-		else if (FindConstantBuffer(currentTokenizer->GetIdentifier()) != NULL)
+		else if (FindConstantBuffer(baseIdentifierName) != NULL)
 		{
-			//HLSLConstantBuffer* pCBuffer = FindCBufferDefinedType(currentTokenizer->GetIdentifier());
+			CachedString currIdentifier = baseIdentifierName;
 
-			const HLSLBuffer* pBuffer = FindBuffer(currentTokenizer->GetIdentifier());
+			const HLSLBuffer* pBuffer = FindBuffer(currIdentifier);
 
 			//if it is push_constant
 			if (pBuffer->bPushConstant || pBuffer->type.elementType != HLSLBaseType_Unknown)
 			{
-				currentTokenizer->Next();
+				m_pFullTokenizer->Next();
 
 				HLSLIdentifierExpression* identifierExpression = m_tree->AddNode<HLSLIdentifierExpression>(fileName, line);
 				identifierExpression->nodeType = HLSLNodeType_IdentifierExpression;
-				identifierExpression->name = pBuffer->name;
+				identifierExpression->name = pBuffer->cachedName;
 
-				//identifierExpression->expressionType.typeName = pBuffer->elementType;
 				identifierExpression->expressionType.typeName = GetTypeName(pBuffer->type);
 
 				identifierExpression->expressionType.baseType = pBuffer->type.elementType;
-				//identifierExpression->expressionType.baseType = HLSLBaseType_UserDefined;
-				
-				
 
 				HLSLExpression* currentExpression = identifierExpression;
-				//const char* currentElementType = pCBuffer->elementType;
 				while (Check('[') || Check('.'))
 				{
 					//handle [] operator (read / write)
@@ -9176,7 +9920,7 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 					{
 						HLSLArrayAccess* arrayAccess = m_tree->AddNode<HLSLArrayAccess>(fileName, line);
 						arrayAccess->array = currentExpression;
-						if (!ParseExpression(arrayAccess->index) || !Expect(']'))
+						if (!ParseExpression(arrayAccess->index,true,0) || !Expect(']'))
 						{
 							return false;
 						}
@@ -9212,25 +9956,16 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 
 						if (!GetMemberType(type, memberAccess))
 						{
-							currentTokenizer->Error("Couldn't access '%s'", memberAccess->field);
+							m_pFullTokenizer->Error("Couldn't access '%s'", GetCstr(memberAccess->field));
 							return false;
 						}
 
-
-						/*
-						//if the member is also struct type
-						if (!ParseTerminalExpression(memberAccess->nextExpression, needsEndParen))
-						{
-						return false;
-						}
-						*/
 						currentExpression->nextExpression = memberAccess;
 						currentExpression = currentExpression->nextExpression;
 					}
 
 				}
 
-				//expression = identifierExpression;
 				expression = currentExpression;
 				return true;
 			}
@@ -9241,21 +9976,10 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 		{
 			HLSLIdentifierExpression* identifierExpression = m_tree->AddNode<HLSLIdentifierExpression>(fileName, line);
 
-			/*
-			if(expression->expressionType.baseType == HLSLBaseType_PreProcessorDefine   )
-			{
-				if (!ExpectIdentifierForDefine(identifierExpression->name))
-				{
-					return false;
-				}
-			}
-			else*/ if (!ExpectIdentifier(identifierExpression->name))
+			if (!ExpectIdentifier(identifierExpression->name))
 			{
 				return false;
 			}
-
-			
-
 
 			const HLSLType* identifierType = FindVariable(identifierExpression->name, identifierExpression->global);
 			if (identifierType != NULL)
@@ -9266,7 +9990,7 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			{
 				if (!GetIsFunction(identifierExpression->name))
 				{
-					currentTokenizer->Error("Undeclared identifier '%s'", identifierExpression->name);
+					m_pFullTokenizer->Error("Undeclared identifier '%s'", GetCstr(identifierExpression->name));
 					return false;
 				}
 				// Functions are always global scope.
@@ -9280,9 +10004,23 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 	if (bPreprocessor)
 		return true;
 
+	// if we have a parent identifier, add it to the stack
+	{
+		CachedString parentIdentifier;
+		if (expression->nodeType == HLSLNodeType_IdentifierExpression)
+		{
+			HLSLIdentifierExpression* identifierExpression = static_cast<HLSLIdentifierExpression*>(expression);
+			parentIdentifier = identifierExpression->name;
+		}
+		m_parentStackIdentifiers.push_back(parentIdentifier);
+	}
+
+
 	bool done = false;
 	while (!done)
 	{
+		HLSLScopedStackTracker stackTracker(this);
+
 		done = true;
 
 		// Post fix unary operator
@@ -9296,50 +10034,34 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			expression = unaryExpression;
 			done = false;
 		}
-
 		
+
 		// Member access operator.
 		// or it can be for function calling
 		while (Accept('.'))
 		{
-			
+			HLSLScopedStackTracker stackTracker(this);
+
 			//if it is special function for buffer or texture, skip it
-			if (String_Equal("Load", currentTokenizer->GetIdentifier()) || 
-				String_Equal(currentTokenizer->GetIdentifier(), "Store") ||
-				String_Equal("Sample", currentTokenizer->GetIdentifier()) ||
-				String_Equal("SampleBias", currentTokenizer->GetIdentifier()) ||
-				String_Equal("SampleLevel", currentTokenizer->GetIdentifier()) ||
-				String_Equal(currentTokenizer->GetIdentifier(), "SampleCmp") ||
-				String_Equal(currentTokenizer->GetIdentifier(), "SampleCmpLevelZero") ||
-				String_Equal("SampleGrad", currentTokenizer->GetIdentifier()) ||
-				String_Equal("GatherRed", currentTokenizer->GetIdentifier()) ||
-				String_Equal(currentTokenizer->GetIdentifier(), "GetDimensions")
+			if (String_Equal("Load", m_pFullTokenizer->GetIdentifier()) || 
+				String_Equal(m_pFullTokenizer->GetIdentifier(), "Store") ||
+				String_Equal("Sample", m_pFullTokenizer->GetIdentifier()) ||
+				String_Equal("SampleBias", m_pFullTokenizer->GetIdentifier()) ||
+				String_Equal("SampleLevel", m_pFullTokenizer->GetIdentifier()) ||
+				String_Equal(m_pFullTokenizer->GetIdentifier(), "SampleCmp") ||
+				String_Equal(m_pFullTokenizer->GetIdentifier(), "SampleCmpLevelZero") ||
+				String_Equal("SampleGrad", m_pFullTokenizer->GetIdentifier()) ||
+				String_Equal("GatherRed", m_pFullTokenizer->GetIdentifier()) ||
+				String_Equal(m_pFullTokenizer->GetIdentifier(), "GetDimensions")
 				)
 			{
 				bool bBreak = false;
 
+				HLSLBuffer* pSBuffer = NULL;
+				const HLSLTextureState* pTexture = NULL;
+				CachedString foundStr = FindParentTextureOrBuffer(pTexture,pSBuffer);
 
-				HLSLIdentifierExpression* identifierExpression = (HLSLIdentifierExpression*)expression;
-
-				//back to front
-				for (int i = currentTokenizer->GetHistoryCounter(); i >= 0; i--)
-				{
-					const HLSLBuffer* pSBuffer = FindBuffer(currentTokenizer->GetPrevIdentifier(i));
-
-					if (pSBuffer)
-					{
-						bBreak = true;
-						break;
-					}
-
-					const HLSLTextureState* pTexture = FindTextureStateDefinedType(currentTokenizer->GetPrevIdentifier(i));
-
-					if (pTexture)
-					{
-						bBreak = true;
-						break;
-					}
-				}
+				bBreak = (pTexture != NULL || pSBuffer != NULL);
 
 				if (bBreak)
 				{
@@ -9358,7 +10080,7 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 
 				if (!GetMemberType(expression->expressionType, memberAccess))
 				{
-					currentTokenizer->Error("Couldn't access '%s'", memberAccess->field);
+					m_pFullTokenizer->Error("Couldn't access '%s'", GetCstr(memberAccess->field));
 					return false;
 				}
 				expression = memberAccess;
@@ -9367,15 +10089,26 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 
 			done = false;
 
-			
 		}
 
 		// Handle array access.
 		while (Accept('['))
 		{
+			HLSLScopedStackTracker stackTracker(this);
+
+			CachedString parentIdentifier;
+			if (expression->nodeType == HLSLNodeType_IdentifierExpression)
+			{
+				HLSLIdentifierExpression* identifierExpression = static_cast<HLSLIdentifierExpression*>(expression);
+				parentIdentifier = identifierExpression->name;
+			}
+
+			m_parentStackIdentifiers.push_back(parentIdentifier);
+
 			HLSLArrayAccess* arrayAccess = m_tree->AddNode<HLSLArrayAccess>(fileName, line);
 			arrayAccess->array = expression;
-			if (!ParseExpression(arrayAccess->index) || !Expect(']'))
+			// allow comma inside array access
+			if (!ParseExpression(arrayAccess->index,true,0) || !Expect(']'))
 			{
 				return false;
 			}
@@ -9450,6 +10183,50 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 					arrayAccess->expressionType.baseType = HLSLBaseType_Half4;
 					break;
 
+				case HLSLBaseType_Min16Float:
+				case HLSLBaseType_Min16Float2:
+				case HLSLBaseType_Min16Float3:
+				case HLSLBaseType_Min16Float4:
+					arrayAccess->expressionType.baseType = HLSLBaseType_Min16Float;
+					break;
+				case HLSLBaseType_Min16Float2x2:
+				case HLSLBaseType_Min16Float3x2:
+				case HLSLBaseType_Min16Float4x2:
+					arrayAccess->expressionType.baseType = HLSLBaseType_Min16Float2;
+					break;
+				case HLSLBaseType_Min16Float2x3:
+				case HLSLBaseType_Min16Float3x3:
+				case HLSLBaseType_Min16Float4x3:
+					arrayAccess->expressionType.baseType = HLSLBaseType_Min16Float3;
+					break;
+				case HLSLBaseType_Min16Float2x4:
+				case HLSLBaseType_Min16Float3x4:
+				case HLSLBaseType_Min16Float4x4:
+					arrayAccess->expressionType.baseType = HLSLBaseType_Min16Float4;
+					break;
+
+				case HLSLBaseType_Min10Float:
+				case HLSLBaseType_Min10Float2:
+				case HLSLBaseType_Min10Float3:
+				case HLSLBaseType_Min10Float4:
+					arrayAccess->expressionType.baseType = HLSLBaseType_Min10Float;
+					break;
+				case HLSLBaseType_Min10Float2x2:
+				case HLSLBaseType_Min10Float3x2:
+				case HLSLBaseType_Min10Float4x2:
+					arrayAccess->expressionType.baseType = HLSLBaseType_Min10Float2;
+					break;
+				case HLSLBaseType_Min10Float2x3:
+				case HLSLBaseType_Min10Float3x3:
+				case HLSLBaseType_Min10Float4x3:
+					arrayAccess->expressionType.baseType = HLSLBaseType_Min10Float3;
+					break;
+				case HLSLBaseType_Min10Float2x4:
+				case HLSLBaseType_Min10Float3x4:
+				case HLSLBaseType_Min10Float4x4:
+					arrayAccess->expressionType.baseType = HLSLBaseType_Min10Float4;
+					break;
+
 				case HLSLBaseType_Int:
 				case HLSLBaseType_Int2:
 				case HLSLBaseType_Int3:
@@ -9468,83 +10245,106 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 					arrayAccess->expressionType.typeName = expression->expressionType.typeName;
 					break;
 
-				case HLSLBaseType_ConstantBuffer:
-				case HLSLBaseType_StructuredBuffer:
-				case HLSLBaseType_PureBuffer:
-				case HLSLBaseType_RWBuffer:
 				case HLSLBaseType_RWStructuredBuffer:
+				case HLSLBaseType_StructuredBuffer:
+				case HLSLBaseType_RWBuffer:
+				case HLSLBaseType_PureBuffer:
+					// For these buffers, we should treat them as arrays.
+					// I.e. if we declare:
+					// RWStructuredBuffer<float4> HairVertexPositionsPrev;
+					// ...
+					// HairVertexPositionsPrev[indices.globalVertexIndex] = currentPosition;
+					// 
+					// The parsed structure of:
+					//                          [] 
+					// HairVertexPositionsPrev       indices.globalVertexIndex
+					// Should be the original type (float4), not an index inside that type (float)
 
 					//need to clean up here
 					switch (expression->expressionType.elementType)
 					{
-						case HLSLBaseType_Float:
-						case HLSLBaseType_Float2:
-						case HLSLBaseType_Float3:
-						case HLSLBaseType_Float4:
-							arrayAccess->expressionType.elementType = HLSLBaseType_Float;
-							break;
-						case HLSLBaseType_Float2x2:
-						case HLSLBaseType_Float3x2:
-						case HLSLBaseType_Float4x2:
-							arrayAccess->expressionType.elementType = HLSLBaseType_Float2;
-							break;
-						case HLSLBaseType_Float2x3:
-						case HLSLBaseType_Float3x3:
-						case HLSLBaseType_Float4x3:
-							arrayAccess->expressionType.elementType = HLSLBaseType_Float3;
-							break;
-						case HLSLBaseType_Float2x4:
-						case HLSLBaseType_Float3x4:
-						case HLSLBaseType_Float4x4:
-							arrayAccess->expressionType.elementType = HLSLBaseType_Float4;
-							break;
+					case HLSLBaseType_Float:
+					case HLSLBaseType_Float2:
+					case HLSLBaseType_Float3:
+					case HLSLBaseType_Float4:
+					case HLSLBaseType_Float2x2:
+					case HLSLBaseType_Float3x2:
+					case HLSLBaseType_Float4x2:
+					case HLSLBaseType_Float2x3:
+					case HLSLBaseType_Float3x3:
+					case HLSLBaseType_Float4x3:
+					case HLSLBaseType_Float2x4:
+					case HLSLBaseType_Float3x4:
+					case HLSLBaseType_Float4x4:
+					case HLSLBaseType_Half:
+					case HLSLBaseType_Half2:
+					case HLSLBaseType_Half3:
+					case HLSLBaseType_Half4:
+					case HLSLBaseType_Half2x2:
+					case HLSLBaseType_Half3x2:
+					case HLSLBaseType_Half4x2:
+					case HLSLBaseType_Half2x3:
+					case HLSLBaseType_Half3x3:
+					case HLSLBaseType_Half4x3:
+					case HLSLBaseType_Half2x4:
+					case HLSLBaseType_Half3x4:
+					case HLSLBaseType_Half4x4:
 
-						case HLSLBaseType_Half:
-						case HLSLBaseType_Half2:
-						case HLSLBaseType_Half3:
-						case HLSLBaseType_Half4:
-							arrayAccess->expressionType.elementType = HLSLBaseType_Half;
-							break;
-						case HLSLBaseType_Half2x2:
-						case HLSLBaseType_Half3x2:
-						case HLSLBaseType_Half4x2:
-							arrayAccess->expressionType.elementType = HLSLBaseType_Half2;
-							break;
-						case HLSLBaseType_Half2x3:
-						case HLSLBaseType_Half3x3:
-						case HLSLBaseType_Half4x3:
-							arrayAccess->expressionType.elementType = HLSLBaseType_Half3;
-							break;
-						case HLSLBaseType_Half2x4:
-						case HLSLBaseType_Half3x4:
-						case HLSLBaseType_Half4x4:
-							arrayAccess->expressionType.elementType = HLSLBaseType_Half4;
-							break;
+					case HLSLBaseType_Min16Float:
+					case HLSLBaseType_Min16Float2:
+					case HLSLBaseType_Min16Float3:
+					case HLSLBaseType_Min16Float4:
+					case HLSLBaseType_Min16Float2x2:
+					case HLSLBaseType_Min16Float3x2:
+					case HLSLBaseType_Min16Float4x2:
+					case HLSLBaseType_Min16Float2x3:
+					case HLSLBaseType_Min16Float3x3:
+					case HLSLBaseType_Min16Float4x3:
+					case HLSLBaseType_Min16Float2x4:
+					case HLSLBaseType_Min16Float3x4:
+					case HLSLBaseType_Min16Float4x4:
 
-						case HLSLBaseType_Int:
-						case HLSLBaseType_Int2:
-						case HLSLBaseType_Int3:
-						case HLSLBaseType_Int4:
-							arrayAccess->expressionType.elementType = HLSLBaseType_Int;
-							break;
+					case HLSLBaseType_Min10Float:
+					case HLSLBaseType_Min10Float2:
+					case HLSLBaseType_Min10Float3:
+					case HLSLBaseType_Min10Float4:
+					case HLSLBaseType_Min10Float2x2:
+					case HLSLBaseType_Min10Float3x2:
+					case HLSLBaseType_Min10Float4x2:
+					case HLSLBaseType_Min10Float2x3:
+					case HLSLBaseType_Min10Float3x3:
+					case HLSLBaseType_Min10Float4x3:
+					case HLSLBaseType_Min10Float2x4:
+					case HLSLBaseType_Min10Float3x4:
+					case HLSLBaseType_Min10Float4x4:
 
-						case HLSLBaseType_Uint:
-						case HLSLBaseType_Uint2:
-						case HLSLBaseType_Uint3:
-						case HLSLBaseType_Uint4:
-							arrayAccess->expressionType.elementType = HLSLBaseType_Uint;
-							break;
-						case HLSLBaseType_UserDefined:
-							arrayAccess->expressionType.elementType = HLSLBaseType_UserDefined;
-							arrayAccess->expressionType.typeName = expression->expressionType.typeName;
-							break;
-						default:
-							currentTokenizer->Error("array, matrix, vector, or indexable object type expected in index expression");
-							return false;
+					case HLSLBaseType_Int:
+					case HLSLBaseType_Int2:
+					case HLSLBaseType_Int3:
+					case HLSLBaseType_Int4:
+					case HLSLBaseType_Uint:
+					case HLSLBaseType_Uint2:
+					case HLSLBaseType_Uint3:
+					case HLSLBaseType_Uint4:
+						arrayAccess->expressionType.elementType = expression->expressionType.elementType;
+						break;
+					case HLSLBaseType_UserDefined:
+						arrayAccess->expressionType.elementType = HLSLBaseType_UserDefined;
+						arrayAccess->expressionType.typeName = expression->expressionType.typeName;
+						break;
+					default:
+						m_pFullTokenizer->Error("illegal type inside buffer.");
+						return false;
 					}
 					break;
+
+				case HLSLBaseType_ConstantBuffer:
+					// Indexing a constant buffer is not legal.
+					m_pFullTokenizer->Error("operator [] is illegal on ConstantBuffer or PureBuffer.");
+					return false;
+
 				default:
-					currentTokenizer->Error("array, matrix, vector, or indexable object type expected in index expression");
+					m_pFullTokenizer->Error("array, matrix, vector, or indexable object type expected in index expression");
 					return false;
 				}
 			}
@@ -9561,26 +10361,27 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			HLSLFunctionCall* functionCall = m_tree->AddNode<HLSLFunctionCall>(fileName, line);
 			done = false;
 
-#ifdef _DEBUG
-			if (line == 413)
-			{
-				int debug = 345;
-			}
-#endif
-
-			if (!ParseExpressionList(')', false, functionCall->argument, functionCall->numArguments))
+			if (!ParseExpressionList(')', false, functionCall->callArgument, functionCall->numArguments))
 			{
 				return false;
+			}
+
+			eastl::vector < HLSLType > foundTypes;
+			HLSLExpression* currArg = functionCall->callArgument;
+			while (currArg != NULL)
+			{
+				foundTypes.push_back(currArg->expressionType);
+				currArg = currArg->nextExpression;
 			}
 
 			if (expression->nodeType != HLSLNodeType_IdentifierExpression)
 			{
-				currentTokenizer->Error("Expected function identifier");
+				m_pFullTokenizer->Error("Expected function identifier");
 				return false;
 			}
 
 			const HLSLIdentifierExpression* identifierExpression = static_cast<const HLSLIdentifierExpression*>(expression);
-			const HLSLFunction* function = MatchFunctionCall( functionCall, identifierExpression->name );
+			const HLSLFunction* function = MatchFunctionCall( functionCall, identifierExpression->name);
 			if (function == NULL)
 			{
 				return false;
@@ -9597,30 +10398,31 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 				String_Equal("SampleGrad", identifierExpression->name) ||
 				String_Equal("GatherRed", identifierExpression->name))
 			{
-				functionCall->pTextureStateExpression = m_textureStateExpressions[m_textureStateExpressions.GetSize()-1];
+				functionCall->pTextureStateExpression = m_textureStateExpressions[m_textureStateExpressions.size()-1];
 				
 			}
 			else if (String_Equal("Load", identifierExpression->name) ||
 					String_Equal(identifierExpression->name, "Store") ||
 					String_Equal(identifierExpression->name, "GetDimensions"))
 			{
-				for (int i = currentTokenizer->m_historyCounter - 1; i >= 0; i--)
-				{
-					const char* prevIdentifier = currentTokenizer->GetPrevIdentifier(i);
+				HLSLBuffer* pSBuffer = NULL;
+				const HLSLTextureState* pTexture = NULL;
+				CachedString foundStr = FindParentTextureOrBuffer(pTexture, pSBuffer);
 
-					if (FindTextureStateDefinedType(prevIdentifier))
-					{
-						functionCall->pTextureStateExpression = m_textureStateExpressions[m_textureStateExpressions.GetSize() - 1];
-						m_tree->gExtension[USE_SAMPLESS] = true;
-						break;
-					}
-					else if (FindBuffer(prevIdentifier))
-					{
-						//does buffer need to handle?
-						//int sefsef = 345;
-						functionCall->pBuffer = FindBuffer(prevIdentifier);
-						break;
-					}
+				if (pTexture != NULL)
+				{
+					functionCall->pTextureStateExpression = m_textureStateExpressions[m_textureStateExpressions.size() - 1];
+					m_tree->gExtension[USE_SAMPLESS] = true;
+				}
+				else if (pSBuffer != NULL)
+				{
+					//does buffer need to handle?
+					functionCall->pBuffer = pSBuffer;
+				}
+				else
+				{
+					// if we don't have a texture of buffer above us in the heirarchy, then something is wrong
+					ASSERT_PARSER(0);
 				}
 			}
 			//marking for MSL
@@ -9635,11 +10437,11 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			{
 				m_tree->gExtension[USE_ATOMIC] = true;
 
-				for (int i = currentTokenizer->GetHistoryCounter(); i >= 0; i--)
+				for (int i = m_pFullTokenizer->GetHistoryCounter(); i >= 0; i--)
 				{
-					const char* prevIndentifier = currentTokenizer->GetPrevIdentifier(i);
+					CachedString prevIndentifier = m_tree->AddStringCached(m_pFullTokenizer->GetPrevIdentifier(i));
 
-					for (int index = 0; index < m_userTypes.GetSize(); ++index)
+					for (int index = 0; index < m_userTypes.size(); ++index)
 					{
 						HLSLStructField* field = m_userTypes[index]->field;
 
@@ -9663,11 +10465,9 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 					}
 				}
 			}
-
 	
 			functionCall->expressionType = function->returnType;
 			expression = functionCall;
-			
 		}
 
 	}
@@ -9686,9 +10486,6 @@ bool HLSLParser::ParseExpressionList(int endToken, bool allowEmptyEnd, HLSLExpre
 			return false;
 		}
 
-		
-
-
 		if (numExpressions > 0 && !Expect(','))
 		{
 			return false;
@@ -9700,8 +10497,6 @@ bool HLSLParser::ParseExpressionList(int endToken, bool allowEmptyEnd, HLSLExpre
 			break;
 		}
 		HLSLExpression* expression = NULL;
-
-
 
 		if (Check('{'))
 		{	
@@ -9716,18 +10511,13 @@ bool HLSLParser::ParseExpressionList(int endToken, bool allowEmptyEnd, HLSLExpre
 				ParseExpressionList('}', false, childExpression, numExpressions);
 
 				expression->childExpression = childExpression;
-
-				//if(!Accept('}'))
-				//	return false;
 			}
-			
 
 		}
-		else if (!ParseExpression(expression))
+		else if (!ParseExpression(expression,false,0))
 		{
 			return false;
 		}
-
 
 		if (firstExpression == NULL)
 		{
@@ -9743,63 +10533,13 @@ bool HLSLParser::ParseExpressionList(int endToken, bool allowEmptyEnd, HLSLExpre
 	return true;
 }
 
-bool HLSLParser::ParseMacroFunctionArgumentList(HLSLArgument*& firstArgument, int& numArguments, HLSLBaseType &baseType)
-{
-	const char* fileName = GetFileName();
-	int         line = GetLineNumber();
-
-	HLSLArgument* lastArgument = NULL;
-	numArguments = 0;
-
-	while (!Accept(')'))
-	{
-		if (CheckForUnexpectedEndOfStream(')'))
-		{
-			return false;
-		}
-		if (numArguments > 0 && !Expect(','))
-		{
-			return false;
-		}
-
-		HLSLArgument* argument = m_tree->AddNode<HLSLArgument>(fileName, line);
-
-		argument->dataTypeName = NULL;
-		argument->type.baseType = baseType;
-		argument->modifier = HLSLArgumentModifier_In;
-
-		if (!ExpectIdentifier(argument->name))
-		{
-			// TODO: false means we didn't accept a declaration and we had an error!
-			return false;
-		}
-
-		if (lastArgument != NULL)
-		{
-			lastArgument->nextArgument = argument;
-		}
-		else
-		{
-			firstArgument = argument;
-		}
-		lastArgument = argument;
-
-		++numArguments;
-	}
-	return true;
-}
-
-bool HLSLParser::ParseArgumentList(HLSLArgument*& firstArgument, int& numArguments)
+bool HLSLParser::ParseArgumentVec(eastl::vector< HLSLArgument* > & argVec)
 {
 	const char* fileName = GetFileName();
 	int         line     = GetLineNumber();
 		
-	HLSLArgument* lastArgument = NULL;
-	numArguments = 0;
 
-	bool valid = false;
-
-	HLSLpreprocessor* prePre = NULL;
+	argVec.clear();
 
 	while (!Accept(')'))
 	{
@@ -9807,70 +10547,79 @@ bool HLSLParser::ParseArgumentList(HLSLArgument*& firstArgument, int& numArgumen
 		{
 			return false;
 		}
-		if (!valid && numArguments > 0 && !Expect(','))
+		if (argVec.size() > 0 && !Expect(','))
 		{
 			return false;
 		}
 
-		valid = false;
-
 		HLSLArgument* argument = m_tree->AddNode<HLSLArgument>(fileName, line);
 
 
-		//handle preprocessors in function's argument list --> no shader should be changed
-		
-		bool semi;
-		
-
-		HLSLpreprocessor* pre = HandleBranchPreprofessor(fileName, line, &semi, &valid);
-		
-		if (pre)
 		{
-			argument->preprocessor = pre;
-		}
-		else
-		{
-			if (Accept(HLSLToken_Uniform)) { argument->modifier = HLSLArgumentModifier_Uniform; }
-			else if (Accept(HLSLToken_In)) { argument->modifier = HLSLArgumentModifier_In; }
-			else if (Accept(HLSLToken_Out)) { argument->modifier = HLSLArgumentModifier_Out; }
-			else if (Accept(HLSLToken_InOut)) { argument->modifier = HLSLArgumentModifier_Inout; }
-			else if (Accept(HLSLToken_Const)) { argument->modifier = HLSLArgumentModifier_Const; }
+			if (Accept(HLSLToken_Uniform))
+			{
+				argument->modifier = HLSLArgumentModifier_Uniform;
+			}
+			else if (Accept(HLSLToken_In))
+			{
+				argument->modifier = HLSLArgumentModifier_In;
+			}
+			else if (Accept(HLSLToken_Out))
+			{
+				argument->modifier = HLSLArgumentModifier_Out;
+			}
+			else if (Accept(HLSLToken_InOut))
+			{
+				argument->modifier = HLSLArgumentModifier_Inout;
+			}
+			else if (Accept(HLSLToken_Const))
+			{
+				argument->modifier = HLSLArgumentModifier_Const;
+			}
+			else if (Accept(HLSLToken_Point))
+			{ 
+				argument->modifier = HLSLArgumentModifier_Point;
+			}
+			else if (Accept(HLSLToken_Line))
+			{
+				argument->modifier = HLSLArgumentModifier_Line;
+			}
+			else if (Accept(HLSLToken_Triangle))
+			{
+				argument->modifier = HLSLArgumentModifier_Triangle;
+			}
+			else if (Accept(HLSLToken_Lineadj))
+			{
+				argument->modifier = HLSLArgumentModifier_Lineadj;
+			}
+			else if (Accept(HLSLToken_Triangleadj))
+			{
+				argument->modifier = HLSLArgumentModifier_Triangleadj;
+			}
 
-			else if (Accept(HLSLToken_Point)) { argument->modifier = HLSLArgumentModifier_Point; }
-			else if (Accept(HLSLToken_Line)) { argument->modifier = HLSLArgumentModifier_Line; }
-			else if (Accept(HLSLToken_Triangle)) { argument->modifier = HLSLArgumentModifier_Triangle; }
-			else if (Accept(HLSLToken_Lineadj)) { argument->modifier = HLSLArgumentModifier_Lineadj; }
-			else if (Accept(HLSLToken_Triangleadj)) { argument->modifier = HLSLArgumentModifier_Triangleadj; }
-
-			if (!ExpectDeclaration(/*allowUnsizedArray=*/true, argument->type, argument->name))
+			if (!ExpectDeclaration(/*allowUnsizedArray=*/true, argument->argType, argument->name))
 			{
 				return false;
 			}
 
-			DeclareVariable(argument->name, argument->type);
+			DeclareVariable(argument->name, argument->argType);
 
-			if (argument->type.baseType >= HLSLBaseType_Texture1D && argument->type.baseType <= HLSLBaseType_RWTexture3D)
+			if (argument->argType.baseType >= HLSLBaseType_Texture1D && argument->argType.baseType <= HLSLBaseType_RWTexture3D)
 			{
 				HLSLTextureState* texturestate = m_tree->AddNode<HLSLTextureState>(fileName, line);
-				texturestate->type.baseType = argument->type.baseType;
+				texturestate->type.baseType = argument->argType.baseType;
 
-				texturestate->name = argument->name;
+				texturestate->cachedName = argument->name;
 
-				if(prePre)
-					texturestate->preprocessor = prePre->contents;
-
-				m_textureStates.PushBack(texturestate);
-
-
-				//argument->
+				m_textureStates.push_back(texturestate);
 
 				
 				HLSLTextureStateExpression* textureStateExpression = m_tree->AddNode<HLSLTextureStateExpression>(fileName, line);
 
-				strcpy(textureStateExpression->name, texturestate->name);
+				textureStateExpression->name = texturestate->cachedName;
 				textureStateExpression->expressionType = texturestate->type;
 
-				m_textureStateExpressions.PushBack(textureStateExpression);
+				m_textureStateExpressions.push_back(textureStateExpression);
 			}
 
 
@@ -9880,46 +10629,16 @@ bool HLSLParser::ParseArgumentList(HLSLArgument*& firstArgument, int& numArgumen
 				return false;
 			}
 
-			if (Accept('=') && !ParseExpression(argument->defaultValue))
+			if (Accept('=') && !ParseExpression(argument->defaultValue,false,0))
 			{
 				// @@ Print error!
 				return false;
 			}
 		}
 
-
-		if (lastArgument != NULL)
-		{
-			lastArgument->nextArgument = argument;
-		}
-		else
-		{
-			firstArgument = argument;
-		}
-		lastArgument = argument;
-
-		if (valid)
-		{
-			prePre = pre;
-
-			if (prePre->type == HLSLBaseType_PreProcessorEndif)
-			{
-				prePre = NULL;
-			}
-		}
-		else
-		{
-			if (prePre)
-			{
-				if (prePre->type == HLSLBaseType_PreProcessorIf || prePre->type == HLSLBaseType_PreProcessorIfDef)
-				{
-					++numArguments;
-				}
-			}
-			else
-				++numArguments;
-		}
+		argVec.push_back(argument);
 	}
+
 	return true;
 }
 
@@ -9956,7 +10675,7 @@ bool HLSLParser::ParseSamplerState(HLSLExpression*& expression)
 		{
 			return false;
 		}
-		ASSERT(stateAssignment != NULL);
+		ASSERT_PARSER(stateAssignment != NULL);
 		if (lastStateAssignment == NULL)
 		{
 			samplerState->stateAssignments = stateAssignment;
@@ -9979,7 +10698,7 @@ bool HLSLParser::ParseTechnique(HLSLStatement*& statement)
 		return false;
 	}
 
-	const char* techniqueName = NULL;
+	CachedString techniqueName;
 	if (!ExpectIdentifier(techniqueName))
 	{
 		return false;
@@ -9992,8 +10711,6 @@ bool HLSLParser::ParseTechnique(HLSLStatement*& statement)
 
 	HLSLTechnique* technique = m_tree->AddNode<HLSLTechnique>(GetFileName(), GetLineNumber());
 	technique->name = techniqueName;
-
-	//m_techniques.PushBack(technique);
 
 	HLSLPass* lastPass = NULL;
 
@@ -10010,7 +10727,7 @@ bool HLSLParser::ParseTechnique(HLSLStatement*& statement)
 		{
 			return false;
 		}
-		ASSERT(pass != NULL);
+		ASSERT_PARSER(pass != NULL);
 		if (lastPass == NULL)
 		{
 			technique->passes = pass;
@@ -10034,7 +10751,7 @@ bool HLSLParser::ParsePass(HLSLPass*& pass)
 	}
 
 	// Optional pass name.
-	const char* passName = NULL;
+	CachedString passName;
 	AcceptIdentifier(passName);
 
 	if (!Expect('{'))
@@ -10063,7 +10780,7 @@ bool HLSLParser::ParsePass(HLSLPass*& pass)
 		{
 			return false;
 		}
-		ASSERT(stateAssignment != NULL);
+		ASSERT_PARSER(stateAssignment != NULL);
 		if (lastStateAssignment == NULL)
 		{
 			pass->stateAssignments = stateAssignment;
@@ -10078,7 +10795,6 @@ bool HLSLParser::ParsePass(HLSLPass*& pass)
 	return true;
 }
 
-
 bool HLSLParser::ParsePipeline(HLSLStatement*& statement)
 {
 	if (!Accept("pipeline")) {
@@ -10086,7 +10802,7 @@ bool HLSLParser::ParsePipeline(HLSLStatement*& statement)
 	}
 
 	// Optional pipeline name.
-	const char* pipelineName = NULL;
+	CachedString pipelineName;
 	AcceptIdentifier(pipelineName);
 
 	if (!Expect('{'))
@@ -10112,7 +10828,7 @@ bool HLSLParser::ParsePipeline(HLSLStatement*& statement)
 		{
 			return false;
 		}
-		ASSERT(stateAssignment != NULL);
+		ASSERT_PARSER(stateAssignment != NULL);
 		if (lastStateAssignment == NULL)
 		{
 			pipeline->stateAssignments = stateAssignment;
@@ -10177,24 +10893,24 @@ static const EffectStateValue* GetStateValue(const char* name, const EffectState
 }
 
 
-bool HLSLParser::ParseStateName(bool isSamplerState, bool isPipelineState, const char*& name, const EffectState *& state)
+bool HLSLParser::ParseStateName(bool isSamplerState, bool isPipelineState, CachedString & name, const EffectState *& state)
 {
-	if (currentTokenizer->GetToken() != HLSLToken_Identifier)
+	if (m_pFullTokenizer->GetToken() != HLSLToken_Identifier)
 	{
-		char near[HLSLTokenizer::s_maxIdentifier];
-		currentTokenizer->GetTokenName(near);
-		currentTokenizer->Error("Syntax error: expected identifier near '%s'", near);
+		char nearToken[HLSLTokenizer::s_maxIdentifier];
+		m_pFullTokenizer->GetTokenName(nearToken);
+		m_pFullTokenizer->Error("Syntax error: expected identifier near '%s'", CHECK_CSTR(nearToken));
 		return false;
 	}
 
-	state = GetEffectState(currentTokenizer->GetIdentifier(), isSamplerState, isPipelineState);
+	state = GetEffectState(m_pFullTokenizer->GetIdentifier(), isSamplerState, isPipelineState);
 	if (state == NULL)
 	{
-		currentTokenizer->Error("Syntax error: unexpected identifier '%s'", currentTokenizer->GetIdentifier());
+		m_pFullTokenizer->Error("Syntax error: unexpected identifier '%s'", CHECK_CSTR(m_pFullTokenizer->GetIdentifier()));
 		return false;
 	}
 
-	currentTokenizer->Next();
+	m_pFullTokenizer->Next();
 	return true;
 }
 
@@ -10203,14 +10919,14 @@ bool HLSLParser::ParseColorMask(int& mask)
 	mask = 0;
 
 	do {
-		if (currentTokenizer->GetToken() == HLSLToken_IntLiteral) {
-			mask |= currentTokenizer->GetInt();
+		if (m_pFullTokenizer->GetToken() == HLSLToken_IntLiteral) {
+			mask |= m_pFullTokenizer->GetInt();
 		}
-		else if (currentTokenizer->GetToken() == HLSLToken_UintLiteral) {
-			mask |= currentTokenizer->GetuInt();
+		else if (m_pFullTokenizer->GetToken() == HLSLToken_UintLiteral) {
+			mask |= m_pFullTokenizer->GetuInt();
 		}
-		else if (currentTokenizer->GetToken() == HLSLToken_Identifier) {
-			const char * ident = currentTokenizer->GetIdentifier();
+		else if (m_pFullTokenizer->GetToken() == HLSLToken_Identifier) {
+			const char * ident = m_pFullTokenizer->GetIdentifier();
 			const EffectStateValue * stateValue = colorMaskValues;
 			while (stateValue->name != NULL) {
 				if (String_EqualNoCase(stateValue->name, ident)) {
@@ -10223,7 +10939,7 @@ bool HLSLParser::ParseColorMask(int& mask)
 		else {
 			return false;
 		}
-		currentTokenizer->Next();
+		m_pFullTokenizer->Next();
 	} while (Accept('|'));
 
 	return true;
@@ -10240,11 +10956,11 @@ bool HLSLParser::ParseStateValue(const EffectState * state, HLSLStateAssignment*
 
 	if (!expectsExpression && !expectsInteger && !expectsUInteger && !expectsFloat && !expectsBoolean)
 	{
-		if (currentTokenizer->GetToken() != HLSLToken_Identifier)
+		if (m_pFullTokenizer->GetToken() != HLSLToken_Identifier)
 		{
-			char near[HLSLTokenizer::s_maxIdentifier];
-			currentTokenizer->GetTokenName(near);
-			currentTokenizer->Error("Syntax error: expected identifier near '%s'", near);
+			char nearName[HLSLTokenizer::s_maxIdentifier];
+			m_pFullTokenizer->GetTokenName(nearName);
+			m_pFullTokenizer->Error("Syntax error: expected identifier near '%s'", CHECK_CSTR(nearName));
 			stateAssignment->iValue = 0;
 			return false;
 		}
@@ -10252,9 +10968,9 @@ bool HLSLParser::ParseStateValue(const EffectState * state, HLSLStateAssignment*
 
 	if (state->values == NULL)
 	{
-		if (String_Equal(currentTokenizer->GetIdentifier(), "compile"))
+		if (String_Equal(m_pFullTokenizer->GetIdentifier(), "compile"))
 		{
-			currentTokenizer->Error("Syntax error: unexpected identifier '%s' expected compile statement", currentTokenizer->GetIdentifier());
+			m_pFullTokenizer->Error("Syntax error: unexpected identifier '%s' expected compile statement", CHECK_CSTR(m_pFullTokenizer->GetIdentifier()));
 			stateAssignment->iValue = 0;
 			return false;
 		}
@@ -10262,9 +10978,9 @@ bool HLSLParser::ParseStateValue(const EffectState * state, HLSLStateAssignment*
 		// @@ Parse profile name, function name, argument expressions.
 
 		// Skip the rest of the compile statement.
-		while(currentTokenizer->GetToken() != ';')
+		while(m_pFullTokenizer->GetToken() != ';')
 		{
-			currentTokenizer->Next();
+			m_pFullTokenizer->Next();
 		}
 	}
 	else {
@@ -10272,7 +10988,7 @@ bool HLSLParser::ParseStateValue(const EffectState * state, HLSLStateAssignment*
 		{
 			if (!AcceptInt(stateAssignment->iValue))
 			{
-				currentTokenizer->Error("Syntax error: expected integer near '%s'", currentTokenizer->GetIdentifier());
+				m_pFullTokenizer->Error("Syntax error: expected integer near '%s'", CHECK_CSTR(m_pFullTokenizer->GetIdentifier()));
 				stateAssignment->iValue = 0;
 				return false;
 			}
@@ -10281,7 +10997,7 @@ bool HLSLParser::ParseStateValue(const EffectState * state, HLSLStateAssignment*
 		{
 			if (!AcceptUint(stateAssignment->uiValue))
 			{
-				currentTokenizer->Error("Syntax error: expected integer near '%s'", currentTokenizer->GetIdentifier());
+				m_pFullTokenizer->Error("Syntax error: expected integer near '%s'", CHECK_CSTR(m_pFullTokenizer->GetIdentifier()));
 				stateAssignment->uiValue = 0;
 				return false;
 			}
@@ -10290,20 +11006,20 @@ bool HLSLParser::ParseStateValue(const EffectState * state, HLSLStateAssignment*
 		{
 			if (!AcceptFloat(stateAssignment->fValue))
 			{
-				currentTokenizer->Error("Syntax error: expected float near '%s'", currentTokenizer->GetIdentifier());
+				m_pFullTokenizer->Error("Syntax error: expected float near '%s'", CHECK_CSTR(m_pFullTokenizer->GetIdentifier()));
 				stateAssignment->iValue = 0;
 				return false;
 			}
 		}
 		else if (expectsBoolean)
 		{
-			const EffectStateValue * stateValue = GetStateValue(currentTokenizer->GetIdentifier(), state);
+			const EffectStateValue * stateValue = GetStateValue(m_pFullTokenizer->GetIdentifier(), state);
 
 			if (stateValue != NULL)
 			{
 				stateAssignment->iValue = stateValue->value;
 
-				currentTokenizer->Next();
+				m_pFullTokenizer->Next();
 			}
 			else if (AcceptInt(stateAssignment->iValue))
 			{
@@ -10314,7 +11030,7 @@ bool HLSLParser::ParseStateValue(const EffectState * state, HLSLStateAssignment*
 				stateAssignment->uiValue = (stateAssignment->uiValue != 0);
 			}
 			else {
-				currentTokenizer->Error("Syntax error: expected bool near '%s'", currentTokenizer->GetIdentifier());
+				m_pFullTokenizer->Error("Syntax error: expected bool near '%s'", CHECK_CSTR(m_pFullTokenizer->GetIdentifier()));
 				stateAssignment->iValue = 0;
 				return false;
 			}
@@ -10323,7 +11039,7 @@ bool HLSLParser::ParseStateValue(const EffectState * state, HLSLStateAssignment*
 		{
 			if (!ParseColorMask(stateAssignment->iValue))
 			{
-				currentTokenizer->Error("Syntax error: expected color mask near '%s'", currentTokenizer->GetIdentifier());
+				m_pFullTokenizer->Error("Syntax error: expected color mask near '%s'", CHECK_CSTR(m_pFullTokenizer->GetIdentifier()));
 				stateAssignment->iValue = 0;
 				return false;
 			}
@@ -10331,18 +11047,18 @@ bool HLSLParser::ParseStateValue(const EffectState * state, HLSLStateAssignment*
 		else 
 		{
 			// Expect one of the allowed values.
-			const EffectStateValue * stateValue = GetStateValue(currentTokenizer->GetIdentifier(), state);
+			const EffectStateValue * stateValue = GetStateValue(m_pFullTokenizer->GetIdentifier(), state);
 
 			if (stateValue == NULL)
 			{
-				currentTokenizer->Error("Syntax error: unexpected value '%s' for state '%s'", currentTokenizer->GetIdentifier(), state->name);
+				m_pFullTokenizer->Error("Syntax error: unexpected value '%s' for state '%s'", CHECK_CSTR(m_pFullTokenizer->GetIdentifier()), CHECK_CSTR(state->name));
 				stateAssignment->iValue = 0;
 				return false;
 			}
 
 			stateAssignment->iValue = stateValue->value;
 
-			currentTokenizer->Next();
+			m_pFullTokenizer->Next();
 		}
 	}
 
@@ -10361,8 +11077,7 @@ bool HLSLParser::ParseStateAssignment(HLSLStateAssignment*& stateAssignment, boo
 		return false;
 	}
 
-	//stateAssignment->name = m_tree->AddString(currentTokenizer->GetIdentifier());
-	stateAssignment->stateName = state->name;
+	stateAssignment->stateName = m_tree->AddStringCached(state->name);
 	stateAssignment->d3dRenderState = state->d3drs;
 
 	if (!Expect('=')) {
@@ -10388,210 +11103,213 @@ bool HLSLParser::ParseAttributeList(HLSLAttribute*& firstAttribute)
 	
 	HLSLAttribute * lastAttribute = firstAttribute;
 	do {
-		const char * identifier = NULL;
+		CachedString identifier;
 		if (!ExpectIdentifier(identifier)) {
 			return false;
 		}
 
 		HLSLAttribute * attribute = m_tree->AddNode<HLSLAttribute>(fileName, line);
 		
-		if (strcmp(identifier, "unroll") == 0) 
+		if (String_Equal(identifier, "unroll")) 
 		{
 			attribute->attributeType = HLSLAttributeType_Unroll;
+			m_tree->gExtension[USE_ControlFlowAttributes] = true;
 
 			//optional
 			if (Accept('('))
 			{
-				unsigned int iValue;
-				const char* id;
-
+				unsigned int iValue = 0;
+				CachedString id;
+				int value = 0;
 
 				if (AcceptUint(iValue))
 				{
 					attribute->unrollCount = iValue;
-					currentTokenizer->Next();
+				}
+				else if (AcceptInt(value))
+				{
+					if (value < 0)
+					{
+						m_pFullTokenizer->Error("error) unroll can not be a negative number");
+					}
+					attribute->unrollCount = value;
 				}
 				else if (AcceptIdentifier(id))
 				{
-					attribute->unrollIdentifier = m_tree->AddString(id);
+					attribute->unrollIdentifier = id;
 				}
 				else
 				{
-					currentTokenizer->Error("error) unroll");
+					m_pFullTokenizer->Error("error) unroll");
 					return false;
 				}
+
+				FullToken nextAttrToken = m_pFullTokenizer->GetFullToken();
 
 				if (!Expect(')'))
 					return false;
 			}
 
-
-			//if (!Expect('('))
-			//	return false;
-
-
-
-			
-
 		}
-		else if (strcmp(identifier, "flatten") == 0) attribute->attributeType = HLSLAttributeType_Flatten;
-		else if (strcmp(identifier, "branch") == 0) attribute->attributeType = HLSLAttributeType_Branch;
-		else if (strcmp(identifier, "numthreads") == 0)
+		else if (String_Equal(identifier, "flatten"))
+		{
+			m_tree->gExtension[USE_ControlFlowAttributes] = true;
+			attribute->attributeType = HLSLAttributeType_Flatten;
+		}
+		else if (String_Equal(identifier, "branch"))
+		{
+			m_tree->gExtension[USE_ControlFlowAttributes] = true;
+			attribute->attributeType = HLSLAttributeType_Branch;
+		}
+		else if (String_Equal(identifier, "numthreads"))
 		{
 			attribute->attributeType = HLSLAttributeType_NumThreads;
 			
 			if (!Expect('('))
 				return false;
 			
-			attribute->numGroupX = currentTokenizer->GetuInt();
+			attribute->numGroupX = m_pFullTokenizer->GetuInt();
 
 			if (attribute->numGroupX == 0)
-				attribute->numGroupXstr = m_tree->AddString(currentTokenizer->GetIdentifier());
-			currentTokenizer->Next();
+				attribute->numGroupXstr = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
+			m_pFullTokenizer->Next();
 
 			if (!Expect(','))
 				return false;
 
-			attribute->numGroupY = currentTokenizer->GetuInt();
+			attribute->numGroupY = m_pFullTokenizer->GetuInt();
 
 			if (attribute->numGroupY == 0)
-				attribute->numGroupYstr = m_tree->AddString(currentTokenizer->GetIdentifier());
-			currentTokenizer->Next();
+				attribute->numGroupYstr = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
+			m_pFullTokenizer->Next();
 
 			if (!Expect(','))
 				return false;
 
-			attribute->numGroupZ = currentTokenizer->GetuInt();
+			attribute->numGroupZ = m_pFullTokenizer->GetuInt();
 
 			if (attribute->numGroupZ == 0)
-				attribute->numGroupZstr = m_tree->AddString(currentTokenizer->GetIdentifier());
-			currentTokenizer->Next();
+				attribute->numGroupZstr = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
+			m_pFullTokenizer->Next();
 
 			if (!Expect(')'))
 				return false;
 
 		}
-		else if (strcmp(identifier, "maxvertexcount") == 0)
+		else if (String_Equal(identifier, "maxvertexcount"))
 		{
 			attribute->attributeType = HLSLAttributeType_MaxVertexCount;
 
 			if (!Expect('('))
 				return false;
 
-			attribute->maxVertexCount = currentTokenizer->GetuInt();
-			currentTokenizer->Next();
+			attribute->maxVertexCount = m_pFullTokenizer->GetuInt();
+			m_pFullTokenizer->Next();
 
 			if (!Expect(')'))
 				return false;
 		}
-		else if (strcmp(identifier, "domain") == 0)
+		else if (String_Equal(identifier, "domain"))
 		{
 			attribute->attributeType = HLSLAttributeType_Domain;
 
 			if (!Expect('('))
 				return false;
 
-			strcpy(attribute->domain, currentTokenizer->GetIdentifier());
-			currentTokenizer->Next();
+			attribute->domain = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
+			m_pFullTokenizer->Next();
 
 			if (!Expect(')'))
 				return false;
 		}
-		else if (strcmp(identifier, "partitioning") == 0)
+		else if (String_Equal(identifier, "partitioning"))
 		{
 			attribute->attributeType = HLSLAttributeType_Partitioning;
 
 			if (!Expect('('))
 				return false;
 
-			strcpy(attribute->partitioning, currentTokenizer->GetIdentifier());
-			currentTokenizer->Next();
+			attribute->partitioning = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
+			m_pFullTokenizer->Next();
 
 			if (!Expect(')'))
 				return false;
 		}
-		else if (strcmp(identifier, "outputtopology") == 0)
+		else if (String_Equal(identifier, "outputtopology"))
 		{
 			attribute->attributeType = HLSLAttributeType_OutputTopology;
 
 			if (!Expect('('))
 				return false;
 
-			strcpy(attribute->outputtopology, currentTokenizer->GetIdentifier());
-			currentTokenizer->Next();
+			attribute->outputtopology = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
+			m_pFullTokenizer->Next();
 
 			if (!Expect(')'))
 				return false;
 		}
-		else if (strcmp(identifier, "outputcontrolpoints") == 0)
+		else if (String_Equal(identifier, "outputcontrolpoints"))
 		{
 			attribute->attributeType = HLSLAttributeType_OutputControlPoints;
 
 			if (!Expect('('))
 				return false;
 
-			attribute->outputcontrolpoints = currentTokenizer->GetuInt();
-			currentTokenizer->Next();
+			attribute->outputcontrolpoints = m_pFullTokenizer->GetuInt();
+			m_pFullTokenizer->Next();
 
 			if (!Expect(')'))
 				return false;
 		}
-		else if (strcmp(identifier, "patchconstantfunc") == 0)
+		else if (String_Equal(identifier, "patchconstantfunc"))
 		{
 			attribute->attributeType = HLSLAttributeType_PatchConstantFunc;
 
 			if (!Expect('('))
 				return false;
 
-			strcpy(attribute->patchconstantfunc, currentTokenizer->GetIdentifier());
+			attribute->patchconstantfunc = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
 
+			// TODO: Clean me
 			char tempFuncName[128];
-			strcpy(tempFuncName, attribute->patchconstantfunc + 1);
+			strcpy(tempFuncName, GetCstr(attribute->patchconstantfunc) + 1);
 			tempFuncName[strlen(tempFuncName)-1] = NULL;
 
-			HLSLFunction* function = FindFunction(tempFuncName);
+			HLSLFunction* function = FindFunction(m_tree->AddStringCached(tempFuncName));
 
 			if (function)
 			{
 				function->bPatchconstantfunc = true;
 
-				//MainEntry
-				//HLSLFunction* entryFunction = FindFunction(m_entryName);
-				//entryFunction->bPatchconstantfunc;
 			}
 			else
 				return false;
 
 
-			currentTokenizer->Next();
+			m_pFullTokenizer->Next();
 
 			if (!Expect(')'))
 				return false;
 		}
-		else if (strcmp(identifier, "maxtessfactor") == 0)
+		else if (String_Equal(identifier, "maxtessfactor"))
 		{
 			attribute->attributeType = HLSLAttributeType_MaxtessFactor;
 
 			if (!Expect('('))
 				return false;
 
-			attribute->maxTessellationFactor = currentTokenizer->GetFloat();
-			currentTokenizer->Next();
+			attribute->maxTessellationFactor = m_pFullTokenizer->GetFloat();
+			m_pFullTokenizer->Next();
 
 			if (!Expect(')'))
 				return false;
 		}
-		else if (strcmp(identifier, "earlydepthstencil") == 0)
+		else if (String_Equal(identifier, "earlydepthstencil"))
 		{
 			attribute->attributeType = HLSLAttributeType_EarlyDepthStencil;		
 
 			attribute->earlyDepthStencil = true;
-
 		}
-
-
-		
-		
 
 		// @@ parse arguments, () not required if attribute constructor has no arguments.
 
@@ -10614,10 +11332,10 @@ bool HLSLParser::ParseAttributeList(HLSLAttribute*& firstAttribute)
 //   [A] statement;
 //   [A,B] statement;
 //   [A][B] statement;
-// These are not supported yet:
-//   [A] statement [B];
 //   [A()] statement;
 //   [A(a)] statement;
+// These are not supported yet:
+//   [A] statement [B];
 bool HLSLParser::ParseAttributeBlock(HLSLAttribute*& attribute)
 {
 	HLSLAttribute ** lastAttribute = &attribute;
@@ -10650,7 +11368,7 @@ bool HLSLParser::ParseStage(HLSLStatement*& statement)
 	}
 
 	// Required stage name.
-	const char* stageName = NULL;
+	CachedString stageName;// = NULL;
 	if (!ExpectIdentifier(stageName))
 	{
 		return false;
@@ -10680,60 +11398,15 @@ bool HLSLParser::ParseStage(HLSLStatement*& statement)
 	return true;
 }
 
-
-
-
 bool HLSLParser::Parse(HLSLTree* tree)
 {
 	m_tree = tree;
-	
+
+	m_entryName = m_tree->AddStringCached(m_entryNameStr.c_str());
+
+
 	HLSLRoot* root = m_tree->GetRoot();
 	HLSLStatement* lastStatement = NULL;
-
-	
-
-	for (int i = 0; i < pTokenizerForIncludedCount; i++)
-	{
-		currentTokenizer = pTokenizerForIncluded[i];
-		
-		while (!Accept(HLSLToken_EndOfStream))
-		{
-			HLSLStatement* statement = NULL;
-			if (!ParseTopLevel(statement))
-			{
-				
-				return false;
-			}
-
-			if (currentPreprocessor)
-			{
-				statement->preprocessor = currentPreprocessor->contents;
-			}
-
-		
-
-			//statements in include files are all hidden
-			if (statement)
-				statement->hidden = true;
-
-			if (statement != NULL)
-			{
-				if (lastStatement == NULL)
-				{
-					root->statement = statement;
-				}
-				else
-				{
-					lastStatement->nextStatement = statement;
-				}
-				lastStatement = statement;
-			}
-		}
-	}
-
-	
-
-	currentTokenizer = mainTokenizer;
 
 	while (!Accept(HLSLToken_EndOfStream))
 	{
@@ -10741,17 +11414,6 @@ bool HLSLParser::Parse(HLSLTree* tree)
 		if (!ParseTopLevel(statement))
 		{
 			return false;
-		}
-
-		if (currentPreprocessor && statement)
-		{
-			statement->preprocessor = currentPreprocessor->contents;
-		}
-
-		if (m_bEmbrace == false)
-		{
-			if (statement)
-				statement->hidden = true;
 		}
 
 		if (statement != NULL)
@@ -10768,12 +11430,10 @@ bool HLSLParser::Parse(HLSLTree* tree)
 		}
 	}
 
-	
-
 	//check there is right entryFunction
 	if (!FindFunction(m_entryName))
 	{
-		currentTokenizer->Error("There is no matched Entry function!");
+		m_pFullTokenizer->Error("There is no matched Entry function!");
 		return false;
 	}
 
@@ -10850,14 +11510,14 @@ bool HLSLParser::AcceptInterpolationModifier(int& flags)
 }
 
 
-bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typeName, int* typeFlags)
+bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, CachedString &typeName, int* typeFlags)
 {
 	if (typeFlags != NULL) {
 		*typeFlags = 0;
 		while(AcceptTypeModifier(*typeFlags) || AcceptInterpolationModifier(*typeFlags)) {}
 	}
 
-	int token = currentTokenizer->GetToken();
+	int token = m_pFullTokenizer->GetToken();
 
 	// Check built-in types.
 	type = HLSLBaseType_Void;
@@ -10900,7 +11560,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 		type = HLSLBaseType_Bool4x4; break;
 
 	case HLSLToken_Float:
-		type = HLSLBaseType_Float; typeName = m_tree->AddString("float"); break;
+		type = HLSLBaseType_Float; typeName = m_tree->AddStringCached("float"); break;
 	case HLSLToken_Float1x2:
 		type = HLSLBaseType_Float1x2; break;
 	case HLSLToken_Float1x3:
@@ -10909,7 +11569,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 		type = HLSLBaseType_Float1x4; break;
 
 	case HLSLToken_Float2:      
-		type = HLSLBaseType_Float2; typeName = m_tree->AddString("float2"); break;
+		type = HLSLBaseType_Float2; typeName = m_tree->AddStringCached("float2"); break;
 	case HLSLToken_Float2x2:
 		type = HLSLBaseType_Float2x2; break;
 	case HLSLToken_Float2x3:
@@ -10918,7 +11578,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 		type = HLSLBaseType_Float2x4; break;
 
 	case HLSLToken_Float3:
-		type = HLSLBaseType_Float3; typeName = m_tree->AddString("float3"); break;
+		type = HLSLBaseType_Float3; typeName = m_tree->AddStringCached("float3"); break;
 	case HLSLToken_Float3x2:
 		type = HLSLBaseType_Float3x2; break;
 	case HLSLToken_Float3x3:
@@ -10927,7 +11587,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 		type = HLSLBaseType_Float3x4; break;
 
 	case HLSLToken_Float4:
-		type = HLSLBaseType_Float4; typeName = m_tree->AddString("float4"); break;
+		type = HLSLBaseType_Float4; typeName = m_tree->AddStringCached("float4"); break;
 	case HLSLToken_Float4x2:
 		type = HLSLBaseType_Float4x2; break;
 	case HLSLToken_Float4x3:
@@ -10937,7 +11597,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 
 	
 	case HLSLToken_Half:
-		type = HLSLBaseType_Half; break;
+		type = HLSLBaseType_Half; typeName = m_tree->AddStringCached("half"); break;
 	case HLSLToken_Half1x2:
 		type = HLSLBaseType_Half1x2; break;
 	case HLSLToken_Half1x3:
@@ -10946,7 +11606,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 		type = HLSLBaseType_Half1x4; break;
 
 	case HLSLToken_Half2:      
-		type = HLSLBaseType_Half2; break;
+		type = HLSLBaseType_Half2; typeName = m_tree->AddStringCached("half2"); break;
 	case HLSLToken_Half2x2:
 		type = HLSLBaseType_Half2x2; break;
 	case HLSLToken_Half2x3:
@@ -10955,16 +11615,16 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 		type = HLSLBaseType_Half2x4; break;
 
 	case HLSLToken_Half3:
-		type = HLSLBaseType_Half3; break;
+		type = HLSLBaseType_Half3; typeName = m_tree->AddStringCached("half3"); break;
 	case HLSLToken_Half3x2:
 		type = HLSLBaseType_Half3x2; break;
 	case HLSLToken_Half3x3:
-		type = HLSLBaseType_Half3x3; break;
+		type = HLSLBaseType_Half3x3; m_tree->gExtension[USE_3X3_CONVERSION] = true; break;
 	case HLSLToken_Half3x4:
 		type = HLSLBaseType_Half3x4; break;
 		
 	case HLSLToken_Half4:
-		type = HLSLBaseType_Half4; break;
+		type = HLSLBaseType_Half4; typeName = m_tree->AddStringCached("half4"); break;
 	case HLSLToken_Half4x2:
 		type = HLSLBaseType_Half4x2; break;
 	case HLSLToken_Half4x3:
@@ -10972,10 +11632,8 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 	case HLSLToken_Half4x4:
 		type = HLSLBaseType_Half4x4; break;
 
-
-
 	case HLSLToken_Min16Float:
-		type = HLSLBaseType_Min16Float; break;
+		type = HLSLBaseType_Min16Float; typeName = m_tree->AddStringCached("min16float"); break;
 	case HLSLToken_Min16Float1x2:
 		type = HLSLBaseType_Min16Float1x2; break;
 	case HLSLToken_Min16Float1x3:
@@ -10984,7 +11642,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 		type = HLSLBaseType_Min16Float1x4; break;
 
 	case HLSLToken_Min16Float2:
-		type = HLSLBaseType_Min16Float2; break;
+		type = HLSLBaseType_Min16Float2; typeName = m_tree->AddStringCached("min16float2"); break;
 	case HLSLToken_Min16Float2x2:
 		type = HLSLBaseType_Min16Float2x2; break;
 	case HLSLToken_Min16Float2x3:
@@ -10993,16 +11651,16 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 		type = HLSLBaseType_Min16Float2x4; break;
 
 	case HLSLToken_Min16Float3:
-		type = HLSLBaseType_Min16Float3; break;
+		type = HLSLBaseType_Min16Float3; typeName = m_tree->AddStringCached("min16float3"); break;
 	case HLSLToken_Min16Float3x2:
 		type = HLSLBaseType_Min16Float3x2; break;
 	case HLSLToken_Min16Float3x3:
-		type = HLSLBaseType_Min16Float3x3; break;
+		type = HLSLBaseType_Min16Float3x3;  m_tree->gExtension[USE_3X3_CONVERSION] = true; break;
 	case HLSLToken_Min16Float3x4:
 		type = HLSLBaseType_Min16Float3x4; break;
 
 	case HLSLToken_Min16Float4:
-		type = HLSLBaseType_Min16Float4; break;
+		type = HLSLBaseType_Min16Float4; typeName = m_tree->AddStringCached("min16float4"); break;
 	case HLSLToken_Min16Float4x2:
 		type = HLSLBaseType_Min16Float4x2; break;
 	case HLSLToken_Min16Float4x3:
@@ -11012,7 +11670,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 
 
 	case HLSLToken_Min10Float:
-		type = HLSLBaseType_Min10Float; break;
+		type = HLSLBaseType_Min10Float; typeName = m_tree->AddStringCached("min10float"); break;
 	case HLSLToken_Min10Float1x2:
 		type = HLSLBaseType_Min10Float1x2; break;
 	case HLSLToken_Min10Float1x3:
@@ -11021,7 +11679,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 		type = HLSLBaseType_Min10Float1x4; break;
 
 	case HLSLToken_Min10Float2:
-		type = HLSLBaseType_Min10Float2; break;
+		type = HLSLBaseType_Min10Float2; typeName = m_tree->AddStringCached("min10float2"); break;
 	case HLSLToken_Min10Float2x2:
 		type = HLSLBaseType_Min10Float2x2; break;
 	case HLSLToken_Min10Float2x3:
@@ -11030,16 +11688,16 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 		type = HLSLBaseType_Min10Float2x4; break;
 
 	case HLSLToken_Min10Float3:
-		type = HLSLBaseType_Min10Float3; break;
+		type = HLSLBaseType_Min10Float3; typeName = m_tree->AddStringCached("min10float3"); break;
 	case HLSLToken_Min10Float3x2:
 		type = HLSLBaseType_Min10Float3x2; break;
 	case HLSLToken_Min10Float3x3:
-		type = HLSLBaseType_Min10Float3x3; break;
+		type = HLSLBaseType_Min10Float3x3;  m_tree->gExtension[USE_3X3_CONVERSION] = true; break;
 	case HLSLToken_Min10Float3x4:
 		type = HLSLBaseType_Min10Float3x4; break;
 
 	case HLSLToken_Min10Float4:
-		type = HLSLBaseType_Min10Float4; break;
+		type = HLSLBaseType_Min10Float4; typeName = m_tree->AddStringCached("min10float4"); break;
 	case HLSLToken_Min10Float4x2:
 		type = HLSLBaseType_Min10Float4x2; break;
 	case HLSLToken_Min10Float4x3:
@@ -11049,7 +11707,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 
 
 	case HLSLToken_Int:
-		type = HLSLBaseType_Int; typeName = m_tree->AddString("int"); break;
+		type = HLSLBaseType_Int; typeName = m_tree->AddStringCached("int"); break;
 	case HLSLToken_Int1x2:
 		type = HLSLBaseType_Int1x2; break;
 	case HLSLToken_Int1x3:
@@ -11058,7 +11716,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 		type = HLSLBaseType_Int1x4; break;
 
 	case HLSLToken_Int2:
-		type = HLSLBaseType_Int2; typeName = m_tree->AddString("int2"); break;
+		type = HLSLBaseType_Int2; typeName = m_tree->AddStringCached("int2"); break;
 	case HLSLToken_Int2x2:
 		type = HLSLBaseType_Int2x2; break;
 	case HLSLToken_Int2x3:
@@ -11067,7 +11725,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 		type = HLSLBaseType_Int2x4; break;
 		
 	case HLSLToken_Int3:
-		type = HLSLBaseType_Int3; typeName = m_tree->AddString("int3"); break;
+		type = HLSLBaseType_Int3; typeName = m_tree->AddStringCached("int3"); break;
 	case HLSLToken_Int3x2:
 		type = HLSLBaseType_Int3x2; break;
 	case HLSLToken_Int3x3:
@@ -11076,7 +11734,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 		type = HLSLBaseType_Int3x4; break;
 		
 	case HLSLToken_Int4:
-		type = HLSLBaseType_Int4;  typeName = m_tree->AddString("int4"); break;
+		type = HLSLBaseType_Int4;  typeName = m_tree->AddStringCached("int4"); break;
 	case HLSLToken_Int4x2:
 		type = HLSLBaseType_Int4x2; break;
 	case HLSLToken_Int4x3:
@@ -11085,7 +11743,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 		type = HLSLBaseType_Int4x4; break;
 
 	case HLSLToken_Uint:
-		type = HLSLBaseType_Uint; typeName = m_tree->AddString("uint");  break;
+		type = HLSLBaseType_Uint; typeName = m_tree->AddStringCached("uint");  break;
 	case HLSLToken_Uint1x2:
 		type = HLSLBaseType_Uint1x2; break;
 	case HLSLToken_Uint1x3:
@@ -11094,7 +11752,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 		type = HLSLBaseType_Uint1x4; break;
 
 	case HLSLToken_Uint2:
-		type = HLSLBaseType_Uint2;  typeName = m_tree->AddString("uint2"); break;
+		type = HLSLBaseType_Uint2;  typeName = m_tree->AddStringCached("uint2"); break;
 	case HLSLToken_Uint2x2:
 		type = HLSLBaseType_Uint2x2; break;
 	case HLSLToken_Uint2x3:
@@ -11103,7 +11761,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 		type = HLSLBaseType_Uint2x4; break;
 
 	case HLSLToken_Uint3:
-		type = HLSLBaseType_Uint3;  typeName = m_tree->AddString("uint3"); break;
+		type = HLSLBaseType_Uint3;  typeName = m_tree->AddStringCached("uint3"); break;
 	case HLSLToken_Uint3x2:
 		type = HLSLBaseType_Uint3x2; break;
 	case HLSLToken_Uint3x3:
@@ -11112,7 +11770,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 		type = HLSLBaseType_Uint3x4; break;
 
 	case HLSLToken_Uint4:
-		type = HLSLBaseType_Uint4;  typeName = m_tree->AddString("uint4"); break;
+		type = HLSLBaseType_Uint4;  typeName = m_tree->AddStringCached("uint4"); break;
 	case HLSLToken_Uint4x2:
 		type = HLSLBaseType_Uint4x2; break;
 	case HLSLToken_Uint4x3:
@@ -11122,31 +11780,31 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 		
 	case HLSLToken_InputPatch:
 		type = HLSLBaseType_InputPatch;
-		currentTokenizer->Next();
+		m_pFullTokenizer->Next();
 		return true;
 		break;
 
 	case HLSLToken_OutputPatch:
 		type = HLSLBaseType_OutputPatch;
-		currentTokenizer->Next();
+		m_pFullTokenizer->Next();
 		return true;
 		break;
 
 	case HLSLToken_PointStream:
 		type = HLSLBaseType_PointStream;
-		currentTokenizer->Next();
+		m_pFullTokenizer->Next();
 		return true;
 		break;
 
 	case HLSLToken_LineStream:
 		type = HLSLBaseType_LineStream;
-		currentTokenizer->Next();
+		m_pFullTokenizer->Next();
 		return true;
 		break;
 
 	case HLSLToken_TriangleStream:
 		type = HLSLBaseType_TriangleStream; 
-		currentTokenizer->Next();
+		m_pFullTokenizer->Next();
 		return true;
 		break;
 
@@ -11275,7 +11933,7 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 	}
 	if (type != HLSLBaseType_Void)
 	{
-		currentTokenizer->Next();
+		m_pFullTokenizer->Next();
 		return true;
 	}
 
@@ -11288,33 +11946,19 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 	if (token == HLSLToken_Identifier)
 	{
 		//Confetti's rule
-		if (String_Equal(currentTokenizer->GetIdentifier(), "mat4"))
+		if (String_Equal(m_pFullTokenizer->GetIdentifier(), "mat4"))
 		{
 			type = HLSLBaseType_Float4x4;
-			currentTokenizer->Next();
+			m_pFullTokenizer->Next();
 			return true;
 		}
 
 		//Define preprocessor		
-		const char* preprocessorIdentifier = m_tree->AddDefineString(currentTokenizer->GetIdentifier());
-		const HLSLpreprocessor* preprocessorExp = FindPreprocessorDefinedType(preprocessorIdentifier);
-		if (preprocessorExp != NULL)
-		{
-			if (preprocessorExp->preprocessorType == HLSLBaseType_Empty)
-				return false; //just skip
-
-			currentTokenizer->Next();
-			type = HLSLBaseType_UserDefined;
-			typeName = preprocessorIdentifier;
-			return true;
-		}
-		
-		//Reserved identifier (ex : for geometry shader)
-
-		const char* identifier = m_tree->AddString( currentTokenizer->GetIdentifier() );
+	
+		CachedString identifier = m_tree->AddStringCached( m_pFullTokenizer->GetIdentifier() );
 		if (FindUserDefinedType(identifier) != NULL)
 		{
-			currentTokenizer->Next();
+			m_pFullTokenizer->Next();
 			type        = HLSLBaseType_UserDefined;
 			typeName    = identifier;
 			return true;
@@ -11323,17 +11967,17 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, const char* &typ
 	return false;
 }
 
-bool HLSLParser::ExpectType(bool allowVoid, HLSLBaseType& type, const char*& typeName, int* typeFlags)
+bool HLSLParser::ExpectType(bool allowVoid, HLSLBaseType& type, CachedString & typeName, int* typeFlags)
 {
 	if (!AcceptType(allowVoid, type, typeName, typeFlags))
 	{
-		currentTokenizer->Error("Expected type");
+		m_pFullTokenizer->Error("Expected type");
 		return false;
 	}
 	return true;
 }
 
-bool HLSLParser::AcceptDeclaration(bool allowUnsizedArray, HLSLType& type, const char*& name)
+bool HLSLParser::AcceptDeclaration(bool allowUnsizedArray, HLSLType& type, CachedString& name)
 {
 	if (!AcceptType(/*allowVoid=*/false, type.baseType, type.typeName, &type.flags))
 	{
@@ -11346,13 +11990,13 @@ bool HLSLParser::AcceptDeclaration(bool allowUnsizedArray, HLSLType& type, const
 
 		if (type.baseType == HLSLBaseType_Texture2DMS || type.baseType == HLSLBaseType_Texture2DMSArray)
 		{
-			type.textureTypeName = m_tree->AddString(currentTokenizer->GetIdentifier());
-			currentTokenizer->Next();
+			type.textureTypeName = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
+			m_pFullTokenizer->Next();
 
 			if (!Expect(','))
 				return false;
 
-			const char* temp;
+			CachedString temp;
 			int iValue;
 			if (AcceptIdentifier(temp))
 			{
@@ -11373,8 +12017,8 @@ bool HLSLParser::AcceptDeclaration(bool allowUnsizedArray, HLSLType& type, const
 		}
 		else if (type.baseType >= HLSLBaseType_Texture1D && type.baseType <= HLSLBaseType_RWTexture3D)
 		{
-			type.textureTypeName = m_tree->AddString(currentTokenizer->GetIdentifier());
-			currentTokenizer->Next();
+			type.textureTypeName = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
+			m_pFullTokenizer->Next();
 
 			if (!Expect('>'))
 				return false;
@@ -11397,29 +12041,37 @@ bool HLSLParser::AcceptDeclaration(bool allowUnsizedArray, HLSLType& type, const
 					{
 						type.typeName = type.structuredTypeName;
 
-						strcpy(type.InputPatchName, "InputPatch<");
-						strcat(type.InputPatchName, type.typeName);
-						strcat(type.InputPatchName, ", ");
+						char buf[2048];
+
+						strcpy(buf, "InputPatch<");
+						strcat(buf, GetCstr(type.typeName));
+						strcat(buf, ", ");
 
 						char intBuffer[128];
 						_itoa_s(type.maxPoints, intBuffer, 10);
-						strcat(type.InputPatchName, intBuffer);
+						strcat(buf, intBuffer);
 
-						strcat(type.InputPatchName, ">");
+						strcat(buf, ">");
+
+						type.InputPatchName = m_tree->AddStringCached(buf);
 					}
 					else if (type.baseType == HLSLBaseType_OutputPatch)
 					{
 						type.typeName = type.structuredTypeName;
 
-						strcpy(type.OutputPatchName, "OutputPatch<");
-						strcat(type.OutputPatchName, type.typeName);
-						strcat(type.OutputPatchName, ", ");
+						char buf[2048];
+
+						strcpy(buf, "OutputPatch<");
+						strcat(buf, GetCstr(type.typeName));
+						strcat(buf, ", ");
 
 						char intBuffer[128];
 						_itoa_s(type.maxPoints, intBuffer, 10);
-						strcat(type.OutputPatchName, intBuffer);
+						strcat(buf, intBuffer);
 
-						strcat(type.OutputPatchName, ">");
+						strcat(buf, ">");
+
+						type.OutputPatchName = m_tree->AddStringCached(buf);
 					}
 
 					type.array = true;
@@ -11437,8 +12089,6 @@ bool HLSLParser::AcceptDeclaration(bool allowUnsizedArray, HLSLType& type, const
 		return false;
 	}
 
-	
-
 	// Handle array syntax.
 	if (Accept('['))
 	{
@@ -11448,7 +12098,7 @@ bool HLSLParser::AcceptDeclaration(bool allowUnsizedArray, HLSLType& type, const
 		{
 			return true;
 		}
-		if (!ParseExpression(type.arraySize) || !Expect(']'))
+		if (!ParseExpression(type.arraySize,false,0) || !Expect(']'))
 		{
 			return false;
 		}
@@ -11456,37 +12106,23 @@ bool HLSLParser::AcceptDeclaration(bool allowUnsizedArray, HLSLType& type, const
 	return true;
 }
 
-bool HLSLParser::ExpectDeclaration(bool allowUnsizedArray, HLSLType& type, const char*& name)
+bool HLSLParser::ExpectDeclaration(bool allowUnsizedArray, HLSLType& type, CachedString & name)
 {
 	if (!AcceptDeclaration(allowUnsizedArray, type, name))
 	{
-		currentTokenizer->Error("Expected declaration");
+		m_pFullTokenizer->Error("Expected declaration");
 		return false;
 	}
 	return true;
 }
 
-const HLSLpreprocessor* HLSLParser::FindPreprocessorDefinedType(const char* name) const
+const HLSLSamplerState* HLSLParser::FindSamplerStateDefinedType(const CachedString & name) const
 {
 	// Pointer comparison is sufficient for strings since they exist in the
 	// string pool.
-	for (int i = 0; i < m_preProcessors.GetSize(); ++i)
+	for (int i = 0; i < m_samplerStates.size(); ++i)
 	{
-		if (String_Equal(m_preProcessors[i]->name, name))
-		{
-			return m_preProcessors[i];
-		}
-	}
-	return NULL;
-}
-
-const HLSLSamplerState* HLSLParser::FindSamplerStateDefinedType(const char* name) const
-{
-	// Pointer comparison is sufficient for strings since they exist in the
-	// string pool.
-	for (int i = 0; i < m_samplerStates.GetSize(); ++i)
-	{
-		if (String_Equal(m_samplerStates[i]->name, name))
+		if (String_Equal(m_samplerStates[i]->cachedName, name))
 		{
 			return m_samplerStates[i];
 		}
@@ -11494,66 +12130,29 @@ const HLSLSamplerState* HLSLParser::FindSamplerStateDefinedType(const char* name
 	return NULL;
 }
 
-const HLSLTextureState* HLSLParser::FindTextureStateDefinedType(const char* name) const
+const HLSLTextureState* HLSLParser::FindTextureStateDefinedType(const CachedString & name) const
 {	
-
-	HLSLTextureState* Array[256];
-	int counter = 0;
-
-	for (int i = 0; i < m_textureStates.GetSize(); ++i)
+	for (int i = 0; i < m_textureStates.size(); ++i)
 	{		
-		if (String_Equal(m_textureStates[i]->name, name))
+		if (String_Equal(m_textureStates[i]->cachedName, name))
 		{
-			Array[counter++] = m_textureStates[i];
-			//return m_textureStates[i];
+			return m_textureStates[i];
 		}	
-
-	}
-
-
-	if (counter > 1)
-	{
-		//compare preprocessor
-		for (int j = 0; j < counter; j++)
-		{
-			if (currentPreprocessor)
-			{
-				if (Array[j]->preprocessor == currentPreprocessor->contents)
-				{
-					return Array[j];
-				}
-			}
-			else
-				return Array[j];
-		}
-
-		//Choose first
-		return Array[0];
-	}
-	else if (counter == 1)
-	{
-		return Array[0];
-	}
-	else
-	{
-		return NULL;
 	}
 
 	return NULL;
 }
 
-
-
-const HLSLTextureState* HLSLParser::FindTextureStateDefinedTypeWithAddress(const char* name) const
+const HLSLTextureState* HLSLParser::FindTextureStateDefinedTypeWithAddress(const CachedString & name) const
 {
 	return NULL;
 }
 
-HLSLBuffer* HLSLParser::FindBuffer(const char* name) const
+HLSLBuffer* HLSLParser::FindBuffer(const CachedString & name) const
 {
-	for (int i = 0; i < m_Buffers.GetSize(); ++i)
+	for (int i = 0; i < m_Buffers.size(); ++i)
 	{
-		if (String_Equal(m_Buffers[i]->name, name))
+		if (String_Equal(m_Buffers[i]->cachedName, name))
 		{
 			return m_Buffers[i];
 		}
@@ -11561,11 +12160,11 @@ HLSLBuffer* HLSLParser::FindBuffer(const char* name) const
 	return NULL;
 }
 
-HLSLBuffer* HLSLParser::FindConstantBuffer(const char* name) const
+HLSLBuffer* HLSLParser::FindConstantBuffer(const CachedString & name) const
 {
-	for (int i = 0; i < m_Buffers.GetSize(); ++i)
+	for (int i = 0; i < m_Buffers.size(); ++i)
 	{
-		if (String_Equal(m_Buffers[i]->name, name) && m_Buffers[i]->type.baseType == HLSLBaseType_ConstantBuffer)
+		if (String_Equal(m_Buffers[i]->cachedName, name) && m_Buffers[i]->type.baseType == HLSLBaseType_ConstantBuffer)
 		{
 			return m_Buffers[i];
 		}
@@ -11573,12 +12172,33 @@ HLSLBuffer* HLSLParser::FindConstantBuffer(const char* name) const
 	return NULL;
 }
 
-
- HLSLStruct* HLSLParser::FindUserDefinedType(const char* name) const
+CachedString HLSLParser::FindParentTextureOrBuffer(const HLSLTextureState* & foundTexture, HLSLBuffer * & foundBuffer) const
 {
-	// Pointer comparison is sufficient for strings since they exist in the
-	// string pool.
-	for (int i = 0; i < m_userTypes.GetSize(); ++i)
+	CachedString ret;
+	foundTexture = NULL;
+	foundBuffer = NULL;
+
+	for (int i = (int)(m_parentStackIdentifiers.size()) - 1; i >= 0; i--)
+	{
+		CachedString found = m_parentStackIdentifiers[i];
+
+		foundTexture = FindTextureStateDefinedType(found);
+		foundBuffer = FindBuffer(found);
+
+		if (foundTexture != NULL ||
+			foundBuffer != NULL)
+		{
+			ret = found;
+			break;
+		}
+	}
+
+	return ret;
+}
+
+ HLSLStruct* HLSLParser::FindUserDefinedType(const CachedString & name) const
+{
+	for (int i = 0; i < m_userTypes.size(); ++i)
 	{
 		if (String_Equal(m_userTypes[i]->name, name))
 		{
@@ -11593,8 +12213,8 @@ bool HLSLParser::CheckForUnexpectedEndOfStream(int endToken)
 	if (Accept(HLSLToken_EndOfStream))
 	{
 		char what[HLSLTokenizer::s_maxIdentifier];
-		currentTokenizer->GetTokenName(endToken, what);
-		currentTokenizer->Error("Unexpected end of file while looking for '%s'", what);
+		m_pFullTokenizer->GetTokenName(endToken, what);
+		m_pFullTokenizer->Error("Unexpected end of file while looking for '%s'", CHECK_CSTR(what));
 		return true;
 	}
 	return false;
@@ -11602,37 +12222,41 @@ bool HLSLParser::CheckForUnexpectedEndOfStream(int endToken)
 
 int HLSLParser::GetLineNumber() const
 {
-	return currentTokenizer->GetLineNumber();
+	return m_pFullTokenizer->GetLineNumber();
 }
 
 const char* HLSLParser::GetFileName()
 {
-	return m_tree->AddString( currentTokenizer->GetFileName() );
+	return m_pFullTokenizer->GetFileName();
 }
 
 void HLSLParser::BeginScope()
 {
-	// Use NULL as a sentinel that indices a new scope level.
-	Variable& variable = m_variables.PushBackNew();
-	variable.name = NULL;
+	m_variableScopes.push_back(m_variables.size());
+	m_textureStateScopes.push_back(m_textureStates.size());
+	m_textureStateExpressionScopes.push_back(m_textureStateExpressions.size());
 }
 
 void HLSLParser::EndScope()
 {
-	int numVariables = m_variables.GetSize() - 1;
-	while (m_variables[numVariables].name != NULL)
-	{
-		--numVariables;
-		ASSERT(numVariables >= 0);
-	}
-	m_variables.Resize(numVariables);
+	ASSERT_PARSER(!m_variableScopes.empty());
+	m_variables.resize(m_variableScopes.back());
+	m_variableScopes.pop_back();
+
+	ASSERT_PARSER(!m_textureStateScopes.empty());
+	m_textureStates.resize(m_textureStateScopes.back());
+	m_textureStateScopes.pop_back();
+
+	ASSERT_PARSER(!m_textureStateExpressionScopes.empty());
+	m_textureStateExpressions.resize(m_textureStateExpressionScopes.back());
+	m_textureStateExpressionScopes.pop_back();
 }
 
-const HLSLType* HLSLParser::FindVariable(const char* name, bool& global) const
+const HLSLType* HLSLParser::FindVariable(const CachedString & name, bool& global) const
 {
-	for (int i = m_variables.GetSize() - 1; i >= 0; --i)
+	for (int i = int(m_variables.size()) - 1; i >= 0; --i)
 	{
-		if (m_variables[i].name == name)
+		if (String_Equal(m_variables[i].name,name))
 		{
 			global = (i < m_numGlobals);
 			return &m_variables[i].type;
@@ -11641,9 +12265,9 @@ const HLSLType* HLSLParser::FindVariable(const char* name, bool& global) const
 	return NULL;
 }
 
-HLSLFunction* HLSLParser::FindFunction(const char* name)
+HLSLFunction* HLSLParser::FindFunction(const CachedString & name)
 {
-	for (int i = 0; i < m_functions.GetSize(); ++i)
+	for (int i = 0; i < m_functions.size(); ++i)
 	{
 		if (String_Equal(m_functions[i]->name, name))
 		{
@@ -11658,33 +12282,51 @@ static bool AreTypesEqual(HLSLTree* tree, const HLSLType& lhs, const HLSLType& r
 	return GetTypeCastRank(tree, lhs, rhs) == 0;
 }
 
-static bool AreArgumentListsEqual(HLSLTree* tree, HLSLArgument* lhs, HLSLArgument* rhs)
+static bool AreArgumentListsEqualVec(HLSLTree* tree, const eastl::vector < HLSLArgument* > & lhsVec, const eastl::vector < HLSLArgument* > & rhsVec)
 {
-	while (lhs && rhs)
+	if (lhsVec.size() != rhsVec.size())
 	{
-		if (!AreTypesEqual(tree, lhs->type, rhs->type))
+		return false;
+	}
+
+	for (int i = 0; i < lhsVec.size(); i++)
+	{
+		HLSLArgument * lhs = lhsVec[i];
+		HLSLArgument * rhs = rhsVec[i];
+
+		if (lhs == NULL && rhs != NULL)
+		{
+			return false;
+		}
+
+		if (lhs != NULL && rhs != NULL)
+		{
+			return false;
+		}
+
+		if (!AreTypesEqual(tree, lhs->argType, rhs->argType))
 			return false;
 
 		if (lhs->modifier != rhs->modifier)
 			return false;
 
-		if (lhs->semantic != rhs->semantic || lhs->sv_semantic != rhs->sv_semantic)
+		if (!String_Equal(lhs->semantic,rhs->semantic))
 			return false;
 
-		lhs = lhs->nextArgument;
-		rhs = rhs->nextArgument;
+		if (!String_Equal(lhs->sv_semantic, rhs->sv_semantic))
+			return false;
 	}
 
-	return lhs == NULL && rhs == NULL;
+	return true;
 }
 
 const HLSLFunction* HLSLParser::FindFunction(const HLSLFunction* fun) const
 {
-	for (int i = 0; i < m_functions.GetSize(); ++i)
+	for (int i = 0; i < m_functions.size(); ++i)
 	{
 		if ( String_Equal(m_functions[i]->name, fun->name) &&
 			AreTypesEqual(m_tree, m_functions[i]->returnType, fun->returnType) &&
-			AreArgumentListsEqual(m_tree, m_functions[i]->argument, fun->argument))
+			AreArgumentListsEqualVec(m_tree, m_functions[i]->GetArguments(), fun->GetArguments()))
 		{
 			return m_functions[i];
 		}
@@ -11692,33 +12334,31 @@ const HLSLFunction* HLSLParser::FindFunction(const HLSLFunction* fun) const
 	return NULL;
 }
 
-void HLSLParser::DeclareVariable(const char* name, const HLSLType& type)
+void HLSLParser::DeclareVariable(const CachedString & name, const HLSLType& type)
 {
-	if (m_variables.GetSize() == m_numGlobals)
+	if (m_variables.size() == m_numGlobals)
 	{
 		++m_numGlobals;
 	}
-	Variable& variable = m_variables.PushBackNew();
+
+	Variable variable;
 	variable.name = name;
 	variable.type = type;
+	m_variables.push_back(variable);
 }
 
-bool HLSLParser::GetIsFunction(const char* name) const
+bool HLSLParser::GetIsFunction(const CachedString & name) const
 {
-	for (int i = 0; i < m_functions.GetSize(); ++i)
+	for (int i = 0; i < m_functions.size(); ++i)
 	{	
-		// == is ok here because we're passed the strings through the string pool.
-		//if (String_Equal(m_functions[i]->name, name))
-		if (m_functions[i]->name == name)
+		if (String_Equal(m_functions[i]->name, name))
 		{
 			return true;
 		}
 	}
-	for (int i = 0; i < _numIntrinsics; ++i)
+	for (int i = 0; i < m_intrinsicHelper->m_intrinsics.size(); ++i)
 	{
-		// Intrinsic names are not in the string pool (since they are compile time
-		// constants, so we need full string compare).
-		if (String_Equal(name, _intrinsic[i].function.name))
+		if (String_Equal(name, m_intrinsicHelper->m_intrinsics[i]->rawName))
 		{
 			if (String_Equal(name, "NonUniformResourceIndex"))
 			{
@@ -11783,7 +12423,7 @@ bool HLSLParser::GetIsFunction(const char* name) const
 	return false;
 }
 
-const HLSLFunction* HLSLParser::MatchFunctionCall(const HLSLFunctionCall* functionCall, const char* name)
+const HLSLFunction* HLSLParser::MatchFunctionCall(const HLSLFunctionCall* functionCall, const CachedString & name)
 {
 	const HLSLFunction* matchedFunction     = NULL;
 
@@ -11792,10 +12432,10 @@ const HLSLFunction* HLSLParser::MatchFunctionCall(const HLSLFunctionCall* functi
 	bool nameMatches            = false;
 
 	// Get the user defined functions with the specified name.
-	for (int i = 0; i < m_functions.GetSize(); ++i)
+	for (int i = 0; i < m_functions.size(); ++i)
 	{
 		const HLSLFunction* function = m_functions[i];
-		if (function->name == name)
+		if (String_Equal(function->name,name))
 		{
 			nameMatches = true;
 			
@@ -11813,18 +12453,21 @@ const HLSLFunction* HLSLParser::MatchFunctionCall(const HLSLFunctionCall* functi
 	}
 
 	// Get the intrinsic functions with the specified name.
-	for (int i = 0; i < _numIntrinsics; ++i)
+	int intrinsicId = -1;
+	for (int i = 0; i < m_intrinsicHelper->m_intrinsics.size(); i++)
 	{
-		const HLSLFunction* function = &_intrinsic[i].function;
-		if (String_Equal(function->name, name))
+		if (String_Equal(m_intrinsicHelper->m_intrinsics[i]->rawName, name))
 		{
 			nameMatches = true;
+
+			const HLSLFunction* function = &m_intrinsicHelper->m_intrinsics[i]->fullFunction;
 
 			CompareFunctionsResult result = CompareFunctions( m_tree, functionCall, function, matchedFunction );
 			if (result == Function1Better)
 			{
 				matchedFunction = function;
 				numMatchedOverloads = 1;
+				intrinsicId = i;
 			}
 			else if (result == FunctionsEqual)
 			{
@@ -11832,12 +12475,36 @@ const HLSLFunction* HLSLParser::MatchFunctionCall(const HLSLFunctionCall* functi
 			}
 		}
 	}
+	
+	// that function is owned by a different memory allocator, so create a new function
+	if (intrinsicId >= 0)
+	{
+		int line = GetLineNumber();
+		const char* fileName = GetFileName();
+
+		HLSLFunction* buildFunc = m_tree->AddNode<HLSLFunction>(fileName, line);
+
+		const Intrinsic * intrinsic = m_intrinsicHelper->m_intrinsics[intrinsicId];
+
+		buildFunc->name = m_tree->AddStringCached(intrinsic->rawName);
+		buildFunc->returnType.baseType = intrinsic->fullFunction.returnType.baseType;
+		
+		for (int i = 0; i < intrinsic->fullFunction.argumentVec.size(); i++)
+		{
+			HLSLArgument* arg = m_tree->AddNode<HLSLArgument>(fileName,line);
+
+			arg->argType.baseType = intrinsic->fullFunction.argumentVec[i]->argType.baseType;
+			arg->argType.flags = intrinsic->fullFunction.argumentVec[i]->argType.flags;
+
+			buildFunc->argumentVec.push_back(arg);
+		}
+
+		matchedFunction = buildFunc;
+	}
 
 	if (matchedFunction != NULL && numMatchedOverloads > 1)
 	{
 		// Multiple overloads match.
-		//currentTokenizer->Error("'%s' %d overloads have similar conversions", name, numMatchedOverloads);
-		//return NULL;
 
 		// Skip Overloads
 	}
@@ -11845,11 +12512,11 @@ const HLSLFunction* HLSLParser::MatchFunctionCall(const HLSLFunctionCall* functi
 	{
 		if (nameMatches)
 		{
-			currentTokenizer->Error("'%s' no overloaded function matched all of the arguments", name);
+			m_pFullTokenizer->Error("'%s' no overloaded function matched all of the arguments", GetCstr(name));
 		}
 		else
 		{
-			currentTokenizer->Error("Undeclared identifier '%s'", name);
+			m_pFullTokenizer->Error("Undeclared identifier '%s'", GetCstr(name));
 		}
 	}
 
@@ -11858,24 +12525,14 @@ const HLSLFunction* HLSLParser::MatchFunctionCall(const HLSLFunctionCall* functi
 
 bool HLSLParser::GetMemberType(HLSLType& objectType, HLSLMemberAccess * memberAccess)
 {
-	const char* fieldName = memberAccess->field;
+	CachedString fieldName = memberAccess->field;
 
 	HLSLBaseType comparingType = HLSLBaseType_Unknown;
-
 
 	if (objectType.elementType != HLSLBaseType_Unknown)
 		comparingType = objectType.elementType;
 	else
 		comparingType = objectType.baseType;
-
-	/*
-	if (objectType.baseType == HLSLBaseType_Unknown &&
-		objectType.elementType != HLSLBaseType_Unknown)
-	{
-		//!!!!!!!!!!!!!!!!!!!
-		objectType.baseType = objectType.elementType;
-	}
-	*/
 
 	if (comparingType == HLSLBaseType_UserDefined)
 	{
@@ -11887,7 +12544,7 @@ bool HLSLParser::GetMemberType(HLSLType& objectType, HLSLMemberAccess * memberAc
 		const HLSLStructField* field = structure->field;
 		while (field != NULL)
 		{
-			if (field->name == fieldName)
+			if (String_Equal(field->name,fieldName))
 			{
 				memberAccess->expressionType = field->type;
 				return true;
@@ -11908,7 +12565,7 @@ bool HLSLParser::GetMemberType(HLSLType& objectType, HLSLMemberAccess * memberAc
 		const HLSLStructField* field = structure->field;
 		while (field != NULL)
 		{
-			if (field->name == fieldName)
+			if (String_Equal(field->name,fieldName))
 			{
 				memberAccess->expressionType = field->type;
 				return true;
@@ -11953,25 +12610,26 @@ bool HLSLParser::GetMemberType(HLSLType& objectType, HLSLMemberAccess * memberAc
 
 	if (_baseTypeDescriptions[comparingType].numDimensions <= 1)
 	{
+		eastl::string fullFieldName = GetCstr(fieldName);
 		// Check for a swizzle on the scalar/vector types.
-		for (int i = 0; fieldName[i] != 0; ++i)
+		for (int i = 0; fullFieldName[i] != 0; ++i)
 		{
-			if (fieldName[i] != 'x' && fieldName[i] != 'y' && fieldName[i] != 'z' && fieldName[i] != 'w' &&
-				fieldName[i] != 'r' && fieldName[i] != 'g' && fieldName[i] != 'b' && fieldName[i] != 'a')
+			if (fullFieldName[i] != 'x' && fullFieldName[i] != 'y' && fullFieldName[i] != 'z' && fullFieldName[i] != 'w' &&
+				fullFieldName[i] != 'r' && fullFieldName[i] != 'g' && fullFieldName[i] != 'b' && fullFieldName[i] != 'a')
 			{
-				currentTokenizer->Error("Invalid swizzle '%s'", fieldName);
+				m_pFullTokenizer->Error("Invalid swizzle '%s'", GetCstr(fieldName));
 				return false;
 			}
 			++swizzleLength;
 		}
-		ASSERT(swizzleLength > 0);
+		ASSERT_PARSER(swizzleLength > 0);
 	}
 	else
 	{
-
 		// Check for a matrix element access (e.g. _m00 or _11)
+		eastl::string fullFieldName = GetCstr(fieldName);
 
-		const char* n = fieldName;
+		const char* n = fullFieldName.c_str();
 		while (n[0] == '_')
 		{
 			++n;
@@ -12007,16 +12665,19 @@ bool HLSLParser::GetMemberType(HLSLType& objectType, HLSLMemberAccess * memberAc
 
 	if (swizzleLength > 4)
 	{
-		currentTokenizer->Error("Invalid swizzle '%s'", fieldName);
+		m_pFullTokenizer->Error("Invalid swizzle '%s'", GetCstr(fieldName));
 		return false;
 	}
 
 	static const HLSLBaseType floatType[] = { HLSLBaseType_Float, HLSLBaseType_Float2, HLSLBaseType_Float3, HLSLBaseType_Float4 };
 	static const HLSLBaseType halfType[]  = { HLSLBaseType_Half,  HLSLBaseType_Half2,  HLSLBaseType_Half3,  HLSLBaseType_Half4  };
+	static const HLSLBaseType min16floatType[] = { HLSLBaseType_Min16Float,  HLSLBaseType_Min16Float2,  HLSLBaseType_Min16Float3,  HLSLBaseType_Min16Float4 };
+	static const HLSLBaseType min10floatType[] = { HLSLBaseType_Min10Float,  HLSLBaseType_Min10Float2,  HLSLBaseType_Min10Float3,  HLSLBaseType_Min10Float4 };
 	static const HLSLBaseType intType[]   = { HLSLBaseType_Int,   HLSLBaseType_Int2,   HLSLBaseType_Int3,   HLSLBaseType_Int4   };
 	static const HLSLBaseType uintType[]  = { HLSLBaseType_Uint,  HLSLBaseType_Uint2,  HLSLBaseType_Uint3,  HLSLBaseType_Uint4  };
 	static const HLSLBaseType boolType[]  = { HLSLBaseType_Bool,  HLSLBaseType_Bool2,  HLSLBaseType_Bool3,  HLSLBaseType_Bool4  };
 	
+
 	switch (_baseTypeDescriptions[comparingType].numericType)
 	{
 	case NumericType_Float:
@@ -12024,6 +12685,12 @@ bool HLSLParser::GetMemberType(HLSLType& objectType, HLSLMemberAccess * memberAc
 		break;
 	case NumericType_Half:
 		memberAccess->expressionType.baseType = halfType[swizzleLength - 1];
+		break;
+	case NumericType_Min16Float:
+		memberAccess->expressionType.baseType = min16floatType[swizzleLength - 1];
+		break;
+	case NumericType_Min10Float:
+		memberAccess->expressionType.baseType = min10floatType[swizzleLength - 1];
 		break;
 	case NumericType_Int:
 		memberAccess->expressionType.baseType = intType[swizzleLength - 1];
@@ -12035,7 +12702,7 @@ bool HLSLParser::GetMemberType(HLSLType& objectType, HLSLMemberAccess * memberAc
 		memberAccess->expressionType.baseType = boolType[swizzleLength - 1];
 			break;
 	default:
-		ASSERT(0);
+		ASSERT_PARSER(0);
 	}
 
 	memberAccess->swizzle = true;
@@ -12053,6 +12720,14 @@ HLSLBaseType HLSLParser::GetBaseTypeFromElement(const char* element)
 	{
 		return HLSLBaseType_Half;
 	}
+	else if (String_Equal(element, "min16float"))
+	{
+		return HLSLBaseType_Min16Float;
+	}
+	else if (String_Equal(element, "min10float"))
+	{
+		return HLSLBaseType_Min10Float;
+	}
 	else if (String_Equal(element, "uint"))
 	{
 		return HLSLBaseType_Uint;
@@ -12064,148 +12739,23 @@ HLSLBaseType HLSLParser::GetBaseTypeFromElement(const char* element)
 	else if (String_Equal(element, "bool"))
 	{
 		return HLSLBaseType_Bool;
-	}
+	}	
 	else
 	{
 		return HLSLBaseType_UserDefined;
 	}
 }
 
-
-/*
-void HLSLParser::FindClosestTextureIdentifier(const HLSLTextureState* pTextureState, char* functionCaller, HLSLFunctionCall* functionCall, int i, const char* pIdentifierName)
-{
-	int startIndex = 0;
-	//loop until we find the identifier
-	for (int j = i; j >= 0; j--)
-	{
-		const char* buffer = currentTokenizer->GetIndentifierHistoryAddress(j);
-		bool bCorrect = true;
-
-		int len = strnlen_s(pTextureState->name, 256);
-
-		for (int k = 0; k < len; k++)
-		{
-			if (buffer[k] != pTextureState->name[k])
-			{
-				bCorrect = false; break;
-			}
-		}
-
-		if (bCorrect)
-		{
-			startIndex = j;	break;
-		}
-	}
-
-	int lastIndex;
-	//loop until we find the identifier
-	for (int j = startIndex; ; j++)
-	{
-		const char* buffer = currentTokenizer->GetIndentifierHistoryAddress(j);
-		bool bCorrect = true;
-		int len = strnlen_s(pIdentifierName, 256);
-
-		for (int k = 0; k < len; k++)
-		{
-			if (buffer[k] != pIdentifierName[k])
-			{
-				bCorrect = false; break;
-			}
-		}
-
-		if (bCorrect)
-		{
-			lastIndex = j; break;
-		}
-	}
-
-	const char* start = currentTokenizer->GetIndentifierHistoryAddress(startIndex);
-	const char* last = currentTokenizer->GetIndentifierHistoryAddress(lastIndex);
-
-
-
-	size_t length = last - start - 1;
-	memcpy(functionCaller, start, length);
-	functionCaller[length] = 0;
-
-	strcpy(functionCall->functionCaller, functionCaller);
-}
-
-void HLSLParser::FindClosestTextureIdentifier(const HLSLRWTextureState* pTextureState, char* functionCaller, HLSLFunctionCall* functionCall, int i, const char* pIdentifierName)
-{
-	int startIndex = 0;
-	//loop until we find the identifier
-	for (int j = i; j >= 0; j--)
-	{
-		const char* buffer = currentTokenizer->GetIndentifierHistoryAddress(j);
-		bool bCorrect = true;
-
-		int len = strnlen_s(pTextureState->name, 256);
-
-		for (int k = 0; k < len; k++)
-		{
-			if (buffer[k] != pTextureState->name[k])
-			{
-				bCorrect = false; break;
-			}
-		}
-
-		if (bCorrect)
-		{
-			startIndex = j;	break;
-		}
-	}
-
-	int lastIndex;
-	//loop until we find the identifier
-	for (int j = startIndex; ; j++)
-	{
-		const char* buffer = currentTokenizer->GetIndentifierHistoryAddress(j);
-		bool bCorrect = true;
-		int len = strnlen_s(pIdentifierName, 256);
-
-		for (int k = 0; k < len; k++)
-		{
-			if (buffer[k] != pIdentifierName[k])
-			{
-				bCorrect = false; break;
-			}
-		}
-
-		if (bCorrect)
-		{
-			lastIndex = j; break;
-		}
-	}
-
-	const char* start = currentTokenizer->GetIndentifierHistoryAddress(startIndex);
-	const char* last = currentTokenizer->GetIndentifierHistoryAddress(lastIndex);
-
-
-
-	size_t length = last - start;
-	memcpy(functionCaller, start, length);
-	functionCaller[length] = 0;
-
-	strcpy(functionCall->functionCaller, functionCaller);
-}
-*/
-
-
 bool HLSLParser::GetBufferElementType(HLSLBuffer* pBuffer, bool bAllowVoid, int* pTypeFlag, bool optional)
 {
 	if (Accept('<'))
 	{
-		//if (!AcceptIdentifier(pBuffer->elementType))
 		if(!AcceptType(false, pBuffer->type.elementType, pBuffer->type.typeName, pTypeFlag))
 		{
-			//AcceptType(false, baseType, typeName, pTypeFlag);
-			//pBuffer->dataType = baseType;
 			return false;
 		}
 
-		if (pBuffer->type.typeName != NULL)
+		if (pBuffer->type.typeName.IsNotEmpty())
 			pBuffer->userDefinedElementTypeStr = pBuffer->type.typeName;
 
 		if (!Expect('>'))
@@ -12217,26 +12767,59 @@ bool HLSLParser::GetBufferElementType(HLSLBuffer* pBuffer, bool bAllowVoid, int*
 		return optional;
 }
 
-bool HLSLParser::GetRegisterAssignment(HLSLBuffer* pBuffer, const char* errorMsg_bufferType)
+bool IsRegisterId(CachedString str)
+{
+	char c;
+	int d;
+	return sscanf(RawStr(str), "%c%d", &c, &d) == 2;
+}
+
+bool IsSpaceId(CachedString str)
+{
+	int d;
+	return sscanf(RawStr(str), "space%d", &d) == 1;
+}
+
+bool HLSLParser::GetRegisterAssignment(HLSLStatement* pStatement, const char* errorMsg)
 {
 	if (Accept(':'))
 	{
-		if (!Expect(HLSLToken_Register) || !Expect('(') || !ExpectIdentifier(pBuffer->registerName))
+		CachedString id;
+		if (!Expect(HLSLToken_Register) || !Expect('(') || !ExpectIdentifier(id))
 		{
 			return false;
 		}
 
-		// if there is space
-		if (Check(','))
+		if (IsRegisterId(id))
 		{
-			currentTokenizer->Next();
-			//get space name
-			ExpectIdentifier(pBuffer->registerSpaceName);
+			pStatement->registerName = id;
+			// if there is space
+			if (Check(','))
+			{
+				m_pFullTokenizer->Next();
+				//get space name
+				if (!ExpectIdentifier(id) || !IsSpaceId(id))
+				{
+					return false;
+				}
+				pStatement->registerSpaceName = id;
+			}
+			else
+			{
+				// we need to make a distinction between a space specified by the user, vs
+				// no space set, so that the user can specify the default space in the
+				// code generation/tree traversal phase, as opposed to the parsing phase.
+				pStatement->registerSpaceName = m_tree->AddStringCached("none");
+			}
+		}
+		else if(IsSpaceId(id))
+		{
+			pStatement->registerName = m_tree->AddStringCached("none");
+			pStatement->registerSpaceName = id;
 		}
 		else
 		{
-			//default Sapce Name
-			pBuffer->registerSpaceName = "space0";
+			return false;
 		}
 
 		if (!Expect(')'))
@@ -12248,8 +12831,11 @@ bool HLSLParser::GetRegisterAssignment(HLSLBuffer* pBuffer, const char* errorMsg
 	}
 	else
 	{
-		currentTokenizer->Error("Missed %s's register", errorMsg_bufferType);
-		return false;
+		// allow default register placement
+		pStatement->registerName = m_tree->AddStringCached("none");
+		pStatement->registerSpaceName = m_tree->AddStringCached("none");
+
+		return true;
 	}
 
 }
@@ -12257,6 +12843,8 @@ bool HLSLParser::GetRegisterAssignment(HLSLBuffer* pBuffer, const char* errorMsg
 
 bool HLSLParser::GetBufferBody(HLSLBuffer* pBuffer)
 {
+	HLSLScopedStackTracker stackTracker(this);
+
 	if (Accept('{'))
 	{
 		HLSLDeclaration* lastField = NULL;
@@ -12266,13 +12854,14 @@ bool HLSLParser::GetBufferBody(HLSLBuffer* pBuffer)
 			{
 				return false;
 			}
+
 			HLSLDeclaration* field = NULL;
 			if (!ParseDeclaration(field))
 			{
-				currentTokenizer->Error("Expected variable declaration");
+				m_pFullTokenizer->Error("Expected variable declaration");
 				return false;
 			}
-			DeclareVariable(field->name, field->type);
+			DeclareVariable(field->cachedName, field->type);
 
 			field->buffer = pBuffer;
 			if (pBuffer->field == NULL)
@@ -12285,6 +12874,39 @@ bool HLSLParser::GetBufferBody(HLSLBuffer* pBuffer)
 			}
 			lastField = field;
 
+			// adding packoffset parsing logic
+			if (Accept(':'))
+			{
+				if (!Expect("packoffset"))
+				{
+					return false;
+				}
+
+				if (!Expect('('))
+				{
+					return false;
+				}
+
+				CachedString pName;
+				CachedString pChannel;
+				if (!ExpectIdentifier(pName))
+				{
+					return false;
+				}
+
+				if (Accept('.'))
+				{
+					if (!ExpectIdentifier(pChannel))
+					{
+						return false;
+					}
+				}
+
+				if (!Expect(')'))
+				{
+					return false;
+				}
+			}
 
 			if (!Expect(';'))
 				return false;
@@ -12298,7 +12920,6 @@ bool HLSLParser::GetBufferBody(HLSLBuffer* pBuffer)
 		return false;
 }
 
-
 void HLSLParser::GetBufferArray(HLSLBuffer* pBuffer)
 {
 	// Handle array syntax.
@@ -12306,63 +12927,28 @@ void HLSLParser::GetBufferArray(HLSLBuffer* pBuffer)
 	{
 		pBuffer->bArray = true;
 
-
 		if (Check(']')) //unboundedSize
 		{
-			pBuffer->arrayIdentifier[pBuffer->arrayDimension][0] = NULL;
-			currentTokenizer->Next();
+			pBuffer->arrayIdentifier[pBuffer->arrayDimension].Reset();
+			m_pFullTokenizer->Next();
 		}
 		else if (!Accept(']'))
 		{
-			if (!String_Equal(currentTokenizer->GetIdentifier(), ""))
+			if (!String_Equal(m_pFullTokenizer->GetIdentifier(), ""))
 			{
-				strcpy(pBuffer->arrayIdentifier[pBuffer->arrayDimension], currentTokenizer->GetIdentifier());
-				currentTokenizer->Next();
+				pBuffer->arrayIdentifier[pBuffer->arrayDimension] = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
+				m_pFullTokenizer->Next();
 				Expect(']');
 			}
 			else
 			{
-				pBuffer->arrayIndex[pBuffer->arrayDimension] = currentTokenizer->GetuInt();
-				currentTokenizer->Next();
+				pBuffer->arrayIndex[pBuffer->arrayDimension] = m_pFullTokenizer->GetuInt();
+				m_pFullTokenizer->Next();
 				Expect(']');
 			}
 		}
 
 		pBuffer->arrayDimension++;
-	}
-}
-
-bool HLSLParser::GetRegisterAssignment(HLSLTextureState* pTextureState, const char* errorMsg_bufferType)
-{
-	if (Accept(':'))// Handle register.
-	{
-		if (!Expect(HLSLToken_Register) || !Expect('(') || !ExpectIdentifier(pTextureState->registerName))
-		{
-			return false;
-		}
-
-		// if there is space
-		if (Check(','))
-		{
-			currentTokenizer->Next();
-			//get space name
-			ExpectIdentifier(pTextureState->registerSpaceName);
-		}
-		else
-		{
-			//default Sapce Name
-			pTextureState->registerSpaceName = "space0";
-		}
-
-		if (!Expect(')'))
-			return false;
-		else
-			return true;
-	}
-	else
-	{
-		currentTokenizer->Error("error) Missed %s's register!", errorMsg_bufferType);
-		return false;
 	}
 }
 
@@ -12373,24 +12959,23 @@ void HLSLParser::GetTextureArray(HLSLTextureState* pTextureState)
 	{
 		pTextureState->bArray = true;
 
-
 		if (Check(']')) //unboundedSize
 		{
-			pTextureState->arrayIdentifier[pTextureState->arrayDimension][0] = NULL;
-			currentTokenizer->Next();
+			pTextureState->arrayIdentifier[pTextureState->arrayDimension].Reset();
+			m_pFullTokenizer->Next();
 		}
 		else if (!Accept(']'))
 		{
-			if (!String_Equal(currentTokenizer->GetIdentifier(), ""))
+			if (!String_Equal(m_pFullTokenizer->GetIdentifier(), ""))
 			{
-				strcpy(pTextureState->arrayIdentifier[pTextureState->arrayDimension], currentTokenizer->GetIdentifier());
-				currentTokenizer->Next();
+				pTextureState->arrayIdentifier[pTextureState->arrayDimension] = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
+				m_pFullTokenizer->Next();
 				Expect(']');
 			}
 			else
 			{
-				pTextureState->arrayIndex[pTextureState->arrayDimension] = currentTokenizer->GetuInt();
-				currentTokenizer->Next();
+				pTextureState->arrayIndex[pTextureState->arrayDimension] = m_pFullTokenizer->GetuInt();
+				m_pFullTokenizer->Next();
 				Expect(']');
 			}
 		}
@@ -12411,10 +12996,9 @@ bool HLSLParser::GetTextureElementType(HLSLTextureState* pTextureState, bool bAl
 		//multi sampling
 		if (pTextureState->type.baseType == HLSLBaseType_Texture2DMS || pTextureState->type.baseType == HLSLBaseType_Texture2DMSArray)
 		{
-			//if (!Expect(','))
 			if (Accept(','))
 			{
-				const char* temp;
+				CachedString temp;
 				int iValue;
 				if (AcceptIdentifier(temp))
 					pTextureState->sampleIdentifier = temp;
@@ -12438,7 +13022,7 @@ bool HLSLParser::AcceptBufferType(HLSLBuffer* pBuffer)
 {
 	if (pBuffer)
 	{
-		switch (currentTokenizer->GetToken())
+		switch (m_pFullTokenizer->GetToken())
 		{
 		case HLSLToken_CBuffer:
 			pBuffer->type.baseType = HLSLBaseType_CBuffer; break;
@@ -12465,7 +13049,7 @@ bool HLSLParser::AcceptBufferType(HLSLBuffer* pBuffer)
 		}
 	}
 
-	currentTokenizer->Next();
+	m_pFullTokenizer->Next();
 
 	return true;
 }
@@ -12474,7 +13058,7 @@ bool HLSLParser::AcceptTextureType(HLSLTextureState* pTextureState)
 {
 	if (pTextureState)
 	{
-		switch (currentTokenizer->GetToken())
+		switch (m_pFullTokenizer->GetToken())
 		{
 		case HLSLToken_Texture1D:
 			pTextureState->type.baseType = HLSLBaseType_Texture1D; break;
@@ -12520,368 +13104,7 @@ bool HLSLParser::AcceptTextureType(HLSLTextureState* pTextureState)
 		}
 	}
 
-	currentTokenizer->Next();
+	m_pFullTokenizer->Next();
 
 	return true;
-}
-
-
-HLSLpreprocessor* HLSLParser::HandleBranchPreprofessor(const char* fileName, int line, bool *doesNotExpectSemicolon, bool *pValid)
-{
-#ifdef _DEBUG
-	if (line == 126)
-	{
-		int debug = 345;
-	}
-#endif
-
-	if (HLSLToken_P_If <= currentTokenizer->GetToken() && HLSLToken_P_Error >= currentTokenizer->GetToken())
-	{
-		const char* defineIndentifier = "IftoElif";
-
-		HLSLpreprocessor* preProcessor = m_tree->AddNode<HLSLpreprocessor>(fileName, line);
-
-		switch (currentTokenizer->GetToken())
-		{
-		case HLSLToken_P_If: preProcessor->type = HLSLBaseType_PreProcessorIf;
-			break;
-		case HLSLToken_P_Elif: preProcessor->type = HLSLBaseType_PreProcessorElif;
-			break;
-		case HLSLToken_P_IfDef: preProcessor->type = HLSLBaseType_PreProcessorIfDef;
-			break;
-		case HLSLToken_P_IfnDef: preProcessor->type = HLSLBaseType_PreProcessorIfnDef;
-			break;
-		case HLSLToken_P_Undef: preProcessor->type = HLSLBaseType_PreProcessorUndef;
-			break;
-		case HLSLToken_P_Include: preProcessor->type = HLSLBaseType_PreProcessorInclude;
-			m_tree->gExtension[USE_INCLUDE] = true;
-			break;
-		case HLSLToken_P_Line: preProcessor->type = HLSLBaseType_PreProcessorLine;
-			break;
-		case HLSLToken_P_Pragma: preProcessor->type = HLSLBaseType_PreProcessorPragma;
-			break;
-		default:
-			break;
-		}
-
-		preProcessor->preprocessorType = currentTokenizer->GetToken();
-
-		//Handle branch preprocessors
-		if (preProcessor->type == HLSLBaseType_PreProcessorInclude)
-		{
-			char preprocessorContents[1024];
-			currentTokenizer->GetRestofWholelineWOSpace(preprocessorContents);
-
-			const HLSLpreprocessor* pre = FindPreprocessorDefinedType(preprocessorContents);
-
-			if (pre)
-			{
-				preProcessor->contents = pre->contents;
-			}
-			else
-			{
-				preProcessor->contents = m_tree->AddString(preprocessorContents);
-				m_preProcessors.PushBack(preProcessor);
-			}
-
-			currentTokenizer->Next();
-
-		}
-		else if (preProcessor->type == HLSLBaseType_PreProcessorIf ||
-			preProcessor->type == HLSLBaseType_PreProcessorIfDef ||
-			preProcessor->type == HLSLBaseType_PreProcessorIfnDef)
-		{
-
-			char preprocessorContents[1024];
-			currentTokenizer->GetRestofWholelineWOSpace(preprocessorContents);
-
-
-			const HLSLpreprocessor* pre = FindPreprocessorDefinedType(preprocessorContents);
-
-			if (pre)
-			{
-				if (pre->contents)
-					preProcessor->contents = pre->contents;
-				else if (pre->name)
-					preProcessor->contents = pre->name;
-			}
-			else
-			{
-				preProcessor->contents = m_tree->AddString(preprocessorContents);
-				m_preProcessors.PushBack(preProcessor);
-			}
-
-			currentTokenizer->Next();
-
-			PrepropStackData* pStack = new PrepropStackData;
-
-			m_PrepropStack.PushBack(pStack);
-			m_CurrentPrePropStack++;
-
-			if (String_Equal(preProcessor->contents, "HLSL") ||
-				String_Equal(preProcessor->contents, "GLSL") ||
-				String_Equal(preProcessor->contents, "MSL") ||
-				String_Equal(preProcessor->contents, "ORBIS") ||
-				String_Equal(preProcessor->contents, "SWITCH") ||
-				String_Equal(preProcessor->contents, "NO_HLSL_DEFINITIONS"))
-			{
-				pStack->branchProp = true;
-
-				preProcessor->hidden = true;
-
-				if (String_Equal(preProcessor->contents, "HLSL"))
-				{
-					pStack->passed[Language::Language_HLSL] = true;
-
-					if (m_language == Language::Language_HLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, "GLSL"))
-				{
-					pStack->passed[Language::Language_GLSL] = true;
-
-					if (m_language == Language::Language_GLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, "MSL"))
-				{
-					pStack->passed[Language::Language_MSL] = true;
-
-					if (m_language == Language::Language_MSL)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, "ORBIS"))
-				{
-					pStack->passed[Language::Language_ORBIS] = true;
-
-					if (m_language == Language::Language_ORBIS)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, "SWITCH"))
-				{
-					pStack->passed[Language::Language_SWITCH] = true;
-
-					if (m_language == Language::Language_SWITCH)
-					{
-
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, "NO_HLSL_DEFINITIONS"))
-				{
-					pStack->passed[m_language] = true;
-
-					if (m_language != Language::Language_HLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-			}
-		}
-		else if (preProcessor->type == HLSLBaseType_PreProcessorElif)
-		{
-			char preprocessorContents[1024];
-			currentTokenizer->GetRestofWholelineWOSpace(preprocessorContents);
-
-			const HLSLpreprocessor* pre = FindPreprocessorDefinedType(preprocessorContents);
-
-			if (pre)
-			{
-				preProcessor->contents = pre->contents;
-			}
-			else
-			{
-				preProcessor->contents = m_tree->AddString(preprocessorContents);
-				m_preProcessors.PushBack(preProcessor);
-			}
-
-			currentTokenizer->Next();
-
-			PrepropStackData* pStack = m_PrepropStack[m_CurrentPrePropStack];
-
-			if (pStack->branchProp)
-			{
-				preProcessor->hidden = true;
-
-				if (String_Equal(preProcessor->contents, "HLSL"))
-				{
-					pStack->passed[Language::Language_HLSL] = true;
-
-					if (m_language == Language::Language_HLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, "GLSL"))
-				{
-					pStack->passed[Language::Language_GLSL] = true;
-
-					if (m_language == Language::Language_GLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, "MSL"))
-				{
-					pStack->passed[Language::Language_MSL] = true;
-
-					if (m_language == Language::Language_MSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, "ORBIS"))
-				{
-					pStack->passed[Language::Language_ORBIS] = true;
-
-					if (m_language == Language::Language_ORBIS)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, "SWITCH"))
-				{
-					pStack->passed[Language::Language_SWITCH] = true;
-
-					if (m_language == Language::Language_SWITCH)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-				else if (String_Equal(preProcessor->contents, "NO_HLSL_DEFINITIONS"))
-				{
-					pStack->passed[m_language] = true;
-
-					if (m_language != Language::Language_HLSL)
-					{
-						m_bEmbrace = true;
-					}
-					else
-						m_bEmbrace = false;
-				}
-			}
-		}
-
-		*doesNotExpectSemicolon = true;
-
-		//statement = preProcessor;
-
-
-
-		*pValid = true;
-		return preProcessor;
-	}
-	else if (HLSLToken_P_Else <= currentTokenizer->GetToken() && HLSLToken_P_Endif >= currentTokenizer->GetToken())
-	{
-		//HLSLpreprocessor * preProcessor = m_tree->AddNode<HLSLpreprocessor>(currentTokenizer->GetToken() == HLSLToken_P_Else ? "Else" : "Endif", line);
-
-		HLSLpreprocessor * preProcessor = m_tree->AddNode<HLSLpreprocessor>(currentTokenizer->GetToken() == HLSLToken_P_Else ? "Else" : "Endif", line);
-
-		switch (currentTokenizer->GetToken())
-		{
-		case HLSLToken_P_Else: preProcessor->type = HLSLBaseType_PreProcessorElse;
-			break;
-		case HLSLToken_P_Endif: preProcessor->type = HLSLBaseType_PreProcessorEndif;
-			break;
-		default:
-			break;
-		}
-
-		preProcessor->preprocessorType = currentTokenizer->GetToken();
-		currentTokenizer->Next();
-
-
-		if (preProcessor->type == HLSLBaseType_PreProcessorEndif)
-		{
-			PrepropStackData* pStack = m_PrepropStack.PopBack();
-			m_CurrentPrePropStack--;
-
-			if (m_CurrentPrePropStack < -1)
-			{
-				currentTokenizer->Error("Wrong preprocessor branch hierachy!");
-
-
-				*pValid = false;
-				return preProcessor;
-			}
-
-
-			if (pStack->branchProp)
-			{
-				m_bEmbrace = true;
-
-				preProcessor->hidden = true;
-
-				*pValid = true;
-				return preProcessor;
-			}
-		}
-		else if (preProcessor->type = HLSLBaseType_PreProcessorElse)
-		{
-			PrepropStackData* pStack = m_PrepropStack[m_CurrentPrePropStack];
-
-			if (pStack->branchProp)
-			{
-				if (pStack->passed[m_language] == false)
-				{
-					pStack->passed[m_language] = true;
-					m_bEmbrace = true;
-				}
-				else
-					m_bEmbrace = false;
-
-				*pValid = true;
-				return preProcessor;
-			}
-		}
-
-		*doesNotExpectSemicolon = true;
-
-		//statement = preProcessor;
-
-		m_preProcessors.PushBack(preProcessor);
-
-
-		*pValid = true;
-		return preProcessor;
-	}
-	else
-	{
-		*pValid = false;
-		return NULL;
-
-	}
-
 }

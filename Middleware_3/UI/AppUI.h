@@ -23,7 +23,6 @@
 */
 
 #pragma once
-#include "../../Common_3/Renderer/IRenderer.h"
 #include "../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../Common_3/OS/Interfaces/IMiddleware.h"
 #include "../../Common_3/OS/Interfaces/ILog.h"
@@ -32,9 +31,24 @@
 #include "../Text/Fontstash.h"
 
 typedef void (*WidgetCallback)();
+
 extern FSRoot FSR_MIDDLEWARE_UI;
 
+struct Renderer;
 struct Texture;
+struct Shader;
+struct RootSignature;
+struct DescriptorBinder;
+struct Pipeline;
+struct Sampler;
+struct RasterizerState;
+struct DepthState;
+struct BlendState;
+struct Buffer;
+struct Texture;
+
+struct GpuProfiler;
+struct GpuProfileDrawDesc;
 
 class IWidget
 {
@@ -463,17 +477,6 @@ class TextboxWidget: public IWidget
 	bool     mAutoSelectAll;
 };
 
-struct Renderer;
-struct Texture;
-struct Shader;
-struct RootSignature;
-struct DescriptorBinder;
-struct Pipeline;
-struct Sampler;
-struct RasterizerState;
-struct DepthState;
-struct BlendState;
-
 typedef struct GuiDesc
 {
 	GuiDesc(
@@ -522,21 +525,21 @@ class GuiComponent
 	void     RemoveWidget(IWidget* pWidget);
 	void     RemoveAllWidgets();
 
-	class GUIDriver*          pDriver;
-	eastl::vector<IWidget*> mWidgets;
-	eastl::vector<bool>     mWidgetsClone;
-	float4                    mInitialWindowRect;
-	float4                    mCurrentWindowRect;
-	eastl::string           mTitle;
-	bool                      mActive;
-	// UI Component settings that can be modified at runtime by the client.
-	bool mHasCloseButton;
-	// defaults to GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE
-	int32_t mFlags;
-
+	eastl::vector<IWidget*>        mWidgets;
+	eastl::vector<bool>            mWidgetsClone;
 	// Contextual menus when right clicking the title bar
-	eastl::vector<eastl::string> mContextualMenuLabels;
+	eastl::vector<eastl::string>   mContextualMenuLabels;
 	eastl::vector<WidgetCallback>  mContextualMenuCallbacks;
+	float4                         mInitialWindowRect;
+	float4                         mCurrentWindowRect;
+	eastl::string                  mTitle;
+	uintptr_t                      pFont;
+	// defaults to GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE
+	int32_t                        mFlags;
+
+	bool                           mActive;
+	// UI Component settings that can be modified at runtime by the client.
+	bool                           mHasCloseButton;
 };
 /************************************************************************/
 // Helper Class for removing and adding properties easily
@@ -608,7 +611,7 @@ class GUIDriver
 	virtual bool load(RenderTarget** ppRts, uint32_t count) = 0;
 	virtual void unload() = 0;
 
-	virtual bool addGui(class Fontstash* fontID, float fontSize, struct Texture* cursorTexture = 0, float uiwidth = 600, float uiheight = 400) = 0;
+	virtual bool addFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGlyphRanges, float fontSize, uintptr_t* pFont) = 0;
 
 	virtual void* getContext() = 0;
 
@@ -616,9 +619,10 @@ class GUIDriver
 
 	virtual void draw(Cmd* q) = 0;
 
-	virtual void onInput(const struct ButtonData* data) = 0;
-	virtual bool isHovering(const float4& windowRect) = 0;
-	virtual int  needsTextInput() const = 0;
+    virtual bool     isFocused() = 0;
+	virtual bool     onText(const wchar_t* pText) = 0;
+	virtual bool     onButton(uint32_t button, bool press, const float2* vec, bool focus) = 0;
+	virtual uint8_t  wantTextInput() const = 0;
 
 	protected:
 	// Since gestures events always come first, we want to dismiss any other inputs after that
@@ -633,8 +637,6 @@ class GUIDriver
 #undef DrawText
 #endif
 
-typedef struct GpuProfiler        GpuProfiler;
-typedef struct GpuProfileDrawDesc GpuProfileDrawDesc;
 struct UIAppImpl
 {
 	Renderer*  pRenderer;
@@ -684,12 +686,15 @@ class UIApp: public IMiddleware
 
 	void DrawDebugGpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, GpuProfiler* pGpuProfiler, const GpuProfileDrawDesc* pDrawDesc = NULL);
 
+	bool    OnText(const wchar_t* pText) { return pDriver->onText(pText); }
+	bool    OnButton(uint32_t button, bool press, const float2* vec, bool focus) { return pDriver->onButton(button, press, vec, focus); }
+    uint8_t WantTextInput() { return pDriver->wantTextInput(); }
+    bool    IsFocused() { return pDriver->isFocused(); }
 	/************************************************************************/
 	// Data
 	/************************************************************************/
 	class GUIDriver*  pDriver;
 	struct UIAppImpl* pImpl;
-	bool              mHovering;
 
 	// Following var is useful for seeing UI capabilities and tweaking style settings.
 	// Will only take effect if at least one GUI Component is active.
@@ -705,34 +710,18 @@ class UIApp: public IMiddleware
 class VirtualJoystickUI
 {
 	public:
-	VirtualJoystickUI(): mInsideRadius(0.0f), mOutsideRadius(0.f), mDeadzone(0.f), mInitialized(false), mActive(false) {}
+	VirtualJoystickUI(float insideRadius = 100.0f, float outsideRadius = 200.0f): mInsideRadius(insideRadius), mOutsideRadius(outsideRadius) {}
 
 	// Init resources
 	bool Init(Renderer* pRenderer, const char* pJoystickTexture, uint root);
-	// Initialize input behavior parameters
-	// This can be called many times in case different camera want to have different values.
-	void InitLRSticks(float insideRad = 150.f, float outsideRad = 300.f, float deadzone = 20.f);
 	void Exit();
 	bool Load(RenderTarget* pScreenRT);
 	void Unload();
 	void Update(float dt);
+    void Draw(Cmd* pCmd, const float4& color);
+    bool OnMove(uint32_t id, bool press, const float2* vec);
 
-	// Get normalized diretion of joystick.
-	vec2 GetLeftStickDir();
-	vec2 GetRightStickDir();
-	// Get outer radius of joystick. (Biggest size)
-	vec2 GetStickRadius();
-	// Retrieve state of specific joystick
-	bool IsActive(bool left = true);
-	// Check if any joystick is currently active
-	bool IsAnyActive();
-	// Helper to enable/disable joystick
-	void SetActive(bool state);
-	bool OnInputEvent(const ButtonData* pData);
-
-	void Draw(Cmd* pCmd, const float4& color);
-
-	private:
+private:
 	Renderer*         pRenderer;
 	Shader*           pShader;
 	RootSignature*    pRootSignature;
@@ -744,24 +733,19 @@ class VirtualJoystickUI
 	DepthState*       pDepthState;
 	RasterizerState*  pRasterizerState;
 	Buffer*           pMeshBuffer;
-	vec2              mRenderSize;
+	float2            mRenderSize;
 	//input related
-	private:
-	float mInsideRadius;
-	float mOutsideRadius;
-	float mDeadzone;
-	bool  mInitialized;
-	bool  mActive;
+private:
+	float             mInsideRadius;
+	float             mOutsideRadius;
 
 	struct StickInput
 	{
-		uint32_t mTouchIndex;
-		bool     mIsPressed;
-		vec2     mStartPos;
-		vec2     mCurrPos;
-		vec2     mDir;
+		bool     mPressed;
+		float2   mStartPos;
+		float2   mCurrPos;
 	};
 	// Left -> Index 0
 	// Right -> Index 1
-	StickInput mSticks[2];
+	StickInput       mSticks[2];
 };

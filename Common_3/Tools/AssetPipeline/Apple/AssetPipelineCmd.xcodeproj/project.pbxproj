@@ -8,178 +8,39 @@
 
 /* Begin PBXBuildFile section */
 		654D958621CDC09F00113964 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 654D957E21CDC09F00113964 /* AppKit.framework */; };
-		B28C6E5321B2051300FBA1BF /* AssetPipelineCmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B28C6E5221B2051300FBA1BF /* AssetPipelineCmd.cpp */; };
-		B28C6E7B21B206BB00FBA1BF /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6E6F21B2069900FBA1BF /* libThe-Forge.a */; };
-		B28C6F3021B20E4800FBA1BF /* libassimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6F1921B20E1C00FBA1BF /* libassimp.a */; };
-		B28C6F3121B20E4800FBA1BF /* libIrrXML.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6F1721B20E1C00FBA1BF /* libIrrXML.a */; };
-		B28C6F3221B20E4800FBA1BF /* libzlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6F1B21B20E1C00FBA1BF /* libzlibstatic.a */; };
-		B28C6F3321B20E4800FBA1BF /* ozz_animation offline.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6F0421B209EB00FBA1BF /* ozz_animation offline.a */; };
-		B28C6F3521B20E5300FBA1BF /* ozz_animation.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6E9921B2089D00FBA1BF /* ozz_animation.a */; };
-		B28C6F3621B20E5300FBA1BF /* ozz_base.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6E9B21B2089D00FBA1BF /* ozz_base.a */; };
-		B28C6F5C21B222D500FBA1BF /* libAssetPipeline.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6F5921B2223800FBA1BF /* libAssetPipeline.a */; };
+		E921BD4722CFC35A0082D103 /* AssetPipelineCmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E921BD4622CFC35A0082D103 /* AssetPipelineCmd.cpp */; };
+		E9BF13DE22F126C1001F2264 /* libAssetPipeline.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E9BF13D122F12614001F2264 /* libAssetPipeline.a */; };
+		E9BF141022F127C0001F2264 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E9BF13DB22F126A7001F2264 /* libThe-Forge.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		B28C6E6E21B2069900FBA1BF /* PBXContainerItemProxy */ = {
+		E9BF13D022F12614001F2264 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = B28C6E6921B2069900FBA1BF /* The-Forge.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 5C5582E021413D180019960B;
-			remoteInfo = "The-Forge";
-		};
-		B28C6E7021B2069900FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6E6921B2069900FBA1BF /* The-Forge.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 5C172FC821414C490074EE71;
-			remoteInfo = "The-Forge_iOS";
-		};
-		B28C6E9621B2089D00FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6E8E21B2089D00FBA1BF /* ozz.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 88DF3489E6364B89869CC71D;
-			remoteInfo = json;
-		};
-		B28C6E9821B2089D00FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6E8E21B2089D00FBA1BF /* ozz.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = AD14F53CA01347BBA91C7F42;
-			remoteInfo = ozz_animation;
-		};
-		B28C6E9A21B2089D00FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6E8E21B2089D00FBA1BF /* ozz.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = A69A1ECFEC9145D3A46BAA96;
-			remoteInfo = ozz_base;
-		};
-		B28C6E9C21B2089D00FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6E8E21B2089D00FBA1BF /* ozz.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = D0796ACD211ED7370028AFFD;
-			remoteInfo = ozz_animation_IOS;
-		};
-		B28C6E9E21B2089D00FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6E8E21B2089D00FBA1BF /* ozz.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = D0796ADE211ED7430028AFFD;
-			remoteInfo = ozz_base_IOS;
-		};
-		B28C6F0321B209EB00FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6E8E21B2089D00FBA1BF /* ozz.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = B28C6EEE21B209AA00FBA1BF;
-			remoteInfo = "ozz_animation offline";
-		};
-		B28C6F1621B20E1C00FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6F0D21B20E1C00FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 2FDC53974E8D4A618B9B34FA;
-			remoteInfo = IrrXML;
-		};
-		B28C6F1821B20E1C00FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6F0D21B20E1C00FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 15841309FEE7495581162767;
-			remoteInfo = assimp;
-		};
-		B28C6F1A21B20E1C00FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6F0D21B20E1C00FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 18FE7A9470BE4F97B6CC443B;
-			remoteInfo = zlibstatic;
-		};
-		B28C6F1C21B20E1C00FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6F0D21B20E1C00FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 6549BFDA21ACD08900537773;
-			remoteInfo = IrrXML_iOS;
-		};
-		B28C6F1E21B20E1C00FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6F0D21B20E1C00FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 6549C05A21ACD08C00537773;
-			remoteInfo = assimp_iOS;
-		};
-		B28C6F2021B20E1C00FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6F0D21B20E1C00FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 6549C06F21ACD08E00537773;
-			remoteInfo = zlibstatic_iOS;
-		};
-		B28C6F2221B20E3000FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6F0D21B20E1C00FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 41BE456C93C94C84B038C673;
-			remoteInfo = IrrXML;
-		};
-		B28C6F2421B20E3000FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6F0D21B20E1C00FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = AE9A3F544A68438CB3C7DBEA;
-			remoteInfo = assimp;
-		};
-		B28C6F2621B20E3000FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6F0D21B20E1C00FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = D3152863F0014944A3666BE6;
-			remoteInfo = zlibstatic;
-		};
-		B28C6F2821B20E3000FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6E8E21B2089D00FBA1BF /* ozz.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = B578F05FA1304339B5CEB8AB;
-			remoteInfo = ozz_animation;
-		};
-		B28C6F2A21B20E3000FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6E8E21B2089D00FBA1BF /* ozz.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = ECEC0611C3BB4CAF82DAF102;
-			remoteInfo = ozz_base;
-		};
-		B28C6F2C21B20E3000FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6E8E21B2089D00FBA1BF /* ozz.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = B28C6EDE21B209AA00FBA1BF;
-			remoteInfo = "ozz_animation offline";
-		};
-		B28C6F2E21B20E3000FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6E6921B2069900FBA1BF /* The-Forge.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 5C5582DF21413D180019960B;
-			remoteInfo = "The-Forge";
-		};
-		B28C6F5821B2223800FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6F5421B2223800FBA1BF /* AssetPipeline.xcodeproj */;
+			containerPortal = E9BF13C722F12613001F2264 /* AssetPipeline.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = B28C6E4B21B204A200FBA1BF;
 			remoteInfo = AssetPipeline;
 		};
-		B28C6F5A21B2223E00FBA1BF /* PBXContainerItemProxy */ = {
+		E9BF13D222F12614001F2264 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = B28C6F5421B2223800FBA1BF /* AssetPipeline.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = B28C6E4A21B204A200FBA1BF;
-			remoteInfo = AssetPipeline;
+			containerPortal = E9BF13C722F12613001F2264 /* AssetPipeline.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = E921BDBC22CFC7700082D103;
+			remoteInfo = AssetPipeline_iOS;
+		};
+		E9BF13DA22F126A7001F2264 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E9BF13D422F126A7001F2264 /* The-Forge.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 5C5582E021413D180019960B;
+			remoteInfo = "The-Forge";
+		};
+		E9BF13DC22F126A7001F2264 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = E9BF13D422F126A7001F2264 /* The-Forge.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 5C172FC821414C490074EE71;
+			remoteInfo = "The-Forge_iOS";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -198,16 +59,14 @@
 /* Begin PBXFileReference section */
 		654D957E21CDC09F00113964 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
 		B28C6E3821B2047A00FBA1BF /* AssetPipelineCmd */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = AssetPipelineCmd; sourceTree = BUILT_PRODUCTS_DIR; };
-		B28C6E5221B2051300FBA1BF /* AssetPipelineCmd.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AssetPipelineCmd.cpp; path = ../AssetPipelineCmd.cpp; sourceTree = "<group>"; };
 		B28C6E5D21B2053200FBA1BF /* libAssetPipeline.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libAssetPipeline.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		B28C6E6921B2069900FBA1BF /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../../../../Examples_3/Unit_Tests/macOS Xcode/The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
-		B28C6E8E21B2089D00FBA1BF /* ozz.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ozz.xcodeproj; path = "../../../ThirdParty/OpenSource/ozz-animation/MacOS/ozz.xcodeproj"; sourceTree = "<group>"; };
 		B28C6F0521B20AD100FBA1BF /* libassimp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libassimp.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		B28C6F0721B20AD100FBA1BF /* libzlibstatic.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzlibstatic.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		B28C6F0921B20DCA00FBA1BF /* libIrrXML_iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libIrrXML_iOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		B28C6F0B21B20DD000FBA1BF /* libIrrXML.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libIrrXML.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		B28C6F0D21B20E1C00FBA1BF /* Assimp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Assimp.xcodeproj; path = ../../../ThirdParty/OpenSource/assimp/4.1.0/Apple/Assimp.xcodeproj; sourceTree = "<group>"; };
-		B28C6F5421B2223800FBA1BF /* AssetPipeline.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = AssetPipeline.xcodeproj; sourceTree = "<group>"; };
+		E921BD4622CFC35A0082D103 /* AssetPipelineCmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AssetPipelineCmd.cpp; path = ../src/AssetPipelineCmd.cpp; sourceTree = "<group>"; };
+		E9BF13C722F12613001F2264 /* AssetPipeline.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = AssetPipeline.xcodeproj; sourceTree = "<group>"; };
+		E9BF13D422F126A7001F2264 /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../../../../Examples_3/Unit_Tests/macOS Xcode/The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -215,15 +74,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E9BF141022F127C0001F2264 /* libThe-Forge.a in Frameworks */,
+				E9BF13DE22F126C1001F2264 /* libAssetPipeline.a in Frameworks */,
 				654D958621CDC09F00113964 /* AppKit.framework in Frameworks */,
-				B28C6F5C21B222D500FBA1BF /* libAssetPipeline.a in Frameworks */,
-				B28C6F3521B20E5300FBA1BF /* ozz_animation.a in Frameworks */,
-				B28C6F3621B20E5300FBA1BF /* ozz_base.a in Frameworks */,
-				B28C6F3021B20E4800FBA1BF /* libassimp.a in Frameworks */,
-				B28C6F3121B20E4800FBA1BF /* libIrrXML.a in Frameworks */,
-				B28C6F3221B20E4800FBA1BF /* libzlibstatic.a in Frameworks */,
-				B28C6F3321B20E4800FBA1BF /* ozz_animation offline.a in Frameworks */,
-				B28C6E7B21B206BB00FBA1BF /* libThe-Forge.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -233,11 +86,9 @@
 		B28C6E2F21B2047A00FBA1BF = {
 			isa = PBXGroup;
 			children = (
-				B28C6F5421B2223800FBA1BF /* AssetPipeline.xcodeproj */,
-				B28C6F0D21B20E1C00FBA1BF /* Assimp.xcodeproj */,
-				B28C6E8E21B2089D00FBA1BF /* ozz.xcodeproj */,
-				B28C6E6921B2069900FBA1BF /* The-Forge.xcodeproj */,
-				B28C6E5221B2051300FBA1BF /* AssetPipelineCmd.cpp */,
+				E9BF13D422F126A7001F2264 /* The-Forge.xcodeproj */,
+				E9BF13C722F12613001F2264 /* AssetPipeline.xcodeproj */,
+				E921BD4622CFC35A0082D103 /* AssetPipelineCmd.cpp */,
 				B28C6E3921B2047A00FBA1BF /* Products */,
 				B28C6E5C21B2053200FBA1BF /* Frameworks */,
 			);
@@ -264,45 +115,20 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		B28C6E6A21B2069900FBA1BF /* Products */ = {
+		E9BF13C822F12613001F2264 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				B28C6E6F21B2069900FBA1BF /* libThe-Forge.a */,
-				B28C6E7121B2069900FBA1BF /* libThe-Forge_iOS.a */,
+				E9BF13D122F12614001F2264 /* libAssetPipeline.a */,
+				E9BF13D322F12614001F2264 /* libAssetPipeline_iOS.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		B28C6E8F21B2089D00FBA1BF /* Products */ = {
+		E9BF13D522F126A7001F2264 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				B28C6E9721B2089D00FBA1BF /* json_d.a */,
-				B28C6E9921B2089D00FBA1BF /* ozz_animation.a */,
-				B28C6E9B21B2089D00FBA1BF /* ozz_base.a */,
-				B28C6E9D21B2089D00FBA1BF /* ozz_animation_IOS.a */,
-				B28C6E9F21B2089D00FBA1BF /* ozz_base_IOS.a */,
-				B28C6F0421B209EB00FBA1BF /* ozz_animation offline.a */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		B28C6F0E21B20E1C00FBA1BF /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				B28C6F1721B20E1C00FBA1BF /* libIrrXML.a */,
-				B28C6F1921B20E1C00FBA1BF /* libassimp.a */,
-				B28C6F1B21B20E1C00FBA1BF /* libzlibstatic.a */,
-				B28C6F1D21B20E1C00FBA1BF /* libIrrXML_iOS.a */,
-				B28C6F1F21B20E1C00FBA1BF /* libassimp_iOS.a */,
-				B28C6F2121B20E1C00FBA1BF /* libzlibstatic_iOS.a */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		B28C6F5521B2223800FBA1BF /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				B28C6F5921B2223800FBA1BF /* libAssetPipeline.a */,
+				E9BF13DB22F126A7001F2264 /* libThe-Forge.a */,
+				E9BF13DD22F126A7001F2264 /* libThe-Forge_iOS.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -321,14 +147,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				B28C6F5B21B2223E00FBA1BF /* PBXTargetDependency */,
-				B28C6F2321B20E3000FBA1BF /* PBXTargetDependency */,
-				B28C6F2521B20E3000FBA1BF /* PBXTargetDependency */,
-				B28C6F2721B20E3000FBA1BF /* PBXTargetDependency */,
-				B28C6F2921B20E3000FBA1BF /* PBXTargetDependency */,
-				B28C6F2B21B20E3000FBA1BF /* PBXTargetDependency */,
-				B28C6F2D21B20E3000FBA1BF /* PBXTargetDependency */,
-				B28C6F2F21B20E3000FBA1BF /* PBXTargetDependency */,
 			);
 			name = AssetPipelineCmd;
 			productName = AssetPipelineCmd;
@@ -341,6 +159,9 @@
 		B28C6E3021B2047A00FBA1BF /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
+				KnownAssetTags = (
+					New,
+				);
 				LastUpgradeCheck = 1010;
 				ORGANIZATIONNAME = "Confetti Interactive Inc";
 				TargetAttributes = {
@@ -361,20 +182,12 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = B28C6F5521B2223800FBA1BF /* Products */;
-					ProjectRef = B28C6F5421B2223800FBA1BF /* AssetPipeline.xcodeproj */;
+					ProductGroup = E9BF13C822F12613001F2264 /* Products */;
+					ProjectRef = E9BF13C722F12613001F2264 /* AssetPipeline.xcodeproj */;
 				},
 				{
-					ProductGroup = B28C6F0E21B20E1C00FBA1BF /* Products */;
-					ProjectRef = B28C6F0D21B20E1C00FBA1BF /* Assimp.xcodeproj */;
-				},
-				{
-					ProductGroup = B28C6E8F21B2089D00FBA1BF /* Products */;
-					ProjectRef = B28C6E8E21B2089D00FBA1BF /* ozz.xcodeproj */;
-				},
-				{
-					ProductGroup = B28C6E6A21B2069900FBA1BF /* Products */;
-					ProjectRef = B28C6E6921B2069900FBA1BF /* The-Forge.xcodeproj */;
+					ProductGroup = E9BF13D522F126A7001F2264 /* Products */;
+					ProjectRef = E9BF13D422F126A7001F2264 /* The-Forge.xcodeproj */;
 				},
 			);
 			projectRoot = "";
@@ -385,109 +198,32 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
-		B28C6E6F21B2069900FBA1BF /* libThe-Forge.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = "libThe-Forge.a";
-			remoteRef = B28C6E6E21B2069900FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28C6E7121B2069900FBA1BF /* libThe-Forge_iOS.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = "libThe-Forge_iOS.a";
-			remoteRef = B28C6E7021B2069900FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28C6E9721B2089D00FBA1BF /* json_d.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = json_d.a;
-			remoteRef = B28C6E9621B2089D00FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28C6E9921B2089D00FBA1BF /* ozz_animation.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = ozz_animation.a;
-			remoteRef = B28C6E9821B2089D00FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28C6E9B21B2089D00FBA1BF /* ozz_base.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = ozz_base.a;
-			remoteRef = B28C6E9A21B2089D00FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28C6E9D21B2089D00FBA1BF /* ozz_animation_IOS.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = ozz_animation_IOS.a;
-			remoteRef = B28C6E9C21B2089D00FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28C6E9F21B2089D00FBA1BF /* ozz_base_IOS.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = ozz_base_IOS.a;
-			remoteRef = B28C6E9E21B2089D00FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28C6F0421B209EB00FBA1BF /* ozz_animation offline.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = "ozz_animation offline.a";
-			remoteRef = B28C6F0321B209EB00FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28C6F1721B20E1C00FBA1BF /* libIrrXML.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libIrrXML.a;
-			remoteRef = B28C6F1621B20E1C00FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28C6F1921B20E1C00FBA1BF /* libassimp.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libassimp.a;
-			remoteRef = B28C6F1821B20E1C00FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28C6F1B21B20E1C00FBA1BF /* libzlibstatic.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libzlibstatic.a;
-			remoteRef = B28C6F1A21B20E1C00FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28C6F1D21B20E1C00FBA1BF /* libIrrXML_iOS.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libIrrXML_iOS.a;
-			remoteRef = B28C6F1C21B20E1C00FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28C6F1F21B20E1C00FBA1BF /* libassimp_iOS.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libassimp_iOS.a;
-			remoteRef = B28C6F1E21B20E1C00FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28C6F2121B20E1C00FBA1BF /* libzlibstatic_iOS.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libzlibstatic_iOS.a;
-			remoteRef = B28C6F2021B20E1C00FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28C6F5921B2223800FBA1BF /* libAssetPipeline.a */ = {
+		E9BF13D122F12614001F2264 /* libAssetPipeline.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = libAssetPipeline.a;
-			remoteRef = B28C6F5821B2223800FBA1BF /* PBXContainerItemProxy */;
+			remoteRef = E9BF13D022F12614001F2264 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		E9BF13D322F12614001F2264 /* libAssetPipeline_iOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libAssetPipeline_iOS.a;
+			remoteRef = E9BF13D222F12614001F2264 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		E9BF13DB22F126A7001F2264 /* libThe-Forge.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = "libThe-Forge.a";
+			remoteRef = E9BF13DA22F126A7001F2264 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		E9BF13DD22F126A7001F2264 /* libThe-Forge_iOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = "libThe-Forge_iOS.a";
+			remoteRef = E9BF13DC22F126A7001F2264 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -497,54 +233,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B28C6E5321B2051300FBA1BF /* AssetPipelineCmd.cpp in Sources */,
+				E921BD4722CFC35A0082D103 /* AssetPipelineCmd.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		B28C6F2321B20E3000FBA1BF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = IrrXML;
-			targetProxy = B28C6F2221B20E3000FBA1BF /* PBXContainerItemProxy */;
-		};
-		B28C6F2521B20E3000FBA1BF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = assimp;
-			targetProxy = B28C6F2421B20E3000FBA1BF /* PBXContainerItemProxy */;
-		};
-		B28C6F2721B20E3000FBA1BF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = zlibstatic;
-			targetProxy = B28C6F2621B20E3000FBA1BF /* PBXContainerItemProxy */;
-		};
-		B28C6F2921B20E3000FBA1BF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = ozz_animation;
-			targetProxy = B28C6F2821B20E3000FBA1BF /* PBXContainerItemProxy */;
-		};
-		B28C6F2B21B20E3000FBA1BF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = ozz_base;
-			targetProxy = B28C6F2A21B20E3000FBA1BF /* PBXContainerItemProxy */;
-		};
-		B28C6F2D21B20E3000FBA1BF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = "ozz_animation offline";
-			targetProxy = B28C6F2C21B20E3000FBA1BF /* PBXContainerItemProxy */;
-		};
-		B28C6F2F21B20E3000FBA1BF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = "The-Forge";
-			targetProxy = B28C6F2E21B20E3000FBA1BF /* PBXContainerItemProxy */;
-		};
-		B28C6F5B21B2223E00FBA1BF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = AssetPipeline;
-			targetProxy = B28C6F5A21B2223E00FBA1BF /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		B28C6E3D21B2047A00FBA1BF /* Debug */ = {

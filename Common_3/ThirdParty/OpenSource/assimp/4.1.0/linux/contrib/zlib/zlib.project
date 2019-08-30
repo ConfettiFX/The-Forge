@@ -46,7 +46,6 @@
     </VirtualDirectory>
     <File Name="zconf.h"/>
   </VirtualDirectory>
-  <Dependencies Name="NoConfig"/>
   <Settings Type="Static Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -96,4 +95,5 @@
       </Completion>
     </Configuration>
   </Settings>
+  <Dependencies Name="NoConfig"/>
 </CodeLite_Project>

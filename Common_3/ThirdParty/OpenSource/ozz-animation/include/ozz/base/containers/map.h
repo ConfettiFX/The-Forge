@@ -40,7 +40,6 @@
 #pragma warning(pop)
 #endif  // _MSC_VER
 
-#include "ozz/base/containers/std_allocator.h"
 #include "../../../../../EASTL/vector_map.h"
 #include "../../../../../EASTL/map.h"
 #include "../../../../../EASTL/utility.h"
@@ -50,7 +49,7 @@ namespace ozz {
 // Redirects std::map to ozz::Map in order to replace std default allocator by
 // ozz::StdAllocator.
 template <class _Key, class _Ty, class _Pred = eastl::less<_Key>,
-          class _Allocator = ozz::StdAllocator<eastl::pair<const _Key, _Ty> > >
+          class _Allocator = EASTLAllocatorType<eastl::pair<const _Key, _Ty> > >
 struct Map {
   typedef eastl::map<_Key, _Ty, _Pred, _Allocator> Std;
 };
@@ -64,7 +63,7 @@ struct str_less {
 
 // Specializes std::map to use c-string as a key.
 template <class _Ty, class _Allocator =
-              ozz::StdAllocator<eastl::pair<const char* const, _Ty> > >
+              EASTLAllocatorType<eastl::pair<const char* const, _Ty> > >
 struct CStringMap {
   typedef eastl::map<const char*, _Ty, str_less, _Allocator> Std;
 };
@@ -72,7 +71,7 @@ struct CStringMap {
 // Redirects std::multimap to ozz::MultiMap in order to replace std default
 // allocator by ozz::StdAllocator.
 template <class _Key, class _Ty, class _Pred = eastl::less<_Key>,
-          class _Allocator = ozz::StdAllocator<eastl::pair<const _Key, _Ty> > >
+          class _Allocator = EASTLAllocatorType<eastl::pair<const _Key, _Ty> > >
 struct MultiMap {
   typedef eastl::multimap<_Key, _Ty, _Pred, _Allocator> Std;
 };

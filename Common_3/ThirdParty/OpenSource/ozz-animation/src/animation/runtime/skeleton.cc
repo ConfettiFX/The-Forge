@@ -29,11 +29,11 @@
 #include "../../../include/ozz/animation/runtime/skeleton.h"
 #include <cstring>
 #include "../../../include/ozz/base/io/archive.h"
-#include "../../../include/ozz/base/log.h"
 #include "../../../include/ozz/base/maths/math_ex.h"
 #include "../../../include/ozz/base/maths/soa_math_archive.h"
 #include "../../../include/ozz/base/memory/allocator.h"
 
+#include "../../../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../../../Common_3/OS/Math/MathTypes.h"
 
 #include "../../EASTL/internal/char_traits.h"
@@ -179,8 +179,7 @@ void Skeleton::Load(ozz::io::IArchive& _archive, uint32_t _version) {
   Deallocate();
 
   if (_version != 1) {
-    log::Err() << "Unsupported Skeleton version " << _version << "."
-               << std::endl;
+    LOGF(LogLevel::eERROR, "Unsupported Skeleton version %d.", _version);
     return;
   }
 

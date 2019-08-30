@@ -88,7 +88,6 @@ layout(set = 0, UNIT_UNIFORMS_CBV) uniform visibilityBufferConstants
 {
 	mat4 mWorldViewProjMat[NUM_CULLING_VIEWPORTS];
 	CullingViewPort mCullingViewports[NUM_CULLING_VIEWPORTS];
-	uint mValidNumCull;
 };
 
 layout(std430, set = 0, UNIT_INDEX_DATA_RW) restrict writeonly buffer filteredIndicesBufferBlock

@@ -27,9 +27,6 @@
 
 #include "ozz/animation/offline/track_optimizer.h"
 
-#include <cassert>
-#include <cstddef>
-
 #include "ozz/base/maths/math_ex.h"
 
 #include "ozz/animation/offline/raw_track.h"

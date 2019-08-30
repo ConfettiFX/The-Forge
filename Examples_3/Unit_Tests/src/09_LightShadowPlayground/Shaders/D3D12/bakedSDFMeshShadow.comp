@@ -252,7 +252,7 @@ void main(uint3 GroupID : SV_GroupID,
 
 	float worldZ = ConvertFromDeviceZ(depthVal);
 
-	float RayStartOffset = 0.75f + 0.005f * worldZ;
+	float RayStartOffset = 1.75f + 0.005f * worldZ;
 		
 	float minSphereRadius = .4f;
 	float maxSphereRadius = 10.f;

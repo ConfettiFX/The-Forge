@@ -28,51 +28,28 @@ public:
 	{
 		delta_ = delta;
 		*state_ = nextState_;
+		textCount_ = 0;
+        memset(textBuffer_, 0, sizeof(textBuffer_));
 	}
 
 	bool IsTextInputEnabled() const override { return textInputEnabled_; }
 	void SetTextInputEnabled(bool enabled) override { textInputEnabled_ = enabled; }
+	wchar_t* GetTextInput(uint32_t* count) override
+	{
+		*count = textCount_;
+		return textBuffer_;
+	}
 
 	virtual InputState * GetNextInputState() override {
 		return &nextState_;
-	}
-	
-	char GetNextCharacter(gainput::DeviceButtonId buttonId) override
-	{
-		if (!textBuffer_.CanGet())
-		{
-			return 0;
-		}
-		InputCharDesc currentDesc = textBuffer_.Get();
-		
-		//Removed buffered inputs for which we didn't call GetNextCharacter
-		if(buttonId != gainput::InvalidDeviceButtonId && buttonId < gainput::KeyCount_)
-		{
-			while(currentDesc.buttonId != buttonId)
-			{
-				if (!textBuffer_.CanGet())
-				{
-					return 0;
-				}
-				currentDesc = textBuffer_.Get();
-			}
-		}
-		
-		//if button id was provided then we return the appropriate character
-		//else we return the first buffered character
-		return currentDesc.inputChar;
 	}
 
 	InputManager& manager_;
 	InputDevice& device_;
 	InputDevice::DeviceState deviceState_;
 	bool textInputEnabled_;
-	struct InputCharDesc
-	{
-		char inputChar;
-		gainput::DeviceButtonId buttonId;
-	};
-	RingBuffer<GAINPUT_TEXT_INPUT_QUEUE_LENGTH, InputCharDesc> textBuffer_;
+	wchar_t textBuffer_[GAINPUT_TEXT_INPUT_QUEUE_LENGTH];
+	uint32_t textCount_;
 	HashMap<unsigned, DeviceButtonId> dialect_;
 	InputState* state_;
 	InputState* previousState_;

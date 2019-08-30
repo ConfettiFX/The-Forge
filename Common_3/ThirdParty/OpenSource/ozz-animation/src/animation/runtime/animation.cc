@@ -29,12 +29,12 @@
 #include "../../../include/ozz/animation/runtime/animation.h"
 
 #include "../../../include/ozz/base/io/archive.h"
-#include "../../../include/ozz/base/log.h"
 #include "../../../include/ozz/base/maths/math_archive.h"
 #include "../../../include/ozz/base/maths/math_ex.h"
 #include "../../../include/ozz/base/memory/allocator.h"
 
 #include "../../EASTL/internal/char_traits.h"
+#include "../../../../../Common_3/OS/Interfaces/ILog.h"
 //CONFFX_END
 
 #include <cassert>
@@ -163,8 +163,7 @@ void Animation::Load(ozz::io::IArchive& _archive, uint32_t _version) {
 
   // No retro-compatibility with anterior versions.
   if (_version != 5) {
-    log::Err() << "Unsupported Animation version " << _version << "."
-               << std::endl;
+    LOGF(LogLevel::eERROR, "Unsupported Animation version %d.", _version);
     return;
   }
 

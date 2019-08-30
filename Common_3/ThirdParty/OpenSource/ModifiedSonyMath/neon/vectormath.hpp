@@ -2061,10 +2061,14 @@ public:
     static inline const Matrix4 orthographic(float left, float right, float bottom, float top, float zNear, float zFar);
 
 	//========================================= #ConfettiMathExtensionsBegin ================================================
+	// Construct an reversed orthographic projection matrix
+	//
+	static inline const Matrix4 orthographicReverseZ(float left, float right, float bottom, float top, float zNear, float zFar);
+
 	// Construct a perspective projection matrix using horizontal fov
 	// 
 	static inline const Matrix4 perspective(float fovxRadians, float aspectInverse, float zNear, float zFar);
-  static inline const Matrix4 perspectiveReverseZ(float fovxRadians, float aspectInverse, float zNear, float zFar);
+	static inline const Matrix4 perspectiveReverseZ(float fovxRadians, float aspectInverse, float zNear, float zFar);
 
 	static inline const Matrix4 rotationYX(const float radiansY, const float radiansX);
 	static inline const Matrix4 rotationXY(const float radiansX, const float radiansY);

@@ -65,6 +65,10 @@
 #include "../../OS/Core/Atomics.h"
 #include "../../OS/Core/GPUConfig.h"
 
+#if defined(VK_USE_DISPATCH_TABLES)
+#include "../../../Common_3/ThirdParty/OpenSource/volk/volkForgeExt.h"
+#endif
+
 #include "../../OS/Interfaces/IMemory.h"
 
 extern void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection);
@@ -404,8 +408,10 @@ PFN_vkCmdDrawIndexedIndirectCountKHR pfnVkCmdDrawIndexedIndirectCountKHR = NULL;
 /************************************************************************/
 #if defined(RENDERER_IMPLEMENTATION)
 
+#if !defined(VK_USE_DISPATCH_TABLES)
 #ifdef _MSC_VER
 #pragma comment(lib, "vulkan-1.lib")
+#endif
 #endif
 
 #define SAFE_FREE(p_var)         \
@@ -2166,6 +2172,18 @@ static void AddDevice(Renderer* pRenderer)
 	}
 #endif
 
+	// If we don't own the instance or device, then we need to set the gpuIndex to the correct physical device
+#if defined(VK_USE_DISPATCH_TABLES)
+	gpuIndex = UINT32_MAX;
+	for (uint32_t i = 0; i < pRenderer->mNumOfGPUs; i++)
+	{
+		if (pRenderer->pVkGPUs[i] == pRenderer->pVkActiveGPU)
+		{
+			gpuIndex = i;
+		}
+	}
+#endif
+
 	ASSERT(gpuIndex != UINT32_MAX);
 	pRenderer->mActiveGPUIndex = gpuIndex;
 	pRenderer->pVkActiveGPU = pRenderer->pVkGPUs[gpuIndex];
@@ -2275,6 +2293,7 @@ static void AddDevice(Renderer* pRenderer)
 		}
 	}
 
+#if !defined(VK_USE_DISPATCH_TABLES)
 	// Add more extensions here
 #if VK_EXT_fragment_shader_interlock
 	VkPhysicalDeviceFragmentShaderInterlockFeaturesEXT fragmentShaderInterlockFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT };
@@ -2338,6 +2357,7 @@ static void AddDevice(Renderer* pRenderer)
 	volkLoadDevice(pRenderer->pVkDevice);
 
 	queue_priorities.clear();
+#endif
 
 	gDedicatedAllocationExtension = dedicatedAllocationExtension && memoryReq2Extension;
 
@@ -2435,6 +2455,14 @@ void initRenderer(const char* app_name, const RendererDesc* settings, Renderer**
 
 	// Initialize the Vulkan internal bits
 	{
+#if defined(VK_USE_DISPATCH_TABLES)
+		VkResult vkRes = volkInitializeWithDispatchTables(pRenderer);
+		if (vkRes != VK_SUCCESS)
+		{
+			LOGF(LogLevel::eERROR, "Failed to initialize Vulkan");
+			return;
+		}
+#else
 #if defined(_DEBUG)
 		// this turns on all validation layers
 		pRenderer->mInstanceLayers.push_back("VK_LAYER_LUNARG_standard_validation");
@@ -2457,6 +2485,7 @@ void initRenderer(const char* app_name, const RendererDesc* settings, Renderer**
 		}
 
 		CreateInstance(app_name, pRenderer);
+#endif
 		AddDevice(pRenderer);
 		//anything below LOW preset is not supported and we will exit
 		if (pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel < GPU_PRESET_LOW)
@@ -2469,11 +2498,13 @@ void initRenderer(const char* app_name, const RendererDesc* settings, Renderer**
 
 			//remove device and any memory we allocated in just above as this is the first function called
 			//when initializing the forge
+#if !defined(VK_USE_DISPATCH_TABLES)
 			RemoveDevice(pRenderer);
 			RemoveInstance(pRenderer);
 			SAFE_FREE(pRenderer);
 			LOGF(LogLevel::eERROR, "Selected GPU has an Office Preset in gpu.cfg.");
 			LOGF(LogLevel::eERROR, "Office preset is not supported by The Forge.");
+#endif
 
 			//return NULL pRenderer so that client can gracefully handle exit
 			//This is better than exiting from here in case client has allocated memory or has fallbacks
@@ -2547,8 +2578,15 @@ void removeRenderer(Renderer* pRenderer)
 	// Destroy the Vulkan bits
 	vmaDestroyAllocator(pRenderer->pVmaAllocator);
 
+#if defined(VK_USE_DISPATCH_TABLES)
+	for (uint32_t i = 0; i < pRenderer->mNumOfGPUs; ++i)
+	{
+		SAFE_FREE(pRenderer->mVkQueueFamilyProperties[i]);
+	}
+#else
 	RemoveDevice(pRenderer);
 	RemoveInstance(pRenderer);
+#endif
 
 	pRenderer->mInstanceLayers.~vector();
 
@@ -2765,6 +2803,11 @@ void addCmd(CmdPool* pCmdPool, bool secondary, Cmd** ppCmd)
 	alloc_info.commandBufferCount = 1;
 	VkResult vk_res = vkAllocateCommandBuffers(pCmd->pRenderer->pVkDevice, &alloc_info, &(pCmd->pVkCmdBuf));
 	ASSERT(VK_SUCCESS == vk_res);
+
+#if defined(VK_USE_DISPATCH_TABLES)
+	vk_res = wrapDispatchableVkObject((const void**)pCmd->pVkCmdBuf);
+	ASSERT(VK_SUCCESS == vk_res);
+#endif
 
 	*ppCmd = pCmd;
 }
@@ -3329,12 +3372,24 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		additionalFlags |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
 	VkImageType image_type = VK_IMAGE_TYPE_MAX_ENUM;
-	if (pDesc->mDepth > 1)
-		image_type = VK_IMAGE_TYPE_3D;
-	else if (pDesc->mHeight > 1)
+	if (pDesc->mFlags & TEXTURE_CREATION_FLAG_FORCE_2D)
+	{
+		ASSERT(pDesc->mDepth == 1);
 		image_type = VK_IMAGE_TYPE_2D;
+	}
+	else if (pDesc->mFlags & TEXTURE_CREATION_FLAG_FORCE_3D)
+	{
+		image_type = VK_IMAGE_TYPE_3D;
+	}
 	else
-		image_type = VK_IMAGE_TYPE_1D;
+	{
+		if (pDesc->mDepth > 1)
+			image_type = VK_IMAGE_TYPE_3D;
+		else if (pDesc->mHeight > 1)
+			image_type = VK_IMAGE_TYPE_2D;
+		else
+			image_type = VK_IMAGE_TYPE_1D;
+	}
 
 	DescriptorType descriptors = pDesc->mDescriptors;
 	bool           cubemapRequired = (DESCRIPTOR_TYPE_TEXTURE_CUBE == (descriptors & DESCRIPTOR_TYPE_TEXTURE_CUBE));
@@ -3750,12 +3805,12 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** pp_samp
 	add_info.addressModeV = util_to_vk_address_mode(pDesc->mAddressV);
 	add_info.addressModeW = util_to_vk_address_mode(pDesc->mAddressW);
 	add_info.mipLodBias = pDesc->mMipLosBias;
-	add_info.anisotropyEnable = VK_FALSE;
+	add_info.anisotropyEnable = (pDesc->mMaxAnisotropy > 0.0f) ? VK_TRUE : VK_FALSE;
 	add_info.maxAnisotropy = pDesc->mMaxAnisotropy;
 	add_info.compareEnable = (gVkComparisonFuncTranslator[pDesc->mCompareFunc] != VK_COMPARE_OP_NEVER) ? VK_TRUE : VK_FALSE;
 	add_info.compareOp = gVkComparisonFuncTranslator[pDesc->mCompareFunc];
 	add_info.minLod = 0.0f;
-	add_info.maxLod = pDesc->mMagFilter >= FILTER_LINEAR ? FLT_MAX : 0.0f;
+	add_info.maxLod = FLT_MAX;
 	add_info.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
 	add_info.unnormalizedCoordinates = VK_FALSE;
 
@@ -6610,4 +6665,7 @@ void setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
 }    // namespace RENDERER_CPP_NAMESPACE
 #endif
 #include "../../../Common_3/ThirdParty/OpenSource/volk/volk.c"
+#if defined(VK_USE_DISPATCH_TABLES)
+#include "../../../Common_3/ThirdParty/OpenSource/volk/volkForgeExt.c"
+#endif
 #endif

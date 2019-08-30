@@ -84,9 +84,6 @@
     <ClCompile Include="..\..\..\Common_3\OS\Core\FileSystem.cpp">
       <Filter>OS\Core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Common_3\OS\Core\PlatformEvents.cpp">
-      <Filter>OS\Core</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\Common_3\OS\Core\ThreadSystem.cpp">
       <Filter>OS\Core</Filter>
     </ClCompile>
@@ -96,10 +93,7 @@
     <ClCompile Include="..\..\..\Middleware_3\UI\AppUI.cpp">
       <Filter>OS\UI</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\Common_3\OS\Camera\FpsCameraController.cpp">
-      <Filter>OS\Camera</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\Common_3\OS\Camera\GuiCameraController.cpp">
+    <ClCompile Include="..\..\..\Common_3\OS\Camera\CameraController.cpp">
       <Filter>OS\Camera</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\TinyEXR\tinyexr.cpp">
@@ -253,9 +247,6 @@
     <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IOperatingSystem.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IPlatformEvents.h">
-      <Filter>OS\Interfaces</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IThread.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
@@ -275,9 +266,6 @@
       <Filter>OS\Core</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Middleware_3\UI\AppUI.h">
-      <Filter>OS\UI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\Middleware_3\UI\UIShaders.h">
       <Filter>OS\UI</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Hooks.h">
@@ -332,6 +320,12 @@
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\Common_3\OS\Interfaces\ILog.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IInput.h">
+      <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\OS\Interfaces\IProfiler.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
   </ItemGroup>

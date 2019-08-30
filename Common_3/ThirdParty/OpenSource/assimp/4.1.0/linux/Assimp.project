@@ -469,9 +469,6 @@
       </VirtualDirectory>
     </VirtualDirectory>
   </VirtualDirectory>
-  <Dependencies Name="NoConfig">
-    <Project Name="zlibstatic"/>
-  </Dependencies>
   <Settings Type="Static Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -530,4 +527,7 @@
       </Completion>
     </Configuration>
   </Settings>
+  <Dependencies Name="NoConfig">
+    <Project Name="zlibstatic"/>
+  </Dependencies>
 </CodeLite_Project>

@@ -14,26 +14,6 @@
     <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.cpp"/>
     <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"/>
   </VirtualDirectory>
-  <Dependencies Name="Debug">
-    <Project Name="SpirVTools"/>
-    <Project Name="Renderer"/>
-    <Project Name="OS"/>
-    <Project Name="AssimpImporter"/>
-    <Project Name="gainput"/>
-    <Project Name="zlibstatic"/>
-    <Project Name="assimp"/>
-    <Project Name="EASTL"/>
-  </Dependencies>
-  <Dependencies Name="Release">
-    <Project Name="SpirVTools"/>
-    <Project Name="Renderer"/>
-    <Project Name="OS"/>
-    <Project Name="AssimpImporter"/>
-    <Project Name="gainput"/>
-    <Project Name="zlibstatic"/>
-    <Project Name="assimp"/>
-    <Project Name="EASTL"/>
-  </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -168,4 +148,24 @@
       </Completion>
     </Configuration>
   </Settings>
+  <Dependencies Name="Debug">
+    <Project Name="SpirVTools"/>
+    <Project Name="Renderer"/>
+    <Project Name="OS"/>
+    <Project Name="AssimpImporter"/>
+    <Project Name="gainput"/>
+    <Project Name="zlibstatic"/>
+    <Project Name="assimp"/>
+    <Project Name="EASTL"/>
+  </Dependencies>
+  <Dependencies Name="Release">
+    <Project Name="SpirVTools"/>
+    <Project Name="Renderer"/>
+    <Project Name="OS"/>
+    <Project Name="AssimpImporter"/>
+    <Project Name="gainput"/>
+    <Project Name="zlibstatic"/>
+    <Project Name="assimp"/>
+    <Project Name="EASTL"/>
+  </Dependencies>
 </CodeLite_Project>

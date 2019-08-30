@@ -71,7 +71,6 @@ struct Uniforms_visibilityBufferConstants
 {
 	float4x4 mWorldViewProjMat[NUM_CULLING_VIEWPORTS];
 	CullingViewPort mCullingViewports[NUM_CULLING_VIEWPORTS];
-	uint mValidNumCull;
 };
 
 

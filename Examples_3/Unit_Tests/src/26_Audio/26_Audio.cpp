@@ -36,6 +36,7 @@
 #include "../../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
+#include "../../../../Common_3/OS/Interfaces/IInput.h"
 
 // Rendering
 #include "../../../../Common_3/Renderer/IRenderer.h"
@@ -43,9 +44,6 @@
 
 // Middleware packages
 #include "../../../../Middleware_3/UI/AppUI.h"
-#include "../../../../Common_3/OS/Input/InputSystem.h"
-#include "../../../../Common_3/OS/Input/InputMappings.h"
-
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
@@ -198,7 +196,6 @@ class AudioUnitTest : public IApp
 public:
 	bool Init()
 	{
-		InputSystem::SetHideMouseCursorWhileCaptured(false);
 		// WINDOW AND RENDERER SETUP
 		//
 		RendererDesc settings = { 0 };
@@ -307,6 +304,17 @@ public:
 		gBgWavHandle = gSoLoud.playBackground(gBgWavObj);
 		gSoLoud.setLooping(gBgWavHandle, true);
 
+		if (!initInputSystem(pWindow))
+			return false;
+
+		// App Actions
+		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
+		addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_ANY, [](InputActionContext* ctx) { return gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, true); } };
+		addInputAction(&actionDesc);
+
 		return true;
 	}
 
@@ -314,7 +322,9 @@ public:
 	{
 		// wait for rendering to finish before freeing resources
 		waitQueueIdle(pGraphicsQueue);
-				
+
+		exitInputSystem();
+
 		gSoLoud.stopAll();
 		gSoLoud.deinit();
 
@@ -365,23 +375,17 @@ public:
 	}
 
 	void Update(float deltaTime)
-	{		
-
-		/************************************************************************/
-		// Scene Update
-		/************************************************************************/
-		static float currentTime = 0.0f;
-		currentTime += deltaTime * 1000.0f;
-
+	{
+		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 		/************************************************************************/
 		// GUI
 		/************************************************************************/
-		gAppUI.Update(deltaTime);		
+		gAppUI.Update(deltaTime);
 	}
 
 	void Draw()
 	{
-		static HiresTimer gTimer;		
+		static HiresTimer gTimer;
 		ClearValue  clearVal;
 		clearVal.r = 0.0f;
 		clearVal.g = 0.0f;
