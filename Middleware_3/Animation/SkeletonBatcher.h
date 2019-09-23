@@ -103,11 +103,11 @@ class SkeletonBatcher
 	int            mNumBonePoints;
 
 	// Descriptor binder with all required memory allocation space
-	DescriptorBinder* mDescriptorBinder;
+	DescriptorSet* pDescriptorSet;
 
 	// Buffer pointers that will get updated for each batch to be rendered
-	Buffer* mProjViewUniformBufferJoints[MAX_BATCHES][ImageCount] = {{ NULL }};
-	Buffer* mProjViewUniformBufferBones[MAX_BATCHES][ImageCount] = {{ NULL } };
+	Buffer* mProjViewUniformBufferJoints[ImageCount][MAX_BATCHES] = {{ NULL }};
+	Buffer* mProjViewUniformBufferBones[ImageCount][MAX_BATCHES] = {{ NULL } };
 
 	// Uniform data for the joints and bones
 	UniformSkeletonBlock mUniformDataJoints;

@@ -31,24 +31,34 @@ using namespace metal;
 // This compute shader determines if a light of index groupId overlaps
 // the cluster (thread.x,thread.y). Then the light is added to the cluster.
 
+struct CSData {
+    constant LightData* lights [[id(0)]];
+};
+
+struct CSDataPerFrame {
+    device atomic_uint* lightClustersCount  [[id(0)]];
+    device atomic_uint* lightClusters       [[id(1)]];
+    constant PerFrameConstants& uniforms    [[id(2)]];
+};
+
 //[numthreads(8, 8, 1)]
-kernel void stageMain(uint3 threadInGroupId [[thread_position_in_threadgroup]],
-                      uint3 groupId [[threadgroup_position_in_grid]],
-                      device atomic_uint* lightClustersCount [[buffer(0)]],
-                      device atomic_uint* lightClusters [[buffer(1)]],
-                      constant PerFrameConstants& uniforms [[buffer(2)]],
-                      constant LightData* lights [[buffer(3)]])
+kernel void stageMain(
+    uint3 threadInGroupId [[thread_position_in_threadgroup]],
+    uint3 groupId [[threadgroup_position_in_grid]],
+    constant CSData& csData [[buffer(UPDATE_FREQ_NONE)]],
+    constant CSDataPerFrame& csDataPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
     const float invClusterWidth = 1.0f / float(LIGHT_CLUSTER_WIDTH);
     const float invClusterHeight = 1.0f / float(LIGHT_CLUSTER_HEIGHT);
-    const float2 windowSize = uniforms.cullingViewports[VIEW_CAMERA].windowSize;
+    const float2 windowSize = csDataPerFrame.uniforms.cullingViewports[VIEW_CAMERA].windowSize;
     
     const float aspectRatio = windowSize.x / windowSize.y;
     
-    LightData lightData = lights[groupId.x];
+    LightData lightData = csData.lights[groupId.x];
     
     float4 lightPosWorldSpace = float4(lightData.position, 1);
-    float4 lightPosClipSpace = uniforms.transform[VIEW_CAMERA].mvp * lightPosWorldSpace;
+    float4 lightPosClipSpace = csDataPerFrame.uniforms.transform[VIEW_CAMERA].mvp * lightPosWorldSpace;
     float invLightPosW = 1.0 / lightPosClipSpace.w;
     float3 lightPos = lightPosClipSpace.xyz * invLightPosW;
     
@@ -83,9 +93,9 @@ kernel void stageMain(uint3 threadInGroupId [[thread_position_in_threadgroup]],
     if (distanceToCenter  < projRadius + clusterRadius)
     {
         // Increase light count on this cluster
-        uint lightArrayPos = atomic_fetch_add_explicit(&lightClustersCount[LIGHT_CLUSTER_COUNT_POS(threadInGroupId.x,threadInGroupId.y)], 1, memory_order_relaxed);
+        uint lightArrayPos = atomic_fetch_add_explicit(&csDataPerFrame.lightClustersCount[LIGHT_CLUSTER_COUNT_POS(threadInGroupId.x,threadInGroupId.y)], 1, memory_order_relaxed);
 
         // Add light id to cluster
-        atomic_store_explicit(&lightClusters[LIGHT_CLUSTER_DATA_POS(lightArrayPos, threadInGroupId.x, threadInGroupId.y)], groupId.x, memory_order_relaxed);
+        atomic_store_explicit(&csDataPerFrame.lightClusters[LIGHT_CLUSTER_DATA_POS(lightArrayPos, threadInGroupId.x, threadInGroupId.y)], groupId.x, memory_order_relaxed);
     }
 }

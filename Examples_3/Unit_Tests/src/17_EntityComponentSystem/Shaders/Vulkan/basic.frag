@@ -34,8 +34,8 @@ struct VSOutput
     vec3 color;
     vec2 uv;
 };
-layout(set = 0, binding = 2) uniform texture2D uTexture0;
-layout(set = 0, binding = 3) uniform sampler uSampler0;
+layout(UPDATE_FREQ_NONE, binding = 2) uniform texture2D uTexture0;
+layout(UPDATE_FREQ_NONE, binding = 3) uniform sampler uSampler0;
 vec4 HLSLmain(VSOutput input0)
 {
     vec4 diffuse = texture(sampler2D( uTexture0, uSampler0), vec2((input0).uv));

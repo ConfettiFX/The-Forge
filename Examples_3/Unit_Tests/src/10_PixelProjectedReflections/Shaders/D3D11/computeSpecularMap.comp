@@ -38,8 +38,8 @@ struct PrecomputeSkySpecularData
 };
 
 ConstantBuffer<PrecomputeSkySpecularData> RootConstant : register(b0);
-TextureCube srcTexture : register(t1, space1);
-RWTexture2DArray<float4> dstTexture : register(u2, space1);
+TextureCube srcTexture : register(t1, UPDATE_FREQ_PER_FRAME);
+RWTexture2DArray<float4> dstTexture : register(u2, UPDATE_FREQ_PER_FRAME);
 SamplerState skyboxSampler : register(s3);
 
 float RadicalInverse_VdC(uint bits)

@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="inc">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="src">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="src\transcoder">
+      <UniqueIdentifier>{2d6d195a-ebe1-467a-a713-8abb5d133ce6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="inc\transcoder">
+      <UniqueIdentifier>{724b1ae2-a9f5-4706-b406-26d4660d72e0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="basisthumbprovider.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\transcoder\basisu_transcoder.h">
+      <Filter>inc\transcoder</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="basisthumbprovider.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="previewers.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\transcoder\basisu_transcoder.cpp">
+      <Filter>src\transcoder</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

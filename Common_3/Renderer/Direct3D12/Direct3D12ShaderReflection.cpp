@@ -27,7 +27,7 @@
 #include "../../OS/Interfaces/ILog.h"
 
 #ifdef _DURANGO
-#include "../../../Xbox/CommonXBOXOne_3/OS/XBoxPrivateHeaders.h"
+#include "../../../Xbox/Common_3/Renderer/XBoxPrivateHeaders.h"
 #else
 #include <d3dcompiler.h>
 #include "../../ThirdParty/OpenSource/DirectXShaderCompiler/dxcapi.use.h"

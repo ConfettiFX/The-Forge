@@ -25,7 +25,7 @@
 #version 450 core
 #extension GL_GOOGLE_include_directive : require
 
-#include "shading.glsl"
+#include "shading.h"
 
 layout(location = 0) in vec4 WorldPosition;
 layout(location = 1) in vec4 Normal;
@@ -42,23 +42,6 @@ layout(location = 0) out vec4 Accumulation;
 layout(location = 1) out vec4 Modulation;
 #if PT_USE_REFRACTION != 0
 layout(location = 2) out vec2 Refraction;
-#endif
-
-#if PT_USE_DIFFUSION != 0
-struct ObjectInfo
-{
-	mat4 toWorld;
-	mat4 normalMat;
-	uint matID;
-};
-
-layout(set = 3, binding = 0) uniform ObjectUniformBlock
-{
-	ObjectInfo	objectInfo[MAX_NUM_OBJECTS];
-};
-
-layout(set = 3, binding = 1) uniform texture2D DepthTexture;
-layout(set = 0, binding = 2) uniform sampler PointSampler;
 #endif
 
 float WeightFunction(float alpha, float depth)

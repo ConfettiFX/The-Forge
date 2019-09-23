@@ -12,8 +12,8 @@ struct VSOutput
     vec2 UV;
     vec4 MiscData;
 };
-layout(set = 0, binding = 1) uniform sampler clampToEdgeNearSampler;
-layout(set = 1, binding = 0) uniform texture2D DepthPassTexture;
+layout(UPDATE_FREQ_NONE, binding = 1) uniform sampler clampToEdgeNearSampler;
+layout(UPDATE_FREQ_NONE, binding = 0) uniform texture2D DepthPassTexture;
 float HLSLmain(VSOutput input1)
 {
     float tileDepth = float (textureLod(sampler2D( DepthPassTexture, clampToEdgeNearSampler), vec2((input1).UV), float (0.0)));

@@ -35,7 +35,7 @@
 
 layout(local_size_x = WORKGROUP_X_SIZE_MAX, local_size_y = WORKGROUP_Y_SIZE_MAX, local_size_z = WORKGROUP_Z_SIZE_MAX) in;
 
-layout(std140, set = 0, binding = 0) uniform cbExtendCamera
+layout(std140, UPDATE_FREQ_PER_FRAME, binding = 0) uniform cbExtendCamera
 {
 	mat4 viewMat;
 	mat4 projMat;
@@ -46,11 +46,12 @@ layout(std140, set = 0, binding = 0) uniform cbExtendCamera
 	vec4 viewPortSize;
 };
 
-layout(std430, set = 0, binding = 1) restrict buffer IntermediateBuffer {
+layout(std430, UPDATE_FREQ_NONE, binding = 1) restrict buffer IntermediateBuffer
+{
  	 uint Data[];
 };
 
-layout(set = 0, binding = 2) uniform texture2D DepthTexture;
+layout(UPDATE_FREQ_NONE, binding = 2) uniform texture2D DepthTexture;
 
 struct PlaneInfo
 {
@@ -59,7 +60,7 @@ struct PlaneInfo
 	vec4 size;
 };
 
-layout(set = 0, binding = 3) uniform planeInfoBuffer
+layout(UPDATE_FREQ_PER_FRAME, binding = 3) uniform planeInfoBuffer
 {	
 	PlaneInfo planeInfo[MAX_PLANES];
 	uint numPlanes;
@@ -68,7 +69,7 @@ layout(set = 0, binding = 3) uniform planeInfoBuffer
 	uint pad02;
 };
 
-layout(set = 0, binding = 4) uniform sampler defaultSampler;
+layout(UPDATE_FREQ_NONE, binding = 4) uniform sampler defaultSampler;
 
 
 float getDistance(vec3 planeNormal, vec3 planeCenter, vec3 worldPos)

@@ -226,70 +226,81 @@ float4 Integrate(float4 currentPosition, float4 prevPosition, VertexIndices indi
 	return result;
 }
 
+// UPDATE_FREQ_PER_DRAW
+struct VSDataPerFrame {
+    constant SimulationData& cbSimulation       [[id(0)]];
+    constant GlobalHairData& cbHairGlobal       [[id(1)]];
+    device float4* HairVertexPositions          [[id(2)]];
+    device float4* HairVertexPositionsPrev      [[id(3)]];
+    device float4* HairVertexPositionsPrevPrev  [[id(4)]];
+    device float4* HairVertexTangents           [[id(5)]];
+    device float4* HairRestPositions            [[id(6)]];
+    device float* HairRestLengths               [[id(7)]];
+    device float4* HairGlobalRotations          [[id(8)]];
+    device float4* HairRefsInLocalFrame         [[id(9)]];
+    device float4* FollowHairRootOffsets        [[id(10)]];
+};
+
 //[numthreads(64, 1, 1)]
 
 #ifdef HAIR_INTEGRATE
-kernel void stageMain(uint groupIndex[[thread_index_in_threadgroup]],
-    uint3 groupID[[threadgroup_position_in_grid]],
-    device float4* HairVertexPositions[[buffer(0)]],
-    device float4* HairVertexPositionsPrev[[buffer(1)]],
-    device float4* HairVertexPositionsPrevPrev[[buffer(2)]],
-    device float4* HairRestPositions[[buffer(3)]],
-    constant SimulationData& cbSimulation[[buffer(4)]],
-    constant GlobalHairData& cbHairGlobal[[buffer(5)]])
+kernel void stageMain(
+    uint groupIndex                          [[thread_index_in_threadgroup]],
+    uint3 groupID                            [[threadgroup_position_in_grid]],
+    constant VSDataPerFrame& vsDataPerFrame  [[buffer(UPDATE_FREQ_PER_DRAW)]]
+)
 {
     threadgroup float4 sharedPos[THREAD_GROUP_SIZE];
-	VertexIndices indices = CalculateVertexIndices(groupIndex, groupID.x, cbSimulation);
+	VertexIndices indices = CalculateVertexIndices(groupIndex, groupID.x, vsDataPerFrame.cbSimulation);
 
-	float4 restPosition = HairRestPositions[indices.globalVertexIndex];
-	restPosition.xyz = (cbSimulation.Transform * float4(restPosition.xyz, 1.0f)).xyz;
-	float4 currentPosition = sharedPos[indices.indexSharedMem] = HairVertexPositions[indices.globalVertexIndex];
+	float4 restPosition = vsDataPerFrame.HairRestPositions[indices.globalVertexIndex];
+	restPosition.xyz = (vsDataPerFrame.cbSimulation.Transform * float4(restPosition.xyz, 1.0f)).xyz;
+	float4 currentPosition = sharedPos[indices.indexSharedMem] = vsDataPerFrame.HairVertexPositions[indices.globalVertexIndex];
 	float weight = currentPosition.w;
 
     threadgroup_barrier(mem_flags::mem_threadgroup);
 
 	// Integrate
-	float4 prevPosition = HairVertexPositionsPrev[indices.globalVertexIndex];
+	float4 prevPosition = vsDataPerFrame.HairVertexPositionsPrev[indices.globalVertexIndex];
 
 	if (weight > 0.0f)	// Is movable
-		sharedPos[indices.indexSharedMem] = Integrate(currentPosition, prevPosition, indices, cbHairGlobal, cbSimulation);
+		sharedPos[indices.indexSharedMem] = Integrate(currentPosition, prevPosition, indices, vsDataPerFrame.cbHairGlobal, vsDataPerFrame.cbSimulation);
 	else
 		sharedPos[indices.indexSharedMem] = restPosition;
 
 	// Global shape constraint
-	if (cbSimulation.GlobalConstraintStiffness > 0.0f &&
-		cbSimulation.GlobalConstraintRange > 0.0f &&
+	if (vsDataPerFrame.cbSimulation.GlobalConstraintStiffness > 0.0f &&
+		vsDataPerFrame.cbSimulation.GlobalConstraintRange > 0.0f &&
 		sharedPos[indices.indexSharedMem].w > 0.0f && 
-		(float)indices.localVertexIndex < cbSimulation.GlobalConstraintRange * (float)cbSimulation.NumVerticesPerStrand)
+		(float)indices.localVertexIndex < vsDataPerFrame.cbSimulation.GlobalConstraintRange * (float)vsDataPerFrame.cbSimulation.NumVerticesPerStrand)
 	{
-		sharedPos[indices.indexSharedMem].xyz += cbSimulation.GlobalConstraintStiffness * (restPosition.xyz - sharedPos[indices.indexSharedMem].xyz);
+		sharedPos[indices.indexSharedMem].xyz += vsDataPerFrame.cbSimulation.GlobalConstraintStiffness * (restPosition.xyz - sharedPos[indices.indexSharedMem].xyz);
 	}
 
-	HairVertexPositionsPrevPrev[indices.globalVertexIndex] = HairVertexPositionsPrev[indices.globalVertexIndex];
-	HairVertexPositionsPrev[indices.globalVertexIndex] = currentPosition;
-	HairVertexPositions[indices.globalVertexIndex] = sharedPos[indices.indexSharedMem];
+	vsDataPerFrame.HairVertexPositionsPrevPrev[indices.globalVertexIndex] = vsDataPerFrame.HairVertexPositionsPrev[indices.globalVertexIndex];
+	vsDataPerFrame.HairVertexPositionsPrev[indices.globalVertexIndex] = currentPosition;
+	vsDataPerFrame.HairVertexPositions[indices.globalVertexIndex] = sharedPos[indices.indexSharedMem];
 }
 #elif defined(HAIR_SHOCK_PROPAGATION)
-kernel void stageMain(uint groupIndex[[thread_index_in_threadgroup]],
-    uint3 groupID[[threadgroup_position_in_grid]],
-    device float4* HairVertexPositions[[buffer(0)]],
-    device float4* HairVertexPositionsPrev[[buffer(1)]],
-    device float4* HairVertexPositionsPrevPrev[[buffer(2)]],
-    constant SimulationData& cbSimulation[[buffer(4)]])
+kernel void stageMain(
+    uint groupIndex                 [[thread_index_in_threadgroup]],
+    uint3 groupID                   [[threadgroup_position_in_grid]],
+    constant VSDataPerFrame& vsDataPerFrame  [[buffer(UPDATE_FREQ_PER_DRAW)]]
+)
 {
-	StrandIndices indices = CalculateStrandIndices(groupIndex, groupID.x, cbSimulation);
+	StrandIndices indices = CalculateStrandIndices(groupIndex, groupID.x, vsDataPerFrame.cbSimulation);
 
 	float4 rootPosPrevPrev;
 	float4 rootPosPrev[2];
 	float4 rootPos[2];
 
-	rootPosPrevPrev = HairVertexPositionsPrevPrev[indices.globalRootVertexIndex + 1];
+	rootPosPrevPrev = vsDataPerFrame.HairVertexPositionsPrevPrev[indices.globalRootVertexIndex + 1];
 
-	rootPosPrev[0] = HairVertexPositionsPrev[indices.globalRootVertexIndex];
-	rootPosPrev[1] = HairVertexPositionsPrev[indices.globalRootVertexIndex + 1];
+	rootPosPrev[0] = vsDataPerFrame.HairVertexPositionsPrev[indices.globalRootVertexIndex];
+	rootPosPrev[1] = vsDataPerFrame.HairVertexPositionsPrev[indices.globalRootVertexIndex + 1];
 
-	rootPos[0] = HairVertexPositions[indices.globalRootVertexIndex];
-	rootPos[1] = HairVertexPositions[indices.globalRootVertexIndex + 1];
+	rootPos[0] = vsDataPerFrame.HairVertexPositions[indices.globalRootVertexIndex];
+	rootPos[1] = vsDataPerFrame.HairVertexPositions[indices.globalRootVertexIndex + 1];
 
 	float3 u = normalize(rootPosPrev[1].xyz - rootPosPrev[0].xyz);
 	float3 v = normalize(rootPos[1].xyz - rootPos[0].xyz);
@@ -297,54 +308,53 @@ kernel void stageMain(uint groupIndex[[thread_index_in_threadgroup]],
 	float4 rotation = QuatFromUnitVectors(u, v);
 	float3 RotateVecation = rootPos[0].xyz - RotateVec(rotation, rootPosPrev[0].xyz);
 
-	float vspStrength = cbSimulation.VSPStrength;
+	float vspStrength = vsDataPerFrame.cbSimulation.VSPStrength;
 	float acceleration = length((rootPos[1] - 2.0f * rootPosPrev[1] + rootPosPrevPrev[1]).xyz);
 
-	if (acceleration > cbSimulation.VSPAccelerationThreshold)
+	if (acceleration > vsDataPerFrame.cbSimulation.VSPAccelerationThreshold)
 		vspStrength = 1.0f;
 
-	for(uint localVertexIndex = 2; localVertexIndex < cbSimulation.NumVerticesPerStrand; ++localVertexIndex)
+	for(uint localVertexIndex = 2; localVertexIndex < vsDataPerFrame.cbSimulation.NumVerticesPerStrand; ++localVertexIndex)
 	{
 		uint globalVertexIndex = indices.globalRootVertexIndex + localVertexIndex;
 
-		float4 pos = HairVertexPositions[globalVertexIndex];
-		float4 posPrev = HairVertexPositionsPrev[globalVertexIndex];
+		float4 pos = vsDataPerFrame.HairVertexPositions[globalVertexIndex];
+		float4 posPrev = vsDataPerFrame.HairVertexPositionsPrev[globalVertexIndex];
 
 		pos.xyz = (1.0f - vspStrength) * pos.xyz + vspStrength * (RotateVec(rotation, pos.xyz) + RotateVecation);
 		posPrev.xyz = (1.0f - vspStrength) * posPrev.xyz + vspStrength * (RotateVec(rotation, posPrev.xyz) + RotateVecation);
 
-		HairVertexPositions[globalVertexIndex] = pos;
-		HairVertexPositionsPrev[globalVertexIndex] = posPrev;
+		vsDataPerFrame.HairVertexPositions[globalVertexIndex] = pos;
+		vsDataPerFrame.HairVertexPositionsPrev[globalVertexIndex] = posPrev;
 	}
 }
 #elif defined(HAIR_LOCAL_CONSTRAINTS)
 
-kernel void stageMain(uint groupIndex[[thread_index_in_threadgroup]],
-    uint3 groupID[[threadgroup_position_in_grid]],
-    device float4* HairVertexPositions[[buffer(0)]],
-    device float4* HairGlobalRotations[[buffer(1)]],
-    device float4* HairRefsInLocalFrame[[buffer(2)]],
-    constant SimulationData& cbSimulation[[buffer(3)]])
+kernel void stageMain(
+    uint groupIndex                 [[thread_index_in_threadgroup]],
+    uint3 groupID                   [[threadgroup_position_in_grid]],
+    constant VSDataPerFrame& vsDataPerFrame  [[buffer(UPDATE_FREQ_PER_DRAW)]]
+)
 {
-	StrandIndices indices = CalculateStrandIndices(groupIndex, groupID.x, cbSimulation);
+	StrandIndices indices = CalculateStrandIndices(groupIndex, groupID.x, vsDataPerFrame.cbSimulation);
 
-	float stiffness = cbSimulation.LocalStiffness;
+	float stiffness = vsDataPerFrame.cbSimulation.LocalStiffness;
 	stiffness = 0.5f * min(stiffness, 0.95f);
 
 	uint globalVertexIndex = 0;
-	float4 position = HairVertexPositions[indices.globalRootVertexIndex + 1];
+	float4 position = vsDataPerFrame.HairVertexPositions[indices.globalRootVertexIndex + 1];
 	float4 nextPosition;
-	float4 globalRotation = HairGlobalRotations[indices.globalRootVertexIndex];
+	float4 globalRotation = vsDataPerFrame.HairGlobalRotations[indices.globalRootVertexIndex];
 	float4 worldRotation;
 
-	for (uint localVertexIndex = 1; localVertexIndex < cbSimulation.NumVerticesPerStrand - 1; ++localVertexIndex)
+	for (uint localVertexIndex = 1; localVertexIndex < vsDataPerFrame.cbSimulation.NumVerticesPerStrand - 1; ++localVertexIndex)
 	{
 		globalVertexIndex = indices.globalRootVertexIndex + localVertexIndex;
-		nextPosition = HairVertexPositions[globalVertexIndex + 1];
+		nextPosition = vsDataPerFrame.HairVertexPositions[globalVertexIndex + 1];
 
-		worldRotation = MultQuaternionAndQuaternion(cbSimulation.QuatRotation, globalRotation);
+		worldRotation = MultQuaternionAndQuaternion(vsDataPerFrame.cbSimulation.QuatRotation, globalRotation);
 
-		float3 localNextPositionRest = HairRefsInLocalFrame[globalVertexIndex + 1].xyz * cbSimulation.Scale;
+		float3 localNextPositionRest = vsDataPerFrame.HairRefsInLocalFrame[globalVertexIndex + 1].xyz * vsDataPerFrame.cbSimulation.Scale;
 		float3 globalNextPosition = RotateVec(worldRotation, localNextPositionRest) + position.xyz;
 
 		float3 weighted = stiffness * (globalNextPosition - nextPosition.xyz);
@@ -370,8 +380,8 @@ kernel void stageMain(uint groupIndex[[thread_index_in_threadgroup]],
 			globalRotation = MultQuaternionAndQuaternion(globalRotation, localRotation);
 		}
 
-		HairVertexPositions[globalVertexIndex] = position;
-		HairVertexPositions[globalVertexIndex + 1] = nextPosition;
+		vsDataPerFrame.HairVertexPositions[globalVertexIndex] = position;
+		vsDataPerFrame.HairVertexPositions[globalVertexIndex + 1] = nextPosition;
 
 		position = nextPosition;
 	} 
@@ -488,118 +498,108 @@ bool ResolveCapsuleCollisions(threadgroup float4& currentPosition, float4 prevPo
 }
 #endif
 
-kernel void stageMain(uint groupIndex[[thread_index_in_threadgroup]],
-    uint3 groupID[[threadgroup_position_in_grid]],
-    device float4* HairVertexPositions[[buffer(0)]],
-    device float4* HairVertexPositionsPrev[[buffer(1)]],
-    device float4* HairVertexTangents[[buffer(2)]],
-    device float* HairRestLengths[[buffer(3)]],
-    device float4* HairRefsInLocalFrame[[buffer(4)]],
-    constant SimulationData& cbSimulation[[buffer(5)]],
-    constant GlobalHairData& cbHairGlobal[[buffer(6)]])
+kernel void stageMain(uint groupIndex  [[thread_index_in_threadgroup]],
+    uint3 groupID                      [[threadgroup_position_in_grid]],
+    constant VSDataPerFrame& vsDataPerFrame     [[buffer(UPDATE_FREQ_PER_DRAW)]]
+)
 {
     threadgroup float4 sharedPos[THREAD_GROUP_SIZE];
     threadgroup float sharedLength[THREAD_GROUP_SIZE];
 
 	// Copy to shared memory
-	VertexIndices indices = CalculateVertexIndices(groupIndex, groupID.x, cbSimulation);
-	sharedPos[indices.indexSharedMem] = HairVertexPositions[indices.globalVertexIndex];
-	sharedLength[indices.indexSharedMem] = HairRestLengths[indices.globalVertexIndex] * cbSimulation.Scale;
+	VertexIndices indices = CalculateVertexIndices(groupIndex, groupID.x, vsDataPerFrame.cbSimulation);
+	sharedPos[indices.indexSharedMem] = vsDataPerFrame.HairVertexPositions[indices.globalVertexIndex];
+	sharedLength[indices.indexSharedMem] = vsDataPerFrame.HairRestLengths[indices.globalVertexIndex] * vsDataPerFrame.cbSimulation.Scale;
 
     threadgroup_barrier(mem_flags::mem_threadgroup);
 	
 	// Wind
-	if (indices.localVertexIndex >= 2 && indices.localVertexIndex < cbSimulation.NumVerticesPerStrand - 1)
+	if (indices.localVertexIndex >= 2 && indices.localVertexIndex < vsDataPerFrame.cbSimulation.NumVerticesPerStrand - 1)
 	{
-		uint sharedIndex = indices.localVertexIndex * cbSimulation.NumStrandsPerThreadGroup + indices.localStrandIndex;
+		uint sharedIndex = indices.localVertexIndex * vsDataPerFrame.cbSimulation.NumStrandsPerThreadGroup + indices.localStrandIndex;
 
-		float3 v = sharedPos[sharedIndex].xyz - sharedPos[sharedIndex + cbSimulation.NumStrandsPerThreadGroup].xyz;
-		float3 force = -cross(cross(v, cbHairGlobal.Wind.xyz), v);
-		sharedPos[sharedIndex].xyz += force * cbHairGlobal.TimeStep * cbHairGlobal.TimeStep;
+		float3 v = sharedPos[sharedIndex].xyz - sharedPos[sharedIndex + vsDataPerFrame.cbSimulation.NumStrandsPerThreadGroup].xyz;
+		float3 force = -cross(cross(v, vsDataPerFrame.cbHairGlobal.Wind.xyz), v);
+		sharedPos[sharedIndex].xyz += force * vsDataPerFrame.cbHairGlobal.TimeStep * vsDataPerFrame.cbHairGlobal.TimeStep;
 	}
 
     threadgroup_barrier(mem_flags::mem_threadgroup);
 
 	// Length constraint
-	uint a = floor(cbSimulation.NumVerticesPerStrand * 0.5f);
-	uint b = floor((cbSimulation.NumVerticesPerStrand - 1) * 0.5f);
+	uint a = floor(vsDataPerFrame.cbSimulation.NumVerticesPerStrand * 0.5f);
+	uint b = floor((vsDataPerFrame.cbSimulation.NumVerticesPerStrand - 1) * 0.5f);
 
-	for(uint i = 0; i < cbSimulation.LengthConstraintIterations; ++i)
+	for(uint i = 0; i < vsDataPerFrame.cbSimulation.LengthConstraintIterations; ++i)
 	{
-		uint sharedIndex = 2 * indices.localVertexIndex * cbSimulation.NumStrandsPerThreadGroup + indices.localStrandIndex;
+		uint sharedIndex = 2 * indices.localVertexIndex * vsDataPerFrame.cbSimulation.NumStrandsPerThreadGroup + indices.localStrandIndex;
 
 		if (indices.localVertexIndex < a)
-			ApplyDistanceConstraint(sharedPos[sharedIndex], sharedPos[sharedIndex + cbSimulation.NumStrandsPerThreadGroup], sharedLength[sharedIndex]);
+			ApplyDistanceConstraint(sharedPos[sharedIndex], sharedPos[sharedIndex + vsDataPerFrame.cbSimulation.NumStrandsPerThreadGroup], sharedLength[sharedIndex]);
 
         threadgroup_barrier(mem_flags::mem_threadgroup);
 
 		if (indices.localVertexIndex < b)
-			ApplyDistanceConstraint(sharedPos[sharedIndex + cbSimulation.NumStrandsPerThreadGroup], sharedPos[sharedIndex + cbSimulation.NumStrandsPerThreadGroup * 2], sharedLength[sharedIndex + cbSimulation.NumStrandsPerThreadGroup]);
+			ApplyDistanceConstraint(sharedPos[sharedIndex + vsDataPerFrame.cbSimulation.NumStrandsPerThreadGroup], sharedPos[sharedIndex + vsDataPerFrame.cbSimulation.NumStrandsPerThreadGroup * 2], sharedLength[sharedIndex + vsDataPerFrame.cbSimulation.NumStrandsPerThreadGroup]);
 
         threadgroup_barrier(mem_flags::mem_threadgroup);
 	}
 
 #if HAIR_MAX_CAPSULE_COUNT > 0
 	// Capsule collisions
-	bool collided = ResolveCapsuleCollisions(sharedPos[indices.indexSharedMem], HairVertexPositionsPrev[indices.globalVertexIndex], cbSimulation);
+	bool collided = ResolveCapsuleCollisions(sharedPos[indices.indexSharedMem], vsDataPerFrame.HairVertexPositionsPrev[indices.globalVertexIndex], vsDataPerFrame.cbSimulation);
 	if(collided)
-		HairVertexPositionsPrev[indices.globalVertexIndex] = sharedPos[indices.indexSharedMem];
+		vsDataPerFrame.HairVertexPositionsPrev[indices.globalVertexIndex] = sharedPos[indices.indexSharedMem];
     threadgroup_barrier(mem_flags::mem_threadgroup);
 #endif
 
 	// Calculate tangents
-	float3 tangent = sharedPos[indices.indexSharedMem + cbSimulation.NumStrandsPerThreadGroup].xyz - sharedPos[indices.indexSharedMem].xyz;
-	HairVertexTangents[indices.globalVertexIndex].xyz = normalize(tangent);
+	float3 tangent = sharedPos[indices.indexSharedMem + vsDataPerFrame.cbSimulation.NumStrandsPerThreadGroup].xyz - sharedPos[indices.indexSharedMem].xyz;
+	vsDataPerFrame.HairVertexTangents[indices.globalVertexIndex].xyz = normalize(tangent);
 
-	HairVertexPositions[indices.globalVertexIndex] = sharedPos[indices.indexSharedMem];
+	vsDataPerFrame.HairVertexPositions[indices.globalVertexIndex] = sharedPos[indices.indexSharedMem];
 }
 
 #elif defined(HAIR_UPDATE_FOLLOW_HAIRS)
 
-kernel void stageMain(uint groupIndex[[thread_index_in_threadgroup]],
-    uint3 groupID[[threadgroup_position_in_grid]],
-    device float4* HairVertexPositions[[buffer(0)]],
-    device float4* HairVertexTangents[[buffer(1)]],
-    device float4* FollowHairRootOffsets[[buffer(2)]],
-    constant SimulationData& cbSimulation[[buffer(3)]])
+kernel void stageMain(uint groupIndex  [[thread_index_in_threadgroup]],
+    uint3 groupID                      [[threadgroup_position_in_grid]],
+    constant VSDataPerFrame& vsDataPerFrame     [[buffer(UPDATE_FREQ_PER_DRAW)]]
+)
 {
     threadgroup float4 sharedPos[THREAD_GROUP_SIZE];
     threadgroup float4 sharedTangent[THREAD_GROUP_SIZE];
 
-	VertexIndices indices = CalculateVertexIndices(groupIndex, groupID.x, cbSimulation);
+	VertexIndices indices = CalculateVertexIndices(groupIndex, groupID.x, vsDataPerFrame.cbSimulation);
 
-	sharedPos[indices.indexSharedMem] = HairVertexPositions[indices.globalVertexIndex];
-	sharedTangent[indices.indexSharedMem] = HairVertexTangents[indices.globalVertexIndex];
+	sharedPos[indices.indexSharedMem] = vsDataPerFrame.HairVertexPositions[indices.globalVertexIndex];
+	sharedTangent[indices.indexSharedMem] = vsDataPerFrame.HairVertexTangents[indices.globalVertexIndex];
 	threadgroup_barrier(mem_flags::mem_threadgroup);
 
-	for (uint i = 0; i < cbSimulation.NumFollowHairsPerGuideHair; ++i)
+	for (uint i = 0; i < vsDataPerFrame.cbSimulation.NumFollowHairsPerGuideHair; ++i)
 	{
-		int globalFollowVertexIndex = indices.globalVertexIndex + cbSimulation.NumVerticesPerStrand * (i + 1);
+		int globalFollowVertexIndex = indices.globalVertexIndex + vsDataPerFrame.cbSimulation.NumVerticesPerStrand * (i + 1);
 		int globalFollowStrandIndex = indices.globalStrandIndex + i + 1;
-		float factor = cbSimulation.TipSeperationFactor * (float(indices.localVertexIndex) / float(cbSimulation.NumVerticesPerStrand)) + 1.0f;
-		float3 followPosition = sharedPos[indices.indexSharedMem].xyz + factor * FollowHairRootOffsets[globalFollowStrandIndex].xyz * cbSimulation.Scale;
-		HairVertexPositions[globalFollowVertexIndex].xyz = followPosition;
-		HairVertexTangents[globalFollowVertexIndex] = sharedTangent[indices.indexSharedMem];
+		float factor = vsDataPerFrame.cbSimulation.TipSeperationFactor * (float(indices.localVertexIndex) / float(vsDataPerFrame.cbSimulation.NumVerticesPerStrand)) + 1.0f;
+		float3 followPosition = sharedPos[indices.indexSharedMem].xyz + factor * vsDataPerFrame.FollowHairRootOffsets[globalFollowStrandIndex].xyz * vsDataPerFrame.cbSimulation.Scale;
+		vsDataPerFrame.HairVertexPositions[globalFollowVertexIndex].xyz = followPosition;
+		vsDataPerFrame.HairVertexTangents[globalFollowVertexIndex] = sharedTangent[indices.indexSharedMem];
 	}
 }
 
 #elif defined(HAIR_PRE_WARM)
 
-kernel void stageMain(uint groupIndex[[thread_index_in_threadgroup]],
-    uint3 groupID[[threadgroup_position_in_grid]],
-    device float4* HairVertexPositions[[buffer(0)]],
-    device float4* HairVertexPositionsPrev[[buffer(1)]],
-    device float4* HairVertexPositionsPrevPrev[[buffer(2)]],
-    device float4* HairRestPositions[[buffer(3)]],
-    constant SimulationData& cbSimulation[[buffer(4)]])
+kernel void stageMain(uint groupIndex  [[thread_index_in_threadgroup]],
+    uint3 groupID                      [[threadgroup_position_in_grid]],
+    constant VSDataPerFrame& vsDataPerFrame     [[buffer(UPDATE_FREQ_PER_DRAW)]]
+)
 {
-	VertexIndices indices = CalculateVertexIndices(groupIndex, groupID.x, cbSimulation);
+	VertexIndices indices = CalculateVertexIndices(groupIndex, groupID.x, vsDataPerFrame.cbSimulation);
 
-	float4 restPosition = HairRestPositions[indices.globalVertexIndex];
-	restPosition.xyz = (cbSimulation.Transform * float4(restPosition.xyz, 1.0f)).xyz;
+	float4 restPosition = vsDataPerFrame.HairRestPositions[indices.globalVertexIndex];
+	restPosition.xyz = (vsDataPerFrame.cbSimulation.Transform * float4(restPosition.xyz, 1.0f)).xyz;
 
-	HairVertexPositionsPrevPrev[indices.globalVertexIndex] = restPosition;
-	HairVertexPositionsPrev[indices.globalVertexIndex] = restPosition;
-    HairVertexPositions[indices.globalVertexIndex] = restPosition;
+	vsDataPerFrame.HairVertexPositionsPrevPrev[indices.globalVertexIndex] = restPosition;
+	vsDataPerFrame.HairVertexPositionsPrev[indices.globalVertexIndex] = restPosition;
+    vsDataPerFrame.HairVertexPositions[indices.globalVertexIndex] = restPosition;
 }
 #endif

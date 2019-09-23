@@ -23,47 +23,12 @@ enum CompareFunctionsResult
 	Function2Better
 };
 
-// In the original code, there are several areas where it finds the type of a parent expression
-// by looking through the recent identifiers list. Unfortunately, this is not robust and the
-// only real solution is to keep a proper stack of the nodes/identifiers.
-// 
-// The catch is that the original code has many divergent paths, and keeping track of the
-// stack state is quite messy because of the mix of return/continue/break statements.
-//
-// So the solution is the HLSLStackTracker. When entering a function, create one of these.
-// Add any identifiers that you need to the stack, and when the function exits the destructor
-// reverts the stack to its original size.
-class HLSLScopedStackTracker
-{
-public:
-	HLSLScopedStackTracker(HLSLParser * parser)
-	{
-		ASSERT_PARSER(parser != NULL);
-		m_parser = parser;
-
-		m_stackSize = m_parser->GetParentStackSize();
-	}
-
-	~HLSLScopedStackTracker()
-	{
-		ASSERT_PARSER(m_parser != NULL);
-
-		m_parser->RevertParentStackToSize(m_stackSize);
-		m_parser = NULL;
-	}
-
-	HLSLParser * m_parser;
-	int m_stackSize;
-};
-
-
-
 void HLSLParser::Intrinsic::AllocArgs(int num)
 {
-	fullFunction.argumentVec.resize(num);
+	fullFunction.args.resize(num);
 	for (int i = 0; i < num; i++)
 	{
-		fullFunction.argumentVec[i] = &argument[i];
+		fullFunction.args[i] = &argument[i];
 	}
 }
 
@@ -93,8 +58,8 @@ HLSLParser::Intrinsic::Intrinsic(StringLibrary & stringLibrary, const char* name
 	fullFunction.name = MakeCached(stringLibrary, name);
 	fullFunction.returnType.baseType = returnType;
 	AllocArgs(1);
-	argument[0].argType.baseType = arg1;
-	argument[0].argType.flags = HLSLTypeFlag_Const;
+	argument[0].type.baseType = arg1;
+	argument[0].type.flags = HLSLTypeFlag_Const;
 }
 HLSLParser::Intrinsic::Intrinsic(StringLibrary & stringLibrary, const char* name, HLSLBaseType returnType, HLSLBaseType arg1, HLSLBaseType arg2)
 {
@@ -102,10 +67,10 @@ HLSLParser::Intrinsic::Intrinsic(StringLibrary & stringLibrary, const char* name
 	fullFunction.name = MakeCached(stringLibrary, name);
 	fullFunction.returnType.baseType = returnType;
 	AllocArgs(2);
-	argument[0].argType.baseType = arg1;
-	argument[0].argType.flags = HLSLTypeFlag_Const;
-	argument[1].argType.baseType = arg2;
-	argument[1].argType.flags = HLSLTypeFlag_Const;
+	argument[0].type.baseType = arg1;
+	argument[0].type.flags = HLSLTypeFlag_Const;
+	argument[1].type.baseType = arg2;
+	argument[1].type.flags = HLSLTypeFlag_Const;
 }
 HLSLParser::Intrinsic::Intrinsic(StringLibrary & stringLibrary, const char* name, HLSLBaseType returnType, HLSLBaseType arg1, HLSLBaseType arg2, HLSLBaseType arg3)
 {
@@ -113,12 +78,12 @@ HLSLParser::Intrinsic::Intrinsic(StringLibrary & stringLibrary, const char* name
 	fullFunction.name = MakeCached(stringLibrary, name);
 	fullFunction.returnType.baseType = returnType;
 	AllocArgs(3);
-	argument[0].argType.baseType = arg1;
-	argument[0].argType.flags = HLSLTypeFlag_Const;
-	argument[1].argType.baseType = arg2;
-	argument[1].argType.flags = HLSLTypeFlag_Const;
-	argument[2].argType.baseType = arg3;
-	argument[2].argType.flags = HLSLTypeFlag_Const;
+	argument[0].type.baseType = arg1;
+	argument[0].type.flags = HLSLTypeFlag_Const;
+	argument[1].type.baseType = arg2;
+	argument[1].type.flags = HLSLTypeFlag_Const;
+	argument[2].type.baseType = arg3;
+	argument[2].type.flags = HLSLTypeFlag_Const;
 }
 HLSLParser::Intrinsic::Intrinsic(StringLibrary & stringLibrary, const char* name, HLSLBaseType returnType, HLSLBaseType arg1, HLSLBaseType arg2, HLSLBaseType arg3, HLSLBaseType arg4)
 {
@@ -126,14 +91,14 @@ HLSLParser::Intrinsic::Intrinsic(StringLibrary & stringLibrary, const char* name
 	fullFunction.name = MakeCached(stringLibrary, name);
 	fullFunction.returnType.baseType = returnType;
 	AllocArgs(4);
-	argument[0].argType.baseType = arg1;
-	argument[0].argType.flags = HLSLTypeFlag_Const;
-	argument[1].argType.baseType = arg2;
-	argument[1].argType.flags = HLSLTypeFlag_Const;
-	argument[2].argType.baseType = arg3;
-	argument[2].argType.flags = HLSLTypeFlag_Const;
-	argument[3].argType.baseType = arg4;
-	argument[3].argType.flags = HLSLTypeFlag_Const;
+	argument[0].type.baseType = arg1;
+	argument[0].type.flags = HLSLTypeFlag_Const;
+	argument[1].type.baseType = arg2;
+	argument[1].type.flags = HLSLTypeFlag_Const;
+	argument[2].type.baseType = arg3;
+	argument[2].type.flags = HLSLTypeFlag_Const;
+	argument[3].type.baseType = arg4;
+	argument[3].type.flags = HLSLTypeFlag_Const;
 }
 
 HLSLParser::Intrinsic::Intrinsic(StringLibrary & stringLibrary, const char* name, HLSLBaseType returnType, HLSLBaseType arg1, HLSLBaseType arg2, HLSLBaseType arg3, HLSLBaseType arg4, HLSLBaseType arg5)
@@ -142,16 +107,36 @@ HLSLParser::Intrinsic::Intrinsic(StringLibrary & stringLibrary, const char* name
 	fullFunction.name = MakeCached(stringLibrary, name);
 	fullFunction.returnType.baseType = returnType;
 	AllocArgs(5);
-	argument[0].argType.baseType = arg1;
-	argument[0].argType.flags = HLSLTypeFlag_Const;
-	argument[1].argType.baseType = arg2;
-	argument[1].argType.flags = HLSLTypeFlag_Const;
-	argument[2].argType.baseType = arg3;
-	argument[2].argType.flags = HLSLTypeFlag_Const;
-	argument[3].argType.baseType = arg4;
-	argument[3].argType.flags = HLSLTypeFlag_Const;
-	argument[4].argType.baseType = arg5;
-	argument[4].argType.flags = HLSLTypeFlag_Const;
+	argument[0].type.baseType = arg1;
+	argument[0].type.flags = HLSLTypeFlag_Const;
+	argument[1].type.baseType = arg2;
+	argument[1].type.flags = HLSLTypeFlag_Const;
+	argument[2].type.baseType = arg3;
+	argument[2].type.flags = HLSLTypeFlag_Const;
+	argument[3].type.baseType = arg4;
+	argument[3].type.flags = HLSLTypeFlag_Const;
+	argument[4].type.baseType = arg5;
+	argument[4].type.flags = HLSLTypeFlag_Const;
+}
+
+HLSLParser::Intrinsic::Intrinsic(StringLibrary & stringLibrary, const char* name, HLSLBaseType returnType, HLSLBaseType arg1, HLSLBaseType arg2, HLSLBaseType arg3, HLSLBaseType arg4, HLSLBaseType arg5, HLSLBaseType arg6)
+{
+	rawName = name;
+	fullFunction.name = MakeCached(stringLibrary, name);
+	fullFunction.returnType.baseType = returnType;
+	AllocArgs(5);
+	argument[0].type.baseType = arg1;
+	argument[0].type.flags = HLSLTypeFlag_Const;
+	argument[1].type.baseType = arg2;
+	argument[1].type.flags = HLSLTypeFlag_Const;
+	argument[2].type.baseType = arg3;
+	argument[2].type.flags = HLSLTypeFlag_Const;
+	argument[3].type.baseType = arg4;
+	argument[3].type.flags = HLSLTypeFlag_Const;
+	argument[4].type.baseType = arg5;
+	argument[4].type.flags = HLSLTypeFlag_Const;
+	argument[5].type.baseType = arg6;
+	argument[5].type.flags = HLSLTypeFlag_Const;
 }
 /*
 static HLSLParser::Intrinsic * MakeIntrinsicInOut(StringLibrary & stringLibrary, const char* name, HLSLBaseType returnType, HLSLBaseType arg1, HLSLBaseType arg2)
@@ -159,7 +144,7 @@ static HLSLParser::Intrinsic * MakeIntrinsicInOut(StringLibrary & stringLibrary,
 	HLSLParser::Intrinsic * pIntrinsic = new HLSLParser::Intrinsic(stringLibrary,name,returnType,arg1,arg2);
 	for (int i = 0; i < pIntrinsic->fullFunction.argumentVec.size(); i++)
 	{
-		pIntrinsic->fullFunction.argumentVec[i]->argType.flags = (HLSLTypeFlag_Input | HLSLTypeFlag_Output);
+		pIntrinsic->fullFunction.argumentVec[i]->type.flags = (HLSLTypeFlag_Input | HLSLTypeFlag_Output);
 	}
 }
 */
@@ -777,14 +762,14 @@ void HLSLParser::IntrinsicHelper::BuildIntrinsics()
 	INTRINSIC_VOID_FUNCTION_CACHED("AllMemoryBarrierWithGroupSync")
 	INTRINSIC_VOID_FUNCTION_CACHED("AllMemoryBarrier")
 
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"length", HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"length", HLSLBaseType_Float, HLSLBaseType_Float2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"length", HLSLBaseType_Float, HLSLBaseType_Float3));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"length", HLSLBaseType_Float, HLSLBaseType_Float4));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"length", HLSLBaseType_Half, HLSLBaseType_Half));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"length", HLSLBaseType_Half, HLSLBaseType_Half2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"length", HLSLBaseType_Half, HLSLBaseType_Half3));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"length", HLSLBaseType_Half, HLSLBaseType_Half4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "length", HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "length", HLSLBaseType_Float, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "length", HLSLBaseType_Float, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "length", HLSLBaseType_Float, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "length", HLSLBaseType_Half, HLSLBaseType_Half));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "length", HLSLBaseType_Half, HLSLBaseType_Half2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "length", HLSLBaseType_Half, HLSLBaseType_Half3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "length", HLSLBaseType_Half, HLSLBaseType_Half4));
 	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "length", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float));
 	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "length", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float2));
 	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "length", HLSLBaseType_Min16Float, HLSLBaseType_Min16Float3));
@@ -795,334 +780,419 @@ void HLSLParser::IntrinsicHelper::BuildIntrinsics()
 	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "length", HLSLBaseType_Min10Float, HLSLBaseType_Min10Float4));
 
 	//Buffer.Load
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float1x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float1x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float1x4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2x4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3x4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4x4, HLSLBaseType_Int));
+#define BUFFER_LOAD_FUNC(buffer, type_prefix)																							\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_##type_prefix,      HLSLBaseType_##buffer, HLSLBaseType_Int));		\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_##type_prefix##1x2, HLSLBaseType_##buffer, HLSLBaseType_Int));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_##type_prefix##1x3, HLSLBaseType_##buffer, HLSLBaseType_Int));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_##type_prefix##1x4, HLSLBaseType_##buffer, HLSLBaseType_Int));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_##type_prefix##2,   HLSLBaseType_##buffer, HLSLBaseType_Int));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_##type_prefix##2x2, HLSLBaseType_##buffer, HLSLBaseType_Int));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_##type_prefix##2x3, HLSLBaseType_##buffer, HLSLBaseType_Int));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_##type_prefix##2x4, HLSLBaseType_##buffer, HLSLBaseType_Int));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_##type_prefix##3,   HLSLBaseType_##buffer, HLSLBaseType_Int));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_##type_prefix##3x2, HLSLBaseType_##buffer, HLSLBaseType_Int));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_##type_prefix##3x3, HLSLBaseType_##buffer, HLSLBaseType_Int));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_##type_prefix##3x4, HLSLBaseType_##buffer, HLSLBaseType_Int));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_##type_prefix##4,   HLSLBaseType_##buffer, HLSLBaseType_Int));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_##type_prefix##4x2, HLSLBaseType_##buffer, HLSLBaseType_Int));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_##type_prefix##4x2, HLSLBaseType_##buffer, HLSLBaseType_Int));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_##type_prefix##4x3, HLSLBaseType_##buffer, HLSLBaseType_Int));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_##type_prefix##4x4, HLSLBaseType_##buffer, HLSLBaseType_Int));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half1x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half1x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half1x4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2x4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3x4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4x4, HLSLBaseType_Int));
+	BUFFER_LOAD_FUNC(RWBuffer, Float);
+	BUFFER_LOAD_FUNC(RWBuffer, Half);
+	BUFFER_LOAD_FUNC(RWBuffer, Min16Float);
+	BUFFER_LOAD_FUNC(RWBuffer, Min10Float);
+	BUFFER_LOAD_FUNC(RWBuffer, Int);
+	BUFFER_LOAD_FUNC(RWBuffer, Uint);
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float1x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float1x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float1x4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2x4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3x4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4x4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Uint, HLSLBaseType_ByteAddressBuffer, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load2", HLSLBaseType_Uint2, HLSLBaseType_ByteAddressBuffer, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load3", HLSLBaseType_Uint3, HLSLBaseType_ByteAddressBuffer, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load4", HLSLBaseType_Uint4, HLSLBaseType_ByteAddressBuffer, HLSLBaseType_Int));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float1x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float1x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float1x4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2x4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3x4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4x4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Uint, HLSLBaseType_RWByteAddressBuffer, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load2", HLSLBaseType_Uint2, HLSLBaseType_RWByteAddressBuffer, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load3", HLSLBaseType_Uint3, HLSLBaseType_RWByteAddressBuffer, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load4", HLSLBaseType_Uint4, HLSLBaseType_RWByteAddressBuffer, HLSLBaseType_Int));
 
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint1x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint1x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint1x4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint2x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint2x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint2x4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint3x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint3x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint3x4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint4x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint4x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint4x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint4x4, HLSLBaseType_Int));
+#define BUFFER_STORE_FUNC(buffer, type_prefix)																																\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store", HLSLBaseType_Void, HLSLBaseType_##buffer, HLSLBaseType_Int, HLSLBaseType_##type_prefix));		\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store", HLSLBaseType_Void, HLSLBaseType_##buffer, HLSLBaseType_Int, HLSLBaseType_##type_prefix##1x2));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store", HLSLBaseType_Void, HLSLBaseType_##buffer, HLSLBaseType_Int, HLSLBaseType_##type_prefix##1x3));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store", HLSLBaseType_Void, HLSLBaseType_##buffer, HLSLBaseType_Int, HLSLBaseType_##type_prefix##1x4));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store", HLSLBaseType_Void, HLSLBaseType_##buffer, HLSLBaseType_Int, HLSLBaseType_##type_prefix##2));		\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store", HLSLBaseType_Void, HLSLBaseType_##buffer, HLSLBaseType_Int, HLSLBaseType_##type_prefix##2x2));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store", HLSLBaseType_Void, HLSLBaseType_##buffer, HLSLBaseType_Int, HLSLBaseType_##type_prefix##2x3));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store", HLSLBaseType_Void, HLSLBaseType_##buffer, HLSLBaseType_Int, HLSLBaseType_##type_prefix##2x4));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store", HLSLBaseType_Void, HLSLBaseType_##buffer, HLSLBaseType_Int, HLSLBaseType_##type_prefix##3));		\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store", HLSLBaseType_Void, HLSLBaseType_##buffer, HLSLBaseType_Int, HLSLBaseType_##type_prefix##3x2));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store", HLSLBaseType_Void, HLSLBaseType_##buffer, HLSLBaseType_Int, HLSLBaseType_##type_prefix##3x3));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store", HLSLBaseType_Void, HLSLBaseType_##buffer, HLSLBaseType_Int, HLSLBaseType_##type_prefix##3x4));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store", HLSLBaseType_Void, HLSLBaseType_##buffer, HLSLBaseType_Int, HLSLBaseType_##type_prefix##4));		\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store", HLSLBaseType_Void, HLSLBaseType_##buffer, HLSLBaseType_Int, HLSLBaseType_##type_prefix##4x2));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store", HLSLBaseType_Void, HLSLBaseType_##buffer, HLSLBaseType_Int, HLSLBaseType_##type_prefix##4x2));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store", HLSLBaseType_Void, HLSLBaseType_##buffer, HLSLBaseType_Int, HLSLBaseType_##type_prefix##4x3));	\
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store", HLSLBaseType_Void, HLSLBaseType_##buffer, HLSLBaseType_Int, HLSLBaseType_##type_prefix##4x4));
 
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int1x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int1x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int1x4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int2x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int2x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int2x4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int3x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int3x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int3x4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int4, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int4x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int4x2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int4x3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int4x4, HLSLBaseType_Int));
+	BUFFER_STORE_FUNC(RWBuffer, Float);
+	BUFFER_STORE_FUNC(RWBuffer, Half);
+	BUFFER_STORE_FUNC(RWBuffer, Min16Float);
+	BUFFER_STORE_FUNC(RWBuffer, Min10Float);
+	BUFFER_STORE_FUNC(RWBuffer, Int);
+	BUFFER_STORE_FUNC(RWBuffer, Uint);
 
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store", HLSLBaseType_Void, HLSLBaseType_RWByteAddressBuffer, HLSLBaseType_Int, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store2", HLSLBaseType_Void, HLSLBaseType_RWByteAddressBuffer, HLSLBaseType_Int, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store3", HLSLBaseType_Void, HLSLBaseType_RWByteAddressBuffer, HLSLBaseType_Int, HLSLBaseType_Uint3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Store4", HLSLBaseType_Void, HLSLBaseType_RWByteAddressBuffer, HLSLBaseType_Int, HLSLBaseType_Uint4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_StructuredBuffer, HLSLBaseType_UserDefined, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_RWStructuredBuffer, HLSLBaseType_UserDefined, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_UserDefined, HLSLBaseType_Int));
 	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_UserDefined, HLSLBaseType_Int));
 
 	//Texture.Load
 	//Texture1D
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
 
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint2, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint3, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint4, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint2, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint3, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint4, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
 
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int2, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int3, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int4, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int2, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int3, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int4, HLSLBaseType_Texture1D, HLSLBaseType_Int2));
 
-	//Texture1DArray, Texture 2D, Texture2DMSArray
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
 
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint2, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint3, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint4, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
 
-	//Texture2DMS Texture2DMSArray (Sample Index)
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float2, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float3, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float4, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float2, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float3, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float4, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int2, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int3, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int4, HLSLBaseType_Texture1D, HLSLBaseType_Int2, HLSLBaseType_Int));
 
 
 	//Texture2DMS
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float, HLSLBaseType_Int2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float2, HLSLBaseType_Int2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float3, HLSLBaseType_Int2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float2, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float3, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Int2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Int2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Int2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Int2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Int2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Int2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Int2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Int2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Int2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float2, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float3, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float2, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float3, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Int3));
-
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint2, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint3, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint4, HLSLBaseType_Int3));
-
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int2, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int3, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int4, HLSLBaseType_Int3));
-
-	//Texture2DArray, Texture 3D
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Int4));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2, HLSLBaseType_Int4));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3, HLSLBaseType_Int4));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float4, HLSLBaseType_Int4));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Int4));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Int4));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Int4));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Int4));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Int4));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Int4));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Int4));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Int4));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Int4));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Int4));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Int4));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Int4));
-
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint, HLSLBaseType_Int4));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint2, HLSLBaseType_Int4));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint3, HLSLBaseType_Int4));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Uint4, HLSLBaseType_Int4));
-
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int, HLSLBaseType_Int4));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int2, HLSLBaseType_Int4));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int3, HLSLBaseType_Int4));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Int4, HLSLBaseType_Int4));
-
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Store", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Store", HLSLBaseType_Void, HLSLBaseType_Int, HLSLBaseType_Int));
-
-	//Texture1D
-	//UINT MipLevel, UINT Width, UINT NumberOfLevels
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
-	//UINT Width
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint));
-	//UINT MipLevel, float Width, float NumberOfLevels
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Float, HLSLBaseType_Float));
-	//float Width
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
 
 	//Texture1DArray
-	//UINT MipLevel, UINT Width, UINT Elements, UINT NumberOfLevels
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
-	//UINT Width, UINT Elements
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint));
-	//UINT MipLevel, float Width, float Elements, float NumberOfLevels
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
-	//float Width, float Elements
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3));
 
-	//UINT MipLevel, UINT Width, UINT Height, UINT Elements, UINT NumberOfLevels
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+
+	//Texture 2D
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Texture2D, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2, HLSLBaseType_Texture2D, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3, HLSLBaseType_Texture2D, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float4, HLSLBaseType_Texture2D, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Texture2D, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Texture2D, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Texture2D, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Texture2D, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Texture2D, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Texture2D, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Texture2D, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2D, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Texture2D, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Texture2D, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Texture2D, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2D, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Texture2D, HLSLBaseType_Int3, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2, HLSLBaseType_Texture2D, HLSLBaseType_Int3, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3, HLSLBaseType_Texture2D, HLSLBaseType_Int3, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float4, HLSLBaseType_Texture2D, HLSLBaseType_Int3, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Texture2D, HLSLBaseType_Int3, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Texture2D, HLSLBaseType_Int3, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Texture2D, HLSLBaseType_Int3, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Texture2D, HLSLBaseType_Int3, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Texture2D, HLSLBaseType_Int3, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Texture2D, HLSLBaseType_Int3, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Texture2D, HLSLBaseType_Int3, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2D, HLSLBaseType_Int3, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Texture2D, HLSLBaseType_Int3, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Texture2D, HLSLBaseType_Int3, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Texture2D, HLSLBaseType_Int3, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2D, HLSLBaseType_Int3, HLSLBaseType_Int2));
+
+
+	//Texture2DMS Texture2DMSArray
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float2, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float3, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float4, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float2, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float3, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float4, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float2, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float3, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float4, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float2, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float3, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float4, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DMS, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int2, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Int3, HLSLBaseType_Int, HLSLBaseType_Int2));
 
 	//Texture2DArray
-	//UINT MipLevel, UINT Width, UINT Height, UINT Elements, UINT NumberOfLevels
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
-	//UINT Width, UINT Height, UINT Elements
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
-	//UINT MipLevel, float Width, float Height, float Elements, float NumberOfLevels
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
-	//float Width, float Height, float Elements
-	//float Width, float Height, float Depth
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4));
 
-	//TextureCube
-	//UINT MipLevel, float Width, float Height, UINT NumberOfLevels
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4));
 
-	//Texture2DMSArray
-	//float Width, float Height, float Elements, float Samples
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4));
 
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_Int4, HLSLBaseType_Int3));
+
+	//Texture3D
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Texture3D, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2, HLSLBaseType_Texture3D, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3, HLSLBaseType_Texture3D, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float4, HLSLBaseType_Texture3D, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Texture3D, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Texture3D, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Texture3D, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Texture3D, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Texture3D, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Texture3D, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Texture3D, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Texture3D, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Texture3D, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Texture3D, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Texture3D, HLSLBaseType_Int4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Texture3D, HLSLBaseType_Int4));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float, HLSLBaseType_Texture3D, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float2, HLSLBaseType_Texture3D, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Load", HLSLBaseType_Float3, HLSLBaseType_Texture3D, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Float4, HLSLBaseType_Texture3D, HLSLBaseType_Int4, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half, HLSLBaseType_Texture3D, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half2, HLSLBaseType_Texture3D, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half3, HLSLBaseType_Texture3D, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Half4, HLSLBaseType_Texture3D, HLSLBaseType_Int4, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float, HLSLBaseType_Texture3D, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float2, HLSLBaseType_Texture3D, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float3, HLSLBaseType_Texture3D, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min16Float4, HLSLBaseType_Texture3D, HLSLBaseType_Int4, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float, HLSLBaseType_Texture3D, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float2, HLSLBaseType_Texture3D, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float3, HLSLBaseType_Texture3D, HLSLBaseType_Int4, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Load", HLSLBaseType_Min10Float4, HLSLBaseType_Texture3D, HLSLBaseType_Int4, HLSLBaseType_Int3));
 
 	INTRINSIC_FLOAT2_FUNCTION_CACHED("max")
 	INTRINSIC_FLOAT2_FUNCTION_CACHED("min")
@@ -1688,478 +1758,440 @@ void HLSLParser::IntrinsicHelper::BuildIntrinsics()
 	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Uint3));
 	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asfloat", HLSLBaseType_Float, HLSLBaseType_Uint4));
 
-
 	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"countbits", HLSLBaseType_Uint, HLSLBaseType_Uint));
 
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"asuint", HLSLBaseType_Uint, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2D", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2Dproj", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float4));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2Dlod", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float4));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2Dlod", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float4, HLSLBaseType_Int2));   // With offset.
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2Dbias", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float4));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2Dgrad", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2Dgather", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2Dgather", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float2, HLSLBaseType_Int2, HLSLBaseType_Int));    // With offset.
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2Dsize", HLSLBaseType_Int2, HLSLBaseType_Sampler2D));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2Dfetch", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Int3));    // u,v,mipmap
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "asuint", HLSLBaseType_Uint, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "tex2D", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "tex2Dproj", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "tex2Dlod", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "tex2Dlod", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float4, HLSLBaseType_Int2));   // With offset.
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "tex2Dbias", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "tex2Dgrad", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "tex2Dgather", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "tex2Dgather", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Float2, HLSLBaseType_Int2, HLSLBaseType_Int));    // With offset.
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "tex2Dsize", HLSLBaseType_Int2, HLSLBaseType_Sampler2D));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "tex2Dfetch", HLSLBaseType_Float4, HLSLBaseType_Sampler2D, HLSLBaseType_Int3));    // u,v,mipmap
 
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2Dcmp", HLSLBaseType_Float4, HLSLBaseType_Sampler2DShadow, HLSLBaseType_Float4));                // @@ IC: This really takes a float3 (uvz) and returns a float.
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "tex2Dcmp", HLSLBaseType_Float4, HLSLBaseType_Sampler2DShadow, HLSLBaseType_Float4));                // @@ IC: This really takes a float3 (uvz) and returns a float.
 
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2DMSfetch", HLSLBaseType_Float4, HLSLBaseType_Sampler2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2DMSsize", HLSLBaseType_Int3, HLSLBaseType_Sampler2DMS));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "tex2DMSfetch", HLSLBaseType_Float4, HLSLBaseType_Sampler2DMS, HLSLBaseType_Int2, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "tex2DMSsize", HLSLBaseType_Int3, HLSLBaseType_Sampler2DMS));
 
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex2DArray", HLSLBaseType_Float4, HLSLBaseType_Sampler2DArray, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "tex2DArray", HLSLBaseType_Float4, HLSLBaseType_Sampler2DArray, HLSLBaseType_Float3));
 
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex3D", HLSLBaseType_Float4, HLSLBaseType_Sampler3D, HLSLBaseType_Float3));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex3Dlod", HLSLBaseType_Float4, HLSLBaseType_Sampler3D, HLSLBaseType_Float4));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex3Dbias", HLSLBaseType_Float4, HLSLBaseType_Sampler3D, HLSLBaseType_Float4));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"tex3Dsize", HLSLBaseType_Int3, HLSLBaseType_Sampler3D));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "tex3D", HLSLBaseType_Float4, HLSLBaseType_Sampler3D, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "tex3Dlod", HLSLBaseType_Float4, HLSLBaseType_Sampler3D, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "tex3Dbias", HLSLBaseType_Float4, HLSLBaseType_Sampler3D, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "tex3Dsize", HLSLBaseType_Int3, HLSLBaseType_Sampler3D));
 
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Sample", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Sample", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Sample", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"Sample", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Float4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Float4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Float4, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerState, HLSLBaseType_Float4));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Half4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Half4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Half4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Half4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Half4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Half4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Half4, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerState, HLSLBaseType_Float4));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min16Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min16Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary,"Sample", HLSLBaseType_Min16Float4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary,"Sample", HLSLBaseType_Min16Float4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary,"Sample", HLSLBaseType_Min16Float4, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerState, HLSLBaseType_Float4));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min10Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min10Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min10Float4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min10Float4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "Sample", HLSLBaseType_Min10Float4, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerState, HLSLBaseType_Float4));
 
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Float4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Float4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Float4, HLSLBaseType_TextureCubeArray, HLSLBaseType_Float4, HLSLBaseType_Float));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_TextureCubeArray, HLSLBaseType_Float4, HLSLBaseType_Float));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_TextureCubeArray, HLSLBaseType_Float4, HLSLBaseType_Float));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_TextureCubeArray, HLSLBaseType_Float4, HLSLBaseType_Float));
 
 	//Offset
 
 	//Texture1D
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Uint));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int, HLSLBaseType_Uint));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Uint));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int, HLSLBaseType_Uint));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Uint));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int, HLSLBaseType_Uint));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Uint));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
 
 	//Texture1DArray
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Uint));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Uint));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Uint));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Uint));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Uint));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Uint));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Uint));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Uint));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
 
 	//Texture2D
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Uint2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Uint2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Uint2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Uint2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Uint2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Uint2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Uint2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
 
 	//Texture2DArray
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Uint2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Uint2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Uint2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Uint2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Uint2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Uint2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Uint2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Int2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Uint2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
 
 	//Texture3D
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Uint3));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleLevel", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Uint3));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Uint3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Uint3));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Uint3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Uint3));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Uint3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Int3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int, HLSLBaseType_Uint3));
-
-	//Texture1D
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
-
-	//Texture1DArray
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
-
-	//Texture2D
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
-
-	//Texture2DArray
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Float4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
 
 	//TextureCube
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Float4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
 
 	//TextureCubeArray
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmp", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Float4, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Half4, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min16Float4, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleLevel", HLSLBaseType_Min10Float4, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
 
 	//Texture1D
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Float, HLSLBaseType_Texture1D, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Float, HLSLBaseType_Texture1D, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
 
 	//Texture1DArray
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Float, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Float, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
 
 	//Texture2D
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Float, HLSLBaseType_Texture2D, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Float, HLSLBaseType_Texture2D, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
 
 	//Texture2DArray
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Float, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Float, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
 
 	//TextureCube
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Float, HLSLBaseType_TextureCube, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Float, HLSLBaseType_TextureCube, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
 
 	//TextureCubeArray
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Half, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min16Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Min10Float, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
-
-
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleBias", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Int));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Float, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmp", HLSLBaseType_Float, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
 
 	//Texture1D
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_Texture1D, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_Texture1D, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
 
 	//Texture1DArray
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
 
 	//Texture2D
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_Texture2D, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_Texture2D, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int2));
 
 	//Texture2DArray
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int2));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
-
-	//Texture3D //TextureCube
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Int3));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Int3));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Int3));
-
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Int3));
-
+	//TextureCube
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_TextureCube, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_TextureCube, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int3));
 
 	//TextureCubeArray
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float3, HLSLBaseType_Float3));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float3, HLSLBaseType_Float3));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float3, HLSLBaseType_Float3));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleCmpLevelZero", HLSLBaseType_Float, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerComparisonState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int3));
 
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Float4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Float4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Float4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Float4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Float4, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Float4, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int));
 
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GatherRed", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
-	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GatherRed", HLSLBaseType_Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Half4, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Half4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min16Float4, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Min16Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float, HLSLBaseType_Int));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleBias", HLSLBaseType_Min10Float4, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float, HLSLBaseType_Int));
 
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
-	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Min10Float4, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	//Texture1D
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_Texture1D, HLSLBaseType_SamplerState, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	//Texture1DArray
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_Texture1DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float, HLSLBaseType_Float, HLSLBaseType_Int));
+
+	//Texture2D
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary,"SampleGrad", HLSLBaseType_Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	//Texture2DArray
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float2, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	//Texture3D
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Float4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Float4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Int3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_Texture3D, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Int3));
+
+	//TextureCube
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Float4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_TextureCube, HLSLBaseType_SamplerState, HLSLBaseType_Float3, HLSLBaseType_Float3, HLSLBaseType_Float3));
+
+	//TextureCubeArray
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Float4, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Half4, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min16Float4, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float3, HLSLBaseType_Float3));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "SampleGrad", HLSLBaseType_Min10Float4, HLSLBaseType_TextureCubeArray, HLSLBaseType_SamplerState, HLSLBaseType_Float4, HLSLBaseType_Float3, HLSLBaseType_Float3));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Half4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Half4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Half4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Half4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherRed", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherGreen", HLSLBaseType_Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherGreen", HLSLBaseType_Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherGreen", HLSLBaseType_Half4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherGreen", HLSLBaseType_Half4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherGreen", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherGreen", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherGreen", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherGreen", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary,"GatherGreen", HLSLBaseType_Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary,"GatherGreen", HLSLBaseType_Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherGreen", HLSLBaseType_Half4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherGreen", HLSLBaseType_Half4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherGreen", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherGreen", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherGreen", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherGreen", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherBlue", HLSLBaseType_Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherBlue", HLSLBaseType_Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherBlue", HLSLBaseType_Half4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherBlue", HLSLBaseType_Half4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherBlue", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherBlue", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherBlue", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherBlue", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherBlue", HLSLBaseType_Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherBlue", HLSLBaseType_Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherBlue", HLSLBaseType_Half4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherBlue", HLSLBaseType_Half4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherBlue", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherBlue", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherBlue", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherBlue", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherAlpha", HLSLBaseType_Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherAlpha", HLSLBaseType_Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherAlpha", HLSLBaseType_Half4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherAlpha", HLSLBaseType_Half4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherAlpha", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherAlpha", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherAlpha", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherAlpha", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2D, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherAlpha", HLSLBaseType_Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherAlpha", HLSLBaseType_Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherAlpha", HLSLBaseType_Half4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherAlpha", HLSLBaseType_Half4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherAlpha", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherAlpha", HLSLBaseType_Min16Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherAlpha", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2));
+	m_intrinsics.push_back(new Intrinsic(m_intrinsicStringLibrary, "GatherAlpha", HLSLBaseType_Min10Float4, HLSLBaseType_Texture2DArray, HLSLBaseType_SamplerState, HLSLBaseType_Float2, HLSLBaseType_Int2));
 
 	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"texCUBE", HLSLBaseType_Float4, HLSLBaseType_SamplerCube, HLSLBaseType_Float3));
 	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"texCUBElod", HLSLBaseType_Float4, HLSLBaseType_SamplerCube, HLSLBaseType_Float4));
 	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"texCUBEbias", HLSLBaseType_Float4, HLSLBaseType_SamplerCube, HLSLBaseType_Float4));
 	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"texCUBEsize", HLSLBaseType_Int, HLSLBaseType_SamplerCube));
+
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Texture1D, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[1].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Texture1DArray, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[1].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Texture2D, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[1].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Texture2DArray, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[1].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.back()->argument[3].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Texture3D, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[1].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.back()->argument[3].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Texture2DMS, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[1].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.back()->argument[3].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_Texture2DMSArray, HLSLBaseType_Uint, HLSLBaseType_Uint,HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[1].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.back()->argument[3].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.back()->argument[4].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_RasterizerOrderedTexture1D, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[1].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_RasterizerOrderedTexture1DArray, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[1].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_RasterizerOrderedTexture2D, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[1].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_RasterizerOrderedTexture2DArray, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[1].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.back()->argument[3].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"GetDimensions", HLSLBaseType_Void, HLSLBaseType_RasterizerOrderedTexture3D, HLSLBaseType_Uint, HLSLBaseType_Uint, HLSLBaseType_Uint));
+	m_intrinsics.back()->argument[1].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.back()->argument[2].modifier = HLSLArgumentModifier_Out;
+	m_intrinsics.back()->argument[3].modifier = HLSLArgumentModifier_Out;
 
 	//GLSL doesn't support float type atomic functions, thus resticted Interlocked functions' data type
 	m_intrinsics.push_back(new Intrinsic( m_intrinsicStringLibrary,"InterlockedAdd", HLSLBaseType_Void, HLSLBaseType_Uint, HLSLBaseType_Uint));
@@ -7335,29 +7367,10 @@ static int GetTypeCastRank(HLSLTree * tree, const HLSLType& srcType, const HLSLT
 	HLSLBaseType comparingType = HLSLBaseType_Unknown;
 	HLSLBaseType comparedType = HLSLBaseType_Unknown;
 
-	bool IsOriginalComparingTypeTexture = false;
-	bool IsOriginalComparedTypeTexture = false;
+	//TODO add array matching
 
-	if (srcType.baseType >= HLSLBaseType_Texture1D && srcType.baseType <= HLSLBaseType_RWTexture3D)
-	{
-		//no swizzled 
-		comparingType = HLSLBaseType_Float4;
-		IsOriginalComparingTypeTexture = true;
-	}
-	else if (srcType.elementType != HLSLBaseType_Unknown)
-		comparingType = srcType.elementType;
-	else
-		comparingType = srcType.baseType;
-	
-	if (dstType.baseType >= HLSLBaseType_Texture1D && dstType.baseType <= HLSLBaseType_RWTexture3D)
-	{
-		comparedType = HLSLBaseType_Float4;
-		IsOriginalComparedTypeTexture = true;
-	}
-	else if (dstType.elementType != HLSLBaseType_Unknown)
-		comparedType = dstType.elementType;
-	else
-		comparedType = dstType.baseType;
+	comparingType = srcType.baseType;
+	comparedType = dstType.baseType;
 
 	if (comparingType == HLSLBaseType_UserDefined && comparedType == HLSLBaseType_UserDefined)
 	{
@@ -7401,14 +7414,7 @@ static int GetTypeCastRank(HLSLTree * tree, const HLSLType& srcType, const HLSLT
 		srcDesc.numComponents != dstDesc.numComponents ||
 		srcDesc.height != dstDesc.height)
 	{
-		
-
-		if (IsOriginalComparingTypeTexture || IsOriginalComparedTypeTexture)
-		{
-			return 0;
-		}
-		else// Can't convert
-			return -1;
+		return -1;
 	}
 	
 	
@@ -7419,15 +7425,14 @@ static int GetTypeCastRank(HLSLTree * tree, const HLSLType& srcType, const HLSLT
 static bool GetFunctionCallCastRanks(HLSLTree* tree, const HLSLFunctionCall* call, const HLSLFunction* function, int* rankBuffer)
 {
 	// Note theat the arguments do not need to be the same, because of default parameters.
-	if (function == NULL || function->argumentVec.size() < call->numArguments)
+	if (function == NULL || function->args.size() < call->params.size())
 	{
 		// Function not viable
 		return false;
 	}
 
-	eastl::vector < HLSLExpression * > expressionVec = call->GetArguments();
-
-	eastl::vector < HLSLArgument * > argumentVec = function->GetArguments();
+	const eastl::vector<HLSLExpression*>& expressionVec = call->params;
+	const eastl::vector<HLSLArgument*>& argumentVec = function->args;
 	ASSERT_PARSER(expressionVec.size() <= argumentVec.size());
 
 	for (int i = 0; i < expressionVec.size(); ++i)
@@ -7435,32 +7440,9 @@ static bool GetFunctionCallCastRanks(HLSLTree* tree, const HLSLFunctionCall* cal
 		HLSLExpression* expression = expressionVec[i];// call->callArgument;
 		HLSLType expType = expression->expressionType;
 
-		// if we are a texture state expression, and we hae an index type, then we want to return the type
-		// of data inside the texture, not the texture itself.
-		if (expression->nodeType == HLSLTextureStateExpression::s_type)
-		{
-			HLSLTextureStateExpression * texExpression = static_cast<HLSLTextureStateExpression*>(expression);
-
-			if (texExpression->indexExpression != NULL)
-			{
-				HLSLType elemType;
-				elemType.baseType = expType.elementType;
-
-				expType = elemType;
-			}
-			else if(texExpression->functionExpression != NULL)
-			{
-				HLSLType elemType;
-				elemType.baseType = texExpression->functionExpression->expressionType.baseType;
-
-				expType = elemType;
-
-			}
-		}
-
 		const HLSLArgument* argument = argumentVec[i];
 
-		int rank = GetTypeCastRank(tree, expType, argument->argType);
+		int rank = GetTypeCastRank(tree, expType, argument->type);
 		if (rank == -1)
 		{
 			return false;
@@ -7475,8 +7457,6 @@ static bool GetFunctionCallCastRanks(HLSLTree* tree, const HLSLFunctionCall* cal
 				return false;
 			}
 		}
-
-
 
 		rankBuffer[i] = rank;
 	}
@@ -7502,8 +7482,8 @@ struct CompareRanks
 static CompareFunctionsResult CompareFunctions(HLSLTree* tree, const HLSLFunctionCall* call, const HLSLFunction* function1, const HLSLFunction* function2)
 { 
 
-	int* function1Ranks = static_cast<int*>(alloca(sizeof(int) * call->numArguments));
-	int* function2Ranks = static_cast<int*>(alloca(sizeof(int) * call->numArguments));
+	int* function1Ranks = static_cast<int*>(alloca(sizeof(int) * call->params.size()));
+	int* function2Ranks = static_cast<int*>(alloca(sizeof(int) * call->params.size()));
 
 	const bool function1Viable = GetFunctionCallCastRanks(tree, call, function1, function1Ranks);
 	const bool function2Viable = GetFunctionCallCastRanks(tree, call, function2, function2Ranks);
@@ -7525,10 +7505,10 @@ static CompareFunctionsResult CompareFunctions(HLSLTree* tree, const HLSLFunctio
 		}
 	}
 
-	std::sort(function1Ranks, function1Ranks + call->numArguments, CompareRanks());
-	std::sort(function2Ranks, function2Ranks + call->numArguments, CompareRanks());
+	std::sort(function1Ranks, function1Ranks + call->params.size(), CompareRanks());
+	std::sort(function2Ranks, function2Ranks + call->params.size(), CompareRanks());
 	
-	for (int i = 0; i < call->numArguments; ++i)
+	for (int i = 0; i < call->params.size(); ++i)
 	{
 		if (function1Ranks[i] < function2Ranks[i])
 		{
@@ -7583,7 +7563,6 @@ bool HLSLParser::GetBinaryOpResultType(HLSLBinaryOp binaryOp, const HLSLType& ty
 
 	result.typeName.Reset();
 	result.array        = false;
-	result.arraySize    = NULL;
 	result.flags        = (type1.flags & type2.flags) & HLSLTypeFlag_Const; // Propagate constness.
 	
 
@@ -7604,7 +7583,6 @@ HLSLParser::HLSLParser(StringLibrary * stringLibrary, IntrinsicHelper * intrinsi
 		}
 	}
 
-	m_numGlobals = 0;
 	m_tree = NULL;
 
 	m_entryNameStr = entryName;
@@ -7875,40 +7853,26 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 			if (!GetBufferElementType(buffer, false, &typeFlags, true))
 				return false;
 
-			if (buffer->type.baseType == HLSLBaseType_ConstantBuffer)
-			{
-				buffer->userDefinedElementTypeStr = buffer->type.typeName;
-			}
-
-			// 02. get Identifier			
-			if (!ExpectIdentifier(buffer->cachedName))
-				return false;
-
-			// If it is a Hull shader for MSL, hide it to avoid to print same duplicated one
-			if (FindBuffer(buffer->cachedName) != NULL)
-			{
-				if (m_target == Parser::Target_HullShader && m_language == Parser::Language_MSL)
-					buffer->hidden = true;
-			}			
-
-			// Confetti's Rule : if buffer name includes "rootconstant", it is constant buffer			
-			if(stristr(GetCstr(buffer->cachedName), "rootconstant"))
-				buffer->bPushConstant = true;
-
+			// 02. get Identifier
 			// 03. get assigned register (necessary)
-			if (!GetRegisterAssignment(buffer, "Constant Buffer (register b)"))
+			if (!ExpectIdentifier(buffer->name) || !ParseRegisterAssignment(buffer, "Constant Buffer (register b)"))
 				return false;
 			
 			// 04. get Body (optional)
 			GetBufferBody(buffer);
 
-			// 05. add it as a Global variable
-			if (buffer->bArray)
-				buffer->type.array = true;
-			else
-				buffer->type.array = false;
+			// If it is a Hull shader for MSL, hide it to avoid to print same duplicated one
+			if (FindBuffer(buffer->name) != NULL)
+			{
+				if (m_target == Parser::Target_HullShader && m_language == Parser::Language_MSL)
+					buffer->hidden = true;
+			}
 
-			DeclareVariable(buffer->cachedName, buffer->type);
+			// Confetti's Rule : if buffer name includes "rootconstant", it is constant buffer
+			if(stristr(GetCstr(buffer->name), "rootconstant"))
+				buffer->bPushConstant = true;
+
+			DeclareVariable(buffer);
 
 			// free to use semicolon
 			if (!Check(';'))
@@ -7920,24 +7884,13 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 			if (!GetBufferElementType(buffer, false, &typeFlags, false))
 				return false;					
 
-			// 02. get Identifier			
-			if (!ExpectIdentifier(buffer->cachedName))
-				return false;
-
+			// 02. get Identifier
 			// 03. get array (optional)
-			GetBufferArray(buffer);
-
 			// 04. get assigned register (necessary)
-			if (!GetRegisterAssignment(buffer, "RWBuffer (register u)"))
+			if (!ExpectIdentifier(buffer->name) || !ParseArrayExpression(buffer->type, buffer->arrayDimExpression) || !ParseRegisterAssignment(buffer, "RWBuffer (register u)"))
 				return false;
 			
-			// 05. add it as a Global variable
-			if (buffer->bArray)
-				buffer->type.array = true;
-			else
-				buffer->type.array = false;
-
-			DeclareVariable(buffer->cachedName, buffer->type);
+			DeclareVariable(buffer);
 		}
 		else if (buffer->type.baseType == HLSLBaseType_StructuredBuffer || buffer->type.baseType == HLSLBaseType_RasterizerOrderedStructuredBuffer)
 		{
@@ -7945,24 +7898,13 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 			if (!GetBufferElementType(buffer, false, &typeFlags, false))
 				return false;
 
-			// 02. get Identifier			
-			if (!ExpectIdentifier(buffer->cachedName))
-				return false;
-
+			// 02. get Identifier
 			// 03. get array (optional)
-			GetBufferArray(buffer);
-
 			// 04. get assigned register (necessary)
-			if (!GetRegisterAssignment(buffer, "Structure Buffer (register t)"))
+			if (!ExpectIdentifier(buffer->name) || !ParseArrayExpression(buffer->type, buffer->arrayDimExpression) || !ParseRegisterAssignment(buffer, "Structure Buffer (register t)"))
 				return false;
 
-			// 05. add it as a Global variable
-			if (buffer->bArray)
-				buffer->type.array = true;
-			else
-				buffer->type.array = false;
-
-			DeclareVariable(buffer->cachedName, buffer->type);
+			DeclareVariable(buffer);
 		}
 		else if (buffer->type.baseType == HLSLBaseType_PureBuffer)
 		{
@@ -7971,23 +7913,12 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 				return false;
 
 			// 02. get Identifier			
-			if (!ExpectIdentifier(buffer->cachedName))
-				return false;
-
 			// 03. get array (optional)
-			GetBufferArray(buffer);
-
 			// 04. get assigned register (necessary)
-			if (!GetRegisterAssignment(buffer, "Buffer (register t)"))
+			if (!ExpectIdentifier(buffer->name) || !ParseArrayExpression(buffer->type, buffer->arrayDimExpression) || !ParseRegisterAssignment(buffer, "Buffer (register t)"))
 				return false;
 
-			// 05. add it as a Global variable
-			if (buffer->bArray)
-				buffer->type.array = true;
-			else
-				buffer->type.array = false;
-
-			DeclareVariable(buffer->cachedName, buffer->type);
+			DeclareVariable(buffer);
 		}
 		else if (buffer->type.baseType == HLSLBaseType_RWStructuredBuffer)
 		{
@@ -7996,65 +7927,40 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 				return false;
 
 			// 02. get Identifier			
-			if (!ExpectIdentifier(buffer->cachedName))
-				return false;
-
 			// 03. get array (optional)
-			GetBufferArray(buffer);
-
 			// 04. get assigned register (necessary)
-			if (!GetRegisterAssignment(buffer, "RWStructure Buffer (register u)"))
+			if (!ExpectIdentifier(buffer->name) || !ParseArrayExpression(buffer->type, buffer->arrayDimExpression) || !ParseRegisterAssignment(buffer, "RWStructure Buffer (register u)"))
 				return false;
 
 			// 05. add it as a Global variable			
 
-			if (buffer->bArray)
-				buffer->type.array = true;
-			else
-				buffer->type.array = false;
-			
-			DeclareVariable(buffer->cachedName, buffer->type);
+			DeclareVariable(buffer);
 		}
 		else if (buffer->type.baseType == HLSLBaseType_ByteAddressBuffer)
 		{
-			// 01. get Identifier			
-			if (!ExpectIdentifier(buffer->cachedName))
-				return false;
-
+			// 01. get Identifier
 			// 02. get array (optional)
-			GetBufferArray(buffer);
-
 			// 03. get assigned register (necessary)
-			if (!GetRegisterAssignment(buffer, "ByteAddress Buffer (register t)"))
+			if (!ExpectIdentifier(buffer->name) || !ParseArrayExpression(buffer->type, buffer->arrayDimExpression) || !ParseRegisterAssignment(buffer, "ByteAddress Buffer (register t)"))
 				return false;
-
-			buffer->type.array = true;
 
 			//assume that ByteAddressBuffer is using for Int
-			buffer->type.elementType = HLSLBaseType_Int;
+			buffer->type.elementType = HLSLBaseType_Uint;
 
-
-			DeclareVariable(buffer->cachedName, buffer->type);
+			DeclareVariable(buffer);
 		}
 		else if (buffer->type.baseType == HLSLBaseType_RWByteAddressBuffer || buffer->type.baseType == HLSLBaseType_RasterizerOrderedByteAddressBuffer)
 		{
-			// 01. get Identifier			
-			if (!ExpectIdentifier(buffer->cachedName))
-				return false;
-
+			// 01. get Identifier
 			// 02. get array (optional)
-			GetBufferArray(buffer);
-
 			// 03. get assigned register (necessary)
-			if (!GetRegisterAssignment(buffer, "ByteAddress Buffer (register t)"))
+			if (!ExpectIdentifier(buffer->name) || !ParseArrayExpression(buffer->type, buffer->arrayDimExpression) || !ParseRegisterAssignment(buffer, "ByteAddress Buffer (register t)"))
 				return false;
-
-			buffer->type.array = true;
 
 			//assume that ByteAddressBuffer is using for Int
-			buffer->type.elementType = HLSLBaseType_Int;
+			buffer->type.elementType = HLSLBaseType_Uint;
 
-			DeclareVariable(buffer->cachedName, buffer->type);
+			DeclareVariable(buffer);
 		}
 				
 		statement = buffer;
@@ -8072,20 +7978,14 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 		GetTextureElementType(texturestate, false, &typeFlags, true);
 
 		// 03. get Identifier
-		if (!ExpectIdentifier(texturestate->cachedName))
-			return false;
-
 		// 04. get array (optional)
-		GetTextureArray(texturestate);
-
 		// 05. get register (necessary)
-		if (!GetRegisterAssignment(texturestate, "Texture (register t for Read only, register u for R/W)"))
+		if (!ExpectIdentifier(texturestate->name) || !ParseArrayExpression(texturestate->type, texturestate->arrayDimExpression) || !ParseRegisterAssignment(texturestate, "Texture (register t for Read only, register u for R/W)"))
 			return false;
 
-		m_textureStates.push_back(texturestate);
+		DeclareVariable(texturestate);
 
 		statement = texturestate;
-
 	}
 	else if (Accept(HLSLToken_Groupshared))
 	{
@@ -8096,77 +7996,21 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 		ParseDeclaration(pGroupshared->declaration);
 
 		statement = pGroupshared;
-
 	}
-	else if (Accept(HLSLToken_SamplerState) || Accept(HLSLToken_Sampler) || Check(HLSLToken_SamplerComparisonState))
+	else if ((m_pFullTokenizer->GetToken() == HLSLToken_SamplerState) || (m_pFullTokenizer->GetToken() == HLSLToken_Sampler) || (m_pFullTokenizer->GetToken() == HLSLToken_SamplerComparisonState))
 	{
 		//SamplerState can be declared or be passed from outside
 		HLSLSamplerState* samplerstate = m_tree->AddNode<HLSLSamplerState>(fileName, line);
-
-		if (m_pFullTokenizer->GetToken() == HLSLToken_SamplerComparisonState)
-		{
-			samplerstate->IsComparisionState = true;
-			m_pFullTokenizer->Next();
-		}
+		
+		AcceptType(true, samplerstate->type.baseType, samplerstate->type.typeName, &samplerstate->type.flags);
 
 		// SamplerState declaration.
-		CachedString samplerStateName;
-		if (!ExpectIdentifier(samplerStateName))
+		if (!ExpectIdentifier(samplerstate->name) || !ParseArrayExpression(samplerstate->type, samplerstate->arrayDimExpression) || !ParseRegisterAssignment(samplerstate, "Sampler (register s)"))
 		{
 			return false;
 		}
-		
-		samplerstate->cachedName = samplerStateName;
 
-		// Handle array syntax.
-		if (Accept('['))
-		{
-			if (!Accept(']'))
-			{
-				if (!ParseExpression(samplerstate->type.arraySize,true,0) || !Expect(']'))
-				{
-					return false;
-				}
-			}
-			samplerstate->type.array = true;
-		}
-
-		m_samplerStates.push_back(samplerstate);
-
-		if (Check('{'))
-		{
-			m_pFullTokenizer->Next();
-			samplerstate->bStructured = true;
-			HLSLSamplerStateExpression* lastExpression = NULL;
-
-			// Add the struct to our list of user defined types.
-			while (!Accept('}'))
-			{
-				if (CheckForUnexpectedEndOfStream('}'))
-				{
-					return false;
-				}
-
-				HLSLSamplerStateExpression* expression = m_tree->AddNode<HLSLSamplerStateExpression>(fileName, GetLineNumber());
-
-				ParseSamplerStateExpression(expression);
-
-				ASSERT_PARSER(expression != NULL);
-				if (lastExpression == NULL)
-				{
-					samplerstate->expression = expression;
-				}
-				else
-				{
-					lastExpression->nextExpression = expression;
-				}
-				lastExpression = expression;
-			}
-		}
-		else if (!GetRegisterAssignment(samplerstate, "Sampler (register s)"))
-		{
-			return false;
-		}
+		DeclareVariable(samplerstate);
 
 		statement = samplerstate;
 	}
@@ -8190,17 +8034,9 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 
 			BeginScope();
 
-			eastl::vector < HLSLArgument * > argVec;
-
-			if (!ParseArgumentVec(argVec))
+			if (!ParseArguments(function->args))
 			{
 				return false;
-			}
-
-			function->argumentVec.resize(argVec.size());
-			for (int i = 0; i < argVec.size(); i++)
-			{
-				function->argumentVec[i] = argVec[i];
 			}
 
 			const HLSLFunction* declaration = FindFunction(function);
@@ -8258,21 +8094,16 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 		{
 			// Uniform declaration.
 			HLSLDeclaration* declaration = m_tree->AddNode<HLSLDeclaration>(fileName, line);
-			declaration->cachedName = globalName;
+			declaration->name = globalName;
 			declaration->type.baseType   = type;
 			declaration->type.flags      = typeFlags;
+			if (type == HLSLBaseType_UserDefined)
+				declaration->type.typeName = typeName;
 
 			// Handle array syntax.
-			if (Accept('['))
+			if (!ParseArrayExpression(declaration->type, declaration->arrayDimExpression))
 			{
-				if (!Accept(']'))
-				{
-					if (!ParseExpression(declaration->type.arraySize,true,0) || !Expect(']'))
-					{
-						return false;
-					}
-				}
-				declaration->type.array = true;
+				return false;
 			}
 
 			// Handle optional register.
@@ -8288,7 +8119,7 @@ bool HLSLParser::ParseTopLevel(HLSLStatement*& statement)
 				}
 			}
 
-			DeclareVariable( globalName, declaration->type );
+			DeclareVariable( declaration );
 
 			if (!ParseDeclarationAssignment(declaration))
 			{
@@ -8826,6 +8657,7 @@ bool HLSLParser::ParseDeclaration(HLSLDeclaration*& declaration)
 			return false;
 		}
 		// Handle array syntax.
+		HLSLExpression* arrayExpression = NULL;
 		if (Accept('['))
 		{
 			type.array = true;
@@ -8835,17 +8667,24 @@ bool HLSLParser::ParseDeclaration(HLSLDeclaration*& declaration)
 				return true;
 			}
 			// the '[' resets priority
-			if (!ParseExpression(type.arraySize,true,0) || !Expect(']'))
+			if (!ParseExpression(arrayExpression,true,0) || !Expect(']'))
 			{
 				return false;
 			}
 		}
 
+		if (arrayExpression && !m_tree->GetExpressionValue(arrayExpression, type.arrayExtent[0]))
+		{
+			return false;
+		}
+
 		HLSLDeclaration * declaration = m_tree->AddNode<HLSLDeclaration>(fileName, line);
 		declaration->type  = type;
-		declaration->cachedName = name;
+		declaration->type.array = int(arrayExpression != NULL);
+		declaration->arrayDimExpression[0] = arrayExpression;
+		declaration->name = name;
 
-		DeclareVariable( declaration->cachedName, declaration->type );
+		DeclareVariable( declaration );
 
 		// Handle option assignment of the declared variables(s).
 		if (!ParseDeclarationAssignment( declaration )) {
@@ -8870,36 +8709,24 @@ bool HLSLParser::ParseDeclarationAssignment(HLSLDeclaration* declaration)
 		// Handle array initialization syntax.
 		if (declaration->type.array)
 		{
-			int numValues = 0;
-			if (!Expect('{') || !ParseExpressionList('}', true, declaration->assignment, numValues))
+			HLSLInitListExpression* initListExpression = m_tree->AddNode<HLSLInitListExpression>(GetFileName(), GetLineNumber());
+			if (!Expect('{') || !ParseExpressionList('}', true, true, initListExpression->initExpressions))
 			{
 				return false;
 			}
+			declaration->assignment = initListExpression;
+			declaration->assignment->expressionType = declaration->type;
 		}
 		else if (Accept('{'))
 		{
 			// matrix's element initialization syntax.
-
-			int numValues = 0;
-			if (!ParseExpressionList('}', true, declaration->assignment, numValues))
+			HLSLInitListExpression* initListExpression = m_tree->AddNode<HLSLInitListExpression>(GetFileName(), GetLineNumber());
+			if (!ParseExpressionList('}', true, true, initListExpression->initExpressions))
 			{
 				return false;
 			}
-		}
-		else if (IsTextureType(declaration->type.baseType))
-		{
-			///!!!!!!!!!!!!!!!!!!
-			if (!ParseSamplerState(declaration->assignment))
-			{
-				return false;
-			}
-		}
-		else if (IsSamplerType(declaration->type.baseType))
-		{
-			if (!ParseSamplerState(declaration->assignment))
-			{
-				return false;
-			}
+			declaration->assignment = initListExpression;
+			declaration->assignment->expressionType = declaration->type;
 		}
 		else if (!ParseExpression(declaration->assignment,false,0))
 		{
@@ -8915,7 +8742,7 @@ bool HLSLParser::ParseFieldDeclaration(HLSLStructField*& field)
 
 	bool doesNotExpectSemicolon = false;
 
-	if (!ExpectDeclaration(false, field->type, field->name))
+	if (!ExpectDeclaration(false, field->type, field->name, field->arrayDimExpression))
 	{
 		return false;
 	}
@@ -8939,68 +8766,6 @@ bool HLSLParser::CheckTypeCast(const HLSLType& srcType, const HLSLType& dstType)
 		m_pFullTokenizer->Error("Cannot implicitly convert from '%s' to '%s'", srcTypeName, dstTypeName);
 		return false;
 	}
-	return true;
-}
-
-bool HLSLParser::ParseSamplerStateExpression(HLSLSamplerStateExpression*& expression)
-{
-	int lvalueType;
-
-	//set l-value
-	if (Check(HLSLToken_AddressU) ||
-		Check(HLSLToken_AddressV) ||
-		Check(HLSLToken_AddressW) ||
-		Check(HLSLToken_BorderColor) ||
-		Check(HLSLToken_Filter) ||
-		Check(HLSLToken_MaxAnisotropy) ||
-		Check(HLSLToken_MaxLOD) ||
-		Check(HLSLToken_MinLOD) ||
-		Check(HLSLToken_MipLODBias) ||
-		Check(HLSLToken_ComparisonFunc))
-	{
-		lvalueType = m_pFullTokenizer->GetToken();
-		expression->lvalue = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
-		m_pFullTokenizer->Next();
-	}
-	else
-		return false;
-
-	if(!Expect('='))
-		return false;
-
-	//set r-value
-	if((lvalueType == HLSLToken_AddressU) || (lvalueType == HLSLToken_AddressV) || (lvalueType == HLSLToken_AddressW))
-	{
-		if (Check(HLSLToken_WRAP) ||
-			Check(HLSLToken_MIRROR) ||
-			Check(HLSLToken_CLAMP) ||
-			Check(HLSLToken_BORDER) ||
-			Check(HLSLToken_MIRROR_ONCE))
-		{
-			expression->rvalue = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
-			m_pFullTokenizer->Next();
-		}
-	}
-	else if (lvalueType == HLSLToken_Filter)
-	{
-		if (HLSLToken_MIN_MAG_MIP_POINT <= m_pFullTokenizer->GetToken() && m_pFullTokenizer->GetToken() <= HLSLToken_MAXIMUM_ANISOTROPIC)
-		{
-			expression->rvalue = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
-			m_pFullTokenizer->Next();
-		}
-	}
-	else if (lvalueType == HLSLToken_ComparisonFunc)
-	{
-		if (HLSLToken_NEVER <= m_pFullTokenizer->GetToken() && m_pFullTokenizer->GetToken() <= HLSLToken_ALWAYS)
-		{
-			expression->rvalue = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
-			m_pFullTokenizer->Next();
-		}
-	}
-	
-	if (!Expect(';'))
-		return false;
-
 	return true;
 }
 
@@ -9261,10 +9026,6 @@ bool HLSLParser::ParseBinaryExpression(int priority, HLSLExpression*& expression
 			{
 				exp1Type.baseType = expression->expressionType.elementType;
 			}
-			else if (expression->expressionType.baseType >= HLSLBaseType_Texture1D && expression->expressionType.baseType <= HLSLBaseType_RWTexture3D)
-			{
-				exp1Type.baseType = HLSLBaseType_Float4;
-			}
 			else if (expression->expressionType.baseType == HLSLBaseType_UserMacro)
 			{
 				exp1Type.baseType = HLSLBaseType_Uint;
@@ -9277,10 +9038,6 @@ bool HLSLParser::ParseBinaryExpression(int priority, HLSLExpression*& expression
 			else if (expression2->expressionType.elementType != HLSLBaseType_Unknown)
 			{
 				exp2Type.baseType = expression2->expressionType.elementType;
-			}
-			else if (expression2->expressionType.baseType >= HLSLBaseType_Texture1D && expression2->expressionType.baseType <= HLSLBaseType_RWTexture3D)
-			{
-				exp2Type.baseType = HLSLBaseType_Float4;
 			}
 			else if (expression2->expressionType.baseType == HLSLBaseType_UserMacro)
 			{
@@ -9349,20 +9106,16 @@ bool HLSLParser::ParseBinaryExpression(int priority, HLSLExpression*& expression
 
 bool HLSLParser::ParsePartialConstructor(HLSLExpression*& expression, HLSLBaseType type, const CachedString & typeName)
 {
-	HLSLScopedStackTracker stackTracker(this);
-
 	const char* fileName = GetFileName();
 	int         line     = GetLineNumber();
 
 	HLSLConstructorExpression* constructorExpression = m_tree->AddNode<HLSLConstructorExpression>(fileName, line);
-	constructorExpression->type.baseType = type;
-	constructorExpression->type.typeName = typeName;
-	int numArguments = 0;
-	if (!ParseExpressionList(')', false, constructorExpression->argument, numArguments))
+	constructorExpression->expressionType.baseType = type;
+	constructorExpression->expressionType.typeName = typeName;
+	if (!ParseExpressionList(')', false, false, constructorExpression->params))
 	{
 		return false;
-	}    
-	constructorExpression->expressionType = constructorExpression->type;
+	}
 	constructorExpression->expressionType.flags = HLSLTypeFlag_Const;
 	expression = constructorExpression;
 	return true;
@@ -9396,10 +9149,95 @@ bool HLSLParser::ApplyMemberAccessToNode(HLSLExpression * & expression)
 	return true;
 }
 
+bool HLSLParser::ParseFunctionCall(CachedString name, HLSLExpression* object, HLSLExpression*& expression)
+{
+	const char* fileName = GetFileName();
+	int         line     = GetLineNumber();
+
+	// Handle function calls. Note, HLSL functions aren't like C function
+	// pointers -- we can only directly call on an identifier, not on an
+	// expression.
+	if (Accept('('))
+	{
+		HLSLFunctionCall* functionCall = m_tree->AddNode<HLSLFunctionCall>(fileName, line);
+		if (object)
+			functionCall->params.push_back(object);
+
+		if (!ParseExpressionList(')', false, false, functionCall->params))
+		{
+			return false;
+		}
+
+		const HLSLFunction* function = MatchFunctionCall(functionCall, name);
+		if (function == NULL)
+		{
+			return false;
+		}
+
+		functionCall->function = function;
+
+		// if it is special function for texture / buffer
+		//TODO move to glsl backend
+		if (String_Equal("Load", name) || String_Equal(name, "Store") || String_Equal(name, "GetDimensions"))
+		{
+			if (!functionCall->params.empty() && IsTextureType(functionCall->params[0]->expressionType.baseType))
+			{
+				m_tree->gExtension[USE_SAMPLESS] = true;
+			}
+		}
+		//TODO: move to MSL backend
+		//marking for MSL
+		else if (String_Equal("InterlockedAdd", name) ||
+			String_Equal("InterlockedCompareExchange", name) ||
+			String_Equal("InterlockedCompareStore", name) ||
+			String_Equal("InterlockedExchange", name) ||
+			String_Equal("InterlockedMax", name) ||
+			String_Equal("InterlockedMin", name) ||
+			String_Equal("InterlockedOr", name) ||
+			String_Equal("InterlockedXor", name))
+		{
+			m_tree->gExtension[USE_ATOMIC] = true;
+
+			for (int i = m_pFullTokenizer->GetHistoryCounter(); i >= 0; i--)
+			{
+				CachedString prevIndentifier = m_tree->AddStringCached(m_pFullTokenizer->GetPrevIdentifier(i));
+
+				for (int index = 0; index < m_userTypes.size(); ++index)
+				{
+					HLSLStructField* field = m_userTypes[index]->field;
+
+					while (field)
+					{
+						if (String_Equal(field->name, prevIndentifier))
+						{
+							field->atomic = true;
+							break;
+						}
+						field = field->nextField;
+					}
+				}
+
+				HLSLBuffer* pBuffer = FindBuffer(prevIndentifier);
+
+				if (pBuffer)
+				{
+					pBuffer->bAtomic = true;
+					break;
+				}
+			}
+		}
+	
+		functionCall->expressionType = function->returnType;
+		expression = functionCall;
+
+		return true;
+	}
+
+	return false;
+}
+
 bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& needsEndParen, bool bPreprocessor)
 {
-	HLSLScopedStackTracker stackTracker(this);
-
 	const char* fileName = GetFileName();
 	int         line     = GetLineNumber();
 
@@ -9713,8 +9551,6 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			return ApplyMemberAccessToNode(expression);
 		}
 
-		HLSLScopedStackTracker stackTracker(this);
-
 		CachedString baseIdentifierName = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
 
 		// Type constructor.
@@ -9728,299 +9564,38 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 				return false;
 			}
 		}	
-		else if (const HLSLTextureState* pTS = FindTextureStateDefinedType(baseIdentifierName))
-		{
-			m_parentStackIdentifiers.push_back(baseIdentifierName);
-
-			if (String_Equal(m_pFullTokenizer->GetIdentifier(), pTS->cachedName))
-			{
-				HLSLTextureStateExpression* textureStateExpression = m_tree->AddNode<HLSLTextureStateExpression>(fileName, line);
-
-				textureStateExpression->name = pTS->cachedName;
-
-				textureStateExpression->expressionType = pTS->type;
-
-
-				m_textureStateExpressions.push_back(textureStateExpression);
-
-				m_pFullTokenizer->Next();
-
-				textureStateExpression->arrayDimension = pTS->arrayDimension;
-
-				//handle Array
-				for (int index = 0; index < (int)pTS->arrayDimension ; index++)
-				{
-					textureStateExpression->bArray = true;
-
-					if (Accept('['))
-					{
-						HLSLScopedStackTracker stackTracker(this);
-
-						int innerIndex = 0;
-						while (!Accept(']'))
-						{
-							// after parsing each expression, pop them off the stack
-							HLSLScopedStackTracker stackTracker(this);
-
-							// inside we have no precedence, so comma is allowed
-							if (!ParseExpression(textureStateExpression->arrayExpression,true,0))
-								return false;								
-						}
-					}
-				}
-
-				//handle [] operator
-				if(textureStateExpression->expressionType.baseType >= HLSLBaseType_Texture1D &&
-					textureStateExpression->expressionType.baseType <= HLSLBaseType_RWTexture3D &&
-					Accept('[')
-					)
-				{
-					HLSLScopedStackTracker stackTracker(this);
-
-					if (!ParseExpression(textureStateExpression->indexExpression,true,0))
-						return false;
-
-					if (!Accept(']'))
-						return false;
-
-					m_tree->gExtension[USE_SAMPLESS] = true;
-				}
-						
-				if (Accept('.'))
-				{
-					if (String_Equal(m_pFullTokenizer->GetIdentifier(), "Sample") ||
-						String_Equal(m_pFullTokenizer->GetIdentifier(), "SampleLevel") ||
-						String_Equal(m_pFullTokenizer->GetIdentifier(), "SampleGrad") ||
-						String_Equal(m_pFullTokenizer->GetIdentifier(), "SampleCmp") ||
-						String_Equal(m_pFullTokenizer->GetIdentifier(), "SampleCmpLevelZero") ||
-						String_Equal(m_pFullTokenizer->GetIdentifier(), "Load") ||
-						String_Equal(m_pFullTokenizer->GetIdentifier(), "Store") ||
-						String_Equal(m_pFullTokenizer->GetIdentifier(), "SampleBias") ||
-						String_Equal(m_pFullTokenizer->GetIdentifier(), "GatherRed") ||
-						String_Equal(m_pFullTokenizer->GetIdentifier(), "GetDimensions")							
-						)
-					{
-						HLSLScopedStackTracker stackTracker(this);
-
-						ParseExpression(textureStateExpression->functionExpression,false,0);
-
-						if (textureStateExpression->functionExpression)
-						{
-							expression = textureStateExpression;
-						}
-					}
-					else
-					{
-						// if it is failed, it's swizzling
-						HLSLMemberAccess* memberAccess = m_tree->AddNode<HLSLMemberAccess>(fileName, line);
-
-						memberAccess->object = textureStateExpression;
-						textureStateExpression->memberAccessExpression = memberAccess;
-
-						if (!ExpectIdentifier(memberAccess->field))
-						{
-							return false;
-						}
-
-						HLSLType type;
-						type.typeName = textureStateExpression->expressionType.typeName; //  currentElementType;
-						type.baseType = HLSLBaseType_Float4; //  HLSLBaseType_UserDefined;
-
-						if (!GetMemberType(type, memberAccess))
-						{
-							m_pFullTokenizer->Error("Couldn't access '%s'", GetCstr(memberAccess->field));
-							return false;
-						}
-
-						expression = memberAccess;
-					}
-
-					return true;
-				}
-				else
-				{
-					// not it can be just argument
-					//return false;
-
-					textureStateExpression->expressionType.baseType = pTS->type.baseType;
-
-					expression = textureStateExpression;
-					return true;
-				}
-			}
-		}
-		else if (FindSamplerStateDefinedType(baseIdentifierName) != NULL)
-		{
-			m_parentStackIdentifiers.push_back(baseIdentifierName);
-
-			//if it is SamplerState's m_identifier
-			for (int i = 0; i < m_samplerStates.size(); ++i)
-			{
-				if (String_Equal(m_pFullTokenizer->GetIdentifier(), m_samplerStates[i]->cachedName))
-				{
-					HLSLSamplerStateExpression* samplerStateExpression = m_tree->AddNode<HLSLSamplerStateExpression>(fileName, line);
-				
-					samplerStateExpression->name = m_samplerStates[i]->cachedName;
-
-					samplerStateExpression->expressionType.baseType = HLSLBaseType_SamplerState;
-					samplerStateExpression->expressionType.flags = HLSLTypeFlag_Const;
-					expression = samplerStateExpression;
-					
-					m_pFullTokenizer->Next();
-
-					if (m_samplerStates[i]->type.array)
-					{
-						if (Accept('['))
-						{
-							HLSLArrayAccess* arrayAccess = m_tree->AddNode<HLSLArrayAccess>(fileName, line);
-							arrayAccess->array = samplerStateExpression;
-							if (!ParseExpression(arrayAccess->index,true,0) || !Expect(']'))
-							{
-								return false;
-							}
-							
-							samplerStateExpression->expressionType.array = true;
-
-							arrayAccess->expressionType.baseType = HLSLBaseType_SamplerState;
-							arrayAccess->expressionType.flags = HLSLTypeFlag_Const;
-
-							expression = arrayAccess;
-						}
-
-					}
-
-					return true;
-				}
-			}
-		}
-		else if (FindConstantBuffer(baseIdentifierName) != NULL)
-		{
-			CachedString currIdentifier = baseIdentifierName;
-
-			const HLSLBuffer* pBuffer = FindBuffer(currIdentifier);
-
-			//if it is push_constant
-			if (pBuffer->bPushConstant || pBuffer->type.elementType != HLSLBaseType_Unknown)
-			{
-				m_pFullTokenizer->Next();
-
-				HLSLIdentifierExpression* identifierExpression = m_tree->AddNode<HLSLIdentifierExpression>(fileName, line);
-				identifierExpression->nodeType = HLSLNodeType_IdentifierExpression;
-				identifierExpression->name = pBuffer->cachedName;
-
-				identifierExpression->expressionType.typeName = GetTypeName(pBuffer->type);
-
-				identifierExpression->expressionType.baseType = pBuffer->type.elementType;
-
-				HLSLExpression* currentExpression = identifierExpression;
-				while (Check('[') || Check('.'))
-				{
-					//handle [] operator (read / write)
-					if (Accept('['))
-					{
-						HLSLArrayAccess* arrayAccess = m_tree->AddNode<HLSLArrayAccess>(fileName, line);
-						arrayAccess->array = currentExpression;
-						if (!ParseExpression(arrayAccess->index,true,0) || !Expect(']'))
-						{
-							return false;
-						}
-
-						if (currentExpression->expressionType.array)
-						{
-							arrayAccess->expressionType = currentExpression->expressionType;
-							arrayAccess->expressionType.array = false;
-							arrayAccess->expressionType.arraySize = NULL;
-						}
-
-						arrayAccess->expressionType.baseType = currentExpression->expressionType.baseType;
-						currentExpression->nextExpression = arrayAccess;
-
-						currentExpression = currentExpression->nextExpression;
-					}
-
-					// Member access operator.
-					if (Accept('.'))
-					{
-						HLSLMemberAccess* memberAccess = m_tree->AddNode<HLSLMemberAccess>(fileName, line);
-
-						memberAccess->object = currentExpression;
-
-						if (!ExpectIdentifier(memberAccess->field))
-						{
-							return false;
-						}
-
-						HLSLType type;
-						type.typeName = currentExpression->expressionType.typeName; //  currentElementType;
-						type.baseType = currentExpression->expressionType.baseType; //  HLSLBaseType_UserDefined;
-
-						if (!GetMemberType(type, memberAccess))
-						{
-							m_pFullTokenizer->Error("Couldn't access '%s'", GetCstr(memberAccess->field));
-							return false;
-						}
-
-						currentExpression->nextExpression = memberAccess;
-						currentExpression = currentExpression->nextExpression;
-					}
-
-				}
-
-				expression = currentExpression;
-				return true;
-			}
-			else
-				return false;
-		}
 		else if(expression == NULL)
 		{
-			HLSLIdentifierExpression* identifierExpression = m_tree->AddNode<HLSLIdentifierExpression>(fileName, line);
+			//TODO: if expression is function then following allocation is not used
 
-			if (!ExpectIdentifier(identifierExpression->name))
+			CachedString name;
+			if (!ExpectIdentifier(name))
 			{
 				return false;
 			}
 
-			const HLSLType* identifierType = FindVariable(identifierExpression->name, identifierExpression->global);
-			if (identifierType != NULL)
+			HLSLDeclaration* declaration = FindVariable(name);
+			if (declaration)
 			{
-				identifierExpression->expressionType = *identifierType;
+				HLSLIdentifierExpression* identifierExpression = m_tree->AddNode<HLSLIdentifierExpression>(fileName, line);
+				identifierExpression->pDeclaration = declaration;
+				identifierExpression->expressionType = declaration->type;
+				expression = identifierExpression;
 			}
-			else
+			else if (!GetIsFunction(name) || !ParseFunctionCall(name, NULL, expression))
 			{
-				if (!GetIsFunction(identifierExpression->name))
-				{
-					m_pFullTokenizer->Error("Undeclared identifier '%s'", GetCstr(identifierExpression->name));
-					return false;
-				}
-				// Functions are always global scope.
-				identifierExpression->global = true;
+				m_pFullTokenizer->Error("Undeclared identifier '%s'", GetCstr(name));
+				return false;
 			}
-
-			expression = identifierExpression;
 		}
 	}
 
 	if (bPreprocessor)
 		return true;
 
-	// if we have a parent identifier, add it to the stack
-	{
-		CachedString parentIdentifier;
-		if (expression->nodeType == HLSLNodeType_IdentifierExpression)
-		{
-			HLSLIdentifierExpression* identifierExpression = static_cast<HLSLIdentifierExpression*>(expression);
-			parentIdentifier = identifierExpression->name;
-		}
-		m_parentStackIdentifiers.push_back(parentIdentifier);
-	}
-
-
 	bool done = false;
 	while (!done)
 	{
-		HLSLScopedStackTracker stackTracker(this);
-
 		done = true;
 
 		// Post fix unary operator
@@ -10036,79 +9611,46 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 		}
 		
 
-		// Member access operator.
-		// or it can be for function calling
+		// Member access or function call
 		while (Accept('.'))
 		{
-			HLSLScopedStackTracker stackTracker(this);
-
-			//if it is special function for buffer or texture, skip it
-			if (String_Equal("Load", m_pFullTokenizer->GetIdentifier()) || 
-				String_Equal(m_pFullTokenizer->GetIdentifier(), "Store") ||
-				String_Equal("Sample", m_pFullTokenizer->GetIdentifier()) ||
-				String_Equal("SampleBias", m_pFullTokenizer->GetIdentifier()) ||
-				String_Equal("SampleLevel", m_pFullTokenizer->GetIdentifier()) ||
-				String_Equal(m_pFullTokenizer->GetIdentifier(), "SampleCmp") ||
-				String_Equal(m_pFullTokenizer->GetIdentifier(), "SampleCmpLevelZero") ||
-				String_Equal("SampleGrad", m_pFullTokenizer->GetIdentifier()) ||
-				String_Equal("GatherRed", m_pFullTokenizer->GetIdentifier()) ||
-				String_Equal(m_pFullTokenizer->GetIdentifier(), "GetDimensions")
-				)
+			CachedString identifier;
+			if (!ExpectIdentifier(identifier))
 			{
-				bool bBreak = false;
+				m_pFullTokenizer->Error("Expecting fidentifier");
+				return false;
+			}
 
-				HLSLBuffer* pSBuffer = NULL;
-				const HLSLTextureState* pTexture = NULL;
-				CachedString foundStr = FindParentTextureOrBuffer(pTexture,pSBuffer);
-
-				bBreak = (pTexture != NULL || pSBuffer != NULL);
-
-				if (bBreak)
+			if (GetIsFunction(identifier))
+			{
+				if (!ParseFunctionCall(identifier, expression, expression))
 				{
-					ParseTerminalExpression(expression->functionExpression, needsEndParen, false);
-					break;
+					return false;
 				}
 			}
 			else
 			{
 				HLSLMemberAccess* memberAccess = m_tree->AddNode<HLSLMemberAccess>(fileName, line);
 				memberAccess->object = expression;
-				if (!ExpectIdentifier(memberAccess->field))
-				{
-					return false;
-				}
+				memberAccess->field = identifier;
 
 				if (!GetMemberType(expression->expressionType, memberAccess))
 				{
-					m_pFullTokenizer->Error("Couldn't access '%s'", GetCstr(memberAccess->field));
+					m_pFullTokenizer->Error("Couldn't access '%s'", GetCstr(identifier));
 					return false;
 				}
 				expression = memberAccess;
-				
 			}
-
 			done = false;
-
 		}
 
 		// Handle array access.
 		while (Accept('['))
 		{
-			HLSLScopedStackTracker stackTracker(this);
-
-			CachedString parentIdentifier;
-			if (expression->nodeType == HLSLNodeType_IdentifierExpression)
-			{
-				HLSLIdentifierExpression* identifierExpression = static_cast<HLSLIdentifierExpression*>(expression);
-				parentIdentifier = identifierExpression->name;
-			}
-
-			m_parentStackIdentifiers.push_back(parentIdentifier);
-
 			HLSLArrayAccess* arrayAccess = m_tree->AddNode<HLSLArrayAccess>(fileName, line);
 			arrayAccess->array = expression;
 			// allow comma inside array access
-			if (!ParseExpression(arrayAccess->index,true,0) || !Expect(']'))
+			if (!ParseExpression(arrayAccess->index,false,0) || !Expect(']'))
 			{
 				return false;
 			}
@@ -10117,23 +9659,24 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			{
 				if (expression->nodeType == HLSLNodeType_IdentifierExpression)
 				{
+					//TODO: fix!!!!!!!!!!!!!!!!
 					HLSLIdentifierExpression* identifierExpression = static_cast<HLSLIdentifierExpression*>(expression);
 
 					//if it is buffer
-					const HLSLBuffer* buffer = FindBuffer(identifierExpression->name);
+					const HLSLBuffer* buffer = FindBuffer(identifierExpression->pDeclaration->name);
 
-					if (buffer != NULL && buffer->arrayDimension > 0)
+					if (buffer != NULL && buffer->type.arrayDimension > 0)
 					{
-						arrayAccess->identifier = identifierExpression->name;
+						arrayAccess->identifier = identifierExpression->pDeclaration->name;
 					}	
 				}
-					
 
 				arrayAccess->expressionType = expression->expressionType;
-				arrayAccess->expressionType.array = false;
-				arrayAccess->expressionType.arraySize = NULL;
-
-				
+				arrayAccess->expressionType.array = expression->expressionType.arrayDimension > 1;
+				arrayAccess->expressionType.arrayDimension = expression->expressionType.arrayDimension > 0 ? expression->expressionType.arrayDimension - 1 : 0;
+				arrayAccess->expressionType.arrayExtent[0] = expression->expressionType.arrayExtent[1];
+				arrayAccess->expressionType.arrayExtent[1] = expression->expressionType.arrayExtent[2];
+				arrayAccess->expressionType.arrayExtent[2] = 0;
 			}
 			else
 			{
@@ -10245,6 +9788,25 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 					arrayAccess->expressionType.typeName = expression->expressionType.typeName;
 					break;
 
+				case HLSLBaseType_Texture1D:
+				case HLSLBaseType_Texture1DArray:
+				case HLSLBaseType_Texture2D:
+				case HLSLBaseType_Texture2DArray:
+				case HLSLBaseType_Texture3D:
+				case HLSLBaseType_RWTexture1D:
+				case HLSLBaseType_RWTexture1DArray:
+				case HLSLBaseType_RWTexture2D:
+				case HLSLBaseType_RWTexture2DArray:
+				case HLSLBaseType_RWTexture3D:
+				case HLSLBaseType_RasterizerOrderedTexture1D:
+				case HLSLBaseType_RasterizerOrderedTexture1DArray:
+				case HLSLBaseType_RasterizerOrderedTexture2D:
+				case HLSLBaseType_RasterizerOrderedTexture2DArray:
+				case HLSLBaseType_RasterizerOrderedTexture3D:
+					m_tree->gExtension[USE_SAMPLESS] = true;
+					arrayAccess->expressionType.baseType = arrayAccess->array->expressionType.elementType;
+					break;
+
 				case HLSLBaseType_RWStructuredBuffer:
 				case HLSLBaseType_StructuredBuffer:
 				case HLSLBaseType_RWBuffer:
@@ -10326,10 +9888,10 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 					case HLSLBaseType_Uint2:
 					case HLSLBaseType_Uint3:
 					case HLSLBaseType_Uint4:
-						arrayAccess->expressionType.elementType = expression->expressionType.elementType;
+						arrayAccess->expressionType.baseType = expression->expressionType.elementType;
 						break;
 					case HLSLBaseType_UserDefined:
-						arrayAccess->expressionType.elementType = HLSLBaseType_UserDefined;
+						arrayAccess->expressionType.baseType = HLSLBaseType_UserDefined;
 						arrayAccess->expressionType.typeName = expression->expressionType.typeName;
 						break;
 					default:
@@ -10352,132 +9914,14 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			expression = arrayAccess;
 			done = false;
 		}
-
-		// Handle function calls. Note, HLSL functions aren't like C function
-		// pointers -- we can only directly call on an identifier, not on an
-		// expression.
-		if (Accept('('))
-		{
-			HLSLFunctionCall* functionCall = m_tree->AddNode<HLSLFunctionCall>(fileName, line);
-			done = false;
-
-			if (!ParseExpressionList(')', false, functionCall->callArgument, functionCall->numArguments))
-			{
-				return false;
-			}
-
-			eastl::vector < HLSLType > foundTypes;
-			HLSLExpression* currArg = functionCall->callArgument;
-			while (currArg != NULL)
-			{
-				foundTypes.push_back(currArg->expressionType);
-				currArg = currArg->nextExpression;
-			}
-
-			if (expression->nodeType != HLSLNodeType_IdentifierExpression)
-			{
-				m_pFullTokenizer->Error("Expected function identifier");
-				return false;
-			}
-
-			const HLSLIdentifierExpression* identifierExpression = static_cast<const HLSLIdentifierExpression*>(expression);
-			const HLSLFunction* function = MatchFunctionCall( functionCall, identifierExpression->name);
-			if (function == NULL)
-			{
-				return false;
-			}
-
-			functionCall->function = function;
-
-			// if it is special function for texture / buffer
-			if (String_Equal("Sample", identifierExpression->name) ||
-				String_Equal("SampleBias", identifierExpression->name) ||
-				String_Equal("SampleLevel", identifierExpression->name) ||
-				String_Equal(identifierExpression->name, "SampleCmp") ||
-				String_Equal(identifierExpression->name, "SampleCmpLevelZero") ||
-				String_Equal("SampleGrad", identifierExpression->name) ||
-				String_Equal("GatherRed", identifierExpression->name))
-			{
-				functionCall->pTextureStateExpression = m_textureStateExpressions[m_textureStateExpressions.size()-1];
-				
-			}
-			else if (String_Equal("Load", identifierExpression->name) ||
-					String_Equal(identifierExpression->name, "Store") ||
-					String_Equal(identifierExpression->name, "GetDimensions"))
-			{
-				HLSLBuffer* pSBuffer = NULL;
-				const HLSLTextureState* pTexture = NULL;
-				CachedString foundStr = FindParentTextureOrBuffer(pTexture, pSBuffer);
-
-				if (pTexture != NULL)
-				{
-					functionCall->pTextureStateExpression = m_textureStateExpressions[m_textureStateExpressions.size() - 1];
-					m_tree->gExtension[USE_SAMPLESS] = true;
-				}
-				else if (pSBuffer != NULL)
-				{
-					//does buffer need to handle?
-					functionCall->pBuffer = pSBuffer;
-				}
-				else
-				{
-					// if we don't have a texture of buffer above us in the heirarchy, then something is wrong
-					ASSERT_PARSER(0);
-				}
-			}
-			//marking for MSL
-			else if (String_Equal("InterlockedAdd", identifierExpression->name) ||
-				String_Equal("InterlockedCompareExchange", identifierExpression->name) ||
-				String_Equal("InterlockedCompareStore", identifierExpression->name) ||
-				String_Equal("InterlockedExchange", identifierExpression->name) ||
-				String_Equal("InterlockedMax", identifierExpression->name) ||
-				String_Equal("InterlockedMin", identifierExpression->name) ||
-				String_Equal("InterlockedOr", identifierExpression->name) ||
-				String_Equal("InterlockedXor", identifierExpression->name))
-			{
-				m_tree->gExtension[USE_ATOMIC] = true;
-
-				for (int i = m_pFullTokenizer->GetHistoryCounter(); i >= 0; i--)
-				{
-					CachedString prevIndentifier = m_tree->AddStringCached(m_pFullTokenizer->GetPrevIdentifier(i));
-
-					for (int index = 0; index < m_userTypes.size(); ++index)
-					{
-						HLSLStructField* field = m_userTypes[index]->field;
-
-						while (field)
-						{
-							if (String_Equal(field->name, prevIndentifier))
-							{
-								field->atomic = true;
-								break;
-							}
-							field = field->nextField;
-						}
-					}
-
-					HLSLBuffer* pBuffer = FindBuffer(prevIndentifier);
-
-					if (pBuffer)
-					{
-						pBuffer->bAtomic = true;
-						break;
-					}
-				}
-			}
-	
-			functionCall->expressionType = function->returnType;
-			expression = functionCall;
-		}
-
 	}
 	return true;
 
 }
 
-bool HLSLParser::ParseExpressionList(int endToken, bool allowEmptyEnd, HLSLExpression*& firstExpression, int& numExpressions)
+bool HLSLParser::ParseExpressionList(int endToken, bool allowEmptyEnd, bool initList, eastl::vector<HLSLExpression*>& expressions)
 {
-	numExpressions = 0;
+	int numExpressions = 0;
 	HLSLExpression* lastExpression = NULL;
 	while (!Accept(endToken))
 	{
@@ -10498,46 +9942,36 @@ bool HLSLParser::ParseExpressionList(int endToken, bool allowEmptyEnd, HLSLExpre
 		}
 		HLSLExpression* expression = NULL;
 
-		if (Check('{'))
-		{	
-			expression = m_tree->AddNode<HLSLExpression>(GetFileName(), GetLineNumber());
-
-			if (Accept('{'))
+		// TODO: add type matching
+		if (Accept('{'))
+		{
+			if (!initList)
 			{
-				int numExpressions;
-
-				//inner array
-				HLSLExpression* childExpression = NULL;
-				ParseExpressionList('}', false, childExpression, numExpressions);
-
-				expression->childExpression = childExpression;
+				return false;
 			}
 
+			HLSLInitListExpression* initListExpression = m_tree->AddNode<HLSLInitListExpression>(GetFileName(), GetLineNumber());
+
+			ParseExpressionList('}', false, true, initListExpression->initExpressions);
+
+			expression = initListExpression;
 		}
 		else if (!ParseExpression(expression,false,0))
 		{
 			return false;
 		}
 
-		if (firstExpression == NULL)
-		{
-			firstExpression = expression;
-		}
-		else
-		{
-			lastExpression->nextExpression = expression;
-		}
-		lastExpression = expression;
+		expressions.push_back(expression);
 		++numExpressions;
 	}
+
 	return true;
 }
 
-bool HLSLParser::ParseArgumentVec(eastl::vector< HLSLArgument* > & argVec)
+bool HLSLParser::ParseArguments(eastl::vector<HLSLArgument*>& argVec)
 {
 	const char* fileName = GetFileName();
 	int         line     = GetLineNumber();
-		
 
 	argVec.clear();
 
@@ -10553,7 +9987,6 @@ bool HLSLParser::ParseArgumentVec(eastl::vector< HLSLArgument* > & argVec)
 		}
 
 		HLSLArgument* argument = m_tree->AddNode<HLSLArgument>(fileName, line);
-
 
 		{
 			if (Accept(HLSLToken_Uniform))
@@ -10597,31 +10030,12 @@ bool HLSLParser::ParseArgumentVec(eastl::vector< HLSLArgument* > & argVec)
 				argument->modifier = HLSLArgumentModifier_Triangleadj;
 			}
 
-			if (!ExpectDeclaration(/*allowUnsizedArray=*/true, argument->argType, argument->name))
+			if (!ExpectDeclaration(/*allowUnsizedArray=*/true, argument->type, argument->name, argument->arrayDimExpression))
 			{
 				return false;
 			}
 
-			DeclareVariable(argument->name, argument->argType);
-
-			if (argument->argType.baseType >= HLSLBaseType_Texture1D && argument->argType.baseType <= HLSLBaseType_RWTexture3D)
-			{
-				HLSLTextureState* texturestate = m_tree->AddNode<HLSLTextureState>(fileName, line);
-				texturestate->type.baseType = argument->argType.baseType;
-
-				texturestate->cachedName = argument->name;
-
-				m_textureStates.push_back(texturestate);
-
-				
-				HLSLTextureStateExpression* textureStateExpression = m_tree->AddNode<HLSLTextureStateExpression>(fileName, line);
-
-				textureStateExpression->name = texturestate->cachedName;
-				textureStateExpression->expressionType = texturestate->type;
-
-				m_textureStateExpressions.push_back(textureStateExpression);
-			}
-
+			DeclareVariable(argument);
 
 			// Optional semantic.
 			if (Accept(':') && !ExpectIdentifier(argument->semantic))
@@ -10642,55 +10056,6 @@ bool HLSLParser::ParseArgumentVec(eastl::vector< HLSLArgument* > & argVec)
 	return true;
 }
 
-
-bool HLSLParser::ParseSamplerState(HLSLExpression*& expression)
-{
-	if (!Expect(HLSLToken_SamplerState))
-	{
-		return false;
-	}
-
-	const char* fileName = GetFileName();
-	int         line     = GetLineNumber();
-
-	HLSLSamplerState* samplerState = m_tree->AddNode<HLSLSamplerState>(fileName, line);
-
-	if (!Expect('{'))
-	{
-		return false;
-	}
-
-	HLSLStateAssignment* lastStateAssignment = NULL;
-
-	// Parse state assignments.
-	while (!Accept('}'))
-	{
-		if (CheckForUnexpectedEndOfStream('}'))
-		{
-			return false;
-		}
-
-		HLSLStateAssignment* stateAssignment = NULL;
-		if (!ParseStateAssignment(stateAssignment, /*isSamplerState=*/true, /*isPipeline=*/false))
-		{
-			return false;
-		}
-		ASSERT_PARSER(stateAssignment != NULL);
-		if (lastStateAssignment == NULL)
-		{
-			samplerState->stateAssignments = stateAssignment;
-		}
-		else
-		{
-			lastStateAssignment->nextStateAssignment = stateAssignment;
-		}
-		lastStateAssignment = stateAssignment;
-		samplerState->numStateAssignments++;
-	}
-
-	//expression = samplerState;
-	return true;
-}
 
 bool HLSLParser::ParseTechnique(HLSLStatement*& statement)
 {
@@ -11875,28 +11240,6 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, CachedString &ty
 		type = HLSLBaseType_RWTexture3D;
 		break;
 
-
-	case HLSLToken_Sampler:
-		type = HLSLBaseType_Sampler2D;  // @@ IC: For now we assume that generic samplers are always sampler2D
-		break;
-	case HLSLToken_Sampler2D:
-		type = HLSLBaseType_Sampler2D;
-		break;
-	case HLSLToken_Sampler3D:
-		type = HLSLBaseType_Sampler3D;
-		break;
-	case HLSLToken_SamplerCube:
-		type = HLSLBaseType_SamplerCube;
-		break;
-	case HLSLToken_Sampler2DShadow:
-		type = HLSLBaseType_Sampler2DShadow;
-		break;
-	case HLSLToken_Sampler2DMS:
-		type = HLSLBaseType_Sampler2DMS;
-		break;
-	case HLSLToken_Sampler2DArray:
-		type = HLSLBaseType_Sampler2DArray;
-		break;
 	case HLSLToken_AddressU:
 		type = HLSLBaseType_AddressU;
 		break;
@@ -11927,8 +11270,18 @@ bool HLSLParser::AcceptType(bool allowVoid, HLSLBaseType& type, CachedString &ty
 	case HLSLToken_ComparisonFunc:
 		type = HLSLBaseType_ComparisonFunc;
 		break;
+	case HLSLToken_Sampler:
+	case HLSLToken_Sampler2D:
+	case HLSLToken_Sampler3D:
+	case HLSLToken_SamplerCube:
+	case HLSLToken_Sampler2DMS:
+	case HLSLToken_Sampler2DArray:
 	case HLSLToken_SamplerState:
 		type = HLSLBaseType_SamplerState;
+		break;
+	case HLSLToken_Sampler2DShadow:
+	case HLSLToken_SamplerComparisonState:
+		type = HLSLBaseType_SamplerComparisonState;
 		break;
 	}
 	if (type != HLSLBaseType_Void)
@@ -11977,7 +11330,7 @@ bool HLSLParser::ExpectType(bool allowVoid, HLSLBaseType& type, CachedString & t
 	return true;
 }
 
-bool HLSLParser::AcceptDeclaration(bool allowUnsizedArray, HLSLType& type, CachedString& name)
+bool HLSLParser::AcceptDeclaration(bool allowUnsizedArray, HLSLType& type, CachedString& name, HLSLExpression* (&arrayDimExpressions)[MAX_DIM])
 {
 	if (!AcceptType(/*allowVoid=*/false, type.baseType, type.typeName, &type.flags))
 	{
@@ -12090,25 +11443,16 @@ bool HLSLParser::AcceptDeclaration(bool allowUnsizedArray, HLSLType& type, Cache
 	}
 
 	// Handle array syntax.
-	if (Accept('['))
+	if (!ParseArrayExpression(type, arrayDimExpressions))
 	{
-		type.array = true;
-		// Optionally allow no size to the specified for the array.
-		if (Accept(']') && allowUnsizedArray)
-		{
-			return true;
-		}
-		if (!ParseExpression(type.arraySize,false,0) || !Expect(']'))
-		{
-			return false;
-		}
+		return false;
 	}
 	return true;
 }
 
-bool HLSLParser::ExpectDeclaration(bool allowUnsizedArray, HLSLType& type, CachedString & name)
+bool HLSLParser::ExpectDeclaration(bool allowUnsizedArray, HLSLType& type, CachedString & name, HLSLExpression* (&arrayDimExpressions)[MAX_DIM])
 {
-	if (!AcceptDeclaration(allowUnsizedArray, type, name))
+	if (!AcceptDeclaration(allowUnsizedArray, type, name, arrayDimExpressions))
 	{
 		m_pFullTokenizer->Error("Expected declaration");
 		return false;
@@ -12116,43 +11460,11 @@ bool HLSLParser::ExpectDeclaration(bool allowUnsizedArray, HLSLType& type, Cache
 	return true;
 }
 
-const HLSLSamplerState* HLSLParser::FindSamplerStateDefinedType(const CachedString & name) const
-{
-	// Pointer comparison is sufficient for strings since they exist in the
-	// string pool.
-	for (int i = 0; i < m_samplerStates.size(); ++i)
-	{
-		if (String_Equal(m_samplerStates[i]->cachedName, name))
-		{
-			return m_samplerStates[i];
-		}
-	}
-	return NULL;
-}
-
-const HLSLTextureState* HLSLParser::FindTextureStateDefinedType(const CachedString & name) const
-{	
-	for (int i = 0; i < m_textureStates.size(); ++i)
-	{		
-		if (String_Equal(m_textureStates[i]->cachedName, name))
-		{
-			return m_textureStates[i];
-		}	
-	}
-
-	return NULL;
-}
-
-const HLSLTextureState* HLSLParser::FindTextureStateDefinedTypeWithAddress(const CachedString & name) const
-{
-	return NULL;
-}
-
 HLSLBuffer* HLSLParser::FindBuffer(const CachedString & name) const
 {
 	for (int i = 0; i < m_Buffers.size(); ++i)
 	{
-		if (String_Equal(m_Buffers[i]->cachedName, name))
+		if (String_Equal(m_Buffers[i]->name, name))
 		{
 			return m_Buffers[i];
 		}
@@ -12164,36 +11476,12 @@ HLSLBuffer* HLSLParser::FindConstantBuffer(const CachedString & name) const
 {
 	for (int i = 0; i < m_Buffers.size(); ++i)
 	{
-		if (String_Equal(m_Buffers[i]->cachedName, name) && m_Buffers[i]->type.baseType == HLSLBaseType_ConstantBuffer)
+		if (String_Equal(m_Buffers[i]->name, name) && m_Buffers[i]->type.baseType == HLSLBaseType_ConstantBuffer)
 		{
 			return m_Buffers[i];
 		}
 	}
 	return NULL;
-}
-
-CachedString HLSLParser::FindParentTextureOrBuffer(const HLSLTextureState* & foundTexture, HLSLBuffer * & foundBuffer) const
-{
-	CachedString ret;
-	foundTexture = NULL;
-	foundBuffer = NULL;
-
-	for (int i = (int)(m_parentStackIdentifiers.size()) - 1; i >= 0; i--)
-	{
-		CachedString found = m_parentStackIdentifiers[i];
-
-		foundTexture = FindTextureStateDefinedType(found);
-		foundBuffer = FindBuffer(found);
-
-		if (foundTexture != NULL ||
-			foundBuffer != NULL)
-		{
-			ret = found;
-			break;
-		}
-	}
-
-	return ret;
 }
 
  HLSLStruct* HLSLParser::FindUserDefinedType(const CachedString & name) const
@@ -12233,8 +11521,6 @@ const char* HLSLParser::GetFileName()
 void HLSLParser::BeginScope()
 {
 	m_variableScopes.push_back(m_variables.size());
-	m_textureStateScopes.push_back(m_textureStates.size());
-	m_textureStateExpressionScopes.push_back(m_textureStateExpressions.size());
 }
 
 void HLSLParser::EndScope()
@@ -12242,24 +11528,15 @@ void HLSLParser::EndScope()
 	ASSERT_PARSER(!m_variableScopes.empty());
 	m_variables.resize(m_variableScopes.back());
 	m_variableScopes.pop_back();
-
-	ASSERT_PARSER(!m_textureStateScopes.empty());
-	m_textureStates.resize(m_textureStateScopes.back());
-	m_textureStateScopes.pop_back();
-
-	ASSERT_PARSER(!m_textureStateExpressionScopes.empty());
-	m_textureStateExpressions.resize(m_textureStateExpressionScopes.back());
-	m_textureStateExpressionScopes.pop_back();
 }
 
-const HLSLType* HLSLParser::FindVariable(const CachedString & name, bool& global) const
+HLSLDeclaration* HLSLParser::FindVariable(const CachedString & name) const
 {
 	for (int i = int(m_variables.size()) - 1; i >= 0; --i)
 	{
-		if (String_Equal(m_variables[i].name,name))
+		if (String_Equal(m_variables[i]->name,name))
 		{
-			global = (i < m_numGlobals);
-			return &m_variables[i].type;
+			return m_variables[i];
 		}
 	}
 	return NULL;
@@ -12282,7 +11559,7 @@ static bool AreTypesEqual(HLSLTree* tree, const HLSLType& lhs, const HLSLType& r
 	return GetTypeCastRank(tree, lhs, rhs) == 0;
 }
 
-static bool AreArgumentListsEqualVec(HLSLTree* tree, const eastl::vector < HLSLArgument* > & lhsVec, const eastl::vector < HLSLArgument* > & rhsVec)
+static bool AreArgumentListsEqualVec(HLSLTree* tree, const eastl::vector<HLSLArgument*> & lhsVec, const eastl::vector<HLSLArgument*> & rhsVec)
 {
 	if (lhsVec.size() != rhsVec.size())
 	{
@@ -12304,7 +11581,7 @@ static bool AreArgumentListsEqualVec(HLSLTree* tree, const eastl::vector < HLSLA
 			return false;
 		}
 
-		if (!AreTypesEqual(tree, lhs->argType, rhs->argType))
+		if (!AreTypesEqual(tree, lhs->type, rhs->type))
 			return false;
 
 		if (lhs->modifier != rhs->modifier)
@@ -12326,7 +11603,7 @@ const HLSLFunction* HLSLParser::FindFunction(const HLSLFunction* fun) const
 	{
 		if ( String_Equal(m_functions[i]->name, fun->name) &&
 			AreTypesEqual(m_tree, m_functions[i]->returnType, fun->returnType) &&
-			AreArgumentListsEqualVec(m_tree, m_functions[i]->GetArguments(), fun->GetArguments()))
+			AreArgumentListsEqualVec(m_tree, m_functions[i]->args, fun->args))
 		{
 			return m_functions[i];
 		}
@@ -12334,17 +11611,10 @@ const HLSLFunction* HLSLParser::FindFunction(const HLSLFunction* fun) const
 	return NULL;
 }
 
-void HLSLParser::DeclareVariable(const CachedString & name, const HLSLType& type)
+void HLSLParser::DeclareVariable(HLSLDeclaration* pDeclaration)
 {
-	if (m_variables.size() == m_numGlobals)
-	{
-		++m_numGlobals;
-	}
-
-	Variable variable;
-	variable.name = name;
-	variable.type = type;
-	m_variables.push_back(variable);
+	pDeclaration->global = m_variableScopes.empty();
+	m_variables.push_back(pDeclaration);
 }
 
 bool HLSLParser::GetIsFunction(const CachedString & name) const
@@ -12427,7 +11697,6 @@ const HLSLFunction* HLSLParser::MatchFunctionCall(const HLSLFunctionCall* functi
 {
 	const HLSLFunction* matchedFunction     = NULL;
 
-	int  numArguments           = functionCall->numArguments;
 	int  numMatchedOverloads    = 0;
 	bool nameMatches            = false;
 
@@ -12453,8 +11722,8 @@ const HLSLFunction* HLSLParser::MatchFunctionCall(const HLSLFunctionCall* functi
 	}
 
 	// Get the intrinsic functions with the specified name.
-	int intrinsicId = -1;
-	for (int i = 0; i < m_intrinsicHelper->m_intrinsics.size(); i++)
+	size_t intrinsicId = m_intrinsicHelper->m_intrinsics.size();
+	for (size_t i = 0; i < m_intrinsicHelper->m_intrinsics.size(); i++)
 	{
 		if (String_Equal(m_intrinsicHelper->m_intrinsics[i]->rawName, name))
 		{
@@ -12469,7 +11738,7 @@ const HLSLFunction* HLSLParser::MatchFunctionCall(const HLSLFunctionCall* functi
 				numMatchedOverloads = 1;
 				intrinsicId = i;
 			}
-			else if (result == FunctionsEqual)
+			else if (result == FunctionsEqual && matchedFunction)
 			{
 				++numMatchedOverloads;
 			}
@@ -12477,7 +11746,7 @@ const HLSLFunction* HLSLParser::MatchFunctionCall(const HLSLFunctionCall* functi
 	}
 	
 	// that function is owned by a different memory allocator, so create a new function
-	if (intrinsicId >= 0)
+	if (intrinsicId < m_intrinsicHelper->m_intrinsics.size())
 	{
 		int line = GetLineNumber();
 		const char* fileName = GetFileName();
@@ -12489,14 +11758,14 @@ const HLSLFunction* HLSLParser::MatchFunctionCall(const HLSLFunctionCall* functi
 		buildFunc->name = m_tree->AddStringCached(intrinsic->rawName);
 		buildFunc->returnType.baseType = intrinsic->fullFunction.returnType.baseType;
 		
-		for (int i = 0; i < intrinsic->fullFunction.argumentVec.size(); i++)
+		for (int i = 0; i < intrinsic->fullFunction.args.size(); i++)
 		{
 			HLSLArgument* arg = m_tree->AddNode<HLSLArgument>(fileName,line);
 
-			arg->argType.baseType = intrinsic->fullFunction.argumentVec[i]->argType.baseType;
-			arg->argType.flags = intrinsic->fullFunction.argumentVec[i]->argType.flags;
+			arg->type.baseType = intrinsic->fullFunction.args[i]->type.baseType;
+			arg->type.flags = intrinsic->fullFunction.args[i]->type.flags;
 
-			buildFunc->argumentVec.push_back(arg);
+			buildFunc->args.push_back(arg);
 		}
 
 		matchedFunction = buildFunc;
@@ -12534,31 +11803,10 @@ bool HLSLParser::GetMemberType(HLSLType& objectType, HLSLMemberAccess * memberAc
 	else
 		comparingType = objectType.baseType;
 
-	if (comparingType == HLSLBaseType_UserDefined)
-	{
-		const HLSLStruct* structure = FindUserDefinedType( objectType.typeName );
-		
-		if (structure == NULL)
-			return false;
-
-		const HLSLStructField* field = structure->field;
-		while (field != NULL)
-		{
-			if (String_Equal(field->name,fieldName))
-			{
-				memberAccess->expressionType = field->type;
-				return true;
-			}
-			field = field->nextField;
-		}
-
-		return false;
-	}
-	//hull
-	else if (comparingType == HLSLBaseType_InputPatch || comparingType == HLSLBaseType_OutputPatch)
+	if (comparingType == HLSLBaseType_UserDefined || comparingType == HLSLBaseType_InputPatch || comparingType == HLSLBaseType_OutputPatch)
 	{
 		const HLSLStruct* structure = FindUserDefinedType(objectType.typeName);
-
+		
 		if (structure == NULL)
 			return false;
 
@@ -12580,8 +11828,6 @@ bool HLSLParser::GetMemberType(HLSLType& objectType, HLSLMemberAccess * memberAc
 	{
 		if (String_Equal(fieldName, "Append"))
 		{
-			memberAccess->function = true;
-
 			bool needsEndParen;
 			if (!ParseTerminalExpression(memberAccess->functionExpression, needsEndParen, false))
 				return false;
@@ -12590,8 +11836,6 @@ bool HLSLParser::GetMemberType(HLSLType& objectType, HLSLMemberAccess * memberAc
 		}
 		else if (String_Equal(fieldName, "RestartStrip"))
 		{
-			memberAccess->function = true;
-
 			bool needsEndParen;
 			if (!ParseTerminalExpression(memberAccess->functionExpression, needsEndParen, false))
 				return false;
@@ -12599,7 +11843,6 @@ bool HLSLParser::GetMemberType(HLSLType& objectType, HLSLMemberAccess * memberAc
 			return true;
 		}
 	}
-
 	if (_baseTypeDescriptions[comparingType].numericType == NumericType_NaN)
 	{
 		// Currently we don't have an non-numeric types that allow member access.
@@ -12750,38 +11993,28 @@ bool HLSLParser::GetBufferElementType(HLSLBuffer* pBuffer, bool bAllowVoid, int*
 {
 	if (Accept('<'))
 	{
-		if(!AcceptType(false, pBuffer->type.elementType, pBuffer->type.typeName, pTypeFlag))
-		{
-			return false;
-		}
-
-		if (pBuffer->type.typeName.IsNotEmpty())
-			pBuffer->userDefinedElementTypeStr = pBuffer->type.typeName;
-
-		if (!Expect('>'))
-			return false;
-		else
-			return true;
+		return AcceptType(false, pBuffer->type.elementType, pBuffer->type.typeName, pTypeFlag) && Expect('>');
 	}
 	else
+	{
 		return optional;
+	}
 }
 
-bool IsRegisterId(CachedString str)
+bool IsRegisterId(CachedString str, char& type, int& index)
 {
-	char c;
-	int d;
-	return sscanf(RawStr(str), "%c%d", &c, &d) == 2;
+	return sscanf(RawStr(str), "%c%d", &type, &index) == 2;
 }
 
-bool IsSpaceId(CachedString str)
+bool IsSpaceId(CachedString str, int& index)
 {
-	int d;
-	return sscanf(RawStr(str), "space%d", &d) == 1;
+	return sscanf(RawStr(str), "space%d", &index) == 1;
 }
 
-bool HLSLParser::GetRegisterAssignment(HLSLStatement* pStatement, const char* errorMsg)
+bool HLSLParser::ParseRegisterAssignment(HLSLDeclaration* pDeclaration, const char* errorMsg)
 {
+	char regType;
+	int index;
 	if (Accept(':'))
 	{
 		CachedString id;
@@ -12790,50 +12023,47 @@ bool HLSLParser::GetRegisterAssignment(HLSLStatement* pStatement, const char* er
 			return false;
 		}
 
-		if (IsRegisterId(id))
+		if (IsRegisterId(id, regType, index))
 		{
-			pStatement->registerName = id;
+			pDeclaration->registerName = id;
+			pDeclaration->registerType = regType;
+			pDeclaration->registerIndex = index;
 			// if there is space
-			if (Check(','))
+			if (Accept(','))
 			{
-				m_pFullTokenizer->Next();
-				//get space name
-				if (!ExpectIdentifier(id) || !IsSpaceId(id))
+				if (!ExpectIdentifier(id) || !IsSpaceId(id, index))
 				{
 					return false;
 				}
-				pStatement->registerSpaceName = id;
+				pDeclaration->registerSpaceName = id;
+				pDeclaration->registerSpace = index;
 			}
 			else
 			{
 				// we need to make a distinction between a space specified by the user, vs
 				// no space set, so that the user can specify the default space in the
 				// code generation/tree traversal phase, as opposed to the parsing phase.
-				pStatement->registerSpaceName = m_tree->AddStringCached("none");
+				pDeclaration->registerSpaceName = m_tree->AddStringCached("none");
 			}
 		}
-		else if(IsSpaceId(id))
+		else if(IsSpaceId(id, index))
 		{
-			pStatement->registerName = m_tree->AddStringCached("none");
-			pStatement->registerSpaceName = id;
+			pDeclaration->registerName = m_tree->AddStringCached("none");
+			pDeclaration->registerSpaceName = id;
+			pDeclaration->registerSpace = index;
 		}
 		else
 		{
 			return false;
 		}
 
-		if (!Expect(')'))
-		{
-			return false;
-		}
-
-		return true;
+		return Expect(')');
 	}
 	else
 	{
 		// allow default register placement
-		pStatement->registerName = m_tree->AddStringCached("none");
-		pStatement->registerSpaceName = m_tree->AddStringCached("none");
+		pDeclaration->registerName = m_tree->AddStringCached("none");
+		pDeclaration->registerSpaceName = m_tree->AddStringCached("none");
 
 		return true;
 	}
@@ -12843,8 +12073,6 @@ bool HLSLParser::GetRegisterAssignment(HLSLStatement* pStatement, const char* er
 
 bool HLSLParser::GetBufferBody(HLSLBuffer* pBuffer)
 {
-	HLSLScopedStackTracker stackTracker(this);
-
 	if (Accept('{'))
 	{
 		HLSLDeclaration* lastField = NULL;
@@ -12861,7 +12089,6 @@ bool HLSLParser::GetBufferBody(HLSLBuffer* pBuffer)
 				m_pFullTokenizer->Error("Expected variable declaration");
 				return false;
 			}
-			DeclareVariable(field->cachedName, field->type);
 
 			field->buffer = pBuffer;
 			if (pBuffer->field == NULL)
@@ -12920,68 +12147,32 @@ bool HLSLParser::GetBufferBody(HLSLBuffer* pBuffer)
 		return false;
 }
 
-void HLSLParser::GetBufferArray(HLSLBuffer* pBuffer)
+bool HLSLParser::ParseArrayExpression(HLSLType& type, HLSLExpression* (&arrayDimExpression)[MAX_DIM])
 {
-	// Handle array syntax.
+	// Handle array syntax
+	int i = 0;
 	while (Accept('['))
 	{
-		pBuffer->bArray = true;
-
-		if (Check(']')) //unboundedSize
+		if (Accept(']')) //unboundedSize
 		{
-			pBuffer->arrayIdentifier[pBuffer->arrayDimension].Reset();
-			m_pFullTokenizer->Next();
+			arrayDimExpression[i] = NULL;
 		}
-		else if (!Accept(']'))
+		else if (ParseExpression(arrayDimExpression[i], true,0) && Expect(']'))
 		{
-			if (!String_Equal(m_pFullTokenizer->GetIdentifier(), ""))
-			{
-				pBuffer->arrayIdentifier[pBuffer->arrayDimension] = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
-				m_pFullTokenizer->Next();
-				Expect(']');
-			}
-			else
-			{
-				pBuffer->arrayIndex[pBuffer->arrayDimension] = m_pFullTokenizer->GetuInt();
-				m_pFullTokenizer->Next();
-				Expect(']');
-			}
+			int extent = 0;
+			if (!m_tree->GetExpressionValue(arrayDimExpression[i], extent))
+				return false;
+			type.arrayExtent[i] = extent;
 		}
-
-		pBuffer->arrayDimension++;
+		else
+		{
+			return false;
+		}
+		++i;
 	}
-}
-
-void HLSLParser::GetTextureArray(HLSLTextureState* pTextureState)
-{
-	// Handle array syntax.
-	while (Accept('['))
-	{
-		pTextureState->bArray = true;
-
-		if (Check(']')) //unboundedSize
-		{
-			pTextureState->arrayIdentifier[pTextureState->arrayDimension].Reset();
-			m_pFullTokenizer->Next();
-		}
-		else if (!Accept(']'))
-		{
-			if (!String_Equal(m_pFullTokenizer->GetIdentifier(), ""))
-			{
-				pTextureState->arrayIdentifier[pTextureState->arrayDimension] = m_tree->AddStringCached(m_pFullTokenizer->GetIdentifier());
-				m_pFullTokenizer->Next();
-				Expect(']');
-			}
-			else
-			{
-				pTextureState->arrayIndex[pTextureState->arrayDimension] = m_pFullTokenizer->GetuInt();
-				m_pFullTokenizer->Next();
-				Expect(']');
-			}
-		}
-
-		pTextureState->arrayDimension++;
-	}
+	type.arrayDimension = i;
+	type.array = i > 0;
+	return true;
 }
 
 
@@ -13015,7 +12206,10 @@ bool HLSLParser::GetTextureElementType(HLSLTextureState* pTextureState, bool bAl
 			return true;
 	}
 	else
+	{
+		pTextureState->type.elementType = HLSLBaseType_Float4;
 		return optional;
+	}
 }
 
 bool HLSLParser::AcceptBufferType(HLSLBuffer* pBuffer)

@@ -84,7 +84,7 @@ static const float shadowSamples[NUM_SHADOW_SAMPLES * 2] =
 };
 #endif
 
-cbuffer ShadowUniformBuffer : register(b2, space1)
+cbuffer ShadowUniformBuffer : register(b2, UPDATE_FREQ_PER_FRAME)
 {
     float4x4 LightViewProj;
 };

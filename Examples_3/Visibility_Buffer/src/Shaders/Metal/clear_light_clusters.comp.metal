@@ -27,9 +27,14 @@ using namespace metal;
 
 #include "shader_defs.h"
 
+struct CSData {
+    device uint32_t* lightClustersCount [[id(0)]];
+};
+
 //[numthreads(8, 8, 1)]
 kernel void stageMain(uint2 threadId [[thread_position_in_grid]],
-                      device uint32_t* lightClustersCount [[buffer(0)]])
+                      constant CSData& csData [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
-    lightClustersCount[LIGHT_CLUSTER_COUNT_POS(threadId.x, threadId.y)] = 0;
+    csData.lightClustersCount[LIGHT_CLUSTER_COUNT_POS(threadId.x, threadId.y)] = 0;
 }

@@ -1,6 +1,6 @@
 RaytracingAccelerationStructure		gRtScene	: register(t0);
 
-cbuffer gSettings : register(b0)
+cbuffer gSettings : register(b0, space1)
 {
 	float3 CameraPosition;
 	uint  _pad0;

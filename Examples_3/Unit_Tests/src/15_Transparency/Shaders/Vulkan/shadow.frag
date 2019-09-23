@@ -25,7 +25,7 @@
 #version 450 core
 #extension GL_GOOGLE_include_directive : require
 
-#include "varianceShadowMapping.glsl"
+#include "varianceShadowMapping.h"
 
 layout(early_fragment_tests) in;
 

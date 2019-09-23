@@ -36,12 +36,12 @@
 
 RWTexture2D<float4> outputTexture : register(u1);
 
-cbuffer uniformBlock : register(b0) 
+cbuffer uniformBlock : register(b0, UPDATE_FREQ_PER_FRAME) 
 {
 	float4x4 mvp;
 	float4 c_diffuse;  // diffuse shading color
 	float4 c_mu;       // julia quaternion parameter
-	float  c_epsilon;  // julia detail  	
+	float  c_epsilon;  // julia detail
 	float  zoom;
 
 	int    c_width;	   // size view port

@@ -27,14 +27,14 @@
 #define PI 3.1415926289793f
 
 
-Texture2D<float> DepthTexture : register(t0, space1);
-Texture3D<float> SDFVolumeTextureAtlas : register(t0, space0);
-RWTexture2D<float2> OutTexture : register(u0, space0);
+Texture2D<float> DepthTexture : register(t0, UPDATE_FREQ_NONE);
+Texture3D<float> SDFVolumeTextureAtlas : register(t1, UPDATE_FREQ_NONE);
+RWTexture2D<float2> OutTexture : register(u0, UPDATE_FREQ_NONE);
 
-SamplerState clampToEdgeTrillinearSampler : register(s0, space0);
-SamplerState clampToEdgeNearSampler : register(s1, space0);
+SamplerState clampToEdgeTrillinearSampler : register(s0, UPDATE_FREQ_NONE);
+SamplerState clampToEdgeNearSampler : register(s1, UPDATE_FREQ_NONE);
 
-cbuffer cameraUniformBlock : register(b0, space0)
+cbuffer cameraUniformBlock : register(b0, UPDATE_FREQ_PER_FRAME)
 {
     float4x4 View;
     float4x4 Project;
@@ -56,7 +56,7 @@ cbuffer cameraUniformBlock : register(b0, space0)
 	float4 mDeviceZToWorldZ;
 };
 
-cbuffer meshSDFUniformBlock : register(b1, space0)
+cbuffer meshSDFUniformBlock : register(b1, UPDATE_FREQ_PER_FRAME)
 {
 	float4x4 mWorldToVolumeMat[SDF_MAX_OBJECT_COUNT];
 	float4 mUVScaleAndVolumeScale[SDF_MAX_OBJECT_COUNT];
@@ -67,7 +67,7 @@ cbuffer meshSDFUniformBlock : register(b1, space0)
 
 };
 
-cbuffer lightUniformBlock : register(b2, space0)
+cbuffer lightUniformBlock : register(b2, UPDATE_FREQ_PER_FRAME)
 {
     float4x4 lightViewProj;
     float4 lightPosition;
@@ -76,7 +76,6 @@ cbuffer lightUniformBlock : register(b2, space0)
 	float4 mTanLightAngleAndThresholdValue;
 	float3 mLightDir;
 };
-
 
 float2 LineBoxIntersect(float3 RayOrigin, float3 RayEnd, float3 BoxMin, float3 BoxMax)
 {
@@ -252,7 +251,7 @@ void main(uint3 GroupID : SV_GroupID,
 
 	float worldZ = ConvertFromDeviceZ(depthVal);
 
-	float RayStartOffset = 1.75f + 0.005f * worldZ;
+	float RayStartOffset = 1.75f + 0.008f * worldZ;
 		
 	float minSphereRadius = .4f;
 	float maxSphereRadius = 10.f;

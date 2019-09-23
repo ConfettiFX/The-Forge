@@ -50,7 +50,7 @@ static const float PI_DIV2 = 1.57079632679;
 //
 // SHADER INTERFACE
 //
-cbuffer cbCamera : register(b0) 
+cbuffer cbCamera : register(b0, UPDATE_FREQ_PER_FRAME) 
 {
 	float4x4 projView;
 	float4x4 invProjView;
@@ -67,7 +67,7 @@ cbuffer cbCamera : register(b0)
 	float fNormalMapIntensity;
 }
 
-cbuffer cbObject : register(b1, space3) 
+cbuffer cbObject : register(b1, UPDATE_FREQ_PER_DRAW) 
 {
 	float4x4 worldMat;
 	float3 albedo;
@@ -96,11 +96,11 @@ Texture2D<float2> brdfIntegrationMap : register(t3);
 TextureCube<float4> irradianceMap : register(t4);
 TextureCube<float4> specularMap : register(t5);
 
-Texture2D albedoMap : register(t7, space3);
-Texture2D normalMap : register(t8, space3);
-Texture2D metallicMap : register(t9, space3);
-Texture2D roughnessMap : register(t10, space3);
-Texture2D aoMap : register(t11, space3);
+Texture2D albedoMap : register(t7, UPDATE_FREQ_PER_DRAW);
+Texture2D normalMap : register(t8, UPDATE_FREQ_PER_DRAW);
+Texture2D metallicMap : register(t9, UPDATE_FREQ_PER_DRAW);
+Texture2D roughnessMap : register(t10, UPDATE_FREQ_PER_DRAW);
+Texture2D aoMap : register(t11, UPDATE_FREQ_PER_DRAW);
 
 Texture2D shadowMap : register(t12);
 

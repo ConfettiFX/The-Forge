@@ -54,14 +54,24 @@ struct PsIn
 	float2 uv;
 };
 
-vertex PsIn stageMain(	VsIn	 In						[[stage_in]],
-						constant CameraData& cbCamera	[[buffer(1)]],
-						constant ObjectData& cbObject	[[buffer(2)]])
+struct FSDataPerFrame {
+    constant CameraData& cbCamera                   [[id(0)]];
+};
+
+struct FSDataPerDraw {
+    constant ObjectData& cbObject                   [[id(0)]];
+};
+
+vertex PsIn stageMain(
+    VsIn	 In						                    [[stage_in]],
+    constant FSDataPerFrame& fsDataPerFrame             [[buffer(UPDATE_FREQ_PER_FRAME)]],
+    constant FSDataPerDraw& fsDataPerDraw               [[buffer(UPDATE_FREQ_PER_DRAW)]]
+)
 {
 	PsIn Out;
-	Out.position = cbCamera.projView * cbObject.worldMat * float4(In.position.xyz, 1.0f);
-	Out.normal = normalize((cbObject.worldMat * float4(In.normal, 0.0f)).rgb);
-	Out.pos = (cbObject.worldMat * float4(In.position.xyz, 1.0f)).rgb;
+	Out.position = fsDataPerFrame.cbCamera.projView * fsDataPerDraw.cbObject.worldMat * float4(In.position.xyz, 1.0f);
+	Out.normal = normalize((fsDataPerDraw.cbObject.worldMat * float4(In.normal, 0.0f)).rgb);
+	Out.pos = (fsDataPerDraw.cbObject.worldMat * float4(In.position.xyz, 1.0f)).rgb;
 	Out.uv = In.texCoord;
 
 	return Out;

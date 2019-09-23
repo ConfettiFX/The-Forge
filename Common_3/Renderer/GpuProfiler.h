@@ -35,7 +35,7 @@ struct Cmd;
 struct Renderer;
 struct Buffer;
 struct Queue;
-struct QueryHeap;
+struct QueryPool;
 struct ProfileThreadLog;
 
 typedef struct GpuTimer
@@ -71,7 +71,7 @@ typedef struct GpuProfiler
 	// double buffered
 	const static uint32_t NUM_OF_FRAMES = 2;
 	Buffer*               pReadbackBuffer[NUM_OF_FRAMES];
-	QueryHeap*            pQueryHeap[NUM_OF_FRAMES];
+	QueryPool*            pQueryPool[NUM_OF_FRAMES];
 	uint64_t*             pTimeStamp;
 	uint64_t*             pTimeStampBuffer;
 	double                mGpuTimeStampFrequency;

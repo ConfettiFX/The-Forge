@@ -64,37 +64,37 @@ struct VertexPos
 	float x, y, z;
 };
 
-layout(std430, set = 0, UNIT_VERTEX_DATA) restrict readonly buffer vertexDataBuffer
+layout(std430, UNIT_VERTEX_DATA) restrict readonly buffer vertexDataBuffer
 {
 	VertexPos VertexDataBufferData[];
 };
 
-layout(std430, set = 0, UNIT_INDEX_DATA) restrict readonly buffer indexDataBuffer
+layout(std430, UNIT_INDEX_DATA) restrict readonly buffer indexDataBuffer
 {
 	uint IndexDataBufferData[];
 };
 
-layout(std430, set = 0, UNIT_MESH_CONSTANTS) restrict readonly buffer meshConstantsBuffer
+layout(std430, UNIT_MESH_CONSTANTS) restrict readonly buffer meshConstantsBuffer
 {
 	MeshConstants MeshConstantsBufferData[];
 };
 
-layout(set = 0, UNIT_BATCH_DATA_CBV) uniform batchData
+layout(UNIT_BATCH_DATA_CBV) uniform batchData_rootcbv
 {
 	SmallBatchData SmallBatchDataBufferData[BATCH_COUNT];
 };
 
-layout(set = 0, UNIT_UNIFORMS_CBV) uniform uniforms
+layout(UNIT_UNIFORMS_CBV) uniform uniforms
 {
 	PerFrameConstants uniformsData;
 };
 
-layout(std430, set = 0, UNIT_INDEX_DATA_RW) restrict writeonly buffer filteredIndicesBufferBlock
+layout(std430, UNIT_INDEX_DATA_RW) restrict writeonly buffer filteredIndicesBufferBlock
 {
 	uint data[];
 } filteredIndicesBuffer[NUM_CULLING_VIEWPORTS];
 
-layout(std430, set = 0, UNIT_UNCOMPACTED_ARGS_RW) restrict buffer uncompactedDrawArgsBlock
+layout(std430, UNIT_UNCOMPACTED_ARGS_RW) restrict buffer uncompactedDrawArgsBlock
 {
 	UncompactedDrawArguments data[];
 } uncompactedDrawArgsRW[NUM_CULLING_VIEWPORTS];

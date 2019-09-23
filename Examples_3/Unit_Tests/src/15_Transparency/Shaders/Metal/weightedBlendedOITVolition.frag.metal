@@ -89,13 +89,13 @@ struct Fragment_Shader
     {
         array<texture2d<float, access::sample>, MAX_NUM_TEXTURES> Textures;
     };
-    constant Uniforms_MaterialTextures & MaterialTextures;
+    constant texture2d<float, access::sample>* MaterialTextures;
     sampler LinearSampler;
     float4 Shade(uint matID, float2 uv, float3 worldPos, float3 normal)
     {
         float nDotl = dot(normal, (-LightUniformBlock.lightDirection.xyz));
         Material mat = MaterialUniform.Materials[matID];
-        float4 matColor = (((mat.TextureFlags & (uint)(1)))?(MaterialTextures.Textures[mat.AlbedoTexID].sample(LinearSampler, uv)):(mat.Color));
+        float4 matColor = (((mat.TextureFlags & (uint)(1)))?(MaterialTextures[mat.AlbedoTexID].sample(LinearSampler, uv)):(mat.Color));
         float3 viewVec = normalize((worldPos - CameraUniform.camPosition.xyz));
         if ((nDotl < 0.05))
         {
@@ -187,7 +187,7 @@ texture2d<float> VSMRed,texture2d<float> VSMGreen,texture2d<float> VSMBlue,
 #endif
 
 #endif
-constant Uniforms_LightUniformBlock & LightUniformBlock,constant Uniforms_CameraUniform & CameraUniform,constant Uniforms_MaterialUniform & MaterialUniform,constant Uniforms_MaterialTextures & MaterialTextures,sampler LinearSampler,constant Uniforms_WBOITSettings & WBOITSettings) :
+constant Uniforms_LightUniformBlock & LightUniformBlock,constant Uniforms_CameraUniform & CameraUniform,constant Uniforms_MaterialUniform & MaterialUniform,constant texture2d<float, access::sample>* MaterialTextures,sampler LinearSampler,constant Uniforms_WBOITSettings & WBOITSettings) :
 
 #if USE_SHADOWS!=0
 VSM(VSM),VSMSampler(VSMSampler),
@@ -199,24 +199,32 @@ VSMRed(VSMRed),VSMGreen(VSMGreen),VSMBlue(VSMBlue),
 LightUniformBlock(LightUniformBlock),CameraUniform(CameraUniform),MaterialUniform(MaterialUniform),MaterialTextures(MaterialTextures),LinearSampler(LinearSampler),WBOITSettings(WBOITSettings) {}
 };
 
+struct FSData {
+#if USE_SHADOWS!=0
+    texture2d<float> VSM;
+    sampler VSMSampler;
+#if PT_USE_CAUSTICS!=0
+    texture2d<float> VSMRed;
+    texture2d<float> VSMGreen;
+    texture2d<float> VSMBlue;
+#endif
+#endif
+    texture2d<float, access::sample> MaterialTextures[MAX_NUM_TEXTURES];
+    sampler LinearSampler;
+};
+
+struct FSDataPerFrame {
+    constant Fragment_Shader::Uniforms_LightUniformBlock & LightUniformBlock;
+    constant Fragment_Shader::Uniforms_CameraUniform & CameraUniform;
+    constant Fragment_Shader::Uniforms_MaterialUniform & MaterialUniform;
+    constant Fragment_Shader::Uniforms_WBOITSettings & WBOITSettings;
+};
 
 fragment Fragment_Shader::PSOutput stageMain(
     Fragment_Shader::VSOutput input [[stage_in]],
-#if USE_SHADOWS!=0
-    texture2d<float> VSM [[texture(15)]],
-    sampler VSMSampler [[sampler(1)]],
-#if PT_USE_CAUSTICS!=0
-    texture2d<float> VSMRed [[texture(17)]],
-    texture2d<float> VSMGreen [[texture(18)]],
-    texture2d<float> VSMBlue [[texture(19)]],
-#endif
-#endif
-    constant Fragment_Shader::Uniforms_LightUniformBlock & LightUniformBlock [[buffer(10)]],
-    constant Fragment_Shader::Uniforms_CameraUniform & CameraUniform [[buffer(11)]],
-    constant Fragment_Shader::Uniforms_MaterialUniform & MaterialUniform [[buffer(12)]],
-    constant Fragment_Shader::Uniforms_MaterialTextures & MaterialTextures [[buffer(13)]],
-    sampler LinearSampler [[sampler(0)]],
-    constant Fragment_Shader::Uniforms_WBOITSettings & WBOITSettings [[buffer(20)]])
+    constant FSData& fsData [[buffer(UPDATE_FREQ_NONE)]],
+    constant FSDataPerFrame& fsDataPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
     Fragment_Shader::VSOutput input0;
     input0.Position = float4(input.Position.xyz, 1.0 / input.Position.w);
@@ -226,19 +234,19 @@ fragment Fragment_Shader::PSOutput stageMain(
     input0.MatID = input.MatID;
     Fragment_Shader main(
 #if USE_SHADOWS!=0
-    VSM,
-    VSMSampler,
+    fsData.VSM,
+    fsData.VSMSampler,
 #if PT_USE_CAUSTICS!=0
-    VSMRed,
-    VSMGreen,
-    VSMBlue,
+    fsData.VSMRed,
+    fsData.VSMGreen,
+    fsData.VSMBlue,
 #endif
 #endif
-    LightUniformBlock,
-    CameraUniform,
-    MaterialUniform,
-    MaterialTextures,
-    LinearSampler,
-    WBOITSettings);
+    fsDataPerFrame.LightUniformBlock,
+    fsDataPerFrame.CameraUniform,
+    fsDataPerFrame.MaterialUniform,
+    fsData.MaterialTextures,
+    fsData.LinearSampler,
+    fsDataPerFrame.WBOITSettings);
     return main.main(input0);
 }

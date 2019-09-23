@@ -285,9 +285,6 @@ class FontRendering: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		initProfiler(pRenderer);
-
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 		finishResourceLoading();
 
 		// initialize UI middleware
@@ -324,19 +321,16 @@ class FontRendering: public IApp
 		if (!initInputSystem(pWindow))
 			return false;
 
-		// Microprofiler Actions
-		// #TODO: Remove this once the profiler UI is ported to use our UI system
-		InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gMicroProfiler; } };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
-		addInputAction(&actionDesc);
+    initProfiler();
+
+    addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		// App Actions
-		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+    InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_ANY, [](InputActionContext* ctx) { return gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gMicroProfiler); } };
+		actionDesc = { InputBindings::BUTTON_ANY, [](InputActionContext* ctx) { return gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition); } };
 		addInputAction(&actionDesc);
 
 		return true;
@@ -388,7 +382,7 @@ class FontRendering: public IApp
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
-		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
+		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		return true;
 	}
@@ -405,15 +399,9 @@ class FontRendering: public IApp
 	{
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
-		// ProfileSetDisplayMode()
-		// TODO: need to change this better way 
 		if (gMicroProfiler != bPrevToggleMicroProfiler)
 		{
-			Profile& S = *ProfileGet();
-			int nValue = gMicroProfiler ? 1 : 0;
-			nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
-			S.nDisplay = nValue;
-
+      toggleProfiler();
 			bPrevToggleMicroProfiler = gMicroProfiler;
 		}
 
@@ -471,7 +459,7 @@ class FontRendering: public IApp
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
 
 		TextureBarrier barrier = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
-		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, false);
+		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier);
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
@@ -505,12 +493,12 @@ class FontRendering: public IApp
 		if (gbShowSceneControlsUIWindow)
 			gAppUI.Gui(pUIWindow);
 
-		cmdDrawProfiler(cmd);
+		cmdDrawProfiler();
 		gAppUI.Draw(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		barrier = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, true);
+		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier);
 		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 		endCmd(cmd);
 

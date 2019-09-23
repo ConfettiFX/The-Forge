@@ -36,35 +36,27 @@
 #include "shading.h"
 
 #if(SAMPLE_COUNT > 1)
-layout(set = 0, binding=0) uniform texture2DMS gBufferColor;
-layout(set = 0, binding=1) uniform texture2DMS gBufferNormal;
-layout(set = 0, binding=2) uniform texture2DMS gBufferSpecular;
-layout(set = 0, binding=3) uniform texture2DMS gBufferDepth;
-layout(set = 0, binding = 4) uniform texture2DMS gBufferSimulation;
+layout(UPDATE_FREQ_NONE, binding=0) uniform texture2DMS gBufferColor;
+layout(UPDATE_FREQ_NONE, binding=1) uniform texture2DMS gBufferNormal;
+layout(UPDATE_FREQ_NONE, binding=2) uniform texture2DMS gBufferSpecular;
+layout(UPDATE_FREQ_NONE, binding=3) uniform texture2DMS gBufferDepth;
+layout(UPDATE_FREQ_NONE, binding = 4) uniform texture2DMS gBufferSimulation;
 #else
-layout(set = 0, binding=0) uniform texture2D gBufferColor;
-layout(set = 0, binding=1) uniform texture2D gBufferNormal;
-layout(set = 0, binding=2) uniform texture2D gBufferSpecular;
-layout(set = 0, binding=3) uniform texture2D gBufferSimulation;
-layout(set = 0, binding=4) uniform texture2D gBufferDepth;
+layout(UPDATE_FREQ_NONE, binding=0) uniform texture2D gBufferColor;
+layout(UPDATE_FREQ_NONE, binding=1) uniform texture2D gBufferNormal;
+layout(UPDATE_FREQ_NONE, binding=2) uniform texture2D gBufferSpecular;
+layout(UPDATE_FREQ_NONE, binding=3) uniform texture2D gBufferSimulation;
+layout(UPDATE_FREQ_NONE, binding=4) uniform texture2D gBufferDepth;
 #endif
-layout(set = 0, binding = 5) uniform texture2D shadowMap;
+layout(UPDATE_FREQ_NONE, binding = 5) uniform texture2D shadowMap;
 #if USE_AMBIENT_OCCLUSION
-layout(set = 0, binding = 6) uniform texture2D aoTex;
+layout(UPDATE_FREQ_NONE, binding = 6) uniform texture2D aoTex;
 #endif
-layout(set = 0, binding = 7) uniform sampler depthSampler;
-layout(set = 0, binding = 8) uniform uniforms
+layout(UPDATE_FREQ_NONE, binding = 7) uniform sampler depthSampler;
+layout(UPDATE_FREQ_PER_FRAME, binding = 8) uniform uniforms
 {
 	PerFrameConstants uniformsData;
 };
-
-layout(push_constant) uniform RootConstantDrawScene_Block
-{
-    vec4 lightColor;
-	uint lightingMode;
-	uint outputMode;
-	vec4 CameraPlane; //x : near, y : far
-}RootConstantDrawScene;
 
 layout(location = 0) in vec2 iScreenPos;
 
@@ -136,7 +128,7 @@ void main()
 	
 	float shadowFactor = 1.0f;
 
-	float fLightingMode = clamp(float(RootConstantDrawScene.lightingMode), 0.0, 1.0);
+	float fLightingMode = clamp(float(uniformsData.lightingMode), 0.0, 1.0);
 
 	float Roughness = clamp(specularData.a, 0.05f, 0.99f);
 	float Metallic = specularData.b;
@@ -164,7 +156,7 @@ void main()
 			shadowFactor);
 
 
-	shadedColor = shadedColor * RootConstantDrawScene.lightColor.rgb * RootConstantDrawScene.lightColor.a * NoL * ao;
+	shadedColor = shadedColor * uniformsData.lightColor.rgb * uniformsData.lightColor.a * NoL * ao;
 
 	float ambientIntencity = 0.2f;
 	vec3 ambient = colorData.xyz * ambientIntencity;

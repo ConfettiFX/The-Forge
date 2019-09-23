@@ -26,7 +26,7 @@ struct PsIn {
 	float4 Position : SV_POSITION;
 };
 
-cbuffer UniformBufferSunMatrices : register(b0) {
+cbuffer UniformBufferSunMatrices : register(b0, UPDATE_FREQ_PER_FRAME) {
 	float4x4 projView;
 	float4x4 modelMat;
 	float4 mLightColor;

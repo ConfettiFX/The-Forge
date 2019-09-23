@@ -11,7 +11,7 @@ SamplerState Sampler;
 cbuffer CB_RootConstant
 {	
 	float4 uColor;
-	float   uWeights[5];
+	float  uWeights[5];
 };
 
 float4 main( Vertex_Output In ) : SV_TARGET

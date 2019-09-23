@@ -1,0 +1,12 @@
+Texture2D<float4> albedobuffer : register(t0);
+Texture2D lightbuffer : register(t1);
+
+RWTexture2D<float4> outputRT : register(u2);
+
+[numthreads(16, 16, 1)]
+void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)
+{
+	float3 albedo =  albedobuffer[DTid.xy].xyz;
+	float3 diffuse = lightbuffer[DTid.xy].xyz;
+	outputRT[DTid.xy] = float4(diffuse*albedo, 0);
+}

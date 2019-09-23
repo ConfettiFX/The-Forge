@@ -1,4 +1,4 @@
-cbuffer SceneConstantBuffer : register(b0)
+cbuffer SceneConstantBuffer : register(b0, UPDATE_FREQ_PER_FRAME)
 {
 	float4x4 orthProjMatrix;
 	float2 mousePosition;

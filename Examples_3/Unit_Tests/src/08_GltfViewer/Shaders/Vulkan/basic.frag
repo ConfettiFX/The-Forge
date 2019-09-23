@@ -89,7 +89,7 @@ const float shadowSamples[NUM_SHADOW_SAMPLES * 2] =
 };
 #endif
 
-layout(std140, set = 0, binding = 0) uniform cbPerPass
+layout(std140, UPDATE_FREQ_PER_FRAME, binding = 0) uniform cbPerPass
 {
 	uniform mat4    projView;
 	uniform vec4    camPos;
@@ -98,7 +98,7 @@ layout(std140, set = 0, binding = 0) uniform cbPerPass
 	uniform ivec4   quantizationParams;
 };
 
-layout(std140, set = 1, binding = 0) uniform cbPerProp
+layout(std140, UPDATE_FREQ_PER_DRAW, binding = 0) uniform cbPerProp
 {
 	uniform mat4  world;
 	uniform mat4  InvTranspose;
@@ -115,23 +115,25 @@ layout(std140, set = 1, binding = 0) uniform cbPerProp
 	uniform vec2  padding00;
 };
 
-layout(std140, set = 1, binding = 2) uniform ShadowUniformBuffer
+layout(std140, UPDATE_FREQ_PER_FRAME, binding = 2) uniform ShadowUniformBuffer
 {
 	uniform mat4    LightViewProj;
 };
 
-layout(set = 0, binding = 1) uniform texture2D albedoMap;
-layout(set = 0, binding = 2) uniform texture2D normalMap;
-layout(set = 0, binding = 3) uniform texture2D metallicRoughnessMap;
-layout(set = 0, binding = 4) uniform texture2D aoMap;
-layout(set = 0, binding = 5) uniform texture2D emissiveMap;
-layout(set = 0, binding = 14) uniform texture2D ShadowTexture;
-layout(set = 0, binding = 6)  uniform sampler samplerAlbedo;
-layout(set = 0, binding = 7)  uniform sampler samplerNormal;
-layout(set = 0, binding = 8)  uniform sampler samplerMR;
-layout(set = 0, binding = 9)  uniform sampler samplerAO;
-layout(set = 0, binding = 10) uniform sampler samplerEmissive;
-layout(set = 0, binding = 16) uniform sampler clampMiplessLinearSampler;
+layout(UPDATE_FREQ_PER_DRAW, binding = 1) uniform texture2D albedoMap;
+layout(UPDATE_FREQ_PER_DRAW, binding = 2) uniform texture2D normalMap;
+layout(UPDATE_FREQ_PER_DRAW, binding = 3) uniform texture2D metallicRoughnessMap;
+layout(UPDATE_FREQ_PER_DRAW, binding = 4) uniform texture2D aoMap;
+layout(UPDATE_FREQ_PER_DRAW, binding = 5) uniform texture2D emissiveMap;
+
+layout(UPDATE_FREQ_PER_DRAW, binding = 6)  uniform sampler samplerAlbedo;
+layout(UPDATE_FREQ_PER_DRAW, binding = 7)  uniform sampler samplerNormal;
+layout(UPDATE_FREQ_PER_DRAW, binding = 8)  uniform sampler samplerMR;
+layout(UPDATE_FREQ_PER_DRAW, binding = 9)  uniform sampler samplerAO;
+layout(UPDATE_FREQ_PER_DRAW, binding = 10) uniform sampler samplerEmissive;
+
+layout(UPDATE_FREQ_NONE, binding = 14) uniform texture2D ShadowTexture;
+layout(UPDATE_FREQ_NONE, binding = 16) uniform sampler clampMiplessLinearSampler;
 
 layout(location = 0) in vec3 worldPosition;
 layout(location = 1) in vec3 worldNormal;
@@ -214,7 +216,15 @@ vec3 getNormalFromMap()
 
     vec3 N   = normalize(worldNormal);
     vec3 T  = normalize(Q1*st2.t - Q2*st1.t);
-    vec3 B  = -normalize(cross(N, T));
+	T = normalize(T);
+
+	if(isnan(T.x) ||isnan(T.y) || isnan(T.z))
+	{
+		vec3 UpVec = abs(N.y) < 0.999 ? vec3(0.0, 1.0, 0.0) : vec3(0.0, 0.0, 1.0);
+		T = normalize(cross(N, UpVec));
+	}
+
+    vec3 B  = normalize(cross(T, N));
     mat3 TBN = mat3(T, B, N);
 
     return normalize(TBN * tangentNormal);

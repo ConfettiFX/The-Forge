@@ -60,9 +60,8 @@ struct Fragment_Shader
 
 
 fragment float4 stageMain(
-    Fragment_Shader::VSOutput input [[stage_in]],
-    sampler uSampler0 [[sampler(0)]],
-    texture2d<float> Texture [[texture(0)]])
+    Fragment_Shader::VSOutput input [[stage_in]]
+)
 {
     Fragment_Shader::VSOutput input0;
     input0.Position = float4(input.Position.xyz, 1.0 / input.Position.w);

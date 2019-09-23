@@ -38,16 +38,20 @@ sampler PointSampler,texture2d<float> AccumulationTexture,texture2d<float> Revea
 PointSampler(PointSampler),AccumulationTexture(AccumulationTexture),RevealageTexture(RevealageTexture) {}
 };
 
+struct FSData {
+    sampler PointSampler;
+    texture2d<float> AccumulationTexture;
+    texture2d<float> RevealageTexture;
+};
 
 fragment float4 stageMain(
 Fragment_Shader::VSOutput input [[stage_in]],
-    sampler PointSampler [[sampler(0)]],
-texture2d<float> AccumulationTexture [[texture(0)]],
-texture2d<float> RevealageTexture [[texture(1)]])
+constant FSData& fsData [[buffer(UPDATE_FREQ_NONE)]]
+)
 {
     Fragment_Shader::VSOutput input0;
     input0.Position = float4(input.Position.xyz, 1.0 / input.Position.w);
     input0.UV = input.UV;
-    Fragment_Shader main(PointSampler, AccumulationTexture, RevealageTexture);
+    Fragment_Shader main(fsData.PointSampler, fsData.AccumulationTexture, fsData.RevealageTexture);
     return main.main(input0);
 }

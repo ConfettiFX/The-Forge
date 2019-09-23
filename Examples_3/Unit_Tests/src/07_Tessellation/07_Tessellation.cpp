@@ -217,7 +217,11 @@ Shader*           pComputeShader = NULL;
 Pipeline*         pComputePipeline = NULL;
 RootSignature*    pComputeRootSignature = NULL;
 
-DescriptorBinder* pDescriptorBinder = NULL;
+DescriptorSet*    pDescriptorSetCompute[2] = { NULL };
+DescriptorSet*    pDescriptorSetGrass = NULL;
+#ifdef METAL
+DescriptorSet*    pDescriptorSetGrassVertexHull[2] = { NULL };
+#endif
 
 uint32_t gFrameIndex = 0;
 
@@ -281,9 +285,6 @@ class Tessellation: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		initProfiler(pRenderer);
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
-
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Absolute))
 		{
 			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
@@ -315,18 +316,24 @@ class Tessellation: public IApp
 		addRootSignature(pRenderer, &grassRootDesc, &pGrassRootSignature);
 		addRootSignature(pRenderer, &computeRootDesc, &pComputeRootSignature);
 
-		eastl::vector<DescriptorBinderDesc> descriptorBinderDesc;
-		descriptorBinderDesc.push_back({ pGrassRootSignature });
-		descriptorBinderDesc.push_back({ pComputeRootSignature });
+		DescriptorSetDesc setDesc = { pComputeRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetCompute[0]);
+		setDesc = { pComputeRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetCompute[1]);
+		setDesc = { pGrassRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGrass);
 
 #ifdef METAL
 		addShader(pRenderer, &grassVertexHullShader, &pGrassVertexHullShader);
 
 		RootSignatureDesc vertexHullRootDesc = { &pGrassVertexHullShader, 1 };
 		addRootSignature(pRenderer, &vertexHullRootDesc, &pGrassVertexHullRootSignature);
-		descriptorBinderDesc.push_back({ pGrassVertexHullRootSignature });
+
+		setDesc = { pGrassVertexHullRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGrassVertexHull[0]);
+		setDesc = { pGrassVertexHullRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGrassVertexHull[1]);
 #endif
-		addDescriptorBinder(pRenderer, 0, (uint32_t)descriptorBinderDesc.size(), descriptorBinderDesc.data(), &pDescriptorBinder);
 
 		PipelineDesc pipelineDesc = { };
 		pipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
@@ -514,15 +521,11 @@ class Tessellation: public IApp
 		if (!initInputSystem(pWindow))
 			return false;
 
-		// Microprofiler Actions
-		// #TODO: Remove this once the profiler UI is ported to use our UI system
-		InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gMicroProfiler; } };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
-		addInputAction(&actionDesc);
+    initProfiler();
+    addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		// App Actions
-		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+    InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
@@ -530,7 +533,7 @@ class Tessellation: public IApp
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gMicroProfiler);
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -553,6 +556,39 @@ class Tessellation: public IApp
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
 
+		// Prepare descriptor sets
+		DescriptorData computeParams[4] = {};
+		computeParams[0].pName = "Blades";
+		computeParams[0].ppBuffers = &pBladeStorageBuffer;
+		computeParams[1].pName = "CulledBlades";
+		computeParams[1].ppBuffers = &pCulledBladeStorageBuffer;
+		computeParams[2].pName = "NumBlades";
+		computeParams[2].ppBuffers = &pBladeNumBuffer;
+		updateDescriptorSet(pRenderer, 0, pDescriptorSetCompute[0], 3, computeParams);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			computeParams[0].pName = "GrassUniformBlock";
+			computeParams[0].ppBuffers = &pGrassUniformBuffer[i];
+			updateDescriptorSet(pRenderer, i, pDescriptorSetCompute[1], 1, computeParams);
+			updateDescriptorSet(pRenderer, i, pDescriptorSetGrass, 1, computeParams);
+#ifdef METAL
+			updateDescriptorSet(pRenderer, i, pDescriptorSetGrassVertexHull[1], 1, computeParams);
+#endif
+		}
+
+#ifdef METAL
+		DescriptorData vertexHullParams[4] = {};
+		vertexHullParams[0].pName = "vertexInput";
+		vertexHullParams[0].ppBuffers = &pCulledBladeStorageBuffer;
+		vertexHullParams[1].pName = "drawInfo";
+		vertexHullParams[1].ppBuffers = &pBladeNumBuffer;
+		vertexHullParams[2].pName = "tessellationFactorBuffer";
+		vertexHullParams[2].ppBuffers = &pTessFactorsBuffer;
+		vertexHullParams[3].pName = "hullOutputBuffer";
+		vertexHullParams[3].ppBuffers = &pHullOutputBuffer;
+		updateDescriptorSet(pRenderer, 0, pDescriptorSetGrassVertexHull[0], 4, vertexHullParams);
+#endif
+
 		return true;
 	}
 
@@ -567,6 +603,14 @@ class Tessellation: public IApp
 		destroyCameraController(pCameraController);
 
 		gAppUI.Exit();
+
+		removeDescriptorSet(pRenderer, pDescriptorSetGrass);
+		removeDescriptorSet(pRenderer, pDescriptorSetCompute[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetCompute[1]);
+#ifdef METAL
+		removeDescriptorSet(pRenderer, pDescriptorSetGrassVertexHull[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetGrassVertexHull[1]);
+#endif
 
 		removeResource(pBladeStorageBuffer);
 		removeResource(pCulledBladeStorageBuffer);
@@ -616,9 +660,6 @@ class Tessellation: public IApp
 		removePipeline(pRenderer, pComputePipeline);
 
 		removeRootSignature(pRenderer, pGrassRootSignature);
-				
-		removeDescriptorBinder(pRenderer, pDescriptorBinder);
-
 #ifdef METAL
 		removeRootSignature(pRenderer, pGrassVertexHullRootSignature);
 #endif
@@ -645,7 +686,7 @@ class Tessellation: public IApp
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
 
-		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
+		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		VertexLayout vertexLayout = {};
 #ifndef METAL
@@ -656,28 +697,28 @@ class Tessellation: public IApp
 
 		//v0 -- position (Metal)
 		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
 		vertexLayout.mAttribs[0].mBinding = 0;
 		vertexLayout.mAttribs[0].mLocation = 0;
 		vertexLayout.mAttribs[0].mOffset = 0;
 
 		//v1
 		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD1;
-		vertexLayout.mAttribs[1].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
 		vertexLayout.mAttribs[1].mBinding = 0;
 		vertexLayout.mAttribs[1].mLocation = 1;
 		vertexLayout.mAttribs[1].mOffset = 4 * sizeof(float);
 
 		//v2
 		vertexLayout.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD2;
-		vertexLayout.mAttribs[2].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[2].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
 		vertexLayout.mAttribs[2].mBinding = 0;
 		vertexLayout.mAttribs[2].mLocation = 2;
 		vertexLayout.mAttribs[2].mOffset = 8 * sizeof(float);
 
 		//up
 		vertexLayout.mAttribs[3].mSemantic = SEMANTIC_TEXCOORD3;
-		vertexLayout.mAttribs[3].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[3].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
 		vertexLayout.mAttribs[3].mBinding = 0;
 		vertexLayout.mAttribs[3].mLocation = 3;
 		vertexLayout.mAttribs[3].mOffset = 12 * sizeof(float);
@@ -685,7 +726,7 @@ class Tessellation: public IApp
 #ifdef METAL
 		// widthDir
 		vertexLayout.mAttribs[4].mSemantic = SEMANTIC_TEXCOORD3;
-		vertexLayout.mAttribs[4].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[4].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
 		vertexLayout.mAttribs[4].mBinding = 0;
 		vertexLayout.mAttribs[4].mLocation = 4;
 		vertexLayout.mAttribs[4].mOffset = 16 * sizeof(float);
@@ -699,7 +740,6 @@ class Tessellation: public IApp
 		pipelineSettings.pDepthState = pDepth;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
 		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
 		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
@@ -776,15 +816,9 @@ class Tessellation: public IApp
 		gGrassUniformData.mWindWidth = gWindWidth;
 		gGrassUniformData.mWindStrength = gWindStrength;
 
-    // ProfileSetDisplayMode()
-      // TODO: need to change this better way 
     if (gMicroProfiler != bPrevToggleMicroProfiler)
     {
-      Profile& S = *ProfileGet();
-      int nValue = gMicroProfiler ? 1 : 0;
-      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
-      S.nDisplay = nValue;
-
+      toggleProfiler();
       bPrevToggleMicroProfiler = gMicroProfiler;
     }
 
@@ -834,26 +868,22 @@ class Tessellation: public IApp
 
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Compute Pass");
 
-		DescriptorData computeParams[4] = {};
 		cmdBindPipeline(cmd, pComputePipeline);
-
-		computeParams[0].pName = "GrassUniformBlock";
-		computeParams[0].ppBuffers = &pGrassUniformBuffer[gFrameIndex];
-
-		computeParams[1].pName = "Blades";
-		computeParams[1].ppBuffers = &pBladeStorageBuffer;
-
-		computeParams[2].pName = "CulledBlades";
-		computeParams[2].ppBuffers = &pCulledBladeStorageBuffer;
-
-		computeParams[3].pName = "NumBlades";
-		computeParams[3].ppBuffers = &pBladeNumBuffer;
-
-		cmdBindDescriptors(cmd, pDescriptorBinder, pComputeRootSignature, 4, computeParams);
+		cmdBindDescriptorSet(cmd, 0, pDescriptorSetCompute[0]);
+		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetCompute[1]);
 		cmdDispatch(cmd, (int)ceil(NUM_BLADES / pThreadGroupSize[0]), pThreadGroupSize[1], pThreadGroupSize[2]);
 
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
+#ifdef METAL
+		// On Metal, we have to run the grass_vertexHull compute shader before running the post-tesselation shaders.
+		DescriptorData vertexHullParams[5] = {};
+		cmdBindPipeline(cmd, pGrassVertexHullPipeline);
+		cmdBindDescriptorSet(cmd, 0, pDescriptorSetGrassVertexHull[0]);
+		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetGrassVertexHull[1]);
+		cmdDispatch(cmd, (int)ceil(NUM_BLADES / pThreadGroupSize[0]), pThreadGroupSize[1], pThreadGroupSize[2]);
+#endif
+		
 		TextureBarrier barriers[] = {
 			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
 		};
@@ -861,25 +891,7 @@ class Tessellation: public IApp
 			{ pBladeNumBuffer, RESOURCE_STATE_INDIRECT_ARGUMENT },
 			{ pCulledBladeStorageBuffer, RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER },
 		};
-		cmdResourceBarrier(cmd, 2, srvBarriers, 1, barriers, false);
-
-#ifdef METAL
-		// On Metal, we have to run the grass_vertexHull compute shader before running the post-tesselation shaders.
-		DescriptorData vertexHullParams[5] = {};
-		cmdBindPipeline(cmd, pGrassVertexHullPipeline);
-		vertexHullParams[0].pName = "GrassUniformBlock";
-		vertexHullParams[0].ppBuffers = &pGrassUniformBuffer[gFrameIndex];
-		vertexHullParams[1].pName = "vertexInput";
-		vertexHullParams[1].ppBuffers = &pCulledBladeStorageBuffer;
-		vertexHullParams[2].pName = "drawInfo";
-		vertexHullParams[2].ppBuffers = &pBladeNumBuffer;
-		vertexHullParams[3].pName = "tessellationFactorBuffer";
-		vertexHullParams[3].ppBuffers = &pTessFactorsBuffer;
-		vertexHullParams[4].pName = "hullOutputBuffer";
-		vertexHullParams[4].ppBuffers = &pHullOutputBuffer;
-		cmdBindDescriptors(cmd, pDescriptorBinder, pGrassVertexHullRootSignature, 5, vertexHullParams);
-		cmdDispatch(cmd, (int)ceil(NUM_BLADES / pThreadGroupSize[0]), pThreadGroupSize[1], pThreadGroupSize[2]);
-#endif
+		cmdResourceBarrier(cmd, 2, srvBarriers, 1, barriers);
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
@@ -893,10 +905,7 @@ class Tessellation: public IApp
 		else if (gFillMode == FILL_MODE_WIREFRAME)
 			cmdBindPipeline(cmd, pGrassPipelineForWireframe);
 
-		DescriptorData grassParams[1] = {};
-		grassParams[0].pName = "GrassUniformBlock";
-		grassParams[0].ppBuffers = &pGrassUniformBuffer[gFrameIndex];
-		cmdBindDescriptors(cmd, pDescriptorBinder, pGrassRootSignature, 1, grassParams);
+		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetGrass);
 
 #ifndef METAL
 		cmdBindVertexBuffer(cmd, 1, &pCulledBladeStorageBuffer, NULL);
@@ -913,7 +922,7 @@ class Tessellation: public IApp
 			{ pBladeNumBuffer, RESOURCE_STATE_UNORDERED_ACCESS },
 			{ pCulledBladeStorageBuffer, RESOURCE_STATE_UNORDERED_ACCESS },
 		};
-		cmdResourceBarrier(cmd, 2, uavBarriers, 0, NULL, true);
+		cmdResourceBarrier(cmd, 2, uavBarriers, 0, NULL);
 
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
@@ -944,14 +953,14 @@ class Tessellation: public IApp
 			&gFrameTimeDraw);
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
 
-		cmdDrawProfiler(cmd);
+		cmdDrawProfiler();
 
 		gAppUI.Gui(pGui);
 		gAppUI.Draw(cmd);
 		cmdEndDebugMarker(cmd);
 
 		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, true);
+		cmdResourceBarrier(cmd, 0, NULL, 1, barriers);
 
 		endCmd(cmd);
 		allCmds.push_back(cmd);
@@ -989,7 +998,7 @@ class Tessellation: public IApp
 		depthRT.mArraySize = 1;
 		depthRT.mClearValue = { 1.0f, 0 };
 		depthRT.mDepth = 1;
-		depthRT.mFormat = ImageFormat::D32F;
+		depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
 		depthRT.mHeight = mSettings.mHeight;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
@@ -1039,7 +1048,7 @@ class Tessellation: public IApp
 	{
 		TextureBarrier barrier = { pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE };
 		beginCmd(ppCmds[0]);
-		cmdResourceBarrier(ppCmds[0], 0, NULL, 1, &barrier, false);
+		cmdResourceBarrier(ppCmds[0], 0, NULL, 1, &barrier);
 		endCmd(ppCmds[0]);
 		queueSubmit(pGraphicsQueue, 1, ppCmds, pRenderCompleteFences[0], 0, NULL, 0, NULL);
 		waitForFences(pRenderer, 1, &pRenderCompleteFences[0]);

@@ -22,7 +22,8 @@
  * under the License.
 */
 
-struct VSOutput {
+struct VSOutput
+{
     float4 pos : SV_Position;
     float3 color : COLOR0;
     float2 uv : TEXCOORD0;

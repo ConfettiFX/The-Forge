@@ -23,12 +23,14 @@
 */
 
 
-struct PsIn {
+struct PsIn
+{
 	float4 position: SV_Position;
 	float2 texCoord: TEXCOORD;
 };
 
-PsIn main(uint VertexID: SV_VertexID) {
+PsIn main(uint VertexID: SV_VertexID)
+{
 	PsIn Out;
 
 	// Produce a fullscreen triangle

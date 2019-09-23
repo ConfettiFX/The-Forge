@@ -177,27 +177,37 @@ struct BladeDrawIndirect
     uint firstInstance;
 };
 
+struct CSData {
+    constant VSIn* vertexInput                  [[id(0)]];
+    constant BladeDrawIndirect& drawInfo        [[id(1)]];
+    device PatchTess* tessellationFactorBuffer  [[id(2)]];
+    device HullOut* hullOutputBuffer            [[id(3)]];
+};
+
+struct CSDataPerFrame {
+    constant UniformData& GrassUniformBlock     [[id(0)]];
+};
+
 //[numthreads(32, 1, 1)]
-kernel void stageMain(constant VSIn* vertexInput                  [[buffer(0)]],
-                      constant UniformData& GrassUniformBlock     [[buffer(1)]],
-                      constant BladeDrawIndirect& drawInfo        [[buffer(2)]],
-                      device PatchTess* tessellationFactorBuffer  [[buffer(3)]],
-                      device HullOut* hullOutputBuffer            [[buffer(4)]],
-                      uint threadId                               [[thread_position_in_grid]])
+kernel void stageMain(
+    uint threadId                               [[thread_position_in_grid]],
+    constant CSData& csData                     [[buffer(UPDATE_FREQ_NONE)]],
+    constant CSDataPerFrame& csDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
-    if (threadId <= drawInfo.vertexCount)
+    if (threadId <= csData.drawInfo.vertexCount)
     {
         // Get a piece of vertex data for every frame and produce a control-point.
-        VSIn In = vertexInput[threadId];
-        VS_CONTROL_POINT_OUTPUT vOut = VSMain(In, GrassUniformBlock);
+        VSIn In = csData.vertexInput[threadId];
+        VS_CONTROL_POINT_OUTPUT vOut = VSMain(In, csDataPerFrame.GrassUniformBlock);
         
         // Since we only have one control-point per-patch, we can execute the per-control-point and
         // per-patch functions without need for syncing.
         HullOut hOut = HSMain(vOut);
-        PatchTess patchTessOut = ConstantsHS(hOut, GrassUniformBlock);
+        PatchTess patchTessOut = ConstantsHS(hOut, csDataPerFrame.GrassUniformBlock);
         
         // Store the results.
-        hullOutputBuffer[threadId] = hOut;
-        tessellationFactorBuffer[threadId] = patchTessOut;
+        csData.hullOutputBuffer[threadId] = hOut;
+        csData.tessellationFactorBuffer[threadId] = patchTessOut;
     }
 }

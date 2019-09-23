@@ -17,3 +17,5 @@
 *.sdf
 *.opensdf
 /build
+x64_*
+x86_*

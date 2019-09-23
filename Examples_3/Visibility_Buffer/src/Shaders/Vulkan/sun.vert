@@ -32,7 +32,7 @@ layout(location = 0) in vec3 POSITION;
 layout(location = 1) in vec3 NORMAL;
 layout(location = 2) in vec2 TEXCOORD0;
 
-layout(set = 0, binding = 0) uniform SunMatrices_Block
+layout(UPDATE_FREQ_PER_FRAME, binding = 0) uniform SunMatrices_Block
 {
     mat4 projView;
 	mat4 modelMat;

@@ -26,7 +26,7 @@
 
 #extension GL_EXT_samplerless_texture_functions : enable
 
-layout(std140, set = 0, binding = 0) uniform cbPerPass 
+layout(std140, UPDATE_FREQ_PER_FRAME, binding = 0) uniform cbPerPass 
 {
 	uniform mat4	projView;
 	uniform mat4	invProjView;
@@ -35,9 +35,9 @@ layout(std140, set = 0, binding = 0) uniform cbPerPass
 	uniform vec4	cameraPos;
 };
 
-layout(set = 0, binding = 1) uniform texture2D normalbuffer;
-layout(set = 0, binding = 2) uniform texture2D shadowbuffer;
-layout(set = 0, binding = 3, rgba32f) uniform image2D outputRT;
+layout(UPDATE_FREQ_NONE, binding = 1) uniform texture2D normalbuffer;
+layout(UPDATE_FREQ_NONE, binding = 2) uniform texture2D shadowbuffer;
+layout(UPDATE_FREQ_NONE, binding = 3, rgba32f) uniform image2D outputRT;
 
 #define THREADX 16
 #define THREADY 16

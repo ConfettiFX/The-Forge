@@ -74,23 +74,26 @@ texture2d<float> SDFShadowTexture,texture2d<float> DepthTexture,sampler clampMip
 SDFShadowTexture(SDFShadowTexture),DepthTexture(DepthTexture),clampMiplessLinearSampler(clampMiplessLinearSampler),clampMiplessNearSampler(clampMiplessNearSampler),cameraUniformBlock(cameraUniformBlock) {}
 };
 
+struct FSData {
+    texture2d<float> SDFShadowTexture   [[id(0)]];
+    texture2d<float> DepthTexture       [[id(1)]];
+    sampler clampMiplessLinearSampler   [[id(2)]];
+    sampler clampMiplessNearSampler     [[id(3)]];
+};
+
+struct FSDataPerFrame {
+    constant Fragment_Shader::Uniforms_cameraUniformBlock & cameraUniformBlock [[id(0)]];
+};
 
 fragment Fragment_Shader::PsOut stageMain(
     Fragment_Shader::PsIn input [[stage_in]],
-    texture2d<float> SDFShadowTexture [[texture(0)]],
-    texture2d<float> DepthTexture [[texture(1)]],
-    sampler clampMiplessLinearSampler [[sampler(0)]],
-    sampler clampMiplessNearSampler [[sampler(1)]],
-    constant Fragment_Shader::Uniforms_cameraUniformBlock & cameraUniformBlock [[buffer(2)]])
+    constant FSData& fsData [[buffer(UPDATE_FREQ_NONE)]],
+    constant FSDataPerFrame& fsDataPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
     Fragment_Shader::PsIn input0;
     input0.Position = float4(input.Position.xyz, 1.0 / input.Position.w);
     input0.TexCoord = input.TexCoord;
-    Fragment_Shader main(
-    SDFShadowTexture,
-    DepthTexture,
-    clampMiplessLinearSampler,
-    clampMiplessNearSampler,
-    cameraUniformBlock);
+    Fragment_Shader main(fsData.SDFShadowTexture, fsData.DepthTexture, fsData.clampMiplessLinearSampler, fsData.clampMiplessNearSampler, fsDataPerFrame.cameraUniformBlock);
     return main.main(input0);
 }

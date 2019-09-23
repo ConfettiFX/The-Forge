@@ -217,14 +217,16 @@ void get_files_with_extension(const char* dir, const char* ext, eastl::vector<ea
 	NSString*      pStrDir = [NSString stringWithUTF8String:dir];
 	NSArray*       pathFragments = [NSArray arrayWithObjects:[[NSBundle mainBundle] bundlePath], pStrDir, nil];
 	NSString*      pStrSearchDir = [NSString pathWithComponents:pathFragments];
-
-	BOOL isDir = YES;
-	if (![fileMan fileExistsAtPath:pStrSearchDir isDirectory:&isDir])
+    NSError *      pError = nil;
+	BOOL isDir = NO;
+	//if (![fileMan fileExistsAtPath:pStrSearchDir isDirectory:&isDir])
+    if (![fileMan fileExistsAtPath:pStrDir isDirectory:&isDir] && !isDir)
 	{
 		LOGF(LogLevel::eERROR, "Directory '%s' doesn't exist.", dir);
 		return;
 	}
-	NSArray* pContents = [fileMan subpathsAtPath:pStrSearchDir];
+	//NSArray* pContents = [fileMan subpathsAtPath:pStrSearchDir];
+    NSArray* pContents = [fileMan subpathsOfDirectoryAtPath:pStrDir error:&pError];
 
 	const char* extension = ext;
 	if (ext[0] == '.')
@@ -460,7 +462,7 @@ static UIBarButtonItem*                      gDoneBtnItem;
 @implementation DocumentBrowserCancelDelegate
 - (void)cancelTapped:(UIButton*)sender
 {
-	UINavigationController* nc = (UINavigationController*)[pMainViewController presentedViewController];
+	UINavigationController* nc = (UINavigationController*)[UIApplication.sharedApplication.keyWindow.rootViewController presentedViewController];
 	if (nc)
 		[nc dismissViewControllerAnimated:YES completion:nil];
 }
@@ -521,7 +523,7 @@ static void create_document_browser(
 	UIViewController* dummyVC = [UIViewController alloc];
 	id                nc = [[UINavigationController alloc] initWithRootViewController:dummyVC];
 	// Hide main view
-	[pMainViewController presentViewController:nc animated:NO completion:nil];
+	[UIApplication.sharedApplication.keyWindow.rootViewController presentViewController:nc animated:NO completion:nil];
 	// Push child view
 	[dummyVC.navigationController pushViewController:dbvc animated:NO];
 }

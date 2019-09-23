@@ -13,7 +13,8 @@ enum CmdType
 	CMD_TYPE_cmdSetViewport,
 	CMD_TYPE_cmdSetScissor,
 	CMD_TYPE_cmdBindPipeline,
-	CMD_TYPE_cmdBindDescriptors,
+	CMD_TYPE_cmdBindDescriptorSet,
+	CMD_TYPE_cmdBindPushConstants,
 	CMD_TYPE_cmdBindIndexBuffer,
 	CMD_TYPE_cmdBindVertexBuffer,
 	CMD_TYPE_cmdDraw,
@@ -21,10 +22,6 @@ enum CmdType
 	CMD_TYPE_cmdDrawIndexed,
 	CMD_TYPE_cmdDrawIndexedInstanced,
 	CMD_TYPE_cmdDispatch,
-	CMD_TYPE_cmdResourceBarrier,
-	CMD_TYPE_cmdSynchronizeResources,
-	CMD_TYPE_cmdFlushBarriers,
-	CMD_TYPE_cmdExecuteIndirect,
 	CMD_TYPE_cmdBeginQuery,
 	CMD_TYPE_cmdEndQuery,
 	CMD_TYPE_cmdResolveQuery,
@@ -68,9 +65,18 @@ struct BindPipelineCmd
 
 struct BindDescriptorsCmd
 {
-	RootSignature*  pRootSignature;
-	uint32_t        numDescriptors;
-	DescriptorData* pDescParams;
+	DescriptorSet* pDescriptorSet;
+	void*          pDynamicCBVs;
+	uint8_t        mDynamicCBVCount;
+	uint8_t        mIndex;
+};
+
+struct BindPushConstantsCmd
+{
+	uint8_t mPushConstant[128];
+	uint8_t mBinding;
+	uint8_t mSize;
+	uint8_t mStage;
 };
 
 struct BindIndexBufferCmd
@@ -158,19 +164,19 @@ struct ExecuteIndirectCmd
 
 struct BeginQueryCmd
 {
-	QueryHeap* pQueryHeap;
+	QueryPool* pQueryPool;
 	QueryDesc  mQuery;
 };
 
 struct EndQueryCmd
 {
-	QueryHeap* pQueryHeap;
+	QueryPool* pQueryPool;
 	QueryDesc  mQuery;
 };
 
 struct ResolveQueryCmd
 {
-	QueryHeap* pQueryHeap;
+	QueryPool* pQueryPool;
 	Buffer*    pReadbackBuffer;
 	uint32_t   startQuery;
 	uint32_t   queryCount;
@@ -222,7 +228,8 @@ struct CachedCmd
 		SetViewportCmd          mSetViewportCmd;
 		SetScissorCmd           mSetScissorCmd;
 		BindPipelineCmd         mBindPipelineCmd;
-		BindDescriptorsCmd      mBindDescriptorsCmd;
+		BindDescriptorsCmd      mBindDescriptorSetCmd;
+		BindPushConstantsCmd    mBindPushConstantsCmd;
 		BindIndexBufferCmd      mBindIndexBufferCmd;
 		BindVertexBufferCmd     mBindVertexBufferCmd;
 		DrawCmd                 mDrawCmd;
@@ -230,10 +237,6 @@ struct CachedCmd
 		DrawIndexedCmd          mDrawIndexedCmd;
 		DrawIndexedInstancedCmd mDrawIndexedInstancedCmd;
 		DispatchCmd             mDispatchCmd;
-		ResourceBarrierCmd      mResourceBarrierCmd;
-		SynchronizeResourcesCmd mSynchronizeResourcesCmd;
-		FlushBarriersCmd        mFlushBarriersCmd;
-		ExecuteIndirectCmd      mExecuteIndirectCmd;
 		BeginQueryCmd           mBeginQueryCmd;
 		EndQueryCmd             mEndQueryCmd;
 		ResolveQueryCmd         mResolveQueryCmd;

@@ -133,13 +133,14 @@ void createTessellatedQuadBuffers(
 bool Panini::Init(Renderer* renderer)
 {
 	pRenderer = renderer;
+	mIndex = -1;
 
 	// SHADER
 	//----------------------------------------------------------------------------------------------------------------
 	ShaderLoadDesc paniniPass = {};
 	paniniPass.mStages[0] = { "panini_projection.vert", NULL, 0, FSR_MIDDLEWARE_PANINI };
 	paniniPass.mStages[1] = { "panini_projection.frag", NULL, 0, FSR_MIDDLEWARE_PANINI };
-	addShader(pRenderer, &paniniPass, &pShaderPanini);
+	addShader(pRenderer, &paniniPass, &pShader);
 
 	// SAMPLERS & STATES
 	//----------------------------------------------------------------------------------------------------------------
@@ -158,13 +159,13 @@ bool Panini::Init(Renderer* renderer)
 	// ROOT SIGNATURE
 	//----------------------------------------------------------------------------------------------------------------
 	const char*       pStaticSamplerName = "uSampler";
-	RootSignatureDesc paninniRootDesc = { &pShaderPanini, 1 };
+	RootSignatureDesc paninniRootDesc = { &pShader, 1 };
 	paninniRootDesc.mStaticSamplerCount = 1;
 	paninniRootDesc.ppStaticSamplerNames = &pStaticSamplerName;
 	paninniRootDesc.ppStaticSamplers = &pSamplerPointWrap;
-	addRootSignature(pRenderer, &paninniRootDesc, &pRootSignaturePaniniPostProcess);
+	addRootSignature(pRenderer, &paninniRootDesc, &pRootSignature);
 
-	SetDescriptorBinder(1); // Create descriptor binder space that allows for 1 texture per frame by default
+	SetMaxDraws(1); // Create descriptor binder space that allows for 1 texture per frame by default
 
 	createTessellatedQuadBuffers(
 		pRenderer, &pVertexBufferTessellatedQuad, &pIndexBufferTessellatedQuad, mPaniniDistortionTessellation[0],
@@ -175,15 +176,15 @@ bool Panini::Init(Renderer* renderer)
 
 void Panini::Exit()
 {
-	removeShader(pRenderer, pShaderPanini);
+	removeShader(pRenderer, pShader);
 
 	removeSampler(pRenderer, pSamplerPointWrap);
 	removeRasterizerState(pRasterizerStateCullNone);
 	removeDepthState(pDepthStateDisable);
 
-	removeRootSignature(pRenderer, pRootSignaturePaniniPostProcess);
-	removeDescriptorBinder(pRenderer, pDescriptorBinderPaniniPostProcess);
-	pDescriptorBinderPaniniPostProcess = NULL;
+	removeRootSignature(pRenderer, pRootSignature);
+	removeDescriptorSet(pRenderer, pDescriptorSet);
+	pDescriptorSet = NULL;
 
 	removeResource(pVertexBufferTessellatedQuad);
 	removeResource(pIndexBufferTessellatedQuad);
@@ -195,7 +196,7 @@ bool Panini::Load(RenderTarget** rts, uint32_t count)
 	VertexLayout vertexLayoutPanini = {};
 	vertexLayoutPanini.mAttribCount = 1;
 	vertexLayoutPanini.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-	vertexLayoutPanini.mAttribs[0].mFormat = ImageFormat::RGBA32F;
+	vertexLayoutPanini.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
 	vertexLayoutPanini.mAttribs[0].mBinding = 0;
 	vertexLayoutPanini.mAttribs[0].mLocation = 0;
 	vertexLayoutPanini.mAttribs[0].mOffset = 0;
@@ -207,40 +208,41 @@ bool Panini::Load(RenderTarget** rts, uint32_t count)
 	pipelineSettings.mRenderTargetCount = 1;
 	pipelineSettings.pDepthState = pDepthStateDisable;
 	pipelineSettings.pColorFormats = &rts[0]->mDesc.mFormat;
-	pipelineSettings.pSrgbValues = &rts[0]->mDesc.mSrgb;
 	pipelineSettings.mSampleCount = rts[0]->mDesc.mSampleCount;
 	pipelineSettings.mSampleQuality = rts[0]->mDesc.mSampleQuality;
 	pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
-	pipelineSettings.pRootSignature = pRootSignaturePaniniPostProcess;
-	pipelineSettings.pShaderProgram = pShaderPanini;
+	pipelineSettings.pRootSignature = pRootSignature;
+	pipelineSettings.pShaderProgram = pShader;
 	pipelineSettings.pVertexLayout = &vertexLayoutPanini;
-	addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelinePaniniPostProcess);
+	addPipeline(pRenderer, &graphicsPipelineDesc, &pPipeline);
 
 	return true;
 }
 
 void Panini::Unload()
 {
-	ASSERT(pPipelinePaniniPostProcess);
-	removePipeline(pRenderer, pPipelinePaniniPostProcess);
+	ASSERT(pPipeline);
+	removePipeline(pRenderer, pPipeline);
+}
+
+void Panini::Update(float deltaTime)
+{
+	if (mIndex >= mMaxDraws)
+		mIndex = 0;
 }
 
 void Panini::Draw(Cmd* cmd)
 {
 	ASSERT(cmd);
-	ASSERT(pSourceTexture);
-	ASSERT(pDescriptorBinderPaniniPostProcess);
+	ASSERT(mIndex != -1);
+	ASSERT(pDescriptorSet);
 
 	//beginCmd(cmd);	// beginCmd() and endCmd() should be handled by the caller App
 
 	// set pipeline state
-	DescriptorData params[2] = {};
-	params[0].pName = "uTex";
-	params[0].ppTextures = &pSourceTexture;
-	params[1].pName = "PaniniRootConstants";
-	params[1].pRootConstant = &mParams;
-	cmdBindDescriptors(cmd, pDescriptorBinderPaniniPostProcess, pRootSignaturePaniniPostProcess, 2, params);
-	cmdBindPipeline(cmd, pPipelinePaniniPostProcess);
+	cmdBindPipeline(cmd, pPipeline);
+	cmdBindPushConstants(cmd, pRootSignature, "PaniniRootConstants", &mParams);
+	cmdBindDescriptorSet(cmd, mIndex++, pDescriptorSet);
 
 	// draw
 	const uint32_t numIndices = mPaniniDistortionTessellation[0] * mPaniniDistortionTessellation[1] * 6;
@@ -249,18 +251,25 @@ void Panini::Draw(Cmd* cmd)
 	cmdDrawIndexed(cmd, numIndices, 0, 0);
 }
 
-void Panini::SetDescriptorBinder(uint32_t maxSourceTextureUpdatesPerFrame) 
+void Panini::SetMaxDraws(uint32_t maxDraws) 
 {
-	if (pDescriptorBinderPaniniPostProcess) {
-		removeDescriptorBinder(pRenderer, pDescriptorBinderPaniniPostProcess);
+	if (pDescriptorSet)
+	{
+		removeDescriptorSet(pRenderer, pDescriptorSet);
 	}
-	DescriptorBinderDesc paniniDescriptorBinderDesc = { pRootSignaturePaniniPostProcess, maxSourceTextureUpdatesPerFrame };
-	addDescriptorBinder(pRenderer, 0, 1, &paniniDescriptorBinderDesc, &pDescriptorBinderPaniniPostProcess);
+
+	DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, maxDraws };
+	addDescriptorSet(pRenderer, &setDesc, &pDescriptorSet);
+	mMaxDraws = maxDraws;
 }
 
-void Panini::SetSourceTexture(Texture* pTex)
+void Panini::SetSourceTexture(Texture* pTex, uint32_t index)
 {
 	ASSERT(pTex);
 	ASSERT(pTex->mDesc.mSampleCount == SAMPLE_COUNT_1 && "Panini Projection does not support MSAA Input Textures");
-	pSourceTexture = pTex;
+
+	DescriptorData params[2] = {};
+	params[0].pName = "uTex";
+	params[0].ppTextures = &pTex;
+	updateDescriptorSet(pRenderer, index, pDescriptorSet, 1, params);
 }

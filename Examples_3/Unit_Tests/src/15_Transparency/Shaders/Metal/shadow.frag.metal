@@ -66,27 +66,30 @@ VSM(VSM),VSMSampler(VSMSampler)
  {}
 };
 
+struct FSData {
+    texture2d<float> VSM;
+    sampler VSMSampler;
+#if PT_USE_CAUSTICS!=0
+    texture2d<float> VSMRed;
+    texture2d<float> VSMGreen;
+    texture2d<float> VSMBlue;
+#endif
+};
 
 fragment float4 stageMain(
     Fragment_Shader::VSOutput input [[stage_in]],
-    texture2d<float> VSM [[texture(0)]],
-    sampler VSMSampler [[sampler(0)]]
-#if PT_USE_CAUSTICS!=0
-    ,texture2d<float> VSMRed [[texture(1)]],
-    texture2d<float> VSMGreen [[texture(2)]],
-    texture2d<float> VSMBlue [[texture(3)]]
-#endif
-    )
+    constant FSData& fsData         [[buffer(UPDATE_FREQ_NONE)]]
+)
 {
     Fragment_Shader::VSOutput input0;
     input0.Position = float4(input.Position.xyz, 1.0 / input.Position.w);
     Fragment_Shader main(
-    VSM,
-    VSMSampler
+    fsData.VSM,
+    fsData.VSMSampler
 #if PT_USE_CAUSTICS!=0
-    ,VSMRed,
-    VSMGreen,
-    VSMBlue
+    ,fsData.VSMRed,
+    fsData.VSMGreen,
+    fsData.VSMBlue
 #endif
     );
     return float4(main.main(input0), 0.0, 0.0);

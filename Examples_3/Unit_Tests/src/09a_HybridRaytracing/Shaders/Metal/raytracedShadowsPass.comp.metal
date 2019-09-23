@@ -97,34 +97,49 @@ struct ConstantBuffer
 	float4		lightDir; 
 	float4		cameraPos;
 };
-     
+
+struct CSData {
+    constant  float4 * BVHTree [[id(0)]];
+    texture2d<float, access::read> depthBuffer[[id(1)]];
+    texture2d<float, access::read> normalBuffer[[id(2)]];
+#ifndef TARGET_IOS
+    texture2d<float, access::write> outputRT[[id(3)]];
+#endif
+};
+
+struct CSDataPerFrame {
+    constant  ConstantBuffer & cbPerPass [[id(0)]];
+};
+
 //[numthreads(8, 8, 1)]
-kernel void stageMain(uint3 DTid[[thread_position_in_grid]],
-					  constant  ConstantBuffer & cbPerPass [[buffer(1)]],
-					  constant  float4 * BVHTree [[buffer(2)]],
-                      texture2d<float, access::read> depthBuffer[[texture(0)]],
-                      texture2d<float, access::read> normalBuffer[[texture(1)]],
-                      texture2d<float, access::read_write> outputRT[[texture(2)]])
+kernel void stageMain(
+    uint3 DTid                          [[thread_position_in_grid]],
+    constant CSData& csData             [[buffer(UPDATE_FREQ_NONE)]],
+    constant CSDataPerFrame& csDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]]
+#ifdef TARGET_IOS
+	  ,texture2d<float, access::write> outputRT [[texture(0)]]
+#endif
+)
 {
 	bool collision = false;
 	int offsetToNextNode = 1;
 	 
-	float depth = depthBuffer.read(DTid.xy).x;
-	float3 normal = normalBuffer.read(DTid.xy).xyz;
-	float NdotL = dot(normal,cbPerPass.lightDir.xyz);
+	float depth = csData.depthBuffer.read(DTid.xy).x;
+	float3 normal = csData.normalBuffer.read(DTid.xy).xyz;
+	float NdotL = dot(normal, csDataPerFrame.cbPerPass.lightDir.xyz);
 
 	if (depth < 1 && NdotL > 0)
 	{
-		float2 uv = float2(DTid.xy) * cbPerPass.rtSize.zw;
+		float2 uv = float2(DTid.xy) * csDataPerFrame.cbPerPass.rtSize.zw;
 
 		//get world position from depth
 		float4 clipPos = float4(2 * uv - 1, depth, 1);
 		clipPos.y = -clipPos.y;
 
-		float4 worldPos = cbPerPass.invProjView * clipPos;
+		float4 worldPos = csDataPerFrame.cbPerPass.invProjView * clipPos;
 		worldPos.xyz /= worldPos.w;
 
-		float3 rayDir = cbPerPass.lightDir.xyz;
+		float3 rayDir = csDataPerFrame.cbPerPass.lightDir.xyz;
 		float3 rayDirInv = 1 / rayDir;
 
 		//offset to avoid selfshadows
@@ -137,8 +152,8 @@ kernel void stageMain(uint3 DTid[[thread_position_in_grid]],
 
 		while (offsetToNextNode != 0)
 		{
-			float4 element0 = BVHTree[dataOffset++].xyzw;
-			float4 element1 = BVHTree[dataOffset++].xyzw;
+			float4 element0 = csData.BVHTree[dataOffset++].xyzw;
+			float4 element1 = csData.BVHTree[dataOffset++].xyzw;
 
 			offsetToNextNode = int(element0.w);
 
@@ -159,7 +174,7 @@ kernel void stageMain(uint3 DTid[[thread_position_in_grid]],
 			}
 			else if (offsetToNextNode > 0)
 			{
-				float4 element2 = BVHTree[dataOffset++].xyzw;
+				float4 element2 = csData.BVHTree[dataOffset++].xyzw;
 
 				float3 vertex0 = element0.xyz;
 				float3 vertex1MinusVertex0 = element1.xyz;
@@ -176,5 +191,9 @@ kernel void stageMain(uint3 DTid[[thread_position_in_grid]],
 		};
 	}
 	float shadowFactor = 1.0f - float(collision);
+#ifndef TARGET_IOS
+	csData.outputRT.write(float4(shadowFactor,0.0,0.0,0.0), uint2(DTid.xy) );
+#else
 	outputRT.write(float4(shadowFactor,0.0,0.0,0.0), uint2(DTid.xy) );
+#endif
 }

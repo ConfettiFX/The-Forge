@@ -28,7 +28,7 @@
 
 
 
-layout(set = 0, binding = 0) uniform cbExtendCamera
+layout(UPDATE_FREQ_PER_FRAME, binding = 0) uniform cbExtendCamera
 {
 	mat4 viewMat;
 	mat4 projMat;
@@ -42,7 +42,7 @@ layout(set = 0, binding = 0) uniform cbExtendCamera
 layout(binding = 1) uniform texture2D SceneTexture;
 layout(binding = 2) uniform texture2D SSRTexture;
 
-layout(set = 0, binding = 3) uniform cbProperties
+layout(UPDATE_FREQ_PER_FRAME, binding = 3) uniform cbProperties
 {
 	uint renderMode;
 	float useHolePatching;
@@ -56,8 +56,8 @@ layout(set = 0, binding = 3) uniform cbProperties
 };
 
 
-layout(set = 0, binding = 4) uniform sampler nearestSampler;
-layout(set = 0, binding = 5) uniform sampler bilinearSampler;
+layout(UPDATE_FREQ_NONE, binding = 4) uniform sampler nearestSampler;
+layout(UPDATE_FREQ_NONE, binding = 5) uniform sampler bilinearSampler;
 
 
 

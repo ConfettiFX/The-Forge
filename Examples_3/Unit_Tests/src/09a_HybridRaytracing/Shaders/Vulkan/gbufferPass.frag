@@ -24,12 +24,12 @@
 
 #version 450 core
 
-layout(std140, set = 0, binding = 0) uniform cbPerPass
+layout(std140, UPDATE_FREQ_PER_FRAME, binding = 0) uniform cbPerPass
 {
 	uniform mat4		projView;
 };
 
-layout(std140, set = 1, binding = 0) uniform cbPerProp
+layout(std140, UPDATE_FREQ_NONE, binding = 0) uniform cbPerProp
 {
 	uniform mat4		world;
 	uniform float		roughness;
@@ -47,13 +47,13 @@ layout(push_constant) uniform cbTextureRootConstantsData
 	uint aoMap;
 } cbTextureRootConstants;
 
-layout(set = 0, binding = 6) uniform texture2D textureMaps[TOTAL_IMGS];
-layout(set = 0, binding = 7) uniform sampler samplerLinear;
+layout(UPDATE_FREQ_NONE, binding = 6) uniform texture2D textureMaps[TOTAL_IMGS];
+layout(UPDATE_FREQ_NONE, binding = 7) uniform sampler samplerLinear;
 
 //SamplerState samplerLinear : register(s2);
 //
 //// material parameters
-//Texture2D textureMaps[] : register(t3, space1);
+//Texture2D textureMaps[] : register(t3, UPDATE_FREQ_PER_FRAME);
 
 layout(location = 0) in vec3 InNormal;
 layout(location = 1) in vec2 InUV;

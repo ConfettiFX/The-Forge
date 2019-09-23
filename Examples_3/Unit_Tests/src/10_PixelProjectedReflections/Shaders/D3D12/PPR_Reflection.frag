@@ -31,7 +31,8 @@
 #define PI 3.1415926535897932384626422832795028841971
 #define RADIAN 0.01745329251994329576923690768489
 
-cbuffer cbExtendCamera : register(b0) {
+cbuffer cbExtendCamera : register(b0, UPDATE_FREQ_PER_FRAME)
+{
 	float4x4 viewMat;
 	float4x4 projMat;
 	float4x4 viewProjMat;
@@ -56,7 +57,8 @@ struct PlaneInfo
 	float4 size;
 };
 
-cbuffer planeInfoBuffer : register(b4) {
+cbuffer planeInfoBuffer : register(b4, UPDATE_FREQ_PER_FRAME)
+{
 	PlaneInfo planeInfo[MAX_PLANES];
 	uint numPlanes;
 	uint pad00;
@@ -64,8 +66,8 @@ cbuffer planeInfoBuffer : register(b4) {
 	uint pad02;
 }
 
-cbuffer cbProperties : register(b5) {
-
+cbuffer cbProperties : register(b5, UPDATE_FREQ_PER_FRAME)
+{
 	uint renderMode;
 	float useHolePatching;
 	float useExpensiveHolePatching;
@@ -234,7 +236,8 @@ float fade(float2 UV)
 	return clamp( 1.0 - max( pow( NDC.y * NDC.y, 4.0) , pow( NDC.x * NDC.x, 4.0)) , 0.0, 1.0); 
 }
 
-struct VSOutput {
+struct VSOutput
+{
 	float4 Position : SV_POSITION;	
 	float2 uv:    TEXCOORD0;
 };

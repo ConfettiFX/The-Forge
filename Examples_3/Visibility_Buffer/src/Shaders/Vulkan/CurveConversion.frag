@@ -36,9 +36,9 @@ struct PsIn
     vec4 position;
     vec2 texCoord;
 };
-layout(set = 0, binding = 0) uniform texture2D SceneTex;
-layout(set = 0, binding = 1) uniform sampler uSampler0;
-layout(set = 0, binding = 2) uniform texture2D GodRayTex;
+layout(UPDATE_FREQ_NONE, binding = 0) uniform texture2D SceneTex;
+layout(UPDATE_FREQ_NONE, binding = 1) uniform sampler uSampler0;
+layout(UPDATE_FREQ_NONE, binding = 2) uniform texture2D GodRayTex;
 vec4 HLSLmain(PsIn In)
 {
     vec4 sceneColor = texture(sampler2D( SceneTex, uSampler0), vec2((In).texCoord));

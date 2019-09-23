@@ -70,18 +70,24 @@ constant Uniforms_SceneConstantBuffer & SceneConstantBuffer,texture2d<float> g_t
 SceneConstantBuffer(SceneConstantBuffer),g_texture(g_texture),g_sampler(g_sampler) {}
 };
 
+struct FSData {
+    texture2d<float> g_texture [[id(0)]];
+    sampler g_sampler [[id(1)]];
+};
+
+struct FSDataPerFrame {
+    constant Fragment_Shader::Uniforms_SceneConstantBuffer& SceneConstantBuffer [[id(0)]];
+};
 
 fragment float4 stageMain(
-    Fragment_Shader::PSInput input [[stage_in]],
-    constant Fragment_Shader::Uniforms_SceneConstantBuffer & SceneConstantBuffer [[buffer(1)]],
-    texture2d<float> g_texture [[texture(0)]],
-    sampler g_sampler [[sampler(0)]])
+    Fragment_Shader::PSInput input              [[stage_in]],
+    constant FSData& fsData                     [[buffer(UPDATE_FREQ_NONE)]],
+    constant FSDataPerFrame& fsDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
     Fragment_Shader::PSInput input0;
     input0.position = float4(input.position.xyz, 1.0 / input.position.w);
     input0.uv = input.uv;
-    Fragment_Shader main(SceneConstantBuffer,
-    g_texture,
-    g_sampler);
+    Fragment_Shader main(fsDataPerFrame.SceneConstantBuffer, fsData.g_texture, fsData.g_sampler);
     return main.main(input0);
 }

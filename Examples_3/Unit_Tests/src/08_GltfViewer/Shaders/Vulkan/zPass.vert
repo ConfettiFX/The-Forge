@@ -21,12 +21,12 @@ layout(location = 3) in uvec4 COLOR;
 layout(location = 4) in uvec2 TEXCOORD1;
 layout(location = 5) in uvec2 TEXCOORD2;
 
-layout(set = 1, binding = 2) uniform ShadowUniformBuffer
+layout(UPDATE_FREQ_PER_FRAME, binding = 2) uniform ShadowUniformBuffer
 {
     mat4 ViewProjMat;
 };
 
-layout(std140, set = 1, binding = 0) uniform cbPerProp
+layout(std140, UPDATE_FREQ_PER_DRAW, binding = 0) uniform cbPerProp
 {
 	uniform mat4  world;
 	uniform mat4  InvTranspose;
@@ -64,7 +64,8 @@ PsIn HLSLmain(VsIn input1)
     PsIn output1;
     float unormPositionScale = (float((1 << 16)) - 1.0);
     vec4 inPos = vec4((input1.position.xyz / vec3(unormPositionScale)) * posScale + posOffset.xyz, 1.0);
-	vec4 worldPosition = world * inPos + centerOffset;	
+	inPos += centerOffset;
+	vec4 worldPosition = world * inPos;	
 	worldPosition.xyz /= posScale;
     output1.Position = ViewProjMat * worldPosition;
     return output1;

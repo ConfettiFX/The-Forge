@@ -1,6 +1,6 @@
 #version 450
 
-layout(set = 0, binding = 0, std140) uniform SceneConstantBuffer
+layout(UPDATE_FREQ_PER_FRAME, binding = 0, std140) uniform SceneConstantBuffer
 {
 	layout(row_major) mat4 orthProjMatrix;
 	vec2 mousePosition;
@@ -11,8 +11,8 @@ layout(set = 0, binding = 0, std140) uniform SceneConstantBuffer
 	uint padding;
 };
 
-layout(set = 0, binding = 1) uniform texture2D g_texture;
-layout(set = 0, binding = 2) uniform sampler g_sampler;
+layout(UPDATE_FREQ_NONE, binding = 1) uniform texture2D g_texture;
+layout(UPDATE_FREQ_NONE, binding = 2) uniform sampler g_sampler;
 
 layout(location = 0) in vec2 in_var_TEXCOORD;
 layout(location = 0) out vec4 out_var_SV_TARGET;

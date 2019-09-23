@@ -43,7 +43,7 @@ struct DirectionalLight
 	vec4 mDir;
 };
 
-layout(std140, set = 0, binding = 0) uniform cbExtendCamera
+layout(std140, UPDATE_FREQ_PER_FRAME, binding = 0) uniform cbExtendCamera
 {
 	uniform mat4 viewMat;
 	uniform mat4 projMat;
@@ -55,12 +55,14 @@ layout(std140, set = 0, binding = 0) uniform cbExtendCamera
 };
 
 
-layout (std140, set=1, binding=0) uniform cbLights {
+layout (std140, UPDATE_FREQ_NONE, binding=1) uniform cbLights
+{
 	Light lights[16];
 	int currAmountOfLights;
 };
 
-layout (std140, set=2, binding=0) uniform cbDLights {
+layout (std140, UPDATE_FREQ_NONE, binding=2) uniform cbDLights
+{
 	DirectionalLight dlights[16];
 	int currAmountOfDLights;
 };
@@ -117,18 +119,18 @@ layout(location = 0) in vec2 uv;
 
 layout(location = 0) out vec4 outColor;
 
-layout(set = 0, binding = 3) uniform texture2D brdfIntegrationMap;
-layout(set = 0, binding = 4) uniform textureCube irradianceMap;
-layout(set = 0, binding = 5) uniform textureCube  specularMap;
+layout(UPDATE_FREQ_NONE, binding = 3) uniform texture2D brdfIntegrationMap;
+layout(UPDATE_FREQ_NONE, binding = 4) uniform textureCube irradianceMap;
+layout(UPDATE_FREQ_NONE, binding = 5) uniform textureCube  specularMap;
 
-layout(set = 0, binding = 6) uniform texture2D AlbedoTexture;
-layout(set = 0, binding = 7) uniform texture2D NormalTexture;
-layout(set = 0, binding = 8) uniform texture2D RoughnessTexture;
+layout(UPDATE_FREQ_NONE, binding = 6) uniform texture2D AlbedoTexture;
+layout(UPDATE_FREQ_NONE, binding = 7) uniform texture2D NormalTexture;
+layout(UPDATE_FREQ_NONE, binding = 8) uniform texture2D RoughnessTexture;
 
-layout(set = 0, binding = 9) uniform texture2D DepthTexture;
+layout(UPDATE_FREQ_NONE, binding = 9) uniform texture2D DepthTexture;
 
-layout(set = 0, binding = 10) uniform sampler envSampler;
-layout(set = 0, binding = 11) uniform sampler defaultSampler;
+layout(UPDATE_FREQ_NONE, binding = 10) uniform sampler envSampler;
+layout(UPDATE_FREQ_NONE, binding = 11) uniform sampler defaultSampler;
 
 
 vec3 getWorldPositionFromDepth(vec2 ndc, float sceneDepth )

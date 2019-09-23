@@ -196,9 +196,8 @@
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <PostBuildEvent>
-      <Command>mkdir $(TargetDir)ImageConvertTools\"
-xcopy /Y /S "$(ProjectDir)..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
-xcopy /Y /S "$(ProjectDir)..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\bin" "$(TargetDir)ImageConvertTools\"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>
@@ -235,9 +234,8 @@ xcopy /Y /S "$(ProjectDir)..\..\..\Common_3\ThirdParty\OpenSource\basis_universa
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssetPipeline.lib;MeshOptimizer.lib;RendererDX12.lib;OS.lib;MeshOptimizer.lib;AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir $(TargetDir)ImageConvertTools\"
-xcopy /Y /S "$(ProjectDir)..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
-xcopy /Y /S "$(ProjectDir)..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\bin" "$(TargetDir)ImageConvertTools\"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -278,9 +276,8 @@ xcopy /Y /S "$(ProjectDir)..\..\..\Common_3\ThirdParty\OpenSource\basis_universa
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssetPipeline.lib;MeshOptimizer.lib;RendererDX11.lib;OS.lib;MeshOptimizer.lib;AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir $(TargetDir)ImageConvertTools\"
-xcopy /Y /S "$(ProjectDir)..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
-xcopy /Y /S "$(ProjectDir)..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\bin" "$(TargetDir)ImageConvertTools\"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -327,9 +324,8 @@ xcopy /Y /S "$(ProjectDir)..\..\..\Common_3\ThirdParty\OpenSource\basis_universa
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <PostBuildEvent>
-      <Command>mkdir $(TargetDir)ImageConvertTools\"
-xcopy /Y /S "$(ProjectDir)..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
-xcopy /Y /S "$(ProjectDir)..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\bin" "$(TargetDir)ImageConvertTools\"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>
@@ -370,9 +366,8 @@ xcopy /Y /S "$(ProjectDir)..\..\..\Common_3\ThirdParty\OpenSource\basis_universa
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssetPipeline.lib;MeshOptimizer.lib;RendererDX12.lib;OS.lib;MeshOptimizer.lib;AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir $(TargetDir)ImageConvertTools\"
-xcopy /Y /S "$(ProjectDir)..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
-xcopy /Y /S "$(ProjectDir)..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\bin" "$(TargetDir)ImageConvertTools\"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -417,9 +412,8 @@ xcopy /Y /S "$(ProjectDir)..\..\..\Common_3\ThirdParty\OpenSource\basis_universa
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;AssetPipeline.lib;MeshOptimizer.lib;RendererDX11.lib;OS.lib;MeshOptimizer.lib;AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>mkdir $(TargetDir)ImageConvertTools\"
-xcopy /Y /S "$(ProjectDir)..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
-xcopy /Y /S "$(ProjectDir)..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\bin" "$(TargetDir)ImageConvertTools\"</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>

@@ -23,7 +23,7 @@
 */
 #define QUADS_ARRAY_REGS 192
 
-cbuffer PackedAtlasQuads_CB : register(b0, space3)
+cbuffer PackedAtlasQuads_CB : register(b0, UPDATE_FREQ_PER_FRAME)
 {
 	float4 mQuadsData[QUADS_ARRAY_REGS];
 };

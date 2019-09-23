@@ -131,23 +131,6 @@ float depthLinearization(float depth, float near, float far)
 	return (2.0 * near) / (far + near - depth * (far - near));
 }
 
-struct BindlessDiffuseData
-{
-    array<texture2d<float>,MATERIAL_BUFFER_SIZE> textures;
-};
-
-struct BindlessNormalData
-{
-    array<texture2d<float>,MATERIAL_BUFFER_SIZE> textures;
-};
-
-struct BindlessSpecularData
-{
-    array<texture2d<float>,MATERIAL_BUFFER_SIZE> textures;
-};
-
-
-
 struct IndirectDrawArgumentsData {
 	constant uint* data[NUM_CULLING_VIEWPORTS];
 };
@@ -253,7 +236,7 @@ struct ASMArguments
 {
 	ASMArguments(constant Uniforms_ASMUniformBlock& argsAsmUniformBlock,
 				 depth2d<float> argsDepthAtlasTexture,
-				 array_ref<texture2d<float, access::sample>> argsIndexTexture,
+                 constant texture2d<float, access::sample>* argsIndexTexture,
 				 texture2d<float> argsDEMTexture,
 				 texture2d<float> argsPrerenderLodClampTexture,
 				 sampler argsShadowCmpSampler,
@@ -269,17 +252,18 @@ struct ASMArguments
 	clampBorderNearSampler(argsClampBorderNearSampler),
 	clampMiplessLinearSampler(argsClampMiplessLinearSampler),
 	clampMiplessNearSampler(argsClampMiplessNearSampler)
-	{};
+	{
+    }
+    
 	constant Uniforms_ASMUniformBlock & asmUniformBlock;
 	depth2d<float> DepthAtlasTexture;
 	sampler ShadowCmpSampler;
 	sampler clampBorderNearSampler ;
 	sampler clampMiplessLinearSampler;
 	sampler clampMiplessNearSampler;
-	array_ref<texture2d<float, access::sample>> IndexTexture;
+	constant texture2d<float, access::sample>* IndexTexture;
 	texture2d<float> DEMTexture;
 	texture2d<float> PrerenderLodClampTexture;
-	
 };
 
 struct ASMFrustumDesc
@@ -541,48 +525,61 @@ float SampleShadowFactor(float3 worldPos, thread ASMArguments& asmArguments)
 	return 1.0 - shadowFactor;
 }
 
+struct FSData {
+    constant SceneVertexPos* vertexPos                          [[id(0)]];
+    constant SceneVertexTexcoord* vertexTexCoord                [[id(1)]];
+    constant SceneVertexNormal* vertexNormal                    [[id(2)]];
+    constant SceneVertexTangent* vertexTangent                  [[id(3)]];
 
+    constant MeshConstants* meshConstantsBuffer                 [[id(4)]];
+
+    sampler textureSampler                                      [[id(5)]];
+    sampler ShadowCmpSampler                                    [[id(6)]];
+    sampler clampBorderNearSampler                              [[id(7)]];
+    sampler clampMiplessLinearSampler                           [[id(8)]];
+    sampler clampMiplessNearSampler                             [[id(9)]];
+
+    texture2d<float,access::read> vbPassTexture                 [[id(10)]];
+    depth2d<float> DepthAtlasTexture                            [[id(11)]];
+    texture2d<float> DEMTexture                                 [[id(12)]];
+    texture2d<float> PrerenderLodClampTexture                   [[id(13)]];
+    depth2d<float> ESMShadowTexture                             [[id(14)]];
+    texture2d<float> SDFShadowTexture                           [[id(15)]];
+    
+    texture2d<float,access::sample> IndexTexture[10];
+
+    array<texture2d<float>, MATERIAL_BUFFER_SIZE> diffuseMaps;
+    array<texture2d<float>, MATERIAL_BUFFER_SIZE> normalMaps;
+    array<texture2d<float>, MATERIAL_BUFFER_SIZE> specularMaps;
+};
+
+struct FSDataPerFrame {
+    constant uint* filteredIndexBuffer                          [[id(0)]];
+    constant uint* indirectMaterialBuffer                       [[id(1)]];
+
+//    constant IndirectDrawArgumentsData& indirectDrawArgs        [[id(2)]];
+    constant Uniforms_objectUniformBlock & objectUniformBlock   [[id(3)]];
+    constant Uniforms_cameraUniformBlock & cameraUniformBlock   [[id(4)]];
+
+    constant Uniforms_lightUniformBlock & lightUniformBlock     [[id(5)]];
+    constant Uniforms_ESMInputConstants & ESMInputConstants     [[id(6)]];
+
+    constant Uniforms_renderSettingUniformBlock & renderSettingUniformBlock [[id(7)]];
+    constant Uniforms_ASMUniformBlock & ASMUniformBlock                     [[id(8)]];
+    
+    constant uint* indirectDrawArgs[NUM_CULLING_VIEWPORTS];
+};
 
 // Pixel shader
-fragment float4 stageMain(VSOutput input                                              [[stage_in]],
-                          uint32_t sampleID                                           [[sample_id]],
-
-                          constant SceneVertexPos* vertexPos                          [[buffer(0)]],
-                          constant SceneVertexTexcoord* vertexTexCoord                [[buffer(1)]],
-                          constant SceneVertexNormal* vertexNormal                    [[buffer(2)]],
-                          constant SceneVertexTangent* vertexTangent                  [[buffer(3)]],
-                          constant uint* filteredIndexBuffer                          [[buffer(4)]],
-                          constant uint* indirectMaterialBuffer                       [[buffer(5)]],
-                          constant MeshConstants* meshConstantsBuffer                 [[buffer(6)]],
-
-                          constant IndirectDrawArgumentsData& indirectDrawArgs        [[buffer(7)]],
-                          //constant PerFrameConstants& uniforms                        [[buffer(8)]],
-						  constant Uniforms_objectUniformBlock & objectUniformBlock   [[buffer(8)]],
-						  constant Uniforms_cameraUniformBlock & cameraUniformBlock 	[[buffer(9)]],
-						  constant Uniforms_lightUniformBlock & lightUniformBlock  	  [[buffer(10)]],
-						  constant Uniforms_ASMUniformBlock & ASMUniformBlock			[[buffer(11)]],
-						  constant Uniforms_ESMInputConstants & ESMInputConstants		[[buffer(12)]],
-						  constant Uniforms_renderSettingUniformBlock & renderSettingUniformBlock [[buffer(13)]],
-
-                          device BindlessDiffuseData& diffuseMaps                     [[buffer(14)]],
-                          device BindlessNormalData& normalMaps                       [[buffer(15)]],
-                          device BindlessSpecularData& specularMaps                   [[buffer(16)]],
-
-                          sampler textureSampler                                      [[sampler(0)]],
-                          sampler ShadowCmpSampler                                        [[sampler(1)]],
-						  sampler clampBorderNearSampler 							  [[sampler(2)]],
-						  sampler clampMiplessLinearSampler								[[sampler(3)]],
-						  sampler clampMiplessNearSampler								[[sampler(4)]],
-                          texture2d<float,access::read> vbPassTexture                         [[texture(0)]],
-						  array<texture2d<float,access::sample>, 10> IndexTexture						[[texture(1)]],
-						  depth2d<float> DepthAtlasTexture				[[texture(11)]],
-						  texture2d<float> DEMTexture						[[texture(12)]],
-						  texture2d<float> PrerenderLodClampTexture		[[texture(13)]],
-						  depth2d<float> ESMShadowTexture 				[[texture(14)]],
-						  texture2d<float> SDFShadowTexture				[[texture(15)]]
-                          )
+fragment float4 stageMain(
+    VSOutput input                                              [[stage_in]],
+    uint32_t sampleID                                           [[sample_id]],
+    constant FSData& fsData                     [[buffer(UPDATE_FREQ_NONE)]],
+    constant FSDataPerFrame& fsDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]]
+    //constant PerFrameConstants& uniforms                        [[buffer(8)]],
+)
 {
-	float4 visRaw = vbPassTexture.read(uint2(input.position.xy), sampleID);
+	float4 visRaw = fsData.vbPassTexture.read(uint2(input.position.xy), sampleID);
 	
 	// Unpack float4 render target data into uint to extract data
 	uint alphaBit_drawID_triID = pack_float_to_unorm4x8(visRaw);
@@ -598,26 +595,26 @@ fragment float4 stageMain(VSOutput input                                        
 		uint alpha1_opaque0 = (alphaBit_drawID_triID >> 31);
 
 		// This is the start vertex of the current draw batch
-		uint startIndex = indirectDrawArgs.data[alpha1_opaque0][drawID * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + 2];
+		uint startIndex = fsDataPerFrame.indirectDrawArgs[alpha1_opaque0][drawID * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + 2];
 
 		// Calculate vertex indices for this triangle
 		uint triIdx0 = (triangleID * 3 + 0) + startIndex;
 		uint triIdx1 = (triangleID * 3 + 1) + startIndex;
 		uint triIdx2 = (triangleID * 3 + 2) + startIndex;
 
-		uint index0 = filteredIndexBuffer[triIdx0];
-		uint index1 = filteredIndexBuffer[triIdx1];
-		uint index2 = filteredIndexBuffer[triIdx2];
+		uint index0 = fsDataPerFrame.filteredIndexBuffer[triIdx0];
+		uint index1 = fsDataPerFrame.filteredIndexBuffer[triIdx1];
+		uint index2 = fsDataPerFrame.filteredIndexBuffer[triIdx2];
 		
 		// Load vertex data of the 3 vertices
-		float3 v0pos = vertexPos[index0].position;
-		float3 v1pos = vertexPos[index1].position;
-		float3 v2pos = vertexPos[index2].position;
+		float3 v0pos = fsData.vertexPos[index0].position;
+		float3 v1pos = fsData.vertexPos[index1].position;
+		float3 v2pos = fsData.vertexPos[index2].position;
 
 		// Transform positions to clip space
-		float4 pos0 = objectUniformBlock.mWorldViewProjMat * float4(v0pos, 1);
-		float4 pos1 = objectUniformBlock.mWorldViewProjMat * float4(v1pos, 1);
-		float4 pos2 = objectUniformBlock.mWorldViewProjMat * float4(v2pos, 1);
+		float4 pos0 = fsDataPerFrame.objectUniformBlock.mWorldViewProjMat * float4(v0pos, 1);
+		float4 pos1 = fsDataPerFrame.objectUniformBlock.mWorldViewProjMat * float4(v1pos, 1);
+		float4 pos2 = fsDataPerFrame.objectUniformBlock.mWorldViewProjMat * float4(v2pos, 1);
 
 		// Calculate the inverse of w, since it's going to be used several times
 		float3 one_over_w = 1.0 / float3(pos0.w, pos1.w, pos2.w);
@@ -641,28 +638,28 @@ fragment float4 stageMain(VSOutput input                                        
 
 		// Reconstruct the Z value at this screen point performing only the necessary matrix * vector multiplication
 		// operations that involve computing Z
-		float z = w * cameraUniformBlock.Project[2][2] + cameraUniformBlock.Project[3][2];
+		float z = w * fsDataPerFrame.cameraUniformBlock.Project[2][2] + fsDataPerFrame.cameraUniformBlock.Project[3][2];
 
 		// Calculate the world position coordinates:
 		// First the projected coordinates at this point are calculated using In.screenPos and the computed Z value at this point.
 		// Then, multiplying the perspective projected coordinates by the inverse view-projection matrix (invVP) produces world coordinates
-		float3 position = (cameraUniformBlock.InvViewProject * float4(input.screenPos * w, z, w)).xyz;
+		float3 position = (fsDataPerFrame.cameraUniformBlock.InvViewProject * float4(input.screenPos * w, z, w)).xyz;
 
 		// TEXTURE COORD INTERPOLATION
 		// Apply perspective correction to texture coordinates
 		float3x2 texCoords = {
-			float2(vertexTexCoord[index0].texCoord) * one_over_w[0],
-			float2(vertexTexCoord[index1].texCoord) * one_over_w[1],
-			float2(vertexTexCoord[index2].texCoord) * one_over_w[2]
+			float2(fsData.vertexTexCoord[index0].texCoord) * one_over_w[0],
+			float2(fsData.vertexTexCoord[index1].texCoord) * one_over_w[1],
+			float2(fsData.vertexTexCoord[index2].texCoord) * one_over_w[2]
 		};
 
 		// Interpolate texture coordinates and calculate the gradients for texture sampling with mipmapping support
-		GradientInterpolationResults results = interpolateAttributeWithGradient(texCoords, derivativesOut.db_dx, derivativesOut.db_dy, d, cameraUniformBlock.mTwoOverRes);
+		GradientInterpolationResults results = interpolateAttributeWithGradient(texCoords, derivativesOut.db_dx, derivativesOut.db_dy, d, fsDataPerFrame.cameraUniformBlock.mTwoOverRes);
 		
-		float farValue = cameraUniformBlock.mFarNearDiff + cameraUniformBlock.mNear;
+		float farValue = fsDataPerFrame.cameraUniformBlock.mFarNearDiff + fsDataPerFrame.cameraUniformBlock.mNear;
 		
 		
-		float linearZ = depthLinearization(z/w, cameraUniformBlock.mNear, farValue);
+		float linearZ = depthLinearization(z/w, fsDataPerFrame.cameraUniformBlock.mNear, farValue);
 		float mip = pow(pow(linearZ, 0.9f) * 5.0f, 1.5f);
 
 		float2 texCoordDX = results.dx * w * mip;
@@ -672,9 +669,9 @@ fragment float4 stageMain(VSOutput input                                        
 		// NORMAL INTERPOLATION
 		// Apply perspective division to normals
 		float3x3 normals = {
-			float3(vertexNormal[index0].normal) * one_over_w[0],
-			float3(vertexNormal[index1].normal) * one_over_w[1],
-			float3(vertexNormal[index2].normal) * one_over_w[2]
+			float3(fsData.vertexNormal[index0].normal) * one_over_w[0],
+			float3(fsData.vertexNormal[index1].normal) * one_over_w[1],
+			float3(fsData.vertexNormal[index2].normal) * one_over_w[2]
 		};
 
 		float3 normal = normalize(interpolateAttribute(normals, derivativesOut.db_dx, derivativesOut.db_dy, d));
@@ -682,9 +679,9 @@ fragment float4 stageMain(VSOutput input                                        
 		// TANGENT INTERPOLATION
 		// Apply perspective division to tangents
 		float3x3 tangents = {
-			float3(vertexTangent[index0].tangent) * one_over_w[0],
-			float3(vertexTangent[index1].tangent) * one_over_w[1],
-			float3(vertexTangent[index2].tangent) * one_over_w[2]
+			float3(fsData.vertexTangent[index0].tangent) * one_over_w[0],
+			float3(fsData.vertexTangent[index1].tangent) * one_over_w[1],
+			float3(fsData.vertexTangent[index2].tangent) * one_over_w[2]
 		};
 		
 		float3 tangent = normalize(interpolateAttribute(tangents, derivativesOut.db_dx, derivativesOut.db_dy, d));
@@ -707,16 +704,16 @@ fragment float4 stageMain(VSOutput input                                        
 		// 0 - 299 - shadow alpha
 		// 300 - 599 - shadow no alpha
 		// 600 - 899 - camera alpha
-		uint materialID = indirectMaterialBuffer[materialBaseSlot + drawID];
+		uint materialID = fsDataPerFrame.indirectMaterialBuffer[materialBaseSlot + drawID];
 		
 		// Get textures from arrays.
-		texture2d<float> diffuseMap = diffuseMaps.textures[materialID];
-		texture2d<float> normalMap = normalMaps.textures[materialID];
-		texture2d<float> specularMap = specularMaps.textures[materialID];
+		texture2d<float> diffuseMap = fsData.diffuseMaps[materialID];
+		texture2d<float> normalMap = fsData.normalMaps[materialID];
+		texture2d<float> specularMap = fsData.specularMaps[materialID];
 
 		// CALCULATE PIXEL COLOR USING INTERPOLATED ATTRIBUTES
 		// Reconstruct normal map Z from X and Y
-		float4 normalMapRG = normalMap.sample(textureSampler,texCoord,gradient2d(texCoordDX,texCoordDY));
+		float4 normalMapRG = normalMap.sample(fsData.textureSampler,texCoord,gradient2d(texCoordDX,texCoordDY));
 
 		float3 reconstructedNormalMap;
 		reconstructedNormalMap.xy = normalMapRG.ga * 2 - 1;
@@ -729,18 +726,18 @@ fragment float4 stageMain(VSOutput input                                        
 		normal = reconstructedNormalMap.x * tangent + reconstructedNormalMap.y * binormal + reconstructedNormalMap.z * normal;
 		
 		// Sample Diffuse color
-		float4 diffuseColor = diffuseMap.sample(textureSampler,texCoord,gradient2d(texCoordDX,texCoordDY));
-		float4 specularData = specularMap.sample(textureSampler,texCoord,gradient2d(texCoordDX,texCoordDY));
+		float4 diffuseColor = diffuseMap.sample(fsData.textureSampler,texCoord,gradient2d(texCoordDX,texCoordDY));
+		float4 specularData = specularMap.sample(fsData.textureSampler,texCoord,gradient2d(texCoordDX,texCoordDY));
 
 		float Roughness = clamp(specularData.a, 0.05f, 0.99f);
 		float Metallic = specularData.b;
 
 
 
-		const bool isTwoSided = (alpha1_opaque0 == 1) && (meshConstantsBuffer[materialID].twoSided == 1);
+		const bool isTwoSided = (alpha1_opaque0 == 1) && (fsData.meshConstantsBuffer[materialID].twoSided == 1);
 		bool isBackFace = false;
 
-		float3 ViewVec = normalize(cameraUniformBlock.mCameraPos.xyz - position.xyz);
+		float3 ViewVec = normalize(fsDataPerFrame.cameraUniformBlock.mCameraPos.xyz - position.xyz);
 
 		//if it is backface
 		//this should be < 0 but our mesh's edge normals are smoothed, badly
@@ -751,7 +748,7 @@ fragment float4 stageMain(VSOutput input                                        
 			isBackFace = true;
 		}
 		
-		float3 lightDir = -lightUniformBlock.mLightDir.xyz;
+		float3 lightDir = -fsDataPerFrame.lightUniformBlock.mLightDir.xyz;
 
 		float3 HalfVec = normalize(ViewVec - lightDir.xyz);
 		float3 ReflectVec = reflect(-ViewVec, normal);
@@ -768,11 +765,9 @@ fragment float4 stageMain(VSOutput input                                        
 		
 		float shadowFactor = 1.0f;
 		
-		
-		
-		if(renderSettingUniformBlock.ShadowType == SHADOW_TYPE_ASM)
+		if(fsDataPerFrame.renderSettingUniformBlock.ShadowType == SHADOW_TYPE_ASM)
 		{
-			ASMArguments asmArguments(ASMUniformBlock, DepthAtlasTexture, IndexTexture, DEMTexture, PrerenderLodClampTexture, ShadowCmpSampler, clampBorderNearSampler, clampMiplessLinearSampler, clampMiplessNearSampler);
+			ASMArguments asmArguments(fsDataPerFrame.ASMUniformBlock, fsData.DepthAtlasTexture, fsData.IndexTexture, fsData.DEMTexture, fsData.PrerenderLodClampTexture, fsData.ShadowCmpSampler, fsData.clampBorderNearSampler, fsData.clampMiplessLinearSampler, fsData.clampMiplessNearSampler);
 			/*asmArguments.ShadowCmpSampler = ShadowCmpSampler;
 			asmArguments.clampBorderNearSampler = clampBorderNearSampler;
 			asmArguments.clampMiplessLinearSampler = clampMiplessLinearSampler;
@@ -781,17 +776,17 @@ fragment float4 stageMain(VSOutput input                                        
 			//shadowFactor = 0.5;
 		
 		}
-		else if(renderSettingUniformBlock.ShadowType == SHADOW_TYPE_MESH_BAKED_SDF)
+		else if(fsDataPerFrame.renderSettingUniformBlock.ShadowType == SHADOW_TYPE_MESH_BAKED_SDF)
 		{
-			shadowFactor = SDFShadowTexture.read(uint2(input.position.xy)).r;
+			shadowFactor = fsData.SDFShadowTexture.read(uint2(input.position.xy)).r;
 		
 		}
-		else if(renderSettingUniformBlock.ShadowType == SHADOW_TYPE_ESM)
+		else if(fsDataPerFrame.renderSettingUniformBlock.ShadowType == SHADOW_TYPE_ESM)
 		{
 			//shadowFactor = ESMShadowTexture.read(uint2(input.position.xy), sampleID).r;
 			//shadowFactor *= ESMInputConstants.mEsmControl;
 			
-			shadowFactor = calcESMShadowFactor(position.xyz, lightUniformBlock, ESMInputConstants, ESMShadowTexture, clampMiplessLinearSampler);
+			shadowFactor = calcESMShadowFactor(position.xyz, fsDataPerFrame.lightUniformBlock, fsDataPerFrame.ESMInputConstants, fsData.ESMShadowTexture, fsData.clampMiplessLinearSampler);
 		}
 		
 		
@@ -804,7 +799,7 @@ fragment float4 stageMain(VSOutput input                                        
 											ReflectVec,
 											NoL,
 											NoV,
-											cameraUniformBlock.mCameraPos.xyz,
+											fsDataPerFrame.cameraUniformBlock.mCameraPos.xyz,
 											
 											lightDir.xyz,
 											position,

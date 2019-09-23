@@ -22,7 +22,7 @@
  * under the License.
 */
 
-cbuffer GrassUniformBlock : register(b0, space0) {
+cbuffer GrassUniformBlock : register(b0, UPDATE_FREQ_NONE) {
 
     float4x4 world;
     float4x4 view;

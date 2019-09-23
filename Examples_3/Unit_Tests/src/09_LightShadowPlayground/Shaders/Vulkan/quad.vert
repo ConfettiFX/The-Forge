@@ -16,7 +16,7 @@ layout(location = 0) in vec4 POSITION;
 layout(location = 1) in vec2 TEXCOORD0;
 layout(location = 0) out vec2 vertOutput_TEXCOORD0;
 
-layout(row_major, set = 0, binding = 0) uniform UniformQuadData
+layout(row_major, UPDATE_FREQ_PER_FRAME, binding = 0) uniform UniformQuadData
 {
     mat4 mModelMat;
 };

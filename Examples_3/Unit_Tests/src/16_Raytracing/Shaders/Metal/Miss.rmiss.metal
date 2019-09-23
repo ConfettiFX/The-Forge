@@ -5,6 +5,11 @@ using namespace metal;
 
 #include "ShaderTypes.h"
 
+#ifndef TARGET_IOS
+struct CSData {
+    texture2d<float, access::write> gOutput;
+};
+#endif
 
 // Generates rays starting from the camera origin and traveling towards the image plane aligned
 // with the camera's coordinate system.
@@ -19,7 +24,12 @@ kernel void miss(uint2 tid                                       [[thread_positi
                  device uint *hitGroupID                 [[buffer(7)]],
                  device ShaderSettings &shaderSettings   [[buffer(8)]],
                  
-                 texture2d<float, access::write> gOutput  [[texture(0)]])
+				 #ifndef TARGET_IOS
+									   constant CSData& csData                    [[buffer(UPDATE_FREQ_NONE)]]
+				 #else
+									   texture2d<float, access::write> gOutput    [[texture(0)]]
+				 #endif
+)
 {
     if (tid.x < uniforms.width && tid.y < uniforms.height) {
         unsigned int rayIdx = tid.y * uniforms.width + tid.x;
@@ -31,11 +41,12 @@ kernel void miss(uint2 tid                                       [[thread_positi
             // The ray missed the scene, so terminate the ray's path
             ray.maxDistance = -1.0f;
             
+#ifndef TARGET_IOS
+            csData.gOutput.write(float4(0.1, 0.0, 0.3, 1.0f), tid);
+#else
             gOutput.write(float4(0.1, 0.0, 0.3, 1.0f), tid);
-            
+#endif
         }
-        
-        
     }
 }
 

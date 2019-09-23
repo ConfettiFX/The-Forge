@@ -19,16 +19,16 @@ vec4 MulMat(mat4 lhs, vec4 rhs)
 
 
 
-#include "../../SDF_Constant.h"
+#include "SDF_Constant.h"
 #define PI 3.14159274
 
-layout(set = 1, binding = 0) uniform texture2D DepthTexture;
-layout(set = 0, binding = 0) uniform texture3D SDFVolumeTextureAtlas;
+layout(UPDATE_FREQ_NONE, binding = 0) uniform texture2D DepthTexture;
+layout(UPDATE_FREQ_NONE, binding = 1) uniform texture3D SDFVolumeTextureAtlas;
 
-layout(set = 0, binding = 2, rg32f) uniform image2D OutTexture;
-layout(set = 0, binding = 3) uniform sampler clampToEdgeTrillinearSampler;
-layout(set = 0, binding = 4) uniform sampler clampToEdgeNearSampler;
-layout(column_major, set = 0, binding = 5) uniform cameraUniformBlock
+layout(UPDATE_FREQ_NONE, binding = 2, rg32f) uniform image2D OutTexture;
+layout(UPDATE_FREQ_NONE, binding = 3) uniform sampler clampToEdgeTrillinearSampler;
+layout(UPDATE_FREQ_NONE, binding = 4) uniform sampler clampToEdgeNearSampler;
+layout(column_major, UPDATE_FREQ_PER_FRAME, binding = 5) uniform cameraUniformBlock
 {
     mat4 View;
     mat4 Project;
@@ -50,7 +50,7 @@ layout(column_major, set = 0, binding = 5) uniform cameraUniformBlock
     vec4 mDeviceZToWorldZ;
 };
 
-layout(column_major, set = 0, binding = 6) uniform meshSDFUniformBlock
+layout(column_major, UPDATE_FREQ_PER_FRAME, binding = 6) uniform meshSDFUniformBlock
 {
     mat4 mWorldToVolumeMat[SDF_MAX_OBJECT_COUNT];
     vec4 mUVScaleAndVolumeScale[SDF_MAX_OBJECT_COUNT];
@@ -60,7 +60,7 @@ layout(column_major, set = 0, binding = 6) uniform meshSDFUniformBlock
     uint mNumObjects;
 };
 
-layout(row_major, set = 0, binding = 7) uniform lightUniformBlock
+layout(row_major, UPDATE_FREQ_PER_FRAME, binding = 7) uniform lightUniformBlock
 {
     mat4 lightViewProj;
     vec4 lightPosition;
@@ -186,7 +186,7 @@ void HLSLmain(uvec3 GroupID, uvec3 DispatchThreadID, uvec3 GroupThreadID)
     vec3 worldPos = ((worldPosW / vec4 ((worldPosW).w))).xyz;
     float worldZ = ConvertFromDeviceZ(depthVal);
 
-	float RayStartOffset = 1.75f + 0.005f * worldZ;
+	float RayStartOffset = 1.75f + 0.008f * worldZ;
 
     float minSphereRadius = 0.3;
     float maxSphereRadius = 10.0;

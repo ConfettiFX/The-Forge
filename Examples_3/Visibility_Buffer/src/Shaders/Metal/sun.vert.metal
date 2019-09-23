@@ -56,16 +56,20 @@ struct Vertex_Shader
 	RootConstantSunMatrices(RootConstantSunMatrices) {}
 };
 
+struct VSData {
+    constant Vertex_Shader::Uniforms_RootConstantSunMatrices & UniformBufferSunMatrices [[id(0)]];
+};
 
 vertex Vertex_Shader::VSOutput stageMain(
-										 Vertex_Shader::VSInput input [[stage_in]],
-										 constant Vertex_Shader::Uniforms_RootConstantSunMatrices & UniformBufferSunMatrices [[buffer(1)]])
+    Vertex_Shader::VSInput input [[stage_in]],
+    constant VSData& vsData [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
 	Vertex_Shader::VSInput input0;
 	input0.Position = input.Position;
 	input0.Normal = input.Normal;
 	input0.UV = input.UV;
-	Vertex_Shader main(UniformBufferSunMatrices);
+	Vertex_Shader main(vsData.UniformBufferSunMatrices);
 	return main.main(input0);
 }
 

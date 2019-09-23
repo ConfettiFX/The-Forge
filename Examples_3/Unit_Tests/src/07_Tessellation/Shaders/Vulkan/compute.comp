@@ -29,10 +29,10 @@
 #define WORKGROUP_SIZE 32
 layout(local_size_x = WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
 
-layout(set = 0, binding = 0) uniform GrassUniformBlock {
-
-   	mat4 world;
-	mat4 view;	
+layout(UPDATE_FREQ_PER_FRAME, binding = 0) uniform GrassUniformBlock
+{
+	mat4 world;
+	mat4 view;
 	mat4 invView;
 	mat4 proj;
 	mat4 viewProj;
@@ -57,24 +57,28 @@ struct Blade {
 
 
 //input
-layout(set = 0, binding = 1) buffer Blades {
+layout(UPDATE_FREQ_NONE, binding = 1) buffer Blades
+{
  	 Blade blades[];
 };
 
 //output
-layout(set = 0, binding = 2) buffer CulledBlades {
+layout(UPDATE_FREQ_NONE, binding = 2) writeonly buffer CulledBlades
+{
  	Blade culledBlades[];
 };
 
 
-layout(set = 0, binding = 3) buffer NumBlades {
+layout(UPDATE_FREQ_NONE, binding = 3) buffer NumBlades
+{
  	  uint vertexCount;   // Write the number of blades remaining here
  	  uint instanceCount; // = 1
  	  uint firstVertex;   // = 0
  	  uint firstInstance; // = 0
 };
 
-bool inBounds(float value, float bounds) {
+bool inBounds(float value, float bounds)
+{
     return (value >= -bounds) && (value <= bounds);
 }
 
@@ -85,13 +89,12 @@ vec3 interPos(vec3 posV0, vec3 posV1, vec3 posV2, float v)
 	return a + v*(b - a);
 }
 
-
-
-void main() {
+void main()
+{
 	// Reset the number of blades to 0
-	if (gl_GlobalInvocationID.x == 0) {
+	if (gl_GlobalInvocationID.x == 0)
 		vertexCount = 0;
-	}
+
 	barrier(); // Wait till all threads reach this point
 
 	uint index = gl_GlobalInvocationID.x;

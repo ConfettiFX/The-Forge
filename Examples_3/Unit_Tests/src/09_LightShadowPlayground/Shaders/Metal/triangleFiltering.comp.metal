@@ -236,6 +236,7 @@ void DoViewCulling(uint triangleIdGlobal, float3 pos0, float3 pos1, float3 pos2,
     }*/
 }
 
+/*
 struct FilteredIndicesBufferData {
 	device uint* data[NUM_CULLING_VIEWPORTS];
 };
@@ -243,17 +244,27 @@ struct FilteredIndicesBufferData {
 struct UncompactedDrawArgsData {
 	device UncompactedDrawArguments* data[NUM_CULLING_VIEWPORTS];
 };
+*/
+ 
+struct CSData {
+    constant SceneVertexPos* vertexDataBuffer               [[id(0)]];
+    constant uint* indexDataBuffer                          [[id(1)]];
+    constant MeshConstants* meshConstantsBuffer             [[id(2)]];
+    constant SmallBatchData* batchData_rootcbv              [[id(3)]];
+};
+
+struct CSDataPerFrame {
+    constant Uniforms_visibilityBufferConstants & visibilityBufferConstants;
+    device uint* filteredIndicesBuffer[NUM_CULLING_VIEWPORTS];
+    device UncompactedDrawArguments* uncompactedDrawArgsRW[NUM_CULLING_VIEWPORTS];
+};
 
 //[numthreads(256, 1, 1)]
-kernel void stageMain(uint3 inGroupId [[thread_position_in_threadgroup]],
-                      uint3 groupId [[threadgroup_position_in_grid]],
-					  constant SceneVertexPos* vertexDataBuffer               [[buffer(UNIT_VERTEX_DATA)]],
-					  constant uint* indexDataBuffer                          [[buffer(UNIT_INDEX_DATA)]],
-					  constant MeshConstants* meshConstantsBuffer             [[buffer(UNIT_MESH_CONSTANTS)]],
-					  constant SmallBatchData* batchData                      [[buffer(UNIT_BATCH_DATA_CBV)]],
-					  constant Uniforms_visibilityBufferConstants & visibilityBufferConstants                    [[buffer(UNIT_UNIFORMS_CBV)]],
-					  device FilteredIndicesBufferData& filteredIndicesBuffer [[buffer(UNIT_INDEX_DATA_RW)]],
-					  device UncompactedDrawArgsData& uncompactedDrawArgsRW   [[buffer(UNIT_UNCOMPACTED_ARGS_RW)]]
+kernel void stageMain(
+    uint3 inGroupId                             [[thread_position_in_threadgroup]],
+    uint3 groupId                               [[threadgroup_position_in_grid]],
+    constant CSData& csData                     [[buffer(UPDATE_FREQ_NONE)]],
+    constant CSDataPerFrame& csDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]]
 )
 {
 	threadgroup atomic_uint workGroupOutputSlot[NUM_CULLING_VIEWPORTS];
@@ -276,27 +287,27 @@ kernel void stageMain(uint3 inGroupId [[thread_position_in_threadgroup]],
 		cull[i] = true;
 	}
 	
-	uint batchMeshIndex = batchData[groupId.x].mMeshIndex;
-	uint batchInputIndexOffset = (meshConstantsBuffer[batchMeshIndex].indexOffset + batchData[groupId.x].mIndexOffset);
-	bool twoSided = (meshConstantsBuffer[batchMeshIndex].twoSided == 1);
+	uint batchMeshIndex = csData.batchData_rootcbv[groupId.x].mMeshIndex;
+	uint batchInputIndexOffset = (csData.meshConstantsBuffer[batchMeshIndex].indexOffset + csData.batchData_rootcbv[groupId.x].mIndexOffset);
+	bool twoSided = (csData.meshConstantsBuffer[batchMeshIndex].twoSided == 1);
 
 	uint indices[3] = { 0, 0, 0 };
-	if (inGroupId.x < batchData[groupId.x].mFaceCount)
+	if (inGroupId.x < csData.batchData_rootcbv[groupId.x].mFaceCount)
 	{
-		indices[0] = indexDataBuffer[inGroupId.x * 3 + 0 + batchInputIndexOffset];
-		indices[1] = indexDataBuffer[inGroupId.x * 3 + 1 + batchInputIndexOffset];
-		indices[2] = indexDataBuffer[inGroupId.x * 3 + 2 + batchInputIndexOffset];
+		indices[0] = csData.indexDataBuffer[inGroupId.x * 3 + 0 + batchInputIndexOffset];
+		indices[1] = csData.indexDataBuffer[inGroupId.x * 3 + 1 + batchInputIndexOffset];
+		indices[2] = csData.indexDataBuffer[inGroupId.x * 3 + 2 + batchInputIndexOffset];
 		
 		float4 vert[3] =
 		{
-			float4(vertexDataBuffer[indices[0]].position, 1),
-			float4(vertexDataBuffer[indices[1]].position, 1),
-			float4(vertexDataBuffer[indices[2]].position, 1)
+			float4(csData.vertexDataBuffer[indices[0]].position, 1),
+			float4(csData.vertexDataBuffer[indices[1]].position, 1),
+			float4(csData.vertexDataBuffer[indices[2]].position, 1)
 		};
 		
 		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 		{
-			float4x4 worldViewProjection = visibilityBufferConstants.mWorldViewProjMat[i];
+			float4x4 worldViewProjection = csDataPerFrame.visibilityBufferConstants.mWorldViewProjMat[i];
 			float4 vertices[3] =
 			{
 				worldViewProjection * vert[0],
@@ -304,7 +315,7 @@ kernel void stageMain(uint3 inGroupId [[thread_position_in_threadgroup]],
 				worldViewProjection * vert[2]
 			};
 			
-			CullingViewPort viewport = visibilityBufferConstants.mCullingViewports[i];
+			CullingViewPort viewport = csDataPerFrame.visibilityBufferConstants.mCullingViewports[i];
 			cull[i] = FilterTriangle(indices, vertices, !twoSided, viewport.mWindowSize, viewport.mSampleCount);
 			if (!cull[i])
 				threadOutputSlot[i] = atomic_fetch_add_explicit(&workGroupIndexCount[i], 3, memory_order_relaxed);
@@ -313,7 +324,7 @@ kernel void stageMain(uint3 inGroupId [[thread_position_in_threadgroup]],
 
 	threadgroup_barrier(mem_flags::mem_threadgroup);
 	
-	uint accumBatchDrawIndex = batchData[groupId.x].mAccumDrawIndex;
+	uint accumBatchDrawIndex = csData.batchData_rootcbv[groupId.x].mAccumDrawIndex;
 	
 	if (inGroupId.x == 0)
 	{
@@ -321,7 +332,7 @@ kernel void stageMain(uint3 inGroupId [[thread_position_in_threadgroup]],
 		{
 			uint index = atomic_load_explicit(&workGroupIndexCount[i], memory_order_relaxed);
 			atomic_store_explicit(&workGroupOutputSlot[i],
-								  atomic_fetch_add_explicit((device atomic_uint*)&uncompactedDrawArgsRW.data[i][accumBatchDrawIndex].mNumIndices, index, memory_order_relaxed),
+								  atomic_fetch_add_explicit((device atomic_uint*)&csDataPerFrame.uncompactedDrawArgsRW[i][accumBatchDrawIndex].mNumIndices, index, memory_order_relaxed),
 								  memory_order_relaxed);
 		}
 	}
@@ -334,21 +345,20 @@ kernel void stageMain(uint3 inGroupId [[thread_position_in_threadgroup]],
 		{
 			uint index = atomic_load_explicit(&workGroupOutputSlot[i], memory_order_relaxed);
 			
-			filteredIndicesBuffer.data[i][index + batchData[groupId.x].mOutputIndexOffset + threadOutputSlot[i] + 0] = indices[0];
-			filteredIndicesBuffer.data[i][index + batchData[groupId.x].mOutputIndexOffset + threadOutputSlot[i] + 1] = indices[1];
-			filteredIndicesBuffer.data[i][index + batchData[groupId.x].mOutputIndexOffset + threadOutputSlot[i] + 2] = indices[2];
+			csDataPerFrame.filteredIndicesBuffer[i][index + csData.batchData_rootcbv[groupId.x].mOutputIndexOffset + threadOutputSlot[i] + 0] = indices[0];
+			csDataPerFrame.filteredIndicesBuffer[i][index + csData.batchData_rootcbv[groupId.x].mOutputIndexOffset + threadOutputSlot[i] + 1] = indices[1];
+			csDataPerFrame.filteredIndicesBuffer[i][index + csData.batchData_rootcbv[groupId.x].mOutputIndexOffset + threadOutputSlot[i] + 2] = indices[2];
 		}
 	}
 	
-	if (inGroupId.x == 0 && groupId.x == batchData[groupId.x].mDrawBatchStart)
+	if (inGroupId.x == 0 && groupId.x == csData.batchData_rootcbv[groupId.x].mDrawBatchStart)
 	{
-		uint outIndexOffset = batchData[groupId.x].mOutputIndexOffset;
+		uint outIndexOffset = csData.batchData_rootcbv[groupId.x].mOutputIndexOffset;
 		
 		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 		{
-			uncompactedDrawArgsRW.data[i][accumBatchDrawIndex].mStartIndex = outIndexOffset;
-			uncompactedDrawArgsRW.data[i][accumBatchDrawIndex].mMaterialID = meshConstantsBuffer[batchMeshIndex].materialID;
+			csDataPerFrame.uncompactedDrawArgsRW[i][accumBatchDrawIndex].mStartIndex = outIndexOffset;
+			csDataPerFrame.uncompactedDrawArgsRW[i][accumBatchDrawIndex].mMaterialID = csData.meshConstantsBuffer[batchMeshIndex].materialID;
 		}
 	}
 }
-

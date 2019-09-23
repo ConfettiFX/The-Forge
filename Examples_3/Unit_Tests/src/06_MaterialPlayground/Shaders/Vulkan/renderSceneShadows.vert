@@ -26,12 +26,12 @@
 
 layout(location = 0) in vec3 POSITION;
 
-layout(set = 0, binding = 0) uniform cbCamera
+layout(UPDATE_FREQ_PER_FRAME, binding = 0) uniform cbCamera
 {
 	mat4 projView;
 };
 
-layout(set = 2, binding = 1) uniform cbObject
+layout(UPDATE_FREQ_PER_DRAW, binding = 1) uniform cbObject
 {
 	mat4 worldMat;
 };

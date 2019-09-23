@@ -3,7 +3,7 @@
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
-*layout(set = 0, binding = 12)
+*layout(UPDATE_FREQ_NONE, binding = 12)
 * Licensed to the Apache Software Foundation (ASF) under one
 * or more contributor license agreements.  See the NOTICE file
 * distributed with this work for additional information
@@ -25,7 +25,7 @@
 #version 450 core
 #extension GL_GOOGLE_include_directive : require
 
-#include "shading.glsl"
+#include "shading.h"
 
 layout(location = 0) in vec4 WorldPosition;
 layout(location = 1) in vec4 NormalOut;

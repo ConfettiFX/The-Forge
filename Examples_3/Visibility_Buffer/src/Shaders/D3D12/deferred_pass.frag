@@ -35,11 +35,11 @@ struct PsIn
 
 ConstantBuffer<RootConstant> indirectRootConstant : register(b1);
 
-Texture2D diffuseMaps[] : register(t0, space1);
-Texture2D normalMaps[] : register(t0, space2);
-Texture2D specularMaps[] : register(t0, space3);
+Texture2D diffuseMaps[] : register(t0, space4);
+Texture2D normalMaps[] : register(t0, space5);
+Texture2D specularMaps[] : register(t0, space6);
 
-StructuredBuffer<uint> indirectMaterialBuffer: register(t0);
+StructuredBuffer<uint> indirectMaterialBuffer: register(t0, UPDATE_FREQ_PER_FRAME);
 StructuredBuffer<MeshConstants> meshConstantsBuffer : register(t1);
 
 SamplerState textureFilter : register(s0);

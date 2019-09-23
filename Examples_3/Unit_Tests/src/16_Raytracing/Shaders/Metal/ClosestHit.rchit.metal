@@ -66,6 +66,12 @@ inline float3 alignHemisphereWithNormal(float3 sample, float3 normal) {
     return sample.x * right + sample.y * up + sample.z * forward;
 }
 
+#ifndef TARGET_IOS
+struct CSData {
+    texture2d<float, access::write> gOutput;
+};
+#endif
+
 // Consumes ray/triangle intersection results to compute the shaded image
 // [numthreads(8, 8, 1)]
 kernel void chs(uint2 tid                                       [[thread_position_in_grid]],
@@ -78,7 +84,12 @@ kernel void chs(uint2 tid                                       [[thread_positio
                         device uint *hitGroupID                 [[buffer(7)]],
                         device ShaderSettings &shaderSettings   [[buffer(8)]],
                 
-                        texture2d<float, access::write> gOutput  [[texture(0)]])
+#ifndef TARGET_IOS
+						constant CSData& csData                    [[buffer(UPDATE_FREQ_NONE)]]
+#else
+						texture2d<float, access::write> gOutput    [[texture(0)]]
+#endif
+)
 {
     if (tid.x < uniforms.width && tid.y < uniforms.height) {
         unsigned int rayIdx = tid.y * uniforms.width + tid.x;
@@ -110,7 +121,11 @@ kernel void chs(uint2 tid                                       [[thread_positio
             float3 color = A * uvw.x + B * uvw.y + C * uvw.z;
             
             // Clear the destination image to black
+#ifndef TARGET_IOS
+            csData.gOutput.write(float4(color, 1.0f), tid);
+#else
             gOutput.write(float4(color, 1.0f), tid);
+#endif
         }
 
     }

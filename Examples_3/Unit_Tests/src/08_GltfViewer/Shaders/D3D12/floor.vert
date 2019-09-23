@@ -22,7 +22,7 @@
  * under the License.
 */
 
-cbuffer cbPerFrame : register(b3) 
+cbuffer cbPerFrame : register(b3, UPDATE_FREQ_PER_FRAME) 
 {
 	float4x4	worldMat;
 	float4x4	projViewMat;

@@ -40,14 +40,23 @@ struct VSOutput
     float3 lightPos;
 };
 
+struct VSData {
+    constant LightData* lights            [[id(0)]];
+};
+
+struct VSDataPerFrame {
+    constant PerFrameConstants& uniforms  [[id(0)]];
+};
+
 vertex VSOutput stageMain(VSInput input                         [[stage_in]],
                           uint instanceId                       [[instance_id]],
-                          constant PerFrameConstants& uniforms  [[buffer(1)]],
-                          constant LightData* lights            [[buffer(2)]])
+                          constant VSData& vsData [[buffer(UPDATE_FREQ_NONE)]],
+                          constant VSDataPerFrame& vsDataPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
     VSOutput output;
-    output.lightPos = lights[instanceId].position;
-    output.color = lights[instanceId].color;
-    output.position = uniforms.transform[VIEW_CAMERA].mvp * float4((input.position.xyz * LIGHT_SIZE) + output.lightPos, 1);
+    output.lightPos = vsData.lights[instanceId].position;
+    output.color = vsData.lights[instanceId].color;
+    output.position = vsDataPerFrame.uniforms.transform[VIEW_CAMERA].mvp * float4((input.position.xyz * LIGHT_SIZE) + output.lightPos, 1);
     return output;
 }

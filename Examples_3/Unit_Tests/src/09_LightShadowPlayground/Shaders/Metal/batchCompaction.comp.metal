@@ -56,26 +56,22 @@ layout(std430, set = 0, binding = NUM_CULLING_VIEWPORTS * 2 + 2) restrict readon
 };
 */
 
-struct IndirectDrawArgsBufferAlphaData {
-	device atomic_uint* data[NUM_CULLING_VIEWPORTS];
+struct CSData {
+    constant uint* materialProps                                               [[id(0)]];
 };
 
-struct IndirectDrawArgsBufferNoAlphaData {
-	device atomic_uint* data[NUM_CULLING_VIEWPORTS];
-};
-
-struct UncompactedDrawArgumentsData {
-	device UncompactedDrawArguments* data[NUM_CULLING_VIEWPORTS];
+struct CSDataPerFrame {
+    device uint* indirectMaterialBuffer                                        [[id(0)]];
+    device atomic_uint* indirectDrawArgsBufferAlpha [NUM_CULLING_VIEWPORTS];
+    device atomic_uint* indirectDrawArgsBufferNoAlpha [NUM_CULLING_VIEWPORTS];
+    device UncompactedDrawArguments* uncompactedDrawArgs[NUM_CULLING_VIEWPORTS];
 };
 
 //[numthreads(256, 1, 1)]
 kernel void stageMain(
-                      uint groupId                                                               [[thread_position_in_grid]],
-                      constant uint* materialProps                                               [[buffer(UNIT_MATERIAL_PROPS)]],
-                      device uint* indirectMaterialBuffer                                        [[buffer(UNIT_INDIRECT_MATERIAL_RW)]],
-                      device IndirectDrawArgsBufferAlphaData& indirectDrawArgsBufferAlpha        [[buffer(UNIT_INDIRECT_DRAW_ARGS_ALPHA_RW)]],
-                      device IndirectDrawArgsBufferNoAlphaData& indirectDrawArgsBufferNoAlpha    [[buffer(UNIT_INDIRECT_DRAW_ARGS_RW)]],
-                      device UncompactedDrawArgumentsData& uncompactedDrawArgs                   [[buffer(UNIT_UNCOMPACTED_ARGS)]]
+    uint groupId                              [[thread_position_in_grid]],
+    constant CSData& csData                   [[buffer(UPDATE_FREQ_NONE)]],
+    constant CSDataPerFrame& csDataPerFrame   [[buffer(UPDATE_FREQ_PER_FRAME)]]
 )
 {
 	if (groupId >= MAX_DRAWS_INDIRECT - 1)
@@ -85,7 +81,7 @@ kernel void stageMain(
 	uint sum = 0;
 	for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 	{
-		numIndices[i] = uncompactedDrawArgs.data[i][groupId].mNumIndices;
+		numIndices[i] = csDataPerFrame.uncompactedDrawArgs[i][groupId].mNumIndices;
 		sum += numIndices[i];
 	}
 
@@ -97,23 +93,23 @@ kernel void stageMain(
 	{
 		if (numIndices[i] > 0)
 		{
-			uint matID = uncompactedDrawArgs.data[i][groupId].mMaterialID;
-			bool hasAlpha = (materialProps[matID] == 1);
+			uint matID = csDataPerFrame.uncompactedDrawArgs[i][groupId].mMaterialID;
+			bool hasAlpha = (csData.materialProps[matID] == 1);
 			uint baseMatSlot = BaseMaterialBuffer(hasAlpha, i);
 
 			if (hasAlpha)
 			{
-				slot = atomic_fetch_add_explicit(&indirectDrawArgsBufferAlpha.data[i][DRAW_COUNTER_SLOT_POS], 1, memory_order_relaxed);
-				atomic_store_explicit(&indirectDrawArgsBufferAlpha.data[i][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + 0], numIndices[i], memory_order_relaxed);
-				atomic_store_explicit(&indirectDrawArgsBufferAlpha.data[i][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + 2], uncompactedDrawArgs.data[i][groupId].mStartIndex, memory_order_relaxed);
+				slot = atomic_fetch_add_explicit(&csDataPerFrame.indirectDrawArgsBufferAlpha[i][DRAW_COUNTER_SLOT_POS], 1, memory_order_relaxed);
+				atomic_store_explicit(&csDataPerFrame.indirectDrawArgsBufferAlpha[i][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + 0], numIndices[i], memory_order_relaxed);
+				atomic_store_explicit(&csDataPerFrame.indirectDrawArgsBufferAlpha[i][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + 2], csDataPerFrame.uncompactedDrawArgs[i][groupId].mStartIndex, memory_order_relaxed);
 			}
 			else
 			{
-				slot =  atomic_fetch_add_explicit(&indirectDrawArgsBufferNoAlpha.data[i][DRAW_COUNTER_SLOT_POS], 1, memory_order_relaxed);
-				atomic_store_explicit(&indirectDrawArgsBufferNoAlpha.data[i][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + 0], numIndices[i], memory_order_relaxed);
-				atomic_store_explicit(&indirectDrawArgsBufferNoAlpha.data[i][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + 2], uncompactedDrawArgs.data[i][groupId].mStartIndex, memory_order_relaxed);
+				slot =  atomic_fetch_add_explicit(&csDataPerFrame.indirectDrawArgsBufferNoAlpha[i][DRAW_COUNTER_SLOT_POS], 1, memory_order_relaxed);
+				atomic_store_explicit(&csDataPerFrame.indirectDrawArgsBufferNoAlpha[i][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + 0], numIndices[i], memory_order_relaxed);
+				atomic_store_explicit(&csDataPerFrame.indirectDrawArgsBufferNoAlpha[i][slot * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + 2], csDataPerFrame.uncompactedDrawArgs[i][groupId].mStartIndex, memory_order_relaxed);
 			}
-			indirectMaterialBuffer[baseMatSlot + slot] = matID;
+			csDataPerFrame.indirectMaterialBuffer[baseMatSlot + slot] = matID;
 		}
 	}
 }

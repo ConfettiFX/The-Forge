@@ -37,7 +37,7 @@ struct PsInAlphaTested
 	float2 texCoord : TEXCOORD0;
 };
 
-StructuredBuffer<uint> indirectMaterialBuffer : register(t0);
+StructuredBuffer<uint> indirectMaterialBuffer : register(t0, UPDATE_FREQ_PER_FRAME);
 Texture2D diffuseMaps[] : register(t1);
 SamplerState textureFilter : register(s0);
 

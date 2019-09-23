@@ -505,6 +505,10 @@ def TestXcodeProjects(iosTesting, macOSTesting, iosDeviceId):
 				bundleID = GetBundleIDFromIOSApp(filename + ".app")
 				if bundleID != "":
 					command = ["ios-deploy","--bundle_id",bundleID,"--download=/Documents/"+memleakFile,"--to","./"]
+					if not iosDeviceId == "-1" or not iosDeviceId == "":
+						command.append("--id")
+						command.append(iosDeviceId)
+					
 					memleakDownloaded = ExecuteCommand(command, sys.stdout)
 					if memleakDownloaded == 0:
 						print("Memleaks file downloaded for:" + bundleID)
@@ -831,13 +835,16 @@ def TestWindowsProjects(useActiveGpuConfig):
 	except Exception as ex:
 		return -1
 
-	projects = GetFilesPathByExtension("./Examples_3","exe",False, 0)
+	projects = GetFilesPathByExtension("./Examples_3","exe",False)
 	fileList = []
 
 	for proj in projects:
 		#we don't want to build Xbox one solutions when building PC
-		if "PC Visual Studio 2017" in proj and "Release" in proj:
+		#we don't want to run ImageConvertTools when building PC
+		#we don't want to run AssetPipelineCmd when building PC
+		if "PC Visual Studio 2017" in proj and "Release" in proj and not "ImageConvertTools" in proj and not "AssetPipelineCmd" in proj :
 			fileList.append(proj)
+
 	fileList.append('.\\Common_3\\ThirdParty\\OpenSource\\hlslparser\\Parser\\x64_ReleaseTest\\Parser.exe')
 
 	for proj in fileList:

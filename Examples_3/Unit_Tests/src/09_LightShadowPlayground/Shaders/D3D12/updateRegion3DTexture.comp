@@ -23,12 +23,11 @@
 */
 #include "SDF_Constant.h"
 
-StructuredBuffer<float> SDFVolumeDataBuffer;
-
+StructuredBuffer<float> SDFVolumeDataBuffer : register(t0, UPDATE_FREQ_PER_FRAME);
 
 RWTexture3D<half> SDFVolumeTextureAtlas;
 
-cbuffer UpdateSDFVolumeTextureAtlasCB : register(b1)
+cbuffer UpdateSDFVolumeTextureAtlasCB : register(b1, UPDATE_FREQ_PER_FRAME)
 {
 	uint3 mSourceAtlasVolumeMinCoord;
 	uint3 mSourceDimensionSize;
@@ -44,9 +43,7 @@ void main(uint3 threadID : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID)
 		mSourceAtlasVolumeMaxCoord.x < threadID.x || 
 		mSourceAtlasVolumeMaxCoord.y < threadID.y ||
 		mSourceAtlasVolumeMaxCoord.z < threadID.z)
-	{
-		return;	
-	}
+		return;
 
 	uint3 localThreadID = threadID - mSourceAtlasVolumeMinCoord;
 

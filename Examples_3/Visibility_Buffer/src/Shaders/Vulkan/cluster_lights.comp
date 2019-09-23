@@ -36,22 +36,22 @@
 // This compute shader determines if a light of index groupId overlaps
 // the cluster (thread.x,thread.y). Then the light is added to the cluster.
 
-layout(std430, set = 0, binding = 0) restrict buffer lightClustersCount
+layout(std430, UPDATE_FREQ_PER_FRAME, binding = 0) restrict buffer lightClustersCount
 {
 	uint lightClustersCountBuffer[];
 };
 
-layout(std430, set = 0, binding = 1) restrict buffer lightClusters
+layout(std430, UPDATE_FREQ_PER_FRAME, binding = 1) restrict buffer lightClusters
 {
 	uint lightClustersBuffer[];
 };
 
-layout(set = 0, binding = 2) uniform uniforms
+layout(UPDATE_FREQ_PER_FRAME, binding = 2) uniform uniforms
 {
 	PerFrameConstants uniformsData;
 };
 
-layout(std430, set = 0, binding = 3) restrict readonly buffer lights
+layout(std430, UPDATE_FREQ_NONE, binding = 3) restrict readonly buffer lights
 {
 	LightData lightsBuffer[];
 };

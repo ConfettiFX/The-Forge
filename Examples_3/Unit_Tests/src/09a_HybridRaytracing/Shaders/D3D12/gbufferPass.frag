@@ -23,12 +23,12 @@
 */
 
 
-cbuffer cbPerPass : register(b0)
+cbuffer cbPerPass : register(b0, UPDATE_FREQ_PER_FRAME)
 {
 	float4x4	projView;
 }
 
-cbuffer cbPerProp : register(b1, space1)
+cbuffer cbPerProp : register(b1)
 {
 	float4x4	world;
 	float		roughness;

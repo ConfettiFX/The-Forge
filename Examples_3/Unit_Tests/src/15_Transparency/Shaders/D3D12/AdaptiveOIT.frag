@@ -23,8 +23,8 @@
 */
 
 #define AOIT_UNORDERED_ACCESS
-#include "AOIT.hlsl"
-#include "shading.hlsl"
+#include "AOIT.h"
+#include "shading.h"
 
 struct VSOutput
 {

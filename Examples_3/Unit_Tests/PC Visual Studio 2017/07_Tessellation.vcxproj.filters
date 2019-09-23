@@ -47,8 +47,10 @@
     <None Include="..\src\07_Tessellation\Shaders\Vulkan\grass.tese">
       <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\07_Tessellation\Shaders\Vulkan\grass.vert">
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\src\07_Tessellation\Shaders\Vulkan\grass.vert">
       <Filter>Shaders\Vulkan</Filter>
-    </None>
+    </CustomBuild>
   </ItemGroup>
 </Project>

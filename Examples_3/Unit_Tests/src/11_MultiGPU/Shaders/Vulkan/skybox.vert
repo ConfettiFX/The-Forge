@@ -29,7 +29,8 @@
 
 layout(location = 0) in vec4 vs_in_position;
 
-layout (std140, set=3, binding=0) uniform uniformBlock{
+layout (std140, UPDATE_FREQ_PER_FRAME, binding=0) uniform uniformBlock
+{
 	uniform mat4 viewProject;
     uniform mat4 toWorld[MAX_PLANETS];
     uniform vec4 color[MAX_PLANETS];

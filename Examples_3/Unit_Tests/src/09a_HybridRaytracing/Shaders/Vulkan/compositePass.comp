@@ -26,9 +26,9 @@
 
 #extension GL_EXT_samplerless_texture_functions : enable
 
-layout(set = 0, binding = 0) uniform texture2D albedobuffer;
-layout(set = 0, binding = 1) uniform texture2D lightbuffer;
-layout(set = 0, binding = 2, rgba32f) uniform image2D outputRT;
+layout(UPDATE_FREQ_NONE, binding = 0) uniform texture2D albedobuffer;
+layout(UPDATE_FREQ_NONE, binding = 1) uniform texture2D lightbuffer;
+layout(UPDATE_FREQ_NONE, binding = 2, rgba32f) uniform image2D outputRT;
 
 #define THREADX 16
 #define THREADY 16

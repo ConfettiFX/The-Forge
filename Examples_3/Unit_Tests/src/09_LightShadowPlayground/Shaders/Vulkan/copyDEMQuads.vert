@@ -5,7 +5,7 @@
 layout(location = 0) out vec2 vertOutput_TEXCOORD0;
 layout(location = 1) out vec4 vertOutput_TEXCOORD1;
 
-layout(row_major, set = 0, binding = 0) uniform PackedAtlasQuads_CB
+layout(row_major, UPDATE_FREQ_PER_FRAME, binding = 0) uniform PackedAtlasQuads_CB
 {
     vec4 mQuadsData[192];
 };

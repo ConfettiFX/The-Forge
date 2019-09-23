@@ -22,9 +22,6 @@
  * under the License.
 */
 
-// USERMACRO: SAMPLE_COUNT [1,2,4]
-// USERMACRO: AO_QUALITY [1,2,3,4]
-
 //--------------------------------------------------------------------------------------
 // Gather pattern
 //--------------------------------------------------------------------------------------
@@ -251,11 +248,13 @@ float main(PsIn In) : SV_Target
                         
             // Detect valleys
             f4Diff = -fCenterZ.xxxx + f4SampledZ[0];
-            f4Compare[0] = ( f4Diff < g_fHDAORejectRadius.xxxx ) ? ( 1.0f ) : ( 0.0f );
-            f4Compare[0] *= ( f4Diff > g_fHDAOAcceptRadius.xxxx ) ? ( 1.0f ) : ( 0.0f );
+            //f4Compare[0] = ( f4Diff < g_fHDAORejectRadius.xxxx ) ? ( 1.0f ) : ( 0.0f );
+			f4Compare[0] = saturate((g_fHDAORejectRadius.xxxx - f4Diff) * (1.0f/g_fHDAORejectRadius.x));
+            f4Compare[0] = ( f4Diff > g_fHDAOAcceptRadius.xxxx ) ? ( 1.0f ) : ( 0.0f );
             
             f4Diff = -fCenterZ.xxxx + f4SampledZ[1];
-            f4Compare[1] = ( f4Diff < g_fHDAORejectRadius.xxxx ) ? ( 1.0f ) : ( 0.0f );
+			//f4Compare[1] = ( f4Diff < g_fHDAORejectRadius.xxxx ) ? ( 1.0f ) : ( 0.0f );
+			f4Compare[1] = saturate((g_fHDAORejectRadius.xxxx - f4Diff) * (1.0f/g_fHDAORejectRadius.x));
             f4Compare[1] *= ( f4Diff > g_fHDAOAcceptRadius.xxxx ) ? ( 1.0f ) : ( 0.0f );
             
             f4Occlusion.xyzw += ( g_f4HDAORingWeight[iGather].xyzw * ( f4Compare[0].xyzw * f4Compare[1].zwxy ) );    

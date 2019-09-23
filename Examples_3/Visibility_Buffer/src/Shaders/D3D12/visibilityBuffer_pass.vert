@@ -34,7 +34,7 @@ struct VsInOpaque
     float3 position : POSITION;
 };
 
-ConstantBuffer<PerFrameConstants> uniforms : register(b0);
+ConstantBuffer<PerFrameConstants> uniforms : register(b0, UPDATE_FREQ_PER_FRAME);
 
 struct PsInOpaque
 {

@@ -38,7 +38,7 @@ struct Renderer;
 struct Texture;
 struct Shader;
 struct RootSignature;
-struct DescriptorBinder;
+struct DescriptorSet;
 struct Pipeline;
 struct Sampler;
 struct RasterizerState;
@@ -77,6 +77,9 @@ class IWidget
 		pOnDeactivatedAfterEdit;    // Widget was just made inactive from an active state and changed its underlying value.  This is useful for undo/redo patterns.
 
 	eastl::string mLabel;
+
+  // Set to true for any frame the widget is hovered.
+  bool mHovered = false;
 
 	protected:
 	void ProcessCallbacks();
@@ -189,6 +192,29 @@ class LabelWidget: public IWidget
 	void     Draw();
 };
 
+class ColorLabelWidget : public IWidget
+{
+public:
+  ColorLabelWidget(const eastl::string& _label, const float4& _color) : 
+    IWidget(_label),
+    mColor(_color) {}
+
+  IWidget* Clone() const;
+  void     Draw();
+
+protected:
+  float4 mColor;
+};
+
+class HorizontalSpaceWidget : public IWidget
+{
+public:
+  HorizontalSpaceWidget() : IWidget("") {}
+
+  IWidget* Clone() const;
+  void     Draw();
+};
+
 class SeparatorWidget: public IWidget
 {
 	public:
@@ -196,6 +222,18 @@ class SeparatorWidget: public IWidget
 
 	IWidget* Clone() const;
 	void     Draw();
+};
+
+class VerticalSeparatorWidget : public IWidget
+{
+public:
+  VerticalSeparatorWidget(const uint32_t& _lines) : IWidget(""), mLineCount(_lines) {}
+
+  IWidget* Clone() const;
+  void     Draw();
+
+protected:
+  uint32_t mLineCount;
 };
 
 class ButtonWidget: public IWidget
@@ -391,6 +429,29 @@ class CheckboxWidget: public IWidget
 	bool* pData;
 };
 
+class OneLineCheckboxWidget : public IWidget
+{
+public:
+  OneLineCheckboxWidget(const eastl::string& _label, bool* _data, const uint32_t& _color) : IWidget(_label), pData(_data), mColor(_color) {}
+  IWidget* Clone() const;
+  void     Draw();
+
+protected:
+  bool* pData;
+  uint32_t mColor;
+};
+
+class CursorLocationWidget : public IWidget
+{
+public:
+  CursorLocationWidget(const eastl::string& _label, const float2& _location) : IWidget(_label), mLocation(_location) {}
+  IWidget* Clone() const;
+  void     Draw();
+
+protected:
+  float2 mLocation;
+};
+
 class DropdownWidget: public IWidget
 {
 	public:
@@ -414,6 +475,28 @@ class DropdownWidget: public IWidget
 	eastl::vector<uint32_t>        mValues;
 	eastl::vector<eastl::string> mNames;
 };
+
+class ColumnWidget : public IWidget
+{
+public:
+  ColumnWidget(const eastl::string& _label, const eastl::vector<IWidget*>& _perColWidgets) : IWidget(_label) 
+  {
+    mNumColumns = (uint32_t)_perColWidgets.size();
+    for (uint32_t i = 0; i < _perColWidgets.size(); ++i) 
+    {
+      mPerColumnWidgets.push_back(_perColWidgets[i]);
+    }
+  }
+
+  IWidget* Clone() const;
+  void     Draw();
+
+protected:
+  eastl::vector<IWidget*> mPerColumnWidgets;
+  uint32_t mNumColumns;
+};
+
+
 
 class ProgressBarWidget: public IWidget
 {
@@ -443,6 +526,54 @@ class ColorSliderWidget: public IWidget
 
 	protected:
 	uint32_t* pData;
+};
+
+class HistogramWidget : public IWidget
+{
+public:
+  HistogramWidget(const eastl::string& _label, float* _values, uint32_t _valuesCount, float* _minScale, float* _maxScale, float2 _graphScale, eastl::string* _title) : 
+    IWidget(_label),
+    pValues(_values),
+    mCount(_valuesCount),
+    mMinScale(_minScale),
+    mMaxScale(_maxScale),
+    mHistogramSize(_graphScale),
+    mHistogramTitle(_title)
+  {}
+
+  IWidget* Clone() const;
+  void     Draw();
+
+protected:
+  float* pValues;
+  uint32_t mCount;
+  float* mMinScale;
+  float* mMaxScale;
+  float2 mHistogramSize;
+  eastl::string* mHistogramTitle;
+};
+
+class PlotLinesWidget : public IWidget 
+{
+public:
+  PlotLinesWidget(const eastl::string& _label, float* _values, uint32_t _valueCount, float* _scaleMin, float* _scaleMax, float2* _plotScale, eastl::string* _title)
+    : IWidget(_label),
+      mValues(_values),
+      mNumValues(_valueCount),
+      mScaleMin(_scaleMin),
+      mScaleMax(_scaleMax),
+      mPlotScale(_plotScale),
+      mTitle(_title)
+  {}
+  IWidget* Clone() const;
+  void     Draw();
+protected:
+  float* mValues;
+  uint32_t mNumValues;
+  float* mScaleMin;
+  float* mScaleMax;
+  float2* mPlotScale;
+  eastl::string* mTitle;
 };
 
 class ColorPickerWidget: public IWidget
@@ -476,6 +607,126 @@ class TextboxWidget: public IWidget
 	uint32_t mLength;
 	bool     mAutoSelectAll;
 };
+
+class DynamicTextWidget : public IWidget 
+{
+public:
+  DynamicTextWidget(const eastl::string& _label, char* _data, uint32_t const _length, float4* _color) :
+    IWidget(_label),
+    pData(_data),
+    mLength(_length),
+    pColor(_color)
+  {  
+  }
+
+  IWidget* Clone() const;
+  void     Draw();
+
+protected:
+  char*    pData;
+  uint32_t mLength;
+  float4*  pColor;
+};
+
+class FilledRectWidget : public IWidget
+{
+public:
+    FilledRectWidget(const eastl::string& _label, const float2& _pos, const float2& _scale, const uint32_t& _colorHex) :
+    IWidget(_label),
+    mPos(_pos),
+    mScale(_scale),
+    mColor(_colorHex)
+  {
+  }
+
+  IWidget* Clone() const;
+  void     Draw();
+
+protected:
+  float2 mPos;
+  float2 mScale;
+  uint32_t mColor;
+};
+
+class DrawTextWidget : public IWidget
+{
+public:
+  DrawTextWidget(const eastl::string& _label, const float2& _pos, const uint32_t& _colorHex) :
+    IWidget(_label),
+    mPos(_pos),
+    mColor(_colorHex)
+  {
+  }
+
+  IWidget* Clone() const;
+  void     Draw();
+
+protected:
+  float2 mPos;
+  uint32_t mColor;
+};
+
+class DrawTooltipWidget : public IWidget
+{
+public:
+  DrawTooltipWidget(const eastl::string& _label, bool* _showTooltip, char* _text) :
+    IWidget(_label),
+    mShowTooltip(_showTooltip),
+    mText(_text)
+  {}
+
+  IWidget* Clone() const;
+  void     Draw();
+
+protected:
+  bool* mShowTooltip;
+  char* mText;
+};
+
+class DrawLineWidget : public IWidget
+{
+public:
+  DrawLineWidget(const eastl::string& _label, const float2& _pos1, const float2& _pos2, const uint32_t& _colorHex, const bool& _addItem) :
+    IWidget(_label),
+    mPos1(_pos1),
+    mPos2(_pos2),
+    mColor(_colorHex),
+    mAddItem(_addItem)
+  {
+  }
+
+  IWidget* Clone() const;
+  void     Draw();
+
+protected:
+  float2 mPos1;
+  float2 mPos2;
+  uint32_t mColor;
+  bool mAddItem;
+};
+
+class DrawCurveWidget : public IWidget
+{
+public:
+  DrawCurveWidget(const eastl::string& _label, float2* _positions, uint32_t _numPoints, float _thickness, const uint32_t& _colorHex) :
+    IWidget(_label),
+    mPos(_positions),
+    mNumPoints(_numPoints),
+    mThickness(_thickness),
+    mColor(_colorHex)
+  {
+  }
+
+  IWidget* Clone() const;
+  void     Draw();
+
+protected:
+  float2* mPos;
+  uint32_t mNumPoints;
+  float mThickness;
+  uint32_t mColor;
+};
+
 
 typedef struct GuiDesc
 {
@@ -621,7 +872,7 @@ class GUIDriver
 
     virtual bool     isFocused() = 0;
 	virtual bool     onText(const wchar_t* pText) = 0;
-	virtual bool     onButton(uint32_t button, bool press, const float2* vec, bool focus) = 0;
+	virtual bool     onButton(uint32_t button, bool press, const float2* vec) = 0;
 	virtual uint8_t  wantTextInput() const = 0;
 
 	protected:
@@ -687,7 +938,7 @@ class UIApp: public IMiddleware
 	void DrawDebugGpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, GpuProfiler* pGpuProfiler, const GpuProfileDrawDesc* pDrawDesc = NULL);
 
 	bool    OnText(const wchar_t* pText) { return pDriver->onText(pText); }
-	bool    OnButton(uint32_t button, bool press, const float2* vec, bool focus) { return pDriver->onButton(button, press, vec, focus); }
+	bool    OnButton(uint32_t button, bool press, const float2* vec) { return pDriver->onButton(button, press, vec); }
     uint8_t WantTextInput() { return pDriver->wantTextInput(); }
     bool    IsFocused() { return pDriver->isFocused(); }
 	/************************************************************************/
@@ -725,7 +976,7 @@ private:
 	Renderer*         pRenderer;
 	Shader*           pShader;
 	RootSignature*    pRootSignature;
-	DescriptorBinder* pDescriptorBinder;
+	DescriptorSet*    pDescriptorSet;
 	Pipeline*         pPipeline;
 	Texture*          pTexture;
 	Sampler*          pSampler;

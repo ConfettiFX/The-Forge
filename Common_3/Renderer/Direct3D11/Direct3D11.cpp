@@ -40,7 +40,11 @@
 #include "../../ThirdParty/OpenSource/EASTL/functional.h"
 #include "../../ThirdParty/OpenSource/winpixeventruntime/Include/WinPixEventRuntime/pix3.h"
 #include "../../OS/Core/GPUConfig.h"
-#include "../../OS/Image/ImageEnums.h"
+#include "../../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_base.h"
+#include "../../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
+#include "../../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_apis.h"
+#include "../../OS/Image/ImageHelper.h"
+#include "Direct3D11CapBuilder.h"
 #include "Direct3D11Commands.h"
 
 #if !defined(_WIN32)
@@ -137,191 +141,6 @@ D3D11_FILL_MODE gFillModeTranslator[MAX_FILL_MODES] =
 	D3D11_FILL_WIREFRAME,
 };
 
-const DXGI_FORMAT gFormatTranslatorTypeless[] = {
-	DXGI_FORMAT_UNKNOWN,
-	DXGI_FORMAT_R8_TYPELESS,
-	DXGI_FORMAT_R8G8_TYPELESS,
-	DXGI_FORMAT_UNKNOWN,
-	DXGI_FORMAT_R8G8B8A8_TYPELESS,
-	DXGI_FORMAT_R16_TYPELESS,
-	DXGI_FORMAT_R16G16_TYPELESS,
-	DXGI_FORMAT_UNKNOWN,
-	DXGI_FORMAT_R16G16B16A16_TYPELESS,
-	DXGI_FORMAT_R8_TYPELESS,
-	DXGI_FORMAT_R16G16_TYPELESS,
-	DXGI_FORMAT_UNKNOWN,							// ImageFormat::RGB8S not directly supported
-	DXGI_FORMAT_R16G16B16A16_TYPELESS,
-	DXGI_FORMAT_R32_TYPELESS,
-	DXGI_FORMAT_R32G32_TYPELESS,
-	DXGI_FORMAT_UNKNOWN,  // RGB16S not directly supported
-	DXGI_FORMAT_R32G32B32A32_TYPELESS,
-	DXGI_FORMAT_R16_TYPELESS,
-	DXGI_FORMAT_R16G16_TYPELESS,
-	DXGI_FORMAT_UNKNOWN,  // RGB16F not directly supported
-	DXGI_FORMAT_R16G16B16A16_TYPELESS,
-	DXGI_FORMAT_R32_TYPELESS,
-	DXGI_FORMAT_R32G32_TYPELESS,
-	DXGI_FORMAT_R32G32B32_TYPELESS,
-	DXGI_FORMAT_R32G32B32A32_TYPELESS,
-	DXGI_FORMAT_R16_TYPELESS,
-	DXGI_FORMAT_R16G16_TYPELESS,
-	DXGI_FORMAT_UNKNOWN,  // RGB16I not directly supported
-	DXGI_FORMAT_R16G16B16A16_TYPELESS,
-	DXGI_FORMAT_R32_TYPELESS,
-	DXGI_FORMAT_R32G32_TYPELESS,
-	DXGI_FORMAT_R32G32B32_TYPELESS,
-	DXGI_FORMAT_R32G32B32A32_TYPELESS,
-	DXGI_FORMAT_R16_TYPELESS,
-	DXGI_FORMAT_R16G16_TYPELESS,
-	DXGI_FORMAT_UNKNOWN,  // RGB16UI not directly supported
-	DXGI_FORMAT_R16G16B16A16_TYPELESS,
-	DXGI_FORMAT_R32_TYPELESS,
-	DXGI_FORMAT_R32G32_TYPELESS,
-	DXGI_FORMAT_R32G32B32_TYPELESS,
-	DXGI_FORMAT_R32G32B32A32_TYPELESS,
-	DXGI_FORMAT_UNKNOWN,  // RGBE8 not directly supported
-	DXGI_FORMAT_R9G9B9E5_SHAREDEXP,
-	DXGI_FORMAT_R11G11B10_FLOAT,
-	DXGI_FORMAT_B5G6R5_UNORM,
-	DXGI_FORMAT_UNKNOWN,  // RGBA4 not directly supported
-	DXGI_FORMAT_R10G10B10A2_TYPELESS,
-	DXGI_FORMAT_R16_TYPELESS,
-	DXGI_FORMAT_R24G8_TYPELESS,
-	DXGI_FORMAT_R24G8_TYPELESS,
-	DXGI_FORMAT_R32_TYPELESS,  //D32F
-	DXGI_FORMAT_BC1_TYPELESS,
-	DXGI_FORMAT_BC2_TYPELESS,
-	DXGI_FORMAT_BC3_TYPELESS,
-	DXGI_FORMAT_BC4_TYPELESS, //ATI2N
-	DXGI_FORMAT_BC5_TYPELESS, //ATI2N
-	// PVR formats
-	DXGI_FORMAT_UNKNOWN, // PVR_2BPP = 56,
-	DXGI_FORMAT_UNKNOWN, // PVR_2BPPA = 57,
-	DXGI_FORMAT_UNKNOWN, // PVR_4BPP = 58,
-	DXGI_FORMAT_UNKNOWN, // PVR_4BPPA = 59,
-	DXGI_FORMAT_UNKNOWN, // INTZ = 60,  //  NVidia hack. Supported on all DX10+ HW
-	//  XBox 360 specific fron buffer formats. NOt listed in other renderers. Please, add them when extend this structure.
-	DXGI_FORMAT_UNKNOWN, // LE_XRGB8 = 61,
-	DXGI_FORMAT_UNKNOWN, // LE_ARGB8 = 62,
-	DXGI_FORMAT_UNKNOWN, // LE_X2RGB10 = 63,
-	DXGI_FORMAT_UNKNOWN, // LE_A2RGB10 = 64,
-	// compressed mobile forms
-	DXGI_FORMAT_UNKNOWN, // ETC1 = 65,  //  RGB
-	DXGI_FORMAT_UNKNOWN, // ATC = 66,   //  RGB
-	DXGI_FORMAT_UNKNOWN, // ATCA = 67,  //  RGBA, explicit alpha
-	DXGI_FORMAT_UNKNOWN, // ATCI = 68,  //  RGBA, interpolated alpha
-	DXGI_FORMAT_UNKNOWN, // RAWZ = 69, //depth only, Nvidia (requires recombination of data) //FIX IT: PS3 as well?
-	DXGI_FORMAT_UNKNOWN, // DF16 = 70, //depth only, Intel/AMD
-	DXGI_FORMAT_UNKNOWN, // STENCILONLY = 71, // stencil ony usage
-	DXGI_FORMAT_UNKNOWN, // GNF_BC1 = 72,
-	DXGI_FORMAT_UNKNOWN, // GNF_BC2 = 73,
-	DXGI_FORMAT_UNKNOWN, // GNF_BC3 = 74,
-	DXGI_FORMAT_UNKNOWN, // GNF_BC4 = 75,
-	DXGI_FORMAT_UNKNOWN, // GNF_BC5 = 76,
-	DXGI_FORMAT_BC6H_TYPELESS, // GNF_BC6HUF = 77,
-	DXGI_FORMAT_BC6H_TYPELESS, // GNF_BC6HSF = 78,
-	DXGI_FORMAT_BC7_UNORM, // GNF_BC7 = 79,
-	// Reveser Form
-	DXGI_FORMAT_B8G8R8A8_UNORM, // BGRA8 = 80,
-	// Extend for DXGI
-	DXGI_FORMAT_UNKNOWN, // X8D24PAX32 = 81,
-	DXGI_FORMAT_UNKNOWN, // S8 = 82,
-	DXGI_FORMAT_UNKNOWN, // D16S8 = 83,
-	DXGI_FORMAT_UNKNOWN, // D32S8 = 84,
-};
-
-const DXGI_FORMAT gFormatTranslator[] = {
-	DXGI_FORMAT_UNKNOWN,							// ImageFormat::NONE
-	DXGI_FORMAT_R8_UNORM,						   // ImageFormat::R8
-	DXGI_FORMAT_R8G8_UNORM,						 // ImageFormat::RG8
-	DXGI_FORMAT_UNKNOWN,							// ImageFormat::RGB8 not directly supported
-	DXGI_FORMAT_R8G8B8A8_UNORM,					 // ImageFormat::RGBA8
-	DXGI_FORMAT_R16_UNORM,						  // ImageFormat::R16
-	DXGI_FORMAT_R16G16_UNORM,					   // ImageFormat::RG16
-	DXGI_FORMAT_UNKNOWN,							// ImageFormat::RGB16 not directly supported
-	DXGI_FORMAT_R16G16B16A16_UNORM,				 // ImageFormat::RGBA16
-	DXGI_FORMAT_R8_SNORM,						   // ImageFormat::R8S
-	DXGI_FORMAT_R8G8_SNORM,						 // ImageFormat::RG8S
-	DXGI_FORMAT_UNKNOWN,							// ImageFormat::RGB8S not directly supported
-	DXGI_FORMAT_R8G8B8A8_SNORM,
-	DXGI_FORMAT_R16_SNORM,
-	DXGI_FORMAT_R16G16_SNORM,
-	DXGI_FORMAT_UNKNOWN,  // RGB16S not directly supported
-	DXGI_FORMAT_R16G16B16A16_SNORM,
-	DXGI_FORMAT_R16_FLOAT,
-	DXGI_FORMAT_R16G16_FLOAT,
-	DXGI_FORMAT_UNKNOWN,  // RGB16F not directly supported
-	DXGI_FORMAT_R16G16B16A16_FLOAT,
-	DXGI_FORMAT_R32_FLOAT,
-	DXGI_FORMAT_R32G32_FLOAT,
-	DXGI_FORMAT_R32G32B32_FLOAT,
-	DXGI_FORMAT_R32G32B32A32_FLOAT,
-	DXGI_FORMAT_R16_SINT,
-	DXGI_FORMAT_R16G16_SINT,
-	DXGI_FORMAT_UNKNOWN,  // RGB16I not directly supported
-	DXGI_FORMAT_R16G16B16A16_SINT,
-	DXGI_FORMAT_R32_SINT,
-	DXGI_FORMAT_R32G32_SINT,
-	DXGI_FORMAT_R32G32B32_SINT,
-	DXGI_FORMAT_R32G32B32A32_SINT,
-	DXGI_FORMAT_R16_UINT,
-	DXGI_FORMAT_R16G16_UINT,
-	DXGI_FORMAT_UNKNOWN,  // RGB16UI not directly supported
-	DXGI_FORMAT_R16G16B16A16_UINT,
-	DXGI_FORMAT_R32_UINT,
-	DXGI_FORMAT_R32G32_UINT,
-	DXGI_FORMAT_R32G32B32_UINT,
-	DXGI_FORMAT_R32G32B32A32_UINT,
-	DXGI_FORMAT_UNKNOWN,  // RGBE8 not directly supported
-	DXGI_FORMAT_R9G9B9E5_SHAREDEXP,
-	DXGI_FORMAT_R11G11B10_FLOAT,
-	DXGI_FORMAT_B5G6R5_UNORM,
-	DXGI_FORMAT_UNKNOWN,  // RGBA4 not directly supported
-	DXGI_FORMAT_R10G10B10A2_UNORM,
-	DXGI_FORMAT_D16_UNORM,
-	DXGI_FORMAT_D24_UNORM_S8_UINT,
-	DXGI_FORMAT_D24_UNORM_S8_UINT,
-	DXGI_FORMAT_D32_FLOAT,  //D32F
-	DXGI_FORMAT_BC1_UNORM,
-	DXGI_FORMAT_BC2_UNORM,
-	DXGI_FORMAT_BC3_UNORM,
-	DXGI_FORMAT_BC4_UNORM, //ATI2N
-	DXGI_FORMAT_BC5_UNORM, //ATI2N
-	// PVR formats
-	DXGI_FORMAT_UNKNOWN, // PVR_2BPP = 56,
-	DXGI_FORMAT_UNKNOWN, // PVR_2BPPA = 57,
-	DXGI_FORMAT_UNKNOWN, // PVR_4BPP = 58,
-	DXGI_FORMAT_UNKNOWN, // PVR_4BPPA = 59,
-	DXGI_FORMAT_UNKNOWN, // INTZ = 60,  //  NVidia hack. Supported on all DX10+ HW
-	//  XBox 360 specific fron buffer formats. NOt listed in other renderers. Please, add them when extend this structure.
-	DXGI_FORMAT_UNKNOWN, // LE_XRGB8 = 61,
-	DXGI_FORMAT_UNKNOWN, // LE_ARGB8 = 62,
-	DXGI_FORMAT_UNKNOWN, // LE_X2RGB10 = 63,
-	DXGI_FORMAT_UNKNOWN, // LE_A2RGB10 = 64,
-	// compressed mobile forms
-	DXGI_FORMAT_UNKNOWN, // ETC1 = 65,  //  RGB
-	DXGI_FORMAT_UNKNOWN, // ATC = 66,   //  RGB
-	DXGI_FORMAT_UNKNOWN, // ATCA = 67,  //  RGBA, explicit alpha
-	DXGI_FORMAT_UNKNOWN, // ATCI = 68,  //  RGBA, interpolated alpha
-	DXGI_FORMAT_UNKNOWN, // RAWZ = 69, //depth only, Nvidia (requires recombination of data) //FIX IT: PS3 as well?
-	DXGI_FORMAT_UNKNOWN, // DF16 = 70, //depth only, Intel/AMD
-	DXGI_FORMAT_UNKNOWN, // STENCILONLY = 71, // stencil ony usage
-	DXGI_FORMAT_UNKNOWN, // GNF_BC1 = 72,
-	DXGI_FORMAT_UNKNOWN, // GNF_BC2 = 73,
-	DXGI_FORMAT_UNKNOWN, // GNF_BC3 = 74,
-	DXGI_FORMAT_UNKNOWN, // GNF_BC4 = 75,
-	DXGI_FORMAT_UNKNOWN, // GNF_BC5 = 76,
-	DXGI_FORMAT_BC6H_UF16, // GNF_BC6 = 77,
-	DXGI_FORMAT_BC6H_SF16, // GNF_BC6 = 78,
-	DXGI_FORMAT_BC7_UNORM, // GNF_BC7 = 79,
-	// Reveser Form
-	DXGI_FORMAT_B8G8R8A8_UNORM, // BGRA8 = 80,
-	// Extend for DXGI
-	DXGI_FORMAT_UNKNOWN, // X8D24PAX32 = 81,
-	DXGI_FORMAT_UNKNOWN, // S8 = 82,
-	DXGI_FORMAT_UNKNOWN, // D16S8 = 83,
-	DXGI_FORMAT_UNKNOWN, // D32S8 = 84,
-};
 // clang-format on
 
 // DX Commands cache which gets processed on queue submission.
@@ -362,12 +181,10 @@ eastl::unordered_map<Cmd*, eastl::vector<CachedCmd> >         gCachedCmds;
 
 // Internal utility functions (may become external one day)
 //uint64_t					  util_dx_determine_storage_counter_offset(uint64_t buffer_size);
-DXGI_FORMAT util_to_dx_image_format_typeless(ImageFormat::Enum format);
 DXGI_FORMAT util_to_dx_uav_format(DXGI_FORMAT defaultFormat);
 DXGI_FORMAT util_to_dx_dsv_format(DXGI_FORMAT defaultFormat);
 DXGI_FORMAT util_to_dx_srv_format(DXGI_FORMAT defaultFormat);
 DXGI_FORMAT util_to_dx_stencil_format(DXGI_FORMAT defaultFormat);
-DXGI_FORMAT util_to_dx_image_format(ImageFormat::Enum format, bool srgb);
 //DXGI_FORMAT					   util_to_dx_swapchain_format(ImageFormat::Enum format);
 //D3D12_SHADER_VISIBILITY		   util_to_dx_shader_visibility(ShaderStage stages);
 //D3D12_DESCRIPTOR_RANGE_TYPE	   util_to_dx_descriptor_range(DescriptorType type);
@@ -431,7 +248,7 @@ DXGI_FORMAT util_to_dx_uav_format(DXGI_FORMAT defaultFormat)
 		case DXGI_FORMAT_D24_UNORM_S8_UINT:
 		case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
 		case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
-		case DXGI_FORMAT_D16_UNORM: ErrorMsg("Requested a UAV format for a depth stencil format");
+		case DXGI_FORMAT_D16_UNORM: LOGF(eERROR, "Requested a UAV format for a depth stencil format");
 #endif
 
 		default: return defaultFormat;
@@ -527,18 +344,20 @@ DXGI_FORMAT util_to_dx_stencil_format(DXGI_FORMAT defaultFormat)
 	}
 }
 
-DXGI_FORMAT util_to_dx_swapchain_format(ImageFormat::Enum format)
+DXGI_FORMAT util_to_dx_swapchain_format(TinyImageFormat format)
 {
 	DXGI_FORMAT result = DXGI_FORMAT_UNKNOWN;
 
 	// FLIP_DISCARD and FLIP_SEQEUNTIAL swapchain buffers only support these formats
 	switch (format)
 	{
-		case ImageFormat::RGBA16F: result = DXGI_FORMAT_R16G16B16A16_FLOAT;
-		case ImageFormat::BGRA8: result = DXGI_FORMAT_B8G8R8A8_UNORM; break;
-		case ImageFormat::RGBA8: result = DXGI_FORMAT_R8G8B8A8_UNORM; break;
-		case ImageFormat::RGB10A2: result = DXGI_FORMAT_R10G10B10A2_UNORM; break;
-		default: break;
+	case TinyImageFormat_R16G16B16A16_SFLOAT: result = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	case TinyImageFormat_B8G8R8A8_UNORM: result = DXGI_FORMAT_B8G8R8A8_UNORM; break;
+	case TinyImageFormat_R8G8B8A8_UNORM: result = DXGI_FORMAT_R8G8B8A8_UNORM; break;
+	case TinyImageFormat_B8G8R8A8_SRGB: result = DXGI_FORMAT_B8G8R8A8_UNORM; break;
+	case TinyImageFormat_R8G8B8A8_SRGB: result = DXGI_FORMAT_R8G8B8A8_UNORM; break;
+	case TinyImageFormat_R10G10B10A2_UNORM: result = DXGI_FORMAT_R10G10B10A2_UNORM; break;
+	default: break;
 	}
 
 	if (result == DXGI_FORMAT_UNKNOWN)
@@ -549,52 +368,6 @@ DXGI_FORMAT util_to_dx_swapchain_format(ImageFormat::Enum format)
 	return result;
 }
 
-DXGI_FORMAT util_to_dx_image_format_typeless(ImageFormat::Enum format)
-{
-	DXGI_FORMAT result = DXGI_FORMAT_UNKNOWN;
-	if (format >= sizeof(gFormatTranslatorTypeless) / sizeof(DXGI_FORMAT))
-	{
-		LOGF(LogLevel::eERROR, "Failed to Map from ConfettilFileFromat to DXGI format, should add map method in gDX12FormatTranslator");
-	}
-	else
-	{
-		result = gFormatTranslatorTypeless[format];
-	}
-
-	return result;
-}
-
-DXGI_FORMAT util_to_dx_image_format(ImageFormat::Enum format, bool srgb)
-{
-	DXGI_FORMAT result = DXGI_FORMAT_UNKNOWN;
-	if (format >= sizeof(gFormatTranslator) / sizeof(DXGI_FORMAT))
-	{
-		LOGF(LogLevel::eERROR, "Failed to Map from ConfettilFileFromat to DXGI format, should add map method in gDX12FormatTranslator");
-	}
-	else
-	{
-		result = gFormatTranslator[format];
-		if (srgb)
-		{
-			if (result == DXGI_FORMAT_R8G8B8A8_UNORM)
-				result = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-			else if (result == DXGI_FORMAT_B8G8R8A8_UNORM)
-				result = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
-			else if (result == DXGI_FORMAT_B8G8R8X8_UNORM)
-				result = DXGI_FORMAT_B8G8R8X8_UNORM_SRGB;
-			else if (result == DXGI_FORMAT_BC1_UNORM)
-				result = DXGI_FORMAT_BC1_UNORM_SRGB;
-			else if (result == DXGI_FORMAT_BC2_UNORM)
-				result = DXGI_FORMAT_BC2_UNORM_SRGB;
-			else if (result == DXGI_FORMAT_BC3_UNORM)
-				result = DXGI_FORMAT_BC3_UNORM_SRGB;
-			else if (result == DXGI_FORMAT_BC7_UNORM)
-				result = DXGI_FORMAT_BC7_UNORM_SRGB;
-		}
-	}
-
-	return result;
-}
 /************************************************************************/
 // Gloabals
 /************************************************************************/
@@ -951,6 +724,7 @@ static void AddDevice(Renderer* pRenderer)
 	{
 		IDXGIAdapter1*                    pGpu = NULL;
 		D3D_FEATURE_LEVEL                 mMaxSupportedFeatureLevel = (D3D_FEATURE_LEVEL)0;
+		D3D11_FEATURE_DATA_D3D11_OPTIONS  mFeatureDataOptions = {};
 		D3D11_FEATURE_DATA_D3D11_OPTIONS2 mFeatureDataOptions2 = {};
 		SIZE_T                            mDedicatedVideoMemory = 0;
 		char                              mVendorId[MAX_GPU_VENDOR_STRING_LENGTH];
@@ -982,11 +756,21 @@ static void AddDevice(Renderer* pRenderer)
 						adapter, D3D_DRIVER_TYPE_UNKNOWN, (HMODULE)0, 0, feature_levels, 2, D3D11_SDK_VERSION, &pRenderer->pDxDevice,
 						&featLevelOut, NULL);
 
+
+					D3D11_FEATURE_DATA_D3D11_OPTIONS featureData = {};
+					hr = pRenderer->pDxDevice->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS, &featureData, sizeof(featureData));
+					if (FAILED(hr)) {
+						LOGF(LogLevel::eINFO, "D3D11 CheckFeatureSupport D3D11_FEATURE_D3D11_OPTIONS error 0x%x", hr);
+					}
 					D3D11_FEATURE_DATA_D3D11_OPTIONS2 featureData2 = {};
-					pRenderer->pDxDevice->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS2, &featureData2, sizeof(featureData2));
+					hr = pRenderer->pDxDevice->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS2, &featureData2, sizeof(featureData2));
+					if (FAILED(hr)) {
+						LOGF(LogLevel::eINFO, "D3D11 CheckFeatureSupport D3D11_FEATURE_D3D11_OPTIONS2 error 0x%x", hr);
+					}
 
 					gpuDesc[pRenderer->mNumOfGPUs].mMaxSupportedFeatureLevel = featLevelOut;
 					gpuDesc[pRenderer->mNumOfGPUs].mDedicatedVideoMemory = desc.DedicatedVideoMemory;
+					gpuDesc[pRenderer->mNumOfGPUs].mFeatureDataOptions = featureData;
 					gpuDesc[pRenderer->mNumOfGPUs].mFeatureDataOptions2 = featureData2;
 
 					//save vendor and model Id as string
@@ -1061,6 +845,7 @@ static void AddDevice(Renderer* pRenderer)
 		// Determine root signature size for this gpu driver
 		pRenderer->mGpuSettings[i].mMaxRootSignatureDWORDS = 0U;    // no such thing
 		pRenderer->mGpuSettings[i].mROVsSupported = gpuDesc[i].mFeatureDataOptions2.ROVsSupported ? true : false;
+		pRenderer->mGpuSettings[i].mPartialUpdateConstantBufferSupported = gpuDesc[i].mFeatureDataOptions.ConstantBufferPartialUpdate ? true : false;
 	}
 
 	uint32_t gpuIndex = 0;
@@ -1215,6 +1000,8 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 			return;
 		}
 	}
+
+	utils_caps_builder(pRenderer);
 
 	create_default_resources(pRenderer);
 
@@ -1385,7 +1172,6 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	descColor.mClearValue = pSwapChain->mDesc.mColorClearValue;
 	descColor.mSampleCount = SAMPLE_COUNT_1;
 	descColor.mSampleQuality = 0;
-	descColor.mSrgb = pSwapChain->mDesc.mSrgb;
 
 	pSwapChain->ppSwapchainRenderTargets =
 		(RenderTarget**)conf_calloc(pSwapChain->mDesc.mImageCount, sizeof(*pSwapChain->ppSwapchainRenderTargets));
@@ -1484,9 +1270,7 @@ void removeCmd(CmdPool* pCmdPool, Cmd* pCmd)
 	if (pCmd->pTransientConstantBuffer)
 		removeBuffer(pCmd->pRenderer, pCmd->pTransientConstantBuffer);
 
-	SAFE_FREE(pCmd->pDescriptorStructPool);
-	SAFE_FREE(pCmd->pDescriptorNamePool);
-	SAFE_FREE(pCmd->pDescriptorResourcesPool);
+	SAFE_FREE(pCmd->pDescriptorCache);
 
 	//delete command
 	SAFE_FREE(pCmd);
@@ -1533,7 +1317,8 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 	ASSERT(pDesc);
 	ASSERT(ppRenderTarget);
 
-	bool isDepth = ImageFormat::IsDepthFormat(pDesc->mFormat);
+	bool const isDepth = TinyImageFormat_IsDepthAndStencil(pDesc->mFormat) ||
+		TinyImageFormat_IsDepthOnly(pDesc->mFormat);
 
 	ASSERT(!((isDepth) && (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE)) && "Cannot use depth stencil as UAV");
 
@@ -1543,7 +1328,7 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 	pRenderTarget->mDesc = *pDesc;
 
 	//add to gpu
-	DXGI_FORMAT dxFormat = util_to_dx_image_format(pRenderTarget->mDesc.mFormat, pDesc->mSrgb);
+	DXGI_FORMAT dxFormat = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT(pRenderTarget->mDesc.mFormat);
 	ASSERT(DXGI_FORMAT_UNKNOWN != dxFormat);
 
 	TextureDesc textureDesc = {};
@@ -1565,7 +1350,6 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 	// Set this by default to be able to sample the rendertarget in shader
 	textureDesc.mWidth = pDesc->mWidth;
 	textureDesc.pNativeHandle = pDesc->pNativeHandle;
-	textureDesc.mSrgb = pDesc->mSrgb;
 	textureDesc.pDebugName = pDesc->pDebugName;
 	textureDesc.mNodeIndex = pDesc->mNodeIndex;
 	textureDesc.pSharedNodeIndices = pDesc->pSharedNodeIndices;
@@ -1590,9 +1374,12 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 		pRenderTarget->pDxRtvDescriptors = (ID3D11RenderTargetView**)conf_calloc(numRTVs + 1, sizeof(ID3D11RenderTargetView*));
 	}
 
-	!isDepth ? add_rtv(pRenderer, pRenderTarget->pTexture->pDxResource, dxFormat, 0, -1, &pRenderTarget->pDxRtvDescriptors[0])
-			 : add_dsv(pRenderer, pRenderTarget->pTexture->pDxResource, dxFormat, 0, -1, &pRenderTarget->pDxDsvDescriptors[0]);
-
+	if (isDepth) {
+		add_dsv(pRenderer, pRenderTarget->pTexture->pDxResource, dxFormat, 0, -1, &pRenderTarget->pDxDsvDescriptors[0]);
+	}
+	else {
+		add_rtv(pRenderer, pRenderTarget->pTexture->pDxResource, dxFormat, 0, -1, &pRenderTarget->pDxRtvDescriptors[0]);
+	}
 	for (uint32_t i = 0; i < pDesc->mMipLevels; ++i)
 	{
 		const uint32_t depthOrArraySize = pDesc->mDepth * pDesc->mArraySize;
@@ -1601,20 +1388,26 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 		{
 			for (uint32_t j = 0; j < depthOrArraySize; ++j)
 			{
-				!ImageFormat::IsDepthFormat(pRenderTarget->mDesc.mFormat)
-					? add_rtv(
-						  pRenderer, pRenderTarget->pTexture->pDxResource, dxFormat, i, j,
-						  &pRenderTarget->pDxRtvDescriptors[1 + i * depthOrArraySize + j])
-					: add_dsv(
-						  pRenderer, pRenderTarget->pTexture->pDxResource, dxFormat, i, j,
-						  &pRenderTarget->pDxDsvDescriptors[1 + i * depthOrArraySize + j]);
+				if (isDepth) {
+					add_dsv(
+						pRenderer, pRenderTarget->pTexture->pDxResource, dxFormat, i, j,
+						&pRenderTarget->pDxDsvDescriptors[1 + i * depthOrArraySize + j]);
+				}
+				else {
+					add_rtv(
+						pRenderer, pRenderTarget->pTexture->pDxResource, dxFormat, i, j,
+						&pRenderTarget->pDxRtvDescriptors[1 + i * depthOrArraySize + j]);
+				}
 			}
 		}
 		else
 		{
-			!ImageFormat::IsDepthFormat(pRenderTarget->mDesc.mFormat)
-				? add_rtv(pRenderer, pRenderTarget->pTexture->pDxResource, dxFormat, i, -1, &pRenderTarget->pDxRtvDescriptors[1 + i])
-				: add_dsv(pRenderer, pRenderTarget->pTexture->pDxResource, dxFormat, i, -1, &pRenderTarget->pDxDsvDescriptors[1 + i]);
+			if (isDepth) {
+				add_dsv(pRenderer, pRenderTarget->pTexture->pDxResource, dxFormat, i, -1, &pRenderTarget->pDxDsvDescriptors[1 + i]);
+			}
+			else {
+				add_rtv(pRenderer, pRenderTarget->pTexture->pDxResource, dxFormat, i, -1, &pRenderTarget->pDxRtvDescriptors[1 + i]);
+			}
 		}
 	}
 
@@ -1623,15 +1416,18 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 
 void removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
 {
+	bool const isDepth = TinyImageFormat_IsDepthAndStencil(pRenderTarget->mDesc.mFormat) ||
+		TinyImageFormat_IsDepthOnly(pRenderTarget->mDesc.mFormat);
+
 	removeTexture(pRenderer, pRenderTarget->pTexture);
 
-	if (!ImageFormat::IsDepthFormat(pRenderTarget->mDesc.mFormat))
+	if (isDepth)
 	{
-		SAFE_RELEASE(pRenderTarget->pDxRtvDescriptors[0]);
+		SAFE_RELEASE(pRenderTarget->pDxDsvDescriptors[0]);
 	}
 	else
 	{
-		SAFE_RELEASE(pRenderTarget->pDxDsvDescriptors[0]);
+		SAFE_RELEASE(pRenderTarget->pDxRtvDescriptors[0]);
 	}
 
 	const uint32_t depthOrArraySize = pRenderTarget->mDesc.mArraySize * pRenderTarget->mDesc.mDepth;
@@ -1640,25 +1436,25 @@ void removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
 	{
 		for (uint32_t i = 0; i < pRenderTarget->mDesc.mMipLevels; ++i)
 			for (uint32_t j = 0; j < depthOrArraySize; ++j)
-				if (!ImageFormat::IsDepthFormat(pRenderTarget->mDesc.mFormat))
+				if (isDepth)
 				{
-					SAFE_RELEASE(pRenderTarget->pDxRtvDescriptors[1 + i * depthOrArraySize + j]);
+					SAFE_RELEASE(pRenderTarget->pDxDsvDescriptors[1 + i * depthOrArraySize + j]);
 				}
 				else
 				{
-					SAFE_RELEASE(pRenderTarget->pDxDsvDescriptors[1 + i * depthOrArraySize + j]);
+					SAFE_RELEASE(pRenderTarget->pDxRtvDescriptors[1 + i * depthOrArraySize + j]);
 				}
 	}
 	else
 	{
 		for (uint32_t i = 0; i < pRenderTarget->mDesc.mMipLevels; ++i)
-			if (!ImageFormat::IsDepthFormat(pRenderTarget->mDesc.mFormat))
+			if (isDepth)
 			{
-				SAFE_RELEASE(pRenderTarget->pDxRtvDescriptors[1 + i]);
+				SAFE_RELEASE(pRenderTarget->pDxDsvDescriptors[1 + i]);
 			}
 			else
 			{
-				SAFE_RELEASE(pRenderTarget->pDxDsvDescriptors[1 + i]);
+				SAFE_RELEASE(pRenderTarget->pDxRtvDescriptors[1 + i]);
 			}
 	}
 
@@ -1684,7 +1480,7 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampl
 	desc.AddressU = util_to_dx_texture_address_mode(pDesc->mAddressU);
 	desc.AddressV = util_to_dx_texture_address_mode(pDesc->mAddressV);
 	desc.AddressW = util_to_dx_texture_address_mode(pDesc->mAddressW);
-	desc.MipLODBias = pDesc->mMipLosBias;
+	desc.MipLODBias = pDesc->mMipLodBias;
 	desc.MaxAnisotropy = max((UINT)pDesc->mMaxAnisotropy, 1U);
 	desc.ComparisonFunc = gComparisonFuncTranslator[pDesc->mCompareFunc];
 	desc.BorderColor[0] = 0.0f;
@@ -1719,7 +1515,7 @@ void compileShader(
 {
 	if (shaderTarget > pRenderer->mSettings.mShaderTarget)
 	{
-		ErrorMsg(
+		LOGF(eERROR, 
 			"Requested shader target (%u) is higher than the shader target that the renderer supports (%u). Shader wont be compiled",
 			(uint32_t)shaderTarget, (uint32_t)pRenderer->mSettings.mShaderTarget);
 		return;
@@ -1783,7 +1579,7 @@ void compileShader(
 		ASSERT(msg);
 		memcpy(msg, error_msgs->GetBufferPointer(), error_msgs->GetBufferSize());
 		eastl::string error = eastl::string(fileName) + " " + msg;
-		ErrorMsg(error.c_str());
+		LOGF(eERROR, error.c_str());
 		SAFE_FREE(msg);
 	}
 	ASSERT(SUCCEEDED(hres));
@@ -1937,7 +1733,7 @@ D3D11_CPU_ACCESS_FLAG util_determine_dx_cpu_access_flags(ResourceMemoryUsage mem
 	}
 }
 
-D3D11_RESOURCE_MISC_FLAG util_determine_dx_resource_misc_flags(DescriptorType type, ImageFormat::Enum format)
+D3D11_RESOURCE_MISC_FLAG util_determine_dx_resource_misc_flags(DescriptorType type, TinyImageFormat format)
 {
 	uint32_t ret = {};
 	if (DESCRIPTOR_TYPE_TEXTURE_CUBE == (type & DESCRIPTOR_TYPE_TEXTURE_CUBE))
@@ -1947,11 +1743,11 @@ D3D11_RESOURCE_MISC_FLAG util_determine_dx_resource_misc_flags(DescriptorType ty
 
 	if (DESCRIPTOR_TYPE_BUFFER_RAW == (type & DESCRIPTOR_TYPE_BUFFER_RAW))
 		ret |= D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
-	else if ((type & DESCRIPTOR_TYPE_BUFFER) && format == ImageFormat::NONE)
+	else if ((type & DESCRIPTOR_TYPE_BUFFER) && format == TinyImageFormat_UNDEFINED)
 		ret |= D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 	if (DESCRIPTOR_TYPE_RW_BUFFER_RAW == (type & DESCRIPTOR_TYPE_RW_BUFFER_RAW))
 		ret |= D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
-	else if ((type & DESCRIPTOR_TYPE_RW_BUFFER) && format == ImageFormat::NONE)
+	else if ((type & DESCRIPTOR_TYPE_RW_BUFFER) && format == TinyImageFormat_UNDEFINED)
 		ret |= D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 
 	return (D3D11_RESOURCE_MISC_FLAG)ret;
@@ -1984,16 +1780,17 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 	//set properties
 	pBuffer->mDesc = *pDesc;
 
+	uint64_t allocationSize = pBuffer->mDesc.mSize;
 	//add to renderer
 	// Align the buffer size to multiples of 256
 	if ((pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_UNIFORM_BUFFER))
 	{
-		pBuffer->mDesc.mSize = round_up_64(pBuffer->mDesc.mSize, pRenderer->pActiveGpuSettings->mUniformBufferAlignment);
+		allocationSize = round_up_64(allocationSize, pRenderer->pActiveGpuSettings->mUniformBufferAlignment);
 	}
 
 	D3D11_BUFFER_DESC desc = {};
 	desc.BindFlags = util_determine_dx_bind_flags(pDesc->mDescriptors, RESOURCE_STATE_COMMON);
-	desc.ByteWidth = (UINT)pBuffer->mDesc.mSize;
+	desc.ByteWidth = (UINT)allocationSize;
 	desc.CPUAccessFlags = util_determine_dx_cpu_access_flags(pDesc->mMemoryUsage);
 	desc.MiscFlags = util_determine_dx_resource_misc_flags(pDesc->mDescriptors, pDesc->mFormat);
 	desc.StructureByteStride = (UINT)((desc.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS) ? 0 : pDesc->mStructStride);
@@ -2035,10 +1832,10 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 		srvDesc.Buffer.NumElements = (UINT)(pBuffer->mDesc.mElementCount);
 		srvDesc.Buffer.ElementWidth = (UINT)(pBuffer->mDesc.mStructStride);
 		srvDesc.Buffer.ElementOffset = 0;
-		srvDesc.Format = util_to_dx_image_format(pDesc->mFormat, false);
+		srvDesc.Format = (DXGI_FORMAT) TinyImageFormat_ToDXGI_FORMAT(pDesc->mFormat);
 		if (DESCRIPTOR_TYPE_BUFFER_RAW == (pDesc->mDescriptors & DESCRIPTOR_TYPE_BUFFER_RAW))
 		{
-			if (pDesc->mFormat != ImageFormat::NONE)
+			if (pDesc->mFormat != TinyImageFormat_UNDEFINED)
 				LOGF(LogLevel::eWARNING, "Raw buffers use R32 typeless format. Format will be ignored");
 			srvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
 		}
@@ -2062,14 +1859,14 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 		uavDesc.Buffer.Flags = 0;
 		if (DESCRIPTOR_TYPE_RW_BUFFER_RAW == (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER_RAW))
 		{
-			if (pDesc->mFormat != ImageFormat::NONE)
+			if (pDesc->mFormat != TinyImageFormat_UNDEFINED)
 				LOGF(LogLevel::eWARNING, "Raw buffers use R32 typeless format. Format will be ignored");
 			uavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
 			uavDesc.Buffer.Flags |= D3D11_BUFFER_UAV_FLAG_RAW;
 		}
-		else if (pDesc->mFormat != ImageFormat::NONE)
+		else if (pDesc->mFormat != TinyImageFormat_UNDEFINED)
 		{
-			uavDesc.Format = util_to_dx_image_format(pDesc->mFormat, false);
+			uavDesc.Format = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT(pDesc->mFormat);
 		}
 
 		pRenderer->pDxDevice->CreateUnorderedAccessView(pBuffer->pDxResource, &uavDesc, &pBuffer->pDxUavHandle);
@@ -2099,7 +1896,27 @@ void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
 	switch (mem)
 	{
 		case RESOURCE_MEMORY_USAGE_CPU_ONLY: mapType = D3D11_MAP_READ_WRITE; break;
-		case RESOURCE_MEMORY_USAGE_CPU_TO_GPU: mapType = D3D11_MAP_WRITE_NO_OVERWRITE; break;
+		case RESOURCE_MEMORY_USAGE_CPU_TO_GPU: 
+			// its possible a driver doesn't support partial updates to constant buffers
+			// this errors out in that case if a partial update is asked for
+			// To maintain API compatibility on these devices, a cpu buffer
+			// should shadow and upload when all updates are finished but thats not
+			// an easy thing as its not on Unmap but first usage...
+			if (pBuffer->mDesc.mDescriptors == DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+				if (pRange == NULL) {
+					mapType = D3D11_MAP_WRITE_DISCARD;
+				}
+				else if (pRenderer->mGpuSettings->mPartialUpdateConstantBufferSupported) {
+					mapType = D3D11_MAP_WRITE_NO_OVERWRITE;
+				}
+				else {
+					LOGF(LogLevel::eERROR, "Device doesn't support partial uniform buffer updates");
+				}
+			}
+			else {
+				mapType = D3D11_MAP_WRITE_NO_OVERWRITE;
+			}
+			break;
 		case RESOURCE_MEMORY_USAGE_GPU_TO_CPU: mapType = D3D11_MAP_READ; break;
 		default: break;
 	}
@@ -2143,7 +1960,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	}
 
 	//add to gpu
-	DXGI_FORMAT    dxFormat = util_to_dx_image_format(pDesc->mFormat, pDesc->mSrgb);
+	DXGI_FORMAT    dxFormat = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT(pDesc->mFormat);
 	DescriptorType descriptors = pDesc->mDescriptors;
 	D3D11_RESOURCE_DIMENSION res_dim = {};
 	if (pDesc->mFlags & TEXTURE_CREATION_FLAG_FORCE_2D)
@@ -2178,7 +1995,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 			desc.BindFlags = util_determine_dx_bind_flags(pDesc->mDescriptors, pDesc->mStartState);
 			desc.CPUAccessFlags = 0;
 			desc.Depth = pDesc->mDepth;
-			desc.Format = util_to_dx_image_format_typeless(pDesc->mFormat);
+			desc.Format = (DXGI_FORMAT)TinyImageFormat_DXGI_FORMATToTypeless((TinyImageFormat_DXGI_FORMAT)dxFormat);
 			desc.Height = pDesc->mHeight;
 			desc.MipLevels = pDesc->mMipLevels;
 			desc.MiscFlags = util_determine_dx_resource_misc_flags(pDesc->mDescriptors, pDesc->mFormat);
@@ -2197,7 +2014,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 			desc.ArraySize = pDesc->mArraySize;
 			desc.BindFlags = util_determine_dx_bind_flags(pDesc->mDescriptors, pDesc->mStartState);
 			desc.CPUAccessFlags = 0;
-			desc.Format = util_to_dx_image_format_typeless(pDesc->mFormat);
+			desc.Format = (DXGI_FORMAT)TinyImageFormat_DXGI_FORMATToTypeless((TinyImageFormat_DXGI_FORMAT)dxFormat);
 			desc.Height = pDesc->mHeight;
 			desc.MipLevels = pDesc->mMipLevels;
 			desc.MiscFlags = util_determine_dx_resource_misc_flags(pDesc->mDescriptors, pDesc->mFormat);
@@ -2216,7 +2033,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 			desc.ArraySize = pDesc->mArraySize;
 			desc.BindFlags = util_determine_dx_bind_flags(pDesc->mDescriptors, pDesc->mStartState);
 			desc.CPUAccessFlags = 0;
-			desc.Format = util_to_dx_image_format_typeless(pDesc->mFormat);
+			desc.Format = (DXGI_FORMAT)TinyImageFormat_DXGI_FORMATToTypeless((TinyImageFormat_DXGI_FORMAT)dxFormat);
 			desc.MipLevels = pDesc->mMipLevels;
 			desc.MiscFlags = util_determine_dx_resource_misc_flags(pDesc->mDescriptors, pDesc->mFormat);
 			desc.Usage = util_to_dx_usage(RESOURCE_MEMORY_USAGE_GPU_ONLY);
@@ -2263,7 +2080,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	}
 
 	// Compute texture size
-	pTexture->mTextureSize = pTexture->mDesc.mArraySize * ImageFormat::GetMipMappedSize(
+	pTexture->mTextureSize = pTexture->mDesc.mArraySize * Image_GetMipMappedSize(
 		pTexture->mDesc.mWidth, pTexture->mDesc.mHeight, pTexture->mDesc.mDepth,
 		pTexture->mDesc.mMipLevels, pTexture->mDesc.mFormat);
 
@@ -2534,7 +2351,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 			{
 				if (shaderResources[pNode->second].reg != pRes->reg)
 				{
-					ErrorMsg(
+					LOGF(eERROR, 
 						"\nFailed to create root signature\n"
 						"Shared shader resource %s has mismatching register. All shader resources "
 						"shared by multiple shaders specified in addRootSignature "
@@ -2544,7 +2361,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 				}
 				if (shaderResources[pNode->second].set != pRes->set)
 				{
-					ErrorMsg(
+					LOGF(eERROR, 
 						"\nFailed to create root signature\n"
 						"Shared shader resource %s has mismatching space. All shader resources "
 						"shared by multiple shaders specified in addRootSignature "
@@ -2604,14 +2421,8 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 			{
 				LOGF(LogLevel::eINFO, "Descriptor (%s) : User specified Static Sampler", pDesc->mDesc.name);
 				// Set the index to invalid value so we can use this later for error checking if user tries to update a static sampler
-				pDesc->mIndexInParent = ~0u;
+				pDesc->mIndexInParent = -1;
 				staticSamplers.push_back({ pDesc, pNode->second });
-			}
-			else
-			{
-				// In D3D12, sampler descriptors cannot be placed in a table containing view descriptors
-				// TODO
-				//layouts[setIndex].mSamplerTable.emplace_back(pDesc);
 			}
 		}
 		// No support for arrays of constant buffers to be used as root descriptors as this might bloat the root signature size
@@ -2627,23 +2438,11 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 				pDesc->mDesc.type = DESCRIPTOR_TYPE_ROOT_CONSTANT;
 				pDesc->mDesc.size = constantSizes[i] / sizeof(uint32_t);
 			}
-			else
+			else if (name.find("rootcbv", 0) != eastl::string::npos)
 			{
-				// By default DESCRIPTOR_TYPE_UNIFORM_BUFFER maps to D3D12_ROOT_PARAMETER_TYPE_CBV
-				// But since the size of root descriptors is 2 DWORDS, some of these uniform buffers might get placed in descriptor tables
-				// if the size of the root signature goes over the max recommended size on the specific hardware
-				// TODO
-				//layouts[setIndex].mConstantParams.emplace_back(pDesc);
+				pDesc->mIndexInParent = -1;
 			}
 		}
-		else
-		{
-			// TODO
-			//layouts[setIndex].mCbvSrvUavTable.emplace_back (pDesc);
-		}
-
-		// TODO
-		//layouts[setIndex].mDescriptorIndexMap[pDesc] = i;
 	}
 
 	pRootSignature->mStaticSamplerCount = (uint32_t)staticSamplers.size();
@@ -2781,7 +2580,7 @@ void addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipelin
 
 			input_elements[input_elementCount].SemanticName = semantic_names[attrib_index];
 			input_elements[input_elementCount].SemanticIndex = semantic_index;
-			input_elements[input_elementCount].Format = util_to_dx_image_format(attrib->mFormat, false);
+			input_elements[input_elementCount].Format = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT(attrib->mFormat);
 			input_elements[input_elementCount].InputSlot = attrib->mBinding;
 			input_elements[input_elementCount].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
 			if (attrib->mRate == VERTEX_ATTRIB_RATE_INSTANCE)
@@ -3036,25 +2835,290 @@ void removeRasterizerState(RasterizerState* pRasterizerState)
 }
 
 /************************************************************************/
-// Descriptor Binder Implementation
+// Descriptor Set Implementation
 /************************************************************************/
-typedef struct DescriptorBinder
+const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName)
 {
-	DescriptorBinderDesc mDesc;
-} DescriptorBinder;
-
-void addDescriptorBinder(Renderer* pRenderer, uint32_t gpuIndex, uint32_t descCount, const DescriptorBinderDesc* pDescs, DescriptorBinder** ppDescriptorBinder)
-{
-	DescriptorBinder* pDescriptorBinder = (DescriptorBinder*)conf_calloc(1, sizeof(*pDescriptorBinder));
-	*ppDescriptorBinder = pDescriptorBinder;
+	using DescriptorNameToIndexMap = eastl::string_hash_map<uint32_t>;
+	DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap.find(pResName);
+	if (it != pRootSignature->pDescriptorNameToIndexMap.end())
+	{
+		return &pRootSignature->pDescriptors[it->second];
+	}
+	else
+	{
+		LOGF(LogLevel::eERROR, "Invalid descriptor param (%s)", pResName);
+		return NULL;
+	}
 }
 
-void removeDescriptorBinder(Renderer* pRenderer, DescriptorBinder* pDescriptorBinder)
+typedef struct DescriptorSet
 {
-	UNREF_PARAM(pRenderer);
-	SAFE_FREE(pDescriptorBinder);
+	typedef struct CBV
+	{
+		ID3D11Buffer* pHandle;
+		uint32_t      mOffset;
+		uint32_t      mSize;
+		ShaderStage   mStage;
+		uint32_t      mBinding;
+	} CBV;
+
+	typedef struct DescriptorHandle
+	{
+		void*       pHandle;
+		ShaderStage mStage;
+		uint32_t    mBinding;
+	} DescriptorHandle;
+
+	eastl::unordered_map<uint32_t, DescriptorHandle>*    pSRVs;
+	eastl::unordered_map<uint32_t, DescriptorHandle>*    pUAVs;
+	eastl::unordered_map<uint32_t, CBV>*                 pCBVs;
+	eastl::vector<CBV>*                                  pDynamicCBVs;
+	uint32_t*                                            pDynamicCBVsPrevCount;
+	eastl::unordered_map<uint32_t, DescriptorHandle>*    pSamplers;
+	const RootSignature*                                 pRootSignature;
+	uint16_t                                             mMaxSets;
+} DescriptorSet;
+
+void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, DescriptorSet** ppDescriptorSet)
+{
+	ASSERT(pRenderer);
+	ASSERT(pDesc);
+	ASSERT(ppDescriptorSet);
+
+	DescriptorSet* pDescriptorSet = (DescriptorSet*)conf_calloc(1, sizeof(*pDescriptorSet));
+	ASSERT(pDescriptorSet);
+
+	const RootSignature* pRootSignature = pDesc->pRootSignature;
+
+	pDescriptorSet->mMaxSets = pDesc->mMaxSets;
+	pDescriptorSet->pRootSignature = pRootSignature;
+
+	pDescriptorSet->pSRVs = (decltype(pDescriptorSet->pSRVs))conf_calloc(pDesc->mMaxSets, sizeof(*pDescriptorSet->pSRVs));
+	pDescriptorSet->pUAVs = (decltype(pDescriptorSet->pUAVs))conf_calloc(pDesc->mMaxSets, sizeof(*pDescriptorSet->pUAVs));
+	pDescriptorSet->pCBVs = (decltype(pDescriptorSet->pCBVs))conf_calloc(pDesc->mMaxSets, sizeof(*pDescriptorSet->pCBVs));
+	pDescriptorSet->pDynamicCBVs = (decltype(pDescriptorSet->pDynamicCBVs))conf_calloc(pDesc->mMaxSets, sizeof(*pDescriptorSet->pDynamicCBVs));
+	pDescriptorSet->pDynamicCBVsPrevCount = (decltype(pDescriptorSet->pDynamicCBVsPrevCount))conf_calloc(pDesc->mMaxSets, sizeof(*pDescriptorSet->pDynamicCBVsPrevCount));
+	pDescriptorSet->pSamplers = (decltype(pDescriptorSet->pSamplers))conf_calloc(pDesc->mMaxSets, sizeof(*pDescriptorSet->pSamplers));
+	for (uint32_t i = 0; i < pDesc->mMaxSets; ++i)
+	{
+		conf_placement_new<eastl::unordered_map<uint32_t, DescriptorSet::DescriptorHandle> >(pDescriptorSet->pSRVs + i);
+		conf_placement_new<eastl::unordered_map<uint32_t, DescriptorSet::DescriptorHandle> >(pDescriptorSet->pUAVs + i);
+		conf_placement_new<eastl::unordered_map<uint32_t, DescriptorSet::CBV> >(pDescriptorSet->pCBVs + i);
+		conf_placement_new<eastl::vector<DescriptorSet::CBV> >(pDescriptorSet->pDynamicCBVs + i);
+		conf_placement_new<eastl::unordered_map<uint32_t, DescriptorSet::DescriptorHandle> >(pDescriptorSet->pSamplers + i);
+	}
+
+	*ppDescriptorSet = pDescriptorSet;
 }
 
+void removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
+{
+	for (uint32_t i = 0; i < pDescriptorSet->mMaxSets; ++i)
+	{
+		pDescriptorSet->pSRVs[i].~hash_map();
+		pDescriptorSet->pUAVs[i].~hash_map();
+		pDescriptorSet->pCBVs[i].~hash_map();
+		pDescriptorSet->pSamplers[i].~hash_map();
+		pDescriptorSet->pDynamicCBVs[i].~vector();
+	}
+
+	SAFE_FREE(pDescriptorSet->pSRVs);
+	SAFE_FREE(pDescriptorSet->pUAVs);
+	SAFE_FREE(pDescriptorSet->pCBVs);
+	SAFE_FREE(pDescriptorSet->pSamplers);
+	SAFE_FREE(pDescriptorSet->pDynamicCBVs);
+	SAFE_FREE(pDescriptorSet->pDynamicCBVsPrevCount);
+	SAFE_FREE(pDescriptorSet);
+}
+
+void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
+{
+#ifdef _DEBUG
+#define VALIDATE_DESCRIPTOR(descriptor,...)																\
+	if (!(descriptor))																					\
+	{																									\
+		eastl::string msg = __FUNCTION__ + eastl::string(" : ") + eastl::string().sprintf(__VA_ARGS__);	\
+		LOGF(LogLevel::eERROR, msg.c_str());															\
+		_FailedAssert(__FILE__, __LINE__, msg.c_str());													\
+		continue;																						\
+	}
+#else
+#define VALIDATE_DESCRIPTOR(descriptor,...)
+#endif
+
+	ASSERT(pRenderer);
+	ASSERT(pDescriptorSet);
+	ASSERT(index < pDescriptorSet->mMaxSets);
+
+	const RootSignature* pRootSignature = pDescriptorSet->pRootSignature;
+
+	for (uint32_t i = 0; i < count; ++i)
+	{
+		uint32_t paramIndex = pParams->mIndex;
+		const DescriptorData* pParam = pParams + i;
+		const DescriptorInfo* pDesc = (paramIndex != -1) ? (pRootSignature->pDescriptors + paramIndex) : get_descriptor(pRootSignature, pParam->pName);
+		paramIndex = (uint32_t)(pDesc - pRootSignature->pDescriptors);
+		const DescriptorType type = pDesc->mDesc.type;
+		const uint32_t arrayCount = max(1U, pParam->mCount);
+
+		switch (type)
+		{
+		case DESCRIPTOR_TYPE_SAMPLER:
+		{
+			// Index is invalid when descriptor is a static sampler
+			VALIDATE_DESCRIPTOR(pDesc->mIndexInParent != -1,
+				"Trying to update a static sampler (%s). All static samplers must be set in addRootSignature and cannot be updated later",
+				pDesc->mDesc.name);
+
+			VALIDATE_DESCRIPTOR(pParam->ppSamplers, "NULL Sampler (%s)", pDesc->mDesc.name);
+
+			for (uint32_t arr = 0; arr < arrayCount; ++arr)
+			{
+				VALIDATE_DESCRIPTOR(pParam->ppSamplers[arr], "NULL Sampler (%s [%u] )", pDesc->mDesc.name, arr);
+
+				pDescriptorSet->pSamplers[index][paramIndex] =(DescriptorSet::DescriptorHandle
+					{
+						pParam->ppSamplers[arr]->pSamplerState,
+						pDesc->mDesc.used_stages,
+						pDesc->mDesc.reg + arr
+					});
+			}
+			break;
+		}
+		case DESCRIPTOR_TYPE_TEXTURE:
+		{
+			VALIDATE_DESCRIPTOR(pParam->ppTextures, "NULL Texture (%s)", pDesc->mDesc.name);
+
+			for (uint32_t arr = 0; arr < arrayCount; ++arr)
+			{
+				VALIDATE_DESCRIPTOR(pParam->ppTextures[arr], "NULL Texture (%s [%u] )", pDesc->mDesc.name, arr);
+
+				pDescriptorSet->pSRVs[index][paramIndex] = (DescriptorSet::DescriptorHandle
+					{
+						pParam->ppTextures[arr]->pDxSRVDescriptor,
+						pDesc->mDesc.used_stages,
+						pDesc->mDesc.reg + arr
+					});
+			}
+			break;
+		}
+		case DESCRIPTOR_TYPE_RW_TEXTURE:
+		{
+			VALIDATE_DESCRIPTOR(pParam->ppTextures, "NULL RW Texture (%s)", pDesc->mDesc.name);
+			const uint32_t mipSlice = pParam->mUAVMipSlice;
+
+			for (uint32_t arr = 0; arr < arrayCount; ++arr)
+			{
+				VALIDATE_DESCRIPTOR(pParam->ppTextures[arr], "NULL RW Texture (%s [%u] )", pDesc->mDesc.name, arr);
+				VALIDATE_DESCRIPTOR(mipSlice < pParam->ppTextures[arr]->mDesc.mMipLevels, "Descriptor : (%s [%u] ) Mip Slice (%u) exceeds mip levels (%u)",
+					pDesc->mDesc.name, arr, mipSlice, pParam->ppTextures[arr]->mDesc.mMipLevels);
+
+				pDescriptorSet->pUAVs[index][paramIndex] = (DescriptorSet::DescriptorHandle
+					{
+						pParam->ppTextures[arr]->pDxUAVDescriptors[pParam->mUAVMipSlice],
+						pDesc->mDesc.used_stages,
+						pDesc->mDesc.reg + arr
+					});
+			}
+			break;
+		}
+		case DESCRIPTOR_TYPE_BUFFER:
+		case DESCRIPTOR_TYPE_BUFFER_RAW:
+		{
+			VALIDATE_DESCRIPTOR(pParam->ppBuffers, "NULL Buffer (%s)", pDesc->mDesc.name);
+
+			for (uint32_t arr = 0; arr < arrayCount; ++arr)
+			{
+				VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL Buffer (%s [%u] )", pDesc->mDesc.name, arr);
+
+				pDescriptorSet->pSRVs[index][paramIndex] = (DescriptorSet::DescriptorHandle
+					{
+						pParam->ppBuffers[arr]->pDxSrvHandle,
+						pDesc->mDesc.used_stages,
+						pDesc->mDesc.reg + arr
+					});
+			}
+			break;
+		}
+		case DESCRIPTOR_TYPE_RW_BUFFER:
+		case DESCRIPTOR_TYPE_RW_BUFFER_RAW:
+		{
+			VALIDATE_DESCRIPTOR(pParam->ppBuffers, "NULL Buffer (%s)", pDesc->mDesc.name);
+
+			for (uint32_t arr = 0; arr < arrayCount; ++arr)
+			{
+				VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL Buffer (%s [%u] )", pDesc->mDesc.name, arr);
+
+				pDescriptorSet->pUAVs[index][paramIndex] = (DescriptorSet::DescriptorHandle
+					{
+						pParam->ppBuffers[arr]->pDxUavHandle,
+						pDesc->mDesc.used_stages,
+						pDesc->mDesc.reg + arr
+					});
+			}
+			break;
+		}
+		case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+		{
+			VALIDATE_DESCRIPTOR(pParam->ppBuffers, "NULL Uniform Buffer (%s)", pDesc->mDesc.name);
+
+			if (pDesc->mIndexInParent == -1)
+			{
+				VALIDATE_DESCRIPTOR(pParam->ppBuffers[0], "NULL Uniform Buffer (%s [%u] )", pDesc->mDesc.name, 0);
+				VALIDATE_DESCRIPTOR(arrayCount == 1, "Descriptor (%s) : RootCBV does not support arrays", pDesc->mDesc.name);
+				VALIDATE_DESCRIPTOR(pParam->pSizes, "Descriptor (%s) : Must provide pSizes for RootCBV", pDesc->mDesc.name);
+				VALIDATE_DESCRIPTOR(pParam->pSizes[0] > 0, "Descriptor (%s) - pSizes[%u] is zero", pDesc->mDesc.name, 0);
+				VALIDATE_DESCRIPTOR(pParam->pSizes[0] <= 65536,
+					"Descriptor (%s) - pSizes[%u] is %ull which exceeds max size %u", pDesc->mDesc.name, 0,
+					pParam->pSizes[0],
+					65536);
+
+				uint32_t offset = pParam->pOffsets ? (uint32_t)pParam->pOffsets[0] : 0;
+				uint32_t size = (uint32_t)pParam->pSizes[0];
+				DescriptorSet::CBV cbv =
+				{
+					pParam->ppBuffers[0]->pDxResource,
+					offset,
+					size,
+					pDesc->mDesc.used_stages,
+					pDesc->mDesc.reg
+				};
+
+				pDescriptorSet->pDynamicCBVs[index].emplace_back(cbv);
+			}
+			else
+			{
+				for (uint32_t arr = 0; arr < arrayCount; ++arr)
+				{
+					VALIDATE_DESCRIPTOR(pParam->ppBuffers[arr], "NULL Uniform Buffer (%s [%u] )", pDesc->mDesc.name, arr);
+					if (pParam->pOffsets || pParam->pSizes)
+					{
+						VALIDATE_DESCRIPTOR(pParam->pSizes, "Descriptor (%s) - pSizes must be provided with pOffsets", pDesc->mDesc.name);
+						VALIDATE_DESCRIPTOR(pParam->pSizes[arr] > 0, "Descriptor (%s) - pSizes[%u] is zero", pDesc->mDesc.name, arr);
+						VALIDATE_DESCRIPTOR(pParam->pSizes[arr] <= 65536,
+							"Descriptor (%s) - pSizes[%u] is %ull which exceeds max size %u", pDesc->mDesc.name, arr,
+							pParam->pSizes[arr],
+							65536);
+					}
+
+					pDescriptorSet->pCBVs[index][paramIndex] = (DescriptorSet::CBV
+						{
+							pParam->ppBuffers[arr]->pDxResource,
+							pParam->pOffsets ? (uint32_t)pParam->pOffsets[i] : 0U,
+							pParam->pSizes ? (uint32_t)pParam->pSizes[i] : 0U,
+							pDesc->mDesc.used_stages,
+							pDesc->mDesc.reg + arr,
+						});
+				}
+			}
+			break;
+		}
+		default:
+			break;
+		}
+	}
+}
 /************************************************************************/
 // Command buffer Functions
 /************************************************************************/
@@ -3068,9 +3132,7 @@ void beginCmd(Cmd* pCmd)
 	else
 		gCachedCmds[pCmd];    // create a new cached cmd list
 
-	pCmd->mDescriptorStructPoolOffset = 0;
-	pCmd->mDescriptorNamePoolOffset = 0;
-	pCmd->mDescriptorResourcePoolOffset = 0;
+	pCmd->mDescriptorCacheOffset = 0;
 }
 
 void endCmd(Cmd* pCmd)
@@ -3208,25 +3270,54 @@ void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 	cachedCmdsIter->second.push_back(cmd);
 }
 
-const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName, uint32_t* pIndex)
-{
-	using DescriptorNameToIndexMap = eastl::string_hash_map<uint32_t>;
-	DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap.find(pResName);
-	if (it != pRootSignature->pDescriptorNameToIndexMap.end())
-	{
-		*pIndex = it->second;
-		return &pRootSignature->pDescriptors[it->second];
-	}
-	else
-	{
-		LOGF(LogLevel::eERROR, "Invalid descriptor param (%s)", pResName);
-		return NULL;
-	}
-}
-
-void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSignature* pRootSignature, uint32_t numDescriptors, DescriptorData* pDescParams)
+void cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorSet)
 {
 	ASSERT(pCmd);
+	ASSERT(pDescriptorSet);
+	ASSERT(index < pDescriptorSet->mMaxSets);
+
+	// Ensure beingCmd was actually called
+	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
+	ASSERT(cachedCmdsIter != gCachedCmds.end());
+	if (cachedCmdsIter == gCachedCmds.end())
+	{
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
+		return;
+	}
+
+	DECLARE_ZERO(CachedCmd, cmd);
+	cmd.pCmd = pCmd;
+	cmd.sType = CMD_TYPE_cmdBindDescriptorSet;
+	cmd.mBindDescriptorSetCmd.pDescriptorSet = pDescriptorSet;
+	cmd.mBindDescriptorSetCmd.mIndex = index;
+
+	if (pDescriptorSet->pDynamicCBVs[index].size() != pDescriptorSet->pDynamicCBVsPrevCount[index])
+	{
+		// Create descriptor pool for storing the descriptor data
+		if (!pCmd->pDescriptorCache)
+		{
+			pCmd->pDescriptorCache = (uint8_t*)conf_calloc(1024, sizeof(DescriptorSet::CBV));
+		}
+		cmd.mBindDescriptorSetCmd.mDynamicCBVCount = (uint32_t)(pDescriptorSet->pDynamicCBVs[index].size() - pDescriptorSet->pDynamicCBVsPrevCount[index]);
+		cmd.mBindDescriptorSetCmd.pDynamicCBVs = (DescriptorSet::CBV*)(pCmd->pDescriptorCache + pCmd->mDescriptorCacheOffset);
+		pCmd->mDescriptorCacheOffset += sizeof(DescriptorSet::CBV) * cmd.mBindDescriptorSetCmd.mDynamicCBVCount;
+		for (uint32_t i = 0; i < cmd.mBindDescriptorSetCmd.mDynamicCBVCount; ++i)
+		{
+			DescriptorSet::CBV* pCbv = (DescriptorSet::CBV*)cmd.mBindDescriptorSetCmd.pDynamicCBVs + i;
+			*pCbv = pDescriptorSet->pDynamicCBVs[index][pDescriptorSet->pDynamicCBVsPrevCount[index] + i];
+		}
+
+		pDescriptorSet->pDynamicCBVsPrevCount[index] = (uint32_t)pDescriptorSet->pDynamicCBVs[index].size();
+	}
+
+	cachedCmdsIter->second.push_back(cmd);
+}
+
+void cmdBindPushConstants(Cmd* pCmd, RootSignature* pRootSignature, const char* pName, const void* pConstants)
+{
+	ASSERT(pCmd);
+	ASSERT(pName);
+	ASSERT(pConstants);
 	ASSERT(pRootSignature);
 
 	// Ensure beingCmd was actually called
@@ -3238,75 +3329,47 @@ void cmdBindDescriptors(Cmd* pCmd, DescriptorBinder* pDescriptorBinder, RootSign
 		return;
 	}
 
-	// Create descriptor pool for storing the descriptor data
-	if (!pCmd->pDescriptorNamePool)
-	{
-		pCmd->pDescriptorNamePool = (uint8_t*)conf_calloc(1024 * 32, sizeof(uint8_t));
-		pCmd->pDescriptorStructPool = (uint8_t*)conf_calloc(1024 * 32, sizeof(uint8_t));
-		pCmd->pDescriptorResourcesPool = (uint8_t*)conf_calloc(1024 * 32, sizeof(uint8_t));
-	}
-
-	DescriptorData* pBegin = NULL;
-
-	for (uint32_t i = 0; i < numDescriptors; ++i)
-	{
-		uint8_t*              pPool = pCmd->pDescriptorStructPool + pCmd->mDescriptorStructPoolOffset;
-		const DescriptorData* pSrc = &pDescParams[i];
-		DescriptorData*       pDst = (DescriptorData*)pPool;
-		uint32_t              index = 0;
-		const DescriptorInfo* pDesc = get_descriptor(pRootSignature, pSrc->pName, &index);
-    if (!pDesc)
-      continue;
-
-		if (i == 0)
-			pBegin = pDst;
-
-		memcpy(pDst, pSrc, sizeof(DescriptorData));
-		pDst->mCount = max(1U, pDst->mCount);
-		pCmd->mDescriptorStructPoolOffset += sizeof(DescriptorData);
-
-		pDst->pName = (char*)(pCmd->pDescriptorNamePool + pCmd->mDescriptorNamePoolOffset);
-		memcpy((void*)pDst->pName, pSrc->pName, strlen(pSrc->pName));
-		((char*)pDst->pName)[strlen(pSrc->pName)] = '\0';
-		pCmd->mDescriptorNamePoolOffset += strlen(pSrc->pName) + 1;
-
-		const uint32_t count = max(1U, pSrc->mCount);
-
-		if (pDesc->mDesc.type == DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-		{
-			if (pSrc->pOffsets)
-			{
-				pDst->pOffsets = (uint64_t*)(pCmd->pDescriptorResourcesPool + pCmd->mDescriptorResourcePoolOffset);
-				memcpy(pDst->pOffsets, pSrc->pOffsets, count * sizeof(uint64_t));
-				pCmd->mDescriptorResourcePoolOffset += round_up_64(count * sizeof(uint64_t), 16);
-			}
-			if (pSrc->pSizes)
-			{
-				pDst->pSizes = (uint64_t*)(pCmd->pDescriptorResourcesPool + pCmd->mDescriptorResourcePoolOffset);
-				memcpy(pDst->pSizes, pSrc->pSizes, count * sizeof(uint64_t));
-				pCmd->mDescriptorResourcePoolOffset += round_up_64(count * sizeof(uint64_t), 16);
-			}
-		}
-		if (pDesc && pDesc->mDesc.type == DESCRIPTOR_TYPE_ROOT_CONSTANT)
-		{
-			pDst->pRootConstant = pCmd->pDescriptorResourcesPool + pCmd->mDescriptorResourcePoolOffset;
-			memcpy(pDst->pRootConstant, pSrc->pRootConstant, pDesc->mDesc.size * sizeof(uint32_t));
-			pCmd->mDescriptorResourcePoolOffset += round_up_64(pDesc->mDesc.size * sizeof(uint32_t), 16);
-		}
-		else
-		{
-			pDst->ppTextures = (Texture**)(pCmd->pDescriptorResourcesPool + pCmd->mDescriptorResourcePoolOffset);
-			memcpy(pDst->ppTextures, pSrc->ppTextures, count * sizeof(Texture*));
-			pCmd->mDescriptorResourcePoolOffset += round_up_64(count * sizeof(Texture*), 16);
-		}
-	}
+	const DescriptorInfo* pDesc = get_descriptor(pRootSignature, pName);
+	ASSERT(pDesc);
+	ASSERT(DESCRIPTOR_TYPE_ROOT_CONSTANT == pDesc->mDesc.type);
 
 	DECLARE_ZERO(CachedCmd, cmd);
 	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdBindDescriptors;
-	cmd.mBindDescriptorsCmd.pRootSignature = pRootSignature;
-	cmd.mBindDescriptorsCmd.numDescriptors = numDescriptors;
-	cmd.mBindDescriptorsCmd.pDescParams = pBegin;
+	cmd.sType = CMD_TYPE_cmdBindPushConstants;
+	memcpy(cmd.mBindPushConstantsCmd.mPushConstant, pConstants, pDesc->mDesc.size * sizeof(uint32_t));
+	cmd.mBindPushConstantsCmd.mSize = (uint8_t)pDesc->mDesc.size * sizeof(uint32_t);
+	cmd.mBindPushConstantsCmd.mBinding = pDesc->mDesc.reg;
+	cmd.mBindPushConstantsCmd.mStage = pDesc->mDesc.used_stages;
+	cachedCmdsIter->second.push_back(cmd);
+}
+
+void cmdBindPushConstantsByIndex(Cmd* pCmd, RootSignature* pRootSignature, uint32_t paramIndex, const void* pConstants)
+{
+	ASSERT(pCmd);
+	ASSERT(pConstants);
+	ASSERT(pRootSignature);
+	ASSERT(paramIndex >= 0 && paramIndex < pRootSignature->mDescriptorCount);
+
+	// Ensure beingCmd was actually called
+	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
+	ASSERT(cachedCmdsIter != gCachedCmds.end());
+	if (cachedCmdsIter == gCachedCmds.end())
+	{
+		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
+		return;
+	}
+
+	const DescriptorInfo* pDesc = pRootSignature->pDescriptors + paramIndex;
+	ASSERT(pDesc);
+	ASSERT(DESCRIPTOR_TYPE_ROOT_CONSTANT == pDesc->mDesc.type);
+
+	DECLARE_ZERO(CachedCmd, cmd);
+	cmd.pCmd = pCmd;
+	cmd.sType = CMD_TYPE_cmdBindPushConstants;
+	memcpy(cmd.mBindPushConstantsCmd.mPushConstant, pConstants, pDesc->mDesc.size * sizeof(uint32_t));
+	cmd.mBindPushConstantsCmd.mSize = (uint8_t)pDesc->mDesc.size * sizeof(uint32_t);
+	cmd.mBindPushConstantsCmd.mBinding = pDesc->mDesc.reg;
+	cmd.mBindPushConstantsCmd.mStage = pDesc->mDesc.used_stages;
 	cachedCmdsIter->second.push_back(cmd);
 }
 
@@ -3478,73 +3541,8 @@ void cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t
 /************************************************************************/
 // Transition Commands
 /************************************************************************/
-void cmdResourceBarrier(
-	Cmd* pCmd, uint32_t numBufferBarriers, BufferBarrier* pBufferBarriers, uint32_t numTextureBarriers, TextureBarrier* pTextureBarriers,
-	bool batch)
+void cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarrier* pBufferBarriers, uint32_t numTextureBarriers, TextureBarrier* pTextureBarriers)
 {
-	ASSERT(pCmd);
-
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
-
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdResourceBarrier;
-	cmd.mResourceBarrierCmd.numBufferBarriers = numBufferBarriers;
-	cmd.mResourceBarrierCmd.pBufferBarriers = pBufferBarriers;
-	cmd.mResourceBarrierCmd.numTextureBarriers = numTextureBarriers;
-	cmd.mResourceBarrierCmd.pTextureBarriers = pTextureBarriers;
-	cmd.mResourceBarrierCmd.batch = batch;
-	cachedCmdsIter->second.push_back(cmd);
-}
-
-void cmdSynchronizeResources(Cmd* pCmd, uint32_t numBuffers, Buffer** ppBuffers, uint32_t numTextures, Texture** ppTextures, bool batch)
-{
-	ASSERT(pCmd);
-
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
-
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdSynchronizeResources;
-	cmd.mSynchronizeResourcesCmd.numBuffers = numBuffers;
-	cmd.mSynchronizeResourcesCmd.ppBuffers = ppBuffers;
-	cmd.mSynchronizeResourcesCmd.numTextures = numTextures;
-	cmd.mSynchronizeResourcesCmd.ppTextures = ppTextures;
-	cmd.mSynchronizeResourcesCmd.batch = batch;
-	cachedCmdsIter->second.push_back(cmd);
-}
-
-void cmdFlushBarriers(Cmd* pCmd)
-{
-	ASSERT(pCmd);
-
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
-
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdFlushBarriers;
-	cachedCmdsIter->second.push_back(cmd);
 }
 /************************************************************************/
 // Queue Fence Semaphore Functions
@@ -3586,6 +3584,28 @@ void set_constant_buffers(ID3D11DeviceContext* pContext, ShaderStage used_stages
 		pContext->GSSetConstantBuffers(reg, count, pCBVs);
 	if (used_stages & SHADER_STAGE_COMP)
 		pContext->CSSetConstantBuffers(reg, count, pCBVs);
+}
+
+void set_dynamic_constant_buffer(Cmd* pCmd, ID3D11DeviceContext* pContext, const DescriptorSet::CBV* pHandle)
+{
+	if (!pCmd->pTransientConstantBuffer)
+	{
+		BufferDesc bufDesc = {};
+		bufDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		bufDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		// Max Constant Buffer Size
+		bufDesc.mSize = 65536;
+		addBuffer(pCmd->pRenderer, &bufDesc, &pCmd->pTransientConstantBuffer);
+	}
+
+	D3D11_MAPPED_SUBRESOURCE read = {};
+	pContext->Map(pHandle->pHandle, 0, D3D11_MAP_READ, 0, &read);
+	D3D11_MAPPED_SUBRESOURCE sub = {};
+	pContext->Map(pCmd->pTransientConstantBuffer->pDxResource, 0, D3D11_MAP_WRITE_DISCARD, 0, &sub);
+	memcpy(sub.pData, (uint8_t*)read.pData + pHandle->mOffset, pHandle->mSize);
+	pContext->Unmap(pCmd->pTransientConstantBuffer->pDxResource, 0);
+	pContext->Unmap(pHandle->pHandle, 0);
+	set_constant_buffers(pContext, pHandle->mStage, pHandle->mBinding, 1, &pCmd->pTransientConstantBuffer->pDxResource);
 }
 
 void set_shader_resources(
@@ -3720,13 +3740,15 @@ void queueSubmit(
 					}
 					break;
 				}
-				case CMD_TYPE_cmdBindDescriptors:
+				case CMD_TYPE_cmdBindDescriptorSet:
 				{
 					/************************************************************************/
 					// Bind static samplers
 					/************************************************************************/
-					const BindDescriptorsCmd& bind = cmd.mBindDescriptorsCmd;
-					const RootSignature*      pRootSignature = bind.pRootSignature;
+					const BindDescriptorsCmd& bind = cmd.mBindDescriptorSetCmd;
+					DescriptorSet* pDescriptorSet = bind.pDescriptorSet;
+					const uint32_t index = bind.mIndex;
+					const RootSignature*      pRootSignature = pDescriptorSet->pRootSignature;
 					for (uint32_t i = 0; i < pRootSignature->mStaticSamplerCount; ++i)
 					{
 						set_samplers(
@@ -3736,131 +3758,63 @@ void queueSubmit(
 					/************************************************************************/
 					// Bind regular shader variables
 					/************************************************************************/
-					for (uint32_t i = 0; i < bind.numDescriptors; ++i)
+					for (eastl::pair<uint32_t, DescriptorSet::DescriptorHandle> handle : pDescriptorSet->pSRVs[index])
 					{
-						const DescriptorData* pParam = &bind.pDescParams[i];
-
-						ASSERT(pParam);
-						if (!pParam->pName)
+						DescriptorSet::DescriptorHandle* pHandle = &handle.second;
+						set_shader_resources(pContext, pHandle->mStage, pHandle->mBinding, 1, (ID3D11ShaderResourceView**)&pHandle->pHandle);
+					}
+					for (eastl::pair<uint32_t, DescriptorSet::DescriptorHandle> handle : pDescriptorSet->pUAVs[index])
+					{
+						DescriptorSet::DescriptorHandle* pHandle = &handle.second;
+						pContext->CSSetUnorderedAccessViews(pHandle->mBinding, 1, (ID3D11UnorderedAccessView**)&pHandle->pHandle, NULL);
+					}
+					for (eastl::pair<uint32_t, DescriptorSet::CBV> handle : pDescriptorSet->pCBVs[index])
+					{
+						DescriptorSet::CBV* pHandle = &handle.second;
+						if (pHandle->mOffset || pHandle->mSize)
 						{
-							LOGF(LogLevel::eERROR, "Name of Descriptor at index (%u) is NULL", i);
-							return;
+							set_dynamic_constant_buffer(pCmd, pContext, pHandle);
 						}
-
-						uint32_t              descIndex = ~0u;
-						const DescriptorInfo* pDesc = get_descriptor(pRootSignature, pParam->pName, &descIndex);
-						if (!pDesc)
-							continue;
-						const ShaderResource* pRes = &pDesc->mDesc;
-						const DescriptorType  type = pRes->type;
-						switch (type)
+						else
 						{
-							case DESCRIPTOR_TYPE_BUFFER:
-							{
-								ID3D11ShaderResourceView** pSRVs =
-									(ID3D11ShaderResourceView**)alloca(pParam->mCount * sizeof(ID3D11ShaderResourceView*));
-								for (uint32_t i = 0; i < pParam->mCount; ++i)
-									pSRVs[i] = pParam->ppBuffers[i]->pDxSrvHandle;
-								set_shader_resources(pContext, pRes->used_stages, pRes->reg, pParam->mCount, pSRVs);
-								break;
-							}
-							case DESCRIPTOR_TYPE_RW_BUFFER:
-							{
-								ID3D11UnorderedAccessView** pUAVs =
-									(ID3D11UnorderedAccessView**)alloca(pParam->mCount * sizeof(ID3D11UnorderedAccessView*));
-								for (uint32_t i = 0; i < pParam->mCount; ++i)
-									pUAVs[i] = pParam->ppBuffers[i]->pDxUavHandle;
-
-								ASSERT(pRes->used_stages == SHADER_STAGE_COMP);
-								pContext->CSSetUnorderedAccessViews(pRes->reg, pParam->mCount, pUAVs, NULL);
-								break;
-							}
-							case DESCRIPTOR_TYPE_ROOT_CONSTANT:
-							{
-								if (!pCmd->pRootConstantBuffer)
-								{
-									BufferDesc bufDesc = {};
-									bufDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-									bufDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-									bufDesc.mSize = 256;
-									addBuffer(pCmd->pRenderer, &bufDesc, &pCmd->pRootConstantBuffer);
-								}
-
-								D3D11_MAPPED_SUBRESOURCE sub = {};
-								pContext->Map(pCmd->pRootConstantBuffer->pDxResource, 0, D3D11_MAP_WRITE_DISCARD, 0, &sub);
-								memcpy(sub.pData, pParam->pRootConstant, pDesc->mDesc.size * sizeof(uint32_t));
-								pContext->Unmap(pCmd->pRootConstantBuffer->pDxResource, 0);
-								set_constant_buffers(pContext, pRes->used_stages, pRes->reg, 1, &pCmd->pRootConstantBuffer->pDxResource);
-								break;
-							}
-							case DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-							{
-								if (pParam->pOffsets || pParam->pSizes)
-								{
-									if (!pCmd->pTransientConstantBuffer)
-									{
-										BufferDesc bufDesc = {};
-										bufDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-										bufDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-										// Max Constant Buffer Size
-										bufDesc.mSize = 65536;
-										addBuffer(pCmd->pRenderer, &bufDesc, &pCmd->pTransientConstantBuffer);
-									}
-									for (uint32_t i = 0; i < pParam->mCount; ++i)
-									{
-										D3D11_MAPPED_SUBRESOURCE read = {};
-										pContext->Map(pParam->ppBuffers[i]->pDxResource, 0, D3D11_MAP_READ, 0, &read);
-										D3D11_MAPPED_SUBRESOURCE sub = {};
-										pContext->Map(pCmd->pTransientConstantBuffer->pDxResource, 0, D3D11_MAP_WRITE_DISCARD, 0, &sub);
-										memcpy(sub.pData, (uint8_t*)read.pData + pParam->pOffsets[i], pRes->constant_size);
-										pContext->Unmap(pCmd->pTransientConstantBuffer->pDxResource, 0);
-										pContext->Unmap(pParam->ppBuffers[i]->pDxResource, 0);
-										set_constant_buffers(
-											pContext, pRes->used_stages, pRes->reg + i, 1, &pCmd->pTransientConstantBuffer->pDxResource);
-									}
-								}
-								else
-								{
-									ID3D11Buffer** pCBVs = (ID3D11Buffer**)alloca(pParam->mCount * sizeof(ID3D11Buffer*));
-									for (uint32_t i = 0; i < pParam->mCount; ++i)
-										pCBVs[i] = pParam->ppBuffers[i]->pDxResource;
-									set_constant_buffers(pContext, pRes->used_stages, pRes->reg, pParam->mCount, pCBVs);
-								}
-								break;
-							}
-							case DESCRIPTOR_TYPE_TEXTURE:
-							{
-								ID3D11ShaderResourceView** pSRVs =
-									(ID3D11ShaderResourceView**)alloca(pParam->mCount * sizeof(ID3D11ShaderResourceView*));
-								for (uint32_t i = 0; i < pParam->mCount; ++i)
-									pSRVs[i] = pParam->ppTextures[i]->pDxSRVDescriptor;
-								set_shader_resources(pContext, pRes->used_stages, pRes->reg, pParam->mCount, pSRVs);
-								break;
-							}
-							case DESCRIPTOR_TYPE_RW_TEXTURE:
-							{
-								ID3D11UnorderedAccessView** pUAVs =
-									(ID3D11UnorderedAccessView**)alloca(pParam->mCount * sizeof(ID3D11UnorderedAccessView*));
-								for (uint32_t i = 0; i < pParam->mCount; ++i)
-									pUAVs[i] = pParam->ppTextures[i]->pDxUAVDescriptors[pParam->mUAVMipSlice];
-
-								ASSERT(pRes->used_stages == SHADER_STAGE_COMP);
-								pContext->CSSetUnorderedAccessViews(pRes->reg, pParam->mCount, pUAVs, NULL);
-								break;
-							}
-							case DESCRIPTOR_TYPE_SAMPLER:
-							{
-								ID3D11SamplerState** pSamplers = (ID3D11SamplerState**)alloca(pParam->mCount * sizeof(ID3D11SamplerState*));
-								for (uint32_t i = 0; i < pParam->mCount; ++i)
-									pSamplers[i] = pParam->ppSamplers[i]->pSamplerState;
-								set_samplers(pContext, pRes->used_stages, pRes->reg, pParam->mCount, pSamplers);
-								break;
-							}
-							default: break;
+							set_constant_buffers(pContext, pHandle->mStage, pHandle->mBinding, 1, (ID3D11Buffer**)&pHandle->pHandle);
 						}
 					}
+					for (uint32_t i = 0; i < bind.mDynamicCBVCount; ++i)
+					{
+						DescriptorSet::CBV* pHandle = (DescriptorSet::CBV*)bind.pDynamicCBVs + i;
+						set_dynamic_constant_buffer(pCmd, pContext, pHandle);
+					}
+					for (eastl::pair<uint32_t, DescriptorSet::DescriptorHandle> handle : pDescriptorSet->pSamplers[index])
+					{
+						DescriptorSet::DescriptorHandle* pHandle = &handle.second;
+						set_samplers(pContext, pHandle->mStage, pHandle->mBinding, 1, (ID3D11SamplerState**)&pHandle->pHandle);
+					}
+
+					pDescriptorSet->pDynamicCBVs[index].clear();
+					pDescriptorSet->pDynamicCBVsPrevCount[index] = 0;
 					/************************************************************************/
 					/************************************************************************/
+					break;
+				}
+				case CMD_TYPE_cmdBindPushConstants:
+				{
+					const BindPushConstantsCmd& bind = cmd.mBindPushConstantsCmd;
+
+					if (!pCmd->pRootConstantBuffer)
+					{
+						BufferDesc bufDesc = {};
+						bufDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+						bufDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+						bufDesc.mSize = 256;
+						addBuffer(pCmd->pRenderer, &bufDesc, &pCmd->pRootConstantBuffer);
+					}
+
+					D3D11_MAPPED_SUBRESOURCE sub = {};
+					pContext->Map(pCmd->pRootConstantBuffer->pDxResource, 0, D3D11_MAP_WRITE_DISCARD, 0, &sub);
+					memcpy(sub.pData, bind.mPushConstant, bind.mSize);
+					pContext->Unmap(pCmd->pRootConstantBuffer->pDxResource, 0);
+					set_constant_buffers(pContext, (ShaderStage)bind.mStage, bind.mBinding, 1, &pCmd->pRootConstantBuffer->pDxResource);
 					break;
 				}
 				case CMD_TYPE_cmdBindIndexBuffer:
@@ -3911,20 +3865,16 @@ void queueSubmit(
 					pContext->Dispatch(cmd.mDispatchCmd.groupCountX, cmd.mDispatchCmd.groupCountY, cmd.mDispatchCmd.groupCountZ);
 					break;
 				}
-				case CMD_TYPE_cmdResourceBarrier: break;
-				case CMD_TYPE_cmdSynchronizeResources: break;
-				case CMD_TYPE_cmdFlushBarriers: break;
-				case CMD_TYPE_cmdExecuteIndirect: break;
 				case CMD_TYPE_cmdBeginQuery:
 				{
 					const BeginQueryCmd& query = cmd.mBeginQueryCmd;
-					pContext->End(query.pQueryHeap->ppDxQueries[query.mQuery.mIndex]);
+					pContext->End(query.pQueryPool->ppDxQueries[query.mQuery.mIndex]);
 					break;
 				}
 				case CMD_TYPE_cmdEndQuery:
 				{
 					const EndQueryCmd& query = cmd.mEndQueryCmd;
-					pContext->End(query.pQueryHeap->ppDxQueries[query.mQuery.mIndex]);
+					pContext->End(query.pQueryPool->ppDxQueries[query.mQuery.mIndex]);
 					break;
 				}
 				case CMD_TYPE_cmdResolveQuery:
@@ -3935,7 +3885,7 @@ void queueSubmit(
 						uint64_t* pResults = (uint64_t*)alloca(resolve.queryCount * sizeof(uint64_t));
 						for (uint32_t i = resolve.startQuery; i < resolve.startQuery + resolve.queryCount; ++i)
 						{
-							while (pContext->GetData(resolve.pQueryHeap->ppDxQueries[i], &pResults[i], sizeof(uint64_t), 0) != S_OK)
+							while (pContext->GetData(resolve.pQueryPool->ppDxQueries[i], &pResults[i], sizeof(uint64_t), 0) != S_OK)
 								Thread::Sleep(0);
 						}
 						D3D11_MAPPED_SUBRESOURCE sub = {};
@@ -4008,13 +3958,10 @@ void toggleVSync(Renderer* pRenderer, SwapChain** ppSwapChain)
 /************************************************************************/
 // Utility functions
 /************************************************************************/
-bool isImageFormatSupported(ImageFormat::Enum format)
+TinyImageFormat getRecommendedSwapchainFormat(bool hintHDR)
 {
-	//verifies that given image format is valid
-	return gFormatTranslator[format] != DXGI_FORMAT_UNKNOWN;
+	return TinyImageFormat_B8G8R8A8_UNORM;
 }
-
-ImageFormat::Enum getRecommendedSwapchainFormat(bool hintHDR) { return ImageFormat::RGBA8; }
 /************************************************************************/
 // Indirect Draw functions
 /************************************************************************/
@@ -4026,28 +3973,6 @@ void cmdExecuteIndirect(
 	Cmd* pCmd, CommandSignature* pCommandSignature, uint maxCommandCount, Buffer* pIndirectBuffer, uint64_t bufferOffset,
 	Buffer* pCounterBuffer, uint64_t counterBufferOffset)
 {
-	ASSERT(pCmd);
-	ASSERT(pIndirectBuffer);
-
-	// Ensure beingCmd was actually called
-	CachedCmds::iterator cachedCmdsIter = gCachedCmds.find(pCmd);
-	ASSERT(cachedCmdsIter != gCachedCmds.end());
-	if (cachedCmdsIter == gCachedCmds.end())
-	{
-		LOGF(LogLevel::eERROR, "beginCmd was never called for that specific Cmd buffer!");
-		return;
-	}
-
-	DECLARE_ZERO(CachedCmd, cmd);
-	cmd.pCmd = pCmd;
-	cmd.sType = CMD_TYPE_cmdExecuteIndirect;
-	cmd.mExecuteIndirectCmd.pCommandSignature = pCommandSignature;
-	cmd.mExecuteIndirectCmd.maxCommandCount = maxCommandCount;
-	cmd.mExecuteIndirectCmd.pIndirectBuffer = pIndirectBuffer;
-	cmd.mExecuteIndirectCmd.bufferOffset = bufferOffset;
-	cmd.mExecuteIndirectCmd.pCounterBuffer = pCounterBuffer;
-	cmd.mExecuteIndirectCmd.counterBufferOffset = counterBufferOffset;
-	cachedCmdsIter->second.push_back(cmd);
 }
 /************************************************************************/
 // GPU Query Implementation
@@ -4082,12 +4007,12 @@ void getTimestampFrequency(Queue* pQueue, double* pFrequency)
 	SAFE_RELEASE(pDisjointQuery);
 }
 
-void addQueryHeap(Renderer* pRenderer, const QueryHeapDesc* pDesc, QueryHeap** ppQueryHeap)
+void addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool** ppQueryPool)
 {
-	QueryHeap* pQueryHeap = (QueryHeap*)conf_calloc(1, sizeof(*pQueryHeap));
-	pQueryHeap->mDesc = *pDesc;
+	QueryPool* pQueryPool = (QueryPool*)conf_calloc(1, sizeof(*pQueryPool));
+	pQueryPool->mDesc = *pDesc;
 
-	pQueryHeap->ppDxQueries = (ID3D11Query**)conf_calloc(pDesc->mQueryCount, sizeof(ID3D11Query*));
+	pQueryPool->ppDxQueries = (ID3D11Query**)conf_calloc(pDesc->mQueryCount, sizeof(ID3D11Query*));
 
 	D3D11_QUERY_DESC desc = {};
 	desc.MiscFlags = 0;
@@ -4095,32 +4020,32 @@ void addQueryHeap(Renderer* pRenderer, const QueryHeapDesc* pDesc, QueryHeap** p
 
 	for (uint32_t i = 0; i < pDesc->mQueryCount; ++i)
 	{
-		pRenderer->pDxDevice->CreateQuery(&desc, &pQueryHeap->ppDxQueries[i]);
+		pRenderer->pDxDevice->CreateQuery(&desc, &pQueryPool->ppDxQueries[i]);
 	}
 
-	*ppQueryHeap = pQueryHeap;
+	*ppQueryPool = pQueryPool;
 }
 
-void removeQueryHeap(Renderer* pRenderer, QueryHeap* pQueryHeap)
+void removeQueryPool(Renderer* pRenderer, QueryPool* pQueryPool)
 {
 	UNREF_PARAM(pRenderer);
-	for (uint32_t i = 0; i < pQueryHeap->mDesc.mQueryCount; ++i)
+	for (uint32_t i = 0; i < pQueryPool->mDesc.mQueryCount; ++i)
 	{
-		SAFE_RELEASE(pQueryHeap->ppDxQueries[i]);
+		SAFE_RELEASE(pQueryPool->ppDxQueries[i]);
 	}
-	SAFE_FREE(pQueryHeap->ppDxQueries);
-	SAFE_FREE(pQueryHeap);
+	SAFE_FREE(pQueryPool->ppDxQueries);
+	SAFE_FREE(pQueryPool);
 }
 
-void cmdResetQueryHeap(Cmd* pCmd, QueryHeap* pQueryHeap, uint32_t startQuery, uint32_t queryCount)
+void cmdResetQueryPool(Cmd* pCmd, QueryPool* pQueryPool, uint32_t startQuery, uint32_t queryCount)
 {
 	UNREF_PARAM(pCmd);
-	UNREF_PARAM(pQueryHeap);
+	UNREF_PARAM(pQueryPool);
 	UNREF_PARAM(startQuery);
 	UNREF_PARAM(queryCount);
 }
 
-void cmdBeginQuery(Cmd* pCmd, QueryHeap* pQueryHeap, QueryDesc* pQuery)
+void cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 {
 	ASSERT(pCmd);
 	ASSERT(pQuery);
@@ -4137,12 +4062,12 @@ void cmdBeginQuery(Cmd* pCmd, QueryHeap* pQueryHeap, QueryDesc* pQuery)
 	DECLARE_ZERO(CachedCmd, cmd);
 	cmd.pCmd = pCmd;
 	cmd.sType = CMD_TYPE_cmdBeginQuery;
-	cmd.mBeginQueryCmd.pQueryHeap = pQueryHeap;
+	cmd.mBeginQueryCmd.pQueryPool = pQueryPool;
 	cmd.mBeginQueryCmd.mQuery = *pQuery;
 	cachedCmdsIter->second.push_back(cmd);
 }
 
-void cmdEndQuery(Cmd* pCmd, QueryHeap* pQueryHeap, QueryDesc* pQuery)
+void cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 {
 	ASSERT(pCmd);
 	ASSERT(pQuery);
@@ -4159,12 +4084,12 @@ void cmdEndQuery(Cmd* pCmd, QueryHeap* pQueryHeap, QueryDesc* pQuery)
 	DECLARE_ZERO(CachedCmd, cmd);
 	cmd.pCmd = pCmd;
 	cmd.sType = CMD_TYPE_cmdEndQuery;
-	cmd.mEndQueryCmd.pQueryHeap = pQueryHeap;
+	cmd.mEndQueryCmd.pQueryPool = pQueryPool;
 	cmd.mEndQueryCmd.mQuery = *pQuery;
 	cachedCmdsIter->second.push_back(cmd);
 }
 
-void cmdResolveQuery(Cmd* pCmd, QueryHeap* pQueryHeap, Buffer* pReadbackBuffer, uint32_t startQuery, uint32_t queryCount)
+void cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffer, uint32_t startQuery, uint32_t queryCount)
 {
 	ASSERT(pCmd);
 	ASSERT(pReadbackBuffer);
@@ -4181,7 +4106,7 @@ void cmdResolveQuery(Cmd* pCmd, QueryHeap* pQueryHeap, Buffer* pReadbackBuffer, 
 	DECLARE_ZERO(CachedCmd, cmd);
 	cmd.pCmd = pCmd;
 	cmd.sType = CMD_TYPE_cmdResolveQuery;
-	cmd.mResolveQueryCmd.pQueryHeap = pQueryHeap;
+	cmd.mResolveQueryCmd.pQueryPool = pQueryPool;
 	cmd.mResolveQueryCmd.pReadbackBuffer = pReadbackBuffer;
 	cmd.mResolveQueryCmd.startQuery = startQuery;
 	cmd.mResolveQueryCmd.queryCount = queryCount;
@@ -4267,11 +4192,6 @@ void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 // Resource Debug Naming Interface
 /************************************************************************/
 void setBufferName(Renderer* pRenderer, Buffer* pBuffer, const char* pName) {}
-
 void setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName) {}
-
 #endif
-#endif
-#if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)
-}
 #endif

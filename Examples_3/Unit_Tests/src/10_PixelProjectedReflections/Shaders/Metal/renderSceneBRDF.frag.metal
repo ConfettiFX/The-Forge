@@ -152,33 +152,43 @@ float3 getWorldPositionFromDepth(float2 ndc, float sceneDepth, CameraData cbExte
 	return float3(worldPos.xyz);
 }
 
-fragment float4 stageMain(VSOutput input [[stage_in]],
-						  constant CameraData& cbExtendCamera [[buffer(1)]],
-						  constant LightData& cbLights  [[buffer(2)]],
-						  constant DLightData& cbDLights  [[buffer(3)]],
-						  texture2d<float, access::sample> brdfIntegrationMap[[texture(0)]],
-						  texturecube<float, access::sample> irradianceMap[[texture(1)]],
-						  texture2d<float> AlbedoTexture[[texture(2)]],
-						  texture2d<float> NormalTexture[[texture(3)]],
-						  texture2d<float> RoughnessTexture[[texture(4)]],
-						  depth2d<float, access::sample> DepthTexture [[texture(5)]],
-						  texturecube<float, access::sample> specularMap[[texture(6)]],
-						  
-						  sampler envSampler[[sampler(0)]],
-						  sampler defaultSampler[[sampler(1)]])
+struct FSData {
+    constant LightData& cbLights                        [[id(0)]];
+    constant DLightData& cbDLights                      [[id(1)]];
+    texture2d<float, access::sample> brdfIntegrationMap [[id(2)]];
+    texturecube<float, access::sample> irradianceMap    [[id(3)]];
+    texture2d<float> AlbedoTexture                      [[id(4)]];
+    texture2d<float> NormalTexture                      [[id(5)]];
+    texture2d<float> RoughnessTexture                   [[id(6)]];
+    depth2d<float, access::sample> DepthTexture         [[id(7)]];
+    texturecube<float, access::sample> specularMap      [[id(8)]];
+    
+    sampler envSampler                                  [[id(9)]];
+    sampler defaultSampler                              [[id(10)]];
+};
+
+struct FSDataPerFrame {
+    constant CameraData& cbExtendCamera                 [[id(0)]];
+};
+
+fragment float4 stageMain(
+    VSOutput input                              [[stage_in]],
+    constant FSData& fsData                     [[buffer(UPDATE_FREQ_NONE)]],
+    constant FSDataPerFrame& fsDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
 	
 	// default albedo
-	float3 albedo = AlbedoTexture.sample(defaultSampler, input.uv, 0).rgb;
+	float3 albedo = fsData.AlbedoTexture.sample(fsData.defaultSampler, input.uv, 0).rgb;
 	
-	float4 normalColor = NormalTexture.sample(defaultSampler, input.uv, 0);
-	float4 roughnessColor = RoughnessTexture.sample(defaultSampler, input.uv, 0);
+	float4 normalColor = fsData.NormalTexture.sample(fsData.defaultSampler, input.uv, 0);
+	float4 roughnessColor = fsData.RoughnessTexture.sample(fsData.defaultSampler, input.uv, 0);
 	
 	float _roughness = roughnessColor.r;
 	float _metalness = normalColor.a;
 	float ao = 1.0f;
 	
-	float depth = DepthTexture.sample(defaultSampler, input.uv);
+	float depth = fsData.DepthTexture.sample(fsData.defaultSampler, input.uv);
 	
 	if(depth > 0.99999)
 	{
@@ -190,9 +200,9 @@ fragment float4 stageMain(VSOutput input [[stage_in]],
 	
 	float2 ndc = float2(input.uv.x * 2.0 - 1.0, (1.0 - input.uv.y) * 2.0 - 1.0);
 	
-	float3 worldPos = getWorldPositionFromDepth(ndc, depth, cbExtendCamera);
+	float3 worldPos = getWorldPositionFromDepth(ndc, depth, fsDataPerFrame.cbExtendCamera);
 	
-	float3 V = normalize(cbExtendCamera.cameraWorldPos.xyz - worldPos);
+	float3 V = normalize(fsDataPerFrame.cbExtendCamera.cameraWorldPos.xyz - worldPos);
 	float3 R = normalize(reflect(-V, N));
 	
 	// 0.04 is the index of refraction for metal
@@ -203,15 +213,15 @@ fragment float4 stageMain(VSOutput input [[stage_in]],
 	float3 Lo = float3(0.0f, 0.0f, 0.0f);
 	
 	//Directional Lights
-	for(int i = 0; i < cbDLights.currAmountOfDLights; ++i)
+	for(int i = 0; i < fsData.cbDLights.currAmountOfDLights; ++i)
 	{
 		// Vec from world pos to light pos
-		float3 L =  -normalize(float3(cbDLights.dlights[i].mDir.xyz));
+		float3 L =  -normalize(float3(fsData.cbDLights.dlights[i].mDir.xyz));
 		
 		// halfway vec
 		float3 H = normalize(V + L);
 		
-		float3 radiance = float3(cbDLights.dlights[i].mCol.rgb) * cbDLights.dlights[i].mCol.a;
+		float3 radiance = float3(fsData.cbDLights.dlights[i].mCol.rgb) * fsData.cbDLights.dlights[i].mCol.a;
 		
 		float NDF = distributionGGX(N, H, _roughness);
 		float G = GeometrySmith(N, V, L, _roughness);
@@ -240,19 +250,19 @@ fragment float4 stageMain(VSOutput input [[stage_in]],
 	}
 	
 	//Point Lights
-	for(int i = 0; i < cbLights.currAmountOflights; ++i)
+	for(int i = 0; i < fsData.cbLights.currAmountOflights; ++i)
 	{
-		float3 L = normalize(cbLights.lights[i].pos.rgb - worldPos);
+		float3 L = normalize(fsData.cbLights.lights[i].pos.rgb - worldPos);
 		
 		float3 H = normalize(V + L);
 		
-		float distance = length(cbLights.lights[i].pos.xyz - worldPos);
+		float distance = length(fsData.cbLights.lights[i].pos.xyz - worldPos);
 		
-		float distanceByRadius = 1.0f - pow((distance / cbLights.lights[i].radius), 4);
+		float distanceByRadius = 1.0f - pow((distance / fsData.cbLights.lights[i].radius), 4);
 		float clamped = pow(saturate(distanceByRadius), 2.0f);
 		float attenuation = clamped / (distance * distance + 1.0f);
 		
-		float3 radiance = cbLights.lights[i].col.rgb * attenuation * cbLights.lights[i].intensity;
+		float3 radiance = fsData.cbLights.lights[i].col.rgb * attenuation * fsData.cbLights.lights[i].intensity;
 		
 		float NDF = distributionGGX(N, H, _roughness);
 		float G = GeometrySmith(N, V, L, _roughness);
@@ -279,15 +289,15 @@ fragment float4 stageMain(VSOutput input [[stage_in]],
 	float3 kD = float3(1.0) - kS;
 	kD *= 1.0 - _metalness;
 	
-	float3 irradiance = irradianceMap.sample(envSampler, N).rgb;
+	float3 irradiance = fsData.irradianceMap.sample(fsData.envSampler, N).rgb;
 	float3 diffuse = kD * irradiance * albedo.rgb;
 	
 	
 	uint mipIndex = (uint)(_roughness * 4.0f);
-	float3 specularColor = specularMap.sample(envSampler, R, level(mipIndex)).rgb;
+	float3 specularColor = fsData.specularMap.sample(fsData.envSampler, R, level(mipIndex)).rgb;
 	
 	float maxNVRough = float(max(dot(N, V), _roughness));
-	float2 brdf  = brdfIntegrationMap.sample(defaultSampler, float2(max(dot(N, V), 0.0), maxNVRough)).rg;
+	float2 brdf  = fsData.brdfIntegrationMap.sample(fsData.defaultSampler, float2(max(dot(N, V), 0.0), maxNVRough)).rg;
 	float3 specular = specularColor * (F * brdf.x + brdf.y);
 	
 	float3 ambient = (diffuse + specular) * float3(ao);

@@ -16,12 +16,12 @@ vec4 MulMat(mat4 lhs, vec4 rhs)
 layout(location = 0) in vec3 POSITION;
 layout(location = 1) in vec2 TEXCOORD0;
 
-layout(set = 1, binding = 2) uniform ShadowUniformBuffer
+layout(UPDATE_FREQ_PER_FRAME, binding = 2) uniform ShadowUniformBuffer
 {
     mat4 ViewProjMat;
 };
 
-layout(std140, set = 1, binding = 0) uniform cbPerProp
+layout(std140, UPDATE_FREQ_PER_DRAW, binding = 0) uniform cbPerProp
 {
 	uniform mat4  world;
 	uniform mat4  InvTranspose;

@@ -67,20 +67,29 @@ struct AsteroidStatic
     uint padding[3];
 };
 
-vertex PsIn stageMain(VsIn In                                      [[stage_in]],
-                      uint instanceID                              [[instance_id]],
-                      constant UniformBlockData& uniformBlock      [[buffer(1)]],
-                      constant AsteroidStatic* asteroidsStatic     [[buffer(2)]],
-                      constant AsteroidDynamic* asteroidsDynamic   [[buffer(3)]])
+struct VSData {
+    constant AsteroidStatic* asteroidsStatic     [[id(0)]];
+    constant AsteroidDynamic* asteroidsDynamic   [[id(1)]];
+};
+
+struct VSDataPerFrame {
+    constant UniformBlockData& uniformBlock      [[id(0)]];
+};
+
+vertex PsIn stageMain(VsIn In                                       [[stage_in]],
+                      uint instanceID                               [[instance_id]],
+                      constant VSData& vsData                       [[buffer(UPDATE_FREQ_NONE)]],
+                      constant VSDataPerFrame& vsDataPerFrame       [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
     
     PsIn result;
 
-    AsteroidStatic asteroidStatic = asteroidsStatic[instanceID];
-    AsteroidDynamic asteroidDynamic = asteroidsDynamic[instanceID];
+    AsteroidStatic asteroidStatic = vsData.asteroidsStatic[instanceID];
+    AsteroidDynamic asteroidDynamic = vsData.asteroidsDynamic[instanceID];
 
     float4x4 worldMatrix = asteroidDynamic.transform;
-    result.position = uniformBlock.viewProj * (worldMatrix * float4(In.position.xyz, 1.0f));
+    result.position = vsDataPerFrame.uniformBlock.viewProj * (worldMatrix * float4(In.position.xyz, 1.0f));
     result.posModel = In.position.xyz;
     result.normal = (worldMatrix * float4(In.normal.xyz,0)).xyz;
 

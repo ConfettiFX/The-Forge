@@ -33,9 +33,9 @@ struct Data
 };
 
 ConstantBuffer<Data> RootConstant : register(b0);
-Texture2D<float4> srcTexture : register(t1, space1);
+Texture2D<float4> srcTexture : register(t1);
 
-RWTexture2DArray<float4> dstTexture : register(u2, space3);
+RWTexture2DArray<float4> dstTexture : register(u2, UPDATE_FREQ_PER_DRAW);
 SamplerState skyboxSampler : register(s3);
 
 #define Pi 3.141592654f

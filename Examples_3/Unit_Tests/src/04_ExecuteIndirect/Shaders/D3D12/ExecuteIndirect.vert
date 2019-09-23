@@ -37,7 +37,7 @@ cbuffer rootConstant : register(b0)
     uint drawID;
 }
 
-cbuffer uniformBlock : register(b5)
+cbuffer uniformBlock : register(b5, UPDATE_FREQ_PER_FRAME)
 {
     float4x4 viewProj;
 }

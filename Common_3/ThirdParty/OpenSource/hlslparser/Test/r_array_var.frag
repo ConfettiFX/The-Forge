@@ -15,7 +15,7 @@ cbuffer CB_RootConstant
 
 float4 main( Vertex_Output In ) : SV_TARGET
 {
-	float  uWeights[5] = {1, 2, 3, 4, 5};
+	float uWeights[5] = {1, 2, 3, 4, 5};
 	float alpha = 0.0f;
 	for(uint i = 0; i < 5; ++i)
 	{

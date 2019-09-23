@@ -692,7 +692,7 @@ HLSLDeclaration * HLSLTree::FindGlobalDeclaration(const CachedString & name, HLS
         if (statement->nodeType == HLSLNodeType_Declaration)
         {
             HLSLDeclaration * declaration = (HLSLDeclaration *)statement;
-            if (String_Equal(name, declaration->cachedName))
+            if (String_Equal(name, declaration->name))
             {
                 if (buffer_out) *buffer_out = NULL;
                 return declaration;
@@ -706,7 +706,7 @@ HLSLDeclaration * HLSLTree::FindGlobalDeclaration(const CachedString & name, HLS
             while (field != NULL)
             {
 				ASSERT_PARSER(field->nodeType == HLSLNodeType_Declaration);
-                if (String_Equal(name, field->cachedName))
+                if (String_Equal(name, field->name))
                 {
                     if (buffer_out) *buffer_out = buffer;
                     return field;
@@ -769,36 +769,6 @@ CachedString HLSLTree::FindGlobalStructMember(const CachedString & memberName)
 
 	return CachedString();
 }
-
-
-CachedString HLSLTree::FindBuffertMember(const CachedString & memberName)
-{
-	HLSLStatement * statement = m_root->statement;
-	while (statement != NULL)
-	{
-		if (statement->nodeType == HLSLNodeType_Buffer)
-		{
-			HLSLBuffer * buffer = (HLSLBuffer *)statement;
-
-			HLSLDeclaration* field = buffer->field;
-			
-			while (field != NULL)
-			{
-				if (String_Equal(memberName, field->cachedName))
-				{
-					return buffer->cachedName;
-				}
-
-				field = (HLSLDeclaration*)field->nextStatement;
-			}
-		}
-
-		statement = statement->nextStatement;
-	}
-
-	return CachedString();
-}
-
 
 HLSLTechnique * HLSLTree::FindTechnique(const CachedString & name)
 {
@@ -869,7 +839,7 @@ HLSLBuffer * HLSLTree::FindBuffer(const CachedString & name)
         if (statement->nodeType == HLSLNodeType_Buffer)
         {
             HLSLBuffer * buffer = (HLSLBuffer *)statement;
-            if (String_Equal(name, buffer->cachedName))
+            if (String_Equal(name, buffer->name))
             {
                 return buffer;
             }
@@ -880,27 +850,6 @@ HLSLBuffer * HLSLTree::FindBuffer(const CachedString & name)
 
     return NULL;
 }
-
-HLSLTextureStateExpression * HLSLTree::FindTextureStateExpression(const CachedString & name)
-{
-	HLSLStatement * statement = m_root->statement;
-	while (statement != NULL)
-	{
-		if (statement->nodeType == HLSLNodeType_TextureStateExpression)
-		{
-			HLSLTextureStateExpression * textureExpression = (HLSLTextureStateExpression *)statement;
-			if (String_Equal(name, textureExpression->name))
-			{
-				return textureExpression;
-			}
-		}
-
-		statement = statement->nextStatement;
-	}
-
-	return NULL;
-}
-
 
 bool HLSLTree::GetExpressionValue(HLSLExpression * expression, int & value)
 {
@@ -1022,22 +971,20 @@ bool HLSLTree::GetExpressionValue(HLSLExpression * expression, int & value)
                 return false;
         }
     }
-    else if (expression->nodeType == HLSLNodeType_IdentifierExpression)
-    {
-        HLSLIdentifierExpression * identifier = (HLSLIdentifierExpression *)expression;
+	else if (expression->nodeType == HLSLNodeType_IdentifierExpression)
+	{
+		HLSLIdentifierExpression * identifier = (HLSLIdentifierExpression *)expression;
 
-        HLSLDeclaration * declaration = FindGlobalDeclaration(identifier->name);
-        if (declaration == NULL) 
-        {
-            return false;
-        }
-        if ((declaration->type.flags & HLSLTypeFlag_Const) == 0)
-        {
-            return false;
-        }
+		HLSLDeclaration * declaration = identifier->pDeclaration;
+		ASSERT_PARSER(declaration) 
 
-        return GetExpressionValue(declaration->assignment, value);
-    }
+		if ((declaration->type.flags & HLSLTypeFlag_Const) == 0)
+		{
+			return false;
+		}
+
+		return GetExpressionValue(declaration->assignment, value);
+	}
     else if (expression->nodeType == HLSLNodeType_LiteralExpression) 
     {
         HLSLLiteralExpression * literal = (HLSLLiteralExpression *)expression;
@@ -1218,36 +1165,31 @@ int HLSLTree::GetExpressionValue(HLSLExpression * expression, float values[4])
         int dim = GetVectorDimension(constructor->expressionType);
 
         int idx = 0;
-        HLSLExpression * arg = constructor->argument;
-        while (arg != NULL)
+        for (HLSLExpression * arg: constructor->params)
         {
             float tmp[4];
             int n = GetExpressionValue(arg, tmp);
             for (int i = 0; i < n; i++) values[idx + i] = tmp[i];
             idx += n;
-
-            arg = arg->nextExpression;
         }
 		ASSERT_PARSER(dim == idx);
 
         return dim;
     }
-    else if (expression->nodeType == HLSLNodeType_IdentifierExpression)
-    {
-        HLSLIdentifierExpression * identifier = (HLSLIdentifierExpression *)expression;
+	else if (expression->nodeType == HLSLNodeType_IdentifierExpression)
+	{
+		HLSLIdentifierExpression * identifier = (HLSLIdentifierExpression *)expression;
 
-        HLSLDeclaration * declaration = FindGlobalDeclaration(identifier->name);
-        if (declaration == NULL) 
-        {
-            return 0;
-        }
-        if ((declaration->type.flags & HLSLTypeFlag_Const) == 0)
-        {
-            return 0;
-        }
+		HLSLDeclaration * declaration = identifier->pDeclaration;
+		ASSERT_PARSER(declaration) 
 
-        return GetExpressionValue(declaration->assignment, values);
-    }
+		if ((declaration->type.flags & HLSLTypeFlag_Const) == 0)
+		{
+			return 0;
+		}
+
+		return GetExpressionValue(declaration->assignment, values);
+	}
     else if (expression->nodeType == HLSLNodeType_LiteralExpression)
     {
         HLSLLiteralExpression * literal = (HLSLLiteralExpression *)expression;
@@ -1313,7 +1255,7 @@ void HLSLTreeVisitor::VisitStatements(HLSLStatement * statement)
 
 void HLSLTreeVisitor::VisitStatement(HLSLStatement * node)
 {
-	//if (String_Equal(node->cachedName,"localNextPositionRest"))
+	//if (String_Equal(node->name,"localNextPositionRest"))
 	//{
 	//	int testMe = 0;
 	//	testMe++;
@@ -1360,13 +1302,10 @@ void HLSLTreeVisitor::VisitStatement(HLSLStatement * node)
 void HLSLTreeVisitor::VisitDeclaration(HLSLDeclaration * node)
 {
     VisitType(node->type);
-    /*do {
-        VisitExpression(node->assignment);
-        node = node->nextDeclaration;
-    } while (node);*/
-    if (node->assignment != NULL) {
-        VisitExpression(node->assignment);
-    }
+
+	if (node->assignment)
+		VisitExpression(node->assignment);
+
     if (node->nextDeclaration != NULL) {
         VisitDeclaration(node->nextDeclaration);
     }
@@ -1399,20 +1338,19 @@ void HLSLTreeVisitor::VisitBuffer(HLSLBuffer * node)
 
 void HLSLTreeVisitor::VisitFunction(HLSLFunction * node)
 {
-    VisitType(node->returnType);
+	VisitType(node->returnType);
 
-	eastl::vector < HLSLArgument * > argVec = node->GetArguments();
-	for (int i = 0; i < argVec.size(); i++)
+	for (HLSLArgument* arg: node->args)
 	{
-		VisitArgument(argVec[i]);
+		VisitArgument(arg);
 	}
 
-    VisitStatements(node->statement);
+	VisitStatements(node->statement);
 }
 
 void HLSLTreeVisitor::VisitArgument(HLSLArgument * node)
 {
-    VisitType(node->argType);
+    VisitType(node->type);
     if (node->defaultValue != NULL) {
         VisitExpression(node->defaultValue);
     }
@@ -1423,88 +1361,60 @@ void HLSLTreeVisitor::VisitExpressionStatement(HLSLExpressionStatement * node)
     VisitExpression(node->expression);
 }
 
-void HLSLTreeVisitor::VisitExpression(HLSLExpression * startNode)
+void HLSLTreeVisitor::VisitInitListExpression(HLSLInitListExpression * node)
 {
-	HLSLExpression * node = startNode;
+	for (HLSLExpression* expression: node->initExpressions)
+		VisitExpression(expression);
+}
 
-	while (node != NULL)
-	{
-		VisitType(node->expressionType);
+void HLSLTreeVisitor::VisitExpression(HLSLExpression * node)
+{
+	VisitType(node->expressionType);
 
-		if (node->functionExpression)
-		{
-			VisitExpression(node->functionExpression);
-			/*
-			if (node->functionExpression->nodeType == HLSLNodeType_FunctionCall)
-			{
-				VisitFunctionCall((HLSLFunctionCall*)node->functionExpression);
-			}
-			else if (node->functionExpression->nodeType == HLSLNodeType_MemberAccess)
-			{
-				VisitMemberAccess((HLSLMemberAccess*)node->functionExpression);
-			}
-			else
-			{
-				ASSERT_PARSER(0);
-			}*/
-		}
-
-		if (node->childExpression)
-		{
-			VisitExpression(node->childExpression);
-		}
-		else if (node->nodeType == HLSLNodeType_UnaryExpression) {
-			VisitUnaryExpression((HLSLUnaryExpression *)node);
-		}
-		else if (node->nodeType == HLSLNodeType_BinaryExpression) {
-			VisitBinaryExpression((HLSLBinaryExpression *)node);
-		}
-		else if (node->nodeType == HLSLNodeType_ConditionalExpression) {
-			VisitConditionalExpression((HLSLConditionalExpression *)node);
-		}
-		else if (node->nodeType == HLSLNodeType_CastingExpression) {
-			VisitCastingExpression((HLSLCastingExpression *)node);
-		}
-		else if (node->nodeType == HLSLNodeType_LiteralExpression) {
-			VisitLiteralExpression((HLSLLiteralExpression *)node);
-		}
-		else if (node->nodeType == HLSLNodeType_IdentifierExpression) {
-			VisitIdentifierExpression((HLSLIdentifierExpression *)node);
-		}
-		else if (node->nodeType == HLSLNodeType_ConstructorExpression) {
-			VisitConstructorExpression((HLSLConstructorExpression *)node);
-		}
-		else if (node->nodeType == HLSLNodeType_MemberAccess) {
-			VisitMemberAccess((HLSLMemberAccess *)node);
-		}
-		else if (node->nodeType == HLSLNodeType_ArrayAccess) {
-			VisitArrayAccess((HLSLArrayAccess *)node);
-		}
-		else if (node->nodeType == HLSLNodeType_FunctionCall) {
-			VisitFunctionCall((HLSLFunctionCall *)node);
-		}
-		// Acoget-TODO: This was missing. Did adding it break anything?
-		else if (node->nodeType == HLSLNodeType_SamplerState) {
-			VisitSamplerState((HLSLSamplerState *)node);
-		}
-		else if (node->nodeType == HLSLNodeType_TextureState) {
-			VisitTextureState((HLSLTextureState *)node);
-		}
-		else if (node->nodeType == HLSLNodeType_SamplerStateExpression) {
-			VisitSamplerStateExpression((HLSLSamplerStateExpression *)node);
-		}
-		else if (node->nodeType == HLSLNodeType_TextureStateExpression) {
-			VisitTextureStateExpression((HLSLTextureStateExpression *)node);
-		}
-		else {
-			// TODO
-			ASSERT_PARSER(0);
-		}
-
-		node = node->nextExpression;
+	if (node->nodeType == HLSLNodeType_InitListExpression) {
+		VisitInitListExpression((HLSLInitListExpression *)node);
 	}
-
-
+	else if (node->nodeType == HLSLNodeType_UnaryExpression) {
+		VisitUnaryExpression((HLSLUnaryExpression *)node);
+	}
+	else if (node->nodeType == HLSLNodeType_BinaryExpression) {
+		VisitBinaryExpression((HLSLBinaryExpression *)node);
+	}
+	else if (node->nodeType == HLSLNodeType_ConditionalExpression) {
+		VisitConditionalExpression((HLSLConditionalExpression *)node);
+	}
+	else if (node->nodeType == HLSLNodeType_CastingExpression) {
+		VisitCastingExpression((HLSLCastingExpression *)node);
+	}
+	else if (node->nodeType == HLSLNodeType_LiteralExpression) {
+		VisitLiteralExpression((HLSLLiteralExpression *)node);
+	}
+	else if (node->nodeType == HLSLNodeType_IdentifierExpression) {
+		VisitIdentifierExpression((HLSLIdentifierExpression *)node);
+	}
+	else if (node->nodeType == HLSLNodeType_ConstructorExpression) {
+		VisitConstructorExpression((HLSLConstructorExpression *)node);
+	}
+	else if (node->nodeType == HLSLNodeType_MemberAccess) {
+		VisitMemberAccess((HLSLMemberAccess *)node);
+	}
+	else if (node->nodeType == HLSLNodeType_ArrayAccess) {
+		VisitArrayAccess((HLSLArrayAccess *)node);
+	}
+	else if (node->nodeType == HLSLNodeType_FunctionCall) {
+		VisitFunctionCall((HLSLFunctionCall *)node);
+	}
+	// Acoget-TODO: This was missing. Did adding it break anything?
+	else if (node->nodeType == HLSLNodeType_SamplerState) {
+		VisitSamplerState((HLSLSamplerState *)node);
+	}
+	else if (node->nodeType == HLSLNodeType_TextureState) {
+		VisitTextureState((HLSLTextureState *)node);
+	}
+	else {
+		// TODO
+		ASSERT_PARSER(0);
+	}
 }
 
 void HLSLTreeVisitor::VisitReturnStatement(HLSLReturnStatement * node)
@@ -1584,11 +1494,10 @@ void HLSLTreeVisitor::VisitIdentifierExpression(HLSLIdentifierExpression * node)
 
 void HLSLTreeVisitor::VisitConstructorExpression(HLSLConstructorExpression * node)
 {
-    HLSLExpression * argument = node->argument;
-    while (argument != NULL) {
-        VisitExpression(argument);
-        argument = argument->nextExpression;
-    }
+	for (HLSLExpression * argument: node->params)
+	{
+		VisitExpression(argument);
+	}
 }
 
 void HLSLTreeVisitor::VisitMemberAccess(HLSLMemberAccess * node)
@@ -1597,21 +1506,7 @@ void HLSLTreeVisitor::VisitMemberAccess(HLSLMemberAccess * node)
 	// then we should traverse
 	if (node->object != NULL)
 	{
-		if (node->object->nodeType == HLSLNodeType_FunctionCall)
-		{
-			HLSLFunctionCall * functionCall = (HLSLFunctionCall *)node->object;
-			VisitFunctionCall(functionCall);
-		}
-		else if (node->object->nodeType == HLSLNodeType_IdentifierExpression)
-		{
-			HLSLIdentifierExpression * identifierExpression = (HLSLIdentifierExpression*)node->object;
-			VisitIdentifierExpression(identifierExpression);
-		}
-		else if (node->object->nodeType == HLSLNodeType_ArrayAccess)
-		{
-			HLSLArrayAccess * arrayExpression = (HLSLArrayAccess*)node->object;
-			VisitArrayAccess(arrayExpression);
-		}
+		VisitExpression(node->object);
 	}
 }
 
@@ -1620,71 +1515,24 @@ void HLSLTreeVisitor::VisitArrayAccess(HLSLArrayAccess * node)
 	// sometimes node->array points to itself
 	if (node != node->array)
 	{
-		bool isLoop = false;
-		if (node->array && node->array->nodeType == HLSLNodeType_MemberAccess)
-		{
-			HLSLMemberAccess * nodeArray = (HLSLMemberAccess *)node->array;
-			if (node == nodeArray->nextExpression)
-			{
-				isLoop = true;
-			}
-		}
-
-		if (node->array && node->array->nodeType == HLSLNodeType_ArrayAccess)
-		{
-			HLSLArrayAccess * nodeArray = (HLSLArrayAccess *)node->array;
-			if (node == nodeArray->nextExpression)
-			{
-				isLoop = true;
-			}
-		}
-
-		if (!isLoop)
-		{
-			VisitExpression(node->array);
-		}
+		VisitExpression(node->array);
 	}
-    VisitExpression(node->index);
+
+	VisitExpression(node->index);
 }
 
 void HLSLTreeVisitor::VisitFunctionCall(HLSLFunctionCall * node)
 {
-	/*
-	if (node->pTextureStateExpression)
+	for (HLSLExpression* param: node->params)
 	{
-		VisitTextureStateExpression(node->pTextureStateExpression);
+		VisitExpression(param);
 	}
-	*/
-
-	eastl::vector < HLSLExpression * > argVec = node->GetArguments();
-	const char * name = RawStr(node->function->name);
-	for (int i = 0; i < argVec.size(); i++)
-	{
-		VisitExpression(argVec[i]);
-	}
-
-
-	/*
-	HLSLExpression * argument = node->callArgument;
-    while (argument != NULL) {
-        VisitExpression(argument);
-        argument = argument->nextExpression;
-    }
-	*/
 }
 
 void HLSLTreeVisitor::VisitStateAssignment(HLSLStateAssignment * node) {}
 
 void HLSLTreeVisitor::VisitSamplerState(HLSLSamplerState * node)
 {
-
-	HLSLSamplerStateExpression * currState = node->expression;
-	while (currState != NULL)
-	{
-		VisitSamplerStateExpression(currState);
-		currState = currState->nextExpression;
-	}
-
     HLSLStateAssignment * stateAssignment = node->stateAssignments;
     while (stateAssignment != NULL) {
         VisitStateAssignment(stateAssignment);
@@ -1695,75 +1543,6 @@ void HLSLTreeVisitor::VisitSamplerState(HLSLSamplerState * node)
 void HLSLTreeVisitor::VisitTextureState(HLSLTextureState * node)
 {
 	// no op? not much to do here.
-}
-
-void HLSLTreeVisitor::VisitSamplerStateExpression(HLSLSamplerStateExpression * node)
-{
-	VisitSamplerIdentifier(node->name);
-	//printf("%s\n", node->name.m_string.c_str());
-	//VisitExpression(node);
-}
-
-void HLSLTreeVisitor::VisitTextureStateExpression(const HLSLTextureStateExpression * node)
-{
-	//printf("%s\n", node->name.m_string.c_str());
-	VisitTextureIdentifier(node->name);
-
-	if (node->arrayExpression)
-	{
-		VisitExpression(node->arrayExpression);
-	}
-
-	if (node->indexExpression)
-	{
-		VisitExpression(node->indexExpression);
-	}
-
-	if (node->memberAccessExpression)
-	{
-		VisitMemberAccess(node->memberAccessExpression);
-	}
-
-	if (node->functionExpression)
-	{
-		// actually visiting these expressions causes crashes, so...someone should fix that
-		if (1)
-		{
-
-
-
-			// visit the function call, but ignore the textureExpression, because that points back here
-			// causing a cycle
-			if (node->functionExpression->nodeType == HLSLNodeType_FunctionCall)
-			{
-				HLSLFunctionCall * functionCall = (HLSLFunctionCall *)node->functionExpression;
-
-				eastl::vector < HLSLExpression * > argVec = functionCall->GetArguments();
-				const char * name = RawStr(functionCall->function->name);
-				for (int i = 0; i < argVec.size(); i++)
-				{
-					VisitExpression(argVec[i]);
-				}
-			}
-			else if (node->functionExpression->nodeType == HLSLNodeType_BinaryExpression)
-			{
-				VisitBinaryExpression((HLSLBinaryExpression*)node->functionExpression);
-			}
-			else if (node->functionExpression->nodeType == HLSLNodeType_Expression)
-			{
-				VisitExpression(node->functionExpression->childExpression);
-			}
-			else if (node->functionExpression->nodeType == HLSLNodeType_MemberAccess)
-			{
-				HLSLMemberAccess* memberAccess = (HLSLMemberAccess*)node->functionExpression;
-				VisitMemberAccess((HLSLMemberAccess*)node->functionExpression);
-			}
-			else
-			{
-				ASSERT_PARSER(NULL);
-			}
-		}
-	}
 }
 
 void HLSLTreeVisitor::VisitPass(HLSLPass * node)
@@ -1872,15 +1651,13 @@ public:
     virtual void VisitIdentifierExpression(HLSLIdentifierExpression * node)
     {
         HLSLTreeVisitor::VisitIdentifierExpression(node);
+        HLSLDeclaration * declaration = node->pDeclaration;
+		ASSERT_PARSER(declaration);
 
-        if (node->global)
+        if (declaration->global && declaration->hidden)
         {
-            HLSLDeclaration * declaration = tree->FindGlobalDeclaration(node->name);
-            if (declaration != NULL && declaration->hidden)
-            {
-                declaration->hidden = false;
-                VisitDeclaration(declaration);
-            }
+            declaration->hidden = false;
+            VisitDeclaration(declaration);
         }
     }
 
@@ -2041,22 +1818,6 @@ void SortTree(HLSLTree * tree)
     root->statement = firstStatement;
 }
 
-HLSLBaseType HLSLTree::GetExpressionBaseType(HLSLExpression * expression)
-{
-	HLSLBaseType ret = expression->expressionType.baseType;
-	if (expression->nodeType == HLSLTextureStateExpression::s_type)
-	{
-		HLSLTextureStateExpression * texExpression = static_cast<HLSLTextureStateExpression*>(expression);
-
-		if (texExpression->indexExpression != NULL)
-		{
-			ret = expression->expressionType.elementType;
-		}
-	}
-
-	return ret;
-}
-
 // First and last can be the same.
 void AddStatements(HLSLRoot * root, HLSLStatement * before, HLSLStatement * first, HLSLStatement * last)
 {
@@ -2213,7 +1974,7 @@ void GroupParameters(HLSLTree * tree)
     {
         // Create buffer statement.
         HLSLBuffer * perItemBuffer = tree->AddNode<HLSLBuffer>(firstPerItemDeclaration->fileName, firstPerItemDeclaration->line-1);
-        perItemBuffer->cachedName = tree->AddStringCached("per_item");
+        perItemBuffer->name = tree->AddStringCached("per_item");
         perItemBuffer->registerName = tree->AddStringCached("b0");
         perItemBuffer->field = firstPerItemDeclaration;
         
@@ -2234,7 +1995,7 @@ void GroupParameters(HLSLTree * tree)
     {
         // Create buffer statement.
         HLSLBuffer * perPassBuffer = tree->AddNode<HLSLBuffer>(firstPerPassDeclaration->fileName, firstPerPassDeclaration->line-1);
-        perPassBuffer->cachedName = tree->AddStringCached("per_pass");
+        perPassBuffer->name = tree->AddStringCached("per_pass");
         perPassBuffer->registerName = tree->AddStringCached("b1");
         perPassBuffer->field = firstPerPassDeclaration;
 
@@ -2283,7 +2044,7 @@ public:
 
     virtual void VisitIdentifierExpression(HLSLIdentifierExpression * node) override
     {
-        if (String_Equal(node->name, name))
+        if (String_Equal(node->pDeclaration->name, name))
         {
             found = true;
         }
@@ -2357,11 +2118,11 @@ public:
 
 		if (found)
 		{
-			eastl::vector < HLSLArgument * > argVec = node->function->GetArguments();
+			const eastl::vector<HLSLArgument*>& argVec = node->function->args;
 			ASSERT_PARSER(argVec.size() == 2);
 
-			HLSLBaseType lhsType = argVec[0]->argType.baseType;
-			HLSLBaseType rhsType = argVec[1]->argType.baseType;
+			HLSLBaseType lhsType = argVec[0]->type.baseType;
+			HLSLBaseType rhsType = argVec[1]->type.baseType;
 			AddTypes(lhsType, rhsType);
 		}
 		HLSLTreeVisitor::VisitFunctionCall(node);
@@ -2426,31 +2187,10 @@ public:
 		paramTypeVec.push_back(indexType);
 	}
 
-	virtual void VisitTextureStateExpression(const HLSLTextureStateExpression * node) override
-	{
-		if (node->indexExpression != NULL)
-		{
-			HLSLBaseType texType = node->expressionType.baseType;
-			HLSLBaseType indexType = node->indexExpression->expressionType.baseType;
-
-			AddTextureCombo(texType, indexType);
-		}
-
-		HLSLTreeVisitor::VisitTextureStateExpression(node);
-	}
-
 	virtual void VisitFunctionCall(HLSLFunctionCall * node) override
 	{
 		HLSLFunctionCall* functionCall = static_cast<HLSLFunctionCall*>(node);
 		CachedString name = functionCall->function->name;
-
-		if (String_Equal(name, "Load"))
-		{
-			if (functionCall->pTextureStateExpression)
-			{
-
-			}
-		}
 
 		HLSLTreeVisitor::VisitFunctionCall(node);
 	}
@@ -2472,11 +2212,9 @@ void HideUnusedArguments(HLSLFunction * function)
 {
 	// this function probably doesn't work
     FindArgumentVisitor visitor;
- 
-	eastl::vector < HLSLArgument * > argVec = function->GetArguments();
-	for (int i = 0; i < argVec.size(); i++)
+
+	for (HLSLArgument* arg: function->args)
 	{
-		HLSLArgument * arg = argVec[i];
 		if (!visitor.FindArgument(arg->name, function))
 		{
 			arg->hidden = true;

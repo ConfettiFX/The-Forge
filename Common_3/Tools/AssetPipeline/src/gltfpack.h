@@ -95,6 +95,7 @@ struct Model
 {
 	cgltf_data * data = NULL;
 	eastl::vector<Mesh> mMeshArray;
+	vec3 CenterPosition;
 };
 
 int gltfpack(int argc, const char** argv);

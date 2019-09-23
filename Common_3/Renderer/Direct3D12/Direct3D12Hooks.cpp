@@ -40,9 +40,15 @@ static void enable_debug_layer_hook(Renderer* pRenderer)
 #endif
 }
 
-static ImageFormat::Enum get_recommended_swapchain_format(bool hintHDR) { return ImageFormat::BGRA8; }
+static TinyImageFormat get_recommended_swapchain_format(bool hintHDR)
+{
+	return TinyImageFormat_B8G8R8A8_UNORM;
+}
 
-static uint32_t get_swap_chain_image_index(SwapChain* pSwapChain) { return pSwapChain->pDxSwapChain->GetCurrentBackBufferIndex(); }
+static uint32_t get_swap_chain_image_index(SwapChain* pSwapChain)
+{
+	return pSwapChain->pDxSwapChain->GetCurrentBackBufferIndex();
+}
 
 void initHooks()
 {

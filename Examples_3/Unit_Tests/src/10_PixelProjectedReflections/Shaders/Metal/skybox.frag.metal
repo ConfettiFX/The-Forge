@@ -34,11 +34,17 @@ struct VSOutput {
     float3 WorldPos;
 };
 
-fragment float4 stageMain(VSOutput input                               [[stage_in]],
-                          texturecube<float, access::sample> skyboxTex [[texture(0)]],
-                          sampler skyboxSampler                        [[sampler(0)]])
+struct FSData {
+    texturecube<float, access::sample> skyboxTex [[id(0)]];
+    sampler skyboxSampler                        [[id(1)]];
+};
+
+fragment float4 stageMain(
+    VSOutput input                                  [[stage_in]],
+    constant FSData& fsData                         [[buffer(UPDATE_FREQ_NONE)]]
+)
 {
-    float4 outColor = skyboxTex.sample(skyboxSampler, normalize(input.WorldPos));
+    float4 outColor = fsData.skyboxTex.sample(fsData.skyboxSampler, normalize(input.WorldPos));
     outColor = float4(pow(outColor.xyz, 1/2.2), 1.0);
     return outColor;
 }

@@ -42,7 +42,7 @@ struct InstanceData
 	uint _pad0[3];
 };
 
-StructuredBuffer<InstanceData> instanceBuffer : register(t0);
+StructuredBuffer<InstanceData> instanceBuffer : register(t0, UPDATE_FREQ_PER_BATCH);
 
 cbuffer rootConstant : register(b1)
 {
@@ -60,7 +60,7 @@ struct PsIn
     float4 position : SV_Position;
     float3 posModel : PosModel;
     float3 normal : Normal;
-    float3 albedo : Color;
+    float4 albedo : Color;
 };
 
 float linstep(float min, float max, float s)
@@ -76,7 +76,7 @@ PsIn main(VsIn In)
     result.normal = normalize(mul(instanceBuffer[index].normalMat, float4(In.normal.xyz, 0)).xyz);
 
     float depth = linstep(0.5f, 0.7f, length(In.position.xyz));
-    result.albedo = lerp(instanceBuffer[index].deepColor.xyz, instanceBuffer[index].surfaceColor.xyz, depth);
-
+    result.albedo.xyz = lerp(instanceBuffer[index].deepColor.xyz, instanceBuffer[index].surfaceColor.xyz, depth);
+	result.albedo.w = float(instanceBuffer[index].textureID);
     return result;
 }

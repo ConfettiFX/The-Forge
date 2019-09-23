@@ -7,8 +7,8 @@
 layout(location = 0) in vec2 TexCoord;
 layout(location = 0) out vec4 rast_FragData0; 
 
-layout(set = 0, binding = 11) uniform texture2D sceneTexture;
-layout(set = 0, binding = 16) uniform sampler clampMiplessLinearSampler;
+layout(UPDATE_FREQ_NONE, binding = 11) uniform texture2D sceneTexture;
+layout(UPDATE_FREQ_NONE, binding = 16) uniform sampler clampMiplessLinearSampler;
 
 layout(row_major, push_constant) uniform FXAARootConstant_Block
 {

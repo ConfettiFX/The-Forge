@@ -34,7 +34,7 @@
 #include "Shader_Defs.h"
 #include "Packing.h"
 
-layout (set = 1, binding = 0) uniform objectUniformBlock
+layout (UPDATE_FREQ_PER_DRAW, binding = 0) uniform objectUniformBlock
 {
 	mat4 WorldViewProjMat;
     mat4 WorldMat;

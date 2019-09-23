@@ -34,16 +34,7 @@ struct VSOutput
     float3 lightPos : TEXCOORD1;
 };
 
-ConstantBuffer<PerFrameConstants> uniforms : register(b0);
-
-cbuffer RootConstantDrawScene : register(b1)
-{
-	float4 lightColor;
-	uint lightingMode;
-	uint outputMode;
-	float4 CameraPlane; //x : near, y : far
-	
-};
+ConstantBuffer<PerFrameConstants> uniforms : register(b0, UPDATE_FREQ_PER_FRAME);
 
 StructuredBuffer<LightData> lights : register(t1);
 #if (SAMPLE_COUNT > 1)
@@ -89,7 +80,7 @@ float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target
 	float4 simulation = gBufferSimulation.Load(uint3(input.position.xy, 0));
 #endif
 
-	float fLightingMode = saturate(float(lightingMode));
+	float fLightingMode = saturate(float(uniforms.lightingMode));
     
     float2 screenPos = ((input.position.xy / uniforms.cullingViewports[VIEW_CAMERA].windowSize) * 2.0 - 1.0);
     screenPos.y = -screenPos.y;

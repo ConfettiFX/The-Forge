@@ -1,0 +1,13 @@
+static const int groupDim_x = 32;
+static const int groupDim_y = 32;
+
+RWTexture2D<float> tex;
+[numthreads(groupDim_x, groupDim_y, 1)]
+void main(
+    uint3 groupId : SV_GroupID,
+    uint3 groupThreadId : SV_GroupThreadID,
+    uint3 dispatchThreadId : SV_DispatchThreadID,
+    uint groupIndex : SV_GroupIndex)
+{
+    tex[dispatchThreadId.xy] = 2.0;
+}

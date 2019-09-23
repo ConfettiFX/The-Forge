@@ -49,7 +49,7 @@ cbuffer cbTextureRootConstants : register(b2)
 SamplerState samplerLinear : register(s2);
 
 // material parameters
-Texture2D textureMaps[] : register(t3, space1);
+Texture2D textureMaps[] : register(t3, UPDATE_FREQ_PER_FRAME);
 
 
 struct PsIn

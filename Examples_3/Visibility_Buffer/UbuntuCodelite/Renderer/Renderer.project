@@ -15,16 +15,14 @@
       <File Name="../../../../Common_3/ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp"/>
     </VirtualDirectory>
     <VirtualDirectory Name="Profiler">
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerUI.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerUI.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerInput.cpp"/>
       <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerHTML.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerDraw.cpp"/>
       <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerBase.h"/>
       <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerBase.cpp"/>
       <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/Profiler.cpp"/>
       <File Name="../../../../Common_3/Renderer/GpuProfiler.h"/>
       <File Name="../../../../Common_3/Renderer/GpuProfiler.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerWidgetsUI.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerWidgetsUI.h"/>
     </VirtualDirectory>
     <File Name="../../../../Common_3/Renderer/CommonShaderReflection.cpp"/>
     <File Name="../../../../Common_3/Renderer/IMemoryAllocator.h"/>

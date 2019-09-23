@@ -22,7 +22,7 @@
  * under the License.
 */
 
-cbuffer GrassUniformBlock : register(b0)
+cbuffer GrassUniformBlock : register(b0, UPDATE_FREQ_PER_FRAME)
 {
 	float4x4 world;
 	float4x4 view;
@@ -41,8 +41,8 @@ cbuffer GrassUniformBlock : register(b0)
 	float windStrength;
 }
 
-struct VS_CONTROL_POINT_OUTPUT {
-
+struct VS_CONTROL_POINT_OUTPUT
+{
 	float4 position: POSITION;
 	float4 tesc_v1: COLOR;
 	float4 tesc_v2: NORMAL;

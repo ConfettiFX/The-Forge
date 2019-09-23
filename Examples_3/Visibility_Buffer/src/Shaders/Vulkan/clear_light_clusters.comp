@@ -33,7 +33,7 @@
 
 #include "shader_defs.h"
 
-layout(std430, set = 0, binding = 0) restrict writeonly buffer lightClustersCount
+layout(std430, UPDATE_FREQ_PER_FRAME, binding = 0) restrict writeonly buffer lightClustersCount
 {
 	uint lightClustersCountBuffer[];
 };

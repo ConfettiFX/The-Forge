@@ -39,9 +39,9 @@ layout(push_constant) uniform RootConstant_Block
 	float roughness;
 }RootConstant;
 
-layout(set = 0, binding = 1) uniform textureCube srcTexture;
-layout(set = 2, binding = 2, rgba32f) uniform image2DArray dstTexture;
-layout(set = 0, binding = 3) uniform sampler skyboxSampler;
+layout(UPDATE_FREQ_NONE, binding = 1) uniform textureCube srcTexture;
+layout(UPDATE_FREQ_PER_DRAW, binding = 2, rgba32f) uniform image2DArray dstTexture;
+layout(UPDATE_FREQ_NONE, binding = 3) uniform sampler skyboxSampler;
 
 float RadicalInverse_VdC(uint bits)
 {

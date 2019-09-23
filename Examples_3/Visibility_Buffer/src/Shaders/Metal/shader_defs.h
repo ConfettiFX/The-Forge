@@ -136,10 +136,16 @@ struct PerFrameConstants {
     //========================================
     shader_packed_float4 lightDir;
     //========================================
+    shader_packed_float4 lightColor;
+    //========================================
+    shader_packed_float2 CameraPlane; //x : near, y : far
+    uint lightingMode;
+    uint outputMode;
+    //========================================
     shader_packed_float2 twoOverRes;
     float   esmControl;
-    uint    _pad0;
     //========================================
+    uint    _pad0;
 };
 
 struct LightData

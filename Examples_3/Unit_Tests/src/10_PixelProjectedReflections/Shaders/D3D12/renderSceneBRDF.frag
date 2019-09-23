@@ -36,7 +36,8 @@ struct Light
 static const float PI = 3.14159265359;
 
 
-cbuffer cbExtendCamera : register(b0) {
+cbuffer cbExtendCamera : register(b0, UPDATE_FREQ_PER_FRAME)
+{
 	float4x4 viewMat;
 	float4x4 projMat;
 	float4x4 viewProjMat;
@@ -47,7 +48,8 @@ cbuffer cbExtendCamera : register(b0) {
 }
 
 
-cbuffer cbLights : register(b1, space1) {
+cbuffer cbLights : register(b1)
+{
 	Light lights[16];
 	int currAmountOflights;
 }
@@ -59,7 +61,8 @@ struct DirectionalLight
 	float4 mDir;
 };
 
-cbuffer cbDLights : register(b2, space2)  {
+cbuffer cbDLights : register(b2)
+{
 	DirectionalLight dlights[16];
 	int currAmountOfDLights;
 };
@@ -81,8 +84,6 @@ SamplerState defaultSampler : register(s11);
 float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness)
 {
 	//return F0 + (max(float3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
-
-
 	float3 ret = float3(0.0, 0.0, 0.0);
 	float powTheta = pow(1.0 - cosTheta, 5.0);
 	float invRough = float(1.0 - roughness);

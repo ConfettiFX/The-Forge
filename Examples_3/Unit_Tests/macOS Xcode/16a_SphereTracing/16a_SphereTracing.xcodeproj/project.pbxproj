@@ -34,8 +34,6 @@
 		97CF9247216FCDDB0036A63B /* Skybox_top3.ktx in CopyFiles */ = {isa = PBXBuildFile; fileRef = 28A5AB7F201F3A35000E571F /* Skybox_top3.ktx */; };
 		B2087DD321421A13006F372D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DD121421A13006F372D /* MetalKit.framework */; };
 		B2087DD421421A13006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DD221421A13006F372D /* Metal.framework */; };
-		B211BA26219CBD3200101502 /* fstri.vert.metal in Resources */ = {isa = PBXBuildFile; fileRef = B2E8E64F219C9E1E00FDC78B /* fstri.vert.metal */; };
-		B211BA27219CBD3200101502 /* rt.frag.metal in Resources */ = {isa = PBXBuildFile; fileRef = B2E8E64E219C9E1E00FDC78B /* rt.frag.metal */; };
 		B211BA28219CBD9700101502 /* fstri.vert.metal in Copy Files */ = {isa = PBXBuildFile; fileRef = B2E8E64F219C9E1E00FDC78B /* fstri.vert.metal */; };
 		B211BA29219CBD9700101502 /* rt.frag.metal in Copy Files */ = {isa = PBXBuildFile; fileRef = B2E8E64E219C9E1E00FDC78B /* rt.frag.metal */; };
 		B21F76BE21420E7000DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76BB21420E7000DF2297 /* UIKit.framework */; };
@@ -160,8 +158,8 @@
 		B21F76BB21420E7000DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76BC21420E7000DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76BD21420E7000DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
-		B2E8E64E219C9E1E00FDC78B /* rt.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = rt.frag.metal; path = ../../../src/16a_SphereTracing/Shaders/Metal/rt.frag.metal; sourceTree = "<group>"; };
-		B2E8E64F219C9E1E00FDC78B /* fstri.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fstri.vert.metal; path = ../../../src/16a_SphereTracing/Shaders/Metal/fstri.vert.metal; sourceTree = "<group>"; };
+		B2E8E64E219C9E1E00FDC78B /* rt.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = rt.frag.metal; path = ../../../src/16a_SphereTracing/Shaders/Metal/rt.frag.metal; sourceTree = "<group>"; };
+		B2E8E64F219C9E1E00FDC78B /* fstri.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = fstri.vert.metal; path = ../../../src/16a_SphereTracing/Shaders/Metal/fstri.vert.metal; sourceTree = "<group>"; };
 		C95132ED2010E68A002E584B /* 16a_SphereTracing_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 16a_SphereTracing_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C95132FE2010E68A002E584B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C95133012010E68A002E584B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -434,10 +432,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B211BA26219CBD3200101502 /* fstri.vert.metal in Resources */,
 				C95133022010E68A002E584B /* LaunchScreen.storyboard in Resources */,
 				C95132FF2010E68A002E584B /* Assets.xcassets in Resources */,
-				B211BA27219CBD3200101502 /* rt.frag.metal in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

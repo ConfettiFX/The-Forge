@@ -16,7 +16,7 @@ cbuffer uRootConstants : register(b0)
 	float2 scaleBias;
 };
 
-cbuffer uniformBlock : register(b1)
+cbuffer uniformBlock_rootcbv : register(b1)
 {
 	float4x4 mvp;
 };

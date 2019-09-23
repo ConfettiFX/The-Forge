@@ -33,8 +33,9 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
 	mJointVertexBuffer = skeletonRenderDesc.mJointVertexBuffer;
 	mNumJointPoints = skeletonRenderDesc.mNumJointPoints;
 
-	DescriptorBinderDesc descriptorBinderDescSkeleton = { mRootSignature, 0, MAX_BATCHES * 2}; // 2 because updates buffer twice per instanced draw call: one for joints and one for bones
-	addDescriptorBinder(mRenderer, 0, 1, &descriptorBinderDescSkeleton, &mDescriptorBinder);
+	// 2 because updates buffer twice per instanced draw call: one for joints and one for bones
+	DescriptorSetDesc setDesc = { mRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, MAX_BATCHES * 2 * ImageCount };
+	addDescriptorSet(mRenderer, &setDesc, &pDescriptorSet);
 
 	// Determine if we will ever expect to use this renderer to draw bones
 	mDrawBones = skeletonRenderDesc.mDrawBones;
@@ -51,16 +52,27 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
 	ubDesc.mDesc.mSize = sizeof(UniformSkeletonBlock);
 	ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | skeletonRenderDesc.mCreationFlag;
 	ubDesc.pData = NULL;
-	for (unsigned int i = 0; i < MAX_BATCHES; i++)
+
+	DescriptorData params[1] = {};
+	params[0].pName = "uniformBlock";
+
+	for (uint32_t i = 0; i < ImageCount; ++i)
 	{
-		for (uint32_t j = 0; j < ImageCount; ++j)
+		for (uint32_t j = 0; j < MAX_BATCHES; ++j)
 		{
 			ubDesc.ppBuffer = &mProjViewUniformBufferJoints[i][j];
 			addResource(&ubDesc);
+
+			params[0].ppBuffers = &mProjViewUniformBufferJoints[i][j];
+			updateDescriptorSet(mRenderer, (i * (MAX_BATCHES * 2)) + (j * 2 + 0), pDescriptorSet, 1, params);
+
 			if (mDrawBones)
 			{
 				ubDesc.ppBuffer = &mProjViewUniformBufferBones[i][j];
 				addResource(&ubDesc);
+
+				params[0].ppBuffers = &mProjViewUniformBufferBones[i][j];
+				updateDescriptorSet(mRenderer, (i * (MAX_BATCHES * 2)) + (j * 2 + 1), pDescriptorSet, 1, params);
 			}
 		}
 	}
@@ -68,10 +80,10 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
 
 void SkeletonBatcher::Destroy()
 {
-	removeDescriptorBinder(mRenderer, mDescriptorBinder);
-	for (unsigned int i = 0; i < MAX_BATCHES; i++)
+	removeDescriptorSet(mRenderer, pDescriptorSet);
+	for (uint32_t i = 0; i < ImageCount; ++i)
 	{
-		for (uint32_t j = 0; j < ImageCount; ++j)
+		for (uint32_t j = 0; j < MAX_BATCHES; ++j)
 		{
 			removeResource(mProjViewUniformBufferJoints[i][j]);
 			if (mDrawBones)
@@ -147,12 +159,12 @@ void SkeletonBatcher::SetPerInstanceUniforms(const uint32_t& frameIndex, int num
 
 				unsigned int currBatch = mBatchCounts[frameIndex];
 
-				BufferUpdateDesc viewProjCbvJoints = { mProjViewUniformBufferJoints[currBatch][frameIndex], &mUniformDataJoints };
+				BufferUpdateDesc viewProjCbvJoints = { mProjViewUniformBufferJoints[frameIndex][currBatch], &mUniformDataJoints };
 				updateResource(&viewProjCbvJoints);
 
 				if (mDrawBones)
 				{
-					BufferUpdateDesc viewProjCbvBones = { mProjViewUniformBufferBones[currBatch][frameIndex], &mUniformDataBones };
+					BufferUpdateDesc viewProjCbvBones = { mProjViewUniformBufferBones[frameIndex][currBatch], &mUniformDataBones };
 					updateResource(&viewProjCbvBones);
 				}
 
@@ -188,8 +200,6 @@ void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t& frameIndex)
 	unsigned int numBatches = mBatchCounts[frameIndex];
 
 	cmdBindPipeline(cmd, mSkeletonPipeline);
-	DescriptorData params[1] = {};
-	params[0].pName = "uniformBlock";
 
 	// Joints
 	cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Skeletons Joints");
@@ -198,8 +208,7 @@ void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t& frameIndex)
 	// for each batch of joints
 	for (unsigned int batchIndex = 0; batchIndex < numBatches; batchIndex++)
 	{
-		params[0].ppBuffers = &mProjViewUniformBufferJoints[batchIndex][frameIndex];
-		cmdBindDescriptors(cmd, mDescriptorBinder, mRootSignature, 1, params);
+		cmdBindDescriptorSet(cmd, (frameIndex * (MAX_BATCHES * 2)) + (batchIndex * 2 + 0), pDescriptorSet);
 
 		if (batchIndex < numBatches - 1)
 		{
@@ -224,8 +233,7 @@ void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t& frameIndex)
 		// for each batch of bones
 		for (unsigned int batchIndex = 0; batchIndex < numBatches; batchIndex++)
 		{
-			params[0].ppBuffers = &mProjViewUniformBufferBones[batchIndex][frameIndex];
-			cmdBindDescriptors(cmd, mDescriptorBinder, mRootSignature, 1, params);
+			cmdBindDescriptorSet(cmd, (frameIndex * (MAX_BATCHES * 2)) + (batchIndex * 2 + 1), pDescriptorSet);
 
 			if (batchIndex < numBatches - 1)
 			{

@@ -25,8 +25,8 @@
 */
 
 
-layout (set=0, binding=0) uniform texture2D  uTex0;
-layout (set=0, binding=1) uniform sampler   uSampler0;
+layout (UPDATE_FREQ_NONE, binding=0) uniform texture2D  uTex0;
+layout (UPDATE_FREQ_NONE, binding=1) uniform sampler   uSampler0;
 
 layout(location = 0) in vec2 texcoord;
 

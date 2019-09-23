@@ -21,24 +21,27 @@ struct Fragment_Shader
         return uTex.sample(uSampler, (input).texcoord) * uRootConstants.color;
     };
 
-    Fragment_Shader(
-constant Uniforms_uRootConstants & uRootConstants,texture2d<float> uTex,sampler uSampler) :
-uRootConstants(uRootConstants),uTex(uTex),uSampler(uSampler) {}
+    Fragment_Shader(constant Uniforms_uRootConstants & uRootConstants,texture2d<float> uTex,sampler uSampler)
+        : uRootConstants(uRootConstants)
+        , uTex(uTex)
+        , uSampler(uSampler)
+    {
+    }
 };
 
+struct FSData {
+    texture2d<float> uTex    [[id(1)]];
+    sampler uSampler         [[id(2)]];
+};
 
 fragment float4 stageMain(
-    Fragment_Shader::PsIn input [[stage_in]],
-    constant Fragment_Shader::Uniforms_uRootConstants & uRootConstants [[buffer(1)]],
-    texture2d<float> uTex [[texture(0)]],
-    sampler uSampler [[sampler(0)]])
+    Fragment_Shader::PsIn input                                        [[stage_in]],
+    constant Fragment_Shader::Uniforms_uRootConstants& uRootConstants  [[buffer(UPDATE_FREQ_USER)]],
+    constant FSData& fsData                                            [[buffer(UPDATE_FREQ_NONE)]])
 {
     Fragment_Shader::PsIn input0;
     input0.position = float4(input.position.xyz, 1.0 / input.position.w);
     input0.texcoord = input.texcoord;
-    Fragment_Shader main(
-    uRootConstants,
-    uTex,
-    uSampler);
+    Fragment_Shader main(uRootConstants, fsData.uTex, fsData.uSampler);
     return main.main(input0);
 }

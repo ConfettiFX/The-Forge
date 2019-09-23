@@ -29,7 +29,8 @@ struct VSInput
     float2 Uv	  : TEXCOORD0;
 };
 
-struct VSOutput {
+struct VSOutput
+{
 	float4 Position : SV_POSITION;	
 	float2 uv:    TEXCOORD0;
 };

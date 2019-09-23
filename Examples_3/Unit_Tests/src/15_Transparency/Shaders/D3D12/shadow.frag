@@ -21,7 +21,7 @@
 * specific language governing permissions and limitations
 * under the License.
 */
-#include "varianceShadowMapping.hlsl"
+#include "varianceShadowMapping.h"
 
 struct VSOutput
 {

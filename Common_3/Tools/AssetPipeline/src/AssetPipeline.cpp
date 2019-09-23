@@ -633,9 +633,9 @@ bool AssetPipeline::ProcessModels(const char* meshDirectory, const char* outputD
 	FileSystem::GetFilesWithExtension(meshDirectory, ".gltf", filesInDirectory);
 
 	int argc = 11;
-	eastl::string argPosBits = "16";
-	eastl::string argTexBits = "16";
-	eastl::string argNormBits = "8";
+	char argPosBits[4] = { '1', '6', '\0', '\0' };
+	char argTexBits[4] = { '1', '6', '\0', '\0' };
+	char argNormBits[4] = { '8', '\0', '\0', '\0' };
 	sprintf(&argPosBits[0], "%d", settings->quantizePositionBits);
 	sprintf(&argTexBits[0], "%d", settings->quantizeTexBits);
 	sprintf(&argNormBits[0], "%d", settings->quantizeNormalBits);
@@ -652,9 +652,9 @@ bool AssetPipeline::ProcessModels(const char* meshDirectory, const char* outputD
 		fileName.append(".gltf");
 		eastl::string outputPath = outputDir + fileName;
 		const char* argv[] = { "gltfpack", "-i", file.c_str(), "-o", outputPath.c_str(),
-								"-vp", argPosBits.c_str(),
-								"-vt", argTexBits.c_str(),
-								"-vn", argNormBits.c_str() };
+								"-vp", argPosBits,
+								"-vt", argTexBits,
+								"-vn", argNormBits };
 		gltfpack(argc, argv);
 	}
 

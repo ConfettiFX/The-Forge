@@ -8,8 +8,8 @@ struct VSOutput
 	float2 Tex_Coord : TEXCOORD0;
 };
 
-SamplerState clampNearSampler : register(s0, space0);
-Texture2D screenTexture : register(t1, space3);
+SamplerState clampNearSampler : register(s0, UPDATE_FREQ_NONE);
+Texture2D screenTexture : register(t1);
 
 float LinearizeDepth(float depth)
 {

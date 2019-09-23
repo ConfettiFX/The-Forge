@@ -97,16 +97,10 @@
     <None Include="..\src\15_Transparency\Shaders\Vulkan\shadow.frag">
       <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\Vulkan\varianceShadowMapping.glsl">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\gaussianBlur.frag">
       <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\stochasticShadow.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\15_Transparency\Shaders\Vulkan\shading.glsl">
       <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\15_Transparency\Shaders\Vulkan\downsample.frag">
@@ -124,14 +118,17 @@
     <None Include="..\src\15_Transparency\Shaders\Vulkan\generateMips.comp">
       <Filter>Shaders\Vulkan</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\D3D12\varianceShadowMapping.hlsl">
+    <None Include="..\src\15_Transparency\Shaders\Vulkan\shading.h">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\15_Transparency\Shaders\D3D12\shading.h">
       <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\D3D12\AOIT.hlsl">
+    <None Include="..\src\15_Transparency\Shaders\D3D12\varianceShadowMapping.h">
       <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\15_Transparency\Shaders\D3D12\shading.hlsl">
-      <Filter>Shaders\D3D12</Filter>
+    <None Include="..\src\15_Transparency\Shaders\Vulkan\varianceShadowMapping.h">
+      <Filter>Shaders\Vulkan</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -152,5 +149,16 @@
     <ClCompile Include="..\src\15_Transparency\15_Transparency.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\15_Transparency\Shaders\Vulkan\shaderDefs.h">
+      <Filter>Shaders\Vulkan</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\15_Transparency\Shaders\D3D12\shaderDefs.h">
+      <Filter>Shaders\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\15_Transparency\Shaders\D3D12\AOIT.h">
+      <Filter>Shaders\D3D12</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

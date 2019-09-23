@@ -22,20 +22,24 @@
  * under the License.
 */
 
-cbuffer VsParams : register(b0) {
+cbuffer RootConstant : register(b0)
+{
 	float aspect;
 };
 
-struct InstanceData {
+struct InstanceData
+{
     float4 posScale;
     float4 colorIndex;
 };
 
-cbuffer instanceBuffer : register(b1) {
+cbuffer instanceBuffer : register(b1)
+{
     InstanceData instanceData[2]; 
 };
 
-struct VSOutput {
+struct VSOutput
+{
     float4 pos : SV_Position;
     float3 color : COLOR0;
     float2 uv : TEXCOORD0;

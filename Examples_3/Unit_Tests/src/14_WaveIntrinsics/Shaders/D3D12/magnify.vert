@@ -1,14 +1,3 @@
-cbuffer SceneConstantBuffer : register(b0)
-{
-	float4x4 orthProjMatrix;
-	float2 mousePosition;
-	float2 resolution;
-	float time;
-	uint renderMode;
-	uint laneSize;
-	uint padding;
-};
-
 struct PSInput
 {
 	float4 position : SV_POSITION;

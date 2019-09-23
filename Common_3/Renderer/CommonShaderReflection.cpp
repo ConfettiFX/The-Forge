@@ -39,7 +39,6 @@ static bool ShaderResourceCmp(ShaderResource* a, ShaderResource* b)
 	isSame = isSame && (a->type == b->type);
 	isSame = isSame && (a->set == b->set);
 	isSame = isSame && (a->reg == b->reg);
-	isSame = isSame && (a->size == b->size);
 
 #ifdef RESOURCE_NAME_CHECK
 	// we may not need this, the rest is enough but if we want to be super sure we can do this check
@@ -217,7 +216,7 @@ void createPipelineReflection(ShaderReflection* pReflection, uint32_t stageCount
 	//Copy over the shader resources in a dynamic array of the correct size
 	if (resourceCount)
 	{
-		pResources = (ShaderResource*)conf_malloc(sizeof(ShaderResource) * resourceCount);
+		pResources = (ShaderResource*)conf_calloc(resourceCount, sizeof(ShaderResource));
 
 		for (uint32_t i = 0; i < resourceCount; ++i)
 		{

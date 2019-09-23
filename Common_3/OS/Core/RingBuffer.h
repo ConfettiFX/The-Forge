@@ -65,7 +65,7 @@ static inline void addGPURingBuffer(Renderer* pRenderer, const BufferDesc* pBuff
 	*ppRingBuffer = pRingBuffer;
 }
 
-static inline void addUniformGPURingBuffer(Renderer* pRenderer, uint32_t requiredUniformBufferSize, GPURingBuffer** ppRingBuffer, bool const ownMemory = false)
+static inline void addUniformGPURingBuffer(Renderer* pRenderer, uint32_t requiredUniformBufferSize, GPURingBuffer** ppRingBuffer, bool const ownMemory = false, ResourceMemoryUsage memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU)
 {
 	GPURingBuffer* pRingBuffer = (GPURingBuffer*)conf_calloc(1, sizeof(GPURingBuffer));
 	pRingBuffer->pRenderer = pRenderer;
@@ -80,9 +80,10 @@ static inline void addUniformGPURingBuffer(Renderer* pRenderer, uint32_t require
 	ubDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_ONLY;
 #else
 	ubDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	ubDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+	ubDesc.mMemoryUsage = memoryUsage;
 #endif
-	ubDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
+	ubDesc.mFlags = (ubDesc.mMemoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY ? BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT : BUFFER_CREATION_FLAG_NONE) |
+		BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
 	if (ownMemory)
 		ubDesc.mFlags |= BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 	ubDesc.mSize = maxUniformBufferSize;

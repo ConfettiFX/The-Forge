@@ -55,23 +55,32 @@ uint packVisBufData(bool opaque, uint drawId, uint triangleId)
 
 struct BindlessDiffuseData
 {
-	array<texture2d<float>,MATERIAL_BUFFER_SIZE> textures;
+};
+
+struct FSData {
+    sampler nearClampSampler                                  [[id(0)]];
+    array<texture2d<float>,MATERIAL_BUFFER_SIZE> diffuseMaps;
+};
+
+struct FSDataPerFrame {
+    constant uint* indirectMaterialBuffer         [[id(0)]];
 };
 
 // Pixel shader for alpha tested geometry
-fragment float4 stageMain(VSOutput input                                [[stage_in]],
-						  uint primitiveID                              [[primitive_id]],
-						  constant uint* indirectMaterialBuffer         [[buffer(0)]],
-                          constant BindlessDiffuseData& diffuseMaps     [[buffer(1)]],
-                          sampler nearClampSampler                         [[sampler(0)]],
-						  constant uint& drawID							[[buffer(20)]])
+fragment float4 stageMain(
+    VSOutput input                              [[stage_in]],
+    uint primitiveID                            [[primitive_id]],
+    constant FSData& fsData                     [[buffer(UPDATE_FREQ_NONE)]],
+    constant FSDataPerFrame& fsDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]],
+    constant uint& drawID                       [[buffer(UPDATE_FREQ_USER)]]
+)
 {
 	uint matBaseSlot = BaseMaterialBuffer(true, VIEW_CAMERA);
-	uint materialID = indirectMaterialBuffer[matBaseSlot + drawID];
-	texture2d<float> diffuseMap = diffuseMaps.textures[materialID];
+	uint materialID = fsDataPerFrame.indirectMaterialBuffer[matBaseSlot + drawID];
+	texture2d<float> diffuseMap = fsData.diffuseMaps[materialID];
 	
     // Perform alpha testing: sample the texture and discard the fragment if alpha is under a threshold
-    float4 texColor = diffuseMap.sample(nearClampSampler,input.texCoord);
+    float4 texColor = diffuseMap.sample(fsData.nearClampSampler,input.texCoord);
     if (texColor.a < 0.5) discard_fragment();
     
     // Pack draw / triangle Id data into a 32-bit uint and store it in a RGBA8 texture

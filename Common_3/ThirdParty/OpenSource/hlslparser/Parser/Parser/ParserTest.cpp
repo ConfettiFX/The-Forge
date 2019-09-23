@@ -200,6 +200,29 @@ int BuildShaderGroup(const eastl::string & dstBaseDir, const eastl::string & src
 			platformMacroRhs.push_back(platformTarget == 1 ? "1" : "0");
 			platformMacroRhs.push_back(platformTarget == 2 ? "1" : "0");
 
+			// Special macros used to specify update frequency as a macro for more clarity
+			const uint32_t updateFrequencyCount = 4;
+			const char* pUpdateFreqNames[updateFrequencyCount] =
+			{
+				"UPDATE_FREQ_NONE",
+				"UPDATE_FREQ_PER_FRAME",
+				"UPDATE_FREQ_PER_BATCH",
+				"UPDATE_FREQ_PER_DRAW",
+			};
+			const char* pUpdateFreqValues[updateFrequencyCount] =
+			{
+				"space0",
+				"space1",
+				"space2",
+				"space3",
+			};
+
+			for (uint32_t i = 0; i < updateFrequencyCount; ++i)
+			{
+				platformMacroLhs.push_back(pUpdateFreqNames[i]);
+				platformMacroRhs.push_back(pUpdateFreqValues[i]);
+			}
+
 			eastl::string dstDir = dstBaseDir + "Shaders/" + platformName + "/";
 
 			for (int stageIter = 0; stageIter < 6; stageIter++)
@@ -708,19 +731,8 @@ int ParserTest()
 	}
 
 	// 12
-	if (1)
 	{
-		eastl::string srcDir = srcBaseDir + "12_RendererRuntimeSwitch/Shaders/D3D12/";
-		eastl::string dstDir = dstBaseDir + "built/12_RendererRuntimeSwitch/";
-
-		eastl::vector < eastl::string > emptyLhs;
-		eastl::vector < eastl::string > emptyRhs;
-
-		eastl::vector < ShaderTestItem > itemList;
-		itemList.push_back(MakeTestItem("basic", true, true, false, emptyLhs, emptyRhs));
-		itemList.push_back(MakeTestItem("skybox", true, true, false, emptyLhs, emptyRhs));
-
-		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
+		// none
 	}
 
 	// 13
@@ -753,9 +765,11 @@ int ParserTest()
 		eastl::vector < ShaderTestItem > itemList;
 
 		eastl::vector < eastl::string > macroLhs, macroRhs;
+		macroLhs.push_back("MAX_NUM_TEXTURES");
+		macroRhs.push_back("8");
 		macroLhs.push_back("MAX_NUM_OBJECTS");
-		macroLhs.push_back("USE_SHADOWS");
 		macroRhs.push_back("128");
+		macroLhs.push_back("USE_SHADOWS");
 		macroRhs.push_back("1");
 		itemList.push_back(MakeTestItem("AdaptiveOIT", false, true, false, macroLhs, macroRhs));
 		itemList.push_back(MakeTestItem("AdaptiveOITClear", false, true, false, macroLhs, macroRhs));

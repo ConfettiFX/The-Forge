@@ -71,17 +71,26 @@ constant Uniforms_ShadowUniformBuffer & ShadowUniformBuffer,constant Uniforms_cb
 ShadowUniformBuffer(ShadowUniformBuffer),cbPerProp(cbPerProp) {}
 };
 
+struct PerFrame
+{
+	constant Vertex_Shader::Uniforms_ShadowUniformBuffer& ShadowUniformBuffer [[id(0)]];
+};
+
+struct PerDraw
+{
+	constant Vertex_Shader::Uniforms_cbPerProp& cbPerProp [[id(0)]];
+};
 
 vertex Vertex_Shader::PsIn stageMain(
     Vertex_Shader::VSInput input [[stage_in]],
-    constant Vertex_Shader::Uniforms_ShadowUniformBuffer & ShadowUniformBuffer [[buffer(8)]],
-    constant Vertex_Shader::Uniforms_cbPerProp & cbPerProp [[buffer(7)]])
+    constant PerFrame& argBufferPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]],
+    constant PerDraw& argBufferPerDraw [[buffer(UPDATE_FREQ_PER_DRAW)]])
 {
     Vertex_Shader::VSInput input0;
     input0.Position = input.Position;
     input0.TexCoord = input.TexCoord;
     Vertex_Shader main(
-    ShadowUniformBuffer,
-    cbPerProp);
+    argBufferPerFrame.ShadowUniformBuffer,
+    argBufferPerDraw.cbPerProp);
     return main.main(input0);
 }

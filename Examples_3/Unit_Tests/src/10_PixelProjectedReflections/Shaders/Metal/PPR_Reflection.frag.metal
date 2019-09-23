@@ -27,6 +27,8 @@
 
 using namespace metal;
 
+#define UNROLL_ME
+
 #define NUM_SAMPLE 1
 
 #define MAX_PLANES 4
@@ -52,7 +54,7 @@ struct PlaneInfo
 	float4 size;
 };
 
-struct planeInfoBufferData
+struct PlaneInfoBufferData
 {
 	PlaneInfo planeInfo[MAX_PLANES];
 	uint numPlanes;
@@ -82,7 +84,7 @@ struct VSOutput {
 
 
 
-bool intersectPlane( uint index,  float3 worldPos,  float2 fragUV,  planeInfoBufferData planeInfoBuffer,  ExtendCameraData cbExtendCamera, depth2d<float> DepthTexture,sampler defaultSampler)
+bool intersectPlane( uint index,  float3 worldPos,  float2 fragUV,  PlaneInfoBufferData planeInfoBuffer,  ExtendCameraData cbExtendCamera, depth2d<float> DepthTexture,sampler defaultSampler)
 { 
 	
 	//relfectedUVonPlanar = float2(0.0, 0.0);
@@ -227,22 +229,39 @@ float fade(float2 UV)
 	return clamp( 1.0 - max( pow( NDC.y * NDC.y, 4.0) , pow( NDC.x * NDC.x, 4.0)) , 0.0, 1.0); 
 }
 
+struct FSData {
+    texture2d<float> SceneTexture                        [[id(0)]];
+    device uint * IntermediateBuffer              [[id(1)]];
+    depth2d<float, access::sample> DepthTexture          [[id(2)]];
+    sampler defaultSampler                               [[id(3)]];
+};
 
-fragment float4 stageMain(VSOutput input [[stage_in]],
-							constant ExtendCameraData& cbExtendCamera		[[buffer(1)]],
-                            constant planeInfoBufferData& planeInfoBuffer	[[buffer(2)]],
-							device atomic_uint * IntermediateBuffer [[buffer(3)]],
-							constant PropertiesData& cbProperties			[[buffer(4)]],
+struct FSDataPerFrame {
+    constant PlaneInfoBufferData& planeInfoBuffer    [[id(0)]];
+    constant PropertiesData& cbProperties            [[id(1)]];
+    constant ExtendCameraData& cbExtendCamera        [[id(2)]];
+};
 
-							texture2d<float> SceneTexture					[[texture(0)]],
-							depth2d<float, access::sample> DepthTexture					[[texture(1)]],
-
-                            sampler defaultSampler [[sampler(0)]])
-{	
+fragment float4 stageMain(
+  VSOutput input                            [[stage_in]],
+  constant FSData& fsData                   [[buffer(UPDATE_FREQ_NONE)]],
+  constant FSDataPerFrame& fsDataPerFrame   [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
+{
+    /*
+    switch (fsDataPerFrame.planeInfoBuffer.numPlanes)
+    {
+        case 1: return float4(1.0, 0.0, 0.0, 1.0);
+        case 2: return float4(0.0, 1.0, 0.0, 1.0);
+        case 3: return float4(0.0, 0.0, 1.0, 1.0);
+        case 4: return float4(0.0, 0.0, 0.0, 1.0);
+    }
+    */
+    
 	float4 outColor =  float4(0.0, 0.0, 0.0, 0.0);
 	
-	uint screenWidth = uint( cbExtendCamera.viewPortSize.x );
-	uint screenHeight = uint( cbExtendCamera.viewPortSize.y );
+	uint screenWidth = uint( fsDataPerFrame.cbExtendCamera.viewPortSize.x );
+	uint screenHeight = uint( fsDataPerFrame.cbExtendCamera.viewPortSize.y );
 	
 	uint indexY = uint( input.uv.y * screenHeight );
 	uint indexX = uint( input.uv.x * screenWidth );
@@ -251,8 +270,8 @@ fragment float4 stageMain(VSOutput input [[stage_in]],
 
 	uint bufferInfo = 0;
 	{
-		//bufferInfo = IntermediateBuffer[index];
-		bufferInfo = atomic_load_explicit(&IntermediateBuffer[index], memory_order_relaxed);
+		bufferInfo = fsData.IntermediateBuffer[index];
+//		bufferInfo = atomic_load_explicit(&fsData.IntermediateBuffer[index], memory_order_relaxed);
 	}
 
 	bool bIsInterect = false;
@@ -260,23 +279,39 @@ fragment float4 stageMain(VSOutput input [[stage_in]],
 	thread uint CoordSys;
 	float2 offset = unPacked( bufferInfo , float2(screenWidth, screenHeight), CoordSys).xy;
 
-	float depth =  DepthTexture.sample(defaultSampler, input.uv);
+	float depth =  fsData.DepthTexture.sample(fsData.defaultSampler, input.uv);
 
-	float4 worldPos = getWorldPosition(input.uv, depth, cbExtendCamera);
+	float4 worldPos = getWorldPosition(input.uv, depth, fsDataPerFrame.cbExtendCamera);
 
+    #define UNROLL(i) \
+        if(intersectPlane(i, worldPos.xyz, input.uv, fsDataPerFrame.planeInfoBuffer, fsDataPerFrame.cbExtendCamera, fsData.DepthTexture, fsData.defaultSampler)) \
+        { \
+            bIsInterect = true; \
+        }
+    
 	//Check if current pixel is in the bound of planars
-	for(uint i = 0; i < planeInfoBuffer.numPlanes; i++)
-	{	
-		if(intersectPlane(i, worldPos.xyz, input.uv, planeInfoBuffer, cbExtendCamera, DepthTexture, defaultSampler))
-		{
-			bIsInterect = true;
-		}
-	}
+    const uint count = fsDataPerFrame.planeInfoBuffer.numPlanes;
+#ifdef UNROLL_ME
+    UNROLL(0);
 
+    if (!bIsInterect && count >= 2) { UNROLL(1); }
+    if (!bIsInterect && count >= 3) { UNROLL(2); }
+    if (!bIsInterect && count >= 4) { UNROLL(3); }
+
+#else
+    //uint i = 0;
+    for(uint i = 0; i < count; i++)
+    {
+        UNROLL(i);
+        if (bIsInterect) break;
+    }
+#endif
+     
 	//If is not in the boundary of planar, exit
 	if(!bIsInterect)
 	{
-		atomic_store_explicit(&IntermediateBuffer[index], UINT_MAX, memory_order_relaxed);
+		//atomic_store_explicit(&fsData.IntermediateBuffer[index], UINT_MAX, memory_order_relaxed);
+        atomic_fetch_max_explicit((device atomic_uint*)&fsData.IntermediateBuffer[index], UINT_MAX, memory_order_relaxed);
 		return outColor;
 	}
 	
@@ -302,9 +337,9 @@ fragment float4 stageMain(VSOutput input [[stage_in]],
 		offsetLen = length(offset.xy);
 
 	
-		outColor = SceneTexture.sample(defaultSampler, relfectedUV, 0);
+		outColor = fsData.SceneTexture.sample(fsData.defaultSampler, relfectedUV, 0);
 		
-		if(cbProperties.useFadeEffect > 0.5 )
+		if(fsDataPerFrame.cbProperties.useFadeEffect > 0.5 )
 			outColor *= fade(relfectedUV);
 	
 		outColor.w = offsetLen;
@@ -313,6 +348,7 @@ fragment float4 stageMain(VSOutput input [[stage_in]],
 	{
 		outColor.w = 1;
 	}
-	atomic_store_explicit(&IntermediateBuffer[index], UINT_MAX, memory_order_relaxed);
-	return outColor;
+	//atomic_store_explicit(&fsData.IntermediateBuffer[index], UINT_MAX, memory_order_relaxed);
+	atomic_fetch_max_explicit((device atomic_uint*)&fsData.IntermediateBuffer[index], UINT_MAX, memory_order_relaxed);
+    return outColor;
 }

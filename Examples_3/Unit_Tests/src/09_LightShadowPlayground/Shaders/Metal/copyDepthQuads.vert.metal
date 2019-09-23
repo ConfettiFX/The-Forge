@@ -56,14 +56,17 @@ constant Uniforms_AtlasQuads_CB & AtlasQuads_CB) :
 AtlasQuads_CB(AtlasQuads_CB) {}
 };
 
+struct VSData {
+    constant Vertex_Shader::Uniforms_AtlasQuads_CB & AtlasQuads_CB [[id(0)]];
+};
 
 vertex Vertex_Shader::VSOutput stageMain(
-uint vertexID [[vertex_id]],
-    constant Vertex_Shader::Uniforms_AtlasQuads_CB & AtlasQuads_CB [[buffer(0)]])
+    uint vertexID               [[vertex_id]],
+    constant VSData& vsData     [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
     uint vertexID0;
     vertexID0 = vertexID;
-    Vertex_Shader main(
-    AtlasQuads_CB);
+    Vertex_Shader main(vsData.AtlasQuads_CB);
     return main.main(vertexID0);
 }

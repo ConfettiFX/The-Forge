@@ -25,7 +25,7 @@
 */
 
 
-layout (std140, set=0, binding=0) uniform uniformBlock {
+layout (std140, UPDATE_FREQ_PER_FRAME, binding=0) uniform uniformBlock {
 	uniform mat4 mvp;
     uniform vec4 c_diffuse;
 	uniform vec4 c_mu;
@@ -38,7 +38,7 @@ layout (std140, set=0, binding=0) uniform uniformBlock {
 };
 
 // Read/write image format is flexible
-layout (set=0, binding=1, rgba32f) uniform image2D outputTexture;
+layout (UPDATE_FREQ_NONE, binding=1, rgba32f) uniform image2D outputTexture;
 
 
 ///////////////////////////////////////

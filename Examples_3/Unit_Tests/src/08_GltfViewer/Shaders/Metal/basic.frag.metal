@@ -175,10 +175,19 @@ float3 getNormalFromMap( texture2d<float> normalMap, sampler defaultSampler, flo
 
     float3 N = normalize(normal);
     float3 T = normalize(Q1*st2.g - Q2*st1.g);
-    float3 B = -normalize(cross(N,T));
-    float3x3 TBN = float3x3(T,B,N);
-    float3 res = TBN * tangentNormal ;
-    return res;
+	T = normalize(T);
+
+	if(isnan(T.x) ||isnan(T.y) || isnan(T.z))
+	{
+		float3 UpVec = abs(N.y) < 0.999 ? float3(0.0, 1.0, 0.0) : float3(0.0, 0.0, 1.0);
+		T = normalize(cross(N, UpVec));
+	}
+
+    float3 B = normalize(cross(T, N));
+    float3x3 TBN = float3x3(T, B, N);
+
+    float3 res = TBN * tangentNormal;
+    return normalize(res);
 };
 
 float3 ComputeLight(float3 albedo, float3 lightColor,
@@ -334,34 +343,48 @@ struct PSOut
     float4 outColor [[color(0)]];
 };
 
+struct Scene
+{
+	texture2d<float, access::sample> ShadowTexture                    [[id(0)]];
+	sampler  clampMiplessLinearSampler                                [[id(1)]];
+};
+
+struct PerFrame
+{
+	constant Uniforms_cbPerPass &           cbPerPass                 [[id(0)]];
+	constant Uniforms_ShadowUniformBuffer & ShadowUniformBuffer       [[id(1)]];
+};
+
+struct PerDraw
+{
+	constant Uniforms_cbPerProp & cbPerProp [[id(0)]];
+	texture2d<float, access::sample> albedoMap                        [[id(1)]];
+	texture2d<float, access::sample> normalMap                        [[id(2)]];
+	texture2d<float, access::sample> metallicRoughnessMap             [[id(3)]];
+	texture2d<float, access::sample> aoMap                            [[id(4)]];
+	texture2d<float, access::sample> emissiveMap                      [[id(5)]];
+	
+	sampler  samplerAlbedo                                            [[id(6 + 0)]];
+	sampler  samplerNormal                                            [[id(6 + 1)]];
+	sampler  samplerMR                                                [[id(6 + 2)]];
+	sampler  samplerAO                                                [[id(6 + 3)]];
+	sampler  samplerEmissive                                          [[id(6 + 4)]];
+};
+
 fragment PSOut stageMain(PsIn     input                                                    [[stage_in]],
-                         sampler  samplerAlbedo                                            [[sampler(0)]],
-                         sampler  samplerNormal                                            [[sampler(1)]],
-                         sampler  samplerMR                                                [[sampler(2)]],
-                         sampler  samplerAO                                                [[sampler(3)]],
-                         sampler  samplerEmissive                                          [[sampler(4)]],
-                         sampler  clampMiplessLinearSampler                                [[sampler(5)]],
-                         
-                         constant Uniforms_cbPerPass & cbPerPass                           [[buffer(6)]],
-                         constant Uniforms_cbPerProp & cbPerProp                           [[buffer(7)]],
-                         constant Uniforms_ShadowUniformBuffer & ShadowUniformBuffer       [[buffer(8)]],
-                         
-                         texture2d<float, access::sample> albedoMap                        [[texture(9)]],
-                         texture2d<float, access::sample> normalMap                        [[texture(10)]],
-                         texture2d<float, access::sample> metallicRoughnessMap             [[texture(11)]],
-                         texture2d<float, access::sample> aoMap                            [[texture(12)]],
-                         texture2d<float, access::sample> emissiveMap                      [[texture(13)]],
-                         texture2d<float, access::sample> ShadowTexture                    [[texture(14)]])
+						 constant Scene& argBufferStatic                                   [[buffer(UPDATE_FREQ_NONE)]],
+						 constant PerFrame& argBufferPerFrame                              [[buffer(UPDATE_FREQ_PER_FRAME)]],
+						 constant PerDraw& argBufferPerDraw                                 [[buffer(UPDATE_FREQ_PER_DRAW)]])
 {
     PSOut Out;
-	float4 albedoInfo = albedoMap.sample(samplerAlbedo, input.uv);
+	float4 albedoInfo = argBufferPerDraw.albedoMap.sample(argBufferPerDraw.samplerAlbedo, input.uv);
    
     float3 albedo = albedoInfo.rgb;
     float alpha = albedoInfo.a;
-    float3 metallicRoughness = ( metallicRoughnessMap.sample(samplerMR, input.uv)).rgb;
-    float ao = ( aoMap.sample(samplerAO, input.uv)).r;
-    float3 emissive = ( emissiveMap.sample(samplerEmissive, input.uv)).rgb;
-    float3 normal = getNormalFromMap(normalMap, samplerNormal, input.uv, input.pos, input.normal);
+    float3 metallicRoughness = ( argBufferPerDraw.metallicRoughnessMap.sample(argBufferPerDraw.samplerMR, input.uv)).rgb;
+    float ao = ( argBufferPerDraw.aoMap.sample(argBufferPerDraw.samplerAO, input.uv)).r;
+    float3 emissive = ( argBufferPerDraw.emissiveMap.sample(argBufferPerDraw.samplerEmissive, input.uv)).rgb;
+    float3 normal = getNormalFromMap(argBufferPerDraw.normalMap, argBufferPerDraw.samplerNormal, input.uv, input.pos, input.normal);
     
     float3 metalness = float3(metallicRoughness.b);
     float roughness = metallicRoughness.g;
@@ -378,45 +401,45 @@ fragment PSOut stageMain(PsIn     input                                         
 	}
 	else
 	{
-		alpha = mix(input.baseColor.a, alpha * input.baseColor.a, (float)cbPerProp.hasAlbedoMap);
+		alpha = mix(input.baseColor.a, alpha * input.baseColor.a, (float)argBufferPerDraw.cbPerProp.hasAlbedoMap);
 	}
 
 	albedo = albedo * input.baseColor.rgb;
 	metalness = metalness * input.metallicRoughness.x;
 	roughness = roughness * input.metallicRoughness.y;
 
-	albedo = mix(input.baseColor.rgb, albedo, (float)cbPerProp.hasAlbedoMap);
-	normal = mix(input.normal, normal, (float)cbPerProp.hasNormalMap);
-	metalness = mix(float3(input.metallicRoughness.x, input.metallicRoughness.x, input.metallicRoughness.x), metalness, (float)cbPerProp.hasMetallicRoughnessMap);
-	roughness = mix(input.metallicRoughness.y, roughness, (float)cbPerProp.hasMetallicRoughnessMap);
-	emissive = mix(float3(0.0f,0.0f,0.0f), emissive, (float)cbPerProp.hasEmissiveMap);
-	ao = mix(1.0 - metallicRoughness.r, ao, (float)cbPerProp.hasAOMap);
+	albedo = mix(input.baseColor.rgb, albedo, (float)argBufferPerDraw.cbPerProp.hasAlbedoMap);
+	normal = mix(input.normal, normal, (float)argBufferPerDraw.cbPerProp.hasNormalMap);
+	metalness = mix(float3(input.metallicRoughness.x, input.metallicRoughness.x, input.metallicRoughness.x), metalness, (float)argBufferPerDraw.cbPerProp.hasMetallicRoughnessMap);
+	roughness = mix(input.metallicRoughness.y, roughness, (float)argBufferPerDraw.cbPerProp.hasMetallicRoughnessMap);
+	emissive = mix(float3(0.0f,0.0f,0.0f), emissive, (float)argBufferPerDraw.cbPerProp.hasEmissiveMap);
+	ao = mix(1.0 - metallicRoughness.r, ao, (float)argBufferPerDraw.cbPerProp.hasAOMap);
 
 	roughness = clamp(0.05f, 1.0f, roughness);
     
     // Compute Direction light
     float3 N = normal;   
-    float3 V = normalize(cbPerPass.camPos.xyz - input.pos);
+    float3 V = normalize(argBufferPerFrame.cbPerPass.camPos.xyz - input.pos);
 	float NoV = max(dot(N,V), 0.0);
 
 	float3 result = float3(0.0, 0.0, 0.0);
    
     for(uint i=0; i<3; ++i)
 	{
-		float3 L = normalize(float3(cbPerPass.lightDirection[i].x, cbPerPass.lightDirection[i].y, cbPerPass.lightDirection[i].z));
+		float3 L = normalize(float3(argBufferPerFrame.cbPerPass.lightDirection[i].x, argBufferPerFrame.cbPerPass.lightDirection[i].y, argBufferPerFrame.cbPerPass.lightDirection[i].z));
 		float3 H = normalize(V + L);
 		float NoL = max(dot(N,L),0.0);
 
-		result += ComputeLight(albedo, cbPerPass.lightColor[i].rgb, metalness, roughness, N, L, V, H, NoL, NoV, alphaMode, cbPerProp.unlit) * cbPerPass.lightColor[i].a;
+		result += ComputeLight(albedo, argBufferPerFrame.cbPerPass.lightColor[i].rgb, metalness, roughness, N, L, V, H, NoL, NoV, alphaMode, argBufferPerDraw.cbPerProp.unlit) * argBufferPerFrame.cbPerPass.lightColor[i].a;
 	}
 
 	// AO
 	result *= ao;
 
-    result *= CalcPCFShadowFactor(ShadowUniformBuffer.LightViewProj, input.pos, ShadowTexture, clampMiplessLinearSampler);
+    result *= CalcPCFShadowFactor(argBufferPerFrame.ShadowUniformBuffer.LightViewProj, input.pos, argBufferStatic.ShadowTexture, argBufferStatic.clampMiplessLinearSampler);
 
 	// Ambeint Light
-	result += albedo * cbPerPass.lightColor[3].rgb * cbPerPass.lightColor[3].a;
+	result += albedo * argBufferPerFrame.cbPerPass.lightColor[3].rgb * argBufferPerFrame.cbPerPass.lightColor[3].a;
 	result += emissive;
     
     // Tonemap and gamma correct

@@ -38,7 +38,7 @@ struct PackedVertexTexcoord {
 };
 
 struct VSOutput {
-	float4 position [[position]];
+    float4 position [[position]];
 };
 
 struct PerBatchUniforms {
@@ -56,16 +56,20 @@ struct IndirectDrawArguments
 
 struct VSInput
 {
-	float4 Position [[attribute(0)]];
+    float4 Position [[attribute(0)]];
+};
+
+struct VSData {
+    constant PerFrameConstants& uniforms;
 };
 
 // Vertex shader
 vertex VSOutput stageMain(
-                          VSInput input                                    [[stage_in]],
-                          constant PerFrameConstants& uniforms             [[buffer(2)]]
+    VSInput input                           [[stage_in]],
+    constant VSData& vsData                 [[buffer(UPDATE_FREQ_PER_FRAME)]]
 )
 {
-	VSOutput result;
-	result.position = uniforms.transform[VIEW_CAMERA].mvp * input.Position;
-	return result;
+    VSOutput result;
+    result.position = vsData.uniforms.transform[VIEW_CAMERA].mvp * input.Position;
+    return result;
 }

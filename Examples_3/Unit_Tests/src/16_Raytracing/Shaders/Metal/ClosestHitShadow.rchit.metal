@@ -5,6 +5,12 @@ using namespace metal;
 
 #include "ShaderTypes.h"
 
+#ifndef TARGET_IOS
+struct CSData {
+    texture2d<float, access::write> gOutput;
+};
+#endif
+
 // [numthreads(8, 8, 1)]
 kernel void chsShadow(uint2 tid                     [[thread_position_in_grid]],
                       //default resources
@@ -16,8 +22,12 @@ kernel void chsShadow(uint2 tid                     [[thread_position_in_grid]],
                       device uint *triangleMasks              [[buffer(6)]], //Rustam: change to instanceMasks
                       device uint *hitGroupID                 [[buffer(7)]],
                       device ShaderSettings &shaderSettings   [[buffer(8)]],
-                      
-                      texture2d<float, access::write> gOutput  [[texture(0)]])
+#ifndef TARGET_IOS
+                      constant CSData& csData                    [[buffer(UPDATE_FREQ_NONE)]]
+#else
+                      texture2d<float, access::write> gOutput    [[texture(0)]]
+#endif
+)
 {
     if (tid.x < uniforms.width && tid.y < uniforms.height) {
         unsigned int rayIdx = tid.y * uniforms.width + tid.x;
@@ -48,7 +58,11 @@ kernel void chsShadow(uint2 tid                     [[thread_position_in_grid]],
             
             
             // Clear the destination image to black
+#ifndef TARGET_IOS
+            csData.gOutput.write(float4(0.8 * pload.color, 1.0f), tid);
+#else
             gOutput.write(float4(0.8 * pload.color, 1.0f), tid);
+#endif
         }
 
     }

@@ -73,12 +73,17 @@ struct IndirectDrawArguments
     uint startInstance;
 };
 
+struct VSData {
+    constant PerFrameConstants& uniforms              [[buffer(4)]];
+};
+
 // Vertex shader
 vertex VSOutput stageMain(VSInput input                                     [[stage_in]],
-                          constant PerFrameConstants& uniforms              [[buffer(4)]])
+                          constant VSData& vsData [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
 	VSOutput Out;
-	Out.position = uniforms.transform[VIEW_CAMERA].mvp * input.position;
+	Out.position = vsData.uniforms.transform[VIEW_CAMERA].mvp * input.position;
 	Out.texCoord = input.texCoord;
 	Out.normal = input.normal;
 	Out.tangent = input.tangent;

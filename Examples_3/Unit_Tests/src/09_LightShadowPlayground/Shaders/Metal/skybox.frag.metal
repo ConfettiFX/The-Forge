@@ -49,17 +49,20 @@ struct Fragment_Shader
 	skyboxTex(skyboxTex),skyboxSampler(skyboxSampler) {}
 };
 
+struct FSData {
+    texturecube<float> skyboxTex    [[id(0)]];
+    sampler skyboxSampler           [[id(1)]];
+};
 
 fragment float4 stageMain(
-						  Fragment_Shader::VSOutput input [[stage_in]],
-						  texturecube<float> skyboxTex [[texture(0)]],
-						  sampler skyboxSampler [[sampler(0)]])
+    Fragment_Shader::VSOutput input [[stage_in]],
+    constant FSData& fsData         [[buffer(UPDATE_FREQ_NONE)]]
+)
 {
 	Fragment_Shader::VSOutput input0;
 	input0.Position = float4(input.Position.xyz, 1.0 / input.Position.w);
 	input0.pos = input.pos;
-	Fragment_Shader main(skyboxTex,
-						 skyboxSampler);
+	Fragment_Shader main(fsData.skyboxTex, fsData.skyboxSampler);
 	return main.main(input0);
 }
 

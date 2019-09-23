@@ -25,7 +25,7 @@
 #version 450 core
 #extension GL_GOOGLE_include_directive : require
 
-#include "shading.glsl"
+#include "shading.h"
 
 layout (location = 0) in vec4 WorldPosition;
 layout (location = 1) in vec4 NormalOut;
@@ -35,7 +35,7 @@ layout (location = 3) flat in uint MatID;
 layout(location = 0) out vec4 Accumulation;
 layout(location = 1) out float Revealage;
 
-layout(set = 1, binding = 20) uniform WBOITSettings
+layout(UNIT_CBV_WBOIT) uniform WBOITSettings
 {
 	float colorResistance;	// Increase if low-coverage foreground transparents are affecting background transparent color.
 	float rangeAdjustment;	// Change to avoid saturating at the clamp bounds.

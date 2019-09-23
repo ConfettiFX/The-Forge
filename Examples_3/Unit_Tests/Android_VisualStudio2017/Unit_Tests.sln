@@ -212,9 +212,6 @@ EndProject
 Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "GltfViewer.Packaging", "08_GltfViewer\GltfViewer.Packaging\GltfViewer.Packaging.androidproj", "{3C00EC43-57B7-4FBA-A411-26073E3FA837}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GltfViewer.NativeActivity", "08_GltfViewer\GltfViewer.NativeActivity\GltfViewer.NativeActivity.vcxproj", "{68F48840-8AFC-444F-B7CA-96905009D8E6}"
-	ProjectSection(ProjectDependencies) = postProject
-		{29FAB285-1EF0-4F63-9F85-D78DA2E88462} = {29FAB285-1EF0-4F63-9F85-D78DA2E88462}
-	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AssetPipeline", "Libraries\Tools\AssetPipeline\AssetPipeline.vcxproj", "{7F731144-580B-423B-B808-A3B42A9C662B}"
 EndProject

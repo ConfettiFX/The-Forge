@@ -13,56 +13,14 @@
     <Filter Include="Shaders\D3D12">
       <UniqueIdentifier>{e709093c-5257-4d1b-abe9-7a286b60474f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ASM">
-      <UniqueIdentifier>{72b7376e-3ae8-4de5-94b4-fa96a713880a}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Mesh_SDF">
-      <UniqueIdentifier>{3af607cb-2a0c-4ba9-ba34-0bd09a85a031}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Shape">
-      <UniqueIdentifier>{c2be7189-c78c-4b3d-b138-399967cc1607}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\09_LightShadowPlayground\09_LightShadowPlayground.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\09_LightShadowPlayground\Geometry.cpp" />
-    <ClCompile Include="..\src\09_LightShadowPlayground\ASM.cpp">
-      <Filter>ASM</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\09_LightShadowPlayground\ASMFrustum.cpp">
-      <Filter>ASM</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\09_LightShadowPlayground\ASMQuadTree.cpp">
-      <Filter>ASM</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\09_LightShadowPlayground\ASMTileCache.cpp">
-      <Filter>ASM</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\09_LightShadowPlayground\SDFVolumeData.cpp">
-      <Filter>Mesh_SDF</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\09_LightShadowPlayground\SDFVolumeTextureAtlas.cpp">
-      <Filter>Mesh_SDF</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\09_LightShadowPlayground\Interval.cpp">
-      <Filter>Shape</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\09_LightShadowPlayground\AABBox.cpp">
-      <Filter>Shape</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\09_LightShadowPlayground\Triangle.cpp">
-      <Filter>Shape</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\09_LightShadowPlayground\SDFVolumeTextureAtlasLayout.cpp">
-      <Filter>Mesh_SDF</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\09_LightShadowPlayground\BVHTree.cpp" />
-    <ClCompile Include="..\src\09_LightShadowPlayground\Helper.cpp">
+    <ClCompile Include="..\src\09_LightShadowPlayground\Geometry.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\09_LightShadowPlayground\CPUImage.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\skybox.frag">
@@ -259,65 +217,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\09_LightShadowPlayground\Helper.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\Geometry.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\ASM.h">
-      <Filter>ASM</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\ASMFrustum.h">
-      <Filter>ASM</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\ASMQuadTree.h">
-      <Filter>ASM</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\ASMTileCache.h">
-      <Filter>ASM</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\AtlasQuads.h">
-      <Filter>ASM</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\Camera.h">
-      <Filter>ASM</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\ConvexHull2D.h">
-      <Filter>ASM</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\IntrusiveUnorderedPtrSet.h">
-      <Filter>ASM</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\SDFVolumeData.h">
-      <Filter>Mesh_SDF</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\SDFVolumeTextureAtlas.h">
-      <Filter>Mesh_SDF</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\Intersection.h">
-      <Filter>Shape</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\Interval.h">
-      <Filter>Shape</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\Ray.h">
-      <Filter>Shape</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\AABBox.h">
-      <Filter>Shape</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\Slab.h">
-      <Filter>Shape</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\Triangle.h">
-      <Filter>Shape</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\SDFVolumeTextureAtlasLayout.h">
-      <Filter>Mesh_SDF</Filter>
-    </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\BVHTree.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\Constant.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\Shader_Defs.h">
       <Filter>Shaders\Vulkan</Filter>
     </ClInclude>
@@ -339,21 +238,20 @@
     <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\shading.h">
       <Filter>Shaders\Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\ASMConstant.h">
-      <Filter>ASM</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\D3D12\ASMShader_Defs.h">
       <Filter>Shaders\D3D12</Filter>
     </ClInclude>
     <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\ASMShader_Defs.h">
       <Filter>Shaders\Vulkan</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\SDF_Constant.h">
-      <Filter>Mesh_SDF</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\D3D12\SDF_Constant.h">
       <Filter>Shaders\D3D12</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\09_LightShadowPlayground\CPUImage.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Geometry.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\SDF_Constant.h">
+      <Filter>Shaders\Vulkan</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

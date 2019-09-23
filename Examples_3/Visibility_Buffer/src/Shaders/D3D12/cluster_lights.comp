@@ -26,9 +26,9 @@
 
 // This compute shader determines if a light of index groupId overlaps
 // the cluster (thread.x,thread.y). Then the light is added to the cluster.
-RWStructuredBuffer<uint> lightClustersCount : register(u0);
-RWStructuredBuffer<uint> lightClusters : register(u1);
-ConstantBuffer<PerFrameConstants> uniforms : register(b2);
+RWStructuredBuffer<uint> lightClustersCount : register(u0, UPDATE_FREQ_PER_FRAME);
+RWStructuredBuffer<uint> lightClusters : register(u1, UPDATE_FREQ_PER_FRAME);
+ConstantBuffer<PerFrameConstants> uniforms : register(b2, UPDATE_FREQ_PER_FRAME);
 StructuredBuffer<LightData> lights : register(t3);
 
 [numthreads(LIGHT_CLUSTER_WIDTH, LIGHT_CLUSTER_HEIGHT, 1)]

@@ -74,14 +74,17 @@ constant Uniforms_PackedAtlasQuads_CB & PackedAtlasQuads_CB) :
 PackedAtlasQuads_CB(PackedAtlasQuads_CB) {}
 };
 
+struct VSData {
+    constant Vertex_Shader::Uniforms_PackedAtlasQuads_CB& PackedAtlasQuads_CB [[id(0)]];
+};
 
 vertex Vertex_Shader::VSOutput stageMain(
-uint vertexID [[vertex_id]],
-    constant Vertex_Shader::Uniforms_PackedAtlasQuads_CB & PackedAtlasQuads_CB [[buffer(0)]])
+    uint vertexID               [[vertex_id]],
+    constant VSData& vsData     [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
     uint vertexID0;
     vertexID0 = vertexID;
-    Vertex_Shader main(
-    PackedAtlasQuads_CB);
+    Vertex_Shader main(vsData.PackedAtlasQuads_CB);
     return main.main(vertexID0);
 }

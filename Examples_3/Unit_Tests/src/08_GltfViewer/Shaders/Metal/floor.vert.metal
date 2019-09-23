@@ -26,6 +26,10 @@ using namespace metal;
 
 struct Vertex_Shader
 {
+    struct Uniforms_ShadowUniformBuffer
+    {
+        float4x4 LightViewProj;
+    };
     struct Uniforms_cbPerFrame
     {
         float4x4 worldMat;
@@ -60,15 +64,20 @@ constant Uniforms_cbPerFrame & cbPerFrame) :
 cbPerFrame(cbPerFrame) {}
 };
 
+struct PerFrame
+{
+	constant Vertex_Shader::Uniforms_ShadowUniformBuffer& ShadowUniformBuffer [[id(0)]];
+	constant Vertex_Shader::Uniforms_cbPerFrame& cbPerFrame [[id(1)]];
+};
 
 vertex Vertex_Shader::VSOutput stageMain(
     Vertex_Shader::VSInput input [[stage_in]],
-    constant Vertex_Shader::Uniforms_cbPerFrame & cbPerFrame [[buffer(1)]])
+    constant PerFrame& argBufferPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]])
 {
     Vertex_Shader::VSInput input0;
     input0.Position = input.Position;
     input0.TexCoord = input.TexCoord;
     Vertex_Shader main(
-    cbPerFrame);
+    argBufferPerFrame.cbPerFrame);
     return main.main(input0);
 }

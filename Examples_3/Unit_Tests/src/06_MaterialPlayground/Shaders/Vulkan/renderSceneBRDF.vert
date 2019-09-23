@@ -30,7 +30,7 @@ layout(location = 1) in vec3 Normal;
 layout(location = 2) in vec2 UV;
 
 
-layout(set = 0, binding = 0) uniform cbCamera 
+layout(UPDATE_FREQ_PER_FRAME, binding = 0) uniform cbCamera 
 {
 	mat4 projView;
 	mat4 invProjView;
@@ -46,7 +46,7 @@ layout(set = 0, binding = 0) uniform cbCamera
 	float fNormalMapIntensity;
 };
 
-layout(set = 3, binding = 1) uniform cbObject
+layout(UPDATE_FREQ_PER_DRAW, binding = 1) uniform cbObject
 {
 	mat4 worldMat;
 	vec3 albedo;

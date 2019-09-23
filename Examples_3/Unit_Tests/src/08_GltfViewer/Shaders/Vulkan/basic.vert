@@ -31,7 +31,7 @@ layout(location = 3) in uvec4 InBaseColor;
 layout(location = 4) in uvec2 InMetallicRoughness;
 layout(location = 5) in uvec2 InAlphaSettings;
 
-layout(std140, set = 0, binding = 0) uniform cbPerPass 
+layout(std140, UPDATE_FREQ_PER_FRAME, binding = 0) uniform cbPerPass 
 {
 	uniform mat4	projView;
 	uniform vec4    camPos;
@@ -40,7 +40,7 @@ layout(std140, set = 0, binding = 0) uniform cbPerPass
 	uniform ivec4   quantizationParams;
 };
 
-layout(std140, set = 1, binding = 0) uniform cbPerProp
+layout(std140, UPDATE_FREQ_PER_DRAW, binding = 0) uniform cbPerProp
 {
 	uniform mat4  world;
 	uniform mat4  InvTranspose;
@@ -74,7 +74,8 @@ void main()
     float unorm8Scale = float(1 << 8) - 1.0f;
 
 	vec4 inPosition = vec4((vec3(InPosition.xyz) / unormPositionScale) * posScale, 1.0f) + posOffset;
-	vec4 worldPosition = world * inPosition + centerOffset;
+	inPosition += centerOffset;
+	vec4 worldPosition = world * inPosition;
 	worldPosition.xyz /= posScale;
 
 	vec3 inNormal = vec3(InNormal.xyz) / snormNormalScale;

@@ -306,7 +306,7 @@ class StaticWindowManager
 						FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errorMessageID,
 						MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
 					eastl::string message(messageBuffer, size);
-					ErrorMsg(message.c_str());
+					LOGF(eERROR, message.c_str());
 					return;
 				}
 				else

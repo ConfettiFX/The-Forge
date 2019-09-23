@@ -84,7 +84,6 @@ CmdPool* pCmdPool = NULL;
 Cmd**    ppCmds = NULL;
 
 SwapChain*    pSwapChain = NULL;
-RenderTarget* pDepthBuffer = NULL;
 Fence*        pRenderCompleteFences[gImageCount] = { NULL };
 Semaphore*    pImageAcquiredSemaphore = NULL;
 Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
@@ -312,7 +311,7 @@ public:
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_ANY, [](InputActionContext* ctx) { return gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, true); } };
+		actionDesc = { InputBindings::BUTTON_ANY, [](InputActionContext* ctx) { return gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition); } };
 		addInputAction(&actionDesc);
 
 		return true;
@@ -353,8 +352,6 @@ public:
 		//
 		if (!addSwapChain())
 			return false;
-		if (!addDepthBuffer())
-			return false;
 
 		// LOAD USER INTERFACE
 		//
@@ -371,7 +368,6 @@ public:
 		gAppUI.Unload();
 
 		removeSwapChain(pRenderer, pSwapChain);
-		removeRenderTarget(pRenderer, pDepthBuffer);
 	}
 
 	void Update(float deltaTime)
@@ -413,18 +409,14 @@ public:
 		TextureBarrier barriers[] =    // wait for resource transition
 		{
 			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
-			{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE },
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 2, barriers, false);
+		cmdResourceBarrier(cmd, 0, NULL, 1, barriers);
 
 		// bind and clear the render target
 		LoadActionsDesc loadActions = {};    // render target clean command
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		loadActions.mClearColorValues[0] = clearVal;
-		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth.depth = 1.0f;
-		loadActions.mClearDepth.stencil = 0;
-		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
@@ -445,7 +437,7 @@ public:
 		// PRESENT THE GRPAHICS QUEUE
 		//
 		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, true);
+		cmdResourceBarrier(cmd, 0, NULL, 1, barriers);
 		endCmd(cmd);
 		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
@@ -468,23 +460,6 @@ public:
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;
-	}
-
-	bool addDepthBuffer()
-	{
-		RenderTargetDesc depthRT = {};
-		depthRT.mArraySize = 1;
-		depthRT.mClearValue.depth = 1.0f;
-		depthRT.mClearValue.stencil = 0;
-		depthRT.mDepth = 1;
-		depthRT.mFormat = ImageFormat::D32F;
-		depthRT.mHeight = mSettings.mHeight;
-		depthRT.mSampleCount = SAMPLE_COUNT_1;
-		depthRT.mSampleQuality = 0;
-		depthRT.mWidth = mSettings.mWidth;
-		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
-
-		return pDepthBuffer != NULL;
 	}
 };
 

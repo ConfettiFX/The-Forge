@@ -12,7 +12,7 @@
 
 #include "CodeWriter.h"
 #include "HLSLTree.h"
-
+#include "Parser.h"
 
 class StringLibrary;
 
@@ -52,6 +52,7 @@ public:
     {
         unsigned int flags;
         const char* constantBufferPrefix;
+		eastl::vector < BindingShift >shiftVec;
 
         Options()
         {
@@ -74,18 +75,12 @@ private:
 		AttributeModifier_Inout,
     };
 
-    void OutputExpressionList(HLSLExpression* expression, eastl::vector < HLSLArgument* > argument = {});
-
-	void OutputExpressionListVec(eastl::vector < HLSLExpression* > expression, eastl::vector < HLSLArgument* > argument = {});
-
-	
-	void OutputExpression(HLSLExpression* expression, const HLSLType* dstType = NULL);
-	void OutputExpressionDirect(HLSLExpression* expression, const HLSLType* dstType, bool allowCast);
-
+	void OutputExpressionList(const eastl::vector<HLSLExpression*>& expressions, const eastl::vector <HLSLArgument*>& argument = {}, size_t i = 0);
+	void OutputExpression(HLSLExpression* expression, const HLSLType* dstType = NULL, bool allowCast = true);
 	void OutputExpressionForBufferArray(HLSLExpression* expression, const HLSLType* dstType = NULL);
 
     void OutputIdentifier(const CachedString & name);
-	void OutputArgumentsVec(const eastl::vector < HLSLArgument* > & arguments);
+	void OutputArguments(const eastl::vector < HLSLArgument* > & arguments);
 
 
 	void OutputAttributes(int indent, HLSLAttribute* attribute);
@@ -115,9 +110,9 @@ private:
     void OutputBufferAccessExpression(HLSLBuffer* buffer, HLSLExpression* expression, const HLSLType& type, unsigned int postOffset);
     unsigned int OutputBufferAccessIndex(HLSLExpression* expression, unsigned int postOffset);
 
-    void OutputBuffer(int indent, HLSLBuffer* buffer);
+	void OutputArrayExpression(int arrayDimension, HLSLExpression* (&arrayDimExpression)[MAX_DIM]);
 
-	void OutPushConstantIdentifierTextureStateExpression(int size, int counter, const HLSLTextureStateExpression* pTextureStateExpression, bool* bWritten);
+    void OutputBuffer(int indent, HLSLBuffer* buffer);
 
     HLSLFunction* FindFunction(HLSLRoot* root, const CachedString & name);
     HLSLStruct* FindStruct(HLSLRoot* root, const CachedString & name);
@@ -135,122 +130,6 @@ private:
     CachedString GetBuiltInSemantic(const CachedString & semantic, AttributeModifier modifier, int* outputIndex = 0);
 	CachedString GetBuiltInSemantic(const CachedString & semantic, AttributeModifier modifier, const HLSLType& type, int* outputIndex = 0);
 	CachedString GetAttribQualifier(AttributeModifier modifier);
-
-	void GetRegisterNumbering(const char* registerName, char* dst);
-	int GetLayoutSetNumbering(const char* registerSpaceName);
-
-	bool HandleTextureStateBinaryExpression(HLSLExpression* bie, HLSLTextureStateExpression* tse)
-	{
-		HLSLBinaryExpression* binaryExpression = static_cast<HLSLBinaryExpression*>(bie);
-
-		bool result = false;
-
-		//recursive
-		if (binaryExpression->expression1->nodeType == HLSLNodeType_BinaryExpression)
-		{
-			result = HandleTextureStateBinaryExpression(binaryExpression->expression1, tse);
-		}
-
-		if (result)
-			return result;
-
-		if (binaryExpression->expression2->nodeType == HLSLNodeType_BinaryExpression)
-		{
-			result = HandleTextureStateBinaryExpression(binaryExpression->expression2, tse);
-		}
-
-		if (result)
-			return result;
-
-
-		if (binaryExpression->expression1->nodeType == HLSLNodeType_FunctionCall)
-		{
-			HLSLFunctionCall* fc = static_cast<HLSLFunctionCall*>(binaryExpression->expression1);
-			fc->pTextureStateExpression = tse;
-
-			OutputExpression(binaryExpression->expression1);
-		}
-		else if (binaryExpression->expression1->nodeType == HLSLNodeType_MemberAccess)
-		{
-			HLSLMemberAccess* ma = static_cast<HLSLMemberAccess*>(binaryExpression->expression1);
-			HLSLFunctionCall* fc = static_cast<HLSLFunctionCall*>(ma->object);
-			fc->pTextureStateExpression = tse;
-
-			OutputExpression(binaryExpression->expression1);
-		}
-		else if (binaryExpression->expression2->nodeType == HLSLNodeType_FunctionCall)
-		{
-			HLSLFunctionCall* fc = static_cast<HLSLFunctionCall*>(binaryExpression->expression2);
-			fc->pTextureStateExpression = tse;
-
-			OutputExpression(binaryExpression->expression2);
-		}
-		else if (binaryExpression->expression2->nodeType == HLSLNodeType_MemberAccess)
-		{
-			HLSLMemberAccess* ma = static_cast<HLSLMemberAccess*>(binaryExpression->expression2);
-			HLSLFunctionCall* fc = static_cast<HLSLFunctionCall*>(ma->object);
-			fc->pTextureStateExpression = tse;
-
-			OutputExpression(binaryExpression->expression2);
-		}
-		else
-		{
-			//error
-			return false;
-		}
-
-		return true;
-	}
-
-
-	bool IsRWTexture(HLSLBaseType type)
-	{
-		switch (type)
-		{
-			case HLSLBaseType_RWTexture1D:
-			case HLSLBaseType_RWTexture1DArray:
-			case HLSLBaseType_RWTexture2D:
-			case HLSLBaseType_RWTexture2DArray:
-			case HLSLBaseType_RWTexture3D:
-				return true;
-			default:
-				return false;
-		}			
-	}
-
-	bool IsRasterizerOrderedTexture(HLSLBaseType type)
-	{
-		switch (type)
-		{
-		case HLSLBaseType_RasterizerOrderedTexture1D:
-		case HLSLBaseType_RasterizerOrderedTexture1DArray:
-		case HLSLBaseType_RasterizerOrderedTexture2D:
-		case HLSLBaseType_RasterizerOrderedTexture2DArray:
-		case HLSLBaseType_RasterizerOrderedTexture3D:
-			return true;
-		default:
-			return false;
-		}
-	}
-
-	bool IsTexture(HLSLBaseType type)
-	{
-		switch (type)
-		{
-		case HLSLBaseType_Texture1D:
-		case HLSLBaseType_Texture1DArray:
-		case HLSLBaseType_Texture2D:
-		case HLSLBaseType_Texture2DArray:
-		case HLSLBaseType_Texture3D:
-		case HLSLBaseType_Texture2DMS:
-		case HLSLBaseType_Texture2DMSArray:
-		case HLSLBaseType_TextureCube:
-		case HLSLBaseType_TextureCubeArray:
-			return true;
-		default:
-			return false;
-		}
-	}
 
 	CachedString MakeCached(const char * str);
 

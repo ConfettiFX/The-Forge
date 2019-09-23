@@ -27,43 +27,46 @@ using namespace metal;
 
 struct Vertex_Shader
 {
-	struct Uniforms_RootConstantCameraSky
-	{
-		float4x4 projView;
-		float3 camPos;
-	};
-	constant Uniforms_RootConstantCameraSky & RootConstantCameraSky;
-	struct VSInput
-	{
-		float4 Position [[attribute(0)]];
-	};
-	struct VSOutput
-	{
-		float4 Position [[position]];
-		float3 pos;
-	};
-	VSOutput main(VSInput input)
-	{
-		VSOutput result;
-		(result.Position = ((RootConstantCameraSky.projView)*(input.Position)));
-		(result.Position = result.Position.xyww);
-		(result.pos = input.Position.xyz);
-		return result;
-	};
-	
-	Vertex_Shader(
-				  constant Uniforms_RootConstantCameraSky & RootConstantCameraSky) :
-	RootConstantCameraSky(RootConstantCameraSky) {}
+    struct Uniforms_RootConstantCameraSky
+    {
+        float4x4 projView;
+        float3 camPos;
+    };
+    constant Uniforms_RootConstantCameraSky & RootConstantCameraSky;
+    struct VSInput
+    {
+        float4 Position [[attribute(0)]];
+    };
+    struct VSOutput
+    {
+        float4 Position [[position]];
+        float3 pos;
+    };
+    VSOutput main(VSInput input)
+    {
+        VSOutput result;
+        (result.Position = ((RootConstantCameraSky.projView)*(input.Position)));
+        (result.Position = result.Position.xyww);
+        (result.pos = input.Position.xyz);
+        return result;
+    };
+    
+    Vertex_Shader(
+                  constant Uniforms_RootConstantCameraSky & RootConstantCameraSky) :
+    RootConstantCameraSky(RootConstantCameraSky) {}
 };
 
+struct VSData {
+    constant Vertex_Shader::Uniforms_RootConstantCameraSky& UniformCameraSky;
+};
 
 vertex Vertex_Shader::VSOutput stageMain(
-										 Vertex_Shader::VSInput input [[stage_in]],
-										 constant Vertex_Shader::Uniforms_RootConstantCameraSky & RootConstantCameraSky [[buffer(1)]])
+    Vertex_Shader::VSInput input [[stage_in]],
+    constant VSData& vsData [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
-	Vertex_Shader::VSInput input0;
-	input0.Position = input.Position;
-	Vertex_Shader main(RootConstantCameraSky);
-	return main.main(input0);
+    Vertex_Shader::VSInput input0;
+    input0.Position = input.Position;
+    Vertex_Shader main(vsData.UniformCameraSky);
+    return main.main(input0);
 }
-

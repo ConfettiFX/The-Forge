@@ -27,6 +27,7 @@
 
 #define MAX_PLANETS 20    // Does not affect test, just for allocating space in uniform block. Must match with shader.
 
+
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
@@ -101,7 +102,8 @@ Pipeline*      pSkyBoxDrawPipeline = NULL;
 RootSignature* pRootSignature = NULL;
 Sampler*       pSamplerSkyBox = NULL;
 Texture*       pSkyBoxTextures[6];
-DescriptorBinder* pDescriptorBinder = NULL;
+DescriptorSet* pDescriptorSetTexture = { NULL };
+DescriptorSet* pDescriptorSetUniforms = { NULL };
 VirtualJoystickUI gVirtualJoystick;
 DepthState*      pDepth = NULL;
 RasterizerState* pSkyboxRast = NULL;
@@ -172,11 +174,6 @@ public:
 
 		initResourceLoaderInterface(pRenderer);
 
-    // Initialize profile
-    initProfiler(pRenderer);
-
-    addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
-
 		// Loads Skybox Textures
 		for (int i = 0; i < 6; ++i)
 		{
@@ -221,8 +218,10 @@ public:
 		rootDesc.ppShaders = shaders;
 		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
-		DescriptorBinderDesc descriptorBinderDesc[2] = { { pRootSignature }, { pRootSignature } };
-		addDescriptorBinder(pRenderer, 0, 2, descriptorBinderDesc, &pDescriptorBinder);
+		DescriptorSetDesc desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &desc, &pDescriptorSetTexture);
+		desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * 2 };
+		addDescriptorSet(pRenderer, &desc, &pDescriptorSetUniforms);
 
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
@@ -433,15 +432,14 @@ public:
 		if (!initInputSystem(pWindow))
 			return false;
 
-		// Microprofiler Actions
-		// #TODO: Remove this once the profiler UI is ported to use our UI system
-		InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gMicroProfiler; } };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
-		addInputAction(&actionDesc);
+    // Initialize microprofiler and it's UI.
+    initProfiler();
+    
+    // Gpu profiler can only be added after initProfile.
+    addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		// App Actions
-		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+    InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
@@ -449,7 +447,7 @@ public:
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gMicroProfiler);
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -471,6 +469,33 @@ public:
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
+		
+		// Prepare descriptor sets
+		DescriptorData params[6] = {};
+		params[0].pName = "RightText";
+		params[0].ppTextures = &pSkyBoxTextures[0];
+		params[1].pName = "LeftText";
+		params[1].ppTextures = &pSkyBoxTextures[1];
+		params[2].pName = "TopText";
+		params[2].ppTextures = &pSkyBoxTextures[2];
+		params[3].pName = "BotText";
+		params[3].ppTextures = &pSkyBoxTextures[3];
+		params[4].pName = "FrontText";
+		params[4].ppTextures = &pSkyBoxTextures[4];
+		params[5].pName = "BackText";
+		params[5].ppTextures = &pSkyBoxTextures[5];
+		updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture, 6, params);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			DescriptorData params[1] = {};
+			params[0].pName = "uniformBlock";
+			params[0].ppBuffers = &pSkyboxUniformBuffer[i];
+			updateDescriptorSet(pRenderer, i * 2 + 0, pDescriptorSetUniforms, 1, params);
+
+			params[0].ppBuffers = &pProjViewUniformBuffer[i];
+			updateDescriptorSet(pRenderer, i * 2 + 1, pDescriptorSetUniforms, 1, params);
+		}
 
 		return true;
 	}
@@ -488,20 +513,22 @@ public:
 		gAppUI.Exit();
 
 		// Exit profile
-		exitProfiler();
+    exitProfiler();
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			removeResource(pProjViewUniformBuffer[i]);
 			removeResource(pSkyboxUniformBuffer[i]);
 		}
+
+		removeDescriptorSet(pRenderer, pDescriptorSetTexture);
+		removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
+
 		removeResource(pSphereVertexBuffer);
 		removeResource(pSkyBoxVertexBuffer);
 
 		for (uint i = 0; i < 6; ++i)
 			removeResource(pSkyBoxTextures[i]);
-
-		removeDescriptorBinder(pRenderer, pDescriptorBinder);
 
 		removeSampler(pRenderer, pSamplerSkyBox);
 		removeShader(pRenderer, pSphereShader);
@@ -522,7 +549,7 @@ public:
 		removeCmd_n(pCmdPool, gImageCount, ppCmds);
 		removeCmdPool(pRenderer, pCmdPool);
 
-    removeGpuProfiler(pRenderer, pGpuProfiler);
+		removeGpuProfiler(pRenderer, pGpuProfiler);
 		removeResourceLoaderInterface(pRenderer);
 		removeQueue(pGraphicsQueue);
 		removeRenderer(pRenderer);
@@ -542,18 +569,18 @@ public:
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
 
-		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
+		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		//layout and pipeline for sphere draw
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 2;
 		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGB32F;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
 		vertexLayout.mAttribs[0].mBinding = 0;
 		vertexLayout.mAttribs[0].mLocation = 0;
 		vertexLayout.mAttribs[0].mOffset = 0;
 		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-		vertexLayout.mAttribs[1].mFormat = ImageFormat::RGB32F;
+		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
 		vertexLayout.mAttribs[1].mBinding = 0;
 		vertexLayout.mAttribs[1].mLocation = 1;
 		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
@@ -565,7 +592,6 @@ public:
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepth;
 		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
 		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
 		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
@@ -579,7 +605,7 @@ public:
 		vertexLayout = {};
 		vertexLayout.mAttribCount = 1;
 		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
 		vertexLayout.mAttribs[0].mBinding = 0;
 		vertexLayout.mAttribs[0].mLocation = 0;
 		vertexLayout.mAttribs[0].mOffset = 0;
@@ -659,15 +685,9 @@ public:
 		/************************************************************************/
 		/************************************************************************/
 
-    // ProfileSetDisplayMode()
-    // TODO: need to change this better way 
     if(gMicroProfiler != bPrevToggleMicroProfiler)
     {
-       Profile& S = *ProfileGet();
-       int nValue = gMicroProfiler ? 1 : 0;
-       nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
-       S.nDisplay = nValue;
-
+       toggleProfiler();
        bPrevToggleMicroProfiler = gMicroProfiler;
     }
 
@@ -712,51 +732,35 @@ public:
 		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
 
-    cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
+		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
 
 		TextureBarrier barriers[] = {
 			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
 			{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE },
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 2, barriers, false);
+		cmdResourceBarrier(cmd, 0, NULL, 2, barriers);
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
+		cmdBindDescriptorSet(cmd, 0, pDescriptorSetTexture);
     
 		//// draw skybox
-    cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw skybox", true);
+		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw skybox", true);
 		cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
-
-		DescriptorData params[7] = {};
-		params[0].pName = "uniformBlock";
-		params[0].ppBuffers = &pSkyboxUniformBuffer[gFrameIndex];
-		params[1].pName = "RightText";
-		params[1].ppTextures = &pSkyBoxTextures[0];
-		params[2].pName = "LeftText";
-		params[2].ppTextures = &pSkyBoxTextures[1];
-		params[3].pName = "TopText";
-		params[3].ppTextures = &pSkyBoxTextures[2];
-		params[4].pName = "BotText";
-		params[4].ppTextures = &pSkyBoxTextures[3];
-		params[5].pName = "FrontText";
-		params[5].ppTextures = &pSkyBoxTextures[4];
-		params[6].pName = "BackText";
-		params[6].ppTextures = &pSkyBoxTextures[5];
-		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignature, 7, params);
+		cmdBindDescriptorSet(cmd, gFrameIndex * 2 + 0, pDescriptorSetUniforms);
 		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, NULL);
 		cmdDraw(cmd, 36, 0);
-    cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
 		////// draw planets
-    cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Planets", true);
+		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Planets", true);
 		cmdBindPipeline(cmd, pSpherePipeline);
-		params[0].ppBuffers = &pProjViewUniformBuffer[gFrameIndex];
-		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignature, 1, params);
+		cmdBindDescriptorSet(cmd, gFrameIndex * 2 + 1, pDescriptorSetUniforms);
 		cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer, NULL);
 		cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, gNumPlanets, 0);
-    cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
 
 	loadActions = {};
@@ -777,16 +781,16 @@ public:
     gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
 #endif
 
-    gAppUI.Gui(pGui);
+    cmdDrawProfiler();
 
-    cmdDrawProfiler(cmd);
+    gAppUI.Gui(pGui);
 
 		gAppUI.Draw(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
     cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
 		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, true);
+		cmdResourceBarrier(cmd, 0, NULL, 1, barriers);
 
     cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 		endCmd(cmd);
@@ -823,7 +827,7 @@ public:
 		depthRT.mClearValue.depth = 1.0f;
 		depthRT.mClearValue.stencil = 0;
 		depthRT.mDepth = 1;
-		depthRT.mFormat = ImageFormat::D32F;
+		depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
 		depthRT.mHeight = mSettings.mHeight;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;

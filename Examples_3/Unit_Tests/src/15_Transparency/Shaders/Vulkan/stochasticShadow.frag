@@ -25,7 +25,7 @@
 #version 450 core
 #extension GL_GOOGLE_include_directive : require
 
-#include "shading.glsl"
+#include "shading.h"
 
 // source: https://www.shadertoy.com/view/4sfGzS
 float hash(vec3 p)

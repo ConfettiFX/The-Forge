@@ -55,7 +55,7 @@ void genTextures(uint32_t texture_count, RawImageData* out_data)
 	}
 
 	uint32_t sliceSize = sizeof(unsigned char) * textureDim * textureDim * 4;
-	out_data->mFormat = ImageFormat::RGBA8;
+	out_data->mFormat = TinyImageFormat_R8G8B8A8_UNORM;
 	out_data->mWidth = textureDim;
 	out_data->mHeight = textureDim;
 	out_data->mDepth = 1;

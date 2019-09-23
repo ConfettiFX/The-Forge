@@ -22,8 +22,8 @@
 * under the License.
 */
 
-RWTexture2D<float3> Source : register(u0, space3);
-RWTexture2D<float3> Destination : register(u1, space3);
+RWTexture2D<float3> Source : register(u0, UPDATE_FREQ_PER_DRAW);
+RWTexture2D<float3> Destination : register(u1, UPDATE_FREQ_PER_DRAW);
 
 cbuffer RootConstant : register(b0)
 {

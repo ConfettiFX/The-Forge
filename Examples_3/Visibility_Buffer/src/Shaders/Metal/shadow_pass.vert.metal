@@ -57,12 +57,16 @@ struct VSInput
 	float4 Position [[attribute(0)]];
 };
 
+struct VSData {
+    constant PerFrameConstants& uniforms;
+};
+
 vertex VSOut stageMain(
 					   VSInput input [[stage_in]],
-					   constant PerFrameConstants& uniforms             [[buffer(2)]]
+                       constant VSData& vsData [[buffer(UPDATE_FREQ_PER_FRAME)]]
 )
 {
 	VSOut output;
-	output.position = uniforms.transform[VIEW_SHADOW].mvp * input.Position;
+	output.position = vsData.uniforms.transform[VIEW_SHADOW].mvp * input.Position;
 	return output;
 }

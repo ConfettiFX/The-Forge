@@ -29,13 +29,13 @@ layout(row_major, push_constant) uniform indirectRootConstant_Block
     uint drawId;
 } indirectRootConstant;
 
-layout(row_major, set = 1, binding = 1) buffer indirectMaterialBuffer
+layout(row_major, UPDATE_FREQ_PER_FRAME, binding = 1) buffer indirectMaterialBuffer
 {
     uint indirectMaterialBuffer_Data[];
 };
 
-layout(set = 0, binding = 2) uniform texture2D diffuseMaps[256];
-layout(set = 0, binding = 3) uniform sampler nearClampSampler;
+layout(UPDATE_FREQ_NONE, binding = 2) uniform texture2D diffuseMaps[256];
+layout(UPDATE_FREQ_NONE, binding = 3) uniform sampler nearClampSampler;
 
 void HLSLmain(PsIn In)
 {

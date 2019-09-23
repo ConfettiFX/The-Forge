@@ -1,3 +1,5 @@
+//#define GENERATE_ORBIS
+
 #pragma once
 //#include "HLSLParser.h"
 
@@ -28,7 +30,12 @@ struct BindingOverride
 	int m_binding;
 };
 
-
+struct BindingShift
+{
+	char m_reg;
+	int m_space;
+	int m_shift;
+};
 
 class Parser
 {
@@ -53,7 +60,7 @@ public:
 		Language_LegacyHLSL,
 		Language_ORBIS,
 		Language_SWITCH,
-		Languate_Num
+		Language_Num
 	};
 
 
@@ -109,6 +116,8 @@ public:
 
 		bool mOverrideRequired;
 		eastl::vector < BindingOverride > mOverrideVec;
+
+		eastl::vector < BindingShift > mShiftVec;
 
 
 		// what operation to actually do with the file. options are:

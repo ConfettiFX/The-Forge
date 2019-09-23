@@ -22,7 +22,7 @@
 * under the License.
 */
 
-#include "shading.hlsl"
+#include "shading.h"
 
 struct VSOutput
 {

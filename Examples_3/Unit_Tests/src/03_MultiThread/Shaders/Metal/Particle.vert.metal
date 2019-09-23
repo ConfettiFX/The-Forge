@@ -48,9 +48,15 @@ struct VSOutput {
     float TexCoord;
 };
 
-vertex VSOutput stageMain(VSInput In                                                [[stage_in]],
-                          constant UniformBlock0& uniformBlock                      [[buffer(1)]],
-                          constant particleRootConstantBlock& particleRootConstant  [[buffer(2)]])
+struct VSData {
+    constant UniformBlock0& uniformBlock  [[id(0)]];
+};
+
+vertex VSOutput stageMain(
+    VSInput In                                                  [[stage_in]],
+    constant VSData& vsData                                     [[buffer(UPDATE_FREQ_PER_FRAME)]],
+    constant particleRootConstantBlock& particleRootConstant    [[buffer(UPDATE_FREQ_USER)]]
+)
 {
     VSOutput result;
     uint rnd = In.seed;
@@ -168,7 +174,7 @@ vertex VSOutput stageMain(VSInput In                                            
     }
 
 
-    result.Position = uniformBlock.mvp * p;
+    result.Position = vsData.uniformBlock.mvp * p;
     result.PointSize = 1.0f;
     result.TexCoord = c;
     return result;

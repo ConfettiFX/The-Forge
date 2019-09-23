@@ -72,16 +72,25 @@ struct Fragment_Shader
 					RootConstantGodrayInfo(RootConstantGodrayInfo) {}
 };
 
+struct FSData {
+    sampler uSampler0 [[id(0)]];
+};
 
-fragment float4 stageMain(Fragment_Shader::PsIn input [[stage_in]],
-						  texture2d<float> uTex0 [[texture(0)]],
-						  sampler uSampler0 [[sampler(0)]],
-						  constant Fragment_Shader::Uniforms_RootConstantGodrayInfo & RootConstantGodrayInfo [[buffer(0)]])
+struct FSDataPerDraw {
+    texture2d<float> uTex0 [[id(0)]];
+};
+
+fragment float4 stageMain(
+    Fragment_Shader::PsIn input [[stage_in]],
+    constant FSData& fsData [[buffer(UPDATE_FREQ_NONE)]],
+    constant FSDataPerDraw& fsDataPerDraw [[buffer(UPDATE_FREQ_PER_DRAW)]],
+    constant Fragment_Shader::Uniforms_RootConstantGodrayInfo& RootConstantGodrayInfo [[buffer(UPDATE_FREQ_USER)]]
+)
 {
 	Fragment_Shader::PsIn input0;
 	input0.position = float4(input.position.xyz, 1.0 / input.position.w);
 	input0.texCoord = input.texCoord;
-	Fragment_Shader main(uTex0, uSampler0, RootConstantGodrayInfo);
+	Fragment_Shader main(fsDataPerDraw.uTex0, fsData.uSampler0, RootConstantGodrayInfo);
 	return main.main(input0);
 }
 

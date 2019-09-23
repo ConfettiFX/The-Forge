@@ -43,12 +43,12 @@ uint calculateOutputVBID(bool opaque, uint drawID, uint primitiveID)
 	return (opaque) ? drawID_primID : (1 << 31) | drawID_primID;
 }
 
-layout(set = 1, binding = 1) restrict readonly buffer indirectMaterialBuffer
+layout(UPDATE_FREQ_PER_FRAME, binding = 1) restrict readonly buffer indirectMaterialBuffer
 {
 	uint indirectMaterialBufferData[];
 };
-layout(set = 0, binding = 2) uniform texture2D diffuseMaps[MAX_TEXTURE_UNITS];
-layout(set = 0, binding = 3) uniform sampler nearClampSampler;
+layout(UPDATE_FREQ_NONE, binding = 2) uniform texture2D diffuseMaps[MAX_TEXTURE_UNITS];
+layout(UPDATE_FREQ_NONE, binding = 3) uniform sampler nearClampSampler;
 
 
 layout(location = 0) in vec2 iTexCoord;

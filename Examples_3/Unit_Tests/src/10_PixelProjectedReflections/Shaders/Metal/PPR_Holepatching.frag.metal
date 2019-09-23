@@ -53,31 +53,39 @@ struct VSOutput {
 	float2 uv;
 };
 
-fragment float4 stageMain(VSOutput input [[stage_in]],
-							constant ExtendCameraData& cbExtendCamera		[[buffer(1)]],
-							constant PropertiesData& cbProperties				[[buffer(2)]],
+struct CSData {
+    sampler nearestSampler                  [[id(0)]];
+    sampler bilinearSampler                 [[id(1)]];
+    texture2d<float> SceneTexture           [[id(2)]];
+    texture2d<float> SSRTexture             [[id(3)]];
+};
 
-							texture2d<float> SceneTexture					[[texture(0)]],
-							texture2d<float> SSRTexture						[[texture(1)]],
+struct CSDataPerFrame {
+    constant ExtendCameraData& cbExtendCamera        [[id(0)]];
+    constant PropertiesData& cbProperties            [[id(1)]];
+};
 
-                            sampler nearestSampler [[sampler(0)]],
-							sampler bilinearSampler [[sampler(1)]])
+fragment float4 stageMain(
+    VSOutput input [[stage_in]],
+    constant CSData& csData [[buffer(UPDATE_FREQ_NONE)]],
+    constant CSDataPerFrame& csDataPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {	
 	float4 outColor;
-	float4 ssrColor = SSRTexture.sample(nearestSampler, input.uv, 0);
-	//return SSRTexture.sample(bilinearSampler, input.uv);
+	float4 ssrColor = csData.SSRTexture.sample(csData.nearestSampler, input.uv, 0);
+	//return csData.SSRTexture.sample(csData.bilinearSampler, input.uv);
 
 	
-	if(cbProperties.renderMode == 0)
+	if(csDataPerFrame.cbProperties.renderMode == 0)
 	{
-		return SceneTexture.sample(bilinearSampler, input.uv);
+		return csData.SceneTexture.sample(csData.bilinearSampler, input.uv);
 	}		
-	else if(cbProperties.renderMode == 1)
+	else if(csDataPerFrame.cbProperties.renderMode == 1)
 	{
 		outColor = float4(0.0, 0.0, 0.0, 0.0);
 	}	
 	
-	if(cbProperties.useHolePatching < 0.5)
+	if(csDataPerFrame.cbProperties.useHolePatching < 0.5)
 	{
 		outColor.w = 1.0;
 
@@ -92,78 +100,69 @@ fragment float4 stageMain(VSOutput input [[stage_in]],
 		float minOffset = threshold;
 		
 
-		float4 neighborColor00 = SSRTexture.sample(nearestSampler, input.uv + float2(1.0/cbExtendCamera.viewPortSize.x, 0.0), 0);
-		float4 neighborColorB00 = SSRTexture.sample(bilinearSampler, input.uv + float2(1.0/cbExtendCamera.viewPortSize.x, 0.0), 0);
+		float4 neighborColor00 = csData.SSRTexture.sample(csData.nearestSampler, input.uv + float2(1.0/csDataPerFrame.cbExtendCamera.viewPortSize.x, 0.0), 0);
+		float4 neighborColorB00 = csData.SSRTexture.sample(csData.bilinearSampler, input.uv + float2(1.0/csDataPerFrame.cbExtendCamera.viewPortSize.x, 0.0), 0);
 		if(neighborColor00.w > 0.0)
 		{
 			minOffset = min(minOffset, neighborColor00.w);			
 		}
 
-		float4 neighborColor01 = SSRTexture.sample(nearestSampler, input.uv - float2(1.0/cbExtendCamera.viewPortSize.x, 0.0), 0);
-		float4 neighborColorB01 = SSRTexture.sample(bilinearSampler, input.uv - float2(1.0/cbExtendCamera.viewPortSize.x, 0.0), 0);
+		float4 neighborColor01 = csData.SSRTexture.sample(csData.nearestSampler, input.uv - float2(1.0/csDataPerFrame.cbExtendCamera.viewPortSize.x, 0.0), 0);
+		float4 neighborColorB01 = csData.SSRTexture.sample(csData.bilinearSampler, input.uv - float2(1.0/csDataPerFrame.cbExtendCamera.viewPortSize.x, 0.0), 0);
 		if(neighborColor01.w > 0.0)
 		{
 			minOffset = min(minOffset, neighborColor01.w);			
 		}
 
-		float4 neighborColor02 = SSRTexture.sample(nearestSampler, input.uv + float2(0.0, 1.0/cbExtendCamera.viewPortSize.y), 0);
-		float4 neighborColorB02 = SSRTexture.sample(bilinearSampler, input.uv + float2(0.0, 1.0/cbExtendCamera.viewPortSize.y), 0);
+		float4 neighborColor02 = csData.SSRTexture.sample(csData.nearestSampler, input.uv + float2(0.0, 1.0/csDataPerFrame.cbExtendCamera.viewPortSize.y), 0);
+		float4 neighborColorB02 = csData.SSRTexture.sample(csData.bilinearSampler, input.uv + float2(0.0, 1.0/csDataPerFrame.cbExtendCamera.viewPortSize.y), 0);
 		if(neighborColor02.w > 0.0)
 		{
 			minOffset = min(minOffset, neighborColor02.w);			
 		}
 
-		float4 neighborColor03 = SSRTexture.sample(nearestSampler, input.uv - float2(0.0, 1.0/cbExtendCamera.viewPortSize.y), 0);
-		float4 neighborColorB03 = SSRTexture.sample(bilinearSampler, input.uv - float2(0.0, 1.0/cbExtendCamera.viewPortSize.y), 0);
+		float4 neighborColor03 = csData.SSRTexture.sample(csData.nearestSampler, input.uv - float2(0.0, 1.0/csDataPerFrame.cbExtendCamera.viewPortSize.y), 0);
+		float4 neighborColorB03 = csData.SSRTexture.sample(csData.bilinearSampler, input.uv - float2(0.0, 1.0/csDataPerFrame.cbExtendCamera.viewPortSize.y), 0);
 		if(neighborColor03.w > 0.0)
 		{
 			minOffset = min(minOffset, neighborColor03.w);			
 		}
 
-		float4 neighborColor04 = SSRTexture.sample(nearestSampler, input.uv + float2(1.0/cbExtendCamera.viewPortSize.x, 1.0/cbExtendCamera.viewPortSize.y), 0);
-		float4 neighborColorB04 = SSRTexture.sample(bilinearSampler, input.uv + float2(1.0/cbExtendCamera.viewPortSize.x, 1.0/cbExtendCamera.viewPortSize.y), 0);
+		float4 neighborColor04 = csData.SSRTexture.sample(csData.nearestSampler, input.uv + float2(1.0/csDataPerFrame.cbExtendCamera.viewPortSize.x, 1.0/csDataPerFrame.cbExtendCamera.viewPortSize.y), 0);
+		float4 neighborColorB04 = csData.SSRTexture.sample(csData.bilinearSampler, input.uv + float2(1.0/csDataPerFrame.cbExtendCamera.viewPortSize.x, 1.0/csDataPerFrame.cbExtendCamera.viewPortSize.y), 0);
 
+		float4 neighborColor05 = csData.SSRTexture.sample(csData.nearestSampler, input.uv + float2(1.0/csDataPerFrame.cbExtendCamera.viewPortSize.x, -1.0/csDataPerFrame.cbExtendCamera.viewPortSize.y), 0);
+		float4 neighborColorB05 = csData.SSRTexture.sample(csData.bilinearSampler, input.uv +float2(1.0/csDataPerFrame.cbExtendCamera.viewPortSize.x, -1.0/csDataPerFrame.cbExtendCamera.viewPortSize.y), 0);
 
-		float4 neighborColor05 = SSRTexture.sample(nearestSampler, input.uv + float2(1.0/cbExtendCamera.viewPortSize.x, -1.0/cbExtendCamera.viewPortSize.y), 0);
-		float4 neighborColorB05 = SSRTexture.sample(bilinearSampler, input.uv +float2(1.0/cbExtendCamera.viewPortSize.x, -1.0/cbExtendCamera.viewPortSize.y), 0);
+		float4 neighborColor06 = csData.SSRTexture.sample(csData.nearestSampler, input.uv + float2(-1.0/csDataPerFrame.cbExtendCamera.viewPortSize.x, 1.0/csDataPerFrame.cbExtendCamera.viewPortSize.y), 0);
+		float4 neighborColorB06 = csData.SSRTexture.sample(csData.bilinearSampler, input.uv + float2(-1.0/csDataPerFrame.cbExtendCamera.viewPortSize.x, 1.0/csDataPerFrame.cbExtendCamera.viewPortSize.y), 0);
 
+		float4 neighborColor07 = csData.SSRTexture.sample(csData.nearestSampler, input.uv - float2(1.0/csDataPerFrame.cbExtendCamera.viewPortSize.x, 1.0/csDataPerFrame.cbExtendCamera.viewPortSize.y), 0);
+		float4 neighborColorB07 = csData.SSRTexture.sample(csData.bilinearSampler, input.uv - float2(1.0/csDataPerFrame.cbExtendCamera.viewPortSize.x, 1.0/csDataPerFrame.cbExtendCamera.viewPortSize.y), 0);
 
-		float4 neighborColor06 = SSRTexture.sample(nearestSampler, input.uv + float2(-1.0/cbExtendCamera.viewPortSize.x, 1.0/cbExtendCamera.viewPortSize.y), 0);
-		float4 neighborColorB06 = SSRTexture.sample(bilinearSampler, input.uv + float2(-1.0/cbExtendCamera.viewPortSize.x, 1.0/cbExtendCamera.viewPortSize.y), 0);
-
-
-		float4 neighborColor07 = SSRTexture.sample(nearestSampler, input.uv - float2(1.0/cbExtendCamera.viewPortSize.x, 1.0/cbExtendCamera.viewPortSize.y), 0);
-		float4 neighborColorB07 = SSRTexture.sample(bilinearSampler, input.uv - float2(1.0/cbExtendCamera.viewPortSize.x, 1.0/cbExtendCamera.viewPortSize.y), 0);
-
-
-		bool bUseExpensiveHolePatching = cbProperties.useExpensiveHolePatching > 0.5;
+		bool bUseExpensiveHolePatching = csDataPerFrame.cbProperties.useExpensiveHolePatching > 0.5;
 
 		if(bUseExpensiveHolePatching)
 		{
-				
 			if(neighborColor04.w > 0.0)
 			{
 				minOffset = min(minOffset, neighborColor04.w);			
 			}
 
-				
 			if(neighborColor05.w > 0.0)
 			{
 				minOffset = min(minOffset, neighborColor05.w);			
 			}
 
-				
 			if(neighborColor06.w > 0.0)
 			{
 				minOffset = min(minOffset, neighborColor06.w);			
 			}
 
-				
 			if(neighborColor07.w > 0.0)
 			{
 				minOffset = min(minOffset, neighborColor07.w);			
 			}
-
 		}
 
 		float blendValue = 0.5;
@@ -223,26 +222,22 @@ fragment float4 stageMain(VSOutput input [[stage_in]],
 			}
 		}
 
-		
 		if(minOffset <= threshold)
 			outColor.w = 1.0;
 		else
 			outColor.w = 0.0;
-
-
 	}
 	
-	if(cbProperties.renderMode == 3)
+	if(csDataPerFrame.cbProperties.renderMode == 3)
 	{
 		if(ssrColor.w <= 0.0)
-			outColor = SceneTexture.sample(bilinearSampler, input.uv);
+			outColor = csData.SceneTexture.sample(csData.bilinearSampler, input.uv);
 	}
 
-	if(cbProperties.renderMode == 2)
+	if(csDataPerFrame.cbProperties.renderMode == 2)
 	{
-		outColor = outColor * cbProperties.intensity + SceneTexture.sample(bilinearSampler, input.uv);	
+		outColor = outColor * csDataPerFrame.cbProperties.intensity + csData.SceneTexture.sample(csData.bilinearSampler, input.uv);
 	}
 
 	return outColor;
-	
 }

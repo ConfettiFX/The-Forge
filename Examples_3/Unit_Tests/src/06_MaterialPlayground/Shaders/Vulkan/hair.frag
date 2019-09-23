@@ -89,17 +89,17 @@ struct Camera
 };
 
 #if defined(HAIR_SHADOW)
-#define CB_CAMERA_SET 2
+#define CB_CAMERA_SET UPDATE_FREQ_PER_BATCH
 #else
-#define CB_CAMERA_SET 0
+#define CB_CAMERA_SET UPDATE_FREQ_PER_FRAME
 #endif
 
-layout(set = CB_CAMERA_SET, binding = 0) uniform cbCamera
+layout(CB_CAMERA_SET, binding = 0) uniform cbCamera
 {
 	Camera Cam;
 };
 
-layout(set = 3, binding = 1) uniform cbHair
+layout(UPDATE_FREQ_PER_DRAW, binding = 1) uniform cbHair
 {
 	mat4 Transform;
 	uint RootColor;
@@ -115,7 +115,7 @@ layout(set = 3, binding = 1) uniform cbHair
 	uint NumVerticesPerStrand;
 };
 
-layout(set = 0, binding = 2) uniform cbHairGlobal
+layout(UPDATE_FREQ_NONE, binding = 2) uniform cbHairGlobal
 {
 	vec4 Viewport;
 	vec4 Gravity;
@@ -123,25 +123,25 @@ layout(set = 0, binding = 2) uniform cbHairGlobal
 	float TimeStep;
 };
 
-layout(set = 0, binding = 6) uniform cbPointLights
+layout(UPDATE_FREQ_NONE, binding = 6) uniform cbPointLights
 {
 	PointLight PointLights[MAX_NUM_POINT_LIGHTS];
 	uint NumPointLights;
 };
 
-layout(set = 0, binding = 7) uniform cbDirectionalLights
+layout(UPDATE_FREQ_NONE, binding = 7) uniform cbDirectionalLights
 {
 	DirectionalLight DirectionalLights[MAX_NUM_DIRECTIONAL_LIGHTS];
 	uint NumDirectionalLights;
 };
 
-layout(set = 2, binding = 10) uniform cbDirectionalLightShadowCameras
+layout(UPDATE_FREQ_PER_BATCH, binding = 10) uniform cbDirectionalLightShadowCameras
 {
 	Camera ShadowCameras[MAX_NUM_DIRECTIONAL_LIGHTS];
 };
 
-layout(set = 2, binding = 8) uniform texture2D DirectionalLightShadowMaps[MAX_NUM_DIRECTIONAL_LIGHTS];
-layout(set = 0, binding = 9) uniform sampler PointSampler;
+layout(UPDATE_FREQ_PER_BATCH, binding = 8) uniform texture2D DirectionalLightShadowMaps[MAX_NUM_DIRECTIONAL_LIGHTS];
+layout(UPDATE_FREQ_NONE, binding = 9) uniform sampler PointSampler;
 
 vec3 ScreenPosToNDC(vec3 screenPos, vec4 viewport)
 {
@@ -323,7 +323,7 @@ vec3 HairShading(vec3 worldPos, vec3 eyeDir, vec3 tangent, vec3 baseColor)
 }
 
 #ifdef SHORT_CUT_CLEAR
-layout(set = 0, binding = 6, r32ui) uniform uimage2DArray DepthsTexture;
+layout(UPDATE_FREQ_NONE, binding = 6, r32ui) uniform uimage2DArray DepthsTexture;
 
 layout(location = 0) in vec2 UV;
 
@@ -335,7 +335,7 @@ void main()
 }
 
 #elif defined(SHORT_CUT_DEPTH_PEELING)
-layout(set = 0, binding = 6, r32ui) uniform uimage2DArray DepthsTexture;
+layout(UPDATE_FREQ_NONE, binding = 6, r32ui) uniform uimage2DArray DepthsTexture;
 
 layout(location = 0) in vec4 Tangent;
 layout(location = 1) in vec4 P0P1;
@@ -377,7 +377,7 @@ void main()
 
 #elif defined(SHORT_CUT_RESOLVE_DEPTH)
 #extension GL_EXT_samplerless_texture_functions : enable
-layout(set = 0, binding = 6) uniform utexture2DArray DepthsTexture;
+layout(UPDATE_FREQ_NONE, binding = 6) uniform utexture2DArray DepthsTexture;
 
 layout(location = 0) in vec2 UV;
 
@@ -424,8 +424,8 @@ void main()
 
 #elif defined(SHORT_CUT_RESOLVE_COLOR)
 #extension GL_EXT_samplerless_texture_functions : enable
-layout(set = 0, binding = 6) uniform texture2D ColorsTexture;
-layout(set = 0, binding = 7) uniform texture2D InvAlphaTexture;
+layout(UPDATE_FREQ_NONE, binding = 6) uniform texture2D ColorsTexture;
+layout(UPDATE_FREQ_NONE, binding = 7) uniform texture2D InvAlphaTexture;
 
 layout(location = 0) in vec2 UV;
 

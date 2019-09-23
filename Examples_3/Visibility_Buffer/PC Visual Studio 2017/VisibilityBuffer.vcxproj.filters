@@ -15,9 +15,6 @@
     <ClInclude Include="..\src\Shaders\D3D12\packing.h">
       <Filter>D3D12</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\Shaders\Vulkan\shading.h">
-      <Filter>Vulkan</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\Shaders\D3D12\shading.h">
       <Filter>D3D12</Filter>
     </ClInclude>
@@ -72,36 +69,6 @@
       <Filter>Vulkan</Filter>
     </CustomBuild>
     <CustomBuild Include="..\src\Shaders\Vulkan\resolve.vert">
-      <Filter>Vulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\Vulkan\shadow_pass.vert">
-      <Filter>Vulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\Vulkan\shadow_pass_alpha.frag">
-      <Filter>Vulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\Vulkan\shadow_pass_alpha.vert">
-      <Filter>Vulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\Vulkan\triangle_filtering.comp">
-      <Filter>Vulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\Vulkan\visibilityBuffer_pass.frag">
-      <Filter>Vulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\Vulkan\visibilityBuffer_pass.vert">
-      <Filter>Vulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\Vulkan\visibilityBuffer_pass_alpha.frag">
-      <Filter>Vulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\Vulkan\visibilityBuffer_pass_alpha.vert">
-      <Filter>Vulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\Vulkan\visibilityBuffer_shade.frag">
-      <Filter>Vulkan</Filter>
-    </CustomBuild>
-    <CustomBuild Include="..\src\Shaders\Vulkan\visibilityBuffer_shade.vert">
       <Filter>Vulkan</Filter>
     </CustomBuild>
   </ItemGroup>
@@ -240,6 +207,39 @@
     </None>
     <None Include="..\src\Shaders\D3D12\triangle_filtering.comp">
       <Filter>D3D12</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\shading.h">
+      <Filter>Vulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\shadow_pass.vert">
+      <Filter>Vulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\shadow_pass_alpha.frag">
+      <Filter>Vulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\shadow_pass_alpha.vert">
+      <Filter>Vulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\triangle_filtering.comp">
+      <Filter>Vulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\visibilityBuffer_pass.frag">
+      <Filter>Vulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\visibilityBuffer_pass.vert">
+      <Filter>Vulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\visibilityBuffer_pass_alpha.frag">
+      <Filter>Vulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\visibilityBuffer_pass_alpha.vert">
+      <Filter>Vulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\visibilityBuffer_shade.frag">
+      <Filter>Vulkan</Filter>
+    </None>
+    <None Include="..\src\Shaders\Vulkan\visibilityBuffer_shade.vert">
+      <Filter>Vulkan</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

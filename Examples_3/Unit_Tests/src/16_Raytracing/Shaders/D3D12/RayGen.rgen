@@ -1,7 +1,7 @@
 RaytracingAccelerationStructure		gRtScene	: register(t0);
 RWTexture2D<float4>					gOutput		: register(u0);
 
-cbuffer gSettings : register(b0)
+cbuffer gSettings : register(b0, space1)
 {
 	float3 CameraPosition;
 	uint  _pad0;

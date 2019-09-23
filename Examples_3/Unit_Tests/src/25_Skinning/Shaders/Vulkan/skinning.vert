@@ -37,18 +37,18 @@ layout(location = 4) in uvec4 iBoneIndices;
 layout(location = 0) out vec3 oNormal;
 layout(location = 1) out vec2 oUV;
 
-layout (std140, set=3, binding=0) uniform uniformBlock 
+layout (std140, UPDATE_FREQ_PER_DRAW, binding=0) uniform uniformBlock 
 {
 	mat4 vpMatrix;
 	mat4 modelMatrix;
 };
 
-layout(std140, set = 0, binding = 1) uniform boneMatrices
+layout(std140, UPDATE_FREQ_PER_DRAW, binding = 1) uniform boneMatrices
 {
 	 mat4 boneMatrix[MAX_NUM_BONES];
 };
 
-layout(std140, set = 0, binding = 2) uniform boneOffsetMatrices
+layout(std140, UPDATE_FREQ_NONE, binding = 2) uniform boneOffsetMatrices
 {
 	mat4 boneOffsetMatrix[MAX_NUM_BONES];
 };

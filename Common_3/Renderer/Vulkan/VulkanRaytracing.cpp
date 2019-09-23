@@ -67,11 +67,9 @@ struct VkGeometryInstanceNV
 	uint64_t       accelerationStructureHandle;
 };
 
-#ifndef ENABLE_RENDERER_RUNTIME_SWITCH
 extern void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
 extern void removeBuffer(Renderer* pRenderer, Buffer* p_buffer);
 extern const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer);
-#endif
 
 extern VkDeviceMemory get_vk_device_memory(Renderer* pRenderer, Buffer* pBuffer);
 extern VkDeviceSize get_vk_device_memory_offset(Renderer* pRenderer, Buffer* pBuffer);
@@ -79,10 +77,6 @@ extern VkDeviceSize get_vk_device_memory_offset(Renderer* pRenderer, Buffer* pBu
 VkBuildAccelerationStructureFlagsNV util_to_vk_acceleration_structure_build_flags(AccelerationStructureBuildFlags flags);
 VkGeometryFlagsNV util_to_vk_geometry_flags(AccelerationStructureGeometryFlags flags);
 VkGeometryInstanceFlagsNV util_to_vk_instance_flags(AccelerationStructureInstanceFlags flags);
-
-#if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)
-namespace vk {
-#endif
 
 bool isRaytracingSupported(Renderer* pRenderer)
 {
@@ -628,10 +622,6 @@ void removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable*
 	conf_free(pTable);
 }
 
-#if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)
-}
-#endif
-
 VkBuildAccelerationStructureFlagsNV util_to_vk_acceleration_structure_build_flags(AccelerationStructureBuildFlags flags)
 {
 	VkBuildAccelerationStructureFlagsNV ret = 0;
@@ -834,21 +824,15 @@ void vk_addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** pp
 	*ppPipeline = pResult;
 }
 
-void vk_FillRaytracingDescriptorData(const AccelerationStructure* pAccelerationStructure, uint64_t* pHash, void* pHandle)
+void vk_FillRaytracingDescriptorData(const AccelerationStructure* pAccelerationStructure, void* pHandle)
 {
 	VkWriteDescriptorSetAccelerationStructureNV* pWriteNV = (VkWriteDescriptorSetAccelerationStructureNV*)pHandle;
 	pWriteNV->sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_NV;
 	pWriteNV->pNext = NULL;
 	pWriteNV->accelerationStructureCount = 1;
 	pWriteNV->pAccelerationStructures = &pAccelerationStructure->mAccelerationStructure;
-
-	*pHash = eastl::mem_hash<uint64_t>()(&pAccelerationStructure->pInstanceDescBuffer->mBufferId, 1, *pHash);
 }
 #else
-#if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)
-namespace vk {
-#endif
-
 bool isRaytracingSupported(Renderer* pRenderer)
 {
 	return false;
@@ -894,9 +878,5 @@ void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure*
 void removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable)
 {
 }
-
-#if defined(__cplusplus) && defined(ENABLE_RENDERER_RUNTIME_SWITCH)
-}
-#endif
 #endif
 #endif

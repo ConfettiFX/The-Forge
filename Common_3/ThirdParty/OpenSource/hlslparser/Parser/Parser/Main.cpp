@@ -147,115 +147,174 @@ int main( int argc, char* argv[] )
 	return ParserTest();
 #else
 	// Parse arguments
-	const char* fileName = NULL;
 	const char* entryName = NULL;
-	//const char* shader = NULL;
-	//const char* _language = NULL;
 	const char* outputFile = NULL;
+	const char* srcFile = NULL;
 
 	//for hull shader in Metal
-	const char* secondaryfileName = NULL;
-	const char* secondaryentryName = NULL;
+	eastl::string source;
 
-	Parser::Target target = Parser::Target_VertexShader;
-	Parser::Language language = Parser::Language_GLSL;
+	Parser::Target target = Parser::Target_Num;
+	Parser::Language language = Parser::Language_Num;
 
-  eastl::string StageName;
+	eastl::string StageName;
  
+	bool error = false;
 
-	if (String_Equal(argv[1], "-fs"))
-	{
-		target = Parser::Target_FragmentShader;
-    StageName.append("frag");
-	}
-	else if (String_Equal(argv[1], "-vs"))
-	{
-		target = Parser::Target_VertexShader;
-    StageName.append("vert");
-	}
-	else if (String_Equal(argv[1], "-hs"))
-	{
-		target = Parser::Target_HullShader;
-    StageName.append("tesc");
-	}
-	else if (String_Equal(argv[1], "-ds"))
-	{
-		target = Parser::Target_DomainShader;
-    StageName.append("tese");
-	}
-	else if (String_Equal(argv[1], "-gs"))
-	{
-		target = Parser::Target_GeometryShader;
-    StageName.append("geom");
-	}
-	else if (String_Equal(argv[1], "-cs"))
-	{
-		target = Parser::Target_ComputeShader;
-    StageName.append("comp");
-	}
+	eastl::vector < BindingShift > bindingShift;
 
-	if (String_Equal(argv[2], "-glsl"))
+	int i = 1;
+	while (i < argc)
 	{
-		language = Parser::Language_GLSL;
+		if (String_Equal(argv[i], "-fs"))
+		{
+			target = Parser::Target_FragmentShader;
+			StageName.append("frag");
+		}
+		else if (String_Equal(argv[i], "-vs"))
+		{
+			target = Parser::Target_VertexShader;
+			StageName.append("vert");
+		}
+		else if (String_Equal(argv[i], "-hs"))
+		{
+			target = Parser::Target_HullShader;
+			StageName.append("tesc");
+		}
+		else if (String_Equal(argv[i], "-ds"))
+		{
+			target = Parser::Target_DomainShader;
+			StageName.append("tese");
+		}
+		else if (String_Equal(argv[i], "-gs"))
+		{
+			target = Parser::Target_GeometryShader;
+			StageName.append("geom");
+		}
+		else if (String_Equal(argv[i], "-cs"))
+		{
+			target = Parser::Target_ComputeShader;
+			StageName.append("comp");
+		}
+		else if (String_Equal(argv[i], "-glsl"))
+		{
+			language = Parser::Language_GLSL;
+		}
+		else if (String_Equal(argv[i], "-hlsl"))
+		{
+			language = Parser::Language_HLSL;
+		}
+		else if (String_Equal(argv[i], "-legacyhlsl"))
+		{
+			// not really supported
+			language = Parser::Language_HLSL;
+		}
+		else if (String_Equal(argv[i], "-msl"))
+		{
+			language = Parser::Language_MSL;
+		}
+#ifdef GENERATE_ORBIS
+		else if (String_Equal(argv[i], "-orbis"))
+		{
+			language = Parser::Language_ORBIS;
+		}
+#endif
+		else if (String_Equal(argv[i], "-Fo"))
+		{
+			if (i+1 < argc)
+			{
+				outputFile = argv[++i];
+			}
+			else
+			{
+				break;
+			}
+		}
+		else if (String_Equal(argv[i], "-E"))
+		{
+			if (i+1 < argc)
+			{
+				entryName = argv[++i];
+			}
+			else
+			{
+				break;
+			}
+		}
+		else if (String_Equal(argv[i], "-fvk-b-shift"))
+		{
+			if (i+2 < argc)
+			{
+				int shift = atoi(argv[++i]);
+				int space = atoi(argv[++i]);
+				bindingShift.push_back(BindingShift{'b', space, shift});
+			}
+			else
+			{
+				break;
+			}
+		}
+		else if (String_Equal(argv[i], "-fvk-s-shift"))
+		{
+			if (i+2 < argc)
+			{
+				int shift = atoi(argv[++i]);
+				int space = atoi(argv[++i]);
+				bindingShift.push_back(BindingShift{'s', space, shift});
+			}
+			else
+			{
+				break;
+			}
+		}
+		else if (String_Equal(argv[i], "-fvk-t-shift"))
+		{
+			if (i+2 < argc)
+			{
+				int shift = atoi(argv[++i]);
+				int space = atoi(argv[++i]);
+				bindingShift.push_back(BindingShift{'t', space, shift});
+			}
+			else
+			{
+				break;
+			}
+		}
+		else if (String_Equal(argv[i], "-fvk-u-shift"))
+		{
+			if (i+2 < argc)
+			{
+				int shift = atoi(argv[++i]);
+				int space = atoi(argv[++i]);
+				bindingShift.push_back(BindingShift{'u', space, shift});
+			}
+			else
+			{
+				break;
+			}
+		}
+		else
+		{
+			if (!srcFile) srcFile = argv[i];
+			source = source + ReadFile(argv[i]);
+		}
+		++i;
 	}
-	else if (String_Equal(argv[2], "-hlsl"))
-	{
-		language = Parser::Language_HLSL;
-	}
-	else if (String_Equal(argv[2], "-legacyhlsl"))
-	{
-		// not really supported
-		language = Parser::Language_HLSL;
-	}
-	else if (String_Equal(argv[2], "-msl"))
-	{
-		language = Parser::Language_MSL;
-	}
-
-
-	if (fileName == NULL)
-	{
-		fileName = argv[3];
-	}
-
-	if (entryName == NULL)
-	{
-		entryName = argv[4];
-	}
-	
-	if (argc >= 5 && outputFile == NULL)
-	{
-		outputFile = argv[5];
-	}
-
-	if (argc >= 6 && secondaryfileName == NULL)
-	{
-		secondaryfileName = argv[6];
-	}
-
-	if (argc >= 7 && secondaryentryName == NULL)
-	{
-		secondaryentryName = argv[7];
-	}
-
-
-  eastl::string srcFileName(fileName);
-
-	// Read input file
-	eastl::string source = ReadFile(fileName);
-	
-	if (secondaryfileName)
-	{
-		eastl::string source2 = ReadFile(secondaryfileName);
-		source = source2 + (source);
-	}
-	
 
 	Parser::Options options;
 	Parser::ParsedData parsedData;
 
-	//options.mDebugPreprocFile = 
-	eastl::string FileName(fileName);
+	if (source.empty())
+	{
+		printf("Nothing to parse\n");
+		return 1;
+	}
+
+	if (language>=Parser::Language_Num || StageName.empty() || !outputFile || !entryName)
+	{
+		printf("Invalid command line");
+		return 1;
+	}
 
 	eastl::string dstPreprocName = "";//FileName + eastl::string("_") + StageName + eastl::string("_preproc.txt");
 	eastl::string dstTokenName = "";// dstDir + baseName + "_" + stage + "_token.txt";
@@ -270,11 +329,12 @@ int main( int argc, char* argv[] )
 	options.mLanguage = language;
 	options.mOperation = Parser::Operation_Generate;
 	options.mTarget = target;
+	options.mShiftVec = bindingShift;
 
 
 	eastl::vector < eastl::string > macroLhs;
 	eastl::vector < eastl::string > macroRhs;
 
-	Parser::ProcessFile(parsedData, srcFileName, entryName, options, macroLhs, macroRhs);
+	Parser::ProcessFile(parsedData, srcFile, entryName, options, macroLhs, macroRhs);
 #endif
 }

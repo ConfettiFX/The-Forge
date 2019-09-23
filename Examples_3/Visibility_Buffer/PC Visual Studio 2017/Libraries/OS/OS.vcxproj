@@ -44,9 +44,7 @@
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_widgets.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\Profiler.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerBase.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerDraw.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerInput.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerUI.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerWidgetsUI.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\TinyEXR\tinyexr.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Text\Fontstash.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp" />
@@ -79,7 +77,7 @@
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerEnableMacro.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerHTML.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerInput.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerUI.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerWidgetsUI.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\Text\Fontstash.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\UI\AppUI.h" />
   </ItemGroup>

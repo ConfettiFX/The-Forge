@@ -31,12 +31,10 @@ Texture3D<float> SDFVolumeTextureAtlas;
 
 RWTexture2D<float4> OutTexture;
 
-
 SamplerState clampToEdgeTrillinearSampler : register(s0);
 SamplerState clampToEdgeNearSampler : register(s1);
 
-
-cbuffer cameraUniformBlock : register(b0)
+cbuffer cameraUniformBlock : register(b0, UPDATE_FREQ_PER_FRAME)
 {
     float4x4 View;
     float4x4 Project;
@@ -56,7 +54,7 @@ cbuffer cameraUniformBlock : register(b0)
 };
 
 
-cbuffer meshSDFUniformBlock : register(b1)
+cbuffer meshSDFUniformBlock : register(b1, UPDATE_FREQ_PER_FRAME)
 {
 	float4x4 mWorldToVolumeMat[SDF_MAX_OBJECT_COUNT];
 	float4 mUVScaleAndVolumeScale[SDF_MAX_OBJECT_COUNT];
@@ -65,8 +63,6 @@ cbuffer meshSDFUniformBlock : register(b1)
 	float4 mSDFMAD[SDF_MAX_OBJECT_COUNT];
 	uint mNumObjects;
 };
-
-
 
 float2 LineBoxIntersect(float3 RayOrigin, float3 RayEnd, float3 BoxMin, float3 BoxMax)
 {

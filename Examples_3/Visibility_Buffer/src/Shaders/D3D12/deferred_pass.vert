@@ -33,7 +33,7 @@ struct VsIn
     uint tangent : TANGENT;
 };
 
-ConstantBuffer<PerFrameConstants> uniforms : register(b0);
+ConstantBuffer<PerFrameConstants> uniforms : register(b0, UPDATE_FREQ_PER_FRAME);
 
 struct PsIn
 {

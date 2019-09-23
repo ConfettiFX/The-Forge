@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Session Name="/home/confetti/Desktop/Devansh/The-Forge/Examples_3/Visibility_Buffer/UbuntuCodelite/VisibilityBuffer.workspace">
+  <int Value="1" Name="m_selectedTab"/>
+  <wxString Value="/home/confetti/Desktop/Devansh/The-Forge/Examples_3/Visibility_Buffer/UbuntuCodelite/VisibilityBuffer.workspace" Name="m_workspaceName"/>
+  <TabInfoArray Name="TabInfoArray">
+    <TabInfo>
+      <wxString Value="/home/confetti/Desktop/Devansh/The-Forge/Middleware_3/UI/ImguiGUIDriver.cpp" Name="FileName"/>
+      <int Value="538" Name="FirstVisibleLine"/>
+      <int Value="563" Name="CurrentLine"/>
+      <wxArrayString Name="Bookmarks"/>
+      <IntVector Name="CollapsedFolds"/>
+    </TabInfo>
+    <TabInfo>
+      <wxString Value="/home/confetti/Desktop/Devansh/The-Forge/Middleware_3/UI/AppUI.h" Name="FileName"/>
+      <int Value="610" Name="FirstVisibleLine"/>
+      <int Value="627" Name="CurrentLine"/>
+      <wxArrayString Name="Bookmarks"/>
+      <IntVector Name="CollapsedFolds"/>
+    </TabInfo>
+  </TabInfoArray>
+  <SerializedObject Name="m_breakpoints">
+    <long Value="0" Name="Count"/>
+  </SerializedObject>
+</Session>
