@@ -67,7 +67,8 @@ struct Vertex_Shader
         PsIn output;
         float unormPositionScale = (float((float)(1 << 16)) - 1.0);
         float4 inPos = (float4(((float3((float3)((input).position).xyz) / (float3)(unormPositionScale)) * (float3)(cbPerProp.posScale)), 1.0) + cbPerProp.posOffset);
-        float4 worldPosition = (((cbPerProp.world)*(inPos)) + cbPerProp.centerOffset);
+		inPos.xyz += cbPerProp.centerOffset.xyz;
+        float4 worldPosition = (cbPerProp.world)*(inPos);
         ((worldPosition).xyz /= (float3)(cbPerProp.posScale));
         ((output).Position = ((ShadowUniformBuffer.ViewProjMat)*(worldPosition)));
         return output;
@@ -79,10 +80,20 @@ ShadowUniformBuffer(ShadowUniformBuffer),cbPerProp(cbPerProp) {}
 };
 
 
+struct PerFrame
+{
+	constant Vertex_Shader::Uniforms_ShadowUniformBuffer& ShadowUniformBuffer [[id(0)]];
+};
+
+struct PerDraw
+{
+	constant Vertex_Shader::Uniforms_cbPerProp& cbPerProp [[id(0)]];
+};
+
 vertex Vertex_Shader::PsIn stageMain(
     Vertex_Shader::VsIn input [[stage_in]],
-    constant Vertex_Shader::Uniforms_ShadowUniformBuffer & ShadowUniformBuffer [[buffer(8)]],
-    constant Vertex_Shader::Uniforms_cbPerProp & cbPerProp [[buffer(7)]])
+    constant PerFrame& argBufferPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]],
+    constant PerDraw& argBufferPerDraw [[buffer(UPDATE_FREQ_PER_DRAW)]])
 {
     Vertex_Shader::VsIn input0;
     input0.position = input.position;
@@ -92,7 +103,7 @@ vertex Vertex_Shader::PsIn stageMain(
     input0.metallicRoughness = input.metallicRoughness;
     input0.alphaSettings = input.alphaSettings;
     Vertex_Shader main(
-    ShadowUniformBuffer,
-    cbPerProp);
+    argBufferPerFrame.ShadowUniformBuffer,
+    argBufferPerDraw.cbPerProp);
     return main.main(input0);
 }

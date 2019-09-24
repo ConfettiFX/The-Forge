@@ -16,7 +16,7 @@ vec4 MulMat(mat4 lhs, vec4 rhs)
 
 layout(location = 0) in vec3 POSITION;
 
-layout(row_major, set = 1, binding = 0) uniform objectUniformBlock
+layout(row_major, UPDATE_FREQ_PER_DRAW, binding = 0) uniform objectUniformBlock
 {
     mat4 WorldViewProjMat;
     mat4 WorldMat;

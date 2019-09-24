@@ -29,7 +29,7 @@ static float SampleDelta = 0.025;
 
 TextureCube<float4> srcTexture : register(t0);
 //RWStructuredBuffer<float4> dstBuffer : register(u1);
-RWTexture2DArray<float4> dstTexture : register(u2, space1);
+RWTexture2DArray<float4> dstTexture : register(u2, UPDATE_FREQ_PER_FRAME);
 SamplerState skyboxSampler : register(s3);
 
 float4 computeIrradiance(float3 N)

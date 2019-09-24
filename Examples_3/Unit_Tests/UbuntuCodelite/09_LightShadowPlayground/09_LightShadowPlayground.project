@@ -9,55 +9,16 @@
   <Dependencies/>
   <VirtualDirectory Name="src">
     <File Name="../../src/09_LightShadowPlayground/09_LightShadowPlayground.cpp"/>
-    <File Name="../../src/09_LightShadowPlayground/BVHTree.cpp"/>
-    <File Name="../../src/09_LightShadowPlayground/BVHTree.h"/>
-    <File Name="../../src/09_LightShadowPlayground/Constant.h"/>
     <File Name="../../src/09_LightShadowPlayground/Geometry.cpp"/>
     <File Name="../../src/09_LightShadowPlayground/Geometry.h"/>
-    <File Name="../../src/09_LightShadowPlayground/Helper.cpp"/>
-    <File Name="../../src/09_LightShadowPlayground/Helper.h"/>
-    <File Name="../../src/09_LightShadowPlayground/Shaders/D3D12/Shader_Defs.h"/>
-    <File Name="../../src/09_LightShadowPlayground/Shaders/Vulkan/Shader_Defs.h"/>
-    <File Name="../../src/09_LightShadowPlayground/Shaders/D3D12/ASMShader_Defs.h"/>
-    <File Name="../../src/09_LightShadowPlayground/Shaders/Vulkan/ASMShader_Defs.h"/>
-    <File Name="../../src/09_LightShadowPlayground/CPUImage.cpp"/>
-    <File Name="../../src/09_LightShadowPlayground/CPUImage.h"/>
   </VirtualDirectory>
-  <VirtualDirectory Name="ASM">
-    <File Name="../../src/09_LightShadowPlayground/ASM.cpp"/>
-    <File Name="../../src/09_LightShadowPlayground/ASM.h"/>
-    <File Name="../../src/09_LightShadowPlayground/ASMFrustum.cpp"/>
-    <File Name="../../src/09_LightShadowPlayground/ASMFrustum.h"/>
-    <File Name="../../src/09_LightShadowPlayground/ASMQuadTree.cpp"/>
-    <File Name="../../src/09_LightShadowPlayground/ASMQuadTree.h"/>
-    <File Name="../../src/09_LightShadowPlayground/ASMTileCache.cpp"/>
-    <File Name="../../src/09_LightShadowPlayground/ASMTileCache.h"/>
-    <File Name="../../src/09_LightShadowPlayground/AtlasQuads.h"/>
-    <File Name="../../src/09_LightShadowPlayground/Camera.h"/>
-    <File Name="../../src/09_LightShadowPlayground/ConvexHull2D.h"/>
-    <File Name="../../src/09_LightShadowPlayground/IntrusiveUnorderedPtrSet.h"/>
-  </VirtualDirectory>
-  <VirtualDirectory Name="Mesh_SDF">
-    <File Name="../../src/09_LightShadowPlayground/SDF_Constant.h"/>
-    <File Name="../../src/09_LightShadowPlayground/SDF_Shader_Defs.h"/>
-    <File Name="../../src/09_LightShadowPlayground/SDFVolumeData.cpp"/>
-    <File Name="../../src/09_LightShadowPlayground/SDFVolumeData.h"/>
-    <File Name="../../src/09_LightShadowPlayground/SDFVolumeTextureAtlas.cpp"/>
-    <File Name="../../src/09_LightShadowPlayground/SDFVolumeTextureAtlas.h"/>
-    <File Name="../../src/09_LightShadowPlayground/SDFVolumeTextureAtlasLayout.cpp"/>
-    <File Name="../../src/09_LightShadowPlayground/SDFVolumeTextureAtlasLayout.h"/>
-  </VirtualDirectory>
-  <VirtualDirectory Name="Shape">
-    <File Name="../../src/09_LightShadowPlayground/AABBox.cpp"/>
-    <File Name="../../src/09_LightShadowPlayground/AABBox.h"/>
-    <File Name="../../src/09_LightShadowPlayground/Intersection.h"/>
-    <File Name="../../src/09_LightShadowPlayground/Interval.cpp"/>
-    <File Name="../../src/09_LightShadowPlayground/Interval.h"/>
-    <File Name="../../src/09_LightShadowPlayground/Ray.h"/>
-    <File Name="../../src/09_LightShadowPlayground/Slab.h"/>
-    <File Name="../../src/09_LightShadowPlayground/Triangle.cpp"/>
-    <File Name="../../src/09_LightShadowPlayground/Triangle.h"/>
-  </VirtualDirectory>
+  <Dependencies Name="Release">
+    <Project Name="SpirVTools"/>
+    <Project Name="Renderer"/>
+    <Project Name="OS"/>
+    <Project Name="gainput"/>
+    <Project Name="EASTL"/>
+  </Dependencies>
   <VirtualDirectory Name="AssimpImporter">
     <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.cpp"/>
     <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"/>

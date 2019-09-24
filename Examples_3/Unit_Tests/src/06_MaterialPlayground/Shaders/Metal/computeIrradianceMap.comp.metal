@@ -125,14 +125,36 @@ struct Compute_Shader
                                             skyboxSampler(skyboxSampler) {}
 };
 
+struct CSData {
+    texturecube<float> srcTexture                         [[id(0)]];
+    sampler skyboxSampler                                 [[id(1)]];
+};
+
+#ifndef TARGET_IOS
+struct CSDataPerDraw {
+    texture2d_array<float, access::read_write> dstTexture [[id(0)]];
+};
+#endif
+
+
 //[numthreads(16, 16, 1)]
-kernel void stageMain(uint3 DTid[[thread_position_in_grid]],
-                      texturecube<float> srcTexture[[texture(1)]],
-                      texture2d_array<float, access::read_write> dstTexture[[texture(3)]],
-                      sampler skyboxSampler[[sampler(4)]])
+kernel void stageMain(uint3 DTid                            [[thread_position_in_grid]],
+                      constant CSData& csData               [[buffer(UPDATE_FREQ_NONE)]],
+#ifndef TARGET_IOS
+                      device CSDataPerDraw& csDataPerDraw   [[buffer(UPDATE_FREQ_PER_DRAW)]]
+#else
+					  texture2d_array<float, access::read_write> dstTexture [[texture(0)]]
+#endif
+)
 {
     uint3 DTid0;
     DTid0 = DTid;
-    Compute_Shader main(srcTexture, dstTexture, skyboxSampler);
+    Compute_Shader main(csData.srcTexture,
+#ifndef TARGET_IOS
+						csDataPerDraw.dstTexture,
+#else
+						dstTexture,
+#endif
+						csData.skyboxSampler);
     return main.main(DTid0);
 }

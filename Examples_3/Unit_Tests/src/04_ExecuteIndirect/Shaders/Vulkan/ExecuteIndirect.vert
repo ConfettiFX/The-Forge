@@ -65,17 +65,17 @@ struct AsteroidStatic
     uint padding[3];
 };
 
-layout (std140, set=0, binding=5) uniform uniformBlock
+layout (std140, UPDATE_FREQ_PER_FRAME, binding=5) uniform uniformBlock
 {
     uniform mat4 viewProj;
 };
 
-layout (std430, set=0, binding=1) buffer asteroidsStatic
+layout (std430, UPDATE_FREQ_NONE, binding=1) readonly buffer asteroidsStatic
 {
     AsteroidStatic asteroidsStaticBuffer[];
 };
 
-layout (std430, set=0, binding=2) buffer asteroidsDynamic
+layout (std430, UPDATE_FREQ_NONE, binding=2) readonly buffer asteroidsDynamic
 {
     AsteroidDynamic asteroidsDynamicBuffer[];
 };

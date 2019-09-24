@@ -76,28 +76,37 @@ struct BindlessSpecularData
 	array<texture2d<float>,MATERIAL_BUFFER_SIZE> textures;
 };
 
+struct FSData {
+    constant MeshConstants* meshConstantsBuffer        [[id(0)]];
+    sampler textureFilter                              [[id(1)]];
+    array<texture2d<float>,MATERIAL_BUFFER_SIZE> diffuseMaps;
+    array<texture2d<float>,MATERIAL_BUFFER_SIZE> normalMaps;
+    array<texture2d<float>,MATERIAL_BUFFER_SIZE> specularMaps;
+};
+
+struct FSDataPerFrame {
+    constant uint* indirectMaterialBuffer              [[id(0)]];
+};
+
 // Pixel shader for opaque geometry
 [[early_fragment_tests]] fragment PSOutput stageMain(VSOutput input                                     [[stage_in]],
 //                                                     constant RootConstant& indirectRootConstant        [[buffer(0)]],
-                                                     constant uint* indirectMaterialBuffer              [[buffer(1)]],
 //                                                     constant MeshConstants* meshConstantsBuffer        [[buffer(2)]],
-                                                     sampler textureFilter                              [[sampler(0)]],
-                                                     device BindlessDiffuseData& diffuseMaps            [[buffer(12)]],
-                                                     device BindlessNormalData& normalMaps              [[buffer(13)]],
-                                                     device BindlessSpecularData& specularMaps          [[buffer(14)]],
-                                                     constant uint& drawID                              [[buffer(20)]]
+                                                     constant FSData& fsData [[buffer(UPDATE_FREQ_NONE)]],
+                                                     constant FSDataPerFrame& fsDataPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]],
+                                                     constant uint& drawID                              [[buffer(UPDATE_FREQ_USER)]]
 )
 {
 	PSOutput Out;
 	
 	uint matBaseSlot = BaseMaterialBuffer(false, VIEW_CAMERA); //1 is camera view, 0 is shadow map view
-	uint materialID = indirectMaterialBuffer[matBaseSlot + drawID];
+	uint materialID = fsDataPerFrame.indirectMaterialBuffer[matBaseSlot + drawID];
 	
-	Out.albedo = diffuseMaps.textures[materialID].sample(textureFilter, input.texCoord);
+	Out.albedo = fsData.diffuseMaps[materialID].sample(fsData.textureFilter, input.texCoord);
 	
 	// CALCULATE PIXEL COLOR USING INTERPOLATED ATTRIBUTES
 	// Reconstruct normal map Z from X and Y
-	float4 normalData = normalMaps.textures[materialID].sample(textureFilter, input.texCoord);
+	float4 normalData = fsData.normalMaps[materialID].sample(fsData.textureFilter, input.texCoord);
 	
 	float2 normalMapRG = normalData.ga;
 	
@@ -112,7 +121,7 @@ struct BindlessSpecularData
 	// Calculate pixel normal using the normal map and the tangent space vectors
 	Out.normal = float4((reconstructedNormalMap.x * tangent + reconstructedNormalMap.y * binormal + reconstructedNormalMap.z * normal) * 0.5 + 0.5, 0.0);
 	Out.albedo.a = 0.0;
-	Out.specular = specularMaps.textures[materialID].sample(textureFilter, input.texCoord);
+	Out.specular = fsData.specularMaps[materialID].sample(fsData.textureFilter, input.texCoord);
 	Out.simulation = 0.0;
 	
 	return Out;

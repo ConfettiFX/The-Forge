@@ -50,14 +50,18 @@ struct Fragment_Shader
 	msaaSource(msaaSource) {}
 };
 
+struct FSData {
+    texture2d_ms<float> msaaSource [[id(0)]];
+};
 
 fragment float4 stageMain(
-						  Fragment_Shader::PsIn In [[stage_in]],
-						  texture2d_ms<float> msaaSource [[texture(0)]])
+    Fragment_Shader::PsIn In [[stage_in]],
+    constant FSData& fsData  [[buffer(UPDATE_FREQ_NONE)]]
+)
 {
 	Fragment_Shader::PsIn In0;
 	In0.position = float4(In.position.xyz, 1.0 / In.position.w);
-	Fragment_Shader main(msaaSource);
+	Fragment_Shader main(fsData.msaaSource);
 	return main.main(In0);
 }
 

@@ -352,8 +352,13 @@ float3 render( float3 ro, float3 rd )
 	return saturate(col);
 }
 
+struct FSData {
+    constant u_input_UniformBlock& u_input;
+};
+
 fragment float4 stageMain(float4 pixelCoord [[position]],
-                            constant u_input_UniformBlock& u_input[[buffer(1)]])
+    constant FSData& fsData [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
     float3 tot = 0.0;
 #if AA>1
@@ -362,15 +367,15 @@ fragment float4 stageMain(float4 pixelCoord [[position]],
     {
         // pixel coordinates
         float2 o = float2(float(m),float(n)) / float(AA) - 0.5;
-        float2 p = (-u_input.resolution.xy + 2.0*(pixelCoord.xy+o))/u_input.resolution.y;
+        float2 p = (-fsData.u_input.resolution.xy + 2.0*(pixelCoord.xy+o))/fsData.u_input.resolution.y;
 #else    
-        float2 p = (-u_input.resolution.xy + 2.0*pixelCoord.xy)/u_input.resolution.y;
+        float2 p = (-fsData.u_input.resolution.xy + 2.0*pixelCoord.xy)/fsData.u_input.resolution.y;
 #endif
         p.y = -p.y;
 
         // camera
-        float3 rd = (u_input.invView * normalize( float4(p.xy, 2.0, 0.0) )).xyz;
-        float3 ro = u_input.invView[3].xyz;
+        float3 rd = (fsData.u_input.invView * normalize( float4(p.xy, 2.0, 0.0) )).xyz;
+        float3 ro = fsData.u_input.invView[3].xyz;
 
         // render
         float3 col = render( ro, rd );

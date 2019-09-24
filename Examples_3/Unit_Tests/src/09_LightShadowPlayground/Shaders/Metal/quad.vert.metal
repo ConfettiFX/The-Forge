@@ -53,18 +53,21 @@ constant Uniforms_UniformQuadData & UniformQuadData) :
 UniformQuadData(UniformQuadData) {}
 };
 
+struct VSData {
+    constant Vertex_Shader::Uniforms_UniformQuadData & UniformQuadData [[buffer(0)]];
+};
 
 vertex Vertex_Shader::VSOutput stageMain(
-    Vertex_Shader::VSInput input [[stage_in]],
-uint vertexID [[vertex_id]],
-    constant Vertex_Shader::Uniforms_UniformQuadData & UniformQuadData [[buffer(0)]])
+    Vertex_Shader::VSInput input    [[stage_in]],
+    uint vertexID                   [[vertex_id]],
+    constant VSData& vsData         [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
     Vertex_Shader::VSInput input0;
     input0.Position = input.Position;
     input0.Tex_Coord = input.Tex_Coord;
     uint vertexID0;
     vertexID0 = vertexID;
-    Vertex_Shader main(
-    UniformQuadData);
+    Vertex_Shader main(vsData.UniformQuadData);
     return main.main(input0, vertexID0);
 }

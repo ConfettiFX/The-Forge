@@ -60,7 +60,7 @@ struct Fragment_Shader
     struct Uniforms_textureMaps {
          array<texture2d<float>, 128> Textures;
     };
-    constant Uniforms_textureMaps & textureMaps;
+    constant texture2d<float>* textureMaps;
 
     struct PsIn
     {
@@ -79,7 +79,7 @@ struct Fragment_Shader
     {
 		Fragment_Shader::PSOut Out;
 
-        float3 albedo = ( textureMaps.Textures[cbTextureRootConstants.albedoMap].sample(samplerLinear, input.uv)).rgb;
+        float3 albedo = (textureMaps[cbTextureRootConstants.albedoMap].sample(samplerLinear, input.uv)).rgb;
 
         float3 N = normalize(input.normal);
 
@@ -89,28 +89,43 @@ struct Fragment_Shader
         return Out;
     };
 
-    Fragment_Shader(constant Uniforms_cbPerPass & cbPerPass,
-    constant Uniforms_cbPerProp & cbPerProp,
-    constant Uniforms_cbTextureRootConstants & cbTextureRootConstants,
-    sampler samplerLinear,
-    constant Uniforms_textureMaps & textureMaps) : cbPerPass(cbPerPass),
-    cbPerProp(cbPerProp),
-    cbTextureRootConstants(cbTextureRootConstants),
-    samplerLinear(samplerLinear),
-    textureMaps(textureMaps) {}
+    Fragment_Shader(
+                    constant Uniforms_cbPerPass & cbPerPass,
+                    constant Uniforms_cbPerProp & cbPerProp,
+                    constant Uniforms_cbTextureRootConstants & cbTextureRootConstants,
+                    sampler samplerLinear,
+                    constant texture2d<float>* textureMaps
+    )
+    : cbPerPass(cbPerPass)
+    , cbPerProp(cbPerProp)
+    , cbTextureRootConstants(cbTextureRootConstants)
+    , samplerLinear(samplerLinear)
+    , textureMaps(textureMaps)
+    {
+    }
 };
 
+struct FSData {
+    constant Fragment_Shader::Uniforms_cbPerProp& cbPerProp [[id(0)]];
+    sampler samplerLinear [[id(1)]];
+    texture2d<float> textureMaps[128];
+};
 
-fragment Fragment_Shader::PSOut stageMain(Fragment_Shader::PsIn input [[stage_in]],
-  sampler samplerLinear [[sampler(0)]],
-constant     Fragment_Shader::Uniforms_cbPerPass & cbPerPass [[buffer(1)]],
-constant     Fragment_Shader::Uniforms_cbPerProp & cbPerProp [[buffer(2)]],
-constant     Fragment_Shader::Uniforms_cbTextureRootConstants & cbTextureRootConstants [[buffer(3)]],
-constant     Fragment_Shader::Uniforms_textureMaps & textureMaps [[buffer(4)]]) {
+struct FSDataPerFrame {
+    constant Fragment_Shader::Uniforms_cbPerPass & cbPerPass [[id(0)]];
+};
+
+fragment Fragment_Shader::PSOut stageMain(
+    Fragment_Shader::PsIn input                 [[stage_in]],
+    constant FSData& fsData                     [[buffer(UPDATE_FREQ_NONE)]],
+    constant FSDataPerFrame& fsDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]],
+    constant Fragment_Shader::Uniforms_cbTextureRootConstants& cbTextureRootConstants [[buffer(UPDATE_FREQ_USER)]]
+)
+{
     Fragment_Shader::PsIn input0;
     input0.normal = input.normal;
     input0.pos = input.pos;
     input0.uv = input.uv;
-    Fragment_Shader main(cbPerPass, cbPerProp, cbTextureRootConstants, samplerLinear, textureMaps);
-        return main.main(input0);
+    Fragment_Shader main(fsDataPerFrame.cbPerPass, fsData.cbPerProp, cbTextureRootConstants, fsData.samplerLinear, fsData.textureMaps);
+    return main.main(input0);
 }

@@ -42,13 +42,6 @@ struct InstanceData
 	uint _pad0[3];
 };
 
-StructuredBuffer<InstanceData> instanceBuffer : register(t0);
-
-cbuffer rootConstant : register(b1)
-{
-	uint index;
-};
-
 struct VsIn
 {
     float4 position : Position;
@@ -60,7 +53,7 @@ struct PsIn
     float4 position : SV_Position;
     float3 posModel : PosModel;
     float3 normal : Normal;
-    float3 albedo : Color;
+    float4 albedo : Color;
 };
 
 Texture2DArray<float4> uTex0 : register(t1);
@@ -79,9 +72,9 @@ float4 main(PsIn In) : SV_TARGET
     blendWeights = saturate((blendWeights - 0.2) * 7);
     blendWeights /= (blendWeights.x + blendWeights.y + blendWeights.z).xxx;
 
-    float3 coord1 = float3(uvw.yz, (float)instanceBuffer[index].textureID * 3 + 0);
-    float3 coord2 = float3(uvw.zx, (float)instanceBuffer[index].textureID * 3 + 1);
-    float3 coord3 = float3(uvw.xy, (float)instanceBuffer[index].textureID * 3 + 2);
+    float3 coord1 = float3(uvw.yz, In.albedo.w * 3 + 0);
+    float3 coord2 = float3(uvw.zx, In.albedo.w * 3 + 1);
+    float3 coord3 = float3(uvw.xy, In.albedo.w * 3 + 2);
 
     float3 texColor = float3(0,0,0);
     texColor += blendWeights.x * uTex0.Sample(uSampler0, coord1).xyz;
@@ -90,7 +83,7 @@ float4 main(PsIn In) : SV_TARGET
 
 	float coverage = saturate(In.position.z * 4000.0f);
 
-    float3 color = In.albedo;
+    float3 color = In.albedo.xyz;
     color *= light;
     color *= texColor * 2;
 	color *= coverage;

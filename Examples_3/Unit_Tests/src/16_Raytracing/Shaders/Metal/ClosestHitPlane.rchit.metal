@@ -59,6 +59,10 @@ inline float3 alignHemisphereWithNormal(float3 sample, float3 normal) {
     return sample.x * right + sample.y * up + sample.z * forward;
 }
 
+struct CSDataPerFrame {
+    constant RayGenConfigBlock & gSettings;
+};
+
 // Consumes ray/triangle intersection results to compute the shaded image
 // [numthreads(8, 8, 1)]
 kernel void chsPlane(uint2 tid                                       [[thread_position_in_grid]],
@@ -71,10 +75,8 @@ kernel void chsPlane(uint2 tid                                       [[thread_po
                 device uint *triangleMasks              [[buffer(6)]], //Rustam: change to instanceMasks
                 device uint *hitGroupID                 [[buffer(7)]],
                 device ShaderSettings &shaderSettings   [[buffer(8)]],
-                     
-                constant RayGenConfigBlock & gSettings [[buffer(10)]],
-                
-                texture2d<float, access::write> gOutput  [[texture(0)]])
+                constant CSDataPerFrame& csDataPerFrame  [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
     if (tid.x < uniforms.width && tid.y < uniforms.height) {
         unsigned int rayIdx = tid.y * uniforms.width + tid.x;
@@ -112,7 +114,7 @@ kernel void chsPlane(uint2 tid                                       [[thread_po
             
             float3 normal = float3(0.0, 1.0, 0.0);
             ray.origin = ray.origin + ray.direction * intersection.distance + normal * 0.001;
-            ray.direction = normalize(gSettings.mLightDirection);
+            ray.direction = normalize(csDataPerFrame.gSettings.mLightDirection);
 
             ray.mask = 0xFF;
             ray.maxDistance = 10000;//INFINITY;

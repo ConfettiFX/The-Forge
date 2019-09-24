@@ -4,7 +4,7 @@
 #extension GL_KHR_shader_subgroup_ballot : require
 #extension GL_KHR_shader_subgroup_quad : require
 
-layout(set = 0, binding = 0, std140) uniform SceneConstantBuffer
+layout(UPDATE_FREQ_PER_FRAME, binding = 0, std140) uniform SceneConstantBuffer
 {
 	layout(row_major) mat4 orthProjMatrix;
 	vec2 mousePosition;

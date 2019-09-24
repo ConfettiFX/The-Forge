@@ -30,8 +30,8 @@ layout(location = 1) in vec2 iUV;
 
 layout(location = 0) out vec4 FragColor;
 
-layout(set = 0, binding = 3) uniform texture2D DiffuseTexture;
-layout(set = 0, binding = 4) uniform sampler DefaultSampler;
+layout(UPDATE_FREQ_NONE, binding = 3) uniform texture2D DiffuseTexture;
+layout(UPDATE_FREQ_NONE, binding = 4) uniform sampler DefaultSampler;
 
 void main ()
 {

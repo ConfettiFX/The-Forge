@@ -118,13 +118,13 @@
 
 /* Begin PBXFileReference section */
 		281FA9E220333E1300CD5D9C /* circlepad.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = circlepad.ktx; path = ../../../UnitTestResources/Textures/circlepad.ktx; sourceTree = "<group>"; };
-		288F62FC20359FBE00B758DE /* display.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = display.frag.metal; path = ../../../src/02_Compute/Shaders/Metal/display.frag.metal; sourceTree = "<group>"; };
+		288F62FC20359FBE00B758DE /* display.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = display.frag.metal; path = ../../../src/02_Compute/Shaders/Metal/display.frag.metal; sourceTree = "<group>"; };
 		28A5AB92201F459F000E571F /* 02_Compute_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 02_Compute_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		28A5ABA3201F459F000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		28A5ABA6201F459F000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		28A5ABA8201F459F000E571F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		28A5ABB2201F4637000E571F /* compute.comp.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = compute.comp.metal; path = ../../../src/02_Compute/Shaders/Metal/compute.comp.metal; sourceTree = "<group>"; };
-		28A5ABB3201F4637000E571F /* display.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = display.vert.metal; path = ../../../src/02_Compute/Shaders/Metal/display.vert.metal; sourceTree = "<group>"; };
+		28A5ABB2201F4637000E571F /* compute.comp.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = compute.comp.metal; path = ../../../src/02_Compute/Shaders/Metal/compute.comp.metal; sourceTree = "<group>"; };
+		28A5ABB3201F4637000E571F /* display.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = display.vert.metal; path = ../../../src/02_Compute/Shaders/Metal/display.vert.metal; sourceTree = "<group>"; };
 		28A5ABB6201F465B000E571F /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = ../../../UnitTestResources/Fonts/TitilliumText; sourceTree = "<group>"; };
 		5B1A66C52295FC3400BD858E /* profile.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.frag.metal; path = ../../src/02_Compute/Shaders/Metal/profile.frag.metal; sourceTree = "<group>"; };
 		5B1A66C62295FC3400BD858E /* profile.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.vert.metal; path = ../../src/02_Compute/Shaders/Metal/profile.vert.metal; sourceTree = "<group>"; };

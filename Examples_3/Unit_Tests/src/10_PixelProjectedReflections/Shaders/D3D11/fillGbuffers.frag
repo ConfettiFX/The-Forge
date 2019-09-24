@@ -45,7 +45,7 @@ cbuffer cbTextureRootConstants : register(b2) {
 SamplerState defaultSampler : register(s2);
 
 // material parameters
-Texture2D textureMaps[] : register(t3, space1);
+Texture2D textureMaps[] : register(t3, UPDATE_FREQ_PER_FRAME);
 
 float3 getNormalFromMap(float3 pos, float3 normal, float2 uv)
 {

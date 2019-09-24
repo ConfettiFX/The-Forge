@@ -127,12 +127,12 @@ layout(push_constant, std430) uniform HDAOData
 } HDAORootConstants;
 
 #if SAMPLE_COUNT > 1
-layout(set = 0, binding = 0) uniform texture2DMS g_txDepth;
+layout(UPDATE_FREQ_NONE, binding = 0) uniform texture2DMS g_txDepth;
 #else
-layout(set = 0, binding = 0) uniform texture2D g_txDepth;
+layout(UPDATE_FREQ_NONE, binding = 0) uniform texture2D g_txDepth;
 #endif
 
-layout(set = 0, binding = 1) uniform sampler g_SamplePoint;
+layout(UPDATE_FREQ_NONE, binding = 1) uniform sampler g_SamplePoint;
 //----------------------------------------------------------------------------------------
 // Helper function to Gather samples
 //----------------------------------------------------------------------------------------

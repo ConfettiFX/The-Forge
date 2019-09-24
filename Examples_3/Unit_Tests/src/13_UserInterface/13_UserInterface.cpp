@@ -404,7 +404,7 @@ public:
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
 				static uint8_t virtualKeyboard = 0;
-				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, true);
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				if (gAppUI.WantTextInput() != virtualKeyboard)
 				{
@@ -520,7 +520,7 @@ public:
 		{
 			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, false);
+		cmdResourceBarrier(cmd, 0, NULL, 1, barriers);
 
 		// bind and clear the render target
 		LoadActionsDesc loadActions = {};    // render target clean command
@@ -550,7 +550,7 @@ public:
 		// PRESENT THE GRPAHICS QUEUE
 		//
 		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, true);
+		cmdResourceBarrier(cmd, 0, NULL, 1, barriers);
 		endCmd(cmd);
 		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
 		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);

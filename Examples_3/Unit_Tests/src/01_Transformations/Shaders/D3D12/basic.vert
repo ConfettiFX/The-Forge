@@ -27,7 +27,7 @@
 
 #define MAX_PLANETS 20
 
-cbuffer uniformBlock : register(b0)
+cbuffer uniformBlock : register(b0, UPDATE_FREQ_PER_FRAME)
 {
 	float4x4 mvp;
     float4x4 toWorld[MAX_PLANETS];

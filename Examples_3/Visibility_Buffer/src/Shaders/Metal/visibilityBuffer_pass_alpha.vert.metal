@@ -62,14 +62,18 @@ struct VSInput
 	float2 TexCoord [[attribute(1)]];
 };
 
+struct VSData {
+    constant PerFrameConstants& uniforms;
+};
+
 // Vertex shader
 vertex VSOutput stageMain(
-                          VSInput input                                    [[stage_in]],
-                          constant PerFrameConstants& uniforms             [[buffer(2)]]
+    VSInput input                   [[stage_in]],
+    constant VSData& vsData         [[buffer(UPDATE_FREQ_PER_FRAME)]]
 )
 {
 	VSOutput result;
-	result.position = uniforms.transform[VIEW_CAMERA].mvp * input.Position;
+	result.position = vsData.uniforms.transform[VIEW_CAMERA].mvp * input.Position;
 	result.texCoord = input.TexCoord;
 	return result;
 }

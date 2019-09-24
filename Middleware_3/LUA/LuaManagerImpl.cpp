@@ -17,7 +17,7 @@ void LogError(lua_State* lstate, const char* msg)
 	lua_getinfo(lstate, "nSl", &ar);
 	int line = ar.currentline;
 
-	ErrorMsg("%s\n\tLine: %d", msg, line);
+	LOGF(eERROR, "%s\n\tLine: %d", msg, line);
 }
 
 int LuaSleep(lua_State* lstate)
@@ -103,7 +103,7 @@ static int msghandler(lua_State* L)
 			msg = lua_pushfstring(L, "(error object is a %s value)", luaL_typename(L, 1));
 	}
 	luaL_traceback(L, L, msg, 1); /* append a standard traceback */
-	ErrorMsg("Script error: %s\n", msg);
+	LOGF(eERROR, "Script error: %s\n", msg);
 	return 1; /* return the traceback */
 }
 
@@ -123,7 +123,7 @@ int RunScriptFile(const char* scriptname, lua_State* L)
 	int loadfile_error = lua_load(L, reader, open_file(scriptname, "rb"), NULL, NULL);
 	if (loadfile_error != 0)
 	{
-		ErrorMsg("Can't load script %s\n", scriptname);
+		LOGF(eERROR, "Can't load script %s\n", scriptname);
 		return false;
 	}
 
@@ -173,7 +173,7 @@ bool LuaManagerImpl::SetUpdatableScript(const char* scriptname, const char* upda
 	int loadfile_error = lua_load(m_UpdatableScriptLuaState, reader, open_file(scriptname, "rb"), NULL, NULL);
 	if (loadfile_error != 0)
 	{
-		ErrorMsg("Can't load script %s\n", scriptname);
+		LOGF(eERROR, "Can't load script %s\n", scriptname);
 		return false;
 	}
 	int narg = 0;

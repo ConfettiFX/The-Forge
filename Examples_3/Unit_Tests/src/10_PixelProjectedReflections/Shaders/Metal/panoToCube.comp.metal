@@ -122,14 +122,25 @@ struct Compute_Shader
     skyboxSampler(skyboxSampler) {}
 };
 
+struct CSData {
+    texture2d<float> srcTexture                             [[id(0)]];
+    sampler skyboxSampler                                   [[id(1)]];
+};
+
+struct CSDataPerDraw {
+    texture2d_array<float, access::read_write> dstTexture   [[id(0)]];
+};
+
 //[numthreads(16, 16, 1)]
-kernel void stageMain(uint3 DTid [[thread_position_in_grid]],
-constant     Compute_Shader::Uniforms_RootConstant & RootConstant [[buffer(1)]],
-    texture2d<float> srcTexture [[texture(2)]],
-    texture2d_array<float, access::read_write> dstTexture [[texture(3)]],
-    sampler skyboxSampler [[sampler(4)]]) {
+kernel void stageMain(
+    uint3 DTid [[thread_position_in_grid]],
+    constant CSData& csData                                        [[buffer(UPDATE_FREQ_NONE)]],
+    constant CSDataPerDraw& csDataPerDraw                          [[buffer(UPDATE_FREQ_PER_DRAW)]],
+    constant Compute_Shader::Uniforms_RootConstant& RootConstant   [[buffer(UPDATE_FREQ_USER)]]
+)
+{
     uint3 DTid0;
     DTid0 = DTid;
-    Compute_Shader main(RootConstant, srcTexture, dstTexture, skyboxSampler);
-        return main.main(DTid0);
+    Compute_Shader main(RootConstant, csData.srcTexture, csDataPerDraw.dstTexture, csData.skyboxSampler);
+    return main.main(DTid0);
 }

@@ -90,7 +90,7 @@ bool RayTriangleIntersect(
 	return RayTriangleIntersect(orig, dir, v0, e0, e1, t, bCoord);
 }
 
-layout(std140, set = 0, binding = 0) uniform cbPerPass 
+layout(std140, UPDATE_FREQ_PER_FRAME, binding = 0) uniform cbPerPass 
 {
 	uniform mat4	projView;
 	uniform mat4	invProjView;
@@ -99,10 +99,10 @@ layout(std140, set = 0, binding = 0) uniform cbPerPass
 	uniform vec4	cameraPos;
 };
 
-layout(set = 0, binding = 1) uniform texture2D depthBuffer;
-layout(set = 0, binding = 2) uniform texture2D normalBuffer;
-layout(set = 0, binding = 3) buffer BVHTree { vec4 BVHTreeData[]; };
-layout(set = 0, binding = 4, r8) uniform image2D outputRT;
+layout(UPDATE_FREQ_NONE, binding = 1) uniform texture2D depthBuffer;
+layout(UPDATE_FREQ_NONE, binding = 2) uniform texture2D normalBuffer;
+layout(UPDATE_FREQ_NONE, binding = 3) buffer BVHTree { vec4 BVHTreeData[]; };
+layout(UPDATE_FREQ_NONE, binding = 4, r8) uniform image2D outputRT;
 
 #define THREADX 8
 #define THREADY 8

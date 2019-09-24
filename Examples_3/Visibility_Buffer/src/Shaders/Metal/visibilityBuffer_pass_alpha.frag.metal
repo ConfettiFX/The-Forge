@@ -7,7 +7,7 @@
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
+ * regarsnding copyright ownership.  The ASF licenses this file
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
@@ -38,7 +38,7 @@ struct PackedVertexTexcoord {
 };
 
 struct VSOutput {
-	float4 position [[position]];
+    float4 position [[position]];
     float2 texCoord;
 };
 
@@ -55,23 +55,32 @@ uint packVisBufData(bool opaque, uint drawId, uint triangleId)
 
 struct BindlessDiffuseData
 {
-	array<texture2d<float>,MATERIAL_BUFFER_SIZE> textures;
+};
+
+struct FSData {
+    sampler textureFilter                                  [[id(0)]];
+    array<texture2d<float>,MATERIAL_BUFFER_SIZE> diffuseMaps;
+};
+
+struct FSDataPerFrame {
+    constant uint* indirectMaterialBuffer;
 };
 
 // Pixel shader for alpha tested geometry
-fragment float4 stageMain(VSOutput input                                [[stage_in]],
-						  uint primitiveID                              [[primitive_id]],
-						  constant uint* indirectMaterialBuffer         [[buffer(0)]],
-                          constant BindlessDiffuseData& diffuseMaps     [[buffer(1)]],
-                          sampler textureFilter                         [[sampler(0)]],
-						  constant uint& drawID							[[buffer(20)]])
+fragment float4 stageMain(
+    VSOutput input                              [[stage_in]],
+    uint primitiveID                            [[primitive_id]],
+    constant FSData& fsData                     [[buffer(UPDATE_FREQ_NONE)]],
+    constant FSDataPerFrame& fsDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]],
+    constant uint& drawID                       [[buffer(UPDATE_FREQ_USER)]]
+)
 {
-	uint matBaseSlot = BaseMaterialBuffer(true, VIEW_CAMERA);
-	uint materialID = indirectMaterialBuffer[matBaseSlot + drawID];
-	texture2d<float> diffuseMap = diffuseMaps.textures[materialID];
-	
+    uint matBaseSlot = BaseMaterialBuffer(true, VIEW_CAMERA);
+    uint materialID = fsDataPerFrame.indirectMaterialBuffer[matBaseSlot + drawID];
+    texture2d<float> diffuseMap = fsData.diffuseMaps[materialID];
+    
     // Perform alpha testing: sample the texture and discard the fragment if alpha is under a threshold
-    float4 texColor = diffuseMap.sample(textureFilter,input.texCoord);
+    float4 texColor = diffuseMap.sample(fsData.textureFilter,input.texCoord);
     if (texColor.a < 0.5) discard_fragment();
     
     // Pack draw / triangle Id data into a 32-bit uint and store it in a RGBA8 texture

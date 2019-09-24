@@ -11,6 +11,10 @@
 
 #pragma warning(disable:4996)
 
+#ifdef GENERATE_ORBIS
+#include "../../../../../../PS4/Common_3/ThirdParty/OpenSource/hlslparser/OrbisGenerator.cpp"
+#endif
+
 void Parser::PrintUsage()
 {
 	std::cerr << "usage: hlslparser [-h] [-fs | -vs] FILENAME ENTRYNAME\n"
@@ -140,8 +144,10 @@ bool Parser::ProcessFile(
 	}
 	else if (options.mLanguage == Language_GLSL) // GLSL
 	{
+		GLSLGenerator::Options glslOptions;
+		glslOptions.shiftVec = options.mShiftVec;
 		GLSLGenerator generator;
-		parsedData.mIsGenerateOk = generator.Generate(&stringLibrary, &tree, (GLSLGenerator::Target)options.mTarget, GLSLGenerator::Version_450, entryName.c_str());
+		parsedData.mIsGenerateOk = generator.Generate(&stringLibrary, &tree, (GLSLGenerator::Target)options.mTarget, GLSLGenerator::Version_450, entryName.c_str(), glslOptions);
 		parsedData.mGeneratedData = generator.GetResult();
 
 		if (!parsedData.mIsGenerateOk)
@@ -161,8 +167,15 @@ bool Parser::ProcessFile(
 
 		parsedData.mIsGenerateOk = generator.Generate(&stringLibrary, &tree, (MSLGenerator::Target)options.mTarget, entryName.c_str(), mslOptions);
 		parsedData.mGeneratedData = generator.GetResult();
-
 	}
+#ifdef GENERATE_ORBIS
+	else if (options.mLanguage == Language_ORBIS)
+	{
+		OrbisGenerator generator;
+		parsedData.mIsGenerateOk = generator.Generate(&stringLibrary, &tree, (OrbisGenerator::Target)options.mTarget, entryName.c_str());
+		parsedData.mGeneratedData = generator.GetResult();
+	}
+#endif
 	else
 	{
 		ASSERT_PARSER(0);
@@ -182,148 +195,3 @@ bool Parser::ProcessFile(
 	parsedData.mIsSuccess = true;
 	return true;
 }
-#if 0
-const char* Parser::ParserEntry(char* RESULT,  const char* fileName, const char* buffer, int bufferSize, const char* entryName, const char* shader, const char* _language)
-{
-	Target target = Target_VertexShader;
-	Language language = Language_GLSL;
-
-	if (String_Equal(shader, "-h") || String_Equal(shader, "--help"))
-	{
-		PrintUsage();
-	}
-	else if (String_Equal(shader, "-fs"))
-	{
-		target = Target_FragmentShader;
-	}
-	else if (String_Equal(shader, "-vs"))
-	{
-		target = Target_VertexShader;
-	}
-	else if (String_Equal(shader, "-hs"))
-	{
-		target = Target_HullShader;
-	}
-	else if (String_Equal(shader, "-ds"))
-	{
-		target = Target_DomainShader;
-	}
-	else if (String_Equal(shader, "-gs"))
-	{
-		target = Target_GeometryShader;
-	}
-	else if (String_Equal(shader, "-cs"))
-	{
-		target = Target_ComputeShader;
-	}
-
-	if (String_Equal(_language, "-glsl"))
-	{
-		language = Language_GLSL;
-	}
-	else if (String_Equal(_language, "-hlsl"))
-	{
-		language = Language_HLSL;
-	}
-	else if (String_Equal(_language, "-legacyhlsl"))
-	{
-		language = Language_LegacyHLSL;
-	}
-	else if (String_Equal(_language, "-msl"))
-	{
-		language = Language_MSL;
-	}
-	else
-	{
-		Log_Error("error) : Too many arguments\n");
-		PrintUsage();
-		strcpy(RESULT, "error) : Too many arguments\n");
-		return RESULT;
-	}
-
-	if (fileName == NULL || entryName == NULL)
-	{
-		Log_Error("error) : Missing arguments\n");
-		strcpy(RESULT, "error) : Missing arguments\n");
-		return RESULT;
-	}
-
-	StringLibrary stringLibrary;
-
-	// Parse input file
-	HLSLParser::IntrinsicHelper intrinsicHelper;
-	intrinsicHelper.BuildIntrinsics();
-
-	FullTokenizer fullTokenizer(&stringLibrary, fileName[0], buffer, bufferSize);
-
-	HLSLParser parser(&stringLibrary, &intrinsicHelper, &fullTokenizer, entryName, target, language, NULL);
-	HLSLTree tree(&stringLibrary);
-	if (!parser.Parse(&tree))
-	{
-		Log_Error("error) : Parsing failed, aborting\n");
-			
-		strcpy(RESULT, parser.m_pFullTokenizer->errorBuffer);
-		strcat(RESULT, "\nerror) : Parsing failed, aborting\n");
-		return RESULT;
-	}
-
-	// Generate output
-	if (language == Language_GLSL)
-	{
-		GLSLGenerator generator;
-		if (!generator.Generate(&stringLibrary, &tree, GLSLGenerator::Target(target), GLSLGenerator::Version_450, entryName))
-		{
-			Log_Error("error) : Translation failed, aborting\n");
-			strcpy(RESULT, "error) : Translation failed, aborting\n");
-			return RESULT;
-		}
-#ifdef _DEBUG
-		std::cout << generator.GetResult();
-#endif // DEBUG
-			
-		strcpy(RESULT, generator.GetResult());
-	}
-	else if (language == Language_HLSL)
-	{
-		HLSLGenerator generator;
-		if (!generator.Generate(&stringLibrary, &tree, HLSLGenerator::Target(target), entryName, language == Language_LegacyHLSL))
-		{
-			Log_Error("error) : Translation failed, aborting\n");
-			strcpy(RESULT, "error) : Translation failed, aborting\n");
-			return RESULT;
-		}
-
-#ifdef _DEBUG
-		std::cout << generator.GetResult();
-#endif // DEBUG
-		strcpy(RESULT, generator.GetResult());
-	}
-	else if (language == Language_MSL)
-	{
-		if (target == Target_GeometryShader)
-		{
-			Log_Error("error) : Metal doesn't support Geometry shader\n");
-			strcpy(RESULT, "error) : Metal doesn't support Geometry shader\n");
-			return RESULT;
-		}
-
-		MSLGenerator generator;
-		if (!generator.Generate(&stringLibrary, &tree, MSLGenerator::Target(target), entryName))
-		{
-			Log_Error("error) : Translation failed, aborting\n");
-			strcpy(RESULT, "error) : Translation failed, aborting\n");
-			return RESULT;
-		}
-
-#ifdef _DEBUG
-		std::cout << generator.GetResult();
-#endif // DEBUG
-		strcpy(RESULT, generator.GetResult());
-	}
-
-
-	return RESULT;
-}
-
-#endif
-

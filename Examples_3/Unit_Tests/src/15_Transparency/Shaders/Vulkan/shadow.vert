@@ -23,36 +23,13 @@
 */
 
 #version 450 core
+#extension GL_GOOGLE_include_directive : require
 
-struct ObjectInfo
-{
-	mat4 toWorld;
-	mat4 normalMat;
-	uint matID;
-};
-
-layout(set = 0, binding = 0) uniform ObjectUniformBlock
-{
-	ObjectInfo	objectInfo[MAX_NUM_OBJECTS];
-};
-
-layout(push_constant) uniform DrawInfoRootConstant_Block
-{
-	uint baseInstance;
-} DrawInfoRootConstant;
-
-layout(set = 0, binding = 8) uniform CameraUniform
-{
-	mat4 camViewProj;
-	mat4 camViewMat;
-	vec4 camClipInfo;
-	vec4 camPosition;
-};
+#include "shaderDefs.h"
 
 layout(location = 0) in vec4 PositionIn;
 layout(location = 1) in vec4 NormalIn;
 layout(location = 2) in vec4 UVIn;
-
 
 void main()
 {

@@ -69,17 +69,18 @@ struct Uniforms_objectUniformBlock
 	float4x4 mWorldMat;
 };
 
-
-
+struct VSData {
+    constant Uniforms_objectUniformBlock & objectUniformBlock   [[id(0)]];
+};
 
 // Vertex shader
 vertex VSOutput stageMain(
-                          VSInput input                                    [[stage_in]],
-                          constant Uniforms_objectUniformBlock & objectUniformBlock        [[buffer(2)]]
+    VSInput input                           [[stage_in]],
+    constant VSData& vsData                 [[buffer(UPDATE_FREQ_PER_DRAW)]]
 )
 {
 	VSOutput result;
-	result.position = objectUniformBlock.mWorldViewProjMat * input.Position;
+	result.position = vsData.objectUniformBlock.mWorldViewProjMat * input.Position;
 	result.texCoord = input.TexCoord;
 	return result;
 }

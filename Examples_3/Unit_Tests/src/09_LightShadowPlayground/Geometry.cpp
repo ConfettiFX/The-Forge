@@ -24,11 +24,8 @@
 
 #include "Geometry.h"
 
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_set.h"
+//#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_set.h"
 
-//#include "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include/assimp/cimport.h"
-//#include "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include/assimp/scene.h"
-//#include "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include/assimp/postprocess.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../../Common_3/OS/Core/Compiler.h"
@@ -1016,20 +1013,20 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 		scene->meshes = (MeshIn*)conf_calloc(scene->numMeshes, sizeof(MeshIn));
 		cached.Read(scene->meshes, scene->numMeshes * sizeof(MeshIn));
 
-		scene->indices = eastl::vector<uint32_t>(scene->totalTriangles * 3);
-		cached.Read(scene->indices.data(), scene->totalTriangles * 3 * sizeof(uint32_t));
+		scene->indices = (uint32_t*)conf_malloc(scene->totalTriangles * 3 * sizeof(uint32_t));
+		cached.Read(scene->indices, scene->totalTriangles * 3 * sizeof(uint32_t));
 
-		scene->positions = eastl::vector< SceneVertexPos>(scene->totalVertices);
-		cached.Read(scene->positions.data(), scene->totalVertices * sizeof(SceneVertexPos));
+		scene->positions = (SceneVertexPos*)conf_malloc(scene->totalVertices * sizeof(SceneVertexPos));
+		cached.Read(scene->positions, scene->totalVertices * sizeof(SceneVertexPos));
 
-		scene->texCoords = eastl::vector<SceneVertexTexCoord>(scene->totalVertices);
-		cached.Read(scene->texCoords.data(), scene->totalVertices * sizeof(SceneVertexTexCoord));
+		scene->texCoords = (SceneVertexTexCoord*)conf_malloc(scene->totalVertices * sizeof(SceneVertexTexCoord));
+		cached.Read(scene->texCoords, scene->totalVertices * sizeof(SceneVertexTexCoord));
 
-		scene->normals = eastl::vector<SceneVertexNormal>(scene->totalVertices);
-		cached.Read(scene->normals.data(), scene->totalVertices * sizeof(SceneVertexNormal));
+		scene->normals = (SceneVertexNormal*)conf_malloc(scene->totalVertices * sizeof(SceneVertexNormal));
+		cached.Read(scene->normals, scene->totalVertices * sizeof(SceneVertexNormal));
 
-		scene->tangents = eastl::vector<SceneVertexTangent>(scene->totalVertices);
-		cached.Read(scene->tangents.data(), scene->totalVertices * sizeof(SceneVertexTangent));
+		scene->tangents = (SceneVertexTangent*)conf_malloc(scene->totalVertices * sizeof(SceneVertexTangent));
+		cached.Read(scene->tangents, scene->totalVertices * sizeof(SceneVertexTangent));
 
 		cached.Close();
 	}
@@ -1041,13 +1038,22 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 		importer.ImportModel(fileName, &model);
 		LOGF(LogLevel::eINFO, "Assimp Load %f ms", timer.GetUSec(true) / 1000.0f);
 
-		eastl::vector<SceneVertexPos> positions;
-		eastl::vector<float2>         texcoords;
-		eastl::vector<float3>         normals;
-		eastl::vector<float3>         tangents;
-		eastl::vector<uint32_t>       indices;
-
+		for (int i = 0; i < model.mMeshArray.size(); i++)
+		{
+			AssimpImporter::Mesh mesh = model.mMeshArray[i];
+			scene->totalVertices += (uint32_t)mesh.mPositions.size();
+			scene->totalTriangles += (uint32_t)mesh.mIndices.size() / 3;
+		}
+		
+		scene->indices = (uint32_t*)conf_malloc(scene->totalTriangles * 3 * sizeof(uint32_t));
+		scene->positions = (SceneVertexPos*)conf_malloc(scene->totalVertices * sizeof(SceneVertexPos));
+		scene->texCoords = (SceneVertexTexCoord*)conf_malloc(scene->totalVertices * sizeof(SceneVertexTexCoord));
+		scene->normals = (SceneVertexNormal*)conf_malloc(scene->totalVertices * sizeof(SceneVertexNormal));
+		scene->tangents = (SceneVertexTangent*)conf_malloc(scene->totalVertices * sizeof(SceneVertexTangent));
+		
 		uint32_t accIndex_ = 0;
+		uint32_t vertex = 0;
+		uint32_t index = 0;
 
 		for (int i = 0; i < model.mMeshArray.size(); i++)
 		{
@@ -1055,51 +1061,50 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 
 			for (int j = 0; j < mesh.mPositions.size(); j++)
 			{
-				SceneVertexPos tempPos;
-				tempPos.x = mesh.mPositions[j].getX() * scale + offsetX;
-				tempPos.y = mesh.mPositions[j].getY() * scale + offsetY;
-				tempPos.z = mesh.mPositions[j].getZ() * scale + offsetZ;
+				SceneVertexPos position;
+				position.x = mesh.mPositions[j].getX() * scale + offsetX;
+				position.y = mesh.mPositions[j].getY() * scale + offsetY;
+				position.z = mesh.mPositions[j].getZ() * scale + offsetZ;
 
-				positions.push_back(tempPos);
-			}
+				float2 tc;
+				tc.x = mesh.mUvs[j].getX();
+				tc.y = 1.0f - mesh.mUvs[j].getY();
+				
+				float3 normal;
+				normal.x = mesh.mNormals[j].getX();
+				normal.y = mesh.mNormals[j].getY();
+				normal.z = mesh.mNormals[j].getZ();
+				
+				float3 tangent;
+				tangent.x = mesh.mTangents[j].getX();
+				tangent.y = mesh.mTangents[j].getY();
+				tangent.z = mesh.mTangents[j].getZ();
+				
+				scene->positions[vertex] = position;
+#if defined(METAL) || defined(__linux__)
+				scene->normals[vertex].nx = normal.x;
+				scene->normals[vertex].ny = normal.y;
+				scene->normals[vertex].nz = normal.z;
 
-			for (int j = 0; j < mesh.mUvs.size(); j++)
-			{
-				float2 tempTex;
-				tempTex.x = mesh.mUvs[j].getX();
-				tempTex.y = 1.0f - mesh.mUvs[j].getY();
+				scene->tangents[vertex].tx = tangent.x;
+				scene->tangents[vertex].ty = tangent.y;
+				scene->tangents[vertex].tz = tangent.z;
 
-				texcoords.push_back(tempTex);
-			}
-
-			for (int j = 0; j < mesh.mNormals.size(); j++)
-			{
-				float3 tempNorm;
-				tempNorm.x = mesh.mNormals[j].getX();
-				tempNorm.y = mesh.mNormals[j].getY();
-				tempNorm.z = mesh.mNormals[j].getZ();
-
-				normals.push_back(tempNorm);
-			}
-
-			for (int j = 0; j < mesh.mTangents.size(); j++)
-			{
-				float3 tempTangent;
-				tempTangent.x = mesh.mTangents[j].getX();
-				tempTangent.y = mesh.mTangents[j].getY();
-				tempTangent.z = mesh.mTangents[j].getZ();
-
-				tangents.push_back(tempTangent);
+				scene->texCoords[vertex].u = tc.x;
+				scene->texCoords[vertex].v = 1.0f - tc.y;
+#else
+				scene->normals[vertex].normal = encodeDir(normal);
+				scene->tangents[vertex].tangent = encodeDir(tangent);
+				scene->texCoords[vertex].texCoord = pack2Floats(float2(tc.x, 1.0f - tc.y));
+#endif
+				
+				++vertex;
 			}
 
 			for (int j = 0; j < mesh.mIndices.size(); j++)
 			{
 				int indd = mesh.mIndices[j];
-
-				if (indd < 0)
-					indices.push_back(accIndex_);
-				else
-					indices.push_back(indd + accIndex_);
+				scene->indices[index++] = (indd < 0 ? accIndex_ : (indd + accIndex_));
 			}
 
 			accIndex_ += (uint32_t)mesh.mPositions.size();
@@ -1108,41 +1113,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 		LOGF(LogLevel::eINFO, "Generate Vertex Data %f ms", timer.GetUSec(true) / 1000.0f);
 
 		scene->numMeshes = (uint32_t)model.mMeshArray.size();
-		scene->totalVertices = (uint32_t)positions.size();
-		scene->totalTriangles = (uint32_t)indices.size() / 3;
-
 		scene->meshes = (MeshIn*)conf_calloc(scene->numMeshes, sizeof(MeshIn));
-
-		scene->indices = indices;
-		scene->positions = positions;
-
-		scene->texCoords = eastl::vector<SceneVertexTexCoord>(scene->totalVertices, SceneVertexTexCoord{ 0 });
-		scene->normals = eastl::vector<SceneVertexNormal>(scene->totalVertices, SceneVertexNormal{ 0 });
-		scene->tangents = eastl::vector<SceneVertexTangent>(scene->totalVertices, SceneVertexTangent{ 0 });
-
-		for (uint32_t v = 0; v < scene->totalVertices; v++)
-		{
-			const float3& normal = normals[v];
-			const float3& tangent = tangents[v];
-			const float2& tc = texcoords[v];
-
-#if defined(METAL) || defined(__linux__)
-			scene->normals[v].nx = normal.x;
-			scene->normals[v].ny = normal.y;
-			scene->normals[v].nz = normal.z;
-
-			scene->tangents[v].tx = tangent.x;
-			scene->tangents[v].ty = tangent.y;
-			scene->tangents[v].tz = tangent.z;
-
-			scene->texCoords[v].u = tc.x;
-			scene->texCoords[v].v = 1.0f - tc.y;
-#else
-			scene->normals[v].normal = encodeDir(normal);
-			scene->tangents[v].tangent = encodeDir(tangent);
-			scene->texCoords[v].texCoord = pack2Floats(float2(tc.x, 1.0f - tc.y));
-#endif
-		}
 
 		uint32_t accIndex = 0;
 		for (uint32_t i = 0; i < scene->numMeshes; ++i)
@@ -1167,11 +1138,11 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 			cached.WriteUInt(scene->totalVertices);
 			cached.WriteUInt(scene->totalTriangles);
 			cached.Write(scene->meshes, scene->numMeshes * sizeof(MeshIn));
-			cached.Write(scene->indices.data(), scene->totalTriangles * 3 * sizeof(uint32_t));
-			cached.Write(scene->positions.data(), scene->totalVertices * sizeof(SceneVertexPos));
-			cached.Write(scene->texCoords.data(), scene->totalVertices * sizeof(SceneVertexTexCoord));
-			cached.Write(scene->normals.data(), scene->totalVertices * sizeof(SceneVertexNormal));
-			cached.Write(scene->tangents.data(), scene->totalVertices * sizeof(SceneVertexTangent));
+			cached.Write(scene->indices, scene->totalTriangles * 3 * sizeof(uint32_t));
+			cached.Write(scene->positions, scene->totalVertices * sizeof(SceneVertexPos));
+			cached.Write(scene->texCoords, scene->totalVertices * sizeof(SceneVertexTexCoord));
+			cached.Write(scene->normals, scene->totalVertices * sizeof(SceneVertexNormal));
+			cached.Write(scene->tangents, scene->totalVertices * sizeof(SceneVertexTangent));
 			cached.Close();
 		}
 	}
@@ -1197,7 +1168,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 	assimpScene.Open(fileName, FileMode::FM_ReadBinary, FSRoot::FSR_Absolute);
 	if (!assimpScene.IsOpen())
 	{
-		ErrorMsg(
+		LOGF(eERROR, 
 			"Could not open scene %s.\nPlease make sure you have downloaded the art assets by using the PRE_BUILD command in the root "
 			"directory",
 			fileName);
@@ -1519,70 +1490,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 	assimpScene.Close();
 
 #endif
-	BufferLoadDesc indirectVBPosDesc = {};
-	indirectVBPosDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER | DESCRIPTOR_TYPE_BUFFER;
-	indirectVBPosDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-	indirectVBPosDesc.mDesc.mVertexStride = sizeof(SceneVertexPos);
-	indirectVBPosDesc.mDesc.mElementCount = scene->totalVertices;
-	indirectVBPosDesc.mDesc.mStructStride = sizeof(SceneVertexPos);
-	indirectVBPosDesc.mDesc.mSize = indirectVBPosDesc.mDesc.mElementCount * indirectVBPosDesc.mDesc.mStructStride;
-	indirectVBPosDesc.pData = scene->positions.data();
-	indirectVBPosDesc.ppBuffer = &scene->m_pIndirectPosBuffer;
-	indirectVBPosDesc.mDesc.pDebugName = L"Indirect Vertex Position Buffer Desc";
-	addResource(&indirectVBPosDesc, true);
 
-	// Vertex texcoord buffer for the scene
-	BufferLoadDesc indirectVBTexCoordDesc = {};
-	indirectVBTexCoordDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER | DESCRIPTOR_TYPE_BUFFER;
-	indirectVBTexCoordDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-	indirectVBTexCoordDesc.mDesc.mVertexStride = sizeof(SceneVertexTexCoord);
-	indirectVBTexCoordDesc.mDesc.mElementCount = scene->totalVertices * (sizeof(SceneVertexTexCoord) / sizeof(uint32_t));
-	indirectVBTexCoordDesc.mDesc.mStructStride = sizeof(uint32_t);
-	indirectVBTexCoordDesc.mDesc.mSize = indirectVBTexCoordDesc.mDesc.mElementCount * indirectVBTexCoordDesc.mDesc.mStructStride;
-	indirectVBTexCoordDesc.pData = scene->texCoords.data();
-	indirectVBTexCoordDesc.ppBuffer = &scene->m_pIndirectTexCoordBuffer;
-	indirectVBTexCoordDesc.mDesc.pDebugName = L"Indirect Vertex TexCoord Buffer Desc";
-	addResource(&indirectVBTexCoordDesc, true);
-
-	// Vertex normal buffer for the scene
-	BufferLoadDesc indirectVBNormalDesc = {};
-	indirectVBNormalDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER | DESCRIPTOR_TYPE_BUFFER;
-	indirectVBNormalDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-	indirectVBNormalDesc.mDesc.mVertexStride = sizeof(SceneVertexNormal);
-	indirectVBNormalDesc.mDesc.mElementCount = scene->totalVertices * (sizeof(SceneVertexNormal) / sizeof(uint32_t));
-	indirectVBNormalDesc.mDesc.mStructStride = sizeof(uint32_t);
-	indirectVBNormalDesc.mDesc.mSize = indirectVBNormalDesc.mDesc.mElementCount *
-		indirectVBNormalDesc.mDesc.mStructStride;
-	indirectVBNormalDesc.pData = scene->normals.data();
-	indirectVBNormalDesc.ppBuffer = &scene->m_pIndirectNormalBuffer;
-	indirectVBNormalDesc.mDesc.pDebugName = L"Indirect Vertex Normal Buffer Desc";
-	addResource(&indirectVBNormalDesc, true);
-
-	// Vertex tangent buffer for the scene
-	BufferLoadDesc indirectVBTangentDesc = {};
-	indirectVBTangentDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER | DESCRIPTOR_TYPE_BUFFER;
-	indirectVBTangentDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-	indirectVBTangentDesc.mDesc.mVertexStride = sizeof(SceneVertexTangent);
-	indirectVBTangentDesc.mDesc.mElementCount = scene->totalVertices * (sizeof(SceneVertexTangent) / sizeof(uint32_t));
-	indirectVBTangentDesc.mDesc.mStructStride = sizeof(uint32_t);
-	indirectVBTangentDesc.mDesc.mSize = indirectVBTangentDesc.mDesc.mElementCount * indirectVBTangentDesc.mDesc.mStructStride;
-	indirectVBTangentDesc.pData = scene->tangents.data();
-	indirectVBTangentDesc.ppBuffer = &scene->m_pIndirectTangentBuffer;
-	indirectVBTangentDesc.mDesc.pDebugName = L"Indirect Vertex Tangent Buffer Desc";
-	addResource(&indirectVBTangentDesc, true);
-
-
-	BufferLoadDesc indirectIBDesc = {};
-	indirectIBDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER | DESCRIPTOR_TYPE_BUFFER;
-	indirectIBDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-	indirectIBDesc.mDesc.mIndexType = INDEX_TYPE_UINT32;
-	indirectIBDesc.mDesc.mElementCount = scene->totalTriangles * 3;
-	indirectIBDesc.mDesc.mStructStride = sizeof(uint32_t);
-	indirectIBDesc.mDesc.mSize = indirectIBDesc.mDesc.mElementCount * indirectIBDesc.mDesc.mStructStride;
-	indirectIBDesc.pData = scene->indices.data();
-	indirectIBDesc.ppBuffer = &scene->m_pIndirectIndexBuffer;
-	indirectIBDesc.mDesc.pDebugName = L"Indirect Non-filtered Index Buffer Desc";
-	addResource(&indirectIBDesc, true);
 	return scene;
 }
 
@@ -1609,47 +1517,11 @@ void removeScene(Scene* scene)
 		}
 	}
 
-	if (scene->m_pIndirectIndexBuffer)
-	{
-		removeResource(scene->m_pIndirectIndexBuffer);
-	}
-	if (scene->m_pIndirectNormalBuffer)
-	{
-		removeResource(scene->m_pIndirectNormalBuffer);
-	}
-	if (scene->m_pIndirectPosBuffer)
-	{
-		removeResource(scene->m_pIndirectPosBuffer);
-	}
-	if (scene->m_pIndirectTangentBuffer)
-	{
-		removeResource(scene->m_pIndirectTangentBuffer);
-	}
-	if (scene->m_pIndirectTexCoordBuffer)
-	{
-		removeResource(scene->m_pIndirectTexCoordBuffer);
-	}
-
-	if (scene->mPIndexBuffer)
-	{
-		removeResource(scene->mPIndexBuffer);
-	}
-	if (scene->mPVertexBuffer)
-	{
-		removeResource(scene->mPVertexBuffer);
-	}
-
-	for (uint32_t i = 0; i < scene->numMeshes; ++i)
-	{
-		destroyClusters(&scene->meshes[i]);
-	}
-
-
-	scene->positions.~vector();
-	scene->texCoords.~vector();
-	scene->normals.~vector();
-	scene->tangents.~vector();
-	scene->indices.~vector();
+	conf_free(scene->positions);
+	conf_free(scene->texCoords);
+	conf_free(scene->normals);
+	conf_free(scene->tangents);
+	conf_free(scene->indices);
 
 	conf_free(scene->textures);
 	conf_free(scene->normalMaps);
@@ -1660,6 +1532,20 @@ void removeScene(Scene* scene)
 }
 
 vec3 makeVec3(const SceneVertexPos& v) { return vec3(v.x, v.y, v.z); }
+
+
+
+eastl::string GetSDFBakedFileName(const eastl::string& fileName)
+{
+	eastl::string newCompleteCacheFileName = "Baked_" + fileName + ".bin";
+	return newCompleteCacheFileName;
+}
+
+
+eastl::string GetSDFFullDirBakedFileName(const eastl::string& fileName)
+{
+	return gGeneratedSDFBinaryDir + GetSDFBakedFileName(fileName);
+}
 
 void createAABB(const Scene* pScene, MeshIn* mesh)
 {
@@ -1912,173 +1798,10 @@ void GetSDFCustomSubMeshData(const eastl::string& strKey, SDFCustomSubMeshData& 
 	}
 }
 
-CPUImage* loadImage(const eastl::string& imgFilename)
-{
-	CPUImage* image = conf_new(CPUImage);
-	image->loadImage(imgFilename.c_str());
-	image->Uncompress();
-	return image;
-}
-
-void initAlphaTestedImageMaps(AlphaTestedImageMaps& imageMaps)
-{
-	imageMaps.reserve(100);
-
-	imageMaps["HP19lef3.dds"] = loadImage("HP19lef3.dds");
-	imageMaps["sm_leaf_02a.dds"] = loadImage("sm_leaf_02a.dds");
-	imageMaps["sm_leaf_02b.dds"] = loadImage("sm_leaf_02b.dds");
-
-	imageMaps["FL19pe15.dds"] = loadImage("FL19pe15.dds");
-	imageMaps["FL17pet1.dds"] = loadImage("FL17pet1.dds");
-	imageMaps["FL16lef3.dds"] = loadImage("FL16lef3.dds");
-	imageMaps["FL17lef2.dds"] = loadImage("FL17lef2.dds");
-	imageMaps["FL13pet2.dds"] = loadImage("FL13pet2.dds");
-	imageMaps["citrus_limon_leaf.dds"] = loadImage("citrus_limon_leaf.dds");
-	imageMaps["HP01lef2.dds"] = loadImage("HP01lef2.dds");
-	imageMaps["FL13lef4.dds"] = loadImage("FL13lef4.dds");
-	imageMaps["FL19lef2.dds"] = loadImage("FL19lef2.dds");
-	imageMaps["HP17lef2.dds"] = loadImage("HP17lef2.dds");
-	imageMaps["HP13lef1.dds"] = loadImage("HP13lef1.dds");
-	imageMaps["HP11lef2.dds"] = loadImage("HP11lef2.dds");
-	imageMaps["HP19lef2.dds"] = loadImage("HP19lef2.dds");
-
-	imageMaps["TR14lef1.dds"] = loadImage("TR14lef1.dds");
-	imageMaps["FL29pet1.dds"] = loadImage("FL29pet1.dds");
-	imageMaps["FL29lef.dds"] = loadImage("FL29lef.dds");
-
-	imageMaps["FL29pet2.dds"] = loadImage("FL29pet2.dds");
-
-	imageMaps["HP01pet1.dds"] = loadImage("HP01pet1.dds");
-	imageMaps["FL19lef4.dds"] = loadImage("FL19lef4.dds");
-	imageMaps["FL19pe16.dds"] = loadImage("FL19pe16.dds");
-
-	imageMaps["HP01pet3.dds"] = loadImage("HP01pet3.dds");
-	imageMaps["TR02lef5.dds"] = loadImage("TR02lef5.dds");
-	imageMaps["l37-upper.dds"] = loadImage("l37-upper.dds");
-	imageMaps["sm_leaf_seca_02b.dds"] = loadImage("sm_leaf_seca_02b.dds");
-	imageMaps["l04-upper.dds"] = loadImage("l04-upper.dds");
-	imageMaps["FL13pet1.dds"] = loadImage("FL13pet1.dds");
-	imageMaps["FL16pet1.dds"] = loadImage("FL16pet1.dds");
-	imageMaps["aglaonema_leaf.dds"] = loadImage("aglaonema_leaf.dds");
-
-}
-
-void initAlphaTestedMaterialTexturesMaps(AlphaTestedMaterialMaps& alphaTestedMaterialMaps)
-{
-	//alphaTestedMaterialMaps.reserve(30);
-
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves04", "HP19lef3.dds"));
-
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("treeLeaves04", "sm_leaf_02a.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("treeLeaves00", "sm_leaf_02a.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("treeLeaves01", "sm_leaf_02a.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("treeLeaves02", "sm_leaf_seca_02b.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("treeLeaves03", "sm_leaf_02b.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("treeLeaves05", "l37-upper.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("treeLeaves06", "FL29pet2.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("treeLeaves07", "sm_leaf_02a.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("treeLeaves08", "l04-upper.dds"));
-
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves022", "FL16lef3.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves024", "HP17lef2.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("rose00", "FL13pet2.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves0379", "citrus_limon_leaf.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves0380", "HP01lef2.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves0381", "TR02lef5.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves013", "HP01lef2.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves014", "FL13lef4.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves0377", "FL17lef2.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves0378", "FL17lef2.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves026", "FL19lef2.dds"));
-
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves00", "FL16lef3.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves012", "HP17lef2.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves02", "HP17lef2.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves015", "HP13lef1.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves019", "HP11lef2.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves023", "HP13lef1.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves09", "HP19lef2.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves06", "citrus_limon_leaf.dds"));
-
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves016", "HP19lef3.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves07", "FL29lef.dds"));
-
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves027", "FL29pet2.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves025", "FL29pet2.dds"));
-
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves020", "TR14lef1.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves021", "FL16pet1.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves010", "TR14lef1.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves05", "FL29lef.dds"));
-
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves07", "FL29lef.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves017", "FL29lef.dds"));
-
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves0300", "FL29lef.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves018", "FL19lef4.dds"));
-
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("floor1", "FL29pet2.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("flower01", "FL19pe15.dds"));
-
-
-
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("flower0304", "HP01pet1.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("flower0341", "FL29pet1.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("flower0343", "FL19pe16.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("flower0338", "HP01pet3.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves08", "TR02lef5.dds"));
-
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("group146", "l37-upper.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("group147", "FL29pet2.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("flower0342", "FL13pet1.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("flower0344", "FL17pet1.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("flower0340", "FL13pet1.dds"));
-
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves011", "FL17lef2.dds"));
-	alphaTestedMaterialMaps.push_back(eastl::make_pair("smallLeaves01", "aglaonema_leaf.dds"));
-}
-
-eastl::string FindAlbedoTextureName(const eastl::string& meshName,
-	const AlphaTestedMaterialMaps& alphaTestedMaterialMaps)
-{
-	for (AlphaTestedMaterialMaps::const_iterator iter = alphaTestedMaterialMaps.begin();
-		iter != alphaTestedMaterialMaps.end(); ++iter)
-	{
-		//we are doing double check here to handle more than one digit
-		//for example if map value is 07 but mesh name is 075, then the first check
-		//will give true incorrectly, but the second check is going to verify it
-		eastl_size_t position = meshName.find(iter->first);
-		if (meshName.find(iter->first) != eastl::string::npos)
-		{
-			eastl::string restOfStr = meshName.substr(position + iter->first.size());
-			if (restOfStr[0] == '_')
-			{
-				return iter->second;
-			}
-		}
-	}
-
-	return "";
-}
-
-CPUImage* FindAlbedoImage(const eastl::string& texName, const AlphaTestedImageMaps& alphaTestedImageMaps)
-{
-	for (AlphaTestedImageMaps::const_iterator iter = alphaTestedImageMaps.begin();
-		iter != alphaTestedImageMaps.end(); ++iter)
-	{
-		if (texName.find(iter->first) != eastl::string::npos)
-		{
-			return iter->second;
-		}
-	}
-
-	return NULL;
-}
-
-
 void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const eastl::string& fileName, SDFMesh* outMesh, float scale,
-	float offsetX, bool generateSDFVolumeData, AlphaTestedImageMaps& alphaTestedImageMaps, AlphaTestedMaterialMaps& alphaTestedMaterialMaps,
-	BakedSDFVolumeInstances& sdfVolumeInstances)
+	float offsetX, bool generateSDFVolumeData,
+	BakedSDFVolumeInstances& sdfVolumeInstances,
+	GenerateVolumeDataFromFileFunc generateVolumeDataFromFileFunc)
 
 {
 	AssimpImporter importer;
@@ -2087,7 +1810,7 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const eastl::string& fil
 
 	if (!importer.ImportModel(sceneFullPath.c_str(), &model))
 	{
-		ErrorMsg("Failed to load %s", FileSystem::GetFileNameAndExtension(sceneFullPath).c_str());
+		LOGF(eERROR, "Failed to load %s", FileSystem::GetFileNameAndExtension(sceneFullPath).c_str());
 		return;
 	}
 
@@ -2233,18 +1956,16 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const eastl::string& fil
 			mesh.mMeshInstances[i] = { i, indexCount, totalIndexCount, totalVertexCount };
 
 			mesh.mMeshInstances[i].mMainMesh = &mesh;
-
+/*
 			if (customSubMesh.mIsAlphaTested)
 			{
 				mesh.mMeshInstances[i].mTextureImgRef = FindAlbedoImage(FindAlbedoTextureName(
 					customSubMesh.mMeshName, alphaTestedMaterialMaps), alphaTestedImageMaps);
-			}
+			}*/
 
 			vertices = (Vertex*)conf_realloc(vertices, sizeof(Vertex) * (totalVertexCount + vertexCount));
 			indices = (uint32_t*)conf_realloc(indices, sizeof(uint32_t) * (totalIndexCount + indexCount));
 
-			//mesh.mUncompressedTexCoords.reserve(vertexCount);
-			//mesh.mUncompressedNormals.reserve(vertexCount);
 
 			for (uint32_t j = 0; j < vertexCount; j++)
 			{
@@ -2256,15 +1977,16 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const eastl::string& fil
 
 				mesh.mUncompressedTexCoords.push_back(texCoord);
 
-				//vertices[totalVertexCount++] = { subMesh.mPositions[j], subMesh.mNormals[j] };
+				
 				vertices[totalVertexCount++] = { transformedV , subMesh.mNormals[j] };
 				mesh.mPositions.push_back(SceneVertexPos{ transformedV.getX(), transformedV.getY(), transformedV.getZ() });
 				mesh.mUncompressedNormals.push_back(f3Tov3(subMesh.mNormals[j]));
 
 				//SDF STUFF//
-				mesh.mMeshInstances[i].mLocalBoundingBox.Add(vec3(transformedV.x,
-					transformedV.y, transformedV.z));
-
+				//TODO: CLEANUP:
+				//mesh.mMeshInstances[i].mLocalBoundingBox.Add(vec3(transformedV.x,
+					//transformedV.y, transformedV.z));
+				adjustAABB( &mesh.mMeshInstances[i].mLocalBoundingBox, f3Tov3(transformedV));
 
 				//
 			}
@@ -2291,7 +2013,7 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const eastl::string& fil
 			}
 			accIndex_ += (uint32_t)subMesh.mPositions.size();
 
-			//LOGF(LogLevel::eINFO, "Alpha No stack Mesh instance %i has index count %i", i, indexCount);
+		
 		}
 		else
 		{
@@ -2312,15 +2034,15 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const eastl::string& fil
 
 				if (stackInstance.mIsAlphaTested)
 				{
-					eastl::string texName = FindAlbedoTextureName(
-						customSubMesh.mStacks[subMeshIndex].mMeshName, alphaTestedMaterialMaps);
+					//eastl::string texName = FindAlbedoTextureName(
+					//	customSubMesh.mStacks[subMeshIndex].mMeshName, alphaTestedMaterialMaps);
 
-					stackInstance.mTextureImgRef = FindAlbedoImage(texName, alphaTestedImageMaps);
+					///*stackInstance.mTextureImgRef = FindAlbedoImage(texName, alphaTestedImageMaps);
 
-					if (!stackInstance.mTextureImgRef)
-					{
-						LOGF(LogLevel::eINFO, "No image for alpha tested image, object name: %s", customSubMesh.mStacks[subMeshIndex].mMeshName.c_str());
-					}
+					//if (!stackInstance.mTextureImgRef)
+					//{
+					//	LOGF(LogLevel::eINFO, "No image for alpha tested image, object name: %s", customSubMesh.mStacks[subMeshIndex].mMeshName.c_str());
+					//}*/
 				}
 
 
@@ -2346,11 +2068,17 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const eastl::string& fil
 					mesh.mUncompressedNormals.push_back(f3Tov3(subMesh.mNormals[j]));
 
 					//SDF STUFF//
-					stackInstance.mLocalBoundingBox.Add(vec3(transformedV.x,
-						transformedV.y, transformedV.z));
 
-					mesh.mMeshInstances[i].mLocalBoundingBox.Add(vec3(transformedV.x,
-						transformedV.y, transformedV.z));
+					//TODO: CLEANUP:
+					//stackInstance.mLocalBoundingBox.Add(vec3(transformedV.x,
+						//transformedV.y, transformedV.z));
+
+					adjustAABB(&stackInstance.mLocalBoundingBox, f3Tov3(transformedV));
+
+					//mesh.mMeshInstances[i].mLocalBoundingBox.Add(vec3(transformedV.x,
+						//transformedV.y, transformedV.z));
+
+					adjustAABB(&mesh.mMeshInstances[i].mLocalBoundingBox, f3Tov3(transformedV));
 
 
 					//
@@ -2402,13 +2130,17 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const eastl::string& fil
 					SDF_DOUBLE_MAX_VOXEL_ONE_DIMENSION_Z);
 			}
 
-			const eastl::string fileNameToCheck = SDFVolumeData::GetFullDirBakedFileName(sdfBakedDataFileName);
+			/*const eastl::string fileNameToCheck = SDFVolumeData::GetFullDirBakedFileName(sdfBakedDataFileName);
 			SDFVolumeData::GenerateVolumeData(&volumeData, fileNameToCheck,
-				SDFVolumeData::GetBakedFileName(sdfBakedDataFileName), customSubMesh.mTwoSidedWorldSpaceBias);
+				SDFVolumeData::GetBakedFileName(sdfBakedDataFileName), customSubMesh.mTwoSidedWorldSpaceBias);*/
+
+
+			(*generateVolumeDataFromFileFunc)(&volumeData, GetSDFBakedFileName(sdfBakedDataFileName),
+				customSubMesh.mMeshName, customSubMesh.mTwoSidedWorldSpaceBias);
 
 			if (volumeData)
 			{
-				volumeData->mSubMeshName = customSubMesh.mMeshName;
+				//volumeData->mSubMeshName = customSubMesh.mMeshName;
 				sdfVolumeInstances.push_back(volumeData);
 				sdfMeshInstance.mHasGeneratedSDFVolumeData = true;
 				++mesh.mTotalGeneratedSDFMeshes;
@@ -2430,7 +2162,8 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const eastl::string& fil
 }
 
 void loadSDFMesh(ThreadSystem* threadSystem, const eastl::string& fileName, SDFMesh* outMesh, float scale,
-	float offsetX, bool generateSDFVolumeData, BakedSDFVolumeInstances& sdfVolumeInstances)
+	float offsetX, bool generateSDFVolumeData, BakedSDFVolumeInstances& sdfVolumeInstances,
+	GenerateVolumeDataFromFileFunc generateVolumeDataFromFileFunc)
 
 {
 	AssimpImporter importer;
@@ -2438,7 +2171,7 @@ void loadSDFMesh(ThreadSystem* threadSystem, const eastl::string& fileName, SDFM
 	eastl::string sceneFullPath = FileSystem::FixPath(fileName + ".obj", FSRoot::FSR_Meshes);
 	if (!importer.ImportModel(sceneFullPath.c_str(), &model))
 	{
-		ErrorMsg("Failed to load %s", FileSystem::GetFileNameAndExtension(sceneFullPath).c_str());
+		LOGF(eERROR, "Failed to load %s", FileSystem::GetFileNameAndExtension(sceneFullPath).c_str());
 		return;
 	}
 
@@ -2455,7 +2188,7 @@ void loadSDFMesh(ThreadSystem* threadSystem, const eastl::string& fileName, SDFM
 	uint32_t totalVertexCount = 0;
 	uint32_t totalIndexCount = 0;
 
-	AABBox overallBoundingBox;
+	AABB overallBoundingBox;
 
 	eastl::vector<SDFCustomSubMeshData> SDFCustomSubMeshDataList;
 
@@ -2513,18 +2246,16 @@ void loadSDFMesh(ThreadSystem* threadSystem, const eastl::string& fileName, SDFM
 
 			mesh.mUncompressedTexCoords.push_back(texCoord);
 
-			//vertices[totalVertexCount++] = { subMesh.mPositions[j], subMesh.mNormals[j] };
+			
 			vertices[totalVertexCount++] = { transformedV , subMesh.mNormals[j] };
 			mesh.mPositions.push_back(SceneVertexPos{ transformedV.getX(), transformedV.getY(), transformedV.getZ() });
 			mesh.mUncompressedNormals.push_back(f3Tov3(subMesh.mNormals[j]));
 
-			//SDF STUFF//
-			mesh.mMeshInstances[i].mLocalBoundingBox.Add(vec3(transformedV.x,
+		
+			adjustAABB(&mesh.mMeshInstances[i].mLocalBoundingBox, f3Tov3(transformedV));
+			adjustAABB(&overallBoundingBox, vec3(transformedV.x,
 				transformedV.y, transformedV.z));
-
-			overallBoundingBox.Add(vec3(transformedV.x,
-				transformedV.y, transformedV.z));
-			//
+			
 		}
 
 		uint32_t accIndex_ = 0;
@@ -2564,17 +2295,17 @@ void loadSDFMesh(ThreadSystem* threadSystem, const eastl::string& fileName, SDFM
 					SDF_DOUBLE_MAX_VOXEL_ONE_DIMENSION_Y,
 					SDF_DOUBLE_MAX_VOXEL_ONE_DIMENSION_Z);
 			}
-			/*SDFVolumeData::GenerateVolumeData(threadSystem, &mesh,
-				&sdfMeshInstance, 1.f, twoSided, &volumeData,
-				sdfBakedDataFileName, customSubMesh.mTwoSidedWorldSpaceBias, specialVoxelSizeValue);*/
 
-			const eastl::string fileNameToCheck = SDFVolumeData::GetFullDirBakedFileName(sdfBakedDataFileName);
+			/*const eastl::string fileNameToCheck = SDFVolumeData::GetFullDirBakedFileName(sdfBakedDataFileName);
 			SDFVolumeData::GenerateVolumeData(&volumeData, fileNameToCheck, 
-				SDFVolumeData::GetBakedFileName(sdfBakedDataFileName), customSubMesh.mTwoSidedWorldSpaceBias);
+				SDFVolumeData::GetBakedFileName(sdfBakedDataFileName), customSubMesh.mTwoSidedWorldSpaceBias);*/
+
+			(*generateVolumeDataFromFileFunc)(&volumeData, GetSDFBakedFileName(sdfBakedDataFileName),
+				customSubMesh.mMeshName, customSubMesh.mTwoSidedWorldSpaceBias);
 
 			if (volumeData)
 			{
-				volumeData->mSubMeshName = customSubMesh.mMeshName;
+				//volumeData->mSubMeshName = customSubMesh.mMeshName;
 				sdfVolumeInstances.push_back(volumeData);
 				sdfMeshInstance.mHasGeneratedSDFVolumeData = true;
 				++mesh.mTotalGeneratedSDFMeshes;
@@ -2597,49 +2328,62 @@ void loadSDFMesh(ThreadSystem* threadSystem, const eastl::string& fileName, SDFM
 	conf_free(indices);
 }
 
-void generateMissingSDF(ThreadSystem* threadSystem, SDFMesh* sdfMesh, BakedSDFVolumeInstances& sdfVolumeInstances)
+
+void adjustAABB(AABB* ownerAABB, const vec3& point)
 {
-	const CustomSDFSubMeshDataList& customList = sdfMesh->mCustomSubMeshDataList;
+	ownerAABB->minBounds.setX(fmin(point.getX(), 
+		ownerAABB->minBounds.getX()));
+	ownerAABB->minBounds.setY(fmin(point.getY(), 
+		ownerAABB->minBounds.getY()));
+	ownerAABB->minBounds.setZ(fmin(point.getZ(),
+		ownerAABB->minBounds.getZ()));
 
-	for (uint32_t i = 0; i < customList.size(); ++i)
-	{
-		const SDFCustomSubMeshData& customSubMesh = customList[i];
-		if (!customSubMesh.mIsSDFMesh)
-		{
-			continue;
-		}
-		SDFMeshInstance& sdfMeshInstance = sdfMesh->mMeshInstances[i];
-
-		if (sdfMeshInstance.mHasGeneratedSDFVolumeData)
-		{
-			continue;
-		}
-
-		bool twoSided = customSubMesh.mIsTwoSided;
-		eastl::string sdfBakedDataFileName = customSubMesh.mMeshName;
-
-		SDFVolumeData* volumeData = NULL;
-
-		ivec3 specialVoxelSizeValue(0);
-
-		if (customSubMesh.mUseDoubleVoxelSize)
-		{
-			specialVoxelSizeValue = ivec3(
-				SDF_DOUBLE_MAX_VOXEL_ONE_DIMENSION_X,
-				SDF_DOUBLE_MAX_VOXEL_ONE_DIMENSION_Y,
-				SDF_DOUBLE_MAX_VOXEL_ONE_DIMENSION_Z);
-		}
-
-		SDFVolumeData::GenerateVolumeData(threadSystem, sdfMesh,
-			&sdfMeshInstance, 1.f, twoSided, &volumeData,
-			sdfBakedDataFileName, customSubMesh.mTwoSidedWorldSpaceBias, specialVoxelSizeValue);
-
-		if (volumeData)
-		{
-			volumeData->mSubMeshName = customSubMesh.mMeshName;
-			sdfVolumeInstances.push_back(volumeData);
-			sdfMeshInstance.mHasGeneratedSDFVolumeData = true;
-			++sdfMesh->mTotalGeneratedSDFMeshes;
-		}
-	}
+	ownerAABB->maxBounds.setX(fmax(point.getX(), 
+		ownerAABB->maxBounds.getX()));
+	ownerAABB->maxBounds.setY(fmax(point.getY(),
+		ownerAABB->maxBounds.getY()));
+	ownerAABB->maxBounds.setZ(fmax(point.getZ(), 
+		ownerAABB->maxBounds.getZ()));
 }
+void adjustAABB(AABB* ownerAABB, const AABB& otherAABB)
+{
+	ownerAABB->minBounds.setX(fmin(otherAABB.minBounds.getX(),
+		ownerAABB->minBounds.getX()));
+	ownerAABB->minBounds.setY(fmin(otherAABB.minBounds.getY(),
+		ownerAABB->minBounds.getY()));
+	ownerAABB->minBounds.setZ(fmin(otherAABB.minBounds.getZ(),
+		ownerAABB->minBounds.getZ()));
+
+	ownerAABB->maxBounds.setX(fmax(otherAABB.maxBounds.getX(),
+		ownerAABB->maxBounds.getX()));
+	ownerAABB->maxBounds.setY(fmax(otherAABB.maxBounds.getY(),
+		ownerAABB->maxBounds.getY()));
+	ownerAABB->maxBounds.setZ(fmax(otherAABB.maxBounds.getZ(),
+		ownerAABB->maxBounds.getZ()));
+}
+
+
+void alignAABB(AABB* ownerAABB, float alignment)
+{
+	vec3 boxMin = ownerAABB->minBounds / alignment;
+	boxMin = vec3(floorf(boxMin.getX()) * alignment, floorf(boxMin.getY()) * alignment, 0.0f);
+	vec3 boxMax = ownerAABB->maxBounds / alignment;
+	boxMax = vec3(ceilf(boxMax.getX()) * alignment, ceilf(boxMax.getY()) * alignment, 0.0f);
+	*ownerAABB = AABB(boxMin, boxMax);
+}
+
+vec3 calculateAABBSize(const AABB* ownerAABB)
+{
+	return ownerAABB->maxBounds - ownerAABB->minBounds;
+}
+
+vec3 calculateAABBExtent(const AABB* ownerAABB)
+{
+	return 0.5f * (ownerAABB->maxBounds - ownerAABB->minBounds);
+}
+
+vec3 calculateAABBCenter(const AABB* ownerAABB)
+{
+	return (ownerAABB->maxBounds + ownerAABB->minBounds) * 0.5f;
+}
+

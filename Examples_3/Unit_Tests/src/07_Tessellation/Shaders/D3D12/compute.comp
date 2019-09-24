@@ -23,7 +23,7 @@
 */
 
 
-cbuffer GrassUniformBlock : register(b0)
+cbuffer GrassUniformBlock : register(b0, UPDATE_FREQ_PER_FRAME)
 {
 	float4x4 world;
 	float4x4 view;
@@ -42,7 +42,8 @@ cbuffer GrassUniformBlock : register(b0)
 	float windStrength;
 }
 
-struct Blade {
+struct Blade
+{
 	float4 v0;
 	float4 v1;
 	float4 v2;

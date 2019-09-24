@@ -36,8 +36,8 @@ struct PsIn
     vec4 position;
     vec2 texCoord;
 };
-layout(set = 1, binding = 0) uniform texture2D SourceTexture;
-layout(set = 0, binding = 1) uniform sampler repeatBillinearSampler;
+layout(UPDATE_FREQ_NONE, binding = 0) uniform texture2D SourceTexture;
+layout(UPDATE_FREQ_NONE, binding = 1) uniform sampler repeatBillinearSampler;
 
 vec4 HLSLmain(PsIn In)
 {

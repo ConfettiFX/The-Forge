@@ -27,7 +27,7 @@ static const float Pi = 3.14159265359;
 static float SampleDelta = 0.025;
 
 TextureCube<float4> srcTexture : register(t0);
-RWTexture2DArray<float4> dstTexture : register(u2, space1);
+RWTexture2DArray<float4> dstTexture : register(u2);
 SamplerState skyboxSampler : register(s3);
 
 float4 computeIrradiance(float3 N)

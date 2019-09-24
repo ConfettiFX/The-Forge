@@ -138,9 +138,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerInput.h">
       <Filter>OS\Profiler</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerUI.h">
-      <Filter>OS\Profiler</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IProfiler.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
@@ -152,6 +149,9 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IMiddleware.h">
       <Filter>OS\Interfaces</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerWidgetsUI.h">
+      <Filter>OS\Profiler</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -221,15 +221,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerBase.cpp">
       <Filter>OS\Profiler</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerDraw.cpp">
-      <Filter>OS\Profiler</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerInput.cpp">
-      <Filter>OS\Profiler</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerUI.cpp">
-      <Filter>OS\Profiler</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\allocator_eastl.cpp">
       <Filter>Dependencies\EASTL</Filter>
     </ClCompile>
@@ -271,6 +262,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp">
       <Filter>OS\Image</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerWidgetsUI.cpp">
+      <Filter>OS\Profiler</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

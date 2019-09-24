@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="basisu_resampler.cpp" />
+    <ClCompile Include="basisu_resample_filters.cpp" />
+    <ClCompile Include="basisu_basis_file.cpp" />
+    <ClCompile Include="basisu_comp.cpp" />
+    <ClCompile Include="basisu_enc.cpp" />
+    <ClCompile Include="basisu_etc.cpp" />
+    <ClCompile Include="basisu_backend.cpp" />
+    <ClCompile Include="basisu_frontend.cpp" />
+    <ClCompile Include="basisu_pvrtc1_4.cpp" />
+    <ClCompile Include="basisu_global_selector_palette_helpers.cpp" />
+    <ClCompile Include="basisu_gpu_texture.cpp" />
+    <ClCompile Include="lodepng.cpp" />
+    <ClCompile Include="basisu_tool.cpp" />
+    <ClCompile Include="transcoder\basisu_transcoder.cpp">
+      <Filter>transcoder</Filter>
+    </ClCompile>
+    <ClCompile Include="basisu_ssim.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="basisu_basis_file.h" />
+    <ClInclude Include="basisu_comp.h" />
+    <ClInclude Include="basisu_enc.h" />
+    <ClInclude Include="basisu_etc.h" />
+    <ClInclude Include="basisu_gpu_texture.h" />
+    <ClInclude Include="basisu_backend.h" />
+    <ClInclude Include="basisu_frontend.h" />
+    <ClInclude Include="basisu_pvrtc1_4.h" />
+    <ClInclude Include="basisu_global_selector_palette_helpers.h" />
+    <ClInclude Include="basisu_resampler.h" />
+    <ClInclude Include="basisu_resampler_filters.h" />
+    <ClInclude Include="lodepng.h" />
+    <ClInclude Include="transcoder\basisu_file_headers.h" />
+    <ClInclude Include="transcoder\basisu_global_selector_cb.h" />
+    <ClInclude Include="transcoder\basisu_global_selector_palette.h">
+      <Filter>transcoder</Filter>
+    </ClInclude>
+    <ClInclude Include="transcoder\basisu.h">
+      <Filter>transcoder</Filter>
+    </ClInclude>
+    <ClInclude Include="transcoder\basisu_transcoder_internal.h">
+      <Filter>transcoder</Filter>
+    </ClInclude>
+    <ClInclude Include="transcoder\basisu_transcoder.h">
+      <Filter>transcoder</Filter>
+    </ClInclude>
+    <ClInclude Include="basisu_ssim.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="transcoder\basisu_transcoder_tables_dxt1_6.inc">
+      <Filter>transcoder</Filter>
+    </None>
+    <None Include="transcoder\basisu_transcoder_tables_dxt1_5.inc">
+      <Filter>transcoder</Filter>
+    </None>
+    <None Include="transcoder\basisu_transcoder_tables_bc7_m6.inc">
+      <Filter>transcoder</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="transcoder">
+      <UniqueIdentifier>{7a54aaad-1d10-4bdf-b8e9-c14ed2263ed8}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

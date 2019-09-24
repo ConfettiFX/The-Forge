@@ -24,7 +24,7 @@
 
 #include "shader_defs.h"
 
-RWStructuredBuffer<uint> lightClustersCount : register(u0);
+RWStructuredBuffer<uint> lightClustersCount : register(u0, UPDATE_FREQ_PER_FRAME);
 
 [numthreads(LIGHT_CLUSTER_WIDTH, LIGHT_CLUSTER_HEIGHT, 1)]
 void main(uint2 threadId : SV_DispatchThreadID)

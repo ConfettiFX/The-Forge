@@ -72,12 +72,12 @@ RenderTarget* pRenderTargetIntermediate = NULL;
 
 Shader*           pShaderWave = NULL;
 Pipeline*         pPipelineWave = NULL;
-RootSignature*    pRootSignatureWave = NULL;
 Shader*           pShaderMagnify = NULL;
 Pipeline*         pPipelineMagnify = NULL;
-RootSignature*    pRootSignatureMagnify = NULL;
+RootSignature*    pRootSignature = NULL;
 
-DescriptorBinder* pDescriptorBinder = NULL;
+DescriptorSet*    pDescriptorSetUniforms = NULL;
+DescriptorSet*    pDescriptorSetTexture = NULL;
 
 Sampler* pSamplerPointWrap = NULL;
 
@@ -214,20 +214,20 @@ class WaveIntrinsics: public IApp
 									ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_CLAMP_TO_BORDER };
 		addSampler(pRenderer, &samplerDesc, &pSamplerPointWrap);
 
+		Shader* pShaders[] = { pShaderMagnify, pShaderWave };
 		const char*       pStaticSamplers[] = { "g_sampler" };
 		RootSignatureDesc rootDesc = {};
 		rootDesc.mStaticSamplerCount = 1;
 		rootDesc.ppStaticSamplerNames = pStaticSamplers;
 		rootDesc.ppStaticSamplers = &pSamplerPointWrap;
-		rootDesc.mShaderCount = 1;
-		rootDesc.ppShaders = &pShaderWave;
-		addRootSignature(pRenderer, &rootDesc, &pRootSignatureWave);
+		rootDesc.mShaderCount = 2;
+		rootDesc.ppShaders = pShaders;
+		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
-		rootDesc.ppShaders = &pShaderMagnify;
-		addRootSignature(pRenderer, &rootDesc, &pRootSignatureMagnify);
-
-		DescriptorBinderDesc descriptorBinderDesc[2] = { { pRootSignatureWave }, { pRootSignatureMagnify } };
-		addDescriptorBinder(pRenderer, 0, 2, descriptorBinderDesc, &pDescriptorBinder);
+		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
+		setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
 
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
@@ -345,7 +345,7 @@ class WaveIntrinsics: public IApp
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				if (gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, true) && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase)
+				if (gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition) && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase)
 					pMovePosition = ctx->pPosition;
 				else
 					pMovePosition = NULL;
@@ -355,6 +355,14 @@ class WaveIntrinsics: public IApp
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { pMovePosition = NULL; gMoveDelta = ctx->mFloat2; return true; } };
 		addInputAction(&actionDesc);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			DescriptorData params[1] = {};
+			params[0].pName = "SceneConstantBuffer";
+			params[0].ppBuffers = &pUniformBuffer[i];
+			updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
+		}
 
 		return true;
 	}
@@ -374,12 +382,13 @@ class WaveIntrinsics: public IApp
 		removeResource(pVertexBufferQuad);
 		removeResource(pVertexBufferTriangle);
 
+		removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
+		removeDescriptorSet(pRenderer, pDescriptorSetTexture);
+
 		removeSampler(pRenderer, pSamplerPointWrap);
 		removeShader(pRenderer, pShaderMagnify);
-		removeRootSignature(pRenderer, pRootSignatureMagnify);
 		removeShader(pRenderer, pShaderWave);
-		removeRootSignature(pRenderer, pRootSignatureWave);
-		removeDescriptorBinder(pRenderer, pDescriptorBinder);
+		removeRootSignature(pRenderer, pRootSignature);
 
 		removeDepthState(pDepthNone);
 		removeRasterizerState(pRasterizerCullNone);
@@ -414,12 +423,12 @@ class WaveIntrinsics: public IApp
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 2;
 		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGB32F;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
 		vertexLayout.mAttribs[0].mBinding = 0;
 		vertexLayout.mAttribs[0].mLocation = 0;
 		vertexLayout.mAttribs[0].mOffset = 0;
 		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_COLOR;
-		vertexLayout.mAttribs[1].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
 		vertexLayout.mAttribs[1].mBinding = 0;
 		vertexLayout.mAttribs[1].mLocation = 1;
 		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
@@ -431,10 +440,9 @@ class WaveIntrinsics: public IApp
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepthNone;
 		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
 		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
 		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.pRootSignature = pRootSignatureWave;
+		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pShaderWave;
 		pipelineSettings.pVertexLayout = &vertexLayout;
 		pipelineSettings.pRasterizerState = pRasterizerCullNone;
@@ -442,17 +450,21 @@ class WaveIntrinsics: public IApp
 
 		//layout and pipeline for skybox draw
 		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayout.mAttribs[1].mFormat = ImageFormat::RG32F;
+		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32_SFLOAT;
 		vertexLayout.mAttribs[1].mBinding = 0;
 		vertexLayout.mAttribs[1].mLocation = 1;
 		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
 
-		pipelineSettings.pRootSignature = pRootSignatureMagnify;
 		pipelineSettings.pShaderProgram = pShaderMagnify;
 		addPipeline(pRenderer, &desc, &pPipelineMagnify);
 
 		gSceneData.mousePosition.x = mSettings.mWidth * 0.5f;
 		gSceneData.mousePosition.y = mSettings.mHeight * 0.5f;
+
+		DescriptorData magnifyParams[1] = {};
+		magnifyParams[0].pName = "g_texture";
+		magnifyParams[0].ppTextures = &pRenderTargetIntermediate->pTexture;
+		updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture, 1, magnifyParams);
 
 		return true;
 	}
@@ -530,7 +542,7 @@ class WaveIntrinsics: public IApp
 			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
 			{ pScreenRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 2, rtBarrier, false);
+		cmdResourceBarrier(cmd, 0, NULL, 2, rtBarrier);
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
@@ -539,10 +551,7 @@ class WaveIntrinsics: public IApp
 		// wave debug
 		cmdBeginDebugMarker(cmd, 0, 0, 1, "Wave Shader");
 		cmdBindPipeline(cmd, pPipelineWave);
-		DescriptorData params[1] = {};
-		params[0].pName = "SceneConstantBuffer";
-		params[0].ppBuffers = &pUniformBuffer[gFrameIndex];
-		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureWave, 1, params);
+        cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUniforms);
 		cmdBindVertexBuffer(cmd, 1, &pVertexBufferTriangle, NULL);
 		cmdDraw(cmd, 3, 0);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -553,18 +562,14 @@ class WaveIntrinsics: public IApp
 		TextureBarrier srvBarrier[] = {
 			{ pRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 1, srvBarrier, false);
+		cmdResourceBarrier(cmd, 0, NULL, 1, srvBarrier);
 
 		loadActions.mClearColorValues[0] = pScreenRenderTarget->mDesc.mClearValue;
 		cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 
-		DescriptorData magnifyParams[2] = {};
-		magnifyParams[0].pName = "SceneConstantBuffer";
-		magnifyParams[0].ppBuffers = &pUniformBuffer[gFrameIndex];
-		magnifyParams[1].pName = "g_texture";
-		magnifyParams[1].ppTextures = &pRenderTarget->pTexture;
-		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureMagnify, 2, magnifyParams);
 		cmdBindPipeline(cmd, pPipelineMagnify);
+        cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUniforms);
+		cmdBindDescriptorSet(cmd, 0, pDescriptorSetTexture);
 		cmdBindVertexBuffer(cmd, 1, &pVertexBufferQuad, NULL);
 		cmdDrawInstanced(cmd, 6, 0, 2, 0);
 
@@ -583,7 +588,7 @@ class WaveIntrinsics: public IApp
 		cmdEndDebugMarker(cmd);
 
 		TextureBarrier presentBarrier = { pScreenRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(cmd, 0, NULL, 1, &presentBarrier, true);
+		cmdResourceBarrier(cmd, 0, NULL, 1, &presentBarrier);
 		endCmd(cmd);
 
 		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);

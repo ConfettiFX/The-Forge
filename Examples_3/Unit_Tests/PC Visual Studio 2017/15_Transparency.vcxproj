@@ -60,25 +60,20 @@
     <None Include="..\src\15_Transparency\Shaders\Vulkan\generateMips.comp" />
     <None Include="..\src\15_Transparency\Shaders\Vulkan\phenomenologicalTransparency.frag" />
     <None Include="..\src\15_Transparency\Shaders\Vulkan\phenomenologicalTransparencyComposite.frag" />
-    <None Include="..\src\15_Transparency\Shaders\Vulkan\shading.glsl" />
+    <None Include="..\src\15_Transparency\Shaders\Vulkan\shading.h" />
     <None Include="..\src\15_Transparency\Shaders\Vulkan\shadow.frag" />
     <None Include="..\src\15_Transparency\Shaders\Vulkan\shadow.vert" />
     <None Include="..\src\15_Transparency\Shaders\Vulkan\skybox.frag" />
     <None Include="..\src\15_Transparency\Shaders\Vulkan\skybox.vert" />
     <None Include="..\src\15_Transparency\Shaders\Vulkan\stochasticShadow.frag" />
-    <None Include="..\src\15_Transparency\Shaders\Vulkan\varianceShadowMapping.glsl" />
+    <None Include="..\src\15_Transparency\Shaders\Vulkan\varianceShadowMapping.h" />
     <None Include="..\src\15_Transparency\Shaders\Vulkan\weightedBlendedOIT.frag" />
     <None Include="..\src\15_Transparency\Shaders\Vulkan\weightedBlendedOITComposite.frag" />
     <None Include="..\src\15_Transparency\Shaders\Vulkan\weightedBlendedOITVolition.frag" />
     <None Include="..\src\15_Transparency\Shaders\Vulkan\weightedBlendedOITVolitionComposite.frag" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\15_Transparency\Shaders\D3D12\AOIT.hlsl">
-      <FileType>Document</FileType>
-    </None>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\src\15_Transparency\Shaders\D3D12\shading.hlsl">
+    <None Include="..\src\15_Transparency\Shaders\D3D12\shading.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
       </ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
@@ -95,9 +90,14 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\15_Transparency\Shaders\D3D12\varianceShadowMapping.hlsl">
+    <None Include="..\src\15_Transparency\Shaders\D3D12\varianceShadowMapping.h">
       <FileType>Document</FileType>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\15_Transparency\Shaders\D3D12\AOIT.h" />
+    <ClInclude Include="..\src\15_Transparency\Shaders\D3D12\shaderDefs.h" />
+    <ClInclude Include="..\src\15_Transparency\Shaders\Vulkan\shaderDefs.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{69CBDFA9-4368-4749-9417-08F68C856C94}</ProjectGuid>

@@ -64,9 +64,9 @@ Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
 Shader*           pRTDemoShader = NULL;
 Pipeline*         pRTDemoPipeline = NULL;
 RootSignature*    pRootSignature = NULL;
-DescriptorBinder* pDescriptorBinder = NULL;
+DescriptorSet*    pDescriptorSetUniforms = NULL;
 VirtualJoystickUI gVirtualJoystick;
-RasterizerState* pRast = NULL;
+RasterizerState*  pRast = NULL;
 
 Buffer* pUniformBuffer[gImageCount] = { NULL };
 
@@ -133,7 +133,12 @@ class SphereTracing: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		initProfiler(pRenderer);
+    if (!gAppUI.Init(pRenderer))
+      return false;
+
+    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+
+		initProfiler();
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
@@ -155,8 +160,8 @@ class SphereTracing: public IApp
 		rootDesc.ppShaders = shaders;
 		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
-		DescriptorBinderDesc descriptorBinderDesc = { pRootSignature };
-		addDescriptorBinder(pRenderer, 0, 1, &descriptorBinderDesc, &pDescriptorBinder);
+		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
 
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
@@ -173,11 +178,6 @@ class SphereTracing: public IApp
 			ubDesc.ppBuffer = &pUniformBuffer[i];
 			addResource(&ubDesc);
 		}
-
-		if (!gAppUI.Init(pRenderer))
-			return false;
-
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		/************************************************************************/
 		// GUI
@@ -199,15 +199,8 @@ class SphereTracing: public IApp
 		if (!initInputSystem(pWindow))
 			return false;
 
-		// Microprofiler Actions
-		// #TODO: Remove this once the profiler UI is ported to use our UI system
-		InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gMicroProfiler; } };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
-		addInputAction(&actionDesc);
-
 		// App Actions
-		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+    InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
@@ -215,7 +208,7 @@ class SphereTracing: public IApp
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gMicroProfiler);
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -238,7 +231,15 @@ class SphereTracing: public IApp
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
 
-
+		// Prepare descriptor sets
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			DescriptorData params[1] = {};
+			params[0].pName = "u_input";
+			params[0].ppBuffers = &pUniformBuffer[i];
+			updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
+		}
+		
 		return true;
 	}
 
@@ -261,9 +262,9 @@ class SphereTracing: public IApp
 			removeResource(pUniformBuffer[i]);
 		}
 
+		removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
 		removeShader(pRenderer, pRTDemoShader);
 		removeRootSignature(pRenderer, pRootSignature);
-		removeDescriptorBinder(pRenderer, pDescriptorBinder);
 
 		removeRasterizerState(pRast);
 
@@ -294,7 +295,7 @@ class SphereTracing: public IApp
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
 
-		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
+		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		PipelineDesc desc = {};
 		desc.mType = PIPELINE_TYPE_GRAPHICS;
@@ -303,7 +304,6 @@ class SphereTracing: public IApp
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = NULL;
 		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
 		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
 		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.pRootSignature = pRootSignature;
@@ -346,15 +346,9 @@ class SphereTracing: public IApp
 		/************************************************************************/
 		/************************************************************************/
 
-    // ProfileSetDisplayMode()
-    // TODO: need to change this better way 
     if (gMicroProfiler != bPrevToggleMicroProfiler)
     {
-      Profile& S = *ProfileGet();
-      int nValue = gMicroProfiler ? 1 : 0;
-      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
-      S.nDisplay = nValue;
-
+      toggleProfiler();
       bPrevToggleMicroProfiler = gMicroProfiler;
     }
 
@@ -398,7 +392,7 @@ class SphereTracing: public IApp
 		TextureBarrier barriers[] = {
 			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, false);
+		cmdResourceBarrier(cmd, 0, NULL, 1, barriers);
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
@@ -408,11 +402,7 @@ class SphereTracing: public IApp
 		cmdBeginDebugMarker(cmd, 0, 0, 1, "Draw");
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "RT Shader");
 		cmdBindPipeline(cmd, pRTDemoPipeline);
-
-		DescriptorData params[1] = {};
-		params[0].pName = "u_input";
-		params[0].ppBuffers = &pUniformBuffer[gFrameIndex];
-		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignature, 1, params);
+		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUniforms);
 		cmdDraw(cmd, 3, 0);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 		cmdEndDebugMarker(cmd);
@@ -433,7 +423,7 @@ class SphereTracing: public IApp
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
 #endif
 
-		cmdDrawProfiler(cmd);
+		cmdDrawProfiler();
 
     gAppUI.Gui(pGuiWindow);
 		gAppUI.Draw(cmd);
@@ -441,7 +431,7 @@ class SphereTracing: public IApp
 		cmdEndDebugMarker(cmd);
 
 		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, true);
+		cmdResourceBarrier(cmd, 0, NULL, 1, barriers);
 		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 		endCmd(cmd);
 

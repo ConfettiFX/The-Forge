@@ -96,22 +96,8 @@ public:
 		if (!initInputSystem(pWindow))
 			return false;
 
-		// Microprofiler Actions
-		// #TODO: Remove this once the profiler UI is ported to use our UI system
-		InputActionDesc actionDesc =
-		{
-			InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx)
-			{
-				onProfilerButton(false, &ctx->mFloat2, true);
-				return !((UnitTest_NativeRaytracing*)ctx->pUserData)->mMicroProfiler;
-			}, this
-		};
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
-		addInputAction(&actionDesc);
-
 		// App Actions
-		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+    InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
@@ -120,7 +106,7 @@ public:
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
 				UnitTest_NativeRaytracing* pApp = (UnitTest_NativeRaytracing*)ctx->pUserData;
-				return pApp->mAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, pApp->mMicroProfiler);
+				return pApp->mAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 			}, this
 		};
 		addInputAction(&actionDesc);
@@ -146,14 +132,14 @@ public:
 			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
 		}
 
-		initProfiler(pRenderer);
+    if (!mAppUI.Init(pRenderer))
+      return false;
+
+    mAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+
+		initProfiler();
 
 		addGpuProfiler(pRenderer, pQueue, &pGpuProfiler, "GpuProfiler");
-
-		if (!mAppUI.Init(pRenderer))
-			return false;
-
-		mAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		/************************************************************************/
 		// GUI
@@ -193,13 +179,11 @@ public:
         rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
         addRasterizerState(pRenderer, &rasterizerStateDesc, &pRast);
 
-		eastl::vector<DescriptorBinderDesc> descBinderDesc;
-		descBinderDesc.push_back({ pDisplayTextureSignature });
-        
 		if (!isRaytracingSupported(pRenderer))
 		{
 			pRaytracing = NULL;
-			addDescriptorBinder(pRenderer, 0, (uint32_t)descBinderDesc.size(), descBinderDesc.data(), &pDescriptorBinder);
+			DescriptorSetDesc setDesc = { pDisplayTextureSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
 			pGuiWindow->AddWidget(LabelWidget("Raytracing is NOT SUPPORTED"));
 			return true;
 		}
@@ -402,9 +386,12 @@ public:
         hitRecords[2].mMissShaderIndex = 1; //missShadow
 #endif
 
-		descBinderDesc.push_back({ pRootSignature });
-
-		addDescriptorBinder(pRenderer, 0, (uint32_t)descBinderDesc.size(), descBinderDesc.data(), &pDescriptorBinder);
+		DescriptorSetDesc setDesc = { pDisplayTextureSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
+		setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetRaytracing);
+		setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
 
         RaytracingShaderTableDesc shaderTableDesc = {};
         shaderTableDesc.pPipeline = pPipeline;
@@ -414,6 +401,14 @@ public:
         shaderTableDesc.mHitGroupCount = 4;
         shaderTableDesc.pHitGroups = hitRecords;
         addRaytracingShaderTable(pRaytracing, &shaderTableDesc, &pShaderTable);
+
+		DescriptorData params[1] = {};
+		params[0].pName = "gSettings";
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			params[0].ppBuffers = &pRayGenConfigBuffer[mFrameIdx];
+			updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
+		}
 
 		return true;
 	}
@@ -432,6 +427,9 @@ public:
 
 		if (pRaytracing != NULL)
 		{
+			removeDescriptorSet(pRenderer, pDescriptorSetRaytracing);
+			removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
+
 			removeRaytracingShaderTable(pRaytracing, pShaderTable);
 			removePipeline(pRenderer, pPipeline);
 			removeRootSignature(pRenderer, pRootSignature);
@@ -448,7 +446,7 @@ public:
 			removeAccelerationStructure(pRaytracing, pTopLevelAS);
 			removeRaytracing(pRenderer, pRaytracing);
 		}
-		removeDescriptorBinder(pRenderer, pDescriptorBinder);
+		removeDescriptorSet(pRenderer, pDescriptorSetTexture);
 
 		removeSampler(pRenderer, pSampler);
 		removeRasterizerState(pRast);
@@ -476,21 +474,21 @@ public:
 		TextureDesc uavDesc = {};
 		uavDesc.mArraySize = 1;
 		uavDesc.mDepth = 1;
-		uavDesc.mFormat = getRecommendedSwapchainFormat(true);
+        uavDesc.mFormat = TinyImageFormat_B8G8R8A8_UNORM;
 		uavDesc.mHeight = mSettings.mHeight;
 		uavDesc.mMipLevels = 1;
 		uavDesc.mSampleCount = SAMPLE_COUNT_1;
-		uavDesc.mSrgb = false;
 		uavDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;// RESOURCE_STATE_UNORDERED_ACCESS;
 		uavDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 		uavDesc.mWidth = mSettings.mWidth;
+#ifdef METAL
+        uavDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
+#endif
 		TextureLoadDesc loadDesc = {};
 		loadDesc.pDesc = &uavDesc;
-		for(uint i = 0 ; i < gImageCount; i++)
-		{
-			loadDesc.ppTexture = &pComputeOutput[i];
-			addResource(&loadDesc);
-		}
+		loadDesc.ppTexture = &pComputeOutput;
+		addResource(&loadDesc);
+
 		SwapChainDesc swapChainDesc = {};
 		swapChainDesc.mColorClearValue = { 1, 1, 1, 1 };
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
@@ -498,7 +496,6 @@ public:
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
-		swapChainDesc.mSrgb = false;
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.ppPresentQueues = &pQueue;
 		swapChainDesc.mPresentQueueCount = 1;
@@ -514,7 +511,6 @@ public:
         pipelineSettings.pRasterizerState = pRast;
         pipelineSettings.mRenderTargetCount = 1;
         pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-        pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
         pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
         pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
         pipelineSettings.pVertexLayout = &vertexLayout;
@@ -527,7 +523,26 @@ public:
 		if (!mAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
-		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
+		loadProfiler(&mAppUI, mSettings.mWidth, mSettings.mHeight);
+
+		DescriptorData params[2] = {};
+
+		if (pRaytracing != NULL)
+		{
+			params[0].pName = "gOutput";
+			params[0].ppTextures = &pComputeOutput;
+#ifndef METAL
+			params[1].pName = "gRtScene";
+			params[1].ppAccelerationStructures = &pTopLevelAS;
+			updateDescriptorSet(pRenderer, 0, pDescriptorSetRaytracing, 2, params);
+#else
+			updateDescriptorSet(pRenderer, 0, pDescriptorSetRaytracing, 1, params);
+#endif
+		}
+
+		params[0].pName = "uTex0";
+		params[0].ppTextures = &pComputeOutput;
+		updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture, 1, params);
 
 		return true;
 	}
@@ -541,8 +556,7 @@ public:
 
 		removePipeline(pRenderer, pDisplayTexturePipeline);
 		removeSwapChain(pRenderer, pSwapChain);
-		for(uint i = 0; i < gImageCount; i++)
-			removeResource(pComputeOutput[i]);
+		removeResource(pComputeOutput);
 	}
 
 	void Update(float deltaTime)
@@ -599,27 +613,17 @@ public:
 		// Transition UAV texture so raytracing shader can write to it
 		/************************************************************************/
 		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Raytrace Triangle", true);
-		TextureBarrier uavBarrier = { pComputeOutput[mFrameIdx], RESOURCE_STATE_UNORDERED_ACCESS };
-		cmdResourceBarrier(pCmd, 0, NULL, 1, &uavBarrier, false);
+		TextureBarrier uavBarrier = { pComputeOutput, RESOURCE_STATE_UNORDERED_ACCESS };
+		cmdResourceBarrier(pCmd, 0, NULL, 1, &uavBarrier);
 		/************************************************************************/
 		// Perform raytracing
 		/************************************************************************/
 		if (pRaytracing != NULL)
 		{
-			DescriptorData params[3] = {};
-			params[0].pName = "gOutput";
-			params[0].ppTextures = &pComputeOutput[mFrameIdx];
-			params[1].pName = "gSettings";
-			params[1].ppBuffers = &pRayGenConfigBuffer[mFrameIdx];
-#ifndef METAL
-			params[2].pName = "gRtScene";
-			params[2].ppAccelerationStructures = &pTopLevelAS;
-			cmdBindDescriptors(pCmd, pDescriptorBinder, pRootSignature, 3, params);
-#else
-			cmdBindDescriptors(pCmd, pDescriptorBinder, pRootSignature, 2, params);
-#endif
+            cmdBindPipeline(pCmd, pPipeline);
 
-			cmdBindPipeline(pCmd, pPipeline);
+            cmdBindDescriptorSet(pCmd, 0, pDescriptorSetRaytracing);
+			cmdBindDescriptorSet(pCmd, mFrameIdx, pDescriptorSetUniforms);
 
 			RaytracingDispatchDesc dispatchDesc = {};
 			dispatchDesc.mHeight = mSettings.mHeight;
@@ -627,8 +631,14 @@ public:
 			dispatchDesc.pShaderTable = pShaderTable;
 #ifdef METAL
 			dispatchDesc.pTopLevelAccelerationStructure = pTopLevelAS;
-			dispatchDesc.pParams = params;
-			dispatchDesc.mParamCount = 2;
+
+            //dispatchDesc.pIndexes = { 0 };
+            //dispatchDesc.pSets = { 0 };
+            
+            dispatchDesc.pIndexes[DESCRIPTOR_UPDATE_FREQ_NONE] = 0;
+			dispatchDesc.pSets[DESCRIPTOR_UPDATE_FREQ_NONE] = pDescriptorSetRaytracing;
+            dispatchDesc.pIndexes[DESCRIPTOR_UPDATE_FREQ_PER_FRAME] = mFrameIdx;
+            dispatchDesc.pSets[DESCRIPTOR_UPDATE_FREQ_PER_FRAME] = pDescriptorSetUniforms;
 #endif
 			cmdDispatchRays(pCmd, pRaytracing, &dispatchDesc);
 		}
@@ -636,10 +646,10 @@ public:
 		// Transition UAV to be used as source and swapchain as destination in copy operation
 		/************************************************************************/
 		TextureBarrier copyBarriers[] = {
-			{ pComputeOutput[mFrameIdx], RESOURCE_STATE_SHADER_RESOURCE },
+			{ pComputeOutput, RESOURCE_STATE_SHADER_RESOURCE },
 			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
 		};
-		cmdResourceBarrier(pCmd, 0, NULL, 2, copyBarriers, false);
+		cmdResourceBarrier(pCmd, 0, NULL, 2, copyBarriers);
 		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
 		/************************************************************************/
 		// Present to screen
@@ -651,29 +661,28 @@ public:
 		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)mSettings.mWidth, (float)mSettings.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(pCmd, 0, 0, mSettings.mWidth, mSettings.mHeight);
         
-		if(pRaytracing != NULL)
+		if (pRaytracing != NULL)
 		{
 			/************************************************************************/
 			// Perform copy
 			/************************************************************************/
 			cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Render result", true);
 			// Draw computed results
-			DescriptorData params[1] = {};
 			cmdBindPipeline(pCmd, pDisplayTexturePipeline);
-			params[0].pName = "uTex0";
-			params[0].ppTextures = &pComputeOutput[mFrameIdx];
-			cmdBindDescriptors(pCmd, pDescriptorBinder, pDisplayTextureSignature, 1, params);
+			cmdBindDescriptorSet(pCmd, 0, pDescriptorSetTexture);
 			cmdDraw(pCmd, 3, 0);
 			cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
         }
 
-		cmdDrawProfiler(pCmd);
+		cmdDrawProfiler();
 
 		mAppUI.Gui(pGuiWindow);
 		mAppUI.Draw(pCmd);
 
+		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+
 		TextureBarrier presentBarrier = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(pCmd, 0, NULL, 1, &presentBarrier, true);
+		cmdResourceBarrier(pCmd, 0, NULL, 1, &presentBarrier);
 
 		cmdEndGpuFrameProfile(pCmd, pGpuProfiler);
 		
@@ -722,12 +731,14 @@ private:
     Sampler*                pSampler;
 	RootSignature*			pRootSignature;
     RootSignature*          pDisplayTextureSignature;
-	DescriptorBinder*       pDescriptorBinder;
+	DescriptorSet*          pDescriptorSetRaytracing;
+	DescriptorSet*          pDescriptorSetUniforms;
+	DescriptorSet*          pDescriptorSetTexture;
 	Pipeline*				pPipeline;
     Pipeline*               pDisplayTexturePipeline;
 	RaytracingShaderTable*  pShaderTable;
 	SwapChain*				pSwapChain;
-	Texture*				pComputeOutput[gImageCount];
+	Texture*				pComputeOutput;
 	Semaphore*				pRenderCompleteSemaphores[gImageCount];
 	Semaphore*				pImageAcquiredSemaphore;
 	GpuProfiler*			pGpuProfiler;

@@ -9,10 +9,12 @@
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
-
-#include "AABBox.h"
-#include "SDFVolumeData.h"
-#include "CPUImage.h"
+#if defined(_DURANGO)
+//const static eastl::string gGeneratedSDFBinaryDir = "SDF/";
+const static eastl::string gGeneratedSDFBinaryDir = "";
+#else
+const static eastl::string gGeneratedSDFBinaryDir = "../../../UnitTestResources/SDF/";
+#endif
 
 namespace eastl
 {
@@ -20,23 +22,29 @@ namespace eastl
 	struct has_equality<vec3> : eastl::false_type {};
 }
 
-
-
-
 //#define NO_HLSL_DEFINITIONS 1
 //#include "Shader_Defs.h"
 #if defined(METAL)
 #include "Shaders/Metal/Shader_Defs.h"
+#include "Shaders/Metal/ASMConstant.h"
+#include "Shaders/Metal/SDF_Constant.h"
 #elif defined(DIRECT3D12) || defined(_DURANGO)
 #define NO_HLSL_DEFINITIONS
 #include "Shaders/D3D12/Shader_Defs.h"
+#include "Shaders/D3D12/ASMShader_Defs.h"
+#include "Shaders/D3D12/SDF_Constant.h"
 #elif defined(VULKAN)
 #define NO_GLSL_DEFINITIONS
 #include "Shaders/Vulkan/Shader_Defs.h"
+#include "Shaders/Vulkan/ASMShader_Defs.h"
+#include "Shaders/Vulkan/SDF_Constant.h"
 #endif
+
 
 struct Buffer;
 struct ThreadSystem;
+
+struct SDFVolumeData;
 
 typedef struct ClusterCompact
 {
@@ -171,31 +179,15 @@ typedef struct Scene
 	uint32_t                           totalVertices;
 	MeshIn*                            meshes;
 	Material*                          materials;
-	eastl::vector<SceneVertexPos>      positions;
-	eastl::vector<SceneVertexTexCoord> texCoords;
-	eastl::vector<SceneVertexNormal>   normals;
-	eastl::vector<SceneVertexTangent>  tangents;
+	SceneVertexPos*                    positions;
+	SceneVertexTexCoord*               texCoords;
+	SceneVertexNormal*                 normals;
+	SceneVertexTangent*                tangents;
+	uint32_t*                          indices;
 	char**                             textures;
 	char**                             normalMaps;
 	char**                             specularMaps;
-
-	eastl::vector<uint32_t> indices;
-
-	Buffer*                   mPVertexBuffer = NULL;
-	Buffer*                   mPIndexBuffer = NULL;
-
-	Buffer* m_pIndirectPosBuffer = NULL;
-	Buffer* m_pIndirectTexCoordBuffer = NULL;
-	Buffer* m_pIndirectNormalBuffer = NULL;
-	Buffer* m_pIndirectTangentBuffer = NULL;
-	Buffer* m_pIndirectIndexBuffer = NULL;
 } Scene;
-
-
-
-
-typedef eastl::vector<eastl::pair<eastl::string, eastl::string> > AlphaTestedMaterialMaps;
-typedef eastl::unordered_map<eastl::string, CPUImage*> AlphaTestedImageMaps;
 
 struct SDFCustomSubMeshData;
 
@@ -216,7 +208,7 @@ struct SDFCustomSubMeshData
 };
 
 
-struct SDFMeshInstance;
+struct SDFMesh;
 
 struct SDFMeshInstance
 {
@@ -225,13 +217,12 @@ struct SDFMeshInstance
 	uint32_t mStartIndex;
 	uint32_t mStartVertex;
 
-	AABBox mLocalBoundingBox = AABBox(vec3(FLT_MAX), vec3(FLT_MIN));
+	AABB mLocalBoundingBox = AABB(vec3(FLT_MAX), vec3(-FLT_MAX));
 	SDFMesh* mMainMesh = NULL;
 
 	bool mHasGeneratedSDFVolumeData = false;
 
 	bool mIsAlphaTested = false;
-	CPUImage* mTextureImgRef = NULL;
 	eastl::vector<SDFMeshInstance> mStackInstances;
 };
 
@@ -270,6 +261,20 @@ struct Vertex
 };
 
 
+typedef bool (*GenerateVolumeDataFromFileFunc) (SDFVolumeData**, const eastl::string& , const eastl::string&, float);
+
+
+void adjustAABB(AABB* ownerAABB, const vec3& point);
+void adjustAABB(AABB* ownerAABB, const AABB& otherAABB);
+vec3 calculateAABBSize(const AABB* ownerAABB);
+vec3 calculateAABBExtent(const AABB* ownerAABB);
+vec3 calculateAABBCenter(const AABB* ownerAABB);
+
+eastl::string GetSDFBakedFileName(const eastl::string& fileName);
+eastl::string GetSDFFullDirBakedFileName(const eastl::string& fileName);
+
+void alignAABB(AABB* ownerAABB, float alignment);
+
 void destroyClusters(MeshIn* pMesh);
 Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY, float offsetZ);
 	
@@ -279,23 +284,20 @@ void   createAABB(const Scene* scene, MeshIn* subMesh);
 void   createClusters(bool twoSided, const Scene* scene, MeshIn* subMesh);
 
 
-void generateMissingSDF(ThreadSystem* threadSystem, SDFMesh* sdfMesh, BakedSDFVolumeInstances& sdfMeshInstances);
 
 
 void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const eastl::string& fileName, SDFMesh* outMesh, float scale,
-	float offsetX, bool generateSDFVolumeData, AlphaTestedImageMaps& alphaTestedImageMaps, AlphaTestedMaterialMaps& alphaTestedMaterialMaps,
-	BakedSDFVolumeInstances& sdfMeshInstances);
+	float offsetX, bool generateSDFVolumeData,
+	BakedSDFVolumeInstances& sdfMeshInstances, 
+	GenerateVolumeDataFromFileFunc generateVolumeDataFromFileFunc);
 
 void loadSDFMesh(ThreadSystem* threadSystem, const eastl::string& fileName, SDFMesh* outMesh, float scale,
-	float offsetX, bool generateSDFVolumeData, BakedSDFVolumeInstances& sdfMeshInstances);
+	float offsetX, bool generateSDFVolumeData, BakedSDFVolumeInstances& sdfMeshInstances,
+	GenerateVolumeDataFromFileFunc generateVolumeDataFromFileFunc);
 
 
 void addClusterToBatchChunk(
 	const ClusterCompact* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex,
 	FilterBatchChunk* batchChunk);
-
-
-void initAlphaTestedImageMaps(AlphaTestedImageMaps& imageMaps);
-void initAlphaTestedMaterialTexturesMaps(AlphaTestedMaterialMaps& alphaTestedMaterialMaps);
 
 #endif

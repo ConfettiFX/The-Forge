@@ -1,0 +1,108 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{64b8e6a0-a5a1-4bc2-b14a-ba425bc341e6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{77fbe15c-5117-4577-9345-2b49677bbe5a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\D3D12">
+      <UniqueIdentifier>{c58154f7-044a-48b2-8794-d9f962c5fd98}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Vulkan">
+      <UniqueIdentifier>{55583728-6408-4426-abb9-37beda2155bb}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\08_GltfViewer\08_GltfViewer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\08_GltfViewer\Shaders\D3D12\basic.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\D3D12\basic.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\D3D12\floor.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\D3D12\floor.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\D3D12\FXAA.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\D3D12\profile.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\D3D12\profile.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\D3D12\Triangular.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\D3D12\vignette.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\D3D12\watermark.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\D3D12\watermark.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\D3D12\zPass.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\D3D12\zPassFloor.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\basic.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\basic.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\basicMOBILE.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\floor.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\floor.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\floorMOBILE.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\FXAA.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\profile.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\profile.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\Triangular.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\vignette.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\watermark.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\watermark.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\zPass.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\zPassFloor.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+  </ItemGroup>
+</Project>

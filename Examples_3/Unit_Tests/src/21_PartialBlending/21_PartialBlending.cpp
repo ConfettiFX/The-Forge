@@ -114,7 +114,7 @@ Shader*        pPlaneDrawShader = NULL;
 Buffer*        pPlaneVertexBuffer = NULL;
 Pipeline*      pPlaneDrawPipeline = NULL;
 RootSignature* pRootSignature = NULL;
-DescriptorBinder* pDescriptorBinderPlane = NULL;
+DescriptorSet* pDescriptorSet = NULL;
 
 struct UniformBlockPlane
 {
@@ -333,7 +333,14 @@ class Blending: public IApp
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 			return false;
 
-		initProfiler(pRenderer);
+    // INITIALIZE THE USER INTERFACE
+    //
+    if (!gAppUI.Init(pRenderer))
+      return false;
+
+    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+
+		initProfiler();
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
@@ -355,8 +362,8 @@ class Blending: public IApp
 		rootDesc.ppShaders = shaders;
 		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
-		DescriptorBinderDesc descriptorBinderDescPlane = { pRootSignature, 0, 1 };
-		addDescriptorBinder(pRenderer, 0, 1, &descriptorBinderDescPlane, &pDescriptorBinderPlane);
+		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSet);
 
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
@@ -532,12 +539,6 @@ class Blending: public IApp
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
 		pCameraController->setMotionParameters(cmp);
-		// INITIALIZE THE USER INTERFACE
-		//
-		if (!gAppUI.Init(pRenderer))
-			return false;
-
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 		// Add the GUI Panels/Windows
 		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 14 };
@@ -748,15 +749,8 @@ class Blending: public IApp
 		if (!initInputSystem(pWindow))
 			return false;
 
-		// Microprofiler Actions
-		// #TODO: Remove this once the profiler UI is ported to use our UI system
-		InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gMicroProfiler; } };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
-		addInputAction(&actionDesc);
-
 		// App Actions
-		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+    InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
@@ -764,7 +758,7 @@ class Blending: public IApp
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gMicroProfiler);
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -786,6 +780,15 @@ class Blending: public IApp
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
+		
+		// Prepare descriptor sets
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			DescriptorData params[1] = {};
+			params[0].pName = "uniformBlock";
+			params[0].ppBuffers = &pPlaneUniformBuffer[i];
+			updateDescriptorSet(pRenderer, i, pDescriptorSet, 1, params);
+		}
 
 		return true;
 	}
@@ -829,7 +832,7 @@ class Blending: public IApp
 		removeShader(pRenderer, pSkeletonShader);
 		removeShader(pRenderer, pPlaneDrawShader);
 		removeRootSignature(pRenderer, pRootSignature);
-		removeDescriptorBinder(pRenderer, pDescriptorBinderPlane);
+		removeDescriptorSet(pRenderer, pDescriptorSet);
 
 		removeDepthState(pDepth);
 
@@ -868,18 +871,18 @@ class Blending: public IApp
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
 
-		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
+		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		//layout and pipeline for skeleton draw
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 2;
 		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGB32F;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
 		vertexLayout.mAttribs[0].mBinding = 0;
 		vertexLayout.mAttribs[0].mLocation = 0;
 		vertexLayout.mAttribs[0].mOffset = 0;
 		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-		vertexLayout.mAttribs[1].mFormat = ImageFormat::RGB32F;
+		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
 		vertexLayout.mAttribs[1].mBinding = 0;
 		vertexLayout.mAttribs[1].mLocation = 1;
 		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
@@ -891,7 +894,6 @@ class Blending: public IApp
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepth;
 		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
 		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
 		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
@@ -908,12 +910,12 @@ class Blending: public IApp
 		vertexLayout = {};
 		vertexLayout.mAttribCount = 2;
 		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
 		vertexLayout.mAttribs[0].mBinding = 0;
 		vertexLayout.mAttribs[0].mLocation = 0;
 		vertexLayout.mAttribs[0].mOffset = 0;
 		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayout.mAttribs[1].mFormat = ImageFormat::RG32F;
+		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32_SFLOAT;
 		vertexLayout.mAttribs[1].mBinding = 0;
 		vertexLayout.mAttribs[1].mLocation = 1;
 		vertexLayout.mAttribs[1].mOffset = 4 * sizeof(float);
@@ -930,9 +932,9 @@ class Blending: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		gAppUI.Unload();
-
 		unloadProfiler();
+
+    gAppUI.Unload();
 
 		gVirtualJoystick.Unload();
 
@@ -971,7 +973,7 @@ class Blending: public IApp
 
 		// Update the animated object for this frame
 		if (!gStickFigureAnimObject.Update(deltaTime))
-			InfoMsg("Animation NOT Updating!");
+			LOGF(eINFO, "Animation NOT Updating!");
 
 		if (!gUIData.mGeneralSettings.mShowBindPose)
 		{
@@ -997,15 +999,9 @@ class Blending: public IApp
 		gUniformDataPlane.mToWorldMat = mat4::identity();
 
 
-    // ProfileSetDisplayMode()
-    // TODO: need to change this better way 
     if (gMicroProfiler != bPrevToggleMicroProfiler)
     {
-      Profile& S = *ProfileGet();
-      int nValue = gMicroProfiler ? 1 : 0;
-      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
-      S.nDisplay = nValue;
-
+      toggleProfiler();
       bPrevToggleMicroProfiler = gMicroProfiler;
     }
 
@@ -1055,7 +1051,7 @@ class Blending: public IApp
 				{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
 				{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE },
 			};
-		cmdResourceBarrier(cmd, 0, NULL, 2, barriers, false);
+		cmdResourceBarrier(cmd, 0, NULL, 2, barriers);
 
 		// bind and clear the render target
 		LoadActionsDesc loadActions = {};    // render target clean command
@@ -1076,11 +1072,7 @@ class Blending: public IApp
 		{
 			cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Plane");
 			cmdBindPipeline(cmd, pPlaneDrawPipeline);
-
-			DescriptorData params[1] = {};
-			params[0].pName = "uniformBlock";
-			params[0].ppBuffers = &pPlaneUniformBuffer[gFrameIndex];
-			cmdBindDescriptors(cmd, pDescriptorBinderPlane, pRootSignature, 1, params);
+			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSet);
 			cmdBindVertexBuffer(cmd, 1, &pPlaneVertexBuffer, NULL);
 			cmdDraw(cmd, 6, 0);
 			cmdEndDebugMarker(cmd);
@@ -1111,7 +1103,7 @@ class Blending: public IApp
 			cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
 			&gFrameTimeDraw);
 
-		cmdDrawProfiler(cmd);
+		cmdDrawProfiler();
 		gAppUI.Draw(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -1120,7 +1112,7 @@ class Blending: public IApp
 		// PRESENT THE GRPAHICS QUEUE
 		//
 		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, true);
+		cmdResourceBarrier(cmd, 0, NULL, 1, barriers);
 		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 		endCmd(cmd);
 
@@ -1156,7 +1148,7 @@ class Blending: public IApp
 		depthRT.mClearValue.depth = 1.0f;
 		depthRT.mClearValue.stencil = 0;
 		depthRT.mDepth = 1;
-		depthRT.mFormat = ImageFormat::D32F;
+		depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
 		depthRT.mHeight = mSettings.mHeight;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;

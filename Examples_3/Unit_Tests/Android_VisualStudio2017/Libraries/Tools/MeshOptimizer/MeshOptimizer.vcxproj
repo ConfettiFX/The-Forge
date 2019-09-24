@@ -149,14 +149,14 @@
     <UseMultiToolTask>true</UseMultiToolTask>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\ </OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
     <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>
     <UseMultiToolTask>true</UseMultiToolTask>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\ </OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <ExecutablePath>$(VS_NdkRoot)\toolchains\llvm\prebuilt\windows-x86_64\bin</ExecutablePath>
     <IncludePath>$(CustomSysroot)\usr\include;$(CustomSysroot)\usr\include\$(TRIPLE);$(VS_Ndkroot)\sources\android\native_app_glue</IncludePath>

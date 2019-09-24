@@ -23,7 +23,7 @@
 */
 
 #define AOIT_ORDERED_ACCESS
-#include "AOIT.hlsl"
+#include "AOIT.h"
 
 struct VSOutput
 {

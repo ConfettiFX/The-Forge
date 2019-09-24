@@ -190,14 +190,19 @@ static constant int iNumRings = RING_1;
 static constant int iNumRingGathers = NUM_RING_1_GATHERS;
 #endif
 
-fragment float4 stageMain(PsIn In [[stage_in]],
-                          constant HDAOParameters& HDAORootConstants    [[buffer(0)]],
-                          sampler g_SamplePoint                         [[sampler(0)]],
+struct FSData {
+    sampler g_SamplePoint;
 #if SAMPLE_COUNT > 1
-                          depth2d_ms<float,access::read>  g_txDepth     [[texture(0)]])
+    depth2d_ms<float,access::read>  g_txDepth;
 #else
-                          depth2d<float,access::sample>  g_txDepth      [[texture(0)]])
+    depth2d<float,access::sample>  g_txDepth;
 #endif
+};
+
+fragment float4 stageMain(PsIn In [[stage_in]],
+    constant FSData& fsData [[buffer(UPDATE_FREQ_NONE)]],
+    constant HDAOParameters& HDAORootConstants    [[buffer(UPDATE_FREQ_USER)]]
+)
 {
     // Locals
     uint2  ui2ScreenCoord;
@@ -223,9 +228,9 @@ fragment float4 stageMain(PsIn In [[stage_in]],
         // Sample the center pixel for camera Z
         float fDepth = 0;
 #if SAMPLE_COUNT > 1
-        fDepth = g_txDepth.read(ui2ScreenCoord, 0);
+        fDepth = fsData.g_txDepth.read(ui2ScreenCoord, 0);
 #else
-        fDepth = g_txDepth.sample(g_SamplePoint, f2TexCoord, level(0.0f));
+        fDepth = fsData.g_txDepth.sample(fsData.g_SamplePoint, f2TexCoord, level(0.0f));
         f2ScreenCoord = float2(ui2ScreenCoord);
 #endif
         float fCenterZ = -HDAORootConstants.fQTimesZNear / ( fDepth - HDAORootConstants.fQ );
@@ -241,11 +246,11 @@ fragment float4 stageMain(PsIn In [[stage_in]],
             f2MirrorTexCoord = float2(f2ScreenCoord + f2MirrorSampleOffSet) * f2InvRTSize;
             
 #if SAMPLE_COUNT > 1
-            f4SampledZ[0] = GatherZSamples( g_txDepth, g_SamplePoint, f2TexCoord, HDAORootConstants);
-            f4SampledZ[1] = GatherZSamples( g_txDepth, g_SamplePoint, f2MirrorTexCoord, HDAORootConstants);
+            f4SampledZ[0] = GatherZSamples( fsData.g_txDepth, fsData.g_SamplePoint, f2TexCoord, HDAORootConstants);
+            f4SampledZ[1] = GatherZSamples( fsData.g_txDepth, fsData.g_SamplePoint, f2MirrorTexCoord, HDAORootConstants);
 #else
-            f4SampledZ[0] = GatherZSamples( g_txDepth, g_SamplePoint, f2TexCoord +  f2InvRTSize, HDAORootConstants);
-            f4SampledZ[1] = GatherZSamples( g_txDepth, g_SamplePoint, f2MirrorTexCoord  + f2InvRTSize, HDAORootConstants);
+            f4SampledZ[0] = GatherZSamples( fsData.g_txDepth, fsData.g_SamplePoint, f2TexCoord +  f2InvRTSize, HDAORootConstants);
+            f4SampledZ[1] = GatherZSamples( fsData.g_txDepth, fsData.g_SamplePoint, f2MirrorTexCoord  + f2InvRTSize, HDAORootConstants);
 #endif
                         
             // Detect valleys

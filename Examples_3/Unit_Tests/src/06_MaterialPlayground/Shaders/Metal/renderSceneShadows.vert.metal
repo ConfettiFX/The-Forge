@@ -57,16 +57,22 @@ constant Uniforms_cbCamera & cbCamera,constant Uniforms_cbObject & cbObject) :
 cbCamera(cbCamera),cbObject(cbObject) {}
 };
 
+struct VSDataPerFrame {
+    constant Vertex_Shader::Uniforms_cbCamera & cbCamera [[id(0)]];
+};
+
+struct VSDataPerDraw {
+    constant Vertex_Shader::Uniforms_cbObject & cbObject [[id(0)]];
+};
 
 vertex Vertex_Shader::VSOutput stageMain(
-    Vertex_Shader::VSInput input [[stage_in]],
-    constant Vertex_Shader::Uniforms_cbCamera & cbCamera [[buffer(2)]],
-    constant Vertex_Shader::Uniforms_cbObject & cbObject [[buffer(3)]])
+    Vertex_Shader::VSInput input     [[stage_in]],
+    constant VSDataPerFrame& vsDataPerFrame   [[buffer(UPDATE_FREQ_PER_FRAME)]],
+    constant VSDataPerDraw& vsDataPerDraw     [[buffer(UPDATE_FREQ_PER_DRAW)]]
+)
 {
     Vertex_Shader::VSInput input0;
     input0.Position = input.Position;
-    Vertex_Shader main(
-    cbCamera,
-    cbObject);
+    Vertex_Shader main(vsDataPerFrame.cbCamera, vsDataPerDraw.cbObject);
     return main.main(input0);
 }

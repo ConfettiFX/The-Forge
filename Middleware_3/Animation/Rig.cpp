@@ -134,14 +134,14 @@ bool Rig::LoadSkeleton(const char* fileName)
 	ozz::io::File file(fileName, "rb");
 	if (!file.opened())
 	{
-		ErrorMsg("Cannot open skeleton file");
+		LOGF(eERROR, "Cannot open skeleton file");
 		return false;
 	}
 
 	ozz::io::IArchive archive(&file);
 	if (!archive.TestTag<ozz::animation::Skeleton>())
 	{
-		ErrorMsg("Skeleton Archive doesn't contain the expected object type");
+		LOGF(eERROR, "Skeleton Archive doesn't contain the expected object type");
 		return false;
 	}
 

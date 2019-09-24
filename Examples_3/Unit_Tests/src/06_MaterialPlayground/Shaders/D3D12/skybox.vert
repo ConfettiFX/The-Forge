@@ -24,7 +24,7 @@
 
 
 
-cbuffer uniformBlock : register(b0) 
+cbuffer uniformBlock : register(b0, UPDATE_FREQ_PER_FRAME) 
 {
 	float4x4 projView;
 	float4x4 invProjView;

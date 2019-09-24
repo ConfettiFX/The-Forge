@@ -51,17 +51,20 @@ struct Fragment_Shader
 	SourceTexture(SourceTexture),repeatBillinearSampler(repeatBillinearSampler) {}
 };
 
+struct FSData {
+    texture2d<float> SourceTexture [[id(0)]];
+    sampler repeatBillinearSampler [[id(1)]];
+};
 
 fragment float4 stageMain(
-						  Fragment_Shader::PsIn In [[stage_in]],
-						  texture2d<float> SourceTexture [[texture(0)]],
-						  sampler repeatBillinearSampler [[sampler(0)]])
+    Fragment_Shader::PsIn In [[stage_in]],
+    constant FSData& fsData     [[buffer(UPDATE_FREQ_NONE)]]
+)
 {
 	Fragment_Shader::PsIn In0;
 	In0.position = float4(In.position.xyz, 1.0 / In.position.w);
 	In0.texCoord = In.texCoord;
-	Fragment_Shader main(SourceTexture,
-						 repeatBillinearSampler);
+	Fragment_Shader main(fsData.SourceTexture, fsData.repeatBillinearSampler);
 	return main.main(In0);
 }
 

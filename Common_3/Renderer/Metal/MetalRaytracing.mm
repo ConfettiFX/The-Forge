@@ -916,6 +916,8 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
                   MTLSize threadsPerThreadgroup)
     {
         //pHitGroups[0].pRootSignature
+        ASSERT(computeEncoder != nil);
+ 
         [computeEncoder setBuffer:raysBuffer                offset:0              atIndex:0];
         [computeEncoder setBuffer:globalSettingsBuffer      offset:0              atIndex:1];
         [computeEncoder setBuffer:intersectionsBuffer       offset:0              atIndex:2];
@@ -965,7 +967,21 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         }
         
         //Bind "Global Root Signature" again
-        cmdBindDescriptors(pCmd, pCmd->pBoundDescriptorBinder, pCmd->pBoundRootSignature, pDesc->mParamCount, pDesc->pParams);
+        //ASSERT(0); // todo
+        //cmdBindDescriptors(pCmd, pCmd->pBoundDescriptorBinder, pCmd->pBoundRootSignature, pDesc->mParamCount, pDesc->pParams);
+
+        if (pCmd->mtlComputeEncoder == nil)
+        {
+            pCmd->mtlComputeEncoder = [pCmd->mtlCommandBuffer computeCommandEncoder];
+            
+            // restore
+            for (uint32_t i = 0; i  < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
+            {
+                if (pDesc->pSets[i])
+                    cmdBindDescriptorSet(pCmd, pDesc->pIndexes[i], pDesc->pSets[i]);
+            }
+        }
+        
         id <MTLComputeCommandEncoder> computeEncoder = pCmd->mtlComputeEncoder;
         dispatch(computeEncoder, raysBufferLocal, globalSettingsBuffer, intersectionsBuffer,
                  indexBuffer, instancesIDsBuffer, payloadBuffer, masksBuffer, hitGroupIndices,
@@ -1038,9 +1054,14 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         // First, we will generate rays on the GPU. We create a compute command encoder which will be used to add
         // commands to the command buffer.
         id <MTLComputeCommandEncoder> computeEncoder = pCmd->mtlComputeEncoder;
+        
+        ASSERT(computeEncoder != nil);
+        
         /*********************************************************************************/
         //Now we work with initial RayGen shader
         /*********************************************************************************/
+        [computeEncoder pushDebugGroup:@"Ray Pipeline"];
+        
         // Bind buffers needed by the compute pipeline
         [computeEncoder setBuffer:pRaytracingPipeline->mRayGenRaysBuffer       offset:0                    atIndex:0];
         [computeEncoder setBuffer:pRaytracingPipeline->mSettingsBuffer         offset:0                    atIndex:1];
@@ -1048,6 +1069,8 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         [computeEncoder setComputePipelineState:pRaytracingPipeline->mRayPipeline];
         // Launch threads
         [computeEncoder dispatchThreadgroups:threadgroups threadsPerThreadgroup:threadsPerThreadgroup];
+        
+        [computeEncoder popDebugGroup];
         
         // End the encoder
         util_end_current_encoders(pCmd);
@@ -1064,6 +1087,8 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
                                intersectionBufferOffset:0                           // Offset into intersection buffer
                                                rayCount:width * height              // Number of rays
                                   accelerationStructure:pDesc->pTopLevelAccelerationStructure->pInstanceAccel];    // Acceleration structure
+        
+//        pCmd->mtlComputeEncoder = [pCmd->mtlCommandBuffer computeCommandEncoder];
         
         /*********************************************************************************/
         //Now we can execute Hit/Miss shader

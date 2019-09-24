@@ -28,6 +28,8 @@
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
+#include "../../../../Common_3/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
+
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../../Common_3/OS/Interfaces/ILog.h"
@@ -40,8 +42,8 @@
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Common_3/OS/Math/MathTypes.h"
-#include "../../../../Common_3/OS/Image/ImageEnums.h"
 #include "../../../../Common_3/OS/Core/ThreadSystem.h"
+
 
 // for cpu usage query
 #if defined(_WIN32)
@@ -86,7 +88,6 @@ struct ThreadData
 	int               mStartPoint;
 	int               mDrawCount;
 	uint32_t          mFrameIndex;
-	DescriptorBinder* pDescriptorBinder;
 };
 
 struct ObjectProperty
@@ -163,7 +164,8 @@ Pipeline*      pGraphLineListPipeline = NULL;
 Pipeline*      pGraphTrianglePipeline = NULL;
 RootSignature* pRootSignature = NULL;
 RootSignature* pGraphRootSignature = NULL;
-DescriptorBinder* pDescriptorBinder = NULL;
+DescriptorSet* pDescriptorSet = NULL;
+DescriptorSet* pDescriptorSetUniforms = NULL;
 Texture*       pTextures[5];
 Texture*       pSkyBoxTextures[6];
 VirtualJoystickUI gVirtualJoystick;
@@ -376,14 +378,10 @@ class MultiThread: public IApp
 		graphRootDesc.ppShaders = &pGraphShader;
 		addRootSignature(pRenderer, &graphRootDesc, &pGraphRootSignature);
 
-		for (uint32_t i = 0; i < gThreadCount; ++i)
-		{
-			DescriptorBinderDesc threadDescriptorBinderDesc = { pRootSignature, 1, 1 };
-			addDescriptorBinder(pRenderer, 0, 1, &threadDescriptorBinderDesc, &pThreadData[i].pDescriptorBinder);
-		}
-
-		DescriptorBinderDesc descriptorBinderDesc[2] = { {pRootSignature, 1, 1}, {pGraphRootSignature, 1, 1} };
-		addDescriptorBinder(pRenderer, 0, 2, descriptorBinderDesc, &pDescriptorBinder);
+		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 2 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSet);
+		setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * 2 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
 
 		gTextureIndex = 0;
 
@@ -518,9 +516,6 @@ class MultiThread: public IApp
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		// Initialize profiler
-		initProfiler(pRenderer);
-
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
     GuiDesc guiDesc = {};
@@ -531,6 +526,9 @@ class MultiThread: public IApp
     pGui = gAppUI.AddGuiComponent("Micro profiler", &guiDesc);
 
     pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
+
+    // Initialize profiler
+    initProfiler();
 
 		initThreadSystem(&pThreadSystem);
 
@@ -552,15 +550,8 @@ class MultiThread: public IApp
 		if (!initInputSystem(pWindow))
 			return false;
 
-		// Microprofiler Actions
-		// #TODO: Remove this once the profiler UI is ported to use our UI system
-		InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gMicroProfiler; } };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
-		addInputAction(&actionDesc);
-
 		// App Actions
-		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+    InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
@@ -568,7 +559,7 @@ class MultiThread: public IApp
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gMicroProfiler);
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -590,6 +581,37 @@ class MultiThread: public IApp
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
+		
+		// Prepare descriptor sets
+		DescriptorData params[7] = {};
+		params[0].pName = "RightText";
+		params[0].ppTextures = &pSkyBoxTextures[0];
+		params[1].pName = "LeftText";
+		params[1].ppTextures = &pSkyBoxTextures[1];
+		params[2].pName = "TopText";
+		params[2].ppTextures = &pSkyBoxTextures[2];
+		params[3].pName = "BotText";
+		params[3].ppTextures = &pSkyBoxTextures[3];
+		params[4].pName = "FrontText";
+		params[4].ppTextures = &pSkyBoxTextures[4];
+		params[5].pName = "BackText";
+		params[5].ppTextures = &pSkyBoxTextures[5];
+		updateDescriptorSet(pRenderer, 0, pDescriptorSet, 6, params);
+
+		params[0].pName = "uTex0";
+		params[0].mCount = sizeof(pImageFileNames) / sizeof(pImageFileNames[0]);
+		params[0].ppTextures = pTextures;
+		updateDescriptorSet(pRenderer, 1, pDescriptorSet, 1, params);
+
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			params[0] = {};
+			params[0].pName = "uniformBlock";
+			params[0].ppBuffers = &pSkyboxUniformBuffer[i];
+			updateDescriptorSet(pRenderer, i * 2 + 0, pDescriptorSetUniforms, 1, params);
+			params[0].ppBuffers = &pProjViewUniformBuffer[i];
+			updateDescriptorSet(pRenderer, i * 2 + 1, pDescriptorSetUniforms, 1, params);
+		}
 
 		return true;
 	}
@@ -639,9 +661,8 @@ class MultiThread: public IApp
 		removeSampler(pRenderer, pSampler);
 		removeSampler(pRenderer, pSamplerSkyBox);
 
-		removeDescriptorBinder(pRenderer, pDescriptorBinder);
-		for (uint32_t i = 0; i < gThreadCount; ++i)
-			removeDescriptorBinder(pRenderer, pThreadData[i].pDescriptorBinder);
+		removeDescriptorSet(pRenderer, pDescriptorSet);
+		removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
 
 		removeShader(pRenderer, pShader);
 		removeShader(pRenderer, pSkyBoxDrawShader);
@@ -692,13 +713,13 @@ class MultiThread: public IApp
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
 
-		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
+		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		//vertexlayout and pipeline for particles
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 1;
 		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = ImageFormat::R32UI;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32_UINT;
 		vertexLayout.mAttribs[0].mBinding = 0;
 		vertexLayout.mAttribs[0].mLocation = 0;
 		vertexLayout.mAttribs[0].mOffset = 0;
@@ -711,7 +732,6 @@ class MultiThread: public IApp
 		pipelineSettings.pBlendState = gParticleBlend;
 		pipelineSettings.pRasterizerState = gSkyboxRast;
 		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
 		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
 		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.pRootSignature = pRootSignature;
@@ -723,7 +743,7 @@ class MultiThread: public IApp
 		vertexLayout = {};
 		vertexLayout.mAttribCount = 1;
 		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
 		vertexLayout.mAttribs[0].mBinding = 0;
 		vertexLayout.mAttribs[0].mLocation = 0;
 		vertexLayout.mAttribs[0].mOffset = 0;
@@ -733,7 +753,6 @@ class MultiThread: public IApp
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pRasterizerState = gSkyboxRast;
 		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
 		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
 		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.pRootSignature = pRootSignature;
@@ -747,22 +766,21 @@ class MultiThread: public IApp
 		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
 		vertexLayout.mAttribs[0].mFormat =
 			(sizeof(GraphVertex) > 24
-				 ? ImageFormat::RGBA32F
-				 : ImageFormat::RG32F);    // Handle the case when padding is added to the struct (yielding 32 bytes instead of 24) on macOS
+				 ? TinyImageFormat_R32G32B32A32_SFLOAT
+				 : TinyImageFormat_R32G32_SFLOAT);    // Handle the case when padding is added to the struct (yielding 32 bytes instead of 24) on macOS
 		vertexLayout.mAttribs[0].mBinding = 0;
 		vertexLayout.mAttribs[0].mLocation = 0;
 		vertexLayout.mAttribs[0].mOffset = 0;
 		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_COLOR;
-		vertexLayout.mAttribs[1].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
 		vertexLayout.mAttribs[1].mBinding = 0;
 		vertexLayout.mAttribs[1].mLocation = 1;
-		vertexLayout.mAttribs[1].mOffset = ImageFormat::GetImageFormatStride(vertexLayout.mAttribs[0].mFormat);
+		vertexLayout.mAttribs[1].mOffset = TinyImageFormat_BitSizeOfBlock(vertexLayout.mAttribs[0].mFormat) / 8;
 
 		pipelineSettings = { 0 };
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_LINE_STRIP;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
 		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
 		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.pRootSignature = pGraphRootSignature;
@@ -869,15 +887,9 @@ class MultiThread: public IApp
 			currentTime = 0.0f;
 		}
 
-    // ProfileSetDisplayMode()
-       // TODO: need to change this better way 
     if (gMicroProfiler != bPrevToggleMicroProfiler)
     {
-      Profile& S = *ProfileGet();
-      int nValue = gMicroProfiler ? 1 : 0;
-      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
-      S.nDisplay = nValue;
-
+      toggleProfiler();
       bPrevToggleMicroProfiler = gMicroProfiler;
     }
 
@@ -937,29 +949,14 @@ class MultiThread: public IApp
 		flushResourceUpdates();
 
 		TextureBarrier barrier = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
-		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, false);
+		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier);
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 		//// draw skybox
-
-		DescriptorData params[7] = {};
-		params[0].pName = "RightText";
-		params[0].ppTextures = &pSkyBoxTextures[0];
-		params[1].pName = "LeftText";
-		params[1].ppTextures = &pSkyBoxTextures[1];
-		params[2].pName = "TopText";
-		params[2].ppTextures = &pSkyBoxTextures[2];
-		params[3].pName = "BotText";
-		params[3].ppTextures = &pSkyBoxTextures[3];
-		params[4].pName = "FrontText";
-		params[4].ppTextures = &pSkyBoxTextures[4];
-		params[5].pName = "BackText";
-		params[5].ppTextures = &pSkyBoxTextures[5];
-		params[6].pName = "uniformBlock";
-		params[6].ppBuffers = &pSkyboxUniformBuffer[gFrameIndex];
-		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignature, 7, params);
-		cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
+        cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
+		cmdBindDescriptorSet(cmd, 0, pDescriptorSet);
+		cmdBindDescriptorSet(cmd, gFrameIndex * 2 + 0, pDescriptorSetUniforms);
 
 		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, NULL);
 		cmdDraw(cmd, 36, 0);
@@ -1017,8 +1014,6 @@ class MultiThread: public IApp
 				pCpuGraph[i].mViewPort.mHeight, 0.0f, 1.0f);
 			cmdSetScissor(ppGraphCmds[frameIdx], 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
-			cmdBindDescriptors(ppGraphCmds[frameIdx], pDescriptorBinder, pGraphRootSignature, 0, NULL);
-
 			cmdBindPipeline(ppGraphCmds[frameIdx], pGraphTrianglePipeline);
 			cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &pBackGroundVertexBuffer[frameIdx], NULL);
 			cmdDraw(ppGraphCmds[frameIdx], 4, 0);
@@ -1037,12 +1032,12 @@ class MultiThread: public IApp
 		}
 		cmdSetViewport(ppGraphCmds[frameIdx], 0.0f, 0.0f, static_cast<float>(mSettings.mWidth), static_cast<float>(mSettings.mHeight), 0.0f, 1.0f);
 		cmdSetScissor(ppGraphCmds[frameIdx], 0, 0, mSettings.mWidth, mSettings.mHeight);
-		cmdDrawProfiler(ppGraphCmds[frameIdx]);
+		cmdDrawProfiler();
 
 		cmdBindRenderTargets(ppGraphCmds[frameIdx], 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 		barrier = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(ppGraphCmds[frameIdx], 0, NULL, 1, &barrier, true);
+		cmdResourceBarrier(ppGraphCmds[frameIdx], 0, NULL, 1, &barrier);
 		endCmd(ppGraphCmds[frameIdx]);
 		// wait all particle threads done
 		waitThreadSystemIdle(pThreadSystem);
@@ -1480,16 +1475,9 @@ class MultiThread: public IApp
 		cmdSetScissor(cmd, 0, 0, data.pRenderTarget->mDesc.mWidth, data.pRenderTarget->mDesc.mHeight);
 
 		cmdBindPipeline(cmd, pPipeline);
-		DescriptorData params[3] = {};
-		params[0].pName = "uTex0";
-		params[0].mCount = sizeof(pImageFileNames) / sizeof(pImageFileNames[0]);
-		params[0].ppTextures = pTextures;
-		params[1].pName = "uniformBlock";
-		params[1].ppBuffers = &pProjViewUniformBuffer[data.mFrameIndex];
-		params[2].pName = "particleRootConstant";
-		params[2].pRootConstant = &gParticleData;
-		cmdBindDescriptors(cmd, data.pDescriptorBinder, pRootSignature, 3, params);
-
+		cmdBindDescriptorSet(cmd, 1, pDescriptorSet);
+		cmdBindDescriptorSet(cmd, data.mFrameIndex * 2 + 1, pDescriptorSetUniforms);
+		cmdBindPushConstants(cmd, pRootSignature, "particleRootConstant", &gParticleData);
 		cmdBindVertexBuffer(cmd, 1, &pParticleVertexBuffer, NULL);
 
 		cmdDrawInstanced(cmd, data.mDrawCount, data.mStartPoint, 1, 0);

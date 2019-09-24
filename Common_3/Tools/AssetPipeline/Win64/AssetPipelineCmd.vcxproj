@@ -196,18 +196,21 @@
     <IncludePath>$(IncludePath)</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <LibraryPath>$(OutDir);$(LibraryPath)</LibraryPath>
+    <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(IncludePath)</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <LibraryPath>$(OutDir);$(LibraryPath)</LibraryPath>
+    <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx11|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(IncludePath)</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <LibraryPath>$(OutDir);$(LibraryPath)</LibraryPath>
+    <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -223,18 +226,21 @@
     <IncludePath>$(IncludePath)</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <LibraryPath>$(OutDir);$(LibraryPath)</LibraryPath>
+    <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(IncludePath)</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <LibraryPath>$(OutDir);$(LibraryPath)</LibraryPath>
+    <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(IncludePath)</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <LibraryPath>$(OutDir);$(LibraryPath)</LibraryPath>
+    <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|Win32'">
     <ClCompile>
@@ -289,7 +295,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>
@@ -304,16 +310,20 @@
       <AdditionalDependencies>AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>mkdir "$(TargetDir)ImageConvertTools\"
+xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
+xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>msbuild "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\basisu.vcxproj" /property:Configuration=$(Configuration) /property:Platform=$(Platform)</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>
@@ -328,16 +338,20 @@
       <AdditionalDependencies>AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>mkdir "$(TargetDir)ImageConvertTools\"
+xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
+xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>msbuild "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\basisu.vcxproj" /property:Configuration=$(Configuration) /property:Platform=$(Platform)</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx11|x64'">
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>
@@ -352,9 +366,13 @@
       <AdditionalDependencies>AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>mkdir "$(TargetDir)ImageConvertTools\"
+xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
+xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>msbuild "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\basisu.vcxproj" /property:Configuration=$(Configuration) /property:Platform=$(Platform)</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|Win32'">
     <ClCompile>
@@ -423,7 +441,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>
@@ -440,9 +458,13 @@
       <AdditionalDependencies>AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>mkdir "$(TargetDir)ImageConvertTools\"
+xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
+xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>msbuild "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\basisu.vcxproj" /property:Configuration=$(Configuration) /property:Platform=$(Platform)</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <ClCompile>
@@ -451,7 +473,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>
@@ -468,9 +490,13 @@
       <AdditionalDependencies>AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>mkdir "$(TargetDir)ImageConvertTools\"
+xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
+xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>msbuild "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\basisu.vcxproj" /property:Configuration=$(Configuration) /property:Platform=$(Platform)</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">
     <ClCompile>
@@ -479,7 +505,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>
@@ -496,9 +522,13 @@
       <AdditionalDependencies>AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>mkdir "$(TargetDir)ImageConvertTools\"
+xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
+xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
     </PostBuildEvent>
+    <PreBuildEvent>
+      <Command>msbuild "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\basisu.vcxproj" /property:Configuration=$(Configuration) /property:Platform=$(Platform)</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

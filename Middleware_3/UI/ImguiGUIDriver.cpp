@@ -24,6 +24,7 @@
 
 #include "../../Common_3/ThirdParty/OpenSource/imgui/imgui.h"
 #include "../../Common_3/ThirdParty/OpenSource/imgui/imgui_internal.h"
+#include "../../Common_3/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
 
 #include "AppUI.h"
 
@@ -128,12 +129,7 @@ class ImguiGUIDriver: public GUIDriver
 	bool update(GUIUpdate* pGuiUpdate);
 	void draw(Cmd* q);
 	
-	// #NOTE: We can remove this once the profiler UI is integrated into our UI system
-	bool mPrevFocus = true;
-	bool mFocus = true;
-	bool mToggleFocus = false;
-
-	bool onButton(uint32_t button, bool press, const float2* vec, bool focus)
+	bool onButton(uint32_t button, bool press, const float2* vec)
 	{
 		ImGuiIO& io = ImGui::GetIO();
 		pMovePosition = vec;
@@ -178,7 +174,6 @@ class ImguiGUIDriver: public GUIDriver
 				return true;
 			}
 			
-			mFocus = focus;
 		}
 		default:
 			break;
@@ -236,18 +231,20 @@ class ImguiGUIDriver: public GUIDriver
 	Renderer*          pRenderer;
 	Shader*            pShaderTextured;
 	RootSignature*     pRootSignatureTextured;
-	DescriptorBinder*  pDescriptorBinderTextured;
+	DescriptorSet*     pDescriptorSetUniforms;
+	DescriptorSet*     pDescriptorSetTexture;
 	Pipeline*          pPipelineTextured;
 	Buffer*            pVertexBuffer;
 	Buffer*            pIndexBuffer;
-	Buffer*            pUniformBuffer;
-	uint64_t           mUniformSize;
+	Buffer*            pUniformBuffer[MAX_FRAMES];
 	/// Default states
 	BlendState*      pBlendAlpha;
 	DepthState*      pDepthState;
 	RasterizerState* pRasterizerState;
 	Sampler*         pDefaultSampler;
 	VertexLayout     mVertexLayoutTextured = {};
+	uint32_t         mMaxDynamicUIUpdatesPerBatch;
+	uint32_t         mDynamicUIUpdates;
 	float            mNavInputs[ImGuiNavInput_COUNT];
 	const float2*    pMovePosition;
 	uint32_t         mLastUpdateCount;
@@ -289,9 +286,11 @@ static uint ToUintColor(float4 color)
 
 void IWidget::ProcessCallbacks()
 {
-	if (pOnHover && ImGui::IsItemHovered())
-		pOnHover();
-
+  mHovered = ImGui::IsItemHovered();
+  
+  if (pOnHover && mHovered) 
+    pOnHover();
+  
 	if (pOnActive && ImGui::IsItemActive())
 		pOnActive();
 
@@ -345,10 +344,32 @@ void LabelWidget::Draw()
 	ProcessCallbacks();
 }
 
+void ColorLabelWidget::Draw()
+{
+  ImGui::TextColored(mColor,"%s", mLabel.c_str());
+  ProcessCallbacks();
+}
+
+void HorizontalSpaceWidget::Draw()
+{
+  ImGui::SameLine();
+  ProcessCallbacks();
+}
+
 void SeparatorWidget::Draw()
 {
 	ImGui::Separator();
 	ProcessCallbacks();
+}
+
+void VerticalSeparatorWidget::Draw()
+{
+  for (uint32_t i = 0; i < mLineCount; ++i) 
+  {
+    ImGui::VerticalSeparator();
+  }
+
+  ProcessCallbacks();
 }
 
 void ButtonWidget::Draw()
@@ -421,6 +442,20 @@ void CheckboxWidget::Draw()
 	ProcessCallbacks();
 }
 
+void OneLineCheckboxWidget::Draw()
+{
+  ImGui::Checkbox(LABELID1(pData), pData);
+  ImGui::SameLine();
+  ImGui::TextColored(ImGui::ColorConvertU32ToFloat4(mColor),"%s", mLabel.c_str());
+  ProcessCallbacks();
+}
+
+void CursorLocationWidget::Draw()
+{
+  ImGui::SetCursorPos(mLocation);
+  ProcessCallbacks();
+}
+
 void DropdownWidget::Draw()
 {
 	uint32_t& current = *pData;
@@ -429,7 +464,7 @@ void DropdownWidget::Draw()
 	{
 		for (uint32_t i = 0; i < (uint32_t)mNames.size(); ++i)
 		{
-			if (ImGui::Selectable(mNames[i].c_str()))
+      if (ImGui::Selectable(mNames[i].c_str()))
 			{
 				uint32_t prevVal = current;
 				current = i;
@@ -448,6 +483,23 @@ void DropdownWidget::Draw()
 		ImGui::EndCombo();
 	}
 }
+
+void ColumnWidget::Draw()
+{
+  // Test a simple 4 col table.
+  ImGui::BeginColumns(mLabel.c_str(), mNumColumns, ImGuiColumnsFlags_NoResize | ImGuiColumnsFlags_NoForceWithinWindow);
+
+  for (uint32_t i = 0; i < mNumColumns; ++i) 
+  {
+    mPerColumnWidgets[i]->Draw();
+    ImGui::NextColumn();
+  }
+
+  ImGui::EndColumns();
+
+  ProcessCallbacks();
+}
+
 
 void ProgressBarWidget::Draw()
 {
@@ -475,6 +527,18 @@ void ColorSliderWidget::Draw()
 	ProcessCallbacks();
 }
 
+void HistogramWidget::Draw()
+{
+  ImGui::PlotHistogram(mLabel.c_str(), pValues, mCount, 0, mHistogramTitle->c_str(), *mMinScale, *mMaxScale, mHistogramSize);
+  ProcessCallbacks();
+}
+
+void PlotLinesWidget::Draw() 
+{
+  ImGui::PlotLines(mLabel.c_str(), mValues, mNumValues, 0, mTitle->c_str(), *mScaleMin, *mScaleMax, *mPlotScale);
+  ProcessCallbacks();
+}
+
 void ColorPickerWidget::Draw()
 {
 	uint&  colorPick = *(uint*)pData;
@@ -497,6 +561,85 @@ void TextboxWidget::Draw()
 {
 	ImGui::InputText(LABELID1(pData), (char*)pData, mLength, mAutoSelectAll ? ImGuiInputTextFlags_AutoSelectAll : 0);
 	ProcessCallbacks();
+}
+
+void DynamicTextWidget::Draw()
+{
+  ImGui::TextColored(*pColor,"%s",pData);
+  ProcessCallbacks();
+}
+
+void FilledRectWidget::Draw()
+{
+  ImGuiWindow* window = ImGui::GetCurrentWindow();
+  float2 pos = window->Pos - window->Scroll + mPos;
+  float2 pos2 = float2(pos.x + mScale.x, pos.y + mScale.y);
+
+  ImGui::GetWindowDrawList()->AddRectFilled(pos, pos2, mColor);
+
+  ProcessCallbacks();
+}
+
+void DrawTextWidget::Draw()
+{
+  ImGuiWindow* window = ImGui::GetCurrentWindow();
+  float2 pos = window->Pos - window->Scroll + mPos;
+  const float2 line_size = ImGui::CalcTextSize(mLabel.c_str());
+  
+  ImGui::GetWindowDrawList()->AddText(pos, mColor, mLabel.c_str());
+
+  ImRect bounding_box(pos, pos + line_size);
+  ImGui::ItemSize(bounding_box);
+  ImGui::ItemAdd(bounding_box, 0);
+
+  ProcessCallbacks();
+}
+
+
+void DrawTooltipWidget::Draw()
+{
+  if ((*mShowTooltip) == true) 
+  {
+    ImGui::BeginTooltip();
+
+    ImGui::TextUnformatted(mText);
+
+    ImGui::EndTooltip();
+  }
+  
+  ProcessCallbacks();
+}
+
+void DrawLineWidget::Draw()
+{
+  ImGuiWindow* window = ImGui::GetCurrentWindow();
+  float2 pos1 = window->Pos - window->Scroll + mPos1;
+  float2 pos2 = window->Pos - window->Scroll + mPos2;
+
+  ImGui::GetWindowDrawList()->AddLine(pos1, pos2, mColor);
+
+  if (mAddItem) 
+  {
+    ImRect bounding_box(pos1, pos2);
+    ImGui::ItemSize(bounding_box);
+    ImGui::ItemAdd(bounding_box, 0);
+  }
+  
+  ProcessCallbacks();
+}
+
+void DrawCurveWidget::Draw()
+{
+  ImGuiWindow* window = ImGui::GetCurrentWindow();
+    
+  for (uint32_t i = 0; i < mNumPoints-1; i++) 
+  {
+    float2 pos1 = window->Pos - window->Scroll + mPos[i];
+    float2 pos2 = window->Pos - window->Scroll + mPos[i+1];
+    ImGui::GetWindowDrawList()->AddLine(pos1, pos2, mColor, mThickness);
+  }
+
+  ProcessCallbacks();
 }
 
 static void SetDefaultStyle()
@@ -552,6 +695,7 @@ bool ImguiGUIDriver::init(Renderer* renderer, uint32_t const maxDynamicUIUpdates
 {
 	mHandledGestures = false;
 	pRenderer = renderer;
+	mMaxDynamicUIUpdatesPerBatch = maxDynamicUIUpdatesPerBatch;
 	mActive = true;
 	/************************************************************************/
 	// Rendering resources
@@ -596,8 +740,10 @@ bool ImguiGUIDriver::init(Renderer* renderer, uint32_t const maxDynamicUIUpdates
 	textureRootDesc.ppStaticSamplers = &pDefaultSampler;
 	addRootSignature(pRenderer, &textureRootDesc, &pRootSignatureTextured);
 
-	DescriptorBinderDesc descriptorBinderDesc = { pRootSignatureTextured, maxDynamicUIUpdatesPerBatch };
-	addDescriptorBinder(pRenderer, 0, 1, &descriptorBinderDesc, &pDescriptorBinderTextured);
+	DescriptorSetDesc setDesc = { pRootSignatureTextured, DESCRIPTOR_UPDATE_FREQ_PER_BATCH, 1 + (maxDynamicUIUpdatesPerBatch * MAX_FRAMES) };
+	addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
+	setDesc = { pRootSignatureTextured, DESCRIPTOR_UPDATE_FREQ_NONE, MAX_FRAMES };
+	addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
 
 	BufferLoadDesc vbDesc = {};
 	vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
@@ -616,36 +762,33 @@ bool ImguiGUIDriver::init(Renderer* renderer, uint32_t const maxDynamicUIUpdates
 	addResource(&ibDesc);
 
 	BufferLoadDesc ubDesc = {};
-	mUniformSize = round_up_64(256, pRenderer->mGpuSettings->mUniformBufferAlignment);
-#if defined(DIRECT3D11)
-	ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_ONLY;
-#else
 	ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-#endif
-	ubDesc.mDesc.mFlags =
-		BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
-	ubDesc.mDesc.mSize = mUniformSize * MAX_FRAMES;
-	ubDesc.ppBuffer = &pUniformBuffer;
-	addResource(&ubDesc);
+	ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+	ubDesc.mDesc.mSize = sizeof(mat4);
+	for (uint32_t i = 0; i < MAX_FRAMES; ++i)
+	{
+		ubDesc.ppBuffer = &pUniformBuffer[i];
+		addResource(&ubDesc);
+	}
 
 	mVertexLayoutTextured.mAttribCount = 3;
 	mVertexLayoutTextured.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-	mVertexLayoutTextured.mAttribs[0].mFormat = ImageFormat::RG32F;
+	mVertexLayoutTextured.mAttribs[0].mFormat = TinyImageFormat_R32G32_SFLOAT;
 	mVertexLayoutTextured.mAttribs[0].mBinding = 0;
 	mVertexLayoutTextured.mAttribs[0].mLocation = 0;
 	mVertexLayoutTextured.mAttribs[0].mOffset = 0;
 	mVertexLayoutTextured.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
-	mVertexLayoutTextured.mAttribs[1].mFormat = ImageFormat::RG32F;
+	mVertexLayoutTextured.mAttribs[1].mFormat = TinyImageFormat_R32G32_SFLOAT;
 	mVertexLayoutTextured.mAttribs[1].mBinding = 0;
 	mVertexLayoutTextured.mAttribs[1].mLocation = 1;
-	mVertexLayoutTextured.mAttribs[1].mOffset = ImageFormat::GetImageFormatStride(mVertexLayoutTextured.mAttribs[0].mFormat);
+	mVertexLayoutTextured.mAttribs[1].mOffset = TinyImageFormat_BitSizeOfBlock(mVertexLayoutTextured.mAttribs[0].mFormat) / 8;
 	mVertexLayoutTextured.mAttribs[2].mSemantic = SEMANTIC_COLOR;
-	mVertexLayoutTextured.mAttribs[2].mFormat = ImageFormat::RGBA8;
+	mVertexLayoutTextured.mAttribs[2].mFormat = TinyImageFormat_R8G8B8A8_UNORM;
 	mVertexLayoutTextured.mAttribs[2].mBinding = 0;
 	mVertexLayoutTextured.mAttribs[2].mLocation = 2;
 	mVertexLayoutTextured.mAttribs[2].mOffset =
-		mVertexLayoutTextured.mAttribs[1].mOffset + ImageFormat::GetImageFormatStride(mVertexLayoutTextured.mAttribs[1].mFormat);
+		mVertexLayoutTextured.mAttribs[1].mOffset + TinyImageFormat_BitSizeOfBlock(mVertexLayoutTextured.mAttribs[1].mFormat) / 8;
 	/************************************************************************/
 	/************************************************************************/
 	dpiScale = getDpiScale();
@@ -662,6 +805,14 @@ bool ImguiGUIDriver::init(Renderer* renderer, uint32_t const maxDynamicUIUpdates
 	io.WantCaptureMouse = true;
 	io.KeyMap[ImGuiKey_Backspace] = InputBindings::BUTTON_BACK;
 
+	for (uint32_t i = 0; i < MAX_FRAMES; ++i)
+	{
+		DescriptorData params[1] = {};
+		params[0].pName = "uniformBlockVS";
+		params[0].ppBuffers = &pUniformBuffer[i];
+		updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
+	}
+
 	return true;
 }
 
@@ -672,11 +823,13 @@ void ImguiGUIDriver::exit()
 	removeDepthState(pDepthState);
 	removeRasterizerState(pRasterizerState);
 	removeShader(pRenderer, pShaderTextured);
-	removeDescriptorBinder(pRenderer, pDescriptorBinderTextured);
+	removeDescriptorSet(pRenderer, pDescriptorSetTexture);
+	removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
 	removeRootSignature(pRenderer, pRootSignatureTextured);
 	removeResource(pVertexBuffer);
 	removeResource(pIndexBuffer);
-	removeResource(pUniformBuffer);
+	for (uint32_t i = 0; i < MAX_FRAMES; ++i)
+		removeResource(pUniformBuffer[i]);
 
 	for (Texture* pFontTexture : mFontTextures)
 		removeResource(pFontTexture);
@@ -715,7 +868,7 @@ bool ImguiGUIDriver::addFont(void* pFontBuffer, uint32_t fontBufferSize, void* p
 	// At this point you've got the texture data and you need to upload that your your graphic system:
 	// After we have created the texture, store its pointer/identifier (_in whichever format your engine uses_) in 'io.Fonts->TexID'.
 	// This will be passed back to your via the renderer. Basically ImTextureID == void*. Read FAQ below for details about ImTextureID.
-	RawImageData    rawData = { pixels, ImageFormat::RGBA8, (uint32_t)width, (uint32_t)height, 1, 1, 1 };
+	RawImageData    rawData = { pixels, TinyImageFormat_R8G8B8A8_UNORM, (uint32_t)width, (uint32_t)height, 1, 1, 1 };
 	TextureLoadDesc loadDesc = {};
 	loadDesc.pRawImageData = &rawData;
 	loadDesc.ppTexture = &pFontTexture;
@@ -724,6 +877,11 @@ bool ImguiGUIDriver::addFont(void* pFontBuffer, uint32_t fontBufferSize, void* p
 	io.Fonts->TexID = (void*)pFontTexture;
 
 	mFontTextures.emplace_back(pFontTexture);
+
+	DescriptorData params[1] = {};
+	params[0].pName = "uTex";
+	params[0].ppTextures = &pFontTexture;
+	updateDescriptorSet(pRenderer, (uint32_t)mFontTextures.size() - 1, pDescriptorSetTexture, 1, params);
 
 	return true;
 }
@@ -735,7 +893,7 @@ bool ImguiGUIDriver::load(RenderTarget** ppRts, uint32_t count)
 	PipelineDesc desc = {};
 	desc.mType = PIPELINE_TYPE_GRAPHICS;
 	GraphicsPipelineDesc& pipelineDesc = desc.mGraphicsDesc;
-	pipelineDesc.mDepthStencilFormat = ImageFormat::NONE;
+	pipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
 	pipelineDesc.mRenderTargetCount = 1;
 	pipelineDesc.mSampleCount = ppRts[0]->mDesc.mSampleCount;
 	pipelineDesc.pBlendState = pBlendAlpha;
@@ -743,7 +901,6 @@ bool ImguiGUIDriver::load(RenderTarget** ppRts, uint32_t count)
 	pipelineDesc.pColorFormats = &ppRts[0]->mDesc.mFormat;
 	pipelineDesc.pDepthState = pDepthState;
 	pipelineDesc.pRasterizerState = pRasterizerState;
-	pipelineDesc.pSrgbValues = &ppRts[0]->mDesc.mSrgb;
 	pipelineDesc.pRootSignature = pRootSignatureTextured;
 	pipelineDesc.pShaderProgram = pShaderTextured;
 	pipelineDesc.pVertexLayout = &mVertexLayoutTextured;
@@ -894,20 +1051,7 @@ bool ImguiGUIDriver::update(GUIUpdate* pGuiUpdate)
 		}
 	}
 	ImGui::EndFrame();
-	
-	if (mToggleFocus)
-	{
-		mToggleFocus = false;
-		mNavInputs[ImGuiNavInput_Cancel] = 0.0f;
-	}
-	
-	if (mFocus != mPrevFocus)
-	{
-		mToggleFocus = true;
-		mNavInputs[ImGuiNavInput_Cancel] = 1.0f;
-		mPrevFocus = mFocus;
-	}
-	
+		
 	if (!io.MouseDown[0])
 	{
 		io.MousePos = float2(-FLT_MAX);
@@ -924,6 +1068,7 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 	/************************************************************************/
 	ImGui::Render();
 	frameIdx = (frameIdx + 1) % MAX_FRAMES;
+	mDynamicUIUpdates = 0;
 
 	ImDrawData* draw_data = ImGui::GetDrawData();
 
@@ -969,8 +1114,7 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 		{ 0.0f, 0.0f, 0.5f, 0.0f },
 		{ (R + L) / (L - R), (T + B) / (B - T), 0.5f, 1.0f },
 	};
-	uint64_t uOffset = frameIdx * mUniformSize;
-	BufferUpdateDesc update = { pUniformBuffer, mvp, 0, uOffset, sizeof(mvp) };
+	BufferUpdateDesc update = { pUniformBuffer[frameIdx], mvp, 0, 0, sizeof(mvp) };
 	updateResource(&update);
 
 	cmdSetViewport(pCmd, 0.0f, 0.0f, draw_data->DisplaySize.x, draw_data->DisplaySize.y, 0.0f, 1.0f);
@@ -981,12 +1125,7 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 	cmdBindIndexBuffer(pCmd, pIndexBuffer, iOffset);
 	cmdBindVertexBuffer(pCmd, 1, &pVertexBuffer, &vOffset);
 
-	DescriptorData params[1] = {};
-	params[0].pName = "uniformBlockVS";
-	params[0].pOffsets = &uOffset;
-	params[0].ppBuffers = &pUniformBuffer;
-	cmdBindDescriptors(pCmd, pDescriptorBinderTextured, pRootSignatureTextured, 1, params);
-	
+	cmdBindDescriptorSet(pCmd, frameIdx, pDescriptorSetUniforms);
 
 	// Render command lists
 	int    vtx_offset = 0;
@@ -1012,10 +1151,23 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 					pCmd, (uint32_t)(pcmd->ClipRect.x - pos.x), (uint32_t)(pcmd->ClipRect.y - pos.y),
 					(uint32_t)(pcmd->ClipRect.z - pcmd->ClipRect.x), (uint32_t)(pcmd->ClipRect.w - pcmd->ClipRect.y));
 
-				DescriptorData params[1] = {};
-				params[0].pName = "uTex";
-				params[0].ppTextures = (Texture**)&pcmd->TextureId;
-				cmdBindDescriptors(pCmd, pDescriptorBinderTextured, pRootSignatureTextured, 1, params);
+				Texture* pTexture = (Texture*)pcmd->TextureId;
+				Texture** it = eastl::find(mFontTextures.begin(), mFontTextures.end(), pTexture);
+				if (it == mFontTextures.end())
+				{
+					uint32_t setIndex = (uint32_t)mFontTextures.size() + (frameIdx * mMaxDynamicUIUpdatesPerBatch + mDynamicUIUpdates);
+					DescriptorData params[1] = {};
+					params[0].pName = "uTex";
+					params[0].ppTextures = (Texture**)&pcmd->TextureId;
+					updateDescriptorSet(pRenderer, setIndex, pDescriptorSetTexture, 1, params);
+					cmdBindDescriptorSet(pCmd, setIndex, pDescriptorSetTexture);
+					++mDynamicUIUpdates;
+				}
+				else
+				{
+					cmdBindDescriptorSet(pCmd, (uint32_t)(it - mFontTextures.begin()), pDescriptorSetTexture);
+				}
+
 				cmdDrawIndexed(pCmd, pcmd->ElemCount, idx_offset, vtx_offset);
 			}
 			idx_offset += pcmd->ElemCount;

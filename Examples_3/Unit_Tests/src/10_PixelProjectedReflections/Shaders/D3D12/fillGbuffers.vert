@@ -30,12 +30,14 @@ struct VsIn
 };
 
 
-cbuffer cbCamera : register(b0) {
+cbuffer cbCamera : register(b0, UPDATE_FREQ_PER_FRAME)
+{
 	float4x4 projView;
 	float3 camPos;
 }
 
-cbuffer cbObject : register(b1, space3) {
+cbuffer cbObject : register(b1, UPDATE_FREQ_PER_DRAW)
+{
 	float4x4 worldMat;
 	float roughness;
 	float metalness;

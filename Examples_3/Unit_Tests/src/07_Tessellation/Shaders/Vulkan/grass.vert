@@ -26,8 +26,8 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-layout(set = 0, binding = 0) uniform GrassUniformBlock {
-
+layout(UPDATE_FREQ_PER_FRAME, binding = 0) uniform GrassUniformBlock
+{
    	mat4 world;
 	mat4 view;	
 	mat4 invView;
@@ -56,12 +56,13 @@ layout(location = 1) out vec4 tesc_v2;
 layout(location = 2) out vec4 tesc_up;
 layout(location = 3) out vec4 tesc_widthDir;
 
-out gl_PerVertex {
+out gl_PerVertex
+{
     vec4 gl_Position;
 };
 
-void main() {
-	
+void main()
+{
 	vec4 V0 = world * vec4(v0.xyz, 1.0);
 	tesc_v1 = vec4((world * vec4(v1.xyz, 1.0)).xyz, v1.w);
 	tesc_v2 = vec4((world * vec4(v2.xyz, 1.0)).xyz, v2.w);

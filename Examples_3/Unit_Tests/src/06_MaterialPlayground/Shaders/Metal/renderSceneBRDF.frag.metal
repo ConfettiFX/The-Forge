@@ -314,93 +314,109 @@ float ShadowTest(texture2d<float> shadowMap, sampler bilinearSampler, float4 Pl,
 	return 1.0 - shadow;
 }
 
+struct VSData {
+    constant PointLightData& cbPointLights              [[id(0)]];
+    constant DirectionalLightData& cbDirectionalLights  [[id(1)]];
+    
+    texture2d<float, access::sample> brdfIntegrationMap [[id(2)]];
+    texturecube<float, access::sample> irradianceMap    [[id(3)]];
+    texturecube<float, access::sample> specularMap      [[id(4)]];
+    texture2d<float, access::sample> shadowMap          [[id(5)]];
+
+    sampler bilinearSampler                             [[id(6)]];
+    sampler bilinearClampedSampler                      [[id(7)]];
+};
+
+struct VSDataPerFrame {
+    constant CameraData& cbCamera                       [[id(0)]];
+};
+
+struct VSDataPerDraw {
+    constant ObjectData& cbObject                       [[id(0)]];
+    
+    texture2d<float> albedoMap                          [[id(1)]];
+    texture2d<float, access::sample> normalMap          [[id(2)]];
+    texture2d<float, access::sample> metallicMap        [[id(3)]];
+    texture2d<float, access::sample> roughnessMap       [[id(4)]];
+    texture2d<float, access::sample> aoMap              [[id(5)]];
+};
+
 fragment float4 stageMain(VSOutput In[[stage_in]],
-						  constant CameraData &cbCamera[[buffer(1)]],
-						  constant ObjectData &cbObject[[buffer(2)]],
-						  constant PointLightData &cbPointLights[[buffer(3)]],
-						  constant DirectionalLightData &cbDirectionalLights[[buffer(4)]],
-						  texture2d<float, access::sample> brdfIntegrationMap[[texture(0)]],
-						  texturecube<float, access::sample> irradianceMap[[texture(1)]],
-						  texture2d<float> albedoMap[[texture(2)]],
-						  texture2d<float, access::sample> normalMap[[texture(3)]],
-						  texture2d<float, access::sample> metallicMap[[texture(4)]],
-						  texture2d<float, access::sample> roughnessMap[[texture(5)]],
-						  texture2d<float, access::sample> aoMap[[texture(6)]],
-						  texture2d<float, access::sample> shadowMap[[texture(7)]],
-						  texturecube<float, access::sample> specularMap[[texture(8)]],
-						  sampler bilinearSampler[[sampler(0)]],
-						  sampler bilinearClampedSampler[[sampler(1)]])
+						  constant VSData& vsData                  [[buffer(UPDATE_FREQ_NONE)]],
+						  constant VSDataPerFrame& vsDataPerFrame  [[buffer(UPDATE_FREQ_PER_FRAME)]],
+                          constant VSDataPerDraw&  vsDataPerDraw   [[buffer(UPDATE_FREQ_PER_DRAW)]]
+)
 {
 	// Read material surface properties
 	//
-	float2 uv = In.uv * cbObject.tiling;
-	float3 _albedo = HasDiffuseTexture(cbObject.textureConfig)
-		? albedoMap.sample(bilinearSampler, uv).rgb
-		: cbObject.albedoAndRoughness.rgb;
+	float2 uv = In.uv * vsDataPerDraw.cbObject.tiling;
+	float3 _albedo = HasDiffuseTexture(vsDataPerDraw.cbObject.textureConfig)
+		? vsDataPerDraw.albedoMap.sample(vsData.bilinearSampler, uv).rgb
+		: vsDataPerDraw.cbObject.albedoAndRoughness.rgb;
 
-	float _roughness = HasRoughnessTexture(cbObject.textureConfig)
-		? roughnessMap.sample(bilinearSampler, uv).r
-		: cbObject.albedoAndRoughness.a;
+	float _roughness = HasRoughnessTexture(vsDataPerDraw.cbObject.textureConfig)
+		? vsDataPerDraw.roughnessMap.sample(vsData.bilinearSampler, uv).r
+		: vsDataPerDraw.cbObject.albedoAndRoughness.a;
 	if (_roughness < 0.04) _roughness = 0.04;
 
-	const float _metalness = HasMetallicTexture(cbObject.textureConfig)
-		? metallicMap.sample(bilinearSampler, uv).r
-		: cbObject.metalness;
+	const float _metalness = HasMetallicTexture(vsDataPerDraw.cbObject.textureConfig)
+		? vsDataPerDraw.metallicMap.sample(vsData.bilinearSampler, uv).r
+		: vsDataPerDraw.cbObject.metalness;
 
-	const float _ao = HasAOTexture(cbObject.textureConfig)
-		? aoMap.sample(bilinearSampler, uv).r
+	const float _ao = HasAOTexture(vsDataPerDraw.cbObject.textureConfig)
+		? vsDataPerDraw.aoMap.sample(vsData.bilinearSampler, uv).r
 		: 1.0f;
 
-	const float3 N = HasNormalTexture(cbObject.textureConfig)
-		? getNormalFromMap(normalMap, bilinearSampler, uv, In.pos, In.normal, cbCamera.fNormalMapIntensity)
+	const float3 N = HasNormalTexture(vsDataPerDraw.cbObject.textureConfig)
+		? getNormalFromMap(vsDataPerDraw.normalMap, vsData.bilinearSampler, uv, In.pos, In.normal, vsDataPerFrame.cbCamera.fNormalMapIntensity)
 		: normalize(In.normal);
 
 	_albedo = pow(_albedo, 2.2f);
 
-	const int isOrenNayar = IsOrenNayarDiffuse(cbObject.textureConfig) ? 1 : 0;
+	const int isOrenNayar = IsOrenNayarDiffuse(vsDataPerDraw.cbObject.textureConfig) ? 1 : 0;
 
 	const float3 P = In.pos.xyz;
-	const float3 V = normalize(cbCamera.camPos - P);
+	const float3 V = normalize(vsDataPerFrame.cbCamera.camPos - P);
 	
 	float3 Lo = float3(0.0f, 0.0f, 0.0f);	// outgoing radiance
 
 	// Direct Lights
 	int i;
-	for (i = 0; i < cbPointLights.NumPointLights; ++i)
+	for (i = 0; i < vsData.cbPointLights.NumPointLights; ++i)
 	{
-		const float3 Pl = cbPointLights.PointLights[i].positionAndRadius.xyz;
+		const float3 Pl = vsData.cbPointLights.PointLights[i].positionAndRadius.xyz;
 		const float3 L = normalize(Pl - P);
 		const float NdotL = max(dot(N, L), 0.0f);
 		const float distance = length(Pl - P);
-		const float distanceByRadius = 1.0f - pow((distance / cbPointLights.PointLights[i].positionAndRadius.w), 4);
+		const float distanceByRadius = 1.0f - pow((distance / vsData.cbPointLights.PointLights[i].positionAndRadius.w), 4);
 		const float clamped = pow(saturate(distanceByRadius), 2.0f);
 		const float attenuation = clamped / (distance * distance + 1.0f);
-		const float3 radiance = cbPointLights.PointLights[i].colorAndIntensity.rgb * cbPointLights.PointLights[i].colorAndIntensity.w * attenuation;
+		const float3 radiance = vsData.cbPointLights.PointLights[i].colorAndIntensity.rgb * vsData.cbPointLights.PointLights[i].colorAndIntensity.w * attenuation;
 
 		Lo += BRDF(N, V, L, _albedo, _roughness, _metalness, isOrenNayar) * radiance * NdotL;
 	}
 
-	for (i = 0; i < cbDirectionalLights.NumDirectionalLights; ++i)
+	for (i = 0; i < vsData.cbDirectionalLights.NumDirectionalLights; ++i)
 	{
-		const float3 L = cbDirectionalLights.DirectionalLights[i].directionAndShadowMap.xyz;
-		const float4 P_lightSpace =  cbDirectionalLights.DirectionalLights[i].viewProj * float4(P, 1.0f);
+		const float3 L = vsData.cbDirectionalLights.DirectionalLights[i].directionAndShadowMap.xyz;
+		const float4 P_lightSpace = vsData.cbDirectionalLights.DirectionalLights[i].viewProj * float4(P, 1.0f);
 		const float NdotL = max(dot(N, L), 0.0f);
-		const float3 radiance = cbDirectionalLights.DirectionalLights[i].colorAndIntensity.rgb * cbDirectionalLights.DirectionalLights[i].colorAndIntensity.w;
-		const float shadowing = ShadowTest(shadowMap, bilinearSampler, P_lightSpace, cbDirectionalLights.DirectionalLights[i].shadowMapDimensions);
+		const float3 radiance = vsData.cbDirectionalLights.DirectionalLights[i].colorAndIntensity.rgb * vsData.cbDirectionalLights.DirectionalLights[i].colorAndIntensity.w;
+		const float shadowing = ShadowTest(vsData.shadowMap, vsData.bilinearSampler, P_lightSpace, vsData.cbDirectionalLights.DirectionalLights[i].shadowMapDimensions);
 
 		Lo += BRDF(N, V, L, _albedo, _roughness, _metalness, isOrenNayar) * radiance * NdotL * shadowing;
 	}
 
 
 	// Environment Lighting
-	if (cbCamera.bUseEnvironmentLight != 0)
+	if (vsDataPerFrame.cbCamera.bUseEnvironmentLight != 0)
 	{
-		Lo += EnvironmentBRDF(irradianceMap, specularMap, brdfIntegrationMap, bilinearSampler, bilinearClampedSampler, N, V, _albedo, _roughness, _metalness) * float3(_ao, _ao, _ao) * cbCamera.fEnvironmentLightIntensity;
+		Lo += EnvironmentBRDF(vsData.irradianceMap, vsData.specularMap, vsData.brdfIntegrationMap, vsData.bilinearSampler, vsData.bilinearClampedSampler, N, V, _albedo, _roughness, _metalness) * float3(_ao, _ao, _ao) * vsDataPerFrame.cbCamera.fEnvironmentLightIntensity;
 	}
 	else
 	{
-		if(HasAOTexture(cbObject.textureConfig))
-			Lo += _albedo * (_ao  * cbCamera.fAOIntensity + (1.0f - cbCamera.fAOIntensity)) * cbCamera.fAmbientLightIntensity;
+		if(HasAOTexture(vsDataPerDraw.cbObject.textureConfig))
+			Lo += _albedo * (_ao  * vsDataPerFrame.cbCamera.fAOIntensity + (1.0f - vsDataPerFrame.cbCamera.fAOIntensity)) * vsDataPerFrame.cbCamera.fAmbientLightIntensity;
 	}
 	
 	// Gamma correction
@@ -410,15 +426,15 @@ fragment float4 stageMain(VSOutput In[[stage_in]],
 	color = pow(color, gammaCorr);
 	
 	
-	switch (cbCamera.renderMode)
+	switch (vsDataPerFrame.cbCamera.renderMode)
 	{
-	default:
-	case 0: break;
-	case 1: color = _albedo; break;
-	case 2: color = N; break;
-	case 3: color = _roughness; break;
-	case 4: color = _metalness; break;
-	case 5: color = (_ao  * cbCamera.fAOIntensity + (1.0f - cbCamera.fAOIntensity)); break;
+        default:
+        case 0: break;
+        case 1: color = _albedo; break;
+        case 2: color = N; break;
+        case 3: color = _roughness; break;
+        case 4: color = _metalness; break;
+        case 5: color = (_ao  * vsDataPerFrame.cbCamera.fAOIntensity + (1.0f - vsDataPerFrame.cbCamera.fAOIntensity)); break;
 	}
 	return float4(color, 1.0f);
 }

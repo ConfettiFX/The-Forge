@@ -29,7 +29,7 @@ layout(location = 0) in vec4 Position;
 
 layout(location = 1) out vec3 WorldPos;
 
-layout (std140, set=0, binding=0) uniform uniformBlock 
+layout (std140, UPDATE_FREQ_PER_FRAME, binding=0) uniform uniformBlock 
 {
 	uniform mat4 projView;
 	uniform vec3 camPos;

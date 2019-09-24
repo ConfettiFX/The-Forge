@@ -25,7 +25,7 @@
 Texture2D sceneTexture		: register(t6);
 SamplerState clampMiplessLinearSampler : register(s7);
 
-cbuffer cbPerFrame : register(b3) 
+cbuffer cbPerFrame : register(b3, UPDATE_FREQ_PER_FRAME) 
 {
 	float4x4	worldMat;
 	float4x4	projViewMat;

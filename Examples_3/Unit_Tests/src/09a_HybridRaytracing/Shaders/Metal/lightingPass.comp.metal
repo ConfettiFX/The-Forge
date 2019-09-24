@@ -44,7 +44,7 @@ struct Compute_Shader
     constant Uniforms_cbPerPass & cbPerPass;
 	texture2d<float, access::read> normalbuffer;
     texture2d<float, access::read> shadowbuffer;
-    texture2d<float, access::read_write> outputRT;
+    texture2d<float, access::write> outputRT;
 
     void main(uint3 DTid)
     {
@@ -67,22 +67,44 @@ struct Compute_Shader
 		constant Uniforms_cbPerPass & cbPerPass,
         texture2d<float, access::read> normalbuffer,
         texture2d<float, access::read> shadowbuffer,
-        texture2d<float, access::read_write> outputRT) : cbPerPass(cbPerPass),
+        texture2d<float, access::write> outputRT) : cbPerPass(cbPerPass),
     normalbuffer(normalbuffer),
     shadowbuffer(shadowbuffer),
     outputRT(outputRT) {}
 };
 
+struct CSData {
+    texture2d<float, access::read>        normalbuffer [[id(0)]];
+    texture2d<float, access::read>        shadowbuffer [[id(1)]];
+#ifndef TARGET_IOS
+    texture2d<float, access::write>  outputRT     [[id(2)]];
+#endif
+};
+
+struct CSDataPerFrame {
+    constant                                 Compute_Shader::Uniforms_cbPerPass & cbPerPass [[id(0)]];
+};
+
 //[numthreads(16,16,1)]
 kernel void stageMain(
-					uint3 								DTid [[thread_position_in_grid]],
-					constant     							Compute_Shader::Uniforms_cbPerPass & cbPerPass [[buffer(1)]],
-					texture2d<float, access::read> 			normalbuffer [[texture(0)]],
-					texture2d<float, access::read> 			shadowbuffer [[texture(1)]],
-					texture2d<float, access::read_write> 	outputRT [[texture(2)]])
+    uint3 DTid                          [[thread_position_in_grid]],
+    constant CSData& csData             [[buffer(UPDATE_FREQ_NONE)]],
+    constant CSDataPerFrame& csDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]]
+#ifdef TARGET_IOS
+	,texture2d<float, access::write>  outputRT [[texture(0)]]
+#endif
+)
 {
     uint3 DTid0;
     DTid0 = DTid;
-    Compute_Shader main(cbPerPass, normalbuffer, shadowbuffer, outputRT);
-        return main.main(DTid0);
+    Compute_Shader main(csDataPerFrame.cbPerPass,
+						csData.normalbuffer,
+						csData.shadowbuffer,
+#ifndef TARGET_IOS
+						csData.outputRT
+#else
+						outputRT
+#endif
+						);
+    return main.main(DTid0);
 }

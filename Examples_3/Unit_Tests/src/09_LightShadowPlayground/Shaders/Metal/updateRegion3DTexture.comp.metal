@@ -31,21 +31,27 @@ constant float* SDFVolumeDataBuffer,texture3d<half, access::write> SDFVolumeText
 SDFVolumeDataBuffer(SDFVolumeDataBuffer),SDFVolumeTextureAtlas(SDFVolumeTextureAtlas),UpdateSDFVolumeTextureAtlasCB(UpdateSDFVolumeTextureAtlasCB) {}
 };
 
+struct CSData {
+    texture3d<half, access::write> SDFVolumeTextureAtlas [[id(0)]];
+};
+
+struct CSDataPerFrame {
+    constant float* SDFVolumeDataBuffer                                                             [[id(0)]];
+    constant Compute_Shader::Uniforms_UpdateSDFVolumeTextureAtlasCB & UpdateSDFVolumeTextureAtlasCB [[id(1)]];
+};
+
 //[numthreads(8, 8, 8)]
 kernel void stageMain(
-uint3 threadID [[thread_position_in_grid]],
-uint3 GTid [[thread_position_in_threadgroup]],
-    constant float* SDFVolumeDataBuffer [[buffer(0)]],
-    texture3d<half, access::write> SDFVolumeTextureAtlas [[texture(0)]],
-    constant Compute_Shader::Uniforms_UpdateSDFVolumeTextureAtlasCB & UpdateSDFVolumeTextureAtlasCB [[buffer(1)]])
+                      uint3 threadID                            [[thread_position_in_grid]],
+                      uint3 GTid                                [[thread_position_in_threadgroup]],
+                      constant CSData& csData                   [[buffer(UPDATE_FREQ_NONE)]],
+                      constant CSDataPerFrame& csDataPerFrame   [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
     uint3 threadID0;
     threadID0 = threadID;
     uint3 GTid0;
     GTid0 = GTid;
-    Compute_Shader main(
-    SDFVolumeDataBuffer,
-    SDFVolumeTextureAtlas,
-    UpdateSDFVolumeTextureAtlasCB);
+    Compute_Shader main(csDataPerFrame.SDFVolumeDataBuffer, csData.SDFVolumeTextureAtlas, csDataPerFrame.UpdateSDFVolumeTextureAtlasCB);
     return main.main(threadID0, GTid0);
 }

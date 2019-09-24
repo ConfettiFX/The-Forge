@@ -62,19 +62,20 @@ constant Uniforms_RootConstant & RootConstant,texture2d<float> Source,sampler Li
 RootConstant(RootConstant),Source(Source),LinearSampler(LinearSampler) {}
 };
 
+struct FSData {
+    texture2d<float> Source [[id(0)]];
+    sampler LinearSampler [[id(1)]];
+};
 
 fragment float4 stageMain(
     Fragment_Shader::VSOutput input [[stage_in]],
-    constant Fragment_Shader::Uniforms_RootConstant & RootConstant [[buffer(0)]],
-    texture2d<float> Source [[texture(0)]],
-    sampler LinearSampler [[sampler(0)]])
+    constant FSData& fsData         [[buffer(UPDATE_FREQ_NONE)]],
+    constant Fragment_Shader::Uniforms_RootConstant & RootConstant [[buffer(UPDATE_FREQ_USER)]]
+)
 {
     Fragment_Shader::VSOutput input0;
     input0.Position = float4(input.Position.xyz, 1.0 / input.Position.w);
     input0.UV = input.UV;
-    Fragment_Shader main(
-    RootConstant,
-    Source,
-    LinearSampler);
+    Fragment_Shader main(RootConstant, fsData.Source, fsData.LinearSampler);
     return main.main(input0);
 }

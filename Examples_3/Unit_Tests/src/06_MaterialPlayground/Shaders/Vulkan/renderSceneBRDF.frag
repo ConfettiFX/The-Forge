@@ -54,7 +54,7 @@ struct DirectionalLight
 	mat4 viewProj;
 };
 
-layout(set = 0, binding = 0) uniform cbCamera 
+layout(UPDATE_FREQ_PER_FRAME, binding = 0) uniform cbCamera 
 {
 	mat4 projView;
 	mat4 invProjView;
@@ -71,7 +71,7 @@ layout(set = 0, binding = 0) uniform cbCamera
 	float fNormalMapIntensity;
 };
 
-layout (set = 3, binding = 1) uniform cbObject 
+layout (UPDATE_FREQ_PER_DRAW, binding = 1) uniform cbObject 
 {
 	mat4 worldMat;
 	vec3 albedo;
@@ -81,34 +81,34 @@ layout (set = 3, binding = 1) uniform cbObject
 	int textureConfig;
 };
 
-layout (set=0, binding=2) uniform cbPointLights 
+layout (UPDATE_FREQ_NONE, binding=2) uniform cbPointLights 
 {
 	PointLight PointLights[MAX_NUM_POINT_LIGHTS];
 	uint NumPointLights;
 };
 
-layout(set = 0, binding = 3) uniform cbDirectionalLights
+layout(UPDATE_FREQ_NONE, binding = 3) uniform cbDirectionalLights
 {
 	DirectionalLight DirectionalLights[MAX_NUM_DIRECTIONAL_LIGHTS];
 	uint NumDirectionalLights;
 };
 
 
-layout(set = 0, binding = 4) uniform texture2D brdfIntegrationMap;
-layout(set = 0, binding = 5) uniform textureCube irradianceMap;
-layout(set = 0, binding = 6) uniform textureCube  specularMap;
+layout(UPDATE_FREQ_NONE, binding = 4) uniform texture2D brdfIntegrationMap;
+layout(UPDATE_FREQ_NONE, binding = 5) uniform textureCube irradianceMap;
+layout(UPDATE_FREQ_NONE, binding = 6) uniform textureCube  specularMap;
 
 // material parameters
-layout(set = 3, binding = 7)  uniform texture2D albedoMap;
-layout(set = 3, binding = 8)  uniform texture2D normalMap;
-layout(set = 3, binding = 9)  uniform texture2D metallicMap;
-layout(set = 3, binding = 10) uniform texture2D roughnessMap;
-layout(set = 3, binding = 11) uniform texture2D aoMap;
+layout(UPDATE_FREQ_PER_DRAW, binding = 7)  uniform texture2D albedoMap;
+layout(UPDATE_FREQ_PER_DRAW, binding = 8)  uniform texture2D normalMap;
+layout(UPDATE_FREQ_PER_DRAW, binding = 9)  uniform texture2D metallicMap;
+layout(UPDATE_FREQ_PER_DRAW, binding = 10) uniform texture2D roughnessMap;
+layout(UPDATE_FREQ_PER_DRAW, binding = 11) uniform texture2D aoMap;
 
-layout(set = 0, binding = 12) uniform texture2D shadowMap;
+layout(UPDATE_FREQ_NONE, binding = 12) uniform texture2D shadowMap;
 
-layout(set = 0, binding = 13) uniform sampler bilinearSampler;
-layout(set = 0, binding = 14) uniform sampler bilinearClampedSampler;
+layout(UPDATE_FREQ_NONE, binding = 13) uniform sampler bilinearSampler;
+layout(UPDATE_FREQ_NONE, binding = 14) uniform sampler bilinearClampedSampler;
 
 const float PI = 3.14159265359;
 const float PI_DIV2 = 1.57079632679;

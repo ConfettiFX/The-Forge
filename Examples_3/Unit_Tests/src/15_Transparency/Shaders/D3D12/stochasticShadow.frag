@@ -21,7 +21,7 @@
 * specific language governing permissions and limitations
 * under the License.
 */
-#include "shading.hlsl"
+#include "shading.h"
 
 
 // source: https://www.shadertoy.com/view/4sfGzS

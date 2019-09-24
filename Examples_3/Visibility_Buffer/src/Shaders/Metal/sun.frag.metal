@@ -48,14 +48,18 @@ struct Fragment_Shader
 	RootConstantSunMatrices(RootConstantSunMatrices) {}
 };
 
+struct FSData {
+    constant Fragment_Shader::Uniforms_RootConstantSunMatrices& UniformBufferSunMatrices [[id(0)]];
+};
 
 fragment float4 stageMain(
-						  Fragment_Shader::PsIn In [[stage_in]],
-						  constant Fragment_Shader::Uniforms_RootConstantSunMatrices & UniformBufferSunMatrices [[buffer(1)]])
+    Fragment_Shader::PsIn In [[stage_in]],
+    constant FSData& fsData [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
 	Fragment_Shader::PsIn In0;
 	In0.Position = float4(In.Position.xyz, 1.0 / In.Position.w);
-	Fragment_Shader main(UniformBufferSunMatrices);
+	Fragment_Shader main(fsData.UniformBufferSunMatrices);
 	return main.main(In0);
 }
 

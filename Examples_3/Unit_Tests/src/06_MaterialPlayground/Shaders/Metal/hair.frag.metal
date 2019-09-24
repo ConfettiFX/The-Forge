@@ -118,6 +118,7 @@ struct DirectionalLightCameraData
     CameraData Cam[MAX_NUM_DIRECTIONAL_LIGHTS];
 };
 
+/*
 #define DIRECTIONAL_LIGHT_SHADOW_MAPS_NAME DirectionalLightShadowMaps
 
 #if MAX_NUM_DIRECTIONAL_LIGHTS > 1
@@ -134,6 +135,7 @@ struct DirectionalLightShadowMapsBuffer
 #define DIRECTIONAL_LIGHT_SHADOW_MAPS_PARAMETER texture2d<float, access::sample> DIRECTIONAL_LIGHT_SHADOW_MAPS_NAME
 #define GET_DIRECTIONAL_LIGHT_SHADOW_MAP(i) DIRECTIONAL_LIGHT_SHADOW_MAPS_NAME
 #endif
+*/
 
 struct GlobalHairData
 {
@@ -141,6 +143,43 @@ struct GlobalHairData
 	float4 Gravity;
 	float4 Wind;
 	float TimeStep;
+};
+
+struct VSData
+{
+    constant GlobalHairData& cbHairGlobal               [[id(0)]];
+    
+    constant PointLightData& cbPointLights              [[id(1)]];
+    constant DirectionalLightData& cbDirectionalLights  [[id(2)]];
+    
+    device uint* DepthsTexture                          [[id(3)]];
+    
+    sampler PointSampler                                [[id(4)]];
+    
+    texture2d<float, access::read> ColorsTexture        [[id(5)]];
+    texture2d<float, access::read> InvAlphaTexture      [[id(6)]];
+};
+
+struct VSDataPerFrame
+{
+#if !defined(HAIR_SHADOW)
+    constant CameraData& cbCamera                       [[id(0)]];
+#endif
+};
+
+struct VSDataPerBatch {
+#if defined(HAIR_SHADOW)
+        constant CameraData& cbCamera                   [[id(0)]];
+#endif
+    
+    constant DirectionalLightCameraData& cbDirectionalLightShadowCameras [[id(1)]];
+    
+    array<texture2d<float, access::sample>, MAX_NUM_DIRECTIONAL_LIGHTS> DirectionalLightShadowMaps [[id(2)]];
+};
+
+struct VSDataPerDraw
+{
+    constant HairData& cbHair                           [[id(0)]];
 };
 
 struct VSOutput
@@ -233,7 +272,7 @@ float3 ComputeDiffuseSpecularFactors(float3 eyeDir, float3 lightDir, float3 tang
 	return diffuseSpecular;
 }
 
-float3 CalculateDirectionalLightContribution(uint lightIndex, float3 worldPosition, float3 tangent, float3 viewDirection, float3 baseColor, constant DirectionalLightData& lights, constant DirectionalLightCameraData& shadowCameras, DIRECTIONAL_LIGHT_SHADOW_MAPS_PARAMETER, sampler pointSampler, constant HairData& hair)
+float3 CalculateDirectionalLightContribution(uint lightIndex, float3 worldPosition, float3 tangent, float3 viewDirection, float3 baseColor, constant DirectionalLightData& lights, constant DirectionalLightCameraData& shadowCameras, array<texture2d<float, access::sample>, MAX_NUM_DIRECTIONAL_LIGHTS> DirectionalLightShadowMaps, sampler pointSampler, constant HairData& hair)
 {
 	const DirectionalLight light = lights.DirectionalLights[lightIndex];
 	float3 radiance = light.color * light.intensity;
@@ -260,7 +299,7 @@ float3 CalculateDirectionalLightContribution(uint lightIndex, float3 worldPositi
 {	\
 	float exp = 1.0f - (x * x + y * y) / (2.0f * sigma * sigma);	\
 	float weight = 1.0f / (2.0f * PI * sigma * sigma) * pow(e, exp);	\
-	float shadowMapDepth = GET_DIRECTIONAL_LIGHT_SHADOW_MAP(light.shadowMap).sample(pointSampler, shadowPos.xy, int2(x, y)).r;	\
+	float shadowMapDepth = DirectionalLightShadowMaps[light.shadowMap].sample(pointSampler, shadowPos.xy, int2(x, y)).r;	\
 	float shadowRange = max(0.0f, light.shadowRange * (shadowPos.z - shadowMapDepth));	\
 	float numFibers = shadowRange / (hair.FiberSpacing * hair.FiberRadius);	\
 	if (shadowRange > EPSILON)	numFibers += 1;	\
@@ -319,7 +358,7 @@ float3 CalculatePointLightContribution(uint lightIndex, float3 worldPosition, fl
 	return max(0.0f, reflectedLight);
 }
 
-float3 HairShading(float3 worldPos, float3 eyeDir, float3 tangent, float3 baseColor, constant PointLightData& pointLights, constant DirectionalLightData& directionalLights, constant DirectionalLightCameraData& shadowCameras, DIRECTIONAL_LIGHT_SHADOW_MAPS_PARAMETER, sampler pointSampler, constant HairData& hair)
+float3 HairShading(float3 worldPos, float3 eyeDir, float3 tangent, float3 baseColor, constant PointLightData& pointLights, constant DirectionalLightData& directionalLights, constant DirectionalLightCameraData& shadowCameras, array<texture2d<float, access::sample>, MAX_NUM_DIRECTIONAL_LIGHTS> DirectionalLightShadowMaps, sampler pointSampler, constant HairData& hair)
 {
 	float3 color = 0.0f;
 
@@ -328,35 +367,43 @@ float3 HairShading(float3 worldPos, float3 eyeDir, float3 tangent, float3 baseCo
 		color += CalculatePointLightContribution(i, worldPos, tangent, eyeDir, baseColor, pointLights, hair);
 
 	for (i = 0; i < directionalLights.NumDirectionalLights; ++i)
-		color += CalculateDirectionalLightContribution(i, worldPos, tangent, eyeDir, baseColor, directionalLights, shadowCameras, DIRECTIONAL_LIGHT_SHADOW_MAPS_NAME, pointSampler, hair);
+		color += CalculateDirectionalLightContribution(i, worldPos, tangent, eyeDir, baseColor, directionalLights, shadowCameras, DirectionalLightShadowMaps, pointSampler, hair);
 		
 	return color;
 }
 
 #ifdef SHORT_CUT_CLEAR
 
-fragment void stageMain(VSOutputFullscreen input[[stage_in]],
-    device uint* DepthsTexture[[buffer(6)]],
-    constant GlobalHairData& cbHairGlobal[[buffer(5)]])
+fragment void stageMain(
+    VSOutputFullscreen input  [[stage_in]],
+    constant VSData& vsData   [[buffer(UPDATE_FREQ_NONE)]]
+)
 {
     uint2 p = uint2(input.Position.xy);
-    uint2 viewport = uint2(cbHairGlobal.Viewport.zw);
-    DepthsTexture[p.x + p.y * viewport.x] = as_type<uint>(1.0f);
-    DepthsTexture[p.x + p.y * viewport.x + viewport.x * viewport.y] = as_type<uint>(1.0f);
-    DepthsTexture[p.x + p.y * viewport.x + viewport.x * viewport.y * 2] = as_type<uint>(1.0f);
+    uint2 viewport = uint2(vsData.cbHairGlobal.Viewport.zw);
+
+    vsData.DepthsTexture[p.x + p.y * viewport.x] = as_type<uint>(1.0f);
+    vsData.DepthsTexture[p.x + p.y * viewport.x + viewport.x * viewport.y] = as_type<uint>(1.0f);
+    vsData.DepthsTexture[p.x + p.y * viewport.x + viewport.x * viewport.y * 2] = as_type<uint>(1.0f);
+/*
+    atomic_store_explicit(&vsData.DepthsTexture[p.x + p.y * viewport.x], 1.0f, memory_order_relaxed);
+    atomic_store_explicit(&vsData.DepthsTexture[p.x + p.y * viewport.x + viewport.x * viewport.y], 1.0f, memory_order_relaxed);
+    atomic_store_explicit(&vsData.DepthsTexture[p.x + p.y * viewport.x + viewport.x * viewport.y * 2], 1.0f, memory_order_relaxed);
+*/
 }
 
 #elif defined(SHORT_CUT_DEPTH_PEELING)
 
 [[early_fragment_tests]]
-fragment float4 stageMain(VSOutput input[[stage_in]],
-    device atomic_uint* DepthsTexture[[buffer(6)]],
-    constant GlobalHairData& cbHairGlobal[[buffer(5)]])
+fragment float4 stageMain(
+    VSOutput input           [[stage_in]],
+    device VSData& vsData  [[buffer(UPDATE_FREQ_NONE)]]
+)
 {
-	float3 NDC = ScreenPosToNDC(input.Position.xyz, cbHairGlobal.Viewport);
+	float3 NDC = ScreenPosToNDC(input.Position.xyz, vsData.cbHairGlobal.Viewport);
 	float2 p0 = input.P0P1.xy / input.W0W1.x;
 	float2 p1 = input.P0P1.zw / input.W0W1.y;
-    float coverage = ComputeCoverage(p0, p1, NDC.xy, cbHairGlobal.Viewport.zw);
+    float coverage = ComputeCoverage(p0, p1, NDC.xy, vsData.cbHairGlobal.Viewport.zw);
 	if(coverage < 0.0f)
         discard_fragment();
     float alpha = coverage * input.Color.a;
@@ -368,14 +415,14 @@ fragment float4 stageMain(VSOutput input[[stage_in]],
 
 	uint depth = as_type<uint>(input.Position.z);
 	uint prevDepths[3];
-    uint2 viewport = uint2(cbHairGlobal.Viewport.zw);
+    uint2 viewport = uint2(vsData.cbHairGlobal.Viewport.zw);
 
     uint2 p = uint2(input.Position.xy);
-    prevDepths[0] = atomic_fetch_min_explicit(&DepthsTexture[p.x + p.y * viewport.x], depth, memory_order_relaxed);
+    prevDepths[0] = atomic_fetch_min_explicit((device atomic_uint*)&vsData.DepthsTexture[p.x + p.y * viewport.x], depth, memory_order_relaxed);
 	depth = (alpha > 0.98f) ? depth : max(depth, prevDepths[0]);
-    prevDepths[1] = atomic_fetch_min_explicit(&DepthsTexture[p.x + p.y * viewport.x + viewport.x * viewport.y], depth, memory_order_relaxed);
+    prevDepths[1] = atomic_fetch_min_explicit((device atomic_uint*)&vsData.DepthsTexture[p.x + p.y * viewport.x + viewport.x * viewport.y], depth, memory_order_relaxed);
 	depth = (alpha > 0.98f) ? depth : max(depth, prevDepths[1]);
-    prevDepths[2] = atomic_fetch_min_explicit(&DepthsTexture[p.x + p.y * viewport.x + viewport.x * viewport.y * 2], depth, memory_order_relaxed);
+    prevDepths[2] = atomic_fetch_min_explicit((device atomic_uint*)&vsData.DepthsTexture[p.x + p.y * viewport.x + viewport.x * viewport.y * 2], depth, memory_order_relaxed);
 
 	return float4(1.0f - alpha, 0, 0, 0);
 }
@@ -387,34 +434,34 @@ struct FSOutput
 	float depth [[depth(any)]];
 };
 
-fragment FSOutput stageMain(VSOutputFullscreen input[[stage_in]],
-    device uint* DepthsTexture[[buffer(6)]],
-    constant GlobalHairData& cbHairGlobal[[buffer(5)]])
+fragment FSOutput stageMain(
+    VSOutputFullscreen input  [[stage_in]],
+    constant VSData& vsData   [[buffer(UPDATE_FREQ_NONE)]]
+)
 {
 	FSOutput output;
     uint2 p = uint2(input.Position.xy);
-    uint2 viewport = uint2(cbHairGlobal.Viewport.zw);
-	output.depth = as_type<float>(DepthsTexture[p.x + p.y * viewport.x + viewport.x * viewport.y * 2]);
+    uint2 viewport = uint2(vsData.cbHairGlobal.Viewport.zw);
+	output.depth = as_type<float>(vsData.DepthsTexture[p.x + p.y * viewport.x + viewport.x * viewport.y * 2]);
+//    output.depth = as_type<float>(atomic_load_explicit(&vsData.DepthsTexture[p.x + p.y * viewport.x + viewport.x * viewport.y * 2], memory_order_relaxed));
 	return output;
 }
 
 #elif defined(SHORT_CUT_FILL_COLOR)
 
 [[early_fragment_tests]]
-fragment float4 stageMain(VSOutput input[[stage_in]],
-    constant CameraData& cbCamera[[buffer(3)]],
-    constant HairData& cbHair[[buffer(4)]],
-    constant GlobalHairData& cbHairGlobal[[buffer(5)]],
-    constant PointLightData& cbPointLights[[buffer(7)]],
-    constant DirectionalLightData& cbDirectionalLights[[buffer(8)]],
-    constant DirectionalLightCameraData& cbDirectionalLightShadowCameras[[buffer(11)]],
-    DIRECTIONAL_LIGHT_SHADOW_MAPS_ATTRIBUTE,
-    sampler PointSampler[[sampler(10)]])
+fragment float4 stageMain(
+      VSOutput input                          [[stage_in]],
+      constant VSData& vsData                 [[buffer(UPDATE_FREQ_NONE)]],
+      constant VSDataPerFrame& vsDataPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]],
+      constant VSDataPerBatch& vsDataPerBatch [[buffer(UPDATE_FREQ_PER_BATCH)]],
+      constant VSDataPerDraw& vsDataPerDraw   [[buffer(UPDATE_FREQ_PER_DRAW)]]
+)
 {
-	float3 NDC = ScreenPosToNDC(input.Position.xyz, cbHairGlobal.Viewport);
+	float3 NDC = ScreenPosToNDC(input.Position.xyz, vsData.cbHairGlobal.Viewport);
 	float2 p0 = input.P0P1.xy / input.W0W1.x;
 	float2 p1 = input.P0P1.zw / input.W0W1.y;
-	float coverage = ComputeCoverage(p0, p1, NDC.xy, cbHairGlobal.Viewport.zw);
+	float coverage = ComputeCoverage(p0, p1, NDC.xy, vsData.cbHairGlobal.Viewport.zw);
     if(coverage < 0.0f)
         discard_fragment();
 	float alpha = coverage * input.Color.a;
@@ -424,11 +471,11 @@ fragment float4 stageMain(VSOutput input[[stage_in]],
 	if (alpha < SHORT_CUT_MIN_ALPHA)
 		return 0.0f;
 
-	float4 worldPos = cbCamera.CamInvVPMatrix * float4(NDC, 1.0f);
+	float4 worldPos = vsDataPerFrame.cbCamera.CamInvVPMatrix * float4(NDC, 1.0f);
 	worldPos.xyz /= worldPos.w;
-	float3 eyeDir = normalize(worldPos.xyz - cbCamera.CamPos);
+	float3 eyeDir = normalize(worldPos.xyz - vsDataPerFrame.cbCamera.CamPos);
 
-	float3 color = HairShading(worldPos.xyz, -eyeDir, normalize(input.Tangent.xyz), input.Color.rgb, cbPointLights, cbDirectionalLights, cbDirectionalLightShadowCameras, DIRECTIONAL_LIGHT_SHADOW_MAPS_NAME, PointSampler, cbHair);
+	float3 color = HairShading(worldPos.xyz, -eyeDir, normalize(input.Tangent.xyz), input.Color.rgb, vsData.cbPointLights, vsData.cbDirectionalLights, vsDataPerBatch.cbDirectionalLightShadowCameras, vsDataPerBatch.DirectionalLightShadowMaps, vsData.PointSampler, vsDataPerDraw.cbHair);
 	color.rgb = color.rgb / (color.rgb + 1.0f);
 	float gammaCorr = 1.0f / 2.2f;
 	color.rgb = pow(color.rgb, gammaCorr);
@@ -439,17 +486,18 @@ fragment float4 stageMain(VSOutput input[[stage_in]],
 #elif defined(SHORT_CUT_RESOLVE_COLOR)
 
 [[early_fragment_tests]]
-fragment float4 stageMain(VSOutputFullscreen input[[stage_in]],
-    texture2d<float, access::read> ColorsTexture[[texture(5)]],
-    texture2d<float, access::read> InvAlphaTexture[[texture(6)]])
+fragment float4 stageMain(
+    VSOutputFullscreen input  [[stage_in]],
+    constant VSData& vsData   [[buffer(UPDATE_FREQ_NONE)]]
+)
 {
-	float invAlpha = InvAlphaTexture.read(uint2(input.Position.xy)).r;
+	float invAlpha = vsData.InvAlphaTexture.read(uint2(input.Position.xy)).r;
 	float alpha = 1.0f - invAlpha;
 
 	if (alpha < SHORT_CUT_MIN_ALPHA)
 		return float4(0, 0, 0, 1);
 
-	float4 color = ColorsTexture.read(uint2(input.Position.xy));
+	float4 color = vsData.ColorsTexture.read(uint2(input.Position.xy));
 	color.xyz /= color.w;
 	color.xyz *= alpha;
 	color.w = invAlpha;
@@ -464,15 +512,16 @@ fragment void stageMain()
 {}
 
 #else
-fragment float4 stageMain(VSOutput input[[stage_in]],
-    constant CameraData& cbCamera[[buffer(3)]],
-    constant HairData& cbHair[[buffer(4)]],
-    constant GlobalHairData& cbHairGlobal[[buffer(5)]])
+fragment float4 stageMain(
+    VSOutput input                           [[stage_in]],
+    constant VSData& vsData                  [[buffer(UPDATE_FREQ_NONE)]],
+    constant VSDataPerFrame& vsDataPerFrame  [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
-	float3 NDC = ScreenPosToNDC(input.Position.xyz, cbHairGlobal.Viewport);
-	float3 worldPos = cbCamera.CamInvVPMatrix * float4(NDC, 1.0f);
+	float3 NDC = ScreenPosToNDC(input.Position.xyz, vsData.cbHairGlobal.Viewport);
+	float3 worldPos = vsDataPerFrame.cbCamera.CamInvVPMatrix * float4(NDC, 1.0f);
 
-	float coverage = ComputeCoverage(input.P0P1.xy, input.P0P1.zw, NDC.xy, cbHairGlobal.Viewport.zw);
+	float coverage = ComputeCoverage(input.P0P1.xy, input.P0P1.zw, NDC.xy, vsData.cbHairGlobal.Viewport.zw);
     if(coverage < 0.0f)
         discard_fragment();
 	float alpha = coverage * input.Color.a;

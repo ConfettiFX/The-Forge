@@ -73,23 +73,33 @@ float3 interPos(float3 posV0, float3 posV1, float3 posV2, float v)
 	return a + v*(b - a);
 }
 
+struct CSData {
+    device Blade* Blades                     [[id(0)]];
+    device Blade* CulledBlades               [[id(1)]];
+    device BladeDrawIndirect* NumBlades      [[id(2)]];
+};
+
+struct CSDataPerFrame {
+    constant UniformData& GrassUniformBlock  [[id(0)]];
+};
+
 //[numthreads(32, 1, 1)]
-kernel void stageMain(constant UniformData& GrassUniformBlock  [[buffer(0)]],
-                      device Blade* Blades                     [[buffer(1)]],
-                      device Blade* CulledBlades               [[buffer(2)]],
-                      device BladeDrawIndirect* NumBlades      [[buffer(3)]],
-                      uint3 DTid                               [[thread_position_in_grid]])
+kernel void stageMain(
+    uint3 DTid                               [[thread_position_in_grid]],
+    constant CSData& csData                  [[buffer(UPDATE_FREQ_NONE)]],
+    constant CSDataPerFrame& csDataPerFrame  [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
     uint index = DTid.x;
     
     // Reset the number of blades to 0
     if (index == 0) {
-        atomic_store_explicit(&NumBlades[0].vertexCount, 0, memory_order_relaxed);
+        atomic_store_explicit(&csData.NumBlades[0].vertexCount, 0, memory_order_relaxed);
     }
     
     threadgroup_barrier(mem_flags::mem_threadgroup); // Wait till all threads reach this point
     
-    Blade blade = Blades[index];
+    Blade blade = csData.Blades[index];
     
     //v0.w holds orientation, v1.w holds height, v2.w holds width, and up.w holds the stiffness coefficient.
     float3 posV0 = blade.v0.xyz;
@@ -122,22 +132,22 @@ kernel void stageMain(constant UniformData& GrassUniformBlock  [[buffer(0)]],
     
     //Wind
     float3 windDirection = float3(1, 0, 0);
-    if (GrassUniformBlock.gWindMode == 0)
+    if (csDataPerFrame.GrassUniformBlock.gWindMode == 0)
         windDirection = normalize(float3(1, 0, 0)); // straight wave
-    else if (GrassUniformBlock.gWindMode == 1)
+    else if (csDataPerFrame.GrassUniformBlock.gWindMode == 1)
         windDirection = -normalize(posV0.xyz); // helicopter wave
     
-    float seed = dot(windDirection, float3(posV0.x, 0.0, posV0.z)) + GrassUniformBlock.totalTime * GrassUniformBlock.windSpeed;
+    float seed = dot(windDirection, float3(posV0.x, 0.0, posV0.z)) + csDataPerFrame.GrassUniformBlock.totalTime * csDataPerFrame.GrassUniformBlock.windSpeed;
     
-    float waveStrength = cos(seed * (1.0 / GrassUniformBlock.windWidth));
+    float waveStrength = cos(seed * (1.0 / csDataPerFrame.GrassUniformBlock.windWidth));
     
     float directionalAlignment = 1.0 - abs(dot(windDirection, normalize(posV2 - posV0)));
     float heightratio = dot(posV2 - posV0, upV) / h;
     
-    float3 windForce = windDirection * directionalAlignment * heightratio * waveStrength * GrassUniformBlock.windStrength;
+    float3 windForce = windDirection * directionalAlignment * heightratio * waveStrength * csDataPerFrame.GrassUniformBlock.windStrength;
     
     //Total force
-    float3 tv2 = (gravityForce + recoveryForce + windForce) * GrassUniformBlock.deltaTime;
+    float3 tv2 = (gravityForce + recoveryForce + windForce) * csDataPerFrame.GrassUniformBlock.deltaTime;
     float3 v2 = posV2 + tv2;
     
     //a position of v2 above the local plane can be ensured
@@ -156,13 +166,13 @@ kernel void stageMain(constant UniformData& GrassUniformBlock  [[buffer(0)]],
     blade.v1.xyz = posV0 + r*(v1 - posV0);
     blade.v2.xyz = blade.v1.xyz + r*(v2 - v1);
     
-    Blades[index] = blade;
+    csData.Blades[index] = blade;
     
     posV0 = blade.v0.xyz;
     posV1 = blade.v1.xyz;
     posV2 = blade.v2.xyz;
     
-    float3 viewVectorWorld = (GrassUniformBlock.invView * float4(0, 0, 1, 0)).xyz;
+    float3 viewVectorWorld = (csDataPerFrame.GrassUniformBlock.invView * float4(0, 0, 1, 0)).xyz;
     
     //Orientation culling
     float tresholdOrientCull = 0.1;
@@ -171,10 +181,10 @@ kernel void stageMain(constant UniformData& GrassUniformBlock  [[buffer(0)]],
     //View-frustum culling
     bool culledByFrustum;
 
-    float4 projPosV0 = GrassUniformBlock.viewProj * float4(posV0, 1.0);
+    float4 projPosV0 = csDataPerFrame.GrassUniformBlock.viewProj * float4(posV0, 1.0);
     projPosV0 /= projPosV0.w;
     
-    float4 projPosV2 = GrassUniformBlock.viewProj * float4(posV2, 1.0);
+    float4 projPosV2 = csDataPerFrame.GrassUniformBlock.viewProj * float4(posV2, 1.0);
     projPosV2 /= projPosV2.w;
     
     float3 center025Pos = interPos(posV0, posV1, posV2, 0.25);
@@ -183,13 +193,13 @@ kernel void stageMain(constant UniformData& GrassUniformBlock  [[buffer(0)]],
     
     float3 center075Pos = interPos(posV0, posV1, posV2, 0.75);
     
-    float4 projCenter025Pos = GrassUniformBlock.viewProj * float4(center025Pos, 1.0);
+    float4 projCenter025Pos = csDataPerFrame.GrassUniformBlock.viewProj * float4(center025Pos, 1.0);
     projCenter025Pos /= projCenter025Pos.w;
     
-    float4 projCenterPos = GrassUniformBlock.viewProj * float4(centerPos, 1.0);
+    float4 projCenterPos = csDataPerFrame.GrassUniformBlock.viewProj * float4(centerPos, 1.0);
     projCenterPos /= projCenterPos.w;
     
-    float4 projCenter075Pos = GrassUniformBlock.viewProj * float4(center075Pos, 1.0);
+    float4 projCenter075Pos = csDataPerFrame.GrassUniformBlock.viewProj * float4(center075Pos, 1.0);
     projCenter075Pos /= projCenter075Pos.w;
     
     float clipVal = 1.3;
@@ -219,7 +229,7 @@ kernel void stageMain(constant UniformData& GrassUniformBlock  [[buffer(0)]],
     
     if (!(culledByOrientation || culledByFrustum || culledByDistance))
     {
-        uint NewIndex = atomic_fetch_add_explicit(&NumBlades[0].vertexCount, 1, memory_order_relaxed);
-        CulledBlades[NewIndex] = blade;
+        uint NewIndex = atomic_fetch_add_explicit(&csData.NumBlades[0].vertexCount, 1, memory_order_relaxed);
+        csData.CulledBlades[NewIndex] = blade;
     }
 }

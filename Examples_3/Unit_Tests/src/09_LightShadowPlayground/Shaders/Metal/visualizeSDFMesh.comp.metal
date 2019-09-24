@@ -131,18 +131,27 @@ texture2d<float> DepthTexture,texture3d<half> SDFVolumeTextureAtlas,texture2d<fl
 DepthTexture(DepthTexture),SDFVolumeTextureAtlas(SDFVolumeTextureAtlas),OutTexture(OutTexture),clampToEdgeTrillinearSampler(clampToEdgeTrillinearSampler),clampToEdgeNearSampler(clampToEdgeNearSampler),cameraUniformBlock(cameraUniformBlock),meshSDFUniformBlock(meshSDFUniformBlock) {}
 };
 
+struct CSData {
+    texture2d<float> DepthTexture                   [[id(0)]];
+    texture3d<half> SDFVolumeTextureAtlas           [[id(1)]];
+    texture2d<float, access::read_write> OutTexture [[id(2)]];
+    sampler clampToEdgeTrillinearSampler            [[id(3)]];
+    sampler clampToEdgeNearSampler                  [[id(4)]];
+};
+
+struct CSDataPerFrame {
+    constant Compute_Shader::Uniforms_cameraUniformBlock& cameraUniformBlock       [[id(0)]];
+    constant Compute_Shader::Uniforms_meshSDFUniformBlock& meshSDFUniformBlock     [[id(1)]];
+};
+
 //[numthreads(16, 16, 1)]
 kernel void stageMain(
-uint3 GroupID [[threadgroup_position_in_grid]],
-uint3 DispatchThreadID [[thread_position_in_grid]],
-uint3 GroupThreadID [[thread_position_in_threadgroup]],
-    texture2d<float> DepthTexture [[texture(0)]],
-    texture3d<half> SDFVolumeTextureAtlas [[texture(1)]],
-    texture2d<float, access::read_write> OutTexture [[texture(2)]],
-    sampler clampToEdgeTrillinearSampler [[sampler(0)]],
-    sampler clampToEdgeNearSampler [[sampler(1)]],
-    constant Compute_Shader::Uniforms_cameraUniformBlock & cameraUniformBlock [[buffer(3)]],
-    constant Compute_Shader::Uniforms_meshSDFUniformBlock & meshSDFUniformBlock [[buffer(4)]])
+    uint3 GroupID                               [[threadgroup_position_in_grid]],
+    uint3 DispatchThreadID                      [[thread_position_in_grid]],
+    uint3 GroupThreadID                         [[thread_position_in_threadgroup]],
+    constant CSData& csData                     [[buffer(UPDATE_FREQ_NONE)]],
+    constant CSDataPerFrame& csDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
     uint3 GroupID0;
     GroupID0 = GroupID;
@@ -150,13 +159,6 @@ uint3 GroupThreadID [[thread_position_in_threadgroup]],
     DispatchThreadID0 = DispatchThreadID;
     uint3 GroupThreadID0;
     GroupThreadID0 = GroupThreadID;
-    Compute_Shader main(
-    DepthTexture,
-    SDFVolumeTextureAtlas,
-    OutTexture,
-    clampToEdgeTrillinearSampler,
-    clampToEdgeNearSampler,
-    cameraUniformBlock,
-    meshSDFUniformBlock);
+    Compute_Shader main(csData.DepthTexture, csData.SDFVolumeTextureAtlas, csData.OutTexture, csData.clampToEdgeTrillinearSampler, csData.clampToEdgeNearSampler, csDataPerFrame.cameraUniformBlock, csDataPerFrame.meshSDFUniformBlock);
     return main.main(GroupID0, DispatchThreadID0, GroupThreadID0);
 }

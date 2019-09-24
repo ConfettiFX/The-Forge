@@ -36,8 +36,8 @@ struct PsIn
     vec4 position;
     vec2 texCoord;
 };
-layout(set = 1, binding = 0) uniform texture2D uTex0;
-layout(set = 0, binding = 1) uniform sampler uSampler0;
+layout(UPDATE_FREQ_NONE, binding = 0) uniform texture2D uTex0;
+layout(UPDATE_FREQ_NONE, binding = 1) uniform sampler uSampler0;
 layout(push_constant) uniform RootConstantSCurveInfo_Block
 {
     float C1;

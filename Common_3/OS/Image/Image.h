@@ -29,7 +29,8 @@ static_assert(false, "Image.h can only be included by ResourceLoader.cpp and Ima
 #ifndef COMMON_3_OS_IMAGE_IMAGE_H_
 #define COMMON_3_OS_IMAGE_IMAGE_H_
 
-#include "ImageEnums.h"
+#include "../../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_base.h"
+#include "../../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
 #include "../Interfaces/IFileSystem.h"
 #include "../../ThirdParty/OpenSource/EASTL/string.h"
 
@@ -57,21 +58,22 @@ private:
 	friend bool convertAndSaveImage(const Image& image, bool (Image::*saverFunction)(const char*), const char* fileName);
 	friend Image* conf_placement_new<Image>(void* ptr);
 
-	unsigned char* Create(const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize = 1);
+	unsigned char* Create(const TinyImageFormat fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize = 1);
 	// The following Create function will use passed in data as reference without allocating memory for internal pData (meaning the Image object will not own the data)
-	unsigned char* Create(const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize, const unsigned char* rawData);
-
-	//load image
-	bool LoadFromFile(
-		const char* fileName, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL, FSRoot root = FSR_Textures);
-	bool LoadFromMemory(
-		void const* mem, uint32_t size, char const* extension, memoryAllocationFunc pAllocator = NULL,
-		void* pUserData = NULL);
+	unsigned char* Create(const TinyImageFormat fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize, const unsigned char* rawData);
 
 	void Clear();
 
+    //load image
+    bool LoadFromFile(
+                      const char* fileName, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL, FSRoot root = FSR_Textures);
+    bool LoadFromMemory(
+                        void const* mem, uint32_t size, char const* extension, memoryAllocationFunc pAllocator = NULL,
+                        void* pUserData = NULL);
+
 public:
-	void RedefineDimensions(const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize = 1, bool srgb = false);
+
+    void RedefineDimensions(const TinyImageFormat fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize = 1);
 
 	unsigned char* GetPixels() const { return pData; }
 	unsigned char* GetPixels(const uint mipMapLevel) const;
@@ -94,33 +96,37 @@ public:
 	uint                 GetMipMapCount() const { return mMipMapCount; }
 	const eastl::string& GetName() const { return mLoadFileName; }
 	uint                 GetMipMapCountFromDimensions() const;
-	uint                 GetArraySliceSize(const uint mipMapLevel = 0, ImageFormat::Enum srcFormat = ImageFormat::NONE) const;
+	uint                 GetArraySliceSize(const uint mipMapLevel = 0, TinyImageFormat srcFormat = TinyImageFormat_UNDEFINED) const;
 	uint                 GetNumberOfPixels(const uint firstMipLevel = 0, uint numMipLevels = ALL_MIPLEVELS) const;
 	bool                 GetColorRange(float& min, float& max);
-	ImageFormat::Enum    GetFormat() const { return mFormat; }
+	TinyImageFormat    	 GetFormat() const { return mFormat; }
 	uint                 GetArrayCount() const { return mArrayCount; }
 	uint                 GetMipMappedSize(
-		const uint firstMipLevel = 0, uint numMipLevels = ALL_MIPLEVELS, ImageFormat::Enum srcFormat = ImageFormat::NONE) const;
+		const uint firstMipLevel = 0, uint numMipLevels = ALL_MIPLEVELS, TinyImageFormat srcFormat = TinyImageFormat_UNDEFINED) const;
 
 	bool                 Is1D() const { return (mDepth == 1 && mHeight == 1); }
 	bool                 Is2D() const { return (mDepth == 1 && mHeight > 1); }
 	bool                 Is3D() const { return (mDepth > 1); }
 	bool                 IsArray() const { return (mArrayCount > 1); }
 	bool                 IsCube() const { return (mDepth == 0); }
-	bool                 IsSrgb() const { return mSrgb; }
+	bool                 IsSrgb() const { return TinyImageFormat_IsSRGB(mFormat); }
 	bool                 IsLinearLayout() const { return mLinearLayout; }
+	bool                 AreMipsAfterSlices() const { return mMipsAfterSlices; }
+
+	void                 SetMipsAfterSlices(bool onoff) { mMipsAfterSlices = onoff; }
 
 	bool                 Normalize();
 	bool                 Uncompress();
 	bool                 Unpack();
 
-	bool                 Convert(const ImageFormat::Enum newFormat);
+	bool                 Convert(const TinyImageFormat newFormat);
 	bool                 GenerateMipMaps(const uint32_t mipMaps = ALL_MIPLEVELS);
 
 	bool                 iSwap(const int c0, const int c1);
 
 	// Image Format Saving
 	bool                 iSaveDDS(const char* fileName);
+	bool                 iSaveKTX(const char* fileName);
 	bool                 iSaveTGA(const char* fileName);
 	bool                 iSaveBMP(const char* fileName);
 	bool                 iSavePNG(const char* fileName);
@@ -134,12 +140,14 @@ protected:
 	uint                 mWidth, mHeight, mDepth;
 	uint                 mMipMapCount;
 	uint                 mArrayCount;
-	ImageFormat::Enum    mFormat;
+	TinyImageFormat    	 mFormat;
 	int                  mAdditionalDataSize;
 	unsigned char*       pAdditionalData;
 	bool                 mLinearLayout;
-	bool                 mSrgb;
 	bool                 mOwnsMemory;
+	// is memory (mipmaps*w*h*d)*s or
+	// mipmaps * (w*h*d*s) with s being constant for all mipmaps
+	bool				 mMipsAfterSlices;
 
 public:
 	typedef bool (*ImageLoaderFunction)(

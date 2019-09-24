@@ -1,0 +1,21 @@
+Texture2D<float4> BufferIn : register(t0);
+StructuredBuffer<float> Test: register(t1);
+RWStructuredBuffer<float> BufferOut[2] : register(u0);
+
+groupshared float sdata[64];
+
+[numthreads(64, 1, 1)]
+void main(uint3 threadIdx : SV_GroupThreadID,
+            uint3 groupIdx  : SV_GroupID)
+{
+
+    sdata[threadIdx.x] = 0.0;
+    GroupMemoryBarrierWithGroupSync();
+
+    if (threadIdx.x == 0) {
+        float4 num = Load(BufferIn, uint3(groupIdx.x, groupIdx.y, 1));
+        BufferOut[0][groupIdx.y * 2 + groupIdx.x] = 2.0;
+        BufferOut[1][groupIdx.y * 2 + groupIdx.x] = num.x;
+    }
+    GroupMemoryBarrierWithGroupSync();
+}

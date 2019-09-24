@@ -27,8 +27,8 @@ struct PsIn {
 	float2 texCoord: TEXCOORD;
 };
 
-Texture2D SourceTexture : register(t0, space1);
-SamplerState repeatBillinearSampler : register(s1, space0);
+Texture2D SourceTexture : register(t0);
+SamplerState repeatBillinearSampler : register(s1, UPDATE_FREQ_NONE);
 
 
 float4 main(PsIn In) : SV_Target

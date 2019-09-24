@@ -40,7 +40,7 @@ typedef void (*PFN_HOOK_ENABLE_DEBUG_LAYER)(Renderer* pRenderer);
 
 typedef void (*PFN_HOOK_HEAP_DESC)(uint32_t resourceAllocMemReqFlags, D3D12_HEAP_DESC& heapDesc);
 
-typedef ImageFormat::Enum (*PFN_HOOK_GET_RECOMMENDED_SWAP_CHAIN_FORMAT)(bool hintHDR);
+typedef TinyImageFormat (*PFN_HOOK_GET_RECOMMENDED_SWAP_CHAIN_FORMAT)(bool hintHDR);
 
 typedef void (*PFN_HOOK_MODIFY_SWAP_CHAIN_DESC)(DXGI_SWAP_CHAIN_DESC1* desc);
 

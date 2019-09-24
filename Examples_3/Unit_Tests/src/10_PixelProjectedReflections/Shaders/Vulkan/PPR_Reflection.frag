@@ -33,7 +33,7 @@
 #define PI 3.1415926535897932384626422832795028841971
 #define RADIAN 0.01745329251994329576923690768489
 
-layout(std140, set = 0, binding = 0) uniform cbExtendCamera
+layout(std140, UPDATE_FREQ_PER_FRAME, binding = 0) uniform cbExtendCamera
 {
 	uniform mat4 viewMat;
 	uniform mat4 projMat;
@@ -44,12 +44,14 @@ layout(std140, set = 0, binding = 0) uniform cbExtendCamera
 	uniform vec4 viewPortSize;
 };
 
-layout(set = 0,binding = 1) uniform texture2D SceneTexture;
-layout(std430, set = 0, binding = 2)restrict buffer IntermediateBuffer {
+layout(UPDATE_FREQ_NONE,binding = 1) uniform texture2D SceneTexture;
+
+layout(std430, UPDATE_FREQ_NONE, binding = 2) restrict buffer IntermediateBuffer
+{
  	 uint Data[];
 };
 
-layout(set = 0, binding = 3) uniform texture2D DepthTexture;
+layout(UPDATE_FREQ_NONE, binding = 3) uniform texture2D DepthTexture;
 
 struct PlaneInfo
 {
@@ -58,7 +60,7 @@ struct PlaneInfo
 	vec4 size;
 };
 
-layout(set = 0, binding = 4) uniform planeInfoBuffer
+layout(UPDATE_FREQ_PER_FRAME, binding = 4) uniform planeInfoBuffer
 {	
 	PlaneInfo planeInfo[MAX_PLANES];
 	uint numPlanes;
@@ -67,7 +69,7 @@ layout(set = 0, binding = 4) uniform planeInfoBuffer
 	uint pad02;
 };
 
-layout(set = 0, binding = 5) uniform cbProperties
+layout(UPDATE_FREQ_PER_FRAME, binding = 5) uniform cbProperties
 {
 	uint renderMode;
 	float useHolePatching;
@@ -80,7 +82,7 @@ layout(set = 0, binding = 5) uniform cbProperties
 	float padding02;
 };
 
-layout(set = 0, binding = 6) uniform sampler defaultSampler;
+layout(UPDATE_FREQ_NONE, binding = 6) uniform sampler defaultSampler;
 
 layout(location = 0) in vec2 uv;
 layout(location = 0) out vec4 outColor;

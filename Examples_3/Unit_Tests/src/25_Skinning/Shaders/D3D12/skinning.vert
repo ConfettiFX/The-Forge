@@ -22,13 +22,13 @@
  * under the License.
 */
 
-cbuffer uniformBlock : register(b0)
+cbuffer uniformBlock : register(b0, UPDATE_FREQ_PER_DRAW)
 {
 	float4x4 vpMatrix;
 	float4x4 modelMatrix;
 };
 
-cbuffer boneMatrices : register(b1)
+cbuffer boneMatrices : register(b1, UPDATE_FREQ_PER_DRAW)
 {
 	float4x4 boneMatrix[MAX_NUM_BONES];
 };

@@ -28,18 +28,11 @@
 #include "../../OS/Logging/Log.h"
 #include "ITime.h"
 
-void _ErrorMsg(int line, const char*, const char* string, ...);
-void _WarningMsg(int line, const char*, const char* string, ...);
-void _InfoMsg(int line, const char*, const char* string, ...);
 void _FailedAssert(const char* file, int line, const char* statement);
 void _OutputDebugString(const char* str, ...);
 
 void _PrintUnicode(const eastl::string& str, bool error = false);
 void _PrintUnicodeLine(const eastl::string& str, bool error = false);
-
-#define ErrorMsg(str, ...) _ErrorMsg(__LINE__, __FILE__, str, ##__VA_ARGS__)
-#define WarningMsg(str, ...) _WarningMsg(__LINE__, __FILE__, str, ##__VA_ARGS__)
-#define InfoMsg(str, ...) _InfoMsg(__LINE__, __FILE__, str, ##__VA_ARGS__)
 
 #if _MSC_VER >= 1400
 // To make MSVC 2005 happy

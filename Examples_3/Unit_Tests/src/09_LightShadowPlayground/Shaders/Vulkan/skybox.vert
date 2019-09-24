@@ -26,16 +26,14 @@
 #define WINDOWS 	// Assume windows if no platform define has been added to the shader
 #endif
 
-
-
 layout(location = 0) in vec4 POSITION;
 layout(location = 0) out vec3 vertOutput_POSITION;
 
-layout(push_constant) uniform RootConstantCameraSky_Block
+layout(UPDATE_FREQ_PER_FRAME, binding = 0) uniform UniformCameraSky_Block
 {
     mat4 projView;
     vec3 camPos;
-}RootConstantCameraSky;
+} UniformCameraSky;
 
 struct VSInput
 {
@@ -49,7 +47,7 @@ struct VSOutput
 VSOutput HLSLmain(VSInput input0)
 {
     VSOutput result;
-    ((result).Position = ((RootConstantCameraSky.projView)*((input0).Position)));
+    ((result).Position = ((UniformCameraSky.projView)*((input0).Position)));
     ((result).Position = ((result).Position).xyww);
     ((result).pos = ((input0).Position).xyz);
     return result;

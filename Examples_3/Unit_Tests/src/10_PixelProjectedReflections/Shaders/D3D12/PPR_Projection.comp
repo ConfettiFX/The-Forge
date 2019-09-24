@@ -28,7 +28,8 @@
 #define FLT_MAX  3.402823466e+38F
 
 
-cbuffer cbExtendCamera : register(b0) {
+cbuffer cbExtendCamera : register(b0, UPDATE_FREQ_PER_FRAME)
+{
 	float4x4 viewMat;
 	float4x4 projMat;
 	float4x4 viewProjMat;
@@ -51,7 +52,8 @@ struct PlaneInfo
 	float4 size;
 };
 
-cbuffer planeInfoBuffer : register(b3) {
+cbuffer planeInfoBuffer : register(b3, UPDATE_FREQ_PER_FRAME)
+{
 	PlaneInfo planeInfo[MAX_PLANES];
 	uint numPlanes;
 	uint pad00;

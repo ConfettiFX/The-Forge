@@ -35,7 +35,7 @@ layout(location = 1) in vec4 Normal;
 
 layout(location = 0) out vec4 Color;
 
-layout (std140, set=3, binding=0) uniform uniformBlock {
+layout (std140, UPDATE_FREQ_PER_DRAW, binding=0) uniform uniformBlock {
 	uniform mat4 mvp;
 
     uniform vec4 color[MAX_INSTANCES];

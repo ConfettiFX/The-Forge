@@ -133,7 +133,8 @@ struct Transform
 #endif
 };
 
-struct PerFrameConstants {
+struct PerFrameConstants
+{
 	Transform transform[NUM_CULLING_VIEWPORTS];
 	CullingViewPort cullingViewports[NUM_CULLING_VIEWPORTS];
 	//========================================
@@ -141,9 +142,14 @@ struct PerFrameConstants {
 	//========================================
 	float4 lightDir;
 	//========================================
+	float4 lightColor;
+	//========================================
+	float2 CameraPlane; //x : near, y : far
+	uint lightingMode;
+	uint outputMode;
+	//========================================
 	float2 twoOverRes;
 	float esmControl;
-	uint _pad0;
 	//========================================
 };
 
@@ -153,16 +159,16 @@ struct LightData
 	float3 color;
 };
 
-#define UNIT_UNCOMPACTED_ARGS t0
-#define UNIT_MATERIAL_PROPS   t11
-#define UNIT_VERTEX_DATA t12
-#define UNIT_INDEX_DATA t13
-#define UNIT_MESH_CONSTANTS   t14
-#define UNIT_BATCH_DATA_CBV b15
-#define UNIT_UNIFORMS_CBV b16
-#define UNIT_INDIRECT_MATERIAL_RW u19
-#define UNIT_INDIRECT_DRAW_ARGS_ALPHA_RW u20
-#define UNIT_INDIRECT_DRAW_ARGS_RW u30
-#define UNIT_UNCOMPACTED_ARGS_RW u40
-#define UNIT_INDEX_DATA_RW u50
+#define UNIT_UNCOMPACTED_ARGS register(t0, UPDATE_FREQ_PER_FRAME)
+#define UNIT_MATERIAL_PROPS   register(t11)
+#define UNIT_VERTEX_DATA register(t12)
+#define UNIT_INDEX_DATA register(t13)
+#define UNIT_MESH_CONSTANTS   register(t14)
+#define UNIT_BATCH_DATA_CBV register(b15)
+#define UNIT_UNIFORMS_CBV register(b16, UPDATE_FREQ_PER_FRAME)
+#define UNIT_INDIRECT_MATERIAL_RW register(u19, UPDATE_FREQ_PER_FRAME)
+#define UNIT_INDIRECT_DRAW_ARGS_ALPHA_RW register(u20, UPDATE_FREQ_PER_FRAME)
+#define UNIT_INDIRECT_DRAW_ARGS_RW register(u30, UPDATE_FREQ_PER_FRAME)
+#define UNIT_UNCOMPACTED_ARGS_RW register(u40, UPDATE_FREQ_PER_FRAME)
+#define UNIT_INDEX_DATA_RW register(u50, UPDATE_FREQ_PER_FRAME)
 #endif

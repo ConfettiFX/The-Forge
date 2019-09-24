@@ -28,12 +28,12 @@ layout(location = 0) in vec3 InPosition;
 layout(location = 1) in vec3 InNormal;
 layout(location = 2) in vec2 InUV;
 
-layout(std140, set = 0, binding = 0) uniform cbPerPass 
+layout(std140, UPDATE_FREQ_PER_FRAME, binding = 0) uniform cbPerPass 
 {
 	uniform mat4		projView;
 };
 
-layout(std140, set = 1, binding = 0) uniform cbPerProp 
+layout(std140, UPDATE_FREQ_NONE, binding = 0) uniform cbPerProp 
 {
 	uniform mat4		world;
 	uniform float		roughness;

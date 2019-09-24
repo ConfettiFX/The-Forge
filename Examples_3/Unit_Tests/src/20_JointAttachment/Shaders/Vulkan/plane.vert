@@ -30,7 +30,7 @@ layout(location = 0) in vec4 POSITION;
 layout(location = 1) in vec2 TEXCOORD0;
 layout(location = 0) out vec2 vertOutput_TEXCOORD;
 
-layout(set = 3, binding = 0) uniform uniformBlock
+layout(UPDATE_FREQ_PER_DRAW, binding = 0) uniform uniformBlock
 {
     mat4 mvp;
     mat4 toWorld;

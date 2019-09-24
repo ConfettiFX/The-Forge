@@ -35,23 +35,16 @@ struct RootConstantData
     uint numBatches;
 };
 
-struct IndirectDrawArgsBufferAlphaBlock {
-	device uint* data[NUM_CULLING_VIEWPORTS];
-};
-
-struct IndirectDrawArgsBufferNoAlphaBlock {
-	device uint* data[NUM_CULLING_VIEWPORTS];
-};
-
-struct uncompactedDrawArgsBlock {
-	device UncompactedDrawArguments* data[NUM_CULLING_VIEWPORTS];
+struct CSDataPerFrame {
+    device uint* indirectDrawArgsBufferAlpha[NUM_CULLING_VIEWPORTS];
+    device uint* indirectDrawArgsBufferNoAlpha[NUM_CULLING_VIEWPORTS];
+    device UncompactedDrawArguments* uncompactedDrawArgsRW[NUM_CULLING_VIEWPORTS];
 };
 
 //[numthreads(256, 1, 1)]
-kernel void stageMain(uint tid [[thread_position_in_grid]],
-                      device IndirectDrawArgsBufferAlphaBlock& indirectDrawArgsBufferAlpha      [[buffer(UNIT_INDIRECT_DRAW_ARGS_ALPHA_RW)]],
-                      device IndirectDrawArgsBufferNoAlphaBlock& indirectDrawArgsBufferNoAlpha  [[buffer(UNIT_INDIRECT_DRAW_ARGS_RW)]],
-                      device uncompactedDrawArgsBlock& uncompactedDrawArgsRW                    [[buffer(UNIT_UNCOMPACTED_ARGS_RW)]]
+kernel void stageMain(
+    uint tid                                    [[thread_position_in_grid]],
+    constant CSDataPerFrame& csDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]]
 )
 {
 	if (tid >= MAX_DRAWS_INDIRECT - 1)
@@ -59,15 +52,15 @@ kernel void stageMain(uint tid [[thread_position_in_grid]],
 	
 	for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 	{
-		uncompactedDrawArgsRW.data[i][tid].mNumIndices = 0;
+		csDataPerFrame.uncompactedDrawArgsRW[i][tid].mNumIndices = 0;
 	}
 	
 	if (tid == 0)
 	{
 		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 		{
-			indirectDrawArgsBufferAlpha.data[i][DRAW_COUNTER_SLOT_POS] = 0;
-			indirectDrawArgsBufferNoAlpha.data[i][DRAW_COUNTER_SLOT_POS] = 0;
+			csDataPerFrame.indirectDrawArgsBufferAlpha[i][DRAW_COUNTER_SLOT_POS] = 0;
+			csDataPerFrame.indirectDrawArgsBufferNoAlpha[i][DRAW_COUNTER_SLOT_POS] = 0;
 		}
 	}
 }

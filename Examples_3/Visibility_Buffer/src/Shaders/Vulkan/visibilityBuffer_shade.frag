@@ -131,12 +131,12 @@ struct VertexTangent
 #endif
 
 
-layout(std430, set = 0, binding = 0) readonly buffer vertexPos
+layout(std430, UPDATE_FREQ_NONE, binding = 0) readonly buffer vertexPos
 {
 	VertexPos vertexPosData[];
 };
 
-layout(std430, set = 0, binding = 1) readonly buffer vertexTexCoord
+layout(std430, UPDATE_FREQ_NONE, binding = 1) readonly buffer vertexTexCoord
 {
 #ifdef WINDOWS
 	uint vertexTexCoordData[];
@@ -145,7 +145,7 @@ layout(std430, set = 0, binding = 1) readonly buffer vertexTexCoord
 #endif
 };
 
-layout(std430, set = 0, binding = 2) readonly buffer vertexNormal
+layout(std430, UPDATE_FREQ_NONE, binding = 2) readonly buffer vertexNormal
 {
 #ifdef WINDOWS
 	uint vertexNormalData[];
@@ -154,7 +154,7 @@ layout(std430, set = 0, binding = 2) readonly buffer vertexNormal
 #endif
 };
 
-layout(std430, set = 0, binding = 3) readonly buffer vertexTangent
+layout(std430, UPDATE_FREQ_NONE, binding = 3) readonly buffer vertexTangent
 {
 #ifdef WINDOWS
 	uint vertexTangentData[];
@@ -163,73 +163,64 @@ layout(std430, set = 0, binding = 3) readonly buffer vertexTangent
 #endif
 };
 
-layout(std430, set = 0, binding = 4) readonly buffer filteredIndexBuffer
+layout(std430, UPDATE_FREQ_PER_FRAME, binding = 4) readonly buffer filteredIndexBuffer
 {
 	uint filteredIndexBufferData[];
 };
 
-layout(std430, set = 0, binding = 5) readonly buffer indirectMaterialBuffer
+layout(std430, UPDATE_FREQ_PER_FRAME, binding = 5) readonly buffer indirectMaterialBuffer
 {
 	uint indirectMaterialBufferData[];
 };
 
-layout(std430, set = 0, binding = 6) readonly buffer meshConstantsBuffer
+layout(std430, UPDATE_FREQ_NONE, binding = 6) readonly buffer meshConstantsBuffer
 {
 	MeshConstants meshConstantsBufferData[];
 };
 
-layout(set = 0, binding = 7) uniform sampler textureSampler;
-layout(set = 0, binding = 8) uniform sampler depthSampler;
+layout(UPDATE_FREQ_NONE, binding = 7) uniform sampler textureSampler;
+layout(UPDATE_FREQ_NONE, binding = 8) uniform sampler depthSampler;
 
 // Per frame descriptors
-layout(std430, set = 0, binding = 9) readonly buffer indirectDrawArgsBlock
+layout(std430, UPDATE_FREQ_PER_FRAME, binding = 9) readonly buffer indirectDrawArgsBlock
 {
 	uint indirectDrawArgsData[];
 } indirectDrawArgs[2];
 
-layout(set = 0, binding = 10) uniform uniforms
+layout(UPDATE_FREQ_PER_FRAME, binding = 10) uniform uniforms
 {
 	PerFrameConstants uniformsData;
 };
 
-layout(set = 0, binding = 11) restrict readonly buffer lights
+layout(UPDATE_FREQ_NONE, binding = 11) restrict readonly buffer lights
 {
 	LightData lightsBuffer[];
 };
 
-layout(set = 0, binding = 12) restrict readonly buffer lightClustersCount
+layout(UPDATE_FREQ_PER_FRAME, binding = 12) restrict readonly buffer lightClustersCount
 {
 	uint lightClustersCountBuffer[];
 };
 
-layout(set = 0, binding = 13) restrict readonly buffer lightClusters
+layout(UPDATE_FREQ_PER_FRAME, binding = 13) restrict readonly buffer lightClusters
 {
 	uint lightClustersBuffer[];
 };
 
 #if(SAMPLE_COUNT > 1)
-layout(set = 0, binding=14) uniform texture2DMS vbTex;
+layout(UPDATE_FREQ_NONE, binding=14) uniform texture2DMS vbTex;
 #else
-layout(set = 0, binding=14) uniform texture2D vbTex;
+layout(UPDATE_FREQ_NONE, binding=14) uniform texture2D vbTex;
 #endif
 
 #if USE_AMBIENT_OCCLUSION
-layout(set = 0, binding = 15) uniform texture2D aoTex;
+layout(UPDATE_FREQ_NONE, binding = 15) uniform texture2D aoTex;
 #endif
-layout(set = 0, binding = 16) uniform texture2D shadowMap;
+layout(UPDATE_FREQ_NONE, binding = 16) uniform texture2D shadowMap;
 
-layout(set = 0, binding = 17) uniform texture2D diffuseMaps[MAX_TEXTURE_UNITS];
-layout(set = 0, binding = 18 + MAX_TEXTURE_UNITS) uniform texture2D normalMaps[MAX_TEXTURE_UNITS];
-layout(set = 0, binding = 18 + MAX_TEXTURE_UNITS * 2) uniform texture2D specularMaps[MAX_TEXTURE_UNITS];
-
-
-layout(push_constant) uniform RootConstantDrawScene_Block
-{
-    vec4 lightColor;
-	uint lightingMode;
-	uint outputMode;
-	vec4 CameraPlane; //x : near, y : far
-}RootConstantDrawScene;
+layout(UPDATE_FREQ_NONE, binding = 17) uniform texture2D diffuseMaps[MAX_TEXTURE_UNITS];
+layout(UPDATE_FREQ_NONE, binding = 18 + MAX_TEXTURE_UNITS) uniform texture2D normalMaps[MAX_TEXTURE_UNITS];
+layout(UPDATE_FREQ_NONE, binding = 18 + MAX_TEXTURE_UNITS * 2) uniform texture2D specularMaps[MAX_TEXTURE_UNITS];
 
 
 layout(location = 0) in vec2 iScreenPos;
@@ -327,7 +318,7 @@ void main()
 		// Interpolate texture coordinates and calculate the gradients for texture sampling with mipmapping support
 		GradientInterpolationResults results = interpolateAttributeWithGradient(texCoords, derivativesOut.db_dx, derivativesOut.db_dy, d, uniformsData.twoOverRes);
 	
-        float linearZ = depthLinearization(z/w, RootConstantDrawScene.CameraPlane.x, RootConstantDrawScene.CameraPlane.y);
+        float linearZ = depthLinearization(z/w, uniformsData.CameraPlane.x, uniformsData.CameraPlane.y);
 	    float mip = pow(pow(linearZ, 0.9f) * 5.0f, 1.5f);
 	
 	    vec2 texCoordDX = results.dx * w * mip;
@@ -460,7 +451,7 @@ break;
 	
 	float shadowFactor = 1.0f;
 
-	float fLightingMode = clamp(float(RootConstantDrawScene.lightingMode), 0.0, 1.0);
+	float fLightingMode = clamp(float(uniformsData.lightingMode), 0.0, 1.0);
 
 	shadedColor = calculateIllumination(
 		    normal,
@@ -484,7 +475,7 @@ break;
 			fLightingMode,
 			shadowFactor);
 
-	shadedColor = shadedColor * RootConstantDrawScene.lightColor.rgb * RootConstantDrawScene.lightColor.a * NoL * ao;
+	shadedColor = shadedColor * uniformsData.lightColor.rgb * uniformsData.lightColor.a * NoL * ao;
 
 		// Find the light cluster for the current pixel
 		uvec2 clusterCoords = uvec2(floor((iScreenPos * 0.5f + 0.5f) * uvec2(LIGHT_CLUSTER_WIDTH, LIGHT_CLUSTER_HEIGHT)));

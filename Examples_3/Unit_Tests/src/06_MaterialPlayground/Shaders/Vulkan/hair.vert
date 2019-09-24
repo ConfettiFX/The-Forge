@@ -49,19 +49,19 @@
 #define EPSILON 1e-7f
 
 #if defined(HAIR_SHADOW)
-#define CB_CAMERA_SET 2
+#define CB_CAMERA_SET UPDATE_FREQ_PER_BATCH
 #else
-#define CB_CAMERA_SET 0
+#define CB_CAMERA_SET UPDATE_FREQ_PER_FRAME
 #endif
 
-layout(set = CB_CAMERA_SET, binding = 0) uniform cbCamera
+layout(CB_CAMERA_SET, binding = 0) uniform cbCamera
 {
 	mat4 CamVPMatrix;
 	mat4 CamInvVPMatrix;
 	vec3 CamPos;
 };
 
-layout(set = 3, binding = 1) uniform cbHair
+layout(UPDATE_FREQ_PER_DRAW, binding = 1) uniform cbHair
 {
 	mat4 Transform;
 	uint RootColor;
@@ -77,7 +77,7 @@ layout(set = 3, binding = 1) uniform cbHair
 	uint NumVerticesPerStrand;
 };
 
-layout(set = 0, binding = 2) uniform cbHairGlobal
+layout(UPDATE_FREQ_NONE, binding = 2) uniform cbHairGlobal
 {
 	vec4 Viewport;
 	vec4 Gravity;
@@ -85,17 +85,17 @@ layout(set = 0, binding = 2) uniform cbHairGlobal
 	float TimeStep;
 };
 
-layout(set = 3, binding = 3) buffer GuideHairVertexPositions
+layout(UPDATE_FREQ_PER_DRAW, binding = 3) buffer GuideHairVertexPositions
 {
 	vec4 GuideHairVertexPosition[];
 };
 
-layout(set = 3, binding = 4) buffer GuideHairVertexTangents
+layout(UPDATE_FREQ_PER_DRAW, binding = 4) buffer GuideHairVertexTangents
 {
 	vec4 GuideHairVertexTangent[];
 };
 
-layout(set = 3, binding = 5) buffer HairThicknessCoefficients
+layout(UPDATE_FREQ_PER_DRAW, binding = 5) buffer HairThicknessCoefficients
 {
 	float HairThicknessCoefficient[];
 };

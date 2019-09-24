@@ -23,12 +23,13 @@
 */
 
 
-cbuffer uniformBlock : register(b0)
+cbuffer uniformBlock : register(b0, UPDATE_FREQ_PER_FRAME)
 {
 	float4x4 mvp;
 };
 
-struct VSOutput {
+struct VSOutput
+{
 	float4 Position : SV_POSITION;
     float4 TexCoord : TEXCOORD;
 };

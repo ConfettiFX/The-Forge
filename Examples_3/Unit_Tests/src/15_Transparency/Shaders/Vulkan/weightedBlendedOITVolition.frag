@@ -25,7 +25,7 @@
 #version 450 core
 #extension GL_GOOGLE_include_directive : require
 
-#include "shading.glsl"
+#include "shading.h"
 
 layout(location = 0) in vec4 WorldPosition;
 layout(location = 1) in vec4 NormalOut;
@@ -35,7 +35,7 @@ layout(location = 3) flat in uint MatID;
 layout(location = 0) out vec4 Accumulation;
 layout(location = 1) out vec4 Revealage;
 
-layout(set = 1, binding = 20) uniform WBOITSettings
+layout(UNIT_CBV_WBOIT) uniform WBOITSettings
 {
 	float opacitySensitivity;		// Should be greater than 1, so that we only downweight nearly transparent things. Otherwise, everything at the same depth should get equal weight. Can be artist controlled
 	float weightBias;				//Must be greater than zero. Weight bias helps prevent distant things from getting hugely lower weight than near things, as well as preventing floating point underflow

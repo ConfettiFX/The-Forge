@@ -48,15 +48,16 @@ public:
 
 private:
 
-    void OutputExpressionList(HLSLExpression* expression);
+    void OutputExpressionList(const eastl::vector<HLSLExpression*>& expressions, size_t start = 0);
     void OutputExpression(HLSLExpression* expression, bool needsEndParen);
-	void OutputArgumentsVec(const eastl::vector < HLSLArgument* > & arguments);
+	void OutputArguments(const eastl::vector<HLSLArgument*>& arguments);
 	void OutputAttributes(int indent, HLSLAttribute* attribute);
     void OutputStatements(int indent, HLSLStatement* statement);
     void OutputDeclaration(HLSLDeclaration* declaration);
     void OutputDeclaration(const HLSLType& type, const CachedString & name, const CachedString & semantic = CachedString(), const CachedString & registerName = CachedString(), HLSLExpression* defaultValue = NULL);
     void OutputDeclarationType(const HLSLType& type);
     void OutputDeclarationBody(const HLSLType& type, const CachedString & name, const CachedString & semantic = CachedString(), const CachedString & registerName = CachedString(), HLSLExpression * assignment = NULL);
+	void OutputArrayExpression(int arrayDimension, HLSLExpression* (&arrayDimExpression)[MAX_DIM]);
 
     /** Generates a name of the format "base+n" where n is an integer such that the name
      * isn't used in the syntax tree. */

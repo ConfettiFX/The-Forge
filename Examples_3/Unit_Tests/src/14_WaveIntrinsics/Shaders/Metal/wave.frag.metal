@@ -52,11 +52,17 @@ float texPattern(float2 position)
 	return c;
 };
 
-fragment float4 stageMain(PSInput input [[stage_in]]
-				,constant Uniforms_SceneConstantBuffer & SceneConstantBuffer [[buffer(1)]])
+struct FSDataPerFrame {
+    constant Uniforms_SceneConstantBuffer& SceneConstantBuffer [[id(0)]];
+};
+
+fragment float4 stageMain(
+    PSInput input [[stage_in]],
+    constant FSDataPerFrame& fsDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
 	uint simd_lane_id = 0;
-	uint simd_lane_count = SceneConstantBuffer.laneSize / 2;
+	uint simd_lane_count = fsDataPerFrame.SceneConstantBuffer.laneSize / 2;
 	
 #ifdef TARGET_IOS
 	simd_lane_count = 4;
@@ -87,7 +93,7 @@ fragment float4 stageMain(PSInput input [[stage_in]]
 	float4 outputColor;
 	float texP = texPattern(input.position.xy);
 	(outputColor = ((float4)(texP) * input.color));
-	switch (SceneConstantBuffer.renderMode)
+	switch (fsDataPerFrame.SceneConstantBuffer.renderMode)
 	{
 		case 1:
 		{

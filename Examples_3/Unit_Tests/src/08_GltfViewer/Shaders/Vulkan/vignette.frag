@@ -30,10 +30,10 @@ precision highp int;
 layout(location = 0) in vec2 fragInput_TEXCOORD;
 layout(location = 0) out vec4 rast_FragData0; 
 
-layout(set = 0, binding = 11) uniform texture2D sceneTexture;
-layout(set = 0, binding = 16) uniform sampler clampMiplessLinearSampler;
+layout(UPDATE_FREQ_NONE, binding = 11) uniform texture2D sceneTexture;
+layout(UPDATE_FREQ_NONE, binding = 16) uniform sampler clampMiplessLinearSampler;
 
-layout(row_major, set = 0, binding = 15) uniform cbPerFrame
+layout(row_major, UPDATE_FREQ_PER_FRAME, binding = 15) uniform cbPerFrame
 {
     mat4 worldMat;
     mat4 projViewMat;

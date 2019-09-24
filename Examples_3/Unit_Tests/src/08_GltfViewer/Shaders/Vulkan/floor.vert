@@ -19,7 +19,7 @@ layout(location = 1) in vec2 TEXCOORD0;
 layout(location = 0) out vec3 vertOutput_WorldPos;
 layout(location = 1) out vec2 vertOutput_TEXCOORD;
 
-layout(set = 0, binding = 15) uniform cbPerFrame
+layout(UPDATE_FREQ_PER_FRAME, binding = 15) uniform cbPerFrame
 {
     mat4 worldMat;
     mat4 projViewMat;

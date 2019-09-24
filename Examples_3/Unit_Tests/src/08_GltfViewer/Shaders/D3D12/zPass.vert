@@ -22,12 +22,12 @@
 * under the License.
 */
 
-cbuffer ShadowUniformBuffer : register(b2, space1)
+cbuffer ShadowUniformBuffer : register(b2, UPDATE_FREQ_PER_FRAME)
 {
     float4x4 ViewProjMat;
 };
 
-cbuffer cbPerProp : register(b1, space1)
+cbuffer cbPerProp : register(b1, UPDATE_FREQ_PER_DRAW)
 {
 	float4x4	world;
 	float4x4	InvTranspose;
@@ -67,7 +67,8 @@ PsIn main(VsIn input)
 	float unormPositionScale = float(1 << 16) - 1.0f;
 
 	float4 inPos = float4((float3(input.position.xyz) / unormPositionScale) * posScale, 1.0f) + posOffset;
-	float4 worldPosition = mul(world, inPos) + centerOffset;	
+	inPos += centerOffset;
+	float4 worldPosition = mul(world, inPos);	
 	worldPosition.xyz /= posScale;
 	output.Position = mul(ViewProjMat, worldPosition);
     return output;

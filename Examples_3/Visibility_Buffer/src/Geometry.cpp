@@ -1014,20 +1014,20 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 		scene->meshes = (MeshIn*)conf_calloc(scene->numMeshes, sizeof(MeshIn));
 		cached.Read(scene->meshes, scene->numMeshes * sizeof(MeshIn));
 
-		scene->indices = eastl::vector<uint32_t>(scene->totalTriangles * 3);
-		cached.Read(scene->indices.data(), scene->totalTriangles * 3 * sizeof(uint32_t));
+		scene->indices = (uint32_t*)conf_malloc(scene->totalTriangles * 3 * sizeof(uint32_t));
+		cached.Read(scene->indices, scene->totalTriangles * 3 * sizeof(uint32_t));
 
-		scene->positions = eastl::vector< SceneVertexPos>(scene->totalVertices);
-		cached.Read(scene->positions.data(), scene->totalVertices * sizeof(SceneVertexPos));
+		scene->positions = (SceneVertexPos*)conf_malloc(scene->totalVertices * sizeof(SceneVertexPos));
+		cached.Read(scene->positions, scene->totalVertices * sizeof(SceneVertexPos));
 
-		scene->texCoords = eastl::vector<SceneVertexTexCoord>(scene->totalVertices);
-		cached.Read(scene->texCoords.data(), scene->totalVertices * sizeof(SceneVertexTexCoord));
+		scene->texCoords = (SceneVertexTexCoord*)conf_malloc(scene->totalVertices * sizeof(SceneVertexTexCoord));
+		cached.Read(scene->texCoords, scene->totalVertices * sizeof(SceneVertexTexCoord));
 
-		scene->normals = eastl::vector<SceneVertexNormal>(scene->totalVertices);
-		cached.Read(scene->normals.data(), scene->totalVertices * sizeof(SceneVertexNormal));
+		scene->normals = (SceneVertexNormal*)conf_malloc(scene->totalVertices * sizeof(SceneVertexNormal));
+		cached.Read(scene->normals, scene->totalVertices * sizeof(SceneVertexNormal));
 
-		scene->tangents = eastl::vector<SceneVertexTangent>(scene->totalVertices);
-		cached.Read(scene->tangents.data(), scene->totalVertices * sizeof(SceneVertexTangent));
+		scene->tangents = (SceneVertexTangent*)conf_malloc(scene->totalVertices * sizeof(SceneVertexTangent));
+		cached.Read(scene->tangents, scene->totalVertices * sizeof(SceneVertexTangent));
 
 		cached.Close();
 	}
@@ -1038,14 +1038,23 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 		AssimpImporter::Model model;
 		importer.ImportModel(fileName, &model);
 		LOGF(LogLevel::eINFO, "Assimp Load %f ms", timer.GetUSec(true) / 1000.0f);
-
-		eastl::vector<SceneVertexPos> positions;
-		eastl::vector<float2>         texcoords;
-		eastl::vector<float3>         normals;
-		eastl::vector<float3>         tangents;
-		eastl::vector<uint32_t>       indices;
+		
+		for (int i = 0; i < model.mMeshArray.size(); i++)
+		{
+			AssimpImporter::Mesh mesh = model.mMeshArray[i];
+			scene->totalVertices += (uint32_t)mesh.mPositions.size();
+			scene->totalTriangles += (uint32_t)mesh.mIndices.size() / 3;
+		}
+		
+		scene->indices = (uint32_t*)conf_malloc(scene->totalTriangles * 3 * sizeof(uint32_t));
+		scene->positions = (SceneVertexPos*)conf_malloc(scene->totalVertices * sizeof(SceneVertexPos));
+		scene->texCoords = (SceneVertexTexCoord*)conf_malloc(scene->totalVertices * sizeof(SceneVertexTexCoord));
+		scene->normals = (SceneVertexNormal*)conf_malloc(scene->totalVertices * sizeof(SceneVertexNormal));
+		scene->tangents = (SceneVertexTangent*)conf_malloc(scene->totalVertices * sizeof(SceneVertexTangent));
 
 		uint32_t accIndex_ = 0;
+		uint32_t vertex = 0;
+		uint32_t index = 0;
 
 		for (int i = 0; i < model.mMeshArray.size(); i++)
 		{
@@ -1053,51 +1062,50 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 
 			for (int j = 0; j < mesh.mPositions.size(); j++)
 			{
-				SceneVertexPos tempPos;
-				tempPos.x = mesh.mPositions[j].getX() * scale + offsetX;
-				tempPos.y = mesh.mPositions[j].getY() * scale + offsetY;
-				tempPos.z = mesh.mPositions[j].getZ() * scale + offsetZ;
+				SceneVertexPos position;
+				position.x = mesh.mPositions[j].getX() * scale + offsetX;
+				position.y = mesh.mPositions[j].getY() * scale + offsetY;
+				position.z = mesh.mPositions[j].getZ() * scale + offsetZ;
 
-				positions.push_back(tempPos);
-			}
+				float2 tc;
+				tc.x = mesh.mUvs[j].getX();
+				tc.y = 1.0f - mesh.mUvs[j].getY();
+				
+				float3 normal;
+				normal.x = mesh.mNormals[j].getX();
+				normal.y = mesh.mNormals[j].getY();
+				normal.z = mesh.mNormals[j].getZ();
+				
+				float3 tangent;
+				tangent.x = mesh.mTangents[j].getX();
+				tangent.y = mesh.mTangents[j].getY();
+				tangent.z = mesh.mTangents[j].getZ();
+				
+				scene->positions[vertex] = position;
+#if defined(METAL) || defined(__linux__)
+				scene->normals[vertex].nx = normal.x;
+				scene->normals[vertex].ny = normal.y;
+				scene->normals[vertex].nz = normal.z;
 
-			for (int j = 0; j < mesh.mUvs.size(); j++)
-			{
-				float2 tempTex;
-				tempTex.x = mesh.mUvs[j].getX();
-				tempTex.y = 1.0f - mesh.mUvs[j].getY();
+				scene->tangents[vertex].tx = tangent.x;
+				scene->tangents[vertex].ty = tangent.y;
+				scene->tangents[vertex].tz = tangent.z;
 
-				texcoords.push_back(tempTex);
-			}
-
-			for (int j = 0; j < mesh.mNormals.size(); j++)
-			{
-				float3 tempNorm;
-				tempNorm.x = mesh.mNormals[j].getX();
-				tempNorm.y = mesh.mNormals[j].getY();
-				tempNorm.z = mesh.mNormals[j].getZ();
-
-				normals.push_back(tempNorm);
-			}
-
-			for (int j = 0; j < mesh.mTangents.size(); j++)
-			{
-				float3 tempTangent;
-				tempTangent.x = mesh.mTangents[j].getX();
-				tempTangent.y = mesh.mTangents[j].getY();
-				tempTangent.z = mesh.mTangents[j].getZ();
-
-				tangents.push_back(tempTangent);
+				scene->texCoords[vertex].u = tc.x;
+				scene->texCoords[vertex].v = 1.0f - tc.y;
+#else
+				scene->normals[vertex].normal = encodeDir(normal);
+				scene->tangents[vertex].tangent = encodeDir(tangent);
+				scene->texCoords[vertex].texCoord = pack2Floats(float2(tc.x, 1.0f - tc.y));
+#endif
+				
+				++vertex;
 			}
 
 			for (int j = 0; j < mesh.mIndices.size(); j++)
 			{
 				int indd = mesh.mIndices[j];
-
-				if (indd < 0)
-					indices.push_back(accIndex_);
-				else
-					indices.push_back(indd + accIndex_);
+				scene->indices[index++] = (indd < 0 ? accIndex_ : (indd + accIndex_));
 			}
 
 			accIndex_ += (uint32_t)mesh.mPositions.size();
@@ -1106,41 +1114,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 		LOGF(LogLevel::eINFO, "Generate Vertex Data %f ms", timer.GetUSec(true) / 1000.0f);
 
 		scene->numMeshes = (uint32_t)model.mMeshArray.size();
-		scene->totalVertices = (uint32_t)positions.size();
-		scene->totalTriangles = (uint32_t)indices.size() / 3;
-
 		scene->meshes = (MeshIn*)conf_calloc(scene->numMeshes, sizeof(MeshIn));
-
-		scene->indices = indices;
-		scene->positions = positions;
-
-		scene->texCoords = eastl::vector<SceneVertexTexCoord>(scene->totalVertices, SceneVertexTexCoord{ 0 });
-		scene->normals = eastl::vector<SceneVertexNormal>(scene->totalVertices, SceneVertexNormal{ 0 });
-		scene->tangents = eastl::vector<SceneVertexTangent>(scene->totalVertices, SceneVertexTangent{ 0 });
-
-		for (uint32_t v = 0; v < scene->totalVertices; v++)
-		{
-			const float3& normal = normals[v];
-			const float3& tangent = tangents[v];
-			const float2& tc = texcoords[v];
-
-#if defined(METAL) || defined(__linux__)
-			scene->normals[v].nx = normal.x;
-			scene->normals[v].ny = normal.y;
-			scene->normals[v].nz = normal.z;
-
-			scene->tangents[v].tx = tangent.x;
-			scene->tangents[v].ty = tangent.y;
-			scene->tangents[v].tz = tangent.z;
-
-			scene->texCoords[v].u = tc.x;
-			scene->texCoords[v].v = 1.0f - tc.y;
-#else
-			scene->normals[v].normal = encodeDir(normal);
-			scene->tangents[v].tangent = encodeDir(tangent);
-			scene->texCoords[v].texCoord = pack2Floats(float2(tc.x, 1.0f - tc.y));
-#endif
-		}
 
 		uint32_t accIndex = 0;
 
@@ -1166,11 +1140,11 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 			cached.WriteUInt(scene->totalVertices);
 			cached.WriteUInt(scene->totalTriangles);
 			cached.Write(scene->meshes, scene->numMeshes * sizeof(MeshIn));
-			cached.Write(scene->indices.data(), scene->totalTriangles * 3 * sizeof(uint32_t));
-			cached.Write(scene->positions.data(), scene->totalVertices * sizeof(SceneVertexPos));
-			cached.Write(scene->texCoords.data(), scene->totalVertices * sizeof(SceneVertexTexCoord));
-			cached.Write(scene->normals.data(), scene->totalVertices * sizeof(SceneVertexNormal));
-			cached.Write(scene->tangents.data(), scene->totalVertices * sizeof(SceneVertexTangent));
+			cached.Write(scene->indices, scene->totalTriangles * 3 * sizeof(uint32_t));
+			cached.Write(scene->positions, scene->totalVertices * sizeof(SceneVertexPos));
+			cached.Write(scene->texCoords, scene->totalVertices * sizeof(SceneVertexTexCoord));
+			cached.Write(scene->normals, scene->totalVertices * sizeof(SceneVertexNormal));
+			cached.Write(scene->tangents, scene->totalVertices * sizeof(SceneVertexTangent));
 			cached.Close();
 		}
 	}
@@ -1196,7 +1170,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 	assimpScene.Open(fileName, FileMode::FM_ReadBinary, FSRoot::FSR_Absolute);
 	if (!assimpScene.IsOpen())
 	{
-		ErrorMsg(
+		LOGF(eERROR, 
 			"Could not open scene %s.\nPlease make sure you have downloaded the art assets by using the PRE_BUILD command in the root "
 			"directory",
 			fileName);
@@ -1544,11 +1518,11 @@ void removeScene(Scene* scene)
 		}
 	}
 
-	scene->positions.~vector();
-	scene->texCoords.~vector();
-	scene->normals.~vector();
-	scene->tangents.~vector();
-	scene->indices.~vector();
+	conf_free(scene->positions);
+	conf_free(scene->texCoords);
+	conf_free(scene->normals);
+	conf_free(scene->tangents);
+	conf_free(scene->indices);
 
 	conf_free(scene->textures);
 	conf_free(scene->normalMaps);

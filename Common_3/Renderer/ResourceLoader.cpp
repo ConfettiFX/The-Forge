@@ -26,7 +26,7 @@
 
 // this is needed for the CopyEngine on XBox
 #ifdef _DURANGO
-#include "../../Xbox/CommonXBOXOne_3/OS/XBoxPrivateHeaders.h"
+#include "../../Xbox/Common_3/Renderer/XBoxPrivateHeaders.h"
 #endif
 
 #include "../ThirdParty/OpenSource/EASTL/deque.h"
@@ -50,8 +50,6 @@
 #endif
 #include "../OS/Interfaces/IMemory.h"
 
-// buffer functions
-#if !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 extern void addBuffer(Renderer* pRenderer, const BufferDesc* desc, Buffer** pp_buffer);
 extern void removeBuffer(Renderer* pRenderer, Buffer* p_buffer);
 extern void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
@@ -61,7 +59,6 @@ extern void removeTexture(Renderer* pRenderer, Texture* p_texture);
 extern void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
 extern void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, SubresourceDataDesc* pSubresourceDesc);
 extern const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer);
-#endif
 /************************************************************************/
 /************************************************************************/
 
@@ -357,7 +354,7 @@ public:
 		return conf_new(Image);
 	}
 
-	static Image* CreateImage(const ImageFormat::Enum fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize, const unsigned char* rawData)
+	static Image* CreateImage(const TinyImageFormat fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize, const unsigned char* rawData)
 	{
 		Image* pImage = AllocImage();
 		pImage->Create(fmt, w, h, d, mipMapCount, arraySize, rawData);
@@ -474,8 +471,41 @@ uint3 calculateUploadRect(uint64_t mem, uint3 pitches, uint3 offset, uint3 exten
 Region3D calculateUploadRegion(uint3 offset, uint3 extent, uint3 uploadBlock, uint3 pxImageDim)
 {
 	uint3 regionOffset = offset * uploadBlock;
-	uint3 regionSize = min(extent * uploadBlock, pxImageDim);
+	uint3 regionSize = min<uint3>(extent * uploadBlock, pxImageDim);
 	return { regionOffset.x, regionOffset.y, regionOffset.z, regionSize.x, regionSize.y, regionSize.z };
+}
+
+uint64_t GetMipMappedSizeUpto( uint3 dims, uint32_t nMipMapLevels, int32_t slices, TinyImageFormat format)
+{
+	uint32_t w = dims.x;
+	uint32_t h = dims.y;
+	uint32_t d = dims.z;
+
+	uint64_t size = 0;
+	for(uint32_t i = 0; i < nMipMapLevels;++i)
+	{
+		uint64_t bx = TinyImageFormat_WidthOfBlock(format);
+		uint64_t by = TinyImageFormat_HeightOfBlock(format);
+		uint64_t bz = TinyImageFormat_DepthOfBlock(format);
+
+		uint64_t tmpsize = ((w + bx - 1) / bx) * ((h + by - 1) / by) * ((d + bz - 1) / bz);
+		tmpsize *= slices;
+		size += tmpsize;
+
+		w >>= 1;
+		h >>= 1;
+		d >>= 1;
+		if (w + h + d == 0)
+			break;
+		if (w == 0)
+			w = 1;
+		if (h == 0)
+			h = 1;
+		if (d == 0)
+			d = 1;
+	}
+	size = size * TinyImageFormat_BitSizeOfBlock(format) / 8;
+	return size;
 }
 
 static bool updateTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t activeSet, UpdateState& pTextureUpdate)
@@ -497,8 +527,6 @@ static bool updateTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t a
 	uint32_t  textureAlignment = pRenderer->pActiveGpuSettings->mUploadBufferTextureAlignment;
 	uint32_t  textureRowAlignment = pRenderer->pActiveGpuSettings->mUploadBufferTextureRowAlignment;
 
-	uint32_t          nSlices = img.IsCube() ? 6 : 1;
-	uint32_t          arrayCount = img.GetArrayCount() * nSlices;
 
 	// TODO: move to Image
 	bool isSwizzledZCurve = !img.IsLinearLayout();
@@ -511,21 +539,32 @@ static bool updateTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t a
 	if (applyBarrieers && (uploadOffset.x == 0) && (uploadOffset.y == 0) && (uploadOffset.z == 0))
 	{
 		TextureBarrier preCopyBarrier = { pTexture, RESOURCE_STATE_COPY_DEST };
-		cmdResourceBarrier(pCmd, 0, NULL, 1, &preCopyBarrier, false);
+		cmdResourceBarrier(pCmd, 0, NULL, 1, &preCopyBarrier);
 	}
-
-	ImageFormat::Enum fmt = img.GetFormat();
 	Extent3D          uploadGran = pCopyEngine->pQueue->mUploadGranularity;
-	const uint32_t    blockSize = ImageFormat::GetBytesPerBlock(fmt);
-	const uint32      pxPerRow = max<uint32_t>(round_down(textureRowAlignment / blockSize, uploadGran.mWidth), uploadGran.mWidth);
-	const uint3       queueGranularity = { pxPerRow, uploadGran.mHeight, uploadGran.mDepth };
-	const uint3       pxBlockDim = ImageFormat::GetBlockSize(fmt);
+
+	TinyImageFormat fmt = img.GetFormat();
+	uint32_t blockSize;
+	uint3 pxBlockDim;
+	uint32_t	nSlices;
+	uint32_t	arrayCount;
+
+	blockSize = TinyImageFormat_BitSizeOfBlock(fmt) / 8;
+	pxBlockDim = { TinyImageFormat_WidthOfBlock(fmt),
+								 TinyImageFormat_HeightOfBlock(fmt),
+								 TinyImageFormat_DepthOfBlock(fmt) };
+	nSlices = img.IsCube() ? 6 : 1;
+	arrayCount = img.GetArrayCount() * nSlices;
+
+	const uint32 pxPerRow = max<uint32_t>(round_down(textureRowAlignment / blockSize, uploadGran.mWidth), uploadGran.mWidth);
+	const uint3 queueGranularity = {pxPerRow, uploadGran.mHeight, uploadGran.mDepth};
+	const uint3 fullSizeDim = {img.GetWidth(), img.GetHeight(), img.GetDepth()};
 
 	for (; i < pTexture->mDesc.mMipLevels; ++i)
 	{
-		uint3    pxImageDim{ img.GetWidth(i), img.GetHeight(i), img.GetDepth(i) };
+		uint3 const pxImageDim{ img.GetWidth(i), img.GetHeight(i), img.GetDepth(i) };
 		uint3    uploadExtent{ (pxImageDim + pxBlockDim - uint3(1)) / pxBlockDim };
-		uint3    granularity{ min(queueGranularity, uploadExtent) };
+		uint3    granularity{ min<uint3>(queueGranularity, uploadExtent) };
 		uint32_t srcPitchY{ blockSize * uploadExtent.x };
 		uint32_t dstPitchY{ round_up(srcPitchY, textureRowAlignment) };
 		uint3    srcPitches{ blockSize, srcPitchY, srcPitchY * uploadExtent.y };
@@ -572,9 +611,22 @@ static bool updateTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t a
 			texData.mRowPitch = uploadPitches.y;
 			texData.mSlicePitch = uploadPitches.z;
 
-			uint32_t n = j / nSlices;
-			uint32_t k = j - n * nSlices;
-			uint8_t* pSrcData = (uint8_t*)img.GetPixels(i, n) + k * srcPitches.z;
+			uint8_t* pSrcData;
+			// there are two common formats for how slices and mipmaps are laid out in
+			// either a slice is just another dimension (the 4th) that doesn't undergo
+			// mip map reduction
+			// so images the top level is just w * h * d * s in size
+			// a mipmap level is w >> mml * h >> mml * d >> mml * s in size
+			// or DDS style where each slice is mipmapped as a seperate image
+			if(img.AreMipsAfterSlices()) {
+				pSrcData = (uint8_t *) img.GetPixels() +
+						GetMipMappedSizeUpto(fullSizeDim, i, arrayCount, fmt) +
+						j * srcPitches.z;
+			} else {
+				uint32_t n = j / nSlices;
+				uint32_t k = j - n * nSlices;
+				pSrcData = (uint8_t *) img.GetPixels(i, n) + k * srcPitches.z;
+			}
 
 			Region3D uploadRegion{ uploadOffset.x,     uploadOffset.y,     uploadOffset.z,
 								   uploadRectExtent.x, uploadRectExtent.y, uploadRectExtent.z };
@@ -614,7 +666,7 @@ static bool updateTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t a
 	if (applyBarrieers)
 	{
 		TextureBarrier postCopyBarrier = { pTexture, util_determine_resource_start_state(pTexture->mDesc.mDescriptors) };
-		cmdResourceBarrier(pCmd, 0, NULL, 1, &postCopyBarrier, true);
+		cmdResourceBarrier(pCmd, 0, NULL, 1, &postCopyBarrier);
 	}
 	else
 	{
@@ -685,7 +737,7 @@ static bool updateBuffer(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t ac
 #ifdef _DURANGO
 	// XBox One needs explicit resource transitions
 	BufferBarrier bufferBarriers[] = { { pBuffer, state } };
-	cmdResourceBarrier(pCmd, 1, bufferBarriers, 0, NULL, false);
+	cmdResourceBarrier(pCmd, 1, bufferBarriers, 0, NULL);
 #else
 	// Resource will automatically transition so just set the next state without a barrier
 	pBuffer->mCurrentState = state;
@@ -707,12 +759,12 @@ static bool updateResourceState(Renderer* pRenderer, CopyEngine* pCopyEngine, si
 		if (pUpdate.mRequest.buffer)
 		{
 			BufferBarrier barrier = { pUpdate.mRequest.buffer, pUpdate.mRequest.buffer->mDesc.mStartState };
-			cmdResourceBarrier(pCmd, 1, &barrier, 0, NULL, true);
+			cmdResourceBarrier(pCmd, 1, &barrier, 0, NULL);
 		}
 		else if (pUpdate.mRequest.texture)
 		{
 			TextureBarrier barrier = { pUpdate.mRequest.texture, pUpdate.mRequest.texture->mDesc.mStartState };
-			cmdResourceBarrier(pCmd, 0, NULL, 1, &barrier, true);
+			cmdResourceBarrier(pCmd, 0, NULL, 1, &barrier);
 		}
 		else
 		{
@@ -1026,6 +1078,7 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 
 	bool freeImage = false;
 	Image* pImage = NULL;
+
 	if (pTextureDesc->pFilename)
 	{
 		pImage = ResourceLoader::CreateImage(pTextureDesc->pFilename, NULL, NULL, pTextureDesc->mRoot);
@@ -1050,6 +1103,7 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 	else if (pTextureDesc->pRawImageData && !pTextureDesc->pBinaryImageData)
 	{
 		pImage = ResourceLoader::CreateImage(pTextureDesc->pRawImageData->mFormat, pTextureDesc->pRawImageData->mWidth, pTextureDesc->pRawImageData->mHeight, pTextureDesc->pRawImageData->mDepth, pTextureDesc->pRawImageData->mMipLevels, pTextureDesc->pRawImageData->mArraySize, pTextureDesc->pRawImageData->pRawData);
+		pImage->SetMipsAfterSlices(pTextureDesc->pRawImageData->mMipsAfterSlices);
 		freeImage = true;
 	}
 	else if (pTextureDesc->pBinaryImageData)
@@ -1077,12 +1131,12 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 	desc.mSampleCount = SAMPLE_COUNT_1;
 	desc.mSampleQuality = 0;
 	desc.mFormat = pImage->GetFormat();
+
 	desc.mClearValue = ClearValue();
 	desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 	desc.mStartState = RESOURCE_STATE_COMMON;
 	desc.pNativeHandle = NULL;
 	desc.mHostVisible = false;
-	desc.mSrgb = pImage->IsSrgb() || pTextureDesc->mSrgb;
 	desc.mNodeIndex = pTextureDesc->mNodeIndex;
 
 	if (pImage->IsCube())
@@ -1355,12 +1409,12 @@ void vk_compileShader(
 		// If for some reason the error file could not be created just log error msg
 		if (!errorFile.IsOpen())
 		{
-			ErrorMsg("Failed to compile shader %s", fileName.c_str());
+			LOGF( LogLevel::eERROR, "Failed to compile shader %s", fileName.c_str());
 		}
 		else
 		{
 			eastl::string errorLog = errorFile.ReadText();
-			ErrorMsg("Failed to compile shader %s with error\n%s", fileName.c_str(), errorLog.c_str());
+			LOGF( LogLevel::eERROR, "Failed to compile shader %s with error\n%s", fileName.c_str(), errorLog.c_str());
 		}
 		errorFile.Close();
 	}
@@ -1400,6 +1454,7 @@ void mtl_compileShader(
 	//args.push_back("-gline-tables-only");
 	args.push_back("-D");
 	args.push_back("MTL_SHADER=1");    // Add MTL_SHADER macro to differentiate structs in headers shared by app/shader code.
+    
 	// Add user defined macros to the command line
 	for (uint32_t i = 0; i < macroCount; ++i)
 	{
@@ -1438,13 +1493,17 @@ void mtl_compileShader(
 			file.Close();
 		}
 		else
-			ErrorMsg("Failed to assemble shader's %s .metallib file", fileName.c_str());
+		{
+			LOGF( LogLevel::eERROR, "Failed to assemble shader's %s .metallib file", fileName.c_str());
+		}
 	}
 	else
-		ErrorMsg("Failed to compile shader %s", fileName.c_str());
+	{
+		LOGF( LogLevel::eERROR,"Failed to compile shader %s", fileName.c_str());
+	}
 }
 #endif
-#if (defined(DIRECT3D12) || defined(DIRECT3D11)) && !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
+#if (defined(DIRECT3D12) || defined(DIRECT3D11))
 extern void compileShader(
 	Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code,
 	uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a, const char *f, int l, const char *sf), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint);
@@ -1686,7 +1745,7 @@ bool load_shader_stage_byte_code(
 		}
 		if (!byteCode.size())
 		{
-			ErrorMsg("Error while generating bytecode for shader %s", fileName);
+			LOGF( LogLevel::eERROR, "Error while generating bytecode for shader %s", fileName);
 			shaderSource.Close();
 			return false;
 		}
@@ -1814,8 +1873,7 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 	{
 		eastl::string error = eastl::string().sprintf("Requested shader target (%u) is higher than the shader target that the renderer supports (%u). Shader wont be compiled",
 			(uint32_t)pDesc->mTarget, (uint32_t)pRenderer->mSettings.mShaderTarget);
-		LOGF(eERROR, error.c_str());
-		_FailedAssert(__FILE__, __LINE__, error.c_str());
+		LOGF( LogLevel::eERROR, error.c_str());
 		return;
 	}
 

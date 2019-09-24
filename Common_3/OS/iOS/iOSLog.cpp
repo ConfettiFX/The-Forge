@@ -37,68 +37,6 @@ void outputLogString(const char* pszStr)
 	_OutputDebugString("\n");
 }
 
-void _ErrorMsg(int line, const char* file, const char* string, ...)
-{
-	ASSERT(string);
-	//Eval the string
-	const unsigned BUFFER_SIZE = 65536;
-	char           buf[BUFFER_SIZE];
-	// put source code file name at the begin
-	snprintf(buf, BUFFER_SIZE, "%s", file);
-	// put line positoin in code
-	snprintf(buf + strlen(buf), BUFFER_SIZE - strlen(buf), "(%d)\t", line);
-
-	va_list arglist;
-	va_start(arglist, string);
-	//  vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
-	vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
-	va_end(arglist);
-
-	printf("Error: %s", buf);
-}
-
-void _WarningMsg(int line, const char* file, const char* string, ...)
-{
-	ASSERT(string);
-
-	//Eval the string
-	const unsigned BUFFER_SIZE = 65536;
-	char           buf[BUFFER_SIZE];
-
-	// put source code file name at the begin
-	snprintf(buf, BUFFER_SIZE, "%s", file);
-	// put line positoin in code
-	snprintf(buf + strlen(buf), BUFFER_SIZE - strlen(buf), "(%d)\t", line);
-
-	va_list arglist;
-	va_start(arglist, string);
-	vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
-	va_end(arglist);
-
-	printf("Warning: %s", buf);
-}
-
-void _InfoMsg(int line, const char* file, const char* string, ...)
-{
-	ASSERT(string);
-
-	//Eval the string
-	const unsigned BUFFER_SIZE = 65536;
-	char           buf[BUFFER_SIZE];
-
-	// put source code file name at the begin
-	snprintf(buf, BUFFER_SIZE, "%s", file);
-	// put line positoin in code
-	snprintf(buf + strlen(buf), BUFFER_SIZE - strlen(buf), "(%d)\t", line);
-
-	va_list arglist;
-	va_start(arglist, string);
-	vsprintf_s(buf + strlen(buf), BUFFER_SIZE - strlen(buf), string, arglist);
-	va_end(arglist);
-
-	printf("Info: %s", buf);
-}
-
 void _OutputDebugString(const char* str, ...)
 {
 #ifdef _DEBUG
@@ -121,6 +59,7 @@ void _FailedAssert(const char* file, int line, const char* statement)
 	if (debug)
 	{
 		printf("Failed: (%s)\n\nFile: %s\nLine: %d\n\n", statement, file, line);
+        __builtin_debugtrap();
 	}
 }
 

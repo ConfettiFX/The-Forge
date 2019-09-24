@@ -126,7 +126,9 @@ Pipeline*         pComputePipeline = NULL;
 RootSignature*    pComputeRootSignature = NULL;
 Texture*          pTextureComputeOutput = NULL;
 
-DescriptorBinder* pDescriptorBinder = NULL;
+DescriptorSet*    pDescriptorSetUniforms = NULL;
+DescriptorSet*    pDescriptorSetComputeTexture = NULL;
+DescriptorSet*    pDescriptorSetTexture = NULL;
 
 VirtualJoystickUI gVirtualJoystick;
 
@@ -182,11 +184,6 @@ class Compute: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		// Initialize profile
-		initProfiler(pRenderer);
-
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
-
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 		{
 			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
@@ -228,8 +225,12 @@ class Compute: public IApp
 		computeRootDesc.ppShaders = &pComputeShader;
 		addRootSignature(pRenderer, &computeRootDesc, &pComputeRootSignature);
 
-		DescriptorBinderDesc descriptorBinderDesc[] = { { pRootSignature }, { pComputeRootSignature } };
-		addDescriptorBinder(pRenderer, 0, 2, descriptorBinderDesc, &pDescriptorBinder);
+		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
+		setDesc = { pComputeRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetComputeTexture);
+		setDesc = { pComputeRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
 
 		PipelineDesc desc = {};
 		desc.mType = PIPELINE_TYPE_COMPUTE;
@@ -279,15 +280,13 @@ class Compute: public IApp
 		if (!initInputSystem(pWindow))
 			return false;
 
-		// Microprofiler Actions
-		// #TODO: Remove this once the profiler UI is ported to use our UI system
-		InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gMicroProfiler; } };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
-		addInputAction(&actionDesc);
+    // Initialize profile
+    initProfiler();
+
+    addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		// App Actions
-		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+    InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
@@ -295,7 +294,7 @@ class Compute: public IApp
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gMicroProfiler);
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -317,6 +316,14 @@ class Compute: public IApp
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
+
+		DescriptorData params[1] = {};
+		params[0].pName = "uniformBlock";
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			params[0].ppBuffers = &pUniformBuffer[gFrameIndex];
+			updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
+		}
 
 		return true;
 	}
@@ -353,7 +360,9 @@ class Compute: public IApp
 		removeShader(pRenderer, pShader);
 		removeShader(pRenderer, pComputeShader);
 		removePipeline(pRenderer, pComputePipeline);
-		removeDescriptorBinder(pRenderer, pDescriptorBinder);
+		removeDescriptorSet(pRenderer, pDescriptorSetTexture);
+		removeDescriptorSet(pRenderer, pDescriptorSetComputeTexture);
+		removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
 		removeRootSignature(pRenderer, pRootSignature);
 		removeRootSignature(pRenderer, pComputeRootSignature);
 
@@ -377,7 +386,7 @@ class Compute: public IApp
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
 
-		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
+		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 0;
@@ -388,13 +397,21 @@ class Compute: public IApp
 		pipelineSettings.pRasterizerState = pRast;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
 		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
 		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.pVertexLayout = &vertexLayout;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pShader;
 		addPipeline(pRenderer, &desc, &pPipeline);
+
+		DescriptorData params[1] = {};
+		params[0].pName = "uTex0";
+		params[0].ppTextures = &pTextureComputeOutput;
+		updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture, 1, params);
+
+		params[0].pName = "outputTexture";
+		params[0].ppTextures = &pTextureComputeOutput;
+		updateDescriptorSet(pRenderer, 0, pDescriptorSetComputeTexture, 1, params);
 
 		return true;
 	}
@@ -454,16 +471,9 @@ class Compute: public IApp
 		gUniformData.mWidth = mSettings.mWidth;
 		gUniformData.mHeight = mSettings.mHeight;
 
-
-    // ProfileSetDisplayMode()
-    // TODO: need to change this better way 
     if (gMicroProfiler != bPrevToggleMicroProfiler)
     {
-      Profile& S = *ProfileGet();
-      int nValue = gMicroProfiler ? 1 : 0;
-      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
-      S.nDisplay = nValue;
-
+      toggleProfiler();
       bPrevToggleMicroProfiler = gMicroProfiler;
     }
 
@@ -508,13 +518,8 @@ class Compute: public IApp
 
 		// Compute Julia 4D
 		cmdBindPipeline(cmd, pComputePipeline);
-
-		DescriptorData params[2] = {};
-		params[0].pName = "uniformBlock";
-		params[0].ppBuffers = &pUniformBuffer[gFrameIndex];
-		params[1].pName = "outputTexture";
-		params[1].ppTextures = &pTextureComputeOutput;
-		cmdBindDescriptors(cmd, pDescriptorBinder, pComputeRootSignature, 2, params);
+		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUniforms);
+		cmdBindDescriptorSet(cmd, 0, pDescriptorSetComputeTexture);
 
 		uint32_t groupCountX = (pTextureComputeOutput->mDesc.mWidth + pThreadGroupSize[0] - 1) / pThreadGroupSize[0];
 		uint32_t groupCountY = (pTextureComputeOutput->mDesc.mHeight + pThreadGroupSize[1] - 1) / pThreadGroupSize[1];
@@ -526,7 +531,7 @@ class Compute: public IApp
 			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
 			{ pTextureComputeOutput, RESOURCE_STATE_SHADER_RESOURCE },
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 2, barriers, false);
+		cmdResourceBarrier(cmd, 0, NULL, 2, barriers);
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
@@ -535,9 +540,7 @@ class Compute: public IApp
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Pass", true);
 		// Draw computed results
 		cmdBindPipeline(cmd, pPipeline);
-		params[0].pName = "uTex0";
-		params[0].ppTextures = &pTextureComputeOutput;
-		cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignature, 1, params);
+		cmdBindDescriptorSet(cmd, 0, pDescriptorSetTexture);
 
 		cmdDraw(cmd, 3, 0);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -558,14 +561,14 @@ class Compute: public IApp
 
     gAppUI.Gui(pGui);
 
-    cmdDrawProfiler(cmd);
+    cmdDrawProfiler();
 		gAppUI.Draw(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
 		barriers[1] = { pTextureComputeOutput, RESOURCE_STATE_UNORDERED_ACCESS };
-		cmdResourceBarrier(cmd, 0, NULL, 2, barriers, true);
+		cmdResourceBarrier(cmd, 0, NULL, 2, barriers);
 
 		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 		endCmd(cmd);
@@ -604,7 +607,7 @@ class Compute: public IApp
 		desc.mDepth = 1;
 		desc.mArraySize = 1;
 		desc.mMipLevels = 1;
-		desc.mFormat = ImageFormat::RGBA8;
+		desc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
 		desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 		desc.mSampleCount = SAMPLE_COUNT_1;
 		desc.mHostVisible = false;

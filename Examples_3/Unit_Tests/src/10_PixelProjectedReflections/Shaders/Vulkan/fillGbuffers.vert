@@ -30,12 +30,14 @@ layout(location = 1) in vec3 Normal;
 layout(location = 2) in vec2 UV;
 
 
-layout (std140, set=0, binding=0) uniform cbCamera {
+layout (std140, UPDATE_FREQ_PER_FRAME, binding=0) uniform cbCamera
+{
 	uniform mat4 projView;
 	uniform vec3 camPos;
 };
 
-layout (std140, set=3, binding=0) uniform cbObject {
+layout (std140, UPDATE_FREQ_PER_DRAW, binding=0) uniform cbObject
+{
 	uniform mat4 worldMat;
 	uniform float roughness;
 	uniform float metalness;

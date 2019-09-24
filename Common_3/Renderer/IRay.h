@@ -1,8 +1,6 @@
 #pragma once
 
-#if !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 #include "IRenderer.h"
-#endif
 
 #ifdef __cplusplus
 #ifndef MAKE_ENUM_FLAG
@@ -183,8 +181,8 @@ typedef struct RaytracingDispatchDesc
 	RaytracingShaderTable*  pShaderTable;
 #if defined(METAL)
 	AccelerationStructure*  pTopLevelAccelerationStructure;
-	DescriptorData*         pParams;
-	uint32_t                mParamCount;
+    DescriptorSet*          pSets[DESCRIPTOR_UPDATE_FREQ_COUNT];
+    uint32_t                pIndexes[DESCRIPTOR_UPDATE_FREQ_COUNT];
 #endif
 } RaytracingDispatchDesc;
 
@@ -214,8 +212,6 @@ struct Raytracing
 #endif
 };
 
-#if !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
-
 API_INTERFACE bool FORGE_CALLCONV isRaytracingSupported(Renderer* pRenderer);
 API_INTERFACE bool FORGE_CALLCONV initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing);
 API_INTERFACE void FORGE_CALLCONV removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing);
@@ -229,5 +225,3 @@ API_INTERFACE void FORGE_CALLCONV removeRaytracingShaderTable(Raytracing* pRaytr
 
 API_INTERFACE void FORGE_CALLCONV cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, RaytracingBuildASDesc* pDesc);
 API_INTERFACE void FORGE_CALLCONV cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatchDesc* pDesc);
-
-#endif

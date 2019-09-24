@@ -86,7 +86,7 @@ static const float shadowSamples[NUM_SHADOW_SAMPLES * 2] =
 };
 #endif
 
-cbuffer cbPerPass : register(b0)
+cbuffer cbPerPass : register(b0, UPDATE_FREQ_PER_FRAME)
 {
 	float4x4	projView;
 	float4      camPos;
@@ -95,7 +95,7 @@ cbuffer cbPerPass : register(b0)
 	int4        quantizationParams;
 }
 
-cbuffer cbPerProp : register(b1, space1)
+cbuffer cbPerProp : register(b1, UPDATE_FREQ_PER_DRAW)
 {
 	float4x4	world;
 	float4x4	InvTranspose;
@@ -111,23 +111,23 @@ cbuffer cbPerProp : register(b1, space1)
 	float2		padding00;
 }
 
-cbuffer ShadowUniformBuffer : register(b2, space1)
+cbuffer ShadowUniformBuffer : register(b2, UPDATE_FREQ_PER_FRAME)
 {
     float4x4 LightViewProj;
 };
 
-Texture2D albedoMap				: register(t0);
-Texture2D normalMap				: register(t1);
-Texture2D metallicRoughnessMap	: register(t2);
-Texture2D aoMap					: register(t3);
-Texture2D emissiveMap			: register(t4);
-Texture2D ShadowTexture		: register(t14);
+Texture2D albedoMap				: register(t0, UPDATE_FREQ_PER_DRAW);
+Texture2D normalMap				: register(t1, UPDATE_FREQ_PER_DRAW);
+Texture2D metallicRoughnessMap	: register(t2, UPDATE_FREQ_PER_DRAW);
+Texture2D aoMap					: register(t3, UPDATE_FREQ_PER_DRAW);
+Texture2D emissiveMap			: register(t4, UPDATE_FREQ_PER_DRAW);
+Texture2D ShadowTexture		    : register(t14);
 
-SamplerState samplerAlbedo		: register(s0);
-SamplerState samplerNormal		: register(s1);
-SamplerState samplerMR			: register(s2);
-SamplerState samplerAO			: register(s3);
-SamplerState samplerEmissive	: register(s4);
+SamplerState samplerAlbedo		: register(s0, UPDATE_FREQ_PER_DRAW);
+SamplerState samplerNormal		: register(s1, UPDATE_FREQ_PER_DRAW);
+SamplerState samplerMR			: register(s2, UPDATE_FREQ_PER_DRAW);
+SamplerState samplerAO			: register(s3, UPDATE_FREQ_PER_DRAW);
+SamplerState samplerEmissive	: register(s4, UPDATE_FREQ_PER_DRAW);
 SamplerState clampMiplessLinearSampler : register(s7);
 
 struct PsIn
@@ -205,25 +205,33 @@ float3 reconstructNormal(in float4 sampleNormal)
 	float3 tangentNormal;
 	tangentNormal.xy = sampleNormal.rg * 2 - 1;
 	tangentNormal.z = sqrt(1.0 - saturate(dot(tangentNormal.xy, tangentNormal.xy)));
-	return tangentNormal;
+	return normalize(tangentNormal);
 }
 
 float3 getNormalFromMap(float3 normal, float3 pos, float2 uv)
 {
 	float3 tangentNormal = reconstructNormal(normalMap.Sample(samplerNormal, uv));
 
-    float3 Q1  = ddx(pos);
-    float3 Q2  = ddy(pos);
-    float2 st1 = ddx(uv);
-    float2 st2 = ddy(uv);
+	float3 Q1 = ddx(pos);
+	float3 Q2 = ddy(pos);
+	float2 st1 = ddx(uv);
+	float2 st2 = ddy(uv);
 
-    float3 N   = normalize(normal);
-    float3 T  = normalize(Q1*st2.y - Q2*st1.y);
-    float3 B  = -normalize(cross(N, T));
-    float3x3 TBN = float3x3(T, B, N);
+	float3 N = normalize(normal);
+	float3 T = Q1*st2.g - Q2 * st1.g;
+	T = normalize(T);
 
-    float3 res = normalize(mul(tangentNormal,TBN));
-    return res;
+	if(isnan(T.x) ||isnan(T.y) || isnan(T.z))
+	{
+		float3 UpVec = abs(N.y) < 0.999 ? float3(0.0, 1.0, 0.0) : float3(0.0, 0.0, 1.0);
+		T = normalize(cross(N, UpVec));
+	}
+
+	float3 B = normalize(cross(T, N));
+	float3x3 TBN = float3x3(T, B, N);
+
+	float3 res = mul(tangentNormal, TBN);
+	return normalize(res);
 }
 
 float3 ComputeLight(float3 albedo, float3 lightColor,
@@ -246,6 +254,7 @@ uint alphaMode)
 
 	float3 irradiance = float3(lightColor.r,lightColor.g,lightColor.b) * float3(1.0, 1.0, 1.0);
 	float3 result = (diffuse + specular) * NoL * irradiance;
+	
 	// Do not Light alpha blended materials
 	if (alphaMode != 0 || unlit != 0)
 		result = albedo;
@@ -373,11 +382,11 @@ PSOut main(PsIn input) : SV_TARGET
 	roughness = roughness * input.metallicRoughness.y;
 	
 	albedo = lerp(input.baseColor.rgb, albedo, (float)hasAlbedoMap);
-	normal = lerp(input.normal, normal, (float)hasNormalMap);
+	normal = normalize(lerp(input.normal, normal, (float)hasNormalMap));
 	metalness = lerp(float3(input.metallicRoughness.x, input.metallicRoughness.x, input.metallicRoughness.x), metalness, (float)hasMetallicRoughnessMap);
 	roughness = lerp(input.metallicRoughness.y, roughness, (float)hasMetallicRoughnessMap);
 	emissive = lerp(float3(0.0f,0.0f,0.0f), emissive, (float)hasEmissiveMap);
-	ao = lerp(saturate(1.0f - metallicRoughness.r), ao, (float)hasAOMap);
+	ao = lerp(saturate(1.0f - metallicRoughness.r), ao, (float)hasAOMap);	
 
 	roughness = clamp(0.05f, 1.0f, roughness);
 
@@ -386,10 +395,11 @@ PSOut main(PsIn input) : SV_TARGET
 	float3 V = normalize(camPos.xyz - input.pos);
 	float NoV = max(dot(N,V), 0.0);	
 
+
 	float3 result = float3(0.0, 0.0, 0.0);		
 
 	[unroll]
-	for(uint i=0; i<3; ++i)
+	for(uint i=0; i<1; ++i)
 	{
 		float3 L = normalize(lightDirection[i].xyz);
 		float3 H = normalize(V + L);	
@@ -417,6 +427,5 @@ PSOut main(PsIn input) : SV_TARGET
 	//result = V;
 	//color = float3(input.texCoord.xy, 0.0);
 	Out.outColor = float4(result.r, result.g, result.b, alpha);
-
 	return Out;
 }

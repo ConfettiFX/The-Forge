@@ -27,6 +27,8 @@
 #include <metal_compute>
 using namespace metal;
 
+#define UNROLL_ME
+
 #define MAX_PLANES 4
 
 struct ExtendCameraData
@@ -47,7 +49,7 @@ struct PlaneInfo
 	float4 size;
 };
 
-struct planeInfoBufferData
+struct PlaneInfoBufferData
 {
 	PlaneInfo planeInfo[MAX_PLANES];
 	uint numPlanes;
@@ -63,7 +65,7 @@ float getDistance(float3 planeNormal, float3 planeCenter, float3 worldPos)
 	return (dot(planeNormal, worldPos) + d) / length(planeNormal);
 }
 
-float4 intersectPlane(uint index, float3 worldPos, float2 fragUV, planeInfoBufferData planeInfoBuffer, ExtendCameraData cbExtendCamera, depth2d<float> DepthTexture,sampler defaultSampler)
+float4 intersectPlane(uint index, float3 worldPos, float2 fragUV, PlaneInfoBufferData planeInfoBuffer, ExtendCameraData cbExtendCamera, depth2d<float> DepthTexture,sampler defaultSampler)
 {
 	float4 reflectedPos(0,0,0,0);
 	PlaneInfo thisPlane = planeInfoBuffer.planeInfo[index];
@@ -135,48 +137,63 @@ float4 intersectPlane(uint index, float3 worldPos, float2 fragUV, planeInfoBuffe
 			}
 			else
 			{
+#define UNROLL(i) \
+                if(i != index) \
+                { \
+                    PlaneInfo otherPlane = planeInfoBuffer.planeInfo[i]; \
+                    float3 otherNormalVec = otherPlane.rotMat[2].xyz; \
+                    float3 otherCenterPoint = otherPlane.centerPoint.xyz; \
+                    float innerDenom = dot(otherNormalVec, rD); \
+                    if (innerDenom < 0.0) \
+                    { \
+                        float3 innerP0l0 = otherCenterPoint - rO; \
+                        float innerT = dot(otherNormalVec, innerP0l0) / innerDenom; \
+                        if(innerT > 0.0) \
+                        { \
+                            if(innerT < t) \
+                            { \
+                                float3 innerhitPoint = rO + rD*innerT; \
+                                float3 innergap = innerhitPoint - otherCenterPoint; \
+                                float innerxGap = dot(innergap, otherPlane.rotMat[0].xyz); \
+                                float inneryGap = dot(innergap, otherPlane.rotMat[1].xyz); \
+                                float innerWidth = otherPlane.size.x * 0.5; \
+                                float innerHeight = otherPlane.size.y * 0.5; \
+                                if( (abs(innerxGap) <= innerWidth) && (abs(inneryGap) <= innerHeight)) \
+                                { \
+                                    return float4(0,0,0,-1); \
+                                } \
+                            } \
+                        } \
+                    } \
+                }
+                
 				//check if it is also hit from other planes
-				for(uint i=0; i <planeInfoBuffer.numPlanes; i++ )
-				{
-					if(i != index)
-					{						
-						PlaneInfo otherPlane = planeInfoBuffer.planeInfo[i];
+                const uint count = planeInfoBuffer.numPlanes;
+#ifdef UNROLL_ME
+                UNROLL(0);
 
+                if (count >= 2)
+                {
+                    UNROLL(1);
+                    if (count >= 3)
+                    {
+                        UNROLL(2);
+                        if (count >= 4)
+                        {
+                            UNROLL(3);
+                        }
+                    }
+                }
 
-						// assuming vectors are all normalized						
-						float3 otherNormalVec = otherPlane.rotMat[2].xyz;
-						float3 otherCenterPoint = otherPlane.centerPoint.xyz;
-
-						float innerDenom = dot(otherNormalVec, rD); 
-
-						if (innerDenom < 0.0)
-						{ 
-							float3 innerP0l0 = otherCenterPoint - rO; 
-							float innerT = dot(otherNormalVec, innerP0l0) / innerDenom; 
-
-							if(innerT <= 0.0)
-								continue;
-							else if(innerT < t)
-							{
-								float3 innerhitPoint = rO + rD*innerT;	
-								float3 innergap = innerhitPoint - otherCenterPoint;
-		
-								float innerxGap = dot(innergap, otherPlane.rotMat[0].xyz);
-								float inneryGap = dot(innergap, otherPlane.rotMat[1].xyz);
-
-								float innerWidth = otherPlane.size.x * 0.5;
-								float innerHeight = otherPlane.size.y * 0.5;
-
-								// if it hits other planes
-								if( (abs(innerxGap) <= innerWidth) && (abs(inneryGap) <= innerHeight))
-								{
-									return float4(0,0,0,-1);
-								}								
-							}	
-						}
-					}
+#else
+				for (uint i=0; i < count; i++ )
+                {
+                    UNROLL(i);
 				}
-
+#endif
+                
+#undef UNROLL
+                
 				return reflectedPos;
 			}
 		}	
@@ -254,51 +271,81 @@ uint packInfo(float2 offset)
 	return  ( (YInt & 0x00000fff ) << 20) | ( (YFrac & 0x00000007) << 17) | ( (XInt & 0x00000fff) << 5) | ( (XFrac & 0x00000007 )<< 2) | CoordSys;
 }
 
-//[numthreads(128,1,1)]
-kernel void stageMain(uint DTid [[thread_position_in_grid]],
-					  device atomic_uint * IntermediateBuffer	[[buffer(0)]],
-					  constant ExtendCameraData& cbExtendCamera		[[buffer(1)]],
-					  constant planeInfoBufferData& planeInfoBuffer	[[buffer(2)]],
+struct CSData {
+    device atomic_uint * IntermediateBuffer             [[id(0)]];
+    depth2d<float> DepthTexture                         [[id(1)]];
+    sampler defaultSampler                              [[id(2)]];
+};
 
-					  depth2d<float> DepthTexture					[[texture(0)]],
-                      sampler defaultSampler						[[sampler(0)]])
+struct CSDataPerFrame {
+    constant PlaneInfoBufferData& planeInfoBuffer       [[id(0)]];
+    constant ExtendCameraData& cbExtendCamera           [[id(1)]];
+};
+
+//[numthreads(128,1,1)]
+kernel void stageMain(
+    uint DTid                                   [[thread_position_in_grid]],
+    constant CSData& csData                     [[buffer(UPDATE_FREQ_NONE)]],
+    constant CSDataPerFrame& csDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {	
-	uint screenWidth = uint( cbExtendCamera.viewPortSize.x );
+	uint screenWidth = uint( csDataPerFrame.cbExtendCamera.viewPortSize.x );
 	
 	uint indexDX = DTid;
 		
 	uint indexY = indexDX / screenWidth;
 	uint indexX = indexDX - screenWidth * indexY;
 
-	float2 fragUV = float2( ((float)indexX) / (cbExtendCamera.viewPortSize.x), ((float)indexY) / (cbExtendCamera.viewPortSize.y) );
+	float2 fragUV = float2( ((float)indexX) / (csDataPerFrame.cbExtendCamera.viewPortSize.x), ((float)indexY) / (csDataPerFrame.cbExtendCamera.viewPortSize.y) );
 		
-	float depth = DepthTexture.sample(defaultSampler, fragUV, 0);
+	float depth = csData.DepthTexture.sample(csData.defaultSampler, fragUV, 0);
 
 	//if there is no obj
 	if(depth >= 0.999)
 		return;
 
-	float4 worldPos = getWorldPosition(fragUV, depth, cbExtendCamera);
+	float4 worldPos = getWorldPosition(fragUV, depth, csDataPerFrame.cbExtendCamera);
 	
 	float4 reflectedPos = float4(0.0, 0.0, 0.0, 0.0);
 	float2 reflectedUV;
 	float2 offset;
+    
+#define UNROLL(i) \
+    reflectedPos = intersectPlane( i, worldPos.xyz, fragUV, csDataPerFrame.planeInfoBuffer, csDataPerFrame.cbExtendCamera, csData.DepthTexture, csData.defaultSampler); \
+    if(reflectedPos.w > 0.0f) \
+    { \
+        reflectedUV =  float2( reflectedPos.x * csDataPerFrame.cbExtendCamera.viewPortSize.x, reflectedPos.y * csDataPerFrame.cbExtendCamera.viewPortSize.y); \
+        offset = float2( (fragUV.x - reflectedPos.x) * csDataPerFrame.cbExtendCamera.viewPortSize.x, ( fragUV.y - reflectedPos.y) * csDataPerFrame.cbExtendCamera.viewPortSize.y); \
+        uint newIndex = (uint)reflectedUV.x + (uint)reflectedUV.y * screenWidth; \
+        { \
+            uint intermediateBufferValue = packInfo(offset); \
+            atomic_fetch_min_explicit(&csData.IntermediateBuffer[newIndex], intermediateBufferValue, memory_order_relaxed); \
+        } \
+    }
+    
+    const uint count = csDataPerFrame.planeInfoBuffer.numPlanes;
+#ifdef UNROLL_ME
+    UNROLL(0);
 
-	for(uint i = 0; i < planeInfoBuffer.numPlanes; i++)
-	{
-		reflectedPos = intersectPlane( i, worldPos.xyz, fragUV, planeInfoBuffer, cbExtendCamera,DepthTexture,defaultSampler);
-		if(reflectedPos.w > 0.0f)
-		{
-			reflectedUV =  float2( reflectedPos.x * cbExtendCamera.viewPortSize.x, reflectedPos.y * cbExtendCamera.viewPortSize.y);
-			offset = float2( (fragUV.x - reflectedPos.x) * cbExtendCamera.viewPortSize.x, ( fragUV.y - reflectedPos.y) * cbExtendCamera.viewPortSize.y);
-			
-			uint newIndex = (uint)reflectedUV.x + (uint)reflectedUV.y * screenWidth;
+    if (count >= 2) {
+        UNROLL(1);
+        if (count >= 3)
+        {
+            UNROLL(2);
+            if (count >= 4)
+            {
+                UNROLL(3);
+            }
+        }
+    }
 
-			//pack info
-			{
-				uint intermediateBufferValue = packInfo(offset);
-				atomic_store_explicit( &IntermediateBuffer[newIndex], intermediateBufferValue, memory_order_relaxed);
-			}
-		}
+#else
+	for(uint i = 0; i < count; i++)
+    {
+        UNROLL(i);
 	}
+#endif
+    
+#undef UNROLL
+    
 }

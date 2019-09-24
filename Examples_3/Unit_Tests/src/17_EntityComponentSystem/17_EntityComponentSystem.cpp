@@ -59,11 +59,6 @@ GuiComponent*			pGuiWindow;
 GpuProfiler* pGpuProfiler = NULL;
 HiresTimer   gTimer;
 
-struct VsParams
-{
-	float aspect;
-};
-
 struct SpriteData
 {
 	float posX, posY;
@@ -94,13 +89,12 @@ Buffer*   pSpriteIndexBuffer = NULL;
 Pipeline* pSpritePipeline = NULL;
 
 RootSignature*    pRootSignature = NULL;
-DescriptorBinder* pDescriptorBinder = NULL;
+DescriptorSet*    pDescriptorSetTexture = NULL;
+DescriptorSet*    pDescriptorSetUniforms = NULL;
 Sampler*          pLinearClampSampler = NULL;
 DepthState*       pDepthState = NULL;
 RasterizerState*  pRasterizerStateCullNone = NULL;
 BlendState*       pBlendState = NULL;
-
-Buffer* pParamsUbo[gImageCount] = { NULL };
 
 Texture* pSpriteTexture = NULL;
 
@@ -414,7 +408,12 @@ class EntityComponentSystem: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		initProfiler(pRenderer);
+    if (!gAppUI.Init(pRenderer))
+      return false;
+
+    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+
+		initProfiler();
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
@@ -440,8 +439,10 @@ class EntityComponentSystem: public IApp
 		rootDesc.ppStaticSamplers = &pLinearClampSampler;
 		addRootSignature(pRenderer, &rootDesc, &pRootSignature);
 
-		DescriptorBinderDesc descriptorBinderDesc = { pRootSignature };
-		addDescriptorBinder(pRenderer, 0, 1, &descriptorBinderDesc, &pDescriptorBinder);
+		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetTexture);
+		setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
 
 		RasterizerStateDesc rasterizerStateDesc = {};
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
@@ -493,19 +494,6 @@ class EntityComponentSystem: public IApp
 		spriteIBDesc.ppBuffer = &pSpriteIndexBuffer;
 		addResource(&spriteIBDesc);
 
-		// Ubo
-		BufferLoadDesc ubDesc = {};
-		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-		ubDesc.mDesc.mSize = sizeof(VsParams);
-		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-		ubDesc.pData = NULL;
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			ubDesc.ppBuffer = &pParamsUbo[i];
-			addResource(&ubDesc);
-		}
-
 		// Sprites texture
 		TextureLoadDesc textureDesc = {};
 		textureDesc.mRoot = FSR_Textures;
@@ -516,11 +504,6 @@ class EntityComponentSystem: public IApp
 		finishResourceLoading();
 
 		initThreadSystem(&pThreadSystem);
-
-		if (!gAppUI.Init(pRenderer))
-			return false;
-
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 	/************************************************************************/
 	// GUI
@@ -586,15 +569,8 @@ class EntityComponentSystem: public IApp
 		if (!initInputSystem(pWindow))
 			return false;
 
-		// Microprofiler Actions
-		// #TODO: Remove this once the profiler UI is ported to use our UI system
-		InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gMicroProfiler; } };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
-		addInputAction(&actionDesc);
-
 		// App Actions
-		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+    InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
@@ -602,12 +578,24 @@ class EntityComponentSystem: public IApp
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gMicroProfiler);
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
 		};
 		addInputAction(&actionDesc);
+		
+		// Prepare descriptor sets
+		DescriptorData params[1] = {};
+		params[0].pName = "uTexture0";
+		params[0].ppTextures = &pSpriteTexture;
+		updateDescriptorSet(pRenderer, 0, pDescriptorSetTexture, 1, params);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			params[0].pName = "instanceBuffer";
+			params[0].ppBuffers = &pSpriteVertexBuffers[i];
+			updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
+		}
 
 		return true;
 	}
@@ -630,15 +618,15 @@ class EntityComponentSystem: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			removeResource(pSpriteVertexBuffers[i]);
-			removeResource(pParamsUbo[i]);
 		}
 		removeResource(pSpriteTexture);
 		removeShader(pRenderer, pSpriteShader);
 		removeResource(pSpriteIndexBuffer);
 
+		removeDescriptorSet(pRenderer, pDescriptorSetTexture);
+		removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
 		removeSampler(pRenderer, pLinearClampSampler);
 		removeRootSignature(pRenderer, pRootSignature);
-		removeDescriptorBinder(pRenderer, pDescriptorBinder);
 		
 		removeDepthState(pDepthState);
 		removeRasterizerState(pRasterizerStateCullNone);
@@ -671,7 +659,7 @@ class EntityComponentSystem: public IApp
 		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
 			return false;
 
-		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
+		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		// VertexLayout for sprite drawing.
 		PipelineDesc desc = {};
@@ -681,10 +669,9 @@ class EntityComponentSystem: public IApp
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepthState;
 		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
 		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
 		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = ImageFormat::NONE;
+		pipelineSettings.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pSpriteShader;
 		pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
@@ -752,17 +739,11 @@ class EntityComponentSystem: public IApp
 			spriteData.sprite = (float)sprite.spriteIndex;
 		}
 
-		// ProfileSetDisplayMode()
-		// TODO: need to change this better way 
-		if (gMicroProfiler != bPrevToggleMicroProfiler)
-		{
-			Profile& S = *ProfileGet();
-			int nValue = gMicroProfiler ? 1 : 0;
-			nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
-			S.nDisplay = nValue;
-
-			bPrevToggleMicroProfiler = gMicroProfiler;
-		}
+    if (gMicroProfiler != bPrevToggleMicroProfiler)
+    {
+      toggleProfiler();
+      bPrevToggleMicroProfiler = gMicroProfiler;
+    }
 
 		gAppUI.Update(deltaTime);
 	}
@@ -775,10 +756,7 @@ class EntityComponentSystem: public IApp
 		// Update uniform buffers.
 		const float w = (float)mSettings.mWidth;
 		const float h = (float)mSettings.mHeight;
-		VsParams    vs_params;
-		vs_params.aspect = w / h;
-		BufferUpdateDesc uboUpdateDesc = { pParamsUbo[gFrameIndex], &vs_params };
-		updateResource(&uboUpdateDesc);
+		float aspect = w / h;
 
 		// Update vertex buffer
 		ASSERT(gDrawSpriteCount >= 0 && gDrawSpriteCount <= MaxSpriteCount);
@@ -815,7 +793,7 @@ class EntityComponentSystem: public IApp
 		TextureBarrier barriers[] = {
 			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, false);
+		cmdResourceBarrier(cmd, 0, NULL, 1, barriers);
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
@@ -826,17 +804,9 @@ class EntityComponentSystem: public IApp
 		{
 			cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Sprites");
 			cmdBindPipeline(cmd, pSpritePipeline);
-
-#define NUM_BUFFERS 3
-			DescriptorData params[NUM_BUFFERS] = {};
-			params[0].pName = "VsParams";
-			params[0].ppBuffers = &pParamsUbo[gFrameIndex];
-			params[1].pName = "uTexture0";
-			params[1].ppTextures = &pSpriteTexture;
-			params[2].pName = "instanceBuffer";
-			params[2].ppBuffers = &pSpriteVertexBuffers[gFrameIndex];
-
-			cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignature, NUM_BUFFERS, params);
+			cmdBindPushConstants(cmd, pRootSignature, "RootConstant", &aspect);
+			cmdBindDescriptorSet(cmd, 0, pDescriptorSetTexture);
+			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUniforms);
 			cmdBindIndexBuffer(cmd, pSpriteIndexBuffer, 0);
 			cmdDrawIndexedInstanced(cmd, 6, 0, gDrawSpriteCount, 0, 0);
 			cmdEndDebugMarker(cmd);
@@ -857,7 +827,7 @@ class EntityComponentSystem: public IApp
 			cmd, float2(8.0f, 40.0f), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
 			&uiTextDesc);
 
-		cmdDrawProfiler(cmd);
+		cmdDrawProfiler();
 
 		gAppUI.Gui(pGuiWindow);
 
@@ -866,7 +836,7 @@ class EntityComponentSystem: public IApp
 		cmdEndDebugMarker(cmd);
 
 		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, true);
+		cmdResourceBarrier(cmd, 0, NULL, 1, barriers);
 
 		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 		endCmd(cmd);

@@ -37,7 +37,7 @@ struct PsIn
 {
     vec4 position;
 };
-layout(set = 0, binding = 0) uniform texture2DMS msaaSource;
+layout(UPDATE_FREQ_NONE, binding = 0) uniform texture2DMS msaaSource;
 vec4 HLSLmain(PsIn In)
 {
     vec4 value = vec4(0.0, 0.0, 0.0, 0.0);

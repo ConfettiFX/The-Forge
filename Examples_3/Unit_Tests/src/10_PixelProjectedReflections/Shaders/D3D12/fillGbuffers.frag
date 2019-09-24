@@ -22,19 +22,22 @@
  * under the License.
 */
 
-cbuffer cbCamera : register(b0) {
+cbuffer cbCamera : register(b0, UPDATE_FREQ_PER_FRAME)
+{
 	float4x4 projView;
 	float3 camPos;
 }
 
-cbuffer cbObject : register(b1, space3) {
+cbuffer cbObject : register(b1, UPDATE_FREQ_PER_DRAW)
+{
 	float4x4 worldMat;
 	float roughness;
 	float metalness;
 	int pbrMaterials;
 }
 
-cbuffer cbTextureRootConstants : register(b2) {
+cbuffer cbTextureRootConstants : register(b2)
+{
 	uint albedoMap;
 	uint normalMap;
 	uint metallicMap;
@@ -45,7 +48,7 @@ cbuffer cbTextureRootConstants : register(b2) {
 SamplerState defaultSampler : register(s2);
 
 // material parameters
-Texture2D textureMaps[] : register(t3, space1);
+Texture2D textureMaps[] : register(t3, space10);
 
 float3 reconstructNormal(in float4 sampleNormal)
 {

@@ -8,9 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		5B1781B122A5C96C00991DCB /* Profiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B1781A922A5C96C00991DCB /* Profiler.cpp */; };
-		5B1781B222A5C96C00991DCB /* ProfilerInput.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B1781AA22A5C96C00991DCB /* ProfilerInput.cpp */; };
-		5B1781B322A5C96C00991DCB /* ProfilerDraw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B1781AD22A5C96C00991DCB /* ProfilerDraw.cpp */; };
-		5B1781B422A5C96C00991DCB /* ProfilerUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B1781AF22A5C96C00991DCB /* ProfilerUI.cpp */; };
 		5B1781B522A5C96C00991DCB /* ProfilerBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B1781B022A5C96C00991DCB /* ProfilerBase.cpp */; };
 		5C85A3822029FDFC00AB83C6 /* macOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5C85A3812029FDFC00AB83C6 /* macOSBase.mm */; };
 		5CD2BC6C2080FFCB008E3A2C /* AppUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CD2BC662080FFCB008E3A2C /* AppUI.cpp */; };
@@ -53,6 +50,7 @@
 		D2B157231F1CBB5E0037A8C8 /* ResourceLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2B157221F1CBB5E0037A8C8 /* ResourceLoader.cpp */; };
 		D2B157271F1CD2CA0037A8C8 /* Visibility_Buffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2C8A3CA1F138C410099B68D /* Visibility_Buffer.cpp */; };
 		D2C8A3CE1F1394F10099B68D /* Geometry.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2C8A3CC1F1394F10099B68D /* Geometry.cpp */; };
+		E96D0AA023305C18006DAED2 /* ProfilerWidgetsUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E96D0A9F23305C18006DAED2 /* ProfilerWidgetsUI.cpp */; };
 		E9BF1AA223187261001F2264 /* basisu_transcoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9BF1A9D23187261001F2264 /* basisu_transcoder.cpp */; };
 		EA463C961EF81E8F005AC8C7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EA463C951EF81E8F005AC8C7 /* Assets.xcassets */; };
 		EA463CA81EF81E8F005AC8C7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = EA463CA61EF81E8F005AC8C7 /* MainMenu.xib */; };
@@ -168,12 +166,8 @@
 		288F632D2035CE2E00B758DE /* shadow_pass_alpha.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = shadow_pass_alpha.vert.metal; path = ../src/Shaders/Metal/shadow_pass_alpha.vert.metal; sourceTree = "<group>"; };
 		288F632E2035CE2E00B758DE /* visibilityBuffer_pass.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = visibilityBuffer_pass.frag.metal; path = ../src/Shaders/Metal/visibilityBuffer_pass.frag.metal; sourceTree = "<group>"; };
 		5B1781A922A5C96C00991DCB /* Profiler.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Profiler.cpp; path = ../../ThirdParty/OpenSource/MicroProfile/Profiler.cpp; sourceTree = "<group>"; };
-		5B1781AA22A5C96C00991DCB /* ProfilerInput.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerInput.cpp; path = ../../ThirdParty/OpenSource/MicroProfile/ProfilerInput.cpp; sourceTree = "<group>"; };
-		5B1781AB22A5C96C00991DCB /* ProfilerUI.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerUI.h; path = ../../ThirdParty/OpenSource/MicroProfile/ProfilerUI.h; sourceTree = "<group>"; };
 		5B1781AC22A5C96C00991DCB /* ProfilerBase.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerBase.h; path = ../../ThirdParty/OpenSource/MicroProfile/ProfilerBase.h; sourceTree = "<group>"; };
-		5B1781AD22A5C96C00991DCB /* ProfilerDraw.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerDraw.cpp; path = ../../ThirdParty/OpenSource/MicroProfile/ProfilerDraw.cpp; sourceTree = "<group>"; };
 		5B1781AE22A5C96C00991DCB /* ProfilerHTML.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerHTML.h; path = ../../ThirdParty/OpenSource/MicroProfile/ProfilerHTML.h; sourceTree = "<group>"; };
-		5B1781AF22A5C96C00991DCB /* ProfilerUI.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerUI.cpp; path = ../../ThirdParty/OpenSource/MicroProfile/ProfilerUI.cpp; sourceTree = "<group>"; };
 		5B1781B022A5C96C00991DCB /* ProfilerBase.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerBase.cpp; path = ../../ThirdParty/OpenSource/MicroProfile/ProfilerBase.cpp; sourceTree = "<group>"; };
 		5C85A3812029FDFC00AB83C6 /* macOSBase.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = macOSBase.mm; path = macOS/macOSBase.mm; sourceTree = "<group>"; };
 		5CD2BC662080FFCB008E3A2C /* AppUI.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AppUI.cpp; path = ../../Middleware_3/UI/AppUI.cpp; sourceTree = "<group>"; };
@@ -210,16 +204,16 @@
 		B28506F61F4FB0270013C61A /* MemoryTracking.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryTracking.cpp; path = ../../../Common_3/OS/MemoryTracking/MemoryTracking.cpp; sourceTree = SOURCE_ROOT; };
 		B2B6F7D920F414AC0059F2B0 /* Fontstash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Fontstash.h; path = ../../Middleware_3/Text/Fontstash.h; sourceTree = "<group>"; };
 		B2B6F7DB20F414AC0059F2B0 /* Fontstash.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Fontstash.cpp; path = ../../Middleware_3/Text/Fontstash.cpp; sourceTree = "<group>"; };
-		B2EFFDBE2196471C009A9637 /* skybox.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = skybox.frag.metal; path = ../src/Shaders/Metal/skybox.frag.metal; sourceTree = "<group>"; };
-		B2EFFDC02196471C009A9637 /* sun.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = sun.vert.metal; path = ../src/Shaders/Metal/sun.vert.metal; sourceTree = "<group>"; };
-		B2EFFDC12196471C009A9637 /* godray.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = godray.frag.metal; path = ../src/Shaders/Metal/godray.frag.metal; sourceTree = "<group>"; };
-		B2EFFDC22196471C009A9637 /* skybox.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = skybox.vert.metal; path = ../src/Shaders/Metal/skybox.vert.metal; sourceTree = "<group>"; };
-		B2EFFDC32196471C009A9637 /* panoToCube.comp.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = panoToCube.comp.metal; path = ../src/Shaders/Metal/panoToCube.comp.metal; sourceTree = "<group>"; };
-		B2EFFDC42196471C009A9637 /* CurveConversion.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = CurveConversion.frag.metal; path = ../src/Shaders/Metal/CurveConversion.frag.metal; sourceTree = "<group>"; };
-		B2EFFDC52196471C009A9637 /* display.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = display.vert.metal; path = ../src/Shaders/Metal/display.vert.metal; sourceTree = "<group>"; };
-		B2EFFDC62196471C009A9637 /* sun.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = sun.frag.metal; path = ../src/Shaders/Metal/sun.frag.metal; sourceTree = "<group>"; };
-		B2EFFDC72196471C009A9637 /* display.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = display.frag.metal; path = ../src/Shaders/Metal/display.frag.metal; sourceTree = "<group>"; };
-		B2EFFDC82196471C009A9637 /* resolveGodray.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = resolveGodray.frag.metal; path = ../src/Shaders/Metal/resolveGodray.frag.metal; sourceTree = "<group>"; };
+		B2EFFDBE2196471C009A9637 /* skybox.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = skybox.frag.metal; path = ../src/Shaders/Metal/skybox.frag.metal; sourceTree = "<group>"; };
+		B2EFFDC02196471C009A9637 /* sun.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = sun.vert.metal; path = ../src/Shaders/Metal/sun.vert.metal; sourceTree = "<group>"; };
+		B2EFFDC12196471C009A9637 /* godray.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = godray.frag.metal; path = ../src/Shaders/Metal/godray.frag.metal; sourceTree = "<group>"; };
+		B2EFFDC22196471C009A9637 /* skybox.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = skybox.vert.metal; path = ../src/Shaders/Metal/skybox.vert.metal; sourceTree = "<group>"; };
+		B2EFFDC32196471C009A9637 /* panoToCube.comp.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = panoToCube.comp.metal; path = ../src/Shaders/Metal/panoToCube.comp.metal; sourceTree = "<group>"; };
+		B2EFFDC42196471C009A9637 /* CurveConversion.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = CurveConversion.frag.metal; path = ../src/Shaders/Metal/CurveConversion.frag.metal; sourceTree = "<group>"; };
+		B2EFFDC52196471C009A9637 /* display.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = display.vert.metal; path = ../src/Shaders/Metal/display.vert.metal; sourceTree = "<group>"; };
+		B2EFFDC62196471C009A9637 /* sun.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = sun.frag.metal; path = ../src/Shaders/Metal/sun.frag.metal; sourceTree = "<group>"; };
+		B2EFFDC72196471C009A9637 /* display.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = display.frag.metal; path = ../src/Shaders/Metal/display.frag.metal; sourceTree = "<group>"; };
+		B2EFFDC82196471C009A9637 /* resolveGodray.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = resolveGodray.frag.metal; path = ../src/Shaders/Metal/resolveGodray.frag.metal; sourceTree = "<group>"; };
 		C94FF50D2008AA50006A07B0 /* resolve.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = resolve.vert.metal; path = ../src/Shaders/Metal/resolve.vert.metal; sourceTree = "<group>"; };
 		C96E13302007C1CD004363F0 /* macOSFileSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = macOSFileSystem.mm; path = ../../../Common_3/OS/macOS/macOSFileSystem.mm; sourceTree = SOURCE_ROOT; };
 		C96E13342007C7FE004363F0 /* HDAO.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = HDAO.vert.metal; path = ../src/Shaders/Metal/HDAO.vert.metal; sourceTree = "<group>"; };
@@ -263,6 +257,8 @@
 		D2C8A3CA1F138C410099B68D /* Visibility_Buffer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Visibility_Buffer.cpp; path = ../src/Visibility_Buffer.cpp; sourceTree = SOURCE_ROOT; };
 		D2C8A3CC1F1394F10099B68D /* Geometry.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp.preprocessed; fileEncoding = 4; name = Geometry.cpp; path = ../../src/Geometry.cpp; sourceTree = "<group>"; };
 		D2C8A3CD1F1394F10099B68D /* Geometry.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Geometry.h; path = ../../src/Geometry.h; sourceTree = "<group>"; };
+		E96D0A9E23305C18006DAED2 /* ProfilerWidgetsUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ProfilerWidgetsUI.h; path = ../../ThirdParty/OpenSource/MicroProfile/ProfilerWidgetsUI.h; sourceTree = "<group>"; };
+		E96D0A9F23305C18006DAED2 /* ProfilerWidgetsUI.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ProfilerWidgetsUI.cpp; path = ../../ThirdParty/OpenSource/MicroProfile/ProfilerWidgetsUI.cpp; sourceTree = "<group>"; };
 		E9BF1A9D23187261001F2264 /* basisu_transcoder.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = basisu_transcoder.cpp; path = ../ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp; sourceTree = "<group>"; };
 		EA463C8B1EF81E8F005AC8C7 /* Visibility_Buffer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Visibility_Buffer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EA463C951EF81E8F005AC8C7 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -308,14 +304,12 @@
 		5B1781A822A5C94E00991DCB /* Profile */ = {
 			isa = PBXGroup;
 			children = (
+				E96D0A9F23305C18006DAED2 /* ProfilerWidgetsUI.cpp */,
+				E96D0A9E23305C18006DAED2 /* ProfilerWidgetsUI.h */,
 				5B1781A922A5C96C00991DCB /* Profiler.cpp */,
 				5B1781B022A5C96C00991DCB /* ProfilerBase.cpp */,
 				5B1781AC22A5C96C00991DCB /* ProfilerBase.h */,
-				5B1781AD22A5C96C00991DCB /* ProfilerDraw.cpp */,
 				5B1781AE22A5C96C00991DCB /* ProfilerHTML.h */,
-				5B1781AA22A5C96C00991DCB /* ProfilerInput.cpp */,
-				5B1781AF22A5C96C00991DCB /* ProfilerUI.cpp */,
-				5B1781AB22A5C96C00991DCB /* ProfilerUI.h */,
 			);
 			path = Profile;
 			sourceTree = "<group>";
@@ -868,14 +862,13 @@
 				EA463D031EF81FC5005AC8C7 /* Log.cpp in Sources */,
 				B28506F71F4FB0280013C61A /* MemoryTracking.cpp in Sources */,
 				5CD2BC6C2080FFCB008E3A2C /* AppUI.cpp in Sources */,
-				5B1781B422A5C96C00991DCB /* ProfilerUI.cpp in Sources */,
 				EA463D051EF81FC5005AC8C7 /* Timer.cpp in Sources */,
 				81856F3E229D7E6E00F3A92B /* intrusive_list.cpp in Sources */,
 				D0ADCF5420C2451C0031B732 /* AssimpImporter.cpp in Sources */,
 				D2B157231F1CBB5E0037A8C8 /* ResourceLoader.cpp in Sources */,
+				E96D0AA023305C18006DAED2 /* ProfilerWidgetsUI.cpp in Sources */,
 				D2A295C41FA20A00003AB495 /* MetalShaderReflection.mm in Sources */,
 				D2A295C21FA2096F003AB495 /* GpuProfiler.cpp in Sources */,
-				5B1781B222A5C96C00991DCB /* ProfilerInput.cpp in Sources */,
 				EA463D001EF81FC5005AC8C7 /* macOSThread.cpp in Sources */,
 				97FD71E72141D6400051A203 /* imgui_widgets.cpp in Sources */,
 				81856F3F229D7E6E00F3A92B /* allocator_forge.cpp in Sources */,
@@ -887,7 +880,6 @@
 				EA463CF91EF81FC5005AC8C7 /* Image.cpp in Sources */,
 				81856F40229D7E6E00F3A92B /* allocator_eastl.cpp in Sources */,
 				EA463CFF1EF81FC5005AC8C7 /* macOSLog.cpp in Sources */,
-				5B1781B322A5C96C00991DCB /* ProfilerDraw.cpp in Sources */,
 				EA463D011EF81FC5005AC8C7 /* MetalRenderer.mm in Sources */,
 				81856F46229D7E8F00F3A92B /* string.cpp in Sources */,
 				81856F4B229D7EB000F3A92B /* EASprintf.cpp in Sources */,

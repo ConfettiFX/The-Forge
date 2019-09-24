@@ -35,7 +35,7 @@
 #include "shader_defs.h"
 #include "packing.h"
 
-layout (set = 0, binding = 0) uniform uniforms
+layout (UPDATE_FREQ_PER_FRAME, binding = 0) uniform uniforms
 {
 	PerFrameConstants uniformsData;
 };

@@ -32,7 +32,7 @@
 #define SHADOW_TYPE_ASM				1
 #define SHADOW_TYPE_MESH_BAKED_SDF	2
 
-cbuffer lightUniformBlock : register(b1, space1)
+cbuffer lightUniformBlock : register(b1, UPDATE_FREQ_PER_FRAME)
 {
     float4x4 mLightViewProj;
     float4 lightPosition;
@@ -42,7 +42,7 @@ cbuffer lightUniformBlock : register(b1, space1)
 	float3 mLightDir;
 };
 
-cbuffer cameraUniformBlock : register(b3)
+cbuffer cameraUniformBlock : register(b3, UPDATE_FREQ_PER_FRAME)
 {
     float4x4 View;
     float4x4 Project;
@@ -58,7 +58,7 @@ cbuffer cameraUniformBlock : register(b3)
 	float2 mTwoOverRes;
 };
 
-cbuffer ASMUniformBlock : register(b2, space1)
+cbuffer ASMUniformBlock : register(b2, UPDATE_FREQ_PER_FRAME)
 {
 	float4x4 mIndexTexMat;
 	float4x4 mPrerenderIndexTexMat;
@@ -70,63 +70,60 @@ cbuffer ASMUniformBlock : register(b2, space1)
 	float mPenumbraSize;
 };
 
-cbuffer objectUniformBlock : register(b0)
+cbuffer objectUniformBlock : register(b0, UPDATE_FREQ_PER_FRAME)
 {
     float4x4 WorldViewProjMat;
     float4x4 WorldMat;
 };
 
-cbuffer renderSettingUniformBlock : register(b4, space0)
+cbuffer renderSettingUniformBlock : register(b4, UPDATE_FREQ_PER_FRAME)
 {
     float4 WindowDimension;
     int ShadowType;
 };
 
-cbuffer ESMInputConstants : register(b5, space1)
+cbuffer ESMInputConstants : register(b5, UPDATE_FREQ_PER_FRAME)
 {
     float mEsmControl;
 };
 
 
-/*Texture2D<float4> IndexTexture[10] : register(t0, space3);
-Texture2D<float> DepthAtlasTexture : register(t10, space3);
-Texture2D<float> DEMTexture : register(t11, space3);
-Texture2D<float> PrerenderLodClampTexture : register(t12, space3);
-Texture2D<float> ESMShadowTexture : register(t13, space3);
-Texture2D<float2> SDFShadowTexture : register(t14, space3);*/
+/*Texture2D<float4> IndexTexture[10] : register(t0, UPDATE_FREQ_PER_DRAW);
+Texture2D<float> DepthAtlasTexture : register(t10, UPDATE_FREQ_PER_DRAW);
+Texture2D<float> DEMTexture : register(t11, UPDATE_FREQ_PER_DRAW);
+Texture2D<float> PrerenderLodClampTexture : register(t12, UPDATE_FREQ_PER_DRAW);
+Texture2D<float> ESMShadowTexture : register(t13, UPDATE_FREQ_PER_DRAW);
+Texture2D<float2> SDFShadowTexture : register(t14, UPDATE_FREQ_PER_DRAW);*/
 
 
-Texture2D<float4> IndexTexture[10] : register(t770, space1);
-Texture2D<float> DepthAtlasTexture : register(t780, space1);
-Texture2D<float> DEMTexture : register(t781, space1);
-Texture2D<float> PrerenderLodClampTexture : register(t782, space1);
-Texture2D<float> ESMShadowTexture : register(t783, space1);
-Texture2D<float2> SDFShadowTexture : register(t784, space1);
-
+Texture2D<float4> IndexTexture[10] : register(t770);
+Texture2D<float> DepthAtlasTexture : register(t780);
+Texture2D<float> DEMTexture : register(t781);
+Texture2D<float> PrerenderLodClampTexture : register(t782);
+Texture2D<float> ESMShadowTexture : register(t783);
+Texture2D<float2> SDFShadowTexture : register(t784);
 
 Texture2D<float4> vbPassTexture : register(t0);
-
 
 StructuredBuffer<float3> vertexPos: register(t16);
 StructuredBuffer<uint> vertexTexCoord: register(t17);
 StructuredBuffer<uint> vertexNormal: register(t18);
 StructuredBuffer<uint> vertexTangent: register(t19);
-StructuredBuffer<uint> filteredIndexBuffer: register(t20);
-StructuredBuffer<uint> indirectMaterialBuffer: register(t21);
+StructuredBuffer<uint> filteredIndexBuffer: register(t20, UPDATE_FREQ_PER_FRAME);
+StructuredBuffer<uint> indirectMaterialBuffer: register(t21, UPDATE_FREQ_PER_FRAME);
 StructuredBuffer<MeshConstants> meshConstantsBuffer: register(t22);
 
 // Per frame descriptors
-StructuredBuffer<uint> indirectDrawArgs[2]: register(t23);
+StructuredBuffer<uint> indirectDrawArgs[2]: register(t23, UPDATE_FREQ_PER_FRAME);
 
-Texture2D diffuseMaps[MAX_TEXTURE_UNITS] : register(t0, space1);
-Texture2D normalMaps[MAX_TEXTURE_UNITS] : register(t257, space1);
-Texture2D specularMaps[MAX_TEXTURE_UNITS] : register(t514, space1);
+Texture2D diffuseMaps[MAX_TEXTURE_UNITS] : register(t0, space4);
+Texture2D normalMaps[MAX_TEXTURE_UNITS] : register(t257, space5);
+Texture2D specularMaps[MAX_TEXTURE_UNITS] : register(t514, space6);
 
 SamplerComparisonState ShadowCmpSampler : register(s4);
 SamplerState clampBorderNearSampler : register(s3);
 SamplerState clampMiplessLinearSampler : register(s2);
 SamplerState clampMiplessNearSampler : register(s1);
-
 
 SamplerState textureSampler : register(s0);
 

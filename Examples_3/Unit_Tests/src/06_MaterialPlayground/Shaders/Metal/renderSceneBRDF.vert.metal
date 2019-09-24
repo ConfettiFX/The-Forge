@@ -63,15 +63,24 @@ struct VSOutput {
     float2 uv;
 };
 
-vertex VSOutput stageMain(VSInput In                    [[stage_in]],
-                          constant CameraData& cbCamera [[buffer(1)]],
-                          constant ObjectData& cbObject [[buffer(2)]])
+struct VSDataPerFrame {
+    constant CameraData& cbCamera [[id(0)]];
+};
+
+struct VSDataPerDraw {
+    constant ObjectData& cbObject [[id(0)]];
+};
+
+vertex VSOutput stageMain(VSInput In                              [[stage_in]],
+                          constant VSDataPerFrame& vsDataPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]],
+                          constant VSDataPerDraw& vsDataPerDraw   [[buffer(UPDATE_FREQ_PER_DRAW)]]
+)
 {
     VSOutput result;
-    float4x4 tempMat = cbCamera.projView * cbObject.worldMat;
+    float4x4 tempMat = vsDataPerFrame.cbCamera.projView * vsDataPerDraw.cbObject.worldMat;
     result.position = tempMat * float4(In.position,1.0);
-    result.pos = (cbObject.worldMat * float4(In.position,1.0)).xyz;
-    result.normal = (cbObject.worldMat * float4(In.normal.xyz, 0.0f)).xyz;
+    result.pos = (vsDataPerDraw.cbObject.worldMat * float4(In.position,1.0)).xyz;
+    result.normal = (vsDataPerDraw.cbObject.worldMat * float4(In.normal.xyz, 0.0f)).xyz;
     result.uv= In.uv;
     return result;
 }

@@ -43,19 +43,29 @@ struct PsIn
 
 struct BindlessDiffuseData
 {
-	array<texture2d<float>,MATERIAL_BUFFER_SIZE> textures;
 };
 
-fragment void stageMain(PsIn input                                    [[stage_in]],
-                        constant uint* indirectMaterialBuffer          [[buffer(0)]],
-                        constant BindlessDiffuseData& diffuseMaps      [[buffer(1)]],
-                        sampler textureFilter                          [[sampler(0)]],
-                        constant uint& drawID                          [[buffer(20)]])
+struct FSData {
+//    constant BindlessDiffuseData& diffuseMaps      [[buffer(1)]],
+    sampler textureFilter                                       [[id(0)]];
+    array<texture2d<float>,MATERIAL_BUFFER_SIZE>    diffuseMaps;
+};
+
+struct FSDataPerFrame {
+    constant uint* indirectMaterialBuffer          [[id(0)]];
+};
+
+fragment void stageMain(
+    PsIn input                                      [[stage_in]],
+    constant FSData& fsData                         [[buffer(UPDATE_FREQ_NONE)]],
+    constant FSDataPerFrame& fsDataPerFrame         [[buffer(UPDATE_FREQ_PER_FRAME)]],
+    constant uint& drawID                           [[buffer(UPDATE_FREQ_USER)]]
+)
 {
 	uint matBaseSlot = BaseMaterialBuffer(true, VIEW_SHADOW);
-	uint materialID = indirectMaterialBuffer[matBaseSlot + drawID];
-	texture2d<float> diffuseMap = diffuseMaps.textures[materialID];
+	uint materialID = fsDataPerFrame.indirectMaterialBuffer[matBaseSlot + drawID];
+	texture2d<float> diffuseMap = fsData.diffuseMaps[materialID];
 
-    float4 texColor = diffuseMap.sample(textureFilter, input.TexCoord, level(0));
+    float4 texColor = diffuseMap.sample(fsData.textureFilter, input.TexCoord, level(0));
     if(texColor.a < 0.5) discard_fragment();
 }

@@ -30,14 +30,19 @@ struct VSOutput
   float4 TexCoord;
 };
 
+struct FSData {
+    sampler SkySampler                         ;
+    texture2d<float,access::sample> RightText  ;
+    texture2d<float,access::sample> LeftText   ;
+    texture2d<float,access::sample> TopText    ;
+    texture2d<float,access::sample> BotText    ;
+    texture2d<float,access::sample> FrontText  ;
+    texture2d<float,access::sample> BackText   ;
+};
+
 fragment float4 stageMain(VSOutput input                          [[stage_in]],
-                       sampler SkySampler                         [[sampler(0)]],
-                       texture2d<float,access::sample> RightText  [[texture(0)]],
-                       texture2d<float,access::sample> LeftText   [[texture(1)]],
-                       texture2d<float,access::sample> TopText    [[texture(2)]],
-                       texture2d<float,access::sample> BotText    [[texture(3)]],
-                       texture2d<float,access::sample> FrontText  [[texture(4)]],
-                       texture2d<float,access::sample> BackText   [[texture(5)]])
+    constant FSData& fsData [[buffer(UPDATE_FREQ_NONE)]]
+)
 {
     float2 newtextcoord;
     float side = round(input.TexCoord.w);
@@ -46,36 +51,36 @@ fragment float4 stageMain(VSOutput input                          [[stage_in]],
     {
         newtextcoord = (input.TexCoord.zy) / 20 + 0.5;
         newtextcoord = float2(1 - newtextcoord.x, 1 - newtextcoord.y);
-        return RightText.sample(SkySampler, newtextcoord);
+        return fsData.RightText.sample(fsData.SkySampler, newtextcoord);
     }
     else if (side == 2.0f)
     {
         newtextcoord = (input.TexCoord.zy) / 20 + 0.5;
         newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);
-        return LeftText.sample(SkySampler, newtextcoord);
+        return fsData.LeftText.sample(fsData.SkySampler, newtextcoord);
     }
     else if (side == 4.0f)
     {
         newtextcoord = (input.TexCoord.xz) / 20 + 0.5;
         newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);
-        return BotText.sample(SkySampler, newtextcoord);
+        return fsData.BotText.sample(fsData.SkySampler, newtextcoord);
     }
     else if (side == 5.0f)
     {
         newtextcoord = (input.TexCoord.xy) / 20 + 0.5;
         newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);
-        return FrontText.sample(SkySampler, newtextcoord);
+        return fsData.FrontText.sample(fsData.SkySampler, newtextcoord);
     }
     else if (side == 6.0f)
     {
         newtextcoord = (input.TexCoord.xy) / 20 + 0.5;
         newtextcoord = float2(1 - newtextcoord.x, 1 - newtextcoord.y);
-        return BackText.sample(SkySampler, newtextcoord);
+        return fsData.BackText.sample(fsData.SkySampler, newtextcoord);
     }
     else
     {
         newtextcoord = (input.TexCoord.xz) / 20 + 0.5;
         newtextcoord = float2(newtextcoord.x, newtextcoord.y);
-        return TopText.sample(SkySampler, newtextcoord);
+        return fsData.TopText.sample(fsData.SkySampler, newtextcoord);
     }
 }

@@ -50,20 +50,20 @@
 
 #include "Shader_Defs.h"
 
-StructuredBuffer<float3> vertexDataBuffer : register(UNIT_VERTEX_DATA);
-StructuredBuffer<uint> indexDataBuffer : register(UNIT_INDEX_DATA);
-StructuredBuffer<MeshConstants> meshConstantsBuffer : register(UNIT_MESH_CONSTANTS);
+StructuredBuffer<float3> vertexDataBuffer : UNIT_VERTEX_DATA;
+StructuredBuffer<uint> indexDataBuffer : UNIT_INDEX_DATA;
+StructuredBuffer<MeshConstants> meshConstantsBuffer : UNIT_MESH_CONSTANTS;
 
-RWStructuredBuffer<uint> filteredIndicesBuffer[NUM_CULLING_VIEWPORTS] : register(UNIT_INDEX_DATA_RW);
-RWStructuredBuffer<UncompactedDrawArguments> uncompactedDrawArgsRW[NUM_CULLING_VIEWPORTS] : register(UNIT_UNCOMPACTED_ARGS_RW);
+RWStructuredBuffer<uint> filteredIndicesBuffer[NUM_CULLING_VIEWPORTS] : UNIT_INDEX_DATA_RW;
+RWStructuredBuffer<UncompactedDrawArguments> uncompactedDrawArgsRW[NUM_CULLING_VIEWPORTS] : UNIT_UNCOMPACTED_ARGS_RW;
 
-cbuffer batchData : register(UNIT_BATCH_DATA_CBV)
+cbuffer batchData_rootcbv : UNIT_BATCH_DATA_CBV
 {
 	SmallBatchData smallBatchDataBuffer[BATCH_COUNT];
 };
 
 
-cbuffer visibilityBufferConstants : register(UNIT_UNIFORMS_CBV)
+cbuffer visibilityBufferConstants : UNIT_UNIFORMS_CBV
 {
 	float4x4 mWorldViewProjMat[NUM_CULLING_VIEWPORTS];
 	CullingViewPort mCullingViewports[NUM_CULLING_VIEWPORTS];
@@ -77,6 +77,7 @@ groupshared uint workGroupIndexCount[NUM_CULLING_VIEWPORTS];
 #define ENABLE_CULL_FRUSTUM				1
 #define ENABLE_CULL_SMALL_PRIMITIVES	1
 #define ENABLE_GUARD_BAND				0
+
 float4 LoadVertex(uint index)
 {
 	return float4(vertexDataBuffer[index], 1);

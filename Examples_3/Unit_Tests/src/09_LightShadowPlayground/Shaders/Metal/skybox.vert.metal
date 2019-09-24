@@ -56,14 +56,18 @@ struct Vertex_Shader
 	RootConstantCameraSky(RootConstantCameraSky) {}
 };
 
+struct VSData {
+    constant Vertex_Shader::Uniforms_RootConstantCameraSky& UniformCameraSky;
+};
 
 vertex Vertex_Shader::VSOutput stageMain(
-										 Vertex_Shader::VSInput input [[stage_in]],
-										 constant Vertex_Shader::Uniforms_RootConstantCameraSky & RootConstantCameraSky [[buffer(1)]])
+    Vertex_Shader::VSInput input [[stage_in]],
+    constant VSData& vsData [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
 	Vertex_Shader::VSInput input0;
 	input0.Position = input.Position;
-	Vertex_Shader main(RootConstantCameraSky);
+	Vertex_Shader main(vsData.UniformCameraSky);
 	return main.main(input0);
 }
 

@@ -22,12 +22,6 @@
  * under the License.
 */
 
-
-cbuffer uniformBlock : register(b0)
-{
-	float4x4 mvp;
-};
-
 cbuffer particleRootConstant : register(b1)
 {
     float paletteFactor;

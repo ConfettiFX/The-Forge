@@ -27,20 +27,20 @@ struct Vertex_Shader
         return output;
     };
 
-    Vertex_Shader(
-constant Uniforms_uRootConstants & uRootConstants) :
-uRootConstants(uRootConstants) {}
+    Vertex_Shader(constant Uniforms_uRootConstants & uRootConstants)
+    : uRootConstants(uRootConstants)
+    {
+    }
 };
 
 
 vertex Vertex_Shader::VsOut stageMain(
-    Vertex_Shader::VsIn input [[stage_in]],
-    constant Vertex_Shader::Uniforms_uRootConstants & uRootConstants [[buffer(1)]])
+    Vertex_Shader::VsIn input                                        [[stage_in]],
+    constant Vertex_Shader::Uniforms_uRootConstants& uRootConstants  [[buffer(UPDATE_FREQ_USER)]])
 {
     Vertex_Shader::VsIn input0;
     input0.position = input.position;
     input0.texcoord = input.texcoord;
-    Vertex_Shader main(
-    uRootConstants);
+    Vertex_Shader main(uRootConstants);
     return main.main(input0);
 }

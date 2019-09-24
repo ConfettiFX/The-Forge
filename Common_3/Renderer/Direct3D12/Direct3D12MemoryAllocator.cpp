@@ -28,7 +28,7 @@
 #include "..\..\OS\Interfaces\ILog.h"
 
 #ifdef _DURANGO
-#include "..\..\..\Xbox\CommonXBOXOne_3\OS\XBoxPrivateHeaders.h"
+#include "..\..\..\Xbox\Common_3\Renderer\XBoxPrivateHeaders.h"
 #else
 #define IID_ARGS IID_PPV_ARGS
 #endif

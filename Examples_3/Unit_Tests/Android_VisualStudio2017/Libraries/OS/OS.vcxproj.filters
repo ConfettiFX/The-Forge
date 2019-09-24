@@ -55,6 +55,9 @@
     <Filter Include="OS\Middleware_3\UI\imgui">
       <UniqueIdentifier>{d26a2315-b096-4aa4-84b4-b1b9fb9ee885}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OS\Image">
+      <UniqueIdentifier>{055a9d1e-24a1-4c86-a6d8-615a99f2f754}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EAStdC\EAMemory.cpp">
@@ -174,6 +177,9 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\MemoryTracking\MemoryTracking.cpp">
       <Filter>OS\MemoryTracking</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Image\Image.cpp">
+      <Filter>OS\Image</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Atomics.h">
@@ -190,20 +196,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.h">
       <Filter>OS\Core</Filter>
-    </ClInclude>
-<<<<<<< HEAD
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\Image.h">
-      <Filter>OS\Image</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\ImageEnums.h">
-      <Filter>OS\Image</Filter>
-=======
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\InputMappings.h">
-      <Filter>OS\Input</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Input\InputSystem.h">
-      <Filter>OS\Input</Filter>
->>>>>>> master
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IApp.h">
       <Filter>OS\Interfaces</Filter>
@@ -285,6 +277,12 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\MemoryTracking\NoMemoryDefines.h">
       <Filter>OS\MemoryTracking</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\ImageHelper.h">
+      <Filter>OS\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\Image.h">
+      <Filter>OS\Image</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

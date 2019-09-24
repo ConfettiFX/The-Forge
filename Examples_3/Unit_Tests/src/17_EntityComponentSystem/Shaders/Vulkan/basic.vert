@@ -29,17 +29,17 @@
 layout(location = 0) out vec3 vertOutput_COLOR0;
 layout(location = 1) out vec2 vertOutput_TEXCOORD0;
 
-layout(std140, set = 0, binding = 0) uniform VsParams
+layout(push_constant) uniform VsParamsBlock
 {
     float aspect;
-};
+} RootConstant;
 
 struct InstanceData
 {
     vec4 posScale;
     vec4 colorIndex;
 };
-layout(std140, set = 0, binding = 1) buffer instanceBuffer
+layout(std140, UPDATE_FREQ_PER_FRAME, binding = 1) buffer instanceBuffer
 {
     InstanceData instanceBuffer_Data[];
 };
@@ -51,7 +51,7 @@ void main()
     float x = float (vertexId / uint (2));
     float y = float (vertexId & uint (1));
     gl_Position.x = ((instanceBuffer_Data[instanceId]).posScale).x + ((x - 0.5) * ((instanceBuffer_Data[instanceId]).posScale).z);
-    gl_Position.y = ((instanceBuffer_Data[instanceId]).posScale).y + ((y - 0.5) * ((instanceBuffer_Data[instanceId]).posScale).z) * aspect;
+    gl_Position.y = ((instanceBuffer_Data[instanceId]).posScale).y + ((y - 0.5) * ((instanceBuffer_Data[instanceId]).posScale).z) * RootConstant.aspect;
     gl_Position.z = 0.0;
     gl_Position.w = 1.0;
     vertOutput_TEXCOORD0 = vec2(((x + ((instanceBuffer_Data[instanceId]).colorIndex).w) / float (8)), (float (1) - y));

@@ -136,6 +136,7 @@ class RenderPassData
 	public:
 	Shader*                        pShader;
 	RootSignature*                 pRootSignature;
+	DescriptorSet*                 pDescriptorSets[DESCRIPTOR_UPDATE_FREQ_COUNT];
 	Pipeline*                      pPipeline;
 	CmdPool*                       pCmdPool;
 	Cmd**                          ppCmds;
@@ -232,7 +233,7 @@ struct GBufferRT
 struct PropData
 {
 	mat4                        WorldMatrix;
-	eastl::vector<MeshBatch*> MeshBatches;
+	eastl::vector<MeshBatch*>   MeshBatches;
 	Buffer*                     pConstantBuffer;
 };
 
@@ -263,8 +264,6 @@ ShadowpassUniformBuffer  gShadowPassUniformData;
 LightpassUniformBuffer   gLightPassUniformData;
 DefaultpassUniformBuffer gDefaultPassUniformData;
 
-DescriptorBinder* pDescriptorBinder;
-
 uint32_t gFrameIndex = 0;
 
 UIApp              gAppUI;
@@ -277,7 +276,6 @@ float gLightRotationZ = 0.0f;
 
 //Sponza
 const char*           gModel_Sponza_File = "sponza.obj";
-AssimpImporter::Model gModel_Sponza;
 
 const char* pMaterialImageFileNames[] = {
 	"SponzaPBR_Textures/ao",
@@ -901,7 +899,12 @@ class HybridRaytracing: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		initProfiler(pRenderer);
+    if (!gAppUI.Init(pRenderer))
+      return false;
+
+    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+
+		initProfiler();
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		//Load shaders
@@ -990,6 +993,11 @@ class HybridRaytracing: public IApp
 	#endif
 
 	addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::GBuffer]->pRootSignature);
+
+	DescriptorSetDesc setDesc = { RenderPasses[RenderPass::GBuffer]->pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+	addDescriptorSet(pRenderer, &setDesc, &RenderPasses[RenderPass::GBuffer]->pDescriptorSets[0]);
+	setDesc = { RenderPasses[RenderPass::GBuffer]->pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+	addDescriptorSet(pRenderer, &setDesc, &RenderPasses[RenderPass::GBuffer]->pDescriptorSets[1]);
 }
 
 //Add root signature for Shadow pass
@@ -998,6 +1006,11 @@ class HybridRaytracing: public IApp
 	rootDesc.mShaderCount = 1;
 	rootDesc.ppShaders = &RenderPasses[RenderPass::RaytracedShadows]->pShader;
 	addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::RaytracedShadows]->pRootSignature);
+
+	DescriptorSetDesc setDesc = { RenderPasses[RenderPass::RaytracedShadows]->pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+	addDescriptorSet(pRenderer, &setDesc, &RenderPasses[RenderPass::RaytracedShadows]->pDescriptorSets[0]);
+	setDesc = { RenderPasses[RenderPass::RaytracedShadows]->pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+	addDescriptorSet(pRenderer, &setDesc, &RenderPasses[RenderPass::RaytracedShadows]->pDescriptorSets[1]);
 }
 
 //Add root signature for Lighting pass
@@ -1006,6 +1019,11 @@ class HybridRaytracing: public IApp
 	rootDesc.mShaderCount = 1;
 	rootDesc.ppShaders = &RenderPasses[RenderPass::Lighting]->pShader;
 	addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::Lighting]->pRootSignature);
+
+	DescriptorSetDesc setDesc = { RenderPasses[RenderPass::Lighting]->pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+	addDescriptorSet(pRenderer, &setDesc, &RenderPasses[RenderPass::Lighting]->pDescriptorSets[0]);
+	setDesc = { RenderPasses[RenderPass::Lighting]->pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+	addDescriptorSet(pRenderer, &setDesc, &RenderPasses[RenderPass::Lighting]->pDescriptorSets[1]);
 }
 
 //Add root signature for composite pass
@@ -1014,6 +1032,9 @@ class HybridRaytracing: public IApp
 	rootDesc.mShaderCount = 1;
 	rootDesc.ppShaders = &RenderPasses[RenderPass::Composite]->pShader;
 	addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::Composite]->pRootSignature);
+
+	DescriptorSetDesc setDesc = { RenderPasses[RenderPass::Composite]->pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+	addDescriptorSet(pRenderer, &setDesc, &RenderPasses[RenderPass::Composite]->pDescriptorSets[0]);
 }
 
 //Add root signature for Copy to Backbuffer Pass
@@ -1022,19 +1043,11 @@ class HybridRaytracing: public IApp
 	rootDesc.mShaderCount = 1;
 	rootDesc.ppShaders = &RenderPasses[RenderPass::CopyToBackbuffer]->pShader;
 	addRootSignature(pRenderer, &rootDesc, &RenderPasses[RenderPass::CopyToBackbuffer]->pRootSignature);
-}
-}
 
-//Create descriptor binder
-DescriptorBinderDesc descriptorBinderDesc[] = {
-	{ RenderPasses[RenderPass::GBuffer]->pRootSignature },
-	{ RenderPasses[RenderPass::RaytracedShadows]->pRootSignature },
-	{ RenderPasses[RenderPass::Lighting]->pRootSignature },
-	{ RenderPasses[RenderPass::Composite]->pRootSignature },
-	{ RenderPasses[RenderPass::CopyToBackbuffer]->pRootSignature }
-};
-const uint32_t descBinderSize = sizeof(descriptorBinderDesc) / sizeof(*descriptorBinderDesc);
-addDescriptorBinder(pRenderer, 0, descBinderSize, descriptorBinderDesc, &pDescriptorBinder);
+	DescriptorSetDesc setDesc = { RenderPasses[RenderPass::CopyToBackbuffer]->pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+	addDescriptorSet(pRenderer, &setDesc, &RenderPasses[RenderPass::CopyToBackbuffer]->pDescriptorSets[0]);
+}
+}
 
 //Create Constant buffers
 {
@@ -1099,13 +1112,11 @@ addDescriptorBinder(pRenderer, 0, descBinderSize, descriptorBinderDesc, &pDescri
 	}
 }
 
-if (!gAppUI.Init(pRenderer))
-	return false;
+
 
 if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
 	return false;
 
-gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
 
 GuiDesc guiDesc = {};
 float   dpiScale = getDpiScale().x;
@@ -1133,15 +1144,8 @@ CreateBVHBuffers();
 if (!initInputSystem(pWindow))
 return false;
 
-// Microprofiler Actions
-// #TODO: Remove this once the profiler UI is ported to use our UI system
-InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gMicroProfiler; } };
-addInputAction(&actionDesc);
-actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
-addInputAction(&actionDesc);
-
 // App Actions
-actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 addInputAction(&actionDesc);
 actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 addInputAction(&actionDesc);
@@ -1149,7 +1153,7 @@ actionDesc =
 {
 	InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 	{
-		bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gMicroProfiler);
+		bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 		setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 		return true;
 	}, this
@@ -1172,6 +1176,10 @@ addInputAction(&actionDesc);
 actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 addInputAction(&actionDesc);
 
+#ifdef TARGET_IOS
+	DescriptorSetDesc setDesc = { RenderPasses[RenderPass::GBuffer]->pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, (uint32_t)SponzaProp.MeshBatches.size() };
+	addDescriptorSet(pRenderer, &setDesc, &RenderPasses[RenderPass::GBuffer]->pDescriptorSets[2]);
+#endif
 
 return true;
 }
@@ -1189,8 +1197,6 @@ void Exit()
 	gAppUI.Exit();
 
 	gVirtualJoystick.Exit();
-
-	removeDescriptorBinder(pRenderer, pDescriptorBinder);
 
 	for (uint32_t i = 0; i < gImageCount; ++i)
 	{
@@ -1214,6 +1220,10 @@ void Exit()
 		if (!pass)
 			continue;
 
+		for (uint32_t i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
+			if (pass->pDescriptorSets[i])
+				removeDescriptorSet(pRenderer, pass->pDescriptorSets[i]);
+
 		for (RenderTarget* rt : pass->RenderTargets)
 		{
 			removeRenderTarget(pRenderer, rt);
@@ -1236,6 +1246,7 @@ void Exit()
 		removeShader(pRenderer, pass->pShader);
 
 		removeRootSignature(pRenderer, pass->pRootSignature);
+
 		pass->~RenderPassData();
 		conf_free(pass);
 	}
@@ -1473,10 +1484,11 @@ bool LoadSponza()
 
 	AssimpImporter importer;
 
+	AssimpImporter::Model gModel_Sponza;
 	eastl::string sceneFullPath = FileSystem::FixPath(gModel_Sponza_File, FSRoot::FSR_Meshes);
 	if (!importer.ImportModel(sceneFullPath.c_str(), &gModel_Sponza))
 	{
-		ErrorMsg("Failed to load %s", FileSystem::GetFileNameAndExtension(sceneFullPath).c_str());
+		LOGF(eERROR, "Failed to load %s", FileSystem::GetFileNameAndExtension(sceneFullPath).c_str());
 		finishResourceLoading();
 		return false;
 	}
@@ -1598,7 +1610,7 @@ void CreateBVHBuffers()
 	dataOffset += sizeof(BVHNodeBBox);
 
 	BufferLoadDesc desc = {};
-	desc.mDesc.mFormat = ImageFormat::RGBA32F;
+	desc.mDesc.mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
 	desc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
 	desc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 	desc.mDesc.mSize = dataOffset;
@@ -1636,12 +1648,12 @@ void CreateRenderTargets()
 			RenderTarget* rendertarget;
 
 			//Add albedo RT
-			rtDesc.mFormat = ImageFormat::RGBA8;
+			rtDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
 			addRenderTarget(pRenderer, &rtDesc, &rendertarget);
 			RenderPasses[RenderPass::GBuffer]->RenderTargets.push_back(rendertarget);
 
 			//Add normals RT
-			rtDesc.mFormat = ImageFormat::RGBA8S;
+			rtDesc.mFormat = TinyImageFormat_R8G8B8A8_SNORM;
 			addRenderTarget(pRenderer, &rtDesc, &rendertarget);
 			RenderPasses[RenderPass::GBuffer]->RenderTargets.push_back(rendertarget);
 		}
@@ -1652,7 +1664,7 @@ void CreateRenderTargets()
 			depthRT.mArraySize = 1;
 			depthRT.mClearValue = { 1.0f, 0 };
 			depthRT.mDepth = 1;
-			depthRT.mFormat = ImageFormat::D32F;
+			depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
 			depthRT.mHeight = mSettings.mHeight;
 			depthRT.mSampleCount = SAMPLE_COUNT_1;
 			depthRT.mSampleQuality = 0;
@@ -1670,7 +1682,7 @@ void CreateRenderTargets()
 			desc.mDepth = 1;
 			desc.mArraySize = 1;
 			desc.mMipLevels = 1;
-			desc.mFormat = ImageFormat::R8;
+			desc.mFormat = TinyImageFormat_R8_UNORM;
 			desc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 			desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 			desc.mSampleCount = SAMPLE_COUNT_1;
@@ -1693,7 +1705,7 @@ void CreateRenderTargets()
 			desc.mDepth = 1;
 			desc.mArraySize = 1;
 			desc.mMipLevels = 1;
-			desc.mFormat = ImageFormat::RG11B10F;
+			desc.mFormat = TinyImageFormat_B10G11R11_UFLOAT;
 			desc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 			desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 			desc.mSampleCount = SAMPLE_COUNT_1;
@@ -1716,7 +1728,7 @@ void CreateRenderTargets()
 			desc.mDepth = 1;
 			desc.mArraySize = 1;
 			desc.mMipLevels = 1;
-			desc.mFormat = ImageFormat::RG11B10F;
+			desc.mFormat = TinyImageFormat_B10G11R11_UFLOAT;
 			desc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 			desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 			desc.mSampleCount = SAMPLE_COUNT_1;
@@ -1750,33 +1762,31 @@ bool Load()
 			vertexLayoutGPrepass.mAttribCount = 3;
 
 			vertexLayoutGPrepass.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-			vertexLayoutGPrepass.mAttribs[0].mFormat = ImageFormat::RGB32F;
+			vertexLayoutGPrepass.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
 			vertexLayoutGPrepass.mAttribs[0].mBinding = 0;
 			vertexLayoutGPrepass.mAttribs[0].mLocation = 0;
 			vertexLayoutGPrepass.mAttribs[0].mOffset = 0;
 
 			//normals
 			vertexLayoutGPrepass.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-			vertexLayoutGPrepass.mAttribs[1].mFormat = ImageFormat::RGB32F;
+			vertexLayoutGPrepass.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
 			vertexLayoutGPrepass.mAttribs[1].mLocation = 1;
 			vertexLayoutGPrepass.mAttribs[1].mBinding = 1;
 			vertexLayoutGPrepass.mAttribs[1].mOffset = 0;
 
 			//texture
 			vertexLayoutGPrepass.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
-			vertexLayoutGPrepass.mAttribs[2].mFormat = ImageFormat::RG32F;
+			vertexLayoutGPrepass.mAttribs[2].mFormat = TinyImageFormat_R32G32_SFLOAT;
 			vertexLayoutGPrepass.mAttribs[2].mLocation = 2;
 			vertexLayoutGPrepass.mAttribs[2].mBinding = 2;
 			vertexLayoutGPrepass.mAttribs[2].mOffset = 0;
 		}
 
 		//set up g-prepass buffer formats
-		ImageFormat::Enum deferredFormats[GBufferRT::Noof] = {};
-		bool              deferredSrgb[GBufferRT::Noof] = {};
+		TinyImageFormat deferredFormats[GBufferRT::Noof] = {};
 		for (uint32_t i = 0; i < GBufferRT::Noof; ++i)
 		{
 			deferredFormats[i] = RenderPasses[RenderPass::GBuffer]->RenderTargets[i]->mDesc.mFormat;
-			deferredSrgb[i] = false;
 		}
 
 		PipelineDesc desc = {};
@@ -1787,7 +1797,6 @@ bool Load()
 		pipelineSettings.pDepthState = pDepthDefault;
 
 		pipelineSettings.pColorFormats = deferredFormats;
-		pipelineSettings.pSrgbValues = deferredSrgb;
 
 		pipelineSettings.mSampleCount = RenderPasses[RenderPass::GBuffer]->RenderTargets[0]->mDesc.mSampleCount;
 		pipelineSettings.mSampleQuality = RenderPasses[RenderPass::GBuffer]->RenderTargets[0]->mDesc.mSampleQuality;
@@ -1846,7 +1855,6 @@ bool Load()
 		pipelineSettings.pDepthState = pDepthNone;
 
 		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
 		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
 		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
 
@@ -1864,7 +1872,9 @@ bool Load()
 	if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 		return false;
 
-	loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
+	loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+
+	prepareDescriptorSets();
 
 	return true;
 }
@@ -1976,15 +1986,9 @@ void Update(float deltaTime)
 
 	gFrameNumber++;
 
-  // ProfileSetDisplayMode()
-      // TODO: need to change this better way 
   if (gMicroProfiler != bPrevToggleMicroProfiler)
   {
-    Profile& S = *ProfileGet();
-    int nValue = gMicroProfiler ? 1 : 0;
-    nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
-    S.nDisplay = nValue;
-
+    toggleProfiler();
     bPrevToggleMicroProfiler = gMicroProfiler;
   }
 
@@ -2040,12 +2044,12 @@ void Draw()
 		for (uint32_t i = 0; i < RenderPasses[RenderPass::GBuffer]->RenderTargets.size(); ++i)
 		{
 			barrier = { RenderPasses[RenderPass::GBuffer]->RenderTargets[i]->pTexture, RESOURCE_STATE_RENDER_TARGET };
-			cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, false);
+			cmdResourceBarrier(cmd, 0, NULL, 1, &barrier);
 		}
 
 		// Transfer DepthBuffer to a DephtWrite State
 		barrier = { pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE };
-		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, false);
+		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier);
 
 		//Set rendertargets and viewports
 		cmdBindRenderTargets(
@@ -2065,35 +2069,19 @@ void Draw()
 
 		//draw sponza
 		{
-			DescriptorData params[7] = {};
-			params[0].pName = "cbPerPass";
-			params[0].ppBuffers = &RenderPasses[RenderPass::GBuffer]->pPerPassCB[gFrameIndex];
-			params[1].pName = "cbPerProp";
-			params[1].ppBuffers = &SponzaProp.pConstantBuffer;
-#ifndef TARGET_IOS
-			params[2].pName = "textureMaps";
-			params[2].ppTextures = pMaterialTextures;
-			params[2].mCount = TOTAL_IMGS;
-			cmdBindDescriptors(cmd, pDescriptorBinder, RenderPasses[RenderPass::GBuffer]->pRootSignature, 3, params);
-#else
-			cmdBindDescriptors(cmd, pDescriptorBinder, RenderPasses[RenderPass::GBuffer]->pRootSignature, 2, params);
-#endif
-
 			struct MaterialMaps
 			{
 				uint mapIDs[5];
 			} data;
 
-			for (MeshBatch* mesh : SponzaProp.MeshBatches)
+			for (uint32_t i = 0; i < (uint32_t)SponzaProp.MeshBatches.size(); ++i)
 			{
+				MeshBatch* mesh = SponzaProp.MeshBatches[i];
 				int materialID = mesh->MaterialID;
 				materialID *= 5;    //because it uses 5 basic textures for rendering BRDF
 
 				//use bindless textures on all platforms except for iOS
 #ifndef TARGET_IOS
-				params[0].pName = "cbTextureRootConstants";
-				params[0].pRootConstant = &data;
-
 				for (int j = 0; j < 5; ++j)
 				{
 					data.mapIDs[j] = gSponzaTextureIndexforMaterial[materialID + j];
@@ -2101,21 +2089,13 @@ void Draw()
 				//TODO: If we use more than albedo on iOS we need to bind every texture manually and update
 				//descriptor param count.
 				//one descriptor param if using bindless textures
-				cmdBindDescriptors(cmd, pDescriptorBinder, RenderPasses[RenderPass::GBuffer]->pRootSignature, 1, params);
+				cmdBindPushConstants(cmd, RenderPasses[RenderPass::GBuffer]->pRootSignature, "cbTextureRootConstants", &data);
 #else
-				//bind textures explicitely for iOS
-				//we only use Albedo for the time being so just bind the albedo texture.
-				//for (int j = 0; j < 5; ++j)
-				{
-					params[0].pName = pTextureName[0];    //Albedo texture name
-					uint textureId = gSponzaTextureIndexforMaterial[materialID];
-					params[0].ppTextures = &pMaterialTextures[textureId];
-				}
-				//TODO: If we use more than albedo on iOS we need to bind every texture manually and update
-				//descriptor param count.
-				//one descriptor param if using bindless textures
-				cmdBindDescriptors(cmd, pDescriptorBinder, RenderPasses[RenderPass::GBuffer]->pRootSignature, 1, params);
+				cmdBindDescriptorSet(cmd, i, RenderPasses[RenderPass::GBuffer]->pDescriptorSets[2]);
 #endif
+
+                cmdBindDescriptorSet(cmd, 0, RenderPasses[RenderPass::GBuffer]->pDescriptorSets[0]);
+                cmdBindDescriptorSet(cmd, gFrameIndex, RenderPasses[RenderPass::GBuffer]->pDescriptorSets[1]);
 
 				Buffer* pVertexBuffers[] = { mesh->pPositionStream, mesh->pNormalStream, mesh->pUVStream };
 				cmdBindVertexBuffer(cmd, 3, pVertexBuffers, NULL);
@@ -2145,23 +2125,11 @@ void Draw()
 									  { RenderPasses[RenderPass::GBuffer]->RenderTargets[GBufferRT::Normals]->pTexture,
 										RESOURCE_STATE_SHADER_RESOURCE },
 									  { RenderPasses[RenderPass::RaytracedShadows]->Textures[0], RESOURCE_STATE_UNORDERED_ACCESS } };
-		cmdResourceBarrier(cmd, 0, NULL, 3, barriers, false);
+		cmdResourceBarrier(cmd, 0, NULL, 3, barriers);
 
 		cmdBindPipeline(cmd, RenderPasses[RenderPass::RaytracedShadows]->pPipeline);
-
-		DescriptorData params[9] = {};
-		params[0].pName = "cbPerPass";
-		params[0].ppBuffers = &RenderPasses[RenderPass::RaytracedShadows]->pPerPassCB[gFrameIndex];
-		params[1].pName = "depthBuffer";
-		params[1].ppTextures = &pDepthBuffer->pTexture;
-		params[2].pName = "normalBuffer";
-		params[2].ppTextures = &RenderPasses[RenderPass::GBuffer]->RenderTargets[GBufferRT::Normals]->pTexture;
-		params[3].pName = "BVHTree";
-		params[3].ppBuffers = &BVHBoundingBoxesBuffer;
-		params[4].pName = "outputRT";
-		params[4].ppTextures = &RenderPasses[RenderPass::RaytracedShadows]->Textures[0];
-
-		cmdBindDescriptors(cmd, pDescriptorBinder, RenderPasses[RenderPass::RaytracedShadows]->pRootSignature, 5, params);
+		cmdBindDescriptorSet(cmd, 0, RenderPasses[RenderPass::RaytracedShadows]->pDescriptorSets[0]);
+		cmdBindDescriptorSet(cmd, gFrameIndex, RenderPasses[RenderPass::RaytracedShadows]->pDescriptorSets[1]);
 
 		const uint32_t threadGroupSizeX = RenderPasses[RenderPass::RaytracedShadows]->Textures[0]->mDesc.mWidth / 8 + 1;
 		const uint32_t threadGroupSizeY = RenderPasses[RenderPass::RaytracedShadows]->Textures[0]->mDesc.mHeight / 8 + 1;
@@ -2185,21 +2153,11 @@ void Draw()
 		// Transfer shadowbuffer to SRV and lightbuffer to UAV states
 		TextureBarrier barriers[] = { { RenderPasses[RenderPass::RaytracedShadows]->Textures[0], RESOURCE_STATE_SHADER_RESOURCE },
 									  { RenderPasses[RenderPass::Lighting]->Textures[0], RESOURCE_STATE_UNORDERED_ACCESS } };
-		cmdResourceBarrier(cmd, 0, NULL, 2, barriers, false);
+		cmdResourceBarrier(cmd, 0, NULL, 2, barriers);
 
 		cmdBindPipeline(cmd, RenderPasses[RenderPass::Lighting]->pPipeline);
-
-		DescriptorData params[4] = {};
-		params[0].pName = "cbPerPass";
-		params[0].ppBuffers = &RenderPasses[RenderPass::Lighting]->pPerPassCB[gFrameIndex];
-		params[1].pName = "normalbuffer";
-		params[1].ppTextures = &RenderPasses[RenderPass::GBuffer]->RenderTargets[GBufferRT::Normals]->pTexture;
-		params[2].pName = "shadowbuffer";
-		params[2].ppTextures = &RenderPasses[RenderPass::RaytracedShadows]->Textures[0];
-		params[3].pName = "outputRT";
-		params[3].ppTextures = &RenderPasses[RenderPass::Lighting]->Textures[0];
-
-		cmdBindDescriptors(cmd, pDescriptorBinder, RenderPasses[RenderPass::Lighting]->pRootSignature, 4, params);
+		cmdBindDescriptorSet(cmd, 0, RenderPasses[RenderPass::Lighting]->pDescriptorSets[0]);
+		cmdBindDescriptorSet(cmd, gFrameIndex, RenderPasses[RenderPass::Lighting]->pDescriptorSets[1]);
 
 		const uint32_t threadGroupSizeX = RenderPasses[RenderPass::Lighting]->Textures[0]->mDesc.mWidth / 16 + 1;
 		const uint32_t threadGroupSizeY = RenderPasses[RenderPass::Lighting]->Textures[0]->mDesc.mHeight / 16 + 1;
@@ -2224,19 +2182,10 @@ void Draw()
 									  { RenderPasses[RenderPass::GBuffer]->RenderTargets[GBufferRT::Albedo]->pTexture,
 										RESOURCE_STATE_SHADER_RESOURCE },
 									  { RenderPasses[RenderPass::Composite]->Textures[0], RESOURCE_STATE_UNORDERED_ACCESS } };
-		cmdResourceBarrier(cmd, 0, NULL, 3, barriers, false);
+		cmdResourceBarrier(cmd, 0, NULL, 3, barriers);
 
 		cmdBindPipeline(cmd, RenderPasses[RenderPass::Composite]->pPipeline);
-
-		DescriptorData params[4] = {};
-		params[0].pName = "albedobuffer";
-		params[0].ppTextures = &RenderPasses[RenderPass::GBuffer]->RenderTargets[GBufferRT::Albedo]->pTexture;
-		params[1].pName = "lightbuffer";
-		params[1].ppTextures = &RenderPasses[RenderPass::Lighting]->Textures[0];
-		params[2].pName = "outputRT";
-		params[2].ppTextures = &RenderPasses[RenderPass::Composite]->Textures[0];
-
-		cmdBindDescriptors(cmd, pDescriptorBinder, RenderPasses[RenderPass::Composite]->pRootSignature, 3, params);
+		cmdBindDescriptorSet(cmd, 0, RenderPasses[RenderPass::Composite]->pDescriptorSets[0]);
 
 		const uint32_t threadGroupSizeX = RenderPasses[RenderPass::Composite]->Textures[0]->mDesc.mWidth / 16 + 1;
 		const uint32_t threadGroupSizeY = RenderPasses[RenderPass::Composite]->Textures[0]->mDesc.mHeight / 16 + 1;
@@ -2248,7 +2197,7 @@ void Draw()
 		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
 		barriers[1] = { RenderPasses[RenderPass::Composite]->Textures[0], RESOURCE_STATE_SHADER_RESOURCE };
 
-		cmdResourceBarrier(cmd, 0, NULL, 2, barriers, true);
+		cmdResourceBarrier(cmd, 0, NULL, 2, barriers);
 
 		endCmd(cmd);
 		allCmds.push_back(cmd);
@@ -2268,11 +2217,7 @@ void Draw()
 
 		// Draw  results
 		cmdBindPipeline(cmd, RenderPasses[RenderPass::CopyToBackbuffer]->pPipeline);
-
-		DescriptorData params[4] = {};
-		params[0].pName = "inputRT";
-		params[0].ppTextures = &RenderPasses[RenderPass::Composite]->Textures[0];
-		cmdBindDescriptors(cmd, pDescriptorBinder, RenderPasses[RenderPass::CopyToBackbuffer]->pRootSignature, 1, params);
+		cmdBindDescriptorSet(cmd, 0, RenderPasses[RenderPass::CopyToBackbuffer]->pDescriptorSets[0]);
 
 		//draw fullscreen triangle
 		cmdDraw(cmd, 3, 0);
@@ -2293,7 +2238,7 @@ void Draw()
 			&gFrameTimeDraw);
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
 
-		cmdDrawProfiler(cmd);
+		cmdDrawProfiler();
 
 		gAppUI.Gui(pGuiWindow);
 		gAppUI.Draw(cmd);
@@ -2304,7 +2249,7 @@ void Draw()
 			{ pRenderTarget->pTexture, RESOURCE_STATE_PRESENT },
 		};
 
-		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, true);
+		cmdResourceBarrier(cmd, 0, NULL, 1, barriers);
 
 		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 
@@ -2321,6 +2266,110 @@ void Draw()
 }
 
 const char* GetName() { return "09a_HybridRaytracing"; }
+
+void prepareDescriptorSets()
+{
+	// GBuffer
+	{
+		DescriptorData params[7] = {};
+		params[0].pName = "cbPerProp";
+		params[0].ppBuffers = &SponzaProp.pConstantBuffer;
+#ifndef TARGET_IOS
+		params[1].pName = "textureMaps";
+		params[1].ppTextures = pMaterialTextures;
+		params[1].mCount = TOTAL_IMGS;
+		updateDescriptorSet(pRenderer, 0, RenderPasses[RenderPass::GBuffer]->pDescriptorSets[0], 2, params);
+#else
+        updateDescriptorSet(pRenderer, 0, RenderPasses[RenderPass::GBuffer]->pDescriptorSets[0], 1, params);
+		
+
+		for (uint32_t i = 0; i < (uint32_t)SponzaProp.MeshBatches.size(); ++i)
+		{
+			MeshBatch* mesh = SponzaProp.MeshBatches[i];
+			int materialID = mesh->MaterialID;
+			materialID *= 5;    //because it uses 5 basic textures for rendering BRDF
+
+			//bind textures explicitely for iOS
+			//we only use Albedo for the time being so just bind the albedo texture.
+			//for (int j = 0; j < 5; ++j)
+			{
+				params[0].pName = pTextureName[0];    //Albedo texture name
+				uint textureId = gSponzaTextureIndexforMaterial[materialID];
+				params[0].ppTextures = &pMaterialTextures[textureId];
+			}
+			//TODO: If we use more than albedo on iOS we need to bind every texture manually and update
+			//descriptor param count.
+			//one descriptor param if using bindless textures
+			updateDescriptorSet(pRenderer, i, RenderPasses[RenderPass::GBuffer]->pDescriptorSets[2], 1, params);
+		}
+		
+#endif
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			params[0].pName = "cbPerPass";
+			params[0].ppBuffers = &RenderPasses[RenderPass::GBuffer]->pPerPassCB[i];
+			updateDescriptorSet(pRenderer, i, RenderPasses[RenderPass::GBuffer]->pDescriptorSets[1], 1, params);
+		}
+	}
+
+	// Raytraced Shadows
+	{
+		DescriptorData params[9] = {};
+		params[0].pName = "depthBuffer";
+		params[0].ppTextures = &pDepthBuffer->pTexture;
+		params[1].pName = "normalBuffer";
+		params[1].ppTextures = &RenderPasses[RenderPass::GBuffer]->RenderTargets[GBufferRT::Normals]->pTexture;
+		params[2].pName = "BVHTree";
+		params[2].ppBuffers = &BVHBoundingBoxesBuffer;
+		params[3].pName = "outputRT";
+		params[3].ppTextures = &RenderPasses[RenderPass::RaytracedShadows]->Textures[0];
+		updateDescriptorSet(pRenderer, 0, RenderPasses[RenderPass::RaytracedShadows]->pDescriptorSets[0], 4, params);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			params[0].pName = "cbPerPass";
+			params[0].ppBuffers = &RenderPasses[RenderPass::RaytracedShadows]->pPerPassCB[i];
+			updateDescriptorSet(pRenderer, i, RenderPasses[RenderPass::RaytracedShadows]->pDescriptorSets[1], 1, params);
+		}
+	}
+
+	// Lighting
+	{
+		DescriptorData params[4] = {};
+		params[0].pName = "normalbuffer";
+		params[0].ppTextures = &RenderPasses[RenderPass::GBuffer]->RenderTargets[GBufferRT::Normals]->pTexture;
+		params[1].pName = "shadowbuffer";
+		params[1].ppTextures = &RenderPasses[RenderPass::RaytracedShadows]->Textures[0];
+		params[2].pName = "outputRT";
+		params[2].ppTextures = &RenderPasses[RenderPass::Lighting]->Textures[0];
+		updateDescriptorSet(pRenderer, 0, RenderPasses[RenderPass::Lighting]->pDescriptorSets[0], 3, params);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			params[0].pName = "cbPerPass";
+			params[0].ppBuffers = &RenderPasses[RenderPass::Lighting]->pPerPassCB[i];
+			updateDescriptorSet(pRenderer, i, RenderPasses[RenderPass::Lighting]->pDescriptorSets[1], 1, params);
+		}
+	}
+
+	// Composite
+	{
+		DescriptorData params[4] = {};
+		params[0].pName = "albedobuffer";
+		params[0].ppTextures = &RenderPasses[RenderPass::GBuffer]->RenderTargets[GBufferRT::Albedo]->pTexture;
+		params[1].pName = "lightbuffer";
+		params[1].ppTextures = &RenderPasses[RenderPass::Lighting]->Textures[0];
+		params[2].pName = "outputRT";
+		params[2].ppTextures = &RenderPasses[RenderPass::Composite]->Textures[0];
+		updateDescriptorSet(pRenderer, 0, RenderPasses[RenderPass::Composite]->pDescriptorSets[0], 3, params);
+	}
+
+	// Display
+	{
+		DescriptorData params[4] = {};
+		params[0].pName = "inputRT";
+		params[0].ppTextures = &RenderPasses[RenderPass::Composite]->Textures[0];
+		updateDescriptorSet(pRenderer, 0, RenderPasses[RenderPass::CopyToBackbuffer]->pDescriptorSets[0], 1, params);
+	}
+}
 
 bool addSwapChain()
 {

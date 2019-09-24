@@ -33,12 +33,12 @@
 
 #include "shader_defs.h"
 
-layout(std140, set = 0, binding = 0) uniform uniforms
+layout(std140, UPDATE_FREQ_PER_FRAME, binding = 0) uniform uniforms
 {
 	PerFrameConstants uniformsData;
 };
 
-layout(std430, set = 0, binding = 1) restrict readonly buffer lights
+layout(std430, UPDATE_FREQ_NONE, binding = 1) restrict readonly buffer lights
 {
 	LightData lightsBuffer[];
 };

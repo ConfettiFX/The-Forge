@@ -1,0 +1,3 @@
+build/*
+!build/basis_transcoder.js
+!build/basis_transcoder.wasm

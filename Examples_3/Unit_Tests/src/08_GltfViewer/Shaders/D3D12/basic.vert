@@ -32,7 +32,7 @@ struct VsIn
 	uint2 alphaSettings     : TEXCOORD2;
 };
 
-cbuffer cbPerPass : register(b0) 
+cbuffer cbPerPass : register(b0, UPDATE_FREQ_PER_FRAME)
 {
 	float4x4	projView;
 	float4      camPos;
@@ -41,7 +41,7 @@ cbuffer cbPerPass : register(b0)
 	int4        quantizationParams;
 }
 
-cbuffer cbPerProp : register(b1, space1)
+cbuffer cbPerProp : register(b1, UPDATE_FREQ_PER_DRAW)
 {
 	float4x4	world;
 	float4x4	InvTranspose;
@@ -81,9 +81,9 @@ PsIn main(VsIn In)
     float unorm8Scale = float(1 << 8) - 1.0f;
 
 	float4 inPos = float4((float3(In.position.xyz) / unormPositionScale) * posScale, 1.0f) + posOffset;
-	
+	inPos += centerOffset;
 	float3 inNormal = float3(In.normal.xyz) / snormNormalScale;
-	float4 worldPosition = mul(world, inPos) + centerOffset;
+	float4 worldPosition = mul(world, inPos);
 	worldPosition.xyz /= posScale;
 	Out.position = mul(projView, worldPosition);
 	

@@ -144,15 +144,14 @@ typedef struct Scene
 	uint32_t                           totalVertices;
 	MeshIn*                            meshes;
 	Material*                          materials;
-	eastl::vector<SceneVertexPos>      positions;
-	eastl::vector<SceneVertexTexCoord> texCoords;
-	eastl::vector<SceneVertexNormal>   normals;
-	eastl::vector<SceneVertexTangent>  tangents;
+	SceneVertexPos*                    positions;
+	SceneVertexTexCoord*               texCoords;
+	SceneVertexNormal*                 normals;
+	SceneVertexTangent*                tangents;
+	uint32_t*                          indices;
 	char**                             textures;
 	char**                             normalMaps;
 	char**                             specularMaps;
-
-	eastl::vector<uint32_t> indices;
 } Scene;
 
 typedef struct FilterBatchData
@@ -189,6 +188,7 @@ typedef struct FilterBatchChunk
 
 Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY, float offsetZ);
 void   removeScene(Scene* scene);
+void   removeSceneCPUData(Scene* scene);
 void   createAABB(const Scene* pScene, MeshIn* mesh);
 void   createClusters(bool twoSided, const Scene* pScene, MeshIn* mesh);
 void   destroyClusters(MeshIn* mesh);

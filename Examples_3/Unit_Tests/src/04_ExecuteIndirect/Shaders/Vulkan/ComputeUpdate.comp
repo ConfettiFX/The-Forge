@@ -70,7 +70,8 @@ struct IndirectDrawCommand
     uint padding[3];
 };
 
-layout (std140, set=0, binding=0) uniform uniformBlock {
+layout (std140, UPDATE_FREQ_PER_FRAME, binding=0) uniform uniformBlock
+{
     uniform mat4 viewProj;
     uniform vec4 camPos;
     uniform float dt;
@@ -80,17 +81,17 @@ layout (std140, set=0, binding=0) uniform uniformBlock {
     uniform int indexOffsets[MAX_LOD_OFFSETS];
 };
 
-layout (std430, set=0, binding=1) buffer asteroidsStatic
+layout (std430, UPDATE_FREQ_NONE, binding=1) readonly buffer asteroidsStatic
 {
     AsteroidStatic asteroidsStaticBuffer[];
 };
 
-layout (std430, set=0, binding=2) buffer asteroidsDynamic
+layout (std430, UPDATE_FREQ_NONE, binding=2) buffer asteroidsDynamic
 {
     AsteroidDynamic asteroidsDynamicBuffer[];
 };
 
-layout (std430, set=0, binding=3) buffer drawCmds
+layout (std430, UPDATE_FREQ_NONE, binding=3) writeonly buffer drawCmds
 {
     IndirectDrawCommand indirectDrawBuffer[];
 };

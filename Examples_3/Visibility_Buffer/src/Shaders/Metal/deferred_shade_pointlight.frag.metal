@@ -51,42 +51,51 @@ struct RootConstantDrawSceneData
 	packed_float4 CameraPlane; //x : near, y : far
 };
 
+struct FSData {
+#if SAMPLE_COUNT > 1
+    texture2d_ms<float,access::read> gBufferColor;
+    texture2d_ms<float,access::read> gBufferNormal;
+    texture2d_ms<float,access::read> gBufferSpecular;
+    texture2d_ms<float,access::read> gBufferSimulation;
+    depth2d_ms<float,access::read> gBufferDepth;
+#else
+    texture2d<float,access::read> gBufferColor;
+    texture2d<float,access::read> gBufferNormal;
+    texture2d<float,access::read> gBufferSpecular;
+    texture2d<float,access::read> gBufferSimulation ;
+    depth2d<float,access::read> gBufferDepth;
+#endif
+};
+
+struct FSDataPerFrame {
+    constant PerFrameConstants& uniforms;
+};
+
 fragment float4 stageMain(VSOutput input                                        [[stage_in]],
                           uint32_t sampleID                                     [[sample_id]],
-                          constant PerFrameConstants& uniforms                  [[buffer(1)]],
-						  constant RootConstantDrawSceneData& RootConstantDrawScene          [[buffer(2)]],
-#if SAMPLE_COUNT > 1
-						  texture2d_ms<float,access::read> gBufferColor         [[texture(0)]],
-						  texture2d_ms<float,access::read> gBufferNormal        [[texture(1)]],
-                          texture2d_ms<float,access::read> gBufferSpecular      [[texture(2)]],
-                          texture2d_ms<float,access::read> gBufferSimulation    [[texture(3)]],
-                          depth2d_ms<float,access::read> gBufferDepth           [[texture(4)]])
-#else
-						  texture2d<float,access::read> gBufferColor            [[texture(0)]],
-						  texture2d<float,access::read> gBufferNormal           [[texture(1)]],
-                          texture2d<float,access::read> gBufferSpecular         [[texture(2)]],
-                          texture2d<float,access::read> gBufferSimulation       [[texture(3)]],
-                          depth2d<float,access::read> gBufferDepth              [[texture(4)]])
-#endif
+constant FSData& fsData [[buffer(UPDATE_FREQ_NONE)]],
+constant FSDataPerFrame& fsDataPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]]
+//						  constant RootConstantDrawSceneData& RootConstantDrawScene          [[buffer(2)]],
+)
 {
-	float4 albedoData = gBufferColor.read(uint2(input.position.xy), sampleID);
-    float4 normalData = gBufferNormal.read(uint2(input.position.xy), sampleID);
+	float4 albedoData = fsData.gBufferColor.read(uint2(input.position.xy), sampleID);
+    float4 normalData = fsData.gBufferNormal.read(uint2(input.position.xy), sampleID);
     if (normalData.x == 0 && normalData.y == 0 && normalData.z == 0) return float4(0);
 
-    float depth = gBufferDepth.read(uint2(input.position.xy), sampleID);
-    float4 specularData = gBufferSpecular.read(uint2(input.position.xy), sampleID);
-    float4 simulation = gBufferSimulation.read(uint2(input.position.xy), sampleID);
+    float depth = fsData.gBufferDepth.read(uint2(input.position.xy), sampleID);
+    float4 specularData = fsData.gBufferSpecular.read(uint2(input.position.xy), sampleID);
+    float4 simulation = fsData.gBufferSimulation.read(uint2(input.position.xy), sampleID);
 	
     float3 normal = normalData.xyz * 2.0 - 1.0;
-    float2 screenPos = ((input.position.xy / uniforms.cullingViewports[VIEW_CAMERA].windowSize) * 2.0 - 1.0);
+    float2 screenPos = ((input.position.xy / fsDataPerFrame.uniforms.cullingViewports[VIEW_CAMERA].windowSize) * 2.0 - 1.0);
     screenPos.y = -screenPos.y;
-    float4 position = uniforms.transform[VIEW_CAMERA].invVP * float4(screenPos,depth,1) + simulation;
+    float4 position = fsDataPerFrame.uniforms.transform[VIEW_CAMERA].invVP * float4(screenPos,depth,1) + simulation;
     float3 posWS = position.xyz / position.w;
 	
 	bool isTwoSided = (albedoData.a > 0.5);
 	bool isBackFace = false;
 	
-	float3 ViewVec = normalize(uniforms.camPos.xyz - posWS.xyz);
+	float3 ViewVec = normalize(fsDataPerFrame.uniforms.camPos.xyz - posWS.xyz);
 	
 	//if it is backface
 	//this should be < 0 but our mesh's edge normals are smoothed, badly
@@ -98,11 +107,11 @@ fragment float4 stageMain(VSOutput input                                        
 		isBackFace = true;
 	}
 	
-	float3 HalfVec = normalize(ViewVec - uniforms.lightDir.xyz);
+	float3 HalfVec = normalize(ViewVec - fsDataPerFrame.uniforms.lightDir.xyz);
 	float3 ReflectVec = reflect(-ViewVec, normal);
 	float NoV = saturate(dot(normal, ViewVec));
 	
-	float NoL = dot(normal, -uniforms.lightDir.xyz);
+	float NoL = dot(normal, -fsDataPerFrame.uniforms.lightDir.xyz);
 	
 	// Deal with two faced materials
 	NoL = (isTwoSided ? abs(NoL) : saturate(NoL));
@@ -113,8 +122,9 @@ fragment float4 stageMain(VSOutput input                                        
 	float Roughness = specularData.w;
 	float Metallic = normalData.w;
 	
-	float fLightingMode = clamp(float(RootConstantDrawScene.lightingMode), 0.0, 1.0);
-	
+//	float fLightingMode = clamp(float(RootConstantDrawScene.lightingMode), 0.0, 1.0);
+    float fLightingMode = clamp(float(fsDataPerFrame.uniforms.lightingMode), 0.0, 1.0);
+    
 	float3 color = pointLightShade(
 								   normal,
 								   ViewVec,
@@ -124,8 +134,8 @@ fragment float4 stageMain(VSOutput input                                        
 								   NoV,
 								   input.lightPos,
 								   input.color,
-								   float4(uniforms.camPos).xyz + simulation.xyz,
-								   float4(uniforms.lightDir).xyz,
+								   float4(fsDataPerFrame.uniforms.camPos).xyz + simulation.xyz,
+								   float4(fsDataPerFrame.uniforms.lightDir).xyz,
 								   position,
 								   posWS,
 								   DiffuseColor,

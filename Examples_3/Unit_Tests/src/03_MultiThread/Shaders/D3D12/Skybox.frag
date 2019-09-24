@@ -22,13 +22,8 @@
  * under the License.
 */
 
-
-cbuffer uniformBlock : register(b0)
+struct VSOutput
 {
-	float4x4 mvp;
-};
-
-struct VSOutput {
 	float4 Position : SV_POSITION;
     float4 TexCoord : TEXCOORD;
 };
@@ -43,7 +38,6 @@ Texture2D BackText : register(t9);
 
 float4 main(VSOutput input) : SV_TARGET
 {
-    
 	//float2 newCoord = float2()
 //    return float4(input.TexCoord/20+0.5,1.0);
     float2 newtextcoord;

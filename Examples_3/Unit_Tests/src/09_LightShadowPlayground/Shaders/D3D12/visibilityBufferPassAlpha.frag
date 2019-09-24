@@ -34,7 +34,7 @@ struct PsIn
 
 ConstantBuffer<RootConstant> indirectRootConstant : register(b2);
 
-StructuredBuffer<uint> indirectMaterialBuffer : register(t0);
+StructuredBuffer<uint> indirectMaterialBuffer : register(t0, UPDATE_FREQ_PER_FRAME);
 Texture2D diffuseMaps[] : register(t1);
 
 SamplerState nearClampSampler : register(s0);

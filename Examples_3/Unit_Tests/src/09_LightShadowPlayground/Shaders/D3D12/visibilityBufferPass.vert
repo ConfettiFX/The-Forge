@@ -23,7 +23,7 @@
 */
 
 
-cbuffer objectUniformBlock : register(b0)
+cbuffer objectUniformBlock : register(b0, UPDATE_FREQ_PER_DRAW)
 {
     float4x4 WorldViewProjMat;
     float4x4 WorldMat;

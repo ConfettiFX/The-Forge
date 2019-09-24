@@ -10,8 +10,8 @@ struct VSOutput
     vec4 Position;
     vec2 Tex_Coord;
 };
-layout(set = 0, binding = 1) uniform sampler clampNearSampler;
-layout(set = 0, binding = 2) uniform texture2D screenTexture;
+layout(UPDATE_FREQ_NONE, binding = 1) uniform sampler clampNearSampler;
+layout(UPDATE_FREQ_NONE, binding = 2) uniform texture2D screenTexture;
 
 vec4 HLSLmain(VSOutput input1)
 {

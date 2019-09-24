@@ -26,11 +26,8 @@
 TextureCube<float4> skyboxTex : register(t0);
 SamplerState skyboxSampler : register(s0);
 
-struct VSinput {
-	float4 Position : POSITION;
-};
-
-struct VSOutput {
+struct VSOutput
+{
 	float4 Position : SV_POSITION;
 	float3 pos : POSITION;
 };

@@ -1,7 +1,7 @@
 #version 450 core
 
-layout(set = 3, binding = 0, rgba8) uniform image2D Source;
-layout(set = 3, binding = 1, rgba8) uniform image2D Destination;
+layout(UPDATE_FREQ_PER_DRAW, binding = 0, rgba8) uniform image2D Source;
+layout(UPDATE_FREQ_PER_DRAW, binding = 1, rgba8) uniform image2D Destination;
 
 layout(push_constant) uniform RootConstant_Block
 {

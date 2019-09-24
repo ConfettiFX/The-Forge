@@ -32,6 +32,12 @@ struct Fragment_Shader
     {
         float4x4 LightViewProj;
     };
+    struct Uniforms_cbPerFrame
+    {
+        float4x4 worldMat;
+        float4x4 projViewMat;
+        float4 screenSize;
+    };
     constant Uniforms_ShadowUniformBuffer & ShadowUniformBuffer;
     texture2d<float> ShadowTexture;
     sampler clampMiplessLinearSampler;
@@ -85,20 +91,30 @@ constant Uniforms_ShadowUniformBuffer & ShadowUniformBuffer,texture2d<float> Sha
 ShadowUniformBuffer(ShadowUniformBuffer),ShadowTexture(ShadowTexture),clampMiplessLinearSampler(clampMiplessLinearSampler) {}
 };
 
+struct Scene
+{
+	texture2d<float> ShadowTexture [[id(0)]];
+	sampler clampMiplessLinearSampler [[id(1)]];
+};
+
+struct PerFrame
+{
+	constant Fragment_Shader::Uniforms_ShadowUniformBuffer& ShadowUniformBuffer [[id(0)]];
+	constant Fragment_Shader::Uniforms_cbPerFrame& cbPerFrame [[id(1)]];
+};
 
 fragment float4 stageMain(
     Fragment_Shader::VSOutput input [[stage_in]],
-    constant Fragment_Shader::Uniforms_ShadowUniformBuffer & ShadowUniformBuffer [[buffer(8)]],
-    texture2d<float> ShadowTexture [[texture(14)]],
-    sampler clampMiplessLinearSampler [[sampler(5)]])
+    constant Scene& argBufferStatic [[buffer(UPDATE_FREQ_NONE)]],
+    constant PerFrame& argBufferPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]])
 {
     Fragment_Shader::VSOutput input0;
     input0.Position = float4(input.Position.xyz, 1.0 / input.Position.w);
     input0.WorldPos = input.WorldPos;
     input0.TexCoord = input.TexCoord;
     Fragment_Shader main(
-    ShadowUniformBuffer,
-    ShadowTexture,
-    clampMiplessLinearSampler);
+    argBufferPerFrame.ShadowUniformBuffer,
+    argBufferStatic.ShadowTexture,
+    argBufferStatic.clampMiplessLinearSampler);
     return main.main(input0);
 }

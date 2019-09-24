@@ -32,22 +32,22 @@ struct Vertex_Shader
         return Out;
     };
 
-    Vertex_Shader(
-constant Uniforms_uRootConstants & uRootConstants,constant Uniforms_uniformBlock & uniformBlock) :
-uRootConstants(uRootConstants),uniformBlock(uniformBlock) {}
+    Vertex_Shader(constant Uniforms_uRootConstants & uRootConstants,constant Uniforms_uniformBlock & uniformBlock)
+        : uRootConstants(uRootConstants)
+        , uniformBlock(uniformBlock)
+    {
+    }
 };
 
-
 vertex Vertex_Shader::PsIn stageMain(
-    Vertex_Shader::VsIn In [[stage_in]],
-    constant Vertex_Shader::Uniforms_uRootConstants & uRootConstants [[buffer(1)]],
-    constant Vertex_Shader::Uniforms_uniformBlock & uniformBlock [[buffer(2)]])
+                                     Vertex_Shader::VsIn In                                                  [[stage_in]],
+                                     constant Vertex_Shader::Uniforms_uniformBlock& uniformBlock_rootcbv     [[buffer(UPDATE_FREQ_USER + 1)]],
+                                     constant Vertex_Shader::Uniforms_uRootConstants& uRootConstants         [[buffer(UPDATE_FREQ_USER)]]
+)
 {
     Vertex_Shader::VsIn In0;
     In0.position = In.position;
     In0.texCoord = In.texCoord;
-    Vertex_Shader main(
-    uRootConstants,
-    uniformBlock);
+    Vertex_Shader main(uRootConstants, uniformBlock_rootcbv);
     return main.main(In0);
 }

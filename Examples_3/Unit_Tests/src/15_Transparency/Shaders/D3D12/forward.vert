@@ -22,30 +22,7 @@
  * under the License.
 */
 
-struct ObjectInfo
-{
-	float4x4 toWorld;
-	float4x4 normalMat;
-	uint matID;
-};
-
-cbuffer ObjectUniformBlock : register(b0, space3)
-{
-	ObjectInfo	objectInfo[MAX_NUM_OBJECTS];
-};
-
-cbuffer DrawInfoRootConstant : register(b1)
-{
-	uint baseInstance = 0;
-};
-
-cbuffer CameraUniform : register(b12)
-{
-	float4x4 camViewProj;
-	float4x4 camViewMat;
-	float4 camClipInfo;
-	float4 camPosition;
-};
+#include "shaderDefs.h"
 
 struct VSInput
 {

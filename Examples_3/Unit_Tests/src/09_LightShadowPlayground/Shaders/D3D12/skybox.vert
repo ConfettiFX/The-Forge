@@ -24,16 +24,19 @@
 
 
 
-cbuffer RootConstantCameraSky : register(b0) {
+cbuffer UniformCameraSky : register(b0, UPDATE_FREQ_PER_FRAME)
+{
 	float4x4 projView;
 	float3 camPos;
 };
 
-struct VSInput {
+struct VSInput
+{
 	float4 Position : POSITION;
 };
 
-struct VSOutput {
+struct VSOutput
+{
 	float4 Position : SV_POSITION;
 	float3 pos : POSITION;
 };

@@ -130,11 +130,17 @@ float2 IntegrateBRDF(float NdotV, float roughness)
     return float2(A, B);
 }
 
+struct CSData {
+    texture2d<float, access::write> dstTexture  [[id(0)]];
+};
+
 //[numthreads(16, 16, 1)]
-kernel void stageMain(uint3 threadPos[[thread_position_in_grid]],
-                      texture2d<float, access::write> dstTexture[[texture(0)]])
+kernel void stageMain(
+    uint3 threadPos                         [[thread_position_in_grid]],
+    constant CSData& csData                 [[buffer(UPDATE_FREQ_NONE)]]
+)
 {
     float2 texcoords = float2(float(threadPos.x + 0.5) / 512.0f, 1.0 - float(threadPos.y + 0.5) / 512.0f);
     float4 output = float4(IntegrateBRDF(texcoords.x, texcoords.y), 0.0, 0.0);
-    dstTexture.write(output, threadPos.xy);
+    csData.dstTexture.write(output, threadPos.xy);
 }

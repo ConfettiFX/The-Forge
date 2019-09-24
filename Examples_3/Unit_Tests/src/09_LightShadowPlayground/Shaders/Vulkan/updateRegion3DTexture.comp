@@ -4,14 +4,14 @@
 #extension GL_GOOGLE_include_directive : enable
 
 
-#include "../../SDF_Constant.h"
+#include "SDF_Constant.h"
 
-layout(set = 0, binding = 0) buffer SDFVolumeDataBuffer
+layout(UPDATE_FREQ_PER_FRAME, binding = 0) buffer SDFVolumeDataBuffer
 {
     float SDFVolumeDataBuffer_Data[];
 };
 
-layout(set = 0, binding = 1) uniform  UpdateSDFVolumeTextureAtlasCB
+layout(UPDATE_FREQ_PER_FRAME, binding = 1) uniform  UpdateSDFVolumeTextureAtlasCB
 {
     uvec3 mSourceAtlasVolumeMinCoord;
     uvec3 mSourceDimensionSize;
@@ -19,7 +19,7 @@ layout(set = 0, binding = 1) uniform  UpdateSDFVolumeTextureAtlasCB
 };
 
 
-layout(set = 0, binding = 2, r16f) uniform image3D SDFVolumeTextureAtlas;
+layout(UPDATE_FREQ_NONE, binding = 2, r16f) uniform image3D SDFVolumeTextureAtlas;
 
 layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 void HLSLmain(uvec3 threadID, uvec3 GTid, uvec3 Gid)

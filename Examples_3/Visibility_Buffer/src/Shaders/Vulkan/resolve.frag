@@ -30,8 +30,8 @@
 
 // USERMACRO: SAMPLE_COUNT [1,2,4]
 
-layout(set=0, binding=0) uniform texture2DMS msaaSource;
-layout(set=0, binding=1) uniform sampler dummySampler;
+layout(UPDATE_FREQ_NONE, binding=0) uniform texture2DMS msaaSource;
+layout(UPDATE_FREQ_NONE, binding=1) uniform sampler dummySampler;
 
 layout(location=0) out vec4 baseOut;
 void main()

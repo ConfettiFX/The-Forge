@@ -41,7 +41,7 @@ struct PsInAlphaTested
 	float2 texCoord : TEXCOORD0;
 };
 
-ConstantBuffer<PerFrameConstants> uniforms : register(b0);
+ConstantBuffer<PerFrameConstants> uniforms : register(b0, UPDATE_FREQ_PER_FRAME);
 
 PsInAlphaTested main(VsInAlphaTested In)
 {

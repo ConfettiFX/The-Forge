@@ -219,27 +219,12 @@ CachedString MSLGenerator::GetTypeName(const HLSLType& type)
 	case HLSLBaseType_Sampler2DMS:      return MakeCached("texture2d_ms<float>");
 	case HLSLBaseType_Sampler2DArray:   return MakeCached("texture2d_array<float>");
 	case HLSLBaseType_SamplerState:		return MakeCached("sampler");
+	case HLSLBaseType_SamplerComparisonState:		return MakeCached("sampler");
 	case HLSLBaseType_UserDefined:      return type.typeName;
 	default:
 		ASSERT_PARSER(0);
 		return MakeCached("<unknown type>");
 	}
-}
-
-static int GetFunctionArguments(HLSLFunctionCall* functionCall, HLSLExpression* expression[], int maxArguments)
-{
-	HLSLExpression* argument = functionCall->callArgument;
-	int numArguments = 0;
-	while (argument != NULL)
-	{
-		if (numArguments < maxArguments)
-		{
-			expression[numArguments] = argument;
-		}
-		argument = argument->nextExpression;
-		++numArguments;
-	}
-	return numArguments;
 }
 
 static void ParseSemantic(const char* semantic, unsigned int* outputLength, unsigned int* outputIndex)
@@ -400,16 +385,17 @@ public:
 
 	virtual void VisitIdentifierExpression(HLSLIdentifierExpression * node) override
 	{
+		HLSLDeclaration* pDeclaration = node->pDeclaration;
 		if (debugMe)
 		{
-			printf("%s\n", RawStr(node->name));
+			printf("%s\n", RawStr(pDeclaration->name));
 		}
 
-		AddString(node->name);
+		AddString(pDeclaration->name);
 
 		// also, check if this node is part of a cbuffer
-		CachedString foundBuffer = m_tree->FindBuffertMember(node->name);
-		AddString(foundBuffer);
+		if (pDeclaration->buffer)
+			AddString(pDeclaration->buffer->name);
 	}
 
 	void VisitSamplerIdentifier(const CachedString & samplerName)
@@ -577,16 +563,16 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 
 			if (!declaration->hidden && IsSamplerType(declaration->type))
 			{
-				bool isUsed = usedNames.HasString(declaration->cachedName.m_string);
+				bool isUsed = usedNames.HasString(declaration->name.m_string);
 				if (keepUnused || isUsed)
 				{
 					//int textureRegister = ParseRegister(declaration->registerName, nextTextureRegister) + m_options.textureRegisterOffset;
 					//int textureRegister = nextTextureRegister++ + m_options.textureRegisterOffset;
 					//int textureRegister = nextTextureRegister + m_options.textureRegisterOffset;
 					//nextTextureRegister++;
-					int textureRegister = GetTextureRegister(declaration->cachedName);
+					int textureRegister = GetTextureRegister(declaration->name);
 
-					CachedString textureName = m_tree->AddStringFormatCached("%s_texture", RawStr(declaration->cachedName));
+					CachedString textureName = m_tree->AddStringFormatCached("%s_texture", RawStr(declaration->name));
 					CachedString textureRegisterName = m_tree->AddStringFormatCached("texture(%d)", textureRegister);
 					AddClassArgument(new ClassArgument(textureName, declaration->type, textureRegisterName));
 
@@ -594,9 +580,9 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 					{
 						//int samplerRegister = nextSamplerRegister++;
 						// not sure if this is right
-						int samplerRegister = GetTextureRegister(declaration->cachedName);
+						int samplerRegister = GetTextureRegister(declaration->name);
 
-						CachedString samplerName = m_tree->AddStringFormatCached("%s_sampler", RawStr(declaration->cachedName));
+						CachedString samplerName = m_tree->AddStringFormatCached("%s_sampler", RawStr(declaration->name));
 						CachedString samplerRegisterName = m_tree->AddStringFormatCached("sampler(%d)", samplerRegister);
 						AddClassArgument(new ClassArgument(samplerName, samplerType, samplerRegisterName));
 					}
@@ -611,28 +597,28 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 				buffer->type.baseType == HLSLBaseType_TBuffer)
 			{
 
-				bool isUsed = usedNames.HasString(buffer->cachedName.m_string);
+				bool isUsed = usedNames.HasString(buffer->name.m_string);
 				if (keepUnused || isUsed)
 				{
 					HLSLType type(HLSLBaseType_UserDefined);
 					type.addressSpace = HLSLAddressSpace_Constant;
 
 
-					type.typeName = m_tree->AddStringFormatCached("Uniforms_%s", RawStr(buffer->cachedName));
+					type.typeName = m_tree->AddStringFormatCached("Uniforms_%s", RawStr(buffer->name));
 
 					//int bufferRegister = nextBufferRegister + m_options.bufferRegisterOffset;
 					//nextBufferRegister++;
-					int bufferRegister = GetTextureRegister(buffer->cachedName);
+					int bufferRegister = GetTextureRegister(buffer->name);
 
 
 					CachedString bufferRegisterName = m_tree->AddStringFormatCached("buffer(%d)", bufferRegister);
 
-					AddClassArgument(new ClassArgument(buffer->cachedName, type, bufferRegisterName));
+					AddClassArgument(new ClassArgument(buffer->name, type, bufferRegisterName));
 				}
 			}
 			if (buffer->type.baseType == HLSLBaseType_ConstantBuffer)
 			{
-				bool isUsed = usedNames.HasString(buffer->cachedName.m_string);
+				bool isUsed = usedNames.HasString(buffer->name.m_string);
 				if (keepUnused || isUsed)
 				{
 					HLSLType type(HLSLBaseType_UserDefined);
@@ -644,20 +630,20 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 						m_PushConstantBuffers.push_back(buffer);
 					}
 
-					type.typeName = m_tree->AddStringFormatCached("Uniforms_%s", RawStr(buffer->cachedName));
+					type.typeName = m_tree->AddStringFormatCached("Uniforms_%s", RawStr(buffer->name));
 
 					//int bufferRegister = nextBufferRegister + m_options.bufferRegisterOffset;
 					//nextBufferRegister++;
-					int bufferRegister = GetTextureRegister(buffer->cachedName);
+					int bufferRegister = GetTextureRegister(buffer->name);
 
 					CachedString bufferRegisterName = m_tree->AddStringFormatCached("buffer(%d)", bufferRegister);
 
-					AddClassArgument(new ClassArgument(buffer->cachedName, type, bufferRegisterName));
+					AddClassArgument(new ClassArgument(buffer->name, type, bufferRegisterName));
 				}
 			}
 			else if (buffer->type.baseType == HLSLBaseType_ByteAddressBuffer || buffer->type.baseType == HLSLBaseType_RWByteAddressBuffer || buffer->type.baseType == HLSLBaseType_RasterizerOrderedByteAddressBuffer)
 			{
-				bool isUsed = usedNames.HasString(buffer->cachedName.m_string);
+				bool isUsed = usedNames.HasString(buffer->name.m_string);
 				if (keepUnused || isUsed)
 				{
 					HLSLType type(HLSLBaseType_Uint);
@@ -668,24 +654,24 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 					//int bufferRegister = ParseRegister(buffer->registerName, nextBufferRegister) + m_options.bufferRegisterOffset;
 					//int bufferRegister = nextBufferRegister + m_options.bufferRegisterOffset;
 					//nextBufferRegister++;
-					int bufferRegister = GetTextureRegister(buffer->cachedName);
+					int bufferRegister = GetTextureRegister(buffer->name);
 
 					if (buffer->type.baseType == HLSLBaseType_RasterizerOrderedByteAddressBuffer)
 					{
 						CachedString bufferRegisterName = m_tree->AddStringFormatCached("buffer(%d), raster_order_group(%d)", bufferRegister, 0);
-						AddClassArgument(new ClassArgument(buffer->cachedName, type, bufferRegisterName, true));
+						AddClassArgument(new ClassArgument(buffer->name, type, bufferRegisterName, true));
 					}
 					else
 					{
 						CachedString bufferRegisterName = m_tree->AddStringFormatCached("buffer(%d)", bufferRegister);
-						AddClassArgument(new ClassArgument(buffer->cachedName, type, bufferRegisterName, true));
+						AddClassArgument(new ClassArgument(buffer->name, type, bufferRegisterName, true));
 					}
 				}
 			}
 			else if (buffer->type.baseType == HLSLBaseType_StructuredBuffer || buffer->type.baseType == HLSLBaseType_PureBuffer)
 			{
 
-				bool isUsed = usedNames.HasString(buffer->cachedName.m_string);
+				bool isUsed = usedNames.HasString(buffer->name.m_string);
 				if (keepUnused || isUsed)
 				{
 					HLSLType type(HLSLBaseType_UserDefined);
@@ -802,16 +788,16 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 
 					//int bufferRegister = nextBufferRegister + m_options.bufferRegisterOffset;
 					//nextBufferRegister++;
-					int bufferRegister = GetTextureRegister(buffer->cachedName);
+					int bufferRegister = GetTextureRegister(buffer->name);
 
 					CachedString bufferRegisterName = m_tree->AddStringFormatCached("buffer(%d)", bufferRegister);
 
-					AddClassArgument(new ClassArgument(buffer->cachedName, type, bufferRegisterName, true));
+					AddClassArgument(new ClassArgument(buffer->name, type, bufferRegisterName, true));
 				}
 			}
 			else if (buffer->type.baseType == HLSLBaseType_RWBuffer || buffer->type.baseType == HLSLBaseType_RasterizerOrderedBuffer)
 			{
-				bool isUsed = usedNames.HasString(buffer->cachedName.m_string);
+				bool isUsed = usedNames.HasString(buffer->name.m_string);
 				if (keepUnused || isUsed)
 				{
 					HLSLType type(buffer->type.elementType);
@@ -827,17 +813,17 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 
 					//int bufferRegister = nextBufferRegister + m_options.bufferRegisterOffset;
 					//nextBufferRegister++;
-					int bufferRegister = GetTextureRegister(buffer->cachedName);
+					int bufferRegister = GetTextureRegister(buffer->name);
 
 					if (buffer->type.baseType == HLSLBaseType_RWBuffer)
 					{
 						CachedString bufferRegisterName = m_tree->AddStringFormatCached("buffer(%d)", bufferRegister);
-						AddClassArgument(new ClassArgument(buffer->cachedName, type, bufferRegisterName));
+						AddClassArgument(new ClassArgument(buffer->name, type, bufferRegisterName));
 					}
 					else if (buffer->type.baseType == HLSLBaseType_RasterizerOrderedBuffer)
 					{
 						CachedString bufferRegisterName = m_tree->AddStringFormatCached("buffer(%d), raster_order_group(%d)", bufferRegister, 0);
-						AddClassArgument(new ClassArgument(buffer->cachedName, type, bufferRegisterName));
+						AddClassArgument(new ClassArgument(buffer->name, type, bufferRegisterName));
 					}
 				}
 
@@ -845,7 +831,7 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 			}
 			else if (buffer->type.baseType == HLSLBaseType_RWStructuredBuffer || buffer->type.baseType == HLSLBaseType_RasterizerOrderedStructuredBuffer)
 			{
-				bool isUsed = usedNames.HasString(buffer->cachedName.m_string);
+				bool isUsed = usedNames.HasString(buffer->name.m_string);
 				if (keepUnused || isUsed)
 				{
 					HLSLType type;
@@ -964,17 +950,17 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 
 					//int bufferRegister = nextBufferRegister + m_options.bufferRegisterOffset;
 					//nextBufferRegister++;
-					int bufferRegister = GetTextureRegister(buffer->cachedName);
+					int bufferRegister = GetTextureRegister(buffer->name);
 
 					if (buffer->type.baseType == HLSLBaseType_RWStructuredBuffer)
 					{
 						CachedString bufferRegisterName = m_tree->AddStringFormatCached("buffer(%d)", bufferRegister);
-						AddClassArgument(new ClassArgument(buffer->cachedName, type, bufferRegisterName, true));
+						AddClassArgument(new ClassArgument(buffer->name, type, bufferRegisterName, true));
 					}
 					else if (buffer->type.baseType == HLSLBaseType_RasterizerOrderedStructuredBuffer)
 					{
 						CachedString bufferRegisterName = m_tree->AddStringFormatCached("buffer(%d), raster_order_group(%d)", bufferRegister, 0);
-						AddClassArgument(new ClassArgument(buffer->cachedName, type, bufferRegisterName, true));
+						AddClassArgument(new ClassArgument(buffer->name, type, bufferRegisterName, true));
 					}
 					
 				}
@@ -986,7 +972,7 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 		{
 			HLSLTextureState* textureState = (HLSLTextureState *)statement;		
 
-			bool isUsed = usedNames.HasString(textureState->cachedName.m_string);
+			bool isUsed = usedNames.HasString(textureState->name.m_string);
 			if (keepUnused || isUsed)
 			{
 				if(textureState->type.baseType >= HLSLBaseType_Texture1D &&
@@ -995,12 +981,11 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 					HLSLType type(HLSLBaseType_TextureState);
 					type.addressSpace = HLSLAddressSpace_Undefined;
 					type.baseType = textureState->type.baseType;
-					type.array = textureState->bArray;
-
-					if (type.array)
-					{
-						type.arrayCount = textureState->arrayIndex[0] == 0 ? DEFAULT_TEXTURE_COUNT : textureState->arrayIndex[0];
-					}
+					type.array = textureState->type.array;
+					type.arrayDimension = textureState->type.arrayDimension;
+					type.arrayExtent[0] = textureState->type.arrayExtent[0];
+					type.arrayExtent[1] = textureState->type.arrayExtent[1];
+					type.arrayExtent[2] = textureState->type.arrayExtent[2];
 
 					CachedString textureName;
 					CachedString textureRegisterName;
@@ -1009,7 +994,7 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 					{
 						type.baseType = HLSLBaseType_UserDefined;
 						type.addressSpace = HLSLAddressSpace_Constant;
-						type.typeName = m_tree->AddStringFormatCached("Uniforms_%s", RawStr(textureState->cachedName));
+						type.typeName = m_tree->AddStringFormatCached("Uniforms_%s", RawStr(textureState->name));
 
 						HLSLBuffer * buffer = m_tree->AddNode<HLSLBuffer>(NULL, 0);
 						buffer->field = m_tree->AddNode<HLSLDeclaration>(NULL, 0);
@@ -1020,13 +1005,16 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 						fieldType.addressSpace = HLSLAddressSpace_Undefined;
 						fieldType.baseType = textureState->type.baseType;
 						fieldType.array = type.array;
-						fieldType.arrayCount = type.arrayCount;
-						declaration->cachedName = textureState->cachedName;
+						fieldType.arrayDimension = type.arrayDimension;
+						fieldType.arrayExtent[0] = type.arrayExtent[0];
+						fieldType.arrayExtent[1] = type.arrayExtent[1];
+						fieldType.arrayExtent[2] = type.arrayExtent[2];
+						declaration->name = textureState->name;
 						declaration->type = fieldType;
 
-						buffer->field->cachedName = m_tree->AddStringFormatCached("Textures");
+						buffer->field->name = m_tree->AddStringFormatCached("Textures");
 						buffer->fileName = MakeCached("????");
-						buffer->cachedName = textureState->cachedName;
+						buffer->name = textureState->name;
 
 
 						HLSLStatement* prevStatement = statement;
@@ -1040,9 +1028,9 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 
 						//int bufferRegister = nextBufferRegister + m_options.bufferRegisterOffset;
 						//nextBufferRegister++;
-						int bufferRegister = GetTextureRegister(buffer->cachedName);
+						int bufferRegister = GetTextureRegister(buffer->name);
 
-						textureName = m_tree->AddStringFormatCached("%s", RawStr(textureState->cachedName));
+						textureName = m_tree->AddStringFormatCached("%s", RawStr(textureState->name));
 						textureRegisterName = m_tree->AddStringFormatCached("buffer(%d)", bufferRegister);
 						AddClassArgument(new ClassArgument(textureName, type, textureRegisterName));
 					}
@@ -1050,9 +1038,9 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 					{
 						//int textureRegister = nextTextureRegister + m_options.textureRegisterOffset;
 						//nextTextureRegister++;
-						int textureRegister = GetTextureRegister(textureState->cachedName);
+						int textureRegister = GetTextureRegister(textureState->name);
 
-						textureName = m_tree->AddStringFormatCached("%s", RawStr(textureState->cachedName));
+						textureName = m_tree->AddStringFormatCached("%s", RawStr(textureState->name));
 						textureRegisterName = m_tree->AddStringFormatCached("texture(%d)", textureRegister);
 						AddClassArgument(new ClassArgument(textureName, type, textureRegisterName));
 					}
@@ -1064,14 +1052,17 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 					HLSLType type(HLSLBaseType_RWTextureState);
 					type.addressSpace = HLSLAddressSpace_Undefined;
 					type.baseType = textureState->type.baseType;
-					type.array = textureState->bArray;
-					type.arrayCount = textureState->arrayIndex[0];
+					type.array = textureState->type.array;
+					type.arrayDimension = textureState->type.arrayDimension;
+					type.arrayExtent[0] = textureState->type.arrayExtent[0];
+					type.arrayExtent[1] = textureState->type.arrayExtent[1];
+					type.arrayExtent[2] = textureState->type.arrayExtent[2];
 
 					//int textureRegister = nextTextureRegister + m_options.textureRegisterOffset;
 					//nextTextureRegister++;
-					int textureRegister = GetTextureRegister(textureState->cachedName);
+					int textureRegister = GetTextureRegister(textureState->name);
 
-					CachedString textureName = m_tree->AddStringFormatCached("%s", RawStr(textureState->cachedName));
+					CachedString textureName = m_tree->AddStringFormatCached("%s", RawStr(textureState->name));
 
 					CachedString textureRegisterName = m_tree->AddStringFormatCached("texture(%d), raster_order_group(%d)", textureRegister, 0);
 					AddClassArgument(new ClassArgument(textureName, type, textureRegisterName));
@@ -1084,13 +1075,16 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 					HLSLType type(HLSLBaseType_RWTextureState);
 					type.addressSpace = HLSLAddressSpace_Undefined;
 					type.baseType = textureState->type.baseType;
-					type.array = textureState->bArray;
-					type.arrayCount = textureState->arrayIndex[0];
+					type.array = textureState->type.array;
+					type.arrayDimension = textureState->type.arrayDimension;
+					type.arrayExtent[0] = textureState->type.arrayExtent[0];
+					type.arrayExtent[1] = textureState->type.arrayExtent[1];
+					type.arrayExtent[2] = textureState->type.arrayExtent[2];
 
 					//int textureRegister = nextTextureRegister + m_options.textureRegisterOffset;
 					//nextTextureRegister++;
-					int textureRegister = GetTextureRegister(textureState->cachedName);
-					CachedString textureName = m_tree->AddStringFormatCached("%s", RawStr(textureState->cachedName));
+					int textureRegister = GetTextureRegister(textureState->name);
+					CachedString textureName = m_tree->AddStringFormatCached("%s", RawStr(textureState->name));
 
 					CachedString textureRegisterName = m_tree->AddStringFormatCached("texture(%d)", textureRegister);
 					AddClassArgument(new ClassArgument(textureName, type, textureRegisterName));
@@ -1101,23 +1095,25 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 		{
 			HLSLSamplerState* samplerState = (HLSLSamplerState *)statement;
 
-			bool isUsed = usedNames.HasString(samplerState->cachedName.m_string);
+			bool isUsed = usedNames.HasString(samplerState->name.m_string);
 			if (keepUnused || isUsed)
 			{
 				HLSLType type(HLSLBaseType_SamplerState);
 				type.addressSpace = HLSLAddressSpace_Undefined;
 
 				//int samplerRegister = nextSamplerRegister++;
-				int samplerRegister = GetSamplerRegister(samplerState->cachedName);
+				int samplerRegister = GetSamplerRegister(samplerState->name);
 
-				CachedString samplerName = m_tree->AddStringFormatCached("%s", RawStr(samplerState->cachedName));
+				CachedString samplerName = m_tree->AddStringFormatCached("%s", RawStr(samplerState->name));
 
 				type.typeName = samplerName;
 				type.baseType = HLSLBaseType_SamplerState;
 
 				type.array = samplerState->type.array;
-				type.arraySize = samplerState->type.arraySize;
-				type.arrayCount = samplerState->type.arrayCount;
+				type.arrayDimension = samplerState->type.arrayDimension;
+				type.arrayExtent[0] = samplerState->type.arrayExtent[0];
+				type.arrayExtent[1] = samplerState->type.arrayExtent[1];
+				type.arrayExtent[2] = samplerState->type.arrayExtent[2];
 
 				CachedString samplerRegisterName = m_tree->AddStringFormatCached("sampler(%d)", samplerRegister);
 				AddClassArgument(new ClassArgument(samplerName, type, samplerRegisterName));
@@ -1151,30 +1147,30 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 		// Translate semantics.
 		int attributeCounter = 0;
 
-		eastl::vector < HLSLArgument * > srcArgumentVec = entryFunction->GetArguments();
-		eastl::vector < HLSLArgument * > dstArgumentVec = {};
+		const eastl::vector<HLSLArgument*>& srcArgs = entryFunction->args;
+		eastl::vector<HLSLArgument*> dstArgs = {};
 
 		int prevIndex = -1;
-		for (int i = 0; i < srcArgumentVec.size(); i++)
+		for (int  i = 0; i < srcArgs.size(); i++)
 		{
-			HLSLArgument * argument = srcArgumentVec[i];
+			HLSLArgument * argument = srcArgs[i];
 			if (argument->hidden)
 			{
 				// no change
-				dstArgumentVec.push_back(argument);
+				dstArgs.push_back(argument);
 				continue;
 			}
 
 			if (argument->modifier == HLSLArgumentModifier_Out)
 			{
 				// Translate output arguments semantics.
-				if (argument->argType.baseType == HLSLBaseType_UserDefined)
+				if (argument->type.baseType == HLSLBaseType_UserDefined)
 				{
 					// Our vertex input is a struct and its fields need to be tagged when we generate that
-					HLSLStruct* structure = tree->FindGlobalStruct(argument->argType.typeName);
+					HLSLStruct* structure = tree->FindGlobalStruct(argument->type.typeName);
 					if (structure == NULL)
 					{
-						Error("Vertex shader output struct %s' not found in shader\n", argument->argType.typeName);
+						Error("Vertex shader output struct %s' not found in shader\n", argument->type.typeName);
 					}
 
 					HLSLStructField* field = structure->field;
@@ -1195,12 +1191,12 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 			else
 			{
 				// Translate input arguments semantics.
-				if (argument->argType.baseType == HLSLBaseType_UserDefined || argument->argType.baseType == HLSLBaseType_OutputPatch)
+				if (argument->type.baseType == HLSLBaseType_UserDefined || argument->type.baseType == HLSLBaseType_OutputPatch)
 				{
-					if (argument->argType.baseType == HLSLBaseType_OutputPatch)
+					if (argument->type.baseType == HLSLBaseType_OutputPatch)
 					{
 
-						argument->argType.structuredTypeName = m_tree->AddStringFormatCached("Domain_%s", RawStr(argument->argType.structuredTypeName));
+						argument->type.structuredTypeName = m_tree->AddStringFormatCached("Domain_%s", RawStr(argument->type.structuredTypeName));
 
 						//inform maxVertex to attribute & Patch Identifier
 						HLSLStatement* statement = root->statement;
@@ -1212,7 +1208,7 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 							{
 								if (pAttribute->attributeType == HLSLAttributeType_Domain)
 								{
-									pAttribute->maxVertexCount = argument->argType.maxPoints;
+									pAttribute->maxVertexCount = argument->type.maxPoints;
 									pAttribute->patchIdentifier = argument->name;
 									break;
 								}
@@ -1232,7 +1228,7 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 							if (statement->nodeType == HLSLNodeType_Struct)
 							{
 								HLSLStruct* structure = (HLSLStruct*)statement;
-								String_Equal(argument->argType.typeName, structure->name);
+								String_Equal(argument->type.typeName, structure->name);
 								break;
 							}
 
@@ -1240,12 +1236,12 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 						}
 
 						HLSLStruct* structure = m_tree->AddNode<HLSLStruct>("", 0);
-						structure->name = argument->argType.structuredTypeName;
+						structure->name = argument->type.structuredTypeName;
 
 						structure->field = m_tree->AddNode<HLSLStructField>("", 0);
 						structure->field->nodeType = HLSLNodeType_PatchControlPoint;
 						structure->field->type.baseType = HLSLBaseType_PatchControlPoint;
-						structure->field->type.typeName = m_tree->AddStringFormatCached("patch_control_point<%s>", RawStr(argument->argType.typeName));
+						structure->field->type.typeName = m_tree->AddStringFormatCached("patch_control_point<%s>", RawStr(argument->type.typeName));
 
 						structure->field->name = MakeCached("control_points");
 
@@ -1256,10 +1252,10 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 					}
 
 					// Our vertex input is a struct and its fields need to be tagged when we generate that
-					HLSLStruct* structure = tree->FindGlobalStruct(argument->argType.typeName);
+					HLSLStruct* structure = tree->FindGlobalStruct(argument->type.typeName);
 					if (structure == NULL)
 					{
-						Error("struct '%s' not found in shader\n", argument->argType.typeName);
+						Error("struct '%s' not found in shader\n", argument->type.typeName);
 					}
 
 					HLSLStructField* field = structure->field;
@@ -1267,18 +1263,14 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 					{
 						if (!field->hidden)
 						{
-							int count = 1;
-							field->type.array && m_tree->GetExpressionValue(field->type.arraySize, count);
-							field->sv_semantic = TranslateInputSemantic(field->semantic, count);
+							field->sv_semantic = TranslateInputSemantic(field->semantic, field->type.array ? field->type.arrayExtent[0] : 1);
 						}
 						field = field->nextField;
 					}
 				}
 				else
 				{
-					int count = 1;
-					argument->argType.array && m_tree->GetExpressionValue(argument->argType.arraySize, count);
-					CachedString result = TranslateInputSemantic(argument->semantic, count);
+					CachedString result = TranslateInputSemantic(argument->semantic, argument->type.array ? argument->type.arrayExtent[0] : 1);
 
 					if (result.IsEmpty())
 					{
@@ -1302,11 +1294,11 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 			prevIndex = i;
 
 			// add this one to the dstArgumentVec
-			dstArgumentVec.push_back(argument);
+			dstArgs.push_back(argument);
 
 			// if this is the last one, and we have a previous argument
 			//if (argument == NULL && prevArgument != NULL)
-			if (i == srcArgumentVec.size()-1 && prevIndex >= 0)
+			if (i == srcArgs.size()-1 && prevIndex >= 0)
 			{
 				statement = root->statement;
 				HLSLStatement* lastStatement = NULL;
@@ -1322,43 +1314,25 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 					HLSLArgument * simdArgument = m_tree->AddNode<HLSLArgument>("", 0);
 
 					simdArgument->name = m_tree->AddStringCached("simd_lane_id");
-					simdArgument->argType.baseType = HLSLBaseType_Uint;
+					simdArgument->type.baseType = HLSLBaseType_Uint;
 					simdArgument->semantic = simdArgument->sv_semantic = m_tree->AddStringCached("thread_index_in_simdgroup");
-					dstArgumentVec.push_back(simdArgument);
+					dstArgs.push_back(simdArgument);
 				}
 
 				if (m_tree->NeedsExtension(USE_WaveGetLaneCount))
 				{
 					HLSLArgument * waveArgument = m_tree->AddNode<HLSLArgument>("", 0);
 					waveArgument->name = m_tree->AddStringCached("simd_size");
-					waveArgument->argType.baseType = HLSLBaseType_Uint;
+					waveArgument->type.baseType = HLSLBaseType_Uint;
 					waveArgument->semantic = waveArgument->sv_semantic = m_tree->AddStringCached("threads_per_simdgroup");
-					dstArgumentVec.push_back(waveArgument);
+					dstArgs.push_back(waveArgument);
 				}
 			}
 
 		}
 
 		// set the vector
-		entryFunction->argumentVec.resize(dstArgumentVec.size());
-		for (int i = 0; i < dstArgumentVec.size(); i++)
-		{
-			entryFunction->argumentVec[i] = dstArgumentVec[i];
-		}
-
-		//entryFunction->firstArgument = (dstArgumentVec.size() > 0) ? dstArgumentVec[0] : NULL;
-		for (int i = 0; i < dstArgumentVec.size(); i++)
-		{
-			HLSLArgument * currArg = dstArgumentVec[i];
-
-			HLSLArgument * nextArg = NULL;
-			if (i < dstArgumentVec.size()-1)
-			{
-				nextArg = dstArgumentVec[i+1];
-			}
-
-			//currArg->nextArgument = nextArg;
-		}
+		entryFunction->args = eastl::move(dstArgs);
 	}
 
 	// Translate return value semantic.
@@ -1421,14 +1395,14 @@ void MSLGenerator::Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFun
 
 }
 
-int MSLGenerator::GetBufferRegister(const CachedString & cachedName)
+int MSLGenerator::GetBufferRegister(const CachedString & name)
 {
 	if (m_options.bindingRequired)
 	{
 		for (int i = 0; i < m_options.bindingOverrides.size(); i++)
 		{
 			const BindingOverride & binding = m_options.bindingOverrides[i];
-			if (String_Equal(binding.m_attrName.c_str(),RawStr(cachedName)))
+			if (String_Equal(binding.m_attrName.c_str(),RawStr(name)))
 			{
 				// assume set is 0
 				return binding.m_binding;
@@ -1447,14 +1421,14 @@ int MSLGenerator::GetBufferRegister(const CachedString & cachedName)
 	return -1;
 }
 
-int MSLGenerator::GetTextureRegister(const CachedString & cachedName)
+int MSLGenerator::GetTextureRegister(const CachedString & name)
 {
 	if (m_options.bindingRequired)
 	{
 		for (int i = 0; i < m_options.bindingOverrides.size(); i++)
 		{
 			const BindingOverride & binding = m_options.bindingOverrides[i];
-			if (String_Equal(binding.m_attrName.c_str(), RawStr(cachedName)))
+			if (String_Equal(binding.m_attrName.c_str(), RawStr(name)))
 			{
 				// assume set is 0
 				return binding.m_binding;
@@ -1473,14 +1447,14 @@ int MSLGenerator::GetTextureRegister(const CachedString & cachedName)
 	return -1;
 }
 
-int MSLGenerator::GetSamplerRegister(const CachedString & cachedName)
+int MSLGenerator::GetSamplerRegister(const CachedString & name)
 {
 	if (m_options.bindingRequired)
 	{
 		for (int i = 0; i < m_options.bindingOverrides.size(); i++)
 		{
 			const BindingOverride & binding = m_options.bindingOverrides[i];
-			if (String_Equal(binding.m_attrName.c_str(), RawStr(cachedName)))
+			if (String_Equal(binding.m_attrName.c_str(), RawStr(name)))
 			{
 				// assume set is 0
 				return binding.m_binding;
@@ -1892,7 +1866,7 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 	// find/hide unused arguments
 	{
 		FindGlobalVisitor visitor;
-		eastl::vector < HLSLArgument * > argVec = entryFunction->GetArguments();
+		eastl::vector<HLSLArgument*>& argVec = entryFunction->args;
 		for (int i = 0; i < argVec.size(); i++)
 		{
 			HLSLArgument * arg = argVec[i];
@@ -1990,7 +1964,7 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 			{
 				if (currentArg->type.array)
 				{
-					m_writer.Write(0, "array<%s, %d> %s", RawStr(GetTypeName(currentArg->type)), currentArg->type.arrayCount == 0 ? DEFAULT_TEXTURE_COUNT : currentArg->type.arrayCount, RawStr(currentArg->name));
+					m_writer.Write(0, "array<%s, %d> %s", RawStr(GetTypeName(currentArg->type)), currentArg->type.arrayExtent[0] == 0 ? DEFAULT_TEXTURE_COUNT : currentArg->type.arrayExtent[0], RawStr(currentArg->name));
 				}
 				else
 					m_writer.Write(0, "%s %s", RawStr(GetTypeName(currentArg->type)), RawStr(currentArg->name));
@@ -2004,7 +1978,7 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 			{
 				if (currentArg->type.array)
 				{
-					m_writer.Write(0, "array<%s, %d> %s", RawStr(GetTypeName(currentArg->type)), currentArg->type.arrayCount == 0 ? DEFAULT_TEXTURE_COUNT : currentArg->type.arrayCount, RawStr(currentArg->name));
+					m_writer.Write(0, "array<%s, %d> %s", RawStr(GetTypeName(currentArg->type)), currentArg->type.arrayExtent[0] == 0 ? DEFAULT_TEXTURE_COUNT : currentArg->type.arrayExtent[0], RawStr(currentArg->name));
 				}
 				else
 					m_writer.Write(0, "%s %s", RawStr(GetTypeName(currentArg->type)), RawStr(currentArg->name));
@@ -2012,7 +1986,7 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 			else
 				m_writer.Write(0, "constant %s::%s & %s", CHECK_CSTR(shaderClassName), RawStr(currentArg->type.typeName), RawStr(currentArg->name));
 		}
-		else if (currentArg->type.baseType == HLSLBaseType_SamplerState || currentArg->type.baseType == HLSLBaseType_Sampler)
+		else if (currentArg->type.baseType == HLSLBaseType_SamplerState || currentArg->type.baseType == HLSLBaseType_SamplerComparisonState ||currentArg->type.baseType == HLSLBaseType_Sampler)
 		{			
 			if (currentArg->type.array)
 				m_writer.Write(0, "array_ref<sampler> %s", RawStr(currentArg->name));
@@ -2086,19 +2060,19 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 	// mainParams are the ones we will actually use in the main function, the extraParams
 	// are the ones we are packing into a special little structure
 	{
-		eastl::vector < HLSLArgument * > argumentVec = entryFunction->GetArguments();
+		const eastl::vector<HLSLArgument*>& args = entryFunction->args;
 
-		for (int i = 0; i < argumentVec.size(); i++)
+		for (int i = 0; i < args.size(); i++)
 		{
-			HLSLArgument * argument = argumentVec[i];
+			HLSLArgument * argument = args[i];
 
-			if (argument->argType.baseType == HLSLBaseType_UserDefined)
+			if (argument->type.baseType == HLSLBaseType_UserDefined)
 			{
 				stageParams.push_back(argument);
 			}
 			else
 			{
-				HLSLBaseType baseType = argument->argType.baseType;
+				HLSLBaseType baseType = argument->type.baseType;
 
 				// check the type, if it's a scalar/vector, then we need to check the semantic. if it's
 				// a texture/sampler/buffer it must be a mainParam
@@ -2149,13 +2123,13 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 		{
 			HLSLArgument * argument = stageParams[i];
 
-			if (argument->argType.baseType == HLSLBaseType_UserDefined)
+			if (argument->type.baseType == HLSLBaseType_UserDefined)
 			{
 				// Our vertex input is a struct and its fields need to be tagged when we generate that
-				HLSLStruct* structure = tree->FindGlobalStruct(argument->argType.typeName);
+				HLSLStruct* structure = tree->FindGlobalStruct(argument->type.typeName);
 				if (structure == NULL)
 				{
-					Error("struct '%s' not found in shader\n", argument->argType.typeName);
+					Error("struct '%s' not found in shader\n", argument->type.typeName);
 				}
 
 				HLSLStructField* field = structure->field;
@@ -2165,10 +2139,9 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 					{
 						if (field->type.array)
 						{
-							int count = 1;
-							m_tree->GetExpressionValue(field->type.arraySize, count);
 							int base;
 							bool isAttr = sscanf(RawStr(field->sv_semantic), "attribute(%d)", &base) == 1;
+							int count = field->type.arrayExtent[0];
 							for (int i = 0; i < count; ++i)
 							{
 								if (isAttr)
@@ -2191,13 +2164,13 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 			else
 			{
 				if (argument->sv_semantic.IsNotEmpty())
-					m_writer.WriteLine(1,"%s %s [[%s]];", RawStr(GetTypeName(argument->argType)), RawStr(argument->semantic), RawStr(argument->sv_semantic));
+					m_writer.WriteLine(1,"%s %s [[%s]];", RawStr(GetTypeName(argument->type)), RawStr(argument->semantic), RawStr(argument->sv_semantic));
 				else
-					m_writer.WriteLine(1,"%s %s;", RawStr(GetTypeName(argument->argType)), RawStr(argument->semantic));
+					m_writer.WriteLine(1,"%s %s;", RawStr(GetTypeName(argument->type)), RawStr(argument->semantic));
 			}
 
 			//m_writer.WriteLine(1,"%s %s [[%s]];",
-			//	RawStr(GetTypeName(argument->argType)), RawStr(argument->name),
+			//	RawStr(GetTypeName(argument->type)), RawStr(argument->name),
 			//	RawStr(argument->sv_semantic));
 		}
 		m_writer.WriteLine(0, "};");
@@ -2233,8 +2206,7 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 			{
 				if (field->type.array)
 				{
-					int count = 1;
-					m_tree->GetExpressionValue(field->type.arraySize, count);
+					int count = field->type.arrayExtent[0];
 					for (int i = 0; i < count; ++i)
 					{
 						if (field->sv_semantic.IsNotEmpty())
@@ -2362,8 +2334,6 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 	bool bFirstStruct = false;
 	//CachedString firstTypeName;
 
-	eastl::vector < HLSLArgument * > argumentVec = entryFunction->GetArguments();
-
 	int numWritten = 0;
 
 	if (stageParams.size() >= 1)
@@ -2371,7 +2341,6 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 		m_writer.Write("\t%s_input inputData [[stage_in]]", entryName);
 	}
 
-	//for (int i = 0; i < argumentVec.size(); i++)
 	for (int i = 0; i < resParams.size(); i++)
 	{
 		HLSLArgument * argument = resParams[i];
@@ -2383,7 +2352,7 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 				m_writer.Write(",\n");
 			}
 
-			if (argument->argType.baseType == HLSLBaseType_UserDefined || argument->argType.baseType == HLSLBaseType_OutputPatch)
+			if (argument->type.baseType == HLSLBaseType_UserDefined || argument->type.baseType == HLSLBaseType_OutputPatch)
 			{
 				if (m_target == Target_HullShader)
 					m_writer.Write(1,"constant %s::", CHECK_CSTR(shaderClassName));
@@ -2392,13 +2361,13 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 			}
 
 			if (m_target == Target_HullShader)
-				m_writer.Write("%s* %s", RawStr(GetTypeName(argument->argType)), RawStr(argument->name));
+				m_writer.Write("%s* %s", RawStr(GetTypeName(argument->type)), RawStr(argument->name));
 			else
 			{
-				m_writer.Write("%s %s", RawStr(GetTypeName(argument->argType)), RawStr(argument->name));
+				m_writer.Write("%s %s", RawStr(GetTypeName(argument->type)), RawStr(argument->name));
 			}
 
-			if (argument->argType.baseType == HLSLBaseType_UserDefined || argument->argType.baseType == HLSLBaseType_OutputPatch)
+			if (argument->type.baseType == HLSLBaseType_UserDefined || argument->type.baseType == HLSLBaseType_OutputPatch)
 			{
 				if (m_target == Target_HullShader)
 					m_writer.Write(" [[buffer(0)]]"); // not sure about this
@@ -2414,10 +2383,10 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 #if 0
 			// @@ IC: We are assuming that the first argument (x) -> first struct (o) is the 'stage_in'. 
 			// this really doesn't seem robust, disabling for now, enabling it later if we need to
-			if (bFirstStruct == false && argument->argType.baseType == HLSLBaseType_UserDefined || argument->argType.baseType == HLSLBaseType_OutputPatch)
+			if (bFirstStruct == false && argument->type.baseType == HLSLBaseType_UserDefined || argument->type.baseType == HLSLBaseType_OutputPatch)
 			{
 				bFirstStruct = true;
-				firstTypeName = argument->argType.typeName;
+				firstTypeName = argument->type.typeName;
 
 				if (m_target == Target_HullShader)
 					m_writer.Write(" [[buffer(0)]]");
@@ -2504,7 +2473,7 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 			if (currentArg->type.typeName.IsEmpty())
 			{
 				if (currentArg->type.array)
-					m_writer.Write(bIntent ? 0 : 1, "array<%s, %d> %s [[%s]]", RawStr(GetTypeName(currentArg->type)), currentArg->type.arrayCount == 0 ? DEFAULT_TEXTURE_COUNT : currentArg->type.arrayCount, RawStr(currentArg->name), RawStr(currentArg->registerName));
+					m_writer.Write(bIntent ? 0 : 1, "array<%s, %d> %s [[%s]]", RawStr(GetTypeName(currentArg->type)), currentArg->type.arrayExtent[0] == 0 ? DEFAULT_TEXTURE_COUNT : currentArg->type.arrayExtent[0], RawStr(currentArg->name), RawStr(currentArg->registerName));
 				else
 					m_writer.Write(bIntent ? 0 : 1, "%s %s [[%s]]", RawStr(GetTypeName(currentArg->type)), RawStr(currentArg->name), RawStr(currentArg->registerName));
 			}
@@ -2526,7 +2495,7 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 			{
 				if (currentArg->type.array)
 				{
-					m_writer.Write(bIntent ? 0 : 1, "array<%s, %d> %s [[%s]]", RawStr(GetTypeName(currentArg->type)), currentArg->type.arrayCount == 0 ? DEFAULT_TEXTURE_COUNT : currentArg->type.arrayCount, RawStr(currentArg->name), RawStr(currentArg->registerName));
+					m_writer.Write(bIntent ? 0 : 1, "array<%s, %d> %s [[%s]]", RawStr(GetTypeName(currentArg->type)), currentArg->type.arrayExtent[0] == 0 ? DEFAULT_TEXTURE_COUNT : currentArg->type.arrayExtent[0], RawStr(currentArg->name), RawStr(currentArg->registerName));
 				}
 				else
 					m_writer.Write(bIntent ? 0 : 1, "%s %s [[%s]]", RawStr(GetTypeName(currentArg->type)), RawStr(currentArg->name), RawStr(currentArg->registerName));
@@ -2534,13 +2503,11 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 			else
 				m_writer.Write(bIntent ? 0 : 1, "constant %s::%s & %s [[%s]]", CHECK_CSTR(shaderClassName), RawStr(currentArg->type.typeName), RawStr(currentArg->name), RawStr(currentArg->registerName));
 		}
-		else if (currentArg->type.baseType == HLSLBaseType_SamplerState || currentArg->type.baseType == HLSLBaseType_Sampler)
+		else if (currentArg->type.baseType == HLSLBaseType_SamplerState || currentArg->type.baseType == HLSLBaseType_SamplerComparisonState || currentArg->type.baseType == HLSLBaseType_Sampler)
 		{
 			if (currentArg->type.array)
 			{
-				m_writer.Write(bIntent ? 0 : 1, "array<sampler, ");
-				OutputExpression(currentArg->type.arraySize, NULL, NULL, NULL, false);
-				m_writer.Write(0, "> %s [[%s]]", RawStr(currentArg->name), RawStr(currentArg->registerName));
+				m_writer.Write(bIntent ? 0 : 1, "array<sampler, %d> %s [[%s]]", currentArg->type.arrayExtent[0], RawStr(currentArg->name), RawStr(currentArg->registerName));
 			}
 			else
 				m_writer.Write(bIntent ? 0 : 1, "%s %s [[%s]]", RawStr(GetTypeName(currentArg->type)), RawStr(currentArg->name), RawStr(currentArg->registerName));
@@ -2594,8 +2561,6 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 
 	// Create local variables for each of the parameters we'll need to pass
 	// into the entry point function.
-	//argumentVec = entryFunction->GetArguments();
-
 	{
 		for (int i = 0; i < resParams.size(); i++)
 		{
@@ -2608,14 +2573,14 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 			}
 
 			/*
-			if (firstTypeName == argument->argType.typeName && m_target == Target_HullShader)
+			if (firstTypeName == argument->type.typeName && m_target == Target_HullShader)
 			{
 				continue;
 			}
 			*/
 
 			// I guess we'll say that all user defined types need this?
-			if (argument->argType.baseType == HLSLBaseType_UserDefined)
+			if (argument->type.baseType == HLSLBaseType_UserDefined)
 			{
 				m_writer.Write("%s::", CHECK_CSTR(shaderClassName));
 			}
@@ -2623,35 +2588,33 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 			CachedString newArgumentName = m_tree->AddStringFormatCached("%s0", RawStr(argument->name));
 
 
-			if (argument->argType.baseType == HLSLBaseType_OutputPatch)
+			if (argument->type.baseType == HLSLBaseType_OutputPatch)
 			{
 			}
 			else
 			{
-				OutputDeclaration(argument->argType, newArgumentName, NULL, NULL);
+				OutputDeclaration(argument->type, newArgumentName, NULL, NULL);
 				m_writer.EndLine(";");
 			}
 
 			if (!((argument->modifier == HLSLArgumentModifier_Out) || (argument->modifier == HLSLArgumentModifier_Inout)))
 			{
 				// Set the value for the local variable.
-				if (argument->argType.baseType == HLSLBaseType_UserDefined || argument->argType.baseType == HLSLBaseType_OutputPatch)
+				if (argument->type.baseType == HLSLBaseType_UserDefined || argument->type.baseType == HLSLBaseType_OutputPatch)
 				{
-					HLSLStruct* structDeclaration = tree->FindGlobalStruct(argument->argType.typeName);
+					HLSLStruct* structDeclaration = tree->FindGlobalStruct(argument->type.typeName);
 					ASSERT_PARSER(structDeclaration != NULL);
 
-					if (argument->argType.array)
+					if (argument->type.array)
 					{
 
-						if (argument->argType.baseType == HLSLBaseType_OutputPatch)
+						if (argument->type.baseType == HLSLBaseType_OutputPatch)
 						{
 							//m_writer.WriteLine(1, "%s = %s;", newArgumentName, argument->name);
 						}
 						else
 						{
-							int arraySize = 0;
-							m_tree->GetExpressionValue(argument->argType.arraySize, arraySize);
-
+							int arraySize = argument->type.arrayExtent[0];
 							for (int i = 0; i < arraySize; i++)
 							{
 								HLSLStructField* field = structDeclaration->field;
@@ -2692,8 +2655,7 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 								{
 									if (field->type.array)
 									{
-										int count = 1;
-										m_tree->GetExpressionValue(field->type.arraySize, count);
+										int count = field->type.arrayExtent[0];
 										for (int i=0; i < count; ++i)
 										{
 											m_writer.WriteLine(1, "%s.%s[%d] = %s.%s%d;", RawStr(newArgumentName), RawStr(field->name), i, RawStr(argument->name), RawStr(field->name), i);
@@ -2741,14 +2703,14 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 				continue;
 			}
 
-			if (argument->argType.baseType == HLSLBaseType_UserDefined)
+			if (argument->type.baseType == HLSLBaseType_UserDefined)
 			{
-				m_writer.WriteLine(1, "%s::%s %s0;", CHECK_CSTR(shaderClassName), RawStr(GetTypeName(argument->argType)), RawStr(argument->name));
+				m_writer.WriteLine(1, "%s::%s %s0;", CHECK_CSTR(shaderClassName), RawStr(GetTypeName(argument->type)), RawStr(argument->name));
 				// Our vertex input is a struct and its fields need to be tagged when we generate that
-				HLSLStruct* structure = tree->FindGlobalStruct(argument->argType.typeName);
+				HLSLStruct* structure = tree->FindGlobalStruct(argument->type.typeName);
 				if (structure == NULL)
 				{
-					Error("struct '%s' not found in shader\n", argument->argType.typeName);
+					Error("struct '%s' not found in shader\n", argument->type.typeName);
 				}
 
 				HLSLStructField* field = structure->field;
@@ -2758,10 +2720,9 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 					{
 						if (field->type.array)
 						{
-							int count = 1;
-							m_tree->GetExpressionValue(field->type.arraySize, count);
 							int base;
 							bool isAttr = sscanf(RawStr(field->sv_semantic), "attribute(%d)", &base) == 1;
+							int count = field->type.arrayExtent[0];
 							for (int i = 0; i < count; ++i)
 							{
 								m_writer.WriteLine(1, "%s0.%s[%d] = inputData.%s_%d;", RawStr(argument->name), RawStr(field->name), i, RawStr(field->semantic), i);
@@ -2778,7 +2739,7 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 			else
 			{
 				m_writer.WriteLine(1, "%s %s0 = inputData.%s;",
-					RawStr(GetTypeName(argument->argType)),
+					RawStr(GetTypeName(argument->type)),
 					RawStr(argument->name),
 					RawStr(argument->semantic));
 			}
@@ -2851,7 +2812,7 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 		m_writer.BeginLine(2);
 		m_writer.Write("%s::%s VS_Out = %s.%s(", CHECK_CSTR(shaderClassName), RawStr(entryFunction->returnType.typeName), CHECK_CSTR(entryName), RawStr(entryFunction->name));
 
-		eastl::vector < HLSLArgument * > argumentVec = entryFunction->GetArguments();
+		eastl::vector < HLSLArgument * > argumentVec = entryFunction->args;
 
 		int numWritten = 0;
 		for (int i = 0; i < argumentVec.size(); i++)
@@ -2865,9 +2826,9 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 				}
 				CachedString newArgumentName = m_tree->AddStringFormatCached("%s0", RawStr(argument->name));
 
-				if (argument->argType.baseType == HLSLBaseType_OutputPatch || m_target == Target_HullShader)
+				if (argument->type.baseType == HLSLBaseType_OutputPatch || m_target == Target_HullShader)
 				{
-					if (argument->argType.baseType == HLSLBaseType_UserDefined)
+					if (argument->type.baseType == HLSLBaseType_UserDefined)
 						m_writer.Write("%s[threadId]", RawStr(argument->name));
 					else
 						m_writer.Write("%s", RawStr(argument->name));
@@ -2887,7 +2848,7 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 		m_writer.BeginLine(2);
 		m_writer.Write("%s::%s HS_Out = %s.%s(", CHECK_CSTR(shaderClassName), RawStr(secondaryEntryFunction->returnType.typeName), CHECK_CSTR(entryName), RawStr(secondaryEntryFunction->name));
 
-		argumentVec = secondaryEntryFunction->GetArguments();
+		argumentVec = secondaryEntryFunction->args;
 		numWritten = 0;
 		for (int i = 0; i < argumentVec.size(); i++)
 		{
@@ -2901,9 +2862,9 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 
 				CachedString newArgumentName = m_tree->AddStringFormatCached("%s0", RawStr(argument->name));
 
-				if (argument->argType.baseType == HLSLBaseType_OutputPatch || m_target == Target_HullShader)
+				if (argument->type.baseType == HLSLBaseType_OutputPatch || m_target == Target_HullShader)
 				{
-					if (argument->argType.baseType == HLSLBaseType_InputPatch && String_Equal(entryFunction->returnType.typeName, argument->argType.structuredTypeName))
+					if (argument->type.baseType == HLSLBaseType_InputPatch && String_Equal(entryFunction->returnType.typeName, argument->type.structuredTypeName))
 					{
 						m_writer.Write("&VS_Out ");
 					}
@@ -2952,9 +2913,9 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 			m_writer.BeginLine(2);
 			m_writer.Write("%s::%s Patch_Out = %s.%s(", CHECK_CSTR(shaderClassName), RawStr(PCF->returnType.typeName), CHECK_CSTR(entryName), RawStr(PCF->name));
 
-			eastl::vector < HLSLArgument * > argumentVec = PCF->GetArguments();
-			int numWritten = 0;
-			for (int i = 0; i < argumentVec.size(); i++)
+			const eastl::vector<HLSLArgument*>& argumentVec = PCF->args;
+			size_t numWritten = 0;
+			for (size_t i = 0; i < argumentVec.size(); i++)
 			{
 				HLSLArgument * argument = argumentVec[i];
 
@@ -2967,9 +2928,9 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 
 					CachedString newArgumentName = m_tree->AddStringFormatCached("%s0", RawStr(argument->name));
 
-					if (argument->argType.baseType == HLSLBaseType_OutputPatch || m_target == Target_HullShader)
+					if (argument->type.baseType == HLSLBaseType_OutputPatch || m_target == Target_HullShader)
 					{
-						if (argument->argType.baseType == HLSLBaseType_InputPatch && String_Equal(entryFunction->returnType.typeName, argument->argType.structuredTypeName))
+						if (argument->type.baseType == HLSLBaseType_InputPatch && String_Equal(entryFunction->returnType.typeName, argument->type.structuredTypeName))
 						{
 							m_writer.Write("&VS_Out ");
 						}
@@ -3016,9 +2977,9 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 			m_writer.Write(1, "return %s.%s(", CHECK_CSTR(entryName), CHECK_CSTR(entryName));
 		}
 
-		eastl::vector < HLSLArgument * > argumentVec = entryFunction->GetArguments();
-		int numWritten = 0;
-		for (int i = 0; i < argumentVec.size(); i++)
+		const eastl::vector<HLSLArgument*>& argumentVec = entryFunction->args;
+		size_t numWritten = 0;
+		for (size_t i = 0; i < argumentVec.size(); i++)
 		{
 			HLSLArgument * argument = argumentVec[i];
 
@@ -3030,7 +2991,7 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 				}
 				CachedString newArgumentName = m_tree->AddStringFormatCached("%s0", RawStr(argument->name));
 
-				if (argument->argType.baseType == HLSLBaseType_OutputPatch || m_target == Target_HullShader)
+				if (argument->type.baseType == HLSLBaseType_OutputPatch || m_target == Target_HullShader)
 					m_writer.Write("%s", RawStr(argument->name));
 				else
 					m_writer.Write("%s", RawStr(newArgumentName));
@@ -3066,8 +3027,7 @@ bool MSLGenerator::Generate(StringLibrary * stringLibrary, HLSLTree* tree, Targe
 				{
 					if (field->type.array)
 					{
-						int count = 1;
-						m_tree->GetExpressionValue(field->type.arraySize, count);
+						int count = field->type.arrayExtent[0];
 						for (int i = 0; i < count; ++i)
 						{
 							m_writer.WriteLine(1, "output.%s_%d = result.%s[%d];", RawStr(field->semantic), i, RawStr(field->name), i);
@@ -3160,16 +3120,16 @@ void MSLGenerator::OutputStatements(int indent, HLSLStatement* statement, const 
 				type.baseType = textureState->type.baseType;
 
 
-				if (textureState->bArray)
+				if (textureState->type.array)
 				{
-					m_writer.WriteLine(indent, "array<%s, %d> %s;", RawStr(GetTypeName(type)), textureState->arrayIndex[0] == 0 ? DEFAULT_TEXTURE_COUNT : textureState->arrayIndex[0], RawStr(textureState->cachedName));
+					m_writer.WriteLine(indent, "array<%s, %d> %s;", RawStr(GetTypeName(type)), textureState->type.arrayExtent[0] == 0 ? DEFAULT_TEXTURE_COUNT : textureState->type.arrayExtent[0], RawStr(textureState->name));
 				}
 				else
 				{
 					m_writer.BeginLine(indent, RawStr(textureState->fileName), textureState->line);
 
 					m_writer.Write("%s", RawStr(GetTypeName(type)));
-					m_writer.Write(" %s", RawStr(textureState->cachedName));
+					m_writer.Write(" %s", RawStr(textureState->name));
 
 					m_writer.EndLine(";");
 				}
@@ -3180,15 +3140,15 @@ void MSLGenerator::OutputStatements(int indent, HLSLStatement* statement, const 
 				HLSLType type;
 				type.baseType = textureState->type.baseType;
 
-				if (textureState->bArray)
+				if (textureState->type.array)
 				{
 					//multiple Array???????????
-					m_writer.WriteLine(indent, "struct %sData", RawStr(textureState->cachedName));
+					m_writer.WriteLine(indent, "struct %sData", RawStr(textureState->name));
 					m_writer.WriteLine(indent, "{");
 
-					for (int i = 0; i < (int)textureState->arrayDimension; i++)
+					for (int i = 0; i < (int)textureState->type.arrayDimension; i++)
 					{
-						m_writer.WriteLine(indent + 1, "array<%s, %d> textures;", RawStr(GetTypeName(type)), textureState->arrayIndex[i]);
+						m_writer.WriteLine(indent + 1, "array<%s, %d> textures;", RawStr(GetTypeName(type)), textureState->type.arrayExtent[i]);
 					}
 					m_writer.WriteLine(indent, "}");
 				}
@@ -3197,7 +3157,7 @@ void MSLGenerator::OutputStatements(int indent, HLSLStatement* statement, const 
 					m_writer.BeginLine(indent, RawStr(textureState->fileName), textureState->line);
 
 					m_writer.Write("%s", RawStr(GetTypeName(type)));
-					m_writer.Write(" %s", RawStr(textureState->cachedName));
+					m_writer.Write(" %s", RawStr(textureState->name));
 
 					m_writer.EndLine(";");
 				}
@@ -3208,15 +3168,15 @@ void MSLGenerator::OutputStatements(int indent, HLSLStatement* statement, const 
 				HLSLType type;
 				type.baseType = textureState->type.baseType;
 
-				if (textureState->bArray)
+				if (textureState->type.array)
 				{
 					//multiple Array???????????
-					m_writer.WriteLine(indent, "struct %sData", RawStr(textureState->cachedName));
+					m_writer.WriteLine(indent, "struct %sData", RawStr(textureState->name));
 					m_writer.WriteLine(indent, "{");
 
-					for (int i = 0; i < (int)textureState->arrayDimension; i++)
+					for (int i = 0; i < (int)textureState->type.arrayDimension; i++)
 					{
-						m_writer.WriteLine(indent + 1, "array<%s, %d> textures;", RawStr(GetTypeName(type)), textureState->arrayIndex[i]);
+						m_writer.WriteLine(indent + 1, "array<%s, %d> textures;", RawStr(GetTypeName(type)), textureState->type.arrayExtent[i]);
 					}
 					m_writer.WriteLine(indent, "}");
 				}
@@ -3225,7 +3185,7 @@ void MSLGenerator::OutputStatements(int indent, HLSLStatement* statement, const 
 					m_writer.BeginLine(indent, RawStr(textureState->fileName), textureState->line);
 
 					m_writer.Write("%s", RawStr(GetTypeName(type)));
-					m_writer.Write(" %s", RawStr(textureState->cachedName));
+					m_writer.Write(" %s", RawStr(textureState->name));
 
 					m_writer.EndLine(";");
 				}
@@ -3247,44 +3207,22 @@ void MSLGenerator::OutputStatements(int indent, HLSLStatement* statement, const 
 
 			m_writer.BeginLine(indent, RawStr(samplerState->fileName), samplerState->line);
 
-			if (samplerState->bStructured)
+			if (samplerState->type.array)
 			{
-				m_writer.WriteLineTagged(indent, RawStr(samplerState->fileName), samplerState->line, "SamplerState %s {", RawStr(samplerState->cachedName));
-				HLSLSamplerStateExpression* expression = samplerState->expression;
-
-				while (expression != NULL)
-				{
-					if (!expression->hidden)
-					{
-						m_writer.BeginLine(indent + 1, RawStr(expression->fileName), expression->line);
-
-						m_writer.Write("%s = %s", RawStr(expression->lvalue), RawStr(expression->rvalue));
-						m_writer.Write(";");
-						m_writer.EndLine();
-					}
-					expression = expression->nextExpression;
-				}
-				m_writer.WriteLine(indent, "};");
+				m_writer.Write("array_ref<sampler> %s", RawStr(samplerState->name));
 			}
 			else
 			{
-				if (samplerState->type.array)
-				{
-					m_writer.Write("array_ref<sampler> %s", RawStr(samplerState->cachedName));
-				}
-				else
-				{
-					m_writer.Write("sampler %s", RawStr(samplerState->cachedName));
-				}
+				m_writer.Write("sampler %s", RawStr(samplerState->name));
+			}
 					
 
-				//	m_writer.Write("[");
-				//	OutputExpression(samplerState->type.arraySize, NULL, NULL, function, false);
-				//	m_writer.Write("]");
+			//	m_writer.Write("[");
+			//	OutputExpression(samplerState->type.arraySize, NULL, NULL, function, false);
+			//	m_writer.Write("]");
 				
 
-				m_writer.EndLine(";");
-			}
+			m_writer.EndLine(";");
 		}
 		else if (statement->nodeType == HLSLNodeType_Struct)
 		{
@@ -3306,7 +3244,7 @@ void MSLGenerator::OutputStatements(int indent, HLSLStatement* statement, const 
 				HLSLType tempType;
 				tempType.baseType = buffer->type.elementType;
 
-				m_writer.WriteLine(indent, "constant %s* %s;", buffer->type.elementType != HLSLBaseType_Unknown ? getElementTypeAsStr(m_stringLibrary, buffer->type) : RawStr(GetTypeName(tempType)), RawStr(buffer->cachedName));
+				m_writer.WriteLine(indent, "constant %s* %s;", buffer->type.elementType != HLSLBaseType_Unknown ? getElementTypeAsStr(m_stringLibrary, buffer->type) : RawStr(GetTypeName(tempType)), RawStr(buffer->name));
 			}
 			else if (buffer->type.baseType == HLSLBaseType_RWBuffer)
 			{
@@ -3412,7 +3350,7 @@ void MSLGenerator::OutputStatements(int indent, HLSLStatement* statement, const 
 					break;
 				}
 
-				m_writer.Write(" %s", RawStr(buffer->cachedName));
+				m_writer.Write(" %s", RawStr(buffer->name));
 				m_writer.EndLine(";");
 			}
 			else if (buffer->type.baseType == HLSLBaseType_RWStructuredBuffer)
@@ -3528,14 +3466,14 @@ void MSLGenerator::OutputStatements(int indent, HLSLStatement* statement, const 
 					}
 				}				
 
-				m_writer.Write(" %s", RawStr(buffer->cachedName));
+				m_writer.Write(" %s", RawStr(buffer->name));
 				m_writer.EndLine(";");
 			}
 			else if (buffer->type.baseType >= HLSLBaseType_ByteAddressBuffer || buffer->type.baseType <= HLSLBaseType_RWByteAddressBuffer)
 			{
 				HLSLDeclaration* field = buffer->field;
 
-				m_writer.WriteLine(indent, "constant %s* %s;", CHECK_CSTR("uint"), RawStr(buffer->cachedName));
+				m_writer.WriteLine(indent, "constant %s* %s;", CHECK_CSTR("uint"), RawStr(buffer->name));
 			}
 			else if (buffer->field->type.baseType >= HLSLBaseType_Texture1D && buffer->field->type.baseType <= HLSLBaseType_RWTexture3D)
 			{
@@ -3753,7 +3691,7 @@ void MSLGenerator::HideUnusedStatementDeclarations(HLSLFunction * entryFunction)
 		else if (statement->nodeType == HLSLNodeType_TextureState)
 		{
 			HLSLTextureState* textureState = static_cast<HLSLTextureState*>(statement);
-			bool isFound = usedNames.HasString(textureState->cachedName.m_string);
+			bool isFound = usedNames.HasString(textureState->name.m_string);
 			if (!isFound)
 			{
 				statement->hidden = true;
@@ -3762,17 +3700,18 @@ void MSLGenerator::HideUnusedStatementDeclarations(HLSLFunction * entryFunction)
 		//Does Metal support groupshared memory????
 		else if (statement->nodeType == HLSLNodeType_GroupShared)
 		{
-			HLSLGroupShared* pGroupShared = static_cast<HLSLGroupShared*>(statement);
-			bool isFound = usedNames.HasString(pGroupShared->cachedName.m_string);
-			if (!isFound)
-			{
-				statement->hidden = true;
-			}
+			// Following code is incorrect cached name is not used during parsing
+			//HLSLGroupShared* pGroupShared = static_cast<HLSLGroupShared*>(statement);
+			//bool isFound = usedNames.HasString(pGroupShared->name.m_string);
+			//if (!isFound)
+			//{
+			//	statement->hidden = true;
+			//}
 		}
 		else if (statement->nodeType == HLSLNodeType_SamplerState)
 		{
 			HLSLSamplerState* samplerState = static_cast<HLSLSamplerState*>(statement);
-			bool isFound = usedNames.HasString(samplerState->cachedName.m_string);
+			bool isFound = usedNames.HasString(samplerState->name.m_string);
 			if (!isFound)
 			{
 				statement->hidden = true;
@@ -3785,7 +3724,7 @@ void MSLGenerator::HideUnusedStatementDeclarations(HLSLFunction * entryFunction)
 		else if (statement->nodeType == HLSLNodeType_Buffer)
 		{
 			HLSLBuffer* buffer = static_cast<HLSLBuffer*>(statement);
-			bool isFound = usedNames.HasString(buffer->cachedName.m_string);
+			bool isFound = usedNames.HasString(buffer->name.m_string);
 			if (!isFound)
 			{
 				statement->hidden = true;
@@ -3938,28 +3877,28 @@ void MSLGenerator::OutputDeclaration(HLSLDeclaration* declaration, const HLSLFun
 		// We do not handle multiple textures on the same line
 		ASSERT_PARSER(declaration->nextDeclaration == NULL);
 		if (declaration->type.baseType == HLSLBaseType_Sampler2D)
-			m_writer.Write("thread texture2d<float>& %s_texture; thread sampler& %s_sampler", RawStr(declaration->cachedName), RawStr(declaration->cachedName));
+			m_writer.Write("thread texture2d<float>& %s_texture; thread sampler& %s_sampler", RawStr(declaration->name), RawStr(declaration->name));
 		else if (declaration->type.baseType == HLSLBaseType_Sampler3D)
-			m_writer.Write("thread texture3d<float>& %s_texture; thread sampler& %s_sampler", RawStr(declaration->cachedName), RawStr(declaration->cachedName));
+			m_writer.Write("thread texture3d<float>& %s_texture; thread sampler& %s_sampler", RawStr(declaration->name), RawStr(declaration->name));
 		else if (declaration->type.baseType == HLSLBaseType_SamplerCube)
-			m_writer.Write("thread texturecube<float>& %s_texture; thread sampler& %s_sampler", RawStr(declaration->cachedName), RawStr(declaration->cachedName));
+			m_writer.Write("thread texturecube<float>& %s_texture; thread sampler& %s_sampler", RawStr(declaration->name), RawStr(declaration->name));
 		else if (declaration->type.baseType == HLSLBaseType_Sampler2DShadow)
-			m_writer.Write("thread depth2d<float>& %s_texture; thread sampler& %s_sampler", RawStr(declaration->cachedName), RawStr(declaration->cachedName));
+			m_writer.Write("thread depth2d<float>& %s_texture; thread sampler& %s_sampler", RawStr(declaration->name), RawStr(declaration->name));
 		else if (declaration->type.baseType == HLSLBaseType_Sampler2DMS)
-			m_writer.Write("thread texture2d_ms<float>& %s_texture", RawStr(declaration->cachedName));
+			m_writer.Write("thread texture2d_ms<float>& %s_texture", RawStr(declaration->name));
 		else if (declaration->type.baseType == HLSLBaseType_Sampler2DArray)
-			m_writer.Write("thread texture2d_array<float>& %s_texture; thread sampler& %s_sampler", RawStr(declaration->cachedName), RawStr(declaration->cachedName));
+			m_writer.Write("thread texture2d_array<float>& %s_texture; thread sampler& %s_sampler", RawStr(declaration->name), RawStr(declaration->name));
 		else
 			m_writer.Write("<unhandled texture type>");
 	}
 	else
 	{
-		OutputDeclaration(declaration->type, declaration->cachedName, declaration->assignment, function);
+		OutputDeclaration(declaration->type, declaration->name, declaration->assignment, function);
 		declaration = declaration->nextDeclaration;
 		while (declaration != NULL)
 		{
 			m_writer.Write(",");
-			OutputDeclarationBody(declaration->type, declaration->cachedName, declaration->assignment, function);
+			OutputDeclarationBody(declaration->type, declaration->name, declaration->assignment, function);
 			declaration = declaration->nextDeclaration;
 		};
 	}
@@ -3982,15 +3921,7 @@ void MSLGenerator::OutputStruct(int indent, HLSLStruct* structure)
 
 			if (String_Equal(field->semantic, "SV_TessFactor") || String_Equal(field->semantic, "SV_InsideTessFactor"))
 			{
-				m_writer.Write("array<");
-				m_writer.Write("%s, ", CHECK_CSTR("half"));
-				//m_writer.Write("%d", OutputExpression(field));
-				OutputExpression(field->type.arraySize, NULL, NULL, NULL, true);
-
-				m_writer.Write(">");
-
-				// Then name
-				m_writer.Write(" %s", RawStr(field->name));
+				m_writer.Write("array<half, %d> %s", field->type.arrayExtent[0], RawStr(field->name));
 			}
 			else
 			{
@@ -4006,11 +3937,6 @@ void MSLGenerator::OutputStruct(int indent, HLSLStruct* structure)
 				
 			}
 
-			//if (field->sv_semantic.IsNotEmpty())
-			//{
-			//	m_writer.Write(" [[%s]]", RawStr(field->sv_semantic));
-			//}
-
 			m_writer.Write(";");
 			m_writer.EndLine();
 		}
@@ -4024,10 +3950,8 @@ void MSLGenerator::OutputBuffer(int indent, HLSLBuffer* buffer)
 	HLSLDeclaration* field = buffer->field;
 
 	//m_writer.BeginLine(indent, buffer->fileName, buffer->line);
-	m_writer.WriteLine(indent, "struct Uniforms_%s", RawStr(buffer->cachedName));
+	m_writer.WriteLine(indent, "struct Uniforms_%s", RawStr(buffer->name));
 	m_writer.WriteLine(indent, "{");
-
-
 
 	if (buffer->nodeType == HLSLNodeType_Buffer)
 	{
@@ -4035,7 +3959,7 @@ void MSLGenerator::OutputBuffer(int indent, HLSLBuffer* buffer)
 
 		if (cBuffer->type.elementType)
 		{
-			HLSLStruct* pStruct = m_tree->FindGlobalStruct(cBuffer->userDefinedElementTypeStr);
+			HLSLStruct* pStruct = m_tree->FindGlobalStruct(cBuffer->type.typeName);
 			HLSLStructField* field = pStruct->field;
 
 			while (field)
@@ -4050,7 +3974,6 @@ void MSLGenerator::OutputBuffer(int indent, HLSLBuffer* buffer)
 				field = field->nextField;
 			}
 		}
-
 	}
 
 	while (field != NULL)
@@ -4058,14 +3981,14 @@ void MSLGenerator::OutputBuffer(int indent, HLSLBuffer* buffer)
 		if (!field->hidden)
 		{
 			m_writer.BeginLine(indent + 1, RawStr(field->fileName), field->line);
-			OutputDeclaration(field->type, field->cachedName, field->assignment, NULL, false, false, /*alignment=*/0);
+			OutputDeclaration(field->type, field->name, field->assignment, NULL, false, false, /*alignment=*/0);
 			m_writer.EndLine(";");
 		}
 		field = (HLSLDeclaration*)field->nextStatement;
 	}
 	m_writer.WriteLine(indent, "};");
 
-	m_writer.WriteLine(indent, "constant Uniforms_%s & %s;", RawStr(buffer->cachedName), RawStr(buffer->cachedName));
+	m_writer.WriteLine(indent, "constant Uniforms_%s & %s;", RawStr(buffer->name), RawStr(buffer->name));
 }
 
 void MSLGenerator::OutputFunction(int indent, const HLSLFunction* function)
@@ -4076,8 +3999,8 @@ void MSLGenerator::OutputFunction(int indent, const HLSLFunction* function)
 	m_writer.BeginLine(indent, RawStr(function->fileName), function->line);
 	m_writer.Write("%s %s(", RawStr(returnTypeName), RawStr(functionName));
 
-	eastl::vector < HLSLArgument * > arguments = function->GetArguments();
-	OutputArgumentsVec(arguments, function);
+	const eastl::vector<HLSLArgument*>& arguments = function->args;
+	OutputArguments(arguments, function);
 
 	m_writer.EndLine(")");
 	m_writer.WriteLine(indent, "{");
@@ -4150,19 +4073,21 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType* 
 	}
 
 
-	if (expression->childExpression)
+	if (expression->nodeType == HLSLNodeType_InitListExpression)
 	{
+		HLSLInitListExpression* initExpression = static_cast<HLSLInitListExpression*>(expression);
 		m_writer.Write("{");
-		OutputExpressionList(expression->childExpression, function);
+		OutputExpressionList(initExpression->initExpressions, function);
 		m_writer.Write("}");
 	}
 	else if (expression->nodeType == HLSLNodeType_IdentifierExpression)
 	{
 		HLSLIdentifierExpression* identifierExpression = static_cast<HLSLIdentifierExpression*>(expression);
-		CachedString name = identifierExpression->name;
+		HLSLDeclaration* pDeclaration = identifierExpression->pDeclaration;
+		CachedString name = pDeclaration->name;
 
 		// For texture declaration, generate a struct instead
-		if (identifierExpression->global && IsSamplerType(identifierExpression->expressionType))
+		if (pDeclaration->global && IsSamplerType(identifierExpression->expressionType))
 		{
 			if (identifierExpression->expressionType.baseType == HLSLBaseType_Sampler2D)
 				m_writer.Write("Texture2DSampler(%s_texture, %s_sampler)", RawStr(name), RawStr(name));
@@ -4180,13 +4105,13 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType* 
 				m_writer.Write("<unhandled texture type>");
 		}	
 		//add buffer's name
-		else if (function != NULL && !matchFunctionArgumentsIdentifiersVec(function->GetArguments(), identifierExpression->name) && m_tree->FindBuffertMember(identifierExpression->name).IsNotEmpty())
+		else if (function != NULL && !matchFunctionArgumentsIdentifiersVec(function->args, name) && pDeclaration->buffer)
 		{
-			m_writer.Write("%s.%s", RawStr(m_tree->FindBuffertMember(identifierExpression->name)), RawStr(identifierExpression->name));
+			m_writer.Write("%s.%s", RawStr(pDeclaration->buffer->name), RawStr(name));
 		}
 		else if (expression->expressionType.baseType == HLSLBaseType_OutputPatch)
 		{
-			m_writer.Write("%s.control_points", RawStr(identifierExpression->name));
+			m_writer.Write("%s.control_points", RawStr(name));
 		}
 		else if (expression->expressionType.baseType == HLSLBaseType_ByteAddressBuffer || expression->expressionType.baseType == HLSLBaseType_RWByteAddressBuffer)
 		{
@@ -4200,16 +4125,9 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType* 
 		}
 		else
 		{
-			if (identifierExpression->global)
+			if (pDeclaration->global && pDeclaration->buffer)
 			{
-				HLSLBuffer * buffer;
-				HLSLDeclaration * declaration = m_tree->FindGlobalDeclaration(identifierExpression->name, &buffer);
-
-				if (declaration && declaration->buffer)
-				{
-					ASSERT_PARSER(buffer == declaration->buffer);
-					m_writer.Write("%s.", RawStr(declaration->buffer->cachedName));
-				}
+				m_writer.Write("%s.", RawStr(pDeclaration->buffer->name));
 			}
 
 
@@ -4223,9 +4141,9 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType* 
 				{
 					if (!field->hidden)
 					{
-						if (String_Equal(field->cachedName, name))
+						if (String_Equal(field->name, name))
 						{
-							m_writer.Write("%s.%s", RawStr(buffer->cachedName), RawStr(name));
+							m_writer.Write("%s.%s", RawStr(buffer->name), RawStr(name));
 							return;
 						}
 					}
@@ -4247,7 +4165,7 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType* 
 	else if (expression->nodeType == HLSLNodeType_ConstructorExpression)
 	{
 		HLSLConstructorExpression* constructorExpression = static_cast<HLSLConstructorExpression*>(expression);
-		m_writer.Write("%s(", RawStr(GetTypeName(constructorExpression->type)));
+		m_writer.Write("%s(", RawStr(GetTypeName(constructorExpression->expressionType)));
 		if (HLSLBaseType_Float <= expression->expressionType.baseType &&
 			expression->expressionType.baseType <= HLSLBaseType_LastNumeric)
 		{
@@ -4262,11 +4180,11 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType* 
 			// uint3 contstructor. But in metal, that code causes an illegal cast. So to fix it, we will
 			// get the base type of the constructor (uint in this case), and for each parameter, do
 			// a cast if necessary.
-			OutputExpressionListConstructor(constructorExpression->argument, function, expectedScalarType);
+			OutputExpressionListConstructor(constructorExpression->params, function, expectedScalarType);
 		}
 		else
 		{
-			OutputExpressionList(constructorExpression->argument, function);
+			OutputExpressionList(constructorExpression->params, function);
 		}
 		
 		m_writer.Write(")");
@@ -4396,99 +4314,64 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType* 
 
 			// Exception Handling for imageStore, this might make errors
 			// Need to change better form
-			HLSLArrayAccess* ArrayAcess = static_cast<HLSLArrayAccess*>(binaryExpression->expression1);
-
-			if (binaryExpression->binaryOp == HLSLBinaryOp_Assign && binaryExpression->expression1->expressionType.baseType >= HLSLBaseType_RWTexture1D && binaryExpression->expression1->expressionType.baseType <= HLSLBaseType_RWTexture3D)
+			HLSLArrayAccess* arrayAccess = static_cast<HLSLArrayAccess*>(binaryExpression->expression1);
+			if ((binaryExpression->binaryOp == HLSLBinaryOp_Assign) && (binaryExpression->expression1->nodeType == HLSLArrayAccess::s_type) && IsRWTexture(arrayAccess->array->expressionType.baseType))
 			{
-				HLSLTextureStateExpression* textureStateExpression = static_cast<HLSLTextureStateExpression*>(binaryExpression->expression1);
+				OutputExpression(arrayAccess->array, NULL, binaryExpression, function, true);
 
-				if (textureStateExpression->expressionType.baseType >= HLSLBaseType_RWTexture1D && textureStateExpression->expressionType.baseType <= HLSLBaseType_RWTexture3D)
+				m_writer.Write(".write(");
+
+				OutputExpression(binaryExpression->expression2, NULL, binaryExpression, function, true);
+
+				switch (arrayAccess->array->expressionType.baseType)
 				{
-					m_writer.Write("%s", RawStr(textureStateExpression->name));
+				case HLSLBaseType_RWTexture1D:
+					m_writer.Write(", uint(");
+					break;
+				case HLSLBaseType_RWTexture1DArray:
+					m_writer.Write(", uint2(");
+					break;
+				case HLSLBaseType_RWTexture2D:
+					m_writer.Write(", uint2(");
+					break;
+				case HLSLBaseType_RWTexture2DArray:
+					m_writer.Write(", uint3(");
+					break;
+				case HLSLBaseType_RWTexture3D:
+					m_writer.Write(", uint3(");
+					break;
+				default:
+					break;
+				}
 
-					if (textureStateExpression->bArray)
-					{
-						for (int i = 0; i < (int)textureStateExpression->arrayDimension; i++)
-						{
-							if (textureStateExpression->arrayExpression)
-							{
-								m_writer.Write("[");
-								OutputExpressionList(textureStateExpression->arrayExpression, function);
-								m_writer.Write("]");
-							}
-							else if (textureStateExpression->arrayIndex[i] > 0)
-								m_writer.Write("[%u]", textureStateExpression->arrayIndex[i]);
-							else
-								m_writer.Write("[%d]", DEFAULT_TEXTURE_COUNT);
-						}
-					}
+				OutputExpression(arrayAccess->index, NULL, NULL, function, true);
 
-					m_writer.Write(".write(");
-
-					OutputExpression(binaryExpression->expression2, NULL, binaryExpression, function, true);
-
-					switch (textureStateExpression->expressionType.baseType)
-					{
-					case HLSLBaseType_RWTexture1D:
-						m_writer.Write(", uint(");
-						break;
-					case HLSLBaseType_RWTexture1DArray:
-						m_writer.Write(", uint2(");
-						break;
-					case HLSLBaseType_RWTexture2D:
-						m_writer.Write(", uint2(");
-						break;
-					case HLSLBaseType_RWTexture2DArray:
-						m_writer.Write(", uint3(");
-						break;
-					case HLSLBaseType_RWTexture3D:
-						m_writer.Write(", uint3(");
-						break;
-					default:
-						break;
-					}
-
-					//OutputExpression(ArrayAcess->index, NULL, NULL, function);
-
-					if (textureStateExpression->indexExpression)
-					{
-						OutputExpression(textureStateExpression->indexExpression, NULL, NULL, function, true);
-					}
-
-					
-					switch (textureStateExpression->expressionType.baseType)
-					{
-					case HLSLBaseType_RWTexture1D:
-						m_writer.Write(")");
-						break;
-					case HLSLBaseType_RWTexture1DArray:
-						m_writer.Write(").x, uint2(");
-						OutputExpression(textureStateExpression->indexExpression, NULL, NULL, function, true);
-						m_writer.Write(").y");
-						break;
-					case HLSLBaseType_RWTexture2D:
-						m_writer.Write(")");
-						break;
-					case HLSLBaseType_RWTexture2DArray:
-						m_writer.Write(").xy, uint3(");
-						OutputExpression(textureStateExpression->indexExpression, NULL, NULL, function, true);
-						m_writer.Write(").z");
-						break;
-					case HLSLBaseType_RWTexture3D:
-						m_writer.Write(")");
-						break;
-					default:
-						break;
-					}
-
+  				switch (arrayAccess->array->expressionType.baseType)
+				{
+				case HLSLBaseType_RWTexture1D:
 					m_writer.Write(")");
+					break;
+				case HLSLBaseType_RWTexture1DArray:
+					m_writer.Write(").x, uint2(");
+					OutputExpression(arrayAccess->index, NULL, NULL, function, true);
+					m_writer.Write(").y");
+					break;
+				case HLSLBaseType_RWTexture2D:
+					m_writer.Write(")");
+					break;
+				case HLSLBaseType_RWTexture2DArray:
+					m_writer.Write(").xy, uint3(");
+					OutputExpression(arrayAccess->index, NULL, NULL, function, true);
+					m_writer.Write(").z");
+					break;
+				case HLSLBaseType_RWTexture3D:
+					m_writer.Write(")");
+					break;
+				default:
+					break;
 				}
-				else
-				{
-					OutputExpression(binaryExpression->expression1, dstType1, binaryExpression, function, true);
-					m_writer.Write("%s", CHECK_CSTR(op));
-					OutputExpression(binaryExpression->expression2, dstType2, binaryExpression, function, true);
-				}
+
+				m_writer.Write(")");
 			}
 			else
 			{
@@ -4607,33 +4490,39 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType* 
 	{
 		HLSLArrayAccess* arrayAccess = static_cast<HLSLArrayAccess*>(expression);
 
-		OutputExpression(arrayAccess->array, NULL, expression, function, true);
-		m_writer.Write("[");
-		OutputExpression(arrayAccess->index, NULL, NULL, function, true);
-		m_writer.Write("]");
+		if (IsTexture(arrayAccess->array->expressionType))
+		{						
+			HLSLBaseType indexType = arrayAccess->index->expressionType.baseType;
+			HLSLBaseType scalarType = GetScalarBaseType(indexType);
 
+			int vecLen = (indexType - scalarType) + 1;
+
+			OutputExpression(arrayAccess->array, NULL, NULL, function, true);
+			m_writer.Write(".read(");
+			m_writer.Write("(");
+			OutputExpression(arrayAccess->index, NULL, NULL, function, true);
+			m_writer.Write(").xy");
+
+			m_writer.Write(")");
+		}
+		else
+		{
+			OutputExpression(arrayAccess->array, NULL, expression, function, true);
+			m_writer.Write("[");
+			OutputExpression(arrayAccess->index, NULL, NULL, function, true);
+			m_writer.Write("]");
+		}
 	}
 	else if (expression->nodeType == HLSLNodeType_FunctionCall)
 	{
 		HLSLFunctionCall* functionCall = static_cast<HLSLFunctionCall*>(expression);
 		CachedString name = functionCall->function->name;
-
+		const eastl::vector <HLSLExpression*>& params = functionCall->params;
+		const eastl::vector< HLSLArgument*>& args = functionCall->function->args;
 
 		if (String_Equal(name, "mul"))
 		{
-			HLSLExpression* argument[2];
-			if (GetFunctionArguments(functionCall, argument, 2) != 2)
-			{
-				Error("mul expects 2 arguments");
-				return;
-			}
-
-			eastl::vector < HLSLArgument * > argumentVec = functionCall->function->GetArguments();
-			ASSERT_PARSER(argumentVec.size() >= 2);
-
-			
-			const HLSLType& type0 = argumentVec[0]->argType;
-			const HLSLType& type1 = argumentVec[1]->argType;
+			ASSERT_PARSER(params.size() == 2);
 
 			const char* prefix = "";
 			const char* infix = "*";
@@ -4641,73 +4530,39 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType* 
 			if (m_options.flags & Flag_PackMatrixRowMajor)
 			{
 				m_writer.Write("%s((", CHECK_CSTR(prefix));
-				OutputExpression(argument[1], NULL, NULL, function, true);
+				OutputExpression(params[1], NULL, NULL, function, true);
 				m_writer.Write(")%s(", CHECK_CSTR(infix));
-				OutputExpression(argument[0], NULL, NULL, function, true);
+				OutputExpression(params[0], NULL, NULL, function, true);
 				m_writer.Write("))");
 			}
 			else
 			{
 				m_writer.Write("%s((", CHECK_CSTR(prefix));
-				OutputExpression(argument[0], NULL, NULL, function, true);
+				OutputExpression(params[0], NULL, NULL, function, true);
 				m_writer.Write(")%s(", CHECK_CSTR(infix));
-				OutputExpression(argument[1], NULL, NULL, function, true);
+				OutputExpression(params[1], NULL, NULL, function, true);
 				m_writer.Write("))");
 			}
 		}
 		else if (String_Equal(name, "max") || String_Equal(name, "min"))
 		{
-			HLSLExpression* argument[2];
-			if (GetFunctionArguments(functionCall, argument, 2) != 2)
-			{
-				Error("mul expects 2 arguments");
-				return;
-			}
-
-			eastl::vector < HLSLArgument * > argumentVec = functionCall->function->GetArguments();
-			ASSERT_PARSER(argumentVec.size() >= 2);
+			ASSERT_PARSER(params.size() == 2);
 
 			const HLSLType& retType = functionCall->function->returnType;
-
 			CachedString typeName = GetTypeName(retType);
 
 			m_writer.Write("%s((%s)",RawStr(name),RawStr(typeName));
-			OutputExpression(argument[0],NULL,NULL,functionCall->function,false);
+			OutputExpression(params[0],NULL,NULL,functionCall->function,false);
 			m_writer.Write(",(%s)",RawStr(typeName));
-			OutputExpression(argument[1], NULL, NULL, functionCall->function, false);
+			OutputExpression(params[1], NULL, NULL, functionCall->function, false);
 			m_writer.Write(")");
 		}
 		else if (String_Equal(name, "Sample") || String_Equal(name, "SampleLevel") || String_Equal(name, "SampleBias") ||
 			String_Equal(name, "GatherRed") || String_Equal(name, "SampleGrad"))
 		{
-			if (functionCall->pTextureStateExpression)
-			{
-				const HLSLTextureStateExpression* pTextureStateExpression = functionCall->pTextureStateExpression;
+			ASSERT_PARSER(params.size() >= 3);
 
-				//m_writer.Write(" %s", pTextureStateExpression->name);
-
-
-				if (pTextureStateExpression->bArray)
-				{
-					for (int i = 0; i < (int)pTextureStateExpression->arrayDimension; i++)
-					{
-						if (pTextureStateExpression->arrayExpression)
-						{
-							m_writer.Write(".Textures[");
-							OutputExpressionList(pTextureStateExpression->arrayExpression, function);
-							m_writer.Write("]");
-						}
-						else if (pTextureStateExpression->arrayIndex[i] > 0)
-						{
-							m_writer.Write(".Textures[%u]", pTextureStateExpression->arrayIndex[i]);
-						}
-						else
-						{
-							m_writer.Write(".Textures[%d]", DEFAULT_TEXTURE_COUNT);
-						}
-					}
-				}
-			}
+			OutputExpression(params[0], NULL, NULL, function, true);
 
 			if (String_Equal(name, "Sample"))
 				m_writer.Write(".%s(", CHECK_CSTR("sample"));
@@ -4720,26 +4575,21 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType* 
 			else if (String_Equal(name, "SampleGrad"))
 				m_writer.Write(".%s(", CHECK_CSTR("gather"));
 
-			eastl::vector < HLSLExpression * > argVec = functionCall->GetArguments();
-
-			ASSERT_PARSER(argVec.size() >= 2);
-
-			HLSLExpression* firstExpression = argVec[0];//functionCall->callArgument;
-
 			//should be sampler
-			OutputExpression(firstExpression, NULL, NULL, function, true);
+			OutputExpression(params[1], NULL, NULL, function, true);
 
 			m_writer.Write(", ");
 
-			HLSLExpression* SecondExpression = argVec[1];//firstExpression->nextExpression;
-			OutputExpression(SecondExpression, NULL, NULL, function, true);
+			OutputExpression(params[2], NULL, NULL, function, true);
 
-			if (functionCall->pTextureStateExpression->expressionType.baseType == HLSLBaseType_Texture1DArray ||
-				functionCall->pTextureStateExpression->expressionType.baseType == HLSLBaseType_Texture2DArray ||
-				functionCall->pTextureStateExpression->expressionType.baseType == HLSLBaseType_Texture2DMSArray ||
-				functionCall->pTextureStateExpression->expressionType.baseType == HLSLBaseType_TextureCubeArray)
+				//TODO: fix!!
+			if (params[0]->expressionType.baseType == HLSLBaseType_Texture1DArray ||
+				params[0]->expressionType.baseType == HLSLBaseType_Texture2DArray ||
+				params[0]->expressionType.baseType == HLSLBaseType_Texture2DMSArray ||
+				params[0]->expressionType.baseType == HLSLBaseType_TextureCubeArray)
 			{
-				switch (functionCall->pTextureStateExpression->expressionType.baseType)
+				//TODO: fix!!
+				switch (params[0]->expressionType.baseType)
 				{
 				case HLSLBaseType_Texture1DArray:
 					m_writer.Write(".x, ");
@@ -4758,9 +4608,9 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType* 
 				}
 
 				///Print again
-				OutputExpression(SecondExpression, NULL, NULL, function, true);
+				OutputExpression(params[2], NULL, NULL, function, true);
 
-				switch (functionCall->pTextureStateExpression->expressionType.baseType)
+				switch (params[0]->expressionType.baseType)
 				{
 				case HLSLBaseType_Texture1DArray:
 					m_writer.Write(".y");
@@ -4780,27 +4630,70 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType* 
 			}
 			
 			//This is for SampleLevel
-			if (argVec.size() >= 3)
+			if (params.size() > 3)
 			{
-				HLSLExpression* ThirdExpression = argVec[2];//SecondExpression->nextExpression;
 				m_writer.Write(", level(");
-				OutputExpression(ThirdExpression, NULL, NULL, function, true);
+				OutputExpression(params[3], NULL, NULL, function, true);
 				m_writer.Write(")");
 			}
 
-			if (argVec.size() >= 4)
+			if (params.size() > 4)
 			{
-				// 4 params, but it isn't handled yet. TODO.
+				// TODO: 4 params, but it isn't handled yet.
 			}
 
 			m_writer.Write(")");
 		}
+		else if (String_Equal(name, "GetDimensions"))
+		{
+			ASSERT_PARSER(params.size() >= 2);
+
+			for (size_t i = 1; i < params.size(); i++)
+			{
+				if (i > 1)
+				{
+					m_writer.Write(";\n");
+					m_writer.Write(2, "");
+				}
+
+				OutputExpression(params[i], NULL, NULL, function, true);
+
+				m_writer.Write(" = ");
+
+				OutputExpression(params[0], NULL, NULL, function, true);
+
+				if (i == 1)
+					m_writer.Write(".get_width(");
+				else if (i == 2)
+					m_writer.Write(".get_height(");
+				else if (i == 3)
+				{
+					if (params[0]->expressionType.baseType == HLSLBaseType_Sampler2DMS)
+					{
+						m_writer.Write(".get_num_samples(");
+					}
+					else
+					{
+						m_writer.Write(".get_depth(");
+					}
+
+					// it also handle functions below later
+					// https://docs.microsoft.com/en-us/windows/desktop/direct3dhlsl/dx-graphics-hlsl-to-getdimensions
+					//m_writer.Write(".get_array_size(");
+					//m_writer.Write(".get_num_mip_levels(");
+				}
+
+				m_writer.Write(")");
+			}
+		}
 		else if (String_Equal(name, "Load"))
 		{
+			ASSERT_PARSER(params.size() >= 2);
 			//for Texture
-			if (functionCall->pTextureStateExpression)
+			if (IsTexture(params[0]->expressionType))
 			{
-				switch (functionCall->pTextureStateExpression->expressionType.baseType)
+				OutputExpression(params[0], NULL, NULL, function, false);
+				switch (params[0]->expressionType.baseType)
 				{
 				case HLSLBaseType_Texture1D:
 					m_writer.Write(".read(");
@@ -4833,23 +4726,17 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType* 
 					break;
 				}
 
-				{
-					eastl::vector < HLSLExpression * > argVec = functionCall->GetArguments();
-					OutputExpressionListVec(argVec, function);
-				}
+				OutputExpressionList(functionCall->params, function, 1);
 
 				//HLSL -> MSL
-				switch (functionCall->pTextureStateExpression->expressionType.baseType)
+				switch (params[0]->expressionType.baseType)
 				{
 				case HLSLBaseType_Texture1D:
 					m_writer.Write(".x");
 					break;
 				case HLSLBaseType_Texture1DArray:
 					m_writer.Write(").x, uint2(");
-					{
-						eastl::vector < HLSLExpression * > argVec = functionCall->GetArguments();
-						OutputExpressionListVec(argVec, function);
-					}
+					OutputExpressionList(functionCall->params, function, 1);
 					m_writer.Write(").y");
 					break;
 				case HLSLBaseType_Texture2D:
@@ -4857,10 +4744,7 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType* 
 					break;
 				case HLSLBaseType_Texture2DArray:
 					m_writer.Write(").xy, uint3(");
-					{
-						eastl::vector < HLSLExpression * > argVec = functionCall->GetArguments();
-						OutputExpressionListVec(argVec, function);
-					}
+					OutputExpressionList(functionCall->params, function, 1);
 					m_writer.Write(").z");
 					break;
 				case HLSLBaseType_Texture3D:
@@ -4886,32 +4770,23 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType* 
 			{
 				//for buffers
 				m_writer.Write("[");
-				{
-					eastl::vector < HLSLExpression * > argVec = functionCall->GetArguments();
-					OutputExpressionListVec(argVec, function);
-				}
+				OutputExpressionList(functionCall->params, function);
 				m_writer.Write("]");
 			}
 		}
 		else if (String_Equal(name, "Store"))
 		{
-			if (functionCall->pBuffer)
-			{
+			ASSERT_PARSER(params.size() == 3);
 
-				m_writer.Write("%s", RawStr(functionCall->pBuffer->cachedName));
+			OutputExpression(params[0], NULL, NULL, function, false);
 
-				m_writer.Write("[");
+			m_writer.Write("[");
+			OutputExpression(params[1], NULL, NULL, function, false);
+			m_writer.Write("]");
 
-				eastl::vector < HLSLExpression * > argVec = functionCall->GetArguments();
-				ASSERT_PARSER(argVec.size() == 2);
-				OutputExpression(argVec[0], NULL, NULL, function, false);
+			m_writer.Write(" = ");
 
-				m_writer.Write("]");
-
-				m_writer.Write(" = ");
-
-				OutputExpression(argVec[1], NULL, NULL, function, false);
-			}
+			OutputExpression(params[2], NULL, NULL, function, false);
 		}
 		else if (String_Equal(name, "InterlockedAdd") ||
 			String_Equal(name, "InterlockedAnd") ||
@@ -4922,14 +4797,11 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType* 
 			String_Equal(name, "InterlockedOr") ||
 			String_Equal(name, "InterlockedXor"))
 		{
-			eastl::vector < HLSLExpression* > expressionVec = functionCall->GetArguments();
-			eastl::vector < HLSLArgument* > argumentVec = functionCall->function->GetArguments();
-
 			//check the number of arguements
-			if (expressionVec.size() == 3)
+			if (params.size() == 3)
 			{
 				//OutputExpression(expression->nextExpression->nextExpression, NULL, NULL, function, true);
-				OutputExpression(expressionVec[2], NULL, NULL, function, true);
+				OutputExpression(params[2], NULL, NULL, function, true);
 				m_writer.Write(" = ");
 			}
 
@@ -4966,29 +4838,26 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType* 
 				m_writer.Write("atomic_fetch_xor_explicit(&");
 			}
 
-			int numExp = (int)expressionVec.size() <= 2 ? (int)expressionVec.size() : 2;
-			for (int i = 0; i < numExp; i++)
+			size_t numExp = (int)params.size() <= 2 ? (int)params.size() : 2;
+			for (size_t i = 0; i < numExp; i++)
 			{
 				if (i > 0)
 				{
 					m_writer.Write(", ");
 				}
 
-				OutputExpression(expressionVec[i], NULL, NULL, function, true);
+				OutputExpression(params[i], NULL, NULL, function, true);
 			}
 
 			m_writer.Write(", memory_order_relaxed)");
-
 		}
 		else if (String_Equal(name, "sincos"))
 		{
-			eastl::vector < HLSLExpression* > expressionVec = functionCall->GetArguments();
+			ASSERT_PARSER(params.size() == 3);
 
-			ASSERT_PARSER(expressionVec.size() == 3);
-
-			HLSLExpression* angleArgument = expressionVec[0];
-			HLSLExpression* sinArgument = expressionVec[1];
-			HLSLExpression* cosArgument = expressionVec[2];
+			HLSLExpression* angleArgument = params[0];
+			HLSLExpression* sinArgument = params[1];
+			HLSLExpression* cosArgument = params[2];
 
 			OutputExpression(sinArgument, NULL, NULL, functionCall->function, true);
 
@@ -5031,128 +4900,6 @@ void MSLGenerator::OutputExpression(HLSLExpression* expression, const HLSLType* 
 		else
 			OutputFunctionCall(functionCall);
 	}
-	else if (expression->nodeType == HLSLNodeType_SamplerStateExpression)
-	{
-		HLSLSamplerStateExpression* samplerStateExpression = static_cast<HLSLSamplerStateExpression*>(expression);
-
-		m_writer.Write("%s", RawStr(samplerStateExpression->name));
-	}
-	else if (expression->nodeType == HLSLNodeType_TextureStateExpression)
-	{
-		HLSLTextureStateExpression* textureStateExpression = static_cast<HLSLTextureStateExpression*>(expression);
-
-	
-
-		if (textureStateExpression->indexExpression)
-		{						
-			HLSLBaseType indexType = textureStateExpression->indexExpression->expressionType.baseType;
-			HLSLBaseType scalarType = GetScalarBaseType(indexType);
-
-			int vecLen = (indexType - scalarType) + 1;
-
-			m_writer.Write("%s", RawStr(textureStateExpression->name));
-			m_writer.Write(".read(");
-			m_writer.Write("(");
-			OutputExpression(textureStateExpression->indexExpression, NULL, NULL, function, true);
-			m_writer.Write(").xy");
-
-			m_writer.Write(")");
-		}
-		else if (textureStateExpression->functionExpression)
-		{
-			if (textureStateExpression->functionExpression->nodeType == HLSLNodeType_FunctionCall)
-			{
-				HLSLFunctionCall* functionCall = static_cast<HLSLFunctionCall*>(textureStateExpression->functionExpression);
-				CachedString name = functionCall->function->name;
-
-				if (String_Equal(name, "GetDimensions"))
-				{
-					eastl::vector < HLSLExpression* > expressionVec = functionCall->GetArguments();
-					
-					for (int i = 0; i < expressionVec.size(); i++)
-					{
-						HLSLExpression* exp = expressionVec[i];
-						if (i > 0)
-						{
-							m_writer.Write(";\n");
-							m_writer.Write(2, "");
-						}
-
-						OutputExpression(exp, NULL, NULL, function, true);
-
-						m_writer.Write(" = ");
-
-						const HLSLTextureStateExpression* pTextureStateExpression = functionCall->pTextureStateExpression;
-
-						if (pTextureStateExpression == NULL)
-						{
-							m_writer.Write("INVALID pTextureStateExpression");
-						}
-						else
-						{
-							m_writer.Write("%s", RawStr(pTextureStateExpression->name));
-
-							if (pTextureStateExpression->bArray)
-							{
-								for (int i = 0; i < (int)pTextureStateExpression->arrayDimension; i++)
-								{
-									if (pTextureStateExpression->arrayExpression)
-									{
-										m_writer.Write("[");
-										OutputExpressionList(pTextureStateExpression->arrayExpression, function);
-										m_writer.Write("]");
-									}
-									else if (pTextureStateExpression->arrayIndex[i] > 0)
-										m_writer.Write("[%u]", pTextureStateExpression->arrayIndex[i]);
-									else
-										m_writer.Write("[]");
-								}
-							}
-						}
-
-						if (i == 0)
-							m_writer.Write(".get_width(");
-						else if (i == 1)
-							m_writer.Write(".get_height(");
-						else if (i == 2)
-						{
-							if (textureStateExpression->type == HLSLBaseType_Sampler2DMS)
-							{
-								m_writer.Write(".get_num_samples(");
-							}
-							else
-							{
-								m_writer.Write(".get_depth(");
-							}
-
-							// it also handle functions below later
-							// https://docs.microsoft.com/en-us/windows/desktop/direct3dhlsl/dx-graphics-hlsl-to-getdimensions
-							//m_writer.Write(".get_array_size(");
-							//m_writer.Write(".get_num_mip_levels(");
-						}
-
-						m_writer.Write(")");
-					}
-				}
-				else
-				{
-					m_writer.Write("%s", RawStr(textureStateExpression->name));
-					OutputExpression(textureStateExpression->functionExpression, NULL, NULL, function, false);
-				}
-			}
-			else
-			{
-				m_writer.Write("%s", RawStr(textureStateExpression->name));
-				OutputExpression(textureStateExpression->functionExpression, NULL, NULL, function, false);
-			}
-		}
-		else
-		{
-			m_writer.Write("%s", FetchCstr(m_stringLibrary, textureStateExpression->name));
-		}
-
-		//TODO output texture variable access;
-	}
 	else
 	{
 		m_writer.Write("<unknown expression>");
@@ -5171,7 +4918,6 @@ bool MSLGenerator::matchFunctionArgumentsIdentifiersVec(const eastl::vector < HL
 		HLSLArgument * argument = arguments[i];
 		if (String_Equal(argument->name, name))
 			return true;
-
 	}
 
 	return false;
@@ -5192,11 +4938,11 @@ void MSLGenerator::OutputCast(const HLSLType& type)
 }
 
 // Called by the various Output functions
-void MSLGenerator::OutputArgumentsVec(eastl::vector < HLSLArgument* > & arguments, const HLSLFunction* function)
+void MSLGenerator::OutputArguments(const eastl::vector<HLSLArgument*> & arguments, const HLSLFunction* function)
 {
-	int numWritten = 0;
+	size_t numWritten = 0;
 
-	for (int i = 0; i < arguments.size(); i++)
+	for (size_t i = 0; i < arguments.size(); i++)
 	{
 		HLSLArgument * argument = arguments[i];
 		if (argument->hidden)
@@ -5223,7 +4969,7 @@ void MSLGenerator::OutputArgumentsVec(eastl::vector < HLSLArgument* > & argument
 		}
 
 		m_writer.Write(0, "");
-		OutputDeclaration(argument->argType, argument->name, argument->defaultValue, function, isRef, isConst);
+		OutputDeclaration(argument->type, argument->name, argument->defaultValue, function, isRef, isConst);
 
 		numWritten++;
 	}
@@ -5271,9 +5017,7 @@ void MSLGenerator::OutputDeclarationType(const HLSLType& type, bool isRef, bool 
 
 	if (type.array)
 	{
-		m_writer.Write("array<%s, ", RawStr(GetTypeName(type)));
-			OutputExpression(type.arraySize, NULL, NULL, NULL, true);
-		m_writer.Write(">");
+		m_writer.Write("array<%s, %d>", RawStr(GetTypeName(type)), type.arrayExtent[0]);
 	}
 	else
 	{
@@ -5347,13 +5091,7 @@ void MSLGenerator::OutputDeclarationBody(const HLSLType& type, const CachedStrin
 		if (type.array)
 		{
 			m_writer.Write("{ ");
-			OutputExpressionList(assignment, function);
-			m_writer.Write(" }");
-		}
-		else if (assignment->nextExpression)
-		{
-			m_writer.Write("{ ");
-			OutputExpressionList(assignment, function);
+			OutputExpression(assignment, &type, NULL, function, true);
 			m_writer.Write(" }");
 		}
 		else
@@ -5363,50 +5101,33 @@ void MSLGenerator::OutputDeclarationBody(const HLSLType& type, const CachedStrin
 	}
 }
 
-void MSLGenerator::OutputExpressionListVec(eastl::vector < HLSLExpression* > expressionVec, const HLSLFunction* function)
+void MSLGenerator::OutputExpressionList(const eastl::vector<HLSLExpression*>& expressions, const HLSLFunction* function, size_t start)
 {
-	for (int i = 0; i < expressionVec.size(); i++)
+	for (size_t i = start; i < expressions.size(); i++)
 	{
-		HLSLExpression * expression = expressionVec[i];
-		ASSERT_PARSER(expression != NULL);
+		ASSERT_PARSER(expressions[i] != NULL);
 		if (i > 0)
 		{
 			m_writer.Write(", ");
 		}
-		OutputExpression(expression, NULL, NULL, function, true);
+		OutputExpression(expressions[i], NULL, NULL, function, true);
 	}
 }
 
-void MSLGenerator::OutputExpressionList(HLSLExpression* expression, const HLSLFunction* function)
+void MSLGenerator::OutputExpressionListConstructor(const eastl::vector<HLSLExpression*>& expressions, const HLSLFunction* function, HLSLBaseType expectedScalarType)
 {
-	int numExpressions = 0;
-	while (expression != NULL)
+	for (size_t i = 0; i < expressions.size(); ++i)
 	{
-		if (numExpressions > 0)
-		{
-			m_writer.Write(", ");
-		}
-		OutputExpression(expression, NULL, NULL, function, true);
-		expression = expression->nextExpression;
-		++numExpressions;
-	}
-}
-
-void MSLGenerator::OutputExpressionListConstructor(HLSLExpression* expression, const HLSLFunction* function, HLSLBaseType expectedScalarType)
-{
-	int numExpressions = 0;
-	while (expression != NULL)
-	{
-		if (numExpressions > 0)
+		if (i > 0)
 		{
 			m_writer.Write(", ");
 		}
 
-		HLSLBaseType actualScalarType = GetScalarBaseType(expression->expressionType.baseType);
+		HLSLBaseType actualScalarType = GetScalarBaseType(expressions[i]->expressionType.baseType);
 
 		if (expectedScalarType != actualScalarType)
 		{
-			int offset = expression->expressionType.baseType - actualScalarType;
+			int offset = expressions[i]->expressionType.baseType - actualScalarType;
 			HLSLBaseType dstType = (HLSLBaseType)(expectedScalarType + offset);
 
 			HLSLType currType;
@@ -5414,9 +5135,7 @@ void MSLGenerator::OutputExpressionListConstructor(HLSLExpression* expression, c
 			OutputCast(currType);
 		}
 
-		OutputExpression(expression, NULL, NULL, function, true);
-		expression = expression->nextExpression;
-		++numExpressions;
+		OutputExpression(expressions[i], NULL, NULL, function, true);
 	}
 }
 
@@ -5438,88 +5157,6 @@ inline bool isAddressable(HLSLExpression* expression)
 	return false;
 }
 
-void MSLGenerator::OutputFunctionCallStatement(int indent, HLSLFunctionCall* functionCall)
-{
-	int argumentIndex = 0;
-
-	eastl::vector < HLSLArgument * > argumentVec = functionCall->function->GetArguments();
-	eastl::vector < HLSLExpression * > expressionVec = functionCall->GetArguments();
-
-	int numArguments = (int)argumentVec.size();
-	ASSERT_PARSER(expressionVec.size() == argumentVec.size());
-
-	for (int i = 0; i < numArguments; i++)
-	{
-		HLSLArgument* argument = argumentVec[i];
-		HLSLExpression* expression = expressionVec[i];
-
-		if (!isAddressable(expression))
-		{
-			if (argument->modifier == HLSLArgumentModifier_Out)
-			{
-				m_writer.BeginLine(indent, RawStr(functionCall->fileName), functionCall->line);
-				OutputDeclarationType(argument->argType);
-				m_writer.Write("tmp%d;", argumentIndex);
-				m_writer.EndLine();
-			}
-			else if (argument->modifier == HLSLArgumentModifier_Inout)
-			{
-				m_writer.BeginLine(indent, RawStr(functionCall->fileName), functionCall->line);
-				OutputDeclarationType(argument->argType);
-				m_writer.Write("tmp%d = ", argumentIndex);
-				OutputExpression(expression, NULL, NULL, functionCall->function, true);
-				m_writer.EndLine(";");
-			}
-		}
-		argumentIndex++;
-	}
-
-	m_writer.BeginLine(indent, RawStr(functionCall->fileName), functionCall->line);
-	CachedString name = functionCall->function->name;
-	m_writer.Write("%s(", RawStr(name));
-
-	argumentIndex = 0;
-	
-	for (int i = 0; i < expressionVec.size(); i++)
-	{
-		HLSLArgument* argument = argumentVec[i];
-		HLSLExpression* expression = expressionVec[i];
-
-		if (!isAddressable(expression) && (argument->modifier == HLSLArgumentModifier_Out || argument->modifier == HLSLArgumentModifier_Inout))
-		{
-			m_writer.Write("tmp%d", argumentIndex);
-		}
-		else
-		{
-			OutputExpression(expression, NULL, NULL, functionCall->function, true);
-		}
-
-		argumentIndex++;
-		if (expression)
-		{
-			m_writer.Write(", ");
-		}
-	}
-	m_writer.EndLine(");");
-
-	argumentIndex = 0;
-	for (int i = 0; i < expressionVec.size(); i++)
-	{
-		HLSLArgument* argument = argumentVec[i];
-		HLSLExpression* expression = expressionVec[i];
-
-		if (!isAddressable(expression) && (argument->modifier == HLSLArgumentModifier_Out || argument->modifier == HLSLArgumentModifier_Inout))
-		{
-			m_writer.BeginLine(indent, RawStr(functionCall->fileName), functionCall->line);
-			OutputExpression(expression, NULL, NULL, functionCall->function, true);
-			m_writer.Write(" = tmp%d", argumentIndex);
-			m_writer.EndLine(";");
-		}
-
-		argumentIndex++;
-	}
-}
-
 void MSLGenerator::OutputFunctionCall(HLSLFunctionCall* functionCall)
 {
 	// @@ All these shenanigans only work if the function call is a statement...
@@ -5537,81 +5174,66 @@ void MSLGenerator::OutputFunctionCall(HLSLFunctionCall* functionCall)
 	{
 		name = MakeCached("popcount");
 	}
-
 	else if (String_Equal(name, "QuadReadAcrossDiagonal"))
 	{
 		name = MakeCached("quad_shuffle");
 
 		m_writer.Write("%s(", RawStr(name));
 
-		{
-			eastl::vector < HLSLExpression * > argVec = functionCall->GetArguments();
-			OutputExpressionListVec(argVec, functionCall->function);
-		}
+		OutputExpressionList(functionCall->params, functionCall->function);
+
 		m_writer.Write(", 3");
 		m_writer.Write(")");
 		return;
 	}
-
 	else if (String_Equal(name, "QuadReadLaneAt"))
 	{
 		name = MakeCached("quad_broadcast");
 	}
-
-
 	else if (String_Equal(name, "QuadReadAcrossX"))
 	{
 		name = MakeCached("quad_shuffle");
 
 		m_writer.Write("%s(", RawStr(name));
-		{
-			eastl::vector < HLSLExpression * > argVec = functionCall->GetArguments();
-			OutputExpressionListVec(argVec, functionCall->function);
-		}
+
+		OutputExpressionList(functionCall->params, functionCall->function);
+
 		m_writer.Write(", 1");
 		m_writer.Write(")");
 		return;
 	}
-
 	else if (String_Equal(name, "QuadReadAcrossY"))
 	{
 		name = MakeCached("quad_shuffle");
 
 		m_writer.Write("%s(", RawStr(name));
-		{
-			eastl::vector < HLSLExpression * > argVec = functionCall->GetArguments();
-			OutputExpressionListVec(argVec, functionCall->function);
-		}
+
+		OutputExpressionList(functionCall->params, functionCall->function);
+
 		m_writer.Write(", 2");
 		m_writer.Write(")");
 		return;
 	}
-
 	else if (String_Equal(name, "WaveActiveAllEqual"))
 	{
 		name = MakeCached("<unknown function>");
 	}
-
 	else if (String_Equal(name, "WaveActiveBitAnd"))
 	{
 		name = MakeCached("simd_and");
 	}
-
 	else if (String_Equal(name, "WaveActiveBitOr"))
 	{
 		name = MakeCached("simd_or");
 	}
-
 	else if (String_Equal(name, "WaveActiveBitXor"))
 	{
 		name = MakeCached("simd_xor");
 	}
-
 	else if (String_Equal(name, "WaveActiveCountBits"))
 	{
 		name = MakeCached("<unknown function>");
 	}
-
 	else if (String_Equal(name, "WaveActiveMax"))
 	{
 		name = MakeCached("simd_max");
@@ -5640,12 +5262,10 @@ void MSLGenerator::OutputFunctionCall(HLSLFunctionCall* functionCall)
 	{
 		name = MakeCached("simd_ballot");
 	}
-
 	else if (String_Equal(name, "WaveIsFirstLane"))
 	{
 		name = MakeCached("simd_is_first");
 	}
-
 	else if (String_Equal(name, "WaveGetLaneIndex"))
 	{
 		m_writer.Write("simd_lane_id");
@@ -5656,27 +5276,22 @@ void MSLGenerator::OutputFunctionCall(HLSLFunctionCall* functionCall)
 		m_writer.Write("simd_size");
 		return;
 	}
-
 	else if (String_Equal(name, "WavePrefixCountBits"))
 	{
 		name = MakeCached("<unknown function>");
 	}
-
 	else if (String_Equal(name, "WavePrefixProduct"))
 	{
 		name = MakeCached("simd_prefix_exclusive_product");
 	}
-
 	else if (String_Equal(name, "WavePrefixSum"))
 	{
 		name = MakeCached("simd_prefix_exclusive_sum");
 	}
-
 	else if (String_Equal(name, "WaveReadLaneFirst"))
 	{
 		name = MakeCached("simd_broadcast_first");
 	}
-
 	else if (String_Equal(name, "WaveReadLaneAt"))
 	{
 		name = MakeCached("simd_broadcast");
@@ -5688,12 +5303,10 @@ void MSLGenerator::OutputFunctionCall(HLSLFunctionCall* functionCall)
 	else if (String_Equal(name, "asint"))
 		name = MakeCached("as_type<int>");
 
-
 	m_writer.Write("%s(", RawStr(name));
-	{
-		eastl::vector < HLSLExpression * > argVec = functionCall->GetArguments();
-		OutputExpressionListVec(argVec, functionCall->function);
-	}
+
+	OutputExpressionList(functionCall->params, functionCall->function);
+
 	m_writer.Write(")");
 }
 
@@ -5825,30 +5438,4 @@ CachedString MSLGenerator::TranslateOutputSemantic(const CachedString & semantic
 	}
 
 	return CachedString();
-}
-
-void MSLGenerator::OutPushConstantIdentifierTextureStateExpression(int size, int counter, const HLSLTextureStateExpression* pTextureStateExpression, bool* bWritten)
-{
-	for (int index = 0; index < size; index++)
-	{
-		HLSLBuffer* buffer = static_cast<HLSLBuffer*>(m_PushConstantBuffers[index]);
-		HLSLDeclaration* field = buffer->field;
-
-		while (field != NULL)
-		{
-			if (!field->hidden)
-			{
-				if (String_Equal(field->cachedName, pTextureStateExpression->arrayIdentifier[counter]))
-				{
-					*bWritten = true;
-					m_writer.Write("%s.%s", RawStr(buffer->cachedName), RawStr(pTextureStateExpression->arrayIdentifier[counter]));
-					break;
-				}
-			}
-			field = (HLSLDeclaration*)field->nextStatement;
-		}
-
-		if (*bWritten)
-			break;
-	}
 }

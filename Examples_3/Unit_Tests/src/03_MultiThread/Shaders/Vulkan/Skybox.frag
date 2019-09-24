@@ -34,13 +34,13 @@
 
 #version 450 core
 
-layout (set=0, binding=4) uniform texture2D  RightText;
-layout (set=0, binding=5) uniform texture2D  LeftText;
-layout (set=0, binding=6) uniform texture2D  TopText;
-layout (set=0, binding=7) uniform texture2D  BotText;
-layout (set=0, binding=8) uniform texture2D  FrontText;
-layout (set=0, binding=9) uniform texture2D  BackText;
-layout (set=0, binding=10) uniform sampler   uSkyboxSampler;
+layout (UPDATE_FREQ_NONE, binding=4) uniform texture2D  RightText;
+layout (UPDATE_FREQ_NONE, binding=5) uniform texture2D  LeftText;
+layout (UPDATE_FREQ_NONE, binding=6) uniform texture2D  TopText;
+layout (UPDATE_FREQ_NONE, binding=7) uniform texture2D  BotText;
+layout (UPDATE_FREQ_NONE, binding=8) uniform texture2D  FrontText;
+layout (UPDATE_FREQ_NONE, binding=9) uniform texture2D  BackText;
+layout (UPDATE_FREQ_NONE, binding=10) uniform sampler   uSkyboxSampler;
 layout(location = 0) in INVOCATION
 {
   vec4 texcoord;

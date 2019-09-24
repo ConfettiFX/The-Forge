@@ -35,6 +35,7 @@
 #include "../../Common_3/Renderer/ResourceLoader.h"
 
 #include "../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../Common_3/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
 
 #include "../../Common_3/OS/Interfaces/IMemory.h"
 
@@ -63,7 +64,7 @@ public:
 		desc.mDepth = 1;
 		desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		desc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-		desc.mFormat = ImageFormat::R8;
+		desc.mFormat = TinyImageFormat_R8_UNORM;
 		desc.mHeight = height_;
 		desc.mMipLevels = 1;
 		desc.mSampleCount = SAMPLE_COUNT_1;
@@ -141,26 +142,25 @@ public:
 		addShader(pRenderer, &text3DShaderDesc, &pShaders[1]);
 
 		RootSignatureDesc textureRootDesc = { pShaders, 2 };
-#if defined(VULKAN)
-		const char* pDynamicUniformBuffers[] = { "uniformBlock" };
-		textureRootDesc.mDynamicUniformBufferCount = 1;
-		textureRootDesc.ppDynamicUniformBufferNames = pDynamicUniformBuffers;
-#endif
-		pRootSignature = NULL;
 		const char* pStaticSamplers[] = { "uSampler0" };
 		textureRootDesc.mStaticSamplerCount = 1;
 		textureRootDesc.ppStaticSamplerNames = pStaticSamplers;
 		textureRootDesc.ppStaticSamplers = &pDefaultSampler;
 		addRootSignature(pRenderer, &textureRootDesc, &pRootSignature);
 
-		DescriptorBinderDesc descriptorBinderDescs[] =
-		{
-			{ pRootSignature }, // 2D
-			{ pRootSignature }  // 3D
-		};
-		addDescriptorBinder(pRenderer, 0, 2, descriptorBinderDescs, &pDescriptorBinder);
-
 		addUniformGPURingBuffer(pRenderer, 65536, &pUniformRingBuffer, true);
+
+		uint64_t size = sizeof(mat4);
+		DescriptorSetDesc setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 2 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSets);
+		DescriptorData setParams[2] = {};
+		setParams[0].pName = "uniformBlock_rootcbv";
+		setParams[0].ppBuffers = &pUniformRingBuffer->pBuffer;
+		setParams[0].pSizes = &size;
+		setParams[1].pName = "uTex0";
+		setParams[1].ppTextures = &pCurrentTexture;
+		updateDescriptorSet(pRenderer, 0, pDescriptorSets, 2, setParams);
+		updateDescriptorSet(pRenderer, 1, pDescriptorSets, 2, setParams);
 
 		BufferDesc vbDesc = {};
 		vbDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
@@ -186,7 +186,7 @@ public:
 		for (unsigned int i = 0; i < (uint32_t)mFontBuffers.size(); i++)
 			conf_free(mFontBuffers[i]);
 
-		removeDescriptorBinder(pRenderer, pDescriptorBinder);
+		removeDescriptorSet(pRenderer, pDescriptorSets);
 		removeRootSignature(pRenderer, pRootSignature);
 
 		for (uint32_t i = 0; i < 2; ++i)
@@ -210,16 +210,16 @@ public:
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 2;
 		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = ImageFormat::RG32F;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32_SFLOAT;
 		vertexLayout.mAttribs[0].mBinding = 0;
 		vertexLayout.mAttribs[0].mLocation = 0;
 		vertexLayout.mAttribs[0].mOffset = 0;
 
 		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayout.mAttribs[1].mFormat = ImageFormat::RG32F;
+		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32_SFLOAT;
 		vertexLayout.mAttribs[1].mBinding = 0;
 		vertexLayout.mAttribs[1].mLocation = 1;
-		vertexLayout.mAttribs[1].mOffset = ImageFormat::GetImageFormatStride(ImageFormat::RG32F);
+		vertexLayout.mAttribs[1].mOffset = TinyImageFormat_BitSizeOfBlock(vertexLayout.mAttribs[0].mFormat) / 8;
 
 		PipelineDesc pipelineDesc = {};
 		pipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
@@ -233,10 +233,9 @@ public:
 		pipelineDesc.mGraphicsDesc.mSampleCount = ppRts[0]->mDesc.mSampleCount;
 		pipelineDesc.mGraphicsDesc.mSampleQuality = ppRts[0]->mDesc.mSampleQuality;
 		pipelineDesc.mGraphicsDesc.pColorFormats = &ppRts[0]->mDesc.mFormat;
-		pipelineDesc.mGraphicsDesc.pSrgbValues = &ppRts[0]->mDesc.mSrgb;
 		for (uint32_t i = 0; i < min(count, 2U); ++i)
 		{
-			pipelineDesc.mGraphicsDesc.mDepthStencilFormat = (i > 0) ? ppRts[1]->mDesc.mFormat : ImageFormat::NONE;
+			pipelineDesc.mGraphicsDesc.mDepthStencilFormat = (i > 0) ? ppRts[1]->mDesc.mFormat : TinyImageFormat_UNDEFINED;
 			pipelineDesc.mGraphicsDesc.pShaderProgram = pShaders[i];
 			pipelineDesc.mGraphicsDesc.pDepthState = pDepthStates[i];
 			pipelineDesc.mGraphicsDesc.pRasterizerState = pRasterizerStates[i];
@@ -285,7 +284,7 @@ public:
 
 	Shader*           pShaders[2];
 	RootSignature*    pRootSignature;
-	DescriptorBinder* pDescriptorBinder;
+	DescriptorSet*    pDescriptorSets;
 	Pipeline*         pPipelines[2];
 	/// Default states
 	BlendState*          pBlendAlpha;
@@ -472,7 +471,7 @@ void _Impl_FontStash::fonsImplementationRenderText(
 
 		RawImageData rawData;
 		rawData.pRawData = (uint8_t*)ctx->pPixels;
-		rawData.mFormat = ImageFormat::R8;
+		rawData.mFormat = TinyImageFormat_R8_UNORM;
 		rawData.mWidth = ctx->mWidth;
 		rawData.mHeight = ctx->mHeight;
 		rawData.mDepth = 1;
@@ -536,27 +535,21 @@ void _Impl_FontStash::fonsImplementationRenderText(
 
 		uint64_t size = sizeof(mvp);
 
-		DescriptorData params[3] = {};
-		params[0].pName = "uRootConstants";
-		params[0].pRootConstant = &data;
-		params[1].pName = "uniformBlock";
-		params[1].ppBuffers = &uniformBlock.pBuffer;
-		params[1].pOffsets = &uniformBlock.mOffset;
-		params[1].pSizes = &size;
-		params[2].pName = "uTex0";
-		params[2].ppTextures = &ctx->pCurrentTexture;
-		cmdBindDescriptors(pCmd, ctx->pDescriptorBinder, ctx->pRootSignature, 3, params);
+		DescriptorData params[1] = {};
+		params[0].pName = "uniformBlock_rootcbv";
+		params[0].ppBuffers = &uniformBlock.pBuffer;
+		params[0].pOffsets = &uniformBlock.mOffset;
+		params[0].pSizes = &size;
+		updateDescriptorSet(ctx->pRenderer, pipelineIndex, ctx->pDescriptorSets, 1, params);
+		cmdBindDescriptorSet(pCmd, pipelineIndex, ctx->pDescriptorSets);
+		cmdBindPushConstants(pCmd, ctx->pRootSignature, "uRootConstants", &data);
 		cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
 		cmdDraw(pCmd, nverts, 0);
 	}
 	else
 	{
-		DescriptorData params[2] = {};
-		params[0].pName = "uRootConstants";
-		params[0].pRootConstant = &data;
-		params[1].pName = "uTex0";
-		params[1].ppTextures = &ctx->pCurrentTexture;
-		cmdBindDescriptors(pCmd, ctx->pDescriptorBinder, ctx->pRootSignature, 2, params);
+		cmdBindDescriptorSet(pCmd, pipelineIndex, ctx->pDescriptorSets);
+		cmdBindPushConstants(pCmd, ctx->pRootSignature, "uRootConstants", &data);
 		cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
 		cmdDraw(pCmd, nverts, 0);
 	}

@@ -64,11 +64,17 @@ struct DomainOut {
     float2 UV;
 };
 
+struct VSDataPerFrame {
+    constant UniformData& GrassUniformBlock     [[id(0)]];
+};
+
 // Domain shader (vertex shader on Metal).
 [[patch(quad, 1)]]
-vertex DomainOut stageMain(HullOut patch                           [[stage_in]],
-                           float2 UV                               [[position_in_patch]],
-                           constant UniformData& GrassUniformBlock [[buffer(1)]])
+vertex DomainOut stageMain(
+    HullOut patch                           [[stage_in]],
+    float2 UV                               [[position_in_patch]],
+    constant VSDataPerFrame& vsDataPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]]
+)
 {
     DomainOut Output;
     
@@ -92,7 +98,7 @@ vertex DomainOut stageMain(HullOut patch                           [[stage_in]],
     // Triangle shape
     float t = uv.x + 0.5*uv.y - uv.x*uv.y;
     Output.Position.xyz = (1.0 - t)*c0 + t*c1;
-    Output.Position = GrassUniformBlock.viewProj * float4(Output.Position.xyz, 1.0);
+    Output.Position = vsDataPerFrame.GrassUniformBlock.viewProj * float4(Output.Position.xyz, 1.0);
     
     Output.UV.x = uv.x;
     Output.UV.y = uv.y;

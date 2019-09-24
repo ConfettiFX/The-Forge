@@ -23,7 +23,7 @@ layout(push_constant) uniform uRootConstants_Block
     vec2 scaleBias;
 } uRootConstants;
 
-layout(set = 0, binding = 1) uniform uniformBlock
+layout(set = 0, binding = 1) uniform uniformBlock_rootcbv
 {
     mat4 mvp;
 };

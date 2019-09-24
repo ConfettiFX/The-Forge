@@ -5,15 +5,15 @@
 #extension GL_GOOGLE_include_directive : enable
 
 
-#include "../../SDF_Constant.h"
+#include "SDF_Constant.h"
 
 
-layout(set = 0, binding = 0 ) uniform texture2D DepthTexture;
-layout(set = 1, binding = 0) uniform texture3D SDFVolumeTextureAtlas;
-layout(set = 0, binding = 2, rgba32f) uniform image2D OutTexture;
-layout(set = 0, binding = 3) uniform sampler clampToEdgeTrillinearSampler;
-layout(set = 0, binding = 4) uniform sampler clampToEdgeNearSampler;
-layout(row_major, set = 0, binding = 5) uniform cameraUniformBlock
+layout(UPDATE_FREQ_NONE, binding = 0) uniform texture2D DepthTexture;
+layout(UPDATE_FREQ_NONE, binding = 1) uniform texture3D SDFVolumeTextureAtlas;
+layout(UPDATE_FREQ_NONE, binding = 2, rgba32f) uniform image2D OutTexture;
+layout(UPDATE_FREQ_NONE, binding = 3) uniform sampler clampToEdgeTrillinearSampler;
+layout(UPDATE_FREQ_NONE, binding = 4) uniform sampler clampToEdgeNearSampler;
+layout(row_major, UPDATE_FREQ_PER_FRAME, binding = 5) uniform cameraUniformBlock
 {
     mat4 View;
     mat4 Project;
@@ -32,7 +32,7 @@ layout(row_major, set = 0, binding = 5) uniform cameraUniformBlock
     vec2 mWindowSize;
 };
 
-layout(row_major, set = 0, binding = 6) uniform meshSDFUniformBlock
+layout(row_major, UPDATE_FREQ_PER_FRAME, binding = 6) uniform meshSDFUniformBlock
 {
     mat4 mWorldToVolumeMat[256];
     vec4 mUVScaleAndVolumeScale[256];

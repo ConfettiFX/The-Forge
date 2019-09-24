@@ -24,6 +24,8 @@
 
 #ifdef METAL
 
+#include "../../OS/Interfaces/ILog.h"
+
 #include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 #include "../IRenderer.h"
 #include <string.h>
@@ -34,32 +36,39 @@
 
 struct BufferStructMember
 {
-	char          name[MAX_REFLECT_STRING_LENGTH];
-	MTLDataType   dataType;
-	int           bufferIndex;
-	unsigned long offset;    //byte offset within the uniform block
-	int           sizeInBytes;
-
-	BufferStructMember(): sizeInBytes(0), offset(0), bufferIndex(0), dataType(MTLDataTypeNone) { name[0] = '\0'; }
+	char                name[MAX_REFLECT_STRING_LENGTH];
+	int                 bufferIndex;
+	unsigned long       offset;    //byte offset within the uniform block
+	int                 sizeInBytes;
+    
+    ArgumentDescriptor  descriptor;
+    
+	BufferStructMember()
+        : sizeInBytes(0)
+        , offset(0)
+        , bufferIndex(0)
+    {
+        name[0] = '\0';
+    }
 };
 
 struct BufferInfo
 {
 	char           name[MAX_REFLECT_STRING_LENGTH];
 	int            bufferIndex;
-	int            sizeInBytes;
+	size_t         sizeInBytes;
+    size_t         alignment;
 	int            currentOffset;
 	bool           isUAV;
 	bool           isArgBuffer;
-	DescriptorType argBufferType;
 
-	BufferInfo():
-		sizeInBytes(0),
-		bufferIndex(-1),
-		currentOffset(0),
-		isUAV(false),
-		isArgBuffer(false),
-		argBufferType(DESCRIPTOR_TYPE_UNDEFINED)
+	BufferInfo()
+        : sizeInBytes(0)
+        , alignment(0)
+		, bufferIndex(-1)
+		, currentOffset(0)
+		, isUAV(false)
+		, isArgBuffer(false)
 	{
 	}
 };
@@ -148,10 +157,11 @@ int getSizeFromDataType(MTLDataType dataType)
 		case MTLDataTypeBool3: return 3;
 		case MTLDataTypeBool4: return 4;
 		case MTLDataTypeTexture: return 8;
-		case MTLDataTypePointer: return 8;
+        case MTLDataTypePointer: return 8;
+        case MTLDataTypeSampler: return 0;
 		default: break;
 	}
-	assert(0 && "Unknown metal type");
+	ASSERT(0 && "Unknown metal type");
 	return -1;
 }
 
@@ -165,8 +175,14 @@ uint32_t reflectShaderStruct(ShaderReflectionInfo* info, unsigned int bufferInde
 		strlcpy(bufferMember.name, [member.name UTF8String], MAX_REFLECT_STRING_LENGTH);
 		bufferMember.bufferIndex = bufferIndex;
 		bufferMember.offset = member.offset + parentOffset;
-		bufferMember.dataType = member.dataType;
-
+		bufferMember.descriptor.mDataType = member.dataType;
+        bufferMember.descriptor.mArgumentIndex = (uint32_t)member.argumentIndex;
+        bufferMember.descriptor.mBufferIndex = bufferIndex;
+        bufferMember.descriptor.mTextureType = MTLTextureType1D;
+        bufferMember.descriptor.mAccessType = MTLArgumentAccessReadOnly;
+        bufferMember.descriptor.mAlignment = 0;
+        bufferMember.descriptor.mArrayLength = 0;
+        
 		//  process each MTLStructMember
 		if (member.dataType == MTLDataTypeStruct)
 		{
@@ -174,11 +190,15 @@ uint32_t reflectShaderStruct(ShaderReflectionInfo* info, unsigned int bufferInde
 			if (nestedStruct != nil)
 				bufferMember.sizeInBytes = reflectShaderStruct(info, bufferIndex, bufferMember.offset, nestedStruct);
 			else
-				bufferMember.sizeInBytes = getSizeFromDataType(bufferMember.dataType);
+				bufferMember.sizeInBytes = getSizeFromDataType(bufferMember.descriptor.mDataType);
 		}
 		else if (member.dataType == MTLDataTypeArray)
 		{
-			assert(member.arrayType != nil);
+            bufferMember.descriptor.mArrayLength = (uint32_t)member.arrayType.arrayLength;
+
+            bufferMember.descriptor.mDataType = member.arrayType.elementType;
+            
+			ASSERT(member.arrayType != nil);
 			int arrayLength = (int)member.arrayType.arrayLength;
 			if (member.arrayType.elementType == MTLDataTypeStruct)
 			{
@@ -186,18 +206,35 @@ uint32_t reflectShaderStruct(ShaderReflectionInfo* info, unsigned int bufferInde
 				bufferMember.sizeInBytes = reflectShaderStruct(info, bufferIndex, bufferMember.offset, nestedStruct) * arrayLength;
 			}
 			else
+            {
 				bufferMember.sizeInBytes = getSizeFromDataType(member.arrayType.elementType) * arrayLength;
+            }
 		}
+        else if (member.dataType == MTLDataTypeTexture)
+        {
+            bufferMember.descriptor.mAccessType = member.textureReferenceType.access;
+            bufferMember.descriptor.mTextureType = member.textureReferenceType.textureType;
+            
+            bufferMember.sizeInBytes = getSizeFromDataType(member.dataType);
+        }
+        else if (member.dataType == MTLDataTypePointer)
+        {
+            bufferMember.descriptor.mAccessType = member.pointerType.access;
+            bufferMember.descriptor.mAlignment = member.pointerType.alignment;
+            
+            bufferMember.sizeInBytes = getSizeFromDataType(member.dataType);
+        }
 		else
 		{
 			// member is neither struct nor array
 			// analyze it; no need to drill down further
-			bufferMember.sizeInBytes = getSizeFromDataType(bufferMember.dataType);
+			bufferMember.sizeInBytes = getSizeFromDataType(member.dataType);
 		}
 
 		info->variableMembers.push_back(bufferMember);
 		totalSize += bufferMember.sizeInBytes;
 	}
+
 	return totalSize;
 }
 
@@ -212,25 +249,18 @@ void reflectShaderBufferArgument(ShaderReflectionInfo* info, MTLArgument* arg)
 	}
 	else if (arg.bufferDataType == MTLDataTypeArray)
 	{
-		assert(!"TODO: Implement");
+		ASSERT(!"TODO: Implement");
 	}
 
 	// Reflect buffer info
 	BufferInfo bufferInfo;
 	strlcpy(bufferInfo.name, [arg.name UTF8String], MAX_REFLECT_STRING_LENGTH);
 	bufferInfo.bufferIndex = (uint32_t)arg.index;
-	bufferInfo.sizeInBytes = (uint32_t)arg.bufferDataSize;
+	bufferInfo.sizeInBytes = arg.bufferDataSize;
+    bufferInfo.alignment   = arg.bufferAlignment;
 	bufferInfo.isUAV = (arg.access == MTLArgumentAccessReadWrite || arg.access == MTLArgumentAccessWriteOnly);
 	bufferInfo.isArgBuffer = arg.bufferPointerType.elementIsArgumentBuffer;
-	if (bufferInfo.isArgBuffer)
-	{
-		switch (arg.bufferStructType.members[0].arrayType.elementType)
-		{
-			case MTLDataTypeSampler: bufferInfo.argBufferType = DESCRIPTOR_TYPE_SAMPLER; break;
-			case MTLDataTypeTexture: bufferInfo.argBufferType = DESCRIPTOR_TYPE_TEXTURE; break;
-			default: bufferInfo.argBufferType = DESCRIPTOR_TYPE_BUFFER; break;
-		}
-	}
+    
 	info->buffers.push_back(bufferInfo);
 }
 
@@ -287,6 +317,19 @@ uint32_t calculateNamePoolSize(const ShaderReflectionInfo* shaderReflectionInfo)
 	{
 		const BufferInfo& buffer = shaderReflectionInfo->buffers[i];
 		namePoolSize += (uint32_t)strlen(buffer.name) + 1;
+        
+        if (buffer.isArgBuffer)
+        {
+            for (uint32_t i = 0; i < shaderReflectionInfo->variableMembers.size(); ++i)
+            {
+                const BufferStructMember& bufferMember = shaderReflectionInfo->variableMembers[i];
+                
+                if (bufferMember.bufferIndex == buffer.bufferIndex)
+                {
+                    namePoolSize += (uint32_t)strlen(bufferMember.name) + 1;
+                }
+            }
+        }
 	}
 	for (uint32_t i = 0; i < shaderReflectionInfo->textures.size(); i++)
 	{
@@ -308,14 +351,13 @@ bool isInputVertexBuffer(const BufferInfo& bufferInfo, ShaderStage shaderStage)
 	return (startsWith(bufferInfo.name, "vertexBuffer.") && shaderStage == SHADER_STAGE_VERT);
 }
 
-void addShaderResource(
-	ShaderResource* pResources, uint32_t idx, DescriptorType type, uint32_t bindingPoint, uint32_t sizeInBytes, ShaderStage shaderStage,
-	char** ppCurrentName, char* name)
+void addShaderResource(ShaderResource* pResources, uint32_t idx, DescriptorType type, uint32_t bindingPoint, size_t sizeInBytes, size_t alignment, ShaderStage shaderStage, char** ppCurrentName, char* name)
 {
 	pResources[idx].type = type;
-	pResources[idx].set = DESCRIPTOR_UPDATE_FREQ_NONE;
+	pResources[idx].set = DESCRIPTOR_UPDATE_FREQ_NONE + 10;
 	pResources[idx].reg = bindingPoint;
-	pResources[idx].size = sizeInBytes;
+	pResources[idx].size = (uint32_t)sizeInBytes;
+    pResources[idx].alignment = (uint32_t)alignment;
 	pResources[idx].used_stages = shaderStage;
 	pResources[idx].name = *ppCurrentName;
 	pResources[idx].name_size = (uint32_t)strlen(name);
@@ -330,7 +372,7 @@ void mtl_createShaderReflection(
 {
 	if (pOutReflection == NULL)
 	{
-		assert(0);
+		ASSERT(0);
 		return;    // TODO: error msg
 	}
 
@@ -354,7 +396,7 @@ void mtl_createShaderReflection(
 		if (!pipelineState)
 		{
 			NSLog(@ "Error generation compute pipeline object: %@", error);
-			assert(!"Compute pipeline object shouldn't fail to be created.");
+			ASSERT(!"Compute pipeline object shouldn't fail to be created.");
 			return;
 		}
 
@@ -370,14 +412,14 @@ void mtl_createShaderReflection(
 		const char* numThreadsStart = strstr((const char*)shaderCode, "[numthreads(");
 		if (numThreadsStart == NULL)
 		{
-			assert(!"Compute shaders require: [numthreads(x,y,z)]");
+			ASSERT(!"Compute shaders require: [numthreads(x,y,z)]");
 			return;
 		}
 		numThreadsStart += strlen("[numthreads(");
 		const char* numThreadsEnd = strstr(numThreadsStart, ")");
 		if (numThreadsEnd == NULL)
 		{
-			assert(!"Malformed[numthreads(x,y,z)]");
+			ASSERT(!"Malformed[numthreads(x,y,z)]");
 			return;
 		}
 
@@ -389,7 +431,7 @@ void mtl_createShaderReflection(
 			&pOutReflection->mNumThreadsPerGroup[2]);
 		if (count != 3)
 		{
-			assert(!"Malformed[numthreads(x,y,z)]");
+			ASSERT(!"Malformed[numthreads(x,y,z)]");
 			return;
 		}
 
@@ -469,7 +511,7 @@ void mtl_createShaderReflection(
 		if (!pipelineState)
 		{
 			NSLog(@ "Error generation render pipeline object: %@", error);
-			assert(!"Render pipeline object shouldn't fail to create.");
+			ASSERT(!"Render pipeline object shouldn't fail to create.");
 			return;
 		}
 
@@ -485,11 +527,11 @@ void mtl_createShaderReflection(
 		}
 		else
 		{
-			assert(!"No reflection information found in shader!");
+			ASSERT(!"No reflection information found in shader!");
 		}
 	}
 
-	assert(pReflectionInfo != nil);
+	ASSERT(pReflectionInfo != nil);
 
 	// lets find out the size of the name pool we need
 	// also get number of resources while we are at it
@@ -507,8 +549,24 @@ void mtl_createShaderReflection(
 		{
 			vertexBuffers.push_back(bufferInfo);
 		}
+        else if (bufferInfo.isArgBuffer)
+        {
+            // argument buffer
+            ++resourceCount;
+            
+            // iterate over argument buffer fields
+            for (uint32_t i = 0; i < pReflectionInfo->variableMembers.size(); ++i)
+            {
+                const BufferStructMember& bufferMember = pReflectionInfo->variableMembers[i];
+                
+                if (bufferMember.bufferIndex == bufferInfo.bufferIndex)
+                    ++resourceCount;
+            }
+        }
 		else
+        {
 			++resourceCount;
+        }
 	}
 
 	resourceCount += pReflectionInfo->textures.size();
@@ -528,7 +586,7 @@ void mtl_createShaderReflection(
 		for (uint32_t i = 0; i < vertexBuffers.size(); ++i)
 		{
 			const BufferInfo& vertexBufferInfo = vertexBuffers[i];
-			pVertexInputs[i].size = vertexBufferInfo.sizeInBytes;
+			pVertexInputs[i].size = (uint32_t)vertexBufferInfo.sizeInBytes;
 			pVertexInputs[i].name = pCurrentName;
 			pVertexInputs[i].name_size = (uint32_t)strlen(vertexBufferInfo.name);
 			// we don't own the names memory we need to copy it to the name pool
@@ -543,51 +601,101 @@ void mtl_createShaderReflection(
 	ShaderResource* pResources = NULL;
 	if (resourceCount > 0)
 	{
-		pResources = (ShaderResource*)conf_malloc(sizeof(ShaderResource) * resourceCount);
+		pResources = (ShaderResource*)conf_calloc(resourceCount, sizeof(ShaderResource));
 		uint32_t resourceIdx = 0;
 		for (uint32_t i = 0; i < pReflectionInfo->buffers.size(); ++i)
 		{
 			const BufferInfo& bufferInfo = pReflectionInfo->buffers[i];
 			if (!isInputVertexBuffer(bufferInfo, shaderStage))
 			{
-				eastl::string bufferName = bufferInfo.name;
-				bufferName.make_lower();
-				DescriptorType descriptorType =
-					(bufferName.find("rootconstant", 0) != eastl::string::npos
-						 ? DESCRIPTOR_TYPE_ROOT_CONSTANT
-						 : DESCRIPTOR_TYPE_BUFFER);
-				addShaderResource(
-					pResources, resourceIdx, descriptorType, bufferInfo.bufferIndex, bufferInfo.sizeInBytes, shaderStage, &pCurrentName,
-					(char*)bufferInfo.name);
-
 				if (bufferInfo.isArgBuffer)
-					pResources[resourceIdx].mtlArgumentBufferType = bufferInfo.argBufferType;
-				else
-					pResources[resourceIdx].mtlArgumentBufferType = RESOURCE_STATE_UNDEFINED;
-
-				resourceIdxByBufferIdx[bufferInfo.bufferIndex] = resourceIdx++;
+                {
+                    // argument buffer info
+                    addShaderResource(pResources, resourceIdx, DESCRIPTOR_TYPE_ARGUMENT_BUFFER, bufferInfo.bufferIndex, bufferInfo.sizeInBytes, bufferInfo.alignment, shaderStage, &pCurrentName, (char*)bufferInfo.name);
+                    
+                    resourceIdxByBufferIdx[bufferInfo.bufferIndex] = resourceIdx++;
+                    
+                    // argument buffer fields
+                    for (uint32_t i = 0; i < pReflectionInfo->variableMembers.size(); ++i)
+                    {
+                        const BufferStructMember& bufferMember = pReflectionInfo->variableMembers[i];
+                        
+                        if (bufferMember.bufferIndex == bufferInfo.bufferIndex)
+                        {
+                            DescriptorType descriptorType;
+                            switch (bufferMember.descriptor.mDataType)
+                            {
+                                case MTLDataTypeTexture:
+                                    if (bufferMember.descriptor.mAccessType == MTLArgumentAccessReadOnly)
+                                    {
+                                        descriptorType = DESCRIPTOR_TYPE_TEXTURE;
+                                    }
+                                    else
+                                    {
+                                        descriptorType = DESCRIPTOR_TYPE_RW_TEXTURE;
+                                    }
+                                    break;
+                                case MTLDataTypeSampler:
+                                    descriptorType = DESCRIPTOR_TYPE_SAMPLER;
+                                    break;
+                                case MTLDataTypeArray:
+                                case MTLDataTypePointer:
+                                    descriptorType = DESCRIPTOR_TYPE_BUFFER;
+                                    break;
+                                default:
+                                    ASSERT(0);
+                                    descriptorType = DESCRIPTOR_TYPE_UNDEFINED;
+                                    break;
+                            }
+                            
+                            addShaderResource(pResources, resourceIdx, descriptorType, bufferInfo.bufferIndex, bufferMember.sizeInBytes, 0, shaderStage, &pCurrentName, (char*)bufferMember.name);
+                            
+                            pResources[resourceIdx].mIsArgumentBufferField = true;
+                            pResources[resourceIdx].mtlArgumentDescriptors = bufferMember.descriptor;
+                            
+                            resourceIdx++;
+                        }
+                    }
+                }
+                else
+                {
+                    eastl::string bufferName = bufferInfo.name;
+                    bufferName.make_lower();
+                    DescriptorType descriptorType = (bufferName.find("rootconstant", 0) != eastl::string::npos ? DESCRIPTOR_TYPE_ROOT_CONSTANT : DESCRIPTOR_TYPE_BUFFER);
+                    
+                    addShaderResource(pResources, resourceIdx, descriptorType, bufferInfo.bufferIndex, bufferInfo.sizeInBytes, bufferInfo.alignment, shaderStage, &pCurrentName, (char*)bufferInfo.name);
+                    
+                    pResources[resourceIdx].mIsArgumentBufferField = false;
+                    //pResources[resourceIdx].mtlArgumentBufferType = RESOURCE_STATE_UNDEFINED;
+                    
+                    resourceIdxByBufferIdx[bufferInfo.bufferIndex] = resourceIdx++;
+                }
 			}
+            
+            ASSERT(resourceCount + 1 > resourceIdx);
 		}
 		for (uint32_t i = 0; i < pReflectionInfo->textures.size(); ++i, ++resourceIdx)
 		{
 			const TextureInfo& texInfo = pReflectionInfo->textures[i];
 			addShaderResource(
 				pResources, resourceIdx, texInfo.isUAV ? DESCRIPTOR_TYPE_RW_TEXTURE : DESCRIPTOR_TYPE_TEXTURE, texInfo.slotIndex,
-				0 /*size*/, shaderStage, &pCurrentName, (char*)texInfo.name);
+				0 /*size*/, 0, shaderStage, &pCurrentName, (char*)texInfo.name);
 
 			pResources[resourceIdx].mtlTextureType = static_cast<uint32_t>(texInfo.type);
-			pResources[resourceIdx].mtlArgumentBufferType = RESOURCE_STATE_UNDEFINED;
+            pResources[resourceIdx].mIsArgumentBufferField = false;
+			//pResources[resourceIdx].mtlArgumentBufferType = RESOURCE_STATE_UNDEFINED;
 		}
 		for (uint32_t i = 0; i < pReflectionInfo->samplers.size(); ++i, ++resourceIdx)
 		{
 			const SamplerInfo& samplerInfo = pReflectionInfo->samplers[i];
 			addShaderResource(
-				pResources, resourceIdx, DESCRIPTOR_TYPE_SAMPLER, samplerInfo.slotIndex, 0 /*samplerInfo.sizeInBytes*/, shaderStage,
+				pResources, resourceIdx, DESCRIPTOR_TYPE_SAMPLER, samplerInfo.slotIndex, 0 /*samplerInfo.sizeInBytes*/, 0, shaderStage,
 				&pCurrentName, (char*)samplerInfo.name);
-			pResources[resourceIdx].mtlArgumentBufferType = RESOURCE_STATE_UNDEFINED;
+			//pResources[resourceIdx].mtlArgumentBufferType = RESOURCE_STATE_UNDEFINED;
+            pResources[resourceIdx].mIsArgumentBufferField = false;
 		}
 	}
-
+    
 	ShaderVariable* pVariables = NULL;
 	// now do variables
 	if (variablesCount > 0)

@@ -91,22 +91,41 @@ struct Fragment_Shader
     albedoMap(albedoMapIn) {}
 };
 
+struct FSData {
+    constant Fragment_Shader::Uniforms_cbPerProp& cbPerProp [[id(0)]];
+    sampler samplerLinear [[id(1)]];
+};
+
+struct FSDataPerFrame {
+    constant Fragment_Shader::Uniforms_cbPerPass & cbPerPass [[id(0)]];
+};
+
+struct FSDataPerDraw {
+	//    texture2d<float> textureMaps[5];
+    texture2d<float, access::sample> albedoMap;
+    texture2d<float, access::sample> normalMap;
+    texture2d<float, access::sample> metallicMap;
+    texture2d<float, access::sample> roughnessMap;
+    texture2d<float, access::sample> aoMap;
+};
 
 fragment Fragment_Shader::PSOut stageMain( Fragment_Shader::PsIn 			input [[stage_in]],
-						sampler 						samplerLinear [[sampler(0)]],
-						constant     					Fragment_Shader::Uniforms_cbPerPass & cbPerPass [[buffer(1)]],
-						constant     					Fragment_Shader::Uniforms_cbPerProp & cbPerProp [[buffer(2)]],
-						texture2d<float, access::sample> albedoMap [[texture(0)]],
-						texture2d<float, access::sample> normalMap [[texture(1)]],
-						texture2d<float, access::sample> metallicMap [[texture(2)]],
-						texture2d<float, access::sample> roughnessMap [[texture(3)]],
-						texture2d<float, access::sample> aoMap [[texture(4)]]
+                        constant FSData& fsData                     [[buffer(UPDATE_FREQ_NONE)]],
+                        constant FSDataPerFrame& fsDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]],
+						constant FSDataPerDraw& fsDataPerDraw       [[buffer(UPDATE_FREQ_PER_DRAW)]]
 )
 {
+/*
+    texture2d<float, access::sample> albedoMap = textureMaps[0];
+    texture2d<float, access::sample> normalMap = textureMaps[1];
+    texture2d<float, access::sample> metallicMap = textureMaps[2];
+    texture2d<float, access::sample> roughnessMap = textureMaps[3];
+    texture2d<float, access::sample> aoMap = textureMaps[4];
+*/
     Fragment_Shader::PsIn input0;
     input0.normal = input.normal;
     input0.pos = input.pos;
     input0.uv = input.uv;
-    Fragment_Shader main(cbPerPass, cbPerProp, samplerLinear, albedoMap);
-        return main.main(input0);
+    Fragment_Shader main(fsDataPerFrame.cbPerPass, fsData.cbPerProp, fsData.samplerLinear, fsDataPerDraw.albedoMap);
+    return main.main(input0);
 }

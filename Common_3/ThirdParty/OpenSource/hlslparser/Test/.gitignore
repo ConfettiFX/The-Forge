@@ -1,4 +1,11 @@
 GLSL
 SPV
 Metal
+HLSL
 DXIL
+Orbis
+*.log
+*.txt
+dxc.exe
+dxcompiler.dll
+dxil.dll

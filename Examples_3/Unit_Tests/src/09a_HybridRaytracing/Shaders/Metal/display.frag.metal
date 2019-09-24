@@ -41,10 +41,15 @@ float3 ACESFilm(float3 x)
 	return saturate((x*(a*x + b)) / (x*(c*x + d) + e));
 }
 
-fragment float4 stageMain(PsIn input                [[stage_in]],
-						  texture2d<float, access::read> inputRT  [[texture(0)]])
+struct FSData {
+    texture2d<float, access::read> inputRT  [[id(0)]];
+};
+
+fragment float4 stageMain(PsIn input        [[stage_in]],
+    constant FSData& fsData                 [[buffer(UPDATE_FREQ_NONE)]]
+)
 {
-	float3 colour = inputRT.read(ushort2(input.position.xy)).xyz;
+	float3 colour = fsData.inputRT.read(ushort2(input.position.xy)).xyz;
 
 	float exposure = 0.7;
 

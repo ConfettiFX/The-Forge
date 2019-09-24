@@ -46,15 +46,15 @@
 
 #define EPSILON 1e-7f
 
-StructuredBuffer<float4> GuideHairVertexPositions : register(t0, space3);
-StructuredBuffer<float4> GuideHairVertexTangents : register(t1, space3);
-StructuredBuffer<float> HairThicknessCoefficients : register(t2, space3);
+StructuredBuffer<float4> GuideHairVertexPositions : register(t0, UPDATE_FREQ_PER_DRAW);
+StructuredBuffer<float4> GuideHairVertexTangents : register(t1, UPDATE_FREQ_PER_DRAW);
+StructuredBuffer<float> HairThicknessCoefficients : register(t2, UPDATE_FREQ_PER_DRAW);
 SamplerState LinearSampler : register(s0);
 
 #if defined(HAIR_SHADOW)
-#define CB_CAMERA_SET space2
+#define CB_CAMERA_SET UPDATE_FREQ_PER_BATCH
 #else
-#define CB_CAMERA_SET space0
+#define CB_CAMERA_SET UPDATE_FREQ_PER_FRAME
 #endif
 
 cbuffer cbCamera : register(b0, CB_CAMERA_SET)
@@ -66,7 +66,7 @@ cbuffer cbCamera : register(b0, CB_CAMERA_SET)
 	int bUseEnvironmentLight;
 }
 
-cbuffer cbHair : register(b2, space3)
+cbuffer cbHair : register(b2, UPDATE_FREQ_PER_DRAW)
 {
 	float4x4 Transform;
 	uint RootColor;

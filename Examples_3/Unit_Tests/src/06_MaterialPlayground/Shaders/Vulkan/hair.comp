@@ -70,7 +70,7 @@ struct Capsule
 	float radius1;
 };
 
-layout(set = 3, binding = 0) uniform cbSimulation
+layout(UPDATE_FREQ_PER_DRAW, binding = 0) uniform cbSimulation
 {
 	mat4 Transform;
 	vec4 QuatRotation;
@@ -93,7 +93,7 @@ layout(set = 3, binding = 0) uniform cbSimulation
 	float TipSeperationFactor;
 };
 
-layout(set = 3, binding = 1) uniform cbHairGlobal
+layout(UPDATE_FREQ_PER_DRAW, binding = 1) uniform cbHairGlobal
 {
 	vec4 Viewport;
 	vec4 Gravity;
@@ -101,47 +101,47 @@ layout(set = 3, binding = 1) uniform cbHairGlobal
 	float TimeStep;
 };
 
-layout(set = 3, binding = 2) buffer HairVertexPositions
+layout(UPDATE_FREQ_PER_DRAW, binding = 2) buffer HairVertexPositions
 {
 	vec4 HairVertexPosition[];
 };
 
-layout(set = 3, binding = 3) buffer HairVertexPositionsPrev
+layout(UPDATE_FREQ_PER_DRAW, binding = 3) buffer HairVertexPositionsPrev
 {
 	vec4 HairVertexPositionPrev[];
 };
 
-layout(set = 3, binding = 4) buffer HairVertexPositionsPrevPrev
+layout(UPDATE_FREQ_PER_DRAW, binding = 4) buffer HairVertexPositionsPrevPrev
 {
 	vec4 HairVertexPositionPrevPrev[];
 };
 
-layout(set = 3, binding = 5) buffer HairVertexTangents
+layout(UPDATE_FREQ_PER_DRAW, binding = 5) buffer HairVertexTangents
 {
 	vec4 HairVertexTangent[];
 };
 
-layout(set = 3, binding = 6) buffer HairRestPositions
+layout(UPDATE_FREQ_PER_DRAW, binding = 6) buffer HairRestPositions
 {
 	vec4 HairRestPosition[];
 };
 
-layout(set = 3, binding = 7) buffer HairRestLengths
+layout(UPDATE_FREQ_PER_DRAW, binding = 7) buffer HairRestLengths
 {
 	float HairRestLength[];
 };
 
-layout(set = 3, binding = 8) buffer HairGlobalRotations
+layout(UPDATE_FREQ_PER_DRAW, binding = 8) buffer HairGlobalRotations
 {
 	vec4 HairGlobalRotation[];
 };
 
-layout(set = 3, binding = 9) buffer HairRefsInLocalFrame
+layout(UPDATE_FREQ_PER_DRAW, binding = 9) buffer HairRefsInLocalFrame
 {
 	vec4 HairRefInLocalFrame[];
 };
 
-layout(set = 3, binding = 10) buffer FollowHairRootOffsets
+layout(UPDATE_FREQ_PER_DRAW, binding = 10) buffer FollowHairRootOffsets
 {
 	vec4 FollowHairRootOffset[];
 };

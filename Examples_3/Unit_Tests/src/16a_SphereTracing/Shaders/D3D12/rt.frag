@@ -22,7 +22,7 @@
  * under the License.
 */
 
-cbuffer u_input : register(b0)
+cbuffer u_input : register(b0, UPDATE_FREQ_PER_FRAME)
 {
     float4 resolution;
     float4x4 invView;

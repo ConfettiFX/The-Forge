@@ -673,7 +673,7 @@ typedef unsigned uint;
 struct uint2
 {
 	uint2() = default;
-	uint2(uint x, uint y) : x(x), y(y) {}
+	constexpr uint2(uint x, uint y) : x(x), y(y) {}
 	uint2(uint x) : x(x), y(x) {}
 	uint2(const uint2& f) : x(f.x), y(f.y) {}
 	uint2(const uint(&fv)[2]) : x(fv[0]), y(fv[1]) {}
@@ -720,7 +720,7 @@ inline const uint2& operator/=(uint2&a, const uint2& b) { return a = a / b; }
 struct uint3
 {
 	uint3() = default;
-	uint3(uint x, uint y, uint z) : x(x), y(y), z(z) {}
+	constexpr uint3(uint x, uint y, uint z) : x(x), y(y), z(z) {}
 	uint3(uint x) : x(x), y(x), z(x) {}
 	uint3(const uint3& f) : x(f.x), y(f.y), z(f.z) {}
 	uint3(const uint(&fv)[3]) : x(fv[0]), y(fv[1]), z(fv[2]) {}
@@ -762,7 +762,7 @@ inline const uint3& operator/=(uint3&a, const uint3& b) { return a = a / b; }
 struct uint4
 {
 	uint4() = default;
-	uint4(uint x, uint y, uint z, uint w) : x(x), y(y), z(z), w(w) {}
+	constexpr uint4(uint x, uint y, uint z, uint w) : x(x), y(y), z(z), w(w) {}
 	uint4(uint x) : x(x), y(x), z(x), w(x) {}
 	uint4(const uint3& f, uint w) : x(f.x), y(f.y), z(f.z), w(w) {}
 	uint4(const uint4& f) : x(f.x), y(f.y), z(f.z), w(f.w) {}
@@ -829,6 +829,13 @@ template <class T>
 constexpr T min(const T &x, const T &y) { return (x < y) ? x : y; }
 template <class T>
 constexpr T max(const T &x, const T &y) { return (x > y) ? x : y; }
+
+template <>
+constexpr uint2 min<>(const uint2 &x, const uint2 &y) { return { min(x.x, y.x), min(x.y, y.y) }; }
+template <>
+constexpr uint3 min<>(const uint3 &x, const uint3 &y) { return { min(x.x, y.x), min(x.y, y.y), min(x.z, y.z) }; }
+template <>
+constexpr uint4 min<>(const uint4 &x, const uint4 &y) { return { min(x.x, y.x), min(x.y, y.y), min(x.z, y.z), min(x.w, y.w) }; }
 
 inline uint2 min(const uint2 &x, const uint2& y) { return { min(x.x, y.x), min(x.y, y.y) }; }
 inline uint3 min(const uint3 &x, const uint3& y) { return { min(x.x, y.x), min(x.y, y.y), min(x.z, y.z) }; }
@@ -1472,6 +1479,13 @@ struct AABB
 		minBounds = Vector3(-0.001f, -0.001f, -0.001f);
 		maxBounds = Vector3(0.001f, 0.001f, 0.001f);
 	}
+
+	AABB(Vector3 const& argsMinBounds, Vector3 const& argsMaxBounds)
+	{
+		minBounds = argsMinBounds;
+		maxBounds = argsMaxBounds;
+	}
+
 	inline void Transform(Matrix4 const& mat)
 	{
 		minBounds = (mat * Vector4(minBounds.getX(), minBounds.getY(), minBounds.getZ(), 1.0f)).getXYZ();

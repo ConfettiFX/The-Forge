@@ -66,17 +66,25 @@ struct Vertex_Shader
 	boneOffsetMatrices(boneOffsetMatrices){}
 };
 
+struct VSData {
+    constant     Vertex_Shader::Uniforms_boneOffsetMatrices & boneOffsetMatrices;
+};
+
+struct VSDataPerDraw {
+    constant     Vertex_Shader::Uniforms_uniformBlock & uniformBlock;
+    constant     Vertex_Shader::Uniforms_boneMatrices & boneMatrices;
+};
 
 vertex Vertex_Shader::VSOutput stageMain(Vertex_Shader::VSInput input [[stage_in]],
-constant     Vertex_Shader::Uniforms_uniformBlock & uniformBlock [[buffer(1)]],
-constant     Vertex_Shader::Uniforms_boneMatrices & boneMatrices [[buffer(2)]],
-constant     Vertex_Shader::Uniforms_boneOffsetMatrices & boneOffsetMatrices [[buffer(3)]]) {
+constant VSData& vsData [[buffer(UPDATE_FREQ_NONE)]],
+constant VSDataPerDraw& vsDataPerDraw [[buffer(UPDATE_FREQ_PER_DRAW)]]
+) {
     Vertex_Shader::VSInput input0;
     input0.Position = input.Position;
     input0.Normal = input.Normal;
 	input0.UV = input.UV;
 	input0.BoneWeights = input.BoneWeights;
 	input0.BoneIndices = input.BoneIndices;
-    Vertex_Shader main(uniformBlock, boneMatrices, boneOffsetMatrices);
+    Vertex_Shader main(vsDataPerDraw.uniformBlock, vsDataPerDraw.boneMatrices, vsData.boneOffsetMatrices);
         return main.main(input0);
 }

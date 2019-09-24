@@ -99,19 +99,21 @@ struct Fragment_Shader
 	uTex0(uTex0),uSampler0(uSampler0),RootConstantSCurveInfo(RootConstantSCurveInfo) {}
 };
 
+struct FSData {
+    texture2d<float> uTex0 [[texture(0)]];
+    sampler uSampler0 [[sampler(0)]];
+};
 
 fragment float4 stageMain(
-						  Fragment_Shader::PsIn In [[stage_in]],
-						  texture2d<float> uTex0 [[texture(0)]],
-						  sampler uSampler0 [[sampler(0)]],
-						  constant Fragment_Shader::Uniforms_RootConstantSCurveInfo & RootConstantSCurveInfo [[buffer(0)]])
+    Fragment_Shader::PsIn In [[stage_in]],
+    constant FSData& fsData [[buffer(UPDATE_FREQ_NONE)]],
+    constant Fragment_Shader::Uniforms_RootConstantSCurveInfo & RootConstantSCurveInfo [[buffer(UPDATE_FREQ_USER)]]
+)
 {
 	Fragment_Shader::PsIn In0;
 	In0.position = float4(In.position.xyz, 1.0 / In.position.w);
 	In0.texCoord = In.texCoord;
-	Fragment_Shader main(uTex0,
-						 uSampler0,
-						 RootConstantSCurveInfo);
+	Fragment_Shader main(fsData.uTex0, fsData.uSampler0, RootConstantSCurveInfo);
 	return main.main(In0);
 }
 

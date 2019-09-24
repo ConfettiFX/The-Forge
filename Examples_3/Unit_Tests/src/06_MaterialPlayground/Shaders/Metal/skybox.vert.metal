@@ -31,6 +31,10 @@ struct UniformData
     float3 camPos;
 };
 
+struct VSData {
+    constant UniformData& uniformBlock    [[id(0)]];
+};
+
 struct VSInput {
     float4 Position [[attribute(0)]];
 };
@@ -40,12 +44,12 @@ struct VSOutput {
     float3 WorldPos;
 };
 
-vertex VSOutput stageMain(VSInput In                            [[stage_in]],
-                          constant UniformData& uniformBlock    [[buffer(1)]])
+vertex VSOutput stageMain(VSInput In                 [[stage_in]],
+                          constant VSData& vsData    [[buffer(UPDATE_FREQ_PER_FRAME)]])
 {
     VSOutput result;
 
-    float4 p = uniformBlock.projView * In.Position;
+    float4 p = vsData.uniformBlock.projView * In.Position;
     result.Position = p.xyww;
     result.WorldPos = In.Position.xyz;
     return result;

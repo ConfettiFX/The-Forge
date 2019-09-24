@@ -1077,7 +1077,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-9a-HybridRaytracing-iOS";
+				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-08-glTFViewer-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRIP_PNG_TEXT = NO;
@@ -1117,7 +1117,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-9a-HybridRaytracing-iOS";
+				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-08-glTFViewer-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRIP_PNG_TEXT = NO;
@@ -1264,7 +1264,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-9a-HybridRaytracing";
+				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-08-glTFViewer";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -1292,7 +1292,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-9a-HybridRaytracing";
+				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-08-glTFViewer";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;

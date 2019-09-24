@@ -27,12 +27,14 @@
 #include <metal_stdlib>
 using namespace metal;
 
+#include "shader_defs.h"
+
 struct PackedVertexPosData {
     packed_float3 position;
 };
 
 struct VSOutput {
-	float4 position [[position]];
+    float4 position [[position]];
 };
 
 struct PerBatchUniforms {
@@ -47,10 +49,13 @@ uint packVisBufData(bool opaque, uint drawId, uint triangleId)
 }
 
 // Pixel shader for opaque geometry
-[[early_fragment_tests]] fragment float4 stageMain(VSOutput input                        [[stage_in]],
-                                                   uint primitiveID                      [[primitive_id]],
-                                                   constant uint& drawID                 [[buffer(20)]])
+[[early_fragment_tests]] fragment float4 stageMain(
+    VSOutput input                        [[stage_in]],
+    uint primitiveID                      [[primitive_id]],
+    constant uint& drawID                 [[buffer(UPDATE_FREQ_USER)]]
+)
 {
     // Pack draw / triangle Id data into a 32-bit uint and store it in a RGBA8 texture
     return unpack_unorm4x8_to_float(packVisBufData(true, drawID, primitiveID));
+    //return float4(0.0);
 }

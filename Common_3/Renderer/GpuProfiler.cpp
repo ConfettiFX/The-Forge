@@ -28,16 +28,16 @@
 #include "../ThirdParty/OpenSource/MicroProfile/ProfilerBase.h"
 #include "../OS/Interfaces/IThread.h"
 #include "../OS/Interfaces/ILog.h"
+#include "../OS/Interfaces/ITime.h"
+
 #if __linux__
 #include <linux/limits.h>    //PATH_MAX declaration
 #define MAX_PATH PATH_MAX
 #endif
 #include "../OS/Interfaces/IMemory.h"
 
-#if !defined(ENABLE_RENDERER_RUNTIME_SWITCH)
 extern void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
 extern void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
-#endif
 
 void clearChildren(GpuTimerTree* pRoot)
 {
@@ -139,7 +139,7 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
 
 #if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11) || defined(METAL)
 	const uint32_t nodeIndex = pQueue->mQueueDesc.mNodeIndex;
-	QueryHeapDesc  queryHeapDesc = {};
+	QueryPoolDesc  queryHeapDesc = {};
 	queryHeapDesc.mNodeIndex = nodeIndex;
 	queryHeapDesc.mQueryCount = maxTimers * 2;
 	queryHeapDesc.mType = QUERY_TYPE_TIMESTAMP;
@@ -158,7 +158,7 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
 
 	for (uint32_t i = 0; i < GpuProfiler::NUM_OF_FRAMES; ++i)
 	{
-		addQueryHeap(pRenderer, &queryHeapDesc, &pGpuProfiler->pQueryHeap[i]);
+		addQueryPool(pRenderer, &queryHeapDesc, &pGpuProfiler->pQueryPool[i]);
 		BufferLoadDesc loadDesc = {};
 		loadDesc.mDesc = bufDesc;
 		loadDesc.ppBuffer = &pGpuProfiler->pReadbackBuffer[i];
@@ -193,7 +193,7 @@ void removeGpuProfiler(Renderer* pRenderer, GpuProfiler* pGpuProfiler)
 	for (uint32_t i = 0; i < GpuProfiler::NUM_OF_FRAMES; ++i)
 	{
 		removeResource(pGpuProfiler->pReadbackBuffer[i]);
-		removeQueryHeap(pRenderer, pGpuProfiler->pQueryHeap[i]);
+		removeQueryPool(pRenderer, pGpuProfiler->pQueryPool[i]);
 	}
 #endif
 
@@ -253,7 +253,7 @@ void cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, cons
     {
 #endif
         QueryDesc desc = { 2 * node->mGpuTimer.mIndex };
-        cmdBeginQuery(pCmd, pGpuProfiler->pQueryHeap[pGpuProfiler->mBufferIndex], &desc);
+        cmdBeginQuery(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], &desc);
 
 #if (PROFILE_ENABLED)
 				// Send data to MicroProfile
@@ -292,7 +292,7 @@ void cmdEndGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, GpuTim
 #endif
 	// Record gpu time
 	QueryDesc desc = { 2 * pGpuProfiler->pCurrentNode->mGpuTimer.mIndex + 1 };
-	cmdEndQuery(pCmd, pGpuProfiler->pQueryHeap[pGpuProfiler->mBufferIndex], &desc);
+	cmdEndQuery(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], &desc);
 
 #if (PROFILE_ENABLED)
 	// Send data to MicroProfile
@@ -322,16 +322,16 @@ void cmdBeginGpuFrameProfile(Cmd* pCmd, GpuProfiler* pGpuProfiler, bool bUseMark
 	if (pGpuProfiler->mReset)
 	{
 		for (uint32_t i = 0; i < GpuProfiler::NUM_OF_FRAMES; ++i)
-			cmdResetQueryHeap(pCmd, pGpuProfiler->pQueryHeap[i], 0, pGpuProfiler->pQueryHeap[i]->mDesc.mQueryCount);
+			cmdResetQueryPool(pCmd, pGpuProfiler->pQueryPool[i], 0, pGpuProfiler->pQueryPool[i]->mDesc.mQueryCount);
 
 		pGpuProfiler->mReset = false;
 	}
 
 	// resolve last frame
 	cmdResolveQuery(
-		pCmd, pGpuProfiler->pQueryHeap[pGpuProfiler->mBufferIndex], pGpuProfiler->pReadbackBuffer[pGpuProfiler->mBufferIndex], 0,
+		pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], pGpuProfiler->pReadbackBuffer[pGpuProfiler->mBufferIndex], 0,
 		pGpuProfiler->mCurrentTimerCount * 2);
-	cmdResetQueryHeap(pCmd, pGpuProfiler->pQueryHeap[pGpuProfiler->mBufferIndex], 0, pGpuProfiler->mCurrentTimerCount * 2);
+	cmdResetQueryPool(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], 0, pGpuProfiler->mCurrentTimerCount * 2);
 #endif
 
 	uint32_t nextIndex = (pGpuProfiler->mBufferIndex + 1) % GpuProfiler::NUM_OF_FRAMES;

@@ -24,7 +24,8 @@
 
 #define FLT_MAX  3.402823466e+38F
 
-cbuffer cbExtendCamera : register(b0) {
+cbuffer cbExtendCamera : register(b0, UPDATE_FREQ_PER_FRAME)
+{
 	float4x4 viewMat;
 	float4x4 projMat;
 	float4x4 viewProjMat;
@@ -38,7 +39,8 @@ Texture2D SceneTexture : register(t1);
 Texture2D SSRTexture : register(t2);
 
 
-cbuffer cbProperties : register(b3) {
+cbuffer cbProperties : register(b3, UPDATE_FREQ_PER_FRAME)
+{
 	uint renderMode;
 	float useHolePatching;
 	float useExpensiveHolePatching;
@@ -54,7 +56,8 @@ SamplerState nearestSampler : register(s4);
 SamplerState bilinearSampler : register(s5);
 
 
-struct VSOutput {
+struct VSOutput
+{
 	float4 Position : SV_POSITION;	
 	float2 uv:    TEXCOORD0;
 };

@@ -24,7 +24,7 @@
 
 // Shader for ground plane in Unit Tests Animation
 
-cbuffer uniformBlock : register(b0)
+cbuffer uniformBlock : register(b0, UPDATE_FREQ_PER_DRAW)
 {
     float4x4 mvp;
     float4x4 toWorld;

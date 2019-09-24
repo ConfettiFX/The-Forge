@@ -30,14 +30,17 @@ struct Vertex_Shader
 	objectUniformBlock(objectUniformBlock) {}
 };
 
+struct VSData {
+    constant Vertex_Shader::Uniforms_objectUniformBlock & objectUniformBlock             [[id(0)]];
+};
 
 vertex Vertex_Shader::PsIn stageMain(
-									 Vertex_Shader::VsIn input [[stage_in]],
-									 constant Vertex_Shader::Uniforms_objectUniformBlock & objectUniformBlock [[buffer(2)]])
+    Vertex_Shader::VsIn input [[stage_in]],
+    constant VSData& vsData     [[buffer(UPDATE_FREQ_PER_DRAW)]]
+)
 {
 	Vertex_Shader::VsIn input0;
 	input0.Position = input.Position;
-	Vertex_Shader main(
-					   objectUniformBlock);
+	Vertex_Shader main(vsData.objectUniformBlock);
 	return main.main(input0);
 }

@@ -103,30 +103,28 @@ PointSampler(PointSampler),LinearSampler(LinearSampler),AccumulationTexture(Accu
  {}
 };
 
+struct FSData {
+    sampler PointSampler;
+    sampler LinearSampler;
+    texture2d<float> AccumulationTexture;
+    texture2d<float> ModulationTexture;
+    texture2d<float> BackgroundTexture;
+#if PT_USE_REFRACTION!=0
+    texture2d<float> RefractionTexture;
+#endif
+};
 
 fragment float4 stageMain(
     Fragment_Shader::VSOutput input [[stage_in]],
-    sampler PointSampler [[sampler(0)]],
-    sampler LinearSampler [[sampler(1)]],
-    texture2d<float> AccumulationTexture [[texture(0)]],
-    texture2d<float> ModulationTexture [[texture(1)]],
-    texture2d<float> BackgroundTexture [[texture(2)]]
-#if PT_USE_REFRACTION!=0
-    ,texture2d<float> RefractionTexture [[texture(3)]]
-#endif
-    )
+    constant FSData& fsData         [[buffer(UPDATE_FREQ_NONE)]]
+)
 {
     Fragment_Shader::VSOutput input0;
     input0.Position = float4(input.Position.xyz, 1.0 / input.Position.w);
     input0.UV = input.UV;
-    Fragment_Shader main(
-    PointSampler,
-    LinearSampler,
-    AccumulationTexture,
-    ModulationTexture,
-    BackgroundTexture
+    Fragment_Shader main(fsData.PointSampler, fsData.LinearSampler, fsData.AccumulationTexture, fsData.ModulationTexture, fsData.BackgroundTexture
 #if PT_USE_REFRACTION!=0
-    ,RefractionTexture
+    ,fsData.RefractionTexture
 #endif
     );
     return main.main(input0);

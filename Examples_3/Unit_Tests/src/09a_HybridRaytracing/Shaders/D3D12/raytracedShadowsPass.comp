@@ -25,7 +25,7 @@
 #define BACKFACE_CULLING 0
 #include"raytracingCommon.h"
 
-cbuffer cbPerPass : register(b0)
+cbuffer cbPerPass : register(b0, UPDATE_FREQ_PER_FRAME)
 {
 	float4x4	projView;
 	float4x4	invProjView;

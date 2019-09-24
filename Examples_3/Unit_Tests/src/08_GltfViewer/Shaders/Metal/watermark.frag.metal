@@ -43,17 +43,21 @@ texture2d<float> sceneTexture,sampler clampMiplessLinearSampler) :
 sceneTexture(sceneTexture),clampMiplessLinearSampler(clampMiplessLinearSampler) {}
 };
 
+struct SceneTexture
+{
+	texture2d<float> sceneTexture [[id(0)]];
+	sampler clampMiplessLinearSampler [[id(1)]];
+};
 
 fragment float4 stageMain(
     Fragment_Shader::VSOutput input [[stage_in]],
-    texture2d<float> sceneTexture [[texture(0)]],
-    sampler clampMiplessLinearSampler [[sampler(5)]])
+	constant SceneTexture& argBufferStatic [[buffer(UPDATE_FREQ_NONE)]])
 {
     Fragment_Shader::VSOutput input0;
     input0.Position = float4(input.Position.xyz, 1.0 / input.Position.w);
     input0.TexCoord = input.TexCoord;
     Fragment_Shader main(
-    sceneTexture,
-    clampMiplessLinearSampler);
+    argBufferStatic.sceneTexture,
+    argBufferStatic.clampMiplessLinearSampler);
     return main.main(input0);
 }

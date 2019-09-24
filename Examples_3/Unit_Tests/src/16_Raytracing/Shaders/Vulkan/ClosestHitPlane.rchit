@@ -3,7 +3,7 @@
 
 layout(binding = 0, set=0) uniform accelerationStructureNV gRtScene;
 
-layout(binding = 2, set=0, std140) uniform gSettings
+layout(binding = 2, set=1, std140) uniform gSettings
 {
 	vec3 CameraPosition;
 	uint _pad0;

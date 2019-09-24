@@ -113,39 +113,30 @@ Texture2D<float> aoTex : register(t100);
 Texture2D shadowMap : register(t101);
 
 
-Texture2D diffuseMaps[] : register(t0, space1);
-Texture2D normalMaps[] : register(t0, space2);
-Texture2D specularMaps[] : register(t0, space3);
+Texture2D diffuseMaps[] : register(t0, space4);
+Texture2D normalMaps[] : register(t0, space5);
+Texture2D specularMaps[] : register(t0, space6);
 
 StructuredBuffer<float3> vertexPos: register(t10);
 StructuredBuffer<uint> vertexTexCoord: register(t11);
 StructuredBuffer<uint> vertexNormal: register(t12);
 StructuredBuffer<uint> vertexTangent: register(t13);
-StructuredBuffer<uint> filteredIndexBuffer: register(t14);
-StructuredBuffer<uint> indirectMaterialBuffer: register(t15);
+StructuredBuffer<uint> filteredIndexBuffer: register(t14, UPDATE_FREQ_PER_FRAME);
+StructuredBuffer<uint> indirectMaterialBuffer: register(t15, UPDATE_FREQ_PER_FRAME);
 StructuredBuffer<MeshConstants> meshConstantsBuffer: register(t16);
 
 // Per frame descriptors
-StructuredBuffer<uint> indirectDrawArgs[2]: register(t17);
+StructuredBuffer<uint> indirectDrawArgs[2]: register(t17, UPDATE_FREQ_PER_FRAME);
 
 StructuredBuffer<LightData> lights: register(t19);
-ByteAddressBuffer lightClustersCount: register(t20);
-ByteAddressBuffer lightClusters: register(t21);
+ByteAddressBuffer lightClustersCount: register(t20, UPDATE_FREQ_PER_FRAME);
+ByteAddressBuffer lightClusters: register(t21, UPDATE_FREQ_PER_FRAME);
 
 SamplerState textureSampler: register(s0);
 SamplerState depthSampler: register(s1);
 
 
-ConstantBuffer<PerFrameConstants> uniforms : register(b0);
-
-cbuffer RootConstantDrawScene : register(b1)
-{
-	float4 lightColor;
-	uint lightingMode;
-	uint outputMode;
-	float4 CameraPlane; //x : near, y : far
-	
-};
+ConstantBuffer<PerFrameConstants> uniforms : register(b0, UPDATE_FREQ_PER_FRAME);
 
 // Pixel shader
 float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target0
@@ -232,7 +223,7 @@ float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target0
 	// Interpolate texture coordinates and calculate the gradients for texture sampling with mipmapping support
 	GradientInterpolationResults results = interpolateAttributeWithGradient(texCoords, derivativesOut.db_dx, derivativesOut.db_dy, d, uniforms.twoOverRes);
 			
-	float linearZ = depthLinearization(z/w, CameraPlane.x, CameraPlane.y);
+	float linearZ = depthLinearization(z/w, uniforms.CameraPlane.x, uniforms.CameraPlane.y);
 	float mip = pow(pow(linearZ, 0.9f) * 5.0f, 1.5f);
 	
 	float2 texCoordDX = results.dx * w * mip;
@@ -345,7 +336,7 @@ float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target0
 	
 	float shadowFactor = 1.0f;
 
-	float fLightingMode = saturate(float(lightingMode));
+	float fLightingMode = saturate(float(uniforms.lightingMode));
 
 	shadedColor = calculateIllumination(
 		    normal,
@@ -370,7 +361,7 @@ float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target0
 			shadowFactor);
 			
 	
-	shadedColor = shadedColor * lightColor.rgb * lightColor.a * NoL * ao;
+	shadedColor = shadedColor * uniforms.lightColor.rgb * uniforms.lightColor.a * NoL * ao;
 	
 	// point lights
 	// Find the light cluster for the current pixel

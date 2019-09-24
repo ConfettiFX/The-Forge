@@ -28,10 +28,10 @@
 
 layout(quads, equal_spacing, ccw) in;
 
-layout(set = 0, binding = 0) uniform GrassUniformBlock {
-
-   mat4 world;
-	mat4 view;	
+layout(UPDATE_FREQ_PER_FRAME, binding = 0) uniform GrassUniformBlock
+{
+	mat4 world;
+	mat4 view;
 	mat4 invView;
 	mat4 proj;
 	mat4 viewProj;

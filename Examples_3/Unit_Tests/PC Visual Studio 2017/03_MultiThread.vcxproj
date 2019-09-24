@@ -31,86 +31,128 @@
     <CustomBuild Include="..\src\03_MultiThread\Shaders\Vulkan\Graph.frag">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
-"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" "-DUPDATE_FREQ_NONE=set = 0" "-DUPDATE_FREQ_PER_FRAME=set = 1" "-DUPDATE_FREQ_PER_BATCH=set = 2" "-DUPDATE_FREQ_PER_DRAW=set = 3" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
       <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
-"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" "-DUPDATE_FREQ_NONE=set = 0" "-DUPDATE_FREQ_PER_FRAME=set = 1" "-DUPDATE_FREQ_PER_BATCH=set = 2" "-DUPDATE_FREQ_PER_DRAW=set = 3" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
+      </Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
+      </Message>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
     </CustomBuild>
     <CustomBuild Include="..\src\03_MultiThread\Shaders\Vulkan\Graph.vert">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
-"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" "-DUPDATE_FREQ_NONE=set = 0" "-DUPDATE_FREQ_PER_FRAME=set = 1" "-DUPDATE_FREQ_PER_BATCH=set = 2" "-DUPDATE_FREQ_PER_DRAW=set = 3" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
       <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
-"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" "-DUPDATE_FREQ_NONE=set = 0" "-DUPDATE_FREQ_PER_FRAME=set = 1" "-DUPDATE_FREQ_PER_BATCH=set = 2" "-DUPDATE_FREQ_PER_DRAW=set = 3" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
+      </Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
+      </Message>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
     </CustomBuild>
     <CustomBuild Include="..\src\03_MultiThread\Shaders\Vulkan\Particle.frag">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
-"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" "-DUPDATE_FREQ_NONE=set = 0" "-DUPDATE_FREQ_PER_FRAME=set = 1" "-DUPDATE_FREQ_PER_BATCH=set = 2" "-DUPDATE_FREQ_PER_DRAW=set = 3" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
       <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
-"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" "-DUPDATE_FREQ_NONE=set = 0" "-DUPDATE_FREQ_PER_FRAME=set = 1" "-DUPDATE_FREQ_PER_BATCH=set = 2" "-DUPDATE_FREQ_PER_DRAW=set = 3" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
+      </Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
+      </Message>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
     </CustomBuild>
     <CustomBuild Include="..\src\03_MultiThread\Shaders\Vulkan\Particle.vert">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
-"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" "-DUPDATE_FREQ_NONE=set = 0" "-DUPDATE_FREQ_PER_FRAME=set = 1" "-DUPDATE_FREQ_PER_BATCH=set = 2" "-DUPDATE_FREQ_PER_DRAW=set = 3" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
       <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
-"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" "-DUPDATE_FREQ_NONE=set = 0" "-DUPDATE_FREQ_PER_FRAME=set = 1" "-DUPDATE_FREQ_PER_BATCH=set = 2" "-DUPDATE_FREQ_PER_DRAW=set = 3" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
+      </Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
+      </Message>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
     </CustomBuild>
     <CustomBuild Include="..\src\03_MultiThread\Shaders\Vulkan\Skybox.frag">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
-"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" "-DUPDATE_FREQ_NONE=set = 0" "-DUPDATE_FREQ_PER_FRAME=set = 1" "-DUPDATE_FREQ_PER_BATCH=set = 2" "-DUPDATE_FREQ_PER_DRAW=set = 3" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
       <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
-"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" "-DUPDATE_FREQ_NONE=set = 0" "-DUPDATE_FREQ_PER_FRAME=set = 1" "-DUPDATE_FREQ_PER_BATCH=set = 2" "-DUPDATE_FREQ_PER_DRAW=set = 3" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
+      </Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
+      </Message>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
     </CustomBuild>
     <CustomBuild Include="..\src\03_MultiThread\Shaders\Vulkan\Skybox.vert">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
       <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
-"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" "-DUPDATE_FREQ_NONE=set = 0" "-DUPDATE_FREQ_PER_FRAME=set = 1" "-DUPDATE_FREQ_PER_BATCH=set = 2" "-DUPDATE_FREQ_PER_DRAW=set = 3" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
       <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
       <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
       <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">copy %0 "$(TargetDir)Recompile_$(ProjectName)_Shaders.bat"
-"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" "-DUPDATE_FREQ_NONE=set = 0" "-DUPDATE_FREQ_PER_FRAME=set = 1" "-DUPDATE_FREQ_PER_BATCH=set = 2" "-DUPDATE_FREQ_PER_DRAW=set = 3" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
+      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
+      </Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
+      </Message>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
     </CustomBuild>
   </ItemGroup>
   <PropertyGroup Label="Globals">

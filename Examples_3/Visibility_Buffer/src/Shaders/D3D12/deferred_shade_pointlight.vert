@@ -36,7 +36,7 @@ struct VSOutput
     float3 lightPos : TEXCOORD1;
 };
 
-ConstantBuffer<PerFrameConstants> uniforms : register(b0);
+ConstantBuffer<PerFrameConstants> uniforms : register(b0, UPDATE_FREQ_PER_FRAME);
 StructuredBuffer<LightData> lights : register(t1);
 
 VSOutput main(VSInput input, uint instanceId : SV_InstanceID)

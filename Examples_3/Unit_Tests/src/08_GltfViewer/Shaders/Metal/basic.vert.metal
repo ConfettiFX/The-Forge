@@ -65,6 +65,11 @@ struct Uniforms_cbPerProp {
     float padding0;   
 };
 
+struct Uniforms_ShadowUniformBuffer
+{
+    float4x4 LightViewProj;
+};
+
 struct PsIn
 {
     float4 position [[position]];
@@ -76,29 +81,40 @@ struct PsIn
     float2 alphaSettings;
 };
 
+struct PerFrame
+{
+	constant Uniforms_cbPerPass & cbPerPass [[id(0)]];
+	constant Uniforms_ShadowUniformBuffer & ShadowUniformBuffer       [[id(1)]];
+};
+
+struct PerDraw
+{
+	constant Uniforms_cbPerProp & cbPerProp [[id(0)]];
+};
+
 vertex PsIn stageMain(VsIn     In                             [[stage_in]],
-                      constant Uniforms_cbPerPass & cbPerPass [[buffer(6)]],
-                      constant Uniforms_cbPerProp & cbPerProp [[buffer(7)]])
+                      constant PerFrame& argBufferPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]],
+                      constant PerDraw& argBufferPerDraw [[buffer(UPDATE_FREQ_PER_DRAW)]])
 {
     PsIn Out;
-    float unormPositionScale = float(1 << cbPerPass.quantizationParams[0]) - 1.0f;
-    float unormTexScale = float(1 << cbPerPass.quantizationParams[1]) - 1.0f;
-    float snormNormalScale = float(1 << (cbPerPass.quantizationParams[2] - 1)) - 1.0f;
+    float unormPositionScale = float(1 << argBufferPerFrame.cbPerPass.quantizationParams[0]) - 1.0f;
+    float unormTexScale = float(1 << argBufferPerFrame.cbPerPass.quantizationParams[1]) - 1.0f;
+    float snormNormalScale = float(1 << (argBufferPerFrame.cbPerPass.quantizationParams[2] - 1)) - 1.0f;
     float unorm16Scale = float(1 << 16) - 1.0f;
     float unorm8Scale = float(1 << 8) - 1.0f;
     
-    float4 inPos = float4((float3(In.position.xyz) / (float3)unormPositionScale) * (float3)cbPerProp.posScale, 1.0f) + cbPerProp.posOffset;
-    
+    float4 inPos = float4((float3(In.position.xyz) / (float3)unormPositionScale) * (float3)argBufferPerDraw.cbPerProp.posScale, 1.0f) + argBufferPerDraw.cbPerProp.posOffset;
+    inPos.xyz += argBufferPerDraw.cbPerProp.centerOffset.xyz;
     float3 inNormal = float3(In.normal.xyz) / (float3)snormNormalScale;
     
-    float4 worldPosition = cbPerProp.world * float4(inPos.xyz, 1.0f) + cbPerProp.centerOffset;
-    worldPosition.xyz /= (float3)cbPerProp.posScale;
+    float4 worldPosition = argBufferPerDraw.cbPerProp.world * float4(inPos.xyz, 1.0f);
+    worldPosition.xyz /= (float3)argBufferPerDraw.cbPerProp.posScale;
 
-    Out.position = cbPerPass.projView * worldPosition;
-    Out.normal = normalize((cbPerProp.InvTranspose * float4(inNormal, 0.0f)).rgb);
+    Out.position = argBufferPerFrame.cbPerPass.projView * worldPosition;
+    Out.normal = normalize((argBufferPerDraw.cbPerProp.InvTranspose * float4(inNormal, 0.0f)).rgb);
     Out.pos = worldPosition.xyz;
     
-    Out.uv = float2(In.texCoord.xy) / unormTexScale * cbPerProp.uvScale + cbPerProp.uvOffset;
+    Out.uv = float2(In.texCoord.xy) / unormTexScale * argBufferPerDraw.cbPerProp.uvScale + argBufferPerDraw.cbPerProp.uvOffset;
     
     Out.baseColor = float4(In.baseColor.rgba) / unorm8Scale;
     

@@ -101,9 +101,15 @@ float3 RotateVec(float4 q, float3 v)
 	return v + uv + uuv;
 }
 
-vertex VSOutput stageMain(VSInput input                    [[stage_in]],
-                          constant CameraData& cbCamera [[buffer(1)]],
-                          constant CapsuleData& CapsuleRootConstant [[buffer(2)]])
+struct VSDataPerFrame
+{
+    constant CameraData& cbCamera [[id(0)]];
+};
+
+vertex VSOutput stageMain(VSInput input                             [[stage_in]],
+                          constant VSDataPerFrame& vsPerFrame       [[buffer(UPDATE_FREQ_PER_FRAME)]],
+                          constant CapsuleData& CapsuleRootConstant [[buffer(UPDATE_FREQ_USER)]]
+)
 {
 	VSOutput output;
 
@@ -128,7 +134,7 @@ vertex VSOutput stageMain(VSInput input                    [[stage_in]],
 	// Expand sphere to a capsule.
 	pos += CapsuleRootConstant.Center0 * weight + CapsuleRootConstant.Center1 * (1.0f - weight);
 
-	output.Position = cbCamera.CamVPMatrix * float4(pos, 1.0f);
+	output.Position = vsPerFrame.cbCamera.CamVPMatrix * float4(pos, 1.0f);
 
 	return output;
 }

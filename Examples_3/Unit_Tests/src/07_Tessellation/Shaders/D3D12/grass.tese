@@ -22,8 +22,8 @@
  * under the License.
 */
 
-cbuffer GrassUniformBlock : register(b0, space0) {
-
+cbuffer GrassUniformBlock : register(b0, UPDATE_FREQ_PER_FRAME)
+{
     float4x4 world;
     float4x4 view;
     float4x4 invView;
@@ -41,8 +41,8 @@ cbuffer GrassUniformBlock : register(b0, space0) {
     float windStrength;
 };
 
-struct HullOut {
-
+struct HullOut
+{
     float4 position : POSITION;
     float4 tese_v1 : NORMAL0;
     float4 tese_v2 : NORMAL1;
@@ -50,14 +50,14 @@ struct HullOut {
     float4 tese_widthDir : NORMAL3;
 };
 
-struct PatchTess {
-
+struct PatchTess
+{
     float Edges[4] : SV_TessFactor;
     float Inside[2] : SV_InsideTessFactor;
 };
 
-struct DS_OUTPUT {
-
+struct DS_OUTPUT
+{
     float4 Position : SV_Position;
     float3 Normal : NORMAL;
     float3 WindDirection : BINORMAL;
@@ -67,8 +67,8 @@ struct DS_OUTPUT {
 [domain("quad")]
 [partitioning("integer")]
 [outputtopology("triangle_ccw")]
-DS_OUTPUT main(PatchTess input, float2 UV : SV_DomainLocation, OutputPatch<HullOut, 1> patch) {
-
+DS_OUTPUT main(PatchTess input, float2 UV : SV_DomainLocation, OutputPatch<HullOut, 1> patch)
+{
     DS_OUTPUT Output;
 
     float2 uv = UV;

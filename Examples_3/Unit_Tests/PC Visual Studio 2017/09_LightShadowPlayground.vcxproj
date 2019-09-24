@@ -28,20 +28,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\09_LightShadowPlayground\09_LightShadowPlayground.cpp" />
-    <ClCompile Include="..\src\09_LightShadowPlayground\ASM.cpp" />
-    <ClCompile Include="..\src\09_LightShadowPlayground\AABBox.cpp" />
-    <ClCompile Include="..\src\09_LightShadowPlayground\ASMFrustum.cpp" />
-    <ClCompile Include="..\src\09_LightShadowPlayground\ASMQuadTree.cpp" />
-    <ClCompile Include="..\src\09_LightShadowPlayground\ASMTileCache.cpp" />
-    <ClCompile Include="..\src\09_LightShadowPlayground\BVHTree.cpp" />
-    <ClCompile Include="..\src\09_LightShadowPlayground\CPUImage.cpp" />
     <ClCompile Include="..\src\09_LightShadowPlayground\Geometry.cpp" />
-    <ClCompile Include="..\src\09_LightShadowPlayground\Helper.cpp" />
-    <ClCompile Include="..\src\09_LightShadowPlayground\Interval.cpp" />
-    <ClCompile Include="..\src\09_LightShadowPlayground\SDFVolumeData.cpp" />
-    <ClCompile Include="..\src\09_LightShadowPlayground\SDFVolumeTextureAtlas.cpp" />
-    <ClCompile Include="..\src\09_LightShadowPlayground\SDFVolumeTextureAtlasLayout.cpp" />
-    <ClCompile Include="..\src\09_LightShadowPlayground\Triangle.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\09_LightShadowPlayground\Shaders\D3D12\visibilityBufferShade.frag" />
@@ -110,28 +97,7 @@
     <None Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\visualizeSDFMesh.comp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\src\09_LightShadowPlayground\ASM.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\ASMConstant.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\BVHTree.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\Constant.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\AtlasQuads.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\Camera.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\ConvexHull2D.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\AABBox.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\ASMFrustum.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\ASMQuadTree.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\ASMTileCache.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\CPUImage.h" />
     <ClInclude Include="..\src\09_LightShadowPlayground\Geometry.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\Helper.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\Intersection.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\Interval.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\IntrusiveUnorderedPtrSet.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\Ray.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\SDFVolumeData.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\SDFVolumeTextureAtlas.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\SDFVolumeTextureAtlasLayout.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\SDF_Constant.h" />
     <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\D3D12\ASMShader_Defs.h" />
     <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\D3D12\Packing.h" />
     <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\D3D12\SDF_Constant.h" />
@@ -140,10 +106,9 @@
     <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\ASMShader_Defs.h" />
     <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\non_uniform_resource_index.h" />
     <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\Packing.h" />
+    <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\SDF_Constant.h" />
     <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\Shader_Defs.h" />
     <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\shading.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\Slab.h" />
-    <ClInclude Include="..\src\09_LightShadowPlayground\Triangle.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{57CC1131-660E-458B-A41F-29D60F3ECE41}</ProjectGuid>

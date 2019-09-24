@@ -36,12 +36,6 @@
     <None Include="..\src\17_EntityComponentSystem\Shaders\D3D12\basic.vert">
       <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\17_EntityComponentSystem\Shaders\Vulkan\basic.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\17_EntityComponentSystem\Shaders\Vulkan\basic.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
     <None Include="..\src\17_EntityComponentSystem\Shaders\D3D11\basic.frag">
       <Filter>Shaders\D3D11</Filter>
     </None>
@@ -97,5 +91,13 @@
     <ClInclude Include="..\src\17_EntityComponentSystem\Representations\WorldBoundsRepresentation.h">
       <Filter>Source Files\Representations</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\src\17_EntityComponentSystem\Shaders\Vulkan\basic.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\17_EntityComponentSystem\Shaders\Vulkan\basic.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

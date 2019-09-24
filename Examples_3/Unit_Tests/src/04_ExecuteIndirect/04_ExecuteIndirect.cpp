@@ -188,7 +188,7 @@ bool           gMicroProfiler = false;
 bool           bPrevToggleMicroProfiler = false;
 
 AsteroidSimulation      gAsteroidSim;
-eastl::vector<Subset> gAsteroidSubsets;
+eastl::vector<Subset>   gAsteroidSubsets;
 ThreadData              gThreadData[gNumSubsets];
 Texture*                pAsteroidTex = NULL;
 bool                    gUseThreads = true;
@@ -224,7 +224,7 @@ Sampler*          pBasicSampler = NULL;
 Shader*           pIndirectShader = NULL;
 Pipeline*         pIndirectPipeline = NULL;
 RootSignature*    pIndirectRoot = NULL;
-Buffer*           pIndirectBuffer[gImageCount] = {};
+Buffer*           pIndirectBuffer = NULL;
 Buffer*           pIndirectUniformBuffer[gImageCount] = { NULL };
 CommandSignature* pIndirectCommandSignature = NULL;
 CommandSignature* pIndirectSubsetCommandSignature = NULL;
@@ -246,7 +246,10 @@ Buffer*           pSkyBoxVertexBuffer = NULL;
 Texture*          pSkyBoxTextures[6];
 
 // Descriptor binder
-DescriptorBinder* pDescriptorBinder = NULL;
+DescriptorSet*    pDescriptorSetSkybox[2] = { NULL };
+DescriptorSet*    pDescriptorSetCompute[2] = { NULL };
+DescriptorSet*    pDescriptorSetIndirectDraw[2] = { NULL };
+DescriptorSet*    pDescriptorSetDirectDraw[2] = { NULL };
 
 // Necessary buffers
 Buffer* pAsteroidVertexBuffer = NULL;
@@ -315,6 +318,11 @@ class ExecuteIndirect: public IApp
 	
 	bool Init()
 	{
+#ifdef TARGET_IOS
+		LOGF(eERROR, "Unit test not supported on this platform. Reason: iOS GPU hangs with argument buffer binding");
+		exit(0);
+#endif
+		
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
 		//check for init success
@@ -342,9 +350,6 @@ class ExecuteIndirect: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		initProfiler(pRenderer);
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
-
 		for (int i = 0; i < 6; ++i)
 		{
 			TextureLoadDesc textureDesc = {};
@@ -366,6 +371,15 @@ class ExecuteIndirect: public IApp
 
 		initThreadSystem(&pThreadSystem);
 
+		SamplerDesc samplerDesc = { FILTER_LINEAR,
+							FILTER_LINEAR,
+							MIPMAP_MODE_NEAREST,
+							ADDRESS_MODE_CLAMP_TO_EDGE,
+							ADDRESS_MODE_CLAMP_TO_EDGE,
+							ADDRESS_MODE_CLAMP_TO_EDGE };
+		addSampler(pRenderer, &samplerDesc, &pBasicSampler);
+		addSampler(pRenderer, &samplerDesc, &pSkyBoxSampler);
+
 		ShaderLoadDesc instanceShader = {};
 		instanceShader.mStages[0] = { "basic.vert", NULL, 0, FSR_SrcShaders };
 		instanceShader.mStages[1] = { "basic.frag", NULL, 0, FSR_SrcShaders };
@@ -386,17 +400,36 @@ class ExecuteIndirect: public IApp
 		addShader(pRenderer, &indirectShader, &pIndirectShader);
 		addShader(pRenderer, &gpuUpdateShader, &pComputeShader);
 
-		RootSignatureDesc basicRootDesc = { &pBasicShader, 1 };
-		RootSignatureDesc skyRootDesc = { &pSkyBoxDrawShader, 1 };
-		RootSignatureDesc computeRootDesc = { &pComputeShader, 1 };
-		RootSignatureDesc indirectRootDesc = { &pIndirectShader, 1 };
+		const char* pStaticSamplerNames[] = { "uSampler0", "uSampler1" };
+		Sampler* pStaticSamplers[] = { pBasicSampler, pSkyBoxSampler };
+		RootSignatureDesc basicRootDesc = { &pBasicShader, 1, 0, pStaticSamplerNames, pStaticSamplers, 2 };
+		RootSignatureDesc skyRootDesc = { &pSkyBoxDrawShader, 1, 0, pStaticSamplerNames, pStaticSamplers, 2 };
+		RootSignatureDesc computeRootDesc = { &pComputeShader, 1, 0, pStaticSamplerNames, pStaticSamplers, 2 };
+		RootSignatureDesc indirectRootDesc = { &pIndirectShader, 1, 0, pStaticSamplerNames, pStaticSamplers, 2 };
 		addRootSignature(pRenderer, &basicRootDesc, &pBasicRoot);
 		addRootSignature(pRenderer, &skyRootDesc, &pSkyBoxRoot);
 		addRootSignature(pRenderer, &computeRootDesc, &pComputeRoot);
 		addRootSignature(pRenderer, &indirectRootDesc, &pIndirectRoot);
 
-		DescriptorBinderDesc descriptorBinderDesc[4] = { { pSkyBoxRoot }, {pComputeRoot}, {pIndirectRoot}, {pBasicRoot} };
-		addDescriptorBinder(pRenderer, 0, 4, descriptorBinderDesc, &pDescriptorBinder);
+		DescriptorSetDesc setDesc = { pSkyBoxRoot, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkybox[0]);
+		setDesc = { pSkyBoxRoot, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkybox[1]);
+		// GPU Culling
+		setDesc = { pComputeRoot, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetCompute[0]);
+		setDesc = { pComputeRoot, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetCompute[1]);
+		// Indirect Draw
+		setDesc = { pIndirectRoot, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetIndirectDraw[0]);
+		setDesc = { pIndirectRoot, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetIndirectDraw[1]);
+		// Direct Draw
+		setDesc = { pBasicRoot, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetDirectDraw[0]);
+		setDesc = { pBasicRoot, DESCRIPTOR_UPDATE_FREQ_PER_BATCH, gNumSubsets };
+		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetDirectDraw[1]);
 
 		/* Setup Pipelines */
 
@@ -412,15 +445,6 @@ class ExecuteIndirect: public IApp
 		rasterizerStateCullDesc.mCullMode = CULL_MODE_BACK;
 		addRasterizerState(pRenderer, &rasterizerStateCullDesc, &pBasicRast);
 		addRasterizerState(pRenderer, &rasterizerStateDesc, &pSkyboxRast);
-
-		SamplerDesc samplerDesc = { FILTER_LINEAR,
-									FILTER_LINEAR,
-									MIPMAP_MODE_NEAREST,
-									ADDRESS_MODE_CLAMP_TO_EDGE,
-									ADDRESS_MODE_CLAMP_TO_EDGE,
-									ADDRESS_MODE_CLAMP_TO_EDGE };
-		addSampler(pRenderer, &samplerDesc, &pBasicSampler);
-		addSampler(pRenderer, &samplerDesc, &pSkyBoxSampler);
 
 		PipelineDesc desc = {};
 		desc.mType = PIPELINE_TYPE_COMPUTE;
@@ -604,11 +628,8 @@ class ExecuteIndirect: public IApp
 		indirectBufDesc.mDesc.mStructStride = sizeof(IndirectArguments);
 		indirectBufDesc.mDesc.mSize = indirectBufDesc.mDesc.mStructStride * indirectBufDesc.mDesc.mElementCount;
 		indirectBufDesc.pData = indirectInit;
-		for (uint32_t i = 0; i < gImageCount; ++i)
-		{
-			indirectBufDesc.ppBuffer = &pIndirectBuffer[i];
-			addResource(&indirectBufDesc);
-		}
+		indirectBufDesc.ppBuffer = &pIndirectBuffer;
+		addResource(&indirectBufDesc);
 		conf_free(indirectInit);
 
 		indirectBufDesc.mDesc.mElementCount = gNumAsteroidsPerSubset;
@@ -633,6 +654,9 @@ class ExecuteIndirect: public IApp
 		GuiDesc guiDesc = {};
 		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
     pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
+
+    initProfiler();
+    addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		static const char*    enumNames[] = { "Instanced Rendering", "Execute Indirect", "Execute Indirect with GPU Compute", NULL };
 		static const uint32_t enumValues[] = { RenderingMode_Instanced, RenderingMode_ExecuteIndirect, RenderingMode_GPUUpdate, 0 };
@@ -670,20 +694,14 @@ class ExecuteIndirect: public IApp
 
 #if !defined(TARGET_IOS)
 		gPanini.Init(pRenderer);
+		gPanini.SetMaxDraws(1);
 #endif
 
 		if (!initInputSystem(pWindow))
 			return false;
 
-		// Microprofiler Actions
-		// #TODO: Remove this once the profiler UI is ported to use our UI system
-		InputActionDesc actionDesc = { InputBindings::FLOAT_LEFTSTICK, [](InputActionContext* ctx) { onProfilerButton(false, &ctx->mFloat2, true); return !gMicroProfiler; } };
-		addInputAction(&actionDesc);
-		actionDesc = { InputBindings::BUTTON_SOUTH, [](InputActionContext* ctx) { onProfilerButton(ctx->mBool, ctx->pPosition, false); return true; } };
-		addInputAction(&actionDesc);
-
 		// App Actions
-		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+    InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
@@ -691,7 +709,7 @@ class ExecuteIndirect: public IApp
 		{
 			InputBindings::BUTTON_ANY, [](InputActionContext* ctx)
 			{
-				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition, !gMicroProfiler);
+				bool capture = gAppUI.OnButton(ctx->mBinding, ctx->mBool, ctx->pPosition);
 				setEnableCaptureInput(capture && INPUT_ACTION_PHASE_CANCELED != ctx->mPhase);
 				return true;
 			}, this
@@ -713,7 +731,71 @@ class ExecuteIndirect: public IApp
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
+		
+		// Prepare descriptor sets
+		DescriptorData skyboxParams[6] = {};
+		skyboxParams[0].pName = "RightText";
+		skyboxParams[0].ppTextures = &pSkyBoxTextures[0];
+		skyboxParams[1].pName = "LeftText";
+		skyboxParams[1].ppTextures = &pSkyBoxTextures[1];
+		skyboxParams[2].pName = "TopText";
+		skyboxParams[2].ppTextures = &pSkyBoxTextures[2];
+		skyboxParams[3].pName = "BotText";
+		skyboxParams[3].ppTextures = &pSkyBoxTextures[3];
+		skyboxParams[4].pName = "FrontText";
+		skyboxParams[4].ppTextures = &pSkyBoxTextures[4];
+		skyboxParams[5].pName = "BackText";
+		skyboxParams[5].ppTextures = &pSkyBoxTextures[5];
+		updateDescriptorSet(pRenderer, 0, pDescriptorSetSkybox[0], 6, skyboxParams);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			skyboxParams[0].pName = "uniformBlock";
+			skyboxParams[0].ppBuffers = &pSkyboxUniformBuffer[i];
+			updateDescriptorSet(pRenderer, i, pDescriptorSetSkybox[1], 1, skyboxParams);
+		}
 
+		// Update dynamic asteroid positions using compute shader
+		DescriptorData computeParams[4] = {};
+		computeParams[0].pName = "asteroidsStatic";
+		computeParams[0].ppBuffers = &pStaticAsteroidBuffer;
+		computeParams[1].pName = "asteroidsDynamic";
+		computeParams[1].ppBuffers = &pDynamicAsteroidBuffer;
+		computeParams[2].pName = "drawCmds";
+		computeParams[2].ppBuffers = &pIndirectBuffer;
+		updateDescriptorSet(pRenderer, 0, pDescriptorSetCompute[0], 3, computeParams);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			computeParams[0].pName = "uniformBlock";
+			computeParams[0].ppBuffers = &pComputeUniformBuffer[i];
+			updateDescriptorSet(pRenderer, i, pDescriptorSetCompute[1], 1, computeParams);
+		}
+
+		DescriptorData indirectParams[5] = {};
+		indirectParams[0].pName = "asteroidsStatic";
+		indirectParams[0].ppBuffers = &pStaticAsteroidBuffer;
+		indirectParams[1].pName = "asteroidsDynamic";
+		indirectParams[1].ppBuffers = &pDynamicAsteroidBuffer;
+		indirectParams[2].pName = "uTex0";
+		indirectParams[2].ppTextures = &pAsteroidTex;
+		updateDescriptorSet(pRenderer, 0, pDescriptorSetIndirectDraw[0], 3, indirectParams);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			indirectParams[0].pName = "uniformBlock";
+			indirectParams[0].ppBuffers = &pIndirectUniformBuffer[i];
+			updateDescriptorSet(pRenderer, i, pDescriptorSetIndirectDraw[1], 1, indirectParams);
+		}
+
+		DescriptorData directParams[1] = {};
+		directParams[0].pName = "uTex0";
+		directParams[0].ppTextures = &pAsteroidTex;
+		updateDescriptorSet(pRenderer, 0, pDescriptorSetDirectDraw[0], 1, directParams);
+		for (uint32_t i = 0; i < gNumSubsets; ++i)
+		{
+			directParams[0].pName = "instanceBuffer";
+			directParams[0].ppBuffers = &gAsteroidSubsets[i].pAsteroidInstanceBuffer;
+			updateDescriptorSet(pRenderer, i, pDescriptorSetDirectDraw[1], 1, directParams);
+		}
+		
 		return true;
 	}
 
@@ -746,7 +828,14 @@ class ExecuteIndirect: public IApp
 		}
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
 
-		removeDescriptorBinder(pRenderer, pDescriptorBinder);
+		removeDescriptorSet(pRenderer, pDescriptorSetSkybox[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetSkybox[1]);
+		removeDescriptorSet(pRenderer, pDescriptorSetCompute[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetCompute[1]);
+		removeDescriptorSet(pRenderer, pDescriptorSetIndirectDraw[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetIndirectDraw[1]);
+		removeDescriptorSet(pRenderer, pDescriptorSetDirectDraw[0]);
+		removeDescriptorSet(pRenderer, pDescriptorSetDirectDraw[1]);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 			removeResource(pSkyboxUniformBuffer[i]);
@@ -756,10 +845,10 @@ class ExecuteIndirect: public IApp
 		removeResource(pAsteroidIndexBuffer);
 		removeResource(pStaticAsteroidBuffer);
 		removeResource(pDynamicAsteroidBuffer);
+		removeResource(pIndirectBuffer);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
-			removeResource(pIndirectBuffer[i]);
 			removeResource(pComputeUniformBuffer[i]);
 		}
 
@@ -835,17 +924,17 @@ class ExecuteIndirect: public IApp
 		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
 			return false;
 
-		loadProfiler(pSwapChain->ppSwapchainRenderTargets[0]);
+		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 2;
 		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
 		vertexLayout.mAttribs[0].mBinding = 0;
 		vertexLayout.mAttribs[0].mLocation = 0;
 		vertexLayout.mAttribs[0].mOffset = 0;
 		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-		vertexLayout.mAttribs[1].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
 		vertexLayout.mAttribs[1].mBinding = 0;
 		vertexLayout.mAttribs[1].mLocation = 1;
 		vertexLayout.mAttribs[1].mOffset = sizeof(vec4);
@@ -858,7 +947,6 @@ class ExecuteIndirect: public IApp
 		pipelineSettings.pDepthState = pDepth;
 		pipelineSettings.pRasterizerState = pBasicRast;
 		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.pSrgbValues = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSrgb;
 		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
 		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
@@ -874,7 +962,7 @@ class ExecuteIndirect: public IApp
 		vertexLayout = {};
 		vertexLayout.mAttribCount = 1;
 		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = ImageFormat::RGBA32F;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
 		vertexLayout.mAttribs[0].mBinding = 0;
 		vertexLayout.mAttribs[0].mLocation = 0;
 		vertexLayout.mAttribs[0].mOffset = 0;
@@ -905,7 +993,7 @@ class ExecuteIndirect: public IApp
 		RenderTarget* rts[1];
 		rts[0] = pIntermediateRenderTarget;
 		bool bSuccess = gPanini.Load(rts);
-		gPanini.SetSourceTexture(pIntermediateRenderTarget->pTexture);
+		gPanini.SetSourceTexture(pIntermediateRenderTarget->pTexture, 0);
 #else
         bool bSuccess = true;
 #endif
@@ -954,15 +1042,9 @@ class ExecuteIndirect: public IApp
 
 		pCameraController->update(deltaTime);
 
-    // ProfileSetDisplayMode()
-    // TODO: need to change this better way 
     if (gMicroProfiler != bPrevToggleMicroProfiler)
     {
-      Profile& S = *ProfileGet();
-      int nValue = gMicroProfiler ? 1 : 0;
-      nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
-      S.nDisplay = nValue;
-
+      toggleProfiler();
       bPrevToggleMicroProfiler = gMicroProfiler;
     }
 
@@ -1015,8 +1097,6 @@ class ExecuteIndirect: public IApp
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
-		uint32_t frameIdx = gFrameIndex;
-
 		// Update projection view matrices
 
 		mat4 viewMat = pCameraController->getViewMatrix();
@@ -1041,7 +1121,7 @@ class ExecuteIndirect: public IApp
 		/************************************************************************/
 		// Draw Skybox
 		/************************************************************************/
-		Cmd* cmd = ppCmds[frameIdx];
+		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
 
@@ -1056,32 +1136,17 @@ class ExecuteIndirect: public IApp
 		updateResource(&skyboxUniformUpdate);
 
 		TextureBarrier barrier = { pSceneRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
-		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, false);
+		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier);
 
 		cmdBindRenderTargets(cmd, 1, &pSceneRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSceneRenderTarget->mDesc.mWidth, (float)pSceneRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pSceneRenderTarget->mDesc.mWidth, pSceneRenderTarget->mDesc.mHeight);
 
-		DescriptorData skyboxParams[8] = {};
-		skyboxParams[0].pName = "uniformBlock";
-		skyboxParams[0].ppBuffers = &pSkyboxUniformBuffer[gFrameIndex];
-		skyboxParams[1].pName = "RightText";
-		skyboxParams[1].ppTextures = &pSkyBoxTextures[0];
-		skyboxParams[2].pName = "LeftText";
-		skyboxParams[2].ppTextures = &pSkyBoxTextures[1];
-		skyboxParams[3].pName = "TopText";
-		skyboxParams[3].ppTextures = &pSkyBoxTextures[2];
-		skyboxParams[4].pName = "BotText";
-		skyboxParams[4].ppTextures = &pSkyBoxTextures[3];
-		skyboxParams[5].pName = "FrontText";
-		skyboxParams[5].ppTextures = &pSkyBoxTextures[4];
-		skyboxParams[6].pName = "BackText";
-		skyboxParams[6].ppTextures = &pSkyBoxTextures[5];
-		skyboxParams[7].pName = "uSampler0";
-		skyboxParams[7].ppSamplers = &pSkyBoxSampler;
-		cmdBindDescriptors(cmd, pDescriptorBinder, pSkyBoxRoot, 8, skyboxParams);
-		cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
-		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, NULL);
+        cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
+		cmdBindDescriptorSet(cmd, 0, pDescriptorSetSkybox[0]);
+		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSkybox[1]);
+
+        cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, NULL);
 		cmdDraw(cmd, 36, 0);
 
 		endCmd(cmd);
@@ -1103,7 +1168,7 @@ class ExecuteIndirect: public IApp
 					gThreadData[i].mViewProj = viewProjMat;
 					gThreadData[i].pRenderTarget = pSceneRenderTarget;
 					gThreadData[i].pDepthBuffer = pDepthBuffer;
-					gThreadData[i].mFrameIndex = frameIdx;
+					gThreadData[i].mFrameIndex = gFrameIndex;
 				}
 				addThreadSystemRangeTask(pThreadSystem, &ExecuteIndirect::RenderSubset, gThreadData, gNumSubsets);
 
@@ -1111,15 +1176,15 @@ class ExecuteIndirect: public IApp
 				waitThreadSystemIdle(pThreadSystem);
 
 				for (int i = 0; i < gNumSubsets; i++)
-					allCmds.push_back(gAsteroidSubsets[i].ppCmds[frameIdx]);    // Asteroid Cmds
+					allCmds.push_back(gAsteroidSubsets[i].ppCmds[gFrameIndex]);    // Asteroid Cmds
 			}
 			else
 			{
 				//Update Asteroids on CPU
 				for (uint32_t i = 0; i < gNumSubsets; i++)
 				{
-					RenderSubset(i, viewProjMat, frameIdx, pSceneRenderTarget, pDepthBuffer, frameTime);
-					allCmds.push_back(gAsteroidSubsets[i].ppCmds[frameIdx]);    // Asteroid Cmds
+					RenderSubset(i, viewProjMat, gFrameIndex, pSceneRenderTarget, pDepthBuffer, frameTime);
+					allCmds.push_back(gAsteroidSubsets[i].ppCmds[gFrameIndex]);    // Asteroid Cmds
 				}
 			}
 		}
@@ -1141,7 +1206,7 @@ class ExecuteIndirect: public IApp
                 computeUniformData.mIndexOffsets[i] = gAsteroidSim.indexOffsets[i];
 #endif
 
-			cmd = ppComputeCmds[frameIdx];
+			cmd = ppComputeCmds[gFrameIndex];
 			beginCmd(cmd);
 
 			BufferUpdateDesc computeUniformUpdate = { pComputeUniformBuffer[gFrameIndex], &computeUniformData };
@@ -1150,51 +1215,32 @@ class ExecuteIndirect: public IApp
 			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "GPU Culling");
 
 			// Update dynamic asteroid positions using compute shader
-			DescriptorData computeParams[4] = {};
-			computeParams[0].pName = "uniformBlock";
-			computeParams[0].ppBuffers = &pComputeUniformBuffer[frameIdx];
-			computeParams[1].pName = "asteroidsStatic";
-			computeParams[1].ppBuffers = &pStaticAsteroidBuffer;
-			computeParams[2].pName = "asteroidsDynamic";
-			computeParams[2].ppBuffers = &pDynamicAsteroidBuffer;
-			computeParams[3].pName = "drawCmds";
-			computeParams[3].ppBuffers = &pIndirectBuffer[frameIdx];
-			cmdBindDescriptors(cmd, pDescriptorBinder, pComputeRoot, 4, computeParams);
+			BufferBarrier uavBarrier = { pIndirectBuffer, RESOURCE_STATE_UNORDERED_ACCESS };
+			cmdResourceBarrier(cmd, 1, &uavBarrier, 0, NULL);
 
-			BufferBarrier uavBarrier = { pIndirectBuffer[gFrameIndex], RESOURCE_STATE_UNORDERED_ACCESS };
-			cmdResourceBarrier(cmd, 1, &uavBarrier, 0, NULL, false);
+            cmdBindPipeline(cmd, pComputePipeline);
+			cmdBindDescriptorSet(cmd, 0, pDescriptorSetCompute[0]);
+			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetCompute[1]);
 
-			cmdBindPipeline(cmd, pComputePipeline);
 			cmdDispatch(cmd, uint32_t(ceil(gNumAsteroids / 128.0f)), 1, 1);
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
 			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Asteroid rendering");
 
-			BufferBarrier srvBarrier = { pIndirectBuffer[gFrameIndex], RESOURCE_STATE_INDIRECT_ARGUMENT };
-			cmdResourceBarrier(cmd, 1, &srvBarrier, 0, NULL, false);
+			BufferBarrier srvBarrier = { pIndirectBuffer, RESOURCE_STATE_INDIRECT_ARGUMENT };
+			cmdResourceBarrier(cmd, 1, &srvBarrier, 0, NULL);
 
 			// Execute indirect
 			cmdBindRenderTargets(cmd, 1, &pSceneRenderTarget, pDepthBuffer, NULL, NULL, NULL, -1, -1);
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSceneRenderTarget->mDesc.mWidth, (float)pSceneRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 			cmdSetScissor(cmd, 0, 0, pSceneRenderTarget->mDesc.mWidth, pSceneRenderTarget->mDesc.mHeight);
 
-			DescriptorData indirectParams[5] = {};
-			indirectParams[0].pName = "uniformBlock";
-			indirectParams[0].ppBuffers = &pIndirectUniformBuffer[gFrameIndex];
-			indirectParams[1].pName = "asteroidsStatic";
-			indirectParams[1].ppBuffers = &pStaticAsteroidBuffer;
-			indirectParams[2].pName = "asteroidsDynamic";
-			indirectParams[2].ppBuffers = &pDynamicAsteroidBuffer;
-			indirectParams[3].pName = "uTex0";
-			indirectParams[3].ppTextures = &pAsteroidTex;
-			indirectParams[4].pName = "uSampler0";
-			indirectParams[4].ppSamplers = &pBasicSampler;
-			cmdBindDescriptors(cmd, pDescriptorBinder, pIndirectRoot, 5, indirectParams);
-
-			cmdBindPipeline(cmd, pIndirectPipeline);
+            cmdBindPipeline(cmd, pIndirectPipeline);
+			cmdBindDescriptorSet(cmd, 0, pDescriptorSetIndirectDraw[0]);
+			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetIndirectDraw[1]);
 			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, NULL);
 			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer, 0);
-			cmdExecuteIndirect(cmd, pIndirectCommandSignature, gNumAsteroids, pIndirectBuffer[gFrameIndex], 0, NULL, 0);
+			cmdExecuteIndirect(cmd, pIndirectCommandSignature, gNumAsteroids, pIndirectBuffer, 0, NULL, 0);
 
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
@@ -1205,7 +1251,7 @@ class ExecuteIndirect: public IApp
 		/************************************************************************/
 		// Draw PostProcess & UI
 		/************************************************************************/
-		cmd = ppUICmds[frameIdx];
+		cmd = ppUICmds[gFrameIndex];
 		beginCmd(cmd);
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw PostProcess & UI");
 		LoadActionsDesc* pLoadAction = NULL;
@@ -1222,9 +1268,7 @@ class ExecuteIndirect: public IApp
 				{ pIntermediateRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
 				{ pSwapchainRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
 			};
-			cmdResourceBarrier(cmd, 0, NULL, 2, &barriers[0], true);
-			cmdFlushBarriers(cmd);
-
+			cmdResourceBarrier(cmd, 0, NULL, 2, &barriers[0]);
 			pLoadAction = &swapChainClearAction;
 		}
 
@@ -1236,7 +1280,6 @@ class ExecuteIndirect: public IApp
 #if !defined(TARGET_IOS)
 		if (gbPaniniEnabled)
 		{
-			gPanini.SetSourceTexture(pIntermediateRenderTarget->pTexture);
 			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Panini Projection Pass");
 			gPanini.Draw(cmd);
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -1275,13 +1318,13 @@ class ExecuteIndirect: public IApp
 		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 110), pGpuProfiler, NULL);
 #endif
 
-		cmdDrawProfiler(cmd);
+		cmdDrawProfiler();
 		gAppUI.Draw(cmd);
 		cmdEndDebugMarker(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		barrier = { pSwapchainRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, true);
+		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier);
 		endCmd(cmd);
 		allCmds.push_back(cmd);
 
@@ -1321,7 +1364,7 @@ class ExecuteIndirect: public IApp
 		depthRT.mArraySize = 1;
 		depthRT.mClearValue = { 1.0f, 0 };
 		depthRT.mDepth = 1;
-		depthRT.mFormat = ImageFormat::D32F;
+		depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
 		depthRT.mHeight = mSettings.mHeight;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
@@ -1340,7 +1383,7 @@ class ExecuteIndirect: public IApp
 			rtBarriers[i] = { pSwapChain->ppSwapchainRenderTargets[i]->pTexture, RESOURCE_STATE_RENDER_TARGET };
 		rtBarriers[numBarriers - 1] = { pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE };
 		beginCmd(ppCmds[0]);
-		cmdResourceBarrier(ppCmds[0], 0, 0, numBarriers, rtBarriers, false);
+		cmdResourceBarrier(ppCmds[0], 0, 0, numBarriers, rtBarriers);
 		endCmd(ppCmds[0]);
 		queueSubmit(pGraphicsQueue, 1, &ppCmds[0], pRenderCompleteFences[0], 0, NULL, 0, NULL);
 		waitForFences(pRenderer, 1, &pRenderCompleteFences[0]);
@@ -1672,15 +1715,10 @@ class ExecuteIndirect: public IApp
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 			cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
-			DescriptorData params[3] = {};
-			params[0].pName = "instanceBuffer";
-			params[0].ppBuffers = &gAsteroidSubsets[index].pAsteroidInstanceBuffer;
-			params[1].pName = "uTex0";
-			params[1].ppTextures = &pAsteroidTex;
-			params[2].pName = "uSampler0";
-			params[2].ppSamplers = &pBasicSampler;
-			cmdBindDescriptors(cmd, pDescriptorBinder, pBasicRoot, 3, params);
-			cmdBindPipeline(cmd, pBasicPipeline);
+            cmdBindPipeline(cmd, pBasicPipeline);
+			cmdBindDescriptorSet(cmd, 0, pDescriptorSetDirectDraw[0]);
+			cmdBindDescriptorSet(cmd, index, pDescriptorSetDirectDraw[1]);
+            
 			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, NULL);
 			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer, 0);
 
@@ -1692,10 +1730,7 @@ class ExecuteIndirect: public IApp
 				if (ShouldCullAsteroid(transform.getTranslation(), frustumPlanes))
 					continue;
 
-				DescriptorData rootConst = {};
-				rootConst.pName = "rootConstant";
-				rootConst.pRootConstant = &i;
-				cmdBindDescriptors(cmd, pDescriptorBinder, pBasicRoot, 1, &rootConst);
+				cmdBindPushConstants(cmd, pBasicRoot, "rootConstant", &i);
 				cmdDrawIndexed(cmd, dynamicAsteroid.indexCount, dynamicAsteroid.indexStart, 0);
 			}
 		}
@@ -1739,30 +1774,21 @@ class ExecuteIndirect: public IApp
 
 			// Update indirect arguments
 			BufferBarrier barrier = { subset.pSubsetIndirect, RESOURCE_STATE_COPY_DEST };
-			cmdResourceBarrier(cmd, 1, &barrier, 0, NULL, false);
+			cmdResourceBarrier(cmd, 1, &barrier, 0, NULL);
 			updateResource(&indirectBufferUpdate);
 			barrier = { subset.pSubsetIndirect, RESOURCE_STATE_INDIRECT_ARGUMENT };
-			cmdResourceBarrier(cmd, 1, &barrier, 0, NULL, false);
+			cmdResourceBarrier(cmd, 1, &barrier, 0, NULL);
 
 			//// Execute Indirect Draw
 			cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, NULL, NULL, NULL, -1, -1);
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 			cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
-			DescriptorData indirectParams[5] = {};
-			indirectParams[0].pName = "uniformBlock";
-			indirectParams[0].ppBuffers = &pIndirectUniformBuffer[gFrameIndex];
-			indirectParams[1].pName = "asteroidsStatic";
-			indirectParams[1].ppBuffers = &pStaticAsteroidBuffer;
-			indirectParams[2].pName = "asteroidsDynamic";
-			indirectParams[2].ppBuffers = &pDynamicAsteroidBuffer;
-			indirectParams[3].pName = "uTex0";
-			indirectParams[3].ppTextures = &pAsteroidTex;
-			indirectParams[4].pName = "uSampler0";
-			indirectParams[4].ppSamplers = &pBasicSampler;
-			cmdBindDescriptors(cmd, pDescriptorBinder, pIndirectRoot, 5, indirectParams);
-			cmdBindPipeline(cmd, pIndirectPipeline);
-			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, NULL);
+            cmdBindPipeline(cmd, pIndirectPipeline);
+			cmdBindDescriptorSet(cmd, 0, pDescriptorSetIndirectDraw[0]);
+			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetIndirectDraw[1]);
+
+            cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, NULL);
 			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer, 0);
 			cmdExecuteIndirect(cmd, pIndirectSubsetCommandSignature, numToDraw, subset.pSubsetIndirect, 0, NULL, 0);
 			conf_free(argData);

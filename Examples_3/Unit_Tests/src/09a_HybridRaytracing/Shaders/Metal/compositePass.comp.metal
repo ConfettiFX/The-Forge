@@ -26,19 +26,33 @@
 #include <metal_compute>
 using namespace metal;
 
+struct CSData {
+    texture2d<float, access::read> albedobuffer     [[id(0)]];
+    texture2d<float, access::read> lightbuffer      [[id(1)]];
+#ifndef TARGET_IOS
+    texture2d<float, access::write> outputRT        [[id(2)]];
+#endif
+};
+
 //[numthreads(16, 16, 1)]
-kernel void stageMain(uint3 DTid[[thread_position_in_grid]],
-                      texture2d<float, access::read> albedobuffer[[texture(0)]],
-                      texture2d<float, access::read> lightbuffer[[texture(1)]],
-                      texture2d<float, access::read_write> outputRT[[texture(2)]])
+kernel void stageMain(
+    uint3 DTid                      [[thread_position_in_grid]],
+    constant CSData& csData         [[buffer(UPDATE_FREQ_NONE)]]
+#ifdef TARGET_IOS
+    ,texture2d<float, access::write> outputRT [[texture(0)]]
+#endif
+)
 {
-	float3 albedo =  albedobuffer.read(DTid.xy).xyz;
+	float3 albedo =  csData.albedobuffer.read(DTid.xy).xyz;
 
 	//linearise albedo before applying light to it
 	albedo = pow(abs(albedo), 2.2);
 
-	float3 diffuse = lightbuffer.read(DTid.xy).xyz;
+	float3 diffuse = csData.lightbuffer.read(DTid.xy).xyz;
 
-
-	outputRT.write(float4(diffuse*albedo, 0),DTid.xy);
+#ifndef TARGET_IOS
+	csData.outputRT.write(float4(diffuse*albedo, 0), DTid.xy);
+#else
+	outputRT.write(float4(diffuse*albedo, 0), DTid.xy);
+#endif
 }

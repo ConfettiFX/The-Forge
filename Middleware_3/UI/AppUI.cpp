@@ -35,6 +35,7 @@
 #include "../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 
 #include "../../Middleware_3/Text/Fontstash.h"
+#include "../../Common_3/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
 
 #include "../../Common_3/OS/Interfaces/IMemory.h"
 
@@ -105,6 +106,26 @@ IWidget* LabelWidget::Clone() const
 	return pWidget;
 }
 
+IWidget* ColorLabelWidget::Clone() const
+{
+  ColorLabelWidget* pWidget = conf_placement_new<ColorLabelWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mColor);
+
+  // Clone the callbacks
+  CloneCallbacks((IWidget*)this, pWidget);
+
+  return pWidget;
+}
+
+IWidget* HorizontalSpaceWidget::Clone() const
+{
+  HorizontalSpaceWidget* pWidget = conf_placement_new<HorizontalSpaceWidget>(conf_calloc(1, sizeof(*pWidget)));
+
+  // Clone the callbacks
+  CloneCallbacks((IWidget*)this, pWidget);
+
+  return pWidget;
+}
+
 IWidget* ButtonWidget::Clone() const
 {
 	ButtonWidget* pWidget = conf_placement_new<ButtonWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel);
@@ -123,6 +144,16 @@ IWidget* SeparatorWidget::Clone() const
 	CloneCallbacks((IWidget*)this, pWidget);
 
 	return pWidget;
+}
+
+IWidget* VerticalSeparatorWidget::Clone() const
+{
+  VerticalSeparatorWidget* pWidget = conf_placement_new<VerticalSeparatorWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLineCount);
+
+  // Clone the callbacks
+  CloneCallbacks((IWidget*)this, pWidget);
+
+  return pWidget;
 }
 
 IWidget* SliderFloatWidget::Clone() const
@@ -237,6 +268,27 @@ IWidget* ColorSliderWidget::Clone() const
 	return pWidget;
 }
 
+IWidget* HistogramWidget::Clone() const
+{
+  HistogramWidget* pWidget = conf_placement_new<HistogramWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pValues, this->mCount, this->mMinScale, this->mMaxScale, this->mHistogramSize, this->mHistogramTitle);
+
+  // Clone the callbacks
+  CloneCallbacks((IWidget*)this, pWidget);
+
+  return pWidget;
+}
+
+
+IWidget* PlotLinesWidget::Clone() const
+{
+  PlotLinesWidget* pWidget = conf_placement_new<PlotLinesWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mValues, this->mNumValues, this->mScaleMin, this->mScaleMax, this->mPlotScale, this->mTitle);
+
+  // Clone the callbacks
+  CloneCallbacks((IWidget*)this, pWidget);
+
+  return pWidget;
+}
+
 IWidget* ColorPickerWidget::Clone() const
 {
 	ColorPickerWidget* pWidget = conf_placement_new<ColorPickerWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData);
@@ -258,6 +310,73 @@ IWidget* TextboxWidget::Clone() const
 	return pWidget;
 }
 
+IWidget* DynamicTextWidget::Clone() const
+{
+  DynamicTextWidget* pWidget =
+    conf_placement_new<DynamicTextWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mLength, this->pColor);
+
+  // Clone the callbacks
+  CloneCallbacks((IWidget*)this, pWidget);
+
+  return pWidget;
+}
+
+
+IWidget* FilledRectWidget::Clone() const
+{
+  FilledRectWidget* pWidget =
+    conf_placement_new<FilledRectWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mPos, this->mScale, this->mColor);
+
+  // Clone the callbacks
+  CloneCallbacks((IWidget*)this, pWidget);
+
+  return pWidget;
+}
+
+IWidget* DrawTextWidget::Clone() const
+{
+  DrawTextWidget* pWidget =
+    conf_placement_new<DrawTextWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mPos,this->mColor);
+
+  // Clone the callbacks
+  CloneCallbacks((IWidget*)this, pWidget);
+
+  return pWidget;
+}
+
+IWidget* DrawTooltipWidget::Clone() const
+{
+  DrawTooltipWidget* pWidget =
+    conf_placement_new<DrawTooltipWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mShowTooltip, this->mText);
+
+  // Clone the callbacks
+  CloneCallbacks((IWidget*)this, pWidget);
+
+  return pWidget;
+}
+
+IWidget* DrawLineWidget::Clone() const
+{
+  DrawLineWidget* pWidget =
+    conf_placement_new<DrawLineWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mPos1, this->mPos2, this->mColor, this->mAddItem);
+
+  // Clone the callbacks
+  CloneCallbacks((IWidget*)this, pWidget);
+
+  return pWidget;
+}
+
+IWidget* DrawCurveWidget::Clone() const
+{
+  DrawCurveWidget* pWidget =
+    conf_placement_new<DrawCurveWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mPos, this->mNumPoints, this->mThickness, this->mColor);
+
+  // Clone the callbacks
+  CloneCallbacks((IWidget*)this, pWidget);
+
+  return pWidget;
+}
+
 IWidget* CheckboxWidget::Clone() const
 {
 	CheckboxWidget* pWidget = conf_placement_new<CheckboxWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData);
@@ -266,6 +385,36 @@ IWidget* CheckboxWidget::Clone() const
 	CloneCallbacks((IWidget*)this, pWidget);
 
 	return pWidget;
+}
+
+IWidget* OneLineCheckboxWidget::Clone() const
+{
+  OneLineCheckboxWidget* pWidget = conf_placement_new<OneLineCheckboxWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mColor);
+
+  // Clone the callbacks
+  CloneCallbacks((IWidget*)this, pWidget);
+
+  return pWidget;
+}
+
+IWidget* CursorLocationWidget::Clone() const
+{
+  CursorLocationWidget* pWidget = conf_placement_new<CursorLocationWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mLocation);
+
+  // Clone the callbacks
+  CloneCallbacks((IWidget*)this, pWidget);
+
+  return pWidget;
+}
+
+IWidget* ColumnWidget::Clone() const
+{
+  ColumnWidget* pWidget = conf_placement_new<ColumnWidget>(conf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mPerColumnWidgets);
+
+  // Clone the callbacks
+  CloneCallbacks((IWidget*)this, pWidget);
+
+  return pWidget;
 }
 /************************************************************************/
 // UI Implementation
@@ -618,9 +767,8 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 	textureRootDesc.ppStaticSamplers = &pSampler;
 	addRootSignature(pRenderer, &textureRootDesc, &pRootSignature);
 
-	DescriptorBinderDesc descriptorBinderDesc = { pRootSignature };
-	addDescriptorBinder(pRenderer, 0, 1, &descriptorBinderDesc, &pDescriptorBinder);
-
+	DescriptorSetDesc descriptorSetDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+	addDescriptorSet(pRenderer, &descriptorSetDesc, &pDescriptorSet);
 	/************************************************************************/
 	// Resources
 	/************************************************************************/
@@ -633,7 +781,12 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 	vbDesc.ppBuffer = &pMeshBuffer;
 	addResource(&vbDesc);
 	/************************************************************************/
+	// Prepare descriptor sets
 	/************************************************************************/
+	DescriptorData params[1] = {};
+	params[0].pName = "uTex";
+	params[0].ppTextures = &pTexture;
+	updateDescriptorSet(pRenderer, 0, pDescriptorSet, 1, params);
 #endif
 	return true;
 }
@@ -646,7 +799,7 @@ void VirtualJoystickUI::Exit()
 	removeRasterizerState(pRasterizerState);
 	removeBlendState(pBlendAlpha);
 	removeDepthState(pDepthState);
-	removeDescriptorBinder(pRenderer, pDescriptorBinder);
+	removeDescriptorSet(pRenderer, pDescriptorSet);
 	removeRootSignature(pRenderer, pRootSignature);
 	removeShader(pRenderer, pShader);
 	removeResource(pTexture);
@@ -659,22 +812,22 @@ bool VirtualJoystickUI::Load(RenderTarget* pScreenRT)
 	VertexLayout vertexLayout = {};
 	vertexLayout.mAttribCount = 2;
 	vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-	vertexLayout.mAttribs[0].mFormat = ImageFormat::RG32F;
+	vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32_SFLOAT;
 	vertexLayout.mAttribs[0].mBinding = 0;
 	vertexLayout.mAttribs[0].mLocation = 0;
 	vertexLayout.mAttribs[0].mOffset = 0;
 
 	vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
-	vertexLayout.mAttribs[1].mFormat = ImageFormat::RG32F;
+	vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32_SFLOAT;
 	vertexLayout.mAttribs[1].mBinding = 0;
 	vertexLayout.mAttribs[1].mLocation = 1;
-	vertexLayout.mAttribs[1].mOffset = ImageFormat::GetImageFormatStride(ImageFormat::RG32F);
+    vertexLayout.mAttribs[1].mOffset = TinyImageFormat_BitSizeOfBlock(TinyImageFormat_R32G32_SFLOAT) / 8;
 
 	PipelineDesc desc = {};
 	desc.mType = PIPELINE_TYPE_GRAPHICS;
 	GraphicsPipelineDesc& pipelineDesc = desc.mGraphicsDesc;
 	pipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_STRIP;
-	pipelineDesc.mDepthStencilFormat = ImageFormat::NONE;
+    pipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
 	pipelineDesc.mRenderTargetCount = 1;
 	pipelineDesc.mSampleCount = pScreenRT->mDesc.mSampleCount;
 	pipelineDesc.mSampleQuality = pScreenRT->mDesc.mSampleQuality;
@@ -682,7 +835,6 @@ bool VirtualJoystickUI::Load(RenderTarget* pScreenRT)
 	pipelineDesc.pColorFormats = &pScreenRT->mDesc.mFormat;
 	pipelineDesc.pDepthState = pDepthState;
 	pipelineDesc.pRasterizerState = pRasterizerState;
-	pipelineDesc.pSrgbValues = &pScreenRT->mDesc.mSrgb;
 	pipelineDesc.pRootSignature = pRootSignature;
 	pipelineDesc.pShaderProgram = pShader;
 	pipelineDesc.pVertexLayout = &vertexLayout;
@@ -739,14 +891,10 @@ void VirtualJoystickUI::Draw(Cmd* pCmd, const float4& color)
 	} data = {};
 
 	cmdBindPipeline(pCmd, pPipeline);
+	cmdBindDescriptorSet(pCmd, 0, pDescriptorSet);
 	data.color = color;
 	data.scaleBias = { 2.0f / (float)mRenderSize[0], -2.0f / (float)mRenderSize[1] };
-	DescriptorData params[2] = {};
-	params[0].pName = "uRootConstants";
-	params[0].pRootConstant = &data;
-	params[1].pName = "uTex";
-	params[1].ppTextures = &pTexture;
-	cmdBindDescriptors(pCmd, pDescriptorBinder, pRootSignature, 2, params);
+	cmdBindPushConstants(pCmd, pRootSignature, "uRootConstants", &data);
 
 	// Draw the camera controller's virtual joysticks.
 	float extSide = mOutsideRadius;

@@ -4,16 +4,16 @@
 #extension GL_GOOGLE_include_directive : enable
 
 
-#include "../../SDF_Constant.h"
+#include "SDF_Constant.h"
 
 layout(location = 0) in vec2 fragInput_TEXCOORD0;
 layout(location = 0) out float rast_FragData0; 
 
-layout(set = 1, binding = 0) uniform texture2D SDFShadowTexture;
-layout(set = 1, binding = 1) uniform texture2D DepthTexture;
-layout(set = 0, binding = 2) uniform sampler clampMiplessLinearSampler;
-layout(set = 0, binding = 3) uniform sampler clampMiplessNearSampler;
-layout(column_major, set = 0, binding = 4) uniform cameraUniformBlock
+layout(UPDATE_FREQ_NONE, binding = 0) uniform texture2D SDFShadowTexture;
+layout(UPDATE_FREQ_NONE, binding = 1) uniform texture2D DepthTexture;
+layout(UPDATE_FREQ_NONE, binding = 2) uniform sampler clampMiplessLinearSampler;
+layout(UPDATE_FREQ_NONE, binding = 3) uniform sampler clampMiplessNearSampler;
+layout(column_major, UPDATE_FREQ_PER_FRAME, binding = 4) uniform cameraUniformBlock
 {
     mat4 View;
     mat4 Project;

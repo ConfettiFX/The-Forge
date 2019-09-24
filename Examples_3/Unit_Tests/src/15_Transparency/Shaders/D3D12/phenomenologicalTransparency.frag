@@ -22,7 +22,7 @@
 * under the License.
 */
 
-#include "shading.hlsl"
+#include "shading.h"
 
 struct VSOutput
 {
@@ -49,20 +49,8 @@ struct PSOutput
 };
 
 #if PT_USE_DIFFUSION != 0
-struct ObjectInfo
-{
-	float4x4 toWorld;
-	float4x4 normalMat;
-	uint matID;
-};
-
-cbuffer ObjectUniformBlock : register(b0, space3)
-{
-	ObjectInfo	objectInfo[MAX_NUM_OBJECTS];
-};
-
-Texture2D DepthTexture : register(t0, space3);
-SamplerState PointSampler : register(s0);
+Texture2D DepthTexture : UNIT_SRV_DEPTH;
+SamplerState PointSampler : UNIT_SAMPLER_POINT;
 #endif
 
 float WeightFunction(float alpha, float depth)

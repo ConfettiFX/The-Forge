@@ -127,15 +127,12 @@ private:
     void OutputCast(const HLSLType& type);
     
     //void OutputArguments(HLSLArgument* argument, const HLSLFunction* function);
-	void OutputArgumentsVec(eastl::vector < HLSLArgument* > & arguments, const HLSLFunction* function);
+	void OutputArguments(const eastl::vector<HLSLArgument*>& arguments, const HLSLFunction* function);
 	void OutputDeclaration(const HLSLType& type, const CachedString & name, HLSLExpression* assignment, const HLSLFunction* function, bool isRef = false, bool isConst = false, int alignment = 0);
     void OutputDeclarationType(const HLSLType& type, bool isConst = false, bool isRef = false, int alignment = 0);
     void OutputDeclarationBody(const HLSLType& type, const CachedString & name, HLSLExpression* assignment, const HLSLFunction* function, bool isRef = false);
-    void OutputExpressionList(HLSLExpression* expression, const HLSLFunction* function);
-	void OutputExpressionListConstructor(HLSLExpression* expression, const HLSLFunction* function, HLSLBaseType expectedScalarType);
-
-	void OutputExpressionListVec(eastl::vector < HLSLExpression* > expressionVec, const HLSLFunction* function);
-	void OutputFunctionCallStatement(int indent, HLSLFunctionCall* functionCall);
+	void OutputExpressionListConstructor(const eastl::vector<HLSLExpression*>& expressions, const HLSLFunction* function, HLSLBaseType expectedScalarType);
+	void OutputExpressionList(const eastl::vector<HLSLExpression*>& expressionVec, const HLSLFunction* function, size_t start = 0);
     void OutputFunctionCall(HLSLFunctionCall* functionCall);
 
 	CachedString GetTypeName(const HLSLType& type);
@@ -145,8 +142,6 @@ private:
 
 
 	void Error(const char* format, ...);
-
-	void OutPushConstantIdentifierTextureStateExpression(int size, int counter, const HLSLTextureStateExpression* pTextureStateExpression, bool* bWritten);
 
 	bool matchFunctionArgumentsIdentifiersVec(const eastl::vector < HLSLArgument* > & arguments, const CachedString & name);
 

@@ -1,12 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Workspace
    version = "1.0">
-   <FileRef
-      location = "group:../src/09_LightShadowPlayground/CPUImage.cpp">
-   </FileRef>
-   <FileRef
-      location = "group:../src/09_LightShadowPlayground/CPUImage.h">
-   </FileRef>
    <Group
       location = "container:"
       name = "Examples Animation">

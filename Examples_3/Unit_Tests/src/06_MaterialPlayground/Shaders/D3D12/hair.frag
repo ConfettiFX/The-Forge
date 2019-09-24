@@ -87,9 +87,9 @@ struct Camera
 };
 
 #if defined(HAIR_SHADOW)
-#define CB_CAMERA_SET space2
+#define CB_CAMERA_SET UPDATE_FREQ_PER_BATCH
 #else
-#define CB_CAMERA_SET space0
+#define CB_CAMERA_SET UPDATE_FREQ_PER_FRAME
 #endif
 
 cbuffer cbCamera : register(b0, CB_CAMERA_SET)
@@ -97,7 +97,7 @@ cbuffer cbCamera : register(b0, CB_CAMERA_SET)
 	Camera Cam;
 }
 
-cbuffer cbHair : register(b2, space3)
+cbuffer cbHair : register(b2, UPDATE_FREQ_PER_DRAW)
 {
 	float4x4 Transform;
 	uint RootColor;
@@ -125,12 +125,12 @@ cbuffer cbDirectionalLights : register(b4)
 	uint NumDirectionalLights;
 }
 
-cbuffer cbDirectionalLightShadowCameras : register(b6, space2)
+cbuffer cbDirectionalLightShadowCameras : register(b6, UPDATE_FREQ_PER_BATCH)
 {
 	Camera ShadowCameras[MAX_NUM_DIRECTIONAL_LIGHTS];
 }
 
-Texture2D<float> DirectionalLightShadowMaps[MAX_NUM_DIRECTIONAL_LIGHTS] : register(t3, space2);
+Texture2D<float> DirectionalLightShadowMaps[MAX_NUM_DIRECTIONAL_LIGHTS] : register(t3, UPDATE_FREQ_PER_BATCH);
 SamplerState PointSampler : register(s1);
 
 cbuffer cbHairGlobal : register(b5)
