@@ -1,4 +1,4 @@
-<img src="Screenshots/TheForge-10_480.png" width="60" height="60" />
+<img src="Screenshots/The Forge - Colour Black Landscape.png" width="108" height="46" />
 
 The Forge is a cross-platform rendering framework supporting
 - PC 
@@ -15,7 +15,7 @@ The Forge is a cross-platform rendering framework supporting
 - Google Stadia (in development) (only available for accredited developers on request)
 
 Particularly, the graphics layer of The Forge supports cross-platform
-- Descriptor management
+- Descriptor management. A description is on this [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Descriptor-Management)
 - Multi-threaded and asynchronous resource loading
 - Shader reflection
 - Multi-threaded command buffer generation
@@ -34,6 +34,7 @@ The Forge can be used to provide the rendering layer for custom next-gen game en
 - Fast Entity Component System based on our internally developed ECS
 - UI system based on [imGui](https://github.com/ocornut/imgui) with a dedicated unit test extended for touch input devices
 - Audio based on integrating [SoLoud](https://github.com/jarikomppa/soloud)
+- Shader Translator using a superset of HLSL as the shader language. There is a Wiki page on [how to use the Shader Translator](https://github.com/ConfettiFX/The-Forge/wiki/How-to-Use-The-Shader-Translator)
 - Various implementations of high-end Graphics Effects as shown in the unit tests below
 
 Please find a link and credits for all open-source packages used at the end of this readme.
@@ -51,6 +52,51 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+
+## Release 1.34 - September 23rd - TinyImageFormat | Microprofiler uses imGUI | 4th gen Descriptor System
+* [TinyImageFormat](https://github.com/DeanoC/tiny_imageformat) support: Deano Calver @DeanoC added his image format support library to The Forge. TinyImageFormat provides a query mechanism and encode/decode for many CPU and GPU image formats. Allowing you to use whatever pixel data is best whether its loading/saving or procedural generation.
+* Microprofiler: @zeuxcg this is the third rewrite of the Microprofiler. We replaced the proprietary UI with imGUI and simplified the usage. Now it is much more tightly and consistently integrated in our code base.
+
+![Microprofiler](Screenshots/MicroProfiler/VB_Detailed.png)
+
+![Microprofiler](Screenshots/MicroProfiler/VB_Plot.png)
+
+![Microprofiler](Screenshots/MicroProfiler/VB_Timer.png)
+
+![Microprofiler](Screenshots/MicroProfiler/VB_Timer_2.png)
+
+Here are screenshots of the Microprofiler running a unit test on iOS:
+
+![Microprofiler](Screenshots/MicroProfiler/IMG_0004_iOS.PNG)
+
+![Microprofiler](Screenshots/MicroProfiler/IMG_0005_iOS.PNG)
+
+![Microprofiler](Screenshots/MicroProfiler/IMG_0006_iOS.PNG)
+
+Check out the [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Microprofiler---How-to-Use) for an explanation on how to use it.
+
+
+* Descriptor System:  @gavkar this is at least the fourth rewrite of the descriptor system now with support for the brand new argument buffers on macOS / iOS. It requires latest OS and XCode versions. This is a major update to the macOS / iOS runtime and it comes with many implementation changes:
+  * improved Metal resource usage with useHeaps and useResorces
+  * Metal shader reflection system was refactored
+  * fixes and optimizations for some unit tests on MacOS and iOS platforms
+  * initial support for paramIndex
+  * more informative debug labels for Metal resources
+  
+    This is probably the first engine integration of argument buffers, so there are issues with the following unit tests on iPadOS/iOS platforms:
+  * 04_ExecuteIndirect_iOS: GPU hangs due to argument buffers corruption in latest iOS 13.1. The bug doesn't occur if validation layer is enabled!
+  * 06_MaterialPlayground_iOS: Fails to compile shaders trying to write to Texture2DArray (iOS 13.1 beta 2 & 3)
+  * 10_PixelProjectedReflections on iOS: iOS Metal shader compiler crashes
+
+  Check out the [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Descriptor-Management) for a high-level view of the architecture.
+
+
+* Light & Shadow Playground: we cleaned up the code base of the Light & Shadow Playground and integrated missing pieces into The Forge Eco system.
+* Shader Translator: a lot of work went into the Shader Translator since the last release. Let us know how it works for you. There is a how-to on the Wiki page here:
+
+  [How to use the Shader Translator](https://github.com/ConfettiFX/The-Forge/wiki/How-to-Use-The-Shader-Translator)
+
+ * Issues: fixed #129 "Metal backend buffer namespace collision"
 
 ## Release 1.33 - August 30th - glTF model viewer | Basis Universal Texture Support | Updated Shader Translator | New Input System Architecture
 * glTF model viewer - we build a simple cross-platform glTF model viewer by integrating Arseny Kapoulkine @zeuxcg excellent [meshoptimizer](https://github.com/zeux/meshoptimizer) and the same PBR as used in the Material Playground unit test.
@@ -157,114 +203,6 @@ To generate the SDF Mesh data you should select “Signed Distance Field” as t
 P.S: we have a new logo :-) ![The Forge Logo](Screenshots/TheForge-10.png)
 
 
-## Release 1.31 - July 12th - Metal 2.2 | More Android Support | Discord Channel | User Group Meetings | Support for Education
-* macOS / iOS - we are now supporting Metal 2.2 on those platforms. The macOS version of the Visibility Buffer now uses primitive_id argument that allows to use indexed geometry similar to the Vulkan and DirectX 12 versions. There is a significant increase in performance and reduction in memory consumption
-  * Debug labels for buffers and textures now present in frame captures;
-  * cmdSynchronizeResources for MacOS and iOS;
-  * Minor fixes in GPU synchronization with memory barriers
-  * Minor fixes in ArgumentBuffers implementation
-
-Please note that we use the early beta system and XCode versions for development. So there might some instabilities.
-
-Here is a screenshot: Macbook Pro 2017 with Radeon Pro 560 3360x2100 resolution
-![Visibility Buffer with Metal 2.2](Screenshots/Visibility_Buffer_macOS.png)
-
-* Android - we increased the number of unit tests support. With this release we additionally support on the devices mentioned below:
-  * 06_MaterialPlayground
-  * 18_Playback
-  * 19_Blending
-  * 20_JoinAttachment
-  * 21_PartialBlending
-  * 22_AdditiveBlending
-  * 23_BakedPhysics
-  * 24_MultiThread
-  * 25_Skinning
-  * 26_Audio
-* Vulkan:
-  * Updated [volk Metaloader for Vulkan](https://github.com/zeux/volk) to latest
-  * The Forge supports now as the min spec for the Vulkan SDK 1.1.82.0 and as the max spec is 1.1.101.0
-
-* Discord: we offer now also support through a discord channel. Sign up here: 
-<a href="https://discord.gg/hJS54bz" target="_blank"><img src="Screenshots/Discord.png" 
-alt="Twitter" width="20" height="20" border="0" /> Join the Discord channel at https://discord.gg/hJS54bz</a>
-
-* User Group Meetings - there will be a user group meeting during GDC. In case you want to organize a user group meeting in your country / town at any other point in time, we would like to support this. We could send an engineer for a talk.
-* Support for Education - in case your School / College / University uses The Forge for education, we would like to support this as well. We could send an engineer or help create material. So far the following schools use The Forge for teaching:
-
-[Breda University of Applied Sciences](https://www.buas.nl) 
-```
-        Contact:
-        Jeremiah van Oosten 
-        Monseigneur Hopmansstraat 1
-        4817 JT Breda
- ```
-[Ontario Tech University](https://uoit.ca/) 
-```
-        Contact:
-        Andrew Hogue
-        Ontario Tech University
-        SIRC 4th floor
-        2000 Simcoe St N
-        Oshawa, ON, L1H 7K4
- ```
-* Writing Guidelines - For contributions to The Forge we apply the following writing guidelines:
-  * We limit now all code to C++ 11 by setting the Clang and other compiler flags
-  * We follow the [Orthodox C++ guidelines] (https://gist.github.com/bkaradzic/2e39896bc7d8c34e042b) minus C++ 14 support (see above)
-
-
-
-## Release 1.30 - June 28th, 2019 - Ephemeris 2 - New Skydome System | Android Unit Tests | New Entity Component System | SoLoud Audio 
- * Ephemeris 2: this is a new volumetric skydome system developed for PS4 / XBOX One class of hardware. Click on the image to watch a video:
-
- [![Ephemeris 2](Screenshots/Ephemeris2.png)](https://vimeo.com/344675521)
-
- For Ephemeris and the rest of our commercial custom middleware there is now a new GitHub repository here [Custom-Middleware](https://github.com/ConfettiFX/Custom-Middleware) 
-
- We also have a skydome system for mobile hardware called Ephemeris 1, that will be released on GitHub later.
-
- * Android: we are supporting now more and more unit tests in Android by improving the run-time support. Here are screenshots:
-
-01_Transformations
- ![01_Transformations](Screenshots/Screenshot_20190620-060535_Transformation.jpg)
-
-02_Compute
-![02_Compute](Screenshots/Screenshot_20190620-060638_Compute.jpg)
-
-05_FontRendering
-![05_FontRendering](Screenshots/Screenshot_20190620-061732_FontRendering.jpg)
-
-09_LightAndShadow
-![09_LightAndShadow](Screenshots/09_LightAndShadow_Android.jpg)
-
-13_imGUI
-![13_imGuI](Screenshots/13_imGUI_Android.jpg)
-
-17_EntityComponentSystem
-![17_EntityComponentSystem](Screenshots/Screenshot_20190620-060737_EntityComponentSystem.jpg)
-
- We added the Samsung S10 Galaxy phone (Qualcomm Adreno 640 Graphics Card (Vulkan 1.1.87)) to the test devices for Android. 
-
- * ENTT: we decided to remove ENTT and replace it with our own ECS system that we use internally for tools. ENTT in debug is too slow for practical usage because it decreases execution speed and increases compile times substantially. It appears that "modern C++ 17" and probably also "modern C++ 14" is not ready for usage in a team environment because it decreases productivity too much. We tried to remove C++ 17 and 14 features to make it run faster but it ended up too much work. We went from more than 200 ms with ENTT to 60 ms with our own ECS running a Debug build on a Intel Core i7-6700T 2.8GHz. In release our own system is in the moment not as fast as ENTT but we will fix that.
-
- * Audio: we did a first pass on integrating [SoLoud](https://github.com/jarikomppa/soloud) for all our platforms. There is a new unit test:
-
-![26_Audio](Screenshots/26_Audio.png)
- 
- * Linux: following STEAM, we are switching to the Mesa RADV driver in our test environment for AMD GPUs. For NVIDIA GPUs we are still using the NVIDIA driver.
-
- * Texture Asset pipeline: we did a first pass on a unified texture asset pipeline. On the app level only the name of the texture needs to be provided and then depending on the underlying platform it will attempt to load the "optimal compressed" texture, which in the moment is either KTX or dds. In the future there will be Google Basis support as well.
-   * Removed support for various non-optimal texture file formats - png, jpg, tga, hdr, exr
-   * Add ASTC support for iOS through KTX container
-   * Add compressed textures for all unit test resources
-   * Add BC6H signed and unsigned float variants
-   
-  Please make sure you download the art asset zip file again with the help of the batch file.
-
-* Issue list:
-   * issue #109 "Texture updates broken" is fixed now
-   * NVIDIA GTX 1660 bug: this card with the Vulkan run-time and driver 419.35 became unresponsive, while the DirectX 12 run-time works as expected. Any other NVIDIA GPU works fine ... this looks like a driver bug ...
-
-
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
 
   
@@ -288,9 +226,9 @@ https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
 # macOS Requirements:
 
-1. macOS 10.15 Beta (19A487m)
+1. macOS 10.15 beta 8 (19A558d)
 
-2. Xcode 11.0 beta 2 (11M337n)
+2. Xcode 11.0 (11A419c)
 
 3. The Forge is currently tested on the following macOS devices:
 * iMac with AMD RADEON 560 (Part No. MNDY2xx/A)
@@ -304,7 +242,7 @@ We will not test any Hackintosh configuration.
 
 # iOS Requirements:
 
-1. iOS 13 beta 
+1. iOS 13.1 beta 3 (17A5837a)
 
 2. XCode: see macOS
 
@@ -317,7 +255,7 @@ We are currently testing on
 
 # iPad OS Requirements:
 
-1. iPad OS beta 2 
+1. iPadOS 13.1 beta 3 (17A5837a)
 
 2. XCode: see macOS
 
@@ -441,10 +379,8 @@ This unit test showcases the rendering of grass with the help of hardware tessel
 ![Image of the Hardware Tessellation Unit test](Screenshots/07_Hardware_Tessellation.PNG)
 
 ## 8. glTF Model Viewer
-This is a simple cross-platform glTF model viewer by integrating Arseny Kapoulkine @zeuxcg excellent [meshoptimizer](https://github.com/zeux/meshoptimizer) and the same PBR as used in the Material Playground unit test.
-  * It optimizes the geometry data set with all the features meshoptimizer offers
-  * It will be extended in the future with more functionality, following some of our internal tools
-  * Uses the cgltf reader from the same repository
+A cross-platform glTF model viewer that optimizes the vertex and index layout for the underlying platform and picks the right texture format for the underlying platform. We integrated Arseny Kapoulkine @zeuxcg excellent [meshoptimizer](https://github.com/zeux/meshoptimizer) and use the same PBR as used in the Material Playground unit test.
+This modelviewer can also utilize Binomials [Basis Universal Texture Support](https://github.com/binomialLLC/basis_universal) as an option to load textures. Support was added to the Image class as a "new image format". So you can pick basis like you can pick DDS or KTX. For iOS / Android we go directly to ASTC because Basis doesn't support ASTC at the moment.
 
 glTF model viewer running on iPad with 2048x1536 resolution
 
@@ -463,8 +399,6 @@ glTF model viewer running on Ubuntu AMD RX 480 with Vulkan with 1920x1080 resolu
 ![glTF model viewer](Screenshots/ModelViewer/Vulkan_Ubuntu_RX480_1920x1080_0.png)
 
 ![glTF model viewer](Screenshots/ModelViewer/Vulkan_Ubuntu_RX480_1920x1080_1.png)
-
-This modelviewer can also utilize Binomials [Basis Universal Texture Support](https://github.com/binomialLLC/basis_universal) as an option to load textures. Support was added to the Image class as a "new image format". So you can pick basis like you can pick DDS or KTX.
 
 ## 9. Light and Shadow Playground
 This unit test shows various shadow and lighting techniques that can be chosen from a drop down menu. There will be more in the future.
@@ -639,45 +573,35 @@ There is an example implementation of the Triangle Visibility Buffer as covered 
 Below are screenshots and descriptions of some of the tools we integrated.
 
 ## Microprofiler
-We integrated the [Micro Profiler](https://github.com/zeux/microprofile) into our code base. 
+We integrated the [Micro Profiler](https://github.com/zeux/microprofile) into our code base by replacing the proprietary UI with imGUI and simplified the usage. Now it is much more tightly and consistently integrated in our code base.
 
-![Microprofiler in Visibility Buffer](Screenshots/MicroProfileExampleVisibilityBuffer.png)
+Here are screenshots of the Microprofiler running the Visibility Buffer on PC:
 
-![Microprofiler in Visibility Buffer](Screenshots/MicroProfileExampleVisibilityBuffer2.png)
+![Microprofiler](Screenshots/MicroProfiler/VB_Detailed.png)
 
-To enable/disable profiling, go to file ProfileEnableMacro.h line 9 and set it
-to 0(disabled) or 1(enabled). 
-It's supported on the following platforms:
- - Windows
- - Linux
- - macOS (GPU profiling is disabled)
- - iOS (GPU profiling is disabled)
- - Android 
+![Microprofiler](Screenshots/MicroProfiler/VB_Plot.png)
 
-MicroProfile provides us an easy to use UI and visualization our frame.
+![Microprofiler](Screenshots/MicroProfiler/VB_Timer.png)
 
-How to use it:
-MicroProfile has different display modes. The most useful one when running inside
-the application is Timers. We can change the display mode going to Mode and right
-clicking the one we want.
+![Microprofiler](Screenshots/MicroProfiler/VB_Timer_2.png)
 
-If we are on Timer, we will be able to right click on the labels. This will enable
-a graph at the bottom left.
+Here are screenshots of the Microprofiler running a unit test on iOS:
 
-If we wanted to just see some of the groups inside the profile display, go to Groups
-and select the ones you want.
+![Microprofiler](Screenshots/MicroProfiler/IMG_0004_iOS.PNG)
 
-The other options are self explanatory.
+![Microprofiler](Screenshots/MicroProfiler/IMG_0005_iOS.PNG)
 
-If the user wants to dump the profile to a file, we just need to go to dump,
-and right click on the amount of frames we want. This generates a html file in the
-executable folder. Open it with your prefered web browser to have a look.
+![Microprofiler](Screenshots/MicroProfiler/IMG_0006_iOS.PNG)
 
-Dumping is useful, because we will be able to see the profile frame by frame,
-without it being updated every frame. This will be useful when displaying in Detailed
-mode.
+Check out the [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Microprofiler---How-to-Use) for an explanation on how to use it.
 
-For any doubt on the use of the MicroProfile, hover Help.
+## Shader Translator
+We provide a shader translator, that translates one shader language -a superset of HLSL called Forge Shader Language (FLS) - to the target shader language of all our target platforms. That includes the console and mobile platforms as well.
+We expect this shader translator to be an easier to maintain solution for smaller game teams because it allows to add additional data to the shader source file with less effort. Such data could be for example a bucket classification or different shaders for different capability levels of the underlying platform, descriptor memory requirements or resource memory requirements in general, material info or just information to easier pre-compile pipelines.
+The actual shader compilation will be done by the native compiler of the target platform.
+
+
+
 
 
 # Releases / Maintenance
@@ -763,3 +687,4 @@ The Forge utilizes the following Open-Source libraries:
 * [SoLoud](https://github.com/jarikomppa/soloud)
 * [meshoptimizer](https://github.com/zeux/meshoptimizer)
 * [Basis Universal Texture Support](https://github.com/binomialLLC/basis_universal)
+* [TinyImageFormat](https://github.com/DeanoC/tiny_imageformat)
