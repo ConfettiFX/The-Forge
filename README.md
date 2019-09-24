@@ -59,11 +59,11 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 
 ![Microprofiler](Screenshots/MicroProfiler/VB_Detailed.png)
 
-![Microprofiler](Screenshots/MicroProfiler/VB_Plot.png)
+![Microprofiler](Screenshots/MicroProfiler/VB_Plot.PNG)
 
-![Microprofiler](Screenshots/MicroProfiler/VB_Timer.png)
+![Microprofiler](Screenshots/MicroProfiler/VB_Timer.PNG)
 
-![Microprofiler](Screenshots/MicroProfiler/VB_Timer_2.png)
+![Microprofiler](Screenshots/MicroProfiler/VB_Timer_2.PNG)
 
 Here are screenshots of the Microprofiler running a unit test on iOS:
 
