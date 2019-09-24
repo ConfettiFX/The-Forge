@@ -88,7 +88,7 @@ Check out the [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Microprofi
   * 06_MaterialPlayground_iOS: Fails to compile shaders trying to write to Texture2DArray (iOS 13.1 beta 2 & 3)
   * 10_PixelProjectedReflections on iOS: iOS Metal shader compiler crashes
 
-  Check out the [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Descriptor-Management) for a high-level view of the architecture.
+  Check out the [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Descriptor-Binding-Interface) for a high-level view of the architecture.
 
 
 * Light & Shadow Playground: we cleaned up the code base of the Light & Shadow Playground and integrated missing pieces into The Forge Eco system.
