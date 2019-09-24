@@ -15,7 +15,7 @@ The Forge is a cross-platform rendering framework supporting
 - Google Stadia (in development) (only available for accredited developers on request)
 
 Particularly, the graphics layer of The Forge supports cross-platform
-- Descriptor management. A description is on this [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Descriptor-Management)
+- Descriptor management. A description is on this [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Descriptor-Binding-Interface)
 - Multi-threaded and asynchronous resource loading
 - Shader reflection
 - Multi-threaded command buffer generation
