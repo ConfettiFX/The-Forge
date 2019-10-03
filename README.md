@@ -15,7 +15,7 @@ The Forge is a cross-platform rendering framework supporting
 - Google Stadia (in development) (only available for accredited developers on request)
 
 Particularly, the graphics layer of The Forge supports cross-platform
-- Descriptor management. A description is on this [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Descriptor-Binding-Interface)
+- Descriptor management. A description is on this [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Descriptor-Management)
 - Multi-threaded and asynchronous resource loading
 - Shader reflection
 - Multi-threaded command buffer generation
@@ -53,6 +53,35 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 
 # News
 
+## Release 1.35 - October 3rd - New Ozz Animation Unit Test | Updated Shader Translator | Maintenance update macOS / iOS 
+After only a bit more than one week we wanted to ship a quick update ... 
+ * Ozz Animation System: there is a new unit test added to The Forge.
+
+ Ozz Inverse Kinematic: This unit test shows how to use Aim and Two bone IK solvers
+
+![Ozz Aim IK](Screenshots/Ozz_Aim_IK.gif)
+
+![Ozz Two Bone IK](Screenshots/Ozz_two_bone_ik.gif)
+
+
+ * Shader Translator:
+   * Implicit cast fixes submitted for review
+   * Added automated testing on mac via ssh from Windows - still requires integration in CI.
+   * Argument buffer support
+   * Fixed scalar swizzle in MSL
+   * Fixed texture array output in MSL
+   * Fixed indentation in MSL for compute shaders
+   * Fixed redundant parenthesis in if statement warning in HLSL and MSL
+   * Fixed texture object Load method output for MSL
+ * Maintenance Update macOS / iOS:
+   * Unified depth-stencil texture handling across macOS and iOS. To use a combined   
+   * The TEXTURE_CREATION_FLAG_ON_TILE flag now specifies that a render target attachment should neither be loaded or stored, in addition to ensuring that the attachment is memoryless on iOS
+   * Added TEXTURE_CREATION_FLAG_ON_TILE to the depth buffers within many of the unit tests
+   * Fixed a resource barrier issue in the Tessellation unit test on macOS and iOS 
+   * We still encounter many bugs especially on INTEL based devices. We have RADARs with Apple and we are hoping those will go away over time. Let us know if you need any help with the macOS / iOS run-time.
+
+If you want to join us in sunny Encinitas, CA, USA as a graphics programmer, we would like to hear from you. If you are interested in working in our offices world-wide please let us know as well. We are in Spain, Netherlands, Ukraine, India, New Zealand and other places.
+
 ## Release 1.34 - September 23rd - TinyImageFormat | Microprofiler uses imGUI | 4th gen Descriptor System
 * [TinyImageFormat](https://github.com/DeanoC/tiny_imageformat) support: Deano Calver @DeanoC added his image format support library to The Forge. TinyImageFormat provides a query mechanism and encode/decode for many CPU and GPU image formats. Allowing you to use whatever pixel data is best whether its loading/saving or procedural generation.
 * Microprofiler: @zeuxcg this is the third rewrite of the Microprofiler. We replaced the proprietary UI with imGUI and simplified the usage. Now it is much more tightly and consistently integrated in our code base.
@@ -88,7 +117,7 @@ Check out the [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Microprofi
   * 06_MaterialPlayground_iOS: Fails to compile shaders trying to write to Texture2DArray (iOS 13.1 beta 2 & 3)
   * 10_PixelProjectedReflections on iOS: iOS Metal shader compiler crashes
 
-  Check out the [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Descriptor-Binding-Interface) for a high-level view of the architecture.
+  Check out the [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Descriptor-Management) for a high-level view of the architecture.
 
 
 * Light & Shadow Playground: we cleaned up the code base of the Light & Shadow Playground and integrated missing pieces into The Forge Eco system.
@@ -135,72 +164,6 @@ glTF model viewer running on Ubuntu AMD RX 480 with Vulkan with 1920x1080 resolu
   * 130 "Vulkan and D3D12 backend set sampler maxLod to zero for nearest mipmap mode"
   * 131 "Vulkan sampler set the anistropy flag to false always."
 
-
-## Release 1.32 - August 9th - Ephemeris Night Sky update | New Light and Shadow Playground | Android Visual Studio Support
-* [Ephemeris - Skydome System](https://github.com/ConfettiFX/Custom-Middleware) 
-  * Added Procedural Night Sky and Star-field - the night sky's nebula colors are now customizable
-  * Added Glow effects on Sun and Moon
-  * Fix the issue that Godrays can be drawn on unexpected area
-
-Click on the following screenshot to see a movie:
-
- [![Ephemeris 2](Screenshots/NightSky02.png)](https://vimeo.com/352541826)
-
-* New Light and Shadow Playground: we rebuild the light and shadow playground by using the St. Miguel art assets and adding some new shadowing techniques:
-  * Exponential Shadow Map - this is based on [Marco Salvi's](https://pixelstoomany.wordpress.com/category/shadows/exponential-shadow-maps/) @marcosalvi papers. This technique filters out the edge of the shadow map by approximating the shadow test using exponential function that involves three subjects: the depth value rendered by the light source, the actual depth value that is being tested against, and the constant value defined by the user to control the softness of the shadow
-  * Adaptive Shadow Map with Parallax Correction Cache - this is based on the article "Parallax-Corrected Cached Shadow Maps" by Pavlo Turchyn in [GPU Zen 2](https://gpuzen.blogspot.com/2019/05/gpu-zen-2-parallax-corrected-cached.htm). It adaptively chooses which light source view to be used when rendering a shadow map based on a hiearchical grid structure. The grid structure is constantly updated depending on the user's point of view and it uses caching system that only renders uncovered part of the scene. The algorithm greatly reduce shadow aliasing that is normally found in traditional shadow map due to insufficient resolution. Pavlo Turchyn's paper from GPU Pro 2 added an additional improvement by implementing multi resolution filtering, a technique that approximates larger size PCF kernel using multiple mipmaps to achieve cheap soft shadow. He also describes how he integrated a Parallax Correction Cache to Adaptive Shadow Map, an algorithm that approximates moving sun's shadow on static scene without rendering tiles of shadow map every frame. The algorithm is generally used in an open world game to approximate the simulation of day & night’s shadow cycle more realistically without too much CPU/GPU cost.
-  * Signed Distance Field Soft Shadow - this is based on [Daniel Wright's Siggraph 2015](http://advances.realtimerendering.com/s2015/DynamicOcclusionWithSignedDistanceFields.pdf) @EpicShaders presentation. To achieve real time SDF shadow, we store the distance to the nearest surface for every unique Meshes to a 3D volume texture atlas. The Mesh SDF is generated offline using triangle ray tracing, and half precision float 3D volume texture atlas is accurate enough to represent 3D meshes with SDF. The current implementation only supports rigid meshes and uniform transformations (non-uniform scale is not supported). An approximate cone intersection can be achieved  by measuring the closest distance of a passed ray to an occluder which gives us a cheap soft shadow when using SDF.
-
-To achieve  high-performance, the playground runs on our signature rendering architecture called Triangle Visibility Buffer. The step that generates the SDF data also uses this architecture.
-
-Click on the following screenshot to see a movie:
-
-[![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_Visualize.png)](https://vimeo.com/352985038)
-
-
-The following PC screenshots are taken on Windows 10 with a AMD RX550 GPU (driver 19.7.1) with a resolution of 1920x1080. 
-
-Exponential Shadow Maps:
-
-![Light and Shadow Playground - Exponential Shadow Map](Screenshots/LightNShadowPlayground/ExponentialShadowMap.png)
-
-Adaptive Shadow Map with Parallax Correction Cache
-
-![Adaptive Shadow Map with Parallax Correction Cache](Screenshots/LightNShadowPlayground/ASM_Two.png)
-
-Signed Distance Field Soft Shadow:
-
-![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_1.png)
-
-Signed Distance Field Soft Shadows - Debug Visualization
-
-![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_Visualize.png)
-
-The following shots show Signed Distance Field Soft Shadows running on iMac with a AMD RADEON Pro 580
-
-![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_macOS_1.png)
-
-![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_macOS_2.png)
-
-The following shots show Signed Distance Field Soft Shadows running on XBOX One:
-
-![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_XBOX_1.png)
-
-![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_XBOX_2.png)
-
-![Signed Distance Field Soft Shadow Map](Screenshots/LightNShadowPlayground/SDF_XBOX_3.png)
-
-Readme for Signed Distance Field Soft Shadow Maps:
-
-To generate the SDF Mesh data you should select “Signed Distance Field” as the selected shadow type in the Light and Shadow Playground. There is a button called “Generate Missing SDF” and once its clicked, it shows a progress bar that represents the remaining SDF mesh objects utilized for SDF data generation. This process is multithreaded, so the user can still move around the scene while waiting for the SDF process to be finished. This is a long process and it could consume up to 8+ hours depending on your CPU specs. To check how many SDF objects there are presently in the scene, you can mark the checkbox "Visualize SDF Geometry On The Scene".
-
-* Android: we switched from AndroidStudio to Visual Studio, because the AndroidStudio environment didn't allow us to work effectively and integrating it into our Jenkins test system made the build time explode. 
-* Vulkan: 
-  * support of GPU assisted validation
-  * new Vulkan SDK 1.1.114 is supported
-* Art package: we updated the St. Miguel scene with colored flags for the future Aura Global Illumination example. Because it is used by several unit tests, you want to download the art package again. See the Install instructions below for how to do this.
-
-P.S: we have a new logo :-) ![The Forge Logo](Screenshots/TheForge-10.png)
 
 
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
@@ -556,11 +519,19 @@ This unit test shows how to use skinning with Ozz
 
 ![Image of the Ozz Skinning unit test](Screenshots/Skinning_PC.gif)
 
-## 26. Audio Integration of SoLoud
+## 26. Ozz Inverse Kinematic
+This unit test shows how to use a Aim and a Two bone IK solvers
+
+Aim IK
+![Ozz Aim IK](Screenshots/Ozz_Aim_IK.gif)
+
+Two Bone IK
+![Ozz Two Bone IK](Screenshots/Ozz_two_bone_ik.gif)
+
+## 27. Audio Integration of SoLoud
 We integrated SoLoad. Here is a unit test that allow's you make noise ...
 
-![26_Audio](Screenshots/26_Audio.png)
-
+![Audio Integration](Screenshots/26_Audio.png)
 
 
 # Examples
@@ -600,7 +571,7 @@ We provide a shader translator, that translates one shader language -a superset 
 We expect this shader translator to be an easier to maintain solution for smaller game teams because it allows to add additional data to the shader source file with less effort. Such data could be for example a bucket classification or different shaders for different capability levels of the underlying platform, descriptor memory requirements or resource memory requirements in general, material info or just information to easier pre-compile pipelines.
 The actual shader compilation will be done by the native compiler of the target platform.
 
-There is a Wiki page on [how to use the Shader Translator](https://github.com/ConfettiFX/The-Forge/wiki/How-to-Use-The-Shader-Translator)
+ [How to use the Shader Translator](https://github.com/ConfettiFX/The-Forge/wiki/How-to-Use-The-Shader-Translator)
 
 
 
