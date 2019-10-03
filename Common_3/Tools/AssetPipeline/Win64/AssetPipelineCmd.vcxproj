@@ -193,24 +193,24 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\ThirdParty\OpenSource\ozz-animation\include;$(ProjectDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\include;$(IncludePath);</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <LibraryPath>$(OutDir);$(LibraryPath)</LibraryPath>
-    <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(OutDir);$(ProjectDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug;$(ProjectDir)..\..\..\ThirdParty\OpenSource\meshoptimizer\Win64\Bin\$(Configuration);$(LibraryPath);$(ProjectDir)..\..\..\Tools\AssetLoader\Win64\x64\$(Configuration);$(LibraryPath);</LibraryPath>
+    <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\ThirdParty\OpenSource\ozz-animation\include;$(ProjectDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\include;$(IncludePath);</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <LibraryPath>$(OutDir);$(LibraryPath)</LibraryPath>
-    <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(OutDir);$(ProjectDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug;$(ProjectDir)..\..\..\ThirdParty\OpenSource\meshoptimizer\Win64\Bin\$(Configuration);$(LibraryPath);$(ProjectDir)..\..\..\Tools\AssetLoader\Win64\x64\$(Configuration);$(LibraryPath);</LibraryPath>
+    <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx11|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\ThirdParty\OpenSource\ozz-animation\include;$(ProjectDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\include;$(IncludePath);</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <LibraryPath>$(OutDir);$(LibraryPath)</LibraryPath>
-    <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(OutDir);$(ProjectDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Debug;$(ProjectDir)..\..\..\ThirdParty\OpenSource\meshoptimizer\Win64\Bin\$(Configuration);$(LibraryPath);$(ProjectDir)..\..\..\Tools\AssetLoader\Win64\x64\$(Configuration);$(LibraryPath);</LibraryPath>
+    <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -223,24 +223,24 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\ThirdParty\OpenSource\ozz-animation\include;$(ProjectDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\include;$(IncludePath);</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <LibraryPath>$(OutDir);$(LibraryPath)</LibraryPath>
-    <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(OutDir);$(ProjectDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(ProjectDir)..\..\..\ThirdParty\OpenSource\meshoptimizer\Win64\Bin\$(Configuration);$(LibraryPath);$(ProjectDir)..\..\..\Tools\AssetLoader\Win64\x64\$(Configuration);$(LibraryPath);</LibraryPath>
+    <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\ThirdParty\OpenSource\ozz-animation\include;$(ProjectDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\include;$(IncludePath);</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <LibraryPath>$(OutDir);$(LibraryPath)</LibraryPath>
-    <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(OutDir);$(ProjectDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(ProjectDir)..\..\..\ThirdParty\OpenSource\meshoptimizer\Win64\Bin\$(Configuration);$(LibraryPath);$(ProjectDir)..\..\..\Tools\AssetLoader\Win64\x64\$(Configuration);$(LibraryPath);</LibraryPath>
+    <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>$(IncludePath)</IncludePath>
+    <IncludePath>$(ProjectDir)..\..\..\ThirdParty\OpenSource\ozz-animation\include;$(ProjectDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\include;$(IncludePath);</IncludePath>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
-    <LibraryPath>$(OutDir);$(LibraryPath)</LibraryPath>
-    <PreBuildEventUseInBuild>true</PreBuildEventUseInBuild>
+    <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(OutDir);$(ProjectDir)..\..\..\ThirdParty\OpenSource\assimp\4.1.0\win64\Bin\Release;$(ProjectDir)..\..\..\ThirdParty\OpenSource\meshoptimizer\Win64\Bin\$(Configuration);$(LibraryPath);$(ProjectDir)..\..\..\Tools\AssetLoader\Win64\x64\$(Configuration);$(LibraryPath);</LibraryPath>
+    <PreBuildEventUseInBuild>false</PreBuildEventUseInBuild>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|Win32'">
     <ClCompile>
@@ -303,11 +303,12 @@
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OS.lib;MeshOptimizer.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;zlibstatic.lib;IrrXML.lib;assimp.lib;AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(TargetDir)ImageConvertTools\"
@@ -315,7 +316,8 @@ xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)Imag
 xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>msbuild "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\basisu.vcxproj" /property:Configuration=$(Configuration) /property:Platform=$(Platform)</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
@@ -331,11 +333,12 @@ xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configur
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OS.lib;MeshOptimizer.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;zlibstatic.lib;IrrXML.lib;assimp.lib;AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(TargetDir)ImageConvertTools\"
@@ -343,7 +346,8 @@ xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)Imag
 xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>msbuild "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\basisu.vcxproj" /property:Configuration=$(Configuration) /property:Platform=$(Platform)</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx11|x64'">
@@ -359,11 +363,12 @@ xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configur
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OS.lib;MeshOptimizer.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;zlibstatic.lib;IrrXML.lib;assimp.lib;AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(TargetDir)ImageConvertTools\"
@@ -371,7 +376,8 @@ xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)Imag
 xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>msbuild "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\basisu.vcxproj" /property:Configuration=$(Configuration) /property:Platform=$(Platform)</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|Win32'">
@@ -449,13 +455,14 @@ xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configur
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OS.lib;MeshOptimizer.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;zlibstatic.lib;IrrXML.lib;assimp.lib;AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(TargetDir)ImageConvertTools\"
@@ -463,7 +470,8 @@ xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)Imag
 xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>msbuild "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\basisu.vcxproj" /property:Configuration=$(Configuration) /property:Platform=$(Platform)</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
@@ -481,13 +489,14 @@ xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configur
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OS.lib;MeshOptimizer.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;zlibstatic.lib;IrrXML.lib;assimp.lib;AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(TargetDir)ImageConvertTools\"
@@ -495,7 +504,8 @@ xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)Imag
 xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>msbuild "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\basisu.vcxproj" /property:Configuration=$(Configuration) /property:Platform=$(Platform)</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">
@@ -513,13 +523,14 @@ xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configur
       <DisableSpecificWarnings>
       </DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <AdditionalOptions>/FS %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OS.lib;MeshOptimizer.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;zlibstatic.lib;IrrXML.lib;assimp.lib;AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(TargetDir)ImageConvertTools\"
@@ -527,7 +538,8 @@ xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)Imag
 xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
-      <Command>msbuild "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\basisu.vcxproj" /property:Configuration=$(Configuration) /property:Platform=$(Platform)</Command>
+      <Command>
+      </Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

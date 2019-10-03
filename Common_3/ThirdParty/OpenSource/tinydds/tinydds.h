@@ -894,7 +894,7 @@ void TinyDDS_Reset(TinyDDS_ContextHandle handle) {
 		}
 	}
 
-	if(ctx->clut) {
+	if (ctx->clut) {
 		callbacks.freeFn(user, (void *) ctx->clut);
 		ctx->clut = NULL;
 	}
@@ -908,10 +908,9 @@ void TinyDDS_Reset(TinyDDS_ContextHandle handle) {
 
 static bool TinyDDS_IsCLUT(TinyDDS_Format fmt) {
 	switch (fmt) {
-	case TDDS_P8:
-	case TDDS_A8P8:
-		return true;
-	default: return false;
+		case TDDS_P8:
+		case TDDS_A8P8: return true;
+		default: return false;
 	}
 }
 
@@ -1069,26 +1068,23 @@ static uint32_t TinyDDS_FormatSize(TinyDDS_Format fmt) {
 		// 4 * 32 bits
 	case TDDS_R32G32B32A32_UINT:
 	case TDDS_R32G32B32A32_SINT:
-	case TDDS_R32G32B32A32_SFLOAT:
-		return 16;
-		// block formats
-	case TDDS_BC1_RGBA_UNORM_BLOCK:
-	case TDDS_BC1_RGBA_SRGB_BLOCK:
-	case TDDS_BC4_UNORM_BLOCK:
-	case TDDS_BC4_SNORM_BLOCK:
-		return 8;
+	case TDDS_R32G32B32A32_SFLOAT: return 16;
+			// block formats
+		case TDDS_BC1_RGBA_UNORM_BLOCK:
+		case TDDS_BC1_RGBA_SRGB_BLOCK:
+		case TDDS_BC4_UNORM_BLOCK:
+		case TDDS_BC4_SNORM_BLOCK: return 8;
 
- 	case TDDS_BC2_UNORM_BLOCK:
-	case TDDS_BC2_SRGB_BLOCK:
-	case TDDS_BC3_UNORM_BLOCK:
-	case TDDS_BC3_SRGB_BLOCK:
-	case TDDS_BC5_UNORM_BLOCK:
-	case TDDS_BC5_SNORM_BLOCK:
-	case TDDS_BC6H_UFLOAT_BLOCK:
-	case TDDS_BC6H_SFLOAT_BLOCK:
-	case TDDS_BC7_UNORM_BLOCK:
-	case TDDS_BC7_SRGB_BLOCK:
-		return 16;
+		case TDDS_BC2_UNORM_BLOCK:
+		case TDDS_BC2_SRGB_BLOCK:
+		case TDDS_BC3_UNORM_BLOCK:
+		case TDDS_BC3_SRGB_BLOCK:
+		case TDDS_BC5_UNORM_BLOCK:
+		case TDDS_BC5_SNORM_BLOCK:
+		case TDDS_BC6H_UFLOAT_BLOCK:
+		case TDDS_BC6H_SFLOAT_BLOCK:
+		case TDDS_BC7_UNORM_BLOCK:
+		case TDDS_BC7_SRGB_BLOCK: return 16;
 
 	case TDDS_UNDEFINED: return 0;
 		//	default: return 0;
@@ -1339,7 +1335,11 @@ bool TinyDDS_ReadHeader(TinyDDS_ContextHandle handle) {
 
 	ctx->headerPos = ctx->callbacks.tellFn(ctx->user);
 	if( ctx->callbacks.readFn(ctx->user, &ctx->header, sizeof(TinyDDS_Header)) != sizeof(TinyDDS_Header)) {
-		ctx->callbacks.errorFn(ctx->user, "Could not read DDS header");
+		ctx->callbacks.errorFn(ctx->user, "Count not read DDS header");
+		return false;
+	}
+
+	if (ctx->header.magic != 0x20534444) {
 		return false;
 	}
 
@@ -1396,15 +1396,17 @@ bool TinyDDS_ReadHeader(TinyDDS_ContextHandle handle) {
 		if(ctx->header.mipMapCount == 0) ctx->header.mipMapCount = 1;
 	}
 
-	if(TinyDDS_IsCLUT(ctx->format)) {
+	if (TinyDDS_IsCLUT(ctx->format)) {
 		// for now don't ask to generate mipmaps for cluts
-		if(ctx->header.mipMapCount == 0) ctx->header.mipMapCount = 1;
+		if (ctx->header.mipMapCount == 0) {
+			ctx->header.mipMapCount = 1;
+		}
 
 		size_t const clutSize = 256 * sizeof(uint32_t);
 
-		ctx->clut = (uint32_t*) ctx->callbacks.allocFn(ctx->user, clutSize);
+		ctx->clut = (uint32_t *) ctx->callbacks.allocFn(ctx->user, clutSize);
 
-		if( ctx->callbacks.readFn(ctx->user, (void*)ctx->clut, clutSize) != clutSize) {
+		if (ctx->callbacks.readFn(ctx->user, (void *) ctx->clut, clutSize) != clutSize) {
 			ctx->callbacks.errorFn(ctx->user, "Could not read DDS CLUT");
 			return false;
 		}

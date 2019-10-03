@@ -36,6 +36,7 @@ namespace SSE
 {
 
 class BoolInVec;
+typedef __m128i Vector4Int;
 
 // ========================================================
 // FloatInVec
@@ -120,6 +121,13 @@ inline const BoolInVec  operator != (const FloatInVec & vec0, const FloatInVec &
 // false selects vec0, true selects vec1
 //
 inline const FloatInVec select(const FloatInVec & vec0, const FloatInVec & vec1, const BoolInVec & select_vec1);
+
+inline const FloatInVec rcpEst(const FloatInVec& v);
+inline const FloatInVec rSqrtEstNR(const FloatInVec& v);
+inline const FloatInVec sqrt(const FloatInVec& v);
+inline const FloatInVec xorPerElem(const FloatInVec& a, const Vector4Int b);
+inline const FloatInVec andPerElem(const FloatInVec& a, const Vector4Int b);
+inline const FloatInVec andNotPerElem(const FloatInVec& a, const Vector4Int b);
 
 } // namespace SSE
 } // namespace Vectormath
@@ -285,6 +293,39 @@ inline const BoolInVec operator != (const FloatInVec & vec0, const FloatInVec & 
 inline const FloatInVec select(const FloatInVec & vec0, const FloatInVec & vec1, const BoolInVec & select_vec1)
 {
     return FloatInVec(sseSelect(vec0.get128(), vec1.get128(), select_vec1.get128()));
+}
+
+inline const FloatInVec rcpEst(const FloatInVec& v)
+{
+    return FloatInVec(_mm_rcp_ps(v.get128()));
+}
+
+inline const FloatInVec rSqrtEstNR(const FloatInVec& v)
+{
+    const __m128 nr = _mm_rsqrt_ps(v.get128());
+    // Do one more Newton-Raphson step to improve precision.
+    const __m128 muls = _mm_mul_ps(_mm_mul_ps(v.get128(), nr), nr);
+    return FloatInVec(_mm_mul_ps(_mm_mul_ps(_mm_set_ps1(.5f), nr), _mm_sub_ps(_mm_set_ps1(3.f), muls)));
+}
+
+inline const FloatInVec sqrt(const FloatInVec& v)
+{
+    return FloatInVec(_mm_sqrt_ps(v.get128()));
+}
+
+inline const FloatInVec xorPerElem(const FloatInVec &a, const Vector4Int b)
+{
+    return FloatInVec(_mm_xor_ps(a.get128(), _mm_castsi128_ps(b)));
+}
+
+inline const FloatInVec andPerElem(const FloatInVec& a, const Vector4Int b)
+{
+    return FloatInVec(_mm_and_ps(a.get128(), _mm_castsi128_ps(b)));
+}
+
+inline const FloatInVec andNotPerElem(const FloatInVec& a, const Vector4Int b)
+{
+    return FloatInVec(_mm_andnot_ps(a.get128(), _mm_castsi128_ps(b)));
 }
 
 } // namespace SSE

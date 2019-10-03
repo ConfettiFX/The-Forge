@@ -37,6 +37,8 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\src\animation\runtime\animation.cc" />
     <ClCompile Include="..\..\..\..\..\src\animation\runtime\blending_job.cc" />
+    <ClCompile Include="..\..\..\..\..\src\animation\runtime\ik_aim_job.cc" />
+    <ClCompile Include="..\..\..\..\..\src\animation\runtime\ik_two_bone_job.cc" />
     <ClCompile Include="..\..\..\..\..\src\animation\runtime\local_to_model_job.cc" />
     <ClCompile Include="..\..\..\..\..\src\animation\runtime\sampling_job.cc" />
     <ClCompile Include="..\..\..\..\..\src\animation\runtime\skeleton.cc" />
@@ -48,6 +50,8 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\include\ozz\animation\runtime\animation.h" />
     <ClInclude Include="..\..\..\..\..\include\ozz\animation\runtime\blending_job.h" />
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\runtime\ik_aim_job.h" />
+    <ClInclude Include="..\..\..\..\..\include\ozz\animation\runtime\ik_two_bone_job.h" />
     <ClInclude Include="..\..\..\..\..\include\ozz\animation\runtime\local_to_model_job.h" />
     <ClInclude Include="..\..\..\..\..\include\ozz\animation\runtime\sampling_job.h" />
     <ClInclude Include="..\..\..\..\..\include\ozz\animation\runtime\skeleton.h" />

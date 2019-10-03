@@ -79,18 +79,7 @@ public:
 
 	const char * GetCstr(const CachedString & currStr) const;
 
-	//void RevertParentStackToSize(int dstSize)
-	//{
-	//	m_parentStackIdentifiers.resize(dstSize);
-	//}
-
-	//int GetParentStackSize() const
-	//{
-	//	return (int)m_parentStackIdentifiers.size();
-	//}
-
-	static bool GetBinaryOpResultType(HLSLBinaryOp binaryOp, const HLSLType& type1, const HLSLType& type2, HLSLType& result);
-
+	static bool GetBinaryOpResultType(HLSLBinaryOp binaryOp, const HLSLType& type1, const HLSLType& type2, HLSLType& argType, HLSLType& resType);
 
 private:
 
@@ -158,6 +147,8 @@ private:
     bool ParsePass(HLSLPass*& pass);
     bool ParsePipeline(HLSLStatement*& pipeline);
     bool ParseStage(HLSLStatement*& stage);
+
+	HLSLExpression* OptionallyApplyImplicitCast(const HLSLType& dstType, HLSLExpression* expr);
 
     bool ParseAttributeList(HLSLAttribute*& attribute);
     bool ParseAttributeBlock(HLSLAttribute*& attribute);

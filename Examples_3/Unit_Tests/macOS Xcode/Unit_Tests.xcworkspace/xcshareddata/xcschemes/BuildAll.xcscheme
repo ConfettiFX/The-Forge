@@ -645,9 +645,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "26_Audio.app"
-               BlueprintName = "26_Audio"
-               ReferencedContainer = "container:26_Audio/26_Audio.xcodeproj">
+               BuildableName = "27_Audio.app"
+               BlueprintName = "27_Audio"
+               ReferencedContainer = "container:27_Audio/27_Audio.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -659,9 +659,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "C95132EC2010E68A002E584B"
-               BuildableName = "26_Audio_iOS.app"
-               BlueprintName = "26_Audio_iOS"
-               ReferencedContainer = "container:26_Audio/26_Audio.xcodeproj">
+               BuildableName = "27_Audio_iOS.app"
+               BlueprintName = "27_Audio_iOS"
+               ReferencedContainer = "container:27_Audio/27_Audio.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -692,6 +692,34 @@
                ReferencedContainer = "container:08_GltfViewer/08_GltfViewer.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "26_InverseKinematic.app"
+               BlueprintName = "26_InverseKinematic"
+               ReferencedContainer = "container:26_InverseKinematic/26_InverseKinematic.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "C95132EC2010E68A002E584B"
+               BuildableName = "26_InverseKinematic_iOS.app"
+               BlueprintName = "26_InverseKinematic_iOS"
+               ReferencedContainer = "container:26_InverseKinematic/26_InverseKinematic.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -699,8 +727,6 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
-      <Testables>
-      </Testables>
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
@@ -710,8 +736,8 @@
             ReferencedContainer = "container:01_Transformations/01_Transformations.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
-      <AdditionalOptions>
-      </AdditionalOptions>
+      <Testables>
+      </Testables>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -732,8 +758,6 @@
             ReferencedContainer = "container:01_Transformations/01_Transformations.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
-      <AdditionalOptions>
-      </AdditionalOptions>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"

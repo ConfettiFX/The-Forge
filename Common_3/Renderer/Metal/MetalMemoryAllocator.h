@@ -3521,7 +3521,7 @@ long createBuffer(
 		{
 			pBuffer->mtlBuffer = [pBuffer->pMtlAllocation->GetMemory() newBufferWithLength:pCreateInfo->mSize options:mtlResourceOptions];
 			assert(pBuffer->mtlBuffer);
-			pBuffer->mtlBuffer.label = [NSString stringWithFormat:@"Placed Buffer %llx", (uint64_t)pBuffer->mtlBuffer];
+			pBuffer->mtlBuffer.label = [NSString stringWithFormat:@"Placed Buffer %p", pBuffer->mtlBuffer];
 
 			if (pMemoryRequirements->flags & RESOURCE_MEMORY_REQUIREMENT_PERSISTENT_MAP_BIT)
 			{
@@ -3541,7 +3541,7 @@ long createBuffer(
 		{
 			pBuffer->mtlBuffer = [allocator->m_Device newBufferWithLength:pCreateInfo->mSize options:mtlResourceOptions];
 			assert(pBuffer->mtlBuffer);
-			pBuffer->mtlBuffer.label = [NSString stringWithFormat:@"Owned Buffer %llx", (uint64_t)pBuffer->mtlBuffer];
+			pBuffer->mtlBuffer.label = [NSString stringWithFormat:@"Owned Buffer %p", pBuffer->mtlBuffer];
 			
 			if (pMemoryRequirements->flags & RESOURCE_MEMORY_REQUIREMENT_PERSISTENT_MAP_BIT &&
 				pMemoryRequirements->usage != RESOURCE_MEMORY_USAGE_GPU_ONLY)
@@ -3552,7 +3552,7 @@ long createBuffer(
 		
 		if (pCreateInfo->pDebugName)
 		{
-			pBuffer->mtlBuffer.label = [[[NSString alloc] initWithBytesNoCopy:(void*)pCreateInfo->pDebugName length: wcslen(pCreateInfo->pDebugName)*4 encoding:NSUTF32LittleEndianStringEncoding freeWhenDone:NO] stringByAppendingFormat:@" %llx", (uint64_t)pBuffer->mtlBuffer];
+			pBuffer->mtlBuffer.label = [[[NSString alloc] initWithBytesNoCopy:(void*)pCreateInfo->pDebugName length: wcslen(pCreateInfo->pDebugName)*4 encoding:NSUTF32LittleEndianStringEncoding freeWhenDone:NO] stringByAppendingFormat:@" %p", pBuffer->mtlBuffer];
 		}
 
 		// Bind buffer with memory.
@@ -3603,7 +3603,23 @@ long createTexture(
 	AllocatorSuballocationType suballocType;
 	if (!resourceAllocFindSuballocType(pCreateInfo->pDesc, &suballocType))
 		return false;
-
+    
+#ifdef TARGET_IOS
+    // For memoryless textures, avoid a heap allocation.
+    if ([pCreateInfo->pDesc storageMode] == MTLStorageModeMemoryless)
+    {
+        pTexture->mtlTexture = [allocator->m_Device newTextureWithDescriptor:pCreateInfo->pDesc];
+        assert(pTexture->mtlTexture);
+        pTexture->mtlTexture.label = [NSString stringWithFormat:@"Memoryless Texture %p", pTexture->mtlTexture];
+        
+        if (pCreateInfo->pDebugName)
+        {
+            pTexture->mtlTexture.label = [[NSString alloc] initWithBytesNoCopy:(void*)pCreateInfo->pDebugName length: wcslen(pCreateInfo->pDebugName)*4 encoding:NSUTF32LittleEndianStringEncoding freeWhenDone:NO];
+        }
+        return true;
+    }
+#endif
+        
 	// Allocate memory using allocator.
 	AllocationInfo info;
 	info.mSizeAlign = [allocator->m_Device heapTextureSizeAndAlignWithDescriptor:pCreateInfo->pDesc];
@@ -3617,18 +3633,18 @@ long createTexture(
 		{
 			pTexture->mtlTexture = [pTexture->pMtlAllocation->GetMemory() newTextureWithDescriptor:pCreateInfo->pDesc];
 			assert(pTexture->mtlTexture);
-			pTexture->mtlTexture.label = [NSString stringWithFormat:@"Placed Texture %llx", (uint64_t)pTexture->mtlTexture];
+			pTexture->mtlTexture.label = [NSString stringWithFormat:@"Placed Texture %p", pTexture->mtlTexture];
 		}
 		else
 		{
 			pTexture->mtlTexture = [allocator->m_Device newTextureWithDescriptor:pCreateInfo->pDesc];
 			assert(pTexture->mtlTexture);
-			pTexture->mtlTexture.label = [NSString stringWithFormat:@"Owned Texture %llx", (uint64_t)pTexture->mtlTexture];
+            pTexture->mtlTexture.label = [NSString stringWithFormat:@"Owned Texture %p", pTexture->mtlTexture];
 		}
 
 		if (pCreateInfo->pDebugName)
 		{
-			pTexture->mtlTexture.label = [[[NSString alloc] initWithBytesNoCopy:(void*)pCreateInfo->pDebugName length: wcslen(pCreateInfo->pDebugName)*4 encoding:NSUTF32LittleEndianStringEncoding freeWhenDone:NO]  stringByAppendingFormat:@" %llx", (uint64_t)pTexture->mtlTexture];
+			pTexture->mtlTexture.label = [[[NSString alloc] initWithBytesNoCopy:(void*)pCreateInfo->pDebugName length: wcslen(pCreateInfo->pDebugName)*4 encoding:NSUTF32LittleEndianStringEncoding freeWhenDone:NO]  stringByAppendingFormat:@" %p", pTexture->mtlTexture];
             //[pTexture->mtlTexture.label ];
 		}
 		

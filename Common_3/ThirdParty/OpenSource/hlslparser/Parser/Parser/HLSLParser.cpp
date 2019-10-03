@@ -149,23 +149,6 @@ static HLSLParser::Intrinsic * MakeIntrinsicInOut(StringLibrary & stringLibrary,
 }
 */
 
-
-
-enum NumericType
-{
-	NumericType_Float,
-	NumericType_Half,
-	NumericType_Min16Float,
-	NumericType_Min10Float,
-	NumericType_Bool,
-	NumericType_Int,
-	NumericType_Uint,
-	NumericType_Count,
-	NumericType_NaN,
-};
-
-
-
 // note: going from float to int is more expensive than from int to float, so that things like:
 // max(float,int) -> max(float,float) instead of mac(int,int)
 static const int _numberTypeRank[NumericType_Count][NumericType_Count] = 
@@ -443,17 +426,6 @@ static const EffectState pipelineStates[] = {
 	{"ColorWrite", 0, booleanValues},
 	{"AlphaWrite", 0, booleanValues},
 	{"AlphaTest", 0, booleanValues},       // This is really alpha to coverage.
-};
-
-
-struct BaseTypeDescription
-{
-	const char*     typeName;
-	NumericType     numericType;
-	int             numComponents;
-	int             numDimensions;
-	int             height;
-	int             binaryOpRank;
 };
 
 #define INTRINSIC_VOID_FUNCTION_CACHED(name) \
@@ -3039,175 +3011,6 @@ const int _binaryOpPriority[] =
 		 8, // <<
 		 8, // >>
 		 9 // %
-	};
-
-const BaseTypeDescription _baseTypeDescriptions[HLSLBaseType_Count] = 
-	{
-		{ "unknown type",       NumericType_NaN,        0, 0, 0, -1 },      // HLSLBaseType_Unknown
-		{ "void",               NumericType_NaN,        0, 0, 0, -1 },      // HLSLBaseType_Void
-
-		{ "float",              NumericType_Float,      1, 0, 1,  0 },      // HLSLBaseType_Float
-		{ "float1x2",           NumericType_Float,      1, 2, 2,  0 },      // HLSLBaseType_Float1x2
-		{ "float1x3",           NumericType_Float,      1, 2, 3,  0 },      // HLSLBaseType_Float1x3
-		{ "float1x4",           NumericType_Float,      1, 2, 4,  0 },      // HLSLBaseType_Float1x4
-		{ "float2",             NumericType_Float,      2, 1, 1,  0 },      // HLSLBaseType_Float2
-		{ "float2x2",           NumericType_Float,      2, 2, 2,  0 },      // HLSLBaseType_Float2x2
-		{ "float2x3",           NumericType_Float,      2, 2, 3,  0 },      // HLSLBaseType_Float2x3
-		{ "float2x4",           NumericType_Float,      2, 2, 4,  0 },      // HLSLBaseType_Float2x4
-		{ "float3",             NumericType_Float,      3, 1, 1,  0 },      // HLSLBaseType_Float3
-		{ "float3x2",           NumericType_Float,      3, 2, 2,  0 },      // HLSLBaseType_Float3x2
-		{ "float3x3",           NumericType_Float,      3, 2, 3,  0 },      // HLSLBaseType_Float3x3
-		{ "float3x4",           NumericType_Float,      3, 2, 4,  0 },      // HLSLBaseType_Float3x4
-		{ "float4",             NumericType_Float,      4, 1, 1,  0 },      // HLSLBaseType_Float4
-		{ "float4x2",           NumericType_Float,      4, 2, 2,  0 },      // HLSLBaseType_Float4x2
-		{ "float4x3",           NumericType_Float,      4, 2, 3,  0 },      // HLSLBaseType_Float4x3
-		{ "float4x4",           NumericType_Float,      4, 2, 4,  0 },      // HLSLBaseType_Float4x4
-
-
-		{ "half",               NumericType_Half,      1, 0, 1,  1 },      // HLSLBaseType_Half
-		{ "half1x2",            NumericType_Half,      1, 2, 2,  1 },      // HLSLBaseType_Half1x2
-		{ "half1x3",            NumericType_Half,      1, 2, 3,  1 },      // HLSLBaseType_Half1x3
-		{ "half1x4",            NumericType_Half,      1, 2, 4,  1 },      // HLSLBaseType_Half1x4
-		{ "half2",              NumericType_Half,      2, 1, 1,  1 },      // HLSLBaseType_Half2
-		{ "half2x2",            NumericType_Half,      2, 2, 2,  1 },      // HLSLBaseType_Half2x2
-		{ "half2x3",            NumericType_Half,      2, 2, 3,  1 },      // HLSLBaseType_Half2x3
-		{ "half2x4",            NumericType_Half,      2, 2, 4,  1 },      // HLSLBaseType_Half2x4
-		{ "half3",              NumericType_Half,      3, 1, 1,  1 },      // HLSLBaseType_Half3
-		{ "half3x2",            NumericType_Half,      3, 2, 2,  1 },      // HLSLBaseType_Half3x2
-		{ "half3x3",            NumericType_Half,      3, 2, 3,  1 },      // HLSLBaseType_Half3x3
-		{ "half3x4",            NumericType_Half,      3, 2, 4,  1 },      // HLSLBaseType_Half3x4
-		{ "half4",              NumericType_Half,      4, 1, 1,  1 },      // HLSLBaseType_Half4
-		{ "half4x2",            NumericType_Half,      4, 2, 2,  1 },      // HLSLBaseType_Half4x2
-		{ "half4x3",            NumericType_Half,      4, 2, 3,  1 },      // HLSLBaseType_Half4x3
-		{ "half4x4",            NumericType_Half,      4, 2, 4,  1 },      // HLSLBaseType_Half4x4
-
-
-		{ "min16float",              NumericType_Min16Float,      1, 0, 1,  1 },      // HLSLBaseType_Min16Float
-		{ "min16float1x2",           NumericType_Min16Float,      1, 2, 2,  1 },      // HLSLBaseType_Min16Float1x2
-		{ "min16float1x3",           NumericType_Min16Float,      1, 2, 3,  1 },      // HLSLBaseType_Min16Float1x3
-		{ "min16float1x4",           NumericType_Min16Float,      1, 2, 4,  1 },      // HLSLBaseType_Min16Float1x4
-		{ "min16float2",             NumericType_Min16Float,      2, 1, 1,  1 },      // HLSLBaseType_Min16Float2
-		{ "min16float2x2",           NumericType_Min16Float,      2, 2, 2,  1 },      // HLSLBaseType_Min16Float2x2
-		{ "min16float2x3",           NumericType_Min16Float,      2, 2, 3,  1 },      // HLSLBaseType_Min16Float2x3
-		{ "min16float2x4",           NumericType_Min16Float,      2, 2, 4,  1 },      // HLSLBaseType_Min16Float2x4
-		{ "min16float3",             NumericType_Min16Float,      3, 1, 1,  1 },      // HLSLBaseType_Min16Float3
-		{ "min16float3x2",           NumericType_Min16Float,      3, 2, 2,  1 },      // HLSLBaseType_Min16Float3x2
-		{ "min16float3x3",           NumericType_Min16Float,      3, 2, 3,  1 },      // HLSLBaseType_Min16Float3x3
-		{ "min16float3x4",           NumericType_Min16Float,      3, 2, 4,  1 },      // HLSLBaseType_Min16Float3x4
-		{ "min16float4",             NumericType_Min16Float,      4, 1, 1,  1 },      // HLSLBaseType_Min16Float4
-		{ "min16float4x2",           NumericType_Min16Float,      4, 2, 2,  1 },      // HLSLBaseType_Min16Float4x2
-		{ "min16float4x3",           NumericType_Min16Float,      4, 2, 3,  1 },      // HLSLBaseType_Min16Float4x3
-		{ "min16float4x4",           NumericType_Min16Float,      4, 2, 4,  1 },      // HLSLBaseType_Min16Float4x4
-
-
-		{ "min10float",              NumericType_Min10Float,      1, 0, 1,  1 },      // HLSLBaseType_Min10Float
-		{ "min10float1x2",           NumericType_Min10Float,      1, 2, 2,  1 },      // HLSLBaseType_Min10Float1x2
-		{ "min10float1x3",           NumericType_Min10Float,      1, 2, 3,  1 },      // HLSLBaseType_Min10Float1x3
-		{ "min10float1x4",           NumericType_Min10Float,      1, 2, 4,  1 },      // HLSLBaseType_Min10Float1x4
-		{ "min10float2",             NumericType_Min10Float,      2, 1, 1,  1 },      // HLSLBaseType_Min10Float2
-		{ "min10float2x2",           NumericType_Min10Float,      2, 2, 2,  1 },      // HLSLBaseType_Min10Float2x2
-		{ "min10float2x3",           NumericType_Min10Float,      2, 2, 3,  1 },      // HLSLBaseType_Min10Float2x3
-		{ "min10float2x4",           NumericType_Min10Float,      2, 2, 4,  1 },      // HLSLBaseType_Min10Float2x4
-		{ "min10float3",             NumericType_Min10Float,      3, 1, 1,  1 },      // HLSLBaseType_Min10Float3
-		{ "min10float3x2",           NumericType_Min10Float,      3, 2, 2,  1 },      // HLSLBaseType_Min10Float3x2
-		{ "min10float3x3",           NumericType_Min10Float,      3, 2, 3,  1 },      // HLSLBaseType_Min10Float3x3
-		{ "min10float3x4",           NumericType_Min10Float,      3, 2, 4,  1 },      // HLSLBaseType_Min10Float3x4
-		{ "min10float4",             NumericType_Min10Float,      4, 1, 1,  1 },      // HLSLBaseType_Min10Float4
-		{ "min10float4x2",           NumericType_Min10Float,      4, 2, 2,  1 },      // HLSLBaseType_Min10Float4x2
-		{ "min10float4x3",           NumericType_Min10Float,      4, 2, 3,  1 },      // HLSLBaseType_Min10Float4x3
-		{ "min10float4x4",           NumericType_Min10Float,      4, 2, 4,  1 },      // HLSLBaseType_Min10Float4x4
-
-		{ "bool",               NumericType_Bool,      1, 0, 1,  4 },      // HLSLBaseType_Bool
-		{ "bool1x2",            NumericType_Bool,      1, 2, 2,  4 },      // HLSLBaseType_Bool1x2
-		{ "bool1x3",            NumericType_Bool,      1, 2, 3,  4 },      // HLSLBaseType_Bool1x3
-		{ "bool1x4",            NumericType_Bool,      1, 2, 4,  4 },      // HLSLBaseType_Bool1x4
-		{ "bool2",				NumericType_Bool,	   2, 1, 1,  4 },      // HLSLBaseType_Bool2
-		{ "bool2x2",            NumericType_Bool,      2, 2, 2,  4 },      // HLSLBaseType_Bool1x2
-		{ "bool2x3",            NumericType_Bool,      2, 2, 3,  4 },      // HLSLBaseType_Bool1x3
-		{ "bool2x4",            NumericType_Bool,      2, 2, 4,  4 },      // HLSLBaseType_Bool1x4
-		{ "bool3",				NumericType_Bool,	   3, 1, 1,  4 },      // HLSLBaseType_Bool3
-		{ "bool3x2",            NumericType_Bool,      3, 2, 2,  4 },      // HLSLBaseType_Bool1x2
-		{ "bool3x3",            NumericType_Bool,      3, 2, 3,  4 },      // HLSLBaseType_Bool1x3
-		{ "bool3x4",            NumericType_Bool,      3, 2, 4,  4 },      // HLSLBaseType_Bool1x4
-		{ "bool4",				NumericType_Bool,	   4, 1, 1,  4 },      // HLSLBaseType_Bool4
-		{ "bool4x2",            NumericType_Bool,      4, 2, 2,  4 },      // HLSLBaseType_Bool1x2
-		{ "bool4x3",            NumericType_Bool,      4, 2, 3,  4 },      // HLSLBaseType_Bool1x3
-		{ "bool4x4",            NumericType_Bool,      4, 2, 4,  4 },      // HLSLBaseType_Bool1x4
-
-		{ "int",                NumericType_Int,       1, 0, 1,  3 },      // HLSLBaseType_Int
-		{ "int1x2",             NumericType_Int,	   1, 2, 2,  3 },      // HLSLBaseType_Int1x2
-		{ "int1x3",             NumericType_Int,	   1, 2, 3,  3 },      // HLSLBaseType_Int1x3
-		{ "int1x4",             NumericType_Int,	   1, 2, 4,  3 },      // HLSLBaseType_Int1x4
-		{ "int2",               NumericType_Int,       2, 1, 1,  3 },      // HLSLBaseType_Int2
-		{ "int2x2",             NumericType_Int,	   2, 2, 2,  3 },      // HLSLBaseType_Int2x2
-		{ "int2x3",             NumericType_Int,	   2, 2, 3,  3 },      // HLSLBaseType_Int2x3
-		{ "int2x4",             NumericType_Int,	   2, 2, 4,  3 },      // HLSLBaseType_Int2x4
-		{ "int3",               NumericType_Int,       3, 1, 1,  3 },      // HLSLBaseType_Int3
-		{ "int3x2",             NumericType_Int,	   3, 2, 2,  3 },      // HLSLBaseType_Int3x2
-		{ "int3x3",             NumericType_Int,	   3, 2, 3,  3 },      // HLSLBaseType_Int3x3
-		{ "int3x4",             NumericType_Int,	   3, 2, 4,  3 },      // HLSLBaseType_Int3x4
-		{ "int4",               NumericType_Int,       4, 1, 1,  3 },      // HLSLBaseType_Int4
-		{ "int4x2",             NumericType_Int,	   4, 2, 2,  3 },      // HLSLBaseType_Int4x2
-		{ "int4x3",             NumericType_Int,	   4, 2, 3,  3 },      // HLSLBaseType_Int4x3
-		{ "int4x4",             NumericType_Int,	   4, 2, 4,  3 },      // HLSLBaseType_Int4x4
-		
-		{ "uint",               NumericType_Uint,      1, 0, 1,  2 },      // HLSLBaseType_Uint
-		{ "uint1x2",            NumericType_Uint,	   1, 2, 2,  2 },      // HLSLBaseType_Int1x2
-		{ "uint1x3",            NumericType_Uint,	   1, 2, 3,  2 },      // HLSLBaseType_Int1x3
-		{ "uint1x4",            NumericType_Uint,	   1, 2, 4,  2 },      // HLSLBaseType_Int1x4
-		{ "uint2",              NumericType_Uint,      2, 1, 1,  2 },      // HLSLBaseType_Uint2
-		{ "uint2x2",            NumericType_Uint,	   1, 2, 2,  2 },      // HLSLBaseType_Uint1x2
-		{ "uint2x3",            NumericType_Uint,	   1, 2, 3,  2 },      // HLSLBaseType_Uint1x3
-		{ "uint2x4",            NumericType_Uint,	   1, 2, 4,  2 },      // HLSLBaseType_Uint1x4
-		{ "uint3",              NumericType_Uint,      3, 1, 1,  2 },      // HLSLBaseType_Uint3
-		{ "uint3x2",            NumericType_Uint,	   1, 2, 2,  2 },      // HLSLBaseType_Uint1x2
-		{ "uint3x3",            NumericType_Uint,	   1, 2, 3,  2 },      // HLSLBaseType_Uint1x3
-		{ "uint3x4",            NumericType_Uint,	   1, 2, 4,  2 },      // HLSLBaseType_Uint1x4
-		{ "uint4",              NumericType_Uint,      4, 1, 1,  2 },      // HLSLBaseType_Uint4
-		{ "uint4x2",            NumericType_Uint,	   1, 2, 2,  2 },      // HLSLBaseType_Uint1x2
-		{ "uint4x3",            NumericType_Uint,	   1, 2, 3,  2 },      // HLSLBaseType_Uint1x3
-		{ "uint4x4",            NumericType_Uint,	   1, 2, 4,  2 },      // HLSLBaseType_Uint1x4
-
-
-		{ "inputPatch",         NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_InputPatch
-		{ "outputPatch",        NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_OutputPatch
-
-		{ "pointStream",		NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_PointStream
-		{ "lineStream",         NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_LineStream
-		{ "triangleStream",     NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_TriangleStream
-
-		{ "point",				NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_Point
-		{ "line",				NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_Line
-		{ "triangle",			NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_Triangle
-		{ "lineadj",			NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_Lineadj
-		{ "triangleadj",		NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_Triangleadj		
-
-		{ "texture",            NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_Texture
-		{ "Texture1D",          NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_Texture1D
-		{ "Texture1DArray",     NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_Texture1DArray
-		{ "Texture2D",          NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_Texture2D
-		{ "Texture2DArray",     NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_Texture2DArray
-		{ "Texture3D",          NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_Texture3D
-		{ "Texture2DMS",        NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_Texture2DMS
-		{ "Texture2DMSArray",   NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_Texture2DMSArray
-		{ "TextureCube",        NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_TextureCube
-		{ "TextureCubeArray",   NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_TextureCubeArray
-
-		{ "RWTexture1D",          NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_RWTexture1D
-		{ "RWTexture1DArray",     NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_RWTexture1DArray
-		{ "RWTexture2D",          NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_RWTexture2D
-		{ "RWTexture2DArray",     NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_RWTexture2DArray
-		{ "RWTexture3D",          NumericType_NaN,        1, 0, 0, -1 },     // HLSLBaseType_RWTexture3D
-
-
-		{ "sampler",            NumericType_NaN,        1, 0, 0, -1 },      // HLSLBaseType_Sampler
-		{ "sampler2D",          NumericType_NaN,        1, 0, 0, -1 },      // HLSLBaseType_Sampler2D
-		{ "sampler3D",          NumericType_NaN,        1, 0, 0, -1 },      // HLSLBaseType_Sampler3D
-		{ "samplerCUBE",        NumericType_NaN,        1, 0, 0, -1 },      // HLSLBaseType_SamplerCube
-		{ "sampler2DShadow",    NumericType_NaN,        1, 0, 0, -1 },      // HLSLBaseType_Sampler2DShadow
-		{ "sampler2DMS",        NumericType_NaN,        1, 0, 0, -1 },      // HLSLBaseType_Sampler2DMS
-		{ "sampler2DArray",     NumericType_NaN,        1, 0, 0, -1 },      // HLSLBaseType_Sampler2DArray
-		{ "user defined",       NumericType_NaN,        1, 0, 0, -1 }       // HLSLBaseType_UserDefined
 	};
 
 // IC: I'm not sure this table is right, but any errors should be caught by the backend compiler.
@@ -7301,12 +7104,12 @@ CachedString HLSLParser::GetTypeName(const HLSLType& type)
 		}
 		else
 		{
-			return m_tree->AddStringCached(_baseTypeDescriptions[type.elementType].typeName);
+			return m_tree->AddStringCached(BASE_TYPE_DESC[type.elementType].typeName);
 		}
 	}
 	else
 	{
-		return m_tree->AddStringCached(_baseTypeDescriptions[type.baseType].typeName);
+		return m_tree->AddStringCached(BASE_TYPE_DESC[type.baseType].typeName);
 	}
 }
 
@@ -7389,8 +7192,8 @@ static int GetTypeCastRank(HLSLTree * tree, const HLSLType& srcType, const HLSLT
 		return 0;
 	}
 
-	const BaseTypeDescription& srcDesc = _baseTypeDescriptions[comparingType];
-	const BaseTypeDescription& dstDesc = _baseTypeDescriptions[comparedType];
+	const BaseTypeDescription& srcDesc = BASE_TYPE_DESC[comparingType];
+	const BaseTypeDescription& dstDesc = BASE_TYPE_DESC[comparedType];
 	if (srcDesc.numericType == NumericType_NaN || dstDesc.numericType == NumericType_NaN)
 	{
 		return -1;
@@ -7399,20 +7202,18 @@ static int GetTypeCastRank(HLSLTree * tree, const HLSLType& srcType, const HLSLT
 	// Result bits: T R R R P (T = truncation, R = conversion rank, P = dimension promotion)
 	int result = _numberTypeRank[srcDesc.numericType][dstDesc.numericType] << 1;
 
-	if (srcDesc.numDimensions == 0 && dstDesc.numDimensions > 0)
+	if ((srcDesc.numComponents == 1 && srcDesc.numRows == 1) && (dstDesc.numComponents > 1 || dstDesc.numRows > 1))
 	{
 		// Scalar dimension promotion
 		result |= (1 << 0);
 	}
-	else if ((srcDesc.numDimensions == dstDesc.numDimensions && (srcDesc.numComponents > dstDesc.numComponents || srcDesc.height > dstDesc.height)) ||
-		(srcDesc.numDimensions > 0 && dstDesc.numDimensions == 0))
+	else if ((srcDesc.numComponents > dstDesc.numComponents && srcDesc.numRows >= dstDesc.numRows) ||
+		     (srcDesc.numComponents >= dstDesc.numComponents && srcDesc.numRows > dstDesc.numRows))
 	{
 		// Truncation
 		result |= (1 << 4);
 	}
-	else if (srcDesc.numDimensions != dstDesc.numDimensions ||
-		srcDesc.numComponents != dstDesc.numComponents ||
-		srcDesc.height != dstDesc.height)
+	else if (srcDesc.numComponents != dstDesc.numComponents || srcDesc.numRows != dstDesc.numRows)
 	{
 		return -1;
 	}
@@ -7420,6 +7221,11 @@ static int GetTypeCastRank(HLSLTree * tree, const HLSLType& srcType, const HLSLT
 	
 	return result;
 	
+}
+
+static bool AreTypesEqual(HLSLTree* tree, const HLSLType& lhs, const HLSLType& rhs)
+{
+	return GetTypeCastRank(tree, lhs, rhs) == 0;
 }
 
 static bool GetFunctionCallCastRanks(HLSLTree* tree, const HLSLFunctionCall* call, const HLSLFunction* function, int* rankBuffer)
@@ -7524,7 +7330,7 @@ static CompareFunctionsResult CompareFunctions(HLSLTree* tree, const HLSLFunctio
 
 }
 
-bool HLSLParser::GetBinaryOpResultType(HLSLBinaryOp binaryOp, const HLSLType& type1, const HLSLType& type2, HLSLType& result)
+bool HLSLParser::GetBinaryOpResultType(HLSLBinaryOp binaryOp, const HLSLType& type1, const HLSLType& type2, HLSLType& argType, HLSLType& resType)
 {
 
 	if (type1.baseType < HLSLBaseType_FirstNumeric || type1.baseType > HLSLBaseType_LastNumeric || type1.array ||
@@ -7541,6 +7347,10 @@ bool HLSLParser::GetBinaryOpResultType(HLSLBinaryOp binaryOp, const HLSLType& ty
 		}
 	}
 
+	argType.baseType = _binaryOpTypeLookup[type1.baseType - HLSLBaseType_FirstNumeric][type2.baseType - HLSLBaseType_FirstNumeric];
+	resType.array =false;
+	resType.flags = 0;
+
 	switch (binaryOp)
 	{
 	case HLSLBinaryOp_And:
@@ -7552,21 +7362,21 @@ bool HLSLParser::GetBinaryOpResultType(HLSLBinaryOp binaryOp, const HLSLType& ty
 	case HLSLBinaryOp_Equal:
 	case HLSLBinaryOp_NotEqual:
 		{
-			int numComponents = std::max( _baseTypeDescriptions[ type1.baseType ].numComponents, _baseTypeDescriptions[ type2.baseType ].numComponents );
-			result.baseType = HLSLBaseType( HLSLBaseType_Bool + numComponents - 1 );
+			int numComponents = std::max( BASE_TYPE_DESC[ type1.baseType ].numComponents, BASE_TYPE_DESC[ type2.baseType ].numComponents );
+			resType.baseType = HLSLBaseType( HLSLBaseType_Bool + numComponents - 1 );
 			break;
 		}
 	default:
-		result.baseType = _binaryOpTypeLookup[type1.baseType - HLSLBaseType_FirstNumeric][type2.baseType - HLSLBaseType_FirstNumeric];
+		resType.baseType = _binaryOpTypeLookup[type1.baseType - HLSLBaseType_FirstNumeric][type2.baseType - HLSLBaseType_FirstNumeric];
 		break;
 	}
 
-	result.typeName.Reset();
-	result.array        = false;
-	result.flags        = (type1.flags & type2.flags) & HLSLTypeFlag_Const; // Propagate constness.
+	resType.typeName.Reset();
+	resType.array        = false;
+	resType.flags        = (type1.flags & type2.flags) & HLSLTypeFlag_Const; // Propagate constness.
 	
 
-	return result.baseType != HLSLBaseType_Unknown;
+	return resType.baseType != HLSLBaseType_Unknown;
 
 }
 
@@ -8583,10 +8393,12 @@ bool HLSLParser::ParseStatement(HLSLStatement*& statement, const HLSLType& retur
 		}
 		// Check that the return expression can be cast to the return type of the function.
 		HLSLType voidType(HLSLBaseType_Void);
-		if (!CheckTypeCast(returnStatement->expression ? returnStatement->expression->expressionType : voidType, returnType))
+		if (!CheckTypeCast(returnType, returnStatement->expression ? returnStatement->expression->expressionType : voidType))
 		{
 			return false;
 		}
+
+		returnStatement->expression = OptionallyApplyImplicitCast(returnType, returnStatement->expression);
 
 		statement = returnStatement;
 		return Expect(';');
@@ -8732,6 +8544,7 @@ bool HLSLParser::ParseDeclarationAssignment(HLSLDeclaration* declaration)
 		{
 			return false;
 		}
+		declaration->assignment = OptionallyApplyImplicitCast(declaration->type, declaration->assignment);
 	}
 	return true;
 }
@@ -8757,7 +8570,7 @@ bool HLSLParser::ParseFieldDeclaration(HLSLStructField*& field)
 	return Expect(';');
 }
 
-bool HLSLParser::CheckTypeCast(const HLSLType& srcType, const HLSLType& dstType)
+bool HLSLParser::CheckTypeCast(const HLSLType& dstType, const HLSLType& srcType)
 {
 	if (GetTypeCastRank(m_tree, srcType, dstType) == -1)
 	{
@@ -8820,22 +8633,18 @@ bool HLSLParser::ParseExpression(HLSLExpression*& expression, bool allowCommaOpe
 			return false;
 		}
 
+		if (!CheckTypeCast(expression->expressionType, expression2->expressionType))
+		{
+			return false;
+		}
+
 		HLSLBinaryExpression* binaryExpression = m_tree->AddNode<HLSLBinaryExpression>(expression->fileName, expression->line);
 		binaryExpression->binaryOp = assignOp;
 		binaryExpression->expression1 = expression;
-		binaryExpression->expression2 = expression2;
+		binaryExpression->expression2 = OptionallyApplyImplicitCast(expression->expressionType, expression2);
 		// This type is not strictly correct, since the type should be a reference.
 		// However, for our usage of the types it should be sufficient.
 		binaryExpression->expressionType = expression->expressionType;
-
-		if (!CheckTypeCast(expression2->expressionType, expression->expressionType))
-		{
-			const char* srcTypeName = GetCstr(GetTypeName(expression2->expressionType));
-			const char* dstTypeName = GetCstr(GetTypeName(expression->expressionType));
-			m_pFullTokenizer->Error("Cannot implicitly convert from '%s' to '%s'", srcTypeName, dstTypeName);
-
-			return false;
-		}
 
 		expression = binaryExpression;
 	}
@@ -9010,11 +8819,6 @@ bool HLSLParser::ParseBinaryExpression(int priority, HLSLExpression*& expression
 			{
 				return false;
 			}
-			HLSLBinaryExpression* binaryExpression = m_tree->AddNode<HLSLBinaryExpression>(fileName, line);
-			binaryExpression->binaryOp    = binaryOp;
-			binaryExpression->expression1 = expression;
-			binaryExpression->expression2 = expression2;
-
 			HLSLType exp1Type = expression->expressionType;
 			HLSLType exp2Type = expression2->expressionType;
 
@@ -9044,19 +8848,27 @@ bool HLSLParser::ParseBinaryExpression(int priority, HLSLExpression*& expression
 				exp2Type.baseType = HLSLBaseType_Uint;
 			}
 
-			if (!GetBinaryOpResultType( binaryOp, exp1Type, exp2Type, binaryExpression->expressionType ))
+			HLSLType resType, argType;
+			if (!GetBinaryOpResultType( binaryOp, exp1Type, exp2Type, argType, resType))
 			{
-				const char* typeName1 = GetCstr(GetTypeName( binaryExpression->expression1->expressionType ));
-				const char* typeName2 = GetCstr(GetTypeName( binaryExpression->expression2->expressionType ));
+				const char* typeName1 = GetCstr(GetTypeName( expression->expressionType ));
+				const char* typeName2 = GetCstr(GetTypeName( expression2->expressionType ));
 
 				// debug
-				bool temp = GetBinaryOpResultType(binaryOp, exp1Type, exp2Type, binaryExpression->expressionType);
+				bool temp = GetBinaryOpResultType(binaryOp, exp1Type, exp2Type, argType, resType);
 
 				m_pFullTokenizer->Error("binary '%s' : no global operator found which takes types '%s' and '%s' (or there is no acceptable conversion)",
 					CHECK_CSTR(GetBinaryOpName(binaryOp)), CHECK_CSTR(typeName1), CHECK_CSTR(typeName2));
 			
 				return false;
 			}
+
+			HLSLBinaryExpression* binaryExpression = m_tree->AddNode<HLSLBinaryExpression>(fileName, line);
+			binaryExpression->binaryOp    = binaryOp;
+			binaryExpression->expressionType = resType;
+			// TODO: should we handle case when arg types can be different.
+			binaryExpression->expression1 = OptionallyApplyImplicitCast(argType, expression);
+			binaryExpression->expression2 = OptionallyApplyImplicitCast(argType, expression2);
 
 			expression = binaryExpression;
 		}
@@ -9149,6 +8961,24 @@ bool HLSLParser::ApplyMemberAccessToNode(HLSLExpression * & expression)
 	return true;
 }
 
+HLSLExpression* HLSLParser::OptionallyApplyImplicitCast(const HLSLType& dstType, HLSLExpression* expr)
+{
+	const char* fileName = GetFileName();
+	int         line     = GetLineNumber();
+
+	if (expr && !AreTypesEqual(m_tree, dstType, expr->expressionType))
+	{
+		HLSLCastingExpression* castExpr = m_tree->AddNode<HLSLCastingExpression>(fileName, line);
+		castExpr->expressionType = dstType;
+		castExpr->expression = expr;
+		castExpr->implicit = true;
+		return castExpr;
+	}
+
+	return expr;
+}
+
+
 bool HLSLParser::ParseFunctionCall(CachedString name, HLSLExpression* object, HLSLExpression*& expression)
 {
 	const char* fileName = GetFileName();
@@ -9175,6 +9005,11 @@ bool HLSLParser::ParseFunctionCall(CachedString name, HLSLExpression* object, HL
 		}
 
 		functionCall->function = function;
+		// Insert implicit casts as AST tree nodes in order to simplify backends
+		for (size_t i = 0; i < functionCall->params.size(); ++i)
+		{
+			functionCall->params[i] = OptionallyApplyImplicitCast(function->args[i]->type, functionCall->params[i]);
+		}
 
 		// if it is special function for texture / buffer
 		//TODO move to glsl backend
@@ -9413,7 +9248,6 @@ bool HLSLParser::ParseTerminalExpression(HLSLExpression*& expression, bool& need
 			{
 				// Case 1.
 				HLSLCastingExpression* castingExpression = m_tree->AddNode<HLSLCastingExpression>(fileName, line);
-				castingExpression->type = type;
 				expression = castingExpression;
 				castingExpression->expressionType = type;
 
@@ -10043,7 +9877,7 @@ bool HLSLParser::ParseArguments(eastl::vector<HLSLArgument*>& argVec)
 				return false;
 			}
 
-			if (Accept('=') && !ParseExpression(argument->defaultValue,false,0))
+			if (Accept('=') && !ParseExpression(argument->defaultValue, false, 0))
 			{
 				// @@ Print error!
 				return false;
@@ -11554,11 +11388,6 @@ HLSLFunction* HLSLParser::FindFunction(const CachedString & name)
 	return NULL;
 }
 
-static bool AreTypesEqual(HLSLTree* tree, const HLSLType& lhs, const HLSLType& rhs)
-{
-	return GetTypeCastRank(tree, lhs, rhs) == 0;
-}
-
 static bool AreArgumentListsEqualVec(HLSLTree* tree, const eastl::vector<HLSLArgument*> & lhsVec, const eastl::vector<HLSLArgument*> & rhsVec)
 {
 	if (lhsVec.size() != rhsVec.size())
@@ -11843,7 +11672,7 @@ bool HLSLParser::GetMemberType(HLSLType& objectType, HLSLMemberAccess * memberAc
 			return true;
 		}
 	}
-	if (_baseTypeDescriptions[comparingType].numericType == NumericType_NaN)
+	if (BASE_TYPE_DESC[comparingType].numericType == NumericType_NaN)
 	{
 		// Currently we don't have an non-numeric types that allow member access.
 		return false;
@@ -11851,7 +11680,7 @@ bool HLSLParser::GetMemberType(HLSLType& objectType, HLSLMemberAccess * memberAc
 
 	int swizzleLength = 0;
 
-	if (_baseTypeDescriptions[comparingType].numDimensions <= 1)
+	if (BASE_TYPE_DESC[comparingType].numRows == 1)
 	{
 		eastl::string fullFieldName = GetCstr(fieldName);
 		// Check for a swizzle on the scalar/vector types.
@@ -11889,8 +11718,8 @@ bool HLSLParser::GetMemberType(HLSLType& objectType, HLSLMemberAccess * memberAc
 
 			int r = (n[0] - '0') - base;
 			int c = (n[1] - '0') - base;
-			if (r >= _baseTypeDescriptions[comparingType].height ||
-				c >= _baseTypeDescriptions[comparingType].numComponents)
+			if (r >= BASE_TYPE_DESC[comparingType].numRows ||
+				c >= BASE_TYPE_DESC[comparingType].numComponents)
 			{
 				return false;
 			}
@@ -11921,7 +11750,7 @@ bool HLSLParser::GetMemberType(HLSLType& objectType, HLSLMemberAccess * memberAc
 	static const HLSLBaseType boolType[]  = { HLSLBaseType_Bool,  HLSLBaseType_Bool2,  HLSLBaseType_Bool3,  HLSLBaseType_Bool4  };
 	
 
-	switch (_baseTypeDescriptions[comparingType].numericType)
+	switch (BASE_TYPE_DESC[comparingType].numericType)
 	{
 	case NumericType_Float:
 		memberAccess->expressionType.baseType = floatType[swizzleLength - 1];

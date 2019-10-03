@@ -1252,13 +1252,18 @@ FORCE_INLINE __m128 _mm_cmplt_ps(__m128 a, __m128 b)
 
 FORCE_INLINE __m128 _mm_cmplt_ss(__m128 a, __m128 b)
 {
-	return vsetq_lane_f32((_mm_cmplt_ps(a, b), 0), vreinterpretq_f32_m128(a), 0);
+	return vsetq_lane_f32(vgetq_lane_f32(_mm_cmplt_ps(a, b), 0), vreinterpretq_f32_m128(a), 0);
 }
 
 // Compares for greater than. https://msdn.microsoft.com/en-us/library/vstudio/11dy102s(v=vs.100).aspx
 FORCE_INLINE __m128 _mm_cmpgt_ps(__m128 a, __m128 b)
 {
 	return vreinterpretq_m128_u32(vcgtq_f32(vreinterpretq_f32_m128(a), vreinterpretq_f32_m128(b)));
+}
+
+FORCE_INLINE __m128 _mm_cmpgt_ss(__m128 a, __m128 b)
+{
+	return vsetq_lane_f32(vgetq_lane_f32(_mm_cmpgt_ps(a, b), 0), vreinterpretq_f32_m128(a), 0);
 }
 
 // Compares for greater than or equal. https://msdn.microsoft.com/en-us/library/vstudio/fs813y2t(v=vs.100).aspx
@@ -1684,7 +1689,7 @@ FORCE_INLINE __m128 _mm_movehl_ps(__m128 a, __m128 b) {
 // Move the lower single-precision (32-bit) floating-point element from b to the lower element of dst, and copy the upper 3 elements from a to the upper elements of dst.
 // https://software.intel.com/sites/landingpage/IntrinsicsGuide/#text=_mm_move_ss&expand=5217,3606,3720,5595,3828
 FORCE_INLINE __m128 _mm_move_ss(__m128 a, __m128 b) {
-	return __builtin_shufflevector(a, b, 0, 5, 6, 7);
+	return __builtin_shufflevector(b, a, 0, 5, 6, 7);
 }
 
 // Negate packed 32-bit integers in a when the corresponding signed 32-bit integer in b is negative, and store the results in dst. Element in dst are zeroed out when the corresponding element in b is zero.

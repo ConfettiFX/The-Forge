@@ -3,6 +3,176 @@
 #include "HLSLTree.h"
 #include "StringLibrary.h"
 
+const BaseTypeDescription BASE_TYPE_DESC[HLSLBaseType_Count] = 
+	{
+		{ "unknown type",       NumericType_NaN,       0, 0, -1 },      // HLSLBaseType_Unknown
+		{ "void",               NumericType_NaN,       0, 0, -1 },      // HLSLBaseType_Void
+
+		{ "float",              NumericType_Float,     1, 1,  0 },      // HLSLBaseType_Float
+		{ "float1x2",           NumericType_Float,     1, 2,  0 },      // HLSLBaseType_Float1x2
+		{ "float1x3",           NumericType_Float,     1, 3,  0 },      // HLSLBaseType_Float1x3
+		{ "float1x4",           NumericType_Float,     1, 4,  0 },      // HLSLBaseType_Float1x4
+		{ "float2",             NumericType_Float,     2, 1,  0 },      // HLSLBaseType_Float2
+		{ "float2x2",           NumericType_Float,     2, 2,  0 },      // HLSLBaseType_Float2x2
+		{ "float2x3",           NumericType_Float,     2, 3,  0 },      // HLSLBaseType_Float2x3
+		{ "float2x4",           NumericType_Float,     2, 4,  0 },      // HLSLBaseType_Float2x4
+		{ "float3",             NumericType_Float,     3, 1,  0 },      // HLSLBaseType_Float3
+		{ "float3x2",           NumericType_Float,     3, 2,  0 },      // HLSLBaseType_Float3x2
+		{ "float3x3",           NumericType_Float,     3, 3,  0 },      // HLSLBaseType_Float3x3
+		{ "float3x4",           NumericType_Float,     3, 4,  0 },      // HLSLBaseType_Float3x4
+		{ "float4",             NumericType_Float,     4, 1,  0 },      // HLSLBaseType_Float4
+		{ "float4x2",           NumericType_Float,     4, 2,  0 },      // HLSLBaseType_Float4x2
+		{ "float4x3",           NumericType_Float,     4, 3,  0 },      // HLSLBaseType_Float4x3
+		{ "float4x4",           NumericType_Float,     4, 4,  0 },      // HLSLBaseType_Float4x4
+
+
+		{ "half",               NumericType_Half,      1, 1,  1 },      // HLSLBaseType_Half
+		{ "half1x2",            NumericType_Half,      1, 2,  1 },      // HLSLBaseType_Half1x2
+		{ "half1x3",            NumericType_Half,      1, 3,  1 },      // HLSLBaseType_Half1x3
+		{ "half1x4",            NumericType_Half,      1, 4,  1 },      // HLSLBaseType_Half1x4
+		{ "half2",              NumericType_Half,      2, 1,  1 },      // HLSLBaseType_Half2
+		{ "half2x2",            NumericType_Half,      2, 2,  1 },      // HLSLBaseType_Half2x2
+		{ "half2x3",            NumericType_Half,      2, 3,  1 },      // HLSLBaseType_Half2x3
+		{ "half2x4",            NumericType_Half,      2, 4,  1 },      // HLSLBaseType_Half2x4
+		{ "half3",              NumericType_Half,      3, 1,  1 },      // HLSLBaseType_Half3
+		{ "half3x2",            NumericType_Half,      3, 2,  1 },      // HLSLBaseType_Half3x2
+		{ "half3x3",            NumericType_Half,      3, 3,  1 },      // HLSLBaseType_Half3x3
+		{ "half3x4",            NumericType_Half,      3, 4,  1 },      // HLSLBaseType_Half3x4
+		{ "half4",              NumericType_Half,      4, 1,  1 },      // HLSLBaseType_Half4
+		{ "half4x2",            NumericType_Half,      4, 2,  1 },      // HLSLBaseType_Half4x2
+		{ "half4x3",            NumericType_Half,      4, 3,  1 },      // HLSLBaseType_Half4x3
+		{ "half4x4",            NumericType_Half,      4, 4,  1 },      // HLSLBaseType_Half4x4
+
+
+		{ "min16float",              NumericType_Min16Float,      1, 1,  1 },      // HLSLBaseType_Min16Float
+		{ "min16float1x2",           NumericType_Min16Float,      1, 2,  1 },      // HLSLBaseType_Min16Float1x2
+		{ "min16float1x3",           NumericType_Min16Float,      1, 3,  1 },      // HLSLBaseType_Min16Float1x3
+		{ "min16float1x4",           NumericType_Min16Float,      1, 4,  1 },      // HLSLBaseType_Min16Float1x4
+		{ "min16float2",             NumericType_Min16Float,      2, 1,  1 },      // HLSLBaseType_Min16Float2
+		{ "min16float2x2",           NumericType_Min16Float,      2, 2,  1 },      // HLSLBaseType_Min16Float2x2
+		{ "min16float2x3",           NumericType_Min16Float,      2, 3,  1 },      // HLSLBaseType_Min16Float2x3
+		{ "min16float2x4",           NumericType_Min16Float,      2, 4,  1 },      // HLSLBaseType_Min16Float2x4
+		{ "min16float3",             NumericType_Min16Float,      3, 1,  1 },      // HLSLBaseType_Min16Float3
+		{ "min16float3x2",           NumericType_Min16Float,      3, 2,  1 },      // HLSLBaseType_Min16Float3x2
+		{ "min16float3x3",           NumericType_Min16Float,      3, 3,  1 },      // HLSLBaseType_Min16Float3x3
+		{ "min16float3x4",           NumericType_Min16Float,      3, 4,  1 },      // HLSLBaseType_Min16Float3x4
+		{ "min16float4",             NumericType_Min16Float,      4, 1,  1 },      // HLSLBaseType_Min16Float4
+		{ "min16float4x2",           NumericType_Min16Float,      4, 2,  1 },      // HLSLBaseType_Min16Float4x2
+		{ "min16float4x3",           NumericType_Min16Float,      4, 3,  1 },      // HLSLBaseType_Min16Float4x3
+		{ "min16float4x4",           NumericType_Min16Float,      4, 4,  1 },      // HLSLBaseType_Min16Float4x4
+
+
+		{ "min10float",              NumericType_Min10Float,      1, 1,  1 },      // HLSLBaseType_Min10Float
+		{ "min10float1x2",           NumericType_Min10Float,      1, 2,  1 },      // HLSLBaseType_Min10Float1x2
+		{ "min10float1x3",           NumericType_Min10Float,      1, 3,  1 },      // HLSLBaseType_Min10Float1x3
+		{ "min10float1x4",           NumericType_Min10Float,      1, 4,  1 },      // HLSLBaseType_Min10Float1x4
+		{ "min10float2",             NumericType_Min10Float,      2, 1,  1 },      // HLSLBaseType_Min10Float2
+		{ "min10float2x2",           NumericType_Min10Float,      2, 2,  1 },      // HLSLBaseType_Min10Float2x2
+		{ "min10float2x3",           NumericType_Min10Float,      2, 3,  1 },      // HLSLBaseType_Min10Float2x3
+		{ "min10float2x4",           NumericType_Min10Float,      2, 4,  1 },      // HLSLBaseType_Min10Float2x4
+		{ "min10float3",             NumericType_Min10Float,      3, 1,  1 },      // HLSLBaseType_Min10Float3
+		{ "min10float3x2",           NumericType_Min10Float,      3, 2,  1 },      // HLSLBaseType_Min10Float3x2
+		{ "min10float3x3",           NumericType_Min10Float,      3, 3,  1 },      // HLSLBaseType_Min10Float3x3
+		{ "min10float3x4",           NumericType_Min10Float,      3, 4,  1 },      // HLSLBaseType_Min10Float3x4
+		{ "min10float4",             NumericType_Min10Float,      4, 1,  1 },      // HLSLBaseType_Min10Float4
+		{ "min10float4x2",           NumericType_Min10Float,      4, 2,  1 },      // HLSLBaseType_Min10Float4x2
+		{ "min10float4x3",           NumericType_Min10Float,      4, 3,  1 },      // HLSLBaseType_Min10Float4x3
+		{ "min10float4x4",           NumericType_Min10Float,      4, 4,  1 },      // HLSLBaseType_Min10Float4x4
+
+		{ "bool",               NumericType_Bool,      1, 1,  4 },      // HLSLBaseType_Bool
+		{ "bool1x2",            NumericType_Bool,      1, 2,  4 },      // HLSLBaseType_Bool1x2
+		{ "bool1x3",            NumericType_Bool,      1, 3,  4 },      // HLSLBaseType_Bool1x3
+		{ "bool1x4",            NumericType_Bool,      1, 4,  4 },      // HLSLBaseType_Bool1x4
+		{ "bool2",				NumericType_Bool,	   2, 1,  4 },      // HLSLBaseType_Bool2
+		{ "bool2x2",            NumericType_Bool,      2, 2,  4 },      // HLSLBaseType_Bool1x2
+		{ "bool2x3",            NumericType_Bool,      2, 3,  4 },      // HLSLBaseType_Bool1x3
+		{ "bool2x4",            NumericType_Bool,      2, 4,  4 },      // HLSLBaseType_Bool1x4
+		{ "bool3",				NumericType_Bool,	   3, 1,  4 },      // HLSLBaseType_Bool3
+		{ "bool3x2",            NumericType_Bool,      3, 2,  4 },      // HLSLBaseType_Bool1x2
+		{ "bool3x3",            NumericType_Bool,      3, 3,  4 },      // HLSLBaseType_Bool1x3
+		{ "bool3x4",            NumericType_Bool,      3, 4,  4 },      // HLSLBaseType_Bool1x4
+		{ "bool4",				NumericType_Bool,	   4, 1,  4 },      // HLSLBaseType_Bool4
+		{ "bool4x2",            NumericType_Bool,      4, 2,  4 },      // HLSLBaseType_Bool1x2
+		{ "bool4x3",            NumericType_Bool,      4, 3,  4 },      // HLSLBaseType_Bool1x3
+		{ "bool4x4",            NumericType_Bool,      4, 4,  4 },      // HLSLBaseType_Bool1x4
+
+		{ "int",                NumericType_Int,       1, 1,  3 },      // HLSLBaseType_Int
+		{ "int1x2",             NumericType_Int,	   1, 2,  3 },      // HLSLBaseType_Int1x2
+		{ "int1x3",             NumericType_Int,	   1, 3,  3 },      // HLSLBaseType_Int1x3
+		{ "int1x4",             NumericType_Int,	   1, 4,  3 },      // HLSLBaseType_Int1x4
+		{ "int2",               NumericType_Int,       2, 1,  3 },      // HLSLBaseType_Int2
+		{ "int2x2",             NumericType_Int,	   2, 2,  3 },      // HLSLBaseType_Int2x2
+		{ "int2x3",             NumericType_Int,	   2, 3,  3 },      // HLSLBaseType_Int2x3
+		{ "int2x4",             NumericType_Int,	   2, 4,  3 },      // HLSLBaseType_Int2x4
+		{ "int3",               NumericType_Int,       3, 1,  3 },      // HLSLBaseType_Int3
+		{ "int3x2",             NumericType_Int,	   3, 2,  3 },      // HLSLBaseType_Int3x2
+		{ "int3x3",             NumericType_Int,	   3, 3,  3 },      // HLSLBaseType_Int3x3
+		{ "int3x4",             NumericType_Int,	   3, 4,  3 },      // HLSLBaseType_Int3x4
+		{ "int4",               NumericType_Int,       4, 1,  3 },      // HLSLBaseType_Int4
+		{ "int4x2",             NumericType_Int,	   4, 2,  3 },      // HLSLBaseType_Int4x2
+		{ "int4x3",             NumericType_Int,	   4, 3,  3 },      // HLSLBaseType_Int4x3
+		{ "int4x4",             NumericType_Int,	   4, 4,  3 },      // HLSLBaseType_Int4x4
+		
+		{ "uint",               NumericType_Uint,      1, 1,  2 },      // HLSLBaseType_Uint
+		{ "uint1x2",            NumericType_Uint,	   1, 2,  2 },      // HLSLBaseType_Int1x2
+		{ "uint1x3",            NumericType_Uint,	   1, 3,  2 },      // HLSLBaseType_Int1x3
+		{ "uint1x4",            NumericType_Uint,	   1, 4,  2 },      // HLSLBaseType_Int1x4
+		{ "uint2",              NumericType_Uint,      2, 1,  2 },      // HLSLBaseType_Uint2
+		{ "uint2x2",            NumericType_Uint,	   1, 2,  2 },      // HLSLBaseType_Uint1x2
+		{ "uint2x3",            NumericType_Uint,	   1, 3,  2 },      // HLSLBaseType_Uint1x3
+		{ "uint2x4",            NumericType_Uint,	   1, 4,  2 },      // HLSLBaseType_Uint1x4
+		{ "uint3",              NumericType_Uint,      3, 1,  2 },      // HLSLBaseType_Uint3
+		{ "uint3x2",            NumericType_Uint,	   1, 2,  2 },      // HLSLBaseType_Uint1x2
+		{ "uint3x3",            NumericType_Uint,	   1, 3,  2 },      // HLSLBaseType_Uint1x3
+		{ "uint3x4",            NumericType_Uint,	   1, 4,  2 },      // HLSLBaseType_Uint1x4
+		{ "uint4",              NumericType_Uint,      4, 1,  2 },      // HLSLBaseType_Uint4
+		{ "uint4x2",            NumericType_Uint,	   1, 2,  2 },      // HLSLBaseType_Uint1x2
+		{ "uint4x3",            NumericType_Uint,	   1, 3,  2 },      // HLSLBaseType_Uint1x3
+		{ "uint4x4",            NumericType_Uint,	   1, 4,  2 },      // HLSLBaseType_Uint1x4
+
+
+		{ "inputPatch",         NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_InputPatch
+		{ "outputPatch",        NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_OutputPatch
+
+		{ "pointStream",		NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_PointStream
+		{ "lineStream",         NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_LineStream
+		{ "triangleStream",     NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_TriangleStream
+
+		{ "point",				NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_Point
+		{ "line",				NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_Line
+		{ "triangle",			NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_Triangle
+		{ "lineadj",			NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_Lineadj
+		{ "triangleadj",		NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_Triangleadj		
+
+		{ "texture",            NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_Texture
+		{ "Texture1D",          NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_Texture1D
+		{ "Texture1DArray",     NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_Texture1DArray
+		{ "Texture2D",          NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_Texture2D
+		{ "Texture2DArray",     NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_Texture2DArray
+		{ "Texture3D",          NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_Texture3D
+		{ "Texture2DMS",        NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_Texture2DMS
+		{ "Texture2DMSArray",   NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_Texture2DMSArray
+		{ "TextureCube",        NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_TextureCube
+		{ "TextureCubeArray",   NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_TextureCubeArray
+
+		{ "RWTexture1D",          NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_RWTexture1D
+		{ "RWTexture1DArray",     NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_RWTexture1DArray
+		{ "RWTexture2D",          NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_RWTexture2D
+		{ "RWTexture2DArray",     NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_RWTexture2DArray
+		{ "RWTexture3D",          NumericType_NaN,        1, 0, -1 },     // HLSLBaseType_RWTexture3D
+
+
+		{ "sampler",            NumericType_NaN,        1, 0, -1 },      // HLSLBaseType_Sampler
+		{ "sampler2D",          NumericType_NaN,        1, 0, -1 },      // HLSLBaseType_Sampler2D
+		{ "sampler3D",          NumericType_NaN,        1, 0, -1 },      // HLSLBaseType_Sampler3D
+		{ "samplerCUBE",        NumericType_NaN,        1, 0, -1 },      // HLSLBaseType_SamplerCube
+		{ "sampler2DShadow",    NumericType_NaN,        1, 0, -1 },      // HLSLBaseType_Sampler2DShadow
+		{ "sampler2DMS",        NumericType_NaN,        1, 0, -1 },      // HLSLBaseType_Sampler2DMS
+		{ "sampler2DArray",     NumericType_NaN,        1, 0, -1 },      // HLSLBaseType_Sampler2DArray
+		{ "user defined",       NumericType_NaN,        1, 0, -1 }       // HLSLBaseType_UserDefined
+	};
+
+
 const char * FetchCstr(const StringLibrary * stringLibrary, const CachedString & cstr)
 {
 	ASSERT_PARSER(stringLibrary != NULL);
@@ -1485,7 +1655,7 @@ void HLSLTreeVisitor::VisitConditionalExpression(HLSLConditionalExpression * nod
 
 void HLSLTreeVisitor::VisitCastingExpression(HLSLCastingExpression * node)
 {
-    VisitType(node->type);
+    VisitType(node->expressionType);
     VisitExpression(node->expression);
 }
 
@@ -1835,183 +2005,6 @@ void AddSingleStatement(HLSLRoot * root, HLSLStatement * before, HLSLStatement *
 {
     AddStatements(root, before, statement, statement);
 }
-
-// @@ This is very game-specific. Should be moved to pipeline_parser or somewhere else.
-void GroupParameters(HLSLTree * tree)
-{
-    // Sort parameters based on semantic and group them in cbuffers.
-    HLSLRoot* root = tree->GetRoot();
-
-    HLSLDeclaration * firstPerItemDeclaration = NULL;
-    HLSLDeclaration * lastPerItemDeclaration = NULL;
-
-    HLSLDeclaration * instanceDataDeclaration = NULL;
-
-    HLSLDeclaration * firstPerPassDeclaration = NULL;
-    HLSLDeclaration * lastPerPassDeclaration = NULL;
-
-    HLSLDeclaration * firstPerItemSampler = NULL;
-    HLSLDeclaration * lastPerItemSampler = NULL;
-
-    HLSLDeclaration * firstPerPassSampler = NULL;
-    HLSLDeclaration * lastPerPassSampler = NULL;
-
-    HLSLStatement * statementBeforeBuffers = NULL;
-    
-    HLSLStatement* previousStatement = NULL;
-    HLSLStatement* statement = root->statement;
-    while (statement != NULL)
-    {
-        HLSLStatement* nextStatement = statement->nextStatement;
-
-        if (statement->nodeType == HLSLNodeType_Struct) // Do not remove this, or it will mess the else clause below.
-        {   
-            statementBeforeBuffers = statement;
-        }
-        else if (statement->nodeType == HLSLNodeType_Declaration)
-        {
-            HLSLDeclaration* declaration = (HLSLDeclaration*)statement;
-
-            // We insert buffers after the last const declaration.
-            if ((declaration->type.flags & HLSLTypeFlag_Const) != 0)
-            {
-                statementBeforeBuffers = statement;
-            }
-
-            // Do not move samplers or static/const parameters.
-            if ((declaration->type.flags & (HLSLTypeFlag_Static|HLSLTypeFlag_Const)) == 0)
-            {
-                // Unlink statement.
-                statement->nextStatement = NULL;
-                if (previousStatement != NULL) previousStatement->nextStatement = nextStatement;
-                else root->statement = nextStatement;
-
-                while(declaration != NULL)
-                {
-                    HLSLDeclaration* nextDeclaration = declaration->nextDeclaration;
-
-					eastl::string semanticName = FetchCstr(tree->m_stringLibrary,declaration->semantic);
-                    if (declaration->semantic.IsNotEmpty() && String_EqualNoCase(semanticName.c_str(), "PER_INSTANCED_ITEM"))
-                    {
-						ASSERT_PARSER(instanceDataDeclaration == NULL);
-                        instanceDataDeclaration = declaration;
-                    }
-                    else
-                    {
-                        // Select group based on type and semantic.
-                        HLSLDeclaration ** first, ** last;
-                        if (declaration->semantic.IsEmpty() || String_EqualNoCase(semanticName.c_str(), "PER_ITEM") || String_EqualNoCase(semanticName.c_str(), "PER_MATERIAL"))
-                        {
-                            if (IsSamplerType(declaration->type))
-                            {
-                                first = &firstPerItemSampler;
-                                last = &lastPerItemSampler;
-                            }
-                            else
-                            {
-                                first = &firstPerItemDeclaration;
-                                last = &lastPerItemDeclaration;
-                            }
-                        }
-                        else
-                        {
-                            if (IsSamplerType(declaration->type))
-                            {
-                                first = &firstPerPassSampler;
-                                last = &lastPerPassSampler;
-                            }
-                            else
-                            {
-                                first = &firstPerPassDeclaration;
-                                last = &lastPerPassDeclaration;
-                            }
-                        }
-
-                        // Add declaration to new list.
-                        if (*first == NULL) *first = declaration;
-                        else (*last)->nextStatement = declaration;
-                        *last = declaration;
-                    }
-
-                    // Unlink from declaration list.
-                    declaration->nextDeclaration = NULL;
-
-                    // Reset attributes.
-					declaration->registerName.Reset();
-
-                    declaration = nextDeclaration;
-                }
-            }
-        }
-
-        if (statement->nextStatement == nextStatement) {
-            previousStatement = statement;
-        }
-        statement = nextStatement;
-    }
-
-
-    // Add instance data declaration at the end of the per_item buffer.
-    if (instanceDataDeclaration != NULL)
-    {
-        if (firstPerItemDeclaration == NULL) firstPerItemDeclaration = instanceDataDeclaration;
-        else lastPerItemDeclaration->nextStatement = instanceDataDeclaration;
-    }
-
-    // Add samplers.
-    if (firstPerItemSampler != NULL) {
-        AddStatements(root, statementBeforeBuffers, firstPerItemSampler, lastPerItemSampler);
-        statementBeforeBuffers = lastPerItemSampler;
-    }
-    if (firstPerPassSampler != NULL) {
-        AddStatements(root, statementBeforeBuffers, firstPerPassSampler, lastPerPassSampler);
-        statementBeforeBuffers = lastPerPassSampler;
-    }
-
-    // @@ We are assuming per_item and per_pass buffers don't already exist. @@ We should assert on that.
-
-    if (firstPerItemDeclaration != NULL)
-    {
-        // Create buffer statement.
-        HLSLBuffer * perItemBuffer = tree->AddNode<HLSLBuffer>(firstPerItemDeclaration->fileName, firstPerItemDeclaration->line-1);
-        perItemBuffer->name = tree->AddStringCached("per_item");
-        perItemBuffer->registerName = tree->AddStringCached("b0");
-        perItemBuffer->field = firstPerItemDeclaration;
-        
-        // Set declaration buffer pointers.
-        HLSLDeclaration * field = perItemBuffer->field;
-        while (field != NULL)
-        {
-            field->buffer = perItemBuffer;
-            field = (HLSLDeclaration *)field->nextStatement;
-        }
-
-        // Add buffer to statements.
-        AddSingleStatement(root, statementBeforeBuffers, perItemBuffer);
-        statementBeforeBuffers = perItemBuffer;
-    }
-
-    if (firstPerPassDeclaration != NULL)
-    {
-        // Create buffer statement.
-        HLSLBuffer * perPassBuffer = tree->AddNode<HLSLBuffer>(firstPerPassDeclaration->fileName, firstPerPassDeclaration->line-1);
-        perPassBuffer->name = tree->AddStringCached("per_pass");
-        perPassBuffer->registerName = tree->AddStringCached("b1");
-        perPassBuffer->field = firstPerPassDeclaration;
-
-        // Set declaration buffer pointers.
-        HLSLDeclaration * field = perPassBuffer->field;
-        while (field != NULL)
-        {
-            field->buffer = perPassBuffer;
-            field = (HLSLDeclaration *)field->nextStatement;
-        }
-        
-        // Add buffer to statements.
-        AddSingleStatement(root, statementBeforeBuffers, perPassBuffer);
-    }
-}
-
 
 class FindArgumentVisitor : public HLSLTreeVisitor
 {

@@ -815,7 +815,8 @@ static void streamerThreadFunc(void* pThreadData)
 		while (pLoader->mRun && (completionMask == allUploadsCompleted) && allQueuesEmpty(pLoader) && getSystemTime() < nextTimeslot)
 		{
 			unsigned time = getSystemTime();
-			pLoader->mQueueCond.Wait(pLoader->mQueueMutex, nextTimeslot - time);
+			unsigned nextSlot = min(nextTimeslot - time, pLoader->mDesc.mTimesliceMs);
+			pLoader->mQueueCond.Wait(pLoader->mQueueMutex, nextSlot);
 		}
 		pLoader->mQueueMutex.Release();
 
@@ -1209,6 +1210,7 @@ void updateResource(TextureUpdateDesc* pTextureUpdate, SyncToken* token)
 		Image* pImage = ResourceLoader::CreateImage(pTextureUpdate->pRawImageData->mFormat, pTextureUpdate->pRawImageData->mWidth, pTextureUpdate->pRawImageData->mHeight,
 			pTextureUpdate->pRawImageData->mDepth, pTextureUpdate->pRawImageData->mMipLevels, pTextureUpdate->pRawImageData->mArraySize,
 			pTextureUpdate->pRawImageData->pRawData);
+		pImage->SetMipsAfterSlices(pTextureUpdate->pRawImageData->mMipsAfterSlices);			
 		desc.mFreeImage = true;
 		desc.pImage = pImage;
 	}

@@ -674,7 +674,7 @@ void HLSLGenerator::OutputExpression(HLSLExpression* expression, bool needsEndPa
     {
         HLSLCastingExpression* castingExpression = static_cast<HLSLCastingExpression*>(expression);
         m_writer.Write("(");
-        OutputDeclaration(castingExpression->type, MakeCached(""));
+        OutputDeclaration(castingExpression->expressionType, MakeCached(""));
         m_writer.Write(")");
 		m_writer.Write("(");
 		OutputExpression(castingExpression->expression, false);
@@ -1490,7 +1490,7 @@ void HLSLGenerator::OutputStatements(int indent, HLSLStatement* statement)
 
             m_writer.BeginLine(indent, RawStr(ifStatement->fileName), ifStatement->line);
             m_writer.Write("if (");
-            OutputExpression(ifStatement->condition, true);
+            OutputExpression(ifStatement->condition, false);
             m_writer.Write(")");
             m_writer.EndLine();
 

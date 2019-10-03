@@ -28,6 +28,12 @@
     <ClCompile Include="..\..\..\..\src\animation\runtime\track_triggering_job.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\src\animation\runtime\ik_two_bone_job.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\src\animation\runtime\ik_aim_job.cc">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\animation.h">
@@ -61,6 +67,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\track_triggering_job_stl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\ik_two_bone_job.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\ik_aim_job.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

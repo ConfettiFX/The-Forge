@@ -32,6 +32,56 @@
 #include "Rig.h"
 #include "Animation.h"
 
+struct AimIKDesc
+{
+	// Joint forward axis, in joint local-space, to be aimed at target position.
+	Vector3        mForward;
+	// Offset position from the joint in local-space, that will aim at target.
+	Vector3        mOffset;
+	// Pole vector, in model-space. The pole vector defines the direction
+	// the up should point to.
+	Vector3        mPoleVector;
+	// Twist_angle rotates joint around the target vector.
+	float          mTwistAngle;
+	// Weight given to the IK correction clamped in range [0,1]. Applied to each joint in chain.
+	float          mJointWeight;
+	// Chain Length
+	int            mJointChainLength;
+	// Array of joint indexes.
+	const int*     mJointChain;
+	// Array of joint up axises, in joint local-space, used to keep the joint oriented in the
+	// same direction as the pole vector.
+	const Vector3* mJointUpVectors;
+	// Optional boolean output value, set to true if target can be reached with IK
+	// computations.
+	bool mReached;
+};
+
+struct TwoBonesIKDesc
+{
+	// Pole vector, in model-space. The pole vector defines the direction the
+	// middle joint should point to, allowing to control IK chain orientation.
+	Vector3 mPoleVector;
+	// Normalized middle joint rotation axis, in middle joint local-space.
+	Vector3 mMidAxis;
+	// Weight given to the IK correction clamped in range [0,1].
+	float mWeight;
+	// Soften ratio allows the chain to gradually fall behind the target
+	// position. This prevents the joint chain from snapping into the final
+	// position, softening the final degrees before the joint chain becomes flat.
+	// This ratio represents the distance to the end, from which softening is
+	// starting.
+	float mSoften;
+	// Twist_angle rotates IK chain around the vector define by start-to-target
+	// vector.
+	float mTwistAngle;
+	// Array of joint indexes.
+	int mJointChain[3];
+	// Optional boolean output value, set to true if target can be reached with IK
+	// computations.
+	bool mReached;
+};
+
 // Responsible for coordinating the posing of a Rig by an Animation
 class AnimatedObject
 {
@@ -44,6 +94,11 @@ class AnimatedObject
 
 	// To be called every frame of the main application, handles sampling and updating the current animation
 	bool Update(float dt);
+
+	bool AimIK(AimIKDesc* params, Point3 target);
+
+	// Apply two bone inverse kinematic
+	bool TwoBonesIK(TwoBonesIKDesc* params, Point3 target);
 
 	// Update mRigs world matricies
 	inline void PoseRig() { mRig->Pose(mRootTransform); };

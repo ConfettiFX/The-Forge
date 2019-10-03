@@ -75,11 +75,12 @@ private:
 		AttributeModifier_Inout,
     };
 
-	void OutputExpressionList(const eastl::vector<HLSLExpression*>& expressions, const eastl::vector <HLSLArgument*>& argument = {}, size_t i = 0);
+	void OutputExpressionList(const eastl::vector<HLSLExpression*>& expressions, size_t i = 0);
 	void OutputExpression(HLSLExpression* expression, const HLSLType* dstType = NULL, bool allowCast = true);
 	void OutputExpressionForBufferArray(HLSLExpression* expression, const HLSLType* dstType = NULL);
 
-    void OutputIdentifier(const CachedString & name);
+	void OutputIdentifier(const CachedString & name);
+	void OutputIdentifierExpression(HLSLIdentifierExpression* pIdentExpr);
 	void OutputArguments(const eastl::vector < HLSLArgument* > & arguments);
 
 
@@ -133,10 +134,7 @@ private:
 
 	CachedString MakeCached(const char * str);
 
-	void ProcessRegisterAssignments();
-
 private:
-
     static const int    s_numReservedWords = 7;
     static const char*  s_reservedWord[s_numReservedWords];
 

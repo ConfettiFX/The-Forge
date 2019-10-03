@@ -505,6 +505,33 @@ inline const Vector3 select(const Vector3 & vec0, const Vector3 & vec1, const Bo
     return Vector3(sseSelect(vec0.get128(), vec1.get128(), select1.get128()));
 }
 
+inline const Vector3 xorPerElem(const Vector3& a, const FloatInVec b)
+{
+    return Vector3(_mm_xor_ps(a.get128(), b.get128()));
+}
+
+inline const Vector3 sqrtPerElem(const Vector3 & vec)
+{
+    return Vector3(_mm_sqrt_ps(vec.get128()));
+}
+
+inline const Vector3 rSqrtEstNR(const Vector3& v)
+{
+    const __m128 nr = _mm_rsqrt_ps(v.get128());
+    // Do one more Newton-Raphson step to improve precision.
+    const __m128 muls = _mm_mul_ps(_mm_mul_ps(v.get128(), nr), nr);
+    return Vector3(_mm_mul_ps(_mm_mul_ps(_mm_set_ps1(.5f), nr), _mm_sub_ps(_mm_set_ps1(3.f), muls)));
+}
+
+inline bool isNormalizedEst(const Vector3& v) {
+    const __m128 max = _mm_set_ss(1.f + kNormalizationToleranceEstSq);
+    const __m128 min = _mm_set_ss(1.f - kNormalizationToleranceEstSq);
+    const __m128 dot = sseVecDot3(v.get128(), v.get128());
+    const __m128 dotx000 = _mm_move_ss(_mm_setzero_ps(), dot);
+    return (_mm_movemask_ps(
+        _mm_and_ps(_mm_cmplt_ss(dotx000, max), _mm_cmpgt_ss(dotx000, min))) & 0x1) == 0x1;
+}
+
 #ifdef VECTORMATH_DEBUG
 
 inline void print(const Vector3 & vec)
@@ -903,6 +930,11 @@ inline const Vector4 rSqrtEstNR(const Vector4& v) {
   // Do one more Newton-Raphson step to improve precision.
   const __m128 muls = _mm_mul_ps(_mm_mul_ps(v.get128(), nr), nr);
   return Vector4(_mm_mul_ps(_mm_mul_ps(_mm_set_ps1(.5f), nr), _mm_sub_ps(_mm_set_ps1(3.f), muls)));
+}
+
+inline const Vector4 aCos(const Vector4& arg)
+{
+    return Vector4(sseACosf(arg.get128()));
 }
 
 //========================================= #ConfettiAnimationMathExtensionsEnd =======================================
@@ -1852,6 +1884,10 @@ inline Vector4Int Select(const Vector4Int _b, const Vector4Int _true, const Vect
 
 inline Vector4Int And(const Vector4Int _a, const Vector4Int _b) {
   return _mm_and_si128(_a, _b);
+}
+
+inline Vector4Int And(const Vector4Int& a, const BoolInVec b) {
+  return _mm_and_si128(a, _mm_castps_si128(b.get128()));
 }
 
 inline Vector4Int Or(const Vector4Int _a, const Vector4Int _b) {

@@ -1731,7 +1731,7 @@ public:
 				params[0].ppBuffers = &pUniformBuffer[i];
 				params[1].pName = "ShadowUniformBuffer";
 				params[1].ppBuffers = &pShadowUniformBuffer[i];
-				updateDescriptorSet(pRenderer, i, pDescriptorSetDemo[1], 1, params);
+				updateDescriptorSet(pRenderer, i, pDescriptorSetDemo[1], 2, params);
 			}
 
 			//bind textures
@@ -2455,22 +2455,14 @@ public:
 
 			cmdDrawIndexed(cmd, 6, 0, 0);
 
-			cmdBindRenderTargets(cmd, 0, NULL, 0, NULL, NULL, NULL, -1, -1);
-
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 		}
 
 		//// draw scene
 		
 		{
-            LoadActionsDesc loadActions = {};
-            loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-            loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
-            loadActions.mLoadActionStencil = LOAD_ACTION_LOAD;
-            
 			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Scene", true);
 
-			cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 			cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
@@ -2721,6 +2713,7 @@ public:
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
 		depthRT.mWidth = mSettings.mWidth;
+		depthRT.mFlags = TEXTURE_CREATION_FLAG_ON_TILE;
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 
 		/************************************************************************/
