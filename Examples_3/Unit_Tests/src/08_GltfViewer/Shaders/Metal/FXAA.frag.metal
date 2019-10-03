@@ -177,11 +177,13 @@ struct Fragment_Shader
     float4 main(PSIn input)
     {
         float3 result = float3((float)0.0, (float)0.0, (float)0.0);
+#ifndef TARGET_IOS
         if (FXAARootConstant.Use)
         {
             (result = FXAA((input).TexCoord, int2((int2)((input).TexCoord * FXAARootConstant.ScreenSize))));
         }
         else
+#endif
         {
             (result = (float3)(sceneTexture.sample(clampMiplessLinearSampler, (input).TexCoord).rgb));
         }

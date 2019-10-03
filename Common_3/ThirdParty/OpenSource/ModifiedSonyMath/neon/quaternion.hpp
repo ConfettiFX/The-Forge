@@ -436,6 +436,61 @@ inline const Quat Quat::rotationZ(const FloatInVec & radians)
     return Quat(res);
 }
 
+inline const Quat Quat::fromVectors(const Vector3& from, const Vector3& to)
+{
+    const __m128 from_128 = from.get128();
+    const __m128 to_128 = to.get128();
+
+    const __m128 norm_from_norm_to =
+        _mm_sqrt_ss(_mm_mul_ps(sseVecDot3(from_128, from_128), sseVecDot3(to_128, to_128)));
+    const float norm_from_norm_to_x = _mm_cvtss_f32(norm_from_norm_to);
+    if (norm_from_norm_to_x < kNormalizationToleranceSq) {
+        return Quat::identity();
+    }
+
+    const __m128 real_part = _mm_add_ss(norm_from_norm_to, dot(from, to).get128());
+    __m128 quat;
+    if (_mm_cvtss_f32(real_part) < kNormalizationToleranceSq * norm_from_norm_to_x) {
+        // If _from and _to are exactly opposite, rotate 180 degrees around an
+        // arbitrary orthogonal axis. Axis normalization can happen later, when we
+        // normalize the quaternion.
+
+        float from_f[4];
+        _mm_storeu_ps(from_f, from_128);
+        quat = std::abs(from_f[0]) > std::abs(from_f[2])
+            ? _mm_set_ps(0.0f, 0.0f, from_f[0], -from_f[1])
+            : _mm_set_ps(0.0f, from_f[1], -from_f[2], 0.0f);
+    }
+    else {
+        // This is the general code path.
+        quat = sseVecCross(from_128, to_128);
+        quat = _mm_shuffle_ps(quat, _mm_shuffle_ps(real_part, quat, _MM_SHUFFLE(2, 2, 0, 0)), _MM_SHUFFLE(0, 2, 1, 0));
+    }
+
+    return Quat(normalize(Vector4(quat)));
+}
+
+inline const Quat Quat::fromAxisCosAngle(const Vector3 &axis, const FloatInVec &cos)
+{
+
+    const __m128 one = _mm_set1_ps(1.0f);
+    const __m128 half = _mm_set1_ps(0.5f);
+
+    const __m128 half_cos2 = _mm_mul_ps(_mm_add_ps(one, cos.get128()), half);
+    const __m128 half_sin2 = _mm_sub_ps(one, half_cos2);
+    const __m128 half_sincos2 =
+          _mm_shuffle_ps(_mm_unpacklo_ps(half_cos2, half_sin2), half_cos2,
+                     _MM_SHUFFLE(3, 2, 1, 0));
+    const __m128 half_sincos = _mm_sqrt_ps(half_sincos2);
+    const __m128 half_sin = sseSplat(half_sincos, 1);
+
+    const __m128 vec = _mm_mul_ps(axis.get128(), half_sin);
+
+    return Quat(_mm_shuffle_ps(
+          vec, _mm_shuffle_ps(half_sincos, vec, _MM_SHUFFLE(2, 2, 0, 0)),
+          _MM_SHUFFLE(0, 2, 1, 0)));
+}
+
 inline const Quat Quat::operator * (const Quat & quat) const
 {
     __m128 ldata, rdata, qv, tmp0, tmp1, tmp2, tmp3;

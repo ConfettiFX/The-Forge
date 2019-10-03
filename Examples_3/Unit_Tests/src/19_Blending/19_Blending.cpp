@@ -1199,6 +1199,7 @@ class Blending: public IApp
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
 		depthRT.mWidth = mSettings.mWidth;
+		depthRT.mFlags = TEXTURE_CREATION_FLAG_ON_TILE;
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 
 		return pDepthBuffer != NULL;

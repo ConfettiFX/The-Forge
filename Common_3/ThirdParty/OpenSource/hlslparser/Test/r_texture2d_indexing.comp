@@ -3,10 +3,21 @@ Texture2D lightbuffer : register(t1);
 
 RWTexture2D<float4> outputRT : register(u2);
 
+Texture2D<int4> in0 : register(t2);
+RWTexture2D<int4> out0 : register(u0);
+
+Texture2D<uint4> in1 : register(t3);
+RWTexture2D<uint4> out1 : register(u1);
+
 [numthreads(16, 16, 1)]
 void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)
 {
 	float3 albedo =  albedobuffer[DTid.xy].xyz;
 	float3 diffuse = lightbuffer[DTid.xy].xyz;
 	outputRT[DTid.xy] = float4(diffuse*albedo, 0);
-}
+
+	int3 v0 = in0[DTid.xy].xyz;
+	out0[DTid.xy] =int4(v0, 0);
+	uint3 v1 = in1[DTid.xy].xyz;
+	out1[DTid.xy] =uint4(v1, 0);
+	}

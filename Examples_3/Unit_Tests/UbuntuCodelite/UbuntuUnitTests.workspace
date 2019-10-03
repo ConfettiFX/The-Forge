@@ -35,11 +35,12 @@
   <Project Name="ozz_animation" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation.project" Active="No"/>
   <Project Name="ozz_animation_offline" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation_offline.project" Active="No"/>
   <Project Name="EASTL" Path="../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/EASTL.project" Active="No"/>
-  <Project Name="26_Audio" Path="26_Audio/26_Audio.project" Active="No"/>
+  <Project Name="27_Audio" Path="27_Audio/27_Audio.project" Active="No"/>
   <Project Name="08_GltfViewer" Path="08_GltfViewer/08_GltfViewer.project" Active="No"/>
   <Project Name="AssetPipeline" Path="../../../Common_3/Tools/AssetPipeline/Linux/AssetPipeline.project" Active="No"/>
   <Project Name="AssetPipelineCmd" Path="../../../Common_3/Tools/AssetPipeline/Linux/AssetPipelineCmd.project" Active="No"/>
   <Project Name="MeshOptimizer" Path="MeshOptimizer/MeshOptimizer.project" Active="No"/>
+  <Project Name="26_InverseKinematic" Path="26_InverseKinematic/26_InverseKinematic.project" Active="No"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>
@@ -80,12 +81,13 @@
       <Project Name="ozz_animation" ConfigName="Debug"/>
       <Project Name="ozz_animation_offline" ConfigName="Debug"/>
       <Project Name="EASTL" ConfigName="Debug"/>
-      <Project Name="26_Audio" ConfigName="Debug"/>
-      <Project Name="26_Audio" ConfigName="Debug"/>
+      <Project Name="27_Audio" ConfigName="Debug"/>
+      <Project Name="27_Audio" ConfigName="Debug"/>
       <Project Name="08_GltfViewer" ConfigName="Debug"/>
       <Project Name="AssetPipeline" ConfigName="Debug"/>
       <Project Name="AssetPipelineCmd" ConfigName="Debug"/>
       <Project Name="MeshOptimizer" ConfigName="Debug"/>
+      <Project Name="26_InverseKinematic" ConfigName="Debug"/>
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release" Selected="no">
       <Environment/>
@@ -100,8 +102,8 @@
       <Project Name="gainput" ConfigName="Release"/>
       <Project Name="EASTL" ConfigName="Release"/>
       <Project Name="assimp" ConfigName="NoConfig"/>
-      <Project Name="26_Audio" ConfigName="Release"/>
-      <Project Name="26_Audio" ConfigName="Release"/>
+      <Project Name="27_Audio" ConfigName="Release"/>
+      <Project Name="27_Audio" ConfigName="Release"/>
       <Project Name="25_Skinning" ConfigName="Release"/>
       <Project Name="24_MultiThread" ConfigName="Release"/>
       <Project Name="23_BakedPhysics" ConfigName="Release"/>
@@ -130,6 +132,7 @@
       <Project Name="AssetPipeline" ConfigName="Release"/>
       <Project Name="AssetPipelineCmd" ConfigName="Release"/>
       <Project Name="MeshOptimizer" ConfigName="Release"/>
+      <Project Name="26_InverseKinematic" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

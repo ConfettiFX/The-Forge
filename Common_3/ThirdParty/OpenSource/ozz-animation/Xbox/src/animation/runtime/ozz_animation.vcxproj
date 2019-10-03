@@ -134,10 +134,14 @@
   <ItemGroup>
     <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\animation.h" />
     <ClCompile Include="..\..\..\..\src\animation\runtime\animation.cc" />
+    <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\ik_aim_job.h" />
+    <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\ik_two_bone_job.h" />
     <ClInclude Include="..\..\..\..\src\animation\runtime\animation_keyframe.h" />
     <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\blending_job.h" />
     <ClCompile Include="..\..\..\..\src\animation\runtime\blending_job.cc" />
     <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\local_to_model_job.h" />
+    <ClCompile Include="..\..\..\..\src\animation\runtime\ik_aim_job.cc" />
+    <ClCompile Include="..\..\..\..\src\animation\runtime\ik_two_bone_job.cc" />
     <ClCompile Include="..\..\..\..\src\animation\runtime\local_to_model_job.cc" />
     <ClInclude Include="..\..\..\..\include\ozz\animation\runtime\sampling_job.h" />
     <ClCompile Include="..\..\..\..\src\animation\runtime\sampling_job.cc" />

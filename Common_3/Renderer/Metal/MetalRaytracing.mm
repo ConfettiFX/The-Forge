@@ -129,7 +129,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
     };
     
     //implemented in MetalRenderer.mm
-    extern void util_end_current_encoders(Cmd* pCmd);
+    extern void util_end_current_encoders(Cmd* pCmd, bool forceBarrier);
 
     bool isRaytracingSupported(Renderer* pRenderer)
     {
@@ -565,7 +565,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         ASSERT(pDst->mDesc.mHeight == pSrc->mDesc.mHeight);
         ASSERT(pDst->mDesc.mMipLevels == pSrc->mDesc.mMipLevels);
         ASSERT(pDst->mDesc.mArraySize == pSrc->mDesc.mArraySize);
-        util_end_current_encoders(pCmd);
+        util_end_current_encoders(pCmd, false);
         
         pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
         
@@ -990,7 +990,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         
         if (pShadersInfo->pHitReferences[shaderId].active)
         {
-            util_end_current_encoders(pCmd);
+            util_end_current_encoders(pCmd, false);
             uint32_t hitRef = pShadersInfo->pHitReferences[shaderId].hitShader;
             uint32_t missRef = pShadersInfo->pHitReferences[shaderId].missShader;
             NSUInteger width = (NSUInteger)pDesc->mWidth;
@@ -1073,7 +1073,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         [computeEncoder popDebugGroup];
         
         // End the encoder
-        util_end_current_encoders(pCmd);
+        util_end_current_encoders(pCmd, false);
         
         if (!pDesc->pShaderTable->mInvokeShaders) return;
         

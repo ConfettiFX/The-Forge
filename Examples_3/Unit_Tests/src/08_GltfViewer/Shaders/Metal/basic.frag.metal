@@ -217,7 +217,7 @@ uint alphaMode, uint unlit)
     return result;
 }
 
-float CalcESMShadowFactor(float4x4 LightViewProj, float3 worldPos, texture2d<float> shadowTexture, sampler shadowSampler)
+float CalcESMShadowFactor(float4x4 LightViewProj, float3 worldPos, texture2d<float, access::sample> shadowTexture, sampler shadowSampler)
 {
     float4 posLS = LightViewProj * float4(worldPos.xyz, 1.0);
     posLS /= posLS.w;
@@ -250,7 +250,7 @@ float random(float3 seed, float3 freq)
     return fract(sin(dt) * 2105.2354);
 }
 
-float CalcPCFShadowFactor(float4x4 LightViewProj, float3 worldPos, texture2d<float> shadowTexture, sampler shadowSampler)
+float CalcPCFShadowFactor(float4x4 LightViewProj, float3 worldPos, depth2d<float, access::sample> shadowTexture, sampler shadowSampler)
 {
     float4 posLS = LightViewProj * float4(worldPos.xyz, 1.0);
     posLS /= posLS.w;
@@ -275,14 +275,14 @@ float CalcPCFShadowFactor(float4x4 LightViewProj, float3 worldPos, texture2d<flo
         float2 offset = float2(shadowSamples[i * 2], shadowSamples[i * 2 + 1]);
         offset = float2(offset.x * c + offset.y * s, offset.x * -s + offset.y * c);
         offset *= shadowFilterSize;
-        float shadowMapValue = shadowTexture.sample(shadowSampler, posLS.xy + offset, level(0)).r;
+        float shadowMapValue = shadowTexture.sample(shadowSampler, posLS.xy + offset, level(0));
         shadowFactor += (shadowMapValue - 0.002f > posLS.z ? 0.0f : 1.0f);
     }
     shadowFactor *= NUM_SHADOW_SAMPLES_INV;
     return shadowFactor;
 }
 
-float ClaculateShadow(float4x4 LightViewProj, float3 worldPos, texture2d<float> shadowTexture, sampler shadowSampler)
+float ClaculateShadow(float4x4 LightViewProj, float3 worldPos, texture2d<float, access::sample> shadowTexture, sampler shadowSampler)
 {
     float4 NDC = LightViewProj * float4(worldPos, 1.0);
     NDC /= NDC.w;
@@ -345,7 +345,7 @@ struct PSOut
 
 struct Scene
 {
-	texture2d<float, access::sample> ShadowTexture                    [[id(0)]];
+	depth2d<float, access::sample> ShadowTexture                    [[id(0)]];
 	sampler  clampMiplessLinearSampler                                [[id(1)]];
 };
 

@@ -21,17 +21,17 @@ class StringLibrary;
 class MSLGenerator
 {
 public:
-    enum Target
-    {
-        Target_VertexShader,
-        Target_FragmentShader,
+	enum Target
+	{
+		Target_VertexShader,
+		Target_FragmentShader,
 		Target_HullShader,
 		Target_DomainShader,
 		Target_GeometryShader,
 		Target_ComputeShader,
-    };
-    
-    enum Flags
+	};
+
+	enum Flags
     {
         Flag_ConstShadowSampler = 1 << 0,
         Flag_PackMatrixRowMajor = 1 << 1,
@@ -45,9 +45,11 @@ public:
 		unsigned int textureRegisterOffset;
 		unsigned int bufferRegisterOffset;
 
+		bool useArgBufs;
+
 		bool bindingRequired;
 		eastl::vector < BindingOverride > bindingOverrides;
-
+		eastl::vector < BindingShift >shiftVec;
 
         int (*attributeCallback)(const char* name, unsigned int index);
 
@@ -57,6 +59,8 @@ public:
             bufferRegisterOffset = 0;
 			textureRegisterOffset = 0;
             attributeCallback = NULL;
+
+			useArgBufs = true;
 
 			bindingRequired = false;
 			bindingOverrides.clear();
@@ -81,32 +85,16 @@ private:
         CachedString registerName;
 		bool bStructuredBuffer;	
 
-        ClassArgument * nextArg;
-        
         ClassArgument(CachedString nameParam, HLSLType typeParam, CachedString registerNameParam, bool bStructuredBufferParam = false) :
             name(nameParam), type(typeParam), registerName(registerNameParam), bStructuredBuffer(bStructuredBufferParam)
-		{
-			nextArg = NULL;
-		}
-
-		ClassArgument(CachedString nameParam, const char* preprocessorContents, HLSLType typeParam, CachedString registerNameParam = CachedString(), bool bStructuredBufferParam = false) :
-			name(nameParam), type(typeParam), registerName(registerNameParam), bStructuredBuffer(bStructuredBufferParam)
-		{
-			nextArg = NULL;
-		}
-
+		{}
     };
 
-    void AddClassArgument(ClassArgument * arg);
-
     void Prepass(HLSLTree* tree, Target target, HLSLFunction* entryFunction, HLSLFunction* secondaryEntryFunction);
-    void CleanPrepass();
-	
+
 	int GetBufferRegister(const CachedString & cachedName);
 	int GetTextureRegister(const CachedString & cachedName);
 	int GetSamplerRegister(const CachedString & cachedName);
-
-
 
 	//bool DoesEntryUseName(HLSLFunction* entryFunction, const CachedString & name);
 	void GetAllEntryUsedNames(StringLibrary & foundNames,
@@ -117,22 +105,23 @@ private:
 
     void PrependDeclarations();
     
-    void OutputStatements(int indent, HLSLStatement* statement, const HLSLFunction* function);
+    void OutputStatements(int indent, HLSLStatement* statement);
     void OutputAttributes(int indent, HLSLAttribute* attribute, bool bMain);
-    void OutputDeclaration(HLSLDeclaration* declaration, const HLSLFunction* function);
+    void OutputDeclaration(HLSLDeclaration* declaration);
     void OutputStruct(int indent, HLSLStruct* structure);
     void OutputBuffer(int indent, HLSLBuffer* buffer);
     void OutputFunction(int indent, const HLSLFunction* function);
-    void OutputExpression(HLSLExpression* expression, const HLSLType* dstType, HLSLExpression* parentExpression, const HLSLFunction* function, bool needsEndParen);
+    void OutputExpression(HLSLExpression* expression, const HLSLType* dstType, HLSLExpression* parentExpression, bool needsEndParen);
     void OutputCast(const HLSLType& type);
-    
-    //void OutputArguments(HLSLArgument* argument, const HLSLFunction* function);
-	void OutputArguments(const eastl::vector<HLSLArgument*>& arguments, const HLSLFunction* function);
-	void OutputDeclaration(const HLSLType& type, const CachedString & name, HLSLExpression* assignment, const HLSLFunction* function, bool isRef = false, bool isConst = false, int alignment = 0);
+
+	void OutputArguments(const eastl::vector<HLSLArgument*>& arguments);
+	void OutputDeclaration(const HLSLType& type, const CachedString & name, HLSLExpression* assignment, bool isRef = false, bool isConst = false, int alignment = 0);
+	void OutputDeclaration(const char* prefix, HLSLDeclaration* decl, bool use_ref, bool outputId);
+	void OutputCastingExpression(HLSLCastingExpression* castExpr);
     void OutputDeclarationType(const HLSLType& type, bool isConst = false, bool isRef = false, int alignment = 0);
-    void OutputDeclarationBody(const HLSLType& type, const CachedString & name, HLSLExpression* assignment, const HLSLFunction* function, bool isRef = false);
-	void OutputExpressionListConstructor(const eastl::vector<HLSLExpression*>& expressions, const HLSLFunction* function, HLSLBaseType expectedScalarType);
-	void OutputExpressionList(const eastl::vector<HLSLExpression*>& expressionVec, const HLSLFunction* function, size_t start = 0);
+    void OutputDeclarationBody(const HLSLType& type, const CachedString & name, HLSLExpression* assignment, bool isRef = false);
+	void OutputExpressionListConstructor(const eastl::vector<HLSLExpression*>& expressions, HLSLBaseType expectedScalarType);
+	void OutputExpressionList(const eastl::vector<HLSLExpression*>& expressionVec, size_t start = 0);
     void OutputFunctionCall(HLSLFunctionCall* functionCall);
 
 	CachedString GetTypeName(const HLSLType& type);
@@ -140,16 +129,14 @@ private:
     CachedString TranslateInputSemantic(const CachedString & semantic, int incr);
 	CachedString TranslateOutputSemantic(const CachedString & semantic);
 
-
 	void Error(const char* format, ...);
-
-	bool matchFunctionArgumentsIdentifiersVec(const eastl::vector < HLSLArgument* > & arguments, const CachedString & name);
-
 
 	CachedString GetBuiltInSemantic(const CachedString & semantic, HLSLArgumentModifier modifier, const CachedString & argument = CachedString(), const CachedString & field = CachedString());
 
-
 	CachedString MakeCached(const char * str);
+
+	void OutputShaderClass(const char* shaderClassName);
+	void OutputMain(HLSLTree* tree, HLSLFunction* entryFunction, HLSLFunction* secondaryEntryFunction, const char* shaderClassName);
 
 private:
 
@@ -161,26 +148,19 @@ private:
     Target          m_target;
     Options         m_options;
 
-    bool            m_error;
+	bool m_error;
 
-    ClassArgument * m_firstClassArgument;
-    ClassArgument * m_lastClassArgument;
+	eastl::vector<HLSLDeclaration*> m_Args;
 
 	CachedString m_texIndexFuncName;
 
-	int	attributeCounter;
+	int attributeCounter;
 
-	eastl::vector < HLSLBuffer* > m_RWBuffers;
-	eastl::vector < HLSLBuffer* > m_RWStructuredBuffers;
-	eastl::vector < HLSLBuffer* > m_PushConstantBuffers;
-	eastl::vector < HLSLStruct* > m_StructBuffers;
-
-	StringLibrary * m_stringLibrary;
+	StringLibrary* m_stringLibrary;
 
 	int m_nextTextureRegister;
 	int m_nextSamplerRegister;
 	int m_nextBufferRegister; // options start at 1
-
 };
 
 

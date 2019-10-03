@@ -139,6 +139,9 @@ class Rig
 	// Finds the index of the joint with name jointName, if it cannot find it returns -1
 	int FindJoint(const char* jointName);
 
+	// Finds the indexes of joint chain with names joinNames
+	void FindJointChain(const char* jointNames[], size_t numNames, int jointChain[]);
+
 	private:
 	// Load a runtime skeleton from a skeleton.ozz file
 	bool LoadSkeleton(const char* fileName);

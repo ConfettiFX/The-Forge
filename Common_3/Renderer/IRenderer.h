@@ -906,10 +906,6 @@ typedef struct RenderTarget
 #if defined(VULKAN)
 	VkImageView* pVkDescriptors;
 #endif
-#if defined(TARGET_IOS)
-	// A separate texture is needed for stencil rendering on iOS.
-	Texture* pStencil;
-#endif
 #if defined(DIRECT3D11)
 	union
 	{
@@ -1765,7 +1761,7 @@ typedef struct GPUVendorPreset
 typedef struct GPUCapBits {
 	bool canShaderReadFrom[TinyImageFormat_Count];
 	bool canShaderWriteTo[TinyImageFormat_Count];
-	bool canColorWriteTo[TinyImageFormat_Count];
+	bool canRenderTargetWriteTo[TinyImageFormat_Count];
 } GPUCapBits;
 
 typedef enum DefaultResourceAlignment

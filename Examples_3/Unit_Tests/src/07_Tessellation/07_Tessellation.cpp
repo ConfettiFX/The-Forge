@@ -876,6 +876,12 @@ class Tessellation: public IApp
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
 #ifdef METAL
+		BufferBarrier metalSRVBarriers[] = {
+			{ pBladeNumBuffer, RESOURCE_STATE_INDIRECT_ARGUMENT },
+			{ pCulledBladeStorageBuffer, RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER },
+		};
+		cmdResourceBarrier(cmd, 2, metalSRVBarriers, 0, NULL);
+		
 		// On Metal, we have to run the grass_vertexHull compute shader before running the post-tesselation shaders.
 		DescriptorData vertexHullParams[5] = {};
 		cmdBindPipeline(cmd, pGrassVertexHullPipeline);
@@ -916,8 +922,14 @@ class Tessellation: public IApp
 #endif
 		cmdExecuteIndirect(cmd, pIndirectCommandSignature, 1, pBladeNumBuffer, 0, NULL, 0);
 
-		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-
+        TextureBarrier rtBarriers[] = {
+            { pRenderTarget->pTexture, RESOURCE_STATE_COMMON },
+        };
+        
+        cmdResourceBarrier(cmd, 0, NULL, 1, rtBarriers);
+        
+        cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+        
 		BufferBarrier uavBarriers[] = {
 			{ pBladeNumBuffer, RESOURCE_STATE_UNORDERED_ACCESS },
 			{ pCulledBladeStorageBuffer, RESOURCE_STATE_UNORDERED_ACCESS },
@@ -935,6 +947,11 @@ class Tessellation: public IApp
 		// Draw UI
 		cmd = ppUICmds[gFrameIndex];
 		beginCmd(cmd);
+        
+        rtBarriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
+        
+        cmdResourceBarrier(cmd, 0, NULL, 1, rtBarriers);
+        
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
@@ -1003,6 +1020,7 @@ class Tessellation: public IApp
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
 		depthRT.mWidth = mSettings.mWidth;
+		depthRT.mFlags = TEXTURE_CREATION_FLAG_ON_TILE;
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 
 		return pDepthBuffer != NULL;

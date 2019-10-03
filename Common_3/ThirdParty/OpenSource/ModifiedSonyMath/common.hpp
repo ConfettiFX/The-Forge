@@ -864,6 +864,31 @@ inline Vector3 max(const Vector3 &a, const Vector3 &b)
 #endif
 }
 
+inline Vector4 min(const Vector4& a, const Vector4& b)
+{
+#if VECTORMATH_MODE_SCALAR
+	return Vector3(
+		min(a.getX(), b.getX()),
+		min(a.getY(), b.getY()),
+		min(a.getZ(), b.getZ()),
+		min(a.getW(), b.getW()));
+#else
+	return Vector4(_mm_min_ps(a.get128(), b.get128()));
+#endif
+}
+inline Vector4 max(const Vector4& a, const Vector4& b)
+{
+#if VECTORMATH_MODE_SCALAR
+	return Vector3(
+		max(a.getX(), b.getX()),
+		max(a.getY(), b.getY()),
+		max(a.getZ(), b.getZ()),
+		max(a.getW(), b.getW()));
+#else
+	return Vector4(_mm_max_ps(a.get128(), b.get128()));
+#endif
+}
+
 inline Vector3 lerp(const Vector3 &u, const Vector3 &v, const float x) { return u + x * (v - u); }
 inline Vector3 clamp(const Vector3 &v, const Vector3 &c0, const Vector3 &c1) { return min(max(v, c0), c1); }
 

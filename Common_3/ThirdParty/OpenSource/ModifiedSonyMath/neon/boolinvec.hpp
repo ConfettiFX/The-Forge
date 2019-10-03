@@ -36,6 +36,7 @@ namespace Neon
 {
 
 class FloatInVec;
+typedef __m128i Vector4Int;
 
 // ========================================================
 // BoolInVec
@@ -92,6 +93,7 @@ public:
     friend inline const BoolInVec operator == (const FloatInVec & vec0, const FloatInVec & vec1);
     friend inline const BoolInVec operator != (const FloatInVec & vec0, const FloatInVec & vec1);
     friend inline const BoolInVec operator &  (const BoolInVec  & vec0, const BoolInVec  & vec1);
+    friend inline const Vector4Int operator & (const BoolInVec  & vec0, const Vector4Int & vec1);
     friend inline const BoolInVec operator ^  (const BoolInVec  & vec0, const BoolInVec  & vec1);
     friend inline const BoolInVec operator |  (const BoolInVec  & vec0, const BoolInVec  & vec1);
     friend inline const BoolInVec select(const BoolInVec & vec0, const BoolInVec & vec1, const BoolInVec & select_vec1);
@@ -107,6 +109,7 @@ public:
 inline const BoolInVec operator == (const BoolInVec & vec0, const BoolInVec & vec1);
 inline const BoolInVec operator != (const BoolInVec & vec0, const BoolInVec & vec1);
 inline const BoolInVec operator &  (const BoolInVec & vec0, const BoolInVec & vec1);
+inline const Vector4Int operator & (const BoolInVec & vec0, const Vector4Int& vec1);
 inline const BoolInVec operator ^  (const BoolInVec & vec0, const BoolInVec & vec1);
 inline const BoolInVec operator |  (const BoolInVec & vec0, const BoolInVec & vec1);
 
@@ -207,6 +210,11 @@ inline const BoolInVec operator != (const BoolInVec & vec0, const BoolInVec & ve
 inline const BoolInVec operator & (const BoolInVec & vec0, const BoolInVec & vec1)
 {
     return BoolInVec(_mm_and_ps(vec0.get128(), vec1.get128()));
+}
+
+inline const Vector4Int operator & (const BoolInVec& vec0, const Vector4Int& vec1)
+{
+    return _mm_and_si128(_mm_castps_si128(vec0.get128()), vec1);
 }
 
 inline const BoolInVec operator | (const BoolInVec & vec0, const BoolInVec & vec1)

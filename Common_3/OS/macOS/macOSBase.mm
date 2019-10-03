@@ -249,7 +249,7 @@ unsigned getSystemTime()
 	time_t          s;     // Seconds
 	struct timespec spec;
 
-	clock_gettime(CLOCK_REALTIME, &spec);
+	clock_gettime(_CLOCK_MONOTONIC, &spec);
 
 	s = spec.tv_sec;
 	ms = round(spec.tv_nsec / 1.0e6);    // Convert nanoseconds to milliseconds
@@ -262,7 +262,7 @@ unsigned getSystemTime()
 int64_t getUSec()
 {
 	timespec ts;
-	clock_gettime(CLOCK_REALTIME, &ts);
+	clock_gettime(_CLOCK_MONOTONIC, &ts);
 	long us = (ts.tv_nsec / 1000);
 	us += ts.tv_sec * 1e6;
 	return us;

@@ -256,12 +256,12 @@ inline void MurmurHash3_x86_32(const void * key, int len, uint32_t seed, void * 
 // Internal utility functions (may become external one day)
 uint64_t util_pthread_to_uint64(const pthread_t& value);
 
-bool util_is_compatible_texture_view(const MTLTextureType& textureType, const MTLTextureType& subviewTye);
+bool util_is_compatible_texture_view(const MTLTextureType textureType, const MTLTextureType subviewTye);
 
-bool            util_is_mtl_depth_pixel_format(const MTLPixelFormat& format);
-bool            util_is_mtl_compressed_pixel_format(const MTLPixelFormat& format);
-MTLVertexFormat util_to_mtl_vertex_format(const TinyImageFormat& format);
-MTLLoadAction   util_to_mtl_load_action(const LoadActionType& loadActionType);
+bool            util_is_mtl_depth_pixel_format(const MTLPixelFormat format);
+bool            util_is_mtl_compressed_pixel_format(const MTLPixelFormat format);
+MTLVertexFormat util_to_mtl_vertex_format(const TinyImageFormat format);
+MTLLoadAction   util_to_mtl_load_action(const LoadActionType loadActionType);
 
 void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture, const bool isRT = false, const bool forceNonPrivate = false);
 
@@ -562,7 +562,8 @@ enum BarrierFlag
 /************************************************************************/
 
 void util_bind_argument_buffer(Cmd* pCmd, DescriptorBinderNode& node, const DescriptorInfo* descInfo, const DescriptorData* descData);
-void util_end_current_encoders(Cmd* pCmd);
+void util_end_current_encoders(Cmd* pCmd, bool forceBarrier);
+void util_barrier_update(Cmd* pCmd, const CmdPoolType& encoderType);
 void util_barrier_required(Cmd* pCmd, const CmdPoolType& encoderType);
 	
 void reset_bound_resources(DescriptorBinder* pDescriptorBinder, RootSignature* pRootSignature)
@@ -633,37 +634,38 @@ void util_set_resources_graphics(Cmd* pCmd, DescriptorSet::DescriptorResources* 
         switch (i)
         {
             case RESOURCE_TYPE_RESOURCE_RW:
-                if (@available(iOS 13.0, *))
+                if(@available(iOS 13.0, macOS 15.0, *))
                 {
                     [pCmd->mtlRenderEncoder useResources: (__unsafe_unretained id<MTLResource>*)(void*)resources->mResources[i]
                                                    count: resourceCount
-                                                   usage: MTLResourceUsageRead | MTLResourceUsageWrite
+                                                   usage: MTLResourceUsageRead | MTLResourceUsageSample | MTLResourceUsageWrite
                                                   stages: stages];
+                        
                 }
                 else
                 {
                     [pCmd->mtlRenderEncoder useResources: (__unsafe_unretained id<MTLResource>*)(void*)resources->mResources[i]
                                                    count: resourceCount
-                                                   usage: MTLResourceUsageRead | MTLResourceUsageWrite];
+                                                   usage: MTLResourceUsageRead | MTLResourceUsageSample | MTLResourceUsageWrite];
                 }
                 break;
             case RESOURCE_TYPE_RESOURCE_READ_ONLY:
-                if (@available(iOS 13.0, *))
+                if(@available(iOS 13.0, macOS 15.0, *))
                 {
                     [pCmd->mtlRenderEncoder useResources: (__unsafe_unretained id<MTLResource>*)(void*)resources->mResources[i]
                                                    count: resourceCount
-                                                   usage: MTLResourceUsageRead
+                                                   usage: MTLResourceUsageRead | MTLResourceUsageSample
                                                   stages: stages];
                 }
                 else
                 {
                     [pCmd->mtlRenderEncoder useResources: (__unsafe_unretained id<MTLResource>*)(void*)resources->mResources[i]
                                                    count: resourceCount
-                                                   usage: MTLResourceUsageRead];
+                                                   usage: MTLResourceUsageRead | MTLResourceUsageSample];
                 }
                 break;
             case RESOURCE_TYPE_HEAP:
-                if (@available(iOS 13.0, *))
+                if(@available(iOS 13.0, macOS 15.0, *))
                 {
                     [pCmd->mtlRenderEncoder useHeaps: (__unsafe_unretained id<MTLHeap>*)(void*)resources->mResources[i]
                                                count: resourceCount
@@ -696,12 +698,12 @@ void util_set_resources_compute(Cmd* pCmd, DescriptorSet::DescriptorResources* r
             case RESOURCE_TYPE_RESOURCE_RW:
                 [pCmd->mtlComputeEncoder useResources: (__unsafe_unretained id<MTLResource>*)(void*)resources->mResources[i]
                                                 count: resourceCount
-                                                usage: MTLResourceUsageRead | MTLResourceUsageWrite];
+                                                usage: MTLResourceUsageRead | MTLResourceUsageSample | MTLResourceUsageWrite];
                 break;
             case RESOURCE_TYPE_RESOURCE_READ_ONLY:
                 [pCmd->mtlComputeEncoder useResources: (__unsafe_unretained id<MTLResource>*)(void*)resources->mResources[i]
                                                 count: resourceCount
-                                                usage: MTLResourceUsageRead];
+                                                usage: MTLResourceUsageRead | MTLResourceUsageSample];
                 break;
             case RESOURCE_TYPE_HEAP:
                 [pCmd->mtlComputeEncoder useHeaps: (__unsafe_unretained id<MTLHeap>*)(void*)resources->mResources[i]
@@ -2365,20 +2367,7 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 
 	rtDesc.mDescriptors |= pDesc->mDescriptors;
 
-#ifndef TARGET_IOS
 	add_texture(pRenderer, &rtDesc, &pRenderTarget->pTexture, true);
-#else
-	if (pDesc->mFormat != TinyImageFormat_D24_UNORM_S8_UINT)
-		add_texture(pRenderer, &rtDesc, &pRenderTarget->pTexture, true);
-	// Combined depth stencil is not supported on iOS.
-	else
-	{
-		rtDesc.mFormat = TinyImageFormat_X8_D24_UNORM;
-		add_texture(pRenderer, &rtDesc, &pRenderTarget->pTexture, true);
-		rtDesc.mFormat = TinyImageFormat_S8_UINT;
-		add_texture(pRenderer, &rtDesc, &pRenderTarget->pStencil, true);
-	}
-#endif
 
 	*ppRenderTarget = pRenderTarget;
 }
@@ -2402,10 +2391,6 @@ void removeTexture(Renderer* pRenderer, Texture* pTexture)
 void removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget)
 {
 	removeTexture(pRenderer, pRenderTarget->pTexture);
-#ifdef TARGET_IOS
-	if (pRenderTarget->pStencil)
-		removeTexture(pRenderer, pRenderTarget->pStencil);
-#endif
 	SAFE_FREE(pRenderTarget);
 }
 
@@ -2531,6 +2516,7 @@ void addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShaderPr
 					LOGF(LogLevel::eWARNING,
 						"Loaded shader %s with the following warnings:\n %s", shader_name, [[error localizedDescription] UTF8String]);
 					error = 0;    //  error string is an autorelease object.
+                    //ASSERT(0);
 				}
 				// Error
 				else
@@ -2538,6 +2524,7 @@ void addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShaderPr
 					LOGF(LogLevel::eERROR,
 						"Couldn't load shader %s with the following error:\n %s", shader_name, [[error localizedDescription] UTF8String]);
 					error = 0;    //  error string is an autorelease object.
+                    ASSERT(0);
 				}
 			}
 
@@ -2881,13 +2868,8 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 	if (pDesc->mDepthStencilFormat != TinyImageFormat_UNDEFINED)
 	{
 		renderPipelineDesc.depthAttachmentPixelFormat = (MTLPixelFormat) TinyImageFormat_ToMTLPixelFormat(pDesc->mDepthStencilFormat);
-#ifndef TARGET_IOS
-		if (renderPipelineDesc.depthAttachmentPixelFormat == MTLPixelFormatDepth24Unorm_Stencil8)
+		if (pDesc->mDepthStencilFormat == TinyImageFormat_D24_UNORM_S8_UINT || pDesc->mDepthStencilFormat == TinyImageFormat_D32_SFLOAT_S8_UINT)
 			renderPipelineDesc.stencilAttachmentPixelFormat = renderPipelineDesc.depthAttachmentPixelFormat;
-#else
-		if (pDesc->mDepthStencilFormat == TinyImageFormat_D24_UNORM_S8_UINT)
-			renderPipelineDesc.stencilAttachmentPixelFormat = MTLPixelFormatStencil8;
-#endif
 	}
 
 	// assign common tesselation configuration if needed.
@@ -3206,7 +3188,7 @@ void endCmd(Cmd* pCmd)
          
 		@autoreleasepool
 		{
-			util_end_current_encoders(pCmd);
+			util_end_current_encoders(pCmd, true);
 		}
 	}
 
@@ -3244,7 +3226,7 @@ void cmdBindRenderTargets(
 */
 		@autoreleasepool
 		{
-			util_end_current_encoders(pCmd);
+			util_end_current_encoders(pCmd, true);
 		}
 
 		pCmd->mRenderPassActive = false;
@@ -3268,14 +3250,12 @@ void cmdBindRenderTargets(
 				pCmd->pRenderPassDesc.colorAttachments[i].slice = pColorArraySlices ? pColorArraySlices[i] : 0;
 			else if (colorAttachment->mDesc.mDescriptors & DESCRIPTOR_TYPE_RENDER_TARGET_DEPTH_SLICES)
 				pCmd->pRenderPassDesc.colorAttachments[i].depthPlane = pColorArraySlices ? pColorArraySlices[i] : 0;
-#ifndef TARGET_IOS
-			pCmd->pRenderPassDesc.colorAttachments[i].loadAction =
-				(pLoadActions != NULL ? util_to_mtl_load_action(pLoadActions->mLoadActionsColor[i]) : MTLLoadActionLoad);
-			pCmd->pRenderPassDesc.colorAttachments[i].storeAction = MTLStoreActionStore;
-#else
-			if (colorAttachment->mtlTexture.storageMode == MTLStorageModeMemoryless)
+
+            // For on-tile (memoryless) textures, we never need to load or store.
+			if (colorAttachment->mDesc.mFlags & TEXTURE_CREATION_FLAG_ON_TILE)
 			{
-				pCmd->pRenderPassDesc.colorAttachments[i].loadAction = MTLLoadActionDontCare;
+				pCmd->pRenderPassDesc.colorAttachments[i].loadAction =
+                    (pLoadActions != NULL ? util_to_mtl_load_action(pLoadActions->mLoadActionsColor[i]) : MTLLoadActionDontCare);
 				pCmd->pRenderPassDesc.colorAttachments[i].storeAction = MTLStoreActionDontCare;
 			}
 			else
@@ -3284,7 +3264,6 @@ void cmdBindRenderTargets(
 					(pLoadActions != NULL ? util_to_mtl_load_action(pLoadActions->mLoadActionsColor[i]) : MTLLoadActionLoad);
 				pCmd->pRenderPassDesc.colorAttachments[i].storeAction = MTLStoreActionStore;
 			}
-#endif
 			if (pLoadActions != NULL)
 			{
 				const ClearValue& clearValue = pLoadActions->mClearColorValues[i];
@@ -3300,61 +3279,45 @@ void cmdBindRenderTargets(
 			pCmd->pRenderPassDesc.depthAttachment.slice = (depthArraySlice != -1 ? depthArraySlice : 0);
 #ifndef TARGET_IOS
 			bool isStencilEnabled = pDepthStencil->pTexture->mtlPixelFormat == MTLPixelFormatDepth24Unorm_Stencil8;
+#else
+            bool isStencilEnabled = false;
+#endif
+            isStencilEnabled = isStencilEnabled || pDepthStencil->pTexture->mtlPixelFormat == MTLPixelFormatDepth32Float_Stencil8;
 			if (isStencilEnabled)
 			{
 				pCmd->pRenderPassDesc.stencilAttachment.texture = pDepthStencil->pTexture->mtlTexture;
 				pCmd->pRenderPassDesc.stencilAttachment.level = (depthMipSlice != -1 ? depthMipSlice : 0);
 				pCmd->pRenderPassDesc.stencilAttachment.slice = (depthArraySlice != -1 ? depthArraySlice : 0);
 			}
-
-			pCmd->pRenderPassDesc.depthAttachment.loadAction =
-				pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionDepth) : MTLLoadActionClear;
-			pCmd->pRenderPassDesc.depthAttachment.storeAction = MTLStoreActionStore;
-			if (isStencilEnabled)
-			{
-				pCmd->pRenderPassDesc.stencilAttachment.loadAction =
-					pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionStencil) : MTLLoadActionDontCare;
-				pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionStore;
-			}
-			else
-			{
-				pCmd->pRenderPassDesc.stencilAttachment.loadAction = MTLLoadActionDontCare;
-				pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
-			}
-#else
-			bool isStencilEnabled = pDepthStencil->pStencil != nil;
-			if (isStencilEnabled)
-			{
-				pCmd->pRenderPassDesc.stencilAttachment.texture = pDepthStencil->pStencil->mtlTexture;
-				pCmd->pRenderPassDesc.stencilAttachment.level = (depthMipSlice != -1 ? depthMipSlice : 0);
-				pCmd->pRenderPassDesc.stencilAttachment.slice = (depthArraySlice != -1 ? depthArraySlice : 0);
-			}
-
-			if (pDepthStencil->pTexture->mtlTexture.storageMode != MTLStorageModeMemoryless)
-			{
-				pCmd->pRenderPassDesc.depthAttachment.loadAction =
-					pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionDepth) : MTLLoadActionDontCare;
-				pCmd->pRenderPassDesc.depthAttachment.storeAction = MTLStoreActionStore;
-				if (isStencilEnabled)
-				{
-					pCmd->pRenderPassDesc.stencilAttachment.loadAction =
-						pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionStencil) : MTLLoadActionDontCare;
-					pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionStore;
-				}
-				else
-				{
-					pCmd->pRenderPassDesc.stencilAttachment.loadAction = MTLLoadActionDontCare;
-					pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
-				}
-			}
-			else
-			{
-				pCmd->pRenderPassDesc.depthAttachment.loadAction = MTLLoadActionDontCare;
-				pCmd->pRenderPassDesc.depthAttachment.storeAction = MTLStoreActionDontCare;
-				pCmd->pRenderPassDesc.stencilAttachment.loadAction = MTLLoadActionDontCare;
-				pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
-			}
-#endif
+            
+            // For on-tile (memoryless) textures, we never need to load or store.
+            if (pDepthStencil->pTexture->mDesc.mFlags & TEXTURE_CREATION_FLAG_ON_TILE)
+            {
+                pCmd->pRenderPassDesc.depthAttachment.loadAction =
+                    (pLoadActions != NULL ? util_to_mtl_load_action(pLoadActions->mLoadActionDepth) : MTLLoadActionDontCare);
+                pCmd->pRenderPassDesc.depthAttachment.storeAction = MTLStoreActionDontCare;
+                pCmd->pRenderPassDesc.stencilAttachment.loadAction =
+                    (pLoadActions != NULL ? util_to_mtl_load_action(pLoadActions->mLoadActionStencil) : MTLLoadActionDontCare);
+                pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
+            }
+            else
+            {
+                pCmd->pRenderPassDesc.depthAttachment.loadAction =
+                pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionDepth) : MTLLoadActionDontCare;
+                pCmd->pRenderPassDesc.depthAttachment.storeAction = MTLStoreActionStore;
+                if (isStencilEnabled)
+                {
+                    pCmd->pRenderPassDesc.stencilAttachment.loadAction =
+                    pLoadActions ? util_to_mtl_load_action(pLoadActions->mLoadActionStencil) : MTLLoadActionDontCare;
+                    pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionStore;
+                }
+                else
+                {
+                    pCmd->pRenderPassDesc.stencilAttachment.loadAction = MTLLoadActionDontCare;
+                    pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
+                }
+            }
+            
 			if (pLoadActions)
 			{
 				pCmd->pRenderPassDesc.depthAttachment.clearDepth = pLoadActions->mClearDepth.depth;
@@ -3370,7 +3333,7 @@ void cmdBindRenderTargets(
 			pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
 		}
 
-		util_end_current_encoders(pCmd);
+		util_end_current_encoders(pCmd, false);
 		pCmd->mtlRenderEncoder = [pCmd->mtlCommandBuffer renderCommandEncoderWithDescriptor:pCmd->pRenderPassDesc];
 
 		pCmd->mRenderPassActive = true;
@@ -3470,7 +3433,7 @@ void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 		{
 			if (!pCmd->mtlComputeEncoder)
 			{
-				util_end_current_encoders(pCmd);
+				util_end_current_encoders(pCmd, false);
 				pCmd->mtlComputeEncoder = [pCmd->mtlCommandBuffer computeCommandEncoder];
 			}
 			[pCmd->mtlComputeEncoder setComputePipelineState:pPipeline->mtlComputePipelineState];
@@ -3479,7 +3442,7 @@ void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
         {
             if (!pCmd->mtlComputeEncoder)
             {
-                util_end_current_encoders(pCmd);
+                util_end_current_encoders(pCmd, false);
                 pCmd->mtlComputeEncoder = [pCmd->mtlCommandBuffer computeCommandEncoder];
             }
         }
@@ -3824,7 +3787,8 @@ void cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarrier* pB
 					pTrans->mNewState == RESOURCE_STATE_RENDER_TARGET ||
 					pTexture->mCurrentState == RESOURCE_STATE_DEPTH_WRITE ||
 					pTexture->mCurrentState == RESOURCE_STATE_DEPTH_READ ||
-					pTexture->mCurrentState == RESOURCE_STATE_RENDER_TARGET)
+					pTexture->mCurrentState == RESOURCE_STATE_RENDER_TARGET ||
+                    pTexture->mCurrentState == RESOURCE_STATE_PRESENT)
 				{
 					pCmd->pCmdPool->pQueue->mBarrierFlags |= BARRIER_FLAG_RENDERTARGETS;
 				}
@@ -3846,7 +3810,7 @@ void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSr
 	ASSERT(srcOffset + size <= pSrcBuffer->mDesc.mSize);
 	ASSERT(dstOffset + size <= pBuffer->mDesc.mSize);
 
-	util_end_current_encoders(pCmd);
+	util_end_current_encoders(pCmd, false);
 	pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
 
 	util_barrier_required(pCmd, CMD_POOL_COPY);
@@ -3860,7 +3824,7 @@ void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSr
 
 void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pIntermediate, SubresourceDataDesc* pSubresourceDesc)
 {
-	util_end_current_encoders(pCmd);
+	util_end_current_encoders(pCmd, false);
 	pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
 
 	util_barrier_required(pCmd, CMD_POOL_COPY);
@@ -4002,7 +3966,7 @@ void queueSubmit(
 		}
 
 		// Commit any uncommited encoder. This is necessary before committing the command buffer
-		util_end_current_encoders(ppCmds[i]);
+		util_end_current_encoders(ppCmds[i], false);
 		[ppCmds[i]->mtlCommandBuffer commit];
 	}
 }
@@ -4201,16 +4165,26 @@ uint64_t util_pthread_to_uint64(const pthread_t& value)
 }
 
 
-bool util_is_mtl_depth_pixel_format(const MTLPixelFormat& format)
+bool util_is_mtl_depth_pixel_format(const MTLPixelFormat format)
 {
-	return format == MTLPixelFormatDepth32Float || format == MTLPixelFormatDepth32Float_Stencil8
-#ifndef TARGET_IOS
-		   || format == MTLPixelFormatDepth16Unorm || format == MTLPixelFormatDepth24Unorm_Stencil8
+	if (format == MTLPixelFormatDepth32Float || format == MTLPixelFormatDepth32Float_Stencil8)
+		return true;
+	
+#ifdef TARGET_IOS
+	if (@available(iOS 13, *))
+	{
+		if (format == MTLPixelFormatDepth16Unorm)
+			return true;
+	}
+#else
+	if (format == MTLPixelFormatDepth16Unorm || format == MTLPixelFormatDepth24Unorm_Stencil8)
+		return true;
 #endif
-		;
+		
+	return false;
 }
 
-bool util_is_mtl_compressed_pixel_format(const MTLPixelFormat& format)
+bool util_is_mtl_compressed_pixel_format(const MTLPixelFormat format)
 {
 #ifndef TARGET_IOS
 	return format >= MTLPixelFormatBC1_RGBA;
@@ -4219,7 +4193,7 @@ bool util_is_mtl_compressed_pixel_format(const MTLPixelFormat& format)
 #endif
 }
 
-MTLVertexFormat util_to_mtl_vertex_format(const TinyImageFormat& format)
+MTLVertexFormat util_to_mtl_vertex_format(const TinyImageFormat format)
 {
 	switch (format)
 	{
@@ -4274,7 +4248,7 @@ MTLVertexFormat util_to_mtl_vertex_format(const TinyImageFormat& format)
 	return MTLVertexFormatInvalid;
 }
 
-MTLLoadAction util_to_mtl_load_action(const LoadActionType& loadActionType)
+MTLLoadAction util_to_mtl_load_action(const LoadActionType loadActionType)
 {
 	if (loadActionType == LOAD_ACTION_DONTCARE)
 		return MTLLoadActionDontCare;
@@ -4420,7 +4394,7 @@ void util_bind_argument_buffer(Cmd* pCmd, DescriptorBinderNode& node, const Desc
 }
 */
 	
-void util_end_current_encoders(Cmd* pCmd)
+void util_end_current_encoders(Cmd* pCmd, bool forceBarrier)
 {
 	const bool barrierRequired(pCmd->pCmdPool->pQueue->mBarrierFlags);
 	
@@ -4428,7 +4402,7 @@ void util_end_current_encoders(Cmd* pCmd)
 	{
 		ASSERT(pCmd->mtlComputeEncoder == nil && pCmd->mtlBlitEncoder == nil);
 		
-		if (barrierRequired)
+		if (barrierRequired || forceBarrier)
 		{
 			[pCmd->mtlRenderEncoder updateFence:pCmd->mtlEncoderFence afterStages:MTLRenderStageFragment];
 			pCmd->pCmdPool->pQueue->mBarrierFlags |= BARRIER_FLAG_FENCE;
@@ -4584,14 +4558,13 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 	pTexture->mDesc = *pDesc;
 
 	pTexture->mtlPixelFormat = (MTLPixelFormat) TinyImageFormat_ToMTLPixelFormat(pTexture->mDesc.mFormat);
-#ifndef TARGET_IOS
-	if (pTexture->mtlPixelFormat == MTLPixelFormatDepth24Unorm_Stencil8 && ![pRenderer->pDevice isDepth24Stencil8PixelFormatSupported])
-	{
-		internal_log(LOG_TYPE_WARN, "Format D24S8 is not supported on this device. Using D32 instead", "addTexture");
-		pTexture->mtlPixelFormat = MTLPixelFormatDepth32Float;
-		pTexture->mDesc.mFormat = TinyImageFormat_D32_SFLOAT;
+
+    if (pTexture->mDesc.mFormat == TinyImageFormat_D24_UNORM_S8_UINT && !pRenderer->capBits.canRenderTargetWriteTo[pTexture->mDesc.mFormat])
+    {
+		internal_log(LOG_TYPE_WARN, "Format D24S8 is not supported on this device. Using D32S8 instead", "addTexture");
+		pTexture->mtlPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+		pTexture->mDesc.mFormat = TinyImageFormat_D32_SFLOAT_S8_UINT;
 	}
-#endif
 
 	pTexture->mIsCompressed = util_is_mtl_compressed_pixel_format(pTexture->mtlPixelFormat);
 	pTexture->mTextureSize = pTexture->mDesc.mArraySize * Image_GetMipMappedSize(

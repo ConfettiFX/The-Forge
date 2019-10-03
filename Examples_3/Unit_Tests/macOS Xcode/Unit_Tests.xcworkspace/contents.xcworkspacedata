@@ -28,6 +28,9 @@
       <FileRef
          location = "group:19_Blending/../25_Skinning/25_Skinning.xcodeproj">
       </FileRef>
+      <FileRef
+         location = "group:26_InverseKinematic/26_InverseKinematic.xcodeproj">
+      </FileRef>
    </Group>
    <Group
       location = "container:"
@@ -39,7 +42,7 @@
          location = "group:09_LightShadowPlayground/09_LightShadowPlayground.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:26_Audio/26_Audio.xcodeproj">
+         location = "group:27_Audio/27_Audio.xcodeproj">
       </FileRef>
       <FileRef
          location = "group:01_Transformations/01_Transformations.xcodeproj">

@@ -140,7 +140,7 @@ enum HLSLNodeType
 enum HLSLBaseType
 {
     HLSLBaseType_Unknown,
-    HLSLBaseType_Void,    
+    HLSLBaseType_Void,
 
 	HLSLBaseType_Float,
 	HLSLBaseType_FirstNumeric = HLSLBaseType_Float,
@@ -175,8 +175,7 @@ enum HLSLBaseType
 	HLSLBaseType_Half4,
 	HLSLBaseType_Half4x2,
 	HLSLBaseType_Half4x3,
-	HLSLBaseType_Half4x4,   
-	    
+	HLSLBaseType_Half4x4,
 
 	HLSLBaseType_Min16Float,
 	HLSLBaseType_Min16Float1x2,
@@ -212,7 +211,7 @@ enum HLSLBaseType
 	HLSLBaseType_Min10Float4x3,
 	HLSLBaseType_Min10Float4x4,
 
-	HLSLBaseType_Bool,	
+	HLSLBaseType_Bool,
 	HLSLBaseType_FirstInteger = HLSLBaseType_Bool,
 	HLSLBaseType_Bool1x2,
 	HLSLBaseType_Bool1x3,
@@ -756,6 +755,29 @@ enum HLSLAttributeType
 	
 };
 
+enum NumericType
+{
+	NumericType_Float,
+	NumericType_Half,
+	NumericType_Min16Float,
+	NumericType_Min10Float,
+	NumericType_Bool,
+	NumericType_Int,
+	NumericType_Uint,
+	NumericType_Count,
+	NumericType_NaN,
+};
+
+struct BaseTypeDescription
+{
+	const char*     typeName;
+	NumericType     numericType;
+	int             numComponents;
+	int             numRows;
+	int             binaryOpRank;
+};
+
+extern const BaseTypeDescription BASE_TYPE_DESC[HLSLBaseType_Count];
 
 enum HLSLAddressSpace
 {
@@ -920,7 +942,7 @@ inline bool IsRWTexture(HLSLBaseType type)
 	}			
 }
 
-inline bool IsRWBuffer(HLSLBaseType type)
+inline bool IsBuffer(HLSLBaseType type)
 {
 	switch (type)
 	{
@@ -929,6 +951,35 @@ inline bool IsRWBuffer(HLSLBaseType type)
 		case HLSLBaseType_RWBuffer:
 		case HLSLBaseType_RWStructuredBuffer:
 		case HLSLBaseType_ByteAddressBuffer:
+		case HLSLBaseType_RWByteAddressBuffer:
+			return true;
+		default:
+			return false;
+	}			
+}
+
+inline bool IsStructuredBuffer(HLSLBaseType type)
+{
+	switch (type)
+	{
+		case HLSLBaseType_StructuredBuffer:
+		case HLSLBaseType_PureBuffer:
+		case HLSLBaseType_RWBuffer:
+		case HLSLBaseType_RWStructuredBuffer:
+		case HLSLBaseType_RasterizerOrderedBuffer:
+		case HLSLBaseType_RasterizerOrderedStructuredBuffer:
+			return true;
+		default:
+			return false;
+	}			
+}
+
+inline bool IsRWBuffer(HLSLBaseType type)
+{
+	switch (type)
+	{
+		case HLSLBaseType_RWBuffer:
+		case HLSLBaseType_RWStructuredBuffer:
 		case HLSLBaseType_RWByteAddressBuffer:
 			return true;
 		default:
@@ -1431,13 +1482,10 @@ struct HLSLConditionalExpression : public HLSLExpression
 
 struct HLSLCastingExpression : public HLSLExpression
 {
-    static const HLSLNodeType s_type = HLSLNodeType_CastingExpression;
-    HLSLCastingExpression()
-    {
-        expression = NULL;
-    }
-    HLSLType            type;
-    HLSLExpression*     expression;
+	static const HLSLNodeType s_type = HLSLNodeType_CastingExpression;
+
+	HLSLExpression* expression = NULL;
+	bool            implicit = false;
 };
 
 /** Float, integer, boolean, etc. literal constant. */
@@ -1735,7 +1783,6 @@ public:
 // Tree transformations:
 extern void PruneTree(HLSLTree* tree, const char* entryName0, const char* entryName1 = NULL);
 extern void SortTree(HLSLTree* tree);
-extern void GroupParameters(HLSLTree* tree);
 extern void HideUnusedArguments(HLSLFunction * function);
 extern bool EmulateAlphaTest(HLSLTree* tree, const char* entryName, float alphaRef = 0.5f);
 

@@ -6,6 +6,8 @@
     </Plugin>
   </Plugins>
   <VirtualDirectory Name="source">
+    <File Name="../src/animation/runtime/ik_aim_job.cc"/>
+    <File Name="../src/animation/runtime/ik_two_bone_job.cc"/>
     <File Name="../src/animation/runtime/animation.cc"/>
     <File Name="../src/animation/runtime/blending_job.cc"/>
     <File Name="../src/animation/runtime/local_to_model_job.cc"/>
@@ -17,6 +19,8 @@
     <File Name="../src/animation/runtime/track_triggering_job.cc"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
+    <File Name="../include/ozz/animation/runtime/ik_aim_job.h"/>
+    <File Name="../include/ozz/animation/runtime/ik_two_bone_job.h"/>
     <File Name="../include/ozz/animation/runtime/animation.h"/>
     <File Name="../src/animation/runtime/animation_keyframe.h"/>
     <File Name="../include/ozz/animation/runtime/blending_job.h"/>

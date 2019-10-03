@@ -154,8 +154,23 @@ int Rig::FindJoint(const char* jointName)
 {
 	for (unsigned int i = 0; i < mNumJoints; i++)
 	{
-		if (strstr(mSkeleton.joint_names()[i], jointName))
+		if (strcmp(mSkeleton.joint_names()[i], jointName) == 0)
 			return i;
 	}
 	return -1;
+}
+
+void Rig::FindJointChain(const char* jointNames[], size_t numNames, int jointChain[])
+{
+	int found = 0;
+	for (int i = 0; i < mSkeleton.num_joints() && found < numNames; ++i)
+	{
+		const char* joint_name = mSkeleton.joint_names()[i];
+		if (strcmp(joint_name, jointNames[found]) == 0)
+		{
+			jointChain[found] = i;
+			++found;
+			i = 0;
+		}
+	}
 }
