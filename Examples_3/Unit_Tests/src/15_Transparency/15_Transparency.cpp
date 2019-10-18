@@ -28,7 +28,7 @@
 #define CUBES_EACH_COL 5
 #define CUBE_NUM (CUBES_EACH_ROW * CUBES_EACH_COL + 1)
 #define DEBUG_OUTPUT 1       //exclusively used for texture data visulization, such as rendering depth, shadow map etc.
-#if defined(DIRECT3D12) && !defined(_DURANGO)
+#if defined(DIRECT3D12) || defined(VULKAN) && !defined(_DURANGO)
 #define AOIT_ENABLE 1
 #endif
 #define AOIT_NODE_COUNT 4    // 2, 4 or 8. Higher numbers give better results at the cost of performance
@@ -518,20 +518,6 @@ Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
 
 uint32_t gTransparencyType = TRANSPARENCY_TYPE_PHENOMENOLOGICAL;
 
-const char* pszBases[FSR_Count] = {
-	"../../../src/15_Transparency/",        // FSR_BinShaders
-	"../../../src/15_Transparency/",        // FSR_SrcShaders
-	"../../../UnitTestResources/",          // FSR_Textures
-	"../../../UnitTestResources/",          // FSR_Meshes
-	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
-	"../../../src/15_Transparency/",        // FSR_GpuConfig
-	"",                                     // FSR_Animation
-	"",                                     // FSR_Audio
-	"",                                     // FSR_OtherFiles
-	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
-	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
-};
-
 void AddObject(
 	MeshResource mesh, vec3 position, vec4 color, vec3 translucency = vec3(0.0f), float eta = 1.0f, float collimation = 0.0f,
 	vec3 scale = vec3(1.0f), vec3 orientation = vec3(0.0f))
@@ -664,6 +650,7 @@ void SwapParticles(ParticleSystem* pParticleSystem, size_t a, size_t b)
 struct GuiController
 {
 	static void AddGui();
+	static void RemoveGui();
 	static void UpdateDynamicUI();
 
 	static DynamicUIWidgets alphaBlendDynamicWidgets;
@@ -683,6 +670,21 @@ class Transparency: public IApp
 	public:
 	bool Init() override
 	{
+        // FILE PATHS
+        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        if (!fsPlatformUsesBundledResources())
+        {
+            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/15_Transparency");
+            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            
+            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../UnitTestResources/Textures");
+            fsSetRelativePathForResourceDirectory(RD_MESHES,          "../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
+        }
+        
 		RendererDesc settings = { NULL };
 		initRenderer(GetName(), &settings, &pRenderer);
 
@@ -701,7 +703,7 @@ class Transparency: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Absolute))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_ROOT))
 			return false;
 
 		CreateSamplers();
@@ -719,7 +721,7 @@ class Transparency: public IApp
 		/************************************************************************/
     if (!gAppUI.Init(pRenderer))
       return false;
-    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
 		initProfiler();
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
@@ -786,6 +788,8 @@ class Transparency: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
+		GuiController::RemoveGui();
+
 		exitInputSystem();
 		destroyCameraController(pCameraController);
 		destroyCameraController(pLightView);
@@ -796,6 +800,11 @@ class Transparency: public IApp
 
 		for (size_t i = 0; i < gScene.mParticleSystems.size(); ++i)
 			removeResource(gScene.mParticleSystems[i].pParticleBuffer);
+
+		gScene.mParticleSystems.set_capacity(0);
+		gScene.mObjects.set_capacity(0);
+		gOpaqueDrawCalls.set_capacity(0);
+		gTransparentDrawCalls.set_capacity(0);
 
 		gVirtualJoystick.Exit();
 
@@ -1719,6 +1728,9 @@ class Transparency: public IApp
 #if AOIT_ENABLE
 	void AdaptiveOrderIndependentTransparency(Cmd* pCmd)
 	{
+		TextureBarrier textureBarrier = { pTextureAOITClearMask, RESOURCE_STATE_UNORDERED_ACCESS };
+		cmdResourceBarrier(pCmd, 0, NULL, 1, &textureBarrier);
+
 		// Clear AOIT buffers
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
@@ -1738,11 +1750,6 @@ class Transparency: public IApp
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
 		cmdEndDebugMarker(pCmd);
-
-		TextureBarrier textureBarrier = {};
-		textureBarrier.pTexture = pTextureAOITClearMask;
-
-		cmdResourceBarrier(pCmd, 0, NULL, 1, &textureBarrier);
 
 		loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
 
@@ -1768,6 +1775,8 @@ class Transparency: public IApp
 		cmdEndDebugMarker(pCmd);
 
 		// Composite AOIT buffers
+		textureBarrier = { pTextureAOITClearMask, RESOURCE_STATE_SHADER_RESOURCE };
+
 		int           bufferBarrierCount = 1;
 		BufferBarrier bufferBarriers[2] = {};
 		bufferBarriers[0].pBuffer = pBufferAOITColorData;
@@ -2175,13 +2184,21 @@ class Transparency: public IApp
 	void CreateShaders()
 	{
 		// Define shader macros
-		ShaderMacro maxNumObjectsMacro = { "MAX_NUM_OBJECTS", eastl::string().sprintf("%i", MAX_NUM_OBJECTS) };
-		ShaderMacro maxNumTexturesMacro = { "MAX_NUM_TEXTURES", eastl::string().sprintf("%i", TEXTURE_COUNT) };
-		ShaderMacro aoitNodeCountMacro = { "AOIT_NODE_COUNT", eastl::string().sprintf("%i", AOIT_NODE_COUNT) };
-		ShaderMacro useShadowsMacro = { "USE_SHADOWS", eastl::string().sprintf("%i", USE_SHADOWS) };
-		ShaderMacro useRefractionMacro = { "PT_USE_REFRACTION", eastl::string().sprintf("%i", PT_USE_REFRACTION) };
-		ShaderMacro useDiffusionMacro = { "PT_USE_DIFFUSION", eastl::string().sprintf("%i", PT_USE_DIFFUSION) };
-		ShaderMacro useCausticsMacro = { "PT_USE_CAUSTICS", eastl::string().sprintf("%i", PT_USE_CAUSTICS) };
+		char maxNumObjectsMacroBuffer[5] = {}; sprintf(maxNumObjectsMacroBuffer, "%i", MAX_NUM_OBJECTS);
+		char maxNumTexturesMacroBuffer[5] = {}; sprintf(maxNumTexturesMacroBuffer, "%i", TEXTURE_COUNT);
+		char aoitNodeCountMacroBuffer[5] = {}; sprintf(aoitNodeCountMacroBuffer, "%i", AOIT_NODE_COUNT);
+		char useShadowsMacroBuffer[5] = {}; sprintf(useShadowsMacroBuffer, "%i", USE_SHADOWS);
+		char useRefractionMacroBuffer[5] = {}; sprintf(useRefractionMacroBuffer, "%i", PT_USE_REFRACTION);
+		char useDiffusionMacroBuffer[5] = {}; sprintf(useDiffusionMacroBuffer, "%i", PT_USE_DIFFUSION);
+		char useCausticsMacroBuffer[5] = {}; sprintf(useCausticsMacroBuffer, "%i", PT_USE_CAUSTICS);
+
+		ShaderMacro maxNumObjectsMacro = { "MAX_NUM_OBJECTS", maxNumObjectsMacroBuffer };
+		ShaderMacro maxNumTexturesMacro = { "MAX_NUM_TEXTURES", maxNumTexturesMacroBuffer };
+		ShaderMacro aoitNodeCountMacro = { "AOIT_NODE_COUNT", aoitNodeCountMacroBuffer };
+		ShaderMacro useShadowsMacro = { "USE_SHADOWS", useShadowsMacroBuffer };
+		ShaderMacro useRefractionMacro = { "PT_USE_REFRACTION", useRefractionMacroBuffer };
+		ShaderMacro useDiffusionMacro = { "PT_USE_DIFFUSION", useDiffusionMacroBuffer };
+		ShaderMacro useCausticsMacro = { "PT_USE_CAUSTICS", useCausticsMacroBuffer };
 
 		ShaderMacro shaderMacros[] = { maxNumObjectsMacro, maxNumTexturesMacro, aoitNodeCountMacro, useShadowsMacro,
 									   useRefractionMacro, useDiffusionMacro,   useCausticsMacro };
@@ -2189,73 +2206,73 @@ class Transparency: public IApp
 
 		// Skybox shader
 		ShaderLoadDesc skyboxShaderDesc = {};
-		skyboxShaderDesc.mStages[0] = { "skybox.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
-		skyboxShaderDesc.mStages[1] = { "skybox.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		skyboxShaderDesc.mStages[0] = { "skybox.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		skyboxShaderDesc.mStages[1] = { "skybox.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
 		addShader(pRenderer, &skyboxShaderDesc, &pShaderSkybox);
 
 #if USE_SHADOWS != 0
 		// Shadow mapping shader
 		ShaderLoadDesc shadowShaderDesc = {};
-		shadowShaderDesc.mStages[0] = { "shadow.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
-		shadowShaderDesc.mStages[1] = { "shadow.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		shadowShaderDesc.mStages[0] = { "shadow.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		shadowShaderDesc.mStages[1] = { "shadow.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
 		addShader(pRenderer, &shadowShaderDesc, &pShaderShadow);
 
 		// Gaussian blur shader
 		ShaderLoadDesc blurShaderDesc = {};
-		blurShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
-		blurShaderDesc.mStages[1] = { "gaussianBlur.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		blurShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		blurShaderDesc.mStages[1] = { "gaussianBlur.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
 		addShader(pRenderer, &blurShaderDesc, &pShaderGaussianBlur);
 
 #if PT_USE_CAUSTICS != 0
 		// Stochastic shadow mapping shader
 		ShaderLoadDesc stochasticShadowShaderDesc = {};
-		stochasticShadowShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
-		stochasticShadowShaderDesc.mStages[1] = { "stochasticShadow.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		stochasticShadowShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		stochasticShadowShaderDesc.mStages[1] = { "stochasticShadow.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
 		addShader(pRenderer, &stochasticShadowShaderDesc, &pShaderPTShadow);
 
 		// Downsample shader
 		ShaderLoadDesc downsampleShaderDesc = {};
-		downsampleShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
-		downsampleShaderDesc.mStages[1] = { "downsample.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		downsampleShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		downsampleShaderDesc.mStages[1] = { "downsample.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
 		addShader(pRenderer, &downsampleShaderDesc, &pShaderPTDownsample);
 
 		// Shadow map copy shader
 		ShaderLoadDesc copyShadowDepthShaderDesc = {};
-		copyShadowDepthShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
-		copyShadowDepthShaderDesc.mStages[1] = { "copy.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		copyShadowDepthShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		copyShadowDepthShaderDesc.mStages[1] = { "copy.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
 		addShader(pRenderer, &copyShadowDepthShaderDesc, &pShaderPTCopyShadowDepth);
 #endif
 #endif
 
 		// Forward shading shader
 		ShaderLoadDesc forwardShaderDesc = {};
-		forwardShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
-		forwardShaderDesc.mStages[1] = { "forward.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		forwardShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		forwardShaderDesc.mStages[1] = { "forward.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
 		addShader(pRenderer, &forwardShaderDesc, &pShaderForward);
 
 		// WBOIT shade shader
 		ShaderLoadDesc wboitShadeShaderDesc = {};
-		wboitShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
-		wboitShadeShaderDesc.mStages[1] = { "weightedBlendedOIT.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		wboitShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		wboitShadeShaderDesc.mStages[1] = { "weightedBlendedOIT.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
 		addShader(pRenderer, &wboitShadeShaderDesc, &pShaderWBOITShade);
 
 		// WBOIT composite shader
 		ShaderLoadDesc wboitCompositeShaderDesc = {};
-		wboitCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
-		wboitCompositeShaderDesc.mStages[1] = { "weightedBlendedOITComposite.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		wboitCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		wboitCompositeShaderDesc.mStages[1] = { "weightedBlendedOITComposite.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
 		addShader(pRenderer, &wboitCompositeShaderDesc, &pShaderWBOITComposite);
 
 		// WBOIT Volition shade shader
 		ShaderLoadDesc wboitVolitionShadeShaderDesc = {};
-		wboitVolitionShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
-		wboitVolitionShadeShaderDesc.mStages[1] = { "weightedBlendedOITVolition.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		wboitVolitionShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		wboitVolitionShadeShaderDesc.mStages[1] = { "weightedBlendedOITVolition.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
 		addShader(pRenderer, &wboitVolitionShadeShaderDesc, &pShaderWBOITVShade);
 
 		// WBOIT Volition composite shader
 		ShaderLoadDesc wboitVolitionCompositeShaderDesc = {};
-		wboitVolitionCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		wboitVolitionCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
 		wboitVolitionCompositeShaderDesc.mStages[1] = { "weightedBlendedOITVolitionComposite.frag", shaderMacros, numShaderMacros,
-														FSR_SrcShaders };
+														RD_SHADER_SOURCES };
 		addShader(pRenderer, &wboitVolitionCompositeShaderDesc, &pShaderWBOITVComposite);
 
 		// PT shade shader
@@ -2264,26 +2281,26 @@ class Transparency: public IApp
 			ptShaderMacros[i] = shaderMacros[i];
 		ptShaderMacros[numShaderMacros] = { "PHENOMENOLOGICAL_TRANSPARENCY", "" };
 		ShaderLoadDesc ptShadeShaderDesc = {};
-		ptShadeShaderDesc.mStages[0] = { "forward.vert", ptShaderMacros, numShaderMacros + 1, FSR_SrcShaders };
-		ptShadeShaderDesc.mStages[1] = { "phenomenologicalTransparency.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		ptShadeShaderDesc.mStages[0] = { "forward.vert", ptShaderMacros, numShaderMacros + 1, RD_SHADER_SOURCES };
+		ptShadeShaderDesc.mStages[1] = { "phenomenologicalTransparency.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
 		addShader(pRenderer, &ptShadeShaderDesc, &pShaderPTShade);
 
 		// PT composite shader
 		ShaderLoadDesc ptCompositeShaderDesc = {};
-		ptCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
-		ptCompositeShaderDesc.mStages[1] = { "phenomenologicalTransparencyComposite.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		ptCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		ptCompositeShaderDesc.mStages[1] = { "phenomenologicalTransparencyComposite.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
 		addShader(pRenderer, &ptCompositeShaderDesc, &pShaderPTComposite);
 
 #if PT_USE_DIFFUSION != 0
 		// PT copy depth shader
 		ShaderLoadDesc ptCopyShaderDesc = {};
-		ptCopyShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
-		ptCopyShaderDesc.mStages[1] = { "copy.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		ptCopyShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		ptCopyShaderDesc.mStages[1] = { "copy.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
 		addShader(pRenderer, &ptCopyShaderDesc, &pShaderPTCopyDepth);
 
 		// PT generate mips shader
 		ShaderLoadDesc ptGenMipsShaderDesc = {};
-		ptGenMipsShaderDesc.mStages[0] = { "generateMips.comp", shaderMacros, numShaderMacros, FSR_SrcShaders };
+		ptGenMipsShaderDesc.mStages[0] = { "generateMips.comp", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
 		addShader(pRenderer, &ptGenMipsShaderDesc, &pShaderPTGenMips);
 #endif
 
@@ -2292,20 +2309,20 @@ class Transparency: public IApp
 		{
 			// AOIT shade shader
 			ShaderLoadDesc aoitShadeShaderDesc = {};
-			aoitShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
-			aoitShadeShaderDesc.mStages[1] = { "adaptiveOIT.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+			aoitShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+			aoitShadeShaderDesc.mStages[1] = { "adaptiveOIT.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
 			addShader(pRenderer, &aoitShadeShaderDesc, &pShaderAOITShade);
 
 			// AOIT composite shader
 			ShaderLoadDesc aoitCompositeShaderDesc = {};
-			aoitCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
-			aoitCompositeShaderDesc.mStages[1] = { "adaptiveOITComposite.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+			aoitCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+			aoitCompositeShaderDesc.mStages[1] = { "adaptiveOITComposite.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
 			addShader(pRenderer, &aoitCompositeShaderDesc, &pShaderAOITComposite);
 
 			// AOIT clear shader
 			ShaderLoadDesc aoitClearShaderDesc = {};
-			aoitClearShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, FSR_SrcShaders };
-			aoitClearShaderDesc.mStages[1] = { "adaptiveOITClear.frag", shaderMacros, numShaderMacros, FSR_SrcShaders };
+			aoitClearShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+			aoitClearShaderDesc.mStages[1] = { "adaptiveOITClear.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
 			addShader(pRenderer, &aoitClearShaderDesc, &pShaderAOITClear);
 		}
 #endif
@@ -2559,17 +2576,20 @@ class Transparency: public IApp
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPTDownsample);
 #endif
 #if AOIT_ENABLE
-		// AOIT Clear
-		setDesc = { pRootSignatureAOITClear, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetAOITClear);
-		// AOIT Shade
-		setDesc = { pRootSignatureAOITShade, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetAOITShade[0]);
-		setDesc = { pRootSignatureAOITShade, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetAOITShade[1]);
-		// AOIT Composite
-		setDesc = { pRootSignatureAOITComposite, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetAOITComposite);
+		if (pRenderer->pActiveGpuSettings->mROVsSupported)
+		{
+			// AOIT Clear
+			setDesc = { pRootSignatureAOITClear, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetAOITClear);
+			// AOIT Shade
+			setDesc = { pRootSignatureAOITShade, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetAOITShade[0]);
+			setDesc = { pRootSignatureAOITShade, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetAOITShade[1]);
+			// AOIT Composite
+			setDesc = { pRootSignatureAOITComposite, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetAOITComposite);
+		}
 #endif
 	}
 
@@ -2589,10 +2609,13 @@ class Transparency: public IApp
 		removeDescriptorSet(pRenderer, pDescriptorSetPTDownsample);
 #endif
 #if AOIT_ENABLE
-		removeDescriptorSet(pRenderer, pDescriptorSetAOITClear);
-		removeDescriptorSet(pRenderer, pDescriptorSetAOITShade[0]);
-		removeDescriptorSet(pRenderer, pDescriptorSetAOITShade[1]);
-		removeDescriptorSet(pRenderer, pDescriptorSetAOITComposite);
+		if (pRenderer->pActiveGpuSettings->mROVsSupported)
+		{
+			removeDescriptorSet(pRenderer, pDescriptorSetAOITClear);
+			removeDescriptorSet(pRenderer, pDescriptorSetAOITShade[0]);
+			removeDescriptorSet(pRenderer, pDescriptorSetAOITShade[1]);
+			removeDescriptorSet(pRenderer, pDescriptorSetAOITComposite);
+		}
 #endif
 	}
 
@@ -2673,17 +2696,21 @@ class Transparency: public IApp
 #endif
 			updateDescriptorSet(pRenderer, SHADE_PT, pDescriptorSetShade, updateCount + 1, params);
 #if AOIT_ENABLE
-			params[updateCount].pName = "AOITClearMaskUAV";
-			params[updateCount].ppTextures = &pTextureAOITClearMask;
-			params[updateCount + 1].pName = "AOITColorDataUAV";
-			params[updateCount + 1].ppBuffers = &pBufferAOITColorData;
-			updateCount += 2;
+			if (pRenderer->pActiveGpuSettings->mROVsSupported)
+			{
+				params[updateCount].pName = "AOITClearMaskUAV";
+				params[updateCount].ppTextures = &pTextureAOITClearMask;
+				params[updateCount + 1].pName = "AOITColorDataUAV";
+				params[updateCount + 1].ppBuffers = &pBufferAOITColorData;
+				updateCount += 2;
 #if AOIT_NODE_COUNT != 2
-			params[updateCount].pName = "AOITDepthDataUAV";
-			params[updateCount].ppBuffers = &pBufferAOITDepthData;
-			++updateCount;
+				params[updateCount].pName = "AOITDepthDataUAV";
+				params[updateCount].ppBuffers = &pBufferAOITDepthData;
+				++updateCount;
 #endif
-			updateDescriptorSet(pRenderer, 0, pDescriptorSetAOITShade[0], updateCount, params);
+
+				updateDescriptorSet(pRenderer, 0, pDescriptorSetAOITShade[0], updateCount, params);
+			}
 #endif
 
 			for (uint32_t i = 0; i < gImageCount; ++i)
@@ -2715,8 +2742,9 @@ class Transparency: public IApp
 				updateDescriptorSet(pRenderer, UNIFORM_SET(i, VIEW_CAMERA, GEOM_TRANSPARENT), pDescriptorSetUniforms, 5, params);
 
 #if AOIT_ENABLE
-				// AOIT
-				updateDescriptorSet(pRenderer, i, pDescriptorSetAOITShade[1], 4, params);
+				if (pRenderer->pActiveGpuSettings->mROVsSupported)
+					// AOIT
+					updateDescriptorSet(pRenderer, i, pDescriptorSetAOITShade[1], 4, params);
 #endif
 			}
 		}
@@ -2787,6 +2815,7 @@ class Transparency: public IApp
 #endif
 		// AOIT
 #if AOIT_ENABLE
+		if (pRenderer->pActiveGpuSettings->mROVsSupported)
 		{
 			DescriptorData clearParams[1] = {};
 			clearParams[0].pName = "AOITClearMaskUAV";
@@ -2938,7 +2967,8 @@ class Transparency: public IApp
 		for (int m = 0; m < MESH_COUNT; ++m)
 		{
 			AssimpImporter::Model model;
-			if (importer.ImportModel(FileSystem::FixPath(modelNames[m], FSR_Meshes).c_str(), &model))
+            PathHandle modelPath = fsCopyPathInResourceDirectory(RD_MESHES, modelNames[m]);
+			if (importer.ImportModel(modelPath, &model))
 			{
 				vertices.clear();
 				indices.clear();
@@ -3020,9 +3050,9 @@ class Transparency: public IApp
 
 		for (int i = 0; i < TEXTURE_COUNT; ++i)
 		{
+            PathHandle path = fsCopyPathInResourceDirectory(RD_TEXTURES, textureNames[i]);
 			TextureLoadDesc textureDesc = {};
-			textureDesc.mRoot = FSR_Textures;
-			textureDesc.pFilename = textureNames[i];
+			textureDesc.pFilePath = path;
 			textureDesc.ppTexture = &pTextures[i];
 			addResource(&textureDesc, true);
 		}
@@ -3692,7 +3722,7 @@ class Transparency: public IApp
 			aoitClearPipelineDesc.pColorFormats = NULL;
 			aoitClearPipelineDesc.mSampleCount = SAMPLE_COUNT_1;
 			aoitClearPipelineDesc.mSampleQuality = 0;
-			aoitClearPipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
+			aoitClearPipelineDesc.mDepthStencilFormat = pRenderTargetDepth->mDesc.mFormat;
 			aoitClearPipelineDesc.pVertexLayout = NULL;
 			aoitClearPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
 			aoitClearPipelineDesc.pDepthState = pDepthStateDisable;
@@ -3893,6 +3923,13 @@ void GuiController::AddGui()
 		GuiController::currentTransparencyType = TRANSPARENCY_TYPE_ADAPTIVE_OIT;
 	}
 #endif
+}
+
+void GuiController::RemoveGui()
+{
+	alphaBlendDynamicWidgets.Destroy();
+	weightedBlendedOitDynamicWidgets.Destroy();
+	weightedBlendedOitVolitionDynamicWidgets.Destroy();
 }
 
 DEFINE_APPLICATION_MAIN(Transparency)

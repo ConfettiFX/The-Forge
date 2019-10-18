@@ -123,6 +123,7 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)WinPixEventRunTime.dll"* /Y</Command>
@@ -147,6 +148,7 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)WinPixEventRunTime.dll"* /Y
@@ -183,6 +185,7 @@ xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxil.dll" "$(Targ
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)WinPixEventRunTime.dll"* /Y</Command>
@@ -211,6 +214,7 @@ xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxil.dll" "$(Targ
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>xcopy "$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)WinPixEventRunTime.dll"* /Y

@@ -301,6 +301,8 @@ void drmp3_free(void* p);
 #endif
 #endif  // dr_mp3_h
 
+#include "../../../../../../OS/Interfaces/IFileSystem.h"
+
 
 /////////////////////////////////////////////////////
 //
@@ -2735,7 +2737,8 @@ drmp3_bool32 drmp3_init_file(drmp3* pMP3, const char* filePath, const drmp3_conf
 {
     FILE* pFile;
 #if defined(_MSC_VER) && _MSC_VER >= 1400
-    if (fopen_s(&pFile, filePath, "rb") != 0) {
+	pFile = (File*)open_file(filepath, "rb");
+    if (pFile != 0) {
         return DRMP3_FALSE;
     }
 #else

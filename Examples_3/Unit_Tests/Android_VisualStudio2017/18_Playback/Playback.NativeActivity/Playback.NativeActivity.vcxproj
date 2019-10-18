@@ -192,9 +192,9 @@
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)$(Platform)\$(Configuration)\;$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
-      <LibraryDependencies>Renderer;SpirvTools;OS;gainputstatic;ozz_animation;ozz_base;shaderc</LibraryDependencies>
+      <LibraryDependencies>OS;Renderer;SpirvTools;OS;gainputstatic;ozz_animation;ozz_base;shaderc;assimp;zip;z;m</LibraryDependencies>
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
@@ -219,9 +219,9 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\18_Playback\Shaders\Vulka
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)$(Platform)\$(Configuration)\;$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
-      <LibraryDependencies>Renderer;SpirvTools;OS;gainputstatic;ozz_animation;ozz_base;shaderc</LibraryDependencies>
+      <LibraryDependencies>OS;Renderer;SpirvTools;OS;gainputstatic;ozz_animation;ozz_base;shaderc;assimp;zip;z;m</LibraryDependencies>
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
@@ -248,7 +248,7 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\18_Playback\Shaders\Vulka
     </ClCompile>
     <Link>
       <LibraryDependencies>Renderer;SpirvTools;OS;gainputstatic;ozz_animation;ozz_base;shaderc;%(LibraryDependencies)</LibraryDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>-lm %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>
@@ -276,7 +276,7 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\18_Playback\Shaders\Vulka
     </ClCompile>
     <Link>
       <LibraryDependencies>%(LibraryDependencies);Renderer;SpirvTools;OS;gainputstatic;ozz_animation;ozz_base;shaderc</LibraryDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PostBuildEvent>

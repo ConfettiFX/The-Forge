@@ -24,7 +24,7 @@
 
 #ifdef __linux__
 
-#include "../Interfaces/IFileSystem.h"
+#include "../FileSystem/UnixFileSystem.h"
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IThread.h"
@@ -42,210 +42,176 @@
 
 #define MAX_PATH PATH_MAX
 
-#define RESOURCE_DIR "Shaders/Vulkan"
+struct LinuxFileSystem: public UnixFileSystem
+{
+	LinuxFileSystem(): UnixFileSystem() {}
+    
+    bool IsCaseSensitive() const override
+    {
+        return true;
+    }
 
-const char* pszRoots[FSR_Count] = {
-	RESOURCE_DIR "/Binary/",    // FSR_BinShaders
-	RESOURCE_DIR "/",           // FSR_SrcShaders
-	"Textures/",                // FSR_Textures
-	"Meshes/",                  // FSR_Meshes
-	"Fonts/",                   // FSR_Builtin_Fonts
-	"GPUCfg/",                  // FSR_GpuConfig
-	"Animation/",               // FSR_Animation
-	"Audio/",                   // FSR_Audio
-	"",                         // FSR_OtherFiles
+	bool CopyFile(const Path* sourcePath, const Path* destinationPath, bool overwriteIfExists) const override
+	{
+		int         source = open(fsGetPathAsNativeString(sourcePath), O_RDONLY, 0);
+		int         dest = open(fsGetPathAsNativeString(destinationPath), O_WRONLY);
+		struct stat stat_source;
+		fstat(source, &stat_source);
+		bool ret = sendfile64(dest, source, 0, stat_source.st_size) != -1;
+		close(source);
+		close(dest);
+		return ret;
+	}
+
+	void EnumerateFilesWithExtension(
+		const Path* directoryPath, const char* extension, bool (*processFile)(const Path*, void* userData), void* userData) const override
+	{
+		DIR* directory = opendir(fsGetPathAsNativeString(directoryPath));
+		if (!directory)
+			return;
+
+		struct dirent* entry;
+		do
+		{
+			entry = readdir(directory);
+			if (!entry)
+				break;
+
+			Path*         path = fsAppendPathComponent(directoryPath, entry->d_name);
+			PathComponent fileExt = fsGetPathExtension(path);
+
+			if (!extension)
+				processFile(path, userData);
+
+			else if (extension[0] == 0 && fileExt.length == 0)
+				processFile(path, userData);
+
+			else if (fileExt.length > 0 && strncasecmp(fileExt.buffer, extension, fileExt.length) == 0)
+			{
+				processFile(path, userData);
+			}
+
+			fsFreePath(path);
+
+		} while (entry != NULL);
+
+		closedir(directory);
+	}
+
+	void EnumerateSubDirectories(
+		const Path* directoryPath, bool (*processDirectory)(const Path*, void* userData), void* userData) const override
+	{
+		DIR* directory = opendir(fsGetPathAsNativeString(directoryPath));
+		if (!directory)
+			return;
+
+		struct dirent* entry;
+		do
+		{
+			entry = readdir(directory);
+			if (!entry)
+				break;
+
+			if ((entry->d_type & DT_DIR) && (entry->d_name[0] != '.'))
+			{
+				Path* path = fsAppendPathComponent(directoryPath, entry->d_name);
+				processDirectory(path, userData);
+				fsFreePath(path);
+			}
+		} while (entry != NULL);
+
+		closedir(directory);
+	}
 };
 
-FileHandle open_file(const char* filename, const char* flags)
+LinuxFileSystem gDefaultFS;
+
+FileSystem* fsGetSystemFileSystem() { return &gDefaultFS; }
+
+Path* fsCopyWorkingDirectoryPath()
 {
-	FILE* fp;
-	fp = fopen(filename, flags);
-	return fp;
+	char cwd[MAX_PATH];
+	getcwd(cwd, MAX_PATH);
+	Path* path = fsCreatePath(fsGetSystemFileSystem(), cwd);
+	return path;
 }
 
-bool close_file(FileHandle handle) { return (fclose((::FILE*)handle) == 0); }
-
-void flush_file(FileHandle handle) { fflush((::FILE*)handle); }
-
-size_t read_file(void* buffer, size_t byteCount, FileHandle handle) { return fread(buffer, 1, byteCount, (::FILE*)handle); }
-
-bool seek_file(FileHandle handle, long offset, int origin) { return fseek((::FILE*)handle, offset, origin) == 0; }
-
-long tell_file(FileHandle handle) { return ftell((::FILE*)handle); }
-
-size_t write_file(const void* buffer, size_t byteCount, FileHandle handle) { return fwrite(buffer, 1, byteCount, (::FILE*)handle); }
-
-time_t get_file_last_modified_time(const char* _fileName)
-{
-	struct stat fileInfo = {0};
-
-	stat(_fileName, &fileInfo);
-	return fileInfo.st_mtime;
-}
-
-time_t get_file_last_accessed_time(const char* _fileName)
-{
-	struct stat fileInfo = {0};
-
-	stat(_fileName, &fileInfo);
-	return fileInfo.st_atime;
-}
-
-time_t get_file_creation_time(const char* _fileName)
-{
-	struct stat fileInfo = {0};
-
-	stat(_fileName, &fileInfo);
-	return fileInfo.st_ctime;
-}
-
-eastl::string get_current_dir()
-{
-	char curDir[MAX_PATH];
-	getcwd(curDir, sizeof(curDir));
-	return eastl::string(curDir);
-}
-
-eastl::string get_exe_path()
+Path* fsCopyExecutablePath()
 {
 	char exeName[MAX_PATH];
 	exeName[0] = 0;
 	ssize_t count = readlink("/proc/self/exe", exeName, MAX_PATH);
 	exeName[count] = '\0';
-	return eastl::string(exeName);
+	return fsCreatePath(fsGetSystemFileSystem(), exeName);
 }
 
-eastl::string get_app_prefs_dir(const char* org, const char* app)
+Path* fsCopyProgramDirectoryPath()
 {
-	const char* homedir;
-
-	if ((homedir = getenv("HOME")) == NULL)
-	{
-		homedir = getpwuid(getuid())->pw_dir;
-	}
-	return eastl::string(homedir);
+	Path* exePath = fsCopyExecutablePath();
+	Path* directory = fsCopyParentPath(exePath);
+	fsFreePath(exePath);
+	return directory;
 }
 
-eastl::string get_user_documents_dir()
+Path* fsCopyPreferencesDirectoryPath(const char* organisation, const char* application)
 {
 	const char* homedir;
 	if ((homedir = getenv("HOME")) == NULL)
 	{
 		homedir = getpwuid(getuid())->pw_dir;
 	}
-	eastl::string homeString = eastl::string(homedir);
-	const char*     doc = "Documents";
-	homeString.append(doc, doc + strlen(doc));
-	return homeString;
+
+	Path* homePath = fsCreatePath(fsGetSystemFileSystem(), homedir);
+	return homePath;
 }
 
-void set_current_dir(const char* path)
+Path* fsCopyUserDocumentsDirectoryPath()
 {
-	// change working directory
-	// http://man7.org/linux/man-pages/man2/chdir.2.html
-	chdir(path);
-}
-
-void get_files_with_extension(const char* dir, const char* ext, eastl::vector<eastl::string>& filesOut)
-{
-	eastl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
-
-	DIR* directory = opendir(path.c_str());
-	if (!directory)
-		return;
-
-	eastl::string extension(ext);
-	extension.make_lower();
-	struct dirent*  entry;
-	do
+	const char* homedir;
+	if ((homedir = getenv("HOME")) == NULL)
 	{
-		entry = readdir(directory);
-		if (!entry)
-			break;
+		homedir = getpwuid(getuid())->pw_dir;
+	}
 
-		eastl::string file = entry->d_name;
-		file.make_lower();
-		if (file.find(extension) != eastl::string::npos)
-		{
-			file = path + entry->d_name;
-			filesOut.push_back(file);
-		}
-
-	} while (entry != NULL);
-
-	closedir(directory);
+	Path* homePath = fsCreatePath(fsGetSystemFileSystem(), homedir);
+	Path* documents = fsAppendPathComponent(homePath, "Documents");
+	fsFreePath(homePath);
+	return documents;
 }
 
-void get_sub_directories(const char* dir, eastl::vector<eastl::string>& subDirectoriesOut)
-{
-	eastl::string path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
+Path* fsCopyLogFileDirectoryPath() { return fsCopyProgramDirectoryPath(); }
 
-	DIR* directory = opendir(path.c_str());
-	if (!directory)
-		return;
+#pragma mark - FileManager Dialogs
 
-	struct dirent* entry;
-	do
-	{
-		entry = readdir(directory);
-		if (!entry)
-			break;
-
-		if (entry->d_type & DT_DIR)
-		{
-			if (entry->d_name[0] != '.')
-			{
-				eastl::string subDirectory = path + entry->d_name;
-				subDirectoriesOut.push_back(subDirectory);
-			}
-		}
-
-	} while (entry != NULL);
-
-	closedir(directory);
-}
-
-bool copy_file(const char* src, const char* dst)
-{
-	int         source = open(src, O_RDONLY, 0);
-	int         dest = open(dst, O_WRONLY);
-	struct stat stat_source;
-	fstat(source, &stat_source);
-	bool ret = sendfile64(dest, source, 0, stat_source.st_size) != -1;
-	close(source);
-	close(dest);
-	return ret;
-}
-
-void open_file_dialog(
-	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
-	const eastl::vector<eastl::string>& fileExtensions)
+void fsShowOpenFileDialog(
+	const char* title, const Path* directory, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
+	const char** fileExtensions, size_t fileExtensionCount)
 {
 	LOGF(LogLevel::eERROR, "Not implemented");
 }
 
-void save_file_dialog(
-	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
-	const eastl::vector<eastl::string>& fileExtensions)
+void fsShowSaveFileDialog(
+	const char* title, const Path* directory, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
+	const char** fileExtensions, size_t fileExtensionCount)
 {
 	LOGF(LogLevel::eERROR, "Not implemented");
 }
 
 #include <sys/inotify.h>
 
-struct FileSystem::Watcher::Data
+struct FileWatcher
 {
-	eastl::string mWatchDir;
-	uint32_t        mNotifyFilter;
-	Callback        mCallback;
-	ThreadDesc      mThreadDesc;
-	ThreadHandle    mThread;
-	volatile int    mRun;
+	Path*               mWatchDir;
+	uint32_t            mNotifyFilter;
+	FileWatcherCallback mCallback;
+	ThreadDesc          mThreadDesc;
+	ThreadHandle        mThread;
+	volatile int        mRun;
 };
 
 static void fswThreadFunc(void* data)
 {
-	FileSystem::Watcher::Data* fs = (FileSystem::Watcher::Data*)data;
+	FileWatcher* fs = (FileWatcher*)data;
 
 	int  fd, wd;
 	char buffer[4096];
@@ -256,7 +222,7 @@ static void fswThreadFunc(void* data)
 		return;
 	}
 
-	wd = inotify_add_watch(fd, fs->mWatchDir.c_str(), fs->mNotifyFilter);
+	wd = inotify_add_watch(fd, fsGetPathAsNativeString(fs->mWatchDir), fs->mNotifyFilter);
 
 	if (wd < 0)
 	{
@@ -293,23 +259,24 @@ static void fswThreadFunc(void* data)
 			struct inotify_event* event = (struct inotify_event*)(buffer + offset);
 			if (event->len)
 			{
-				eastl::string path = fs->mWatchDir + event->name;
+				Path* path = fsAppendPathComponent(fs->mWatchDir, event->name);
 				if (event->mask & IN_MODIFY)
 				{
-					fs->mCallback(path.c_str(), FileSystem::Watcher::EVENT_MODIFIED);
+					fs->mCallback(path, FWE_MODIFIED);
 				}
 				if (event->mask & (IN_ACCESS | IN_OPEN))
 				{
-					fs->mCallback(path.c_str(), FileSystem::Watcher::EVENT_ACCESSED);
+					fs->mCallback(path, FWE_ACCESSED);
 				}
 				if (event->mask & (IN_MOVED_TO | IN_CREATE))
 				{
-					fs->mCallback(path.c_str(), FileSystem::Watcher::EVENT_CREATED);
+					fs->mCallback(path, FWE_CREATED);
 				}
 				if (event->mask & (IN_MOVED_FROM | IN_DELETE))
 				{
-					fs->mCallback(path.c_str(), FileSystem::Watcher::EVENT_DELETED);
+					fs->mCallback(path, FWE_DELETED);
 				}
+				fsFreePath(path);
 			}
 			offset += sizeof(struct inotify_event) + event->len;
 		}
@@ -319,45 +286,46 @@ static void fswThreadFunc(void* data)
 	close(fd);
 };
 
-
-FileSystem::Watcher::Watcher(const char* pWatchPath, FSRoot root, uint32_t eventMask, Callback callback)
+FileWatcher* fsCreateFileWatcher(const Path* path, FileWatcherEventMask eventMask, FileWatcherCallback callback)
 {
+	FileWatcher* watcher = conf_new(FileWatcher);
+	watcher->mWatchDir = fsCopyPath(path);
 
-	pData->mWatchDir = FileSystem::FixPath(FileSystem::AddTrailingSlash(pWatchPath), root);
 	uint32_t notifyFilter = 0;
 
-	if (eventMask & EVENT_MODIFIED)
+	if (eventMask & FWE_MODIFIED)
 	{
 		notifyFilter |= IN_MODIFY;
 	}
-	if (eventMask & EVENT_ACCESSED)
+	if (eventMask & FWE_ACCESSED)
 	{
 		notifyFilter |= IN_ACCESS | IN_OPEN;
 	}
-	if (eventMask & EVENT_CREATED)
+	if (eventMask & FWE_CREATED)
 	{
 		notifyFilter |= IN_CREATE | IN_MOVED_TO;
 	}
-	if (eventMask & EVENT_DELETED)
+	if (eventMask & FWE_DELETED)
 	{
 		notifyFilter |= IN_DELETE | IN_MOVED_FROM;
 	}
 
-	pData->mNotifyFilter = notifyFilter;
-	pData->mCallback = callback;
-	pData->mRun = 1;
+	watcher->mNotifyFilter = notifyFilter;
+	watcher->mCallback = callback;
+	watcher->mRun = 1;
 
-	pData->mThreadDesc.pFunc = fswThreadFunc;
-	pData->mThreadDesc.pData = pData;
+	watcher->mThreadDesc.pFunc = fswThreadFunc;
+	watcher->mThreadDesc.pData = watcher;
 
-	pData->mThread = create_thread(&pData->mThreadDesc);
+	watcher->mThread = create_thread(&watcher->mThreadDesc);
 }
 
-FileSystem::Watcher::~Watcher()
+void fsFreeFileWatcher(FileWatcher* fileWatcher)
 {
-	pData->mRun = 0;
-	destroy_thread(pData->mThread);
-	conf_delete(pData);
+	fileWatcher->mRun = 0;
+	fsFreePath(fileWatcher->mWatchDir);
+	destroy_thread(fileWatcher->mThread);
+	conf_delete(fileWatcher);
 }
 
 #endif

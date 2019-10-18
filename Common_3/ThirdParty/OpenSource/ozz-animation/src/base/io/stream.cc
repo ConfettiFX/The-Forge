@@ -38,76 +38,75 @@
 
 #include "../../EASTL/numeric_limits.h"
 
+
 namespace ozz {
     namespace io {
 
 // Starts File implementation.
 
-        bool File::Exist(const char* _filename) {
-      FILE* file = (FILE*)open_file(_filename, "r");
-          if (file) {
-			close_file(file);
+        bool File::Exist(const char* _filename)
+		{
+            PathHandle filePath = fsCreatePath(fsGetSystemFileSystem(), _filename);
+            bool exists = fsFileExists(filePath);
+            return exists;
+        }
+
+        File::File(const char* _filename, const char* _mode)
+        {
+            PathHandle filePath = fsCreatePath(fsGetSystemFileSystem(), _filename);
+            file_ = fsOpenFile(filePath, fsFileModeFromString(_mode));
+        }
+    
+        File::File(const Path* _filePath, FileMode _mode)
+        {
+            file_ = fsOpenFile(_filePath, _mode);
+        }
+
+        File::File(void* _file) : file_(_file) {}
+
+        File::~File() { CloseOzzFile(); }
+
+        bool File::CloseOzzFile() {
+          if (file_){
+              fsCloseStream((FileStream *)file_);
+              file_ = NULL;
             return true;
           }
           return false;
         }
 
-        File::File(const char* _filename, const char* _mode)
-        {
-          file_ = open_file(_filename, _mode);
+        bool File::opened() const 
+		{ 
+			return file_ != NULL;
+		}
+
+        size_t File::Read(void* _buffer, size_t _size) 
+		{
+            return fsReadFromStream((FileStream *)file_, _buffer, _size);
         }
 
-        File::File(void* _file) : file_(_file) {}
-
-        File::~File() { Close(); }
-
-        void File::Close() {
-          if (file_){
-            close_file(file_);
-            file_ = NULL;
-          }
+        size_t File::Write(const void* _buffer, size_t _size) 
+		{
+            return fsWriteToStream((FileStream *)file_, _buffer, _size);
         }
 
-        bool File::opened() const { return file_ != NULL; }
-
-        size_t File::Read(void* _buffer, size_t _size) {
-          std::FILE* file = reinterpret_cast<std::FILE*>(file_);
-          return read_file(_buffer, _size, file);
-        }
-
-        size_t File::Write(const void* _buffer, size_t _size) {
-          std::FILE* file = reinterpret_cast<std::FILE*>(file_);
-          return write_file(_buffer, _size, file);
-        }
-
-        int File::Seek(int _offset, Origin _origin) {
-          int origins[] = {SEEK_CUR, SEEK_END, SEEK_SET};
-          if (_origin >= static_cast<int>(OZZ_ARRAY_SIZE(origins))) {
+        int File::Seek(int _offset, Origin _origin) 
+		{
+          SeekBaseOffset origins[] = {SBO_CURRENT_POSITION, SBO_END_OF_FILE, SBO_START_OF_FILE};
+          if (_origin >= static_cast<int>(OZZ_ARRAY_SIZE(origins))) 
+		  {
             return -1;
           }
-          std::FILE* file = reinterpret_cast<std::FILE*>(file_);
-          return seek_file(file, _offset, origins[_origin]);
+            return fsSeekStream((FileStream *)file_, origins[_origin], _offset);
         }
 
-        int File::Tell() const {
-          std::FILE* file = reinterpret_cast<std::FILE*>(file_);
-          return (int)tell_file(file);
+        int File::FileTell() 
+		{
+            return (int)fsGetStreamSeekPosition((const FileStream *)file_);
         }
 
-        size_t File::Size() const {
-          std::FILE* file = reinterpret_cast<std::FILE*>(file_);
-
-          const int current = (int)tell_file(file);
-          assert(current >= 0);
-          int seek = seek_file(file, 0, SEEK_END);
-          assert(seek == 0);
-          (void)seek;
-          const int end = (int)tell_file(file);
-          assert(end >= 0);
-          seek = seek_file(file, current, SEEK_SET);
-          assert(seek == 0);
-
-          return static_cast<size_t>(end);
+        size_t File::Size() {
+            return (size_t)fsGetStreamFileSize((FileStream *)file_);
         }
 
 // Starts MemoryStream implementation.
@@ -195,9 +194,9 @@ namespace ozz {
           return 0;
         }
 
-        int MemoryStream::Tell() const { return tell_; }
+        int MemoryStream::FileTell() { return tell_; }
 
-        size_t MemoryStream::Size() const { return static_cast<size_t>(end_); }
+        size_t MemoryStream::Size() { return static_cast<size_t>(end_); }
 
         bool MemoryStream::Resize(size_t _size) {
           if (_size > alloc_size_) {

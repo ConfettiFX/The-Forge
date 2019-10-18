@@ -1,1 +1,0 @@
-./Release/up_src_AssetLoader.cpp.o ./Release/up_src_AssetPipeline.cpp.o ./Release/up_src_gltfpack.cpp.o ./Release/up_src_TFXImporter.cpp.o ./Release/up_src_TressFXAsset.cpp.o

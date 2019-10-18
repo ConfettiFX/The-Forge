@@ -27,6 +27,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\Middleware_3\ECS\BaseComponent.cpp" />
+    <ClCompile Include="..\..\..\Middleware_3\ECS\ComponentRepresentation.cpp" />
+    <ClCompile Include="..\..\..\Middleware_3\ECS\EntityManager.cpp" />
     <ClCompile Include="..\src\17_EntityComponentSystem\17_EntityComponentSystem.cpp" />
     <ClCompile Include="..\src\17_EntityComponentSystem\Components\MoveComponent.cpp" />
     <ClCompile Include="..\src\17_EntityComponentSystem\Components\PositionComponent.cpp" />
@@ -78,6 +81,9 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\Middleware_3\ECS\BaseComponent.h" />
+    <ClInclude Include="..\..\..\Middleware_3\ECS\ComponentRepresentation.h" />
+    <ClInclude Include="..\..\..\Middleware_3\ECS\EntityManager.h" />
     <ClInclude Include="..\src\17_EntityComponentSystem\Components\MoveComponent.h" />
     <ClInclude Include="..\src\17_EntityComponentSystem\Components\PositionComponent.h" />
     <ClInclude Include="..\src\17_EntityComponentSystem\Components\SpriteComponent.h" />
@@ -219,6 +225,7 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;gainputstatic.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -261,6 +268,7 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -303,6 +311,7 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX11.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -349,6 +358,7 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;vulkan-1.lib;SpirvTools.lib;RendererVulkan.lib;OS.lib;gainputstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -395,6 +405,7 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX12.lib;OS.lib;gainputstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -441,6 +452,7 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX11.lib;OS.lib;gainputstatic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>

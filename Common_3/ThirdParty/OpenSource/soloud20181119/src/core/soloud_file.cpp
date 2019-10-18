@@ -56,22 +56,22 @@ namespace SoLoud
 
 	unsigned int DiskFile::read(unsigned char *aDst, unsigned int aBytes)
 	{
-		return mForgeFile.Read(aDst, aBytes);
+        return (unsigned int)fsReadFromStream(mForgeFile, aDst, aBytes);
 	}
 
 	unsigned int DiskFile::length()
-	{		
-		return mForgeFile.GetSize();
+	{
+        return (unsigned int)fsGetStreamFileSize(mForgeFile);
 	}
 
 	void DiskFile::seek(int aOffset)
 	{
-		mForgeFile.Seek(aOffset, SEEK_DIR_BEGIN);
+        fsSeekStream(mForgeFile, SBO_START_OF_FILE, aOffset);
 	}
 
 	unsigned int DiskFile::pos()
 	{
-		return mForgeFile.Tell();
+        return (unsigned int)fsGetStreamSeekPosition(mForgeFile);
 	}
 
 	FILE *DiskFile::getFilePtr()
@@ -81,8 +81,8 @@ namespace SoLoud
 
 	DiskFile::~DiskFile()
 	{
-		if (mForgeFile.IsOpen())
-			mForgeFile.Close();
+        if (mForgeFile)
+            fsCloseStream(mForgeFile);
 	}
 
 	DiskFile::DiskFile()
@@ -93,15 +93,18 @@ namespace SoLoud
 	result DiskFile::open(const char *aFilename)
 	{
 		if (!aFilename)
-			return INVALID_PARAMETER;		
-		if (!mForgeFile.Open(aFilename, FileMode::FM_ReadBinary, FSR_Audio))
+			return INVALID_PARAMETER;	
+
+        mForgeFile = fsOpenFileInResourceDirectory(RD_AUDIO, aFilename, FM_READ_BINARY);
+
+		if(!mForgeFile)
 			return FILE_NOT_FOUND;
 		return SO_NO_ERROR;
 	}
 
 	int DiskFile::eof()
 	{
-		return mForgeFile.IsEof();
+        return fsStreamAtEnd(mForgeFile) ? 1 : 0;
 	}
 
 

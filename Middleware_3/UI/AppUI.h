@@ -32,7 +32,7 @@
 
 typedef void (*WidgetCallback)();
 
-extern FSRoot FSR_MIDDLEWARE_UI;
+extern ResourceDirectory RD_MIDDLEWARE_UI;
 
 struct Renderer;
 struct Texture;
@@ -834,7 +834,7 @@ typedef struct DynamicUIWidgets
 			conf_free(mDynamicProperties[i]);
 		}
 
-		mDynamicProperties.clear();
+		mDynamicProperties.set_capacity(0);
 	}
 
 private:
@@ -861,6 +861,9 @@ class GUIDriver
 
 	virtual bool load(RenderTarget** ppRts, uint32_t count) = 0;
 	virtual void unload() = 0;
+
+	// For GUI with custom shaders not necessary in a normal application
+	virtual void setCustomShader(Shader* pShader) = 0;
 
 	virtual bool addFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGlyphRanges, float fontSize, uintptr_t* pFont) = 0;
 
@@ -912,7 +915,7 @@ class UIApp: public IMiddleware
 	void Update(float deltaTime);
 	void Draw(Cmd* cmd);
 
-	uint          LoadFont(const char* pFontPath, uint root);
+	uint          LoadFont(const char* pFontPath, ResourceDirectory root);
 	GuiComponent* AddGuiComponent(const char* pTitle, const GuiDesc* pDesc);
 	void          RemoveGuiComponent(GuiComponent* pComponent);
 	void          RemoveAllGuiComponents();
@@ -946,12 +949,13 @@ class UIApp: public IMiddleware
 	/************************************************************************/
 	class GUIDriver*  pDriver;
 	struct UIAppImpl* pImpl;
+	Shader*           pCustomShader = NULL;
 
 	// Following var is useful for seeing UI capabilities and tweaking style settings.
 	// Will only take effect if at least one GUI Component is active.
 	bool mShowDemoUiWindow;
 
-	private:
+private:
 	float   mWidth;
 	float   mHeight;
 	int32_t  mFontAtlasSize = 0;

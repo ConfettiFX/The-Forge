@@ -69,7 +69,6 @@ struct VkGeometryInstanceNV
 
 extern void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
 extern void removeBuffer(Renderer* pRenderer, Buffer* p_buffer);
-extern const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer);
 
 extern VkDeviceMemory get_vk_device_memory(Renderer* pRenderer, Buffer* pBuffer);
 extern VkDeviceSize get_vk_device_memory_offset(Renderer* pRenderer, Buffer* pBuffer);
@@ -491,10 +490,11 @@ void FillShaderIdentifiers(	const RaytracingShaderTableRecordDesc* pRecords, uin
 	{
 		uint32_t index = -1;
 		eastl::string nameStr(pRecords[idx].pName);
-		eastl::vector<eastl::string>::const_iterator it = eastl::find(pipeline->mShadersStagesNames.begin(), pipeline->mShadersStagesNames.end(), nameStr);
-		if (it != pipeline->mShadersStagesNames.end())
+		const char** it = eastl::find(pipeline->ppShaderStageNames, pipeline->ppShaderStageNames + pipeline->mShaderStageCount, nameStr.c_str(),
+			[](const char* a, const char* b) { return strcmp(a, b) == 0; });
+		if (it != pipeline->ppShaderStageNames + pipeline->mShaderStageCount)
 		{
-			index = (uint32_t)(it - pipeline->mShadersStagesNames.begin());
+			index = (uint32_t)(it - pipeline->ppShaderStageNames);
 		}
 		else
 		{
@@ -550,7 +550,7 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 	/************************************************************************/
 	// Copy shader identifiers into the buffer
 	/************************************************************************/
-	uint32_t groupCount = (uint32_t)pDesc->pPipeline->mShadersStagesNames.size();
+	uint32_t groupCount = (uint32_t)pDesc->pPipeline->mShaderStageCount;
 	uint8_t* shaderHandleStorage = (uint8_t*)conf_calloc(groupCount, sizeof(uint8_t) * groupHandleSize);
 	VkResult code = vkGetRayTracingShaderGroupHandlesNV(pRaytracing->pRenderer->pVkDevice, 
 														pDesc->pPipeline->pVkPipeline, 0, groupCount, 
@@ -676,14 +676,13 @@ void vk_addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** pp
 
 	eastl::vector<VkPipelineShaderStageCreateInfo> stages;
 	eastl::vector<VkRayTracingShaderGroupCreateInfoNV> groups;
-	eastl::vector<eastl::string>& stagesNames = pResult->mShadersStagesNames;
 	/************************************************************************/
 	// Generate Stage Names
 	/************************************************************************/
-	stages.clear();
 	stages.reserve(1 + pDesc->mMissShaderCount + pDesc->mHitGroupCount);
-	groups.clear();
 	groups.reserve(1 + pDesc->mMissShaderCount + pDesc->mHitGroupCount);
+	pResult->mShaderStageCount = 1 + pDesc->mMissShaderCount + pDesc->mHitGroupCount;
+	pResult->ppShaderStageNames = (const char**)conf_calloc(1 + pDesc->mMissShaderCount + pDesc->mHitGroupCount, sizeof(char*));
 	//////////////////////////////////////////////////////////////////////////
 	//1. Ray-gen shader
 	{
@@ -698,7 +697,7 @@ void vk_addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** pp
 		stageCreateInfo.pSpecializationInfo = nullptr;
 		stages.push_back(stageCreateInfo);
 		//stagesNames.push_back(pDesc->pRayGenShader->mName);
-		stagesNames.push_back(pDesc->pRayGenShader->mEntryNames[0]);
+		pResult->ppShaderStageNames[0] = pDesc->pRayGenShader->pEntryNames[0];
 
 		VkRayTracingShaderGroupCreateInfoNV groupInfo;
 		groupInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
@@ -711,6 +710,7 @@ void vk_addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** pp
 		groups.push_back(groupInfo);
 	}
 
+	uint32_t stageCounter = 1;
 	//////////////////////////////////////////////////////////////////////////
 	//2. Miss shaders
 	{
@@ -737,7 +737,7 @@ void vk_addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** pp
 			stageCreateInfo.module = pDesc->ppMissShaders[i]->pShaderModules[0];
 			stages.push_back(stageCreateInfo);
 			//stagesNames.push_back(pDesc->ppMissShaders[i]->mName);
-			stagesNames.push_back(pDesc->ppMissShaders[i]->mEntryNames[0]);
+			pResult->ppShaderStageNames[stageCounter++] = pDesc->ppMissShaders[i]->pEntryNames[0];
 
 			groupInfo.generalShader = (uint32_t)stages.size() - 1;
 			groups.push_back(groupInfo);
@@ -775,7 +775,7 @@ void vk_addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** pp
 				stageCreateInfo.stage = VK_SHADER_STAGE_INTERSECTION_BIT_NV;
 				stageCreateInfo.module = pDesc->pHitGroups[i].pIntersectionShader->pShaderModules[0];
 				stages.push_back(stageCreateInfo);
-				stagesNames.push_back(pDesc->pHitGroups[i].pHitGroupName);
+				pResult->ppShaderStageNames[stageCounter++] = pDesc->pHitGroups[i].pHitGroupName;
 
 				groupInfo.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_NV;
 				groupInfo.intersectionShader = (uint32_t)stages.size() - 1;
@@ -785,7 +785,7 @@ void vk_addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** pp
 				stageCreateInfo.stage = VK_SHADER_STAGE_ANY_HIT_BIT_NV;
 				stageCreateInfo.module = pDesc->pHitGroups[i].pAnyHitShader->pShaderModules[0];
 				stages.push_back(stageCreateInfo);
-				stagesNames.push_back(pDesc->pHitGroups[i].pHitGroupName);
+				pResult->ppShaderStageNames[stageCounter++] = pDesc->pHitGroups[i].pHitGroupName;
 
 				groupInfo.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
 				groupInfo.anyHitShader = (uint32_t)stages.size() - 1;
@@ -795,7 +795,7 @@ void vk_addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** pp
 				stageCreateInfo.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
 				stageCreateInfo.module = pDesc->pHitGroups[i].pClosestHitShader->pShaderModules[0];
 				stages.push_back(stageCreateInfo);
-				stagesNames.push_back(pDesc->pHitGroups[i].pHitGroupName);
+				pResult->ppShaderStageNames[stageCounter++] = pDesc->pHitGroups[i].pHitGroupName;
 
 				groupInfo.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
 				groupInfo.closestHitShader = (uint32_t)stages.size() - 1;

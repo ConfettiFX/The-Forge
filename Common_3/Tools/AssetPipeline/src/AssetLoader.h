@@ -28,6 +28,7 @@
 
 #include "../../../ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/skeleton.h"
 #include "../../../ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/animation.h"
+#include "../../../ThirdParty/OpenSource/EASTL/string.h"
 
 #include "gltfpack.h"
 
@@ -78,13 +79,7 @@ typedef enum AssetProcessFlags
 class AssetLoader
 {
 	public:
-	static bool LoadSkeleton(const char* skeletonFile, FSRoot root, ozz::animation::Skeleton* skeleton);
-	static bool LoadAnimation(const char* animationFile, FSRoot root, ozz::animation::Animation* animation);
-	static bool LoadModel(const char* modelFile, FSRoot root, Model* model, unsigned int flags = alFLAGS_NONE);
-
-	static bool ImportTFX(
-		const char* filename, FSRoot root, int numFollowHairs, float tipSeperationFactor, float maxRadiusAroundGuideHair,
-		TFXAsset* tfxAsset);
-	static bool ImportTFXMesh(const char* filename, FSRoot root, TFXMesh* tfxMesh);
-	static bool ImportTFXV3(File* file, int numFollowHairs, TFXAsset* tfxAsset);
+	static bool LoadSkeleton(const Path* skeletonFile, ozz::animation::Skeleton* skeleton);
+	static bool LoadAnimation(const Path* animationFile, ozz::animation::Animation* animation);
+	static bool LoadModel(const Path* modelFile, Model* model, unsigned int flags = alFLAGS_NONE);
 };

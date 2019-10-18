@@ -24,6 +24,8 @@ static gainput::InputManager* gGainputInputManager;
 #elif defined(GAINPUT_PLATFORM_IOS) || defined(GAINPUT_PLATFORM_MAC) || defined(GAINPUT_PLATFORM_TVOS)
 #include <mach/mach.h>
 #include <mach/clock.h>
+#elif defined(GAINPUT_PLATFORM_GGP)
+#include <time.h>
 #endif
 
 #include <stdlib.h>
@@ -203,7 +205,7 @@ InputManager::GetTime() const
 {
 	if (useSystemTime_)
 	{
-#if defined(GAINPUT_PLATFORM_LINUX) || defined(GAINPUT_PLATFORM_ANDROID)
+#if defined(GAINPUT_PLATFORM_LINUX) || defined(GAINPUT_PLATFORM_ANDROID) || defined(GAINPUT_PLATFORM_GGP)
 	struct timespec ts;
 	if (clock_gettime(CLOCK_MONOTONIC, &ts) == -1)
 	{

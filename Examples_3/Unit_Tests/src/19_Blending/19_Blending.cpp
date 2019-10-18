@@ -63,20 +63,6 @@
 // Memory
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
 
-const char* pszBases[FSR_Count] = {
-	"../../../src/19_Blending/",            // FSR_BinShaders
-	"../../../src/19_Blending/",            // FSR_SrcShaders
-	"../../../UnitTestResources/",          // FSR_Textures
-	"../../../UnitTestResources/",          // FSR_Meshes
-	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
-	"../../../src/19_Blending/",            // FSR_GpuConfig
-	"../../../UnitTestResources/",          // FSR_Animation
-	"",                                     // FSR_Audio
-	"",                                     // FSR_OtherFiles
-	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
-	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
-};
-
 //--------------------------------------------------------------------------------------------
 // RENDERING PIPELINE DATA
 //--------------------------------------------------------------------------------------------
@@ -340,6 +326,21 @@ class Blending: public IApp
 	public:
 	bool Init()
 	{
+        // FILE PATHS
+        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        if (!fsPlatformUsesBundledResources())
+        {
+            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/19_Blending");
+            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            
+            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../UnitTestResources/Textures");
+            fsSetRelativePathForResourceDirectory(RD_MESHES,             "../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,     "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,     "../../../../Middleware_3/UI");
+        }
+        
 		// WINDOW AND RENDERER SETUP
 		//
 		RendererDesc settings = { 0 };
@@ -366,7 +367,7 @@ class Blending: public IApp
 		//
 		initResourceLoaderInterface(pRenderer);
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
 			return false;
 
     // INITIALIZE THE USER INTERFACE
@@ -374,7 +375,7 @@ class Blending: public IApp
     if (!gAppUI.Init(pRenderer))
       return false;
 
-    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
 		initProfiler();
 
@@ -383,11 +384,11 @@ class Blending: public IApp
 		// INITIALIZE PIPILINE STATES
 		//
 		ShaderLoadDesc planeShader = {};
-		planeShader.mStages[0] = { "plane.vert", NULL, 0, FSR_SrcShaders };
-		planeShader.mStages[1] = { "plane.frag", NULL, 0, FSR_SrcShaders };
+		planeShader.mStages[0] = { "plane.vert", NULL, 0, RD_SHADER_SOURCES };
+		planeShader.mStages[1] = { "plane.frag", NULL, 0, RD_SHADER_SOURCES };
 		ShaderLoadDesc basicShader = {};
-		basicShader.mStages[0] = { "basic.vert", NULL, 0, FSR_SrcShaders };
-		basicShader.mStages[1] = { "basic.frag", NULL, 0, FSR_SrcShaders };
+		basicShader.mStages[0] = { "basic.vert", NULL, 0, RD_SHADER_SOURCES };
+		basicShader.mStages[1] = { "basic.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		addShader(pRenderer, &planeShader, &pPlaneDrawShader);
 		addShader(pRenderer, &basicShader, &pSkeletonShader);
@@ -501,27 +502,27 @@ class Blending: public IApp
 
 		// RIGS
 		//
-		eastl::string fullPath = FileSystem::FixPath(gStickFigureName, FSR_Animation);
+        PathHandle fullPath = fsCopyPathInResourceDirectory(RD_ANIMATIONS, gStickFigureName);
 
 		// Initialize the rig with the path to its ozz file
-		gStickFigureRig.Initialize(fullPath.c_str());
+		gStickFigureRig.Initialize(fullPath);
 
 		// Add the rig to the list of skeletons to render
 		gSkeletonBatcher.AddRig(&gStickFigureRig);
 
 		// CLIPS
 		//
-		fullPath = FileSystem::FixPath(gWalkClipName, FSR_Animation);
+		fullPath = fsCopyPathInResourceDirectory(RD_ANIMATIONS, gWalkClipName);
 
-		gWalkClip.Initialize(fullPath.c_str(), &gStickFigureRig);
+		gWalkClip.Initialize(fullPath, &gStickFigureRig);
 
-		fullPath = FileSystem::FixPath(gJogClipName, FSR_Animation);
+		fullPath = fsCopyPathInResourceDirectory(RD_ANIMATIONS, gJogClipName);
 
-		gJogClip.Initialize(fullPath.c_str(), &gStickFigureRig);
+		gJogClip.Initialize(fullPath, &gStickFigureRig);
 
-		fullPath = FileSystem::FixPath(gRunClipName, FSR_Animation);
+		fullPath = fsCopyPathInResourceDirectory(RD_ANIMATIONS, gRunClipName);
 
-		gRunClip.Initialize(fullPath.c_str(), &gStickFigureRig);
+		gRunClip.Initialize(fullPath, &gStickFigureRig);
 
 		// CLIP CONTROLLERS
 		//

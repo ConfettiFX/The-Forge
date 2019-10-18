@@ -26,7 +26,11 @@
 #define VOLK_FORGE_EXT_H_
 
 #include "../../../Renderer/IRenderer.h"
+#if defined(VK_USE_PLATFORM_GGP)
+#include <vulkan/vk_layer_dispatch_table.h>
+#else
 #include <LayerFactory/Project/vk_layer_dispatch_table.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,11 +46,6 @@ extern "C" {
  * Returns VK_SUCCESS on success and VK_ERROR_INITIALIZATION_FAILED otherwise.
  */
 VkResult volkInitializeWithDispatchTables(Renderer* pRenderer);
-
-/**
- * Wraps dispatchable VK objects.
- */
-VkResult wrapDispatchableVkObject(const void** pObj);
 
 #ifdef __cplusplus
 }

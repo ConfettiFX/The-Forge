@@ -40,7 +40,7 @@ class Clip
 {
 	public:
 	// Set up a clip associated with a rig and read from an ozz animation file path
-	void Initialize(const char* animationFile, Rig* rig);
+	void Initialize(const Path* animationPath, Rig* rig);
 
 	// Must be called to clean up if the clip was initialized
 	void Destroy();
@@ -53,7 +53,7 @@ class Clip
 
 	private:
 	// Load a clip from an ozz animation file
-	bool LoadClip(const char* animationFile);
+	bool LoadClip(const Path* animationPath);
 
 	// Runtime animation.
 	ozz::animation::Animation mAnimation;

@@ -61,7 +61,6 @@ enum LogLevel
 	eALL = ~0
 };
 
-class File;
 
 typedef void(*log_callback_t)(void * user_data, const eastl::string & message);
 typedef void(*log_close_t)(void * user_data);
@@ -84,6 +83,9 @@ public:
 
 	Log(LogLevel level = LogLevel::eALL);
 	~Log();
+
+	static void Init(LogLevel level = LogLevel::eALL);
+	static void Exit();
 
 	static void SetLevel(LogLevel level);
 	static void SetQuiet(bool bQuiet);

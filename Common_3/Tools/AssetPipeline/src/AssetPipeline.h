@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "../../../OS/Interfaces/IFileSystem.h"
+
 #include "../../../ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/skeleton.h"
 #include "../../../ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/animation.h"
 
@@ -40,14 +42,14 @@ struct ProcessAssetsSettings
 class AssetPipeline
 {
 public:
-	static bool ProcessAnimations(const char* animationDirectory, const char* outputDirectory, ProcessAssetsSettings* settings);
+	static bool ProcessAnimations(const Path* animationDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings);
 	static bool CreateRuntimeSkeleton(
-		const char* skeletonAsset, const char* skeletonName, const char* skeletonOutput, ozz::animation::Skeleton* skeleton,
+		const Path* skeletonAsset, const char* skeletonName, const Path* skeletonOutput, ozz::animation::Skeleton* skeleton,
 		ProcessAssetsSettings* settings);
 	static bool CreateRuntimeAnimation(
-		const char* animationAsset, ozz::animation::Skeleton* skeleton, const char* skeletonName, const char* animationName,
-		const char* animationOutput, ProcessAssetsSettings* settings);
+		const Path* animationAsset, ozz::animation::Skeleton* skeleton, const char* skeletonName, const char* animationName,
+		const Path* animationOutput, ProcessAssetsSettings* settings);
 
-	static bool ProcessModels(const char* meshDirectory, const char* outputDirectory, ProcessAssetsSettings* settings);
-	static bool ProcessTextures(const char* textureDirectory, const char* outputDirectory, ProcessAssetsSettings* settings);
+	static bool ProcessModels(const Path* meshDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings);
+	static bool ProcessTextures(const Path* textureDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings);
 };

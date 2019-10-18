@@ -168,9 +168,8 @@
       <AdditionalOptions>-Wno-unused-variable -Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <LibraryDependencies>Renderer;SpirvTools;OS;gainputstatic;shaderc</LibraryDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
+      <LibraryDependencies>OS;Renderer;OS;zip;z;SpirvTools;gainputstatic;shaderc;m;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
     </Link>
     <PreBuildEvent>
@@ -194,8 +193,8 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\01_Transformations\Shader
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <LibraryDependencies>Renderer;SpirvTools;OS;gainputstatic;shaderc</LibraryDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LibraryDependencies>OS;Renderer;OS;zip;z;SpirvTools;gainputstatic;shaderc</LibraryDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PreBuildEvent>
@@ -224,8 +223,8 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\01_Transformations\Shader
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
     </ClCompile>
     <Link>
-      <LibraryDependencies>OS;Renderer;SpirvTools;gainputstatic;shaderc;%(LibraryDependencies)</LibraryDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LibraryDependencies>Renderer;OS;zip;z;SpirvTools;gainputstatic;shaderc;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
       <SharedLibrarySearchPath>%(SharedLibrarySearchPath)</SharedLibrarySearchPath>
       <AdditionalOptions>-lm %(AdditionalOptions)</AdditionalOptions>
@@ -260,9 +259,9 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\01_Transformations\Shader
       <ExceptionHandling>Enabled</ExceptionHandling>
     </ClCompile>
     <Link>
-      <LibraryDependencies>Renderer;SpirvTools;OS;gainputstatic;shaderc;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>OS;Renderer;OS;zip;z;SpirvTools;gainputstatic;shaderc;%(LibraryDependencies)</LibraryDependencies>
       <AdditionalOptions>-lm %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
@@ -299,7 +298,7 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\01_Transformations\Shader
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <Link>
-      <LibraryDependencies>%(LibraryDependencies);GLESv1_CM;EGL;</LibraryDependencies>
+      <LibraryDependencies>OS;Renderer;OS;zip;z;SpirvTools;gainputstatic;shaderc;%(LibraryDependencies)</LibraryDependencies>
     </Link>
     <PreBuildEvent>
       <Command>
@@ -333,7 +332,7 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\01_Transformations\Shader
       <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <Link>
-      <LibraryDependencies>%(LibraryDependencies);GLESv1_CM;EGL;</LibraryDependencies>
+      <LibraryDependencies>OS;Renderer;OS;zip;z;SpirvTools;gainputstatic;shaderc;%(LibraryDependencies)</LibraryDependencies>
     </Link>
     <PreBuildEvent>
       <Command>

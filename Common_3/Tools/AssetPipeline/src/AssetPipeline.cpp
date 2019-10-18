@@ -53,7 +53,7 @@
 #include "../../../OS/Interfaces/ILog.h"
 #include "../../../OS/Interfaces/IMemory.h"    //NOTE: this should be the last include in a .cpp
 
-typedef eastl::unordered_map<eastl::string, eastl::vector<eastl::string>> AnimationAssetMap;
+typedef eastl::unordered_map<eastl::string, eastl::vector<PathHandle>> AnimationAssetMap;
 
 struct NodeInfo
 {
@@ -81,7 +81,7 @@ struct BoneInfo
 	ozz::animation::offline::RawSkeleton::Joint* pParentJoint;
 };
 
-bool ImportFBX(const char* fbxFile, const aiScene** pScene)
+bool ImportFBX(const Path* fbxFile, const aiScene** pScene)
 {
 	// Set up assimp to be able to parse our fbx files correctly
 	aiPropertyStore* propertyStore = aiCreatePropertyStore();
@@ -97,7 +97,7 @@ bool ImportFBX(const char* fbxFile, const aiScene** pScene)
 	flags &= ~aiProcess_FindInstances;
 
 	// Import an assimp scene
-	*pScene = aiImportFileExWithProperties(fbxFile, flags, nullptr, propertyStore);
+	*pScene = aiImportFileExWithProperties(fsGetPathAsNativeString(fbxFile), flags, nullptr, propertyStore);
 
 	// If the import failed, report it
 	if (*pScene == NULL)
@@ -109,196 +109,194 @@ bool ImportFBX(const char* fbxFile, const aiScene** pScene)
 	return true;
 }
 
-bool AssetPipeline::ProcessAnimations(const char* animationDirectory, const char* outputDirectory, ProcessAssetsSettings* settings)
+bool AssetPipeline::ProcessAnimations(const Path* animationDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings)
 {
 	// Check if animationDirectory exists
-	if (!FileSystem::DirExists(animationDirectory))
+	if (!fsFileExists(animationDirectory))
 	{
 		LOGF(LogLevel::eERROR, "AnimationDirectory: \"%s\" does not exist.", animationDirectory);
 		return false;
 	}
 
 	// Check if output directory exists
-	eastl::string outputDir = FileSystem::AddTrailingSlash(outputDirectory);
-	bool            outputDirExists = FileSystem::DirExists(outputDir);
+	bool outputDirExists = fsFileExists(outputDirectory);
 
 	// Check for assets containing animations in animationDirectory
-	AnimationAssetMap                animationAssets;
-	eastl::vector<eastl::string> subDirectories = {};
-	FileSystem::GetSubDirectories(animationDirectory, subDirectories);
-	for (const eastl::string& subDir : subDirectories)
-	{
-		// Get all fbx files
-		eastl::vector<eastl::string> filesInDirectory;
-		FileSystem::GetFilesWithExtension(subDir, ".fbx", filesInDirectory);
+    AnimationAssetMap                animationAssets;
+    
+    eastl::vector<PathHandle> subDirectories = fsGetSubDirectories(animationDirectory);
+    for (const PathHandle& subDir : subDirectories)
+    {
+        // Get all fbx files
+        eastl::vector<PathHandle> filesInDirectory = fsGetFilesWithExtension(subDir, "fbx");
 
-		for (const eastl::string& file : filesInDirectory)
-		{
-			eastl::string fileName = FileSystem::GetFileName(file);
-			fileName.make_lower();
-			if (fileName == "riggedmesh")
-			{
-				// Add new animation asset named after the folder it is in
-				eastl::string assetName = FileSystem::GetFileName(subDir);
-				animationAssets[assetName].push_back(file);
+        for (const PathHandle& file : filesInDirectory)
+        {
+            eastl::string fileName = fsPathComponentToString(fsGetPathFileName(file));
+            fileName.make_lower();
+            if (fileName == "riggedmesh")
+            {
+                // Add new animation asset named after the folder it is in
+                eastl::string assetName = fsPathComponentToString(fsGetPathFileName(subDir));
+                animationAssets[assetName].push_back(file);
 
-				// Find sub directory called animations
-				eastl::vector<eastl::string> assetSubDirectories;
-				FileSystem::GetSubDirectories(subDir, assetSubDirectories);
-				for (const eastl::string& assetSubDir : assetSubDirectories)
-				{
-					eastl::string subDir = FileSystem::GetFileName(assetSubDir);
-					subDir.make_lower();
-					if (subDir == "animations")
-					{
-						// Add all files in animations to the animation asset
-						filesInDirectory.clear();
-						FileSystem::GetFilesWithExtension(assetSubDir, ".fbx", filesInDirectory);
-						animationAssets[assetName].insert(
-							animationAssets[assetName].end(), filesInDirectory.begin(), filesInDirectory.end());
-						break;
-					}
-				}
+                // Find sub directory called animations
+                eastl::vector<PathHandle> assetSubDirectories = fsGetSubDirectories(subDir);
+                for (const PathHandle& assetSubDir : assetSubDirectories)
+                {
+                    eastl::string subDir = fsPathComponentToString(fsGetPathFileName(assetSubDir));
+                    subDir.make_lower();
+                    if (subDir == "animations")
+                    {
+                        // Add all files in animations to the animation asset
+                        filesInDirectory.clear();
+                        filesInDirectory = fsGetFilesWithExtension(assetSubDir, "fbx");
+                        animationAssets[assetName].insert(
+                            animationAssets[assetName].end(), filesInDirectory.begin(), filesInDirectory.end());
+                        break;
+                    }
+                }
 
-				break;
-			}
-		}
-	}
+                break;
+            }
+        }
+    }
 
-	// Do some checks
-	if (!settings->quiet)
-	{
-		if (animationAssets.empty())
-			LOGF(LogLevel::eWARNING, "%s does not contain any animation files.", animationDirectory);
+    // Do some checks
+    if (!settings->quiet)
+    {
+        if (animationAssets.empty())
+            LOGF(LogLevel::eWARNING, "%s does not contain any animation files.", fsGetPathAsNativeString(animationDirectory));
 
-		for (AnimationAssetMap::iterator it = animationAssets.begin(); it != animationAssets.end(); ++it)
-		{
-			if (it->second.size() == 1)
-				LOGF(LogLevel::eWARNING, "No animations found for rigged mesh %s.", it->first.c_str());
-		}
-	}
+        for (AnimationAssetMap::iterator it = animationAssets.begin(); it != animationAssets.end(); ++it)
+        {
+            if (it->second.size() == 1)
+                LOGF(LogLevel::eWARNING, "No animations found for rigged mesh %s.", it->first.c_str());
+        }
+    }
 
-	// No assets found. Return.
-	if (animationAssets.empty())
-		return true;
+    // No assets found. Return.
+    if (animationAssets.empty())
+        return true;
 
-	// Process the found assets
-	int  assetsProcessed = 0;
-	bool success = true;
-	for (AnimationAssetMap::iterator it = animationAssets.begin(); it != animationAssets.end(); ++it)
-	{
-		const eastl::string& skinnedMesh = it->second[0];
+    // Process the found assets
+    int  assetsProcessed = 0;
+    bool success = true;
+    for (AnimationAssetMap::iterator it = animationAssets.begin(); it != animationAssets.end(); ++it)
+    {
+        const Path* skinnedMesh = it->second[0];
 
-		// Create skeleton output file name
-		eastl::string skeletonOutputDir = outputDir + it->first;
-		eastl::string skeletonOutput = skeletonOutputDir + "/skeleton.ozz";
+        // Create skeleton output file name
+        PathHandle skeletonOutputDir = fsAppendPathComponent(outputDirectory, it->first.c_str());
+        PathHandle skeletonOutput = fsAppendPathComponent(skeletonOutputDir, "skeleton.ozz");
 
-		// Check if the skeleton is already up-to-date
-		bool processSkeleton = true;
-		if (!settings->force && outputDirExists)
-		{
-			time_t lastModified = FileSystem::GetLastModifiedTime(skinnedMesh);
-			time_t lastProcessed = FileSystem::GetLastModifiedTime(skeletonOutput);
+        // Check if the skeleton is already up-to-date
+        bool processSkeleton = true;
+        if (!settings->force && outputDirExists)
+        {
+            time_t lastModified = fsGetLastModifiedTime(skinnedMesh);
+            time_t lastProcessed = fsGetLastModifiedTime(skeletonOutput);
 
-			if (lastModified < lastProcessed && lastProcessed != ~0u && lastProcessed > settings->minLastModifiedTime)
-				processSkeleton = false;
-		}
+            if (lastModified < lastProcessed && lastProcessed != ~0u && lastProcessed > settings->minLastModifiedTime)
+                processSkeleton = false;
+        }
 
-		ozz::animation::Skeleton skeleton;
-		if (processSkeleton)
-		{
-			// If output directory doesn't exist, create it.
-			if (!outputDirExists)
-			{
-				if (!FileSystem::CreateDir(outputDir))
-				{
-					LOGF(LogLevel::eERROR, "Failed to create output directory %s.", outputDir.c_str());
-					return false;
-				}
-				outputDirExists = true;
-			}
+        ozz::animation::Skeleton skeleton;
+        if (processSkeleton)
+        {
+            // If output directory doesn't exist, create it.
+            if (!outputDirExists)
+            {
+                if (!fsCreateDirectory(outputDirectory))
+                {
+                    LOGF(LogLevel::eERROR, "Failed to create output directory %s.", fsGetPathAsNativeString(outputDirectory));
+                    return false;
+                }
+                outputDirExists = true;
+            }
 
-			if (!FileSystem::DirExists(skeletonOutputDir))
-			{
-				if (!FileSystem::CreateDir(skeletonOutputDir))
-				{
-					LOGF(LogLevel::eERROR, "Failed to create output directory %s.", skeletonOutputDir.c_str());
-					success = false;
-					continue;
-				}
-			}
+            if (!fsFileExists(skeletonOutputDir))
+            {
+                if (!fsCreateDirectory(skeletonOutputDir))
+                {
+                    LOGF(LogLevel::eERROR, "Failed to create output directory %s.", fsGetPathAsNativeString(skeletonOutputDir));
+                    success = false;
+                    continue;
+                }
+            }
 
-			// Process the skeleton
-			if (!CreateRuntimeSkeleton(skinnedMesh.c_str(), it->first.c_str(), skeletonOutput.c_str(), &skeleton, settings))
-			{
-				success = false;
-				continue;
-			}
+            // Process the skeleton
+            if (!CreateRuntimeSkeleton(skinnedMesh, it->first.c_str(), skeletonOutput, &skeleton, settings))
+            {
+                success = false;
+                continue;
+            }
 
-			++assetsProcessed;
-		}
-		else
-		{
-			if (!AssetLoader::LoadSkeleton(skeletonOutput.c_str(), FSR_Absolute, &skeleton))
-				return false;
-		}
+            ++assetsProcessed;
+        }
+        else
+        {
+            if (!AssetLoader::LoadSkeleton(skeletonOutput, &skeleton))
+                return false;
+        }
 
-		// If output directory doesn't exist, create it.
-		eastl::string animationOutputDir = skeletonOutputDir + "/animations";
-		if (!FileSystem::DirExists(animationOutputDir))
-		{
-			if (!FileSystem::CreateDir(animationOutputDir))
-			{
-				LOGF(LogLevel::eERROR, "Failed to create output directory %s.", animationOutputDir.c_str());
-				success = false;
-				skeleton.Deallocate();
-				continue;
-			}
-		}
+        // If output directory doesn't exist, create it.
+        PathHandle animationOutputDir = fsAppendPathComponent(skeletonOutputDir, "animations");
+        if (!fsFileExists(animationOutputDir))
+        {
+            if (!fsCreateDirectory(animationOutputDir))
+            {
+                LOGF(LogLevel::eERROR, "Failed to create output directory %s.", fsGetPathAsNativeString(animationOutputDir));
+                success = false;
+                skeleton.Deallocate();
+                continue;
+            }
+        }
 
-		// Process animations
-		for (size_t i = 1; i < it->second.size(); ++i)
-		{
-			const eastl::string& animationFile = it->second[i];
-			;
-			eastl::string animationName = FileSystem::GetFileName(animationFile);
+        // Process animations
+        for (size_t i = 1; i < it->second.size(); ++i)
+        {
+            const PathHandle& animationFile = it->second[i];
+            
+            eastl::string animationName = fsPathComponentToString(fsGetPathFileName(animationFile));
 
-			// Create animation output file name
-			eastl::string animationOutput = outputDir + it->first + "/animations/" + animationName + ".ozz";
+            // Create animation output file name
+            const eastl::string outputFileString = it->first + "/animations/" + animationName + ".ozz";
+            const PathHandle animationOutput = fsAppendPathComponent(outputDirectory, outputFileString.c_str());
 
-			// Check if the animation is already up-to-date
-			bool processAnimation = true;
-			if (!settings->force && outputDirExists && !processSkeleton)
-			{
-				time_t lastModified = FileSystem::GetLastModifiedTime(animationFile);
-				time_t lastProcessed = FileSystem::GetLastModifiedTime(animationOutput);
+            // Check if the animation is already up-to-date
+            bool processAnimation = true;
+            if (!settings->force && outputDirExists && !processSkeleton)
+            {
+                time_t lastModified = fsGetLastModifiedTime(animationFile);
+                time_t lastProcessed = fsGetLastModifiedTime(animationOutput);
 
-				if (lastModified < lastProcessed && lastProcessed != ~0u && lastModified > settings->minLastModifiedTime)
-					processAnimation = false;
-			}
+                if (lastModified < lastProcessed && lastProcessed != ~0u && lastModified > settings->minLastModifiedTime)
+                    processAnimation = false;
+            }
 
-			if (processAnimation)
-			{
-				// Process the animation
-				if (!CreateRuntimeAnimation(
-					animationFile.c_str(), &skeleton, it->first.c_str(), animationName.c_str(), animationOutput.c_str(), settings))
-					continue;
+            if (processAnimation)
+            {
+                // Process the animation
+                if (!CreateRuntimeAnimation(
+                    animationFile, &skeleton, it->first.c_str(), animationName.c_str(), animationOutput, settings))
+                    continue;
 
-				++assetsProcessed;
-			}
-		}
+                ++assetsProcessed;
+            }
+        }
 
-		skeleton.Deallocate();
-	}
+        skeleton.Deallocate();
+    }
 
-	if (!settings->quiet && assetsProcessed == 0 && success)
-		LOGF(LogLevel::eINFO, "All assets already up-to-date.");
+    if (!settings->quiet && assetsProcessed == 0 && success)
+        LOGF(LogLevel::eINFO, "All assets already up-to-date.");
 
-	return success;
+    return success;
 }
 
 bool AssetPipeline::CreateRuntimeSkeleton(
-	const char* skeletonAsset, const char* skeletonName, const char* skeletonOutput, ozz::animation::Skeleton* skeleton,
+	const Path* skeletonAsset, const char* skeletonName, const Path* skeletonOutput, ozz::animation::Skeleton* skeleton,
 	ProcessAssetsSettings* settings)
 {
 	// Import the FBX with the animation
@@ -472,17 +470,21 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 	}
 
 	// Write skeleton to disk
-	ozz::io::File     file(skeletonOutput, "wb");
+	ozz::io::File     file(skeletonOutput, FM_WRITE_BINARY);
+	if (!file.opened())
+		return false;
+
 	ozz::io::OArchive archive(&file);
 	archive << *skeleton;
-	file.Close();
+	if (!file.CloseOzzFile())
+		return false;
 
 	return true;
 }
 
 bool AssetPipeline::CreateRuntimeAnimation(
-	const char* animationAsset, ozz::animation::Skeleton* skeleton, const char* skeletonName, const char* animationName,
-	const char* animationOutput, ProcessAssetsSettings* settings)
+	const Path* animationAsset, ozz::animation::Skeleton* skeleton, const char* skeletonName, const char* animationName,
+	const Path* animationOutput, ProcessAssetsSettings* settings)
 {
 	// Import the FBX with the animation
 	const aiScene* scene = NULL;
@@ -593,44 +595,43 @@ bool AssetPipeline::CreateRuntimeAnimation(
 	}
 
 	// Write animation to disk
-	ozz::io::File     file(animationOutput, "wb");
+	ozz::io::File     file(animationOutput, FM_WRITE_BINARY);
+	if (!file.opened())
+		return false;
+
 	ozz::io::OArchive archive(&file);
 	archive << animation;
-	file.Close();
-
+	if (!file.CloseOzzFile())
+		return false;
 	//Deallocate animation
 	animation.Deallocate();
 
 	return true;
 }
 
-bool AssetPipeline::ProcessModels(const char* meshDirectory, const char* outputDirectory, ProcessAssetsSettings* settings)
+bool AssetPipeline::ProcessModels(const Path* meshDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings)
 {
 	// Check if directory exists
-	if (!FileSystem::DirExists(meshDirectory))
+	if (!fsFileExists(meshDirectory))
 	{
 		LOGF(LogLevel::eERROR, "meshDirectory: \"%s\" does not exist.", meshDirectory);
 		return false;
 	}
 
-	eastl::string outputDir = FileSystem::AddTrailingSlash(outputDirectory);
-
 	// If output directory doesn't exist, create it.
-	if (!FileSystem::DirExists(outputDir))
+	if (!fsFileExists(outputDirectory))
 	{
-		if (!FileSystem::CreateDir(outputDir))
+		if (!fsCreateDirectory(outputDirectory))
 		{
 			LOGF(LogLevel::eERROR, "Failed to create output directory %s.", outputDirectory);
 			return false;
 		}
 	}
 
-	eastl::vector<eastl::string> subDirectories = {};
-	FileSystem::GetSubDirectories(meshDirectory, subDirectories);
+	eastl::vector<PathHandle> subDirectories = fsGetSubDirectories(meshDirectory);
 
 	// Get all .gltf files
-	eastl::vector<eastl::string> filesInDirectory;
-	FileSystem::GetFilesWithExtension(meshDirectory, ".gltf", filesInDirectory);
+	eastl::vector<PathHandle> filesInDirectory = fsGetFilesWithExtension(meshDirectory, "gltf");
 
 	int argc = 11;
 	char argPosBits[4] = { '1', '6', '\0', '\0' };
@@ -641,17 +642,17 @@ bool AssetPipeline::ProcessModels(const char* meshDirectory, const char* outputD
 	sprintf(&argNormBits[0], "%d", settings->quantizeNormalBits);
 
 	// Load gltf models in directory
-	for (const eastl::string& file : filesInDirectory)
+	for (const PathHandle& file : filesInDirectory)
 	{
-		eastl::string fileName = FileSystem::GetFileName(file).append("_OPTIMIZED_p");
+		eastl::string fileName = fsPathComponentToString(fsGetPathFileName(file)).append("_OPTIMIZED_p");
 		fileName.append(argPosBits);
 		fileName.append("_uv");
 		fileName.append(argTexBits);
 		fileName.append("_n");
 		fileName.append(argNormBits);
 		fileName.append(".gltf");
-		eastl::string outputPath = outputDir + fileName;
-		const char* argv[] = { "gltfpack", "-i", file.c_str(), "-o", outputPath.c_str(),
+        PathHandle outputPath = fsAppendPathComponent(outputDirectory, fileName.c_str());
+		const char* argv[] = { "gltfpack", "-i", fsGetPathAsNativeString(file), "-o", fsGetPathAsNativeString(outputPath),
 								"-vp", argPosBits,
 								"-vt", argTexBits,
 								"-vn", argNormBits };
@@ -661,39 +662,37 @@ bool AssetPipeline::ProcessModels(const char* meshDirectory, const char* outputD
 	return true;
 }
 
-bool AssetPipeline::ProcessTextures(const char* textureDirectory, const char* outputDirectory, ProcessAssetsSettings* settings)
+bool AssetPipeline::ProcessTextures(const Path* textureDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings)
 {
 	// Check if directory exists
-	if (!FileSystem::DirExists(textureDirectory))
+	if (!fsFileExists(textureDirectory))
 	{
 		LOGF(LogLevel::eERROR, "textureDirectory: \"%s\" does not exist.", textureDirectory);
 		return false;
 	}
 
-	eastl::string outputDir = FileSystem::AddTrailingSlash(outputDirectory);
-
 	// If output directory doesn't exist, create it.
-	if (!FileSystem::DirExists(outputDir))
+	if (!fsFileExists(outputDirectory))
 	{
-		if (!FileSystem::CreateDir(outputDir))
+		if (!fsCreateDirectory(outputDirectory))
 		{
 			LOGF(LogLevel::eERROR, "Failed to create output directory %s.", outputDirectory);
 			return false;
 		}
 	}
 
-	eastl::string currentDir = FileSystem::GetCurrentDir();
-	currentDir.append("ImageConvertTools/ImageConvertTool.py");
+    PathHandle currentDir = fsCopyWorkingDirectoryPath();
+	currentDir = fsAppendPathComponent(currentDir, "ImageConvertTools/ImageConvertTool.py");
 	eastl::string cmd("python ");
 	cmd.append("\"");
-	cmd.append(currentDir);
+	cmd.append(fsGetPathAsNativeString(currentDir));
 	cmd.append("\"");
 	cmd.append(" fixall ");
-	eastl::string inputStr(textureDirectory);
+	eastl::string inputStr(fsGetPathAsNativeString(textureDirectory));
 	cmd.append(inputStr);
 	cmd.append(" ");
 
-	eastl::string outputStr(outputDirectory);
+	eastl::string outputStr(fsGetPathAsNativeString(outputDirectory));
 	cmd.append(outputStr);
 
 #if !defined(TARGET_IOS) && !defined(__ANDROID__) && !defined(_DURANGO)

@@ -137,6 +137,7 @@
 #include <mutex>
 #include <atomic>
 #endif
+#include "../../../OS/Interfaces/IFileSystem.h"
 
 #ifndef PROFILE_API
 #define PROFILE_API
@@ -206,7 +207,7 @@ inline int64_t ProfileGetTick()
 	return 1000000000ll * ts.tv_sec + ts.tv_nsec;
 }
 #define strcpy_s(pDest, size, pSrc) strncpy(pDest,pSrc, size)
-#define fopen_s(pFile,filename,mode) ((*(pFile))=fopen((filename),(mode)))==NULL
+#define fopen_s(pFile,filename,mode) ((*(pFile))=(FILE*)open_file((filename),(mode)))==NULL
 
 #define P_TICK() ProfileGetTick()
 #define P_BREAK() __builtin_trap()
@@ -736,7 +737,7 @@ struct Profile
 	uint32_t nAutoClearFrames;
 	ProfileDumpType eDumpType;
 	uint32_t nDumpFrames;
-	char DumpPath[512];
+	Path* DumpPath;
 
 	int64_t nPauseTicks;
 

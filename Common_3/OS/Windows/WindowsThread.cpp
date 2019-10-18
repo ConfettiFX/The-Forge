@@ -29,53 +29,71 @@
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/IMemory.h"
 
-DWORD WINAPI ThreadFunctionStatic(void* data)
+bool Mutex::Init(uint32_t spinCount /* = kDefaultSpinCount */, const char* name /* = NULL */)
 {
-	ThreadDesc* pDesc = (ThreadDesc*)data;
-	pDesc->pFunc(pDesc->pData);
-	return 0;
+	return InitializeCriticalSectionAndSpinCount((CRITICAL_SECTION*)&mHandle, (DWORD)spinCount);
 }
 
-Mutex::Mutex()
+void Mutex::Destroy()
 {
-	pHandle = (CRITICAL_SECTION*)conf_calloc(1, sizeof(CRITICAL_SECTION));
-	InitializeCriticalSection((CRITICAL_SECTION*)pHandle);
-}
-
-Mutex::~Mutex()
-{
-	CRITICAL_SECTION* cs = (CRITICAL_SECTION*)pHandle;
+	CRITICAL_SECTION* cs = (CRITICAL_SECTION*)&mHandle;
 	DeleteCriticalSection(cs);
-	conf_free(cs);
-	pHandle = 0;
+	mHandle = {};
 }
 
-void Mutex::Acquire() { EnterCriticalSection((CRITICAL_SECTION*)pHandle); }
+void Mutex::Acquire()
+{
+	EnterCriticalSection((CRITICAL_SECTION*)&mHandle);
+}
 
-void Mutex::Release() { LeaveCriticalSection((CRITICAL_SECTION*)pHandle); }
+bool Mutex::TryAcquire()
+{
+	return TryEnterCriticalSection((CRITICAL_SECTION*)&mHandle);
+}
 
-ConditionVariable::ConditionVariable()
+void Mutex::Release()
+{
+	LeaveCriticalSection((CRITICAL_SECTION*)&mHandle);
+}
+
+bool ConditionVariable::Init(const char* name)
 {
 	pHandle = (CONDITION_VARIABLE*)conf_calloc(1, sizeof(CONDITION_VARIABLE));
 	InitializeConditionVariable((PCONDITION_VARIABLE)pHandle);
+	return true;
 }
 
-ConditionVariable::~ConditionVariable() { conf_free(pHandle); }
+void ConditionVariable::Destroy()
+{
+	conf_free(pHandle);
+}
 
 void ConditionVariable::Wait(const Mutex& mutex, uint32_t ms)
 {
-	SleepConditionVariableCS((PCONDITION_VARIABLE)pHandle, (PCRITICAL_SECTION)mutex.pHandle, ms);
+	SleepConditionVariableCS((PCONDITION_VARIABLE)pHandle, (PCRITICAL_SECTION)&mutex.mHandle, ms);
 }
 
-void ConditionVariable::WakeOne() { WakeConditionVariable((PCONDITION_VARIABLE)pHandle); }
+void ConditionVariable::WakeOne()
+{
+	WakeConditionVariable((PCONDITION_VARIABLE)pHandle);
+}
 
-void ConditionVariable::WakeAll() { WakeAllConditionVariable((PCONDITION_VARIABLE)pHandle); }
+void ConditionVariable::WakeAll()
+{
+	WakeAllConditionVariable((PCONDITION_VARIABLE)pHandle);
+}
 
 ThreadID Thread::mainThreadID;
 
-void Thread::SetMainThread() { mainThreadID = GetCurrentThreadID(); }
+void Thread::SetMainThread()
+{
+	mainThreadID = GetCurrentThreadID();
+}
 
-ThreadID Thread::GetCurrentThreadID() { return GetCurrentThreadId(); }
+ThreadID Thread::GetCurrentThreadID()
+{
+	return GetCurrentThreadId();
+}
 
 char * thread_name()
 {
@@ -91,9 +109,35 @@ void Thread::GetCurrentThreadName(char * buffer, int size)
 		buffer[0] = 0;
 }
 
-void Thread::SetCurrentThreadName(const char * name) { strcpy_s(thread_name(), MAX_THREAD_NAME_LENGTH + 1, name); }
+void Thread::SetCurrentThreadName(const char * name)
+{
+	strcpy_s(thread_name(), MAX_THREAD_NAME_LENGTH + 1, name);
+}
 
-bool Thread::IsMainThread() { return GetCurrentThreadID() == mainThreadID; }
+bool Thread::IsMainThread()
+{
+	return GetCurrentThreadID() == mainThreadID;
+}
+
+DWORD WINAPI ThreadFunctionStatic(void* data)
+{
+	ThreadDesc* pDesc = (ThreadDesc*)data;
+	pDesc->pFunc(pDesc->pData);
+	return 0;
+}
+
+void Thread::Sleep(unsigned mSec)
+{
+	::Sleep(mSec);
+}
+
+// threading class (Static functions)
+unsigned int Thread::GetNumCPUCores(void)
+{
+	_SYSTEM_INFO systemInfo;
+	GetSystemInfo(&systemInfo);
+	return systemInfo.dwNumberOfProcessors;
+}
 
 ThreadHandle create_thread(ThreadDesc* pDesc)
 {
@@ -110,18 +154,14 @@ void destroy_thread(ThreadHandle handle)
 	handle = 0;
 }
 
-void join_thread(ThreadHandle handle) { WaitForSingleObject((HANDLE)handle, INFINITE); }
-
-void Thread::Sleep(unsigned mSec) { ::Sleep(mSec); }
-
-// threading class (Static functions)
-unsigned int Thread::GetNumCPUCores(void)
+void join_thread(ThreadHandle handle)
 {
-	_SYSTEM_INFO systemInfo;
-	GetSystemInfo(&systemInfo);
-	return systemInfo.dwNumberOfProcessors;
+	WaitForSingleObject((HANDLE)handle, INFINITE);
 }
 
-void sleep(uint32_t mSec) { ::Sleep((DWORD)mSec); }
+void sleep(uint32_t mSec)
+{
+	::Sleep((DWORD)mSec);
+}
 
 #endif

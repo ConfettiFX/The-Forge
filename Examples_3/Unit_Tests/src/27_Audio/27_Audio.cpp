@@ -57,22 +57,6 @@
 
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
 
-
-
-const char* pszBases[FSR_Count] = {
-	"../../../src/27_Audio/",       // FSR_BinShaders
-	"../../../src/27_Audio/",       // FSR_SrcShaders
-	"../../../UnitTestResources/",          // FSR_Textures
-	"../../../UnitTestResources/",          // FSR_Meshes
-	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
-	"../../../src/27_Audio/",       // FSR_GpuConfig
-	"",                                     // FSR_Animation
-	"../../../UnitTestResources/",          // FSR_Audio
-	"",                                     // FSR_OtherFiles
-	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
-	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
-};
-
 //--------------------------------------------------------------------------------------------
 // RENDERING PIPELINE DATA
 //--------------------------------------------------------------------------------------------
@@ -101,15 +85,21 @@ GuiComponent* pStandaloneControlsGUIWindow = NULL;
 const char* gWavBgTestFile = "test.wav";
 const char* gOggWarNoiseFile = "war_loop.ogg";
 
-SoLoud::Soloud gSoLoud;  // SoLoud engine core
-SoLoud::FFTFilter gFftFilter;
-
-SoLoud::Speech gSpeech;  // A sound source (speech, in this case)
-SoLoud::Wav    gBgWavObj;
-SoLoud::Wav    gWarWavObj;
 SoLoud::handle gSpeechHandle = 0;
 SoLoud::handle gBgWavHandle = 0;
 SoLoud::handle gWarWavHandle = 0;
+
+struct GlobalAudio
+{
+	SoLoud::Soloud mSoLoud;  // SoLoud engine core
+	SoLoud::FFTFilter mFftFilter;
+
+	SoLoud::Speech mSpeech;  // A sound source (speech, in this case)
+	SoLoud::Wav    mBgWavObj;
+	SoLoud::Wav    mWarWavObj;
+};
+
+GlobalAudio* pGlobal = NULL;
 
 char gSpeechText[512] = "Hello, this is an audio unit test.";
 bool gSpeechWetFilter = false;
@@ -122,7 +112,7 @@ bool gUseSpeechWetFilter = false;
 
 static void SetGlobalVolume()
 {
-	gSoLoud.setGlobalVolume(gGlobalVolume);
+	pGlobal->mSoLoud.setGlobalVolume(gGlobalVolume);
 }
 
 static void ToggleBgAudio()
@@ -130,12 +120,12 @@ static void ToggleBgAudio()
 	gBackGroundAudioOn = !gBackGroundAudioOn;
 	if (gBackGroundAudioOn)
 	{
-		gBgWavHandle = gSoLoud.playBackground(gBgWavObj);
-		gSoLoud.setLooping(gBgWavHandle, true);
+		gBgWavHandle = pGlobal->mSoLoud.playBackground(pGlobal->mBgWavObj);
+		pGlobal->mSoLoud.setLooping(gBgWavHandle, true);
 	}
 	else
 	{
-		gSoLoud.stop(gBgWavHandle);
+		pGlobal->mSoLoud.stop(gBgWavHandle);
 		gBgWavHandle = 0;
 	}
 }
@@ -144,36 +134,36 @@ static void PlayWarAudio()
 {
 	if (gWarWavHandle != 0)
 	{
-		gSoLoud.stop(gWarWavHandle);
+		pGlobal->mSoLoud.stop(gWarWavHandle);
 		gWarWavHandle = 0;
 	}
 
-	gWarWavHandle = gSoLoud.play(gWarWavObj, -1.f, gWarWavPan);
+	gWarWavHandle = pGlobal->mSoLoud.play(pGlobal->mWarWavObj, -1.f, gWarWavPan);
 }
 
 static void SetWarAudioPan()
 {
 	if (gWarWavHandle != 0)
 	{
-		gSoLoud.setPan(gWarWavHandle, gWarWavPan);
+		pGlobal->mSoLoud.setPan(gWarWavHandle, gWarWavPan);
 	}
 }
 
 static void SetSpeechFilter()
 {
-	gSpeech.setFilter(1, gUseSpeechWetFilter ? &gFftFilter : NULL);
+	pGlobal->mSpeech.setFilter(1, gUseSpeechWetFilter ? &pGlobal->mFftFilter : NULL);
 }
 
 static void PlaySpeechAudio()
 {
 	if (gSpeechHandle != 0)
 	{
-		gSoLoud.stop(gSpeechHandle);
+		pGlobal->mSoLoud.stop(gSpeechHandle);
 		gSpeechHandle = 0;
 	}
 
-	gSpeech.setText(gSpeechText);
-	gSpeechHandle = gSoLoud.play(gSpeech, -1.f, gSpeechPan);
+	pGlobal->mSpeech.setText(gSpeechText);
+	gSpeechHandle = pGlobal->mSoLoud.play(pGlobal->mSpeech, -1.f, gSpeechPan);
 	SetSpeechFilter();
 }
 
@@ -181,7 +171,7 @@ static void SetSpeechAudioPan()
 {
 	if (gSpeechHandle != 0)
 	{
-		gSoLoud.setPan(gSpeechHandle, gSpeechPan);
+		pGlobal->mSoLoud.setPan(gSpeechHandle, gSpeechPan);
 	}
 }
 
@@ -195,6 +185,22 @@ class AudioUnitTest : public IApp
 public:
 	bool Init()
 	{
+        // FILE PATHS
+        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        if (!fsPlatformUsesBundledResources())
+        {
+            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/27_Audio");
+            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            
+            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../UnitTestResources/Textures");
+            fsSetRelativePathForResourceDirectory(RD_MESHES,          "../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirectory(RD_AUDIO,           "../../UnitTestResources/Audio");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
+        }
+        
 		// WINDOW AND RENDERER SETUP
 		//
 		RendererDesc settings = { 0 };
@@ -236,7 +242,7 @@ public:
 			return false;
 		}
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
 		// Add the GUI Panels/Windows
 		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 16 };
@@ -290,18 +296,19 @@ public:
 			pStandaloneControlsGUIWindow->AddWidget(SeparatorWidget());		
 		}
 
-		// Init the audio data			
-		gSoLoud.init();
+		// Init the audio data
+		pGlobal = conf_new(GlobalAudio);
+		pGlobal->mSoLoud.init();
 				
-		SoLoud::result res = gBgWavObj.load(gWavBgTestFile);
+		SoLoud::result res = pGlobal->mBgWavObj.load(gWavBgTestFile);
 		ASSERT(res == SoLoud::SO_NO_ERROR);
-		res = gWarWavObj.load(gOggWarNoiseFile);
+		res = pGlobal->mWarWavObj.load(gOggWarNoiseFile);
 		ASSERT(res == SoLoud::SO_NO_ERROR);		
 
-		gSoLoud.setGlobalVolume(gGlobalVolume);
+		pGlobal->mSoLoud.setGlobalVolume(gGlobalVolume);
 
-		gBgWavHandle = gSoLoud.playBackground(gBgWavObj);
-		gSoLoud.setLooping(gBgWavHandle, true);
+		gBgWavHandle = pGlobal->mSoLoud.playBackground(pGlobal->mBgWavObj);
+		pGlobal->mSoLoud.setLooping(gBgWavHandle, true);
 
 		if (!initInputSystem(pWindow))
 			return false;
@@ -324,8 +331,8 @@ public:
 
 		exitInputSystem();
 
-		gSoLoud.stopAll();
-		gSoLoud.deinit();
+		pGlobal->mSoLoud.stopAll();
+		pGlobal->mSoLoud.deinit();
 
 		gAppUI.Exit();
 				
@@ -344,6 +351,8 @@ public:
 		removeResourceLoaderInterface(pRenderer);
 		removeQueue(pGraphicsQueue);
 		removeRenderer(pRenderer);
+
+		conf_delete(pGlobal);
 	}
 
 	bool Load()

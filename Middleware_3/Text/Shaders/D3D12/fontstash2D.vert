@@ -10,17 +10,22 @@ struct PsIn
 	float2 texCoord: TEXCOORD0;
 };
 
-cbuffer uRootConstants : register(b0)
+struct Constants
 {
 	float4 color;
 	float2 scaleBias;
 };
 
+#ifdef VULKAN_HLSL
+[[vk::push_constant]]
+#endif
+ConstantBuffer<Constants> uRootConstants : register(b0);
+
 PsIn main(VsIn In)
 {
 	PsIn Out;
 	Out.position = float4 (In.position, 0.0f, 1.0f);
-	Out.position.xy = Out.position.xy * scaleBias.xy + float2(-1.0f, 1.0f);
+	Out.position.xy = Out.position.xy * uRootConstants.scaleBias.xy + float2(-1.0f, 1.0f);
 	Out.texCoord = In.texCoord;
 	return Out;
 };

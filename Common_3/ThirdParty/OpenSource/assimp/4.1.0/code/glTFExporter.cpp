@@ -426,8 +426,8 @@ void ExportSkin(Asset& mAsset, const aiMesh* aimesh, Ref<Mesh>& meshRef, Ref<Buf
 
     // Store the vertex joint and weight data.
     const size_t NumVerts( aimesh->mNumVertices );
-    vec4* vertexJointData = new vec4[ NumVerts ];
-    vec4* vertexWeightData = new vec4[ NumVerts ];
+    glTF::vec4* vertexJointData     = new glTF::vec4[ NumVerts ];
+    glTF::vec4* vertexWeightData    = new glTF::vec4[ NumVerts ];
     int* jointsPerVertex = new int[ NumVerts ];
     for (size_t i = 0; i < NumVerts; ++i) {
         jointsPerVertex[i] = 0;
@@ -740,7 +740,7 @@ void glTFExporter::ExportMeshes()
     // Finish the skin
     // Create the Accessor for skinRef->inverseBindMatrices
     if (createSkin) {
-        mat4* invBindMatrixData = new mat4[inverseBindMatricesData.size()];
+        glTF::mat4* invBindMatrixData = new glTF::mat4[inverseBindMatricesData.size()];
         for ( unsigned int idx_joint = 0; idx_joint < inverseBindMatricesData.size(); ++idx_joint) {
             CopyValue(inverseBindMatricesData[idx_joint], invBindMatrixData[idx_joint]);
         }
@@ -915,7 +915,7 @@ inline void ExtractAnimationData(Asset& mAsset, std::string& animId, Ref<Animati
     //-------------------------------------------------------
     // Extract rotation parameter data
     if(nodeChannel->mNumRotationKeys > 0) {
-        vec4* rotationData = new vec4[numKeyframes];
+        glTF::vec4* rotationData = new glTF::vec4[numKeyframes];
         for (size_t i = 0; i < numKeyframes; ++i) {
             size_t frameIndex = i * nodeChannel->mNumRotationKeys / numKeyframes;
             rotationData[i][0] = nodeChannel->mRotationKeys[frameIndex].mValue.x;

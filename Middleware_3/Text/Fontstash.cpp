@@ -22,11 +22,20 @@
  * under the License.
 */
 
+#ifdef USE_TEXT_PRECOMPILED_SHADERS
+#include "Shaders/Compiled/fontstash2D.vert.h"
+#include "Shaders/Compiled/fontstash3D.vert.h"
+#include "Shaders/Compiled/fontstash.frag.h"
+#endif
+
 #include "Fontstash.h"
 
 // include Fontstash (should be after MemoryTracking so that it also detects memory free/remove in fontstash)
 #define FONTSTASH_IMPLEMENTATION
 #include "../../Common_3/ThirdParty/OpenSource/Fontstash/src/fontstash.h"
+
+#include "../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 #include "../../Common_3/OS/Interfaces/ILog.h"
 #include "../../Common_3/OS/Interfaces/IFileSystem.h"
@@ -39,7 +48,7 @@
 
 #include "../../Common_3/OS/Interfaces/IMemory.h"
 
-FSRoot FSR_MIDDLEWARE_TEXT = FSR_Middleware0;
+ResourceDirectory RD_MIDDLEWARE_TEXT = RD_MIDDLEWARE_0;
 
 class _Impl_FontStash
 {
@@ -131,15 +140,31 @@ public:
 		rasterizerStateFrontDesc.mScissor = true;
 		addRasterizerState(pRenderer, &rasterizerStateFrontDesc, &pRasterizerStates[1]);
 
+#ifdef USE_TEXT_PRECOMPILED_SHADERS
+		BinaryShaderDesc binaryShaderDesc = {};
+		binaryShaderDesc.mStages = SHADER_STAGE_VERT | SHADER_STAGE_FRAG;
+		binaryShaderDesc.mVert.mByteCodeSize = sizeof(gShaderFontstash2DVert);
+		binaryShaderDesc.mVert.pByteCode = (char*)gShaderFontstash2DVert;
+		binaryShaderDesc.mVert.pEntryPoint = "main";
+		binaryShaderDesc.mFrag.mByteCodeSize = sizeof(gShaderFontstashFrag);
+		binaryShaderDesc.mFrag.pByteCode = (char*)gShaderFontstashFrag;
+		binaryShaderDesc.mFrag.pEntryPoint = "main";
+		addShaderBinary(pRenderer, &binaryShaderDesc, &pShaders[0]);
+		binaryShaderDesc.mVert.mByteCodeSize = sizeof(gShaderFontstash3DVert);
+		binaryShaderDesc.mVert.pByteCode = (char*)gShaderFontstash3DVert;
+		binaryShaderDesc.mVert.pEntryPoint = "main";
+		addShaderBinary(pRenderer, &binaryShaderDesc, &pShaders[1]);
+#else
 		ShaderLoadDesc text2DShaderDesc = {};
-		text2DShaderDesc.mStages[0] = { "fontstash2D.vert", NULL, 0, FSR_MIDDLEWARE_TEXT };
-		text2DShaderDesc.mStages[1] = { "fontstash.frag", NULL, 0, FSR_MIDDLEWARE_TEXT };
+		text2DShaderDesc.mStages[0] = { "fontstash2D.vert", NULL, 0, RD_MIDDLEWARE_TEXT };
+		text2DShaderDesc.mStages[1] = { "fontstash.frag", NULL, 0, RD_MIDDLEWARE_TEXT };
 		ShaderLoadDesc text3DShaderDesc = {};
-		text3DShaderDesc.mStages[0] = { "fontstash3D.vert", NULL, 0, FSR_MIDDLEWARE_TEXT };
-		text3DShaderDesc.mStages[1] = { "fontstash.frag", NULL, 0, FSR_MIDDLEWARE_TEXT };
+		text3DShaderDesc.mStages[0] = { "fontstash3D.vert", NULL, 0, RD_MIDDLEWARE_TEXT };
+		text3DShaderDesc.mStages[1] = { "fontstash.frag", NULL, 0, RD_MIDDLEWARE_TEXT };
 
 		addShader(pRenderer, &text2DShaderDesc, &pShaders[0]);
 		addShader(pRenderer, &text3DShaderDesc, &pShaders[1]);
+#endif
 
 		RootSignatureDesc textureRootDesc = { pShaders, 2 };
 		const char* pStaticSamplers[] = { "uSampler0" };
@@ -330,34 +355,38 @@ void Fontstash::unload()
 	impl->unload();
 }
 
-int Fontstash::defineFont(const char* identification, const char* filename, uint32_t root)
+int Fontstash::defineFont(const char* identification, const char* filename, ResourceDirectory root)
 {
 	FONScontext* fs = impl->pContext;
-
-	File file = File();
-	file.Open(filename, FileMode::FM_ReadBinary, (FSRoot)root);
-	unsigned bytes = file.GetSize();
+	
+    PathHandle filePath = fsCopyPathInResourceDirectory(root, filename);
+    FileStream* fh = fsOpenFile(filePath, FM_READ_BINARY);
+    ssize_t bytes = fsGetStreamFileSize(fh);
 	void*    buffer = conf_malloc(bytes);
-	file.Read(buffer, bytes);
-
+    fsReadFromStream(fh, buffer, bytes);
+    
 	// add buffer to font buffers for cleanup
 	impl->mFontBuffers.emplace_back(buffer);
-	impl->mFontBufferSizes.emplace_back(bytes);
-	impl->mFontNames.emplace_back(file.GetName());
-
-	file.Close();
+	impl->mFontBufferSizes.emplace_back((uint32_t)bytes);
+	impl->mFontNames.emplace_back(fsPathComponentToString(fsGetPathFileName(filePath)));
+    
+    fsCloseStream(fh);
 
 	return fonsAddFontMem(fs, identification, (unsigned char*)buffer, (int)bytes, 0);
 }
 
 void* Fontstash::getFontBuffer(uint32_t index)
 {
-	return impl->mFontBuffers[index];
+	if (index < impl->mFontBuffers.size())
+		return impl->mFontBuffers[index];
+	return NULL;
 }
 
 uint32_t Fontstash::getFontBufferSize(uint32_t index)
 {
-	return impl->mFontBufferSizes[index];
+	if (index < impl->mFontBufferSizes.size())
+		return impl->mFontBufferSizes[index];
+	return UINT_MAX;
 }
 
 void Fontstash::drawText(

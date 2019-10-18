@@ -191,9 +191,9 @@
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
-      <LibraryDependencies>Renderer;SpirvTools;OS;gainputstatic;ozz_animation;ozz_base;shaderc</LibraryDependencies>
+      <LibraryDependencies>OS;Renderer;SpirvTools;OS;gainputstatic;ozz_animation;ozz_base;shaderc;zip;z;m;</LibraryDependencies>
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
@@ -218,9 +218,9 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\22_AdditiveBlending\Shade
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
-      <LibraryDependencies>Renderer;SpirvTools;OS;gainputstatic;ozz_animation;ozz_base;shaderc</LibraryDependencies>
+      <LibraryDependencies>OS;Renderer;SpirvTools;OS;gainputstatic;ozz_animation;ozz_base;shaderc;zip;z;m;</LibraryDependencies>
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
@@ -246,7 +246,7 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\22_AdditiveBlending\Shade
       <AdditionalOptions>-std=c++14 -mfloat-abi=softfp -mfpu=neon -Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>-lm %(AdditionalOptions)</AdditionalOptions>
       <LibraryDependencies>Renderer;SpirvTools;OS;gainputstatic;ozz_animation;ozz_base;shaderc;%(LibraryDependencies)</LibraryDependencies>
     </Link>
@@ -274,7 +274,7 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\22_AdditiveBlending\Shade
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>-lm %(AdditionalOptions)</AdditionalOptions>
       <LibraryDependencies>Renderer;SpirvTools;OS;gainputstatic;ozz_animation;ozz_base;shaderc;%(LibraryDependencies)</LibraryDependencies>
     </Link>

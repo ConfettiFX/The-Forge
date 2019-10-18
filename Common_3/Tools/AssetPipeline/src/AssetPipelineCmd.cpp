@@ -5,19 +5,7 @@
 #include <cstdio>
 #include <sys/stat.h>
 
-const char* pszBases[] = {
-	"",    // FSR_BinShaders
-	"",    // FSR_SrcShaders
-	"",    // FSR_BinShaders_Common
-	"",    // FSR_SrcShaders_Common
-	"",    // FSR_Textures
-	"",    // FSR_Meshes
-	"",    // FSR_Builtin_Fonts
-	"",    // FSR_GpuConfig
-	"",    // FSR_Animation
-	"",    // FSR_Audio
-	"",    // FSR_OtherFiles
-};
+#include "../../../OS/Interfaces/IMemory.h"
 
 const char* gApplicationName = NULL;
 
@@ -36,28 +24,14 @@ void PrintHelp()
 	printf("\t-h or -help: Print usage information.\n");
 }
 
-size_t GetFileLastModifiedTime(const char* _fileName)
+int AssetPipelineCmd(int argc, char** argv)
 {
-	struct stat fileInfo;
-
-	if (!stat(_fileName, &fileInfo))
-	{
-		return (size_t)fileInfo.st_mtime;
-	}
-	else
-	{
-		// return an impossible large mod time as the file doesn't exist
-		return ~0;
-	}
-}
-
-int main(int argc, char** argv)
-{
-	uint appLastModified = 0;
+	time_t appLastModified = 0;
 	if (argc > 0)
 	{
 		gApplicationName = argv[0];
-		appLastModified = (uint)GetFileLastModifiedTime(gApplicationName);
+        PathHandle applicationPath = fsCopyExecutablePath();
+		appLastModified = fsGetLastModifiedTime(applicationPath);
 	}
 
 	if (argc == 1)
@@ -82,13 +56,21 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	eastl::string inputDir = argv[2];
-	eastl::string outputDir = argv[3];
+    FileSystem* fileSystem = fsGetSystemFileSystem();
+    PathHandle workingDir = fsCopyWorkingDirectoryPath();
+    
+	PathHandle inputDir = fsCreatePath(fileSystem, argv[2]);
+    if (!inputDir)
+        inputDir = fsAppendPathComponent(workingDir, argv[2]);
+    
+	PathHandle outputDir = fsCreatePath(fileSystem, argv[3]);
+    if (!outputDir)
+        outputDir = fsAppendPathComponent(workingDir, argv[3]);
 
 	ProcessAssetsSettings settings = {};
 	settings.quiet = false;
 	settings.force = false;
-	settings.minLastModifiedTime = appLastModified;
+	settings.minLastModifiedTime = (unsigned int)appLastModified;
 	settings.quantizePositionBits = 16;
 	settings.quantizeTexBits = 16;
 	settings.quantizeNormalBits = 8;
@@ -157,22 +139,45 @@ int main(int argc, char** argv)
 
 	if (command == "processanimations")
 	{
-		if (!AssetPipeline::ProcessAnimations(inputDir.c_str(), outputDir.c_str(), &settings))
+		if (!AssetPipeline::ProcessAnimations(inputDir, outputDir, &settings))
 			return 1;
 	}
 	else if (command == "processmeshes")
 	{
-		if (!AssetPipeline::ProcessModels(inputDir.c_str(), outputDir.c_str(), &settings))
+		if (!AssetPipeline::ProcessModels(inputDir, outputDir, &settings))
 			return 1;
 	}
 	else if (command == "processtextures")
 	{
-		if (!AssetPipeline::ProcessTextures(inputDir.c_str(), outputDir.c_str(), &settings))
+		if (!AssetPipeline::ProcessTextures(inputDir, outputDir, &settings))
 			return 1;
 	}
 	else
 	{
 		printf("ERROR: Invalid command.\n");
 	}
+
 	return 0;
-};
+}
+
+int main(int argc, char** argv)
+{
+	extern bool MemAllocInit();
+	extern void MemAllocExit();
+
+	if (!MemAllocInit())
+		return EXIT_FAILURE;
+
+	if (!fsInitAPI())
+		return EXIT_FAILURE;
+
+	Log::Init();
+
+	int ret = AssetPipelineCmd(argc, argv);
+
+	Log::Exit();
+	fsDeinitAPI();
+	MemAllocExit();
+
+	return ret;
+}

@@ -63,6 +63,7 @@ struct ProfileDetailedModeFrame
 
 struct ProfileDetailedModeTooltip 
 {
+	ProfileDetailedModeTooltip() {}
   ProfileDetailedModeTooltip(const ProfileDetailedModeTime& detailedLogTimer, IWidget* widget) :
     mTimer(detailedLogTimer),
     mWidget(widget) {}
@@ -259,7 +260,7 @@ eastl::vector<IWidget*> gPlotModeWidgets;
 bool gUpdatePlotModeGUI = false;
 
 // Detailed mode data.
-eastl::vector<ProfileDetailedModeFrame> gDetilaedModeDump;
+eastl::vector<ProfileDetailedModeFrame> gDetailedModeDump;
 eastl::vector<ProfileDetailedModeTooltip> gDetailedModeTooltips;
 eastl::vector<IWidget*> gDetailedModeWidgets;
 bool gDumpFramesNow = true;
@@ -397,7 +398,7 @@ void profileCallbkDumpFrames()
 {
   // Dump fresh frames to detailed mode and clear any old data.
   gDumpFramesNow = true;
-  gDetilaedModeDump.clear();
+  gDetailedModeDump.clear();
 }
 
 void profileCallbkPauseProfiler()
@@ -586,7 +587,7 @@ void profileUpdateDetailedModeData(Profile& S)
   }
 
   // Push detailed dump logs.
-  gDetilaedModeDump.push_back(frameLog);
+  gDetailedModeDump.push_back(frameLog);
 }
 
 /// Get data to display as a tooltip in detailed mode. To enable tooltop just hover over any text in detailed mode.
@@ -666,9 +667,9 @@ void profileDrawDetailedMode(Profile& S)
 	float frameHeight = 0.f;
 	
   // Draw all frames in the dump into a timeline.
-  for (uint32_t frameIndex = 0; frameIndex < gDetilaedModeDump.size(); ++frameIndex)
+  for (uint32_t frameIndex = 0; frameIndex < gDetailedModeDump.size(); ++frameIndex)
   {
-    ProfileDetailedModeFrame& frameToDraw = gDetilaedModeDump[frameIndex];
+    ProfileDetailedModeFrame& frameToDraw = gDetailedModeDump[frameIndex];
 		float height = startHeightPixels + gCurrWindowSize.y * 0.035f;
 
     // Draw all timers as rectangles on the timeline.
@@ -959,13 +960,16 @@ void unloadWidgetProfilerUI()
     conf_delete(gPlotModeData[i].mTimeData);
   }
 
-  gWidgetTable.clear();
-  gTimerData.clear();
-  gTimerColorData.clear();
-  gPlotModeData.clear();
-  gDetailedModeTooltips.clear();
-  gDetailedModeWidgets.clear();
-  gPlotModeWidgets.clear();
+  gWidgetTable.set_capacity(0);
+  gTimerData.set_capacity(0);
+  gTimerColorData.set_capacity(0);
+  gPlotModeData.set_capacity(0);
+  gDetailedModeTooltips.set_capacity(0);
+  gDetailedModeWidgets.set_capacity(0);
+  gDetailedModeDump.set_capacity(0);
+  gPlotModeWidgets.set_capacity(0);
+  gFrameTimerTitle.set_capacity(0);
+  gGPUTimerTitle.set_capacity(0);
   gUnloaded = true;
 }
 
@@ -1173,7 +1177,7 @@ void drawWidgetProfilerUI()
         // Add this frame data.
         profileUpdateDetailedModeData(S);
         // Finish dumping required number of frames and display in GUI.
-        if (gDetilaedModeDump.size() >= profileUtilDumpFramesDetailedModeEnum(gDumpFramesDetailedMode))
+        if (gDetailedModeDump.size() >= profileUtilDumpFramesDetailedModeEnum(gDumpFramesDetailedMode))
         {
           gDumpFramesNow = false;
           profileDrawDetailedMode(S);

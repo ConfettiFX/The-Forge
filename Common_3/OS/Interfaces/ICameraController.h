@@ -50,6 +50,7 @@ class ICameraController
 	virtual vec2 getRotationXY() const = 0;
 	virtual void moveTo(const vec3& location) = 0;
 	virtual void lookAt(const vec3& lookAt) = 0;
+	virtual void setViewRotationXY(const vec2& v) = 0;
 	virtual void resetView() = 0;
 
 	virtual void onMove(const float2& vec) = 0;

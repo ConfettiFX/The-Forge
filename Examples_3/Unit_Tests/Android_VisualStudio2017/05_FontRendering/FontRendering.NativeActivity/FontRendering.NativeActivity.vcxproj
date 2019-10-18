@@ -162,8 +162,8 @@
       <PreprocessorDefinitions>ANDROID;VULKAN;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <LibraryDependencies>Renderer;SpirvTools;OS;gainputstatic;shaderc</LibraryDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LibraryDependencies>Renderer;SpirvTools;OS;gainputstatic;shaderc;assimp;zip;z;m</LibraryDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PreBuildEvent>
@@ -187,8 +187,8 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\05_FontRendering\Shaders\
       <PreprocessorDefinitions>ANDROID;VULKAN;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <LibraryDependencies>Renderer;SpirvTools;OS;gainputstatic;shaderc</LibraryDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LibraryDependencies>Renderer;SpirvTools;OS;gainputstatic;shaderc;assimp;zip;z;m</LibraryDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <PreBuildEvent>
@@ -215,9 +215,9 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\05_FontRendering\Shaders\
       <EnableNeonCodegen>true</EnableNeonCodegen>
     </ClCompile>
     <Link>
-      <LibraryDependencies>Renderer;SpirvTools;OS;gainputstatic;shaderc;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>OS;Renderer;OS;zip;z;SpirvTools;gainputstatic;shaderc;%(LibraryDependencies)</LibraryDependencies>
       <AdditionalOptions>-lm %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
@@ -243,9 +243,9 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\05_FontRendering\Shaders\
       <EnableNeonCodegen>true</EnableNeonCodegen>
     </ClCompile>
     <Link>
-      <LibraryDependencies>Renderer;SpirvTools;OS;gainputstatic;shaderc;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>OS;Renderer;OS;zip;z;SpirvTools;gainputstatic;shaderc;%(LibraryDependencies)</LibraryDependencies>
       <AdditionalOptions>-lm %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y

@@ -90,9 +90,13 @@
       <PreprocessorDefinitions>FORGE_IGNORE_PSZBASE;_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
     </ClCompile>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) $(SolutionDir)..\UI\HLSLParser\HLSLParser\bin\x64\Debug\$(TargetName).exe
-copy $(TargetPath) $(SolutionDir)..\Debug\$(TargetName).exe</Command>
+      <Command>copy $(TargetPath) $(SolutionDir)..\Debug\$(TargetName).exe</Command>
     </PostBuildEvent>
+    <Link>
+      <AdditionalDependencies>libzip-static.lib;libz-static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\Libraries\Win64\Debug</AdditionalLibraryDirectories>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugTest|x64'">
     <ClCompile>
@@ -106,6 +110,11 @@ copy $(TargetPath) $(SolutionDir)..\Debug\$(TargetName).exe</Command>
       <Command>
       </Command>
     </PostBuildEvent>
+    <Link>
+      <AdditionalDependencies>libzip-static.lib;libz-static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\Libraries\Win64\Debug</AdditionalLibraryDirectories>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -120,10 +129,12 @@ copy $(TargetPath) $(SolutionDir)..\Debug\$(TargetName).exe</Command>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>libzip-static.lib;libz-static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\Libraries\Win64\Release</AdditionalLibraryDirectories>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>copy $(TargetPath) $(SolutionDir)..\Web\WebTranslator\WebTranslator\wwwroot\app\$(TargetName).exe
-copy $(TargetPath) $(SolutionDir)..\UI\HLSLParser\HLSLParser\bin\x64\Release\$(TargetName).exe
 copy $(TargetPath) $(SolutionDir)..\Release\$(TargetName).exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
@@ -140,6 +151,9 @@ copy $(TargetPath) $(SolutionDir)..\Release\$(TargetName).exe</Command>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalDependencies>libzip-static.lib;libz-static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\Libraries\Win64\Release</AdditionalLibraryDirectories>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
       <Command>
@@ -147,7 +161,12 @@ copy $(TargetPath) $(SolutionDir)..\Release\$(TargetName).exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\OS\Core\FileSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\OS\FileSystem\FileSystemInternal.cpp" />
+    <ClCompile Include="..\..\..\..\..\OS\FileSystem\MemoryStream.cpp" />
+    <ClCompile Include="..\..\..\..\..\OS\FileSystem\SystemFileStream.cpp" />
+    <ClCompile Include="..\..\..\..\..\OS\FileSystem\SystemRun.cpp" />
+    <ClCompile Include="..\..\..\..\..\OS\FileSystem\ZipFileStream.cpp" />
+    <ClCompile Include="..\..\..\..\..\OS\FileSystem\ZipFileSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\OS\Logging\Log.cpp" />
     <ClCompile Include="..\..\..\..\..\OS\MemoryTracking\MemoryTracking.cpp" />
     <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsFileSystem.cpp" />
@@ -188,6 +207,11 @@ copy $(TargetPath) $(SolutionDir)..\Release\$(TargetName).exe</Command>
     <ClCompile Include="StringLibrary.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\OS\FileSystem\FileSystemInternal.h" />
+    <ClInclude Include="..\..\..\..\..\OS\FileSystem\MemoryStream.h" />
+    <ClInclude Include="..\..\..\..\..\OS\FileSystem\SystemFileStream.h" />
+    <ClInclude Include="..\..\..\..\..\OS\FileSystem\ZipFileStream.h" />
+    <ClInclude Include="..\..\..\..\..\OS\FileSystem\ZipFileSystem.h" />
     <ClInclude Include="CodeWriter.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="FullTokenizer.h" />

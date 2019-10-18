@@ -113,22 +113,6 @@ enum RenderMode
 };
 int32_t gRenderModeToggles = 0;
 
-
-const char* pszBases[FSR_Count] = {
-	"../../../src/14_WaveIntrinsics/",      // FSR_BinShaders
-	"../../../src/14_WaveIntrinsics/",      // FSR_SrcShaders
-	"../../../UnitTestResources/",          // FSR_Textures
-	"../../../UnitTestResources/",          // FSR_Meshes
-	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
-	"../../../src/14_WaveIntrinsics/",      // FSR_GpuConfig
-	"",                                     // FSR_Animation
-	"",                                     // FSR_Audio
-	"",                                     // FSR_OtherFiles
-	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
-	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
-};
-
-
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 class WaveIntrinsics: public IApp
@@ -144,6 +128,21 @@ class WaveIntrinsics: public IApp
 
 	bool Init()
 	{
+        // FILE PATHS
+        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        if (!fsPlatformUsesBundledResources())
+        {
+            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/14_WaveIntrinsics");
+            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            
+            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../UnitTestResources/Textures");
+            fsSetRelativePathForResourceDirectory(RD_MESHES,          "../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
+        }
+        
 		// window and renderer setup
 		RendererDesc settings = { 0 };
 
@@ -186,8 +185,8 @@ class WaveIntrinsics: public IApp
 		initResourceLoaderInterface(pRenderer);
 
 		ShaderLoadDesc waveShader = {};
-		waveShader.mStages[0] = { "wave.vert", NULL, 0, FSR_SrcShaders };
-		waveShader.mStages[1] = { "wave.frag", NULL, 0, FSR_SrcShaders };
+		waveShader.mStages[0] = { "wave.vert", NULL, 0, RD_SHADER_SOURCES };
+		waveShader.mStages[1] = { "wave.frag", NULL, 0, RD_SHADER_SOURCES };
 
 #if defined(_DURANGO)
 		waveShader.mTarget = shader_target_5_1;
@@ -204,8 +203,8 @@ class WaveIntrinsics: public IApp
 #endif
 
 		ShaderLoadDesc magnifyShader = {};
-		magnifyShader.mStages[0] = { "magnify.vert", NULL, 0, FSR_SrcShaders };
-		magnifyShader.mStages[1] = { "magnify.frag", NULL, 0, FSR_SrcShaders };
+		magnifyShader.mStages[0] = { "magnify.vert", NULL, 0, RD_SHADER_SOURCES };
+		magnifyShader.mStages[1] = { "magnify.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		addShader(pRenderer, &waveShader, &pShaderWave);
 		addShader(pRenderer, &magnifyShader, &pShaderMagnify);
@@ -295,7 +294,7 @@ class WaveIntrinsics: public IApp
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 		GuiDesc guiDesc = {};
 		pGui = gAppUI.AddGuiComponent("Render Modes", &guiDesc);
 

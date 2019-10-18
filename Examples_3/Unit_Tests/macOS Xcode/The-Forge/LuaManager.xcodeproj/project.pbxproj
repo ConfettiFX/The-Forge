@@ -28,7 +28,6 @@
 		5CE86A6121D0F4C400B4778F /* lcorolib.c in Sources */ = {isa = PBXBuildFile; fileRef = 5CE86A1921D0F4BF00B4778F /* lcorolib.c */; };
 		5CE86A6221D0F4C400B4778F /* lparser.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CE86A1A21D0F4BF00B4778F /* lparser.h */; };
 		5CE86A6321D0F4C400B4778F /* lua.c in Sources */ = {isa = PBXBuildFile; fileRef = 5CE86A1B21D0F4BF00B4778F /* lua.c */; };
-		5CE86A6421D0F4C400B4778F /* lua.c in Sources */ = {isa = PBXBuildFile; fileRef = 5CE86A1B21D0F4BF00B4778F /* lua.c */; };
 		5CE86A6521D0F4C400B4778F /* lapi.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CE86A1C21D0F4BF00B4778F /* lapi.h */; };
 		5CE86A6621D0F4C400B4778F /* ltm.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CE86A1D21D0F4BF00B4778F /* ltm.h */; };
 		5CE86A6721D0F4C400B4778F /* ltable.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CE86A1E21D0F4BF00B4778F /* ltable.h */; };
@@ -111,6 +110,7 @@
 		5CE86ABF21D0F54B00B4778F /* LuaManagerCommon.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CE86AB821D0F54B00B4778F /* LuaManagerCommon.h */; };
 		5CE86AC021D0F54B00B4778F /* LuaManagerImpl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CE86AB921D0F54B00B4778F /* LuaManagerImpl.cpp */; };
 		5CE86AC121D0F54B00B4778F /* LuaManagerImpl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CE86AB921D0F54B00B4778F /* LuaManagerImpl.cpp */; };
+		E967DE4B233B0F260032E4BA /* lua.c in Sources */ = {isa = PBXBuildFile; fileRef = 5CE86A1B21D0F4BF00B4778F /* lua.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -442,7 +442,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				5CE86A6D21D0F4C400B4778F /* lctype.c in Sources */,
-				5CE86A6421D0F4C400B4778F /* lua.c in Sources */,
 				5CE86A5F21D0F4C400B4778F /* lfunc.c in Sources */,
 				5CE86A6B21D0F4C400B4778F /* lbitlib.c in Sources */,
 				5CE86A5A21D0F4C400B4778F /* lcode.c in Sources */,
@@ -457,6 +456,7 @@
 				5CE86A7E21D0F4C400B4778F /* ltablib.c in Sources */,
 				5CE86AA921D0F4C400B4778F /* lutf8lib.c in Sources */,
 				5CE86A9721D0F4C400B4778F /* lparser.c in Sources */,
+				E967DE4B233B0F260032E4BA /* lua.c in Sources */,
 				5CE86A8A21D0F4C400B4778F /* lstring.c in Sources */,
 				5CE86A9F21D0F4C400B4778F /* llex.c in Sources */,
 				5CE86AA621D0F4C400B4778F /* liolib.c in Sources */,

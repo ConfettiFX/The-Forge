@@ -37,7 +37,7 @@ namespace eastl
 	struct has_equality<vec4> : eastl::false_type {};
 }
 
-FSRoot FSR_MIDDLEWARE_PANINI = FSR_Middleware2;
+ResourceDirectory RD_MIDDLEWARE_PANINI = RD_MIDDLEWARE_2;
 /************************************************************************/
 /* HELPER FUNCTIONS
 ************************************************************************/
@@ -138,8 +138,8 @@ bool Panini::Init(Renderer* renderer)
 	// SHADER
 	//----------------------------------------------------------------------------------------------------------------
 	ShaderLoadDesc paniniPass = {};
-	paniniPass.mStages[0] = { "panini_projection.vert", NULL, 0, FSR_MIDDLEWARE_PANINI };
-	paniniPass.mStages[1] = { "panini_projection.frag", NULL, 0, FSR_MIDDLEWARE_PANINI };
+	paniniPass.mStages[0] = { "panini_projection.vert", NULL, 0, RD_MIDDLEWARE_PANINI };
+	paniniPass.mStages[1] = { "panini_projection.frag", NULL, 0, RD_MIDDLEWARE_PANINI };
 	addShader(pRenderer, &paniniPass, &pShader);
 
 	// SAMPLERS & STATES

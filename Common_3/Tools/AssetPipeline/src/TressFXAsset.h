@@ -73,7 +73,7 @@ class TressFXAsset
 	int m_numFollowStrandsPerGuide;
 
 	// Loads *.tfx hair data
-	bool LoadHairData(File* ioObject);
+	bool LoadHairData(FileStream* fh);
 
 	//Generates follow hairs procedually.  If numFollowHairsPerGuideHair is zero, then this function won't do anything.
 	bool GenerateFollowHairs(int numFollowHairsPerGuideHair = 0, float tipSeparationFactor = 0, float maxRadiusAroundGuideHair = 0);
@@ -87,10 +87,10 @@ class TressFXAsset
 
 	private:
 	// Loads tfx files from TressFX version 4
-	bool LoadV4(File* ioObject, TressFXTFXFileHeader* header);
+	bool LoadV4(TressFXTFXFileHeader* header, FileStream* fh);
 
 	// Loads tfx files from TressFX verion 3
-	bool LoadV3(File* ioObject, TressFXFileObject* header);
+	bool LoadV3(TressFXFileObject* header, FileStream* fh);
 
 	// Resets variables and clears up allocate buffers.
 	void Clear();

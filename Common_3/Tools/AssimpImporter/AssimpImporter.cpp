@@ -38,7 +38,14 @@
 
 #include "AssimpImporter.h"
 
-#include "../../OS/Interfaces/ILog.h"       //NOTE: this should be the last include in a .cpp
+#include "../../OS/Interfaces/IFileSystem.h"
+#include "../../OS/FileSystem/AssimpIOSystem.h"
+
+#include "../../OS/Interfaces/ILog.h"
+ 
+// HACK: we need to be able to use new and delete since Assimp has its own allocation arena for Assimp-descended types.
+// Define IMEMORY_FROM_HEADER so the keywords don't get defined out.
+#define IMEMORY_FROM_HEADER
 #include "../../OS/Interfaces/IMemory.h"    // NOTE: this should be the last include in a .cpp
 
 static inline mat4 AssimpMat4ToMatrix(const aiMatrix4x4& mat)
@@ -513,7 +520,63 @@ static void CollectNodes(const aiScene* pScene, AssimpImporter::Model* pModel)
 	}
 }
 
-bool AssimpImporter::ImportModel(const char* filename, Model* pModel)
+bool AssimpImporter::ImportModel(const Path* path, Model* pModel)
+{
+	eastl::unordered_map<eastl::string, size_t> uniqueNameMap;
+
+	unsigned int flags = aiProcessPreset_TargetRealtime_MaxQuality;
+	flags |= aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | aiProcess_ImproveCacheLocality | aiProcess_FindDegenerates |
+			 aiProcess_FindInvalidData | aiProcess_JoinIdenticalVertices | aiProcess_LimitBoneWeights |
+			 aiProcess_ConvertToLeftHanded;
+	flags &= ~aiProcess_SortByPType;
+	flags &= ~aiProcess_FindInstances;
+    
+    // create an Importer for this file
+    Assimp::Importer* imp = new Assimp::Importer();
+    
+    // Tell Assimp to not import a bunch of useless layers of objects
+    imp->SetPropertyInteger(AI_CONFIG_IMPORT_FBX_READ_ALL_GEOMETRY_LAYERS, 0);
+    imp->SetPropertyInteger(AI_CONFIG_IMPORT_FBX_READ_TEXTURES, 1);
+    imp->SetPropertyFloat(AI_CONFIG_PP_GSN_MAX_SMOOTHING_ANGLE, 66.0f);
+    
+    imp->SetIOHandler(new AssimpIOSystem(fsGetPathFileSystem(path)));
+    
+    // and have it read the file
+    const aiScene* pScene = imp->ReadFile(fsGetPathAsNativeString(path), flags);
+    
+    // if succeeded, store the importer in the scene and keep it alive
+    if (!pScene)
+    {
+        // if failed, extract error code and destroy the import
+        LOGF(LogLevel::eERROR, "Assimp could not import file %s: %s", fsGetPathAsNativeString(path), imp->GetErrorString());
+        delete imp;
+    }
+    
+	if (!pScene)
+	{
+		//LOGF(LogLevel::eERROR, "Assimp could not import file: %s", filename);
+		return false;
+	}
+    
+    const char* filename = fsGetPathAsNativeString(path);
+    
+	pModel->mSceneName = ExtractSceneNameFromFileName(filename);
+	pModel->mSourceType = ExtractSourceTypeFromFileName(filename);
+
+	CollectTextures(pScene, pModel);
+	CollectMaterials(pScene, pModel, &uniqueNameMap);
+	CollectMeshes(pScene, pModel, &uniqueNameMap);
+	CollectNodes(pScene, pModel);
+
+	if (pScene)
+	{
+        delete imp;
+	}
+
+	return true;
+}
+
+bool AssimpImporter::ImportModelFromMemory(const char * memoryBuffer, Model * pModel, const char* fileName, size_t model_length)
 {
 	eastl::unordered_map<eastl::string, size_t> uniqueNameMap;
 
@@ -526,12 +589,13 @@ bool AssimpImporter::ImportModel(const char* filename, Model* pModel)
 
 	unsigned int flags = aiProcessPreset_TargetRealtime_MaxQuality;
 	flags |= aiProcess_GenSmoothNormals | aiProcess_CalcTangentSpace | aiProcess_ImproveCacheLocality | aiProcess_FindDegenerates |
-			 aiProcess_FindInvalidData | aiProcess_JoinIdenticalVertices | aiProcess_LimitBoneWeights |
-			 aiProcess_ConvertToLeftHanded;
+		aiProcess_FindInvalidData | aiProcess_JoinIdenticalVertices | aiProcess_LimitBoneWeights |
+		aiProcess_ConvertToLeftHanded;
 	flags &= ~aiProcess_SortByPType;
 	flags &= ~aiProcess_FindInstances;
 
-	const aiScene* pScene = aiImportFileExWithProperties(filename, flags, nullptr, propertyStore);
+	//const aiScene* pScene = aiImportFileExWithProperties(filename, flags, nullptr, propertyStore);
+	const aiScene* pScene = aiImportFileFromMemoryWithProperties(memoryBuffer, (unsigned int)model_length, flags, "obj", propertyStore);
 	aiReleasePropertyStore(propertyStore);
 	if (!pScene)
 	{
@@ -539,8 +603,8 @@ bool AssimpImporter::ImportModel(const char* filename, Model* pModel)
 		return false;
 	}
 
-	pModel->mSceneName = ExtractSceneNameFromFileName(filename);
-	pModel->mSourceType = ExtractSourceTypeFromFileName(filename);
+	pModel->mSceneName = ExtractSceneNameFromFileName(fileName);
+	pModel->mSourceType = ExtractSourceTypeFromFileName(fileName);
 
 	CollectTextures(pScene, pModel);
 	CollectMaterials(pScene, pModel, &uniqueNameMap);

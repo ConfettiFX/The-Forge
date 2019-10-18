@@ -143,20 +143,6 @@ HiresTimer gTimer;
 UIApp         gAppUI = {};
 GuiComponent* pGui;
 
-const char* pszBases[FSR_Count] = {
-	"../../../src/07_Tessellation/",        // FSR_BinShaders
-	"../../../src/07_Tessellation/",        // FSR_SrcShaders
-	"../../../UnitTestResources/",          // FSR_Textures
-	"../../../UnitTestResources/",          // FSR_Meshes
-	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
-	"../../../src/07_Tessellation/",        // FSR_GpuConfig
-	"",                                     // FSR_Animation
-	"",                                     // FSR_Audio
-	"",                                     // FSR_OtherFiles
-	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
-	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
-};
-
 const uint32_t gImageCount = 3;
 bool           gMicroProfiler = false;
 bool           bPrevToggleMicroProfiler = false;
@@ -250,6 +236,21 @@ class Tessellation: public IApp
 	
 	bool Init()
 	{
+        // FILE PATHS
+        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        if (!fsPlatformUsesBundledResources())
+        {
+            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/07_Tessellation");
+            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            
+            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../UnitTestResources/Textures");
+            fsSetRelativePathForResourceDirectory(RD_MESHES,             "../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,     "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,     "../../../../Middleware_3/UI");
+        }
+        
 		initNoise();
 
 		initBlades();
@@ -285,7 +286,7 @@ class Tessellation: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Absolute))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_ROOT))
 		{
 			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
 			return false;
@@ -293,20 +294,20 @@ class Tessellation: public IApp
 
 #if defined(DIRECT3D12) || defined(VULKAN)
 		ShaderLoadDesc grassShader = {};
-		grassShader.mStages[0] = { "grass.vert", NULL, 0, FSR_SrcShaders };
-		grassShader.mStages[1] = { "grass.frag", NULL, 0, FSR_SrcShaders };
-		grassShader.mStages[2] = { "grass.tesc", NULL, 0, FSR_SrcShaders };
-		grassShader.mStages[3] = { "grass.tese", NULL, 0, FSR_SrcShaders };
+		grassShader.mStages[0] = { "grass.vert", NULL, 0, RD_SHADER_SOURCES };
+		grassShader.mStages[1] = { "grass.frag", NULL, 0, RD_SHADER_SOURCES };
+		grassShader.mStages[2] = { "grass.tesc", NULL, 0, RD_SHADER_SOURCES };
+		grassShader.mStages[3] = { "grass.tese", NULL, 0, RD_SHADER_SOURCES };
 #else
 		ShaderLoadDesc grassVertexHullShader = {};
-		grassVertexHullShader.mStages[0] = { "grass_verthull.comp", NULL, 0, FSR_SrcShaders };
+		grassVertexHullShader.mStages[0] = { "grass_verthull.comp", NULL, 0, RD_SHADER_SOURCES };
 
 		ShaderLoadDesc grassShader = {};
-		grassShader.mStages[0] = { "grass.domain.vert", NULL, 0, FSR_SrcShaders };
-		grassShader.mStages[1] = { "grass.frag", NULL, 0, FSR_SrcShaders };
+		grassShader.mStages[0] = { "grass.domain.vert", NULL, 0, RD_SHADER_SOURCES };
+		grassShader.mStages[1] = { "grass.frag", NULL, 0, RD_SHADER_SOURCES };
 #endif
 		ShaderLoadDesc computeShader = {};
-		computeShader.mStages[0] = { "compute.comp", NULL, 0, FSR_SrcShaders };
+		computeShader.mStages[0] = { "compute.comp", NULL, 0, RD_SHADER_SOURCES };
 
 		addShader(pRenderer, &grassShader, &pGrassShader);
 		addShader(pRenderer, &computeShader, &pComputeShader);
@@ -474,7 +475,7 @@ class Tessellation: public IApp
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 		pGui = gAppUI.AddGuiComponent("Tessellation Properties", &guiDesc);
 
     pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
@@ -670,6 +671,8 @@ class Tessellation: public IApp
         removeResourceLoaderInterface(pRenderer);
 		removeQueue(pGraphicsQueue);
 		removeRenderer(pRenderer);
+
+		gBlades.set_capacity(0);
 	}
 
 	bool Load()

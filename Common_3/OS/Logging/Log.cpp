@@ -32,15 +32,7 @@
 
 #define LOG_PREAMBLE_SIZE (56 + MAX_THREAD_NAME_LENGTH + FILENAME_NAME_LENGTH_LOG)
 
-static Log gLogger;
-
-// Fill unordered map for log level prefixes
-static eastl::unordered_map<uint32_t, eastl::string> logLevelPrefixes{
-	eastl::pair<uint32_t, eastl::string>{ LogLevel::eWARNING, eastl::string{ "WARN" } },
-	eastl::pair<uint32_t, eastl::string>{ LogLevel::eINFO, eastl::string{ "INFO" } },
-	eastl::pair<uint32_t, eastl::string>{ LogLevel::eDEBUG, eastl::string{ " DBG" } },
-	eastl::pair<uint32_t, eastl::string>{ LogLevel::eERROR, eastl::string{ " ERR" } }
-};
+static Log* pLogger;
 static bool gOnce = true;
 
 eastl::string GetTimeStamp()
@@ -66,25 +58,41 @@ const char* get_filename(const char* path)
 // Default callback
 void log_write(void * user_data, const eastl::string & message)
 {
-	File * file = static_cast<File *>(user_data);
-	file->WriteLine(message);
-	file->Flush();
+	FileStream* fh = (FileStream*)user_data;
+    ASSERT(fh);
+    
+    fsWriteToStreamLine(fh, message.c_str());
+    fsFlushStream(fh);
 }
 
 // Close callback
 void log_close(void * user_data)
 {
-	File * file = static_cast<File *>(user_data);
-	file->Close();
-	file->~File();
-	conf_free(file);
+    FileStream* fh = (FileStream*)user_data;
+    ASSERT(fh);
+    fsCloseStream(fh);
 }
 
 // Flush callback
 void log_flush(void * user_data)
 {
-	File * file = static_cast<File *>(user_data);
-	file->Flush();
+    FileStream* fh = (FileStream*)user_data;
+    ASSERT(fh);
+    
+    fsFlushStream(fh);
+}
+
+void Log::Init(LogLevel level /* = LogLevel::eALL */)
+{
+	pLogger = conf_new(Log, level);
+	pLogger->mLogMutex.Init();
+}
+
+void Log::Exit()
+{
+	pLogger->mLogMutex.Destroy();
+	conf_delete(pLogger);
+	pLogger = NULL;
 }
 
 Log::LogScope::LogScope(uint32_t log_level, const char * file, int line, const char * format, ...)
@@ -103,8 +111,8 @@ Log::LogScope::LogScope(uint32_t log_level, const char * file, int line, const c
 	// Write to log and update indentation
 	Log::Write(mLevel, "{ " + mMessage, mFile, mLine);
 	{
-		MutexLock lock{ gLogger.mLogMutex };
-		++gLogger.mIndentation;
+		MutexLock lock{ pLogger->mLogMutex };
+		++pLogger->mIndentation;
 	}
 }
 
@@ -112,70 +120,73 @@ Log::LogScope::~LogScope()
 {
 	// Update indentation and write to log
 	{
-		MutexLock lock{ gLogger.mLogMutex };
-		--gLogger.mIndentation;
+		MutexLock lock{ pLogger->mLogMutex };
+		--pLogger->mIndentation;
 	}
 	Log::Write(mLevel, "} " + mMessage, mFile, mLine);
 }
 
-// Settors
-void Log::SetLevel(LogLevel level)             { gLogger.mLogLevel = level; }
-void Log::SetQuiet(bool bQuiet)                { gLogger.mQuietMode = bQuiet; }
-void Log::SetTimeStamp(bool bEnable)           { gLogger.mRecordTimestamp = bEnable; }
-void Log::SetRecordingFile(bool bEnable)       { gLogger.mRecordFile = bEnable; }
-void Log::SetRecordingThreadName(bool bEnable) { gLogger.mRecordThreadName = bEnable; }
+void Log::SetLevel(LogLevel level)             { pLogger->mLogLevel = level; }
+void Log::SetQuiet(bool bQuiet)                { pLogger->mQuietMode = bQuiet; }
+void Log::SetTimeStamp(bool bEnable)           { pLogger->mRecordTimestamp = bEnable; }
+void Log::SetRecordingFile(bool bEnable)       { pLogger->mRecordFile = bEnable; }
+void Log::SetRecordingThreadName(bool bEnable) { pLogger->mRecordThreadName = bEnable; }
 
 // Gettors
-uint32_t Log::GetLevel()            { return gLogger.mLogLevel; }
-eastl::string Log::GetLastMessage() { return gLogger.mLastMessage; }
-bool Log::IsQuiet()                 { return gLogger.mQuietMode; }
-bool Log::IsRecordingTimeStamp()    { return gLogger.mRecordTimestamp; }
-bool Log::IsRecordingFile()         { return gLogger.mRecordFile; }
-bool Log::IsRecordingThreadName()   { return gLogger.mRecordThreadName; }
+uint32_t Log::GetLevel()            { return pLogger->mLogLevel; }
+eastl::string Log::GetLastMessage() { return pLogger->mLastMessage; }
+bool Log::IsQuiet()                 { return pLogger->mQuietMode; }
+bool Log::IsRecordingTimeStamp()    { return pLogger->mRecordTimestamp; }
+bool Log::IsRecordingFile()         { return pLogger->mRecordFile; }
+bool Log::IsRecordingThreadName()   { return pLogger->mRecordThreadName; }
 
 void Log::AddFile(const char * filename, FileMode file_mode, LogLevel log_level)
 {
-	if (filename == 0)
+	if (filename == NULL)
 		return;
 	
-	File * file = conf_placement_new<File>(conf_calloc(1, sizeof(File)));
-	if (file->Open(filename, file_mode, FSR_Absolute))
+    PathHandle logFileDirectory = fsCopyLogFileDirectoryPath();
+    PathHandle path = fsAppendPathComponent(logFileDirectory, filename);
+    FileStream* fh = fsOpenFile(path, file_mode);
+	if (fh)//If the File Exists
 	{
+	
 		// AddCallback will try to acquire mutex
-		AddCallback((FileSystem::GetCurrentDir() + filename).c_str(), log_level, file, log_write, log_close, log_flush);
+        
+		AddCallback(fsGetPathAsNativeString(path), log_level, fh, log_write, log_close, log_flush);
 
 		{
-			MutexLock lock{ gLogger.mLogMutex }; // scope lock as Write will try to acquire mutex
+			MutexLock lock{ pLogger->mLogMutex }; // scope lock as Write will try to acquire mutex
 
 			// Header
 			eastl::string header;
-			if (gLogger.mRecordTimestamp)
+			if (pLogger->mRecordTimestamp)
 				header += "date       time     ";
-			if (gLogger.mRecordThreadName)
+			if (pLogger->mRecordThreadName)
 				header += "[thread name/id ]";
-			if (gLogger.mRecordFile)
+			if (pLogger->mRecordFile)
 				header += "                   file:line  ";
 			header += "  v |\n";
-			file->Write(header.c_str(), (unsigned)header.size());
-			file->Flush();
+            fsWriteToStream(fh, header.c_str(), header.size());
+            fsFlushStream(fh);
+			//file->Write(header.c_str(), (unsigned)header.size());
+			//file->Flush();
 		}
 
 		Write(LogLevel::eINFO, "Opened log file " + eastl::string{ filename }, __FILE__, __LINE__);
 	}
 	else
 	{
-		file->~File();
-		conf_free(file);
 		Write(LogLevel::eERROR, "Failed to create log file " + eastl::string{ filename }, __FILE__, __LINE__); // will try to acquire mutex
 	}
 }
 
 void Log::AddCallback(const char * id, uint32_t log_level, void * user_data, log_callback_t callback, log_close_t close, log_flush_t flush)
 {
-	MutexLock lock{ gLogger.mLogMutex };
+	MutexLock lock{ pLogger->mLogMutex };
 	if (!CallbackExists(id))
 	{
-		gLogger.mCallbacks.emplace_back(LogCallback{ id, user_data, callback, close, flush, log_level });
+		pLogger->mCallbacks.emplace_back(LogCallback{ id, user_data, callback, close, flush, log_level });
 	}
 	else
 		close(user_data);
@@ -183,13 +194,22 @@ void Log::AddCallback(const char * id, uint32_t log_level, void * user_data, log
 
 void Log::Write(uint32_t level, const eastl::string & message, const char * filename, int line_number)
 {
+	static eastl::pair<uint32_t, eastl::string> logLevelPrefixes[] =
+	{
+		eastl::pair<uint32_t, eastl::string>{ LogLevel::eWARNING, eastl::string{ "WARN" } },
+		eastl::pair<uint32_t, eastl::string>{ LogLevel::eINFO, eastl::string{ "INFO" } },
+		eastl::pair<uint32_t, eastl::string>{ LogLevel::eDEBUG, eastl::string{ " DBG" } },
+		eastl::pair<uint32_t, eastl::string>{ LogLevel::eERROR, eastl::string{ " ERR" } }
+	};
+
 	eastl::string log_level_strings[LEVELS_LOG];
 	uint32_t log_levels[LEVELS_LOG];
 	uint32_t log_level_count = 0;
 
 	// Check flags
-	for (eastl::unordered_map<uint32_t, eastl::string>::iterator it = logLevelPrefixes.begin(); it != logLevelPrefixes.end(); ++it)
+	for (uint32_t i = 0; i < sizeof(logLevelPrefixes) / sizeof(logLevelPrefixes[0]); ++i)
 	{
+		const eastl::pair<uint32_t, eastl::string>* it = &logLevelPrefixes[i];
 		if (it->first & level)
 		{
 			log_level_strings[log_level_count] = it->second + "| ";
@@ -200,22 +220,22 @@ void Log::Write(uint32_t level, const eastl::string & message, const char * file
 	
 	bool do_once = false;
 	{
-		MutexLock lock{ gLogger.mLogMutex }; // scope lock as stack frames from calling AddInitialLogFile will attempt to lock mutex
+		MutexLock lock{ pLogger->mLogMutex }; // scope lock as stack frames from calling AddInitialLogFile will attempt to lock mutex
 		do_once = gOnce;
 		gOnce = false;
 	}
 	if (do_once)
 		AddInitialLogFile();
 
-	MutexLock lock{ gLogger.mLogMutex };
-	gLogger.mLastMessage = message;
+	MutexLock lock{ pLogger->mLogMutex };
+	pLogger->mLastMessage = message;
 
 	char preamble[LOG_PREAMBLE_SIZE] = { 0 };
 	WritePreamble(preamble, LOG_PREAMBLE_SIZE, filename, line_number);
 
 	// Prepare indentation
 	eastl::string indentation;
-	indentation.resize(gLogger.mIndentation * INDENTATION_SIZE_LOG);
+	indentation.resize(pLogger->mIndentation * INDENTATION_SIZE_LOG);
 	memset(indentation.begin(), ' ', indentation.size());
 
 	// Log for each flag
@@ -223,7 +243,7 @@ void Log::Write(uint32_t level, const eastl::string & message, const char * file
 	{
         eastl::string formattedMessage = preamble + log_level_strings[i] + indentation + message;
 
-		if (gLogger.mQuietMode)
+		if (pLogger->mQuietMode)
 		{
 			if (level & LogLevel::eERROR)
 				_PrintUnicodeLine(formattedMessage, true);
@@ -234,7 +254,7 @@ void Log::Write(uint32_t level, const eastl::string & message, const char * file
 		}
 	}
 	
-	for (LogCallback & callback : gLogger.mCallbacks)
+	for (LogCallback & callback : pLogger->mCallbacks)
 	{
 		// Log for each flag
 		for (uint32_t i = 0; i < log_level_count; ++i)
@@ -249,18 +269,18 @@ void Log::WriteRaw(uint32_t level, const eastl::string & message, bool error)
 {
 	bool do_once = false;
 	{
-		MutexLock lock{ gLogger.mLogMutex }; // scope lock as stack frames from calling AddInitialLogFile will attempt to lock mutex
+		MutexLock lock{ pLogger->mLogMutex }; // scope lock as stack frames from calling AddInitialLogFile will attempt to lock mutex
 		do_once = gOnce;
 		gOnce = false;
 	}
 	if (do_once)
 		AddInitialLogFile();
 	
-	MutexLock lock{ gLogger.mLogMutex };
+	MutexLock lock{ pLogger->mLogMutex };
 	
-	gLogger.mLastMessage = message;
+	pLogger->mLastMessage = message;
 	
-	if (gLogger.mQuietMode)
+	if (pLogger->mQuietMode)
 	{
 		if (error)
 			_PrintUnicode(message, true);
@@ -268,7 +288,7 @@ void Log::WriteRaw(uint32_t level, const eastl::string & message, bool error)
 	else
 		_PrintUnicode(message, error);
 	
-	for (LogCallback & callback : gLogger.mCallbacks)
+	for (LogCallback & callback : pLogger->mCallbacks)
 	{
 		if (callback.mLevel & level)
 			callback.mCallback(callback.mUserData, message);
@@ -277,12 +297,23 @@ void Log::WriteRaw(uint32_t level, const eastl::string & message, bool error)
 
 void Log::AddInitialLogFile()
 {
+
 	// Add new file with executable name
-	eastl::string exeFileName = FileSystem::GetProgramFileName();
-	//Minimum Length check
-	if (exeFileName.size() < 2)
-		exeFileName = "Log";
-	AddFile((exeFileName + ".log").c_str(), FileMode::FM_WriteBinary, LogLevel::eALL);
+    
+    const char *extension = ".log";
+    const size_t extensionLength = strlen(extension);
+    
+    char exeFileName[256];
+    fsGetExecutableName(exeFileName, 256 - extensionLength);
+    
+	// Minimum length check
+	if (exeFileName[0] == 0 || exeFileName[1] == 0)
+    {
+        strncpy(exeFileName, "Log", 3);
+    }
+    strncat(exeFileName, extension, extensionLength);
+    
+    AddFile(exeFileName, FM_WRITE_BINARY, LogLevel::eALL);
 }
 
 void Log::WritePreamble(char * buffer, uint32_t buffer_size, const char * file, int line)
@@ -297,7 +328,7 @@ void Log::WritePreamble(char * buffer, uint32_t buffer_size, const char * file, 
 
 	uint32_t pos = 0;
 	// Date and time
-	if (gLogger.mRecordTimestamp && pos < buffer_size)
+	if (pLogger->mRecordTimestamp && pos < buffer_size)
 	{
 		pos += snprintf(buffer + pos, buffer_size - pos, "%04d-%02d-%02d ",
 			1900 + time_info.tm_year, 1 + time_info.tm_mon, time_info.tm_mday);
@@ -305,7 +336,7 @@ void Log::WritePreamble(char * buffer, uint32_t buffer_size, const char * file, 
 			time_info.tm_hour, time_info.tm_min, time_info.tm_sec);
 	}
 
-	if (gLogger.mRecordThreadName && pos < buffer_size)
+	if (pLogger->mRecordThreadName && pos < buffer_size)
 	{
 		char thread_name[MAX_THREAD_NAME_LENGTH + 1] = { 0 };
 		Thread::GetCurrentThreadName(thread_name, MAX_THREAD_NAME_LENGTH + 1);
@@ -318,7 +349,7 @@ void Log::WritePreamble(char * buffer, uint32_t buffer_size, const char * file, 
 	}
 
 	// File and line
-	if (gLogger.mRecordFile && pos < buffer_size)
+	if (pLogger->mRecordFile && pos < buffer_size)
 	{
 		file = get_filename(file);
 
@@ -330,7 +361,7 @@ void Log::WritePreamble(char * buffer, uint32_t buffer_size, const char * file, 
 
 bool Log::CallbackExists(const char * id)
 {
-	for (const LogCallback & callback : gLogger.mCallbacks)
+	for (const LogCallback & callback : pLogger->mCallbacks)
 	{
 		if (callback.mID == id)
 			return true;

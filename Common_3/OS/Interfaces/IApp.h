@@ -78,10 +78,11 @@ void drawFrame(float deltaTime);
 
 #include "IOperatingSystem.h"
 #include "../../ThirdParty/OpenSource/EASTL/string.h"
+#include "ILog.h"
 
 class IApp
 {
-	public:
+public:
 	virtual bool Init() = 0;
 	virtual void Exit() = 0;
 
@@ -110,7 +111,7 @@ class IApp
 	} mSettings;
 
 	WindowsDesc*    pWindow;
-	eastl::string mCommandLine;
+	const char*     pCommandLine;
 };
 
 #if defined(_DURANGO)

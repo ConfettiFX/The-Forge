@@ -122,9 +122,6 @@
     <ClCompile Include="..\..\..\..\..\OS\MemoryTracking\MemoryTracking.cpp">
       <Filter>OS</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\OS\Core\FileSystem.cpp">
-      <Filter>OS</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsFileSystem.cpp">
       <Filter>OS</Filter>
     </ClCompile>
@@ -135,6 +132,21 @@
       <Filter>OS</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\OS\Logging\Log.cpp">
+      <Filter>OS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\OS\FileSystem\MemoryStream.cpp">
+      <Filter>OS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\OS\FileSystem\ZipFileStream.cpp">
+      <Filter>OS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\OS\FileSystem\ZipFileSystem.cpp">
+      <Filter>OS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\OS\FileSystem\FileSystemInternal.cpp">
+      <Filter>OS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\OS\FileSystem\SystemFileStream.cpp">
       <Filter>OS</Filter>
     </ClCompile>
   </ItemGroup>
@@ -177,6 +189,21 @@
     </ClInclude>
     <ClInclude Include="..\Parser\mcpp-master\mcpp_lib.h">
       <Filter>Source Files\mcpp-master</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\OS\FileSystem\ZipFileSystem.h">
+      <Filter>OS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\OS\FileSystem\FileSystemInternal.h">
+      <Filter>OS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\OS\FileSystem\MemoryStream.h">
+      <Filter>OS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\OS\FileSystem\SystemFileStream.h">
+      <Filter>OS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\OS\FileSystem\ZipFileStream.h">
+      <Filter>OS</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

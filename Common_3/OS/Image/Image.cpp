@@ -33,7 +33,11 @@
 #define IMAGE_CLASS_ALLOWED
 #include "Image.h"
 #include "../Interfaces/ILog.h"
+#ifndef IMAGE_DISABLE_TINYEXR
 #include "../../ThirdParty/OpenSource/TinyEXR/tinyexr.h"
+#endif
+
+#ifndef IMAGE_DISABLE_STB
 //stb_image
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_MALLOC conf_malloc
@@ -53,6 +57,7 @@
 #include "../../ThirdParty/OpenSource/Nothings/stb_image_write.h"
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "../../ThirdParty/OpenSource/Nothings/stb_image_resize.h"
+#endif
 
 #include "../../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_base.h"
 #include "../../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
@@ -61,8 +66,10 @@
 #include "../../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_encode.h"
 #define TINYDDS_IMPLEMENTATION
 #include "../../ThirdParty/OpenSource/tinydds/tinydds.h"
+#ifndef IMAGE_DISABLE_KTX
 #define TINYKTX_IMPLEMENTATION
 #include "../../ThirdParty/OpenSource/tinyktx/tinyktx.h"
+#endif
 #include "ImageHelper.h"
 
 #include "../Interfaces/IMemory.h"
@@ -246,7 +253,7 @@ void iDecodeCompressedImage(unsigned char* dest, unsigned char* src, const int w
 Image::Image()
 {
 	pData = NULL;
-	mLoadFileName = "";
+	mLoadFilePath = NULL;
 	mWidth = 0;
 	mHeight = 0;
 	mDepth = 0;
@@ -258,8 +265,10 @@ Image::Image()
 	mOwnsMemory = true;
 	mLinearLayout = true;
 
+#ifndef IMAGE_DISABLE_GOOGLE_BASIS
 	// Init basisu
 	basist::basisu_transcoder_init();
+#endif
 }
 
 Image::Image(const Image& img)
@@ -275,7 +284,7 @@ Image::Image(const Image& img)
 	int size = GetMipMappedSize(0, mMipMapCount) * mArrayCount;
 	pData = (unsigned char*)conf_malloc(sizeof(unsigned char) * size);
 	memcpy(pData, img.pData, size);
-	mLoadFileName = img.mLoadFileName;
+	mLoadFilePath = fsCopyPath(img.mLoadFilePath);
 
 	mAdditionalDataSize = img.mAdditionalDataSize;
 	pAdditionalData = (unsigned char*)conf_malloc(sizeof(unsigned char) * mAdditionalDataSize);
@@ -296,7 +305,7 @@ unsigned char* Image::Create(const TinyImageFormat fmt, const int w, const int h
 	uint holder = GetMipMappedSize(0, mMipMapCount);
 	pData = (unsigned char*)conf_malloc(sizeof(unsigned char) * holder * mArrayCount);
 	memset(pData, 0x00, holder * mArrayCount);
-	mLoadFileName = "Undefined";
+	mLoadFilePath = NULL;
 
 	return pData;
 }
@@ -313,7 +322,7 @@ unsigned char* Image::Create(const TinyImageFormat fmt, const int w, const int h
 	mMipsAfterSlices = false;
 
 	pData = (uint8_t*)rawData;
-	mLoadFileName = "Undefined";
+	mLoadFilePath = NULL;
 
 	return pData;
 }
@@ -344,6 +353,11 @@ void Image::RedefineDimensions(
 
 void Image::Destroy()
 {
+    if (mLoadFilePath)
+    {
+        mLoadFilePath = NULL;
+    }
+    
 	if (pData && mOwnsMemory)
 	{
 		conf_free(pData);
@@ -746,22 +760,22 @@ static void tinyktxddsCallbackFree(void *user, void *data) {
 	conf_free(data);
 }
 static size_t tinyktxddsCallbackRead(void *user, void* data, size_t size) {
-	MemoryBuffer* file = (MemoryBuffer*) user;
-	return file->Read(data, (unsigned int)size);
+	FileStream* file = (FileStream*) user;
+    return fsReadFromStream(file, data, size);
 }
 static bool tinyktxddsCallbackSeek(void *user, int64_t offset) {
-	MemoryBuffer* file = (MemoryBuffer*) user;
-	return file->Seek((unsigned int)offset, SeekDir::SEEK_DIR_BEGIN);
+    FileStream* file = (FileStream*) user;
+    return fsSeekStream(file, SBO_START_OF_FILE, offset);
 
 }
 static int64_t tinyktxddsCallbackTell(void *user) {
-	MemoryBuffer* file = (MemoryBuffer*) user;
-	return file->Tell();
+    FileStream* file = (FileStream*) user;
+    return fsGetStreamSeekPosition(file);
 }
 
 static void tinyktxddsCallbackWrite(void* user, void const* data, size_t size) {
-	File* file = (File*)user;
-	file->Write(data, (unsigned int)size);
+    FileStream* file = (FileStream*) user;
+    fsWriteToStream(file, data, size);
 }
 
 // Load Image Data form mData functions
@@ -781,11 +795,12 @@ bool iLoadDDSFromMemory(Image* pImage,
 			&tinyktxddsCallbackTell
 	};
 
-	MemoryBuffer memoryBuffer(memory, memSize);
+    FileStream *fh = fsOpenReadOnlyMemory(memory, memSize);
 
-	auto ctx = TinyDDS_CreateContext( &callbacks, (void*)&memoryBuffer);
+	auto ctx = TinyDDS_CreateContext(&callbacks, (void*)fh);
 	bool headerOkay = TinyDDS_ReadHeader(ctx);
 	if(!headerOkay) {
+        fsCloseStream(fh);
 		TinyDDS_DestroyContext(ctx);
 		return false;
 	}
@@ -798,6 +813,7 @@ bool iLoadDDSFromMemory(Image* pImage,
 	TinyImageFormat fmt = TinyImageFormat_FromTinyDDSFormat(TinyDDS_GetFormat(ctx));
 	if(fmt == TinyImageFormat_UNDEFINED)
 	{
+        fsCloseStream(fh);
 		TinyDDS_DestroyContext(ctx);
 		return false;
 	}
@@ -825,7 +841,8 @@ bool iLoadDDSFromMemory(Image* pImage,
 		size_t const fileSize = TinyDDS_ImageSize(ctx, mipMapLevel);
 		if (expectedSize != fileSize)
 		{
-			LOGF(LogLevel::eERROR, "DDS file %s mipmap %i size error %liu < %liu", pImage->GetName().c_str(), mipMapLevel, expectedSize, fileSize);
+			LOGF(LogLevel::eERROR, "DDS file %s mipmap %i size error %liu < %liu", fsGetPathAsNativeString(pImage->GetPath()), mipMapLevel, expectedSize, fileSize);
+            fsCloseStream(fh);
 			return false;
 		}
 		unsigned char *dst = pImage->GetPixels(mipMapLevel, 0);
@@ -833,6 +850,8 @@ bool iLoadDDSFromMemory(Image* pImage,
 	}
 
 	TinyDDS_DestroyContext(ctx);
+    fsCloseStream(fh);
+    
 	return true;
 }
 
@@ -921,6 +940,7 @@ bool iLoadPVRFromMemory(Image* pImage, const char* memory, uint32_t size, memory
 #endif
 }
 
+#ifndef IMAGE_DISABLE_KTX
 bool iLoadKTXFromMemory(Image* pImage, const char* memory, uint32_t memSize, memoryAllocationFunc pAllocator /*= NULL*/, void* pUserData /*= NULL*/)
 {
 	TinyKtx_Callbacks callbacks {
@@ -932,11 +952,12 @@ bool iLoadKTXFromMemory(Image* pImage, const char* memory, uint32_t memSize, mem
 			&tinyktxddsCallbackTell
 	};
 
-	MemoryBuffer memoryBuffer(memory, memSize);
+    FileStream *fh = fsOpenReadOnlyMemory(memory, memSize);
 
-	auto ctx =  TinyKtx_CreateContext( &callbacks, (void*)&memoryBuffer);
+	auto ctx = TinyKtx_CreateContext( &callbacks, (void*)fh);
 	bool headerOkay = TinyKtx_ReadHeader(ctx);
 	if(!headerOkay) {
+        fsCloseStream(fh);
 		TinyKtx_DestroyContext(ctx);
 		return false;
 	}
@@ -948,6 +969,7 @@ bool iLoadKTXFromMemory(Image* pImage, const char* memory, uint32_t memSize, mem
 	uint32_t mm = TinyKtx_NumberOfMipmaps(ctx);
 	TinyImageFormat fmt = TinyImageFormat_FromTinyKtxFormat(TinyKtx_GetFormat(ctx));
 	if(fmt == TinyImageFormat_UNDEFINED) {
+        fsCloseStream(fh);
 		TinyKtx_DestroyContext(ctx);
 		return false;
 	}
@@ -995,21 +1017,23 @@ bool iLoadKTXFromMemory(Image* pImage, const char* memory, uint32_t memSize, mem
             size_t const expectedSize = pImage->GetMipMappedSize(mipMapLevel, 1);
             size_t const fileSize = TinyKtx_ImageSize(ctx, mipMapLevel);
             if (expectedSize != fileSize) {
-                LOGF(LogLevel::eERROR, "DDS file %s mipmap %i size error %liu < %liu", pImage->GetName().c_str(),mipMapLevel, expectedSize, fileSize);
+                LOGF(LogLevel::eERROR, "DDS file %s mipmap %i size error %liu < %liu", fsGetPathAsNativeString(pImage->GetPath()),mipMapLevel, expectedSize, fileSize);
                 return false;
             }
             memcpy(dst, src, fileSize);
         }
 	}
 
+    fsCloseStream(fh);
 	TinyKtx_DestroyContext(ctx);
 	return true;
 }
+#endif
 
 #if defined(ORBIS)
 
 // loads GNF header from memory
-static GnfError iLoadGnfHeaderFromMemory(struct sce::Gnf::Header* outHeader, MemoryBuffer* mp)
+static GnfError iLoadGnfHeaderFromMemory(struct sce::Gnf::Header* outHeader, MemoryStream* mp)
 {
 	if (outHeader == NULL)    //  || gnfFile == NULL)
 	{
@@ -1088,7 +1112,7 @@ bool Image::iLoadGNFFromMemory(const char* memory, size_t memSize, const bool us
 {
 	GnfError result = kGnfErrorNone;
 
-	MemoryBuffer m1(memory, memSize);
+	MemoryStream m1(memory, memSize);
 
 	sce::Gnf::Header header;
 	result = iLoadGnfHeaderFromMemory(&header, m1);
@@ -1103,7 +1127,7 @@ bool Image::iLoadGNFFromMemory(const char* memory, size_t memSize, const bool us
 
 	// move the pointer behind the header
 	const char*  mp = memory + sizeof(sce::Gnf::Header);
-	MemoryBuffer m2(mp, memSize - sizeof(sce::Gnf::Header));
+	MemoryStream m2(mp, memSize - sizeof(sce::Gnf::Header));
 
 	result = iReadGnfContentsFromMemory(gnfContents, header.m_contentsSize, m2);
 
@@ -1157,7 +1181,8 @@ bool Image::iLoadGNFFromMemory(const char* memory, size_t memSize, const bool us
 
 	// move pointer forward
 	const char*  memPoint = mp + header.m_contentsSize + getTexturePixelsByteOffset(gnfContents, 0);
-	MemoryBuffer m3(memPoint, memSize - (sizeof(sce::Gnf::Header) + header.m_contentsSize + getTexturePixelsByteOffset(gnfContents, 0)));
+	//MemoryBuffer m3(memPoint, memSize - (sizeof(sce::Gnf::Header) + header.m_contentsSize + getTexturePixelsByteOffset(gnfContents, 0)));
+	MemoryStream m3(memPoint, memSize - (sizeof(sce::Gnf::Header) + header.m_contentsSize + getTexturePixelsByteOffset(gnfContents, 0)));
 
 	// dealing with mip-map stuff ... ???
 	int size = pixelsSa.m_size;    //getMipMappedSize(0, nMipMaps);
@@ -1195,6 +1220,7 @@ bool Image::iLoadGNFFromMemory(const char* memory, size_t memSize, const bool us
 #endif
 
 //------------------------------------------------------------------------------
+#ifndef IMAGE_DISABLE_GOOGLE_BASIS
 //  Loads a Basis data from memory.
 //
 bool iLoadBASISFromMemory(Image* pImage, const char* memory, uint32_t memSize, memoryAllocationFunc pAllocator /*= NULL*/, void* pUserData /*= NULL*/)
@@ -1308,43 +1334,53 @@ bool iLoadBASISFromMemory(Image* pImage, const char* memory, uint32_t memSize, m
 
 	return true;
 }
+#endif
 
 // Image loading
 // struct of table for file format to loading function
 struct ImageLoaderDefinition
 {
-	eastl::string              mExtension;
+	char const* mExtension;
 	Image::ImageLoaderFunction pLoader;
 };
 
-static eastl::vector<ImageLoaderDefinition> gImageLoaders;
+#define MAX_IMAGE_LOADERS 10
+static ImageLoaderDefinition gImageLoaders[MAX_IMAGE_LOADERS];
+uint32_t gImageLoaderCount = 0;
 
-struct StaticImageLoader
+// One time call to initialize all loaders
+void Image::Init()
 {
-	StaticImageLoader()
-	{
-		gImageLoaders.push_back({ ".dds", iLoadDDSFromMemory });
-		gImageLoaders.push_back({ ".pvr", iLoadPVRFromMemory });
-		gImageLoaders.push_back({ ".ktx", iLoadKTXFromMemory });
-#if defined(ORBIS)
-		gImageLoaders.push_back({ ".gnf", iLoadGNFFromMemory });
+	gImageLoaders[gImageLoaderCount++] = {"dds", iLoadDDSFromMemory};
+	gImageLoaders[gImageLoaderCount++] = {"pvr", iLoadPVRFromMemory};
+#ifndef IMAGE_DISABLE_KTX
+	gImageLoaders[gImageLoaderCount++] = {"ktx", iLoadKTXFromMemory};
 #endif
-		gImageLoaders.push_back({ ".basis", iLoadBASISFromMemory });
+#if defined(ORBIS)
+	gImageLoaders[gImageLoaderCount++] = {"gnf", iLoadGNFFromMemory };
+#endif
+#ifndef IMAGE_DISABLE_GOOGLE_BASIS
+	gImageLoaders[gImageLoaderCount++] = {"basis", iLoadBASISFromMemory};
+#endif
+}
 
-	}
-} gImageLoaderInst;
+void Image::Exit()
+{
+}
 
-void Image::AddImageLoader(const char* pExtension, ImageLoaderFunction pFunc) { gImageLoaders.push_back({ pExtension, pFunc }); }
+void Image::AddImageLoader(const char* pExtension, ImageLoaderFunction pFunc) {
+	gImageLoaders[gImageLoaderCount++] = { pExtension, pFunc };
+}
 
 bool Image::LoadFromMemory(
 	void const* mem, uint32_t size, char const* extension, memoryAllocationFunc pAllocator, void* pUserData)
 {
 	// try loading the format
 	bool loaded = false;
-	for (uint32_t i = 0; i < (uint32_t)gImageLoaders.size(); ++i)
+	for (uint32_t i = 0; i < gImageLoaderCount; ++i)
 	{
 		ImageLoaderDefinition const& def = gImageLoaders[i];
-		if (stricmp(extension, def.mExtension.c_str()) == 0)
+		if (stricmp(extension, def.mExtension) == 0)
 		{
 			loaded = def.pLoader(this, (char const*)mem, size, pAllocator, pUserData);
 			break;
@@ -1353,83 +1389,88 @@ bool Image::LoadFromMemory(
 	return loaded;
 }
 
-bool Image::LoadFromFile(const char* origFileName, memoryAllocationFunc pAllocator, void* pUserData, FSRoot root)
+bool Image::LoadFromFile(const Path* filePath, memoryAllocationFunc pAllocator, void* pUserData)
 {
 	// clear current image
 	Clear();
 
-	eastl::string extension = FileSystem::GetExtension(origFileName);
+    PathComponent extensionComponent = fsGetPathExtension(filePath);
 	uint32_t loaderIndex = -1;
 
-	if (extension.size())
+	if (extensionComponent.length != 0) // the string's not empty
 	{
-		for (int i = 0; i < (int)gImageLoaders.size(); i++)
+		for (int i = 0; i < (int)gImageLoaderCount; i++)
 		{
-			if (stricmp(extension.c_str(), gImageLoaders[i].mExtension.c_str()) == 0)
+			if (stricmp(extensionComponent.buffer, gImageLoaders[i].mExtension) == 0)
 			{
 				loaderIndex = i;
 				break;
 			}
 		}
 
-		if (loaderIndex == -1)
-			extension = "";
+        if (loaderIndex == -1)
+        {
+            extensionComponent.buffer = NULL;
+            extensionComponent.length = 0;
+        }
 	}
 
-	char fileName[MAX_PATH] = {};
-	strcpy(fileName, origFileName);
+    const char *extension;
+    
+    PathHandle loadFilePath = NULL;
 	// For loading basis file, it should have its extension
-	if (!extension.size())
+	if (extensionComponent.length == 0)
 	{
 #if defined(__ANDROID__)
-		extension = ".ktx";
+		extension = "ktx";
 #elif defined(TARGET_IOS)
-		extension = ".ktx";
+		extension = "ktx";
 #elif defined(__linux__)
-		extension = ".dds";
+		extension = "dds";
 #elif defined(__APPLE__)
-		extension = ".dds";
+		extension = "dds";
 #else
-		extension = ".dds";
+		extension = "dds";
 #endif
 
-		strcpy(fileName + strlen(origFileName), extension.c_str());
-	}
-
-	// open file
-	File file = {};
-	file.Open(fileName, FM_ReadBinary, root);
-	if (!file.IsOpen())
+        loadFilePath = fsAppendPathExtension(filePath, extension);
+    } else {
+        extension = extensionComponent.buffer;
+        loadFilePath = fsCopyPath(filePath);
+    }
+		
+    FileStream* fh = fsOpenFile(loadFilePath, FM_READ_BINARY);
+	
+	if (!fh)
 	{
-		LOGF(LogLevel::eERROR, "\"%s\": Image file not found.", fileName);
+		LOGF(LogLevel::eERROR, "\"%s\": Image file not found.", fsGetPathAsNativeString(loadFilePath));
 		return false;
 	}
-
+	
 	// load file into memory
-	uint32_t length = file.GetSize();
-	if (length == 0)
+	
+    ssize_t length = fsGetStreamFileSize(fh);
+	if (length <= 0)
 	{
-		//char output[256];
-		//sprintf(output, "\"%s\": Image file is empty.", fileName);
-		LOGF(LogLevel::eERROR, "\"%s\": Image is an empty file.", fileName);
-		file.Close();
+		LOGF(LogLevel::eERROR, "\"%s\": Image is an empty file.", fsGetPathAsNativeString(loadFilePath));
+        fsCloseStream(fh);
 		return false;
 	}
-
+	
 	// read and close file.
 	char* data = (char*)conf_malloc(length * sizeof(char));
-	file.Read(data, (unsigned)length);
-	file.Close();
+    fsReadFromStream(fh, data, length);
+    fsCloseStream(fh);
 
 	// try loading the format
 	bool loaded = false;
 	bool support = false;
-	for (int i = 0; i < (int)gImageLoaders.size(); i++)
+	for (int i = 0; i < (int)gImageLoaderCount; i++)
 	{
-		if (stricmp(extension.c_str(), gImageLoaders[i].mExtension.c_str()) == 0)
+		if (stricmp(extension, gImageLoaders[i].mExtension) == 0)
 		{
 			support = true;
-			loaded = gImageLoaders[i].pLoader(this, data, length, pAllocator, pUserData);
+			loaded = gImageLoaders[i].pLoader(this, data, (uint32_t)length, pAllocator, pUserData);
 			if (loaded)
 			{
 				break;
@@ -1438,11 +1479,11 @@ bool Image::LoadFromFile(const char* origFileName, memoryAllocationFunc pAllocat
 	}
 	if (!support)
 	{
-		LOGF(LogLevel::eERROR, "Can't load this file format for image  :  %s", fileName);
+		LOGF(LogLevel::eERROR, "Can't load this file format for image  :  %s", fsGetPathAsNativeString(loadFilePath));
 	}
 	else
 	{
-		mLoadFileName = fileName;
+		mLoadFilePath = loadFilePath;
 	}
 	// cleanup the compressed data
 	conf_free(data);
@@ -1600,7 +1641,7 @@ static void tinyktxCallbackError(void* user, char const* msg) {
 	LOGF( LogLevel::eERROR, "Tiny_Ktx ERROR: %s", msg);
 }
 
-bool Image::iSaveDDS(const char* fileName) {
+bool Image::iSaveDDS(const Path* filePath) {
 	TinyDDS_WriteCallbacks callback{
 			&tinyktxddsCallbackError,
 			&tinyktxddsCallbackAlloc,
@@ -1609,11 +1650,14 @@ bool Image::iSaveDDS(const char* fileName) {
 	};
 
 	TinyDDS_Format fmt = TinyImageFormat_ToTinyDDSFormat(mFormat);
+#ifndef IMAGE_DISABLE_KTX
 	if (fmt == TDDS_UNDEFINED)
-		return convertAndSaveImage(*this, &Image::iSaveKTX, fileName);
+		return convertAndSaveImage(*this, &Image::iSaveKTX, filePath);
+#endif
 
-	File file;
-	if (!file.Open(fileName, FileMode::FM_WriteBinary, FSR_Textures))
+    FileStream* fh = fsOpenFile(filePath, FM_WRITE_BINARY);
+
+	if (!fh)
 		return false;
 
 	uint32_t mipmapsizes[TINYDDS_MAX_MIPMAPLEVELS];
@@ -1626,8 +1670,8 @@ bool Image::iSaveDDS(const char* fileName) {
 		mipmaps[i] = GetPixels(i);
 	}
 
-	return TinyDDS_WriteImage(&callback,
-		&file,
+	bool result = TinyDDS_WriteImage(&callback,
+		fh,
 		mWidth,
 		mHeight,
 		mDepth,
@@ -1638,9 +1682,13 @@ bool Image::iSaveDDS(const char* fileName) {
 		true,
 		mipmapsizes,
 		mipmaps);
+    
+    fsCloseStream(fh);
+    return result;
 }
 
-bool Image::iSaveKTX(const char* fileName) {
+#ifndef IMAGE_DISABLE_KTX
+bool Image::iSaveKTX(const Path* filePath) {
 	TinyKtx_WriteCallbacks callback{
 			&tinyktxddsCallbackError,
 			&tinyktxddsCallbackAlloc,
@@ -1650,10 +1698,11 @@ bool Image::iSaveKTX(const char* fileName) {
 
 	TinyKtx_Format fmt = TinyImageFormat_ToTinyKtxFormat(mFormat);
 	if (fmt == TKTX_UNDEFINED)
-		return convertAndSaveImage(*this, &Image::iSaveKTX, fileName);
-
-	File file;
-	if (!file.Open(fileName, FileMode::FM_WriteBinary, FSR_Textures))
+		return convertAndSaveImage(*this, &Image::iSaveKTX, filePath);
+    
+    FileStream* fh = fsOpenFile(filePath, FM_WRITE_BINARY);
+    
+	if (!fh)
 		return false;
 	
 	uint32_t mipmapsizes[TINYKTX_MAX_MIPMAPLEVELS];
@@ -1666,8 +1715,8 @@ bool Image::iSaveKTX(const char* fileName) {
 		mipmaps[i] = GetPixels(i);
 	}
 
-	return TinyKtx_WriteImage(&callback,
-		&file,
+	bool result = TinyKtx_WriteImage(&callback,
+		fh,
 		mWidth,
 		mHeight,
 		mDepth,
@@ -1677,24 +1726,31 @@ bool Image::iSaveKTX(const char* fileName) {
 		mDepth == 0,
 		mipmapsizes,
 		mipmaps);
+    
+    fsCloseStream(fh);
+    return result;
 }
+#endif
 
-bool convertAndSaveImage(const Image& image, bool (Image::*saverFunction)(const char*), const char* fileName)
+bool convertAndSaveImage(const Image& image, bool (Image::*saverFunction)(const Path*), const Path* filePath)
 {
 	bool  bSaveImageSuccess = false;
 	Image imgCopy(image);
 	imgCopy.Uncompress();
 	if (imgCopy.Convert(TinyImageFormat_R8G8B8A8_UNORM))
 	{
-		bSaveImageSuccess = (imgCopy.*saverFunction)(fileName);
+		bSaveImageSuccess = (imgCopy.*saverFunction)(filePath);
 	}
 
 	imgCopy.Destroy();
 	return bSaveImageSuccess;
 }
 
-bool Image::iSaveTGA(const char* fileName)
+#ifndef IMAGE_DISABLE_STB
+bool Image::iSaveTGA(const Path* filePath)
 {
+    // TODO: should use stbi_write_x_to_func methods rather than relying on the path being a disk path.
+    const char *fileName = fsGetPathAsNativeString(filePath);
 	switch (mFormat)
 	{
 		case TinyImageFormat_R8_UNORM: return 0 != stbi_write_tga(fileName, mWidth, mHeight, 1, pData); break;
@@ -1704,15 +1760,17 @@ bool Image::iSaveTGA(const char* fileName)
 		default:
 		{
 			// uncompress/convert and try again
-			return convertAndSaveImage(*this, &Image::iSaveTGA, fileName);
+			return convertAndSaveImage(*this, &Image::iSaveTGA, filePath);
 		}
 	}
 
 	//return false; //Unreachable
 }
 
-bool Image::iSaveBMP(const char* fileName)
+bool Image::iSaveBMP(const Path* filePath)
 {
+    // TODO: should use stbi_write_x_to_func methods rather than relying on the path being a disk path.
+    const char *fileName = fsGetPathAsNativeString(filePath);
 	switch (mFormat)
 	{
 		case TinyImageFormat_R8_UNORM: stbi_write_bmp(fileName, mWidth, mHeight, 1, pData); break;
@@ -1722,14 +1780,16 @@ bool Image::iSaveBMP(const char* fileName)
 		default:
 		{
 			// uncompress/convert and try again
-			return convertAndSaveImage(*this, &Image::iSaveBMP, fileName);
+			return convertAndSaveImage(*this, &Image::iSaveBMP, filePath);
 		}
 	}
 	return true;
 }
 
-bool Image::iSavePNG(const char* fileName)
+bool Image::iSavePNG(const Path* filePath)
 {
+    // TODO: should use stbi_write_x_to_func methods rather than relying on the path being a disk path.
+    const char *fileName = fsGetPathAsNativeString(filePath);
 	switch (mFormat)
 	{
 		case TinyImageFormat_R8_UNORM: stbi_write_png(fileName, mWidth, mHeight, 1, pData, 0); break;
@@ -1739,15 +1799,17 @@ bool Image::iSavePNG(const char* fileName)
 		default:
 		{
 			// uncompress/convert and try again
-			return convertAndSaveImage(*this, &Image::iSavePNG, fileName);
+			return convertAndSaveImage(*this, &Image::iSavePNG, filePath);
 		}
 	}
 
 	return true;
 }
 
-bool Image::iSaveHDR(const char* fileName)
+bool Image::iSaveHDR(const Path* filePath)
 {
+    // TODO: should use stbi_write_x_to_func methods rather than relying on the path being a disk path.
+    const char *fileName = fsGetPathAsNativeString(filePath);
 	switch (mFormat)
 	{
 		case TinyImageFormat_R32_SFLOAT: stbi_write_hdr(fileName, mWidth, mHeight, 1, (float*)pData); break;
@@ -1757,15 +1819,17 @@ bool Image::iSaveHDR(const char* fileName)
 		default:
 		{
 			// uncompress/convert and try again
-			return convertAndSaveImage(*this, &Image::iSaveHDR, fileName);
+			return convertAndSaveImage(*this, &Image::iSaveHDR, filePath);
 		}
 	}
 
 	return true;
 }
 
-bool Image::iSaveJPG(const char* fileName)
+bool Image::iSaveJPG(const Path* filePath)
 {
+    // TODO: should use stbi_write_x_to_func methods rather than relying on the path being a disk path.
+    const char *fileName = fsGetPathAsNativeString(filePath);
 	switch (mFormat)
 	{
 		case TinyImageFormat_R8_UNORM: stbi_write_jpg(fileName, mWidth, mHeight, 1, pData, 0); break;
@@ -1775,32 +1839,40 @@ bool Image::iSaveJPG(const char* fileName)
 		default:
 		{
 			// uncompress/convert and try again
-			return convertAndSaveImage(*this, &Image::iSaveJPG, fileName);
+			return convertAndSaveImage(*this, &Image::iSaveJPG, filePath);
 		}
 	}
 
 	return true;
 }
+#endif
 
 struct ImageSaverDefinition
 {
-	typedef bool (Image::*ImageSaverFunction)(const char*);
+	typedef bool (Image::*ImageSaverFunction)(const Path* filePath);
 	const char*        Extension;
 	ImageSaverFunction Loader;
 };
 
-static ImageSaverDefinition gImageSavers[] = {
-#if !defined(NO_STBI)
-	{ ".bmp", &Image::iSaveBMP }, { ".hdr", &Image::iSaveHDR }, { ".png", &Image::iSavePNG },
-	{ ".tga", &Image::iSaveTGA }, { ".jpg", &Image::iSaveJPG },
+static ImageSaverDefinition gImageSavers[] =
+{
+#ifndef IMAGE_DISABLE_STB
+	{ ".bmp", &Image::iSaveBMP },
+	{ ".hdr", &Image::iSaveHDR },
+	{ ".png", &Image::iSavePNG },
+	{ ".tga", &Image::iSaveTGA },
+	{ ".jpg", &Image::iSaveJPG },
 #endif
 	{ ".dds", &Image::iSaveDDS },
-	{ ".ktx",& Image::iSaveKTX }
+#ifndef IMAGE_DISABLE_KTX
+	{ ".ktx", &Image::iSaveKTX }
+#endif
 };
 
-bool Image::Save(const char* fileName)
+bool Image::Save(const Path* filePath)
 {
-	const char* extension = strrchr(fileName, '.');
+    char extension[16];
+    fsGetLowercasedPathExtension(filePath, extension, 16);
 	bool        support = false;
 	;
 	for (int i = 0; i < sizeof(gImageSavers) / sizeof(gImageSavers[0]); i++)
@@ -1808,12 +1880,12 @@ bool Image::Save(const char* fileName)
 		if (stricmp(extension, gImageSavers[i].Extension) == 0)
 		{
 			support = true;
-			return (this->*gImageSavers[i].Loader)(fileName);
+			return (this->*gImageSavers[i].Loader)(filePath);
 		}
 	}
 	if (!support)
 	{
-		LOGF(LogLevel::eERROR, "Can't save this file format for image  :  %s", fileName);
+		LOGF(LogLevel::eERROR, "Can't save this file format for image  :  %s", fsGetPathAsNativeString(filePath));
 	}
 
 	return false;

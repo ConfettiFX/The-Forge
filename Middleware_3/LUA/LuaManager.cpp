@@ -28,34 +28,34 @@ void LuaManager::SetFunction(ILuaFunctionWrap* wrap)
 	m_Impl->SetFunction(wrap);
 }
 
-bool LuaManager::RunScript(const char* scriptname)
+bool LuaManager::RunScript(const Path* scriptPath)
 {
 	ASSERT(m_Impl != nullptr);
-	return m_Impl->RunScript(scriptname);
+	return m_Impl->RunScript(scriptPath);
 }
 
-void LuaManager::AddAsyncScript(const char* scriptname, ScriptDoneCallback callback)
+void LuaManager::AddAsyncScript(const Path* scriptPath, ScriptDoneCallback callback)
 {
 	ASSERT(m_Impl != nullptr);
-	m_Impl->AddAsyncScript(scriptname, callback);
+	m_Impl->AddAsyncScript(scriptPath, callback);
 }
 
-void LuaManager::AddAsyncScript(const char* scriptname)
+void LuaManager::AddAsyncScript(const Path* scriptPath)
 {
 	ASSERT(m_Impl != nullptr);
-	m_Impl->AddAsyncScript(scriptname);
+	m_Impl->AddAsyncScript(scriptPath);
 }
 
-void LuaManager::AddAsyncScript(const char* scriptname, IScriptCallbackWrap* callbackLambda)
+void LuaManager::AddAsyncScript(const Path* scriptPath, IScriptCallbackWrap* callbackLambda)
 {
 	ASSERT(m_Impl != nullptr);
-	m_Impl->AddAsyncScript(scriptname, callbackLambda);
+	m_Impl->AddAsyncScript(scriptPath, callbackLambda);
 }
 
-bool LuaManager::SetUpdatableScript(const char* scriptname, const char* updateFunctionName, const char* exitFunctionName)
+bool LuaManager::SetUpdatableScript(const Path* scriptPath, const char* updateFunctionName, const char* exitFunctionName)
 {
 	ASSERT(m_Impl != nullptr);
-	return m_Impl->SetUpdatableScript(scriptname, updateFunctionName, exitFunctionName);
+	return m_Impl->SetUpdatableScript(scriptPath, updateFunctionName, exitFunctionName);
 }
 
 bool LuaManager::ReloadUpdatableScript()

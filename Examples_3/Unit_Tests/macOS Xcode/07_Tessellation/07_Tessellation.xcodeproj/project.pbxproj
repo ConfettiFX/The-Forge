@@ -42,6 +42,8 @@
 		B21F76DE21420EC000DF2297 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76DB21420EC000DF2297 /* Metal.framework */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
+		E970F791233C5EE7009FE7C4 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E970F790233C5EE2009FE7C4 /* libbz2.tbd */; };
+		E970F793233C5EF1009FE7C4 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E970F792233C5EEB009FE7C4 /* libbz2.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -50,13 +52,6 @@
 			containerPortal = 5C172F9021414AA70074EE71 /* The-Forge.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = 5C5582E021413D180019960B;
-			remoteInfo = "The-Forge";
-		};
-		5C172F9621414AB20074EE71 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 5C172F9021414AA70074EE71 /* The-Forge.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 5C5582DF21413D180019960B;
 			remoteInfo = "The-Forge";
 		};
 		5C17303E21414E610074EE71 /* PBXContainerItemProxy */ = {
@@ -72,6 +67,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 5C172FC721414C490074EE71;
 			remoteInfo = "The-Forge_iOS";
+		};
+		E958920B23415B9B00B68D6A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5C172F9021414AA70074EE71 /* The-Forge.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C5582DF21413D180019960B;
+			remoteInfo = "The-Forge";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -134,11 +136,11 @@
 		28A5ADC9201F75F0000E571F /* grass_verthull.comp.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = grass_verthull.comp.metal; path = ../../../src/07_Tessellation/Shaders/Metal/grass_verthull.comp.metal; sourceTree = "<group>"; };
 		5B17815122A5C72B00991DCB /* profile.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.vert.metal; path = ../../src/07_Tessellation/Shaders/Metal/profile.vert.metal; sourceTree = "<group>"; };
 		5B17815222A5C72B00991DCB /* profile.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.frag.metal; path = ../../src/07_Tessellation/Shaders/Metal/profile.frag.metal; sourceTree = "<group>"; };
-		5C172F8D21414A9B0074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/macOS/AppDelegate.m; sourceTree = "<group>"; };
-		5C172F8E21414A9B0074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/macOS/AppDelegate.h; sourceTree = "<group>"; };
+		5C172F8D21414A9B0074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
+		5C172F8E21414A9B0074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
 		5C172F9021414AA70074EE71 /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
-		5C17304321414E700074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/iOS/AppDelegate.h; sourceTree = "<group>"; };
-		5C17304421414E700074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/iOS/AppDelegate.m; sourceTree = "<group>"; };
+		5C17304321414E700074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
+		5C17304421414E700074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
 		5CA80E9D21F0A03800C99983 /* textured_mesh.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = textured_mesh.vert.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/textured_mesh.vert.metal; sourceTree = "<group>"; };
 		5CA80E9E21F0A03800C99983 /* textured_mesh.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = textured_mesh.frag.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/textured_mesh.frag.metal; sourceTree = "<group>"; };
 		5CA80E9F21F0A03800C99983 /* imgui.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = imgui.frag.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/imgui.frag.metal; sourceTree = "<group>"; };
@@ -156,6 +158,8 @@
 		B21F76DB21420EC000DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../02_Compute/02_Compute/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		E970F790233C5EE2009FE7C4 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.0.sdk/usr/lib/libbz2.tbd; sourceTree = DEVELOPER_DIR; };
+		E970F792233C5EEB009FE7C4 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		EA463C8B1EF81E8F005AC8C7 /* 07_Tessellation.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 07_Tessellation.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EADF9D661EFD160E00B2008B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../02_Compute/02_Compute/Info.plist; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -166,6 +170,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				650CCC5B2223C83C003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
+				E970F791233C5EE7009FE7C4 /* libbz2.tbd in Frameworks */,
 				B21F76DC21420EC000DF2297 /* UIKit.framework in Frameworks */,
 				B21F76DD21420EC000DF2297 /* MetalKit.framework in Frameworks */,
 				B21F76DE21420EC000DF2297 /* Metal.framework in Frameworks */,
@@ -179,6 +184,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				650CCC592223C6BC003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
+				E970F793233C5EF1009FE7C4 /* libbz2.tbd in Frameworks */,
 				B2087DEB21421A54006F372D /* MetalKit.framework in Frameworks */,
 				B2087DEC21421A54006F372D /* Metal.framework in Frameworks */,
 				5C172F9821414AB70074EE71 /* libThe-Forge.a in Frameworks */,
@@ -233,6 +239,8 @@
 		28A5ADF8201F7679000E571F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E970F790233C5EE2009FE7C4 /* libbz2.tbd */,
+				E970F792233C5EEB009FE7C4 /* libbz2.tbd */,
 				650CCC582223C6BC003533D9 /* MetalPerformanceShaders.framework */,
 				650CCC5A2223C83C003533D9 /* MetalPerformanceShaders.framework */,
 				B21F76DB21420EC000DF2297 /* Metal.framework */,
@@ -342,7 +350,7 @@
 			buildRules = (
 			);
 			dependencies = (
-				5C172F9721414AB20074EE71 /* PBXTargetDependency */,
+				E958920C23415B9B00B68D6A /* PBXTargetDependency */,
 			);
 			name = 07_Tessellation;
 			productName = 02_Texture;
@@ -457,15 +465,15 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		5C172F9721414AB20074EE71 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = "The-Forge";
-			targetProxy = 5C172F9621414AB20074EE71 /* PBXContainerItemProxy */;
-		};
 		5C17304221414E660074EE71 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = "The-Forge_iOS";
 			targetProxy = 5C17304121414E660074EE71 /* PBXContainerItemProxy */;
+		};
+		E958920C23415B9B00B68D6A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "The-Forge";
+			targetProxy = E958920B23415B9B00B68D6A /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -688,6 +696,7 @@
 					METAL,
 					_DEBUG,
 					USE_MEMORY_TRACKING,
+					ZIP_STATIC,
 				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
@@ -703,6 +712,11 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.01-Transformations";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				USER_HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib",
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple",
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/lib",
+				);
 			};
 			name = Debug;
 		};
@@ -715,7 +729,10 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				GCC_PREPROCESSOR_DEFINITIONS = METAL;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					METAL,
+					ZIP_STATIC,
+				);
 				HEADER_SEARCH_PATHS = (
 					../../Common_3,
 					../../,
@@ -730,6 +747,11 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.01-Transformations";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				USER_HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib",
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple",
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/lib",
+				);
 			};
 			name = Release;
 		};

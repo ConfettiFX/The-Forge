@@ -56,21 +56,6 @@
 
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
 
-const char* pszBases[FSR_Count] = {
-	"../../../src/10_PixelProjectedReflections/",    // FSR_BinShaders
-	"../../../src/10_PixelProjectedReflections/",    // FSR_SrcShaders
-	"../../../../../Art/Sponza/",                    // FSR_Textures
-	"../../../../../Art/Sponza/",                    // FSR_Meshes
-	"../../../UnitTestResources/",                   // FSR_Builtin_Fonts
-	"../../../src/10_PixelProjectedReflections/",    // FSR_GpuConfig
-	"",                                              // FSR_Animation
-	"",                                              // FSR_Audio
-	"../../../UnitTestResources/Textures/",          // FSR_OtherFiles
-	"../../../../../Middleware_3/Text/",             // FSR_MIDDLEWARE_TEXT
-	"../../../../../Middleware_3/UI/",               // FSR_MIDDLEWARE_UI
-};
-
-
 #define DEFERRED_RT_COUNT 3
 #define MAX_PLANES 4
 
@@ -533,6 +518,8 @@ void unloadMesh(Mesh& mesh)
 		removeResource(mesh.pVertexBuffer);
 	if (mesh.pIndexBuffer)
 		removeResource(mesh.pIndexBuffer);
+	mesh.materialID.set_capacity(0);
+	mesh.cmdArray.set_capacity(0);
 }
 
 class PixelProjectedReflections: public IApp
@@ -554,6 +541,23 @@ class PixelProjectedReflections: public IApp
 		LOGF(eERROR, "Unit test not supported on this platform. Reason: iOS Metal shader compiler crashes when trying to compile panoToCube, computeIrradiance, computeSpecular compute shaders");
 		exit(0);
 #endif
+		
+		// FILE PATHS
+		PathHandle programDirectory = fsCopyProgramDirectoryPath();
+		FileSystem *fileSystem = fsGetPathFileSystem(programDirectory);
+		if (!fsPlatformUsesBundledResources())
+		{
+			PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/10_PixelProjectedReflections");
+			fsSetResourceDirectoryRootPath(resourceDirRoot);
+			
+			fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../../../Art/Sponza/Textures");
+			fsSetRelativePathForResourceDirectory(RD_MESHES,          "../../../../Art/Sponza/Meshes");
+			fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
+			fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
+			fsSetRelativePathForResourceDirectory(RD_OTHER_FILES,      "../../UnitTestResources/Textures");
+			fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
+			fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
+		}
 		
 		initThreadSystem(&pIOThreads);
 
@@ -593,14 +597,14 @@ class PixelProjectedReflections: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
 			return false;
 
     // Create UI
     if (!gAppUI.Init(pRenderer))
       return false;
 
-    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
     GuiDesc guiDesc = {};
     float   dpiScale = getDpiScale().x;
@@ -623,13 +627,15 @@ class PixelProjectedReflections: public IApp
 		addSampler(pRenderer, &nearstSamplerDesc, &pSamplerNearest);
 
 		// GBuffer
-		ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", eastl::string().sprintf("%i", TOTAL_IMGS) };
+		char           totalImagesShaderMacroBuffer[5] = {};
+		sprintf(totalImagesShaderMacroBuffer, "%i", TOTAL_IMGS);
+		ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", totalImagesShaderMacroBuffer };
 		ShaderLoadDesc gBuffersShaderDesc = {};
-		gBuffersShaderDesc.mStages[0] = { "fillGbuffers.vert", NULL, 0, FSR_SrcShaders };
+		gBuffersShaderDesc.mStages[0] = { "fillGbuffers.vert", NULL, 0, RD_SHADER_SOURCES };
 #ifndef TARGET_IOS
-		gBuffersShaderDesc.mStages[1] = { "fillGbuffers.frag", &totalImagesShaderMacro, 1, FSR_SrcShaders };
+		gBuffersShaderDesc.mStages[1] = { "fillGbuffers.frag", &totalImagesShaderMacro, 1, RD_SHADER_SOURCES };
 #else
-		gBuffersShaderDesc.mStages[1] = { "fillGbuffers_iOS.frag", NULL, 0, FSR_SrcShaders };
+		gBuffersShaderDesc.mStages[1] = { "fillGbuffers_iOS.frag", NULL, 0, RD_SHADER_SOURCES };
 #endif
 		addShader(pRenderer, &gBuffersShaderDesc, &pShaderGbuffers);
 
@@ -647,8 +653,8 @@ class PixelProjectedReflections: public IApp
 		addRootSignature(pRenderer, &gBuffersRootDesc, &pRootSigGbuffers);
 
 		ShaderLoadDesc skyboxShaderDesc = {};
-		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0, FSR_SrcShaders };
-		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0, FSR_SrcShaders };
+		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0, RD_SHADER_SOURCES };
+		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0, RD_SHADER_SOURCES };
 		addShader(pRenderer, &skyboxShaderDesc, &pSkyboxShader);
 
 		const char*       pSkyboxamplerName = "skyboxSampler";
@@ -660,8 +666,8 @@ class PixelProjectedReflections: public IApp
 
 		//BRDF
 		ShaderLoadDesc brdfRenderSceneShaderDesc = {};
-		brdfRenderSceneShaderDesc.mStages[0] = { "renderSceneBRDF.vert", NULL, 0, FSR_SrcShaders };
-		brdfRenderSceneShaderDesc.mStages[1] = { "renderSceneBRDF.frag", NULL, 0, FSR_SrcShaders };
+		brdfRenderSceneShaderDesc.mStages[0] = { "renderSceneBRDF.vert", NULL, 0, RD_SHADER_SOURCES };
+		brdfRenderSceneShaderDesc.mStages[1] = { "renderSceneBRDF.frag", NULL, 0, RD_SHADER_SOURCES };
 		addShader(pRenderer, &brdfRenderSceneShaderDesc, &pShaderBRDF);
 
 		const char* pStaticSampler2Names[] = { "envSampler", "defaultSampler" };
@@ -675,7 +681,7 @@ class PixelProjectedReflections: public IApp
 
 		//PPR_Projection
 		ShaderLoadDesc PPR_ProjectionShaderDesc = {};
-		PPR_ProjectionShaderDesc.mStages[0] = { "PPR_Projection.comp", NULL, 0, FSR_SrcShaders };
+		PPR_ProjectionShaderDesc.mStages[0] = { "PPR_Projection.comp", NULL, 0, RD_SHADER_SOURCES };
 		addShader(pRenderer, &PPR_ProjectionShaderDesc, &pPPR_ProjectionShader);
 
 		RootSignatureDesc PPR_PRootDesc = { &pPPR_ProjectionShader, 1 };
@@ -683,8 +689,8 @@ class PixelProjectedReflections: public IApp
 
 		//PPR_Reflection
 		ShaderLoadDesc PPR_ReflectionShaderDesc = {};
-		PPR_ReflectionShaderDesc.mStages[0] = { "PPR_Reflection.vert", NULL, 0, FSR_SrcShaders };
-		PPR_ReflectionShaderDesc.mStages[1] = { "PPR_Reflection.frag", NULL, 0, FSR_SrcShaders };
+		PPR_ReflectionShaderDesc.mStages[0] = { "PPR_Reflection.vert", NULL, 0, RD_SHADER_SOURCES };
+		PPR_ReflectionShaderDesc.mStages[1] = { "PPR_Reflection.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		addShader(pRenderer, &PPR_ReflectionShaderDesc, &pPPR_ReflectionShader);
 
@@ -696,8 +702,8 @@ class PixelProjectedReflections: public IApp
 
 		//PPR_HolePatching
 		ShaderLoadDesc PPR_HolePatchingShaderDesc = {};
-		PPR_HolePatchingShaderDesc.mStages[0] = { "PPR_Holepatching.vert", NULL, 0, FSR_SrcShaders };
-		PPR_HolePatchingShaderDesc.mStages[1] = { "PPR_Holepatching.frag", NULL, 0, FSR_SrcShaders };
+		PPR_HolePatchingShaderDesc.mStages[0] = { "PPR_Holepatching.vert", NULL, 0, RD_SHADER_SOURCES };
+		PPR_HolePatchingShaderDesc.mStages[1] = { "PPR_Holepatching.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		addShader(pRenderer, &PPR_HolePatchingShaderDesc, &pPPR_HolePatchingShader);
 
@@ -1011,6 +1017,9 @@ class PixelProjectedReflections: public IApp
 
 		pCameraController->setMotionParameters(camParameters);
 
+		pQueueMutex = conf_new(Mutex);
+		pQueueMutex->Init();
+		
 		// In case copy queue should be externally synchronized(e.g. Vulkan with 1 queueu)
 		// do resource streaming after resource loading completed.
 		// Shared queue won't be used concurrently,
@@ -1078,6 +1087,23 @@ class PixelProjectedReflections: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
+		while (!isThreadSystemIdle(pIOThreads) || !isBatchCompleted())
+		{
+			processWaitQueue();
+			Thread::Sleep(1);
+		}
+
+		// Process one last time to complete any remaining tasks
+		processWaitQueue();
+
+		// Remove streamer before removing any actual resources
+		// otherwise we might delete a resource while uploading to it.
+		shutdownThreadSystem(pIOThreads);
+		finishResourceLoading();
+
+		pQueueMutex->Destroy();
+		conf_delete(pQueueMutex);
+
 		exitInputSystem();
 		destroyCameraController(pCameraController);
 
@@ -1124,13 +1150,6 @@ class PixelProjectedReflections: public IApp
 			removeResource(pBufferUniformCameraSky[i]);
 			removeResource(pBufferUniformCamera[i]);
 		}
-
-		// Remove streamer before removing any actual resources
-		// otherwise we might delete a resource while uploading to it.
-		shutdownThreadSystem(pIOThreads);
-		finishResourceLoading();
-
-		processWaitQueue();
 
 		removeResource(pBufferUniformLights);
 		removeResource(pBufferUniformDirectionalLights);
@@ -1190,6 +1209,10 @@ class PixelProjectedReflections: public IApp
 		// Remove resource loader and renderer
 		removeResourceLoaderInterface(pRenderer);
 		removeRenderer(pRenderer);
+
+		gSponzaTextureIndexforMaterial.set_capacity(0);
+		gInitializeVal.set_capacity(0);
+		mWaitQueue.set_capacity(0);
 	}
 
 	void ComputePBRMaps()
@@ -1232,10 +1255,10 @@ class PixelProjectedReflections: public IApp
 		addSampler(pRenderer, &samplerDesc, &pSkyboxSampler);
 
 		// Load the skybox panorama texture.
-		SyncToken       token;
+		PathHandle panoramaFilePath = fsCopyPathInResourceDirectory(RD_OTHER_FILES, skyboxNames[skyboxIndex]);
+		SyncToken       token = 0;
 		TextureLoadDesc panoDesc = {};
-		panoDesc.mRoot = FSR_OtherFiles;
-		panoDesc.pFilename = skyboxNames[skyboxIndex];
+		panoDesc.pFilePath = panoramaFilePath;
 		panoDesc.ppTexture = &pPanoSkybox;
 		addResource(&panoDesc, &token);
 
@@ -1308,21 +1331,23 @@ class PixelProjectedReflections: public IApp
 
 		// Load pre-processing shaders.
 		ShaderLoadDesc panoToCubeShaderDesc = {};
-		panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", NULL, 0, FSR_SrcShaders };
+		panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", NULL, 0, RD_SHADER_SOURCES };
 
 		GPUPresetLevel presetLevel = pRenderer->mGpuSettings->mGpuVendorPreset.mPresetLevel;
 		uint32_t       importanceSampleCounts[GPUPresetLevel::GPU_PRESET_COUNT] = { 0, 0, 64, 128, 256, 1024 };
 		uint32_t       importanceSampleCount = importanceSampleCounts[presetLevel];
-		ShaderMacro    importanceSampleMacro = { "IMPORTANCE_SAMPLE_COUNT", eastl::string().sprintf("%u", importanceSampleCount) };
+		char           importanceSampleCountBuffer[4] = {};
+		sprintf(importanceSampleCountBuffer, "%u", importanceSampleCount);
+		ShaderMacro    importanceSampleMacro = { "IMPORTANCE_SAMPLE_COUNT", importanceSampleCountBuffer };
 
 		ShaderLoadDesc brdfIntegrationShaderDesc = {};
-		brdfIntegrationShaderDesc.mStages[0] = { "BRDFIntegration.comp", &importanceSampleMacro, 1, FSR_SrcShaders };
+		brdfIntegrationShaderDesc.mStages[0] = { "BRDFIntegration.comp", &importanceSampleMacro, 1, RD_SHADER_SOURCES };
 
 		ShaderLoadDesc irradianceShaderDesc = {};
-		irradianceShaderDesc.mStages[0] = { "computeIrradianceMap.comp", NULL, 0, FSR_SrcShaders };
+		irradianceShaderDesc.mStages[0] = { "computeIrradianceMap.comp", NULL, 0, RD_SHADER_SOURCES };
 
 		ShaderLoadDesc specularShaderDesc = {};
-		specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", &importanceSampleMacro, 1, FSR_SrcShaders };
+		specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", &importanceSampleMacro, 1, RD_SHADER_SOURCES };
 
 		addShader(pRenderer, &panoToCubeShaderDesc, &pPanoToCubeShader);
 		addShader(pRenderer, &brdfIntegrationShaderDesc, &pBRDFIntegrationShader);
@@ -1517,29 +1542,27 @@ class PixelProjectedReflections: public IApp
 		removeSampler(pRenderer, pSkyboxSampler);
 	}
 
-
 	void loadMesh(size_t index)
 	{
 		//Load Sponza
 		AssimpImporter        importer;
 		AssimpImporter::Model model;
-		eastl::string       sceneFullPath = FileSystem::FixPath(gModelNames[index], FSRoot::FSR_Meshes);
+		PathHandle sceneFullPath = fsCopyPathInResourceDirectory(RD_MESHES, gModelNames[index]);
 
-		if (!importer.ImportModel(sceneFullPath.c_str(), &model))
+		if (!importer.ImportModel(sceneFullPath, &model))
 		{
-			LOGF(eERROR, "Failed to load %s", FileSystem::GetFileNameAndExtension(sceneFullPath).c_str());
+			LOGF(LogLevel::eERROR, "Failed to load %s", fsGetPathFileName(sceneFullPath).buffer);
 			return;
 		}
 
 		uint32_t meshCount = (uint32_t)model.mMeshArray.size();
 
 		Mesh& mesh = gModels[index];
+		MeshVertex* pVertices = NULL;
+		uint32_t*   pIndices = NULL;
 
 		mesh.materialID.resize(meshCount);
 		mesh.cmdArray.resize(meshCount);
-
-		MeshVertex* vertices = NULL;
-		uint32_t*   indices = NULL;
 
 		uint32_t totalVertexCount = 0;
 		uint32_t totalIndexCount = 0;
@@ -1554,17 +1577,17 @@ class PixelProjectedReflections: public IApp
 
 			mesh.cmdArray[i] = { indexCount, totalIndexCount, totalVertexCount };
 
-			vertices = (MeshVertex*)conf_realloc(vertices, sizeof(MeshVertex) * (totalVertexCount + vertexCount));
-			indices = (uint32_t*)conf_realloc(indices, sizeof(uint32_t) * (totalIndexCount + indexCount));
+			pVertices = (MeshVertex*)conf_realloc(pVertices, sizeof(MeshVertex) * (totalVertexCount + vertexCount));
+			pIndices = (uint32_t*)conf_realloc(pIndices, sizeof(uint32_t) * (totalIndexCount + indexCount));
 
 			for (uint32_t j = 0; j < vertexCount; j++)
 			{
-				vertices[totalVertexCount++] = { subMesh.mPositions[j], subMesh.mNormals[j], subMesh.mUvs[j] };
+				pVertices[totalVertexCount++] = { subMesh.mPositions[j], subMesh.mNormals[j], subMesh.mUvs[j] };
 			}
 
 			for (uint32_t j = 0; j < indexCount; j++)
 			{
-				indices[totalIndexCount++] = subMesh.mIndices[j];
+				pIndices[totalIndexCount++] = subMesh.mIndices[j];
 			}
 		}
 
@@ -1576,11 +1599,11 @@ class PixelProjectedReflections: public IApp
 		vbPosDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		vbPosDesc.mDesc.mVertexStride = sizeof(MeshVertex);
 		vbPosDesc.mDesc.mSize = totalVertexCount * sizeof(MeshVertex);
-		vbPosDesc.pData = vertices;
+		vbPosDesc.pData = pVertices;
 		vbPosDesc.ppBuffer = &mesh.pVertexBuffer;
 		vbPosDesc.mDesc.pDebugName = L"Vertex Position Buffer Desc for Sponza";
 		addResource(&vbPosDesc, &token);
-		addToWaitQueue({ token, { &freeData, vertices, 0 } });
+		addToWaitQueue({ token, { &freeData, pVertices, 0 } });
 
 		// Index buffer for the scene
 		BufferLoadDesc ibDesc = {};
@@ -1588,11 +1611,11 @@ class PixelProjectedReflections: public IApp
 		ibDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		ibDesc.mDesc.mIndexType = INDEX_TYPE_UINT32;
 		ibDesc.mDesc.mSize = sizeof(uint32_t) * totalIndexCount;
-		ibDesc.pData = indices;
+		ibDesc.pData = pIndices;
 		ibDesc.ppBuffer = &mesh.pIndexBuffer;
 		ibDesc.mDesc.pDebugName = L"Index Buffer Desc for Sponza";
 		addResource(&ibDesc, &token);
-		addToWaitQueue({ token, { &freeData, indices, 0 } });
+		addToWaitQueue({ token, { &freeData, pIndices, 0 } });
 
 		addToWaitQueue(
 			{ token, { &methodCallback<PixelProjectedReflections, &PixelProjectedReflections::onResourceLoaded>, this, index } });
@@ -1600,18 +1623,22 @@ class PixelProjectedReflections: public IApp
 
 	void loadTexture(size_t index)
 	{
+		PathHandle texturePath = fsCopyPathInResourceDirectory(RD_TEXTURES, pMaterialImageFileNames[index]);
 		TextureLoadDesc textureDesc;
 		memset(&textureDesc, 0, sizeof(textureDesc));
-		textureDesc.pFilename = pMaterialImageFileNames[index];
+		textureDesc.pFilePath = texturePath;
 		textureDesc.ppTexture = &pMaterialTextures[index];
-		textureDesc.mRoot = FSR_Textures;
 		SyncToken token;
 		addResource(&textureDesc, &token);
 		addToWaitQueue(
 			{ token, { &methodCallback<PixelProjectedReflections, &PixelProjectedReflections::onResourceLoaded>, this, index + 2 } });
 	}
 
-	static void freeData(void* userData, size_t) { conf_free(userData); }
+	static void freeData(void* userData, size_t)
+	{
+		conf_free(userData);
+		userData = NULL;
+	}
 
 	typedef struct OnCompletion
 	{
@@ -1633,20 +1660,20 @@ class PixelProjectedReflections: public IApp
 		OnCompletion mCompletion;
 	};
 	eastl::vector<ResourceWait> mWaitQueue;
-	Mutex                         mQueueMutex;
+	Mutex*                      pQueueMutex;
 
 	void addToWaitQueue(ResourceWait wait)
 	{
-		mQueueMutex.Acquire();
+		pQueueMutex->Acquire();
 		mWaitQueue.push_back(wait);
-		mQueueMutex.Release();
+		pQueueMutex->Release();
 	}
 
 	void processWaitQueue()
 	{
 		const size_t MAX_COMPLETION_CHECKS = 16;
 		size_t       index = 0, count = MAX_COMPLETION_CHECKS;
-		mQueueMutex.Acquire();
+		pQueueMutex->Acquire();
 		while (index < count && index < mWaitQueue.size())
 		{
 			ResourceWait& resourceWait = mWaitQueue[index];
@@ -1662,7 +1689,7 @@ class PixelProjectedReflections: public IApp
 				index++;
 			}
 		}
-		mQueueMutex.Release();
+		pQueueMutex->Release();
 	}
 
 	void onResourceLoaded(size_t resourceID)

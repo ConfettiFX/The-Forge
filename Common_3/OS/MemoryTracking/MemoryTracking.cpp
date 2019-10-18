@@ -39,7 +39,23 @@ void conf_free_internal(void* ptr, const char *f, int l, const char *sf) { m_dea
 
 #else
 
+bool MemAllocInit()
+{
+	// No op but this is where you would initialize your memory allocator and bookkeeping data in a real world scenario
+	return true;
+}
+
+void MemAllocExit()
+{
+	// Return all allocated memory to the OS. Analyze memory usage, dump memory leaks, ...
+}
+
 #include <stdlib.h>
+
+
+void mmgr_setLogFileDirectory(const char* directory) {}
+
+void mmgr_setExecutableName(const char* name, size_t length) {}
 
 #ifdef _MSC_VER
 #include <memory.h>

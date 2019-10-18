@@ -28,6 +28,15 @@
     <ClCompile Include="..\src\17_EntityComponentSystem\17_EntityComponentSystem.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\Middleware_3\ECS\BaseComponent.cpp">
+      <Filter>Source Files\ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Middleware_3\ECS\ComponentRepresentation.cpp">
+      <Filter>Source Files\ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\Middleware_3\ECS\EntityManager.cpp">
+      <Filter>Source Files\ECS</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\17_EntityComponentSystem\Shaders\D3D12\basic.frag">
@@ -65,6 +74,9 @@
     <Filter Include="Source Files\Components">
       <UniqueIdentifier>{e6bf42dd-b348-4c11-9bdb-5fb2f819c7fa}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\ECS">
+      <UniqueIdentifier>{1ef6ad02-0685-4b8a-bbb4-6da528d343fd}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\src\17_EntityComponentSystem\Components\MoveComponent.h">
@@ -90,6 +102,15 @@
     </ClInclude>
     <ClInclude Include="..\src\17_EntityComponentSystem\Representations\WorldBoundsRepresentation.h">
       <Filter>Source Files\Representations</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Middleware_3\ECS\EntityManager.h">
+      <Filter>Source Files\ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Middleware_3\ECS\BaseComponent.h">
+      <Filter>Source Files\ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\Middleware_3\ECS\ComponentRepresentation.h">
+      <Filter>Source Files\ECS</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

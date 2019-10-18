@@ -76,20 +76,6 @@ ThreadSystem* pThreadSystem;
 
 #define SCENE_SCALE 1.0f
 
-const char* pszBases[FSR_Count] = {
-	"../../../src/",                               // FSR_BinShaders
-	"../../../src/",                               // FSR_SrcShaders
-	"../../../../../Art/SanMiguel_3/Textures/",    // FSR_Textures
-	"../../../../../Art/SanMiguel_3/Meshes/",      // FSR_Meshes
-	"../../../Resources/",                         // FSR_Builtin_Fonts
-	"../../../src/",                               // FSR_GpuConfig
-	"",                                            // FSR_Animation
-	"",                                            // FSR_Audio
-	"../../../Resources/",                         // FSR_OtherFiles
-	"../../../../../Middleware_3/Text/",           // FSR_MIDDLEWARE_TEXT
-	"../../../../../Middleware_3/UI/",             // FSR_MIDDLEWARE_UI
-};
-
 // Rendering modes
 typedef enum RenderMode
 {
@@ -209,12 +195,12 @@ struct DisplayChromacities
 //};
 
 //Camera Walking
-static float          cameraWalkingTime = 0.0f;
-eastl::vector<float3> positions_directions;
-float3                CameraPathData[29084];
+static float          gCameraWalkingTime = 0.0f;
+eastl::vector<float3> gPositionsDirections;
+float3                gCameraPathData[29084];
 
-uint  cameraPoints;
-float totalElpasedTime;
+uint  gCameraPoints;
+float gTotalElpasedTime;
 
 typedef struct VisBufferIndirectCommand
 {
@@ -680,6 +666,15 @@ IWidget*                    gResolutionProperty = NULL;
 eastl::vector<Resolution>   gResolutions;
 uint32_t                    gResolutionIndex = 0;
 bool                        gResolutionChange = false;
+
+struct ResolutionData
+{
+	eastl::vector<eastl::string> resNameContainer;
+	eastl::vector<const char*>     resNamePointers;
+	eastl::vector<uint32_t>        resValues;
+};
+
+static ResolutionData gGuiResolution;
 #endif
 /************************************************************************/
 /************************************************************************/
@@ -748,15 +743,7 @@ IWidget* addResolutionProperty(
 #if !defined(_DURANGO) && !defined(METAL) && !defined(__linux__)
 	if (pUIManager)
 	{
-		struct ResolutionData
-		{
-			eastl::vector<eastl::string> resNameContainer;
-			eastl::vector<const char*>     resNamePointers;
-			eastl::vector<uint32_t>        resValues;
-		};
-		
-		static eastl::unordered_map<GuiComponent*, ResolutionData> guiResolution;
-		ResolutionData&                                              data = guiResolution[pUIManager];
+		ResolutionData& data = gGuiResolution;
 		
 		data.resNameContainer.clear();
 		data.resNamePointers.clear();
@@ -797,8 +784,9 @@ class VisibilityBuffer: public IApp
 	static void loadTexturesTask(void* data, uintptr_t i)
 	{
 		TextureLoadTaskData* pTaskData = (TextureLoadTaskData*)data;
+        PathHandle texturePath = fsCopyPathInResourceDirectory(RD_TEXTURES, pTaskData->mNames[i]);
 		TextureLoadDesc      desc = pTaskData->mDesc;
-		desc.pFilename = pTaskData->mNames[i];
+		desc.pFilePath = texturePath;
 		desc.ppTexture = &pTaskData->mTextures[i];
 		addResource(&desc, true);
 	};
@@ -832,11 +820,23 @@ class VisibilityBuffer: public IApp
 	
 	bool Init()
 	{
+		// FILE PATHS
+        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        FileSystem *fileSystem = fsGetPathFileSystem(programDirectory);
+        if (!fsPlatformUsesBundledResources())
+        {
+            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src");
+            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            
+            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../../Art/SanMiguel_3/Textures");
+            fsSetRelativePathForResourceDirectory(RD_MESHES,          "../../../Art/SanMiguel_3/Meshes");
+            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,    "../Resources/Fonts");
+            fsSetRelativePathForResourceDirectory(RD_OTHER_FILES,      "../Resources");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,  "../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,    "../../../Middleware_3/UI");
+        }
+
 		initThreadSystem(&pThreadSystem);
-		// Overwrite rootpath is required because Textures and meshes are not in /Textures and /Meshes.
-		// We need to set the modified root path so that filesystem can find the meshes and textures.
-		FileSystem::SetRootPath(FSRoot::FSR_Meshes, "/");
-		FileSystem::SetRootPath(FSRoot::FSR_Textures, "/");
 		
 		pVisibilityBuffer = this;
 		/************************************************************************/
@@ -849,14 +849,12 @@ class VisibilityBuffer: public IApp
 			return false;
 		
 		//Camera Walking
-		eastl::string fn("cameraPath.bin");
-		File          cameraPathFile;
-		cameraPathFile.Open(fn, FM_ReadBinary, FSR_OtherFiles);
-		cameraPathFile.Read(CameraPathData, sizeof(float3) * 29084);
-		cameraPathFile.Close();
+        FileStream* fh = fsOpenFileInResourceDirectory(RD_OTHER_FILES, "cameraPath.bin", FM_READ_BINARY);
+        fsReadFromStream(fh, gCameraPathData, sizeof(float3) * 29084);
+        fsCloseStream(fh);
 		
-		cameraPoints = (uint)29084 / 2;
-		totalElpasedTime = (float)cameraPoints * 0.00833f;
+		gCameraPoints = (uint)29084 / 2;
+		gTotalElpasedTime = (float)gCameraPoints * 0.00833f;
 		
 		QueueDesc queueDesc = {};
 		queueDesc.mType = CMD_POOL_DIRECT;
@@ -892,7 +890,7 @@ class VisibilityBuffer: public IApp
     if (!gAppUI.Init(pRenderer))
       return false;
 
-    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
 		initProfiler();
 		
@@ -980,7 +978,6 @@ class VisibilityBuffer: public IApp
 		addSampler(pRenderer, &pointDesc, &pSamplerPointClamp);
 		addSampler(pRenderer, &bilinearClampDesc, &pSamplerBilinearClamp);
 		
-		
 		/************************************************************************/
 		// Load resources for skybox
 		/************************************************************************/
@@ -989,8 +986,9 @@ class VisibilityBuffer: public IApp
 		// Load the scene using the SceneLoader class, which uses Assimp
 		/************************************************************************/
 		HiresTimer      sceneLoadTimer;
-		eastl::string sceneFullPath = FileSystem::FixPath(gSceneName, FSRoot::FSR_Meshes);
-		Scene* pScene = loadScene(sceneFullPath.c_str(), 50.0f, -20.0f, 0.0f, 0.0f);
+
+        PathHandle sceneFullPath = fsCopyPathInResourceDirectory(RD_MESHES, gSceneName);
+		Scene* pScene = loadScene(sceneFullPath, 50.0f, -20.0f, 0.0f, 0.0f);
 		if (!pScene)
 			return false;
 		LOGF(LogLevel::eINFO, "Load assimp scene : %f ms", sceneLoadTimer.GetUSec(true) / 1000.0f);
@@ -1078,7 +1076,6 @@ class VisibilityBuffer: public IApp
 		gSpecularMaps.resize(gMaterialCount);
 		
 		TextureLoadDesc desc = {};
-		desc.mRoot = FSR_Textures;
 		
 		TextureLoadTaskData diffuseData{ gDiffuseMaps.data(), (const char**)pScene->textures, desc };
 		addThreadSystemRangeTask(pThreadSystem, loadTexturesTask, &diffuseData, gMaterialCount);
@@ -1198,20 +1195,16 @@ class VisibilityBuffer: public IApp
 		// Setup indirect command signatures
 		/************************************************************************/
 #if defined(DIRECT3D12)
-		const DescriptorInfo*      pDrawId = NULL;
 		IndirectArgumentDescriptor indirectArgs[2] = {};
 		indirectArgs[0].mType = INDIRECT_CONSTANT;
 		indirectArgs[0].mCount = 1;
 		indirectArgs[1].mType = INDIRECT_DRAW_INDEX;
 		
 		CommandSignatureDesc vbPassDesc = { pCmdPool, pRootSignatureVBPass, 2, indirectArgs };
-		pDrawId = &pRootSignatureVBPass->pDescriptors[pRootSignatureVBPass->pDescriptorNameToIndexMap["indirectRootConstant"]];
-		indirectArgs[0].mRootParameterIndex = pRootSignatureVBPass->pDxRootConstantRootIndices[pDrawId->mIndexInParent];
+		indirectArgs[0].pName = "indirectRootConstant";
 		addIndirectCommandSignature(pRenderer, &vbPassDesc, &pCmdSignatureVBPass);
 		
 		CommandSignatureDesc deferredPassDesc = { pCmdPool, pRootSignatureDeferredPass, 2, indirectArgs };
-		pDrawId = &pRootSignatureDeferredPass->pDescriptors[pRootSignatureDeferredPass->pDescriptorNameToIndexMap["indirectRootConstant"]];
-		indirectArgs[0].mRootParameterIndex = pRootSignatureDeferredPass->pDxRootConstantRootIndices[pDrawId->mIndexInParent];
 		addIndirectCommandSignature(pRenderer, &deferredPassDesc, &pCmdSignatureDeferredPass);
 #else
 		// Indicate the renderer that we want to use non-indexed geometry.
@@ -1269,7 +1262,7 @@ class VisibilityBuffer: public IApp
 
 		eastl::vector<Vertex> sunVertices;
 		eastl::vector<uint16_t> sunIndices;
-		eastl::string sunFullPath = FileSystem::FixPath(gSunName, FSRoot::FSR_Meshes);
+        PathHandle sunFullPath = fsCopyPathInResourceDirectory(RD_MESHES, gSunName);
 		if (loadModel(sunFullPath, sunVertices, sunIndices))
 		{
 			// Vertex position buffer for the scene
@@ -1298,7 +1291,7 @@ class VisibilityBuffer: public IApp
 		}
 		else
 		{
-			LOGF(eERROR, "Failed to load Sun model (%s)", sunFullPath.c_str());
+			LOGF(eERROR, "Failed to load Sun model (%s)", fsGetPathAsNativeString(sunFullPath));
 			return false;
 		}
 		/************************************************************************/
@@ -1626,7 +1619,11 @@ class VisibilityBuffer: public IApp
 		
 		destroyCameraController(pCameraController);
 		
+		gAppSettings.mDynamicUIWidgetsGR.Destroy();
 		gAppSettings.mDynamicUIWidgetsAO.Destroy();
+		gAppSettings.mLinearScale.Destroy();
+		gAppSettings.mSCurve.Destroy();
+		gAppSettings.mDisplaySetting.Destroy();
 		
 		exitProfiler();
 
@@ -1699,6 +1696,22 @@ class VisibilityBuffer: public IApp
 		conf_free(gNormalMapsStorage);
 		conf_free(gSpecularMapsStorage);
 		conf_free(pMeshes);
+
+		gDiffuseMaps.set_capacity(0);
+		gNormalMaps.set_capacity(0);
+		gSpecularMaps.set_capacity(0);
+
+		gDiffuseMapsPacked.set_capacity(0);
+		gNormalMapsPacked.set_capacity(0);
+		gSpecularMapsPacked.set_capacity(0);
+
+		gPositionsDirections.set_capacity(0);
+#if !defined(_DURANGO) && !defined(METAL) && !defined(__linux__)
+		gResolutions.set_capacity(0);
+		gGuiResolution.resNameContainer.set_capacity(0);
+		gGuiResolution.resNamePointers.set_capacity(0);
+		gGuiResolution.resValues.set_capacity(0);
+#endif
 		/************************************************************************/
 		/************************************************************************/
 		removeShaders();
@@ -2383,22 +2396,22 @@ class VisibilityBuffer: public IApp
 		
 		if (gAppSettings.cameraWalking)
 		{
-			if (totalElpasedTime - (0.033333f * gAppSettings.cameraWalkingSpeed) <= cameraWalkingTime)
+			if (gTotalElpasedTime - (0.033333f * gAppSettings.cameraWalkingSpeed) <= gCameraWalkingTime)
 			{
-				cameraWalkingTime = 0.0f;
+				gCameraWalkingTime = 0.0f;
 			}
 			
-			cameraWalkingTime += deltaTime * gAppSettings.cameraWalkingSpeed;
+			gCameraWalkingTime += deltaTime * gAppSettings.cameraWalkingSpeed;
 			
-			uint  currentCameraFrame = (uint)(cameraWalkingTime / 0.00833f);
-			float remind = cameraWalkingTime - (float)currentCameraFrame * 0.00833f;
+			uint  currentCameraFrame = (uint)(gCameraWalkingTime / 0.00833f);
+			float remind = gCameraWalkingTime - (float)currentCameraFrame * 0.00833f;
 			
 			float3 newPos =
-			v3ToF3(lerp(f3Tov3(CameraPathData[2 * currentCameraFrame]), f3Tov3(CameraPathData[2 * (currentCameraFrame + 1)]), remind));
+			v3ToF3(lerp(f3Tov3(gCameraPathData[2 * currentCameraFrame]), f3Tov3(gCameraPathData[2 * (currentCameraFrame + 1)]), remind));
 			pCameraController->moveTo(f3Tov3(newPos));
 			
 			float3 newLookat = v3ToF3(
-									  lerp(f3Tov3(CameraPathData[2 * currentCameraFrame + 1]), f3Tov3(CameraPathData[2 * (currentCameraFrame + 1) + 1]), remind));
+									  lerp(f3Tov3(gCameraPathData[2 * currentCameraFrame + 1]), f3Tov3(gCameraPathData[2 * (currentCameraFrame + 1) + 1]), remind));
 			pCameraController->lookAt(f3Tov3(newLookat));
 		}
 		
@@ -3323,9 +3336,16 @@ class VisibilityBuffer: public IApp
 	/************************************************************************/
 	void addShaders()
 	{
+		char sampleCountMacroBuffer[64] = {};
+		char useAoMacroBuffer[2][64] = {};
+		char hdaoMacroBuffer[4][64] = {};
+		sprintf(sampleCountMacroBuffer, "%d", MSAASAMPLECOUNT);
+		sprintf(useAoMacroBuffer[0], "%d", 0);
+		sprintf(useAoMacroBuffer[1], "%d", 1);
+
 		ShaderMacro shadingMacros[2][2] = {
-			{ { "SAMPLE_COUNT", eastl::string().sprintf("%d", MSAASAMPLECOUNT) }, { "USE_AMBIENT_OCCLUSION", "" } },
-			{ { "SAMPLE_COUNT", eastl::string().sprintf("%d", MSAASAMPLECOUNT) }, { "USE_AMBIENT_OCCLUSION", "" } },
+			{ { "SAMPLE_COUNT", sampleCountMacroBuffer }, { "USE_AMBIENT_OCCLUSION", "" } },
+			{ { "SAMPLE_COUNT", sampleCountMacroBuffer }, { "USE_AMBIENT_OCCLUSION", "" } },
 		};
 		ShaderMacro hdaoMacros[4][2] = {};
 		
@@ -3349,90 +3369,91 @@ class VisibilityBuffer: public IApp
 		ShaderLoadDesc depthCopyShader = {};
 		ShaderLoadDesc finalShaderDesc = {};
 		
-		shadowPass.mStages[0] = { "shadow_pass.vert", NULL, 0, FSR_SrcShaders };
-		shadowPassAlpha.mStages[0] = { "shadow_pass_alpha.vert", NULL, 0, FSR_SrcShaders };
-		shadowPassAlpha.mStages[1] = { "shadow_pass_alpha.frag", NULL, 0, FSR_SrcShaders };
+		shadowPass.mStages[0] = { "shadow_pass.vert", NULL, 0, RD_SHADER_SOURCES };
+		shadowPassAlpha.mStages[0] = { "shadow_pass_alpha.vert", NULL, 0, RD_SHADER_SOURCES };
+		shadowPassAlpha.mStages[1] = { "shadow_pass_alpha.frag", NULL, 0, RD_SHADER_SOURCES };
 		
-		vbPass.mStages[0] = { "visibilityBuffer_pass.vert", NULL, 0, FSR_SrcShaders };
-		vbPass.mStages[1] = { "visibilityBuffer_pass.frag", NULL, 0, FSR_SrcShaders };
-		vbPassAlpha.mStages[0] = { "visibilityBuffer_pass_alpha.vert", NULL, 0, FSR_SrcShaders };
-		vbPassAlpha.mStages[1] = { "visibilityBuffer_pass_alpha.frag", NULL, 0, FSR_SrcShaders };
+		vbPass.mStages[0] = { "visibilityBuffer_pass.vert", NULL, 0, RD_SHADER_SOURCES };
+		vbPass.mStages[1] = { "visibilityBuffer_pass.frag", NULL, 0, RD_SHADER_SOURCES };
+		vbPassAlpha.mStages[0] = { "visibilityBuffer_pass_alpha.vert", NULL, 0, RD_SHADER_SOURCES };
+		vbPassAlpha.mStages[1] = { "visibilityBuffer_pass_alpha.frag", NULL, 0, RD_SHADER_SOURCES };
 		
-		deferredPass.mStages[0] = { "deferred_pass.vert", NULL, 0, FSR_SrcShaders };
-		deferredPass.mStages[1] = { "deferred_pass.frag", NULL, 0, FSR_SrcShaders };
-		deferredPassAlpha.mStages[0] = { "deferred_pass.vert", NULL, 0, FSR_SrcShaders };
-		deferredPassAlpha.mStages[1] = { "deferred_pass_alpha.frag", NULL, 0, FSR_SrcShaders };
+		deferredPass.mStages[0] = { "deferred_pass.vert", NULL, 0, RD_SHADER_SOURCES };
+		deferredPass.mStages[1] = { "deferred_pass.frag", NULL, 0, RD_SHADER_SOURCES };
+		deferredPassAlpha.mStages[0] = { "deferred_pass.vert", NULL, 0, RD_SHADER_SOURCES };
+		deferredPassAlpha.mStages[1] = { "deferred_pass_alpha.frag", NULL, 0, RD_SHADER_SOURCES };
 		
 		for (uint32_t i = 0; i < 2; ++i)
 		{
-			shadingMacros[i][1].value = eastl::string().sprintf("%d", i);    //USE_AMBIENT_OCCLUSION
-			vbShade[i].mStages[0] = { "visibilityBuffer_shade.vert", NULL, 0, FSR_SrcShaders };
-			vbShade[i].mStages[1] = { "visibilityBuffer_shade.frag", shadingMacros[i], 2, FSR_SrcShaders };
+			shadingMacros[i][1].value = useAoMacroBuffer[i];    //USE_AMBIENT_OCCLUSION
+			vbShade[i].mStages[0] = { "visibilityBuffer_shade.vert", NULL, 0, RD_SHADER_SOURCES };
+			vbShade[i].mStages[1] = { "visibilityBuffer_shade.frag", shadingMacros[i], 2, RD_SHADER_SOURCES };
 			
-			deferredShade[i].mStages[0] = { "deferred_shade.vert", NULL, 0, FSR_SrcShaders };
-			deferredShade[i].mStages[1] = { "deferred_shade.frag", shadingMacros[i], 2, FSR_SrcShaders };
+			deferredShade[i].mStages[0] = { "deferred_shade.vert", NULL, 0, RD_SHADER_SOURCES };
+			deferredShade[i].mStages[1] = { "deferred_shade.frag", shadingMacros[i], 2, RD_SHADER_SOURCES };
 		}
 		
-		deferredPointlights.mStages[0] = { "deferred_shade_pointlight.vert", shadingMacros[0], 1, FSR_SrcShaders };
-		deferredPointlights.mStages[1] = { "deferred_shade_pointlight.frag", shadingMacros[0], 1, FSR_SrcShaders };
+		deferredPointlights.mStages[0] = { "deferred_shade_pointlight.vert", shadingMacros[0], 1, RD_SHADER_SOURCES };
+		deferredPointlights.mStages[1] = { "deferred_shade_pointlight.frag", shadingMacros[0], 1, RD_SHADER_SOURCES };
 		
 		// Resolve shader
-		resolvePass.mStages[0] = { "resolve.vert", shadingMacros[0], 1, FSR_SrcShaders };
-		resolvePass.mStages[1] = { "resolve.frag", shadingMacros[0], 1, FSR_SrcShaders };
+		resolvePass.mStages[0] = { "resolve.vert", shadingMacros[0], 1, RD_SHADER_SOURCES };
+		resolvePass.mStages[1] = { "resolve.frag", shadingMacros[0], 1, RD_SHADER_SOURCES };
 		
 		// Resolve shader
-		resolveGodrayPass.mStages[0] = { "resolve.vert", shadingMacros[0], 1, FSR_SrcShaders };
-		resolveGodrayPass.mStages[1] = { "resolveGodray.frag", shadingMacros[0], 1, FSR_SrcShaders };
+		resolveGodrayPass.mStages[0] = { "resolve.vert", shadingMacros[0], 1, RD_SHADER_SOURCES };
+		resolveGodrayPass.mStages[1] = { "resolveGodray.frag", shadingMacros[0], 1, RD_SHADER_SOURCES };
 		
 		// HDAO post-process shader
 		for (uint32_t i = 0; i < 4; ++i)
 		{
+			sprintf(hdaoMacroBuffer[i], "%u", (i + 1));
 			hdaoMacros[i][0] = shadingMacros[0][0];
-			hdaoMacros[i][1] = { "AO_QUALITY", eastl::string().sprintf("%u", (i + 1)) };
-			ao[i].mStages[0] = { "HDAO.vert", hdaoMacros[i], 2, FSRoot::FSR_SrcShaders };
-			ao[i].mStages[1] = { "HDAO.frag", hdaoMacros[i], 2, FSRoot::FSR_SrcShaders };
+			hdaoMacros[i][1] = { "AO_QUALITY", hdaoMacroBuffer[i] };
+			ao[i].mStages[0] = { "HDAO.vert", hdaoMacros[i], 2, RD_SHADER_SOURCES };
+			ao[i].mStages[1] = { "HDAO.frag", hdaoMacros[i], 2, RD_SHADER_SOURCES };
 		}
 		
 		// Triangle culling compute shader
-		triangleCulling.mStages[0] = { "triangle_filtering.comp", 0, NULL, FSRoot::FSR_SrcShaders };
+		triangleCulling.mStages[0] = { "triangle_filtering.comp", 0, NULL, RD_SHADER_SOURCES };
 		// Batch compaction compute shader
-		batchCompaction.mStages[0] = { "batch_compaction.comp", 0, NULL, FSRoot::FSR_SrcShaders };
+		batchCompaction.mStages[0] = { "batch_compaction.comp", 0, NULL, RD_SHADER_SOURCES };
 		// Clear buffers compute shader
-		clearBuffer.mStages[0] = { "clear_buffers.comp", 0, NULL, FSRoot::FSR_SrcShaders };
+		clearBuffer.mStages[0] = { "clear_buffers.comp", 0, NULL, RD_SHADER_SOURCES };
 		// Clear light clusters compute shader
-		clearLights.mStages[0] = { "clear_light_clusters.comp", 0, NULL, FSRoot::FSR_SrcShaders };
+		clearLights.mStages[0] = { "clear_light_clusters.comp", 0, NULL, RD_SHADER_SOURCES };
 		// Cluster lights compute shader
-		clusterLights.mStages[0] = { "cluster_lights.comp", 0, NULL, FSRoot::FSR_SrcShaders };
+		clusterLights.mStages[0] = { "cluster_lights.comp", 0, NULL, RD_SHADER_SOURCES };
 		
 		ShaderLoadDesc sunShaderDesc = {};
 		
-		sunShaderDesc.mStages[0] = { "sun.vert", NULL, 0, FSR_SrcShaders };
-		sunShaderDesc.mStages[1] = { "sun.frag", NULL, 0, FSR_SrcShaders };
+		sunShaderDesc.mStages[0] = { "sun.vert", NULL, 0, RD_SHADER_SOURCES };
+		sunShaderDesc.mStages[1] = { "sun.frag", NULL, 0, RD_SHADER_SOURCES };
 		
 		addShader(pRenderer, &sunShaderDesc, &pSunPass);
 		
 		ShaderLoadDesc godrayShaderDesc = {};
 		
-		godrayShaderDesc.mStages[0] = { "display.vert", NULL, 0, FSR_SrcShaders };
-		godrayShaderDesc.mStages[1] = { "godray.frag", NULL, 0, FSR_SrcShaders };
+		godrayShaderDesc.mStages[0] = { "display.vert", NULL, 0, RD_SHADER_SOURCES };
+		godrayShaderDesc.mStages[1] = { "godray.frag", NULL, 0, RD_SHADER_SOURCES };
 		
 		addShader(pRenderer, &godrayShaderDesc, &pGodRayPass);
 		
 		ShaderLoadDesc CurveConversionShaderDesc = {};
 		
-		CurveConversionShaderDesc.mStages[0] = { "display.vert", NULL, 0, FSR_SrcShaders };
-		CurveConversionShaderDesc.mStages[1] = { "CurveConversion.frag", NULL, 0, FSR_SrcShaders };
+		CurveConversionShaderDesc.mStages[0] = { "display.vert", NULL, 0, RD_SHADER_SOURCES };
+		CurveConversionShaderDesc.mStages[1] = { "CurveConversion.frag", NULL, 0, RD_SHADER_SOURCES };
 		
 		addShader(pRenderer, &CurveConversionShaderDesc, &pShaderCurveConversion);
 		
 		ShaderLoadDesc presentShaderDesc = {};
 		
-		presentShaderDesc.mStages[0] = { "display.vert", NULL, 0, FSR_SrcShaders };
-		presentShaderDesc.mStages[1] = { "display.frag", NULL, 0, FSR_SrcShaders };
+		presentShaderDesc.mStages[0] = { "display.vert", NULL, 0, RD_SHADER_SOURCES };
+		presentShaderDesc.mStages[1] = { "display.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		ShaderLoadDesc skyboxShaderDesc = {};
-		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0, FSR_SrcShaders };
-		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0, FSR_SrcShaders };
+		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0, RD_SHADER_SOURCES };
+		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		addShader(pRenderer, &presentShaderDesc, &pShaderPresentPass);
 		
@@ -5122,20 +5143,16 @@ class VisibilityBuffer: public IApp
 		addResource(&skyboxLoadDesc, true);
 		
 		// Load the skybox panorama texture.
+        PathHandle skyboxPath = fsCopyPathInResourceDirectory(RD_TEXTURES, "daytime");
 		TextureLoadDesc panoDesc = {};
-#ifndef TARGET_IOS
-		panoDesc.mRoot = FSR_Textures;
-#else
-		panoDesc.mRoot = FSRoot::FSR_Absolute;    // Resources on iOS are bundled with the application.
-#endif
-		panoDesc.pFilename = "daytime";
+		panoDesc.pFilePath = skyboxPath;
 		//panoDesc.pFilename = "LA_Helipad.hdr";
 		panoDesc.ppTexture = &pPanoSkybox;
 		addResource(&panoDesc, true);
 		
 		// Load pre-processing shaders.
 		ShaderLoadDesc panoToCubeShaderDesc = {};
-		panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", NULL, 0, FSR_SrcShaders };
+		panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", NULL, 0, RD_SHADER_SOURCES };
 		
 		addShader(pRenderer, &panoToCubeShaderDesc, &pPanoToCubeShader);
 		

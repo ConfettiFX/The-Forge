@@ -3,7 +3,7 @@
 Open Asset Import Library (assimp)
 ---------------------------------------------------------------------------
 
-Copyright (c) 2006-2018, assimp team
+Copyright (c) 2006-2019, assimp team
 
 
 
@@ -58,9 +58,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "types.h"
 
 #ifdef _WIN32
-#   include <direct.h>  
-#   include <stdlib.h>  
-#   include <stdio.h>  
+#   include <direct.h>
+#   include <stdlib.h>
+#   include <stdio.h>
 #else
 #   include <sys/stat.h>
 #   include <sys/types.h>
@@ -80,7 +80,7 @@ namespace Assimp    {
  *  to the importer library. If you implement this interface, you also want to
  *  supply a custom implementation for IOStream.
  *
- *  @see Importer::SetIOHandler() 
+ *  @see Importer::SetIOHandler()
  */
 class ASSIMP_API IOSystem
 #ifndef SWIG

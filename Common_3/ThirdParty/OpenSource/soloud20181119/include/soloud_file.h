@@ -47,6 +47,7 @@ namespace SoLoud
 		virtual unsigned int pos() = 0;
 		virtual FILE * getFilePtr() { return 0; }
 		virtual unsigned char * getMemPtr() { return 0; }
+		
 	};
 
 	class DiskFile : public File
@@ -63,7 +64,7 @@ namespace SoLoud
 		virtual FILE * getFilePtr();
 
 	protected:
-		::File mForgeFile;
+		FileStream* mForgeFile;
 	};
 
 	class MemoryFile : public File

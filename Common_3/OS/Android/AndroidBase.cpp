@@ -25,6 +25,7 @@
 #ifdef __ANDROID__
 
 #include <ctime>
+#include <unistd.h>
 #include <android/configuration.h>
 #include <android/looper.h>
 #include <android/native_activity.h>
@@ -34,8 +35,6 @@
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/ITime.h"
 #include "../Interfaces/IThread.h"
-
-#include "AndroidFileSystem.cpp"
 
 #include "../Interfaces/IMemory.h"
 
@@ -266,8 +265,22 @@ void handle_cmd(android_app* app, int32_t cmd)
 	}
 }
 
+// Forward declare the function used by the Android FileSystem to access the ANativeActivity.
+void AndroidFS_SetNativeActivity(ANativeActivity* nativeActivity);
+
 int AndroidMain(void* param, IApp* app)
 {
+	extern bool MemAllocInit();
+	extern void MemAllocExit();
+	
+	if (!MemAllocInit())
+		return EXIT_FAILURE;
+
+	if (!fsInitAPI())
+		return EXIT_FAILURE;
+
+	Log::Init();
+	
 	struct android_app* android_app = (struct android_app*)param;
 
 	// Set the callback to process system events
@@ -282,10 +295,7 @@ int AndroidMain(void* param, IApp* app)
 	const uint32_t testingDesiredFrameCount = 120;
 #endif
 
-	// Set asset manager.
-	_mgr = (android_app->activity->assetManager);
-
-	FileSystem::SetCurrentDir(FileSystem::GetProgramDir());
+	AndroidFS_SetNativeActivity(android_activity);
 
 	IApp::Settings* pSettings = &pApp->mSettings;
 	Timer deltaTimer;
@@ -347,6 +357,10 @@ int AndroidMain(void* param, IApp* app)
 	windowReady = false;
 	pApp->Exit();
 
+	Log::Exit();
+	fsDeinitAPI();
+	MemAllocExit();
+	
 	return 0;
 }
 /************************************************************************/

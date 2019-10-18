@@ -35,9 +35,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\..\Common_3\OS\FileSystem\AssimpIOStream.cpp" />
+    <ClCompile Include="..\..\..\..\..\..\Common_3\OS\FileSystem\AssimpIOSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\..\Common_3\Tools\AssimpImporter\AssimpImporter.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\..\Common_3\OS\FileSystem\AssimpIOStream.h" />
+    <ClInclude Include="..\..\..\..\..\..\Common_3\OS\FileSystem\AssimpIOSystem.h" />
     <ClInclude Include="..\..\..\..\..\..\Common_3\Tools\AssimpImporter\AssimpImporter.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

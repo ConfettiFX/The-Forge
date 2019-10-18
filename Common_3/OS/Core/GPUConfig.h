@@ -164,22 +164,22 @@ static bool checkForActiveGPU(eastl::string line, GPUVendorPreset& pActiveGpu)
 //Reads the gpu config and sets the preset level of all available gpu's
 static void setGPUPresetLevel(Renderer* pRenderer)
 {
-	File gpuCfgFile = {};
-	gpuCfgFile.Open("gpu.cfg", FM_ReadBinary, FSR_GpuConfig);
-	if (!gpuCfgFile.IsOpen())
+	FileStream* fh = fsOpenFileInResourceDirectory(RD_GPU_CONFIG, "gpu.cfg", FM_READ);
+	if (!fh)
 	{
 		LOGF(LogLevel::eWARNING, "gpu.cfg could not be found, setting preset to Low as a default.");
 		return;
 	}
 
-	while (!gpuCfgFile.IsEof())
+    char configStr[2048];
+	while (!fsStreamAtEnd(fh))
 	{
-		eastl::string gpuCfgString = gpuCfgFile.ReadLine();
-		checkForPresetLevel(gpuCfgString, pRenderer);
+        fsReadFromStreamLine(fh, configStr, 2048);
+		checkForPresetLevel(configStr, pRenderer);
 		// Do something with the tok
 	}
 
-	gpuCfgFile.Close();
+    fsCloseStream(fh);
 }
 #endif
 
@@ -199,9 +199,9 @@ static GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const east
 //Reads the gpu config and sets the preset level of all available gpu's
 static GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::string modelId, const eastl::string revId)
 {
-	File gpuCfgFile = {};
-	gpuCfgFile.Open("gpu.cfg", FM_ReadBinary, FSR_GpuConfig);
-	if (!gpuCfgFile.IsOpen())
+
+	FileStream* fh = fsOpenFileInResourceDirectory(RD_GPU_CONFIG, "gpu.cfg", FM_READ_BINARY);
+	if (!fh)
 	{
 		LOGF(LogLevel::eWARNING, "gpu.cfg could not be found, setting preset to Low as a default.");
 		return GPU_PRESET_LOW;
@@ -209,9 +209,9 @@ static GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const east
 
 	GPUPresetLevel foundLevel = GPU_PRESET_LOW;
 
-	while (!gpuCfgFile.IsEof())
+	while (!fsStreamAtEnd(fh))
 	{
-		eastl::string  gpuCfgString = gpuCfgFile.ReadLine();
+		eastl::string  gpuCfgString = fsReadFromStreamSTLLine(fh);
 		GPUPresetLevel level = getSinglePresetLevel(gpuCfgString, vendorId, modelId, revId);
 		// Do something with the tok
 		if (level != GPU_PRESET_NONE)
@@ -221,29 +221,28 @@ static GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const east
 		}
 	}
 
-	gpuCfgFile.Close();
+	fsCloseStream(fh);
 	return foundLevel;
 }
 
 #if defined(AUTOMATED_TESTING) && defined(ACTIVE_TESTING_GPU)
 static bool getActiveGpuConfig(GPUVendorPreset& pActiveGpu)
 {
-	File gpuCfgFile = {};
-	gpuCfgFile.Open("activeTestingGpu.cfg", FM_ReadBinary, FSR_GpuConfig);
-	if (!gpuCfgFile.IsOpen())
+	FileStream* fh = fsOpenFileInResourceDirectory(RD_GPU_CONFIG, "activeTestingGpu.cfg", FM_READ_BINARY);
+	if (!fh)
 	{
 		LOGF(LogLevel::eINFO, "activeTestingGpu.cfg could not be found, Using default GPU.");
 		return false;
 	}
 
 	bool successFinal = false;
-	while (!gpuCfgFile.IsEof() && !successFinal)
+	while (!fsStreamAtEnd(fh) && !successFinal)
 	{
-		eastl::string gpuCfgString = gpuCfgFile.ReadLine();
+		eastl::string gpuCfgString = fsReadFromStreamSTLLine(fh);
 		successFinal = checkForActiveGPU(gpuCfgString, pActiveGpu);
 	}
 
-	gpuCfgFile.Close();
+	fsCloseStream(fh);
 
 	return successFinal;
 }

@@ -25,7 +25,9 @@
 #include "GpuProfiler.h"
 #include "IRenderer.h"
 #include "ResourceLoader.h"
+#if (PROFILE_ENABLED)
 #include "../ThirdParty/OpenSource/MicroProfile/ProfilerBase.h"
+#endif
 #include "../OS/Interfaces/IThread.h"
 #include "../OS/Interfaces/ILog.h"
 #include "../OS/Interfaces/ITime.h"
@@ -136,6 +138,10 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
 
 	conf_placement_new<GpuProfiler>(pGpuProfiler);
 	pGpuProfiler->mReset = true;
+
+	// One for cmdBeginGpuFrameProfile
+	if (maxTimers != GpuProfiler::MAX_TIMERS)
+		++maxTimers;
 
 #if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11) || defined(METAL)
 	const uint32_t nodeIndex = pQueue->mQueueDesc.mNodeIndex;

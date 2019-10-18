@@ -2722,16 +2722,20 @@ int gltfpack(int argc, const char** argv)
 
 	cgltf_data* data = 0;
 	eastl::vector<Mesh> meshes;
+    
+    PathHandle workingDirectory = fsCopyWorkingDirectoryPath();
+    PathHandle filePath = fsAppendPathComponent(workingDirectory, input);
 
-	const char* iext = strrchr(input, '.');
+    const char* iext = fsGetPathExtension(filePath).buffer;
 
-	if (iext && (strcmp(iext, ".gltf") == 0 || strcmp(iext, ".GLTF") == 0 || strcmp(iext, ".glb") == 0 || strcmp(iext, ".GLB") == 0))
+	if (iext && (strcmp(iext, "gltf") == 0 || strcmp(iext, "GLTF") == 0 || strcmp(iext, "glb") == 0 || strcmp(iext, "GLB") == 0))
 	{
+        
 		cgltf_options options = {};
-		cgltf_result result = parse_gltf_file(&options, input, &data);
+		cgltf_result result = parse_gltf_file(&options, filePath, &data);
 		result = (result == cgltf_result_success) ? cgltf_validate(data) : result;
-		result = (result == cgltf_result_success) ? load_gltf_buffers(&options, data, input) : result;
-
+		result = (result == cgltf_result_success) ? load_gltf_buffers(&options, data, filePath) : result;
+        
 		if (result != cgltf_result_success)
 		{
 			fprintf(stderr, "Error loading %s: %s\n", input, getError(result));
@@ -2759,7 +2763,7 @@ int gltfpack(int argc, const char** argv)
 
 	const char* oext = strrchr(output, '.');
 
-	if (oext && (strcmp(oext, ".gltf") == 0 || strcmp(oext, ".GLTF") == 0))
+	if (oext && (strcmp(oext, "gltf") == 0 || strcmp(oext, "GLTF") == 0))
 	{
 		eastl::string binpath = output;
 		binpath.replace(binpath.size() - 5, 5, ".bin");
@@ -2769,41 +2773,45 @@ int gltfpack(int argc, const char** argv)
 		if (slash != eastl::string::npos)
 			binname.erase(0, slash + 1);
 
-		File outjson;
-		outjson.Open(output, FileMode::FM_WriteBinary, FSRoot::FSR_Absolute);
-		File outbin;
-		outbin.Open(binpath.c_str(), FileMode::FM_WriteBinary, FSRoot::FSR_Absolute);
-		if (!outjson.IsOpen() || !outbin.IsOpen())
+        PathHandle outJSONPath = fsAppendPathComponent(workingDirectory, output);
+        PathHandle outBinaryPath = fsAppendPathComponent(workingDirectory, output);
+
+        FileStream* fhJSON = fsOpenFile(outJSONPath, FM_WRITE_BINARY);
+        FileStream* fhBinary = fsOpenFile(outBinaryPath, FM_WRITE_BINARY);
+		
+		if (!fhJSON || !fhBinary)
 		{
 			fprintf(stderr, "Error saving %s\n", output);
 			return 4;
 		}
 
 		const char * buffersURI = "{ \"buffers\":[{\"uri\":\"";
-		outjson.Write(buffersURI, (unsigned int)strlen(buffersURI));
-		outjson.WriteString(binname);
+        fsWriteToStreamString(fhJSON, buffersURI);
+        fsWriteToStreamString(fhBinary, buffersURI);
 
 		const char * bytelength = "\",\"byteLength\":";
-		outjson.Write(bytelength, (unsigned int)strlen(bytelength));
+        fsWriteToStreamString(fhJSON, bytelength);
 		eastl::string binSize = bin;
 		memset(&binSize[0], 0, binSize.size());
 		sprintf(&binSize[0], "%zu", bin.size());
-		outjson.WriteString(binSize);
-		outjson.WriteString("}],");
+        
+        fsWriteToStreamString(fhJSON, binSize.c_str());
+        fsWriteToStreamString(fhJSON, "}],");
+        
+        fsWriteToStream(fhJSON, json.c_str(), json.size());
+        fsWriteToStreamString(fhJSON, "}");
 
-		outjson.Write(json.c_str(), (unsigned int)json.size());
-		outjson.WriteString("}");
+        fsWriteToStream(fhBinary, bin.c_str(), bin.size());
 
-		outbin.Write(bin.c_str(), (unsigned int)bin.size());
-
-		outjson.Close();
-		outbin.Close();
+        fsCloseStream(fhJSON);
+        fsCloseStream(fhBinary);
 	}
 	else if (oext && (strcmp(oext, ".glb") == 0 || strcmp(oext, ".GLB") == 0))
 	{
-		File out;
-		out.Open(output, FileMode::FM_WriteBinary, FSRoot::FSR_Absolute);
-		if (!out.IsOpen())
+        PathHandle fhOutPath = fsAppendPathComponent(workingDirectory, output);
+
+        FileStream* fhOut = fsOpenFile(fhOutPath, FM_WRITE_BINARY);
+		if (!fhOut)
 		{
 			fprintf(stderr, "Error saving %s\n", output);
 			return 4;
@@ -2821,19 +2829,19 @@ int gltfpack(int argc, const char** argv)
 		while (bin.size() % 4)
 			bin.push_back('\0');
 
-		out.WriteUInt(0x46546C67);
-		out.WriteUInt(2);
-		out.WriteUInt(uint32_t(12 + 8 + json.size() + 8 + bin.size()));
-
-		out.WriteUInt(uint32_t(json.size()));
-		out.WriteUInt(0x4E4F534A);
-		out.Write(json.c_str(), (unsigned int)json.size());
-
-		out.WriteUInt(uint32_t(bin.size()));
-		out.WriteUInt(0x004E4942);
-		out.Write(bin.c_str(), (unsigned int)bin.size());
-
-		out.Close();
+        fsWriteToStreamUInt32(fhOut, 0x46546C67);
+        fsWriteToStreamUInt32(fhOut, 2);
+        fsWriteToStreamUInt32(fhOut, uint32_t(12 + 8 + json.size() + 8 + bin.size()));
+        
+        fsWriteToStreamUInt32(fhOut, uint32_t(json.size()));
+        fsWriteToStreamUInt32(fhOut, 0x4E4F534A);
+        fsWriteToStream(fhOut, json.c_str(), json.size());
+        
+        fsWriteToStreamUInt32(fhOut, uint32_t(bin.size()));
+        fsWriteToStreamUInt32(fhOut, 0x004E4942);
+        fsWriteToStream(fhOut, bin.c_str(), bin.size());
+        
+        fsCloseStream(fhOut);
 	}
 	else
 	{

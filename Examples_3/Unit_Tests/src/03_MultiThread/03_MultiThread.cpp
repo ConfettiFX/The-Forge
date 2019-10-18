@@ -219,20 +219,6 @@ const char* pImageFileNames[] = { "Palette_Fire", "Palette_Purple", "Palette_Mut
 const char* pSkyBoxImageFileNames[] = { "Skybox_right1",  "Skybox_left2",  "Skybox_top3",
 										"Skybox_bottom4", "Skybox_front5", "Skybox_back6" };
 
-const char* pszBases[FSR_Count] = {
-	"../../../src/03_MultiThread/",         // FSR_BinShaders
-	"../../../src/03_MultiThread/",         // FSR_SrcShaders
-	"../../../UnitTestResources/",          // FSR_Textures
-	"../../../UnitTestResources/",          // FSR_Meshes
-	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
-	"../../../src/03_MultiThread/",         // FSR_GpuConfig
-	"",                                     // FSR_Animation
-	"",                                     // FSR_Audio
-	"",                                     // FSR_OtherFiles
-	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
-	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
-};
-
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 GuiComponent* pGui = NULL;
@@ -249,6 +235,21 @@ class MultiThread: public IApp
 	
 	bool Init()
 	{
+        // FILE PATHS
+        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        if (!fsPlatformUsesBundledResources())
+        {
+            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/03_MultiThread");
+            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            
+            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../UnitTestResources/Textures");
+            fsSetRelativePathForResourceDirectory(RD_MESHES,             "../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,     "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,     "../../../../Middleware_3/UI");
+        }
+        
 		InitCpuUsage();
 
 		gThreadCount = gCoresCount - 1;
@@ -299,39 +300,39 @@ class MultiThread: public IApp
 		// load all image to GPU
 		for (int i = 0; i < 5; ++i)
 		{
+            PathHandle path = fsCopyPathInResourceDirectory(RD_TEXTURES, pImageFileNames[i]);
 			TextureLoadDesc textureDesc = {};
-			textureDesc.mRoot = FSR_Textures;
-			textureDesc.pFilename = pImageFileNames[i];
+            textureDesc.pFilePath = path;
 			textureDesc.ppTexture = &pTextures[i];
 			addResource(&textureDesc, true);
 		}
 
 		for (int i = 0; i < 6; ++i)
 		{
+            PathHandle path = fsCopyPathInResourceDirectory(RD_TEXTURES, pSkyBoxImageFileNames[i]);
 			TextureLoadDesc textureDesc = {};
-			textureDesc.mRoot = FSR_Textures;
-			textureDesc.pFilename = pSkyBoxImageFileNames[i];
+			textureDesc.pFilePath = path;
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
 			addResource(&textureDesc, true);
 		}
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
 		{
 			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
 			return false;
 		}
 
 		ShaderLoadDesc graphShader = {};
-		graphShader.mStages[0] = { "Graph.vert", NULL, 0, FSR_SrcShaders };
-		graphShader.mStages[1] = { "Graph.frag", NULL, 0, FSR_SrcShaders };
+		graphShader.mStages[0] = { "Graph.vert", NULL, 0, RD_SHADER_SOURCES };
+		graphShader.mStages[1] = { "Graph.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		ShaderLoadDesc particleShader = {};
-		particleShader.mStages[0] = { "Particle.vert", NULL, 0, FSR_SrcShaders };
-		particleShader.mStages[1] = { "Particle.frag", NULL, 0, FSR_SrcShaders };
+		particleShader.mStages[0] = { "Particle.vert", NULL, 0, RD_SHADER_SOURCES };
+		particleShader.mStages[1] = { "Particle.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		ShaderLoadDesc skyShader = {};
-		skyShader.mStages[0] = { "Skybox.vert", NULL, 0, FSR_SrcShaders };
-		skyShader.mStages[1] = { "Skybox.frag", NULL, 0, FSR_SrcShaders };
+		skyShader.mStages[0] = { "Skybox.vert", NULL, 0, RD_SHADER_SOURCES };
+		skyShader.mStages[1] = { "Skybox.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		addShader(pRenderer, &particleShader, &pShader);
 		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
@@ -516,7 +517,7 @@ class MultiThread: public IApp
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
     GuiDesc guiDesc = {};
     float   dpiScale = getDpiScale().x;
@@ -1160,25 +1161,26 @@ class MultiThread: public IApp
 		eastl::vector<CPUData> entries;
 		entries.reserve(gCoresCount);
 		// Open cpu stat file
-		File fileStat = {};
-		fileStat.Open("/proc/stat", FM_ReadBinary, FSR_OtherFiles);
 
-		FILE* statHandle = (FILE*)fileStat.GetHandle();
-		if (statHandle)
+		PathHandle statPath = fsCreatePath(fsGetSystemFileSystem(), "/proc/stat");
+		FileStream* fh = fsOpenFile(statPath, FM_READ_BINARY);
+
+		if (fh)
 		{
 			// While eof not detected, keep parsing the stat file
-			while (!feof(statHandle))
+			while (!fsStreamAtEnd(fh))
 			{
 				entries.emplace_back(CPUData());
 				CPUData& entry = entries.back();
 				char     dummyCpuName[256];    // dummy cpu name, not used.
-				fscanf(
-					statHandle, "%s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu", &dummyCpuName[0], &entry.times[0], &entry.times[1],
+				int bytesRead;
+				fsScanFromStream(
+					fh, &bytesRead, "%s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu", &dummyCpuName[0], &entry.times[0], &entry.times[1],
 					&entry.times[2], &entry.times[3], &entry.times[4], &entry.times[5], &entry.times[6], &entry.times[7], &entry.times[8],
 					&entry.times[9]);
 			}
 			// Close the cpu stat file
-			fileStat.Close();
+			fsCloseStream(fh);
 		}
 
 		for (uint32_t i = 0; i < gCoresCount; i++)

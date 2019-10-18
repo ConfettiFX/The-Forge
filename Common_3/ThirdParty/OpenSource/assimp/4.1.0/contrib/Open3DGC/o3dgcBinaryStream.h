@@ -28,6 +28,8 @@ THE SOFTWARE.
 #include "o3dgcCommon.h"
 #include "o3dgcVector.h"
 
+//#include "../The-Forge/Common_3/OS/Interfaces/IFileSystem.h"
+
 namespace o3dgc
 {
     const unsigned long O3DGC_BINARY_STREAM_DEFAULT_SIZE       = 4096;

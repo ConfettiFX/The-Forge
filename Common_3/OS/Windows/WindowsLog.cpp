@@ -37,20 +37,25 @@ void outputLogString(const char* pszStr)
 	OutputDebugStringA("\n");
 }
 
-void _OutputDebugString(const char* str, ...)
+void _OutputDebugStringV(const char* str, va_list args)
 {
 #ifdef _DEBUG
-	const unsigned BUFFER_SIZE = 4096;
-	char           buf[BUFFER_SIZE];
+    const unsigned BUFFER_SIZE = 4096;
+    char           buf[BUFFER_SIZE];
 
-	va_list arglist;
-	va_start(arglist, str);
-	vsprintf_s(buf, BUFFER_SIZE, str, arglist);
-	va_end(arglist);
+    vsprintf_s(buf, BUFFER_SIZE, str, args);
 
 	OutputDebugStringA(buf);
 	OutputDebugStringA("\n");
 #endif
+}
+
+void _OutputDebugString(const char* str, ...)
+{
+	va_list arglist;
+	va_start(arglist, str);
+	_OutputDebugStringV(str, arglist);
+	va_end(arglist);
 }
 
 void _FailedAssert(const char* file, int line, const char* statement)

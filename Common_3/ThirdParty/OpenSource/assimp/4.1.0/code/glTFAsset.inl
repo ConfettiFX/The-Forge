@@ -51,6 +51,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #	include <Open3DGC/o3dgcSC3DMCDecoder.h>
 #endif
 
+//#include "../../The-Forge/Common_3/OS/Interfaces/IFileSystem.h"
+
+
+
 using namespace Assimp;
 
 namespace glTF {
@@ -1423,7 +1427,7 @@ inline IOStream* Asset::OpenFile(std::string path, const char* mode, bool /*abso
         if (!absolute && path[1] != ':' && path[0] != '/') { // relative?
             path = mCurrentAssetDir + path;
         }
-        FILE* f = fopen(path.c_str(), mode);
+        FILE* f = (FILE*)open_file(path.c_str(), mode);
         return f ? new IOStream(f) : 0;
     #endif
 }

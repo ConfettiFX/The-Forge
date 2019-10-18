@@ -44,10 +44,12 @@ typedef uint64_t uint64;
 #if defined(__ANDROID__)
 #include <android_native_app_glue.h>
 #include <android/log.h>
-#elif defined(__linux__)
+#elif defined(__linux__) && !defined(VK_USE_PLATFORM_GGP)
 #define VK_USE_PLATFORM_XLIB_KHR
 #if defined(VK_USE_PLATFORM_XLIB_KHR) || defined(VK_USE_PLATFORM_XCB_KHR)
 #include <X11/Xutil.h>
+// X11 defines primitive types which conflict with Forge libraries
+#undef Bool
 #endif
 #endif
 
@@ -70,9 +72,18 @@ typedef uint64_t uint64;
 #include <stddef.h>
 
 #ifndef _WIN32
+#include <unistd.h>
+#endif
+
+#ifndef _WIN32
 #define stricmp(a, b) strcasecmp(a, b)
 #define vsprintf_s vsnprintf
 #define strncpy_s strncpy
+#endif
+
+#if defined(_MSC_VER)
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
 #endif
 
 #if defined(_DURANGO)
@@ -229,6 +240,15 @@ MonitorDesc* getMonitor(uint32_t index);
 float2       getDpiScale();
 
 bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes);
+
+// Shell commands
+
+typedef struct Path Path;
+
+/// @param stdOutFile The file to which the output of the command should be written. May be NULL.
+int systemRun(const char *command, const char **arguments, size_t argumentCount, const Path* stdOutFile);
+
+
 //
 // failure research ...
 //

@@ -140,7 +140,7 @@ void removeIncludedFiles(int includedCounter, const char* pIncluded[MAX_INCLUDE_
 
 extern int ParserTest();
 
-int main( int argc, char* argv[] )
+int ParserMain( int argc, char* argv[] )
 {
 	//using namespace M4;
 #ifdef TEST_PARSER
@@ -332,9 +332,24 @@ int main( int argc, char* argv[] )
 	options.mShiftVec = bindingShift;
 
 
-	eastl::vector < eastl::string > macroLhs;
-	eastl::vector < eastl::string > macroRhs;
+	eastl::vector < eastl::string > macroLhs{"UPDATE_FREQ_NONE", "UPDATE_FREQ_PER_FRAME", "UPDATE_FREQ_PER_BATCH", "UPDATE_FREQ_PER_DRAW"};
+	eastl::vector < eastl::string > macroRhs{"space0", "space1", "space2", "space3"};
 
 	Parser::ProcessFile(parsedData, srcFile, entryName, options, macroLhs, macroRhs);
 #endif
+}
+
+int main(int argc, char** argv)
+{
+	extern bool MemAllocInit();
+	extern void MemAllocExit();
+
+	if (!MemAllocInit())
+		return EXIT_FAILURE;
+
+	int ret = ParserMain(argc, argv);
+
+	MemAllocExit();
+
+	return ret;
 }

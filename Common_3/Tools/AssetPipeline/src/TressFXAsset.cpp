@@ -116,7 +116,8 @@ void TressFXAsset::Clear()
 	conf_free(m_boneSkinningData);
 }
 
-bool TressFXAsset::LoadHairData(File* ioObject)
+//TODO: Remove Comments
+bool TressFXAsset::LoadHairData(FileStream* fh)
 {
 	// Clear all data before loading an asset.
 	Clear();
@@ -124,24 +125,24 @@ bool TressFXAsset::LoadHairData(File* ioObject)
 	TressFXTFXFileHeader v4Header = {};
 
 	// read the v4Header
-	ioObject->Seek(0);    // make sure the stream pos is at the beginning.
-	ioObject->Read((void*)&v4Header, sizeof(TressFXTFXFileHeader));
+    fsSeekStream(fh, SBO_START_OF_FILE, 0); // make sure the stream pos is at the beginning.
+    fsReadFromStream(fh, &v4Header, sizeof(TressFXTFXFileHeader));
 
 	// If the tfx version is lower than the current major version, exit.
 	if (v4Header.version == AMD_TRESSFX_V4)
-		return LoadV4(ioObject, &v4Header);
+		return LoadV4(&v4Header,fh);
 
 	TressFXFileObject v3Header = {};
-	ioObject->Seek(0);
-	ioObject->Read((void*)&v3Header, sizeof(TressFXFileObject));
+    fsSeekStream(fh, SBO_START_OF_FILE, 0); // make sure the stream pos is at the beginning.
+    fsReadFromStream(fh, &v3Header, sizeof(TressFXFileObject));
 
 	if (v3Header.version == AMD_TRESSFX_V3)
-		return LoadV3(ioObject, &v3Header);
+		return LoadV3(&v3Header,fh);
 
 	return false;
 }
 
-bool TressFXAsset::LoadV4(File* ioObject, TressFXTFXFileHeader* header)
+bool TressFXAsset::LoadV4(TressFXTFXFileHeader* header, FileStream* fh)
 {
 	unsigned int numStrandsInFile = header->numHairStrands;
 
@@ -179,12 +180,10 @@ bool TressFXAsset::LoadV4(File* ioObject, TressFXTFXFileHeader* header)
 	}
 
 	// Read position data from the io stream.
-	ioObject->Seek(header->offsetVertexPosition);
-	ioObject->Read(
-		(void*)m_positions,
-		numStrandsInFile * m_numVerticesPerStrand *
-			sizeof(float4));    // note that the position data in io stream contains only guide hairs. If we call GenerateFollowHairs
-								// to generate follow hairs, m_positions will be re-allocated.
+    fsSeekStream(fh, SBO_START_OF_FILE, header->offsetVertexPosition);
+    fsReadFromStream(fh, m_positions, numStrandsInFile * m_numVerticesPerStrand * sizeof(float4));
+    // note that the position data in io stream contains only guide hairs. If we call GenerateFollowHairs
+    // to generate follow hairs, m_positions will be re-allocated.
 
 	// We need to make up some strands to fill up the buffer because the number of strands from stream is not necessarily multile of thread size.
 	int numStrandsToMakeUp = m_numGuideStrands - numStrandsInFile;
@@ -200,7 +199,7 @@ bool TressFXAsset::LoadV4(File* ioObject, TressFXTFXFileHeader* header)
 	}
 
 	// Read strand UVs
-	ioObject->Seek(header->offsetStrandUV);
+    fsSeekStream(fh, SBO_START_OF_FILE, header->offsetStrandUV);
 	m_strandUV = conf_placement_new<float2>(
 		conf_malloc(m_numTotalStrands * sizeof(float2)));    // If we call GenerateFollowHairs to generate follow hairs,
 															 // m_strandUV will be re-allocated.
@@ -211,8 +210,8 @@ bool TressFXAsset::LoadV4(File* ioObject, TressFXTFXFileHeader* header)
 		Clear();
 		return false;
 	}
-
-	ioObject->Read((void*)m_strandUV, numStrandsInFile * sizeof(float2));
+    
+    fsReadFromStream(fh, m_strandUV, numStrandsInFile * sizeof(float2));
 
 	// Fill up the last empty space
 	int indexLastStrand = (numStrandsInFile - 1);
@@ -238,7 +237,7 @@ bool TressFXAsset::LoadV4(File* ioObject, TressFXTFXFileHeader* header)
 	return true;
 }
 
-bool TressFXAsset::LoadV3(File* ioObject, TressFXFileObject* header)
+bool TressFXAsset::LoadV3(TressFXFileObject* header, FileStream* fh)
 {
 	uint numStrandsInFile = header->numGuideHairStrands;
 	m_numVerticesPerStrand = header->numVerticesPerStrand;
@@ -280,13 +279,11 @@ bool TressFXAsset::LoadV3(File* ioObject, TressFXFileObject* header)
 		Clear();
 		return false;
 	}
-
-	ioObject->Seek(header->verticesOffset);
-	ioObject->Read(
-		(void*)vertexData,
-		numStrandsInFile * m_numVerticesPerStrand *
-			sizeof(float3));    // note that the position data in io stream contains only guide hairs. If we call GenerateFollowHairs
-								// to generate follow hairs, m_positions will be re-allocated.
+    
+    fsSeekStream(fh, SBO_START_OF_FILE, header->verticesOffset);
+    fsReadFromStream(fh, vertexData, numStrandsInFile * m_numVerticesPerStrand * sizeof(float3));
+    // note that the position data in io stream contains only guide hairs. If we call GenerateFollowHairs
+    // to generate follow hairs, m_positions will be re-allocated.
 
 	// Copy vec3 vertex data to vec4 array
 	for (int i = 0; i < m_numGuideVertices; ++i)
@@ -330,8 +327,8 @@ bool TressFXAsset::LoadV3(File* ioObject, TressFXFileObject* header)
 
 	if (usingPerStrandTexCoords)
 	{
-		ioObject->Seek(header->perStrandTexCoordOffset);
-		ioObject->Read((void*)m_strandUV, numStrandsInFile * sizeof(float2));
+        fsSeekStream(fh, SBO_START_OF_FILE, header->perStrandTexCoordOffset);
+        fsReadFromStream(fh, m_strandUV, numStrandsInFile * sizeof(float2));
 	}
 	else
 		memset(m_strandUV, 0, numStrandsInFile * sizeof(float2));

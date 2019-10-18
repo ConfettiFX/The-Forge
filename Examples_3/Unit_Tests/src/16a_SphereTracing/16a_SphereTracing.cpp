@@ -83,20 +83,6 @@ GpuProfiler* pGpuProfiler = NULL;
 /// UI
 UIApp gAppUI;
 
-const char* pszBases[FSR_Count] = {
-	"../../../src/16a_SphereTracing/",       // FSR_BinShaders
-	"../../../src/16a_SphereTracing/",       // FSR_SrcShaders
-	"../../../UnitTestResources/",          // FSR_Textures
-	"../../../UnitTestResources/",          // FSR_Meshes
-	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
-	"../../../src/16a_SphereTracing/",       // FSR_GpuConfig
-	"",                                     // FSR_Animation
-	"",                                     // FSR_Audio
-	"",                                     // FSR_OtherFiles
-	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
-	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
-};
-
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff0080ff, 18);
 
 class SphereTracing: public IApp
@@ -111,6 +97,21 @@ class SphereTracing: public IApp
 	
 	bool Init()
 	{
+        // FILE PATHS
+        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        if (!fsPlatformUsesBundledResources())
+        {
+            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/16a_SphereTracing");
+            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            
+            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../UnitTestResources/Textures");
+            fsSetRelativePathForResourceDirectory(RD_MESHES,          "../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
+        }
+        
 		// window and renderer setup
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
@@ -136,21 +137,21 @@ class SphereTracing: public IApp
     if (!gAppUI.Init(pRenderer))
       return false;
 
-    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
 		initProfiler();
 
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
 		{
 			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
 			return false;
 		}
 
 		ShaderLoadDesc rtDemoShader = {};
-		rtDemoShader.mStages[0] = { "fstri.vert", NULL, 0, FSR_SrcShaders };
-		rtDemoShader.mStages[1] = { "rt.frag", NULL, 0, FSR_SrcShaders };
+		rtDemoShader.mStages[0] = { "fstri.vert", NULL, 0, RD_SHADER_SOURCES };
+		rtDemoShader.mStages[1] = { "rt.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		addShader(pRenderer, &rtDemoShader, &pRTDemoShader);
 

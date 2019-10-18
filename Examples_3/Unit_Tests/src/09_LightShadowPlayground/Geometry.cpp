@@ -988,54 +988,55 @@ static inline uint encodeDir(const float3& n)
 static const char* gModelVersion = "1.01";
 
 // Loads a scene using ASSIMP and returns a Scene object with scene information
-Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY, float offsetZ)
+Scene* loadScene(const Path* filePath, float scale, float offsetX, float offsetY, float offsetZ)
 {
-#if TARGET_IOS
-	NSString* fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String : fileName] ofType : @""];
-	fileName = [fileUrl fileSystemRepresentation];
-#endif
 
 #if 1
 	Scene* scene = (Scene*)conf_calloc(1, sizeof(Scene));
 
-	eastl::string cachedModelFileName = eastl::string(fileName) + ".cached";
-	File cached = {};
+    PathHandle cachedModelFilePath = fsAppendPathExtension(filePath, "cached");
+
 	eastl::string modelVersion;
-	if (cached.Open(cachedModelFileName, FileMode::FM_ReadBinary, FSR_Absolute))
-		modelVersion = cached.ReadFileID();
+    FileStream* fh = fsOpenFile(cachedModelFilePath, FM_READ_BINARY);
+	if (fh)
+    {
+        // Read the file ID.
+        modelVersion.resize(4);
+        fsReadFromStream(fh, modelVersion.begin(), 4);
+    }
 
 	if (modelVersion == gModelVersion)
 	{
-		scene->numMeshes = cached.ReadUInt();
-		scene->totalVertices = cached.ReadUInt();
-		scene->totalTriangles = cached.ReadUInt();
+        scene->numMeshes = fsReadFromStreamUInt32(fh);
+		scene->totalVertices = fsReadFromStreamUInt32(fh);
+		scene->totalTriangles = fsReadFromStreamUInt32(fh);
 
 		scene->meshes = (MeshIn*)conf_calloc(scene->numMeshes, sizeof(MeshIn));
-		cached.Read(scene->meshes, scene->numMeshes * sizeof(MeshIn));
+		fsReadFromStream(fh, scene->meshes, scene->numMeshes * sizeof(MeshIn));
 
 		scene->indices = (uint32_t*)conf_malloc(scene->totalTriangles * 3 * sizeof(uint32_t));
-		cached.Read(scene->indices, scene->totalTriangles * 3 * sizeof(uint32_t));
+        fsReadFromStream(fh, scene->indices, scene->totalTriangles * 3 * sizeof(uint32_t));
 
 		scene->positions = (SceneVertexPos*)conf_malloc(scene->totalVertices * sizeof(SceneVertexPos));
-		cached.Read(scene->positions, scene->totalVertices * sizeof(SceneVertexPos));
+        fsReadFromStream(fh, scene->positions, scene->totalVertices * sizeof(SceneVertexPos));
 
 		scene->texCoords = (SceneVertexTexCoord*)conf_malloc(scene->totalVertices * sizeof(SceneVertexTexCoord));
-		cached.Read(scene->texCoords, scene->totalVertices * sizeof(SceneVertexTexCoord));
+        fsReadFromStream(fh, scene->texCoords, scene->totalVertices * sizeof(SceneVertexTexCoord));
 
 		scene->normals = (SceneVertexNormal*)conf_malloc(scene->totalVertices * sizeof(SceneVertexNormal));
-		cached.Read(scene->normals, scene->totalVertices * sizeof(SceneVertexNormal));
+        fsReadFromStream(fh, scene->normals, scene->totalVertices * sizeof(SceneVertexNormal));
 
 		scene->tangents = (SceneVertexTangent*)conf_malloc(scene->totalVertices * sizeof(SceneVertexTangent));
-		cached.Read(scene->tangents, scene->totalVertices * sizeof(SceneVertexTangent));
+        fsReadFromStream(fh, scene->tangents, scene->totalVertices * sizeof(SceneVertexTangent));
 
-		cached.Close();
+        fsCloseStream(fh);
 	}
 	else
 	{
 		HiresTimer timer = {};
 		AssimpImporter        importer;
 		AssimpImporter::Model model;
-		importer.ImportModel(fileName, &model);
+		importer.ImportModel(filePath, &model);
 		LOGF(LogLevel::eINFO, "Assimp Load %f ms", timer.GetUSec(true) / 1000.0f);
 
 		for (int i = 0; i < model.mMeshArray.size(); i++)
@@ -1131,19 +1132,20 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 			LOGF(LogLevel::eINFO, "%d vertexCount: %d total: %d", i, batch.vertexCount, accIndex);
 		}
 
-		if (cached.Open(cachedModelFileName, FileMode::FM_WriteBinary, FSR_Absolute))
+		FileStream* fHandle = fsOpenFile(cachedModelFilePath, FM_WRITE_BINARY);
+		if (fHandle)
 		{
-			cached.WriteFileID(gModelVersion);
-			cached.WriteUInt(scene->numMeshes);
-			cached.WriteUInt(scene->totalVertices);
-			cached.WriteUInt(scene->totalTriangles);
-			cached.Write(scene->meshes, scene->numMeshes * sizeof(MeshIn));
-			cached.Write(scene->indices, scene->totalTriangles * 3 * sizeof(uint32_t));
-			cached.Write(scene->positions, scene->totalVertices * sizeof(SceneVertexPos));
-			cached.Write(scene->texCoords, scene->totalVertices * sizeof(SceneVertexTexCoord));
-			cached.Write(scene->normals, scene->totalVertices * sizeof(SceneVertexNormal));
-			cached.Write(scene->tangents, scene->totalVertices * sizeof(SceneVertexTangent));
-			cached.Close();
+            fsWriteToStream(fHandle, gModelVersion, 4);
+			fsWriteToStreamUInt32(fHandle, scene->numMeshes);
+			fsWriteToStreamUInt32(fHandle, scene->totalVertices);
+			fsWriteToStreamUInt32(fHandle, scene->totalTriangles);
+			fsWriteToStream(fHandle, scene->meshes, scene->numMeshes * sizeof(MeshIn));
+			fsWriteToStream(fHandle, scene->indices, scene->totalTriangles * 3 * sizeof(uint32_t));
+			fsWriteToStream(fHandle, scene->positions, scene->totalVertices * sizeof(SceneVertexPos));
+			fsWriteToStream(fHandle, scene->texCoords, scene->totalVertices * sizeof(SceneVertexTexCoord));
+			fsWriteToStream(fHandle, scene->normals, scene->totalVertices * sizeof(SceneVertexNormal));
+			fsWriteToStream(fHandle, scene->tangents, scene->totalVertices * sizeof(SceneVertexTangent));
+			fsCloseStream(fHandle);
 		}
 	}
 
@@ -1165,7 +1167,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 
 	Scene* scene = (Scene*)conf_calloc(1, sizeof(Scene));
 	File   assimpScene = {};
-	assimpScene.Open(fileName, FileMode::FM_ReadBinary, FSRoot::FSR_Absolute);
+	assimpScene.Open(fileName, FileMode::FM_READ_BINARY, ResourceDirectory::RD_Absolute);
 	if (!assimpScene.IsOpen())
 	{
 		LOGF(eERROR, 
@@ -1365,7 +1367,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 				path.replace(muros_n, muros_q_patio2);
 			}
 
-			if (!FileSystem::FileExists(path, FSR_Textures))
+			if (!FileSystem::FileExists(path, RD_TEXTURES))
 			{
 				eastl::string base_filename2 = FileSystem::GetFileName(path);
 				eastl::string pTemp("");
@@ -1376,7 +1378,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 				albedoMap.reserve(base_filename2.size());
 				albedoMap.append(base_filename2.begin(), base_filename2.end());
 
-				if (!FileSystem::FileExists(albedoMap, FSR_Textures))
+				if (!FileSystem::FileExists(albedoMap, RD_TEXTURES))
 				{
 					albedoMap = DEFAULT_ALBEDO;
 				}
@@ -1390,7 +1392,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 			normalMap.rfind('.', -1, &dotPos);
 			normalMap.insert(dotPos, "_NRM", 4);
 
-			if (!FileSystem::FileExists(normalMap, FSR_Textures))
+			if (!FileSystem::FileExists(normalMap, RD_TEXTURES))
 			{
 				eastl::string base_filename2 = FileSystem::GetFileName(path);
 				eastl::string pTemp("");
@@ -1404,7 +1406,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 				normalMap.rfind('.', -1, &dotPos);
 				normalMap.insert(dotPos, "_NRM", 4);
 
-				if (!FileSystem::FileExists(normalMap, FSR_Textures))
+				if (!FileSystem::FileExists(normalMap, RD_TEXTURES))
 				{
 					normalMap = DEFAULT_NORMAL;
 				}
@@ -1419,7 +1421,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 			specMap.rfind('.', -1, &dotPos);
 			specMap.insert(dotPos, "_SPEC", 5);
 
-			if (!FileSystem::FileExists(specMap, FSR_Textures))
+			if (!FileSystem::FileExists(specMap, RD_TEXTURES))
 			{
 				eastl::string base_filename2 = FileSystem::GetFileName(path);
 				eastl::string pTemp("");
@@ -1433,7 +1435,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 				specMap.rfind('.', -1, &dotPos);
 				specMap.insert(dotPos, "_SPEC", 5);
 
-				if (!FileSystem::FileExists(specMap, FSR_Textures))
+				if (!FileSystem::FileExists(specMap, RD_TEXTURES))
 				{
 					//Transparent
 					if (i == 9 || i == 13 || i == 26 || i == 61 || i == 70 || i == 79 || i == 80 || i == 87 || i == 109 || i == 110 ||
@@ -1446,7 +1448,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 				}
 			}
 
-			//if (!FileSystem::FileExists(specMap, FSR_Textures))
+			//if (!FileSystem::FileExists(specMap, RD_TEXTURES))
 			//	specMap = DEFAULT_SPEC;
 
 			scene->specularMaps[i] = (char*)conf_calloc(specMap.size() + 1, sizeof(char));
@@ -1534,17 +1536,10 @@ void removeScene(Scene* scene)
 vec3 makeVec3(const SceneVertexPos& v) { return vec3(v.x, v.y, v.z); }
 
 
-
-eastl::string GetSDFBakedFileName(const eastl::string& fileName)
+Path* GetSDFBakedFilePath(const eastl::string& fileName)
 {
 	eastl::string newCompleteCacheFileName = "Baked_" + fileName + ".bin";
-	return newCompleteCacheFileName;
-}
-
-
-eastl::string GetSDFFullDirBakedFileName(const eastl::string& fileName)
-{
-	return gGeneratedSDFBinaryDir + GetSDFBakedFileName(fileName);
+	return fsCopyPathInResourceDirectory(RD_OTHER_FILES, newCompleteCacheFileName.c_str());
 }
 
 void createAABB(const Scene* pScene, MeshIn* mesh)
@@ -1798,7 +1793,7 @@ void GetSDFCustomSubMeshData(const eastl::string& strKey, SDFCustomSubMeshData& 
 	}
 }
 
-void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const eastl::string& fileName, SDFMesh* outMesh, float scale,
+void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outMesh, float scale,
 	float offsetX, bool generateSDFVolumeData,
 	BakedSDFVolumeInstances& sdfVolumeInstances,
 	GenerateVolumeDataFromFileFunc generateVolumeDataFromFileFunc)
@@ -1806,11 +1801,10 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const eastl::string& fil
 {
 	AssimpImporter importer;
 	AssimpImporter::Model model;
-	eastl::string sceneFullPath = FileSystem::FixPath(fileName + ".obj", FSRoot::FSR_Meshes);
 
-	if (!importer.ImportModel(sceneFullPath.c_str(), &model))
+	if (!importer.ImportModel(filePath, &model))
 	{
-		LOGF(eERROR, "Failed to load %s", FileSystem::GetFileNameAndExtension(sceneFullPath).c_str());
+		LOGF(LogLevel::eERROR ,"Failed to load %s", fsGetPathFileName(filePath).buffer);
 		return;
 	}
 
@@ -2113,7 +2107,6 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const eastl::string& fil
 		if (generateSDFVolumeData && customSubMesh.mIsSDFMesh)
 		{
 			bool twoSided = customSubMesh.mIsTwoSided;
-			eastl::string sdfBakedDataFileName = customSubMesh.mMeshName;
 			SDFMeshInstance& sdfMeshInstance = mesh.mMeshInstances[i];
 
 			sdfMeshInstance.mIsAlphaTested = customSubMesh.mIsAlphaTested;
@@ -2129,14 +2122,9 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const eastl::string& fil
 					SDF_DOUBLE_MAX_VOXEL_ONE_DIMENSION_Y,
 					SDF_DOUBLE_MAX_VOXEL_ONE_DIMENSION_Z);
 			}
-
-			/*const eastl::string fileNameToCheck = SDFVolumeData::GetFullDirBakedFileName(sdfBakedDataFileName);
-			SDFVolumeData::GenerateVolumeData(&volumeData, fileNameToCheck,
-				SDFVolumeData::GetBakedFileName(sdfBakedDataFileName), customSubMesh.mTwoSidedWorldSpaceBias);*/
-
-
-			(*generateVolumeDataFromFileFunc)(&volumeData, GetSDFBakedFileName(sdfBakedDataFileName),
-				customSubMesh.mMeshName, customSubMesh.mTwoSidedWorldSpaceBias);
+			
+            PathHandle meshPath = fsCopyPathInResourceDirectory(RD_OTHER_FILES, customSubMesh.mMeshName.c_str());
+			(*generateVolumeDataFromFileFunc)(&volumeData, meshPath, customSubMesh.mMeshName, customSubMesh.mTwoSidedWorldSpaceBias);
 
 			if (volumeData)
 			{
@@ -2161,17 +2149,16 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const eastl::string& fil
 	conf_free(indices);
 }
 
-void loadSDFMesh(ThreadSystem* threadSystem, const eastl::string& fileName, SDFMesh* outMesh, float scale,
+void loadSDFMesh(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outMesh, float scale,
 	float offsetX, bool generateSDFVolumeData, BakedSDFVolumeInstances& sdfVolumeInstances,
 	GenerateVolumeDataFromFileFunc generateVolumeDataFromFileFunc)
 
 {
 	AssimpImporter importer;
 	AssimpImporter::Model model;
-	eastl::string sceneFullPath = FileSystem::FixPath(fileName + ".obj", FSRoot::FSR_Meshes);
-	if (!importer.ImportModel(sceneFullPath.c_str(), &model))
+	if (!importer.ImportModel(filePath, &model))
 	{
-		LOGF(eERROR, "Failed to load %s", FileSystem::GetFileNameAndExtension(sceneFullPath).c_str());
+		LOGF(LogLevel::eERROR ,"Failed to load %s", fsGetPathFileName(filePath).buffer);
 		return;
 	}
 
@@ -2280,7 +2267,6 @@ void loadSDFMesh(ThreadSystem* threadSystem, const eastl::string& fileName, SDFM
 		if (generateSDFVolumeData && customSubMesh.mIsSDFMesh)
 		{
 			bool twoSided = customSubMesh.mIsTwoSided;
-			eastl::string sdfBakedDataFileName = customSubMesh.mMeshName;
 
 			SDFMeshInstance& sdfMeshInstance = mesh.mMeshInstances[i];
 
@@ -2295,13 +2281,9 @@ void loadSDFMesh(ThreadSystem* threadSystem, const eastl::string& fileName, SDFM
 					SDF_DOUBLE_MAX_VOXEL_ONE_DIMENSION_Y,
 					SDF_DOUBLE_MAX_VOXEL_ONE_DIMENSION_Z);
 			}
-
-			/*const eastl::string fileNameToCheck = SDFVolumeData::GetFullDirBakedFileName(sdfBakedDataFileName);
-			SDFVolumeData::GenerateVolumeData(&volumeData, fileNameToCheck, 
-				SDFVolumeData::GetBakedFileName(sdfBakedDataFileName), customSubMesh.mTwoSidedWorldSpaceBias);*/
-
-			(*generateVolumeDataFromFileFunc)(&volumeData, GetSDFBakedFileName(sdfBakedDataFileName),
-				customSubMesh.mMeshName, customSubMesh.mTwoSidedWorldSpaceBias);
+            
+			PathHandle meshPath = fsCopyPathInResourceDirectory(RD_OTHER_FILES, customSubMesh.mMeshName.c_str());
+			(*generateVolumeDataFromFileFunc)(&volumeData, meshPath, customSubMesh.mMeshName, customSubMesh.mTwoSidedWorldSpaceBias);
 
 			if (volumeData)
 			{
@@ -2327,7 +2309,6 @@ void loadSDFMesh(ThreadSystem* threadSystem, const eastl::string& fileName, SDFM
 	conf_free(vertices);
 	conf_free(indices);
 }
-
 
 void adjustAABB(AABB* ownerAABB, const vec3& point)
 {
@@ -2361,7 +2342,6 @@ void adjustAABB(AABB* ownerAABB, const AABB& otherAABB)
 	ownerAABB->maxBounds.setZ(fmax(otherAABB.maxBounds.getZ(),
 		ownerAABB->maxBounds.getZ()));
 }
-
 
 void alignAABB(AABB* ownerAABB, float alignment)
 {

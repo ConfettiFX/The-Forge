@@ -614,7 +614,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
         // Set to YES to allow compiler to make certain optimizations
         computeDescriptor.threadGroupSizeIsMultipleOfThreadExecutionWidth = YES;
         
-        NSString* entryPointNStr = [[NSString alloc] initWithUTF8String:pDesc->pRayGenShader->mtlComputeShaderEntryPoint.c_str()];
+        NSString* entryPointNStr = [[NSString alloc] initWithUTF8String:pDesc->pRayGenShader->pEntryNames[0]];
         computeDescriptor.computeFunction = pDesc->pRayGenShader->mtlComputeShader;
         
         NSError *error = NULL;
@@ -640,7 +640,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
             computeDescriptor.threadGroupSizeIsMultipleOfThreadExecutionWidth = YES;
             
             //Rustam: take care about "any hit" and "intersection" shaders
-            entryPointNStr = [[NSString alloc] initWithUTF8String:pDesc->pHitGroups[i].pClosestHitShader->mtlComputeShaderEntryPoint.c_str()];
+            entryPointNStr = [[NSString alloc] initWithUTF8String:pDesc->pHitGroups[i].pClosestHitShader->pEntryNames[0]];
             
             computeDescriptor.computeFunction = pDesc->pHitGroups[i].pClosestHitShader->mtlComputeShader;
             
@@ -668,7 +668,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
             computeDescriptor.threadGroupSizeIsMultipleOfThreadExecutionWidth = YES;
             
             //Rustam: take care about "any hit" and "intersection" shaders
-            entryPointNStr = [[NSString alloc] initWithUTF8String:pDesc->ppMissShaders[i]->mtlComputeShaderEntryPoint.c_str()];
+            entryPointNStr = [[NSString alloc] initWithUTF8String:pDesc->ppMissShaders[i]->pEntryNames[0]];
             
             computeDescriptor.computeFunction = pDesc->ppMissShaders[i]->mtlComputeShader;
             
@@ -683,7 +683,7 @@ extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, cons
             }
             [pPipeline->mMissPipelines addObject: _pipeline];
             
-            const char* groupName = pDesc->ppMissShaders[i]->mtlComputeShaderEntryPoint.c_str();
+            const char* groupName = pDesc->ppMissShaders[i]->pEntryNames[0];
             pPipeline->mMissGroupNames[i] = (char*)conf_calloc(strlen(groupName) + 1, sizeof(char));
             memcpy(pPipeline->mMissGroupNames[i], groupName, strlen(groupName) + 1);
         }

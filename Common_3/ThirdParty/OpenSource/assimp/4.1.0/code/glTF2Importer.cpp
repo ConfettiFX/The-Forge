@@ -180,14 +180,14 @@ static void CopyValue(const glTF2::mat4& v, aiMatrix4x4& o)
     o.a4 = v[12]; o.b4 = v[13]; o.c4 = v[14]; o.d4 = v[15];
 }
 
-inline void SetMaterialColorProperty(Asset& /*r*/, vec4& prop, aiMaterial* mat, const char* pKey, unsigned int type, unsigned int idx)
+inline void SetMaterialColorProperty(Asset& /*r*/, glTF2::vec4& prop, aiMaterial* mat, const char* pKey, unsigned int type, unsigned int idx)
 {
     aiColor4D col;
     CopyValue(prop, col);
     mat->AddProperty(&col, 1, pKey, type, idx);
 }
 
-inline void SetMaterialColorProperty(Asset& /*r*/, vec3& prop, aiMaterial* mat, const char* pKey, unsigned int type, unsigned int idx)
+inline void SetMaterialColorProperty(Asset& /*r*/, glTF2::vec3& prop, aiMaterial* mat, const char* pKey, unsigned int type, unsigned int idx)
 {
     aiColor4D col;
     CopyValue(prop, col);

@@ -19,3 +19,4 @@
 /build
 x64_*
 x86_*
+UI/HLSLParser/packages/*

@@ -1,7 +1,7 @@
 #ifndef GAINPUTSTREAM_H_
 #define GAINPUTSTREAM_H_
 
-#if defined(GAINPUT_PLATFORM_LINUX) || defined(GAINPUT_PLATFORM_ANDROID)
+#if defined(GAINPUT_PLATFORM_LINUX) || defined(GAINPUT_PLATFORM_ANDROID) || defined(GAINPUT_PLATFORM_GGP)
 #include <arpa/inet.h>
 #include <stdint.h>
 #elif defined(GAINPUT_PLATFORM_WIN) || defined(GAINPUT_PLATFORM_XBOX_ONE)

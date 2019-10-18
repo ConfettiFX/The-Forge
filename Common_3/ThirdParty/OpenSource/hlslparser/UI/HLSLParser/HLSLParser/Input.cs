@@ -14,17 +14,17 @@ namespace HLSLParser
 {
     public partial class Input : Form
     {
-        [DllImport("Parser.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
+        [DllImport("ParserDll.dll", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
         [return: MarshalAs(UnmanagedType.LPStr)]
-        public static extern string PARSER([MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.LPStr)] string [] _fileName, [MarshalAs(UnmanagedType.LPStr)] string buffer, int bufferSize, [MarshalAs(UnmanagedType.LPStr)] string entryName,
-            [MarshalAs(UnmanagedType.LPStr)] string shader, [MarshalAs(UnmanagedType.LPStr)] string _language, [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.LPStr)] string[] _bufferForInlcuded, int _includedCounter);
+        public static extern string PARSER([MarshalAs(UnmanagedType.LPStr)] string _fileName, [MarshalAs(UnmanagedType.LPStr)] string entryName,
+            [MarshalAs(UnmanagedType.LPStr)] string shader, [MarshalAs(UnmanagedType.LPStr)] string _language);
 
         Form1 parentForm;
         Output outputWindow;
 
         public string entryName = "main";
 
-        public List<string> fileNames;
+        public string fileName;
         public List<string> includeBuffers;
 
         public string shader = "-vs";
@@ -71,24 +71,6 @@ namespace HLSLParser
         {
             int includeCounter = includeBuffers.Count - 1;
 
-            /*
-            string[] fileName = new string[fileNames.Count];
-
-
-            for (int i = 0; i < fileNames.Count; i++)
-            {
-                fileName[i] = fileNames[i];
-            }
-
-            string[] bufferForInlcuded = new string[includeCounter];
-
-            for (int i = 0; i < includeCounter; i++)
-            {
-                bufferForInlcuded[i] = includeBuffers[i];
-            }
-            */
-
-
             if (richTextBox2.Text != "")
             {
                 //send request to recreate
@@ -104,16 +86,17 @@ namespace HLSLParser
 
                 if (bTranslateAll)
                 {
-                    translatedHLSL = PARSER(fileNames.ToArray(), richTextBox2.Text, richTextBox2.TextLength, entryName, shader, "-hlsl", includeBuffers.ToArray(), includeCounter).Replace("\n", "\r\n");
+                    translatedHLSL = PARSER(fileName, entryName, shader, "-hlsl").Replace("\n", "\r\n");
                     outputWindow.richTextBoxOutput.Text = richTextBox1.Text + "\r\n" + translatedHLSL;
 
                     if (outputWindow.richTextBoxOutput.Text == null)
                         outputWindow.richTextBoxOutput.Text = "Failed to translate";
                     
-                    translatedGLSL = PARSER(fileNames.ToArray(), richTextBox2.Text, richTextBox2.TextLength, entryName, shader, "-glsl", includeBuffers.ToArray(), includeCounter).Replace("\n", "\r\n");
+                    translatedGLSL = PARSER(fileName, entryName, shader, "-glsl").Replace("\n", "\r\n");
 
                     if (shader == "-hs")
                     {
+						// TODO:????
                         //need secondaryfile
                         OpenFileDialog ofd = new OpenFileDialog();
                         ofd.Title = "Select a Vertex shader needed to generate a Hull shader for Metal";
@@ -123,7 +106,7 @@ namespace HLSLParser
                             string vertexShaderData = sr.ReadToEnd();
                             string compositeData = vertexShaderData + richTextBox2.Text;
 
-                            translatedMSL = PARSER(fileNames.ToArray(), compositeData, compositeData.Length, entryName, shader, "-msl", includeBuffers.ToArray(), includeCounter).Replace("\n", "\r\n");
+                            translatedMSL = PARSER(fileName, entryName, shader, "-msl").Replace("\n", "\r\n");
                         }
                         else
                         {
@@ -133,14 +116,14 @@ namespace HLSLParser
                     }
                     else
                     {
-                        translatedMSL = PARSER(fileNames.ToArray(), richTextBox2.Text, richTextBox2.TextLength, entryName, shader, "-msl", includeBuffers.ToArray(), includeCounter).Replace("\n", "\r\n");
+                        translatedMSL = PARSER(fileName, entryName, shader, "-msl").Replace("\n", "\r\n");
                     }
 
                     outputWindow.buttonShowGLSL.PerformClick();
                 }
                 else if (languageString == "HLSL")
                 {
-                    translatedHLSL = PARSER(fileNames.ToArray(), richTextBox2.Text, richTextBox2.TextLength, entryName, shader, "-hlsl", includeBuffers.ToArray(), includeCounter).Replace("\n", "\r\n");
+                    translatedHLSL = PARSER(fileName, entryName, shader, "-hlsl").Replace("\n", "\r\n");
                     outputWindow.richTextBoxOutput.Text = richTextBox1.Text + "\r\n" + translatedHLSL;
 
                     if (outputWindow.richTextBoxOutput.Text == null)
@@ -151,7 +134,7 @@ namespace HLSLParser
                 }
                 else if (languageString == "GLSL")
                 {
-                    translatedGLSL = PARSER(fileNames.ToArray(), richTextBox2.Text, richTextBox2.TextLength, entryName, shader, "-glsl", includeBuffers.ToArray(), includeCounter).Replace("\n", "\r\n");
+                    translatedGLSL = PARSER(fileName, entryName, shader, "-glsl").Replace("\n", "\r\n");
                     outputWindow.richTextBoxOutput.Text = richTextBox1.Text + "\r\n" + translatedGLSL;
 
                     if (outputWindow.richTextBoxOutput.Text == null)
@@ -173,7 +156,7 @@ namespace HLSLParser
                             string vertexShaderData = sr.ReadToEnd();
                             string compositeData = vertexShaderData + richTextBox2.Text;
 
-                            translatedMSL = PARSER(fileNames.ToArray(), compositeData, compositeData.Length, entryName, shader, "-msl", includeBuffers.ToArray(), includeCounter).Replace("\n", "\r\n");
+                            translatedMSL = PARSER(fileName, entryName, shader, "-msl").Replace("\n", "\r\n");
 
                         }
                         else
@@ -184,7 +167,7 @@ namespace HLSLParser
                     }
                     else
                     {
-                        translatedMSL = PARSER(fileNames.ToArray(), richTextBox2.Text, richTextBox2.TextLength, entryName, shader, "-msl", includeBuffers.ToArray(), includeCounter).Replace("\n", "\r\n");
+                        translatedMSL = PARSER(fileName, entryName, shader, "-msl").Replace("\n", "\r\n");
                     }
                     
                     outputWindow.richTextBoxOutput.Text = richTextBox1.Text + "\r\n" + translatedMSL;
@@ -197,18 +180,6 @@ namespace HLSLParser
                 }
 
 
-            }
-
-            //Input Label Text
-            if (fileNames != null)
-            {
-
-
-                char[] splitters = { '.', '\\' };
-                string[] tokkens = fileNames[fileNames.Count()-1].Split(splitters);
-
-                label5.Text = "Input from " + shaderString + " \"" + tokkens[tokkens.Length - 2] + "." + tokkens[tokkens.Length - 1] + "\"";
-                label5.Update();
             }
         }
 

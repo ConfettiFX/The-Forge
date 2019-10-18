@@ -31,11 +31,24 @@
 #ifndef ZLIB_H
 #define ZLIB_H
 
+
+
 #if __linux__
 #include "../../linux/contrib/zlib/zconf.h"
-#else
-#include "zconf.h"
 #endif
+
+#if defined(_DURANGO)
+#include "../../Xbox/zconf.h"
+#endif
+
+#if (defined(_WIN32) && !defined(_DURANGO))
+#include "../../win64/zconf.h"
+#endif
+
+#if defined(__APPLE__)
+#include "../../Apple/zconf.h"
+#endif
+
 
 #ifdef __cplusplus
 extern "C" {

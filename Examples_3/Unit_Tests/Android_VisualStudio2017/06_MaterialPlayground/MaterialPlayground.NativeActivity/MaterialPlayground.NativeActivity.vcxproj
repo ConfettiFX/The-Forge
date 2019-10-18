@@ -192,9 +192,9 @@
       <PreprocessorDefinitions>_DEBUG;ANDROID;VULKAN;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <LibraryDependencies>OS;Renderer;SpirvTools;LuaManager;gainputstatic;ozz_animation;ozz_base;AssimpImporter;assimp;zlibstatic;IrrXML;shaderc</LibraryDependencies>
+      <LibraryDependencies>Renderer;OS;SpirvTools;LuaManager;gainputstatic;ozz_animation;ozz_base;AssimpImporter;assimp;IrrXML;shaderc;zip;z;m</LibraryDependencies>
       <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
@@ -220,9 +220,9 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\PBR\*.* $(SolutionD
       <PreprocessorDefinitions>ANDROID;VULKAN;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <LibraryDependencies>OS;Renderer;SpirvTools;LuaManager;gainputstatic;ozz_animation;ozz_base;AssimpImporter;assimp;zlibstatic;IrrXML;shaderc</LibraryDependencies>
+      <LibraryDependencies>Renderer;OS;SpirvTools;LuaManager;gainputstatic;ozz_animation;ozz_base;AssimpImporter;assimp;IrrXML;shaderc;zip;z;m</LibraryDependencies>
       <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
@@ -250,8 +250,8 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\PBR\*.* $(SolutionD
     </ClCompile>
     <Link>
       <AdditionalOptions>-lm %(AdditionalOptions)</AdditionalOptions>
-      <LibraryDependencies>OS;Renderer;SpirvTools;LuaManager;gainputstatic;ozz_animation;ozz_base;AssimpImporter;assimp;zlibstatic;IrrXML;shaderc;%(LibraryDependencies)</LibraryDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LibraryDependencies>Renderer;OS;SpirvTools;LuaManager;gainputstatic;ozz_animation;ozz_base;AssimpImporter;assimp;IrrXML;shaderc;zip;z;m;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
@@ -279,8 +279,8 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\PBR\*.* $(SolutionD
     </ClCompile>
     <Link>
       <AdditionalOptions>-lm %(AdditionalOptions)</AdditionalOptions>
-      <LibraryDependencies>OS;Renderer;SpirvTools;LuaManager;gainputstatic;ozz_animation;ozz_base;AssimpImporter;assimp;zlibstatic;IrrXML;shaderc;%(LibraryDependencies)</LibraryDependencies>
-      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <LibraryDependencies>Renderer;OS;SpirvTools;LuaManager;gainputstatic;ozz_animation;ozz_base;AssimpImporter;assimp;IrrXML;shaderc;zip;z;m;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y

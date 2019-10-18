@@ -24,7 +24,7 @@
 
 #include "Clip.h"
 
-void Clip::Initialize(const char* animationFile, Rig* rig) { LoadClip(animationFile); }
+void Clip::Initialize(const Path* animationPath, Rig* rig) { LoadClip(animationPath); }
 
 void Clip::Destroy() { mAnimation.Deallocate(); }
 
@@ -44,9 +44,9 @@ bool Clip::Sample(ozz::animation::SamplingCache* cacheInput, ozz::Range<SoaTrans
 	return true;
 }
 
-bool Clip::LoadClip(const char* fileName)
+bool Clip::LoadClip(const Path* animationPath)
 {
-	ozz::io::File file(fileName, "rb");
+	ozz::io::File file(animationPath, FM_READ_BINARY);
 	if (!file.opened())
 	{
 		LOGF(eERROR, "Cannot open file ");
