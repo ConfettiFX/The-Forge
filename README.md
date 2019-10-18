@@ -53,6 +53,16 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 
 # News
 
+## Release 1.36 - October 17th - New File System
+ * New cross-platform FileSystem C API, supporting disk-based files, memory streams, and files in zip archives. The API can be viewed in [IFileSystem.h](Common_3/OS/Interfaces/IFileSystem.h), and all of the example code has been updated to use the new API.
+   * The API is based around `Path`s, where each `Path` represents an absolute, canonical path string on a particular file system. You can query information about the files at `Path`s, open files as `FileStream`s, and copy files between different `Path`s.
+   * The concept of `FileSystemRoot`s has been replaced by `ResourceDirectory`s. `ResourceDirectory`s are predefined directories where resources are expected to exist, and there are convenience functions to open files in resource directories. If your resources don’t exist within the default directory for a particular resource type, you can call `fsSetPathForResourceDirectory` to relocate the resource directory; see the unit tests for sample code on how to do this.
+   * There's a new 12_FileSystem unit test that demonstrates how to read files from zip archives:
+
+![File System Unit Test](Screenshots/12_FileSystem.png)
+ 
+ * Vulkan: Adaptive Order Independent Transparency with Raster Order Views is now supported when VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT is supported.
+ 
 ## Release 1.35 - October 3rd - New Ozz Animation Unit Test | Updated Shader Translator | Maintenance update macOS / iOS 
 After only a bit more than one week we wanted to ship a quick update ... 
  * Ozz Animation System: there is a new unit test added to The Forge.
@@ -427,10 +437,12 @@ This unit test shows a typical VR Multi-GPU configuration. One eye is rendered b
 
 ![Image of the Multi-GPU Unit test](Screenshots/11_MultiGPU.png)
 
-## 12. The Forge switching between Vulkan and DirectX 12 during Run-time (Windows PC-only)
-This unit test shows how to switch between the Vulkan and DirectX 12 graphics API during run-time. 
-
-![Image of the The Forge Switching Unit test](Screenshots/12_TheForgeInDLL.png)
+## 12. File System Test
+cross-platform FileSystem C API, supporting disk-based files, memory streams, and files in zip archives. The API can be viewed in [IFileSystem.h](/Common_3/OS/Interfaces/IFileSystem.h), and all of the example code has been updated to use the new API.
+   * The API is based around `Path`s, where each `Path` represents an absolute, canonical path string on a particular file system. You can query information about the files at `Path`s, open files as `FileStream`s, and copy files between different `Path`s.
+   * The concept of `FileSystemRoot`s has been replaced by `ResourceDirectory`s. `ResourceDirectory`s are predefined directories where resources are expected to exist, and there are convenience functions to open files in resource directories. If your resources don’t exist within the default directory for a particular resource type, you can call `fsSetPathForResourceDirectory` to relocate the resource directory; see the unit tests for sample code on how to do this.
+   
+![File System Unit Test](Screenshots/12_FileSystem.png)
 
 ## 13. imGUI integration unit test
 This unit test shows how the integration of imGui with a wide range of functionality.
