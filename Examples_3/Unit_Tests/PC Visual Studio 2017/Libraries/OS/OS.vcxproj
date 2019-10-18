@@ -28,10 +28,16 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Camera\CameraController.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\FileSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Timer.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystemInternal.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\MemoryStream.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemFileStream.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemRun.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileStream.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Input\InputSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsFileSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsTime.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\allocator_forge.cpp" />
@@ -60,9 +66,6 @@
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\ClipMask.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Rig.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.cpp" />
-    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.cpp" />
-    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.cpp" />
-    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Text\Fontstash.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\ImguiGUIDriver.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\UI\AppUI.cpp" />
@@ -71,6 +74,11 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\GPUConfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\RingBuffer.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystemInternal.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\MemoryStream.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemFileStream.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileStream.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\Image.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\ImageEnums.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IApp.h" />
@@ -99,9 +107,6 @@
     <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\ClipMask.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Rig.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.h" />
-    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.h" />
-    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.h" />
-    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\Text\Fontstash.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\UI\AppUI.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\UI\UIShaders.h" />
@@ -112,7 +117,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\MemoryTracking\MemoryTracking.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsLog.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsBase.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsFileSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsThread.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -231,9 +235,8 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>ZIP_STATIC;USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\contrib\zlib;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\libzip-1.1.2\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -244,10 +247,12 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Lib>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <AdditionalDependencies>libzip-static.lib;libz-static.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Win64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Lib>
     <PostBuildEvent>
       <Command>
@@ -260,9 +265,8 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>ZIP_STATIC;USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;DIRECT3D12;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\contrib\zlib;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\libzip-1.1.2\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -273,10 +277,12 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Lib>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <AdditionalDependencies>libzip-static.lib;libz-static.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Win64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Lib>
     <PostBuildEvent>
       <Command>
@@ -289,9 +295,8 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;DIRECT3D11;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>ZIP_STATIC;USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;DIRECT3D11;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\contrib\zlib;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\libzip-1.1.2\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>
       </MultiProcessorCompilation>
@@ -303,10 +308,12 @@
       <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Lib>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <AdditionalDependencies>libzip-static.lib;libz-static.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Win64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Lib>
     <PostBuildEvent>
       <Command>
@@ -321,9 +328,8 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>ZIP_STATIC;NDEBUG;_WINDOWS;VULKAN;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\contrib\zlib;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\libzip-1.1.2\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -336,10 +342,12 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>vulkan-1.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Lib>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <AdditionalDependencies>libzip-static.lib;libz-static.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Win64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Lib>
     <PostBuildEvent>
       <Command>
@@ -354,9 +362,8 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;DIRECT3D12;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>ZIP_STATIC;NDEBUG;_WINDOWS;DIRECT3D12;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\contrib\zlib;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\libzip-1.1.2\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -369,10 +376,12 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Lib>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <AdditionalDependencies>libzip-static.lib;libz-static.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Win64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Lib>
     <PostBuildEvent>
       <Command>
@@ -387,9 +396,8 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>NDEBUG;_WINDOWS;DIRECT3D11;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>
-      </AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>ZIP_STATIC;NDEBUG;_WINDOWS;DIRECT3D11;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\contrib\zlib;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\libzip-1.1.2\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>
       </MultiProcessorCompilation>
@@ -403,10 +411,12 @@
       <AdditionalOptions>/ENTRY:mainCRTStartup %(AdditionalOptions)</AdditionalOptions>
       <AdditionalLibraryDirectories>$(GLFW_DIR)\lib;$(VULKAN_SDK)\Lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Lib>
-      <AdditionalDependencies>
-      </AdditionalDependencies>
+      <AdditionalDependencies>libzip-static.lib;libz-static.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Win64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Lib>
     <PostBuildEvent>
       <Command>

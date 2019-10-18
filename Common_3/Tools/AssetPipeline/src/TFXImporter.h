@@ -22,6 +22,7 @@
 *THE SOFTWARE.
 */
 
+#include "../../../ThirdParty/OpenSource/EASTL/string.h"
 #include "../../../ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../../OS/Math/MathTypes.h"
 #include "../../../OS/Interfaces/IFileSystem.h"
@@ -63,10 +64,10 @@ class TFXImporter
 {
 	public:
 	static bool ImportTFX(
-		const char* filename, FSRoot root, int numFollowHairs, float tipSeperationFactor, float maxRadiusAroundGuideHair,
+		const Path* filePath, int numFollowHairs, float tipSeperationFactor, float maxRadiusAroundGuideHair,
 		TFXAsset* tfxAsset);
-	static bool ImportTFXMesh(const char* filename, FSRoot root, TFXMesh* tfxMesh);
+	static bool ImportTFXMesh(const Path* filePath, TFXMesh* tfxMesh);
 
 	private:
-	static bool ImportTFXV3(File* file, int numFollowHairs, TFXAsset* tfxAsset);
+	static bool ImportTFXV3(FileStream* fileHandle, int numFollowHairs, TFXAsset* tfxAsset);
 };

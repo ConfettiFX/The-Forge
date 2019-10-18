@@ -235,6 +235,17 @@ bool handleMessages(WindowsDesc* winDesc)
 
 int LinuxMain(int argc, char** argv, IApp* app)
 {
+	extern bool MemAllocInit();
+	extern void MemAllocExit();
+
+	if (!MemAllocInit())
+		return EXIT_FAILURE;
+
+	if (!fsInitAPI())
+		return EXIT_FAILURE;
+
+	Log::Init();
+	
 	pApp = app;
 
 	//Used for automated testing, if enabled app will exit after 120 frames
@@ -242,8 +253,6 @@ int LinuxMain(int argc, char** argv, IApp* app)
 	uint32_t       testingFrameCount = 0;
 	const uint32_t testingDesiredFrameCount = 120;
 #endif
-
-	FileSystem::SetCurrentDir(FileSystem::GetProgramDir());
 
 	IApp::Settings* pSettings = &pApp->mSettings;
 	Timer           deltaTimer;
@@ -297,6 +306,10 @@ int LinuxMain(int argc, char** argv, IApp* app)
 
 	pApp->Unload();
 	pApp->Exit();
+	
+	Log::Exit();
+	fsDeinitAPI();
+	MemAllocExit();
 
 	return 0;
 }

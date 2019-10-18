@@ -74,6 +74,8 @@
     <File Name="../../../../Middleware_3/LUA/LuaManagerImpl.h"/>
     <File Name="../../../../Middleware_3/LUA/LunaV.hpp"/>
   </VirtualDirectory>
+  <Dependencies Name="Debug"/>
+  <Dependencies Name="Release"/>
   <Settings Type="Static Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -164,6 +166,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <Dependencies Name="Debug"/>
-  <Dependencies Name="Release"/>
 </CodeLite_Project>

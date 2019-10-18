@@ -130,6 +130,15 @@
     <None Include="..\src\15_Transparency\Shaders\Vulkan\varianceShadowMapping.h">
       <Filter>Shaders\Vulkan</Filter>
     </None>
+    <None Include="..\src\15_Transparency\Shaders\Vulkan\AdaptiveOIT.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\15_Transparency\Shaders\Vulkan\AdaptiveOITClear.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\15_Transparency\Shaders\Vulkan\AdaptiveOITComposite.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shaders">
@@ -159,6 +168,9 @@
     </ClInclude>
     <ClInclude Include="..\src\15_Transparency\Shaders\D3D12\AOIT.h">
       <Filter>Shaders\D3D12</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\15_Transparency\Shaders\Vulkan\AOIT.h">
+      <Filter>Shaders\Vulkan</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

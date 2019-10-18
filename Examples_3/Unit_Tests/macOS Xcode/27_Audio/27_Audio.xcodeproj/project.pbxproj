@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		5C512C402141555200E7A798 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C512C3E2141555200E7A798 /* AppDelegate.m */; };
-		5C512C432141555B00E7A798 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C512C422141555B00E7A798 /* AppDelegate.m */; };
+		5C512C402141555200E7A798 /* macOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C512C3E2141555200E7A798 /* macOSAppDelegate.m */; };
+		5C512C432141555B00E7A798 /* iOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C512C422141555B00E7A798 /* iOSAppDelegate.m */; };
 		5C512C512141559800E7A798 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C512C4A2141556900E7A798 /* libThe-Forge.a */; };
 		5C512C522141559F00E7A798 /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C512C4C2141556900E7A798 /* libThe-Forge_iOS.a */; };
 		5CA80FAF21F0A22F00C99983 /* fontstash.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80EFF21F0A07E00C99983 /* fontstash.frag.metal */; };
@@ -133,6 +133,8 @@
 		D0BBDFB5214267EA0081CE0F /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D1CEB320EAECDB001BB8C4 /* UIKit.framework */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
+		E94F1DC12346F2670088A2CE /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E94F1DC02346F2640088A2CE /* libbz2.tbd */; };
+		E94F1DC32346F2700088A2CE /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E94F1DC22346F26C0088A2CE /* libbz2.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -210,10 +212,10 @@
 
 /* Begin PBXFileReference section */
 		28A5AB89201F3A77000E571F /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = ../../../UnitTestResources/Fonts/TitilliumText; sourceTree = "<group>"; };
-		5C512C3E2141555200E7A798 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/macOS/AppDelegate.m; sourceTree = "<group>"; };
-		5C512C3F2141555200E7A798 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/macOS/AppDelegate.h; sourceTree = "<group>"; };
-		5C512C412141555B00E7A798 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/iOS/AppDelegate.h; sourceTree = "<group>"; };
-		5C512C422141555B00E7A798 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/iOS/AppDelegate.m; sourceTree = "<group>"; };
+		5C512C3E2141555200E7A798 /* macOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = macOSAppDelegate.m; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
+		5C512C3F2141555200E7A798 /* macOSAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = macOSAppDelegate.h; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
+		5C512C412141555B00E7A798 /* iOSAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = iOSAppDelegate.h; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
+		5C512C422141555B00E7A798 /* iOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = iOSAppDelegate.m; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
 		5C512C442141556900E7A798 /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
 		5CA80EF121F0A07700C99983 /* textured_mesh.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = textured_mesh.vert.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/textured_mesh.vert.metal; sourceTree = "<group>"; };
 		5CA80EF221F0A07700C99983 /* textured_mesh.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = textured_mesh.frag.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/textured_mesh.frag.metal; sourceTree = "<group>"; };
@@ -299,6 +301,8 @@
 		C95133032010E68A002E584B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../02_Compute/02_Compute/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		E94F1DC02346F2640088A2CE /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
+		E94F1DC22346F26C0088A2CE /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.0.sdk/usr/lib/libbz2.tbd; sourceTree = DEVELOPER_DIR; };
 		EA463C8B1EF81E8F005AC8C7 /* 27_Audio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 27_Audio.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EADF9D661EFD160E00B2008B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = 27_Audio/Info.plist; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -315,6 +319,7 @@
 				D0BBDFB5214267EA0081CE0F /* UIKit.framework in Frameworks */,
 				5C512C522141559F00E7A798 /* libThe-Forge_iOS.a in Frameworks */,
 				B27D879A20E2E88B00081DB0 /* GameController.framework in Frameworks */,
+				E94F1DC32346F2700088A2CE /* libbz2.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -325,6 +330,7 @@
 				650FCB2522C1583700EF81BC /* AudioToolbox.framework in Frameworks */,
 				650CCC6D2223CD07003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				D0BBDFB1214267DD0081CE0F /* Metal.framework in Frameworks */,
+				E94F1DC12346F2670088A2CE /* libbz2.tbd in Frameworks */,
 				D0BBDFB2214267DD0081CE0F /* MetalKit.framework in Frameworks */,
 				5C512C512141559800E7A798 /* libThe-Forge.a in Frameworks */,
 			);
@@ -345,6 +351,8 @@
 		28A5ABEA201F482F000E571F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E94F1DC02346F2640088A2CE /* libbz2.tbd */,
+				E94F1DC22346F26C0088A2CE /* libbz2.tbd */,
 				650FCB2422C1583700EF81BC /* AudioToolbox.framework */,
 				6500B87022C1592700A0CA66 /* AudioToolbox.framework */,
 				650CCC6C2223CD07003533D9 /* MetalPerformanceShaders.framework */,
@@ -580,8 +588,8 @@
 		C95132EE2010E68A002E584B /* 27_Audio_iOS */ = {
 			isa = PBXGroup;
 			children = (
-				5C512C412141555B00E7A798 /* AppDelegate.h */,
-				5C512C422141555B00E7A798 /* AppDelegate.m */,
+				5C512C412141555B00E7A798 /* iOSAppDelegate.h */,
+				5C512C422141555B00E7A798 /* iOSAppDelegate.m */,
 				C95132FE2010E68A002E584B /* Assets.xcassets */,
 				C95133002010E68A002E584B /* LaunchScreen.storyboard */,
 				C95133032010E68A002E584B /* Info.plist */,
@@ -616,8 +624,8 @@
 		EA463C941EF81E8F005AC8C7 /* 27_Audio */ = {
 			isa = PBXGroup;
 			children = (
-				5C512C3F2141555200E7A798 /* AppDelegate.h */,
-				5C512C3E2141555200E7A798 /* AppDelegate.m */,
+				5C512C3F2141555200E7A798 /* macOSAppDelegate.h */,
+				5C512C3E2141555200E7A798 /* macOSAppDelegate.m */,
 				5CB04F5C21353D1E000BDFE0 /* 27_Audio.cpp */,
 				D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */,
 				D28782EF1F0A7F52004DC624 /* Assets.xcassets */,
@@ -772,7 +780,7 @@
 				650FCAC122C156A600EF81BC /* soloud_core_filterops.cpp in Sources */,
 				650FCB1322C156A600EF81BC /* ted.cpp in Sources */,
 				650FCB0122C156A600EF81BC /* stb_vorbis.cpp in Sources */,
-				5C512C432141555B00E7A798 /* AppDelegate.m in Sources */,
+				5C512C432141555B00E7A798 /* iOSAppDelegate.m in Sources */,
 				650FCB1922C156A600EF81BC /* soloud_monotone.cpp in Sources */,
 				650FCAFF22C156A600EF81BC /* soloud_wav.cpp in Sources */,
 				650FCAFD22C156A600EF81BC /* dr_impl.cpp in Sources */,
@@ -828,7 +836,7 @@
 				650FCAC022C156A600EF81BC /* soloud_core_filterops.cpp in Sources */,
 				650FCB1222C156A600EF81BC /* ted.cpp in Sources */,
 				650FCB0022C156A600EF81BC /* stb_vorbis.cpp in Sources */,
-				5C512C402141555200E7A798 /* AppDelegate.m in Sources */,
+				5C512C402141555200E7A798 /* macOSAppDelegate.m in Sources */,
 				650FCB1822C156A600EF81BC /* soloud_monotone.cpp in Sources */,
 				650FCAFE22C156A600EF81BC /* soloud_wav.cpp in Sources */,
 				650FCAFC22C156A600EF81BC /* dr_impl.cpp in Sources */,

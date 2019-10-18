@@ -24,9 +24,11 @@
 
 #define CGLTF_IMPLEMENTATION
 //#define FAST_OBJ_IMPLEMENTATION
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_map.h"
+
 #include "AssetLoader.h"
 
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_map.h"
 
 // OZZ
 #include "../../../ThirdParty/OpenSource/ozz-animation/include/ozz/base/io/stream.h"
@@ -38,34 +40,33 @@
 #include "../../../OS/Interfaces/IOperatingSystem.h"
 #include "../../../OS/Interfaces/IMemory.h"    //NOTE: this should be the last include in a .cpp
 
-bool AssetLoader::LoadSkeleton(const char* skeletonFile, FSRoot root, ozz::animation::Skeleton* skeleton)
+bool AssetLoader::LoadSkeleton(const Path* path, ozz::animation::Skeleton* skeleton)
 {
-	// Fix path
-	eastl::string path = FileSystem::FixPath(skeletonFile, root);
-
 	// Load skeleton from disk
-	ozz::io::File file(path.c_str(), "rb");
+	ozz::io::File file(path, FM_READ_BINARY);
+    
 	if (!file.opened())
 		return false;
 	ozz::io::IArchive archive(&file);
 	archive >> *skeleton;
-	file.Close();
+	if (!file.CloseOzzFile())
+		return false;
+
 
 	return true;
 }
 
-bool AssetLoader::LoadAnimation(const char* animationFile, FSRoot root, ozz::animation::Animation* animation)
+bool AssetLoader::LoadAnimation(const Path* path, ozz::animation::Animation* animation)
 {
-	// Fix path
-	eastl::string path = FileSystem::FixPath(animationFile, root);
+    // Load animation from disk
+    ozz::io::File file(path, FM_READ_BINARY);
 
-	// Load animation from disk
-	ozz::io::File file(path.c_str(), "rb");
 	if (!file.opened())
 		return false;
 	ozz::io::IArchive archive(&file);
 	archive >> *animation;
-	file.Close();
+	if (!file.CloseOzzFile())
+		return false;
 
 	return true;
 }
@@ -265,26 +266,23 @@ void processMeshes(eastl::vector<Mesh> & meshes, unsigned int flags)
 	}
 }
 
-bool AssetLoader::LoadModel(const char* modelFile, FSRoot root, Model* model, unsigned int flags)
+bool AssetLoader::LoadModel(const Path* sceneFullPath, Model* model, unsigned int flags)
 {
-	eastl::string sceneFullPath = FileSystem::FixPath(modelFile, root);
-	const char * input = sceneFullPath.c_str();
-
 	cgltf_data* & data = model->data;
 	eastl::vector<Mesh> & meshes = model->mMeshArray;
 
-	const char* iext = strrchr(input, '.');
+    const char* iext = fsGetPathExtension(sceneFullPath).buffer;
 
-	if (iext && (strcmp(iext, ".gltf") == 0 || strcmp(iext, ".GLTF") == 0 || strcmp(iext, ".glb") == 0 || strcmp(iext, ".GLB") == 0))
+	if (iext && (strcmp(iext, "gltf") == 0 || strcmp(iext, "GLTF") == 0 || strcmp(iext, "glb") == 0 || strcmp(iext, "GLB") == 0))
 	{
 		cgltf_options options = {};
-		cgltf_result result = parse_gltf_file(&options, input, &data);
+		cgltf_result result = parse_gltf_file(&options, sceneFullPath, &data);
 		result = (result == cgltf_result_success) ? cgltf_validate(data) : result;
-		result = (result == cgltf_result_success) ? load_gltf_buffers(&options, data, input) : result;
+		result = (result == cgltf_result_success) ? load_gltf_buffers(&options, data, sceneFullPath) : result;
 
 		if (result != cgltf_result_success)
 		{
-			fprintf(stderr, "Error loading %s: %s\n", input, getError(result));
+			fprintf(stderr, "Error loading %s: %s\n", fsGetPathAsNativeString(sceneFullPath), getError(result));
 			cgltf_free(data);
 			return false;
 		}
@@ -295,163 +293,9 @@ bool AssetLoader::LoadModel(const char* modelFile, FSRoot root, Model* model, un
 	}
 	else
 	{
-		fprintf(stderr, "Error loading %s: unknown extension (expected .gltf or .glb)\n", input);
+		fprintf(stderr, "Error loading %s: unknown extension (expected .gltf or .glb)\n", fsGetPathAsNativeString(sceneFullPath));
 		return false;
 	}
-
-	return true;
-}
-
-bool AssetLoader::ImportTFX(
-	const char* filename, FSRoot root, int numFollowHairs, float tipSeperationFactor, float maxRadiusAroundGuideHair, TFXAsset* tfxAsset)
-{
-	File file = {};
-	if (!file.Open(filename, FileMode::FM_ReadBinary, root))
-		return false;
-
-	AMD::TressFXAsset tressFXAsset = {};
-	if (!tressFXAsset.LoadHairData(&file))
-		return false;
-
-	if (numFollowHairs > 0)
-	{
-		if (!tressFXAsset.GenerateFollowHairs(numFollowHairs, tipSeperationFactor, maxRadiusAroundGuideHair))
-			return false;
-	}
-
-	if (!tressFXAsset.ProcessAsset())
-		return false;
-
-	tfxAsset->mPositions.resize(tressFXAsset.m_numTotalVertices);
-	memcpy(tfxAsset->mPositions.data(), tressFXAsset.m_positions, sizeof(float4) * tressFXAsset.m_numTotalVertices);
-	tfxAsset->mStrandUV.resize(tressFXAsset.m_numTotalStrands);
-	memcpy(tfxAsset->mStrandUV.data(), tressFXAsset.m_strandUV, sizeof(float2) * tressFXAsset.m_numTotalStrands);
-	tfxAsset->mRefVectors.resize(tressFXAsset.m_numTotalVertices);
-	memcpy(tfxAsset->mRefVectors.data(), tressFXAsset.m_refVectors, sizeof(float4) * tressFXAsset.m_numTotalVertices);
-	tfxAsset->mGlobalRotations.resize(tressFXAsset.m_numTotalVertices);
-	memcpy(tfxAsset->mGlobalRotations.data(), tressFXAsset.m_globalRotations, sizeof(float4) * tressFXAsset.m_numTotalVertices);
-	tfxAsset->mLocalRotations.resize(tressFXAsset.m_numTotalVertices);
-	memcpy(tfxAsset->mLocalRotations.data(), tressFXAsset.m_localRotations, sizeof(float4) * tressFXAsset.m_numTotalVertices);
-	tfxAsset->mTangents.resize(tressFXAsset.m_numTotalVertices);
-	memcpy(tfxAsset->mTangents.data(), tressFXAsset.m_tangents, sizeof(float4) * tressFXAsset.m_numTotalVertices);
-	tfxAsset->mFollowRootOffsets.resize(tressFXAsset.m_numTotalVertices);
-	memcpy(tfxAsset->mFollowRootOffsets.data(), tressFXAsset.m_followRootOffsets, sizeof(float4) * tressFXAsset.m_numTotalStrands);
-	tfxAsset->mStrandTypes.resize(tressFXAsset.m_numTotalStrands);
-	memcpy(tfxAsset->mStrandTypes.data(), tressFXAsset.m_strandTypes, sizeof(int) * tressFXAsset.m_numTotalStrands);
-	tfxAsset->mThicknessCoeffs.resize(tressFXAsset.m_numTotalVertices);
-	memcpy(tfxAsset->mThicknessCoeffs.data(), tressFXAsset.m_thicknessCoeffs, sizeof(float) * tressFXAsset.m_numTotalVertices);
-	tfxAsset->mRestLengths.resize(tressFXAsset.m_numTotalVertices);
-	memcpy(tfxAsset->mRestLengths.data(), tressFXAsset.m_restLengths, sizeof(float) * tressFXAsset.m_numTotalVertices);
-	int numIndices = tressFXAsset.GetNumHairTriangleIndices();
-	tfxAsset->mTriangleIndices.resize(numIndices);
-	memcpy(tfxAsset->mTriangleIndices.data(), tressFXAsset.m_triangleIndices, sizeof(int) * numIndices);
-	tfxAsset->mNumVerticesPerStrand = tressFXAsset.m_numVerticesPerStrand;
-	tfxAsset->mNumGuideStrands = tressFXAsset.m_numGuideStrands;
-
-	return true;
-}
-
-bool AssetLoader::ImportTFXMesh(const char* filename, FSRoot root, TFXMesh* tfxMesh)
-{
-	File file = {};
-	if (!file.Open(filename, FileMode::FM_ReadBinary, root))
-		return false;
-
-	eastl::vector<eastl::string> splitLine;
-	uint                             numOfBones = 0;
-	uint                             bonesFound = 0;
-	uint                             numOfVertices = 0;
-	uint                             verticesFound = 0;
-	uint                             numOfTriangles = 0;
-	uint                             trianglesFound = 0;
-
-	while (!file.IsEof())
-	{
-		eastl::string line = file.ReadLine();
-
-		if (line[0] == '#')
-			continue;
-
-		size_t pos = 0;
-		while (pos != eastl::string::npos)
-		{
-			size_t prev = line.find_first_not_of(' ', pos);
-			pos = line.find_first_of(' ', prev);
-			splitLine.push_back(line.substr(pos, pos != eastl::string::npos ? pos - prev : eastl::string::npos));
-		}
-		if (splitLine.empty())
-			continue;
-
-		if (numOfBones == 0 || bonesFound != numOfBones)
-		{
-			if (splitLine[0] == "numOfBones")
-			{
-				numOfBones = atoi(splitLine[1].c_str());
-				tfxMesh->mBones.resize(numOfBones);
-				continue;
-			}
-
-			if (bonesFound != numOfBones)
-			{
-				uint boneIndex = atoi(splitLine[0].c_str());
-				tfxMesh->mBones[boneIndex] = splitLine[1];
-				++bonesFound;
-				continue;
-			}
-		}
-
-		if (numOfVertices == 0 || verticesFound != numOfVertices)
-		{
-			if (splitLine[0] == "numOfVertices")
-			{
-				numOfVertices = atoi(splitLine[1].c_str());
-				tfxMesh->mVertices.resize(numOfVertices);
-				continue;
-			}
-
-			if (verticesFound != numOfVertices)
-			{
-				uint vertexIndex = atoi(splitLine[0].c_str());
-				tfxMesh->mVertices[vertexIndex].mPosition =
-					float3((float)atof(splitLine[1].c_str()), (float)atof(splitLine[2].c_str()), (float)atof(splitLine[3].c_str()));
-				tfxMesh->mVertices[vertexIndex].mNormal =
-					float3((float)atof(splitLine[4].c_str()), (float)atof(splitLine[5].c_str()), (float)atof(splitLine[6].c_str()));
-				for (int i = 0; i < 4; ++i)
-					tfxMesh->mVertices[vertexIndex].mBoneIndices[i] = atoi(splitLine[7 + i].c_str());
-				for (int i = 0; i < 4; ++i)
-					tfxMesh->mVertices[vertexIndex].mBoneWeights[i] = (float)atof(splitLine[11 + i].c_str());
-				++verticesFound;
-			}
-		}
-
-		if (numOfTriangles == 0 || trianglesFound != numOfTriangles)
-		{
-			if (splitLine[0] == "numOfTriangles")
-			{
-				numOfTriangles = atoi(splitLine[1].c_str());
-				tfxMesh->mIndices.resize(numOfTriangles * 3);
-				continue;
-			}
-
-			if (trianglesFound != numOfTriangles)
-			{
-				tfxMesh->mIndices[trianglesFound * 3 + 0] = atoi(splitLine[1].c_str());
-				tfxMesh->mIndices[trianglesFound * 3 + 1] = atoi(splitLine[2].c_str());
-				tfxMesh->mIndices[trianglesFound * 3 + 2] = atoi(splitLine[3].c_str());
-				++trianglesFound;
-				continue;
-			}
-		}
-	}
-
-	if (numOfBones != bonesFound)
-		return false;
-
-	if (numOfVertices != verticesFound)
-		return false;
-
-	if (numOfTriangles != trianglesFound)
-		return false;
 
 	return true;
 }

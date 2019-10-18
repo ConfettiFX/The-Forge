@@ -7,7 +7,7 @@
 
 const char LuaManagerImpl::className[] = "LuaManager";
 bool       LuaManagerImpl::m_registered = false;
-Mutex      LuaManagerImpl::m_registerMutex;
+
 
 void LogError(lua_State* lstate, const char* msg)
 {
@@ -47,6 +47,10 @@ LuaManagerImpl::LuaManagerImpl(): m_SyncLuaState(nullptr), m_AsyncScriptsCounter
 	memset(m_AsyncLuaStates, 0, MAX_LUA_WORKERS * sizeof(lua_State*));
 
 	Register();
+	
+	for (uint32_t i = 0; i <  MAX_LUA_WORKERS; ++i)
+		m_AsyncLuaStatesMutex[i].Init();
+	m_AddAsyncScriptMutex.Init();
 }
 
 LuaManagerImpl::~LuaManagerImpl()
@@ -74,6 +78,10 @@ LuaManagerImpl::~LuaManagerImpl()
 		conf_free(m_Functions[i]);
 	}
 
+	for (uint32_t i = 0; i <  MAX_LUA_WORKERS; ++i)
+		m_AsyncLuaStatesMutex[i].Destroy();
+	m_AddAsyncScriptMutex.Destroy();
+	
 	m_registered = false;
 }
 
@@ -109,23 +117,33 @@ static int msghandler(lua_State* L)
 
 const char* luaReaderFunction(lua_State *L, void *ud, size_t *sz)
 {
-	FileHandle pHandle = (FileHandle)ud;
+	FileStream* pHandle = (FileStream*)ud;
 	const size_t size = 1024;
 	static char buffer[size];
-	*sz = read_file((void*)buffer, size, pHandle);
+	//*sz = read_file((void*)buffer, size, pHandle);
+	*sz = fsReadFromStream(pHandle, buffer, size);
 	return buffer;
 }
 
-int RunScriptFile(const char* scriptname, lua_State* L)
+int RunScriptFile(const Path* scriptPath, lua_State* L)
 {
-	//int loadfile_error = luaL_loadfile(L, scriptname);
+	//int loadfile_error = luaL_loadfile(L, scriptPath);
 	lua_Reader reader = luaReaderFunction;
-	int loadfile_error = lua_load(L, reader, open_file(scriptname, "rb"), NULL, NULL);
+    
+    FileStream* fh = fsOpenFile(scriptPath, FM_READ_BINARY);
+    
+    if (!fh)
+    {
+        return false;
+    }
+    
+	int loadfile_error = lua_load(L, reader, fh, NULL, NULL);
 	if (loadfile_error != 0)
 	{
-		LOGF(eERROR, "Can't load script %s\n", scriptname);
+		LOGF(eERROR, "Can't load script %s\n", scriptPath);
 		return false;
 	}
+    fsCloseStream(fh);
 
 	int status;
 	int narg = 0;
@@ -152,7 +170,7 @@ void LuaManagerImpl::ExitScript(lua_State* state, const char* exitFunctionName)
 	}
 }
 
-bool LuaManagerImpl::SetUpdatableScript(const char* scriptname, const char* updateFunctionName, const char* exitFunctionName)
+bool LuaManagerImpl::SetUpdatableScript(const Path* scriptPath, const char* updateFunctionName, const char* exitFunctionName)
 {
 	if (m_UpdatableScriptLuaState != nullptr)
 	{
@@ -166,14 +184,24 @@ bool LuaManagerImpl::SetUpdatableScript(const char* scriptname, const char* upda
 	RegisterFunctionsForState(m_UpdatableScriptLuaState);
 
 	m_UpdateFunctonName = updateFunctionName;
-	m_UpdatableScriptName = scriptname;
+    m_UpdatableScriptPath = fsCopyPath(scriptPath);
 	m_UpdatableScriptExitName = exitFunctionName;
 	//int loadfile_error = luaL_loadfile(m_UpdatableScriptLuaState, m_UpdatableScriptName.c_str());
 	lua_Reader reader = luaReaderFunction;
-	int loadfile_error = lua_load(m_UpdatableScriptLuaState, reader, open_file(scriptname, "rb"), NULL, NULL);
+	//int loadfile_error = lua_load(m_UpdatableScriptLuaState, reader, open_file(scriptPath, "rb"), NULL, NULL);
+    
+    FileStream* fHandle = fsOpenFile(scriptPath, FM_READ_BINARY);
+    if (!fHandle)
+    {
+        return false;
+    }
+    
+	int loadfile_error = lua_load(m_UpdatableScriptLuaState, reader, fHandle, NULL, NULL);
+    fsCloseStream(fHandle);
+    
 	if (loadfile_error != 0)
 	{
-		LOGF(eERROR, "Can't load script %s\n", scriptname);
+		LOGF(eERROR, "Can't load script %s\n", fsGetPathAsNativeString(scriptPath));
 		return false;
 	}
 	int narg = 0;
@@ -187,10 +215,10 @@ bool LuaManagerImpl::SetUpdatableScript(const char* scriptname, const char* upda
 
 bool LuaManagerImpl::ReloadUpdatableScript()
 {
-	ASSERT(m_UpdatableScriptName.size() > 0);
-	if (m_UpdatableScriptName.size() == 0)
+	ASSERT(m_UpdatableScriptPath);
+	if (!m_UpdatableScriptPath)
 		return false;
-	return SetUpdatableScript(m_UpdatableScriptName.c_str(), m_UpdateFunctonName.c_str(), m_UpdatableScriptExitName.c_str());
+	return SetUpdatableScript(m_UpdatableScriptPath, m_UpdateFunctonName.c_str(), m_UpdatableScriptExitName.c_str());
 }
 
 void LuaManagerImpl::RegisterFunctionsForState(lua_State* state)
@@ -224,9 +252,9 @@ bool LuaManagerImpl::Update(float deltaTime, const char* updateFunctionName)
 	return false;
 }
 
-bool LuaManagerImpl::RunScript(const char* scriptname)
+bool LuaManagerImpl::RunScript(const Path* scriptPath)
 {
-	int status = RunScriptFile(scriptname, m_SyncLuaState);
+	int status = RunScriptFile(scriptPath, m_SyncLuaState);
 	return status == 0;
 }
 
@@ -235,7 +263,7 @@ void AsyncScriptExecute(void* pData)
 	ASSERT(pData != nullptr);
 	ScriptTaskInfo* info = (ScriptTaskInfo*)pData;
 	MutexLock       lock(*(info->mutex));
-	int             status = RunScriptFile(info->scriptName.c_str(), info->luaState);
+	int             status = RunScriptFile(info->scriptPath, info->luaState);
 	if (info->callback)
 	{
 		info->callback(status == 0 ? FINISHED_OK : FINISHED_ERROR);
@@ -251,10 +279,10 @@ void AsyncScriptExecute(void* pData)
 	conf_free(info);
 }
 
-void LuaManagerImpl::AddAsyncScript(const char* scriptname, IScriptCallbackWrap* callbackLambda)
+void LuaManagerImpl::AddAsyncScript(const Path* scriptPath, IScriptCallbackWrap* callbackLambda)
 {
 	ScriptTaskInfo* info = (ScriptTaskInfo*)conf_calloc(1, sizeof(ScriptTaskInfo));
-	info->scriptName = eastl::string(scriptname);
+	info->scriptPath = fsCopyPath(scriptPath);
 	info->callback = nullptr;
 
 	info->callbackLambda = callbackLambda;
@@ -276,10 +304,10 @@ void LuaManagerImpl::AddAsyncScript(const char* scriptname, IScriptCallbackWrap*
 	}
 }
 
-void LuaManagerImpl::AddAsyncScript(const char* scriptname, ScriptDoneCallback callback)
+void LuaManagerImpl::AddAsyncScript(const Path* scriptPath, ScriptDoneCallback callback)
 {
 	ScriptTaskInfo* info = (ScriptTaskInfo*)conf_calloc(1, sizeof(ScriptTaskInfo));
-	info->scriptName = eastl::string(scriptname);
+    info->scriptPath = fsCopyPath(scriptPath);
 	info->callback = callback;
 	info->callbackLambda = nullptr;
 	//ThreadDesc* pItem = (ThreadDesc*)conf_calloc(1, sizeof(*pItem));
@@ -297,10 +325,10 @@ void LuaManagerImpl::AddAsyncScript(const char* scriptname, ScriptDoneCallback c
 	}
 }
 
-void LuaManagerImpl::AddAsyncScript(const char* scriptname)
+void LuaManagerImpl::AddAsyncScript(const Path* scriptPath)
 {
 	ScriptDoneCallback cb = nullptr;
-	AddAsyncScript(scriptname, cb);
+	AddAsyncScript(scriptPath, cb);
 }
 
 void LuaManagerImpl::SetFunction(ILuaFunctionWrap* wrap)
@@ -359,7 +387,6 @@ void LuaManagerImpl::Register()
 	if (m_registered)
 		return;
 
-	MutexLock lock(m_registerMutex);
 	if (m_registered)
 		return;
 

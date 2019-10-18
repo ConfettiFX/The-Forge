@@ -134,7 +134,7 @@ glTF2Exporter::~glTF2Exporter() {
  * Copy a 4x4 matrix from struct aiMatrix to typedef mat4.
  * Also converts from row-major to column-major storage.
  */
-static void CopyValue(const aiMatrix4x4& v, mat4& o) {
+static void CopyValue(const aiMatrix4x4& v, glTF2::mat4& o) {
     o[ 0] = v.a1; o[ 1] = v.b1; o[ 2] = v.c1; o[ 3] = v.d1;
     o[ 4] = v.a2; o[ 5] = v.b2; o[ 6] = v.c2; o[ 7] = v.d2;
     o[ 8] = v.a3; o[ 9] = v.b3; o[10] = v.c3; o[11] = v.d3;
@@ -148,7 +148,7 @@ static void CopyValue(const aiMatrix4x4& v, aiMatrix4x4& o) {
     o.d1 = v.d1; o.d2 = v.d2; o.d3 = v.d3; o.d4 = v.d4;
 }
 
-static void IdentityMatrix4(mat4& o) {
+static void IdentityMatrix4(glTF2::mat4& o) {
     o[ 0] = 1; o[ 1] = 0; o[ 2] = 0; o[ 3] = 0;
     o[ 4] = 0; o[ 5] = 1; o[ 6] = 0; o[ 7] = 0;
     o[ 8] = 0; o[ 9] = 0; o[10] = 1; o[11] = 0;
@@ -378,7 +378,7 @@ void glTF2Exporter::GetMatTex(const aiMaterial* mat, OcclusionTextureInfo& prop,
     }
 }
 
-aiReturn glTF2Exporter::GetMatColor(const aiMaterial* mat, vec4& prop, const char* propName, int type, int idx)
+aiReturn glTF2Exporter::GetMatColor(const aiMaterial* mat, glTF2::vec4& prop, const char* propName, int type, int idx)
 {
     aiColor4D col;
     aiReturn result = mat->Get(propName, type, idx, col);
@@ -390,7 +390,7 @@ aiReturn glTF2Exporter::GetMatColor(const aiMaterial* mat, vec4& prop, const cha
     return result;
 }
 
-aiReturn glTF2Exporter::GetMatColor(const aiMaterial* mat, vec3& prop, const char* propName, int type, int idx)
+aiReturn glTF2Exporter::GetMatColor(const aiMaterial* mat, glTF2::vec3& prop, const char* propName, int type, int idx)
 {
     aiColor3D col;
     aiReturn result = mat->Get(propName, type, idx, col);
@@ -576,8 +576,8 @@ void ExportSkin(Asset& mAsset, const aiMesh* aimesh, Ref<Mesh>& meshRef, Ref<Buf
 
     // Store the vertex joint and weight data.
     const size_t NumVerts( aimesh->mNumVertices );
-    vec4* vertexJointData = new vec4[ NumVerts ];
-    vec4* vertexWeightData = new vec4[ NumVerts ];
+    glTF2::vec4* vertexJointData   = new glTF2::vec4[ NumVerts ];
+    glTF2::vec4* vertexWeightData  = new glTF2::vec4[ NumVerts ];
     int* jointsPerVertex = new int[ NumVerts ];
     for (size_t i = 0; i < NumVerts; ++i) {
         jointsPerVertex[i] = 0;
@@ -790,7 +790,7 @@ void glTF2Exporter::ExportMeshes()
     // Finish the skin
     // Create the Accessor for skinRef->inverseBindMatrices
     if (createSkin) {
-        mat4* invBindMatrixData = new mat4[inverseBindMatricesData.size()];
+        glTF2::mat4* invBindMatrixData = new glTF2::mat4[inverseBindMatricesData.size()];
         for ( unsigned int idx_joint = 0; idx_joint < inverseBindMatricesData.size(); ++idx_joint) {
             CopyValue(inverseBindMatricesData[idx_joint], invBindMatrixData[idx_joint]);
         }

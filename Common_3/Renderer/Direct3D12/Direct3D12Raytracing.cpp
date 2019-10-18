@@ -395,7 +395,7 @@ void addRaytracingShader(Raytracing* pRaytracing, const unsigned char* pByteCode
 
 	{
 		ShaderLoadDesc desc = {};
-		desc.mStages[0] = { (char*)pByteCode, NULL, 0, FSR_SrcShaders };
+		desc.mStages[0] = { (char*)pByteCode, NULL, 0, RD_SHADER_SOURCES };
 		desc.mTarget = shader_target_6_3;
 
 		addShader(pRaytracing->pRenderer, &desc, &pShader->pShader);

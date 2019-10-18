@@ -45,16 +45,11 @@
 		C95132FF2010E68A002E584B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C95132FE2010E68A002E584B /* Assets.xcassets */; };
 		C95133022010E68A002E584B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C95133002010E68A002E584B /* LaunchScreen.storyboard */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
+		E9A438D0233DC1B5005BF1C7 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A438CF233DC1B2005BF1C7 /* libbz2.tbd */; };
+		E9A438D3233DC1C4005BF1C7 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A438D2233DC1BF005BF1C7 /* libbz2.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		5C172FFE21414CFA0074EE71 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 5C55833721413EE30019960B /* The-Forge.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 5C172FC721414C490074EE71;
-			remoteInfo = "The-Forge_iOS";
-		};
 		5C17300121414CFA0074EE71 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 5C55833721413EE30019960B /* The-Forge.xcodeproj */;
@@ -70,6 +65,13 @@
 			remoteInfo = "The-Forge";
 		};
 		5C55833F21413EFB0019960B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5C55833721413EE30019960B /* The-Forge.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C5582DF21413D180019960B;
+			remoteInfo = "The-Forge";
+		};
+		E958921C23416E0B00B68D6A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 5C55833721413EE30019960B /* The-Forge.xcodeproj */;
 			proxyType = 1;
@@ -131,8 +133,8 @@
 /* Begin PBXFileReference section */
 		5B17816D22A5C84300991DCB /* profile.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.vert.metal; path = ../../src/16_Raytracing/Shaders/Metal/profile.vert.metal; sourceTree = "<group>"; };
 		5B17816E22A5C84300991DCB /* profile.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.frag.metal; path = ../../src/16_Raytracing/Shaders/Metal/profile.frag.metal; sourceTree = "<group>"; };
-		5C17300321414D110074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/iOS/AppDelegate.h; sourceTree = "<group>"; };
-		5C17300421414D110074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/iOS/AppDelegate.m; sourceTree = "<group>"; };
+		5C17300321414D110074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
+		5C17300421414D110074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
 		5C55833721413EE30019960B /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
 		5CABF36D2141540E00EFD76A /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
 		6512E9F022098AA700B24B31 /* 16_Raytracing.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 16_Raytracing.cpp; path = ../../src/16_Raytracing/16_Raytracing.cpp; sourceTree = "<group>"; };
@@ -160,14 +162,16 @@
 		B2087DD121421A13006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B2087DD221421A13006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		B21F76BB21420E7000DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
-		B2DA3B6C2214D8F300D5FD8F /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/macOS/AppDelegate.m; sourceTree = "<group>"; };
-		B2DA3B6D2214D8F300D5FD8F /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/macOS/AppDelegate.h; sourceTree = "<group>"; };
+		B2DA3B6C2214D8F300D5FD8F /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
+		B2DA3B6D2214D8F300D5FD8F /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
 		B2DA3B702214D91500D5FD8F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		C95132ED2010E68A002E584B /* 16_Raytracing_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 16_Raytracing_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C95132FE2010E68A002E584B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C95133012010E68A002E584B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		C95133032010E68A002E584B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = 16_Raytracing/Assets.xcassets; sourceTree = SOURCE_ROOT; };
+		E9A438CF233DC1B2005BF1C7 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
+		E9A438D2233DC1BF005BF1C7 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.0.sdk/usr/lib/libbz2.tbd; sourceTree = DEVELOPER_DIR; };
 		EA463C8B1EF81E8F005AC8C7 /* 16_Raytracing.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 16_Raytracing.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EADF9D661EFD160E00B2008B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = 16_Raytracing/Info.plist; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -178,6 +182,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				650CCC822223CE88003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
+				E9A438D3233DC1C4005BF1C7 /* libbz2.tbd in Frameworks */,
 				6562C7EB2207F9A100721714 /* MetalKit.framework in Frameworks */,
 				6562C7E92207F99800721714 /* Metal.framework in Frameworks */,
 				B21F76BE21420E7000DF2297 /* UIKit.framework in Frameworks */,
@@ -191,6 +196,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				B25042C12214EC10006D133F /* Metal.framework in Frameworks */,
+				E9A438D0233DC1B5005BF1C7 /* libbz2.tbd in Frameworks */,
 				B25042C22214EC10006D133F /* MetalKit.framework in Frameworks */,
 				65F9794021EE02C7008EC741 /* MetalPerformanceShaders.framework in Frameworks */,
 				5C55835021413FD10019960B /* libThe-Forge.a in Frameworks */,
@@ -229,6 +235,8 @@
 		28A5ABEA201F482F000E571F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E9A438D2233DC1BF005BF1C7 /* libbz2.tbd */,
+				E9A438CF233DC1B2005BF1C7 /* libbz2.tbd */,
 				6562C7EA2207F9A100721714 /* MetalKit.framework */,
 				6562C7E82207F99800721714 /* Metal.framework */,
 				65F9793321EDF6C2008EC741 /* MetalPerformanceShaders.framework */,
@@ -331,7 +339,7 @@
 			buildRules = (
 			);
 			dependencies = (
-				5C172FFF21414CFA0074EE71 /* PBXTargetDependency */,
+				E958921D23416E0B00B68D6A /* PBXTargetDependency */,
 			);
 			name = 16_Raytracing_iOS;
 			productName = 17_EntityComponentSystem_iOS;
@@ -464,15 +472,15 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		5C172FFF21414CFA0074EE71 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = "The-Forge_iOS";
-			targetProxy = 5C172FFE21414CFA0074EE71 /* PBXContainerItemProxy */;
-		};
 		5C55834021413EFB0019960B /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = "The-Forge";
 			targetProxy = 5C55833F21413EFB0019960B /* PBXContainerItemProxy */;
+		};
+		E958921D23416E0B00B68D6A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "The-Forge";
+			targetProxy = E958921C23416E0B00B68D6A /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -693,6 +701,7 @@
 					METAL,
 					_DEBUG,
 					USE_MEMORY_TRACKING,
+					ZIP_STATIC,
 				);
 				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = "$(SRCROOT)/../02_Compute/02_Compute/Info.plist";
@@ -707,6 +716,11 @@
 				SDKROOT = macosx;
 				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
 				SYSTEM_HEADER_SEARCH_PATHS = "";
+				USER_HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib",
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple",
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/lib",
+				);
 			};
 			name = Debug;
 		};
@@ -718,7 +732,10 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				GCC_PREPROCESSOR_DEFINITIONS = METAL;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					METAL,
+					ZIP_STATIC,
+				);
 				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = "$(SRCROOT)/../02_Compute/02_Compute/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -732,6 +749,11 @@
 				SDKROOT = macosx;
 				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
 				SYSTEM_HEADER_SEARCH_PATHS = "";
+				USER_HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib",
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple",
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/lib",
+				);
 			};
 			name = Release;
 		};

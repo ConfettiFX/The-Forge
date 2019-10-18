@@ -20,6 +20,8 @@
 	#include "GainputInputDeviceKeyboardMac.h"
 #elif defined(GAINPUT_PLATFORM_IOS)
 	#include "GainputInputDeviceKeyboardIOS.h"
+#elif defined(GAINPUT_PLATFORM_GGP)
+	#include "../../../../../../../../Stadia/Common_3/OS/Input/GainputInputDeviceKeyboardGGP.h"
 #endif
 
 #include "GainputInputDeviceKeyboardNull.h"

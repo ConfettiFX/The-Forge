@@ -31,7 +31,6 @@
 #include "../../Common_3/ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/skeleton.h"
 #include "../../Common_3/ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/skeleton_utils.h"
 
-#include "../../Common_3/ThirdParty/OpenSource/ozz-animation/include/ozz/base/io/stream.h"
 #include "../../Common_3/ThirdParty/OpenSource/ozz-animation/include/ozz/base/io/archive.h"
 #include "../../Common_3/ThirdParty/OpenSource/ozz-animation/include/ozz/base/memory/allocator.h"
 
@@ -48,7 +47,7 @@ class Rig
 {
 	public:
 	// Sets up the rig by loading the skeleton from an ozz skeleton file
-	void Initialize(const char* skeletonFile);
+	void Initialize(const Path* skeletonFilePath);
 
 	// Must be called to clean up the object if it was initialized
 	void Destroy();
@@ -144,7 +143,7 @@ class Rig
 
 	private:
 	// Load a runtime skeleton from a skeleton.ozz file
-	bool LoadSkeleton(const char* fileName);
+	bool LoadSkeleton(const Path* filePath);
 
 	// Runtime skeleton.
 	ozz::animation::Skeleton mSkeleton;

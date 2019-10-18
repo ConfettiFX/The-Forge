@@ -63,20 +63,6 @@
 // Memory
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
 
-const char* pszBases[FSR_Count] = {
-	"../../../src/26_InverseKinematic/",            // FSR_BinShaders
-	"../../../src/26_InverseKinematic/",            // FSR_SrcShaders
-	"../../../UnitTestResources/",          // FSR_Textures
-	"../../../UnitTestResources/",          // FSR_Meshes
-	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
-	"../../../src/26_InverseKinematic/",            // FSR_GpuConfig
-	"../../../UnitTestResources/",          // FSR_Animation
-	"",                                     // FSR_Audio
-	"",                                     // FSR_OtherFiles
-	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
-	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
-};
-
 //--------------------------------------------------------------------------------------------
 // RENDERING PIPELINE DATA
 //--------------------------------------------------------------------------------------------
@@ -233,6 +219,22 @@ class AimIK: public IApp
 	public:
 	bool Init()
 	{
+		// FILE PATHS
+		PathHandle programDirectory = fsCopyProgramDirectoryPath();
+		FileSystem* fileSystem = fsGetPathFileSystem(programDirectory);
+		if (!fsPlatformUsesBundledResources())
+		{
+			PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/26_InverseKinematic");
+			fsSetResourceDirectoryRootPath(resourceDirRoot);
+
+			fsSetRelativePathForResourceDirectory(RD_TEXTURES, "../../UnitTestResources/Textures");
+			fsSetRelativePathForResourceDirectory(RD_MESHES, "../../UnitTestResources/Meshes");
+			fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS, "../../UnitTestResources/Fonts");
+			fsSetRelativePathForResourceDirectory(RD_ANIMATIONS, "../../UnitTestResources/Animation");
+			fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT, "../../../../Middleware_3/Text");
+			fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI, "../../../../Middleware_3/UI");
+		}
+
 		// WINDOW AND RENDERER SETUP
 		//
 		RendererDesc settings = { 0 };
@@ -260,7 +262,7 @@ class AimIK: public IApp
 		//
 		initResourceLoaderInterface(pRenderer);
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
 			return false;
 
     // INITIALIZE THE USER INTERFACE
@@ -268,7 +270,7 @@ class AimIK: public IApp
     if (!gAppUI.Init(pRenderer))
       return false;
 
-    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
 		initProfiler();
 
@@ -277,11 +279,11 @@ class AimIK: public IApp
 		// INITIALIZE PIPILINE STATES
 		//
 		ShaderLoadDesc planeShader = {};
-		planeShader.mStages[0] = { "plane.vert", NULL, 0, FSR_SrcShaders };
-		planeShader.mStages[1] = { "plane.frag", NULL, 0, FSR_SrcShaders };
+		planeShader.mStages[0] = { "plane.vert", NULL, 0, RD_SHADER_SOURCES };
+		planeShader.mStages[1] = { "plane.frag", NULL, 0, RD_SHADER_SOURCES };
 		ShaderLoadDesc basicShader = {};
-		basicShader.mStages[0] = { "basic.vert", NULL, 0, FSR_SrcShaders };
-		basicShader.mStages[1] = { "basic.frag", NULL, 0, FSR_SrcShaders };
+		basicShader.mStages[0] = { "basic.vert", NULL, 0, RD_SHADER_SOURCES };
+		basicShader.mStages[1] = { "basic.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		addShader(pRenderer, &planeShader, &pPlaneDrawShader);
 		addShader(pRenderer, &basicShader, &pSkeletonShader);
@@ -402,19 +404,19 @@ class AimIK: public IApp
 
 		// RIGS
 		//
-		eastl::string fullPath = FileSystem::FixPath(gStickFigureName, FSR_Animation);
+		PathHandle fullPath = fsCopyPathInResourceDirectory(RD_ANIMATIONS, gStickFigureName);
 
 		// Initialize the rig with the path to its ozz file
-		gStickFigureRig.Initialize(fullPath.c_str());
+		gStickFigureRig.Initialize(fullPath);
 
 		// Add the rig to the list of skeletons to render
 		gSkeletonBatcher.AddRig(&gStickFigureRig);
 
 		// CLIPS
 		//
-		fullPath = FileSystem::FixPath(gStandClipName, FSR_Animation);
+		fullPath = fsCopyPathInResourceDirectory(RD_ANIMATIONS, gStandClipName);
 
-		gStandClip.Initialize(fullPath.c_str(), &gStickFigureRig);
+		gStandClip.Initialize(fullPath, &gStickFigureRig);
 
 		// CLIP CONTROLLERS
 		//

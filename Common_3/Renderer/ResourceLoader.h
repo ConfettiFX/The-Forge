@@ -64,9 +64,9 @@ typedef struct TextureLoadDesc
 	
 	/// Load empty texture
 	TextureDesc* pDesc;
+    
 	/// Load texture from disk
-	const char* pFilename;
-	FSRoot      mRoot;
+	const Path* pFilePath;
 	uint32_t    mNodeIndex;
 	/// Load texture from raw data
 	RawImageData* pRawImageData = NULL;
@@ -75,6 +75,7 @@ typedef struct TextureLoadDesc
 
 	// Following is ignored if pDesc != NULL.  pDesc->mFlags will be considered instead.
 	TextureCreationFlags mCreationFlag; 
+
 } TextureLoadDesc;
 
 typedef struct BufferUpdateDesc
@@ -122,11 +123,11 @@ typedef struct ResourceUpdateDesc
 
 typedef struct ShaderStageLoadDesc
 {
-	eastl::string mFileName;
-	ShaderMacro*    pMacros;
-	uint32_t        mMacroCount;
-	FSRoot          mRoot;
-    const char*     mEntryPointName;
+	const char*         pFileName;
+	ShaderMacro*        pMacros;
+	uint32_t            mMacroCount;
+	ResourceDirectory   mRoot;
+    const char*         pEntryPointName;
 } ShaderStageLoadDesc;
 
 typedef struct ShaderLoadDesc

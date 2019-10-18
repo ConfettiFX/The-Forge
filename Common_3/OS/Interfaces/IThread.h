@@ -43,16 +43,20 @@ typedef unsigned ThreadID;
 /// Operating system mutual exclusion primitive.
 struct Mutex
 {
-	Mutex();
-	~Mutex();
+	static const uint32_t kDefaultSpinCount = 1500;
+	
+	bool Init(uint32_t spinCount = kDefaultSpinCount, const char* name = NULL);
+	void Destroy();
 
 	void Acquire();
+	bool TryAcquire();
 	void Release();
 
 #ifdef _WIN32
-	void* pHandle;
+	CRITICAL_SECTION mHandle;
 #else
 	pthread_mutex_t pHandle;
+	uint32_t mSpinCount;
 #endif
 };
 
@@ -71,8 +75,8 @@ struct MutexLock
 
 struct ConditionVariable
 {
-	ConditionVariable();
-	~ConditionVariable();
+	bool Init(const char* name = NULL);
+	void Destroy();
 
 	void Wait(const Mutex& mutex, uint32_t md = TIMEOUT_INFINITE);
 	void WakeOne();

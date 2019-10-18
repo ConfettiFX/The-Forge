@@ -26,7 +26,6 @@
 
 #include "../../Common_3/OS/Interfaces/ILog.h"
 #include "../../Common_3/OS/Interfaces/IFileSystem.h"
-#include "../../Common_3/OS/Interfaces/ICameraController.h"
 
 #include "../../Common_3/Renderer/GpuProfiler.h"
 #include "../../Common_3/Renderer/ResourceLoader.h"
@@ -42,9 +41,7 @@
 namespace PlatformEvents {
 }
 
-FSRoot                         FSR_MIDDLEWARE_UI = FSR_Middleware1;
-static eastl::vector<UIApp*> gInstances;
-static Mutex                   gMutex;
+ResourceDirectory                         RD_MIDDLEWARE_UI = RD_MIDDLEWARE_1;
 
 extern void initGUIDriver(Renderer* pRenderer, GUIDriver** ppDriver);
 extern void removeGUIDriver(GUIDriver* pDriver);
@@ -447,23 +444,15 @@ bool UIApp::Init(Renderer* renderer)
 	bool success = pImpl->pFontStash->init(renderer, mFontAtlasSize, mFontAtlasSize);
 
 	initGUIDriver(pImpl->pRenderer, &pDriver);
+	if (pCustomShader)
+		pDriver->setCustomShader(pCustomShader);
 	success &= pDriver->init(pImpl->pRenderer, mMaxDynamicUIUpdatesPerBatch);
-
-	MutexLock lock(gMutex);
-	gInstances.emplace_back(this);
 
 	return success;
 }
 
 void UIApp::Exit()
 {
-	UIApp** it = eastl::find(gInstances.begin(), gInstances.end(), this);
-	ASSERT(it != gInstances.end());
-	if (it != gInstances.end())
-	{
-		gInstances.erase(it);
-	}
-
 	RemoveAllGuiComponents();
 
 	pImpl->pFontStash->exit();
@@ -495,7 +484,7 @@ void UIApp::Unload()
 	pImpl->pFontStash->unload();
 }
 
-uint32_t UIApp::LoadFont(const char* pFontPath, uint root)
+uint32_t UIApp::LoadFont(const char* pFontPath, ResourceDirectory root)
 {
 	uint32_t fontID = (uint32_t)pImpl->pFontStash->defineFont("default", pFontPath, root);
 	ASSERT(fontID != -1);
@@ -585,7 +574,8 @@ GuiComponent* UIApp::AddGuiComponent(const char* pTitle, const GuiDesc* pDesc)
 
 	void* pFontBuffer = pImpl->pFontStash->getFontBuffer(pDesc->mDefaultTextDrawDesc.mFontID);
 	uint32_t fontBufferSize = pImpl->pFontStash->getFontBufferSize(pDesc->mDefaultTextDrawDesc.mFontID);
-	pDriver->addFont(pFontBuffer, fontBufferSize, NULL, pDesc->mDefaultTextDrawDesc.mFontSize, &pComponent->pFont);
+	if (pFontBuffer)
+		pDriver->addFont(pFontBuffer, fontBufferSize, NULL, pDesc->mDefaultTextDrawDesc.mFontSize, &pComponent->pFont);
 
 	pComponent->mInitialWindowRect = { pDesc->mStartPosition.getX(), pDesc->mStartPosition.getY(), pDesc->mStartSize.getX(),
 									   pDesc->mStartSize.getY() };
@@ -710,13 +700,13 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 #if TOUCH_INPUT
 	pRenderer = renderer;
 
+    PathHandle joystickTexturePath = fsCopyPathInResourceDirectory((ResourceDirectory)root, pJoystickTexture);
 	TextureLoadDesc loadDesc = {};
-	loadDesc.pFilename = pJoystickTexture;
-	loadDesc.mRoot = (FSRoot)root;
+    loadDesc.pFilePath = joystickTexturePath;
 	loadDesc.ppTexture = &pTexture;
 	loadDesc.mCreationFlag = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
 	addResource(&loadDesc);
-
+    
 	if (!pTexture)
 	{
 		LOGF(LogLevel::eERROR, "Error loading texture file: %s", pJoystickTexture);
@@ -756,8 +746,8 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 	// Shader
 	/************************************************************************/
 	ShaderLoadDesc texturedShaderDesc = {};
-	texturedShaderDesc.mStages[0] = { "textured_mesh.vert", NULL, 0, FSR_MIDDLEWARE_UI };
-	texturedShaderDesc.mStages[1] = { "textured_mesh.frag", NULL, 0, FSR_MIDDLEWARE_UI };
+	texturedShaderDesc.mStages[0] = { "textured_mesh.vert", NULL, 0, RD_MIDDLEWARE_UI };
+	texturedShaderDesc.mStages[1] = { "textured_mesh.frag", NULL, 0, RD_MIDDLEWARE_UI };
 	addShader(pRenderer, &texturedShaderDesc, &pShader);
 
 	const char*       pStaticSamplerNames[] = { "uSampler" };

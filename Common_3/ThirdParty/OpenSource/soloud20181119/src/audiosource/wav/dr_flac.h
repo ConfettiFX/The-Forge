@@ -6130,11 +6130,12 @@ static FILE* drflac__fopen(const char* filename)
 {
     FILE* pFile;
 #ifdef _MSC_VER
-    if (fopen_s(&pFile, filename, "rb") != 0) {
+	pFile = (FILE*)open_file(filename, "rb");
+	if (pFile != 0) {
         return NULL;
     }
 #else
-    pFile = fopen(filename, "rb");
+    pFile = (FILE*)open_file(filename, "rb");
     if (pFile == NULL) {
         return NULL;
     }

@@ -92,6 +92,8 @@ void SkeletonBatcher::Destroy()
 			}
 		}
 	}
+
+	mRigs.set_capacity(0);
 }
 
 void SkeletonBatcher::SetSharedUniforms(const Matrix4& projViewMat, const Vector3& lightPos, const Vector3& lightColor)

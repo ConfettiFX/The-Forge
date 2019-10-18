@@ -8531,13 +8531,17 @@ ImGuiWindowSettings* ImGui::FindWindowSettings(ImGuiID id)
 void ImGui::LoadIniSettingsFromDisk(const char* ini_filename)
 {
 	size_t file_data_size = 0;
-	File toOpen;
-	toOpen.Open(ini_filename, FileMode::FM_ReadAppend, FSR_Absolute);
-	if (toOpen.IsOpen())
+
+    PathHandle path = fsCreatePath(fsGetSystemFileSystem(), ini_filename);
+    FileStream* fh = fsOpenFile(path, FM_READ_APPEND);
+
+	if (fh)
 	{
-		eastl::string textFile = toOpen.ReadText();
-		LoadIniSettingsFromMemory(textFile.c_str(), (size_t)file_data_size);
-		toOpen.Close();
+        ssize_t fileSize = fsGetStreamFileSize(fh);
+        char *fileContents = (char*)ImGui::MemAlloc(fileSize);
+        fsReadFromStreamString(fh, fileContents, fileSize);
+		LoadIniSettingsFromMemory(fileContents, (size_t)fileSize);
+        fsCloseStream(fh);
 	}
 }
 
@@ -8619,12 +8623,14 @@ void ImGui::SaveIniSettingsToDisk(const char* ini_filename)
 
     size_t ini_data_size = 0;
     const char* ini_data = SaveIniSettingsToMemory(&ini_data_size);
-	File f;
-	f.Open(ini_filename, FileMode::FM_Write, FSR_Absolute);
-    if (!f.IsOpen())
-        return;
-	f.Write(ini_data, (unsigned int)ini_data_size);
-	f.Close();
+    
+    PathHandle path = fsCreatePath(fsGetSystemFileSystem(), ini_filename);
+    FileStream* fh = fsOpenFile(path, FM_WRITE);
+    
+	if (!fh)
+		return;
+    fsWriteToStream(fh, ini_data, ini_data_size);
+    fsCloseStream(fh);
 }
 
 // Call registered handlers (e.g. SettingsHandlerWindow_WriteAll() + custom handlers) to write their stuff into a text buffer

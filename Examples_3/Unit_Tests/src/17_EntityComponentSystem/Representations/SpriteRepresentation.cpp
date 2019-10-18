@@ -3,7 +3,7 @@
 #include "../../../../../Common_3/OS/Interfaces/IMemory.h"
 using namespace FCR;
 
-FORGE_INIT_COMPONENT_ID(SpriteComponent)
+FORGE_DEFINE_COMPONENT_ID(SpriteComponent)
 
 FORGE_ASSIGN_UNIQUE_ID_TO_REGISTERED_COMPONENT(SpriteComponent, colorR, 0)
 FORGE_ASSIGN_UNIQUE_ID_TO_REGISTERED_COMPONENT(SpriteComponent, colorG, 1)
@@ -12,6 +12,7 @@ FORGE_ASSIGN_UNIQUE_ID_TO_REGISTERED_COMPONENT(SpriteComponent, spriteIndex, 3)
 FORGE_ASSIGN_UNIQUE_ID_TO_REGISTERED_COMPONENT(SpriteComponent, scale, 4)
 
 FORGE_START_VAR_REPRESENTATIONS_BUILD(SpriteComponent)
+FORGE_INIT_COMPONENT_ID(SpriteComponent)
 
 FORGE_CREATE_VAR_REPRESENTATION(SpriteComponent, colorR)
 FORGE_FINALIZE_VAR_REPRESENTATION(colorR, "colorR", ComponentVarType::FLOAT, ComponentVarAccess::READ_WRITE)

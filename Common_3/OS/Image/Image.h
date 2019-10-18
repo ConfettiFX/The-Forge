@@ -34,8 +34,10 @@ static_assert(false, "Image.h can only be included by ResourceLoader.cpp and Ima
 #include "../Interfaces/IFileSystem.h"
 #include "../../ThirdParty/OpenSource/EASTL/string.h"
 
+#ifndef IMAGE_DISABLE_GOOGLE_BASIS
 //Google basis Transcoder
 #include "../../ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.h"
+#endif
 #define ALL_MIPLEVELS 127
 
 /************************************************************************************/
@@ -55,7 +57,7 @@ private:
 	void Destroy();
 
 	friend class ResourceLoader;
-	friend bool convertAndSaveImage(const Image& image, bool (Image::*saverFunction)(const char*), const char* fileName);
+	friend bool convertAndSaveImage(const Image& image, bool (Image::*saverFunction)(const Path*), const Path* filePath);
 	friend Image* conf_placement_new<Image>(void* ptr);
 
 	unsigned char* Create(const TinyImageFormat fmt, const int w, const int h, const int d, const int mipMapCount, const int arraySize = 1);
@@ -66,7 +68,7 @@ private:
 
     //load image
     bool LoadFromFile(
-                      const char* fileName, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL, FSRoot root = FSR_Textures);
+                      const Path* filePath, memoryAllocationFunc pAllocator = NULL, void* pUserData = NULL);
     bool LoadFromMemory(
                         void const* mem, uint32_t size, char const* extension, memoryAllocationFunc pAllocator = NULL,
                         void* pUserData = NULL);
@@ -85,7 +87,9 @@ public:
 		mOwnsMemory = own;
 		pData = pixelData;
 	}
-	void SetName(const eastl::string& name) { mLoadFileName = name; }
+	void SetPath(const Path* path) {
+        mLoadFilePath = fsCopyPath(path);
+    }
 
 	uint                 GetWidth() const { return mWidth; }
 	uint                 GetHeight() const { return mHeight; }
@@ -94,7 +98,7 @@ public:
 	uint                 GetHeight(const int mipMapLevel) const;
 	uint                 GetDepth(const int mipMapLevel) const;
 	uint                 GetMipMapCount() const { return mMipMapCount; }
-	const eastl::string& GetName() const { return mLoadFileName; }
+	const Path*          GetPath() const { return mLoadFilePath; }
 	uint                 GetMipMapCountFromDimensions() const;
 	uint                 GetArraySliceSize(const uint mipMapLevel = 0, TinyImageFormat srcFormat = TinyImageFormat_UNDEFINED) const;
 	uint                 GetNumberOfPixels(const uint firstMipLevel = 0, uint numMipLevels = ALL_MIPLEVELS) const;
@@ -125,18 +129,18 @@ public:
 	bool                 iSwap(const int c0, const int c1);
 
 	// Image Format Saving
-	bool                 iSaveDDS(const char* fileName);
-	bool                 iSaveKTX(const char* fileName);
-	bool                 iSaveTGA(const char* fileName);
-	bool                 iSaveBMP(const char* fileName);
-	bool                 iSavePNG(const char* fileName);
-	bool                 iSaveHDR(const char* fileName);
-	bool                 iSaveJPG(const char* fileName);
-	bool                 Save(const char* fileName);
+	bool                 iSaveDDS(const Path* filePath);
+    bool                 iSaveKTX(const Path* filePath);
+	bool                 iSaveTGA(const Path* filePath);
+	bool                 iSaveBMP(const Path* filePath);
+	bool                 iSavePNG(const Path* filePath);
+	bool                 iSaveHDR(const Path* filePath);
+	bool                 iSaveJPG(const Path* filePath);
+	bool                 Save(const Path* filePath);
 
 protected:
 	unsigned char*       pData;
-	eastl::string        mLoadFileName;
+	PathHandle           mLoadFilePath;
 	uint                 mWidth, mHeight, mDepth;
 	uint                 mMipMapCount;
 	uint                 mArrayCount;
@@ -148,6 +152,9 @@ protected:
 	// is memory (mipmaps*w*h*d)*s or
 	// mipmaps * (w*h*d*s) with s being constant for all mipmaps
 	bool				 mMipsAfterSlices;
+	
+	static void Init();
+	static void Exit();
 
 public:
 	typedef bool (*ImageLoaderFunction)(

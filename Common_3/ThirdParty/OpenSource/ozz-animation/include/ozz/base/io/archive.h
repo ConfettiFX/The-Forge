@@ -226,7 +226,7 @@ class IArchive {
     // mean the file containing tag declaration is not included.
     OZZ_STATIC_ASSERT(internal::Tag<const _Ty>::kTagLength != 0);
 
-    const int tell = stream_->Tell();
+    int tell = stream_->FileTell();
     bool valid = internal::Tagger<const _Ty>::Validate(*this);
     stream_->Seek(tell, Stream::kSet);  // Rewinds before the tag test.
     return valid;

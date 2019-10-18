@@ -989,54 +989,52 @@ static inline uint encodeDir(const float3& n)
 static const char* gModelVersion = "1.01";
 
 // Loads a scene using ASSIMP and returns a Scene object with scene information
-Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY, float offsetZ)
+Scene* loadScene(const Path* filePath, float scale, float offsetX, float offsetY, float offsetZ)
 {
-#if TARGET_IOS
-	NSString* fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String:fileName] ofType:@""];
-	fileName = [fileUrl fileSystemRepresentation];
-#endif
-
 #if 1
 	Scene* scene = (Scene*)conf_calloc(1, sizeof(Scene));
 
-	eastl::string cachedModelFileName = eastl::string(fileName) + ".cached";
-	File cached = {};
+    PathHandle cachedModelFilePath = fsAppendPathExtension(filePath, "cached");
+	
 	eastl::string modelVersion;
-	if (cached.Open(cachedModelFileName, FileMode::FM_ReadBinary, FSR_Absolute))
-		modelVersion = cached.ReadFileID();
+    FileStream* fh = fsOpenFile(cachedModelFilePath, FM_READ_BINARY);
+    if (fh) {
+        modelVersion.resize(4);
+        fsReadFromStream(fh, modelVersion.begin(), 4);
+    }
 
 	if (modelVersion == gModelVersion)
 	{
-		scene->numMeshes = cached.ReadUInt();
-		scene->totalVertices = cached.ReadUInt();
-		scene->totalTriangles = cached.ReadUInt();
+		scene->numMeshes		= fsReadFromStreamUInt32(fh);
+		scene->totalVertices	= fsReadFromStreamUInt32(fh);
+		scene->totalTriangles	= fsReadFromStreamUInt32(fh);
 
 		scene->meshes = (MeshIn*)conf_calloc(scene->numMeshes, sizeof(MeshIn));
-		cached.Read(scene->meshes, scene->numMeshes * sizeof(MeshIn));
+		fsReadFromStream(fh, scene->meshes, scene->numMeshes * sizeof(MeshIn));
 
-		scene->indices = (uint32_t*)conf_malloc(scene->totalTriangles * 3 * sizeof(uint32_t));
-		cached.Read(scene->indices, scene->totalTriangles * 3 * sizeof(uint32_t));
+        scene->indices = (uint32_t*)conf_malloc(scene->totalTriangles * 3 * sizeof(uint32_t));
+        fsReadFromStream(fh, scene->indices, scene->totalTriangles * 3 * sizeof(uint32_t));
+        
+        scene->positions = (SceneVertexPos*)conf_malloc(scene->totalVertices * sizeof(SceneVertexPos));
+        fsReadFromStream(fh, scene->positions, scene->totalVertices * sizeof(SceneVertexPos));
+        
+        scene->texCoords = (SceneVertexTexCoord*)conf_malloc(scene->totalVertices * sizeof(SceneVertexTexCoord));
+		fsReadFromStream(fh, scene->texCoords, scene->totalVertices * sizeof(SceneVertexTexCoord));
+        
+        scene->normals = (SceneVertexNormal*)conf_malloc(scene->totalVertices * sizeof(SceneVertexNormal));
+		fsReadFromStream(fh, scene->normals, scene->totalVertices * sizeof(SceneVertexNormal));
+        
+        scene->tangents = (SceneVertexTangent*)conf_malloc(scene->totalVertices * sizeof(SceneVertexTangent));
+		fsReadFromStream(fh, scene->tangents, scene->totalVertices * sizeof(SceneVertexTangent));
 
-		scene->positions = (SceneVertexPos*)conf_malloc(scene->totalVertices * sizeof(SceneVertexPos));
-		cached.Read(scene->positions, scene->totalVertices * sizeof(SceneVertexPos));
-
-		scene->texCoords = (SceneVertexTexCoord*)conf_malloc(scene->totalVertices * sizeof(SceneVertexTexCoord));
-		cached.Read(scene->texCoords, scene->totalVertices * sizeof(SceneVertexTexCoord));
-
-		scene->normals = (SceneVertexNormal*)conf_malloc(scene->totalVertices * sizeof(SceneVertexNormal));
-		cached.Read(scene->normals, scene->totalVertices * sizeof(SceneVertexNormal));
-
-		scene->tangents = (SceneVertexTangent*)conf_malloc(scene->totalVertices * sizeof(SceneVertexTangent));
-		cached.Read(scene->tangents, scene->totalVertices * sizeof(SceneVertexTangent));
-
-		cached.Close();
+        fsCloseStream(fh);
 	}
 	else
 	{
 		HiresTimer timer = {};
 		AssimpImporter        importer;
 		AssimpImporter::Model model;
-		importer.ImportModel(fileName, &model);
+		importer.ImportModel(filePath, &model);
 		LOGF(LogLevel::eINFO, "Assimp Load %f ms", timer.GetUSec(true) / 1000.0f);
 		
 		for (int i = 0; i < model.mMeshArray.size(); i++)
@@ -1133,19 +1131,20 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 			LOGF(LogLevel::eINFO, "%d vertexCount: %d total: %d", i, batch.vertexCount, accIndex);
 		}
 
-		if (cached.Open(cachedModelFileName, FileMode::FM_WriteBinary, FSR_Absolute))
+        FileStream* fHandle = fsOpenFile(cachedModelFilePath, FM_WRITE_BINARY);
+		if (fHandle)
 		{
-			cached.WriteFileID(gModelVersion);
-			cached.WriteUInt(scene->numMeshes);
-			cached.WriteUInt(scene->totalVertices);
-			cached.WriteUInt(scene->totalTriangles);
-			cached.Write(scene->meshes, scene->numMeshes * sizeof(MeshIn));
-			cached.Write(scene->indices, scene->totalTriangles * 3 * sizeof(uint32_t));
-			cached.Write(scene->positions, scene->totalVertices * sizeof(SceneVertexPos));
-			cached.Write(scene->texCoords, scene->totalVertices * sizeof(SceneVertexTexCoord));
-			cached.Write(scene->normals, scene->totalVertices * sizeof(SceneVertexNormal));
-			cached.Write(scene->tangents, scene->totalVertices * sizeof(SceneVertexTangent));
-			cached.Close();
+            fsWriteToStream(fHandle, gModelVersion, 4);
+			fsWriteToStreamUInt32(fHandle, scene->numMeshes);
+			fsWriteToStreamUInt32(fHandle, scene->totalVertices);
+			fsWriteToStreamUInt32(fHandle, scene->totalTriangles);
+			fsWriteToStream(fHandle, scene->meshes, scene->numMeshes * sizeof(MeshIn));
+			fsWriteToStream(fHandle, scene->indices, scene->totalTriangles * 3 * sizeof(uint32_t));
+			fsWriteToStream(fHandle, scene->positions, scene->totalVertices * sizeof(SceneVertexPos));
+			fsWriteToStream(fHandle, scene->texCoords, scene->totalVertices * sizeof(SceneVertexTexCoord));
+			fsWriteToStream(fHandle, scene->normals, scene->totalVertices * sizeof(SceneVertexNormal));
+			fsWriteToStream(fHandle, scene->tangents, scene->totalVertices * sizeof(SceneVertexTangent));
+			fsCloseStream(fHandle);
 		}
 	}
 
@@ -1167,7 +1166,7 @@ Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY
 
 	Scene* scene = (Scene*)conf_calloc(1, sizeof(Scene));
 	File   assimpScene = {};
-	assimpScene.Open(fileName, FileMode::FM_ReadBinary, FSRoot::FSR_Absolute);
+	assimpScene.Open(fileName, FileMode::FM_READ_BINARY, FSRoot::FSR_Absolute);
 	if (!assimpScene.IsOpen())
 	{
 		LOGF(eERROR, 
@@ -1579,24 +1578,17 @@ void createAABB(const Scene* pScene, MeshIn* mesh)
 	mesh->AABB.corners[7].w = 1.0f;
 }
 
-bool loadModel(const eastl::string& FileName, eastl::vector<Vertex>& meshVertices, eastl::vector<uint16_t>& meshIndices)
+bool loadModel(const Path* filePath, eastl::vector<Vertex>& meshVertices, eastl::vector<uint16_t>& meshIndices)
 {
 	AssimpImporter::Model model;
-
-#ifdef TARGET_IOS
-	//TODO: need to unify this using filsystem interface
-	//iOS requires path using bundle identifier
-	NSString* fileUrl = [[NSBundle mainBundle] pathForResource:[NSString stringWithUTF8String : gModelName] ofType : @""];
-	sceneFullPath = [fileUrl fileSystemRepresentation];
-#endif
 	AssimpImporter importer;
-	if (importer.ImportModel(FileName.c_str(), &model))
+	if (importer.ImportModel(filePath, &model))
 	{
 		AssimpImporter::Mesh mesh = model.mMeshArray[0];
 
 		if (mesh.mPositions.size() > (1 << 16))
 		{
-			LOGF(eERROR, "Model (%s) contains more than %u vertices which exceeds the limit of a 16 bit index buffer", FileName.c_str(), (uint32_t)(1 << 16));
+			LOGF(eERROR, "Model (%s) contains more than %u vertices which exceeds the limit of a 16 bit index buffer", fsGetPathAsNativeString(filePath), (uint32_t)(1 << 16));
 			return false;
 		}
 

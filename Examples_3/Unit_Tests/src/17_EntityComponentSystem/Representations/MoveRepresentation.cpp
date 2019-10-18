@@ -3,12 +3,13 @@
 #include "../../../../../Common_3/OS/Interfaces/IMemory.h"
 using namespace FCR;
 
-FORGE_INIT_COMPONENT_ID(MoveComponent)
+FORGE_DEFINE_COMPONENT_ID(MoveComponent)
 
 FORGE_ASSIGN_UNIQUE_ID_TO_REGISTERED_COMPONENT(MoveComponent, velx, 0)
 FORGE_ASSIGN_UNIQUE_ID_TO_REGISTERED_COMPONENT(MoveComponent, vely, 1)
 
 FORGE_START_VAR_REPRESENTATIONS_BUILD(MoveComponent)
+FORGE_INIT_COMPONENT_ID(MoveComponent)
 
 FORGE_CREATE_VAR_REPRESENTATION(MoveComponent, velx)
 FORGE_FINALIZE_VAR_REPRESENTATION(velx, "velx", ComponentVarType::FLOAT, ComponentVarAccess::READ_WRITE)

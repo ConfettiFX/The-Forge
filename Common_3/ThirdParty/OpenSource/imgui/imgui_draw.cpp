@@ -1575,20 +1575,22 @@ ImFont* ImFontAtlas::AddFontFromFileTTF(const char* filename, float size_pixels,
 {
     IM_ASSERT(!Locked && "Cannot modify a locked ImFontAtlas between NewFrame() and EndFrame/Render()!");
     size_t data_size = 0;
-	File toOpen;
-	toOpen.Open(filename, FileMode::FM_ReadBinary, FSR_Absolute);
-	if (!toOpen.IsOpen())
+
+    PathHandle path = fsCreatePath(fsGetSystemFileSystem(), filename);
+    FileStream* fh = fsOpenFile(path, FM_READ_BINARY);
+	if (!fh)
 	{
 		return NULL;
 	}
+
 	// Check leaks
-	void* data = ImGui::MemAlloc(toOpen.GetSize());
+	void* data = ImGui::MemAlloc(fsGetStreamFileSize(fh));
     if (!data)
     {
         IM_ASSERT(0); // Could not load file.
         return NULL;
     }
-	toOpen.Read(data, toOpen.GetSize());
+    fsReadFromStream(fh, data, fsGetStreamFileSize(fh));
 
     ImFontConfig font_cfg = font_cfg_template ? *font_cfg_template : ImFontConfig();
     if (font_cfg.Name[0] == '\0')

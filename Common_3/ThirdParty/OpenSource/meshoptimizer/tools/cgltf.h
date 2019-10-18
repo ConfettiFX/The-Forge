@@ -83,6 +83,8 @@ extern "C"
 {
 #endif
 
+    typedef struct Path Path;
+
 	typedef size_t cgltf_size;
 	typedef float cgltf_float;
 	typedef int cgltf_int;
@@ -581,14 +583,14 @@ extern "C"
 	    const char* path,
 	    cgltf_data** out_data);
 
-	cgltf_result parse_gltf_file(const cgltf_options* options, eastl::string path, cgltf_data** out_data);
+	cgltf_result parse_gltf_file(const cgltf_options* options, const Path* path, cgltf_data** out_data);
 
 	cgltf_result cgltf_load_buffers(
 	    const cgltf_options* options,
 	    cgltf_data* data,
 	    const char* gltf_path);
 
-	cgltf_result load_gltf_buffers(const cgltf_options* options, cgltf_data* data, const char* gltf_path);
+	cgltf_result load_gltf_buffers(const cgltf_options* options, cgltf_data* data, const Path* gltf_path);
 
 	cgltf_result cgltf_load_buffer_base64(const cgltf_options* options, cgltf_size size, const char* base64, void** out_data);
 
@@ -865,40 +867,39 @@ eastl::string convertMultiByteToExtendedASCII(const char* file_data, size_t size
 	return result;
 }
 
-    /* Modified version of cgltf_parse_file from cgltf.h that uses The Forge file system. */
-cgltf_result parse_gltf_file(const cgltf_options* options, eastl::string path, cgltf_data** out_data)
+/* Modified version of cgltf_parse_file from cgltf.h that uses The Forge file system. */
+cgltf_result parse_gltf_file(const cgltf_options* options, const Path* path, cgltf_data** out_data)
 {
 	if (options == NULL)
 	{
 		return cgltf_result_invalid_options;
 	}
+    
+    FileStream* fh = fsOpenFile(path, FM_READ_BINARY);
 
-	File file;
-	file.Open(path, FileMode::FM_ReadBinary, FSRoot::FSR_Absolute);
-
-	if (!file.IsOpen())
+	if (!fh)
 	{
 		return cgltf_result_file_not_found;
 	}
 
-	long length = file.GetSize();
+    ssize_t length = fsGetStreamFileSize(fh);
 	if (length < 0)
 	{
-		file.Close();
+        fsCloseStream(fh);
 		return cgltf_result_io_error;
 	}
 
-	char* file_data = (char*)conf_malloc(length);
+	char* file_data = (char*)conf_malloc((size_t)length);
 	if (!file_data)
 	{
-		file.Close();
+        fsCloseStream(fh);
 		return cgltf_result_out_of_memory;
 	}
 
 	cgltf_size file_size = (cgltf_size)length;
-	cgltf_size read_size = (cgltf_size)file.Read(file_data, (unsigned)file_size);
+	cgltf_size read_size = (cgltf_size)fsReadFromStream(fh, file_data, file_size);
 
-	file.Close();
+    fsCloseStream(fh);
 
 	if (read_size != file_size)
 	{
@@ -1155,7 +1156,7 @@ cgltf_result cgltf_load_buffers(const cgltf_options* options, cgltf_data* data, 
 }
 
 /* Modified version of cgltf_load_buffers from cgltf.h that uses The Forge file system. */
-cgltf_result load_gltf_buffers(const cgltf_options* options, cgltf_data* data, const char* gltf_path)
+cgltf_result load_gltf_buffers(const cgltf_options* options, cgltf_data* data, const Path* gltf_path)
 {
 	if (options == NULL)
 	{
@@ -1209,27 +1210,19 @@ cgltf_result load_gltf_buffers(const cgltf_options* options, cgltf_data* data, c
 			cgltf_size size = data->buffers[i].size;
 			void** out_data = &data->buffers[i].data;
 
-			eastl::string path(gltf_path);
+            Path* path = NULL;
+            
+            if (fsDirectoryExists(gltf_path)) {
+                path = fsAppendPathComponent(gltf_path, uri);
+            } else {
+                Path *directoryPath = fsCopyParentPath(gltf_path);
+                path = fsAppendPathComponent(directoryPath, uri);
+                fsFreePath(directoryPath);
+            }
+            
+			FileStream* fh = fsOpenFile(path, FM_READ_BINARY);
 
-			//cgltf_combine_paths(path, gltf_path, uri);
-			const char* s0 = strrchr(gltf_path, '/');
-			const char* s1 = strrchr(gltf_path, '\\');
-			const char* slash = s0 ? (s1 && s1 > s0 ? s1 : s0) : s1;
-
-			if (slash)
-			{
-				path = FileSystem::GetParentPath(path);
-				path.append(uri);
-			}
-			else
-			{
-				path = eastl::string(gltf_path);
-			}
-
-			File file;
-			file.Open(path, FileMode::FM_ReadBinary, FSRoot::FSR_Absolute);
-
-			if (!file.IsOpen())
+			if (!fh)
 			{
 				return cgltf_result_file_not_found;
 			}
@@ -1237,13 +1230,14 @@ cgltf_result load_gltf_buffers(const cgltf_options* options, cgltf_data* data, c
 			char* file_data = (char*)conf_malloc(size);
 			if (!file_data)
 			{
-				file.Close();
+                fsCloseStream(fh);
 				return cgltf_result_out_of_memory;
 			}
 
-			cgltf_size read_size = (cgltf_size)file.Read(file_data, (unsigned)size);
+            cgltf_size read_size = (cgltf_size)fsReadFromStream(fh, file_data, size);
 
-			file.Close();
+            fsCloseStream(fh);
+            fsFreePath(path);
 
 			if (read_size != size)
 			{

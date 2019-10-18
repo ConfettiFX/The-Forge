@@ -504,7 +504,7 @@ def TestXcodeProjects(iosTesting, macOSTesting, iosDeviceId):
 			if retCode == 0:
 				bundleID = GetBundleIDFromIOSApp(filename + ".app")
 				if bundleID != "":
-					command = ["ios-deploy","--bundle_id",bundleID,"--download=/Documents/"+memleakFile,"--to","./"]
+					command = ["ios-deploy","--bundle_id",bundleID,"--download=/Library/Application Support/"+memleakFile,"--to","./"]
 					if not iosDeviceId == "-1" or not iosDeviceId == "":
 						command.append("--id")
 						command.append(iosDeviceId)
@@ -512,7 +512,7 @@ def TestXcodeProjects(iosTesting, macOSTesting, iosDeviceId):
 					memleakDownloaded = ExecuteCommand(command, sys.stdout)
 					if memleakDownloaded == 0:
 						print("Memleaks file downloaded for:" + bundleID)
-						leaksDetected = FindMemoryLeaks("Documents/"+ memleakFile)
+						leaksDetected = FindMemoryLeaks("Library/Application Support/"+ memleakFile)
 					else:
 						print("[Error] Memleaks file could not be downloaded for:" + bundleID)
 				else:

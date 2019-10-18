@@ -109,10 +109,9 @@ namespace HLSLParser
             string inputData = sr.ReadToEnd();
 
 
-            includeFileName.Add(fileName);
             //includeFileBuffer.Add(inputData);
 
-            inputWindow.fileNames = includeFileName;
+            inputWindow.fileName = fileName;
             inputWindow.includeBuffers = includeFileBuffer;
 
             //StreamReader sr = new StreamReader(textBox1.Text);
@@ -393,8 +392,7 @@ namespace HLSLParser
                 inputWindow.Show();
                 
 
-                if (inputWindow.fileNames != null)
-                    inputWindow.fileNames.Clear();
+                inputWindow.fileName = null;
                 if (inputWindow.includeBuffers != null)
                     inputWindow.includeBuffers.Clear();
 
@@ -415,7 +413,7 @@ namespace HLSLParser
                 //includeFileName.Add(fileName);
                 //includeFileBuffer.Add(inputData);
 
-                inputWindow.fileNames = includeFileName;
+                inputWindow.fileName = fileName;
                 inputWindow.includeBuffers = includeFileBuffer;
 
                 inputWindow.richTextBox2.Text = inputData;

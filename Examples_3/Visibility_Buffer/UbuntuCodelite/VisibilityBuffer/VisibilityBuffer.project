@@ -6,6 +6,10 @@
     </Plugin>
   </Plugins>
   <VirtualDirectory Name="AssimpImporter">
+    <File Name="../../../../Common_3/OS/FileSystem/AssimpIOSystem.h"/>
+    <File Name="../../../../Common_3/OS/FileSystem/AssimpIOSystem.cpp"/>
+    <File Name="../../../../Common_3/OS/FileSystem/AssimpIOStream.h"/>
+    <File Name="../../../../Common_3/OS/FileSystem/AssimpIOStream.cpp"/>
     <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"/>
     <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.cpp"/>
   </VirtualDirectory>
@@ -40,11 +44,13 @@
         <IncludePath Value="."/>
       </Compiler>
       <Linker Options="">
-        <LibraryPath Value="."/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/Libraries/Linux"/>
+        <Library Value="libzip.a"/>
+        <Library Value="libz"/>
       </Linker>
       <ResourceCompiler Options=""/>
     </GlobalSettings>
-    <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+    <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
       <Compiler Options="-g;-O0;-std=c++14;-Wall;-Wno-unknown-pragmas;  -march=native;-msse4.1;" C_Options="-g;-O0;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
@@ -61,13 +67,12 @@
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
-        <Library Value="libOS.a"/>
         <Library Value="libRenderer.a"/>
+        <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
         <Library Value="libgainput.a"/>
-        <Library Value="libzlibstatic.a"/>
         <Library Value="libassimp.a"/>
         <Library Value="libEASTL.a"/>
       </Linker>
@@ -105,7 +110,7 @@
         <SearchPaths/>
       </Completion>
     </Configuration>
-    <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+    <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
       <Compiler Options="-O2;-std=c++14;-Wall;-Wno-unknown-pragmas;-march=native;-msse4.1;" C_Options="-O2;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
@@ -121,13 +126,12 @@
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Bin/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
-        <Library Value="libOS.a"/>
         <Library Value="libRenderer.a"/>
+        <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
         <Library Value="libgainput.a"/>
-        <Library Value="libzlibstatic.a"/>
         <Library Value="libassimp.a"/>
         <Library Value="libEASTL.a"/>
       </Linker>

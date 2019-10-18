@@ -24,18 +24,6 @@
 
 #define _USE_MATH_DEFINES
 #include "../Interfaces/ICameraController.h"
-
-#ifdef _WIN32
-#ifndef _DURANGO
-#include <ntverp.h>
-#endif
-#endif
-
-#include "../../../Middleware_3/UI/AppUI.h"
-
-// Include this file as last include in all cpp files allocating memory
-#include "../Interfaces/ILog.h"
-
 #include "../Interfaces/IMemory.h"
 
 static const float k_scrollSpeed = -5.0f;
@@ -61,6 +49,7 @@ class FpsCameraController: public ICameraController
 
 	void moveTo(const vec3& location) override;
 	void lookAt(const vec3& lookAt) override;
+	void setViewRotationXY(const vec2& v) override { viewRotation = v; }
 
 	void resetView() override { moveTo(startPosition); lookAt(startLookAt); }
 	void onMove(const float2& vec) override { dx = vec[0]; dz = vec[1]; }
@@ -218,15 +207,15 @@ class GuiCameraController : public ICameraController
 {
 public:
 	GuiCameraController() : viewRotation{ 0 }, viewPosition{ 0 }, velocity{ 0 }, maxSpeed{ 1.0f }, pVirtualJoystickUI{ NULL } {}
-	void setMotionParameters(const CameraMotionParameters& cmp) { maxSpeed = cmp.maxSpeed; }
+	void setMotionParameters(const CameraMotionParameters& cmp) override { maxSpeed = cmp.maxSpeed; }
 
-	void update(float deltaTime)
+	void update(float deltaTime) override
 	{
 		viewPosition += velocity * deltaTime;
 		velocity = vec3{ 0 };
 	}
 
-	mat4 getViewMatrix() const
+	mat4 getViewMatrix() const override
 	{
 		mat4 r{ mat4::rotationXY(-viewRotation.getX(), -viewRotation.getY()) };
 		vec4 t = r * vec4(-viewPosition, 1.0f);
@@ -234,11 +223,11 @@ public:
 		return r;
 	}
 
-	vec3 getViewPosition() const { return viewPosition; }
+	vec3 getViewPosition() const override { return viewPosition; }
 
-	void moveTo(const vec3& location) { viewPosition = location; }
+	void moveTo(const vec3& location) override { viewPosition = location; }
 
-	void lookAt(const vec3& lookAt)
+	void lookAt(const vec3& lookAt) override
 	{
 		vec3 lookDir = normalize(lookAt - viewPosition);
 
@@ -256,6 +245,8 @@ public:
 			viewRotation.setY(atan2f(x, z));
 		}
 	}
+
+	void setViewRotationXY(const vec2& v) override { viewRotation = v; }
 
 	vec2 getRotationXY() const override { return viewRotation; }
 

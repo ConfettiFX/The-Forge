@@ -601,12 +601,6 @@
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </ProjectReference>
-    <ProjectReference Include="$(SOLUTION_DIR)..\win64\zlibstatic.vcxproj">
-      <Project>{9A562A76-1F59-3628-8142-4667602EE708}</Project>
-      <Name>zlibstatic</Name>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\code\BlenderDNA.inl" />

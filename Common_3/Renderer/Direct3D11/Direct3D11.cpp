@@ -34,6 +34,7 @@
 #include "../../ThirdParty/OpenSource/EASTL/string.h"
 #include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 #include "../../ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../ThirdParty/OpenSource/EASTL/string_hash_map.h"
 #include "../../OS/Interfaces/ILog.h"
 #include "../IRenderer.h"
 #include "../../OS/Core/RingBuffer.h"
@@ -376,6 +377,10 @@ static const uint32_t gRootDescriptorDWORDS = 2;
 
 static uint32_t gMaxRootConstantsPerRootParam = 4U;
 
+typedef struct DescriptorIndexMap
+{
+	eastl::string_hash_map<uint32_t> mMap;
+} DescriptorIndexMap;
 /************************************************************************/
 // Logging functions
 /************************************************************************/
@@ -639,7 +644,6 @@ API_INTERFACE void FORGE_CALLCONV unmapBuffer(Renderer* pRenderer, Buffer* pBuff
 API_INTERFACE void FORGE_CALLCONV cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
 API_INTERFACE void FORGE_CALLCONV cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, SubresourceDataDesc* pSubresourceDesc);
 API_INTERFACE void FORGE_CALLCONV compileShader(Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code, uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a, const char *f, int l, const char *sf), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint);
-API_INTERFACE const RendererShaderDefinesDesc FORGE_CALLCONV get_renderer_shaderdefines(Renderer* pRenderer);
 
 // clang-format on
 void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size)
@@ -695,8 +699,6 @@ void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, Subr
 	cmd.mUpdateSubresourcesCmd.mSubresourceDesc = *pSubresourceDesc;
 	cachedCmdsIter->second.push_back(cmd);
 }
-
-const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer) { return RendererShaderDefinesDesc(); }
 /************************************************************************/
 // Internal init functions
 /************************************************************************/
@@ -1018,6 +1020,8 @@ void removeRenderer(Renderer* pRenderer)
 	destroy_default_resources(pRenderer);
 
 	RemoveDevice(pRenderer);
+
+	gCachedCmds.clear(true);
 
 	// Free all the renderer components
 	SAFE_FREE(pRenderer);
@@ -1510,7 +1514,7 @@ void removeSampler(Renderer* pRenderer, Sampler* pSampler)
 // Shader Functions
 /************************************************************************/
 void compileShader(
-	Renderer* pRenderer, ShaderTarget shaderTarget, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code,
+	Renderer* pRenderer, ShaderTarget shaderTarget, ShaderStage stage, const Path* filePath, uint32_t codeSize, const char* code,
 	uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a, const char *f, int l, const char *sf), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint)
 {
 	if (shaderTarget > pRenderer->mSettings.mShaderTarget)
@@ -1560,7 +1564,7 @@ void compileShader(
 	macros[0] = { "D3D12", "1" };
 	for (uint32_t j = 0; j < macroCount; ++j)
 	{
-		macros[j + 1] = { pMacros[j].definition.c_str(), pMacros[j].value.c_str() };
+		macros[j + 1] = { pMacros[j].definition, pMacros[j].value };
 	}
 	macros[macroCount + 1] = { NULL, NULL };
 
@@ -1571,14 +1575,14 @@ void compileShader(
 	ID3DBlob*       compiled_code = NULL;
 	ID3DBlob*       error_msgs = NULL;
 	HRESULT         hres = D3DCompile2(
-        code, (size_t)codeSize, fileName, macros, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint.c_str(), target.c_str(), compile_flags, 0, 0, NULL,
+        code, (size_t)codeSize, fsGetPathAsNativeString(filePath), macros, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint.c_str(), target.c_str(), compile_flags, 0, 0, NULL,
         0, &compiled_code, &error_msgs);
 	if (FAILED(hres))
 	{
 		char* msg = (char*)conf_calloc(error_msgs->GetBufferSize() + 1, sizeof(*msg));
 		ASSERT(msg);
 		memcpy(msg, error_msgs->GetBufferPointer(), error_msgs->GetBufferSize());
-		eastl::string error = eastl::string(fileName) + " " + msg;
+		eastl::string error = eastl::string(fsGetPathAsNativeString(filePath)) + " " + msg;
 		LOGF(eERROR, error.c_str());
 		SAFE_FREE(msg);
 	}
@@ -2280,6 +2284,9 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 	RootSignature* pRootSignature = (RootSignature*)conf_calloc(1, sizeof(*pRootSignature));
 	ASSERT(pRootSignature);
 
+	pRootSignature->pDescriptorNameToIndexMap = conf_new(DescriptorIndexMap);
+	ASSERT(pRootSignature->pDescriptorNameToIndexMap);
+
 	eastl::vector<ShaderResource>                            shaderResources;
 	eastl::vector<uint32_t>                                  constantSizes;
 	eastl::vector<eastl::pair<DescriptorInfo*, Sampler*> > staticSamplers;
@@ -2324,11 +2331,11 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 				setIndex = 0;
 
 			// Find all unique resources
-			decltype(pRootSignature->pDescriptorNameToIndexMap)::iterator pNode =
-				pRootSignature->pDescriptorNameToIndexMap.find(pRes->name);
-			if (pNode == pRootSignature->pDescriptorNameToIndexMap.end())
+			decltype(pRootSignature->pDescriptorNameToIndexMap->mMap)::iterator pNode =
+				pRootSignature->pDescriptorNameToIndexMap->mMap.find(pRes->name);
+			if (pNode == pRootSignature->pDescriptorNameToIndexMap->mMap.end())
 			{
-				pRootSignature->pDescriptorNameToIndexMap.insert(pRes->name, (uint32_t)shaderResources.size());
+				pRootSignature->pDescriptorNameToIndexMap->mMap.insert(pRes->name, (uint32_t)shaderResources.size());
 				shaderResources.push_back(*pRes);
 
 				uint32_t constantSize = 0;
@@ -2466,7 +2473,7 @@ void removeRootSignature(Renderer* pRenderer, RootSignature* pRootSignature)
 		SAFE_FREE((void*)pRootSignature->pDescriptors[i].mDesc.name);
 	}
 
-	pRootSignature->pDescriptorNameToIndexMap.~string_hash_map();
+	conf_delete(pRootSignature->pDescriptorNameToIndexMap);
 
 	SAFE_FREE(pRootSignature->pDescriptors);
 	SAFE_FREE(pRootSignature->ppStaticSamplers);
@@ -2840,8 +2847,8 @@ void removeRasterizerState(RasterizerState* pRasterizerState)
 const DescriptorInfo* get_descriptor(const RootSignature* pRootSignature, const char* pResName)
 {
 	using DescriptorNameToIndexMap = eastl::string_hash_map<uint32_t>;
-	DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap.find(pResName);
-	if (it != pRootSignature->pDescriptorNameToIndexMap.end())
+	DescriptorNameToIndexMap::const_iterator it = pRootSignature->pDescriptorNameToIndexMap->mMap.find(pResName);
+	if (it != pRootSignature->pDescriptorNameToIndexMap->mMap.end())
 	{
 		return &pRootSignature->pDescriptors[it->second];
 	}

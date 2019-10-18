@@ -2,7 +2,7 @@
 <CodeLite_Project Name="Renderer" InternalType="Library" Version="10.0.0">
   <Plugins>
     <Plugin Name="qmake">
-      <![CDATA[00010001N0005Debug000000000000]]>
+      <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
     </Plugin>
   </Plugins>
   <Description/>

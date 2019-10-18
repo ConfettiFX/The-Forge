@@ -42,12 +42,14 @@ namespace SoLoud
 		void * createMutex()
 		{
 			Mutex* m = conf_new(Mutex);
+			m->Init();
 			return (void*)m;
 		}
 
 		void destroyMutex(void *aHandle)
 		{
-			Mutex* m = (Mutex*)aHandle;			
+			Mutex* m = (Mutex*)aHandle;
+			m->Destroy();
 			conf_delete(m);
 		}
 
@@ -91,6 +93,8 @@ namespace SoLoud
 			destroy_thread(aThreadHandle);
 			conf_delete(it->second);
 			gThreadDataToCleanup.erase(it);
+			if (gThreadDataToCleanup.empty())
+				gThreadDataToCleanup.clear(true);
         }		
 	}
 }

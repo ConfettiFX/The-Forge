@@ -157,7 +157,13 @@ static inline float VeryApproxLog2f(float x)
 	return (float)ux.i * 1.1920928955078125e-7f - 126.94269504f;
 }
 
-void AsteroidSimulation::update(float deltaTime, unsigned startIdx, unsigned endIdx, const vec3& cameraPosition)
+void AsteroidSimulation::Exit()
+{
+	asteroidsStatic.set_capacity(0);
+	asteroidsDynamic.set_capacity(0);
+}
+
+void AsteroidSimulation::Update(float deltaTime, unsigned startIdx, unsigned endIdx, const vec3& cameraPosition)
 {
 	//taken from intel demo
 	static const float minSubdivSizeLog2 = log2f(0.0019f);

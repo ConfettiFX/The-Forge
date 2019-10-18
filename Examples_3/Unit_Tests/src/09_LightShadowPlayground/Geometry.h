@@ -9,13 +9,6 @@
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/ResourceLoader.h"
 
-#if defined(_DURANGO)
-//const static eastl::string gGeneratedSDFBinaryDir = "SDF/";
-const static eastl::string gGeneratedSDFBinaryDir = "";
-#else
-const static eastl::string gGeneratedSDFBinaryDir = "../../../UnitTestResources/SDF/";
-#endif
-
 namespace eastl
 {
 	template <>
@@ -261,7 +254,7 @@ struct Vertex
 };
 
 
-typedef bool (*GenerateVolumeDataFromFileFunc) (SDFVolumeData**, const eastl::string& , const eastl::string&, float);
+typedef bool (*GenerateVolumeDataFromFileFunc) (SDFVolumeData**, const Path*, const eastl::string&, float);
 
 
 void adjustAABB(AABB* ownerAABB, const vec3& point);
@@ -270,28 +263,25 @@ vec3 calculateAABBSize(const AABB* ownerAABB);
 vec3 calculateAABBExtent(const AABB* ownerAABB);
 vec3 calculateAABBCenter(const AABB* ownerAABB);
 
-eastl::string GetSDFBakedFileName(const eastl::string& fileName);
-eastl::string GetSDFFullDirBakedFileName(const eastl::string& fileName);
-
 void alignAABB(AABB* ownerAABB, float alignment);
 
 void destroyClusters(MeshIn* pMesh);
-Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY, float offsetZ);
+Scene* loadScene(const Path* fileName, float scale, float offsetX, float offsetY, float offsetZ);
 	
 void   removeScene(Scene* scene);
 
 void   createAABB(const Scene* scene, MeshIn* subMesh);
 void   createClusters(bool twoSided, const Scene* scene, MeshIn* subMesh);
 
+Path* GetSDFBakedFilePath(const eastl::string& fileName);
 
 
-
-void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const eastl::string& fileName, SDFMesh* outMesh, float scale,
+void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outMesh, float scale,
 	float offsetX, bool generateSDFVolumeData,
 	BakedSDFVolumeInstances& sdfMeshInstances, 
 	GenerateVolumeDataFromFileFunc generateVolumeDataFromFileFunc);
 
-void loadSDFMesh(ThreadSystem* threadSystem, const eastl::string& fileName, SDFMesh* outMesh, float scale,
+void loadSDFMesh(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outMesh, float scale,
 	float offsetX, bool generateSDFVolumeData, BakedSDFVolumeInstances& sdfMeshInstances,
 	GenerateVolumeDataFromFileFunc generateVolumeDataFromFileFunc);
 

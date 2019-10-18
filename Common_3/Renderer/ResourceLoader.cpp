@@ -58,7 +58,6 @@ extern void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** 
 extern void removeTexture(Renderer* pRenderer, Texture* p_texture);
 extern void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
 extern void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, SubresourceDataDesc* pSubresourceDesc);
-extern const RendererShaderDefinesDesc get_renderer_shaderdefines(Renderer* pRenderer);
 /************************************************************************/
 /************************************************************************/
 
@@ -349,6 +348,16 @@ public:
 	tfrg_atomic64_t mTokenCompleted;
 	tfrg_atomic64_t mTokenCounter;
 
+	static void InitImageClass()
+	{
+		Image::Init();
+	}
+
+	static void ExitImageClass()
+	{
+		Image::Exit();
+	}
+
 	static Image* AllocImage()
 	{
 		return conf_new(Image);
@@ -361,15 +370,16 @@ public:
 		return pImage;
 	}
 
-	static Image* CreateImage(const char* origFileName, memoryAllocationFunc pAllocator, void* pUserData, FSRoot root)
+	static Image* CreateImage(const Path* filePath, memoryAllocationFunc pAllocator, void* pUserData)
 	{
 		Image* pImage = AllocImage();
-		if (!pImage->LoadFromFile(origFileName, pAllocator, pUserData, root))
+        
+		if (!pImage->LoadFromFile(filePath, pAllocator, pUserData))
 		{
 			DestroyImage(pImage);
 			return NULL;
 		}
-
+        
 		return pImage;
 	}
 
@@ -904,6 +914,11 @@ static void addResourceLoader(Renderer* pRenderer, ResourceLoaderDesc* pDesc, Re
 	pLoader->mRun = true;
 	pLoader->mDesc = pDesc ? *pDesc : ResourceLoaderDesc{ DEFAULT_BUFFER_SIZE, DEFAULT_BUFFER_COUNT, DEFAULT_TIMESLICE_MS };
 
+	pLoader->mQueueMutex.Init();
+	pLoader->mTokenMutex.Init();
+	pLoader->mQueueCond.Init();
+	pLoader->mTokenCond.Init();
+	
 	pLoader->mThreadDesc.pFunc = streamerThreadFunc;
 	pLoader->mThreadDesc.pData = pLoader;
 
@@ -917,7 +932,10 @@ static void removeResourceLoader(ResourceLoader* pLoader)
 	pLoader->mRun = false;
 	pLoader->mQueueCond.WakeOne();
 	destroy_thread(pLoader->mThread);
-
+	pLoader->mQueueCond.Destroy();
+	pLoader->mTokenCond.Destroy();
+	pLoader->mQueueMutex.Destroy();
+	pLoader->mTokenMutex.Destroy();
 	conf_delete(pLoader);
 }
 
@@ -1026,10 +1044,14 @@ static ResourceLoader* pResourceLoader = NULL;
 void initResourceLoaderInterface(Renderer* pRenderer, ResourceLoaderDesc* pDesc)
 {
 	addResourceLoader(pRenderer, pDesc, &pResourceLoader);
+
+	ResourceLoader::InitImageClass();
 }
 
 void removeResourceLoaderInterface(Renderer* pRenderer)
 {
+	ResourceLoader::ExitImageClass();
+
 	removeResourceLoader(pResourceLoader);
 }
 
@@ -1079,17 +1101,17 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 
 	bool freeImage = false;
 	Image* pImage = NULL;
-
-	if (pTextureDesc->pFilename)
+	if (pTextureDesc->pFilePath)
 	{
-		pImage = ResourceLoader::CreateImage(pTextureDesc->pFilename, NULL, NULL, pTextureDesc->mRoot);
+		pImage = ResourceLoader::CreateImage(pTextureDesc->pFilePath, NULL, NULL);
+		
 		if (!pImage)
 		{
 			return;
 		}
 		freeImage = true;
 	}
-	else if (!pTextureDesc->pFilename && !pTextureDesc->pRawImageData && !pTextureDesc->pBinaryImageData && pTextureDesc->pDesc)
+	else if (!pTextureDesc->pFilePath && !pTextureDesc->pRawImageData && !pTextureDesc->pBinaryImageData && pTextureDesc->pDesc)
 	{
 		// If texture is supposed to be filled later (UAV / Update later / ...) proceed with the mStartState provided by the user in the texture description
 		addTexture(pResourceLoader->pRenderer, pTextureDesc->pDesc, pTextureDesc->ppTexture);
@@ -1146,11 +1168,14 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 		desc.mArraySize *= 6;
 	}
 
-	wchar_t         debugName[MAX_PATH] = {};
-	eastl::string filename = FileSystem::GetFileNameAndExtension(pImage->GetName());
-	mbstowcs(debugName, filename.c_str(), min((size_t)MAX_PATH, filename.size()));
+	wchar_t debugName[MAX_PATH] = {};
 	desc.pDebugName = debugName;
-
+	
+	if (const Path *path = pImage->GetPath()) {
+		PathComponent fileName = fsGetPathFileName(path);
+		mbstowcs(debugName, fileName.buffer, min((size_t)MAX_PATH, fileName.length));
+	}
+   
 	addTexture(pResourceLoader->pRenderer, &desc, pTextureDesc->ppTexture);
 
 	TextureUpdateDescInternal updateDesc = { *pTextureDesc->ppTexture, pImage, freeImage };
@@ -1311,7 +1336,7 @@ shaderc_shader_kind getShadercShaderType(ShaderStage type)
 // Android:
 // Use shaderc to compile glsl to spirV
 void vk_compileShader(
-	Renderer* pRenderer, ShaderStage stage, uint32_t codeSize, const char* code, const eastl::string& outFile, uint32_t macroCount,
+	Renderer* pRenderer, ShaderStage stage, uint32_t codeSize, const char* code, const Path* outFilePath, uint32_t macroCount,
 	ShaderMacro* pMacros, eastl::vector<char>* pByteCode, const char* pEntryPoint)
 {
 	// compile into spir-V shader
@@ -1319,8 +1344,8 @@ void vk_compileShader(
 	shaderc_compile_options_t	 options = shaderc_compile_options_initialize();
 	for (uint32_t i = 0; i < macroCount; ++i)
 	{
-		shaderc_compile_options_add_macro_definition(options, pMacros[i].definition.c_str(), pMacros[i].definition.length(),
-			pMacros[i].value.c_str(), pMacros[i].value.length());
+		shaderc_compile_options_add_macro_definition(options, pMacros[i].definition, strlen(pMacros[i].definition),
+			pMacros[i].value, strlen(pMacros[i].value));
 	}
 	shaderc_compilation_result_t spvShader =
 		shaderc_compile_into_spv(compiler, code, codeSize, getShadercShaderType(stage), "shaderc_error", pEntryPoint ? pEntryPoint : "main", options);
@@ -1344,27 +1369,31 @@ void vk_compileShader(
 // So we call the glslangValidator tool located inside VulkanSDK on user machine to compile the glsl code to spirv
 // This code is not added to Vulkan.cpp since it calls no Vulkan specific functions
 void vk_compileShader(
-	Renderer* pRenderer, ShaderTarget target, const eastl::string& fileName, const eastl::string& outFile, uint32_t macroCount,
+	Renderer* pRenderer, ShaderTarget target, const Path* filePath, const Path* outFilePath, uint32_t macroCount,
 	ShaderMacro* pMacros, eastl::vector<char>* pByteCode, const char* pEntryPoint)
 {
-	if (!FileSystem::DirExists(FileSystem::GetPath(outFile)))
-		FileSystem::CreateDir(FileSystem::GetPath(outFile));
+	PathHandle parentDirectory = fsCopyParentPath(outFilePath);
+	if (!fsFileExists(parentDirectory))
+		fsCreateDirectory(parentDirectory);
 
 	eastl::string                  commandLine;
-	eastl::vector<eastl::string> args;
-	eastl::string                  configFileName;
 
 	// If there is a config file located in the shader source directory use it to specify the limits
-	if (FileSystem::FileExists(FileSystem::GetPath(fileName) + "/config.conf", FSRoot::FSR_Absolute))
+	PathHandle configFilePath = fsAppendPathComponent(filePath, "config.conf");
+	if (fsFileExists(configFilePath))
 	{
-		configFileName = FileSystem::GetPath(fileName) + "/config.conf";
 		// Add command to compile from Vulkan GLSL to Spirv
 		commandLine.append_sprintf(
-			"\"%s\" -V \"%s\" -o \"%s\"", configFileName.size() ? configFileName.c_str() : "", fileName.c_str(), outFile.c_str());
+			"\"%s\" -V \"%s\" -o \"%s\"", 
+			fsGetPathAsNativeString(configFilePath), 
+			fsGetPathAsNativeString(filePath), 
+			fsGetPathAsNativeString(outFilePath));
 	}
 	else
 	{
-		commandLine.append_sprintf("-V \"%s\" -o \"%s\"", fileName.c_str(), outFile.c_str());
+		commandLine.append_sprintf("-V \"%s\" -o \"%s\"", 
+			fsGetPathAsNativeString(filePath),
+			fsGetPathAsNativeString(outFilePath));
 	}
 
 	if (target >= shader_target_6_0)
@@ -1386,39 +1415,43 @@ void vk_compileShader(
 	// Add user defined macros to the command line
 	for (uint32_t i = 0; i < macroCount; ++i)
 	{
-		commandLine += " \"-D" + pMacros[i].definition + "=" + pMacros[i].value + "\"";
+		commandLine += " \"-D" + eastl::string(pMacros[i].definition) + "=" + pMacros[i].value + "\"";
 	}
-	args.push_back(commandLine);
 
 	eastl::string glslangValidator = getenv("VULKAN_SDK");
 	if (glslangValidator.size())
 		glslangValidator += "/bin/glslangValidator";
 	else
 		glslangValidator = "/usr/bin/glslangValidator";
-	if (FileSystem::SystemRun(glslangValidator, args, outFile + "_compile.log") == 0)
-	{
-		File file = {};
-		file.Open(outFile, FileMode::FM_ReadBinary, FSRoot::FSR_Absolute);
-		ASSERT(file.IsOpen());
-		pByteCode->resize(file.GetSize());
-		memcpy(pByteCode->data(), file.ReadText().c_str(), pByteCode->size());
-		file.Close();
+
+	const char* args[1] = { commandLine.c_str() };
+	
+	eastl::string fileName = fsPathComponentToString(fsGetPathFileName(outFilePath));
+	eastl::string logFileName = fileName + "_compile.log";
+	PathHandle logFilePath = fsAppendPathComponent(parentDirectory, logFileName.c_str());
+	if (systemRun(glslangValidator.c_str(), args, 1, logFilePath) == 0)
+	{		
+		FileStream* fh = fsOpenFile(outFilePath, FM_READ_BINARY);
+		//Check if the File Handle exists
+		ASSERT(fh);
+		pByteCode->resize(fsGetStreamFileSize(fh));
+		fsReadFromStream(fh, pByteCode->data(), pByteCode->size());
+		fsCloseStream(fh);
 	}
 	else
 	{
-		File errorFile = {};
-		errorFile.Open(outFile + "_compile.log", FM_ReadBinary, FSR_Absolute);
+		FileStream* fh = fsOpenFile(logFilePath, FM_READ_BINARY);
 		// If for some reason the error file could not be created just log error msg
-		if (!errorFile.IsOpen())
+		if (!fh)
 		{
-			LOGF( LogLevel::eERROR, "Failed to compile shader %s", fileName.c_str());
+			LOGF( LogLevel::eERROR, "Failed to compile shader %s", fsGetPathAsNativeString(filePath));
 		}
 		else
 		{
-			eastl::string errorLog = errorFile.ReadText();
-			LOGF( LogLevel::eERROR, "Failed to compile shader %s with error\n%s", fileName.c_str(), errorLog.c_str());
+			eastl::string errorLog = fsReadFromStreamSTLString(fh);
+			LOGF( LogLevel::eERROR, "Failed to compile shader %s with error\n%s", fsGetPathAsNativeString(filePath), errorLog.c_str());
 		}
-		errorFile.Close();
+		fsCloseStream(fh);
 	}
 }
 #endif
@@ -1426,14 +1459,19 @@ void vk_compileShader(
 // On Metal, on the other hand, we can compile from code into a MTLLibrary, but cannot save this
 // object's bytecode to disk. We instead use the xcbuild bash tool to compile the shaders.
 void mtl_compileShader(
-	Renderer* pRenderer, const eastl::string& fileName, const eastl::string& outFile, uint32_t macroCount, ShaderMacro* pMacros,
+	Renderer* pRenderer, const Path* sourcePath, const Path* outFilePath, uint32_t macroCount, ShaderMacro* pMacros,
 	eastl::vector<char>* pByteCode, const char* /*pEntryPoint*/)
 {
-	if (!FileSystem::DirExists(FileSystem::GetPath(outFile)))
-		FileSystem::CreateDir(FileSystem::GetPath(outFile));
+    
+    PathHandle outFileDirectory = fsCopyParentPath(outFilePath);
+	if (!fsFileExists(outFileDirectory))
+    {
+        fsCreateDirectory(outFileDirectory);
+    }
 
-	eastl::string xcrun = "/usr/bin/xcrun";
-	eastl::string intermediateFile = outFile + ".air";
+    PathHandle intermediateFile = fsAppendPathExtension(outFilePath, "air");
+    
+    const char *xcrun = "/usr/bin/xcrun";
 	eastl::vector<eastl::string> args;
 	eastl::string tmpArg = "";
 
@@ -1442,14 +1480,9 @@ void mtl_compileShader(
 	args.push_back("macosx");
 	args.push_back("metal");
 	args.push_back("-c");
-	tmpArg = eastl::string().sprintf(
-		""
-		"%s"
-		"",
-		fileName.c_str());
-	args.push_back(tmpArg);
+	args.push_back(fsGetPathAsNativeString(sourcePath));
 	args.push_back("-o");
-	args.push_back(intermediateFile.c_str());
+	args.push_back(fsGetPathAsNativeString(intermediateFile));
 
 	//enable the 2 below for shader debugging on xcode
 	//args.push_back("-MO");
@@ -1461,9 +1494,15 @@ void mtl_compileShader(
 	for (uint32_t i = 0; i < macroCount; ++i)
 	{
 		args.push_back("-D");
-		args.push_back(pMacros[i].definition + "=" + pMacros[i].value);
+		args.push_back(eastl::string(pMacros[i].definition) + "=" + pMacros[i].value);
 	}
-	if (FileSystem::SystemRun(xcrun, args, "") == 0)
+    
+    eastl::vector<const char*> cArgs;
+    for (eastl::string& arg : args) {
+        cArgs.push_back(arg.c_str());
+    }
+    
+	if (systemRun(xcrun, &cArgs[0], cArgs.size(), NULL) == 0)
 	{
 		// Create a .metallib file from the .air file.
 		args.clear();
@@ -1471,62 +1510,70 @@ void mtl_compileShader(
 		args.push_back("-sdk");
 		args.push_back("macosx");
 		args.push_back("metallib");
-		args.push_back(intermediateFile.c_str());
+		args.push_back(fsGetPathAsNativeString(intermediateFile));
 		args.push_back("-o");
 		tmpArg = eastl::string().sprintf(
 			""
 			"%s"
 			"",
-			outFile.c_str());
+			fsGetPathAsNativeString(outFilePath));
 		args.push_back(tmpArg);
-		if (FileSystem::SystemRun(xcrun, args, "") == 0)
+        
+        cArgs.clear();
+        for (eastl::string& arg : args) {
+            cArgs.push_back(arg.c_str());
+        }
+        
+		if (systemRun(xcrun, &cArgs[0], cArgs.size(), NULL) == 0)
 		{
 			// Remove the temp .air file.
-			args.clear();
-			args.push_back(intermediateFile.c_str());
-			FileSystem::SystemRun("rm", args, "");
+            const char *nativePath = fsGetPathAsNativeString(intermediateFile);
+			systemRun("rm", &nativePath, 1, NULL);
 
 			// Store the compiled bytecode.
-			File file = {};
-			file.Open(outFile, FileMode::FM_ReadBinary, FSRoot::FSR_Absolute);
-			ASSERT(file.IsOpen());
-			pByteCode->resize(file.GetSize());
-			memcpy(pByteCode->data(), file.ReadText().c_str(), pByteCode->size());
-			file.Close();
+			FileStream* fHandle = fsOpenFile(outFilePath, FM_READ_BINARY);
+			
+			ASSERT(fHandle);
+			pByteCode->resize(fsGetStreamFileSize(fHandle));
+            fsReadFromStream(fHandle, pByteCode->data(), pByteCode->size());
+            fsCloseStream(fHandle);
 		}
 		else
-		{
-			LOGF( LogLevel::eERROR, "Failed to assemble shader's %s .metallib file", fileName.c_str());
-		}
+        {
+			LOGF(eERROR, "Failed to assemble shader's %s .metallib file", fsGetPathFileName(outFilePath));
+        }
 	}
 	else
-	{
-		LOGF( LogLevel::eERROR,"Failed to compile shader %s", fileName.c_str());
-	}
+    {
+		LOGF(eERROR, "Failed to compile shader %s", fsGetPathFileName(outFilePath));
+    }
 }
 #endif
 #if (defined(DIRECT3D12) || defined(DIRECT3D11))
 extern void compileShader(
-	Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code,
+	Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const Path* filePath, uint32_t codeSize, const char* code,
 	uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a, const char *f, int l, const char *sf), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint);
 #endif
 
 // Function to generate the timestamp of this shader source file considering all include file timestamp
-static bool process_source_file(File* original, File* file, time_t& outTimeStamp, eastl::string& outCode)
+static bool process_source_file(FileStream* original, const Path* filePath, FileStream* file, time_t& outTimeStamp, eastl::string& outCode)
 {
 	// If the source if a non-packaged file, store the timestamp
 	if (file)
 	{
-		eastl::string fullName = file->GetName();
-		time_t          fileTimeStamp = FileSystem::GetLastModifiedTime(fullName);
+        time_t fileTimeStamp = fsGetLastModifiedTime(filePath);
+
 		if (fileTimeStamp > outTimeStamp)
 			outTimeStamp = fileTimeStamp;
 	}
+    
+    PathHandle fileDirectory = fsCopyParentPath(filePath);
 
 	const eastl::string pIncludeDirective = "#include";
-	while (!file->IsEof())
+	while (!fsStreamAtEnd(file))
 	{
-		eastl::string line = file->ReadLine();
+        eastl::string line = fsReadFromStreamSTLLine(file);
+        
 		size_t        filePos = line.find(pIncludeDirective, 0);
 		const size_t  commentPosCpp = line.find("//", 0);
 		const size_t  commentPosC = line.find("/*", 0);
@@ -1558,27 +1605,29 @@ static bool process_source_file(File* original, File* file, time_t& outTimeStamp
 			}
 
 			// get the include file path
-			eastl::string includeFileName = FileSystem::GetPath(file->GetName()) + fileName;
-			if (FileSystem::GetFileName(includeFileName).at(0) == '<')    // disregard bracketsauthop
-				continue;
+			//TODO: Remove Comments
+            
+            if (fileName.at(0) == '<')    // disregard bracketsauthop
+                continue;
+            
+            PathHandle includeFilePath = fsAppendPathComponent(fileDirectory, fileName.c_str());
 
 			// open the include file
-			File includeFile = {};
-			includeFile.Open(includeFileName, FM_ReadBinary, FSR_Absolute);
-			if (!includeFile.IsOpen())
+            FileStream* fHandle = fsOpenFile(includeFilePath, FM_READ_BINARY);
+			if (!fHandle)
 			{
-				LOGF(LogLevel::eERROR, "Cannot open #include file: %s", includeFileName.c_str());
+				LOGF(LogLevel::eERROR, "Cannot open #include file: %s", fsGetPathAsNativeString(filePath));
 				return false;
 			}
 
 			// Add the include file into the current code recursively
-			if (!process_source_file(original, &includeFile, outTimeStamp, outCode))
+			if (!process_source_file(original, includeFilePath, fHandle, outTimeStamp, outCode))
 			{
-				includeFile.Close();
+                fsCloseStream(fHandle);
 				return false;
 			}
 
-			includeFile.Close();
+            fsCloseStream(fHandle);
 		}
 
 #ifdef TARGET_IOS
@@ -1609,84 +1658,87 @@ static bool process_source_file(File* original, File* file, time_t& outTimeStamp
 }
 
 // Loads the bytecode from file if the binary shader file is newer than the source
-bool check_for_byte_code(const eastl::string& binaryShaderName, time_t sourceTimeStamp, eastl::vector<char>& byteCode)
+bool check_for_byte_code(const Path* binaryShaderPath, time_t sourceTimeStamp, eastl::vector<char>& byteCode)
 {
-	if (!FileSystem::FileExists(binaryShaderName, FSR_Absolute))
+	if (!fsFileExists(binaryShaderPath))
 		return false;
 
 	// If source code is loaded from a package, its timestamp will be zero. Else check that binary is not older
 	// than source
-	if (sourceTimeStamp && FileSystem::GetLastModifiedTime(binaryShaderName) < sourceTimeStamp)
+	if (sourceTimeStamp && fsGetLastModifiedTime(binaryShaderPath) < sourceTimeStamp)
 		return false;
 
-	File file = {};
-	file.Open(binaryShaderName, FM_ReadBinary, FSR_Absolute);
-	if (!file.IsOpen())
+    FileStream* fh = fsOpenFile(binaryShaderPath, FM_READ_BINARY);
+	if (!fh)
 	{
-		LOGF(LogLevel::eERROR, (binaryShaderName + " is not a valid shader bytecode file").c_str());
+		LOGF(LogLevel::eERROR, (eastl::string(fsGetPathAsNativeString(binaryShaderPath)) + " is not a valid shader bytecode file").c_str());
 		return false;
 	}
-
-	byteCode.resize(file.GetSize());
-	memcpy(byteCode.data(), file.ReadText().c_str(), byteCode.size());
+    
+    ssize_t size = fsGetStreamFileSize(fh);
+	byteCode.resize(fsGetStreamFileSize(fh));
+    fsReadFromStream(fh, byteCode.data(), size);
+    fsCloseStream(fh);
+    
 	return true;
 }
 
 // Saves bytecode to a file
-bool save_byte_code(const eastl::string& binaryShaderName, const eastl::vector<char>& byteCode)
+bool save_byte_code(const Path* binaryShaderPath, const eastl::vector<char>& byteCode)
 {
-	eastl::string path = FileSystem::GetPath(binaryShaderName);
-	if (!FileSystem::DirExists(path))
-		FileSystem::CreateDir(path);
-
-	File outFile = {};
-	outFile.Open(binaryShaderName, FM_WriteBinary, FSR_Absolute);
-
-	if (!outFile.IsOpen())
+    PathHandle parentDirectory = fsCopyParentPath(binaryShaderPath);
+	if (!fsFileExists(parentDirectory))
+    {
+        fsCreateDirectory(parentDirectory);
+    }
+    
+    FileStream* fh = fsOpenFile(binaryShaderPath, FM_WRITE_BINARY);
+    
+	if (!fh)
 		return false;
 
-	outFile.Write(byteCode.data(), (uint32_t)byteCode.size() * sizeof(char));
-	outFile.Close();
+    fsWriteToStream(fh, byteCode.data(), byteCode.size() * sizeof(char));
+    fsCloseStream(fh);
 
 	return true;
 }
 
 bool load_shader_stage_byte_code(
-	Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const char* fileName, FSRoot root, uint32_t macroCount,
+	Renderer* pRenderer, ShaderTarget target, ShaderStage stage, const Path* filePath, uint32_t macroCount,
 	ShaderMacro* pMacros, eastl::vector<char>& byteCode,
 	const char* pEntryPoint)
 {
-	File            shaderSource = {};
 	eastl::string code;
 	time_t          timeStamp = 0;
 
 #ifndef METAL
-	const char* shaderName = fileName;
+	FileStream* fh = fsOpenFile(filePath, FM_READ_BINARY);
+	ASSERT(fh);
+
+	if (!process_source_file(fh, filePath, fh, timeStamp, code))
+		return false;
 #else
-	// Metal shader files need to have the .metal extension.
-	eastl::string metalShaderName = eastl::string(fileName) + ".metal";
-	const char* shaderName = metalShaderName.c_str();
+	PathHandle metalShaderPath = fsAppendPathExtension(filePath, "metal");
+	FileStream* fh = fsOpenFile(metalShaderPath, FM_READ_BINARY);
+	ASSERT(fh);
+
+	if (!process_source_file(fh, metalShaderPath, fh, timeStamp, code))
+		return false;
 #endif
 
-	shaderSource.Open(shaderName, FM_ReadBinary, root);
-	ASSERT(shaderSource.IsOpen());
-
-	if (!process_source_file(&shaderSource, &shaderSource, timeStamp, code))
-		return false;
-
-	eastl::string name, extension, path;
-	FileSystem::SplitPath(fileName, &path, &name, &extension);
+	PathComponent directoryPath, fileName, extension;
+    fsGetPathComponents(filePath, &directoryPath, &fileName, &extension);
 	eastl::string shaderDefines;
 	// Apply user specified macros
 	for (uint32_t i = 0; i < macroCount; ++i)
 	{
-		shaderDefines += (pMacros[i].definition + pMacros[i].value);
+		shaderDefines += (eastl::string(pMacros[i].definition) + pMacros[i].value);
 	}
 
 #if 0    //#ifdef _DURANGO
 	// Using Durango application data storage requires appmanifest(from application) changes.
-	eastl::string binaryShaderName = FileSystem::GetAppPreferencesDir(NULL,NULL) + "/" + pRenderer->pName + "/CompiledShadersBinary/" +
-		FileSystem::GetFileName(fileName) + eastl::string().sprintf("_%zu", eastl::hash(shaderDefines)) + extension + ".bin";
+	eastl::string binaryShaderName = FileUtilities::GetAppPreferencesDir(NULL,NULL) + "/" + pRenderer->pName + "/CompiledShadersBinary/" +
+		FileUtilities::GetFileName(fileName) + eastl::string().sprintf("_%zu", eastl::hash(shaderDefines)) + extension + ".bin";
 #else
 	eastl::string rendererApi;
 	switch (pRenderer->mSettings.mApi)
@@ -1706,25 +1758,28 @@ bool load_shader_stage_byte_code(
 	appName = appName != pRenderer->pName ? appName : appName + "_";
 #endif
 
-	eastl::string binaryShaderName = FileSystem::GetProgramDir() + "/" + appName + eastl::string("/Shaders/") + rendererApi +
-									 eastl::string().sprintf("/CompiledShadersBinary/") + FileSystem::GetFileName(fileName) +
-									 eastl::string().sprintf("_%zu", eastl::string_hash<eastl::string>()(shaderDefines)) + extension +
+    eastl::string binaryShaderComponent = appName + eastl::string("/Shaders/") + rendererApi +
+                                     eastl::string("/CompiledShadersBinary/") + fsPathComponentToString(fileName) +
+									 eastl::string().sprintf("_%zu", eastl::string_hash<eastl::string>()(shaderDefines)) + fsPathComponentToString(extension) +
 									 eastl::string().sprintf("%u", target) + ".bin";
+    
+    PathHandle programDirectory = fsCopyProgramDirectoryPath();
+    PathHandle binaryShaderPath = fsAppendPathComponent(programDirectory, binaryShaderComponent.c_str());
 #endif
 
 	// Shader source is newer than binary
-	if (!check_for_byte_code(binaryShaderName, timeStamp, byteCode))
+	if (!check_for_byte_code(binaryShaderPath, timeStamp, byteCode))
 	{
 		if (pRenderer->mSettings.mApi == RENDERER_API_METAL || pRenderer->mSettings.mApi == RENDERER_API_VULKAN)
 		{
 #if defined(VULKAN)
 #if defined(__ANDROID__)
-			vk_compileShader(pRenderer, stage, (uint32_t)code.size(), code.c_str(), binaryShaderName, macroCount, pMacros, &byteCode, pEntryPoint);
+			vk_compileShader(pRenderer, stage, (uint32_t)code.size(), code.c_str(), binaryShaderPath, macroCount, pMacros, &byteCode, pEntryPoint);
 #else
-			vk_compileShader(pRenderer, target, shaderSource.GetName(), binaryShaderName, macroCount, pMacros, &byteCode, pEntryPoint);
+			vk_compileShader(pRenderer, target, filePath, binaryShaderPath, macroCount, pMacros, &byteCode, pEntryPoint);
 #endif
 #elif defined(METAL)
-			mtl_compileShader(pRenderer, shaderSource.GetName(), binaryShaderName, macroCount, pMacros, &byteCode, pEntryPoint);
+			mtl_compileShader(pRenderer, metalShaderPath, binaryShaderPath, macroCount, pMacros, &byteCode, pEntryPoint);
 #endif
 		}
 		else
@@ -1732,72 +1787,57 @@ bool load_shader_stage_byte_code(
 #if defined(DIRECT3D12) || defined(DIRECT3D11)
 			char*    pByteCode = NULL;
 			uint32_t byteCodeSize = 0;
+
 			compileShader(
-				pRenderer, target, stage, shaderSource.GetName().c_str(), (uint32_t)code.size(), code.c_str(), macroCount, pMacros, conf_malloc_internal,
+				pRenderer, target, stage, filePath, (uint32_t)code.size(), code.c_str(), macroCount, pMacros, conf_malloc_internal,
 				&byteCodeSize, &pByteCode, pEntryPoint);
 			byteCode.resize(byteCodeSize);
+
 			memcpy(byteCode.data(), pByteCode, byteCodeSize);
 			conf_free(pByteCode);
-			if (!save_byte_code(binaryShaderName, byteCode))
+			if (!save_byte_code(binaryShaderPath, byteCode))
 			{
-				const char* shaderName = shaderSource.GetName().c_str();
+				const char* shaderName = fsGetPathFileName(filePath).buffer;
 				LOGF(LogLevel::eWARNING, "Failed to save byte code for file %s", shaderName);
 			}
 #endif
 		}
 		if (!byteCode.size())
 		{
-			LOGF( LogLevel::eERROR, "Error while generating bytecode for shader %s", fileName);
-			shaderSource.Close();
+			LOGF(eERROR, "Error while generating bytecode for shader %s", fileName);
+            fsCloseStream(fh);
 			return false;
 		}
 	}
-
-	shaderSource.Close();
+	
+    fsCloseStream(fh);
 	return true;
 }
 #ifdef TARGET_IOS
-bool find_shader_stage(const eastl::string& fileName, ShaderDesc* pDesc, ShaderStageDesc** pOutStage, ShaderStage* pStage)
+bool find_shader_stage(const Path* filePath, ShaderDesc* pDesc, ShaderStageDesc** pOutStage, ShaderStage* pStage)
 {
-	eastl::string ext = FileSystem::GetExtension(fileName);
-	if (ext == ".vert")
+    const PathComponent extension = fsGetPathExtension(filePath);
+	if (stricmp(extension.buffer, "vert") == 0)
 	{
 		*pOutStage = &pDesc->mVert;
 		*pStage = SHADER_STAGE_VERT;
 	}
-	else if (ext == ".frag")
+	else if (stricmp(extension.buffer, "frag") == 0)
 	{
 		*pOutStage = &pDesc->mFrag;
 		*pStage = SHADER_STAGE_FRAG;
 	}
-#ifndef METAL
-	else if (ext == ".tesc")
-	{
-		*pOutStage = &pDesc->mHull;
-		*pStage = SHADER_STAGE_HULL;
-	}
-	else if (ext == ".tese")
-	{
-		*pOutStage = &pDesc->mDomain;
-		*pStage = SHADER_STAGE_DOMN;
-	}
-	else if (ext == ".geom")
-	{
-		*pOutStage = &pDesc->mGeom;
-		*pStage = SHADER_STAGE_GEOM;
-	}
-#endif
-	else if (ext == ".comp")
+	else if (stricmp(extension.buffer, "comp") == 0)
 	{
 		*pOutStage = &pDesc->mComp;
 		*pStage = SHADER_STAGE_COMP;
 	}
-    else if ((ext == ".rgen")    ||
-             (ext == ".rmiss")    ||
-             (ext == ".rchit")    ||
-             (ext == ".rint")    ||
-             (ext == ".rahit")    ||
-             (ext == ".rcall"))
+    else if ((stricmp(extension.buffer, "rgen") == 0)    ||
+             (stricmp(extension.buffer, "rmiss") == 0)    ||
+             (stricmp(extension.buffer, "rchit") == 0)    ||
+             (stricmp(extension.buffer, "rint") == 0)    ||
+             (stricmp(extension.buffer, "rahit") == 0)    ||
+             (stricmp(extension.buffer, "rcall") == 0))
     {
         *pOutStage = &pDesc->mComp;
         *pStage = SHADER_STAGE_COMP;
@@ -1811,47 +1851,47 @@ bool find_shader_stage(const eastl::string& fileName, ShaderDesc* pDesc, ShaderS
 }
 #else
 bool find_shader_stage(
-	const eastl::string& fileName, BinaryShaderDesc* pBinaryDesc, BinaryShaderStageDesc** pOutStage, ShaderStage* pStage)
+	const Path* filePath, BinaryShaderDesc* pBinaryDesc, BinaryShaderStageDesc** pOutStage, ShaderStage* pStage)
 {
-	eastl::string ext = FileSystem::GetExtension(fileName);
-	if (ext == ".vert")
+    const PathComponent extension = fsGetPathExtension(filePath);
+	if (stricmp(extension.buffer, "vert") == 0)
 	{
 		*pOutStage = &pBinaryDesc->mVert;
 		*pStage = SHADER_STAGE_VERT;
 	}
-	else if (ext == ".frag")
+	else if (stricmp(extension.buffer, "frag") == 0)
 	{
 		*pOutStage = &pBinaryDesc->mFrag;
 		*pStage = SHADER_STAGE_FRAG;
 	}
 #ifndef METAL
-	else if (ext == ".tesc")
+	else if (stricmp(extension.buffer, "tesc") == 0)
 	{
 		*pOutStage = &pBinaryDesc->mHull;
 		*pStage = SHADER_STAGE_HULL;
 	}
-	else if (ext == ".tese")
+	else if (stricmp(extension.buffer, "tese") == 0)
 	{
 		*pOutStage = &pBinaryDesc->mDomain;
 		*pStage = SHADER_STAGE_DOMN;
 	}
-	else if (ext == ".geom")
+	else if (stricmp(extension.buffer, "geom") == 0)
 	{
 		*pOutStage = &pBinaryDesc->mGeom;
 		*pStage = SHADER_STAGE_GEOM;
 	}
 #endif
-	else if (ext == ".comp")
+	else if (stricmp(extension.buffer, "comp") == 0)
 	{
 		*pOutStage = &pBinaryDesc->mComp;
 		*pStage = SHADER_STAGE_COMP;
 	}
-    else if ((ext == ".rgen")    ||
-             (ext == ".rmiss")    ||
-             (ext == ".rchit")    ||
-             (ext == ".rint")    ||
-             (ext == ".rahit")    ||
-             (ext == ".rcall"))
+    else if ((stricmp(extension.buffer, "rgen") == 0)    ||
+             (stricmp(extension.buffer, "rmiss") == 0)    ||
+             (stricmp(extension.buffer, "rchit") == 0)    ||
+             (stricmp(extension.buffer, "rint") == 0)    ||
+             (stricmp(extension.buffer, "rahit") == 0)    ||
+             (stricmp(extension.buffer, "rcall") == 0))
     {
 #ifndef METAL
         *pOutStage = &pBinaryDesc->mComp;
@@ -1880,98 +1920,126 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 	}
 
 #ifndef TARGET_IOS
+    
 	BinaryShaderDesc      binaryDesc = {};
 	eastl::vector<char> byteCodes[SHADER_STAGE_COUNT] = {};
+#if defined(METAL)
+	char* pSources[SHADER_STAGE_COUNT] = {};
+#endif
 	for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
 	{
-		const RendererShaderDefinesDesc rendererDefinesDesc = get_renderer_shaderdefines(pRenderer);
-
-		if (pDesc->mStages[i].mFileName.size() != 0)
+		if (pDesc->mStages[i].pFileName && strlen(pDesc->mStages[i].pFileName) != 0)
 		{
-			eastl::string filename = pDesc->mStages[i].mFileName;
-			// For absolute path, ignore the shader root path
-			if (pDesc->mStages[i].mRoot != FSR_SrcShaders && pDesc->mStages[i].mRoot != FSR_Absolute)
-				filename = FileSystem::GetRootPath(FSR_SrcShaders) + filename;
+            ResourceDirectory resourceDir = pDesc->mStages[i].mRoot;
+			
+			PathHandle resourceDirBasePath = fsCopyPathForResourceDirectory(resourceDir);
+            
+            if (resourceDir != RD_SHADER_SOURCES && resourceDir != RD_ROOT) {
+				resourceDirBasePath = fsAppendPathComponent(resourceDirBasePath, fsGetDefaultRelativePathForResourceDirectory(RD_SHADER_SOURCES));
+            }
+			
+            PathHandle filePath = fsAppendPathComponent(resourceDirBasePath, pDesc->mStages[i].pFileName);
 
 			ShaderStage            stage;
 			BinaryShaderStageDesc* pStage = NULL;
-			if (find_shader_stage(filename, &binaryDesc, &pStage, &stage))
+			if (find_shader_stage(filePath, &binaryDesc, &pStage, &stage))
 			{
-				const uint32_t macroCount = pDesc->mStages[i].mMacroCount + rendererDefinesDesc.rendererShaderDefinesCnt;
+				const uint32_t macroCount = pDesc->mStages[i].mMacroCount + pRenderer->mBuiltinShaderDefinesCount;
 				eastl::vector<ShaderMacro> macros(macroCount);
-				for (uint32_t macro = 0; macro < rendererDefinesDesc.rendererShaderDefinesCnt; ++macro)
-					macros[macro] = rendererDefinesDesc.rendererShaderDefines[macro];
+				for (uint32_t macro = 0; macro < pRenderer->mBuiltinShaderDefinesCount; ++macro)
+					macros[macro] = pRenderer->pBuiltinShaderDefines[macro];
 				for (uint32_t macro = 0; macro < pDesc->mStages[i].mMacroCount; ++macro)
-					macros[rendererDefinesDesc.rendererShaderDefinesCnt + macro] = pDesc->mStages[i].pMacros[macro];
+					macros[pRenderer->mBuiltinShaderDefinesCount + macro] = pDesc->mStages[i].pMacros[macro];
 
 				if (!load_shader_stage_byte_code(
-						pRenderer, pDesc->mTarget, stage, filename.c_str(), pDesc->mStages[i].mRoot, macroCount, macros.data(),
-						byteCodes[i], pDesc->mStages[i].mEntryPointName))
+						pRenderer, pDesc->mTarget, stage, filePath, macroCount, macros.data(),
+						byteCodes[i], pDesc->mStages[i].pEntryPointName))
 					return;
 
 				binaryDesc.mStages |= stage;
 				pStage->pByteCode = byteCodes[i].data();
 				pStage->mByteCodeSize = (uint32_t)byteCodes[i].size();
 #if defined(METAL)
-                if (pDesc->mStages[i].mEntryPointName)
-                    pStage->mEntryPoint = pDesc->mStages[i].mEntryPointName;
+                if (pDesc->mStages[i].pEntryPointName)
+                    pStage->pEntryPoint = pDesc->mStages[i].pEntryPointName;
                 else
-                    pStage->mEntryPoint = "stageMain";
-				// In metal, we need the shader source for our reflection system.
-				File metalFile = {};
-				metalFile.Open(filename + ".metal", FM_ReadBinary, pDesc->mStages[i].mRoot);
-				pStage->mSource = metalFile.ReadText();
-				metalFile.Close();
+                    pStage->pEntryPoint = "stageMain";
+
+                PathHandle metalFilePath = fsAppendPathExtension(filePath, "metal");
+                
+                FileStream* fh = fsOpenFile(metalFilePath, FM_READ_BINARY);
+                size_t metalFileSize = fsGetStreamFileSize(fh);
+                pSources[i] = (char*)conf_malloc(metalFileSize);
+                pStage->pSource = pSources[i];
+                pStage->mSourceSize = (uint32_t)metalFileSize;
+                fsReadFromStream(fh, pSources[i], metalFileSize);
+                fsCloseStream(fh);
 #else
-				if (pDesc->mStages[i].mEntryPointName)
-					pStage->mEntryPoint = pDesc->mStages[i].mEntryPointName;
+				if (pDesc->mStages[i].pEntryPointName)
+					pStage->pEntryPoint = pDesc->mStages[i].pEntryPointName;
 				else
-					pStage->mEntryPoint = "main";
+					pStage->pEntryPoint = "main";
 #endif
 			}
 		}
 	}
 
 	addShaderBinary(pRenderer, &binaryDesc, ppShader);
+	
+#if defined(METAL)
+	for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
+	{
+		if (pSources[i])
+			conf_free(pSources[i]);
+	}
+#endif
 #else
 	// Binary shaders are not supported on iOS.
 	ShaderDesc desc = {};
+	eastl::string codes[SHADER_STAGE_COUNT] = {};
+	ShaderMacro* pMacros[SHADER_STAGE_COUNT] = {};
 	for (uint32_t i = 0; i < SHADER_STAGE_COUNT; ++i)
 	{
-		const RendererShaderDefinesDesc rendererDefinesDesc = get_renderer_shaderdefines(pRenderer);
-
-		if (pDesc->mStages[i].mFileName.size() > 0)
+		if (pDesc->mStages[i].pFileName && strlen(pDesc->mStages[i].pFileName))
 		{
-			eastl::string filename = pDesc->mStages[i].mFileName;
-			if (pDesc->mStages[i].mRoot != FSR_SrcShaders)
-				filename = FileSystem::GetRootPath(FSR_SrcShaders) + filename;
+            ResourceDirectory resourceDir = pDesc->mStages[i].mRoot;
+            
+            PathHandle resourceDirBasePath = fsCopyPathForResourceDirectory(resourceDir);
+            
+            if (resourceDir != RD_SHADER_SOURCES && resourceDir != RD_ROOT) {
+                resourceDirBasePath = fsAppendPathComponent(resourceDirBasePath, fsGetDefaultRelativePathForResourceDirectory(RD_SHADER_SOURCES));
+            }
+            
+            PathHandle filePath = fsAppendPathComponent(resourceDirBasePath, pDesc->mStages[i].pFileName);
 
 			ShaderStage stage;
 			ShaderStageDesc* pStage = NULL;
-			if (find_shader_stage(filename, &desc, &pStage, &stage))
+			if (find_shader_stage(filePath, &desc, &pStage, &stage))
 			{
-				File shaderSource = {};
-				shaderSource.Open(filename + ".metal", FM_ReadBinary, pDesc->mStages[i].mRoot);
-				ASSERT(shaderSource.IsOpen());
+                PathHandle metalFilePath = fsAppendPathExtension(filePath, "metal");
+                FileStream* fh = fsOpenFile(metalFilePath, FM_READ_BINARY);
+				ASSERT(fh);
 
-				pStage->mName = pDesc->mStages[i].mFileName;
+				pStage->pName = pDesc->mStages[i].pFileName;
 				time_t timestamp = 0;
-				process_source_file(&shaderSource, &shaderSource, timestamp, pStage->mCode);
-                if (pDesc->mStages[i].mEntryPointName)
-                    pStage->mEntryPoint = pDesc->mStages[i].mEntryPointName;
+                process_source_file(fh, metalFilePath, fh, timestamp, codes[i]);
+                pStage->pCode = codes[i].c_str();
+                if (pDesc->mStages[i].pEntryPointName)
+                    pStage->pEntryPoint = pDesc->mStages[i].pEntryPointName;
                 else
-                    pStage->mEntryPoint = "stageMain";
+                    pStage->pEntryPoint = "stageMain";
 				// Apply user specified shader macros
+				pStage->mMacroCount = pDesc->mStages[i].mMacroCount + pRenderer->mBuiltinShaderDefinesCount;
+				pMacros[i] = (ShaderMacro*)alloca(pStage->mMacroCount * sizeof(ShaderMacro));
+				pStage->pMacros = pMacros[i];
 				for (uint32_t j = 0; j < pDesc->mStages[i].mMacroCount; j++)
-				{
-					pStage->mMacros.push_back(pDesc->mStages[i].pMacros[j]);
-				}
+					pMacros[i][j] = pDesc->mStages[i].pMacros[j];
 				// Apply renderer specified shader macros
-				for (uint32_t j = 0; j < rendererDefinesDesc.rendererShaderDefinesCnt; j++)
+				for (uint32_t j = 0; j < pRenderer->mBuiltinShaderDefinesCount; j++)
 				{
-					pStage->mMacros.push_back(rendererDefinesDesc.rendererShaderDefines[j]);
+                    pMacros[i][pDesc->mStages[i].mMacroCount + j] = pRenderer->pBuiltinShaderDefines[j];
 				}
-				shaderSource.Close();
+                fsCloseStream(fh);
 				desc.mStages |= stage;
 			}
 		}

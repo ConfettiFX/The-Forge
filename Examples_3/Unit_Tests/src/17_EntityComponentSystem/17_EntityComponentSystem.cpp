@@ -29,6 +29,13 @@
 
 // ECS
 #include "../../../../Middleware_3/ECS/EntityManager.h"
+#include "../../../../Middleware_3/ECS/ComponentRepresentation.h"
+
+// REPRESENTATIONS
+#include "../17_EntityComponentSystem/Representations/WorldBoundsRepresentation.h"
+#include "../17_EntityComponentSystem/Representations/PositionRepresentation.h"
+#include "../17_EntityComponentSystem/Representations/SpriteRepresentation.h"
+#include "../17_EntityComponentSystem/Representations/MoveRepresentation.h"
 
 // COMPONENTS
 #include "../17_EntityComponentSystem/Components/WorldBoundsComponent.h"
@@ -106,20 +113,6 @@ uint        gDrawSpriteCount = 0;
 /// UI
 UIApp gAppUI;
 
-const char* pszBases[FSR_Count] = {
-	"../../../src/17_EntityComponentSystem/",    // FSR_BinShaders
-	"../../../src/17_EntityComponentSystem/",    // FSR_SrcShaders
-	"../../../UnitTestResources/",               // FSR_Textures
-	"../../../UnitTestResources/",               // FSR_Meshes
-	"../../../UnitTestResources/",               // FSR_Builtin_Fonts
-	"../../../src/17_EntityComponentSystem/",    // FSR_GpuConfig
-	"",                                          // FSR_Animation
-	"",                                          // FSR_Audio
-	"../../../src/17_EntityComponentSystem/",    // FSR_OtherFiles - mentioned entities directory
-	"../../../../../Middleware_3/Text/",         // FSR_MIDDLEWARE_TEXT
-	"../../../../../Middleware_3/UI/",           // FSR_MIDDLEWARE_UI
-};
-
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 // Based on: https://github.com/aras-p/dod-playground
@@ -138,7 +131,6 @@ static Entity* worldBoundsEntity;
 static Entity* spriteEntities[SpriteEntityCount];
 static Entity* avoidEntities[AvoidCount];
 
-File* pFileSystem			  = nullptr;
 EntityManager* pEntityManager = nullptr;
 
 ThreadSystem* pThreadSystem = nullptr;
@@ -239,17 +231,30 @@ static float DistanceSq(const PositionComponent& a, const PositionComponent& b)
 struct AvoidanceSystem
 {
 	static eastl::vector<float>    avoidDistanceList;
-	eastl::vector<Entity*>		   avoidList;
 
 	Mutex emplaceMutex;
+	
+	bool init()
+	{
+		return emplaceMutex.Init();
+	}
+	
+	void exit()
+	{
+		emplaceMutex.Destroy();
+	}
 
 	void addAvoidThisObjectToSystem(Entity* entity, float distance)
 	{
 		{
 			MutexLock lock(emplaceMutex);
-			avoidList.emplace_back(entity);
 			avoidDistanceList.emplace_back(distance * distance);
 		}
+	}
+
+	static void removeAllObjects()
+	{
+		avoidDistanceList.set_capacity(0);
 	}
 
 	static void resolveCollision(Entity* pEntity, float deltaTime)
@@ -319,8 +324,8 @@ struct AvoidanceSystem
 
 eastl::vector<float>    AvoidanceSystem::avoidDistanceList;
 
-static MoveSystem      moveSystem;
-static AvoidanceSystem avoidanceSystem;
+static MoveSystem*      pMoveSystem;
+static AvoidanceSystem* pAvoidanceSystem;
 
 struct CreationData
 {
@@ -359,7 +364,7 @@ static void createEntities(void* pData, uintptr_t i)
 		sprite = &( pEntityManager->addComponentToEntity<SpriteComponent>(entityId) );
 
 	if (strcmp(data.entityTypeName, "avoid")) {
-		avoidanceSystem.addAvoidThisObjectToSystem((data.entities)[i], 1.3f);
+		pAvoidanceSystem->addAvoidThisObjectToSystem((data.entities)[i], 1.3f);
 		
 		sprite->colorR = 1.0f;
 		sprite->colorG = 1.0f;
@@ -383,8 +388,28 @@ class EntityComponentSystem: public IApp
 	public:
 	bool Init()
 	{
+        // FILE PATHS
+        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        if (!fsPlatformUsesBundledResources())
+        {
+            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/17_EntityComponentSystem");
+            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            
+            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../UnitTestResources/Textures");
+            fsSetRelativePathForResourceDirectory(RD_MESHES,          "../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
+        }
+        
+
+		SpriteComponentRepresentation::BUILD_VAR_REPRESENTATIONS();
+		MoveComponentRepresentation::BUILD_VAR_REPRESENTATIONS();
+		PositionComponentRepresentation::BUILD_VAR_REPRESENTATIONS();
+		WorldBoundsComponentRepresentation::BUILD_VAR_REPRESENTATIONS();
+
 		pEntityManager = conf_new(EntityManager);
-		pFileSystem	   = conf_new(File);
 
 		// window and renderer setup
 		RendererDesc settings = { 0 };
@@ -408,10 +433,10 @@ class EntityComponentSystem: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-    if (!gAppUI.Init(pRenderer))
-      return false;
+		if (!gAppUI.Init(pRenderer))
+		  return false;
 
-    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
 		initProfiler();
 
@@ -419,8 +444,8 @@ class EntityComponentSystem: public IApp
 
 		// TODO: rename to sprite
 		ShaderLoadDesc spriteShader = {};
-		spriteShader.mStages[0] = { "basic.vert", NULL, 0, FSR_SrcShaders };
-		spriteShader.mStages[1] = { "basic.frag", NULL, 0, FSR_SrcShaders };
+		spriteShader.mStages[0] = { "basic.vert", NULL, 0, RD_SHADER_SOURCES };
+		spriteShader.mStages[1] = { "basic.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		addShader(pRenderer, &spriteShader, &pSpriteShader);
 
@@ -495,10 +520,10 @@ class EntityComponentSystem: public IApp
 		addResource(&spriteIBDesc);
 
 		// Sprites texture
+        PathHandle spritesPath = fsCopyPathInResourceDirectory(RD_TEXTURES, "sprites");
 		TextureLoadDesc textureDesc = {};
-		textureDesc.mRoot = FSR_Textures;
 		textureDesc.ppTexture = &pSpriteTexture;
-		textureDesc.pFilename = "sprites";
+		textureDesc.pFilePath = spritesPath;
 		addResource(&textureDesc);
 
 		finishResourceLoading();
@@ -519,9 +544,9 @@ class EntityComponentSystem: public IApp
 		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 16 };
 
 		float   dpiScale = getDpiScale().x;
-		vec2    UIPosition = { mSettings.mWidth * 0.01f, mSettings.mHeight * 0.5f };
-		vec2    UIPanelSize = vec2(650.f, 1000.f) / dpiScale;
-		GuiDesc guiDesc2(UIPosition, UIPanelSize, UIPanelWindowTitleTextDesc);
+		vec2    UIPanelSize = vec2(650.f, 1000.f);
+		GuiDesc guiDesc2({}, UIPanelSize, UIPanelWindowTitleTextDesc);
+		guiDesc2.mStartPosition = vec2(0.0f, mSettings.mHeight / dpiScale - guiDesc.mStartSize.getY() * 0.5f);
 		GUIWindow = gAppUI.AddGuiComponent("MultiThread", &guiDesc2);
 		
 		CheckboxWidget Checkbox("Threading", &multiThread);
@@ -529,6 +554,11 @@ class EntityComponentSystem: public IApp
 
 
 		// Create entities
+		pAvoidanceSystem = conf_new(AvoidanceSystem);
+		pAvoidanceSystem->init();
+		
+		pMoveSystem = conf_new(MoveSystem);
+
 		EntityId worldBoundsEntityId = pEntityManager->createEntity();
 		worldBoundsEntity = pEntityManager->getEntityById(worldBoundsEntityId);
 		WorldBoundsComponent* bounds = &(pEntityManager->addComponentToEntity<WorldBoundsComponent>(worldBoundsEntityId));
@@ -606,8 +636,11 @@ class EntityComponentSystem: public IApp
 
 		shutdownThreadSystem(pThreadSystem);
 		
+		pAvoidanceSystem->exit();
+		conf_delete(pAvoidanceSystem);
+		conf_delete(pMoveSystem);
+		
 		conf_delete(pEntityManager);
-		conf_delete(pFileSystem);
 
 		waitQueueIdle(pGraphicsQueue);
 
@@ -649,6 +682,12 @@ class EntityComponentSystem: public IApp
 
 		conf_free(gSpriteData);
 		gSpriteData = NULL;
+
+		AvoidanceSystem::removeAllObjects();
+		SpriteComponentRepresentation::DESTROY_VAR_REPRESENTATIONS();
+		MoveComponentRepresentation::DESTROY_VAR_REPRESENTATIONS();
+		PositionComponentRepresentation::DESTROY_VAR_REPRESENTATIONS();
+		WorldBoundsComponentRepresentation::DESTROY_VAR_REPRESENTATIONS();
 	}
 
 	bool Load()
@@ -702,8 +741,8 @@ class EntityComponentSystem: public IApp
 		currentTime += deltaTime * 1000.0f;
 
 		// update object systems
-		moveSystem.Update(deltaTime * 3.0f);
-		avoidanceSystem.Update(deltaTime * 3.0f);
+		pMoveSystem->Update(deltaTime * 3.0f);
+		pAvoidanceSystem->Update(deltaTime * 3.0f);
 
 		// Iterate all entities with transform and plane component
 		gDrawSpriteCount = 0;

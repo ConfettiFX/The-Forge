@@ -41,12 +41,11 @@
 #if defined(VULKAN)
 #if defined(_WIN32)
 #define VK_USE_PLATFORM_WIN32_KHR
-#endif
-#if defined(__ANDROID__)
+#elif defined(__ANDROID__)
 #ifndef VK_USE_PLATFORM_ANDROID_KHR
 #define VK_USE_PLATFORM_ANDROID_KHR
 #endif
-#elif defined(__linux__)
+#elif defined(__linux__) && !defined(VK_USE_PLATFORM_GGP)
 #define VK_USE_PLATFORM_XLIB_KHR    //Use Xlib or Xcb as display server, defaults to Xlib
 #endif
 #include "../ThirdParty/OpenSource/volk/volk.h"
@@ -75,9 +74,6 @@
 #define ENABLE_RAYTRACING
 #endif
 
-#include "../ThirdParty/OpenSource/EASTL/string.h"
-#include "../ThirdParty/OpenSource/EASTL/vector.h"
-#include "../ThirdParty/OpenSource/EASTL/string_hash_map.h"
 #include "../OS/Interfaces/IOperatingSystem.h"
 #include "../OS/Interfaces/IThread.h"
 #include "../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_base.h"
@@ -216,6 +212,8 @@ typedef struct Texture               Texture;
 typedef struct ShaderReflectionInfo  ShaderReflectionInfo;
 typedef struct Shader                Shader;
 typedef struct DescriptorSet         DescriptorSet;
+typedef struct DescriptorIndexMap    DescriptorIndexMap;
+typedef struct ShaderDescriptors     ShaderDescriptors;
 
 // Raytracing
 typedef struct Raytracing            Raytracing;
@@ -830,7 +828,6 @@ typedef struct Texture
 	VkImage pVkImage;
 	/// Contains resource allocation info such as parent heap, offset in heap
 	struct VmaAllocation_T* pVkAllocation;
-	uint64_t mTextureId;
 	/// Flags specifying which aspects (COLOR,DEPTH,STENCIL) are included in the pVkImageView
 	VkImageAspectFlags mVkAspectMask;
 #endif
@@ -905,6 +902,7 @@ typedef struct RenderTarget
 #endif
 #if defined(VULKAN)
 	VkImageView* pVkDescriptors;
+	uint64_t     mId;
 #endif
 #if defined(DIRECT3D11)
 	union
@@ -949,8 +947,6 @@ typedef struct Sampler
 #if defined(VULKAN)
 	/// Native handle of the underlying resource
 	VkSampler pVkSampler;
-	/// Description for creating the descriptor for this sampler
-	VkDescriptorImageInfo mVkSamplerView;
 #endif
 #if defined(METAL)
 	/// Native handle of the underlying resource
@@ -1017,13 +1013,13 @@ typedef struct RootSignatureDesc
 typedef struct RootSignature
 {
 	/// Number of descriptors declared in the root signature layout
-	uint32_t mDescriptorCount;
+	uint32_t             mDescriptorCount;
 	/// Array of all descriptors declared in the root signature layout
-	DescriptorInfo* pDescriptors;
-	/// Translates hash of descriptor name to descriptor index
-	eastl::string_hash_map<uint32_t> pDescriptorNameToIndexMap;
+	DescriptorInfo*      pDescriptors;
+	/// Translates hash of descriptor name to descriptor index in pDescriptors array
+	DescriptorIndexMap*  pDescriptorNameToIndexMap;
 
-	PipelineType		 mPipelineType;
+	PipelineType         mPipelineType;
 #if defined(DIRECT3D12)
 	uint32_t             mDxViewDescriptorTableRootIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
 	uint32_t             mDxSamplerDescriptorTableRootIndices[DESCRIPTOR_UPDATE_FREQ_COUNT];
@@ -1054,30 +1050,21 @@ typedef struct RootSignature
 	uint32_t              mVkPushConstantCount;
 #endif
 #if defined(METAL)
-	Sampler**    ppStaticSamplers;
-	uint32_t*    pStaticSamplerSlots;
-	ShaderStage* pStaticSamplerStages;
-	uint32_t     mStaticSamplerCount;
-    
-    // in Metal we must split all resources back by shaders
-    struct ShaderDescriptors {
-        Shader*         pShader;
-        
-        eastl::string_hash_map<uint32_t> mDescriptorNameToIndexMap;
-        
-        DescriptorInfo* pDescriptors;
-        uint32_t        mDescriptorCount;
-    };
-    
-    ShaderDescriptors*  pShaderDescriptors;
-    uint32_t            mShaderDescriptorsCount;
-    
     // paramIndex support
-    struct IndexedDescriptor {
+    typedef struct IndexedDescriptor
+	{
         const DescriptorInfo**  pDescriptors;
         uint32_t                mDescriptorCount;
-    };
-    eastl::vector<IndexedDescriptor> mIndexedDescriptorInfo;
+    } IndexedDescriptor;
+	
+	Sampler**           ppStaticSamplers;
+	uint32_t*           pStaticSamplerSlots;
+	ShaderStage*        pStaticSamplerStages;
+	uint32_t            mStaticSamplerCount;
+    ShaderDescriptors*  pShaderDescriptors;
+    uint32_t            mShaderDescriptorsCount;
+    IndexedDescriptor*  mIndexedDescriptorInfo;
+	uint32_t            mIndexedDescriptorCount;
 #endif
 #if defined(DIRECT3D11)
 	ID3D11SamplerState** ppStaticSamplers;
@@ -1158,7 +1145,6 @@ typedef struct Cmd
 #endif
 #if defined(METAL)
 	id<MTLCommandBuffer>         mtlCommandBuffer;
-	id<MTLFence>                 mtlEncoderFence;    // Used to sync different types of encoders recording in the same Cmd.
 	id<MTLRenderCommandEncoder>  mtlRenderEncoder;
 	id<MTLComputeCommandEncoder> mtlComputeEncoder;
 	id<MTLBlitCommandEncoder>    mtlBlitEncoder;
@@ -1168,7 +1154,6 @@ typedef struct Cmd
 	uint64_t                     mSelectedIndexBufferOffset;
 	QueryPool*                   pLastFrameQuery;
 	MTLPrimitiveType             selectedPrimitiveType;
-	bool                         mRenderPassActive;
 #endif
 #if defined(DIRECT3D11)
 	uint8_t* pDescriptorCache;
@@ -1253,8 +1238,9 @@ typedef struct Queue
 	uint32_t mVkQueueIndex;
 #endif
 #if defined(METAL)
-	id<MTLCommandQueue>  mtlCommandQueue;
-	uint32_t             mBarrierFlags;
+	id<MTLCommandQueue>     mtlCommandQueue;
+	uint32_t                mBarrierFlags;
+	id<MTLFence>            mtlQueueFence;
 #endif
 	QueueDesc mQueueDesc;
 	Extent3D  mUploadGranularity;
@@ -1262,23 +1248,18 @@ typedef struct Queue
 
 typedef struct ShaderMacro
 {
-	eastl::string definition;
-	eastl::string value;
+	const char* definition;
+	const char* value;
 } ShaderMacro;
 
-typedef struct RendererShaderDefinesDesc
-{
-	ShaderMacro* rendererShaderDefines;
-	uint32_t     rendererShaderDefinesCnt;
-} RendererShaderDefinesDesc;
-
-#if defined(METAL)
+#if defined(TARGET_IOS)
 typedef struct ShaderStageDesc
 {
-	eastl::string              mName;
-	eastl::string              mCode;
-	eastl::string              mEntryPoint;
-	eastl::vector<ShaderMacro> mMacros;
+	const char*  pName;
+	const char*  pCode;
+	const char*  pEntryPoint;
+	ShaderMacro* pMacros;
+	uint32_t     mMacroCount;
 } ShaderStageDesc;
 
 typedef struct ShaderDesc
@@ -1296,12 +1277,13 @@ typedef struct ShaderDesc
 typedef struct BinaryShaderStageDesc
 {
 	/// Byte code array
-	char*    pByteCode;
-	uint32_t mByteCodeSize;
-	eastl::string mEntryPoint;
+	const char*    pByteCode;
+	uint32_t       mByteCodeSize;
+	const char*    pEntryPoint;
 #if defined(METAL)
 	// Shader source is needed for reflection
-	eastl::string mSource;
+	char*          pSource;
+	uint32_t       mSourceSize;
 #endif
 } BinaryShaderStageDesc;
 
@@ -1318,24 +1300,22 @@ typedef struct BinaryShaderDesc
 
 typedef struct Shader
 {
-	ShaderStage        mStages;
-	PipelineReflection mReflection;
+	ShaderStage           mStages;
+	PipelineReflection    mReflection;
 #if defined(DIRECT3D12)
-	ID3DBlob** pShaderBlobs;
-	LPCWSTR* pEntryNames;
+	ID3DBlob**            pShaderBlobs;
+	LPCWSTR*              pEntryNames;
 #endif
 #if defined(VULKAN)
-	VkShaderModule* pShaderModules;
-	eastl::vector<eastl::string> mEntryNames;
+	VkShaderModule*       pShaderModules;
+	char**                pEntryNames;
 #endif
 #if defined(METAL)
-	id<MTLFunction> mtlVertexShader;
-	id<MTLFunction> mtlFragmentShader;
-	id<MTLFunction> mtlComputeShader;
-    eastl::string mtlVertexShaderEntryPoint;
-    eastl::string mtlFragmentShaderEntryPoint;
-    eastl::string mtlComputeShaderEntryPoint;
-	uint32_t        mNumThreadsPerGroup[3];
+	id<MTLFunction>       mtlVertexShader;
+	id<MTLFunction>       mtlFragmentShader;
+	id<MTLFunction>       mtlComputeShader;
+	char**                pEntryNames;
+	uint32_t              mNumThreadsPerGroup[3];
 #endif
 #if defined(DIRECT3D11)
 	ID3D11VertexShader*   pDxVertexShader;
@@ -1599,7 +1579,8 @@ typedef struct Pipeline
 	
 	//In DX12 this information is stored in ID3D12StateObject.
 	//But for Vulkan we need to store it manually
-	eastl::vector<eastl::string> mShadersStagesNames;
+	const char**                ppShaderStageNames;
+	uint32_t                    mShaderStageCount;
 #endif
 #if defined(METAL)
 	RenderTarget*               pRenderPasspRenderTarget;
@@ -1693,6 +1674,7 @@ typedef struct SwapChain
 	VkSwapchainKHR pSwapChain;
 	VkSurfaceKHR   pVkSurface;
 	VkImage*       ppVkSwapChainImages;
+	uint32_t       mPresentQueueFamilyIndex;
 #endif
 #if defined(METAL)
 #   if defined(TARGET_IOS)
@@ -1840,12 +1822,12 @@ typedef struct Renderer
 	VkPhysicalDeviceRayTracingPropertiesNV mVkRaytracingProperties[MAX_GPUS];
 #endif
 	VkPhysicalDeviceMemoryProperties  mVkGpuMemoryProperties[MAX_GPUS];
-	VkPhysicalDeviceFeatures          mVkGpuFeatures[MAX_GPUS];
+	VkPhysicalDeviceFeatures2KHR      mVkGpuFeatures[MAX_GPUS];
 	uint32_t                          mVkQueueFamilyPropertyCount[MAX_GPUS];
 	VkQueueFamilyProperties*          mVkQueueFamilyProperties[MAX_GPUS];
 	uint32_t                          mActiveGPUIndex;
 	VkPhysicalDeviceMemoryProperties* pVkActiveGpuMemoryProperties;
-	VkPhysicalDeviceFeatures*         pVkActiveGpuFeatures;
+	VkPhysicalDeviceFeatures2KHR*     pVkActiveGpuFeatures;
 #ifdef VK_NV_RAY_TRACING_SPEC_VERSION
 	VkPhysicalDeviceRayTracingPropertiesNV* pVkActiveCPURaytracingProperties;
 #endif
@@ -1856,7 +1838,8 @@ typedef struct Renderer
 #else
 	VkDebugReportCallbackEXT          pVkDebugReport;
 #endif
-	eastl::vector<const char*>        mInstanceLayers;
+	const char**                      ppInstanceLayers;
+	uint32_t                          mInstanceLayerCount;
 	uint32_t                          mVkUsedQueueCount[MAX_GPUS][16];
 
 	Texture* pDefaultTextureSRV[MAX_GPUS][TEXTURE_DIM_COUNT];
@@ -1883,7 +1866,9 @@ typedef struct Renderer
 	DepthState*      pDefaultDepthState;
 	RasterizerState* pDefaultRasterizerState;
 
-	GPUCapBits capBits;
+	ShaderMacro* pBuiltinShaderDefines;
+	uint32_t     mBuiltinShaderDefinesCount;
+	GPUCapBits   capBits;
 
 } Renderer;
 
@@ -1891,7 +1876,8 @@ typedef struct Renderer
 typedef struct IndirectArgumentDescriptor
 {
 	IndirectArgumentType mType;
-	uint32_t             mRootParameterIndex;
+	const char*          pName;
+	uint32_t             mIndex;
 	uint32_t             mCount;
 	uint32_t             mDivisor;
 
@@ -1970,7 +1956,7 @@ API_INTERFACE void FORGE_CALLCONV addSampler(Renderer* pRenderer, const SamplerD
 API_INTERFACE void FORGE_CALLCONV removeSampler(Renderer* pRenderer, Sampler* p_sampler);
 
 // shader functions
-#if defined(METAL)
+#if defined(TARGET_IOS)
 API_INTERFACE void FORGE_CALLCONV addShader(Renderer* pRenderer, const ShaderDesc* p_desc, Shader** p_shader_program);
 #endif
 API_INTERFACE void FORGE_CALLCONV addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* p_desc, Shader** p_shader_program);

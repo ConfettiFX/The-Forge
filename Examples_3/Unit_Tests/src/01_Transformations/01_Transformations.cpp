@@ -128,20 +128,6 @@ GpuProfiler*       pGpuProfiler = NULL;
 const char* pSkyBoxImageFileNames[] = { "Skybox_right1",  "Skybox_left2",  "Skybox_top3",
 										"Skybox_bottom4", "Skybox_front5", "Skybox_back6" };
 
-const char* pszBases[FSR_Count] = {
-	"../../../src/01_Transformations/",     // FSR_BinShaders
-	"../../../src/01_Transformations/",     // FSR_SrcShaders
-	"../../../UnitTestResources/",          // FSR_Textures
-	"../../../UnitTestResources/",          // FSR_Meshes
-	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
-	"../../../src/01_Transformations/",     // FSR_GpuConfig
-	"",                                     // FSR_Animation
-	"",                                     // FSR_Audio
-	"",                                     // FSR_OtherFiles
-	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
-	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
-};
-
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 GuiComponent* pGui = NULL;
@@ -151,6 +137,21 @@ class Transformations: public IApp
 public:
 	bool Init()
 	{
+        // FILE PATHS
+        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        if (!fsPlatformUsesBundledResources())
+        {
+            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/01_Transformations");
+            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            
+            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../UnitTestResources/Textures");
+            fsSetRelativePathForResourceDirectory(RD_MESHES,          "../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
+        }
+        
 		// window and renderer setup
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
@@ -177,25 +178,25 @@ public:
 		// Loads Skybox Textures
 		for (int i = 0; i < 6; ++i)
 		{
+            PathHandle textureFilePath = fsCopyPathInResourceDirectory(RD_TEXTURES, pSkyBoxImageFileNames[i]);
 			TextureLoadDesc textureDesc = {};
-			textureDesc.mRoot = FSR_Textures;
-			textureDesc.pFilename = pSkyBoxImageFileNames[i];
+			textureDesc.pFilePath = textureFilePath;
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
 			addResource(&textureDesc, true);
 		}
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
 		{
 			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
 			return false;
 		}
 
 		ShaderLoadDesc skyShader = {};
-		skyShader.mStages[0] = { "skybox.vert", NULL, 0, FSR_SrcShaders };
-		skyShader.mStages[1] = { "skybox.frag", NULL, 0, FSR_SrcShaders };
+		skyShader.mStages[0] = { "skybox.vert", NULL, 0, RD_SHADER_SOURCES };
+		skyShader.mStages[1] = { "skybox.frag", NULL, 0, RD_SHADER_SOURCES };
 		ShaderLoadDesc basicShader = {};
-		basicShader.mStages[0] = { "basic.vert", NULL, 0, FSR_SrcShaders };
-		basicShader.mStages[1] = { "basic.frag", NULL, 0, FSR_SrcShaders };
+		basicShader.mStages[0] = { "basic.vert", NULL, 0, RD_SHADER_SOURCES };
+		basicShader.mStages[1] = { "basic.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
 		addShader(pRenderer, &basicShader, &pSphereShader);
@@ -410,7 +411,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
 		GuiDesc guiDesc = {};
 		float   dpiScale = getDpiScale().x;

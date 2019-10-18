@@ -28,22 +28,10 @@
       <FileRef
          location = "group:19_Blending/../25_Skinning/25_Skinning.xcodeproj">
       </FileRef>
-      <FileRef
-         location = "group:26_InverseKinematic/26_InverseKinematic.xcodeproj">
-      </FileRef>
    </Group>
    <Group
       location = "container:"
       name = "Examples">
-      <FileRef
-         location = "group:08_GltfViewer/08_GltfViewer.xcodeproj">
-      </FileRef>
-      <FileRef
-         location = "group:09_LightShadowPlayground/09_LightShadowPlayground.xcodeproj">
-      </FileRef>
-      <FileRef
-         location = "group:27_Audio/27_Audio.xcodeproj">
-      </FileRef>
       <FileRef
          location = "group:01_Transformations/01_Transformations.xcodeproj">
       </FileRef>
@@ -66,6 +54,12 @@
          location = "group:07_Tessellation/07_Tessellation.xcodeproj">
       </FileRef>
       <FileRef
+         location = "group:08_GltfViewer/08_GltfViewer.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:09_LightShadowPlayground/09_LightShadowPlayground.xcodeproj">
+      </FileRef>
+      <FileRef
          location = "group:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">
       </FileRef>
       <FileRef
@@ -81,13 +75,19 @@
          location = "group:15_Transparency/15_Transparency.xcodeproj">
       </FileRef>
       <FileRef
+         location = "group:16_Raytracing/16_Raytracing.xcodeproj">
+      </FileRef>
+      <FileRef
          location = "group:16a_SphereTracing/16a_SphereTracing.xcodeproj">
       </FileRef>
       <FileRef
          location = "group:17_EntityComponentSystem/17_EntityComponentSystem.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:16_Raytracing/16_Raytracing.xcodeproj">
+         location = "group:27_Audio/27_Audio.xcodeproj">
+      </FileRef>
+      <FileRef
+         location = "group:28_ZipFileSystem/28_ZipFileSystem.xcodeproj">
       </FileRef>
    </Group>
 </Workspace>

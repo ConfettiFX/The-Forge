@@ -10,17 +10,37 @@
   <VirtualDirectory Name="src">
     <File Name="../../src/21_PartialBlending/21_PartialBlending.cpp" ExcludeProjConfig=""/>
   </VirtualDirectory>
+  <Dependencies Name="Debug">
+    <Project Name="OS"/>
+    <Project Name="Renderer"/>
+    <Project Name="SpirVTools"/>
+    <Project Name="gainput"/>
+    <Project Name="ozz_base"/>
+    <Project Name="ozz_animation"/>
+    <Project Name="EASTL"/>
+  </Dependencies>
+  <Dependencies Name="Release">
+    <Project Name="ozz_base"/>
+    <Project Name="ozz_animation"/>
+    <Project Name="OS"/>
+    <Project Name="Renderer"/>
+    <Project Name="SpirVTools"/>
+    <Project Name="gainput"/>
+    <Project Name="EASTL"/>
+  </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
         <IncludePath Value="$(WorkspacePath)/../../../Common_3/ThirdParty/OpenSource/ozz-animation/include"/>
       </Compiler>
       <Linker Options="">
-        <LibraryPath Value="."/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/Libraries/Linux"/>
+        <Library Value="libzip.a"/>
+        <Library Value="libz"/>
       </Linker>
       <ResourceCompiler Options=""/>
     </GlobalSettings>
-    <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+    <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
       <Compiler Options="-g;-O0;-std=c++14;-Wall;-Wno-unknown-pragmas;-msse4.1; " C_Options="-g;-O0;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
@@ -36,8 +56,9 @@
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
-        <Library Value="libOS.a"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
         <Library Value="libRenderer.a"/>
+        <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
@@ -45,6 +66,7 @@
         <Library Value="libozz_animation.a"/>
         <Library Value="libozz_base.a"/>
         <Library Value="libEASTL.a"/>
+        <Library Value="libassimp.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
@@ -80,7 +102,7 @@
         <SearchPaths/>
       </Completion>
     </Configuration>
-    <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+    <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
       <Compiler Options="-O2;-std=c++14;-Wall;-Wno-unknown-pragmas;-msse4.1; " C_Options="-O2;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
@@ -95,15 +117,18 @@
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
         <Library Value="libOS.a"/>
         <Library Value="libozz_animation.a"/>
         <Library Value="libozz_base.a"/>
         <Library Value="libRenderer.a"/>
+        <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
         <Library Value="libgainput.a"/>
         <Library Value="libEASTL.a"/>
+        <Library Value="libassimp.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Release" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
@@ -140,22 +165,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <Dependencies Name="Debug">
-    <Project Name="OS"/>
-    <Project Name="Renderer"/>
-    <Project Name="SpirVTools"/>
-    <Project Name="gainput"/>
-    <Project Name="ozz_base"/>
-    <Project Name="ozz_animation"/>
-    <Project Name="EASTL"/>
-  </Dependencies>
-  <Dependencies Name="Release">
-    <Project Name="ozz_base"/>
-    <Project Name="ozz_animation"/>
-    <Project Name="OS"/>
-    <Project Name="Renderer"/>
-    <Project Name="SpirVTools"/>
-    <Project Name="gainput"/>
-    <Project Name="EASTL"/>
-  </Dependencies>
 </CodeLite_Project>

@@ -14,6 +14,7 @@ extern "C"
 #include "LunaV.hpp"
 #include "LuaManagerCommon.h"
 
+#include "../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../Common_3/OS/Interfaces/IThread.h"
 
 #define MAX_LUA_WORKERS 4
@@ -37,7 +38,7 @@ struct ScriptTaskInfo
 {
 	lua_State*           luaState;
 	Mutex*               mutex;
-	eastl::string      scriptName;
+    PathHandle           scriptPath;
 	ScriptDoneCallback   callback;
 	IScriptCallbackWrap* callbackLambda;
 };
@@ -47,20 +48,21 @@ class LuaManagerImpl
 	public:
 	LuaManagerImpl();
 	~LuaManagerImpl();
-	bool RunScript(const char* scriptname);
-	void AddAsyncScript(const char* scriptname, ScriptDoneCallback callback);
-	void AddAsyncScript(const char* scriptname);
-	void AddAsyncScript(const char* scriptname, IScriptCallbackWrap* callbackLambda);
+	bool RunScript(const Path* scriptPath);
+	void AddAsyncScript(const Path* scriptPath, ScriptDoneCallback callback);
+	void AddAsyncScript(const Path* scriptPath);
+	void AddAsyncScript(const Path* scriptPath, IScriptCallbackWrap* callbackLambda);
 
 	void SetFunction(ILuaFunctionWrap* wrap);
 
 	//updateFunctionName - function that will be called on Update()
-	bool SetUpdatableScript(const char* scriptname, const char* updateFunctionName, const char* exitFunctionName);
+	bool SetUpdatableScript(const Path* scriptPath, const char* updateFunctionName, const char* exitFunctionName);
 	bool ReloadUpdatableScript();
 
 	//updateFunctionName - function that will be called.
 	//If nullptr then function from SetUpdateScript arg is used.
 	bool Update(float deltaTime, const char* updateFunctionName = nullptr);
+
 
 	private:
 	static bool m_registered;
@@ -72,7 +74,7 @@ class LuaManagerImpl
 
 	eastl::vector<ILuaFunctionWrap*> m_Functions;
 	eastl::string                    m_UpdateFunctonName;
-	eastl::string                    m_UpdatableScriptName;
+    PathHandle                       m_UpdatableScriptPath;
 	eastl::string                    m_UpdatableScriptExitName;
 
 	uint32_t m_AsyncScriptsCounter;
@@ -84,8 +86,6 @@ class LuaManagerImpl
 	void       DestroyLuaState(lua_State* state);
 	void       RegisterFunctionsForState(lua_State* state);
 	void       ExitScript(lua_State* state, const char* exitFunctionName);
-
-	static Mutex m_registerMutex;
 
 	LuaManagerImpl(lua_State* L);
 	static const char                         className[];

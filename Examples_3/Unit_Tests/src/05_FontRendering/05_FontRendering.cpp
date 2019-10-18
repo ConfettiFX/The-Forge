@@ -52,21 +52,6 @@
 // Memory
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"    // NOTE: should be the last include in a .cpp!
 
-// Define App directories
-const char* pszBases[FSR_Count] = {
-	"../../../src/05_FontRendering/",       // FSR_BinShaders
-	"../../../src/05_FontRendering/",       // FSR_SrcShaders
-	"../../../UnitTestResources/",          // FSR_Textures
-	"../../../UnitTestResources/",          // FSR_Meshes
-	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
-	"../../../src/05_FontRendering/",       // FSR_GpuConfig
-	"",                                     // FSR_Animation
-	"",                                     // FSR_Audio
-	"",                                     // FSR_OtherFiles
-	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
-	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
-};
-
 /************************************************************************/
 /* SCENE VARIABLES
 *************************************************************************/
@@ -263,6 +248,21 @@ class FontRendering: public IApp
 
 	bool Init()
 	{
+        // FILE PATHS
+        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        if (!fsPlatformUsesBundledResources())
+        {
+            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/05_FontRendering");
+            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            
+            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../UnitTestResources/Textures");
+            fsSetRelativePathForResourceDirectory(RD_MESHES,             "../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,     "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,     "../../../../Middleware_3/UI");
+        }
+        
 		// window and renderer setup
 		RendererDesc rendererDesc = { 0 };
 		initRenderer(GetName(), &rendererDesc, &pRenderer);
@@ -292,7 +292,7 @@ class FontRendering: public IApp
 			return false;    // report?
 
 		// load the fonts
-		const FSRoot fontRoot = FSRoot::FSR_Builtin_Fonts;
+		const ResourceDirectory fontRoot = ResourceDirectory::RD_BUILTIN_FONTS;
 		gFonts.titilliumBold = gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", fontRoot);
 		gFonts.comicRelief = gAppUI.LoadFont("ComicRelief/ComicRelief.ttf", fontRoot);
 		gFonts.crimsonSerif = gAppUI.LoadFont("Crimson/Crimson-Roman.ttf", fontRoot);
@@ -393,6 +393,7 @@ class FontRendering: public IApp
 		unloadProfiler();
 		gAppUI.Unload();
 		removeSwapChain(pRenderer, pSwapChain);
+		gSceneData.sceneTextArray.set_capacity(0);
 	}
 
 	void Update(float deltaTime)

@@ -23,18 +23,22 @@
 #include "TFXImporter.h"
 #include <cstdlib>
 #include "TressFXAsset.h"
+#include "../../../OS/Interfaces/IFileSystem.h"
 #include "../../../OS/Interfaces/IMemory.h"
 
 bool TFXImporter::ImportTFX(
-	const char* filename, FSRoot root, int numFollowHairs, float tipSeperationFactor, float maxRadiusAroundGuideHair, TFXAsset* tfxAsset)
+	const Path* path, int numFollowHairs, float tipSeperationFactor, float maxRadiusAroundGuideHair, TFXAsset* tfxAsset)
 {
-	File file = {};
-	if (!file.Open(filename, FileMode::FM_ReadBinary, root))
+    
+    FileStream* fh = fsOpenFile(path, FM_READ_BINARY);
+	if (!fh)
 		return false;
 
 	AMD::TressFXAsset tressFXAsset = {};
-	if (!tressFXAsset.LoadHairData(&file))
+	if (!tressFXAsset.LoadHairData(fh))
 		return false;
+    
+    fsCloseStream(fh);
 
 	if (numFollowHairs > 0)
 	{
@@ -69,15 +73,15 @@ bool TFXImporter::ImportTFX(
 	tfxAsset->mTriangleIndices.resize(numIndices);
 	memcpy(tfxAsset->mTriangleIndices.data(), tressFXAsset.m_triangleIndices, sizeof(int) * numIndices);
 	tfxAsset->mNumVerticesPerStrand = tressFXAsset.m_numVerticesPerStrand;
-	tfxAsset->mNumGuideStrands = tressFXAsset.m_numGuideStrands;
-
+    tfxAsset->mNumGuideStrands = tressFXAsset.m_numGuideStrands;
+    
 	return true;
 }
 
-bool TFXImporter::ImportTFXMesh(const char* filename, FSRoot root, TFXMesh* tfxMesh)
+bool TFXImporter::ImportTFXMesh(const Path* path, TFXMesh* tfxMesh)
 {
-	File file = {};
-	if (!file.Open(filename, FileMode::FM_ReadBinary, root))
+    FileStream* fh = fsOpenFile(path, FM_READ_BINARY);
+	if(!fh)
 		return false;
 
 	eastl::vector<eastl::string> splitLine;
@@ -88,9 +92,10 @@ bool TFXImporter::ImportTFXMesh(const char* filename, FSRoot root, TFXMesh* tfxM
 	uint                             numOfTriangles = 0;
 	uint                             trianglesFound = 0;
 
-	while (!file.IsEof())
+	//while (!file.IsEof())
+	while (!fsStreamAtEnd(fh))
 	{
-		eastl::string line = file.ReadLine();
+        eastl::string line = fsReadFromStreamSTLLine(fh);
 
 		if (line[0] == '#')
 			continue;

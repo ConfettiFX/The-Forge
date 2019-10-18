@@ -57,6 +57,13 @@
 #include "../Interfaces/IInput.h"
 #include "../Interfaces/IMemory.h"
 
+#ifdef GAINPUT_PLATFORM_GGP
+namespace gainput
+{
+	extern void SetWindow(void* pData);
+}
+#endif
+
 #if defined(TARGET_IOS) || defined(__ANDROID__)
 #define TOUCH_INPUT 1
 #endif
@@ -288,6 +295,10 @@ struct InputSystemImpl : public gainput::InputListener
 	{
 		pWindow = window;
 
+#ifdef GAINPUT_PLATFORM_GGP
+		gainput::SetWindow(pWindow->handle.window);
+#endif
+
 		// Defaults
 		mVirtualKeyboardActive = false;
 		mDefaultCapture = true;
@@ -441,7 +452,7 @@ struct InputSystemImpl : public gainput::InputListener
 		pInputManager->SetDisplaySize(width, height);
 		pInputManager->Update();
 		
-#if defined(__linux__) && !defined(__ANDROID__)
+#if defined(__linux__) && !defined(__ANDROID__) && !defined(GAINPUT_PLATFORM_GGP)
 		//this needs to be done before updating the events
 		//that way current frame data will be delta after resetting mouse position
 		if (mInputCaptured)
@@ -789,7 +800,7 @@ struct InputSystemImpl : public gainput::InputListener
 			
 			return true;
 		}
-#elif defined(__linux__) && !defined(__ANDROID__)
+#elif defined(__linux__) && !defined(__ANDROID__) && !defined(GAINPUT_PLATFORM_GGP)
 		if (mInputCaptured != enable)
 		{
 			if (enable)
@@ -1309,7 +1320,7 @@ static int32_t InputSystemHandleMessage(WindowsDesc* pWindow, void* msg)
 	pInputSystem->pInputManager->HandleMessage(*(MSG*)msg);
 #elif defined(__ANDROID__)
 	return pInputSystem->pInputManager->HandleInput((AInputEvent*)msg);
-#elif defined(__linux__)
+#elif defined(__linux__) && !defined(GAINPUT_PLATFORM_GGP)
 	pInputSystem->pInputManager->HandleEvent(*(XEvent*)msg);
 #endif
 	

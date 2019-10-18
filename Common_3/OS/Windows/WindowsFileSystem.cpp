@@ -24,305 +24,458 @@
 
 #ifdef _WIN32
 
+#include <functional>
+
 #if !defined(_DURANGO)
 #include "shlobj.h"
 #include "commdlg.h"
+#include <WinBase.h>
 #endif
 
-#include "../Interfaces/IFileSystem.h"
+#include "../FileSystem/FileSystemInternal.h"
+#include "../FileSystem/SystemFileStream.h"
+
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/IThread.h"
 #include "../Interfaces/IMemory.h"
 
-#if defined(DIRECT3D12)
-#define RESOURCE_DIR "Shaders/D3D12"
-#elif defined(DIRECT3D11)
-#define RESOURCE_DIR "Shaders/D3D11"
-#elif defined(VULKAN)
-#define RESOURCE_DIR "Shaders/Vulkan"
-#else
-#define RESOURCE_DIR "Shaders"
-#endif
+template <typename T>
+static inline T withUTF16Path(const Path* path, std::function<T(const wchar_t*)> function)
+{
+	wchar_t* buffer = (wchar_t*)alloca((path->mPathLength + 1) * sizeof(wchar_t));
 
-const char* pszRoots[FSR_Count] = {
-	RESOURCE_DIR "/Binary/",    // FSR_BinShaders
-	RESOURCE_DIR "/",           // FSR_SrcShaders
-	"Textures/",                // FSR_Textures
-	"Meshes/",                  // FSR_Meshes
-	"Fonts/",                   // FSR_Builtin_Fonts
-	"GPUCfg/",                  // FSR_GpuConfig
-	"Animation/",               // FSR_Animation
-	"Audio/",                   // FSR_Audio
-	"",                         // FSR_OtherFiles
+	size_t resultLength =
+		MultiByteToWideChar(CP_UTF8, 0, fsGetPathAsNativeString(path), (int)path->mPathLength, buffer, (int)path->mPathLength);
+	buffer[resultLength] = 0;
+
+	return function(buffer);
+}
+
+static Path* fsCreatePathFromWideString(const wchar_t* systemPath, size_t systemPathLength)
+{
+	int   utf8Length = WideCharToMultiByte(CP_UTF8, 0, systemPath, (int)systemPathLength, NULL, 0, NULL, NULL);
+	char* utf8Path = (char*)alloca((utf8Length + 1) * sizeof(char));
+	WideCharToMultiByte(CP_UTF8, 0, systemPath, (int)systemPathLength, utf8Path, utf8Length, NULL, NULL);
+	utf8Path[utf8Length] = 0;
+	return fsCreatePath(fsGetSystemFileSystem(), utf8Path);
+}
+
+struct WindowsFileSystem: public FileSystem
+{
+	WindowsFileSystem(): FileSystem(FSK_SYSTEM) {}
+
+	bool IsReadOnly() const override { return false; }
+
+	bool IsCaseSensitive() const override { return false; }
+
+	char GetPathDirectorySeparator() const override { return '\\'; }
+
+	size_t GetRootPathLength() const override
+	{
+		return 7;    // e.g. { '\\', '\\', '?', '\\', 'C', ':', '\\' }
+	}
+
+	/// Fills path's buffer with the canonical root path corresponding to the root of absolutePathString,
+	/// and returns an offset into absolutePathString containing the path component after the root by pathComponentOffset.
+	/// path is assumed to have storage for up to 16 characters.
+	bool FormRootPath(const char* absolutePathString, Path* path, size_t* pathComponentOffset) const override
+	{
+		strncpy(&path->mPathBufferOffset, "\\\\?\\", 4);
+
+		// Assume all paths are on a local hard drive for now.
+		// Find the colon after the drive letter.
+		size_t colonOffset = 1;
+		for (;;)
+		{
+			if (absolutePathString[colonOffset] == 0)
+			{
+				return false;
+			}
+			if (absolutePathString[colonOffset] == ':')
+			{
+				break;
+			}
+			colonOffset += 1;
+		}
+
+		if (absolutePathString[colonOffset + 1] != '\\' && absolutePathString[colonOffset + 1] != '/')
+		{
+			return false;
+		}
+
+		char driveLetter = absolutePathString[colonOffset - 1];
+		(&path->mPathBufferOffset)[4] = driveLetter;
+		(&path->mPathBufferOffset)[5] = ':';
+		(&path->mPathBufferOffset)[6] = '\\';
+		(&path->mPathBufferOffset)[7] = 0;
+		path->mPathLength = 7;
+
+		*pathComponentOffset = colonOffset + 2;    // After the :\ in the drive name.
+
+		return true;
+	}
+
+	time_t GetCreationTime(const Path* filePath) const override
+	{
+		struct stat fileInfo = { 0 };
+
+		stat(fsGetPathAsNativeString(filePath), &fileInfo);
+		return fileInfo.st_ctime;
+	}
+
+	time_t GetLastAccessedTime(const Path* filePath) const override
+	{
+		struct stat fileInfo = { 0 };
+
+		stat(fsGetPathAsNativeString(filePath), &fileInfo);
+		return fileInfo.st_atime;
+	}
+
+	time_t GetLastModifiedTime(const Path* filePath) const override
+	{
+		struct stat fileInfo = { 0 };
+
+		stat(fsGetPathAsNativeString(filePath), &fileInfo);
+		return fileInfo.st_mtime;
+	}
+
+	bool CreateDirectory(const Path* directoryPath) const override
+	{
+		if (Path* parentPath = fsCopyParentPath(directoryPath))
+		{
+			if (!FileExists(parentPath))
+			{
+				CreateDirectory(parentPath);
+			}
+			fsFreePath(parentPath);
+		}
+
+		return withUTF16Path<bool>(directoryPath, [](const wchar_t* pathStr) { return ::CreateDirectoryW(pathStr, NULL) ? true : false; });
+	}
+
+	bool DeleteFile(const Path* path) const override
+	{
+		return withUTF16Path<bool>(path, [](const wchar_t* pathStr) { return ::DeleteFileW(pathStr) ? true : false; });
+	}
+
+	bool FileExists(const Path* path) const override
+	{
+		return withUTF16Path<bool>(path, [](const wchar_t* pathStr) {
+			DWORD attributes = GetFileAttributesW(pathStr);
+			return attributes != INVALID_FILE_ATTRIBUTES;
+		});
+	}
+
+	bool IsDirectory(const Path* path) const override
+	{
+		return withUTF16Path<bool>(path, [](const wchar_t* pathStr) {
+			DWORD attributes = GetFileAttributesW(pathStr);
+			return (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+		});
+	}
+
+	FileStream* OpenFile(const Path* filePath, FileMode mode) const override
+	{
+		FILE* fp;
+		fopen_s(&fp, fsGetPathAsNativeString(filePath), fsFileModeToString(mode));
+		if (fp)
+		{
+			return conf_new(SystemFileStream, fp, mode);
+		}
+		return NULL;
+	}
+
+	bool CopyFile(const Path* sourcePath, const Path* destinationPath, bool overwriteIfExists) const override
+	{
+		if (!overwriteIfExists && FileExists(destinationPath))
+		{
+			return false;
+		}
+
+		return withUTF16Path<bool>(sourcePath, [destinationPath, overwriteIfExists](const wchar_t* source) {
+			return withUTF16Path<bool>(destinationPath, [source, overwriteIfExists](const wchar_t* destination) {
+				return ::CopyFileW(source, destination, !overwriteIfExists) ? true : false;
+			});
+		});
+	}
+
+	void EnumerateFilesWithExtension(
+		const Path* directory, const char* extension, bool (*processFile)(const Path*, void* userData), void* userData) const override
+	{
+		if (extension[0] == '.')
+		{
+			extension += 1;
+		}
+
+		size_t extensionLen = strlen(extension);
+
+		wchar_t* buffer = (wchar_t*)alloca((directory->mPathLength + 4 + extensionLen) * sizeof(wchar_t));
+
+		size_t utf16Len = MultiByteToWideChar(
+			CP_UTF8, 0, fsGetPathAsNativeString(directory), (int)directory->mPathLength, buffer, (int)directory->mPathLength);
+
+		buffer[utf16Len + 0] = '\\';
+		buffer[utf16Len + 1] = '*';
+		buffer[utf16Len + 2] = '.';
+		for (size_t i = 0; i < extensionLen; i += 1)
+		{
+			buffer[utf16Len + 3 + i] = (wchar_t)extension[i];
+		}
+		buffer[utf16Len + 3 + extensionLen] = 0;
+
+		WIN32_FIND_DATAW fd;
+		HANDLE           hFind = ::FindFirstFileW(buffer, &fd);
+		if (hFind != INVALID_HANDLE_VALUE)
+		{
+			do
+			{
+				char utf8Name[2 * MAX_PATH];
+				WideCharToMultiByte(CP_UTF8, 0, fd.cFileName, -1, utf8Name, 2 * MAX_PATH, NULL, NULL);
+
+				Path* path = fsAppendPathComponent(directory, utf8Name);
+				processFile(path, userData);
+				fsFreePath(path);
+			} while (::FindNextFileW(hFind, &fd));
+			::FindClose(hFind);
+		}
+	}
+
+	void
+		EnumerateSubDirectories(const Path* directory, bool (*processDirectory)(const Path*, void* userData), void* userData) const override
+	{
+		wchar_t* buffer = (wchar_t*)alloca((directory->mPathLength + 3) * sizeof(wchar_t));
+
+		size_t utf16Len = MultiByteToWideChar(
+			CP_UTF8, 0, fsGetPathAsNativeString(directory), (int)directory->mPathLength, buffer, (int)directory->mPathLength);
+
+		buffer[utf16Len + 0] = '\\';
+		buffer[utf16Len + 1] = '*';
+		buffer[utf16Len + 2] = 0;
+
+		WIN32_FIND_DATAW fd;
+		HANDLE           hFind = ::FindFirstFileW(buffer, &fd);
+		if (hFind != INVALID_HANDLE_VALUE)
+		{
+			do
+			{
+				// skip files, ./ and ../
+				if (!wcschr(fd.cFileName, '.'))
+				{
+					char utf8Name[2 * MAX_PATH];
+					WideCharToMultiByte(CP_UTF8, 0, fd.cFileName, -1, utf8Name, 2 * MAX_PATH, NULL, NULL);
+
+					Path* path = fsAppendPathComponent(directory, utf8Name);
+					processDirectory(path, userData);
+					fsFreePath(path);
+				}
+			} while (::FindNextFileW(hFind, &fd));
+			::FindClose(hFind);
+		}
+	}
 };
 
-FileHandle open_file(const char* filename, const char* flags)
+WindowsFileSystem gDefaultFS;
+
+FileSystem* fsGetSystemFileSystem() { return &gDefaultFS; }
+
+Path* fsCopyWorkingDirectoryPath()
 {
-	FILE* fp;
-	fopen_s(&fp, filename, flags);
-	return fp;
+	DWORD    pathLength = GetCurrentDirectoryW(0, NULL);
+	wchar_t* utf16Path = (wchar_t*)alloca(pathLength * sizeof(wchar_t));
+	GetCurrentDirectoryW(pathLength, utf16Path);
+
+	return fsCreatePathFromWideString(utf16Path, pathLength);
 }
 
-bool close_file(FileHandle handle) { return (fclose((::FILE*)handle) == 0); }
-
-void flush_file(FileHandle handle) { fflush((::FILE*)handle); }
-
-size_t read_file(void* buffer, size_t byteCount, FileHandle handle) { return fread(buffer, 1, byteCount, (::FILE*)handle); }
-
-bool seek_file(FileHandle handle, long offset, int origin) { return fseek((::FILE*)handle, offset, origin) == 0; }
-
-long tell_file(FileHandle handle) { return ftell((::FILE*)handle); }
-
-size_t write_file(const void* buffer, size_t byteCount, FileHandle handle) { return fwrite(buffer, 1, byteCount, (::FILE*)handle); }
-
-time_t get_file_last_modified_time(const char* _fileName)
+Path* fsCopyExecutablePath()
 {
-	struct stat fileInfo = {0};
+	wchar_t utf16Path[MAX_PATH];
+	DWORD   pathLength = GetModuleFileNameW(0, utf16Path, MAX_PATH);
 
-	stat(_fileName, &fileInfo);
-	return fileInfo.st_mtime;
+	return fsCreatePathFromWideString(utf16Path, pathLength);
 }
 
-time_t get_file_last_accessed_time(const char* _fileName)
+Path* fsCopyProgramDirectoryPath()
 {
-	struct stat fileInfo = {0};
-
-	stat(_fileName, &fileInfo);
-	return fileInfo.st_atime;
+	Path* programPath = fsCopyExecutablePath();
+	Path* programDir = fsCopyParentPath(programPath);
+	fsFreePath(programPath);
+	return programDir;
 }
 
-time_t get_file_creation_time(const char* _fileName)
-{
-	struct stat fileInfo = {0};
+Path* fsCopyLogFileDirectoryPath() { return fsCopyProgramDirectoryPath(); }
 
-	stat(_fileName, &fileInfo);
-	return fileInfo.st_ctime;
+Path* fsCopyPreferencesDirectoryPath(const char* org, const char* app)
+{
+	PWSTR preferencesDir = NULL;
+	SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_CREATE, NULL, &preferencesDir);
+	size_t pathLength = wcslen(preferencesDir);
+
+	Path* preferencesPath = fsCreatePathFromWideString(preferencesDir, pathLength);
+
+	size_t orgLen = strlen(org);
+	size_t appLen = strlen(app);
+
+	FileSystem* fileSystem = fsGetPathFileSystem(preferencesPath);
+
+	char* extraComponent = (char*)alloca(orgLen + appLen + 1);
+	strncpy(extraComponent, org, orgLen);
+	extraComponent[orgLen] = fileSystem->GetPathDirectorySeparator();
+	strncpy(extraComponent + orgLen + 1, app, appLen);
+
+	Path* resultPath = fsAppendPathComponent(preferencesPath, extraComponent);
+	fsFreePath(preferencesPath);
+
+	return resultPath;
 }
 
-eastl::string get_current_dir()
+Path* fsCopyUserDocumentsDirectoryPath()
 {
-	char curDir[MAX_PATH];
-	GetCurrentDirectoryA(MAX_PATH, curDir);
-	return eastl::string(curDir);
+	PWSTR userDocuments = NULL;
+	SHGetKnownFolderPath(FOLDERID_Documents, 0, NULL, &userDocuments);
+	size_t pathLength = wcslen(userDocuments);
+
+	Path* path = fsCreatePathFromWideString(userDocuments, pathLength);
+	CoTaskMemFree(userDocuments);
+	return path;
 }
 
-eastl::string get_exe_path()
-{
-	char exeName[MAX_PATH];
-	exeName[0] = 0;
-	GetModuleFileNameA(0, exeName, MAX_PATH);
-	return eastl::string(exeName);
-}
-
-eastl::string get_app_prefs_dir(const char* org, const char* app)
-{
-	/*
-	* Vista and later has a new API for this, but SHGetFolderPath works there,
-	*  and apparently just wraps the new API. This is the new way to do it:
-	*
-	*	SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_CREATE,
-	*						 NULL, &wszPath);
-	*/
-
-	char   path[MAX_PATH];
-	size_t new_wpath_len = 0;
-	BOOL   api_result = FALSE;
-
-	if (!SUCCEEDED(SHGetFolderPathA(NULL, CSIDL_APPDATA | CSIDL_FLAG_CREATE, NULL, 0, path)))
-	{
-		return NULL;
-	}
-
-	new_wpath_len = strlen(org) + strlen(app) + strlen(path) + 3;
-
-	if ((new_wpath_len + 1) > MAX_PATH)
-	{
-		return NULL;
-	}
-
-	strcat(path, "\\");
-	strcat(path, org);
-
-	api_result = CreateDirectoryA(path, NULL);
-	if (api_result == FALSE)
-	{
-		if (GetLastError() != ERROR_ALREADY_EXISTS)
-		{
-			return NULL;
-		}
-	}
-
-	strcat(path, "\\");
-	strcat(path, app);
-
-	api_result = CreateDirectoryA(path, NULL);
-	if (api_result == FALSE)
-	{
-		if (GetLastError() != ERROR_ALREADY_EXISTS)
-		{
-			return NULL;
-		}
-	}
-
-	strcat(path, "\\");
-	return eastl::string(path);
-}
-
-eastl::string get_user_documents_dir()
-{
-	char pathName[MAX_PATH];
-	pathName[0] = 0;
-	SHGetSpecialFolderPathA(0, pathName, CSIDL_PERSONAL, 0);
-	return eastl::string(pathName);
-}
-
-void set_current_dir(const char* path) { SetCurrentDirectoryA(path); }
-
-void get_files_with_extension(const char* dir, const char* ext, eastl::vector<eastl::string>& filesOut)
-{
-	eastl::string  path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
-	WIN32_FIND_DATAA fd;
-	HANDLE           hFind = ::FindFirstFileA((path + "*" + ext).c_str(), &fd);
-	size_t           fileIndex = filesOut.size();
-	if (hFind != INVALID_HANDLE_VALUE)
-	{
-		do
-		{
-			filesOut.resize(fileIndex + 1);
-			//copy the strings to avoid the memory being cleaned up by windows.
-			filesOut[fileIndex] = "";
-			filesOut[fileIndex++] = path + fd.cFileName;
-		} while (::FindNextFileA(hFind, &fd));
-		::FindClose(hFind);
-	}
-}
-
-void get_sub_directories(const char* dir, eastl::vector<eastl::string>& subDirectoriesOut)
-{
-	eastl::string  path = FileSystem::GetNativePath(FileSystem::AddTrailingSlash(dir));
-	WIN32_FIND_DATAA fd;
-	HANDLE           hFind = ::FindFirstFileA((path + "*").c_str(), &fd);
-	size_t           fileIndex = subDirectoriesOut.size();
-	if (hFind != INVALID_HANDLE_VALUE)
-	{
-		do
-		{
-			// skip files, ./ and ../
-			if (!strchr(fd.cFileName, '.'))
-			{
-				subDirectoriesOut.resize(fileIndex + 1);
-				//copy the strings to avoid the memory being cleaned up by windows.
-				subDirectoriesOut[fileIndex] = "";
-				subDirectoriesOut[fileIndex++] = path + fd.cFileName;
-			}
-		} while (::FindNextFileA(hFind, &fd));
-		::FindClose(hFind);
-	}
-}
-
-bool copy_file(const char* src, const char* dst) { return CopyFileA(src, dst, FALSE) ? true : false; }
-
-static void
-	FormatFileExtensionsFilter(const char* fileDesc, const eastl::vector<eastl::string>& extFiltersIn, eastl::string& extFiltersOut)
+//static
+void FormatFileExtensionsFilter(const char* fileDesc, const char** fileExtensions, size_t fileExtensionCount, eastl::string& extFiltersOut)
 {
 	extFiltersOut = fileDesc;
 	extFiltersOut.push_back('\0');
-	for (size_t i = 0; i < extFiltersIn.size(); ++i)
+	for (size_t i = 0; i < fileExtensionCount; ++i)
 	{
-		eastl::string ext = extFiltersIn[i];
+		eastl::string ext = fileExtensions[i];
 		if (ext.size() && ext[0] == '.')
 			ext = (ext.begin() + 1);
 		extFiltersOut += "*.";
 		extFiltersOut += ext;
-		if (i != extFiltersIn.size() - 1)
+		if (i != fileExtensionCount - 1)
 			extFiltersOut += ";";
 		else
 			extFiltersOut.push_back('\0');
 	}
 }
 
-void open_file_dialog(
-	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
-	const eastl::vector<eastl::string>& fileExtensions)
+void fsShowOpenFileDialog(
+	const char* title, const Path* directory, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
+	const char** fileExtensions, size_t fileExtensionCount)
 {
 	eastl::string extFilter;
-	FormatFileExtensionsFilter(fileDesc, fileExtensions, extFilter);
-	OPENFILENAMEA ofn;                 // common dialog box structure
-	char          szFile[MAX_PATH];    // buffer for file name
-									   // Initialize OPENFILENAME
-	ZeroMemory(&ofn, sizeof(ofn));
-	ofn.lpstrTitle = title;
-	ofn.lStructSize = sizeof(ofn);
-	ofn.hwndOwner = NULL;
-	ofn.lpstrFile = szFile;
-	// Set lpstrFile[0] to '\0' so that GetOpenFileName does not
-	// use the contents of szFile to initialize itself.
-	ofn.lpstrFile[0] = '\0';
-	ofn.nMaxFile = sizeof(szFile);
-	ofn.lpstrFilter = extFilter.c_str();
-	ofn.nFilterIndex = 1;
-	ofn.lpstrFileTitle = NULL;
-	ofn.nMaxFileTitle = 0;
-	ofn.lpstrInitialDir = dir;
-	ofn.Flags = OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
+	FormatFileExtensionsFilter(fileDesc, fileExtensions, fileExtensionCount, extFilter);
+	OPENFILENAMEW ofn;    // common dialog box structure
 
-	if (::GetOpenFileNameA(&ofn) == TRUE)
-	{
-		callback(szFile, userData);
-	}
-}
-
-void save_file_dialog(
-	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
-	const eastl::vector<eastl::string>& fileExtensions)
-{
-	eastl::string extFilter;
-	FormatFileExtensionsFilter(fileDesc, fileExtensions, extFilter);
-	OPENFILENAMEA ofn;
-	// buffer for file name
-	char szFile[MAX_PATH];
+	size_t   outputBufferLen = directory->mPathLength + MAX_PATH;
+	wchar_t* outputBuffer = (wchar_t*)alloca(outputBufferLen * sizeof(wchar_t));
 	// Initialize OPENFILENAME
 	ZeroMemory(&ofn, sizeof(ofn));
-	ofn.lpstrTitle = title;
+
+	size_t   titleLength = strlen(title) + 1;    // include the null terminator.
+	wchar_t* titleW = (wchar_t*)alloca(titleLength * sizeof(wchar_t));
+	MultiByteToWideChar(CP_UTF8, 0, title, (int)titleLength, titleW, (int)(titleLength * sizeof(wchar_t)));
+
+	ofn.lpstrTitle = titleW;
 	ofn.lStructSize = sizeof(ofn);
 	ofn.hwndOwner = NULL;
-	ofn.lpstrFile = szFile;
+	ofn.lpstrFile = outputBuffer;
 	// Set lpstrFile[0] to '\0' so that GetOpenFileName does not
 	// use the contents of szFile to initialize itself.
 	ofn.lpstrFile[0] = '\0';
-	ofn.nMaxFile = sizeof(szFile);
-	ofn.lpstrFilter = extFilter.c_str();
+	ofn.nMaxFile = (DWORD)outputBufferLen;
+
+	size_t   extFilterLength = extFilter.size() + 1;    // include the null terminator.
+	wchar_t* extFilterW = (wchar_t*)alloca(extFilterLength * sizeof(wchar_t));
+	MultiByteToWideChar(CP_UTF8, 0, extFilter.c_str(), (int)extFilterLength, extFilterW, (int)(extFilterLength * sizeof(wchar_t)));
+
+	ofn.lpstrFilter = extFilterW;
 	ofn.nFilterIndex = 1;
 	ofn.lpstrFileTitle = NULL;
 	ofn.nMaxFileTitle = 0;
-	ofn.lpstrInitialDir = dir;
-	ofn.Flags = OFN_EXPLORER | OFN_NOCHANGEDIR;
+	ofn.Flags = OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
-	if (::GetSaveFileNameA(&ofn) == TRUE)
-	{
-		callback(szFile, userData);
-	}
+	withUTF16Path<void>(directory, [&ofn, outputBuffer, callback, userData](const wchar_t* directory) {
+		ofn.lpstrInitialDir = directory;
+
+		if (::GetOpenFileNameW(&ofn) == TRUE)
+		{
+			Path* path = fsCreatePathFromWideString(outputBuffer, wcslen(outputBuffer));
+			callback(path, userData);
+			fsFreePath(path);
+		}
+	});
 }
 
-struct FileSystem::Watcher::Data
+void fsShowSaveFileDialog(
+	const char* title, const Path* directory, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
+	const char** fileExtensions, size_t fileExtensionCount)
 {
-	eastl::string  mWatchDir;
-	DWORD            mNotifyFilter;
-	FileSystem::Watcher::Callback    mCallback;
-	HANDLE           hExitEvt;
-	ThreadDesc       mThreadDesc;
-	ThreadHandle     mThread;
-	volatile int     mRun;
-};
+	eastl::string extFilter;
+	FormatFileExtensionsFilter(fileDesc, fileExtensions, fileExtensionCount, extFilter);
+	OPENFILENAMEW ofn;    // common dialog box structure
 
-static void fswThreadFunc(void* data)
+	size_t   outputBufferLen = directory->mPathLength + MAX_PATH;
+	wchar_t* outputBuffer = (wchar_t*)alloca(outputBufferLen * sizeof(wchar_t));
+	// Initialize OPENFILENAME
+	ZeroMemory(&ofn, sizeof(ofn));
+
+	size_t   titleLength = strlen(title) + 1;    // include the null terminator.
+	wchar_t* titleW = (wchar_t*)alloca(titleLength * sizeof(wchar_t));
+	MultiByteToWideChar(CP_UTF8, 0, title, (int)titleLength, titleW, (int)(titleLength * sizeof(wchar_t)));
+
+	ofn.lpstrTitle = titleW;
+	ofn.lStructSize = sizeof(ofn);
+	ofn.hwndOwner = NULL;
+	ofn.lpstrFile = outputBuffer;
+	// Set lpstrFile[0] to '\0' so that GetOpenFileName does not
+	// use the contents of szFile to initialize itself.
+	ofn.lpstrFile[0] = '\0';
+	ofn.nMaxFile = (DWORD)outputBufferLen;
+
+	size_t   extFilterLength = extFilter.size() + 1;    // include the null terminator.
+	wchar_t* extFilterW = (wchar_t*)alloca(extFilterLength * sizeof(wchar_t));
+	MultiByteToWideChar(CP_UTF8, 0, extFilter.c_str(), (int)extFilterLength, extFilterW, (int)(extFilterLength * sizeof(wchar_t)));
+
+	ofn.lpstrFilter = extFilterW;
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFileTitle = NULL;
+	ofn.nMaxFileTitle = 0;
+	ofn.Flags = OFN_EXPLORER | OFN_NOCHANGEDIR;
+
+	withUTF16Path<void>(directory, [&ofn, outputBuffer, callback, userData](const wchar_t* directory) {
+		ofn.lpstrInitialDir = directory;
+
+		if (::GetSaveFileNameW(&ofn) == TRUE)
+		{
+			Path* path = fsCreatePathFromWideString(outputBuffer, wcslen(outputBuffer));
+			callback(path, userData);
+			fsFreePath(path);
+		}
+	});
+}
+
+typedef struct FileWatcher
 {
-	FileSystem::Watcher::Data* fs = (FileSystem::Watcher::Data*)data;
+	Path*               mWatchDir;
+	DWORD               mNotifyFilter;
+	FileWatcherCallback mCallback;
+	HANDLE              hExitEvt;
+	ThreadDesc          mThreadDesc;
+	ThreadHandle        mThread;
+	volatile int        mRun;
+} FileWatcher;
 
-	HANDLE hDir = CreateFileA(
-		fs->mWatchDir.c_str(), FILE_LIST_DIRECTORY, FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE, NULL, OPEN_EXISTING,
-		FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
+void fswThreadFunc(void* data)
+{
+	FileWatcher* fs = (FileWatcher*)data;
+
+	HANDLE hDir = withUTF16Path<HANDLE>(fs->mWatchDir, [](const wchar_t* pathStr) {
+		return CreateFileW(
+			pathStr, FILE_LIST_DIRECTORY, FILE_SHARE_WRITE | FILE_SHARE_READ | FILE_SHARE_DELETE, NULL, OPEN_EXISTING,
+			FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
+	});
 	HANDLE hEvt = ::CreateEvent(NULL, TRUE, FALSE, NULL);
 
 	BYTE       notifyBuffer[1024];
@@ -348,31 +501,35 @@ static void fswThreadFunc(void* data)
 
 		GetOverlappedResult(hDir, &ovl, &dwBytesReturned, FALSE);
 
-		char  fileName[MAX_PATH * 4];
 		DWORD offset = 0;
 		BYTE* p = notifyBuffer;
 		for (;;)
 		{
 			FILE_NOTIFY_INFORMATION* fni = reinterpret_cast<FILE_NOTIFY_INFORMATION*>(p);
-			memset(fileName, '\0', sizeof(fileName));
-			WideCharToMultiByte(CP_UTF8, 0, fni->FileName, fni->FileNameLength / sizeof(WCHAR), fileName, sizeof(fileName), NULL, NULL);
-			eastl::string path = fs->mWatchDir + fileName;
-			uint32_t        action = 0;
+			uint32_t                 action = 0;
 			switch (fni->Action)
 			{
-				case FILE_ACTION_ADDED: action = FileSystem::Watcher::EVENT_CREATED; break;
+				case FILE_ACTION_ADDED: action = FWE_CREATED; break;
 				case FILE_ACTION_MODIFIED:
 					if (fs->mNotifyFilter & FILE_NOTIFY_CHANGE_LAST_WRITE)
-						action = FileSystem::Watcher::EVENT_MODIFIED;
+						action = FWE_MODIFIED;
 					if (fs->mNotifyFilter & FILE_NOTIFY_CHANGE_LAST_ACCESS)
-						action = FileSystem::Watcher::EVENT_ACCESSED;
+						action = FWE_ACCESSED;
 					break;
-				case FILE_ACTION_REMOVED: action = FileSystem::Watcher::EVENT_DELETED; break;
-				case FILE_ACTION_RENAMED_NEW_NAME: action = FileSystem::Watcher::EVENT_CREATED; break;
-				case FILE_ACTION_RENAMED_OLD_NAME: action = FileSystem::Watcher::EVENT_DELETED; break;
+				case FILE_ACTION_REMOVED: action = FWE_DELETED; break;
+				case FILE_ACTION_RENAMED_NEW_NAME: action = FWE_CREATED; break;
+				case FILE_ACTION_RENAMED_OLD_NAME: action = FWE_DELETED; break;
 				default: break;
 			}
-			fs->mCallback(path.c_str(), action);
+
+			size_t utf8Length = fni->FileNameLength * sizeof(wchar_t) / sizeof(char);
+			char*  utf8Name = (char*)alloca(utf8Length);
+			WideCharToMultiByte(CP_UTF8, 0, fni->FileName, fni->FileNameLength, utf8Name, (int)utf8Length, NULL, NULL);
+
+			Path* path = fsAppendPathComponent(fs->mWatchDir, utf8Name);
+			fs->mCallback(path, action);
+			fsFreePath(path);
+
 			if (!fni->NextEntryOffset)
 				break;
 			p += fni->NextEntryOffset;
@@ -383,43 +540,47 @@ static void fswThreadFunc(void* data)
 	CloseHandle(hEvt);
 };
 
-
-FileSystem::Watcher::Watcher(const char* pWatchPath, FSRoot root, uint32_t eventMask, Callback callback)
+FileWatcher* fsCreateFileWatcher(const Path* path, FileWatcherEventMask eventMask, FileWatcherCallback callback)
 {
-	pData = conf_new(FileSystem::Watcher::Data);
-	pData->mWatchDir = FileSystem::FixPath(FileSystem::AddTrailingSlash(pWatchPath), root);
+	FileWatcher* watcher = conf_new(FileWatcher);
+	watcher->mWatchDir = fsCopyPath(path);
+	watcher->mCallback = callback;
+
 	uint32_t notifyFilter = 0;
-	if (eventMask & EVENT_MODIFIED)
+	if (eventMask & FWE_MODIFIED)
 	{
 		notifyFilter |= FILE_NOTIFY_CHANGE_LAST_WRITE;
 	}
-	if (eventMask & EVENT_ACCESSED)
+	if (eventMask & FWE_ACCESSED)
 	{
 		notifyFilter |= FILE_NOTIFY_CHANGE_LAST_ACCESS;
 	}
-	if (eventMask & (EVENT_DELETED | EVENT_CREATED))
+	if (eventMask & (FWE_DELETED | FWE_CREATED))
 	{
 		notifyFilter |= FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME;
 	}
 
-	pData->mNotifyFilter = notifyFilter;
-	pData->hExitEvt = ::CreateEvent(NULL, TRUE, FALSE, NULL);
-	pData->mCallback = callback;
-	pData->mRun = TRUE;
+	watcher->mNotifyFilter = notifyFilter;
+	watcher->hExitEvt = ::CreateEvent(NULL, TRUE, FALSE, NULL);
+	watcher->mCallback = callback;
+	watcher->mRun = TRUE;
 
-	pData->mThreadDesc.pFunc = fswThreadFunc;
-	pData->mThreadDesc.pData = pData;
+	watcher->mThreadDesc.pFunc = fswThreadFunc;
+	watcher->mThreadDesc.pData = watcher;
 
-	pData->mThread = create_thread(&pData->mThreadDesc);
+	watcher->mThread = create_thread(&watcher->mThreadDesc);
+
+	return watcher;
 }
 
-FileSystem::Watcher::~Watcher()
+void fsFreeFileWatcher(FileWatcher* fileWatcher)
 {
-	pData->mRun = FALSE;
-	SetEvent(pData->hExitEvt);
-	destroy_thread(pData->mThread);
-	CloseHandle(pData->hExitEvt);
-	conf_delete(pData);
+	fileWatcher->mRun = FALSE;
+	SetEvent(fileWatcher->hExitEvt);
+	destroy_thread(fileWatcher->mThread);
+	CloseHandle(fileWatcher->hExitEvt);
+	fsFreePath(fileWatcher->mWatchDir);
+	conf_delete(fileWatcher);
 }
 
 #endif

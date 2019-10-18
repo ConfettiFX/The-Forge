@@ -2,7 +2,7 @@
 <CodeLite_Project Name="OS" InternalType="Library" Version="10.0.0">
   <Plugins>
     <Plugin Name="qmake">
-      <![CDATA[00010001N0005Debug000000000000]]>
+      <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
     </Plugin>
   </Plugins>
   <VirtualDirectory Name="Middleware_3">
@@ -56,7 +56,6 @@
     <File Name="../../../../Common_3/OS/Core/Atomics.h"/>
     <File Name="../../../../Common_3/OS/Core/Compiler.h"/>
     <File Name="../../../../Common_3/OS/Core/DLL.h"/>
-    <File Name="../../../../Common_3/OS/Core/FileSystem.cpp"/>
     <File Name="../../../../Common_3/OS/Core/RingBuffer.h"/>
     <File Name="../../../../Common_3/OS/Core/ThreadSystem.h"/>
     <File Name="../../../../Common_3/OS/Core/ThreadSystem.cpp"/>
@@ -98,20 +97,46 @@
   </VirtualDirectory>
   <VirtualDirectory Name="Dependencies">
     <File Name="../../../../Common_3/ThirdParty/OpenSource/TinyEXR/tinyexr.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/contrib/zlib/zconf.h"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib/zlib.h"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib/crc32.c"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib/deflate.c"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib/inflate.c"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib/adler32.c"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib/zutil.h"/>
   </VirtualDirectory>
+  <VirtualDirectory Name="FileSystem">
+    <File Name="../../../../Common_3/OS/FileSystem/ZipFileSystem.h"/>
+    <File Name="../../../../Common_3/OS/FileSystem/ZipFileSystem.cpp"/>
+    <File Name="../../../../Common_3/OS/FileSystem/ZipFileStream.h"/>
+    <File Name="../../../../Common_3/OS/FileSystem/ZipFileStream.cpp"/>
+    <File Name="../../../../Common_3/OS/FileSystem/UnixFileSystem.h"/>
+    <File Name="../../../../Common_3/OS/FileSystem/UnixFileSystem.cpp"/>
+    <File Name="../../../../Common_3/OS/FileSystem/SystemRun.cpp"/>
+    <File Name="../../../../Common_3/OS/FileSystem/SystemFileStream.h"/>
+    <File Name="../../../../Common_3/OS/FileSystem/SystemFileStream.cpp"/>
+    <File Name="../../../../Common_3/OS/FileSystem/FileSystemInternal.h"/>
+    <File Name="../../../../Common_3/OS/FileSystem/FileSystemInternal.cpp"/>
+    <File Name="../../../../Common_3/OS/FileSystem/MemoryStream.cpp"/>
+    <File Name="../../../../Common_3/OS/FileSystem/MemoryStream.h"/>
+  </VirtualDirectory>
+  <Dependencies Name="Debug"/>
+  <Dependencies Name="Release"/>
   <Settings Type="Static Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
         <IncludePath Value="."/>
       </Compiler>
-      <Linker Options="">
-        <LibraryPath Value="."/>
-      </Linker>
+      <Linker Options=""/>
       <ResourceCompiler Options=""/>
     </GlobalSettings>
-    <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+    <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
       <Compiler Options="-g; -std=c++14;" C_Options="-g" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
+        <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib"/>
+        <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/contrib/zlib/"/>
+        <IncludePath Value="$(ProjectPath)/../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/Android-Lib"/>
+        <IncludePath Value="$(ProjectPath)/../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/xcode"/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
         <Preprocessor Value="USE_MEMORY_TRACKING"/>
@@ -151,9 +176,13 @@
         <SearchPaths/>
       </Completion>
     </Configuration>
-    <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
+    <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
       <Compiler Options="-std=c++14;" C_Options="" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
+        <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib"/>
+        <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/contrib/zlib/"/>
+        <IncludePath Value="$(ProjectPath)/../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/Android-Lib"/>
+        <IncludePath Value="$(ProjectPath)/../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/xcode"/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>
       </Compiler>
@@ -193,6 +222,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <Dependencies Name="Debug"/>
-  <Dependencies Name="Release"/>
 </CodeLite_Project>

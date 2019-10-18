@@ -46,6 +46,8 @@
 		D0796AEB211ED7A70028AFFD /* ozz_base_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0796AE9211ED7950028AFFD /* ozz_base_IOS.a */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
+		E9A438E3233DC60D005BF1C7 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A438E0233DC609005BF1C7 /* libbz2.tbd */; };
+		E9A438E5233DC615005BF1C7 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A438E4233DC612005BF1C7 /* libbz2.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -90,13 +92,6 @@
 			proxyType = 2;
 			remoteGlobalIDString = 5C172FC821414C490074EE71;
 			remoteInfo = "The-Forge_iOS";
-		};
-		B2541CFF21751B6B00F702BB /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 5C5582DF21413D180019960B;
-			remoteInfo = "The-Forge";
 		};
 		B2541D0121751B6F00F702BB /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -146,6 +141,13 @@
 			proxyType = 2;
 			remoteGlobalIDString = D0796ADE211ED7430028AFFD;
 			remoteInfo = ozz_base_IOS;
+		};
+		E958922423416EB100B68D6A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C5582DF21413D180019960B;
+			remoteInfo = "The-Forge";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -224,11 +226,11 @@
 		B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
 		B27D879920E2E88B00081DB0 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
 		B2B73F1721751BF900324803 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
-		B2B73FC621754A3B00324803 /* 18_Playback.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 18_Playback.cpp; path = ../../src/18_Playback/18_Playback.cpp; sourceTree = "<group>"; };
-		B2B73FE221754CB400324803 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/macOS/AppDelegate.m; sourceTree = "<group>"; };
-		B2B73FE321754CB400324803 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/macOS/AppDelegate.h; sourceTree = "<group>"; };
-		B2B7400C2175532600324803 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/iOS/AppDelegate.h; sourceTree = "<group>"; };
-		B2B7400E2175533E00324803 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/iOS/AppDelegate.m; sourceTree = "<group>"; };
+		B2B73FC621754A3B00324803 /* 18_Playback.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 18_Playback.cpp; path = ../../src/18_Playback/18_Playback.cpp; sourceTree = "<group>"; usesTabs = 1; };
+		B2B73FE221754CB400324803 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
+		B2B73FE321754CB400324803 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
+		B2B7400C2175532600324803 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
+		B2B7400E2175533E00324803 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
 		B2B740152175553800324803 /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; path = TitilliumText; sourceTree = "<group>"; };
 		B2B740212175571C00324803 /* stickFigure */ = {isa = PBXFileReference; lastKnownFileType = folder; path = stickFigure; sourceTree = "<group>"; };
 		B2B7405721755BE100324803 /* plane.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = plane.vert.metal; path = ../../src/18_Playback/Shaders/Metal/plane.vert.metal; sourceTree = "<group>"; };
@@ -243,6 +245,8 @@
 		D0296BEB211EE433000C9281 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = 18_Playback/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		E9A438E0233DC609005BF1C7 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
+		E9A438E4233DC612005BF1C7 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.0.sdk/usr/lib/libbz2.tbd; sourceTree = DEVELOPER_DIR; };
 		EA463C8B1EF81E8F005AC8C7 /* 18_Playback.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 18_Playback.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EADF9D661EFD160E00B2008B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = 18_Playback/Info.plist; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -252,6 +256,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E9A438E5233DC615005BF1C7 /* libbz2.tbd in Frameworks */,
 				650CCC882223CF17003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				B2541CFD21751B5B00F702BB /* libThe-Forge_iOS.a in Frameworks */,
 				D0796AEA211ED7A70028AFFD /* ozz_animation_IOS.a in Frameworks */,
@@ -273,6 +278,7 @@
 				B2C44079211E2563008F57D5 /* ozz_base.a in Frameworks */,
 				B22D906920E2EDCE0036B88E /* Metal.framework in Frameworks */,
 				B22D906A20E2EDCE0036B88E /* MetalKit.framework in Frameworks */,
+				E9A438E3233DC60D005BF1C7 /* libbz2.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -282,6 +288,8 @@
 		28A5ABEA201F482F000E571F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E9A438E0233DC609005BF1C7 /* libbz2.tbd */,
+				E9A438E4233DC612005BF1C7 /* libbz2.tbd */,
 				650CCC832223CEFE003533D9 /* MetalPerformanceShaders.framework */,
 				650CCC872223CF17003533D9 /* MetalPerformanceShaders.framework */,
 				B2B73F1721751BF900324803 /* GameController.framework */,
@@ -460,7 +468,7 @@
 			buildRules = (
 			);
 			dependencies = (
-				B2541D0021751B6B00F702BB /* PBXTargetDependency */,
+				E958922523416EB100B68D6A /* PBXTargetDependency */,
 				B2C44070211E254B008F57D5 /* PBXTargetDependency */,
 				B2C44072211E254B008F57D5 /* PBXTargetDependency */,
 			);
@@ -621,11 +629,6 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		B2541D0021751B6B00F702BB /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = "The-Forge";
-			targetProxy = B2541CFF21751B6B00F702BB /* PBXContainerItemProxy */;
-		};
 		B2541D0221751B6F00F702BB /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = "The-Forge_iOS";
@@ -650,6 +653,11 @@
 			isa = PBXTargetDependency;
 			name = ozz_base_IOS;
 			targetProxy = D0796AE1211ED7950028AFFD /* PBXContainerItemProxy */;
+		};
+		E958922523416EB100B68D6A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "The-Forge";
+			targetProxy = E958922423416EB100B68D6A /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -866,6 +874,7 @@
 					METAL,
 					_DEBUG,
 					USE_MEMORY_TRACKING,
+					ZIP_STATIC,
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/18_Playback/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -876,6 +885,11 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests-Animations.01-Playback";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				USER_HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib",
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple",
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/lib",
+				);
 			};
 			name = Debug;
 		};
@@ -888,7 +902,10 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				GCC_PREPROCESSOR_DEFINITIONS = METAL;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					METAL,
+					ZIP_STATIC,
+				);
 				INFOPLIST_FILE = "$(SRCROOT)/18_Playback/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -898,6 +915,11 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests-Animations.01-Playback";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				USER_HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib",
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple",
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/lib",
+				);
 			};
 			name = Release;
 		};

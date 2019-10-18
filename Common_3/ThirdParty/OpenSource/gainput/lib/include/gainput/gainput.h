@@ -8,7 +8,10 @@
 #ifndef GAINPUT_H_
 #define GAINPUT_H_
 
-#if defined(_DURANGO) || defined(_XBOX_ONE)
+#if defined(VK_USE_PLATFORM_GGP)
+	#define GAINPUT_PLATFORM_GGP
+	#define GAINPUT_LIBEXPORT
+#elif defined(_DURANGO) || defined(_XBOX_ONE)
 #define GAINPUT_PLATFORM_XBOX_ONE
 #define GAINPUT_LIBEXPORT
 #include "../../../../../../../Xbox/Common_3/OS/pch.h"
@@ -70,7 +73,7 @@
 #define GAINPUT_ASSERT assert
 #define GAINPUT_UNUSED(x) (void)(x)
 
-#if defined(GAINPUT_PLATFORM_LINUX)
+#if defined(GAINPUT_PLATFORM_LINUX) || defined(GAINPUT_PLATFORM_GGP)
 
 #include <cstdlib>
 #include <stdint.h>

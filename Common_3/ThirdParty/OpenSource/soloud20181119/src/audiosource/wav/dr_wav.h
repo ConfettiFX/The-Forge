@@ -1146,7 +1146,8 @@ FILE* drwav_fopen(const char* filePath, const char* openMode)
 {
     FILE* pFile;
 #if defined(_MSC_VER) && _MSC_VER >= 1400
-    if (fopen_s(&pFile, filePath, openMode) != 0) {
+	pFile = open_file(filePath, openMode);
+	if (pFile != 0) {
         return DRWAV_FALSE;
     }
 #else

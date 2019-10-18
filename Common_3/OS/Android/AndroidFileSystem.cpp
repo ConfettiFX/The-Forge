@@ -23,193 +23,433 @@
 */
 
 #ifdef __ANDROID__
-#include "../Interfaces/IFileSystem.h"
+#include "../FileSystem/FileSystemInternal.h"
+#include "../FileSystem/UnixfileSystem.h"
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/IOperatingSystem.h"
 #include <unistd.h>
+#include <sys/stat.h>
+#include <sys/inotify.h>
+#include <dirent.h>
 #include <android/asset_manager.h>
 #include "../Interfaces/IMemory.h"
+
 #define MAX_PATH PATH_MAX
 
-#define RESOURCE_DIR "Shaders"
+class AAssetFileStream : public FileStream
+{
+	AAsset* pAsset;
+public:
 
-const char* pszRoots[FSR_Count] = {
-	RESOURCE_DIR "/Binary/",    // FSR_BinShaders
-	RESOURCE_DIR "/",           // FSR_SrcShaders
-	"Textures/",                // FSR_Textures
-	"Meshes/",                  // FSR_Meshes
-	"Fonts/",                   // FSR_Builtin_Fonts
-	"GPUCfg/",                  // FSR_GpuConfig
-	"Animation/",               // FSR_Animation
-	"Audio/",                   // FSR_Audio
-	"",                         // FSR_OtherFiles
+	AAssetFileStream(AAsset* asset) : 
+		FileStream(FileStreamType_BundleAsset),
+		pAsset(asset) {}
+
+	size_t  Read(void* outputBuffer, size_t bufferSizeInBytes) override
+	{
+		return AAsset_read(pAsset, outputBuffer, bufferSizeInBytes);
+	}
+
+	size_t  Scan(const char* format, va_list args, int* bytesRead) override
+	{
+		LOGF(LogLevel::eWARNING, "fsScanFromStream is not implemented for bundled Android assets.");
+		return 0;
+	}
+
+	size_t  Write(const void* sourceBuffer, size_t byteCount) override
+	{
+		LOGF(LogLevel::eERROR, "Bundled Android assets are not writable.");
+		return 0;
+	}
+
+	size_t  Print(const char* format, va_list args) override
+	{
+		LOGF(LogLevel::eERROR, "Bundled Android assets are not writable.");
+		return 0;
+	}
+
+	bool    Seek(SeekBaseOffset baseOffset, ssize_t seekOffset) override
+	{
+		int origin = SEEK_SET;
+		switch (baseOffset)
+		{
+			case SBO_START_OF_FILE: origin = SEEK_SET; break;
+			case SBO_CURRENT_POSITION: origin = SEEK_CUR; break;
+			case SBO_END_OF_FILE: origin = SEEK_END; break;
+		}
+		return AAsset_seek64(pAsset, seekOffset, origin) != -1;
+	}
+
+	ssize_t GetSeekPosition() const override {
+		return (ssize_t)AAsset_seek64(pAsset, 0, SEEK_CUR);
+	}
+
+	ssize_t GetFileSize() const override
+	{
+		return (ssize_t)AAsset_getLength64(pAsset);
+	}
+
+	void    Flush() override {}
+
+	bool    IsAtEnd() const override
+	{
+		return AAsset_getRemainingLength64(pAsset) == 0;
+	}
+
+	bool    Close() override
+	{
+		AAsset_close(pAsset);
+
+		conf_delete(this);
+		return true;
+	}
 };
 
-static AAssetManager* _mgr = NULL;
-
-FileHandle open_file(const char* filename, const char* flags)
+class AndroidBundleFileSystem: public FileSystem
 {
-	// Android does not support write to file. All assets accessed through asset manager are read only.
-	if(strstr(flags, "w") != NULL)
+	AAssetManager* pAssetManager;
+
+public:
+	AndroidBundleFileSystem() :
+		FileSystem(FSK_RESOURCE_BUNDLE),
+		pAssetManager(NULL) {}
+
+	AndroidBundleFileSystem(AAssetManager* assetManager): 
+		FileSystem(FSK_RESOURCE_BUNDLE), 
+		pAssetManager(assetManager) 
 	{
-		LOGF(LogLevel::eERROR, "Writing to asset file is not supported on android platform!");
-		return NULL;
+		Path* rootPath = fsCreatePath(this, ""); 
+		fsSetResourceDirectoryRootPath(rootPath);
+		fsFreePath(rootPath);
 	}
-	if(_mgr == NULL)
-		return NULL;
 
-	AAsset* file = AAssetManager_open(_mgr,
-		filename, AASSET_MODE_BUFFER);
+	bool IsReadOnly() const override { return true; }
 
-	if(file == NULL)
-		return NULL;
+	bool IsCaseSensitive() const override { return true; }
 
-	return reinterpret_cast<void*>(file);
-}
+	char GetPathDirectorySeparator() const override { return '/'; }
 
-bool close_file(FileHandle handle)
-{
-	AAsset_close(reinterpret_cast<AAsset*>(handle));
-	return true;
-}
-
-bool anDirExists(const char* path)
-{
-	AAsset* file = AAssetManager_open(_mgr, path, AASSET_MODE_BUFFER);
-	if(file == NULL) {
-		AAssetDir* assetDir = AAssetManager_openDir(_mgr, path );
-		bool exist = AAssetDir_getNextFileName(assetDir) != NULL;
-		AAssetDir_close( assetDir );
-		return exist;
+	size_t GetRootPathLength() const override
+	{
+		return 0;
 	}
-	AAsset_close(file);
-	return true;
-}
 
-void get_files_with_extension(const char* dir, const char* ext, eastl::vector<eastl::string>& filesOut)
-{
-	AAssetDir* assetDir = AAssetManager_openDir(_mgr, dir);
-	const char* fileName = (const char*)NULL;
-	while ((fileName = AAssetDir_getNextFileName(assetDir)) != NULL) {
-		const char* p = strstr(fileName, ext);
-		if(p)
+	/// Fills path's buffer with the canonical root path corresponding to the root of absolutePathString,
+	/// and returns an offset into absolutePathString containing the path component after the root by pathComponentOffset.
+	/// path is assumed to have storage for up to 16 characters.
+	bool FormRootPath(const char* absolutePathString, Path* path, size_t* pathComponentOffset) const override
+	{
+		if (absolutePathString[0] == '/')
 		{
-			filesOut.push_back(dir + eastl::string(fileName));
+			return false;
 		}
+
+		(&path->mPathBufferOffset)[7] = 0;
+		path->mPathBufferOffset = 0;
+		path->mPathLength = 0;
+
+		*pathComponentOffset = 0;
+
+		return true;
 	}
-	AAssetDir_close(assetDir);
-}
+
+	time_t GetCreationTime(const Path* filePath) const override
+	{
+		LOGF(LogLevel::eWARNING, "GetCreationTime is unsupported on Android bundle paths.");
+		return 0;
+	}
+
+	time_t GetLastAccessedTime(const Path* filePath) const override
+	{
+		LOGF(LogLevel::eWARNING, "GetLastAccessedTime is unsupported on Android bundle paths.");
+		return 0;
+	}
+
+	time_t GetLastModifiedTime(const Path* filePath) const override
+	{
+		LOGF(LogLevel::eWARNING, "GetLastModifiedTime is unsupported on Android bundle paths.");
+		return 0;
+	}
+
+	bool CreateDirectory(const Path* directoryPath) const override
+	{
+		LOGF(LogLevel::eWARNING, "The Android bundle is read-only");
+		return false;
+	}
+
+	bool DeleteFile(const Path* path) const override
+	{
+		LOGF(LogLevel::eWARNING, "The Android bundle is read-only");
+		return false;
+	}
+
+	bool FileExists(const Path* path) const override
+	{
+		if (IsDirectory(path))
+			return true;
+
+		if (AAsset* asset = AAssetManager_open(pAssetManager, fsGetPathAsNativeString(path), AASSET_MODE_UNKNOWN))
+		{
+			AAsset_close(asset);
+			return true;
+		}
+
+		return false;
+	}
+
+	bool IsDirectory(const Path* path) const override
+	{
+		if (AAssetDir* subDir = AAssetManager_openDir(pAssetManager, fsGetPathAsNativeString(path)))
+		{
+			AAssetDir_close(subDir);
+			return true;
+		}
+		return false;
+	}
+
+	FileStream* OpenFile(const Path* filePath, FileMode mode) const override
+	{
+		if (mode & (FM_WRITE | FM_APPEND) != 0)
+		{
+			LOGF(LogLevel::eERROR, "Cannot open %s with mode %i: the Android bundle is read-only.",
+				fsGetPathAsNativeString(filePath), mode);
+			return NULL;
+		}
+
+		AAsset* file = AAssetManager_open(pAssetManager,
+			fsGetPathAsNativeString(filePath), AASSET_MODE_BUFFER);
+
+		if (file)
+		{
+			return conf_new(AAssetFileStream, file);
+		}
+		return NULL;
+	}
+
+	bool CopyFile(const Path* sourcePath, const Path* destinationPath, bool overwriteIfExists) const override
+	{
+		LOGF(LogLevel::eWARNING, "The Android bundle is read-only");
+		return false;
+	}
+
+	void EnumerateFilesWithExtension(
+		const Path* directory, const char* extension, bool (*processFile)(const Path*, void* userData), void* userData) const override
+	{
+		if (extension[0] == '.')
+		{
+			extension += 1;
+		}
+
+		size_t extensionLen = strlen(extension);
+
+		AAssetDir* assetDir = AAssetManager_openDir(pAssetManager, fsGetPathAsNativeString(directory));
+		while (const char* fileName = AAssetDir_getNextFileName(assetDir)) {
+			const char* p = strcasestr(fileName, extension);
+			if (p)
+			{
+				Path* path = fsCreatePath(this, fileName);
+				processFile(path, userData);
+				fsFreePath(path);
+			}
+		}
+		AAssetDir_close(assetDir);
+	}
+
+	void
+		EnumerateSubDirectories(const Path* directory, bool (*processDirectory)(const Path*, void* userData), void* userData) const override
+	{
+		AAssetDir* assetDir = AAssetManager_openDir(pAssetManager, fsGetPathAsNativeString(directory));
+		while (const char* fileName = AAssetDir_getNextFileName(assetDir)) {
+			if (AAssetDir* subDir = AAssetManager_openDir(pAssetManager, fileName))
+			{
+				Path* path = fsCreatePath(this, fileName);
+				processDirectory(path, userData);
+				fsFreePath(path);
+				AAssetDir_close(subDir);
+			}
+		}
+		AAssetDir_close(assetDir);
+	}
+};
 
 
-void flush_file(FileHandle handle)
+struct AndroidDiskFileSystem : public UnixFileSystem
 {
-	LOGF(LogLevel::eERROR, "FileSystem::Flush not supported on Android!");
-	abort();
-}
+	AndroidDiskFileSystem() : UnixFileSystem() {}
 
-size_t read_file(void *buffer, size_t byteCount, FileHandle handle)
+	bool IsCaseSensitive() const override
+	{
+		return true;
+	}
+
+	bool CopyFile(const Path* sourcePath, const Path* destinationPath, bool overwriteIfExists) const override
+	{
+		FileStream* sourceFile = fsOpenFile(sourcePath, FM_READ_BINARY);
+		if (!sourceFile) { return false; }
+
+		if (!overwriteIfExists && fsFileExists(destinationPath)) { return false; }
+
+		FileStream* destinationFile = fsOpenFile(destinationPath, FM_WRITE_BINARY);
+		if (!destinationFile) { return false; }
+
+		while (!fsStreamAtEnd(sourceFile))
+		{
+			uint8_t byte;
+			if (fsReadFromStream(sourceFile, &byte, sizeof(uint8_t)) != sizeof(uint8_t))
+			{
+				fsCloseStream(sourceFile);
+				fsCloseStream(destinationFile);
+				return false;
+			}
+
+			if (fsWriteToStream(destinationFile, &byte, sizeof(uint8_t)) != sizeof(uint8_t))
+			{
+				fsCloseStream(sourceFile);
+				fsCloseStream(destinationFile);
+				return false;
+			}
+		}
+
+		fsCloseStream(sourceFile);
+		fsCloseStream(destinationFile);
+
+		return true;
+	}
+
+	void EnumerateFilesWithExtension(
+		const Path* directoryPath, const char* extension, bool (*processFile)(const Path*, void* userData), void* userData) const override
+	{
+		DIR* directory = opendir(fsGetPathAsNativeString(directoryPath));
+		if (!directory)
+			return;
+
+		struct dirent* entry;
+		do
+		{
+			entry = readdir(directory);
+			if (!entry)
+				break;
+
+			Path* path = fsAppendPathComponent(directoryPath, entry->d_name);
+			PathComponent fileExt = fsGetPathExtension(path);
+
+			if (!extension)
+				processFile(path, userData);
+
+			else if (extension[0] == 0 && fileExt.length == 0)
+				processFile(path, userData);
+
+			else if (fileExt.length > 0 && strncasecmp(fileExt.buffer, extension, fileExt.length) == 0)
+			{
+				processFile(path, userData);
+			}
+
+			fsFreePath(path);
+
+		} while (entry != NULL);
+
+		closedir(directory);
+	}
+
+	void EnumerateSubDirectories(
+		const Path* directoryPath, bool (*processDirectory)(const Path*, void* userData), void* userData) const override
+	{
+		DIR* directory = opendir(fsGetPathAsNativeString(directoryPath));
+		if (!directory)
+			return;
+
+		struct dirent* entry;
+		do
+		{
+			entry = readdir(directory);
+			if (!entry)
+				break;
+
+			if ((entry->d_type & DT_DIR) && (entry->d_name[0] != '.'))
+			{
+				Path* path = fsAppendPathComponent(directoryPath, entry->d_name);
+				processDirectory(path, userData);
+				fsFreePath(path);
+			}
+		} while (entry != NULL);
+
+		closedir(directory);
+	}
+};
+
+static ANativeActivity* pNativeActivity = NULL;
+
+AndroidBundleFileSystem gBundleFileSystem;
+AndroidDiskFileSystem gSystemFileSystem;
+
+FileSystem* fsGetSystemFileSystem() { return &gSystemFileSystem; }
+
+void AndroidFS_SetNativeActivity(ANativeActivity* nativeActivity)
 {
-	AAsset* assetHandle = reinterpret_cast<AAsset*>(handle);
-	size_t  readSize = AAsset_read(assetHandle, buffer, byteCount);
-	//ASSERT(readSize == byteCount);
-	return readSize;
+	ASSERT(nativeActivity);
+	pNativeActivity = nativeActivity;
+	gBundleFileSystem = AndroidBundleFileSystem(nativeActivity->assetManager);
 }
 
-bool seek_file(FileHandle handle, long offset, int origin)
+Path* fsCopyWorkingDirectoryPath()
 {
-	// Seek function return -s on error.
-	return AAsset_seek(reinterpret_cast<AAsset*>(handle), offset, origin) != -1;
+	char cwd[MAX_PATH];
+	getcwd(cwd, MAX_PATH);
+	Path* path = fsCreatePath(fsGetSystemFileSystem(), cwd);
+	return path;
 }
 
-long tell_file(FileHandle handle)
-{
-	size_t total_len = AAsset_getLength(reinterpret_cast<AAsset*>(handle));
-	size_t remain_len = AAsset_getRemainingLength(reinterpret_cast<AAsset*>(handle));
-	return total_len - remain_len;
-	//AAsset_getLength(reinterpret_cast<AAsset*>(handle));
-}
-
-size_t write_file(const void *buffer, size_t byteCount, FileHandle handle)
-{
-	//It cannot be done.It is impossible.
-	//https://stackoverflow.com/questions/3760626/how-to-write-files-to-assets-folder-or-raw-folder-in-android
-	LOGF(LogLevel::eERROR, "FileSystem::Write not supported in Android!");
-	abort();
-	return -1;
-}
-
-time_t get_file_last_modified_time(const char* _fileName)
-{
-	LOGF(LogLevel::eERROR,"FileSystem::Last Modified Time not supported in Android!");
-	return -1;
-}
-
-time_t get_file_last_accessed_time(const char* _fileName)
-{
-	LOGF(LogLevel::eERROR,"FileSystem::Last Modified Time not supported in Android!");
-	return -1;
-}
-
-time_t get_file_creation_time(const char* _fileName)
-{
-	LOGF(LogLevel::eERROR, "FileSystem::Last Modified Time not supported in Android!");
-	return -1;
-}
-
-eastl::string get_current_dir()
-{
-	return eastl::string ("");
-}
-
-eastl::string get_exe_path()
+Path* fsCopyExecutablePath()
 {
 	char exeName[MAX_PATH];
 	exeName[0] = 0;
-	readlink("/proc/self/exe", exeName, MAX_PATH);
-	return eastl::string(exeName);
+	ssize_t count = readlink("/proc/self/exe", exeName, MAX_PATH);
+	exeName[count] = '\0';
+	return fsCreatePath(fsGetSystemFileSystem(), exeName);
 }
 
-eastl::string get_app_prefs_dir(const char *org, const char *app)
+Path* fsCopyProgramDirectoryPath()
 {
-	return "";
+	return fsCreatePath(&gBundleFileSystem, "");
 }
 
-eastl::string get_user_documents_dir()
+Path* fsCopyPreferencesDirectoryPath(const char* organisation, const char* application)
 {
-	return "";
+	ASSERT(pNativeActivity);
+	return fsCreatePath(fsGetSystemFileSystem(), pNativeActivity->internalDataPath);
 }
 
-void set_current_dir(const char* path)
+Path* fsCopyUserDocumentsDirectoryPath()
 {
-	// change working directory
-	chdir(path);
+	ASSERT(pNativeActivity);
+	return fsCreatePath(fsGetSystemFileSystem(), pNativeActivity->externalDataPath);
 }
 
-bool copy_file(const char* src, const char* dst)
+Path* fsCopyLogFileDirectoryPath() 
 {
-	LOGF(LogLevel::eERROR, "Not supported in Android!");
-	return false;
+	return fsCreatePath(fsGetSystemFileSystem(), pNativeActivity->internalDataPath);
 }
 
-void open_file_dialog(
-	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
-	const eastl::vector<eastl::string>& fileExtensions)
+void fsShowOpenFileDialog(
+	const char* title, const Path* directory, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
+	const char** fileExtensions, size_t fileExtensionCount)
 {
-	LOGF(LogLevel::eERROR, "Not supported in Android!");
+	LOGF(LogLevel::eERROR, "fsShowOpenFileDialog is not implemented on Android");
 }
 
-void save_file_dialog(
-	const char* title, const char* dir, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
-	const eastl::vector<eastl::string>& fileExtensions)
+void fsShowSaveFileDialog(
+	const char* title, const Path* directory, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
+	const char** fileExtensions, size_t fileExtensionCount)
 {
-	LOGF(LogLevel::eERROR, "Not supported in Android!");
+	LOGF(LogLevel::eERROR, "fsShowSaveFileDialog is not implemented on Android");
 }
 
-FileSystem::Watcher::Watcher(const char* pWatchPath, FSRoot root, uint32_t eventMask, Callback callback)
+FileWatcher* fsCreateFileWatcher(const Path* path, FileWatcherEventMask eventMask, FileWatcherCallback callback)
 {
-	LOGF(LogLevel::eERROR,"Not supported in Android!");
+	LOGF(LogLevel::eERROR, "FileWatcher is unsupported on Android.");
+	return NULL;
 }
 
-FileSystem::Watcher::~Watcher() { LOGF(LogLevel::eERROR,"Not supported in Android!"); }
+void fsFreeFileWatcher(FileWatcher* fileWatcher) { LOGF(LogLevel::eERROR, "FileWatcher is unsupported on Android."); }
 
 #endif

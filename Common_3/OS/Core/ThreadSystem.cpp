@@ -119,6 +119,10 @@ void initThreadSystem(ThreadSystem** ppThreadSystem)
 	uint32_t numThreads = max<uint32_t>(Thread::GetNumCPUCores() - 1, 1);
 	uint32_t numLoaders = min<uint32_t>(numThreads, MAX_LOAD_THREADS);
 
+	pThreadSystem->mQueueMutex.Init();
+	pThreadSystem->mQueueCond.Init();
+	pThreadSystem->mIdleCond.Init();
+	
 	pThreadSystem->mRun = true;
 	pThreadSystem->mNumIdleLoaders = 0;
 
@@ -171,6 +175,9 @@ void shutdownThreadSystem(ThreadSystem* pThreadSystem)
 		destroy_thread(pThreadSystem->mThread[i]);
 	}
 
+	pThreadSystem->mQueueCond.Destroy();
+	pThreadSystem->mIdleCond.Destroy();
+	pThreadSystem->mQueueMutex.Destroy();
 	conf_delete(pThreadSystem);
 }
 

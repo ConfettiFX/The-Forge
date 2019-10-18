@@ -56,19 +56,16 @@
 static IApp*                                     pApp = NULL;
 static bool		                                 gWindowClassInitialized = false;
 static WNDCLASSW	                             gWindowClass;
-static eastl::vector<MonitorDesc>                gMonitors;
-static eastl::unordered_map<void*, WindowsDesc*> gHWNDMap;
+static MonitorDesc*                              gMonitors;
+static uint32_t                                  gMonitorCount = 0;
+static WindowsDesc*                              pCurrentWindow;
 
 static void adjustWindow(WindowsDesc* winDesc);
 
 // Window event handler - Use as less as possible
 LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 {
-	WindowsDesc* pCurrentWindow = NULL;
-	decltype(gHWNDMap)::iterator pNode = gHWNDMap.find(_hwnd);
-	if (pNode != gHWNDMap.end())
-		pCurrentWindow = pNode->second;
-	else
+	if (!pCurrentWindow || _hwnd != pCurrentWindow->handle.window)
 		return DefWindowProcW(_hwnd, _id, wParam, lParam);
 
 	ASSERT(pCurrentWindow);
@@ -166,6 +163,31 @@ static void collectMonitorInfo()
 
 	int found = 0;
 	int size = 0;
+	uint32_t monitorCount = 0;
+
+	for (int adapterIndex = 0;; ++adapterIndex)
+	{
+		if (!EnumDisplayDevicesW(NULL, adapterIndex, &adapter, 0))
+			break;
+
+		if (!(adapter.StateFlags & DISPLAY_DEVICE_ACTIVE))
+			continue;
+
+
+		for (int displayIndex = 0;; displayIndex++)
+		{
+			DISPLAY_DEVICEW display;
+			display.cb = sizeof(display);
+
+			if (!EnumDisplayDevicesW(adapter.DeviceName, displayIndex, &display, 0))
+				break;
+
+			++monitorCount;
+		}
+	}
+
+	gMonitorCount = monitorCount;
+	gMonitors = (MonitorDesc*)conf_calloc(monitorCount, sizeof(MonitorDesc));
 
 	for (int adapterIndex = 0;; ++adapterIndex)
 	{
@@ -195,8 +217,8 @@ static void collectMonitorInfo()
 			wcsncpy_s(desc.displayName, display.DeviceName, elementsOf(display.DeviceName));
 			wcsncpy_s(desc.publicDisplayName, display.DeviceName, elementsOf(display.DeviceName));
 
-			gMonitors.push_back(desc);
-			EnumDisplayMonitors(NULL, NULL, monitorCallback, gMonitors.size() - 1);
+			gMonitors[found] = (desc);
+			EnumDisplayMonitors(NULL, NULL, monitorCallback, found);
 
 			DeleteDC(dc);
 
@@ -211,7 +233,7 @@ static void collectMonitorInfo()
 		}
 	}
 
-	for (uint32_t monitor = 0; monitor < (uint32_t)gMonitors.size(); ++monitor)
+	for (uint32_t monitor = 0; monitor < monitorCount; ++monitor)
 	{
 		MonitorDesc* pMonitor = &gMonitors[monitor];
 		DEVMODEW devMode = {};
@@ -276,10 +298,10 @@ void getRecommendedResolution(RectDesc* rect)
 
 void requestShutdown() { PostQuitMessage(0); }
 
-class StaticWindowManager
+class WindowClass
 {
-	public:
-	StaticWindowManager()
+public:
+	void Init()
 	{
 		if (!gWindowClassInitialized)
 		{
@@ -318,12 +340,14 @@ class StaticWindowManager
 
 		collectMonitorInfo();
 	}
-	~StaticWindowManager()
+	void Exit()
 	{
-		for (uint32_t i = 0; i < (uint32_t)gMonitors.size(); ++i)
+		for (uint32_t i = 0; i < gMonitorCount; ++i)
 			conf_free(gMonitors[i].resolutions);
+
+		conf_free(gMonitors);
 	}
-} windowClass;
+};
 
 void openWindow(const char* app_name, WindowsDesc* winDesc)
 {
@@ -356,7 +380,7 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 		winDesc->windowedRect = { (int)clientRect.left, (int)clientRect.top, (int)clientRect.right, (int)clientRect.bottom };
 
 		winDesc->handle.window = hwnd;
-		gHWNDMap[hwnd] = winDesc;
+		pCurrentWindow = winDesc;
 
 		if (!winDesc->hide)
 		{
@@ -504,7 +528,7 @@ void setMousePositionRelative(const WindowsDesc* winDesc, int32_t x, int32_t y)
 
 MonitorDesc* getMonitor(uint32_t index)
 {
-	ASSERT((uint32_t)gMonitors.size() > index);
+	ASSERT(gMonitorCount > index);
 	return &gMonitors[index];
 }
 
@@ -561,15 +585,28 @@ static void onResize(WindowsDesc* wnd, int32_t newSizeX, int32_t newSizeY)
 
 int WindowsMain(int argc, char** argv, IApp* app)
 {
+	extern bool MemAllocInit();
+	extern void MemAllocExit();
+
+	if (!MemAllocInit())
+		return EXIT_FAILURE;
+
+	if (!fsInitAPI())
+		return EXIT_FAILURE;
+
+	Log::Init();
+
+	static WindowClass wnd;
+
 	pApp = app;
+
+	wnd.Init();
 
 	//Used for automated testing, if enabled app will exit after 120 frames
 #ifdef AUTOMATED_TESTING
 	uint32_t testingFrameCount = 0;
 	const uint32_t testingDesiredFrameCount = 120;
 #endif
-
-	FileSystem::SetCurrentDir(FileSystem::GetProgramDir());
 
 	IApp::Settings* pSettings = &pApp->mSettings;
 	WindowsDesc window = {};
@@ -580,7 +617,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
 		RectDesc rect = {};
 		getRecommendedResolution(&rect);
 		pSettings->mWidth = getRectWidth(rect);
-		pSettings->mHeight = getRectHeight(rect);
+		pSettings->mHeight = getRectHeight(rect); 
 	}
 
 	window.callbacks.onResize = onResize;
@@ -596,7 +633,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
 	pSettings->mHeight = window.fullScreen ? getRectHeight(window.fullscreenRect) : getRectHeight(window.windowedRect);
 
 	pApp->pWindow = &window;
-	pApp->mCommandLine = GetCommandLineA();
+	pApp->pCommandLine = GetCommandLineA();
 	{
 		Timer t;
 		if (!pApp->Init())
@@ -638,6 +675,12 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 	pApp->Unload();
 	pApp->Exit();
+
+	wnd.Exit();
+	Log::Exit();
+	fsDeinitAPI();
+	MemAllocExit();
+
 	return 0;
 }
 /************************************************************************/

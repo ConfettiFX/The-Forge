@@ -25,6 +25,7 @@
 #ifndef Geometry_h
 #define Geometry_h
 
+#include "../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../../Common_3/Renderer/IRenderer.h"
 #include "../../../Common_3/Renderer/ResourceLoader.h"
 
@@ -186,14 +187,14 @@ typedef struct FilterBatchChunk
 
 // Exposed functions
 
-Scene* loadScene(const char* fileName, float scale, float offsetX, float offsetY, float offsetZ);
+Scene* loadScene(const Path* filePath, float scale, float offsetX, float offsetY, float offsetZ);
 void   removeScene(Scene* scene);
 void   removeSceneCPUData(Scene* scene);
 void   createAABB(const Scene* pScene, MeshIn* mesh);
 void   createClusters(bool twoSided, const Scene* pScene, MeshIn* mesh);
 void   destroyClusters(MeshIn* mesh);
 
-bool   loadModel(const eastl::string& FileName, eastl::vector<Vertex>& vertices, eastl::vector<uint16_t>& indices);
+bool   loadModel(const Path* filePath, eastl::vector<Vertex>& vertices, eastl::vector<uint16_t>& indices);
 
 #if 0 //defined(METAL)
 void addClusterToBatchChunk(

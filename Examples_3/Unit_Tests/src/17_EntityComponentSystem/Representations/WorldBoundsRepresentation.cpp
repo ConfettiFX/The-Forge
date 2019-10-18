@@ -3,7 +3,7 @@
 #include "../../../../../Common_3/OS/Interfaces/IMemory.h"
 using namespace FCR;
 
-FORGE_INIT_COMPONENT_ID(WorldBoundsComponent)
+FORGE_DEFINE_COMPONENT_ID(WorldBoundsComponent)
 
 FORGE_ASSIGN_UNIQUE_ID_TO_REGISTERED_COMPONENT(WorldBoundsComponent, xMin, 0)
 FORGE_ASSIGN_UNIQUE_ID_TO_REGISTERED_COMPONENT(WorldBoundsComponent, xMax, 1)
@@ -11,6 +11,7 @@ FORGE_ASSIGN_UNIQUE_ID_TO_REGISTERED_COMPONENT(WorldBoundsComponent, yMin, 2)
 FORGE_ASSIGN_UNIQUE_ID_TO_REGISTERED_COMPONENT(WorldBoundsComponent, yMax, 3)
 
 FORGE_START_VAR_REPRESENTATIONS_BUILD(WorldBoundsComponent)
+FORGE_INIT_COMPONENT_ID(WorldBoundsComponent)
 
 FORGE_CREATE_VAR_REPRESENTATION(WorldBoundsComponent, xMin)
 FORGE_FINALIZE_VAR_REPRESENTATION(xMin, "xMin", ComponentVarType::FLOAT, ComponentVarAccess::READ_WRITE)

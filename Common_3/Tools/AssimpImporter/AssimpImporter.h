@@ -270,7 +270,7 @@ class IModelImporter
 		ModelSourceType mSourceType;
 	};
 
-	virtual bool ImportModel(const char* filename, Model* outModel) = 0;
+	virtual bool ImportModel(const Path* path, Model* outModel) = 0;
 
 	virtual eastl::string MATKEY_NAME() = 0;
 	virtual eastl::string MATKEY_TWOSIDED() = 0;
@@ -301,7 +301,8 @@ class AssimpImporter: public IModelImporter
 {
 	public:
 	~AssimpImporter() {}
-	bool ImportModel(const char* filename, Model* outModel);
+	bool ImportModel(const Path* path, Model* outModel);
+	bool ImportModelFromMemory(const char* memoryBuffer, Model* outModel, const char* fileName, size_t model_length);
     const Node* FindMeshNode(const Node* rootNode, int meshIndex);
 
 	eastl::string MATKEY_NAME() { return "?mat.name"; }

@@ -174,24 +174,28 @@
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalOptions>-Wno-c++14-extensions</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalOptions>-Wno-c++14-extensions</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalOptions>-Wno-c++14-extensions</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
+      <AdditionalOptions>-Wno-c++14-extensions</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
@@ -201,6 +205,7 @@
       <CompileAs>CompileAsCpp</CompileAs>
       <PreprocessorDefinitions>API_EXPORT;USE_MEMORY_TRACKING;_DEBUG;ANDROID;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Enabled</ExceptionHandling>
+      <AdditionalOptions>-Wno-c++14-extensions</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -211,6 +216,7 @@
       <CompileAs>CompileAsCpp</CompileAs>
       <PreprocessorDefinitions>API_EXPORT;USE_MEMORY_TRACKING;ANDROID;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Enabled</ExceptionHandling>
+      <AdditionalOptions>-Wno-c++14-extensions</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
@@ -223,8 +229,7 @@
       <EnableNeonCodegen>true</EnableNeonCodegen>
       <CompileAs>CompileAsCpp</CompileAs>
       <FloatABI>softfp</FloatABI>
-      <AdditionalOptions>
-      </AdditionalOptions>
+      <AdditionalOptions>-Wno-c++14-extensions</AdditionalOptions>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
     </ClCompile>
     <PostBuildEvent>
@@ -242,8 +247,7 @@
       <CompileAs>CompileAsCpp</CompileAs>
       <EnableNeonCodegen>true</EnableNeonCodegen>
       <FloatABI>softfp</FloatABI>
-      <AdditionalOptions>
-      </AdditionalOptions>
+      <AdditionalOptions>-Wno-c++14-extensions</AdditionalOptions>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
     </ClCompile>
   </ItemDefinitionGroup>

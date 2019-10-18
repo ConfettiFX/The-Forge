@@ -24,10 +24,10 @@
 
 #include "Rig.h"
 
-void Rig::Initialize(const char* skeletonFile)
+void Rig::Initialize(const Path* skeletonFilePath)
 {
 	// Reading skeleton.
-	if (!LoadSkeleton(skeletonFile))
+	if (!LoadSkeleton(skeletonFilePath))
 		return;    //need error catching
 
 	mNumSoaJoints = mSkeleton.num_soa_joints();
@@ -58,6 +58,10 @@ void Rig::Destroy()
 
 	ozz::memory::Allocator* allocator = ozz::memory::default_allocator();
 	allocator->Deallocate(mJointModelMats);
+
+	mJointWorldMats.set_capacity(0);
+	mBoneWorldMats.set_capacity(0);
+	mJointScales.set_capacity(0);
 }
 
 void Rig::Pose(const Matrix4& rootTransform)
@@ -129,9 +133,9 @@ void Rig::Pose(const Matrix4& rootTransform)
 	}
 }
 
-bool Rig::LoadSkeleton(const char* fileName)
+bool Rig::LoadSkeleton(const Path* skeletonFilePath)
 {
-	ozz::io::File file(fileName, "rb");
+	ozz::io::File file(skeletonFilePath, FM_READ_BINARY);
 	if (!file.opened())
 	{
 		LOGF(eERROR, "Cannot open skeleton file");

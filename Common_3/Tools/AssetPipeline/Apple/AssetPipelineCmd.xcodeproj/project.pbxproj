@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		654D958621CDC09F00113964 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 654D957E21CDC09F00113964 /* AppKit.framework */; };
 		E921BD4722CFC35A0082D103 /* AssetPipelineCmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E921BD4622CFC35A0082D103 /* AssetPipelineCmd.cpp */; };
+		E9A43981233EE168005BF1C7 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A4397C233EE165005BF1C7 /* libbz2.tbd */; };
 		E9BF13DE22F126C1001F2264 /* libAssetPipeline.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E9BF13D122F12614001F2264 /* libAssetPipeline.a */; };
 		E9BF141022F127C0001F2264 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E9BF13DB22F126A7001F2264 /* libThe-Forge.a */; };
 /* End PBXBuildFile section */
@@ -65,6 +66,7 @@
 		B28C6F0921B20DCA00FBA1BF /* libIrrXML_iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libIrrXML_iOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		B28C6F0B21B20DD000FBA1BF /* libIrrXML.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libIrrXML.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		E921BD4622CFC35A0082D103 /* AssetPipelineCmd.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AssetPipelineCmd.cpp; path = ../src/AssetPipelineCmd.cpp; sourceTree = "<group>"; };
+		E9A4397C233EE165005BF1C7 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		E9BF13C722F12613001F2264 /* AssetPipeline.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = AssetPipeline.xcodeproj; sourceTree = "<group>"; };
 		E9BF13D422F126A7001F2264 /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../../../../Examples_3/Unit_Tests/macOS Xcode/The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -77,6 +79,7 @@
 				E9BF141022F127C0001F2264 /* libThe-Forge.a in Frameworks */,
 				E9BF13DE22F126C1001F2264 /* libAssetPipeline.a in Frameworks */,
 				654D958621CDC09F00113964 /* AppKit.framework in Frameworks */,
+				E9A43981233EE168005BF1C7 /* libbz2.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -105,6 +108,7 @@
 		B28C6E5C21B2053200FBA1BF /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E9A4397C233EE165005BF1C7 /* libbz2.tbd */,
 				654D957E21CDC09F00113964 /* AppKit.framework */,
 				B28C6F0B21B20DD000FBA1BF /* libIrrXML.a */,
 				B28C6F0921B20DCA00FBA1BF /* libIrrXML_iOS.a */,

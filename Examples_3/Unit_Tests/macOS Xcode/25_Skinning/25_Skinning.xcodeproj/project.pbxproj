@@ -35,15 +35,7 @@
 		B2541CFD21751B5B00F702BB /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B2541CFC21751B4E00F702BB /* libThe-Forge_iOS.a */; };
 		B2541CFE21751B6200F702BB /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B2541CFA21751B4E00F702BB /* libThe-Forge.a */; };
 		B27D879A20E2E88B00081DB0 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B27D879920E2E88B00081DB0 /* GameController.framework */; };
-		B28C6CD121AF899700FBA1BF /* libassimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6CA521AF852800FBA1BF /* libassimp.a */; };
-		B28C6CD221AF899700FBA1BF /* libIrrXML.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6CA321AF852800FBA1BF /* libIrrXML.a */; };
-		B28C6CD321AF899700FBA1BF /* libzlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6CA721AF852800FBA1BF /* libzlibstatic.a */; };
-		B28C6CDC21B075A300FBA1BF /* libassimp_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6CAB21AF852800FBA1BF /* libassimp_iOS.a */; };
-		B28C6CDD21B075A300FBA1BF /* libIrrXML_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6CA921AF852800FBA1BF /* libIrrXML_iOS.a */; };
-		B28C6CDE21B075A300FBA1BF /* libzlibstatic_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6CAD21AF852800FBA1BF /* libzlibstatic_iOS.a */; };
 		B28C6CE621B0799600FBA1BF /* Stormtrooper_D.ktx in Copy Files */ = {isa = PBXBuildFile; fileRef = B28C6CE321B0799000FBA1BF /* Stormtrooper_D.ktx */; };
-		B28C6F7721B227FD00FBA1BF /* AssimpImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B28C6F7621B227FC00FBA1BF /* AssimpImporter.cpp */; };
-		B28C6F7821B2280000FBA1BF /* AssimpImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B28C6F7621B227FC00FBA1BF /* AssimpImporter.cpp */; };
 		B2B73FC721754A3B00324803 /* 25_Skinning.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B73FC621754A3B00324803 /* 25_Skinning.cpp */; };
 		B2B73FE421754CB400324803 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = B2B73FE221754CB400324803 /* AppDelegate.m */; };
 		B2B73FEA2175504F00324803 /* 25_Skinning.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B73FC621754A3B00324803 /* 25_Skinning.cpp */; };
@@ -60,6 +52,8 @@
 		D0A0FAFF21B27F670059AEDB /* circlepad.ktx in Resources */ = {isa = PBXBuildFile; fileRef = B2B7406A21755F1200324803 /* circlepad.ktx */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
+		E9A4390F233DC728005BF1C7 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A4390C233DC728005BF1C7 /* libbz2.tbd */; };
+		E9A43911233DC730005BF1C7 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A43910233DC730005BF1C7 /* libbz2.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -119,103 +113,12 @@
 			remoteGlobalIDString = 5C172FC821414C490074EE71;
 			remoteInfo = "The-Forge_iOS";
 		};
-		B2541CFF21751B6B00F702BB /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 5C5582DF21413D180019960B;
-			remoteInfo = "The-Forge";
-		};
 		B2541D0121751B6F00F702BB /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */;
 			proxyType = 1;
 			remoteGlobalIDString = 5C172FC721414C490074EE71;
 			remoteInfo = "The-Forge_iOS";
-		};
-		B28C6CA221AF852800FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6C9921AF852800FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 2FDC53974E8D4A618B9B34FA;
-			remoteInfo = IrrXML;
-		};
-		B28C6CA421AF852800FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6C9921AF852800FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 15841309FEE7495581162767;
-			remoteInfo = assimp;
-		};
-		B28C6CA621AF852800FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6C9921AF852800FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 18FE7A9470BE4F97B6CC443B;
-			remoteInfo = zlibstatic;
-		};
-		B28C6CA821AF852800FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6C9921AF852800FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 6549BFDA21ACD08900537773;
-			remoteInfo = IrrXML_iOS;
-		};
-		B28C6CAA21AF852800FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6C9921AF852800FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 6549C05A21ACD08C00537773;
-			remoteInfo = assimp_iOS;
-		};
-		B28C6CAC21AF852800FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6C9921AF852800FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 6549C06F21ACD08E00537773;
-			remoteInfo = zlibstatic_iOS;
-		};
-		B28C6CB121AF853200FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6C9921AF852800FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 41BE456C93C94C84B038C673;
-			remoteInfo = IrrXML;
-		};
-		B28C6CB321AF853200FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6C9921AF852800FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = AE9A3F544A68438CB3C7DBEA;
-			remoteInfo = assimp;
-		};
-		B28C6CB521AF853200FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6C9921AF852800FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = D3152863F0014944A3666BE6;
-			remoteInfo = zlibstatic;
-		};
-		B28C6CB721AF855E00FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6C9921AF852800FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 6549BFD421ACD08900537773;
-			remoteInfo = IrrXML_iOS;
-		};
-		B28C6CB921AF855E00FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6C9921AF852800FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 6549BFDB21ACD08C00537773;
-			remoteInfo = assimp_iOS;
-		};
-		B28C6CBB21AF855E00FBA1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B28C6C9921AF852800FBA1BF /* Assimp.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = 6549C05B21ACD08E00537773;
-			remoteInfo = zlibstatic_iOS;
 		};
 		B28C6F7221B227DA00FBA1BF /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -237,6 +140,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = ECEC0611C3BB4CAF82DAF102;
 			remoteInfo = ozz_base;
+		};
+		B2F8F03A231F4FAD007AC807 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 656958B021CC519300EE1F7D /* AssetPipeline.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = E921BDBC22CFC7700082D103;
+			remoteInfo = AssetPipeline_iOS;
 		};
 		D0796ADF211ED7950028AFFD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -265,6 +175,13 @@
 			proxyType = 2;
 			remoteGlobalIDString = D0796ADE211ED7430028AFFD;
 			remoteInfo = ozz_base_IOS;
+		};
+		E958923223416EFA00B68D6A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 5C5582DF21413D180019960B;
+			remoteInfo = "The-Forge";
 		};
 /* End PBXContainerItemProxy section */
 
@@ -356,17 +273,14 @@
 		B28C6C8C21AF7FFC00FBA1BF /* plane.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = plane.vert.metal; path = ../../src/25_Skinning/Shaders/Metal/plane.vert.metal; sourceTree = "<group>"; };
 		B28C6C9121AF806500FBA1BF /* skinning.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = skinning.frag.metal; path = ../../src/25_Skinning/Shaders/Metal/skinning.frag.metal; sourceTree = "<group>"; };
 		B28C6C9221AF806500FBA1BF /* skinning.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = skinning.vert.metal; path = ../../src/25_Skinning/Shaders/Metal/skinning.vert.metal; sourceTree = "<group>"; };
-		B28C6C9921AF852800FBA1BF /* Assimp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Assimp.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple/Assimp.xcodeproj; sourceTree = "<group>"; };
 		B28C6CE321B0799000FBA1BF /* Stormtrooper_D.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; path = Stormtrooper_D.ktx; sourceTree = "<group>"; };
 		B28C6D1221B07B4B00FBA1BF /* fbx */ = {isa = PBXFileReference; lastKnownFileType = folder; path = fbx; sourceTree = "<group>"; };
-		B28C6F7521B227FC00FBA1BF /* AssimpImporter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AssimpImporter.h; sourceTree = "<group>"; };
-		B28C6F7621B227FC00FBA1BF /* AssimpImporter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AssimpImporter.cpp; sourceTree = "<group>"; };
 		B2B73F1721751BF900324803 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
 		B2B73FC621754A3B00324803 /* 25_Skinning.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 25_Skinning.cpp; path = ../../src/25_Skinning/25_Skinning.cpp; sourceTree = "<group>"; };
-		B2B73FE221754CB400324803 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/macOS/AppDelegate.m; sourceTree = "<group>"; };
-		B2B73FE321754CB400324803 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/macOS/AppDelegate.h; sourceTree = "<group>"; };
-		B2B7400C2175532600324803 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/iOS/AppDelegate.h; sourceTree = "<group>"; };
-		B2B7400E2175533E00324803 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/iOS/AppDelegate.m; sourceTree = "<group>"; };
+		B2B73FE221754CB400324803 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
+		B2B73FE321754CB400324803 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
+		B2B7400C2175532600324803 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
+		B2B7400E2175533E00324803 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
 		B2B740152175553800324803 /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; path = TitilliumText; sourceTree = "<group>"; };
 		B2B7406A21755F1200324803 /* circlepad.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; path = circlepad.ktx; sourceTree = "<group>"; };
 		B2D1CEB320EAECDB001BB8C4 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
@@ -376,6 +290,8 @@
 		D0296BEB211EE433000C9281 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = 25_Skinning/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		E9A4390C233DC728005BF1C7 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
+		E9A43910233DC730005BF1C7 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.0.sdk/usr/lib/libbz2.tbd; sourceTree = DEVELOPER_DIR; };
 		EA463C8B1EF81E8F005AC8C7 /* 25_Skinning.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 25_Skinning.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EADF9D661EFD160E00B2008B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = 25_Skinning/Info.plist; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -385,10 +301,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E9A43911233DC730005BF1C7 /* libbz2.tbd in Frameworks */,
 				650CCCB32223D08B003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
-				B28C6CDC21B075A300FBA1BF /* libassimp_iOS.a in Frameworks */,
-				B28C6CDD21B075A300FBA1BF /* libIrrXML_iOS.a in Frameworks */,
-				B28C6CDE21B075A300FBA1BF /* libzlibstatic_iOS.a in Frameworks */,
 				B2541CFD21751B5B00F702BB /* libThe-Forge_iOS.a in Frameworks */,
 				D0796AEA211ED7A70028AFFD /* ozz_animation_IOS.a in Frameworks */,
 				D0796AEB211ED7A70028AFFD /* ozz_base_IOS.a in Frameworks */,
@@ -403,12 +317,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E9A4390F233DC728005BF1C7 /* libbz2.tbd in Frameworks */,
 				650CCCB12223D082003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				65AC216E21CC62A500F7E103 /* ozz_animation offline.a in Frameworks */,
 				65AC216921CC626000F7E103 /* libAssetPipeline.a in Frameworks */,
-				B28C6CD121AF899700FBA1BF /* libassimp.a in Frameworks */,
-				B28C6CD221AF899700FBA1BF /* libIrrXML.a in Frameworks */,
-				B28C6CD321AF899700FBA1BF /* libzlibstatic.a in Frameworks */,
 				B2541CFE21751B6200F702BB /* libThe-Forge.a in Frameworks */,
 				B2C44078211E2563008F57D5 /* ozz_animation.a in Frameworks */,
 				B2C44079211E2563008F57D5 /* ozz_base.a in Frameworks */,
@@ -423,6 +335,8 @@
 		28A5ABEA201F482F000E571F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E9A4390C233DC728005BF1C7 /* libbz2.tbd */,
+				E9A43910233DC730005BF1C7 /* libbz2.tbd */,
 				650CCCAF2223D082003533D9 /* MetalPerformanceShaders.framework */,
 				650CCCB22223D08B003533D9 /* MetalPerformanceShaders.framework */,
 				B2B73F1721751BF900324803 /* GameController.framework */,
@@ -454,6 +368,7 @@
 			isa = PBXGroup;
 			children = (
 				656958B521CC519300EE1F7D /* libAssetPipeline.a */,
+				B2F8F03B231F4FAD007AC807 /* libAssetPipeline_iOS.a */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -478,29 +393,6 @@
 				B2541CFC21751B4E00F702BB /* libThe-Forge_iOS.a */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		B28C6C9A21AF852800FBA1BF /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				B28C6CA321AF852800FBA1BF /* libIrrXML.a */,
-				B28C6CA521AF852800FBA1BF /* libassimp.a */,
-				B28C6CA721AF852800FBA1BF /* libzlibstatic.a */,
-				B28C6CA921AF852800FBA1BF /* libIrrXML_iOS.a */,
-				B28C6CAB21AF852800FBA1BF /* libassimp_iOS.a */,
-				B28C6CAD21AF852800FBA1BF /* libzlibstatic_iOS.a */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		B28C6F7421B227E700FBA1BF /* AssimpImporter */ = {
-			isa = PBXGroup;
-			children = (
-				B28C6F7621B227FC00FBA1BF /* AssimpImporter.cpp */,
-				B28C6F7521B227FC00FBA1BF /* AssimpImporter.h */,
-			);
-			name = AssimpImporter;
-			path = ../../../../Common_3/Tools/AssimpImporter;
 			sourceTree = "<group>";
 		};
 		B2B73F602175468A00324803 /* Fonts */ = {
@@ -564,8 +456,6 @@
 				5B17819D22A5C91900991DCB /* profile.vert.metal */,
 				5C5A239721F0AD24006B09C7 /* CommonShaders */,
 				656958B021CC519300EE1F7D /* AssetPipeline.xcodeproj */,
-				B28C6F7421B227E700FBA1BF /* AssimpImporter */,
-				B28C6C9921AF852800FBA1BF /* Assimp.xcodeproj */,
 				B2B7405621755BC200324803 /* Shaders */,
 				B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */,
 				B23FA44B211E24F70059929A /* ozz.xcodeproj */,
@@ -620,9 +510,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				B28C6CB821AF855E00FBA1BF /* PBXTargetDependency */,
-				B28C6CBA21AF855E00FBA1BF /* PBXTargetDependency */,
-				B28C6CBC21AF855E00FBA1BF /* PBXTargetDependency */,
 				B2541D0221751B6F00F702BB /* PBXTargetDependency */,
 				D0796AE0211ED7950028AFFD /* PBXTargetDependency */,
 				D0796AE2211ED7950028AFFD /* PBXTargetDependency */,
@@ -643,12 +530,9 @@
 			buildRules = (
 			);
 			dependencies = (
+				E958923323416EFA00B68D6A /* PBXTargetDependency */,
 				65AC216D21CC627600F7E103 /* PBXTargetDependency */,
 				65AC216B21CC627300F7E103 /* PBXTargetDependency */,
-				B28C6CB221AF853200FBA1BF /* PBXTargetDependency */,
-				B28C6CB421AF853200FBA1BF /* PBXTargetDependency */,
-				B28C6CB621AF853200FBA1BF /* PBXTargetDependency */,
-				B2541D0021751B6B00F702BB /* PBXTargetDependency */,
 				B2C44070211E254B008F57D5 /* PBXTargetDependency */,
 				B2C44072211E254B008F57D5 /* PBXTargetDependency */,
 			);
@@ -691,10 +575,6 @@
 				{
 					ProductGroup = 656958B121CC519300EE1F7D /* Products */;
 					ProjectRef = 656958B021CC519300EE1F7D /* AssetPipeline.xcodeproj */;
-				},
-				{
-					ProductGroup = B28C6C9A21AF852800FBA1BF /* Products */;
-					ProjectRef = B28C6C9921AF852800FBA1BF /* Assimp.xcodeproj */;
 				},
 				{
 					ProductGroup = B23FA44C211E24F70059929A /* Products */;
@@ -756,53 +636,18 @@
 			remoteRef = B2541CFB21751B4E00F702BB /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
-		B28C6CA321AF852800FBA1BF /* libIrrXML.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libIrrXML.a;
-			remoteRef = B28C6CA221AF852800FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28C6CA521AF852800FBA1BF /* libassimp.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libassimp.a;
-			remoteRef = B28C6CA421AF852800FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28C6CA721AF852800FBA1BF /* libzlibstatic.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libzlibstatic.a;
-			remoteRef = B28C6CA621AF852800FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28C6CA921AF852800FBA1BF /* libIrrXML_iOS.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libIrrXML_iOS.a;
-			remoteRef = B28C6CA821AF852800FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28C6CAB21AF852800FBA1BF /* libassimp_iOS.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libassimp_iOS.a;
-			remoteRef = B28C6CAA21AF852800FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B28C6CAD21AF852800FBA1BF /* libzlibstatic_iOS.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libzlibstatic_iOS.a;
-			remoteRef = B28C6CAC21AF852800FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
 		B28C6F7321B227DA00FBA1BF /* ozz_animation offline.a */ = {
 			isa = PBXReferenceProxy;
 			fileType = archive.ar;
 			path = "ozz_animation offline.a";
 			remoteRef = B28C6F7221B227DA00FBA1BF /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		B2F8F03B231F4FAD007AC807 /* libAssetPipeline_iOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = libAssetPipeline_iOS.a;
+			remoteRef = B2F8F03A231F4FAD007AC807 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 		D0796AE7211ED7950028AFFD /* ozz_animation_IOS.a */ = {
@@ -868,7 +713,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B28C6F7821B2280000FBA1BF /* AssimpImporter.cpp in Sources */,
 				B2B7400F2175533E00324803 /* AppDelegate.m in Sources */,
 				B2B73FEA2175504F00324803 /* 25_Skinning.cpp in Sources */,
 			);
@@ -880,7 +724,6 @@
 			files = (
 				B2B73FE421754CB400324803 /* AppDelegate.m in Sources */,
 				B2B73FC721754A3B00324803 /* 25_Skinning.cpp in Sources */,
-				B28C6F7721B227FD00FBA1BF /* AssimpImporter.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -897,45 +740,10 @@
 			name = "ozz_animation offline";
 			targetProxy = 65AC216C21CC627600F7E103 /* PBXContainerItemProxy */;
 		};
-		B2541D0021751B6B00F702BB /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = "The-Forge";
-			targetProxy = B2541CFF21751B6B00F702BB /* PBXContainerItemProxy */;
-		};
 		B2541D0221751B6F00F702BB /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = "The-Forge_iOS";
 			targetProxy = B2541D0121751B6F00F702BB /* PBXContainerItemProxy */;
-		};
-		B28C6CB221AF853200FBA1BF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = IrrXML;
-			targetProxy = B28C6CB121AF853200FBA1BF /* PBXContainerItemProxy */;
-		};
-		B28C6CB421AF853200FBA1BF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = assimp;
-			targetProxy = B28C6CB321AF853200FBA1BF /* PBXContainerItemProxy */;
-		};
-		B28C6CB621AF853200FBA1BF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = zlibstatic;
-			targetProxy = B28C6CB521AF853200FBA1BF /* PBXContainerItemProxy */;
-		};
-		B28C6CB821AF855E00FBA1BF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = IrrXML_iOS;
-			targetProxy = B28C6CB721AF855E00FBA1BF /* PBXContainerItemProxy */;
-		};
-		B28C6CBA21AF855E00FBA1BF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = assimp_iOS;
-			targetProxy = B28C6CB921AF855E00FBA1BF /* PBXContainerItemProxy */;
-		};
-		B28C6CBC21AF855E00FBA1BF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = zlibstatic_iOS;
-			targetProxy = B28C6CBB21AF855E00FBA1BF /* PBXContainerItemProxy */;
 		};
 		B2C44070211E254B008F57D5 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -956,6 +764,11 @@
 			isa = PBXTargetDependency;
 			name = ozz_base_IOS;
 			targetProxy = D0796AE1211ED7950028AFFD /* PBXContainerItemProxy */;
+		};
+		E958923323416EFA00B68D6A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "The-Forge";
+			targetProxy = E958923223416EFA00B68D6A /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1182,6 +995,7 @@
 					METAL,
 					_DEBUG,
 					USE_MEMORY_TRACKING,
+					ZIP_STATIC,
 				);
 				HEADER_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/../../../../",
@@ -1196,6 +1010,11 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests-Animations.01-Playback";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				USER_HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/lib/**",
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple/**",
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib/**",
+				);
 			};
 			name = Debug;
 		};
@@ -1208,7 +1027,10 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				GCC_PREPROCESSOR_DEFINITIONS = METAL;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					METAL,
+					ZIP_STATIC,
+				);
 				HEADER_SEARCH_PATHS = (
 					"$(PROJECT_DIR)/../../../../",
 					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include",
@@ -1222,6 +1044,11 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests-Animations.01-Playback";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
+				USER_HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/lib/**",
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple/**",
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib/**",
+				);
 			};
 			name = Release;
 		};

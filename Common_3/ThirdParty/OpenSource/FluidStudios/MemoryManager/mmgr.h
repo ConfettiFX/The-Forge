@@ -138,6 +138,8 @@ unsigned int	m_calcAllUnused();
 // Logging and reporting
 // ---------------------------------------------------------------------------------------------------------------------------------
 
+void 		mmgr_setExecutableName(const char* name, size_t length);
+void		mmgr_setLogFileDirectory(const char* directory);
 void		m_dumpAllocUnit(const sAllocUnit *allocUnit, const char *prefix = "");
 void		m_dumpMemoryReport(const char *filename = "memreport.log", const bool overwrite = true);
 sMStats		m_getMemoryStatistics();

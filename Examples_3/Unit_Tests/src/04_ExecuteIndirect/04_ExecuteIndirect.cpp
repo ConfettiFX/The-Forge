@@ -83,21 +83,6 @@ HiresTimer mFrameTimer;
 
 ThreadSystem* pThreadSystem;
 
-const char* pszBases[FSR_Count] = {
-	"../../../src/04_ExecuteIndirect/",                 // FSR_BinShaders
-	"../../../src/04_ExecuteIndirect/",                 // FSR_SrcShaders
-	"../../../UnitTestResources/",                      // FSR_Textures
-	"../../../UnitTestResources/",                      // FSR_Meshes
-	"../../../UnitTestResources/",                      // FSR_Builtin_Fonts
-	"../../../src/04_ExecuteIndirect/",                 // FSR_GpuConfig
-	"",                                                 // FSR_Animation
-	"",                                                 // FSR_Audio
-	"",                                                 // FSR_OtherFiles
-	"../../../../../Middleware_3/Text/",                // FSR_MIDDLEWARE_TEXT
-	"../../../../../Middleware_3/UI/",                  // FSR_MIDDLEWARE_UI
-	"../../../../../Middleware_3/PaniniProjection/",    // FSR_MIDDLEWARE_PANINI
-};
-
 struct UniformViewProj
 {
 	mat4 mProjectView;
@@ -322,6 +307,23 @@ class ExecuteIndirect: public IApp
 		LOGF(eERROR, "Unit test not supported on this platform. Reason: iOS GPU hangs with argument buffer binding");
 		exit(0);
 #endif
+        // FILE PATHS
+        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        if (!fsPlatformUsesBundledResources())
+        {
+            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/04_ExecuteIndirect");
+            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            
+            fsSetRelativePathForResourceDirectory(RD_TEXTURES,           "../../UnitTestResources/Textures");
+            fsSetRelativePathForResourceDirectory(RD_MESHES,             "../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,       "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,       "../../../../Middleware_3/UI");
+#if !defined(TARGET_IOS)
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_PANINI,  "../../../../Middleware_3/PaniniProjection");
+#endif
+        }
 		
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
@@ -352,14 +354,14 @@ class ExecuteIndirect: public IApp
 
 		for (int i = 0; i < 6; ++i)
 		{
+            PathHandle texturePath = fsCopyPathInResourceDirectory(RD_TEXTURES, pSkyBoxImageFileNames[i]);
 			TextureLoadDesc textureDesc = {};
-			textureDesc.mRoot = FSR_Textures;
-			textureDesc.pFilename = pSkyBoxImageFileNames[i];
+            textureDesc.pFilePath = texturePath;
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
 			addResource(&textureDesc);
 		}
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
 		{
 			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
 			return false;
@@ -381,19 +383,19 @@ class ExecuteIndirect: public IApp
 		addSampler(pRenderer, &samplerDesc, &pSkyBoxSampler);
 
 		ShaderLoadDesc instanceShader = {};
-		instanceShader.mStages[0] = { "basic.vert", NULL, 0, FSR_SrcShaders };
-		instanceShader.mStages[1] = { "basic.frag", NULL, 0, FSR_SrcShaders };
+		instanceShader.mStages[0] = { "basic.vert", NULL, 0, RD_SHADER_SOURCES };
+		instanceShader.mStages[1] = { "basic.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		ShaderLoadDesc indirectShader = {};
-		indirectShader.mStages[0] = { "ExecuteIndirect.vert", NULL, 0, FSR_SrcShaders };
-		indirectShader.mStages[1] = { "ExecuteIndirect.frag", NULL, 0, FSR_SrcShaders };
+		indirectShader.mStages[0] = { "ExecuteIndirect.vert", NULL, 0, RD_SHADER_SOURCES };
+		indirectShader.mStages[1] = { "ExecuteIndirect.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		ShaderLoadDesc skyShader = {};
-		skyShader.mStages[0] = { "skybox.vert", NULL, 0, FSR_SrcShaders };
-		skyShader.mStages[1] = { "skybox.frag", NULL, 0, FSR_SrcShaders };
+		skyShader.mStages[0] = { "skybox.vert", NULL, 0, RD_SHADER_SOURCES };
+		skyShader.mStages[1] = { "skybox.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		ShaderLoadDesc gpuUpdateShader = {};
-		gpuUpdateShader.mStages[0] = { "ComputeUpdate.comp", NULL, 0, FSR_SrcShaders };
+		gpuUpdateShader.mStages[0] = { "ComputeUpdate.comp", NULL, 0, RD_SHADER_SOURCES };
 
 		addShader(pRenderer, &instanceShader, &pBasicShader);
 		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
@@ -574,9 +576,7 @@ class ExecuteIndirect: public IApp
 		eastl::vector<IndirectArgumentDescriptor> indirectArgDescs(2);
 		indirectArgDescs[0] = {};
 		indirectArgDescs[0].mType = INDIRECT_CONSTANT;    // Root Constant
-		indirectArgDescs[0].mRootParameterIndex =
-			pIndirectRoot->pDxRootConstantRootIndices
-				[pIndirectRoot->pDescriptors[pIndirectRoot->pDescriptorNameToIndexMap["rootConstant"]].mIndexInParent];
+		indirectArgDescs[0].pName = "rootConstant";
 		indirectArgDescs[0].mCount = 1;
 		indirectArgDescs[1] = {};
 		indirectArgDescs[1].mType = INDIRECT_DRAW_INDEX;    // Indirect Index Draw Arguments
@@ -649,7 +649,7 @@ class ExecuteIndirect: public IApp
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
 		GuiDesc guiDesc = {};
 		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
@@ -908,6 +908,9 @@ class ExecuteIndirect: public IApp
 
 		removeResourceLoaderInterface(pRenderer);
 		removeRenderer(pRenderer);
+
+		gAsteroidSubsets.set_capacity(0);
+		gAsteroidSim.Exit();
 	}
 
 	bool Load()
@@ -1677,7 +1680,7 @@ class ExecuteIndirect: public IApp
 
 		beginCmd(cmd);
 
-		gAsteroidSim.update(deltaTime, startIdx, endIdx, pCameraController->getViewPosition());
+		gAsteroidSim.Update(deltaTime, startIdx, endIdx, pCameraController->getViewPosition());
 
 		vec4 frustumPlanes[6];
 		mat4::extractFrustumClipPlanes(

@@ -188,9 +188,10 @@ struct TextureLoadTaskData
 
 void loadTexturesTask(void* data, uintptr_t i)
 {
-	TextureLoadTaskData* pTaskData = (TextureLoadTaskData*)data;
+    TextureLoadTaskData* pTaskData = (TextureLoadTaskData*)data;
+    PathHandle texturePath = fsCopyPathInResourceDirectory(RD_TEXTURES, pTaskData->mNames[i]);
 	TextureLoadDesc desc = pTaskData->mDesc;
-	desc.pFilename = pTaskData->mNames[i];
+	desc.pFilePath = texturePath;
 	desc.ppTexture = &pTaskData->textures[i];
 	addResource(&desc, true);
 }
@@ -729,10 +730,6 @@ GuiComponent* pUIASMDebugTexturesWindow = NULL;
 GuiComponent* pLoadingGui = NULL;
 TextDrawDesc  gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
-FileSystem gFileSystem;
-Log gLogManager;
-
-
 Renderer* pRenderer = NULL;
 
 Queue*   pGraphicsQueue = NULL;
@@ -755,23 +752,6 @@ Semaphore* pComputeCompleteSemaphores[gImageCount] = { NULL };
 HiresTimer gTimer;
 
 uint32_t gCurrentShadowType = SHADOW_TYPE_ASM;
-
-
-
-const char* pszBases[FSR_Count] = {
-	"../../../src/09_LightShadowPlayground/",    // FSR_BinShaders
-	"../../../src/09_LightShadowPlayground/",    // FSR_SrcShaders
-	"../../../../../Art/SanMiguel_3/Textures/",    // FSR_Textures
-	"../../../../../Art/SanMiguel_3/Meshes/",      // FSR_Meshes
-	"../../../UnitTestResources/",               // FSR_Builtin_Fonts
-	"../../../src/09_LightShadowPlayground/",    // FSR_GpuConfig
-	"",                                          // FSR_Animation
-	"",                                          // FSR_Audio
-	gGeneratedSDFBinaryDir.c_str(),            // FSR_OtherFiles
-	"../../../../../Middleware_3/Text/",         // FSR_MIDDLEWARE_TEXT
-	"../../../../../Middleware_3/UI/",           // FSR_MIDDLEWARE_UI
-};
-
 
 static void setRenderTarget(
 	Cmd* cmd, uint32_t count, RenderTarget** pDestinationRenderTargets, RenderTarget* pDepthStencilTarget, LoadActionsDesc* loadActions,
@@ -1815,11 +1795,11 @@ void DoCalculateMeshSDFTask(void* dataPtr, uintptr_t index)
 }
 
 
-bool GenerateVolumeDataFromFile(SDFVolumeData** outVolumeDataPP, const eastl::string& fileName, const eastl::string& meshName,
+bool GenerateVolumeDataFromFile(SDFVolumeData** outVolumeDataPP, const Path* filePath, const eastl::string& meshName,
 	float twoSidedWorldSpaceBias)
 {
-	File newBakedFile;
-	if (!newBakedFile.Open(fileName, FM_ReadBinary, FSR_OtherFiles))
+    FileStream* newBakedFile = fsOpenFile(filePath, FM_READ_BINARY);
+	if (!newBakedFile)
 	{
 		return false;
 	}
@@ -1829,19 +1809,19 @@ bool GenerateVolumeDataFromFile(SDFVolumeData** outVolumeDataPP, const eastl::st
 	SDFVolumeData& outVolumeData = **outVolumeDataPP;
 	outVolumeData.mSubMeshName = meshName;
 
-	outVolumeData.mSDFVolumeSize.setX(newBakedFile.ReadInt());
-	outVolumeData.mSDFVolumeSize.setY(newBakedFile.ReadInt());
-	outVolumeData.mSDFVolumeSize.setZ(newBakedFile.ReadInt());
+	outVolumeData.mSDFVolumeSize.setX(fsReadFromStreamInt32(newBakedFile));
+	outVolumeData.mSDFVolumeSize.setY(fsReadFromStreamInt32(newBakedFile));
+	outVolumeData.mSDFVolumeSize.setZ(fsReadFromStreamInt32(newBakedFile));
 
 	uint32_t finalSDFVolumeDataCount = outVolumeData.mSDFVolumeSize.getX() * outVolumeData.mSDFVolumeSize.getY()
 		* outVolumeData.mSDFVolumeSize.getZ();
 
 	outVolumeData.mSDFVolumeList.resize(finalSDFVolumeDataCount);
 
-	newBakedFile.Read(&outVolumeData.mSDFVolumeList[0], (uint32_t)(finalSDFVolumeDataCount * sizeof(float)));
-	outVolumeData.mLocalBoundingBox.minBounds = f3Tov3(newBakedFile.ReadVector3());
-	outVolumeData.mLocalBoundingBox.maxBounds = f3Tov3(newBakedFile.ReadVector3());
-	outVolumeData.mIsTwoSided = newBakedFile.ReadBool();
+    fsReadFromStream(newBakedFile, &outVolumeData.mSDFVolumeList[0], finalSDFVolumeDataCount * sizeof(float));
+	outVolumeData.mLocalBoundingBox.minBounds = f3Tov3(fsReadFromStreamFloat3(newBakedFile));
+	outVolumeData.mLocalBoundingBox.maxBounds = f3Tov3(fsReadFromStreamFloat3(newBakedFile));
+    outVolumeData.mIsTwoSided = fsReadFromStreamBool(newBakedFile);
 	//outVolumeData.mTwoSidedWorldSpaceBias = newBakedFile.ReadFloat();
 	outVolumeData.mTwoSidedWorldSpaceBias = twoSidedWorldSpaceBias;
 	/*
@@ -1852,9 +1832,9 @@ bool GenerateVolumeDataFromFile(SDFVolumeData** outVolumeDataPP, const eastl::st
 		outVolumeData.mDistMinMax.setX(fmin(volumeSpaceDist, outVolumeData.mDistMinMax.getX()));
 		outVolumeData.mDistMinMax.setY(fmax(volumeSpaceDist, outVolumeData.mDistMinMax.getY()));
 	}*/
-	newBakedFile.Close();
+    fsCloseStream(newBakedFile);
 
-	LOGF(LogLevel::eINFO, "SDF binary data for %s found & parsed", fileName.c_str());
+	LOGF(LogLevel::eINFO, "SDF binary data for %s found & parsed", fsGetPathAsNativeString(filePath));
 	return true;
 }
 
@@ -1863,14 +1843,14 @@ void GenerateVolumeDataFromMesh(ThreadSystem* threadSystem, SDFMesh* mainMesh, S
 	const eastl::string& subMeshName, float twoSidedWorldSpaceBias = 0.4f,
 	const ivec3& specialMaxVoxelValue = ivec3(0))
 {
-	eastl::string newCompleteCacheFileName = GetSDFBakedFileName(subMeshName);
+	PathHandle newCompleteCacheFilePath = GetSDFBakedFilePath(subMeshName);
 
-	if (GenerateVolumeDataFromFile(outVolumeDataPP, newCompleteCacheFileName, subMeshName, twoSidedWorldSpaceBias))
+	if (GenerateVolumeDataFromFile(outVolumeDataPP, newCompleteCacheFilePath, subMeshName, twoSidedWorldSpaceBias))
 	{
 		return;
 	}
 
-	LOGF(LogLevel::eINFO, "Generating SDF binary data for %s", newCompleteCacheFileName.c_str());
+	LOGF(LogLevel::eINFO, "Generating SDF binary data for %s", fsGetPathAsNativeString(newCompleteCacheFilePath));
 
 	*outVolumeDataPP = conf_new(SDFVolumeData, mainMesh, subMesh);
 
@@ -1992,19 +1972,16 @@ void GenerateVolumeDataFromMesh(ThreadSystem* threadSystem, SDFMesh* mainMesh, S
 
 	DeleteBVHTree(bvhTree.mRootNode);
 
-	File portDataFile;
-	portDataFile.Open(newCompleteCacheFileName, FM_WriteBinary, FSR_OtherFiles);
-	portDataFile.WriteInt(finalSDFVolumeDimension.getX());
-	portDataFile.WriteInt(finalSDFVolumeDimension.getY());
-	portDataFile.WriteInt(finalSDFVolumeDimension.getZ());
-	portDataFile.Write(&outVolumeData.mSDFVolumeList[0], (uint32_t)(finalSDFVolumeDataCount * sizeof(float)));
-	portDataFile.WriteVector3(v3ToF3(newSDFVolumeBound.minBounds));
-	portDataFile.WriteVector3(v3ToF3(newSDFVolumeBound.maxBounds));
-	portDataFile.WriteBool(generateAsIfTwoSided);
+    FileStream* portDataFile = fsOpenFile(newCompleteCacheFilePath, FM_WRITE_BINARY);
+    fsWriteToStreamInt32(portDataFile, finalSDFVolumeDimension.getX());
+    fsWriteToStreamInt32(portDataFile, finalSDFVolumeDimension.getY());
+    fsWriteToStreamInt32(portDataFile, finalSDFVolumeDimension.getZ());
+    fsWriteToStream(portDataFile, &outVolumeData.mSDFVolumeList[0], finalSDFVolumeDataCount * sizeof(float));
+    fsWriteToStreamFloat3(portDataFile, v3ToF3(newSDFVolumeBound.minBounds));
+    fsWriteToStreamFloat3(portDataFile, v3ToF3(newSDFVolumeBound.maxBounds));
+    fsWriteToStreamBool(portDataFile, generateAsIfTwoSided);
 	//portDataFile.WriteFloat(twoSidedWorldSpaceBias);
-	portDataFile.Close();
-
-
+    fsCloseStream(portDataFile);
 
 	float minVolumeDist = 1.0f;
 	float maxVolumeDist = -1.0f;
@@ -2097,9 +2074,8 @@ void DoGenerateMissingSDFTaskData(void* dataPtr, uintptr_t index)
 	generateMissingSDF(taskData->pThreadSystem, taskData->pSDFMesh, *taskData->sdfVolumeInstances);
 }
 
-
-const char* gSDFModelNames[3] = { "SanMiguel_Opaque", "SanMiguel_AlphaTested", "SanMiguel_Flags" };
-SDFMesh        gSDFMeshes[3] = {};
+const char* gSDFModelNames[3] = { "SanMiguel_Opaque.obj", "SanMiguel_AlphaTested.obj", "SanMiguel_Flags.obj" };
+SDFMesh*        pSDFMeshes[3] = {};
 GenerateMissingSDFTaskData gGenerateMissingSDFTask[3] = {};
 size_t gSDFProgressValue = 0;
 
@@ -4811,8 +4787,6 @@ ASM* pASM;
 
 
 
-
-
 void SetupASMDebugTextures()
 {
 	if (!gASMCpuSettings.mShowDebugTextures)
@@ -4873,6 +4847,7 @@ static void createScene()
 struct GuiController
 {
 	static void addGui();
+	static void removeGui();
 	static void updateDynamicUI();
 
 	static DynamicUIWidgets esmDynamicWidgets;
@@ -4914,17 +4889,31 @@ class LightShadowPlayground: public IApp
 
 	void initSDFMeshes()
 	{
-		loadSDFMeshAlphaTested(pThreadSystem, gSDFModelNames[1], &gSDFMeshes[1], MESH_SCALE,
+		pSDFMeshes[0] = conf_new(SDFMesh);
+		pSDFMeshes[1] = conf_new(SDFMesh);
+		pSDFMeshes[2] = conf_new(SDFMesh);
+        PathHandle model1Path = fsCopyPathInResourceDirectory(RD_MESHES, gSDFModelNames[1]);
+		loadSDFMeshAlphaTested(pThreadSystem, model1Path, pSDFMeshes[1], MESH_SCALE,
 			SAN_MIGUEL_OFFSETX, ENABLE_SDF_MESH_GENERATION, gSDFVolumeInstances, &GenerateVolumeDataFromFile);
 
-		loadSDFMesh(pThreadSystem, gSDFModelNames[0], &gSDFMeshes[0], MESH_SCALE,
-			SAN_MIGUEL_OFFSETX, ENABLE_SDF_MESH_GENERATION, gSDFVolumeInstances, &GenerateVolumeDataFromFile);
-		loadSDFMesh(pThreadSystem, gSDFModelNames[2], &gSDFMeshes[2], MESH_SCALE,
+        PathHandle model0Path = fsCopyPathInResourceDirectory(RD_MESHES, gSDFModelNames[0]);
+		loadSDFMesh(pThreadSystem, model0Path, pSDFMeshes[0], MESH_SCALE,
 			SAN_MIGUEL_OFFSETX, ENABLE_SDF_MESH_GENERATION, gSDFVolumeInstances, &GenerateVolumeDataFromFile);
 
-		gGenerateMissingSDFTask[0] = { pThreadSystem, &gSDFMeshes[0], &gSDFVolumeInstances };
-		gGenerateMissingSDFTask[1] = { pThreadSystem, &gSDFMeshes[1], &gSDFVolumeInstances };
-		gGenerateMissingSDFTask[2] = { pThreadSystem, &gSDFMeshes[2], &gSDFVolumeInstances };
+        PathHandle model2Path = fsCopyPathInResourceDirectory(RD_MESHES, gSDFModelNames[2]);
+		loadSDFMesh(pThreadSystem, model2Path, pSDFMeshes[2], MESH_SCALE,
+			SAN_MIGUEL_OFFSETX, ENABLE_SDF_MESH_GENERATION, gSDFVolumeInstances, &GenerateVolumeDataFromFile);
+
+		gGenerateMissingSDFTask[0] = { pThreadSystem, pSDFMeshes[0], &gSDFVolumeInstances };
+		gGenerateMissingSDFTask[1] = { pThreadSystem, pSDFMeshes[1], &gSDFVolumeInstances };
+		gGenerateMissingSDFTask[2] = { pThreadSystem, pSDFMeshes[2], &gSDFVolumeInstances };
+	}
+
+	void destroySDFMeshes()
+	{
+		conf_delete(pSDFMeshes[0]);
+		conf_delete(pSDFMeshes[1]);
+		conf_delete(pSDFMeshes[2]);
 	}
 
 	static void checkForMissingSDFData()
@@ -4944,7 +4933,7 @@ class LightShadowPlayground: public IApp
 		gSDFProgressValue = 0;
 		for (int32_t i = 0; i < 3; ++i)
 		{
-			gSDFProgressValue += gSDFMeshes[i].mTotalGeneratedSDFMeshes;
+			gSDFProgressValue += pSDFMeshes[i]->mTotalGeneratedSDFMeshes;
 		}
 	}
 
@@ -4953,7 +4942,7 @@ class LightShadowPlayground: public IApp
 		uint32_t max = 0;
 		for (int32_t i = 0; i < 3; ++i)
 		{
-			max += gSDFMeshes[i].mTotalSDFMeshes;
+			max += pSDFMeshes[i]->mTotalSDFMeshes;
 		}
 		return max;
 	}
@@ -4973,14 +4962,30 @@ class LightShadowPlayground: public IApp
 
 	bool Init() override
 	{
+        // FILE PATHS
+        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        if (!fsPlatformUsesBundledResources())
+        {
+            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/09_LightShadowPlayground");
+            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            
+            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../../../Art/SanMiguel_3/Textures");
+            fsSetRelativePathForResourceDirectory(RD_MESHES,          "../../../../Art/SanMiguel_3/Meshes");
+            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirectory(RD_OTHER_FILES,      "../../UnitTestResources/SDF");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
+        }
+        
 		initThreadSystem(&pThreadSystem);
 
 		// Overwrite rootpath is required because Textures and meshes are not in /Textures and /Meshes.
 		// We need to set the modified root path so that filesystem can find the meshes and textures.
-		FileSystem::SetRootPath(FSRoot::FSR_Meshes, "/");
-		FileSystem::SetRootPath(FSRoot::FSR_Textures, "/");
+        PathHandle mainDirPath = fsCopyPathForResourceDirectory(RD_ROOT);
 #ifndef _DURANGO
-		FileSystem::CreateDir(gGeneratedSDFBinaryDir);
+        PathHandle sdfDirPath = fsCopyPathForResourceDirectory(RD_OTHER_FILES);
+        fsCreateDirectory(sdfDirPath);
 #endif
 
 
@@ -5044,7 +5049,7 @@ class LightShadowPlayground: public IApp
 
     if (!gAppUI.Init(pRenderer))
       return false;
-    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
 		initProfiler();
 			   		
@@ -5278,46 +5283,46 @@ class LightShadowPlayground: public IApp
 			addResource(&updateSDFVolumeTextureAtlasUniformDesc);
 		}
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", FSR_Textures))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad.png", RD_TEXTURES))
 			return false;
 
 		eastl::string str_formatter = "";
 		
 		ShaderLoadDesc indirectDepthPassShaderDesc = {};
 		indirectDepthPassShaderDesc.mStages[0] = {
-			"meshDepthPass.vert",  NULL, 0, FSR_SrcShaders };
+			"meshDepthPass.vert",  NULL, 0, RD_SHADER_SOURCES };
 
 		ShaderLoadDesc indirectAlphaDepthPassShaderDesc = {};
 		indirectAlphaDepthPassShaderDesc.mStages[0] = {
-			"meshDepthPassAlpha.vert", NULL, 0, FSR_SrcShaders };
+			"meshDepthPassAlpha.vert", NULL, 0, RD_SHADER_SOURCES };
 		indirectAlphaDepthPassShaderDesc.mStages[1] = {
-			"meshDepthPassAlpha.frag", NULL, 0, FSR_SrcShaders };
+			"meshDepthPassAlpha.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		ShaderLoadDesc ASMCopyDepthQuadsShaderDesc = {};
-		ASMCopyDepthQuadsShaderDesc.mStages[0] = {"copyDepthQuads.vert", NULL, 0, FSR_SrcShaders};
-		ASMCopyDepthQuadsShaderDesc.mStages[1] = { "copyDepthQuads.frag", NULL, 0, FSR_SrcShaders };
+		ASMCopyDepthQuadsShaderDesc.mStages[0] = {"copyDepthQuads.vert", NULL, 0, RD_SHADER_SOURCES};
+		ASMCopyDepthQuadsShaderDesc.mStages[1] = { "copyDepthQuads.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		ShaderLoadDesc quadShaderDesc = {};
-		quadShaderDesc.mStages[0] = { "quad.vert", NULL, 0, FSR_SrcShaders };
-		quadShaderDesc.mStages[1] = { "quad.frag", NULL, 0, FSR_SrcShaders };
+		quadShaderDesc.mStages[0] = { "quad.vert", NULL, 0, RD_SHADER_SOURCES };
+		quadShaderDesc.mStages[1] = { "quad.frag", NULL, 0, RD_SHADER_SOURCES };
 
 
 		ShaderLoadDesc ASMFillIndirectionShaderDesc = {};
 		ASMFillIndirectionShaderDesc.mStages[0] = { "fill_Indirection.vert", 
-			NULL, 0, FSR_SrcShaders };
+			NULL, 0, RD_SHADER_SOURCES };
 		ASMFillIndirectionShaderDesc.mStages[1] = { "fill_Indirection.frag",
-			NULL, 0, FSR_SrcShaders };
+			NULL, 0, RD_SHADER_SOURCES };
 
 		ShaderLoadDesc ASMCopyDEMQuadsShaderDesc = {};
-		ASMCopyDEMQuadsShaderDesc.mStages[0] = { "copyDEMQuads.vert", NULL, 0, FSR_SrcShaders };
-		ASMCopyDEMQuadsShaderDesc.mStages[1] = { "copyDEMQuads.frag", NULL, 0, FSR_SrcShaders };
+		ASMCopyDEMQuadsShaderDesc.mStages[0] = { "copyDEMQuads.vert", NULL, 0, RD_SHADER_SOURCES };
+		ASMCopyDEMQuadsShaderDesc.mStages[1] = { "copyDEMQuads.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		addShader(pRenderer, &ASMCopyDEMQuadsShaderDesc, &pShaderASMCopyDEM);
 		
 
 		ShaderLoadDesc ASMGenerateDEMShaderDesc = {};
-		ASMGenerateDEMShaderDesc.mStages[0] = { "generateAsmDEM.vert", NULL, 0, FSR_SrcShaders };
-		ASMGenerateDEMShaderDesc.mStages[1] = { "generateAsmDEM.frag", NULL, 0, FSR_SrcShaders };
+		ASMGenerateDEMShaderDesc.mStages[0] = { "generateAsmDEM.vert", NULL, 0, RD_SHADER_SOURCES };
+		ASMGenerateDEMShaderDesc.mStages[1] = { "generateAsmDEM.frag", NULL, 0, RD_SHADER_SOURCES };
 		addShader(pRenderer, &ASMGenerateDEMShaderDesc, &pShaderASMGenerateDEM);
 
 
@@ -5325,58 +5330,58 @@ class LightShadowPlayground: public IApp
 
 
 		ShaderLoadDesc visibilityBufferPassShaderDesc = {};
-		visibilityBufferPassShaderDesc.mStages[0] = { "visibilityBufferPass.vert", NULL, 0, FSR_SrcShaders };
-		visibilityBufferPassShaderDesc.mStages[1] = { "visibilityBufferPass.frag", NULL, 0, FSR_SrcShaders };
+		visibilityBufferPassShaderDesc.mStages[0] = { "visibilityBufferPass.vert", NULL, 0, RD_SHADER_SOURCES };
+		visibilityBufferPassShaderDesc.mStages[1] = { "visibilityBufferPass.frag", NULL, 0, RD_SHADER_SOURCES };
 		addShader(pRenderer, &visibilityBufferPassShaderDesc, &pShaderVBBufferPass[GEOMSET_OPAQUE]);
 
 		ShaderLoadDesc visibilityBufferPassAlphaShaderDesc = {};
-		visibilityBufferPassAlphaShaderDesc.mStages[0] = { "visibilityBufferPassAlpha.vert", NULL, 0, FSR_SrcShaders };
-		visibilityBufferPassAlphaShaderDesc.mStages[1] = { "visibilityBufferPassAlpha.frag", NULL, 0, FSR_SrcShaders };
+		visibilityBufferPassAlphaShaderDesc.mStages[0] = { "visibilityBufferPassAlpha.vert", NULL, 0, RD_SHADER_SOURCES };
+		visibilityBufferPassAlphaShaderDesc.mStages[1] = { "visibilityBufferPassAlpha.frag", NULL, 0, RD_SHADER_SOURCES };
 		addShader(pRenderer, &visibilityBufferPassAlphaShaderDesc, &pShaderVBBufferPass[GEOMSET_ALPHATESTED]);
 	
 		ShaderLoadDesc clearBuffersShaderDesc = {};
-		clearBuffersShaderDesc.mStages[0] = { "clearVisibilityBuffers.comp", NULL, 0, FSR_SrcShaders };
+		clearBuffersShaderDesc.mStages[0] = { "clearVisibilityBuffers.comp", NULL, 0, RD_SHADER_SOURCES };
 		addShader(pRenderer, &clearBuffersShaderDesc, &pShaderClearBuffers);
 
 
 		ShaderLoadDesc triangleFilteringShaderDesc = {};
-		triangleFilteringShaderDesc.mStages[0] = { "triangleFiltering.comp", NULL, 0, FSR_SrcShaders };
+		triangleFilteringShaderDesc.mStages[0] = { "triangleFiltering.comp", NULL, 0, RD_SHADER_SOURCES };
 		addShader(pRenderer, &triangleFilteringShaderDesc, &pShaderTriangleFiltering);
 
 		ShaderLoadDesc batchCompactionShaderDesc = {};
-		batchCompactionShaderDesc.mStages[0] = { "batchCompaction.comp", NULL, 0, FSR_SrcShaders };
+		batchCompactionShaderDesc.mStages[0] = { "batchCompaction.comp", NULL, 0, RD_SHADER_SOURCES };
 		addShader(pRenderer, &batchCompactionShaderDesc, &pShaderBatchCompaction);
 
 		ShaderLoadDesc updateSDFVolumeTextureAtlasShaderDesc = {};
-		updateSDFVolumeTextureAtlasShaderDesc.mStages[0] = { "updateRegion3DTexture.comp", NULL, 0, FSR_SrcShaders };
+		updateSDFVolumeTextureAtlasShaderDesc.mStages[0] = { "updateRegion3DTexture.comp", NULL, 0, RD_SHADER_SOURCES };
 		
 
 		addShader(pRenderer, &updateSDFVolumeTextureAtlasShaderDesc, &pShaderUpdateSDFVolumeTextureAtlas);
 
 		ShaderLoadDesc meshSDFVisualizationShaderDesc = {};
-		meshSDFVisualizationShaderDesc.mStages[0] = { "visualizeSDFMesh.comp", NULL, 0, FSR_SrcShaders };
+		meshSDFVisualizationShaderDesc.mStages[0] = { "visualizeSDFMesh.comp", NULL, 0, RD_SHADER_SOURCES };
 		addShader(pRenderer, &meshSDFVisualizationShaderDesc, &pShaderSDFMeshVisualization);
 
 		ShaderLoadDesc sdfShadowMeshShaderDesc = {};
-		sdfShadowMeshShaderDesc.mStages[0] = { "bakedSDFMeshShadow.comp", NULL, 0, FSR_SrcShaders };
+		sdfShadowMeshShaderDesc.mStages[0] = { "bakedSDFMeshShadow.comp", NULL, 0, RD_SHADER_SOURCES };
 		addShader(pRenderer, &sdfShadowMeshShaderDesc, &pShaderSDFMeshShadow);
 
 		ShaderLoadDesc upSampleSDFShadowShaderDesc = {};
-		upSampleSDFShadowShaderDesc.mStages[0] = { "upsampleSDFShadow.vert", NULL, 0, FSR_SrcShaders };
-		upSampleSDFShadowShaderDesc.mStages[1] = { "upsampleSDFShadow.frag", NULL, 0, FSR_SrcShaders };
+		upSampleSDFShadowShaderDesc.mStages[0] = { "upsampleSDFShadow.vert", NULL, 0, RD_SHADER_SOURCES };
+		upSampleSDFShadowShaderDesc.mStages[1] = { "upsampleSDFShadow.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		addShader(pRenderer, &upSampleSDFShadowShaderDesc, &pShaderUpsampleSDFShadow);
 
 
 		ShaderLoadDesc presentShaderDesc = {};
-		presentShaderDesc.mStages[0] = { "display.vert", NULL, 0, FSR_SrcShaders };
-		presentShaderDesc.mStages[1] = { "display.frag", NULL, 0, FSR_SrcShaders };
+		presentShaderDesc.mStages[0] = { "display.vert", NULL, 0, RD_SHADER_SOURCES };
+		presentShaderDesc.mStages[1] = { "display.frag", NULL, 0, RD_SHADER_SOURCES };
 		addShader(pRenderer, &presentShaderDesc, &pShaderPresentPass);
 
 
 		ShaderLoadDesc visibilityBufferShadeShaderDesc = {};
-		visibilityBufferShadeShaderDesc.mStages[0] = { "visibilityBufferShade.vert", NULL, 0, FSR_SrcShaders };
-		visibilityBufferShadeShaderDesc.mStages[1] = { "visibilityBufferShade.frag", NULL, 0, FSR_SrcShaders };
+		visibilityBufferShadeShaderDesc.mStages[0] = { "visibilityBufferShade.vert", NULL, 0, RD_SHADER_SOURCES };
+		visibilityBufferShadeShaderDesc.mStages[1] = { "visibilityBufferShade.frag", NULL, 0, RD_SHADER_SOURCES };
 
 
 		/************************************************************************/
@@ -5475,8 +5480,6 @@ class LightShadowPlayground: public IApp
 		billinearRepeatDesc.mMipLodBias = 0.f;
 		addSampler(pRenderer, &billinearRepeatDesc, &pSamplerLinearRepeat);
 
-		
-
 		/************************************************************************/
 		// Load resources for skybox
 		/************************************************************************/
@@ -5484,9 +5487,9 @@ class LightShadowPlayground: public IApp
 
 		initSDFMeshes();
 
-		eastl::string sceneFullPath = FileSystem::FixPath(gSceneName, FSRoot::FSR_Meshes);
+        PathHandle sceneFullPath = fsCopyPathInResourceDirectory(RD_MESHES, gSceneName);
 		//pScene = loadScene(sceneFullPath.c_str(), MESH_SCALE, SAN_MIGUEL_OFFSETX, 0.0f, 0.0f);
-		Scene* pScene = loadScene(sceneFullPath.c_str(), SAN_MIGUEL_ORIGINAL_SCALE, SAN_MIGUEL_ORIGINAL_OFFSETX, 0.0f, 0.0f);
+		Scene* pScene = loadScene(sceneFullPath, SAN_MIGUEL_ORIGINAL_SCALE, SAN_MIGUEL_ORIGINAL_OFFSETX, 0.0f, 0.0f);
 		
 		gMeshCount = pScene->numMeshes;
 		gMaterialCount = pScene->numMaterials;
@@ -5565,8 +5568,6 @@ class LightShadowPlayground: public IApp
 
 
 		TextureLoadDesc loadTextureDesc = {};
-		loadTextureDesc.mRoot = FSR_Textures;
-
 
 		TextureLoadTaskData loadTextureDiffuseData = {};
 		loadTextureDiffuseData.textures = gDiffuseMaps.data();
@@ -5815,16 +5816,12 @@ class LightShadowPlayground: public IApp
 		addRootSignature(pRenderer, &quadRootDesc, &pRootSignatureQuad);
 
 #if defined(DIRECT3D12)
-		const DescriptorInfo*      pDrawId = NULL;
 		IndirectArgumentDescriptor indirectArgs[2] = {};
 		indirectArgs[0].mType = INDIRECT_CONSTANT;
 		indirectArgs[0].mCount = 1;
+		indirectArgs[0].pName = "indirectRootConstant";
 		indirectArgs[1].mType = INDIRECT_DRAW_INDEX;
-
 		CommandSignatureDesc vbPassDesc = { pCmdPool, pRootSignatureVBPass, 2, indirectArgs };
-		pDrawId =
-			&pRootSignatureVBPass->pDescriptors[pRootSignatureVBPass->pDescriptorNameToIndexMap["indirectRootConstant"]];
-		indirectArgs[0].mRootParameterIndex = pRootSignatureVBPass->pDxRootConstantRootIndices[pDrawId->mIndexInParent];
 		addIndirectCommandSignature(pRenderer, &vbPassDesc, &pCmdSignatureVBPass);
 #else
 		// Indicate the renderer that we want to use non-indexed geometry.
@@ -6294,19 +6291,15 @@ class LightShadowPlayground: public IApp
 		addResource(&skyboxLoadDesc, true);
 
 		// Load the skybox panorama texture.
+        PathHandle panoTexturePath = fsCopyPathInResourceDirectory(RD_TEXTURES, "daytime");
 		TextureLoadDesc panoDesc = {};
-#ifndef TARGET_IOS
-		panoDesc.mRoot = FSR_Textures;
-#else
-		panoDesc.mRoot = FSRoot::FSR_Absolute;    // Resources on iOS are bundled with the application.
-#endif
-		panoDesc.pFilename = "daytime";
+		panoDesc.pFilePath = panoTexturePath;
 		panoDesc.ppTexture = &pPanoSkybox;
 		addResource(&panoDesc, true);
 
 		// Load pre-processing shaders.
 		ShaderLoadDesc panoToCubeShaderDesc = {};
-		panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", NULL, 0, FSR_SrcShaders };
+		panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", NULL, 0, RD_SHADER_SOURCES };
 
 		addShader(pRenderer, &panoToCubeShaderDesc, &pPanoToCubeShader);
 
@@ -6394,8 +6387,8 @@ class LightShadowPlayground: public IApp
 		removeSampler(pRenderer, pSkyboxSampler);
 
 		ShaderLoadDesc skyboxShaderDesc = {};
-		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0, FSR_SrcShaders };
-		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0, FSR_SrcShaders };
+		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0, RD_SHADER_SOURCES };
+		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0, RD_SHADER_SOURCES };
 
 		addShader(pRenderer, &skyboxShaderDesc, &pShaderSkybox);
 
@@ -6539,6 +6532,9 @@ class LightShadowPlayground: public IApp
 		exitInputSystem();
 		shutdownThreadSystem(pThreadSystem);
 
+		GuiController::removeGui();
+		destroySDFMeshes();
+
 		RemoveDescriptorSets();
 
 		destroyCameraController(pCameraController);
@@ -6570,6 +6566,14 @@ class LightShadowPlayground: public IApp
 			removeResource(gNormalMaps[i]);
 			removeResource(gSpecularMaps[i]);
 		}
+
+		gDiffuseMaps.set_capacity(0);
+		gNormalMaps.set_capacity(0);
+		gSpecularMaps.set_capacity(0);
+
+		gDiffuseMapsPacked.set_capacity(0);
+		gNormalMapsPacked.set_capacity(0);
+		gSpecularMapsPacked.set_capacity(0);
 
 		gAppUI.Exit();
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -9711,6 +9715,14 @@ void GuiController::addGui()
 		GuiController::currentlyShadowType = SHADOW_TYPE_MESH_BAKED_SDF;
 		GuiController::bakedSDFDynamicWidgets.ShowWidgets(pGuiWindow);
 	}
+}
+
+void GuiController::removeGui()
+{
+	esmDynamicWidgets.Destroy();
+	sdfDynamicWidgets.Destroy();
+	asmDynamicWidgets.Destroy();
+	bakedSDFDynamicWidgets.Destroy();
 }
 
 DEFINE_APPLICATION_MAIN(LightShadowPlayground)

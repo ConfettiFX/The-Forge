@@ -1526,6 +1526,11 @@ ResourceAllocator::ResourceAllocator(const AllocatorCreateInfo* pCreateInfo):
 {
 	ASSERT(pCreateInfo->physicalDevice && pCreateInfo->device);
 
+#if RESOURCE_DEBUG_GLOBAL_MUTEX
+	if (!gDebugGlobalMutex.Init())
+		return;
+#endif
+
 	memset(&m_pBlockVectors, 0, sizeof(m_pBlockVectors));
 	memset(&m_HasEmptyBlock, 0, sizeof(m_HasEmptyBlock));
 	memset(&m_pOwnAllocations, 0, sizeof(m_pOwnAllocations));
@@ -1542,6 +1547,11 @@ ResourceAllocator::ResourceAllocator(const AllocatorCreateInfo* pCreateInfo):
 
 	for (size_t i = 0; i < GetMemoryTypeCount(); ++i)
 	{
+		if (!m_OwnAllocationsMutex[i].Init())
+			return;
+		if (!m_BlocksMutex[i].Init())
+			return;
+
 		for (size_t j = 0; j < RESOURCE_BLOCK_VECTOR_TYPE_COUNT; ++j)
 		{
 			m_pBlockVectors[i][j] = resourceAlloc_new(AllocatorBlockVector, this);
@@ -1559,7 +1569,14 @@ ResourceAllocator::~ResourceAllocator()
 			resourceAlloc_delete(m_pOwnAllocations[i][j]);
 			resourceAlloc_delete(m_pBlockVectors[i][j]);
 		}
+
+		m_OwnAllocationsMutex[i].Destroy();
+		m_BlocksMutex[i].Destroy();
 	}
+
+#if RESOURCE_DEBUG_GLOBAL_MUTEX
+	gDebugGlobalMutex.Destroy();
+#endif
 }
 
 UINT64 ResourceAllocator::GetPreferredBlockSize(ResourceMemoryUsage memUsage, uint32_t memTypeIndex) const

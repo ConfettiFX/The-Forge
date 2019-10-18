@@ -51,20 +51,6 @@
 
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
 
-const char* pszBases[FSR_Count] = {
-	"../../../src/13_UserInterface/",       // FSR_BinShaders
-	"../../../src/13_UserInterface/",       // FSR_SrcShaders
-	"../../../UnitTestResources/",          // FSR_Textures
-	"../../../UnitTestResources/",          // FSR_Meshes
-	"../../../UnitTestResources/",          // FSR_Builtin_Fonts
-	"../../../src/13_UserInterface/",       // FSR_GpuConfig
-	"",                                     // FSR_Animation
-	"",                                     // FSR_Audio
-	"",                                     // FSR_OtherFiles
-	"../../../../../Middleware_3/Text/",    // FSR_MIDDLEWARE_TEXT
-	"../../../../../Middleware_3/UI/",      // FSR_MIDDLEWARE_UI
-};
-
 //--------------------------------------------------------------------------------------------
 // RENDERING PIPELINE DATA
 //--------------------------------------------------------------------------------------------
@@ -126,7 +112,7 @@ UserInterfaceUnitTestingData gUIData;
 
 // ContextMenu Items and Callbacks Example:
 //
-eastl::string sContextMenuItems[7] = { "Random Background Color",  "Random Profiler Color",    "Dummy Context Menu Item3",
+const char* sContextMenuItems[7] = { "Random Background Color",  "Random Profiler Color",    "Dummy Context Menu Item3",
 										 "Dummy Context Menu Item4", "Dummy Context Menu Item5", "Dummy Context Menu Item6",
 										 "Dummy Context Menu Item7" };
 void            fnItem1Callback()    // sets slider color value: RGBA
@@ -205,6 +191,21 @@ class UserInterfaceUnitTest : public IApp
 public:
 	bool Init()
 	{
+        // FILE PATHS
+        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        if (!fsPlatformUsesBundledResources())
+        {
+            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/13_UserInterface");
+            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            
+            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../UnitTestResources/Textures");
+            fsSetRelativePathForResourceDirectory(RD_MESHES,          "../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
+        }
+        
 		// WINDOW AND RENDERER SETUP
 		//
 		RendererDesc settings = { 0 };
@@ -231,10 +232,10 @@ public:
 		//
 		initResourceLoaderInterface(pRenderer);
 
+        PathHandle spritesPath = fsCopyPathInResourceDirectory(RD_TEXTURES, "sprites");
 		TextureLoadDesc textureDesc = {};
-		textureDesc.mRoot = FSR_Textures;
 		textureDesc.ppTexture = &pSpriteTexture;
-		textureDesc.pFilename = "sprites";
+		textureDesc.pFilePath = spritesPath;
 		addResource(&textureDesc);
 
 		finishResourceLoading();
@@ -261,7 +262,7 @@ public:
 			return false;
 		}
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
 		// Add the GUI Panels/Windows
 		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 16 };

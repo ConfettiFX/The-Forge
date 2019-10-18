@@ -10,7 +10,6 @@
 		5C172F34214147700074EE71 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F32214147700074EE71 /* AppDelegate.m */; };
 		5C17300521414D110074EE71 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C17300421414D110074EE71 /* AppDelegate.m */; };
 		5C17300621414D310074EE71 /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C17300221414CFA0074EE71 /* libThe-Forge_iOS.a */; };
-		5C55835021413FD10019960B /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C55833D21413EE30019960B /* libThe-Forge.a */; };
 		5CA80F4C21F0A0D000C99983 /* fontstash.frag.metal in Copy Files */ = {isa = PBXBuildFile; fileRef = 5CA80E2D21F09FCC00C99983 /* fontstash.frag.metal */; };
 		5CA80F4D21F0A0D000C99983 /* fontstash2D.vert.metal in Copy Files */ = {isa = PBXBuildFile; fileRef = 5CA80E2C21F09FCC00C99983 /* fontstash2D.vert.metal */; };
 		5CA80F4E21F0A0D000C99983 /* fontstash3D.vert.metal in Copy Files */ = {isa = PBXBuildFile; fileRef = 5CA80E2B21F09FCC00C99983 /* fontstash3D.vert.metal */; };
@@ -46,6 +45,9 @@
 		D204ED811F348A5B005F2CEA /* 01_Transformations.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D204ED801F348A5B005F2CEA /* 01_Transformations.cpp */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
+		E95891D1234158F000B68D6A /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C55833D21413EE30019960B /* libThe-Forge.a */; };
+		E967DE9F233B13C30032E4BA /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E967DE9E233B13C20032E4BA /* libbz2.tbd */; };
+		E967DF69233C36C70032E4BA /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E967DF68233C36C70032E4BA /* libbz2.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,7 +72,7 @@
 			remoteGlobalIDString = 5C5582E021413D180019960B;
 			remoteInfo = "The-Forge";
 		};
-		5C55833F21413EFB0019960B /* PBXContainerItemProxy */ = {
+		E95891D2234158F600B68D6A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 5C55833721413EE30019960B /* The-Forge.xcodeproj */;
 			proxyType = 1;
@@ -144,10 +146,10 @@
 		28A5AB7F201F3A35000E571F /* Skybox_top3.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_top3.ktx; path = ../../../UnitTestResources/Textures/Skybox_top3.ktx; sourceTree = "<group>"; };
 		28A5AB80201F3A35000E571F /* Skybox_back6.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = Skybox_back6.ktx; path = ../../../UnitTestResources/Textures/Skybox_back6.ktx; sourceTree = "<group>"; };
 		28A5AB89201F3A77000E571F /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = ../../../UnitTestResources/Fonts/TitilliumText; sourceTree = "<group>"; };
-		5C172F32214147700074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/macOS/AppDelegate.m; sourceTree = "<group>"; };
-		5C172F33214147700074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/macOS/AppDelegate.h; sourceTree = "<group>"; };
-		5C17300321414D110074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/iOS/AppDelegate.h; sourceTree = "<group>"; };
-		5C17300421414D110074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/iOS/AppDelegate.m; sourceTree = "<group>"; };
+		5C172F32214147700074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
+		5C172F33214147700074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
+		5C17300321414D110074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
+		5C17300421414D110074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
 		5C55833721413EE30019960B /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
 		5CA80E1F21F09FB900C99983 /* textured_mesh.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = textured_mesh.vert.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/textured_mesh.vert.metal; sourceTree = "<group>"; };
 		5CA80E2021F09FB900C99983 /* textured_mesh.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = textured_mesh.frag.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/textured_mesh.frag.metal; sourceTree = "<group>"; };
@@ -173,6 +175,9 @@
 		D204ED801F348A5B005F2CEA /* 01_Transformations.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 01_Transformations.cpp; path = ../../src/01_Transformations/01_Transformations.cpp; sourceTree = "<group>"; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = ../02_Compute/02_Compute/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		E967DE9E233B13C20032E4BA /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.0.sdk/usr/lib/libbz2.tbd; sourceTree = DEVELOPER_DIR; };
+		E967DEA0233B143B0032E4BA /* libzlibstatic_iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzlibstatic_iOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		E967DF68233C36C70032E4BA /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		EA463C8B1EF81E8F005AC8C7 /* 01_Transformations.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 01_Transformations.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EADF9D661EFD160E00B2008B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../02_Compute/02_Compute/Info.plist; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -182,6 +187,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E967DE9F233B13C30032E4BA /* libbz2.tbd in Frameworks */,
 				650CCC412223C3D8003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				B21F76BE21420E7000DF2297 /* UIKit.framework in Frameworks */,
 				B21F76BF21420E7000DF2297 /* MetalKit.framework in Frameworks */,
@@ -195,10 +201,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E967DF69233C36C70032E4BA /* libbz2.tbd in Frameworks */,
 				650CCC432223C40F003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				B2087DD321421A13006F372D /* MetalKit.framework in Frameworks */,
 				B2087DD421421A13006F372D /* Metal.framework in Frameworks */,
-				5C55835021413FD10019960B /* libThe-Forge.a in Frameworks */,
+				E95891D1234158F000B68D6A /* libThe-Forge.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -246,6 +253,9 @@
 		28A5ABEA201F482F000E571F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				E967DF68233C36C70032E4BA /* libbz2.tbd */,
+				E967DEA0233B143B0032E4BA /* libzlibstatic_iOS.a */,
+				E967DE9E233B13C20032E4BA /* libbz2.tbd */,
 				650CCC3F2223C3A5003533D9 /* MetalPerformanceShaders.framework */,
 				650CCC422223C40F003533D9 /* MetalPerformanceShaders.framework */,
 				B21F76BD21420E7000DF2297 /* Metal.framework */,
@@ -365,7 +375,7 @@
 			buildRules = (
 			);
 			dependencies = (
-				5C55834021413EFB0019960B /* PBXTargetDependency */,
+				E95891D3234158F600B68D6A /* PBXTargetDependency */,
 			);
 			name = 01_Transformations;
 			productName = 02_Texture;
@@ -383,7 +393,6 @@
 				TargetAttributes = {
 					C95132EC2010E68A002E584B = {
 						CreatedOnToolsVersion = 9.2;
-						DevelopmentTeam = BT67ZY58A8;
 						ProvisioningStyle = Automatic;
 					};
 					EA463C8A1EF81E8F005AC8C7 = {
@@ -483,10 +492,10 @@
 			name = "The-Forge_iOS";
 			targetProxy = 5C172FFE21414CFA0074EE71 /* PBXContainerItemProxy */;
 		};
-		5C55834021413EFB0019960B /* PBXTargetDependency */ = {
+		E95891D3234158F600B68D6A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = "The-Forge";
-			targetProxy = 5C55833F21413EFB0019960B /* PBXContainerItemProxy */;
+			targetProxy = E95891D2234158F600B68D6A /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -639,6 +648,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MTL_ENABLE_DEBUG_INFO = YES;
+				MTL_HEADER_SEARCH_PATHS = "";
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 			};
@@ -691,6 +701,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_HEADER_SEARCH_PATHS = "";
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -708,6 +719,7 @@
 					METAL,
 					_DEBUG,
 					USE_MEMORY_TRACKING,
+					ZIP_STATIC,
 				);
 				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = "$(SRCROOT)/../02_Compute/02_Compute/Info.plist";
@@ -721,6 +733,11 @@
 				SDKROOT = macosx;
 				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
 				SYSTEM_HEADER_SEARCH_PATHS = "";
+				USER_HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib/**",
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple/**",
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/lib/**",
+				);
 			};
 			name = Debug;
 		};
@@ -733,7 +750,10 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
-				GCC_PREPROCESSOR_DEFINITIONS = METAL;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					METAL,
+					ZIP_STATIC,
+				);
 				HEADER_SEARCH_PATHS = "";
 				INFOPLIST_FILE = "$(SRCROOT)/../02_Compute/02_Compute/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -746,6 +766,11 @@
 				SDKROOT = macosx;
 				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
 				SYSTEM_HEADER_SEARCH_PATHS = "";
+				USER_HEADER_SEARCH_PATHS = (
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib/**",
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple/**",
+					"$(PROJECT_DIR)/../../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/lib/**",
+				);
 			};
 			name = Release;
 		};
@@ -759,7 +784,7 @@
 				C95133072010E68A002E584B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		EA463C861EF81E8F005AC8C7 /* Build configuration list for PBXProject "01_Transformations" */ = {
 			isa = XCConfigurationList;
@@ -768,7 +793,7 @@
 				EA463CAB1EF81E8F005AC8C7 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 		EA463CAC1EF81E8F005AC8C7 /* Build configuration list for PBXNativeTarget "01_Transformations" */ = {
 			isa = XCConfigurationList;
@@ -777,7 +802,7 @@
 				EA463CAE1EF81E8F005AC8C7 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 	};

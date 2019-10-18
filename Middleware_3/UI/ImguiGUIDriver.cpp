@@ -22,6 +22,11 @@
  * under the License.
 */
 
+#ifdef USE_UI_PRECOMPILED_SHADERS
+#include "Shaders/Compiled/imgui.vert.h"
+#include "Shaders/Compiled/imgui.frag.h"
+#endif
+
 #include "../../Common_3/ThirdParty/OpenSource/imgui/imgui.h"
 #include "../../Common_3/ThirdParty/OpenSource/imgui/imgui_internal.h"
 #include "../../Common_3/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
@@ -131,6 +136,7 @@ class ImguiGUIDriver: public GUIDriver
 	
 	bool onButton(uint32_t button, bool press, const float2* vec)
 	{
+		ImGui::SetCurrentContext(context);
 		ImGuiIO& io = ImGui::GetIO();
 		pMovePosition = vec;
 		
@@ -184,6 +190,7 @@ class ImguiGUIDriver: public GUIDriver
 
 	bool onText(const wchar_t* pText)
 	{
+		ImGui::SetCurrentContext(context);
 		ImGuiIO& io = ImGui::GetIO();
 		uint32_t len = (uint32_t)wcslen(pText);
 		for (uint32_t i = 0; i < len; ++i)
@@ -194,6 +201,7 @@ class ImguiGUIDriver: public GUIDriver
 
 	uint8_t wantTextInput() const
 	{
+		ImGui::SetCurrentContext(context);
 		//The User flags are not what I expect them to be.
 		//We need access to Per-Component InputFlags
 		ImGuiContext*       guiContext = (ImGuiContext*)this->context;
@@ -214,7 +222,14 @@ class ImguiGUIDriver: public GUIDriver
 	
 	bool isFocused()
 	{
+		ImGui::SetCurrentContext(context);
 		return ImGui::GetIO().WantCaptureMouse;
+	}
+
+	void setCustomShader(Shader* pShader)
+	{
+		pShaderTextured = pShader;
+		mCustomShader = true;
 	}
 
 	static void* alloc_func(size_t size, void* user_data) { return conf_malloc(size); }
@@ -251,6 +266,7 @@ class ImguiGUIDriver: public GUIDriver
 	float2           mLastUpdateMin[64] = {};
 	float2           mLastUpdateMax[64] = {};
 	bool             mActive;
+	bool             mCustomShader;
 };
 
 static const uint64_t VERTEX_BUFFER_SIZE = 1024 * 64 * sizeof(ImDrawVert);
@@ -728,10 +744,25 @@ bool ImguiGUIDriver::init(Renderer* renderer, uint32_t const maxDynamicUIUpdates
 	rasterizerStateDesc.mScissor = true;
 	addRasterizerState(pRenderer, &rasterizerStateDesc, &pRasterizerState);
 
-	ShaderLoadDesc texturedShaderDesc = {};
-	texturedShaderDesc.mStages[0] = { "imgui.vert", NULL, 0, FSR_MIDDLEWARE_UI };
-	texturedShaderDesc.mStages[1] = { "imgui.frag", NULL, 0, FSR_MIDDLEWARE_UI };
-	addShader(pRenderer, &texturedShaderDesc, &pShaderTextured);
+	if (!mCustomShader)
+	{
+#ifdef USE_UI_PRECOMPILED_SHADERS
+		BinaryShaderDesc binaryShaderDesc = {};
+		binaryShaderDesc.mStages = SHADER_STAGE_VERT | SHADER_STAGE_FRAG;
+		binaryShaderDesc.mVert.mByteCodeSize = sizeof(gShaderImguiVert);
+		binaryShaderDesc.mVert.pByteCode = (char*)gShaderImguiVert;
+		binaryShaderDesc.mVert.pEntryPoint = "main";
+		binaryShaderDesc.mFrag.mByteCodeSize = sizeof(gShaderImguiFrag);
+		binaryShaderDesc.mFrag.pByteCode = (char*)gShaderImguiFrag;
+		binaryShaderDesc.mFrag.pEntryPoint = "main";
+		addShaderBinary(pRenderer, &binaryShaderDesc, &pShaderTextured);
+#else
+		ShaderLoadDesc texturedShaderDesc = {};
+		texturedShaderDesc.mStages[0] = { "imgui.vert", NULL, 0, RD_MIDDLEWARE_UI };
+		texturedShaderDesc.mStages[1] = { "imgui.frag", NULL, 0, RD_MIDDLEWARE_UI };
+		addShader(pRenderer, &texturedShaderDesc, &pShaderTextured);
+#endif
+	}
 
 	const char*       pStaticSamplerNames[] = { "uSampler" };
 	RootSignatureDesc textureRootDesc = { &pShaderTextured, 1 };
@@ -822,7 +853,8 @@ void ImguiGUIDriver::exit()
 	removeBlendState(pBlendAlpha);
 	removeDepthState(pDepthState);
 	removeRasterizerState(pRasterizerState);
-	removeShader(pRenderer, pShaderTextured);
+	if (!mCustomShader)
+		removeShader(pRenderer, pShaderTextured);
 	removeDescriptorSet(pRenderer, pDescriptorSetTexture);
 	removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
 	removeRootSignature(pRenderer, pRootSignatureTextured);
@@ -1066,6 +1098,7 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 {
 	/************************************************************************/
 	/************************************************************************/
+	ImGui::SetCurrentContext(context);
 	ImGui::Render();
 	frameIdx = (frameIdx + 1) % MAX_FRAMES;
 	mDynamicUIUpdates = 0;

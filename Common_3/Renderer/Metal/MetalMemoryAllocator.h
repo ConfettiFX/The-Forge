@@ -2724,6 +2724,11 @@ ResourceAllocator::ResourceAllocator(const AllocatorCreateInfo* pCreateInfo):
 	m_PreferredSmallHeapBlockSize(0),
 	m_UnmapPersistentlyMappedMemoryCounter(0)
 {
+#if RESOURCE_DEBUG_GLOBAL_MUTEX
+	if (!gDebugGlobalMutex.Init())
+		return;
+#endif
+	
 	ASSERT(pCreateInfo->device);
 
 	memset(&m_pBlockVectors, 0, sizeof(m_pBlockVectors));
@@ -2739,6 +2744,11 @@ ResourceAllocator::ResourceAllocator(const AllocatorCreateInfo* pCreateInfo):
 
 	for (size_t i = 0; i < GetMemoryTypeCount(); ++i)
 	{
+		if (!m_BlocksMutex[i].Init())
+			return;
+		if (!m_OwnAllocationsMutex[i].Init())
+			return;
+		
 		for (size_t j = 0; j < RESOURCE_BLOCK_VECTOR_TYPE_COUNT; ++j)
 		{
 			m_pBlockVectors[i][j] = conf_placement_new<AllocatorBlockVector>(AllocatorAllocate<AllocatorBlockVector>(), this);
@@ -2756,7 +2766,14 @@ ResourceAllocator::~ResourceAllocator()
 			resourceAlloc_delete(m_pOwnAllocations[i][j]);
 			resourceAlloc_delete(m_pBlockVectors[i][j]);
 		}
+		
+		m_BlocksMutex[i].Destroy();
+		m_OwnAllocationsMutex[i].Destroy();
 	}
+	
+#if RESOURCE_DEBUG_GLOBAL_MUTEX
+	gDebugGlobalMutex.Destroy();
+#endif
 }
 
 bool ResourceAllocator::AllocateMemoryOfType(

@@ -127,23 +127,17 @@ struct Compute_Shader
 
 struct CSData {
     texturecube<float> srcTexture                         [[id(0)]];
-    sampler skyboxSampler                                 [[id(1)]];
-};
-
 #ifndef TARGET_IOS
-struct CSDataPerDraw {
-    texture2d_array<float, access::read_write> dstTexture [[id(0)]];
-};
+    texture2d_array<float, access::read_write> dstTexture;
 #endif
-
+    sampler skyboxSampler;
+};
 
 //[numthreads(16, 16, 1)]
 kernel void stageMain(uint3 DTid                            [[thread_position_in_grid]],
-                      constant CSData& csData               [[buffer(UPDATE_FREQ_NONE)]],
-#ifndef TARGET_IOS
-                      device CSDataPerDraw& csDataPerDraw   [[buffer(UPDATE_FREQ_PER_DRAW)]]
-#else
-					  texture2d_array<float, access::read_write> dstTexture [[texture(0)]]
+                      constant CSData& csData               [[buffer(UPDATE_FREQ_NONE)]]
+#ifdef TARGET_IOS
+					  , texture2d_array<float, access::read_write> dstTexture [[texture(0)]]
 #endif
 )
 {
@@ -151,7 +145,7 @@ kernel void stageMain(uint3 DTid                            [[thread_position_in
     DTid0 = DTid;
     Compute_Shader main(csData.srcTexture,
 #ifndef TARGET_IOS
-						csDataPerDraw.dstTexture,
+						csData.dstTexture,
 #else
 						dstTexture,
 #endif

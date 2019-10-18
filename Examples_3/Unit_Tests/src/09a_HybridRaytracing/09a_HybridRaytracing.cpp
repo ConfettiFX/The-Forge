@@ -58,20 +58,6 @@ const float gTimeScale = 0.2f;
 Timer      gAccumTimer;
 HiresTimer gTimer;
 
-const char* pszBases[FSR_Count] = {
-	"../../../src/09a_HybridRaytracing/",    // FSR_BinShaders
-	"../../../src/09a_HybridRaytracing/",    // FSR_SrcShaders
-	"../../../../../Art/Sponza/",            // FSR_Textures
-	"../../../../../Art/Sponza/",            // FSR_Meshes
-	"../../../UnitTestResources/",           // FSR_Builtin_Fonts
-	"../../../src/09a_HybridRaytracing/",    // FSR_GpuConfig
-	"",                                      // FSR_Animation
-	"",                                      // FSR_Audio
-	"",                                      // FSR_OtherFiles
-	"../../../../../Middleware_3/Text/",     // FSR_MIDDLEWARE_TEXT
-	"../../../../../Middleware_3/UI/",       // FSR_MIDDLEWARE_UI
-};
-
 struct AABBox
 {
 	vec3  MinBounds;
@@ -855,6 +841,22 @@ class HybridRaytracing: public IApp
 
 	bool Init()
 	{
+        // FILE PATHS
+        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+		FileSystem *fileSystem = fsGetPathFileSystem(programDirectory);
+		if (!fsPlatformUsesBundledResources())
+		{
+			PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/09a_HybridRaytracing");
+			fsSetResourceDirectoryRootPath(resourceDirRoot);
+			
+			fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../../../Art/Sponza/Textures");
+			fsSetRelativePathForResourceDirectory(RD_MESHES,          "../../../../Art/Sponza/Meshes");
+			fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
+			fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
+			fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
+			fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
+		}
+		
 		// window and renderer setup
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
@@ -902,7 +904,7 @@ class HybridRaytracing: public IApp
     if (!gAppUI.Init(pRenderer))
       return false;
 
-    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", FSR_Builtin_Fonts);
+    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
 		initProfiler();
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
@@ -910,36 +912,39 @@ class HybridRaytracing: public IApp
 		//Load shaders
 		{
 			//Load shaders for GPrepass
-			ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", eastl::string().sprintf("%i", TOTAL_IMGS) };
+			char           totalImagesShaderMacroBuffer[5] = {};
+			sprintf(totalImagesShaderMacroBuffer, "%i", TOTAL_IMGS);
+
+			ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", totalImagesShaderMacroBuffer };
 			ShaderLoadDesc shaderGPrepass = {};
-			shaderGPrepass.mStages[0] = { "gbufferPass.vert", NULL, 0, FSR_SrcShaders };
+			shaderGPrepass.mStages[0] = { "gbufferPass.vert", NULL, 0, RD_SHADER_SOURCES };
 #ifndef TARGET_IOS
-			shaderGPrepass.mStages[1] = { "gbufferPass.frag", &totalImagesShaderMacro, 1, FSR_SrcShaders };
+			shaderGPrepass.mStages[1] = { "gbufferPass.frag", &totalImagesShaderMacro, 1, RD_SHADER_SOURCES };
 #else
 			//separate fragment gbuffer pass for iOs that does not use bindless textures
-			shaderGPrepass.mStages[1] = { "gbufferPass_iOS.frag", NULL, 0, FSR_SrcShaders };
+			shaderGPrepass.mStages[1] = { "gbufferPass_iOS.frag", NULL, 0, RD_SHADER_SOURCES };
 #endif
 			addShader(pRenderer, &shaderGPrepass, &RenderPasses[RenderPass::GBuffer]->pShader);
 
 			//shader for Shadow pass
 			ShaderLoadDesc shadowsShader = {};
-			shadowsShader.mStages[0] = { "raytracedShadowsPass.comp", NULL, 0, FSR_SrcShaders };
+			shadowsShader.mStages[0] = { "raytracedShadowsPass.comp", NULL, 0, RD_SHADER_SOURCES };
 			addShader(pRenderer, &shadowsShader, &RenderPasses[RenderPass::RaytracedShadows]->pShader);
 
 			//shader for Lighting pass
 			ShaderLoadDesc lightingShader = {};
-			lightingShader.mStages[0] = { "lightingPass.comp", NULL, 0, FSR_SrcShaders };
+			lightingShader.mStages[0] = { "lightingPass.comp", NULL, 0, RD_SHADER_SOURCES };
 			addShader(pRenderer, &lightingShader, &RenderPasses[RenderPass::Lighting]->pShader);
 
 			//shader for Composite pass
 			ShaderLoadDesc compositeShader = {};
-			compositeShader.mStages[0] = { "compositePass.comp", NULL, 0, FSR_SrcShaders };
+			compositeShader.mStages[0] = { "compositePass.comp", NULL, 0, RD_SHADER_SOURCES };
 			addShader(pRenderer, &compositeShader, &RenderPasses[RenderPass::Composite]->pShader);
 
 			//Load shaders for copy to backbufferpass
 			ShaderLoadDesc copyShader = {};
-			copyShader.mStages[0] = { "display.vert", NULL, 0, FSR_SrcShaders };
-			copyShader.mStages[1] = { "display.frag", NULL, 0, FSR_SrcShaders };
+			copyShader.mStages[0] = { "display.vert", NULL, 0, RD_SHADER_SOURCES };
+			copyShader.mStages[1] = { "display.frag", NULL, 0, RD_SHADER_SOURCES };
 			addShader(pRenderer, &copyShader, &RenderPasses[RenderPass::CopyToBackbuffer]->pShader);
 		}
 
@@ -1114,9 +1119,8 @@ class HybridRaytracing: public IApp
 
 
 
-if (!gVirtualJoystick.Init(pRenderer, "circlepad", FSR_Textures))
+if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
 	return false;
-
 
 GuiDesc guiDesc = {};
 float   dpiScale = getDpiScale().x;
@@ -1251,7 +1255,8 @@ void Exit()
 		conf_free(pass);
 	}
 
-	RenderPasses.empty();
+	RenderPasses.clear(true);
+	gSponzaTextureIndexforMaterial.set_capacity(0);
 
 	//Delete Sponza resources
 	for (MeshBatch* meshBatch : SponzaProp.MeshBatches)
@@ -1265,7 +1270,7 @@ void Exit()
 	}
 
 	removeResource(SponzaProp.pConstantBuffer);
-	SponzaProp.MeshBatches.empty();
+	SponzaProp.MeshBatches.set_capacity(0);
 
 	for (uint i = 0; i < TOTAL_IMGS; ++i)
 		removeResource(pMaterialTextures[i]);
@@ -1475,20 +1480,20 @@ bool LoadSponza()
 	//adding material textures
 	for (int i = 0; i < TOTAL_IMGS; ++i)
 	{
+        PathHandle texturePath = fsCopyPathInResourceDirectory(RD_TEXTURES, pMaterialImageFileNames[i]);
 		TextureLoadDesc textureDesc = {};
-		textureDesc.mRoot = FSR_Textures;
-		textureDesc.pFilename = pMaterialImageFileNames[i];
+		textureDesc.pFilePath = texturePath;
 		textureDesc.ppTexture = &pMaterialTextures[i];
 		addResource(&textureDesc, true);
 	}
 
 	AssimpImporter importer;
 
-	AssimpImporter::Model gModel_Sponza;
-	eastl::string sceneFullPath = FileSystem::FixPath(gModel_Sponza_File, FSRoot::FSR_Meshes);
-	if (!importer.ImportModel(sceneFullPath.c_str(), &gModel_Sponza))
+    AssimpImporter::Model gModel_Sponza;
+    PathHandle sceneFullPath = fsCopyPathInResourceDirectory(RD_MESHES, gModel_Sponza_File);
+	if (!importer.ImportModel(sceneFullPath, &gModel_Sponza))
 	{
-		LOGF(eERROR, "Failed to load %s", FileSystem::GetFileNameAndExtension(sceneFullPath).c_str());
+		LOGF(LogLevel::eERROR, "Failed to load %s", fsGetPathFileName(sceneFullPath).buffer);
 		finishResourceLoading();
 		return false;
 	}

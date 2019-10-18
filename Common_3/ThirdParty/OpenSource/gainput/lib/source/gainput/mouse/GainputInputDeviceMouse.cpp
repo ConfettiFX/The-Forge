@@ -19,6 +19,9 @@
 #elif defined(GAINPUT_PLATFORM_MAC)
 	#include "GainputInputDeviceMouseMac.h"
     #include "GainputInputDeviceMouseMacRaw.h"
+#elif defined(GAINPUT_PLATFORM_GGP)
+	#include "../../../../../../../../Stadia/Common_3/OS/Input/GainputInputDeviceMouseGGP.h"
+	#include "../../../../../../../../Stadia/Common_3/OS/Input/GainputInputDeviceMouseGGPRaw.h"
 #endif
 
 namespace gainput
@@ -61,6 +64,15 @@ InputDeviceMouse::InputDeviceMouse(InputManager& manager, DeviceId device, unsig
     {
         impl_ = manager.GetAllocator().New<InputDeviceMouseImplMacRaw>(manager, *this, *state_, *previousState_);
     }
+#elif defined(GAINPUT_PLATFORM_GGP)
+	if (variant == DV_STANDARD)
+	{
+		impl_ = manager.GetAllocator().New<InputDeviceMouseImplGGP>(manager, *this, index_, *state_, *previousState_);
+	}
+	if (variant == DV_RAW)
+	{
+		impl_ = manager.GetAllocator().New<InputDeviceMouseImplGGPRaw>(manager, *this, index_, *state_, *previousState_);
+	}
 #endif
 
 	if (!impl_)

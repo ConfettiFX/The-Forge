@@ -421,15 +421,22 @@ public:\
 	getNamedVariableIds() const override\
 	{return componentClass##VarRepresentationsAndOrderedIds.varNames;}\
 	\
-	static const uint32_t ComponentID; \
+	static uint32_t ComponentID; \
 	\
 	virtual uint32_t getComponentID() const override { return ComponentID; }\
 	virtual const char* getComponentName() const override { return #componentClass; }\
 	\
 	void associateComponent(componentClass* const component); \
 	\
-	private: \
-	static const FCR::VarRepresentationsAndOrderedIds componentClass##VarRepresentationsAndOrderedIds; \
+	static void BUILD_VAR_REPRESENTATIONS(); \
+	static void DESTROY_VAR_REPRESENTATIONS() \
+	{ \
+		componentClass##VarRepresentationsAndOrderedIds.representation.clear(true); \
+		componentClass##VarRepresentationsAndOrderedIds.orderedIds.set_capacity(0); \
+		componentClass##VarRepresentationsAndOrderedIds.varNames.clear(true); \
+	} \
+private: \
+	static FCR::VarRepresentationsAndOrderedIds componentClass##VarRepresentationsAndOrderedIds; \
 public:
 
 #define FORGE_START_GENERATE_COMPONENT_REPRESENTATION_WITH_RESOURCE_DATA( componentClass, resourceClass ) \
@@ -477,8 +484,9 @@ public:
 
 
 ///////// In .cpp //////////////////////////////////////////////////////////////////////////////////////
+#define FORGE_DEFINE_COMPONENT_ID(componentClass) uint32_t componentClass##Representation::ComponentID;
 #define FORGE_INIT_COMPONENT_ID( componentClass ) \
-	const uint32_t componentClass##Representation::ComponentID = FCR::UniqueIdGenerator::generateUniqueId(#componentClass, componentClass::GenerateComponent);
+	componentClass##Representation::ComponentID = FCR::UniqueIdGenerator::generateUniqueId(#componentClass, componentClass::GenerateComponent);
 
 // This macro matches REGISTER_COMPONENT_VAR macro
 #define FORGE_ASSIGN_UNIQUE_ID_TO_REGISTERED_COMPONENT(componentClass, varName, varid) \
@@ -486,7 +494,7 @@ public:
 //FCR::UniqueIdGenerator::GenerateUniqueId();
 
 #define FORGE_START_VAR_REPRESENTATIONS_BUILD( componentClass ) \
-	FCR::VarRepresentationsAndOrderedIds componentClass##_BUILD_VAR_REPRESENTATIONS() \
+	void componentClass##Representation::BUILD_VAR_REPRESENTATIONS() \
 	{ \
 	FCR::ComponentRepresentationBuilder builder;
 
@@ -516,10 +524,9 @@ public:
 	builder.addVariableRepresentation(#varName, varName##_id, varName);
 
 #define FORGE_END_VAR_REPRESENTATIONS_BUILD( componentClass ) \
-	return builder.create(); \
+	componentClass##VarRepresentationsAndOrderedIds = builder.create(); \
 } \
-const FCR::VarRepresentationsAndOrderedIds componentClass##Representation::componentClass##VarRepresentationsAndOrderedIds = componentClass##_BUILD_VAR_REPRESENTATIONS();
-
+FCR::VarRepresentationsAndOrderedIds componentClass##Representation::componentClass##VarRepresentationsAndOrderedIds;
 
 #define FORGE_START_VAR_REFERENCES( componentClass ) \
 	void componentClass##Representation::associateComponent(componentClass* const component) \

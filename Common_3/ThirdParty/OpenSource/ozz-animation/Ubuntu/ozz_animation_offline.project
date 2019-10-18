@@ -31,6 +31,16 @@
     <File Name="../include/ozz/animation/offline/track_builder.h"/>
     <File Name="../include/ozz/animation/offline/track_optimizer.h"/>
   </VirtualDirectory>
+  <Dependencies Name="Debug">
+    <Project Name="OS"/>
+    <Project Name="ozz_base"/>
+    <Project Name="ozz_animation"/>
+  </Dependencies>
+  <Dependencies Name="Release">
+    <Project Name="OS"/>
+    <Project Name="ozz_base"/>
+    <Project Name="ozz_animation"/>
+  </Dependencies>
   <Settings Type="Static Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -128,14 +138,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <Dependencies Name="Debug">
-    <Project Name="OS"/>
-    <Project Name="ozz_base"/>
-    <Project Name="ozz_animation"/>
-  </Dependencies>
-  <Dependencies Name="Release">
-    <Project Name="OS"/>
-    <Project Name="ozz_base"/>
-    <Project Name="ozz_animation"/>
-  </Dependencies>
 </CodeLite_Project>

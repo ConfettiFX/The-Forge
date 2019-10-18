@@ -1386,7 +1386,7 @@ int XMLDocument::LoadFile(const char* filename, uint32_t rootPath, File* filesys
     unsigned int bytesRead = 0;
     char *data = NULL;
 
-	bool fp = filesys->Open( filename, FM_ReadBinary, (FSRoot)rootPath);
+	bool fp = filesys->Open( filename, FM_READ_BINARY, (FSRoot)rootPath);
 	if (!fp)
 	{
 		SetError( XML_ERROR_FILE_NOT_FOUND, filename, 0 );
@@ -1420,7 +1420,7 @@ int XMLDocument::SaveFile( const char* filename, uint32_t rootPath, File* filesy
 	XMLPrinter printer;
 	Print( &printer );
 
-	bool fp = filesys->Open( filename, FM_WriteBinary, (FSRoot)rootPath);
+	bool fp = filesys->Open( filename, FM_WRITE_BINARY, (FSRoot)rootPath);
 	if (!fp)
 	{
 		SetError( XML_ERROR_FILE_NOT_FOUND, filename, 0 );
@@ -1436,7 +1436,7 @@ int XMLDocument::SaveFile(const char* filename, File* filesys)
 	XMLPrinter printer;
 	Print(&printer);
 
-	bool fp = filesys->Open(filename, FileMode::FM_Write, FSRoot::FSR_Absolute);
+	bool fp = filesys->Open(filename, FileMode::FM_WRITE, FSRoot::FSR_Absolute);
 	if (!fp)
 	{
 		SetError(XML_ERROR_FILE_NOT_FOUND, filename, 0);
