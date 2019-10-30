@@ -70,6 +70,8 @@ The Forge Interactive Inc., the company behind The Forge became a [Khronos Assoc
      * God ray: improved its quality
    * Performance: up to 25% performance increased 
 
+Click on the following image to see a video:
+
 <a href="https://vimeo.com/369379476" rel="nofollow"><img src="Screenshots/Ephemeris2.jpg" alt="Ephemeris 2" style="max-width:100%;"></a>
     Head over to [Custom Middleware](https://github.com/ConfettiFX/Custom-Middleware) to check out the source code.
  * macOS / iPad / iOS: ICB support for Metal renderer (draw; draw indexed; pipeline state switch with ICB; ICB optimization with BlitEncoder). The Visibility Buffer example now uses ICB features on MacOS
