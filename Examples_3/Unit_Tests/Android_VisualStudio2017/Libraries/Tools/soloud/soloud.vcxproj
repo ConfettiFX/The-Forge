@@ -303,7 +303,7 @@
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <ExceptionHandling>Disabled</ExceptionHandling>
-      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-Wno-c++14-extensions -Wno-missing-braces %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Lib />
   </ItemDefinitionGroup>
@@ -313,7 +313,7 @@
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
       <ExceptionHandling>Disabled</ExceptionHandling>
-      <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>-Wno-c++14-extensions -Wno-missing-braces %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Lib />
   </ItemDefinitionGroup>

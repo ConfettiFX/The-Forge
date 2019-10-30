@@ -150,7 +150,7 @@ def AddTestingPreProcessor(enabledGpuSelection):
 	if setMemTracker == True:
 		print("Adding Memory tracking preprocessor defines")
 		macro = "#define USE_MEMORY_TRACKING 1"
-		AddPreprocessorToFile("Common_3/OS/Interfaces/IMemory.h", macro + "\n", "#pragma")
+		AddPreprocessorToFile("Common_3/OS/Interfaces/IMemory.h", macro, "#if")
 		AddPreprocessorToFile("Common_3/OS/MemoryTracking/MemoryTracking.cpp", macro, "#if")
 
 
@@ -634,7 +634,7 @@ def CreateXcodeBuildCommand(skipMacos, skipIos, skipIosCodeSigning,path,scheme,c
 	return command
 		
 def ListDirs(path):
-    return [dir for dir in os.listdir(path) if os.path.isdir(os.path.join(path,dir))]
+	return [dir for dir in os.listdir(path) if os.path.isdir(os.path.join(path,dir))]
 
 
 
@@ -1077,53 +1077,80 @@ def DirtyTrickAndroid(root_src_dir, root_target_dir, operation, ignore_dirs, ign
 				shutil.move(src_file, dst_dir)
 
 #this needs the JAVA_HOME environment variable set up correctly
-def BuildAndroidProjects():
-    errorOccured = False
-    msBuildPath = FindMSBuild17()
+def BuildAndroidProjects(skipDebug, skipRelease, printMSBuild):
+	errorOccured = False
+	msBuildPath = FindMSBuild17()
 
-    androidConfigurations = ["Debug", "Release"]
-    androidPlatform = ["ARM64"]
+	androidConfigurations = ["Debug", "Release"]
+	androidPlatform = ["ARM64"]
 
-    if msBuildPath == "":
-        print("Could not find MSBuild 17, Is Visual Studio 17 installed ?")
-        sys.exit(-1)
+	if skipDebug:
+		androidConfigurations.remove("Debug")
+	
+	if skipRelease:
+		androidConfigurations.remove("Release")
 
-    projects = GetFilesPathByExtension("./Examples_3/Unit_Tests/Android_VisualStudio2017/","sln",False)
-    #print(projects)
-    fileList = projects
-    msbuildVerbosity = "/verbosity:minimal"
-    msbuildVerbosityClp = "/clp:ErrorsOnly;WarningsOnly;Summary"
-                
-    for proj in fileList:
-        #get current path for sln file
-        #strip the . from ./ in the path
-        #replace / by the os separator in case we need // or \\
-        rootPath = os.getcwd() + proj.strip('.')
-        rootPath = rootPath.replace("/",os.sep)
-        #need to get root folder of path by stripping the filename from path
-        rootPath = rootPath.split(os.sep)[0:-1]
-        rootPath = os.sep.join(rootPath)
-        
-        configurations = androidConfigurations
-        
-        #strip extension
-        filename = proj.split(os.sep)[-1]
-       
-        
-        for platform in androidPlatform:
-            for conf in androidConfigurations:
-                command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=" + platform,"/nr:false",msbuildVerbosityClp,msbuildVerbosity,"/t:Build"]
-                #print(command)
-                retCode = ExecuteBuild(command, filename, conf, platform)
-        
-        
-        if retCode != 0:
-            errorOccured = True
-                
+	if msBuildPath == "":
+		print("Could not find MSBuild 17, Is Visual Studio 17 installed ?")
+		sys.exit(-1)
 
-    if errorOccured == True:
-        return -1
-    return 0  
+	projects = GetFilesPathByExtension("./Jenkins/","buildproj",False)
+	fileList = []
+	for proj in projects:
+		if "Android" in proj:
+			fileList.append(proj)
+	
+	#if MSBuild tasks were not found then parse all projects
+	if len(fileList) == 0:
+		fileList = GetFilesPathByExtension("./Examples_3/Unit_Tests/Android_VisualStudio2017/","sln",False)
+
+	msbuildVerbosity = "/verbosity:minimal"
+	msbuildVerbosityClp = "/clp:ErrorsOnly;WarningsOnly;Summary"
+	
+	if printMSBuild: 
+		msbuildVerbosity = "/verbosity:normal"
+		msbuildVerbosityClp = "/clp:Summary;PerformanceSummary"
+				
+	for proj in fileList:
+		#get current path for sln file
+		#strip the . from ./ in the path
+		#replace / by the os separator in case we need // or \\
+		rootPath = os.getcwd() + proj.strip('.')
+		rootPath = rootPath.replace("/",os.sep)
+		#need to get root folder of path by stripping the filename from path
+		rootPath = rootPath.split(os.sep)[0:-1]
+		rootPath = os.sep.join(rootPath)
+				
+		#save root directory where python is executed from
+		currDir = os.getcwd()
+		#change working directory to sln file
+		os.chdir(rootPath)
+
+		#strip extension
+		filename = proj.split(os.sep)[-1]
+	   
+		
+		for platform in androidPlatform:
+			if ".sln" in proj:
+				for conf in androidConfigurations:
+					command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=" + platform,"/nr:false",msbuildVerbosityClp,msbuildVerbosity,"/t:Build"]
+					#print(command)
+					retCode = ExecuteBuild(command, filename, conf, platform)
+			elif ".buildproj" in proj:
+				command = [msBuildPath ,filename,"/p:Platform=" + platform,"/m","/nr:false",msbuildVerbosityClp,msbuildVerbosity,"/t:Build"]
+				retCode = ExecuteBuild(command, filename, "All Configurations", platform)
+		
+		
+		if retCode != 0:
+			errorOccured = True
+
+		
+		os.chdir(currDir)
+				
+
+	if errorOccured == True:
+		return -1
+	return 0  
 	
 def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSBuild, skipAura):
 	errorOccured = False
@@ -1384,7 +1411,7 @@ def MainLogic():
 			returnCode = BuildXcodeProjects(arguments.skipmacosbuild,arguments.skipiosbuild, arguments.skipioscodesigning, arguments.skipdebugbuild, arguments.skipreleasebuild, arguments.printbuildoutput, arguments.xcodederiveddatapath)
 		elif systemOS == "Windows":
 			if arguments.android:
-				returnCode = BuildAndroidProjects()
+				returnCode = BuildAndroidProjects(arguments.skipdebugbuild, arguments.skipreleasebuild, arguments.printbuildoutput)
 			else:
 				returnCode = BuildWindowsProjects(arguments.xbox, arguments.xboxonly, arguments.skipdebugbuild, arguments.skipreleasebuild, arguments.printbuildoutput, arguments.skipaura)
 		elif systemOS.lower() == "linux" or systemOS.lower() == "linux2":

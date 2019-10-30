@@ -63,17 +63,6 @@ struct BatchData
     uint twoSided;
 };
 
-
-
-
-
-struct Uniforms_visibilityBufferConstants
-{
-    float4x4 mWorldViewProjMat[NUM_CULLING_VIEWPORTS];
-    CullingViewPort mCullingViewports[NUM_CULLING_VIEWPORTS];
-};
-
-
 // This is the struct Metal uses to specify an indirect draw call.
 struct IndirectDrawArguments
 {
@@ -254,7 +243,7 @@ struct CSData {
 };
 
 struct CSDataPerFrame {
-    constant Uniforms_visibilityBufferConstants & visibilityBufferConstants;
+    constant PerFrameConstants& uniforms;
     device uint* filteredIndicesBuffer[NUM_CULLING_VIEWPORTS];
     device UncompactedDrawArguments* uncompactedDrawArgsRW[NUM_CULLING_VIEWPORTS];
 };
@@ -307,7 +296,7 @@ kernel void stageMain(
         
         for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
         {
-            float4x4 worldViewProjection = csDataPerFrame.visibilityBufferConstants.mWorldViewProjMat[i];
+            float4x4 worldViewProjection = csDataPerFrame.uniforms.transform[i].mvp;
             float4 vertices[3] =
             {
                 worldViewProjection * vert[0],
@@ -315,7 +304,7 @@ kernel void stageMain(
                 worldViewProjection * vert[2]
             };
             
-            CullingViewPort viewport = csDataPerFrame.visibilityBufferConstants.mCullingViewports[i];
+            CullingViewPort viewport = csDataPerFrame.uniforms.cullingViewports[i];
             cull[i] = FilterTriangle(indices, vertices, !twoSided, viewport.windowSize, viewport.sampleCount);
             if (!cull[i])
                 threadOutputSlot[i] = atomic_fetch_add_explicit(&workGroupIndexCount[i], 3, memory_order_relaxed);

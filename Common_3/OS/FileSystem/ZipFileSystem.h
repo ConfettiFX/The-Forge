@@ -27,21 +27,23 @@
 
 #include "FileSystemInternal.h"
 
-typedef struct zip zip;
+typedef struct zip zip_t;
 
 class ZipFileSystem: public FileSystem
 {
-	zip*            pZipFile;
+	zip_t*			pZipFile;
+    Path*           pPathInParent;
 	FileSystemFlags mFlags;
 	time_t          mCreationTime;
 	time_t          mLastAccessedTime;
 
 public:
-	ZipFileSystem(zip* zipFile, FileSystemFlags flags, time_t creationTime, time_t lastAccessedTime);
+    ZipFileSystem(const Path* pathInParent, zip_t* zipFile, FileSystemFlags flags, time_t creationTime, time_t lastAccessedTime);
 	~ZipFileSystem();
 
 	static ZipFileSystem* CreateWithRootAtPath(const Path* rootPath, FileSystemFlags flags);
-
+    
+    Path*  CopyPathInParent() const override;
 	char   GetPathDirectorySeparator() const override;
 	size_t GetRootPathLength() const override;
 	

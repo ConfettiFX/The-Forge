@@ -57,11 +57,12 @@ ZipFileSystem* ZipFileSystem::CreateWithRootAtPath(const Path* rootPath, FileSys
 
 	time_t creationTime = fsGetCreationTime(rootPath);
 	time_t accessedTime = fsGetLastAccessedTime(rootPath);
-	return conf_new(ZipFileSystem, zipFile, flags, creationTime, accessedTime);
+	return conf_new(ZipFileSystem, rootPath, zipFile, flags, creationTime, accessedTime);
 }
 
-ZipFileSystem::ZipFileSystem(zip_t* zipFile, FileSystemFlags flags, time_t creationTime, time_t lastAccessedTime):
+ZipFileSystem::ZipFileSystem(const Path* pathInParent, zip_t* zipFile, FileSystemFlags flags, time_t creationTime, time_t lastAccessedTime):
 	FileSystem(FSK_ZIP),
+    pPathInParent(fsCopyPath(pathInParent)),
 	pZipFile(zipFile),
 	mFlags(flags),
 	mCreationTime(creationTime),
@@ -77,7 +78,11 @@ ZipFileSystem::~ZipFileSystem()
 		zip_error_t* error = zip_get_error(pZipFile);
 		LOGF(LogLevel::eERROR, "Error %i closing zip file: %s", error->zip_err, error->str);
 	}
+    fsFreePath(pPathInParent);
 }
+
+
+Path* ZipFileSystem::CopyPathInParent() const { return fsCopyPath(pPathInParent); }
 
 bool ZipFileSystem::IsReadOnly() const {
 	return mFlags & FSF_READ_ONLY;

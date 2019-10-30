@@ -54,19 +54,15 @@ struct IndirectDrawArguments
 
 struct VSInput
 {
-	float4 Position [[attribute(0)]];
-};
-
-struct VSData {
-    constant PerFrameConstants& uniforms;
+	float4 Position [[attribute(UNIT_VBPASS_POSITION)]];
 };
 
 vertex VSOut stageMain(
-					   VSInput input [[stage_in]],
-                       constant VSData& vsData [[buffer(UPDATE_FREQ_PER_FRAME)]]
+    VSInput input [[stage_in]],
+    constant PerFrameConstants& uniforms    [[buffer(UNIT_VBPASS_UNIFORMS)]]
 )
 {
 	VSOut output;
-	output.position = vsData.uniforms.transform[VIEW_SHADOW].mvp * input.Position;
+	output.position = uniforms.transform[VIEW_SHADOW].mvp * input.Position;
 	return output;
 }

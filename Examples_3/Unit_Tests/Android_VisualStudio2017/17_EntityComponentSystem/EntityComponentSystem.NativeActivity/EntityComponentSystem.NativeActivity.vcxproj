@@ -162,9 +162,10 @@
       <CppLanguageStandard>c++11</CppLanguageStandard>
       <AdditionalOptions>-Wno-unused-variable -Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>VULKAN;ANDROID;VK_USE_PLATFORM_ANDROID_KHR;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <EnableNeonCodegen>true</EnableNeonCodegen>
     </ClCompile>
     <Link>
-      <LibraryDependencies>Renderer;SpirvTools;OS;gainputstatic;shaderc;zip;z;m;</LibraryDependencies>
+      <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;zip;SpirvTools;gainputstatic;shaderc</LibraryDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
     </Link>
@@ -187,11 +188,12 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\17_EntityComponentSystem\
       <CppLanguageStandard>c++11</CppLanguageStandard>
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>VULKAN;ANDROID;VK_USE_PLATFORM_ANDROID_KHR;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <EnableNeonCodegen>true</EnableNeonCodegen>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
-      <LibraryDependencies>Renderer;SpirvTools;OS;gainputstatic;shaderc;zip;z;m;</LibraryDependencies>
+      <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;zip;SpirvTools;gainputstatic;shaderc</LibraryDependencies>
     </Link>
     <PreBuildEvent>
       <Command>

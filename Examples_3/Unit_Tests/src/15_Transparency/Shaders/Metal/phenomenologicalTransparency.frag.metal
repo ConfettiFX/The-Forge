@@ -147,7 +147,7 @@ struct Fragment_Shader
     {
         ObjectInfo objectInfo[MAX_NUM_OBJECTS];
     };
-//    constant Uniforms_ObjectUniformBlock & ObjectUniformBlock;
+    constant Uniforms_ObjectUniformBlock & ObjectUniformBlock;
     texture2d<float> DepthTexture;
     sampler PointSampler;
 #endif
@@ -241,7 +241,7 @@ constant texture2d<float, access::sample>* MaterialTextures,
 sampler LinearSampler
 #if PT_USE_DIFFUSION!=0
 ,
-//constant Uniforms_ObjectUniformBlock & ObjectUniformBlock,
+constant Uniforms_ObjectUniformBlock & ObjectUniformBlock,
 texture2d<float> DepthTexture,
 sampler PointSampler
 #endif
@@ -257,7 +257,7 @@ VSMRed(VSMRed),VSMGreen(VSMGreen),VSMBlue(VSMBlue),
 LightUniformBlock(LightUniformBlock),CameraUniform(CameraUniform),MaterialUniform(MaterialUniform),MaterialTextures(MaterialTextures),LinearSampler(LinearSampler)
 #if PT_USE_DIFFUSION!=0
     ,
-//    ObjectUniformBlock(ObjectUniformBlock),
+    ObjectUniformBlock(ObjectUniformBlock),
     DepthTexture(DepthTexture),
     PointSampler(PointSampler)
 #endif
@@ -283,12 +283,12 @@ struct FSData {
 };
 
 struct FSDataPerFrame {
-    constant Fragment_Shader::Uniforms_LightUniformBlock & LightUniformBlock [[id(0)]];
-    constant Fragment_Shader::Uniforms_CameraUniform & CameraUniform [[id(1)]];
-    constant Fragment_Shader::Uniforms_MaterialUniform & MaterialUniform [[id(2)]];
-//#if PT_USE_DIFFUSION!=0
-//    constant Fragment_Shader::Uniforms_ObjectUniformBlock & ObjectUniformBlock [[id(3)]];
-//#endif
+    constant Fragment_Shader::Uniforms_LightUniformBlock & LightUniformBlock    [[id(0)]];
+    constant Fragment_Shader::Uniforms_CameraUniform & CameraUniform            [[id(1)]];
+    constant Fragment_Shader::Uniforms_MaterialUniform & MaterialUniform        [[id(2)]];
+#if PT_USE_DIFFUSION!=0
+    constant Fragment_Shader::Uniforms_ObjectUniformBlock & ObjectUniformBlock  [[id(3)]];
+#endif
 };
 
 fragment Fragment_Shader::PSOutput stageMain(
@@ -326,7 +326,7 @@ fragment Fragment_Shader::PSOutput stageMain(
     fsData.LinearSampler
 #if PT_USE_DIFFUSION!=0
     ,
-//  fsDataPerFrame.ObjectUniformBlock,
+    fsDataPerFrame.ObjectUniformBlock,
     fsData.DepthTexture,
     fsData.PointSampler
 #endif

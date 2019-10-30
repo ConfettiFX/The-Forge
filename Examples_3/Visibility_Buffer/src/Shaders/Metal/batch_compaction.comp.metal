@@ -29,39 +29,12 @@ using namespace metal;
 
 #include "shader_defs.h"
 
-/*
-layout(std430, set = 0, binding = 0) restrict buffer indirectDrawArgsBufferAlphaBlock
-{
-    uint data[];
-} indirectDrawArgsBufferAlpha[NUM_CULLING_VIEWPORTS];
-
-layout(std430, set = 0, binding = NUM_CULLING_VIEWPORTS) restrict buffer indirectDrawArgsBufferNoAlphaBlock
-{
-    uint data[];
-} indirectDrawArgsBufferNoAlpha[NUM_CULLING_VIEWPORTS];
-
-layout(std430, set = 0, binding = NUM_CULLING_VIEWPORTS * 2) restrict readonly buffer uncompactedDrawArgsBlock
-{
-    UncompactedDrawArguments data[];
-} uncompactedDrawArgs[NUM_CULLING_VIEWPORTS];
-
-layout(std430, set = 0, binding = NUM_CULLING_VIEWPORTS * 2 + 1) restrict writeonly buffer indirectMaterialBuffer
-{
-    uint IndirectMaterialBufferData[];
-};
-
-layout(std430, set = 0, binding = NUM_CULLING_VIEWPORTS * 2 + 2) restrict readonly buffer materialProps
-{
-    uint materialPropsData[];
-};
-*/
-
 struct CSData {
     constant uint* materialProps                                               [[id(0)]];
 };
 
 struct CSDataPerFrame {
-    device uint* indirectMaterialBuffer                                        [[id(0)]];
+    device uint* indirectMaterialBuffer;
     device atomic_uint* indirectDrawArgsBufferAlpha [NUM_CULLING_VIEWPORTS];
     device atomic_uint* indirectDrawArgsBufferNoAlpha [NUM_CULLING_VIEWPORTS];
     device UncompactedDrawArguments* uncompactedDrawArgs[NUM_CULLING_VIEWPORTS];

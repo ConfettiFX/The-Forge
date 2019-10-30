@@ -58,8 +58,8 @@ struct IndirectDrawArguments
 
 struct VSInput
 {
-	float4 Position [[attribute(0)]];
-	float2 TexCoord [[attribute(1)]];
+	float4 Position [[attribute(UNIT_VBPASS_POSITION)]];
+	float2 TexCoord [[attribute(UNIT_VBPASS_TEXCOORD)]];
 };
 
 struct VSData {
@@ -68,12 +68,12 @@ struct VSData {
 
 // Vertex shader
 vertex VSOutput stageMain(
-    VSInput input                   [[stage_in]],
-    constant VSData& vsData         [[buffer(UPDATE_FREQ_PER_FRAME)]]
+    VSInput input                        [[stage_in]],
+    constant PerFrameConstants& uniforms [[buffer(UNIT_VBPASS_UNIFORMS)]]
 )
 {
 	VSOutput result;
-	result.position = vsData.uniforms.transform[VIEW_CAMERA].mvp * input.Position;
+	result.position = uniforms.transform[VIEW_CAMERA].mvp * input.Position;
 	result.texCoord = input.TexCoord;
 	return result;
 }

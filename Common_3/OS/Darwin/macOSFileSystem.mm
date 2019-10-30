@@ -42,18 +42,10 @@ static void fswCbFunc(
 {
 	FileWatcher* fswData = (FileWatcher*)data;
 	const char** paths = (const char**)eventPaths;
-
+	
 	for (size_t i = 0; i < numEvents; ++i)
 	{
-		size_t pathLength = strlen(paths[i]);
-
-		// Create a stack-allocated path to pass to the function.
-		Path* path = (Path*)alloca(sizeof(Path) + pathLength);
-		path->pFileSystem = fsGetSystemFileSystem();
-		path->mPathLength = pathLength;
-		memcpy(&path->mPathBufferOffset, paths[i], pathLength);
-		(&path->mPathBufferOffset)[i] = 0;
-
+		Path* path = fsCreatePath(fsGetSystemFileSystem(), paths[i]);
 		if ((fswData->mEventMask & FWE_MODIFIED) && (eventFlags[i] & kFSEventStreamEventFlagItemModified))
 		{
 			fswData->mCallback(path, FWE_MODIFIED);

@@ -40,25 +40,22 @@ struct VSOut {
     float2 texCoord;
 };
 
-struct FSData {
-    array<texture2d<float>,MATERIAL_BUFFER_SIZE> diffuseMaps;
+struct Textures {
     sampler textureFilter;
+    array<texture2d<float>,MATERIAL_BUFFER_SIZE> diffuseMaps;
 };
 
-struct FSDataPerFrame {
-    constant uint* indirectMaterialBuffer;
-};
-
-fragment void stageMain(VSOut input                                    [[stage_in]],
-                        constant FSData& fsData                         [[buffer(UPDATE_FREQ_NONE)]],
-                        constant FSDataPerFrame& fsDataPerFrame         [[buffer(UPDATE_FREQ_PER_FRAME)]],
-                        constant uint& drawID                          [[buffer(20)]]
+fragment void stageMain(
+    VSOut input                                    [[stage_in]],
+    constant uint* indirectMaterialBuffer          [[buffer(UNIT_INDIRECT_MATERIAL_RW)]],
+    constant Textures& textures                    [[buffer(UNIT_VBPASS_TEXTURES)]],
+    constant uint& drawID                          [[buffer(UINT_VBPASS_DRAWID)]]
 )
 {
 	uint matBaseSlot = BaseMaterialBuffer(true, VIEW_SHADOW);
-	uint materialID = fsDataPerFrame.indirectMaterialBuffer[matBaseSlot + drawID];
-	texture2d<float> diffuseMap = fsData.diffuseMaps[materialID];
+	uint materialID = indirectMaterialBuffer[matBaseSlot + drawID];
+	texture2d<float> diffuseMap = textures.diffuseMaps[materialID];
 
-    float4 texColor = diffuseMap.sample(fsData.textureFilter, input.texCoord, level(0));
+    float4 texColor = diffuseMap.sample(textures.textureFilter, input.texCoord, level(0));
     if(texColor.a < 0.5) discard_fragment();
 }

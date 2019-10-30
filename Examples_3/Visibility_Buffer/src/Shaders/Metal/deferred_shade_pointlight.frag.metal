@@ -75,7 +75,6 @@ fragment float4 stageMain(VSOutput input                                        
                           uint32_t sampleID                                     [[sample_id]],
 constant FSData& fsData [[buffer(UPDATE_FREQ_NONE)]],
 constant FSDataPerFrame& fsDataPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]]
-//						  constant RootConstantDrawSceneData& RootConstantDrawScene          [[buffer(2)]],
 )
 {
 	float4 albedoData = fsData.gBufferColor.read(uint2(input.position.xy), sampleID);

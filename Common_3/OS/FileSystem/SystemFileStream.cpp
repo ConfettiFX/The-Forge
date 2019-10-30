@@ -44,11 +44,16 @@ ssize_t ftello(FILE* stream) { return (ssize_t)_ftell(stream); }
 
 #endif
 
-SystemFileStream::SystemFileStream(FILE* file, FileMode mode): FileStream(FileStreamType_System), pFile(file), mMode(mode)
+FileStream* fsCreateStreamFromFILE(FILE* file)
+{
+    return conf_new(SystemFileStream, file, FM_READ_WRITE_BINARY, false);
+}
+
+SystemFileStream::SystemFileStream(FILE* file, FileMode mode, bool ownsFile): FileStream(FileStreamType_System), pFile(file), mMode(mode), mOwnsFile(ownsFile)
 {
 	mFileSize = -1;
 
-	if (fseeko(pFile, 0, SEEK_END) == 0)
+    if (ownsFile && fseeko(pFile, 0, SEEK_END) == 0)
 	{
 		mFileSize = ftello(pFile);
 		rewind(pFile);
@@ -143,12 +148,15 @@ bool SystemFileStream::IsAtEnd() const
 
 bool SystemFileStream::Close()
 {
-	if (fclose(pFile) == EOF)
-	{
-		LOGF(LogLevel::eERROR, "Error closing system FileStream", errno);
-		conf_delete(this);
-		return false;
-	}
+    if (mOwnsFile)
+    {
+        if (fclose(pFile) == EOF)
+        {
+            LOGF(LogLevel::eERROR, "Error closing system FileStream", errno);
+            conf_delete(this);
+            return false;
+        }
+    }
 
 	conf_delete(this);
 	return true;

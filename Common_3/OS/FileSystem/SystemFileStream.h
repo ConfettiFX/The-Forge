@@ -29,9 +29,10 @@ class SystemFileStream: public FileStream
 	FILE*    pFile;
 	FileMode mMode;
 	ssize_t  mFileSize;
+    bool     mOwnsFile;
 
 	public:
-	SystemFileStream(FILE* file, FileMode mode);
+	SystemFileStream(FILE* file, FileMode mode, bool ownsFile = true);
 
 	size_t  Read(void* outputBuffer, size_t bufferSizeInBytes) override;
     size_t  Scan(const char* format, va_list args, int* bytesRead) override;

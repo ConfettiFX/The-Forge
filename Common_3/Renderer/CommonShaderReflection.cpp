@@ -40,6 +40,10 @@ static bool ShaderResourceCmp(ShaderResource* a, ShaderResource* b)
 	isSame = isSame && (a->set == b->set);
 	isSame = isSame && (a->reg == b->reg);
 
+#ifdef METAL
+    isSame = isSame && (a->mtlArgumentDescriptors.mArgumentIndex == b->mtlArgumentDescriptors.mArgumentIndex);
+#endif
+    
 #ifdef RESOURCE_NAME_CHECK
 	// we may not need this, the rest is enough but if we want to be super sure we can do this check
 	isSame = isSame && (a->name_size == b->name_size);

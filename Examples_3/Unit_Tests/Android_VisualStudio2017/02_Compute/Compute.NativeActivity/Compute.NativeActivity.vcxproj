@@ -161,9 +161,10 @@
       <CppLanguageStandard>c++11</CppLanguageStandard>
       <PreprocessorDefinitions>VULKAN;ANDROID;_DEBUG;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>-Wno-unused-variable -Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <EnableNeonCodegen>true</EnableNeonCodegen>
     </ClCompile>
     <Link>
-      <LibraryDependencies>Renderer;SpirvTools;OS;gainputstatic;shaderc;zip;z;m;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;zip;SpirvTools;gainputstatic;shaderc</LibraryDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
     </Link>
@@ -186,9 +187,10 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\02_Compute\Shaders\Vulkan
       <CppLanguageStandard>c++11</CppLanguageStandard>
       <PreprocessorDefinitions>VULKAN;ANDROID;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <EnableNeonCodegen>true</EnableNeonCodegen>
     </ClCompile>
     <Link>
-      <LibraryDependencies>Renderer;SpirvTools;OS;gainputstatic;shaderc;zip;z;m</LibraryDependencies>
+      <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;zip;SpirvTools;gainputstatic;shaderc</LibraryDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\android_visualstudio2017\Bin\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>-lm -lc++_shared -lc++abi -llog -landroid %(AdditionalOptions)</AdditionalOptions>
     </Link>

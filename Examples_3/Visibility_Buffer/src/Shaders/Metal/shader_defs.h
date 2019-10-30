@@ -62,7 +62,6 @@
 #define MAX_DRAWS_INDIRECT 256
 
 // Size for the material buffer assuming each draw call uses one material index.
-//#define MATERIAL_BUFFER_SIZE 256
 #define MATERIAL_BUFFER_SIZE (MAX_DRAWS_INDIRECT * 2 * NUM_CULLING_VIEWPORTS)
 
 // The following values point to the position in the indirect draw buffer that holds the
@@ -73,6 +72,7 @@
 #define DRAW_COUNTER_SLOT_POS 				((MAX_DRAWS_INDIRECT-1)*INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS)
 #define DRAW_COUNTER_SLOT_OFFSET_IN_BYTES	(DRAW_COUNTER_SLOT_POS*sizeof(uint))
 
+// compute units
 #define UNIT_UNCOMPACTED_ARGS             0
 #define UNIT_MATERIAL_PROPS               1
 #define UNIT_VERTEX_DATA                  2
@@ -85,6 +85,21 @@
 #define UNIT_INDIRECT_DRAW_ARGS_RW        9
 #define UNIT_UNCOMPACTED_ARGS_RW          10
 #define UNIT_INDEX_DATA_RW                11
+#define UNIT_ICB_RW                       12
+#define UNIT_DRAWID_RW                    13
+#define UNIT_POSITION                     14
+#define UNIT_TEXCOORD                     15
+#define UNIT_DIFFUSEMAPS                  16
+
+// icb units
+#define UNIT_VBPASS_POSITION              0
+#define UNIT_VBPASS_TEXCOORD              1
+#define UNIT_VBPASS_TANGENT               3
+#define UNIT_VBPASS_NORMAL                2
+#define UNIT_VBPASS_UNIFORMS              5
+#define UNIT_VBPASS_TEXTURES              10
+#define UINT_VBPASS_DRAWID                6
+#define UINT_VBPASS_MAX                   10
 
 #if MTL_SHADER
 typedef packed_float2 shader_packed_float2;

@@ -39,14 +39,6 @@ struct VSOutput {
     uint triangleId;
 };
 
-struct RootConstantDrawSceneData
-{
-	packed_float4 lightColor;
-	uint lightingMode;
-	uint outputMode;
-	packed_float4 CameraPlane; //x : near, y : far
-};
-
 struct FSData {
 #if SAMPLE_COUNT > 1
     texture2d_ms<float,access::read> gBufferColor;
@@ -74,9 +66,7 @@ struct FSDataPerFrame {
 fragment float4 stageMain(VSOutput input                                       [[stage_in]],
                           uint32_t sampleID                                    [[sample_id]],
                           constant FSData& fsData    [[buffer(UPDATE_FREQ_NONE)]],
-                          constant FSDataPerFrame& fsDataPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]],
-						  constant RootConstantDrawSceneData& RootConstantDrawScene          [[buffer(9)]]
-)
+                          constant FSDataPerFrame& fsDataPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]])
 {
     // Load gBuffer data from render target
     float depth = fsData.gBufferDepth.read(uint2(input.position.xy), sampleID);

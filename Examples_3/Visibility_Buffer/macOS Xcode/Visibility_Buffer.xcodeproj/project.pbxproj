@@ -55,6 +55,7 @@
 		288F632C2035CE2E00B758DE /* visibilityBuffer_pass_alpha.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = visibilityBuffer_pass_alpha.vert.metal; path = ../src/Shaders/Metal/visibilityBuffer_pass_alpha.vert.metal; sourceTree = "<group>"; };
 		288F632D2035CE2E00B758DE /* shadow_pass_alpha.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = shadow_pass_alpha.vert.metal; path = ../src/Shaders/Metal/shadow_pass_alpha.vert.metal; sourceTree = "<group>"; };
 		288F632E2035CE2E00B758DE /* visibilityBuffer_pass.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = visibilityBuffer_pass.frag.metal; path = ../src/Shaders/Metal/visibilityBuffer_pass.frag.metal; sourceTree = "<group>"; };
+		645BB6CB22CE5252004E1397 /* icb.comp.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = icb.comp.metal; path = ../src/Shaders/Metal/icb.comp.metal; sourceTree = "<group>"; };
 		647FE07422B6B97B008DAC6B /* batch_compaction.comp.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = batch_compaction.comp.metal; path = ../src/Shaders/Metal/batch_compaction.comp.metal; sourceTree = "<group>"; };
 		651017B022253A5E009A1174 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		B235DC7B20EC387500592362 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
@@ -185,6 +186,7 @@
 				C9DCF63D1FEAA76A008BFA67 /* visibilityBuffer_pass.vert.metal */,
 				288F63232035CE2D00B758DE /* visibilityBuffer_shade.frag.metal */,
 				C9DCF63B1FEAA76A008BFA67 /* visibilityBuffer_shade.vert.metal */,
+				645BB6CB22CE5252004E1397 /* icb.comp.metal */,
 			);
 			name = Shaders;
 			sourceTree = SOURCE_ROOT;
