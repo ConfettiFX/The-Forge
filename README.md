@@ -15,7 +15,7 @@ The Forge is a cross-platform rendering framework supporting
 - Google Stadia (in development) (only available for accredited developers on request)
 
 Particularly, the graphics layer of The Forge supports cross-platform
-- Descriptor management. A description is on this [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Descriptor-Binding-Interface)
+- Descriptor management. A description is on this [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Descriptor-Management)
 - Multi-threaded and asynchronous resource loading
 - Shader reflection
 - Multi-threaded command buffer generation
@@ -44,6 +44,8 @@ alt="Twitter" width="20" height="20" border="0" /> Join the Discord channel at h
 
 <a href="https://twitter.com/TheForge_FX?lang=en" target="_blank"><img src="Screenshots/twitter.png" 
 alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://twitter.com/TheForge_FX?lang=en</a>
+
+The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members/list)
  
 
 # Build Status 
@@ -53,6 +55,32 @@ alt="Twitter" width="20" height="20" border="0" /> Join the channel at https://t
 
 # News
 
+## Release 1.37 - October 30th - New Features Ephemeris 2 | Update Metal
+The Forge Interactive Inc., the company behind The Forge became a [Khronos Associate member]((https://www.khronos.org/members/list)).
+ * Ephemeris 2
+   * New features
+     * Add Earth radius: controls the radius of clouds' radius with scale factor. The clouds field will be flatter and the user can see further along the horizon if the radius increase
+     * Add noise flow: controls the direction and intensity of clouds' noise flow
+     * Add rotation: rotates clouds based on a certain pivot position.
+     * Add the second layer: it is possible to generate the second cloud layer which can act, independently
+     * Add FXAA
+   * Improvement
+     * Ray-marching: now, hard-edge artifact is significantly reduced
+     * Silver-lining: improved its quality
+     * God ray: improved its quality
+   * Performance: up to 25% performance increased 
+
+<a href="https://vimeo.com/369379476" rel="nofollow"><img src="Screenshots/Ephemeris2.jpg" alt="Ephemeris 2" style="max-width:100%;"></a>
+    Head over to [Custom Middleware](https://github.com/ConfettiFX/Custom-Middleware) to check out the source code.
+ * macOS / iPad / iOS: ICB support for Metal renderer (draw; draw indexed; pipeline state switch with ICB; ICB optimization with BlitEncoder). The Visibility Buffer example now uses ICB features on MacOS
+   * reduced memory consumption for argument buffers in Metal
+   * fixes for Metal implementation of descriptor set
+   * minor fixes and optimizations in Metal renderer
+   * Due to bugs in the run-time for argument buffers we still can't run unit test 04, 06, and 10
+ 
+ The Visibility Buffer example runs now faster on macOS
+![macOS Visibility Buffer](Screenshots/ProfilerScreenshot_VisibilityBuffer.png)
+ 
 ## Release 1.36 - October 18th - New File System
  * New cross-platform FileSystem C API, supporting disk-based files, memory streams, and files in zip archives. The API can be viewed in [IFileSystem.h](Common_3/OS/Interfaces/IFileSystem.h), and all of the example code has been updated to use the new API.
    * The API is based around `Path`s, where each `Path` represents an absolute, canonical path string on a particular file system. You can query information about the files at `Path`s, open files as `FileStream`s, and copy files between different `Path`s.
@@ -136,45 +164,6 @@ Check out the [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Microprofi
   [How to use the Shader Translator](https://github.com/ConfettiFX/The-Forge/wiki/How-to-Use-The-Shader-Translator)
 
  * Issues: fixed #129 "Metal backend buffer namespace collision"
-
-## Release 1.33 - August 30th - glTF model viewer | Basis Universal Texture Support | Updated Shader Translator | New Input System Architecture
-* glTF model viewer - we build a simple cross-platform glTF model viewer by integrating Arseny Kapoulkine @zeuxcg excellent [meshoptimizer](https://github.com/zeux/meshoptimizer) and the same PBR as used in the Material Playground unit test.
-  * It optimizes the geometry data set with all the features meshoptimizer offers
-  * It will be extended in the future with more functionality, following some of our internal tools
-  * Uses the cgltf reader from the same repository
-
-glTF model viewer running on iPad with 2048x1536 resolution
-
-![glTF model viewer](Screenshots/ModelViewer/Metal_a1893_ipad_6th_gen_2048x1536_0.PNG)
-
-![glTF model viewer](Screenshots/ModelViewer/Metal_a1893_ipad_6th_gen_2048x1536_1.PNG)
-
-glTF model viewer running on Samsung Galaxy S10 with Vulkan with 1995x945 resolution
-
-![glTF model viewer](Screenshots/ModelViewer/Vulkan_Samsung_GalaxyS10_1995x945_0.JPEG)
-
-![glTF model viewer](Screenshots/ModelViewer/Vulkan_Samsung_GalaxyS10_1995x945_1.JPEG)
-
-glTF model viewer running on Ubuntu AMD RX 480 with Vulkan with 1920x1080 resolution
-
-![glTF model viewer](Screenshots/ModelViewer/Vulkan_Ubuntu_RX480_1920x1080_0.png)
-
-![glTF model viewer](Screenshots/ModelViewer/Vulkan_Ubuntu_RX480_1920x1080_1.png)
-
-* Basis Universal Texture Support: TF now supports Binomials @richgel999 @google [Basis Universal Texture Support](https://github.com/binomialLLC/basis_universal) as an option to load textures. Support was added to the Image class as a "new image format". So you can pick basis like you can pick DDS or KTX.
-* Shader Translator: since more than a year we are developing on and off a shader translator that allows us to define our own shader language. This shader language is an extension to HLSL and will in the future offer the opportunity to store more data for the various platforms. For example we will able to pre-compile pipelines with this setup. We are using it extensively to translate all the shaders you see in The Forge. You can find the source code in 
-
-  [Common_3/ThirdParty/OpenSource/hlslparser](https://github.com/ConfettiFX/The-Forge/tree/master/Common_3/ThirdParty/OpenSource/hlslparser)
-
-  The public version translates at the moment to HLSL, GLSL and Metal. Metal support is still work in progress. There is a test scenario where the shader translator translates most of the shaders of the unit tests and examples to HLSL and GLSL. It will be integrated into our Jenkins test system and it gets tested with every code change.
-* Input system: we re-architected the app level interface for our cross-platform input system based on [gainput](https://github.com/jkuhlmann/gainput). Our previous interface somehow leaned toward PC input systems and we wanted to better focus on our main target platforms.
-* Ozz animation system: we cleaned up the code base. There was a lot of unused code because we wired up the system with all the "service providers" of The Forge. So Ozz like any other third party library is using the math, log, error, assert, file system, memory management and others sub-systems from The Forge. Previously, it had a lot of those implemented on its own.
-* Issues resolved:
-  * 128 "The DepthStateDesc.mDepthTest is ignored on the Metal backend"
-  * 130 "Vulkan and D3D12 backend set sampler maxLod to zero for nearest mipmap mode"
-  * 131 "Vulkan sampler set the anistropy flag to false always."
-
-
 
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
 
