@@ -258,7 +258,9 @@ typedef enum IndirectArgumentType
 	INDIRECT_PIPELINE,                // only for vulkan now, probally will add to dx when it comes to xbox
 	INDIRECT_CONSTANT_BUFFER_VIEW,    // only for dx
 	INDIRECT_SHADER_RESOURCE_VIEW,    // only for dx
-	INDIRECT_UNORDERED_ACCESS_VIEW    // only for dx
+	INDIRECT_UNORDERED_ACCESS_VIEW,   // only for dx
+    INDIRECT_COMMAND_BUFFER,          // metal ICB
+    INDIRECT_COMMAND_BUFFER_OPTIMIZE  // metal indirect buffer optimization
 } IndirectArgumentType;
 /************************************************/
 
@@ -298,6 +300,8 @@ typedef enum DescriptorType
 #endif
 #if defined(METAL)
     DESCRIPTOR_TYPE_ARGUMENT_BUFFER = (DESCRIPTOR_TYPE_RAY_TRACING << 1),
+    DESCRIPTOR_TYPE_INDIRECT_COMMAND_BUFFER = (DESCRIPTOR_TYPE_ARGUMENT_BUFFER << 1),
+    DESCRIPTOR_TYPE_RENDER_PIPELINE_STATE = (DESCRIPTOR_TYPE_INDIRECT_COMMAND_BUFFER << 1),
 #endif
 } DescriptorType;
 MAKE_ENUM_FLAG(uint32_t, DescriptorType)
@@ -533,6 +537,15 @@ typedef enum BufferCreationFlags
 	BUFFER_CREATION_FLAG_ESRAM = 0x08,
 	/// Flag to specify not to allocate descriptors for the resource
 	BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION = 0x10,
+    
+#ifdef METAL
+    /* ICB Flags */
+    /// Ihnerit pipeline in ICB
+    BUFFER_CREATION_FLAG_ICB_INHERIT_PIPELINE = 0x100,
+    /// Ihnerit pipeline in ICB
+    BUFFER_CREATION_FLAG_ICB_INHERIT_BUFFERS = 0x200,
+    
+#endif
 } BufferCreationFlags;
 MAKE_ENUM_FLAG(uint32_t, BufferCreationFlags)
 
@@ -668,6 +681,12 @@ typedef struct BufferDesc
 	uint64_t mElementCount;
 	/// Size of each element (in bytes) in the buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
 	uint64_t mStructStride;
+    /// ICB draw type
+    IndirectArgumentType mICBDrawType;
+    /// ICB max vertex buffers slots count
+    uint32_t mICBMaxVertexBufferBind;
+    /// ICB max vertex buffers slots count
+    uint32_t mICBMaxFragmentBufferBind;
 	/// Set this to specify a counter buffer for this buffer (applicable to BUFFER_USAGE_STORAGE_SRV, BUFFER_USAGE_STORAGE_UAV)
 	struct Buffer* pCounterBuffer;
 	/// Format of the buffer (applicable to typed storage buffers (Buffer<T>)
@@ -721,7 +740,10 @@ typedef struct Buffer
 	/// Contains resource allocation info such as parent heap, offset in heap
 	struct ResourceAllocation* pMtlAllocation;
 	/// Native handle of the underlying resource
-	id<MTLBuffer> mtlBuffer;
+    union {
+        id<MTLBuffer> mtlBuffer;
+        id<MTLIndirectCommandBuffer> mtlIndirectCommandBuffer;
+    };
 #endif
 	/// Buffer creation info
 	BufferDesc mDesc;
@@ -1087,7 +1109,16 @@ typedef struct DescriptorData
 			uint64_t* pOffsets;
 			uint64_t* pSizes;
 		};
-		uint32_t mUAVMipSlice;
+
+        // Descriptor set buffer extraction options
+        struct
+        {
+            uint32_t    mDescriptorSetBufferIndex;
+            Shader*     mDescriptorSetShader;
+            ShaderStage mDescriptorSetShaderStage;
+        };
+
+        uint32_t mUAVMipSlice;
 		bool mBindStencilResource;
 	};
 	/// Array of resources containing descriptor handles or constant to be used in ring buffer memory - DescriptorRange can hold only one resource type array
@@ -1099,12 +1130,17 @@ typedef struct DescriptorData
 		Sampler** ppSamplers;
 		/// Array of buffer descriptors (srv, uav and cbv buffers)
 		Buffer** ppBuffers;
-		/// Custom binding (raytracing acceleration structure ...)
+        /// Array of pipline descriptors
+        Pipeline** ppPipelines;
+        /// DescriptorSet buffer extraction
+        DescriptorSet** ppDescriptorSet;
+        /// Custom binding (raytracing acceleration structure ...)
 		AccelerationStructure** ppAccelerationStructures;
 	};
 	/// Number of resources in the descriptor(applies to array of textures, buffers,...)
 	uint32_t mCount;
 	uint32_t mIndex = (uint32_t)-1;
+    bool     mExtractBuffer = false;
 } DescriptorData;
 
 typedef struct CmdPoolDesc
@@ -1535,6 +1571,7 @@ typedef struct GraphicsPipelineDesc
 	uint32_t           mSampleQuality;
 	TinyImageFormat  	 mDepthStencilFormat;
 	PrimitiveTopology  mPrimitiveTopo;
+    bool               mSupportIndirectCommandBuffer;
 } GraphicsPipelineDesc;
 
 typedef struct ComputePipelineDesc

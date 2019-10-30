@@ -185,6 +185,10 @@ bool fsFileExists(const Path* path);
 /// Returns true if a file exists at `path` and that file is a directory.
 bool fsDirectoryExists(const Path* path);
 
+/// Enumerates all files with` in `directory`, calling `processFile` for each match.
+/// `processFile` should return true if enumerating should continue or false to stop early.
+void fsEnumerateFilesInDirectory(const Path* directory, bool (*processFile)(const Path*, void* userData), void* userData);
+
 /// Enumerates all files with the extension `extension` in `directory`, calling `processFile` for each match.
 /// `processFile` should return true if enumerating should continue or false to stop early.
 void fsEnumerateFilesWithExtension(const Path* directory, const char* extension, bool (*processFile)(const Path*, void* userData), void* userData);
@@ -311,6 +315,9 @@ FileStream* fsOpenFile(const Path* filePath, FileMode mode);
 /// a new FileStream that can be used to read from or modify the file. May return NULL if the file could not be opened.
 FileStream* fsOpenFileInResourceDirectory(ResourceDirectory resourceDir, const char *relativePath, FileMode mode);
 
+/// Opens a FILE* as a FileStream. The caller 
+FileStream* fsCreateStreamFromFILE(FILE* file);
+
 /// Opens a read-only buffer as a FileStream, returning a stream that must be closed with `fsCloseStream`.
 FileStream* fsOpenReadOnlyMemory(const void *buffer, size_t bufferLengthInBytes);
 
@@ -341,6 +348,13 @@ size_t fsWriteToStream(FileStream* stream, const void* sourceBuffer, size_t byte
 /// Returns the total number of characters written.
 /// See `fprintf` in the C standard library for reference.
 size_t fsPrintToStream(FileStream* stream, const char* format, ...);
+
+/// Writes the C string pointed by `format` to the stream. If` format` includes format specifiers
+/// (subsequences beginning with %), the additional arguments following format are formatted and
+/// inserted in the resulting string replacing their respective specifiers.
+/// Returns the total number of characters written.
+/// See `vfprintf` in the C standard library for reference.
+size_t fsPrintToStreamV(FileStream* stream, const char* format, va_list args);
 
 /// Seeks to the specified position in the file, using `baseOffset` as the reference offset.
 bool fsSeekStream(FileStream* stream, SeekBaseOffset baseOffset, ssize_t seekOffset);
@@ -436,6 +450,11 @@ typedef enum FileSystemFlags {
 /// Creates a new file-system with its root at rootPath.
 /// If rootPath is a compressed zip file, the file system will be the contents of the zip file.
 FileSystem* fsCreateFileSystemFromFileAtPath(const Path* rootPath, FileSystemFlags flags);
+
+/// If `fileSystem` is parented under another file system (e.g. is a zip file system), returns the path
+/// to the file system under its parent file system.
+/// Otherwise, returns NULL.
+Path* fsCopyPathInParentFileSystem(const FileSystem* fileSystem);
 
 /// Invalidates and frees `fileSystem`. All paths created from `fileSystem` and all files opened from
 /// those paths files are also invalidated but not freed.
@@ -541,9 +560,38 @@ inline eastl::string fsPathComponentToString(PathComponent pathComponent) {
 #define IFileSystem_h_STLVector
 
 /// Collects the results of calling `fsEnumerateFilesWithExtension` with `directory` and `extension` into an `eastl::vector<PathHandle>`.
+eastl::vector<PathHandle> fsGetFilesInDirectory(const Path* directory);
+
+/// Collects the results of calling `fsEnumerateFilesWithExtension` with `directory` and `extension` into an `eastl::vector<PathHandle>`.
 eastl::vector<PathHandle> fsGetFilesWithExtension(const Path* directory, const char* extension);
 
 /// Collects the results of calling `fsEnumerateSubdirectories` with `directory` into an `eastl::vector<PathHandle>`.
 eastl::vector<PathHandle> fsGetSubDirectories(const Path* directory);
 
 #endif // defined(EASTL_VECTOR_H) && !defined(IFileSystem_h_STLVector)
+
+#if defined(EASTL_FUNCTIONAL_H) && !defined(IFileSystem_h_STLFunctional)
+#define IFileSystem_h_STLFunctional
+
+namespace eastl {
+
+  template <>
+  struct hash<PathHandle>
+  {
+    std::size_t inline operator()(const PathHandle& k) const
+    {
+        const char* s = fsGetPathAsNativeString(k);
+        const FileSystem* fs = fsGetPathFileSystem(k);
+        
+        size_t h = eastl::hash<const FileSystem*>()(fs);
+        
+        while (*s) {
+            h = (h * 54059) ^ (s[0] * 76963);
+            s++;
+        }
+        return h;
+    }
+  };
+}
+
+#endif // defined(EASTL_FUNCTIONAL_H) && !defined(IFileSystem_h_STLFunctional)

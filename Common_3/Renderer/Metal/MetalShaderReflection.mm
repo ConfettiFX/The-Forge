@@ -159,6 +159,8 @@ int getSizeFromDataType(MTLDataType dataType)
 		case MTLDataTypeTexture: return 8;
         case MTLDataTypePointer: return 8;
         case MTLDataTypeSampler: return 0;
+        case MTLDataTypeIndirectCommandBuffer: return 0;
+        case MTLDataTypeRenderPipeline: return 0;
 		default: break;
 	}
 	ASSERT(0 && "Unknown metal type");
@@ -642,6 +644,12 @@ void mtl_createShaderReflection(
                                 case MTLDataTypePointer:
                                     descriptorType = DESCRIPTOR_TYPE_BUFFER;
                                     break;
+                                case MTLDataTypeIndirectCommandBuffer:
+                                    descriptorType = DESCRIPTOR_TYPE_INDIRECT_COMMAND_BUFFER;
+                                    break;
+                                case MTLDataTypeRenderPipeline:
+                                    descriptorType = DESCRIPTOR_TYPE_RENDER_PIPELINE_STATE;
+                                    break;
                                 default:
                                     ASSERT(0);
                                     descriptorType = DESCRIPTOR_TYPE_UNDEFINED;
@@ -676,6 +684,8 @@ void mtl_createShaderReflection(
 		}
 		for (uint32_t i = 0; i < pReflectionInfo->textures.size(); ++i, ++resourceIdx)
 		{
+            ASSERT(0); // old redundant code
+            
 			const TextureInfo& texInfo = pReflectionInfo->textures[i];
 			addShaderResource(
 				pResources, resourceIdx, texInfo.isUAV ? DESCRIPTOR_TYPE_RW_TEXTURE : DESCRIPTOR_TYPE_TEXTURE, texInfo.slotIndex,
@@ -687,6 +697,8 @@ void mtl_createShaderReflection(
 		}
 		for (uint32_t i = 0; i < pReflectionInfo->samplers.size(); ++i, ++resourceIdx)
 		{
+            ASSERT(0); // old redundant code
+            
 			const SamplerInfo& samplerInfo = pReflectionInfo->samplers[i];
 			addShaderResource(
 				pResources, resourceIdx, DESCRIPTOR_TYPE_SAMPLER, samplerInfo.slotIndex, 0 /*samplerInfo.sizeInBytes*/, 0, shaderStage,

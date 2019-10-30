@@ -30,10 +30,9 @@ distribution.
 #include <cstring>
 #include <cstdarg>
 
-extern void* conf_calloc(size_t s, size_t c);
-extern void conf_free(void* ptr);
-
-class File;
+#include "Common_3/OS/Interfaces/IFileSystem.h"
+#define IMEMORY_FROM_HEADER
+#include "Common_3/OS/Interfaces/IMemory.h" //NOTE: this should be the last include in a .cpp
 
 /* 
    TODO: intern strings instead of allocation.
@@ -1013,14 +1012,14 @@ public:
         to do read and write. If filesys is NULL,
         default filesystem will be used.
 	*/	
-	int LoadFile( const char* filename, unsigned rootPath, File* filesys);
+	int LoadFile( const Path* filePath );
 
     /**
 		Load an XML file from data in, specify size
 		Returns XML_NO_ERROR (0) on success, or
 		an errorID. 
 	*/	
-    int LoadFileData( const char* dataIn, unsigned int size);
+    int LoadFileData( const char* dataIn, size_t size);
 	
 	/**
 		Load an XML file from disk. You are responsible
@@ -1029,7 +1028,7 @@ public:
 		Returns XML_NO_ERROR (0) on success, or
 		an errorID.
 	*/	
-	int LoadFile( FILE* );
+	int LoadFile(FileStream* fileStream );
 	
 	/**
 		Save the XML file to disk.
@@ -1038,16 +1037,7 @@ public:
         to do read and write. If filesys is NULL,
         default filesystem will be used.
 	*/
-	int SaveFile( const char* filename, unsigned rootPath, File* filesys);
-
-	/**
-	Save the XML file to disk.
-	Returns XML_NO_ERROR (0) on success, or
-	an errorID.The function is using filesystem
-	to do read and write. If filesys is NULL,
-	default filesystem will be used.
-	*/
-	int SaveFile(const char* filename, File* filesys);
+	int SaveFile( const Path* filePath );
 
 	/**
 		Save the XML file to disk. You are responsible
@@ -1056,7 +1046,7 @@ public:
 		Returns XML_NO_ERROR (0) on success, or
 		an errorID.
 	*/
-	int SaveFile( FILE* );
+	int SaveFile(FileStream*);
 
 	bool ProcessEntities() const						{ return processEntities; }
 
@@ -1357,7 +1347,7 @@ public:
 		If 'compact' is set to true, then output is created
 		with only required whitespace and newlines.
 	*/
-	XMLPrinter( FILE* file=0, bool compact = false );
+	XMLPrinter(FileStream* file=0, bool compact = false );
 	~XMLPrinter()	{}
 
 	/** If streaming, write the BOM and declaration. */
@@ -1414,7 +1404,7 @@ private:
 
 	bool elementJustOpened;
 	bool firstElement;
-	FILE* fp;
+	FileStream* fs;
 	int depth;
 	int textDepth;
 	bool processEntities;

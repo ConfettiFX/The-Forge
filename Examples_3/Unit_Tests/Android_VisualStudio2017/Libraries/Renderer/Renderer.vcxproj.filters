@@ -30,34 +30,19 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\GpuProfiler.cpp">
       <Filter>Profiler</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\Profiler.cpp">
-      <Filter>Profiler</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerBase.cpp">
-      <Filter>Profiler</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Image\Image.cpp">
       <Filter>Image</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp">
       <Filter>Image</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerWidgetsUI.cpp">
-      <Filter>Profiler</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerBase.h">
-      <Filter>Profiler</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\Image.h">
       <Filter>Image</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\ImageEnums.h">
       <Filter>Image</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerWidgetsUI.h">
-      <Filter>Profiler</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

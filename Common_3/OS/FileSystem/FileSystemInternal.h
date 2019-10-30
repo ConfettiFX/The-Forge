@@ -25,10 +25,12 @@
 #ifndef FileSystemInternal_h
 #define FileSystemInternal_h
 
-#include <stdio.h>
-#include <string.h>
+#include <atomic>
+#include <cstdio>
+#include <cstring>
 
 #include "../Interfaces/IFileSystem.h"
+#include "../Core/Atomics.h"
 
 // Include the functions to set the log file directory and executable name
 // for the memory manager.
@@ -48,6 +50,7 @@ struct FileSystem
 
 	virtual ~FileSystem() {};
 
+	virtual Path*  CopyPathInParent() const { return NULL; }
 	virtual bool   IsReadOnly() const = 0;
 	virtual bool   IsCaseSensitive() const = 0;
 	virtual char   GetPathDirectorySeparator() const = 0;
@@ -81,15 +84,21 @@ struct FileSystem
 
 // Paths are always formatted in the native format of their file system.
 // They never contain a trailing slash unless they are a root path.
+//
+// Implementation note: Paths must always be heap-allocated in mutable memory,
+// since we cast away their const-ness in fsCopyPath.
+// Doing so for a Path that is not allocated in writable heap memory is undefined
+// behaviour.
 typedef struct Path
 {
-	FileSystem* pFileSystem;
-	size_t      mPathLength;
-	char        mPathBufferOffset;
+	FileSystem*         pFileSystem;
+	tfrg_atomicptr_t    mRefCount;
+	size_t              mPathLength;
+	char                mPathBufferOffset;
 	// ... plus a heap allocated UTF-8 buffer of length pathLength.
 } Path;
 
-static inline size_t Path_SizeOf(const Path* path) { return sizeof(Path) + path->mPathLength; }
+static inline size_t fsSizeOfPath(const Path* path) { return sizeof(Path) + path->mPathLength; }
 
 
 // MARK: - FileStream
@@ -113,8 +122,8 @@ struct FileStream
 
 	virtual size_t  Read(void* outputBuffer, size_t bufferSizeInBytes) = 0;
 	virtual size_t  Write(const void* sourceBuffer, size_t byteCount) = 0;
-    virtual size_t  Scan(const char* format, va_list args, int* bytesRead) = 0;
-    virtual size_t  Print(const char* format, va_list args) = 0;
+	virtual size_t  Scan(const char* format, va_list args, int* bytesRead) = 0;
+	virtual size_t  Print(const char* format, va_list args) = 0;
 	virtual bool    Seek(SeekBaseOffset baseOffset, ssize_t seekOffset) = 0;
 	virtual ssize_t GetSeekPosition() const = 0;
 	virtual ssize_t GetFileSize() const = 0;

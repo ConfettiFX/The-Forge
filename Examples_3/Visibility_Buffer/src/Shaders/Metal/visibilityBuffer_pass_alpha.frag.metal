@@ -52,37 +52,28 @@ uint packVisBufData(bool opaque, uint drawId, uint triangleId)
     uint packed = ((drawId << 23) & 0x7F800000) | (triangleId & 0x007FFFFF);
     return (opaque ? packed : (1 << 31) | packed);
 }
-
-struct BindlessDiffuseData
-{
-};
-
-struct FSData {
-    sampler textureFilter                                  [[id(0)]];
+ 
+struct Textures {
+    sampler textureFilter;
     array<texture2d<float>,MATERIAL_BUFFER_SIZE> diffuseMaps;
-};
-
-struct FSDataPerFrame {
-    constant uint* indirectMaterialBuffer;
 };
 
 // Pixel shader for alpha tested geometry
 fragment float4 stageMain(
-    VSOutput input                              [[stage_in]],
-    uint primitiveID                            [[primitive_id]],
-    constant FSData& fsData                     [[buffer(UPDATE_FREQ_NONE)]],
-    constant FSDataPerFrame& fsDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]],
-    constant uint& drawID                       [[buffer(UPDATE_FREQ_USER)]]
+    VSOutput input                                              [[stage_in]],
+    uint primitiveID                                            [[primitive_id]],
+    constant uint* indirectMaterialBuffer                       [[buffer(UNIT_INDIRECT_MATERIAL_RW)]],
+    constant Textures& textures                                 [[buffer(UNIT_VBPASS_TEXTURES)]],
+    constant uint& drawID                                       [[buffer(UINT_VBPASS_DRAWID)]]
 )
 {
     uint matBaseSlot = BaseMaterialBuffer(true, VIEW_CAMERA);
-    uint materialID = fsDataPerFrame.indirectMaterialBuffer[matBaseSlot + drawID];
-    texture2d<float> diffuseMap = fsData.diffuseMaps[materialID];
-    
+    uint materialID = indirectMaterialBuffer[matBaseSlot + drawID];
+    texture2d<float> diffuseMap = textures.diffuseMaps[materialID];
+
     // Perform alpha testing: sample the texture and discard the fragment if alpha is under a threshold
-    float4 texColor = diffuseMap.sample(fsData.textureFilter,input.texCoord);
+    float4 texColor = diffuseMap.sample(textures.textureFilter,input.texCoord);
     if (texColor.a < 0.5) discard_fragment();
     
-    // Pack draw / triangle Id data into a 32-bit uint and store it in a RGBA8 texture
     return unpack_unorm4x8_to_float(packVisBufData(false, drawID, primitiveID));
 }

@@ -66,10 +66,10 @@ struct VSData {
 // Vertex shader
 vertex VSOutput stageMain(
     VSInput input                           [[stage_in]],
-    constant VSData& vsData                 [[buffer(UPDATE_FREQ_PER_FRAME)]]
+    constant PerFrameConstants& uniforms    [[buffer(UNIT_VBPASS_UNIFORMS)]]
 )
 {
     VSOutput result;
-    result.position = vsData.uniforms.transform[VIEW_CAMERA].mvp * input.Position;
+    result.position = uniforms.transform[VIEW_CAMERA].mvp * input.Position;
     return result;
 }

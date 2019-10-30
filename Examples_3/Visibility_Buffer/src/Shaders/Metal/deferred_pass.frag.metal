@@ -29,22 +29,6 @@ using namespace metal;
 
 #include "shader_defs.h"
 
-struct PackedVertexPosData {
-    packed_float3 position;
-};
-
-struct PackedVertexTexcoord {
-    packed_float2 texCoord;
-};
-
-struct PackedVertexNormal {
-    packed_float3 normal;
-};
-
-struct PackedVertexTangent {
-    packed_float3 tangent;
-};
-
 struct VSOutput {
 	float4 position [[position]];
     float2 texCoord;
@@ -61,57 +45,34 @@ struct PSOutput
     float4 simulation   [[color(3)]];
 };
 
-struct BindlessDiffuseData
-{
-	array<texture2d<float>,MATERIAL_BUFFER_SIZE> textures;
-};
-
-struct BindlessNormalData
-{
-	array<texture2d<float>,MATERIAL_BUFFER_SIZE> textures;
-};
-
-struct BindlessSpecularData
-{
-	array<texture2d<float>,MATERIAL_BUFFER_SIZE> textures;
-};
-
-struct FSData {
-    constant MeshConstants* meshConstantsBuffer        [[id(0)]];
-    sampler textureFilter                              [[id(1)]];
+struct Textures {
+    sampler textureFilter;
     array<texture2d<float>,MATERIAL_BUFFER_SIZE> diffuseMaps;
     array<texture2d<float>,MATERIAL_BUFFER_SIZE> normalMaps;
     array<texture2d<float>,MATERIAL_BUFFER_SIZE> specularMaps;
-};
-
-struct FSDataPerFrame {
-    constant uint* indirectMaterialBuffer              [[id(0)]];
+    constant MeshConstants* meshConstantsBuffer;
 };
 
 // Pixel shader for opaque geometry
-[[early_fragment_tests]] fragment PSOutput stageMain(VSOutput input                                     [[stage_in]],
-//                                                     constant RootConstant& indirectRootConstant        [[buffer(0)]],
-//                                                     constant MeshConstants* meshConstantsBuffer        [[buffer(2)]],
-                                                     constant FSData& fsData [[buffer(UPDATE_FREQ_NONE)]],
-                                                     constant FSDataPerFrame& fsDataPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]],
-                                                     constant uint& drawID                              [[buffer(UPDATE_FREQ_USER)]]
+[[early_fragment_tests]] fragment PSOutput stageMain(
+    VSOutput input                                     [[stage_in]],
+    constant Textures& textures                        [[buffer(UNIT_VBPASS_TEXTURES)]],
+    constant uint* indirectMaterialBuffer              [[buffer(UNIT_INDIRECT_MATERIAL_RW)]],
+    constant uint& drawID                              [[buffer(UINT_VBPASS_DRAWID)]]
 )
 {
 	PSOutput Out;
 	
 	uint matBaseSlot = BaseMaterialBuffer(false, VIEW_CAMERA); //1 is camera view, 0 is shadow map view
-	uint materialID = fsDataPerFrame.indirectMaterialBuffer[matBaseSlot + drawID];
+	uint materialID = indirectMaterialBuffer[matBaseSlot + drawID];
 	
-	Out.albedo = fsData.diffuseMaps[materialID].sample(fsData.textureFilter, input.texCoord);
+	Out.albedo = textures.diffuseMaps[materialID].sample(textures.textureFilter, input.texCoord);
 	
 	// CALCULATE PIXEL COLOR USING INTERPOLATED ATTRIBUTES
 	// Reconstruct normal map Z from X and Y
-	float4 normalData = fsData.normalMaps[materialID].sample(fsData.textureFilter, input.texCoord);
-	
-	float2 normalMapRG = normalData.ga;
-	
+	float4 normalData = textures.normalMaps[materialID].sample(textures.textureFilter, input.texCoord);
 	float3 reconstructedNormalMap;
-	reconstructedNormalMap.xy = normalMapRG * 2 - 1;
+	reconstructedNormalMap.xy = normalData.ga * 2 - 1;
 	reconstructedNormalMap.z = sqrt(1 - dot(reconstructedNormalMap.xy, reconstructedNormalMap.xy));
 	
 	float3 normal = normalize(input.normal);
@@ -121,7 +82,7 @@ struct FSDataPerFrame {
 	// Calculate pixel normal using the normal map and the tangent space vectors
 	Out.normal = float4((reconstructedNormalMap.x * tangent + reconstructedNormalMap.y * binormal + reconstructedNormalMap.z * normal) * 0.5 + 0.5, 0.0);
 	Out.albedo.a = 0.0;
-	Out.specular = fsData.specularMaps[materialID].sample(fsData.textureFilter, input.texCoord);
+	Out.specular = textures.specularMaps[materialID].sample(textures.textureFilter, input.texCoord);
 	Out.simulation = 0.0;
 	
 	return Out;

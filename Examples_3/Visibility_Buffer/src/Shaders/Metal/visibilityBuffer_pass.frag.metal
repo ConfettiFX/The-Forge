@@ -52,7 +52,7 @@ uint packVisBufData(bool opaque, uint drawId, uint triangleId)
 [[early_fragment_tests]] fragment float4 stageMain(
     VSOutput input                        [[stage_in]],
     uint primitiveID                      [[primitive_id]],
-    constant uint& drawID                 [[buffer(UPDATE_FREQ_USER)]]
+    constant uint& drawID                 [[buffer(UINT_VBPASS_DRAWID)]]
 )
 {
     // Pack draw / triangle Id data into a 32-bit uint and store it in a RGBA8 texture

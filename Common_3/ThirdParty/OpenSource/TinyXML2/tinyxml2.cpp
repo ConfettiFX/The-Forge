@@ -1371,7 +1371,7 @@ XMLUnknown* XMLDocument::NewUnknown( const char* str )
 }
 
 
-int XMLDocument::LoadFile(const char* filename, uint32_t rootPath, File* filesys)
+int XMLDocument::LoadFile(const Path* filePath)
 {
 	DeleteChildren();
 	InitDocument();
@@ -1381,29 +1381,27 @@ int XMLDocument::LoadFile(const char* filename, uint32_t rootPath, File* filesys
 #pragma warning ( disable : 4996 )		// Fail to see a compelling reason why this should be deprecated.
 #endif
 
-//
- //   FILE* fp = NULL;
-    unsigned int bytesRead = 0;
+    size_t bytesRead = 0;
     char *data = NULL;
 
-	bool fp = filesys->Open( filename, FM_READ_BINARY, (FSRoot)rootPath);
-	if (!fp)
+	FileStream* fileStream = fsOpenFile(filePath, FM_READ_BINARY);
+	if (!fileStream)
 	{
-		SetError( XML_ERROR_FILE_NOT_FOUND, filename, 0 );
+		SetError( XML_ERROR_FILE_NOT_FOUND, fsGetPathAsNativeString(filePath), 0 );
 		return errorID;
 	}
-    int length = (int)filesys->GetSize();
+    size_t length = fsGetStreamFileSize(fileStream);
 
     data = (char*)conf_calloc(length, sizeof(char));
-    bytesRead = (unsigned int)filesys->Read(data, length);
-    filesys->Close();
+	bytesRead = fsReadFromStream(fileStream, data, length);
+	fsCloseStream(fileStream);
 
 
 #if defined(_MSC_VER)
 #pragma warning ( pop )
 #endif
 	if ( data == NULL ) {
-		SetError( XML_ERROR_FILE_NOT_FOUND, filename, 0 );
+		SetError( XML_ERROR_FILE_NOT_FOUND, fsGetPathAsNativeString(filePath), 0 );
         conf_free(data);
 		return errorID;
 	}else
@@ -1415,39 +1413,23 @@ int XMLDocument::LoadFile(const char* filename, uint32_t rootPath, File* filesys
 	return errorID;
 }
 
-int XMLDocument::SaveFile( const char* filename, uint32_t rootPath, File* filesys)
+int XMLDocument::SaveFile( const Path* filePath )
 {
 	XMLPrinter printer;
 	Print( &printer );
-
-	bool fp = filesys->Open( filename, FM_WRITE_BINARY, (FSRoot)rootPath);
-	if (!fp)
+	
+	FileStream* fs = fsOpenFile(filePath, FM_WRITE_BINARY);
+	if (!fs)
 	{
-		SetError( XML_ERROR_FILE_NOT_FOUND, filename, 0 );
+		SetError( XML_ERROR_FILE_NOT_FOUND, fsGetPathAsNativeString(filePath), 0 );
 		return errorID;
 	}
-	filesys->Write(printer.CStr(), printer.CStrSize() - 1);
-	filesys->Close();
+	fsWriteToStream(fs, printer.CStr(), printer.CStrSize() - 1);
+	fsCloseStream(fs);
 	return errorID;
 }
 
-int XMLDocument::SaveFile(const char* filename, File* filesys)
-{
-	XMLPrinter printer;
-	Print(&printer);
-
-	bool fp = filesys->Open(filename, FileMode::FM_WRITE, FSRoot::FSR_Absolute);
-	if (!fp)
-	{
-		SetError(XML_ERROR_FILE_NOT_FOUND, filename, 0);
-		return errorID;
-	}
-	filesys->Write(printer.CStr(), printer.CStrSize() - 1);
-	filesys->Close();
-	return errorID;
-}
-
-int XMLDocument::LoadFileData( const char* dataIn, unsigned int size ) 
+int XMLDocument::LoadFileData( const char* dataIn, size_t size )
 {
 	DeleteChildren();
 	InitDocument();
@@ -1486,21 +1468,19 @@ int XMLDocument::LoadFileData( const char* dataIn, unsigned int size )
 
 	return errorID;
 }
-int XMLDocument::LoadFile( FILE* fp ) 
+int XMLDocument::LoadFile(FileStream* fileStream)
 {
 	DeleteChildren();
 	InitDocument();
 
-	fseek( fp, 0, SEEK_END );
-	unsigned size = ftell( fp );
-	fseek( fp, 0, SEEK_SET );
+	size_t size = fsGetStreamFileSize(fileStream);
 
 	if ( size == 0 ) {
 		return errorID;
 	}
 
 	charBuffer = (char*)conf_calloc(size + 1, sizeof(char));
-	size_t read = fread( charBuffer, 1, size, fp );
+	size_t read = fsReadFromStream(fileStream, charBuffer, size);
 	if ( read != size ) {
 		SetError( XML_ERROR_FILE_READ_ERROR, 0, 0 );
 		return errorID;
@@ -1545,9 +1525,9 @@ int XMLDocument::SaveFile( const char* filename )
 
 
 
-int XMLDocument::SaveFile( FILE* fp )
+int XMLDocument::SaveFile(FileStream *fs)
 {
-	XMLPrinter stream( fp );
+	XMLPrinter stream( fs );
 	Print( &stream );
 	return errorID;
 }
@@ -1581,10 +1561,13 @@ int XMLDocument::Parse( const char* p )
 
 void XMLDocument::Print( XMLPrinter* streamer ) 
 {
-	XMLPrinter stdStreamer( stdout );
+	FileStream* stream = fsCreateStreamFromFILE(stdout);
+	XMLPrinter stdStreamer( stream );
 	if ( !streamer )
 		streamer = &stdStreamer;
 	Accept( streamer );
+	
+	fsCloseStream(stream);
 }
 
 
@@ -1616,10 +1599,10 @@ void XMLDocument::PrintError() const
 }
 
 
-XMLPrinter::XMLPrinter( FILE* file, bool compact ) : 
+XMLPrinter::XMLPrinter( FileStream* file, bool compact ) :
 	elementJustOpened( false ), 
 	firstElement( true ),
-	fp( file ), 
+	fs( file ), 
 	depth( 0 ), 
 	textDepth( -1 ),
 	processEntities( true ),
@@ -1647,8 +1630,8 @@ void XMLPrinter::Print( const char* format, ... )
     va_list     va;
     va_start( va, format );
 
-	if ( fp ) {
-		vfprintf( fp, format, va );
+	if ( fs ) {
+		fsPrintToStreamV(fs, format, va);
 	}
 	else {
 		// This seems brutally complex. Haven't figured out a better

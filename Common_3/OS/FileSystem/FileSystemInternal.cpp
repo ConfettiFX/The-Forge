@@ -139,6 +139,7 @@ static Path* fsAllocatePath(size_t pathLength)
 {
 	Path* path = (Path*)conf_malloc(sizeof(Path) + pathLength);
 	memset(path, 0, sizeof(Path) + pathLength);
+	tfrg_atomicptr_store_relaxed(&path->mRefCount, 1);
 	return path;
 }
 
@@ -168,18 +169,21 @@ Path* fsCreatePath(const FileSystem* fileSystem, const char* absolutePathString)
 Path* fsCopyPath(const Path* path)
 {
 	if (!path) { return NULL; }
+	
+	Path* p = const_cast<Path*>(path);
+	tfrg_atomicptr_add_relaxed(&p->mRefCount, 1);
 
-	size_t pathSize = Path_SizeOf(path);
-	Path*  newPath = (Path*)conf_malloc(pathSize);
-	memcpy(newPath, path, pathSize);
-
-	return newPath;
+	return p;
 }
 
 void fsFreePath(Path* path)
 {
 	if (!path) { return; }
-	conf_free(path);
+	
+	if (tfrg_atomicptr_add_relaxed(&path->mRefCount, -1) == 1)
+	{
+		conf_free(path);
+	}
 }
 
 FileSystem* fsGetPathFileSystem(const Path* path) 
@@ -267,7 +271,7 @@ Path* fsAppendPathComponent(const Path* basePath, const char* pathComponent)
 						}
 					}
 
-					if (newPathLength <= rootPathLength)
+					if (newPathLength < rootPathLength)
 					{
 						// We couldn't find a parent directory.
 						LOGF(
@@ -618,6 +622,13 @@ FileSystem* fsCreateFileSystemFromFileAtPath(const Path* rootPath, FileSystemFla
 	return NULL;
 }
 
+Path* fsCopyPathInParentFileSystem(const FileSystem* fileSystem)
+{
+	if (!fileSystem) { return NULL; }
+	
+	return fileSystem->CopyPathInParent();
+}
+
 void fsFreeFileSystem(FileSystem* fileSystem)
 {
 	if (!fileSystem) { return; }
@@ -833,6 +844,13 @@ bool fsDirectoryExists(const Path* path)
 	return path->pFileSystem->IsDirectory(path); 
 }
 
+void fsEnumerateFilesInDirectory(
+	const Path* directory, bool (*processFile)(const Path*, void* userData), void* userData)
+{
+	if (!directory) { return; }
+	return directory->pFileSystem->EnumerateFilesWithExtension(directory, NULL, processFile, userData);
+}
+
 void fsEnumerateFilesWithExtension(
 	const Path* directory, const char* extension, bool (*processFile)(const Path*, void* userData), void* userData)
 {
@@ -851,6 +869,13 @@ static bool EnumeratePathsFunc(const Path* path, void* userData)
 	eastl::vector<PathHandle>* paths = (eastl::vector<PathHandle>*)userData;
 	paths->push_back(fsCopyPath(path));
 	return true;
+}
+
+eastl::vector<PathHandle> fsGetFilesInDirectory(const Path* directory)
+{
+	eastl::vector<PathHandle> files;
+	fsEnumerateFilesInDirectory(directory, EnumeratePathsFunc, &files);
+	return files;
 }
 
 eastl::vector<PathHandle> fsGetFilesWithExtension(const Path* directory, const char* extension)
@@ -919,11 +944,11 @@ size_t __fsScanFromStream(FileStream* stream, int* bytesRead, const char* format
 {
 	if (!stream) { return 0; }
 
-    va_list args;
-    va_start(args, format);
-    size_t itemsRead = stream->Scan(format, args, bytesRead);
-    va_end(args);
-    return itemsRead;
+	va_list args;
+	va_start(args, format);
+	size_t itemsRead = stream->Scan(format, args, bytesRead);
+	va_end(args);
+	return itemsRead;
 }
 
 size_t fsWriteToStream(FileStream* stream, const void* sourceBuffer, size_t byteCount) 
@@ -934,13 +959,17 @@ size_t fsWriteToStream(FileStream* stream, const void* sourceBuffer, size_t byte
 
 size_t fsPrintToStream(FileStream* stream, const char* format, ...)
 {
-	if (!stream) { return 0; }
+	va_list args;
+	va_start(args, format);
+	size_t charsWritten = fsPrintToStreamV(stream, format, args);
+	va_end(args);
+	return charsWritten;
+}
 
-    va_list args;
-    va_start(args, format);
-    size_t charsWritten = stream->Print(format, args);
-    va_end(args);
-    return charsWritten;
+size_t fsPrintToStreamV(FileStream* stream, const char* format, va_list args)
+{
+	if (!stream) { return 0; }
+	return stream->Print(format, args);
 }
 
 bool fsSeekStream(FileStream* stream, SeekBaseOffset baseOffset, ssize_t seekOffset) 

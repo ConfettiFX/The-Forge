@@ -78,12 +78,13 @@ struct VSData {
 };
 
 // Vertex shader
-vertex VSOutput stageMain(VSInput input                                     [[stage_in]],
-                          constant VSData& vsData [[buffer(UPDATE_FREQ_PER_FRAME)]]
+vertex VSOutput stageMain(
+    VSInput input                                     [[stage_in]],
+    constant PerFrameConstants& uniforms    [[buffer(UNIT_VBPASS_UNIFORMS)]]
 )
 {
 	VSOutput Out;
-	Out.position = vsData.uniforms.transform[VIEW_CAMERA].mvp * input.position;
+	Out.position = uniforms.transform[VIEW_CAMERA].mvp * input.position;
 	Out.texCoord = input.texCoord;
 	Out.normal = input.normal;
 	Out.tangent = input.tangent;

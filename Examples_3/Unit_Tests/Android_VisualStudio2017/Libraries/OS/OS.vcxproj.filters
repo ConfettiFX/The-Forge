@@ -61,6 +61,9 @@
     <Filter Include="OS\FileSystem">
       <UniqueIdentifier>{c65df5cc-0166-4c6c-ba6f-25a157abde07}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OS\Profiler">
+      <UniqueIdentifier>{0e969667-faa3-46dc-a14d-4ec572491ebc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EAStdC\EAMemory.cpp">
@@ -201,6 +204,15 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidFileSystem.cpp">
       <Filter>OS\Android</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\Profiler.cpp">
+      <Filter>OS\Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerBase.cpp">
+      <Filter>OS\Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerWidgetsUI.cpp">
+      <Filter>OS\Profiler</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\Atomics.h">
@@ -322,6 +334,12 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.h">
       <Filter>OS\FileSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerBase.h">
+      <Filter>OS\Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerWidgetsUI.h">
+      <Filter>OS\Profiler</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

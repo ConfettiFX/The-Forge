@@ -163,9 +163,9 @@ struct FSData {
 
     sampler textureSampler                                      [[id(5)]];
     sampler depthSampler                                        [[id(6)]];
-    sampler clampBorderNearSampler                              [[id(7)]];
-    sampler clampMiplessLinearSampler                           [[id(8)]];
-    sampler clampMiplessNearSampler                             [[id(9)]];
+//    sampler clampBorderNearSampler                              [[id(7)]];
+//    sampler clampMiplessLinearSampler                           [[id(8)]];
+//    sampler clampMiplessNearSampler                             [[id(9)]];
     
     device LightData* lights                                    [[id(10)]];
 
@@ -216,7 +216,9 @@ fragment float4 stageMain(VSOutput input                                        
 		uint drawID = (alphaBit_drawID_triID >> 23) & 0x000000FF;
 		uint triangleID = (alphaBit_drawID_triID & 0x007FFFFF);
 		uint alpha1_opaque0 = (alphaBit_drawID_triID >> 31);
-
+    
+//            return float4(drawID / 255.0, 0.0, 0.0, 1.0);
+        
 		// This is the start vertex of the current draw batch
 		uint startIndex = fsDataPerFrame.indirectDrawArgs[alpha1_opaque0][drawID * INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS + 2];
 
@@ -334,7 +336,7 @@ fragment float4 stageMain(VSOutput input                                        
 		// CALCULATE PIXEL COLOR USING INTERPOLATED ATTRIBUTES
 		// Reconstruct normal map Z from X and Y
 		float4 normalMapRG = normalMap.sample(fsData.textureSampler,texCoord,gradient2d(texCoordDX,texCoordDY));
-
+        
 		float3 reconstructedNormalMap;
 		reconstructedNormalMap.xy = normalMapRG.ga * 2 - 1;
 		reconstructedNormalMap.z = sqrt(1 - dot(reconstructedNormalMap.xy, reconstructedNormalMap.xy));
@@ -350,6 +352,8 @@ fragment float4 stageMain(VSOutput input                                        
 		float4 diffuseColor = diffuseMap.sample(fsData.textureSampler,texCoord,gradient2d(texCoordDX,texCoordDY));
 		float4 specularData = specularMap.sample(fsData.textureSampler,texCoord,gradient2d(texCoordDX,texCoordDY));
 
+//        return float4(diffuseColor.xyz, 1.0);
+        
 		float Roughness = clamp(specularData.a, 0.05f, 0.99f);
 		float Metallic = specularData.b;
 

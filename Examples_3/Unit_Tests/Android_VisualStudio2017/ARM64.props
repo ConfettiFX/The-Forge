@@ -3,6 +3,7 @@
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros">
     <TRIPLE>aarch64-linux-android</TRIPLE>
+    <AndroidNativeLibs>android;log;c++_shared;c++abi;m;z;OS;</AndroidNativeLibs>
     <CustomSysroot>$(VS_Ndkroot)\toolchains\llvm\prebuilt\windows-x86_64\sysroot</CustomSysroot>
   </PropertyGroup>
   <PropertyGroup />
