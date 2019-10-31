@@ -272,22 +272,23 @@ int AndroidMain(void* param, IApp* app)
 {
 	extern bool MemAllocInit();
 	extern void MemAllocExit();
-	
+
+
 	if (!MemAllocInit())
 		return EXIT_FAILURE;
+
+	struct android_app* android_app = (struct android_app*)param;
+	android_activity = android_app->activity;
+	AndroidFS_SetNativeActivity(android_activity);
+
+	Log::Init();
 
 	if (!fsInitAPI())
 		return EXIT_FAILURE;
 
-	Log::Init();
-	
-	struct android_app* android_app = (struct android_app*)param;
-
 	// Set the callback to process system events
-    android_app->onAppCmd = handle_cmd;
-
+	android_app->onAppCmd = handle_cmd;
 	pApp = app;
-	android_activity = android_app->activity;
 
 	//Used for automated testing, if enabled app will exit after 120 frames
 #ifdef AUTOMATED_TESTING
@@ -295,7 +296,6 @@ int AndroidMain(void* param, IApp* app)
 	const uint32_t testingDesiredFrameCount = 120;
 #endif
 
-	AndroidFS_SetNativeActivity(android_activity);
 
 	IApp::Settings* pSettings = &pApp->mSettings;
 	Timer deltaTimer;

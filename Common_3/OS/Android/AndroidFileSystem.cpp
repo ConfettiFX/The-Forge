@@ -209,7 +209,7 @@ public:
 
 	FileStream* OpenFile(const Path* filePath, FileMode mode) const override
 	{
-		if (mode & (FM_WRITE | FM_APPEND) != 0)
+		if ((mode & (FM_WRITE | FM_APPEND)) != 0)
 		{
 			LOGF(LogLevel::eERROR, "Cannot open %s with mode %i: the Android bundle is read-only.",
 				fsGetPathAsNativeString(filePath), mode);
