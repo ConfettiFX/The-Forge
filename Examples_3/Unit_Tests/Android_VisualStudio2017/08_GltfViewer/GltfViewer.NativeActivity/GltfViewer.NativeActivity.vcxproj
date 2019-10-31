@@ -204,9 +204,9 @@
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y</Command>
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -227,9 +227,9 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vul
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y</Command>
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
@@ -248,9 +248,9 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vul
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y</Command>
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
@@ -269,9 +269,9 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vul
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y</Command>
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -291,9 +291,9 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vul
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y</Command>
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -313,9 +313,9 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vul
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y</Command>
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
@@ -335,9 +335,9 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vul
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y</Command>
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
@@ -357,9 +357,9 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vul
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y</Command>
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

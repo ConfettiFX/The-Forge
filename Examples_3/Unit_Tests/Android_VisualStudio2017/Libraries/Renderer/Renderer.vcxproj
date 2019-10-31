@@ -203,7 +203,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <CppLanguageStandard>c++11</CppLanguageStandard>
       <CompileAs>CompileAsCpp</CompileAs>
-      <PreprocessorDefinitions>USE_MEMORY_TRACKING;VULKAN;ANDROID;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;API_EXPORT;ANDROID;VULKAN;_DEBUG;USE_MEMORY_TRACKING;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <EnableNeonCodegen>false</EnableNeonCodegen>
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
@@ -217,7 +217,7 @@
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <CppLanguageStandard>c++11</CppLanguageStandard>
       <CompileAs>CompileAsCpp</CompileAs>
-      <PreprocessorDefinitions>USE_MEMORY_TRACKING;VULKAN;ANDROID;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;API_EXPORT;ANDROID;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <EnableNeonCodegen>false</EnableNeonCodegen>
       <FloatABI>softfp</FloatABI>
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>

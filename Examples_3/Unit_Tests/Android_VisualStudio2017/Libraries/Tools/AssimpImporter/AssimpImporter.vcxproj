@@ -225,6 +225,7 @@
       <ExceptionHandling>Disabled</ExceptionHandling>
       <CompileAs>CompileAsCpp</CompileAs>
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <PreprocessorDefinitions>;USE_MEMORY_TRACKING;</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
