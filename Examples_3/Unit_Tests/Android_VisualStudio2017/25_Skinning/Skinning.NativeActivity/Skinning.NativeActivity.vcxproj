@@ -197,7 +197,10 @@
       <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;zip;SpirvTools;gainputstatic;shaderc;ozz_animation;ozz_base;AssimpImporter;assimp;IrrXML;</LibraryDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
+      <Command>"$(MSBuildBinPath)\msbuild.exe" $(ProjectDir)..\..\..\..\..\Common_3\Tools\AssetPipeline\Win64\AssetPipeline.sln /p:Configuration=$(Configuration)Vk /p:Platform=x64 /p:BuildInParallel=true /t:Build 
+"$(ProjectDir)..\..\..\..\..\Common_3\Tools\AssetPipeline\Win64\x64\$(Configuration)Vk\AssetPipelineCmd.exe" processanimations " $(ProjectDir)../../../UnitTestResources/Animation/fbx" "$(ProjectDir)../../../UnitTestResources/Animation"
+
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\25_Skinning\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y</Command>
@@ -225,7 +228,10 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\25_Skinning\Shaders\Vulka
       <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;zip;SpirvTools;gainputstatic;shaderc;ozz_animation;ozz_base;AssimpImporter;assimp;IrrXML;</LibraryDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
+      <Command>"$(MSBuildBinPath)\msbuild.exe" $(ProjectDir)..\..\..\..\..\Common_3\Tools\AssetPipeline\Win64\AssetPipeline.sln /p:Configuration=$(Configuration)Vk /p:Platform=x64 /p:BuildInParallel=true /t:Build 
+"$(ProjectDir)..\..\..\..\..\Common_3\Tools\AssetPipeline\Win64\x64\$(Configuration)Vk\AssetPipelineCmd.exe" processanimations " $(ProjectDir)../../../UnitTestResources/Animation/fbx" "$(ProjectDir)../../../UnitTestResources/Animation"
+
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\25_Skinning\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y</Command>
