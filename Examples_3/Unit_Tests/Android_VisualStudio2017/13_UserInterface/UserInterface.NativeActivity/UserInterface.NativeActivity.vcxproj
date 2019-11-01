@@ -162,6 +162,7 @@
       <CppLanguageStandard>c++11</CppLanguageStandard>
       <AdditionalOptions>-Wno-unused-variable -Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
       <EnableNeonCodegen>true</EnableNeonCodegen>
+      <PreprocessorDefinitions>VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;ANDROID;VULKAN;ANDROID_ARM_NEON;_DEBUG;</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;zip;SpirvTools;gainputstatic;shaderc</LibraryDependencies>
@@ -186,6 +187,7 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shade
       <CppLanguageStandard>c++11</CppLanguageStandard>
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
       <EnableNeonCodegen>true</EnableNeonCodegen>
+      <PreprocessorDefinitions>VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;ANDROID;VULKAN;ANDROID_ARM_NEON;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <LibraryDependencies>$(AndroidNativeLibs);Renderer;OS;zip;SpirvTools;gainputstatic;shaderc</LibraryDependencies>

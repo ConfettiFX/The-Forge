@@ -321,8 +321,8 @@
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(TargetDir)ImageConvertTools\"
-xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
-xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
+$(systemroot)\System32\xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
+$(systemroot)\System32\xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
@@ -352,8 +352,8 @@ xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configur
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(TargetDir)ImageConvertTools\"
-xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
-xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
+$(systemroot)\System32\xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
+$(systemroot)\System32\xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
@@ -383,8 +383,8 @@ xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configur
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(TargetDir)ImageConvertTools\"
-xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
-xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
+$(systemroot)\System32\xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
+$(systemroot)\System32\xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
@@ -481,8 +481,8 @@ xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configur
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(TargetDir)ImageConvertTools\"
-xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
-xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
+$(systemroot)\System32\xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
+$(systemroot)\System32\xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
@@ -516,8 +516,8 @@ xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configur
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(TargetDir)ImageConvertTools\"
-xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
-xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
+$(systemroot)\System32\xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
+$(systemroot)\System32\xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
@@ -551,8 +551,8 @@ xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configur
     </Link>
     <PostBuildEvent>
       <Command>mkdir "$(TargetDir)ImageConvertTools\"
-xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
-xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
+$(systemroot)\System32\xcopy /Y /S "$(ProjectDir)..\..\..\..\Tools\ImageConvertTools" "$(TargetDir)ImageConvertTools\"
+$(systemroot)\System32\xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\basis_universal\$(Configuration)\basisu.exe" "$(TargetDir)ImageConvertTools\"</Command>
     </PostBuildEvent>
     <PreBuildEvent>
       <Command>
