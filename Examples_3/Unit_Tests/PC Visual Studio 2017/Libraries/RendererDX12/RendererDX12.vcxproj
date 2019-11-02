@@ -151,7 +151,7 @@
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)WinPixEventRunTime.dll"* /Y
+      <Command>xcopy "$(ProjectDir)..\..\..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)WinPixEventRunTime.dll"* /Y
 xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"* /Y
 xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dxil.dll"* /Y</Command>
     </PostBuildEvent>
@@ -159,7 +159,7 @@ xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxil.dll" "$(Targ
       <AdditionalDependencies>WinPixEventRuntime.lib</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
@@ -217,7 +217,7 @@ xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxil.dll" "$(Targ
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy "$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)WinPixEventRunTime.dll"* /Y
+      <Command>xcopy "$(ProjectDir)..\..\..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)WinPixEventRunTime.dll"* /Y
 xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxcompiler.dll" "$(TargetDir)dxcompiler.dll"* /Y
 xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dxil.dll"* /Y</Command>
     </PostBuildEvent>
@@ -225,7 +225,7 @@ xcopy "$(WindowsSDKDir)bin\$(WindowsTargetPlatformVersion)\x64\dxil.dll" "$(Targ
       <AdditionalDependencies>WinPixEventRuntime.lib</AdditionalDependencies>
     </Lib>
     <Lib>
-      <AdditionalLibraryDirectories>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\</AdditionalLibraryDirectories>
     </Lib>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
