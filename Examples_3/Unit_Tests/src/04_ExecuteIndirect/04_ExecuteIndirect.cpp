@@ -303,10 +303,6 @@ class ExecuteIndirect: public IApp
 	
 	bool Init()
 	{
-#ifdef TARGET_IOS
-		LOGF(eERROR, "Unit test not supported on this platform. Reason: iOS GPU hangs with argument buffer binding");
-		exit(0);
-#endif
         // FILE PATHS
         PathHandle programDirectory = fsCopyProgramDirectoryPath();
         if (!fsPlatformUsesBundledResources())

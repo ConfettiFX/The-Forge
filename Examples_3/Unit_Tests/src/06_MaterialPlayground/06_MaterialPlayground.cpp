@@ -884,10 +884,6 @@ class MaterialPlayground: public IApp
 
 	bool Init()
 	{
-#ifdef TARGET_IOS
-		LOGF(eERROR, "Unit test not supported on this platform. Reason: iOS Metal shader compiler crashes when trying to compile panoToCube, computeIrradiance, computeSpecular compute shaders");
-		exit(0);
-#endif
         // FILE PATHS
         PathHandle programDirectory = fsCopyProgramDirectoryPath();
         if (!fsPlatformUsesBundledResources())
@@ -2774,7 +2770,7 @@ class MaterialPlayground: public IApp
 						hairParams[4].ppBuffers = &gHair[k].pBufferHairVertexPositions;
 						hairParams[5].pName = "cbHairGlobal";
 						hairParams[5].ppBuffers = &pUniformBufferHairGlobal;
-						updateDescriptorSet(pRenderer, descriptorSetIndex, pDescriptorSetHairIntegrate, 5, hairParams);
+						updateDescriptorSet(pRenderer, descriptorSetIndex, pDescriptorSetHairIntegrate, 6, hairParams);
 
 						hairParams[0].pName = "cbSimulation";
 						hairParams[0].ppBuffers = &gHair[k].pUniformBufferHairSimulation[f];
@@ -3187,7 +3183,7 @@ class MaterialPlayground: public IApp
 		GPUPresetLevel presetLevel = pRenderer->mGpuSettings->mGpuVendorPreset.mPresetLevel;
 		uint32_t       importanceSampleCounts[GPUPresetLevel::GPU_PRESET_COUNT] = { 0, 0, 64, 128, 256, 1024 };
 		uint32_t       importanceSampleCount = importanceSampleCounts[presetLevel];
-		char           importanceSampleCountBuffer[4] = {};
+		char           importanceSampleCountBuffer[5] = {};
 		sprintf(importanceSampleCountBuffer, "%u", importanceSampleCount);
 		ShaderMacro    importanceSampleMacro = { "IMPORTANCE_SAMPLE_COUNT", importanceSampleCountBuffer };
 
@@ -3200,10 +3196,12 @@ class MaterialPlayground: public IApp
 		ShaderLoadDesc specularShaderDesc = {};
 		specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", &importanceSampleMacro, 1, RD_SHADER_SOURCES };
 
+#ifndef TARGET_IOS
 		addShader(pRenderer, &panoToCubeShaderDesc, &pPanoToCubeShader);
+        addShader(pRenderer, &irradianceShaderDesc, &pIrradianceShader);
+        addShader(pRenderer, &specularShaderDesc, &pSpecularShader);
+#endif
 		addShader(pRenderer, &brdfIntegrationShaderDesc, &pBRDFIntegrationShader);
-		addShader(pRenderer, &irradianceShaderDesc, &pIrradianceShader);
-		addShader(pRenderer, &specularShaderDesc, &pSpecularShader);
 
 		const char*       pStaticSamplerNames[] = { "skyboxSampler" };
 		RootSignatureDesc panoRootDesc = { &pPanoToCubeShader, 1 };
@@ -3222,13 +3220,16 @@ class MaterialPlayground: public IApp
 		specularRootDesc.mStaticSamplerCount = 1;
 		specularRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
 		specularRootDesc.ppStaticSamplers = &pSkyboxSampler;
+#ifndef TARGET_IOS
 		addRootSignature(pRenderer, &panoRootDesc, &pPanoToCubeRootSignature);
+        addRootSignature(pRenderer, &irradianceRootDesc, &pIrradianceRootSignature);
+        addRootSignature(pRenderer, &specularRootDesc, &pSpecularRootSignature);
+#endif
 		addRootSignature(pRenderer, &brdfRootDesc, &pBRDFIntegrationRootSignature);
-		addRootSignature(pRenderer, &irradianceRootDesc, &pIrradianceRootSignature);
-		addRootSignature(pRenderer, &specularRootDesc, &pSpecularRootSignature);
 
 		DescriptorSetDesc setDesc = { pBRDFIntegrationRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetBRDF);
+#ifndef TARGET_IOS
 		setDesc = { pPanoToCubeRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPanoToCube[0]);
 		setDesc = { pPanoToCubeRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gSkyboxMips };
@@ -3239,22 +3240,25 @@ class MaterialPlayground: public IApp
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSpecular[0]);
 		setDesc = { pSpecularRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gSkyboxMips };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSpecular[1]);
+#endif
 
 		PipelineDesc desc = {};
 		desc.mType = PIPELINE_TYPE_COMPUTE;
 		ComputePipelineDesc& pipelineSettings = desc.mComputeDesc;
-		pipelineSettings.pShaderProgram = pPanoToCubeShader;
+#ifndef TARGET_IOS
+        pipelineSettings.pShaderProgram = pPanoToCubeShader;
 		pipelineSettings.pRootSignature = pPanoToCubeRootSignature;
 		addPipeline(pRenderer, &desc, &pPanoToCubePipeline);
+        pipelineSettings.pShaderProgram = pIrradianceShader;
+        pipelineSettings.pRootSignature = pIrradianceRootSignature;
+        addPipeline(pRenderer, &desc, &pIrradiancePipeline);
+        pipelineSettings.pShaderProgram = pSpecularShader;
+        pipelineSettings.pRootSignature = pSpecularRootSignature;
+        addPipeline(pRenderer, &desc, &pSpecularPipeline);
+#endif
 		pipelineSettings.pShaderProgram = pBRDFIntegrationShader;
 		pipelineSettings.pRootSignature = pBRDFIntegrationRootSignature;
 		addPipeline(pRenderer, &desc, &pBRDFIntegrationPipeline);
-		pipelineSettings.pShaderProgram = pIrradianceShader;
-		pipelineSettings.pRootSignature = pIrradianceRootSignature;
-		addPipeline(pRenderer, &desc, &pIrradiancePipeline);
-		pipelineSettings.pShaderProgram = pSpecularShader;
-		pipelineSettings.pRootSignature = pSpecularRootSignature;
-		addPipeline(pRenderer, &desc, &pSpecularPipeline);
 
 		Cmd* pCmd = ppCmds[0];
 
@@ -3284,6 +3288,7 @@ class MaterialPlayground: public IApp
 
 		cmdResourceBarrier(pCmd, 0, NULL, 1, srvBarrier);
 
+#ifndef TARGET_IOS
 		// Store the panorama texture inside a cubemap.
 		cmdBindPipeline(pCmd, pPanoToCubePipeline);
 		params[0].pName = "srcTexture";
@@ -3315,6 +3320,7 @@ class MaterialPlayground: public IApp
 
 		TextureBarrier srvBarriers[1] = { { pTextureSkybox, RESOURCE_STATE_SHADER_RESOURCE } };
 		cmdResourceBarrier(pCmd, 0, NULL, 1, srvBarriers);
+        
 		/************************************************************************/
 		// Compute sky irradiance
 		/************************************************************************/
@@ -3365,14 +3371,15 @@ class MaterialPlayground: public IApp
 		TextureBarrier srvBarriers2[2] = { { pTextureIrradianceMap, RESOURCE_STATE_SHADER_RESOURCE },
 										   { pTextureSpecularMap, RESOURCE_STATE_SHADER_RESOURCE } };
 		cmdResourceBarrier(pCmd, 0, NULL, 2, srvBarriers2);
-
+#endif
 		endCmd(pCmd);
 		waitTokenCompleted(token);
 		queueSubmit(pGraphicsQueue, 1, &pCmd, NULL, 0, NULL, 0, NULL);
 		waitQueueIdle(pGraphicsQueue);
 
 		removeDescriptorSet(pRenderer, pDescriptorSetBRDF);
-		removeDescriptorSet(pRenderer, pDescriptorSetPanoToCube[0]);
+#ifndef TARGET_IOS
+        removeDescriptorSet(pRenderer, pDescriptorSetPanoToCube[0]);
 		removeDescriptorSet(pRenderer, pDescriptorSetPanoToCube[1]);
 		removeDescriptorSet(pRenderer, pDescriptorSetIrradiance);
 		removeDescriptorSet(pRenderer, pDescriptorSetSpecular[0]);
@@ -3383,12 +3390,13 @@ class MaterialPlayground: public IApp
 		removePipeline(pRenderer, pIrradiancePipeline);
 		removeRootSignature(pRenderer, pIrradianceRootSignature);
 		removeShader(pRenderer, pIrradianceShader);
+        removePipeline(pRenderer, pPanoToCubePipeline);
+        removeRootSignature(pRenderer, pPanoToCubeRootSignature);
+        removeShader(pRenderer, pPanoToCubeShader);
+#endif
 		removePipeline(pRenderer, pBRDFIntegrationPipeline);
 		removeRootSignature(pRenderer, pBRDFIntegrationRootSignature);
 		removeShader(pRenderer, pBRDFIntegrationShader);
-		removePipeline(pRenderer, pPanoToCubePipeline);
-		removeRootSignature(pRenderer, pPanoToCubeRootSignature);
-		removeShader(pRenderer, pPanoToCubeShader);
 		removeResource(pPanoSkybox);
 		removeSampler(pRenderer, pSkyboxSampler);
 	}

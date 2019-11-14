@@ -12,66 +12,267 @@ using namespace metal;
 
 #include "ShaderTypes.h"
 
-#ifndef TARGET_IOS
-struct CSData {
-    texture2d<float, access::write> gOutput;
-};
+struct MetalRayGenShader {
+	
+	uint _activeThreadIndex;
+	uint _pathIndex;
+	PathCallStack _callStack;
+	
+	device Ray& _ray;
+	device Payload& _payload;
+	
+	short _nextSubshader;
+	
+	// For the first ray generation shader.
+	MetalRayGenShader(uint2 tid,
+					  constant RaytracingArguments & arguments,
+					  device uint* pathIndices,
+					  device uint4& rayCountIndirectBuffer,
+					  constant short& shaderIndex,
+					  short subshaderCount) :
+	_activeThreadIndex(tid.y * arguments.uniforms.width + tid.x),
+	_pathIndex(_activeThreadIndex),
+	_callStack(arguments.pathCallStackHeaders, arguments.pathCallStackFunctions, _pathIndex, arguments.uniforms.maxCallStackDepth),
+	_ray(arguments.rays[_activeThreadIndex]),
+	_payload(arguments.payloads[_pathIndex]),
+	_nextSubshader(1 < subshaderCount ? 1 : -1)
+	{
+		pathIndices[_pathIndex] = _pathIndex;
+		_callStack.Initialize();
+		
+		if (tid.x == 0 && tid.y == 0)
+		{
+			uint rayCount = arguments.uniforms.width * arguments.uniforms.height;
+			rayCountIndirectBuffer[0] = rayCount;
+			rayCountIndirectBuffer[1] = (rayCount + THREADS_PER_THREADGROUP - 1) / THREADS_PER_THREADGROUP;
+			rayCountIndirectBuffer[2] = 1;
+			rayCountIndirectBuffer[3] = 1;
+		}
+		
+		const short subshaderIndex = 0;
+		this->sharedInit(arguments, subshaderIndex, subshaderCount);
+	}
+	
+	// For subsequent ray generation shaders.
+	MetalRayGenShader(uint tid,
+					  constant RaytracingArguments & arguments,
+					  const device uint* pathIndices,
+					  const device uint2& pathBaseOffsetAndCount,
+					  constant short& shaderIndex,
+					  short subshaderIndex,
+					  short subshaderCount) :
+	_activeThreadIndex(pathBaseOffsetAndCount.x + tid),
+	_pathIndex(pathIndices[_activeThreadIndex]),
+	_callStack(arguments.pathCallStackHeaders, arguments.pathCallStackFunctions, _pathIndex, arguments.uniforms.maxCallStackDepth),
+	_ray(arguments.rays[_activeThreadIndex]),
+	_payload(arguments.payloads[_pathIndex]),
+	_nextSubshader(subshaderIndex + 1 < subshaderCount ? shaderIndex + 1 : -1)
+	{
+		this->sharedInit(arguments, subshaderIndex, subshaderCount);
+	}
+	
+	void sharedInit(constant RaytracingArguments & arguments, short subshaderIndex, short subshaderCount) {
+		_ray.maxDistance = -1.f;
+	}
+	
+	void setupNextShader()
+	{
+		if (_nextSubshader >= 0)
+		{
+			_callStack.PushFunction(_nextSubshader);
+		}
+	}
+	
+	void SkipSubshaders()
+	{
+		_nextSubshader = -1;
+	}
+	
+	void CallShader(uint shaderIndex)
+	{
+		_callStack.PushFunction(shaderIndex);
+	}
+	
+	void TraceRay(Ray ray, short missShaderIndex = -1, uchar rayContributionToHitGroupIndex = 0)
+	{
+		_ray = ray;
+		_callStack.SetRayContributionToHitGroupIndex(rayContributionToHitGroupIndex);
+//		_callStack.SetMultiplierForGeometryContributionToHitGroupIndex(multiplierForGeometryContributionToHitGroupIndex);
+		if (missShaderIndex >= 0)
+		{
+			_callStack.SetMissShaderIndex(missShaderIndex);
+		}
+		else
+		{
+			_callStack.SetHitShaderOnly();
+		}
+		
+		_payload.intersectionIndex = _activeThreadIndex;
+	}
+	
+	// ---------------------------------------------------------------------------------------
+	// User shaders.
+	
+	void shader0(uint2 threadId,
+				 constant Uniforms & uniforms,
+				 device Payload &payload,
+				 constant CSDataPerFrame& csDataPerFrame,
+				 constant CSData& csData
+#ifdef TARGET_IOS
+				 ,texture2d<float, access::read_write> gOutput
 #endif
-
-struct CSDataPerFrame {
-    constant RayGenConfigBlock & gSettings;
+) {
+		uint2 launchIndex = threadId.xy;
+		uint2 launchDim = uint2(uniforms.width, uniforms.height);
+		
+		constant RayGenConfigBlock &settings = csDataPerFrame.gSettings;
+		
+		float2 crd = float2(launchIndex) + settings.mSubpixelJitter;;
+		float2 dims = float2(launchDim);
+		
+		float2 d = ((crd / dims) * 2.f - 1.f);
+		d.y *= -1;
+		
+		float3 direction = normalize(float3(d * settings.mZ1PlaneSize, 1));
+		float3 directionWS = float3x3(settings.mCameraToWorld[0].xyz, settings.mCameraToWorld[1].xyz, settings.mCameraToWorld[2].xyz) * direction;
+		
+		Ray ray;
+		ray.origin = settings.mCameraToWorld[3].xyz + directionWS * settings.mProjNear;
+		ray.direction = directionWS;
+		ray.mask = 0xFF;
+		ray.maxDistance = settings.mProjFarMinusNear;
+		
+		payload.throughput = float3(1.0);
+		payload.radiance = float3(0.0);
+		payload.lightSample = 0.0;
+		payload.randomSeed = csDataPerFrame.gSettings.mRandomSeed;
+		payload.recursionDepth = 0;
+	#if DENOISER_ENABLED
+		payload.surfaceAlbedo = 1.0;
+	#endif
+		
+		TraceRay(ray, /* missShaderIndex = */ 0);
+		
+		// Debug: uncomment this on to show green when the second part of the rayGen shader isn't reached.
+//		if (settings.mFrameIndex == 0) {
+//	#ifndef TARGET_IOS
+//			csData.gOutput.write(float4(0, 1, 0, 1.0f), threadId);
+//	#else
+//			gOutput.write(float4(0, 1, 0, 1.0f), threadId);
+//	#endif
+//		}
+	}
+	
+	void shader1(uint pathIndex,
+				 constant Uniforms & uniforms,
+				 device Payload &payload,
+				 constant CSDataPerFrame& csDataPerFrame,
+				 constant CSData& csData
+#ifdef TARGET_IOS
+				 ,texture2d<float, access::read_write> gOutput
+				 ,texture2d<float, access::read_write> gAlbedoTex
+#endif
+				 )
+	{
+		uint2 pixelPos = uint2(pathIndex % uniforms.width, pathIndex / uniforms.width);
+		
+		constant RayGenConfigBlock &settings = csDataPerFrame.gSettings;
+		
+#ifndef TARGET_IOS
+		texture2d<float, access::read_write> outputTexture = csData.gOutput;
+#else
+		texture2d<float, access::read_write> outputTexture = gOutput;
+#endif
+		float4 accumulatedRadiance = 0.0;
+		
+#if DENOISER_ENABLED
+		accumulatedRadiance = float4(payload.radiance, 1.0);
+#else
+		if (settings.mFrameIndex == 0) {
+			accumulatedRadiance = float4(payload.radiance, 1.0);
+		} else {
+			accumulatedRadiance = outputTexture.read(pixelPos);
+			accumulatedRadiance.w += 1.0;
+			accumulatedRadiance.rgb += (payload.radiance - accumulatedRadiance.rgb) / accumulatedRadiance.w;
+		}
+#endif
+		
+		outputTexture.write(accumulatedRadiance, pixelPos);
+		
+#if DENOISER_ENABLED
+#ifndef TARGET_IOS
+		texture2d<float, access::read_write> albedoTexture = csData.gAlbedoTex;
+#else
+		texture2d<float, access::read_write> albedoTexture = gAlbedoTex;
+#endif
+		
+		float3 accumulatedAlbedo = 0.0;
+		if (settings.mFramesSinceCameraMove == 0) {
+			accumulatedAlbedo = payload.surfaceAlbedo;
+		} else {
+			float invWeight = (float)(settings.mFramesSinceCameraMove + 1);
+			accumulatedAlbedo = albedoTexture.read(pixelPos).rgb;
+			accumulatedAlbedo += (payload.surfaceAlbedo - accumulatedAlbedo) / invWeight;
+		}
+		
+		albedoTexture.write(float4(accumulatedAlbedo, 1.0), pixelPos);
+#endif
+	}
 };
 
 // Generates rays starting from the camera origin and traveling towards the image plane aligned
 // with the camera's coordinate system.
 // [numthreads(8, 8, 1)]
 kernel void rayGen(uint2 tid                     [[thread_position_in_grid]],
-                      // Buffers bound on the CPU. Note that 'constant' should be used for small
-                      // read-only data which will be reused across threads. 'device' should be
-                      // used for writable data or data which will only be used by a single thread.
-                      device Ray *rays              [[buffer(0)]],
-                      constant Uniforms & uniforms  [[buffer(1)]],
-                      constant CSDataPerFrame& csDataPerFrame    [[buffer(UPDATE_FREQ_PER_FRAME)]],
-#ifndef TARGET_IOS
-                      constant CSData& csData                    [[buffer(UPDATE_FREQ_NONE)]]
-#else
-                      texture2d<float, access::write> gOutput    [[texture(0)]]
+				   constant RaytracingArguments & arguments  [[buffer(0)]],
+				   device uint* pathIndices [[buffer(1)]],
+				   device uint4& rayCountIndirectBuffer [[buffer(2)]],
+				   constant short& shaderIndex [[buffer(3)]],
+				   constant CSDataPerFrame& csDataPerFrame    [[buffer(UPDATE_FREQ_PER_FRAME)]],
+				   constant CSData& csData                    [[buffer(UPDATE_FREQ_NONE)]]
+#ifdef TARGET_IOS
+				   ,texture2d<float, access::read_write> gOutput    [[texture(0)]]
 #endif
 )
 {
-    // Since we aligned the thread count to the threadgroup size, the thread index may be out of bounds
-    // of the render target size.
-    if (tid.x < uniforms.width && tid.y < uniforms.height) {
-        // Compute linear ray index from 2D position
-        unsigned int rayIdx = tid.y * uniforms.width + tid.x;
-        
-        // Ray we will produce
-        device Ray & ray = rays[rayIdx];
-        
-        uint2 launchIndex = tid.xy;
-        uint2 launchDim = uint2(uniforms.width, uniforms.height);
-        
-        float2 crd = float2(launchIndex);
-        float2 dims = float2(launchDim);
-        
-        float2 d = ((crd / dims) * 2.f - 1.f);
-        float aspectRatio = dims.x / dims.y;
-        
-        ray.origin = csDataPerFrame.gSettings.mCameraPosition;//float3(0, 0, -2);
-        ray.direction = normalize(float3(d.x * aspectRatio, -d.y, 1.0f));
+    if (tid.x >= arguments.uniforms.width || tid.y >= arguments.uniforms.height) {
+		return;
+	}
 
-        // The camera emits primary rays
-        ray.mask = 0xFF;
-        ray.maxDistance = 10000;//INFINITY;
-        
-        //if is primary ray then HitGroupID provided by instance is used to choose which hit shader will be invoked
-        //Set this to 0 when you configure ray in Hit/Miss shader. Set 1 in raygen shader.
-        ray.isPrimaryRay = 1;
-        //cleanup
-#ifndef TARGET_IOS
-        csData.gOutput.write(float4(0.0, 0.0, 0.0, 0.0f), tid);
+	MetalRayGenShader rayGenShader(tid, arguments, pathIndices, rayCountIndirectBuffer, shaderIndex, /* subshaderCount = */ 2);
+#ifdef TARGET_IOS
+	rayGenShader.shader0(tid, arguments.uniforms, rayGenShader._payload, csDataPerFrame, csData, gOutput);
 #else
-        gOutput.write(float4(0.0, 0.0, 0.0, 0.0f), tid);
+	rayGenShader.shader0(tid, arguments.uniforms, rayGenShader._payload, csDataPerFrame, csData);
 #endif
-    }
+	
+	rayGenShader.setupNextShader();
+}
+
+kernel void rayGen_0(uint tid                                [[thread_position_in_grid]],
+					 constant RaytracingArguments & arguments  	[[buffer(0)]],
+					 const device uint* pathIndices			 	[[buffer(1)]],
+					 const device uint2& pathBaseOffsetAndCount 	[[buffer(2)]],
+					 constant short& shaderIndex             		[[buffer(3)]],
+					 constant CSDataPerFrame& csDataPerFrame    	[[buffer(UPDATE_FREQ_PER_FRAME)]],
+					 constant CSData& csData                    	[[buffer(UPDATE_FREQ_NONE)]]
+#ifdef TARGET_IOS
+					 ,texture2d<float, access::read_write> gOutput    [[texture(0)]]
+					 ,texture2d<float, access::read_write> gAlbedoTex 	  [[texture(1)]]
+#endif
+					 )
+{
+	if (tid >= pathBaseOffsetAndCount.y) {
+		return;
+	}
+	
+	MetalRayGenShader rayGenShader(tid, arguments, pathIndices, pathBaseOffsetAndCount, shaderIndex, /* subshaderIndex = */ 1, /* subshaderCount = */ 2);
+	
+#ifdef TARGET_IOS
+	rayGenShader.shader1(rayGenShader._pathIndex, arguments.uniforms, rayGenShader._payload, csDataPerFrame, csData, gOutput, gAlbedoTex);
+#else
+	rayGenShader.shader1(rayGenShader._pathIndex, arguments.uniforms, rayGenShader._payload, csDataPerFrame, csData);
+#endif
+	
+	rayGenShader.setupNextShader();
 }

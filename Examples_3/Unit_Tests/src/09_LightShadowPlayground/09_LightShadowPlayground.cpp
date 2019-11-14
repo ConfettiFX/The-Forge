@@ -4838,7 +4838,7 @@ static void createScene()
 	gMeshInfoData[0].mScaleMat = mat4::scale(vec3( gMeshInfoData[0].mScale.x, gMeshInfoData[0].mScale.y, gMeshInfoData[0].mScale.z) );
 	float finalXTranslation = SAN_MIGUEL_OFFSETX;
 	gMeshInfoData[0].mTranslation = float3(finalXTranslation, 0.f, 0.f);
-	gMeshInfoData[0].mOffsetTranslation = float3(-SAN_MIGUEL_ORIGINAL_OFFSETX, 0.f, 0.f);
+	gMeshInfoData[0].mOffsetTranslation = float3(-(SAN_MIGUEL_ORIGINAL_OFFSETX), 0.f, 0.f);
 	gMeshInfoData[0].mTranslationMat = mat4::translation(vec3(gMeshInfoData[0].mTranslation.x, 
 		gMeshInfoData[0].mTranslation.y, gMeshInfoData[0].mTranslation.z));
 }

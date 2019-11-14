@@ -168,6 +168,12 @@ static uint32_t gPlaneNumber = 1;
 static float    gPlaneSize = 75.0f;
 static float    gRRP_Intensity = 0.2f;
 
+#ifdef TARGET_IOS
+static bool gUseTexturesFallback = false;
+#else
+const bool gUseTexturesFallback = false; // cut off branching for other platforms
+#endif
+
 const char* pMaterialImageFileNames[] = {
 	"SponzaPBR_Textures/ao",
 	"SponzaPBR_Textures/ao",
@@ -537,11 +543,6 @@ class PixelProjectedReflections: public IApp
 	
 	bool Init()
 	{
-#ifdef TARGET_IOS
-		LOGF(eERROR, "Unit test not supported on this platform. Reason: iOS Metal shader compiler crashes when trying to compile panoToCube, computeIrradiance, computeSpecular compute shaders");
-		exit(0);
-#endif
-		
 		// FILE PATHS
 		PathHandle programDirectory = fsCopyProgramDirectoryPath();
 		FileSystem *fileSystem = fsGetPathFileSystem(programDirectory);
@@ -567,6 +568,10 @@ class PixelProjectedReflections: public IApp
 		if (!pRenderer)
 			return false;
 
+#ifdef TARGET_IOS
+		gUseTexturesFallback = (pRenderer->mGpuSettings[0].mArgumentBufferMaxTextures < TOTAL_IMGS);
+#endif
+		
 		QueueDesc queueDesc = {};
 		queueDesc.mType = CMD_POOL_DIRECT;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
@@ -632,11 +637,15 @@ class PixelProjectedReflections: public IApp
 		ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", totalImagesShaderMacroBuffer };
 		ShaderLoadDesc gBuffersShaderDesc = {};
 		gBuffersShaderDesc.mStages[0] = { "fillGbuffers.vert", NULL, 0, RD_SHADER_SOURCES };
-#ifndef TARGET_IOS
-		gBuffersShaderDesc.mStages[1] = { "fillGbuffers.frag", &totalImagesShaderMacro, 1, RD_SHADER_SOURCES };
-#else
-		gBuffersShaderDesc.mStages[1] = { "fillGbuffers_iOS.frag", NULL, 0, RD_SHADER_SOURCES };
-#endif
+		
+		if (!gUseTexturesFallback)
+		{
+			gBuffersShaderDesc.mStages[1] = { "fillGbuffers.frag", &totalImagesShaderMacro, 1, RD_SHADER_SOURCES };
+		}
+		else
+		{
+			gBuffersShaderDesc.mStages[1] = { "fillGbuffers_iOS.frag", NULL, 0, RD_SHADER_SOURCES };
+		}
 		addShader(pRenderer, &gBuffersShaderDesc, &pShaderGbuffers);
 
 		const char* pStaticSamplerNames[] = { "defaultSampler" };
@@ -647,9 +656,10 @@ class PixelProjectedReflections: public IApp
 		gBuffersRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
 		gBuffersRootDesc.ppStaticSamplers = pStaticSamplers;
 
-#ifndef TARGET_IOS
-		gBuffersRootDesc.mMaxBindlessTextures = TOTAL_IMGS;
-#endif
+		if (!gUseTexturesFallback)
+		{
+			gBuffersRootDesc.mMaxBindlessTextures = TOTAL_IMGS;
+		}
 		addRootSignature(pRenderer, &gBuffersRootDesc, &pRootSigGbuffers);
 
 		ShaderLoadDesc skyboxShaderDesc = {};
@@ -722,7 +732,14 @@ class PixelProjectedReflections: public IApp
 		setDesc = { pSkyboxRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSkybox[1]);
 		// GBuffer
-		setDesc = { pRootSigGbuffers, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		if (gUseTexturesFallback)
+		{
+			setDesc = { pRootSigGbuffers, DESCRIPTOR_UPDATE_FREQ_NONE, 512 };
+		}
+		else
+		{
+			setDesc = { pRootSigGbuffers, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+		}
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGbuffers[0]);
 		setDesc = { pRootSigGbuffers, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGbuffers[1]);
@@ -1336,7 +1353,7 @@ class PixelProjectedReflections: public IApp
 		GPUPresetLevel presetLevel = pRenderer->mGpuSettings->mGpuVendorPreset.mPresetLevel;
 		uint32_t       importanceSampleCounts[GPUPresetLevel::GPU_PRESET_COUNT] = { 0, 0, 64, 128, 256, 1024 };
 		uint32_t       importanceSampleCount = importanceSampleCounts[presetLevel];
-		char           importanceSampleCountBuffer[4] = {};
+		char           importanceSampleCountBuffer[5] = {};
 		sprintf(importanceSampleCountBuffer, "%u", importanceSampleCount);
 		ShaderMacro    importanceSampleMacro = { "IMPORTANCE_SAMPLE_COUNT", importanceSampleCountBuffer };
 
@@ -1349,10 +1366,12 @@ class PixelProjectedReflections: public IApp
 		ShaderLoadDesc specularShaderDesc = {};
 		specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", &importanceSampleMacro, 1, RD_SHADER_SOURCES };
 
+#ifndef TARGET_IOS
 		addShader(pRenderer, &panoToCubeShaderDesc, &pPanoToCubeShader);
-		addShader(pRenderer, &brdfIntegrationShaderDesc, &pBRDFIntegrationShader);
 		addShader(pRenderer, &irradianceShaderDesc, &pIrradianceShader);
 		addShader(pRenderer, &specularShaderDesc, &pSpecularShader);
+#endif
+		addShader(pRenderer, &brdfIntegrationShaderDesc, &pBRDFIntegrationShader);
 
 		const char*       pStaticSamplerNames[] = { "skyboxSampler" };
 		RootSignatureDesc panoRootDesc = { &pPanoToCubeShader, 1 };
@@ -1371,13 +1390,16 @@ class PixelProjectedReflections: public IApp
 		specularRootDesc.mStaticSamplerCount = 1;
 		specularRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
 		specularRootDesc.ppStaticSamplers = &pSkyboxSampler;
+#ifndef TARGET_IOS
 		addRootSignature(pRenderer, &panoRootDesc, &pPanoToCubeRootSignature);
-		addRootSignature(pRenderer, &brdfRootDesc, &pBRDFIntegrationRootSignature);
 		addRootSignature(pRenderer, &irradianceRootDesc, &pIrradianceRootSignature);
 		addRootSignature(pRenderer, &specularRootDesc, &pSpecularRootSignature);
+#endif
+		addRootSignature(pRenderer, &brdfRootDesc, &pBRDFIntegrationRootSignature);
 
 		DescriptorSetDesc setDesc = { pBRDFIntegrationRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetBRDF);
+#ifndef TARGET_IOS
 		setDesc = { pPanoToCubeRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPanoToCube[0]);
 		setDesc = { pPanoToCubeRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gSkyboxMips };
@@ -1388,22 +1410,25 @@ class PixelProjectedReflections: public IApp
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSpecular[0]);
 		setDesc = { pSpecularRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gSkyboxMips };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSpecular[1]);
+#endif
 
 		PipelineDesc desc = {};
 		desc.mType = PIPELINE_TYPE_COMPUTE;
 		ComputePipelineDesc& pipelineSettings = desc.mComputeDesc;
+#ifndef TARGET_IOS
 		pipelineSettings.pShaderProgram = pPanoToCubeShader;
 		pipelineSettings.pRootSignature = pPanoToCubeRootSignature;
 		addPipeline(pRenderer, &desc, &pPanoToCubePipeline);
-		pipelineSettings.pShaderProgram = pBRDFIntegrationShader;
-		pipelineSettings.pRootSignature = pBRDFIntegrationRootSignature;
-		addPipeline(pRenderer, &desc, &pBRDFIntegrationPipeline);
 		pipelineSettings.pShaderProgram = pIrradianceShader;
 		pipelineSettings.pRootSignature = pIrradianceRootSignature;
 		addPipeline(pRenderer, &desc, &pIrradiancePipeline);
 		pipelineSettings.pShaderProgram = pSpecularShader;
 		pipelineSettings.pRootSignature = pSpecularRootSignature;
 		addPipeline(pRenderer, &desc, &pSpecularPipeline);
+#endif
+		pipelineSettings.pShaderProgram = pBRDFIntegrationShader;
+		pipelineSettings.pRootSignature = pBRDFIntegrationRootSignature;
+		addPipeline(pRenderer, &desc, &pBRDFIntegrationPipeline);
 
 		Cmd* pCmd = ppCmds[0];
 
@@ -1433,6 +1458,7 @@ class PixelProjectedReflections: public IApp
 
 		cmdResourceBarrier(pCmd, 0, NULL, 1, srvBarrier);
 
+#ifndef TARGET_IOS
 		// Store the panorama texture inside a cubemap.
 		cmdBindPipeline(pCmd, pPanoToCubePipeline);
 		params[0].pName = "srcTexture";
@@ -1464,6 +1490,7 @@ class PixelProjectedReflections: public IApp
 
 		TextureBarrier srvBarriers[1] = { { pSkybox, RESOURCE_STATE_SHADER_RESOURCE } };
 		cmdResourceBarrier(pCmd, 0, NULL, 1, srvBarriers);
+
 		/************************************************************************/
 		// Compute sky irradiance
 		/************************************************************************/
@@ -1478,6 +1505,7 @@ class PixelProjectedReflections: public IApp
 		cmdBindDescriptorSet(pCmd, 0, pDescriptorSetIrradiance);
 		pThreadGroupSize = pIrradianceShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
 		cmdDispatch(pCmd, gIrradianceSize / pThreadGroupSize[0], gIrradianceSize / pThreadGroupSize[1], 6);
+
 		/************************************************************************/
 		// Compute specular sky
 		/************************************************************************/
@@ -1509,6 +1537,8 @@ class PixelProjectedReflections: public IApp
 				pCmd, max(1u, (gSpecularSize >> i) / pThreadGroupSize[0]),
 				max(1u, (gSpecularSize >> i) / pThreadGroupSize[1]), 6);
 		}
+#endif
+		
 		/************************************************************************/
 		/************************************************************************/
 		TextureBarrier srvBarriers2[2] = { { pIrradianceMap, RESOURCE_STATE_SHADER_RESOURCE },
@@ -1521,6 +1551,7 @@ class PixelProjectedReflections: public IApp
 		waitQueueIdle(pGraphicsQueue);
 
 		removeDescriptorSet(pRenderer, pDescriptorSetBRDF);
+#ifndef TARGET_IOS
 		removeDescriptorSet(pRenderer, pDescriptorSetPanoToCube[0]);
 		removeDescriptorSet(pRenderer, pDescriptorSetPanoToCube[1]);
 		removeDescriptorSet(pRenderer, pDescriptorSetIrradiance);
@@ -1532,12 +1563,13 @@ class PixelProjectedReflections: public IApp
 		removePipeline(pRenderer, pIrradiancePipeline);
 		removeRootSignature(pRenderer, pIrradianceRootSignature);
 		removeShader(pRenderer, pIrradianceShader);
-		removePipeline(pRenderer, pBRDFIntegrationPipeline);
-		removeRootSignature(pRenderer, pBRDFIntegrationRootSignature);
-		removeShader(pRenderer, pBRDFIntegrationShader);
 		removePipeline(pRenderer, pPanoToCubePipeline);
 		removeRootSignature(pRenderer, pPanoToCubeRootSignature);
 		removeShader(pRenderer, pPanoToCubeShader);
+#endif
+		removePipeline(pRenderer, pBRDFIntegrationPipeline);
+		removeRootSignature(pRenderer, pBRDFIntegrationRootSignature);
+		removeShader(pRenderer, pBRDFIntegrationShader);
 		removeResource(pPanoSkybox);
 		removeSampler(pRenderer, pSkyboxSampler);
 	}
@@ -2128,103 +2160,98 @@ class PixelProjectedReflections: public IApp
 			cmdBindVertexBuffer(cmd, 1, pSponzaVertexBuffers, NULL);
 			cmdBindIndexBuffer(cmd, sponzaMesh.pIndexBuffer, 0);
 
-#if 0 //def TARGET_IOS
-			cmdBindPipeline(cmd, pPipelineGbuffers);
-			DescriptorData params[8] = {};
-			params[0].pName = "cbCamera";
-			params[0].ppBuffers = &pBufferUniformCamera[gFrameIndex];
-
-			for (uint32_t i = 0; i < (uint32_t)sponzaMesh.cmdArray.size(); ++i)
-			{
-				int materialID = sponzaMesh.materialID[i];
-				materialID *= 5;    //because it uses 5 basic textures for redering BRDF
-
-				params[1].pName = "cbObject";
-				params[1].ppBuffers = &pSponzaBuffer;
-
-				for (int j = 0; j < 5; ++j)
-				{
-					//added
-					params[2 + j].pName = pTextureName[j];
-					params[2 + j].ppTextures = &pMaterialTextures[gSponzaTextureIndexforMaterial[materialID + j]];
-				}
-
-				//cmdBindDescriptors(cmd, pDescriptorBinder, pRootSigGbuffers, 7, params);
-				cmdBindDescriptorSet(cmd, 0, pDescriptorSetGbuffers[0]);
-				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetGbuffers[1]);
-				cmdBindDescriptorSet(cmd, 0, pDescriptorSetGbuffers[2]);
-				
-				Mesh::CmdParam& cmdData = sponzaMesh.cmdArray[i];
-				cmdDrawIndexed(cmd, cmdData.indexCount, cmdData.startIndex, cmdData.startVertex);
-			}
-
-#else
-
-			cmdBindPipeline(cmd, pPipelineGbuffers);
-			cmdBindDescriptorSet(cmd, 0, pDescriptorSetGbuffers[0]);
-			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetGbuffers[1]);
-			cmdBindDescriptorSet(cmd, 0, pDescriptorSetGbuffers[2]);
-
 			struct MaterialMaps
 			{
 				uint mapIDs[5];
 			} data;
+			
+			const uint32_t meshCount = (uint32_t)sponzaMesh.cmdArray.size();
 
-			for (uint32_t i = 0; i < (uint32_t)sponzaMesh.cmdArray.size(); ++i)
+			if (gUseTexturesFallback)
 			{
-				int materialID = sponzaMesh.materialID[i];
-				materialID *= 5;    //because it uses 5 basic textures for redering BRDF
-
-				for (int j = 0; j < 5; ++j)
+				cmdBindPipeline(cmd, pPipelineGbuffers);
+				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetGbuffers[1]);
+				cmdBindDescriptorSet(cmd, 0, pDescriptorSetGbuffers[2]);
+				DescriptorData params[8] = {};
+				
+				for (uint32_t i = 0; i < meshCount; ++i)
 				{
-					//added
-					data.mapIDs[j] = gSponzaTextureIndexforMaterial[materialID + j];
+					int materialID = sponzaMesh.materialID[i];
+					materialID *= 5;    //because it uses 5 basic textures for redering BRDF
+					
+					for (int j = 0; j < 5; ++j)
+					{
+						params[j].pName = pTextureName[j];
+						params[j].ppTextures = &pMaterialTextures[gSponzaTextureIndexforMaterial[materialID + j]];
+					}
+					updateDescriptorSet(pRenderer, i, pDescriptorSetGbuffers[0], 5, params);
+					cmdBindDescriptorSet(cmd, i, pDescriptorSetGbuffers[0]);
+					
+					Mesh::CmdParam& cmdData = sponzaMesh.cmdArray[i];
+					cmdDrawIndexed(cmd, cmdData.indexCount, cmdData.startIndex, cmdData.startVertex);
 				}
-				cmdBindPushConstants(cmd, pRootSigGbuffers, "cbTextureRootConstants", &data);
-				Mesh::CmdParam& cmdData = sponzaMesh.cmdArray[i];
-				cmdDrawIndexed(cmd, cmdData.indexCount, cmdData.startIndex, cmdData.startVertex);
 			}
-#endif
+			else
+			{
+				cmdBindPipeline(cmd, pPipelineGbuffers);
+				cmdBindDescriptorSet(cmd, 0, pDescriptorSetGbuffers[0]);
+				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetGbuffers[1]);
+				cmdBindDescriptorSet(cmd, 0, pDescriptorSetGbuffers[2]);
+
+				for (uint32_t i = 0; i < meshCount; ++i)
+				{
+					int materialID = sponzaMesh.materialID[i];
+					materialID *= 5;    //because it uses 5 basic textures for redering BRDF
+
+					for (int j = 0; j < 5; ++j)
+					{
+						//added
+						data.mapIDs[j] = gSponzaTextureIndexforMaterial[materialID + j];
+					}
+					cmdBindPushConstants(cmd, pRootSigGbuffers, "cbTextureRootConstants", &data);
+					Mesh::CmdParam& cmdData = sponzaMesh.cmdArray[i];
+					cmdDrawIndexed(cmd, cmdData.indexCount, cmdData.startIndex, cmdData.startVertex);
+				}
+			}
 
 			Mesh& lionMesh = gModels[LION_MODEL];
 
 			//Draw Lion
-#if 0 //def TARGET_IOS
-			params[0].pName = "cbCamera";
-			params[0].ppBuffers = &pBufferUniformCamera[gFrameIndex];
+			if (gUseTexturesFallback)
+			{
+				DescriptorData params[5] = {};
+				
+				params[0].pName = pTextureName[0];
+				params[0].ppTextures = &pMaterialTextures[81];
 
-			params[1].pName = "cbObject";
-			params[1].ppBuffers = &pLionBuffer;
+				params[1].pName = pTextureName[1];
+				params[1].ppTextures = &pMaterialTextures[83];
 
-			params[2].pName = pTextureName[0];
-			params[2].ppTextures = &pMaterialTextures[81];
+				params[2].pName = pTextureName[2];
+				params[2].ppTextures = &pMaterialTextures[6];
 
-			params[3].pName = pTextureName[1];
-			params[3].ppTextures = &pMaterialTextures[83];
+				params[3].pName = pTextureName[3];
+				params[3].ppTextures = &pMaterialTextures[6];
 
-			params[4].pName = pTextureName[2];
-			params[4].ppTextures = &pMaterialTextures[6];
+				params[4].pName = pTextureName[4];
+				params[4].ppTextures = &pMaterialTextures[0];
+				
+				updateDescriptorSet(pRenderer, meshCount + 1, pDescriptorSetGbuffers[0], 5, params);
+				cmdBindDescriptorSet(cmd, meshCount + 1, pDescriptorSetGbuffers[0]);
+			}
+			else
+			{
+				data.mapIDs[0] = 81;
+				data.mapIDs[1] = 83;
+				data.mapIDs[2] = 6;
+				data.mapIDs[3] = 6;
+				data.mapIDs[4] = 0;
 
-			params[5].pName = pTextureName[3];
-			params[5].ppTextures = &pMaterialTextures[6];
-
-			params[6].pName = pTextureName[4];
-			params[6].ppTextures = &pMaterialTextures[0];
-
-			cmdBindPushConstants(cmd, pRootSigGbuffers, "cbTextureRootConstants", &data);
+				cmdBindPushConstants(cmd, pRootSigGbuffers, "cbTextureRootConstants", &data);
+			}
+			
 			cmdBindDescriptorSet(cmd, 1, pDescriptorSetGbuffers[2]);
-
-#else
-			data.mapIDs[0] = 81;
-			data.mapIDs[1] = 83;
-			data.mapIDs[2] = 6;
-			data.mapIDs[3] = 6;
-			data.mapIDs[4] = 0;
-
-			cmdBindPushConstants(cmd, pRootSigGbuffers, "cbTextureRootConstants", &data);
-			cmdBindDescriptorSet(cmd, 1, pDescriptorSetGbuffers[2]);
-#endif
-
+			
 			Buffer* pLionVertexBuffers[] = { lionMesh.pVertexBuffer };
 			cmdBindVertexBuffer(cmd, 1, pLionVertexBuffers, NULL);
 			cmdBindIndexBuffer(cmd, lionMesh.pIndexBuffer, 0);
@@ -2276,7 +2303,7 @@ class PixelProjectedReflections: public IApp
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetBRDF[1]);
 		cmdBindVertexBuffer(cmd, 1, &pScreenQuadVertexBuffer, NULL);
 		cmdDraw(cmd, 3, 0);
-
+//#endif
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
 		endCmd(cmd);
@@ -2420,13 +2447,15 @@ class PixelProjectedReflections: public IApp
 		// GBuffer
 		{
 			DescriptorData params[8] = {};
-			if (dataLoaded)
+			
+			if (!gUseTexturesFallback && dataLoaded)
 			{
 				params[0].pName = "textureMaps";
 				params[0].ppTextures = pMaterialTextures;
 				params[0].mCount = TOTAL_IMGS;
 				updateDescriptorSet(pRenderer, 0, pDescriptorSetGbuffers[0], 1, params);
 			}
+
 			for (uint32_t i = 0; i < gImageCount; ++i)
 			{
 				params[0] = {};

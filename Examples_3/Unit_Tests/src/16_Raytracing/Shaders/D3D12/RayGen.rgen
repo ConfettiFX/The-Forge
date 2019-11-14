@@ -3,19 +3,21 @@ RWTexture2D<float4>					gOutput		: register(u0);
 
 cbuffer gSettings : register(b0, space1)
 {
-	float3 CameraPosition;
-	uint  _pad0;
-	float3 LightDirection;
-	uint  _pad1;
-	uint  HitGroupIndex;
-	uint  MissGroupIndex;
-	uint  PlaneHitGroupIndex;
-	uint  PlaneMissGroupIndex;
+    float4x4 mCameraToWorld;
+	float2 mZ1PlaneSize;
+	float mProjNear;
+	float mProjFarMinusNear;
+    float3 mLightDirection;
+	float mRandomSeed;
+	float2 mSubpixelJitter;
+	uint mFrameIndex;
+	uint mFramesSinceCameraMove;
 }
 
 struct RayPayload
 {
-	float3 color;
+	float3 radiance;
+	uint recursionDepth;
 };
 
 [shader("raygeneration")]
@@ -24,22 +26,27 @@ void rayGen()
 	uint2 launchIndex = DispatchRaysIndex().xy;
 	uint2 launchDim = DispatchRaysDimensions().xy;
 
-	float2 crd = float2(launchIndex);
+	float2 crd = float2(launchIndex) + mSubpixelJitter;
 	float2 dims = float2(launchDim);
 
 	float2 d = ((crd / dims) * 2.f - 1.f);
-	float aspectRatio = dims.x / dims.y;
+	d.y *= -1;
+
+	float3 direction = normalize(float3(d * mZ1PlaneSize, 1.0));
+	float3 directionWS = mul(float3x3(mCameraToWorld[0].xyz, mCameraToWorld[1].xyz, mCameraToWorld[2].xyz), direction);
 
 	RayDesc ray;
-	ray.Origin = CameraPosition;
-	ray.Direction = normalize(float3(d.x * aspectRatio, -d.y, 1));
+	ray.Origin = float3(mCameraToWorld[0].w, mCameraToWorld[1].w, mCameraToWorld[2].w) + directionWS * mProjNear;
+	ray.Direction = directionWS;
 
-	ray.TMin = 0.001;
+	ray.TMin = 0.0;
 	ray.TMax = 10000;
 
 	RayPayload payload;
-	//TraceRay(gRtScene, 0 /*rayFlags*/, 0xFF, 0 /* ray index*/, 0, 0, ray, payload);
-	TraceRay(gRtScene, 0, 0xFF, HitGroupIndex, 0, MissGroupIndex, ray, payload);
+	payload.radiance = 0.0;
+	payload.recursionDepth = 0;
+	
+	TraceRay(gRtScene, 0, 0xFF, 0, 0, 0, ray, payload);
 	/*
 	void TraceRay(RaytracingAccelerationStructure AccelerationStructure,
 			  uint RayFlags,
@@ -50,6 +57,18 @@ void rayGen()
 			  RayDesc Ray,
 			  inout payload_t Payload);
 	*/
-	float3 col = payload.color;
-	gOutput[launchIndex.xy] = float4(col, 1);
+	float4 accumulatedRadiance = 0.0;
+		
+	if (mFrameIndex == 0) 
+	{
+		accumulatedRadiance = float4(payload.radiance, 1.0);
+	} 
+	else 
+	{
+		accumulatedRadiance = gOutput[launchIndex.xy];
+		accumulatedRadiance.w += 1.0;
+		accumulatedRadiance.rgb += (payload.radiance - accumulatedRadiance.rgb) / accumulatedRadiance.w;
+	}
+
+	gOutput[launchIndex.xy] = accumulatedRadiance;
 }

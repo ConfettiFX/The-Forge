@@ -1210,16 +1210,17 @@ cgltf_result load_gltf_buffers(const cgltf_options* options, cgltf_data* data, c
 			cgltf_size size = data->buffers[i].size;
 			void** out_data = &data->buffers[i].data;
 
-            Path* path = NULL;
-            
-            if (fsDirectoryExists(gltf_path)) {
-                path = fsAppendPathComponent(gltf_path, uri);
-            } else {
-                Path *directoryPath = fsCopyParentPath(gltf_path);
-                path = fsAppendPathComponent(directoryPath, uri);
-                fsFreePath(directoryPath);
-            }
-            
+			Path* path = NULL;
+			
+			if (fsDirectoryExists(gltf_path) && !fsPlatformUsesBundledResources())
+			{
+				path = fsAppendPathComponent(gltf_path, uri);
+			} else {
+				Path *directoryPath = fsCopyParentPath(gltf_path);
+				path = fsAppendPathComponent(directoryPath, uri);
+				fsFreePath(directoryPath);
+			}
+			
 			FileStream* fh = fsOpenFile(path, FM_READ_BINARY);
 
 			if (!fh)

@@ -45,7 +45,7 @@ bool fsInitAPI(void)
 	Path* logFilePath = fsCopyLogFileDirectoryPath();
 	if (!logFilePath)
 		return false;
-	mmgr_setLogFileDirectory(fsGetPathAsNativeString(logFilePath));
+	mmgrSetLogFileDirectory(fsGetPathAsNativeString(logFilePath));
 	fsFreePath(logFilePath);
 
 	Path* executablePath = fsCopyExecutablePath();
@@ -53,7 +53,7 @@ bool fsInitAPI(void)
 		return false;
 	
 	PathComponent executableName = fsGetPathFileName(executablePath);
-	mmgr_setExecutableName(executableName.buffer, executableName.length);
+	mmgrSetExecutableName(executableName.buffer, executableName.length);
 	fsFreePath(executablePath);
 #endif
 
@@ -393,7 +393,7 @@ void fsGetPathComponents(const Path* path, PathComponent* directoryName, PathCom
 	const char* fileNameEnd = extensionEnd;
 	const char* fileNameStart = pathString;
 	const char* directoryNameEnd = NULL;
-	const char* directoryNameStart = NULL;
+	const char* directoryNameStart = pathString;
 
 	for (size_t i = path->mPathLength - 1; i > 0; i--)
 	{
@@ -427,7 +427,7 @@ void fsGetPathComponents(const Path* path, PathComponent* directoryName, PathCom
 		}
 	}
 
-	if (directoryName && directoryNameStart != NULL)
+	if (directoryName && directoryNameEnd != NULL)
 	{
 		directoryName->buffer = directoryNameStart;
 		directoryName->length = directoryNameEnd - directoryNameStart;

@@ -415,7 +415,7 @@ void removeRaytracingShader(Raytracing* pRaytracing, RaytracingShader* pShader)
 
 static const uint64_t gShaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
 
-void FillShaderIdentifiers(	const RaytracingShaderTableRecordDesc* pRecords, uint32_t shaderCount, 
+void FillShaderIdentifiers(	const char *const * pRecords, uint32_t shaderCount, 
 							ID3D12StateObjectProperties* pRtsoProps, uint64_t& maxShaderTableSize,
 							uint32_t& index, RaytracingShaderTable* pTable, Raytracing* pRaytracing)
 {
@@ -423,10 +423,10 @@ void FillShaderIdentifiers(	const RaytracingShaderTableRecordDesc* pRecords, uin
 	{
 		eastl::hash_set<uint32_t> addedTables;
 
-		const RaytracingShaderTableRecordDesc* pRecord = &pRecords[i];
+		const char* pRecordName = pRecords[i];
 		void* pIdentifier = NULL;
-		WCHAR* pName = (WCHAR*)conf_calloc(strlen(pRecord->pName) + 1, sizeof(WCHAR));
-		mbstowcs(pName, pRecord->pName, strlen(pRecord->pName));
+		WCHAR* pName = (WCHAR*)conf_calloc(strlen(pRecordName) + 1, sizeof(WCHAR));
+		mbstowcs(pName, pRecordName, strlen(pRecordName));
 
 		pIdentifier = pRtsoProps->GetShaderIdentifier(pName);
 
@@ -488,7 +488,7 @@ void FillShaderIdentifiers(	const RaytracingShaderTableRecordDesc* pRecords, uin
 	}
 }
 
-void CalculateMaxShaderRecordSize(const RaytracingShaderTableRecordDesc* pRecords, uint32_t shaderCount, uint64_t& maxShaderTableSize)
+void CalculateMaxShaderRecordSize(const char *const * pRecords, uint32_t shaderCount, uint64_t& maxShaderTableSize)
 {
 	// #TODO
 	//for (uint32_t i = 0; i < shaderCount; ++i)
@@ -552,7 +552,7 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 	/************************************************************************/
 	// Calculate max size for each element in the shader table
 	/************************************************************************/
-	CalculateMaxShaderRecordSize(pDesc->pRayGenShader, 1, maxShaderTableSize);
+	CalculateMaxShaderRecordSize(&pDesc->pRayGenShader, 1, maxShaderTableSize);
 	CalculateMaxShaderRecordSize(pDesc->pMissShaders, pDesc->mMissShaderCount, maxShaderTableSize);
 	CalculateMaxShaderRecordSize(pDesc->pHitGroups, pDesc->mHitGroupCount, maxShaderTableSize);
 	/************************************************************************/
@@ -576,7 +576,7 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 	pDesc->pPipeline->pDxrPipeline->QueryInterface(IID_PPV_ARGS(&pRtsoProps));
 	   
 	uint32_t index = 0;
-	FillShaderIdentifiers(	pDesc->pRayGenShader, 1, pRtsoProps,
+	FillShaderIdentifiers(	&pDesc->pRayGenShader, 1, pRtsoProps,
 							maxShaderTableSize, index, pTable, pRaytracing);
 
 	pTable->mMissRecordSize = maxShaderTableSize * pDesc->mMissShaderCount;

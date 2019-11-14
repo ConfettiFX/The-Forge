@@ -3,11 +3,12 @@ RWTexture2D<float4> gOutput : register(u0);
 
 struct RayPayload
 {
-	float3 color;
+	float3 radiance;
+	uint recursionDepth;
 };
 
 [shader("miss")]
 void miss(inout RayPayload payload : SV_RayPayload)
 {
-	payload.color = float3(0.1, 0.1, 0.1);
+	payload.radiance = float3(0.3, 0.6, 1.2);
 }

@@ -1,9 +1,15 @@
 #version 460
 #extension GL_NV_ray_tracing : require
 
-layout(location = 0) rayPayloadInNV vec3 hitValue;
+struct RayPayload
+{
+	vec3 radiance;
+	uint recursionDepth;
+};
+
+layout(location = 0) rayPayloadInNV RayPayload payload;
 
 void main()
 {
-	hitValue = vec3(0.1, 0.1, 0.1);
+	payload.radiance = vec3(0.3, 0.6, 1.2);
 }

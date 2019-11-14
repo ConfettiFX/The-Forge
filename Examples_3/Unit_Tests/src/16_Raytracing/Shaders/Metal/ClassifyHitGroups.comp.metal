@@ -25,26 +25,29 @@
 #include <metal_stdlib>
 using namespace metal;
 
-struct PsIn {
-	float4 position [[position]];
-	float2 texCoord;
-};
+#include "ShaderTypes.h"
 
-struct FSData {
-    texture2d<float> uTex0;
-#if DENOISER_ENABLED
-    texture2d<float> albedoTex;
-#endif
-    sampler uSampler0;
-};
+struct ClassifyHitGroupsArguments {
+    const device uint& activePathCount;
+    const device Intersection* intersections;
+    const device uint* instanceHitGroups;
+    const device uchar* pathMissShaderIndices;
+    device uint* pathHitGroups;
+    uint hitGroupCount;
+}
 
-fragment float4 stageMain(PsIn In [[stage_in]],
-    constant FSData& fsData [[buffer(UPDATE_FREQ_PER_FRAME)]]
-)
-{
-	float4 result = fsData.uTex0.sample(fsData.uSampler0, In.texCoord);
-#if DENOISER_ENABLED
-	result.rgb *= fsData.albedoTex.sample(fsData.uSampler0, In.texCoord).rgb;
-#endif
-	return result;
+// [numthreads(64, 1, 1)]
+kernel void ClassifyHitGroups(const ClassifyHitGroupsArguments& arguments [[ buffer(0) ]],
+                              uint pathIndex [[ thread_position_in_grid ]]) {
+    if (pathIndex >= arguments.activePathCount) {
+        return;
+    }
+    
+    const device Intersection& intersection = arguments.intersections[pathIndex];
+    
+    if (intersection.distance < 0) {
+        pathHitGroups[pathIndex] = arguments.hitGroupCount + (uint)arguments.pathMissShaderIndices[pathIndex];
+    } else {
+        pathHitGroups[pathIndex] = arguments.instanceHitGroups[intersection.instanceIndex];
+    }
 }

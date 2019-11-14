@@ -288,10 +288,6 @@ void reflectShader(ShaderReflectionInfo* info, NSArray<MTLArgument*>* shaderArgs
 {
 	for (MTLArgument* arg in shaderArgs)
 	{
-		// Ignore arguments not used by the shader
-		if (arg.isActive == false)
-			continue;
-
 		if (arg.type == MTLArgumentTypeBuffer)
 		{
 			reflectShaderBufferArgument(info, arg);
@@ -455,7 +451,7 @@ void mtl_createShaderReflection(
 #endif
 		for (uint i = 0; i < maxColorAttachments; i++)
 		{
-			renderPipelineDesc.colorAttachments[i].pixelFormat = MTLPixelFormatBGRA8Unorm;
+			renderPipelineDesc.colorAttachments[i].pixelFormat = MTLPixelFormatR8Unorm;
 		}
 		renderPipelineDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float;
 
@@ -684,8 +680,6 @@ void mtl_createShaderReflection(
 		}
 		for (uint32_t i = 0; i < pReflectionInfo->textures.size(); ++i, ++resourceIdx)
 		{
-            ASSERT(0); // old redundant code
-            
 			const TextureInfo& texInfo = pReflectionInfo->textures[i];
 			addShaderResource(
 				pResources, resourceIdx, texInfo.isUAV ? DESCRIPTOR_TYPE_RW_TEXTURE : DESCRIPTOR_TYPE_TEXTURE, texInfo.slotIndex,
@@ -697,8 +691,6 @@ void mtl_createShaderReflection(
 		}
 		for (uint32_t i = 0; i < pReflectionInfo->samplers.size(); ++i, ++resourceIdx)
 		{
-            ASSERT(0); // old redundant code
-            
 			const SamplerInfo& samplerInfo = pReflectionInfo->samplers[i];
 			addShaderResource(
 				pResources, resourceIdx, DESCRIPTOR_TYPE_SAMPLER, samplerInfo.slotIndex, 0 /*samplerInfo.sizeInBytes*/, 0, shaderStage,

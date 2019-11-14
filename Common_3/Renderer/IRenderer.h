@@ -859,6 +859,7 @@ typedef struct Texture
 	/// Native handle of the underlying resource
 	id<MTLTexture> mtlTexture;
 	id<MTLTexture> __strong* pMtlUAVDescriptors;
+	id 						 mpsTextureAllocator;
 	MTLPixelFormat           mtlPixelFormat;
 	bool                     mIsCompressed;
 #endif
@@ -1350,6 +1351,7 @@ typedef struct Shader
 	id<MTLFunction>       mtlVertexShader;
 	id<MTLFunction>       mtlFragmentShader;
 	id<MTLFunction>       mtlComputeShader;
+	id<MTLLibrary>		  mtlLibrary;
 	char**                pEntryNames;
 	uint32_t              mNumThreadsPerGroup[3];
 #endif
@@ -1800,6 +1802,9 @@ typedef struct GPUSettings
 	bool            mMultiDrawIndirect;
 	bool            mROVsSupported;
 	bool			mPartialUpdateConstantBufferSupported;
+#ifdef METAL
+    uint32_t        mArgumentBufferMaxTextures;
+#endif
 } GPUSettings;
 
 typedef struct Renderer

@@ -107,8 +107,8 @@ fragment PSOut stageMain(
     PsIn In [[stage_in]],
     constant FSData& fsData                             [[buffer(UPDATE_FREQ_NONE)]],
     constant FSDataPerFrame& fsDataPerFrame             [[buffer(UPDATE_FREQ_PER_FRAME)]],
-    constant FSDataPerDraw& fsDataPerDraw               [[buffer(UPDATE_FREQ_PER_DRAW)]],
-    constant TextureIndices& cbTextureRootConstants     [[buffer(UPDATE_FREQ_USER)]]
+    constant FSDataPerDraw& fsDataPerDraw               [[buffer(UPDATE_FREQ_PER_DRAW)]]
+//    constant TextureIndices& cbTextureRootConstants     [[buffer(UPDATE_FREQ_USER)]]
 )
 {
 	PSOut Out;

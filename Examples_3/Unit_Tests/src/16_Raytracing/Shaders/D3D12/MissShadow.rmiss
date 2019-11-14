@@ -1,10 +1,10 @@
-struct RayPayload
+struct ShadowRayPayload
 {
-	float3 color;
+	bool miss;
 };
 
 [shader("miss")]
-void missShadow(inout RayPayload payload : SV_RayPayload)
+void missShadow(inout ShadowRayPayload payload : SV_RayPayload)
 {
-	payload.color = 1.0f;
+	payload.miss = true;
 }

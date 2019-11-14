@@ -292,7 +292,7 @@ Buffer* createTopAS(Raytracing* pRaytracing, const AccelerationStructureDescTop*
 	accelerationStructureInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_NV;
 	accelerationStructureInfo.geometryCount = 0;
 	accelerationStructureInfo.instanceCount = 1;// pDesc->mInstancesDescCount;
-	accelerationStructureInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_NV;//  util_to_vk_acceleration_structure_build_flags(pDesc->mFlags);
+	accelerationStructureInfo.flags =  util_to_vk_acceleration_structure_build_flags(pDesc->mFlags);
 	accelerationStructureInfo.pGeometries = nullptr;
 	
 	VkAccelerationStructureCreateInfoNV createInfo = {};
@@ -475,11 +475,11 @@ void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, Raytracin
 		pAccelerationStructure->mInstanceDescCount);
 }
 
-void CalculateMaxShaderRecordSize(const RaytracingShaderTableRecordDesc* pRecords, uint32_t shaderCount, uint64_t& maxShaderTableSize)
+void CalculateMaxShaderRecordSize(const char* const* pRecords, uint32_t shaderCount, uint64_t& maxShaderTableSize)
 {
 }
 
-void FillShaderIdentifiers(	const RaytracingShaderTableRecordDesc* pRecords, uint32_t shaderCount,
+void FillShaderIdentifiers(	const char* const* pRecords, uint32_t shaderCount,
 							uint64_t maxShaderTableSize, uint64_t& dstIndex,
 							RaytracingShaderTable* pTable, Raytracing* pRaytracing, ShaderLocalData* mShaderLocalData, 
 							const uint8_t* shaderHandleStorage)
@@ -489,7 +489,7 @@ void FillShaderIdentifiers(	const RaytracingShaderTableRecordDesc* pRecords, uin
 	for (uint32_t idx = 0; idx < shaderCount; ++idx)
 	{
 		uint32_t index = -1;
-		eastl::string nameStr(pRecords[idx].pName);
+		eastl::string nameStr(pRecords[idx]);
 		const char** it = eastl::find(pipeline->ppShaderStageNames, pipeline->ppShaderStageNames + pipeline->mShaderStageCount, nameStr.c_str(),
 			[](const char* a, const char* b) { return strcmp(a, b) == 0; });
 		if (it != pipeline->ppShaderStageNames + pipeline->mShaderStageCount)
@@ -498,8 +498,10 @@ void FillShaderIdentifiers(	const RaytracingShaderTableRecordDesc* pRecords, uin
 		}
 		else
 		{
-			ASSERT(false);
-			LOGF(LogLevel::eERROR, "Could not find shader name %s identifier", nameStr.c_str());
+			// This is allowed if we are provided with a hit group that has no shaders associated.
+			// In all other cases this is an error.
+			LOGF(LogLevel::eINFO, "Could not find shader name %s identifier. This is only valid if %s is a hit group with no shaders.", nameStr.c_str(), nameStr.c_str());
+			dstIndex += 1;
 			continue;
 		}
 
@@ -529,7 +531,7 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 	/************************************************************************/
 	// Calculate max size for each element in the shader table
 	/************************************************************************/
-	CalculateMaxShaderRecordSize(pDesc->pRayGenShader, 1, maxShaderTableSize);
+	CalculateMaxShaderRecordSize(&pDesc->pRayGenShader, 1, maxShaderTableSize);
 	CalculateMaxShaderRecordSize(pDesc->pMissShaders, pDesc->mMissShaderCount, maxShaderTableSize);
 	CalculateMaxShaderRecordSize(pDesc->pHitGroups, pDesc->mHitGroupCount, maxShaderTableSize);
 	/************************************************************************/
@@ -558,7 +560,7 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 
 	pTable->mHitMissLocalData.resize(pDesc->mMissShaderCount + pDesc->mHitGroupCount + 1);
 	uint64_t index = 0;
-	FillShaderIdentifiers(	pDesc->pRayGenShader, 1, maxShaderTableSize, index, pTable, pRaytracing, 
+	FillShaderIdentifiers(	&pDesc->pRayGenShader, 1, maxShaderTableSize, index, pTable, pRaytracing, 
 							pTable->mHitMissLocalData.data(), shaderHandleStorage);
 
 	pTable->mMissRecordSize = maxShaderTableSize * pDesc->mMissShaderCount;
@@ -681,8 +683,8 @@ void vk_addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** pp
 	/************************************************************************/
 	stages.reserve(1 + pDesc->mMissShaderCount + pDesc->mHitGroupCount);
 	groups.reserve(1 + pDesc->mMissShaderCount + pDesc->mHitGroupCount);
-	pResult->mShaderStageCount = 1 + pDesc->mMissShaderCount + pDesc->mHitGroupCount;
-	pResult->ppShaderStageNames = (const char**)conf_calloc(1 + pDesc->mMissShaderCount + pDesc->mHitGroupCount, sizeof(char*));
+	pResult->mShaderStageCount = 0;
+	pResult->ppShaderStageNames = (const char**)conf_calloc(1 + pDesc->mMissShaderCount + pDesc->mHitGroupCount * 3, sizeof(char*));
 	//////////////////////////////////////////////////////////////////////////
 	//1. Ray-gen shader
 	{
@@ -697,7 +699,8 @@ void vk_addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** pp
 		stageCreateInfo.pSpecializationInfo = nullptr;
 		stages.push_back(stageCreateInfo);
 		//stagesNames.push_back(pDesc->pRayGenShader->mName);
-		pResult->ppShaderStageNames[0] = pDesc->pRayGenShader->pEntryNames[0];
+		pResult->ppShaderStageNames[pResult->mShaderStageCount] = pDesc->pRayGenShader->pEntryNames[0];
+		pResult->mShaderStageCount += 1;
 
 		VkRayTracingShaderGroupCreateInfoNV groupInfo;
 		groupInfo.sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_NV;
@@ -710,7 +713,6 @@ void vk_addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** pp
 		groups.push_back(groupInfo);
 	}
 
-	uint32_t stageCounter = 1;
 	//////////////////////////////////////////////////////////////////////////
 	//2. Miss shaders
 	{
@@ -737,7 +739,8 @@ void vk_addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** pp
 			stageCreateInfo.module = pDesc->ppMissShaders[i]->pShaderModules[0];
 			stages.push_back(stageCreateInfo);
 			//stagesNames.push_back(pDesc->ppMissShaders[i]->mName);
-			pResult->ppShaderStageNames[stageCounter++] = pDesc->ppMissShaders[i]->pEntryNames[0];
+			pResult->ppShaderStageNames[pResult->mShaderStageCount] = pDesc->ppMissShaders[i]->pEntryNames[0];
+			pResult->mShaderStageCount += 1;
 
 			groupInfo.generalShader = (uint32_t)stages.size() - 1;
 			groups.push_back(groupInfo);
@@ -775,7 +778,8 @@ void vk_addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** pp
 				stageCreateInfo.stage = VK_SHADER_STAGE_INTERSECTION_BIT_NV;
 				stageCreateInfo.module = pDesc->pHitGroups[i].pIntersectionShader->pShaderModules[0];
 				stages.push_back(stageCreateInfo);
-				pResult->ppShaderStageNames[stageCounter++] = pDesc->pHitGroups[i].pHitGroupName;
+				pResult->ppShaderStageNames[pResult->mShaderStageCount] = pDesc->pHitGroups[i].pHitGroupName;
+				pResult->mShaderStageCount += 1;
 
 				groupInfo.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_PROCEDURAL_HIT_GROUP_NV;
 				groupInfo.intersectionShader = (uint32_t)stages.size() - 1;
@@ -785,7 +789,8 @@ void vk_addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** pp
 				stageCreateInfo.stage = VK_SHADER_STAGE_ANY_HIT_BIT_NV;
 				stageCreateInfo.module = pDesc->pHitGroups[i].pAnyHitShader->pShaderModules[0];
 				stages.push_back(stageCreateInfo);
-				pResult->ppShaderStageNames[stageCounter++] = pDesc->pHitGroups[i].pHitGroupName;
+				pResult->ppShaderStageNames[pResult->mShaderStageCount] = pDesc->pHitGroups[i].pHitGroupName;
+				pResult->mShaderStageCount += 1;
 
 				groupInfo.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
 				groupInfo.anyHitShader = (uint32_t)stages.size() - 1;
@@ -795,7 +800,8 @@ void vk_addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** pp
 				stageCreateInfo.stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_NV;
 				stageCreateInfo.module = pDesc->pHitGroups[i].pClosestHitShader->pShaderModules[0];
 				stages.push_back(stageCreateInfo);
-				pResult->ppShaderStageNames[stageCounter++] = pDesc->pHitGroups[i].pHitGroupName;
+				pResult->ppShaderStageNames[pResult->mShaderStageCount] = pDesc->pHitGroups[i].pHitGroupName;
+				pResult->mShaderStageCount += 1;
 
 				groupInfo.type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_NV;
 				groupInfo.closestHitShader = (uint32_t)stages.size() - 1;
