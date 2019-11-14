@@ -32,6 +32,7 @@ The Forge can be used to provide the rendering layer for custom next-gen game en
   * on CPU [Fluid Studios Memory Manager](http://www.paulnettle.com/)
 - Input system with Gestures for Touch devices based on an extended version of [gainput](https://github.com/jkuhlmann/gainput)
 - Fast Entity Component System based on our internally developed ECS
+- Cross-platform FileSystem C API, supporting disk-based files, memory streams, and files in zip archives
 - UI system based on [imGui](https://github.com/ocornut/imgui) with a dedicated unit test extended for touch input devices
 - Audio based on integrating [SoLoud](https://github.com/jarikomppa/soloud)
 - Shader Translator using a superset of HLSL as the shader language. There is a Wiki page on [how to use the Shader Translator](https://github.com/ConfettiFX/The-Forge/wiki/How-to-Use-The-Shader-Translator)
@@ -54,6 +55,37 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+
+## Release 1.38 - November 14th - Cross-Platform Path Tracer
+- The new 16_Raytracing unit test shows a simple cross-platform path tracer. On iOS this path tracer requires A11 or higher. It is meant to be used in tools in the future and doesn't run in real-time.
+To support the new path tracer, the Metal raytracing backend has been overhauled to use a sort-and-dispatch based approach, enabling efficient support for multiple hit groups and miss shaders. The most significant limitation for raytracing on Metal is that only tail recursion is supported, which can be worked around using larger per-ray payloads and splitting up shaders into sub-shaders after each TraceRay call; see the Metal shaders used for 16_Raytracing for an example on how this can be done.
+
+macOS 1920x1080 AMD Pro Vega 64
+
+![Path Tracer running on macOS](Screenshots/16_Path_Tracer_macOS.png)
+
+iOS iPhone X 812x375
+
+![Path Tracer running on macOS](Screenshots/16_Path_Tracer_iOS.jpeg)
+
+Windows 10 1080p NVIDIA RTX 2080 with DXR Driver version 441.12
+
+![Path Tracer running on Windows DXR](Screenshots/16_Path_Tracer_DXR.png)
+
+Windows 10 1080p NVIDIA RTX 2080 with RTX Driver version 441.12
+
+![Path Tracer running on Windows RTX](Screenshots/16_Path_Tracer_RTX.png)
+
+Linux 1080p NVIDIA RTX 2060 with RTX Driver version 435
+
+![Path Tracer running on Linux RTX](Screenshots/16_Path_Tracer_Linux_RTX.png)
+
+
+- File System: Fixed an issue wherein compiled shader binaries weren’t being saved to the RD_SHADER_BINARIES resource directory
+- GitHub issues fixed:
+  * #150 - [Vulkan] Failed to extend descriptor pool
+  * #151 - [Vulkan] rootcbv of detection is case sensitive
+  * #152 - [Vulkan] updateDescriptorSet is different from the DirectX12
 
 ## Release 1.37 - October 30th - New Features Ephemeris 2 | Update Metal
 The Forge Interactive Inc., the company behind The Forge became a [Khronos Associate member]((https://www.khronos.org/members/list)).
@@ -92,80 +124,7 @@ Click on the following image to see a video:
 ![File System Unit Test](Screenshots/12_FileSystem.png)
  
  * Vulkan: Adaptive Order Independent Transparency with Raster Order Views is now supported when VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT is supported.
- 
-## Release 1.35 - October 3rd - New Ozz Animation Unit Test | Updated Shader Translator | Maintenance update macOS / iOS 
-After only a bit more than one week we wanted to ship a quick update ... 
- * Ozz Animation System: there is a new unit test added to The Forge.
 
- Ozz Inverse Kinematic: This unit test shows how to use Aim and Two bone IK solvers
-
-![Ozz Aim IK](Screenshots/Ozz_Aim_IK.gif)
-
-![Ozz Two Bone IK](Screenshots/Ozz_two_bone_ik.gif)
-
-
- * Shader Translator:
-   * Implicit cast fixes submitted for review
-   * Added automated testing on mac via ssh from Windows - still requires integration in CI.
-   * Argument buffer support
-   * Fixed scalar swizzle in MSL
-   * Fixed texture array output in MSL
-   * Fixed indentation in MSL for compute shaders
-   * Fixed redundant parenthesis in if statement warning in HLSL and MSL
-   * Fixed texture object Load method output for MSL
- * Maintenance Update macOS / iOS:
-   * Unified depth-stencil texture handling across macOS and iOS. To use a combined   
-   * The TEXTURE_CREATION_FLAG_ON_TILE flag now specifies that a render target attachment should neither be loaded or stored, in addition to ensuring that the attachment is memoryless on iOS
-   * Added TEXTURE_CREATION_FLAG_ON_TILE to the depth buffers within many of the unit tests
-   * Fixed a resource barrier issue in the Tessellation unit test on macOS and iOS 
-   * We still encounter many bugs especially on INTEL based devices. We have RADARs with Apple and we are hoping those will go away over time. Let us know if you need any help with the macOS / iOS run-time.
-
-If you want to join us in sunny Encinitas, CA, USA as a graphics programmer, we would like to hear from you. If you are interested in working in our offices world-wide please let us know as well. We are in Spain, Netherlands, Ukraine, India, New Zealand and other places.
-
-## Release 1.34 - September 23rd - TinyImageFormat | Microprofiler uses imGUI | 4th gen Descriptor System
-* [TinyImageFormat](https://github.com/DeanoC/tiny_imageformat) support: Deano Calver @DeanoC added his image format support library to The Forge. TinyImageFormat provides a query mechanism and encode/decode for many CPU and GPU image formats. Allowing you to use whatever pixel data is best whether its loading/saving or procedural generation.
-* Microprofiler: @zeuxcg this is the third rewrite of the Microprofiler. We replaced the proprietary UI with imGUI and simplified the usage. Now it is much more tightly and consistently integrated in our code base.
-
-![Microprofiler](Screenshots/MicroProfiler/VB_Detailed.png)
-
-![Microprofiler](Screenshots/MicroProfiler/VB_Plot.PNG)
-
-![Microprofiler](Screenshots/MicroProfiler/VB_Timer.PNG)
-
-![Microprofiler](Screenshots/MicroProfiler/VB_Timer_2.PNG)
-
-Here are screenshots of the Microprofiler running a unit test on iOS:
-
-![Microprofiler](Screenshots/MicroProfiler/IMG_0004_iOS.PNG)
-
-![Microprofiler](Screenshots/MicroProfiler/IMG_0005_iOS.PNG)
-
-![Microprofiler](Screenshots/MicroProfiler/IMG_0006_iOS.PNG)
-
-Check out the [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Microprofiler---How-to-Use) for an explanation on how to use it.
-
-
-* Descriptor System:  @gavkar this is at least the fourth rewrite of the descriptor system now with support for the brand new argument buffers on macOS / iOS. It requires latest OS and XCode versions. This is a major update to the macOS / iOS runtime and it comes with many implementation changes:
-  * improved Metal resource usage with useHeaps and useResorces
-  * Metal shader reflection system was refactored
-  * fixes and optimizations for some unit tests on MacOS and iOS platforms
-  * initial support for paramIndex
-  * more informative debug labels for Metal resources
-  
-    This is probably the first engine integration of argument buffers, so there are issues with the following unit tests on iPadOS/iOS platforms:
-  * 04_ExecuteIndirect_iOS: GPU hangs due to argument buffers corruption in latest iOS 13.1. The bug doesn't occur if validation layer is enabled!
-  * 06_MaterialPlayground_iOS: Fails to compile shaders trying to write to Texture2DArray (iOS 13.1 beta 2 & 3)
-  * 10_PixelProjectedReflections on iOS: iOS Metal shader compiler crashes
-
-  Check out the [Wikipage](https://github.com/ConfettiFX/The-Forge/wiki/Descriptor-Management) for a high-level view of the architecture.
-
-
-* Light & Shadow Playground: we cleaned up the code base of the Light & Shadow Playground and integrated missing pieces into The Forge Eco system.
-* Shader Translator: a lot of work went into the Shader Translator since the last release. Let us know how it works for you. There is a how-to on the Wiki page here:
-
-  [How to use the Shader Translator](https://github.com/ConfettiFX/The-Forge/wiki/How-to-Use-The-Shader-Translator)
-
- * Issues: fixed #129 "Metal backend buffer namespace collision"
 
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
 
@@ -429,7 +388,7 @@ This unit test shows a typical VR Multi-GPU configuration. One eye is rendered b
 ![Image of the Multi-GPU Unit test](Screenshots/11_MultiGPU.png)
 
 ## 12. File System Test
-cross-platform FileSystem C API, supporting disk-based files, memory streams, and files in zip archives. The API can be viewed in [IFileSystem.h](/Common_3/OS/Interfaces/IFileSystem.h), and all of the example code has been updated to use the new API.
+This unit test showcases a cross-platform FileSystem C API, supporting disk-based files, memory streams, and files in zip archives. The API can be viewed in [IFileSystem.h](/Common_3/OS/Interfaces/IFileSystem.h), and all of the example code has been updated to use the new API.
    * The API is based around `Path`s, where each `Path` represents an absolute, canonical path string on a particular file system. You can query information about the files at `Path`s, open files as `FileStream`s, and copy files between different `Path`s.
    * The concept of `FileSystemRoot`s has been replaced by `ResourceDirectory`s. `ResourceDirectory`s are predefined directories where resources are expected to exist, and there are convenience functions to open files in resource directories. If your resources don’t exist within the default directory for a particular resource type, you can call `fsSetPathForResourceDirectory` to relocate the resource directory; see the unit tests for sample code on how to do this.
    
@@ -456,20 +415,29 @@ This unit test shows how to use the new wave intrinsics. Supporting Windows with
 
 ![Image of the Wave Intrinsics unit test in The Forge](Screenshots/15_WaveIntrinsics.png)
 
-## 16. Ray Tracing Unit Test
-Ray Tracing API unit test, showing how the cross-platfrom Ray Tracing Interface running on Windows, Ubuntu with Vulkan RTX, macOS and iOS
+## 16. Path Tracer - Ray Tracing Unit Test
+The new 16_Raytracing unit test shows a simple cross-platform path tracer. On iOS this path tracer requires A11 or higher. It is meant to be used in tools in the future and doesn't run in real-time.
+To support the new path tracer, the Metal raytracing backend has been overhauled to use a sort-and-dispatch based approach, enabling efficient support for multiple hit groups and miss shaders. The most significant limitation for raytracing on Metal is that only tail recursion is supported, which can be worked around using larger per-ray payloads and splitting up shaders into sub-shaders after each TraceRay call; see the Metal shaders used for 16_Raytracing for an example on how this can be done.
 
-PC Windows 10 RS5, DirectX12, GeForce RTX 2070, Driver version 418.81 1080p:
-![Ray Tracing on PC With DXR](Screenshots/16_RayTrace_Windows_DXR.png)
+macOS 1920x1080 AMD Pro Vega 64
 
-PC Ubuntu Vulkan RTX, GeForce RTX 2070, Driver Version 418.56 1080p
-![Ray Tracing on PC Ubuntu with Vulkan RTX](Screenshots/16_RayTrace_Linux_Vulkan.png)
+![Path Tracer running on macOS](Screenshots/16_Path_Tracer_macOS.png)
 
-Mac Mini with Intel Core i5 3GHz cpu with integrated graphics Intel UHD Graphics 630 (Part No. MRTT2RU/A) with resolution 3440x1440:
-![Ray Tracing on macOS](Screenshots/RayTracing_macOS.png)
+iOS iPhone X 812x375
 
-iPad 6th Generation iOS 12.1.3 (16D39) with a resolution of 2048x1536
-![Ray Tracing on iOS](Screenshots/RayTracing_iPad.png)
+![Path Tracer running on macOS](Screenshots/16_Path_Tracer_iOS.jpeg)
+
+Windows 10 1080p NVIDIA RTX 2080 with DXR Driver version 441.12
+
+![Path Tracer running on Windows DXR](Screenshots/16_Path_Tracer_DXR.png)
+
+Windows 10 1080p NVIDIA RTX 2080 with RTX Driver version 441.12
+
+![Path Tracer running on Windows RTX](Screenshots/16_Path_Tracer_RTX.png)
+
+Linux 1080p NVIDIA RTX 2060 with RTX Driver version 435
+
+![Path Tracer running on Linux RTX](Screenshots/16_Path_Tracer_Linux_RTX.png)
 
 ## 16a. Sphere Tracing
 This unit test was originally posted on ShaderToy by [Inigo Quilez](https://www.shadertoy.com/view/Xds3zN) and [Sopyer](https://sopyer.github.io/b/post/vulkan-shader-sample/). It shows how a scene is ray marched with shadows, reflections and AO
