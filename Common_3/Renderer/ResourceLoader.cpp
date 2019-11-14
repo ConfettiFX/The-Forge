@@ -1349,9 +1349,11 @@ void vk_compileShader(
 	}
 	shaderc_compilation_result_t spvShader =
 		shaderc_compile_into_spv(compiler, code, codeSize, getShadercShaderType(stage), "shaderc_error", pEntryPoint ? pEntryPoint : "main", options);
-	if (shaderc_result_get_compilation_status(spvShader) != shaderc_compilation_status_success)
+	shaderc_compilation_status spvStatus = shaderc_result_get_compilation_status(spvShader);
+	if (spvStatus != shaderc_compilation_status_success)
 	{
-		LOGF(LogLevel::eERROR, "Shader compiling failed! with status");
+		const char* errorMessage = shaderc_result_get_error_message(spvShader);
+		LOGF(LogLevel::eERROR, "Shader compiling failed! with status %s", errorMessage);
 		abort();
 	}
 

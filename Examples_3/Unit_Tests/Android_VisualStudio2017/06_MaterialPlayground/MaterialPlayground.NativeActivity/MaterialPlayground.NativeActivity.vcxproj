@@ -198,9 +198,9 @@
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\06_MaterialPlayground\*.lua $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\Hair\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Hair\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\PBR\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\PBR\ /s /y</Command>
@@ -226,9 +226,9 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\PBR\*.* $(SolutionD
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\06_MaterialPlayground\*.lua $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\Hair\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Hair\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\PBR\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\PBR\ /s /y</Command>
@@ -255,9 +255,9 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\PBR\*.* $(SolutionD
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\06_MaterialPlayground\*.lua $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\Hair\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Hair\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\PBR\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\PBR\ /s /y</Command>
@@ -284,9 +284,9 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\PBR\*.* $(SolutionD
     </Link>
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\06_MaterialPlayground\*.lua $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\Hair\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Hair\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\PBR\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\PBR\ /s /y</Command>

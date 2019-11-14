@@ -1152,7 +1152,7 @@ def BuildAndroidProjects(skipDebug, skipRelease, printMSBuild):
 		return -1
 	return 0  
 	
-def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSBuild, skipAura):
+def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSBuild, skipAura, skipDX11):
 	errorOccured = False
 	msBuildPath = FindMSBuild17()
 
@@ -1168,6 +1168,10 @@ def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSB
 		pcConfigurations.remove("ReleaseDx")
 		pcConfigurations.remove("ReleaseVk")
 		pcConfigurations.remove("ReleaseDx11")
+
+	if skipDX11:
+		if "DebugDx11" in pcConfigurations : pcConfigurations.remove("DebugDx11")
+		if "ReleaseDx11" in pcConfigurations : pcConfigurations.remove("ReleaseDx11")
 
 	#xboxConfigurations = ["Debug","Release"]
 	xboxPlatform = "Durango"
@@ -1343,6 +1347,7 @@ def MainLogic():
 	parser.add_argument('--skipreleasebuild', action="store_true", help='If enabled, will skip Release build.')
 	parser.add_argument('--printbuildoutput', action="store_true", help='If enabled, will print output of project builds.')
 	parser.add_argument('--skipaura', action="store_true", help='If enabled, will skip building aura.')
+	parser.add_argument('--skipdx11', action="store_true", help='If enabled, will skip building DX11.')
 	parser.add_argument('--xcodederiveddatapath', type=str, default='Null', help = 'Uses a specific path relative to root of project for derived data. If null then it uses the default location for derived data')
 	#TODO: remove the test in parse_args
 	arguments = parser.parse_args()
@@ -1413,7 +1418,7 @@ def MainLogic():
 			if arguments.android:
 				returnCode = BuildAndroidProjects(arguments.skipdebugbuild, arguments.skipreleasebuild, arguments.printbuildoutput)
 			else:
-				returnCode = BuildWindowsProjects(arguments.xbox, arguments.xboxonly, arguments.skipdebugbuild, arguments.skipreleasebuild, arguments.printbuildoutput, arguments.skipaura)
+				returnCode = BuildWindowsProjects(arguments.xbox, arguments.xboxonly, arguments.skipdebugbuild, arguments.skipreleasebuild, arguments.printbuildoutput, arguments.skipaura, arguments.skipdx11)
 		elif systemOS.lower() == "linux" or systemOS.lower() == "linux2":
 			returnCode = BuildLinuxProjects()
 
