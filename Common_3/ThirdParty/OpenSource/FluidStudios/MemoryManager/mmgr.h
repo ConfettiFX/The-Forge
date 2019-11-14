@@ -99,50 +99,50 @@ enum
 // Used by the macros
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-void		m_setOwner(const char *file, const unsigned int line, const char *func);
+void		mmgrSetOwner(const char *file, const unsigned int line, const char *func);
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Allocation breakpoints
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-bool		&m_breakOnRealloc(void *reportedAddress);
-bool		&m_breakOnDealloc(void *reportedAddress);
+bool		&mmgrBreakOnRealloc(void *reportedAddress);
+bool		&mmgrBreakOnDealloc(void *reportedAddress);
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // The meat of the memory tracking software
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-void		*m_allocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc,
+void		*mmgrAllocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc,
 	const unsigned int allocationType, const size_t alignment, const size_t reportedSize);
-void		*m_reallocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc,
+void		*mmgrReallocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc,
 	const unsigned int reallocationType, const size_t reportedSize, void *reportedAddress);
-void		m_deallocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc,
+void		mmgrDeallocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc,
 	const unsigned int deallocationType, const void *reportedAddress);
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Utilitarian functions
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-bool		m_validateAddress(const void *reportedAddress);
-bool		m_validateAllocUnit(const sAllocUnit *allocUnit);
-bool		m_validateAllAllocUnits();
+bool		mmgrValidateAddress(const void *reportedAddress);
+bool		mmgrValidateAllocUnit(const sAllocUnit *allocUnit);
+bool		mmgrValidateAllAllocUnits();
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Unused RAM calculations
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-unsigned int	m_calcUnused(const sAllocUnit *allocUnit);
-unsigned int	m_calcAllUnused();
+unsigned int	mmgrCalcUnused(const sAllocUnit *allocUnit);
+unsigned int	mmgrCalcAllUnused();
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Logging and reporting
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-void 		mmgr_setExecutableName(const char* name, size_t length);
-void		mmgr_setLogFileDirectory(const char* directory);
-void		m_dumpAllocUnit(const sAllocUnit *allocUnit, const char *prefix = "");
-void		m_dumpMemoryReport(const char *filename = "memreport.log", const bool overwrite = true);
-sMStats		m_getMemoryStatistics();
+void 		mmgrSetExecutableName(const char* name, size_t length);
+void		mmgrSetLogFileDirectory(const char* directory);
+void		mmgrDumpAllocUnit(const sAllocUnit *allocUnit, const char *prefix = "");
+void		mmgrDumpMemoryReport(const char *filename = "memreport.log", const bool overwrite = true);
+sMStats		mmgrGetMemoryStatistics();
 
 #endif // _H_MMGR
 

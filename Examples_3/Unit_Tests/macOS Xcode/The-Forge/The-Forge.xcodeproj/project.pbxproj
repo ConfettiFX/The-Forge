@@ -176,6 +176,8 @@
 		E98584E72334397C00692529 /* SystemRun.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E98584E52334397C00692529 /* SystemRun.cpp */; };
 		E98584EA2334609200692529 /* FileSystemInternal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E98584E92334609200692529 /* FileSystemInternal.cpp */; };
 		E98584EB2334609200692529 /* FileSystemInternal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E98584E92334609200692529 /* FileSystemInternal.cpp */; };
+		E9ABCE0923612D26002B8F5B /* ParallelPrimitives.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9ABCE0723612D26002B8F5B /* ParallelPrimitives.cpp */; };
+		E9ABCE0A23612D26002B8F5B /* ParallelPrimitives.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9ABCE0723612D26002B8F5B /* ParallelPrimitives.cpp */; };
 		E9B6292323384CC9009DD4AB /* MemoryStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B28035622319C01A006CE791 /* MemoryStream.cpp */; };
 		E9B6292423384CC9009DD4AB /* MemoryStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B28035622319C01A006CE791 /* MemoryStream.cpp */; };
 		E9B6292523385D33009DD4AB /* SystemFileStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B28035602319C01A006CE791 /* SystemFileStream.cpp */; };
@@ -338,7 +340,7 @@
 		654D979121E922F300113964 /* AnimatedObject.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AnimatedObject.cpp; path = ../../../../Middleware_3/Animation/AnimatedObject.cpp; sourceTree = "<group>"; };
 		654D979221E922F300113964 /* Clip.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Clip.cpp; path = ../../../../Middleware_3/Animation/Clip.cpp; sourceTree = "<group>"; };
 		654D979321E922F400113964 /* Clip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Clip.h; path = ../../../../Middleware_3/Animation/Clip.h; sourceTree = "<group>"; };
-		65F9793121ED9F9A008EC741 /* MetalRaytracing.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalRaytracing.mm; path = Metal/MetalRaytracing.mm; sourceTree = "<group>"; };
+		65F9793121ED9F9A008EC741 /* MetalRaytracing.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MetalRaytracing.mm; path = Metal/MetalRaytracing.mm; sourceTree = "<group>"; usesTabs = 1; };
 		65F9793621EDFA44008EC741 /* IRay.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IRay.h; sourceTree = "<group>"; };
 		81856EF1229D725000F3A92B /* EASprintf.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = EASprintf.cpp; path = OpenSource/EASTL/EAStdC/EASprintf.cpp; sourceTree = "<group>"; };
 		81856EF2229D725000F3A92B /* EAMemory.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = EAMemory.cpp; path = OpenSource/EASTL/EAStdC/EAMemory.cpp; sourceTree = "<group>"; };
@@ -396,8 +398,10 @@
 		E96D0A18232C45E4006DAED2 /* ProfilerWidgetsUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ProfilerWidgetsUI.h; path = ../ThirdParty/OpenSource/MicroProfile/ProfilerWidgetsUI.h; sourceTree = "<group>"; };
 		E96D0A19232C45E4006DAED2 /* ProfilerWidgetsUI.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ProfilerWidgetsUI.cpp; path = ../ThirdParty/OpenSource/MicroProfile/ProfilerWidgetsUI.cpp; sourceTree = "<group>"; };
 		E98584E52334397C00692529 /* SystemRun.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SystemRun.cpp; path = FileSystem/SystemRun.cpp; sourceTree = "<group>"; };
-		E98584E82334604300692529 /* FileSystemInternal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FileSystemInternal.h; path = FileSystem/FileSystemInternal.h; sourceTree = "<group>"; };
+		E98584E82334604300692529 /* FileSystemInternal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FileSystemInternal.h; path = FileSystem/FileSystemInternal.h; sourceTree = "<group>"; usesTabs = 1; };
 		E98584E92334609200692529 /* FileSystemInternal.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FileSystemInternal.cpp; path = FileSystem/FileSystemInternal.cpp; sourceTree = "<group>"; usesTabs = 1; };
+		E9ABCE0723612D26002B8F5B /* ParallelPrimitives.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; name = ParallelPrimitives.cpp; path = ../../../../../Middleware_3/ParallelPrimitives/ParallelPrimitives.cpp; sourceTree = "<group>"; };
+		E9ABCE4923625D6F002B8F5B /* ParallelPrimitives.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ParallelPrimitives.h; path = ../../../../../Middleware_3/ParallelPrimitives/ParallelPrimitives.h; sourceTree = "<group>"; };
 		E9B6292B23388D7C009DD4AB /* UnixFileSystem.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = UnixFileSystem.cpp; path = FileSystem/UnixFileSystem.cpp; sourceTree = "<group>"; };
 		E9B6292C23388D7C009DD4AB /* UnixFileSystem.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UnixFileSystem.h; path = FileSystem/UnixFileSystem.h; sourceTree = "<group>"; usesTabs = 1; };
 		E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = basisu_transcoder.cpp; path = ../ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp; sourceTree = "<group>"; };
@@ -577,6 +581,7 @@
 		B22D906C20E3F8BC0036B88E /* Middleware_3 */ = {
 			isa = PBXGroup;
 			children = (
+				E952EB092370F5E50093E1BA /* ParallelPrimitives */,
 				B2A3551222BC5B4C00E1844E /* ECS */,
 				654D978521E922C800113964 /* Animation */,
 				B25AC23F20EFF13100ED50CF /* Text */,
@@ -656,6 +661,15 @@
 				C91D461A1FD9974F00564C8B /* MemoryTracking.cpp */,
 			);
 			name = MemoryManager;
+			sourceTree = "<group>";
+		};
+		E952EB092370F5E50093E1BA /* ParallelPrimitives */ = {
+			isa = PBXGroup;
+			children = (
+				E9ABCE4923625D6F002B8F5B /* ParallelPrimitives.h */,
+				E9ABCE0723612D26002B8F5B /* ParallelPrimitives.cpp */,
+			);
+			path = ParallelPrimitives;
 			sourceTree = "<group>";
 		};
 		E95891D42341595100B68D6A /* MicroProfile */ = {
@@ -767,6 +781,7 @@
 				5C172F1E214145400074EE71 /* Frameworks */,
 			);
 			sourceTree = "<group>";
+			usesTabs = 1;
 		};
 		EA463C8C1EF81E8F005AC8C7 /* Products */ = {
 			isa = PBXGroup;
@@ -1130,6 +1145,7 @@
 				81856F11229D729000F3A92B /* fixed_pool.cpp in Sources */,
 				E967DE49233B0DE50032E4BA /* iOSBase.mm in Sources */,
 				654D97B721E92F8100113964 /* AnimatedObject.cpp in Sources */,
+				E9ABCE0A23612D26002B8F5B /* ParallelPrimitives.cpp in Sources */,
 				E967DF15233B2F610032E4BA /* iOSFileSystem.mm in Sources */,
 				5C172FEE21414CC60074EE71 /* IRenderer.h in Sources */,
 				B274041E22BC66AD00F7660D /* BaseComponent.cpp in Sources */,
@@ -1214,6 +1230,7 @@
 				81856F00229D729000F3A92B /* allocator_forge.cpp in Sources */,
 				654D979B21E922F400113964 /* Animation.cpp in Sources */,
 				81856F0E229D729000F3A92B /* numeric_limits.cpp in Sources */,
+				E9ABCE0923612D26002B8F5B /* ParallelPrimitives.cpp in Sources */,
 				E98584EA2334609200692529 /* FileSystemInternal.cpp in Sources */,
 				654D97A021E922F400113964 /* Clip.cpp in Sources */,
 				81856F0C229D729000F3A92B /* intrusive_list.cpp in Sources */,

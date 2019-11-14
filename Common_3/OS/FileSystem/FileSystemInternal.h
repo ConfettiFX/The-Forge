@@ -25,10 +25,6 @@
 #ifndef FileSystemInternal_h
 #define FileSystemInternal_h
 
-#include <atomic>
-#include <cstdio>
-#include <cstring>
-
 #include "../Interfaces/IFileSystem.h"
 #include "../Core/Atomics.h"
 
@@ -36,8 +32,8 @@
 // for the memory manager.
 // We need to set these manually as the memory manager doesn't know when it is safe to call
 // FileSystem functions.
-void mmgr_setExecutableName(const char* name, size_t length);
-void mmgr_setLogFileDirectory(const char* directory);
+void mmgrSetExecutableName(const char* name, size_t length);
+void mmgrSetLogFileDirectory(const char* directory);
 
 // MARK: - FileSystem
 

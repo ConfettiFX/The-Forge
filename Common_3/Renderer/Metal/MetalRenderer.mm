@@ -1582,8 +1582,9 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 #else
 		strncpy(gpuVendor.mVendorId, "Apple", MAX_GPU_VENDOR_STRING_LENGTH);
 		strncpy(gpuVendor.mModelId, "iOS", MAX_GPU_VENDOR_STRING_LENGTH);
-
+		strncpy(gpuVendor.mGpuName, [pRenderer->pDevice.name cStringUsingEncoding:NSUTF8StringEncoding], MAX_GPU_VENDOR_STRING_LENGTH);
 #endif
+
 		// Set the default GPU settings.
 		pRenderer->mNumOfGPUs = 1;
 		pRenderer->mLinkedNodeCount = 1;
@@ -1596,6 +1597,48 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 		pRenderer->pActiveGpuSettings = &pRenderer->mGpuSettings[0];
 		pRenderer->mGpuSettings[0].mROVsSupported = [pRenderer->pDevice areRasterOrderGroupsSupported];
 		pRenderer->mGpuSettings[0].mWaveLaneCount = queryThreadExecutionWidth(pRenderer);
+		
+		// argument buffer capabilities
+		MTLArgumentBuffersTier abTier = pRenderer->pDevice.argumentBuffersSupport;
+		
+		//
+		if (abTier == MTLArgumentBuffersTier2)
+		{
+			pRenderer->mGpuSettings[0].mArgumentBufferMaxTextures = 500000;
+		}
+		else
+		{
+#ifdef TARGET_IOS
+			if (@available(macOS 10.15, iOS 13.0, *))
+			{
+				// iOS caps
+				if ([pRenderer->pDevice supportsFamily: MTLGPUFamilyApple4]) // A11 and higher
+				{
+					pRenderer->mGpuSettings[0].mArgumentBufferMaxTextures = 96;
+				}
+				else
+				{
+					pRenderer->mGpuSettings[0].mArgumentBufferMaxTextures = 31;
+				}
+			}
+			else
+			{
+				if ([pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily4_v2])
+				{
+					pRenderer->mGpuSettings[0].mArgumentBufferMaxTextures = 96;
+				}
+				else
+				{
+					pRenderer->mGpuSettings[0].mArgumentBufferMaxTextures = 31;
+				}
+			}
+#else
+			pRenderer->mGpuSettings[0].mArgumentBufferMaxTextures = 128;
+#endif
+		}
+		
+		
+		
 #ifndef TARGET_IOS
 		setGPUPresetLevel(pRenderer);
 		//exit app if gpu being used has an office preset.
@@ -2162,6 +2205,8 @@ void addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShaderPr
 
 			if (lib)
 			{
+				pShaderProgram->mtlLibrary = lib;
+				
 				NSString*       entryPointNStr = [[NSString alloc] initWithUTF8String:entry_point];
 				id<MTLFunction> function = [lib newFunctionWithName:entryPointNStr];
 				assert(function != nil && "Entry point not found in shader.");
@@ -2233,7 +2278,8 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 			dispatch_data_t byteCode =
 				dispatch_data_create(pStage->pByteCode, pStage->mByteCodeSize, nil, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
 			id<MTLLibrary> lib = [pRenderer->pDevice newLibraryWithData:byteCode error:nil];
-
+			pShaderProgram->mtlLibrary = lib;
+			
 			// Create a MTLFunction from the loaded MTLLibrary.
 			NSString*       entryPointNStr = [[NSString alloc] initWithUTF8String:pStage->pEntryPoint];
 			id<MTLFunction> function = [lib newFunctionWithName:entryPointNStr];
@@ -2261,6 +2307,7 @@ void removeShader(Renderer* pRenderer, Shader* pShaderProgram)
 	pShaderProgram->mtlVertexShader = nil;
 	pShaderProgram->mtlFragmentShader = nil;
 	pShaderProgram->mtlComputeShader = nil;
+	pShaderProgram->mtlLibrary = nil;
 
 	destroyPipelineReflection(&pShaderProgram->mReflection);
 
@@ -2988,7 +3035,7 @@ void cmdBindPipeline(Cmd* pCmd, Pipeline* pPipeline)
 	ASSERT(pPipeline);
 
 	pCmd->pShader = pPipeline->pShader;
-
+	
 	@autoreleasepool
 	{
 		if (pPipeline->mType == PIPELINE_TYPE_GRAPHICS)
@@ -3424,9 +3471,12 @@ void cmdExecuteIndirect(
 			else if (pCommandSignature->mDrawType == INDIRECT_DISPATCH)
 			{
 				util_barrier_required(pCmd, CMD_POOL_COMPUTE);
+
+				Shader* shader = pCmd->pShader;
+				MTLSize threadsPerThreadgroup =
+					MTLSizeMake(shader->mNumThreadsPerGroup[0], shader->mNumThreadsPerGroup[1], shader->mNumThreadsPerGroup[2]);
 				
-				//TODO: Implement.
-				ASSERT(0);
+				[pCmd->mtlComputeEncoder dispatchThreadgroupsWithIndirectBuffer:pIndirectBuffer->mtlBuffer indirectBufferOffset:bufferOffset threadsPerThreadgroup:threadsPerThreadgroup];
 			}
 		}
 	}
@@ -3730,14 +3780,7 @@ void getRawTextureHandle(Renderer* pRenderer, Texture* pTexture, void** ppHandle
 
 void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
-	if (pCmd->mtlRenderEncoder)
-		[pCmd->mtlRenderEncoder pushDebugGroup:[NSString stringWithFormat:@"%s", pName]];
-	else if (pCmd->mtlComputeEncoder)
-		[pCmd->mtlComputeEncoder pushDebugGroup:[NSString stringWithFormat:@"%s", pName]];
-	else if (pCmd->mtlBlitEncoder)
-		[pCmd->mtlBlitEncoder pushDebugGroup:[NSString stringWithFormat:@"%s", pName]];
-	else
-		[pCmd->mtlCommandBuffer pushDebugGroup:[NSString stringWithFormat:@"%s", pName]];
+	[pCmd->mtlCommandBuffer pushDebugGroup:[NSString stringWithFormat:@"%s", pName]];
 }
 
 void cmdBeginDebugMarkerf(Cmd* pCmd, float r, float g, float b, const char* pFormat, ...)
@@ -3752,14 +3795,7 @@ void cmdBeginDebugMarkerf(Cmd* pCmd, float r, float g, float b, const char* pFor
 
 void cmdEndDebugMarker(Cmd* pCmd)
 {
-	if (pCmd->mtlRenderEncoder)
-		[pCmd->mtlRenderEncoder popDebugGroup];
-	else if (pCmd->mtlComputeEncoder)
-		[pCmd->mtlComputeEncoder popDebugGroup];
-	else if (pCmd->mtlBlitEncoder)
-		[pCmd->mtlBlitEncoder popDebugGroup];
-	else
-		[pCmd->mtlCommandBuffer popDebugGroup];
+	[pCmd->mtlCommandBuffer popDebugGroup];
 }
 
 void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
@@ -4002,10 +4038,11 @@ void util_set_argument(DescriptorSet* pDescriptorSet, const DescriptorInfo* pDes
                     }
                     
                     // resources
-                    if (j == 0)
                     {
                         eastl::unordered_set<void*>* resourceStorage = &resources[RESOURCE_TYPE_HEAP];
-                        void* resource = (__bridge void*)pParam->ppTextures[j]->pMtlAllocation->GetMemory();
+						void* resource = NULL;
+						if (pParam->ppTextures[j]->pMtlAllocation)
+							resource = (__bridge void*)pParam->ppTextures[j]->pMtlAllocation->GetMemory();
                         
                         if (resource == NULL)
                         {

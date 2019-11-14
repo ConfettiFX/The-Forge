@@ -32,6 +32,7 @@
 #include "../Interfaces/ILog.h"
 #include <assert.h>
 #include "../Interfaces/IMemory.h"
+#include <android/log.h>
 
 void outputLogString(const char* pszStr)
 {
@@ -41,13 +42,15 @@ void outputLogString(const char* pszStr)
 
 void _OutputDebugStringV(const char* str, va_list args)
 {
-#ifdef _DEBUG
-    const unsigned BUFFER_SIZE = 4096;
+#if defined(_DEBUG) || defined(AUTOMATED_TESTING)
+	const unsigned BUFFER_SIZE = 4096;
     char           buf[BUFFER_SIZE];
 
     vsprintf_s(buf, BUFFER_SIZE, str, args);
 
-    printf("%s\n", buf);
+	// stdout doesn't work on android. we need to use ndk log functionality.
+    //printf("%s\n", buf);
+	__android_log_print(ANDROID_LOG_INFO, "The-Forge", buf);
 #endif
 }
 
@@ -70,7 +73,17 @@ void _FailedAssert(const char* file, int line, const char* statement)
 	assert(0);
 }
 
-void _PrintUnicode(const eastl::string& str, bool error) { outputLogString(str.c_str()); }
+void _PrintUnicode(const eastl::string& str, bool error) { 
+
+	if (error)
+	{
+		__android_log_print(ANDROID_LOG_ERROR, "The-Forge", str.c_str());
+	}
+	else
+	{
+		outputLogString(str.c_str());
+	}
+}
 
 void _PrintUnicodeLine(const eastl::string& str, bool error) { _PrintUnicode(str, error); }
 #endif    // ifdef __ANDROID__

@@ -222,6 +222,7 @@ typedef enum ResourceDirectory
     RD_MIDDLEWARE_0,
     RD_MIDDLEWARE_1,
     RD_MIDDLEWARE_2,
+    RD_MIDDLEWARE_3,
 
     ____rd_lib_counter_end = ____rd_lib_counter_begin + 99 * 3,
     RD_ROOT,

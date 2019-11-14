@@ -1568,6 +1568,10 @@ static bool process_source_file(FileStream* original, const Path* filePath, File
 		if (fileTimeStamp > outTimeStamp)
 			outTimeStamp = fileTimeStamp;
 	}
+    else
+    {
+        return true; // The source file is missing, but we may still be able to use the shader binary.
+    }
     
     PathHandle fileDirectory = fsCopyParentPath(filePath);
 
@@ -1714,18 +1718,24 @@ bool load_shader_stage_byte_code(
 	time_t          timeStamp = 0;
 
 #ifndef METAL
-	FileStream* fh = fsOpenFile(filePath, FM_READ_BINARY);
-	ASSERT(fh);
+	FileStream* sourceFileStream = fsOpenFile(filePath, FM_READ_BINARY);
+	ASSERT(sourceFileStream);
 
-	if (!process_source_file(fh, filePath, fh, timeStamp, code))
+	if (!process_source_file(sourceFileStream, filePath, sourceFileStream, timeStamp, code))
+	{
+        fsCloseStream(sourceFileStream);
 		return false;
+    }
 #else
 	PathHandle metalShaderPath = fsAppendPathExtension(filePath, "metal");
-	FileStream* fh = fsOpenFile(metalShaderPath, FM_READ_BINARY);
-	ASSERT(fh);
+	FileStream* sourceFileStream = fsOpenFile(metalShaderPath, FM_READ_BINARY);
+	ASSERT(sourceFileStream);
 
-	if (!process_source_file(fh, metalShaderPath, fh, timeStamp, code))
+	if (!process_source_file(sourceFileStream, metalShaderPath, sourceFileStream, timeStamp, code))
+	{
+        fsCloseStream(sourceFileStream);
 		return false;
+    }
 #endif
 
 	PathComponent directoryPath, fileName, extension;
@@ -1737,11 +1747,6 @@ bool load_shader_stage_byte_code(
 		shaderDefines += (eastl::string(pMacros[i].definition) + pMacros[i].value);
 	}
 
-#if 0    //#ifdef _DURANGO
-	// Using Durango application data storage requires appmanifest(from application) changes.
-	eastl::string binaryShaderName = FileUtilities::GetAppPreferencesDir(NULL,NULL) + "/" + pRenderer->pName + "/CompiledShadersBinary/" +
-		FileUtilities::GetFileName(fileName) + eastl::string().sprintf("_%zu", eastl::hash(shaderDefines)) + extension + ".bin";
-#else
 	eastl::string rendererApi;
 	switch (pRenderer->mSettings.mApi)
 	{
@@ -1760,18 +1765,22 @@ bool load_shader_stage_byte_code(
 	appName = appName != pRenderer->pName ? appName : appName + "_";
 #endif
 
-    eastl::string binaryShaderComponent = appName + eastl::string("/Shaders/") + rendererApi +
-                                     eastl::string("/CompiledShadersBinary/") + fsPathComponentToString(fileName) +
+    eastl::string binaryShaderComponent = fsPathComponentToString(fileName) +
 									 eastl::string().sprintf("_%zu", eastl::string_hash<eastl::string>()(shaderDefines)) + fsPathComponentToString(extension) +
 									 eastl::string().sprintf("%u", target) + ".bin";
     
-    PathHandle programDirectory = fsCopyProgramDirectoryPath();
-    PathHandle binaryShaderPath = fsAppendPathComponent(programDirectory, binaryShaderComponent.c_str());
-#endif
+    PathHandle binaryShaderPath = fsCopyPathInResourceDirectory(RD_SHADER_BINARIES, binaryShaderComponent.c_str());
 
 	// Shader source is newer than binary
 	if (!check_for_byte_code(binaryShaderPath, timeStamp, byteCode))
 	{
+        if (!sourceFileStream)
+        {
+            LOGF(eERROR, "No source shader or precompiled binary present for file %s", fileName);
+            fsCloseStream(sourceFileStream);
+            return false;
+        }
+        
 		if (pRenderer->mSettings.mApi == RENDERER_API_METAL || pRenderer->mSettings.mApi == RENDERER_API_VULKAN)
 		{
 #if defined(VULKAN)
@@ -1807,12 +1816,12 @@ bool load_shader_stage_byte_code(
 		if (!byteCode.size())
 		{
 			LOGF(eERROR, "Error while generating bytecode for shader %s", fileName);
-            fsCloseStream(fh);
+            fsCloseStream(sourceFileStream);
 			return false;
 		}
 	}
 	
-    fsCloseStream(fh);
+    fsCloseStream(sourceFileStream);
 	return true;
 }
 #ifdef TARGET_IOS
@@ -1971,10 +1980,11 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
                 
                 FileStream* fh = fsOpenFile(metalFilePath, FM_READ_BINARY);
                 size_t metalFileSize = fsGetStreamFileSize(fh);
-                pSources[i] = (char*)conf_malloc(metalFileSize);
+                pSources[i] = (char*)conf_malloc(metalFileSize + 1);
                 pStage->pSource = pSources[i];
                 pStage->mSourceSize = (uint32_t)metalFileSize;
                 fsReadFromStream(fh, pSources[i], metalFileSize);
+                pSources[i][metalFileSize] = 0; // Ensure the shader text is null-terminated
                 fsCloseStream(fh);
 #else
 				if (pDesc->mStages[i].pEntryPointName)

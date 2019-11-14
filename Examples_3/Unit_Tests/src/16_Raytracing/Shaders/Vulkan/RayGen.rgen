@@ -4,44 +4,66 @@
 layout(binding = 0, set=0) uniform accelerationStructureNV gRtScene;
 layout(binding = 1, rgba8) uniform image2D gOutput;
 
-layout(binding = 2, set=1, std140) uniform gSettings
+layout(binding = 0, set=1) uniform gSettings
 {
-	vec3 CameraPosition;
-	uint _pad0;
-	vec3 LightDirection;
-	uint _pad1;
-	uint HitGroupIndex;
-	uint MissGroupIndex;
-	uint PlaneHitGroupIndex;
-	uint PlaneMissGroupIndex;
+    mat4 mCameraToWorld;
+	vec2 mZ1PlaneSize;
+	float mProjNear;
+	float mProjFarMinusNear;
+    vec2 mLightDirectionXY;
+	float mLightDirectionZ;
+	float mRandomSeed;
+	vec2 mSubpixelJitter;
+	uint mFrameIndex;
+	uint mFramesSinceCameraMove;
 };
 
-layout(location = 0) rayPayloadNV vec3 hitValue;
+struct RayPayload
+{
+    vec3 radiance;
+    uint recursionDepth;
+};
+
+layout(location = 0) rayPayloadNV RayPayload payload;
 
 void main()
 {
     const uvec2 launchIndex = gl_LaunchIDNV.xy;
     const uvec2 launchDim = gl_LaunchSizeNV.xy;
 
-    vec2 crd = vec2(launchIndex);
+    vec2 crd = vec2(launchIndex) + mSubpixelJitter;
     vec2 dims = vec2(launchDim);
 
     vec2 d = ((crd / dims) * 2.f - 1.f);
-    float aspectRatio = dims.x / dims.y;
+    d.y *= -1;
 
-	vec4 origin = vec4(CameraPosition.xyz, 1.0);
-    vec4 direction = vec4(normalize(vec3(d.x * aspectRatio, -d.y, 1.0)), 1.0);
+	vec3 direction = normalize(vec3(d * mZ1PlaneSize, 1.0));
+	vec3 directionWS = mat3(mCameraToWorld[0].xyz, mCameraToWorld[1].xyz, mCameraToWorld[2].xyz) * direction;
+
+	vec3 origin = mCameraToWorld[3].xyz + directionWS * mProjNear;
 
     uint rayFlags = gl_RayFlagsNoneNV ;//gl_RayFlagsOpaqueNV;
     uint cullMask = 0xFF;
     float tmin = 0.000;
     float tmax = 10000.0;
 
-    //Rustam: "settings" uniform should be used here
-    //traceNV(gRtScene, rayFlags, cullMask, 0 /*sbtRecordOffset*/, 1 /*sbtRecordStride*/,
-    //  0 /*missIndex*/, origin.xyz, tmin, direction.xyz, tmax, 0 /*payload location*/);
-	traceNV(gRtScene, rayFlags, cullMask, 0 /*sbtRecordOffset*/, 1 /*sbtRecordStride*/,
-			MissGroupIndex /*missIndex*/, origin.xyz, tmin, direction.xyz, tmax, 0 /*payload location*/);
+	payload.radiance = vec3(0);
+	payload.recursionDepth = 0;
+	traceNV(gRtScene, rayFlags, cullMask, 0 /*sbtRecordOffset*/, 0 /*sbtRecordStride*/,
+			0 /*missIndex*/, origin, tmin, directionWS, tmax, 0 /*payload location*/);
 
-    imageStore(gOutput, ivec2(gl_LaunchIDNV.xy), vec4(hitValue, 0.0));
+    ivec2 pixelPos = ivec2(gl_LaunchIDNV.xy);
+    vec4 accumulatedRadiance = vec4(0.0);
+
+    if (mFrameIndex == 0)
+	{
+		accumulatedRadiance = vec4(payload.radiance, 1.0);
+	} 
+	else 
+	{
+		accumulatedRadiance = imageLoad(gOutput, pixelPos);
+		accumulatedRadiance.w += 1.0;
+		accumulatedRadiance.rgb += (payload.radiance - accumulatedRadiance.rgb) / accumulatedRadiance.w;
+	}
+    imageStore(gOutput, pixelPos, accumulatedRadiance);
 }

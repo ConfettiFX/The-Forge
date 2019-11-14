@@ -275,16 +275,20 @@ int AndroidMain(void* param, IApp* app)
 
 
 	if (!MemAllocInit())
+	{
+		__android_log_print(ANDROID_LOG_ERROR, "The-Forge", "Error starting application");
 		return EXIT_FAILURE;
-
+	}
 	struct android_app* android_app = (struct android_app*)param;
 	android_activity = android_app->activity;
 	AndroidFS_SetNativeActivity(android_activity);
-
+	if (!fsInitAPI())
+	{
+		__android_log_print(ANDROID_LOG_ERROR, "The-Forge", "Error starting application");
+		return EXIT_FAILURE;
+	}
 	Log::Init();
 
-	if (!fsInitAPI())
-		return EXIT_FAILURE;
 
 	// Set the callback to process system events
 	android_app->onAppCmd = handle_cmd;
@@ -330,6 +334,9 @@ int AndroidMain(void* param, IApp* app)
 		}
 		if (!windowReady || !isActive)
 		{
+			if (android_app->destroyRequested)
+				quit = true;
+
 			usleep(1);
 			continue;
 		}
@@ -347,7 +354,9 @@ int AndroidMain(void* param, IApp* app)
 		//used in automated tests only.
 		testingFrameCount++;
 		if (testingFrameCount >= testingDesiredFrameCount)
-			quit = true;
+		{
+			ANativeActivity_finish(android_app->activity);
+		}
 #endif
 		if (android_app->destroyRequested)
 			quit = true;
@@ -360,7 +369,12 @@ int AndroidMain(void* param, IApp* app)
 	Log::Exit();
 	fsDeinitAPI();
 	MemAllocExit();
-	
+
+#ifdef AUTOMATED_TESTING
+	__android_log_print(ANDROID_LOG_INFO, "The-Forge", "Success terminating application");
+	exit(0);
+#endif
+
 	return 0;
 }
 /************************************************************************/

@@ -247,7 +247,7 @@ public:
 			const char* p = strcasestr(fileName, extension);
 			if (p)
 			{
-				Path* path = fsCreatePath(this, fileName);
+				Path* path = fsAppendPathComponent(directory, fileName);
 				processFile(path, userData);
 				fsFreePath(path);
 			}
@@ -427,7 +427,7 @@ Path* fsCopyUserDocumentsDirectoryPath()
 
 Path* fsCopyLogFileDirectoryPath() 
 {
-	return fsCreatePath(fsGetSystemFileSystem(), pNativeActivity->internalDataPath);
+	return fsCreatePath(fsGetSystemFileSystem(), pNativeActivity->externalDataPath);
 }
 
 void fsShowOpenFileDialog(

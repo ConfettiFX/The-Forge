@@ -554,14 +554,16 @@ static	void	wipeWithPattern(sAllocUnit *allocUnit, uint32_t pattern, const unsig
 // ---------------------------------------------------------------------------------------------------------------------------------
 static void		dumpLine(FILE* fileToWrite, const char* format, ...)
 {
-    va_list args;
+    va_list args, fileArgs;
     va_start(args, format);
+    va_copy(fileArgs, args);
     
     _OutputDebugStringV(format, args);
     
-    vfprintf(fileToWrite, format, args);
+    vfprintf(fileToWrite, format, fileArgs);
     fprintf(fileToWrite, "\n");
     va_end(args);
+    va_end(fileArgs);
 }
 
 static	void	dumpAllocations(FILE* fh)
@@ -579,7 +581,7 @@ static	void	dumpAllocations(FILE* fh)
 				ptr->allocationNumber,
 				reinterpret_cast<size_t>(ptr->reportedAddress), ptr->reportedSize,
 				reinterpret_cast<size_t>(ptr->actualAddress), ptr->actualSize,
-				m_calcUnused(ptr),
+				mmgrCalcUnused(ptr),
 				allocationTypes[ptr->allocationType],
 				ptr->breakOnDealloc ? 'Y' : 'N',
 				ptr->breakOnRealloc ? 'Y' : 'N',
@@ -684,12 +686,12 @@ static	void	dumpLeakReport()
 	}
 }
 
-void mmgr_setLogFileDirectory(const char* directory) 
+void mmgrSetLogFileDirectory(const char* directory) 
 {
 	strncpy(mmgrLogFileDirectory, directory, sizeof(mmgrLogFileDirectory) / sizeof(char));
 }
 
-void mmgr_setExecutableName(const char* name, size_t length) 
+void mmgrSetExecutableName(const char* name, size_t length) 
 {
 	strncpy(mmgrExecutableName, name, min(sizeof(mmgrExecutableName) / sizeof(char), length));
 }
@@ -746,7 +748,7 @@ bool	&m_randomeWipe()
 // reallocated.
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-bool	&m_breakOnRealloc(void *reportedAddress)
+bool	&mmgrBreakOnRealloc(void *reportedAddress)
 {
 	// Locate the existing allocation unit
 
@@ -770,7 +772,7 @@ bool	&m_breakOnRealloc(void *reportedAddress)
 // deallocated.
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-bool	&m_breakOnDealloc(void *reportedAddress)
+bool	&mmgrBreakOnDealloc(void *reportedAddress)
 {
 	// Locate the existing allocation unit
 
@@ -796,7 +798,7 @@ void	m_breakOnAllocation(unsigned int count)
 // Used by the macros
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-void	m_setOwner(const char *file, const unsigned int line, const char *func)
+void	mmgrSetOwner(const char *file, const unsigned int line, const char *func)
 {
 	// You're probably wondering about this...
 	//
@@ -804,29 +806,29 @@ void	m_setOwner(const char *file, const unsigned int line, const char *func)
 	// no extra parameters.) In order to do this, we use macros that call this function prior to operators new & delete. This
 	// is fine... usually. Here's what actually happens when you use this macro to delete an object:
 	//
-	// m_setOwner(__FILE__, __LINE__, __FUNCTION__) --> object::~object() --> delete
+	// mmgrSetOwner(__FILE__, __LINE__, __FUNCTION__) --> object::~object() --> delete
 	//
 	// Note that the compiler inserts a call to the object's destructor just prior to calling our overridden operator delete.
 	// But what happens when we delete an object whose destructor deletes another object, whose desctuctor deletes another
 	// object? Here's a diagram (indentation follows stack depth):
 	//
-	// m_setOwner(...) -> ~obj1()                          // original call to delete obj1
-	//     m_setOwner(...) -> ~obj2()                      // obj1's destructor deletes obj2
-	//         m_setOwner(...) -> ~obj3()                  // obj2's destructor deletes obj3
+	// mmgrSetOwner(...) -> ~obj1()                          // original call to delete obj1
+	//     mmgrSetOwner(...) -> ~obj2()                      // obj1's destructor deletes obj2
+	//         mmgrSetOwner(...) -> ~obj3()                  // obj2's destructor deletes obj3
 	//             ...                                     // obj3's destructor just does some stuff
 	//         delete                                      // back in obj2's destructor, we call delete
 	//     delete                                          // back in obj1's destructor, we call delete
 	// delete                                              // back to our original call, we call delete
 	//
-	// Because m_setOwner() just sets up some static variables (below) it's important that each call to m_setOwner() and
-	// successive calls to new/delete alternate. However, in this case, three calls to m_setOwner() happen in succession
+	// Because mmgrSetOwner() just sets up some static variables (below) it's important that each call to mmgrSetOwner() and
+	// successive calls to new/delete alternate. However, in this case, three calls to mmgrSetOwner() happen in succession
 	// followed by three calls to delete in succession (with a few calls to destructors mixed in for fun.) This means that
 	// only the final call to delete (in this chain of events) will have the proper reporting, and the first two in the chain
 	// will not have ANY owner-reporting information. The deletes will still work fine, we just won't know who called us.
 	//
 	// "Then build a stack, my friend!" you might think... but it's a very common thing that people will be working with third-
 	// party libraries (including MFC under Windows) which is not compiled with this memory manager's macros. In those cases,
-	// m_setOwner() is never called, and rightfully should not have the proper trace-back information. So if one of the
+	// mmgrSetOwner() is never called, and rightfully should not have the proper trace-back information. So if one of the
 	// destructors in the chain ends up being a call to a delete from a non-mmgr-compiled library, the stack will get confused.
 	//
 	// I've been unable to find a solution to this problem, but at least we can detect it and report the data before we
@@ -834,7 +836,7 @@ void	m_setOwner(const char *file, const unsigned int line, const char *func)
 	// information is present...
 	//
 	// There's a caveat here... The compiler is not required to call operator delete if the value being deleted is NULL.
-	// In this case, any call to delete with a NULL will sill call m_setOwner(), which will make m_setOwner() think that
+	// In this case, any call to delete with a NULL will sill call mmgrSetOwner(), which will make mmgrSetOwner() think that
 	// there is a destructor chain becuase we setup the variables, but nothing gets called to clear them. Because of this
 	// we report a "Possible destructor chain".
 	//
@@ -864,7 +866,7 @@ static	void	resetGlobals()
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Allocate memory and track it
 // ---------------------------------------------------------------------------------------------------------------------------------
-void	*m_allocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc, const unsigned int allocationType, const size_t alignment, const size_t reportedSize)
+void	*mmgrAllocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc, const unsigned int allocationType, const size_t alignment, const size_t reportedSize)
 {
 	if (cleanupLogOnFirstRun)
 	{
@@ -880,7 +882,7 @@ void	*m_allocator(const char *sourceFile, const unsigned int sourceLine, const c
 	try
 	{
 #ifdef TEST_MEMORY_MANAGER
-		log("[D] ENTER: m_allocator()");
+		log("[D] ENTER: mmgrAllocator()");
 #endif
 
 		// Increase our allocation count
@@ -1022,7 +1024,7 @@ void	*m_allocator(const char *sourceFile, const unsigned int sourceLine, const c
 
 		// Validate every single allocated unit in memory
 
-		if (alwaysValidateAll) m_validateAllAllocUnits();
+		if (alwaysValidateAll) mmgrValidateAllAllocUnits();
 
 		// Log the result
 
@@ -1036,7 +1038,7 @@ void	*m_allocator(const char *sourceFile, const unsigned int sourceLine, const c
 		// Return the (reported) address of the new allocation unit
 
 #ifdef TEST_MEMORY_MANAGER
-		log("[D] EXIT : m_allocator()");
+		log("[D] EXIT : mmgrAllocator()");
 #endif
 
 		MUTEX_UNLOCK(allocMutex);
@@ -1050,7 +1052,7 @@ void	*m_allocator(const char *sourceFile, const unsigned int sourceLine, const c
 		resetGlobals();
 
 #ifdef TEST_MEMORY_MANAGER
-		log("[D] EXIT : m_allocator()");
+		log("[D] EXIT : mmgrAllocator()");
 #endif
 
 		MUTEX_UNLOCK(allocMutex);
@@ -1062,7 +1064,7 @@ void	*m_allocator(const char *sourceFile, const unsigned int sourceLine, const c
 // Reallocate memory and track it
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-void	*m_reallocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc, const unsigned int reallocationType, const size_t reportedSize, void *reportedAddress)
+void	*mmgrReallocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc, const unsigned int reallocationType, const size_t reportedSize, void *reportedAddress)
 {
 	/*if (!allocMutex)
 	allocMutex = CreateMutex();
@@ -1072,7 +1074,7 @@ void	*m_reallocator(const char *sourceFile, const unsigned int sourceLine, const
 	try
 	{
 #ifdef TEST_MEMORY_MANAGER
-		log("[D] ENTER: m_reallocator()");
+		log("[D] ENTER: mmgrReallocator()");
 #endif
 
 		// Calling realloc with a NULL should force same operations as a malloc
@@ -1080,7 +1082,7 @@ void	*m_reallocator(const char *sourceFile, const unsigned int sourceLine, const
 		if (!reportedAddress)
 		{
 			MUTEX_UNLOCK(allocMutex);
-			return m_allocator(sourceFile, sourceLine, sourceFunc, reallocationType, 0, reportedSize);
+			return mmgrAllocator(sourceFile, sourceLine, sourceFunc, reallocationType, 0, reportedSize);
 		}
 
 		// Increase our allocation count
@@ -1108,7 +1110,7 @@ void	*m_reallocator(const char *sourceFile, const unsigned int sourceLine, const
 		}
 		// If you hit this assert, then the allocation unit that is about to be reallocated is damaged. But you probably
 		// already know that from a previous assert you should have seen in validateAllocUnit() :)
-		m_assert(m_validateAllocUnit(au));
+		m_assert(mmgrValidateAllocUnit(au));
 
 		// If you hit this assert, then this reallocation was made from a source that isn't setup to use this memory
 		// tracking software, use the stack frame to locate the source and include our H file.
@@ -1234,11 +1236,11 @@ void	*m_reallocator(const char *sourceFile, const unsigned int sourceLine, const
 
 		// If you hit this assert, then something went wrong, because the allocation unit was properly validated PRIOR to
 		// the reallocation. This should not happen.
-		m_assert(m_validateAllocUnit(au));
+		m_assert(mmgrValidateAllocUnit(au));
 
 		// Validate every single allocated unit in memory
 
-		if (alwaysValidateAll) m_validateAllAllocUnits();
+		if (alwaysValidateAll) mmgrValidateAllAllocUnits();
 
 		// Log the result
 
@@ -1252,7 +1254,7 @@ void	*m_reallocator(const char *sourceFile, const unsigned int sourceLine, const
 		// Return the (reported) address of the new allocation unit
 
 #ifdef TEST_MEMORY_MANAGER
-		log("[D] EXIT : m_reallocator()");
+		log("[D] EXIT : mmgrReallocator()");
 #endif
 
 		MUTEX_UNLOCK(allocMutex);
@@ -1266,7 +1268,7 @@ void	*m_reallocator(const char *sourceFile, const unsigned int sourceLine, const
 		resetGlobals();
 
 #ifdef TEST_MEMORY_MANAGER
-		log("[D] EXIT : m_reallocator()");
+		log("[D] EXIT : mmgrReallocator()");
 #endif
 
 		MUTEX_UNLOCK(allocMutex);
@@ -1278,7 +1280,7 @@ void	*m_reallocator(const char *sourceFile, const unsigned int sourceLine, const
 // Deallocate memory and track it
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-void	m_deallocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc, const unsigned int deallocationType, const void *reportedAddress)
+void	mmgrDeallocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc, const unsigned int deallocationType, const void *reportedAddress)
 {
 	/*if (!allocMutex)
 	allocMutex = CreateMutex();
@@ -1288,7 +1290,7 @@ void	m_deallocator(const char *sourceFile, const unsigned int sourceLine, const 
 	try
 	{
 #ifdef TEST_MEMORY_MANAGER
-		log("[D] ENTER: m_deallocator()");
+		log("[D] ENTER: mmgrDeallocator()");
 #endif
 
 		// Log the request
@@ -1315,7 +1317,7 @@ void	m_deallocator(const char *sourceFile, const unsigned int sourceLine, const 
 			}
 			// If you hit this assert, then the allocation unit that is about to be deallocated is damaged. But you probably
 			// already know that from a previous assert you should have seen in validateAllocUnit() :)
-			m_assert(m_validateAllocUnit(au));
+			m_assert(mmgrValidateAllocUnit(au));
 
 			// If you hit this assert, then this deallocation was made from a source that isn't setup to use this memory
 			// tracking software, use the stack frame to locate the source and include our H file.
@@ -1377,7 +1379,7 @@ void	m_deallocator(const char *sourceFile, const unsigned int sourceLine, const 
 
 		// Validate every single allocated unit in memory
 
-		if (alwaysValidateAll) m_validateAllAllocUnits();
+		if (alwaysValidateAll) mmgrValidateAllAllocUnits();
 	}
 	catch (const char *err)
 	{
@@ -1388,7 +1390,7 @@ void	m_deallocator(const char *sourceFile, const unsigned int sourceLine, const 
 	}
 
 #ifdef TEST_MEMORY_MANAGER
-	log("[D] EXIT : m_deallocator()");
+	log("[D] EXIT : mmgrDeallocator()");
 #endif
 	MUTEX_UNLOCK(allocMutex);
 }
@@ -1398,7 +1400,7 @@ void	m_deallocator(const char *sourceFile, const unsigned int sourceLine, const 
 // bugs.
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-bool	m_validateAddress(const void *reportedAddress)
+bool	mmgrValidateAddress(const void *reportedAddress)
 {
 	// Just see if the address exists in our allocation routines
 
@@ -1407,7 +1409,7 @@ bool	m_validateAddress(const void *reportedAddress)
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-bool	m_validateAllocUnit(const sAllocUnit *allocUnit)
+bool	mmgrValidateAllocUnit(const sAllocUnit *allocUnit)
 {
 	// Make sure the padding is untouched
 
@@ -1419,7 +1421,7 @@ bool	m_validateAllocUnit(const sAllocUnit *allocUnit)
 		if (*pre != (uint32_t)prefixPattern)
 		{
 			log("[!] A memory allocation unit was corrupt because of an underrun:");
-			m_dumpAllocUnit(allocUnit, "  ");
+			mmgrDumpAllocUnit(allocUnit, "  ");
 			errorFlag = true;
 		}
 
@@ -1431,7 +1433,7 @@ bool	m_validateAllocUnit(const sAllocUnit *allocUnit)
 		if (*post != static_cast<uint32_t>(postfixPattern))
 		{
 			log("[!] A memory allocation unit was corrupt because of an overrun:");
-			m_dumpAllocUnit(allocUnit, "  ");
+			mmgrDumpAllocUnit(allocUnit, "  ");
 			errorFlag = true;
 		}
 
@@ -1448,7 +1450,7 @@ bool	m_validateAllocUnit(const sAllocUnit *allocUnit)
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-bool	m_validateAllAllocUnits()
+bool	mmgrValidateAllAllocUnits()
 {
 	// Just go through each allocation unit in the hash table and count the ones that have errors
 
@@ -1460,7 +1462,7 @@ bool	m_validateAllAllocUnits()
 		while (ptr)
 		{
 			allocCount++;
-			if (!m_validateAllocUnit(ptr)) errors++;
+			if (!mmgrValidateAllocUnit(ptr)) errors++;
 			ptr = ptr->next;
 		}
 	}
@@ -1497,7 +1499,7 @@ bool	m_validateAllAllocUnits()
 // -DOC- Unused RAM calculation routines. Use these to determine how much of your RAM is unused (in bytes)
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-unsigned int	m_calcUnused(const sAllocUnit *allocUnit)
+unsigned int	mmgrCalcUnused(const sAllocUnit *allocUnit)
 {
 	const uint32_t	*ptr = reinterpret_cast<const uint32_t *>(allocUnit->reportedAddress);
 	unsigned int		count = 0;
@@ -1512,7 +1514,7 @@ unsigned int	m_calcUnused(const sAllocUnit *allocUnit)
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-unsigned int	m_calcAllUnused()
+unsigned int	mmgrCalcAllUnused()
 {
 	// Just go through each allocation unit in the hash table and count the unused RAM
 
@@ -1522,7 +1524,7 @@ unsigned int	m_calcAllUnused()
 		sAllocUnit	*ptr = hashTable[i];
 		while (ptr)
 		{
-			total += m_calcUnused(ptr);
+			total += mmgrCalcUnused(ptr);
 			ptr = ptr->next;
 		}
 	}
@@ -1534,7 +1536,7 @@ unsigned int	m_calcAllUnused()
 // -DOC- The following functions are for logging and statistics reporting.
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-void	m_dumpAllocUnit(const sAllocUnit *allocUnit, const char *prefix)
+void	mmgrDumpAllocUnit(const sAllocUnit *allocUnit, const char *prefix)
 {
 	log("[I] %sAddress (reported): %010p", prefix, allocUnit->reportedAddress);
 	log("[I] %sAddress (actual)  : %010p", prefix, allocUnit->actualAddress);
@@ -1547,7 +1549,7 @@ void	m_dumpAllocUnit(const sAllocUnit *allocUnit, const char *prefix)
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-void	m_dumpMemoryReport(const char *filename, const bool overwrite)
+void	mmgrDumpMemoryReport(const char *filename, const bool overwrite)
 {
 	{
 		char filePath[1024];
@@ -1616,7 +1618,7 @@ void	m_dumpMemoryReport(const char *filename, const bool overwrite)
 		fprintf(fh, " ---------------------------------------------------------------------------------------------------------------------------------- \n");
 		fprintf(fh, "|                                                           U N U S E D                                                            |\n");
 		fprintf(fh, " ---------------------------------------------------------------------------------------------------------------------------------- \n");
-        fprintf(fh, "Memory allocated but not in use: %s\n", memorySizeString(m_calcAllUnused()));
+        fprintf(fh, "Memory allocated but not in use: %s\n", memorySizeString(mmgrCalcAllUnused()));
 		fprintf(fh, "\n");
 
 		dumpAllocations(fh);
@@ -1627,7 +1629,7 @@ void	m_dumpMemoryReport(const char *filename, const bool overwrite)
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-sMStats	m_getMemoryStatistics()
+sMStats	mmgrGetMemoryStatistics()
 {
 	return stats;
 }

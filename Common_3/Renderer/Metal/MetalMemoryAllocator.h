@@ -25,6 +25,8 @@
 #ifndef RESOURCE_RESOURCE_H
 #define RESOURCE_RESOURCE_H
 
+#include <MetalPerformanceShaders/MetalPerformanceShaders.h>
+
 #include "../../OS/Interfaces/ILog.h"
 #include "../../OS/Interfaces/IMemory.h"
 
@@ -3729,6 +3731,12 @@ void destroyTexture(ResourceAllocator* allocator, Texture* pTexture)
 
 		RESOURCE_DEBUG_GLOBAL_MUTEX_LOCK
 
+		if (pTexture->mpsTextureAllocator != nil)
+		{
+			[(id<MPSSVGFTextureAllocator>)pTexture->mpsTextureAllocator returnTexture:pTexture->mtlTexture];
+			pTexture->mpsTextureAllocator = nil;
+		}
+		
 		pTexture->mtlTexture = nil;
 
 		if (pTexture->pMtlAllocation)

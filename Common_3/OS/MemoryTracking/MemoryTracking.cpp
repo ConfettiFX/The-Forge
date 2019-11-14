@@ -27,15 +27,15 @@
 // Just include the cpp here so we don't have to add it to the all projects
 #include "../../ThirdParty/OpenSource/FluidStudios/MemoryManager/mmgr.cpp"
 
-void* conf_malloc_internal(size_t size, const char *f, int l, const char *sf) { return m_allocator(f, l, sf, m_alloc_malloc, 0, size); }
+void* conf_malloc_internal(size_t size, const char *f, int l, const char *sf) { return mmgrAllocator(f, l, sf, m_alloc_malloc, 0, size); }
 
-void* conf_memalign_internal(size_t align, size_t size, const char *f, int l, const char *sf) { return m_allocator(f, l, sf, m_alloc_memalign, align, size); }
+void* conf_memalign_internal(size_t align, size_t size, const char *f, int l, const char *sf) { return mmgrAllocator(f, l, sf, m_alloc_memalign, align, size); }
 
-void* conf_calloc_internal(size_t count, size_t size, const char *f, int l, const char *sf) { return m_allocator(f, l, sf, m_alloc_calloc, 0, size * count); }
+void* conf_calloc_internal(size_t count, size_t size, const char *f, int l, const char *sf) { return mmgrAllocator(f, l, sf, m_alloc_calloc, 0, size * count); }
 
-void* conf_realloc_internal(void* ptr, size_t size, const char *f, int l, const char *sf) { return m_reallocator(f, l, sf, m_alloc_realloc, size, ptr); }
+void* conf_realloc_internal(void* ptr, size_t size, const char *f, int l, const char *sf) { return mmgrReallocator(f, l, sf, m_alloc_realloc, size, ptr); }
 
-void conf_free_internal(void* ptr, const char *f, int l, const char *sf) { m_deallocator(f, l, sf, m_alloc_free, ptr); }
+void conf_free_internal(void* ptr, const char *f, int l, const char *sf) { mmgrDeallocator(f, l, sf, m_alloc_free, ptr); }
 
 #else
 
@@ -53,9 +53,9 @@ void MemAllocExit()
 #include <stdlib.h>
 
 
-void mmgr_setLogFileDirectory(const char* directory) {}
+void mmgrSetLogFileDirectory(const char* directory) {}
 
-void mmgr_setExecutableName(const char* name, size_t length) {}
+void mmgrSetExecutableName(const char* name, size_t length) {}
 
 #ifdef _MSC_VER
 #include <memory.h>
