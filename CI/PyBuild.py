@@ -1408,6 +1408,7 @@ def MainLogic():
 	parser.add_argument('--skipaura', action="store_true", help='If enabled, will skip building aura.')
 	parser.add_argument('--skipdx11', action="store_true", help='If enabled, will skip building DX11.')
 	parser.add_argument('--xcodederiveddatapath', type=str, default='Null', help = 'Uses a specific path relative to root of project for derived data. If null then it uses the default location for derived data')
+	parser.add_argument('--preserveworkingdir', action="store_true", help='If enabled, will keep working directory as is instead of changing it to path of PyBuild.')
 	#TODO: remove the test in parse_args
 	arguments = parser.parse_args()
 	
@@ -1423,8 +1424,9 @@ def MainLogic():
 	signal.signal(signal.SIGINT, CleanupHandler)
 
 	#change path to scripts location
-	print (sys.path[0])
-	os.chdir(sys.path[0])
+	if not arguments.preserveworkingdir:
+		os.chdir(sys.path[0])
+	
 	returnCode = 0
 	
 	if (arguments.xbox is not True and arguments.xboxonly is not True) or "XboxOneXDKLatest" not in os.environ:
