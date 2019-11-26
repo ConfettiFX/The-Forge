@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="android_native_app_glue.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="android_native_app_glue.c" />
+    <ClCompile Include="..\..\..\src\22_Blending\22_Blending.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{3d06f97e-829f-4d76-a2f3-944154835b06}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\src\22_Blending\Shaders\Vulkan\basic.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\22_Blending\Shaders\Vulkan\basic.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\22_Blending\Shaders\Vulkan\plane.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\22_Blending\Shaders\Vulkan\plane.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\22_Blending\Shaders\Vulkan\profile.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\22_Blending\Shaders\Vulkan\profile.vert">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+</Project>

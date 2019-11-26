@@ -967,6 +967,7 @@ void	*mmgrAllocator(const char *sourceFile, const unsigned int sourceLine, const
 		au->allocationType = allocationType;
 		au->sourceLine = sourceLine;
 		au->allocationNumber = currentAllocationCount;
+
 		if (sourceFile) strncpy_s(au->sourceFile, sourceFileStripper(sourceFile), sizeof(au->sourceFile) - 1);
 		else		strcpy_s(au->sourceFile, 2, "??");
 		if (sourceFunc) strncpy_s(au->sourceFunc, sourceFunc, sizeof(au->sourceFunc) - 1);

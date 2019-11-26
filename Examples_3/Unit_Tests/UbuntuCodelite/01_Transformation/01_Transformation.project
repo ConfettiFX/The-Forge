@@ -10,13 +10,6 @@
   <VirtualDirectory Name="src">
     <File Name="../../src/01_Transformations/01_Transformations.cpp" ExcludeProjConfig=""/>
   </VirtualDirectory>
-  <Dependencies Name="Debug">
-    <Project Name="OS"/>
-    <Project Name="Renderer"/>
-    <Project Name="SpirVTools"/>
-    <Project Name="gainput"/>
-    <Project Name="EASTL"/>
-  </Dependencies>
   <Dependencies Name="Release">
     <Project Name="OS"/>
     <Project Name="Renderer"/>
@@ -152,4 +145,13 @@
       </Completion>
     </Configuration>
   </Settings>
+  <Dependencies Name="Debug">
+    <Project Name="OS"/>
+    <Project Name="Renderer"/>
+    <Project Name="SpirVTools"/>
+    <Project Name="gainput"/>
+    <Project Name="EASTL"/>
+    <Project Name="assimp"/>
+    <Project Name="zlibstatic"/>
+  </Dependencies>
 </CodeLite_Project>

@@ -105,23 +105,23 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ozz_animation_offline", "..
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples Animation", "Examples Animation", "{5CE35AF5-D486-4F3F-BF64-92F63A59910C}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "18_Playback", "18_Playback", "{8507ED77-7B92-44B0-B199-27F7BC0BFD32}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "21_Playback", "21_Playback", "{8507ED77-7B92-44B0-B199-27F7BC0BFD32}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "19_Blending", "19_Blending", "{1218DE4F-FFBD-4CA3-BCDE-50CE7F71223D}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "22_Blending", "22_Blending", "{1218DE4F-FFBD-4CA3-BCDE-50CE7F71223D}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "20_JointAttachment", "20_JointAttachment", "{C5CF99EE-2103-4639-AB6F-0C9B2BC9258C}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "23_JointAttachment", "23_JointAttachment", "{C5CF99EE-2103-4639-AB6F-0C9B2BC9258C}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "21_PartialBlending", "21_PartialBlending", "{14A39903-419D-448D-82E5-2063CA4E09FD}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "24_PartialBlending", "24_PartialBlending", "{14A39903-419D-448D-82E5-2063CA4E09FD}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "22_AdditiveBlending", "22_AdditiveBlending", "{943CF489-286B-454B-B2FB-D02F1D6578BD}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "25_AdditiveBlending", "25_AdditiveBlending", "{943CF489-286B-454B-B2FB-D02F1D6578BD}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "23_BakedPhysics", "23_BakedPhysics", "{C03D5A96-5874-4669-83D8-C23DB1C5E36F}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "26_BakedPhysics", "26_BakedPhysics", "{C03D5A96-5874-4669-83D8-C23DB1C5E36F}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "24_MultiThread", "24_MultiThread", "{DCDFAF51-8CB8-448E-A544-26137F4C26F3}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "27_MultiThread", "27_MultiThread", "{DCDFAF51-8CB8-448E-A544-26137F4C26F3}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "25_Skinning", "25_Skinning", "{7B394294-0240-4D6B-BD39-5E946D2BEBB8}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "28_Skinning", "28_Skinning", "{7B394294-0240-4D6B-BD39-5E946D2BEBB8}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Playback.NativeActivity", "18_Playback\Playback.NativeActivity\Playback.NativeActivity.vcxproj", "{AD2969C2-F6E5-4F3F-8D92-F6DE15950D68}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Playback.NativeActivity", "21_Playback\Playback.NativeActivity\Playback.NativeActivity.vcxproj", "{AD2969C2-F6E5-4F3F-8D92-F6DE15950D68}"
 	ProjectSection(ProjectDependencies) = postProject
 		{12D02C10-8FB1-485A-827A-B489CBD8B88F} = {12D02C10-8FB1-485A-827A-B489CBD8B88F}
 		{055FAD37-A3D6-4D9A-A63A-C81716339982} = {055FAD37-A3D6-4D9A-A63A-C81716339982}
@@ -131,9 +131,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Playback.NativeActivity", "
 		{5E22FFEA-7871-4E40-96B0-269809340C5F} = {5E22FFEA-7871-4E40-96B0-269809340C5F}
 	EndProjectSection
 EndProject
-Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "Playback.Packaging", "18_Playback\Playback.Packaging\Playback.Packaging.androidproj", "{B2C797DC-A84A-44D1-BFEE-16358C3CB160}"
+Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "Playback.Packaging", "21_Playback\Playback.Packaging\Playback.Packaging.androidproj", "{B2C797DC-A84A-44D1-BFEE-16358C3CB160}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Blending.NativeActivity", "19_Blending\Blending.NativeActivity\Blending.NativeActivity.vcxproj", "{F8AF1FAD-8A6E-446F-A1B0-0E260754A968}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Blending.NativeActivity", "22_Blending\Blending.NativeActivity\Blending.NativeActivity.vcxproj", "{F8AF1FAD-8A6E-446F-A1B0-0E260754A968}"
 	ProjectSection(ProjectDependencies) = postProject
 		{12D02C10-8FB1-485A-827A-B489CBD8B88F} = {12D02C10-8FB1-485A-827A-B489CBD8B88F}
 		{055FAD37-A3D6-4D9A-A63A-C81716339982} = {055FAD37-A3D6-4D9A-A63A-C81716339982}
@@ -143,11 +143,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Blending.NativeActivity", "
 		{5E22FFEA-7871-4E40-96B0-269809340C5F} = {5E22FFEA-7871-4E40-96B0-269809340C5F}
 	EndProjectSection
 EndProject
-Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "Blending.Packaging", "19_Blending\Blending.Packaging\Blending.Packaging.androidproj", "{0E073303-1F61-437C-8E44-8F383DD0BC46}"
+Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "Blending.Packaging", "22_Blending\Blending.Packaging\Blending.Packaging.androidproj", "{0E073303-1F61-437C-8E44-8F383DD0BC46}"
 EndProject
-Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "JointAttachment.Packaging", "20_JointAttachment\JointAttachment.Packaging\JointAttachment.Packaging.androidproj", "{4F35DA41-64FD-488A-8F60-A95A13863D89}"
+Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "JointAttachment.Packaging", "23_JointAttachment\JointAttachment.Packaging\JointAttachment.Packaging.androidproj", "{4F35DA41-64FD-488A-8F60-A95A13863D89}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "JointAttachment.NativeActivity", "20_JointAttachment\JointAttachment.NativeActivity\JointAttachment.NativeActivity.vcxproj", "{5EDD9D21-7E13-434F-85CC-AC620CE74FD6}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "JointAttachment.NativeActivity", "23_JointAttachment\JointAttachment.NativeActivity\JointAttachment.NativeActivity.vcxproj", "{5EDD9D21-7E13-434F-85CC-AC620CE74FD6}"
 	ProjectSection(ProjectDependencies) = postProject
 		{12D02C10-8FB1-485A-827A-B489CBD8B88F} = {12D02C10-8FB1-485A-827A-B489CBD8B88F}
 		{055FAD37-A3D6-4D9A-A63A-C81716339982} = {055FAD37-A3D6-4D9A-A63A-C81716339982}
@@ -157,7 +157,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "JointAttachment.NativeActiv
 		{5E22FFEA-7871-4E40-96B0-269809340C5F} = {5E22FFEA-7871-4E40-96B0-269809340C5F}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PartialBlending.NativeActivity", "21_PartialBlending\PartialBlending.NativeActivity\PartialBlending.NativeActivity.vcxproj", "{1E8D6BD7-1A09-49B5-87E7-A1886D864056}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PartialBlending.NativeActivity", "24_PartialBlending\PartialBlending.NativeActivity\PartialBlending.NativeActivity.vcxproj", "{1E8D6BD7-1A09-49B5-87E7-A1886D864056}"
 	ProjectSection(ProjectDependencies) = postProject
 		{12D02C10-8FB1-485A-827A-B489CBD8B88F} = {12D02C10-8FB1-485A-827A-B489CBD8B88F}
 		{055FAD37-A3D6-4D9A-A63A-C81716339982} = {055FAD37-A3D6-4D9A-A63A-C81716339982}
@@ -167,9 +167,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PartialBlending.NativeActiv
 		{5E22FFEA-7871-4E40-96B0-269809340C5F} = {5E22FFEA-7871-4E40-96B0-269809340C5F}
 	EndProjectSection
 EndProject
-Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "PartialBlending.Packaging", "21_PartialBlending\PartialBlending.Packaging\PartialBlending.Packaging.androidproj", "{4F67156F-4587-441C-8A19-5D46B0C7D360}"
+Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "PartialBlending.Packaging", "24_PartialBlending\PartialBlending.Packaging\PartialBlending.Packaging.androidproj", "{4F67156F-4587-441C-8A19-5D46B0C7D360}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AdditiveBlending.NativeActivity", "22_AdditiveBlending\AdditiveBlending.NativeActivity\AdditiveBlending.NativeActivity.vcxproj", "{8569988F-B754-46F1-B363-CD40859B713C}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AdditiveBlending.NativeActivity", "25_AdditiveBlending\AdditiveBlending.NativeActivity\AdditiveBlending.NativeActivity.vcxproj", "{8569988F-B754-46F1-B363-CD40859B713C}"
 	ProjectSection(ProjectDependencies) = postProject
 		{12D02C10-8FB1-485A-827A-B489CBD8B88F} = {12D02C10-8FB1-485A-827A-B489CBD8B88F}
 		{3062376A-EA3D-4573-9A3F-CEFDBE63C3AA} = {3062376A-EA3D-4573-9A3F-CEFDBE63C3AA}
@@ -177,21 +177,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AdditiveBlending.NativeActi
 		{5E22FFEA-7871-4E40-96B0-269809340C5F} = {5E22FFEA-7871-4E40-96B0-269809340C5F}
 	EndProjectSection
 EndProject
-Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "AdditiveBlending.Packaging", "22_AdditiveBlending\AdditiveBlending.Packaging\AdditiveBlending.Packaging.androidproj", "{19692A5A-6783-402F-93E4-E7737A70809F}"
+Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "AdditiveBlending.Packaging", "25_AdditiveBlending\AdditiveBlending.Packaging\AdditiveBlending.Packaging.androidproj", "{19692A5A-6783-402F-93E4-E7737A70809F}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BakedPhysics.NativeActivity", "23_BakedPhysics\BakedPhysics.NativeActivity\BakedPhysics.NativeActivity.vcxproj", "{64B14548-38B5-49B3-A169-00DFF8B6764C}"
-	ProjectSection(ProjectDependencies) = postProject
-		{12D02C10-8FB1-485A-827A-B489CBD8B88F} = {12D02C10-8FB1-485A-827A-B489CBD8B88F}
-		{055FAD37-A3D6-4D9A-A63A-C81716339982} = {055FAD37-A3D6-4D9A-A63A-C81716339982}
-		{2F0E7E67-FF8E-4A4E-8271-11614A284790} = {2F0E7E67-FF8E-4A4E-8271-11614A284790}
-		{3062376A-EA3D-4573-9A3F-CEFDBE63C3AA} = {3062376A-EA3D-4573-9A3F-CEFDBE63C3AA}
-		{A4C073AB-608B-4E1C-B24A-9E3919235F0C} = {A4C073AB-608B-4E1C-B24A-9E3919235F0C}
-		{5E22FFEA-7871-4E40-96B0-269809340C5F} = {5E22FFEA-7871-4E40-96B0-269809340C5F}
-	EndProjectSection
-EndProject
-Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "BakedPhysics.Packaging", "23_BakedPhysics\BakedPhysics.Packaging\BakedPhysics.Packaging.androidproj", "{486492B5-D9B4-486E-954D-3C246DDF220E}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MultiThread.NativeActivity", "24_MultiThread\MultiThread.NativeActivity\MultiThread.NativeActivity.vcxproj", "{24FB215E-BCC6-4631-BA91-5B6CA332E234}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "BakedPhysics.NativeActivity", "26_BakedPhysics\BakedPhysics.NativeActivity\BakedPhysics.NativeActivity.vcxproj", "{64B14548-38B5-49B3-A169-00DFF8B6764C}"
 	ProjectSection(ProjectDependencies) = postProject
 		{12D02C10-8FB1-485A-827A-B489CBD8B88F} = {12D02C10-8FB1-485A-827A-B489CBD8B88F}
 		{055FAD37-A3D6-4D9A-A63A-C81716339982} = {055FAD37-A3D6-4D9A-A63A-C81716339982}
@@ -201,9 +189,21 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MultiThread.NativeActivity"
 		{5E22FFEA-7871-4E40-96B0-269809340C5F} = {5E22FFEA-7871-4E40-96B0-269809340C5F}
 	EndProjectSection
 EndProject
-Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "MultiThread.Packaging", "24_MultiThread\MultiThread.Packaging\MultiThread.Packaging.androidproj", "{A05EF942-B2BA-40DD-9437-C99D04629D8C}"
+Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "BakedPhysics.Packaging", "26_BakedPhysics\BakedPhysics.Packaging\BakedPhysics.Packaging.androidproj", "{486492B5-D9B4-486E-954D-3C246DDF220E}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Skinning.NativeActivity", "25_Skinning\Skinning.NativeActivity\Skinning.NativeActivity.vcxproj", "{95B9B530-F0E5-4815-9196-E57427C460C1}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MultiThread.NativeActivity", "27_MultiThread\MultiThread.NativeActivity\MultiThread.NativeActivity.vcxproj", "{24FB215E-BCC6-4631-BA91-5B6CA332E234}"
+	ProjectSection(ProjectDependencies) = postProject
+		{12D02C10-8FB1-485A-827A-B489CBD8B88F} = {12D02C10-8FB1-485A-827A-B489CBD8B88F}
+		{055FAD37-A3D6-4D9A-A63A-C81716339982} = {055FAD37-A3D6-4D9A-A63A-C81716339982}
+		{2F0E7E67-FF8E-4A4E-8271-11614A284790} = {2F0E7E67-FF8E-4A4E-8271-11614A284790}
+		{3062376A-EA3D-4573-9A3F-CEFDBE63C3AA} = {3062376A-EA3D-4573-9A3F-CEFDBE63C3AA}
+		{A4C073AB-608B-4E1C-B24A-9E3919235F0C} = {A4C073AB-608B-4E1C-B24A-9E3919235F0C}
+		{5E22FFEA-7871-4E40-96B0-269809340C5F} = {5E22FFEA-7871-4E40-96B0-269809340C5F}
+	EndProjectSection
+EndProject
+Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "MultiThread.Packaging", "27_MultiThread\MultiThread.Packaging\MultiThread.Packaging.androidproj", "{A05EF942-B2BA-40DD-9437-C99D04629D8C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Skinning.NativeActivity", "28_Skinning\Skinning.NativeActivity\Skinning.NativeActivity.vcxproj", "{95B9B530-F0E5-4815-9196-E57427C460C1}"
 	ProjectSection(ProjectDependencies) = postProject
 		{9D500B06-E658-4115-B00E-A564C32D17E8} = {9D500B06-E658-4115-B00E-A564C32D17E8}
 		{12D02C10-8FB1-485A-827A-B489CBD8B88F} = {12D02C10-8FB1-485A-827A-B489CBD8B88F}
@@ -217,7 +217,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Skinning.NativeActivity", "
 		{5E22FFEA-7871-4E40-96B0-269809340C5F} = {5E22FFEA-7871-4E40-96B0-269809340C5F}
 	EndProjectSection
 EndProject
-Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "Skinning.Packaging", "25_Skinning\Skinning.Packaging\Skinning.Packaging.androidproj", "{4BF6A25B-B346-4A27-9FC2-60F13C6854D9}"
+Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "Skinning.Packaging", "28_Skinning\Skinning.Packaging\Skinning.Packaging.androidproj", "{4BF6A25B-B346-4A27-9FC2-60F13C6854D9}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AssimpStatic", "AssimpStatic", "{585E6611-3A00-44D5-83F1-F3C1347D0619}"
 EndProject
@@ -255,9 +255,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MaterialPlayground.NativeAc
 EndProject
 Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "MaterialPlayground.Packaging", "06_MaterialPlayground\MaterialPlayground.Packaging\MaterialPlayground.Packaging.androidproj", "{029CAD36-3A3D-4AD9-A7C7-C283742F44EE}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "27_Audio", "27_Audio", "{9299DEAB-C667-4235-AD22-084C21A3098D}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "31_Audio", "31_Audio", "{9299DEAB-C667-4235-AD22-084C21A3098D}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Audio.NativeActivity", "27_Audio\Audio.NativeActivity\Audio.NativeActivity.vcxproj", "{FD5F23FF-C6B6-4465-900B-E4CC499B7F38}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Audio.NativeActivity", "31_Audio\Audio.NativeActivity\Audio.NativeActivity.vcxproj", "{FD5F23FF-C6B6-4465-900B-E4CC499B7F38}"
 	ProjectSection(ProjectDependencies) = postProject
 		{12D02C10-8FB1-485A-827A-B489CBD8B88F} = {12D02C10-8FB1-485A-827A-B489CBD8B88F}
 		{3062376A-EA3D-4573-9A3F-CEFDBE63C3AA} = {3062376A-EA3D-4573-9A3F-CEFDBE63C3AA}
@@ -266,7 +266,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Audio.NativeActivity", "27_
 		{5E22FFEA-7871-4E40-96B0-269809340C5F} = {5E22FFEA-7871-4E40-96B0-269809340C5F}
 	EndProjectSection
 EndProject
-Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "Audio.Packaging", "27_Audio\Audio.Packaging\Audio.Packaging.androidproj", "{3CB940C5-9C3E-427A-B165-B43924B57E04}"
+Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "Audio.Packaging", "31_Audio\Audio.Packaging\Audio.Packaging.androidproj", "{3CB940C5-9C3E-427A-B165-B43924B57E04}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "08_GltfViewer", "08_GltfViewer", "{A37A5CB9-8C24-4078-AA5A-B39C432659E1}"
 EndProject
@@ -294,9 +294,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "AssetPipeline", "Libraries\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MeshOptimizer", "Libraries\Tools\MeshOptimizer\MeshOptimizer.vcxproj", "{91917FF4-AAE0-4487-B1D1-2D09F723CEC9}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "26_InverseKinematic", "26_InverseKinematic", "{35AB2208-85FF-4E42-A583-8281E7756712}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "29_InverseKinematic", "29_InverseKinematic", "{35AB2208-85FF-4E42-A583-8281E7756712}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "InverseKinematic.NativeActivity", "26_InverseKinematic\InverseKinematic.NativeActivity\InverseKinematic.NativeActivity.vcxproj", "{6A5D203F-5617-4CD2-BFC3-17B01740BBF2}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "InverseKinematic.NativeActivity", "29_InverseKinematic\InverseKinematic.NativeActivity\InverseKinematic.NativeActivity.vcxproj", "{6A5D203F-5617-4CD2-BFC3-17B01740BBF2}"
 	ProjectSection(ProjectDependencies) = postProject
 		{12D02C10-8FB1-485A-827A-B489CBD8B88F} = {12D02C10-8FB1-485A-827A-B489CBD8B88F}
 		{055FAD37-A3D6-4D9A-A63A-C81716339982} = {055FAD37-A3D6-4D9A-A63A-C81716339982}
@@ -306,7 +306,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "InverseKinematic.NativeActi
 		{5E22FFEA-7871-4E40-96B0-269809340C5F} = {5E22FFEA-7871-4E40-96B0-269809340C5F}
 	EndProjectSection
 EndProject
-Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "InverseKinematic.Packaging", "26_InverseKinematic\InverseKinematic.Packaging\InverseKinematic.Packaging.androidproj", "{E0A67149-16F7-4531-B5FE-D14F8CB7742C}"
+Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "InverseKinematic.Packaging", "29_InverseKinematic\InverseKinematic.Packaging\InverseKinematic.Packaging.androidproj", "{E0A67149-16F7-4531-B5FE-D14F8CB7742C}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples Audio", "Examples Audio", "{9C9272F5-D7DA-4303-B9AF-2B0B9D2A53CD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -829,7 +831,7 @@ Global
 		{E82A379E-05B9-4934-853A-C00FE8E404F3} = {108D0E74-A985-496A-9B7F-C2EBF74F983F}
 		{E5C61B66-2579-4E86-9E0F-499F3AF46BCC} = {E82A379E-05B9-4934-853A-C00FE8E404F3}
 		{029CAD36-3A3D-4AD9-A7C7-C283742F44EE} = {E82A379E-05B9-4934-853A-C00FE8E404F3}
-		{9299DEAB-C667-4235-AD22-084C21A3098D} = {108D0E74-A985-496A-9B7F-C2EBF74F983F}
+		{9299DEAB-C667-4235-AD22-084C21A3098D} = {9C9272F5-D7DA-4303-B9AF-2B0B9D2A53CD}
 		{FD5F23FF-C6B6-4465-900B-E4CC499B7F38} = {9299DEAB-C667-4235-AD22-084C21A3098D}
 		{3CB940C5-9C3E-427A-B165-B43924B57E04} = {9299DEAB-C667-4235-AD22-084C21A3098D}
 		{A37A5CB9-8C24-4078-AA5A-B39C432659E1} = {108D0E74-A985-496A-9B7F-C2EBF74F983F}

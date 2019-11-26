@@ -3,30 +3,37 @@
    version = "1.0">
    <Group
       location = "container:"
+      name = "Examples Audio">
+      <FileRef
+         location = "group:31_Audio/31_Audio.xcodeproj">
+      </FileRef>
+   </Group>
+   <Group
+      location = "container:"
       name = "Examples Animation">
       <FileRef
-         location = "group:18_Playback/18_Playback.xcodeproj">
+         location = "group:25_AddititveBlending/25_AdditiveBlending.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:19_Blending/19_Blending.xcodeproj">
+         location = "group:21_Playback/21_Playback.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:20_JointAttachment/20_JointAttachment.xcodeproj">
+         location = "group:22_Blending/22_Blending.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:21_PartialBlending/21_PartialBlending.xcodeproj">
+         location = "group:23_JointAttachment/23_JointAttachment.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:05_AddititveBlending/22_AdditiveBlending.xcodeproj">
+         location = "group:24_PartialBlending/24_PartialBlending.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:23_BakedPhysics/23_BakedPhysics.xcodeproj">
+         location = "group:26_BakedPhysics/26_BakedPhysics.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:24_MultiThread/24_MultiThread.xcodeproj">
+         location = "group:27_MultiThread/27_MultiThread.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:19_Blending/../25_Skinning/25_Skinning.xcodeproj">
+         location = "group:22_Blending/../28_Skinning/28_Skinning.xcodeproj">
       </FileRef>
    </Group>
    <Group
@@ -84,10 +91,7 @@
          location = "group:17_EntityComponentSystem/17_EntityComponentSystem.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:27_Audio/27_Audio.xcodeproj">
-      </FileRef>
-      <FileRef
-         location = "group:28_ZipFileSystem/28_ZipFileSystem.xcodeproj">
+         location = "group:12_ZipFileSystem/12_ZipFileSystem.xcodeproj">
       </FileRef>
    </Group>
 </Workspace>

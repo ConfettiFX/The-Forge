@@ -639,6 +639,15 @@ public:
 #ifdef TARGET_IOS
 		mSettings.mContentScaleFactor = 1.f;
 #endif
+		for (int i = 0; i < argc; i += 1)
+		{
+			if (strcmp(argv[i], "-w") == 0 && i + 1 < argc)
+				mSettings.mWidth = min(max(atoi(argv[i + 1]), 64), 10000);
+			else if (strcmp(argv[i], "-h") == 0 && i + 1 < argc)
+				mSettings.mHeight = min(max(atoi(argv[i + 1]), 64), 10000);
+			else if (strcmp(argv[i], "-b") == 0)
+				mBenchmark = true;
+		}
 	}
 	
 	bool Init()
@@ -919,13 +928,7 @@ public:
         pipelineDesc.pHitGroups				= hitGroups;
         pipelineDesc.mHitGroupCount			= 2;
 		pipelineDesc.pRaytracing			= pRaytracing;
-#ifdef METAL
-        //use screen resolution on iOS device
-        pipelineDesc.mMaxRaysCount = (mSettings.mHeight * mSettings.mWidth);
-        //RM: there is some issues with retina scale factor calculation. Need to fix it
-#else
-        pipelineDesc.mMaxRaysCount = 1920 * 1080; //1 ray per pixel in FHD resolution
-#endif
+        pipelineDesc.mMaxRaysCount = mSettings.mHeight * mSettings.mWidth;
         addPipeline(pRenderer, &rtPipelineDesc, &pPipeline);
         /************************************************************************/
         // 04 - Create Shader Binding Table to connect Pipeline with Acceleration Structure
@@ -970,6 +973,57 @@ public:
 		return true;
 	}
 
+	void PrintBenchmarkStats()
+	{
+		PathHandle statsPath = fsAppendPathComponent(PathHandle(fsCopyLogFileDirectoryPath()), "Forge-Raytracer-Benchmark.txt");
+		FileStream* statsFile = fsOpenFile(statsPath, FM_WRITE);
+		
+		if (statsFile)
+		{
+			fsPrintToStream(statsFile, "The Forge Raytracer:\n\n");
+			fsPrintToStream(statsFile, "Width: %i\n", mSettings.mWidth);
+			fsPrintToStream(statsFile, "Height: %i\n", mSettings.mHeight);
+			
+			fsPrintToStream(statsFile, "Frames rendered: %llu\n\n", (unsigned long long)mFrameTimes.size());
+			
+			double averageTime = 0.0;
+			double movingAverageTime = 0.0;
+			
+			double minAverageTime = DBL_MAX;
+			double maxAverageTime = -DBL_MAX;
+			
+			const size_t firstFrame = 2; // Ignore the first two frames while we're warming up.
+			
+			for (size_t i = firstFrame; i < mFrameTimes.size(); i += 1)
+			{
+				averageTime += (mFrameTimes[i] - averageTime) / (i + 1 - firstFrame);
+				movingAverageTime = i > firstFrame ? (0.8 * movingAverageTime + 0.2 * mFrameTimes[i]) : mFrameTimes[i];
+				
+				if (movingAverageTime < minAverageTime)
+					minAverageTime = movingAverageTime;
+				
+				if (movingAverageTime > maxAverageTime)
+					maxAverageTime = movingAverageTime;
+			}
+			
+			fsPrintToStream(statsFile, "Min/Max/Average Frame Time (ms):\n");
+			fsPrintToStream(statsFile, "%.6f/%.6f/%.6f\n\n", minAverageTime, maxAverageTime, averageTime);
+			
+			fsPrintToStream(statsFile, "Min/Max/Average FPS:\n");
+			fsPrintToStream(statsFile, "%.6f/%.6f/%.6f\n", 1.f / maxAverageTime, 1.f / minAverageTime, 1.f / averageTime);
+			
+			fsPrintToStream(statsFile, "\nFrame Times (ms):\n\n");
+			for (size_t i = firstFrame; i < mFrameTimes.size(); i += 1)
+			{
+				float time = mFrameTimes[i];
+				fsPrintToStream(statsFile, "%.6f\n", time * 1000.0);
+			}
+			mFrameTimes.set_capacity(0);
+			
+			fsCloseStream(statsFile);
+		}
+	}
+	
 	void Exit()
 	{
 		waitQueueIdle(pQueue);
@@ -1024,6 +1078,11 @@ public:
 		removeQueue(pQueue);
 		removeResourceLoaderInterface(pRenderer);
 		removeRenderer(pRenderer);
+		
+		if (mBenchmark)
+		{
+			PrintBenchmarkStats();
+		}
 	}
 
 	bool Load()
@@ -1305,6 +1364,9 @@ public:
 		}
 
 		gAppUI.Update(deltaTime);
+		
+		if (mBenchmark && deltaTime > 0)
+			mFrameTimes.push_back(deltaTime);
 	}
 
 	void Draw()
@@ -1569,6 +1631,9 @@ private:
 	static const uint32_t   gImageCount = 3;
   bool           bPrevToggleMicroProfiler = false;
 
+	eastl::vector<float> 	mFrameTimes;
+	bool					mBenchmark;
+	
 	Renderer*			   pRenderer;
 	Raytracing*			 pRaytracing;
 	Queue*				  pQueue;

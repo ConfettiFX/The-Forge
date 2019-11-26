@@ -10,14 +10,6 @@
   </VirtualDirectory>
   <Description/>
   <Dependencies/>
-  <Dependencies Name="Debug">
-    <Project Name="ozz_base"/>
-    <Project Name="OS"/>
-    <Project Name="ozz_animation_offline"/>
-    <Project Name="ozz_animation"/>
-    <Project Name="zlibstatic"/>
-    <Project Name="EASTL"/>
-  </Dependencies>
   <Dependencies Name="Release">
     <Project Name="ozz_base"/>
     <Project Name="OS"/>
@@ -26,6 +18,15 @@
     <Project Name="zlibstatic"/>
     <Project Name="EASTL"/>
     <Project Name="AssetPipeline"/>
+  </Dependencies>
+  <Dependencies Name="Debug">
+    <Project Name="ozz_base"/>
+    <Project Name="OS"/>
+    <Project Name="ozz_animation_offline"/>
+    <Project Name="ozz_animation"/>
+    <Project Name="zlibstatic"/>
+    <Project Name="AssetPipeline"/>
+    <Project Name="EASTL"/>
   </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
@@ -52,8 +53,8 @@
         <LibraryPath Value="$(WorkspacePath)/ozz_animation/$(IntermediateDirectory)"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
         <LibraryPath Value="$(WorkspacePath)/MeshOptimizer/$(IntermediateDirectory)/"/>
-        <Library Value="libOS.a"/>
         <Library Value="libAssetPipeline.a"/>
+        <Library Value="libOS.a"/>
         <Library Value="libassimp.a"/>
         <Library Value="libozz_animation_offline.a"/>
         <Library Value="libozz_animation.a"/>

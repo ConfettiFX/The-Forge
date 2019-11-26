@@ -1,0 +1,81 @@
+/*
+* Copyright (c) 2018-2019 Confetti Interactive Inc.
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
+#define THREAD_SIZE_X 1024
+#define THREAD_SIZE_Y 1
+#define THREAD_SIZE_Z 1
+
+cbuffer PageCountInfo : register(b0)
+{
+	uint MaxPageCount;
+  uint PageOffset;
+  uint Pad1;
+  uint Pad2;
+};
+
+RWStructuredBuffer<uint> PrevPageTableBuffer : register(u0, space1);
+
+RWStructuredBuffer<uint> PageTableBuffer : register(u1, space1);
+
+RWStructuredBuffer<uint> AlivePageTableBuffer : register(u2, space1);
+
+RWStructuredBuffer<uint> AlivePageCountBuffer : register(u4, space1);
+
+RWStructuredBuffer<uint> RemovePageTableBuffer : register(u5, space1);
+
+RWStructuredBuffer<uint> RemovePageCountBuffer : register(u7, space1);
+
+[numthreads(THREAD_SIZE_X, 1, 1)]
+void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)
+{
+	// Fill mips of Page table
+	uint Index = DTid.x;
+
+  if(Index >= MaxPageCount)
+    return;
+
+  Index += PageOffset;
+   
+  if (PageTableBuffer[Index] == 1)
+	{
+    uint currentTexureID;
+    InterlockedAdd(AlivePageCountBuffer[0], 1, currentTexureID);
+
+    // save the index of alive page
+    AlivePageTableBuffer[currentTexureID] = Index;    
+  }
+  else if(PrevPageTableBuffer[Index] == 1)
+  {
+    uint currentTexureID;
+    InterlockedAdd(RemovePageCountBuffer[0], 1, currentTexureID);
+
+    // remove the index of alive page
+    RemovePageTableBuffer[currentTexureID] = Index;
+  }
+
+  PrevPageTableBuffer[Index] = PageTableBuffer[Index];
+
+  // clear page
+  PageTableBuffer[Index] = 0;
+}

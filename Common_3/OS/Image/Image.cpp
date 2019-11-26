@@ -1336,6 +1336,53 @@ bool iLoadBASISFromMemory(Image* pImage, const char* memory, uint32_t memSize, m
 }
 #endif
 
+
+bool iLoadSVTFromMemory(Image* pImage, const char* memory, uint32_t memSize, memoryAllocationFunc pAllocator /*= NULL*/, void* pUserData /*= NULL*/)
+{
+	if (memory == NULL || memSize == 0)
+		return false;
+
+	eastl::vector<uint8_t> temp_data;
+	temp_data.resize(memSize);
+	memcpy(temp_data.data(), memory, memSize);
+
+	uint width;
+	memcpy(&width, &temp_data[0], sizeof(uint));
+
+	uint height;
+	memcpy(&height, &temp_data[4], sizeof(uint));
+
+	uint mipMapCount;
+	memcpy(&mipMapCount, &temp_data[8], sizeof(uint));
+
+	uint pageSize;
+	memcpy(&pageSize, &temp_data[12], sizeof(uint));
+
+	uint numberOfComponents;
+	memcpy(&numberOfComponents, &temp_data[16], sizeof(uint));
+
+	if(numberOfComponents == 4)
+		pImage->RedefineDimensions(TinyImageFormat_R8G8B8A8_UNORM, width, height, 1, mipMapCount, 1);
+	else
+		pImage->RedefineDimensions(TinyImageFormat_R8G8B8A8_UNORM, width, height, 1, mipMapCount, 1);
+
+	int size = pImage->GetMipMappedSize();
+
+	if (pAllocator)
+	{
+		pImage->SetPixels((unsigned char*)pAllocator(pImage, size, pUserData));
+	}
+	else
+	{
+		pImage->SetPixels((unsigned char*)conf_malloc(sizeof(unsigned char) * size), true);
+	}
+
+	memcpy(pImage->GetPixels(), &temp_data[20], sizeof(unsigned char) * size);
+	temp_data.set_capacity(0);
+
+	return true;
+}
+
 // Image loading
 // struct of table for file format to loading function
 struct ImageLoaderDefinition
@@ -1357,11 +1404,12 @@ void Image::Init()
 	gImageLoaders[gImageLoaderCount++] = {"ktx", iLoadKTXFromMemory};
 #endif
 #if defined(ORBIS)
-	gImageLoaders[gImageLoaderCount++] = {"gnf", iLoadGNFFromMemory };
+	gImageLoaders[gImageLoaderCount++] = {"gnf", iLoadGNFFromMemory};
 #endif
 #ifndef IMAGE_DISABLE_GOOGLE_BASIS
 	gImageLoaders[gImageLoaderCount++] = {"basis", iLoadBASISFromMemory};
 #endif
+	gImageLoaders[gImageLoaderCount++] = {"svt", iLoadSVTFromMemory};
 }
 
 void Image::Exit()
@@ -1394,7 +1442,7 @@ bool Image::LoadFromFile(const Path* filePath, memoryAllocationFunc pAllocator, 
 	// clear current image
 	Clear();
 
-    PathComponent extensionComponent = fsGetPathExtension(filePath);
+  PathComponent extensionComponent = fsGetPathExtension(filePath);
 	uint32_t loaderIndex = -1;
 
 	if (extensionComponent.length != 0) // the string's not empty
@@ -1408,11 +1456,11 @@ bool Image::LoadFromFile(const Path* filePath, memoryAllocationFunc pAllocator, 
 			}
 		}
 
-        if (loaderIndex == -1)
-        {
-            extensionComponent.buffer = NULL;
-            extensionComponent.length = 0;
-        }
+    if (loaderIndex == -1)
+    {
+       extensionComponent.buffer = NULL;
+       extensionComponent.length = 0;
+    }
 	}
 
     const char *extension;
@@ -1494,8 +1542,8 @@ bool Image::LoadFromFile(const Path* filePath, memoryAllocationFunc pAllocator, 
 bool Image::Convert(const TinyImageFormat newFormat)
 {
 	// TODO add RGBE8 to tiny image format
-	if(TinyImageFormat_CanDecodeLogicalPixelsF(mFormat)) return false;
-	if(TinyImageFormat_CanEncodeLogicalPixelsF(newFormat)) return false;
+	if(!TinyImageFormat_CanDecodeLogicalPixelsF(mFormat)) return false;
+	if(!TinyImageFormat_CanEncodeLogicalPixelsF(newFormat)) return false;
 
 	int pixelCount = GetNumberOfPixels(0, mMipMapCount);
 
@@ -1505,7 +1553,7 @@ bool Image::Convert(const TinyImageFormat newFormat)
 	TinyImageFormat_DecodeInput input{};
 	input.pixel = pData;
 	TinyImageFormat_EncodeOutput output{};
-	input.pixel = newPixels;
+	output.pixel = newPixels;
 
 	float* tmp = (float*)conf_malloc(sizeof(float) * 4 * pixelCount);
 
@@ -1846,6 +1894,185 @@ bool Image::iSaveJPG(const Path* filePath)
 	return true;
 }
 #endif
+
+bool Image::iSaveSVT(const Path* filePath, uint pageSize)
+{
+	if (mFormat != TinyImageFormat::TinyImageFormat_R8G8B8A8_UNORM)
+	{
+		// uncompress/convert
+		if (!Convert(TinyImageFormat::TinyImageFormat_R8G8B8A8_UNORM))
+			return false;
+	}
+
+	if (mMipMapCount == 1)
+	{
+		if (!GenerateMipMaps((uint)log2f((float)min(mWidth, mHeight))))
+			return false;
+	}
+
+	const char *fileName = fsGetPathAsNativeString(filePath);
+
+	FileStream* fh = fsOpenFile(filePath, FM_WRITE_BINARY);
+
+	if (!fh)
+		return false;
+
+	//TODO: SVT should support any components somepoint
+	const uint numberOfComponents = 4;
+
+	//Header
+
+	fsWriteToStream(fh, &mWidth, sizeof(uint));
+	fsWriteToStream(fh, &mHeight, sizeof(uint));
+
+	//mip count
+	fsWriteToStream(fh, &mMipMapCount, sizeof(uint));
+
+	//Page size
+	fsWriteToStream(fh, &pageSize, sizeof(uint));
+
+	//number of components
+	fsWriteToStream(fh, &numberOfComponents, sizeof(uint));
+
+	uint mipPageCount = mMipMapCount - (uint)log2f((float)pageSize);
+
+	// Allocate Pages
+	unsigned char** mipLevelPixels = (unsigned char**)conf_calloc(mMipMapCount, sizeof(unsigned char*));
+	unsigned char*** pagePixels = (unsigned char***)conf_calloc(mipPageCount + 1, sizeof(unsigned char**));
+
+	uint* mipSizes = (uint*)conf_calloc(mMipMapCount, sizeof(uint));
+
+	for (uint i = 0; i < mMipMapCount; ++i)
+	{
+		uint mipSize = (mWidth >> i) * (mHeight >> i) * numberOfComponents;
+		mipSizes[i] = mipSize;
+		mipLevelPixels[i] = (unsigned char*)conf_calloc(mipSize, sizeof(unsigned char));
+		memcpy(mipLevelPixels[i], GetPixels(i), mipSize * sizeof(unsigned char));
+	}
+
+	// Store Mip data
+	for (uint i = 0; i < mipPageCount; ++i)
+	{
+		uint xOffset = mWidth >> i;
+		uint yOffset = mHeight >> i;
+
+		// width and height in tiles
+		uint tileWidth = xOffset / pageSize;
+		uint tileHeight = yOffset / pageSize;
+
+		uint xMipOffset = 0;
+		uint yMipOffset = 0;
+		uint pageIndex = 0;
+
+		uint rowLength = xOffset * numberOfComponents;
+
+		pagePixels[i] = (unsigned char**)conf_calloc(tileWidth * tileHeight, sizeof(unsigned char*));
+
+		for (uint j = 0; j < tileHeight; ++j)
+		{
+			for (uint k = 0; k < tileWidth; ++k)
+			{
+				pagePixels[i][pageIndex] = (unsigned char*)conf_calloc(pageSize * pageSize, sizeof(unsigned char) * numberOfComponents);
+
+				for (uint y = 0; y < pageSize; ++y)
+				{
+					for (uint x = 0; x < pageSize; ++x)
+					{
+						uint mipPageIndex = (y * pageSize + x) * numberOfComponents;
+						uint mipIndex = rowLength * (y + yMipOffset) + (numberOfComponents)*(x + xMipOffset);
+
+						pagePixels[i][pageIndex][mipPageIndex + 0] = mipLevelPixels[i][mipIndex + 0];
+						pagePixels[i][pageIndex][mipPageIndex + 1] = mipLevelPixels[i][mipIndex + 1];
+						pagePixels[i][pageIndex][mipPageIndex + 2] = mipLevelPixels[i][mipIndex + 2];
+						pagePixels[i][pageIndex][mipPageIndex + 3] = mipLevelPixels[i][mipIndex + 3];
+					}
+				}
+
+				xMipOffset += pageSize;
+				pageIndex += 1;
+			}
+
+			xMipOffset = 0;
+			yMipOffset += pageSize;
+		}
+	}
+
+	uint mipTailPageSize = 0;
+
+	pagePixels[mipPageCount] = (unsigned char**)conf_calloc(1, sizeof(unsigned char*));
+
+	// Calculate mip tail size
+	for (uint i = mipPageCount; i < mMipMapCount - 1; ++i)
+	{
+		uint mipSize = mipSizes[i];
+		mipTailPageSize += mipSize;
+	}
+
+	pagePixels[mipPageCount][0] = (unsigned char*)conf_calloc(mipTailPageSize, sizeof(unsigned char));
+
+	// Store mip tail data
+	uint mipTailPageWrites = 0;
+	for (uint i = mipPageCount; i < mMipMapCount - 1; ++i)
+	{
+		uint mipSize = mipSizes[i];
+
+		for (uint j = 0; j < mipSize; ++j)
+		{
+			pagePixels[mipPageCount][0][mipTailPageWrites++] = mipLevelPixels[i][j];
+		}
+	}
+
+	// Write mip data
+	for (uint i = 0; i < mipPageCount; ++i)
+	{
+		// width and height in tiles
+		uint mipWidth = (mWidth >> i) / pageSize;
+		uint mipHeight = (mHeight >> i) / pageSize;
+
+		for (uint j = 0; j < mipWidth * mipHeight; ++j)
+		{
+			fsWriteToStream(fh, pagePixels[i][j], pageSize * pageSize * numberOfComponents * sizeof(char));
+		}
+	}
+
+	// Write mip tail data
+	fsWriteToStream(fh, pagePixels[mipPageCount][0], mipTailPageSize * sizeof(char));
+
+	// free memory
+	conf_free(mipSizes);
+
+	for (uint i = 0; i < mipPageCount; ++i)
+	{
+		// width and height in tiles
+		uint mipWidth = (mWidth >> i) / pageSize;
+		uint mipHeight = (mHeight >> i) / pageSize;
+		uint pageIndex = 0;
+
+		for (uint j = 0; j < mipHeight; ++j)
+		{
+			for (uint k = 0; k < mipWidth; ++k)
+			{
+				conf_free(pagePixels[i][pageIndex]);
+				pageIndex += 1;
+			}
+		}
+
+		conf_free(pagePixels[i]);
+	}
+	conf_free(pagePixels[mipPageCount][0]);
+	conf_free(pagePixels[mipPageCount]);
+	conf_free(pagePixels);
+
+	for (uint i = 0; i < mMipMapCount; ++i)
+	{
+		conf_free(mipLevelPixels[i]);
+	}
+	conf_free(mipLevelPixels);
+
+	fsCloseStream(fh);
+
+	return true;
+}
 
 struct ImageSaverDefinition
 {

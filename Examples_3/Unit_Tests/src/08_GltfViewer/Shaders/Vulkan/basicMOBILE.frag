@@ -73,7 +73,13 @@ layout(std140, UPDATE_FREQ_PER_DRAW, binding = 0) uniform cbPerProp
 	uniform vec4  posOffset;
 	uniform vec2  uvOffset;
 	uniform vec2  uvScale;
-	uniform vec2  padding00;
+  uniform float posScale;
+  uniform uint  textureMapInfo;
+
+	uniform uint  sparseTextureMapInfo;
+  uniform float padding00;
+  uniform float padding01;
+  uniform float padding02;
 };
 
 layout(std140, UPDATE_FREQ_PER_FRAME, binding = 2) uniform ShadowUniformBuffer

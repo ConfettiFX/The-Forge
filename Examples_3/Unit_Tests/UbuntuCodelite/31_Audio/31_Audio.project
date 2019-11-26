@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeLite_Project Name="31_Audio" Version="10.0.0" InternalType="Console">
+  <Plugins>
+    <Plugin Name="qmake">
+      <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
+    </Plugin>
+  </Plugins>
+  <VirtualDirectory Name="audiosource">
+    <VirtualDirectory Name="tedsid">
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/tedsid/ted.h"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/tedsid/ted.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/tedsid/sid.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/tedsid/soloud_tedsid.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/tedsid/sid.h"/>
+    </VirtualDirectory>
+    <VirtualDirectory Name="vizsn">
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/vizsn/soloud_vizsn.cpp"/>
+    </VirtualDirectory>
+    <VirtualDirectory Name="monotone">
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/monotone/soloud_monotone.cpp"/>
+    </VirtualDirectory>
+    <VirtualDirectory Name="openmpt">
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/openmpt/soloud_openmpt.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/openmpt/soloud_openmpt_dll.c"/>
+    </VirtualDirectory>
+    <VirtualDirectory Name="sfxr">
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/sfxr/soloud_sfxr.cpp"/>
+    </VirtualDirectory>
+    <VirtualDirectory Name="speech">
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/speech/darray.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/speech/darray.h"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/speech/tts.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/speech/tts.h"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/speech/klatt.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/speech/resonator.h"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/speech/resonator.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/speech/soloud_speech.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/speech/klatt.h"/>
+    </VirtualDirectory>
+    <VirtualDirectory Name="wav">
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/wav/soloud_wavstream.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/wav/stb_vorbis.h"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/wav/dr_flac.h"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/wav/dr_wav.h"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/wav/dr_mp3.h"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/wav/dr_impl.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/wav/soloud_wav.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/wav/stb_vorbis.cpp"/>
+    </VirtualDirectory>
+    <VirtualDirectory Name="vic">
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/audiosource/vic/soloud_vic.cpp"/>
+    </VirtualDirectory>
+  </VirtualDirectory>
+  <VirtualDirectory Name="backend">
+    <VirtualDirectory Name="winmm">
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/backend/winmm/soloud_winmm.cpp"/>
+    </VirtualDirectory>
+    <VirtualDirectory Name="alsa">
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/backend/alsa/soloud_alsa.cpp"/>
+    </VirtualDirectory>
+    <VirtualDirectory Name="coreaudio">
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/backend/coreaudio/soloud_coreaudio.cpp"/>
+    </VirtualDirectory>
+  </VirtualDirectory>
+  <Description/>
+  <Dependencies/>
+  <VirtualDirectory Name="src">
+    <File Name="../../src/31_Audio/31_Audio.cpp"/>
+  </VirtualDirectory>
+  <VirtualDirectory Name="filter">
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/filter/soloud_robotizefilter.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/filter/soloud_dcremovalfilter.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/filter/soloud_fftfilter.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/filter/soloud_echofilter.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/filter/soloud_biquadresonantfilter.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/filter/soloud_flangerfilter.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/filter/soloud_lofifilter.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/filter/soloud_bassboostfilter.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/filter/soloud_waveshaperfilter.cpp"/>
+  </VirtualDirectory>
+  <VirtualDirectory Name="core">
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/core/soloud_file.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/core/soloud_core_setters.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/core/soloud_thread.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/core/soloud_fader.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/core/soloud_core_filterops.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/core/soloud.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/core/soloud_filter.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/core/soloud_core_3d.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/core/soloud_core_voiceops.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/core/soloud_core_faderops.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/core/soloud_bus.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/core/soloud_fft_lut.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/core/soloud_audiosource.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/core/soloud_core_basicops.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/core/soloud_core_voicegroup.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/core/soloud_queue.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/core/soloud_fft.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/soloud20181119/src/core/soloud_core_getters.cpp"/>
+  </VirtualDirectory>
+  <Dependencies Name="Release">
+    <Project Name="SpirVTools"/>
+    <Project Name="Renderer"/>
+    <Project Name="OS"/>
+    <Project Name="AssimpImporter"/>
+    <Project Name="gainput"/>
+    <Project Name="EASTL"/>
+  </Dependencies>
+  <Settings Type="Executable">
+    <GlobalSettings>
+      <Compiler Options="" C_Options="" Assembler="">
+        <IncludePath Value="."/>
+      </Compiler>
+      <Linker Options="">
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/Libraries/Linux"/>
+        <Library Value="libzip.a"/>
+        <Library Value="libz"/>
+      </Linker>
+      <ResourceCompiler Options=""/>
+    </GlobalSettings>
+    <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
+      <Compiler Options="-g;-O0;-std=c++14;-Wall;-Wno-unknown-pragmas;-msse4.1; " C_Options="-g;-O0;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+        <IncludePath Value="."/>
+        <IncludePath Value="$(ProjectPath)/../.."/>
+        <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/soloud20181119/include"/>
+        <Preprocessor Value="VULKAN"/>
+        <Preprocessor Value="_DEBUG"/>
+        <Preprocessor Value="USE_MEMORY_TRACKING"/>
+      </Compiler>
+      <Linker Options="-ldl;-pthread;-lasound" Required="yes">
+        <LibraryPath Value="$(ProjectPath)/../gainput/Debug/"/>
+        <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
+        <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
+        <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
+        <Library Value="libOS.a"/>
+        <Library Value="libRenderer.a"/>
+        <Library Value="libOS.a"/>
+        <Library Value="libX11.a"/>
+        <Library Value="libSpirVTools.a"/>
+        <Library Value="libvulkan.so"/>
+        <Library Value="libgainput.a"/>
+        <Library Value="libEASTL.a"/>
+        <Library Value="libassimp.a"/>
+      </Linker>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild>
+        <Command Enabled="yes"/>
+      </PostBuild>
+      <CustomBuild Enabled="no">
+        <RebuildCommand/>
+        <CleanCommand/>
+        <BuildCommand/>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName>None</ThirdPartyToolName>
+        <WorkingDirectory/>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+    <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
+      <Compiler Options="-O2;-std=c++14;-Wall;-Wno-unknown-pragmas;-msse4.1; " C_Options="-O2;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+        <IncludePath Value="."/>
+        <IncludePath Value="$(ProjectPath)/../.."/>
+        <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/soloud20181119/include"/>
+        <Preprocessor Value="VULKAN"/>
+        <Preprocessor Value="NDEBUG"/>
+      </Compiler>
+      <Linker Options="-ldl;-pthread;-lasound" Required="yes">
+        <LibraryPath Value="$(ProjectPath)/../gainput/Release/"/>
+        <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
+        <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
+        <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
+        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
+        <Library Value="libOS.a"/>
+        <Library Value="libRenderer.a"/>
+        <Library Value="libOS.a"/>
+        <Library Value="libX11.a"/>
+        <Library Value="libSpirVTools.a"/>
+        <Library Value="libvulkan.so"/>
+        <Library Value="libgainput.a"/>
+        <Library Value="libEASTL.a"/>
+        <Library Value="libassimp.a"/>
+      </Linker>
+      <ResourceCompiler Options="" Required="no"/>
+      <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Release" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
+      <BuildSystem Name="Default"/>
+      <Environment EnvVarSetName="&lt;Use Defaults&gt;" DbgSetName="&lt;Use Defaults&gt;">
+        <![CDATA[]]>
+      </Environment>
+      <Debugger IsRemote="no" RemoteHostName="" RemoteHostPort="" DebuggerPath="" IsExtended="no">
+        <DebuggerSearchPaths/>
+        <PostConnectCommands/>
+        <StartupCommands/>
+      </Debugger>
+      <PreBuild/>
+      <PostBuild/>
+      <CustomBuild Enabled="no">
+        <RebuildCommand/>
+        <CleanCommand/>
+        <BuildCommand/>
+        <PreprocessFileCommand/>
+        <SingleFileCommand/>
+        <MakefileGenerationCommand/>
+        <ThirdPartyToolName>None</ThirdPartyToolName>
+        <WorkingDirectory/>
+      </CustomBuild>
+      <AdditionalRules>
+        <CustomPostBuild/>
+        <CustomPreBuild/>
+      </AdditionalRules>
+      <Completion EnableCpp11="no" EnableCpp14="no">
+        <ClangCmpFlagsC/>
+        <ClangCmpFlags/>
+        <ClangPP/>
+        <SearchPaths/>
+      </Completion>
+    </Configuration>
+  </Settings>
+  <Dependencies Name="Debug">
+    <Project Name="SpirVTools"/>
+    <Project Name="Renderer"/>
+    <Project Name="OS"/>
+    <Project Name="AssimpImporter"/>
+    <Project Name="gainput"/>
+    <Project Name="EASTL"/>
+    <Project Name="assimp"/>
+    <Project Name="zlibstatic"/>
+  </Dependencies>
+</CodeLite_Project>
