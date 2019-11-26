@@ -56,6 +56,54 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 
 # News
 
+## Release 1.39 - November 26th - Sparse Virtual Texture Support | Stormland
+The Forge has now support for Sparse Virtual Textures on Windows and Linux with DirectX 12 / Vulkan. Sparse texture (also known as "virtual texture", “tiled texture”, or “mega-texture”) is a technique to load huge size (such as 16k x 16k or more) textures in GPU memory.
+It breaks an original texture down into small square or rectangular tiles to load only visible part of them.
+
+The unit test 18_Virtual_Texture is using 7 sparse textures:
+* Mercury: 8192 x 4096
+* Venus: 8192 x 4096
+* Earth: 8192 x 4096
+* Moon: 16384 x 8192
+* Mars: 8192 x 4096
+* Jupiter: 4096 x 2048
+* Saturn: 4096 x 4096
+
+There is a unit test that shows a solar system where you can approach planets with Sparse Virtual Textures attached and the resolution of the texture will increase when you approach.
+
+Linux 1080p NVIDIA RTX 2060 Vulkan Driver version 435
+
+![Sparse Virtual Texture on Linux Vulkan](Screenshots/Virtual_Texture_Linux.png) 
+
+Windows 10 1080p AMD RX550 DirectX 12 Driver number: Adrenaline software 19.10.1
+
+![Sparse Virtual Texture on Windows 10 DirectX 12](Screenshots/Virtual_Texture.png) 
+
+Windows 10 1080p NVIDIA 1080 Vulkan Driver number: 418.81
+
+![Sparse Virtual Texture on Windows Vulkan](Screenshots/Virtual_Texture_VULKAN_1920_1080_GTX1080.png) 
+
+![Sparse Virtual Texture on Windows Vulkan](Screenshots/Virtual_Texture_VULKAN_1920_1080_GTX1080_CloseUP.png) 
+
+
+Ephemeris 2 - the game Stormland from Insomniac was released. This game is using a custom version of Ephemeris 2. We worked for more than six months on this project.
+
+![Stormland](Screenshots/Stormland/Capture_2019_11_15_08_43_35_881.png) 
+
+![Stormland](Screenshots/Stormland/Capture_2019_11_15_08_43_21_794.png) 
+
+![Stormland](Screenshots/Stormland/Capture_2019_11_15_08_42_52_603.png) 
+
+![Stormland](Screenshots/Stormland/Capture_2019_11_15_08_42_19_713.png) 
+
+![Stormland](Screenshots/Stormland/Capture_2019_11_15_08_42_09_931.png) 
+
+![Stormland](Screenshots/Stormland/Capture_2019_11_15_08_41_47_994.png) 
+
+![Stormland](Screenshots/Stormland/Capture_2019_11_15_08_41_38_457.png) 
+
+Head over to [Custom Middleware](https://github.com/ConfettiFX/Custom-Middleware) to check out the source code.
+
 ## Release 1.38 - November 14th - Cross-Platform Path Tracer
 - The new 16_Raytracing unit test shows a simple cross-platform path tracer. On iOS this path tracer requires A11 or higher. It is meant to be used in tools in the future and doesn't run in real-time.
 To support the new path tracer, the Metal raytracing backend has been overhauled to use a sort-and-dispatch based approach, enabling efficient support for multiple hit groups and miss shaders. The most significant limitation for raytracing on Metal is that only tail recursion is supported, which can be worked around using larger per-ray payloads and splitting up shaders into sub-shaders after each TraceRay call; see the Metal shaders used for 16_Raytracing for an example on how this can be done.
@@ -449,48 +497,77 @@ This unit test shows how to use the high-performance entity component system in 
 
 ![Image of the Entity Component System unit test in The Forge](Screenshots/17_EntityComponentSystem.png)
 
+## 18. Sparse Virtual Textures
+The Forge has now support for Sparse Virtual Textures on Windows and Linux with DirectX 12 / Vulkan. Sparse texture (also known as "virtual texture", “tiled texture”, or “mega-texture”) is a technique to load huge size (such as 16k x 16k or more) textures in GPU memory.
+It breaks an original texture down into small square or rectangular tiles to load only visible part of them.
 
-## 18. Ozz Playback Animation
+The unit test 18_Virtual_Texture is using 7 sparse textures:
+* Mercury: 8192 x 4096
+* Venus: 8192 x 4096
+* Earth: 8192 x 4096
+* Moon: 16384 x 8192
+* Mars: 8192 x 4096
+* Jupiter: 4096 x 2048
+* Saturn: 4096 x 4096
+
+There is a unit test that shows a solar system where you can approach planets with Sparse Virtual Textures attached and the resolution of the texture will increase when you approach.
+
+Linux 1080p NVIDIA RTX 2060 with RTX Driver version 435
+
+![Sparse Virtual Texture on Linux Vulkan](Screenshots/Virtual_Texture_Linux.png) 
+
+Windows 10 1080p NVIDIA 1080 DirectX 12
+
+![Sparse Virtual Texture on Windows 10 DirectX 12](Screenshots/Virtual_Texture.png) 
+
+Windows 10 1080p NVIDIA 1080 Vulkan
+
+![Sparse Virtual Texture on Windows Vulkan](Screenshots/Virtual_Texture_VULKAN_1920_1080_GTX1080.png) 
+
+![Sparse Virtual Texture on Windows Vulkan](Screenshots/Virtual_Texture_VULKAN_1920_1080_GTX1080_CloseUP.png) 
+
+
+## 21. Ozz Playback Animation
 This unit test shows how to playback a clip on a rig.
 
 ![Image of Playback Animation in The Forge](Screenshots/01_Playback.gif)
 
-## 19. Ozz Playback Blending
+## 22. Ozz Playback Blending
 This unit test shows how to blend multiple clips and play them back on a rig.
 
 ![Image of Playback Blending in The Forge](Screenshots/02_Blending.gif)
 
-## 20. Ozz Joint Attachment
+## 23. Ozz Joint Attachment
 This unit test shows how to attach an object to a rig which is being posed by an animation.
 
 ![Image of Ozz Joint Attachment in The Forge](Screenshots/03_JointAttachment.gif)
 
-## 21. Ozz Partial Blending
+## 24. Ozz Partial Blending
 This unit test shows how to blend clips having each only effect a certain portion of joints.
 
 ![Image of Ozz Partial Blending in The Forge](Screenshots/04_PartialBlending.gif)
 
-## 22. Ozz Additive Blending
+## 25. Ozz Additive Blending
 This unit test shows how to introduce an additive clip onto another clip and play the result on a rig.
 
 ![Image of Ozz Additive Blending in The Forge](Screenshots/05_Additive.gif)
 
-## 23. Ozz Baked Physics
+## 26. Ozz Baked Physics
 This unit test shows how to use a scene of a physics interaction that has been baked into an animation and play it back on a rig.
 
 ![Image of Ozz Baked Physics in The Forge](Screenshots/07_BakedPhysics.gif)
 
-## 24. Ozz Multi Threading
+## 27. Ozz Multi Threading
 This unit test shows how to animate multiple rigs simultaneously while using multi-threading for the animation updates.
 
 ![Image of Ozz Multi Threading in The Forge](Screenshots/09_MultiThread.gif)
 
-## 25. Ozz Skinning
+## 28. Ozz Skinning
 This unit test shows how to use skinning with Ozz
 
 ![Image of the Ozz Skinning unit test](Screenshots/Skinning_PC.gif)
 
-## 26. Ozz Inverse Kinematic
+## 29. Ozz Inverse Kinematic
 This unit test shows how to use a Aim and a Two bone IK solvers
 
 Aim IK
@@ -499,7 +576,7 @@ Aim IK
 Two Bone IK
 ![Ozz Two Bone IK](Screenshots/Ozz_two_bone_ik.gif)
 
-## 27. Audio Integration of SoLoud
+## 31. Audio Integration of SoLoud
 We integrated SoLoad. Here is a unit test that allow's you make noise ...
 
 ![Audio Integration](Screenshots/26_Audio.png)
