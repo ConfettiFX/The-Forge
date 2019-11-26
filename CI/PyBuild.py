@@ -932,7 +932,6 @@ def TestXboxProjects():
 	command = [xdkDir+'xbconfig','CrashDumpType=mini',"/X"+consoleIP]
 	output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
 
-
 	try:
 		#Get count of existing crash dumps
 		command = ["cmd", "/c", "dir", crashdump_path]
@@ -1023,14 +1022,28 @@ def TestXboxProjects():
 			if (len(output) - 1 > crashDumpCount):
 				crashDumpCount = len(output) - 1
 				testingComplete = False
+		
+			# get the memory leak file path
+			memleakPath = '\\\\'+consoleIP+'\\'
 			
-			if testingComplete:
+			appFileName = appName.split("!")[0]
+			appNameParts = appFileName.split('_')
+			memleakPath = memleakPath + appNameParts[0]+ "_1.0.0.0_x64__" + appNameParts[1]
+			memleakPath = GetFilesPathByExtension(memleakPath,"exe",False)
+			memleakPath = memleakPath[0].split('.exe')[0]+".memleaks"
+			
+			leaksDetected = FindMemoryLeaks(memleakPath)
+			
+			if testingComplete and leaksDetected == True:
+				errorOccured = True
+				failedTests.append({'name':lastSuccess['name'], 'gpu':lastSuccess['gpu'], 'reason':"Memory Leaks"})
+			elif testingComplete:
 				print ("Successfully ran " + appName + "\n")
-				successfulTests.append({'name':appName, 'gpu':""})
+				successfulTests.append({'name': appName, 'gpu': ""})
 			else:
 				errorOccured = True
 				print ("Application Terminated Early: " + appName + "\n")
-				failedTests.append({'name':appName, 'gpu':"", 'reason':"Runtime failure"})
+				failedTests.append({'name': appName, 'gpu': "", 'reason': "Runtime failure"})
 
 	#Copy crash dumps to PC and delete them from the console
 	command = ["xcopy", crashdump_path, "C:\\dumptemp\\", "/s", "/e"]

@@ -210,6 +210,7 @@ struct InputSystemImpl : public gainput::InputListener
 		{ InputBindings::BUTTON_BACK, gainput::KeyBackSpace },
 		{ InputBindings::BUTTON_NORTH, gainput::KeySpace },
 		{ InputBindings::BUTTON_R3, gainput::KeyF1 },
+		{ InputBindings::BUTTON_L3, gainput::KeyF2 },
 	};
 
 	const eastl::unordered_map<uint32_t, gainput::PadButton> mGamepadMap =

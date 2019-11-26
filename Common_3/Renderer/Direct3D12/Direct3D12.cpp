@@ -256,6 +256,7 @@ PFN_D3D12_CREATE_VERSIONED_ROOT_SIGNATURE_DESERIALIZER fnD3D12CreateVersionedRoo
 // Declare hooks for platform specific behavior
 PFN_HOOK_ADD_DESCRIPTIOR_HEAP              fnHookAddDescriptorHeap = NULL;
 PFN_HOOK_POST_INIT_RENDERER                fnHookPostInitRenderer = NULL;
+PFN_HOOK_POST_REMOVE_RENDERER              fnHookPostRemoveRenderer = NULL;
 PFN_HOOK_ADD_BUFFER                        fnHookAddBuffer = NULL;
 PFN_HOOK_ENABLE_DEBUG_LAYER                fnHookEnableDebugLayer = NULL;
 PFN_HOOK_HEAP_DESC                         fnHookHeapDesc = NULL;
@@ -1849,6 +1850,9 @@ void removeRenderer(Renderer* pRenderer)
 	destroyAllocator(pRenderer->pResourceAllocator);
 	RemoveDevice(pRenderer);
 
+	if (fnHookPostRemoveRenderer != NULL)
+		fnHookPostRemoveRenderer(pRenderer);
+
 	// Free all the renderer components
 	SAFE_FREE(pRenderer);
 }
@@ -2922,6 +2926,41 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	}
 }
 
+// Allocate memory for the virtual page
+bool allocateVirtualPage(Renderer* pRenderer, Texture* pTexture, VirtualTexturePage &virtualPage)
+{
+	if (virtualPage.pIntermediateBuffer != NULL)
+	{
+		//already filled
+		return false;
+	};
+
+	BufferDesc desc = {};
+	desc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
+	desc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+	desc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
+	//desc.mFormat = pTexture->mDesc.mFormat;
+	desc.mStartState = RESOURCE_STATE_COPY_SOURCE;
+
+	desc.mFirstElement = 0;
+	desc.mElementCount = pTexture->mSparseVirtualTexturePageWidth * pTexture->mSparseVirtualTexturePageHeight;
+	desc.mStructStride = sizeof(uint32_t);
+	desc.mSize = desc.mElementCount * desc.mStructStride;
+	addBuffer(pRenderer, &desc, &virtualPage.pIntermediateBuffer);
+	return true;
+}
+
+
+// Release memory allocated for this page
+void releaseVirtualPage(Renderer* pRenderer, VirtualTexturePage &virtualPage, bool removeMemoryBind)
+{
+	if (virtualPage.pIntermediateBuffer)
+	{
+		removeBuffer(pRenderer, virtualPage.pIntermediateBuffer);
+		virtualPage.pIntermediateBuffer = NULL;
+	}
+}
+
 void removeTexture(Renderer* pRenderer, Texture* pTexture)
 {
 	ASSERT(pRenderer);
@@ -2943,6 +2982,62 @@ void removeTexture(Renderer* pRenderer, Texture* pTexture)
 	{
 		d3d12_destroyTexture(pRenderer->pResourceAllocator, pTexture);
 	}
+
+	eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pTexture->pPages;
+
+	if (pPageTable)
+	{
+		for (int i = 0; i < (int)pPageTable->size(); i++)
+		{
+			releaseVirtualPage(pRenderer, (*pPageTable)[i], true);
+		}
+
+		pPageTable->set_capacity(0);
+		SAFE_FREE(pTexture->pPages);
+	}
+
+	eastl::vector<D3D12_TILED_RESOURCE_COORDINATE>* pSparseCoordinates = (eastl::vector<D3D12_TILED_RESOURCE_COORDINATE>*)pTexture->pSparseCoordinates;
+
+	if (pSparseCoordinates)
+	{
+		pSparseCoordinates->set_capacity(0);
+		SAFE_FREE(pTexture->pSparseCoordinates);
+	}
+
+	eastl::vector<uint32_t>* pHeapRangeStartOffsets = (eastl::vector<uint32_t>*)pTexture->pHeapRangeStartOffsets;
+
+	if (pHeapRangeStartOffsets)
+	{
+		pHeapRangeStartOffsets->set_capacity(0);
+		SAFE_FREE(pTexture->pHeapRangeStartOffsets);
+	}
+
+	if(pTexture->pSparseImageMemory)
+	{
+		pTexture->pSparseImageMemory->Release();
+		pTexture->pDxResource->Release();
+	}
+
+	if (pTexture->mVisibility)
+		removeBuffer(pRenderer, pTexture->mVisibility);
+
+	if (pTexture->mPrevVisibility)
+		removeBuffer(pRenderer, pTexture->mPrevVisibility);
+
+	if (pTexture->mAlivePage)
+		removeBuffer(pRenderer, pTexture->mAlivePage);
+
+	if (pTexture->mAlivePageCount)
+		removeBuffer(pRenderer, pTexture->mAlivePageCount);
+
+	if (pTexture->mRemovePage)
+		removeBuffer(pRenderer, pTexture->mRemovePage);
+
+	if (pTexture->mRemovePageCount)
+		removeBuffer(pRenderer, pTexture->mRemovePageCount);
+
+	if (pTexture->mVirtualImageData)
+		conf_free(pTexture->mVirtualImageData);
 
 	SAFE_FREE((wchar_t*)pTexture->mDesc.pDebugName);
 	SAFE_FREE(pTexture->pDxUAVDescriptors);
@@ -3103,7 +3198,7 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampl
 	desc.BorderColor[2] = 0.0f;
 	desc.BorderColor[3] = 0.0f;
 	desc.MinLOD = 0.0f;
-	desc.MaxLOD = D3D12_FLOAT32_MAX;
+	desc.MaxLOD = ((pDesc->mMipMapMode == MIPMAP_MODE_LINEAR) ? D3D12_FLOAT32_MAX : 0.0f);;
 	pSampler->mDxDesc = desc;
 	add_sampler(pRenderer, &pSampler->mDxDesc, &pSampler->mDxSamplerHandle);
 
@@ -6082,5 +6177,521 @@ void setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
 	pTexture->pDxResource->SetName(wName);
 }
 
+/************************************************************************/
+// Virtual Texture
+/************************************************************************/
+uvec3 alignedDivision(const D3D12_TILED_RESOURCE_COORDINATE& extent, const D3D12_TILED_RESOURCE_COORDINATE& granularity)
+{
+	uvec3 res;
+	res.setX(extent.X / granularity.X + ((extent.X  % granularity.X) ? 1u : 0u));
+	res.setY(extent.Y / granularity.Y + ((extent.Y % granularity.Y) ? 1u : 0u));
+	res.setZ(extent.Z / granularity.Z + ((extent.Z  % granularity.Z) ? 1u : 0u));
+	return res;
+}
+
+VirtualTexturePage* addPage(Renderer* pRenderer, Texture* pTexture, D3D12_TILED_RESOURCE_COORDINATE offset, D3D12_TILED_RESOURCE_COORDINATE extent,
+														const uint32_t size, const uint32_t mipLevel, uint32_t layer)
+{
+	eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pTexture->pPages;
+
+	VirtualTexturePage newPage;
+	newPage.offset = offset;
+	newPage.extent = extent;
+	newPage.size = size;
+	newPage.mipLevel = mipLevel;
+	newPage.layer = layer;
+	newPage.index = static_cast<uint32_t>(pPageTable->size());
+
+	pPageTable->push_back(newPage);
+
+	return &pPageTable->back();
+}
+
+void releasePage(Cmd* pCmd, Renderer* pRenderer, Texture* pTexture)
+{
+	eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pTexture->pPages;
+
+	uint removePageCount;
+
+	bool map = !pTexture->mRemovePageCount->pCpuMappedAddress;
+	if (map)
+	{
+		mapBuffer(pRenderer, pTexture->mRemovePageCount, NULL);
+	}
+	memcpy(&removePageCount, pTexture->mRemovePageCount->pCpuMappedAddress, sizeof(uint));
+	if (map)
+	{
+		unmapBuffer(pRenderer, pTexture->mRemovePageCount);
+	}
+
+	if (removePageCount == 0)
+		return;
+
+	eastl::vector<uint32_t> RemovePageTable;
+	RemovePageTable.resize(removePageCount);
+
+	map = !pTexture->mRemovePage->pCpuMappedAddress;
+	if (map)
+	{
+		mapBuffer(pRenderer, pTexture->mRemovePage, NULL);
+	}
+	memcpy(RemovePageTable.data(), pTexture->mRemovePage->pCpuMappedAddress, sizeof(uint));
+	if (map)
+	{
+		unmapBuffer(pRenderer, pTexture->mRemovePage);
+	}	
+
+	for (int i = 0; i < (int)removePageCount; ++i)
+	{
+		uint32_t RemoveIndex = RemovePageTable[i];
+		releaseVirtualPage(pRenderer, (*pPageTable)[RemoveIndex], false);
+	}
+}
+
+// Fill a complete mip level
+// Need to get visibility info first then fill them
+void fillVirtualTexture(Cmd* pCmd, Renderer* pRenderer, Texture* pTexture, Fence* pFence)
+{
+	TextureBarrier barriers[] = {
+					{ pTexture, RESOURCE_STATE_COPY_DEST }
+	};
+	cmdResourceBarrier(pCmd, 0, NULL, 1, barriers);
+
+	eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pTexture->pPages;
+	eastl::vector<D3D12_TILED_RESOURCE_COORDINATE>* pSparseCoordinates = (eastl::vector<D3D12_TILED_RESOURCE_COORDINATE>*)pTexture->pSparseCoordinates;
+	eastl::vector<uint32_t>* pHeapRangeStartOffsets = (eastl::vector<uint32_t>*)pTexture->pHeapRangeStartOffsets;
+
+	eastl::vector<uint32_t> tileCounts;
+	eastl::vector<D3D12_TILE_REGION_SIZE> regionSizes;
+	eastl::vector<D3D12_TILE_RANGE_FLAGS> rangeFlags;
+	//eastl::vector<uint32_t> rangeStartOffsets;
+
+	pSparseCoordinates->set_capacity(0);
+	pHeapRangeStartOffsets->set_capacity(0);
+
+	uint alivePageCount;
+
+	bool map = !pTexture->mAlivePageCount->pCpuMappedAddress;
+	if (map)
+	{
+		mapBuffer(pRenderer, pTexture->mAlivePageCount, NULL);
+	}
+
+	memcpy(&alivePageCount, pTexture->mAlivePageCount->pCpuMappedAddress, sizeof(uint));
+
+	if (map)
+	{
+		unmapBuffer(pRenderer, pTexture->mAlivePageCount);
+	}
+
+	map = !pTexture->mAlivePage->pCpuMappedAddress;
+	if (map)
+	{
+		mapBuffer(pRenderer, pTexture->mAlivePage, NULL);
+	}
+
+	eastl::vector<uint> VisibilityData;
+	VisibilityData.resize(alivePageCount);
+	memcpy(VisibilityData.data(), pTexture->mAlivePage->pCpuMappedAddress, VisibilityData.size() * sizeof(uint));
+
+	if (map)
+	{
+		unmapBuffer(pRenderer, pTexture->mAlivePage);
+	}
+
+	D3D12_TILE_REGION_SIZE regionSize = { 1, true, 1, 1, 1 };
+	D3D12_TILE_RANGE_FLAGS rangeFlag = D3D12_TILE_RANGE_FLAG_NONE;
+
+	for (int i = 0; i < (int)VisibilityData.size(); ++i)
+	{
+		uint pageIndex = VisibilityData[i];
+		VirtualTexturePage* pPage = &(*pPageTable)[pageIndex];
+
+		if (allocateVirtualPage(pRenderer, pTexture, *pPage))
+		{
+			void* pData = (void*)((unsigned char*)pTexture->mVirtualImageData + (pageIndex * pPage->size));
+
+			map = !pPage->pIntermediateBuffer->pCpuMappedAddress;
+			if (map)
+			{
+				mapBuffer(pRenderer, pPage->pIntermediateBuffer, NULL);
+			}
+
+			memcpy(pPage->pIntermediateBuffer->pCpuMappedAddress, pData, pPage->size);
+
+			
+			D3D12_TILED_RESOURCE_COORDINATE startCoord;
+			startCoord.X = pPage->offset.X / (uint)pTexture->mSparseVirtualTexturePageWidth;
+			startCoord.Y = pPage->offset.Y / (uint)pTexture->mSparseVirtualTexturePageHeight;
+			startCoord.Z = pPage->offset.Z;
+			startCoord.Subresource = pPage->offset.Subresource;
+
+			pSparseCoordinates->push_back(startCoord);
+			tileCounts.push_back(1);
+			regionSizes.push_back(regionSize);
+			rangeFlags.push_back(rangeFlag);
+			pHeapRangeStartOffsets->push_back(pageIndex);
+
+			D3D12_RESOURCE_DESC         Desc = pTexture->pDxResource->GetDesc();
+			D3D12_TEXTURE_COPY_LOCATION Dst = {};
+			Dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+			Dst.pResource = pTexture->pDxResource;
+			Dst.SubresourceIndex = startCoord.Subresource;
+
+			D3D12_TEXTURE_COPY_LOCATION Src = {};
+			Src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+			Src.pResource = pPage->pIntermediateBuffer->pDxResource;
+			Src.PlacedFootprint =
+				D3D12_PLACED_SUBRESOURCE_FOOTPRINT{ 0,
+									{ Desc.Format,
+										(UINT)pTexture->mSparseVirtualTexturePageWidth, (UINT)pTexture->mSparseVirtualTexturePageHeight, 1, (UINT)pTexture->mSparseVirtualTexturePageWidth * sizeof(uint32_t) } };
+
+			pCmd->pDxCmdList->CopyTextureRegion(&Dst, startCoord.X * (UINT)pTexture->mSparseVirtualTexturePageWidth, startCoord.Y * (UINT)pTexture->mSparseVirtualTexturePageHeight, 0, &Src, NULL);
+
+			if (map)
+			{
+				unmapBuffer(pRenderer, pPage->pIntermediateBuffer);
+			}
+		}
+	}
+
+	// Update sparse bind info
+	if (pSparseCoordinates->size() > 0)
+	{
+		pCmd->pCmdPool->pQueue->pDxQueue->UpdateTileMappings(pTexture->pDxResource,
+			(UINT)pSparseCoordinates->size(),
+			pSparseCoordinates->data(),
+			regionSizes.data(),
+			pTexture->pSparseImageMemory,
+			(UINT)pSparseCoordinates->size(),
+			rangeFlags.data(),
+			pHeapRangeStartOffsets->data(),
+			tileCounts.data(),
+			D3D12_TILE_MAPPING_FLAG_NONE);
+	}
+	
+	regionSizes.set_capacity(0);	
+	rangeFlags.set_capacity(0);
+	tileCounts.set_capacity(0);
+}
+
+// Fill smallest (non-tail) mip map level
+void fillVirtualTextureLevel(Cmd* pCmd, Renderer* pRenderer, Texture* pTexture, uint32_t mipLevel)
+{
+	TextureBarrier barriers[] = {
+				{ pTexture, RESOURCE_STATE_COPY_DEST }
+	};
+	cmdResourceBarrier(pCmd, 0, NULL, 1, barriers);
+
+	eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pTexture->pPages;
+	eastl::vector<D3D12_TILED_RESOURCE_COORDINATE>* pSparseCoordinates = (eastl::vector<D3D12_TILED_RESOURCE_COORDINATE>*)pTexture->pSparseCoordinates;
+
+	eastl::vector<uint32_t> tileCounts;
+	eastl::vector<D3D12_TILE_REGION_SIZE> regionSizes;
+	eastl::vector<D3D12_TILE_RANGE_FLAGS> rangeFlags;
+	eastl::vector<uint32_t> rangeStartOffsets;
+
+	pSparseCoordinates->set_capacity(0);
+
+	D3D12_TILE_REGION_SIZE regionSize = { 1, true, 1, 1, 1 };
+	D3D12_TILE_RANGE_FLAGS rangeFlag = D3D12_TILE_RANGE_FLAG_NONE;
+
+	for (int i = 0; i < (int)pPageTable->size(); i++)
+	{
+		VirtualTexturePage* pPage = &(*pPageTable)[i];
+		uint32_t pageIndex = pPage->index;
+		int globalOffset = 0;
+
+		if ((pPage->mipLevel == mipLevel) && (pPage->pIntermediateBuffer == NULL))
+		{
+			if (allocateVirtualPage(pRenderer, pTexture, *pPage))
+			{
+				void* pData = (void*)((unsigned char*)pTexture->mVirtualImageData + (pageIndex * (uint32_t)pPage->size));
+
+				//CPU to GPU
+				bool map = !pPage->pIntermediateBuffer->pCpuMappedAddress;
+				if (map)
+				{
+					mapBuffer(pRenderer, pPage->pIntermediateBuffer, NULL);
+				}
+
+				memcpy(pPage->pIntermediateBuffer->pCpuMappedAddress, pData, pPage->size);				
+
+				D3D12_TILED_RESOURCE_COORDINATE startCoord;
+				startCoord.X = pPage->offset.X / (uint)pTexture->mSparseVirtualTexturePageWidth;
+				startCoord.Y = pPage->offset.Y / (uint)pTexture->mSparseVirtualTexturePageHeight;
+				startCoord.Z = pPage->offset.Z;
+				startCoord.Subresource = pPage->offset.Subresource;
+
+				pSparseCoordinates->push_back(startCoord);
+				tileCounts.push_back(1);
+				regionSizes.push_back(regionSize);
+				rangeFlags.push_back(rangeFlag);
+				rangeStartOffsets.push_back(pageIndex);
+
+				D3D12_RESOURCE_DESC         Desc = pTexture->pDxResource->GetDesc();
+				D3D12_TEXTURE_COPY_LOCATION Dst = {};
+				Dst.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+				Dst.pResource = pTexture->pDxResource;
+				Dst.SubresourceIndex = mipLevel;
+
+
+				D3D12_TEXTURE_COPY_LOCATION Src = {};
+				Src.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+				Src.pResource = pPage->pIntermediateBuffer->pDxResource;
+				Src.PlacedFootprint =
+					D3D12_PLACED_SUBRESOURCE_FOOTPRINT{ 0,
+										{ Desc.Format,
+											(UINT)pTexture->mSparseVirtualTexturePageWidth, (UINT)pTexture->mSparseVirtualTexturePageHeight, 1, (UINT)pTexture->mSparseVirtualTexturePageWidth * sizeof(uint32_t) } };
+
+				pCmd->pDxCmdList->CopyTextureRegion(
+					&Dst, startCoord.X * (UINT)pTexture->mSparseVirtualTexturePageWidth, startCoord.Y * (UINT)pTexture->mSparseVirtualTexturePageHeight, 0, &Src, NULL);
+
+				if (map)
+				{
+					unmapBuffer(pRenderer, pPage->pIntermediateBuffer);
+				}
+			}
+		}
+	}
+
+	// Update sparse bind info
+	if (pSparseCoordinates->size() > 0)
+	{
+		pCmd->pCmdPool->pQueue->pDxQueue->UpdateTileMappings(
+			pTexture->pDxResource,
+			(UINT)pSparseCoordinates->size(),
+			pSparseCoordinates->data(),
+			regionSizes.data(),
+			pTexture->pSparseImageMemory,
+			(UINT)pSparseCoordinates->size(),
+			rangeFlags.data(),
+			rangeStartOffsets.data(),
+			tileCounts.data(),
+			D3D12_TILE_MAPPING_FLAG_NONE);
+	}
+
+	regionSizes.set_capacity(0);
+	rangeFlags.set_capacity(0);
+	rangeStartOffsets.set_capacity(0);
+	tileCounts.set_capacity(0);
+}
+
+void addVirtualTexture(Renderer * pRenderer, const TextureDesc * pDesc, Texture ** ppTexture, void* pImageData)
+{
+	ASSERT(pRenderer);
+	Texture* pTexture = (Texture*)conf_calloc(1, sizeof(*pTexture));
+	ASSERT(pTexture);
+
+	uint32_t imageSize = 0;
+	uint32_t mipSize = pDesc->mWidth * pDesc->mHeight * pDesc->mDepth;
+	while (mipSize > 0)
+	{
+		imageSize += mipSize;
+		mipSize /= 4;
+	}
+
+	pTexture->mVirtualImageData = (char*)conf_malloc(imageSize * sizeof(uint32_t));
+	memcpy(pTexture->mVirtualImageData, pImageData, imageSize * sizeof(uint32_t));
+
+	// Create command buffer to transition resources to the correct state
+	Queue*   graphicsQueue = NULL;
+	CmdPool* cmdPool = NULL;
+	Cmd*     cmd = NULL;
+
+	QueueDesc queueDesc = {};
+	queueDesc.mType = CMD_POOL_DIRECT;
+	addQueue(pRenderer, &queueDesc, &graphicsQueue);
+
+	addCmdPool(pRenderer, graphicsQueue, false, &cmdPool);
+	addCmd(cmdPool, false, &cmd);
+
+	// Transition resources
+	beginCmd(cmd);
+
+	//set texture properties
+	pTexture->mDesc = *pDesc;
+
+	//add to gpu
+	D3D12_RESOURCE_DESC desc = {};
+	DXGI_FORMAT         dxFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+	DescriptorType      descriptors = pDesc->mDescriptors;
+
+	ASSERT(DXGI_FORMAT_UNKNOWN != dxFormat);
+
+	desc.Width = pDesc->mWidth;
+	desc.Height = pDesc->mHeight;
+	desc.MipLevels = pDesc->mMipLevels;
+	desc.Format = dxFormat;
+	desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+	desc.DepthOrArraySize = 1;
+	desc.SampleDesc.Count = 1;
+	desc.SampleDesc.Quality = 0;
+	desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+	desc.Layout = D3D12_TEXTURE_LAYOUT_64KB_UNDEFINED_SWIZZLE;
+
+	D3D12_RESOURCE_STATES res_states = util_to_dx_resource_state(pDesc->mStartState);
+
+	HRESULT hres = pRenderer->pDxDevice->CreateReservedResource(&desc, res_states, NULL, IID_ARGS(&pTexture->pDxResource));
+	ASSERT(SUCCEEDED(hres));
+
+	pTexture->mCurrentState = RESOURCE_STATE_COPY_DEST;
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC  srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Format = dxFormat;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MipLevels = desc.MipLevels;
+	add_srv(pRenderer, pTexture->pDxResource, &srvDesc, &pTexture->mDxSRVDescriptor);
+
+	UINT numTiles = 0;
+	D3D12_PACKED_MIP_INFO packedMipInfo;
+	D3D12_TILE_SHAPE tileShape = {};
+	UINT subresourceCount = pDesc->mMipLevels;
+	eastl::vector<D3D12_SUBRESOURCE_TILING> tilings(subresourceCount);
+	pRenderer->pDxDevice->GetResourceTiling(pTexture->pDxResource, &numTiles, &packedMipInfo, &tileShape, &subresourceCount, 0, &tilings[0]);
+
+	pTexture->mSparseVirtualTexturePageWidth = tileShape.WidthInTexels;
+	pTexture->mSparseVirtualTexturePageHeight = tileShape.HeightInTexels;
+
+	pTexture->pPages = (eastl::vector<VirtualTexturePage>*)conf_calloc(1, sizeof(eastl::vector<VirtualTexturePage>));
+	pTexture->pSparseCoordinates = (eastl::vector<D3D12_TILED_RESOURCE_COORDINATE>*)conf_calloc(1, sizeof(eastl::vector<D3D12_TILED_RESOURCE_COORDINATE>));
+	pTexture->pHeapRangeStartOffsets = (eastl::vector<uint32_t>*)conf_calloc(1, sizeof(eastl::vector<uint32_t>));
+
+	// Sparse bindings for each mip level of all layers outside of the mip tail
+	for (uint32_t layer = 0; layer < 1; layer++)
+	{
+		// sparseMemoryReq.imageMipTailFirstLod is the first mip level that's stored inside the mip tail
+		for (uint32_t mipLevel = 0; mipLevel < packedMipInfo.NumStandardMips; mipLevel++)
+		{
+			D3D12_TILED_RESOURCE_COORDINATE extent;
+			extent.X = max(pDesc->mWidth >> mipLevel, 1u);
+			extent.Y = max(pDesc->mHeight >> mipLevel, 1u);
+			extent.Z = max(pDesc->mDepth >> mipLevel, 1u);
+
+			// Aligned sizes by image granularity
+			D3D12_TILED_RESOURCE_COORDINATE imageGranularity;
+			imageGranularity.X = tileShape.WidthInTexels;
+			imageGranularity.Y = tileShape.HeightInTexels;
+			imageGranularity.Z = tileShape.DepthInTexels;
+
+			uvec3 sparseBindCounts = alignedDivision(extent, imageGranularity);
+			uvec3 lastBlockExtent;
+			lastBlockExtent.setX((extent.X % imageGranularity.X) ? extent.X % imageGranularity.X : imageGranularity.X);
+			lastBlockExtent.setY((extent.Y % imageGranularity.Y) ? extent.Y % imageGranularity.Y : imageGranularity.Y);
+			lastBlockExtent.setZ((extent.Z % imageGranularity.Z) ? extent.Z % imageGranularity.Z : imageGranularity.Z);
+
+			// Alllocate memory for some blocks
+			for (uint32_t z = 0; z < sparseBindCounts.getZ(); z++)
+			{
+				for (uint32_t y = 0; y < sparseBindCounts.getY(); y++)
+				{
+					for (uint32_t x = 0; x < sparseBindCounts.getX(); x++)
+					{
+						// Offset 
+						D3D12_TILED_RESOURCE_COORDINATE offset;
+						offset.X = x * imageGranularity.X;
+						offset.Y = y * imageGranularity.Y;
+						offset.Z = z * imageGranularity.Z;
+						offset.Subresource = mipLevel;
+						// Size of the page
+						D3D12_TILED_RESOURCE_COORDINATE extent;
+						extent.X = (x == sparseBindCounts.getX() - 1) ? lastBlockExtent.getX() : imageGranularity.X;
+						extent.Y = (y == sparseBindCounts.getY() - 1) ? lastBlockExtent.getY() : imageGranularity.Y;
+						extent.Z = (z == sparseBindCounts.getZ() - 1) ? lastBlockExtent.getZ() : imageGranularity.Z;
+						extent.Subresource = mipLevel;
+
+						// Add new virtual page
+						VirtualTexturePage *newPage = addPage(pRenderer, pTexture, offset, extent, (uint32_t)pTexture->mSparseVirtualTexturePageWidth * (uint32_t)pTexture->mSparseVirtualTexturePageHeight * sizeof(uint), mipLevel, layer);
+
+					}
+				}
+			}
+		}
+	}
+
+	eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pTexture->pPages;
+
+	// Create Memeory
+	UINT heapSize = UINT(pTexture->mSparseVirtualTexturePageWidth * pTexture->mSparseVirtualTexturePageHeight * sizeof(uint32_t) * (uint32_t)pPageTable->size());
+
+	D3D12_HEAP_DESC desc_heap = {};
+	desc_heap.Alignment = 0;
+	desc_heap.Flags = D3D12_HEAP_FLAG_DENY_BUFFERS | D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES;
+	desc_heap.Properties.Type = D3D12_HEAP_TYPE_DEFAULT;
+	desc_heap.SizeInBytes = heapSize;
+
+	hres = pRenderer->pDxDevice->CreateHeap(&desc_heap, __uuidof(pTexture->pSparseImageMemory), (void**)&pTexture->pSparseImageMemory);
+	ASSERT(SUCCEEDED(hres));
+
+	LOGF(LogLevel::eINFO, "Virtual Texture info: Dim %d x %d Pages %d", pTexture->mDesc.mWidth, pTexture->mDesc.mHeight, (uint32_t)(((eastl::vector<VirtualTexturePage>*)pTexture->pPages)->size()));
+
+	fillVirtualTextureLevel(cmd, pRenderer, pTexture, packedMipInfo.NumStandardMips - 1);
+
+	endCmd(cmd);
+
+	queueSubmit(graphicsQueue, 1, &cmd, NULL, 0, NULL, 0, NULL);
+	waitQueueIdle(graphicsQueue);
+
+	// Delete command buffer
+	removeCmd(cmdPool, cmd);
+	removeCmdPool(pRenderer, cmdPool);
+	removeQueue(graphicsQueue);
+
+	////save tetxure in given pointer
+	*ppTexture = pTexture;
+}
+
+void updateVirtualTexture(Renderer* pRenderer, Queue* pQueue, Texture* pTexture)
+{
+	if (pTexture->mVisibility)
+	{
+		// Create command buffer to transition resources to the correct state		
+		CmdPool* cmdPool = NULL;
+		Cmd*     cmd = NULL;
+		
+		addCmdPool(pRenderer, pQueue, false, &cmdPool);
+		addCmd(cmdPool, false, &cmd);
+
+		// Transition resources
+		beginCmd(cmd);
+
+		releasePage(cmd, pRenderer, pTexture);
+		fillVirtualTexture(cmd, pRenderer, pTexture, NULL);
+
+		endCmd(cmd);
+
+		queueSubmit(pQueue, 1, &cmd, NULL, 0, NULL, 0, NULL);
+		waitQueueIdle(pQueue);
+
+		// Delete command buffer
+		removeCmd(cmdPool, cmd);
+		removeCmdPool(pRenderer, cmdPool);
+
+		uint alivePageCount[4] = { 0, 0, 0, 0 };
+
+		bool map = !pTexture->mAlivePageCount->pCpuMappedAddress;
+		if (map)
+		{
+			mapBuffer(pRenderer, pTexture->mAlivePageCount, NULL);
+		}
+		memcpy(pTexture->mAlivePageCount->pCpuMappedAddress, alivePageCount, sizeof(uint) * 4);
+		if (map)
+		{
+			unmapBuffer(pRenderer, pTexture->mAlivePageCount);
+		}
+
+		map = !pTexture->mRemovePageCount->pCpuMappedAddress;
+		if (map)
+		{
+			mapBuffer(pRenderer, pTexture->mRemovePageCount, NULL);
+		}
+		memcpy(pTexture->mRemovePageCount->pCpuMappedAddress, alivePageCount, sizeof(uint) * 4);
+		if (map)
+		{
+			unmapBuffer(pRenderer, pTexture->mRemovePageCount);
+		}
+	}
+}
 #endif
 #endif

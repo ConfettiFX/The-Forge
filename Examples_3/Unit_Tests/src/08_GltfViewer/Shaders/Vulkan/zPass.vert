@@ -40,8 +40,13 @@ layout(std140, UPDATE_FREQ_PER_DRAW, binding = 0) uniform cbPerProp
 	uniform vec4  posOffset;
 	uniform vec2  uvOffset;
 	uniform vec2  uvScale;
-	uniform float posScale;
-	uniform float padding0;
+  uniform float posScale;
+  uniform uint  textureMapInfo;
+
+	uniform uint  sparseTextureMapInfo;
+  uniform float padding00;
+  uniform float padding01;
+  uniform float padding02;
 };
 
 struct VsIn

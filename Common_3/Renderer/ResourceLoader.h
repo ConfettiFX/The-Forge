@@ -78,6 +78,14 @@ typedef struct TextureLoadDesc
 
 } TextureLoadDesc;
 
+typedef struct VirtualTexturePageInfo
+{
+	uint pageAlive;
+	uint TexID;
+	uint mipLevel;
+	uint padding1;
+} VirtualTexturePageInfo;
+
 typedef struct BufferUpdateDesc
 {
 	BufferUpdateDesc(Buffer* buf = NULL, const void* data = NULL, uint64_t srcOff = 0, uint64_t dstOff = 0, uint64_t size = 0):
@@ -160,6 +168,10 @@ void updateResources(uint32_t resourceCount, ResourceUpdateDesc* pResources);
 void updateResource(BufferUpdateDesc* pBuffer, SyncToken* token);
 void updateResource(TextureUpdateDesc* pTexture, SyncToken* token);
 void updateResources(uint32_t resourceCount, ResourceUpdateDesc* pResources, SyncToken* token);
+
+#if !defined(METAL) && !defined(DIRECT3D11)
+void updateVirtualTexture(Renderer* pRenderer, Queue* pQueue, TextureUpdateDesc* pTextureUpdate);
+#endif
 
 bool isBatchCompleted();
 void waitBatchCompleted();

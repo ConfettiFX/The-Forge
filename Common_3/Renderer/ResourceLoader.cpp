@@ -55,9 +55,11 @@ extern void removeBuffer(Renderer* pRenderer, Buffer* p_buffer);
 extern void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
 extern void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 extern void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** pp_texture);
+extern void addVirtualTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture, void* pImageData);
 extern void removeTexture(Renderer* pRenderer, Texture* p_texture);
 extern void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
 extern void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, SubresourceDataDesc* pSubresourceDesc);
+extern void updateVirtualTexture(Renderer* pRenderer, Queue* pQueue, Texture* pTexture);
 /************************************************************************/
 /************************************************************************/
 
@@ -1101,14 +1103,148 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 
 	bool freeImage = false;
 	Image* pImage = NULL;
+	
 	if (pTextureDesc->pFilePath)
 	{
 		pImage = ResourceLoader::CreateImage(pTextureDesc->pFilePath, NULL, NULL);
+#if !defined(METAL) && !defined(DIRECT3D11)
+		PathComponent component = fsGetPathExtension(pTextureDesc->pFilePath);
 		
+		bool isSparseVirtualTexture = (component.length > 0 && strcmp(component.buffer, "svt") == 0) ? true : false;
+
+		if (isSparseVirtualTexture)
+		{
+			TextureDesc SVTDesc = {};
+			SVTDesc.mWidth = pImage->GetWidth();
+			SVTDesc.mHeight = pImage->GetHeight();
+			SVTDesc.mDepth = pImage->GetDepth();
+			SVTDesc.mFlags = TEXTURE_CREATION_FLAG_NONE;
+			SVTDesc.mFormat = pImage->GetFormat();
+			SVTDesc.mHostVisible = false;
+			SVTDesc.mMipLevels = pImage->GetMipMapCount();
+			SVTDesc.mSampleCount = SAMPLE_COUNT_1;
+			//SVTDesc.mStartState = RESOURCE_STATE_COMMON;
+			SVTDesc.mStartState = RESOURCE_STATE_COPY_DEST;
+			SVTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+			pTextureDesc->pDesc = &SVTDesc;
+
+			addVirtualTexture(pResourceLoader->pRenderer, pTextureDesc->pDesc, pTextureDesc->ppTexture, pImage->GetPixels());
+
+			conf_free(pImage->GetPixels());
+			conf_free(pImage);
+
+			/************************************************************************/
+			// Create visibility buffer
+			/************************************************************************/
+
+			eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)(*pTextureDesc->ppTexture)->pPages;
+
+			if(pPageTable == NULL)
+				return;
+
+			BufferLoadDesc visDesc = {};
+			visDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
+			visDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+			visDesc.mDesc.mStructStride = sizeof(uint);
+			visDesc.mDesc.mElementCount = (uint64_t)pPageTable->size();
+			visDesc.mDesc.mSize = visDesc.mDesc.mStructStride * visDesc.mDesc.mElementCount;
+			visDesc.mDesc.pDebugName = L"Vis Buffer for Sparse Texture";
+			visDesc.ppBuffer = &(*pTextureDesc->ppTexture)->mVisibility;			
+			addResource(&visDesc);
+
+			BufferLoadDesc prevVisDesc = {};
+			prevVisDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
+			prevVisDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+			prevVisDesc.mDesc.mStructStride = sizeof(uint);
+			prevVisDesc.mDesc.mElementCount = (uint64_t)pPageTable->size();
+			prevVisDesc.mDesc.mSize = prevVisDesc.mDesc.mStructStride * prevVisDesc.mDesc.mElementCount;
+			prevVisDesc.mDesc.pDebugName = L"Prev Vis Buffer for Sparse Texture";
+			prevVisDesc.ppBuffer = &(*pTextureDesc->ppTexture)->mPrevVisibility;
+			addResource(&prevVisDesc);
+
+			BufferLoadDesc alivePageDesc = {};
+			alivePageDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
+			alivePageDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+#if defined(DIRECT3D12)
+			alivePageDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+#elif defined(VULKAN)
+			alivePageDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+#else
+			alivePageDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+#endif
+			alivePageDesc.mDesc.mStructStride = sizeof(uint);
+			alivePageDesc.mDesc.mElementCount = (uint64_t)pPageTable->size();
+			alivePageDesc.mDesc.mSize = alivePageDesc.mDesc.mStructStride * alivePageDesc.mDesc.mElementCount;
+			alivePageDesc.mDesc.pDebugName = L"Alive pages buffer for Sparse Texture";
+			alivePageDesc.ppBuffer = &(*pTextureDesc->ppTexture)->mAlivePage;
+			addResource(&alivePageDesc);
+
+			BufferLoadDesc removePageDesc = {};
+			removePageDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
+			removePageDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+#if defined(DIRECT3D12)
+			removePageDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+#elif defined(VULKAN)
+			removePageDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+#else
+			removePageDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+#endif
+			removePageDesc.mDesc.mStructStride = sizeof(uint);
+			removePageDesc.mDesc.mElementCount = (uint64_t)pPageTable->size();
+			removePageDesc.mDesc.mSize = removePageDesc.mDesc.mStructStride * removePageDesc.mDesc.mElementCount;
+			removePageDesc.mDesc.pDebugName = L"Remove pages buffer for Sparse Texture";
+			removePageDesc.ppBuffer = &(*pTextureDesc->ppTexture)->mRemovePage;
+			addResource(&removePageDesc);
+
+			BufferLoadDesc alivePageCountDesc = {};
+			alivePageCountDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
+			alivePageCountDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+#if defined(DIRECT3D12)
+			alivePageCountDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+#elif defined(VULKAN)
+			alivePageCountDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+#else
+			alivePageCountDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+#endif
+			alivePageCountDesc.mDesc.mStructStride = sizeof(uint);
+			alivePageCountDesc.mDesc.mElementCount = 4;
+			alivePageCountDesc.mDesc.mSize = alivePageCountDesc.mDesc.mStructStride * alivePageCountDesc.mDesc.mElementCount;
+			alivePageCountDesc.mDesc.pDebugName = L"Alive page count buffer for Sparse Texture";
+			alivePageCountDesc.ppBuffer = &(*pTextureDesc->ppTexture)->mAlivePageCount;
+			addResource(&alivePageCountDesc);
+
+			BufferLoadDesc removePageCountDesc = {};
+			removePageCountDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
+			removePageCountDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+#if defined(DIRECT3D12)
+			removePageCountDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+#elif defined(VULKAN)
+			removePageCountDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+#else
+			removePageCountDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+#endif
+			removePageCountDesc.mDesc.mStructStride = sizeof(uint);
+			removePageCountDesc.mDesc.mElementCount = 4;
+			removePageCountDesc.mDesc.mSize = removePageCountDesc.mDesc.mStructStride * removePageCountDesc.mDesc.mElementCount;
+			removePageCountDesc.mDesc.pDebugName = L"Remove page count buffer for Sparse Texture";
+			removePageCountDesc.ppBuffer = &(*pTextureDesc->ppTexture)->mRemovePageCount;
+			addResource(&removePageCountDesc);
+
+			return;
+		}
+		else
+		{
+			if (!pImage)
+			{
+				return;
+			}			
+		}
+#else
 		if (!pImage)
 		{
 			return;
 		}
+#endif
 		freeImage = true;
 	}
 	else if (!pTextureDesc->pFilePath && !pTextureDesc->pRawImageData && !pTextureDesc->pBinaryImageData && pTextureDesc->pDesc)
@@ -2060,3 +2196,10 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 	addShader(pRenderer, &desc, ppShader);
 #endif
 }
+
+#if !defined(METAL) && !defined(DIRECT3D11)
+void updateVirtualTexture(Renderer* pRenderer, Queue* pQueue, TextureUpdateDesc* pTextureUpdate)
+{
+	updateVirtualTexture(pRenderer, pQueue, pTextureUpdate->pTexture);
+}
+#endif

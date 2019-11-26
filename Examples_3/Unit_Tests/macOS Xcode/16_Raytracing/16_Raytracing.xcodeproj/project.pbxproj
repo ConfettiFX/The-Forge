@@ -575,9 +575,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				MTL_FAST_MATH = YES;
-				MTL_LANGUAGE_REVISION = Metal22;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.16-Raytracing-iOS";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-tests.16-Raytracing.ios";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRIP_PNG_TEXT = NO;
@@ -614,9 +612,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				MTL_FAST_MATH = YES;
-				MTL_LANGUAGE_REVISION = Metal22;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.16-Raytracing-iOS";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-tests.16-Raytracing.ios";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRIP_PNG_TEXT = NO;
@@ -758,7 +754,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				ONLY_ACTIVE_ARCH = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-tests.18-Raytracing.macOS";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-tests.16-Raytracing.macOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
@@ -791,7 +787,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				ONLY_ACTIVE_ARCH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-tests.18-Raytracing.macOS";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-tests.16-Raytracing.macOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";

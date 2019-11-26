@@ -48,6 +48,8 @@
 #include "../../../ThirdParty/OpenSource/ozz-animation/include/ozz/animation/offline/skeleton_builder.h"
 #include "../../../ThirdParty/OpenSource/ozz-animation/include/ozz/animation/offline/animation_builder.h"
 
+#define IMAGE_CLASS_ALLOWED
+#include "../../../OS/Image/Image.h"
 #include "../../../OS/Interfaces/IOperatingSystem.h"
 #include "../../../OS/Interfaces/IFileSystem.h"
 #include "../../../OS/Interfaces/ILog.h"
@@ -704,4 +706,112 @@ bool AssetPipeline::ProcessTextures(const Path* textureDirectory, const Path* ou
 #else
     return true;
 #endif
+}
+
+bool AssetPipeline::ProcessVirtualTextures(const Path* textureDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings)
+{
+#if !defined(__linux__) && !defined(METAL)
+	// Check if directory exists
+	if (!fsFileExists(textureDirectory))
+	{
+		LOGF(LogLevel::eERROR, "textureDirectory: \"%s\" does not exist.", textureDirectory);
+		return false;
+	}
+
+	// If output directory doesn't exist, create it.
+	if (!fsFileExists(outputDirectory))
+	{
+		if (!fsCreateDirectory(outputDirectory))
+		{
+			LOGF(LogLevel::eERROR, "Failed to create output directory %s.", outputDirectory);
+			return false;
+		}
+	}
+
+	// Get all image files
+	eastl::vector<PathHandle> ddsFilesInDirectory;
+	ddsFilesInDirectory = fsGetFilesWithExtension(textureDirectory, ".dds");
+
+	for (size_t i = 0; i < ddsFilesInDirectory.size(); ++i)
+	{
+		eastl::string outputFile = fsGetPathAsNativeString(ddsFilesInDirectory[i]);
+		
+		Image* pImage = NULL;
+		if (outputFile.size() > 0)
+		{
+
+			Image* pImage = conf_new(Image);
+			pImage->Init();
+
+			if (!pImage->LoadFromFile(ddsFilesInDirectory[i], NULL, NULL))
+			{
+				pImage->Destroy();
+				conf_delete(pImage);
+				LOGF(LogLevel::eERROR, "Failed to load image %s.", outputFile.c_str());
+				continue;
+			}
+
+			outputFile.resize(outputFile.size() - 4);
+			outputFile.append(".svt");
+
+			PathHandle pathForSVT = fsCreatePath(fsGetSystemFileSystem(), outputFile.c_str());
+
+			bool result = pImage->iSaveSVT(pathForSVT);
+
+			pImage->Destroy();
+			conf_delete(pImage);
+
+			if (result == false)
+			{
+				LOGF(LogLevel::eERROR, "Failed to save sparse virtual texture %s.", outputFile.c_str());
+				return false;
+			}			
+		}
+	}
+
+	ddsFilesInDirectory.set_capacity(0);
+
+	eastl::vector<PathHandle> ktxFilesInDirectory;
+	ktxFilesInDirectory = fsGetFilesWithExtension(textureDirectory, ".ktx");
+
+	for (size_t i = 0; i < ktxFilesInDirectory.size(); ++i)
+	{
+		eastl::string outputFile = fsGetPathAsNativeString(ktxFilesInDirectory[i]);
+
+		Image* pImage = NULL;
+		if (outputFile.size() > 0)
+		{
+
+			Image* pImage = conf_new(Image);
+			pImage->Init();
+
+			if (!pImage->LoadFromFile(ktxFilesInDirectory[i], NULL, NULL))
+			{
+				pImage->Destroy();
+				conf_delete(pImage);
+				LOGF(LogLevel::eERROR, "Failed to load image %s.", ktxFilesInDirectory[i]);
+				continue;
+			}
+
+			outputFile.resize(outputFile.size() - 4);
+			outputFile.append(".svt");
+
+			PathHandle pathForSVT = fsCreatePath(fsGetSystemFileSystem(), outputFile.c_str());
+
+			bool result = pImage->iSaveSVT(pathForSVT);
+
+			pImage->Destroy();
+			conf_delete(pImage);
+
+			if (result == false)
+			{
+				LOGF(LogLevel::eERROR, "Failed to save sparse virtual texture %s.", outputFile.c_str());
+				return false;
+			}
+		}
+	}
+
+	ktxFilesInDirectory.set_capacity(0);
+#endif
+	return true;
 }

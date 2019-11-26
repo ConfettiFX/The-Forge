@@ -259,8 +259,8 @@ typedef enum IndirectArgumentType
 	INDIRECT_CONSTANT_BUFFER_VIEW,    // only for dx
 	INDIRECT_SHADER_RESOURCE_VIEW,    // only for dx
 	INDIRECT_UNORDERED_ACCESS_VIEW,   // only for dx
-    INDIRECT_COMMAND_BUFFER,          // metal ICB
-    INDIRECT_COMMAND_BUFFER_OPTIMIZE  // metal indirect buffer optimization
+  INDIRECT_COMMAND_BUFFER,          // metal ICB
+  INDIRECT_COMMAND_BUFFER_OPTIMIZE  // metal indirect buffer optimization
 } IndirectArgumentType;
 /************************************************/
 
@@ -828,6 +828,47 @@ typedef struct TextureDesc
 	bool mHostVisible;
 } TextureDesc;
 
+// Virtual texture page as a part of the partially resident texture
+// Contains memory bindings, offsets and status information
+struct VirtualTexturePage
+{
+	/// Buffer which contains the image data and be used for copying it to Virtual texture
+	Buffer*	pIntermediateBuffer;
+	/// Miplevel for this page
+	uint32_t mipLevel;
+	/// Array layer for this page																
+	uint32_t layer;
+	/// Index for this page
+	uint32_t index;
+#if defined(DIRECT3D12)
+	/// Offset for this page
+	D3D12_TILED_RESOURCE_COORDINATE offset;
+	/// Size for this page
+	D3D12_TILED_RESOURCE_COORDINATE extent;
+	/// Byte size for this page
+	uint32_t size;	
+#endif
+
+#if defined(VULKAN)
+	/// Offset for this page
+	VkOffset3D offset;
+	/// Size for this page
+	VkExtent3D extent;
+	/// Sparse image memory bind for this page
+	VkSparseImageMemoryBind imageMemoryBind;						
+	/// Byte size for this page
+	VkDeviceSize size;
+#endif
+
+	VirtualTexturePage()
+	{
+		pIntermediateBuffer = NULL;
+#if defined(VULKAN)
+		imageMemoryBind.memory = VK_NULL_HANDLE;
+#endif
+	}
+};
+
 typedef struct Texture
 {
 #if defined(DIRECT3D12)
@@ -838,6 +879,12 @@ typedef struct Texture
 	ID3D12Resource* pDxResource;
 	/// Contains resource allocation info such as parent heap, offset in heap
 	struct ResourceAllocation* pDxAllocation;
+	/// Memory for Sparse texture
+	ID3D12Heap* pSparseImageMemory;
+	/// Array for Sparse texture's pages
+	void* pSparseCoordinates;
+	/// Array for heap memory offsets
+	void* pHeapRangeStartOffsets;
 #endif
 #if defined(VULKAN)
 	/// Opaque handle used by shaders for doing read/write operations on the texture
@@ -852,6 +899,24 @@ typedef struct Texture
 	struct VmaAllocation_T* pVkAllocation;
 	/// Flags specifying which aspects (COLOR,DEPTH,STENCIL) are included in the pVkImageView
 	VkImageAspectFlags mVkAspectMask;
+	/// Sparse queue binding information
+	VkBindSparseInfo mBindSparseInfo;	
+	/// Sparse image memory bindings of all memory-backed virtual tables
+	void* pSparseImageMemoryBinds;
+	/// Sparse ?aque memory bindings for the mip tail (if present)	
+	void* pOpaqueMemoryBinds;
+	/// First mip level in mip tail
+	uint32_t mMipTailStart;
+	/// Lstly filled mip level in mip tail						
+	uint32_t mLastFilledMip;
+	/// Memory type for Sparse texture's memory
+	uint32_t mSparseMemoryTypeIndex;
+	/// Sparse image memory bind info 
+	VkSparseImageMemoryBindInfo mImageMemoryBindInfo;
+	/// Sparse image opaque memory bind info (mip tail)				
+	VkSparseImageOpaqueMemoryBindInfo mOpaqueMemoryBindInfo;
+	/// First mip level in mip tail			
+	uint32_t mipTailStart;	
 #endif
 #if defined(METAL)
 	/// Contains resource allocation info such as parent heap, offset in heap
@@ -868,8 +933,29 @@ typedef struct Texture
 	ID3D11ShaderResourceView*   pDxSRVDescriptor;
 	ID3D11UnorderedAccessView** pDxUAVDescriptors;
 #endif
+	/// Virtual Texture members
+	/// Contains all virtual pages of the texture						
+	void* pPages;
+	/// Visibility data
+	Buffer* mVisibility;
+	/// PrevVisibility data
+	Buffer* mPrevVisibility;
+	/// Alive Page's Index
+	Buffer* mAlivePage;
+	/// The count of Alive pages
+	Buffer* mAlivePageCount;
+	/// Page's Index which should be removed
+	Buffer* mRemovePage;
+	/// the count of pages which should be removed
+	Buffer* mRemovePageCount;
+	/// Original Pixel image data
+	void* mVirtualImageData;
+	/// Sparse Virtual Texture Width
+	uint64_t mSparseVirtualTexturePageWidth;
+	/// Sparse Virtual Texture Height
+	uint64_t mSparseVirtualTexturePageHeight;
 	/// Texture creation info
-	TextureDesc mDesc;    //88
+	TextureDesc mDesc;
 	/// Size of the texture (in bytes)
 	uint64_t mTextureSize;
 	/// Current state of the texture
@@ -877,7 +963,7 @@ typedef struct Texture
 	/// State of the texture before mCurrentState (used for state tracking during a split barrier)
 	ResourceState mPreviousState;
 	/// This value will be false if the underlying resource is not owned by the texture (swapchain textures,...)
-	bool mOwnsImage;
+	bool mOwnsImage;	
 } Texture;
 
 typedef struct RenderTargetDesc

@@ -57,6 +57,7 @@ private:
 	void Destroy();
 
 	friend class ResourceLoader;
+	friend class AssetPipeline;
 	friend bool convertAndSaveImage(const Image& image, bool (Image::*saverFunction)(const Path*), const Path* filePath);
 	friend Image* conf_placement_new<Image>(void* ptr);
 
@@ -130,12 +131,13 @@ public:
 
 	// Image Format Saving
 	bool                 iSaveDDS(const Path* filePath);
-    bool                 iSaveKTX(const Path* filePath);
+	bool                 iSaveKTX(const Path* filePath);
 	bool                 iSaveTGA(const Path* filePath);
 	bool                 iSaveBMP(const Path* filePath);
 	bool                 iSavePNG(const Path* filePath);
 	bool                 iSaveHDR(const Path* filePath);
 	bool                 iSaveJPG(const Path* filePath);
+	bool                 iSaveSVT(const Path* filePath, uint pageSize = 128);
 	bool                 Save(const Path* filePath);
 
 protected:

@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="android_native_app_glue.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="android_native_app_glue.c" />
+    <ClCompile Include="..\..\..\src\28_Skinning\28_Skinning.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{1af7acb9-983a-4f1b-bfa8-15630ca82ffe}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\src\28_Skinning\Shaders\Vulkan\basic.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\28_Skinning\Shaders\Vulkan\basic.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\28_Skinning\Shaders\Vulkan\plane.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\28_Skinning\Shaders\Vulkan\plane.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\28_Skinning\Shaders\Vulkan\profile.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\28_Skinning\Shaders\Vulkan\profile.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\28_Skinning\Shaders\Vulkan\skinning.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\28_Skinning\Shaders\Vulkan\skinning.vert">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+</Project>

@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="android_native_app_glue.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="android_native_app_glue.c" />
+    <ClCompile Include="..\..\..\src\29_InverseKinematic\29_InverseKinematic.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{c9d35bd2-31a7-4923-85f7-ff9bf1a98b75}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\src\29_InverseKinematic\Shaders\Vulkan\basic.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\29_InverseKinematic\Shaders\Vulkan\basic.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\29_InverseKinematic\Shaders\Vulkan\plane.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\29_InverseKinematic\Shaders\Vulkan\plane.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\29_InverseKinematic\Shaders\Vulkan\profile.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\29_InverseKinematic\Shaders\Vulkan\profile.vert">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+</Project>

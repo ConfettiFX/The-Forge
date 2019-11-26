@@ -3298,6 +3298,84 @@ void removeBuffer(Renderer* pRenderer, Buffer* pBuffer)
 	SAFE_FREE(pBuffer);
 }
 
+// Allocate Vulkan memory for the virtual page
+bool allocateVirtualPage(Renderer* pRenderer, Texture* pTexture, VirtualTexturePage &virtualPage, uint32_t memoryTypeIndex)
+{
+	if (virtualPage.imageMemoryBind.memory != VK_NULL_HANDLE)
+	{
+		//already filled
+		return false;
+	};
+
+	BufferDesc desc = {};
+	desc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
+	desc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+	desc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+	desc.mFormat = pTexture->mDesc.mFormat;
+
+	desc.mFirstElement = 0;
+	desc.mElementCount = pTexture->mSparseVirtualTexturePageWidth * pTexture->mSparseVirtualTexturePageHeight;
+	desc.mStructStride = sizeof(uint32_t);
+	desc.mSize = desc.mElementCount * desc.mStructStride;
+	addBuffer(pRenderer, &desc, &virtualPage.pIntermediateBuffer);
+
+	virtualPage.imageMemoryBind = {};
+
+	VkMemoryAllocateInfo allocInfo = {};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = virtualPage.size;
+	allocInfo.memoryTypeIndex = memoryTypeIndex;
+
+	VkResult vk_res = (VkResult)vkAllocateMemory(pRenderer->pVkDevice, &allocInfo, nullptr, &virtualPage.imageMemoryBind.memory);
+	assert(vk_res == VK_SUCCESS);
+
+	VkImageSubresource subResource{};
+	subResource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	subResource.mipLevel = virtualPage.mipLevel;
+	subResource.arrayLayer = virtualPage.layer;
+
+	// Sparse image memory binding
+	virtualPage.imageMemoryBind.subresource = subResource;
+	virtualPage.imageMemoryBind.extent = virtualPage.extent;
+	virtualPage.imageMemoryBind.offset = virtualPage.offset;
+
+	return true;
+}
+
+// Release Vulkan memory allocated for this page
+void releaseVirtualPage(Renderer* pRenderer, VirtualTexturePage &virtualPage, bool removeMemoryBind)
+{
+	//TODO: This should be also removed
+	if (removeMemoryBind && virtualPage.imageMemoryBind.memory != VK_NULL_HANDLE)
+	{
+		vkFreeMemory(pRenderer->pVkDevice, virtualPage.imageMemoryBind.memory, nullptr);
+		virtualPage.imageMemoryBind.memory = VK_NULL_HANDLE;
+	}
+
+	if(virtualPage.pIntermediateBuffer)
+	{
+		removeBuffer(pRenderer, virtualPage.pIntermediateBuffer);
+		virtualPage.pIntermediateBuffer = NULL;
+	}
+}
+
+VirtualTexturePage* addPage(Renderer* pRenderer, Texture* pTexture, VkOffset3D offset, VkExtent3D extent, const VkDeviceSize size, const uint32_t mipLevel, uint32_t layer)
+{
+	eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pTexture->pPages;
+
+	VirtualTexturePage newPage;
+	newPage.offset = offset;
+	newPage.extent = extent;
+	newPage.size = size;
+	newPage.mipLevel = mipLevel;
+	newPage.layer = layer;
+	newPage.index = static_cast<uint32_t>(pPageTable->size());	
+
+	pPageTable->push_back(newPage);
+
+	return &pPageTable->back();
+}
+
 void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture)
 {
 	ASSERT(pRenderer);
@@ -3605,6 +3683,61 @@ void removeTexture(Renderer* pRenderer, Texture* pTexture)
 		}
 	}
 
+	eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pTexture->pPages;
+
+	if(pPageTable)
+	{
+		for (int i = 0; i < (int)pPageTable->size(); i++)
+		{
+			releaseVirtualPage(pRenderer, (*pPageTable)[i], true);
+		}
+
+		pPageTable->set_capacity(0);
+		SAFE_FREE(pTexture->pPages);
+	}
+
+	eastl::vector<VkSparseImageMemoryBind>* pImageMemory = (eastl::vector<VkSparseImageMemoryBind>*)pTexture->pSparseImageMemoryBinds;
+
+	if (pImageMemory)
+	{
+		pImageMemory->set_capacity(0);
+		SAFE_FREE(pTexture->pSparseImageMemoryBinds);
+	}
+
+	eastl::vector<VkSparseMemoryBind>* pOpaqueMemory = (eastl::vector<VkSparseMemoryBind>*)pTexture->pOpaqueMemoryBinds;
+
+	if(pOpaqueMemory)
+	{
+		for (int i = 0; i < (int)pOpaqueMemory->size(); i++)
+		{
+			vkFreeMemory(pRenderer->pVkDevice, (*pOpaqueMemory)[i].memory, nullptr);
+		}
+
+		pOpaqueMemory->set_capacity(0);
+		SAFE_FREE(pTexture->pOpaqueMemoryBinds);
+	}
+
+	if(pTexture->mVisibility)
+		removeBuffer(pRenderer, pTexture->mVisibility);
+
+	if (pTexture->mPrevVisibility)
+		removeBuffer(pRenderer, pTexture->mPrevVisibility);
+
+	if (pTexture->mAlivePage)
+		removeBuffer(pRenderer, pTexture->mAlivePage);
+
+	if (pTexture->mAlivePageCount)
+		removeBuffer(pRenderer, pTexture->mAlivePageCount);
+
+	if (pTexture->mRemovePage)
+		removeBuffer(pRenderer, pTexture->mRemovePage);
+
+	if (pTexture->mRemovePageCount)
+		removeBuffer(pRenderer, pTexture->mRemovePageCount);
+
+	if(pTexture->mVirtualImageData)
+		conf_free(pTexture->mVirtualImageData);
+
 	SAFE_FREE((wchar_t*)pTexture->mDesc.pDebugName);
 	SAFE_FREE(pTexture->pVkSRVStencilDescriptor);
 	SAFE_FREE(pTexture->pVkUAVDescriptors);
@@ -3784,7 +3917,7 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** pp_samp
 	add_info.compareEnable = (gVkComparisonFuncTranslator[pDesc->mCompareFunc] != VK_COMPARE_OP_NEVER) ? VK_TRUE : VK_FALSE;
 	add_info.compareOp = gVkComparisonFuncTranslator[pDesc->mCompareFunc];
 	add_info.minLod = 0.0f;
-	add_info.maxLod = FLT_MAX;
+	add_info.maxLod = ((pDesc->mMipMapMode == MIPMAP_MODE_LINEAR) ? FLT_MAX : 0.0f);
 	add_info.borderColor = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
 	add_info.unnormalizedCoordinates = VK_FALSE;
 
@@ -6410,6 +6543,586 @@ void setTextureName(Renderer* pRenderer, Texture* pTexture, const char* pName)
 #endif
 	}
 }
+
+uint32_t getMemoryType(uint32_t typeBits, VkPhysicalDeviceMemoryProperties memoryProperties, VkMemoryPropertyFlags properties, VkBool32 *memTypeFound = nullptr)
+{
+	for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
+	{
+		if ((typeBits & 1) == 1)
+		{
+			if ((memoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+			{
+				if (memTypeFound)
+				{
+					*memTypeFound = true;
+				}
+				return i;
+			}
+		}
+		typeBits >>= 1;
+	}
+
+	if (memTypeFound)
+	{
+		*memTypeFound = false;
+		return 0;
+	}
+	else
+	{
+		LOGF(LogLevel::eERROR, "Could not find a matching memory type");
+		ASSERT(0);
+		return 0;
+	}
+}
+
+/************************************************************************/
+// Virtual Texture
+/************************************************************************/
+uvec3 alignedDivision(const VkExtent3D& extent, const VkExtent3D& granularity)
+{
+	uvec3 res;
+	res.setX( extent.width / granularity.width + ((extent.width  % granularity.width) ? 1u : 0u));
+	res.setY( extent.height / granularity.height + ((extent.height % granularity.height) ? 1u : 0u));
+	res.setZ( extent.depth / granularity.depth + ((extent.depth  % granularity.depth) ? 1u : 0u));
+	return res;
+}
+
+// Call before sparse binding to update memory bind list etc.
+void updateSparseBindInfo(Texture* pTexture, Queue* pQueue)
+{
+	eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pTexture->pPages;
+	eastl::vector<VkSparseImageMemoryBind>* pImageMemory = (eastl::vector<VkSparseImageMemoryBind>*)pTexture->pSparseImageMemoryBinds;
+	eastl::vector<VkSparseMemoryBind>* pOpaqueMemoryBinds = (eastl::vector<VkSparseMemoryBind>*)pTexture->pOpaqueMemoryBinds;
+
+	// Update list of memory-backed sparse image memory binds
+	pImageMemory->resize(pPageTable->size());
+	uint32_t index = 0;
+	for (int i = 0; i < (int)pPageTable->size(); i++)
+	{
+		(*pImageMemory)[index] = (*pPageTable)[i].imageMemoryBind;
+		index++;
+	}
+	// Update sparse bind info
+	pTexture->mBindSparseInfo = {};
+	pTexture->mBindSparseInfo.sType = VK_STRUCTURE_TYPE_BIND_SPARSE_INFO;
+	
+	// Image memory binds
+	pTexture->mImageMemoryBindInfo = {};
+	pTexture->mImageMemoryBindInfo.image = pTexture->pVkImage;
+	pTexture->mImageMemoryBindInfo.bindCount = static_cast<uint32_t>(pImageMemory->size());
+	pTexture->mImageMemoryBindInfo.pBinds = pImageMemory->data();
+	pTexture->mBindSparseInfo.imageBindCount = (pTexture->mImageMemoryBindInfo.bindCount > 0) ? 1 : 0;
+	pTexture->mBindSparseInfo.pImageBinds = &pTexture->mImageMemoryBindInfo;
+
+	// Opaque image memory binds (mip tail)
+	pTexture->mOpaqueMemoryBindInfo.image = pTexture->pVkImage;
+	pTexture->mOpaqueMemoryBindInfo.bindCount = static_cast<uint32_t>(pOpaqueMemoryBinds->size());
+	pTexture->mOpaqueMemoryBindInfo.pBinds = pOpaqueMemoryBinds->data();
+	pTexture->mBindSparseInfo.imageOpaqueBindCount = (pTexture->mOpaqueMemoryBindInfo.bindCount > 0) ? 1 : 0;
+	pTexture->mBindSparseInfo.pImageOpaqueBinds = &pTexture->mOpaqueMemoryBindInfo;
+}
+
+void releasePage(Cmd* pCmd, Renderer* pRenderer, Texture* pTexture)
+{
+	vkDeviceWaitIdle(pRenderer->pVkDevice);
+
+	eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pTexture->pPages;
+	eastl::vector<VkSparseImageMemoryBind>* pImageMemory = (eastl::vector<VkSparseImageMemoryBind>*)pTexture->pSparseImageMemoryBinds;
+	eastl::vector<VkSparseMemoryBind>* pOpaqueMemoryBinds = (eastl::vector<VkSparseMemoryBind>*)pTexture->pOpaqueMemoryBinds;
+
+	uint removePageCount;
+	memcpy(&removePageCount, pTexture->mRemovePageCount->pCpuMappedAddress, sizeof(uint));
+
+	if (removePageCount == 0)
+		return;
+
+	eastl::vector<uint32_t> RemovePageTable;
+	RemovePageTable.resize(removePageCount);	
+
+	memcpy(RemovePageTable.data(), pTexture->mRemovePage->pCpuMappedAddress, sizeof(uint));
+
+	for (int i = 0; i < (int)removePageCount; ++i)
+	{		
+		uint32_t RemoveIndex = RemovePageTable[i];
+		releaseVirtualPage(pRenderer, (*pPageTable)[RemoveIndex], false);
+	}
+}
+
+// Fill a complete mip level
+// Need to get visibility info first then fill them
+void fillVirtualTexture(Cmd* pCmd, Renderer* pRenderer, Texture* pTexture, Fence* pFence)
+{
+	TextureBarrier barriers[] = {
+					{ pTexture, RESOURCE_STATE_COPY_DEST }
+	};
+	cmdResourceBarrier(pCmd, 0, NULL, 1, barriers);
+
+	eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pTexture->pPages;
+	eastl::vector<VkSparseImageMemoryBind>* pImageMemory = (eastl::vector<VkSparseImageMemoryBind>*)pTexture->pSparseImageMemoryBinds;
+	eastl::vector<VkSparseMemoryBind>* pOpaqueMemoryBinds = (eastl::vector<VkSparseMemoryBind>*)pTexture->pOpaqueMemoryBinds;
+
+	pImageMemory->set_capacity(0);
+
+	uint alivePageCount;
+	memcpy(&alivePageCount, pTexture->mAlivePageCount->pCpuMappedAddress, sizeof(uint));
+
+	eastl::vector<uint> VisibilityData;
+	VisibilityData.resize(alivePageCount);
+	memcpy(VisibilityData.data(), pTexture->mAlivePage->pCpuMappedAddress, VisibilityData.size() * sizeof(uint));
+
+	for (int i = 0; i < (int)VisibilityData.size(); ++i)
+	{
+		uint pageIndex = VisibilityData[i];
+		VirtualTexturePage* pPage = &(*pPageTable)[pageIndex];
+
+		if(allocateVirtualPage(pRenderer, pTexture, *pPage, pTexture->mSparseMemoryTypeIndex))
+		{
+			void* pData = (void*)((unsigned char*)pTexture->mVirtualImageData + (pageIndex * pPage->size));
+
+			memcpy(pPage->pIntermediateBuffer->pCpuMappedAddress, pData, pPage->size);
+
+			//Copy image to VkImage	
+			VkBufferImageCopy region = {};
+			region.bufferOffset = 0;
+			region.bufferRowLength = 0;
+			region.bufferImageHeight = 0;
+			region.imageSubresource.mipLevel = pPage->mipLevel;
+			region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;		
+			region.imageSubresource.baseArrayLayer = 0;
+			region.imageSubresource.layerCount = 1;
+
+			region.imageOffset = { pPage->offset.x, pPage->offset.y, 0 };
+			region.imageExtent = { (uint32_t)pTexture->mSparseVirtualTexturePageWidth, (uint32_t)pTexture->mSparseVirtualTexturePageHeight, 1 };
+
+			vkCmdCopyBufferToImage(
+				pCmd->pVkCmdBuf,
+				pPage->pIntermediateBuffer->pVkBuffer,
+				pTexture->pVkImage,
+				VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+				1,
+				&region);
+
+			// Update list of memory-backed sparse image memory binds
+			pImageMemory->push_back(pPage->imageMemoryBind);
+		}		
+	}
+
+	// Update sparse bind info
+	if(pImageMemory->size() > 0)
+	{
+		pTexture->mBindSparseInfo = {};
+		pTexture->mBindSparseInfo.sType = VK_STRUCTURE_TYPE_BIND_SPARSE_INFO;
+
+		// Image memory binds
+		pTexture->mImageMemoryBindInfo = {};
+		pTexture->mImageMemoryBindInfo.image = pTexture->pVkImage;
+		pTexture->mImageMemoryBindInfo.bindCount = static_cast<uint32_t>(pImageMemory->size());
+		pTexture->mImageMemoryBindInfo.pBinds = pImageMemory->data();
+		pTexture->mBindSparseInfo.imageBindCount = (pTexture->mImageMemoryBindInfo.bindCount > 0) ? 1 : 0;
+		pTexture->mBindSparseInfo.pImageBinds = &pTexture->mImageMemoryBindInfo;
+
+		// Opaque image memory binds (mip tail)
+		pTexture->mOpaqueMemoryBindInfo.image = pTexture->pVkImage;
+		pTexture->mOpaqueMemoryBindInfo.bindCount = static_cast<uint32_t>(pOpaqueMemoryBinds->size());
+		pTexture->mOpaqueMemoryBindInfo.pBinds = pOpaqueMemoryBinds->data();
+		pTexture->mBindSparseInfo.imageOpaqueBindCount = (pTexture->mOpaqueMemoryBindInfo.bindCount > 0) ? 1 : 0;
+		pTexture->mBindSparseInfo.pImageOpaqueBinds = &pTexture->mOpaqueMemoryBindInfo;
+
+		VkResult  vk_res = vkQueueBindSparse(pCmd->pCmdPool->pQueue->pVkQueue, (uint32_t)1, &pTexture->mBindSparseInfo, VK_NULL_HANDLE);
+		ASSERT(VK_SUCCESS == vk_res);
+	}
+}
+
+// Fill specific mipLevel
+void fillVirtualTextureLevel(Cmd* pCmd, Renderer* pRenderer, Texture* pTexture, uint32_t mipLevel)
+{
+	vkDeviceWaitIdle(pRenderer->pVkDevice);
+
+	eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pTexture->pPages;
+
+	//Bind data
+	eastl::vector<VkSparseImageMemoryBind>* pImageMemory = (eastl::vector<VkSparseImageMemoryBind>*)pTexture->pSparseImageMemoryBinds;
+	eastl::vector<VkSparseMemoryBind>* pOpaqueMemoryBinds = (eastl::vector<VkSparseMemoryBind>*)pTexture->pOpaqueMemoryBinds;
+
+	for (int i = 0; i < (int)pPageTable->size(); i++)
+	{
+		VirtualTexturePage* pPage = &(*pPageTable)[i];
+		uint32_t pageIndex = pPage->index;
+		int globalOffset = 0;
+
+		if ((pPage->mipLevel == mipLevel) && (pPage->imageMemoryBind.memory == VK_NULL_HANDLE))
+		{
+			if (allocateVirtualPage(pRenderer, pTexture, *pPage, pTexture->mSparseMemoryTypeIndex))
+			{
+				void* pData = (void*)((unsigned char*)pTexture->mVirtualImageData + (pageIndex * (uint32_t)pPage->size));
+
+				//CPU to GPU
+				memcpy(pPage->pIntermediateBuffer->pCpuMappedAddress, pData, pPage->size);
+
+				//Copy image to VkImage	
+				VkBufferImageCopy region = {};
+				region.bufferOffset = 0;
+				region.bufferRowLength = 0;
+				region.bufferImageHeight = 0;
+
+				region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+				region.imageSubresource.mipLevel = mipLevel;
+				region.imageSubresource.baseArrayLayer = 0;
+				region.imageSubresource.layerCount = 1;
+
+				region.imageOffset = { pPage->offset.x, pPage->offset.y, 0 };
+				region.imageExtent = { (uint32_t)pTexture->mSparseVirtualTexturePageWidth, (uint32_t)pTexture->mSparseVirtualTexturePageHeight, 1 };
+
+				vkCmdCopyBufferToImage(
+					pCmd->pVkCmdBuf,
+					pPage->pIntermediateBuffer->pVkBuffer,
+					pTexture->pVkImage,
+					VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+					1,
+					&region);
+			}			
+			// Update list of memory-backed sparse image memory binds
+			pImageMemory->push_back(pPage->imageMemoryBind);
+		}
+	}
+
+	// Update sparse bind info
+	{
+		pTexture->mBindSparseInfo = {};
+		pTexture->mBindSparseInfo.sType = VK_STRUCTURE_TYPE_BIND_SPARSE_INFO;
+
+		// Image memory binds
+		pTexture->mImageMemoryBindInfo = {};
+		pTexture->mImageMemoryBindInfo.image = pTexture->pVkImage;
+		pTexture->mImageMemoryBindInfo.bindCount = static_cast<uint32_t>(pImageMemory->size());
+		pTexture->mImageMemoryBindInfo.pBinds = pImageMemory->data();
+		pTexture->mBindSparseInfo.imageBindCount = (pTexture->mImageMemoryBindInfo.bindCount > 0) ? 1 : 0;
+		pTexture->mBindSparseInfo.pImageBinds = &pTexture->mImageMemoryBindInfo;
+
+		// Opaque image memory binds (mip tail)
+		pTexture->mOpaqueMemoryBindInfo.image = pTexture->pVkImage;
+		pTexture->mOpaqueMemoryBindInfo.bindCount = static_cast<uint32_t>(pOpaqueMemoryBinds->size());
+		pTexture->mOpaqueMemoryBindInfo.pBinds = pOpaqueMemoryBinds->data();
+		pTexture->mBindSparseInfo.imageOpaqueBindCount = (pTexture->mOpaqueMemoryBindInfo.bindCount > 0) ? 1 : 0;
+		pTexture->mBindSparseInfo.pImageOpaqueBinds = &pTexture->mOpaqueMemoryBindInfo;
+
+		VkResult  vk_res = vkQueueBindSparse(pCmd->pCmdPool->pQueue->pVkQueue, (uint32_t)1, &pTexture->mBindSparseInfo, VK_NULL_HANDLE);
+		ASSERT(VK_SUCCESS == vk_res);
+	}
+}
+
+void addVirtualTexture(Renderer * pRenderer, const TextureDesc * pDesc, Texture ** ppTexture, void* pImageData)
+{
+	ASSERT(pRenderer);
+	Texture* pTexture = (Texture*)conf_calloc(1, sizeof(*pTexture));
+	ASSERT(pTexture);
+
+	uint32_t imageSize = 0;
+	uint32_t mipSize = pDesc->mWidth * pDesc->mHeight * pDesc->mDepth;
+	while (mipSize > 0)
+	{
+		imageSize += mipSize;
+		mipSize /= 4;
+	}
+
+	pTexture->mVirtualImageData = (char*)conf_malloc(imageSize * sizeof(uint32_t));
+	memcpy(pTexture->mVirtualImageData, pImageData, imageSize * sizeof(uint32_t));
+
+	// Create command buffer to transition resources to the correct state
+	Queue*   graphicsQueue = NULL;
+	CmdPool* cmdPool = NULL;
+	Cmd*     cmd = NULL;
+
+	QueueDesc queueDesc = {};
+	queueDesc.mType = CMD_POOL_DIRECT;
+	addQueue(pRenderer, &queueDesc, &graphicsQueue);
+
+	addCmdPool(pRenderer, graphicsQueue, false, &cmdPool);
+	addCmd(cmdPool, false, &cmd);
+
+	// Transition resources
+	beginCmd(cmd);
+
+	VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
+	pTexture->mDesc = *pDesc;
+	pTexture->mOwnsImage = true;
+
+	VkImageCreateInfo add_info = {};
+	add_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	add_info.flags = VK_IMAGE_CREATE_SPARSE_BINDING_BIT | VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT;
+	add_info.imageType = VK_IMAGE_TYPE_2D;
+	add_info.format = format;
+	add_info.extent.width = pDesc->mWidth;
+	add_info.extent.height = pDesc->mHeight;
+	add_info.extent.depth = pDesc->mDepth;
+	add_info.mipLevels = pDesc->mMipLevels;
+	add_info.arrayLayers = 1;
+	add_info.samples = VK_SAMPLE_COUNT_1_BIT;
+	add_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+	add_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	add_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	add_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;	
+
+	VkResult vk_res = (VkResult)vkCreateImage(pRenderer->pVkDevice, &add_info, nullptr, &pTexture->pVkImage);	
+	assert(vk_res == VK_SUCCESS);
+
+	// Get memory requirements
+	VkMemoryRequirements sparseImageMemoryReqs;
+	// Sparse image memory requirement counts
+	vkGetImageMemoryRequirements(pRenderer->pVkDevice, pTexture->pVkImage, &sparseImageMemoryReqs);
+
+	// Check requested image size against hardware sparse limit
+	if (sparseImageMemoryReqs.size > pRenderer->mVkGpuProperties[0].properties.limits.sparseAddressSpaceSize)
+	{
+		LOGF(LogLevel::eERROR, "Requested sparse image size exceeds supportes sparse address space size!");
+		return;
+	}
+
+	// Get sparse memory requirements
+	// Count
+	uint32_t sparseMemoryReqsCount = 32;
+	eastl::vector<VkSparseImageMemoryRequirements> sparseMemoryReqs(sparseMemoryReqsCount);
+	vkGetImageSparseMemoryRequirements(pRenderer->pVkDevice, pTexture->pVkImage, &sparseMemoryReqsCount, sparseMemoryReqs.data());
+	
+	if (sparseMemoryReqsCount == 0)
+	{
+		LOGF(LogLevel::eERROR, "No memory requirements for the sparse image!");
+		return;
+	}
+	sparseMemoryReqs.resize(sparseMemoryReqsCount);
+
+	// Get actual requirements
+	vkGetImageSparseMemoryRequirements(pRenderer->pVkDevice, pTexture->pVkImage, &sparseMemoryReqsCount, sparseMemoryReqs.data());
+
+	pTexture->mSparseVirtualTexturePageWidth = sparseMemoryReqs[0].formatProperties.imageGranularity.width;
+	pTexture->mSparseVirtualTexturePageHeight = sparseMemoryReqs[0].formatProperties.imageGranularity.height;
+
+	LOGF(LogLevel::eINFO, "Sparse image memory requirements: %d", sparseMemoryReqsCount);
+
+	for (int i = 0; i< (int)sparseMemoryReqs.size(); ++i)
+	{
+		VkSparseImageMemoryRequirements reqs = sparseMemoryReqs[i];
+		//todo:multiple reqs
+		pTexture->mMipTailStart = reqs.imageMipTailFirstLod;
+	}
+
+	pTexture->mLastFilledMip = pTexture->mMipTailStart - 1;
+
+	// Get sparse image requirements for the color aspect
+	VkSparseImageMemoryRequirements sparseMemoryReq;
+	bool colorAspectFound = false;
+	for (int i = 0; i < (int)sparseMemoryReqs.size(); ++i)
+	{
+		VkSparseImageMemoryRequirements reqs = sparseMemoryReqs[i];
+
+		if (reqs.formatProperties.aspectMask & VK_IMAGE_ASPECT_COLOR_BIT)
+		{
+			sparseMemoryReq = reqs;
+			colorAspectFound = true;
+			break;
+		}
+	}
+	if (!colorAspectFound)
+	{
+		LOGF(LogLevel::eERROR, "Could not find sparse image memory requirements for color aspect bit!");
+		return;
+	}
+
+	// todo:
+	// Calculate number of required sparse memory bindings by alignment
+	assert((sparseImageMemoryReqs.size % sparseImageMemoryReqs.alignment) == 0);
+	pTexture->mSparseMemoryTypeIndex = getMemoryType(sparseImageMemoryReqs.memoryTypeBits, pRenderer->mVkGpuMemoryProperties[0], VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+	// Get sparse bindings
+	uint32_t sparseBindsCount = static_cast<uint32_t>(sparseImageMemoryReqs.size / sparseImageMemoryReqs.alignment);
+	eastl::vector<VkSparseMemoryBind>	sparseMemoryBinds(sparseBindsCount);
+
+	// Check if the format has a single mip tail for all layers or one mip tail for each layer
+	// The mip tail contains all mip levels > sparseMemoryReq.imageMipTailFirstLod
+	bool singleMipTail = sparseMemoryReq.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT;
+
+	pTexture->pPages = (eastl::vector<VirtualTexturePage>*)conf_calloc(1, sizeof(eastl::vector<VirtualTexturePage>));
+	pTexture->pSparseImageMemoryBinds = (eastl::vector<VkSparseImageMemoryBind>*)conf_calloc(1, sizeof(eastl::vector<VkSparseImageMemoryBind>));
+	pTexture->pOpaqueMemoryBinds = (eastl::vector<VkSparseMemoryBind>*)conf_calloc(1, sizeof(eastl::vector<VkSparseMemoryBind>));
+
+	eastl::vector<VkSparseMemoryBind>* pOpaqueMemoryBinds = (eastl::vector<VkSparseMemoryBind>*)pTexture->pOpaqueMemoryBinds;
+
+	// Sparse bindings for each mip level of all layers outside of the mip tail
+	for (uint32_t layer = 0; layer < 1; layer++)
+	{
+		// sparseMemoryReq.imageMipTailFirstLod is the first mip level that's stored inside the mip tail
+		for (uint32_t mipLevel = 0; mipLevel < sparseMemoryReq.imageMipTailFirstLod; mipLevel++)
+		{
+			VkExtent3D extent;
+			extent.width	= max(add_info.extent.width >> mipLevel, 1u);
+			extent.height = max(add_info.extent.height >> mipLevel, 1u);
+			extent.depth	= max(add_info.extent.depth >> mipLevel, 1u);
+
+			VkImageSubresource subResource{};
+			subResource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			subResource.mipLevel = mipLevel;
+			subResource.arrayLayer = layer;
+
+			// Aligned sizes by image granularity
+			VkExtent3D imageGranularity = sparseMemoryReq.formatProperties.imageGranularity;
+			uvec3 sparseBindCounts = alignedDivision(extent, imageGranularity);
+			uvec3 lastBlockExtent;
+			lastBlockExtent.setX((extent.width % imageGranularity.width) ? extent.width % imageGranularity.width : imageGranularity.width);
+			lastBlockExtent.setY((extent.height % imageGranularity.height) ? extent.height % imageGranularity.height : imageGranularity.height);
+			lastBlockExtent.setZ((extent.depth % imageGranularity.depth) ? extent.depth % imageGranularity.depth : imageGranularity.depth);
+
+			// Alllocate memory for some blocks
+			uint32_t index = 0;
+			for (uint32_t z = 0; z < sparseBindCounts.getZ(); z++)
+			{
+				for (uint32_t y = 0; y < sparseBindCounts.getY(); y++)
+				{
+					for (uint32_t x = 0; x < sparseBindCounts.getX(); x++)
+					{
+						// Offset 
+						VkOffset3D offset;
+						offset.x = x * imageGranularity.width;
+						offset.y = y * imageGranularity.height;
+						offset.z = z * imageGranularity.depth;
+						// Size of the page
+						VkExtent3D extent;
+						extent.width = (x == sparseBindCounts.getX() - 1) ? lastBlockExtent.getX() : imageGranularity.width;
+						extent.height = (y == sparseBindCounts.getY() - 1) ? lastBlockExtent.getY() : imageGranularity.height;
+						extent.depth = (z == sparseBindCounts.getZ() - 1) ? lastBlockExtent.getZ() : imageGranularity.depth;
+
+						// Add new virtual page
+						VirtualTexturePage *newPage = addPage(pRenderer, pTexture, offset, extent, pTexture->mSparseVirtualTexturePageWidth * pTexture->mSparseVirtualTexturePageHeight * sizeof(uint), mipLevel, layer);
+						newPage->imageMemoryBind.subresource = subResource;
+
+						index++;
+					}
+				}
+			}
+		}
+
+		// Check if format has one mip tail per layer
+		if ((!singleMipTail) && (sparseMemoryReq.imageMipTailFirstLod < pTexture->mDesc.mMipLevels))
+		{
+			// Allocate memory for the mip tail
+			VkMemoryAllocateInfo allocInfo = {};
+			allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+			allocInfo.allocationSize = sparseMemoryReq.imageMipTailSize;
+			allocInfo.memoryTypeIndex = pTexture->mSparseMemoryTypeIndex;
+
+			VkDeviceMemory deviceMemory;
+			vk_res = vkAllocateMemory(pRenderer->pVkDevice, &allocInfo, nullptr, &deviceMemory);
+			assert(vk_res == VK_SUCCESS);
+
+			// (Opaque) sparse memory binding
+			VkSparseMemoryBind sparseMemoryBind{};
+			sparseMemoryBind.resourceOffset = sparseMemoryReq.imageMipTailOffset + layer * sparseMemoryReq.imageMipTailStride;
+			sparseMemoryBind.size = sparseMemoryReq.imageMipTailSize;
+			sparseMemoryBind.memory = deviceMemory;
+
+			pOpaqueMemoryBinds->push_back(sparseMemoryBind);
+		}
+	} // end layers and mips
+
+	LOGF(LogLevel::eINFO, "Virtual Texture info: Dim %d x %d Pages %d", pTexture->mDesc.mWidth, pTexture->mDesc.mHeight, (uint32_t)(((eastl::vector<VirtualTexturePage>*)pTexture->pPages)->size()));
+
+	// Check if format has one mip tail for all layers
+	if ((sparseMemoryReq.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT) && (sparseMemoryReq.imageMipTailFirstLod < pTexture->mDesc.mMipLevels))
+	{
+		// Allocate memory for the mip tail
+		VkMemoryAllocateInfo allocInfo = {};
+		allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		allocInfo.allocationSize = sparseMemoryReq.imageMipTailSize;
+		allocInfo.memoryTypeIndex = pTexture->mSparseMemoryTypeIndex;
+
+		VkDeviceMemory deviceMemory;
+		vk_res = vkAllocateMemory(pRenderer->pVkDevice, &allocInfo, nullptr, &deviceMemory);
+		assert(vk_res == VK_SUCCESS);
+
+		// (Opaque) sparse memory binding
+		VkSparseMemoryBind sparseMemoryBind{};
+		sparseMemoryBind.resourceOffset = sparseMemoryReq.imageMipTailOffset;
+		sparseMemoryBind.size = sparseMemoryReq.imageMipTailSize;
+		sparseMemoryBind.memory = deviceMemory;
+
+		pOpaqueMemoryBinds->push_back(sparseMemoryBind);
+	}
+
+	pTexture->mLastFilledMip = pTexture->mMipTailStart - 1;
+
+	/************************************************************************/
+	// Create image view
+	/************************************************************************/
+	VkImageViewCreateInfo view = {};
+	view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	view.image = pTexture->pVkImage;
+	view.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	view.format = format;
+	view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };
+	view.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	view.subresourceRange.baseMipLevel = 0;
+	view.subresourceRange.baseArrayLayer = 0;
+	view.subresourceRange.layerCount = 1;
+	view.subresourceRange.levelCount = pDesc->mMipLevels;
+	view.image = pTexture->pVkImage;
+	pTexture->mVkAspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+	vk_res = vkCreateImageView(pRenderer->pVkDevice, &view, NULL, &pTexture->pVkSRVDescriptor);
+	ASSERT(VK_SUCCESS == vk_res);
+
+	eastl::vector<TextureBarrier> textureBarriers;
+
+	textureBarriers.push_back(TextureBarrier{ pTexture, RESOURCE_STATE_COPY_DEST });
+	uint32_t textureBarrierCount = (uint32_t)textureBarriers.size();
+	cmdResourceBarrier(cmd, 0, NULL, textureBarrierCount, textureBarriers.data());
+
+	// Fill smallest (non-tail) mip map level
+	fillVirtualTextureLevel(cmd, pRenderer, pTexture, pTexture->mLastFilledMip);
+
+	endCmd(cmd);
+
+	queueSubmit(graphicsQueue, 1, &cmd, NULL, 0, NULL, 0, NULL);
+	waitQueueIdle(graphicsQueue);
+
+	// Delete command buffer
+	removeCmd(cmdPool, cmd);
+	removeCmdPool(pRenderer, cmdPool);
+	removeQueue(graphicsQueue);
+
+	*ppTexture = pTexture;
+}
+
+void updateVirtualTexture(Renderer* pRenderer, Queue* pQueue, Texture* pTexture)
+{
+	if (pTexture->mVisibility)
+	{
+		// Create command buffer to transition resources to the correct state		
+		CmdPool* cmdPool = NULL;
+		Cmd*     cmd = NULL;
+
+		addCmdPool(pRenderer, pQueue, false, &cmdPool);
+		addCmd(cmdPool, false, &cmd);
+
+		// Transition resources
+		beginCmd(cmd);
+
+		releasePage(cmd, pRenderer, pTexture);
+		fillVirtualTexture(cmd, pRenderer, pTexture, NULL);		
+
+		endCmd(cmd);
+
+		queueSubmit(pQueue, 1, &cmd, NULL, 0, NULL, 0, NULL);
+		waitQueueIdle(pQueue);
+
+		// Delete command buffer
+		removeCmd(cmdPool, cmd);
+		removeCmdPool(pRenderer, cmdPool);	
+
+		uint alivePageCount[4] = { 0, 0, 0, 0 };
+		memcpy(pTexture->mAlivePageCount->pCpuMappedAddress, alivePageCount, sizeof(uint) * 4);
+		memcpy(pTexture->mRemovePageCount->pCpuMappedAddress, alivePageCount, sizeof(uint) * 4);
+	}	
+}
+
 #endif
 #include "../../../Common_3/ThirdParty/OpenSource/volk/volk.c"
 #if defined(VK_USE_DISPATCH_TABLES)

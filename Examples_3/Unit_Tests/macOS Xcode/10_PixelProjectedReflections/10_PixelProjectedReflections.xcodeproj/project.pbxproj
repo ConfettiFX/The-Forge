@@ -85,6 +85,20 @@
 			remoteGlobalIDString = 5C172FC721414C490074EE71;
 			remoteInfo = "The-Forge_iOS";
 		};
+		B27F93EC238DA6FC004F9599 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B27F93E7238DA6FC004F9599 /* 12_ZipFileSystem.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = EA463C8B1EF81E8F005AC8C7;
+			remoteInfo = 12_ZipFileSystem;
+		};
+		B27F93EE238DA6FC004F9599 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B27F93E7238DA6FC004F9599 /* 12_ZipFileSystem.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 28A5AD43201F7276000E571F;
+			remoteInfo = 12_ZipFileSystem_iOS;
+		};
 		E958921823415BCA00B68D6A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 5C172FB921414BD90074EE71 /* The-Forge.xcodeproj */;
@@ -215,6 +229,7 @@
 		B277222220F7077B0074529C /* fillGbuffers.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = fillGbuffers.vert.metal; path = ../../../src/10_PixelProjectedReflections/Shaders/Metal/fillGbuffers.vert.metal; sourceTree = "<group>"; };
 		B277222320F7077B0074529C /* fillGbuffers.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = fillGbuffers.frag.metal; path = ../../../src/10_PixelProjectedReflections/Shaders/Metal/fillGbuffers.frag.metal; sourceTree = "<group>"; };
 		B277222C20F7CBE80074529C /* fillGbuffers_iOS.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = fillGbuffers_iOS.frag.metal; path = ../../../src/10_PixelProjectedReflections/Shaders/Metal/fillGbuffers_iOS.frag.metal; sourceTree = "<group>"; };
+		B27F93E7238DA6FC004F9599 /* 12_ZipFileSystem.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = 12_ZipFileSystem.xcodeproj; path = ../12_ZipFileSystem/12_ZipFileSystem.xcodeproj; sourceTree = "<group>"; };
 		B2C0C08B20F5847E00BD4BAA /* circlepad.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = circlepad.ktx; path = ../../../UnitTestResources/Textures/circlepad.ktx; sourceTree = "<group>"; };
 		B2C0C08D20F5849800BD4BAA /* LA_Helipad.ktx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = LA_Helipad.ktx; path = ../../../UnitTestResources/Textures/LA_Helipad.ktx; sourceTree = "<group>"; };
 		C95132ED2010E68A002E584B /* 10_PixelProjectedReflections_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 10_PixelProjectedReflections_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -378,6 +393,15 @@
 			path = 10_PixelProjectedReflections_iOS;
 			sourceTree = "<group>";
 		};
+		B27F93E8238DA6FC004F9599 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B27F93ED238DA6FC004F9599 /* 12_ZipFileSystem.app */,
+				B27F93EF238DA6FC004F9599 /* 12_ZipFileSystem_iOS.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		C95132EE2010E68A002E584B /* 10_PixelProjectedReflections_iOS */ = {
 			isa = PBXGroup;
 			children = (
@@ -393,6 +417,7 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
+				B27F93E7238DA6FC004F9599 /* 12_ZipFileSystem.xcodeproj */,
 				5B17816122A5C79E00991DCB /* profile.frag.metal */,
 				5B17816222A5C79E00991DCB /* profile.vert.metal */,
 				5CA80E1921F09F9300C99983 /* CommonShaders */,
@@ -508,6 +533,10 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
+					ProductGroup = B27F93E8238DA6FC004F9599 /* Products */;
+					ProjectRef = B27F93E7238DA6FC004F9599 /* 12_ZipFileSystem.xcodeproj */;
+				},
+				{
 					ProductGroup = 5C172FBA21414BD90074EE71 /* Products */;
 					ProjectRef = 5C172FB921414BD90074EE71 /* The-Forge.xcodeproj */;
 				},
@@ -533,6 +562,20 @@
 			fileType = archive.ar;
 			path = "libThe-Forge_iOS.a";
 			remoteRef = 5C17305921414EB40074EE71 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		B27F93ED238DA6FC004F9599 /* 12_ZipFileSystem.app */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.application;
+			path = 12_ZipFileSystem.app;
+			remoteRef = B27F93EC238DA6FC004F9599 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		B27F93EF238DA6FC004F9599 /* 12_ZipFileSystem_iOS.app */ = {
+			isa = PBXReferenceProxy;
+			fileType = wrapper.application;
+			path = 12_ZipFileSystem_iOS.app;
+			remoteRef = B27F93EE238DA6FC004F9599 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -647,7 +690,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				PRODUCT_BUNDLE_IDENTIFIER = "Conffeti.-1-Transformations-iOS";
+				PRODUCT_BUNDLE_IDENTIFIER = "Conffeti.-10-PixelProjectedReflections-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRIP_PNG_TEXT = NO;
@@ -687,7 +730,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				PRODUCT_BUNDLE_IDENTIFIER = "Conffeti.-1-Transformations-iOS";
+				PRODUCT_BUNDLE_IDENTIFIER = "Conffeti.-10-PixelProjectedReflections-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRIP_PNG_TEXT = NO;
@@ -834,7 +877,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MTL_LANGUAGE_REVISION = Metal20;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.01-Transformations";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.-10-PixelProjectedReflections";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				USER_HEADER_SEARCH_PATHS = (
@@ -872,7 +915,7 @@
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
 				MTL_LANGUAGE_REVISION = Metal20;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.01-Transformations";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.-10-PixelProjectedReflections";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
 				USER_HEADER_SEARCH_PATHS = (

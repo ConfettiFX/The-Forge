@@ -137,19 +137,24 @@ int AssetPipelineCmd(int argc, char** argv)
 		}
 	}
 
-	if (command == "processanimations")
+	if (command == "-pa")
 	{
 		if (!AssetPipeline::ProcessAnimations(inputDir, outputDir, &settings))
 			return 1;
 	}
-	else if (command == "processmeshes")
+	else if (command == "-pm")
 	{
 		if (!AssetPipeline::ProcessModels(inputDir, outputDir, &settings))
 			return 1;
 	}
-	else if (command == "processtextures")
+	else if (command == "-pt")
 	{
 		if (!AssetPipeline::ProcessTextures(inputDir, outputDir, &settings))
+			return 1;
+	}
+	else if (command == "-pvt")
+	{
+		if (!AssetPipeline::ProcessVirtualTextures(inputDir, outputDir, &settings))
 			return 1;
 	}
 	else

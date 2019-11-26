@@ -34,6 +34,8 @@ typedef uint32_t (*PFN_HOOK_ADD_DESCRIPTIOR_HEAP)(D3D12_DESCRIPTOR_HEAP_TYPE typ
 
 typedef void (*PFN_HOOK_POST_INIT_RENDERER)(Renderer* pRenderer);
 
+typedef void (*PFN_HOOK_POST_REMOVE_RENDERER)(Renderer* pRenderer);
+
 typedef void (*PFN_HOOK_ADD_BUFFER)(Buffer* pBuffer, D3D12_RESOURCE_DESC& desc);
 
 typedef void (*PFN_HOOK_ENABLE_DEBUG_LAYER)(Renderer* pRenderer);
@@ -60,6 +62,7 @@ typedef void (*PFN_HOOK_RESOURCE_FLAGS)(D3D12_RESOURCE_FLAGS& resourceFlags, Tex
 
 extern PFN_HOOK_ADD_DESCRIPTIOR_HEAP              fnHookAddDescriptorHeap;
 extern PFN_HOOK_POST_INIT_RENDERER                fnHookPostInitRenderer;
+extern PFN_HOOK_POST_REMOVE_RENDERER              fnHookPostRemoveRenderer;
 extern PFN_HOOK_ADD_BUFFER                        fnHookAddBuffer;
 extern PFN_HOOK_ENABLE_DEBUG_LAYER                fnHookEnableDebugLayer;
 extern PFN_HOOK_HEAP_DESC                         fnHookHeapDesc;

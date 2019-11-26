@@ -52,4 +52,5 @@ public:
 
 	static bool ProcessModels(const Path* meshDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings);
 	static bool ProcessTextures(const Path* textureDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings);
+	static bool ProcessVirtualTextures(const Path* textureDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings);
 };

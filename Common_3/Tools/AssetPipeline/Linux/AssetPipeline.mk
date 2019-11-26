@@ -2,18 +2,18 @@
 ## Auto Generated makefile by CodeLite IDE
 ## any manual changes will be erased      
 ##
-## Release
+## Debug
 ProjectName            :=AssetPipeline
-ConfigurationName      :=Release
-WorkspacePath          :=/home/confetti/Desktop/Ethan/The-Forge/Examples_3/Unit_Tests/UbuntuCodelite
-ProjectPath            :=/home/confetti/Desktop/Ethan/The-Forge/Common_3/Tools/AssetPipeline/Linux
-IntermediateDirectory  :=./Release
+ConfigurationName      :=Debug
+WorkspacePath          :=/home/confetti/Desktop/Gitlab/The-Forge/Examples_3/Unit_Tests/UbuntuCodelite
+ProjectPath            :=/home/confetti/Desktop/Gitlab/The-Forge/Common_3/Tools/AssetPipeline/Linux
+IntermediateDirectory  :=./Debug
 OutDir                 := $(IntermediateDirectory)
 CurrentFileName        :=
 CurrentFilePath        :=
 CurrentFileFullPath    :=
 User                   :=Confetti
-Date                   :=29/08/19
+Date                   :=25/11/19
 CodeLitePath           :=/home/confetti/.codelite
 LinkerName             :=/usr/bin/g++
 SharedObjectLinkerName :=/usr/bin/g++ -shared -fPIC
@@ -36,7 +36,7 @@ ObjectsFileList        :="AssetPipeline.txt"
 PCHCompileFlags        :=
 MakeDirCommand         :=mkdir -p
 LinkOptions            :=  
-IncludePath            :=  $(IncludeSwitch). $(IncludeSwitch). $(IncludeSwitch)../../../ThirdParty/OpenSource/assimp/4.1.0/include $(IncludeSwitch)../../../ThirdParty/OpenSource/ozz-animation/include 
+IncludePath            :=  $(IncludeSwitch). $(IncludeSwitch)../../../ThirdParty/OpenSource/assimp/4.1.0/include $(IncludeSwitch)../../../ThirdParty/OpenSource/ozz-animation/include 
 IncludePCH             := 
 RcIncludePath          := 
 Libs                   := 
@@ -50,8 +50,8 @@ LibPath                := $(LibraryPathSwitch).
 AR       := /usr/bin/ar rcu
 CXX      := /usr/bin/g++
 CC       := /usr/bin/gcc
-CXXFLAGS :=   $(Preprocessors)
-CFLAGS   :=   $(Preprocessors)
+CXXFLAGS :=  -g $(Preprocessors)
+CFLAGS   :=  -g $(Preprocessors)
 ASFLAGS  := 
 AS       := /usr/bin/as
 
@@ -77,15 +77,15 @@ $(OutputFile): $(Objects)
 	@echo "" > $(IntermediateDirectory)/.d
 	@echo $(Objects0)  > $(ObjectsFileList)
 	$(AR) $(ArchiveOutputSwitch)$(OutputFile) @$(ObjectsFileList) $(ArLibs)
-	@$(MakeDirCommand) "/home/confetti/Desktop/Ethan/The-Forge/Examples_3/Unit_Tests/UbuntuCodelite/.build-release"
-	@echo rebuilt > "/home/confetti/Desktop/Ethan/The-Forge/Examples_3/Unit_Tests/UbuntuCodelite/.build-release/AssetPipeline"
+	@$(MakeDirCommand) "/home/confetti/Desktop/Gitlab/The-Forge/Examples_3/Unit_Tests/UbuntuCodelite/.build-debug"
+	@echo rebuilt > "/home/confetti/Desktop/Gitlab/The-Forge/Examples_3/Unit_Tests/UbuntuCodelite/.build-debug/AssetPipeline"
 
 MakeIntermediateDirs:
-	@test -d ./Release || $(MakeDirCommand) ./Release
+	@test -d ./Debug || $(MakeDirCommand) ./Debug
 
 
-./Release:
-	@test -d ./Release || $(MakeDirCommand) ./Release
+./Debug:
+	@test -d ./Debug || $(MakeDirCommand) ./Debug
 
 PreBuild:
 
@@ -94,7 +94,7 @@ PreBuild:
 ## Objects
 ##
 $(IntermediateDirectory)/up_src_AssetLoader.cpp$(ObjectSuffix): ../src/AssetLoader.cpp $(IntermediateDirectory)/up_src_AssetLoader.cpp$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "/home/confetti/Desktop/Ethan/The-Forge/Common_3/Tools/AssetPipeline/src/AssetLoader.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/up_src_AssetLoader.cpp$(ObjectSuffix) $(IncludePath)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "/home/confetti/Desktop/Gitlab/The-Forge/Common_3/Tools/AssetPipeline/src/AssetLoader.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/up_src_AssetLoader.cpp$(ObjectSuffix) $(IncludePath)
 $(IntermediateDirectory)/up_src_AssetLoader.cpp$(DependSuffix): ../src/AssetLoader.cpp
 	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/up_src_AssetLoader.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/up_src_AssetLoader.cpp$(DependSuffix) -MM ../src/AssetLoader.cpp
 
@@ -102,7 +102,7 @@ $(IntermediateDirectory)/up_src_AssetLoader.cpp$(PreprocessSuffix): ../src/Asset
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/up_src_AssetLoader.cpp$(PreprocessSuffix) ../src/AssetLoader.cpp
 
 $(IntermediateDirectory)/up_src_AssetPipeline.cpp$(ObjectSuffix): ../src/AssetPipeline.cpp $(IntermediateDirectory)/up_src_AssetPipeline.cpp$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "/home/confetti/Desktop/Ethan/The-Forge/Common_3/Tools/AssetPipeline/src/AssetPipeline.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/up_src_AssetPipeline.cpp$(ObjectSuffix) $(IncludePath)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "/home/confetti/Desktop/Gitlab/The-Forge/Common_3/Tools/AssetPipeline/src/AssetPipeline.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/up_src_AssetPipeline.cpp$(ObjectSuffix) $(IncludePath)
 $(IntermediateDirectory)/up_src_AssetPipeline.cpp$(DependSuffix): ../src/AssetPipeline.cpp
 	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/up_src_AssetPipeline.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/up_src_AssetPipeline.cpp$(DependSuffix) -MM ../src/AssetPipeline.cpp
 
@@ -110,7 +110,7 @@ $(IntermediateDirectory)/up_src_AssetPipeline.cpp$(PreprocessSuffix): ../src/Ass
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/up_src_AssetPipeline.cpp$(PreprocessSuffix) ../src/AssetPipeline.cpp
 
 $(IntermediateDirectory)/up_src_gltfpack.cpp$(ObjectSuffix): ../src/gltfpack.cpp $(IntermediateDirectory)/up_src_gltfpack.cpp$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "/home/confetti/Desktop/Ethan/The-Forge/Common_3/Tools/AssetPipeline/src/gltfpack.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/up_src_gltfpack.cpp$(ObjectSuffix) $(IncludePath)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "/home/confetti/Desktop/Gitlab/The-Forge/Common_3/Tools/AssetPipeline/src/gltfpack.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/up_src_gltfpack.cpp$(ObjectSuffix) $(IncludePath)
 $(IntermediateDirectory)/up_src_gltfpack.cpp$(DependSuffix): ../src/gltfpack.cpp
 	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/up_src_gltfpack.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/up_src_gltfpack.cpp$(DependSuffix) -MM ../src/gltfpack.cpp
 
@@ -118,7 +118,7 @@ $(IntermediateDirectory)/up_src_gltfpack.cpp$(PreprocessSuffix): ../src/gltfpack
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/up_src_gltfpack.cpp$(PreprocessSuffix) ../src/gltfpack.cpp
 
 $(IntermediateDirectory)/up_src_TFXImporter.cpp$(ObjectSuffix): ../src/TFXImporter.cpp $(IntermediateDirectory)/up_src_TFXImporter.cpp$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "/home/confetti/Desktop/Ethan/The-Forge/Common_3/Tools/AssetPipeline/src/TFXImporter.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/up_src_TFXImporter.cpp$(ObjectSuffix) $(IncludePath)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "/home/confetti/Desktop/Gitlab/The-Forge/Common_3/Tools/AssetPipeline/src/TFXImporter.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/up_src_TFXImporter.cpp$(ObjectSuffix) $(IncludePath)
 $(IntermediateDirectory)/up_src_TFXImporter.cpp$(DependSuffix): ../src/TFXImporter.cpp
 	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/up_src_TFXImporter.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/up_src_TFXImporter.cpp$(DependSuffix) -MM ../src/TFXImporter.cpp
 
@@ -126,7 +126,7 @@ $(IntermediateDirectory)/up_src_TFXImporter.cpp$(PreprocessSuffix): ../src/TFXIm
 	$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) $(PreprocessOnlySwitch) $(OutputSwitch) $(IntermediateDirectory)/up_src_TFXImporter.cpp$(PreprocessSuffix) ../src/TFXImporter.cpp
 
 $(IntermediateDirectory)/up_src_TressFXAsset.cpp$(ObjectSuffix): ../src/TressFXAsset.cpp $(IntermediateDirectory)/up_src_TressFXAsset.cpp$(DependSuffix)
-	$(CXX) $(IncludePCH) $(SourceSwitch) "/home/confetti/Desktop/Ethan/The-Forge/Common_3/Tools/AssetPipeline/src/TressFXAsset.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/up_src_TressFXAsset.cpp$(ObjectSuffix) $(IncludePath)
+	$(CXX) $(IncludePCH) $(SourceSwitch) "/home/confetti/Desktop/Gitlab/The-Forge/Common_3/Tools/AssetPipeline/src/TressFXAsset.cpp" $(CXXFLAGS) $(ObjectSwitch)$(IntermediateDirectory)/up_src_TressFXAsset.cpp$(ObjectSuffix) $(IncludePath)
 $(IntermediateDirectory)/up_src_TressFXAsset.cpp$(DependSuffix): ../src/TressFXAsset.cpp
 	@$(CXX) $(CXXFLAGS) $(IncludePCH) $(IncludePath) -MG -MP -MT$(IntermediateDirectory)/up_src_TressFXAsset.cpp$(ObjectSuffix) -MF$(IntermediateDirectory)/up_src_TressFXAsset.cpp$(DependSuffix) -MM ../src/TressFXAsset.cpp
 
@@ -139,6 +139,6 @@ $(IntermediateDirectory)/up_src_TressFXAsset.cpp$(PreprocessSuffix): ../src/Tres
 ## Clean
 ##
 clean:
-	$(RM) -r ./Release/
+	$(RM) -r ./Debug/
 
 

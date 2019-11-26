@@ -1,0 +1,94 @@
+/*
+* Copyright (c) 2018-2019 Confetti Interactive Inc.
+*
+* This file is part of The-Forge
+* (see https://github.com/ConfettiFX/The-Forge).
+*
+* Licensed to the Apache Software Foundation (ASF) under one
+* or more contributor license agreements.  See the NOTICE file
+* distributed with this work for additional information
+* regarding copyright ownership.  The ASF licenses this file
+* to you under the Apache License, Version 2.0 (the
+* "License"); you may not use this file except in compliance
+* with the License.  You may obtain a copy of the License at
+*
+*   http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+* KIND, either express or implied.  See the License for the
+* specific language governing permissions and limitations
+* under the License.
+*/
+
+#version 450 core
+
+#define THREAD_SIZE_X 1024
+#define THREAD_SIZE_Y 1
+#define THREAD_SIZE_Z 1
+
+layout(local_size_x = THREAD_SIZE_X, local_size_y = THREAD_SIZE_Y, local_size_z = THREAD_SIZE_Z) in;
+
+layout(set = 0, binding = 0) uniform PageCountInfo
+{
+  uint MaxPageCount;
+  uint PageOffset;
+  uint Pad1;
+  uint Pad2;
+};
+
+layout(std430, set = 1, binding = 0) restrict buffer PrevPageTableBuffer {
+ 	 uint PrevPage[];
+};
+
+layout(std430, set = 1, binding = 1) restrict buffer PageTableBuffer {
+ 	 uint Page[];
+};
+
+layout(std430, set = 1, binding = 2) restrict buffer AlivePageTableBuffer {
+ 	 uint AlivePage[];
+};
+
+layout(std430, set = 1, binding = 4) restrict buffer AlivePageCountBuffer {
+ 	 uint AlivePageCount[];
+};
+
+layout(std430, set = 1, binding = 5) restrict buffer RemovePageTableBuffer {
+ 	 uint RemovePage[];
+};
+
+layout(std430, set = 1, binding = 7) restrict buffer RemovePageCountBuffer {
+ 	 uint RemovePageCount[];
+};
+
+void main(void)
+{
+	// Fill mips of Page table
+	uint Index = gl_GlobalInvocationID.x;
+
+  if(Index >= MaxPageCount)
+    return;
+
+  Index += PageOffset;
+   
+  if (Page[Index] == 1)
+	{
+    uint currentTexureID = atomicAdd(AlivePageCount[0], 1);
+
+    // save the index of alive page
+    AlivePage[currentTexureID] = Index;    
+  }
+  else if(PrevPage[Index] == 1)
+  {
+    uint currentTexureID = atomicAdd(RemovePageCount[0], 1);
+
+    // remove the index of alive page
+    RemovePage[currentTexureID] = Index;
+  }
+
+  PrevPage[Index] = Page[Index];
+
+  // clear page
+  Page[Index] = 0;
+}

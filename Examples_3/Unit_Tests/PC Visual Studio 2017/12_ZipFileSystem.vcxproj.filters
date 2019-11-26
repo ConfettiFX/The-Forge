@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{e66b2d0e-f9a0-461b-8356-b6d904bd686c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\D3D11">
+      <UniqueIdentifier>{1c1e26f0-2800-4c4c-a4b9-0b055e77dc3a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\D3D12">
+      <UniqueIdentifier>{0386c22c-6750-4ebe-bf09-fb1f2e5df5c1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Vulkan">
+      <UniqueIdentifier>{b3286b4d-b567-4e7d-8305-9dacbe25e416}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Metal">
+      <UniqueIdentifier>{645c4df9-0b05-4054-ae23-e4c89a5aff72}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\27_File_System\Shaders\D3D11\basic.frag">
+      <Filter>Shaders\D3D11</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\D3D11\basic.vert">
+      <Filter>Shaders\D3D11</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\D3D11\profile.frag">
+      <Filter>Shaders\D3D11</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\D3D11\profile.vert">
+      <Filter>Shaders\D3D11</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\D3D11\skybox.frag">
+      <Filter>Shaders\D3D11</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\D3D11\skybox.vert">
+      <Filter>Shaders\D3D11</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\Metal\basic.frag.metal">
+      <Filter>Shaders\Metal</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\Metal\basic.vert.metal">
+      <Filter>Shaders\Metal</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\Metal\profile.frag.metal">
+      <Filter>Shaders\Metal</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\Metal\profile.vert.metal">
+      <Filter>Shaders\Metal</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\Metal\skybox.frag.metal">
+      <Filter>Shaders\Metal</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\Metal\skybox.vert.metal">
+      <Filter>Shaders\Metal</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\Vulkan\basic.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\Vulkan\basic.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\Vulkan\profile.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\Vulkan\profile.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\Vulkan\skybox.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\Vulkan\skybox.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\Vulkan\zipTexture.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\Vulkan\zipTexture.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\D3D12\basic.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\D3D12\basic.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\D3D12\profile.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\D3D12\profile.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\D3D12\skybox.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\D3D12\skybox.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\D3D12\zipTexture.frag">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+    <None Include="..\src\27_File_System\Shaders\D3D12\zipTexture.vert">
+      <Filter>Shaders\D3D12</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\12_ZipFileSystem\12_ZipFileSystem.cpp" />
+  </ItemGroup>
+</Project>

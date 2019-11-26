@@ -15,18 +15,18 @@
   <Project Name="10_PixelProjectedReflections" Path="10_PixelProjectedReflections/10_PixelProjectedReflections.project" Active="No"/>
   <Project Name="13_UserInterface" Path="13_UserInterface/13_UserInterface.project" Active="No"/>
   <Project Name="14_WaveIntrinsics" Path="14_WaveIntrinsics/14_WaveIntrinsics.project" Active="No"/>
-  <Project Name="15_Transparency" Path="15_Transparency/15_Transparency.project" Active="Yes"/>
+  <Project Name="15_Transparency" Path="15_Transparency/15_Transparency.project" Active="No"/>
   <Project Name="16_Raytracing" Path="16_Raytracing/16_Raytracing.project" Active="No"/>
   <Project Name="16a_SphereTracing" Path="16a_SphereTracing/16a_SphereTracing.project" Active="No"/>
   <Project Name="17_EntityComponentSystem" Path="17_EntityComponentSystem/17_EntityComponentSystem.project" Active="No"/>
-  <Project Name="18_Playback" Path="18_Playback/18_Playback.project" Active="No"/>
-  <Project Name="19_Blending" Path="19_Blending/19_Blending.project" Active="No"/>
-  <Project Name="20_JointAttachment" Path="20_JointAttachment/20_JointAttachment.project" Active="No"/>
-  <Project Name="21_PartialBlending" Path="21_PartialBlending/21_PartialBlending.project" Active="No"/>
-  <Project Name="22_AdditiveBlending" Path="22_AdditiveBlending/22_AdditiveBlending.project" Active="No"/>
-  <Project Name="23_BakedPhysics" Path="23_BakedPhysics/23_BakedPhysics.project" Active="No"/>
-  <Project Name="24_MultiThread" Path="24_MultiThread/24_MultiThread.project" Active="No"/>
-  <Project Name="25_Skinning" Path="25_Skinning/25_Skinning.project" Active="No"/>
+  <Project Name="21_Playback" Path="21_Playback/21_Playback.project" Active="No"/>
+  <Project Name="22_Blending" Path="22_Blending/22_Blending.project" Active="No"/>
+  <Project Name="23_JointAttachment" Path="23_JointAttachment/23_JointAttachment.project" Active="No"/>
+  <Project Name="24_PartialBlending" Path="24_PartialBlending/24_PartialBlending.project" Active="No"/>
+  <Project Name="25_AdditiveBlending" Path="25_AdditiveBlending/25_AdditiveBlending.project" Active="No"/>
+  <Project Name="26_BakedPhysics" Path="26_BakedPhysics/26_BakedPhysics.project" Active="No"/>
+  <Project Name="27_MultiThread" Path="27_MultiThread/27_MultiThread.project" Active="No"/>
+  <Project Name="28_Skinning" Path="28_Skinning/28_Skinning.project" Active="No"/>
   <Project Name="zlib" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/contrib/zlib/zlib.project" Active="No"/>
   <Project Name="gainput" Path="../../../Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
   <Project Name="Assimp" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Assimp.project" Active="No"/>
@@ -35,14 +35,15 @@
   <Project Name="ozz_animation" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation.project" Active="No"/>
   <Project Name="ozz_animation_offline" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_animation_offline.project" Active="No"/>
   <Project Name="EASTL" Path="../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/EASTL.project" Active="No"/>
-  <Project Name="27_Audio" Path="27_Audio/27_Audio.project" Active="No"/>
+  <Project Name="31_Audio" Path="31_Audio/31_Audio.project" Active="No"/>
   <Project Name="08_GltfViewer" Path="08_GltfViewer/08_GltfViewer.project" Active="No"/>
   <Project Name="AssetPipeline" Path="../../../Common_3/Tools/AssetPipeline/Linux/AssetPipeline.project" Active="No"/>
   <Project Name="AssetPipelineCmd" Path="../../../Common_3/Tools/AssetPipeline/Linux/AssetPipelineCmd.project" Active="No"/>
   <Project Name="MeshOptimizer" Path="MeshOptimizer/MeshOptimizer.project" Active="No"/>
-  <Project Name="26_InverseKinematic" Path="26_InverseKinematic/26_InverseKinematic.project" Active="No"/>
+  <Project Name="29_InverseKinematic" Path="29_InverseKinematic/29_InverseKinematic.project" Active="No"/>
+  <Project Name="18_VirtualTexture" Path="18_VirtualTexture/18_VirtualTexture.project" Active="Yes"/>
   <BuildMatrix>
-    <WorkspaceConfiguration Name="Debug" Selected="yes">
+    <WorkspaceConfiguration Name="Debug" Selected="no">
       <Environment/>
       <Project Name="SpirVTools" ConfigName="Debug"/>
       <Project Name="LuaManager" ConfigName="Debug"/>
@@ -66,29 +67,29 @@
       <Project Name="16_Raytracing" ConfigName="Debug"/>
       <Project Name="16a_SphereTracing" ConfigName="Debug"/>
       <Project Name="17_EntityComponentSystem" ConfigName="Debug"/>
-      <Project Name="18_Playback" ConfigName="Debug"/>
-      <Project Name="19_Blending" ConfigName="Debug"/>
-      <Project Name="20_JointAttachment" ConfigName="Debug"/>
-      <Project Name="21_PartialBlending" ConfigName="Debug"/>
-      <Project Name="22_AdditiveBlending" ConfigName="Debug"/>
-      <Project Name="23_BakedPhysics" ConfigName="Debug"/>
-      <Project Name="24_MultiThread" ConfigName="Debug"/>
-      <Project Name="25_Skinning" ConfigName="Debug"/>
+      <Project Name="21_Playback" ConfigName="Debug"/>
+      <Project Name="22_Blending" ConfigName="Debug"/>
+      <Project Name="23_JointAttachment" ConfigName="Debug"/>
+      <Project Name="24_PartialBlending" ConfigName="Debug"/>
+      <Project Name="25_AdditiveBlending" ConfigName="Debug"/>
+      <Project Name="26_BakedPhysics" ConfigName="Debug"/>
+      <Project Name="27_MultiThread" ConfigName="Debug"/>
+      <Project Name="28_Skinning" ConfigName="Debug"/>
       <Project Name="assimp" ConfigName="NoConfig"/>
       <Project Name="assimp" ConfigName="NoConfig"/>
       <Project Name="ozz_base" ConfigName="Debug"/>
       <Project Name="ozz_animation" ConfigName="Debug"/>
       <Project Name="ozz_animation_offline" ConfigName="Debug"/>
       <Project Name="EASTL" ConfigName="Debug"/>
-      <Project Name="27_Audio" ConfigName="Debug"/>
-      <Project Name="27_Audio" ConfigName="Debug"/>
+      <Project Name="31_Audio" ConfigName="Debug"/>
       <Project Name="08_GltfViewer" ConfigName="Debug"/>
       <Project Name="AssetPipeline" ConfigName="Debug"/>
       <Project Name="AssetPipelineCmd" ConfigName="Debug"/>
       <Project Name="MeshOptimizer" ConfigName="Debug"/>
-      <Project Name="26_InverseKinematic" ConfigName="Debug"/>
+      <Project Name="29_InverseKinematic" ConfigName="Debug"/>
+      <Project Name="18_VirtualTexture" ConfigName="Debug"/>
     </WorkspaceConfiguration>
-    <WorkspaceConfiguration Name="Release" Selected="no">
+    <WorkspaceConfiguration Name="Release" Selected="yes">
       <Environment/>
       <Project Name="SpirVTools" ConfigName="Release"/>
       <Project Name="Renderer" ConfigName="Release"/>
@@ -100,16 +101,15 @@
       <Project Name="gainput" ConfigName="Release"/>
       <Project Name="EASTL" ConfigName="Release"/>
       <Project Name="assimp" ConfigName="NoConfig"/>
-      <Project Name="27_Audio" ConfigName="Release"/>
-      <Project Name="27_Audio" ConfigName="Release"/>
-      <Project Name="25_Skinning" ConfigName="Release"/>
-      <Project Name="24_MultiThread" ConfigName="Release"/>
-      <Project Name="23_BakedPhysics" ConfigName="Release"/>
-      <Project Name="22_AdditiveBlending" ConfigName="Release"/>
-      <Project Name="21_PartialBlending" ConfigName="Release"/>
-      <Project Name="20_JointAttachment" ConfigName="Release"/>
-      <Project Name="19_Blending" ConfigName="Release"/>
-      <Project Name="18_Playback" ConfigName="Release"/>
+      <Project Name="31_Audio" ConfigName="Release"/>
+      <Project Name="28_Skinning" ConfigName="Release"/>
+      <Project Name="27_MultiThread" ConfigName="Release"/>
+      <Project Name="26_BakedPhysics" ConfigName="Release"/>
+      <Project Name="25_AdditiveBlending" ConfigName="Release"/>
+      <Project Name="24_PartialBlending" ConfigName="Release"/>
+      <Project Name="23_JointAttachment" ConfigName="Release"/>
+      <Project Name="22_Blending" ConfigName="Release"/>
+      <Project Name="21_Playback" ConfigName="Release"/>
       <Project Name="17_EntityComponentSystem" ConfigName="Release"/>
       <Project Name="16a_SphereTracing" ConfigName="Release"/>
       <Project Name="16_Raytracing" ConfigName="Release"/>
@@ -130,7 +130,8 @@
       <Project Name="AssetPipeline" ConfigName="Release"/>
       <Project Name="AssetPipelineCmd" ConfigName="Release"/>
       <Project Name="MeshOptimizer" ConfigName="Release"/>
-      <Project Name="26_InverseKinematic" ConfigName="Release"/>
+      <Project Name="29_InverseKinematic" ConfigName="Release"/>
+      <Project Name="18_VirtualTexture" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>
