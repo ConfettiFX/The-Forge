@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -41,6 +41,7 @@ struct FileSystem
 {
 	public:
 	FileSystemKind mKind;
+	tfrg_atomicptr_t mRefCount;
 
 	FileSystem(FileSystemKind kind);
 
@@ -111,10 +112,11 @@ struct FileStream
 {
 	protected:
 	FileStreamType mType;
+	Path* pPath;
 
 	public:
-	inline FileStream(FileStreamType type): mType(type){};
-	virtual ~FileStream() {};
+	inline FileStream(FileStreamType type, const Path* path): mType(type), pPath(fsCopyPath(path)) {}
+	virtual ~FileStream() { fsFreePath(pPath); }
 
 	virtual size_t  Read(void* outputBuffer, size_t bufferSizeInBytes) = 0;
 	virtual size_t  Write(const void* sourceBuffer, size_t byteCount) = 0;
@@ -123,6 +125,7 @@ struct FileStream
 	virtual bool    Seek(SeekBaseOffset baseOffset, ssize_t seekOffset) = 0;
 	virtual ssize_t GetSeekPosition() const = 0;
 	virtual ssize_t GetFileSize() const = 0;
+    virtual void*   GetUnderlyingBuffer() const = 0;
 	virtual void    Flush() = 0;
 	virtual bool    IsAtEnd() const = 0;
 	virtual bool    Close() = 0;

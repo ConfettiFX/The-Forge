@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of TheForge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -31,6 +31,7 @@
 using namespace metal;
 
 #include "shader_defs.h"
+#include "packing.h"
 #include "shading.h"
 
 struct SceneVertexPos
@@ -39,15 +40,15 @@ struct SceneVertexPos
 };
 
 struct SceneVertexTexcoord {
-    packed_float2 texCoord;
+    packed_half2 texCoord;
 };
 
 struct SceneVertexNormal {
-    packed_float3 normal;
+    uint normal;
 };
 
 struct SceneVertexTangent {
-    packed_float3 tangent;
+    uint tangent;
 };
 
 struct VSOutput {
@@ -291,9 +292,9 @@ fragment float4 stageMain(VSOutput input                                        
 		// NORMAL INTERPOLATION
 		// Apply perspective division to normals
 		float3x3 normals = {
-			float3(fsData.vertexNormal[index0].normal) * one_over_w[0],
-			float3(fsData.vertexNormal[index1].normal) * one_over_w[1],
-			float3(fsData.vertexNormal[index2].normal) * one_over_w[2]
+			decodeDir(unpack_unorm2x16_to_float(fsData.vertexNormal[index0].normal)) * one_over_w[0],
+			decodeDir(unpack_unorm2x16_to_float(fsData.vertexNormal[index1].normal)) * one_over_w[1],
+			decodeDir(unpack_unorm2x16_to_float(fsData.vertexNormal[index2].normal)) * one_over_w[2]
 		};
 
 		float3 normal = normalize(interpolateAttribute(normals, derivativesOut.db_dx, derivativesOut.db_dy, d));
@@ -301,9 +302,9 @@ fragment float4 stageMain(VSOutput input                                        
 		// TANGENT INTERPOLATION
 		// Apply perspective division to tangents
 		float3x3 tangents = {
-			float3(fsData.vertexTangent[index0].tangent) * one_over_w[0],
-			float3(fsData.vertexTangent[index1].tangent) * one_over_w[1],
-			float3(fsData.vertexTangent[index2].tangent) * one_over_w[2]
+			decodeDir(unpack_unorm2x16_to_float(fsData.vertexTangent[index0].tangent)) * one_over_w[0],
+			decodeDir(unpack_unorm2x16_to_float(fsData.vertexTangent[index1].tangent)) * one_over_w[1],
+			decodeDir(unpack_unorm2x16_to_float(fsData.vertexTangent[index2].tangent)) * one_over_w[2]
 		};
 		
 		float3 tangent = normalize(interpolateAttribute(tangents, derivativesOut.db_dx, derivativesOut.db_dy, d));

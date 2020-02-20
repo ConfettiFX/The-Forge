@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -322,6 +322,8 @@ void Log::WritePreamble(char * buffer, uint32_t buffer_size, const char * file, 
 	tm time_info;
 #ifdef _WIN32
 	localtime_s(&time_info, &t);
+#elif defined(ORBIS)
+	localtime_s(&t, &time_info);
 #else
 	localtime_r(&t, &time_info);
 #endif

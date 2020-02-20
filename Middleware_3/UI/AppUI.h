@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -845,16 +845,18 @@ private:
 /************************************************************************/
 class GUIDriver
 {
-	public:
-		struct GUIUpdate
-		{
-			GuiComponent** pGuiComponents;
-			uint32_t componentCount;
-			float deltaTime;
-			float width;
-			float height;
-			bool showDemoWindow;
-		};
+public:
+	struct GUIUpdate
+	{
+		GuiComponent** pGuiComponents;
+		uint32_t componentCount;
+		float deltaTime;
+		float width;
+		float height;
+		bool showDemoWindow;
+	};
+
+	virtual ~GUIDriver() {}
 
 	virtual bool init(Renderer* pRenderer, uint32_t const maxDynamicUIUpdatesPerBatch) = 0;
 	virtual void exit() = 0;
@@ -965,7 +967,11 @@ private:
 class VirtualJoystickUI
 {
 	public:
-	VirtualJoystickUI(float insideRadius = 100.0f, float outsideRadius = 200.0f): mInsideRadius(insideRadius), mOutsideRadius(outsideRadius) {}
+	VirtualJoystickUI(float insideRadius = 100.0f, float outsideRadius = 200.0f)
+#if defined(TARGET_IOS) || defined(__ANDROID__)
+		: mInsideRadius(insideRadius), mOutsideRadius(outsideRadius)
+#endif
+	{}
 
 	// Init resources
 	bool Init(Renderer* pRenderer, const char* pJoystickTexture, uint root);
@@ -977,6 +983,7 @@ class VirtualJoystickUI
     bool OnMove(uint32_t id, bool press, const float2* vec);
 
 private:
+#if defined(TARGET_IOS) || defined(__ANDROID__) || defined(NX64)
 	Renderer*         pRenderer;
 	Shader*           pShader;
 	RootSignature*    pRootSignature;
@@ -990,7 +997,6 @@ private:
 	Buffer*           pMeshBuffer;
 	float2            mRenderSize;
 	//input related
-private:
 	float             mInsideRadius;
 	float             mOutsideRadius;
 
@@ -1003,4 +1009,5 @@ private:
 	// Left -> Index 0
 	// Right -> Index 1
 	StickInput       mSticks[2];
+#endif
 };

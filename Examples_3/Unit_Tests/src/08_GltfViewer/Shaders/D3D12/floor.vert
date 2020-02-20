@@ -22,11 +22,13 @@
  * under the License.
 */
 
-cbuffer cbPerFrame : register(b3, UPDATE_FREQ_PER_FRAME) 
+cbuffer cbPerPass : register(b0, UPDATE_FREQ_PER_FRAME)
 {
-	float4x4	worldMat;
-	float4x4	projViewMat;
-	float4		screenSize;
+	float4x4	projView;
+	float4x4	shadowLightViewProj;
+	float4      camPos;
+	float4      lightColor[4];
+	float4      lightDirection[3];
 }
 
 struct VSInput
@@ -47,8 +49,8 @@ VSOutput main(VSInput input)
 	VSOutput Out;
 
 	float4 worldPos = float4(input.Position, 1.0f);
-	worldPos = mul(worldMat, worldPos);
-	Out.Position = mul(projViewMat, worldPos);
+	worldPos.xyz *= 3.0;
+	Out.Position = mul(projView, worldPos);
 	Out.WorldPos = worldPos.xyz;
 	Out.TexCoord = input.TexCoord;
 

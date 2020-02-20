@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -475,6 +475,12 @@ void mtl_createShaderReflection(
 					int             attrNumber = atoi(start + strlen(pattern));
 					MTLVertexFormat vf = (strstr((const char*)p, "int") ? MTLVertexFormatInt : MTLVertexFormatFloat);
 					vf = (strstr((const char*)p, "uint") ? MTLVertexFormatUInt : vf);
+					// In case this is defined through a macro and we dont have
+					// the numerical value just find an empty attribute index
+					// Example: float4 position [attribute(UNIT_VB_PASS)];
+					if (!isdigit(start[strlen(pattern)]))
+						while (vertexAttributeFormats->find(attrNumber) != vertexAttributeFormats->end())
+							++attrNumber;
 					(*vertexAttributeFormats)[attrNumber] = vf;
 				}
 			} while ((p = strtok_r(NULL, "\n", &temp)) != NULL);

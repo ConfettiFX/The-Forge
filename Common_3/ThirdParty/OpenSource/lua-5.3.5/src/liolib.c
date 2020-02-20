@@ -7,6 +7,12 @@
 #define liolib_c
 #define LUA_LIB
 
+#if defined(__clang__)
+#pragma clang diagnostic ignored "-Wimplicit-function-declaration"
+#pragma clang diagnostic ignored "-Wint-conversion"
+#pragma clang diagnostic ignored "-Wunused-function"
+#endif
+
 #include "lprefix.h"
 
 
@@ -284,9 +290,14 @@ static int io_popen (lua_State *L) {
 #endif
 
 static int io_tmpfile (lua_State *L) {
+#if defined(NN_NINTENDO_SDK)
+//  assert(0);
+  return 0;
+#else
   LStream *p = newfile(L);
   p->f = tmpfile();
   return (p->f == NULL) ? luaL_fileresult(L, 0, NULL) : 1;
+#endif
 }
 
 
@@ -708,7 +719,9 @@ static const luaL_Reg iolib[] = {
   {"popen", io_popen},
 #endif
   {"read", io_read},
+#if !defined(ORBIS)
   {"tmpfile", io_tmpfile},
+#endif
   {"type", io_type},
   {"write", io_write},
   {NULL, NULL}

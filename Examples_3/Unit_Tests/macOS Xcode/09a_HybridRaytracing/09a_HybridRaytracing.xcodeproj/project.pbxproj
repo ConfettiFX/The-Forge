@@ -44,19 +44,19 @@
 		971BCF3821701A9C007F2B2F /* Warehouse-with-lights.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = B23CFB8320EC313A0053944B /* Warehouse-with-lights.ktx */; };
 		971BCF3921701A9C007F2B2F /* circlepad.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = 281FA9ED20333E9200CD5D9C /* circlepad.ktx */; };
 		971BCF3A21701A9C007F2B2F /* environment_sky.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = 28A5AE32201F7DB4000E571F /* environment_sky.ktx */; };
-		971BCF3C21701AB6007F2B2F /* sponza.mtl in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B22902F92141DD2E004A09DE /* sponza.mtl */; };
-		971BCF3D21701AB6007F2B2F /* lion.obj in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B262F4B32141CF4A00B12385 /* lion.obj */; };
-		971BCF3E21701AB6007F2B2F /* sponza.obj in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B20A6262213F8D5600FE4944 /* sponza.obj */; };
 		B2087DF721421A6E006F372D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DF521421A6E006F372D /* MetalKit.framework */; };
 		B2087DF821421A6E006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DF621421A6E006F372D /* Metal.framework */; };
+		B217E2B023F5A1EB00C95904 /* Sponza.gltf in Resources */ = {isa = PBXBuildFile; fileRef = B217E2AD23F5A1EA00C95904 /* Sponza.gltf */; };
+		B217E2B223F5A1EB00C95904 /* lion.gltf in Resources */ = {isa = PBXBuildFile; fileRef = B217E2AE23F5A1EA00C95904 /* lion.gltf */; };
+		B217E2B423F5A1EB00C95904 /* Sponza.bin in Resources */ = {isa = PBXBuildFile; fileRef = B217E2AF23F5A1EB00C95904 /* Sponza.bin */; };
+		B217E2B623F5A20200C95904 /* lion.gltf in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B217E2AE23F5A1EA00C95904 /* lion.gltf */; };
+		B217E2B723F5A20400C95904 /* Sponza.bin in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B217E2AF23F5A1EB00C95904 /* Sponza.bin */; };
+		B217E2B823F5A20600C95904 /* Sponza.gltf in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B217E2AD23F5A1EA00C95904 /* Sponza.gltf */; };
 		B21F76EE21420EE900DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76EB21420EE900DF2297 /* UIKit.framework */; };
 		B21F76EF21420EE900DF2297 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76EC21420EE900DF2297 /* MetalKit.framework */; };
 		B21F76F021420EE900DF2297 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76ED21420EE900DF2297 /* Metal.framework */; };
-		B22902FA2141DD2E004A09DE /* sponza.mtl in Resources */ = {isa = PBXBuildFile; fileRef = B22902F92141DD2E004A09DE /* sponza.mtl */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
-		E9A438A5233DBE57005BF1C7 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A438A4233DBE53005BF1C7 /* libbz2.tbd */; };
-		E9A438A7233DBE61005BF1C7 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A438A6233DBE5D005BF1C7 /* libbz2.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -153,9 +153,9 @@
 			dstPath = Meshes;
 			dstSubfolderSpec = 7;
 			files = (
-				971BCF3C21701AB6007F2B2F /* sponza.mtl in Copy Meshes */,
-				971BCF3D21701AB6007F2B2F /* lion.obj in Copy Meshes */,
-				971BCF3E21701AB6007F2B2F /* sponza.obj in Copy Meshes */,
+				B217E2B623F5A20200C95904 /* lion.gltf in Copy Meshes */,
+				B217E2B723F5A20400C95904 /* Sponza.bin in Copy Meshes */,
+				B217E2B823F5A20600C95904 /* Sponza.gltf in Copy Meshes */,
 			);
 			name = "Copy Meshes";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -190,20 +190,20 @@
 		650CCC662223CB6C003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
 		B2087DF521421A6E006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B2087DF621421A6E006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
-		B20A6262213F8D5600FE4944 /* sponza.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = sponza.obj; path = ../../../../../Art/Sponza/Meshes/sponza.obj; sourceTree = "<group>"; };
 		B20A6316213F8DC900FE4944 /* SponzaPBR_Textures */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SponzaPBR_Textures; path = ../../../../../Art/Sponza/Textures/SponzaPBR_Textures; sourceTree = "<group>"; };
 		B20A6318213F8E2800FE4944 /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/assimp.a"; sourceTree = "<group>"; };
 		B20A6319213F8E2800FE4944 /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/zlibstatic.a"; sourceTree = "<group>"; };
 		B20A631A213F8E2900FE4944 /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/IrrXML.a"; sourceTree = "<group>"; };
+		B217E2AD23F5A1EA00C95904 /* Sponza.gltf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Sponza.gltf; path = ../../../../../Art/Sponza/Meshes/Sponza.gltf; sourceTree = "<group>"; };
+		B217E2AE23F5A1EA00C95904 /* lion.gltf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = lion.gltf; path = ../../../../../Art/Sponza/Meshes/lion.gltf; sourceTree = "<group>"; };
+		B217E2AF23F5A1EB00C95904 /* Sponza.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = Sponza.bin; path = ../../../../../Art/Sponza/Meshes/Sponza.bin; sourceTree = "<group>"; };
 		B21F76EB21420EE900DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76EC21420EE900DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76ED21420EE900DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
-		B22902F92141DD2E004A09DE /* sponza.mtl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = sponza.mtl; path = ../../../../../Art/Sponza/Meshes/sponza.mtl; sourceTree = "<group>"; };
 		B23CFB8320EC313A0053944B /* Warehouse-with-lights.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Warehouse-with-lights.ktx"; path = "../../../UnitTestResources/Textures/Warehouse-with-lights.ktx"; sourceTree = "<group>"; };
 		B256247120EC31BC007C672A /* rect.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = rect.ktx; path = ../../../UnitTestResources/Textures/rect.ktx; sourceTree = "<group>"; };
 		B256247620EC3277007C672A /* skybox */ = {isa = PBXFileReference; lastKnownFileType = folder; name = skybox; path = ../../../UnitTestResources/Textures/skybox; sourceTree = "<group>"; };
 		B262F4A92141CAFC00B12385 /* gbufferPass_iOS.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = gbufferPass_iOS.frag.metal; path = ../../../src/09a_HybridRaytracing/Shaders/Metal/gbufferPass_iOS.frag.metal; sourceTree = "<group>"; };
-		B262F4B32141CF4A00B12385 /* lion.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = lion.obj; path = ../../../../../Art/Sponza/Meshes/lion.obj; sourceTree = "<group>"; };
 		B2F8B4D42141D09E00C20D67 /* lion */ = {isa = PBXFileReference; lastKnownFileType = folder; name = lion; path = ../../../../../Art/Sponza/Textures/lion; sourceTree = "<group>"; };
 		D01089FC213CC5CB0038EA0F /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/zlibstatic.a"; sourceTree = "<group>"; };
 		D01089FD213CC5CC0038EA0F /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/assimp.a"; sourceTree = "<group>"; };
@@ -230,7 +230,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				650CCC672223CB6C003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
-				E9A438A7233DBE61005BF1C7 /* libbz2.tbd in Frameworks */,
 				B21F76EE21420EE900DF2297 /* UIKit.framework in Frameworks */,
 				B21F76EF21420EE900DF2297 /* MetalKit.framework in Frameworks */,
 				B21F76F021420EE900DF2297 /* Metal.framework in Frameworks */,
@@ -244,7 +243,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				650CCC652223CB56003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
-				E9A438A5233DBE57005BF1C7 /* libbz2.tbd in Frameworks */,
 				B2087DF721421A6E006F372D /* MetalKit.framework in Frameworks */,
 				B2087DF821421A6E006F372D /* Metal.framework in Frameworks */,
 				5C0F3AE921418BF50088BBB0 /* libThe-Forge.a in Frameworks */,
@@ -356,9 +354,9 @@
 		B20A6264213F8D6400FE4944 /* Meshes */ = {
 			isa = PBXGroup;
 			children = (
-				B22902F92141DD2E004A09DE /* sponza.mtl */,
-				B262F4B32141CF4A00B12385 /* lion.obj */,
-				B20A6262213F8D5600FE4944 /* sponza.obj */,
+				B217E2AE23F5A1EA00C95904 /* lion.gltf */,
+				B217E2AF23F5A1EB00C95904 /* Sponza.bin */,
+				B217E2AD23F5A1EA00C95904 /* Sponza.gltf */,
 			);
 			name = Meshes;
 			path = 09a_HybridRaytracing_iOS;
@@ -515,7 +513,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B22902FA2141DD2E004A09DE /* sponza.mtl in Resources */,
 				28A5AE1D201F7D41000E571F /* LaunchScreen.storyboard in Resources */,
 				28A5AE1A201F7D41000E571F /* Assets.xcassets in Resources */,
 			);
@@ -526,6 +523,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */,
+				B217E2B023F5A1EB00C95904 /* Sponza.gltf in Resources */,
+				B217E2B423F5A1EB00C95904 /* Sponza.bin in Resources */,
+				B217E2B223F5A1EB00C95904 /* lion.gltf in Resources */,
 				D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

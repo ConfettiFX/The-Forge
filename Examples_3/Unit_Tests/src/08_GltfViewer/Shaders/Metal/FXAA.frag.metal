@@ -1,9 +1,9 @@
 /*
  * Copyright (c) 2018 Kostas Anagnostou (https://twitter.com/KostasAAA).
- * 
+ *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
- * 
+ *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -11,9 +11,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *   http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -172,7 +172,7 @@ struct Fragment_Shader
     struct PSIn
     {
         float4 Position [[position]];
-        float2 TexCoord;
+        float2 TEXCOORD;
     };
     float4 main(PSIn input)
     {
@@ -180,12 +180,12 @@ struct Fragment_Shader
 #ifndef TARGET_IOS
         if (FXAARootConstant.Use)
         {
-            (result = FXAA((input).TexCoord, int2((int2)((input).TexCoord * FXAARootConstant.ScreenSize))));
+            (result = FXAA((input).TEXCOORD, int2((int2)((input).TEXCOORD * FXAARootConstant.ScreenSize))));
         }
         else
 #endif
         {
-            (result = (float3)(sceneTexture.sample(clampMiplessLinearSampler, (input).TexCoord).rgb));
+            (result = (float3)(sceneTexture.sample(clampMiplessLinearSampler, (input).TEXCOORD).rgb));
         }
         return float4((result).r, (result).g, (result).b, (float)1.0);
     };
@@ -197,18 +197,18 @@ sceneTexture(sceneTexture),clampMiplessLinearSampler(clampMiplessLinearSampler),
 
 struct SceneTexture
 {
-	texture2d<float> sceneTexture [[id(0)]];
-	sampler clampMiplessLinearSampler [[id(1)]];
+    texture2d<float> sceneTexture [[id(0)]];
+    sampler clampMiplessLinearSampler [[id(1)]];
 };
 
 fragment float4 stageMain(
     Fragment_Shader::PSIn input [[stage_in]],
-	constant SceneTexture& argBufferStatic [[buffer(UPDATE_FREQ_NONE)]],
+    constant SceneTexture& argBufferStatic [[buffer(UPDATE_FREQ_NONE)]],
     constant Fragment_Shader::Uniforms_FXAARootConstant & FXAARootConstant [[buffer(UPDATE_FREQ_USER)]])
 {
     Fragment_Shader::PSIn input0;
     input0.Position = float4(input.Position.xyz, 1.0 / input.Position.w);
-    input0.TexCoord = input.TexCoord;
+    input0.TEXCOORD = input.TEXCOORD;
     Fragment_Shader main(
     argBufferStatic.sceneTexture,
     argBufferStatic.clampMiplessLinearSampler,

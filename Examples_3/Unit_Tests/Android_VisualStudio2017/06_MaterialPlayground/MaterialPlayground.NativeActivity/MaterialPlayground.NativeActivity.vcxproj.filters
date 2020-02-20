@@ -2,26 +2,11 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <ClInclude Include="android_native_app_glue.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\Tools\AssetPipeline\src\TFXImporter.h">
-      <Filter>Source Files\TFXImporter</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Tools\AssetPipeline\src\TressFXAsset.h">
-      <Filter>Source Files\TFXImporter</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\Tools\AssetPipeline\src\TressFXFileFormat.h">
-      <Filter>Source Files\TFXImporter</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="android_native_app_glue.c" />
     <ClCompile Include="..\..\..\src\06_MaterialPlayground\06_MaterialPlayground.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Tools\AssetPipeline\src\TFXImporter.cpp">
-      <Filter>Source Files\TFXImporter</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Tools\AssetPipeline\src\TressFXAsset.cpp">
-      <Filter>Source Files\TFXImporter</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -33,9 +18,6 @@
     </Filter>
     <Filter Include="Source Files">
       <UniqueIdentifier>{8e817bae-f53d-41f2-af20-e869d1a276a0}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\TFXImporter">
-      <UniqueIdentifier>{73fd4a1d-0d82-416c-928f-0d5b8dd7df84}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

@@ -96,14 +96,7 @@
     <File Name="../../../../Common_3/OS/Linux/LinuxTime.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Dependencies">
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/TinyEXR/tinyexr.cpp"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/contrib/zlib/zconf.h"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib/zlib.h"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib/crc32.c"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib/deflate.c"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib/inflate.c"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib/adler32.c"/>
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib/zutil.h"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/zip/zip.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="FileSystem">
     <File Name="../../../../Common_3/OS/FileSystem/ZipFileSystem.h"/>
@@ -133,10 +126,6 @@
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
       <Compiler Options="-g; -std=c++14;" C_Options="-g" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
-        <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib"/>
-        <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/contrib/zlib/"/>
-        <IncludePath Value="$(ProjectPath)/../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/Android-Lib"/>
-        <IncludePath Value="$(ProjectPath)/../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/xcode"/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
         <Preprocessor Value="USE_MEMORY_TRACKING"/>
@@ -179,10 +168,6 @@
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
       <Compiler Options="-std=c++14;" C_Options="" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
-        <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/contrib/zlib"/>
-        <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/contrib/zlib/"/>
-        <IncludePath Value="$(ProjectPath)/../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/Android-Lib"/>
-        <IncludePath Value="$(ProjectPath)/../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/xcode"/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>
       </Compiler>

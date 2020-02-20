@@ -4,10 +4,30 @@
     <Filter Include="Source Files">
       <UniqueIdentifier>{6fc6f5a1-79f4-4487-9e06-cbfc850c1648}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\TressFX">
+      <UniqueIdentifier>{8b3cbcc5-1b37-4257-868f-659f20386f29}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\AssetPipelineCmd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\TressFX\TressFXAsset.cpp">
+      <Filter>Source Files\TressFX</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\AssetPipeline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\TressFX\TressFXAsset.h">
+      <Filter>Source Files\TressFX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\TressFX\TressFXFileFormat.h">
+      <Filter>Source Files\TressFX</Filter>
+    </ClInclude>
+    <ClInclude Include="..\src\AssetPipeline.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

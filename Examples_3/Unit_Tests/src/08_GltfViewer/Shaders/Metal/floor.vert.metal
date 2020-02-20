@@ -1,50 +1,25 @@
-/*
- * Copyright (c) 2018 Kostas Anagnostou (https://twitter.com/KostasAAA).
- * 
- * This file is part of The-Forge
- * (see https://github.com/ConfettiFX/The-Forge).
- * 
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- * 
- *   http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
-*/
 #include <metal_stdlib>
 using namespace metal;
 
 struct Vertex_Shader
 {
-    struct Uniforms_ShadowUniformBuffer
+    struct Uniforms_cbPerPass
     {
-        float4x4 LightViewProj;
+        float4x4 projView;
+        float4x4 shadowLightViewProj;
+        float4 camPos;
+        array<float4, 4> lightColor;
+        array<float4, 3> lightDirection;
     };
-    struct Uniforms_cbPerFrame
-    {
-        float4x4 worldMat;
-        float4x4 projViewMat;
-        float4 screenSize;
-    };
-    constant Uniforms_cbPerFrame & cbPerFrame;
+    constant Uniforms_cbPerPass& cbPerPass;
     struct VSInput
     {
-        float3 Position [[attribute(0)]];
-        float2 TexCoord [[attribute(1)]];
+        float3 Position;
+        float2 TexCoord;
     };
     struct VSOutput
     {
-        float4 Position [[position]];
+        float4 Position;
         float3 WorldPos;
         float2 TexCoord;
     };
@@ -52,32 +27,47 @@ struct Vertex_Shader
     {
         VSOutput Out;
         float4 worldPos = float4((input).Position, 1.0);
-        (worldPos = ((cbPerFrame.worldMat)*(worldPos)));
-        ((Out).Position = ((cbPerFrame.projViewMat)*(worldPos)));
+        ((worldPos).xyz *= float3(3.0));
+        ((Out).Position = ((cbPerPass.projView)*(worldPos)));
         ((Out).WorldPos = (worldPos).xyz);
         ((Out).TexCoord = (input).TexCoord);
         return Out;
     };
 
-    Vertex_Shader(
-constant Uniforms_cbPerFrame & cbPerFrame) :
-cbPerFrame(cbPerFrame) {}
+    Vertex_Shader(constant Uniforms_cbPerPass& cbPerPass) :
+        cbPerPass(cbPerPass)
+    {}
 };
 
-struct PerFrame
+struct main_input
 {
-	constant Vertex_Shader::Uniforms_ShadowUniformBuffer& ShadowUniformBuffer [[id(0)]];
-	constant Vertex_Shader::Uniforms_cbPerFrame& cbPerFrame [[id(1)]];
+    float3 POSITION [[attribute(0)]];
+    float2 TEXCOORD0 [[attribute(1)]];
 };
 
-vertex Vertex_Shader::VSOutput stageMain(
-    Vertex_Shader::VSInput input [[stage_in]],
-    constant PerFrame& argBufferPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]])
+struct main_output
+{
+    float4 SV_POSITION [[position]];
+    float3 POSITION;
+    float2 TEXCOORD;
+};
+struct ArgBuffer1
+{
+    constant Vertex_Shader::Uniforms_cbPerPass& cbPerPass [[id(0)]];
+};
+
+vertex main_output stageMain(
+	main_input inputData [[stage_in]],
+    constant ArgBuffer1& argBuffer1 [[buffer(UPDATE_FREQ_PER_FRAME)]])
 {
     Vertex_Shader::VSInput input0;
-    input0.Position = input.Position;
-    input0.TexCoord = input.TexCoord;
-    Vertex_Shader main(
-    argBufferPerFrame.cbPerFrame);
-    return main.main(input0);
+    input0.Position = inputData.POSITION;
+    input0.TexCoord = inputData.TEXCOORD0;
+    Vertex_Shader main(argBuffer1.cbPerPass);
+    Vertex_Shader::VSOutput result = main.main(input0);
+    main_output output;
+    output.SV_POSITION = result.Position;
+    output.POSITION = result.WorldPos;
+    output.TEXCOORD = result.TexCoord;
+    return output;
 }

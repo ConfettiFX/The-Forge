@@ -105,4 +105,9 @@
       <Filter>Shaders\Vulkan</Filter>
     </None>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\cgltf\cgltf.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

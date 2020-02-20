@@ -524,8 +524,10 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="basisu_astc_decomp.cpp" />
     <ClCompile Include="basisu_ssim.cpp" />
     <ClCompile Include="transcoder\basisu_transcoder.cpp" />
+    <ClInclude Include="basisu_astc_decomp.h" />
     <ClInclude Include="basisu_basis_file.h" />
     <ClInclude Include="basisu_comp.h" />
     <ClInclude Include="basisu_enc.h" />
@@ -562,6 +564,12 @@
     <ClCompile Include="basisu_tool.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="transcoder\basisu_transcoder_tables_astc.inc" />
+    <None Include="transcoder\basisu_transcoder_tables_astc_0_255.inc" />
+    <None Include="transcoder\basisu_transcoder_tables_atc_55.inc" />
+    <None Include="transcoder\basisu_transcoder_tables_atc_56.inc" />
+    <None Include="transcoder\basisu_transcoder_tables_bc7_m5_alpha.inc" />
+    <None Include="transcoder\basisu_transcoder_tables_bc7_m5_color.inc" />
     <None Include="transcoder\basisu_transcoder_tables_bc7_m6.inc" />
     <None Include="transcoder\basisu_transcoder_tables_dxt1_5.inc" />
     <None Include="transcoder\basisu_transcoder_tables_dxt1_6.inc" />

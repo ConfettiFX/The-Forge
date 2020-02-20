@@ -1,6 +1,9 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
 #include "meshoptimizer.h"
 
+#include <assert.h>
+#include <string.h>
+
 namespace meshopt
 {
 
@@ -92,8 +95,8 @@ static size_t hashBuckets(size_t count)
 template <typename T, typename Hash>
 static T* hashLookup(T* table, size_t buckets, const Hash& hash, const T& key, const T& empty)
 {
-	ASSERT(buckets > 0);
-	ASSERT((buckets & (buckets - 1)) == 0);
+	assert(buckets > 0);
+	assert((buckets & (buckets - 1)) == 0);
 
 	size_t hashmod = buckets - 1;
 	size_t bucket = hash.hash(key) & hashmod;
@@ -112,7 +115,7 @@ static T* hashLookup(T* table, size_t buckets, const Hash& hash, const T& key, c
 		bucket = (bucket + probe + 1) & hashmod;
 	}
 
-	ASSERT(false && "Hash table is full"); // unreachable
+	assert(false && "Hash table is full"); // unreachable
 	return 0;
 }
 
@@ -122,18 +125,18 @@ size_t meshopt_generateVertexRemap(unsigned int* destination, const unsigned int
 {
 	using namespace meshopt;
 
-	ASSERT(indices || index_count == vertex_count);
-	ASSERT(index_count % 3 == 0);
-	ASSERT(vertex_size > 0 && vertex_size <= 256);
+	assert(indices || index_count == vertex_count);
+	assert(index_count % 3 == 0);
+	assert(vertex_size > 0 && vertex_size <= 256);
 
-    meshopt_Allocator allocator;
-    
+	meshopt_Allocator allocator;
+
 	memset(destination, -1, vertex_count * sizeof(unsigned int));
 
 	VertexHasher hasher = {static_cast<const unsigned char*>(vertices), vertex_size, vertex_size};
 
 	size_t table_size = hashBuckets(vertex_count);
-    unsigned int* table = (unsigned int*)allocator.allocate(sizeof(unsigned int) * table_size);
+	unsigned int* table = allocator.allocate<unsigned int>(table_size);
 	memset(table, -1, table_size * sizeof(unsigned int));
 
 	unsigned int next_vertex = 0;
@@ -141,7 +144,7 @@ size_t meshopt_generateVertexRemap(unsigned int* destination, const unsigned int
 	for (size_t i = 0; i < index_count; ++i)
 	{
 		unsigned int index = indices ? indices[i] : unsigned(i);
-		ASSERT(index < vertex_count);
+		assert(index < vertex_count);
 
 		if (destination[index] == ~0u)
 		{
@@ -155,14 +158,14 @@ size_t meshopt_generateVertexRemap(unsigned int* destination, const unsigned int
 			}
 			else
 			{
-				ASSERT(destination[*entry] != ~0u);
+				assert(destination[*entry] != ~0u);
 
 				destination[index] = destination[*entry];
 			}
 		}
 	}
 
-	ASSERT(next_vertex <= vertex_count);
+	assert(next_vertex <= vertex_count);
 
 	return next_vertex;
 }
@@ -171,24 +174,24 @@ size_t meshopt_generateVertexRemapMulti(unsigned int* destination, const unsigne
 {
 	using namespace meshopt;
 
-	ASSERT(indices || index_count == vertex_count);
-	ASSERT(index_count % 3 == 0);
-	ASSERT(stream_count > 0 && stream_count <= 16);
+	assert(indices || index_count == vertex_count);
+	assert(index_count % 3 == 0);
+	assert(stream_count > 0 && stream_count <= 16);
 
 	for (size_t i = 0; i < stream_count; ++i)
 	{
-		ASSERT(streams[i].size > 0 && streams[i].size <= 256);
-		ASSERT(streams[i].size <= streams[i].stride);
+		assert(streams[i].size > 0 && streams[i].size <= 256);
+		assert(streams[i].size <= streams[i].stride);
 	}
-    
-    meshopt_Allocator allocator;
+
+	meshopt_Allocator allocator;
 
 	memset(destination, -1, vertex_count * sizeof(unsigned int));
 
 	VertexStreamHasher hasher = {streams, stream_count};
 
 	size_t table_size = hashBuckets(vertex_count);
-    unsigned int* table = (unsigned int*)allocator.allocate(sizeof(unsigned int) * table_size);
+	unsigned int* table = allocator.allocate<unsigned int>(table_size);
 	memset(table, -1, table_size * sizeof(unsigned int));
 
 	unsigned int next_vertex = 0;
@@ -196,7 +199,7 @@ size_t meshopt_generateVertexRemapMulti(unsigned int* destination, const unsigne
 	for (size_t i = 0; i < index_count; ++i)
 	{
 		unsigned int index = indices ? indices[i] : unsigned(i);
-		ASSERT(index < vertex_count);
+		assert(index < vertex_count);
 
 		if (destination[index] == ~0u)
 		{
@@ -210,28 +213,28 @@ size_t meshopt_generateVertexRemapMulti(unsigned int* destination, const unsigne
 			}
 			else
 			{
-				ASSERT(destination[*entry] != ~0u);
+				assert(destination[*entry] != ~0u);
 
 				destination[index] = destination[*entry];
 			}
 		}
 	}
 
-	ASSERT(next_vertex <= vertex_count);
+	assert(next_vertex <= vertex_count);
 
 	return next_vertex;
 }
 
 void meshopt_remapVertexBuffer(void* destination, const void* vertices, size_t vertex_count, size_t vertex_size, const unsigned int* remap)
 {
-	ASSERT(vertex_size > 0 && vertex_size <= 256);
-    
-    meshopt_Allocator allocator;
+	assert(vertex_size > 0 && vertex_size <= 256);
+
+	meshopt_Allocator allocator;
 
 	// support in-place remap
 	if (destination == vertices)
 	{
-        unsigned char* vertices_copy = (unsigned char*)allocator.allocate(sizeof(unsigned char) * vertex_count * vertex_size);
+		unsigned char* vertices_copy = allocator.allocate<unsigned char>(vertex_count * vertex_size);
 		memcpy(vertices_copy, vertices, vertex_count * vertex_size);
 		vertices = vertices_copy;
 	}
@@ -240,7 +243,7 @@ void meshopt_remapVertexBuffer(void* destination, const void* vertices, size_t v
 	{
 		if (remap[i] != ~0u)
 		{
-			ASSERT(remap[i] < vertex_count);
+			assert(remap[i] < vertex_count);
 
 			memcpy(static_cast<unsigned char*>(destination) + remap[i] * vertex_size, static_cast<const unsigned char*>(vertices) + i * vertex_size, vertex_size);
 		}
@@ -249,12 +252,12 @@ void meshopt_remapVertexBuffer(void* destination, const void* vertices, size_t v
 
 void meshopt_remapIndexBuffer(unsigned int* destination, const unsigned int* indices, size_t index_count, const unsigned int* remap)
 {
-	ASSERT(index_count % 3 == 0);
+	assert(index_count % 3 == 0);
 
 	for (size_t i = 0; i < index_count; ++i)
 	{
 		unsigned int index = indices ? indices[i] : unsigned(i);
-		ASSERT(remap[index] != ~0u);
+		assert(remap[index] != ~0u);
 
 		destination[i] = remap[index];
 	}
@@ -264,26 +267,26 @@ void meshopt_generateShadowIndexBuffer(unsigned int* destination, const unsigned
 {
 	using namespace meshopt;
 
-	ASSERT(indices);
-	ASSERT(index_count % 3 == 0);
-	ASSERT(vertex_size > 0 && vertex_size <= 256);
-	ASSERT(vertex_size <= vertex_stride);
+	assert(indices);
+	assert(index_count % 3 == 0);
+	assert(vertex_size > 0 && vertex_size <= 256);
+	assert(vertex_size <= vertex_stride);
 
-    meshopt_Allocator allocator;
-    
-    unsigned int* remap = (unsigned int*)allocator.allocate(sizeof(unsigned int) * vertex_count);
+	meshopt_Allocator allocator;
+
+	unsigned int* remap = allocator.allocate<unsigned int>(vertex_count);
 	memset(remap, -1, vertex_count * sizeof(unsigned int));
 
 	VertexHasher hasher = {static_cast<const unsigned char*>(vertices), vertex_size, vertex_stride};
 
 	size_t table_size = hashBuckets(vertex_count);
-    unsigned int* table = (unsigned int*)allocator.allocate(sizeof(unsigned int) * table_size);
+	unsigned int* table = allocator.allocate<unsigned int>(table_size);
 	memset(table, -1, table_size * sizeof(unsigned int));
 
 	for (size_t i = 0; i < index_count; ++i)
 	{
 		unsigned int index = indices[i];
-		ASSERT(index < vertex_count);
+		assert(index < vertex_count);
 
 		if (remap[index] == ~0u)
 		{
@@ -303,31 +306,31 @@ void meshopt_generateShadowIndexBufferMulti(unsigned int* destination, const uns
 {
 	using namespace meshopt;
 
-	ASSERT(indices);
-	ASSERT(index_count % 3 == 0);
-	ASSERT(stream_count > 0 && stream_count <= 16);
+	assert(indices);
+	assert(index_count % 3 == 0);
+	assert(stream_count > 0 && stream_count <= 16);
 
 	for (size_t i = 0; i < stream_count; ++i)
 	{
-		ASSERT(streams[i].size > 0 && streams[i].size <= 256);
-		ASSERT(streams[i].size <= streams[i].stride);
+		assert(streams[i].size > 0 && streams[i].size <= 256);
+		assert(streams[i].size <= streams[i].stride);
 	}
-    
-    meshopt_Allocator allocator;
-    
-    unsigned int* remap = (unsigned int*)allocator.allocate(sizeof(unsigned int) * vertex_count);
+
+	meshopt_Allocator allocator;
+
+	unsigned int* remap = allocator.allocate<unsigned int>(vertex_count);
 	memset(remap, -1, vertex_count * sizeof(unsigned int));
 
 	VertexStreamHasher hasher = {streams, stream_count};
 
 	size_t table_size = hashBuckets(vertex_count);
-    unsigned int* table = (unsigned int*)allocator.allocate(sizeof(unsigned int) * table_size);
+	unsigned int* table = allocator.allocate<unsigned int>(table_size);
 	memset(table, -1, table_size * sizeof(unsigned int));
 
 	for (size_t i = 0; i < index_count; ++i)
 	{
 		unsigned int index = indices[i];
-		ASSERT(index < vertex_count);
+		assert(index < vertex_count);
 
 		if (remap[index] == ~0u)
 		{

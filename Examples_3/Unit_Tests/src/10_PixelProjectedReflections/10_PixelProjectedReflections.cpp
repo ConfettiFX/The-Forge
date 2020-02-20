@@ -1,6 +1,6 @@
 /*
 *
-* Copyright (c) 2018-2019 Confetti Interactive Inc.
+* Copyright (c) 2018-2020 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,9 +25,6 @@
 
 // Unit Test for testing materials and pbr.
 
-//assimp
-#include "../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"
-
 //tiny stl
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
@@ -40,7 +37,7 @@
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/OS/Core/Atomics.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/Renderer/IResourceLoader.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
@@ -309,14 +306,6 @@ const char* pMaterialImageFileNames[] = {
 
 };
 
-// PBR Texture values (these values are mirrored on the shaders).
-const uint32_t gBRDFIntegrationSize = 512;
-const uint32_t gSkyboxSize = 1024;
-const uint32_t gSkyboxMips = 11;
-const uint32_t gIrradianceSize = 32;
-const uint32_t gSpecularSize = 128;
-const uint32_t gSpecularMips = 5;
-
 const uint32_t gImageCount = 3;
 bool           gMicroProfiler = false;
 bool           bPrevToggleMicroProfiler = false;
@@ -329,18 +318,6 @@ UIApp     gAppUI;
 Queue*   pGraphicsQueue = NULL;
 CmdPool* pCmdPool = NULL;
 Cmd**    ppCmds = NULL;
-
-CmdPool* pPreCmdPool = NULL;
-Cmd**    pPrepCmds = NULL;
-
-CmdPool* pBrdfCmdPool = NULL;
-Cmd**    pBrdfCmds = NULL;
-
-CmdPool* pPPR_ProjectionCmdPool = NULL;
-Cmd**    pPPR_ProjectionCmds = NULL;
-
-CmdPool* pPPR_ReflectionCmdPool = NULL;
-Cmd**    pPPR_ReflectionCmds = NULL;
 
 SwapChain* pSwapChain = NULL;
 
@@ -405,7 +382,7 @@ eastl::vector<uint32_t> gInitializeVal;
 
 VirtualJoystickUI gVirtualJoystick;
 
-UniformObjData pUniformDataMVP;
+UniformObjData gUniformDataMVP;
 
 /************************************************************************/
 // Vertex buffers for the model
@@ -422,26 +399,26 @@ Buffer* pSponzaBuffer;
 Buffer* pLionBuffer;
 
 Buffer*        pBufferUniformCamera[gImageCount] = { NULL };
-UniformCamData pUniformDataCamera;
+UniformCamData gUniformDataCamera;
 
 UniformCamData gUniformDataSky;
 
 Buffer*                pBufferUniformExtendedCamera[gImageCount] = { NULL };
-UniformExtendedCamData pUniformDataExtenedCamera;
+UniformExtendedCamData gUniformDataExtenedCamera;
 
 Buffer* pBufferUniformCameraSky[gImageCount] = { NULL };
 
 Buffer*           pBufferUniformPPRPro[gImageCount] = { NULL };
-UniformPPRProData pUniformPPRProData;
+UniformPPRProData gUniformPPRProData;
 
 Buffer*          pBufferUniformLights = NULL;
-UniformLightData pUniformDataLights;
+UniformLightData gUniformDataLights;
 
 Buffer*                     pBufferUniformDirectionalLights = NULL;
-UniformDirectionalLightData pUniformDataDirectionalLights;
+UniformDirectionalLightData gUniformDataDirectionalLights;
 
 Buffer*              pBufferUniformPlaneInfo[gImageCount] = { NULL };
-UniformPlaneInfoData pUniformDataPlaneInfo;
+UniformPlaneInfoData gUniformDataPlaneInfo;
 
 Shader*   pShaderPostProc = NULL;
 Pipeline* pPipelinePostProc = NULL;
@@ -468,69 +445,52 @@ TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 GuiComponent* pGui = NULL;
 GuiComponent* pLoadingGui = NULL;
 
-ThreadSystem* pIOThreads = NULL;
+SyncToken gResourceSyncStartToken = {};
+SyncToken gResourceSyncToken = {};
 
 const char* pTextureName[] = { "albedoMap", "normalMap", "metallicMap", "roughnessMap", "aoMap" };
 
-static const size_t TextureLoadingProgress = 128;
-static const size_t TextureGPUProgress = 64;
-static const size_t TextureTotalProgress = TextureLoadingProgress + TextureGPUProgress;
-static const size_t ModelLoadingProgress = 1024 * 64;
-static const size_t ModelGPUProgress = 32;
-static const size_t ModelTotalProgress = ModelLoadingProgress + ModelGPUProgress;
-
-struct MeshVertex
+const char* gModelNames[2] = { "Sponza.gltf", "lion.gltf" };
+Geometry*   gModels[2];
+uint32_t gMaterialIds[] =
 {
-	float3 mPos;
-	float3 mNormal;
-	float2 mUv;
+	0, 3, 1, 4, 5, 6, 7, 8, 6, 9, 7, 6, 10, 5, 7, 5, 6,
+	7, 6, 7, 6, 7, 6, 7, 6, 7, 6, 7, 6, 7, 6, 7, 6, 7,
+	6, 5, 6, 5, 11, 5, 11, 5, 11, 5, 10, 5, 9, 8, 6, 12,
+	2, 5, 13, 0, 14, 15, 16, 14, 15, 14, 16, 15, 13, 17, 18,
+	19, 18, 19, 18, 17, 19, 18, 17, 20, 21, 20, 21, 20, 21, 20,
+	21, 3, 1, 3, 1, 3, 1, 3, 1, 3, 1, 3, 1, 3, 1, 22, 23, 4, 23, 4, 5, 24, 5,
 };
 
-struct Mesh
-{
-	Buffer*                   pVertexBuffer = NULL;
-	Buffer*                   pIndexBuffer = NULL;
-	eastl::vector<uint32_t> materialID;
-	struct CmdParam
-	{
-		uint32_t indexCount, startIndex, startVertex;
-	};
-	eastl::vector<CmdParam> cmdArray;
-};
-
-const char* gModelNames[2] = { "sponza.obj", "lion.obj" };
-Mesh        gModels[2];
+VertexLayout gVertexLayoutModel = {};
 
 void transitionRenderTargets()
 {
+#if defined(VULKAN)
 	// Transition render targets to desired state
 	const uint32_t numBarriers = gImageCount + 1;
-	TextureBarrier rtBarriers[numBarriers] = {};
+	RenderTargetBarrier rtBarriers[numBarriers] = {};
 	for (uint32_t i = 0; i < gImageCount; ++i)
-		rtBarriers[i] = { pSwapChain->ppSwapchainRenderTargets[i]->pTexture, RESOURCE_STATE_RENDER_TARGET };
-	rtBarriers[numBarriers - 1] = { pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE };
+		rtBarriers[i] = { pSwapChain->ppRenderTargets[i], RESOURCE_STATE_RENDER_TARGET };
+	rtBarriers[numBarriers - 1] = { pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE };
 	beginCmd(ppCmds[0]);
-	cmdResourceBarrier(ppCmds[0], 0, 0, numBarriers, rtBarriers);
+	cmdResourceBarrier(ppCmds[0], 0, NULL, 0, NULL, numBarriers, rtBarriers);
 	endCmd(ppCmds[0]);
-	queueSubmit(pGraphicsQueue, 1, &ppCmds[0], pRenderCompleteFences[0], 0, NULL, 0, NULL);
+	QueueSubmitDesc submitDesc = {};
+	submitDesc.mCmdCount = 1;
+	submitDesc.ppCmds = &ppCmds[0];
+	submitDesc.pSignalFence = pRenderCompleteFences[0];
+	submitDesc.mSubmitDone = true;
+	queueSubmit(pGraphicsQueue, &submitDesc);
 	waitForFences(pRenderer, 1, &pRenderCompleteFences[0]);
+#endif
 }
 
 void assignSponzaTextures();
 
-void unloadMesh(Mesh& mesh)
-{
-	if (mesh.pVertexBuffer)
-		removeResource(mesh.pVertexBuffer);
-	if (mesh.pIndexBuffer)
-		removeResource(mesh.pIndexBuffer);
-	mesh.materialID.set_capacity(0);
-	mesh.cmdArray.set_capacity(0);
-}
-
 class PixelProjectedReflections: public IApp
 {
-	size_t mPrevProgressBarValue = 0, mProgressBarValue = 0, mProgressBarValueMax = 0;
+	size_t mProgressBarValue = 0, mProgressBarValueMax = 1024;
 	size_t mAtomicProgress = 0;
 
 	public:
@@ -545,7 +505,6 @@ class PixelProjectedReflections: public IApp
 	{
 		// FILE PATHS
 		PathHandle programDirectory = fsCopyProgramDirectoryPath();
-		FileSystem *fileSystem = fsGetPathFileSystem(programDirectory);
 		if (!fsPlatformUsesBundledResources())
 		{
 			PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/10_PixelProjectedReflections");
@@ -559,8 +518,6 @@ class PixelProjectedReflections: public IApp
 			fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
 			fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
 		}
-		
-		initThreadSystem(&pIOThreads);
 
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
@@ -573,24 +530,17 @@ class PixelProjectedReflections: public IApp
 #endif
 		
 		QueueDesc queueDesc = {};
-		queueDesc.mType = CMD_POOL_DIRECT;
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
 
 		// Create command pool and create a cmd buffer for each swapchain image
-		addCmdPool(pRenderer, pGraphicsQueue, false, &pCmdPool);
-		addCmd_n(pCmdPool, false, gImageCount, &ppCmds);
-
-		addCmdPool(pRenderer, pGraphicsQueue, false, &pPreCmdPool);
-		addCmd_n(pPreCmdPool, false, gImageCount, &pPrepCmds);
-
-		addCmdPool(pRenderer, pGraphicsQueue, false, &pBrdfCmdPool);
-		addCmd_n(pBrdfCmdPool, false, gImageCount, &pBrdfCmds);
-
-		addCmdPool(pRenderer, pGraphicsQueue, false, &pPPR_ProjectionCmdPool);
-		addCmd_n(pPPR_ProjectionCmdPool, false, gImageCount, &pPPR_ProjectionCmds);
-
-		addCmdPool(pRenderer, pGraphicsQueue, false, &pPPR_ReflectionCmdPool);
-		addCmd_n(pPPR_ReflectionCmdPool, false, gImageCount, &pPPR_ReflectionCmds);
+		CmdPoolDesc cmdPoolDesc = {};
+		cmdPoolDesc.pQueue = pGraphicsQueue;
+		addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
+		CmdDesc cmdDesc = {};
+		cmdDesc.pPool = pCmdPool;
+		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -784,7 +734,7 @@ class PixelProjectedReflections: public IApp
 		sponza_buffDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		sponza_buffDesc.pData = NULL;
 		sponza_buffDesc.ppBuffer = &pSponzaBuffer;
-		addResource(&sponza_buffDesc);
+		addResource(&sponza_buffDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		BufferLoadDesc lion_buffDesc = {};
 		lion_buffDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -793,7 +743,7 @@ class PixelProjectedReflections: public IApp
 		lion_buffDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		lion_buffDesc.pData = NULL;
 		lion_buffDesc.ppBuffer = &pLionBuffer;
-		addResource(&lion_buffDesc);
+		addResource(&lion_buffDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		//Generate sky box vertex buffer
 		float skyBoxPoints[] = {
@@ -830,7 +780,7 @@ class PixelProjectedReflections: public IApp
 		skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
 		skyboxVbDesc.pData = skyBoxPoints;
 		skyboxVbDesc.ppBuffer = &pSkyboxVertexBuffer;
-		addResource(&skyboxVbDesc);
+		addResource(&skyboxVbDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		float screenQuadPoints[] = {
 			-1.0f, 3.0f, 0.5f, 0.0f, -1.0f, -1.0f, -1.0f, 0.5f, 0.0f, 1.0f, 3.0f, -1.0f, 0.5f, 2.0f, 1.0f,
@@ -844,7 +794,7 @@ class PixelProjectedReflections: public IApp
 		screenQuadVbDesc.mDesc.mVertexStride = sizeof(float) * 5;
 		screenQuadVbDesc.pData = screenQuadPoints;
 		screenQuadVbDesc.ppBuffer = &pScreenQuadVertexBuffer;
-		addResource(&screenQuadVbDesc);
+		addResource(&screenQuadVbDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		// Uniform buffer for camera data
 		BufferLoadDesc ubCamDesc = {};
@@ -857,9 +807,9 @@ class PixelProjectedReflections: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubCamDesc.ppBuffer = &pBufferUniformCamera[i];
-			addResource(&ubCamDesc);
+			addResource(&ubCamDesc, NULL, LOAD_PRIORITY_NORMAL);
 			ubCamDesc.ppBuffer = &pBufferUniformCameraSky[i];
-			addResource(&ubCamDesc);
+			addResource(&ubCamDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
 		// Uniform buffer for extended camera data
@@ -873,7 +823,7 @@ class PixelProjectedReflections: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubECamDesc.ppBuffer = &pBufferUniformExtendedCamera[i];
-			addResource(&ubECamDesc);
+			addResource(&ubECamDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
 		// Uniform buffer for PPR's properties
@@ -887,7 +837,7 @@ class PixelProjectedReflections: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubPPR_ProDesc.ppBuffer = &pBufferUniformPPRPro[i];
-			addResource(&ubPPR_ProDesc);
+			addResource(&ubPPR_ProDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
 		// Uniform buffer for light data
@@ -898,7 +848,7 @@ class PixelProjectedReflections: public IApp
 		ubLightsDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NONE;
 		ubLightsDesc.pData = NULL;
 		ubLightsDesc.ppBuffer = &pBufferUniformLights;
-		addResource(&ubLightsDesc);
+		addResource(&ubLightsDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		// Uniform buffer for DirectionalLight data
 		BufferLoadDesc ubDLightsDesc = {};
@@ -908,7 +858,7 @@ class PixelProjectedReflections: public IApp
 		ubDLightsDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NONE;
 		ubDLightsDesc.pData = NULL;
 		ubDLightsDesc.ppBuffer = &pBufferUniformDirectionalLights;
-		addResource(&ubDLightsDesc);
+		addResource(&ubDLightsDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		// Uniform buffer for extended camera data
 		BufferLoadDesc ubPlaneInfoDesc = {};
@@ -921,30 +871,34 @@ class PixelProjectedReflections: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubPlaneInfoDesc.ppBuffer = &pBufferUniformPlaneInfo[i];
-			addResource(&ubPlaneInfoDesc);
+			addResource(&ubPlaneInfoDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
-		finishResourceLoading();
+		waitForAllResourceLoads();
 
 		// prepare resources
 
 		// Update the uniform buffer for the objects
 		mat4 sponza_modelmat = mat4::translation(vec3(0.0f, -6.0f, 0.0f)) * mat4::scale(vec3(0.02f, 0.02f, 0.02f));
-		pUniformDataMVP.mWorldMat = sponza_modelmat;
-		pUniformDataMVP.mMetallic = 0;
-		pUniformDataMVP.mRoughness = 0.5f;
-		pUniformDataMVP.pbrMaterials = 1;
-		BufferUpdateDesc sponza_objBuffUpdateDesc = { pSponzaBuffer, &pUniformDataMVP };
-		updateResource(&sponza_objBuffUpdateDesc);
+		gUniformDataMVP.mWorldMat = sponza_modelmat;
+		gUniformDataMVP.mMetallic = 0;
+		gUniformDataMVP.mRoughness = 0.5f;
+		gUniformDataMVP.pbrMaterials = 1;
+		BufferUpdateDesc sponza_objBuffUpdateDesc = { pSponzaBuffer };
+		beginUpdateResource(&sponza_objBuffUpdateDesc);
+		*(UniformObjData*)sponza_objBuffUpdateDesc.pMappedData = gUniformDataMVP;
+		endUpdateResource(&sponza_objBuffUpdateDesc, NULL);
 
 		// Update the uniform buffer for the objects
-		mat4 lion_modelmat = mat4::translation(vec3(0.0f, -6.0f, 1.0f)) * mat4::rotationY(-1.5708f) * mat4::scale(vec3(0.2f, 0.2f, 0.2f));
-		pUniformDataMVP.mWorldMat = lion_modelmat;
-		pUniformDataMVP.mMetallic = 0;
-		pUniformDataMVP.mRoughness = 0.5f;
-		pUniformDataMVP.pbrMaterials = 1;
-		BufferUpdateDesc lion_objBuffUpdateDesc = { pLionBuffer, &pUniformDataMVP };
-		updateResource(&lion_objBuffUpdateDesc);
+		mat4 lion_modelmat = mat4::translation(vec3(0.0f, -6.0f, 1.0f)) * mat4::rotationY(-1.5708f) * mat4::scale(vec3(0.2f, 0.2f, -0.2f));
+		gUniformDataMVP.mWorldMat = lion_modelmat;
+		gUniformDataMVP.mMetallic = 0;
+		gUniformDataMVP.mRoughness = 0.5f;
+		gUniformDataMVP.pbrMaterials = 1;
+		BufferUpdateDesc lion_objBuffUpdateDesc = { pLionBuffer };
+		beginUpdateResource(&lion_objBuffUpdateDesc);
+		*(UniformObjData*)lion_objBuffUpdateDesc.pMappedData = gUniformDataMVP;
+		endUpdateResource(&lion_objBuffUpdateDesc, NULL);
 
 		// Add light to scene
 
@@ -955,14 +909,14 @@ class PixelProjectedReflections: public IApp
 		light.mRadius = 10.0f;
 		light.mIntensity = 400.0f;
 
-		pUniformDataLights.mLights[0] = light;
+		gUniformDataLights.mLights[0] = light;
 
 		light.mCol = vec4(1.0f, 0.5f, 0.1f, 0.0f);
 		light.mPos = vec4(-12.5f, -3.5f, -3.7f, 0.0f);
 		light.mRadius = 10.0f;
 		light.mIntensity = 400.0f;
 
-		pUniformDataLights.mLights[1] = light;
+		gUniformDataLights.mLights[1] = light;
 
 		// Add light to scene
 		light.mCol = vec4(1.0f, 0.5f, 0.1f, 0.0f);
@@ -970,18 +924,20 @@ class PixelProjectedReflections: public IApp
 		light.mRadius = 10.0f;
 		light.mIntensity = 400.0f;
 
-		pUniformDataLights.mLights[2] = light;
+		gUniformDataLights.mLights[2] = light;
 
 		light.mCol = vec4(1.0f, 0.5f, 0.1f, 0.0f);
 		light.mPos = vec4(9.5f, -3.5f, -3.7f, 0.0f);
 		light.mRadius = 10.0f;
 		light.mIntensity = 400.0f;
 
-		pUniformDataLights.mLights[3] = light;
+		gUniformDataLights.mLights[3] = light;
 
-		pUniformDataLights.mCurrAmountOfLights = 4;
-		BufferUpdateDesc lightBuffUpdateDesc = { pBufferUniformLights, &pUniformDataLights };
-		updateResource(&lightBuffUpdateDesc);
+		gUniformDataLights.mCurrAmountOfLights = 4;
+		BufferUpdateDesc lightBuffUpdateDesc = { pBufferUniformLights };
+		beginUpdateResource(&lightBuffUpdateDesc);
+		*(UniformLightData*)lightBuffUpdateDesc.pMappedData = gUniformDataLights;
+		endUpdateResource(&lightBuffUpdateDesc, NULL);
 
 		//Directional light
 		DirectionalLight dLight;
@@ -989,10 +945,12 @@ class PixelProjectedReflections: public IApp
 		dLight.mPos = vec4(0.0f, 0.0f, 0.0f, 0.0f);
 		dLight.mDir = vec4(-1.0f, -1.5f, 1.0f, 0.0f);
 
-		pUniformDataDirectionalLights.mLights[0] = dLight;
-		pUniformDataDirectionalLights.mCurrAmountOfDLights = 1;
-		BufferUpdateDesc directionalLightBuffUpdateDesc = { pBufferUniformDirectionalLights, &pUniformDataDirectionalLights };
-		updateResource(&directionalLightBuffUpdateDesc);
+		gUniformDataDirectionalLights.mLights[0] = dLight;
+		gUniformDataDirectionalLights.mCurrAmountOfDLights = 1;
+		BufferUpdateDesc directionalLightBuffUpdateDesc = { pBufferUniformDirectionalLights };
+		beginUpdateResource(&directionalLightBuffUpdateDesc);
+		*(UniformDirectionalLightData*)directionalLightBuffUpdateDesc.pMappedData = gUniformDataDirectionalLights;
+		endUpdateResource(&directionalLightBuffUpdateDesc, NULL);
 
 		pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
 
@@ -1022,7 +980,6 @@ class PixelProjectedReflections: public IApp
 		guiDesc2.mStartPosition = vec2(700.0f / dpiScale, 450.0f / dpiScale);
 		pLoadingGui = gAppUI.AddGuiComponent("Loading", &guiDesc2);
 
-		mProgressBarValueMax = 2 * ModelTotalProgress + TOTAL_IMGS * TextureTotalProgress;
 		ProgressBarWidget ProgressBar("               [ProgressBar]               ", &mProgressBarValue, mProgressBarValueMax);
 		pLoadingGui->AddWidget(ProgressBar);
 
@@ -1034,19 +991,42 @@ class PixelProjectedReflections: public IApp
 
 		pCameraController->setMotionParameters(camParameters);
 
-		pQueueMutex = conf_new(Mutex);
-		pQueueMutex->Init();
+		// fill Gbuffers
+		// Create vertex layout
+		gVertexLayoutModel.mAttribCount = 3;
+
+		gVertexLayoutModel.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		gVertexLayoutModel.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		gVertexLayoutModel.mAttribs[0].mBinding = 0;
+		gVertexLayoutModel.mAttribs[0].mLocation = 0;
+		gVertexLayoutModel.mAttribs[0].mOffset = 0;
+
+		//normals
+		gVertexLayoutModel.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
+		gVertexLayoutModel.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		gVertexLayoutModel.mAttribs[1].mLocation = 1;
+		gVertexLayoutModel.mAttribs[1].mBinding = 0;
+		gVertexLayoutModel.mAttribs[1].mOffset = 3 * sizeof(float);
+
+		//texture
+		gVertexLayoutModel.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
+		gVertexLayoutModel.mAttribs[2].mFormat = TinyImageFormat_R32G32_SFLOAT;
+		gVertexLayoutModel.mAttribs[2].mLocation = 2;
+		gVertexLayoutModel.mAttribs[2].mBinding = 0;
+		gVertexLayoutModel.mAttribs[2].mOffset = 6 * sizeof(float);    // first attribute contains 3 floats
+
+		for (size_t i = 0; i < TOTAL_IMGS; i += 1)
+		{
+			loadTexture(i);
+		}
 		
-		// In case copy queue should be externally synchronized(e.g. Vulkan with 1 queueu)
-		// do resource streaming after resource loading completed.
-		// Shared queue won't be used concurrently,
-		// unless someone will try to update GPU only or GPU-to-CPU resource after this point
-		addThreadSystemRangeTask(
-			pIOThreads, &memberTaskFunc<PixelProjectedReflections, &PixelProjectedReflections::loadTexture>, this, TOTAL_IMGS);
+		for (size_t i = 0; i < 2; i += 1)
+		{
+			loadMesh(i);
+		}
 
-		addThreadSystemRangeTask(
-			pIOThreads, &memberTaskFunc<PixelProjectedReflections, &PixelProjectedReflections::loadMesh>, this, 2);
-
+		gResourceSyncStartToken = getLastTokenCompleted();
+		
 		assignSponzaTextures();
 
 		if (!initInputSystem(pWindow))
@@ -1054,7 +1034,7 @@ class PixelProjectedReflections: public IApp
 
 
 		// App Actions
-    InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
@@ -1104,22 +1084,11 @@ class PixelProjectedReflections: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		while (!isThreadSystemIdle(pIOThreads) || !isBatchCompleted())
-		{
-			processWaitQueue();
-			Thread::Sleep(1);
-		}
-
-		// Process one last time to complete any remaining tasks
-		processWaitQueue();
-
 		// Remove streamer before removing any actual resources
 		// otherwise we might delete a resource while uploading to it.
-		shutdownThreadSystem(pIOThreads);
-		finishResourceLoading();
+		waitForToken(&gResourceSyncToken);
+		waitForAllResourceLoads();
 
-		pQueueMutex->Destroy();
-		conf_delete(pQueueMutex);
 
 		exitInputSystem();
 		destroyCameraController(pCameraController);
@@ -1173,8 +1142,8 @@ class PixelProjectedReflections: public IApp
 		removeResource(pSkyboxVertexBuffer);
 		removeResource(pScreenQuadVertexBuffer);
 
-		for (Mesh& model : gModels)
-			unloadMesh(model);
+		for (Geometry*& model : gModels)
+			removeResource(model);
 
 		gAppUI.Exit();
 
@@ -1198,22 +1167,10 @@ class PixelProjectedReflections: public IApp
 		removeRootSignature(pRenderer, pRootSigGbuffers);
 
 		// Remove commands and command pool&
-		removeCmd_n(pCmdPool, gImageCount, ppCmds);
+		removeCmd_n(pRenderer, gImageCount, ppCmds);
 		removeCmdPool(pRenderer, pCmdPool);
 
-		removeQueue(pGraphicsQueue);
-
-		removeCmd_n(pPreCmdPool, gImageCount, pPrepCmds);
-		removeCmdPool(pRenderer, pPreCmdPool);
-
-		removeCmd_n(pBrdfCmdPool, gImageCount, pBrdfCmds);
-		removeCmdPool(pRenderer, pBrdfCmdPool);
-
-		removeCmd_n(pPPR_ProjectionCmdPool, gImageCount, pPPR_ProjectionCmds);
-		removeCmdPool(pRenderer, pPPR_ProjectionCmdPool);
-
-		removeCmd_n(pPPR_ReflectionCmdPool, gImageCount, pPPR_ReflectionCmds);
-		removeCmdPool(pRenderer, pPPR_ReflectionCmdPool);
+		removeQueue(pRenderer, pGraphicsQueue);
 
 		for (uint i = 0; i < TOTAL_IMGS; ++i)
 		{
@@ -1224,12 +1181,11 @@ class PixelProjectedReflections: public IApp
 		}
 
 		// Remove resource loader and renderer
-		removeResourceLoaderInterface(pRenderer);
+		exitResourceLoaderInterface(pRenderer);
 		removeRenderer(pRenderer);
 
 		gSponzaTextureIndexforMaterial.set_capacity(0);
 		gInitializeVal.set_capacity(0);
-		mWaitQueue.set_capacity(0);
 	}
 
 	void ComputePBRMaps()
@@ -1272,12 +1228,12 @@ class PixelProjectedReflections: public IApp
 		addSampler(pRenderer, &samplerDesc, &pSkyboxSampler);
 
 		// Load the skybox panorama texture.
+		SyncToken token = {};
 		PathHandle panoramaFilePath = fsCopyPathInResourceDirectory(RD_OTHER_FILES, skyboxNames[skyboxIndex]);
-		SyncToken       token = 0;
 		TextureLoadDesc panoDesc = {};
 		panoDesc.pFilePath = panoramaFilePath;
 		panoDesc.ppTexture = &pPanoSkybox;
-		addResource(&panoDesc, &token);
+		addResource(&panoDesc, &token, LOAD_PRIORITY_HIGH);
 
 		TextureDesc skyboxImgDesc = {};
 		skyboxImgDesc.mArraySize = 6;
@@ -1294,7 +1250,7 @@ class PixelProjectedReflections: public IApp
 		TextureLoadDesc skyboxLoadDesc = {};
 		skyboxLoadDesc.pDesc = &skyboxImgDesc;
 		skyboxLoadDesc.ppTexture = &pSkybox;
-		addResource(&skyboxLoadDesc);
+		addResource(&skyboxLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		TextureDesc irrImgDesc = {};
 		irrImgDesc.mArraySize = 6;
@@ -1311,7 +1267,7 @@ class PixelProjectedReflections: public IApp
 		TextureLoadDesc irrLoadDesc = {};
 		irrLoadDesc.pDesc = &irrImgDesc;
 		irrLoadDesc.ppTexture = &pIrradianceMap;
-		addResource(&irrLoadDesc);
+		addResource(&irrLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		TextureDesc specImgDesc = {};
 		specImgDesc.mArraySize = 6;
@@ -1328,7 +1284,7 @@ class PixelProjectedReflections: public IApp
 		TextureLoadDesc specImgLoadDesc = {};
 		specImgLoadDesc.pDesc = &specImgDesc;
 		specImgLoadDesc.ppTexture = &pSpecularMap;
-		addResource(&specImgLoadDesc);
+		addResource(&specImgLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		// Create empty texture for BRDF integration map.
 		TextureLoadDesc brdfIntegrationLoadDesc = {};
@@ -1344,7 +1300,7 @@ class PixelProjectedReflections: public IApp
 		brdfIntegrationDesc.mHostVisible = false;
 		brdfIntegrationLoadDesc.pDesc = &brdfIntegrationDesc;
 		brdfIntegrationLoadDesc.ppTexture = &pBRDFIntegrationMap;
-		addResource(&brdfIntegrationLoadDesc);
+		addResource(&brdfIntegrationLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		// Load pre-processing shaders.
 		ShaderLoadDesc panoToCubeShaderDesc = {};
@@ -1357,11 +1313,17 @@ class PixelProjectedReflections: public IApp
 		sprintf(importanceSampleCountBuffer, "%u", importanceSampleCount);
 		ShaderMacro    importanceSampleMacro = { "IMPORTANCE_SAMPLE_COUNT", importanceSampleCountBuffer };
 
+		float          irradianceSampleDeltas[GPUPresetLevel::GPU_PRESET_COUNT] = { 0, 0, 0.25f, 0.025f, 0.025f, 0.025f };
+		float          irradianceSampleDelta = irradianceSampleDeltas[presetLevel];
+		char           irradianceSampleDeltaBuffer[10] = {};
+		sprintf(irradianceSampleDeltaBuffer, "%f", irradianceSampleDelta);
+		ShaderMacro    irradianceSampleMacro = { "SAMPLE_DELTA", irradianceSampleDeltaBuffer };
+
 		ShaderLoadDesc brdfIntegrationShaderDesc = {};
 		brdfIntegrationShaderDesc.mStages[0] = { "BRDFIntegration.comp", &importanceSampleMacro, 1, RD_SHADER_SOURCES };
 
 		ShaderLoadDesc irradianceShaderDesc = {};
-		irradianceShaderDesc.mStages[0] = { "computeIrradianceMap.comp", NULL, 0, RD_SHADER_SOURCES };
+		irradianceShaderDesc.mStages[0] = { "computeIrradianceMap.comp", &irradianceSampleMacro, 1, RD_SHADER_SOURCES };
 
 		ShaderLoadDesc specularShaderDesc = {};
 		specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", &importanceSampleMacro, 1, RD_SHADER_SOURCES };
@@ -1441,7 +1403,7 @@ class PixelProjectedReflections: public IApp
 			{ pSpecularMap, RESOURCE_STATE_UNORDERED_ACCESS },
 			{ pBRDFIntegrationMap, RESOURCE_STATE_UNORDERED_ACCESS },
 		};
-		cmdResourceBarrier(pCmd, 0, NULL, 4, uavBarriers);
+		cmdResourceBarrier(pCmd, 0, NULL, 4, uavBarriers, 0, NULL);
 
 		cmdBindPipeline(pCmd, pBRDFIntegrationPipeline);
 		DescriptorData params[2] = {};
@@ -1456,7 +1418,7 @@ class PixelProjectedReflections: public IApp
 
 		TextureBarrier srvBarrier[1] = { { pBRDFIntegrationMap, RESOURCE_STATE_SHADER_RESOURCE } };
 
-		cmdResourceBarrier(pCmd, 0, NULL, 1, srvBarrier);
+		cmdResourceBarrier(pCmd, 0, NULL, 1, srvBarrier, 0, NULL);
 
 #ifndef TARGET_IOS
 		// Store the panorama texture inside a cubemap.
@@ -1489,8 +1451,7 @@ class PixelProjectedReflections: public IApp
 		}
 
 		TextureBarrier srvBarriers[1] = { { pSkybox, RESOURCE_STATE_SHADER_RESOURCE } };
-		cmdResourceBarrier(pCmd, 0, NULL, 1, srvBarriers);
-
+		cmdResourceBarrier(pCmd, 0, NULL, 1, srvBarriers, 0, NULL);
 		/************************************************************************/
 		// Compute sky irradiance
 		/************************************************************************/
@@ -1543,12 +1504,17 @@ class PixelProjectedReflections: public IApp
 		/************************************************************************/
 		TextureBarrier srvBarriers2[2] = { { pIrradianceMap, RESOURCE_STATE_SHADER_RESOURCE },
 										   { pSpecularMap, RESOURCE_STATE_SHADER_RESOURCE } };
-		cmdResourceBarrier(pCmd, 0, NULL, 2, srvBarriers2);
+		cmdResourceBarrier(pCmd, 0, NULL, 2, srvBarriers2, 0, NULL);
 
 		endCmd(pCmd);
-		waitTokenCompleted(token);
-		queueSubmit(pGraphicsQueue, 1, &pCmd, NULL, 0, NULL, 0, NULL);
-		waitQueueIdle(pGraphicsQueue);
+        
+		QueueSubmitDesc submitDesc = {};
+		submitDesc.mCmdCount = 1;
+		submitDesc.ppCmds = &pCmd;
+		submitDesc.pSignalFence = pRenderCompleteFences[0];
+		submitDesc.mSubmitDone = true;
+		queueSubmit(pGraphicsQueue, &submitDesc);
+		waitForFences(pRenderer, 1, &pRenderCompleteFences[0]);
 
 		removeDescriptorSet(pRenderer, pDescriptorSetBRDF);
 #ifndef TARGET_IOS
@@ -1577,157 +1543,21 @@ class PixelProjectedReflections: public IApp
 	void loadMesh(size_t index)
 	{
 		//Load Sponza
-		AssimpImporter        importer;
-		AssimpImporter::Model model;
 		PathHandle sceneFullPath = fsCopyPathInResourceDirectory(RD_MESHES, gModelNames[index]);
-
-		if (!importer.ImportModel(sceneFullPath, &model))
-		{
-			LOGF(LogLevel::eERROR, "Failed to load %s", fsGetPathFileName(sceneFullPath).buffer);
-			return;
-		}
-
-		uint32_t meshCount = (uint32_t)model.mMeshArray.size();
-
-		Mesh& mesh = gModels[index];
-		MeshVertex* pVertices = NULL;
-		uint32_t*   pIndices = NULL;
-
-		mesh.materialID.resize(meshCount);
-		mesh.cmdArray.resize(meshCount);
-
-		uint32_t totalVertexCount = 0;
-		uint32_t totalIndexCount = 0;
-		for (uint32_t i = 0; i < meshCount; i++)
-		{
-			AssimpImporter::Mesh subMesh = model.mMeshArray[i];
-
-			mesh.materialID[i] = subMesh.mMaterialId;
-
-			uint32_t vertexCount = (uint32_t)subMesh.mPositions.size();
-			uint32_t indexCount = (uint32_t)subMesh.mIndices.size();
-
-			mesh.cmdArray[i] = { indexCount, totalIndexCount, totalVertexCount };
-
-			pVertices = (MeshVertex*)conf_realloc(pVertices, sizeof(MeshVertex) * (totalVertexCount + vertexCount));
-			pIndices = (uint32_t*)conf_realloc(pIndices, sizeof(uint32_t) * (totalIndexCount + indexCount));
-
-			for (uint32_t j = 0; j < vertexCount; j++)
-			{
-				pVertices[totalVertexCount++] = { subMesh.mPositions[j], subMesh.mNormals[j], subMesh.mUvs[j] };
-			}
-
-			for (uint32_t j = 0; j < indexCount; j++)
-			{
-				pIndices[totalIndexCount++] = subMesh.mIndices[j];
-			}
-		}
-
-		SyncToken token;
-
-		// Vertex position buffer for the scene
-		BufferLoadDesc vbPosDesc = {};
-		vbPosDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-		vbPosDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		vbPosDesc.mDesc.mVertexStride = sizeof(MeshVertex);
-		vbPosDesc.mDesc.mSize = totalVertexCount * sizeof(MeshVertex);
-		vbPosDesc.pData = pVertices;
-		vbPosDesc.ppBuffer = &mesh.pVertexBuffer;
-		vbPosDesc.mDesc.pDebugName = L"Vertex Position Buffer Desc for Sponza";
-		addResource(&vbPosDesc, &token);
-		addToWaitQueue({ token, { &freeData, pVertices, 0 } });
-
-		// Index buffer for the scene
-		BufferLoadDesc ibDesc = {};
-		ibDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
-		ibDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		ibDesc.mDesc.mIndexType = INDEX_TYPE_UINT32;
-		ibDesc.mDesc.mSize = sizeof(uint32_t) * totalIndexCount;
-		ibDesc.pData = pIndices;
-		ibDesc.ppBuffer = &mesh.pIndexBuffer;
-		ibDesc.mDesc.pDebugName = L"Index Buffer Desc for Sponza";
-		addResource(&ibDesc, &token);
-		addToWaitQueue({ token, { &freeData, pIndices, 0 } });
-
-		addToWaitQueue(
-			{ token, { &methodCallback<PixelProjectedReflections, &PixelProjectedReflections::onResourceLoaded>, this, index } });
+		GeometryLoadDesc loadDesc = {};
+		loadDesc.pFilePath = sceneFullPath;
+		loadDesc.ppGeometry = &gModels[index];
+		loadDesc.pVertexLayout = &gVertexLayoutModel;
+		addResource(&loadDesc, &gResourceSyncToken, LOAD_PRIORITY_NORMAL);
 	}
 
 	void loadTexture(size_t index)
 	{
 		PathHandle texturePath = fsCopyPathInResourceDirectory(RD_TEXTURES, pMaterialImageFileNames[index]);
-		TextureLoadDesc textureDesc;
-		memset(&textureDesc, 0, sizeof(textureDesc));
+		TextureLoadDesc textureDesc = {};
 		textureDesc.pFilePath = texturePath;
 		textureDesc.ppTexture = &pMaterialTextures[index];
-		SyncToken token;
-		addResource(&textureDesc, &token);
-		addToWaitQueue(
-			{ token, { &methodCallback<PixelProjectedReflections, &PixelProjectedReflections::onResourceLoaded>, this, index + 2 } });
-	}
-
-	static void freeData(void* userData, size_t)
-	{
-		conf_free(userData);
-		userData = NULL;
-	}
-
-	typedef struct OnCompletion
-	{
-		void (*mOnCompletion)(void* userData, size_t arg);
-		void*  mUserData;
-		size_t mArg;
-	} OnCompletion;
-
-	template <class T, void (T::*callback)(size_t)>
-	static void methodCallback(void* userData, size_t arg)
-	{
-		T* pThis = static_cast<T*>(userData);
-		(pThis->*callback)(arg);
-	}
-
-	struct ResourceWait
-	{
-		SyncToken    mToken;
-		OnCompletion mCompletion;
-	};
-	eastl::vector<ResourceWait> mWaitQueue;
-	Mutex*                      pQueueMutex;
-
-	void addToWaitQueue(ResourceWait wait)
-	{
-		pQueueMutex->Acquire();
-		mWaitQueue.push_back(wait);
-		pQueueMutex->Release();
-	}
-
-	void processWaitQueue()
-	{
-		const size_t MAX_COMPLETION_CHECKS = 16;
-		size_t       index = 0, count = MAX_COMPLETION_CHECKS;
-		pQueueMutex->Acquire();
-		while (index < count && index < mWaitQueue.size())
-		{
-			ResourceWait& resourceWait = mWaitQueue[index];
-			if (isTokenCompleted(resourceWait.mToken))
-			{
-				resourceWait.mCompletion.mOnCompletion(resourceWait.mCompletion.mUserData, resourceWait.mCompletion.mArg);
-				mWaitQueue.erase(mWaitQueue.begin() + index);
-
-				--count;
-			}
-			else
-			{
-				index++;
-			}
-		}
-		pQueueMutex->Release();
-	}
-
-	void onResourceLoaded(size_t resourceID)
-	{
-		uint64_t value = resourceID < 2 ? ModelTotalProgress : TextureTotalProgress;
-		mAtomicProgress += value;
+		addResource(&textureDesc, &gResourceSyncToken, LOAD_PRIORITY_NORMAL);
 	}
 
 	bool Load()
@@ -1750,39 +1580,13 @@ class PixelProjectedReflections: public IApp
 		if (!addIntermeditateBuffer())
 			return false;
 
-		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
+		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
 			return false;
 
 		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
-		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
+		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
-
-		// fill Gbuffers
-		// Create vertex layout
-		VertexLayout vertexLayoutSphere = {};
-		vertexLayoutSphere.mAttribCount = 3;
-
-		vertexLayoutSphere.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayoutSphere.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayoutSphere.mAttribs[0].mBinding = 0;
-		vertexLayoutSphere.mAttribs[0].mLocation = 0;
-		vertexLayoutSphere.mAttribs[0].mOffset = 0;
-
-		//normals
-		vertexLayoutSphere.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-		vertexLayoutSphere.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayoutSphere.mAttribs[1].mLocation = 1;
-
-		vertexLayoutSphere.mAttribs[1].mBinding = 0;
-		vertexLayoutSphere.mAttribs[1].mOffset = 3 * sizeof(float);
-
-		//texture
-		vertexLayoutSphere.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayoutSphere.mAttribs[2].mFormat = TinyImageFormat_R32G32_SFLOAT;
-		vertexLayoutSphere.mAttribs[2].mLocation = 2;
-		vertexLayoutSphere.mAttribs[2].mBinding = 0;
-		vertexLayoutSphere.mAttribs[2].mOffset = 6 * sizeof(float);    // first attribute contains 3 floats
 
 		/************************************************************************/
 		// Setup the resources needed for the Deferred Pass Pipeline
@@ -1808,7 +1612,7 @@ class PixelProjectedReflections: public IApp
 		deferredPassPipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
 		deferredPassPipelineSettings.pRootSignature = pRootSigGbuffers;
 		deferredPassPipelineSettings.pShaderProgram = pShaderGbuffers;
-		deferredPassPipelineSettings.pVertexLayout = &vertexLayoutSphere;
+		deferredPassPipelineSettings.pVertexLayout = &gVertexLayoutModel;
 		deferredPassPipelineSettings.pRasterizerState = pRasterstateDefault;
 		addPipeline(pRenderer, &desc, &pPipelineGbuffers);
 
@@ -1905,9 +1709,9 @@ class PixelProjectedReflections: public IApp
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = NULL;
 
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
 
 		pipelineSettings.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
 		pipelineSettings.pRootSignature = pPPR_HolePatchingRootSignature;
@@ -1956,8 +1760,6 @@ class PixelProjectedReflections: public IApp
 	{
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
-		processWaitQueue();
-
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
 		{
@@ -1975,43 +1777,43 @@ class PixelProjectedReflections: public IApp
 
 		mat4 ViewProjMat = projMat * viewMat;
 
-		pUniformDataCamera.mProjectView = ViewProjMat;
-		pUniformDataCamera.mCamPos = pCameraController->getViewPosition();
+		gUniformDataCamera.mProjectView = ViewProjMat;
+		gUniformDataCamera.mCamPos = pCameraController->getViewPosition();
 
 		viewMat.setTranslation(vec3(0));
-		gUniformDataSky = pUniformDataCamera;
+		gUniformDataSky = gUniformDataCamera;
 		gUniformDataSky.mProjectView = projMat * viewMat;
 
 		//data uniforms
-		pUniformDataExtenedCamera.mCameraWorldPos = vec4(pCameraController->getViewPosition(), 1.0);
-		pUniformDataExtenedCamera.mViewMat = pCameraController->getViewMatrix();
-		pUniformDataExtenedCamera.mProjMat = projMat;
-		pUniformDataExtenedCamera.mViewProjMat = ViewProjMat;
-		pUniformDataExtenedCamera.mInvViewProjMat = inverse(ViewProjMat);
-		pUniformDataExtenedCamera.mViewPortSize =
+		gUniformDataExtenedCamera.mCameraWorldPos = vec4(pCameraController->getViewPosition(), 1.0);
+		gUniformDataExtenedCamera.mViewMat = pCameraController->getViewMatrix();
+		gUniformDataExtenedCamera.mProjMat = projMat;
+		gUniformDataExtenedCamera.mViewProjMat = ViewProjMat;
+		gUniformDataExtenedCamera.mInvViewProjMat = inverse(ViewProjMat);
+		gUniformDataExtenedCamera.mViewPortSize =
 			vec4(static_cast<float>(mSettings.mWidth), static_cast<float>(mSettings.mHeight), 0.0, 0.0);
 
 		//projection uniforms
-		pUniformPPRProData.renderMode = gRenderMode;
-		pUniformPPRProData.useHolePatching = gUseHolePatching == true ? 1.0f : 0.0f;
-		pUniformPPRProData.useExpensiveHolePatching = gUseExpensiveHolePatching == true ? 1.0f : 0.0f;
-		pUniformPPRProData.useNormalMap = gUseNormalMap == true ? 1.0f : 0.0f;
-		pUniformPPRProData.useFadeEffect = gUseFadeEffect == true ? 1.0f : 0.0f;
-		pUniformPPRProData.intensity = gRRP_Intensity;
+		gUniformPPRProData.renderMode = gRenderMode;
+		gUniformPPRProData.useHolePatching = gUseHolePatching == true ? 1.0f : 0.0f;
+		gUniformPPRProData.useExpensiveHolePatching = gUseExpensiveHolePatching == true ? 1.0f : 0.0f;
+		gUniformPPRProData.useNormalMap = gUseNormalMap == true ? 1.0f : 0.0f;
+		gUniformPPRProData.useFadeEffect = gUseFadeEffect == true ? 1.0f : 0.0f;
+		gUniformPPRProData.intensity = gRRP_Intensity;
 
 		//Planes
-		pUniformDataPlaneInfo.numPlanes = gPlaneNumber;
-		pUniformDataPlaneInfo.planeInfo[0].centerPoint = vec4(0.0, -6.0f, 0.9f, 0.0);
-		pUniformDataPlaneInfo.planeInfo[0].size = vec4(gPlaneSize);
+		gUniformDataPlaneInfo.numPlanes = gPlaneNumber;
+		gUniformDataPlaneInfo.planeInfo[0].centerPoint = vec4(0.0, -6.0f, 0.9f, 0.0);
+		gUniformDataPlaneInfo.planeInfo[0].size = vec4(gPlaneSize);
 
-		pUniformDataPlaneInfo.planeInfo[1].centerPoint = vec4(10.0, -5.0f, -1.25f, 0.0);
-		pUniformDataPlaneInfo.planeInfo[1].size = vec4(9.0f, 2.0f, 0.0f, 0.0f);
+		gUniformDataPlaneInfo.planeInfo[1].centerPoint = vec4(10.0, -5.0f, -1.25f, 0.0);
+		gUniformDataPlaneInfo.planeInfo[1].size = vec4(9.0f, 2.0f, 0.0f, 0.0f);
 
-		pUniformDataPlaneInfo.planeInfo[2].centerPoint = vec4(10.0, -5.0f, 3.0f, 0.0);
-		pUniformDataPlaneInfo.planeInfo[2].size = vec4(9.0f, 2.0f, 0.0f, 0.0f);
+		gUniformDataPlaneInfo.planeInfo[2].centerPoint = vec4(10.0, -5.0f, 3.0f, 0.0);
+		gUniformDataPlaneInfo.planeInfo[2].size = vec4(9.0f, 2.0f, 0.0f, 0.0f);
 
-		pUniformDataPlaneInfo.planeInfo[3].centerPoint = vec4(10.0, 1.0f, 0.9f, 0.0);
-		pUniformDataPlaneInfo.planeInfo[3].size = vec4(10.0f);
+		gUniformDataPlaneInfo.planeInfo[3].centerPoint = vec4(10.0, 1.0f, 0.9f, 0.0);
+		gUniformDataPlaneInfo.planeInfo[3].size = vec4(10.0f);
 
 		mat4 basicMat;
 		basicMat[0] = vec4(1.0, 0.0, 0.0, 0.0);     //tan
@@ -2019,28 +1821,30 @@ class PixelProjectedReflections: public IApp
 		basicMat[2] = vec4(0.0, 1.0, 0.0, 0.0);     //normal
 		basicMat[3] = vec4(0.0, 0.0, 0.0, 1.0);
 
-		pUniformDataPlaneInfo.planeInfo[0].rotMat = basicMat;
+		gUniformDataPlaneInfo.planeInfo[0].rotMat = basicMat;
 
-		pUniformDataPlaneInfo.planeInfo[1].rotMat = basicMat.rotationX(0.01745329251994329576923690768489f * -80.0f);
-		pUniformDataPlaneInfo.planeInfo[2].rotMat = basicMat.rotationX(0.01745329251994329576923690768489f * -100.0f);
-		pUniformDataPlaneInfo.planeInfo[3].rotMat = basicMat.rotationX(0.01745329251994329576923690768489f * 90.0f);
+		gUniformDataPlaneInfo.planeInfo[1].rotMat = basicMat.rotationX(0.01745329251994329576923690768489f * -80.0f);
+		gUniformDataPlaneInfo.planeInfo[2].rotMat = basicMat.rotationX(0.01745329251994329576923690768489f * -100.0f);
+		gUniformDataPlaneInfo.planeInfo[3].rotMat = basicMat.rotationX(0.01745329251994329576923690768489f * 90.0f);
 		;
 
-#if defined(DIRECT3D12) || defined(_DURANGO)
+#if defined(DIRECT3D12) || defined(ORBIS)
 
 		// Need to check why this should be transposed on DX12
 		// Even view or proj matrices work well....
 
-		pUniformDataPlaneInfo.planeInfo[0].rotMat = transpose(pUniformDataPlaneInfo.planeInfo[0].rotMat);
-		pUniformDataPlaneInfo.planeInfo[1].rotMat = transpose(pUniformDataPlaneInfo.planeInfo[1].rotMat);
-		pUniformDataPlaneInfo.planeInfo[2].rotMat = transpose(pUniformDataPlaneInfo.planeInfo[2].rotMat);
-		pUniformDataPlaneInfo.planeInfo[3].rotMat = transpose(pUniformDataPlaneInfo.planeInfo[3].rotMat);
+		gUniformDataPlaneInfo.planeInfo[0].rotMat = transpose(gUniformDataPlaneInfo.planeInfo[0].rotMat);
+		gUniformDataPlaneInfo.planeInfo[1].rotMat = transpose(gUniformDataPlaneInfo.planeInfo[1].rotMat);
+		gUniformDataPlaneInfo.planeInfo[2].rotMat = transpose(gUniformDataPlaneInfo.planeInfo[2].rotMat);
+		gUniformDataPlaneInfo.planeInfo[3].rotMat = transpose(gUniformDataPlaneInfo.planeInfo[3].rotMat);
 
 #endif
 
-		mPrevProgressBarValue = mProgressBarValue;
-		mProgressBarValue = mAtomicProgress;
-
+		LoadPriority loadPriority = LOAD_PRIORITY_NORMAL;
+		SyncToken currentProgress = getLastTokenCompleted();
+		double progress = (double)(currentProgress.mWaitIndex[loadPriority] - gResourceSyncStartToken.mWaitIndex[loadPriority]) /
+											(double)(gResourceSyncToken.mWaitIndex[loadPriority] - gResourceSyncStartToken.mWaitIndex[loadPriority]);
+		mProgressBarValue = (size_t)(mProgressBarValueMax * progress);
 
     if (gMicroProfiler != bPrevToggleMicroProfiler)
     {
@@ -2068,25 +1872,33 @@ class PixelProjectedReflections: public IApp
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
-		eastl::vector<Cmd*> allCmds;
+		BufferUpdateDesc camBuffUpdateDesc = { pBufferUniformCamera[gFrameIndex] };
+		beginUpdateResource(&camBuffUpdateDesc);
+		*(UniformCamData*)camBuffUpdateDesc.pMappedData = gUniformDataCamera;
+		endUpdateResource(&camBuffUpdateDesc, NULL);
 
-		BufferUpdateDesc camBuffUpdateDesc = { pBufferUniformCamera[gFrameIndex], &pUniformDataCamera };
-		updateResource(&camBuffUpdateDesc);
+		BufferUpdateDesc skyboxViewProjCbv = { pBufferUniformCameraSky[gFrameIndex] };
+		beginUpdateResource(&skyboxViewProjCbv);
+		*(UniformCamData*)skyboxViewProjCbv.pMappedData = gUniformDataSky;
+		endUpdateResource(&skyboxViewProjCbv, NULL);
 
-		BufferUpdateDesc skyboxViewProjCbv = { pBufferUniformCameraSky[gFrameIndex], &gUniformDataSky };
-		updateResource(&skyboxViewProjCbv);
+		BufferUpdateDesc CbvExtendedCamera = { pBufferUniformExtendedCamera[gFrameIndex] };
+		beginUpdateResource(&CbvExtendedCamera);
+		*(UniformExtendedCamData*)CbvExtendedCamera.pMappedData = gUniformDataExtenedCamera;
+		endUpdateResource(&CbvExtendedCamera, NULL);
 
-		BufferUpdateDesc CbvExtendedCamera = { pBufferUniformExtendedCamera[gFrameIndex], &pUniformDataExtenedCamera };
-		updateResource(&CbvExtendedCamera);
+		BufferUpdateDesc CbPPR_Prop = { pBufferUniformPPRPro[gFrameIndex] };
+		beginUpdateResource(&CbPPR_Prop);
+		*(UniformPPRProData*)CbPPR_Prop.pMappedData = gUniformPPRProData;
+		endUpdateResource(&CbPPR_Prop, NULL);
 
-		BufferUpdateDesc CbPPR_Prop = { pBufferUniformPPRPro[gFrameIndex], &pUniformPPRProData };
-		updateResource(&CbPPR_Prop);
-
-		BufferUpdateDesc planeInfoBuffUpdateDesc = { pBufferUniformPlaneInfo[gFrameIndex], &pUniformDataPlaneInfo };
-		updateResource(&planeInfoBuffUpdateDesc);
+		BufferUpdateDesc planeInfoBuffUpdateDesc = { pBufferUniformPlaneInfo[gFrameIndex] };
+		beginUpdateResource(&planeInfoBuffUpdateDesc);
+		*(UniformPlaneInfoData*)planeInfoBuffUpdateDesc.pMappedData = gUniformDataPlaneInfo;
+		endUpdateResource(&planeInfoBuffUpdateDesc, NULL);
 
 		// Draw G-buffers
-		Cmd* cmd = pPrepCmds[gFrameIndex];
+		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
 
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
@@ -2100,19 +1912,18 @@ class PixelProjectedReflections: public IApp
 		}
 
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth = { 1.0f, 0.0f };    // Clear depth to the far plane and stencil to 0
+		loadActions.mClearDepth = { {{1.0f, 0.0f}} };    // Clear depth to the far plane and stencil to 0
 
 		// Transfer G-buffers to render target state for each buffer
-		TextureBarrier barrier;
+		RenderTargetBarrier barriers[DEFERRED_RT_COUNT + 2] = {};
+		barriers[0] = { pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE };
 		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
 		{
-			barrier = { pRenderTargetDeferredPass[i]->pTexture, RESOURCE_STATE_RENDER_TARGET };
-			cmdResourceBarrier(cmd, 0, NULL, 1, &barrier);
+			barriers[1 + i] = { pRenderTargetDeferredPass[i], RESOURCE_STATE_RENDER_TARGET };
 		}
 
 		// Transfer DepthBuffer to a DephtWrite State
-		barrier = { pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE };
-		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier);
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, DEFERRED_RT_COUNT + 1, barriers);
 
 		cmdBindRenderTargets(cmd, 1, pRenderTargetDeferredPass, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(
@@ -2144,7 +1955,9 @@ class PixelProjectedReflections: public IApp
 		//so fallback to binding every texture for every draw call (max of 5 textures)
 
 		static bool prevDataLoaded = false;
-		bool dataLoaded = isThreadSystemIdle(pIOThreads) && isBatchCompleted();
+		
+		SyncToken lastCompletedToken = getLastTokenCompleted();
+		bool dataLoaded = isTokenCompleted(&gResourceSyncToken);
 		if (dataLoaded)
 		{
 			if (prevDataLoaded != dataLoaded)
@@ -2154,29 +1967,31 @@ class PixelProjectedReflections: public IApp
 				PrepareDescriptorSets(true);
 			}
 
-			Mesh& sponzaMesh = gModels[SPONZA_MODEL];
+			Geometry& sponzaMesh = *gModels[SPONZA_MODEL];
 
-			Buffer* pSponzaVertexBuffers[] = { sponzaMesh.pVertexBuffer };
-			cmdBindVertexBuffer(cmd, 1, pSponzaVertexBuffers, NULL);
 			cmdBindIndexBuffer(cmd, sponzaMesh.pIndexBuffer, 0);
+			Buffer* pSponzaVertexBuffers[] = { sponzaMesh.pVertexBuffers[0] };
+			cmdBindVertexBuffer(cmd, 1, pSponzaVertexBuffers, NULL);
 
 			struct MaterialMaps
 			{
-				uint mapIDs[5];
+				uint textureMaps;
 			} data;
+
 			
-			const uint32_t meshCount = (uint32_t)sponzaMesh.cmdArray.size();
+			const uint32_t drawCount = (uint32_t)sponzaMesh.mDrawArgCount;
 
 			if (gUseTexturesFallback)
 			{
 				cmdBindPipeline(cmd, pPipelineGbuffers);
+				cmdBindVertexBuffer(cmd, 1, pSponzaVertexBuffers, NULL);
 				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetGbuffers[1]);
 				cmdBindDescriptorSet(cmd, 0, pDescriptorSetGbuffers[2]);
 				DescriptorData params[8] = {};
 				
-				for (uint32_t i = 0; i < meshCount; ++i)
+				for (uint32_t i = 0; i < drawCount; ++i)
 				{
-					int materialID = sponzaMesh.materialID[i];
+					int materialID = gMaterialIds[i];
 					materialID *= 5;    //because it uses 5 basic textures for redering BRDF
 					
 					for (int j = 0; j < 5; ++j)
@@ -2187,34 +2002,36 @@ class PixelProjectedReflections: public IApp
 					updateDescriptorSet(pRenderer, i, pDescriptorSetGbuffers[0], 5, params);
 					cmdBindDescriptorSet(cmd, i, pDescriptorSetGbuffers[0]);
 					
-					Mesh::CmdParam& cmdData = sponzaMesh.cmdArray[i];
-					cmdDrawIndexed(cmd, cmdData.indexCount, cmdData.startIndex, cmdData.startVertex);
+					IndirectDrawIndexArguments& cmdData = sponzaMesh.pDrawArgs[i];
+					cmdDrawIndexed(cmd, cmdData.mIndexCount, cmdData.mStartIndex, cmdData.mVertexOffset);
 				}
 			}
 			else
 			{
 				cmdBindPipeline(cmd, pPipelineGbuffers);
+				cmdBindVertexBuffer(cmd, 1, pSponzaVertexBuffers, NULL);
 				cmdBindDescriptorSet(cmd, 0, pDescriptorSetGbuffers[0]);
 				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetGbuffers[1]);
 				cmdBindDescriptorSet(cmd, 0, pDescriptorSetGbuffers[2]);
 
-				for (uint32_t i = 0; i < meshCount; ++i)
+				for (uint32_t i = 0; i < drawCount; ++i)
 				{
-					int materialID = sponzaMesh.materialID[i];
+					int materialID = gMaterialIds[i];
 					materialID *= 5;    //because it uses 5 basic textures for redering BRDF
 
-					for (int j = 0; j < 5; ++j)
-					{
-						//added
-						data.mapIDs[j] = gSponzaTextureIndexforMaterial[materialID + j];
-					}
+					data.textureMaps =
+						((gSponzaTextureIndexforMaterial[materialID + 0] & 0xFF) << 0)  |
+						((gSponzaTextureIndexforMaterial[materialID + 1] & 0xFF) << 8)  |
+						((gSponzaTextureIndexforMaterial[materialID + 2] & 0xFF) << 16) |
+						((gSponzaTextureIndexforMaterial[materialID + 3] & 0xFF) << 24);
+						
 					cmdBindPushConstants(cmd, pRootSigGbuffers, "cbTextureRootConstants", &data);
-					Mesh::CmdParam& cmdData = sponzaMesh.cmdArray[i];
-					cmdDrawIndexed(cmd, cmdData.indexCount, cmdData.startIndex, cmdData.startVertex);
+					IndirectDrawIndexArguments& cmdData = sponzaMesh.pDrawArgs[i];
+					cmdDrawIndexed(cmd, cmdData.mIndexCount, cmdData.mStartIndex, cmdData.mVertexOffset);
 				}
 			}
 
-			Mesh& lionMesh = gModels[LION_MODEL];
+			Geometry& lionMesh = *gModels[LION_MODEL];
 
 			//Draw Lion
 			if (gUseTexturesFallback)
@@ -2236,56 +2053,48 @@ class PixelProjectedReflections: public IApp
 				params[4].pName = pTextureName[4];
 				params[4].ppTextures = &pMaterialTextures[0];
 				
-				updateDescriptorSet(pRenderer, meshCount + 1, pDescriptorSetGbuffers[0], 5, params);
-				cmdBindDescriptorSet(cmd, meshCount + 1, pDescriptorSetGbuffers[0]);
+				updateDescriptorSet(pRenderer, drawCount + 1, pDescriptorSetGbuffers[0], 5, params);
+				cmdBindDescriptorSet(cmd, drawCount + 1, pDescriptorSetGbuffers[0]);
 			}
 			else
 			{
-				data.mapIDs[0] = 81;
-				data.mapIDs[1] = 83;
-				data.mapIDs[2] = 6;
-				data.mapIDs[3] = 6;
-				data.mapIDs[4] = 0;
+				data.textureMaps =
+					((81 & 0xFF) << 0) |
+					((83 & 0xFF) << 8) |
+					((6 & 0xFF) << 16) |
+					((6 & 0xFF) << 24);
 
 				cmdBindPushConstants(cmd, pRootSigGbuffers, "cbTextureRootConstants", &data);
 			}
 			
 			cmdBindDescriptorSet(cmd, 1, pDescriptorSetGbuffers[2]);
 			
-			Buffer* pLionVertexBuffers[] = { lionMesh.pVertexBuffer };
+			Buffer* pLionVertexBuffers[] = { lionMesh.pVertexBuffers[0] };
 			cmdBindVertexBuffer(cmd, 1, pLionVertexBuffers, NULL);
 			cmdBindIndexBuffer(cmd, lionMesh.pIndexBuffer, 0);
 
-			for (uint32_t i = 0; i < (uint32_t)lionMesh.cmdArray.size(); ++i)
+			for (uint32_t i = 0; i < (uint32_t)lionMesh.mDrawArgCount; ++i)
 			{
-				Mesh::CmdParam& cmdData = lionMesh.cmdArray[i];
-				cmdDrawIndexed(cmd, cmdData.indexCount, cmdData.startIndex, cmdData.startVertex);
+				IndirectDrawIndexArguments& cmdData = lionMesh.pDrawArgs[i];
+				cmdDrawIndexed(cmd, cmdData.mIndexCount, cmdData.mStartIndex, cmdData.mVertexOffset);
 			}
 		}
 
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
-		endCmd(cmd);
-		allCmds.push_back(cmd);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-		// Render BRDF
-		cmd = pBrdfCmds[gFrameIndex];
-		beginCmd(cmd);
-
+		// Transfer DepthBuffer to a Shader resource state
+		barriers[0] = { pDepthBuffer, RESOURCE_STATE_SHADER_RESOURCE };
+		// Transfer current render target to a render target state
+		barriers[1] = { pSceneBuffer, RESOURCE_STATE_RENDER_TARGET };
 		// Transfer G-buffers to a Shader resource state
 		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
 		{
-			barrier = { pRenderTargetDeferredPass[i]->pTexture, RESOURCE_STATE_SHADER_RESOURCE };
-			cmdResourceBarrier(cmd, 0, NULL, 1, &barrier);
+			barriers[2 + i] = { pRenderTargetDeferredPass[i], RESOURCE_STATE_SHADER_RESOURCE };
 		}
 
-		// Transfer current render target to a render target state
-		barrier = { pSceneBuffer->pTexture, RESOURCE_STATE_RENDER_TARGET };
-		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier);
-
-		// Transfer DepthBuffer to a Shader resource state
-		barrier = { pDepthBuffer->pTexture, RESOURCE_STATE_SHADER_RESOURCE };
-		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier);
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, DEFERRED_RT_COUNT + 2, barriers);
 
 		loadActions = {};
 
@@ -2306,12 +2115,7 @@ class PixelProjectedReflections: public IApp
 //#endif
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
-		endCmd(cmd);
-		allCmds.push_back(cmd);
-
-		// PixelProjectReflections_ProjectionPass
-		cmd = pPPR_ProjectionCmds[gFrameIndex];
-		beginCmd(cmd);
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Pixel-Projected Reflections", false);
 
@@ -2325,21 +2129,12 @@ class PixelProjectedReflections: public IApp
 
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
-		endCmd(cmd);
-		allCmds.push_back(cmd);
-
-		// PixelProjectReflections_ReflectionPass
-		cmd = pPPR_ReflectionCmds[gFrameIndex];
-		beginCmd(cmd);
-
 		RenderTarget* pRenderTarget = pReflectionBuffer;
 
-		barrier = { pSceneBuffer->pTexture, RESOURCE_STATE_SHADER_RESOURCE };
-		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier);
-
 		// Transfer current render target to a render target state
-		barrier = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
-		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier);
+		barriers[0] = { pSceneBuffer, RESOURCE_STATE_SHADER_RESOURCE };
+		barriers[1] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET };
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
 
 		loadActions = {};
 
@@ -2357,23 +2152,16 @@ class PixelProjectedReflections: public IApp
 		cmdBindVertexBuffer(cmd, 1, &pScreenQuadVertexBuffer, NULL);
 		cmdDraw(cmd, 3, 0);
 
+		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+
 		//End ReflectionPass
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
-		endCmd(cmd);
-		allCmds.push_back(cmd);
+		pRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
 
-		//Present
-		cmd = ppCmds[gFrameIndex];
-		beginCmd(cmd);
-
-		pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
-
-		barrier = { pReflectionBuffer->pTexture, RESOURCE_STATE_SHADER_RESOURCE };
-		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier);
-
-		barrier = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
-		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier);
+		barriers[0] = { pReflectionBuffer, RESOURCE_STATE_SHADER_RESOURCE };
+		barriers[1] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET };
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
 
 		loadActions = {};
 
@@ -2427,16 +2215,27 @@ class PixelProjectedReflections: public IApp
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 		// Transition our texture to present state
-		barrier = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier);
+		barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 		endCmd(cmd);
-		allCmds.push_back(cmd);
 
-		queueSubmit(
-			pGraphicsQueue, (uint32_t)allCmds.size(), allCmds.data(), pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1,
-			&pRenderCompleteSemaphore);
-		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		QueueSubmitDesc submitDesc = {};
+		submitDesc.mCmdCount = 1;
+		submitDesc.mSignalSemaphoreCount = 1;
+		submitDesc.mWaitSemaphoreCount = 1;
+		submitDesc.ppCmds = &cmd;
+		submitDesc.ppSignalSemaphores = &pRenderCompleteSemaphore;
+		submitDesc.ppWaitSemaphores = &pImageAcquiredSemaphore;
+		submitDesc.pSignalFence = pRenderCompleteFence;
+		queueSubmit(pGraphicsQueue, &submitDesc);
+		QueuePresentDesc presentDesc = {};
+		presentDesc.mIndex = gFrameIndex;
+		presentDesc.mWaitSemaphoreCount = 1;
+		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
+		presentDesc.pSwapChain = pSwapChain;
+		presentDesc.mSubmitDone = true;
+		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
 	}
 
@@ -2576,7 +2375,7 @@ class PixelProjectedReflections: public IApp
 	{
 		RenderTargetDesc sceneRT = {};
 		sceneRT.mArraySize = 1;
-		sceneRT.mClearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+		sceneRT.mClearValue = { {{0.0f, 0.0f, 0.0f, 0.0f}} };
 		sceneRT.mDepth = 1;
 		sceneRT.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
 
@@ -2596,7 +2395,7 @@ class PixelProjectedReflections: public IApp
 	{
 		RenderTargetDesc RT = {};
 		RT.mArraySize = 1;
-		RT.mClearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+		RT.mClearValue = { {{0.0f, 0.0f, 0.0f, 0.0f}} };
 		RT.mDepth = 1;
 		RT.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
 
@@ -2614,7 +2413,7 @@ class PixelProjectedReflections: public IApp
 
 	bool addGBuffers()
 	{
-		ClearValue optimizedColorClearBlack = { 0.0f, 0.0f, 0.0f, 0.0f };
+		ClearValue optimizedColorClearBlack = { {{0.0f, 0.0f, 0.0f, 0.0f}} };
 
 		/************************************************************************/
 		// Deferred pass render targets
@@ -2648,7 +2447,7 @@ class PixelProjectedReflections: public IApp
 		// Add depth buffer
 		RenderTargetDesc depthRT = {};
 		depthRT.mArraySize = 1;
-		depthRT.mClearValue = { 1.0f, 0 };
+		depthRT.mClearValue = { {{1.0f, 0}} };
 		depthRT.mDepth = 1;
 		depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
 		depthRT.mHeight = mSettings.mHeight;
@@ -2687,7 +2486,7 @@ class PixelProjectedReflections: public IApp
 
 		IntermediateBufferDesc.pData = gInitializeVal.data();
 		IntermediateBufferDesc.ppBuffer = &pIntermediateBuffer;
-		addResource(&IntermediateBufferDesc);
+		addResource(&IntermediateBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		return pIntermediateBuffer != NULL;
 	}
@@ -2712,25 +2511,25 @@ void assignSponzaTextures()
 	gSponzaTextureIndexforMaterial.push_back(80);
 	gSponzaTextureIndexforMaterial.push_back(AO);
 
-	//02 : Material__57 (Plant)
+	// 02 : 16___Default (gi_flag)
+	gSponzaTextureIndexforMaterial.push_back(8);
+	gSponzaTextureIndexforMaterial.push_back(8);    // !!!!!!
+	gSponzaTextureIndexforMaterial.push_back(NoMetallic);
+	gSponzaTextureIndexforMaterial.push_back(8);    // !!!!!
+	gSponzaTextureIndexforMaterial.push_back(AO);
+
+	//03 : Material__57 (Plant)
 	gSponzaTextureIndexforMaterial.push_back(75);
 	gSponzaTextureIndexforMaterial.push_back(76);
 	gSponzaTextureIndexforMaterial.push_back(NoMetallic);
 	gSponzaTextureIndexforMaterial.push_back(77);
 	gSponzaTextureIndexforMaterial.push_back(AO);
 
-	// 03 : Material__298
+	// 04 : Material__298
 	gSponzaTextureIndexforMaterial.push_back(9);
 	gSponzaTextureIndexforMaterial.push_back(10);
 	gSponzaTextureIndexforMaterial.push_back(NoMetallic);
 	gSponzaTextureIndexforMaterial.push_back(11);
-	gSponzaTextureIndexforMaterial.push_back(AO);
-
-	// 04 : 16___Default (gi_flag)
-	gSponzaTextureIndexforMaterial.push_back(8);
-	gSponzaTextureIndexforMaterial.push_back(8);    // !!!!!!
-	gSponzaTextureIndexforMaterial.push_back(NoMetallic);
-	gSponzaTextureIndexforMaterial.push_back(8);    // !!!!!
 	gSponzaTextureIndexforMaterial.push_back(AO);
 
 	// 05 : bricks
@@ -2789,95 +2588,95 @@ void assignSponzaTextures()
 	gSponzaTextureIndexforMaterial.push_back(33);
 	gSponzaTextureIndexforMaterial.push_back(AO);
 
-	// 13 : Material__47 - it seems missing
-	gSponzaTextureIndexforMaterial.push_back(19);
-	gSponzaTextureIndexforMaterial.push_back(20);
-	gSponzaTextureIndexforMaterial.push_back(NoMetallic);
-	gSponzaTextureIndexforMaterial.push_back(21);
-	gSponzaTextureIndexforMaterial.push_back(AO);
-
-	// 14 : flagpole
+	// 13 : flagpole
 	gSponzaTextureIndexforMaterial.push_back(57);
 	gSponzaTextureIndexforMaterial.push_back(58);
 	gSponzaTextureIndexforMaterial.push_back(NoMetallic);
 	gSponzaTextureIndexforMaterial.push_back(59);
 	gSponzaTextureIndexforMaterial.push_back(AO);
 
-	// 15 : fabric_e (green)
+	// 14 : fabric_e (green)
 	gSponzaTextureIndexforMaterial.push_back(51);
 	gSponzaTextureIndexforMaterial.push_back(52);
 	gSponzaTextureIndexforMaterial.push_back(53);
 	gSponzaTextureIndexforMaterial.push_back(54);
 	gSponzaTextureIndexforMaterial.push_back(AO);
 
-	// 16 : fabric_d (blue)
+	// 15 : fabric_d (blue)
 	gSponzaTextureIndexforMaterial.push_back(49);
 	gSponzaTextureIndexforMaterial.push_back(50);
 	gSponzaTextureIndexforMaterial.push_back(53);
 	gSponzaTextureIndexforMaterial.push_back(54);
 	gSponzaTextureIndexforMaterial.push_back(AO);
 
-	// 17 : fabric_a (red)
+	// 16 : fabric_a (red)
 	gSponzaTextureIndexforMaterial.push_back(55);
 	gSponzaTextureIndexforMaterial.push_back(56);
 	gSponzaTextureIndexforMaterial.push_back(53);
 	gSponzaTextureIndexforMaterial.push_back(54);
 	gSponzaTextureIndexforMaterial.push_back(AO);
 
-	// 18 : fabric_g (curtain_blue)
+	// 17 : fabric_g (curtain_blue)
 	gSponzaTextureIndexforMaterial.push_back(37);
 	gSponzaTextureIndexforMaterial.push_back(38);
 	gSponzaTextureIndexforMaterial.push_back(43);
 	gSponzaTextureIndexforMaterial.push_back(44);
 	gSponzaTextureIndexforMaterial.push_back(AO);
 
-	// 19 : fabric_c (curtain_red)
+	// 18 : fabric_c (curtain_red)
 	gSponzaTextureIndexforMaterial.push_back(41);
 	gSponzaTextureIndexforMaterial.push_back(42);
 	gSponzaTextureIndexforMaterial.push_back(43);
 	gSponzaTextureIndexforMaterial.push_back(44);
 	gSponzaTextureIndexforMaterial.push_back(AO);
 
-	// 20 : fabric_f (curtain_green)
+	// 19 : fabric_f (curtain_green)
 	gSponzaTextureIndexforMaterial.push_back(39);
 	gSponzaTextureIndexforMaterial.push_back(40);
 	gSponzaTextureIndexforMaterial.push_back(43);
 	gSponzaTextureIndexforMaterial.push_back(44);
 	gSponzaTextureIndexforMaterial.push_back(AO);
 
-	// 21 : chain
+	// 20 : chain
 	gSponzaTextureIndexforMaterial.push_back(12);
 	gSponzaTextureIndexforMaterial.push_back(14);
 	gSponzaTextureIndexforMaterial.push_back(13);
 	gSponzaTextureIndexforMaterial.push_back(15);
 	gSponzaTextureIndexforMaterial.push_back(AO);
 
-	// 22 : vase_hanging
+	// 21 : vase_hanging
 	gSponzaTextureIndexforMaterial.push_back(72);
 	gSponzaTextureIndexforMaterial.push_back(73);
 	gSponzaTextureIndexforMaterial.push_back(NoMetallic);
 	gSponzaTextureIndexforMaterial.push_back(74);
 	gSponzaTextureIndexforMaterial.push_back(AO);
 
-	// 23 : vase
+	// 22 : vase
 	gSponzaTextureIndexforMaterial.push_back(69);
 	gSponzaTextureIndexforMaterial.push_back(70);
 	gSponzaTextureIndexforMaterial.push_back(NoMetallic);
 	gSponzaTextureIndexforMaterial.push_back(71);
 	gSponzaTextureIndexforMaterial.push_back(AO);
 
-	// 24 : Material__25 (lion)
+	// 23 : Material__25 (lion)
 	gSponzaTextureIndexforMaterial.push_back(16);
 	gSponzaTextureIndexforMaterial.push_back(17);
 	gSponzaTextureIndexforMaterial.push_back(NoMetallic);
 	gSponzaTextureIndexforMaterial.push_back(18);
 	gSponzaTextureIndexforMaterial.push_back(AO);
 
-	// 25 : roof
+	// 24 : roof
 	gSponzaTextureIndexforMaterial.push_back(63);
 	gSponzaTextureIndexforMaterial.push_back(64);
 	gSponzaTextureIndexforMaterial.push_back(NoMetallic);
 	gSponzaTextureIndexforMaterial.push_back(65);
+	gSponzaTextureIndexforMaterial.push_back(AO);
+
+	// 25 : Material__47 - it seems missing
+	gSponzaTextureIndexforMaterial.push_back(19);
+	gSponzaTextureIndexforMaterial.push_back(20);
+	gSponzaTextureIndexforMaterial.push_back(NoMetallic);
+	gSponzaTextureIndexforMaterial.push_back(21);
 	gSponzaTextureIndexforMaterial.push_back(AO);
 }
 

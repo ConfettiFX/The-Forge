@@ -25,8 +25,6 @@
 		5CABF3762141543F00EFD76A /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CABF3752141543F00EFD76A /* GameController.framework */; };
 		650CCC552223C54C003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC522223C54C003533D9 /* MetalPerformanceShaders.framework */; };
 		650CCC572223C55A003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC562223C55A003533D9 /* MetalPerformanceShaders.framework */; };
-		654D97BF21E92FC300113964 /* ozz_base_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 654D977C21E9218B00113964 /* ozz_base_IOS.a */; };
-		654D97C021E92FCE00113964 /* ozz_animation_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 654D977A21E9218B00113964 /* ozz_animation_IOS.a */; };
 		971BCEEA217012FB007F2B2F /* circlepad.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = 281FA9E820333E5700CD5D9C /* circlepad.ktx */; };
 		971BCEEB217012FB007F2B2F /* LA_Helipad.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = 2874FDB8202CA418007239DC /* LA_Helipad.ktx */; };
 		971BCEED2170133F007F2B2F /* TitilliumText in Copy Fonts */ = {isa = PBXBuildFile; fileRef = 28A5AD6A201F7300000E571F /* TitilliumText */; };
@@ -49,8 +47,6 @@
 		E9E4CCBB2345A5600062E694 /* basic.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9E4CC582345930A0062E694 /* basic.frag.metal */; };
 		E9E4CCBC2345A5600062E694 /* skybox.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9E4CC592345930A0062E694 /* skybox.vert.metal */; };
 		E9E4CCBD2345A5600062E694 /* zipTexture.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9E4CC5A2345930A0062E694 /* zipTexture.frag.metal */; };
-		E9E601C0233AFB7400B21FD6 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9E601BF233AFB6A00B21FD6 /* libbz2.tbd */; };
-		E9E601C2233AFBA200B21FD6 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9E601C1233AFB9B00B21FD6 /* libbz2.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -317,9 +313,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				650CCC572223C55A003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
-				E9E601C2233AFBA200B21FD6 /* libbz2.tbd in Frameworks */,
-				654D97C021E92FCE00113964 /* ozz_animation_IOS.a in Frameworks */,
-				654D97BF21E92FC300113964 /* ozz_base_IOS.a in Frameworks */,
 				B21F76D621420EB300DF2297 /* UIKit.framework in Frameworks */,
 				B21F76D721420EB300DF2297 /* MetalKit.framework in Frameworks */,
 				B21F76D821420EB300DF2297 /* Metal.framework in Frameworks */,
@@ -336,7 +329,6 @@
 				5C172F8721414A2C0074EE71 /* libThe-Forge.a in Frameworks */,
 				B2087DE821421A4A006F372D /* Metal.framework in Frameworks */,
 				B2087DE721421A4A006F372D /* MetalKit.framework in Frameworks */,
-				E9E601C0233AFB7400B21FD6 /* libbz2.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

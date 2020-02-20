@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,29 +28,14 @@
 using namespace metal;
 
 #include "shader_defs.h"
-
-struct PackedVertexPosData {
-    packed_float3 position;
-};
-
-struct PackedVertexTexcoord {
-    packed_float2 texCoord;
-};
-
-struct PackedVertexNormal {
-    packed_float3 normal;
-};
-
-struct PackedVertexTangent {
-    packed_float3 tangent;
-};
+#include "packing.h"
 
 struct VSInput
 {
 	float4 position [[attribute(0)]];
-	float2 texCoord [[attribute(1)]];
-	float3 normal   [[attribute(2)]];
-	float3 tangent  [[attribute(3)]];
+	half2 texCoord [[attribute(1)]];
+	uint normal   [[attribute(2)]];
+	uint tangent  [[attribute(3)]];
 };
 
 struct VSOutput {
@@ -85,8 +70,8 @@ vertex VSOutput stageMain(
 {
 	VSOutput Out;
 	Out.position = uniforms.transform[VIEW_CAMERA].mvp * input.position;
-	Out.texCoord = input.texCoord;
-	Out.normal = input.normal;
-	Out.tangent = input.tangent;
+	Out.texCoord = float2(input.texCoord);
+	Out.normal =  decodeDir(unpack_unorm2x16_to_float(input.normal));
+	Out.tangent = decodeDir(unpack_unorm2x16_to_float(input.tangent));
 	return Out;
 }

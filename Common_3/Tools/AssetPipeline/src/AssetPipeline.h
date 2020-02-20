@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -37,6 +37,11 @@ struct ProcessAssetsSettings
 	uint quantizePositionBits;   // N value for N-Bit position quantization.
 	uint quantizeNormalBits;     // N value for N-Bit normal and tangent quantization.
 	uint quantizeTexBits;        // N value for N-Bit texture coordinate quantization.
+
+	// TressFX settings
+	uint32_t    mFollowHairCount;
+	float       mMaxRadiusAroundGuideHair;
+	float       mTipSeperationFactor;
 };
 
 class AssetPipeline
@@ -50,7 +55,7 @@ public:
 		const Path* animationAsset, ozz::animation::Skeleton* skeleton, const char* skeletonName, const char* animationName,
 		const Path* animationOutput, ProcessAssetsSettings* settings);
 
-	static bool ProcessModels(const Path* meshDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings);
 	static bool ProcessTextures(const Path* textureDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings);
 	static bool ProcessVirtualTextures(const Path* textureDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings);
+	static bool ProcessTFX(const Path* tfxDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings);
 };

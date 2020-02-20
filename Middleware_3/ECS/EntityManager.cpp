@@ -112,6 +112,12 @@ void EntityManager::reset()
 		deleteEntity(entity.first);
 	}
 	mEntities.clear();
+
+	// Clear stale component pointers
+	for (eastl::pair<uint32_t, ComponentLookup> pair : mComponentViseMap)
+	{
+		pair.second.clear();
+	}
 }
 
 EntityId EntityManager::createEntity()

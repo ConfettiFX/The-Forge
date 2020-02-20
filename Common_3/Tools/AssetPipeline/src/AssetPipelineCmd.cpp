@@ -40,11 +40,7 @@ int AssetPipelineCmd(int argc, char** argv)
 		return 0;
 	}
 
-	eastl::string arg = argv[1];
-	eastl::string command = arg;
-	arg.make_lower();
-
-	if (arg == "-h" || arg == "-help")
+	if (stricmp(argv[1], "-h") == 0 || stricmp(argv[1], "-help") == 0)
 	{
 		PrintHelp();
 		return 0;
@@ -75,91 +71,107 @@ int AssetPipelineCmd(int argc, char** argv)
 	settings.quantizeTexBits = 16;
 	settings.quantizeNormalBits = 8;
 
+	const char* command = argv[1];
+
 	for (int i = 4; i < argc; ++i)
 	{
-		arg = argv[i];
-		arg.make_lower();
+		const char* arg = argv[i];
 
-		if (arg == "--quiet")
+		if (stricmp(arg, "--quiet") == 0)
 		{
 			settings.quiet = true;
 		}
-		else if (arg == "--force")
+		else if (stricmp(arg, "--force") == 0)
 		{
 			settings.force = true;
 		}
-		if (arg == "-posbits")
+		if (stricmp(arg, "-posbits") == 0)
 		{
 			if (i + 1 < argc && isdigit(argv[i + 1][0]))
 				settings.quantizePositionBits = atoi(argv[++i]);
 			else
-				printf("WARNING: Argument expects a value: %s\n", arg.c_str());
+				printf("WARNING: Argument expects a value: %s\n", arg);
 
 			if (settings.quantizePositionBits < 1 || settings.quantizePositionBits > 16)
 			{
-				printf("WARNING: Argument outide of range 1-16: %s\n", arg.c_str());
+				printf("WARNING: Argument outide of range 1-16: %s\n", arg);
 				printf("         Using default value\n");
 				settings.quantizePositionBits = 16;
 			}
 		}
-		else if (arg == "-texbits")
+		else if (stricmp(arg, "-texbits") == 0)
 		{
 			if (i + 1 < argc && isdigit(argv[i + 1][0]))
 				settings.quantizeTexBits = atoi(argv[++i]);
 			else
-				printf("WARNING: Argument expects a value: %s\n", arg.c_str());
+				printf("WARNING: Argument expects a value: %s\n", arg);
 
 			if (settings.quantizeTexBits < 1 || settings.quantizeTexBits > 16)
 			{
-				printf("WARNING: Argument outide of range 1-16: %s\n", arg.c_str());
+				printf("WARNING: Argument outide of range 1-16: %s\n", arg);
 				printf("         Using default value\n");
 				settings.quantizeTexBits = 16;
 			}
 		}
-		else if (arg == "-normbits")
+		else if (stricmp(arg, "-normbits") == 0)
 		{
 			if (i + 1 < argc && isdigit(argv[i + 1][0]))
 				settings.quantizeNormalBits = atoi(argv[++i]);
 			else
-				printf("WARNING: Argument expects a value: %s\n", arg.c_str());
+				printf("WARNING: Argument expects a value: %s\n", arg);
 
 
 			if (settings.quantizeNormalBits < 1 || settings.quantizeNormalBits > 8)
 			{
-				printf("WARNING: Argument outide of range 1-8: %s\n", arg.c_str());
+				printf("WARNING: Argument outide of range 1-8: %s\n", arg);
 				printf("         Using default value\n");
 				settings.quantizeNormalBits = 8;
 			}
 		}
+		else if (stricmp(arg, "-followhaircount") == 0 || stricmp(arg, "--fhc") == 0)
+		{
+			if (i + 1 < argc && isdigit(argv[i + 1][0]))
+				settings.mFollowHairCount = atoi(argv[++i]);
+			else
+				printf("WARNING: Argument expects a value: %s\n", arg);
+		}
+		else if (stricmp(arg, "-tipseparationfactor") == 0 || stricmp(arg, "--tsf") == 0)
+		{
+			settings.mTipSeperationFactor = (float)atof(argv[++i]);
+		}
+		else if (stricmp(arg, "-maxradius") == 0 || stricmp(arg, "--maxradius") == 0)
+		{
+			settings.mMaxRadiusAroundGuideHair = (float)atof(argv[++i]);
+		}
 		else
 		{
-			printf("WARNING: Unrecognized argument: %s\n", arg.c_str());
+			printf("WARNING: Unrecognized argument: %s\n", arg);
 		}
 	}
 
-	if (command == "-pa")
+	if (stricmp(command, "-pa") == 0)
 	{
 		if (!AssetPipeline::ProcessAnimations(inputDir, outputDir, &settings))
 			return 1;
 	}
-	else if (command == "-pm")
-	{
-		if (!AssetPipeline::ProcessModels(inputDir, outputDir, &settings))
-			return 1;
-	}
-	else if (command == "-pt")
+	else if (stricmp(command, "-pt") == 0)
 	{
 		if (!AssetPipeline::ProcessTextures(inputDir, outputDir, &settings))
 			return 1;
 	}
-	else if (command == "-pvt")
+	else if (stricmp(command, "-pvt") == 0)
 	{
 		if (!AssetPipeline::ProcessVirtualTextures(inputDir, outputDir, &settings))
 			return 1;
 	}
+	else if (stricmp(command, "-ptfx") == 0)
+	{
+		if (!AssetPipeline::ProcessTFX(inputDir, outputDir, &settings))
+			return 1;
+	}
 	else
 	{
-		printf("ERROR: Invalid command.\n");
+		printf("ERROR: Invalid command. %s\n", command);
 	}
 
 	return 0;

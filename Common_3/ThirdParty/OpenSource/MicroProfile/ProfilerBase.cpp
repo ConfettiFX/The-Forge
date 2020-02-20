@@ -44,8 +44,6 @@ int64_t ProfileGetTick()
 #include "../EASTL/sort.h"
 #include "../EASTL/algorithm.h"
 
-
-
 #if PROFILE_WEBSERVER
 
 #ifdef _WIN32
@@ -1742,15 +1740,12 @@ int ProfileFormatCounter(int eFormat, int64_t nCounter, char* pOut, uint32_t nBu
 	return nLen;
 }
 
-void ProfileDumpFile(const char* pPath, ProfileDumpType eType, uint32_t nFrames)
+void ProfileDumpFile(const Path* pPath, ProfileDumpType eType, uint32_t nFrames)
 {
 	Profile & S = g_Profile;
-	size_t nLen = strlen(pPath);
-	if (nLen > sizeof(S.DumpPath) - 1)
-	{
-		return;
-	}
-	memcpy(S.DumpPath, pPath, nLen + 1);
+	
+	fsFreePath(S.DumpPath);
+	S.DumpPath = fsCopyPath(pPath);
 	S.nDumpFileNextFrame = 1;
 	S.eDumpType = eType;
 	S.nDumpFrames = nFrames;
@@ -2439,7 +2434,7 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 
 void ProfileWriteFile(void* Handle, size_t nSize, const char* pData)
 {
-	fwrite(pData, nSize, 1, (FILE*)Handle);
+	fsWriteToStream((FileStream*)Handle, pData, nSize);
 }
 
 void ProfileDumpToFile()

@@ -4,13 +4,13 @@ RaytracingAccelerationStructure		gRtScene	: register(t0);
 #define M_PI_F ((float)3.141592653589793)
 #define M_1_PI_F ((float)0.318309886183790)
 
-StructuredBuffer<uint> indices : register(t1);
-StructuredBuffer<float3> positions : register(t2);
-StructuredBuffer<float3> normals : register(t3);
-StructuredBuffer<float2> uvs : register(t4);
+ByteAddressBuffer indices : register(t1);
+ByteAddressBuffer positions : register(t2);
+ByteAddressBuffer normals : register(t3);
+ByteAddressBuffer uvs : register(t4);
 
-StructuredBuffer<uint> materialIndices : register(t5);
-StructuredBuffer<uint> materialTextureIndices : register(t6);
+ByteAddressBuffer materialIndices : register(t5);
+ByteAddressBuffer materialTextureIndices : register(t6);
 Texture2D<float4> materialTextures[TOTAL_IMGS] : register(t7);
 
 SamplerState linearSampler : register(s0);
@@ -148,16 +148,32 @@ void chs(inout RayPayload payload : SV_RayPayload, IntersectionAttribs attribs :
 
 	uint triangleIndex = PrimitiveIndex();
 	
-	uint i0 = indices[3 * triangleIndex + 0];
-	uint i1 = indices[3 * triangleIndex + 1];
-	uint i2 = indices[3 * triangleIndex + 2];
+	uint4 i012 = indices.Load4((3 * triangleIndex) << 2);
+	uint i0 = i012[0];
+	uint i1 = i012[1];
+	uint i2 = i012[2];
 
-	float3 position = uvw.x * positions[i0] + uvw.y * positions[i1] + uvw.z * positions[i2];
-	float3 normal = normalize(uvw.x * normals[i0] + uvw.y * normals[i1] + uvw.z * normals[i2]);
-	float2 uv = uvw.x * uvs[i0] + uvw.y * uvs[i1] + uvw.z * uvs[i2];
+	float4 position012[3] = {
+		asfloat(positions.Load4((i0 * 3) << 2)),
+		asfloat(positions.Load4((i1 * 3) << 2)),
+		asfloat(positions.Load4((i2 * 3) << 2))
+	};
+	float4 normal012[3] = {
+		asfloat(normals.Load4((i0 * 3) << 2)),
+		asfloat(normals.Load4((i1 * 3) << 2)),
+		asfloat(normals.Load4((i2 * 3) << 2))
+	};
+	float2 uv012[3] = {
+		asfloat(uvs.Load2((i0 * 1) << 3)),
+		asfloat(uvs.Load2((i1 * 1) << 3)),
+		asfloat(uvs.Load2((i2 * 1) << 3))
+	};
+	float3 position = uvw.x * position012[0].xyz + uvw.y * position012[1].xyz + uvw.z * position012[2].xyz;
+	float3 normal = normalize(uvw.x * normal012[0].xyz + uvw.y * normal012[1].xyz + uvw.z * normal012[2].xyz);
+	float2 uv = uvw.x * uv012[0] + uvw.y * uv012[1] + uvw.z * uv012[2];
 
-	uint materialIndex = materialIndices[triangleIndex];
-	Texture2D<float4> albedoTexture = materialTextures[materialTextureIndices[5 * materialIndex]];
+	uint materialIndex = materialIndices.Load(triangleIndex << 2);
+	Texture2D<float4> albedoTexture = materialTextures[materialTextureIndices.Load((5 * materialIndex) << 2)];
 
 	float3 surfaceAlbedo = albedoTexture.SampleLevel(linearSampler, uv, 0).rgb;
 

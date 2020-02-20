@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -53,7 +53,15 @@ bool Clip::LoadClip(const Path* animationPath)
 		return false;
 	}
 
-	ozz::io::IArchive archive(&file);
+	// Archive is doing a lot of freads from disk which is slow on some platforms and also generally not good
+	// So we just read the entire file once into a mem stream so the freads from IArchive are actually
+	// only reading from system memory instead of disk or network
+	ozz::io::MemoryStream memStream;
+	memStream.Resize(file.Size());
+	memStream.end_ = (int)file.Size();
+	file.Read(memStream.buffer_, file.Size());
+
+	ozz::io::IArchive archive(&memStream);
 	if (!archive.TestTag<ozz::animation::Animation>())
 	{
 		LOGF(eERROR, "Archive doesn't contain the expected object type.");

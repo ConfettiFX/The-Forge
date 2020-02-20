@@ -1,10 +1,7 @@
 #version 450 core
-#if !defined(WINDOWS) && !defined(ANDROID) && !defined(LINUX)
-#define WINDOWS 	// Assume windows if no platform define has been added to the shader
-#endif
 
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -134,19 +131,6 @@ struct VertexPos
 	float x, y, z;
 };
 
-#ifdef LINUX
-struct VertexNormal
-{
-	float x, y, z;
-};
-
-struct VertexTangent
-{
-	float x, y, z;
-};
-#endif
-
-
 layout(std430, UPDATE_FREQ_NONE, binding = 0) readonly buffer vertexPos
 {
 	VertexPos vertexPosData[];
@@ -154,29 +138,17 @@ layout(std430, UPDATE_FREQ_NONE, binding = 0) readonly buffer vertexPos
 
 layout(std430, UPDATE_FREQ_NONE, binding = 1) readonly buffer vertexTexCoord
 {
-#ifdef WINDOWS
 	uint vertexTexCoordData[];
-#elif defined(LINUX)
-	vec2 vertexTexCoordData[];
-#endif
 };
 
 layout(std430, UPDATE_FREQ_NONE, binding = 2) readonly buffer vertexNormal
 {
-#ifdef WINDOWS
 	uint vertexNormalData[];
-#elif defined(LINUX)
-	VertexNormal vertexNormalData[];
-#endif
 };
 
 layout(std430, UPDATE_FREQ_NONE, binding = 3) readonly buffer vertexTangent
 {
-#ifdef WINDOWS
 	uint vertexTangentData[];
-#elif defined(LINUX)
-	VertexTangent vertexTangentData[];
-#endif
 };
 
 layout(std430, UPDATE_FREQ_PER_FRAME, binding = 4) readonly buffer filteredIndexBuffer
@@ -268,8 +240,6 @@ layout(row_major, UPDATE_FREQ_PER_FRAME, binding = 17) uniform ASMUniformBlock
 	vec4 mMiscBool;
 	float mPenumbraSize;
 };
-
-
 
 layout(UPDATE_FREQ_NONE, binding = 18) uniform texture2D vbPassTexture;
 
@@ -683,15 +653,9 @@ void main()
 		// Apply perspective correction to texture coordinates
 		mat3x2 texCoords =
 		{
-#ifdef WINDOWS
 			unpack2Floats(vertexTexCoordData[index0]) * one_over_w[0],
 			unpack2Floats(vertexTexCoordData[index1]) * one_over_w[1],
 			unpack2Floats(vertexTexCoordData[index2]) * one_over_w[2]
-#elif defined(LINUX)
-			vertexTexCoordData[index0] * one_over_w[0],
-			vertexTexCoordData[index1] * one_over_w[1],
-			vertexTexCoordData[index2] * one_over_w[2]
-#endif
 		};
 
 		// Interpolate texture coordinates and calculate the gradients for texture sampling with mipmapping support
@@ -707,46 +671,22 @@ void main()
 
 		// NORMAL INTERPOLATION
 		// Apply perspective division to normals
-#ifdef LINUX
-		// Load normals
-		vec3 v0normal = vec3(vertexNormalData[index0].x, vertexNormalData[index0].y, vertexNormalData[index0].z);
-		vec3 v1normal = vec3(vertexNormalData[index1].x, vertexNormalData[index1].y, vertexNormalData[index1].z);
-		vec3 v2normal = vec3(vertexNormalData[index2].x, vertexNormalData[index2].y, vertexNormalData[index2].z);
-#endif
 		mat3x3 normals =
 		{
-#ifdef WINDOWS
 			decodeDir(unpackUnorm2x16(vertexNormalData[index0])) * one_over_w[0],
 			decodeDir(unpackUnorm2x16(vertexNormalData[index1])) * one_over_w[1],
 			decodeDir(unpackUnorm2x16(vertexNormalData[index2])) * one_over_w[2]
-#elif defined(LINUX)
-			v0normal * one_over_w[0],
-			v1normal * one_over_w[1],
-			v2normal * one_over_w[2]
-#endif
 		};
 
 		vec3 normal = normalize(interpolateAttribute(normals, derivativesOut.db_dx, derivativesOut.db_dy, d));
 
 		// TANGENT INTERPOLATION
 		// Apply perspective division to tangents
-#ifdef LINUX
-		// Load tangents
-		vec3 v0tan = vec3(vertexTangentData[index0].x, vertexTangentData[index0].y, vertexTangentData[index0].z);
-		vec3 v1tan = vec3(vertexTangentData[index1].x, vertexTangentData[index1].y, vertexTangentData[index1].z);
-		vec3 v2tan = vec3(vertexTangentData[index2].x, vertexTangentData[index2].y, vertexTangentData[index2].z);
-#endif
 		mat3x3 tangents =
 		{
-#ifdef WINDOWS
 			decodeDir(unpackUnorm2x16(vertexTangentData[index0])) * one_over_w[0],
 			decodeDir(unpackUnorm2x16(vertexTangentData[index1])) * one_over_w[1],
 			decodeDir(unpackUnorm2x16(vertexTangentData[index2])) * one_over_w[2]
-#elif defined(LINUX)
-			v0tan * one_over_w[0],
-			v1tan * one_over_w[1],
-			v2tan * one_over_w[2]
-#endif
 		};
 
 		vec3 tangent = normalize(interpolateAttribute(tangents, derivativesOut.db_dx, derivativesOut.db_dy, d));

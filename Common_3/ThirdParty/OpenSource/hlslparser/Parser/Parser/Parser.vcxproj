@@ -93,7 +93,7 @@
       <Command>copy $(TargetPath) $(SolutionDir)..\Debug\$(TargetName).exe</Command>
     </PostBuildEvent>
     <Link>
-      <AdditionalDependencies>libzip-static.lib;libz-static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\Libraries\Win64\Debug</AdditionalLibraryDirectories>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
@@ -111,7 +111,7 @@
       </Command>
     </PostBuildEvent>
     <Link>
-      <AdditionalDependencies>libzip-static.lib;libz-static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\Libraries\Win64\Debug</AdditionalLibraryDirectories>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
@@ -129,7 +129,7 @@
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>libzip-static.lib;libz-static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\Libraries\Win64\Release</AdditionalLibraryDirectories>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
@@ -151,7 +151,7 @@ copy $(TargetPath) $(SolutionDir)..\Release\$(TargetName).exe</Command>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>libzip-static.lib;libz-static.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\Libraries\Win64\Release</AdditionalLibraryDirectories>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
@@ -183,6 +183,7 @@ copy $(TargetPath) $(SolutionDir)..\Release\$(TargetName).exe</Command>
     <ClCompile Include="..\..\..\EASTL\red_black_tree.cpp" />
     <ClCompile Include="..\..\..\EASTL\string.cpp" />
     <ClCompile Include="..\..\..\EASTL\thread_support.cpp" />
+    <ClCompile Include="..\..\..\zip\zip.cpp" />
     <ClCompile Include="CodeWriter.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="FullTokenizer.cpp" />
@@ -212,6 +213,8 @@ copy $(TargetPath) $(SolutionDir)..\Release\$(TargetName).exe</Command>
     <ClInclude Include="..\..\..\..\..\OS\FileSystem\SystemFileStream.h" />
     <ClInclude Include="..\..\..\..\..\OS\FileSystem\ZipFileStream.h" />
     <ClInclude Include="..\..\..\..\..\OS\FileSystem\ZipFileSystem.h" />
+    <ClInclude Include="..\..\..\zip\miniz.h" />
+    <ClInclude Include="..\..\..\zip\zip.h" />
     <ClInclude Include="CodeWriter.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="FullTokenizer.h" />

@@ -84,10 +84,15 @@ static const float shadowSamples[NUM_SHADOW_SAMPLES * 2] =
 };
 #endif
 
-cbuffer ShadowUniformBuffer : register(b2, UPDATE_FREQ_PER_FRAME)
+
+cbuffer cbPerPass : register(b0, UPDATE_FREQ_PER_FRAME)
 {
-    float4x4 LightViewProj;
-};
+	float4x4	projView;
+	float4x4	shadowLightViewProj;
+	float4      camPos;
+	float4      lightColor[4];
+	float4      lightDirection[3];
+}
 
 Texture2D ShadowTexture				: register(t14);
 SamplerState clampMiplessLinearSampler : register(s7);
@@ -101,7 +106,7 @@ struct VSOutput
 
 float CalcESMShadowFactor(float3 worldPos)
 {
-	float4 posLS = mul(LightViewProj, float4(worldPos.xyz, 1.0));
+	float4 posLS = mul(shadowLightViewProj, float4(worldPos.xyz, 1.0));
 	posLS /= posLS.w;
 	posLS.y *= -1;
 	posLS.xy = posLS.xy * 0.5 + float2(0.5, 0.5);
@@ -141,7 +146,7 @@ float random(float3 seed, float3 freq)
 
 float CalcPCFShadowFactor(float3 worldPos)
 {
-	float4 posLS = mul(LightViewProj, float4(worldPos.xyz, 1.0));
+	float4 posLS = mul(shadowLightViewProj, float4(worldPos.xyz, 1.0));
 	posLS /= posLS.w;
 	posLS.y *= -1;
 	posLS.xy = posLS.xy * 0.5 + float2(0.5, 0.5);
@@ -173,7 +178,7 @@ float CalcPCFShadowFactor(float3 worldPos)
 
 float ClaculateShadow(float3 worldPos)
 {
-	float4 NDC = mul(LightViewProj, float4(worldPos, 1.0));
+	float4 NDC = mul(shadowLightViewProj, float4(worldPos, 1.0));
 	NDC /= NDC.w;
 	float Depth = NDC.z;
 	float2 ShadowCoord = float2((NDC.x + 1.0)*0.5, (1.0 - NDC.y)*0.5);

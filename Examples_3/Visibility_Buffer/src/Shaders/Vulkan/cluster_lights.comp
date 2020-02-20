@@ -5,7 +5,7 @@
 
 
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -70,7 +70,7 @@ void main()
 	LightData lightData = lightsBuffer[groupId.x];
 	
 	vec4 lightPosWorldSpace = vec4(lightData.position.x, lightData.position.y, lightData.position.z, 1);
-	vec4 lightPosClipSpace = uniformsData.transform[VIEW_CAMERA].mvp * lightPosWorldSpace;
+	vec4 lightPosClipSpace = uniformsData.transform[VIEW_CAMERA].vp * lightPosWorldSpace;
 	float invLightPosW = 1.0f / lightPosClipSpace.w;
 	vec3 lightPos = lightPosClipSpace.xyz * invLightPosW;
 	
@@ -78,7 +78,7 @@ void main()
 	if (lightPos.z < 0.0f)
 		return;
 	
-	float projRadius = LIGHT_SIZE * invLightPosW / 0.5f;    
+	float projRadius = LIGHT_SIZE * invLightPosW / 0.5f;
 	lightPos *= vec3(aspectRatio, 1.0f, 1.0f);
 	
 	// Cluster coordinates in post perspective clip space

@@ -5,30 +5,24 @@
   <Project Name="SpirVTools" Path="SpirVTools/SpirVTools.project" Active="No"/>
   <Project Name="VisibilityBuffer" Path="VisibilityBuffer/VisibilityBuffer.project" Active="Yes"/>
   <Project Name="gainput" Path="../../../Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
-  <Project Name="Assimp" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Assimp.project" Active="No"/>
-  <Project Name="zlib" Path="../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/contrib/zlib/zlib.project" Active="No"/>
-  <Project Name="EASTL" Path="../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/EASTL.project"/>
+  <Project Name="EASTL" Path="../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/EASTL.project" Active="No"/>
   <BuildMatrix>
-    <WorkspaceConfiguration Name="Debug" Selected="no">
+    <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>
       <Project Name="OS" ConfigName="Debug"/>
       <Project Name="Renderer" ConfigName="Debug"/>
       <Project Name="SpirVTools" ConfigName="Debug"/>
       <Project Name="VisibilityBuffer" ConfigName="Debug"/>
       <Project Name="gainput" ConfigName="Debug"/>
-      <Project Name="assimp" ConfigName="NoConfig"/>
-      <Project Name="zlibstatic" ConfigName="NoConfig"/>
       <Project Name="EASTL" ConfigName="Debug"/>
     </WorkspaceConfiguration>
-    <WorkspaceConfiguration Name="Release" Selected="yes">
+    <WorkspaceConfiguration Name="Release" Selected="no">
       <Environment/>
       <Project Name="OS" ConfigName="Release"/>
       <Project Name="Renderer" ConfigName="Release"/>
       <Project Name="SpirVTools" ConfigName="Release"/>
       <Project Name="VisibilityBuffer" ConfigName="Release"/>
       <Project Name="gainput" ConfigName="Release"/>
-      <Project Name="assimp" ConfigName="NoConfig"/>
-      <Project Name="zlibstatic" ConfigName="NoConfig"/>
       <Project Name="EASTL" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>

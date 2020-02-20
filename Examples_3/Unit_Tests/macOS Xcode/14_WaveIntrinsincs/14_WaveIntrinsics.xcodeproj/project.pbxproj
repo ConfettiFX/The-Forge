@@ -15,7 +15,6 @@
 		D062DAC32210FFED00CF2B1B /* 14_WaveIntrinsics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2136E6521668CBE00FEBC97 /* 14_WaveIntrinsics.cpp */; };
 		D062DAC52210FFED00CF2B1B /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906220E2EDCE0036B88E /* Metal.framework */; };
 		D062DAC62210FFED00CF2B1B /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906820E2EDCE0036B88E /* MetalKit.framework */; };
-		D062DAD12211024900CF2B1B /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C512C4C2141556900E7A798 /* libThe-Forge_iOS.a */; };
 		D062DAD32211027000CF2B1B /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D062DAD22211027000CF2B1B /* UIKit.framework */; };
 		D062DAD52211027700CF2B1B /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D062DAD42211027600CF2B1B /* GameController.framework */; };
 		D062DAE52211033700CF2B1B /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = D062DAE32211033700CF2B1B /* AppDelegate.m */; };
@@ -37,7 +36,6 @@
 		D0BBDFB2214267DD0081CE0F /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906820E2EDCE0036B88E /* MetalKit.framework */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
-		E9A438CA233DC0EE005BF1C7 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A438C9233DC0EB005BF1C7 /* libbz2.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -173,7 +171,6 @@
 				650CCC732223CD3A003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				D062DAD52211027700CF2B1B /* GameController.framework in Frameworks */,
 				D062DAD32211027000CF2B1B /* UIKit.framework in Frameworks */,
-				D062DAD12211024900CF2B1B /* libThe-Forge_iOS.a in Frameworks */,
 				D062DAC52210FFED00CF2B1B /* Metal.framework in Frameworks */,
 				D062DAC62210FFED00CF2B1B /* MetalKit.framework in Frameworks */,
 			);
@@ -184,7 +181,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				650CCC712223CD2E003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
-				E9A438CA233DC0EE005BF1C7 /* libbz2.tbd in Frameworks */,
 				D0BBDFB1214267DD0081CE0F /* Metal.framework in Frameworks */,
 				D0BBDFB2214267DD0081CE0F /* MetalKit.framework in Frameworks */,
 				5C512C512141559800E7A798 /* libThe-Forge.a in Frameworks */,

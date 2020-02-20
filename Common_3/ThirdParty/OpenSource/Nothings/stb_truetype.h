@@ -265,6 +265,10 @@
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
+#if defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdangling-else"
+#endif
 ////
 ////  SAMPLE PROGRAMS
 ////
@@ -4748,6 +4752,7 @@ STBTT_DEF int stbtt_CompareUTF8toUTF16_bigendian(const char *s1, int len1, const
 }
 
 #if defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
 #pragma GCC diagnostic pop
 #endif
 

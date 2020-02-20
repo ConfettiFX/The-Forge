@@ -62,7 +62,6 @@ InputDeviceKeyboardImplMac::InputDeviceKeyboardImplMac(InputManager& manager, In
 	dialect_[kVK_Space] = KeySpace;
 
 	dialect_[kVK_ANSI_Comma] = KeyComma;
-	dialect_[kVK_ANSI_Minus] = KeyMinus;
 	dialect_[kVK_ANSI_Period] = KeyPeriod;
 	dialect_[kVK_ANSI_Slash] = KeySlash;
 	dialect_[kVK_ANSI_Quote] = KeyApostrophe;

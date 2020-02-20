@@ -10,21 +10,13 @@
   <VirtualDirectory Name="src">
     <File Name="../../src/27_File_System/27_File_System.cpp"/>
   </VirtualDirectory>
-  <VirtualDirectory Name="AssimpImporter">
-    <File Name="../../../../Common_3/OS/FileSystem/AssimpIOSystem.h"/>
-    <File Name="../../../../Common_3/OS/FileSystem/AssimpIOSystem.cpp"/>
-    <File Name="../../../../Common_3/OS/FileSystem/AssimpIOStream.h"/>
-    <File Name="../../../../Common_3/OS/FileSystem/AssimpIOStream.cpp"/>
-    <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.cpp"/>
-    <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"/>
-  </VirtualDirectory>
   <Dependencies Name="Debug">
     <Project Name="SpirVTools"/>
     <Project Name="Renderer"/>
     <Project Name="OS"/>
-    <Project Name="AssimpImporter"/>
+
     <Project Name="gainput"/>
-    <Project Name="assimp"/>
+
     <Project Name="ozz_base"/>
     <Project Name="ozz_animation"/>
     <Project Name="LuaManager"/>
@@ -36,9 +28,9 @@
     <Project Name="SpirVTools"/>
     <Project Name="Renderer"/>
     <Project Name="OS"/>
-    <Project Name="AssimpImporter"/>
+
     <Project Name="gainput"/>
-    <Project Name="assimp"/>
+
     <Project Name="LuaManager"/>
     <Project Name="EASTL"/>
   </Dependencies>
@@ -48,9 +40,9 @@
         <IncludePath Value="."/>
       </Compiler>
       <Linker Options="">
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/Libraries/Linux"/>
-        <Library Value="libzip.a"/>
-        <Library Value="libz"/>
+
+        
+
       </Linker>
       <ResourceCompiler Options=""/>
     </GlobalSettings>
@@ -58,7 +50,7 @@
       <Compiler Options="-g;-O0;-std=c++14;-Wall;-Wno-unknown-pragmas;-msse4.1; " C_Options="-g;-O0;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
-        <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include"/>
+
         <IncludePath Value="$(ProjectPath)/../../../.."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
@@ -70,7 +62,7 @@
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../LuaManager/Debug/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
+
         <LibraryPath Value="$(ProjectPath)/../ozz_base/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../ozz_animation/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
@@ -80,7 +72,7 @@
         <Library Value="libSpirVTools.a"/>
         <Library Value="libLuaManager.a"/>
         <Library Value="libvulkan.so"/>
-        <Library Value="libassimp.a"/>
+
         <Library Value="libgainput.a"/>
         <Library Value="libozz_animation.a"/>
         <Library Value="libozz_base.a"/>
@@ -126,7 +118,7 @@
       <Compiler Options="-O2;-std=c++14;-Wall;-Wno-unknown-pragmas;-msse4.1; " C_Options="-O2;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
-        <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include"/>
+
         <IncludePath Value="$(ProjectPath)/../../../.."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>
@@ -137,7 +129,7 @@
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../LuaManager/Release/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
+
         <LibraryPath Value="$(ProjectPath)/../ozz_base/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../ozz_animation/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
@@ -147,7 +139,7 @@
         <Library Value="libSpirVTools.a"/>
         <Library Value="libLuaManager.a"/>
         <Library Value="libvulkan.so"/>
-        <Library Value="libassimp.a"/>
+
         <Library Value="libgainput.a"/>
         <Library Value="libozz_animation.a"/>
         <Library Value="libozz_base.a"/>

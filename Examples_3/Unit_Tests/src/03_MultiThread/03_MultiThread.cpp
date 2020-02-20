@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2019 Confetti Interactive Inc.
+* Copyright (c) 2018-2020 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -57,7 +57,9 @@
 #endif
 #elif defined(__linux__)
 #include <unistd.h>    // sysconf(), _SC_NPROCESSORS_ONLN
-#else
+#elif defined(NX64)
+//todo
+#elif defined(__APPLE__)
 #include <mach/mach.h>
 #include <mach/processor_info.h>
 #include <mach/mach_host.h>
@@ -65,7 +67,7 @@
 
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/GpuProfiler.h"
-#include "../../../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/Renderer/IResourceLoader.h"
 
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
 
@@ -125,7 +127,6 @@ struct CpuGraph
 {
 	Buffer*       mVertexBuffer[gImageCount];    // vetex buffer for cpu sample
 	ViewPortState mViewPort;                     //view port for different core
-	GraphVertex   mPoints[gSampleCount * 3];
 };
 
 bool           gMicroProfiler = false;
@@ -184,7 +185,9 @@ uint64_t*      pOldPprocUsage;
 #elif (__linux__)
 uint64_t* pOldTimeStamp;
 uint64_t* pOldPprocUsage;
-#else
+#elif defined(NX64)
+//todo
+#elif defined(__APPLE__)
 NSLock*                CPUUsageLock;
 processor_info_array_t prevCpuInfo;
 mach_msg_type_number_t numPrevCpuInfo;
@@ -211,7 +214,6 @@ ICameraController* pCameraController = NULL;
 
 ThreadSystem* pThreadSystem;
 
-GraphVertex   gBackGroundPoints[gImageCount][gSampleCount];
 CpuGraphData* pCpuData;
 CpuGraph*     pCpuGraph;
 
@@ -267,20 +269,27 @@ class MultiThread: public IApp
 			return false;
 
 		QueueDesc queueDesc = {};
-		queueDesc.mType = CMD_POOL_DIRECT;
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		addCmdPool(pRenderer, pGraphicsQueue, false, &pCmdPool);
-		addCmd_n(pCmdPool, false, gImageCount, &ppCmds);
+		CmdPoolDesc cmdPoolDesc = {};
+		cmdPoolDesc.pQueue = pGraphicsQueue;
+		addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
+		CmdDesc cmdDesc = {};
+		cmdDesc.pPool = pCmdPool;
+		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
 
-		addCmdPool(pRenderer, pGraphicsQueue, false, &pGraphCmdPool);
-		addCmd_n(pGraphCmdPool, false, gImageCount, &ppGraphCmds);
+		addCmdPool(pRenderer, &cmdPoolDesc, &pGraphCmdPool);
+		cmdDesc.pPool = pGraphCmdPool;
+		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppGraphCmds);
 
 		// initial needed datat for each thread
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 		{
 			// create cmd pools and and cmdbuffers for all thread
-			addCmdPool(pRenderer, pGraphicsQueue, false, &pThreadData[i].pCmdPool);
-			addCmd_n(pThreadData[i].pCmdPool, false, gImageCount, &pThreadData[i].ppCmds);
+			addCmdPool(pRenderer, &cmdPoolDesc, &pThreadData[i].pCmdPool);
+			cmdDesc.pPool = pThreadData[i].pCmdPool;
+			addCmd_n(pRenderer, &cmdDesc, gImageCount, &pThreadData[i].ppCmds);
 
 			// fill up the data for drawing point
 			pThreadData[i].mStartPoint = i * (gTotalParticleCount / gThreadCount);
@@ -304,7 +313,7 @@ class MultiThread: public IApp
 			TextureLoadDesc textureDesc = {};
             textureDesc.pFilePath = path;
 			textureDesc.ppTexture = &pTextures[i];
-			addResource(&textureDesc, true);
+			addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
 		for (int i = 0; i < 6; ++i)
@@ -313,7 +322,7 @@ class MultiThread: public IApp
 			TextureLoadDesc textureDesc = {};
 			textureDesc.pFilePath = path;
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
-			addResource(&textureDesc, true);
+			addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
@@ -372,6 +381,7 @@ class MultiThread: public IApp
 		skyBoxRootDesc.ppStaticSamplers = pSamplers;
 		skyBoxRootDesc.mShaderCount = 2;
 		skyBoxRootDesc.ppShaders = shaders;
+		skyBoxRootDesc.mMaxBindlessTextures = 5;
 		addRootSignature(pRenderer, &skyBoxRootDesc, &pRootSignature);
 
 		RootSignatureDesc graphRootDesc = {};
@@ -429,7 +439,7 @@ class MultiThread: public IApp
 		skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
 		skyboxVbDesc.pData = skyBoxPoints;
 		skyboxVbDesc.ppBuffer = &pSkyBoxVertexBuffer;
-		addResource(&skyboxVbDesc);
+		addResource(&skyboxVbDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		BufferLoadDesc ubDesc = {};
 		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -440,13 +450,10 @@ class MultiThread: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
-			addResource(&ubDesc);
+			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
 			ubDesc.ppBuffer = &pSkyboxUniformBuffer[i];
-			addResource(&ubDesc);
+			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
-
-		finishResourceLoading();
-		LOGF(LogLevel::eINFO, "Load Time %lld", timer.GetUSec(false) / 1000);
 
 		// generate partcile data
 		unsigned int particleSeed = 23232323;    //we have gseed as global declaration, pick a name that is not gseed
@@ -471,9 +478,7 @@ class MultiThread: public IApp
 		particleVbDesc.mDesc.mVertexStride = parDataStride;
 		particleVbDesc.pData = seedArray;
 		particleVbDesc.ppBuffer = &pParticleVertexBuffer;
-		addResource(&particleVbDesc);
-
-		conf_free(seedArray);
+		addResource(&particleVbDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		uint32_t graphDataStride = sizeof(GraphVertex);                     // vec2(position) + vec4(color)
 		uint32_t graphDataSize = sizeof(GraphVertex) * gSampleCount * 3;    // 2 vertex for tri, 1 vertex for line strip
@@ -497,7 +502,7 @@ class MultiThread: public IApp
 				vbDesc.mDesc.mVertexStride = graphDataStride;
 				vbDesc.pData = NULL;
 				vbDesc.ppBuffer = &pCpuGraph[i].mVertexBuffer[j];
-				addResource(&vbDesc);
+				addResource(&vbDesc, NULL, LOAD_PRIORITY_NORMAL);
 			}
 		}
 		graphDataSize = sizeof(GraphVertex) * gSampleCount;
@@ -511,7 +516,7 @@ class MultiThread: public IApp
 			vbDesc.mDesc.mVertexStride = graphDataStride;
 			vbDesc.pData = NULL;
 			vbDesc.ppBuffer = &pBackGroundVertexBuffer[i];
-			addResource(&vbDesc);
+			addResource(&vbDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
 		if (!gAppUI.Init(pRenderer))
@@ -519,17 +524,17 @@ class MultiThread: public IApp
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
-    GuiDesc guiDesc = {};
-    float   dpiScale = getDpiScale().x;
-    guiDesc.mStartSize = vec2(140.0f / dpiScale, 320.0f / dpiScale);
-    guiDesc.mStartPosition = vec2(mSettings.mWidth - guiDesc.mStartSize.getX() * 4.1f, guiDesc.mStartSize.getY() * 0.5f);
+		GuiDesc guiDesc = {};
+		float   dpiScale = getDpiScale().x;
+		guiDesc.mStartSize = vec2(140.0f / dpiScale, 320.0f / dpiScale);
+		guiDesc.mStartPosition = vec2(mSettings.mWidth - guiDesc.mStartSize.getX() * 4.1f, guiDesc.mStartSize.getY() * 0.5f);
 
-    pGui = gAppUI.AddGuiComponent("Micro profiler", &guiDesc);
+		pGui = gAppUI.AddGuiComponent("Micro profiler", &guiDesc);
 
-    pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
+		pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
 
-    // Initialize profiler
-    initProfiler();
+		// Initialize profiler
+		initProfiler();
 
 		initThreadSystem(&pThreadSystem);
 
@@ -552,7 +557,7 @@ class MultiThread: public IApp
 			return false;
 
 		// App Actions
-    InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
@@ -582,6 +587,10 @@ class MultiThread: public IApp
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
+
+		waitForAllResourceLoads();
+		LOGF(LogLevel::eINFO, "Load Time %lld", timer.GetUSec(false) / 1000);
+		conf_free(seedArray);
 		
 		// Prepare descriptor sets
 		DescriptorData params[7] = {};
@@ -681,20 +690,20 @@ class MultiThread: public IApp
 		}
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
 
-		removeCmd_n(pCmdPool, gImageCount, ppCmds);
+		removeCmd_n(pRenderer, gImageCount, ppCmds);
 		removeCmdPool(pRenderer, pCmdPool);
-		removeCmd_n(pGraphCmdPool, gImageCount, ppGraphCmds);
+		removeCmd_n(pRenderer, gImageCount, ppGraphCmds);
 		removeCmdPool(pRenderer, pGraphCmdPool);
 
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 		{
-			removeCmd_n(pThreadData[i].pCmdPool, gImageCount, pThreadData[i].ppCmds);
+			removeCmd_n(pRenderer, gImageCount, pThreadData[i].ppCmds);
 			removeCmdPool(pRenderer, pThreadData[i].pCmdPool);
 		}
 
-		removeQueue(pGraphicsQueue);
+		removeQueue(pRenderer, pGraphicsQueue);
 
-		removeResourceLoaderInterface(pRenderer);
+		exitResourceLoaderInterface(pRenderer);
 		removeRenderer(pRenderer);
 
 		RemoveCpuUsage();
@@ -708,10 +717,10 @@ class MultiThread: public IApp
 		if (!addSwapChain())
 			return false;
 
-		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
+		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
 			return false;
 
-		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
+		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
 
 		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
@@ -732,9 +741,9 @@ class MultiThread: public IApp
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pBlendState = gParticleBlend;
 		pipelineSettings.pRasterizerState = gSkyboxRast;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pShader;
 		pipelineSettings.pVertexLayout = &vertexLayout;
@@ -753,9 +762,9 @@ class MultiThread: public IApp
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pRasterizerState = gSkyboxRast;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
 		pipelineSettings.pVertexLayout = &vertexLayout;
@@ -781,9 +790,9 @@ class MultiThread: public IApp
 		pipelineSettings = { 0 };
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_LINE_STRIP;
 		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.pRootSignature = pGraphRootSignature;
 		pipelineSettings.pShaderProgram = pGraphShader;
 		pipelineSettings.pVertexLayout = &vertexLayout;
@@ -824,9 +833,6 @@ class MultiThread: public IApp
 		/************************************************************************/
 		// Input
 		/************************************************************************/
-		const float  autoModeTimeoutReset = 3.0f;
-		static float autoModeTimeout = 0.0f;
-
 		pCameraController->update(deltaTime);
 
 		const float k_wrapAround = (float)(M_PI * 2.0);
@@ -888,23 +894,23 @@ class MultiThread: public IApp
 			currentTime = 0.0f;
 		}
 
-    if (gMicroProfiler != bPrevToggleMicroProfiler)
-    {
-      toggleProfiler();
-      bPrevToggleMicroProfiler = gMicroProfiler;
-    }
+		if (gMicroProfiler != bPrevToggleMicroProfiler)
+		{
+			toggleProfiler();
+			bPrevToggleMicroProfiler = gMicroProfiler;
+		}
 
-    /************************************************************************/
-    // Update GUI
-    /************************************************************************/
-    gAppUI.Update(deltaTime);
+		/************************************************************************/
+		// Update GUI
+		/************************************************************************/
+		gAppUI.Update(deltaTime);
 	}
 
 	void Draw()
 	{
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 
-		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
 		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
@@ -915,6 +921,14 @@ class MultiThread: public IApp
 			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
 		uint32_t frameIdx = gFrameIndex;
+
+		SyncToken graphUpdateToken = {};
+
+		for (uint32_t i = 0; i < gCoresCount; ++i)
+			CpuGraphcmdUpdateBuffer(frameIdx, &pCpuData[i], &pCpuGraph[i], &graphUpdateToken);    // update vertex buffer for each cpugraph
+
+		// update vertex buffer for background of the graph (grid)
+		CpuGraphBackGroundUpdate(frameIdx, &graphUpdateToken);
 		/*******record command for drawing particles***************/
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 		{
@@ -935,22 +949,18 @@ class MultiThread: public IApp
 		Cmd* cmd = ppCmds[frameIdx];
 		beginCmd(cmd);
 
-		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex], &gProjectView, 0, 0, sizeof(gProjectView) };
-		updateResource(&viewProjCbv);
+		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex] };
+		beginUpdateResource(&viewProjCbv);
+		*(mat4*)viewProjCbv.pMappedData = gProjectView;
+		endUpdateResource(&viewProjCbv, NULL);
 
-		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex], &gSkyboxProjectView, 0, 0, sizeof(gSkyboxProjectView) };
-		updateResource(&skyboxViewProjCbv);
+		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex] };
+		beginUpdateResource(&skyboxViewProjCbv);
+		*(mat4*)skyboxViewProjCbv.pMappedData = gSkyboxProjectView;
+		endUpdateResource(&skyboxViewProjCbv, NULL);
 
-		for (uint32_t i = 0; i < gCoresCount; ++i)
-		{
-			CpuGraphcmdUpdateBuffer(&pCpuData[i], &pCpuGraph[i], cmd, frameIdx);    // update vertex buffer for each cpugraph
-			CpuGraphBackGroundUpdate(cmd, frameIdx);
-		}
-
-		flushResourceUpdates();
-
-		TextureBarrier barrier = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
-		cmdResourceBarrier(cmd, 0, NULL, 1, &barrier);
+		RenderTargetBarrier barrier = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET };
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
@@ -1037,12 +1047,13 @@ class MultiThread: public IApp
 
 		cmdBindRenderTargets(ppGraphCmds[frameIdx], 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-		barrier = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(ppGraphCmds[frameIdx], 0, NULL, 1, &barrier);
+		barrier = { pRenderTarget, RESOURCE_STATE_PRESENT };
+		cmdResourceBarrier(ppGraphCmds[frameIdx], 0, NULL, 0, NULL, 1, &barrier);
 		endCmd(ppGraphCmds[frameIdx]);
 		// wait all particle threads done
 		waitThreadSystemIdle(pThreadSystem);
-
+		// Wait till graph buffers have been uploaded to the gpu
+		waitForToken(&graphUpdateToken);
 		/***************draw cpu graph*****************************/
 		/***************draw cpu graph*****************************/
 		// gather all command buffer, it is important to keep the screen clean command at the beginning
@@ -1056,9 +1067,22 @@ class MultiThread: public IApp
 		allCmds[gThreadCount + 1] = ppGraphCmds[frameIdx];
 		// submit all command buffer
 
-		queueSubmit(
-			pGraphicsQueue, gThreadCount + 2, allCmds, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
-		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		QueueSubmitDesc submitDesc = {};
+		submitDesc.mCmdCount = gThreadCount + 2;
+		submitDesc.mSignalSemaphoreCount = 1;
+		submitDesc.mWaitSemaphoreCount = 1;
+		submitDesc.ppCmds = allCmds;
+		submitDesc.ppSignalSemaphores = &pRenderCompleteSemaphore;
+		submitDesc.ppWaitSemaphores = &pImageAcquiredSemaphore;
+		submitDesc.pSignalFence = pRenderCompleteFence;
+		queueSubmit(pGraphicsQueue, &submitDesc);
+		QueuePresentDesc presentDesc = {};
+		presentDesc.mIndex = gFrameIndex;
+		presentDesc.mWaitSemaphoreCount = 1;
+		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
+		presentDesc.pSwapChain = pSwapChain;
+		presentDesc.mSubmitDone = true;
+		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
 	}
 
@@ -1193,8 +1217,9 @@ class MultiThread: public IApp
 			pOldPprocUsage[i] = ACTIVE_TIME;
 			pOldTimeStamp[i] = IDLE_TIME + ACTIVE_TIME;
 		}
-
-#else
+#elif defined(NX64)
+		//
+#elif defined(__APPLE__)
 		processor_info_array_t cpuInfo;
 		mach_msg_type_number_t numCpuInfo;
 
@@ -1324,6 +1349,8 @@ class MultiThread: public IApp
 		gCoresCount = numCPUsU;
 
 		CPUUsageLock = [[NSLock alloc] init];
+#elif defined(ORBIS) || defined(NX64)
+		gCoresCount = Thread::GetNumCPUCores();
 #endif
 
 		pCpuData = (CpuGraphData*)conf_malloc(sizeof(CpuGraphData) * gCoresCount);
@@ -1359,94 +1386,103 @@ class MultiThread: public IApp
 		conf_free(pCoresLoadData);
 	}
 
-	void CpuGraphBackGroundUpdate(Cmd* cmd, uint32_t frameIdx)
+	void CpuGraphBackGroundUpdate(uint32_t frameIdx, SyncToken* token)
 	{
+		BufferUpdateDesc backgroundVbUpdate = { pBackGroundVertexBuffer[frameIdx] };
+		beginUpdateResource(&backgroundVbUpdate);
+		GraphVertex* backGroundPoints = (GraphVertex*)backgroundVbUpdate.pMappedData;
+		memset(backGroundPoints, 0, pBackGroundVertexBuffer[frameIdx]->mDesc.mSize);
+
 		// background data
-		gBackGroundPoints[frameIdx][0].mPosition = vec2(-1.0f, -1.0f);
-		gBackGroundPoints[frameIdx][0].mColor = vec4(0.0f, 0.0f, 0.0f, 0.3f);
-		gBackGroundPoints[frameIdx][1].mPosition = vec2(1.0f, -1.0f);
-		gBackGroundPoints[frameIdx][1].mColor = vec4(0.0f, 0.0f, 0.0f, 0.3f);
-		gBackGroundPoints[frameIdx][2].mPosition = vec2(-1.0f, 1.0f);
-		gBackGroundPoints[frameIdx][2].mColor = vec4(0.0f, 0.0f, 0.0f, 0.3f);
-		gBackGroundPoints[frameIdx][3].mPosition = vec2(1.0f, 1.0f);
-		gBackGroundPoints[frameIdx][3].mColor = vec4(0.0f, 0.0f, 0.0f, 0.3f);
+		backGroundPoints[0].mPosition = vec2(-1.0f, -1.0f);
+		backGroundPoints[0].mColor = vec4(0.0f, 0.0f, 0.0f, 0.3f);
+		backGroundPoints[1].mPosition = vec2(1.0f, -1.0f);
+		backGroundPoints[1].mColor = vec4(0.0f, 0.0f, 0.0f, 0.3f);
+		backGroundPoints[2].mPosition = vec2(-1.0f, 1.0f);
+		backGroundPoints[2].mColor = vec4(0.0f, 0.0f, 0.0f, 0.3f);
+		backGroundPoints[3].mPosition = vec2(1.0f, 1.0f);
+		backGroundPoints[3].mColor = vec4(0.0f, 0.0f, 0.0f, 0.3f);
 
 		const float woff = 2.0f / gGraphWidth;
 		const float hoff = 2.0f / gGraphHeight;
 
-		gBackGroundPoints[frameIdx][4].mPosition = vec2(-1.0f + woff, -1.0f + hoff);
-		gBackGroundPoints[frameIdx][4].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
-		gBackGroundPoints[frameIdx][5].mPosition = vec2(1.0f - woff, -1.0f + hoff);
-		gBackGroundPoints[frameIdx][5].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
-		gBackGroundPoints[frameIdx][6].mPosition = vec2(1.0f - woff, -1.0f + hoff);
-		gBackGroundPoints[frameIdx][6].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
-		gBackGroundPoints[frameIdx][7].mPosition = vec2(1.0f - woff, 1.0f - hoff);
-		gBackGroundPoints[frameIdx][7].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
-		gBackGroundPoints[frameIdx][8].mPosition = vec2(1.0f - woff, 1.0f - hoff);
-		gBackGroundPoints[frameIdx][8].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
-		gBackGroundPoints[frameIdx][9].mPosition = vec2(-1.0f + woff, 1.0f - hoff);
-		gBackGroundPoints[frameIdx][9].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
-		gBackGroundPoints[frameIdx][10].mPosition = vec2(-1.0f + woff, 1.0f - hoff);
-		gBackGroundPoints[frameIdx][10].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
-		gBackGroundPoints[frameIdx][11].mPosition = vec2(-1.0f + woff, -1.0f + hoff);
-		gBackGroundPoints[frameIdx][11].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
+		backGroundPoints[4].mPosition = vec2(-1.0f + woff, -1.0f + hoff);
+		backGroundPoints[4].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
+		backGroundPoints[5].mPosition = vec2(1.0f - woff, -1.0f + hoff);
+		backGroundPoints[5].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
+		backGroundPoints[6].mPosition = vec2(1.0f - woff, -1.0f + hoff);
+		backGroundPoints[6].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
+		backGroundPoints[7].mPosition = vec2(1.0f - woff, 1.0f - hoff);
+		backGroundPoints[7].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
+		backGroundPoints[8].mPosition = vec2(1.0f - woff, 1.0f - hoff);
+		backGroundPoints[8].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
+		backGroundPoints[9].mPosition = vec2(-1.0f + woff, 1.0f - hoff);
+		backGroundPoints[9].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
+		backGroundPoints[10].mPosition = vec2(-1.0f + woff, 1.0f - hoff);
+		backGroundPoints[10].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
+		backGroundPoints[11].mPosition = vec2(-1.0f + woff, -1.0f + hoff);
+		backGroundPoints[11].mColor = vec4(0.0f, 0.3f, 0.5f, 0.25f);
 
 		for (int i = 1; i <= 6; ++i)
 		{
-			gBackGroundPoints[frameIdx][12 + i * 2].mPosition =
+			backGroundPoints[12 + i * 2].mPosition =
 				vec2(-1.0f + i * (2.0f / 6.0f) - 2.0f * ((pCpuData[0].mSampleIdx % (gSampleCount / 6)) / (float)gSampleCount), -1.0f);
-			gBackGroundPoints[frameIdx][12 + i * 2].mColor = vec4(0.0f, 0.1f, 0.2f, 0.25f);
-			gBackGroundPoints[frameIdx][13 + i * 2].mPosition =
+			backGroundPoints[12 + i * 2].mColor = vec4(0.0f, 0.1f, 0.2f, 0.25f);
+			backGroundPoints[13 + i * 2].mPosition =
 				vec2(-1.0f + i * (2.0f / 6.0f) - 2.0f * ((pCpuData[0].mSampleIdx % (gSampleCount / 6)) / (float)gSampleCount), 1.0f);
-			gBackGroundPoints[frameIdx][13 + i * 2].mColor = vec4(0.0f, 0.1f, 0.2f, 0.25f);
+			backGroundPoints[13 + i * 2].mColor = vec4(0.0f, 0.1f, 0.2f, 0.25f);
 		}
 		// start from 24
 
 		for (int i = 1; i <= 9; ++i)
 		{
-			gBackGroundPoints[frameIdx][24 + i * 2].mPosition = vec2(-1.0f, -1.0f + i * (2.0f / 10.0f));
-			gBackGroundPoints[frameIdx][24 + i * 2].mColor = vec4(0.0f, 0.1f, 0.2f, 0.25f);
-			gBackGroundPoints[frameIdx][25 + i * 2].mPosition = vec2(1.0f, -1.0f + i * (2.0f / 10.0f));
-			gBackGroundPoints[frameIdx][25 + i * 2].mColor = vec4(0.0f, 0.1f, 0.2f, 0.25f);
+			backGroundPoints[24 + i * 2].mPosition = vec2(-1.0f, -1.0f + i * (2.0f / 10.0f));
+			backGroundPoints[24 + i * 2].mColor = vec4(0.0f, 0.1f, 0.2f, 0.25f);
+			backGroundPoints[25 + i * 2].mPosition = vec2(1.0f, -1.0f + i * (2.0f / 10.0f));
+			backGroundPoints[25 + i * 2].mColor = vec4(0.0f, 0.1f, 0.2f, 0.25f);
 		}
 		//start from 42
 
-		gBackGroundPoints[frameIdx][42].mPosition = vec2(-1.0f, -1.0f);
-		gBackGroundPoints[frameIdx][42].mColor = vec4(0.85f, 0.9f, 0.0f, 0.25f);
-		gBackGroundPoints[frameIdx][43].mPosition = vec2(1.0f, -1.0f);
-		gBackGroundPoints[frameIdx][43].mColor = vec4(0.85f, 0.9f, 0.0f, 0.25f);
-		gBackGroundPoints[frameIdx][44].mPosition = vec2(-1.0f, 1.0f);
-		gBackGroundPoints[frameIdx][44].mColor = vec4(0.85f, 0.9f, 0.0f, 0.25f);
-		gBackGroundPoints[frameIdx][45].mPosition = vec2(1.0f, 1.0f);
-		gBackGroundPoints[frameIdx][45].mColor = vec4(0.85f, 0.9f, 0.0f, 0.25f);
+		backGroundPoints[42].mPosition = vec2(-1.0f, -1.0f);
+		backGroundPoints[42].mColor = vec4(0.85f, 0.9f, 0.0f, 0.25f);
+		backGroundPoints[43].mPosition = vec2(1.0f, -1.0f);
+		backGroundPoints[43].mColor = vec4(0.85f, 0.9f, 0.0f, 0.25f);
+		backGroundPoints[44].mPosition = vec2(-1.0f, 1.0f);
+		backGroundPoints[44].mColor = vec4(0.85f, 0.9f, 0.0f, 0.25f);
+		backGroundPoints[45].mPosition = vec2(1.0f, 1.0f);
+		backGroundPoints[45].mColor = vec4(0.85f, 0.9f, 0.0f, 0.25f);
 
-		gBackGroundPoints[frameIdx][42].mPosition = vec2(-1.0f, -1.0f);
-		gBackGroundPoints[frameIdx][42].mColor = vec4(0.85f, 0.0f, 0.0f, 0.25f);
-		gBackGroundPoints[frameIdx][43].mPosition = vec2(1.0f, -1.0f);
-		gBackGroundPoints[frameIdx][43].mColor = vec4(0.85f, 0.0f, 0.0f, 0.25f);
-		gBackGroundPoints[frameIdx][44].mPosition = vec2(-1.0f, 1.0f);
-		gBackGroundPoints[frameIdx][44].mColor = vec4(0.85f, 0.0f, 0.0f, 0.25f);
-		gBackGroundPoints[frameIdx][45].mPosition = vec2(1.0f, 1.0f);
-		gBackGroundPoints[frameIdx][45].mColor = vec4(0.85f, 0.0f, 0.0f, 0.25f);
+		backGroundPoints[42].mPosition = vec2(-1.0f, -1.0f);
+		backGroundPoints[42].mColor = vec4(0.85f, 0.0f, 0.0f, 0.25f);
+		backGroundPoints[43].mPosition = vec2(1.0f, -1.0f);
+		backGroundPoints[43].mColor = vec4(0.85f, 0.0f, 0.0f, 0.25f);
+		backGroundPoints[44].mPosition = vec2(-1.0f, 1.0f);
+		backGroundPoints[44].mColor = vec4(0.85f, 0.0f, 0.0f, 0.25f);
+		backGroundPoints[45].mPosition = vec2(1.0f, 1.0f);
+		backGroundPoints[45].mColor = vec4(0.85f, 0.0f, 0.0f, 0.25f);
 
-		BufferUpdateDesc backgroundVbUpdate = { pBackGroundVertexBuffer[frameIdx], gBackGroundPoints[frameIdx] };
-		updateResource(&backgroundVbUpdate, true);
+		endUpdateResource(&backgroundVbUpdate, token);
 	}
 
-	void CpuGraphcmdUpdateBuffer(CpuGraphData* graphData, CpuGraph* graph, Cmd* cmd, uint32_t frameIdx)
+	void CpuGraphcmdUpdateBuffer(uint32_t frameIdx, CpuGraphData* graphData, CpuGraph* graph, SyncToken* token)
 	{
+		BufferUpdateDesc vbUpdate = { graph->mVertexBuffer[frameIdx] };
+		beginUpdateResource(&vbUpdate);
+		GraphVertex* points = (GraphVertex*)vbUpdate.pMappedData;
+		memset(points, 0, graph->mVertexBuffer[frameIdx]->mDesc.mSize);
+
 		int index = graphData->mSampleIdx;
 		// fill up tri vertex
 		for (int i = 0; i < gSampleCount; ++i)
 		{
 			if (--index < 0)
 				index = gSampleCount - 1;
-			graph->mPoints[i * 2].mPosition = vec2((1.0f - i * (2.0f / gSampleCount)) * 0.999f - 0.02f, -0.97f);
-			graph->mPoints[i * 2].mColor = vec4(0.0f, 0.85f, 0.0f, 1.0f);
-			graph->mPoints[i * 2 + 1].mPosition = vec2(
+			points[i * 2].mPosition = vec2((1.0f - i * (2.0f / gSampleCount)) * 0.999f - 0.02f, -0.97f);
+			points[i * 2].mColor = vec4(0.0f, 0.85f, 0.0f, 1.0f);
+			points[i * 2 + 1].mPosition = vec2(
 				(1.0f - i * (2.0f / gSampleCount)) * 0.999f - 0.02f,
 				(2.0f * ((graphData->mSample[index] + graphData->mSampley[index]) * graphData->mScale - 0.5f)) * 0.97f);
-			graph->mPoints[i * 2 + 1].mColor = vec4(0.0f, 0.85f, 0.0f, 1.0f);
+			points[i * 2 + 1].mColor = vec4(0.0f, 0.85f, 0.0f, 1.0f);
 		}
 
 		//line vertex
@@ -1455,14 +1491,13 @@ class MultiThread: public IApp
 		{
 			if (--index < 0)
 				index = gSampleCount - 1;
-			graph->mPoints[i + 2 * gSampleCount].mPosition = vec2(
+			points[i + 2 * gSampleCount].mPosition = vec2(
 				(1.0f - i * (2.0f / gSampleCount)) * 0.999f - 0.02f,
 				(2.0f * ((graphData->mSample[index] + graphData->mSampley[index]) * graphData->mScale - 0.5f)) * 0.97f);
-			graph->mPoints[i + 2 * gSampleCount].mColor = vec4(0.0f, 0.85f, 0.0f, 1.0f);
+			points[i + 2 * gSampleCount].mColor = vec4(0.0f, 0.85f, 0.0f, 1.0f);
 		}
 
-		BufferUpdateDesc vbUpdate = { graph->mVertexBuffer[frameIdx], graph->mPoints };
-		updateResource(&vbUpdate, true);
+		endUpdateResource(&vbUpdate, token);
 	}
 
 	// thread for recording particle draw
@@ -1472,6 +1507,7 @@ class MultiThread: public IApp
 		Cmd*        cmd = data.ppCmds[data.mFrameIndex];
 		beginCmd(cmd);
 		cmdBeginGpuFrameProfile(cmd, data.pGpuProfiler);
+
 		cmdBindRenderTargets(cmd, 1, &data.pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)data.pRenderTarget->mDesc.mWidth, (float)data.pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, data.pRenderTarget->mDesc.mWidth, data.pRenderTarget->mDesc.mHeight);

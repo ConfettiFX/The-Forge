@@ -28,7 +28,7 @@ extern "C"
   
   uint basis_transcode_image(void *h, void *dst, uint dst_size_in_bytes, 
   uint image_index, uint level_index, uint format, 
-  uint pvrtc_wrap_addressing, uint get_alpha_for_opaque_formats);
+  uint unused, uint get_alpha_for_opaque_formats);
   
   void basis_set_debug_flags(uint f) { basist::set_debug_flags(f); }
   uint basis_get_debug_flags() { return basist::get_debug_flags(); }
@@ -182,7 +182,7 @@ uint basis_get_image_transcoded_size_in_bytes(void *h, uint image_index, uint le
 	if (f->m_magic != MAGIC)
 		return 0;	
 	
-	if (format >= cTFTotalTextureFormats)
+	if (format >= (int)transcoder_texture_format::cTFTotalTextureFormats)
 		return 0;
 	
 	uint bytes_per_block = basis_get_bytes_per_block((transcoder_texture_format)format);
@@ -209,7 +209,7 @@ uint basis_start_transcoding(void *h)
 
 uint basis_transcode_image(void *h, void *dst, uint dst_size_in_bytes, 
 	uint image_index, uint level_index, uint format, 
-	uint pvrtc_wrap_addressing, uint get_alpha_for_opaque_formats)
+	uint unused, uint get_alpha_for_opaque_formats)
 {
 	basis_file *f = static_cast<basis_file *>(h);
 	if (!f)
@@ -219,7 +219,7 @@ uint basis_transcode_image(void *h, void *dst, uint dst_size_in_bytes,
 	if (f->m_magic != MAGIC)
 		return 0;
 		
-	if (format >= cTFTotalTextureFormats)
+	if (format >= (int)transcoder_texture_format::cTFTotalTextureFormats)
 		return 0;
 		
 	uint bytes_per_block = basis_get_bytes_per_block((transcoder_texture_format)format);
@@ -227,5 +227,5 @@ uint basis_transcode_image(void *h, void *dst, uint dst_size_in_bytes,
 	return f->m_transcoder.transcode_image_level(f->m_pFile, f->m_file_size, image_index, level_index,
 		dst, dst_size_in_bytes / bytes_per_block,
 		(basist::transcoder_texture_format)format, 
-		(pvrtc_wrap_addressing ? basisu_transcoder::cDecodeFlagsPVRTCWrapAddressing : 0) | (get_alpha_for_opaque_formats ? basisu_transcoder::cDecodeFlagsTranscodeAlphaDataToOpaqueFormats : 0));
+		(get_alpha_for_opaque_formats ? basisu_transcoder::cDecodeFlagsTranscodeAlphaDataToOpaqueFormats : 0));
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -182,6 +182,7 @@ void fsFreePath(Path* path)
 	
 	if (tfrg_atomicptr_add_relaxed(&path->mRefCount, -1) == 1)
 	{
+		fsFreeFileSystem(path->pFileSystem);
 		conf_free(path);
 	}
 }
@@ -212,6 +213,7 @@ Path* fsAppendPathComponent(const Path* basePath, const char* pathComponent)
 	size_t maxPathLength = basePath->mPathLength + componentLength + 1;    // + 1 due to a possible added directory slash.
 	Path*  newPath = fsAllocatePath(maxPathLength);
 	newPath->pFileSystem = basePath->pFileSystem;
+	tfrg_atomicptr_add_relaxed(&newPath->pFileSystem->mRefCount, 1);
 
 	char* newPathBuffer = &newPath->mPathBufferOffset;
 	strncpy(newPathBuffer, &basePath->mPathBufferOffset, basePath->mPathLength);
@@ -313,6 +315,7 @@ Path* fsAppendPathExtension(const Path* basePath, const char* extension)
 	size_t maxPathLength = basePath->mPathLength + extensionLength + 1;    // + 1 due to a possible added directory slash.
 	Path*  newPath = fsAllocatePath(maxPathLength);
 	newPath->pFileSystem = basePath->pFileSystem;
+	tfrg_atomicptr_add_relaxed(&newPath->pFileSystem->mRefCount, 1);
 
 	char* newPathBuffer = &newPath->mPathBufferOffset;
 	strncpy(newPathBuffer, &basePath->mPathBufferOffset, basePath->mPathLength);
@@ -453,6 +456,7 @@ Path* fsReplacePathExtension(const Path* path, const char* newExtension)
 	if (!newExtension) { newExtension = ""; }
 
 	const char directorySeparator = path->pFileSystem->GetPathDirectorySeparator();
+	UNREF_PARAM(directorySeparator);
 
 	if (newExtension[0] == '.')
 	{
@@ -474,22 +478,32 @@ Path* fsReplacePathExtension(const Path* path, const char* newExtension)
 	{
 		newPathLength += 1;    // for '.'
 	}
+	if (!newExtensionLength)
+	{
+		newPathLength -= 1;
+	}
 
 	Path* newPath = fsAllocatePath(newPathLength);
 	newPath->pFileSystem = path->pFileSystem;
+	tfrg_atomicptr_add_relaxed(&newPath->pFileSystem->mRefCount, 1);
 	newPath->mPathLength = newPathLength;
 
 	size_t basePathLength = path->mPathLength - currentExtension.length;
+	if (!newExtensionLength)
+	{
+		basePathLength -= 1;
+	}
 	strncpy(&newPath->mPathBufferOffset, &path->mPathBufferOffset, basePathLength);
 
-	if (currentExtension.buffer == NULL)
+	if (currentExtension.buffer == NULL && newExtensionLength)
 	{
 		(&newPath->mPathBufferOffset)[basePathLength] = '.';
 		basePathLength += 1;
 	}
-
-	strncpy((&newPath->mPathBufferOffset) + basePathLength, newExtension, newExtensionLength);
-
+	if (newExtensionLength)
+	{
+		strncpy((&newPath->mPathBufferOffset) + basePathLength, newExtension, newExtensionLength);
+	}
 	return newPath;
 }
 
@@ -501,7 +515,7 @@ Path* fsCopyParentPath(const Path* path)
 	PathComponent directoryComponent = fsGetPathDirectoryName(path);
 	if (directoryComponent.buffer == NULL)
 	{
-		return NULL;
+		return fsCreatePath(path->pFileSystem, "");
 	}
 
 	const char* directoryComponentEnd = directoryComponent.buffer + directoryComponent.length;
@@ -511,6 +525,7 @@ Path* fsCopyParentPath(const Path* path)
 
 	Path* newPath = fsAllocatePath(newPathLength);
 	newPath->pFileSystem = path->pFileSystem;
+	tfrg_atomicptr_add_relaxed(&newPath->pFileSystem->mRefCount, 1);
 	newPath->mPathLength = newPathLength;
 	strncpy(&newPath->mPathBufferOffset, pathStart, newPathLength);
 
@@ -569,6 +584,16 @@ size_t fsGetLowercasedPathExtension(const Path* path, char* buffer, size_t maxLe
 	return extension.length;
 }
 
+eastl::string fsGetPathFileNameAndExtension(const Path* path)
+{
+	if (!path) { return { NULL, 0 }; }
+
+	PathComponent component;
+	PathComponent ext;
+	fsGetPathComponents(path, NULL, &component, &ext);
+	return fsPathComponentToString(component) + "." + fsPathComponentToString(ext);
+}
+
 const char* fsGetPathAsNativeString(const Path* path)
 {
 	if (!path || path->mPathLength == 0)
@@ -602,7 +627,10 @@ bool fsPathsEqual(const Path* pathA, const Path* pathB)
 
 // MARK: - FileSystem
 
-FileSystem::FileSystem(FileSystemKind kind): mKind(kind) { };
+FileSystem::FileSystem(FileSystemKind kind): mKind(kind)
+{
+	tfrg_atomicptr_store_relaxed(&mRefCount, 1);
+}
 
 FileSystemKind fsGetFileSystemKind(const FileSystem* fileSystem) { return fileSystem->mKind; }
 
@@ -612,8 +640,8 @@ FileSystem* fsCreateFileSystemFromFileAtPath(const Path* rootPath, FileSystemFla
 {
 	if (!rootPath) { return NULL; }
 
-	PathComponent extension = fsGetPathExtension(rootPath);
 #ifndef FORGE_DISABLE_ZIP
+	PathComponent extension = fsGetPathExtension(rootPath);
 	if (extension.length == 3 && stricmp("zip", extension.buffer) == 0)
 	{
 		return ZipFileSystem::CreateWithRootAtPath(rootPath, flags);
@@ -637,8 +665,11 @@ void fsFreeFileSystem(FileSystem* fileSystem)
 	{
 		return;    // The system FileSystem is a singleton that can never be deleted.
 	}
-
-	conf_delete(fileSystem);
+	
+	if (tfrg_atomicptr_add_relaxed(&fileSystem->mRefCount, -1) == 1)
+	{
+		conf_delete(fileSystem);
+	}
 }
 
 FileStream* fsOpenFile(const Path* filePath, FileMode mode) 
@@ -896,7 +927,7 @@ eastl::vector<PathHandle> fsGetSubDirectories(const Path* directory)
 
 bool fsPlatformUsesBundledResources()
 {
-#if defined(__ANDROID__) || defined(_DURANGO) || defined(TARGET_IOS) || defined(FORGE_IGNORE_PSZBASE)
+#if defined(__ANDROID__) || defined(_DURANGO) || defined(TARGET_IOS) || defined(NX64) || defined(FORGE_IGNORE_PSZBASE) || defined(ORBIS)
 	return true;
 #else
 	return false;
@@ -933,6 +964,12 @@ bool fsFileExistsInResourceDirectory(ResourceDirectory resourceDir, const char* 
 }
 
 // MARK: - FileStream Functions
+
+void* fsGetStreamBufferIfPresent(FileStream* stream)
+{
+	if (!stream) { return NULL; }
+	return stream->GetUnderlyingBuffer();
+}
 
 size_t fsReadFromStream(FileStream* stream, void* outputBuffer, size_t bufferSizeInBytes)
 {

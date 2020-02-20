@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,9 +25,6 @@
 // Unit Test for testing transformations using a solar system.
 // Tests the basic mat4 transformations, such as scaling, rotation, and translation.
 
-//Assimp Related
-#include "../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"
-#include "../../../../Common_3/Tools/AssetPipeline/src/TFXImporter.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/utility.h"
 
 
@@ -40,7 +37,7 @@
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/Renderer/IResourceLoader.h"
 
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
 //Math
@@ -137,7 +134,7 @@ const char* pCubeTextureName[] = { "Test_2" };
 
 const char* pTextFileName[] = { "TestDoc.txt" };
 
-const char* pModelFileName[] = { "capsule.obj" };
+const char* pModelFileName[] = { "capsule.gltf" };
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
@@ -153,19 +150,15 @@ const char* pZipFiles = "28-ZipFileSystem.zip";
 eastl::vector<eastl::string> gTextDataVector;
 
 //structures for loaded model 
-eastl::vector<MeshData*> pMeshes;
-
-eastl::vector<Vertex>	vertices = {};
-eastl::vector<uint>		indices = {};
+Geometry* pMesh;
+VertexLayout gVertexLayoutDefault = {};
 
 class FileSystemUnitTest : public IApp
 {
 public:
 
-		
 	bool Init()
-	{	
-
+	{
         // FILE PATHS
         PathHandle programDirectory = fsCopyProgramDirectoryPath();
         if (!fsPlatformUsesBundledResources())
@@ -191,11 +184,15 @@ public:
 			return false;
 
 		QueueDesc queueDesc = {};
-		queueDesc.mType = CMD_POOL_DIRECT;
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
 		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		addCmdPool(pRenderer, pGraphicsQueue, false, &pCmdPool);
-		addCmd_n(pCmdPool, false, gImageCount, &ppCmds);
+		CmdPoolDesc cmdPoolDesc = {};
+		cmdPoolDesc.pQueue = pGraphicsQueue;
+		addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
+		CmdDesc cmdDesc = {};
+		cmdDesc.pPool = pCmdPool;
+		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -221,32 +218,25 @@ public:
 			return false;
 		}
 
-		PathHandle modelFilePath = fsCreatePath(zipFileSystem, pModelFileName[0]);
-        FileStream* modelFile0FH = fsOpenFile(modelFilePath, FM_READ_BINARY);
-		
-		if (!modelFile0FH)
-		{
-			LOGF(LogLevel::eERROR, "\"%s\": ERROR in searching for file.", pModelFileName[0]);
-			return false;
-		}
-
-        ssize_t modelFile0Size = fsGetStreamFileSize(modelFile0FH);
-		char* pDataOfModel  = (char*)conf_malloc(modelFile0Size);
-        size_t bytesRead = fsReadFromStream(modelFile0FH, pDataOfModel, modelFile0Size);
-
-		//Check if unable to read model
-		if (bytesRead != modelFile0Size)
-		{
-			LOGF(LogLevel::eERROR, "\"%s\": Error in reading file.", pModelFileName[0]);
-			return false;
-		}
-
-        fsCloseStream(modelFile0FH);
-        
-		gTextDataVector.clear();
+		gVertexLayoutDefault.mAttribCount = 3;
+		gVertexLayoutDefault.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		gVertexLayoutDefault.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		gVertexLayoutDefault.mAttribs[0].mBinding = 0;
+		gVertexLayoutDefault.mAttribs[0].mLocation = 0;
+		gVertexLayoutDefault.mAttribs[0].mOffset = 0;
+		gVertexLayoutDefault.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
+		gVertexLayoutDefault.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		gVertexLayoutDefault.mAttribs[1].mBinding = 0;
+		gVertexLayoutDefault.mAttribs[1].mLocation = 1;
+		gVertexLayoutDefault.mAttribs[1].mOffset = 3 * sizeof(float);
+		gVertexLayoutDefault.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
+		gVertexLayoutDefault.mAttribs[2].mFormat = TinyImageFormat_R32G32_SFLOAT;
+		gVertexLayoutDefault.mAttribs[2].mBinding = 0;
+		gVertexLayoutDefault.mAttribs[2].mLocation = 2;
+		gVertexLayoutDefault.mAttribs[2].mOffset = 6 * sizeof(float);
 
 		PathHandle textFile0Path = fsCreatePath(zipFileSystem, pTextFileName[0]);
-        FileStream* textFile0Handle = fsOpenFile(textFile0Path, FM_READ);
+		FileStream* textFile0Handle = fsOpenFile(textFile0Path, FM_READ);
 
 		if (!textFile0Handle)
 		{
@@ -255,8 +245,8 @@ public:
 		}
         
         ssize_t textFile0Size = fsGetStreamFileSize(textFile0Handle);
-		char *pDataOfFile = (char*)conf_malloc((textFile0Size + 1) * sizeof(char));
-        bytesRead = fsReadFromStream(textFile0Handle, pDataOfFile, textFile0Size);
+		char* pDataOfFile = (char*)conf_malloc((textFile0Size + 1) * sizeof(char));
+        ssize_t bytesRead = fsReadFromStream(textFile0Handle, pDataOfFile, textFile0Size);
 		fsCloseStream(textFile0Handle);
 
 		if (bytesRead != textFile0Size)
@@ -265,7 +255,7 @@ public:
 			return false;
 		}
         pDataOfFile[textFile0Size] = 0;
-
+		gTextDataVector.clear();
 		gTextDataVector.push_back(pDataOfFile);
 
 		//Free the data buffer which was malloc'ed
@@ -279,7 +269,7 @@ public:
 		TextureLoadDesc textureDescZip = {};
         textureDescZip.pFilePath		= textureDescZipPath;
 		textureDescZip.ppTexture		= &pZipTexture[0];
-		addResource(&textureDescZip, true);
+		addResource(&textureDescZip, NULL, LOAD_PRIORITY_NORMAL);
 		
 		// Loads Skybox Textures
 		for (int i = 0; i < 6; ++i)
@@ -289,20 +279,15 @@ public:
 			TextureLoadDesc textureDesc = {};
 			textureDesc.pFilePath		= textureDescPath;
 			textureDesc.ppTexture		= &pSkyboxTextures[i];
-			addResource(&textureDesc, true);
+			addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
-		//Load Zip File Model/Models
-		LoadModel(pDataOfModel, modelFile0Size, pMeshes);
-
-		//Free model data
-		if (pDataOfModel != NULL)
-		{
-			conf_free(pDataOfModel);
-		}
-
-		// Close the Zip file
-        fsFreeFileSystem(zipFileSystem);
+		PathHandle modelFilePath = fsCreatePath(zipFileSystem, pModelFileName[0]);
+		GeometryLoadDesc loadDesc = {};
+		loadDesc.pFilePath = modelFilePath;
+		loadDesc.ppGeometry = &pMesh;
+		loadDesc.pVertexLayout = &gVertexLayoutDefault;
+		addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
 		
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
 		{
@@ -423,7 +408,7 @@ public:
 		cubiodVbDesc.mDesc.mVertexStride = sizeof(float) * 8;
 		cubiodVbDesc.pData = CubePoints;
 		cubiodVbDesc.ppBuffer = &pZipTextureVertexBuffer;
-		addResource(&cubiodVbDesc);
+		addResource(&cubiodVbDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		//Generate sky box vertex buffer
 		float skyBoxPoints[] = {
@@ -460,7 +445,7 @@ public:
 		skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
 		skyboxVbDesc.pData = skyBoxPoints;
 		skyboxVbDesc.ppBuffer = &pSkyboxVertexBuffer;
-		addResource(&skyboxVbDesc);
+		addResource(&skyboxVbDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		BufferLoadDesc ubDesc = {};
 		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -472,9 +457,12 @@ public:
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
-			addResource(&ubDesc);
+			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
-		finishResourceLoading();
+		waitForAllResourceLoads();
+
+		// Close the Zip file
+		fsFreeFileSystem(zipFileSystem);
 
 		if (!gAppUI.Init(pRenderer))
 			return false;
@@ -582,22 +570,8 @@ public:
 		//remove loaded zip test texture
 		removeResource(pZipTexture[0]);
 
-		vertices.clear();
-		vertices.set_capacity(0);
-
-		indices.clear();
-		indices.set_capacity(0);
-
-
 		//remove loaded zip test models
-		for (int i = 0; i < pMeshes.size(); ++i)
-		{
-			removeResource(pMeshes[i]->pVertexBuffer);
-			removeResource(pMeshes[i]->pIndexBuffer);
-			conf_delete(pMeshes[i]);
-		}
-		pMeshes.clear();
-		pMeshes.set_capacity(0);
+		removeResource(pMesh);
 
 		removeSampler(pRenderer, pSamplerSkybox);
 		removeShader(pRenderer, pBasicShader);
@@ -617,12 +591,12 @@ public:
 		}
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
 
-		removeCmd_n(pCmdPool, gImageCount, ppCmds);
+		removeCmd_n(pRenderer, gImageCount, ppCmds);
 		removeCmdPool(pRenderer, pCmdPool);
 
 		removeGpuProfiler(pRenderer, pGpuProfiler);
-		removeResourceLoaderInterface(pRenderer);
-		removeQueue(pGraphicsQueue);
+		exitResourceLoaderInterface(pRenderer);
+		removeQueue(pRenderer, pGraphicsQueue);
 		removeRenderer(pRenderer);
 	}
     
@@ -683,31 +657,13 @@ public:
 		if (!addDepthBuffer())
 			return false;
 
-		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
+		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
 			return false;
 
-		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
+		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
 
 		//layout and pipeline for zip model draw
-		VertexLayout vertexLayout = {};
-		vertexLayout.mAttribCount = 3;
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[0].mOffset = 0;
-		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayout.mAttribs[1].mBinding = 0;
-		vertexLayout.mAttribs[1].mLocation = 1;
-		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
-		vertexLayout.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayout.mAttribs[2].mFormat = TinyImageFormat_R32G32_SFLOAT;
-		vertexLayout.mAttribs[2].mBinding = 0;
-		vertexLayout.mAttribs[2].mLocation = 2;
-		vertexLayout.mAttribs[2].mOffset = 6 * sizeof(float);
-		
 
 		PipelineDesc desc = {};
 		desc.mType = PIPELINE_TYPE_GRAPHICS;
@@ -715,18 +671,18 @@ public:
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepth;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pBasicShader;
-		pipelineSettings.pVertexLayout = &vertexLayout;
+		pipelineSettings.pVertexLayout = &gVertexLayoutDefault;
 		pipelineSettings.pRasterizerState = pBasicRast;
 		addPipeline(pRenderer, &desc, &pBasicPipeline);
 
 		//layout and pipeline for skybox draw
-		vertexLayout = {};
+		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 1;
 		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
 		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
@@ -734,6 +690,7 @@ public:
 		vertexLayout.mAttribs[0].mLocation = 0;
 		vertexLayout.mAttribs[0].mOffset = 0;
 
+		pipelineSettings.pVertexLayout = &vertexLayout;
 		pipelineSettings.pDepthState = NULL;
 		pipelineSettings.pRasterizerState = pSkyboxRast;
 		pipelineSettings.pShaderProgram = pSkyboxShader;
@@ -851,7 +808,7 @@ public:
 	{
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 
-		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
 		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
@@ -862,8 +819,10 @@ public:
 			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
 		// Update uniform buffers
-		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex], &gUniformData };
-		updateResource(&viewProjCbv);
+		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex] };
+		beginUpdateResource(&viewProjCbv);
+		*(UniformBlock*)viewProjCbv.pMappedData = gUniformData;
+		endUpdateResource(&viewProjCbv, NULL);
 
 		// simply record the screen cleaning command
 		LoadActionsDesc loadActions = {};
@@ -881,11 +840,11 @@ public:
 
     cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
 
-		TextureBarrier barriers[] = {
-			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
-			{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE },
+		RenderTargetBarrier barriers[] = {
+				{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
+				{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE },
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 2, barriers);
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
@@ -911,9 +870,9 @@ public:
 	cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Zip Model", true);
 	cmdBindPipeline(cmd, pBasicPipeline);
 		
-	cmdBindVertexBuffer(cmd, 1, &pMeshes[0]->pVertexBuffer, NULL);
-	cmdBindIndexBuffer(cmd, pMeshes[0]->pIndexBuffer, NULL);
-	cmdDrawIndexed(cmd, pMeshes[0]->mIndexCount, 0, 0);
+	cmdBindVertexBuffer(cmd, 1, &pMesh->pVertexBuffers[0], NULL);
+	cmdBindIndexBuffer(cmd, pMesh->pIndexBuffer, NULL);
+	cmdDrawIndexed(cmd, pMesh->mIndexCount, 0, 0);
 	cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 #pragma endregion
 
@@ -960,15 +919,29 @@ public:
 	}
     cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
-		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(cmd, 0, NULL, 1, barriers);
+		barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
     cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 		endCmd(cmd);
 
-		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
-		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
-    flipProfiler();
+		QueueSubmitDesc submitDesc = {};
+		submitDesc.mCmdCount = 1;
+		submitDesc.mSignalSemaphoreCount = 1;
+		submitDesc.mWaitSemaphoreCount = 1;
+		submitDesc.ppCmds = &cmd;
+		submitDesc.ppSignalSemaphores = &pRenderCompleteSemaphore;
+		submitDesc.ppWaitSemaphores = &pImageAcquiredSemaphore;
+		submitDesc.pSignalFence = pRenderCompleteFence;
+		queueSubmit(pGraphicsQueue, &submitDesc);
+		QueuePresentDesc presentDesc = {};
+		presentDesc.mIndex = gFrameIndex;
+		presentDesc.mWaitSemaphoreCount = 1;
+		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
+		presentDesc.pSwapChain = pSwapChain;
+		presentDesc.mSubmitDone = true;
+		queuePresent(pGraphicsQueue, &presentDesc);
+		flipProfiler();
 	}
 	
 	const char* GetName() { return "12_ZipFileSystem"; }
@@ -1008,80 +981,6 @@ public:
 
 		return pDepthBuffer != NULL;
 	}
-	
-	
-
-	void LoadModel(char* modelData, size_t asizeModels, eastl::vector<MeshData*> &pMeshes)
-	{
-		AssimpImporter          importer;
-		
-		int modelsCount = 1;
-
-		for (int m = 0; m < modelsCount; ++m)
-		{
-			AssimpImporter::Model model;
-			
-			if (importer.ImportModelFromMemory(modelData, &model, pModelFileName[0], asizeModels))
-			{
-				vertices.clear();
-				indices.clear();
-
-				for (size_t i = 0; i < model.mMeshArray.size(); ++i)
-				{
-					AssimpImporter::Mesh* mesh = &model.mMeshArray[i];
-					vertices.reserve(vertices.size() + mesh->mPositions.size());
-					indices.reserve(indices.size() + mesh->mIndices.size());
-
-					for (size_t v = 0; v < mesh->mPositions.size(); ++v)
-					{
-						Vertex vertex = { float3(0.0f), float3(0.0f, 1.0f, 0.0f) };
-						vertex.mPosition = mesh->mPositions[v];
-						vertex.mNormal = mesh->mNormals[v];
-						vertex.mUV = mesh->mUvs[v];
-						vertices.push_back(vertex);
-
-					}
-
-					for (size_t j = 0; j < mesh->mIndices.size(); ++j)
-						indices.push_back(mesh->mIndices[j]);
-				}
-
-				//Mesh Data
-				MeshData* meshData;
-				meshData = conf_placement_new<MeshData>(conf_malloc(sizeof(MeshData)));
-				meshData->mVertexCount = (uint)vertices.size();
-				meshData->mIndexCount = (uint)indices.size();
-
-				BufferLoadDesc	gVertexBufferDesc = {};
-				gVertexBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-				gVertexBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-				gVertexBufferDesc.mDesc.mSize = sizeof(Vertex) * meshData->mVertexCount;
-				gVertexBufferDesc.mDesc.mVertexStride = sizeof(Vertex);
-				gVertexBufferDesc.pData = vertices.data();
-				gVertexBufferDesc.ppBuffer = &meshData->pVertexBuffer;
-				addResource(&gVertexBufferDesc);
-				
-				if (meshData->mIndexCount > 0)
-				{
-					BufferLoadDesc	gIndexBufferDesc = {};
-					gIndexBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
-					gIndexBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-					gIndexBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
-					gIndexBufferDesc.mDesc.mSize = sizeof(uint) * meshData->mIndexCount;
-					gIndexBufferDesc.mDesc.mIndexType = INDEX_TYPE_UINT32;
-					gIndexBufferDesc.pData = indices.data();
-					gIndexBufferDesc.ppBuffer = &meshData->pIndexBuffer; 
-					addResource(&gIndexBufferDesc);
-				}
-
-				pMeshes.push_back(meshData);
-				
-			}
-			else
-				LOGF(LogLevel::eERROR ,"Failed to load model.");
-		}
-	}
-
 };
 
 DEFINE_APPLICATION_MAIN(FileSystemUnitTest)

@@ -1,16 +1,19 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
 #include "meshoptimizer.h"
 
+#include <assert.h>
+#include <string.h>
+
 meshopt_VertexFetchStatistics meshopt_analyzeVertexFetch(const unsigned int* indices, size_t index_count, size_t vertex_count, size_t vertex_size)
 {
-	ASSERT(index_count % 3 == 0);
-	ASSERT(vertex_size > 0 && vertex_size <= 256);
+	assert(index_count % 3 == 0);
+	assert(vertex_size > 0 && vertex_size <= 256);
 
 	meshopt_Allocator allocator;
 
 	meshopt_VertexFetchStatistics result = {};
 
-	unsigned char* vertex_visited = (unsigned char*)allocator.allocate(sizeof(unsigned char) * vertex_count);
+	unsigned char* vertex_visited = allocator.allocate<unsigned char>(vertex_count);
 	memset(vertex_visited, 0, vertex_count);
 
 	const size_t kCacheLine = 64;
@@ -22,7 +25,7 @@ meshopt_VertexFetchStatistics meshopt_analyzeVertexFetch(const unsigned int* ind
 	for (size_t i = 0; i < index_count; ++i)
 	{
 		unsigned int index = indices[i];
-		ASSERT(index < vertex_count);
+		assert(index < vertex_count);
 
 		vertex_visited[index] = 1;
 
@@ -32,7 +35,7 @@ meshopt_VertexFetchStatistics meshopt_analyzeVertexFetch(const unsigned int* ind
 		size_t start_tag = start_address / kCacheLine;
 		size_t end_tag = (end_address + kCacheLine - 1) / kCacheLine;
 
-		ASSERT(start_tag < end_tag);
+		assert(start_tag < end_tag);
 
 		for (size_t tag = start_tag; tag < end_tag; ++tag)
 		{

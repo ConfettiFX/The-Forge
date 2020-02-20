@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -325,6 +325,11 @@ FileStream* fsOpenReadOnlyMemory(const void *buffer, size_t bufferLengthInBytes)
 /// Opens a read-write buffer as a FileStream, returning a stream that must be closed with `fsCloseStream`.
 FileStream* fsOpenReadWriteMemory(void *buffer, size_t bufferLengthInBytes);
 
+/// Returns the underlying byte buffer for this stream if present, or NULL if the stream is not backed by a byte buffer.
+/// The returned buffer is owned by the stream.
+/// It is an error to write to the returned buffer if the stream is read-only.
+void* fsGetStreamBufferIfPresent(FileStream* stream);
+
 /// Reads at most `bufferSizeInBytes` bytes from the file and copies them into outputBuffer.
 /// Returns the number of bytes read.
 size_t fsReadFromStream(FileStream* stream, void* outputBuffer, size_t bufferSizeInBytes);
@@ -457,8 +462,8 @@ FileSystem* fsCreateFileSystemFromFileAtPath(const Path* rootPath, FileSystemFla
 /// Otherwise, returns NULL.
 Path* fsCopyPathInParentFileSystem(const FileSystem* fileSystem);
 
-/// Invalidates and frees `fileSystem`. All paths created from `fileSystem` and all files opened from
-/// those paths files are also invalidated but not freed.
+/// Decrements the reference count for `fileSystem`, freeing it if there are no outstanding references.
+/// NOTE: `Path`s and `FileStream`s hold references to their FileSystem.
 void fsFreeFileSystem(FileSystem* fileSystem);
 
 /// Returns true if the file system is read-only.
@@ -554,6 +559,9 @@ eastl::string fsReadFromStreamSTLLine(FileStream* stream);
 inline eastl::string fsPathComponentToString(PathComponent pathComponent) {
     return eastl::string(pathComponent.buffer, pathComponent.length);
 }
+
+/// Returns `path`'s file name and extension as a string. The return value is guaranteed to live for as long as `path` lives.
+eastl::string fsGetPathFileNameAndExtension(const Path* path);
 
 #endif // defined(EASTL_STRING_H) && !defined(IFileSystem_h_STLString)
 

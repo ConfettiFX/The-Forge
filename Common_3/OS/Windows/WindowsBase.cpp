@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2019 Confetti Interactive Inc.
+* Copyright (c) 2018-2020 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -74,14 +74,7 @@ LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_DISPLAYCHANGE:
 	{
-		if (pCurrentWindow->fullScreen)
-		{
-			adjustWindow(pCurrentWindow);
-		}
-		else
-		{
-			adjustWindow(pCurrentWindow);
-		}
+		adjustWindow(pCurrentWindow);
 		break;
 	}
 	case WM_GETMINMAXINFO:

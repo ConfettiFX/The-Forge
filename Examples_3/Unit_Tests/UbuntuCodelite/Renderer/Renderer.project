@@ -29,7 +29,7 @@
     <File Name="../../../../Common_3/Renderer/IRenderer.h"/>
     <File Name="../../../../Common_3/Renderer/IShaderReflection.h"/>
     <File Name="../../../../Common_3/Renderer/ResourceLoader.cpp"/>
-    <File Name="../../../../Common_3/Renderer/ResourceLoader.h"/>
+    <File Name="../../../../Common_3/Renderer/IResourceLoader.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Vulkan">
     <File Name="../../../../Common_3/Renderer/Vulkan/Vulkan.cpp"/>

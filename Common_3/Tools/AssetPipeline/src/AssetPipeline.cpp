@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -23,22 +23,11 @@
 */
 
 #include "AssetPipeline.h"
-#include "AssetLoader.h"
 
 // Tiny stl
 #include "../../../ThirdParty/OpenSource/EASTL/string.h"
 #include "../../../ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../../ThirdParty/OpenSource/EASTL/unordered_map.h"
-
-// Assimp
-#include "../../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/Importer.hpp"
-#include "../../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/Exporter.hpp"
-#include "../../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/scene.h"
-#include "../../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/metadata.h"
-#include "../../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/config.h"
-#include "../../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/cimport.h"
-#include "../../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/postprocess.h"
-#include "../../../ThirdParty/OpenSource/assimp/4.1.0/include/assimp/DefaultLogger.hpp"
 
 // OZZ
 #include "../../../ThirdParty/OpenSource/ozz-animation/include/ozz/base/io/stream.h"
@@ -47,6 +36,13 @@
 #include "../../../ThirdParty/OpenSource/ozz-animation/include/ozz/animation/offline/raw_animation.h"
 #include "../../../ThirdParty/OpenSource/ozz-animation/include/ozz/animation/offline/skeleton_builder.h"
 #include "../../../ThirdParty/OpenSource/ozz-animation/include/ozz/animation/offline/animation_builder.h"
+
+// TressFX
+#include "../../../ThirdParty/OpenSource/TressFX/TressFXAsset.h"
+
+#define CGLTF_WRITE_IMPLEMENTATION
+#define CGLTF_IMPLEMENTATION
+#include "../../../ThirdParty/OpenSource/cgltf/cgltf_write.h"
 
 #define IMAGE_CLASS_ALLOWED
 #include "../../../OS/Image/Image.h"
@@ -59,22 +55,12 @@ typedef eastl::unordered_map<eastl::string, eastl::vector<PathHandle>> Animation
 
 struct NodeInfo
 {
-	eastl::string      mName;
-	int                  pParentNodeIndex;
-	eastl::vector<int> mChildNodeIndices;
-	bool                 mUsedInSkeleton;
-	aiNode*              pNode;
+	eastl::string		mName;
+	int                 pParentNodeIndex;
+	eastl::vector<int>	mChildNodeIndices;
+	bool                mUsedInSkeleton;
+	cgltf_node*			pNode;
 };
-
-struct glTFNodeInfo
-{
-	eastl::string      mName;
-	int                  pParentNodeIndex;
-	eastl::vector<int> mChildNodeIndices;
-	bool                 mUsedInSkeleton;
-	cgltf_node*              pNode;
-};
-
 
 struct BoneInfo
 {
@@ -82,34 +68,6 @@ struct BoneInfo
 	int                                          mParentNodeIndex;
 	ozz::animation::offline::RawSkeleton::Joint* pParentJoint;
 };
-
-bool ImportFBX(const Path* fbxFile, const aiScene** pScene)
-{
-	// Set up assimp to be able to parse our fbx files correctly
-	aiPropertyStore* propertyStore = aiCreatePropertyStore();
-
-	// Tell Assimp to not import a bunch of useless layers of objects
-	aiSetImportPropertyInteger(propertyStore, AI_CONFIG_IMPORT_FBX_READ_ALL_GEOMETRY_LAYERS, 0);
-	aiSetImportPropertyInteger(propertyStore, AI_CONFIG_IMPORT_FBX_READ_TEXTURES, 1);
-	aiSetImportPropertyFloat(propertyStore, AI_CONFIG_PP_GSN_MAX_SMOOTHING_ANGLE, 66.0f);
-
-	unsigned int flags = aiProcessPreset_TargetRealtime_MaxQuality;
-	flags |= aiProcess_FixInfacingNormals | aiProcess_ConvertToLeftHanded;
-	flags &= ~aiProcess_SortByPType;
-	flags &= ~aiProcess_FindInstances;
-
-	// Import an assimp scene
-	*pScene = aiImportFileExWithProperties(fsGetPathAsNativeString(fbxFile), flags, nullptr, propertyStore);
-
-	// If the import failed, report it
-	if (*pScene == NULL)
-	{
-		LOGF(LogLevel::eERROR, "%s", aiGetErrorString());
-		return false;
-	}
-
-	return true;
-}
 
 bool AssetPipeline::ProcessAnimations(const Path* animationDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings)
 {
@@ -129,8 +87,8 @@ bool AssetPipeline::ProcessAnimations(const Path* animationDirectory, const Path
     eastl::vector<PathHandle> subDirectories = fsGetSubDirectories(animationDirectory);
     for (const PathHandle& subDir : subDirectories)
     {
-        // Get all fbx files
-        eastl::vector<PathHandle> filesInDirectory = fsGetFilesWithExtension(subDir, "fbx");
+        // Get all glTF files
+        eastl::vector<PathHandle> filesInDirectory = fsGetFilesWithExtension(subDir, "gltf");
 
         for (const PathHandle& file : filesInDirectory)
         {
@@ -152,7 +110,7 @@ bool AssetPipeline::ProcessAnimations(const Path* animationDirectory, const Path
                     {
                         // Add all files in animations to the animation asset
                         filesInDirectory.clear();
-                        filesInDirectory = fsGetFilesWithExtension(assetSubDir, "fbx");
+                        filesInDirectory = fsGetFilesWithExtension(assetSubDir, "gltf");
                         animationAssets[assetName].insert(
                             animationAssets[assetName].end(), filesInDirectory.begin(), filesInDirectory.end());
                         break;
@@ -238,8 +196,15 @@ bool AssetPipeline::ProcessAnimations(const Path* animationDirectory, const Path
         }
         else
         {
-            if (!AssetLoader::LoadSkeleton(skeletonOutput, &skeleton))
-                return false;
+			// Load skeleton from disk
+			ozz::io::File file(skeletonOutput, FM_READ_BINARY);
+
+			if (!file.opened())
+				return false;
+			ozz::io::IArchive archive(&file);
+			archive >> skeleton;
+			if (!file.CloseOzzFile())
+				return false;
         }
 
         // If output directory doesn't exist, create it.
@@ -297,21 +262,369 @@ bool AssetPipeline::ProcessAnimations(const Path* animationDirectory, const Path
     return success;
 }
 
+bool AssetPipeline::ProcessTextures(const Path* textureDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings)
+{
+	// Check if directory exists
+	if (!fsFileExists(textureDirectory))
+	{
+		LOGF(LogLevel::eERROR, "textureDirectory: \"%s\" does not exist.", textureDirectory);
+		return false;
+	}
+
+	// If output directory doesn't exist, create it.
+	if (!fsFileExists(outputDirectory))
+	{
+		if (!fsCreateDirectory(outputDirectory))
+		{
+			LOGF(LogLevel::eERROR, "Failed to create output directory %s.", outputDirectory);
+			return false;
+		}
+	}
+
+    PathHandle currentDir = fsCopyWorkingDirectoryPath();
+	currentDir = fsAppendPathComponent(currentDir, "ImageConvertTools/ImageConvertTool.py");
+	eastl::string cmd("python ");
+	cmd.append("\"");
+	cmd.append(fsGetPathAsNativeString(currentDir));
+	cmd.append("\"");
+	cmd.append(" fixall ");
+	eastl::string inputStr(fsGetPathAsNativeString(textureDirectory));
+	cmd.append(inputStr);
+	cmd.append(" ");
+
+	eastl::string outputStr(fsGetPathAsNativeString(outputDirectory));
+	cmd.append(outputStr);
+
+#if !defined(TARGET_IOS) && !defined(__ANDROID__) && !defined(_DURANGO) && !defined(ORBIS)
+	int result = system(cmd.c_str());
+	if (result)
+		return true;
+	else
+		return false;
+#else
+    return true;
+#endif
+}
+
+bool AssetPipeline::ProcessVirtualTextures(const Path* textureDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings)
+{
+#if !defined(__linux__) && !defined(METAL)
+	// Check if directory exists
+	if (!fsFileExists(textureDirectory))
+	{
+		LOGF(LogLevel::eERROR, "textureDirectory: \"%s\" does not exist.", textureDirectory);
+		return false;
+	}
+
+	// If output directory doesn't exist, create it.
+	if (!fsFileExists(outputDirectory))
+	{
+		if (!fsCreateDirectory(outputDirectory))
+		{
+			LOGF(LogLevel::eERROR, "Failed to create output directory %s.", outputDirectory);
+			return false;
+		}
+	}
+
+	// Get all image files
+	eastl::vector<PathHandle> ddsFilesInDirectory;
+	ddsFilesInDirectory = fsGetFilesWithExtension(textureDirectory, ".dds");
+
+	for (size_t i = 0; i < ddsFilesInDirectory.size(); ++i)
+	{
+		eastl::string outputFile = fsGetPathAsNativeString(ddsFilesInDirectory[i]);
+		
+		if (outputFile.size() > 0)
+		{
+			Image* pImage = conf_new(Image);
+			pImage->Init();
+
+			if (!pImage->LoadFromFile(ddsFilesInDirectory[i], NULL, NULL))
+			{
+				pImage->Destroy();
+				conf_delete(pImage);
+				LOGF(LogLevel::eERROR, "Failed to load image %s.", outputFile.c_str());
+				continue;
+			}
+
+			outputFile.resize(outputFile.size() - 4);
+			outputFile.append(".svt");
+
+			PathHandle pathForSVT = fsCreatePath(fsGetSystemFileSystem(), outputFile.c_str());
+
+			bool result = pImage->iSaveSVT(pathForSVT);
+
+			pImage->Destroy();
+			conf_delete(pImage);
+
+			if (result == false)
+			{
+				LOGF(LogLevel::eERROR, "Failed to save sparse virtual texture %s.", outputFile.c_str());
+				return false;
+			}			
+		}
+	}
+
+	ddsFilesInDirectory.set_capacity(0);
+
+	eastl::vector<PathHandle> ktxFilesInDirectory;
+	ktxFilesInDirectory = fsGetFilesWithExtension(textureDirectory, ".ktx");
+
+	for (size_t i = 0; i < ktxFilesInDirectory.size(); ++i)
+	{
+		eastl::string outputFile = fsGetPathAsNativeString(ktxFilesInDirectory[i]);
+
+		if (outputFile.size() > 0)
+		{
+			Image* pImage = conf_new(Image);
+			pImage->Init();
+
+			if (!pImage->LoadFromFile(ktxFilesInDirectory[i], NULL, NULL))
+			{
+				pImage->Destroy();
+				conf_delete(pImage);
+				LOGF(LogLevel::eERROR, "Failed to load image %s.", outputFile.c_str());
+				continue;
+			}
+
+			outputFile.resize(outputFile.size() - 4);
+			outputFile.append(".svt");
+
+			PathHandle pathForSVT = fsCreatePath(fsGetSystemFileSystem(), outputFile.c_str());
+
+			bool result = pImage->iSaveSVT(pathForSVT);
+
+			pImage->Destroy();
+			conf_delete(pImage);
+
+			if (result == false)
+			{
+				LOGF(LogLevel::eERROR, "Failed to save sparse virtual texture %s.", outputFile.c_str());
+				return false;
+			}
+		}
+	}
+
+	ktxFilesInDirectory.set_capacity(0);
+#endif
+	return true;
+}
+
+bool AssetPipeline::ProcessTFX(const Path* textureDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings)
+{
+	// Check if directory exists
+	if (!fsFileExists(textureDirectory))
+	{
+		LOGF(LogLevel::eERROR, "textureDirectory: \"%s\" does not exist.", textureDirectory);
+		return false;
+	}
+
+	// If output directory doesn't exist, create it.
+	if (!fsFileExists(outputDirectory))
+	{
+		if (!fsCreateDirectory(outputDirectory))
+		{
+			LOGF(LogLevel::eERROR, "Failed to create output directory %s.", outputDirectory);
+			return false;
+		}
+	}
+
+	cgltf_result result = cgltf_result_success;
+
+	// Get all tfx files
+	eastl::vector<PathHandle> tfxFilesInDirectory;
+	tfxFilesInDirectory = fsGetFilesWithExtension(textureDirectory, ".tfx");
+
+#define RETURN_IF_TFX_ERROR(expression) if (!(expression)) { LOGF(eERROR, "Failed to load tfx"); return false; }
+
+	for (size_t i = 0; i < tfxFilesInDirectory.size(); ++i)
+	{
+		PathHandle input = tfxFilesInDirectory[i];
+		PathHandle output = fsAppendPathComponent(outputDirectory, fsGetPathFileName(input).buffer);
+		output = fsReplacePathExtension(output, "gltf");
+		PathHandle binFilePath = fsReplacePathExtension(output, "bin");
+
+		FileStream* tfxFile = fsOpenFile(input, FM_READ_BINARY);
+		AMD::TressFXAsset tressFXAsset = {};
+		RETURN_IF_TFX_ERROR(tressFXAsset.LoadHairData(tfxFile))
+		fsCloseStream(tfxFile);
+
+		if (settings->mFollowHairCount)
+		{
+			RETURN_IF_TFX_ERROR(tressFXAsset.GenerateFollowHairs(settings->mFollowHairCount, settings->mTipSeperationFactor, settings->mMaxRadiusAroundGuideHair))
+		}
+
+		RETURN_IF_TFX_ERROR(tressFXAsset.ProcessAsset())
+
+		struct TypePair { cgltf_type type; cgltf_component_type comp; };
+		const TypePair vertexTypes[] =
+		{
+			{ cgltf_type_scalar, cgltf_component_type_r_32u },   // Indices
+			{ cgltf_type_vec4,   cgltf_component_type_r_32f },   // Position
+			{ cgltf_type_vec4,   cgltf_component_type_r_32f },   // Tangents
+			{ cgltf_type_vec4,   cgltf_component_type_r_32f },   // Global rotations
+			{ cgltf_type_vec4,   cgltf_component_type_r_32f },   // Local rotations
+			{ cgltf_type_vec4,   cgltf_component_type_r_32f },   // Ref vectors
+			{ cgltf_type_vec4,   cgltf_component_type_r_32f },   // Follow root offsets
+			{ cgltf_type_vec2,   cgltf_component_type_r_32f },   // Strand UVs
+			{ cgltf_type_scalar, cgltf_component_type_r_32u },   // Strand types
+			{ cgltf_type_scalar, cgltf_component_type_r_32f },   // Thickness coeffs
+			{ cgltf_type_scalar, cgltf_component_type_r_32f },   // Rest lengths
+		};
+		const uint32_t vertexStrides[] =
+		{
+			sizeof(uint32_t), // Indices
+			sizeof(float4),   // Position
+			sizeof(float4),   // Tangents
+			sizeof(float4),   // Global rotations
+			sizeof(float4),   // Local rotations
+			sizeof(float4),   // Ref vectors
+			sizeof(float4),   // Follow root offsets
+			sizeof(float2),   // Strand UVs
+			sizeof(uint32_t), // Strand types
+			sizeof(float),    // Thickness coeffs
+			sizeof(float),    // Rest lengths
+		};
+		const uint32_t vertexCounts[] =
+		{
+			(uint32_t)tressFXAsset.GetNumHairTriangleIndices(),   // Indices
+			(uint32_t)tressFXAsset.m_numTotalVertices,   // Position
+			(uint32_t)tressFXAsset.m_numTotalVertices,   // Tangents
+			(uint32_t)tressFXAsset.m_numTotalVertices,   // Global rotations
+			(uint32_t)tressFXAsset.m_numTotalVertices,   // Local rotations
+			(uint32_t)tressFXAsset.m_numTotalVertices,   // Ref vectors
+			(uint32_t)tressFXAsset.m_numTotalStrands,    // Follow root offsets
+			(uint32_t)tressFXAsset.m_numTotalStrands,    // Strand UVs
+			(uint32_t)tressFXAsset.m_numTotalStrands,    // Strand types
+			(uint32_t)tressFXAsset.m_numTotalVertices,   // Thickness coeffs
+			(uint32_t)tressFXAsset.m_numTotalVertices,   // Rest lengths
+		};
+		const void* vertexData[] =
+		{
+			tressFXAsset.m_triangleIndices,    // Indices
+			tressFXAsset.m_positions,          // Position
+			tressFXAsset.m_tangents,           // Tangents
+			tressFXAsset.m_globalRotations,    // Global rotations
+			tressFXAsset.m_localRotations,     // Local rotations
+			tressFXAsset.m_refVectors,         // Ref vectors
+			tressFXAsset.m_followRootOffsets,  // Follow root offsets
+			tressFXAsset.m_strandUV,           // Strand UVs
+			tressFXAsset.m_strandTypes,        // Strand types
+			tressFXAsset.m_thicknessCoeffs,    // Thickness coeffs
+			tressFXAsset.m_restLengths,        // Rest lengths
+		};
+		const char* vertexNames[] =
+		{
+			"INDEX",             // Indices
+			"POSITION",          // Position
+			"TANGENT",           // Tangents
+			"TEXCOORD_0",        // Global rotations
+			"TEXCOORD_1",        // Local rotations
+			"TEXCOORD_2",        // Ref vectors
+			"TEXCOORD_3",        // Follow root offsets
+			"TEXCOORD_4",        // Strand UVs
+			"TEXCOORD_5",        // Strand types
+			"TEXCOORD_6",        // Thickness coeffs
+			"TEXCOORD_7",        // Rest lengths
+		};
+		const uint32_t count = sizeof(vertexData) / sizeof(vertexData[0]);
+
+		cgltf_buffer buffer = {};
+		cgltf_accessor accessors[count] = {};
+		cgltf_buffer_view views[count] = {};
+		cgltf_attribute attribs[count] = {};
+		cgltf_mesh mesh = {};
+		cgltf_primitive prim = {};
+		cgltf_size offset = 0;
+		FileStream* binFile = fsOpenFile(binFilePath, FM_WRITE_BINARY);
+		size_t fileSize = 0;
+
+		for (uint32_t i = 0; i < count; ++i)
+		{
+			views[i].type = (i ? cgltf_buffer_view_type_vertices : cgltf_buffer_view_type_indices);
+			views[i].buffer = &buffer;
+			views[i].offset = offset;
+			views[i].size = vertexCounts[i] * vertexStrides[i];
+			accessors[i].component_type = vertexTypes[i].comp;
+			accessors[i].stride = vertexStrides[i];
+			accessors[i].count = vertexCounts[i];
+			accessors[i].offset = 0;
+			accessors[i].type = vertexTypes[i].type;
+			accessors[i].buffer_view = &views[i];
+
+			attribs[i].name = (char*)vertexNames[i];
+			attribs[i].data = &accessors[i];
+
+			fileSize += fsWriteToStream(binFile, vertexData[i], views[i].size);
+			offset += views[i].size;
+		}
+		fsCloseStream(binFile);
+
+		PathComponent fn = fsGetPathFileName(binFilePath);
+		char uri[2048] = {};
+		sprintf(uri, "%s", fn.buffer);
+		buffer.uri = uri;
+		buffer.size = fileSize;
+
+		prim.indices = accessors;
+		prim.attributes_count = count - 1;
+		prim.attributes = attribs + 1;
+		prim.type = cgltf_primitive_type_triangles;
+
+		mesh.primitives_count = 1;
+		mesh.primitives = &prim;
+
+		char extras[128] = {};
+		sprintf(extras, "{ \"%s\" : %d, \"%s\" : %d }",
+			"mVertexCountPerStrand", tressFXAsset.m_numVerticesPerStrand, "mGuideCountPerStrand", tressFXAsset.m_numGuideStrands);
+
+		char generator[] = "TressFX";
+		cgltf_data data = {};
+		data.asset.generator = generator;
+		data.buffers_count = 1;
+		data.buffers = &buffer;
+		data.buffer_views_count = count;
+		data.buffer_views = views;
+		data.accessors_count = count;
+		data.accessors = accessors;
+		data.meshes_count = 1;
+		data.meshes = &mesh;
+		data.file_data = extras;
+		data.asset.extras.start_offset = 0;
+		data.asset.extras.end_offset = strlen(extras);
+		cgltf_options options = {};
+		result = cgltf_write_file(&options, fsGetPathAsNativeString(output), &data);
+	}
+
+	return result == cgltf_result_success;
+}
+
+static uint32_t FindJoint(ozz::animation::Skeleton* skeleton, const char* name)
+{
+	for (int i = 0; i < skeleton->num_joints(); i++)
+	{
+		if (strcmp(skeleton->joint_names()[i], name) == 0)
+			return i;
+	}
+	return UINT_MAX;
+}
+
 bool AssetPipeline::CreateRuntimeSkeleton(
 	const Path* skeletonAsset, const char* skeletonName, const Path* skeletonOutput, ozz::animation::Skeleton* skeleton,
 	ProcessAssetsSettings* settings)
 {
-	// Import the FBX with the animation
-	const aiScene* scene = NULL;
-	if (!ImportFBX(skeletonAsset, &scene))
+	// Import the glTF with the animation
+	cgltf_data* data = NULL;
+	cgltf_options options = {};
+	options.memory_alloc = [](void* user, cgltf_size size) { return conf_malloc(size); };
+	options.memory_free = [](void* user, void* ptr) { conf_free(ptr); };
+	cgltf_result result = cgltf_parse_file(&options, fsGetPathAsNativeString(skeletonAsset), &data);
+	if (result != cgltf_result_success)
 		return false;
 
-	// Check if the asset contains any bones
-	uint numBones = 0;
-	for (size_t i = 0; i < scene->mNumMeshes; ++i)
-		numBones += scene->mMeshes[i]->mNumBones;
+	cgltf_load_buffers(&options, data, fsGetPathAsNativeString(skeletonAsset));
 
-	if (numBones == 0)
+	if (data->skins_count == 0)
 	{
 		LOGF(LogLevel::eERROR, "Rigged mesh %s has no bones. Skeleton can not be created.", skeletonName);
 		return false;
@@ -320,7 +633,7 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 	// Gather node info
 	// Used to mark nodes that should be included in the skeleton
 	eastl::vector<NodeInfo> nodeData(1);
-	nodeData[0] = { scene->mRootNode->mName.C_Str(), -1, {}, false, scene->mRootNode };
+	nodeData[0] = { data->nodes[0].name, -1, {}, false, &data->nodes[0] };
 
 	const int queueSize = 128;
 	int       nodeQueue[queueSize] = {};    // Simple queue because tinystl doesn't have one
@@ -333,16 +646,16 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 	{
 		// Pop
 		int     nodeIndex = nodeQueue[nodeQueueStart];
-		aiNode* node = nodeData[nodeIndex].pNode;
+		cgltf_node *node = nodeData[nodeIndex].pNode;
 		nodeQueue[nodeQueueStart] = -1;
 
-		for (uint i = 0; i < node->mNumChildren; ++i)
+		for (uint i = 0; i < node->children_count; ++i)
 		{
 			NodeInfo childNode = {};
-			childNode.mName = node->mChildren[i]->mName.C_Str();
+			childNode.mName = node->children[i]->name;
 			childNode.pParentNodeIndex = nodeIndex;
 			int childNodeIndex = (int)nodeData.size();
-			childNode.pNode = node->mChildren[i];
+			childNode.pNode = node->children[i];
 			nodeData.push_back(childNode);
 
 			nodeData[nodeIndex].mChildNodeIndices.push_back(childNodeIndex);
@@ -361,15 +674,15 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 	}
 
 	// Mark all nodes that are required to be in the skeleton
-	for (uint i = 0; i < scene->mNumMeshes; ++i)
+	for (uint i = 0; i < data->skins_count; ++i)
 	{
-		aiMesh* mesh = scene->mMeshes[i];
-		for (uint j = 0; j < mesh->mNumBones; ++j)
+		cgltf_skin* skin = &data->skins[i];
+		for (uint j = 0; j < skin->joints_count; ++j)
 		{
-			aiBone* bone = mesh->mBones[j];
+			cgltf_node* bone = skin->joints[j];
 			for (uint k = 0; k < (uint)nodeData.size(); ++k)
 			{
-				if (nodeData[k].mName == eastl::string(bone->mName.C_Str()))
+				if (nodeData[k].mName == eastl::string(bone->name))
 				{
 					int nodeIndex = k;
 					while (nodeIndex != -1)
@@ -395,27 +708,15 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 		BoneInfo boneInfo = boneData.back();
 		boneData.pop_back();
 		NodeInfo* nodeInfo = &nodeData[boneInfo.mNodeIndex];
-		aiNode*   node = nodeInfo->pNode;
+		cgltf_node*   node = nodeInfo->pNode;
 
 		// Get node transform
-		aiVector3D   translation;
-		aiQuaternion rotation;
-		aiVector3D   scale;
-		node->mTransformation.Decompose(scale, rotation, translation);
-
-		if (boneInfo.mParentNodeIndex == -1)
-		{
-			// Scale the root node from centimenters to meters
-			// TODO: Remove this and replace with aiProcess_GlobalScale
-			// See: https://github.com/assimp/assimp/issues/775
-			scale *= 0.01f;
-		}
 
 		// Create joint from node
 		ozz::animation::offline::RawSkeleton::Joint joint;
-		joint.transform.translation = vec3(translation.x, translation.y, translation.z);
-		joint.transform.rotation = Quat(rotation.x, rotation.y, rotation.z, rotation.w);
-		joint.transform.scale = vec3(scale.x, scale.y, scale.z);
+		joint.transform.translation = vec3(node->translation[0], node->translation[1], node->translation[2]);
+		joint.transform.rotation = Quat(node->rotation[0], node->rotation[1], node->rotation[2], node->rotation[3]);
+		joint.transform.scale = vec3(node->scale[0], node->scale[1], node->scale[2]) * (boneInfo.mParentNodeIndex == -1 ? 0.01f : 1.f);
 		joint.name = nodeInfo->mName.c_str();
 
 		// Add node to raw skeleton
@@ -455,8 +756,6 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 		}
 	}
 
-	aiReleaseImport(scene);
-
 	// Validate raw skeleton
 	if (!rawSkeleton.Validate())
 	{
@@ -481,6 +780,71 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 	if (!file.CloseOzzFile())
 		return false;
 
+	void* fileData = data->file_data;
+
+	// Generate joint remaps in the gltf
+	{
+		eastl::vector<char> buffer;
+		uint32_t size = 0;
+
+		for (uint32_t i = 0; i < data->meshes_count; ++i)
+		{
+			cgltf_mesh* mesh = &data->meshes[i];
+			cgltf_node* node = NULL;
+			for (uint32_t n = 0; n < data->nodes_count; ++n)
+			{
+				if (data->nodes[n].mesh == mesh)
+				{
+					node = &data->nodes[n];
+					break;
+				}
+			}
+
+			if (node && node->mesh && node->skin)
+			{
+				cgltf_skin* skin = node->skin;
+				cgltf_mesh* mesh = node->mesh;
+
+				char jointRemaps[1024] = {};
+				uint32_t offset = 0;
+				offset += sprintf(jointRemaps + offset, "[ ");
+
+				for (uint32_t j = 0; j < skin->joints_count; ++j)
+				{
+					const cgltf_node* jointNode = skin->joints[j];
+					uint32_t jointIndex = FindJoint(skeleton, jointNode->name);
+					offset += sprintf(jointRemaps + offset, "%u, ", jointIndex);
+				}
+
+				offset += sprintf(jointRemaps + offset, "],");
+				skin->extras.start_offset = size;
+				size += (uint32_t)strlen(jointRemaps) + 1;
+				skin->extras.end_offset = size - 1;
+
+				for (uint32_t i = 0; i < strlen(jointRemaps) + 1; ++i)
+					buffer.push_back(jointRemaps[i]);
+			}
+		}
+
+		for (uint32_t i = 0; i < data->buffers_count; ++i)
+		{
+			if (strstr(data->buffers[i].uri, "://") == NULL)
+			{
+				PathHandle parent = fsCopyParentPath(skeletonAsset);
+				PathHandle bufferOut = fsAppendPathComponent(parent, data->buffers[i].uri);
+				FileStream* fs = fsOpenFile(bufferOut, FM_WRITE_BINARY);
+				fsWriteToStream(fs, data->buffers[i].data, data->buffers[i].size);
+				fsCloseStream(fs);
+			}
+		}
+
+		data->file_data = buffer.data();
+		cgltf_write_file(&options, fsGetPathAsNativeString(skeletonAsset), data);
+	}
+
+	data->file_data = fileData;
+	cgltf_free(data);
+
 	return true;
 }
 
@@ -488,41 +852,29 @@ bool AssetPipeline::CreateRuntimeAnimation(
 	const Path* animationAsset, ozz::animation::Skeleton* skeleton, const char* skeletonName, const char* animationName,
 	const Path* animationOutput, ProcessAssetsSettings* settings)
 {
-	// Import the FBX with the animation
-	const aiScene* scene = NULL;
-	if (!ImportFBX(animationAsset, &scene))
+	// Import the glTF with the animation
+	cgltf_data* data = NULL;
+	cgltf_options options = {};
+	options.memory_alloc = [](void* user, cgltf_size size) { return conf_malloc(size); };
+	options.memory_free = [](void* user, void* ptr) { conf_free(ptr); };
+	cgltf_result result = cgltf_parse_file(&options, fsGetPathAsNativeString(animationAsset), &data);
+	if (result != cgltf_result_success)
 		return false;
 
+	cgltf_load_buffers(&options, data, fsGetPathAsNativeString(animationAsset));
+
 	// Check if the asset contains any animations
-	if (!scene->HasAnimations())
+	if (data->animations_count == 0)
 	{
 		if (!settings->quiet)
 			LOGF(LogLevel::eWARNING, "Animation asset %s of skeleton %s contains no animations.", animationName, skeletonName);
 		return false;
 	}
 
-	// Check if the asset contains more than 1 animation
-	if (scene->mNumAnimations > 1)
-	{
-		if (!settings->quiet)
-			LOGF(LogLevel::eWARNING,
-				"Animation asset %s of skeleton %s contains more than one animation. This is not allowed.", animationName, skeletonName);
-		return false;
-	}
-
-	const aiAnimation* animationData = scene->mAnimations[0];
-
 	// Create raw animation
 	ozz::animation::offline::RawAnimation rawAnimation;
 	rawAnimation.name = animationName;
-	rawAnimation.duration = (float)(animationData->mDuration * (1.0 / animationData->mTicksPerSecond));
-
-	eastl::unordered_map<eastl::string, aiNodeAnim*> jointMap;
-	for (uint i = 0; i < animationData->mNumChannels; ++i)
-	{
-		aiNodeAnim* node = animationData->mChannels[i];
-		jointMap[node->mNodeName.C_Str()] = node;
-	}
+    rawAnimation.duration = 0.f;
 
 	bool rootFound = false;
 	rawAnimation.tracks.resize(skeleton->num_joints());
@@ -532,54 +884,88 @@ bool AssetPipeline::CreateRuntimeAnimation(
 
 		ozz::animation::offline::RawAnimation::JointTrack* track = &rawAnimation.tracks[i];
 
-		eastl::unordered_map<eastl::string, aiNodeAnim*>::iterator it = jointMap.find(jointName);
-		if (it != jointMap.end())
+        for (cgltf_size animationIndex = 0; animationIndex < data->animations_count; animationIndex += 1)
+        {
+            cgltf_animation* animationData = &data->animations[animationIndex];
+        
+            for (cgltf_size channelIndex = 0; channelIndex < animationData->channels_count; channelIndex += 1)
+            {
+                cgltf_animation_channel* channel = &animationData->channels[channelIndex];
+
+                if (strcmp(channel->target_node->name, jointName) != 0) continue;
+                
+                if (channel->target_path == cgltf_animation_path_type_translation)
+                {
+                    track->translations.resize(channel->sampler->output->count);
+                    for (cgltf_size j = 0; j < channel->sampler->output->count; j += 1)
+                    {
+                        float time = 0.0;
+                        vec3 translation = vec3(0.0f);
+                        cgltf_accessor_read_float(channel->sampler->input, j, &time, 1);
+                        cgltf_accessor_read_float(channel->sampler->output, j, (float*)&translation, 3);
+
+                        track->translations[j] = { time, translation };
+                    }
+                }
+
+                if (channel->target_path == cgltf_animation_path_type_rotation)
+                {
+                    track->rotations.resize(channel->sampler->output->count);
+                    for (cgltf_size j = 0; j < channel->sampler->output->count; j += 1)
+                    {
+                        float time = 0.0;
+                        Quat rotation = Quat(0.0f);
+                        cgltf_accessor_read_float(channel->sampler->input, j, &time, 1);
+                        cgltf_accessor_read_float(channel->sampler->output, j, (float*)&rotation, 4);
+
+                        track->rotations[j] = { time, rotation };
+                    }
+                }
+
+                if (channel->target_path == cgltf_animation_path_type_scale)
+                {
+                    track->scales.resize(channel->sampler->output->count);
+                    for (cgltf_size j = 0; j < channel->sampler->output->count; j += 1)
+                    {
+                        float time = 0.0;
+                        vec3 scale = vec3(0.0f);
+                        cgltf_accessor_read_float(channel->sampler->input, j, &time, 1);
+                        cgltf_accessor_read_float(channel->sampler->output, j, (float*)&scale, 3);
+
+                        track->scales[j] = { time, scale };
+                    }
+                }
+            }
+        }
+
+		if (!rootFound)
 		{
-			// There is a track for this bone
-			aiNodeAnim* node = it->second;
+			// Scale root of animation from centimeters to meters
+            if (track->scales.empty())
+            {
+                track->scales.resize(1, { 0.f, Vector3(1.0f) });
+            }
+            
+			for (uint j = 0; j < (uint)track->translations.size(); ++j)
+				track->translations[j].value *= 0.01f;
 
-			track->translations.resize(node->mNumPositionKeys);
-			track->rotations.resize(node->mNumRotationKeys);
-			track->scales.resize(node->mNumScalingKeys);
+			for (uint j = 0; j < track->scales.size(); ++j)
+				track->scales[j].value *= 0.01f;
 
-			for (uint j = 0; j < node->mNumPositionKeys; ++j)
-			{
-				aiVectorKey key = node->mPositionKeys[j];
-				track->translations[j] = { clamp((float)(key.mTime / animationData->mTicksPerSecond), 0.0f, rawAnimation.duration),
-										   vec3(key.mValue.x, key.mValue.y, key.mValue.z) };
-			}
-
-			for (uint j = 0; j < node->mNumRotationKeys; ++j)
-			{
-				aiQuatKey key = node->mRotationKeys[j];
-				track->rotations[j] = { clamp((float)(key.mTime / animationData->mTicksPerSecond), 0.0f, rawAnimation.duration),
-										Quat(key.mValue.x, key.mValue.y, key.mValue.z, key.mValue.w) };
-			}
-
-			for (uint j = 0; j < node->mNumScalingKeys; ++j)
-			{
-				aiVectorKey key = node->mScalingKeys[j];
-				track->scales[j] = { clamp((float)(key.mTime / animationData->mTicksPerSecond), 0.0f, rawAnimation.duration),
-									 vec3(key.mValue.x, key.mValue.y, key.mValue.z) };
-			}
-
-			if (!rootFound)
-			{
-				// Scale root of animation from centimeters to meters
-				// TODO: Remove this and replace with aiProcess_GlobalScale
-				// See: https://github.com/assimp/assimp/issues/775
-				for (uint j = 0; j < node->mNumPositionKeys; ++j)
-					track->translations[j].value *= 0.01f;
-
-				for (uint j = 0; j < node->mNumScalingKeys; ++j)
-					track->scales[j].value *= 0.01f;
-
-				rootFound = true;
-			}
+			rootFound = true;
 		}
+        
+        if (!track->translations.empty())
+            rawAnimation.duration = max(rawAnimation.duration, track->translations.back().time);
+        
+        if (!track->rotations.empty())
+            rawAnimation.duration = max(rawAnimation.duration, track->rotations.back().time);
+        
+        if (!track->scales.empty())
+            rawAnimation.duration = max(rawAnimation.duration, track->scales.back().time);
 	}
 
-	aiReleaseImport(scene);
+	cgltf_free(data);
 
 	// Validate raw animation
 	if (!rawAnimation.Validate())
@@ -608,210 +994,5 @@ bool AssetPipeline::CreateRuntimeAnimation(
 	//Deallocate animation
 	animation.Deallocate();
 
-	return true;
-}
-
-bool AssetPipeline::ProcessModels(const Path* meshDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings)
-{
-	// Check if directory exists
-	if (!fsFileExists(meshDirectory))
-	{
-		LOGF(LogLevel::eERROR, "meshDirectory: \"%s\" does not exist.", meshDirectory);
-		return false;
-	}
-
-	// If output directory doesn't exist, create it.
-	if (!fsFileExists(outputDirectory))
-	{
-		if (!fsCreateDirectory(outputDirectory))
-		{
-			LOGF(LogLevel::eERROR, "Failed to create output directory %s.", outputDirectory);
-			return false;
-		}
-	}
-
-	eastl::vector<PathHandle> subDirectories = fsGetSubDirectories(meshDirectory);
-
-	// Get all .gltf files
-	eastl::vector<PathHandle> filesInDirectory = fsGetFilesWithExtension(meshDirectory, "gltf");
-
-	int argc = 11;
-	char argPosBits[4] = { '1', '6', '\0', '\0' };
-	char argTexBits[4] = { '1', '6', '\0', '\0' };
-	char argNormBits[4] = { '8', '\0', '\0', '\0' };
-	sprintf(&argPosBits[0], "%d", settings->quantizePositionBits);
-	sprintf(&argTexBits[0], "%d", settings->quantizeTexBits);
-	sprintf(&argNormBits[0], "%d", settings->quantizeNormalBits);
-
-	// Load gltf models in directory
-	for (const PathHandle& file : filesInDirectory)
-	{
-		eastl::string fileName = fsPathComponentToString(fsGetPathFileName(file)).append("_OPTIMIZED_p");
-		fileName.append(argPosBits);
-		fileName.append("_uv");
-		fileName.append(argTexBits);
-		fileName.append("_n");
-		fileName.append(argNormBits);
-		fileName.append(".gltf");
-        PathHandle outputPath = fsAppendPathComponent(outputDirectory, fileName.c_str());
-		const char* argv[] = { "gltfpack", "-i", fsGetPathAsNativeString(file), "-o", fsGetPathAsNativeString(outputPath),
-								"-vp", argPosBits,
-								"-vt", argTexBits,
-								"-vn", argNormBits };
-		gltfpack(argc, argv);
-	}
-
-	return true;
-}
-
-bool AssetPipeline::ProcessTextures(const Path* textureDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings)
-{
-	// Check if directory exists
-	if (!fsFileExists(textureDirectory))
-	{
-		LOGF(LogLevel::eERROR, "textureDirectory: \"%s\" does not exist.", textureDirectory);
-		return false;
-	}
-
-	// If output directory doesn't exist, create it.
-	if (!fsFileExists(outputDirectory))
-	{
-		if (!fsCreateDirectory(outputDirectory))
-		{
-			LOGF(LogLevel::eERROR, "Failed to create output directory %s.", outputDirectory);
-			return false;
-		}
-	}
-
-    PathHandle currentDir = fsCopyWorkingDirectoryPath();
-	currentDir = fsAppendPathComponent(currentDir, "ImageConvertTools/ImageConvertTool.py");
-	eastl::string cmd("python ");
-	cmd.append("\"");
-	cmd.append(fsGetPathAsNativeString(currentDir));
-	cmd.append("\"");
-	cmd.append(" fixall ");
-	eastl::string inputStr(fsGetPathAsNativeString(textureDirectory));
-	cmd.append(inputStr);
-	cmd.append(" ");
-
-	eastl::string outputStr(fsGetPathAsNativeString(outputDirectory));
-	cmd.append(outputStr);
-
-#if !defined(TARGET_IOS) && !defined(__ANDROID__) && !defined(_DURANGO)
-	int result = system(cmd.c_str());
-	if (result)
-		return true;
-	else
-		return false;
-#else
-    return true;
-#endif
-}
-
-bool AssetPipeline::ProcessVirtualTextures(const Path* textureDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings)
-{
-#if !defined(__linux__) && !defined(METAL)
-	// Check if directory exists
-	if (!fsFileExists(textureDirectory))
-	{
-		LOGF(LogLevel::eERROR, "textureDirectory: \"%s\" does not exist.", textureDirectory);
-		return false;
-	}
-
-	// If output directory doesn't exist, create it.
-	if (!fsFileExists(outputDirectory))
-	{
-		if (!fsCreateDirectory(outputDirectory))
-		{
-			LOGF(LogLevel::eERROR, "Failed to create output directory %s.", outputDirectory);
-			return false;
-		}
-	}
-
-	// Get all image files
-	eastl::vector<PathHandle> ddsFilesInDirectory;
-	ddsFilesInDirectory = fsGetFilesWithExtension(textureDirectory, ".dds");
-
-	for (size_t i = 0; i < ddsFilesInDirectory.size(); ++i)
-	{
-		eastl::string outputFile = fsGetPathAsNativeString(ddsFilesInDirectory[i]);
-		
-		Image* pImage = NULL;
-		if (outputFile.size() > 0)
-		{
-
-			Image* pImage = conf_new(Image);
-			pImage->Init();
-
-			if (!pImage->LoadFromFile(ddsFilesInDirectory[i], NULL, NULL))
-			{
-				pImage->Destroy();
-				conf_delete(pImage);
-				LOGF(LogLevel::eERROR, "Failed to load image %s.", outputFile.c_str());
-				continue;
-			}
-
-			outputFile.resize(outputFile.size() - 4);
-			outputFile.append(".svt");
-
-			PathHandle pathForSVT = fsCreatePath(fsGetSystemFileSystem(), outputFile.c_str());
-
-			bool result = pImage->iSaveSVT(pathForSVT);
-
-			pImage->Destroy();
-			conf_delete(pImage);
-
-			if (result == false)
-			{
-				LOGF(LogLevel::eERROR, "Failed to save sparse virtual texture %s.", outputFile.c_str());
-				return false;
-			}			
-		}
-	}
-
-	ddsFilesInDirectory.set_capacity(0);
-
-	eastl::vector<PathHandle> ktxFilesInDirectory;
-	ktxFilesInDirectory = fsGetFilesWithExtension(textureDirectory, ".ktx");
-
-	for (size_t i = 0; i < ktxFilesInDirectory.size(); ++i)
-	{
-		eastl::string outputFile = fsGetPathAsNativeString(ktxFilesInDirectory[i]);
-
-		Image* pImage = NULL;
-		if (outputFile.size() > 0)
-		{
-
-			Image* pImage = conf_new(Image);
-			pImage->Init();
-
-			if (!pImage->LoadFromFile(ktxFilesInDirectory[i], NULL, NULL))
-			{
-				pImage->Destroy();
-				conf_delete(pImage);
-				LOGF(LogLevel::eERROR, "Failed to load image %s.", ktxFilesInDirectory[i]);
-				continue;
-			}
-
-			outputFile.resize(outputFile.size() - 4);
-			outputFile.append(".svt");
-
-			PathHandle pathForSVT = fsCreatePath(fsGetSystemFileSystem(), outputFile.c_str());
-
-			bool result = pImage->iSaveSVT(pathForSVT);
-
-			pImage->Destroy();
-			conf_delete(pImage);
-
-			if (result == false)
-			{
-				LOGF(LogLevel::eERROR, "Failed to save sparse virtual texture %s.", outputFile.c_str());
-				return false;
-			}
-		}
-	}
-
-	ktxFilesInDirectory.set_capacity(0);
-#endif
 	return true;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -49,16 +49,18 @@ void _PrintUnicodeLine(const eastl::string& str, bool error = false);
 #define IFASSERT(x) x
 
 #if defined(_XBOX)
-
-#elif defined(ORBIS)
-// there is a large amount of stuff included via header files ...
-#define ASSERT(cond) SCE_GNM_ASSERT(cond)
 #else
 #define ASSERT(b) \
 	if (!(b)) _FailedAssert(__FILE__, __LINE__, #b)
 #endif
 #else
+
+#if defined(NX64)
+#define ASSERT(b) (void)(b)
+#else
 #define ASSERT(b) assume(b)
+#endif
+
 #if _MSC_VER >= 1400
 #define IFASSERT(x) x
 #else

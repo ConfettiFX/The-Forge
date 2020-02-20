@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -75,13 +75,15 @@ typedef uint64_t uint64;
 #include <unistd.h>
 #endif
 
-#ifndef _WIN32
+#if !defined(_WIN32)
 #define stricmp(a, b) strcasecmp(a, b)
+#if !defined(ORBIS)
 #define vsprintf_s vsnprintf
 #define strncpy_s strncpy
 #endif
+#endif
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) && !defined(NX64)
 #include <BaseTsd.h>
 typedef SSIZE_T ssize_t;
 #endif
@@ -205,6 +207,11 @@ typedef long long int int64;
 typedef unsigned long DWORD;
 typedef unsigned int UINT;
 typedef int64_t int64;
+typedef uint64_t uint64;
+#elif defined(NX64)
+typedef unsigned long DWORD;
+typedef unsigned int UINT;
+typedef long long int int64;
 typedef uint64_t uint64;
 #else
 typedef signed long long   int64;

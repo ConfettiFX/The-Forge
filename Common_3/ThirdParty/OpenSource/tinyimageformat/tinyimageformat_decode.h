@@ -220,7 +220,6 @@ inline float TinyImageFormat_UFloat10AsUintToFloat(uint16_t v) {
 
 	ei.v = v;
 
-	double out = 0.0;
 	if (ei.e == 31) {
 		if (ei.m == 0) {
 			t.u = 0xFF100000; // + infinity

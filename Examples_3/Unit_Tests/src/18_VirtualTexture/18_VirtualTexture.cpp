@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,9 +28,6 @@
 #define MAX_PLANETS 20    // Does not affect test, just for allocating space in uniform block. Must match with shader.
 //#define GARUANTEE_PAGE_SYNC
 
-//assimp
-#include "../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"
-
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
@@ -41,7 +38,7 @@
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/Renderer/IResourceLoader.h"
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
@@ -108,11 +105,15 @@ Renderer*						pRenderer = NULL;
 
 Queue*							pGraphicsQueue = NULL;
 CmdPool*						pCmdPool = NULL;
-Cmd**								ppCmds = NULL;
+Cmd**							ppCmds = NULL;
 
-Queue*						  pComputeQueue = NULL;
+Queue*							pComputeQueue = NULL;
 CmdPool*						pComputeCmdPool = NULL;
-Cmd**								ppComputeCmds = NULL;
+Cmd**							ppComputeCmds = NULL;
+
+Queue*							pVirtualTextureQueue = NULL;
+CmdPool*						pVirtualTextureCmdPool = NULL;
+Cmd**							ppVirtualTextureCmds = NULL;
 
 SwapChain*					pSwapChain = NULL;
 RenderTarget*				pDepthBuffer = NULL;
@@ -128,6 +129,9 @@ Pipeline*						pSaturnPipeline = NULL;
 
 Shader*							pSphereShader = NULL;
 Pipeline*						pSpherePipeline = NULL;
+
+Shader*							pClearPageCountsShader = NULL;
+Pipeline*						pClearPageCountsPipeline = NULL;
 
 Shader*							pFillPageShader = NULL;
 Pipeline*						pFillPagePipeline = NULL;
@@ -176,32 +180,15 @@ UniformVirtualTextureInfo			gUniformVirtualTextureInfo[gNumPlanets];
 
 char*								gPlanetName[] = {"8k_sun.svt", "8k_mercury.svt", "8k_venus.svt", "8k_earth.svt", "16k_moon.svt", "8k_mars.svt", "8k_jupiter.svt", "8k_saturn.svt" };
 
-struct MeshVertex
-{
-	float3 mPos;
-	float3 mNormal;
-	float2 mUv;
-};
-
-struct Mesh
-{
-	Buffer*                   pVertexBuffer = NULL;
-	Buffer*                   pIndexBuffer = NULL;
-	eastl::vector<uint32_t> materialID;
-	struct CmdParam
-	{
-		uint32_t indexCount, startIndex, startVertex;
-	};
-	eastl::vector<CmdParam> cmdArray;
-};
-
-Mesh        gSphere;
-Mesh				gSaturn;
+Geometry*			pSphere;
+Geometry*			pSaturn;
 ICameraController*	pCameraController = NULL;
 
+VertexLayout		gVertexLayoutDefault = {};
+
 /// UI
-UIApp								gAppUI;
-GpuProfiler*				pGpuProfiler = NULL;
+UIApp				gAppUI;
+GpuProfiler*		pGpuProfiler = NULL;
 
 //const char*					pSkyBoxImageFileNames[] = { "Skybox_right1", "Skybox_left2", "Skybox_top3", "Skybox_bottom4", "Skybox_front5", "Skybox_back6" };
 
@@ -237,17 +224,31 @@ public:
 			return false;
 
 		QueueDesc queueDesc = {};
-		queueDesc.mType = CMD_POOL_DIRECT;
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
 		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		addCmdPool(pRenderer, pGraphicsQueue, false, &pCmdPool);
-		addCmd_n(pCmdPool, false, gImageCount, &ppCmds);
+		CmdPoolDesc cmdPoolDesc = {};
+		cmdPoolDesc.pQueue = pGraphicsQueue;
+		addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
+		CmdDesc cmdDesc = {};
+		cmdDesc.pPool = pCmdPool;
+		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
 
 		queueDesc = {};
-		queueDesc.mType = CMD_POOL_COMPUTE;
+		queueDesc.mType = QUEUE_TYPE_COMPUTE;
 		addQueue(pRenderer, &queueDesc, &pComputeQueue);
-		addCmdPool(pRenderer, pComputeQueue, false, &pComputeCmdPool);
-		addCmd_n(pComputeCmdPool, false, gImageCount, &ppComputeCmds);
+		cmdPoolDesc.pQueue = pComputeQueue;
+		addCmdPool(pRenderer, &cmdPoolDesc, &pComputeCmdPool);
+		cmdDesc.pPool = pComputeCmdPool;
+		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppComputeCmds);
+
+		queueDesc = {};
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+		addQueue(pRenderer, &queueDesc, &pVirtualTextureQueue);
+		cmdPoolDesc.pQueue = pVirtualTextureQueue;
+		addCmdPool(pRenderer, &cmdPoolDesc, &pVirtualTextureCmdPool);
+		cmdDesc.pPool = pVirtualTextureCmdPool;
+		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppVirtualTextureCmds);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -277,8 +278,7 @@ public:
 
 			textureLoadDesc.pFilePath = virtualTexturePath;
 			textureLoadDesc.ppTexture = &pVirtualTexture[i];
-			addResource(&textureLoadDesc, true);
-			virtualTexturePath.~PathHandle();
+			addResource(&textureLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 		
 
@@ -349,16 +349,20 @@ public:
 		desc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gNumPlanets * gImageCount + gImageCount };
 		addDescriptorSet(pRenderer, &desc, &pDescriptorSetUniforms);
 
-		
+
+		ShaderLoadDesc clearPageCountsShader = {};
+		clearPageCountsShader.mStages[0] = { "clearPageCounts.comp", NULL, 0, RD_SHADER_SOURCES };
+
+		addShader(pRenderer, &clearPageCountsShader, &pClearPageCountsShader);
 
 		ShaderLoadDesc fillPageShader = {};
 		fillPageShader.mStages[0] = { "fillPage.comp", NULL, 0, RD_SHADER_SOURCES };
 
 		addShader(pRenderer, &fillPageShader, &pFillPageShader);
 
-		Shader*           computeShaders[] = { pFillPageShader };
+		Shader*           computeShaders[] = { pClearPageCountsShader, pFillPageShader };
 		rootDesc = {};
-		rootDesc.mShaderCount = 1;
+		rootDesc.mShaderCount = 2;
 		rootDesc.ppShaders = computeShaders;
 		addRootSignature(pRenderer, &rootDesc, &pRootSignatureCompute);		
 
@@ -401,157 +405,40 @@ public:
 		conf_free(pSpherePoints);
 		*/
 
+		gVertexLayoutDefault.mAttribCount = 3;
+		gVertexLayoutDefault.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		gVertexLayoutDefault.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		gVertexLayoutDefault.mAttribs[0].mBinding = 0;
+		gVertexLayoutDefault.mAttribs[0].mLocation = 0;
+		gVertexLayoutDefault.mAttribs[0].mOffset = 0;
+
+		gVertexLayoutDefault.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
+		gVertexLayoutDefault.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		gVertexLayoutDefault.mAttribs[1].mBinding = 0;
+		gVertexLayoutDefault.mAttribs[1].mLocation = 1;
+		gVertexLayoutDefault.mAttribs[1].mOffset = 3 * sizeof(float);
+
+		gVertexLayoutDefault.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
+		gVertexLayoutDefault.mAttribs[2].mFormat = TinyImageFormat_R32G32_SFLOAT;
+		gVertexLayoutDefault.mAttribs[2].mBinding = 0;
+		gVertexLayoutDefault.mAttribs[2].mLocation = 2;
+		gVertexLayoutDefault.mAttribs[2].mOffset = 6 * sizeof(float);    // first attribute contains 3 floats
 /////////////////////////////////////
-//						Load Sphere			     
+//						Load Models
 /////////////////////////////////////
-
-		AssimpImporter        importer;
-
-	{
-			AssimpImporter::Model model;
-			PathHandle sceneFullPath = fsCopyPathInResourceDirectory(RD_MESHES, "sphereHires.obj");
-
-			if (!importer.ImportModel(sceneFullPath, &model))
-			{
-				LOGF(LogLevel::eERROR, "Failed to load %s", fsGetPathFileName(sceneFullPath).buffer);
-				return 0;
-			}
-
-			uint32_t meshCount = (uint32_t)model.mMeshArray.size();
-
-			Mesh& mesh = gSphere;
-			MeshVertex* pVertices = NULL;
-			uint32_t*   pIndices = NULL;
-
-			mesh.materialID.resize(meshCount);
-			mesh.cmdArray.resize(meshCount);
-
-			uint32_t totalVertexCount = 0;
-			uint32_t totalIndexCount = 0;
-			for (uint32_t i = 0; i < meshCount; i++)
-			{
-				AssimpImporter::Mesh subMesh = model.mMeshArray[i];
-
-				mesh.materialID[i] = subMesh.mMaterialId;
-
-				uint32_t vertexCount = (uint32_t)subMesh.mPositions.size();
-				uint32_t indexCount = (uint32_t)subMesh.mIndices.size();
-
-				mesh.cmdArray[i] = { indexCount, totalIndexCount, totalVertexCount };
-
-				pVertices = (MeshVertex*)conf_realloc(pVertices, sizeof(MeshVertex) * (totalVertexCount + vertexCount));
-				pIndices = (uint32_t*)conf_realloc(pIndices, sizeof(uint32_t) * (totalIndexCount + indexCount));
-
-				for (uint32_t j = 0; j < vertexCount; j++)
-				{
-					pVertices[totalVertexCount++] = { subMesh.mPositions[j], subMesh.mNormals[j], subMesh.mUvs[j] };
-				}
-
-				for (uint32_t j = 0; j < indexCount; j++)
-				{
-					pIndices[totalIndexCount++] = subMesh.mIndices[j];
-				}
-			}
-
-			// Vertex position buffer for the scene
-			BufferLoadDesc vbPosDesc = {};
-			vbPosDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-			vbPosDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			vbPosDesc.mDesc.mVertexStride = sizeof(MeshVertex);
-			vbPosDesc.mDesc.mSize = totalVertexCount * sizeof(MeshVertex);
-			vbPosDesc.pData = pVertices;
-			vbPosDesc.ppBuffer = &mesh.pVertexBuffer;
-			vbPosDesc.mDesc.pDebugName = L"Vertex Position Buffer Desc for Sponza";
-			addResource(&vbPosDesc);
-
-			// Index buffer for the scene
-			BufferLoadDesc ibDesc = {};
-			ibDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
-			ibDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			ibDesc.mDesc.mIndexType = INDEX_TYPE_UINT32;
-			ibDesc.mDesc.mSize = sizeof(uint32_t) * totalIndexCount;
-			ibDesc.pData = pIndices;
-			ibDesc.ppBuffer = &mesh.pIndexBuffer;
-			ibDesc.mDesc.pDebugName = L"Index Buffer Desc for Sponza";
-			addResource(&ibDesc);
-
-			conf_free(pVertices);
-			conf_free(pIndices);
-	}
-
-	{
-		AssimpImporter::Model model;
-		PathHandle sceneFullPath = fsCopyPathInResourceDirectory(RD_MESHES, "saturn.obj");
-
-		if (!importer.ImportModel(sceneFullPath, &model))
 		{
-			LOGF(LogLevel::eERROR, "Failed to load %s", fsGetPathFileName(sceneFullPath).buffer);
-			return 0;
+			PathHandle sceneFullPath = fsCopyPathInResourceDirectory(RD_MESHES, "sphereHires.gltf");
+			GeometryLoadDesc loadDesc = {};
+			loadDesc.pFilePath = sceneFullPath;
+			loadDesc.ppGeometry = &pSphere;
+			loadDesc.pVertexLayout = &gVertexLayoutDefault;
+			addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+
+			sceneFullPath = fsCopyPathInResourceDirectory(RD_MESHES, "saturn.gltf");
+			loadDesc.pFilePath = sceneFullPath;
+			loadDesc.ppGeometry = &pSaturn;
+			addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
-
-		uint32_t meshCount = (uint32_t)model.mMeshArray.size();
-
-		Mesh& mesh = gSaturn;
-		MeshVertex* pVertices = NULL;
-		uint32_t*   pIndices = NULL;
-
-		mesh.materialID.resize(meshCount);
-		mesh.cmdArray.resize(meshCount);
-
-		uint32_t totalVertexCount = 0;
-		uint32_t totalIndexCount = 0;
-		for (uint32_t i = 0; i < meshCount; i++)
-		{
-			AssimpImporter::Mesh subMesh = model.mMeshArray[i];
-
-			mesh.materialID[i] = subMesh.mMaterialId;
-
-			uint32_t vertexCount = (uint32_t)subMesh.mPositions.size();
-			uint32_t indexCount = (uint32_t)subMesh.mIndices.size();
-
-			mesh.cmdArray[i] = { indexCount, totalIndexCount, totalVertexCount };
-
-			pVertices = (MeshVertex*)conf_realloc(pVertices, sizeof(MeshVertex) * (totalVertexCount + vertexCount));
-			pIndices = (uint32_t*)conf_realloc(pIndices, sizeof(uint32_t) * (totalIndexCount + indexCount));
-
-			for (uint32_t j = 0; j < vertexCount; j++)
-			{
-				pVertices[totalVertexCount++] = { subMesh.mPositions[j], subMesh.mNormals[j], subMesh.mUvs[j] };
-			}
-
-			for (uint32_t j = 0; j < indexCount; j++)
-			{
-				pIndices[totalIndexCount++] = subMesh.mIndices[j];
-			}
-		}
-
-		// Vertex position buffer for the scene
-		BufferLoadDesc vbPosDesc = {};
-		vbPosDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-		vbPosDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		vbPosDesc.mDesc.mVertexStride = sizeof(MeshVertex);
-		vbPosDesc.mDesc.mSize = totalVertexCount * sizeof(MeshVertex);
-		vbPosDesc.pData = pVertices;
-		vbPosDesc.ppBuffer = &mesh.pVertexBuffer;
-		vbPosDesc.mDesc.pDebugName = L"Vertex Position Buffer Desc for Sponza";
-		addResource(&vbPosDesc);
-
-		// Index buffer for the scene
-		BufferLoadDesc ibDesc = {};
-		ibDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
-		ibDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		ibDesc.mDesc.mIndexType = INDEX_TYPE_UINT32;
-		ibDesc.mDesc.mSize = sizeof(uint32_t) * totalIndexCount;
-		ibDesc.pData = pIndices;
-		ibDesc.ppBuffer = &mesh.pIndexBuffer;
-		ibDesc.mDesc.pDebugName = L"Index Buffer Desc for Sponza";
-		addResource(&ibDesc);
-
-		conf_free(pVertices);
-		conf_free(pIndices);
-	}
-
-
 ///////////////////////////////////
 
 		//Generate sky box vertex buffer
@@ -589,7 +476,7 @@ public:
 		skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
 		skyboxVbDesc.pData = skyBoxPoints;
 		skyboxVbDesc.ppBuffer = &pSkyBoxVertexBuffer;
-		addResource(&skyboxVbDesc);
+		addResource(&skyboxVbDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		BufferLoadDesc ubDesc = {};
 		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -600,9 +487,9 @@ public:
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
-			addResource(&ubDesc);
+			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
 			ubDesc.ppBuffer = &pSkyboxUniformBuffer[i];
-			addResource(&ubDesc);
+			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
 		for (uint32_t i = 0; i < gNumPlanets; ++i)
@@ -614,7 +501,7 @@ public:
 			//vtInfoDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 			vtInfoDesc.pData = NULL;
 			vtInfoDesc.ppBuffer = &pVirtualTextureInfo[i];
-			addResource(&vtInfoDesc);
+			addResource(&vtInfoDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 			BufferLoadDesc ptInfoDesc = {};
 			ptInfoDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -623,7 +510,7 @@ public:
 			//ptInfoDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 			ptInfoDesc.pData = NULL;
 			ptInfoDesc.ppBuffer = &pPageCountInfo[i];
-			addResource(&ptInfoDesc);
+			addResource(&ptInfoDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
 		BufferLoadDesc debugInfoDesc = {};
@@ -633,9 +520,7 @@ public:
 		debugInfoDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		debugInfoDesc.pData = NULL;
 		debugInfoDesc.ppBuffer = &pDebugInfo;
-		addResource(&debugInfoDesc);		
-
-		finishResourceLoading();
+		addResource(&debugInfoDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		// Setup planets (Rotation speeds are relative to Earth's, some values randomly given)
 
@@ -801,14 +686,14 @@ public:
 		if (!initInputSystem(pWindow))
 			return false;
 
-    // Initialize microprofiler and it's UI.
-    initProfiler();
-    
-    // Gpu profiler can only be added after initProfile.
-    addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
+		// Initialize microprofiler and it's UI.
+		initProfiler();
+
+		// Gpu profiler can only be added after initProfile.
+		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		// App Actions
-    InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
@@ -839,7 +724,9 @@ public:
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);		
 		actionDesc = { InputBindings::BUTTON_L3, [](InputActionContext* ctx) { gShowUI = !gShowUI; return true; } };
-		addInputAction(&actionDesc);		
+		addInputAction(&actionDesc);
+
+		waitForAllResourceLoads();
 		
 		// Prepare descriptor sets
 		for (uint32_t j = 0; j < gNumPlanets; ++j)
@@ -862,7 +749,7 @@ public:
 			params[0].pName = "SparseTextureInfo";
 			params[0].ppBuffers = &pVirtualTextureInfo[j];
 			params[1].pName = "MipLevel";
-			params[1].ppBuffers = &pDebugInfo;	
+			params[1].ppBuffers = &pDebugInfo;
 
 			if (j == 0)
 			{
@@ -927,18 +814,12 @@ public:
 				computeParams[3].pName = "AlivePageTableBuffer";
 				computeParams[3].ppBuffers = &pVirtualTexture[j]->mAlivePage;
 
-				computeParams[4].pName = "RemovePageCountBuffer";
-				computeParams[4].ppBuffers = &pVirtualTexture[j]->mRemovePageCount;
+				computeParams[4].pName = "PageCountsBuffer";
+				computeParams[4].ppBuffers = &pVirtualTexture[j]->mPageCounts;
 
-				computeParams[5].pName = "AlivePageCountBuffer";
-				computeParams[5].ppBuffers = &pVirtualTexture[j]->mAlivePageCount;
-
-				updateDescriptorSet(pRenderer, i * gNumPlanets + j, pDescriptorSetComputePerFrame, 6, computeParams);
+				updateDescriptorSet(pRenderer, i * gNumPlanets + j, pDescriptorSetComputePerFrame, 5, computeParams);
 			}
 		}
-
-
-		
 
 		return true;
 	}
@@ -986,21 +867,11 @@ public:
 			removeResource(pVirtualTexture[i]);
 		}
 
-		removeResource(gSphere.pIndexBuffer);
-		removeResource(gSphere.pVertexBuffer);
-		
-		removeResource(gSaturn.pIndexBuffer);
-		removeResource(gSaturn.pVertexBuffer);		
+		removeResource(pSphere);
+		removeResource(pSaturn);
 
 		removeBlendState(pSunBlend);
 		removeBlendState(pSaturnBlend);
-
-		gSphere.materialID.set_capacity(0);
-		gSphere.cmdArray.set_capacity(0);
-
-		gSaturn.materialID.set_capacity(0);
-		gSaturn.cmdArray.set_capacity(0);
-		
 /*
 		for (uint i = 0; i < 6; ++i)
 			removeResource(pSkyBoxTextures[i]);
@@ -1014,6 +885,7 @@ public:
 		removeShader(pRenderer, pSunShader);
 
 		removeShader(pRenderer, pFillPageShader);
+		removeShader(pRenderer, pClearPageCountsShader);
 
 		removeRootSignature(pRenderer, pRootSignature);
 		removeRootSignature(pRenderer, pRootSignatureCompute);
@@ -1030,17 +902,21 @@ public:
 		}
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
 
-		removeCmd_n(pCmdPool, gImageCount, ppCmds);
+		removeCmd_n(pRenderer, gImageCount, ppCmds);
 		removeCmdPool(pRenderer, pCmdPool);
 
-		removeCmd_n(pComputeCmdPool, gImageCount, ppComputeCmds);
+		removeCmd_n(pRenderer, gImageCount, ppComputeCmds);
 		removeCmdPool(pRenderer, pComputeCmdPool);		
 
-		removeGpuProfiler(pRenderer, pGpuProfiler);
-		removeResourceLoaderInterface(pRenderer);
+		removeCmd_n(pRenderer, gImageCount, ppVirtualTextureCmds);
+		removeCmdPool(pRenderer, pVirtualTextureCmdPool);
 
-		removeQueue(pGraphicsQueue);
-		removeQueue(pComputeQueue);
+		removeGpuProfiler(pRenderer, pGpuProfiler);
+		exitResourceLoaderInterface(pRenderer);
+
+		removeQueue(pRenderer, pGraphicsQueue);
+		removeQueue(pRenderer, pComputeQueue);
+        removeQueue(pRenderer, pVirtualTextureQueue);
 
 		removeRenderer(pRenderer);
 	}
@@ -1053,48 +929,28 @@ public:
 		if (!addDepthBuffer())
 			return false;
 
-		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
+		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
 			return false;
 
-		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
+		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
 
 		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		//layout and pipeline for sphere draw
-		VertexLayout vertexLayout = {};
-		vertexLayout.mAttribCount = 3;
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[0].mOffset = 0;
-
-		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayout.mAttribs[1].mBinding = 0;
-		vertexLayout.mAttribs[1].mLocation = 1;
-		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
-
-		vertexLayout.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayout.mAttribs[2].mFormat = TinyImageFormat_R32G32_SFLOAT;
-		vertexLayout.mAttribs[2].mBinding = 0;
-		vertexLayout.mAttribs[2].mLocation = 2;
-		vertexLayout.mAttribs[2].mOffset = 6 * sizeof(float);    // first attribute contains 3 floats
-
 		PipelineDesc desc = {};
 		desc.mType = PIPELINE_TYPE_GRAPHICS;
 		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepth;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pSphereShader;
-		pipelineSettings.pVertexLayout = &vertexLayout;
+		pipelineSettings.pVertexLayout = &gVertexLayoutDefault;
 		pipelineSettings.pRasterizerState = pSphereRast;
 		addPipeline(pRenderer, &desc, &pSpherePipeline);
 
@@ -1141,8 +997,12 @@ public:
 			PipelineDesc computeDesc = {};
 			computeDesc.mType = PIPELINE_TYPE_COMPUTE;
 			ComputePipelineDesc& cpipelineSettings = computeDesc.mComputeDesc;
-			cpipelineSettings.pShaderProgram = pFillPageShader;
+
+			cpipelineSettings.pShaderProgram = pClearPageCountsShader;
 			cpipelineSettings.pRootSignature = pRootSignatureCompute;
+			addPipeline(pRenderer, &computeDesc, &pClearPageCountsPipeline);
+
+			cpipelineSettings.pShaderProgram = pFillPageShader;
 			addPipeline(pRenderer, &computeDesc, &pFillPagePipeline);
 		}
 
@@ -1164,7 +1024,8 @@ public:
 		removePipeline(pRenderer, pSunPipeline);
 		removePipeline(pRenderer, pSaturnPipeline);
 
-		removePipeline(pRenderer, pFillPagePipeline);		
+		removePipeline(pRenderer, pFillPagePipeline);
+		removePipeline(pRenderer, pClearPageCountsPipeline);
 
 		removeSwapChain(pRenderer, pSwapChain);
 		removeRenderTarget(pRenderer, pDepthBuffer);
@@ -1245,8 +1106,10 @@ public:
 
 			gUniformVirtualTextureInfo[i].DebugMode = gDebugMode ? 1: 0;
 
-			BufferUpdateDesc virtualTextureInfoCbv = { pVirtualTextureInfo[i], &gUniformVirtualTextureInfo[i] };
-			updateResource(&virtualTextureInfoCbv);
+			BufferUpdateDesc virtualTextureInfoCbv = { pVirtualTextureInfo[i] };
+			beginUpdateResource(&virtualTextureInfoCbv);
+			*(UniformVirtualTextureInfo*)virtualTextureInfoCbv.pMappedData = gUniformVirtualTextureInfo[i];
+			endUpdateResource(&virtualTextureInfoCbv, NULL);
 		}
 
 		
@@ -1270,7 +1133,7 @@ public:
 	{
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 
-		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
 		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];		
 
@@ -1281,11 +1144,15 @@ public:
 			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
 		// Update uniform buffers
-		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex], &gUniformData };
-		updateResource(&viewProjCbv);
+		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex] };
+		beginUpdateResource(&viewProjCbv);
+		*(UniformBlock*)viewProjCbv.pMappedData = gUniformData;
+		endUpdateResource(&viewProjCbv, NULL);
 
-		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex], &gUniformDataSky };
-		updateResource(&skyboxViewProjCbv);
+		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex] };
+		beginUpdateResource(&skyboxViewProjCbv);
+		*(UniformBlock*)skyboxViewProjCbv.pMappedData = gUniformDataSky;
+		endUpdateResource(&skyboxViewProjCbv, NULL);
 
 		// simply record the screen cleaning command
 		LoadActionsDesc loadActions = {};
@@ -1303,14 +1170,10 @@ public:
 
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
 
-		TextureBarrier barriers[] = {
-			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
-			{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE }
+		RenderTargetBarrier barriers[] = {
+			{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
+			{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE }
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 2, barriers);
-
-		eastl::vector<BufferBarrier> virtualBufferBarrier;
-		eastl::vector<TextureBarrier> virtualTextureBarrier;
 
 		TextureBarrier barriers2[] = {
 					{ pVirtualTexture[1], RESOURCE_STATE_SHADER_RESOURCE },
@@ -1321,7 +1184,7 @@ public:
 					{ pVirtualTexture[6], RESOURCE_STATE_SHADER_RESOURCE },
 					{ pVirtualTexture[7], RESOURCE_STATE_SHADER_RESOURCE }
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 7, barriers2);
+		cmdResourceBarrier(cmd, 0, NULL, 7, barriers2, 2, barriers);
 //#if defined(VULKAN)
 		//cmdResourceBarrier(cmd, 0, NULL, (uint32_t)virtualTextureBarrier.size(), virtualTextureBarrier.data());
 //#endif
@@ -1340,9 +1203,9 @@ public:
 				cmdBindDescriptorSet(cmd, j, pDescriptorSetTexture);			
 				cmdBindDescriptorSet(cmd, gNumPlanets * gFrameIndex + j + gImageCount, pDescriptorSetUniforms);		
 			
-				cmdBindVertexBuffer(cmd, 1, &gSphere.pVertexBuffer, NULL);
-				cmdBindIndexBuffer(cmd, gSphere.pIndexBuffer, 0);
-				cmdDrawIndexed(cmd, gSphere.cmdArray[0].indexCount, 0, 0);
+				cmdBindVertexBuffer(cmd, 1, &pSphere->pVertexBuffers[0], NULL);
+				cmdBindIndexBuffer(cmd, pSphere->pIndexBuffer, 0);
+				cmdDrawIndexed(cmd, pSphere->mIndexCount, 0, 0);
 			}		
 
 			cmdBindPipeline(cmd, pSaturnPipeline);
@@ -1350,17 +1213,17 @@ public:
 			cmdBindDescriptorSet(cmd, gNumPlanets - 1, pDescriptorSetTexture);
 			cmdBindDescriptorSet(cmd, gNumPlanets * gFrameIndex + gNumPlanets - 1 + gImageCount, pDescriptorSetUniforms);		
 		
-			cmdBindVertexBuffer(cmd, 1, &gSaturn.pVertexBuffer, NULL);
-			cmdBindIndexBuffer(cmd, gSaturn.pIndexBuffer, 0);
-			cmdDrawIndexed(cmd, gSaturn.cmdArray[0].indexCount, 0, 0);
+			cmdBindVertexBuffer(cmd, 1, &pSaturn->pVertexBuffers[0], NULL);
+			cmdBindIndexBuffer(cmd, pSaturn->pIndexBuffer, 0);
+			cmdDrawIndexed(cmd, pSaturn->mIndexCount, 0, 0);
 
 			cmdBindPipeline(cmd, pSunPipeline);
 
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetTexture);
 			cmdBindDescriptorSet(cmd, gNumPlanets * gFrameIndex + gImageCount, pDescriptorSetUniforms);
-			cmdBindVertexBuffer(cmd, 1, &gSphere.pVertexBuffer, NULL);
-			cmdBindIndexBuffer(cmd, gSphere.pIndexBuffer, 0);
-			cmdDrawIndexed(cmd, gSphere.cmdArray[0].indexCount, 0, 0);
+			cmdBindVertexBuffer(cmd, 1, &pSphere->pVertexBuffers[0], NULL);
+			cmdBindIndexBuffer(cmd, pSphere->pIndexBuffer, 0);
+			cmdDrawIndexed(cmd, pSphere->mIndexCount, 0, 0);
 
 			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 	}
@@ -1398,15 +1261,29 @@ public:
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
     cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
-		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(cmd, 0, NULL, 1, barriers);
+		barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 	}
     cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 		endCmd(cmd);
 
-		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
-		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
-		flipProfiler();	
+		QueueSubmitDesc submitDesc = {};
+		submitDesc.mCmdCount = 1;
+		submitDesc.mSignalSemaphoreCount = 1;
+		submitDesc.mWaitSemaphoreCount = 1;
+		submitDesc.ppCmds = &cmd;
+		submitDesc.ppSignalSemaphores = &pRenderCompleteSemaphore;
+		submitDesc.ppWaitSemaphores = &pImageAcquiredSemaphore;
+		submitDesc.pSignalFence = pRenderCompleteFence;
+		queueSubmit(pGraphicsQueue, &submitDesc);
+		QueuePresentDesc presentDesc = {};
+		presentDesc.mIndex = gFrameIndex;
+		presentDesc.mWaitSemaphoreCount = 1;
+		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
+		presentDesc.pSwapChain = pSwapChain;
+		presentDesc.mSubmitDone = true;
+		queuePresent(pGraphicsQueue, &presentDesc);
+		flipProfiler();
 
 		// Get visibility info
 		if (gAccuFrameIndex % gFrequency == 0)
@@ -1421,7 +1298,7 @@ public:
 			{
 				eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pVirtualTexture[i]->pPages;
 
-				struct pageCountSt
+				struct PageCountSt
 				{
 					uint maxPageCount;
 					uint pageOffset;
@@ -1444,19 +1321,26 @@ public:
 				while (PageCount > 0)
 				{				
 					BufferUpdateDesc pageCountInfoCbv = { pPageCountInfo, &pageCountSt };
-					updateResource(&pageCountInfoCbv);
+					beginUpdateResource(&pageCountInfoCbv);
+					endUpdateResource(&pageCountInfoCbv, NULL);
 
 					pCmdCompute = ppComputeCmds[gFrameIndex];
 					beginCmd(pCmdCompute);
 
-					cmdBindPipeline(pCmdCompute, pFillPagePipeline);
+					cmdBindPipeline(pCmdCompute, pClearPageCountsPipeline);
 					cmdBindDescriptorSet(pCmdCompute, 0, pDescriptorSetComputeFix);
 					cmdBindDescriptorSet(pCmdCompute, gFrameIndex, pDescriptorSetComputePerFrame);
 
 					cmdDispatch(pCmdCompute, 1, 1, 1);
 
+					cmdBindPipeline(pCmdCompute, pFillPagePipeline);
+					cmdDispatch(pCmdCompute, 1, 1, 1);
+
 					endCmd(pCmdCompute);
-					queueSubmit(pComputeQueue, 1, &pCmdCompute, NULL, 0, NULL, 0, NULL);
+					QueueSubmitDesc submitDesc = {};
+					submitDesc.mCmdCount = 1;
+					submitDesc.ppCmds = &pCmdCompute;
+					queueSubmit(pComputeQueue, &submitDesc);
 					waitQueueIdle(pComputeQueue);
 
 					PageCount -= pageCountSt.maxPageCount;
@@ -1464,16 +1348,22 @@ public:
 					pageCountSt.maxPageCount = min((uint)PageCount, pageCountSt.maxPageCount);
 				}
 	#else
-				pageCountSt.maxPageCount = (uint)pPageTable->size();
+				pageCountSt.maxPageCount = pVirtualTexture[i]->mVirtualPageTotalCount;
 				pageCountSt.pageOffset = 0;
 
-				BufferUpdateDesc pageCountInfoCbv = { pPageCountInfo[i], &pageCountSt };
-				updateResource(&pageCountInfoCbv);
+				BufferUpdateDesc pageCountInfoCbv = { pPageCountInfo[i] };
+				beginUpdateResource(&pageCountInfoCbv);
+				*(PageCountSt*)pageCountInfoCbv.pMappedData = pageCountSt;
+				endUpdateResource(&pageCountInfoCbv, NULL);
 
-				cmdBindPipeline(pCmdCompute, pFillPagePipeline);
+				cmdBindPipeline(pCmdCompute, pClearPageCountsPipeline);
+
 				cmdBindDescriptorSet(pCmdCompute, i, pDescriptorSetComputeFix);
 				cmdBindDescriptorSet(pCmdCompute, gFrameIndex * gNumPlanets + i, pDescriptorSetComputePerFrame);
 
+				cmdDispatch(pCmdCompute, 1, 1, 1);
+
+				cmdBindPipeline(pCmdCompute, pFillPagePipeline);
 				const uint32_t* pThreadGroupSize = pFillPageShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
 
 				const uint32_t Dispatch[3] = { (uint32_t)ceil((float)pageCountSt.maxPageCount / (float)pThreadGroupSize[0]),
@@ -1486,17 +1376,25 @@ public:
 
 			endCmd(pCmdCompute);
 
-			queueSubmit(pComputeQueue, 1, &pCmdCompute, NULL, 0, NULL, 0, NULL);
+			QueueSubmitDesc submitDesc = {};
+			submitDesc.mCmdCount = 1;
+			submitDesc.ppCmds = &pCmdCompute;
+			queueSubmit(pComputeQueue, &submitDesc);
 			waitQueueIdle(pComputeQueue);
+
+			Cmd* pCmdVirtualTexture = ppVirtualTextureCmds[gFrameIndex];
+			beginCmd(pCmdVirtualTexture);
 
 			for (int i = 1; i < gNumPlanets; ++i)
 			{
-				// Then update
-				TextureUpdateDesc virtualTextureUpdateDesc;
-				virtualTextureUpdateDesc.pTexture = pVirtualTexture[i];
-				//updateResource(&virtualTextureUpdateDesc, true);
-				updateVirtualTexture(pRenderer, pGraphicsQueue, &virtualTextureUpdateDesc);
+				cmdUpdateVirtualTexture(pCmdVirtualTexture, pVirtualTexture[i]);
 			}
+
+			endCmd(pCmdVirtualTexture);
+
+			submitDesc.ppCmds = &pCmdVirtualTexture;
+			queueSubmit(pVirtualTextureQueue, &submitDesc);
+			waitQueueIdle(pVirtualTextureQueue);
 		}
 
 		gAccuFrameIndex++;

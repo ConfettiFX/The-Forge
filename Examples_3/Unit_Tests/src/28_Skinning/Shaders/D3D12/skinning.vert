@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -33,18 +33,13 @@ cbuffer boneMatrices : register(b1, UPDATE_FREQ_PER_DRAW)
 	float4x4 boneMatrix[MAX_NUM_BONES];
 };
 
-cbuffer boneOffsetMatrices : register(b2)
-{
-	float4x4 boneOffsetMatrix[MAX_NUM_BONES];
-};
-
 struct VSInput
 {
     float3 Position : POSITION;
     float3 Normal : NORMAL;
 	float2 UV : TEXCOORD0;
-	float4 BoneWeights : TEXCOORD1;
-	uint4 BoneIndices : TEXCOORD2;
+	float4 BoneWeights : WEIGHTS;
+	uint4 BoneIndices : JOINTS;
 };
 
 struct VSOutput {
@@ -57,10 +52,10 @@ VSOutput main(VSInput input)
 {
     VSOutput result;
 	
-	float4x4 boneTransform = mul(boneMatrix[input.BoneIndices[0]], boneOffsetMatrix[input.BoneIndices[0]]) * input.BoneWeights[0];
-	boneTransform += mul(boneMatrix[input.BoneIndices[1]], boneOffsetMatrix[input.BoneIndices[1]]) * input.BoneWeights[1];
-	boneTransform += mul(boneMatrix[input.BoneIndices[2]], boneOffsetMatrix[input.BoneIndices[2]]) * input.BoneWeights[2];
-	boneTransform += mul(boneMatrix[input.BoneIndices[3]], boneOffsetMatrix[input.BoneIndices[3]]) * input.BoneWeights[3];
+	float4x4 boneTransform = (boneMatrix[input.BoneIndices[0]]) * input.BoneWeights[0];
+	boneTransform += (boneMatrix[input.BoneIndices[1]]) * input.BoneWeights[1];
+	boneTransform += (boneMatrix[input.BoneIndices[2]]) * input.BoneWeights[2];
+	boneTransform += (boneMatrix[input.BoneIndices[3]]) * input.BoneWeights[3];
 	
 	result.Position = mul(boneTransform, float4(input.Position, 1.0f));
 	result.Position = mul(modelMatrix, result.Position);

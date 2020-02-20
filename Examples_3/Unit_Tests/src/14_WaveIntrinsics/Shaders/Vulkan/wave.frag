@@ -1,8 +1,16 @@
 #version 450
-#extension GL_KHR_shader_subgroup_basic : require
-#extension GL_KHR_shader_subgroup_arithmetic : require
-#extension GL_KHR_shader_subgroup_ballot : require
-#extension GL_KHR_shader_subgroup_quad : require
+
+#ifdef TARGET_SWITCH
+	#extension GL_ARB_shader_ballot : require
+	#extension GL_KHR_shader_subgroup_basic : require
+	#extension GL_ARB_gpu_shader_int64 : require
+//	#extension GL_NV_shader_thread_group : require
+#else
+	#extension GL_KHR_shader_subgroup_basic : require
+	#extension GL_KHR_shader_subgroup_arithmetic : require
+	#extension GL_KHR_shader_subgroup_ballot : require
+	#extension GL_KHR_shader_subgroup_quad : require
+#endif
 
 layout(UPDATE_FREQ_PER_FRAME, binding = 0, std140) uniform SceneConstantBuffer
 {
@@ -54,7 +62,11 @@ void main()
 	{
 		// Example of query intrinsics: WaveIsFirstLane
 		// Mark the first lane as white pixel
+#ifdef TARGET_SWITCH
+		if (gl_SubGroupInvocationARB == 0)
+#else
 		if (subgroupElect())
+#endif
 			outputColor = vec4(1., 1., 1., 1.);
 		break;
 	}
@@ -62,9 +74,17 @@ void main()
 	{
 		// Example of query intrinsics: WaveIsFirstLane
 		// Mark the first active lane as white pixel. Mark the last active lane as red pixel.
+#ifdef TARGET_SWITCH
+		if (gl_SubGroupInvocationARB == 0)
+#else
 		if (subgroupElect())
+#endif
 			outputColor = vec4(1., 1., 1., 1.);
+#ifdef TARGET_SWITCH
+		if (gl_SubGroupInvocationARB == (gl_SubGroupSizeARB - 1))
+#else
 		if (gl_SubgroupInvocationID == subgroupMax(gl_SubgroupInvocationID))
+#endif
 			outputColor = vec4(1., 0., 0., 1.);
 		break;
 	}
@@ -72,27 +92,50 @@ void main()
 	{
 		// Example of vote intrinsics: WaveActiveBallot
 		// Active lanes ratios (# of total activelanes / # of total lanes).
+#ifdef TARGET_SWITCH
+/*
+		uint64 activeLaneMask = ballotARB(true);
+		uint numActiveLanes = bitCount(activeLaneMask.x) + bitCount(activeLaneMask.y) + bitCount(activeLaneMask.z) + bitCount(activeLaneMask.w);
+		float activeRatio = float(numActiveLanes) / float(laneSize);
+		outputColor = vec4(activeRatio, activeRatio, activeRatio, 1.0);
+*/
+#else
 		uvec4 activeLaneMask = subgroupBallot(true);
 		uint numActiveLanes = bitCount(activeLaneMask.x) + bitCount(activeLaneMask.y) + bitCount(activeLaneMask.z) + bitCount(activeLaneMask.w);
 		float activeRatio = float(numActiveLanes) / float(laneSize);
 		outputColor = vec4(activeRatio, activeRatio, activeRatio, 1.0);
+#endif
 		break;
 	}
 	case 6:
 	{
 		// Example of wave broadcast intrinsics: WaveReadLaneFirst
 		// Broadcast the color in first lan to the wave.
+#ifdef TARGET_SWITCH
+		outputColor = readFirstInvocationARB(outputColor);
+#else
 		outputColor = subgroupBroadcastFirst(outputColor);
+#endif
 		break;
 	}
 	case 7:
 	{
 		// Example of wave reduction intrinsics: WaveActiveSum
 		// Paint the wave with the averaged color inside the wave.
+#ifdef TARGET_SWITCH
+/*
+		uint64 activeLaneMask = ballotARB(true);
+		uint numActiveLanes = bitCount(activeLaneMask.x) + bitCount(activeLaneMask.y) + bitCount(activeLaneMask.z) + bitCount(activeLaneMask.w);
+		// shuffle?
+		//vec4 avgColor = subgroupAdd(outputColor) / float(numActiveLanes);
+		//outputColor = avgColor;
+*/
+#else
 		uvec4 activeLaneMask = subgroupBallot(true);
 		uint numActiveLanes = bitCount(activeLaneMask.x) + bitCount(activeLaneMask.y) + bitCount(activeLaneMask.z) + bitCount(activeLaneMask.w);
 		vec4 avgColor = subgroupAdd(outputColor) / float(numActiveLanes);
 		outputColor = avgColor;
+#endif
 		break;
 	}
 	case 8:
@@ -100,6 +143,8 @@ void main()
 		// Example of wave scan intrinsics: WavePrefixSum
 		// First, compute the prefix sum of distance each lane to first lane.
 		// Then, use the prefix sum value to color each pixel.
+#ifdef TARGET_SWITCH
+#else
 		vec4 basePos = subgroupBroadcastFirst(gl_FragCoord);
 		vec4 prefixSumPos = subgroupExclusiveAdd(gl_FragCoord - basePos);
 
@@ -108,7 +153,7 @@ void main()
 		uint numActiveLanes = bitCount(activeLaneMask.x) + bitCount(activeLaneMask.y) + bitCount(activeLaneMask.z) + bitCount(activeLaneMask.w);
 
 		outputColor = prefixSumPos / numActiveLanes;
-
+#endif
 		break;
 	}
 	case 9:
@@ -126,9 +171,18 @@ void main()
 		//  V
 		//  Y
 		//
+#ifdef TARGET_SWITCH
+/*
+		// NV_shader_thread_group ?
+		float dx = quadSwizzleXNV(gl_FragCoord.x) - gl_FragCoord.x;
+		float dy = quadSwizzleYNV(gl_FragCoord.y) - gl_FragCoord.y;
+*/
+		float dx = 0.0;
+		float dy = 0.0;
+#else
 		float dx = subgroupQuadSwapHorizontal(gl_FragCoord.x) - gl_FragCoord.x;
 		float dy = subgroupQuadSwapVertical(gl_FragCoord.y) - gl_FragCoord.y;
-
+#endif
 
 		// q0
 		if (dx > 0 && dy > 0)

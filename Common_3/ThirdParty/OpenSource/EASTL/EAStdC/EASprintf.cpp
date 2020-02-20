@@ -8,6 +8,7 @@
 #include "../EAAssert/eaassert.h"
 #include "EASprintf.h"
 #include <cwchar>
+#include <stdio.h>
 
 namespace EA {
 namespace StdC {

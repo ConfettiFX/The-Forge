@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -46,16 +46,16 @@ ssize_t ftello(FILE* stream) { return (ssize_t)_ftell(stream); }
 
 FileStream* fsCreateStreamFromFILE(FILE* file)
 {
-    return conf_new(SystemFileStream, file, FM_READ_WRITE_BINARY, false);
+    return conf_new(SystemFileStream, file, FM_READ_WRITE_BINARY, (const Path*)NULL, false);
 }
 
-SystemFileStream::SystemFileStream(FILE* file, FileMode mode, bool ownsFile): FileStream(FileStreamType_System), pFile(file), mMode(mode), mOwnsFile(ownsFile)
+SystemFileStream::SystemFileStream(FILE* file, FileMode mode, const Path* path, bool ownsFile): FileStream(FileStreamType_System, path), pFile(file), mMode(mode), mOwnsFile(ownsFile)
 {
 	mFileSize = -1;
 
-    if (ownsFile && fseeko(pFile, 0, SEEK_END) == 0)
+	if (ownsFile && fseek(pFile, 0, SEEK_END) == 0)
 	{
-		mFileSize = ftello(pFile);
+		mFileSize = ftell(pFile);
 		rewind(pFile);
 	}
 }
@@ -118,7 +118,7 @@ bool SystemFileStream::Seek(SeekBaseOffset baseOffset, ssize_t seekOffset)
 		case SBO_END_OF_FILE: origin = SEEK_END; break;
 	}
 
-	return fseeko(pFile, seekOffset, origin) == 0;
+	return fseek(pFile, (long)seekOffset, origin) == 0;
 }
 
 ssize_t SystemFileStream::GetSeekPosition() const
@@ -132,6 +132,8 @@ ssize_t SystemFileStream::GetSeekPosition() const
 }
 
 ssize_t SystemFileStream::GetFileSize() const { return mFileSize; }
+
+void* SystemFileStream::GetUnderlyingBuffer() const { return NULL; }
 
 void SystemFileStream::Flush()
 {

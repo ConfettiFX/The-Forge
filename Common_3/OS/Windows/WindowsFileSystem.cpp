@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -181,7 +181,7 @@ struct WindowsFileSystem: public FileSystem
 		fopen_s(&fp, fsGetPathAsNativeString(filePath), fsFileModeToString(mode));
 		if (fp)
 		{
-			return conf_new(SystemFileStream, fp, mode);
+			return conf_new(SystemFileStream, fp, mode, filePath);
 		}
 		return NULL;
 	}

@@ -1,127 +1,105 @@
-	/*
- * Copyright (c) 2018 Kostas Anagnostou (https://twitter.com/KostasAAA).
- * 
- * This file is part of The-Forge
- * (see https://github.com/ConfettiFX/The-Forge).
- * 
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- * 
- *   http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
-*/
-
 #include <metal_stdlib>
-#include <metal_atomic>
 using namespace metal;
 
-inline float3x3 matrix_ctor(float4x4 m) {
-        return float3x3(m[0].xyz, m[1].xyz, m[2].xyz);
+inline float3 unpackNormalOctQuad(float2 f) {
+    float3 n = float3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
+    float t = max(-n.z, 0.0);
+    n.x += n.x >= 0.0 ? -t : t;
+    n.y += n.y >= 0.0 ? -t : t;
+    return normalize(n);
 }
 
-struct VsIn
+struct Vertex_Shader
 {
-    uint4 position          [[attribute(0)]];
-    int4  normal            [[attribute(1)]];
-    uint2 texCoord          [[attribute(2)]];
-    uint4 baseColor         [[attribute(3)]];
-    uint2 metallicRoughness [[attribute(4)]];
-    uint2 alphaSettings     [[attribute(5)]];
+    struct VsIn
+    {
+        float4 position;
+        float2 normal;
+        float2 texCoord;
+    };
+    struct Uniforms_cbPerPass
+    {
+        float4x4 projView;
+        float4x4 shadowLightViewProj;
+        float4 camPos;
+        array<float4, 4> lightColor;
+        array<float4, 3> lightDirection;
+    };
+    constant Uniforms_cbPerPass& cbPerPass;
+    struct Uniforms_cbRootConstants
+    {
+        uint nodeIndex;
+    };
+    constant Uniforms_cbRootConstants& cbRootConstants;
+    const device float4x4* modelToWorldMatrices;
+    struct PsIn
+    {
+        float3 pos;
+        float3 normal;
+        float2 texCoord;
+        float4 position;
+    };
+    PsIn main(VsIn In)
+    {
+        float4x4 modelToWorld = modelToWorldMatrices[cbRootConstants.nodeIndex];
+        PsIn Out;
+        float4 inPos = float4(((In).position).xyz, 1.0);
+        float3 inNormal = unpackNormalOctQuad(In.normal);
+        float4 worldPosition = ((modelToWorld)*(inPos));
+        ((Out).position = ((cbPerPass.projView)*(worldPosition)));
+        ((Out).pos = (worldPosition).xyz);
+        ((Out).normal = inNormal);
+        ((Out).texCoord = float2(((In).texCoord).xy));
+        return Out;
+    };
+
+    Vertex_Shader(constant Uniforms_cbPerPass& cbPerPass, constant Uniforms_cbRootConstants& cbRootConstants, const device float4x4* modelToWorldMatrices) :
+        cbPerPass(cbPerPass), cbRootConstants(cbRootConstants), modelToWorldMatrices(modelToWorldMatrices)
+    {}
 };
 
-struct Uniforms_cbPerPass {
-    float4x4 projView;
-    float4   camPos;
-    float4   lightColor[4];
-	float4   lightDirection[3];
-    int4     quantizationParams;
-};
-
-struct Uniforms_cbPerProp {
-    float4x4 world;
-    float4x4 InvTranspose;
-    int unlit;
-    int hasAlbedoMap;
-    int hasNormalMap;
-    int hasMetallicRoughnessMap;
-    int hasAOMap;
-    int hasEmissiveMap;
-    float4 centerOffset;
-    float4 posOffset;
-    float2 uvOffset;
-    float2 uvScale;
-    float posScale;   
-    float padding0;   
-};
-
-struct Uniforms_ShadowUniformBuffer
+struct main_input
 {
-    float4x4 LightViewProj;
+    float4 POSITION [[attribute(0)]];
+    float2 NORMAL [[attribute(1)]];
+    float2 TEXCOORD0 [[attribute(2)]];
 };
 
-struct PsIn
+struct main_output
 {
-    float4 position [[position]];
-    float4 baseColor;
-    float3 normal;
-    float3 pos;
-    float2 uv;
-    float2 metallicRoughness;
-    float2 alphaSettings;
+    float3 POSITION;
+    float3 NORMAL;
+    float2 TEXCOORD0;
+    float4 SV_Position [[position]];
+};
+struct ArgBuffer0
+{
+    const device float4x4* modelToWorldMatrices [[id(0)]];
+    sampler clampMiplessLinearSampler [[id(1)]];
+    texture2d<float> ShadowTexture [[id(2)]];
 };
 
-struct PerFrame
+struct ArgBuffer1
 {
-	constant Uniforms_cbPerPass & cbPerPass [[id(0)]];
-	constant Uniforms_ShadowUniformBuffer & ShadowUniformBuffer       [[id(1)]];
+    constant Vertex_Shader::Uniforms_cbPerPass& cbPerPass [[id(0)]];
 };
 
-struct PerDraw
+vertex main_output stageMain(
+	main_input inputData [[stage_in]],
+    constant ArgBuffer0& argBuffer0 [[buffer(UPDATE_FREQ_NONE)]],
+    constant ArgBuffer1& argBuffer1 [[buffer(UPDATE_FREQ_PER_FRAME)]],
+    constant Vertex_Shader::Uniforms_cbRootConstants& cbRootConstants [[buffer(UPDATE_FREQ_USER)]])
 {
-	constant Uniforms_cbPerProp & cbPerProp [[id(0)]];
-};
-
-vertex PsIn stageMain(VsIn     In                             [[stage_in]],
-                      constant PerFrame& argBufferPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]],
-                      constant PerDraw& argBufferPerDraw [[buffer(UPDATE_FREQ_PER_DRAW)]])
-{
-    PsIn Out;
-    float unormPositionScale = float(1 << argBufferPerFrame.cbPerPass.quantizationParams[0]) - 1.0f;
-    float unormTexScale = float(1 << argBufferPerFrame.cbPerPass.quantizationParams[1]) - 1.0f;
-    float snormNormalScale = float(1 << (argBufferPerFrame.cbPerPass.quantizationParams[2] - 1)) - 1.0f;
-    float unorm16Scale = float(1 << 16) - 1.0f;
-    float unorm8Scale = float(1 << 8) - 1.0f;
-    
-    float4 inPos = float4((float3(In.position.xyz) / (float3)unormPositionScale) * (float3)argBufferPerDraw.cbPerProp.posScale, 1.0f) + argBufferPerDraw.cbPerProp.posOffset;
-    inPos.xyz += argBufferPerDraw.cbPerProp.centerOffset.xyz;
-    float3 inNormal = float3(In.normal.xyz) / (float3)snormNormalScale;
-    
-    float4 worldPosition = argBufferPerDraw.cbPerProp.world * float4(inPos.xyz, 1.0f);
-    worldPosition.xyz /= (float3)argBufferPerDraw.cbPerProp.posScale;
-
-    Out.position = argBufferPerFrame.cbPerPass.projView * worldPosition;
-    Out.normal = normalize((argBufferPerDraw.cbPerProp.InvTranspose * float4(inNormal, 0.0f)).rgb);
-    Out.pos = worldPosition.xyz;
-    
-    Out.uv = float2(In.texCoord.xy) / unormTexScale * argBufferPerDraw.cbPerProp.uvScale + argBufferPerDraw.cbPerProp.uvOffset;
-    
-    Out.baseColor = float4(In.baseColor.rgba) / unorm8Scale;
-    
-    Out.metallicRoughness = float2(In.metallicRoughness) / unorm16Scale;
-    Out.alphaSettings = float2(In.alphaSettings);
-    Out.alphaSettings[0] = Out.alphaSettings[0] + 0.5f;
-    Out.alphaSettings[1] = Out.alphaSettings[1] / unorm16Scale;
-    
-    return Out;
+    Vertex_Shader::VsIn In0;
+    In0.position = inputData.POSITION;
+    In0.normal = inputData.NORMAL;
+    In0.texCoord = inputData.TEXCOORD0;
+    Vertex_Shader main(argBuffer1.cbPerPass, cbRootConstants, argBuffer0.modelToWorldMatrices);
+    Vertex_Shader::PsIn result = main.main(In0);
+    main_output output;
+    output.POSITION = result.pos;
+    output.NORMAL = result.normal;
+    output.TEXCOORD0 = result.texCoord;
+    output.SV_Position = result.position;
+    return output;
 }

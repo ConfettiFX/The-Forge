@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -26,7 +26,7 @@
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
 #include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/Renderer/IResourceLoader.h"
 
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
@@ -120,10 +120,15 @@ class SphereTracing: public IApp
 			return false;
 
 		QueueDesc queueDesc = {};
-		queueDesc.mType = CMD_POOL_DIRECT;
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		addCmdPool(pRenderer, pGraphicsQueue, false, &pCmdPool);
-		addCmd_n(pCmdPool, false, gImageCount, &ppCmds);
+		CmdPoolDesc cmdPoolDesc = {};
+		cmdPoolDesc.pQueue = pGraphicsQueue;
+		addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
+		CmdDesc cmdDesc = {};
+		cmdDesc.pPool = pCmdPool;
+		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -177,9 +182,8 @@ class SphereTracing: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pUniformBuffer[i];
-			addResource(&ubDesc);
+			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
-
 		/************************************************************************/
 		// GUI
 		/************************************************************************/
@@ -201,7 +205,7 @@ class SphereTracing: public IApp
 			return false;
 
 		// App Actions
-    InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
@@ -231,6 +235,8 @@ class SphereTracing: public IApp
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
+
+		waitForAllResourceLoads();
 
 		// Prepare descriptor sets
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -276,12 +282,12 @@ class SphereTracing: public IApp
 		}
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
 
-		removeCmd_n(pCmdPool, gImageCount, ppCmds);
+		removeCmd_n(pRenderer, gImageCount, ppCmds);
 		removeCmdPool(pRenderer, pCmdPool);
 
 		removeGpuProfiler(pRenderer, pGpuProfiler);
-		removeResourceLoaderInterface(pRenderer);
-		removeQueue(pGraphicsQueue);
+		exitResourceLoaderInterface(pRenderer);
+		removeQueue(pRenderer, pGraphicsQueue);
 		removeRenderer(pRenderer);
 	}
 
@@ -290,10 +296,10 @@ class SphereTracing: public IApp
 		if (!addSwapChain())
 			return false;
 
-		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
+		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
 			return false;
 
-		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
+		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
 
 		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
@@ -304,9 +310,9 @@ class SphereTracing: public IApp
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = NULL;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pVertexLayout = NULL;
 		pipelineSettings.pDepthState = NULL;
@@ -368,10 +374,12 @@ class SphereTracing: public IApp
 			waitForFences(pRenderer, 1, &pNextFence);
 
 		// Update uniform buffers
-		BufferUpdateDesc shaderCbv = { pUniformBuffer[gFrameIndex], &gUniformData };
-		updateResource(&shaderCbv);
+		BufferUpdateDesc shaderCbv = { pUniformBuffer[gFrameIndex] };
+		beginUpdateResource(&shaderCbv);
+		*(UniformBlock*)shaderCbv.pMappedData = gUniformData;
+		endUpdateResource(&shaderCbv, NULL);
 
-		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
 
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence*     pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
@@ -390,10 +398,10 @@ class SphereTracing: public IApp
 
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
 
-		TextureBarrier barriers[] = {
-			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
+		RenderTargetBarrier barriers[] = {
+			{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 1, barriers);
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
@@ -431,13 +439,27 @@ class SphereTracing: public IApp
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndDebugMarker(cmd);
 
-		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(cmd, 0, NULL, 1, barriers);
+		barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 		endCmd(cmd);
 
-		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
-		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		QueueSubmitDesc submitDesc = {};
+		submitDesc.mCmdCount = 1;
+		submitDesc.mSignalSemaphoreCount = 1;
+		submitDesc.mWaitSemaphoreCount = 1;
+		submitDesc.ppCmds = &cmd;
+		submitDesc.ppSignalSemaphores = &pRenderCompleteSemaphore;
+		submitDesc.ppWaitSemaphores = &pImageAcquiredSemaphore;
+		submitDesc.pSignalFence = pRenderCompleteFence;
+		queueSubmit(pGraphicsQueue, &submitDesc);
+		QueuePresentDesc presentDesc = {};
+		presentDesc.mIndex = gFrameIndex;
+		presentDesc.mWaitSemaphoreCount = 1;
+		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
+		presentDesc.pSwapChain = pSwapChain;
+		presentDesc.mSubmitDone = true;
+		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
 	}
 

@@ -21,6 +21,9 @@
     <Filter Include="OS">
       <UniqueIdentifier>{553e2610-3910-4bae-b7ee-7bfe0a3fc12e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="zip">
+      <UniqueIdentifier>{910b2ab7-6cdd-477b-9201-b30b282b7711}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CodeWriter.cpp">
@@ -155,6 +158,9 @@
     <ClCompile Include="..\..\..\..\..\OS\FileSystem\ZipFileSystem.cpp">
       <Filter>OS</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\zip\zip.cpp">
+      <Filter>zip</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Parser.h">
@@ -210,6 +216,12 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\OS\FileSystem\ZipFileSystem.h">
       <Filter>OS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\zip\miniz.h">
+      <Filter>zip</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\zip\zip.h">
+      <Filter>zip</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

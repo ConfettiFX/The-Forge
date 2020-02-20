@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -58,7 +58,7 @@ kernel void stageMain(
     LightData lightData = csData.lights[groupId.x];
     
     float4 lightPosWorldSpace = float4(lightData.position, 1);
-    float4 lightPosClipSpace = csDataPerFrame.uniforms.transform[VIEW_CAMERA].mvp * lightPosWorldSpace;
+    float4 lightPosClipSpace = csDataPerFrame.uniforms.transform[VIEW_CAMERA].vp * lightPosWorldSpace;
     float invLightPosW = 1.0 / lightPosClipSpace.w;
     float3 lightPos = lightPosClipSpace.xyz * invLightPosW;
     

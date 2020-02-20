@@ -31,8 +31,6 @@
 		654D978021E9219800113964 /* ozz_base.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 654D977821E9218B00113964 /* ozz_base.a */; };
 		654D97BF21E92FC300113964 /* ozz_base_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 654D977C21E9218B00113964 /* ozz_base_IOS.a */; };
 		654D97C021E92FCE00113964 /* ozz_animation_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 654D977A21E9218B00113964 /* ozz_animation_IOS.a */; };
-		65DB594721F267FD00636935 /* capsule.obj in Resources */ = {isa = PBXBuildFile; fileRef = 65DB594421F267FD00636935 /* capsule.obj */; };
-		65DB596121F2683E00636935 /* capsule.obj in Copy Meshes */ = {isa = PBXBuildFile; fileRef = 65DB594421F267FD00636935 /* capsule.obj */; };
 		65DB596921F268B900636935 /* stickFigure in Resources */ = {isa = PBXBuildFile; fileRef = 65DB596821F268B800636935 /* stickFigure */; };
 		65DB596A21F268C100636935 /* stickFigure in Copy Animation */ = {isa = PBXBuildFile; fileRef = 65DB596821F268B800636935 /* stickFigure */; };
 		65DB598721F65D1500636935 /* fullscreen.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 65DB597B21F65C7500636935 /* fullscreen.vert.metal */; };
@@ -64,13 +62,23 @@
 		971BCEEA217012FB007F2B2F /* circlepad.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = 281FA9E820333E5700CD5D9C /* circlepad.ktx */; };
 		971BCEEB217012FB007F2B2F /* LA_Helipad.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = 2874FDB8202CA418007239DC /* LA_Helipad.ktx */; };
 		971BCEED2170133F007F2B2F /* TitilliumText in Copy Fonts */ = {isa = PBXBuildFile; fileRef = 28A5AD6A201F7300000E571F /* TitilliumText */; };
-		971BCEEF2170135B007F2B2F /* cube.obj in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B2A9284620C7606200F06BFD /* cube.obj */; };
-		971BCEF02170135B007F2B2F /* matBall.obj in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B2A9284720C7606200F06BFD /* matBall.obj */; };
 		977AF06921FA7AE000BA2AA2 /* renderSceneShadows.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 977AF06121FA7A5300BA2AA2 /* renderSceneShadows.frag.metal */; };
 		977AF06A21FA7AE000BA2AA2 /* renderSceneShadows.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 977AF06421FA7A5300BA2AA2 /* renderSceneShadows.vert.metal */; };
 		97B2DD20218BA44600DDDE62 /* PBR in Copy PBR Textures */ = {isa = PBXBuildFile; fileRef = 97B2DD1F218BA44600DDDE62 /* PBR */; };
 		B2087DE721421A4A006F372D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DE521421A4A006F372D /* MetalKit.framework */; };
 		B2087DE821421A4A006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DE621421A4A006F372D /* Metal.framework */; };
+		B217E28A23F5A0F500C95904 /* capsule.gltf in Resources */ = {isa = PBXBuildFile; fileRef = B217E28423F5A0F400C95904 /* capsule.gltf */; };
+		B217E28B23F5A0F500C95904 /* capsule.gltf in Resources */ = {isa = PBXBuildFile; fileRef = B217E28423F5A0F400C95904 /* capsule.gltf */; };
+		B217E28C23F5A0F500C95904 /* matBall.gltf in Resources */ = {isa = PBXBuildFile; fileRef = B217E28723F5A0F500C95904 /* matBall.gltf */; };
+		B217E28D23F5A0F500C95904 /* matBall.gltf in Resources */ = {isa = PBXBuildFile; fileRef = B217E28723F5A0F500C95904 /* matBall.gltf */; };
+		B217E28E23F5A0F500C95904 /* cube.gltf in Resources */ = {isa = PBXBuildFile; fileRef = B217E28823F5A0F500C95904 /* cube.gltf */; };
+		B217E28F23F5A0F500C95904 /* cube.gltf in Resources */ = {isa = PBXBuildFile; fileRef = B217E28823F5A0F500C95904 /* cube.gltf */; };
+		B217E29023F5A0F500C95904 /* matBall.bin in Resources */ = {isa = PBXBuildFile; fileRef = B217E28923F5A0F500C95904 /* matBall.bin */; };
+		B217E29123F5A0F500C95904 /* matBall.bin in Resources */ = {isa = PBXBuildFile; fileRef = B217E28923F5A0F500C95904 /* matBall.bin */; };
+		B217E29223F5A11600C95904 /* capsule.gltf in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B217E28423F5A0F400C95904 /* capsule.gltf */; };
+		B217E29323F5A11600C95904 /* cube.gltf in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B217E28823F5A0F500C95904 /* cube.gltf */; };
+		B217E29423F5A11600C95904 /* matBall.gltf in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B217E28723F5A0F500C95904 /* matBall.gltf */; };
+		B217E29523F5A11D00C95904 /* matBall.bin in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B217E28923F5A0F500C95904 /* matBall.bin */; };
 		B21F76D621420EB300DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76D321420EB300DF2297 /* UIKit.framework */; };
 		B21F76D721420EB300DF2297 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76D421420EB300DF2297 /* MetalKit.framework */; };
 		B21F76D821420EB300DF2297 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76D521420EB300DF2297 /* Metal.framework */; };
@@ -78,12 +86,6 @@
 		B2637CC620C9A2E800D76037 /* 06_MaterialPlayground.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2637CC420C9A2E800D76037 /* 06_MaterialPlayground.cpp */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
-		E970F78D233C5DBC009FE7C4 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E970F78A233C5DB6009FE7C4 /* libbz2.tbd */; };
-		E970F78F233C5DC6009FE7C4 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E970F78E233C5DC2009FE7C4 /* libbz2.tbd */; };
-		E9BF1A9723186620001F2264 /* TressFXAsset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9BF1A9223186620001F2264 /* TressFXAsset.cpp */; };
-		E9BF1A9823186620001F2264 /* TressFXAsset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9BF1A9223186620001F2264 /* TressFXAsset.cpp */; };
-		E9BF1A9923186620001F2264 /* TFXImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9BF1A9423186620001F2264 /* TFXImporter.cpp */; };
-		E9BF1A9A23186620001F2264 /* TFXImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9BF1A9423186620001F2264 /* TFXImporter.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -304,9 +306,10 @@
 			dstPath = Meshes;
 			dstSubfolderSpec = 7;
 			files = (
-				65DB596121F2683E00636935 /* capsule.obj in Copy Meshes */,
-				971BCEEF2170135B007F2B2F /* cube.obj in Copy Meshes */,
-				971BCEF02170135B007F2B2F /* matBall.obj in Copy Meshes */,
+				B217E29523F5A11D00C95904 /* matBall.bin in Copy Meshes */,
+				B217E29223F5A11600C95904 /* capsule.gltf in Copy Meshes */,
+				B217E29323F5A11600C95904 /* cube.gltf in Copy Meshes */,
+				B217E29423F5A11600C95904 /* matBall.gltf in Copy Meshes */,
 			);
 			name = "Copy Meshes";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -351,7 +354,6 @@
 		650CCC522223C54C003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		650CCC562223C55A003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
 		654D976A21E9218B00113964 /* ozz.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ozz.xcodeproj; path = "../../../../Common_3/ThirdParty/OpenSource/ozz-animation/MacOS/ozz.xcodeproj"; sourceTree = "<group>"; };
-		65DB594421F267FD00636935 /* capsule.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = capsule.obj; path = ../../../UnitTestResources/Meshes/capsule.obj; sourceTree = "<group>"; };
 		65DB596821F268B800636935 /* stickFigure */ = {isa = PBXFileReference; lastKnownFileType = folder; name = stickFigure; path = ../../UnitTestResources/Animation/stickFigure; sourceTree = "<group>"; };
 		65DB597721F65C7500636935 /* skeleton.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = skeleton.vert.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/skeleton.vert.metal; sourceTree = "<group>"; };
 		65DB597821F65C7500636935 /* hair.comp.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = hair.comp.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/hair.comp.metal; sourceTree = "<group>"; };
@@ -371,6 +373,10 @@
 		97B2DD1F218BA44600DDDE62 /* PBR */ = {isa = PBXFileReference; lastKnownFileType = folder; name = PBR; path = ../../../../Art/PBR; sourceTree = "<group>"; };
 		B2087DE521421A4A006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B2087DE621421A4A006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		B217E28423F5A0F400C95904 /* capsule.gltf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = capsule.gltf; path = ../../../UnitTestResources/Meshes/capsule.gltf; sourceTree = "<group>"; };
+		B217E28723F5A0F500C95904 /* matBall.gltf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = matBall.gltf; path = ../../../UnitTestResources/Meshes/matBall.gltf; sourceTree = "<group>"; };
+		B217E28823F5A0F500C95904 /* cube.gltf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = cube.gltf; path = ../../../UnitTestResources/Meshes/cube.gltf; sourceTree = "<group>"; };
+		B217E28923F5A0F500C95904 /* matBall.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = matBall.bin; path = ../../../UnitTestResources/Meshes/matBall.bin; sourceTree = "<group>"; };
 		B21F76D321420EB300DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76D421420EB300DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76D521420EB300DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
@@ -383,8 +389,6 @@
 		B2637CBA20C9A2DC00D76037 /* renderSceneBRDF.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = renderSceneBRDF.vert.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/renderSceneBRDF.vert.metal; sourceTree = "<group>"; };
 		B2637CBB20C9A2DC00D76037 /* skybox.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = skybox.frag.metal; path = ../../../src/06_MaterialPlayground/Shaders/Metal/skybox.frag.metal; sourceTree = "<group>"; };
 		B2637CC420C9A2E800D76037 /* 06_MaterialPlayground.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 06_MaterialPlayground.cpp; path = ../../../src/06_MaterialPlayground/06_MaterialPlayground.cpp; sourceTree = "<group>"; };
-		B2A9284620C7606200F06BFD /* cube.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = cube.obj; path = ../../../UnitTestResources/Meshes/cube.obj; sourceTree = "<group>"; };
-		B2A9284720C7606200F06BFD /* matBall.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = matBall.obj; path = ../../../UnitTestResources/Meshes/matBall.obj; sourceTree = "<group>"; };
 		D0D223BD20CB877C00910DF0 /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/assimp.a"; sourceTree = "<group>"; };
 		D0D223BE20CB877C00910DF0 /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/IrrXML.a"; sourceTree = "<group>"; };
 		D0D223BF20CB877C00910DF0 /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/zlibstatic.a"; sourceTree = "<group>"; };
@@ -395,11 +399,6 @@
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		E970F78A233C5DB6009FE7C4 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		E970F78E233C5DC2009FE7C4 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.0.sdk/usr/lib/libbz2.tbd; sourceTree = DEVELOPER_DIR; };
-		E9BF1A9223186620001F2264 /* TressFXAsset.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = TressFXAsset.cpp; path = ../../../../Common_3/Tools/AssetPipeline/src/TressFXAsset.cpp; sourceTree = "<group>"; };
-		E9BF1A9323186620001F2264 /* TFXImporter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TFXImporter.h; path = ../../../../Common_3/Tools/AssetPipeline/src/TFXImporter.h; sourceTree = "<group>"; };
-		E9BF1A9423186620001F2264 /* TFXImporter.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = TFXImporter.cpp; path = ../../../../Common_3/Tools/AssetPipeline/src/TFXImporter.cpp; sourceTree = "<group>"; };
-		E9BF1A9523186620001F2264 /* TressFXAsset.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TressFXAsset.h; path = ../../../../Common_3/Tools/AssetPipeline/src/TressFXAsset.h; sourceTree = "<group>"; };
-		E9BF1A9623186620001F2264 /* TressFXFileFormat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TressFXFileFormat.h; path = ../../../../Common_3/Tools/AssetPipeline/src/TressFXFileFormat.h; sourceTree = "<group>"; };
 		EA463C8B1EF81E8F005AC8C7 /* 06_MaterialPlayground.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 06_MaterialPlayground.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EADF9D661EFD160E00B2008B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../02_Compute/02_Compute/Info.plist; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -410,7 +409,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				650CCC572223C55A003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
-				E970F78F233C5DC6009FE7C4 /* libbz2.tbd in Frameworks */,
 				654D97C021E92FCE00113964 /* ozz_animation_IOS.a in Frameworks */,
 				654D97BF21E92FC300113964 /* ozz_base_IOS.a in Frameworks */,
 				5CE86AD021D21B9B00B4778F /* libLuaManager_iOS.a in Frameworks */,
@@ -433,7 +431,6 @@
 				5CE86ACD21D0F58000B4778F /* libLuaManager.a in Frameworks */,
 				B2087DE821421A4A006F372D /* Metal.framework in Frameworks */,
 				B2087DE721421A4A006F372D /* MetalKit.framework in Frameworks */,
-				E970F78D233C5DBC009FE7C4 /* libbz2.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -552,18 +549,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		654D976021E9214100113964 /* TFXImporter */ = {
-			isa = PBXGroup;
-			children = (
-				E9BF1A9423186620001F2264 /* TFXImporter.cpp */,
-				E9BF1A9323186620001F2264 /* TFXImporter.h */,
-				E9BF1A9223186620001F2264 /* TressFXAsset.cpp */,
-				E9BF1A9523186620001F2264 /* TressFXAsset.h */,
-				E9BF1A9623186620001F2264 /* TressFXFileFormat.h */,
-			);
-			name = TFXImporter;
-			sourceTree = "<group>";
-		};
 		654D976B21E9218B00113964 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -599,9 +584,10 @@
 		B2A9284520C7602C00F06BFD /* Meshes */ = {
 			isa = PBXGroup;
 			children = (
-				65DB594421F267FD00636935 /* capsule.obj */,
-				B2A9284620C7606200F06BFD /* cube.obj */,
-				B2A9284720C7606200F06BFD /* matBall.obj */,
+				B217E28423F5A0F400C95904 /* capsule.gltf */,
+				B217E28823F5A0F500C95904 /* cube.gltf */,
+				B217E28923F5A0F500C95904 /* matBall.bin */,
+				B217E28723F5A0F500C95904 /* matBall.gltf */,
 			);
 			name = Meshes;
 			path = 06_MaterialPlayground_iOS;
@@ -615,7 +601,6 @@
 				65DB599721F6A60800636935 /* Hair */,
 				65DB596321F2686500636935 /* Animation */,
 				654D976A21E9218B00113964 /* ozz.xcodeproj */,
-				654D976021E9214100113964 /* TFXImporter */,
 				5CA80E1421F09F6900C99983 /* CommonShaders */,
 				65F9787421E71E7A008EC741 /* Scripts */,
 				5CE86AC221D0F56100B4778F /* LuaManager.xcodeproj */,
@@ -838,11 +823,15 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B217E28F23F5A0F500C95904 /* cube.gltf in Resources */,
 				28A5AD58201F7276000E571F /* LaunchScreen.storyboard in Resources */,
 				28A5AD55201F7276000E571F /* Assets.xcassets in Resources */,
 				65F9787C21E71EEB008EC741 /* updateCamera.lua in Resources */,
 				65F9788021E71EEB008EC741 /* loadTextures.lua in Resources */,
+				B217E29123F5A0F500C95904 /* matBall.bin in Resources */,
+				B217E28D23F5A0F500C95904 /* matBall.gltf in Resources */,
 				65F9787E21E71EEB008EC741 /* loadGroundTextures.lua in Resources */,
+				B217E28B23F5A0F500C95904 /* capsule.gltf in Resources */,
 				65F9787A21E71EEB008EC741 /* loadModels.lua in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -853,12 +842,15 @@
 			files = (
 				65F9787B21E71EEB008EC741 /* updateCamera.lua in Resources */,
 				D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */,
+				B217E29023F5A0F500C95904 /* matBall.bin in Resources */,
 				65DB596921F268B900636935 /* stickFigure in Resources */,
+				B217E28E23F5A0F500C95904 /* cube.gltf in Resources */,
 				65F9787F21E71EEB008EC741 /* loadTextures.lua in Resources */,
+				B217E28C23F5A0F500C95904 /* matBall.gltf in Resources */,
 				D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */,
 				65DB599821F6A60800636935 /* Hair in Resources */,
 				65F9787921E71EEB008EC741 /* loadModels.lua in Resources */,
-				65DB594721F267FD00636935 /* capsule.obj in Resources */,
+				B217E28A23F5A0F500C95904 /* capsule.gltf in Resources */,
 				65F9787D21E71EEB008EC741 /* loadGroundTextures.lua in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -870,9 +862,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E9BF1A9823186620001F2264 /* TressFXAsset.cpp in Sources */,
 				B2637CC620C9A2E800D76037 /* 06_MaterialPlayground.cpp in Sources */,
-				E9BF1A9A23186620001F2264 /* TFXImporter.cpp in Sources */,
 				5C17303C21414E500074EE71 /* AppDelegate.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -881,9 +871,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E9BF1A9723186620001F2264 /* TressFXAsset.cpp in Sources */,
 				5C172F7E214149FD0074EE71 /* AppDelegate.m in Sources */,
-				E9BF1A9923186620001F2264 /* TFXImporter.cpp in Sources */,
 				B2637CC520C9A2E800D76037 /* 06_MaterialPlayground.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

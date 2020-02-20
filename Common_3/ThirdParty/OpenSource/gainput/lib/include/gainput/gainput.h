@@ -21,7 +21,7 @@
 #elif defined(__linux) || defined(__linux__) || defined(linux) || defined(LINUX)
 	#define GAINPUT_PLATFORM_LINUX
 	#define GAINPUT_LIBEXPORT
-#elif defined(_WIN32) || defined(__WIN32__) || defined(_MSC_VER)
+#elif defined(_WIN32) || defined(__WIN32__) || (defined(_MSC_VER) && !defined(NX64))
 	#define GAINPUT_PLATFORM_WIN
 	#if defined(GAINPUT_LIB_DYNAMIC)
 		#define GAINPUT_LIBEXPORT		__declspec(dllexport)
@@ -42,6 +42,12 @@
 	#else
 		#error Gainput: Unknown/unsupported Apple platform!
 	#endif
+#elif defined(NX64)
+	#define GAINPUT_PLATFORM_NX64
+	#define GAINPUT_LIBEXPORT
+#elif defined(ORBIS)
+	#define GAINPUT_PLATFORM_ORBIS
+	#define GAINPUT_LIBEXPORT
 #else
 	#error Gainput: Unknown/unsupported platform!
 #endif
@@ -100,6 +106,16 @@ namespace gainput
 #include <stdint.h>
 #include <stdlib.h>
 struct AInputEvent;
+
+#elif defined(GAINPUT_PLATFORM_NX64)
+
+#include <cstdlib>
+#include <stdint.h>
+
+#elif defined(GAINPUT_PLATFORM_ORBIS)
+
+#include <cstdlib>
+#include <stdint.h>
 
 #endif
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,7 +24,7 @@
 
 
 static const float Pi = 3.14159265359;
-static float SampleDelta = 0.025;
+static float SampleDelta = SAMPLE_DELTA;
 
 TextureCube<float4> srcTexture : register(t0);
 RWTexture2DArray<float4> dstTexture : register(u2);

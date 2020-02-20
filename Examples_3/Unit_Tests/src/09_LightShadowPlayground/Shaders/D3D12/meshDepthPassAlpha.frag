@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -34,7 +34,7 @@ struct PsIn
 
 ConstantBuffer<RootConstant> indirectRootConstant : register(b2);
 
-StructuredBuffer<uint> indirectMaterialBuffer : register(t0, UPDATE_FREQ_PER_FRAME);
+ByteAddressBuffer indirectMaterialBuffer : register(t0, UPDATE_FREQ_PER_FRAME);
 Texture2D diffuseMaps[] : register(t1);
 
 SamplerState nearClampSampler : register(s0);
@@ -44,7 +44,7 @@ SamplerState nearClampSampler : register(s0);
 void  main(PsIn In)
 {
 	uint matBaseSlot = BaseMaterialBuffer(true, VIEW_SHADOW); //1 is camera view, 0 is shadow map view
-    uint materialID = indirectMaterialBuffer[matBaseSlot + indirectRootConstant.drawId];
+    uint materialID = indirectMaterialBuffer.Load((matBaseSlot + indirectRootConstant.drawId) << 2);
     float4 texColor = diffuseMaps[NonUniformResourceIndex(materialID)].SampleLevel(nearClampSampler, In.TexCoord, 0);
 	clip(texColor.a < 0.5f ? -1 : 1);
 }

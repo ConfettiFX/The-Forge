@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -22,7 +22,7 @@
  * under the License.
 */
 
-#include "../../ThirdParty/OpenSource/libzip/zip.h"
+#include "../../ThirdParty/OpenSource/zip/zip.h"
 
 #include "ZipFileSystem.h"
 #include "ZipFileStream.h"
@@ -32,32 +32,44 @@
 
 ZipFileSystem* ZipFileSystem::CreateWithRootAtPath(const Path* rootPath, FileSystemFlags flags)
 {
-	zip_flags_t zipFlags = 0;
+	char mode = 0;
 
-	if (flags & FSF_CREATE_IF_NECESSARY)
-	{
-		zipFlags |= ZIP_CREATE;
-	}
 	if (flags & FSF_OVERWRITE)
 	{
-		zipFlags |= ZIP_TRUNCATE;
+		mode = 'w';
 	}
-	if (flags & FSF_READ_ONLY)
+	else if (flags & FSF_READ_ONLY)
 	{
-		zipFlags |= ZIP_RDONLY;
+		mode = 'r';
 	}
-	int    error;
-	zip_t* zipFile = zip_open(fsGetPathAsNativeString(rootPath), zipFlags, &error);
+	else
+	{
+		mode = 'a';
+	}
+
+	zip_t* zipFile = zip_open(fsGetPathAsNativeString(rootPath), ZIP_DEFAULT_COMPRESSION_LEVEL, mode);
 
 	if (!zipFile)
 	{
-		LOGF(LogLevel::eERROR, "Error %i creating file system from zip file at %s", error, fsGetPathAsNativeString(rootPath));
+		LOGF(LogLevel::eERROR, "Error creating file system from zip file at %s", fsGetPathAsNativeString(rootPath));
 		return NULL;
 	}
 
 	time_t creationTime = fsGetCreationTime(rootPath);
 	time_t accessedTime = fsGetLastAccessedTime(rootPath);
-	return conf_new(ZipFileSystem, rootPath, zipFile, flags, creationTime, accessedTime);
+	ZipFileSystem* system = conf_new(ZipFileSystem, rootPath, zipFile, flags, creationTime, accessedTime);
+	uint32_t totalEntries = zip_total_entries(zipFile);
+	for (uint32_t i = 0; i < totalEntries; ++i)
+	{
+		zip_entry_openbyindex(zipFile, i);
+		uint32_t dir = zip_entry_isdir(zipFile);
+		ssize_t size = zip_entry_size(zipFile);
+		time_t time = zip_entry_time(zipFile);
+		system->mEntries[zip_entry_name(zipFile)] = { time, size, i, dir };
+		zip_entry_close(zipFile);
+	}
+
+	return system;
 }
 
 ZipFileSystem::ZipFileSystem(const Path* pathInParent, zip_t* zipFile, FileSystemFlags flags, time_t creationTime, time_t lastAccessedTime):
@@ -72,13 +84,8 @@ ZipFileSystem::ZipFileSystem(const Path* pathInParent, zip_t* zipFile, FileSyste
 
 ZipFileSystem::~ZipFileSystem()
 {
-	int result = zip_close(pZipFile);
-	if (result != 0)
-	{
-		zip_error_t* error = zip_get_error(pZipFile);
-		LOGF(LogLevel::eERROR, "Error %i closing zip file: %s", error->zip_err, error->str);
-	}
-    fsFreePath(pPathInParent);
+	zip_close(pZipFile);
+	fsFreePath(pPathInParent);
 }
 
 
@@ -115,137 +122,86 @@ bool ZipFileSystem::FormRootPath(const char* absolutePathString, Path* path, siz
 
 FileStream* ZipFileSystem::OpenFile(const Path* filePath, FileMode mode) const
 {
-    if (mode & FM_WRITE)
-    {
-        if ((mode & FM_READ) != 0)
-        {
-            LOGF(LogLevel::eERROR, "Zip file %s cannot be open for both reading and writing", fsGetPathAsNativeString(filePath));
-            return NULL;
-        }
-        
-        zip_error_t error = {};
-        zip_source_t* source = zip_source_buffer_create(NULL, 0, 0, &error);
-        if (error.zip_err)
-        {
-            LOGF(
-            LogLevel::eERROR, "Error %i creating zip source at %s: %s", error.zip_err, fsGetPathAsNativeString(filePath), error.str);
-            return NULL;
-        }
-        
-        if (!source) { return NULL; }
-        
-        zip_source_keep(source);
-        
-        if (zip_file_add(pZipFile, fsGetPathAsNativeString(filePath), source, ZIP_FL_ENC_UTF_8 | ZIP_FL_OVERWRITE) == -1)
-        {
-            zip_error_t* error = zip_get_error(pZipFile);
-            LOGF(
-            LogLevel::eERROR, "Error %i adding file to zip at %s: %s", error->zip_err, fsGetPathAsNativeString(filePath), error->str);
-            zip_source_free(source);
-            return NULL;
-        }
-        
-        zip_source_begin_write(source);
-        return conf_new(ZipSourceStream, source, mode);
-    }
-    
-	zip_int64_t index = zip_name_locate(pZipFile, fsGetPathAsNativeString(filePath), ZIP_FL_ENC_STRICT);
-	if (index == -1)
+	if (mode & FM_WRITE)
 	{
-		zip_error_t* error = zip_get_error(pZipFile);
-		LOGF(
-			LogLevel::eINFO, "Error %i finding file %s for opening in zip: %s", error->zip_err, fsGetPathAsNativeString(filePath),
-			error->str);
+		if ((mode & FM_READ) != 0)
+		{
+			LOGF(LogLevel::eERROR, "Zip file %s cannot be open for both reading and writing", fsGetPathAsNativeString(filePath));
+			return NULL;
+		}
+
+		int error = zip_entry_open(pZipFile, fsGetPathAsNativeString(filePath));
+		if (error)
+		{
+			LOGF(LogLevel::eINFO, "Error %i finding file %s for opening in zip: %s", error, fsGetPathAsNativeString(filePath),
+				fsGetPathAsNativeString(pPathInParent));
+			return NULL;
+		}
+
+		return conf_new(ZipFileStream, pZipFile, mode, filePath);
+	}
+
+	decltype(mEntries)::const_iterator it = mEntries.find(fsGetPathAsNativeString(filePath));
+	if (it == mEntries.end())
+	{
+		LOGF(LogLevel::eINFO, "Error finding file %s for opening in zip: %s", fsGetPathAsNativeString(filePath),
+			fsGetPathAsNativeString(pPathInParent));
 		return NULL;
 	}
-    
-	zip_stat_t stat = {};
-	if (zip_stat_index(pZipFile, index, 0, &stat) != 0)
+
+	if (!it->second.mSize || UINT_MAX == it->second.mSize)
 	{
-		zip_error_t* error = zip_get_error(pZipFile);
-		LOGF(
-			LogLevel::eERROR, "Error %i getting uncompressed size for %s: %s", error->zip_err, fsGetPathAsNativeString(filePath), error->str);
-		stat.size = 0;
+		LOGF(LogLevel::eERROR, "Error getting uncompressed size for %s: %s", fsGetPathAsNativeString(filePath),
+			fsGetPathAsNativeString(pPathInParent));
 	}
 
-	zip_file_t* file = zip_fopen_index(pZipFile, index, ZIP_FL_ENC_STRICT);
-	if (!file) { return NULL; }
+	int error = zip_entry_open(pZipFile, fsGetPathAsNativeString(filePath));
+	if (error)
+	{
+		LOGF(LogLevel::eINFO, "Error %i finding file %s for opening in zip: %s", error, fsGetPathAsNativeString(filePath),
+			fsGetPathAsNativeString(pPathInParent));
+		return NULL;
+	}
 
-    
-    if (mode & FM_APPEND)
-    {
-        zip_source_t* source = zip_source_zip(pZipFile, pZipFile, index, (zip_flags_t)0, 0, -1);
-        zip_source_begin_write_cloning(source, stat.size);
-        return conf_new(ZipSourceStream, source, mode);
-    }
-    
-	return conf_new(ZipFileStream, file, mode, (size_t)stat.size);
+	return conf_new(ZipFileStream, pZipFile, mode, filePath);
 }
 
 time_t ZipFileSystem::GetCreationTime(const Path* filePath) const { return mCreationTime; }
 
 time_t ZipFileSystem::GetLastAccessedTime(const Path* filePath) const { return mLastAccessedTime; }
 
-time_t ZipFileSystem::GetLastModifiedTime(const Path* filePath) const
+time_t ZipFileSystem::GetLastModifiedTime(const Path* path) const
 {
-	zip_stat_t stat;
-	if (zip_stat(pZipFile, fsGetPathAsNativeString(filePath), 0, &stat) != 0)
-	{
-		zip_error_t* error = zip_get_error(pZipFile);
-		LOGF(LogLevel::eERROR, "Error %i getting modified time for %s: %s", error->zip_err, fsGetPathAsNativeString(filePath), error->str);
-		return 0;
-	}
-
-	return stat.mtime;
+	decltype(mEntries)::const_iterator it = mEntries.find(fsGetPathAsNativeString(path));
+	if (it != mEntries.end())
+		return it->second.mTime;
+	return 0;
 }
 
 bool ZipFileSystem::CreateDirectory(const Path* directoryPath) const
 {
-	zip_int64_t result = zip_dir_add(pZipFile, fsGetPathAsNativeString(directoryPath), ZIP_FL_ENC_UTF_8);
-	if (result != 0)
-	{
-		zip_error_t* error = zip_get_error(pZipFile);
-		LOGF(
-			LogLevel::eINFO, "Error %i creating directory %s in zip: %s", error->zip_err, fsGetPathAsNativeString(directoryPath), error->str);
-		return false;
-	}
-	return true;
+	LOGF(LogLevel::eWARNING, "ZipFileSystem::CopyFile is unimplemented.");
+	return false;
 }
 
 bool ZipFileSystem::FileExists(const Path* path) const
 {
-	return zip_name_locate(pZipFile, fsGetPathAsNativeString(path), ZIP_FL_ENC_STRICT) != -1;
+	decltype(mEntries)::const_iterator it = mEntries.find(fsGetPathAsNativeString(path));
+	return it != mEntries.end();
 }
 
 bool ZipFileSystem::IsDirectory(const Path* path) const
 {
-	zip_stat_t stat;
-	if (zip_stat(pZipFile, fsGetPathAsNativeString(path), 0, &stat) == 0)
-	{
-		return stat.name[strlen(stat.name) - 1] == '/';
-	}
+	decltype(mEntries)::const_iterator it = mEntries.find(fsGetPathAsNativeString(path));
+	if (it != mEntries.end())
+		return it->second.mDirectory == 1;
 	return false;
 }
 
 bool ZipFileSystem::DeleteFile(const Path* path) const
 {
-	zip_int64_t index = zip_name_locate(pZipFile, fsGetPathAsNativeString(path), ZIP_FL_ENC_STRICT);
-	if (index == -1)
-	{
-		zip_error_t* error = zip_get_error(pZipFile);
-		LOGF(LogLevel::eINFO, "Error %i finding file %s for deletion in zip: %s", error->zip_err, fsGetPathAsNativeString(path), error->str);
-		return false;
-	}
-
-	zip_int64_t result = zip_delete(pZipFile, index);
-	if (result != 0)
-	{
-		zip_error_t* error = zip_get_error(pZipFile);
-		LOGF(LogLevel::eINFO, "Error %i deleting file %s in zip: %s", error->zip_err, fsGetPathAsNativeString(path), error->str);
-		return false;
-	}
-
-	return true;
+	LOGF(LogLevel::eWARNING, "ZipFileSystem::CopyFile is unimplemented.");
+	return false;
 }
 
 bool ZipFileSystem::CopyFile(const Path* sourcePath, const Path* destinationPath, bool overwriteIfExists) const

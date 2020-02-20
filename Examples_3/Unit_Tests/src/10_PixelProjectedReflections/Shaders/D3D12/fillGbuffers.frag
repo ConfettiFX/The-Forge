@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -38,12 +38,14 @@ cbuffer cbObject : register(b1, UPDATE_FREQ_PER_DRAW)
 
 cbuffer cbTextureRootConstants : register(b2)
 {
-	uint albedoMap;
-	uint normalMap;
-	uint metallicMap;
-	uint roughnessMap;
-	uint aoMap;
+	uint textureMapIds;
 }
+
+#define albedoMap     ((textureMapIds >> 0) & 0xFF)
+#define normalMap     ((textureMapIds >> 8) & 0xFF)
+#define metallicMap   ((textureMapIds >> 16) & 0xFF)
+#define roughnessMap  ((textureMapIds >> 24) & 0xFF)
+#define aoMap         (5)
 
 SamplerState defaultSampler : register(s2);
 

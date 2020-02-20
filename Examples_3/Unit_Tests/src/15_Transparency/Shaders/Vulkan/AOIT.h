@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2019 Confetti Interactive Inc.
+* Copyright (c) 2018-2020 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -23,7 +23,9 @@
 */
 
 #extension GL_EXT_samplerless_texture_functions : enable
+#ifndef TARGET_SWITCH
 #extension GL_ARB_fragment_shader_interlock : enable
+#endif
 /************************************************************************/
 // Defines
 /************************************************************************/
@@ -89,7 +91,9 @@ struct AOITColorData
 #define UNIT_UAV_AOIT_COLOR layout(binding = 22, UPDATE_FREQ_NONE)
 
 #ifdef AOIT_UNORDERED_ACCESS
+#ifndef TARGET_SWITCH
 layout(pixel_interlock_ordered) in;
+#endif
 UNIT_UAV_AOIT_MASK uniform uimage2D AOITClearMaskUAV;
 UNIT_UAV_AOIT_DEPTH buffer AOITDepthDataUAV
 {

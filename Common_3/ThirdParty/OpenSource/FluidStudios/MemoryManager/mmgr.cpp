@@ -191,10 +191,20 @@ extern void debugger(const char *message);
 #define m_assert(x) {}
 #endif
 #else	// Linux uses assert, which we can use safely, since it doesn't bring up a dialog within the program.
+#if defined(ORBIS)
+#ifdef MEMORY_DEBUG
+#define	m_assert(x) if (!(x)) __debugbreak()
+#else
+#define	m_assert(x) if (!(x)) __debugbreak()
+#endif
+#else
 #define	m_assert(cond) assert(cond)
+#endif
 #define sprintf_s sprintf
 #define _unlink unlink
+#if !defined(ORBIS)
 #define localtime_s localtime_r
+#endif
 #define fopen_s(file,filename,mode) ((*file)=fopen(filename,mode))
 #ifdef __APPLE__
 #define strcpy_s(destination,size,source) strlcpy(destination,source,size)
@@ -330,7 +340,9 @@ static	void	doCleanupLogOnFirstRun()
 {
 	if (cleanupLogOnFirstRun)
 	{
+#ifndef NX64
 		_unlink(memoryLogFile);
+#endif
 		cleanupLogOnFirstRun = false;
 
 		// Print a header for the log
@@ -559,9 +571,11 @@ static void		dumpLine(FILE* fileToWrite, const char* format, ...)
     va_copy(fileArgs, args);
     
     _OutputDebugStringV(format, args);
-    
-    vfprintf(fileToWrite, format, fileArgs);
-    fprintf(fileToWrite, "\n");
+	if (fileToWrite != NULL)
+	{
+		vfprintf(fileToWrite, format, fileArgs);
+		fprintf(fileToWrite, "\n");
+	}
     va_end(args);
     va_end(fileArgs);
 }
@@ -622,11 +636,12 @@ static	void	dumpLeakReport()
 		strcat(logFilePath, outputFileName);
 
 		FILE* fh = NULL;
+#ifndef NX64
 		fopen_s(&fh, logFilePath, "w+b");
+#endif
 		
-		if (!fh)
-			return;
-
+		/*if (!fh)
+			return;*/
 		// Header
 		static  char    timeString[25];
 		memset(timeString, 0, sizeof(timeString));
@@ -634,6 +649,8 @@ static	void	dumpLeakReport()
 		struct tm tme;
 #ifdef _WIN32
 		localtime_s(&tme, &t);
+#elif defined(ORBIS)
+		localtime_s(&t, &tme);
 #else
 		localtime_s(&t, &tme);
 #endif
@@ -679,8 +696,10 @@ static	void	dumpLeakReport()
 			dumpLine(fh, "Congratulations! No memory leaks found!");
 			dumpLine(fh, " ------------------------------------------------------------------------------");
 		}
-
-        fclose(fh);
+		if (fh)
+		{
+			fclose(fh);
+		}
 
 		m_assert(stats.totalAllocUnitCount == 0 && "Memory leaks found");
 	}
@@ -866,20 +885,23 @@ static	void	resetGlobals()
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Allocate memory and track it
 // ---------------------------------------------------------------------------------------------------------------------------------
-void	*mmgrAllocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc, const unsigned int allocationType, const size_t alignment, const size_t reportedSize)
+void	*mmgrAllocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc, const unsigned int allocationType, size_t alignment, size_t reportedSize)
 {
 	if (cleanupLogOnFirstRun)
 	{
 		m_assert(false && "Memory tracker not initialized");
 		return NULL;
 	}
+    
+    // Round up the size to a multiple of sizeof(uint32_t) so we don't write to misaligned pointers in wipeWithPattern.
+    reportedSize += sizeof(uint32_t) - 1;
+    reportedSize &= ~(sizeof(uint32_t) - 1);
 
 	//if (!allocMutex)
 	//	allocMutex = CreateMutex();
 	//
 
 	MUTEX_LOCK(allocMutex);
-	try
 	{
 #ifdef TEST_MEMORY_MANAGER
 		log("[D] ENTER: mmgrAllocator()");
@@ -914,7 +936,7 @@ void	*mmgrAllocator(const char *sourceFile, const unsigned int sourceLine, const
 			{
 				std::cout << "Unable to allocate RAM for internal memory tracking data" << std::endl;
 				MUTEX_UNLOCK(allocMutex);
-				throw "Unable to allocate RAM for internal memory tracking data";
+				m_assert(false && "Unable to allocate RAM for internal memory tracking data");
 			}
 			// Build a linked-list of the elements in our reservoir
 
@@ -985,7 +1007,7 @@ void	*mmgrAllocator(const char *sourceFile, const unsigned int sourceLine, const
 		{
 			std::cout << "Request for allocation failed. Out of memory." << std::endl;
 			MUTEX_UNLOCK(allocMutex);
-			throw "Request for allocation failed. Out of memory.";
+			m_assert(false && "Request for allocation failed. Out of memory.");
 		}
 
 		// If you hit this assert, then this allocation was made from a source that isn't setup to use this memory tracking
@@ -1045,34 +1067,23 @@ void	*mmgrAllocator(const char *sourceFile, const unsigned int sourceLine, const
 		MUTEX_UNLOCK(allocMutex);
 		return au->reportedAddress;
 	}
-	catch (const char *err)
-	{
-		// Deal with the errors
-
-		log("[!] %s", err);
-		resetGlobals();
-
-#ifdef TEST_MEMORY_MANAGER
-		log("[D] EXIT : mmgrAllocator()");
-#endif
-
-		MUTEX_UNLOCK(allocMutex);
-		return NULL;
-	}
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Reallocate memory and track it
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-void	*mmgrReallocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc, const unsigned int reallocationType, const size_t reportedSize, void *reportedAddress)
+void	*mmgrReallocator(const char *sourceFile, const unsigned int sourceLine, const char *sourceFunc, const unsigned int reallocationType, size_t reportedSize, void *reportedAddress)
 {
+	// Round up the size to a multiple of sizeof(uint32_t) so we don't write to misaligned pointers in wipeWithPattern.
+    reportedSize += sizeof(uint32_t) - 1;
+    reportedSize &= ~(sizeof(uint32_t) - 1);
+
 	/*if (!allocMutex)
 	allocMutex = CreateMutex();
 	allocMutex->lock();*/
 	MUTEX_LOCK(allocMutex);
 
-	try
 	{
 #ifdef TEST_MEMORY_MANAGER
 		log("[D] ENTER: mmgrReallocator()");
@@ -1107,7 +1118,7 @@ void	*mmgrReallocator(const char *sourceFile, const unsigned int sourceLine, con
 		{
 			std::cout << "Request to reallocate RAM that was never allocated" << std::endl;
 			MUTEX_UNLOCK(allocMutex);
-			throw "Request to reallocate RAM that was never allocated";
+			m_assert(false && "Request to reallocate RAM that was never allocated");
 		}
 		// If you hit this assert, then the allocation unit that is about to be reallocated is damaged. But you probably
 		// already know that from a previous assert you should have seen in validateAllocUnit() :)
@@ -1168,7 +1179,7 @@ void	*mmgrReallocator(const char *sourceFile, const unsigned int sourceLine, con
 		{
 			std::cout << "Request for reallocation failed. Out of memory." << std::endl;
 			MUTEX_UNLOCK(allocMutex);
-			throw "Request for reallocation failed. Out of memory.";
+			m_assert(false && "Request for reallocation failed. Out of memory.");
 		}
 		// Remove this allocation from our stats (we'll add the new reallocation again later)
 
@@ -1261,20 +1272,6 @@ void	*mmgrReallocator(const char *sourceFile, const unsigned int sourceLine, con
 		MUTEX_UNLOCK(allocMutex);
 		return au->reportedAddress;
 	}
-	catch (const char *err)
-	{
-		// Deal with the errors
-
-		log("[!] %s", err);
-		resetGlobals();
-
-#ifdef TEST_MEMORY_MANAGER
-		log("[D] EXIT : mmgrReallocator()");
-#endif
-
-		MUTEX_UNLOCK(allocMutex);
-		return NULL;
-	}
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -1288,8 +1285,6 @@ void	mmgrDeallocator(const char *sourceFile, const unsigned int sourceLine, cons
 
 	allocMutex->lock();*/
 	MUTEX_LOCK(allocMutex);
-	try
-	{
 #ifdef TEST_MEMORY_MANAGER
 		log("[D] ENTER: mmgrDeallocator()");
 #endif
@@ -1314,7 +1309,7 @@ void	mmgrDeallocator(const char *sourceFile, const unsigned int sourceLine, cons
 			{
 				std::cout << "Request to deallocate RAM that was naver allocated" << std::endl;
 				MUTEX_UNLOCK(allocMutex);
-				throw "Request to deallocate RAM that was never allocated";
+				m_assert(false && "Request to deallocate RAM that was never allocated");
 			}
 			// If you hit this assert, then the allocation unit that is about to be deallocated is damaged. But you probably
 			// already know that from a previous assert you should have seen in validateAllocUnit() :)
@@ -1381,14 +1376,6 @@ void	mmgrDeallocator(const char *sourceFile, const unsigned int sourceLine, cons
 		// Validate every single allocated unit in memory
 
 		if (alwaysValidateAll) mmgrValidateAllAllocUnits();
-	}
-	catch (const char *err)
-	{
-		// Deal with errors
-
-		log("[!] %s", err);
-		resetGlobals();
-	}
 
 #ifdef TEST_MEMORY_MANAGER
 	log("[D] EXIT : mmgrDeallocator()");

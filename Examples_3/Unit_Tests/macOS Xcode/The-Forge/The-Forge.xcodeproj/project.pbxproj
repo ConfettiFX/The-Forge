@@ -13,7 +13,7 @@
 		5B2144A422A6983F000B20D4 /* ProfilerBase.h in Headers */ = {isa = PBXBuildFile; fileRef = 5B21449C22A6983F000B20D4 /* ProfilerBase.h */; };
 		5B2144A622A6989E000B20D4 /* Profiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B21449822A6983F000B20D4 /* Profiler.cpp */; };
 		5B2144A722A698A6000B20D4 /* ProfilerBase.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B21449722A6983F000B20D4 /* ProfilerBase.cpp */; };
-		5C172F4E214148840074EE71 /* ResourceLoader.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C172F44214148830074EE71 /* ResourceLoader.h */; };
+		5C172F4E214148840074EE71 /* IResourceLoader.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C172F44214148830074EE71 /* IResourceLoader.h */; };
 		5C172F4F214148840074EE71 /* GpuProfiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F45214148830074EE71 /* GpuProfiler.cpp */; };
 		5C172F50214148840074EE71 /* IRenderer.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C172F46214148830074EE71 /* IRenderer.h */; };
 		5C172F51214148840074EE71 /* GpuProfiler.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C172F47214148830074EE71 /* GpuProfiler.h */; };
@@ -43,7 +43,7 @@
 		5C172FF121414CC60074EE71 /* MetalRenderer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F4A214148840074EE71 /* MetalRenderer.mm */; };
 		5C172FF221414CC60074EE71 /* MetalShaderReflection.mm in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F4B214148840074EE71 /* MetalShaderReflection.mm */; };
 		5C172FF321414CC60074EE71 /* ResourceLoader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F4D214148840074EE71 /* ResourceLoader.cpp */; };
-		5C172FF421414CC60074EE71 /* ResourceLoader.h in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F44214148830074EE71 /* ResourceLoader.h */; };
+		5C172FF421414CC60074EE71 /* IResourceLoader.h in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F44214148830074EE71 /* IResourceLoader.h */; };
 		5C172FF521414CC60074EE71 /* tinyexr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE11EF81FC5005AC8C7 /* tinyexr.cpp */; };
 		5C172FF621414CC60074EE71 /* tinyexr.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE21EF81FC5005AC8C7 /* tinyexr.h */; };
 		5C172FF721414CC60074EE71 /* Log.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE61EF81FC5005AC8C7 /* Log.cpp */; };
@@ -144,6 +144,8 @@
 		B274042122BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041922BC66AD00F7660D /* ComponentRepresentation.cpp */; };
 		B274042222BC66AD00F7660D /* EntityManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041A22BC66AD00F7660D /* EntityManager.cpp */; };
 		B274042322BC66AD00F7660D /* EntityManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041A22BC66AD00F7660D /* EntityManager.cpp */; };
+		B2DC6E9823F27C6600D48312 /* zip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2DC6E9723F27C6600D48312 /* zip.cpp */; };
+		B2DC6E9923F27C6600D48312 /* zip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2DC6E9723F27C6600D48312 /* zip.cpp */; };
 		E95891E22341595100B68D6A /* ProfilerBase.h in Headers */ = {isa = PBXBuildFile; fileRef = E95891D52341595100B68D6A /* ProfilerBase.h */; };
 		E95891E32341595100B68D6A /* Profiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E95891D62341595100B68D6A /* Profiler.cpp */; };
 		E95891E42341595100B68D6A /* Profiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E95891D62341595100B68D6A /* Profiler.cpp */; };
@@ -163,16 +165,8 @@
 		E967DE48233B0D7E0032E4BA /* UnixFileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9B6292B23388D7C009DD4AB /* UnixFileSystem.cpp */; };
 		E967DE49233B0DE50032E4BA /* iOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = E9E601C7233B098900B21FD6 /* iOSBase.mm */; };
 		E967DE4A233B0DEB0032E4BA /* macOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = E9E601C9233B098900B21FD6 /* macOSBase.mm */; };
-		E967DF05233B2BEA0032E4BA /* libassimp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E967DF04233B2BEA0032E4BA /* libassimp.a */; };
-		E967DF07233B2BF00032E4BA /* libIrrXML.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E967DF06233B2BF00032E4BA /* libIrrXML.a */; };
-		E967DF09233B2BF40032E4BA /* libzlibstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E967DF08233B2BF40032E4BA /* libzlibstatic.a */; };
-		E967DF0B233B2BFC0032E4BA /* libassimp_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E967DF0A233B2BFC0032E4BA /* libassimp_iOS.a */; };
-		E967DF0D233B2C340032E4BA /* libIrrXML_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E967DF0C233B2C340032E4BA /* libIrrXML_iOS.a */; };
-		E967DF0F233B2C390032E4BA /* libzlibstatic_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E967DF0E233B2C390032E4BA /* libzlibstatic_iOS.a */; };
 		E967DF15233B2F610032E4BA /* iOSFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = E967DF14233B2F610032E4BA /* iOSFileSystem.mm */; };
 		E967DF16233B30AA0032E4BA /* CocoaFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = E967DE3E233B0A520032E4BA /* CocoaFileSystem.mm */; };
-		E967DF9D233C523C0032E4BA /* AssimpImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E967DEB7233B2BA40032E4BA /* AssimpImporter.cpp */; };
-		E967DF9E233C523C0032E4BA /* AssimpImporter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E967DEB7233B2BA40032E4BA /* AssimpImporter.cpp */; };
 		E98584E72334397C00692529 /* SystemRun.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E98584E52334397C00692529 /* SystemRun.cpp */; };
 		E98584EA2334609200692529 /* FileSystemInternal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E98584E92334609200692529 /* FileSystemInternal.cpp */; };
 		E98584EB2334609200692529 /* FileSystemInternal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E98584E92334609200692529 /* FileSystemInternal.cpp */; };
@@ -191,14 +185,6 @@
 		E9E1C3472339E2FD003544D5 /* ZipFileSystem.h in Headers */ = {isa = PBXBuildFile; fileRef = E9E1C3452339E2FC003544D5 /* ZipFileSystem.h */; };
 		E9E1C3482339E2FD003544D5 /* ZipFileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9E1C3462339E2FD003544D5 /* ZipFileSystem.cpp */; };
 		E9E1C3492339E2FD003544D5 /* ZipFileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9E1C3462339E2FD003544D5 /* ZipFileSystem.cpp */; };
-		E9E1C34C233ACB75003544D5 /* AssimpIOSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9E1C34A233ACB75003544D5 /* AssimpIOSystem.cpp */; };
-		E9E1C34D233ACB75003544D5 /* AssimpIOSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9E1C34A233ACB75003544D5 /* AssimpIOSystem.cpp */; };
-		E9E1C34E233ACB75003544D5 /* AssimpIOSystem.h in Headers */ = {isa = PBXBuildFile; fileRef = E9E1C34B233ACB75003544D5 /* AssimpIOSystem.h */; };
-		E9E1C351233ACF14003544D5 /* AssimpIOStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9E1C34F233ACF13003544D5 /* AssimpIOStream.cpp */; };
-		E9E1C352233ACF14003544D5 /* AssimpIOStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9E1C34F233ACF13003544D5 /* AssimpIOStream.cpp */; };
-		E9E1C353233ACF14003544D5 /* AssimpIOStream.h in Headers */ = {isa = PBXBuildFile; fileRef = E9E1C350233ACF14003544D5 /* AssimpIOStream.h */; };
-		E9E601BB233AEF6500B21FD6 /* libzip.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E9E601B9233AEF5800B21FD6 /* libzip.a */; };
-		E9E601BC233AF86400B21FD6 /* libzip.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E9E601B7233AEF5800B21FD6 /* libzip.a */; };
 		E9E601CD233B099800B21FD6 /* macOSFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = E9E601C4233B098900B21FD6 /* macOSFileSystem.mm */; };
 		E9FECF7723333E3F00BA3DFB /* RingBuffer.h in Headers */ = {isa = PBXBuildFile; fileRef = D205E2831F9F9EC600040CCE /* RingBuffer.h */; };
 /* End PBXBuildFile section */
@@ -232,48 +218,6 @@
 			remoteGlobalIDString = B24D2A8320EACFA400CF8EA0;
 			remoteInfo = gainputstatic_iOS;
 		};
-		E967DF5C233C33DB0032E4BA /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = E967DEEF233B2BB40032E4BA /* Assimp.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 2FDC53974E8D4A618B9B34FA;
-			remoteInfo = IrrXML;
-		};
-		E967DF5E233C33DB0032E4BA /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = E967DEEF233B2BB40032E4BA /* Assimp.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 15841309FEE7495581162767;
-			remoteInfo = assimp;
-		};
-		E967DF60233C33DB0032E4BA /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = E967DEEF233B2BB40032E4BA /* Assimp.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 18FE7A9470BE4F97B6CC443B;
-			remoteInfo = zlibstatic;
-		};
-		E967DF62233C33DB0032E4BA /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = E967DEEF233B2BB40032E4BA /* Assimp.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 6549BFDA21ACD08900537773;
-			remoteInfo = IrrXML_iOS;
-		};
-		E967DF64233C33DB0032E4BA /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = E967DEEF233B2BB40032E4BA /* Assimp.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 6549C05A21ACD08C00537773;
-			remoteInfo = assimp_iOS;
-		};
-		E967DF66233C33DB0032E4BA /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = E967DEEF233B2BB40032E4BA /* Assimp.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 6549C06F21ACD08E00537773;
-			remoteInfo = zlibstatic_iOS;
-		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -296,7 +240,7 @@
 		5B21449C22A6983F000B20D4 /* ProfilerBase.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ProfilerBase.h; path = ../ThirdParty/OpenSource/MicroProfile/ProfilerBase.h; sourceTree = "<group>"; };
 		5C172F1F214145410074EE71 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		5C172F21214145440074EE71 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
-		5C172F44214148830074EE71 /* ResourceLoader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ResourceLoader.h; sourceTree = "<group>"; };
+		5C172F44214148830074EE71 /* IResourceLoader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IResourceLoader.h; sourceTree = "<group>"; };
 		5C172F45214148830074EE71 /* GpuProfiler.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = GpuProfiler.cpp; sourceTree = "<group>"; };
 		5C172F46214148830074EE71 /* IRenderer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = IRenderer.h; sourceTree = "<group>"; };
 		5C172F47214148830074EE71 /* GpuProfiler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuProfiler.h; sourceTree = "<group>"; };
@@ -370,6 +314,7 @@
 		B28035622319C01A006CE791 /* MemoryStream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryStream.cpp; path = FileSystem/MemoryStream.cpp; sourceTree = "<group>"; };
 		B28035632319C01A006CE791 /* MemoryStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MemoryStream.h; path = FileSystem/MemoryStream.h; sourceTree = "<group>"; };
 		B2D1CEA320EAD15F001BB8C4 /* gainput.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = gainput.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/gainput/Apple/lib/gainput.xcodeproj; sourceTree = "<group>"; };
+		B2DC6E9723F27C6600D48312 /* zip.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = zip.cpp; path = ../../../../Common_3/ThirdParty/OpenSource/zip/zip.cpp; sourceTree = "<group>"; };
 		C91D461A1FD9974F00564C8B /* MemoryTracking.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryTracking.cpp; path = MemoryTracking/MemoryTracking.cpp; sourceTree = "<group>"; };
 		D09CF41A22968419001D13F2 /* Interfaces */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Interfaces; sourceTree = "<group>"; };
 		D205E2831F9F9EC600040CCE /* RingBuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = RingBuffer.h; sourceTree = "<group>"; };
@@ -385,9 +330,6 @@
 		E967DE39233B0A2C0032E4BA /* DarwinLog.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DarwinLog.cpp; sourceTree = "<group>"; };
 		E967DE3E233B0A520032E4BA /* CocoaFileSystem.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CocoaFileSystem.mm; sourceTree = "<group>"; };
 		E967DE3F233B0A520032E4BA /* CocoaFileSystem.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CocoaFileSystem.h; sourceTree = "<group>"; };
-		E967DEB7233B2BA40032E4BA /* AssimpImporter.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = AssimpImporter.cpp; sourceTree = "<group>"; };
-		E967DEB8233B2BA40032E4BA /* AssimpImporter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AssimpImporter.h; sourceTree = "<group>"; };
-		E967DEEF233B2BB40032E4BA /* Assimp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Assimp.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/Apple/Assimp.xcodeproj; sourceTree = "<group>"; };
 		E967DF04233B2BEA0032E4BA /* libassimp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libassimp.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		E967DF06233B2BF00032E4BA /* libIrrXML.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libIrrXML.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		E967DF08233B2BF40032E4BA /* libzlibstatic.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzlibstatic.a; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -407,12 +349,6 @@
 		E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = basisu_transcoder.cpp; path = ../ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp; sourceTree = "<group>"; };
 		E9E1C3452339E2FC003544D5 /* ZipFileSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ZipFileSystem.h; path = FileSystem/ZipFileSystem.h; sourceTree = "<group>"; };
 		E9E1C3462339E2FD003544D5 /* ZipFileSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZipFileSystem.cpp; path = FileSystem/ZipFileSystem.cpp; sourceTree = "<group>"; };
-		E9E1C34A233ACB75003544D5 /* AssimpIOSystem.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = AssimpIOSystem.cpp; path = FileSystem/AssimpIOSystem.cpp; sourceTree = "<group>"; };
-		E9E1C34B233ACB75003544D5 /* AssimpIOSystem.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AssimpIOSystem.h; path = FileSystem/AssimpIOSystem.h; sourceTree = "<group>"; };
-		E9E1C34F233ACF13003544D5 /* AssimpIOStream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AssimpIOStream.cpp; path = FileSystem/AssimpIOStream.cpp; sourceTree = "<group>"; };
-		E9E1C350233ACF14003544D5 /* AssimpIOStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AssimpIOStream.h; path = FileSystem/AssimpIOStream.h; sourceTree = "<group>"; };
-		E9E601B7233AEF5800B21FD6 /* libzip.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libzip.a; sourceTree = "<group>"; };
-		E9E601B9233AEF5800B21FD6 /* libzip.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libzip.a; sourceTree = "<group>"; };
 		E9E601BD233AFB0700B21FD6 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		E9E601C4233B098900B21FD6 /* macOSFileSystem.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = macOSFileSystem.mm; sourceTree = "<group>"; };
 		E9E601C5233B098900B21FD6 /* iOSAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = iOSAppDelegate.m; sourceTree = "<group>"; };
@@ -438,11 +374,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E967DF0F233B2C390032E4BA /* libzlibstatic_iOS.a in Frameworks */,
-				E967DF0D233B2C340032E4BA /* libIrrXML_iOS.a in Frameworks */,
-				E967DF0B233B2BFC0032E4BA /* libassimp_iOS.a in Frameworks */,
 				5C17301221414D880074EE71 /* libgainputstatic_iOS.a in Frameworks */,
-				E9E601BB233AEF6500B21FD6 /* libzip.a in Frameworks */,
 				5C17301821414D940074EE71 /* MetalPerformanceShaders.framework in Frameworks */,
 				5C17301621414D900074EE71 /* MetalKit.framework in Frameworks */,
 				5C17301421414D8C0074EE71 /* Metal.framework in Frameworks */,
@@ -453,10 +385,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E967DF09233B2BF40032E4BA /* libzlibstatic.a in Frameworks */,
-				E967DF07233B2BF00032E4BA /* libIrrXML.a in Frameworks */,
-				E967DF05233B2BEA0032E4BA /* libassimp.a in Frameworks */,
-				E9E601BC233AF86400B21FD6 /* libzip.a in Frameworks */,
 				650CCC3C2223C17A003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				65F9793C21EE0001008EC741 /* libgainputstatic.a in Frameworks */,
 			);
@@ -622,6 +550,22 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		B2DC6E9623F27C4B00D48312 /* zip */ = {
+			isa = PBXGroup;
+			children = (
+				B2DC6E9723F27C6600D48312 /* zip.cpp */,
+			);
+			name = zip;
+			sourceTree = "<group>";
+		};
+		B2EE056023F14BA400AB25DF /* Dependencies */ = {
+			isa = PBXGroup;
+			children = (
+				B2DC6E9623F27C4B00D48312 /* zip */,
+			);
+			name = Dependencies;
+			sourceTree = "<group>";
+		};
 		D205E2811F9F9C1500040CCE /* FileSystem */ = {
 			isa = PBXGroup;
 			children = (
@@ -637,10 +581,6 @@
 				E9B6292C23388D7C009DD4AB /* UnixFileSystem.h */,
 				E9E1C3462339E2FD003544D5 /* ZipFileSystem.cpp */,
 				E9E1C3452339E2FC003544D5 /* ZipFileSystem.h */,
-				E9E1C34A233ACB75003544D5 /* AssimpIOSystem.cpp */,
-				E9E1C34B233ACB75003544D5 /* AssimpIOSystem.h */,
-				E9E1C34F233ACF13003544D5 /* AssimpIOStream.cpp */,
-				E9E1C350233ACF14003544D5 /* AssimpIOStream.h */,
 			);
 			name = FileSystem;
 			path = ../../../../Common_3/OS;
@@ -687,62 +627,6 @@
 			path = OpenSource/MicroProfile;
 			sourceTree = "<group>";
 		};
-		E967DEB5233B2BA40032E4BA /* Tools */ = {
-			isa = PBXGroup;
-			children = (
-				E967DEB6233B2BA40032E4BA /* AssimpImporter */,
-			);
-			path = Tools;
-			sourceTree = "<group>";
-		};
-		E967DEB6233B2BA40032E4BA /* AssimpImporter */ = {
-			isa = PBXGroup;
-			children = (
-				E967DEB7233B2BA40032E4BA /* AssimpImporter.cpp */,
-				E967DEB8233B2BA40032E4BA /* AssimpImporter.h */,
-			);
-			path = AssimpImporter;
-			sourceTree = "<group>";
-		};
-		E967DF54233C33DB0032E4BA /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				E967DF5D233C33DB0032E4BA /* libIrrXML.a */,
-				E967DF5F233C33DB0032E4BA /* libassimp.a */,
-				E967DF61233C33DB0032E4BA /* libzlibstatic.a */,
-				E967DF63233C33DB0032E4BA /* libIrrXML_iOS.a */,
-				E967DF65233C33DB0032E4BA /* libassimp_iOS.a */,
-				E967DF67233C33DB0032E4BA /* libzlibstatic_iOS.a */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		E9E601B5233AEF5800B21FD6 /* Libraries */ = {
-			isa = PBXGroup;
-			children = (
-				E9E601B6233AEF5800B21FD6 /* macOS */,
-				E9E601B8233AEF5800B21FD6 /* iOS */,
-			);
-			name = Libraries;
-			path = OpenSource/Libraries;
-			sourceTree = "<group>";
-		};
-		E9E601B6233AEF5800B21FD6 /* macOS */ = {
-			isa = PBXGroup;
-			children = (
-				E9E601B7233AEF5800B21FD6 /* libzip.a */,
-			);
-			path = macOS;
-			sourceTree = "<group>";
-		};
-		E9E601B8233AEF5800B21FD6 /* iOS */ = {
-			isa = PBXGroup;
-			children = (
-				E9E601B9233AEF5800B21FD6 /* libzip.a */,
-			);
-			path = iOS;
-			sourceTree = "<group>";
-		};
 		E9E601C3233B098900B21FD6 /* Darwin */ = {
 			isa = PBXGroup;
 			children = (
@@ -773,7 +657,7 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
-				E967DEEF233B2BB40032E4BA /* Assimp.xcodeproj */,
+				B2EE056023F14BA400AB25DF /* Dependencies */,
 				B2D1CEA320EAD15F001BB8C4 /* gainput.xcodeproj */,
 				B22D906C20E3F8BC0036B88E /* Middleware_3 */,
 				EA463CEC1EF81FC5005AC8C7 /* Common_3 */,
@@ -848,7 +732,7 @@
 				5C172F4A214148840074EE71 /* MetalRenderer.mm */,
 				5C172F4B214148840074EE71 /* MetalShaderReflection.mm */,
 				5C172F4D214148840074EE71 /* ResourceLoader.cpp */,
-				5C172F44214148830074EE71 /* ResourceLoader.h */,
+				5C172F44214148830074EE71 /* IResourceLoader.h */,
 			);
 			path = Renderer;
 			sourceTree = "<group>";
@@ -866,7 +750,6 @@
 			isa = PBXGroup;
 			children = (
 				E95891D42341595100B68D6A /* MicroProfile */,
-				E9E601B5233AEF5800B21FD6 /* Libraries */,
 				81856EEF229D720600F3A92B /* EASTL */,
 				B214ACF120E2DAFC0025F76B /* gainput */,
 				EA463CE31EF81FC5005AC8C7 /* TinyEXR */,
@@ -905,7 +788,6 @@
 		EA463CEC1EF81FC5005AC8C7 /* Common_3 */ = {
 			isa = PBXGroup;
 			children = (
-				E967DEB5233B2BA40032E4BA /* Tools */,
 				EA463CDC1EF81FC5005AC8C7 /* OS */,
 				EA463CE01EF81FC5005AC8C7 /* Renderer */,
 				EA463CE51EF81FC5005AC8C7 /* ThirdParty */,
@@ -931,8 +813,7 @@
 				5C172F51214148840074EE71 /* GpuProfiler.h in Headers */,
 				65F9793721EDFA45008EC741 /* IRay.h in Headers */,
 				654D979C21E922F400113964 /* SkeletonBatcher.h in Headers */,
-				E9E1C34E233ACB75003544D5 /* AssimpIOSystem.h in Headers */,
-				5C172F4E214148840074EE71 /* ResourceLoader.h in Headers */,
+				5C172F4E214148840074EE71 /* IResourceLoader.h in Headers */,
 				654D97A121E922F400113964 /* Clip.h in Headers */,
 				654D979E21E922F400113964 /* Animation.h in Headers */,
 				654D979A21E922F400113964 /* AnimatedObject.h in Headers */,
@@ -943,7 +824,6 @@
 				5B2144A122A6983F000B20D4 /* ProfilerHTML.h in Headers */,
 				B274041B22BC66AD00F7660D /* BaseComponent.h in Headers */,
 				654D979521E922F400113964 /* Rig.h in Headers */,
-				E9E1C353233ACF14003544D5 /* AssimpIOStream.h in Headers */,
 				E967DE42233B0A520032E4BA /* CocoaFileSystem.h in Headers */,
 				E9E1C3472339E2FD003544D5 /* ZipFileSystem.h in Headers */,
 				5C172F56214148840074EE71 /* MetalMemoryAllocator.h in Headers */,
@@ -1025,10 +905,6 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = E967DF54233C33DB0032E4BA /* Products */;
-					ProjectRef = E967DEEF233B2BB40032E4BA /* Assimp.xcodeproj */;
-				},
-				{
 					ProductGroup = B2D1CEA420EAD15F001BB8C4 /* Products */;
 					ProjectRef = B2D1CEA320EAD15F001BB8C4 /* gainput.xcodeproj */;
 				},
@@ -1054,48 +930,6 @@
 			fileType = archive.ar;
 			path = libgainputstatic_iOS.a;
 			remoteRef = B2D1CEAA20EAD160001BB8C4 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		E967DF5D233C33DB0032E4BA /* libIrrXML.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libIrrXML.a;
-			remoteRef = E967DF5C233C33DB0032E4BA /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		E967DF5F233C33DB0032E4BA /* libassimp.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libassimp.a;
-			remoteRef = E967DF5E233C33DB0032E4BA /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		E967DF61233C33DB0032E4BA /* libzlibstatic.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libzlibstatic.a;
-			remoteRef = E967DF60233C33DB0032E4BA /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		E967DF63233C33DB0032E4BA /* libIrrXML_iOS.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libIrrXML_iOS.a;
-			remoteRef = E967DF62233C33DB0032E4BA /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		E967DF65233C33DB0032E4BA /* libassimp_iOS.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libassimp_iOS.a;
-			remoteRef = E967DF64233C33DB0032E4BA /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		E967DF67233C33DB0032E4BA /* libzlibstatic_iOS.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libzlibstatic_iOS.a;
-			remoteRef = E967DF66233C33DB0032E4BA /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -1131,7 +965,6 @@
 				5C172FE721414CC60074EE71 /* MathTypes.h in Sources */,
 				5C172FE821414CC60074EE71 /* Image.cpp in Sources */,
 				654D97BD21E92F9300113964 /* SkeletonBatcher.cpp in Sources */,
-				E967DF9E233C523C0032E4BA /* AssimpImporter.cpp in Sources */,
 				5C172FE921414CC60074EE71 /* Image.h in Sources */,
 				6562C7EE2207FAB300721714 /* MetalRaytracing.mm in Sources */,
 				E95891E42341595100B68D6A /* Profiler.cpp in Sources */,
@@ -1149,7 +982,6 @@
 				E967DF15233B2F610032E4BA /* iOSFileSystem.mm in Sources */,
 				5C172FEE21414CC60074EE71 /* IRenderer.h in Sources */,
 				B274041E22BC66AD00F7660D /* BaseComponent.cpp in Sources */,
-				E9E1C34D233ACB75003544D5 /* AssimpIOSystem.cpp in Sources */,
 				E95891E82341595100B68D6A /* ProfilerWidgetsUI.cpp in Sources */,
 				5C172FEF21414CC60074EE71 /* IShaderReflection.h in Sources */,
 				5C172FF021414CC60074EE71 /* MetalMemoryAllocator.h in Sources */,
@@ -1160,8 +992,9 @@
 				81856F0B229D729000F3A92B /* allocator_eastl.cpp in Sources */,
 				654D97BC21E92F9100113964 /* Rig.cpp in Sources */,
 				5B2144A722A698A6000B20D4 /* ProfilerBase.cpp in Sources */,
-				5C172FF421414CC60074EE71 /* ResourceLoader.h in Sources */,
+				5C172FF421414CC60074EE71 /* IResourceLoader.h in Sources */,
 				5C172FF521414CC60074EE71 /* tinyexr.cpp in Sources */,
+				B2DC6E9923F27C6600D48312 /* zip.cpp in Sources */,
 				E9E1C3492339E2FD003544D5 /* ZipFileSystem.cpp in Sources */,
 				81856F07229D729000F3A92B /* string.cpp in Sources */,
 				5C172FF621414CC60074EE71 /* tinyexr.h in Sources */,
@@ -1176,7 +1009,6 @@
 				B274042122BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */,
 				E98584EB2334609200692529 /* FileSystemInternal.cpp in Sources */,
 				5C172FF821414CC60074EE71 /* Log.h in Sources */,
-				E9E1C352233ACF14003544D5 /* AssimpIOStream.cpp in Sources */,
 				654D97BB21E92F8D00113964 /* ClipMask.cpp in Sources */,
 				5C172FFC21414CC60074EE71 /* ThreadSystem.cpp in Sources */,
 				81856EF4229D725000F3A92B /* EASprintf.cpp in Sources */,
@@ -1204,9 +1036,7 @@
 				5C172F57214148840074EE71 /* ResourceLoader.cpp in Sources */,
 				81856F13229D72EF00F3A92B /* assert.cpp in Sources */,
 				5C512C692141561E00E7A798 /* imgui_widgets.cpp in Sources */,
-				E9E1C34C233ACB75003544D5 /* AssimpIOSystem.cpp in Sources */,
 				B274042022BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */,
-				E967DF9D233C523C0032E4BA /* AssimpImporter.cpp in Sources */,
 				81FF8E2C2237A9D30009402D /* InputSystem.cpp in Sources */,
 				E9B6292323384CC9009DD4AB /* MemoryStream.cpp in Sources */,
 				81856F0A229D729000F3A92B /* allocator_eastl.cpp in Sources */,
@@ -1257,8 +1087,8 @@
 				E967DE3C233B0A2C0032E4BA /* DarwinLog.cpp in Sources */,
 				65F9793221ED9F9B008EC741 /* MetalRaytracing.mm in Sources */,
 				5C172F4F214148840074EE71 /* GpuProfiler.cpp in Sources */,
+				B2DC6E9823F27C6600D48312 /* zip.cpp in Sources */,
 				5C55831021413D550019960B /* ThreadSystem.cpp in Sources */,
-				E9E1C351233ACF14003544D5 /* AssimpIOStream.cpp in Sources */,
 				5C512C632141561E00E7A798 /* imgui_demo.cpp in Sources */,
 				E967DE4A233B0DEB0032E4BA /* macOSBase.mm in Sources */,
 				5C55831121413D550019960B /* Timer.cpp in Sources */,
