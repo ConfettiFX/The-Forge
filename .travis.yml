@@ -4,4 +4,5 @@ language: objective-c
 python:
   - 3.6
 script:
+- git clone https://github.com/ConfettiFX/CustomMiddleware.git ../CustomMiddleware
 - travis_wait 40 python CI/PyBuild.py --skipioscodesigning --forceprebuild --skipreleasebuild --preserveworkingdir
