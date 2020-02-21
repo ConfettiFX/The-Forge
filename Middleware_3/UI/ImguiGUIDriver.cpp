@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -37,7 +37,7 @@
 #include "../../Common_3/OS/Interfaces/IInput.h"
 #include "../../Common_3/OS/Interfaces/ILog.h"
 #include "../../Common_3/Renderer/IRenderer.h"
-#include "../../Common_3/Renderer/ResourceLoader.h"
+#include "../../Common_3/Renderer/IResourceLoader.h"
 
 #include "../../Common_3/OS/Interfaces/IMemory.h"    //NOTE: this should be the last include in a .cpp
 
@@ -274,14 +274,13 @@ static const uint64_t INDEX_BUFFER_SIZE = 128 * 1024 * sizeof(ImDrawIdx);
 
 void initGUIDriver(Renderer* pRenderer, GUIDriver** ppDriver)
 {
-	ImguiGUIDriver* pDriver = conf_placement_new<ImguiGUIDriver>(conf_calloc(1, sizeof(ImguiGUIDriver)));
+	ImguiGUIDriver* pDriver = conf_new(ImguiGUIDriver);
 	*ppDriver = pDriver;
 }
 
 void removeGUIDriver(GUIDriver* pDriver)
 {
-	(reinterpret_cast<ImguiGUIDriver*>(pDriver))->~ImguiGUIDriver();
-	conf_free(pDriver);
+	conf_delete(pDriver);
 }
 
 static float4 ToFloat4Color(uint color)
@@ -783,14 +782,14 @@ bool ImguiGUIDriver::init(Renderer* renderer, uint32_t const maxDynamicUIUpdates
 	vbDesc.mDesc.mSize = VERTEX_BUFFER_SIZE * MAX_FRAMES;
 	vbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 	vbDesc.ppBuffer = &pVertexBuffer;
-	addResource(&vbDesc);
+	addResource(&vbDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 	BufferLoadDesc ibDesc = vbDesc;
 	ibDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
 	ibDesc.mDesc.mIndexType = INDEX_TYPE_UINT16;
 	ibDesc.mDesc.mSize = INDEX_BUFFER_SIZE * MAX_FRAMES;
 	ibDesc.ppBuffer = &pIndexBuffer;
-	addResource(&ibDesc);
+	addResource(&ibDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 	BufferLoadDesc ubDesc = {};
 	ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -800,7 +799,7 @@ bool ImguiGUIDriver::init(Renderer* renderer, uint32_t const maxDynamicUIUpdates
 	for (uint32_t i = 0; i < MAX_FRAMES; ++i)
 	{
 		ubDesc.ppBuffer = &pUniformBuffer[i];
-		addResource(&ubDesc);
+		addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
 	}
 
 	mVertexLayoutTextured.mAttribCount = 3;
@@ -866,7 +865,8 @@ void ImguiGUIDriver::exit()
 	for (Texture* pFontTexture : mFontTextures)
 		removeResource(pFontTexture);
 
-	mFontTextures.clear();
+	mFontTextures.set_capacity(0);
+	ImGui::DestroyDemoWindow();
 	ImGui::DestroyContext(context);
 }
 
@@ -885,13 +885,12 @@ bool ImguiGUIDriver::addFont(void* pFontBuffer, uint32_t fontBufferSize, void* p
 	if (font != NULL)
 	{
 		io.FontDefault = font;
+		*pFont = (uintptr_t)font;
 	}
 	else
 	{
-		io.Fonts->AddFontDefault();
+		*pFont = (uintptr_t)io.Fonts->AddFontDefault();
 	}
-
-	*pFont = (uintptr_t)font;
 
 	io.Fonts->Build();
 	io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
@@ -905,7 +904,7 @@ bool ImguiGUIDriver::addFont(void* pFontBuffer, uint32_t fontBufferSize, void* p
 	loadDesc.pRawImageData = &rawData;
 	loadDesc.ppTexture = &pFontTexture;
 	loadDesc.mCreationFlag = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-	addResource(&loadDesc);
+	addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
 	io.Fonts->TexID = (void*)pFontTexture;
 
 	mFontTextures.emplace_back(pFontTexture);
@@ -1100,7 +1099,6 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 	/************************************************************************/
 	ImGui::SetCurrentContext(context);
 	ImGui::Render();
-	frameIdx = (frameIdx + 1) % MAX_FRAMES;
 	mDynamicUIUpdates = 0;
 
 	ImDrawData* draw_data = ImGui::GetDrawData();
@@ -1127,11 +1125,15 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 	for (int n = 0; n < draw_data->CmdListsCount; n++)
 	{
 		const ImDrawList* cmd_list = draw_data->CmdLists[n];
-		BufferUpdateDesc  update = { pVertexBuffer, cmd_list->VtxBuffer.data(), 0, vtx_dst,
-									cmd_list->VtxBuffer.size() * sizeof(ImDrawVert) };
-		updateResource(&update);
-		update = { pIndexBuffer, cmd_list->IdxBuffer.data(), 0, idx_dst, cmd_list->IdxBuffer.size() * sizeof(ImDrawIdx) };
-		updateResource(&update);
+		BufferUpdateDesc  update = { pVertexBuffer, vtx_dst };
+		beginUpdateResource(&update);
+		memcpy(update.pMappedData, cmd_list->VtxBuffer.data(), cmd_list->VtxBuffer.size() * sizeof(ImDrawVert));
+		endUpdateResource(&update, NULL);
+
+		update = { pIndexBuffer, idx_dst };
+		beginUpdateResource(&update);
+		memcpy(update.pMappedData, cmd_list->IdxBuffer.data(), cmd_list->IdxBuffer.size() * sizeof(ImDrawIdx));
+		endUpdateResource(&update, NULL);
 
 		vtx_dst += (cmd_list->VtxBuffer.size() * sizeof(ImDrawVert));
 		idx_dst += (cmd_list->IdxBuffer.size() * sizeof(ImDrawIdx));
@@ -1147,8 +1149,10 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 		{ 0.0f, 0.0f, 0.5f, 0.0f },
 		{ (R + L) / (L - R), (T + B) / (B - T), 0.5f, 1.0f },
 	};
-	BufferUpdateDesc update = { pUniformBuffer[frameIdx], mvp, 0, 0, sizeof(mvp) };
-	updateResource(&update);
+	BufferUpdateDesc update = { pUniformBuffer[frameIdx] };
+	beginUpdateResource(&update);
+	*((mat4*)update.pMappedData) = *(mat4*)mvp;
+	endUpdateResource(&update, NULL);
 
 	cmdSetViewport(pCmd, 0.0f, 0.0f, draw_data->DisplaySize.x, draw_data->DisplaySize.y, 0.0f, 1.0f);
 	cmdSetScissor(
@@ -1207,4 +1211,6 @@ void ImguiGUIDriver::draw(Cmd* pCmd)
 		}
 		vtx_offset += (int)cmd_list->VtxBuffer.size();
 	}
+
+	frameIdx = (frameIdx + 1) % MAX_FRAMES;
 }

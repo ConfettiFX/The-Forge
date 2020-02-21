@@ -53,8 +53,6 @@
 		B21F76C621420E8600DF2297 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76C321420E8600DF2297 /* Metal.framework */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
-		E967DF8C233C4E4D0032E4BA /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E967DF8B233C4E4A0032E4BA /* libbz2.tbd */; };
-		E967DF8E233C4E560032E4BA /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E967DF8D233C4E520032E4BA /* libbz2.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -210,7 +208,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				650CCC492223C474003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
-				E967DF8E233C4E560032E4BA /* libbz2.tbd in Frameworks */,
 				B21F76C421420E8600DF2297 /* UIKit.framework in Frameworks */,
 				B21F76C521420E8600DF2297 /* MetalKit.framework in Frameworks */,
 				B21F76C621420E8600DF2297 /* Metal.framework in Frameworks */,
@@ -224,7 +221,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				650CCC472223C460003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
-				E967DF8C233C4E4D0032E4BA /* libbz2.tbd in Frameworks */,
 				B2087DDB21421A26006F372D /* MetalKit.framework in Frameworks */,
 				B2087DDC21421A26006F372D /* Metal.framework in Frameworks */,
 				5C172F61214148F30074EE71 /* libThe-Forge.a in Frameworks */,

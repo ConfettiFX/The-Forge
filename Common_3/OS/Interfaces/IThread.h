@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,14 +28,13 @@
 #ifndef _THREAD_H_
 #define _THREAD_H_
 
-#ifndef _WIN32
-#include <pthread.h>
-#endif
-
-#ifndef _WIN32
-#define ThreadID pthread_t
-#else
+#if defined(_WIN32)
 typedef unsigned ThreadID;
+#elif defined(NX64)
+#include "NXTypes.h"
+#else
+#include <pthread.h>
+#define ThreadID pthread_t
 #endif
 
 #define TIMEOUT_INFINITE UINT32_MAX
@@ -54,6 +53,9 @@ struct Mutex
 
 #ifdef _WIN32
 	CRITICAL_SECTION mHandle;
+#elif defined(NX64)
+	MutexTypeNX mMutexPlatformNX;
+	uint32_t mSpinCount;
 #else
 	pthread_mutex_t pHandle;
 	uint32_t mSpinCount;
@@ -82,26 +84,32 @@ struct ConditionVariable
 	void WakeOne();
 	void WakeAll();
 
-#ifdef _WIN32
+#if defined(_WIN32)
 	void* pHandle;
+#elif defined(NX64)
+	ConditionVariableTypeNX mCondPlatformNX;	
 #else
 	pthread_cond_t  pHandle;
 #endif
 };
 
-typedef void (*ThreadFunction)(void*);
+typedef void(*ThreadFunction)(void*);
 
 /// Work queue item.
 struct ThreadDesc
 {
+#if defined(NX64)
+	ThreadHandle hThread;
+	void *pThreadStack;
+#endif
 	/// Work item description and thread index (Main thread => 0)
 	ThreadFunction pFunc;
 	void*          pData;
 };
 
-#ifdef _WIN32
+#if defined(_WIN32)
 typedef void* ThreadHandle;
-#else
+#elif !defined(NX64)
 typedef pthread_t ThreadHandle;
 #endif
 
@@ -123,7 +131,7 @@ struct Thread
 
 // Max thread name should be 15 + null character
 #ifndef MAX_THREAD_NAME_LENGTH
-#define MAX_THREAD_NAME_LENGTH 15
+#define MAX_THREAD_NAME_LENGTH 31
 #endif
 
 #ifdef _WIN32

@@ -58,6 +58,7 @@ public:
 
 		dialect_[VK_DECIMAL] = KeyPeriod;
 		dialect_[VK_SUBTRACT] = KeyKpSubtract;
+		dialect_[VK_ADD] = KeyKpAdd;
 		dialect_[VK_NUMPAD0] = KeyKpInsert;
 		dialect_[VK_NUMPAD1] = KeyKpEnd;
 		dialect_[VK_NUMPAD2] = KeyKpDown;

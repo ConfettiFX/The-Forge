@@ -613,9 +613,11 @@ inline Vector4::Vector4(__m128 vf4)
 //========================================= #ConfettiMathExtensionsBegin ================================================
 //========================================= #ConfettiAnimationMathExtensionsBegin =======================================
 
-inline Vector4::Vector4(const Vector4Int vecInt)
+inline const Vector4 Vector4::fromVector4Int(const Vector4Int vecInt)
 {
-    mVec128 = _mm_cvtepi32_ps(vecInt);
+	Vector4 ret = {};
+    ret.mVec128 = _mm_cvtepi32_ps(vecInt);
+	return ret;
 }
 
 //========================================= #ConfettiAnimationMathExtensionsEnd =======================================

@@ -1,7 +1,7 @@
 #version 450 core
 
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,6 +24,9 @@
  * under the License.
 */
 
+#ifdef PREDEFINED_MACRO
+#include "stdmacro_defs.inc"
+#endif
 
 // Shader for simple shading with a point light
 // for planets in Unit Test 12 - Transformations

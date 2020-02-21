@@ -12,11 +12,11 @@
 void dprintf(char* const fmt, ...);
 
 /**
- * Software decodes BC1 format data.
+ * Converts raw RGBA data to a Windows BGRA bitmap.
  * 
- * \param[in] src BC1 source blocks (the number of blocks being determined by the image dimensions)
+ * \param[in] src raw RGBA data 
  * \param[in] imgW width of the decoded image
  * \param[in] imgH height of the decoded image
  * \return handle to a bitmap (ownership passed to the caller)
  */
-HBITMAP dxtToBitmap(const uint8_t* src, uint32_t const imgW, uint32_t const imgH, bool const flip = false);
+HBITMAP rgbToBitmap(const uint32_t* src, uint32_t const imgW, uint32_t const imgH, bool const flip = false);

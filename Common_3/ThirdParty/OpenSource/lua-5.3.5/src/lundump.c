@@ -7,6 +7,13 @@
 #define lundump_c
 #define LUA_CORE
 
+#if defined(__clang__)
+#pragma clang diagnostic ignored "-Wimplicit-function-declaration"
+#pragma clang diagnostic ignored "-Wint-conversion"
+#pragma clang diagnostic ignored "-Wunused-function"
+#pragma clang diagnostic ignored "-Wstring-plus-int"
+#endif
+
 #include "lprefix.h"
 
 

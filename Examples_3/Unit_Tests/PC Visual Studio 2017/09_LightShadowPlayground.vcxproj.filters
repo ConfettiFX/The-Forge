@@ -253,5 +253,8 @@
     <ClInclude Include="..\src\09_LightShadowPlayground\Shaders\Vulkan\SDF_Constant.h">
       <Filter>Shaders\Vulkan</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\Common_3\ThirdParty\OpenSource\cgltf\GLTFLoader.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2019 Confetti Interactive Inc.
+* Copyright (c) 2018-2020 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -41,11 +41,9 @@
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
 
-#include "../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"
-
 // Rendering
 #include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/Renderer/IResourceLoader.h"
 
 // Middleware packages
 #include "../../../../Middleware_3/Animation/SkeletonBatcher.h"
@@ -60,12 +58,10 @@
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
+#include "../../../../Common_3/ThirdParty/OpenSource/cgltf/GLTFLoader.h"
+
 // Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
-
-#ifdef __APPLE__
-#include "../../../../Common_3/Tools/AssetPipeline/src/AssetPipeline.h"
-#endif
 
 // Memory
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
@@ -131,10 +127,8 @@ struct UniformDataBones
 	mat4 mBoneMatrix[MAX_NUM_BONES];
 };
 
-Buffer*          pVertexBuffer = NULL;
-Buffer*          pIndexBuffer = NULL;
-uint             gIndexCount = 0;
-Buffer*          pBoneOffsetBuffer = NULL;
+VertexLayout     gVertexLayoutSkinned = {};
+Geometry*        pGeom = NULL;
 Buffer*          pUniformBufferBones[gImageCount] = { NULL };
 UniformDataBones gUniformDataBones;
 Texture*         pTextureDiffuse = NULL;
@@ -219,7 +213,7 @@ UIData gUIData;
 
 // Hard set the controller's time ratio via callback when it is set in the UI
 void ClipTimeChangeCallback() { gClipController.SetTimeRatioHard(gUIData.mClip.mAnimationTime); }
-
+eastl::vector<mat4> inverseBindMatrices;
 //--------------------------------------------------------------------------------------------
 // APP CODE
 //--------------------------------------------------------------------------------------------
@@ -242,16 +236,7 @@ class Skinning: public IApp
             fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
             fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,     "../../../../Middleware_3/UI");
         }
-        
-#if defined(__APPLE__) && !defined(TARGET_IOS)
-		ProcessAssetsSettings animationSettings = {};
-		animationSettings.quiet = false;
-		animationSettings.force = false;
-		animationSettings.minLastModifiedTime = 0;
-        PathHandle fbxDir = fsCopyPathInResourceDirectory(RD_ANIMATIONS, "fbx");
-        PathHandle animationDir = fsCopyPathForResourceDirectory(RD_ANIMATIONS);
-		AssetPipeline::ProcessAnimations(fbxDir, animationDir, &animationSettings);
-#endif
+
 		// WINDOW AND RENDERER SETUP
 		//
 		RendererDesc settings = { 0 };
@@ -262,10 +247,15 @@ class Skinning: public IApp
 		// CREATE COMMAND LIST AND GRAPHICS/COMPUTE QUEUES
 		//
 		QueueDesc queueDesc = {};
-		queueDesc.mType = CMD_POOL_DIRECT;
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		addCmdPool(pRenderer, pGraphicsQueue, false, &pCmdPool);
-		addCmd_n(pCmdPool, false, gImageCount, &ppCmds);
+		CmdPoolDesc cmdPoolDesc = {};
+		cmdPoolDesc.pQueue = pGraphicsQueue;
+		addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
+		CmdDesc cmdDesc = {};
+		cmdDesc.pPool = pCmdPool;
+		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -281,12 +271,12 @@ class Skinning: public IApp
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
 			return false;
 
-    // INITIALIZE THE USER INTERFACE
-    //
-    if (!gAppUI.Init(pRenderer))
-      return false;
+		// INITIALIZE THE USER INTERFACE
+		//
+		if (!gAppUI.Init(pRenderer))
+			return false;
 
-    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
 		initProfiler();
 
@@ -391,7 +381,7 @@ class Skinning: public IApp
 		addRasterizerState(pRenderer, &rasterizerStateDesc, &pPlaneRast);
 
 		RasterizerStateDesc skeletonRasterizerStateDesc = {};
-		skeletonRasterizerStateDesc.mCullMode = CULL_MODE_FRONT;
+		skeletonRasterizerStateDesc.mCullMode = CULL_MODE_BACK;
 		addRasterizerState(pRenderer, &skeletonRasterizerStateDesc, &pSkeletonRast);
 
 		DepthStateDesc depthStateDesc = {};
@@ -415,10 +405,7 @@ class Skinning: public IApp
 		jointVbDesc.mDesc.mVertexStride = sizeof(float) * 6;
 		jointVbDesc.pData = pJointPoints;
 		jointVbDesc.ppBuffer = &pJointVertexBuffer;
-		addResource(&jointVbDesc);
-
-		// Need to free memory;
-		conf_free(pJointPoints);
+		addResource(&jointVbDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		// Generate bone vertex buffer
 		float* pBonePoints;
@@ -432,10 +419,7 @@ class Skinning: public IApp
 		boneVbDesc.mDesc.mVertexStride = sizeof(float) * 6;
 		boneVbDesc.pData = pBonePoints;
 		boneVbDesc.ppBuffer = &pBoneVertexBuffer;
-		addResource(&boneVbDesc);
-
-		// Need to free memory;
-		conf_free(pBonePoints);
+		addResource(&boneVbDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		//Generate plane vertex buffer
 		float planePoints[] = { -10.0f, 0.0f, -10.0f, 1.0f, 0.0f, 0.0f, -10.0f, 0.0f, 10.0f,  1.0f, 1.0f, 0.0f,
@@ -450,7 +434,7 @@ class Skinning: public IApp
 		planeVbDesc.mDesc.mVertexStride = sizeof(float) * 6;
 		planeVbDesc.pData = planePoints;
 		planeVbDesc.ppBuffer = &pPlaneVertexBuffer;
-		addResource(&planeVbDesc);
+		addResource(&planeVbDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		BufferLoadDesc ubDesc = {};
 		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -461,100 +445,46 @@ class Skinning: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pPlaneUniformBuffer[i];
-			addResource(&ubDesc);
+			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
 		/************************************************************************/
 		// LOAD SKINNED MESH
 		/************************************************************************/
-		fullPath = fsCopyPathInResourceDirectory(RD_ANIMATIONS, "fbx/stormtrooper/riggedMesh.fbx");
+		fullPath = fsCopyPathInResourceDirectory(RD_ANIMATIONS, "stormtrooper/riggedMesh.gltf");
 
-		AssimpImporter        importer;
-		AssimpImporter::Model model = {};
-		if (!importer.ImportModel(fullPath, &model))
-			return false;
+		gVertexLayoutSkinned.mAttribCount = 5;
+		gVertexLayoutSkinned.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		gVertexLayoutSkinned.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		gVertexLayoutSkinned.mAttribs[0].mBinding = 0;
+		gVertexLayoutSkinned.mAttribs[0].mLocation = 0;
+		gVertexLayoutSkinned.mAttribs[0].mOffset = 0;
+		gVertexLayoutSkinned.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
+		gVertexLayoutSkinned.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		gVertexLayoutSkinned.mAttribs[1].mBinding = 0;
+		gVertexLayoutSkinned.mAttribs[1].mLocation = 1;
+		gVertexLayoutSkinned.mAttribs[1].mOffset = 3 * sizeof(float);
+		gVertexLayoutSkinned.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
+		gVertexLayoutSkinned.mAttribs[2].mFormat = TinyImageFormat_R32G32_SFLOAT;
+		gVertexLayoutSkinned.mAttribs[2].mBinding = 0;
+		gVertexLayoutSkinned.mAttribs[2].mLocation = 2;
+		gVertexLayoutSkinned.mAttribs[2].mOffset = 6 * sizeof(float);
+		gVertexLayoutSkinned.mAttribs[3].mSemantic = SEMANTIC_WEIGHTS;
+		gVertexLayoutSkinned.mAttribs[3].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
+		gVertexLayoutSkinned.mAttribs[3].mBinding = 0;
+		gVertexLayoutSkinned.mAttribs[3].mLocation = 3;
+		gVertexLayoutSkinned.mAttribs[3].mOffset = 8 * sizeof(float);
+		gVertexLayoutSkinned.mAttribs[4].mSemantic = SEMANTIC_JOINTS;
+		gVertexLayoutSkinned.mAttribs[4].mFormat = TinyImageFormat_R16G16B16A16_UINT;
+		gVertexLayoutSkinned.mAttribs[4].mBinding = 0;
+		gVertexLayoutSkinned.mAttribs[4].mLocation = 4;
+		gVertexLayoutSkinned.mAttribs[4].mOffset = 12 * sizeof(float);
 
-		eastl::vector<Vertex> vertices;
-		eastl::vector<uint>   indices;
-		eastl::vector<mat4>   boneOffsetMatrices(gStickFigureRig.GetNumJoints(), mat4::identity());
-		for (uint i = 0; i < (uint)model.mMeshArray.size(); ++i)
-		{
-			AssimpImporter::Mesh* mesh = &model.mMeshArray[i];
-			uint                  startVertices = (uint)vertices.size();
-			uint                  vertexCount = (uint)mesh->mPositions.size();
-            mat4 localToWorldMat = mat4::identity();
-            const AssimpImporter::Node* node = importer.FindMeshNode(&model.mRootNode, i);
-            if (node)
-                localToWorldMat = node->mTransform;
-
-			vertices.resize(startVertices + vertexCount);
-			for (uint j = 0; j < vertexCount; ++j)
-			{
-                vec4 pos = vec4(mesh->mPositions[j].x, mesh->mPositions[j].y, mesh->mPositions[j].z, 1);
-                vec4 normal = vec4(mesh->mNormals[j].x, mesh->mNormals[j].y, mesh->mNormals[j].z, 0);
-                vertices[startVertices + j].mPosition = v3ToF3((localToWorldMat * pos).getXYZ());
-				vertices[startVertices + j].mNormal = v3ToF3(normalize((localToWorldMat * normal).getXYZ()));
-                vertices[startVertices + j].mUV = mesh->mUvs[j];
-			}
-
-			if (!mesh->mBoneNames.empty() && !mesh->mBoneWeights.empty())
-			{
-				for (uint j = 0; j < vertexCount; ++j)
-				{
-					vertices[startVertices + j].mBoneWeights = mesh->mBoneWeights[j];
-					for (uint k = 0; k < 4; ++k)
-					{
-						if (mesh->mBoneWeights[j][k] > 0.0f)
-						{
-							int boneIndex = gStickFigureRig.FindJoint(mesh->mBoneNames[j].mNames[k].c_str());
-							vertices[startVertices + j].mBoneIndices[k] = (uint)boneIndex;
-						}
-					}
-				}
-
-				for (size_t j = 0; j < mesh->mBones.size(); ++j)
-				{
-                    int jointIndex = gStickFigureRig.FindJoint(mesh->mBones[j].mName.c_str());
-                    if (jointIndex >= 0)
-                        boneOffsetMatrices[jointIndex] = mesh->mBones[j].mOffsetMatrix * inverse(localToWorldMat);
-				}
-			}
-
-			uint startIndices = (uint)indices.size();
-			uint indexCount = (uint)mesh->mIndices.size();
-			indices.resize(startIndices + indexCount);
-			for (uint j = 0; j < indexCount; ++j)
-				indices[startIndices + j] = mesh->mIndices[j] + startVertices;
-		}
-
-		gIndexCount = (uint)indices.size();
-
-		BufferLoadDesc vertexBufferDesc = {};
-		vertexBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-		vertexBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		vertexBufferDesc.mDesc.mSize = sizeof(Vertex) * vertices.size();
-		vertexBufferDesc.mDesc.mVertexStride = sizeof(Vertex);
-		vertexBufferDesc.pData = vertices.data();
-		vertexBufferDesc.ppBuffer = &pVertexBuffer;
-		addResource(&vertexBufferDesc);
-
-		BufferLoadDesc indexBufferDesc = {};
-		indexBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
-		indexBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		indexBufferDesc.mDesc.mSize = sizeof(uint) * indices.size();
-		indexBufferDesc.mDesc.mIndexType = INDEX_TYPE_UINT32;
-		indexBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
-		indexBufferDesc.pData = indices.data();
-		indexBufferDesc.ppBuffer = &pIndexBuffer;
-		addResource(&indexBufferDesc);
-
-		BufferLoadDesc boneOffsetBufferDesc = {};
-		boneOffsetBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		boneOffsetBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		boneOffsetBufferDesc.mDesc.mSize = sizeof(mat4) * gStickFigureRig.GetNumJoints();
-		boneOffsetBufferDesc.pData = boneOffsetMatrices.data();
-		boneOffsetBufferDesc.ppBuffer = &pBoneOffsetBuffer;
-		addResource(&boneOffsetBufferDesc);
+		GeometryLoadDesc loadDesc = {};
+		loadDesc.pFilePath = fullPath;
+		loadDesc.pVertexLayout = &gVertexLayoutSkinned;
+		loadDesc.ppGeometry = &pGeom;
+		addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		BufferLoadDesc boneBufferDesc = {};
 		boneBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -565,15 +495,14 @@ class Skinning: public IApp
 		for (int i = 0; i < gImageCount; ++i)
 		{
 			boneBufferDesc.ppBuffer = &pUniformBufferBones[i];
-			addResource(&boneBufferDesc);
+			addResource(&boneBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
         PathHandle texturePath = fsCopyPathInResourceDirectory(RD_TEXTURES, gDiffuseTexture);
 		TextureLoadDesc diffuseTextureDesc = {};
 		diffuseTextureDesc.pFilePath = texturePath;
 		diffuseTextureDesc.ppTexture = &pTextureDiffuse;
-		addResource(&diffuseTextureDesc);
-
+		addResource(&diffuseTextureDesc, NULL, LOAD_PRIORITY_NORMAL);
 		/************************************************************************/
 
 		// SKELETON RENDERER
@@ -592,8 +521,6 @@ class Skinning: public IApp
 
 		gSkeletonBatcher.Initialize(skeletonRenderDesc);
 
-		finishResourceLoading();
-
 		// SETUP THE MAIN CAMERA
 		//
 		CameraMotionParameters cmp{ 50.0f, 75.0f, 150.0f };
@@ -610,7 +537,7 @@ class Skinning: public IApp
 		vec2    UIPanelSize = { 650, 1000 };
 		GuiDesc guiDesc(UIPosition, UIPanelSize, UIPanelWindowTitleTextDesc);
 		pStandaloneControlsGUIWindow = gAppUI.AddGuiComponent("Animation", &guiDesc);
-    pStandaloneControlsGUIWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
+		pStandaloneControlsGUIWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
 
 		// SET gUIData MEMBERS THAT NEED POINTERS TO ANIMATION DATA
 		//
@@ -681,7 +608,7 @@ class Skinning: public IApp
 			return false;
 
 		// App Actions
-    InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
@@ -711,14 +638,18 @@ class Skinning: public IApp
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
+
+		waitForAllResourceLoads();
+
+		// Need to free memory;
+		conf_free(pBonePoints);
+		conf_free(pJointPoints);
 		
 		// Prepare descriptor sets
-		DescriptorData params[2] = {};
-		params[0].pName = "boneOffsetMatrices";
-		params[0].ppBuffers = &pBoneOffsetBuffer;
-		params[1].pName = "DiffuseTexture";
-		params[1].ppTextures = &pTextureDiffuse;
-		updateDescriptorSet(pRenderer, 0, pDescriptorSetSkinning[0], 2, params);
+		DescriptorData params[1] = {};
+		params[0].pName = "DiffuseTexture";
+		params[0].ppTextures = &pTextureDiffuse;
+		updateDescriptorSet(pRenderer, 0, pDescriptorSetSkinning[0], 1, params);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -766,11 +697,9 @@ class Skinning: public IApp
 			removeResource(pPlaneUniformBuffer[i]);
 		}
 
-		removeResource(pVertexBuffer);
-		removeResource(pIndexBuffer);
+		removeResource(pGeom);
 		for (int i = 0; i < gImageCount; ++i)
 			removeResource(pUniformBufferBones[i]);
-		removeResource(pBoneOffsetBuffer);
 		removeResource(pTextureDiffuse);
 
 		removeResource(pJointVertexBuffer);
@@ -800,11 +729,11 @@ class Skinning: public IApp
 		}
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
 
-		removeCmd_n(pCmdPool, gImageCount, ppCmds);
+		removeCmd_n(pRenderer, gImageCount, ppCmds);
 		removeCmdPool(pRenderer, pCmdPool);
 
-		removeResourceLoaderInterface(pRenderer);
-		removeQueue(pGraphicsQueue);
+		exitResourceLoaderInterface(pRenderer);
+		removeQueue(pRenderer, pGraphicsQueue);
 		removeRenderer(pRenderer);
 	}
 
@@ -819,10 +748,10 @@ class Skinning: public IApp
 
 		// LOAD USER INTERFACE
 		//
-		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
+		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
 			return false;
 
-		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
+		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
 
 		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
@@ -847,9 +776,9 @@ class Skinning: public IApp
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepth;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pSkeletonShader;
@@ -880,45 +809,17 @@ class Skinning: public IApp
 		addPipeline(pRenderer, &desc, &pPlaneDrawPipeline);
 
 		// layout and pipeline for skinning
-		vertexLayout = {};
-		vertexLayout.mAttribCount = 5;
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[0].mOffset = 0;
-		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayout.mAttribs[1].mBinding = 0;
-		vertexLayout.mAttribs[1].mLocation = 1;
-		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
-		vertexLayout.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayout.mAttribs[2].mFormat = TinyImageFormat_R32G32_SFLOAT;
-		vertexLayout.mAttribs[2].mBinding = 0;
-		vertexLayout.mAttribs[2].mLocation = 2;
-		vertexLayout.mAttribs[2].mOffset = 6 * sizeof(float);
-		vertexLayout.mAttribs[3].mSemantic = SEMANTIC_TEXCOORD1;
-		vertexLayout.mAttribs[3].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
-		vertexLayout.mAttribs[3].mBinding = 0;
-		vertexLayout.mAttribs[3].mLocation = 3;
-		vertexLayout.mAttribs[3].mOffset = 8 * sizeof(float);
-		vertexLayout.mAttribs[4].mSemantic = SEMANTIC_TEXCOORD2;
-		vertexLayout.mAttribs[4].mFormat = TinyImageFormat_R32G32B32A32_UINT;
-		vertexLayout.mAttribs[4].mBinding = 0;
-		vertexLayout.mAttribs[4].mLocation = 4;
-		vertexLayout.mAttribs[4].mOffset = 12 * sizeof(float);
-
 		pipelineSettings = {};
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepth;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
 		pipelineSettings.pRootSignature = pRootSignatureSkinning;
 		pipelineSettings.pShaderProgram = pShaderSkinning;
-		pipelineSettings.pVertexLayout = &vertexLayout;
+		pipelineSettings.pVertexLayout = &gVertexLayoutSkinned;
 		pipelineSettings.pRasterizerState = pSkeletonRast;
 		addPipeline(pRenderer, &desc, &pPipelineSkinning);
 
@@ -929,7 +830,7 @@ class Skinning: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-    unloadProfiler();
+		unloadProfiler();
 
 		gAppUI.Unload();
 
@@ -990,8 +891,10 @@ class Skinning: public IApp
 		// Update uniforms that will be shared between all skeletons
 		gSkeletonBatcher.SetSharedUniforms(projViewMat, lightPos, lightColor);
 
-		for (uint i = 0; i < gStickFigureRig.GetNumJoints(); ++i)
-			gUniformDataBones.mBoneMatrix[i] = gStickFigureRig.GetJointWorldMat(i);
+		for (uint i = 0; i < pGeom->mJointCount; ++i)
+			gUniformDataBones.mBoneMatrix[i] = gStickFigureRig.GetJointWorldMat(pGeom->pJointRemaps[i]) *
+			mat4::scale(vec3(1, 1, -1)) *
+			pGeom->pInverseBindPoses[i];
 
 		/************************************************************************/
 		// Plane
@@ -999,11 +902,11 @@ class Skinning: public IApp
 		gUniformDataPlane.mProjectView = projViewMat;
 		gUniformDataPlane.mToWorldMat = mat4::identity();
 
-    if (gMicroProfiler != bPrevToggleMicroProfiler)
-    {
-      toggleProfiler();
-      bPrevToggleMicroProfiler = gMicroProfiler;
-    }
+		if (gMicroProfiler != bPrevToggleMicroProfiler)
+		{
+			toggleProfiler();
+			bPrevToggleMicroProfiler = gMicroProfiler;
+		}
 
 		/************************************************************************/
 		// GUI
@@ -1033,14 +936,18 @@ class Skinning: public IApp
 		// Update all the instanced uniform data for each batch of joints and bones
 		gSkeletonBatcher.SetPerInstanceUniforms(gFrameIndex);
 
-		BufferUpdateDesc planeViewProjCbv = { pPlaneUniformBuffer[gFrameIndex], &gUniformDataPlane };
-		updateResource(&planeViewProjCbv);
+		BufferUpdateDesc planeViewProjCbv = { pPlaneUniformBuffer[gFrameIndex] };
+		beginUpdateResource(&planeViewProjCbv);
+		*(UniformBlockPlane*)planeViewProjCbv.pMappedData = gUniformDataPlane;
+		endUpdateResource(&planeViewProjCbv, NULL);
 
-		BufferUpdateDesc boneBufferUpdateDesc = { pUniformBufferBones[gFrameIndex], &gUniformDataBones };
-		updateResource(&boneBufferUpdateDesc);
+		BufferUpdateDesc boneBufferUpdateDesc = { pUniformBufferBones[gFrameIndex] };
+		beginUpdateResource(&boneBufferUpdateDesc);
+		memcpy(boneBufferUpdateDesc.pMappedData, &gUniformDataBones, sizeof(mat4) * gStickFigureRig.GetNumJoints());
+		endUpdateResource(&boneBufferUpdateDesc, NULL);
 
 		// Acquire the main render target from the swapchain
-		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
 		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 		Cmd*          cmd = ppCmds[gFrameIndex];
@@ -1049,12 +956,12 @@ class Skinning: public IApp
 		// start gpu frame profiler
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
 
-		TextureBarrier barriers[] =    // wait for resource transition
+		RenderTargetBarrier barriers[] =    // wait for resource transition
 			{
-				{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
-				{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE },
+				{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
+				{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE },
 			};
-		cmdResourceBarrier(cmd, 0, NULL, 2, barriers);
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
 
 		// bind and clear the render target
 		LoadActionsDesc loadActions = {};    // render target clean command
@@ -1096,9 +1003,9 @@ class Skinning: public IApp
 			cmdBindPipeline(cmd, pPipelineSkinning);
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetSkinning[0]);
 			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSkinning[1]);
-			cmdBindVertexBuffer(cmd, 1, &pVertexBuffer, (uint64_t*)NULL);
-			cmdBindIndexBuffer(cmd, pIndexBuffer, (uint64_t)NULL);
-			cmdDrawIndexed(cmd, gIndexCount, 0, 0);
+			cmdBindVertexBuffer(cmd, 1, &pGeom->pVertexBuffers[0], (uint64_t*)NULL);
+			cmdBindIndexBuffer(cmd, pGeom->pIndexBuffer, (uint64_t)NULL);
+			cmdDrawIndexed(cmd, pGeom->mIndexCount, 0, 0);
 			cmdEndDebugMarker(cmd);
 		}
 
@@ -1130,13 +1037,27 @@ class Skinning: public IApp
 
 		// PRESENT THE GRPAHICS QUEUE
 		//
-		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(cmd, 0, NULL, 1, barriers);
+		barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 		endCmd(cmd);
 
-		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
-		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		QueueSubmitDesc submitDesc = {};
+		submitDesc.mCmdCount = 1;
+		submitDesc.mSignalSemaphoreCount = 1;
+		submitDesc.mWaitSemaphoreCount = 1;
+		submitDesc.ppCmds = &cmd;
+		submitDesc.ppSignalSemaphores = &pRenderCompleteSemaphore;
+		submitDesc.ppWaitSemaphores = &pImageAcquiredSemaphore;
+		submitDesc.pSignalFence = pRenderCompleteFence;
+		queueSubmit(pGraphicsQueue, &submitDesc);
+		QueuePresentDesc presentDesc = {};
+		presentDesc.mIndex = gFrameIndex;
+		presentDesc.mWaitSemaphoreCount = 1;
+		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
+		presentDesc.pSwapChain = pSwapChain;
+		presentDesc.mSubmitDone = true;
+		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
 	}
 

@@ -105,6 +105,59 @@ namespace basisu
 			m_modulation = byteswap32(m_modulation);
 			m_endpoints = byteswap32(m_endpoints);
 		}
+
+		// opaque endpoints:	554, 555
+		// transparent endpoints: 3443 or 3444
+		inline void set_endpoint_raw(uint32_t endpoint_index, const color_rgba& c, bool opaque_endpoint)
+		{
+			assert(endpoint_index < 2);
+			const uint32_t m = m_endpoints & 1;
+			uint32_t r = c[0], g = c[1], b = c[2], a = c[3];
+						
+			uint32_t packed;
+
+			if (opaque_endpoint)
+			{
+				if (!endpoint_index)
+				{
+					// 554
+					// 1RRRRRGGGGGBBBBM
+					assert((r < 32) && (g < 32) && (b < 16));
+					packed = 0x8000 | (r << 10) | (g << 5) | (b << 1) | m;
+				}
+				else
+				{
+					// 555
+					// 1RRRRRGGGGGBBBBB
+					assert((r < 32) && (g < 32) && (b < 32));
+					packed = 0x8000 | (r << 10) | (g << 5) | b;
+				}
+			}
+			else
+			{
+				if (!endpoint_index)
+				{
+					// 3443
+					// 0AAA RRRR GGGG BBBM
+					assert((r < 16) && (g < 16) && (b < 8) && (a < 8));
+					packed = (a << 12) | (r << 8) | (g << 4) | (b << 1) | m;
+				}
+				else
+				{
+					// 3444
+					// 0AAA RRRR GGGG BBBB
+					assert((r < 16) && (g < 16) && (b < 16) && (a < 8));
+					packed = (a << 12) | (r << 8) | (g << 4) | b;
+				}
+			}
+
+			assert(packed <= 0xFFFF);
+
+			if (endpoint_index)
+				m_endpoints = (m_endpoints & 0xFFFFU) | (packed << 16);
+			else
+				m_endpoints = (m_endpoints & 0xFFFF0000U) | packed;
+		}
 	};
 
 	typedef vector2D<pvrtc4_block> pvrtc4_block_vector2D;
@@ -115,15 +168,14 @@ namespace basisu
 	{
 	public:
 		inline pvrtc4_image() :
-			m_width(0), m_height(0), m_block_width(0), m_block_height(0), m_wrap_addressing(false), m_uses_alpha(false)
+			m_width(0), m_height(0), m_block_width(0), m_block_height(0), m_uses_alpha(false)
 		{
 		}
 
-		inline pvrtc4_image(uint32_t width, uint32_t height, bool wrap_addressing = false) :
-			m_width(0), m_height(0), m_block_width(0), m_block_height(0), m_wrap_addressing(false), m_uses_alpha(false)
+		inline pvrtc4_image(uint32_t width, uint32_t height) :
+			m_width(0), m_height(0), m_block_width(0), m_block_height(0), m_uses_alpha(false)
 		{
 			resize(width, height);
-			set_wrap_addressing(wrap_addressing);
 		}
 
 		inline void clear()
@@ -134,7 +186,6 @@ namespace basisu
 			m_block_height = 0;
 			m_blocks.clear();
 			m_uses_alpha = false;
-			m_wrap_addressing = false;
 		}
 
 		inline void resize(uint32_t width, uint32_t height)
@@ -164,9 +215,6 @@ namespace basisu
 
 		inline bool get_uses_alpha() const { return m_uses_alpha; }
 		inline void set_uses_alpha(bool uses_alpha) { m_uses_alpha = uses_alpha; }
-
-		inline void set_wrap_addressing(bool wrapping) { m_wrap_addressing = wrapping; }
-		inline bool get_wrap_addressing() const { return m_wrap_addressing; }
 
 		inline bool are_blocks_equal(const pvrtc4_image& rhs) const
 		{
@@ -245,24 +293,24 @@ namespace basisu
 					dst(x, y) = get_pixel(block_x * 4 + x, block_y * 4 + y);
 		}
 
-		inline int wrap_or_clamp_x(int x) const
+		inline int wrap_x(int x) const
 		{
-			return m_wrap_addressing ? posmod(x, m_width) : clamp<int>(x, 0, m_width - 1);
+			return posmod(x, m_width);
 		}
 
-		inline int wrap_or_clamp_y(int y) const
+		inline int wrap_y(int y) const
 		{
-			return m_wrap_addressing ? posmod(y, m_height) : clamp<int>(y, 0, m_height - 1);
+			return posmod(y, m_height);
 		}
 
-		inline int wrap_or_clamp_block_x(int bx) const
+		inline int wrap_block_x(int bx) const
 		{
-			return m_wrap_addressing ? posmod(bx, m_block_width) : clamp<int>(bx, 0, m_block_width - 1);
+			return posmod(bx, m_block_width);
 		}
 
-		inline int wrap_or_clamp_block_y(int by) const
+		inline int wrap_block_y(int by) const
 		{
-			return m_wrap_addressing ? posmod(by, m_block_height) : clamp<int>(by, 0, m_block_height - 1);
+			return posmod(by, m_block_height);
 		}
 
 		inline vec2F get_interpolation_factors(uint32_t x, uint32_t y) const
@@ -309,7 +357,6 @@ namespace basisu
 		pvrtc4_block_vector2D m_blocks;
 		uint32_t m_block_width, m_block_height;
 						
-		bool m_wrap_addressing;
 		bool m_uses_alpha;
 	};
 

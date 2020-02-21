@@ -1,9 +1,5 @@
 /* Write your header comments here */
 #version 450 core
-#if !defined(WINDOWS) && !defined(ANDROID) && !defined(LINUX)
-#define WINDOWS 	// Assume windows if no platform define has been added to the shader
-#endif
-
 
 
 #extension GL_GOOGLE_include_directive : enable
@@ -14,13 +10,7 @@
 
 
 layout(location = 0) in vec3 POSITION;
-
-#ifdef WINDOWS
 layout(location = 1) in uint TEXCOORD;
-#elif defined(LINUX)
-layout(location = 1) in vec2 TEXCOORD;
-#endif
-
 
 layout(location = 0) out vec2 vertOutput_TEXCOORD0;
 layout(location = 1) out flat uint oDrawId;
@@ -46,28 +36,20 @@ layout(row_major, UPDATE_FREQ_PER_DRAW, binding = 0) uniform objectUniformBlock
 struct VsIn
 {
     vec3 Position;
-#ifdef WINDOWS
     uint TexCoord;
-#elif defined(LINUX)
-	vec2 TexCoord;
-#endif
 };
+
 struct PsIn
 {
     vec4 Position;
     vec2 TexCoord;
 };
 
-
 PsIn HLSLmain(VsIn input1)
 {
     PsIn output1;
     ((output1).Position = MulMat(WorldViewProjMat,vec4((input1).Position, 1.0)));
-#ifdef WINDOWS
     ((output1).TexCoord = unpack2Floats((input1).TexCoord));
-#elif defined(LINUX)
-	output1.TexCoord = input1.TexCoord;
-#endif
     return output1;
 }
 

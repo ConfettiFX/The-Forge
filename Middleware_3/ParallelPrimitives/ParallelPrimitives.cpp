@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -44,7 +44,7 @@
 
 #include "ParallelPrimitives.h"
 
-#include "../../Common_3/Renderer/ResourceLoader.h"
+#include "../../Common_3/Renderer/IResourceLoader.h"
 #include "../../Common_3/OS/Interfaces/ILog.h"
 #include "../../Common_3/OS/Interfaces/IMemory.h"
 
@@ -141,7 +141,7 @@ Buffer* ParallelPrimitives::temporaryBuffer(size_t length) {
 		bufferLoadDesc.mDesc.mSize = length;
 		bufferLoadDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		bufferLoadDesc.mDesc.mElementCount = length / sizeof(int32_t);
-		addResource(&bufferLoadDesc);
+		addResource(&bufferLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
 	} else {
 		mTemporaryBuffers.erase_unsorted(bestBufferIt);
 	}
@@ -176,7 +176,7 @@ void ParallelPrimitives::scanExclusiveAddWG(Cmd* pCmd, Buffer* input, Buffer* ou
 	BufferBarrier barriers[] = {
 		{ output, RESOURCE_STATE_UNORDERED_ACCESS, false },
 	};
-	cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL);
+	cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 }
 
 void ParallelPrimitives::scanExclusiveAddTwoLevel(Cmd* pCmd, Buffer* input, Buffer* output, uint32_t elementCount) {
@@ -218,7 +218,7 @@ void ParallelPrimitives::scanExclusiveAddTwoLevel(Cmd* pCmd, Buffer* input, Buff
 			{ output, RESOURCE_STATE_UNORDERED_ACCESS, false },
 			{ devicePartSums, RESOURCE_STATE_UNORDERED_ACCESS, false }
 		};
-		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL);
+		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	}
 	
 	{
@@ -239,7 +239,7 @@ void ParallelPrimitives::scanExclusiveAddTwoLevel(Cmd* pCmd, Buffer* input, Buff
 		BufferBarrier barriers[] = {
 			{ devicePartSums, RESOURCE_STATE_UNORDERED_ACCESS, false }
 		};
-		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL);
+		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	}
 	
 	{
@@ -261,7 +261,7 @@ void ParallelPrimitives::scanExclusiveAddTwoLevel(Cmd* pCmd, Buffer* input, Buff
 		BufferBarrier barriers[] = {
 			{ output, RESOURCE_STATE_UNORDERED_ACCESS, false }
 		};
-		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL);
+		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	}
 	
 	depositTemporaryBuffer(devicePartSums);
@@ -310,7 +310,7 @@ void ParallelPrimitives::scanExclusiveAddThreeLevel(Cmd* pCmd, Buffer* input, Bu
 			{ output, RESOURCE_STATE_UNORDERED_ACCESS, false },
 			{ devicePartSumsBottomLevel, RESOURCE_STATE_UNORDERED_ACCESS, false },
 		};
-		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL);
+		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	}
 	
 	{
@@ -335,7 +335,7 @@ void ParallelPrimitives::scanExclusiveAddThreeLevel(Cmd* pCmd, Buffer* input, Bu
 			{ devicePartSumsBottomLevel, RESOURCE_STATE_UNORDERED_ACCESS, false },
 			{ devicePartSumsMidLevel, RESOURCE_STATE_UNORDERED_ACCESS, false },
 		};
-		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL);
+		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	}
 	
 	{
@@ -357,7 +357,7 @@ void ParallelPrimitives::scanExclusiveAddThreeLevel(Cmd* pCmd, Buffer* input, Bu
 		BufferBarrier barriers[] = {
 			{ devicePartSumsMidLevel, RESOURCE_STATE_UNORDERED_ACCESS, false },
 		};
-		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL);
+		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	}
 	
 	{
@@ -379,7 +379,7 @@ void ParallelPrimitives::scanExclusiveAddThreeLevel(Cmd* pCmd, Buffer* input, Bu
 		BufferBarrier barriers[] = {
 			{ devicePartSumsBottomLevel, RESOURCE_STATE_UNORDERED_ACCESS, false },
 		};
-		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL);
+		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	}
 	
 	{
@@ -401,7 +401,7 @@ void ParallelPrimitives::scanExclusiveAddThreeLevel(Cmd* pCmd, Buffer* input, Bu
 		BufferBarrier barriers[] = {
 			{ output, RESOURCE_STATE_UNORDERED_ACCESS, false },
 		};
-		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL);
+		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	}
 	
 	depositTemporaryBuffer(devicePartSumsBottomLevel);
@@ -474,7 +474,7 @@ void ParallelPrimitives::sortRadixKeysValues(Cmd* pCmd, Buffer* inputKeys, Buffe
 			BufferBarrier barriers[] = {
 				{ deviceHistograms, RESOURCE_STATE_UNORDERED_ACCESS, false },
 			};
-			cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL);
+			cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 		}
 		
 		// Scan histograms
@@ -509,7 +509,7 @@ void ParallelPrimitives::sortRadixKeysValues(Cmd* pCmd, Buffer* inputKeys, Buffe
 				{ toKeys, RESOURCE_STATE_UNORDERED_ACCESS, false },
 				{ toVals, RESOURCE_STATE_UNORDERED_ACCESS, false },
 			};
-			cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL);
+			cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 		}
 		
 		if (offset == 0) {
@@ -591,7 +591,7 @@ void ParallelPrimitives::sortRadix(Cmd* pCmd, Buffer* inputKeys, Buffer* outputK
 			BufferBarrier barriers[] = {
 				{ deviceHistograms, RESOURCE_STATE_UNORDERED_ACCESS, false },
 			};
-			cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL);
+			cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 		}
 		
 		// Scan histograms
@@ -620,7 +620,7 @@ void ParallelPrimitives::sortRadix(Cmd* pCmd, Buffer* inputKeys, Buffer* outputK
 			BufferBarrier barriers[] = {
 				{ toKeys, RESOURCE_STATE_UNORDERED_ACCESS, false },
 			};
-			cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL);
+			cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 		}
 		
 		if (offset == 0) {
@@ -681,7 +681,7 @@ void ParallelPrimitives::generateOffsetBuffer(Cmd* pCmd, Buffer* sortedCategoryI
 		BufferBarrier barriers[] = {
 			{ outputBuffer, RESOURCE_STATE_UNORDERED_ACCESS, false },
 		};
-		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL);
+		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	}
 	
 	{
@@ -699,7 +699,7 @@ void ParallelPrimitives::generateOffsetBuffer(Cmd* pCmd, Buffer* sortedCategoryI
 			{ outputBuffer, RESOURCE_STATE_UNORDERED_ACCESS, false },
 			{ totalCountOutputBuffer, RESOURCE_STATE_UNORDERED_ACCESS, false },
 		};
-		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL);
+		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	}
 	
 	
@@ -743,7 +743,7 @@ void ParallelPrimitives::generateIndirectArgumentsFromOffsetBuffer(Cmd* pCmd, Bu
 	BufferBarrier barriers[] = {
 		{ outIndirectArgumentsBuffer, RESOURCE_STATE_UNORDERED_ACCESS, false },
 	};
-	cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL);
+	cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	
 	cmdEndDebugMarker(pCmd);
 }

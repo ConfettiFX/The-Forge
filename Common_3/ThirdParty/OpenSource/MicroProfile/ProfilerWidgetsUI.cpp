@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -391,7 +391,9 @@ void profileCallbkDumpFramesToFile()
   char Name[128] = {};
 
   strftime(Name, sizeof(Name), "microprofile-%Y-%m-%d-%H.%M.%S.html", localtime(&t));
-  ProfileDumpFile(Name, ProfileDumpTypeHtml, profileUtilDumpFramesFromFileEnum(gDumpFramesToFile));
+	
+  PathHandle dumpPath = fsAppendPathComponent(PathHandle(fsCopyLogFileDirectoryPath()), Name);
+  ProfileDumpFile(dumpPath, ProfileDumpTypeHtml, profileUtilDumpFramesFromFileEnum(gDumpFramesToFile));
 }
 
 void profileCallbkDumpFrames()
@@ -504,7 +506,6 @@ void profileUpdateDetailedModeData(Profile& S)
     float fToMs = bGpu ? fToMsGpu : fToMsCpu;
     int64_t nBaseTicks = bGpu ? nBaseTicksGpu : nBaseTicksCpu;
     int64_t nBaseTicksEnd = bGpu ? nBaseTicksEndGpu : nBaseTicksEndCpu;
-    ProfileThreadIdType nThreadId = pLog->nThreadId;
     int64_t nGapTime = 0;
 
     uint32_t nLogFrameBegin, nLogFrameEnd;
@@ -560,7 +561,6 @@ void profileUpdateDetailedModeData(Profile& S)
             continue;
           }
 
-          const char* pName = S.TimerInfo[nTimerIndex].pName;
           float fMsStart = fToMs * ProfileLogTickDifference(nBaseTicks, nTickStart);
           float fMsEnd = fToMs * ProfileLogTickDifference(nBaseTicks, nTickEnd);
 

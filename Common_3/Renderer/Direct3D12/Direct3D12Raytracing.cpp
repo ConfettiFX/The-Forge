@@ -14,7 +14,7 @@
 // Renderer
 #include "../IRenderer.h"
 #include "../IRay.h"
-#include "../ResourceLoader.h"
+#include "../IResourceLoader.h"
 #include "Direct3D12Hooks.h"
 #include "Direct3D12MemoryAllocator.h"
 #include "../../OS/Interfaces/IMemory.h"
@@ -152,7 +152,7 @@ Buffer* createGeomVertexBuffer(const AccelerationStructureGeometryDesc* desc)
 	vbDesc.mDesc.mVertexStride = sizeof(float3);
 	vbDesc.pData = desc->pVertexArray;
 	vbDesc.ppBuffer = &result;
-	addResource(&vbDesc);
+	addResource(&vbDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 	return result;
 }
@@ -171,7 +171,7 @@ Buffer* createGeomIndexBuffer(const AccelerationStructureGeometryDesc* desc)
 	indexBufferDesc.mDesc.mIndexType = desc->indexType;
 	indexBufferDesc.pData = desc->indexType == INDEX_TYPE_UINT32 ? (void*) desc->pIndices32 : (void*) desc->pIndices16;
 	indexBufferDesc.ppBuffer = &result;
-	addResource(&indexBufferDesc);
+	addResource(&indexBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 	return result;
 }
@@ -356,7 +356,7 @@ void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructu
 	scratchBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
 	scratchBufferDesc.mDesc.mSize = pAccelerationStructure->mScratchBufferSize;
 	scratchBufferDesc.ppBuffer = &pAccelerationStructure->pScratchBuffer;
-	addResource(&scratchBufferDesc);
+	addResource(&scratchBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 	*ppAccelerationStructure = pAccelerationStructure;
 }

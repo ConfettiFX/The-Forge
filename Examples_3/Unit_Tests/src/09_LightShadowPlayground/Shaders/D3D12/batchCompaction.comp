@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2019 Confetti Interactive Inc.
+* Copyright (c) 2018-2020 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -27,7 +27,7 @@
 StructuredBuffer<UncompactedDrawArguments> uncompactedDrawArgs[NUM_CULLING_VIEWPORTS]	: UNIT_UNCOMPACTED_ARGS;
 StructuredBuffer<uint> materialProps													: UNIT_MATERIAL_PROPS;
 
-RWStructuredBuffer<uint> indirectMaterialBuffer											: UNIT_INDIRECT_MATERIAL_RW;
+RWByteAddressBuffer indirectMaterialBuffer											: UNIT_INDIRECT_MATERIAL_RW;
 RWStructuredBuffer<uint> indirectDrawArgsBufferAlpha[NUM_CULLING_VIEWPORTS]				: UNIT_INDIRECT_DRAW_ARGS_ALPHA_RW;
 RWStructuredBuffer<uint> indirectDrawArgsBufferNoAlpha[NUM_CULLING_VIEWPORTS]			: UNIT_INDIRECT_DRAW_ARGS_RW;
 
@@ -76,7 +76,7 @@ void main(uint3 threadID : SV_DispatchThreadID)
 				indirectDrawArgsBufferNoAlpha[i][slot * 8 + 1] = numIndices[i];
 				indirectDrawArgsBufferNoAlpha[i][slot * 8 + 3] = uncompactedDrawArgs[i][threadID.x].mStartIndex;
 			}
-			indirectMaterialBuffer[baseMatSlot + slot] = matID;
+			indirectMaterialBuffer.Store((baseMatSlot + slot) << 2, matID);
 		}
 	}
 }

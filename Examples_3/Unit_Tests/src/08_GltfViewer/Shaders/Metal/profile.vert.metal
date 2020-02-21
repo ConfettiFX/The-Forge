@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,21 +28,52 @@
 #include <metal_stdlib>
 using namespace metal;
 
-struct VSInput
+struct Vertex_Shader
 {
-    float2 Position [[attribute(0)]];
-    float4 Color   [[attribute(1)]];
+    struct VSInput
+    {
+        float2 Position;
+        float4 Color;
+    };
+    struct VSOutput
+    {
+        float4 Position;
+        float4 Color;
+    };
+    VSOutput main(VSInput input)
+    {
+        VSOutput result;
+        ((result).Position = float4(((input).Position).x, ((input).Position).y, 0.0, 1.0));
+        ((result).Color = (input).Color);
+        return result;
+    };
+
+    Vertex_Shader()
+    {}
 };
 
-struct VSOutput {
-	float4 Position [[position]];
-    float4 Color;
+struct main_input
+{
+    float2 POSITION [[attribute(0)]];
+    float4 COLOR [[attribute(1)]];
 };
 
-vertex VSOutput stageMain(VSInput input [[stage_in]])
+struct main_output
 {
-    VSOutput result;
-    result.Position = float4(input.Position.xy, 0.0f, 1.0f);
-    result.Color = input.Color;
-    return result;
+    float4 SV_POSITION [[position]];
+    float4 COLOR;
+};
+
+vertex main_output stageMain(
+	main_input inputData [[stage_in]])
+{
+    Vertex_Shader::VSInput input0;
+    input0.Position = inputData.POSITION;
+    input0.Color = inputData.COLOR;
+    Vertex_Shader main;
+    Vertex_Shader::VSOutput result = main.main(input0);
+    main_output output;
+    output.SV_POSITION = result.Position;
+    output.COLOR = result.Color;
+    return output;
 }

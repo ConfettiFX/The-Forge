@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -41,8 +41,8 @@ class AAssetFileStream : public FileStream
 	AAsset* pAsset;
 public:
 
-	AAssetFileStream(AAsset* asset) : 
-		FileStream(FileStreamType_BundleAsset),
+	AAssetFileStream(AAsset* asset, const Path* path) : 
+		FileStream(FileStreamType_BundleAsset, path),
 		pAsset(asset) {}
 
 	size_t  Read(void* outputBuffer, size_t bufferSizeInBytes) override
@@ -87,6 +87,11 @@ public:
 	ssize_t GetFileSize() const override
 	{
 		return (ssize_t)AAsset_getLength64(pAsset);
+	}
+
+	void* GetUnderlyingBuffer() const override
+	{
+		return NULL;
 	}
 
 	void    Flush() override {}
@@ -199,12 +204,15 @@ public:
 
 	bool IsDirectory(const Path* path) const override
 	{
-		if (AAssetDir* subDir = AAssetManager_openDir(pAssetManager, fsGetPathAsNativeString(path)))
-		{
-			AAssetDir_close(subDir);
-			return true;
-		}
-		return false;
+		// https://stackoverflow.com/questions/26101371/checking-if-directory-folder-exists-in-apk-via-native-code-only
+		// AAsetManager_openDir will always return a pointer to initialized object,
+		// even if the specified directory doesn't exist. In other words, checking if assetDir==NULL is pointless.
+		// Trick is to check if AAssetDir_getNextFileName will return a non-null const char *.
+		// If it's NULL - there is no folder, else - there is one.
+		AAssetDir* subDir = AAssetManager_openDir(pAssetManager, fsGetPathAsNativeString(path));
+		bool exists = AAssetDir_getNextFileName(subDir) != NULL;
+		AAssetDir_close(subDir);
+		return exists;
 	}
 
 	FileStream* OpenFile(const Path* filePath, FileMode mode) const override
@@ -221,7 +229,7 @@ public:
 
 		if (file)
 		{
-			return conf_new(AAssetFileStream, file);
+			return conf_new(AAssetFileStream, file, filePath);
 		}
 		return NULL;
 	}

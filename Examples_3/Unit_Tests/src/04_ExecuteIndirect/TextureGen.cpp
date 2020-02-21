@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -42,7 +42,7 @@
 #include "NoiseOctaves.h"
 #include "Random.h"
 
-void genTextures(uint32_t texture_count, RawImageData* out_data)
+void genTextures(uint32_t texture_count, Texture** pOutTexture)
 {
 	static const int textureDim = 256;
 
@@ -54,15 +54,35 @@ void genTextures(uint32_t texture_count, RawImageData* out_data)
 			seeds[i] = rand();
 	}
 
+	RawImageData rawData = {};
+
 	uint32_t sliceSize = sizeof(unsigned char) * textureDim * textureDim * 4;
-	out_data->mFormat = TinyImageFormat_R8G8B8A8_UNORM;
-	out_data->mWidth = textureDim;
-	out_data->mHeight = textureDim;
-	out_data->mDepth = 1;
-	out_data->mMipLevels = 1;
-	out_data->mArraySize = texture_count * array_count;
-	out_data->pRawData = (unsigned char*)conf_malloc(sliceSize * out_data->mArraySize);
+	rawData.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
+	rawData.mWidth = textureDim;
+	rawData.mHeight = textureDim;
+	rawData.mDepth = 1;
+	rawData.mMipLevels = 1;
+	rawData.mArraySize = texture_count * array_count;
 	
+	TextureDesc desc = {};
+	desc.mArraySize = rawData.mArraySize;
+	desc.mFormat = rawData.mFormat;
+	desc.mDepth = rawData.mDepth;
+	desc.mWidth = rawData.mWidth;
+	desc.mHeight = rawData.mHeight;
+	desc.mMipLevels = rawData.mMipLevels;
+	desc.mSampleCount = SAMPLE_COUNT_1;
+	desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+	TextureLoadDesc textureDesc = {};
+	textureDesc.pDesc = &desc;
+	textureDesc.ppTexture = pOutTexture;
+	addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
+
+	TextureUpdateDesc updateDesc = {};
+	updateDesc.pTexture = *pOutTexture;
+	updateDesc.pRawImageData = &rawData;
+	beginUpdateResource(&updateDesc);
+
 	for (uint32_t t = 0; t < texture_count; ++t)
 	{
 		MyRandom rng(seeds[t]);
@@ -81,10 +101,9 @@ void genTextures(uint32_t texture_count, RawImageData* out_data)
 
 			NoiseOctaves<4> textureNoise(persistence);
 
-			uint32_t    mipLevel = 0;
 			uint32_t    slice = t * array_count + a;
 			uint32_t	nextSliceInMem = sliceSize * slice;
-			uint32_t*	scanline = (uint32_t*)((unsigned char*)(out_data->pRawData + nextSliceInMem));
+			uint32_t*	scanline = (uint32_t*)((uint8_t*)updateDesc.pMappedData + nextSliceInMem);
 			for (size_t y = 0; y < textureDim; ++y)
 			{
 				for (size_t x = 0; x < textureDim; ++x)
@@ -101,4 +120,6 @@ void genTextures(uint32_t texture_count, RawImageData* out_data)
 			}
 		}
 	}
+
+	endUpdateResource(&updateDesc, NULL);
 }

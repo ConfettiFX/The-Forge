@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -64,7 +64,7 @@ namespace gainput
 }
 #endif
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
+#if defined(TARGET_IOS) || defined(__ANDROID__) || defined(NX64)
 #define TOUCH_INPUT 1
 #endif
 
@@ -878,11 +878,15 @@ struct InputSystemImpl : public gainput::InputListener
 			ctx.mDeviceType = pDeviceTypes[device];
 			ctx.pCaptured = IsPointerType(device) ? &mInputCaptured : &mDefaultCapture;
 #if TOUCH_INPUT
-			const uint32_t touchIndex = TOUCH_USER(deviceButton);
-			gainput::InputDeviceTouch* pTouch = (gainput::InputDeviceTouch*)pInputManager->GetDevice(mTouchDeviceID);
-			mTouchPositions[touchIndex][0] = pTouch->GetFloat(TOUCH_X(touchIndex));
-			mTouchPositions[touchIndex][1] = pTouch->GetFloat(TOUCH_Y(touchIndex));
-			ctx.pPosition = &mTouchPositions[touchIndex];
+			const uint32_t touchIndex = 0; 
+			if (device == mTouchDeviceID)
+			{
+				const uint32_t touchIndex = TOUCH_USER(deviceButton);
+				gainput::InputDeviceTouch* pTouch = (gainput::InputDeviceTouch*)pInputManager->GetDevice(mTouchDeviceID);
+				mTouchPositions[touchIndex][0] = pTouch->GetFloat(TOUCH_X(touchIndex));
+				mTouchPositions[touchIndex][1] = pTouch->GetFloat(TOUCH_Y(touchIndex));
+				ctx.pPosition = &mTouchPositions[touchIndex];
+			}
 #else
 			if (IsPointerType(device))
 			{
@@ -1101,10 +1105,13 @@ struct InputSystemImpl : public gainput::InputListener
 	bool OnDeviceButtonFloat(gainput::DeviceId device, gainput::DeviceButtonId deviceButton, float oldValue, float newValue)
 	{
 #if TOUCH_INPUT
-		const uint32_t touchIndex = TOUCH_USER(deviceButton);
-		gainput::InputDeviceTouch* pTouch = (gainput::InputDeviceTouch*)pInputManager->GetDevice(mTouchDeviceID);
-		mTouchPositions[touchIndex][0] = pTouch->GetFloat(TOUCH_X(touchIndex));
-		mTouchPositions[touchIndex][1] = pTouch->GetFloat(TOUCH_Y(touchIndex));
+		if (mTouchDeviceID == device)
+		{
+			const uint32_t touchIndex = TOUCH_USER(deviceButton);
+			gainput::InputDeviceTouch* pTouch = (gainput::InputDeviceTouch*)pInputManager->GetDevice(mTouchDeviceID);
+			mTouchPositions[touchIndex][0] = pTouch->GetFloat(TOUCH_X(touchIndex));
+			mTouchPositions[touchIndex][1] = pTouch->GetFloat(TOUCH_Y(touchIndex));
+		}
 #else
 		if (mMouseDeviceID == device)
 		{

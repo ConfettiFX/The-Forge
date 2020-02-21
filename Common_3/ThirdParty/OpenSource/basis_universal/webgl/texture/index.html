@@ -79,6 +79,10 @@ function loadArrayBuffer(uri, callback) {
   xhr.send(null);
 }
 
+// ASTC format, from:
+// https://www.khronos.org/registry/webgl/extensions/WEBGL_compressed_texture_astc/
+COMPRESSED_RGBA_ASTC_4x4_KHR = 0x93B0;
+
 // DXT formats, from:
 // http://www.khronos.org/registry/webgl/extensions/WEBGL_compressed_texture_s3tc/
 COMPRESSED_RGB_S3TC_DXT1_EXT  = 0x83F0;
@@ -86,15 +90,33 @@ COMPRESSED_RGBA_S3TC_DXT1_EXT = 0x83F1;
 COMPRESSED_RGBA_S3TC_DXT3_EXT = 0x83F2;
 COMPRESSED_RGBA_S3TC_DXT5_EXT = 0x83F3;
 
+// ETC format, from:
+// https://www.khronos.org/registry/webgl/extensions/WEBGL_compressed_texture_etc1/
+COMPRESSED_RGB_ETC1_WEBGL = 0x8D64;
+
+// PVRTC format, from:
+// https://www.khronos.org/registry/webgl/extensions/WEBGL_compressed_texture_pvrtc/
+COMPRESSED_RGB_PVRTC_4BPPV1_IMG = 0x8C00;
+COMPRESSED_RGBA_PVRTC_4BPPV1_IMG = 0x8C02;
+
 BASIS_FORMAT = {
   cTFETC1: 0,
-	cTFBC1: 1,
-	cTFBC4: 2,
-	cTFPVRTC1_4_OPAQUE_ONLY: 3,
-	cTFBC7_M6_OPAQUE_ONLY: 4,
-	cTFETC2: 5,
-	cTFBC3: 6,
-	cTFBC5: 7,
+  cTFETC2: 1,
+  cTFBC1: 2,
+  cTFBC3: 3,
+  cTFBC4: 4,
+  cTFBC5: 5,
+  cTFBC7_M6_OPAQUE_ONLY: 6,
+  cTFBC7_M5: 7,
+  cTFPVRTC1_4_RGB: 8,
+  cTFPVRTC1_4_RGBA: 9,
+  cTFASTC_4x4: 10,
+  cTFATC_RGB: 11,
+  cTFATC_RGBA_INTERPOLATED_ALPHA: 12,
+  cTFRGBA32: 13,
+  cTFRGB565: 14,
+  cTFBGR565: 15,
+  cTFRGBA4444: 16,
 };
 
 BASIS_FORMAT_NAMES = {};
@@ -106,28 +128,20 @@ DXT_FORMAT_MAP = {};
 DXT_FORMAT_MAP[BASIS_FORMAT.cTFBC1] = COMPRESSED_RGB_S3TC_DXT1_EXT;
 DXT_FORMAT_MAP[BASIS_FORMAT.cTFBC3] = COMPRESSED_RGBA_S3TC_DXT5_EXT;
 
-var dxtSupported = true;
+var astcSupported = false;
+var etcSupported = false;
+var dxtSupported = false;
+var pvrtcSupported = false;
 var drawMode = 0;
 
-var tex, width, height, images, levels, have_alpha, alignedWidth, alignedHeight, format;
+var tex, width, height, images, levels, have_alpha, alignedWidth, alignedHeight, format, displayWidth, displayHeight;
 
 function redraw()
 {
   if (!width)
-	return;
+   return;
 
-  if (dxtSupported)
-  {
-	  renderer.drawTexture(tex, alignedWidth, alignedHeight, drawMode);
-  }
-  else if (format == BASIS_FORMAT.cTFBC1)
-  {
-	  renderer.drawTexture(tex, alignedWidth, alignedHeight, drawMode);
-  }
-  else
-  {
-  	 log('TODO: Implement BC3->RGBA conversion for browsers that don\'t support BC3');
-  }
+  renderer.drawTexture(tex, displayWidth, displayHeight, drawMode);
 }
 
 function dataLoaded(data)
@@ -154,19 +168,65 @@ function dataLoaded(data)
     return;
   }
 
-  format = BASIS_FORMAT.cTFBC1;
-  if (has_alpha)
+  var formatString = 'UNKNOWN';
+  if (astcSupported)
   {
-  	format = BASIS_FORMAT.cTFBC3;
-
-    log('Decoding .basis data to BC3');
+    formatString = 'ASTC';
+    format = BASIS_FORMAT.cTFASTC_4x4;
+  }
+  else if (dxtSupported)
+  {
+    if (has_alpha)
+    {
+      formatString = 'BC3';
+      format = BASIS_FORMAT.cTFBC3;
+    }
+    else
+    {
+      formatString = 'BC1';
+      format = BASIS_FORMAT.cTFBC1;
+    }
+  }
+  else if (pvrtcSupported)
+  {
+    if (has_alpha)
+    {
+      formatString = 'PVRTC1_RGBA';
+      format = BASIS_FORMAT.cTFPVRTC1_4_RGBA;
+    }
+    else
+    {
+      formatString = 'PVRTC1_RGB';
+      format = BASIS_FORMAT.cTFPVRTC1_4_RGB;
+    }
+    
+    if (
+         ((width & (width - 1)) != 0) || ((height & (height - 1)) != 0)
+        )
+    {
+      log('ERROR: PVRTC1 requires square power of 2 textures');
+    }
+    if (width != height)
+    {
+      log('ERROR: PVRTC1 requires square power of 2 textures');    
+    }
+  }
+  else if (etcSupported)
+  {
+    formatString = 'ETC1';
+    format = BASIS_FORMAT.cTFETC1;
   }
   else
   {
-  	log('Decoding .basis data to BC1');
+    formatString = 'RGB565';
+    format = BASIS_FORMAT.cTFRGB565;
+    log('Decoding .basis data to 565');
   }
 
+  elem('format').innerText = formatString;
+
   if (!basisFile.startTranscoding()) {
+    log('startTranscoding failed');
     console.warn('startTranscoding failed');
     basisFile.close();
     basisFile.delete();
@@ -176,10 +236,13 @@ function dataLoaded(data)
   const dstSize = basisFile.getImageTranscodedSizeInBytes(0, 0, format);
   const dst = new Uint8Array(dstSize);
 
-  if (!basisFile.transcodeImage(dst, 0, 0, format, 1, 0)) {
+//  if (!basisFile.transcodeImage(dst, 0, 0, format, 1, 0)) {
+  if (!basisFile.transcodeImage(dst, 0, 0, format, 0, 0)) {
+    log('basisFile.transcodeImage failed');
     console.warn('transcodeImage failed');
     basisFile.close();
     basisFile.delete();
+       
     return;
   }
 
@@ -197,20 +260,51 @@ function dataLoaded(data)
 
   alignedWidth = (width + 3) & ~3;
   alignedHeight = (height + 3) & ~3;
+  
+  displayWidth = alignedWidth;
+  displayHeight = alignedHeight;
 
   var canvas = elem('canvas');
   canvas.width = alignedWidth;
   canvas.height = alignedHeight;
 
-  if (dxtSupported)
+  if (format === BASIS_FORMAT.cTFASTC_4x4)
   {
-	  tex = renderer.createDxtTexture(dst, alignedWidth, alignedHeight, DXT_FORMAT_MAP[format]);
+    tex = renderer.createCompressedTexture(dst, alignedWidth, alignedHeight, COMPRESSED_RGBA_ASTC_4x4_KHR);
+  }
+  else if ((format === BASIS_FORMAT.cTFBC3 || format === BASIS_FORMAT.cTFBC1))
+  {
+     tex = renderer.createCompressedTexture(dst, alignedWidth, alignedHeight, DXT_FORMAT_MAP[format]);
+  }
+  else if (format === BASIS_FORMAT.cTFETC1)
+  {
+    tex = renderer.createCompressedTexture(dst, alignedWidth, alignedHeight, COMPRESSED_RGB_ETC1_WEBGL);
+  }
+  else if (format === BASIS_FORMAT.cTFPVRTC1_4_RGB)
+  {
+    tex = renderer.createCompressedTexture(dst, alignedWidth, alignedHeight, COMPRESSED_RGB_PVRTC_4BPPV1_IMG);
+  }
+  else if (format === BASIS_FORMAT.cTFPVRTC1_4_RGBA)
+  {
+    tex = renderer.createCompressedTexture(dst, alignedWidth, alignedHeight, COMPRESSED_RGBA_PVRTC_4BPPV1_IMG);
   }
   else
   {
-  	var rgb565Data = dxtToRgb565(new Uint16Array(dst.buffer), 0, alignedWidth, alignedHeight);
+   canvas.width = width;
+   canvas.height = height;
+   displayWidth = width;
+   displayHeight = height;
 
-	  tex = renderer.createRgb565Texture(rgb565Data, alignedWidth, alignedHeight);
+   // Create 565 texture. 
+   var dstTex = new Uint16Array(width * height);
+   
+   // Convert the array of bytes to an array of uint16's.
+   var pix = 0;
+   for (var y = 0; y < height; y++)
+      for (var x = 0; x < width; x++, pix++)
+         dstTex[pix] = dst[2 * pix + 0] | (dst[2 * pix + 1] << 8);
+
+   tex = renderer.createRgb565Texture(dstTex, width, height);
   }
 
   redraw();
@@ -230,27 +324,25 @@ function viewAlpha() { drawMode = 2; redraw(); }
 <body>
   <br>
   <div style="font-size: 24pt; font-weight: bold">
-    .basis->BC1/BC3 transcoder test
+    .basis->Compressed texture transcoder test
   </div>
 
-  <br>This demo uses the Basis C++ transcoder (compiled to Javascript using Emscripten) to transcode a .basis file to BC1/BC3.
+  <br>This demo uses the Basis C++ transcoder (compiled to Javascript using Emscripten) to transcode a .basis file to <b id='format'>FORMAT</b>
   <br>Thanks to Evan Parker for providing <a href="https://github.com/toji/webgl-texture-utils">webgl-texture-utils</a> and this test bed.
   <br>
   <br>
       .basis file:
-      <input id="file" type="text" size=30 value="assets/kodim20.basis"></input>
+      <input id="file" type="text" size=30 value="assets/kodim20_1024x1024.basis"></input>
       <input type="button" value="Run!" onclick="runLoadFile()"></input>
   <br>
   <br>
       <input type="button" value="Alpha blend" onclick="alphaBlend()"></input>
       <input type="button" value="View RGB" onclick="viewRGB()"></input>
-	  <input type="button" value="View Alpha" onclick="viewAlpha()"></input>
+     <input type="button" value="View Alpha" onclick="viewAlpha()"></input>
 
   <div style="position:absolute; left: 525px; top:130px; font-size: 20pt; font-weight: bold; color: red">
-    <div id="nodxt" style="display: none; width: 768px; font-size: 20pt; font-weight: bold; color: red">
-      NOTE: Your browser does not support DXT, so using RGB565
-      for the texture below.  To get DXT, try Chrome 19+
-      (beta channel as of 2012-04-20; graphics card DXT support also required).
+    <div id="no-compressed-tex" style="display: none; width: 768px; font-size: 20pt; font-weight: bold; color: red">
+      NOTE: Your browser does not support several compressed texture format, so using RGB565.
     </div>
     <canvas id='canvas'></canvas>
   </div>
@@ -260,11 +352,17 @@ function viewAlpha() { drawMode = 2; redraw(); }
 <script>
   BASIS({onRuntimeInitialized : () => {
     var gl = elem('canvas').getContext('webgl');
-    // Load the DXT extension, and verify it exists.
-    if (!gl.getExtension('WEBKIT_WEBGL_compressed_texture_s3tc') && !gl.getExtension('WEBGL_compressed_texture_s3tc')) {
-      dxtSupported = false;
-      elem('nodxt').style.display = 'block';
-    }
+    
+    astcSupported = !!gl.getExtension('WEBGL_compressed_texture_astc');
+    etcSupported = !!gl.getExtension('WEBGL_compressed_texture_etc1');
+    dxtSupported = !!gl.getExtension('WEBGL_compressed_texture_s3tc');
+    pvrtcSupported = !!(gl.getExtension('WEBGL_compressed_texture_pvrtc')) || !!(gl.getExtension('WEBKIT_WEBGL_compressed_texture_pvrtc'));
+    
+   // HACK HACK - for testing uncompressed
+   //astcSupported = false;
+   //etcSupported = false;
+   //dxtSupported = false;
+   //pvrtcSupported = false;
 
     window.renderer = new Renderer(gl);
 
@@ -273,6 +371,11 @@ function viewAlpha() { drawMode = 2; redraw(); }
         runLoadFile();
       }
     }, false);
+
+    if (!(astcSupported || etcSupported || dxtSupported || pvrtcSupported))
+    {
+//      elem('nodxt').style.display = 'block';
+    }
 
     runLoadFile();
   }}).then(module => window.Module = module);

@@ -259,6 +259,14 @@ TIF_CONSTEXPR inline bool TinyImageFormat_IsDepthAndStencil(TinyImageFormat cons
 	}
 }
 
+TIF_CONSTEXPR inline bool TinyImageFormat_HasDepth(TinyImageFormat const fmt) {
+	return TinyImageFormat_IsDepthOnly(fmt) || TinyImageFormat_IsDepthAndStencil(fmt);
+}
+
+TIF_CONSTEXPR inline bool TinyImageFormat_HasStencil(TinyImageFormat const fmt) {
+	return TinyImageFormat_IsStencilOnly(fmt) || TinyImageFormat_IsDepthAndStencil(fmt);
+}
+
 TIF_CONSTEXPR inline bool TinyImageFormat_IsCLUT(TinyImageFormat const fmt) {
 	switch(fmt) {
 		case TinyImageFormat_CLUT_P4: return true;

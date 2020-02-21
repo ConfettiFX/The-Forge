@@ -25,13 +25,6 @@
 Texture2D sceneTexture		: register(t6);
 SamplerState clampMiplessLinearSampler : register(s7);
 
-cbuffer cbPerFrame : register(b3, UPDATE_FREQ_PER_FRAME) 
-{
-	float4x4	worldMat;
-	float4x4	projViewMat;
-	float4		screenSize;
-}
-
 struct VSOutput
 {
 	float4 Position : SV_POSITION;
@@ -42,17 +35,15 @@ float4 main(VSOutput input) : SV_TARGET
 {
 	float4 src = sceneTexture.Sample(clampMiplessLinearSampler, input.TexCoord);
 
-	if(screenSize.a > 0.5)
-	{
-		float2 uv = input.TexCoord;
-		float2 coord = (uv - 0.5) * (screenSize.x/screenSize.y) * 2.0;
-		float rf = sqrt(dot(coord, coord)) * 0.2;
-		float rf2_1 = rf * rf + 1.0;
-		float e = 1.0 / (rf2_1 * rf2_1);
-		//e = pow(e, 2.0);
-		//e = saturate(e + 0.5);
-		return float4(src.rgb* e, 1.0f);
-	}
-	else
-		return float4(src.rgb, 1.0f);	
+	uint width, height;
+	sceneTexture.GetDimensions(width, height);
+
+	float2 uv = input.TexCoord;
+	float2 coord = 2.0 * (uv - 0.5) * (float)width / (float)height;
+	float rf = sqrt(dot(coord, coord)) * 0.2;
+	float rf2_1 = rf * rf + 1.0;
+	float e = 1.0 / (rf2_1 * rf2_1);
+	//e = pow(e, 2.0);
+	//e = saturate(e + 0.5);
+	return float4(src.rgb* e, 1.0f);
 }

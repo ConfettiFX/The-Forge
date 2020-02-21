@@ -4,10 +4,13 @@
 
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 //EA stl
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_set.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_map.h"
+
 #include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/Renderer/IResourceLoader.h"
 
 namespace eastl
 {
@@ -31,6 +34,11 @@ namespace eastl
 #include "Shaders/Vulkan/Shader_Defs.h"
 #include "Shaders/Vulkan/ASMShader_Defs.h"
 #include "Shaders/Vulkan/SDF_Constant.h"
+#elif defined(ORBIS)
+#define NO_ORBIS_DEFINITIONS
+#include "../../../../PS4/Examples_3/Unit_Tests/src/09_LightShadowPlayground/Shaders/Shader_Defs.h"
+#include "../../../../PS4/Examples_3/Unit_Tests/src/09_LightShadowPlayground/Shaders/ASMShader_Defs.h"
+#include "../../../../PS4/Examples_3/Unit_Tests/src/09_LightShadowPlayground/Shaders/SDF_Constant.h"
 #endif
 
 
@@ -54,18 +62,6 @@ typedef struct Cluster
 	bool   valid;
 } Cluster;
 
-typedef struct AABoundingBox
-{
-	float4 Center;     // Center of the box.
-	float4 Extents;    // Distance from the center to each side.
-
-	float4 minPt;
-	float4 maxPt;
-
-	float4 corners[8];
-} AABoundingBox;
-
-
 struct FilterBatchData
 {
 	uint meshIndex; // Index into meshConstants
@@ -76,12 +72,10 @@ struct FilterBatchData
 	uint accumDrawIndex;
 	uint _pad0;
 	uint _pad1;
-
 };
 
 struct FilterBatchChunk
 {
-	FilterBatchData*	batches;
 	uint32_t			currentBatchCount;
 	uint32_t			currentDrawCallCount;
 };
@@ -104,59 +98,12 @@ typedef struct SceneVertexPos
 
 } SceneVertexPos;
 
-typedef struct SceneVertexTexCoord
+typedef struct ClusterContainer
 {
-#if defined(METAL) || defined(__linux__)
-	float u, v;    // texture coords
-#else
-	uint32_t texCoord;
-#endif
-} SceneVertexTexCoord;
-
-typedef struct SceneVertexNormal
-{
-#if defined(METAL) || defined(__linux__)
-	float nx, ny, nz;    // normals
-#else
-
-
-
-	uint32_t normal;
-#endif
-} SceneVertexNormal;
-
-typedef struct SceneVertexTangent
-{
-#if defined(METAL) || defined(__linux__)
-	float tx, ty, tz;    // tangents
-#else
-	uint32_t tangent;
-#endif
-} SceneVertexTangent;
-
-typedef struct MeshIn
-{
-#if 0 //defined(METAL)
-	uint32_t startVertex;
-	uint32_t triangleCount;
-#else
-	uint32_t startIndex;
-	uint32_t indexCount;
-#endif
-	uint32_t        vertexCount;
-	float3          minBBox, maxBBox;
 	uint32_t        clusterCount;
 	ClusterCompact* clusterCompacts;
 	Cluster*        clusters;
-	uint32_t        materialId;
-
-	AABoundingBox AABB;
-
-	Buffer* pVertexBuffer;
-	Buffer* pIndexBuffer;
-
-} MeshIn;
-
+} ClusterContainer;
 
 typedef struct Material
 {
@@ -166,17 +113,8 @@ typedef struct Material
 
 typedef struct Scene
 {
-	uint32_t                           numMeshes;
-	uint32_t                           numMaterials;
-	uint32_t                           totalTriangles;
-	uint32_t                           totalVertices;
-	MeshIn*                            meshes;
+	Geometry*                          geom;
 	Material*                          materials;
-	SceneVertexPos*                    positions;
-	SceneVertexTexCoord*               texCoords;
-	SceneVertexNormal*                 normals;
-	SceneVertexTangent*                tangents;
-	uint32_t*                          indices;
 	char**                             textures;
 	char**                             normalMaps;
 	char**                             specularMaps;
@@ -186,7 +124,7 @@ struct SDFCustomSubMeshData;
 
 struct SDFCustomSubMeshData
 {
-	AssimpImporter::Mesh* m_PSubMesh;
+	struct GLTFMesh* m_PSubMesh;
 	eastl::string mMeshName;
 	bool mIsSDFMesh;
 	bool mIsTwoSided;
@@ -232,11 +170,6 @@ struct SDFMesh
 	eastl::vector<vec3> mUncompressedNormals;
 	eastl::vector<uint32_t> mIndices;
 
-
-	uint32_t mNumMaterials = 0;
-	uint32_t mNumMeshes = 0;
-	uint32_t mTotalVertices = 0;
-	uint32_t mTotalTriangles = 0;
 	eastl::vector<SDFMeshInstance> mMeshInstances;
 	CustomSDFSubMeshDataList mCustomSubMeshDataList;
 
@@ -265,13 +198,12 @@ vec3 calculateAABBCenter(const AABB* ownerAABB);
 
 void alignAABB(AABB* ownerAABB, float alignment);
 
-void destroyClusters(MeshIn* pMesh);
-Scene* loadScene(const Path* fileName, float scale, float offsetX, float offsetY, float offsetZ);
+void destroyClusters(ClusterContainer* pMesh);
+Scene* loadScene(const Path* fileName, struct SyncToken* token, float scale, float offsetX, float offsetY, float offsetZ);
 	
 void   removeScene(Scene* scene);
 
-void   createAABB(const Scene* scene, MeshIn* subMesh);
-void   createClusters(bool twoSided, const Scene* scene, MeshIn* subMesh);
+void   createClusters(bool twoSided, const Scene* scene, IndirectDrawIndexArguments* draw, ClusterContainer* subMesh);
 
 Path* GetSDFBakedFilePath(const eastl::string& fileName);
 
@@ -288,6 +220,6 @@ void loadSDFMesh(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outM
 
 void addClusterToBatchChunk(
 	const ClusterCompact* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex,
-	FilterBatchChunk* batchChunk);
+	FilterBatchChunk* batchChunk, FilterBatchData* batches);
 
 #endif

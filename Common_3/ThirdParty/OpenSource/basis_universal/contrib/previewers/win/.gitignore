@@ -10,3 +10,4 @@ bin/x64/
 *.sdf
 *.suo
 *.opensdf
+*.aps

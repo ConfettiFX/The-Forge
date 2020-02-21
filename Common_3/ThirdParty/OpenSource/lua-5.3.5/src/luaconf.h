@@ -71,6 +71,11 @@
 #define LUA_USE_READLINE	/* needs an extra library: -lreadline */
 #endif
 
+#if defined(ORBIS)
+#define LUA_USE_C89
+#define LUA_USE_DLOPEN		/* needs an extra library: -ldl */
+#endif
+
 
 /*
 @@ LUA_C89_NUMBERS ensures that Lua uses the largest types available for

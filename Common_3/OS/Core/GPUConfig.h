@@ -68,7 +68,7 @@ static GPUPresetLevel stringToPresetLevel(eastl::string& presetLevel)
 	return GPU_PRESET_NONE;
 }
 
-#ifndef METAL
+#if !defined(METAL) && !defined(NX64)
 static GPUPresetLevel
 	getSinglePresetLevel(eastl::string line, const eastl::string& inVendorId, const eastl::string& inModelId, const eastl::string& inRevId)
 {
@@ -96,7 +96,7 @@ static GPUPresetLevel
 }
 #endif
 
-#ifndef __ANDROID__
+#if !defined(__ANDROID__) && !defined(NX64)
 //TODO: Add name matching as well.
 static void checkForPresetLevel(eastl::string line, Renderer* pRenderer)
 {
@@ -133,8 +133,7 @@ static void checkForPresetLevel(eastl::string line, Renderer* pRenderer)
 }
 #endif
 
-#ifndef METAL
-#ifndef __ANDROID__
+#if !defined(METAL) && !defined(__ANDROID__) && !defined(NX64)
 static bool checkForActiveGPU(eastl::string line, GPUVendorPreset& pActiveGpu)
 {
 	eastl::string vendorId;
@@ -158,9 +157,8 @@ static bool checkForActiveGPU(eastl::string line, GPUVendorPreset& pActiveGpu)
 	return true;
 }
 #endif
-#endif
 
-#ifndef __ANDROID__
+#if !defined(__ANDROID__) && !defined(NX64)
 //Reads the gpu config and sets the preset level of all available gpu's
 static void setGPUPresetLevel(Renderer* pRenderer)
 {
@@ -184,7 +182,7 @@ static void setGPUPresetLevel(Renderer* pRenderer)
 #endif
 
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || defined(NX64)
 //Reads the gpu config and sets the preset level of all available gpu's
 static GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::string modelId, const eastl::string revId)
 {
@@ -195,7 +193,7 @@ static GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const east
 #endif
 
 
-#if !defined(METAL) && !defined(__ANDROID__)
+#if !defined(METAL) && !defined(__ANDROID__) && !defined(NX64)
 //Reads the gpu config and sets the preset level of all available gpu's
 static GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::string modelId, const eastl::string revId)
 {

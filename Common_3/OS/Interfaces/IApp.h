@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -195,6 +195,24 @@ public:
 		IApp::argv = (const char**)argv;                    \
 		appClass app;                                       \
 		return LinuxMain(argc, argv, &app);                 \
+	}
+#elif defined(NX64)
+#define DEFINE_APPLICATION_MAIN(appClass)                   \
+	extern void NxMain(IApp* app);					\
+                                                            \
+	extern "C" void nnMain()								\
+	{														\
+		appClass app;                                       \
+		NxMain(&app);									\
+	}
+#elif defined(ORBIS)
+#define DEFINE_APPLICATION_MAIN(appClass)                   \
+	extern int OrbisMain(int argc, char** argv, IApp* app); \
+                                                            \
+	int main(int argc, char** argv)                         \
+	{                                                       \
+		appClass app;                                       \
+		return OrbisMain(argc, argv, &app);                 \
 	}
 #else
 #endif

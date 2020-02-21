@@ -1,7 +1,7 @@
 #version 450 core
 
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -40,12 +40,14 @@ layout (std140, UPDATE_FREQ_PER_DRAW, binding=0) uniform cbObject
 
 layout (push_constant) uniform cbTextureRootConstantsData
 {
-	uint albedoMap;
-	uint normalMap;
-	uint metallicMap;
-	uint roughnessMap;
-	uint aoMap;
+	uint textureMapIds;
 } cbTextureRootConstants;
+
+#define albedoMap     ((cbTextureRootConstants.textureMapIds >> 0) & 0xFF)
+#define normalMap     ((cbTextureRootConstants.textureMapIds >> 8) & 0xFF)
+#define metallicMap   ((cbTextureRootConstants.textureMapIds >> 16) & 0xFF)
+#define roughnessMap  ((cbTextureRootConstants.textureMapIds >> 24) & 0xFF)
+#define aoMap         (5)
 
 layout(location = 0) in vec3 normal;
 layout(location = 1) in vec3 pos;
@@ -70,7 +72,7 @@ vec3 reconstructNormal(in vec4 sampleNormal)
 
 vec3 getNormalFromMap()
 {
-    vec3 tangentNormal = reconstructNormal(texture(sampler2D(textureMaps[cbTextureRootConstants.normalMap], defaultSampler),uv));
+    vec3 tangentNormal = reconstructNormal(texture(sampler2D(textureMaps[normalMap], defaultSampler),uv));
 
     vec3 Q1  = dFdx(pos);
     vec3 Q2  = dFdy(pos);
@@ -88,7 +90,7 @@ vec3 getNormalFromMap()
 void main()
 {	
 	//cut off
-	float alpha = texture(sampler2D(textureMaps[cbTextureRootConstants.albedoMap], defaultSampler),uv).a;
+	float alpha = texture(sampler2D(textureMaps[albedoMap], defaultSampler),uv).a;
 
 	if(alpha < 0.5)
 		discard;
@@ -107,10 +109,10 @@ void main()
 	if(pbrMaterials!=-1) {
 
 		 N = getNormalFromMap();
-		albedo = pow(texture(sampler2D(textureMaps[cbTextureRootConstants.albedoMap], defaultSampler),uv).rgb,vec3(2.2)) ;
-		_metalness   = texture(sampler2D(textureMaps[cbTextureRootConstants.metallicMap], defaultSampler), uv).r;
-		_roughness = texture(sampler2D(textureMaps[cbTextureRootConstants.roughnessMap], defaultSampler), uv).r;
-		ao = texture(sampler2D(textureMaps[cbTextureRootConstants.aoMap], defaultSampler), uv).r;
+		albedo = pow(texture(sampler2D(textureMaps[albedoMap], defaultSampler),uv).rgb,vec3(2.2)) ;
+		_metalness   = texture(sampler2D(textureMaps[metallicMap], defaultSampler), uv).r;
+		_roughness = texture(sampler2D(textureMaps[roughnessMap], defaultSampler), uv).r;
+		ao = texture(sampler2D(textureMaps[aoMap], defaultSampler), uv).r;
 	} 
 
 	if(pbrMaterials==2) {

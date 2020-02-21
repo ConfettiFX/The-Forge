@@ -24,7 +24,9 @@ static gainput::InputManager* gGainputInputManager;
 #elif defined(GAINPUT_PLATFORM_IOS) || defined(GAINPUT_PLATFORM_MAC) || defined(GAINPUT_PLATFORM_TVOS)
 #include <mach/mach.h>
 #include <mach/clock.h>
-#elif defined(GAINPUT_PLATFORM_GGP)
+#elif defined(GAINPUT_PLATFORM_GGP) || defined(GAINPUT_PLATFORM_NX64)
+#include <time.h>
+#elif defined(GAINPUT_PLATFORM_ORBIS)
 #include <time.h>
 #endif
 
@@ -205,7 +207,7 @@ InputManager::GetTime() const
 {
 	if (useSystemTime_)
 	{
-#if defined(GAINPUT_PLATFORM_LINUX) || defined(GAINPUT_PLATFORM_ANDROID) || defined(GAINPUT_PLATFORM_GGP)
+#if defined(GAINPUT_PLATFORM_LINUX) || defined(GAINPUT_PLATFORM_ANDROID) || defined(GAINPUT_PLATFORM_GGP) || defined(GAINPUT_PLATFORM_ORBIS)
 	struct timespec ts;
 	if (clock_gettime(CLOCK_MONOTONIC, &ts) == -1)
 	{
@@ -232,6 +234,15 @@ InputManager::GetTime() const
 	clock_get_time(cclock, &mts);
 	mach_port_deallocate(mach_task_self(), cclock);
 	uint64_t t = mts.tv_sec*1000ul + mts.tv_nsec/1000000ul;
+	return t;
+#elif defined(GAINPUT_PLATFORM_NX64)	
+	struct timespec ts;
+	if (clock_gettime(CLOCK_MONOTONIC, &ts) == -1)
+	{
+		return -1;
+	}
+
+	uint64_t t = ts.tv_sec * 1000ul + ts.tv_nsec / 1000000ul;
 	return t;
 #else
 #error Gainput: No time support

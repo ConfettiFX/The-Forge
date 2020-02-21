@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2019 Confetti Interactive Inc.
+* Copyright (c) 2018-2020 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -40,12 +40,16 @@ void main()
 {
 	vec4 finalColor = Shade(MatID, UV.xy, WorldPosition.xyz, normalize(Normal.xyz));
 
+#ifndef TARGET_SWITCH
 	beginInvocationInterlockARB();
+#endif
 	if(finalColor.a > 0.01f)
 	{
 		WriteNewPixelToAOIT(gl_FragCoord.xy, gl_FragCoord.z, finalColor);
 	}
+#ifndef TARGET_SWITCH
 	endInvocationInterlockARB();
+#endif
 
 	discard;
 }

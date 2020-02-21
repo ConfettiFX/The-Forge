@@ -46,8 +46,6 @@
 		D0796AEB211ED7A70028AFFD /* ozz_base_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0796AE9211ED7950028AFFD /* ozz_base_IOS.a */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
-		E9A438F7233DC6D9005BF1C7 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A438F2233DC6D6005BF1C7 /* libbz2.tbd */; };
-		E9A438F9233DC6E5005BF1C7 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A438F8233DC6E2005BF1C7 /* libbz2.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -271,7 +269,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E9A438F9233DC6E5005BF1C7 /* libbz2.tbd in Frameworks */,
 				650CCC9C2223CFAA003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				B2541CFD21751B5B00F702BB /* libThe-Forge_iOS.a in Frameworks */,
 				D0796AEA211ED7A70028AFFD /* ozz_animation_IOS.a in Frameworks */,
@@ -293,7 +290,6 @@
 				B2C44079211E2563008F57D5 /* ozz_base.a in Frameworks */,
 				B22D906920E2EDCE0036B88E /* Metal.framework in Frameworks */,
 				B22D906A20E2EDCE0036B88E /* MetalKit.framework in Frameworks */,
-				E9A438F7233DC6D9005BF1C7 /* libbz2.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

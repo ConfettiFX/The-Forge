@@ -1,7 +1,7 @@
 #version 450 core
 
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -48,17 +48,12 @@ layout(std140, UPDATE_FREQ_PER_DRAW, binding = 1) uniform boneMatrices
 	 mat4 boneMatrix[MAX_NUM_BONES];
 };
 
-layout(std140, UPDATE_FREQ_NONE, binding = 2) uniform boneOffsetMatrices
-{
-	mat4 boneOffsetMatrix[MAX_NUM_BONES];
-};
-
 void main ()
 {
-	mat4 boneTransform = boneMatrix[iBoneIndices[0]] * boneOffsetMatrix[iBoneIndices[0]] * iBoneWeights[0];
-	boneTransform += boneMatrix[iBoneIndices[1]] * boneOffsetMatrix[iBoneIndices[1]] * iBoneWeights[1];
-	boneTransform += boneMatrix[iBoneIndices[2]] * boneOffsetMatrix[iBoneIndices[2]] * iBoneWeights[2];
-	boneTransform += boneMatrix[iBoneIndices[3]] * boneOffsetMatrix[iBoneIndices[3]] * iBoneWeights[3];
+	mat4 boneTransform = boneMatrix[iBoneIndices[0]] * iBoneWeights[0];
+	boneTransform += boneMatrix[iBoneIndices[1]] * iBoneWeights[1];
+	boneTransform += boneMatrix[iBoneIndices[2]] * iBoneWeights[2];
+	boneTransform += boneMatrix[iBoneIndices[3]] * iBoneWeights[3];
 
 	gl_Position = boneTransform * vec4(iPosition, 1.0f);
 	gl_Position = modelMatrix * gl_Position;

@@ -17,7 +17,6 @@
 		B263CCAD22EE53AA00359273 /* Geometry.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B263CCA722EE53A900359273 /* Geometry.cpp */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
-		E9A43914233DCF60005BF1C7 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A43912233DCF5D005BF1C7 /* libbz2.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -131,7 +130,6 @@
 				B261158C22ED19D800F1B035 /* ModelIO.framework in Frameworks */,
 				650CCC612223C8BB003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				B2087DF321421A66006F372D /* MetalKit.framework in Frameworks */,
-				E9A43914233DCF60005BF1C7 /* libbz2.tbd in Frameworks */,
 				B2087DF421421A66006F372D /* Metal.framework in Frameworks */,
 				5C172FB021414B730074EE71 /* libThe-Forge.a in Frameworks */,
 			);

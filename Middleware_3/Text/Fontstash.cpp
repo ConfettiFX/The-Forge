@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -41,7 +41,7 @@
 #include "../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../Common_3/OS/Core/RingBuffer.h"
 #include "../../Common_3/Renderer/IRenderer.h"
-#include "../../Common_3/Renderer/ResourceLoader.h"
+#include "../../Common_3/Renderer/IResourceLoader.h"
 
 #include "../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../Common_3/ThirdParty/OpenSource/tinyimageformat/tinyimageformat_query.h"
@@ -83,7 +83,7 @@ public:
 		TextureLoadDesc loadDesc = {};
 		loadDesc.ppTexture = &pCurrentTexture;
 		loadDesc.pDesc = &desc;
-		addResource(&loadDesc);
+		addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		// create FONS context
 		FONSparams params;
@@ -496,9 +496,9 @@ void _Impl_FontStash::fonsImplementationRenderText(
 
 	if (ctx->mUpdateTexture)
 	{
-		waitQueueIdle(pCmd->pCmdPool->pQueue);
+		waitQueueIdle(pCmd->mDesc.pPool->pQueue);
 
-		RawImageData rawData;
+		RawImageData rawData = {};
 		rawData.pRawData = (uint8_t*)ctx->pPixels;
 		rawData.mFormat = TinyImageFormat_R8_UNORM;
 		rawData.mWidth = ctx->mWidth;
@@ -507,16 +507,21 @@ void _Impl_FontStash::fonsImplementationRenderText(
 		rawData.mArraySize = 1;
 		rawData.mMipLevels = 1;
 
+		SyncToken token = {};
 		TextureUpdateDesc updateDesc = {};
 		updateDesc.pTexture = ctx->pCurrentTexture;
 		updateDesc.pRawImageData = &rawData;
-		updateResource(&updateDesc);
+		beginUpdateResource(&updateDesc);
+		endUpdateResource(&updateDesc, &token);
+		waitForToken(&token);
 
 		ctx->mUpdateTexture = false;
 	}
 
-	float4* vtx = (float4*)alloca(nverts * sizeof(float4));
-
+	GPURingBufferOffset buffer = getGPURingBufferOffset(ctx->pMeshRingBuffer, nverts * sizeof(float4));
+	BufferUpdateDesc update = { buffer.pBuffer, buffer.mOffset };
+	beginUpdateResource(&update);
+	float4* vtx = (float4*)update.pMappedData;
 	// build vertices
 	for (int impl = 0; impl < nverts; impl++)
 	{
@@ -525,10 +530,7 @@ void _Impl_FontStash::fonsImplementationRenderText(
 		vtx[impl].setZ(tcoords[impl * 2 + 0]);
 		vtx[impl].setW(tcoords[impl * 2 + 1]);
 	}
-
-	GPURingBufferOffset buffer = getGPURingBufferOffset(ctx->pMeshRingBuffer, nverts * sizeof(float4));
-	BufferUpdateDesc update = { buffer.pBuffer, vtx, 0, buffer.mOffset, nverts * sizeof(float4) };
-	updateResource(&update);
+	endUpdateResource(&update, NULL);
 
 	// extract color
 	ubyte* colorByte = (ubyte*)colors;
@@ -559,8 +561,10 @@ void _Impl_FontStash::fonsImplementationRenderText(
 
 		GPURingBufferOffset uniformBlock = {};
 		uniformBlock = getGPURingBufferOffset(ctx->pUniformRingBuffer, sizeof(mvp));
-		BufferUpdateDesc updateDesc = { uniformBlock.pBuffer, &mvp, 0, uniformBlock.mOffset, sizeof(mvp) };
-		updateResource(&updateDesc);
+		BufferUpdateDesc updateDesc = { uniformBlock.pBuffer, uniformBlock.mOffset };
+		beginUpdateResource(&updateDesc);
+		*((mat4*)updateDesc.pMappedData) = mvp;
+		endUpdateResource(&updateDesc, NULL);
 
 		uint64_t size = sizeof(mvp);
 

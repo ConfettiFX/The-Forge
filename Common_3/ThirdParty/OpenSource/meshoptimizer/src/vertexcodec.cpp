@@ -1,6 +1,9 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
 #include "meshoptimizer.h"
 
+#include <assert.h>
+#include <string.h>
+
 #if defined(__ARM_NEON__) || defined(__ARM_NEON)
 #define SIMD_NEON
 #endif
@@ -9,18 +12,44 @@
 #define SIMD_SSE
 #endif
 
-#if !defined(SIMD_SSE) && defined(_MSC_VER) && !defined(__clang__) && (defined(_M_IX86) || defined(_M_X64))
+#if defined(__AVX512VBMI2__) && defined(__AVX512VBMI__) && defined(__AVX512VL__) && defined(__POPCNT__)
+#undef SIMD_SSE
+#define SIMD_AVX
+#endif
+
+#if !defined(SIMD_SSE) && !defined(SIMD_AVX) && defined(_MSC_VER) && !defined(__clang__) && (defined(_M_IX86) || defined(_M_X64))
 #define SIMD_SSE
 #define SIMD_FALLBACK
 #include <intrin.h> // __cpuid
+#endif
+
+// GCC 4.9+ and clang 3.8+ support targeting SIMD instruction sets from individual functions
+#if !defined(SIMD_SSE) && !defined(SIMD_AVX) && ((defined(__clang__) && __clang_major__ * 100 + __clang_minor__ >= 308) || (defined(__GNUC__) && __GNUC__ * 100 + __GNUC_MINOR__ >= 409)) && (defined(__i386__) || defined(__x86_64__))
+#define SIMD_SSE
+#define SIMD_FALLBACK
+#define SIMD_TARGET __attribute__((target("ssse3")))
+#include <cpuid.h> // __cpuid
 #endif
 
 #if !defined(SIMD_NEON) && defined(_MSC_VER) && (defined(_M_ARM) || defined(_M_ARM64))
 #define SIMD_NEON
 #endif
 
+// WebAssembly SIMD implementation requires a few bleeding edge intrinsics that are only available in Chrome Canary
+#if defined(__wasm_simd128__) && defined(__wasm_unimplemented_simd128__)
+#define SIMD_WASM
+#endif
+
+#ifndef SIMD_TARGET
+#define SIMD_TARGET
+#endif
+
 #ifdef SIMD_SSE
 #include <tmmintrin.h>
+#endif
+
+#ifdef SIMD_AVX
+#include <immintrin.h>
 #endif
 
 #ifdef SIMD_NEON
@@ -31,8 +60,27 @@
 #endif
 #endif
 
+#ifdef SIMD_WASM
+#include <wasm_simd128.h>
+#endif
+
 #ifndef TRACE
 #define TRACE 0
+#endif
+
+#if TRACE
+#include <stdio.h>
+#endif
+
+#ifdef SIMD_WASM
+#define wasmx_shuffle_v32x4(v, i, j, k, l) wasm_v8x16_shuffle(v, v, 4 * i, 4 * i + 1, 4 * i + 2, 4 * i + 3, 4 * j, 4 * j + 1, 4 * j + 2, 4 * j + 3, 4 * k, 4 * k + 1, 4 * k + 2, 4 * k + 3, 4 * l, 4 * l + 1, 4 * l + 2, 4 * l + 3)
+#define wasmx_splat_v32x4(v, i) wasmx_shuffle_v32x4(v, i, i, i, i)
+#define wasmx_unpacklo_v8x16(a, b) wasm_v8x16_shuffle(a, b, 0, 16, 1, 17, 2, 18, 3, 19, 4, 20, 5, 21, 6, 22, 7, 23)
+#define wasmx_unpackhi_v8x16(a, b) wasm_v8x16_shuffle(a, b, 8, 24, 9, 25, 10, 26, 11, 27, 12, 28, 13, 29, 14, 30, 15, 31)
+#define wasmx_unpacklo_v16x8(a, b) wasm_v8x16_shuffle(a, b, 0, 1, 16, 17, 2, 3, 18, 19, 4, 5, 20, 21, 6, 7, 22, 23)
+#define wasmx_unpackhi_v16x8(a, b) wasm_v8x16_shuffle(a, b, 8, 9, 24, 25, 10, 11, 26, 27, 12, 13, 28, 29, 14, 15, 30, 31)
+#define wasmx_unpacklo_v64x2(a, b) wasm_v8x16_shuffle(a, b, 0, 1, 2, 3, 4, 5, 6, 7, 16, 17, 18, 19, 20, 21, 22, 23)
+#define wasmx_unpackhi_v64x2(a, b) wasm_v8x16_shuffle(a, b, 8, 9, 10, 11, 12, 13, 14, 15, 24, 25, 26, 27, 28, 29, 30, 31)
 #endif
 
 namespace meshopt
@@ -91,7 +139,7 @@ static bool encodeBytesGroupZero(const unsigned char* buffer)
 
 static size_t encodeBytesGroupMeasure(const unsigned char* buffer, int bits)
 {
-	ASSERT(bits >= 1 && bits <= 8);
+	assert(bits >= 1 && bits <= 8);
 
 	if (bits == 1)
 		return encodeBytesGroupZero(buffer) ? 0 : size_t(-1);
@@ -111,7 +159,7 @@ static size_t encodeBytesGroupMeasure(const unsigned char* buffer, int bits)
 
 static unsigned char* encodeBytesGroup(unsigned char* data, const unsigned char* buffer, int bits)
 {
-	ASSERT(bits >= 1 && bits <= 8);
+	assert(bits >= 1 && bits <= 8);
 
 	if (bits == 1)
 		return data;
@@ -123,7 +171,7 @@ static unsigned char* encodeBytesGroup(unsigned char* data, const unsigned char*
 	}
 
 	size_t byte_size = 8 / bits;
-	ASSERT(kByteGroupSize % byte_size == 0);
+	assert(kByteGroupSize % byte_size == 0);
 
 	// fixed portion: bits bits for each value
 	// variable portion: full byte for each out-of-range value (using 1...1 as sentinel)
@@ -157,7 +205,7 @@ static unsigned char* encodeBytesGroup(unsigned char* data, const unsigned char*
 
 static unsigned char* encodeBytes(unsigned char* data, unsigned char* data_end, const unsigned char* buffer, size_t buffer_size)
 {
-	ASSERT(buffer_size % kByteGroupSize == 0);
+	assert(buffer_size % kByteGroupSize == 0);
 
 	unsigned char* header = data;
 
@@ -191,7 +239,7 @@ static unsigned char* encodeBytes(unsigned char* data, unsigned char* data_end, 
 		}
 
 		int bitslog2 = (best_bits == 1) ? 0 : (best_bits == 2) ? 1 : (best_bits == 4) ? 2 : 3;
-		ASSERT((1 << bitslog2) == best_bits);
+		assert((1 << bitslog2) == best_bits);
 
 		size_t header_offset = i / kByteGroupSize;
 
@@ -199,7 +247,7 @@ static unsigned char* encodeBytes(unsigned char* data, unsigned char* data_end, 
 
 		unsigned char* next = encodeBytesGroup(data, buffer + i, best_bits);
 
-		ASSERT(data + best_size == next);
+		assert(data + best_size == next);
 		data = next;
 
 #if TRACE > 1
@@ -217,10 +265,10 @@ static unsigned char* encodeBytes(unsigned char* data, unsigned char* data_end, 
 
 static unsigned char* encodeVertexBlock(unsigned char* data, unsigned char* data_end, const unsigned char* vertex_data, size_t vertex_count, size_t vertex_size, unsigned char last_vertex[256])
 {
-	ASSERT(vertex_count > 0 && vertex_count <= kVertexBlockMaxSize);
+	assert(vertex_count > 0 && vertex_count <= kVertexBlockMaxSize);
 
 	unsigned char buffer[kVertexBlockMaxSize];
-	ASSERT(sizeof(buffer) % kByteGroupSize == 0);
+	assert(sizeof(buffer) % kByteGroupSize == 0);
 
 	// we sometimes encode elements we didn't fill when rounding to kByteGroupSize
 	memset(buffer, 0, sizeof(buffer));
@@ -260,7 +308,7 @@ static unsigned char* encodeVertexBlock(unsigned char* data, unsigned char* data
 	return data;
 }
 
-#if defined(SIMD_FALLBACK) || (!defined(SIMD_SSE) && !defined(SIMD_NEON))
+#if defined(SIMD_FALLBACK) || (!defined(SIMD_SSE) && !defined(SIMD_NEON) && !defined(SIMD_AVX))
 static const unsigned char* decodeBytesGroup(const unsigned char* data, unsigned char* buffer, int bitslog2)
 {
 #define READ() byte = *data++
@@ -302,7 +350,7 @@ static const unsigned char* decodeBytesGroup(const unsigned char* data, unsigned
 		memcpy(buffer, data, kByteGroupSize);
 		return data + kByteGroupSize;
 	default:
-		ASSERT(!"Unexpected bit length"); // This can never happen since bitslog2 is a 2-bit value
+		assert(!"Unexpected bit length"); // unreachable since bitslog2 is a 2-bit value
 		return data;
 	}
 
@@ -312,7 +360,7 @@ static const unsigned char* decodeBytesGroup(const unsigned char* data, unsigned
 
 static const unsigned char* decodeBytes(const unsigned char* data, const unsigned char* data_end, unsigned char* buffer, size_t buffer_size)
 {
-	ASSERT(buffer_size % kByteGroupSize == 0);
+	assert(buffer_size % kByteGroupSize == 0);
 
 	const unsigned char* header = data;
 
@@ -341,7 +389,7 @@ static const unsigned char* decodeBytes(const unsigned char* data, const unsigne
 
 static const unsigned char* decodeVertexBlock(const unsigned char* data, const unsigned char* data_end, unsigned char* vertex_data, size_t vertex_count, size_t vertex_size, unsigned char last_vertex[256])
 {
-	ASSERT(vertex_count > 0 && vertex_count <= kVertexBlockMaxSize);
+	assert(vertex_count > 0 && vertex_count <= kVertexBlockMaxSize);
 
 	unsigned char buffer[kVertexBlockMaxSize];
 	unsigned char transposed[kVertexBlockSizeBytes];
@@ -377,11 +425,15 @@ static const unsigned char* decodeVertexBlock(const unsigned char* data, const u
 }
 #endif
 
-#if defined(SIMD_SSE) || defined(SIMD_NEON)
+#if defined(SIMD_SSE) || defined(SIMD_NEON) || defined(SIMD_WASM)
 static unsigned char kDecodeBytesGroupShuffle[256][8];
 static unsigned char kDecodeBytesGroupCount[256];
 
-static bool decodeBytesGroupBuildTables()
+#ifdef EMSCRIPTEN
+__attribute__((cold)) // this saves 500 bytes in the output binary - we don't need to vectorize this loop!
+#endif
+static bool
+decodeBytesGroupBuildTables()
 {
 	for (int mask = 0; mask < 256; ++mask)
 	{
@@ -406,6 +458,7 @@ static bool gDecodeBytesGroupInitialized = decodeBytesGroupBuildTables();
 #endif
 
 #ifdef SIMD_SSE
+SIMD_TARGET
 static __m128i decodeShuffleMask(unsigned char mask0, unsigned char mask1)
 {
 	__m128i sm0 = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&kDecodeBytesGroupShuffle[mask0]));
@@ -417,27 +470,7 @@ static __m128i decodeShuffleMask(unsigned char mask0, unsigned char mask1)
 	return _mm_unpacklo_epi64(sm0, sm1r);
 }
 
-static void transpose8(__m128i& x0, __m128i& x1, __m128i& x2, __m128i& x3)
-{
-	__m128i t0 = _mm_unpacklo_epi8(x0, x1);
-	__m128i t1 = _mm_unpackhi_epi8(x0, x1);
-	__m128i t2 = _mm_unpacklo_epi8(x2, x3);
-	__m128i t3 = _mm_unpackhi_epi8(x2, x3);
-
-	x0 = _mm_unpacklo_epi16(t0, t2);
-	x1 = _mm_unpackhi_epi16(t0, t2);
-	x2 = _mm_unpacklo_epi16(t1, t3);
-	x3 = _mm_unpackhi_epi16(t1, t3);
-}
-
-static __m128i unzigzag8(__m128i v)
-{
-	__m128i xl = _mm_sub_epi8(_mm_setzero_si128(), _mm_and_si128(v, _mm_set1_epi8(1)));
-	__m128i xr = _mm_and_si128(_mm_srli_epi16(v, 1), _mm_set1_epi8(127));
-
-	return _mm_xor_si128(xl, xr);
-}
-
+SIMD_TARGET
 static const unsigned char* decodeBytesGroupSimd(const unsigned char* data, unsigned char* buffer, int bitslog2)
 {
 	switch (bitslog2)
@@ -504,9 +537,7 @@ static const unsigned char* decodeBytesGroupSimd(const unsigned char* data, unsi
 
 	case 3:
 	{
-		__m128i rest = _mm_loadu_si128(reinterpret_cast<const __m128i*>(data));
-
-		__m128i result = rest;
+		__m128i result = _mm_loadu_si128(reinterpret_cast<const __m128i*>(data));
 
 		_mm_storeu_si128(reinterpret_cast<__m128i*>(buffer), result);
 
@@ -514,7 +545,66 @@ static const unsigned char* decodeBytesGroupSimd(const unsigned char* data, unsi
 	}
 
 	default:
-		ASSERT(!"Unexpected bit length"); // This can never happen since bitslog2 is a 2-bit value
+		assert(!"Unexpected bit length"); // unreachable since bitslog2 is a 2-bit value
+		return data;
+	}
+}
+#endif
+
+#ifdef SIMD_AVX
+static const __m128i decodeBytesGroupConfig[] = {
+    _mm_set1_epi8(3),
+    _mm_set1_epi8(15),
+    _mm_setr_epi8(6, 4, 2, 0, 14, 12, 10, 8, 22, 20, 18, 16, 30, 28, 26, 24),
+    _mm_setr_epi8(4, 0, 12, 8, 20, 16, 28, 24, 36, 32, 44, 40, 52, 48, 60, 56),
+};
+
+static const unsigned char* decodeBytesGroupSimd(const unsigned char* data, unsigned char* buffer, int bitslog2)
+{
+	switch (bitslog2)
+	{
+	case 0:
+	{
+		__m128i result = _mm_setzero_si128();
+
+		_mm_storeu_si128(reinterpret_cast<__m128i*>(buffer), result);
+
+		return data;
+	}
+
+	case 1:
+	case 2:
+	{
+		const unsigned char* skip = data + (bitslog2 << 2);
+
+		__m128i selb = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(data));
+		__m128i rest = _mm_loadu_si128(reinterpret_cast<const __m128i*>(skip));
+
+		__m128i sent = decodeBytesGroupConfig[bitslog2 - 1];
+		__m128i ctrl = decodeBytesGroupConfig[bitslog2 + 1];
+
+		__m128i selw = _mm_shuffle_epi32(selb, 0x44);
+		__m128i sel = _mm_and_si128(sent, _mm_multishift_epi64_epi8(ctrl, selw));
+		__mmask16 mask16 = _mm_cmp_epi8_mask(sel, sent, _MM_CMPINT_EQ);
+
+		__m128i result = _mm_mask_expand_epi8(sel, mask16, rest);
+
+		_mm_storeu_si128(reinterpret_cast<__m128i*>(buffer), result);
+
+		return skip + _mm_popcnt_u32(mask16);
+	}
+
+	case 3:
+	{
+		__m128i result = _mm_loadu_si128(reinterpret_cast<const __m128i*>(data));
+
+		_mm_storeu_si128(reinterpret_cast<__m128i*>(buffer), result);
+
+		return data + 16;
+	}
+
+	default:
+		assert(!"Unexpected bit length"); // unreachable since bitslog2 is a 2-bit value
 		return data;
 	}
 }
@@ -552,28 +642,6 @@ static void neonMoveMask(uint8x16_t mask, unsigned char& mask0, unsigned char& m
 	mask0 = vget_lane_u8(sum3, 0);
 	mask1 = vget_lane_u8(sum3, 1);
 #endif
-}
-
-static void transpose8(uint8x16_t& x0, uint8x16_t& x1, uint8x16_t& x2, uint8x16_t& x3)
-{
-	uint8x16x2_t t01 = vzipq_u8(x0, x1);
-	uint8x16x2_t t23 = vzipq_u8(x2, x3);
-
-	uint16x8x2_t x01 = vzipq_u16(vreinterpretq_u16_u8(t01.val[0]), vreinterpretq_u16_u8(t23.val[0]));
-	uint16x8x2_t x23 = vzipq_u16(vreinterpretq_u16_u8(t01.val[1]), vreinterpretq_u16_u8(t23.val[1]));
-
-	x0 = vreinterpretq_u8_u16(x01.val[0]);
-	x1 = vreinterpretq_u8_u16(x01.val[1]);
-	x2 = vreinterpretq_u8_u16(x23.val[0]);
-	x3 = vreinterpretq_u8_u16(x23.val[1]);
-}
-
-static uint8x16_t unzigzag8(uint8x16_t v)
-{
-	uint8x16_t xl = vreinterpretq_u8_s8(vnegq_s8(vreinterpretq_s8_u8(vandq_u8(v, vdupq_n_u8(1)))));
-	uint8x16_t xr = vshrq_n_u8(v, 1);
-
-	return veorq_u8(xl, xr);
 }
 
 static const unsigned char* decodeBytesGroupSimd(const unsigned char* data, unsigned char* buffer, int bitslog2)
@@ -632,9 +700,7 @@ static const unsigned char* decodeBytesGroupSimd(const unsigned char* data, unsi
 
 	case 3:
 	{
-		uint8x16_t rest = vld1q_u8(data);
-
-		uint8x16_t result = rest;
+		uint8x16_t result = vld1q_u8(data);
 
 		vst1q_u8(buffer, result);
 
@@ -642,17 +708,203 @@ static const unsigned char* decodeBytesGroupSimd(const unsigned char* data, unsi
 	}
 
 	default:
-		ASSERT(!"Unexpected bit length"); // This can never happen since bitslog2 is a 2-bit value
+		assert(!"Unexpected bit length"); // unreachable since bitslog2 is a 2-bit value
 		return data;
 	}
 }
 #endif
 
-#if defined(SIMD_SSE) || defined(SIMD_NEON)
+#ifdef SIMD_WASM
+static v128_t decodeShuffleMask(unsigned char mask0, unsigned char mask1)
+{
+	// TODO: 8b buffer overrun - should we use splat or extend buffers?
+	v128_t sm0 = wasm_v128_load(&kDecodeBytesGroupShuffle[mask0]);
+	v128_t sm1 = wasm_v128_load(&kDecodeBytesGroupShuffle[mask1]);
+
+	// TODO: we should use v8x16_load_splat
+	v128_t sm1off = wasm_v128_load(&kDecodeBytesGroupCount[mask0]);
+	sm1off = wasm_v8x16_shuffle(sm1off, sm1off, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+	v128_t sm1r = wasm_i8x16_add(sm1, sm1off);
+
+	return wasmx_unpacklo_v64x2(sm0, sm1r);
+}
+
+static void wasmMoveMask(v128_t mask, unsigned char& mask0, unsigned char& mask1)
+{
+	v128_t mask_0 = wasmx_shuffle_v32x4(mask, 0, 2, 1, 3);
+
+	// TODO: when Chrome supports v128.const we can try doing vectorized and?
+	uint64_t mask_1a = wasm_i64x2_extract_lane(mask_0, 0) & 0x0804020108040201ull;
+	uint64_t mask_1b = wasm_i64x2_extract_lane(mask_0, 1) & 0x8040201080402010ull;
+
+	uint64_t mask_2 = mask_1a | mask_1b;
+	uint64_t mask_4 = mask_2 | (mask_2 >> 16);
+	uint64_t mask_8 = mask_4 | (mask_4 >> 8);
+
+	mask0 = uint8_t(mask_8);
+	mask1 = uint8_t(mask_8 >> 32);
+}
+
+static const unsigned char* decodeBytesGroupSimd(const unsigned char* data, unsigned char* buffer, int bitslog2)
+{
+	unsigned char byte, enc, encv;
+	const unsigned char* data_var;
+
+	switch (bitslog2)
+	{
+	case 0:
+	{
+		v128_t result = wasm_i8x16_splat(0);
+
+		wasm_v128_store(buffer, result);
+
+		return data;
+	}
+
+	case 1:
+	{
+		// TODO: test 4b load splat
+		v128_t sel2 = wasm_v128_load(data);
+		v128_t rest = wasm_v128_load(data + 4);
+
+		v128_t sel22 = wasmx_unpacklo_v8x16(wasm_i16x8_shr(sel2, 4), sel2);
+		v128_t sel2222 = wasmx_unpacklo_v8x16(wasm_i16x8_shr(sel22, 2), sel22);
+		v128_t sel = wasm_v128_and(sel2222, wasm_i8x16_splat(3));
+
+		v128_t mask = wasm_i8x16_eq(sel, wasm_i8x16_splat(3));
+
+		unsigned char mask0, mask1;
+		wasmMoveMask(mask, mask0, mask1);
+
+		v128_t shuf = decodeShuffleMask(mask0, mask1);
+
+		// TODO: test or/andnot
+		v128_t result = wasm_v128_bitselect(wasm_v8x16_swizzle(rest, shuf), sel, mask);
+
+		wasm_v128_store(buffer, result);
+
+		return data + 4 + kDecodeBytesGroupCount[mask0] + kDecodeBytesGroupCount[mask1];
+	}
+
+	case 2:
+	{
+		// TODO: test 8b load splat
+		v128_t sel4 = wasm_v128_load(data);
+		v128_t rest = wasm_v128_load(data + 8);
+
+		v128_t sel44 = wasmx_unpacklo_v8x16(wasm_i16x8_shr(sel4, 4), sel4);
+		v128_t sel = wasm_v128_and(sel44, wasm_i8x16_splat(15));
+
+		v128_t mask = wasm_i8x16_eq(sel, wasm_i8x16_splat(15));
+
+		unsigned char mask0, mask1;
+		wasmMoveMask(mask, mask0, mask1);
+
+		v128_t shuf = decodeShuffleMask(mask0, mask1);
+
+		// TODO: test or/andnot
+		v128_t result = wasm_v128_bitselect(wasm_v8x16_swizzle(rest, shuf), sel, mask);
+
+		wasm_v128_store(buffer, result);
+
+		return data + 8 + kDecodeBytesGroupCount[mask0] + kDecodeBytesGroupCount[mask1];
+	}
+
+	case 3:
+	{
+		v128_t result = wasm_v128_load(data);
+
+		wasm_v128_store(buffer, result);
+
+		return data + 16;
+	}
+
+	default:
+		assert(!"Unexpected bit length"); // unreachable since bitslog2 is a 2-bit value
+		return data;
+	}
+}
+#endif
+
+#if defined(SIMD_SSE) || defined(SIMD_AVX)
+SIMD_TARGET
+static void transpose8(__m128i& x0, __m128i& x1, __m128i& x2, __m128i& x3)
+{
+	__m128i t0 = _mm_unpacklo_epi8(x0, x1);
+	__m128i t1 = _mm_unpackhi_epi8(x0, x1);
+	__m128i t2 = _mm_unpacklo_epi8(x2, x3);
+	__m128i t3 = _mm_unpackhi_epi8(x2, x3);
+
+	x0 = _mm_unpacklo_epi16(t0, t2);
+	x1 = _mm_unpackhi_epi16(t0, t2);
+	x2 = _mm_unpacklo_epi16(t1, t3);
+	x3 = _mm_unpackhi_epi16(t1, t3);
+}
+
+SIMD_TARGET
+static __m128i unzigzag8(__m128i v)
+{
+	__m128i xl = _mm_sub_epi8(_mm_setzero_si128(), _mm_and_si128(v, _mm_set1_epi8(1)));
+	__m128i xr = _mm_and_si128(_mm_srli_epi16(v, 1), _mm_set1_epi8(127));
+
+	return _mm_xor_si128(xl, xr);
+}
+#endif
+
+#ifdef SIMD_NEON
+static void transpose8(uint8x16_t& x0, uint8x16_t& x1, uint8x16_t& x2, uint8x16_t& x3)
+{
+	uint8x16x2_t t01 = vzipq_u8(x0, x1);
+	uint8x16x2_t t23 = vzipq_u8(x2, x3);
+
+	uint16x8x2_t x01 = vzipq_u16(vreinterpretq_u16_u8(t01.val[0]), vreinterpretq_u16_u8(t23.val[0]));
+	uint16x8x2_t x23 = vzipq_u16(vreinterpretq_u16_u8(t01.val[1]), vreinterpretq_u16_u8(t23.val[1]));
+
+	x0 = vreinterpretq_u8_u16(x01.val[0]);
+	x1 = vreinterpretq_u8_u16(x01.val[1]);
+	x2 = vreinterpretq_u8_u16(x23.val[0]);
+	x3 = vreinterpretq_u8_u16(x23.val[1]);
+}
+
+static uint8x16_t unzigzag8(uint8x16_t v)
+{
+	uint8x16_t xl = vreinterpretq_u8_s8(vnegq_s8(vreinterpretq_s8_u8(vandq_u8(v, vdupq_n_u8(1)))));
+	uint8x16_t xr = vshrq_n_u8(v, 1);
+
+	return veorq_u8(xl, xr);
+}
+#endif
+
+#ifdef SIMD_WASM
+static void transpose8(v128_t& x0, v128_t& x1, v128_t& x2, v128_t& x3)
+{
+	v128_t t0 = wasmx_unpacklo_v8x16(x0, x1);
+	v128_t t1 = wasmx_unpackhi_v8x16(x0, x1);
+	v128_t t2 = wasmx_unpacklo_v8x16(x2, x3);
+	v128_t t3 = wasmx_unpackhi_v8x16(x2, x3);
+
+	x0 = wasmx_unpacklo_v16x8(t0, t2);
+	x1 = wasmx_unpackhi_v16x8(t0, t2);
+	x2 = wasmx_unpacklo_v16x8(t1, t3);
+	x3 = wasmx_unpackhi_v16x8(t1, t3);
+}
+
+static v128_t unzigzag8(v128_t v)
+{
+	v128_t xl = wasm_i8x16_neg(wasm_v128_and(v, wasm_i8x16_splat(1)));
+	v128_t xr = wasm_u8x16_shr(v, 1);
+
+	return wasm_v128_xor(xl, xr);
+}
+#endif
+
+#if defined(SIMD_SSE) || defined(SIMD_AVX) || defined(SIMD_NEON) || defined(SIMD_WASM)
+SIMD_TARGET
 static const unsigned char* decodeBytesSimd(const unsigned char* data, const unsigned char* data_end, unsigned char* buffer, size_t buffer_size)
 {
-	ASSERT(buffer_size % kByteGroupSize == 0);
-	ASSERT(kByteGroupSize == 16);
+	assert(buffer_size % kByteGroupSize == 0);
+	assert(kByteGroupSize == 16);
 
 	const unsigned char* header = data;
 
@@ -694,9 +946,10 @@ static const unsigned char* decodeBytesSimd(const unsigned char* data, const uns
 	return data;
 }
 
+SIMD_TARGET
 static const unsigned char* decodeVertexBlockSimd(const unsigned char* data, const unsigned char* data_end, unsigned char* vertex_data, size_t vertex_count, size_t vertex_size, unsigned char last_vertex[256])
 {
-	ASSERT(vertex_count > 0 && vertex_count <= kVertexBlockMaxSize);
+	assert(vertex_count > 0 && vertex_count <= kVertexBlockMaxSize);
 
 	unsigned char buffer[kVertexBlockMaxSize * 4];
 	unsigned char transposed[kVertexBlockSizeBytes];
@@ -712,7 +965,7 @@ static const unsigned char* decodeVertexBlockSimd(const unsigned char* data, con
 				return 0;
 		}
 
-#ifdef SIMD_SSE
+#if defined(SIMD_SSE) || defined(SIMD_AVX)
 #define TEMP __m128i
 #define PREP() __m128i pi = _mm_cvtsi32_si128(*reinterpret_cast<const int*>(last_vertex + k))
 #define LOAD(i) __m128i r##i = _mm_loadu_si128(reinterpret_cast<const __m128i*>(buffer + j + i * vertex_count_aligned))
@@ -728,6 +981,15 @@ static const unsigned char* decodeVertexBlockSimd(const unsigned char* data, con
 #define GRP4(i) t0 = vget_low_u8(r##i), t1 = vreinterpret_u8_u32(vdup_lane_u32(vreinterpret_u32_u8(t0), 1)), t2 = vget_high_u8(r##i), t3 = vreinterpret_u8_u32(vdup_lane_u32(vreinterpret_u32_u8(t2), 1))
 #define FIXD(i) t##i = pi = vadd_u8(pi, t##i)
 #define SAVE(i) vst1_lane_u32(reinterpret_cast<uint32_t*>(savep), vreinterpret_u32_u8(t##i), 0), savep += vertex_size
+#endif
+
+#ifdef SIMD_WASM
+#define TEMP v128_t
+#define PREP() v128_t pi = wasm_v128_load(last_vertex + k) // TODO: use wasm_v32x4_load_splat to avoid buffer overrun
+#define LOAD(i) v128_t r##i = wasm_v128_load(buffer + j + i * vertex_count_aligned)
+#define GRP4(i) t0 = wasmx_splat_v32x4(r##i, 0), t1 = wasmx_splat_v32x4(r##i, 1), t2 = wasmx_splat_v32x4(r##i, 2), t3 = wasmx_splat_v32x4(r##i, 3)
+#define FIXD(i) t##i = pi = wasm_i8x16_add(pi, t##i)
+#define SAVE(i) *reinterpret_cast<int*>(savep) = wasm_i32x4_extract_lane(t##i, 0), savep += vertex_size
 #endif
 
 		PREP();
@@ -783,14 +1045,29 @@ static const unsigned char* decodeVertexBlockSimd(const unsigned char* data, con
 }
 #endif
 
+#if defined(SIMD_SSE) && defined(SIMD_FALLBACK)
+static unsigned int getCpuFeatures()
+{
+	int cpuinfo[4] = {};
+#if defined(_MSC_VER) && !defined(__clang__)
+	__cpuid(cpuinfo, 1);
+#else
+	__cpuid(1, cpuinfo[0], cpuinfo[1], cpuinfo[2], cpuinfo[3]);
+#endif
+	return cpuinfo[2];
+}
+
+unsigned int cpuid = getCpuFeatures();
+#endif
+
 } // namespace meshopt
 
 size_t meshopt_encodeVertexBuffer(unsigned char* buffer, size_t buffer_size, const void* vertices, size_t vertex_count, size_t vertex_size)
 {
 	using namespace meshopt;
 
-	ASSERT(vertex_size > 0 && vertex_size <= 256);
-	ASSERT(vertex_size % 4 == 0);
+	assert(vertex_size > 0 && vertex_size <= 256);
+	assert(vertex_size % 4 == 0);
 
 #if TRACE
 	memset(vertexstats, 0, sizeof(vertexstats));
@@ -840,8 +1117,8 @@ size_t meshopt_encodeVertexBuffer(unsigned char* buffer, size_t buffer_size, con
 	memcpy(data, vertex_data, vertex_size);
 	data += vertex_size;
 
-	ASSERT(data >= buffer + tail_size);
-	ASSERT(data <= buffer + buffer_size);
+	assert(data >= buffer + tail_size);
+	assert(data <= buffer + buffer_size);
 
 #if TRACE
 	size_t total_size = data - buffer;
@@ -872,8 +1149,8 @@ size_t meshopt_encodeVertexBufferBound(size_t vertex_count, size_t vertex_size)
 {
 	using namespace meshopt;
 
-	ASSERT(vertex_size > 0 && vertex_size <= 256);
-	ASSERT(vertex_size % 4 == 0);
+	assert(vertex_size > 0 && vertex_size <= 256);
+	assert(vertex_size % 4 == 0);
 
 	size_t vertex_block_size = getVertexBlockSize(vertex_size);
 	size_t vertex_block_count = (vertex_count + vertex_block_size - 1) / vertex_block_size;
@@ -890,23 +1167,22 @@ int meshopt_decodeVertexBuffer(void* destination, size_t vertex_count, size_t ve
 {
 	using namespace meshopt;
 
-	ASSERT(vertex_size > 0 && vertex_size <= 256);
-	ASSERT(vertex_size % 4 == 0);
+	assert(vertex_size > 0 && vertex_size <= 256);
+	assert(vertex_size % 4 == 0);
 
 	const unsigned char* (*decode)(const unsigned char*, const unsigned char*, unsigned char*, size_t, size_t, unsigned char[256]) = 0;
 
 #if defined(SIMD_SSE) && defined(SIMD_FALLBACK)
-	int cpuinfo[4] = {};
-	__cpuid(cpuinfo, 1);
-	decode = (cpuinfo[2] & (1 << 9)) ? decodeVertexBlockSimd : decodeVertexBlock;
-#elif defined(SIMD_SSE) || defined(SIMD_NEON)
+	decode = (cpuid & (1 << 9)) ? decodeVertexBlockSimd : decodeVertexBlock;
+#elif defined(SIMD_SSE) || defined(SIMD_AVX) || defined(SIMD_NEON) || defined(SIMD_WASM)
 	decode = decodeVertexBlockSimd;
 #else
 	decode = decodeVertexBlock;
 #endif
 
-#if defined(SIMD_SSE) || defined(SIMD_NEON)
-	ASSERT(gDecodeBytesGroupInitialized);
+#if defined(SIMD_SSE) || defined(SIMD_NEON) || defined(SIMD_WASM)
+	assert(gDecodeBytesGroupInitialized);
+	(void)gDecodeBytesGroupInitialized;
 #endif
 
 	unsigned char* vertex_data = static_cast<unsigned char*>(destination);

@@ -16,6 +16,9 @@
     <Filter Include="Shaders\Metal">
       <UniqueIdentifier>{645c4df9-0b05-4054-ae23-e4c89a5aff72}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{962fea6c-2cda-4bdd-b594-1717ffe9a1e3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\27_File_System\Shaders\D3D11\basic.frag">
@@ -104,6 +107,8 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\12_ZipFileSystem\12_ZipFileSystem.cpp" />
+    <ClCompile Include="..\src\12_ZipFileSystem\12_ZipFileSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

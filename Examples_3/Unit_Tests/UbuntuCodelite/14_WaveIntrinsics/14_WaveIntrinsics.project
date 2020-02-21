@@ -30,9 +30,9 @@
         <IncludePath Value="."/>
       </Compiler>
       <Linker Options="">
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/Libraries/Linux"/>
-        <Library Value="libzip.a"/>
-        <Library Value="libz"/>
+
+        
+
       </Linker>
       <ResourceCompiler Options=""/>
     </GlobalSettings>
@@ -50,7 +50,7 @@
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
+
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libRenderer.a"/>
@@ -59,7 +59,7 @@
         <Library Value="libvulkan.so"/>
         <Library Value="libgainput.a"/>
         <Library Value="libEASTL.a"/>
-        <Library Value="libassimp.a"/>
+
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
@@ -108,7 +108,7 @@
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
+
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libRenderer.a"/>
@@ -117,7 +117,7 @@
         <Library Value="libvulkan.so"/>
         <Library Value="libgainput.a"/>
         <Library Value="libEASTL.a"/>
-        <Library Value="libassimp.a"/>
+
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Release" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>

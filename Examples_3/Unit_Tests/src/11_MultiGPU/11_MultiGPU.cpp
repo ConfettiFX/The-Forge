@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -41,7 +41,7 @@
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/Renderer/IResourceLoader.h"
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
@@ -199,7 +199,7 @@ public:
 		for (uint32_t i = 0; i < gViewCount; ++i)
 		{
 			QueueDesc queueDesc = {};
-			queueDesc.mType = CMD_POOL_DIRECT;
+			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
 			queueDesc.mNodeIndex = i;
 
 			if (!gMultiGPU && i > 0)
@@ -220,8 +220,12 @@ public:
 
 		for (uint32_t i = 0; i < gViewCount; ++i)
 		{
-			addCmdPool(pRenderer, pGraphicsQueue[i], false, &pCmdPool[i]);
-			addCmd_n(pCmdPool[i], false, gImageCount, &ppCmds[i]);
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue[i];
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPool[i];
+			addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds[i]);
 
 			for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
 			{
@@ -350,7 +354,7 @@ public:
 				if (!gMultiGPU && view > 0)
 					pSkyBoxTextures[view][i] = pSkyBoxTextures[0][i];
 				else
-					addResource(&textureDesc);
+					addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
 			}
 
 			sphereVbDesc.mDesc.mNodeIndex = view;
@@ -366,8 +370,8 @@ public:
 			}
 			else
 			{
-				addResource(&sphereVbDesc);
-				addResource(&skyboxVbDesc);
+				addResource(&sphereVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+				addResource(&skyboxVbDesc, NULL, LOAD_PRIORITY_NORMAL);
 			}
 		}
 
@@ -380,12 +384,12 @@ public:
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
-			addResource(&ubDesc);
+			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
 			ubDesc.ppBuffer = &pSkyboxUniformBuffer[i];
-			addResource(&ubDesc);
+			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
-		finishResourceLoading();
+		waitForAllResourceLoads();
 
 		// Setup planets (Rotation speeds are relative to Earth's, some values randomly given)
 
@@ -636,7 +640,7 @@ public:
 				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i][view]);
 			}
 
-			removeCmd_n(pCmdPool[view], gImageCount, ppCmds[view]);
+			removeCmd_n(pRenderer, gImageCount, ppCmds[view]);
 			removeCmdPool(pRenderer, pCmdPool[view]);
 			removeGpuProfiler(pRenderer, pGpuProfilers[view]);
 		}
@@ -645,12 +649,12 @@ public:
 		{
 			if (!gMultiGPU && view > 0)
 				break;
-			removeQueue(pGraphicsQueue[view]);
+			removeQueue(pRenderer, pGraphicsQueue[view]);
 		}
 
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
 
-		removeResourceLoaderInterface(pRenderer);
+		exitResourceLoaderInterface(pRenderer);
 
 		removeRenderer(pRenderer);
 	}
@@ -665,10 +669,10 @@ public:
 		if (!addDepthBuffer())
 			return false;
 
-		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
+		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
 			return false;
 
-		if (!gPanini.Load(pSwapChain->ppSwapchainRenderTargets))
+		if (!gPanini.Load(pSwapChain->ppRenderTargets))
 			return false;
 
 		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
@@ -693,9 +697,9 @@ public:
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepth;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.mDepthStencilFormat = pDepthBuffers[0]->mDesc.mFormat;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pSphereShader;
@@ -850,11 +854,15 @@ public:
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 
 		// Update uniform buffers
-		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex], &gUniformData };
-		updateResource(&viewProjCbv);
+		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex] };
+		beginUpdateResource(&viewProjCbv);
+		*(UniformBlock*)viewProjCbv.pMappedData = gUniformData;
+		endUpdateResource(&viewProjCbv, NULL);
 
-		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex], &gUniformDataSky };
-		updateResource(&skyboxViewProjCbv);
+		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex] };
+		beginUpdateResource(&skyboxViewProjCbv);
+		*(UniformBlock*)skyboxViewProjCbv.pMappedData = gUniformDataSky;
+		endUpdateResource(&skyboxViewProjCbv, NULL);
 
 		for (int i = gViewCount - 1; i >= 0; --i)
 		{
@@ -875,11 +883,11 @@ public:
 			beginCmd(cmd);
 			cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
 
-			TextureBarrier barriers[] = {
-				{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
-				{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE },
+			RenderTargetBarrier barriers[] = {
+				{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
+				{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE },
 			};
-			cmdResourceBarrier(cmd, 0, NULL, 2, barriers);
+			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
 			cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
@@ -904,22 +912,22 @@ public:
 
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-			TextureBarrier srvBarriers[] = {
-				{ pRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+			RenderTargetBarrier srvBarriers[] = {
+				{ pRenderTarget, RESOURCE_STATE_SHADER_RESOURCE },
 			};
-			cmdResourceBarrier(cmd, 0, NULL, 1, srvBarriers);
+			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, srvBarriers);
 
 			if (i == 0)
 			{
 				cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Results");
 				loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 
-				RenderTarget*  pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
-				TextureBarrier barriers[1 + gViewCount] = {};
+				RenderTarget*  pRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
+				RenderTargetBarrier barriers[1 + gViewCount] = {};
 				for (uint32_t i = 0; i < gViewCount; ++i)
-					barriers[i] = { pRenderTargets[gFrameIndex][i]->pTexture, RESOURCE_STATE_SHADER_RESOURCE };
-				barriers[gViewCount] = { pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET };
-				cmdResourceBarrier(cmd, 0, NULL, 1 + gViewCount, barriers);
+					barriers[i] = { pRenderTargets[gFrameIndex][i], RESOURCE_STATE_SHADER_RESOURCE };
+				barriers[gViewCount] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET };
+				cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1 + gViewCount, barriers);
 
 				cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 
@@ -988,8 +996,8 @@ public:
 
 				cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-				barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-				cmdResourceBarrier(cmd, 0, NULL, 1, barriers);
+				barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
+				cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 				cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 			}
 
@@ -999,15 +1007,35 @@ public:
 			if (i == 0)
 			{
 				Semaphore* pWaitSemaphores[] = { pImageAcquiredSemaphore, pRenderCompleteSemaphores[gFrameIndex][1] };
-				queueSubmit(pGraphicsQueue[i], 1, &cmd, pRenderCompleteFence, 2, pWaitSemaphores, 1, &pRenderCompleteSemaphore);
+
+				QueueSubmitDesc submitDesc = {};
+				submitDesc.mCmdCount = 1;
+				submitDesc.ppCmds = &cmd;
+				submitDesc.pSignalFence = pRenderCompleteFence;
+				submitDesc.mSignalSemaphoreCount = 1;
+				submitDesc.ppSignalSemaphores = &pRenderCompleteSemaphore;
+				submitDesc.mWaitSemaphoreCount = 1;
+				submitDesc.ppWaitSemaphores = pWaitSemaphores;
+				queueSubmit(pGraphicsQueue[i], &submitDesc);
+				QueuePresentDesc presentDesc = {};
+				presentDesc.mIndex = gFrameIndex;
+				presentDesc.mWaitSemaphoreCount = 1;
+				presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
+				presentDesc.pSwapChain = pSwapChain;
+				presentDesc.mSubmitDone = true;
+				queuePresent(pGraphicsQueue[i], &presentDesc);
 			}
 			else
 			{
-				queueSubmit(pGraphicsQueue[i], 1, &cmd, pRenderCompleteFence, 0, NULL, 1, &pRenderCompleteSemaphore);
+				QueueSubmitDesc submitDesc = {};
+				submitDesc.mCmdCount = 1;
+				submitDesc.ppCmds = &cmd;
+				submitDesc.pSignalFence = pRenderCompleteFence;
+				submitDesc.mSignalSemaphoreCount = 1;
+				submitDesc.ppSignalSemaphores = &pRenderCompleteSemaphore;
+				queueSubmit(pGraphicsQueue[i], &submitDesc);
 			}
 		}
-
-		queuePresent(pGraphicsQueue[0], pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphores[gFrameIndex][0]);
 
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		for (uint32_t i = 0; i < gViewCount; ++i)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -30,6 +30,7 @@
 #include "../../../../Common_3/OS/Interfaces/ILog.h"
 #include "../../../../Common_3/OS/Core/Compiler.h"
 
+#include "../../../../Common_3/ThirdParty/OpenSource/cgltf/GLTFLoader.h"
 
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
 
@@ -871,7 +872,7 @@ static void SetMaterials(Scene* pScene)
 	//101	wall04
 	setTextures(pScene, index++, "techo", "techo_SPEC", "techo_NRM", false, false);
 
-	for (uint32_t i = index; i < pScene->numMaterials; i++)
+	for (uint32_t i = index; i < pScene->geom->mDrawArgCount; i++)
 	{
 		Material& m = pScene->materials[i];
 		m.twoSided = true;
@@ -892,22 +893,22 @@ static void SetMaterials(Scene* pScene)
 
 #if !defined(METAL)
 
-static inline float2 abs(const float2& v) { return float2(fabsf(v.getX()), fabsf(v.getY())); }
-static inline float2 subtract(const float2& v, const float2& w) { return float2(v.getX() - w.getX(), v.getY() - w.getY()); }
-static inline float2 step(const float2& y, const float2& x)
-{
-	return float2(x.getX() >= y.getX() ? 1.f : 0.f, x.getY() >= y.getY() ? 1.f : 0.f);
-}
-static inline float2 mulPerElem(const float2& v, float f) { return float2(v.getX() * f, v.getY() * f); }
-static inline float2 mulPerElem(const float2& v, const float2& w) { return float2(v.getX() * w.getX(), v.getY() * w.getY()); }
-static inline float2 sumPerElem(const float2& v, const float2& w) { return float2(v.getX() + w.getX(), v.getY() + w.getY()); }
-static inline float2 sign_not_zero(const float2& v) { return subtract(mulPerElem(step(float2(0, 0), v), 2.0), float2(1, 1)); }
-static inline uint   packSnorm2x16(const float2& v)
-{
-	uint x = (uint)round(clamp(v.getX(), -1, 1) * 32767.0f);
-	uint y = (uint)round(clamp(v.getY(), -1, 1) * 32767.0f);
-	return ((uint)0x0000FFFF & x) | ((y << 16) & (uint)0xFFFF0000);
-}
+//static inline float2 abs(const float2& v) { return float2(fabsf(v.getX()), fabsf(v.getY())); }
+//static inline float2 subtract(const float2& v, const float2& w) { return float2(v.getX() - w.getX(), v.getY() - w.getY()); }
+//static inline float2 step(const float2& y, const float2& x)
+//{
+//	return float2(x.getX() >= y.getX() ? 1.f : 0.f, x.getY() >= y.getY() ? 1.f : 0.f);
+//}
+//static inline float2 mulPerElem(const float2& v, float f) { return float2(v.getX() * f, v.getY() * f); }
+//static inline float2 mulPerElem(const float2& v, const float2& w) { return float2(v.getX() * w.getX(), v.getY() * w.getY()); }
+//static inline float2 sumPerElem(const float2& v, const float2& w) { return float2(v.getX() + w.getX(), v.getY() + w.getY()); }
+//static inline float2 sign_not_zero(const float2& v) { return subtract(mulPerElem(step(float2(0, 0), v), 2.0), float2(1, 1)); }
+//static inline uint   packSnorm2x16(const float2& v)
+//{
+//	uint x = (uint)round(clamp(v.getX(), -1, 1) * 32767.0f);
+//	uint y = (uint)round(clamp(v.getY(), -1, 1) * 32767.0f);
+//	return ((uint)0x0000FFFF & x) | ((y << 16) & (uint)0xFFFF0000);
+//}
 static inline uint packUnorm2x16(const float2& v)
 {
 	uint x = (uint)round(clamp(v.getX(), 0, 1) * 65535.0f);
@@ -955,12 +956,12 @@ static inline unsigned short F32toF16(float val)
 }
 static inline uint pack2Floats(float2 f) { return (F32toF16(f.getX()) & 0x0000FFFF) | ((F32toF16(f.getY()) << 16) & 0xFFFF0000); }
 
-static inline float2 normalize(const float2& vec)
-{
-	float lenSqr = vec.getX() * vec.getX() + vec.getY() * vec.getY();
-	float lenInv = (1.0f / sqrtf(lenSqr));
-	return float2(vec.getX() * lenInv, vec.getY() * lenInv);
-}
+//static inline float2 normalize(const float2& vec)
+//{
+//	float lenSqr = vec.getX() * vec.getX() + vec.getY() * vec.getY();
+//	float lenInv = (1.0f / sqrtf(lenSqr));
+//	return float2(vec.getX() * lenInv, vec.getY() * lenInv);
+//}
 
 static inline float OctWrap(float v, float w) { return (1.0f - abs(w)) * (v >= 0.0f ? 1.0f : -1.0f); }
 
@@ -985,169 +986,36 @@ static inline uint encodeDir(const float3& n)
 }
 #endif
 
-static const char* gModelVersion = "1.01";
-
-// Loads a scene using ASSIMP and returns a Scene object with scene information
-Scene* loadScene(const Path* filePath, float scale, float offsetX, float offsetY, float offsetZ)
+// Loads a scene and returns a Scene object with scene information
+Scene* loadScene(const Path* filePath, struct SyncToken* token, float scale, float offsetX, float offsetY, float offsetZ)
 {
-
-#if 1
 	Scene* scene = (Scene*)conf_calloc(1, sizeof(Scene));
 
-    PathHandle cachedModelFilePath = fsAppendPathExtension(filePath, "cached");
+	VertexLayout vertexLayout = {};
+	vertexLayout.mAttribCount = 4;
+	vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+	vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+	vertexLayout.mAttribs[0].mBinding = 0;
+	vertexLayout.mAttribs[0].mLocation = 0;
+	vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
+	vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R16G16_SFLOAT;
+	vertexLayout.mAttribs[1].mBinding = 1;
+	vertexLayout.mAttribs[1].mLocation = 1;
+	vertexLayout.mAttribs[2].mSemantic = SEMANTIC_NORMAL;
+	vertexLayout.mAttribs[2].mFormat = TinyImageFormat_R16G16_UNORM;
+	vertexLayout.mAttribs[2].mBinding = 2;
+	vertexLayout.mAttribs[2].mLocation = 2;
+	vertexLayout.mAttribs[3].mSemantic = SEMANTIC_TANGENT;
+	vertexLayout.mAttribs[3].mFormat = TinyImageFormat_R16G16_UNORM;
+	vertexLayout.mAttribs[3].mBinding = 3;
+	vertexLayout.mAttribs[3].mLocation = 3;
 
-	eastl::string modelVersion;
-    FileStream* fh = fsOpenFile(cachedModelFilePath, FM_READ_BINARY);
-	if (fh)
-    {
-        // Read the file ID.
-        modelVersion.resize(4);
-        fsReadFromStream(fh, modelVersion.begin(), 4);
-    }
-
-	if (modelVersion == gModelVersion)
-	{
-        scene->numMeshes = fsReadFromStreamUInt32(fh);
-		scene->totalVertices = fsReadFromStreamUInt32(fh);
-		scene->totalTriangles = fsReadFromStreamUInt32(fh);
-
-		scene->meshes = (MeshIn*)conf_calloc(scene->numMeshes, sizeof(MeshIn));
-		fsReadFromStream(fh, scene->meshes, scene->numMeshes * sizeof(MeshIn));
-
-		scene->indices = (uint32_t*)conf_malloc(scene->totalTriangles * 3 * sizeof(uint32_t));
-        fsReadFromStream(fh, scene->indices, scene->totalTriangles * 3 * sizeof(uint32_t));
-
-		scene->positions = (SceneVertexPos*)conf_malloc(scene->totalVertices * sizeof(SceneVertexPos));
-        fsReadFromStream(fh, scene->positions, scene->totalVertices * sizeof(SceneVertexPos));
-
-		scene->texCoords = (SceneVertexTexCoord*)conf_malloc(scene->totalVertices * sizeof(SceneVertexTexCoord));
-        fsReadFromStream(fh, scene->texCoords, scene->totalVertices * sizeof(SceneVertexTexCoord));
-
-		scene->normals = (SceneVertexNormal*)conf_malloc(scene->totalVertices * sizeof(SceneVertexNormal));
-        fsReadFromStream(fh, scene->normals, scene->totalVertices * sizeof(SceneVertexNormal));
-
-		scene->tangents = (SceneVertexTangent*)conf_malloc(scene->totalVertices * sizeof(SceneVertexTangent));
-        fsReadFromStream(fh, scene->tangents, scene->totalVertices * sizeof(SceneVertexTangent));
-
-        fsCloseStream(fh);
-	}
-	else
-	{
-		HiresTimer timer = {};
-		AssimpImporter        importer;
-		AssimpImporter::Model model;
-		importer.ImportModel(filePath, &model);
-		LOGF(LogLevel::eINFO, "Assimp Load %f ms", timer.GetUSec(true) / 1000.0f);
-
-		for (int i = 0; i < model.mMeshArray.size(); i++)
-		{
-			AssimpImporter::Mesh mesh = model.mMeshArray[i];
-			scene->totalVertices += (uint32_t)mesh.mPositions.size();
-			scene->totalTriangles += (uint32_t)mesh.mIndices.size() / 3;
-		}
-		
-		scene->indices = (uint32_t*)conf_malloc(scene->totalTriangles * 3 * sizeof(uint32_t));
-		scene->positions = (SceneVertexPos*)conf_malloc(scene->totalVertices * sizeof(SceneVertexPos));
-		scene->texCoords = (SceneVertexTexCoord*)conf_malloc(scene->totalVertices * sizeof(SceneVertexTexCoord));
-		scene->normals = (SceneVertexNormal*)conf_malloc(scene->totalVertices * sizeof(SceneVertexNormal));
-		scene->tangents = (SceneVertexTangent*)conf_malloc(scene->totalVertices * sizeof(SceneVertexTangent));
-		
-		uint32_t accIndex_ = 0;
-		uint32_t vertex = 0;
-		uint32_t index = 0;
-
-		for (int i = 0; i < model.mMeshArray.size(); i++)
-		{
-			AssimpImporter::Mesh mesh = model.mMeshArray[i];
-
-			for (int j = 0; j < mesh.mPositions.size(); j++)
-			{
-				SceneVertexPos position;
-				position.x = mesh.mPositions[j].getX() * scale + offsetX;
-				position.y = mesh.mPositions[j].getY() * scale + offsetY;
-				position.z = mesh.mPositions[j].getZ() * scale + offsetZ;
-
-				float2 tc;
-				tc.x = mesh.mUvs[j].getX();
-				tc.y = 1.0f - mesh.mUvs[j].getY();
-				
-				float3 normal;
-				normal.x = mesh.mNormals[j].getX();
-				normal.y = mesh.mNormals[j].getY();
-				normal.z = mesh.mNormals[j].getZ();
-				
-				float3 tangent;
-				tangent.x = mesh.mTangents[j].getX();
-				tangent.y = mesh.mTangents[j].getY();
-				tangent.z = mesh.mTangents[j].getZ();
-				
-				scene->positions[vertex] = position;
-#if defined(METAL) || defined(__linux__)
-				scene->normals[vertex].nx = normal.x;
-				scene->normals[vertex].ny = normal.y;
-				scene->normals[vertex].nz = normal.z;
-
-				scene->tangents[vertex].tx = tangent.x;
-				scene->tangents[vertex].ty = tangent.y;
-				scene->tangents[vertex].tz = tangent.z;
-
-				scene->texCoords[vertex].u = tc.x;
-				scene->texCoords[vertex].v = 1.0f - tc.y;
-#else
-				scene->normals[vertex].normal = encodeDir(normal);
-				scene->tangents[vertex].tangent = encodeDir(tangent);
-				scene->texCoords[vertex].texCoord = pack2Floats(float2(tc.x, 1.0f - tc.y));
-#endif
-				
-				++vertex;
-			}
-
-			for (int j = 0; j < mesh.mIndices.size(); j++)
-			{
-				int indd = mesh.mIndices[j];
-				scene->indices[index++] = (indd < 0 ? accIndex_ : (indd + accIndex_));
-			}
-
-			accIndex_ += (uint32_t)mesh.mPositions.size();
-		}
-
-		LOGF(LogLevel::eINFO, "Generate Vertex Data %f ms", timer.GetUSec(true) / 1000.0f);
-
-		scene->numMeshes = (uint32_t)model.mMeshArray.size();
-		scene->meshes = (MeshIn*)conf_calloc(scene->numMeshes, sizeof(MeshIn));
-
-		uint32_t accIndex = 0;
-		for (uint32_t i = 0; i < scene->numMeshes; ++i)
-		{
-			MeshIn& batch = scene->meshes[i];
-
-			AssimpImporter::Mesh mesh = model.mMeshArray[i];
-			batch.materialId = (uint32_t)i;
-			batch.vertexCount = (uint32_t)mesh.mPositions.size();
-
-			batch.startIndex = accIndex;
-			batch.indexCount = (uint32_t)mesh.mIndices.size();
-			accIndex += batch.indexCount;
-
-			LOGF(LogLevel::eINFO, "%d vertexCount: %d total: %d", i, batch.vertexCount, accIndex);
-		}
-
-		FileStream* fHandle = fsOpenFile(cachedModelFilePath, FM_WRITE_BINARY);
-		if (fHandle)
-		{
-            fsWriteToStream(fHandle, gModelVersion, 4);
-			fsWriteToStreamUInt32(fHandle, scene->numMeshes);
-			fsWriteToStreamUInt32(fHandle, scene->totalVertices);
-			fsWriteToStreamUInt32(fHandle, scene->totalTriangles);
-			fsWriteToStream(fHandle, scene->meshes, scene->numMeshes * sizeof(MeshIn));
-			fsWriteToStream(fHandle, scene->indices, scene->totalTriangles * 3 * sizeof(uint32_t));
-			fsWriteToStream(fHandle, scene->positions, scene->totalVertices * sizeof(SceneVertexPos));
-			fsWriteToStream(fHandle, scene->texCoords, scene->totalVertices * sizeof(SceneVertexTexCoord));
-			fsWriteToStream(fHandle, scene->normals, scene->totalVertices * sizeof(SceneVertexNormal));
-			fsWriteToStream(fHandle, scene->tangents, scene->totalVertices * sizeof(SceneVertexTangent));
-			fsCloseStream(fHandle);
-		}
-	}
+	GeometryLoadDesc loadDesc = {};
+	loadDesc.pFilePath = filePath;
+	loadDesc.ppGeometry = &scene->geom;
+	loadDesc.pVertexLayout = &vertexLayout;
+	loadDesc.mFlags = GEOMETRY_LOAD_FLAG_SHADOWED;
+	addResource(&loadDesc, token, LOAD_PRIORITY_HIGH);
 
 	eastl::unordered_set<eastl::string> twoSidedMaterials;
 	SetTwoSidedMaterials(twoSidedMaterials);
@@ -1155,350 +1023,21 @@ Scene* loadScene(const Path* filePath, float scale, float offsetX, float offsetY
 	eastl::unordered_set<eastl::string> alphaTestMaterials;
 	SetAlphaTestMaterials(alphaTestMaterials);
 
-	scene->numMaterials = scene->numMeshes;
+	waitForToken(token);
 
-	scene->materials = (Material*)conf_calloc(scene->numMaterials, sizeof(Material));
-	scene->textures = (char**)conf_calloc(scene->numMaterials, sizeof(char*));
-	scene->normalMaps = (char**)conf_calloc(scene->numMaterials, sizeof(char*));
-	scene->specularMaps = (char**)conf_calloc(scene->numMaterials, sizeof(char*));
+	scene->materials = (Material*)conf_calloc(scene->geom->mDrawArgCount, sizeof(Material));
+	scene->textures = (char**)conf_calloc(scene->geom->mDrawArgCount, sizeof(char*));
+	scene->normalMaps = (char**)conf_calloc(scene->geom->mDrawArgCount, sizeof(char*));
+	scene->specularMaps = (char**)conf_calloc(scene->geom->mDrawArgCount, sizeof(char*));
 
 	SetMaterials(scene);
-#else
-
-	Scene* scene = (Scene*)conf_calloc(1, sizeof(Scene));
-	File   assimpScene = {};
-	assimpScene.Open(fileName, FileMode::FM_READ_BINARY, ResourceDirectory::RD_Absolute);
-	if (!assimpScene.IsOpen())
-	{
-		LOGF(eERROR, 
-			"Could not open scene %s.\nPlease make sure you have downloaded the art assets by using the PRE_BUILD command in the root "
-			"directory",
-			fileName);
-		return NULL;
-	}
-	ASSERT(assimpScene.IsOpen());
-
-	assimpScene.Read(&scene->numMeshes, sizeof(uint32_t));
-	assimpScene.Read(&scene->totalVertices, sizeof(uint32_t));
-	assimpScene.Read(&scene->totalTriangles, sizeof(uint32_t));
-
-	scene->totalTriangles = scene->totalTriangles / 3;
-
-	scene->meshes = (MeshIn*)conf_calloc(scene->numMeshes, sizeof(MeshIn));
-	scene->indices = eastl::vector<uint32>(scene->totalTriangles * 3, uint32_t(0));
-	scene->positions = eastl::vector<SceneVertexPos>(scene->totalVertices, SceneVertexPos{ 0 });
-	scene->texCoords = eastl::vector<SceneVertexTexCoord>(scene->totalVertices, SceneVertexTexCoord{ 0 });
-	scene->normals = eastl::vector<SceneVertexNormal>(scene->totalVertices, SceneVertexNormal{ 0 });
-	scene->tangents = eastl::vector<SceneVertexTangent>(scene->totalVertices, SceneVertexTangent{ 0 });
-
-	eastl::vector<float2> texcoords(scene->totalVertices);
-	eastl::vector<float3> normals(scene->totalVertices);
-	eastl::vector<float3> tangents(scene->totalVertices);
-
-	assimpScene.Read(scene->indices.data(), sizeof(uint32_t) * scene->totalTriangles * 3);
-	assimpScene.Read(scene->positions.data(), sizeof(float3) * scene->totalVertices);
-	assimpScene.Read(texcoords.data(), sizeof(float2) * scene->totalVertices);
-	assimpScene.Read(normals.data(), sizeof(float3) * scene->totalVertices);
-	assimpScene.Read(tangents.data(), sizeof(float3) * scene->totalVertices);
-
-	for (uint32_t v = 0; v < scene->totalVertices; v++)
-	{
-		const float3& normal = normals[v];
-		const float3& tangent = tangents[v];
-		const float2& tc = texcoords[v];
-
-#if defined(METAL) || defined(__linux__)
-		scene->normals[v].nx = normal.x;
-		scene->normals[v].ny = normal.y;
-		scene->normals[v].nz = normal.z;
-
-		scene->tangents[v].tx = tangent.x;
-		scene->tangents[v].ty = tangent.y;
-		scene->tangents[v].tz = tangent.z;
-
-		scene->texCoords[v].u = tc.x;
-		scene->texCoords[v].v = 1.0f - tc.y;
-#else
-		scene->normals[v].normal = encodeDir(normal);
-		scene->tangents[v].tangent = encodeDir(tangent);
-		scene->texCoords[v].texCoord = pack2Floats(float2(tc.x, 1.0f - tc.y));
-#endif
-	}
-
-	for (uint32_t i = 0; i < scene->numMeshes; ++i)
-	{
-		MeshIn& batch = scene->meshes[i];
-
-		assimpScene.Read(&batch.materialId, sizeof(uint32_t));
-		assimpScene.Read(&batch.vertexCount, sizeof(uint32_t));
-
-		assimpScene.Read(&batch.startIndex, sizeof(uint32_t));
-		assimpScene.Read(&batch.indexCount, sizeof(uint32_t));
-	}
-
-	eastl::unordered_set<eastl::string> twoSidedMaterials;
-	SetTwoSidedMaterials(twoSidedMaterials);
-
-	eastl::unordered_set<eastl::string> alphaTestMaterials;
-	SetAlphaTestMaterials(alphaTestMaterials);
-
-	assimpScene.Read(&scene->numMaterials, sizeof(uint32_t));
-	scene->materials = (Material*)conf_calloc(scene->numMaterials, sizeof(Material));
-	scene->textures = (char**)conf_calloc(scene->numMaterials, sizeof(char*));
-	scene->normalMaps = (char**)conf_calloc(scene->numMaterials, sizeof(char*));
-	scene->specularMaps = (char**)conf_calloc(scene->numMaterials, sizeof(char*));
-
-#ifdef ORBIS
-#define DEFAULT_ALBEDO "default.gnf"
-#define DEFAULT_NORMAL "default_nrm.gnf"
-#define DEFAULT_SPEC "default_spec.gnf"
-#else
-
-#define DEFAULT_ALBEDO "Default"
-#define DEFAULT_NORMAL "Default_NRM"
-#define DEFAULT_SPEC "Default_SPEC"
-#define DEFAULT_SPEC_TRANSPARENT "Default_SPEC_TRANS"
-
-#endif
-
-	for (uint32_t i = 0; i < scene->numMaterials; i++)
-	{
-		Material& m = scene->materials[i];
-		m.twoSided = false;
-
-		uint32_t matNameLength = 0;
-		assimpScene.Read(&matNameLength, sizeof(uint32_t));
-
-		eastl::vector<char> matName(matNameLength);
-		assimpScene.Read(matName.data(), sizeof(char) * matNameLength);
-
-		uint32_t albedoNameLength = 0;
-		assimpScene.Read(&albedoNameLength, sizeof(uint32_t));
-
-		eastl::vector<char> albedoName(albedoNameLength);
-		assimpScene.Read(albedoName.data(), sizeof(char) * albedoNameLength);
-
-		if (albedoName[0] != '\0')
-		{
-			eastl::string path(albedoName.data());
-			uint            dotPos = 0;
-#ifdef ORBIS
-			// try to load the GNF version instead: change extension to GNF
-			path.rfind('.', -1, &dotPos);
-			path.resize(dotPos);
-			path[dotPos] = '\0';
-			path.append(".gnf", 4);
-#endif
-			eastl::string albedoMap(path);
-
-			eastl::vector<eastl::string> columnas;
-
-			eastl::string columnaA3("columna_a_color_3");
-			eastl::string columnaA2("columna_a_color_2");
-			eastl::string columnaA1("columna_a_color");
-
-			eastl::string columnaB3("columna_b_color_3");
-			eastl::string columnaB2("columna_b_color_2");
-
-			columnas.push_back(columnaA3);
-			columnas.push_back(columnaA2);
-			columnas.push_back(columnaB3);
-			columnas.push_back(columnaB2);
-			columnas.push_back(columnaA1);
-
-			eastl::string columnaB1("columna_b_color");
-
-			for (size_t c = 0; c < columnas.size(); c++)
-			{
-				int res = path.find(columnas[c], 0);
-
-				if (res > 0)
-				{
-					path.replace(columnas[c], columnaB1);
-					break;
-				}
-			}
-
-			eastl::vector<eastl::string> macetas;
-
-			eastl::string macetasA2("Maceta_A2_Color");
-			eastl::string macetasC("Maceta_C_Color");
-			eastl::string macetasC2("Maceta_C2_Color");
-			eastl::string macetasB("Maceta_B_Color");
-			eastl::string macetasD2("Maceta_D2_Color_0");
-
-			macetas.push_back(macetasA2);
-			macetas.push_back(macetasC);
-			macetas.push_back(macetasC2);
-			macetas.push_back(macetasB);
-			macetas.push_back(macetasD2);
-
-			eastl::string macetasA("Maceta_A_Color");
-
-			for (size_t c = 0; c < macetas.size(); c++)
-			{
-				int res = path.find(macetas[c], 0);
-
-				if (res > 0)
-				{
-					path.replace(macetas[c], macetasA);
-					break;
-				}
-			}
-
-			eastl::string muros_q3("muros_q3");
-			eastl::string muros_q4("muros_q4");
-
-			int res = path.find(muros_q3, 0);
-
-			if (res > 0)
-			{
-				path.replace(muros_q3, muros_q4);
-			}
-
-			//muros_q_patio2
-			eastl::string muros_n("muros_n");
-			eastl::string muros_q_patio2("muros_q_patio2");
-
-			res = path.find(muros_n, 0);
-
-			if (res > 0)
-			{
-				path.replace(muros_n, muros_q_patio2);
-			}
-
-			if (!FileSystem::FileExists(path, RD_TEXTURES))
-			{
-				eastl::string base_filename2 = FileSystem::GetFileName(path);
-				eastl::string pTemp("");
-				base_filename2.append(pTemp.begin(), pTemp.end());
-
-				// try load the associated normal map
-				albedoMap.resize(0);
-				albedoMap.reserve(base_filename2.size());
-				albedoMap.append(base_filename2.begin(), base_filename2.end());
-
-				if (!FileSystem::FileExists(albedoMap, RD_TEXTURES))
-				{
-					albedoMap = DEFAULT_ALBEDO;
-				}
-			}
-
-			scene->textures[i] = (char*)conf_calloc(albedoMap.size() + 1, sizeof(char));
-			strcpy(scene->textures[i], albedoMap.c_str());
-
-			// try load the associated normal map
-			eastl::string normalMap(path);
-			normalMap.rfind('.', -1, &dotPos);
-			normalMap.insert(dotPos, "_NRM", 4);
-
-			if (!FileSystem::FileExists(normalMap, RD_TEXTURES))
-			{
-				eastl::string base_filename2 = FileSystem::GetFileName(path);
-				eastl::string pTemp("");
-				base_filename2.append(pTemp.begin(), pTemp.end());
-
-				// try load the associated normal map
-				normalMap.resize(0);
-				normalMap.reserve(base_filename2.size());
-				normalMap.append(base_filename2.begin(), base_filename2.end());
-
-				normalMap.rfind('.', -1, &dotPos);
-				normalMap.insert(dotPos, "_NRM", 4);
-
-				if (!FileSystem::FileExists(normalMap, RD_TEXTURES))
-				{
-					normalMap = DEFAULT_NORMAL;
-				}
-			}
-
-			scene->normalMaps[i] = (char*)conf_calloc(normalMap.size() + 1, sizeof(char));
-			strcpy(scene->normalMaps[i], normalMap.c_str());
-
-			// try load the associated spec map
-			eastl::string specMap(path);
-			dotPos = 0;
-			specMap.rfind('.', -1, &dotPos);
-			specMap.insert(dotPos, "_SPEC", 5);
-
-			if (!FileSystem::FileExists(specMap, RD_TEXTURES))
-			{
-				eastl::string base_filename2 = FileSystem::GetFileName(path);
-				eastl::string pTemp("");
-				base_filename2.append(pTemp.begin(), pTemp.end());
-
-				// try load the associated specular map
-				specMap.resize(0);
-				specMap.reserve(base_filename2.size());
-				specMap.append(base_filename2.begin(), base_filename2.end());
-
-				specMap.rfind('.', -1, &dotPos);
-				specMap.insert(dotPos, "_SPEC", 5);
-
-				if (!FileSystem::FileExists(specMap, RD_TEXTURES))
-				{
-					//Transparent
-					if (i == 9 || i == 13 || i == 26 || i == 61 || i == 70 || i == 79 || i == 80 || i == 87 || i == 109 || i == 110 ||
-						i == 119 || i == 147 || i == 160 || i == 197 || i == 215)
-					{
-						specMap = DEFAULT_SPEC_TRANSPARENT;
-					}
-					else
-						specMap = DEFAULT_SPEC;
-				}
-			}
-
-			//if (!FileSystem::FileExists(specMap, RD_TEXTURES))
-			//	specMap = DEFAULT_SPEC;
-
-			scene->specularMaps[i] = (char*)conf_calloc(specMap.size() + 1, sizeof(char));
-			strcpy(scene->specularMaps[i], specMap.c_str());
-		}
-		else
-		{
-			// default textures
-			scene->textures[i] = (char*)conf_calloc(strlen(DEFAULT_ALBEDO) + 1, sizeof(char));
-			strcpy(scene->textures[i], DEFAULT_ALBEDO);
-
-			scene->normalMaps[i] = (char*)conf_calloc(strlen(DEFAULT_NORMAL) + 1, sizeof(char));
-			strcpy(scene->normalMaps[i], DEFAULT_NORMAL);
-
-			scene->specularMaps[i] = (char*)conf_calloc(strlen(DEFAULT_SPEC) + 1, sizeof(char));
-
-			//Transparent
-			if (i == 9 || i == 13 || i == 26 || i == 61 || i == 70 || i == 79 || i == 80 || i == 87 || i == 109 || i == 110 || i == 119 ||
-				i == 147 || i == 160 || i == 197 || i == 215)
-			{
-				strcpy(scene->specularMaps[i], DEFAULT_SPEC_TRANSPARENT);
-			}
-			else
-				strcpy(scene->specularMaps[i], DEFAULT_SPEC);
-		}
-
-		float ns = 0.0f;
-		assimpScene.Read(&ns, sizeof(float));    // load shininess
-
-		int twoSided = 0;
-		assimpScene.Read(&twoSided, sizeof(float));    // load two sided
-		m.twoSided = (twoSided != 0);
-
-		eastl::string tinyMatName(matName.data());
-		if (twoSidedMaterials.find(tinyMatName) != twoSidedMaterials.end())
-			m.twoSided = true;
-
-		m.alphaTested = (alphaTestMaterials.find(tinyMatName) != alphaTestMaterials.end());
-	}
-
-	assimpScene.Close();
-
-#endif
 
 	return scene;
 }
 
 void removeScene(Scene* scene)
 {
-	for (uint32_t i = 0; i < scene->numMaterials; ++i)
+	for (uint32_t i = 0; i < scene->geom->mDrawArgCount; ++i)
 	{
 		if (scene->textures[i])
 		{
@@ -1519,22 +1058,19 @@ void removeScene(Scene* scene)
 		}
 	}
 
-	conf_free(scene->positions);
-	conf_free(scene->texCoords);
-	conf_free(scene->normals);
-	conf_free(scene->tangents);
-	conf_free(scene->indices);
+	//conf_free(scene->positions);
+	//conf_free(scene->texCoords);
+	//conf_free(scene->normals);
+	//conf_free(scene->tangents);
+	//conf_free(scene->indices);
 
 	conf_free(scene->textures);
 	conf_free(scene->normalMaps);
 	conf_free(scene->specularMaps);
-	conf_free(scene->meshes);
+	//conf_free(scene->meshes);
 	conf_free(scene->materials);
 	conf_free(scene);
 }
-
-vec3 makeVec3(const SceneVertexPos& v) { return vec3(v.x, v.y, v.z); }
-
 
 Path* GetSDFBakedFilePath(const eastl::string& fileName)
 {
@@ -1542,56 +1078,13 @@ Path* GetSDFBakedFilePath(const eastl::string& fileName)
 	return fsCopyPathInResourceDirectory(RD_OTHER_FILES, newCompleteCacheFileName.c_str());
 }
 
-void createAABB(const Scene* pScene, MeshIn* mesh)
-{
-	vec4 aabbMin = vec4(INFINITY, INFINITY, INFINITY, INFINITY);
-	vec4 aabbMax = -aabbMin;
-
-	for (uint t = 0; t < mesh->indexCount; ++t)
-	{
-		vec4 currentVertex;
-
-		uint32_t currentIndex = pScene->indices[mesh->startIndex + t];
-
-		currentVertex = vec4(makeVec3(pScene->positions[currentIndex]), 1.0);
-
-		aabbMin = minPerElem(aabbMin, currentVertex);
-		aabbMax = maxPerElem(aabbMax, currentVertex);
-	}
-
-	mesh->AABB.maxPt = float4(aabbMax.getX(), aabbMax.getY(), aabbMax.getZ(), aabbMax.getW());
-	mesh->AABB.minPt = float4(aabbMin.getX(), aabbMin.getY(), aabbMin.getZ(), aabbMin.getW());
-	mesh->AABB.Center = (mesh->AABB.maxPt + mesh->AABB.minPt) / 2.0f;
-
-	mesh->AABB.Extents = (float4(
-		fabsf(mesh->AABB.maxPt.x - mesh->AABB.minPt.x), fabsf(mesh->AABB.maxPt.y - mesh->AABB.minPt.y),
-		fabsf(mesh->AABB.maxPt.z - mesh->AABB.minPt.z), fabsf(mesh->AABB.maxPt.w - mesh->AABB.minPt.w))) *
-		0.5f;
-
-	mesh->AABB.corners[0] = mesh->AABB.Center - mesh->AABB.Extents;
-	mesh->AABB.corners[0].w = 1.0f;
-	mesh->AABB.corners[1] = mesh->AABB.Center + float4(mesh->AABB.Extents.x, -mesh->AABB.Extents.y, -mesh->AABB.Extents.z, 0.0);
-	mesh->AABB.corners[1].w = 1.0f;
-	mesh->AABB.corners[2] = mesh->AABB.Center + float4(-mesh->AABB.Extents.x, mesh->AABB.Extents.y, -mesh->AABB.Extents.z, 0.0);
-	mesh->AABB.corners[2].w = 1.0f;
-	mesh->AABB.corners[3] = mesh->AABB.Center + float4(-mesh->AABB.Extents.x, -mesh->AABB.Extents.y, mesh->AABB.Extents.z, 0.0);
-	mesh->AABB.corners[3].w = 1.0f;
-
-	mesh->AABB.corners[4] = mesh->AABB.Center + float4(-mesh->AABB.Extents.x, mesh->AABB.Extents.y, mesh->AABB.Extents.z, 0.0);
-	mesh->AABB.corners[4].w = 1.0f;
-	mesh->AABB.corners[5] = mesh->AABB.Center + float4(mesh->AABB.Extents.x, -mesh->AABB.Extents.y, mesh->AABB.Extents.z, 0.0);
-	mesh->AABB.corners[5].w = 1.0f;
-	mesh->AABB.corners[6] = mesh->AABB.Center + float4(mesh->AABB.Extents.x, mesh->AABB.Extents.y, -mesh->AABB.Extents.z, 0.0);
-	mesh->AABB.corners[6].w = 1.0f;
-	mesh->AABB.corners[7] = mesh->AABB.Center + mesh->AABB.Extents;
-	mesh->AABB.corners[7].w = 1.0f;
-}
-
 // Compute an array of clusters from the mesh vertices. Clusters are sub batches of the original mesh limited in number
 // for more efficient CPU / GPU culling. CPU culling operates per cluster, while GPU culling operates per triangle for
 // all the clusters that passed the CPU test.
-void createClusters(bool twoSided, const Scene* pScene, MeshIn* mesh)
+void createClusters(bool twoSided, const Scene* pScene, IndirectDrawIndexArguments* draw, ClusterContainer* mesh)
 {
+#define makeVec3(v) (vec3((v).x, (v).y, (v).z))
+
 	// 12 KiB stack space
 	struct Triangle
 	{
@@ -1600,7 +1093,10 @@ void createClusters(bool twoSided, const Scene* pScene, MeshIn* mesh)
 
 	Triangle triangleCache[CLUSTER_SIZE * 3];
 
-	const int triangleCount = mesh->indexCount / 3;
+	uint32_t* indices = (uint32_t*)pScene->geom->pShadow->pIndices;
+	SceneVertexPos* positions = (SceneVertexPos*)pScene->geom->pShadow->pAttributes[SEMANTIC_POSITION];
+
+	const int triangleCount = draw->mIndexCount / 3;
 	const int clusterCount = (triangleCount + CLUSTER_SIZE - 1) / CLUSTER_SIZE;
 
 	mesh->clusterCount = clusterCount;
@@ -1618,11 +1114,11 @@ void createClusters(bool twoSided, const Scene* pScene, MeshIn* mesh)
 		for (int triangleIndex = clusterStart; triangleIndex < clusterEnd; ++triangleIndex)
 		{
 			triangleCache[triangleIndex - clusterStart].vtx[0] =
-				makeVec3(pScene->positions[pScene->indices[mesh->startIndex + triangleIndex * 3]]);
+				makeVec3(positions[indices[draw->mStartIndex + triangleIndex * 3]]);
 			triangleCache[triangleIndex - clusterStart].vtx[1] =
-				makeVec3(pScene->positions[pScene->indices[mesh->startIndex + triangleIndex * 3 + 1]]);
+				makeVec3(positions[indices[draw->mStartIndex + triangleIndex * 3 + 1]]);
 			triangleCache[triangleIndex - clusterStart].vtx[2] =
-				makeVec3(pScene->positions[pScene->indices[mesh->startIndex + triangleIndex * 3 + 2]]);
+				makeVec3(positions[indices[draw->mStartIndex + triangleIndex * 3 + 2]]);
 		}
 
 		vec3 aabbMin = vec3(INFINITY, INFINITY, INFINITY);
@@ -1717,7 +1213,7 @@ void createClusters(bool twoSided, const Scene* pScene, MeshIn* mesh)
 	}
 }
 
-void destroyClusters(MeshIn* pMesh)
+void destroyClusters(ClusterContainer* pMesh)
 {
 	// Destroy clusters
 	conf_free(pMesh->clusters);
@@ -1726,11 +1222,11 @@ void destroyClusters(MeshIn* pMesh)
 
 void addClusterToBatchChunk(
 	const ClusterCompact* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex,
-	FilterBatchChunk* batchChunk)
+	FilterBatchChunk* batchChunk, FilterBatchData* batches)
 {
 	const int filteredIndexBufferStartOffset = accumNumTriangles * 3;
 
-	FilterBatchData* smallBatchData = &batchChunk->batches[batchChunk->currentBatchCount++];
+	FilterBatchData* smallBatchData = &batches[batchChunk->currentBatchCount++];
 
 	smallBatchData->accumDrawIndex = accumDrawCount;
 	smallBatchData->faceCount = cluster->triangleCount;
@@ -1799,17 +1295,10 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 	GenerateVolumeDataFromFileFunc generateVolumeDataFromFileFunc)
 
 {
-	AssimpImporter importer;
-	AssimpImporter::Model model;
+	GLTFContainer* gltf = NULL;
+	gltfLoadContainer(filePath, GLTF_FLAG_LOAD_VERTICES, &gltf);
 
-	if (!importer.ImportModel(filePath, &model))
-	{
-		LOGF(LogLevel::eERROR ,"Failed to load %s", fsGetPathFileName(filePath).buffer);
-		return;
-	}
-
-
-	uint32_t meshCount = (uint32_t)model.mMeshArray.size();
+	uint32_t meshCount = (uint32_t)gltf->mMeshCount;
 
 	SDFMesh& mesh = *outMesh;
 
@@ -1821,15 +1310,15 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 	uint32_t totalVertexCount = 0;
 	uint32_t totalIndexCount = 0;
 
-
-
 	eastl::vector<SDFCustomSubMeshData> SDFCustomSubMeshDataList;
+	const GLTFNode* nodes = gltf->pNodes;
 
 	uint32_t realChildrenCount = 0;
-	for (uint32_t i = 0; i < (uint32_t)model.mRootNode.mChildren.size(); ++i)
+	for (uint32_t i = 0; i < (uint32_t)nodes[0].mChildCount; ++i)
 	{
-		eastl::string curName = model.mRootNode.mChildren[i].mName;
-		if (curName == "default")
+		const GLTFNode* node = &nodes[nodes[0].pChildIndices[i]];
+		eastl::string curName = node->pName;
+		if (curName == "default" || node->mMeshIndex == UINT_MAX)
 		{
 			continue;
 		}
@@ -1852,10 +1341,10 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 
 				//LOGF(LogLevel::eINFO, "Stack id %s", stackDigitStr.c_str());
 
-				if (newStr.find("beginstack10") != eastl::string::npos)
-				{
-					int i = 0;
-				}
+				//if (newStr.find("beginstack10") != eastl::string::npos)
+				//{
+				//	int i = 0;
+				//}
 
 				eastl::vector<SDFCustomSubMeshData>::iterator findIter =
 					eastl::find_if(SDFCustomSubMeshDataList.begin(), SDFCustomSubMeshDataList.end(),
@@ -1866,18 +1355,20 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 
 				if (findIter != SDFCustomSubMeshDataList.end())
 				{
+					ASSERT(realChildrenCount < gltf->mMeshCount);
 					GetSDFCustomSubMeshData(newStr, *findIter);
 					findIter->mStacks.push_back(SDFCustomSubMeshData());
-					findIter->mStacks.back().m_PSubMesh = &model.mMeshArray[realChildrenCount];
+					findIter->mStacks.back().m_PSubMesh = &gltf->pMeshes[realChildrenCount];
 					GetSDFCustomSubMeshData(newStr, findIter->mStacks.back());
 				}
 				else
 				{
+					ASSERT(realChildrenCount < gltf->mMeshCount);
 					SDFCustomSubMeshDataList.push_back(SDFCustomSubMeshData{});
 					SDFCustomSubMeshData& customSubMesh = SDFCustomSubMeshDataList.back();
 					GetSDFCustomSubMeshData(newStr, customSubMesh);
 					customSubMesh.mStacks.push_back(SDFCustomSubMeshData());
-					customSubMesh.mStacks.back().m_PSubMesh = &model.mMeshArray[realChildrenCount];
+					customSubMesh.mStacks.back().m_PSubMesh = &gltf->pMeshes[realChildrenCount];
 					GetSDFCustomSubMeshData(newStr, customSubMesh.mStacks.back());
 					customSubMesh.mStackStrID = stackDigitStr;
 				}
@@ -1903,17 +1394,21 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 
 					if (findIter != SDFCustomSubMeshDataList.end())
 					{
+						ASSERT(realChildrenCount < gltf->mMeshCount);
+
 						findIter->mStacks.push_back(SDFCustomSubMeshData());
-						findIter->mStacks.back().m_PSubMesh = &model.mMeshArray[realChildrenCount];
+						findIter->mStacks.back().m_PSubMesh = &gltf->pMeshes[realChildrenCount];
 
 						GetSDFCustomSubMeshData(newStr, findIter->mStacks.back());
 					}
 					else
 					{
+						ASSERT(realChildrenCount < gltf->mMeshCount);
+
 						SDFCustomSubMeshDataList.push_back(SDFCustomSubMeshData{});
 						SDFCustomSubMeshData& customSubMesh = SDFCustomSubMeshDataList.back();
 						customSubMesh.mStacks.push_back(SDFCustomSubMeshData());
-						customSubMesh.mStacks.back().m_PSubMesh = &model.mMeshArray[realChildrenCount];
+						customSubMesh.mStacks.back().m_PSubMesh = &gltf->pMeshes[realChildrenCount];
 
 						GetSDFCustomSubMeshData(newStr, customSubMesh.mStacks.back());
 						customSubMesh.mStackStrID = stackDigitStr;
@@ -1923,7 +1418,7 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 				{
 					SDFCustomSubMeshDataList.push_back(SDFCustomSubMeshData{});
 					SDFCustomSubMeshData& customSubMesh = SDFCustomSubMeshDataList.back();
-					customSubMesh.m_PSubMesh = &model.mMeshArray[realChildrenCount];
+					customSubMesh.m_PSubMesh = &gltf->pMeshes[realChildrenCount];
 					GetSDFCustomSubMeshData(newStr, customSubMesh);
 				}
 			}
@@ -1942,10 +1437,10 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 
 		if (customSubMesh.mStacks.empty())
 		{
-			AssimpImporter::Mesh& subMesh = *customSubMesh.m_PSubMesh;
+			GLTFMesh& subMesh = *customSubMesh.m_PSubMesh;
 
-			uint32_t vertexCount = (uint32_t)subMesh.mPositions.size();
-			uint32_t indexCount = (uint32_t)subMesh.mIndices.size();
+			uint32_t vertexCount = (uint32_t)subMesh.mVertexCount;
+			uint32_t indexCount = (uint32_t)subMesh.mIndexCount;
 
 			mesh.mMeshInstances[i] = { i, indexCount, totalIndexCount, totalVertexCount };
 
@@ -1963,18 +1458,18 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 
 			for (uint32_t j = 0; j < vertexCount; j++)
 			{
-				float3 transformedV = subMesh.mPositions[j] * scale + float3(offsetX, 0.f, 0.f);
+				float3 transformedV = ((float3*)subMesh.pAttributes[GLTF_ATTRIBUTE_TYPE_POSITION])[j] * scale + float3(offsetX, 0.f, 0.f);
 
-				vec2 texCoord = f2Tov2(subMesh.mUvs[j]);
+				vec2 texCoord = f2Tov2(((float2*)subMesh.pAttributes[GLTF_ATTRIBUTE_TYPE_TEXCOORD])[j]);
 
 
 
 				mesh.mUncompressedTexCoords.push_back(texCoord);
 
 				
-				vertices[totalVertexCount++] = { transformedV , subMesh.mNormals[j] };
+				vertices[totalVertexCount++] = { transformedV , ((float3*)subMesh.pAttributes[GLTF_ATTRIBUTE_TYPE_NORMAL])[j] };
 				mesh.mPositions.push_back(SceneVertexPos{ transformedV.getX(), transformedV.getY(), transformedV.getZ() });
-				mesh.mUncompressedNormals.push_back(f3Tov3(subMesh.mNormals[j]));
+				mesh.mUncompressedNormals.push_back(f3Tov3(((float3*)subMesh.pAttributes[GLTF_ATTRIBUTE_TYPE_NORMAL])[j]));
 
 				//SDF STUFF//
 				//TODO: CLEANUP:
@@ -1992,7 +1487,7 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 			{
 
 
-				int indd = subMesh.mIndices[j];
+				int indd = ((uint32_t*)subMesh.pIndices)[j];
 
 				if (indd < 0)
 				{
@@ -2005,7 +1500,7 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 					mesh.mIndices.push_back((indd + accIndex_));
 				}
 			}
-			accIndex_ += (uint32_t)subMesh.mPositions.size();
+			accIndex_ += (uint32_t)subMesh.mVertexCount;
 
 		
 		}
@@ -2013,12 +1508,12 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 		{
 			for (uint32_t subMeshIndex = 0; subMeshIndex < customSubMesh.mStacks.size(); ++subMeshIndex)
 			{
-				AssimpImporter::Mesh& subMesh = *customSubMesh.mStacks[subMeshIndex].m_PSubMesh;
+				GLTFMesh& subMesh = *customSubMesh.mStacks[subMeshIndex].m_PSubMesh;
 
 
 
-				uint32_t vertexCount = (uint32_t)subMesh.mPositions.size();
-				uint32_t indexCount = (uint32_t)subMesh.mIndices.size();
+				uint32_t vertexCount = (uint32_t)subMesh.mVertexCount;
+				uint32_t indexCount = (uint32_t)subMesh.mIndexCount;
 
 				mesh.mMeshInstances[i].mStackInstances.push_back(SDFMeshInstance());
 				SDFMeshInstance& stackInstance = mesh.mMeshInstances[i].mStackInstances.back();
@@ -2048,18 +1543,18 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 
 				for (uint32_t j = 0; j < vertexCount; j++)
 				{
-					float3 transformedV = subMesh.mPositions[j] * scale + float3(offsetX, 0.f, 0.f);
+					float3 transformedV = ((float3*)subMesh.pAttributes[GLTF_ATTRIBUTE_TYPE_POSITION])[j] * scale + float3(offsetX, 0.f, 0.f);
 
-					vec2 texCoord = f2Tov2(subMesh.mUvs[j]);
+					vec2 texCoord = f2Tov2(((float2*)subMesh.pAttributes[GLTF_ATTRIBUTE_TYPE_TEXCOORD])[j]);
 
 
 
 					mesh.mUncompressedTexCoords.push_back(texCoord);
 
 					//vertices[totalVertexCount++] = { subMesh.mPositions[j], subMesh.mNormals[j] };
-					vertices[totalVertexCount++] = { transformedV , subMesh.mNormals[j] };
+					vertices[totalVertexCount++] = { transformedV , ((float3*)subMesh.pAttributes[GLTF_ATTRIBUTE_TYPE_NORMAL])[j] };
 					mesh.mPositions.push_back(SceneVertexPos{ transformedV.getX(), transformedV.getY(), transformedV.getZ() });
-					mesh.mUncompressedNormals.push_back(f3Tov3(subMesh.mNormals[j]));
+					mesh.mUncompressedNormals.push_back(f3Tov3(((float3*)subMesh.pAttributes[GLTF_ATTRIBUTE_TYPE_NORMAL])[j]));
 
 					//SDF STUFF//
 
@@ -2085,7 +1580,7 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 				{
 
 
-					int indd = subMesh.mIndices[j];
+					int indd = ((uint32_t*)subMesh.pIndices)[j];
 
 					if (indd < 0)
 					{
@@ -2098,7 +1593,7 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 						mesh.mIndices.push_back((indd + accIndex_));
 					}
 				}
-				accIndex_ += (uint32_t)subMesh.mPositions.size();
+				accIndex_ += (uint32_t)subMesh.mVertexCount;
 
 				//LOGF(LogLevel::eINFO, "Alpha Stack Mesh instance %i and name %s has index count %i", i, customSubMesh.mStacks[subMeshIndex].mMeshName.c_str(), indexCount);
 			}
@@ -2106,7 +1601,7 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 
 		if (generateSDFVolumeData && customSubMesh.mIsSDFMesh)
 		{
-			bool twoSided = customSubMesh.mIsTwoSided;
+			//bool twoSided = customSubMesh.mIsTwoSided;
 			SDFMeshInstance& sdfMeshInstance = mesh.mMeshInstances[i];
 
 			sdfMeshInstance.mIsAlphaTested = customSubMesh.mIsAlphaTested;
@@ -2147,23 +1642,18 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 	}	
 	conf_free(vertices);
 	conf_free(indices);
+
+	gltfUnloadContainer(gltf);
 }
 
 void loadSDFMesh(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outMesh, float scale,
 	float offsetX, bool generateSDFVolumeData, BakedSDFVolumeInstances& sdfVolumeInstances,
 	GenerateVolumeDataFromFileFunc generateVolumeDataFromFileFunc)
-
 {
-	AssimpImporter importer;
-	AssimpImporter::Model model;
-	if (!importer.ImportModel(filePath, &model))
-	{
-		LOGF(LogLevel::eERROR ,"Failed to load %s", fsGetPathFileName(filePath).buffer);
-		return;
-	}
-
+	GLTFContainer* gltf = NULL;
+	gltfLoadContainer(filePath, GLTF_FLAG_LOAD_VERTICES, &gltf);
 			
-	uint32_t meshCount = (uint32_t)model.mMeshArray.size();
+	uint32_t meshCount = (uint32_t)gltf->mMeshCount;
 
 	SDFMesh& mesh = *outMesh;
 
@@ -2178,12 +1668,14 @@ void loadSDFMesh(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outM
 	AABB overallBoundingBox;
 
 	eastl::vector<SDFCustomSubMeshData> SDFCustomSubMeshDataList;
+	const GLTFNode* nodes = gltf->pNodes;
 
 	uint32_t realChildrenCount = 0;
-	for (uint32_t i = 0; i < (uint32_t)model.mRootNode.mChildren.size(); ++i)
+	for (uint32_t i = 0; i < (uint32_t)nodes[0].mChildCount; ++i)
 	{
-		eastl::string curName = model.mRootNode.mChildren[i].mName;
-		if (curName == "default")
+		const GLTFNode* node = &nodes[nodes[0].pChildIndices[i]];
+		eastl::string curName = node->pName;
+		if (curName == "default" || node->mMeshIndex == UINT_MAX)
 		{
 			continue;
 		}
@@ -2203,7 +1695,7 @@ void loadSDFMesh(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outM
 			SDFCustomSubMeshDataList.push_back(SDFCustomSubMeshData{});
 			SDFCustomSubMeshData& customSubMesh = SDFCustomSubMeshDataList.back();
 			GetSDFCustomSubMeshData(newStr, customSubMesh);
-			customSubMesh.m_PSubMesh = &model.mMeshArray[realChildrenCount];
+			customSubMesh.m_PSubMesh = &gltf->pMeshes[realChildrenCount];
 		}
 
 		//LOGF(LogLevel::eINFO, "Node mesh instance %d name %s", realChildrenCount, newStr.c_str());
@@ -2213,10 +1705,10 @@ void loadSDFMesh(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outM
 	for (uint32_t i = 0; i < SDFCustomSubMeshDataList.size(); ++i)
 	{
 		SDFCustomSubMeshData& customSubMesh = SDFCustomSubMeshDataList[i];
-		AssimpImporter::Mesh& subMesh = *customSubMesh.m_PSubMesh;
+		GLTFMesh& subMesh = *customSubMesh.m_PSubMesh;
 
-		uint32_t vertexCount = (uint32_t)subMesh.mPositions.size();
-		uint32_t indexCount = (uint32_t)subMesh.mIndices.size();
+		uint32_t vertexCount = (uint32_t)subMesh.mVertexCount;
+		uint32_t indexCount = (uint32_t)subMesh.mIndexCount;
 
 		mesh.mMeshInstances[i] = { i, indexCount, totalIndexCount, totalVertexCount };
 
@@ -2227,16 +1719,16 @@ void loadSDFMesh(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outM
 
 		for (uint32_t j = 0; j < vertexCount; j++)
 		{
-			float3 transformedV = subMesh.mPositions[j] * scale + float3(offsetX, 0.f, 0.f);
+			float3 transformedV = ((float3*)subMesh.pAttributes[GLTF_ATTRIBUTE_TYPE_POSITION])[j] * scale + float3(offsetX, 0.f, 0.f);
 
-			vec2 texCoord = f2Tov2(subMesh.mUvs[j]);
+			vec2 texCoord = f2Tov2(((float2*)subMesh.pAttributes[GLTF_ATTRIBUTE_TYPE_TEXCOORD])[j]);
 
 			mesh.mUncompressedTexCoords.push_back(texCoord);
 
 			
-			vertices[totalVertexCount++] = { transformedV , subMesh.mNormals[j] };
+			vertices[totalVertexCount++] = { transformedV , ((float3*)subMesh.pAttributes[GLTF_ATTRIBUTE_TYPE_NORMAL])[j] };
 			mesh.mPositions.push_back(SceneVertexPos{ transformedV.getX(), transformedV.getY(), transformedV.getZ() });
-			mesh.mUncompressedNormals.push_back(f3Tov3(subMesh.mNormals[j]));
+			mesh.mUncompressedNormals.push_back(f3Tov3(((float3*)subMesh.pAttributes[GLTF_ATTRIBUTE_TYPE_NORMAL])[j]));
 
 		
 			adjustAABB(&mesh.mMeshInstances[i].mLocalBoundingBox, f3Tov3(transformedV));
@@ -2250,7 +1742,7 @@ void loadSDFMesh(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outM
 		for (uint32_t j = 0; j < indexCount; j++)
 		{
 
-			int indd = subMesh.mIndices[j];
+			int indd = ((uint32_t*)subMesh.pIndices)[j];
 
 			if (indd < 0)
 			{
@@ -2266,7 +1758,7 @@ void loadSDFMesh(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outM
 
 		if (generateSDFVolumeData && customSubMesh.mIsSDFMesh)
 		{
-			bool twoSided = customSubMesh.mIsTwoSided;
+			//bool twoSided = customSubMesh.mIsTwoSided;
 
 			SDFMeshInstance& sdfMeshInstance = mesh.mMeshInstances[i];
 
@@ -2298,7 +1790,7 @@ void loadSDFMesh(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outM
 		customSubMesh.m_PSubMesh = NULL;
 		mesh.mCustomSubMeshDataList.push_back(customSubMesh);
 
-		accIndex_ += (uint32_t)subMesh.mPositions.size();
+		accIndex_ += (uint32_t)subMesh.mVertexCount;
 	}
 
 	if (totalVertexCount == 0 || totalIndexCount == 0)
@@ -2308,6 +1800,8 @@ void loadSDFMesh(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outM
 
 	conf_free(vertices);
 	conf_free(indices);
+
+	gltfUnloadContainer(gltf);
 }
 
 void adjustAABB(AABB* ownerAABB, const vec3& point)

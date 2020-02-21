@@ -8530,8 +8530,6 @@ ImGuiWindowSettings* ImGui::FindWindowSettings(ImGuiID id)
 
 void ImGui::LoadIniSettingsFromDisk(const char* ini_filename)
 {
-	size_t file_data_size = 0;
-
     PathHandle path = fsCreatePath(fsGetSystemFileSystem(), ini_filename);
     FileStream* fh = fsOpenFile(path, FM_READ_APPEND);
 
@@ -8617,7 +8615,6 @@ void ImGui::LoadIniSettingsFromMemory(const char* ini_data, size_t ini_size)
 
 void ImGui::SaveIniSettingsToDisk(const char* ini_filename)
 {
-    ImGuiContext& g = *GImGui;
     if (!ini_filename)
         return;
 

@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2019 Confetti Interactive Inc.
+* Copyright (c) 2018-2020 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -25,7 +25,7 @@
 #include "Panini.h"
 
 #include "../../Common_3/Renderer/IRenderer.h"
-#include "../../Common_3/Renderer/ResourceLoader.h"
+#include "../../Common_3/Renderer/IResourceLoader.h"
 #include "../../Common_3/Renderer/GpuProfiler.h"
 
 #include "../../Common_3/OS/Interfaces/ILog.h"
@@ -80,7 +80,7 @@ void createTessellatedQuadBuffers(
 	vbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 	vbDesc.pData = vertices.data();
 	vbDesc.ppBuffer = ppVertexBuffer;
-	addResource(&vbDesc);
+	addResource(&vbDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 	// Tessellate the quad
 	eastl::vector<uint16_t> indices(numQuads * 6);
@@ -125,7 +125,7 @@ void createTessellatedQuadBuffers(
 	ibDesc.mDesc.mIndexType = INDEX_TYPE_UINT16;
 	ibDesc.pData = indices.data();
 	ibDesc.ppBuffer = ppIndexBuffer;
-	addResource(&ibDesc);
+	addResource(&ibDesc, NULL, LOAD_PRIORITY_NORMAL);
 }
 /************************************************************************/
 /* INTERFACE FUNCTIONS

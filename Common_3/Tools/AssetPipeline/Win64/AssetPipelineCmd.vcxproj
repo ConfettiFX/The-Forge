@@ -51,12 +51,21 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\AssetPipelineCmd.cpp" />
+    <ClCompile Include="..\..\..\ThirdParty\OpenSource\TressFX\TressFXAsset.cpp" />
+    <ClCompile Include="..\src\AssetPipeline.cpp" />
+    <ClCompile Include="..\src\AssetPipelineCmd.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx11|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</ExcludedFromBuild>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\ThirdParty\OpenSource\meshoptimizer\Win64\MeshOptimizer.vcxproj">
-      <Project>{d89f2a05-407f-427f-bd64-b9aac130e604}</Project>
-    </ProjectReference>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\TressFX\TressFXAsset.h" />
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\TressFX\TressFXFileFormat.h" />
+    <ClInclude Include="..\src\AssetPipeline.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
@@ -316,7 +325,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>OS.lib;MeshOptimizer.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;IrrXML.lib;assimp.lib;AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OS.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
@@ -347,7 +356,7 @@ $(systemroot)\System32\xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\bas
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>OS.lib;MeshOptimizer.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;IrrXML.lib;assimp.lib;AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OS.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
@@ -378,7 +387,7 @@ $(systemroot)\System32\xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\bas
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>OS.lib;MeshOptimizer.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;IrrXML.lib;assimp.lib;AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OS.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
@@ -476,7 +485,7 @@ $(systemroot)\System32\xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\bas
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>OS.lib;MeshOptimizer.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;IrrXML.lib;assimp.lib;AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OS.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
@@ -511,7 +520,7 @@ $(systemroot)\System32\xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\bas
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>OS.lib;MeshOptimizer.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;IrrXML.lib;assimp.lib;AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OS.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
@@ -546,7 +555,7 @@ $(systemroot)\System32\xcopy /Y "$(ProjectDir)..\..\..\ThirdParty\OpenSource\bas
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>OS.lib;MeshOptimizer.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;IrrXML.lib;assimp.lib;AssetPipeline.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>OS.lib;ozz_animation.lib;ozz_base.lib;ozz_animation_offline.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>

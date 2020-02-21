@@ -7,6 +7,12 @@
 #define loslib_c
 #define LUA_LIB
 
+#if defined(__clang__)
+#pragma clang diagnostic ignored "-Wimplicit-function-declaration"
+#pragma clang diagnostic ignored "-Wint-conversion"
+#pragma clang diagnostic ignored "-Wunused-function"
+#endif
+
 #include "lprefix.h"
 
 
@@ -124,6 +130,23 @@ static time_t l_checktime (lua_State *L, int arg) {
         if (e != -1) close(e); \
         e = (e == -1); }
 
+#elif defined(ORBIS)
+
+/* ISO C definitions */
+#define LUA_TMPNAMBUFSIZE	256
+
+#if !defined(LUA_TMPNAMTEMPLATE)
+#define LUA_TMPNAMTEMPLATE	"/tmp/lua_XXXXXX"
+#endif
+
+#define mkstemp(b) NULL;
+
+#define lua_tmpnam(b,e) { \
+        strcpy(b, LUA_TMPNAMTEMPLATE); \
+        e = mkstemp(b); \
+        if (e != -1) close(e); \
+        e = (e == -1); }
+
 #else				/* }{ */
 
 /* ISO C definitions */
@@ -164,6 +187,10 @@ static int os_rename (lua_State *L) {
 
 
 static int os_tmpname (lua_State *L) {
+#if defined(NN_NINTENDO_SDK)
+//assert(0);
+  return 0;
+#else
   char buff[LUA_TMPNAMBUFSIZE];
   int err;
   lua_tmpnam(buff, err);
@@ -171,11 +198,12 @@ static int os_tmpname (lua_State *L) {
     return luaL_error(L, "unable to generate a unique filename");
   lua_pushstring(L, buff);
   return 1;
+#endif
 }
 
 
 static int os_getenv (lua_State *L) {
-#if defined(_DURANGO)
+#if defined(_DURANGO) || defined(ORBIS)
   lua_pushnil(L);
 #else
   lua_pushstring(L, getenv(luaL_checkstring(L, 1)));  /* if NULL push nil */

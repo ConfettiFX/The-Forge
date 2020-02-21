@@ -5,14 +5,6 @@
       <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
     </Plugin>
   </Plugins>
-  <VirtualDirectory Name="AssimpImporter">
-    <File Name="../../../../Common_3/OS/FileSystem/AssimpIOSystem.h"/>
-    <File Name="../../../../Common_3/OS/FileSystem/AssimpIOSystem.cpp"/>
-    <File Name="../../../../Common_3/OS/FileSystem/AssimpIOStream.h"/>
-    <File Name="../../../../Common_3/OS/FileSystem/AssimpIOStream.cpp"/>
-    <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"/>
-    <File Name="../../../../Common_3/Tools/AssimpImporter/AssimpImporter.cpp"/>
-  </VirtualDirectory>
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="src">
@@ -20,17 +12,15 @@
   </VirtualDirectory>
   <Dependencies Name="Debug">
     <Project Name="OS"/>
-    <Project Name="AssimpImporter"/>
+
     <Project Name="Renderer"/>
     <Project Name="SpirVTools"/>
     <Project Name="gainput"/>
     <Project Name="ozz_base"/>
     <Project Name="ozz_animation_offline"/>
     <Project Name="ozz_animation"/>
-    <Project Name="assimp"/>
+
     <Project Name="EASTL"/>
-    <Project Name="MeshOptimizer"/>
-    <Project Name="AssetPipeline"/>
     <Project Name="AssetPipelineCmd"/>
   </Dependencies>
   <Dependencies Name="Release">
@@ -41,11 +31,9 @@
     <Project Name="ozz_base"/>
     <Project Name="ozz_animation"/>
     <Project Name="ozz_animation_offline"/>
-    <Project Name="assimp"/>
-    <Project Name="AssimpImporter"/>
+
+
     <Project Name="EASTL"/>
-    <Project Name="MeshOptimizer"/>
-    <Project Name="AssetPipeline"/>
     <Project Name="AssetPipelineCmd"/>
   </Dependencies>
   <Settings Type="Executable">
@@ -54,9 +42,9 @@
         <IncludePath Value="$(WorkspacePath)/../../../Common_3/ThirdParty/OpenSource/ozz-animation/include"/>
       </Compiler>
       <Linker Options="">
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/Libraries/Linux"/>
-        <Library Value="libzip.a"/>
-        <Library Value="libz"/>
+
+        
+
       </Linker>
       <ResourceCompiler Options=""/>
     </GlobalSettings>
@@ -64,7 +52,7 @@
       <Compiler Options="-g;-O0;-std=c++14;-Wall;-Wno-unknown-pragmas;-msse4.1; " C_Options="-g;-O0;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
-        <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include/"/>
+
         <IncludePath Value="$(ProjectPath)/../../../.."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
@@ -78,7 +66,7 @@
         <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
+
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
@@ -88,7 +76,7 @@
         <Library Value="libgainput.a"/>
         <Library Value="libozz_animation.a"/>
         <Library Value="libozz_base.a"/>
-        <Library Value="libassimp.a"/>
+
         <Library Value="libEASTL.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
@@ -104,7 +92,7 @@
       </Debugger>
       <PreBuild/>
       <PostBuild>
-        <Command Enabled="yes">"$(WorkspacePath)/../../../Common_3/Tools/AssetPipeline/Linux/Debug/AssetPipelineCmd" -pa "$(WorkspacePath)/../UnitTestResources/Animation/fbx" "$(WorkspacePath)/../UnitTestResources/Animation"</Command>
+        <Command Enabled="yes">"$(WorkspacePath)/../../../Common_3/Tools/AssetPipeline/Linux/Debug/AssetPipelineCmd" -pa "$(WorkspacePath)/../UnitTestResources/Animation" "$(WorkspacePath)/../UnitTestResources/Animation"</Command>
       </PostBuild>
       <CustomBuild Enabled="no">
         <RebuildCommand/>
@@ -131,7 +119,7 @@
       <Compiler Options="-O2;-std=c++14;-Wall;-Wno-unknown-pragmas;-msse4.1; " C_Options="-O2;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
-        <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include/"/>
+
         <IncludePath Value="$(ProjectPath)/../../../.."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>
@@ -144,7 +132,7 @@
         <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
+
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
         <Library Value="libOS.a"/>
         <Library Value="libozz_animation.a"/>
@@ -155,7 +143,7 @@
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
         <Library Value="libgainput.a"/>
-        <Library Value="libassimp.a"/>
+
         <Library Value="libEASTL.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
@@ -171,7 +159,7 @@
       </Debugger>
       <PreBuild/>
       <PostBuild>
-        <Command Enabled="yes">"$(WorkspacePath)/../../../Common_3/Tools/AssetPipeline/Linux/Release/AssetPipelineCmd" -pa "$(WorkspacePath)/../UnitTestResources/Animation/fbx" "$(WorkspacePath)/../UnitTestResources/Animation"</Command>
+        <Command Enabled="yes">"$(WorkspacePath)/../../../Common_3/Tools/AssetPipeline/Linux/Release/AssetPipelineCmd" -pa "$(WorkspacePath)/../UnitTestResources/Animation" "$(WorkspacePath)/../UnitTestResources/Animation"</Command>
       </PostBuild>
       <CustomBuild Enabled="no">
         <RebuildCommand/>
