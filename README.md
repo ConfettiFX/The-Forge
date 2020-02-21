@@ -11,7 +11,8 @@ The Forge is a cross-platform rendering framework supporting
 - macOS / iOS / iPad OS with Metal 2.2
 - XBOX One / XBOX One X (only available for accredited developers on request)
 - PS4 / PS4 Pro (only available for accredited developers on request)
-- Switch (in development) (only available for accredited developers on request)
+- PS5 (in development) (only available for accredited developers on request)
+- Switch (only available for accredited developers on request)
 - Google Stadia (in development) (only available for accredited developers on request)
 
 Particularly, the graphics layer of The Forge supports cross-platform
@@ -21,12 +22,11 @@ Particularly, the graphics layer of The Forge supports cross-platform
 - Multi-threaded command buffer generation
 
 The Forge can be used to provide the rendering layer for custom next-gen game engines. It is also meant to provide building blocks to write your own game engine. It is like a "lego" set that allows you to use pieces to build a game engine quickly. The "lego" High-Level Features supported on all platforms are at the moment:
-- Asynchronous Resource loading with a resource loader task system as shown in 10_PixelProjectedReflections
+- Resource Loader as shown in 10_PixelProjectedReflections, capable to load textures, buffers and geometry data asynchronously
 - [Lua Scripting System](https://www.lua.org/) - currently used in 06_Playground to load models and textures and animate the camera
 - Animation System based on [Ozz Animation System](https://github.com/guillaumeblanc/ozz-animation)
 - Consistent Math Library  based on an extended version of [Vectormath](https://github.com/glampert/vectormath) with NEON intrinsics for mobile platforms
 - Extended version of [EASTL](https://github.com/electronicarts/EASTL/)
-- For loading art assets we have a modified and integrated version of [Assimp](https://github.com/assimp/assimp)
 - Consistent Memory Managament: 
   * on GPU following [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
   * on CPU [Fluid Studios Memory Manager](http://www.paulnettle.com/)
@@ -55,6 +55,25 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+
+## Release 1.40 - February 20th, 2020 - Resource Loader | glTF as Geometry Container | GDC Talk | User Group Meeting
+This release took much longer than expected ... :-) 
+* We are going to give a talk at GDC during the GPU Summit day. It will cover our skydome system Ephemeris 2: [GDC 2020 Ephemeris](https://twitter.com/TheForge_FX/status/1227728118883860480)
+* We will also have a user group meeting during GDC: [The Forge User Group](https://twitter.com/TheForge_FX/status/1229478866621583361)
+* A new resource loader can now stream textures, buffers and additionally geometry (extracted from glTF) asynchronously. We replaced assimp with this loader to save compile time and space on GitHub. We still use assimp for our internal tools. Here are the underlying design principles of the resource loader:
+  * Generally glTF is just a geometry container for us. We do not apply any of the underlying principles like material or mesh or scene management that it offers because they are not tailored to our needs. The resource loader only loads a glTF file, extract its geometry and stores this data (including hair and ozz animation system data) in a vertex and index buffer stream.
+  * All texture loading and material loading is the responsibility of the app. Scene partitioning or material support is not used from glTF. Those remain on the App level. Each app has its own lighting and material models and it shouldn't be restricted to the very limiting architecture of glTF
+  * There is no glTF code in any of the unit tests or app examples with the exception of the glTF viewer. The resource loader loads geometry just with a addResource call as it loads textures and buffers ... it can generate a vertex and index buffer stream with offset values for draw calls or for ExecuteIndirect ...
+* All model art assets were converted to glTF
+* libzip was replaced with [zip](https://github.com/kuba--/zip) because it is easier to maintain.
+* Console support: at the end of last year before our three week break, we made the PS4 and Switch run-times ready to ship games (we will see first games shipping this year). We also started on the PS5 and XBOX One Series X support. You need to be an acredited developer to receive the source code for any consoles. We will be asking the console owner for permission before we would provide you with any source code. That means you have to be part of their developer program.
+* Improved Windows 7 support: one of the games TF is launching with requires Windows 7 support. This means we are now testing the Windows 7 run-time more rigourously and committed fixes with this release
+* Math library: added missing vec2 functions
+* Updated copyright statement
+* Resolved issues on GitHub:
+  * issue 162 - 13_UserInterface - Crash
+  * issue 161 - 18_VirtualTexture breaks with dx and vk: only fairly decent cards support virtual textures. We added tracking support in the *.cfg system and throw an error message when the GPU doesn't support the feature.
+  * issue 124 - Missing KeyKpAdd mapping
 
 ## Release 1.39 - November 26th - Sparse Virtual Texture Support | Stormland
 The Forge has now support for Sparse Virtual Textures on Windows and Linux with DirectX 12 / Vulkan. Sparse texture (also known as "virtual texture", “tiled texture”, or “mega-texture”) is a technique to load huge size (such as 16k x 16k or more) textures in GPU memory.
@@ -134,45 +153,6 @@ Linux 1080p NVIDIA RTX 2060 with RTX Driver version 435
   * #150 - [Vulkan] Failed to extend descriptor pool
   * #151 - [Vulkan] rootcbv of detection is case sensitive
   * #152 - [Vulkan] updateDescriptorSet is different from the DirectX12
-
-## Release 1.37 - October 30th - New Features Ephemeris 2 | Update Metal
-The Forge Interactive Inc., the company behind The Forge became a [Khronos Associate member]((https://www.khronos.org/members/list)).
- * Ephemeris 2
-   * New features
-     * Add Earth radius: controls the radius of clouds' radius with scale factor. The clouds field will be flatter and the user can see further along the horizon if the radius increase
-     * Add noise flow: controls the direction and intensity of clouds' noise flow
-     * Add rotation: rotates clouds based on a certain pivot position.
-     * Add the second layer: it is possible to generate the second cloud layer which can act, independently
-     * Add FXAA
-   * Improvement
-     * Ray-marching: now, hard-edge artifact is significantly reduced
-     * Silver-lining: improved its quality
-     * God ray: improved its quality
-   * Performance: up to 25% performance increased 
-
-Click on the following image to see a video:
-
-<a href="https://vimeo.com/369379476" rel="nofollow"><img src="Screenshots/Ephemeris2.jpg" alt="Ephemeris 2" style="max-width:100%;"></a>
-    Head over to [Custom Middleware](https://github.com/ConfettiFX/Custom-Middleware) to check out the source code.
- * macOS / iPad / iOS: ICB support for Metal renderer (draw; draw indexed; pipeline state switch with ICB; ICB optimization with BlitEncoder). The Visibility Buffer example now uses ICB features on MacOS
-   * reduced memory consumption for argument buffers in Metal
-   * fixes for Metal implementation of descriptor set
-   * minor fixes and optimizations in Metal renderer
-   * Due to bugs in the run-time for argument buffers we still can't run unit test 04, 06, and 10
- 
- The Visibility Buffer example runs now faster on macOS
-![macOS Visibility Buffer](Screenshots/ProfilerScreenshot_VisibilityBuffer.png)
- 
-## Release 1.36 - October 18th - New File System
- * New cross-platform FileSystem C API, supporting disk-based files, memory streams, and files in zip archives. The API can be viewed in [IFileSystem.h](Common_3/OS/Interfaces/IFileSystem.h), and all of the example code has been updated to use the new API.
-   * The API is based around `Path`s, where each `Path` represents an absolute, canonical path string on a particular file system. You can query information about the files at `Path`s, open files as `FileStream`s, and copy files between different `Path`s.
-   * The concept of `FileSystemRoot`s has been replaced by `ResourceDirectory`s. `ResourceDirectory`s are predefined directories where resources are expected to exist, and there are convenience functions to open files in resource directories. If your resources don’t exist within the default directory for a particular resource type, you can call `fsSetPathForResourceDirectory` to relocate the resource directory; see the unit tests for sample code on how to do this.
-   * There's a new 12_FileSystem unit test that demonstrates how to read files from zip archives:
-
-![File System Unit Test](Screenshots/12_FileSystem.png)
- 
- * Vulkan: Adaptive Order Independent Transparency with Raster Order Views is now supported when VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_INTERLOCK_FEATURES_EXT is supported.
-
 
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
 
@@ -677,7 +657,6 @@ In case your School / College / University uses The Forge for education, we woul
 
 # Open-Source Libraries
 The Forge utilizes the following Open-Source libraries:
-* [Assimp](https://github.com/assimp/assimp)
 * [Fontstash](https://github.com/memononen/fontstash)
 * [Vectormath](https://github.com/glampert/vectormath)
 * [Nothings](https://github.com/nothings/stb) single file libs 
@@ -707,3 +686,4 @@ The Forge utilizes the following Open-Source libraries:
 * [meshoptimizer](https://github.com/zeux/meshoptimizer)
 * [Basis Universal Texture Support](https://github.com/binomialLLC/basis_universal)
 * [TinyImageFormat](https://github.com/DeanoC/tiny_imageformat)
+* [zip](https://github.com/kuba--/zip)
