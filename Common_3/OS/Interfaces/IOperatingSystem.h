@@ -62,6 +62,7 @@ typedef uint64_t uint64;
 #include <stdio.h>
 #include <stdint.h>
 #include "../../OS/Math/MathTypes.h"
+#include "../Core/String.h"
 
 // For time related functions such as getting localtime
 #include <time.h>
@@ -249,8 +250,6 @@ float2       getDpiScale();
 bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes);
 
 // Shell commands
-
-typedef struct Path Path;
 
 /// @param stdOutFile The file to which the output of the command should be written. May be NULL.
 int systemRun(const char *command, const char **arguments, size_t argumentCount, const Path* stdOutFile);

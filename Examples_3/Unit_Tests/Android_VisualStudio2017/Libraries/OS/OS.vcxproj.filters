@@ -239,6 +239,9 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\RingBuffer.h">
       <Filter>OS\Core</Filter>
     </ClInclude>
+	<ClInclude Include="..\..\..\..\..\Common_3\OS\Core\String.h">
+      <Filter>OS\Core</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.h">
       <Filter>OS\Core</Filter>
     </ClInclude>
@@ -363,6 +366,9 @@
   <ItemGroup>
     <Natvis Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EASTL.natvis">
       <Filter>utils</Filter>
+    </Natvis>
+	<Natvis Include="..\..\..\..\..\Common_3\OS\Windows\OS.natvis">
+      <Filter>Utils</Filter>
     </Natvis>
   </ItemGroup>
 </Project>

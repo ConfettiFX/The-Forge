@@ -27,6 +27,7 @@
 
 #include "../Interfaces/IFileSystem.h"
 #include "../Core/Atomics.h"
+#include "../Core/String.h"
 
 // Include the functions to set the log file directory and executable name
 // for the memory manager.
@@ -76,24 +77,6 @@ struct FileSystem
 	virtual void
 		EnumerateSubDirectories(const Path* directory, bool (*processDirectory)(const Path*, void* userData), void* userData) const = 0;
 };
-
-// MARK: - Path
-
-// Paths are always formatted in the native format of their file system.
-// They never contain a trailing slash unless they are a root path.
-//
-// Implementation note: Paths must always be heap-allocated in mutable memory,
-// since we cast away their const-ness in fsCopyPath.
-// Doing so for a Path that is not allocated in writable heap memory is undefined
-// behaviour.
-typedef struct Path
-{
-	FileSystem*         pFileSystem;
-	tfrg_atomicptr_t    mRefCount;
-	size_t              mPathLength;
-	char                mPathBufferOffset;
-	// ... plus a heap allocated UTF-8 buffer of length pathLength.
-} Path;
 
 static inline size_t fsSizeOfPath(const Path* path) { return sizeof(Path) + path->mPathLength; }
 

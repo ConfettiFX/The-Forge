@@ -26,13 +26,13 @@
 #define IFileSystem_h
 
 #include "../Interfaces/IOperatingSystem.h"
+#include "../Core/String.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef struct FileSystem FileSystem;
-typedef struct Path Path;
 typedef struct FileStream FileStream;
 typedef void (*FileDialogCallbackFn)(const Path* path, void* userData);
 

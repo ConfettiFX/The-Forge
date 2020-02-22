@@ -37,6 +37,7 @@
 **.vcxproj.user
 **.user
 **.log
+*.tlog
 
 # Art
 Art/
@@ -58,3 +59,9 @@ Art/
 # Nuget packages
 Tools/ShaderBuildCommand/packages/
 **/ThirdParty/OpenSource/hlslparser/Ext/ShaderTranslator/packages/
+
+# Shader cache binary
+*.bin
+
+# Microsoft Debug information
+*.pdb

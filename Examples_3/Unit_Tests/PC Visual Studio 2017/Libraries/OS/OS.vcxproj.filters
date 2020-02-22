@@ -195,6 +195,9 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\MemoryStream.h">
       <Filter>OS\FileSystem</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\String.h">
+      <Filter>OS\Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsBase.cpp">
@@ -344,6 +347,9 @@
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EASTL.natvis">
+      <Filter>Utils</Filter>
+    </Natvis>
+    <Natvis Include="..\..\..\..\..\Common_3\OS\Windows\OS.natvis">
       <Filter>Utils</Filter>
     </Natvis>
   </ItemGroup>

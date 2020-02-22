@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="Path">
+    <DisplayString>String: {(char*)&amp;mPathBufferOffset, s}</DisplayString>
+    <StringView>(char*)&amp;mPathBufferOffset, s</StringView>
+  </Type>
+</AutoVisualizer>
