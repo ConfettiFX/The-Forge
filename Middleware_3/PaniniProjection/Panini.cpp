@@ -26,7 +26,6 @@
 
 #include "../../Common_3/Renderer/IRenderer.h"
 #include "../../Common_3/Renderer/IResourceLoader.h"
-#include "../../Common_3/Renderer/GpuProfiler.h"
 
 #include "../../Common_3/OS/Interfaces/ILog.h"
 #include "../../Common_3/OS/Interfaces/IMemory.h"
@@ -72,11 +71,10 @@ void createTessellatedQuadBuffers(
 	BufferLoadDesc vbDesc = {};
 	vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 	vbDesc.mDesc.mMemoryUsage =
-		pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE ? RESOURCE_MEMORY_USAGE_GPU_ONLY : RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		pRenderer->mGpuMode == GPU_MODE_SINGLE ? RESOURCE_MEMORY_USAGE_GPU_ONLY : RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 	vbDesc.mDesc.mFlags =
-		pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE ? BUFFER_CREATION_FLAG_NONE : BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		pRenderer->mGpuMode == GPU_MODE_SINGLE ? BUFFER_CREATION_FLAG_NONE : BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 	vbDesc.mDesc.mSize = vertices.size() * sizeof(vec4);
-	vbDesc.mDesc.mVertexStride = sizeof(vec4);
 	vbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 	vbDesc.pData = vertices.data();
 	vbDesc.ppBuffer = ppVertexBuffer;
@@ -117,12 +115,11 @@ void createTessellatedQuadBuffers(
 	BufferLoadDesc ibDesc = {};
 	ibDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
 	ibDesc.mDesc.mMemoryUsage =
-		pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE ? RESOURCE_MEMORY_USAGE_GPU_ONLY : RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
+		pRenderer->mGpuMode == GPU_MODE_SINGLE ? RESOURCE_MEMORY_USAGE_GPU_ONLY : RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 	ibDesc.mDesc.mFlags =
-		pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE ? BUFFER_CREATION_FLAG_NONE : BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		pRenderer->mGpuMode == GPU_MODE_SINGLE ? BUFFER_CREATION_FLAG_NONE : BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 	ibDesc.mDesc.mSize = indices.size() * sizeof(uint16_t);
 	ibDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
-	ibDesc.mDesc.mIndexType = INDEX_TYPE_UINT16;
 	ibDesc.pData = indices.data();
 	ibDesc.ppBuffer = ppIndexBuffer;
 	addResource(&ibDesc, NULL, LOAD_PRIORITY_NORMAL);
@@ -147,15 +144,6 @@ bool Panini::Init(Renderer* renderer)
 	SamplerDesc samplerDesc = { FILTER_NEAREST,      FILTER_NEAREST,      MIPMAP_MODE_NEAREST,
 								ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT, ADDRESS_MODE_REPEAT };
 	addSampler(pRenderer, &samplerDesc, &pSamplerPointWrap);
-
-	RasterizerStateDesc rasterizerStateDesc = {};
-	addRasterizerState(pRenderer, &rasterizerStateDesc, &pRasterizerStateCullNone);
-
-	DepthStateDesc depthStateDesc = {};
-	depthStateDesc.mDepthTest = false;
-	depthStateDesc.mDepthWrite = false;
-	addDepthState(pRenderer, &depthStateDesc, &pDepthStateDisable);
-
 	// ROOT SIGNATURE
 	//----------------------------------------------------------------------------------------------------------------
 	const char*       pStaticSamplerName = "uSampler";
@@ -179,8 +167,6 @@ void Panini::Exit()
 	removeShader(pRenderer, pShader);
 
 	removeSampler(pRenderer, pSamplerPointWrap);
-	removeRasterizerState(pRasterizerStateCullNone);
-	removeDepthState(pDepthStateDisable);
 
 	removeRootSignature(pRenderer, pRootSignature);
 	removeDescriptorSet(pRenderer, pDescriptorSet);
@@ -201,16 +187,22 @@ bool Panini::Load(RenderTarget** rts, uint32_t count)
 	vertexLayoutPanini.mAttribs[0].mLocation = 0;
 	vertexLayoutPanini.mAttribs[0].mOffset = 0;
 
+	RasterizerStateDesc rasterizerStateDesc = {};
+
+	DepthStateDesc depthStateDesc = {};
+	depthStateDesc.mDepthTest = false;
+	depthStateDesc.mDepthWrite = false;
+
 	PipelineDesc graphicsPipelineDesc = {};
 	graphicsPipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
 	GraphicsPipelineDesc& pipelineSettings = graphicsPipelineDesc.mGraphicsDesc;
 	pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 	pipelineSettings.mRenderTargetCount = 1;
-	pipelineSettings.pDepthState = pDepthStateDisable;
-	pipelineSettings.pColorFormats = &rts[0]->mDesc.mFormat;
-	pipelineSettings.mSampleCount = rts[0]->mDesc.mSampleCount;
-	pipelineSettings.mSampleQuality = rts[0]->mDesc.mSampleQuality;
-	pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
+	pipelineSettings.pDepthState = &depthStateDesc;
+	pipelineSettings.pColorFormats = &rts[0]->mFormat;
+	pipelineSettings.mSampleCount = rts[0]->mSampleCount;
+	pipelineSettings.mSampleQuality = rts[0]->mSampleQuality;
+	pipelineSettings.pRasterizerState = &rasterizerStateDesc;
 	pipelineSettings.pRootSignature = pRootSignature;
 	pipelineSettings.pShaderProgram = pShader;
 	pipelineSettings.pVertexLayout = &vertexLayoutPanini;
@@ -245,9 +237,10 @@ void Panini::Draw(Cmd* cmd)
 	cmdBindDescriptorSet(cmd, mIndex++, pDescriptorSet);
 
 	// draw
+	const uint32_t stride = sizeof(vec4);
 	const uint32_t numIndices = mPaniniDistortionTessellation[0] * mPaniniDistortionTessellation[1] * 6;
-	cmdBindIndexBuffer(cmd, pIndexBufferTessellatedQuad, 0);
-	cmdBindVertexBuffer(cmd, 1, &pVertexBufferTessellatedQuad, NULL);
+	cmdBindIndexBuffer(cmd, pIndexBufferTessellatedQuad, INDEX_TYPE_UINT16, 0);
+	cmdBindVertexBuffer(cmd, 1, &pVertexBufferTessellatedQuad, &stride, NULL);
 	cmdDrawIndexed(cmd, numIndices, 0, 0);
 }
 
@@ -266,7 +259,6 @@ void Panini::SetMaxDraws(uint32_t maxDraws)
 void Panini::SetSourceTexture(Texture* pTex, uint32_t index)
 {
 	ASSERT(pTex);
-	ASSERT(pTex->mDesc.mSampleCount == SAMPLE_COUNT_1 && "Panini Projection does not support MSAA Input Textures");
 
 	DescriptorData params[2] = {};
 	params[0].pName = "uTex";

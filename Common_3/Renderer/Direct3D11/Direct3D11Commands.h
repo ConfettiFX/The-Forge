@@ -83,6 +83,7 @@ struct BindIndexBufferCmd
 {
 	Buffer*  pBuffer;
 	uint32_t offset;
+	IndexType mIndexType;
 };
 
 struct BindVertexBufferCmd

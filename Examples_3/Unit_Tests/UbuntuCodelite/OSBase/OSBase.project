@@ -207,4 +207,12 @@
       </Completion>
     </Configuration>
   </Settings>
+  <VirtualDirectory Name="Profiler">
+    <File Name="../../../../Common_3/OS/Profiler/GpuProfiler.cpp"/>
+    <File Name="../../../../Common_3/OS/Profiler/GpuProfiler.h"/>
+    <File Name="../../../../Common_3/OS/Profiler/ProfilerBase.cpp"/>
+    <File Name="../../../../Common_3/OS/Profiler/ProfilerBase.h"/>
+    <File Name="../../../../Common_3/OS/Profiler/ProfilerHTML.h"/>
+    <File Name="../../../../Common_3/OS/Profiler/ProfilerWidgetsUI.cpp"/>
+  </VirtualDirectory>
 </CodeLite_Project>

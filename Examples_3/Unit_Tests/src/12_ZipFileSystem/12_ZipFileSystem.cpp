@@ -71,9 +71,7 @@ struct MeshData
 };
 
 const uint32_t gImageCount = 3;
-bool           gMicroProfiler = false;
-bool           bPrevToggleMicroProfiler = false;
-
+ProfileToken   gGpuProfileToken;
 Renderer* pRenderer = NULL;
 
 Queue*   pGraphicsQueue = NULL;
@@ -104,12 +102,6 @@ Shader*			pZipTextureShader = NULL;
 Buffer*			pZipTextureVertexBuffer = NULL;
 Pipeline*		pZipTexturePipeline = NULL;
 
-
-DepthState*      pDepth = NULL;
-RasterizerState* pSkyboxRast = NULL;
-RasterizerState* pBasicRast = NULL;
-RasterizerState* pZipTextureRast = NULL;
-
 Buffer* pProjViewUniformBuffer[gImageCount] = { NULL };
 
 DescriptorSet* pDescriptorSetFrameUniforms = NULL;
@@ -125,7 +117,6 @@ ICameraController* pCameraController = NULL;
 
 /// UI
 UIApp gAppUI;
-GpuProfiler*       pGpuProfiler = NULL;
 
 const char* pSkyboxImageFileNames[] = { "Skybox/Skybox_right1",  "Skybox/Skybox_left2",  "Skybox/Skybox_top3",
 										"Skybox/Skybox_bottom4", "Skybox/Skybox_front5", "Skybox/Skybox_back6" };
@@ -137,8 +128,6 @@ const char* pTextFileName[] = { "TestDoc.txt" };
 const char* pModelFileName[] = { "capsule.gltf" };
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
-
-GuiComponent* pGui = NULL;
 
 GuiComponent* pGui_TextData = NULL;
 
@@ -207,7 +196,7 @@ public:
         initProfiler();
         
         // Gpu profiler can only be added after initProfile.
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
+        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "GpuProfiler");
 
         PathHandle zipFilePath = fsCopyPathInResourceDirectory(RD_OTHER_FILES, pZipFiles);
         
@@ -327,26 +316,6 @@ public:
 		skyboxRootDesc.mShaderCount = 3;
 		skyboxRootDesc.ppShaders = shaders;
 		addRootSignature(pRenderer, &skyboxRootDesc, &pRootSignature);
-
-		RasterizerStateDesc rasterizerStateDesc = {};
-		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-		addRasterizerState(pRenderer, &rasterizerStateDesc, &pSkyboxRast);
-		
-		RasterizerStateDesc cubeRasterizerStateDesc = {};
-		cubeRasterizerStateDesc = {};
-		cubeRasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-		addRasterizerState(pRenderer, &cubeRasterizerStateDesc, &pZipTextureRast);
-
-		RasterizerStateDesc sphereRasterizerStateDesc = {};
-		sphereRasterizerStateDesc.mCullMode = CULL_MODE_FRONT;
-		addRasterizerState(pRenderer, &sphereRasterizerStateDesc, &pBasicRast);
-
-		DepthStateDesc depthStateDesc = {};
-		depthStateDesc.mDepthTest = true;
-		depthStateDesc.mDepthWrite = true;
-		depthStateDesc.mDepthFunc = CMP_LEQUAL;
-		addDepthState(pRenderer, &depthStateDesc, &pDepth);
-
 		
 		// Generate Cuboid Vertex Buffer
 
@@ -405,7 +374,6 @@ public:
 		cubiodVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		cubiodVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		cubiodVbDesc.mDesc.mSize = cubiodDataSize;
-		cubiodVbDesc.mDesc.mVertexStride = sizeof(float) * 8;
 		cubiodVbDesc.pData = CubePoints;
 		cubiodVbDesc.ppBuffer = &pZipTextureVertexBuffer;
 		addResource(&cubiodVbDesc, NULL, LOAD_PRIORITY_NORMAL);
@@ -442,7 +410,6 @@ public:
 		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
-		skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
 		skyboxVbDesc.pData = skyBoxPoints;
 		skyboxVbDesc.ppBuffer = &pSkyboxVertexBuffer;
 		addResource(&skyboxVbDesc, NULL, LOAD_PRIORITY_NORMAL);
@@ -474,9 +441,6 @@ public:
 		guiDesc.mStartSize = vec2(140.0f / dpiScale, 320.0f / dpiScale);
 		guiDesc.mStartPosition = vec2( mSettings.mWidth - guiDesc.mStartSize.getX() * 1.1f, guiDesc.mStartSize.getY() * 0.5f);
 
-		pGui = gAppUI.AddGuiComponent("Micro profiler", &guiDesc);
-
-		pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
 		//--------------------------------
 
 		//Gui for Showing the Text of the File
@@ -521,7 +485,7 @@ public:
 		typedef bool(*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!gMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
+			if (!gAppUI.IsFocused() && *ctx->pCaptured)
 			{
 				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
@@ -579,11 +543,6 @@ public:
 		removeShader(pRenderer, pZipTextureShader);
 		removeRootSignature(pRenderer, pRootSignature);
 
-		removeDepthState(pDepth);
-		removeRasterizerState(pBasicRast);
-		removeRasterizerState(pSkyboxRast);
-		removeRasterizerState(pZipTextureRast);
-
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			removeFence(pRenderer, pRenderCompleteFences[i]);
@@ -594,7 +553,6 @@ public:
 		removeCmd_n(pRenderer, gImageCount, ppCmds);
 		removeCmdPool(pRenderer, pCmdPool);
 
-		removeGpuProfiler(pRenderer, pGpuProfiler);
 		exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
 		removeRenderer(pRenderer);
@@ -663,22 +621,38 @@ public:
 		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
 
+        loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+
 		//layout and pipeline for zip model draw
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+
+		RasterizerStateDesc cubeRasterizerStateDesc = {};
+		cubeRasterizerStateDesc = {};
+		cubeRasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+
+		RasterizerStateDesc sphereRasterizerStateDesc = {};
+		sphereRasterizerStateDesc.mCullMode = CULL_MODE_FRONT;
+
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = true;
+		depthStateDesc.mDepthWrite = true;
+		depthStateDesc.mDepthFunc = CMP_LEQUAL;
 
 		PipelineDesc desc = {};
 		desc.mType = PIPELINE_TYPE_GRAPHICS;
 		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = pDepth;
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
+		pipelineSettings.pDepthState = &depthStateDesc;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pBasicShader;
 		pipelineSettings.pVertexLayout = &gVertexLayoutDefault;
-		pipelineSettings.pRasterizerState = pBasicRast;
+		pipelineSettings.pRasterizerState = &sphereRasterizerStateDesc;
 		addPipeline(pRenderer, &desc, &pBasicPipeline);
 
 		//layout and pipeline for skybox draw
@@ -692,7 +666,7 @@ public:
 
 		pipelineSettings.pVertexLayout = &vertexLayout;
 		pipelineSettings.pDepthState = NULL;
-		pipelineSettings.pRasterizerState = pSkyboxRast;
+		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
 		pipelineSettings.pShaderProgram = pSkyboxShader;
 		addPipeline(pRenderer, &desc, &pPipelineSkybox);
 
@@ -718,8 +692,8 @@ public:
 		vertexLayout.mAttribs[2].mOffset = 6 * sizeof(float);
 
         pipelineSettings.pRootSignature = pRootSignature;
-		pipelineSettings.pDepthState = pDepth;
-		pipelineSettings.pRasterizerState = pZipTextureRast;
+		pipelineSettings.pDepthState = &depthStateDesc;
+		pipelineSettings.pRasterizerState = &cubeRasterizerStateDesc;
 		pipelineSettings.pShaderProgram = pZipTextureShader;
 		addPipeline(pRenderer, &desc, &pZipTexturePipeline);
 
@@ -732,7 +706,7 @@ public:
 	void Unload()
 	{
 		waitQueueIdle(pGraphicsQueue);
-
+        unloadProfilerUI();
 		gAppUI.Unload();
 
 #if defined(TARGET_IOS) || defined(__ANDROID__)
@@ -788,14 +762,6 @@ public:
 		gUniformData.mModelMatCube		= mTranslationMat_Zip * mScaleMat_Zip;
 
 		viewMat.setTranslation(vec3(0));
-		/************************************************************************/
-		/************************************************************************/
-
-    if(gMicroProfiler != bPrevToggleMicroProfiler)
-    {
-       toggleProfiler();
-       bPrevToggleMicroProfiler = gMicroProfiler;
-    }
 
     /************************************************************************/
     // Update GUI
@@ -838,7 +804,7 @@ public:
 		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
 
-    cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
+    cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
 		RenderTargetBarrier barriers[] = {
 				{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
@@ -847,8 +813,8 @@ public:
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
 
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetFrameUniforms);
@@ -856,73 +822,65 @@ public:
 		
 		//// draw skybox
 #pragma region Skybox_Draw
-	cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw skybox", true);
+	cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw skybox");
 		cmdBindPipeline(cmd, pPipelineSkybox);
 
-		
-		cmdBindVertexBuffer(cmd, 1, &pSkyboxVertexBuffer, NULL);
+		const uint32_t skyboxStride = sizeof(float) * 4;
+		cmdBindVertexBuffer(cmd, 1, &pSkyboxVertexBuffer, &skyboxStride, NULL);
 		cmdDraw(cmd, 36, 0);
-    cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+    cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 #pragma endregion
 
 	////// draw Zip Model
 #pragma region Zip_Model_Draw
-	cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Zip Model", true);
+	cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Zip Model");
 	cmdBindPipeline(cmd, pBasicPipeline);
 		
-	cmdBindVertexBuffer(cmd, 1, &pMesh->pVertexBuffers[0], NULL);
-	cmdBindIndexBuffer(cmd, pMesh->pIndexBuffer, NULL);
+	cmdBindVertexBuffer(cmd, 1, &pMesh->pVertexBuffers[0], &pMesh->mVertexStrides[0], NULL);
+	cmdBindIndexBuffer(cmd, pMesh->pIndexBuffer, pMesh->mIndexType, NULL);
 	cmdDrawIndexed(cmd, pMesh->mIndexCount, 0, 0);
-	cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+	cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 #pragma endregion
 
 
 	////draw Cube with Zip texture
 #pragma region Cube_Zip_Texture_Draw
-	cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Zip File Texture", true);
+	cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Zip File Texture");
 	cmdBindPipeline(cmd, pZipTexturePipeline);
 
-	cmdBindVertexBuffer(cmd, 1, &pZipTextureVertexBuffer, NULL);
+	const uint32_t cubeStride = sizeof(float) * 8;
+	cmdBindVertexBuffer(cmd, 1, &pZipTextureVertexBuffer, &cubeStride, NULL);
 	cmdDraw(cmd, 36, 0);
-	cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+	cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 #pragma endregion
 	
-    cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw UI", true);
+    cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
 	{
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 			
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
-		
-		static HiresTimer gTimer;
-		gTimer.GetUSec(true);
 
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 
-		gAppUI.DrawText(cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
-
+        cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
 #if !defined(__ANDROID__)
-    gAppUI.DrawText(
-      cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
-      &gFrameTimeDraw);
-    gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
+    cmdDrawGpuProfile(cmd, float2(8, 40), gGpuProfileToken);
 #endif
-
-    gAppUI.Gui(pGui);
     
 	gAppUI.Gui(pGui_TextData);
 			
-	cmdDrawProfiler();
+	cmdDrawProfilerUI();
 
 		gAppUI.Draw(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 	}
-    cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+    cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 		barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
-    cmdEndGpuFrameProfile(cmd, pGpuProfiler);
+    cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 		endCmd(cmd);
 
 		QueueSubmitDesc submitDesc = {};
@@ -955,7 +913,6 @@ public:
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
 		swapChainDesc.mEnableVsync = false;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);

@@ -135,12 +135,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_widgets.cpp">
       <Filter>OS\Middleware_3\UI\imgui</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\Profiler.cpp">
-      <Filter>OS\Profiler</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerBase.cpp">
-      <Filter>OS\Profiler</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsBase.cpp">
       <Filter>OS\Windows</Filter>
     </ClCompile>
@@ -165,9 +159,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp">
       <Filter>OS\Image</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerWidgetsUI.cpp">
-      <Filter>OS\Profiler</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystemInternal.cpp">
       <Filter>OS\FileSystem</Filter>
     </ClCompile>
@@ -188,6 +179,15 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\zip\zip.cpp">
       <Filter>Dependencies\zip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\GpuProfiler.cpp">
+      <Filter>OS\Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerBase.cpp">
+      <Filter>OS\Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerWidgetsUI.cpp">
+      <Filter>OS\Profiler</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -266,13 +266,18 @@
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_internal.h">
       <Filter>OS\Middleware_3\UI\imgui</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerBase.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystemInternal.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\MemoryStream.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemFileStream.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileStream.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\GpuProfiler.h">
       <Filter>OS\Profiler</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerHTML.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerBase.h">
       <Filter>OS\Profiler</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerWidgetsUI.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerHTML.h">
       <Filter>OS\Profiler</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\zip\miniz.h">
@@ -280,21 +285,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\zip\zip.h">
       <Filter>Dependencies\zip</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystemInternal.h">
-      <Filter>OS\FileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\MemoryStream.h">
-      <Filter>OS\FileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemFileStream.h">
-      <Filter>OS\FileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileStream.h">
-      <Filter>OS\FileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.h">
-      <Filter>OS\FileSystem</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

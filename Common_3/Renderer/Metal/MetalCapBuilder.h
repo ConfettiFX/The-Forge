@@ -1,39 +1,42 @@
 #pragma once
 
 
-inline void utils_caps_builder(Renderer* pRenderer) {
+inline void utils_caps_builder(Renderer* pRenderer)
+{
 	// for metal this is a case of going through each family and looking up the info off apple documentation
 	// we start low and go higher, add things as we go
 	// data from https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
-
-	memset(pRenderer->capBits.canShaderReadFrom, 0, sizeof(pRenderer->capBits.canShaderReadFrom));
-	memset(pRenderer->capBits.canShaderWriteTo, 0, sizeof(pRenderer->capBits.canShaderWriteTo));
-	memset(pRenderer->capBits.canRenderTargetWriteTo, 0, sizeof(pRenderer->capBits.canRenderTargetWriteTo));
+	pRenderer->pCapBits = (GPUCapBits*)conf_calloc(1, sizeof(GPUCapBits));
 
 	// all pixel formats that metal support it claims can be sampled from if they exist on the platform
 	// this is however a lie when compressed texture formats
-	for(uint32_t i = 0; i < TinyImageFormat_Count;++i) {
+	for(uint32_t i = 0; i < TinyImageFormat_Count;++i)
+	{
 		TinyImageFormat_MTLPixelFormat mtlFmt = TinyImageFormat_ToMTLPixelFormat((TinyImageFormat) i);
 
-		if(mtlFmt != TIF_MTLPixelFormatInvalid) {
+		if(mtlFmt != TIF_MTLPixelFormatInvalid)
+		{
 #ifndef TARGET_IOS
-			pRenderer->capBits.canShaderReadFrom[i] = TinyImageFormat_MTLPixelFormatOnMac(mtlFmt);
+			pRenderer->pCapBits->canShaderReadFrom[i] = TinyImageFormat_MTLPixelFormatOnMac(mtlFmt);
 #else
-			pRenderer->capBits.canShaderReadFrom[i] = TinyImageFormat_MTLPixelFormatOnIOs(mtlFmt);
+			pRenderer->pCapBits->canShaderReadFrom[i] = TinyImageFormat_MTLPixelFormatOnIOs(mtlFmt);
 #endif
-		} else {
-			pRenderer->capBits.canShaderReadFrom[i] = false;
+		}
+		else
+		{
+			pRenderer->pCapBits->canShaderReadFrom[i] = false;
 		}
 	}
-#define CAN_SHADER_WRITE(x) pRenderer->capBits.canShaderWriteTo[TinyImageFormat_##x] = true;
-#define CAN_RENDER_TARGET_WRITE(x) pRenderer->capBits.canRenderTargetWriteTo[TinyImageFormat_##x] = true;
+#define CAN_SHADER_WRITE(x) pRenderer->pCapBits->canShaderWriteTo[TinyImageFormat_##x] = true;
+#define CAN_RENDER_TARGET_WRITE(x) pRenderer->pCapBits->canRenderTargetWriteTo[TinyImageFormat_##x] = true;
 
 	// this call is supported on mac and ios
 	// technially I think you can write but not read some texture, this is telling
 	// you you can do both. TODO work out the semantics behind write vs read/write.
 	MTLReadWriteTextureTier rwTextureTier = [pRenderer->pDevice readWriteTextureSupport];
 	// intentional fall through on this switch
-	switch(rwTextureTier) {
+	switch(rwTextureTier)
+	{
 	default:
 	case MTLReadWriteTextureTier2:
 		CAN_SHADER_WRITE(R32G32B32A32_SFLOAT);
@@ -65,7 +68,8 @@ inline void utils_caps_builder(Renderer* pRenderer) {
 	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_macOS_GPUFamily1_v3] ? 1 : familyTier;
 	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_macOS_GPUFamily1_v4] ? 1 : familyTier;
 
-	if( familyTier >= 1 ) {
+	if( familyTier >= 1 )
+	{
 		CAN_RENDER_TARGET_WRITE(R8_UNORM); // this has a subscript 8 which makes no sense
 		CAN_RENDER_TARGET_WRITE(R8_SNORM);
 		CAN_RENDER_TARGET_WRITE(R8_UINT);
@@ -110,12 +114,12 @@ inline void utils_caps_builder(Renderer* pRenderer) {
     
     bool depth24Stencil8Supported = [pRenderer->pDevice isDepth24Stencil8PixelFormatSupported];
     
-    pRenderer->capBits.canShaderReadFrom[TinyImageFormat_D24_UNORM_S8_UINT] = depth24Stencil8Supported;
-    pRenderer->capBits.canShaderReadFrom[TinyImageFormat_X8_D24_UNORM] = depth24Stencil8Supported;
-    pRenderer->capBits.canShaderWriteTo[TinyImageFormat_D24_UNORM_S8_UINT] = depth24Stencil8Supported;
-    pRenderer->capBits.canShaderWriteTo[TinyImageFormat_X8_D24_UNORM] = depth24Stencil8Supported;
-    pRenderer->capBits.canRenderTargetWriteTo[TinyImageFormat_D24_UNORM_S8_UINT] = depth24Stencil8Supported;
-    pRenderer->capBits.canRenderTargetWriteTo[TinyImageFormat_X8_D24_UNORM] = depth24Stencil8Supported;
+    pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_D24_UNORM_S8_UINT] = depth24Stencil8Supported;
+    pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_X8_D24_UNORM] = depth24Stencil8Supported;
+    pRenderer->pCapBits->canShaderWriteTo[TinyImageFormat_D24_UNORM_S8_UINT] = depth24Stencil8Supported;
+    pRenderer->pCapBits->canShaderWriteTo[TinyImageFormat_X8_D24_UNORM] = depth24Stencil8Supported;
+    pRenderer->pCapBits->canRenderTargetWriteTo[TinyImageFormat_D24_UNORM_S8_UINT] = depth24Stencil8Supported;
+    pRenderer->pCapBits->canRenderTargetWriteTo[TinyImageFormat_X8_D24_UNORM] = depth24Stencil8Supported;
     
 #else // iOS
 	uint32_t familyTier = 0;
@@ -139,41 +143,43 @@ inline void utils_caps_builder(Renderer* pRenderer) {
 	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily4_v1] ? 4 : familyTier;
 	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily4_v2] ? 4 : familyTier;
 
-    if(familyTier == 1) {
+    if(familyTier == 1)
+	{
 		// this is a tier 1 decide so no astc and XR
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_4x4_UNORM] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_4x4_SRGB] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_5x4_UNORM] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_5x4_SRGB] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_5x5_UNORM] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_5x5_SRGB] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_6x5_UNORM] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_6x5_SRGB] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_6x6_UNORM] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_6x6_SRGB] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_8x5_UNORM] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_8x5_SRGB] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_8x6_UNORM] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_8x6_SRGB] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_8x8_UNORM] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_8x8_SRGB] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_10x5_UNORM] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_10x5_SRGB] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_10x6_UNORM] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_10x6_SRGB] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_10x8_UNORM] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_10x8_SRGB] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_10x10_UNORM] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_10x10_SRGB] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_12x10_UNORM] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_12x10_SRGB] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_12x12_UNORM] = false;
-		pRenderer->capBits.canShaderReadFrom[TinyImageFormat_ASTC_12x12_SRGB] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_4x4_UNORM] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_4x4_SRGB] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_5x4_UNORM] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_5x4_SRGB] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_5x5_UNORM] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_5x5_SRGB] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_6x5_UNORM] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_6x5_SRGB] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_6x6_UNORM] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_6x6_SRGB] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_8x5_UNORM] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_8x5_SRGB] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_8x6_UNORM] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_8x6_SRGB] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_8x8_UNORM] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_8x8_SRGB] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_10x5_UNORM] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_10x5_SRGB] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_10x6_UNORM] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_10x6_SRGB] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_10x8_UNORM] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_10x8_SRGB] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_10x10_UNORM] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_10x10_SRGB] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_12x10_UNORM] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_12x10_SRGB] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_12x12_UNORM] = false;
+		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_12x12_SRGB] = false;
 
 		// TODO when TinyImageFormat supports XR formats exclude them here for tier 1
 	}
 
-    if(familyTier >= 1) {
+    if(familyTier >= 1)
+	{
 		CAN_RENDER_TARGET_WRITE(R8_UNORM); // this has a subscript 8 which makes no sense
 		CAN_RENDER_TARGET_WRITE(R8_SNORM);
 		CAN_RENDER_TARGET_WRITE(R8_UINT);
@@ -224,9 +230,10 @@ inline void utils_caps_builder(Renderer* pRenderer) {
 		CAN_RENDER_TARGET_WRITE(D32_SFLOAT_S8_UINT);
 	}
 
-	if (@available(iOS 13, *)) {
-		pRenderer->capBits.canShaderWriteTo[TinyImageFormat_D16_UNORM] = true;
-		pRenderer->capBits.canRenderTargetWriteTo[TinyImageFormat_D16_UNORM] = true;
+	if (@available(iOS 13, *))
+	{
+		pRenderer->pCapBits->canShaderWriteTo[TinyImageFormat_D16_UNORM] = true;
+		pRenderer->pCapBits->canRenderTargetWriteTo[TinyImageFormat_D16_UNORM] = true;
 	}
 
 #endif

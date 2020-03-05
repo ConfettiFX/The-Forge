@@ -18,9 +18,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\CommonShaderReflection.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\GpuProfiler.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanRaytracing.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>

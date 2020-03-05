@@ -108,15 +108,12 @@ uint32_t GetSkinColorOfProperty(PropertiesWithSkinColor EProp, bool bDarkSkin)
 uint32_t GetSkinColorOfProperty(PropertiesWithSkinColor EProp, uint32_t theme) { return GetSkinColorOfProperty(EProp, (bool)theme); }
 
 const uint32_t gImageCount = 3;
-bool           gMicroProfiler = false;
-bool           bPrevToggleMicroProfiler = false;
+ProfileToken   gGpuProfileToken;
 
 Renderer*    pRenderer = NULL;
 Queue*       pGraphicsQueue = NULL;
 CmdPool*     pCmdPool = NULL;
 Cmd**        ppCmds = NULL;
-GpuProfiler* pGpuProfiler = NULL;
-HiresTimer   gTimer;
 
 SwapChain* pSwapChain = NULL;
 Fence*     pRenderCompleteFences[gImageCount] = { NULL };
@@ -316,8 +313,6 @@ class FontRendering: public IApp
 		const size_t   NUM_THEMES = sizeof(pThemeLabels) / sizeof(const char*) - 1;    // -1 for the NULL element
 		DropdownWidget ThemeDropdown("Theme", &gSceneData.theme, pThemeLabels, (uint32_t*)ColorThemes, NUM_THEMES);
 
-		pUIWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
-
 		pUIWindow->AddWidget(ThemeDropdown);
 		pUIWindow->AddWidget(fitScreenCheckbox);
 
@@ -328,7 +323,7 @@ class FontRendering: public IApp
 
 		initProfiler();
 
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
+        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "GpuProfiler");
 
 		// App Actions
 		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
@@ -360,7 +355,6 @@ class FontRendering: public IApp
 
 		removeCmd_n(pRenderer, gImageCount, ppCmds);
 		removeCmdPool(pRenderer, pCmdPool);
-		removeGpuProfiler(pRenderer, pGpuProfiler);
 		exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
 		removeRenderer(pRenderer);
@@ -375,7 +369,6 @@ class FontRendering: public IApp
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
 		swapChainDesc.mEnableVsync = false;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
@@ -387,7 +380,7 @@ class FontRendering: public IApp
 		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
 			return false;
 
-		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		return true;
 	}
@@ -395,7 +388,7 @@ class FontRendering: public IApp
 	void Unload()
 	{
 		waitQueueIdle(pGraphicsQueue);
-		unloadProfiler();
+		unloadProfilerUI();
 		gAppUI.Unload();
 		removeSwapChain(pRenderer, pSwapChain);
 		gSceneData.sceneTextArray.set_capacity(0);
@@ -404,12 +397,6 @@ class FontRendering: public IApp
 	void Update(float deltaTime)
 	{
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
-
-		if (gMicroProfiler != bPrevToggleMicroProfiler)
-		{
-      toggleProfiler();
-			bPrevToggleMicroProfiler = gMicroProfiler;
-		}
 
 		gAppUI.Update(deltaTime);
 
@@ -430,8 +417,6 @@ class FontRendering: public IApp
 
 	void Draw()
 	{
-		gTimer.GetUSec(true);
-
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 
 		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
@@ -462,16 +447,16 @@ class FontRendering: public IApp
 
 		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
-		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
+		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
 		RenderTargetBarrier barrier = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
 		// draw text (uses AppUI)
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Render Text");
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Render Text");
 
 		if (!gSceneData.sceneTextArray.empty())
 		{
@@ -483,29 +468,27 @@ class FontRendering: public IApp
 			}
 		}
 
-		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 		// draw profiler timings text (uses debugText)
 		TextDrawDesc uiTextDesc;    // default
 		uiTextDesc.mFontColor = gSceneData.theme ? 0xff21D8DE : 0xff444444;
 		uiTextDesc.mFontSize = 18;
-		gAppUI.DrawText(
-			cmd, float2(8.0f, 15.0f), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &uiTextDesc);
-
-		gAppUI.DrawText(
-			cmd, float2(8.0f, 40.0f), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
-			&uiTextDesc);
+        cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &uiTextDesc);
+#if !defined(__ANDROID__)
+        cmdDrawGpuProfile(cmd, float2(8, 40), gGpuProfileToken);
+#endif
 
 		if (gbShowSceneControlsUIWindow)
 			gAppUI.Gui(pUIWindow);
 
-		cmdDrawProfiler();
+		cmdDrawProfilerUI();
 		gAppUI.Draw(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		barrier = { pRenderTarget, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
-		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
+		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 		endCmd(cmd);
 
 		QueueSubmitDesc submitDesc = {};

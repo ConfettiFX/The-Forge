@@ -31,6 +31,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "02_Compute", "02_Compute.vcxproj", "{E696ABA2-EFC0-490E-9A52-0A610F0D5F4B}"
 	ProjectSection(ProjectDependencies) = postProject
 		{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3} = {DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}
+		{C5D0E437-7C52-3132-80E6-3CBE834313EF} = {C5D0E437-7C52-3132-80E6-3CBE834313EF}
+		{30DD3D57-0026-48C8-BFD1-6392F319E23A} = {30DD3D57-0026-48C8-BFD1-6392F319E23A}
 		{8EBB17A6-12AC-46AF-AE55-A7159C9CD2E1} = {8EBB17A6-12AC-46AF-AE55-A7159C9CD2E1}
 		{EBC1C8D7-D49B-409A-A575-5AB53111E4D7} = {EBC1C8D7-D49B-409A-A575-5AB53111E4D7}
 	EndProjectSection
@@ -72,7 +74,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Include", "Include", "{EC7D6A22-5A14-4BC4-8867-C4CFC47CB0D3}"
 	ProjectSection(SolutionItems) = preProject
 		..\..\..\Common_3\ThirdParty\OpenSource\cgltf\cgltf.h = ..\..\..\Common_3\ThirdParty\OpenSource\cgltf\cgltf.h
-		..\..\..\Common_3\Renderer\GpuProfiler.h = ..\..\..\Common_3\Renderer\GpuProfiler.h
 		..\..\..\Common_3\Renderer\IRay.h = ..\..\..\Common_3\Renderer\IRay.h
 		..\..\..\Common_3\Renderer\IRenderer.h = ..\..\..\Common_3\Renderer\IRenderer.h
 		..\..\..\Common_3\Renderer\IResourceLoader.h = ..\..\..\Common_3\Renderer\IResourceLoader.h

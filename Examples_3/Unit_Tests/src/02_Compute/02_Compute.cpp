@@ -81,12 +81,8 @@ struct UniformBlock
 	int mRenderSoftShadows;
 };
 
-Timer      gAccumTimer;
-HiresTimer gTimer;
 
 const uint32_t gImageCount = 3;
-bool           gMicroProfiler = false;
-bool           bPrevToggleMicroProfiler = false;
 
 Renderer* pRenderer = NULL;
 Buffer*   pUniformBuffer[gImageCount] = { NULL };
@@ -95,7 +91,6 @@ Queue*           pGraphicsQueue = NULL;
 CmdPool*         pCmdPool = NULL;
 Cmd**            ppCmds = NULL;
 Sampler*         pSampler = NULL;
-RasterizerState* pRast = NULL;
 
 Fence*     pRenderCompleteFences[gImageCount] = { NULL };
 Semaphore* pImageAcquiredSemaphore = NULL;
@@ -119,10 +114,10 @@ DescriptorSet*    pDescriptorSetTexture = NULL;
 VirtualJoystickUI gVirtualJoystick;
 
 uint32_t     gFrameIndex = 0;
+ProfileToken gGpuProfileToken = PROFILE_INVALID_TOKEN;
 UniformBlock gUniformData;
 
 UIApp              gAppUI;
-GpuProfiler*       pGpuProfiler = NULL;
 ICameraController* pCameraController = NULL;
 
 struct ObjectProperty
@@ -131,7 +126,6 @@ struct ObjectProperty
 } gObjSettings;
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
-GuiComponent* pGui = NULL;
 
 class Compute: public IApp
 {
@@ -204,10 +198,6 @@ class Compute: public IApp
 		addShader(pRenderer, &displayShader, &pShader);
 		addShader(pRenderer, &computeShader, &pComputeShader);
 
-		RasterizerStateDesc rasterizerStateDesc = {};
-		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRast);
-
 		SamplerDesc samplerDesc = { FILTER_NEAREST,
 									FILTER_NEAREST,
 									MIPMAP_MODE_NEAREST,
@@ -270,10 +260,6 @@ class Compute: public IApp
 		guiDesc.mStartSize = vec2(140.0f, 320.0f);
 		guiDesc.mStartPosition = vec2(mSettings.mWidth / dpiScale - guiDesc.mStartSize.getX() * 1.1f, guiDesc.mStartSize.getY() * 0.5f);
 
-		pGui = gAppUI.AddGuiComponent("Micro profiler", &guiDesc);
-
-		pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
-
 		CameraMotionParameters cmp{ 100.0f, 150.0f, 300.0f };
 		vec3                   camPos{ 48.0f, 48.0f, 20.0f };
 		vec3                   lookAt{ 0 };
@@ -287,8 +273,7 @@ class Compute: public IApp
 
 		// Initialize profile
 		initProfiler();
-
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
+        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "GpuProfiler");
 
 		// App Actions
 		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
@@ -308,7 +293,7 @@ class Compute: public IApp
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!gMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
+			if (!gAppUI.IsFocused() && *ctx->pCaptured)
 			{
 				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
@@ -347,7 +332,6 @@ class Compute: public IApp
 
 		gAppUI.Exit();
 
-		// Exit profile
 		exitProfiler();
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -362,7 +346,6 @@ class Compute: public IApp
 		removeCmd_n(pRenderer, gImageCount, ppCmds);
 		removeCmdPool(pRenderer, pCmdPool);
 		removeSampler(pRenderer, pSampler);
-		removeRasterizerState(pRast);
 
 		removeShader(pRenderer, pShader);
 		removeShader(pRenderer, pComputeShader);
@@ -373,7 +356,6 @@ class Compute: public IApp
 		removeRootSignature(pRenderer, pRootSignature);
 		removeRootSignature(pRenderer, pComputeRootSignature);
 
-		removeGpuProfiler(pRenderer, pGpuProfiler);
 		exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
 		removeRenderer(pRenderer);
@@ -393,21 +375,25 @@ class Compute: public IApp
 		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
 
-		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		waitForAllResourceLoads();
 
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 0;
+
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+
 		PipelineDesc desc = {};
 		desc.mType = PIPELINE_TYPE_GRAPHICS;
 		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		pipelineSettings.pRasterizerState = pRast;
+		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
 		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
 		pipelineSettings.pVertexLayout = &vertexLayout;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pShader;
@@ -429,7 +415,7 @@ class Compute: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		unloadProfiler();
+		unloadProfilerUI();
 
 		gVirtualJoystick.Unload();
 
@@ -480,12 +466,6 @@ class Compute: public IApp
 		gUniformData.mWidth = mSettings.mWidth;
 		gUniformData.mHeight = mSettings.mHeight;
 
-		if (gMicroProfiler != bPrevToggleMicroProfiler)
-		{
-			toggleProfiler();
-			bPrevToggleMicroProfiler = gMicroProfiler;
-		}
-
 		/************************************************************************/
 		// Update GUI
 		/************************************************************************/
@@ -516,27 +496,27 @@ class Compute: public IApp
 		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
 
-		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
+		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
 		BufferUpdateDesc cbvUpdate = { pUniformBuffer[gFrameIndex] };
 		beginUpdateResource(&cbvUpdate);
 		*(UniformBlock*)cbvUpdate.pMappedData = gUniformData;
 		endUpdateResource(&cbvUpdate, NULL);
 
-		const uint32_t* pThreadGroupSize = pComputeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
+		const uint32_t* pThreadGroupSize = pComputeShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
 
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Compute Pass", true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Compute Pass");
 
 		// Compute Julia 4D
 		cmdBindPipeline(cmd, pComputePipeline);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetComputeTexture);
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUniforms);
 
-		uint32_t groupCountX = (pTextureComputeOutput->mDesc.mWidth + pThreadGroupSize[0] - 1) / pThreadGroupSize[0];
-		uint32_t groupCountY = (pTextureComputeOutput->mDesc.mHeight + pThreadGroupSize[1] - 1) / pThreadGroupSize[1];
+		uint32_t groupCountX = (mSettings.mWidth + pThreadGroupSize[0] - 1) / pThreadGroupSize[0];
+		uint32_t groupCountY = (mSettings.mHeight + pThreadGroupSize[1] - 1) / pThreadGroupSize[1];
 		cmdDispatch(cmd, groupCountX, groupCountY, pThreadGroupSize[2]);
 
-		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 		TextureBarrier barriers[] = {
 			{ pTextureComputeOutput, RESOURCE_STATE_SHADER_RESOURCE },
@@ -547,34 +527,25 @@ class Compute: public IApp
 		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, 1, rtBarriers);
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)mSettings.mWidth, (float)mSettings.mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, mSettings.mWidth, mSettings.mHeight);
 
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Pass", true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Pass");
 		// Draw computed results
 		cmdBindPipeline(cmd, pPipeline);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetTexture);
 
 		cmdDraw(cmd, 3, 0);
-		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-
-		gTimer.GetUSec(true);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 
-		gAppUI.DrawText(
-			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
-
+        cmdDrawCpuProfile(cmd, float2(8, 15), &gFrameTimeDraw);
 #if !defined(__ANDROID__)
-		gAppUI.DrawText(
-			cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
-			&gFrameTimeDraw);
-		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
+        cmdDrawGpuProfile(cmd, float2(8, 40), gGpuProfileToken);
 #endif
 
-		gAppUI.Gui(pGui);
-
-		cmdDrawProfiler();
+        cmdDrawProfilerUI();
 		gAppUI.Draw(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -583,7 +554,7 @@ class Compute: public IApp
 		barriers[0] = { pTextureComputeOutput, RESOURCE_STATE_UNORDERED_ACCESS };
 		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, 1, rtBarriers);
 
-		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
+		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 		endCmd(cmd);
 
 		QueueSubmitDesc submitDesc = {};
@@ -616,7 +587,6 @@ class Compute: public IApp
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
 		swapChainDesc.mEnableVsync = false;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);

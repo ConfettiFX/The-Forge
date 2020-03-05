@@ -61,11 +61,6 @@
 
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"    // Must be the last include in a cpp file
 
-// Profilers
-GuiComponent*			pGuiWindow;
-GpuProfiler* pGpuProfiler = NULL;
-HiresTimer   gTimer;
-
 struct SpriteData
 {
 	float posX, posY;
@@ -76,8 +71,7 @@ struct SpriteData
 };
 
 const uint32_t gImageCount = 3;
-bool           gMicroProfiler = false;
-bool           bPrevToggleMicroProfiler = false;
+ProfileToken   gGpuProfileToken;
 
 Renderer* pRenderer = NULL;
 
@@ -99,9 +93,6 @@ RootSignature*    pRootSignature = NULL;
 DescriptorSet*    pDescriptorSetTexture = NULL;
 DescriptorSet*    pDescriptorSetUniforms = NULL;
 Sampler*          pLinearClampSampler = NULL;
-DepthState*       pDepthState = NULL;
-RasterizerState*  pRasterizerStateCullNone = NULL;
-BlendState*       pBlendState = NULL;
 
 Texture* pSpriteTexture = NULL;
 
@@ -338,7 +329,7 @@ static void createEntities(void* pData, uintptr_t i)
 {
 	// NOT DESERIALIZED WAY TO CREATE ENTITIES
 	//spriteEntities[i] = pEntityManager->createEntity();
-	
+
 	CreationData data = *(CreationData*)pData;
 
 	// DESERIALIZED WAY
@@ -445,7 +436,7 @@ class EntityComponentSystem: public IApp
 
 		initProfiler();
 
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
+		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "GpuProfiler");
 
 		// TODO: rename to sprite
 		ShaderLoadDesc spriteShader = {};
@@ -474,25 +465,6 @@ class EntityComponentSystem: public IApp
 		setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
 
-		RasterizerStateDesc rasterizerStateDesc = {};
-		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRasterizerStateCullNone);
-
-		DepthStateDesc depthStateDesc = {};
-		depthStateDesc.mDepthTest = false;
-		depthStateDesc.mDepthWrite = false;
-		addDepthState(pRenderer, &depthStateDesc, &pDepthState);
-
-		BlendStateDesc blendStateDesc = {};
-		blendStateDesc.mSrcAlphaFactors[0] = BC_SRC_ALPHA;
-		blendStateDesc.mDstAlphaFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
-		blendStateDesc.mSrcFactors[0] = BC_SRC_ALPHA;
-		blendStateDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
-		blendStateDesc.mMasks[0] = ALL;
-		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
-		blendStateDesc.mIndependentBlend = false;
-		addBlendState(pRenderer, &blendStateDesc, &pBlendState);
-
 		gSpriteData = (SpriteData*)conf_malloc(MaxSpriteCount * sizeof(SpriteData));
 
 		// Instance buffer
@@ -512,14 +484,14 @@ class EntityComponentSystem: public IApp
 		}
 
 		// Index buffer
-		uint16_t indices[] = {
+		uint16_t indices[] =
+		{
 			0, 1, 2, 2, 1, 3,
 		};
 		BufferLoadDesc spriteIBDesc = {};
 		spriteIBDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
 		spriteIBDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		spriteIBDesc.mDesc.mSize = sizeof(indices);
-		spriteIBDesc.mDesc.mIndexType = INDEX_TYPE_UINT16;
 		spriteIBDesc.pData = indices;
 		spriteIBDesc.ppBuffer = &pSpriteIndexBuffer;
 		addResource(&spriteIBDesc, NULL, LOAD_PRIORITY_NORMAL);
@@ -536,20 +508,13 @@ class EntityComponentSystem: public IApp
 	/************************************************************************/
 	// GUI
 	/************************************************************************/
-
-		GuiDesc guiDesc = {};
-		guiDesc.mStartSize = vec2(300.0f, 250.0f);
-		guiDesc.mStartPosition = vec2(0.0f, guiDesc.mStartSize.getY());
-		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
-
-		pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler)); 
 		
 		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 16 };
 
 		float   dpiScale = getDpiScale().x;
 		vec2    UIPanelSize = vec2(650.f, 1000.f);
 		GuiDesc guiDesc2({}, UIPanelSize, UIPanelWindowTitleTextDesc);
-		guiDesc2.mStartPosition = vec2(0.0f, mSettings.mHeight / dpiScale - guiDesc.mStartSize.getY() * 0.5f);
+		guiDesc2.mStartPosition = vec2(0.0f, mSettings.mHeight / dpiScale - 250.0f * 0.5f);
 		GUIWindow = gAppUI.AddGuiComponent("MultiThread", &guiDesc2);
 		
 		CheckboxWidget Checkbox("Threading", &multiThread);
@@ -665,10 +630,6 @@ class EntityComponentSystem: public IApp
 		removeDescriptorSet(pRenderer, pDescriptorSetUniforms);
 		removeSampler(pRenderer, pLinearClampSampler);
 		removeRootSignature(pRenderer, pRootSignature);
-		
-		removeDepthState(pDepthState);
-		removeRasterizerState(pRasterizerStateCullNone);
-		removeBlendState(pBlendState);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -680,7 +641,7 @@ class EntityComponentSystem: public IApp
 		removeCmd_n(pRenderer, gImageCount, ppCmds);
 		removeCmdPool(pRenderer, pCmdPool);
 
-		removeGpuProfiler(pRenderer, pGpuProfiler);
+		
         exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
 		removeRenderer(pRenderer);
@@ -703,7 +664,23 @@ class EntityComponentSystem: public IApp
 		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
 			return false;
 
-		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = false;
+		depthStateDesc.mDepthWrite = false;
+
+		BlendStateDesc blendStateDesc = {};
+		blendStateDesc.mSrcAlphaFactors[0] = BC_SRC_ALPHA;
+		blendStateDesc.mDstAlphaFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+		blendStateDesc.mSrcFactors[0] = BC_SRC_ALPHA;
+		blendStateDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+		blendStateDesc.mMasks[0] = ALL;
+		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
+		blendStateDesc.mIndependentBlend = false;
 
 		// VertexLayout for sprite drawing.
 		PipelineDesc desc = {};
@@ -711,15 +688,15 @@ class EntityComponentSystem: public IApp
 		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = pDepthState;
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pDepthState = &depthStateDesc;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
 		pipelineSettings.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pSpriteShader;
-		pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
-		pipelineSettings.pBlendState = pBlendState;
+		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
+		pipelineSettings.pBlendState = &blendStateDesc;
 		addPipeline(pRenderer, &desc, &pSpritePipeline);
 
 		return true;
@@ -729,7 +706,7 @@ class EntityComponentSystem: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		unloadProfiler();
+		unloadProfilerUI();
 		gAppUI.Unload();
 
 		removePipeline(pRenderer, pSpritePipeline);
@@ -783,18 +760,11 @@ class EntityComponentSystem: public IApp
 			spriteData.sprite = (float)sprite.spriteIndex;
 		}
 
-    if (gMicroProfiler != bPrevToggleMicroProfiler)
-    {
-      toggleProfiler();
-      bPrevToggleMicroProfiler = gMicroProfiler;
-    }
-
 		gAppUI.Update(deltaTime);
 	}
 
 	void Draw()
 	{
-		gTimer.GetUSec(true);
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 
 		// Update uniform buffers.
@@ -833,7 +803,7 @@ class EntityComponentSystem: public IApp
 
 		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
-		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
+		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
 		RenderTargetBarrier barriers[] = {
 			{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
@@ -841,8 +811,8 @@ class EntityComponentSystem: public IApp
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
 		// Draw Sprites
 		if (gDrawSpriteCount > 0)
@@ -852,7 +822,7 @@ class EntityComponentSystem: public IApp
 			cmdBindPushConstants(cmd, pRootSignature, "RootConstant", &aspect);
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetTexture);
 			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUniforms);
-			cmdBindIndexBuffer(cmd, pSpriteIndexBuffer, 0);
+			cmdBindIndexBuffer(cmd, pSpriteIndexBuffer, INDEX_TYPE_UINT16, 0);
 			cmdDrawIndexedInstanced(cmd, 6, 0, gDrawSpriteCount, 0, 0);
 			cmdEndDebugMarker(cmd);
 		}
@@ -865,16 +835,11 @@ class EntityComponentSystem: public IApp
 		uiTextDesc.mFontColor = 0xff00cc00;
 		uiTextDesc.mFontSize = 18;
 		 
-		gAppUI.DrawText(
-			cmd, float2(8.0f, 15.0f), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &uiTextDesc);
-		
-		gAppUI.DrawText(
-			cmd, float2(8.0f, 40.0f), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
-			&uiTextDesc);
-
-		cmdDrawProfiler();
-
-		gAppUI.Gui(pGuiWindow);
+        cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
+#if !defined(__ANDROID__)		
+        cmdDrawGpuProfile(cmd, float2(8.0f, 40.0f), gGpuProfileToken, &uiTextDesc);
+#endif
+		cmdDrawProfilerUI();
 
         gAppUI.Draw(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -883,7 +848,7 @@ class EntityComponentSystem: public IApp
 		barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
-		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
+		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 		endCmd(cmd);
 
 		QueueSubmitDesc submitDesc = {};
@@ -916,7 +881,6 @@ class EntityComponentSystem: public IApp
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
 		swapChainDesc.mEnableVsync = false;
 		addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);

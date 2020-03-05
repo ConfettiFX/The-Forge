@@ -43,6 +43,7 @@ typedef struct InputBindings
 		BUTTON_BACK,
         BUTTON_FULLSCREEN,
         BUTTON_EXIT,
+		BUTTON_DUMP,
 		BUTTON_ANY,
 		BUTTON_BINDINGS_END = BUTTON_ANY,
 		/**********************************************/

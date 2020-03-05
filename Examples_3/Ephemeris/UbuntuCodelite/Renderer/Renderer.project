@@ -10,14 +10,12 @@
     <File Name="../../../../Common_3/Renderer/ResourceLoader.cpp"/>
     <File Name="../../../../Common_3/Renderer/ResourceLoader.h"/>
     <VirtualDirectory Name="Profiler">
-      <File Name="../../../../Common_3/Renderer/GpuProfiler.cpp"/>
-      <File Name="../../../../Common_3/Renderer/GpuProfiler.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/Profiler.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerBase.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerBase.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerHTML.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerWidgetsUI.cpp"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerWidgetsUI.h"/>
+      <File Name="../../../../Common_3/OS/Profiler/GpuProfiler.cpp"/>
+      <File Name="../../../../Common_3/OS/Profiler/GpuProfiler.h"/>
+      <File Name="../../../../Common_3/OS/Profiler/ProfilerBase.cpp"/>
+      <File Name="../../../../Common_3/OS/Profiler/ProfilerBase.h"/>
+      <File Name="../../../../Common_3/OS/Profiler/ProfilerHTML.h"/>
+      <File Name="../../../../Common_3/OS/Profiler/ProfilerWidgetsUI.cpp"/>
     </VirtualDirectory>
     <VirtualDirectory Name="image">
       <File Name="../../../../Common_3/OS/Image/Image.cpp"/>

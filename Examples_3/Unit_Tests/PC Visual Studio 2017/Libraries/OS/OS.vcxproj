@@ -37,6 +37,9 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileStream.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Input\InputSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\GpuProfiler.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerBase.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerWidgetsUI.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsFileSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsTime.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp" />
@@ -55,9 +58,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_demo.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_draw.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\Profiler.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerBase.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerWidgetsUI.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\zip\zip.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\AnimatedObject.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Animation.cpp" />
@@ -94,12 +94,12 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ITime.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Logging\Log.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Math\MathTypes.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\GpuProfiler.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerBase.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerHTML.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imconfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_internal.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerBase.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerHTML.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerWidgetsUI.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\AnimatedObject.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Animation.h" />
     <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\Clip.h" />

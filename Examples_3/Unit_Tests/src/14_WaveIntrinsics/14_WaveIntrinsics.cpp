@@ -81,9 +81,6 @@ DescriptorSet*    pDescriptorSetTexture = NULL;
 
 Sampler* pSamplerPointWrap = NULL;
 
-DepthState*      pDepthNone = NULL;
-RasterizerState* pRasterizerCullNone = NULL;
-
 Buffer* pUniformBuffer[gImageCount] = { NULL };
 Buffer* pVertexBufferTriangle = NULL;
 Buffer* pVertexBufferQuad = NULL;
@@ -114,6 +111,18 @@ enum RenderMode
 int32_t gRenderModeToggles = 0;
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+
+struct Vertex
+{
+	float3 position;
+	float4 color;
+};
+
+struct Vertex2
+{
+	float3 position;
+	float2 uv;
+};
 
 class WaveIntrinsics: public IApp
 {
@@ -233,25 +242,6 @@ class WaveIntrinsics: public IApp
 		setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
 
-		RasterizerStateDesc rasterizerStateDesc = {};
-		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRasterizerCullNone);
-
-		DepthStateDesc depthStateDesc = {};
-		addDepthState(pRenderer, &depthStateDesc, &pDepthNone);
-
-		struct Vertex
-		{
-			float3 position;
-			float4 color;
-		};
-
-		struct Vertex2
-		{
-			float3 position;
-			float2 uv;
-		};
-
 		// Define the geometry for a triangle.
 		Vertex triangleVertices[] = { { { 0.0f, 0.5f, 0.0f }, { 0.8f, 0.8f, 0.0f, 1.0f } },
 									  { { 0.5f, -0.5f, 0.0f }, { 0.0f, 0.8f, 0.8f, 1.0f } },
@@ -260,7 +250,6 @@ class WaveIntrinsics: public IApp
 		BufferLoadDesc triangleColorDesc = {};
 		triangleColorDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		triangleColorDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		triangleColorDesc.mDesc.mVertexStride = sizeof(Vertex);
 		triangleColorDesc.mDesc.mSize = sizeof(triangleVertices);
 		triangleColorDesc.pData = triangleVertices;
 		triangleColorDesc.ppBuffer = &pVertexBufferTriangle;
@@ -276,7 +265,6 @@ class WaveIntrinsics: public IApp
 		BufferLoadDesc quadUVDesc = {};
 		quadUVDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		quadUVDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		quadUVDesc.mDesc.mVertexStride = sizeof(Vertex2);
 		quadUVDesc.mDesc.mSize = sizeof(quadVertices);
 		quadUVDesc.pData = quadVertices;
 		quadUVDesc.ppBuffer = &pVertexBufferQuad;
@@ -394,9 +382,6 @@ class WaveIntrinsics: public IApp
 		removeShader(pRenderer, pShaderWave);
 		removeRootSignature(pRenderer, pRootSignature);
 
-		removeDepthState(pDepthNone);
-		removeRasterizerState(pRasterizerCullNone);
-
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			removeFence(pRenderer, pRenderCompleteFences[i]);
@@ -437,19 +422,24 @@ class WaveIntrinsics: public IApp
 		vertexLayout.mAttribs[1].mLocation = 1;
 		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
 
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+
+		DepthStateDesc depthStateDesc = {};
+
 		PipelineDesc desc = {};
 		desc.mType = PIPELINE_TYPE_GRAPHICS;
 		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = pDepthNone;
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pDepthState = &depthStateDesc;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pShaderWave;
 		pipelineSettings.pVertexLayout = &vertexLayout;
-		pipelineSettings.pRasterizerState = pRasterizerCullNone;
+		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
 		addPipeline(pRenderer, &desc, &pPipelineWave);
 
 		//layout and pipeline for skybox draw
@@ -539,7 +529,7 @@ class WaveIntrinsics: public IApp
 		// simply record the screen cleaning command
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-		loadActions.mClearColorValues[0] = pRenderTarget->mDesc.mClearValue;
+		loadActions.mClearColorValues[0] = pRenderTarget->mClearValue;
 
 		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
@@ -551,14 +541,15 @@ class WaveIntrinsics: public IApp
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, rtBarrier);
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
 		// wave debug
+		const uint32_t triangleStride = sizeof(Vertex);
 		cmdBeginDebugMarker(cmd, 0, 0, 1, "Wave Shader");
 		cmdBindPipeline(cmd, pPipelineWave);
         cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUniforms);
-		cmdBindVertexBuffer(cmd, 1, &pVertexBufferTriangle, NULL);
+		cmdBindVertexBuffer(cmd, 1, &pVertexBufferTriangle, &triangleStride, NULL);
 		cmdDraw(cmd, 3, 0);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndDebugMarker(cmd);
@@ -570,13 +561,14 @@ class WaveIntrinsics: public IApp
 		};
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, srvBarrier);
 
-		loadActions.mClearColorValues[0] = pScreenRenderTarget->mDesc.mClearValue;
+		loadActions.mClearColorValues[0] = pScreenRenderTarget->mClearValue;
 		cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 
+		const uint32_t quadStride = sizeof(Vertex2);
 		cmdBindPipeline(cmd, pPipelineMagnify);
         cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUniforms);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetTexture);
-		cmdBindVertexBuffer(cmd, 1, &pVertexBufferQuad, NULL);
+		cmdBindVertexBuffer(cmd, 1, &pVertexBufferQuad, &quadStride, NULL);
 		cmdDrawInstanced(cmd, 6, 0, 2, 0);
 
 		cmdEndDebugMarker(cmd);
@@ -626,7 +618,6 @@ class WaveIntrinsics: public IApp
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
 		swapChainDesc.mEnableVsync = false;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);

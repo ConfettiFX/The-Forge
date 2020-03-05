@@ -55,9 +55,10 @@ static bool WriteFile(const char* fileName, const char* contents)
 	found = FilenameStr.find_last_of("/\\");
 	std::string DirnameStr = FilenameStr.substr(0, found);
 
-	_mkdir(DirnameStr.c_str());
-
-
+	if (found != std::string::npos)
+	{
+		_mkdir(DirnameStr.c_str());
+	}
 
 	std::ofstream ofs(fileName);
 

@@ -34,7 +34,7 @@ static void enable_debug_layer_hook(Renderer* pRenderer)
 	ID3D12Debug1* pDebug1 = NULL;
 	if (S_OK == pRenderer->pDXDebug->QueryInterface(IID_PPV_ARGS(&pDebug1)))
 	{
-		pDebug1->SetEnableGPUBasedValidation(pRenderer->mSettings.mEnableGPUBasedValidation);
+		pDebug1->SetEnableGPUBasedValidation(pRenderer->mEnableGpuBasedValidation);
 		pDebug1->Release();
 	}
 #endif

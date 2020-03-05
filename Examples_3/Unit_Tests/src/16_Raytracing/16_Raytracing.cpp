@@ -24,9 +24,7 @@
 
 // Unit Test to create Bottom and Top Level Acceleration Structures using Raytracing API.
 
-//tiny stl
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
-#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
+
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
@@ -47,6 +45,10 @@
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
 
+//tiny stl
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
+
 // The denoiser is only supported on macOS Catalina and higher. If you want to use the denoiser, set
 // USE_DENOISER to 1 in the #if block below.
 #if defined(METAL) && !defined(TARGET_IOS) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 101500
@@ -58,7 +60,7 @@
 ICameraController* pCameraController = NULL;
 VirtualJoystickUI gVirtualJoystick;
 
-bool bToggleMicroProfiler = false;
+ProfileToken gGpuProfileToken;
 UIApp gAppUI;
 
 struct ShadersConfigBlock
@@ -589,16 +591,33 @@ public:
 #ifdef TARGET_IOS
 		mSettings.mContentScaleFactor = 1.f;
 #endif
-		for (int i = 0; i < argc; i += 1)
-		{
-			if (strcmp(argv[i], "-w") == 0 && i + 1 < argc)
-				mSettings.mWidth = min(max(atoi(argv[i + 1]), 64), 10000);
-			else if (strcmp(argv[i], "-h") == 0 && i + 1 < argc)
-				mSettings.mHeight = min(max(atoi(argv[i + 1]), 64), 10000);
-			else if (strcmp(argv[i], "-b") == 0)
-				mBenchmark = true;
-		}
+        ReadCmdArgs();
 	}
+
+    void ReadCmdArgs()
+    {
+        for (int i = 0; i < argc; i += 1)
+        {
+            if (strcmp(argv[i], "-w") == 0 && i + 1 < argc)
+                mSettings.mWidth = min(max(atoi(argv[i + 1]), 64), 10000);
+            else if (strcmp(argv[i], "-h") == 0 && i + 1 < argc)
+                mSettings.mHeight = min(max(atoi(argv[i + 1]), 64), 10000);
+            else if (strcmp(argv[i], "-b") == 0)
+            {
+                mBenchmark = true;
+                if (i + 1 < argc && isdigit(*argv[i + 1]))
+                    nBenchmarkFrames = min(max(atoi(argv[i + 1]), 32), 512);
+            }
+            else if (strcmp(argv[i], "-f") == 0)
+            {
+                mSettings.mFullScreen = true;
+            }
+            else if (strcmp(argv[i], "-o") == 0 && i + 1 < argc)
+            {
+                mOutput = argv[i + 1];
+            }
+        }
+    }
 	
 	bool Init()
 	{
@@ -654,9 +673,9 @@ public:
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
-		initProfiler();
-
-		addGpuProfiler(pRenderer, pQueue, &pGpuProfiler, "GpuProfiler");
+        const char* ppGpuProfilerName[1] = { "GpuProfiler" };
+        initProfiler(pRenderer, &pQueue, ppGpuProfilerName, &gGpuProfileToken, 1);
+        if (mBenchmark) setAggregateFrames(nBenchmarkFrames);
 
 		/************************************************************************/
 		// GUI
@@ -665,8 +684,6 @@ public:
 		guiDesc.mStartSize = vec2(300.0f, 250.0f);
 		guiDesc.mStartPosition = vec2(0.0f, guiDesc.mStartSize.getY());
 		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
-
-		pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &bToggleMicroProfiler));
         /************************************************************************/
         // Blit texture
         /************************************************************************/
@@ -692,10 +709,6 @@ public:
         rootDesc.mShaderCount = 1;
         rootDesc.ppShaders = &pDisplayTextureShader;
         addRootSignature(pRenderer, &rootDesc, &pDisplayTextureSignature);
-
-        RasterizerStateDesc rasterizerStateDesc = {};
-        rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-        addRasterizerState(pRenderer, &rasterizerStateDesc, &pRast);
 		
 		CameraMotionParameters cmp{ 200.0f, 250.0f, 300.0f };
 		vec3                   camPos{ 100.0f, 300.0f, 0.0f };
@@ -731,7 +744,9 @@ public:
 			return false;
 		
 		// App Actions
-		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+        InputActionDesc actionDesc = { InputBindings::BUTTON_DUMP, [](InputActionContext* ctx) { dumpProfileData(((IApp*)ctx->pUserData)->GetName()); return true; }, this };
+        addInputAction(&actionDesc);
+		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
@@ -748,7 +763,7 @@ public:
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!bToggleMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
+			if (!gAppUI.IsFocused() && *ctx->pCaptured)
 			{
 				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
@@ -929,59 +944,8 @@ public:
 			params[0].ppBuffers = &pRayGenConfigBuffer[i];
 			updateDescriptorSet(pRenderer, i, pDescriptorSetUniforms, 1, params);
 		}
-		
-		return true;
-	}
 
-	void PrintBenchmarkStats()
-	{
-		PathHandle statsPath = fsAppendPathComponent(PathHandle(fsCopyLogFileDirectoryPath()), "Forge-Raytracer-Benchmark.txt");
-		FileStream* statsFile = fsOpenFile(statsPath, FM_WRITE);
-		
-		if (statsFile)
-		{
-			fsPrintToStream(statsFile, "The Forge Raytracer:\n\n");
-			fsPrintToStream(statsFile, "Width: %i\n", mSettings.mWidth);
-			fsPrintToStream(statsFile, "Height: %i\n", mSettings.mHeight);
-			
-			fsPrintToStream(statsFile, "Frames rendered: %llu\n\n", (unsigned long long)mFrameTimes.size());
-			
-			double averageTime = 0.0;
-			double movingAverageTime = 0.0;
-			
-			double minAverageTime = DBL_MAX;
-			double maxAverageTime = -DBL_MAX;
-			
-			const size_t firstFrame = 2; // Ignore the first two frames while we're warming up.
-			
-			for (size_t i = firstFrame; i < mFrameTimes.size(); i += 1)
-			{
-				averageTime += (mFrameTimes[i] - averageTime) / (i + 1 - firstFrame);
-				movingAverageTime = i > firstFrame ? (0.8 * movingAverageTime + 0.2 * mFrameTimes[i]) : mFrameTimes[i];
-				
-				if (movingAverageTime < minAverageTime)
-					minAverageTime = movingAverageTime;
-				
-				if (movingAverageTime > maxAverageTime)
-					maxAverageTime = movingAverageTime;
-			}
-			
-			fsPrintToStream(statsFile, "Min/Max/Average Frame Time (ms):\n");
-			fsPrintToStream(statsFile, "%.6f/%.6f/%.6f\n\n", minAverageTime, maxAverageTime, averageTime);
-			
-			fsPrintToStream(statsFile, "Min/Max/Average FPS:\n");
-			fsPrintToStream(statsFile, "%.6f/%.6f/%.6f\n", 1.f / maxAverageTime, 1.f / minAverageTime, 1.f / averageTime);
-			
-			fsPrintToStream(statsFile, "\nFrame Times (ms):\n\n");
-			for (size_t i = firstFrame; i < mFrameTimes.size(); i += 1)
-			{
-				float time = mFrameTimes[i];
-				fsPrintToStream(statsFile, "%.6f\n", time * 1000.0);
-			}
-			mFrameTimes.set_capacity(0);
-			
-			fsCloseStream(statsFile);
-		}
+		return true;
 	}
 	
 	void Exit()
@@ -990,15 +954,19 @@ public:
 
 		exitInputSystem();
 
+        if (mBenchmark)
+        {
+            dumpProfileData(mOutput.c_str(), nBenchmarkFrames);
+        }
+
 		exitProfiler();
-		
+        
 		destroyCameraController(pCameraController);
 
 		gAppUI.Exit();
 		gVirtualJoystick.Exit(); 
 		UnloadSponza();
 
-		removeGpuProfiler(pRenderer, pGpuProfiler);
 
 		if (pRaytracing != NULL)
 		{
@@ -1023,7 +991,6 @@ public:
 		removeDescriptorSet(pRenderer, pDescriptorSetTexture);
 
 		removeSampler(pRenderer, pSampler);
-		removeRasterizerState(pRast);
 		removeShader(pRenderer, pDisplayTextureShader);
 		removeRootSignature(pRenderer, pDisplayTextureSignature);
 
@@ -1038,11 +1005,6 @@ public:
 		removeQueue(pRenderer, pQueue);
         exitResourceLoaderInterface(pRenderer);
 		removeRenderer(pRenderer);
-		
-		if (mBenchmark)
-		{
-			PrintBenchmarkStats();
-		}
 	}
 
 	bool Load()
@@ -1084,7 +1046,6 @@ public:
 		swapChainDesc.mEnableVsync = false;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.ppPresentQueues = &pQueue;
 		swapChainDesc.mPresentQueueCount = 1;
@@ -1128,28 +1089,26 @@ public:
 			RasterizerStateDesc rasterState = {};
 			rasterState.mCullMode = CULL_MODE_BACK;
 			rasterState.mFrontFace = FRONT_FACE_CW;
-			addRasterizerState(pRenderer, &rasterState, &pDenoiserRasterState);
 			
 			DepthStateDesc depthStateDesc = {};
 			depthStateDesc.mDepthTest = true;
 			depthStateDesc.mDepthWrite = true;
 			depthStateDesc.mDepthFunc = CMP_LEQUAL;
-			addDepthState(pRenderer, &depthStateDesc, &pDenoiserDepthState);
 			
 			PipelineDesc pipelineDesc = {};
 			pipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
 			
-			TinyImageFormat rtFormats[] = { pDepthNormalRenderTarget[0]->pTexture->mDesc.mFormat, pMotionVectorRenderTarget->pTexture->mDesc.mFormat };
+			TinyImageFormat rtFormats[] = { pDepthNormalRenderTarget[0]->mFormat, pMotionVectorRenderTarget->mFormat };
 			
 			VertexLayout vertexLayout = {};
 			vertexLayout.mAttribCount = 0;
 			GraphicsPipelineDesc& pipelineSettings = pipelineDesc.mGraphicsDesc;
 			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-			pipelineSettings.pRasterizerState = pDenoiserRasterState;
+			pipelineSettings.pRasterizerState = &rasterState;
 			pipelineSettings.mRenderTargetCount = 2;
 			pipelineSettings.pColorFormats = rtFormats;
-			pipelineSettings.mDepthStencilFormat = pDepthRenderTarget->mDesc.mFormat;
-			pipelineSettings.pDepthState = pDenoiserDepthState;
+			pipelineSettings.mDepthStencilFormat = pDepthRenderTarget->mFormat;
+			pipelineSettings.pDepthState = &depthStateDesc;
 			pipelineSettings.mSampleCount = SAMPLE_COUNT_1;
 			pipelineSettings.mSampleQuality = 0;
 			pipelineSettings.pVertexLayout = &vertexLayout;
@@ -1183,6 +1142,9 @@ public:
 			addSSVGFDenoiser(pRenderer, &pDenoiser);
 		}
 #endif
+
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
         
         VertexLayout vertexLayout = {};
         vertexLayout.mAttribCount = 0;
@@ -1190,11 +1152,11 @@ public:
 		graphicsPipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
         GraphicsPipelineDesc& pipelineSettings = graphicsPipelineDesc.mGraphicsDesc;
         pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-        pipelineSettings.pRasterizerState = pRast;
+        pipelineSettings.pRasterizerState = &rasterizerStateDesc;
         pipelineSettings.mRenderTargetCount = 1;
-        pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
-        pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
-        pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
+        pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+        pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+        pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
         pipelineSettings.pVertexLayout = &vertexLayout;
         pipelineSettings.pRootSignature = pDisplayTextureSignature;
         pipelineSettings.pShaderProgram = pDisplayTextureShader;
@@ -1217,7 +1179,7 @@ public:
 		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
 
-		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		waitForAllResourceLoads();
 		
@@ -1272,9 +1234,9 @@ public:
 
 	void Unload()
 	{
-		waitQueueIdle(pQueue);
+        waitQueueIdle(pQueue);
 
-		unloadProfiler();
+		unloadProfilerUI();
 		gAppUI.Unload();
 		gVirtualJoystick.Unload();
 		
@@ -1299,33 +1261,32 @@ public:
 		removePipeline(pRenderer, pDenoiserInputsPipeline);
 		removeRootSignature(pRenderer, pDenoiserInputsRootSignature);
 		removeShader(pRenderer, pDenoiserInputsShader);
-		removeDepthState(pDenoiserDepthState);
-		removeRasterizerState(pDenoiserRasterState);
-		
 		removeSSVGFDenoiser(pDenoiser);
 #endif
 	}
 
 	void Update(float deltaTime)
 	{
+        PROFILER_SET_CPU_SCOPE("Cpu Profile", "update", 0x222222);
+
+        if (mBenchmark && nFrameCount > nBenchmarkFrames*2)
+        {
+            requestShutdown();
+        }
+
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
 		pCameraController->update(deltaTime);
-		
-		if (bToggleMicroProfiler != bPrevToggleMicroProfiler)
-		{
-			toggleProfiler();
-			bPrevToggleMicroProfiler = bToggleMicroProfiler;
-		}
 
 		gAppUI.Update(deltaTime);
-		
-		if (mBenchmark && deltaTime > 0)
-			mFrameTimes.push_back(deltaTime);
+
+        ++nFrameCount;
 	}
 
 	void Draw()
 	{
+        PROFILER_SET_CPU_SCOPE("Cpu Profile", "draw", 0xffffff);
+
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &mFrameIdx);
 
 		FenceStatus fenceStatus = {};
@@ -1388,17 +1349,15 @@ public:
 			endUpdateResource(&bufferUpdate, NULL);
 			
 #if USE_DENOISER
-			DenoiserUniforms denoiserUniforms;
+			bufferUpdate = {};
+			bufferUpdate.pBuffer = pDenoiserInputsUniformBuffer[mFrameIdx];
+			beginUpdateResource(&bufferUpdate);
+			DenoiserUniforms& denoiserUniforms = *(DenoiserUniforms*)bufferUpdate.pMappedData;
 			denoiserUniforms.mWorldToCamera = viewMat;
 			denoiserUniforms.mCameraToProjection = projMat; // Unjittered since the depth/normal texture needs to be stable for the denoiser.
 			denoiserUniforms.mWorldToProjectionPrevious = mPathTracingData.mHistoryProjView;
 			denoiserUniforms.mRTInvSize = float2(1.0f / mSettings.mWidth, 1.0f / mSettings.mHeight);
 			denoiserUniforms.mFrameIndex = mPathTracingData.mFrameIndex;
-			
-			bufferUpdate.pBuffer = pDenoiserInputsUniformBuffer[mFrameIdx];
-			bufferUpdate.pData = &denoiserUniforms;
-			bufferUpdate.mSize = sizeof(denoiserUniforms);
-			beginUpdateResource(&bufferUpdate);
 			endUpdateResource(&bufferUpdate, NULL);
 #endif
 			
@@ -1410,20 +1369,20 @@ public:
 		
 		Cmd* pCmd = ppCmds[mFrameIdx];
 		beginCmd(pCmd);
-		cmdBeginGpuFrameProfile(pCmd, pGpuProfiler, true);
+		cmdBeginGpuFrameProfile(pCmd, gGpuProfileToken);
 		
 #if USE_DENOISER
 		if (pRaytracing != NULL)
 		{
 			RenderTarget* depthNormalTarget = pDepthNormalRenderTarget[mPathTracingData.mFrameIndex & 0x1];
 			
-			TextureBarrier barriers[] = {
-				{ pDepthRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
-				{ depthNormalTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
-				{ pMotionVectorRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
+			RenderTargetBarrier barriers[] = {
+				{ pDepthRenderTarget, RESOURCE_STATE_RENDER_TARGET },
+				{ depthNormalTarget, RESOURCE_STATE_RENDER_TARGET },
+				{ pMotionVectorRenderTarget, RESOURCE_STATE_RENDER_TARGET },
 			};
 			
-			cmdResourceBarrier(pCmd, 0, NULL, 3, barriers);
+			cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 3, barriers);
 			
 			RenderTarget* denoiserRTs[] = { depthNormalTarget, pMotionVectorRenderTarget };
 			LoadActionsDesc loadActions = {};
@@ -1441,11 +1400,10 @@ public:
 			
 			cmdBindDescriptorSet(pCmd, mFrameIdx, pDenoiserInputsDescriptorSet);
 			
-			Buffer* pVertexBuffers[] = { SponzaProp.pPositionStream, SponzaProp.pNormalStream };
-			cmdBindVertexBuffer(pCmd, 2, pVertexBuffers, NULL);
+			cmdBindVertexBuffer(pCmd, 2, SponzaProp.pGeom->pVertexBuffers, SponzaProp.pGeom->mVertexStrides, NULL);
 			
-			cmdBindIndexBuffer(pCmd, SponzaProp.pIndicesStream, 0);
-			cmdDrawIndexed(pCmd, (uint32_t)SponzaProp.IndicesData.size(), 0, 0);
+			cmdBindIndexBuffer(pCmd, SponzaProp.pGeom->pIndexBuffer, 0, (IndexType)SponzaProp.pGeom->mIndexType);
+			cmdDrawIndexed(pCmd, SponzaProp.pGeom->mIndexCount, 0, 0);
 			
 			cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, 0, 0);
 			cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
@@ -1455,7 +1413,7 @@ public:
 		/************************************************************************/
 		// Transition UAV texture so raytracing shader can write to it
 		/************************************************************************/
-		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Path Trace Scene", true);
+		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Path Trace Scene");
 		TextureBarrier uavBarrier = { pComputeOutput, RESOURCE_STATE_UNORDERED_ACCESS };
 		cmdResourceBarrier(pCmd, 0, NULL, 1, &uavBarrier, 0, NULL);
 		/************************************************************************/
@@ -1513,13 +1471,13 @@ public:
 		removeResource(denoisedTexture);
 #endif
 		
-		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
 		/************************************************************************/
 		// Present to screen
 		/************************************************************************/
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-		loadActions.mClearColorValues[0] = pSwapChain->mDesc.mColorClearValue;
+		loadActions.mClearColorValues[0] = pRenderTarget->mClearValue;
 		cmdBindRenderTargets(pCmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)mSettings.mWidth, (float)mSettings.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(pCmd, 0, 0, mSettings.mWidth, mSettings.mHeight);
@@ -1529,43 +1487,36 @@ public:
 			/************************************************************************/
 			// Perform copy
 			/************************************************************************/
-			cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Render result", true);
+			cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Render result");
 			// Draw computed results
 			cmdBindPipeline(pCmd, pDisplayTexturePipeline);
 			cmdBindDescriptorSet(pCmd, mFrameIdx, pDescriptorSetTexture);
 			cmdDraw(pCmd, 3, 0);
-			cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
+			cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
         }
 
 		cmdBeginDebugMarker(pCmd, 0, 1, 0, "Draw UI");
-		static HiresTimer gTimer;
-		gTimer.GetUSec(true);
 		
-        TextDrawDesc frameTimeDraw = TextDrawDesc(0, 0xff0080ff, 18);
 		
 		gVirtualJoystick.Draw(pCmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 		
-		gAppUI.DrawText(
-						pCmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &frameTimeDraw);
-		
+        TextDrawDesc frameTimeDraw = TextDrawDesc(0, 0xff0080ff, 18);
+        cmdDrawCpuProfile(pCmd, float2(8.0f, 15.0f), &frameTimeDraw);
+
 #if !defined(__ANDROID__)
-		gAppUI.DrawText(
-						pCmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
-						&frameTimeDraw);
-		gAppUI.DrawDebugGpuProfile(pCmd, float2(8, 65), pGpuProfiler, NULL);
+        cmdDrawGpuProfile(pCmd, float2(8, 40), gGpuProfileToken);
 #endif
 		
-		cmdDrawProfiler();
+		cmdDrawProfilerUI();
 		
 		gAppUI.Gui(pGuiWindow);
 		gAppUI.Draw(pCmd);
-		
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 		RenderTargetBarrier presentBarrier = { pRenderTarget, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 1, &presentBarrier);
 
-		cmdEndGpuFrameProfile(pCmd, pGpuProfiler);
+		cmdEndGpuFrameProfile(pCmd, gGpuProfileToken);
 		
 		endCmd(pCmd);
 		QueueSubmitDesc submitDesc = {};
@@ -1599,10 +1550,11 @@ public:
 	/************************************************************************/
 private:
 	static const uint32_t   gImageCount = 3;
-  bool           bPrevToggleMicroProfiler = false;
 
-	eastl::vector<float> 	mFrameTimes;
-	bool					mBenchmark;
+    uint32_t                nFrameCount = 0;
+    uint32_t                nBenchmarkFrames = 64;
+	bool					mBenchmark  = false;
+    eastl::string           mOutput = "";
 	
 	Renderer*			   pRenderer;
 	Raytracing*			 pRaytracing;
@@ -1616,7 +1568,6 @@ private:
 	Shader*	   pShaderClosestHit;
 	Shader*	   pShaderMiss;
 	Shader*	   pShaderMissShadow;
-    RasterizerState*        pRast;
     Shader*                 pDisplayTextureShader;
     Sampler*                pSampler;
 	Sampler*				pLinearSampler;
@@ -1632,23 +1583,20 @@ private:
 	Texture*				pComputeOutput;
 	Semaphore*				pRenderCompleteSemaphores[gImageCount];
 	Semaphore*				pImageAcquiredSemaphore;
-	GpuProfiler*			pGpuProfiler;
 	uint32_t				mFrameIdx = 0;
 	PathTracingData			mPathTracingData = {};
 	GuiComponent*			pGuiWindow;
 	float3					mLightDirection = float3(0.2f, 0.8f, 0.1f);
 
 #if USE_DENOISER
-	Buffer*				 	pDenoiserInputsUniformBuffer[gImageCount];
+	Buffer*					pDenoiserInputsUniformBuffer[gImageCount];
 	Texture*				pAlbedoTexture;
 	DescriptorSet*			pDenoiserInputsDescriptorSet;
 	RenderTarget*			pDepthNormalRenderTarget[2];
 	RenderTarget*			pMotionVectorRenderTarget;
 	RenderTarget*			pDepthRenderTarget;
-	RootSignature*		 	pDenoiserInputsRootSignature;
+	RootSignature*			pDenoiserInputsRootSignature;
 	Shader*		 			pDenoiserInputsShader;
-	DepthState*				pDenoiserDepthState;
-	RasterizerState* 		pDenoiserRasterState;
 	Pipeline*				pDenoiserInputsPipeline;
 	SSVGFDenoiser*			pDenoiser;
 #endif

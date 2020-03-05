@@ -19,7 +19,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Renderer", "Renderer", "{01
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Include", "Include", "{EC7D6A22-5A14-4BC4-8867-C4CFC47CB0D3}"
 	ProjectSection(SolutionItems) = preProject
-		..\..\..\Common_3\Renderer\GpuProfiler.h = ..\..\..\Common_3\Renderer\GpuProfiler.h
 		..\..\..\Common_3\Renderer\IRay.h = ..\..\..\Common_3\Renderer\IRay.h
 		..\..\..\Common_3\Renderer\IRenderer.h = ..\..\..\Common_3\Renderer\IRenderer.h
 		..\..\..\Common_3\Renderer\IShaderReflection.h = ..\..\..\Common_3\Renderer\IShaderReflection.h

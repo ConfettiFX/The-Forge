@@ -125,8 +125,8 @@ Buffer* ParallelPrimitives::temporaryBuffer(size_t length) {
 	Buffer* buffer = NULL;
 	for (eastl::vector<Buffer*>::const_iterator it = mTemporaryBuffers.begin(); it < mTemporaryBuffers.end(); ++it) {
 		Buffer* candidateBuffer = *it;
-		uint64_t candidateLength = candidateBuffer->mDesc.mSize;
-		if (candidateLength >= length && (buffer == NULL || buffer->mDesc.mSize > candidateLength)) {
+		uint64_t candidateLength = candidateBuffer->mSize;
+		if (candidateLength >= length && (buffer == NULL || buffer->mSize > candidateLength)) {
 			buffer = candidateBuffer;
 			bestBufferIt = it;
 		}
@@ -643,8 +643,8 @@ void ParallelPrimitives::sortRadix(Cmd* pCmd, Buffer* inputKeys, Buffer* outputK
 }
 
 void ParallelPrimitives::generateOffsetBuffer(Cmd* pCmd, Buffer* sortedCategoryIndices, Buffer* outputBuffer, Buffer* totalCountOutputBuffer, IndirectCountBuffer sortedIndicesCount, uint32_t categoryCount, uint32_t indirectThreadsPerThreadgroup) {
-	ASSERT(outputBuffer->mDesc.mSize >= categoryCount * sizeof(uint32_t));
-	ASSERT(totalCountOutputBuffer->mDesc.mSize >= 4 * sizeof(uint32_t));
+	ASSERT(outputBuffer->mSize >= categoryCount * sizeof(uint32_t));
+	ASSERT(totalCountOutputBuffer->mSize >= 4 * sizeof(uint32_t));
 	
 	cmdBeginDebugMarker(pCmd, 0, 1, 0, "Offset Buffer Generation");
 	
@@ -707,7 +707,7 @@ void ParallelPrimitives::generateOffsetBuffer(Cmd* pCmd, Buffer* sortedCategoryI
 }
 
 void ParallelPrimitives::generateIndirectArgumentsFromOffsetBuffer(Cmd* pCmd, Buffer* offsetBuffer, Buffer* activeIndexCountBuffer, Buffer* outIndirectArgumentsBuffer, uint32_t categoryCount, uint32_t indirectThreadsPerThreadgroup) {
-	ASSERT(outIndirectArgumentsBuffer->mDesc.mSize >= categoryCount * 4 * sizeof(uint32_t));
+	ASSERT(outIndirectArgumentsBuffer->mSize >= categoryCount * 4 * sizeof(uint32_t));
 	
 	cmdBeginDebugMarker(pCmd, 0, 1, 0, "Indirect Arguments from Offset Buffer");
 	

@@ -9,35 +9,35 @@
   <Dependencies/>
   <VirtualDirectory Name="src">
     <VirtualDirectory Name="Sky">
-      <File Name="../../../../../CustomMiddleware/Ephemeris/Sky/src/Ephemeris.cpp"/>
-      <File Name="../../../../../CustomMiddleware/Ephemeris/Sky/src/Ephemeris.h"/>
-      <File Name="../../../../../CustomMiddleware/Ephemeris/Sky/src/LocalTime.cpp"/>
-      <File Name="../../../../../CustomMiddleware/Ephemeris/Sky/src/LocalTime.h"/>
-      <File Name="../../../../../CustomMiddleware/Ephemeris/Sky/src/Location.h"/>
-      <File Name="../../../../../CustomMiddleware/Ephemeris/Sky/src/Sky.cpp"/>
-      <File Name="../../../../../CustomMiddleware/Ephemeris/Sky/src/Sky.h"/>
-      <File Name="../../../../../CustomMiddleware/Ephemeris/Sky/src/SkyCommon.h"/>
-      <File Name="../../../../../CustomMiddleware/Ephemeris/Sky/src/Icosahedron.cpp"/>
-      <File Name="../../../../../CustomMiddleware/Ephemeris/Sky/src/Icosahedron.h"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Ephemeris.cpp"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Ephemeris.h"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/LocalTime.cpp"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/LocalTime.h"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Location.h"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Sky.cpp"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Sky.h"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/SkyCommon.h"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Icosahedron.cpp"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/Sky/src/Icosahedron.h"/>
     </VirtualDirectory>
     <VirtualDirectory Name="Terrain">
-      <File Name="../../../../../CustomMiddleware/Ephemeris/Terrain/src/HeightData.cpp"/>
-      <File Name="../../../../../CustomMiddleware/Ephemeris/Terrain/src/HeightData.h"/>
-      <File Name="../../../../../CustomMiddleware/Ephemeris/Terrain/src/Hemisphere.h"/>
-      <File Name="../../../../../CustomMiddleware/Ephemeris/Terrain/src/Terrain.cpp"/>
-      <File Name="../../../../../CustomMiddleware/Ephemeris/Terrain/src/Terrain.h"/>
-      <File Name="../../../../../CustomMiddleware/Ephemeris/Terrain/src/Visibility.h"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/src/HeightData.cpp"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/src/HeightData.h"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/src/Hemisphere.h"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/src/Terrain.cpp"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/src/Terrain.h"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/Terrain/src/Visibility.h"/>
     </VirtualDirectory>
     <VirtualDirectory Name="VolumetricClouds">
-      <File Name="../../../../../CustomMiddleware/Ephemeris/VolumetricClouds/src/VolumetricClouds.cpp"/>
-      <File Name="../../../../../CustomMiddleware/Ephemeris/VolumetricClouds/src/VolumetricClouds.h"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/src/VolumetricClouds.cpp"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/src/VolumetricClouds.h"/>
     </VirtualDirectory>
-    <File Name="../../../../../CustomMiddleware/Ephemeris/src/EphemerisExample/Example.cpp"/>
-    <File Name="../../../../../CustomMiddleware/Ephemeris/src/Perlin.cpp"/>
-    <File Name="../../../../../CustomMiddleware/Ephemeris/src/Perlin.h"/>
+    <File Name="../../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Example.cpp"/>
+    <File Name="../../../../../Custom-Middleware/Ephemeris/src/Perlin.cpp"/>
+    <File Name="../../../../../Custom-Middleware/Ephemeris/src/Perlin.h"/>
     <VirtualDirectory Name="SpaceObjects">
-      <File Name="../../../../../CustomMiddleware/Ephemeris/SpaceObjects/src/SpaceObjects.cpp"/>
-      <File Name="../../../../../CustomMiddleware/Ephemeris/SpaceObjects/src/SpaceObjects.h"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/SpaceObjects/src/SpaceObjects.cpp"/>
+      <File Name="../../../../../Custom-Middleware/Ephemeris/SpaceObjects/src/SpaceObjects.h"/>
     </VirtualDirectory>
   </VirtualDirectory>
   <Dependencies Name="Debug">

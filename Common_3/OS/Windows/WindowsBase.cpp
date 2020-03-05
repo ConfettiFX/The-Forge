@@ -571,6 +571,8 @@ static void onResize(WindowsDesc* wnd, int32_t newSizeX, int32_t newSizeY)
 	pApp->mSettings.mWidth = newSizeX;
 	pApp->mSettings.mHeight = newSizeY;
 
+    if (pApp->mSettings.mFullScreen == wnd->fullScreen)
+        return;
 	pApp->mSettings.mFullScreen = wnd->fullScreen;
 	pApp->Unload();
 	pApp->Load();

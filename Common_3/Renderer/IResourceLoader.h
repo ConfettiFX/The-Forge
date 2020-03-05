@@ -41,7 +41,8 @@ typedef struct RenderMesh RenderMesh;
 
 // MARK: - Resource Loading
 
-typedef enum LoadPriority {
+typedef enum LoadPriority
+{
 	// This load priority is only used for updates that
 	// have their data stored in GPU memory (e.g. from an
 	// updateResource call).
@@ -94,7 +95,7 @@ typedef struct BinaryImageData
 
 typedef struct TextureLoadDesc
 {
-	Texture** ppTexture;
+	Texture**    ppTexture;
 	
 	/// Load empty texture
 	TextureDesc* pDesc;
@@ -134,6 +135,7 @@ typedef struct Geometry
 	Buffer*                     pIndexBuffer;
 	/// The array of vertex buffers to bind when drawing this geometry
 	Buffer*                     pVertexBuffers[MAX_VERTEX_BINDINGS];
+	uint32_t                    mVertexStrides[MAX_VERTEX_BINDINGS];
 	/// The array of traditional draw arguments to draw each subset in this geometry
 	IndirectDrawIndexArguments* pDrawArgs;
 	/// Shadow copy of the geometry vertex and index data if requested through the load flags
@@ -302,4 +304,4 @@ bool isTokenCompleted(const SyncToken* token);
 void waitForToken(const SyncToken* token);
 
 /// Either loads the cached shader bytecode or compiles the shader to create new bytecode depending on whether source is newer than binary
-void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShader);
+void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** pShader);

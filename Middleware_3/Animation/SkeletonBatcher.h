@@ -51,15 +51,17 @@ struct UniformSkeletonBlock
 // Description needed to handle buffer updates and draw calls
 struct SkeletonRenderDesc
 {
-	Renderer*         mRenderer;
-	Pipeline*         mSkeletonPipeline;
-	RootSignature*    mRootSignature;
-	Buffer*           mJointVertexBuffer;
-	int               mNumJointPoints;
-	bool              mDrawBones;
-	Buffer*           mBoneVertexBuffer;
-	int               mNumBonePoints;
+	Renderer*           mRenderer;
+	Pipeline*           mSkeletonPipeline;
+	RootSignature*      mRootSignature;
+	Buffer*             mJointVertexBuffer;
+	uint32_t            mJointVertexStride;
+	uint32_t            mNumJointPoints;
+	Buffer*             mBoneVertexBuffer;
+	uint32_t            mBoneVertexStride;
+	uint32_t            mNumBonePoints;
 	BufferCreationFlags mCreationFlag;
+	bool                mDrawBones;
 };
 
 // Allows for efficiently instance rendering all joints and bones of all skeletons in the scene
@@ -91,23 +93,25 @@ class SkeletonBatcher
 	private:
 	// List of Rigs whose skeletons need to be rendered
 	eastl::vector<Rig*> mRigs;
-	unsigned int          mNumRigs = 0;
+	uint32_t            mNumRigs = 0;
 
 	// Application variables used to be able to update buffers
 	Renderer*      mRenderer;
 	Pipeline*      mSkeletonPipeline;
 	RootSignature* mRootSignature;
 	Buffer*        mJointVertexBuffer;
-	int            mNumJointPoints;
 	Buffer*        mBoneVertexBuffer;
-	int            mNumBonePoints;
+	uint32_t       mJointVertexStride;
+	uint32_t       mBoneVertexStride;
+	uint32_t       mNumJointPoints;
+	uint32_t       mNumBonePoints;
 
 	// Descriptor binder with all required memory allocation space
-	DescriptorSet* pDescriptorSet;
+	DescriptorSet*  pDescriptorSet;
 
 	// Buffer pointers that will get updated for each batch to be rendered
-	Buffer* mProjViewUniformBufferJoints[ImageCount][MAX_BATCHES] = {{ NULL }};
-	Buffer* mProjViewUniformBufferBones[ImageCount][MAX_BATCHES] = {{ NULL } };
+	Buffer*  mProjViewUniformBufferJoints[ImageCount][MAX_BATCHES] = { { {} } };
+	Buffer*  mProjViewUniformBufferBones[ImageCount][MAX_BATCHES] = { { {} } };
 
 	// Uniform data for the joints and bones
 	UniformSkeletonBlock mUniformDataJoints;
@@ -115,10 +119,10 @@ class SkeletonBatcher
 
 	// Keeps track of the number of batches we will send for instanced rendering
 	// for each frame index
-	unsigned int mBatchCounts[ImageCount];
+	uint32_t mBatchCounts[ImageCount];
 
 	// Keeps track of the size of the last batch as it can be less than MAX_INSTANCES
-	unsigned int mLastBatchSize[ImageCount];
+	uint32_t mLastBatchSize[ImageCount];
 
 	// Determines if this renderer will need to draw bones between each joint
 	// Set in initialize

@@ -144,8 +144,7 @@ UIApp         gAppUI = {};
 GuiComponent* pGui;
 
 const uint32_t gImageCount = 3;
-bool           gMicroProfiler = false;
-bool           bPrevToggleMicroProfiler = false;
+ProfileToken   gGpuProfileToken;
 
 Renderer* pRenderer = NULL;
 
@@ -163,9 +162,6 @@ Semaphore*    pImageAcquiredSemaphore = NULL;
 Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
 
 Sampler*         pSampler = NULL;
-DepthState*      pDepth = NULL;
-RasterizerState* pRast = NULL;
-RasterizerState* pWireframeRast = NULL;
 
 RenderTarget* PGrassRenderTarget = NULL;
 
@@ -212,8 +208,6 @@ DescriptorSet*    pDescriptorSetGrassVertexHull[2] = { NULL };
 uint32_t gFrameIndex = 0;
 
 GrassUniformBlock gGrassUniformData;
-
-GpuProfiler* pGpuProfiler = NULL;
 
 unsigned gStartTime = 0;
 
@@ -349,16 +343,6 @@ class Tessellation: public IApp
 		computePipelineDesc.pShaderProgram = pComputeShader;
 		addPipeline(pRenderer, &pipelineDesc, &pComputePipeline);
 
-		DepthStateDesc depthStateDesc = {};
-		depthStateDesc.mDepthTest = true;
-		depthStateDesc.mDepthWrite = true;
-		depthStateDesc.mDepthFunc = CMP_GEQUAL;
-		addDepthState(pRenderer, &depthStateDesc, &pDepth);
-
-		RasterizerStateDesc rasterizerStateDesc = {};
-		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRast);
-
 		SamplerDesc samplerDesc = { FILTER_NEAREST,
 									FILTER_NEAREST,
 									MIPMAP_MODE_NEAREST,
@@ -366,11 +350,6 @@ class Tessellation: public IApp
 									ADDRESS_MODE_CLAMP_TO_EDGE,
 									ADDRESS_MODE_CLAMP_TO_EDGE };
 		addSampler(pRenderer, &samplerDesc, &pSampler);
-
-		RasterizerStateDesc rasterizerStateWireframeDesc = {};
-		rasterizerStateWireframeDesc.mCullMode = CULL_MODE_NONE;
-		rasterizerStateWireframeDesc.mFillMode = FILL_MODE_WIREFRAME;
-		addRasterizerState(pRenderer, &rasterizerStateWireframeDesc, &pWireframeRast);
 
 #ifdef METAL
         pipelineDesc.mComputeDesc = {};
@@ -396,7 +375,6 @@ class Tessellation: public IApp
 		sbBladeDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
 		sbBladeDesc.mDesc.mFirstElement = 0;
 		sbBladeDesc.mDesc.mElementCount = NUM_BLADES;
-		sbBladeDesc.mDesc.mVertexStride = sizeof(Blade);
 		sbBladeDesc.mDesc.mStructStride = sizeof(Blade);
 		sbBladeDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		sbBladeDesc.mDesc.mSize = NUM_BLADES * sizeof(Blade);
@@ -409,7 +387,6 @@ class Tessellation: public IApp
 		sbCulledBladeDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		sbCulledBladeDesc.mDesc.mFirstElement = 0;
 		sbCulledBladeDesc.mDesc.mElementCount = NUM_BLADES;
-		sbCulledBladeDesc.mDesc.mVertexStride = sizeof(Blade);
 		sbCulledBladeDesc.mDesc.mStructStride = sizeof(Blade);
 		sbCulledBladeDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		sbCulledBladeDesc.mDesc.mSize = NUM_BLADES * sizeof(Blade);
@@ -484,8 +461,6 @@ class Tessellation: public IApp
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 		pGui = gAppUI.AddGuiComponent("Tessellation Properties", &guiDesc);
 
-		pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
-
 		static const char* enumNames[] = {
 			"SOLID",
 			"WIREFRAME",
@@ -528,8 +503,8 @@ class Tessellation: public IApp
 		if (!initInputSystem(pWindow))
 			return false;
 
-		initProfiler();
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
+        initProfiler();
+        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "GpuProfiler");
 
 		// App Actions
 		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
@@ -549,7 +524,7 @@ class Tessellation: public IApp
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!gMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
+			if (!gAppUI.IsFocused() && *ctx->pCaptured)
 			{
 				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
@@ -650,10 +625,7 @@ class Tessellation: public IApp
 		removeCmdPool(pRenderer, pUICmdPool);
 
 		removeSampler(pRenderer, pSampler);
-		removeDepthState(pDepth);
 
-		removeRasterizerState(pRast);
-		removeRasterizerState(pWireframeRast);
 		for (uint32_t i = 0; i < gImageCount; ++i)
 			removeResource(pGrassUniformBuffer[i]);
 
@@ -673,8 +645,6 @@ class Tessellation: public IApp
 		removeRootSignature(pRenderer, pGrassVertexHullRootSignature);
 #endif
 		removeRootSignature(pRenderer, pComputeRootSignature);
-
-		removeGpuProfiler(pRenderer, pGpuProfiler);
 
         exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
@@ -697,7 +667,7 @@ class Tessellation: public IApp
 		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
 
-		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		VertexLayout vertexLayout = {};
 #ifndef METAL
@@ -743,22 +713,34 @@ class Tessellation: public IApp
 		vertexLayout.mAttribs[4].mOffset = 16 * sizeof(float);
 #endif
 
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = true;
+		depthStateDesc.mDepthWrite = true;
+		depthStateDesc.mDepthFunc = CMP_GEQUAL;
+
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+
+		RasterizerStateDesc rasterizerStateWireframeDesc = {};
+		rasterizerStateWireframeDesc.mCullMode = CULL_MODE_NONE;
+		rasterizerStateWireframeDesc.mFillMode = FILL_MODE_WIREFRAME;
+
 		PipelineDesc desc = {};
 		desc.mType = PIPELINE_TYPE_GRAPHICS;
 		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_PATCH_LIST;
-		pipelineSettings.pRasterizerState = pRast;
-		pipelineSettings.pDepthState = pDepth;
+		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
+		pipelineSettings.pDepthState = &depthStateDesc;
 		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
 		pipelineSettings.pVertexLayout = &vertexLayout;
 		pipelineSettings.pRootSignature = pGrassRootSignature;
 		pipelineSettings.pShaderProgram = pGrassShader;
 		addPipeline(pRenderer, &desc, &pGrassPipeline);
-		pipelineSettings.pRasterizerState = pWireframeRast;
+		pipelineSettings.pRasterizerState = &rasterizerStateWireframeDesc;
 		addPipeline(pRenderer, &desc, &pGrassPipelineForWireframe);
 
 #if defined(VULKAN)
@@ -772,7 +754,7 @@ class Tessellation: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		unloadProfiler();
+		unloadProfilerUI();
 
 		gVirtualJoystick.Unload();
 
@@ -791,7 +773,7 @@ class Tessellation: public IApp
 
 		//check for Vsync toggle
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
-		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
+		if (pSwapChain->mEnableVsync != gToggleVSync)
 		{
 			waitQueueIdle(pGraphicsQueue);
 			::toggleVSync(pRenderer, &pSwapChain);
@@ -827,12 +809,6 @@ class Tessellation: public IApp
 		gGrassUniformData.mWindWidth = gWindWidth;
 		gGrassUniformData.mWindStrength = gWindStrength;
 
-    if (gMicroProfiler != bPrevToggleMicroProfiler)
-    {
-      toggleProfiler();
-      bPrevToggleMicroProfiler = gMicroProfiler;
-    }
-
 		/************************************************************************/
 		// Update GUI
 		/************************************************************************/
@@ -858,9 +834,9 @@ class Tessellation: public IApp
 		// simply record the screen cleaning command
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-		loadActions.mClearColorValues[0] = { {{0.0f, 0.0f, 0.0f, 0.0f}} };
+		loadActions.mClearColorValues[0] = {{0.0f, 0.0f, 0.0f, 0.0f}};
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth = { {{0.0f, 0}} };    // Clear depth to the far plane and stencil to 0
+		loadActions.mClearDepth = {{0.0f, 0}};    // Clear depth to the far plane and stencil to 0
 
 		eastl::vector<Cmd*> allCmds;
 
@@ -875,18 +851,18 @@ class Tessellation: public IApp
 		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
 
-		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
+		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
-		const uint32_t* pThreadGroupSize = pComputeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
+		const uint32_t* pThreadGroupSize = pComputeShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
 
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Compute Pass");
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Compute Pass");
 
 		cmdBindPipeline(cmd, pComputePipeline);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetCompute[0]);
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetCompute[1]);
 		cmdDispatch(cmd, (int)ceil(NUM_BLADES / pThreadGroupSize[0]), pThreadGroupSize[1], pThreadGroupSize[2]);
 
-		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 #ifdef METAL
 		BufferBarrier metalSRVBarriers[] = {
@@ -913,10 +889,10 @@ class Tessellation: public IApp
 		cmdResourceBarrier(cmd, 2, srvBarriers, 0, NULL, 1, barriers);
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Pass");
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Pass");
 
 		// Draw computed results
 		if (gFillMode == FILL_MODE_SOLID)
@@ -927,14 +903,16 @@ class Tessellation: public IApp
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetGrass);
 
 #ifndef METAL
-		cmdBindVertexBuffer(cmd, 1, &pCulledBladeStorageBuffer, NULL);
+		const uint32_t stride = sizeof(Blade);
+		cmdBindVertexBuffer(cmd, 1, &pCulledBladeStorageBuffer, &stride, NULL);
 #else
 		// When using tessellation on Metal, you should always bind the tessellationFactors buffer and the controlPointBuffer together as vertex buffer (following this order).
 		Buffer* tessBuffers[] = { pTessFactorsBuffer, pHullOutputBuffer };
-		cmdBindVertexBuffer(cmd, 2, tessBuffers, NULL);
+		const uint32_t strides[] = { sizeof(Blade), sizeof(HullOut) };
+		cmdBindVertexBuffer(cmd, 2, tessBuffers, strides, NULL);
 #endif
 		cmdExecuteIndirect(cmd, pIndirectCommandSignature, 1, pBladeNumBuffer, 0, NULL, 0);
-		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
@@ -944,7 +922,7 @@ class Tessellation: public IApp
 		};
 		cmdResourceBarrier(cmd, 2, uavBarriers, 0, NULL, 0, NULL);
 
-		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
+		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 
 		endCmd(cmd);
 
@@ -956,23 +934,15 @@ class Tessellation: public IApp
 
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
-		static HiresTimer timer;
-		timer.GetUSec(true);
-
-		gAppUI.DrawText(
-			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", timer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
-
+        cmdDrawCpuProfile(cmd, float2(8, 15), &gFrameTimeDraw);
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 
-		gAppUI.DrawText(
-			cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
-			&gFrameTimeDraw);
-		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
+        cmdDrawGpuProfile(cmd, float2(8, 40), gGpuProfileToken);
 
-		cmdDrawProfiler();
+		cmdDrawProfilerUI();
 
 		gAppUI.Gui(pGui);
 		gAppUI.Draw(cmd);
@@ -1016,7 +986,6 @@ class Tessellation: public IApp
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
 		swapChainDesc.mEnableVsync = false;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
@@ -1029,7 +998,7 @@ class Tessellation: public IApp
 		// Add depth buffer
 		RenderTargetDesc depthRT = {};
 		depthRT.mArraySize = 1;
-		depthRT.mClearValue = { {{0.0f, 0}} };
+		depthRT.mClearValue = {{0.0f, 0}};
 		depthRT.mDepth = 1;
 		depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
 		depthRT.mHeight = mSettings.mHeight;

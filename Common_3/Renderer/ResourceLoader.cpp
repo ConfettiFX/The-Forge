@@ -83,7 +83,7 @@ extern void updateVirtualTexture(Renderer* pRenderer, Queue* pQueue, Texture* pT
 //////////////////////////////////////////////////////////////////////////
 typedef struct TextureLoadDescInternal
 {
-	Texture** ppTexture;
+	Texture**   ppTexture;
 
 	/// Load texture from disk
 	Path* 		pFilePath;
@@ -109,9 +109,9 @@ typedef struct TextureUpdateDescInternal
 
 typedef struct CopyResourceSet
 {
-	Fence*  pFence;
-	Cmd*    pCmd;
-	Buffer* mBuffer;
+	Fence*   pFence;
+	Cmd*     pCmd;
+	Buffer*  mBuffer;
 	uint64_t allocatedSpace;
 
 	/// Buffers created in case we ran out of space in the original staging buffer
@@ -423,7 +423,7 @@ static void resetCopyEngineSet(Renderer* pRenderer, CopyEngine* pCopyEngine, siz
 		mapBuffer(pResourceLoader->pRenderer, pCopyEngine->resourceSets[activeSet].mBuffer, NULL);
 #endif
 
-	for (Buffer* buffer : pCopyEngine->resourceSets[activeSet].mTempBuffers)
+	for (Buffer*& buffer : pCopyEngine->resourceSets[activeSet].mTempBuffers)
 		removeBuffer(pRenderer, buffer);
 	pCopyEngine->resourceSets[activeSet].mTempBuffers.clear();
 }
@@ -471,7 +471,7 @@ static MappedMemoryRange allocateStagingMemory(uint64_t memoryRequirement, uint3
 	}
 
 	CopyResourceSet* pResourceSet = &pCopyEngine->resourceSets[pResourceLoader->mActiveSetIndex];
-	uint64_t size = pResourceSet->mBuffer->mDesc.mSize;
+	uint64_t size = (uint64_t)pResourceSet->mBuffer->mSize;
 	bool memoryAvailable = (offset < size) && (memoryRequirement <= size - offset);
 	if (memoryAvailable)
 	{
@@ -486,7 +486,7 @@ static MappedMemoryRange allocateStagingMemory(uint64_t memoryRequirement, uint3
 		if (pCopyEngine->bufferSize < memoryRequirement)
 		{
 			LOGF(LogLevel::eINFO, "Allocating temporary staging buffer. Required allocation size of %llu is larger than the staging buffer capacity of %llu", memoryRequirement, size);
-			Buffer* buffer = NULL;
+			Buffer* buffer = {};
 			BufferDesc bufferDesc = {};
 			bufferDesc.mSize = memoryRequirement;
 #ifdef ORBIS
@@ -499,7 +499,7 @@ static MappedMemoryRange allocateStagingMemory(uint64_t memoryRequirement, uint3
 			mapBuffer(pResourceLoader->pRenderer, buffer, NULL);
 #endif
 			pResourceSet->mTempBuffers.emplace_back(buffer);
-			return { (uint8_t*)buffer->pCpuMappedAddress, buffer, 0, memoryRequirement };
+			return { (uint8_t*)buffer->pCpuMappedAddress, pResourceSet->mTempBuffers.back(), 0, memoryRequirement };
 		}
 		if (waitForSpace)
 		{
@@ -512,7 +512,7 @@ static MappedMemoryRange allocateStagingMemory(uint64_t memoryRequirement, uint3
 	}
 
 	LOGF(LogLevel::eINFO, "Allocating temporary staging buffer. Required allocation size of %llu is larger than the staging buffer capacity of %llu", memoryRequirement, size);
-	Buffer* buffer = NULL;
+	Buffer* buffer = {};
 	BufferDesc bufferDesc = {};
 	bufferDesc.mSize = memoryRequirement;
 #ifdef ORBIS
@@ -525,20 +525,18 @@ static MappedMemoryRange allocateStagingMemory(uint64_t memoryRequirement, uint3
 	mapBuffer(pResourceLoader->pRenderer, buffer, NULL);
 #endif
 	pResourceSet->mTempBuffers.emplace_back(buffer);
-	return { (uint8_t*)buffer->pCpuMappedAddress, buffer, 0, memoryRequirement };
+	return { (uint8_t*)buffer->pCpuMappedAddress, pResourceSet->mTempBuffers.back(), 0, memoryRequirement };
 }
 
-static ResourceState util_determine_resource_start_state(DescriptorType usage)
+static ResourceState util_determine_resource_start_state(bool uav)
 {
-	ResourceState state = RESOURCE_STATE_UNDEFINED;
-	if (usage & DESCRIPTOR_TYPE_RW_TEXTURE)
+	if (uav)
 		return RESOURCE_STATE_UNORDERED_ACCESS;
-	else if (usage & DESCRIPTOR_TYPE_TEXTURE)
+	else
 		return RESOURCE_STATE_SHADER_RESOURCE;
-	return state;
 }
 
-static ResourceState util_determine_resource_start_state(const BufferDesc* pBuffer)
+static ResourceState util_determine_resource_start_state(const Buffer* pBuffer)
 {
 	// Host visible (Upload Heap)
 	if (pBuffer->mMemoryUsage == RESOURCE_MEMORY_USAGE_CPU_ONLY || pBuffer->mMemoryUsage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU)
@@ -548,7 +546,7 @@ static ResourceState util_determine_resource_start_state(const BufferDesc* pBuff
 	// Device Local (Default Heap)
 	else if (pBuffer->mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY)
 	{
-		DescriptorType usage = pBuffer->mDescriptors;
+		DescriptorType usage = (DescriptorType)pBuffer->mDescriptors;
 
 		// Try to limit number of states used overall to avoid sync complexities
 		if (usage & DESCRIPTOR_TYPE_RW_BUFFER)
@@ -681,8 +679,8 @@ static void* allocateTextureStagingMemory(Image* pImage, uint64_t byteCount, uin
 static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t activeSet, UpdateState& pTextureUpdate)
 {
 	TextureUpdateDescInternal& texUpdateDesc = pTextureUpdate.mRequest.texUpdateDesc;
-	ASSERT(pCopyEngine->pQueue->mDesc.mNodeIndex == texUpdateDesc.pTexture->mDesc.mNodeIndex);
-	bool         applyBarriers = pRenderer->mSettings.mApi == RENDERER_API_VULKAN || pRenderer->mSettings.mApi == RENDERER_API_XBOX_D3D12 || pRenderer->mSettings.mApi == RENDERER_API_METAL;
+	ASSERT(pCopyEngine->pQueue->mNodeIndex == texUpdateDesc.pTexture->mNodeIndex);
+	bool         applyBarriers = pRenderer->mApi == RENDERER_API_VULKAN || pRenderer->mApi == RENDERER_API_XBOX_D3D12 || pRenderer->mApi == RENDERER_API_METAL;
 
 	uint32_t  textureAlignment = ResourceLoader::GetSubtextureAlignment(pRenderer);
 	uint32_t  textureRowAlignment = ResourceLoader::GetTextureRowAlignment(pRenderer);
@@ -744,7 +742,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
 	const uint3 queueGranularity = { pxPerRow, uploadGran.mHeight, uploadGran.mDepth };
 	const uint3 fullSizeDim = { pImage->GetWidth(), pImage->GetHeight(), pImage->GetDepth() };
 
-	for (; i < pTexture->mDesc.mMipLevels; ++i)
+	for (; i < pTexture->mMipLevels; ++i)
 	{
 		uint3 const pxImageDim{ pImage->GetWidth(i), pImage->GetHeight(i), pImage->GetDepth(i) };
 		uint3    uploadExtent{ (pxImageDim + pxBlockDim - uint3(1)) / pxBlockDim };
@@ -850,12 +848,12 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
 	// Only need transition for vulkan and durango since resource will decay to srv on graphics queue in PC dx12
 	if (applyBarriers)
 	{
-		TextureBarrier postCopyBarrier = { pTexture, util_determine_resource_start_state(pTexture->mDesc.mDescriptors) };
+		TextureBarrier postCopyBarrier = { pTexture, util_determine_resource_start_state(pTexture->mUav) };
 		cmdResourceBarrier(pCmd, 0, NULL, 1, &postCopyBarrier, 0, NULL);
 	}
 	else
 	{
-		pTexture->mCurrentState = util_determine_resource_start_state(pTexture->mDesc.mDescriptors);
+		pTexture->mCurrentState = util_determine_resource_start_state(pTexture->mUav);
 	}
 
 	if (ownsImage)
@@ -920,7 +918,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 			// Create visibility buffer
 			/************************************************************************/
 
-			eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)(*pTextureDesc->ppTexture)->pPages;
+			eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)(*pTextureDesc->ppTexture)->pSvt->pPages;
 
 			if (pPageTable == NULL)
 				return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
@@ -932,7 +930,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 			visDesc.mDesc.mElementCount = (uint64_t)pPageTable->size();
 			visDesc.mDesc.mSize = visDesc.mDesc.mStructStride * visDesc.mDesc.mElementCount;
 			visDesc.mDesc.pDebugName = L"Vis Buffer for Sparse Texture";
-			visDesc.ppBuffer = &(*pTextureDesc->ppTexture)->mVisibility;
+			visDesc.ppBuffer = &(*pTextureDesc->ppTexture)->pSvt->mVisibility;
 			addResource(&visDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 			BufferLoadDesc prevVisDesc = {};
@@ -942,7 +940,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 			prevVisDesc.mDesc.mElementCount = (uint64_t)pPageTable->size();
 			prevVisDesc.mDesc.mSize = prevVisDesc.mDesc.mStructStride * prevVisDesc.mDesc.mElementCount;
 			prevVisDesc.mDesc.pDebugName = L"Prev Vis Buffer for Sparse Texture";
-			prevVisDesc.ppBuffer = &(*pTextureDesc->ppTexture)->mPrevVisibility;
+			prevVisDesc.ppBuffer = &(*pTextureDesc->ppTexture)->pSvt->mPrevVisibility;
 			addResource(&prevVisDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 			BufferLoadDesc alivePageDesc = {};
@@ -959,7 +957,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 			alivePageDesc.mDesc.mElementCount = (uint64_t)pPageTable->size();
 			alivePageDesc.mDesc.mSize = alivePageDesc.mDesc.mStructStride * alivePageDesc.mDesc.mElementCount;
 			alivePageDesc.mDesc.pDebugName = L"Alive pages buffer for Sparse Texture";
-			alivePageDesc.ppBuffer = &(*pTextureDesc->ppTexture)->mAlivePage;
+			alivePageDesc.ppBuffer = &(*pTextureDesc->ppTexture)->pSvt->mAlivePage;
 			addResource(&alivePageDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 			BufferLoadDesc removePageDesc = {};
@@ -976,7 +974,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 			removePageDesc.mDesc.mElementCount = (uint64_t)pPageTable->size();
 			removePageDesc.mDesc.mSize = removePageDesc.mDesc.mStructStride * removePageDesc.mDesc.mElementCount;
 			removePageDesc.mDesc.pDebugName = L"Remove pages buffer for Sparse Texture";
-			removePageDesc.ppBuffer = &(*pTextureDesc->ppTexture)->mRemovePage;
+			removePageDesc.ppBuffer = &(*pTextureDesc->ppTexture)->pSvt->mRemovePage;
 			addResource(&removePageDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 			BufferLoadDesc pageCountsDesc = {};
@@ -993,7 +991,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 			pageCountsDesc.mDesc.mElementCount = 4;
 			pageCountsDesc.mDesc.mSize = pageCountsDesc.mDesc.mStructStride * pageCountsDesc.mDesc.mElementCount;
 			pageCountsDesc.mDesc.pDebugName = L"Page count buffer for Sparse Texture";
-			pageCountsDesc.ppBuffer = &(*pTextureDesc->ppTexture)->mPageCounts;
+			pageCountsDesc.ppBuffer = &(*pTextureDesc->ppTexture)->pSvt->mPageCounts;
 			addResource(&pageCountsDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 			return UPLOAD_FUNCTION_RESULT_COMPLETED;
@@ -1263,16 +1261,16 @@ static inline void pack_float3_direction_to_half2(uint32_t count, uint32_t strid
 static UploadFunctionResult updateBuffer(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t activeSet, UpdateState& pBufferUpdate)
 {
 	BufferUpdateDesc& bufUpdateDesc = pBufferUpdate.mRequest.bufUpdateDesc;
-	ASSERT(pCopyEngine->pQueue->mDesc.mNodeIndex == bufUpdateDesc.pBuffer->mDesc.mNodeIndex);
+	ASSERT(pCopyEngine->pQueue->mNodeIndex == bufUpdateDesc.pBuffer->mNodeIndex);
 	Buffer* pBuffer = bufUpdateDesc.pBuffer;
-	ASSERT(pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY || pBuffer->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_TO_CPU);
+	ASSERT(pBuffer->mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY || pBuffer->mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_TO_CPU);
 
 	Cmd* pCmd = acquireCmd(pCopyEngine, activeSet);
 
 	MappedMemoryRange range = bufUpdateDesc.mInternalData.mMappedRange;
 	cmdUpdateBuffer(pCmd, pBuffer, bufUpdateDesc.mDstOffset, range.pBuffer, range.mOffset, range.mSize);
 
-	ResourceState state = util_determine_resource_start_state(&pBuffer->mDesc);
+	ResourceState state = util_determine_resource_start_state(pBuffer);
 #ifdef _DURANGO
 	// Xbox One needs explicit resource transitions
 	BufferBarrier bufferBarriers[] = { { pBuffer, state } };
@@ -1287,18 +1285,18 @@ static UploadFunctionResult updateBuffer(Renderer* pRenderer, CopyEngine* pCopyE
 
 static UploadFunctionResult updateResourceState(Renderer* pRenderer, CopyEngine* pCopyEngine, size_t activeSet, UpdateState& pUpdate)
 {
-	bool applyBarriers = pRenderer->mSettings.mApi == RENDERER_API_VULKAN;
+	bool applyBarriers = pRenderer->mApi == RENDERER_API_VULKAN;
 	if (applyBarriers)
 	{
 		Cmd* pCmd = acquireCmd(pCopyEngine, activeSet);
 		if (pUpdate.mRequest.buffer)
 		{
-			BufferBarrier barrier = { pUpdate.mRequest.buffer, pUpdate.mRequest.buffer->mDesc.mStartState };
+			BufferBarrier barrier = { pUpdate.mRequest.buffer, (ResourceState)pUpdate.mRequest.buffer->mStartState };
 			cmdResourceBarrier(pCmd, 1, &barrier, 0, NULL, 0, NULL);
 		}
 		else if (pUpdate.mRequest.texture)
 		{
-			TextureBarrier barrier = { pUpdate.mRequest.texture, pUpdate.mRequest.texture->mDesc.mStartState };
+			TextureBarrier barrier = { pUpdate.mRequest.texture, (ResourceState)pUpdate.mRequest.texture->mStartState };
 			cmdResourceBarrier(pCmd, 0, NULL, 1, &barrier, 0, NULL);
 		}
 		else
@@ -1531,7 +1529,6 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 			(structuredBuffers ?
 			(DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER) :
 				(DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW));
-		indexBufferDesc.mIndexType = (IndexType)geom->mIndexType;
 		indexBufferDesc.mSize = indexStride * indexCount;
 		indexBufferDesc.mElementCount = indexBufferDesc.mSize / (structuredBuffers ? indexStride : sizeof(uint32_t));
 		indexBufferDesc.mStructStride = indexStride;
@@ -1561,12 +1558,13 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 				(structuredBuffers ?
 				(DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER) :
 					(DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW));
-			vertexBufferDesc.mVertexStride = vertexStrides[i];
 			vertexBufferDesc.mSize = vertexStrides[i] * vertexCount;
 			vertexBufferDesc.mElementCount = vertexBufferDesc.mSize / (structuredBuffers ? vertexStrides[i] : sizeof(uint32_t));
 			vertexBufferDesc.mStructStride = vertexStrides[i];
 			vertexBufferDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 			addBuffer(pRenderer, &vertexBufferDesc, &geom->pVertexBuffers[bufferCounter]);
+
+			geom->mVertexStrides[bufferCounter] = vertexStrides[i];
 
 			vertexUpdateDesc[i].pBuffer = geom->pVertexBuffers[bufferCounter];
 			vertexUpdateDesc[i].mSize = vertexBufferDesc.mSize;
@@ -2028,7 +2026,7 @@ static void removeResourceLoader(ResourceLoader* pLoader)
 
 static void queueResourceUpdate(ResourceLoader* pLoader, BufferUpdateDesc* pBufferUpdate, SyncToken* token, LoadPriority priority)
 {
-	uint32_t nodeIndex = pBufferUpdate->pBuffer->mDesc.mNodeIndex;
+	uint32_t nodeIndex = pBufferUpdate->pBuffer->mNodeIndex;
 	pLoader->mQueueMutex.Acquire();
 
 	SyncToken t = {};
@@ -2075,7 +2073,7 @@ static void queueResourceUpdate(ResourceLoader* pLoader, TextureUpdateDescIntern
 {
 	ASSERT(pTextureUpdate->mStagingAllocation.pData);
 
-	uint32_t nodeIndex = pTextureUpdate->pTexture->mDesc.mNodeIndex;
+	uint32_t nodeIndex = pTextureUpdate->pTexture->mNodeIndex;
 	pLoader->mQueueMutex.Acquire();
 
 	SyncToken t = {};
@@ -2090,7 +2088,7 @@ static void queueResourceUpdate(ResourceLoader* pLoader, TextureUpdateDescIntern
 
 static void queueResourceUpdate(ResourceLoader* pLoader, Buffer* pBuffer, SyncToken* token, LoadPriority priority)
 {
-	uint32_t nodeIndex = pBuffer->mDesc.mNodeIndex;
+	uint32_t nodeIndex = pBuffer->mNodeIndex;
 	pLoader->mQueueMutex.Acquire();
 
 	SyncToken t = {};
@@ -2105,7 +2103,7 @@ static void queueResourceUpdate(ResourceLoader* pLoader, Buffer* pBuffer, SyncTo
 
 static void queueResourceUpdate(ResourceLoader* pLoader, Texture* pTexture, SyncToken* token, LoadPriority priority)
 {
-	uint32_t nodeIndex = pTexture->mDesc.mNodeIndex;
+	uint32_t nodeIndex = pTexture->mNodeIndex;
 	pLoader->mQueueMutex.Acquire();
 
 	SyncToken t = {};
@@ -2210,7 +2208,7 @@ static void endAddBuffer(BufferLoadDesc* pBufferDesc, SyncToken* token, LoadPrio
 	else
 	{
 		// Transition GPU buffer to desired state for Vulkan since all Vulkan resources are created in undefined state
-		if (pResourceLoader->pRenderer->mSettings.mApi == RENDERER_API_VULKAN &&
+		if (pResourceLoader->pRenderer->mApi == RENDERER_API_VULKAN &&
 			pBufferDesc->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY &&
 			// Check whether this is required (user specified a state other than undefined / common)
 			(pBufferDesc->mDesc.mStartState != RESOURCE_STATE_UNDEFINED && pBufferDesc->mDesc.mStartState != RESOURCE_STATE_COMMON))
@@ -2265,7 +2263,7 @@ static void endAddTexture(TextureLoadDesc* pTextureDesc, SyncToken* token, LoadP
 		addTexture(pResourceLoader->pRenderer, pTextureDesc->pDesc, pTextureDesc->ppTexture);
 
 		// Transition texture to desired state for Vulkan since all Vulkan resources are created in undefined state
-		if (pResourceLoader->pRenderer->mSettings.mApi == RENDERER_API_VULKAN &&
+		if (pResourceLoader->pRenderer->mApi == RENDERER_API_VULKAN &&
 			// Check whether this is required (user specified a state other than undefined / common)
 			(pTextureDesc->pDesc->mStartState != RESOURCE_STATE_UNDEFINED && pTextureDesc->pDesc->mStartState != RESOURCE_STATE_COMMON))
 			queueResourceUpdate(pResourceLoader, *pTextureDesc->ppTexture, token, priority);
@@ -2375,10 +2373,10 @@ void beginUpdateResource(BufferUpdateDesc* pBufferUpdate)
 	Buffer* pBuffer = pBufferUpdate->pBuffer;
 	ASSERT(pBuffer);
 
-	uint64_t size = pBufferUpdate->mSize > 0 ? pBufferUpdate->mSize : (pBufferUpdate->pBuffer->mDesc.mSize - pBufferUpdate->mDstOffset);
-	ASSERT(pBufferUpdate->mDstOffset + size <= pBuffer->mDesc.mSize);
+	uint64_t size = pBufferUpdate->mSize > 0 ? pBufferUpdate->mSize : (pBufferUpdate->pBuffer->mSize - pBufferUpdate->mDstOffset);
+	ASSERT(pBufferUpdate->mDstOffset + size <= pBuffer->mSize);
 
-	ResourceMemoryUsage memoryUsage = pBufferUpdate->pBuffer->mDesc.mMemoryUsage;
+	ResourceMemoryUsage memoryUsage = (ResourceMemoryUsage)pBufferUpdate->pBuffer->mMemoryUsage;
 	if (UMA || memoryUsage == RESOURCE_MEMORY_USAGE_CPU_ONLY || memoryUsage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU || memoryUsage == RESOURCE_MEMORY_USAGE_UNKNOWN)
 	{
 		// We can directly provide the buffer's CPU-accessible address.
@@ -2460,7 +2458,7 @@ void endUpdateResource(BufferUpdateDesc* pBufferUpdate, SyncToken* token)
 		unmapBuffer(pResourceLoader->pRenderer, pBufferUpdate->pBuffer);
 	}
 
-	ResourceMemoryUsage memoryUsage = pBufferUpdate->pBuffer->mDesc.mMemoryUsage;
+	ResourceMemoryUsage memoryUsage = (ResourceMemoryUsage)pBufferUpdate->pBuffer->mMemoryUsage;
 	if (!UMA && (memoryUsage == RESOURCE_MEMORY_USAGE_GPU_TO_CPU || memoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY))
 	{
 		queueResourceUpdate(pResourceLoader, pBufferUpdate, token, LOAD_PRIORITY_UPDATE);
@@ -2656,6 +2654,11 @@ void vk_compileShader(
 	eastl::string fileName = fsPathComponentToString(fsGetPathFileName(outFilePath));
 	eastl::string logFileName = fileName + "_compile.log";
 	PathHandle logFilePath = fsAppendPathComponent(parentDirectory, logFileName.c_str());
+	if (fsFileExists(logFilePath))
+	{
+		fsDeleteFile(logFilePath);
+	}
+	LOGF(LogLevel::eINFO, "args: ", args);
 	if (systemRun(glslangValidator.c_str(), args, 1, logFilePath) == 0)
 	{
 		FileStream* fh = fsOpenFile(outFilePath, FM_READ_BINARY);
@@ -3015,7 +3018,7 @@ bool load_shader_stage_byte_code(
 	}
 
 	eastl::string rendererApi;
-	switch (pRenderer->mSettings.mApi)
+	switch (pRenderer->mApi)
 	{
 	case RENDERER_API_D3D12:
 	case RENDERER_API_XBOX_D3D12: rendererApi = "D3D12"; break;
@@ -3055,7 +3058,7 @@ bool load_shader_stage_byte_code(
 			return false;
 		}
 
-		if (pRenderer->mSettings.mApi == RENDERER_API_METAL || pRenderer->mSettings.mApi == RENDERER_API_VULKAN)
+		if (pRenderer->mApi == RENDERER_API_METAL || pRenderer->mApi == RENDERER_API_VULKAN)
 		{
 #if defined(VULKAN)
 #if defined(__ANDROID__)
@@ -3068,7 +3071,7 @@ bool load_shader_stage_byte_code(
 #endif
 		}
 #if defined(ORBIS)
-		else if (pRenderer->mSettings.mApi == RENDERER_API_ORBIS)
+		else if (pRenderer->mApi == RENDERER_API_ORBIS)
 		{
 			orbis_compileShader(pRenderer, target, stage, allStages, filePath, binaryShaderPath, macroCount, pMacros, &byteCode, pEntryPoint);
 		}
@@ -3203,10 +3206,10 @@ bool find_shader_stage(
 #endif
 void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShader)
 {
-	if (pDesc->mTarget > pRenderer->mSettings.mShaderTarget)
+	if ((uint32_t)pDesc->mTarget > pRenderer->mShaderTarget)
 	{
 		eastl::string error = eastl::string().sprintf("Requested shader target (%u) is higher than the shader target that the renderer supports (%u). Shader wont be compiled",
-			(uint32_t)pDesc->mTarget, (uint32_t)pRenderer->mSettings.mShaderTarget);
+			(uint32_t)pDesc->mTarget, (uint32_t)pRenderer->mShaderTarget);
 		LOGF(LogLevel::eERROR, error.c_str());
 		return;
 	}

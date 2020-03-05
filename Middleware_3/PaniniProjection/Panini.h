@@ -33,14 +33,11 @@ extern ResourceDirectory RD_MIDDLEWARE_PANINI;
 
 // forward decls
 struct Texture;
-struct GpuProfiler;
 struct Buffer;
 struct Shader;
 struct RootSignature;
 struct Pipeline;
 struct Sampler;
-struct DepthState;
-struct RasterizerState;
 struct DescriptorSet;
 
 /************************************************************************/
@@ -133,8 +130,6 @@ private:
 	RootSignature*    pRootSignature = NULL;
 	DescriptorSet*    pDescriptorSet = NULL;
 	Sampler*          pSamplerPointWrap = NULL;
-	DepthState*       pDepthStateDisable = NULL;
-	RasterizerState*  pRasterizerStateCullNone = NULL;
 	Pipeline*         pPipeline = NULL;
 
 	Buffer*           pVertexBufferTessellatedQuad = NULL;

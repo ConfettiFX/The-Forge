@@ -204,13 +204,13 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\AndroidFileSystem.cpp">
       <Filter>OS\Android</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\Profiler.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\GpuProfiler.cpp">
       <Filter>OS\Profiler</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerBase.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerBase.cpp">
       <Filter>OS\Profiler</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerWidgetsUI.cpp">
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerWidgetsUI.cpp">
       <Filter>OS\Profiler</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.cpp">
@@ -344,10 +344,13 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.h">
       <Filter>OS\FileSystem</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerBase.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\GpuProfiler.h">
       <Filter>OS\Profiler</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerWidgetsUI.h">
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerBase.h">
+      <Filter>OS\Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerHTML.h">
       <Filter>OS\Profiler</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.h">

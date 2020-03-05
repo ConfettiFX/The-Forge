@@ -73,8 +73,6 @@ namespace eastl
 }
 
 const uint32_t gImageCount = 3;
-bool           gMicroProfiler = false;
-bool           bPrevToggleMicroProfiler = false;
 
 typedef struct ParticleVertex
 {
@@ -395,39 +393,6 @@ Sampler* pSamplerBilinear = NULL;
 Sampler* pSamplerTrilinearAniso = NULL;
 Sampler* pSamplerSkybox = NULL;
 Sampler* pSamplerShadow = NULL;    // Only created when USE_SHADOWS != 0
-
-/************************************************************************/
-// Rasterizer states
-/************************************************************************/
-RasterizerState* pRasterizerStateCullBack = NULL;
-RasterizerState* pRasterizerStateCullFront = NULL;
-RasterizerState* pRasterizerStateCullNone = NULL;
-
-/************************************************************************/
-// Depth State
-/************************************************************************/
-DepthState* pDepthStateEnable = NULL;
-DepthState* pDepthStateDisable = NULL;
-DepthState* pDepthStateNoWrite = NULL;
-
-/************************************************************************/
-// Blend State
-/************************************************************************/
-BlendState* pBlendStateAlphaBlend = NULL;
-BlendState* pBlendStateWBOITShade = NULL;
-BlendState* pBlendStateWBOITVolitionShade = NULL;
-BlendState* pBlendStatePTShade = NULL;
-BlendState* pBlendStatePTMinBlend = NULL;
-#if AOIT_ENABLE
-BlendState* pBlendStateAOITComposite = NULL;
-#endif
-
-/************************************************************************/
-// Vertex layouts
-/************************************************************************/
-VertexLayout* pVertexLayoutSkybox = NULL;
-VertexLayout* pVertexLayoutDefault = NULL;
-
 /************************************************************************/
 // Resources
 /************************************************************************/
@@ -469,7 +434,6 @@ VirtualJoystickUI gVirtualJoystick;
 
 // Constants
 uint32_t     gFrameIndex = 0;
-GpuProfiler* pGpuProfiler = NULL;
 float        gCurrentTime = 0.0f;
 
 VertexLayout vertexLayoutDefault = {};
@@ -497,6 +461,7 @@ ICameraController* pLightView = NULL;
 UIApp         gAppUI;
 GuiComponent* pGuiWindow = NULL;
 TextDrawDesc  gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+ProfileToken  gGpuProfileToken;
 HiresTimer    gCpuTimer;
 
 Renderer* pRenderer = NULL;
@@ -534,7 +499,6 @@ void AddParticleSystem(vec3 position, vec4 color, vec3 translucency = vec3(0.0f)
 	particleBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 	particleBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 	particleBufferDesc.mDesc.mSize = sizeof(ParticleVertex) * 6 * MAX_NUM_PARTICLES;
-	particleBufferDesc.mDesc.mVertexStride = sizeof(ParticleVertex);
 	particleBufferDesc.ppBuffer = &pParticleBuffer;
 	addResource(&particleBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
 
@@ -709,9 +673,6 @@ public:
 			return false;
 
 		CreateSamplers();
-		CreateRasterizerStates();
-		CreateDepthStates();
-		CreateBlendStates();
 		CreateShaders();
 		CreateRootSignatures();
 		CreateResources();
@@ -727,7 +688,7 @@ public:
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
 		initProfiler();
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
+        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "GpuProfiler");
 
 		CreateScene();
 
@@ -768,7 +729,7 @@ public:
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!gMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
+			if (!gAppUI.IsFocused() && *ctx->pCaptured)
 			{
 				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
@@ -809,12 +770,7 @@ public:
 
 		gVirtualJoystick.Exit();
 
-		removeGpuProfiler(pRenderer, pGpuProfiler);
-
 		DestroySamplers();
-		DestroyRasterizerStates();
-		DestroyDepthStates();
-		DestroyBlendStates();
 		DestroyShaders();
 		DestroyRootSignatures();
 		DestroyDescriptorSets();
@@ -844,7 +800,7 @@ public:
 			return false;
 		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
-		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		CreatePipelines();
 
@@ -859,7 +815,7 @@ public:
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		unloadProfiler();
+		unloadProfilerUI();
 
 		gVirtualJoystick.Unload();
 
@@ -932,14 +888,6 @@ public:
 		gLightUniformData.mLightDirection = vec4(lightDir, 0);
 		gLightUniformData.mLightViewProj = lightVPMatrix;
 		gLightUniformData.mLightColor = vec4(1, 1, 1, 1);
-		/************************************************************************/
-
-
-    if (gMicroProfiler != bPrevToggleMicroProfiler)
-    {
-      toggleProfiler();
-      bPrevToggleMicroProfiler = gMicroProfiler;
-    }
 
 		////////////////////////////////////////////////////////////////
 		gAppUI.Update(deltaTime);
@@ -1193,24 +1141,25 @@ public:
 
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
-		loadActions.mClearColorValues[0] = rt->mDesc.mClearValue;
+		loadActions.mClearColorValues[0] = rt->mClearValue;
 		loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 
 		cmdBeginDebugMarker(pCmd, 0, 0, 1, "Draw skybox");
-		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Draw Skybox", true);
+		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Draw Skybox");
 
 		cmdBindRenderTargets(pCmd, 1, &rt, NULL, &loadActions, NULL, NULL, -1, -1);
 
-		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)rt->mDesc.mWidth, (float)rt->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(pCmd, 0, 0, rt->mDesc.mWidth, rt->mDesc.mHeight);
+		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)rt->mWidth, (float)rt->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(pCmd, 0, 0, rt->mWidth, rt->mHeight);
 
+		const uint32_t skyboxStride = sizeof(float) * 4;
 		cmdBindPipeline(pCmd, pPipelineSkybox);
 		cmdBindDescriptorSet(pCmd, 0, pDescriptorSetSkybox[0]);
 		cmdBindDescriptorSet(pCmd, gFrameIndex, pDescriptorSetSkybox[1]);
-		cmdBindVertexBuffer(pCmd, 1, &pBufferSkyboxVertex, NULL);
+		cmdBindVertexBuffer(pCmd, 1, &pBufferSkyboxVertex, &skyboxStride, NULL);
 		cmdDraw(pCmd, 36, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 	}
 
@@ -1226,20 +1175,20 @@ public:
 
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-		loadActions.mClearColorValues[0] = pRenderTargetShadowVariance[0]->mDesc.mClearValue;
+		loadActions.mClearColorValues[0] = pRenderTargetShadowVariance[0]->mClearValue;
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth = pRenderTargetShadowDepth->mDesc.mClearValue;
+		loadActions.mClearDepth = pRenderTargetShadowDepth->mClearValue;
 
 		// Start render pass and apply load actions
 		cmdBindRenderTargets(pCmd, 1, &pRenderTargetShadowVariance[0], pRenderTargetShadowDepth, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(
-			pCmd, 0.0f, 0.0f, (float)pRenderTargetShadowVariance[0]->mDesc.mWidth, (float)pRenderTargetShadowVariance[0]->mDesc.mHeight,
+			pCmd, 0.0f, 0.0f, (float)pRenderTargetShadowVariance[0]->mWidth, (float)pRenderTargetShadowVariance[0]->mHeight,
 			0.0f, 1.0f);
-		cmdSetScissor(pCmd, 0, 0, pRenderTargetShadowVariance[0]->mDesc.mWidth, pRenderTargetShadowVariance[0]->mDesc.mHeight);
+		cmdSetScissor(pCmd, 0, 0, pRenderTargetShadowVariance[0]->mWidth, pRenderTargetShadowVariance[0]->mHeight);
 
 		// Draw the opaque objects.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw shadow map");
-		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Render shadow map", true);
+		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Render shadow map");
 
 		cmdBindPipeline(pCmd, pPipelineShadow);
 		cmdBindDescriptorSet(pCmd, UNIFORM_SET(gFrameIndex, VIEW_SHADOW, GEOM_OPAQUE), pDescriptorSetUniforms);
@@ -1288,7 +1237,7 @@ public:
 		}
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 
 		barriers[0].pRenderTarget = pRenderTargetShadowVariance[0];
@@ -1312,12 +1261,12 @@ public:
 		for (int i = 0; i < 3; ++i)
 		{
 			loadActions.mLoadActionsColor[i] = LOAD_ACTION_CLEAR;
-			loadActions.mClearColorValues[i] = pRenderTargetPTShadowVariance[i]->mDesc.mClearValue;
+			loadActions.mClearColorValues[i] = pRenderTargetPTShadowVariance[i]->mClearValue;
 		}
 		loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 
 		// Copy depth buffer to shadow maps
-		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Render stochastic shadow map", true);
+		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Render stochastic shadow map", true);
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Copy shadow map");
 
 		cmdBindDescriptorSet(pCmd, 0, pDescriptorSetPTCopyShadowDepth);
@@ -1327,9 +1276,9 @@ public:
 		{
 			cmdBindRenderTargets(pCmd, 1, &pRenderTargetPTShadowVariance[w], NULL, &loadActions, NULL, NULL, -1, -1);
 			cmdSetViewport(
-				pCmd, 0.0f, 0.0f, (float)pRenderTargetPTShadowVariance[0]->mDesc.mWidth,
-				(float)pRenderTargetPTShadowVariance[0]->mDesc.mHeight, 0.0f, 1.0f);
-			cmdSetScissor(pCmd, 0, 0, pRenderTargetPTShadowVariance[0]->mDesc.mWidth, pRenderTargetPTShadowVariance[0]->mDesc.mHeight);
+				pCmd, 0.0f, 0.0f, (float)pRenderTargetPTShadowVariance[0]->mWidth,
+				(float)pRenderTargetPTShadowVariance[0]->mHeight, 0.0f, 1.0f);
+			cmdSetScissor(pCmd, 0, 0, pRenderTargetPTShadowVariance[0]->mWidth, pRenderTargetPTShadowVariance[0]->mHeight);
 			cmdDraw(pCmd, 3, 0);
 		}
 		cmdEndDebugMarker(pCmd);
@@ -1339,9 +1288,9 @@ public:
 			loadActions.mLoadActionsColor[i] = LOAD_ACTION_LOAD;
 		cmdBindRenderTargets(pCmd, 3, pRenderTargetPTShadowVariance, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(
-			pCmd, 0.0f, 0.0f, (float)pRenderTargetPTShadowVariance[0]->mDesc.mWidth, (float)pRenderTargetPTShadowVariance[0]->mDesc.mHeight,
+			pCmd, 0.0f, 0.0f, (float)pRenderTargetPTShadowVariance[0]->mWidth, (float)pRenderTargetPTShadowVariance[0]->mHeight,
 			0.0f, 1.0f);
-		cmdSetScissor(pCmd, 0, 0, pRenderTargetPTShadowVariance[0]->mDesc.mWidth, pRenderTargetPTShadowVariance[0]->mDesc.mHeight);
+		cmdSetScissor(pCmd, 0, 0, pRenderTargetPTShadowVariance[0]->mWidth, pRenderTargetPTShadowVariance[0]->mHeight);
 
 		// Draw the opaque objects.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw stochastic shadow map");
@@ -1369,9 +1318,9 @@ public:
 
 			cmdBindRenderTargets(pCmd, 1, &pRenderTargetPTShadowFinal[0][w], NULL, &loadActions, NULL, NULL, -1, -1);
 			cmdSetViewport(
-				pCmd, 0.0f, 0.0f, (float)pRenderTargetPTShadowFinal[0][w]->mDesc.mWidth,
-				(float)pRenderTargetPTShadowFinal[0][w]->mDesc.mHeight, 0.0f, 1.0f);
-			cmdSetScissor(pCmd, 0, 0, pRenderTargetPTShadowFinal[0][w]->mDesc.mWidth, pRenderTargetPTShadowFinal[0][w]->mDesc.mHeight);
+				pCmd, 0.0f, 0.0f, (float)pRenderTargetPTShadowFinal[0][w]->mWidth,
+				(float)pRenderTargetPTShadowFinal[0][w]->mHeight, 0.0f, 1.0f);
+			cmdSetScissor(pCmd, 0, 0, pRenderTargetPTShadowFinal[0][w]->mWidth, pRenderTargetPTShadowFinal[0][w]->mHeight);
 
 			cmdBindPipeline(pCmd, pPipelinePTDownsample);
 			cmdBindDescriptorSet(pCmd, w, pDescriptorSetPTDownsample);
@@ -1429,7 +1378,7 @@ public:
 			cmdResourceBarrier(pCmd, 0, NULL, 1, barriers);
 		}
 
-		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 #endif
 	}
@@ -1449,16 +1398,17 @@ public:
 			{
 				if (dc->mMesh == MESH_PARTICLE_SYSTEM)
 				{
-					cmdBindVertexBuffer(pCmd, 1, &gScene.mParticleSystems[dc->mIndex].pParticleBuffer, NULL);
+					const uint32_t stride = sizeof(ParticleVertex);
+					cmdBindVertexBuffer(pCmd, 1, &gScene.mParticleSystems[dc->mIndex].pParticleBuffer, &stride, NULL);
 					vertexCount = (uint)gScene.mParticleSystems[dc->mIndex].mLifeParticleCount * 6;
 					indexCount = 0;
 					boundMesh = MESH_PARTICLE_SYSTEM;
 				}
 				else
 				{
-					cmdBindVertexBuffer(pCmd, 1, &pMeshes[dc->mMesh]->pVertexBuffers[0], NULL);
+					cmdBindVertexBuffer(pCmd, 1, &pMeshes[dc->mMesh]->pVertexBuffers[0], &pMeshes[dc->mMesh]->mVertexStrides[0], NULL);
 					if (pMeshes[dc->mMesh]->pIndexBuffer)
-						cmdBindIndexBuffer(pCmd, pMeshes[dc->mMesh]->pIndexBuffer, NULL);
+						cmdBindIndexBuffer(pCmd, pMeshes[dc->mMesh]->pIndexBuffer, pMeshes[dc->mMesh]->mIndexType, NULL);
 					vertexCount = pMeshes[dc->mMesh]->mVertexCount;
 					indexCount = pMeshes[dc->mMesh]->mIndexCount;
 				}
@@ -1480,16 +1430,16 @@ public:
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth = pRenderTargetDepth->mDesc.mClearValue;
+		loadActions.mClearDepth = pRenderTargetDepth->mClearValue;
 
 		// Start render pass and apply load actions
 		cmdBindRenderTargets(pCmd, 1, &rt, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)rt->mDesc.mWidth, (float)rt->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(pCmd, 0, 0, rt->mDesc.mWidth, rt->mDesc.mHeight);
+		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)rt->mWidth, (float)rt->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(pCmd, 0, 0, rt->mWidth, rt->mHeight);
 
 		// Draw the opaque objects.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw opaque geometry");
-		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Render opaque geometry", true);
+		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Render opaque geometry");
 
 		cmdBindPipeline(pCmd, pPipelineForward);
 		cmdBindDescriptorSet(pCmd, SHADE_FORWARD, pDescriptorSetShade);
@@ -1505,10 +1455,10 @@ public:
 			barrier.mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
 			cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 1, &barrier);
 
-			uint32_t mipSizeX = 1 << (uint32_t)ceil(log2((float)rt->mDesc.mWidth));
-			uint32_t mipSizeY = 1 << (uint32_t)ceil(log2((float)rt->mDesc.mHeight));
+			uint32_t mipSizeX = 1 << (uint32_t)ceil(log2((float)rt->mWidth));
+			uint32_t mipSizeY = 1 << (uint32_t)ceil(log2((float)rt->mHeight));
 			cmdBindPipeline(pCmd, pPipelinePTGenMips);
-			for (uint32_t i = 1; i < rt->mDesc.mMipLevels; ++i)
+			for (uint32_t i = 1; i < rt->mMipLevels; ++i)
 			{
 				mipSizeX >>= 1;
 				mipSizeY >>= 1;
@@ -1531,7 +1481,7 @@ public:
 		}
 #endif
 
-		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 	}
 
@@ -1543,12 +1493,12 @@ public:
 
 		// Start render pass and apply load actions
 		cmdBindRenderTargets(pCmd, 1, &pRenderTargetScreen, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetScreen->mDesc.mWidth, (float)pRenderTargetScreen->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(pCmd, 0, 0, pRenderTargetScreen->mDesc.mWidth, pRenderTargetScreen->mDesc.mHeight);
+		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetScreen->mWidth, (float)pRenderTargetScreen->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(pCmd, 0, 0, pRenderTargetScreen->mWidth, pRenderTargetScreen->mHeight);
 
 		// Draw the transparent geometry.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry");
-		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Render transparent geometry", true);
+		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Render transparent geometry");
 
 		cmdBindPipeline(pCmd, pPipelineTransparentForward);
 		cmdBindDescriptorSet(pCmd, SHADE_FORWARD, pDescriptorSetShade);
@@ -1556,7 +1506,7 @@ public:
 		DrawObjects(pCmd, &gTransparentDrawCalls, pRootSignature);
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 	}
 
@@ -1575,20 +1525,20 @@ public:
 
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-		loadActions.mClearColorValues[0] = pRenderTargetWBOIT[WBOIT_RT_ACCUMULATION]->mDesc.mClearValue;
+		loadActions.mClearColorValues[0] = pRenderTargetWBOIT[WBOIT_RT_ACCUMULATION]->mClearValue;
 		loadActions.mLoadActionsColor[1] = LOAD_ACTION_CLEAR;
-		loadActions.mClearColorValues[1] = pRenderTargetWBOIT[WBOIT_RT_REVEALAGE]->mDesc.mClearValue;
+		loadActions.mClearColorValues[1] = pRenderTargetWBOIT[WBOIT_RT_REVEALAGE]->mClearValue;
 		loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
 
 		// Start render pass and apply load actions
 		cmdBindRenderTargets(pCmd, WBOIT_RT_COUNT, pRenderTargetWBOIT, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(
-			pCmd, 0.0f, 0.0f, (float)pRenderTargetWBOIT[0]->mDesc.mWidth, (float)pRenderTargetWBOIT[0]->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(pCmd, 0, 0, pRenderTargetWBOIT[0]->mDesc.mWidth, pRenderTargetWBOIT[0]->mDesc.mHeight);
+			pCmd, 0.0f, 0.0f, (float)pRenderTargetWBOIT[0]->mWidth, (float)pRenderTargetWBOIT[0]->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(pCmd, 0, 0, pRenderTargetWBOIT[0]->mWidth, pRenderTargetWBOIT[0]->mHeight);
 
 		// Draw the transparent geometry.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry (WBOIT)");
-		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Render transparent geometry (WBOIT)", true);
+		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Render transparent geometry (WBOIT)");
 
 		cmdBindPipeline(pCmd, pShadePipeline);
 		cmdBindDescriptorSet(pCmd, SHADE_FORWARD, pDescriptorSetShade);
@@ -1596,7 +1546,7 @@ public:
 		DrawObjects(pCmd, &gTransparentDrawCalls, pRootSignature);
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 
 		// Composite WBOIT buffers
@@ -1612,18 +1562,18 @@ public:
 
 		// Start render pass and apply load actions
 		cmdBindRenderTargets(pCmd, 1, &pRenderTargetScreen, NULL, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetScreen->mDesc.mWidth, (float)pRenderTargetScreen->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(pCmd, 0, 0, pRenderTargetScreen->mDesc.mWidth, pRenderTargetScreen->mDesc.mHeight);
+		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetScreen->mWidth, (float)pRenderTargetScreen->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(pCmd, 0, 0, pRenderTargetScreen->mWidth, pRenderTargetScreen->mHeight);
 
 		// Draw the transparent geometry.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Composite WBOIT buffers");
-		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Composite WBOIT buffers", true);
+		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Composite WBOIT buffers");
 
 		cmdBindPipeline(pCmd, pCompositePipeline);
 		cmdBindDescriptorSet(pCmd, 0, pDescriptorSetWBOITComposite);
 		cmdDraw(pCmd, 3, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 	}
 
@@ -1641,23 +1591,23 @@ public:
 		cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 2, textureBarriers);
 
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
-		loadActions.mClearColorValues[0] = pRenderTargetPTDepthCopy->pTexture->mDesc.mClearValue;
+		loadActions.mClearColorValues[0] = pRenderTargetPTDepthCopy->mClearValue;
 
 		// Start render pass and apply load actions
 		cmdBindRenderTargets(pCmd, 1, &pRenderTargetPTDepthCopy, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(
-			pCmd, 0.0f, 0.0f, (float)pRenderTargetPTDepthCopy->mDesc.mWidth, (float)pRenderTargetPTDepthCopy->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(pCmd, 0, 0, pRenderTargetPTDepthCopy->mDesc.mWidth, pRenderTargetPTDepthCopy->mDesc.mHeight);
+			pCmd, 0.0f, 0.0f, (float)pRenderTargetPTDepthCopy->mWidth, (float)pRenderTargetPTDepthCopy->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(pCmd, 0, 0, pRenderTargetPTDepthCopy->mWidth, pRenderTargetPTDepthCopy->mHeight);
 
 		// Draw the transparent geometry.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "PT Copy depth buffer");
-		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "PT Copy depth buffer", true);
+		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "PT Copy depth buffer");
 
 		cmdBindPipeline(pCmd, pPipelinePTCopyDepth);
 		cmdBindDescriptorSet(pCmd, 0, pDescriptorSetPTCopyDepth);
 		cmdDraw(pCmd, 3, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 
 		textureBarriers[0].pRenderTarget = pRenderTargetDepth;
@@ -1678,18 +1628,18 @@ public:
 		for (int i = 0; i < PT_RT_COUNT; ++i)
 		{
 			loadActions.mLoadActionsColor[i] = LOAD_ACTION_CLEAR;
-			loadActions.mClearColorValues[i] = pRenderTargetPT[i]->mDesc.mClearValue;
+			loadActions.mClearColorValues[i] = pRenderTargetPT[i]->mClearValue;
 		}
 		loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
 
 		// Start render pass and apply load actions
 		cmdBindRenderTargets(pCmd, PT_RT_COUNT, pRenderTargetPT, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetPT[0]->mDesc.mWidth, (float)pRenderTargetPT[0]->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(pCmd, 0, 0, pRenderTargetPT[0]->mDesc.mWidth, pRenderTargetPT[0]->mDesc.mHeight);
+		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetPT[0]->mWidth, (float)pRenderTargetPT[0]->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(pCmd, 0, 0, pRenderTargetPT[0]->mWidth, pRenderTargetPT[0]->mHeight);
 
 		// Draw the transparent geometry.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry (PT)");
-		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Render transparent geometry (PT)", true);
+		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Render transparent geometry (PT)");
 
 		cmdBindPipeline(pCmd, pPipelinePTShade);
 		cmdBindDescriptorSet(pCmd, SHADE_PT, pDescriptorSetShade);
@@ -1697,7 +1647,7 @@ public:
 		DrawObjects(pCmd, &gTransparentDrawCalls, pRootSignature);
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 
 		// Composite PT buffers
@@ -1715,18 +1665,18 @@ public:
 
 		// Start render pass and apply load actions
 		cmdBindRenderTargets(pCmd, 1, &pRenderTargetScreen, NULL, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetScreen->mDesc.mWidth, (float)pRenderTargetScreen->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(pCmd, 0, 0, pRenderTargetScreen->mDesc.mWidth, pRenderTargetScreen->mDesc.mHeight);
+		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetScreen->mWidth, (float)pRenderTargetScreen->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(pCmd, 0, 0, pRenderTargetScreen->mWidth, pRenderTargetScreen->mHeight);
 
 		// Draw the transparent geometry.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Composite PT buffers");
-		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Composite PT buffers", true);
+		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Composite PT buffers");
 
 		cmdBindPipeline(pCmd, pPipelinePTComposite);
 		cmdBindDescriptorSet(pCmd, 0, pDescriptorSetPTComposite);
 		cmdDraw(pCmd, 3, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 	}
 
@@ -1742,18 +1692,18 @@ public:
 
 		// Start render pass and apply load actions
 		cmdBindRenderTargets(pCmd, 0, NULL, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetScreen->mDesc.mWidth, (float)pRenderTargetScreen->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(pCmd, 0, 0, pRenderTargetScreen->mDesc.mWidth, pRenderTargetScreen->mDesc.mHeight);
+		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetScreen->mWidth, (float)pRenderTargetScreen->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(pCmd, 0, 0, pRenderTargetScreen->mWidth, pRenderTargetScreen->mHeight);
 
 		// Draw fullscreen quad.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Clear AOIT buffers");
-		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Clear AOIT buffers", true);
+		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Clear AOIT buffers");
 
 		cmdBindPipeline(pCmd, pPipelineAOITClear);
 		cmdBindDescriptorSet(pCmd, 0, pDescriptorSetAOITClear);
 		cmdDraw(pCmd, 3, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 
 		loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
@@ -1761,14 +1711,14 @@ public:
 		// Start render pass and apply load actions
 		cmdBindRenderTargets(pCmd, 0, NULL, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(
-			pCmd, 0.0f, 0.0f, (float)pSwapChain->ppRenderTargets[0]->mDesc.mWidth,
-			(float)pSwapChain->ppRenderTargets[0]->mDesc.mHeight, 0.0f, 1.0f);
+			pCmd, 0.0f, 0.0f, (float)pSwapChain->ppRenderTargets[0]->mWidth,
+			(float)pSwapChain->ppRenderTargets[0]->mHeight, 0.0f, 1.0f);
 		cmdSetScissor(
-			pCmd, 0, 0, pSwapChain->ppRenderTargets[0]->mDesc.mWidth, pSwapChain->ppRenderTargets[0]->mDesc.mHeight);
+			pCmd, 0, 0, pSwapChain->ppRenderTargets[0]->mWidth, pSwapChain->ppRenderTargets[0]->mHeight);
 
 		// Draw the transparent geometry.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry (AOIT)");
-		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Render transparent geometry (AOIT)", true);
+		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Render transparent geometry (AOIT)");
 
 		cmdBindPipeline(pCmd, pPipelineAOITShade);
 		cmdBindDescriptorSet(pCmd, 0, pDescriptorSetAOITShade[0]);
@@ -1776,7 +1726,7 @@ public:
 		DrawObjects(pCmd, &gTransparentDrawCalls, pRootSignatureAOITShade);
 
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 
 		// Composite AOIT buffers
@@ -1796,18 +1746,18 @@ public:
 
 		// Start render pass and apply load actions
 		cmdBindRenderTargets(pCmd, 1, &pRenderTargetScreen, NULL, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetScreen->mDesc.mWidth, (float)pRenderTargetScreen->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(pCmd, 0, 0, pRenderTargetScreen->mDesc.mWidth, pRenderTargetScreen->mDesc.mHeight);
+		cmdSetViewport(pCmd, 0.0f, 0.0f, (float)pRenderTargetScreen->mWidth, (float)pRenderTargetScreen->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(pCmd, 0, 0, pRenderTargetScreen->mWidth, pRenderTargetScreen->mHeight);
 
 		// Draw fullscreen quad.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Composite AOIT buffers");
-		cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Composite AOIT buffers", true);
+		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Composite AOIT buffers");
 
 		cmdBindPipeline(pCmd, pPipelineAOITComposite);
 		cmdBindDescriptorSet(pCmd, 0, pDescriptorSetAOITComposite);
 		cmdDraw(pCmd, 3, 0);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
 		cmdEndDebugMarker(pCmd);
 	}
 #endif
@@ -1886,7 +1836,7 @@ public:
 
 		pRenderTargetScreen = pSwapChain->ppRenderTargets[gFrameIndex];
 		beginCmd(pCmd);
-		cmdBeginGpuFrameProfile(pCmd, pGpuProfiler);
+		cmdBeginGpuFrameProfile(pCmd, gGpuProfileToken);
 		RenderTargetBarrier barriers1[] = {
 			{ pRenderTargetScreen, RESOURCE_STATE_RENDER_TARGET },
 			{ pRenderTargetDepth, RESOURCE_STATE_DEPTH_WRITE },
@@ -1918,25 +1868,14 @@ public:
 		cmdBeginDebugMarker(pCmd, 0, 1, 0, "Draw UI");
 		cmdBindRenderTargets(pCmd, 1, &pRenderTargetScreen, NULL, NULL, NULL, NULL, -1, -1);
 
-		static HiresTimer gTimer;
-		gTimer.GetUSec(true);
 
+        cmdDrawCpuProfile(pCmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
 
-		gAppUI.DrawText(
-			pCmd, float2(8.0f, 15.0f), eastl::string().sprintf("CPU Time: %f ms", gCpuTimer.GetUSecAverage() / 1000.0f).c_str(),
-			&gFrameTimeDraw);
-		gAppUI.DrawText(
-			pCmd, float2(8.0f, 40.0f), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
-			&gFrameTimeDraw);
-		gAppUI.DrawText(
-			pCmd, float2(8.0f, 65.0f), eastl::string().sprintf("Frame Time: %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(),
-			&gFrameTimeDraw);
-
-		gAppUI.DrawDebugGpuProfile(pCmd, float2(8.0f, 90.0f), pGpuProfiler, NULL);
+		cmdDrawGpuProfile(pCmd, float2(8.0f, 40.0f), gGpuProfileToken);
 
 		gVirtualJoystick.Draw(pCmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 
-		cmdDrawProfiler();
+		cmdDrawProfilerUI();
 
 		gAppUI.Gui(pGuiWindow);
 		gAppUI.Draw(pCmd);
@@ -1948,7 +1887,7 @@ public:
 		barriers1[0] = { pRenderTargetScreen, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 1, barriers1);
 
-		cmdEndGpuFrameProfile(pCmd, pGpuProfiler);
+		cmdEndGpuFrameProfile(pCmd, gGpuProfileToken);
 		endCmd(pCmd);
 
 		QueueSubmitDesc submitDesc = {};
@@ -2039,179 +1978,6 @@ public:
 		removeSampler(pRenderer, pSamplerPoint);
 #if USE_SHADOWS != 0
 		removeSampler(pRenderer, pSamplerShadow);
-#endif
-	}
-
-	void CreateRasterizerStates()
-	{
-		RasterizerStateDesc rasterStateDesc = {};
-		rasterStateDesc.mCullMode = CULL_MODE_BACK;
-		addRasterizerState(pRenderer, &rasterStateDesc, &pRasterizerStateCullBack);
-
-		rasterStateDesc.mCullMode = CULL_MODE_FRONT;
-		addRasterizerState(pRenderer, &rasterStateDesc, &pRasterizerStateCullFront);
-
-		rasterStateDesc.mCullMode = CULL_MODE_NONE;
-		addRasterizerState(pRenderer, &rasterStateDesc, &pRasterizerStateCullNone);
-	}
-
-	void DestroyRasterizerStates()
-	{
-		removeRasterizerState(pRasterizerStateCullBack);
-		removeRasterizerState(pRasterizerStateCullFront);
-		removeRasterizerState(pRasterizerStateCullNone);
-	}
-
-	void CreateDepthStates()
-	{
-		DepthStateDesc depthStateEnabledDesc = {};
-		depthStateEnabledDesc.mDepthFunc = CMP_LEQUAL;
-		depthStateEnabledDesc.mDepthWrite = true;
-		depthStateEnabledDesc.mDepthTest = true;
-		addDepthState(pRenderer, &depthStateEnabledDesc, &pDepthStateEnable);
-
-		DepthStateDesc depthStateDisabledDesc = {};
-		depthStateDisabledDesc.mDepthWrite = false;
-		depthStateDisabledDesc.mDepthTest = false;
-		addDepthState(pRenderer, &depthStateDisabledDesc, &pDepthStateDisable);
-
-		DepthStateDesc depthStateNoWriteDesc = {};
-		depthStateNoWriteDesc.mDepthFunc = CMP_LEQUAL;
-		depthStateNoWriteDesc.mDepthWrite = false;
-		depthStateNoWriteDesc.mDepthTest = true;
-		addDepthState(pRenderer, &depthStateNoWriteDesc, &pDepthStateNoWrite);
-	}
-
-	void DestroyDepthStates()
-	{
-		removeDepthState(pDepthStateEnable);
-		removeDepthState(pDepthStateDisable);
-		removeDepthState(pDepthStateNoWrite);
-	}
-
-	void CreateBlendStates()
-	{
-		BlendStateDesc blendStateAlphaDesc = {};
-		blendStateAlphaDesc.mSrcFactors[0] = BC_SRC_ALPHA;
-		blendStateAlphaDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
-		blendStateAlphaDesc.mBlendModes[0] = BM_ADD;
-		blendStateAlphaDesc.mSrcAlphaFactors[0] = BC_ONE;
-		blendStateAlphaDesc.mDstAlphaFactors[0] = BC_ZERO;
-		blendStateAlphaDesc.mBlendAlphaModes[0] = BM_ADD;
-		blendStateAlphaDesc.mMasks[0] = ALL;
-		blendStateAlphaDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
-		blendStateAlphaDesc.mIndependentBlend = false;
-		addBlendState(pRenderer, &blendStateAlphaDesc, &pBlendStateAlphaBlend);
-
-		BlendStateDesc blendStateWBOITShadeDesc = {};
-		blendStateWBOITShadeDesc.mSrcFactors[0] = BC_ONE;
-		blendStateWBOITShadeDesc.mDstFactors[0] = BC_ONE;
-		blendStateWBOITShadeDesc.mBlendModes[0] = BM_ADD;
-		blendStateWBOITShadeDesc.mSrcAlphaFactors[0] = BC_ONE;
-		blendStateWBOITShadeDesc.mDstAlphaFactors[0] = BC_ONE;
-		blendStateWBOITShadeDesc.mBlendAlphaModes[0] = BM_ADD;
-		blendStateWBOITShadeDesc.mMasks[0] = ALL;
-		blendStateWBOITShadeDesc.mSrcFactors[1] = BC_ZERO;
-		blendStateWBOITShadeDesc.mDstFactors[1] = BC_ONE_MINUS_SRC_COLOR;
-		blendStateWBOITShadeDesc.mBlendModes[1] = BM_ADD;
-		blendStateWBOITShadeDesc.mSrcAlphaFactors[1] = BC_ZERO;
-		blendStateWBOITShadeDesc.mDstAlphaFactors[1] = BC_ONE_MINUS_SRC_ALPHA;
-		blendStateWBOITShadeDesc.mBlendAlphaModes[1] = BM_ADD;
-		blendStateWBOITShadeDesc.mMasks[1] = RED;
-		blendStateWBOITShadeDesc.mRenderTargetMask = BLEND_STATE_TARGET_0 | BLEND_STATE_TARGET_1;
-		blendStateWBOITShadeDesc.mIndependentBlend = true;
-		addBlendState(pRenderer, &blendStateWBOITShadeDesc, &pBlendStateWBOITShade);
-
-		BlendStateDesc blendStateWBOITVolitionShadeDesc = {};
-		blendStateWBOITVolitionShadeDesc.mSrcFactors[0] = BC_ONE;
-		blendStateWBOITVolitionShadeDesc.mDstFactors[0] = BC_ONE;
-		blendStateWBOITVolitionShadeDesc.mBlendModes[0] = BM_ADD;
-		blendStateWBOITVolitionShadeDesc.mSrcAlphaFactors[0] = BC_ONE;
-		blendStateWBOITVolitionShadeDesc.mDstAlphaFactors[0] = BC_ONE;
-		blendStateWBOITVolitionShadeDesc.mBlendAlphaModes[0] = BM_ADD;
-		blendStateWBOITVolitionShadeDesc.mMasks[0] = ALL;
-		blendStateWBOITVolitionShadeDesc.mSrcFactors[1] = BC_ZERO;
-		blendStateWBOITVolitionShadeDesc.mDstFactors[1] = BC_ONE_MINUS_SRC_COLOR;
-		blendStateWBOITVolitionShadeDesc.mBlendModes[1] = BM_ADD;
-		blendStateWBOITVolitionShadeDesc.mSrcAlphaFactors[1] = BC_ONE;
-		blendStateWBOITVolitionShadeDesc.mDstAlphaFactors[1] = BC_ONE;
-		blendStateWBOITVolitionShadeDesc.mBlendAlphaModes[1] = BM_ADD;
-		blendStateWBOITVolitionShadeDesc.mMasks[1] = RED | ALPHA;
-		blendStateWBOITVolitionShadeDesc.mRenderTargetMask = BLEND_STATE_TARGET_0 | BLEND_STATE_TARGET_1;
-		blendStateWBOITVolitionShadeDesc.mIndependentBlend = true;
-		addBlendState(pRenderer, &blendStateWBOITVolitionShadeDesc, &pBlendStateWBOITVolitionShade);
-
-		BlendStateDesc blendStatePTShadeDesc = {};
-		blendStatePTShadeDesc.mSrcFactors[0] = BC_ONE;
-		blendStatePTShadeDesc.mDstFactors[0] = BC_ONE;
-		blendStatePTShadeDesc.mBlendModes[0] = BM_ADD;
-		blendStatePTShadeDesc.mSrcAlphaFactors[0] = BC_ONE;
-		blendStatePTShadeDesc.mDstAlphaFactors[0] = BC_ONE;
-		blendStatePTShadeDesc.mBlendAlphaModes[0] = BM_ADD;
-		blendStatePTShadeDesc.mMasks[0] = ALL;
-		blendStatePTShadeDesc.mSrcFactors[1] = BC_ZERO;
-		blendStatePTShadeDesc.mDstFactors[1] = BC_ONE_MINUS_SRC_COLOR;
-		blendStatePTShadeDesc.mBlendModes[1] = BM_ADD;
-		blendStatePTShadeDesc.mSrcAlphaFactors[1] = BC_ONE;
-		blendStatePTShadeDesc.mDstAlphaFactors[1] = BC_ONE;
-		blendStatePTShadeDesc.mBlendAlphaModes[1] = BM_ADD;
-		blendStatePTShadeDesc.mMasks[1] = ALL;
-#if PT_USE_REFRACTION != 0
-		blendStatePTShadeDesc.mSrcFactors[2] = BC_ONE;
-		blendStatePTShadeDesc.mDstFactors[2] = BC_ONE;
-		blendStatePTShadeDesc.mBlendModes[2] = BM_ADD;
-		blendStatePTShadeDesc.mSrcAlphaFactors[2] = BC_ONE;
-		blendStatePTShadeDesc.mDstAlphaFactors[2] = BC_ONE;
-		blendStatePTShadeDesc.mBlendAlphaModes[2] = BM_ADD;
-		blendStatePTShadeDesc.mMasks[2] = RED | GREEN;
-		blendStatePTShadeDesc.mRenderTargetMask = BLEND_STATE_TARGET_2;
-#endif
-		blendStatePTShadeDesc.mRenderTargetMask |= BLEND_STATE_TARGET_0 | BLEND_STATE_TARGET_1;
-		blendStatePTShadeDesc.mIndependentBlend = true;
-		addBlendState(pRenderer, &blendStatePTShadeDesc, &pBlendStatePTShade);
-
-		BlendStateDesc blendStatePTMinDesc = {};
-		blendStatePTMinDesc.mSrcFactors[0] = BC_ONE;
-		blendStatePTMinDesc.mDstFactors[0] = BC_ONE;
-		blendStatePTMinDesc.mBlendModes[0] = BM_MIN;
-		blendStatePTMinDesc.mSrcAlphaFactors[0] = BC_ONE;
-		blendStatePTMinDesc.mDstAlphaFactors[0] = BC_ONE;
-		blendStatePTMinDesc.mBlendAlphaModes[0] = BM_MIN;
-		blendStatePTMinDesc.mMasks[0] = RED | GREEN;
-		blendStatePTMinDesc.mRenderTargetMask = BLEND_STATE_TARGET_0 | BLEND_STATE_TARGET_1 | BLEND_STATE_TARGET_2;
-		blendStatePTMinDesc.mIndependentBlend = false;
-		addBlendState(pRenderer, &blendStatePTMinDesc, &pBlendStatePTMinBlend);
-
-#if AOIT_ENABLE
-		if (pRenderer->pActiveGpuSettings->mROVsSupported)
-		{
-			BlendStateDesc blendStateAOITShadeaDesc = {};
-			blendStateAOITShadeaDesc.mSrcFactors[0] = BC_ONE;
-			blendStateAOITShadeaDesc.mDstFactors[0] = BC_SRC_ALPHA;
-			blendStateAOITShadeaDesc.mBlendModes[0] = BM_ADD;
-			blendStateAOITShadeaDesc.mSrcAlphaFactors[0] = BC_ONE;
-			blendStateAOITShadeaDesc.mDstAlphaFactors[0] = BC_SRC_ALPHA;
-			blendStateAOITShadeaDesc.mBlendAlphaModes[0] = BM_ADD;
-			blendStateAOITShadeaDesc.mMasks[0] = ALL;
-			blendStateAOITShadeaDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
-			blendStateAOITShadeaDesc.mIndependentBlend = false;
-			addBlendState(pRenderer, &blendStateAOITShadeaDesc, &pBlendStateAOITComposite);
-		}
-#endif
-	}
-
-	void DestroyBlendStates()
-	{
-		removeBlendState(pBlendStateAlphaBlend);
-		removeBlendState(pBlendStateWBOITShade);
-		removeBlendState(pBlendStateWBOITVolitionShade);
-		removeBlendState(pBlendStatePTShade);
-		removeBlendState(pBlendStatePTMinBlend);
-#if AOIT_ENABLE
-		if (pRenderer->pActiveGpuSettings->mROVsSupported)
-		{
-			removeBlendState(pBlendStateAOITComposite);
-		}
 #endif
 	}
 
@@ -2785,7 +2551,7 @@ public:
 		// Gen Mips
 		{
 			RenderTarget* rt = pRenderTargetPTBackground;
-			for (uint32_t i = 1; i < rt->mDesc.mMipLevels; ++i)
+			for (uint32_t i = 1; i < rt->mMipLevels; ++i)
 			{
 				DescriptorData params[2] = {};
 				params[0].pName = "Source";
@@ -2901,7 +2667,6 @@ public:
 		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
-		skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
 		skyboxVbDesc.pData = gSkyboxPointArray;
 		skyboxVbDesc.ppBuffer = &pBufferSkyboxVertex;
 		addResource(&skyboxVbDesc, NULL, LOAD_PRIORITY_NORMAL);
@@ -2911,7 +2676,7 @@ public:
 
 		RenderTargetDesc renderTargetDesc = {};
 		renderTargetDesc.mArraySize = 1;
-		renderTargetDesc.mClearValue = { {{1.0f, 1.0f, 1.0f, 1.0f}} };
+		renderTargetDesc.mClearValue = {{1.0f, 1.0f, 1.0f, 1.0f}};
 		renderTargetDesc.mDepth = 1;
 		renderTargetDesc.mFormat = TinyImageFormat_R16G16_SFLOAT;
 		renderTargetDesc.mWidth = shadowMapResolution;
@@ -2924,7 +2689,7 @@ public:
 
 		RenderTargetDesc shadowRT = {};
 		shadowRT.mArraySize = 1;
-		shadowRT.mClearValue = { {{1.0f, 0.0f}} };
+		shadowRT.mClearValue = {{1.0f, 0.0f}};
 		shadowRT.mDepth = 1;
 		shadowRT.mFormat = TinyImageFormat_D16_UNORM;
 		shadowRT.mWidth = shadowMapResolution;
@@ -3174,10 +2939,10 @@ public:
 		const uint32_t width = mSettings.mWidth;
 		const uint32_t height = mSettings.mHeight;
 
-		const ClearValue depthClear = { {{1.0f, 0}} };
-		const ClearValue colorClearBlack = { {{0.0f, 0.0f, 0.0f, 0.0f}} };
-		const ClearValue colorClearWhite = { {{1.0f, 1.0f, 1.0f, 1.0f}} };
-		const ClearValue colorClearTransparentWhite = { {{1.0f, 1.0f, 1.0f, 0.0f}} };
+		const ClearValue depthClear = {{1.0f, 0}};
+		const ClearValue colorClearBlack = { {0.0f, 0.0f, 0.0f, 0.0f} };
+		const ClearValue colorClearWhite = { {1.0f, 1.0f, 1.0f, 1.0f} };
+		const ClearValue colorClearTransparentWhite = {{1.0f, 1.0f, 1.0f, 0.0f}};
 		/************************************************************************/
 		// Main depth buffer
 		/************************************************************************/
@@ -3211,9 +2976,8 @@ public:
 			swapChainDesc.mWidth = width;
 			swapChainDesc.mHeight = height;
 			swapChainDesc.mImageCount = gImageCount;
-			swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 			swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
-			swapChainDesc.mColorClearValue = { {{1, 0, 1, 1}} };
+			swapChainDesc.mColorClearValue = {{1, 0, 1, 1}};
 
 			swapChainDesc.mEnableVsync = false;
 			::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
@@ -3270,9 +3034,9 @@ public:
 		{
 			RenderTargetDesc renderTargetDesc = {};
 			renderTargetDesc.mArraySize = 1;
-			renderTargetDesc.mClearValue = pSwapChain->mDesc.mColorClearValue;
+			renderTargetDesc.mClearValue = pSwapChain->ppRenderTargets[0]->mClearValue;
 			renderTargetDesc.mDepth = 1;
-			renderTargetDesc.mFormat = pSwapChain->mDesc.mColorFormat;
+			renderTargetDesc.mFormat = pSwapChain->ppRenderTargets[0]->mFormat;
 			renderTargetDesc.mWidth = width;
 			renderTargetDesc.mHeight = height;
 			renderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
@@ -3290,8 +3054,8 @@ public:
 			// Create AOIT resources
 			TextureDesc aoitClearMaskTextureDesc = {};
 			aoitClearMaskTextureDesc.mFormat = TinyImageFormat_R32_UINT;
-			aoitClearMaskTextureDesc.mWidth = pSwapChain->mDesc.mWidth;
-			aoitClearMaskTextureDesc.mHeight = pSwapChain->mDesc.mHeight;
+			aoitClearMaskTextureDesc.mWidth = mSettings.mWidth;
+			aoitClearMaskTextureDesc.mHeight = mSettings.mHeight;
 			aoitClearMaskTextureDesc.mDepth = 1;
 			aoitClearMaskTextureDesc.mArraySize = 1;
 			aoitClearMaskTextureDesc.mSampleCount = SAMPLE_COUNT_1;
@@ -3310,7 +3074,7 @@ public:
 			BufferLoadDesc aoitDepthDataLoadDesc = {};
 			aoitDepthDataLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 			aoitDepthDataLoadDesc.mDesc.mFormat = TinyImageFormat_UNDEFINED;
-			aoitDepthDataLoadDesc.mDesc.mElementCount = pSwapChain->mDesc.mWidth * pSwapChain->mDesc.mHeight;
+			aoitDepthDataLoadDesc.mDesc.mElementCount = mSettings.mWidth * mSettings.mHeight;
 			aoitDepthDataLoadDesc.mDesc.mStructStride = sizeof(uint32_t) * 4 * AOIT_RT_COUNT;
 			aoitDepthDataLoadDesc.mDesc.mSize = aoitDepthDataLoadDesc.mDesc.mElementCount * aoitDepthDataLoadDesc.mDesc.mStructStride;
 			aoitDepthDataLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_BUFFER;
@@ -3322,7 +3086,7 @@ public:
 			BufferLoadDesc aoitColorDataLoadDesc = {};
 			aoitColorDataLoadDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 			aoitColorDataLoadDesc.mDesc.mFormat = TinyImageFormat_UNDEFINED;
-			aoitColorDataLoadDesc.mDesc.mElementCount = pSwapChain->mDesc.mWidth * pSwapChain->mDesc.mHeight;
+			aoitColorDataLoadDesc.mDesc.mElementCount = mSettings.mWidth * mSettings.mHeight;
 			aoitColorDataLoadDesc.mDesc.mStructStride = sizeof(uint32_t) * 4 * AOIT_RT_COUNT;
 			aoitColorDataLoadDesc.mDesc.mSize = aoitColorDataLoadDesc.mDesc.mElementCount * aoitColorDataLoadDesc.mDesc.mStructStride;
 			aoitColorDataLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_BUFFER;
@@ -3375,6 +3139,128 @@ public:
 		vertexLayoutSkybox.mAttribs[0].mLocation = 0;
 		vertexLayoutSkybox.mAttribs[0].mOffset = 0;
 
+		RasterizerStateDesc rasterStateBackDesc = {};
+		rasterStateBackDesc.mCullMode = CULL_MODE_BACK;
+
+		RasterizerStateDesc rasterStateFrontDesc = {};
+		rasterStateFrontDesc.mCullMode = CULL_MODE_FRONT;
+
+		RasterizerStateDesc rasterStateNoneDesc = {};
+		rasterStateNoneDesc.mCullMode = CULL_MODE_NONE;
+
+		DepthStateDesc depthStateEnabledDesc = {};
+		depthStateEnabledDesc.mDepthFunc = CMP_LEQUAL;
+		depthStateEnabledDesc.mDepthWrite = true;
+		depthStateEnabledDesc.mDepthTest = true;
+
+		DepthStateDesc depthStateDisabledDesc = {};
+		depthStateDisabledDesc.mDepthWrite = false;
+		depthStateDisabledDesc.mDepthTest = false;
+
+		DepthStateDesc depthStateNoWriteDesc = {};
+		depthStateNoWriteDesc.mDepthFunc = CMP_LEQUAL;
+		depthStateNoWriteDesc.mDepthWrite = false;
+		depthStateNoWriteDesc.mDepthTest = true;
+
+		BlendStateDesc blendStateAlphaDesc = {};
+		blendStateAlphaDesc.mSrcFactors[0] = BC_SRC_ALPHA;
+		blendStateAlphaDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+		blendStateAlphaDesc.mBlendModes[0] = BM_ADD;
+		blendStateAlphaDesc.mSrcAlphaFactors[0] = BC_ONE;
+		blendStateAlphaDesc.mDstAlphaFactors[0] = BC_ZERO;
+		blendStateAlphaDesc.mBlendAlphaModes[0] = BM_ADD;
+		blendStateAlphaDesc.mMasks[0] = ALL;
+		blendStateAlphaDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
+		blendStateAlphaDesc.mIndependentBlend = false;
+
+		BlendStateDesc blendStateWBOITShadeDesc = {};
+		blendStateWBOITShadeDesc.mSrcFactors[0] = BC_ONE;
+		blendStateWBOITShadeDesc.mDstFactors[0] = BC_ONE;
+		blendStateWBOITShadeDesc.mBlendModes[0] = BM_ADD;
+		blendStateWBOITShadeDesc.mSrcAlphaFactors[0] = BC_ONE;
+		blendStateWBOITShadeDesc.mDstAlphaFactors[0] = BC_ONE;
+		blendStateWBOITShadeDesc.mBlendAlphaModes[0] = BM_ADD;
+		blendStateWBOITShadeDesc.mMasks[0] = ALL;
+		blendStateWBOITShadeDesc.mSrcFactors[1] = BC_ZERO;
+		blendStateWBOITShadeDesc.mDstFactors[1] = BC_ONE_MINUS_SRC_COLOR;
+		blendStateWBOITShadeDesc.mBlendModes[1] = BM_ADD;
+		blendStateWBOITShadeDesc.mSrcAlphaFactors[1] = BC_ZERO;
+		blendStateWBOITShadeDesc.mDstAlphaFactors[1] = BC_ONE_MINUS_SRC_ALPHA;
+		blendStateWBOITShadeDesc.mBlendAlphaModes[1] = BM_ADD;
+		blendStateWBOITShadeDesc.mMasks[1] = RED;
+		blendStateWBOITShadeDesc.mRenderTargetMask = BLEND_STATE_TARGET_0 | BLEND_STATE_TARGET_1;
+		blendStateWBOITShadeDesc.mIndependentBlend = true;
+
+		BlendStateDesc blendStateWBOITVolitionShadeDesc = {};
+		blendStateWBOITVolitionShadeDesc.mSrcFactors[0] = BC_ONE;
+		blendStateWBOITVolitionShadeDesc.mDstFactors[0] = BC_ONE;
+		blendStateWBOITVolitionShadeDesc.mBlendModes[0] = BM_ADD;
+		blendStateWBOITVolitionShadeDesc.mSrcAlphaFactors[0] = BC_ONE;
+		blendStateWBOITVolitionShadeDesc.mDstAlphaFactors[0] = BC_ONE;
+		blendStateWBOITVolitionShadeDesc.mBlendAlphaModes[0] = BM_ADD;
+		blendStateWBOITVolitionShadeDesc.mMasks[0] = ALL;
+		blendStateWBOITVolitionShadeDesc.mSrcFactors[1] = BC_ZERO;
+		blendStateWBOITVolitionShadeDesc.mDstFactors[1] = BC_ONE_MINUS_SRC_COLOR;
+		blendStateWBOITVolitionShadeDesc.mBlendModes[1] = BM_ADD;
+		blendStateWBOITVolitionShadeDesc.mSrcAlphaFactors[1] = BC_ONE;
+		blendStateWBOITVolitionShadeDesc.mDstAlphaFactors[1] = BC_ONE;
+		blendStateWBOITVolitionShadeDesc.mBlendAlphaModes[1] = BM_ADD;
+		blendStateWBOITVolitionShadeDesc.mMasks[1] = RED | ALPHA;
+		blendStateWBOITVolitionShadeDesc.mRenderTargetMask = BLEND_STATE_TARGET_0 | BLEND_STATE_TARGET_1;
+		blendStateWBOITVolitionShadeDesc.mIndependentBlend = true;
+
+		BlendStateDesc blendStatePTShadeDesc = {};
+		blendStatePTShadeDesc.mSrcFactors[0] = BC_ONE;
+		blendStatePTShadeDesc.mDstFactors[0] = BC_ONE;
+		blendStatePTShadeDesc.mBlendModes[0] = BM_ADD;
+		blendStatePTShadeDesc.mSrcAlphaFactors[0] = BC_ONE;
+		blendStatePTShadeDesc.mDstAlphaFactors[0] = BC_ONE;
+		blendStatePTShadeDesc.mBlendAlphaModes[0] = BM_ADD;
+		blendStatePTShadeDesc.mMasks[0] = ALL;
+		blendStatePTShadeDesc.mSrcFactors[1] = BC_ZERO;
+		blendStatePTShadeDesc.mDstFactors[1] = BC_ONE_MINUS_SRC_COLOR;
+		blendStatePTShadeDesc.mBlendModes[1] = BM_ADD;
+		blendStatePTShadeDesc.mSrcAlphaFactors[1] = BC_ONE;
+		blendStatePTShadeDesc.mDstAlphaFactors[1] = BC_ONE;
+		blendStatePTShadeDesc.mBlendAlphaModes[1] = BM_ADD;
+		blendStatePTShadeDesc.mMasks[1] = ALL;
+#if PT_USE_REFRACTION != 0
+		blendStatePTShadeDesc.mSrcFactors[2] = BC_ONE;
+		blendStatePTShadeDesc.mDstFactors[2] = BC_ONE;
+		blendStatePTShadeDesc.mBlendModes[2] = BM_ADD;
+		blendStatePTShadeDesc.mSrcAlphaFactors[2] = BC_ONE;
+		blendStatePTShadeDesc.mDstAlphaFactors[2] = BC_ONE;
+		blendStatePTShadeDesc.mBlendAlphaModes[2] = BM_ADD;
+		blendStatePTShadeDesc.mMasks[2] = RED | GREEN;
+		blendStatePTShadeDesc.mRenderTargetMask = BLEND_STATE_TARGET_2;
+#endif
+		blendStatePTShadeDesc.mRenderTargetMask |= BLEND_STATE_TARGET_0 | BLEND_STATE_TARGET_1;
+		blendStatePTShadeDesc.mIndependentBlend = true;
+
+		BlendStateDesc blendStatePTMinDesc = {};
+		blendStatePTMinDesc.mSrcFactors[0] = BC_ONE;
+		blendStatePTMinDesc.mDstFactors[0] = BC_ONE;
+		blendStatePTMinDesc.mBlendModes[0] = BM_MIN;
+		blendStatePTMinDesc.mSrcAlphaFactors[0] = BC_ONE;
+		blendStatePTMinDesc.mDstAlphaFactors[0] = BC_ONE;
+		blendStatePTMinDesc.mBlendAlphaModes[0] = BM_MIN;
+		blendStatePTMinDesc.mMasks[0] = RED | GREEN;
+		blendStatePTMinDesc.mRenderTargetMask = BLEND_STATE_TARGET_0 | BLEND_STATE_TARGET_1 | BLEND_STATE_TARGET_2;
+		blendStatePTMinDesc.mIndependentBlend = false;
+
+#if AOIT_ENABLE
+		BlendStateDesc blendStateAOITShadeaDesc = {};
+		blendStateAOITShadeaDesc.mSrcFactors[0] = BC_ONE;
+		blendStateAOITShadeaDesc.mDstFactors[0] = BC_SRC_ALPHA;
+		blendStateAOITShadeaDesc.mBlendModes[0] = BM_ADD;
+		blendStateAOITShadeaDesc.mSrcAlphaFactors[0] = BC_ONE;
+		blendStateAOITShadeaDesc.mDstAlphaFactors[0] = BC_SRC_ALPHA;
+		blendStateAOITShadeaDesc.mBlendAlphaModes[0] = BM_ADD;
+		blendStateAOITShadeaDesc.mMasks[0] = ALL;
+		blendStateAOITShadeaDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
+		blendStateAOITShadeaDesc.mIndependentBlend = false;
+#endif
+
 		// Skybox pipeline
 		PipelineDesc desc = {};
 		desc.mType = PIPELINE_TYPE_GRAPHICS;
@@ -3383,13 +3269,13 @@ public:
 		skyboxPipelineDesc.pShaderProgram = pShaderSkybox;
 		skyboxPipelineDesc.pRootSignature = pRootSignatureSkybox;
 		skyboxPipelineDesc.mRenderTargetCount = 1;
-		skyboxPipelineDesc.pColorFormats = &pSwapChain->mDesc.mColorFormat;
-		skyboxPipelineDesc.mSampleCount = pSwapChain->mDesc.mSampleCount;
-		skyboxPipelineDesc.mSampleQuality = pSwapChain->mDesc.mSampleQuality;
+		skyboxPipelineDesc.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		skyboxPipelineDesc.mSampleCount = SAMPLE_COUNT_1;
+		skyboxPipelineDesc.mSampleQuality = 0;
 		skyboxPipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
 		skyboxPipelineDesc.pVertexLayout = &vertexLayoutSkybox;
-		skyboxPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
-		skyboxPipelineDesc.pDepthState = pDepthStateDisable;
+		skyboxPipelineDesc.pRasterizerState = &rasterStateNoneDesc;
+		skyboxPipelineDesc.pDepthState = &depthStateDisabledDesc;
 		skyboxPipelineDesc.pBlendState = NULL;
 		addPipeline(pRenderer, &desc, &pPipelineSkybox);
 
@@ -3401,13 +3287,13 @@ public:
 		shadowPipelineDesc.pShaderProgram = pShaderShadow;
 		shadowPipelineDesc.pRootSignature = pRootSignature;
 		shadowPipelineDesc.mRenderTargetCount = 1;
-		shadowPipelineDesc.pColorFormats = &pRenderTargetShadowVariance[0]->mDesc.mFormat;
-		shadowPipelineDesc.mSampleCount = pRenderTargetShadowVariance[0]->mDesc.mSampleCount;
-		shadowPipelineDesc.mSampleQuality = pRenderTargetShadowVariance[0]->mDesc.mSampleQuality;
+		shadowPipelineDesc.pColorFormats = &pRenderTargetShadowVariance[0]->mFormat;
+		shadowPipelineDesc.mSampleCount = pRenderTargetShadowVariance[0]->mSampleCount;
+		shadowPipelineDesc.mSampleQuality = pRenderTargetShadowVariance[0]->mSampleQuality;
 		shadowPipelineDesc.mDepthStencilFormat = TinyImageFormat_D16_UNORM;
 		shadowPipelineDesc.pVertexLayout = &vertexLayoutDefault;
-		shadowPipelineDesc.pRasterizerState = pRasterizerStateCullFront;
-		shadowPipelineDesc.pDepthState = pDepthStateEnable;
+		shadowPipelineDesc.pRasterizerState = &rasterStateFrontDesc;
+		shadowPipelineDesc.pDepthState = &depthStateEnabledDesc;
 		shadowPipelineDesc.pBlendState = NULL;
 		addPipeline(pRenderer, &desc, &pPipelineShadow);
 
@@ -3418,19 +3304,19 @@ public:
 		blurPipelineDesc.pShaderProgram = pShaderGaussianBlur;
 		blurPipelineDesc.pRootSignature = pRootSignatureGaussianBlur;
 		blurPipelineDesc.mRenderTargetCount = 1;
-		blurPipelineDesc.pColorFormats = &pRenderTargetShadowVariance[0]->mDesc.mFormat;
-		blurPipelineDesc.mSampleCount = pRenderTargetShadowVariance[0]->mDesc.mSampleCount;
-		blurPipelineDesc.mSampleQuality = pRenderTargetShadowVariance[0]->mDesc.mSampleQuality;
+		blurPipelineDesc.pColorFormats = &pRenderTargetShadowVariance[0]->mFormat;
+		blurPipelineDesc.mSampleCount = pRenderTargetShadowVariance[0]->mSampleCount;
+		blurPipelineDesc.mSampleQuality = pRenderTargetShadowVariance[0]->mSampleQuality;
 		blurPipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
 		blurPipelineDesc.pVertexLayout = NULL;
-		blurPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
-		blurPipelineDesc.pDepthState = pDepthStateDisable;
+		blurPipelineDesc.pRasterizerState = &rasterStateNoneDesc;
+		blurPipelineDesc.pDepthState = &depthStateDisabledDesc;
 		blurPipelineDesc.pBlendState = NULL;
 		addPipeline(pRenderer, &desc, &pPipelineGaussianBlur);
 
 #if PT_USE_CAUSTICS != 0
-		TinyImageFormat stochasticShadowColorFormats[] = { pRenderTargetPTShadowVariance[0]->mDesc.mFormat, pRenderTargetPTShadowVariance[1]->mDesc.mFormat,
-            pRenderTargetPTShadowVariance[2]->mDesc.mFormat };
+		TinyImageFormat stochasticShadowColorFormats[] = { pRenderTargetPTShadowVariance[0]->mFormat, pRenderTargetPTShadowVariance[1]->mFormat,
+            pRenderTargetPTShadowVariance[2]->mFormat };
 
 		// Stochastic shadow pipeline
 		desc.mGraphicsDesc = {};
@@ -3440,13 +3326,13 @@ public:
 		stochasticShadowPipelineDesc.pRootSignature = pRootSignature;
 		stochasticShadowPipelineDesc.mRenderTargetCount = 3;
 		stochasticShadowPipelineDesc.pColorFormats = stochasticShadowColorFormats;
-		stochasticShadowPipelineDesc.mSampleCount = pRenderTargetPTShadowVariance[0]->mDesc.mSampleCount;
-		stochasticShadowPipelineDesc.mSampleQuality = pRenderTargetPTShadowVariance[0]->mDesc.mSampleQuality;
+		stochasticShadowPipelineDesc.mSampleCount = pRenderTargetPTShadowVariance[0]->mSampleCount;
+		stochasticShadowPipelineDesc.mSampleQuality = pRenderTargetPTShadowVariance[0]->mSampleQuality;
 		stochasticShadowPipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
 		stochasticShadowPipelineDesc.pVertexLayout = &vertexLayoutDefault;
-		stochasticShadowPipelineDesc.pRasterizerState = pRasterizerStateCullFront;
-		stochasticShadowPipelineDesc.pDepthState = pDepthStateDisable;
-		stochasticShadowPipelineDesc.pBlendState = pBlendStatePTMinBlend;
+		stochasticShadowPipelineDesc.pRasterizerState = &rasterStateFrontDesc;
+		stochasticShadowPipelineDesc.pDepthState = &depthStateDisabledDesc;
+		stochasticShadowPipelineDesc.pBlendState = &blendStatePTMinDesc;
 		addPipeline(pRenderer, &desc, &pPipelinePTShadow);
 
 		// Downsample shadow pipeline
@@ -3456,13 +3342,13 @@ public:
 		downsampleShadowPipelineDesc.pShaderProgram = pShaderPTDownsample;
 		downsampleShadowPipelineDesc.pRootSignature = pRootSignaturePTDownsample;
 		downsampleShadowPipelineDesc.mRenderTargetCount = 1;
-		downsampleShadowPipelineDesc.pColorFormats = &pRenderTargetPTShadowFinal[0][0]->mDesc.mFormat;
-		downsampleShadowPipelineDesc.mSampleCount = pRenderTargetPTShadowFinal[0][0]->mDesc.mSampleCount;
-		downsampleShadowPipelineDesc.mSampleQuality = pRenderTargetPTShadowFinal[0][0]->mDesc.mSampleQuality;
+		downsampleShadowPipelineDesc.pColorFormats = &pRenderTargetPTShadowFinal[0][0]->mFormat;
+		downsampleShadowPipelineDesc.mSampleCount = pRenderTargetPTShadowFinal[0][0]->mSampleCount;
+		downsampleShadowPipelineDesc.mSampleQuality = pRenderTargetPTShadowFinal[0][0]->mSampleQuality;
 		downsampleShadowPipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
 		downsampleShadowPipelineDesc.pVertexLayout = NULL;
-		downsampleShadowPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
-		downsampleShadowPipelineDesc.pDepthState = pDepthStateDisable;
+		downsampleShadowPipelineDesc.pRasterizerState = &rasterStateNoneDesc;
+		downsampleShadowPipelineDesc.pDepthState = &depthStateDisabledDesc;
 		downsampleShadowPipelineDesc.pBlendState = NULL;
 		addPipeline(pRenderer, &desc, &pPipelinePTDownsample);
 
@@ -3473,13 +3359,13 @@ public:
 		copyShadowDepthPipelineDesc.pShaderProgram = pShaderPTCopyShadowDepth;
 		copyShadowDepthPipelineDesc.pRootSignature = pRootSignaturePTCopyShadowDepth;
 		copyShadowDepthPipelineDesc.mRenderTargetCount = 1;
-		copyShadowDepthPipelineDesc.pColorFormats = &pRenderTargetPTShadowVariance[0]->mDesc.mFormat;
-		copyShadowDepthPipelineDesc.mSampleCount = pRenderTargetPTShadowVariance[0]->mDesc.mSampleCount;
-		copyShadowDepthPipelineDesc.mSampleQuality = pRenderTargetPTShadowVariance[0]->mDesc.mSampleQuality;
+		copyShadowDepthPipelineDesc.pColorFormats = &pRenderTargetPTShadowVariance[0]->mFormat;
+		copyShadowDepthPipelineDesc.mSampleCount = pRenderTargetPTShadowVariance[0]->mSampleCount;
+		copyShadowDepthPipelineDesc.mSampleQuality = pRenderTargetPTShadowVariance[0]->mSampleQuality;
 		copyShadowDepthPipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
 		copyShadowDepthPipelineDesc.pVertexLayout = NULL;
-		copyShadowDepthPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
-		copyShadowDepthPipelineDesc.pDepthState = pDepthStateDisable;
+		copyShadowDepthPipelineDesc.pRasterizerState = &rasterStateNoneDesc;
+		copyShadowDepthPipelineDesc.pDepthState = &depthStateDisabledDesc;
 		copyShadowDepthPipelineDesc.pBlendState = NULL;
 		addPipeline(pRenderer, &desc, &pPipelinePTCopyShadowDepth);
 
@@ -3493,13 +3379,13 @@ public:
 		forwardPipelineDesc.pShaderProgram = pShaderForward;
 		forwardPipelineDesc.pRootSignature = pRootSignature;
 		forwardPipelineDesc.mRenderTargetCount = 1;
-		forwardPipelineDesc.pColorFormats = &pSwapChain->mDesc.mColorFormat;
-		forwardPipelineDesc.mSampleCount = pSwapChain->mDesc.mSampleCount;
-		forwardPipelineDesc.mSampleQuality = pSwapChain->mDesc.mSampleQuality;
+		forwardPipelineDesc.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		forwardPipelineDesc.mSampleCount = SAMPLE_COUNT_1;
+		forwardPipelineDesc.mSampleQuality = 0;
 		forwardPipelineDesc.mDepthStencilFormat = TinyImageFormat_D32_SFLOAT;
 		forwardPipelineDesc.pVertexLayout = &vertexLayoutDefault;
-		forwardPipelineDesc.pRasterizerState = pRasterizerStateCullFront;
-		forwardPipelineDesc.pDepthState = pDepthStateEnable;
+		forwardPipelineDesc.pRasterizerState = &rasterStateFrontDesc;
+		forwardPipelineDesc.pDepthState = &depthStateEnabledDesc;
 		forwardPipelineDesc.pBlendState = NULL;
 		addPipeline(pRenderer, &desc, &pPipelineForward);
 
@@ -3510,14 +3396,14 @@ public:
 		transparentForwardPipelineDesc.pShaderProgram = pShaderForward;
 		transparentForwardPipelineDesc.pRootSignature = pRootSignature;
 		transparentForwardPipelineDesc.mRenderTargetCount = 1;
-		transparentForwardPipelineDesc.pColorFormats = &pSwapChain->mDesc.mColorFormat;
-		transparentForwardPipelineDesc.mSampleCount = pSwapChain->mDesc.mSampleCount;
-		transparentForwardPipelineDesc.mSampleQuality = pSwapChain->mDesc.mSampleQuality;
+		transparentForwardPipelineDesc.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		transparentForwardPipelineDesc.mSampleCount = SAMPLE_COUNT_1;
+		transparentForwardPipelineDesc.mSampleQuality = 0;
 		transparentForwardPipelineDesc.mDepthStencilFormat = TinyImageFormat_D32_SFLOAT;
 		transparentForwardPipelineDesc.pVertexLayout = &vertexLayoutDefault;
-		transparentForwardPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
-		transparentForwardPipelineDesc.pDepthState = pDepthStateNoWrite;
-		transparentForwardPipelineDesc.pBlendState = pBlendStateAlphaBlend;
+		transparentForwardPipelineDesc.pRasterizerState = &rasterStateNoneDesc;
+		transparentForwardPipelineDesc.pDepthState = &depthStateNoWriteDesc;
+		transparentForwardPipelineDesc.pBlendState = &blendStateAlphaDesc;
 		addPipeline(pRenderer, &desc, &pPipelineTransparentForward);
 
 		// WBOIT shading pipeline
@@ -3532,9 +3418,9 @@ public:
 		wboitShadePipelineDesc.mSampleQuality = 0;
 		wboitShadePipelineDesc.mDepthStencilFormat = TinyImageFormat_D32_SFLOAT;
 		wboitShadePipelineDesc.pVertexLayout = &vertexLayoutDefault;
-		wboitShadePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
-		wboitShadePipelineDesc.pDepthState = pDepthStateNoWrite;
-		wboitShadePipelineDesc.pBlendState = pBlendStateWBOITShade;
+		wboitShadePipelineDesc.pRasterizerState = &rasterStateNoneDesc;
+		wboitShadePipelineDesc.pDepthState = &depthStateNoWriteDesc;
+		wboitShadePipelineDesc.pBlendState = &blendStateWBOITShadeDesc;
 		addPipeline(pRenderer, &desc, &pPipelineWBOITShade);
 
 		// WBOIT composite pipeline
@@ -3544,14 +3430,14 @@ public:
 		wboitCompositePipelineDesc.pShaderProgram = pShaderWBOITComposite;
 		wboitCompositePipelineDesc.pRootSignature = pRootSignatureWBOITComposite;
 		wboitCompositePipelineDesc.mRenderTargetCount = 1;
-		wboitCompositePipelineDesc.pColorFormats = &pSwapChain->mDesc.mColorFormat;
-		wboitCompositePipelineDesc.mSampleCount = pSwapChain->mDesc.mSampleCount;
-		wboitCompositePipelineDesc.mSampleQuality = pSwapChain->mDesc.mSampleQuality;
+		wboitCompositePipelineDesc.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		wboitCompositePipelineDesc.mSampleCount = SAMPLE_COUNT_1;
+		wboitCompositePipelineDesc.mSampleQuality = 0;
 		wboitCompositePipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
 		wboitCompositePipelineDesc.pVertexLayout = NULL;
-		wboitCompositePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
-		wboitCompositePipelineDesc.pDepthState = pDepthStateDisable;
-		wboitCompositePipelineDesc.pBlendState = pBlendStateAlphaBlend;
+		wboitCompositePipelineDesc.pRasterizerState = &rasterStateNoneDesc;
+		wboitCompositePipelineDesc.pDepthState = &depthStateDisabledDesc;
+		wboitCompositePipelineDesc.pBlendState = &blendStateAlphaDesc;
 		addPipeline(pRenderer, &desc, &pPipelineWBOITComposite);
 
 		// WBOIT Volition shading pipeline
@@ -3566,9 +3452,9 @@ public:
 		wboitVolitionShadePipelineDesc.mSampleQuality = 0;
 		wboitVolitionShadePipelineDesc.mDepthStencilFormat = TinyImageFormat_D32_SFLOAT;
 		wboitVolitionShadePipelineDesc.pVertexLayout = &vertexLayoutDefault;
-		wboitVolitionShadePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
-		wboitVolitionShadePipelineDesc.pDepthState = pDepthStateNoWrite;
-		wboitVolitionShadePipelineDesc.pBlendState = pBlendStateWBOITVolitionShade;
+		wboitVolitionShadePipelineDesc.pRasterizerState = &rasterStateNoneDesc;
+		wboitVolitionShadePipelineDesc.pDepthState = &depthStateNoWriteDesc;
+		wboitVolitionShadePipelineDesc.pBlendState = &blendStateWBOITVolitionShadeDesc;
 		addPipeline(pRenderer, &desc, &pPipelineWBOITVShade);
 
 		// WBOIT Volition composite pipeline
@@ -3578,14 +3464,14 @@ public:
 		wboitVolitionCompositePipelineDesc.pShaderProgram = pShaderWBOITVComposite;
 		wboitVolitionCompositePipelineDesc.pRootSignature = pRootSignatureWBOITComposite;
 		wboitVolitionCompositePipelineDesc.mRenderTargetCount = 1;
-		wboitVolitionCompositePipelineDesc.pColorFormats = &pSwapChain->mDesc.mColorFormat;
-		wboitVolitionCompositePipelineDesc.mSampleCount = pSwapChain->mDesc.mSampleCount;
-		wboitVolitionCompositePipelineDesc.mSampleQuality = pSwapChain->mDesc.mSampleQuality;
+		wboitVolitionCompositePipelineDesc.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		wboitVolitionCompositePipelineDesc.mSampleCount = SAMPLE_COUNT_1;
+		wboitVolitionCompositePipelineDesc.mSampleQuality = 0;
 		wboitVolitionCompositePipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
 		wboitVolitionCompositePipelineDesc.pVertexLayout = NULL;
-		wboitVolitionCompositePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
-		wboitVolitionCompositePipelineDesc.pDepthState = pDepthStateDisable;
-		wboitVolitionCompositePipelineDesc.pBlendState = pBlendStateAlphaBlend;
+		wboitVolitionCompositePipelineDesc.pRasterizerState = &rasterStateNoneDesc;
+		wboitVolitionCompositePipelineDesc.pDepthState = &depthStateDisabledDesc;
+		wboitVolitionCompositePipelineDesc.pBlendState = &blendStateAlphaDesc;
 		addPipeline(pRenderer, &desc, &pPipelineWBOITVComposite);
 
 		// PT shading pipeline
@@ -3600,9 +3486,9 @@ public:
 		ptShadePipelineDesc.mSampleQuality = 0;
 		ptShadePipelineDesc.mDepthStencilFormat = TinyImageFormat_D32_SFLOAT;
 		ptShadePipelineDesc.pVertexLayout = &vertexLayoutDefault;
-		ptShadePipelineDesc.pRasterizerState = pRasterizerStateCullFront;
-		ptShadePipelineDesc.pDepthState = pDepthStateNoWrite;
-		ptShadePipelineDesc.pBlendState = pBlendStatePTShade;
+		ptShadePipelineDesc.pRasterizerState = &rasterStateFrontDesc;
+		ptShadePipelineDesc.pDepthState = &depthStateNoWriteDesc;
+		ptShadePipelineDesc.pBlendState = &blendStatePTShadeDesc;
 		addPipeline(pRenderer, &desc, &pPipelinePTShade);
 
 		// PT composite pipeline
@@ -3612,18 +3498,18 @@ public:
 		ptCompositePipelineDesc.pShaderProgram = pShaderPTComposite;
 		ptCompositePipelineDesc.pRootSignature = pRootSignaturePTComposite;
 		ptCompositePipelineDesc.mRenderTargetCount = 1;
-		ptCompositePipelineDesc.pColorFormats = &pSwapChain->mDesc.mColorFormat;
-		ptCompositePipelineDesc.mSampleCount = pSwapChain->mDesc.mSampleCount;
-		ptCompositePipelineDesc.mSampleQuality = pSwapChain->mDesc.mSampleQuality;
+		ptCompositePipelineDesc.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		ptCompositePipelineDesc.mSampleCount = SAMPLE_COUNT_1;
+		ptCompositePipelineDesc.mSampleQuality = 0;
 		ptCompositePipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
 		ptCompositePipelineDesc.pVertexLayout = NULL;
-		ptCompositePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
-		ptCompositePipelineDesc.pDepthState = pDepthStateDisable;
+		ptCompositePipelineDesc.pRasterizerState = &rasterStateNoneDesc;
+		ptCompositePipelineDesc.pDepthState = &depthStateDisabledDesc;
 		ptCompositePipelineDesc.pBlendState = NULL;
 		addPipeline(pRenderer, &desc, &pPipelinePTComposite);
 
 #if PT_USE_DIFFUSION != 0
-		TinyImageFormat ptCopyDepthFormat = pRenderTargetPTDepthCopy->mDesc.mFormat;
+		TinyImageFormat ptCopyDepthFormat = pRenderTargetPTDepthCopy->mFormat;
 
 		// PT copy depth pipeline
 		desc.mGraphicsDesc = {};
@@ -3637,8 +3523,8 @@ public:
 		ptCopyDepthPipelineDesc.mSampleQuality = 0;
 		ptCopyDepthPipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
 		ptCopyDepthPipelineDesc.pVertexLayout = NULL;
-		ptCopyDepthPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
-		ptCopyDepthPipelineDesc.pDepthState = pDepthStateDisable;
+		ptCopyDepthPipelineDesc.pRasterizerState = &rasterStateNoneDesc;
+		ptCopyDepthPipelineDesc.pDepthState = &depthStateDisabledDesc;
 		ptCopyDepthPipelineDesc.pBlendState = NULL;
 		addPipeline(pRenderer, &desc, &pPipelinePTCopyDepth);
 
@@ -3666,8 +3552,8 @@ public:
 			aoitShadePipelineDesc.mSampleQuality = 0;
 			aoitShadePipelineDesc.mDepthStencilFormat = TinyImageFormat_D32_SFLOAT;
 			aoitShadePipelineDesc.pVertexLayout = &vertexLayoutDefault;
-			aoitShadePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
-			aoitShadePipelineDesc.pDepthState = pDepthStateNoWrite;
+			aoitShadePipelineDesc.pRasterizerState = &rasterStateNoneDesc;
+			aoitShadePipelineDesc.pDepthState = &depthStateNoWriteDesc;
 			aoitShadePipelineDesc.pBlendState = NULL;
 			addPipeline(pRenderer, &desc, &pPipelineAOITShade);
 
@@ -3678,14 +3564,14 @@ public:
 			aoitCompositePipelineDesc.pShaderProgram = pShaderAOITComposite;
 			aoitCompositePipelineDesc.pRootSignature = pRootSignatureAOITComposite;
 			aoitCompositePipelineDesc.mRenderTargetCount = 1;
-			aoitCompositePipelineDesc.pColorFormats = &pSwapChain->mDesc.mColorFormat;
-			aoitCompositePipelineDesc.mSampleCount = pSwapChain->mDesc.mSampleCount;
-			aoitCompositePipelineDesc.mSampleQuality = pSwapChain->mDesc.mSampleQuality;
+			aoitCompositePipelineDesc.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+			aoitCompositePipelineDesc.mSampleCount = SAMPLE_COUNT_1;
+			aoitCompositePipelineDesc.mSampleQuality = 0;
 			aoitCompositePipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
 			aoitCompositePipelineDesc.pVertexLayout = NULL;
-			aoitCompositePipelineDesc.pRasterizerState = pRasterizerStateCullNone;
-			aoitCompositePipelineDesc.pDepthState = pDepthStateDisable;
-			aoitCompositePipelineDesc.pBlendState = pBlendStateAOITComposite;
+			aoitCompositePipelineDesc.pRasterizerState = &rasterStateNoneDesc;
+			aoitCompositePipelineDesc.pDepthState = &depthStateDisabledDesc;
+			aoitCompositePipelineDesc.pBlendState = &blendStateAOITShadeaDesc;
 			addPipeline(pRenderer, &desc, &pPipelineAOITComposite);
 
 			// AOIT clear pipeline
@@ -3698,10 +3584,10 @@ public:
 			aoitClearPipelineDesc.pColorFormats = NULL;
 			aoitClearPipelineDesc.mSampleCount = SAMPLE_COUNT_1;
 			aoitClearPipelineDesc.mSampleQuality = 0;
-			aoitClearPipelineDesc.mDepthStencilFormat = pRenderTargetDepth->mDesc.mFormat;
+			aoitClearPipelineDesc.mDepthStencilFormat = pRenderTargetDepth->mFormat;
 			aoitClearPipelineDesc.pVertexLayout = NULL;
-			aoitClearPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
-			aoitClearPipelineDesc.pDepthState = pDepthStateDisable;
+			aoitClearPipelineDesc.pRasterizerState = &rasterStateNoneDesc;
+			aoitClearPipelineDesc.pDepthState = &depthStateDisabledDesc;
 			aoitClearPipelineDesc.pBlendState = NULL;
 			addPipeline(pRenderer, &desc, &pPipelineAOITClear);
 		}
@@ -3794,8 +3680,6 @@ void GuiController::AddGui()
 	if (pRenderer->pActiveGpuSettings->mROVsSupported)
 		dropDownCount = 5;
 #endif
-
-  pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
 
 	pGuiWindow->AddWidget(
 		DropdownWidget("Transparency Type", &gTransparencyType, transparencyTypeNames, transparencyTypeValues, dropDownCount));

@@ -32,13 +32,6 @@
 
 typedef struct ResourceAllocator MemoryAllocator;
 
-typedef struct BufferCreateInfo
-{
-	const wchar_t* pDebugName;
-	const uint64_t mSize;
-	//const uint64_t	mAlignment;
-} BufferCreateInfo;
-
 typedef struct TextureCreateInfo
 {
 	MTLTextureDescriptor* pDesc;
@@ -3502,7 +3495,7 @@ void resourceAllocSetAllocationUserData(ResourceAllocator* allocator, ResourceAl
 }
 
 long createBuffer(
-	ResourceAllocator* allocator, const BufferCreateInfo* pCreateInfo, const AllocatorMemoryRequirements* pMemoryRequirements,
+	ResourceAllocator* allocator, const BufferDesc* pCreateInfo, const AllocatorMemoryRequirements* pMemoryRequirements,
 	Buffer* pBuffer)
 {
 	ASSERT(allocator && pCreateInfo && pMemoryRequirements && pBuffer);
@@ -3513,7 +3506,7 @@ long createBuffer(
 
 	// For GPU buffers, use special memory type
 	// For CPU mapped UAV / SRV buffers, just use suballocation strategy
-	if (((pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER) || (pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_BUFFER)) &&
+	if (((pCreateInfo->mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER) || (pCreateInfo->mDescriptors & DESCRIPTOR_TYPE_BUFFER)) &&
 		pMemoryRequirements->usage == RESOURCE_MEMORY_USAGE_GPU_ONLY
         )
     {
@@ -3555,11 +3548,11 @@ long createBuffer(
 	bool res = allocator->AllocateMemory(info, *pMemoryRequirements, suballocType, &pBuffer->pMtlAllocation);
 	if (res)
 	{
-	    if (pBuffer->mDesc.mDescriptors & DESCRIPTOR_TYPE_INDIRECT_COMMAND_BUFFER)
+	    if (pCreateInfo->mDescriptors & DESCRIPTOR_TYPE_INDIRECT_COMMAND_BUFFER)
         {
             MTLIndirectCommandBufferDescriptor* icbDescriptor = [MTLIndirectCommandBufferDescriptor alloc];
             
-            switch (pBuffer->mDesc.mICBDrawType)
+            switch (pCreateInfo->mICBDrawType)
             {
                 case INDIRECT_DRAW:
                     icbDescriptor.commandTypes = MTLIndirectCommandTypeDraw;
@@ -3571,13 +3564,13 @@ long createBuffer(
                     assert(0); // unsupported command type
             }
             
-            icbDescriptor.inheritBuffers = (pBuffer->mDesc.mFlags & BUFFER_CREATION_FLAG_ICB_INHERIT_BUFFERS);
-            icbDescriptor.inheritPipelineState = (pBuffer->mDesc.mFlags & BUFFER_CREATION_FLAG_ICB_INHERIT_PIPELINE);
+            icbDescriptor.inheritBuffers = (pCreateInfo->mFlags & BUFFER_CREATION_FLAG_ICB_INHERIT_BUFFERS);
+            icbDescriptor.inheritPipelineState = (pCreateInfo->mFlags & BUFFER_CREATION_FLAG_ICB_INHERIT_PIPELINE);
             
-            icbDescriptor.maxVertexBufferBindCount = pBuffer->mDesc.mICBMaxVertexBufferBind + 1;
-            icbDescriptor.maxFragmentBufferBindCount = pBuffer->mDesc.mICBMaxFragmentBufferBind + 1;
+            icbDescriptor.maxVertexBufferBindCount = pCreateInfo->mICBMaxVertexBufferBind + 1;
+            icbDescriptor.maxFragmentBufferBindCount = pCreateInfo->mICBMaxFragmentBufferBind + 1;
             
-            pBuffer->mtlIndirectCommandBuffer = [allocator->m_Device newIndirectCommandBufferWithDescriptor:icbDescriptor maxCommandCount:pBuffer->mDesc.mElementCount options:0];
+            pBuffer->mtlIndirectCommandBuffer = [allocator->m_Device newIndirectCommandBufferWithDescriptor:icbDescriptor maxCommandCount:pCreateInfo->mElementCount options:0];
             
             
 //            if (pCreateInfo->pDebugName)
@@ -3644,7 +3637,7 @@ long createBuffer(
 
 void destroyBuffer(ResourceAllocator* allocator, Buffer* pBuffer)
 {
-	if (pBuffer->mtlBuffer != nil)
+	if (pBuffer->mtlBuffer != nil || pBuffer->mtlIndirectCommandBuffer != nil)
 	{
 		ASSERT(allocator);
 		RESOURCE_DEBUG_LOG("resourceAllocDestroyBuffer");

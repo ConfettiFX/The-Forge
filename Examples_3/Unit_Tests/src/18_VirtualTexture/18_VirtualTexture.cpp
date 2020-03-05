@@ -84,10 +84,9 @@ struct UniformVirtualTextureInfo
 	vec4 CameraPos;
 };
 
-const uint32_t			gImageCount = 3;
-bool								gMicroProfiler = false;
-bool								bPrevToggleMicroProfiler = false;
-const int						gSphereResolution = 30;    // Increase for higher resolution spheres
+const uint32_t			    gImageCount = 3;
+ProfileToken                gGpuProfileToken;
+const int					gSphereResolution = 30;    // Increase for higher resolution spheres
 const float					gSphereDiameter = 0.5f;
 const uint					gNumPlanets = 8;        // Sun, Mercury -> Neptune, Pluto, Moon
 const uint					gTimeOffset = 2400000;    // For visually better starting locations
@@ -140,9 +139,8 @@ Shader*							pDebugShader = NULL;
 Pipeline*						pDebugPipeline = NULL;
 
 Shader*							pSkyBoxDrawShader = NULL;
-Buffer*							pSkyBoxVertexBuffer = NULL;
 Pipeline*						pSkyBoxDrawPipeline = NULL;
-RootSignature*			pRootSignature = NULL;
+RootSignature*					pRootSignature = NULL;
 Sampler*						pSamplerSkyBox = NULL;
 Texture*						pSkyBoxTextures[6];
 
@@ -155,12 +153,6 @@ Buffer*							pDebugInfo = NULL;
 DescriptorSet*			pDescriptorSetTexture = { NULL };
 DescriptorSet*			pDescriptorSetUniforms = { NULL };
 VirtualJoystickUI		gVirtualJoystick;
-DepthState*					pDepth = NULL;
-RasterizerState*		pSkyboxRast = NULL;
-RasterizerState*		pSphereRast = NULL;
-
-BlendState*					pSunBlend;
-BlendState*					pSaturnBlend;
 
 Buffer*							pProjViewUniformBuffer[gImageCount] = { NULL };
 Buffer*							pSkyboxUniformBuffer[gImageCount] = { NULL };
@@ -187,8 +179,7 @@ ICameraController*	pCameraController = NULL;
 VertexLayout		gVertexLayoutDefault = {};
 
 /// UI
-UIApp				gAppUI;
-GpuProfiler*		pGpuProfiler = NULL;
+UIApp								gAppUI;
 
 //const char*					pSkyBoxImageFileNames[] = { "Skybox_right1", "Skybox_left2", "Skybox_top3", "Skybox_bottom4", "Skybox_front5", "Skybox_back6" };
 
@@ -196,7 +187,7 @@ TextDrawDesc				gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 
 GuiComponent*				pGui = NULL;
 
-class VirtualTexture : public IApp
+class VirtualTextureTest : public IApp
 {
 public:
 	bool Init()
@@ -306,26 +297,6 @@ public:
 		addShader(pRenderer, &debugShader, &pDebugShader);		
 		addShader(pRenderer, &sunShader, &pSunShader);
 
-		BlendStateDesc blendStateDesc = {};
-		blendStateDesc.mSrcAlphaFactors[0] = BC_ONE;
-		blendStateDesc.mDstAlphaFactors[0] = BC_ONE;
-		blendStateDesc.mSrcFactors[0] = BC_ONE;
-		blendStateDesc.mDstFactors[0] = BC_ONE;
-		blendStateDesc.mMasks[0] = ALL;
-		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
-		blendStateDesc.mIndependentBlend = false;
-		addBlendState(pRenderer, &blendStateDesc, &pSunBlend);
-
-		blendStateDesc = {};
-		blendStateDesc.mSrcAlphaFactors[0] = BC_SRC_ALPHA;
-		blendStateDesc.mDstAlphaFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
-		blendStateDesc.mSrcFactors[0] = BC_SRC_ALPHA;
-		blendStateDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
-		blendStateDesc.mMasks[0] = ALL;
-		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
-		blendStateDesc.mIndependentBlend = false;
-		addBlendState(pRenderer, &blendStateDesc, &pSaturnBlend);
-
 		SamplerDesc samplerDesc = { FILTER_LINEAR,
 									FILTER_LINEAR,
 									MIPMAP_MODE_NEAREST,
@@ -370,21 +341,6 @@ public:
 		addDescriptorSet(pRenderer, &desc, &pDescriptorSetComputeFix);
 		desc = { pRootSignatureCompute, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount * gNumPlanets };
 		addDescriptorSet(pRenderer, &desc, &pDescriptorSetComputePerFrame);
-
-		RasterizerStateDesc rasterizerStateDesc = {};
-		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-		addRasterizerState(pRenderer, &rasterizerStateDesc, &pSkyboxRast);
-
-		RasterizerStateDesc sphereRasterizerStateDesc = {};
-		sphereRasterizerStateDesc.mCullMode = CULL_MODE_FRONT;
-		addRasterizerState(pRenderer, &sphereRasterizerStateDesc, &pSphereRast);
-
-
-		DepthStateDesc depthStateDesc = {};
-		depthStateDesc.mDepthTest = true;
-		depthStateDesc.mDepthWrite = true;
-		depthStateDesc.mDepthFunc = CMP_LEQUAL;
-		addDepthState(pRenderer, &depthStateDesc, &pDepth);
 
 		// Generate sphere vertex buffer
 		/*
@@ -440,43 +396,6 @@ public:
 			addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 ///////////////////////////////////
-
-		//Generate sky box vertex buffer
-		float skyBoxPoints[] = {
-			10.0f,  -10.0f, -10.0f, 6.0f,    // -z
-			-10.0f, -10.0f, -10.0f, 6.0f,   -10.0f, 10.0f,  -10.0f, 6.0f,   -10.0f, 10.0f,
-			-10.0f, 6.0f,   10.0f,  10.0f,  -10.0f, 6.0f,   10.0f,  -10.0f, -10.0f, 6.0f,
-
-			-10.0f, -10.0f, 10.0f,  2.0f,    //-x
-			-10.0f, -10.0f, -10.0f, 2.0f,   -10.0f, 10.0f,  -10.0f, 2.0f,   -10.0f, 10.0f,
-			-10.0f, 2.0f,   -10.0f, 10.0f,  10.0f,  2.0f,   -10.0f, -10.0f, 10.0f,  2.0f,
-
-			10.0f,  -10.0f, -10.0f, 1.0f,    //+x
-			10.0f,  -10.0f, 10.0f,  1.0f,   10.0f,  10.0f,  10.0f,  1.0f,   10.0f,  10.0f,
-			10.0f,  1.0f,   10.0f,  10.0f,  -10.0f, 1.0f,   10.0f,  -10.0f, -10.0f, 1.0f,
-
-			-10.0f, -10.0f, 10.0f,  5.0f,    // +z
-			-10.0f, 10.0f,  10.0f,  5.0f,   10.0f,  10.0f,  10.0f,  5.0f,   10.0f,  10.0f,
-			10.0f,  5.0f,   10.0f,  -10.0f, 10.0f,  5.0f,   -10.0f, -10.0f, 10.0f,  5.0f,
-
-			-10.0f, 10.0f,  -10.0f, 3.0f,    //+y
-			10.0f,  10.0f,  -10.0f, 3.0f,   10.0f,  10.0f,  10.0f,  3.0f,   10.0f,  10.0f,
-			10.0f,  3.0f,   -10.0f, 10.0f,  10.0f,  3.0f,   -10.0f, 10.0f,  -10.0f, 3.0f,
-
-			10.0f,  -10.0f, 10.0f,  4.0f,    //-y
-			10.0f,  -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f, -10.0f, 4.0f,   -10.0f, -10.0f,
-			-10.0f, 4.0f,   -10.0f, -10.0f, 10.0f,  4.0f,   10.0f,  -10.0f, 10.0f,  4.0f,
-		};
-
-		uint64_t       skyBoxDataSize = 4 * 6 * 6 * sizeof(float);
-		BufferLoadDesc skyboxVbDesc = {};
-		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
-		skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
-		skyboxVbDesc.pData = skyBoxPoints;
-		skyboxVbDesc.ppBuffer = &pSkyBoxVertexBuffer;
-		addResource(&skyboxVbDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		BufferLoadDesc ubDesc = {};
 		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -661,8 +580,6 @@ public:
 
 		pGui = gAppUI.AddGuiComponent("Micro profiler", &guiDesc);
 
-		pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
-
 		CheckboxWidget DeMode("Show Pages' Border", &gDebugMode);
 		pGui->AddWidget(DeMode);
 
@@ -686,11 +603,11 @@ public:
 		if (!initInputSystem(pWindow))
 			return false;
 
-		// Initialize microprofiler and it's UI.
-		initProfiler();
-
-		// Gpu profiler can only be added after initProfile.
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
+        // Initialize microprofiler and it's UI.
+        initProfiler();
+    
+        // Gpu profiler can only be added after initProfile.
+        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "GpuProfiler" );
 
 		// App Actions
 		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
@@ -710,7 +627,7 @@ public:
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!gMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
+			if (!gAppUI.IsFocused() && *ctx->pCaptured)
 			{
 				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
@@ -781,7 +698,7 @@ public:
 				else
 				{
 					params[1].pName = "VisibilityBuffer";
-					params[1].ppBuffers = &pVirtualTexture[j]->mVisibility;
+					params[1].ppBuffers = &pVirtualTexture[j]->pSvt->mVisibility;
 					updateDescriptorSet(pRenderer, gNumPlanets * i + j + gImageCount, pDescriptorSetUniforms, 2, params);
 				}
 			}
@@ -803,19 +720,19 @@ public:
 			{
 				DescriptorData computeParams[6] = {};
 				computeParams[0].pName = "PrevPageTableBuffer";
-				computeParams[0].ppBuffers = &pVirtualTexture[j]->mPrevVisibility;
+				computeParams[0].ppBuffers = &pVirtualTexture[j]->pSvt->mPrevVisibility;
 
 				computeParams[1].pName = "PageTableBuffer";
-				computeParams[1].ppBuffers = &pVirtualTexture[j]->mVisibility;
+				computeParams[1].ppBuffers = &pVirtualTexture[j]->pSvt->mVisibility;
 
 				computeParams[2].pName = "RemovePageTableBuffer";
-				computeParams[2].ppBuffers = &pVirtualTexture[j]->mRemovePage;
+				computeParams[2].ppBuffers = &pVirtualTexture[j]->pSvt->mRemovePage;
 
 				computeParams[3].pName = "AlivePageTableBuffer";
-				computeParams[3].ppBuffers = &pVirtualTexture[j]->mAlivePage;
+				computeParams[3].ppBuffers = &pVirtualTexture[j]->pSvt->mAlivePage;
 
 				computeParams[4].pName = "PageCountsBuffer";
-				computeParams[4].ppBuffers = &pVirtualTexture[j]->mPageCounts;
+				computeParams[4].ppBuffers = &pVirtualTexture[j]->pSvt->mPageCounts;
 
 				updateDescriptorSet(pRenderer, i * gNumPlanets + j, pDescriptorSetComputePerFrame, 5, computeParams);
 			}
@@ -837,7 +754,7 @@ public:
 		gAppUI.Exit();
 
 		// Exit profile
-    exitProfiler();
+		exitProfiler();
 
 		gPlanetInfoData.set_capacity(0);
 
@@ -860,8 +777,6 @@ public:
 		removeDescriptorSet(pRenderer, pDescriptorSetComputePerFrame);
 		removeDescriptorSet(pRenderer, pDescriptorSetComputeFix);
 
-		removeResource(pSkyBoxVertexBuffer);
-
 		for (int i = 1; i < gNumPlanets; ++i)
 		{
 			removeResource(pVirtualTexture[i]);
@@ -869,9 +784,6 @@ public:
 
 		removeResource(pSphere);
 		removeResource(pSaturn);
-
-		removeBlendState(pSunBlend);
-		removeBlendState(pSaturnBlend);
 /*
 		for (uint i = 0; i < 6; ++i)
 			removeResource(pSkyBoxTextures[i]);
@@ -890,10 +802,6 @@ public:
 		removeRootSignature(pRenderer, pRootSignature);
 		removeRootSignature(pRenderer, pRootSignatureCompute);
 
-		removeDepthState(pDepth);
-		removeRasterizerState(pSphereRast);
-		removeRasterizerState(pSkyboxRast);
-
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			removeFence(pRenderer, pRenderCompleteFences[i]);
@@ -911,7 +819,6 @@ public:
 		removeCmd_n(pRenderer, gImageCount, ppVirtualTextureCmds);
 		removeCmdPool(pRenderer, pVirtualTextureCmdPool);
 
-		removeGpuProfiler(pRenderer, pGpuProfiler);
 		exitResourceLoaderInterface(pRenderer);
 
 		removeQueue(pRenderer, pGraphicsQueue);
@@ -935,7 +842,36 @@ public:
 		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
 
-		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+
+		BlendStateDesc blendStateDesc = {};
+		blendStateDesc.mSrcAlphaFactors[0] = BC_ONE;
+		blendStateDesc.mDstAlphaFactors[0] = BC_ONE;
+		blendStateDesc.mSrcFactors[0] = BC_ONE;
+		blendStateDesc.mDstFactors[0] = BC_ONE;
+		blendStateDesc.mMasks[0] = ALL;
+		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
+		blendStateDesc.mIndependentBlend = false;
+
+		BlendStateDesc blendStateSaturnDesc = {};
+		blendStateSaturnDesc.mSrcAlphaFactors[0] = BC_SRC_ALPHA;
+		blendStateSaturnDesc.mDstAlphaFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+		blendStateSaturnDesc.mSrcFactors[0] = BC_SRC_ALPHA;
+		blendStateSaturnDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+		blendStateSaturnDesc.mMasks[0] = ALL;
+		blendStateSaturnDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
+		blendStateSaturnDesc.mIndependentBlend = false;
+
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+
+		RasterizerStateDesc sphereRasterizerStateDesc = {};
+		sphereRasterizerStateDesc.mCullMode = CULL_MODE_FRONT;
+
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = true;
+		depthStateDesc.mDepthWrite = true;
+		depthStateDesc.mDepthFunc = CMP_LEQUAL;
 
 		//layout and pipeline for sphere draw
 		PipelineDesc desc = {};
@@ -943,15 +879,15 @@ public:
 		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = pDepth;
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
+		pipelineSettings.pDepthState = &depthStateDesc;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pSphereShader;
 		pipelineSettings.pVertexLayout = &gVertexLayoutDefault;
-		pipelineSettings.pRasterizerState = pSphereRast;
+		pipelineSettings.pRasterizerState = &sphereRasterizerStateDesc;
 		addPipeline(pRenderer, &desc, &pSpherePipeline);
 
 		{
@@ -961,18 +897,18 @@ public:
 		}
 
 		{
-			pipelineSettings.pDepthState = pDepth;
+			pipelineSettings.pDepthState = &depthStateDesc;
 			pipelineSettings.pShaderProgram = pSunShader;
-			pipelineSettings.pBlendState = pSunBlend;
-			pipelineSettings.pRasterizerState = pSkyboxRast;
+			pipelineSettings.pBlendState = &blendStateDesc;
+			pipelineSettings.pRasterizerState = &rasterizerStateDesc;
 			addPipeline(pRenderer, &desc, &pSunPipeline);
 		}
 
 		{
-			pipelineSettings.pDepthState = pDepth;
+			pipelineSettings.pDepthState = &depthStateDesc;
 			pipelineSettings.pShaderProgram = pSphereShader;
-			pipelineSettings.pBlendState = pSaturnBlend;
-			pipelineSettings.pRasterizerState = pSkyboxRast;
+			pipelineSettings.pBlendState = &blendStateSaturnDesc;
+			pipelineSettings.pRasterizerState = &rasterizerStateDesc;
 			addPipeline(pRenderer, &desc, &pSaturnPipeline);
 		}
 
@@ -1013,7 +949,7 @@ public:
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		unloadProfiler();
+		unloadProfilerUI();
 		gAppUI.Unload();
 
 		gVirtualJoystick.Unload();
@@ -1094,10 +1030,10 @@ public:
 			}
 			else
 			{
-				gUniformVirtualTextureInfo[i].Width = pVirtualTexture[i]->mDesc.mWidth;
-				gUniformVirtualTextureInfo[i].Height = pVirtualTexture[i]->mDesc.mHeight;
-				gUniformVirtualTextureInfo[i].pageWidth = (uint)pVirtualTexture[i]->mSparseVirtualTexturePageWidth;
-				gUniformVirtualTextureInfo[i].pageHeight = (uint)pVirtualTexture[i]->mSparseVirtualTexturePageHeight;
+				gUniformVirtualTextureInfo[i].Width = pVirtualTexture[i]->mWidth;
+				gUniformVirtualTextureInfo[i].Height = pVirtualTexture[i]->mHeight;
+				gUniformVirtualTextureInfo[i].pageWidth = (uint)pVirtualTexture[i]->pSvt->mSparseVirtualTexturePageWidth;
+				gUniformVirtualTextureInfo[i].pageHeight = (uint)pVirtualTexture[i]->pSvt->mSparseVirtualTexturePageHeight;
 			}
 
 			gUniformVirtualTextureInfo[i].ID = i;
@@ -1113,16 +1049,6 @@ public:
 		}
 
 		
-	
-		/************************************************************************/
-		/************************************************************************/
-
-    if(gMicroProfiler != bPrevToggleMicroProfiler)
-    {
-       toggleProfiler();
-       bPrevToggleMicroProfiler = gMicroProfiler;
-    }
-
     /************************************************************************/
     // Update GUI
     /************************************************************************/
@@ -1168,7 +1094,7 @@ public:
 		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
 
-		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
+		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
 		RenderTargetBarrier barriers[] = {
 			{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
@@ -1189,43 +1115,43 @@ public:
 		//cmdResourceBarrier(cmd, 0, NULL, (uint32_t)virtualTextureBarrier.size(), virtualTextureBarrier.data());
 //#endif
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
     
 	{
-			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Planets", true);
+			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Planets");
 
 			cmdBindPipeline(cmd, pSpherePipeline);
 
 			//// draw planets
 			for (uint32_t j = 1; j < gNumPlanets - 1; ++j)
 			{
-				cmdBindDescriptorSet(cmd, j, pDescriptorSetTexture);			
-				cmdBindDescriptorSet(cmd, gNumPlanets * gFrameIndex + j + gImageCount, pDescriptorSetUniforms);		
+				cmdBindDescriptorSet(cmd, j, pDescriptorSetTexture);
+				cmdBindDescriptorSet(cmd, gNumPlanets * gFrameIndex + j + gImageCount, pDescriptorSetUniforms);
 			
-				cmdBindVertexBuffer(cmd, 1, &pSphere->pVertexBuffers[0], NULL);
-				cmdBindIndexBuffer(cmd, pSphere->pIndexBuffer, 0);
+				cmdBindVertexBuffer(cmd, 1, &pSphere->pVertexBuffers[0], pSphere->mVertexStrides, NULL);
+				cmdBindIndexBuffer(cmd, pSphere->pIndexBuffer, pSphere->mIndexType, 0);
 				cmdDrawIndexed(cmd, pSphere->mIndexCount, 0, 0);
 			}		
 
 			cmdBindPipeline(cmd, pSaturnPipeline);
 
 			cmdBindDescriptorSet(cmd, gNumPlanets - 1, pDescriptorSetTexture);
-			cmdBindDescriptorSet(cmd, gNumPlanets * gFrameIndex + gNumPlanets - 1 + gImageCount, pDescriptorSetUniforms);		
+			cmdBindDescriptorSet(cmd, gNumPlanets * gFrameIndex + gNumPlanets - 1 + gImageCount, pDescriptorSetUniforms);
 		
-			cmdBindVertexBuffer(cmd, 1, &pSaturn->pVertexBuffers[0], NULL);
-			cmdBindIndexBuffer(cmd, pSaturn->pIndexBuffer, 0);
+			cmdBindVertexBuffer(cmd, 1, &pSaturn->pVertexBuffers[0], pSaturn->mVertexStrides, NULL);
+			cmdBindIndexBuffer(cmd, pSaturn->pIndexBuffer, pSaturn->mIndexType, 0);
 			cmdDrawIndexed(cmd, pSaturn->mIndexCount, 0, 0);
 
 			cmdBindPipeline(cmd, pSunPipeline);
 
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetTexture);
 			cmdBindDescriptorSet(cmd, gNumPlanets * gFrameIndex + gImageCount, pDescriptorSetUniforms);
-			cmdBindVertexBuffer(cmd, 1, &pSphere->pVertexBuffers[0], NULL);
-			cmdBindIndexBuffer(cmd, pSphere->pIndexBuffer, 0);
+			cmdBindVertexBuffer(cmd, 1, &pSphere->pVertexBuffers[0], pSphere->mVertexStrides, NULL);
+			cmdBindIndexBuffer(cmd, pSphere->pIndexBuffer, pSphere->mIndexType, 0);
 			cmdDrawIndexed(cmd, pSphere->mIndexCount, 0, 0);
 
-			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 	}
 	
 	if(gShowUI)
@@ -1233,38 +1159,34 @@ public:
 		loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
-    cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw UI", true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
 		static HiresTimer gTimer;
 		gTimer.GetUSec(true);
 
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 
-		gAppUI.DrawText(cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
+        cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
 
 #if !defined(__ANDROID__)
 		gAppUI.DrawText(
-			cmd, float2(8, 40), eastl::string().sprintf("Update Virtual Texture %f ms", gTimer.GetUSecAverage() / 1000.0f - (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
+			cmd, float2(8, 40), eastl::string().sprintf("Update Virtual Texture %f ms", getCpuAvgFrameTime() - (float)getGpuProfileTime(gGpuProfileToken)).c_str(),
 			&gFrameTimeDraw);
 
-    gAppUI.DrawText(
-      cmd, float2(8, 65), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
-      &gFrameTimeDraw);
-
-    gAppUI.DrawDebugGpuProfile(cmd, float2(8, 90), pGpuProfiler, NULL);
+    cmdDrawGpuProfile(cmd, float2(8, 65), gGpuProfileToken);
 #endif
 
-    cmdDrawProfiler();
+    cmdDrawProfilerUI();
 
     gAppUI.Gui(pGui);
 
 		gAppUI.Draw(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-    cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+    cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 		barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 	}
-    cmdEndGpuFrameProfile(cmd, pGpuProfiler);
+    cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 		endCmd(cmd);
 
 		QueueSubmitDesc submitDesc = {};
@@ -1296,7 +1218,7 @@ public:
 
 			for (int i = 1; i < gNumPlanets; ++i)
 			{
-				eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pVirtualTexture[i]->pPages;
+				eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pVirtualTexture[i]->pSvt->pPages;
 
 				struct PageCountSt
 				{
@@ -1307,7 +1229,7 @@ public:
 				}pageCountSt;
 
 	#if defined(GARUANTEE_PAGE_SYNC)
-				const uint32_t* pThreadGroupSize = pFillPageShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
+				const uint32_t* pThreadGroupSize = pFillPageShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
 
 				const uint32_t Dispatch[3] = { pThreadGroupSize[0],
 																			 pThreadGroupSize[1],
@@ -1348,7 +1270,7 @@ public:
 					pageCountSt.maxPageCount = min((uint)PageCount, pageCountSt.maxPageCount);
 				}
 	#else
-				pageCountSt.maxPageCount = pVirtualTexture[i]->mVirtualPageTotalCount;
+				pageCountSt.maxPageCount = pVirtualTexture[i]->pSvt->mVirtualPageTotalCount;
 				pageCountSt.pageOffset = 0;
 
 				BufferUpdateDesc pageCountInfoCbv = { pPageCountInfo[i] };
@@ -1364,7 +1286,7 @@ public:
 				cmdDispatch(pCmdCompute, 1, 1, 1);
 
 				cmdBindPipeline(pCmdCompute, pFillPagePipeline);
-				const uint32_t* pThreadGroupSize = pFillPageShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
+				const uint32_t* pThreadGroupSize = pFillPageShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
 
 				const uint32_t Dispatch[3] = { (uint32_t)ceil((float)pageCountSt.maxPageCount / (float)pThreadGroupSize[0]),
 																			 pThreadGroupSize[1],
@@ -1411,7 +1333,6 @@ public:
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
 		swapChainDesc.mEnableVsync = false;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
@@ -1439,4 +1360,4 @@ public:
 	}
 };
 
-DEFINE_APPLICATION_MAIN(VirtualTexture)
+DEFINE_APPLICATION_MAIN(VirtualTextureTest)

@@ -203,7 +203,7 @@ struct Raytracing
 
 #ifdef VULKAN
 #ifdef VK_NV_RAY_TRACING_SPEC_VERSION
-	VkPhysicalDeviceRayTracingPropertiesNV* pRayTracingProperties;
+	VkPhysicalDeviceRayTracingPropertiesNV mRayTracingProperties;
 #endif
 #endif
 };
@@ -226,5 +226,5 @@ API_INTERFACE void FORGE_CALLCONV cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytra
 API_INTERFACE void FORGE_CALLCONV addSSVGFDenoiser(Renderer* pRenderer, SSVGFDenoiser** ppDenoiser);
 API_INTERFACE void FORGE_CALLCONV removeSSVGFDenoiser(SSVGFDenoiser* pDenoiser);
 API_INTERFACE void FORGE_CALLCONV clearSSVGFDenoiserTemporalHistory(SSVGFDenoiser* pDenoiser);
-API_INTERFACE Texture* FORGE_CALLCONV cmdSSVGFDenoise(Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTexture, Texture* pMotionVectorTexture, Texture* pDepthNormalTexture, Texture* pPreviousDepthNormalTexture);
+API_INTERFACE void FORGE_CALLCONV cmdSSVGFDenoise(Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTexture, Texture* pMotionVectorTexture, Texture* pDepthNormalTexture, Texture* pPreviousDepthNormalTexture, Texture** ppOut);
 #endif

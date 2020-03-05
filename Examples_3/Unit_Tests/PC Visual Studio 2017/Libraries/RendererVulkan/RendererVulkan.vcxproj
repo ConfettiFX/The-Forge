@@ -20,7 +20,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\CommonShaderReflection.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\GpuProfiler.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\ResourceLoader.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\Vulkan.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanRaytracing.cpp" />

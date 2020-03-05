@@ -55,7 +55,7 @@ class _Impl_FontStash
 public:
 	_Impl_FontStash()
 	{
-		pCurrentTexture = NULL;
+		pCurrentTexture = {};
 		mWidth = 0;
 		mHeight = 0;
 		pContext = NULL;
@@ -109,37 +109,6 @@ public:
 									ADDRESS_MODE_CLAMP_TO_EDGE };
 		addSampler(pRenderer, &samplerDesc, &pDefaultSampler);
 
-		BlendStateDesc blendStateDesc = {};
-		blendStateDesc.mSrcFactors[0] = BC_SRC_ALPHA;
-		blendStateDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
-		blendStateDesc.mSrcAlphaFactors[0] = BC_SRC_ALPHA;
-		blendStateDesc.mDstAlphaFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
-		blendStateDesc.mMasks[0] = ALL;
-		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_ALL;
-		blendStateDesc.mIndependentBlend = false;
-		addBlendState(pRenderer, &blendStateDesc, &pBlendAlpha);
-
-		DepthStateDesc depthStateDesc = {};
-		depthStateDesc.mDepthTest = false;
-		depthStateDesc.mDepthWrite = false;
-		addDepthState(pRenderer, &depthStateDesc, &pDepthStates[0]);
-
-		DepthStateDesc depthStateEnableDesc = {};
-		depthStateEnableDesc.mDepthTest = true;
-		depthStateEnableDesc.mDepthWrite = true;
-		depthStateEnableDesc.mDepthFunc = CMP_LEQUAL;
-		addDepthState(pRenderer, &depthStateEnableDesc, &pDepthStates[1]);
-
-		RasterizerStateDesc rasterizerStateDesc = {};
-		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-		rasterizerStateDesc.mScissor = true;
-		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRasterizerStates[0]);
-
-		RasterizerStateDesc rasterizerStateFrontDesc = {};
-		rasterizerStateFrontDesc.mCullMode = CULL_MODE_BACK;
-		rasterizerStateFrontDesc.mScissor = true;
-		addRasterizerState(pRenderer, &rasterizerStateFrontDesc, &pRasterizerStates[1]);
-
 #ifdef USE_TEXT_PRECOMPILED_SHADERS
 		BinaryShaderDesc binaryShaderDesc = {};
 		binaryShaderDesc.mStages = SHADER_STAGE_VERT | SHADER_STAGE_FRAG;
@@ -191,7 +160,6 @@ public:
 		vbDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		vbDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		vbDesc.mSize = 1024 * 1024 * sizeof(float4);
-		vbDesc.mVertexStride = sizeof(float4);
 		vbDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 		addGPURingBuffer(pRenderer, &vbDesc, &pMeshRingBuffer);
 		/************************************************************************/
@@ -221,16 +189,10 @@ public:
 
 		removeGPURingBuffer(pMeshRingBuffer);
 		removeGPURingBuffer(pUniformRingBuffer);
-		for (uint32_t i = 0; i < 2; ++i)
-		{
-			removeDepthState(pDepthStates[i]);
-			removeRasterizerState(pRasterizerStates[i]);
-		}
-		removeBlendState(pBlendAlpha);
 		removeSampler(pRenderer, pDefaultSampler);
 	}
 
-	bool load(RenderTarget** ppRts, uint32_t count)
+	bool load(RenderTarget** pRts, uint32_t count)
 	{
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 2;
@@ -246,28 +208,52 @@ public:
 		vertexLayout.mAttribs[1].mLocation = 1;
 		vertexLayout.mAttribs[1].mOffset = TinyImageFormat_BitSizeOfBlock(vertexLayout.mAttribs[0].mFormat) / 8;
 
+		BlendStateDesc blendStateDesc = {};
+		blendStateDesc.mSrcFactors[0] = BC_SRC_ALPHA;
+		blendStateDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+		blendStateDesc.mSrcAlphaFactors[0] = BC_SRC_ALPHA;
+		blendStateDesc.mDstAlphaFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+		blendStateDesc.mMasks[0] = ALL;
+		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_ALL;
+		blendStateDesc.mIndependentBlend = false;
+
+		DepthStateDesc depthStateDesc[2] = {};
+		depthStateDesc[0].mDepthTest = false;
+		depthStateDesc[0].mDepthWrite = false;
+
+		depthStateDesc[1].mDepthTest = true;
+		depthStateDesc[1].mDepthWrite = true;
+		depthStateDesc[1].mDepthFunc = CMP_LEQUAL;
+
+		RasterizerStateDesc rasterizerStateDesc[2] = {};
+		rasterizerStateDesc[0].mCullMode = CULL_MODE_NONE;
+		rasterizerStateDesc[0].mScissor = true;
+
+		rasterizerStateDesc[1].mCullMode = CULL_MODE_BACK;
+		rasterizerStateDesc[1].mScissor = true;
+
 		PipelineDesc pipelineDesc = {};
 		pipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
 		pipelineDesc.mGraphicsDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineDesc.mGraphicsDesc.mRenderTargetCount = 1;
 		pipelineDesc.mGraphicsDesc.mSampleCount = SAMPLE_COUNT_1;
-		pipelineDesc.mGraphicsDesc.pBlendState = pBlendAlpha;
+		pipelineDesc.mGraphicsDesc.pBlendState = &blendStateDesc;
 		pipelineDesc.mGraphicsDesc.pRootSignature = pRootSignature;
 		pipelineDesc.mGraphicsDesc.pVertexLayout = &vertexLayout;
 		pipelineDesc.mGraphicsDesc.mRenderTargetCount = 1;
-		pipelineDesc.mGraphicsDesc.mSampleCount = ppRts[0]->mDesc.mSampleCount;
-		pipelineDesc.mGraphicsDesc.mSampleQuality = ppRts[0]->mDesc.mSampleQuality;
-		pipelineDesc.mGraphicsDesc.pColorFormats = &ppRts[0]->mDesc.mFormat;
+		pipelineDesc.mGraphicsDesc.mSampleCount = pRts[0]->mSampleCount;
+		pipelineDesc.mGraphicsDesc.mSampleQuality = pRts[0]->mSampleQuality;
+		pipelineDesc.mGraphicsDesc.pColorFormats = &pRts[0]->mFormat;
 		for (uint32_t i = 0; i < min(count, 2U); ++i)
 		{
-			pipelineDesc.mGraphicsDesc.mDepthStencilFormat = (i > 0) ? ppRts[1]->mDesc.mFormat : TinyImageFormat_UNDEFINED;
+			pipelineDesc.mGraphicsDesc.mDepthStencilFormat = (i > 0) ? pRts[1]->mFormat : TinyImageFormat_UNDEFINED;
 			pipelineDesc.mGraphicsDesc.pShaderProgram = pShaders[i];
-			pipelineDesc.mGraphicsDesc.pDepthState = pDepthStates[i];
-			pipelineDesc.mGraphicsDesc.pRasterizerState = pRasterizerStates[i];
+			pipelineDesc.mGraphicsDesc.pDepthState = &depthStateDesc[i];
+			pipelineDesc.mGraphicsDesc.pRasterizerState = &rasterizerStateDesc[i];
 			addPipeline(pRenderer, &pipelineDesc, &pPipelines[i]);
 		}
 
-		mScaleBias = { 2.0f / (float)ppRts[0]->mDesc.mWidth, -2.0f / (float)ppRts[0]->mDesc.mHeight };
+		mScaleBias = { 2.0f / (float)pRts[0]->mWidth, -2.0f / (float)pRts[0]->mHeight };
 
 		return true;
 	}
@@ -279,7 +265,7 @@ public:
 			if (pPipelines[i])
 				removePipeline(pRenderer, pPipelines[i]);
 
-			pPipelines[i] = NULL;
+			pPipelines[i] = {};
 		}
 	}
 
@@ -307,14 +293,11 @@ public:
 	mat4 mWorldMat;
 	Cmd* pCmd;
 
-	Shader*           pShaders[2];
-	RootSignature*    pRootSignature;
-	DescriptorSet*    pDescriptorSets;
-	Pipeline*         pPipelines[2];
+	Shader*            pShaders[2];
+	RootSignature*     pRootSignature;
+	DescriptorSet*     pDescriptorSets;
+	Pipeline*          pPipelines[2];
 	/// Default states
-	BlendState*          pBlendAlpha;
-	DepthState*          pDepthStates[2];
-	RasterizerState*     pRasterizerStates[2];
 	Sampler*             pDefaultSampler;
 	GPURingBuffer*       pUniformRingBuffer;
 	GPURingBuffer*       pMeshRingBuffer;
@@ -345,9 +328,9 @@ void Fontstash::exit()
 	conf_free(impl);
 }
 
-bool Fontstash::load(RenderTarget** ppRts, uint32_t count)
+bool Fontstash::load(RenderTarget** pRts, uint32_t count)
 {
-	return impl->load(ppRts, count);
+	return impl->load(pRts, count);
 }
 
 void Fontstash::unload()
@@ -489,14 +472,14 @@ void _Impl_FontStash::fonsImplementationRenderText(
 	void* userPtr, const float* verts, const float* tcoords, const unsigned int* colors, int nverts)
 {
 	_Impl_FontStash* ctx = (_Impl_FontStash*)userPtr;
-	if (ctx->pCurrentTexture == NULL)
+	if (!ctx->pCurrentTexture)
 		return;
 
 	Cmd* pCmd = ctx->pCmd;
 
 	if (ctx->mUpdateTexture)
 	{
-		waitQueueIdle(pCmd->mDesc.pPool->pQueue);
+		waitQueueIdle(pCmd->pQueue);
 
 		RawImageData rawData = {};
 		rawData.pRawData = (uint8_t*)ctx->pPixels;
@@ -566,7 +549,8 @@ void _Impl_FontStash::fonsImplementationRenderText(
 		*((mat4*)updateDesc.pMappedData) = mvp;
 		endUpdateResource(&updateDesc, NULL);
 
-		uint64_t size = sizeof(mvp);
+		const uint64_t size = sizeof(mvp);
+		const uint32_t stride = sizeof(float4);
 
 		DescriptorData params[1] = {};
 		params[0].pName = "uniformBlock_rootcbv";
@@ -576,14 +560,15 @@ void _Impl_FontStash::fonsImplementationRenderText(
 		updateDescriptorSet(ctx->pRenderer, pipelineIndex, ctx->pDescriptorSets, 1, params);
 		cmdBindDescriptorSet(pCmd, pipelineIndex, ctx->pDescriptorSets);
 		cmdBindPushConstants(pCmd, ctx->pRootSignature, "uRootConstants", &data);
-		cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
+		cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &stride, &buffer.mOffset);
 		cmdDraw(pCmd, nverts, 0);
 	}
 	else
 	{
+		const uint32_t stride = sizeof(float4);
 		cmdBindDescriptorSet(pCmd, pipelineIndex, ctx->pDescriptorSets);
 		cmdBindPushConstants(pCmd, ctx->pRootSignature, "uRootConstants", &data);
-		cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &buffer.mOffset);
+		cmdBindVertexBuffer(pCmd, 1, &buffer.pBuffer, &stride, &buffer.mOffset);
 		cmdDraw(pCmd, nverts, 0);
 	}
 }
