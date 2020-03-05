@@ -56,6 +56,38 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 
 # News
 
+## Release 1.41 - March 5th, 2020 - Path Tracing Benchmark | CPU Cacheline alignment | Improved Profiler | D3D12 Memory Allocator
+* Based on request we are providing a Path Tracing Benchmark in 16_RayTracing. It allows you to compare the performance of three platforms: 
+  * Windows with DirectX 12 DXR
+  * Windows with Vulkan RTX
+  * Linux with Vulkan RTX
+
+  We believe that every benchmarking tool should be open-source, so that everyone can see what the source code is doing. We will extend this benchmark to the non-public platforms we support to compare the PC performance with console performance. 
+  The benchmark comes with batch files for all three platforms. Each run generates a HTML output file from the microprofiler that is integrated in TF. The default number of iterations is 64 but you can adjust that.  There is a Readme file in the 16_RayTracing folder that describes the options.
+
+Windows DirectX 12 DXR, GeForce RTX 2070 Super, 3840x1600, NVIDIA Driver 441.99
+
+![Windows DXR output of Ray Tracing Benchmark](Screenshots/16_Path_Tracer_Profile_DX.png) 
+
+Windows Vulkan RTX, GeForce RTX 2070 Super, 3840x1600, NVIDIA Driver 441.99
+
+![Windows RTX output of Ray Tracing Benchmark](Screenshots/16_Path_Tracer_Profile.png) 
+
+Linux Vulkan RTX, Geforce RTX 2060, 1920x1080, NVIDIA Driver 435.21
+
+![Linux RTX output of Ray Tracing Benchmark](Screenshots/16_Path_Tracer_Profile_Linux.png) 
+
+We will adjust the output of the benchmark to what users request.
+
+* With this release we also aligned the whole renderer interface better to 64 byte CPU cache lines. We trimmed down all the structs substantially and removed many. This is a breaking change for the renderer interface and a major change to the whole code base.
+* DirectX 12
+  * [D3D12 Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator): we are using now AMD's D3D12 memory allocator for DirectX after having used the Vulkan equivalent for more than two years. We also extended it to support Multi-GPU.
+  * We upgraded to the latest dxgi factory interface in DirectX 12
+* Microprofiler: because we need the microprofiler to offer the QA department help in reporting performance problems for some of the games that will be shipping with TF (and the benchmark mentioned above), we did another pass on its functionality and ease of use, especially on console platforms. The idea is that QA can quickly and easily store a screenshot or HTML file in a bug report. This is still work in progress and with every shipping game will probably be improved.
+* Now that GDC 2020 was postponed, we will also postpone our GDC related activities. The user meeting and our GDC talk will be postponed until the next GDC happens. If there is a need we can also do a user meeting in an online conference room or in Discord in a private area. Let us know.
+* Renamed CustomMiddleware to Custom-Middleware back ...
+
+
 ## Release 1.40 - February 20th, 2020 - Resource Loader | glTF as Geometry Container | GDC Talk | User Group Meeting
 This release took much longer than expected ... :-) 
 * We are going to give a talk at GDC during the GPU Summit day. It will cover our skydome system Ephemeris 2: [GDC 2020 Ephemeris](https://twitter.com/TheForge_FX/status/1227728118883860480)
@@ -123,36 +155,6 @@ Ephemeris 2 - the game Stormland from Insomniac was released. This game is using
 
 Head over to [Custom Middleware](https://github.com/ConfettiFX/Custom-Middleware) to check out the source code.
 
-## Release 1.38 - November 14th - Cross-Platform Path Tracer
-- The new 16_Raytracing unit test shows a simple cross-platform path tracer. On iOS this path tracer requires A11 or higher. It is meant to be used in tools in the future and doesn't run in real-time.
-To support the new path tracer, the Metal raytracing backend has been overhauled to use a sort-and-dispatch based approach, enabling efficient support for multiple hit groups and miss shaders. The most significant limitation for raytracing on Metal is that only tail recursion is supported, which can be worked around using larger per-ray payloads and splitting up shaders into sub-shaders after each TraceRay call; see the Metal shaders used for 16_Raytracing for an example on how this can be done.
-
-macOS 1920x1080 AMD Pro Vega 64
-
-![Path Tracer running on macOS](Screenshots/16_Path_Tracer_macOS.png)
-
-iOS iPhone X 812x375
-
-![Path Tracer running on macOS](Screenshots/16_Path_Tracer_iOS.jpeg)
-
-Windows 10 1080p NVIDIA RTX 2080 with DXR Driver version 441.12
-
-![Path Tracer running on Windows DXR](Screenshots/16_Path_Tracer_DXR.png)
-
-Windows 10 1080p NVIDIA RTX 2080 with RTX Driver version 441.12
-
-![Path Tracer running on Windows RTX](Screenshots/16_Path_Tracer_RTX.png)
-
-Linux 1080p NVIDIA RTX 2060 with RTX Driver version 435
-
-![Path Tracer running on Linux RTX](Screenshots/16_Path_Tracer_Linux_RTX.png)
-
-
-- File System: Fixed an issue wherein compiled shader binaries weren’t being saved to the RD_SHADER_BINARIES resource directory
-- GitHub issues fixed:
-  * #150 - [Vulkan] Failed to extend descriptor pool
-  * #151 - [Vulkan] rootcbv of detection is case sensitive
-  * #152 - [Vulkan] updateDescriptorSet is different from the DirectX12
 
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
 
@@ -571,6 +573,24 @@ There is an example implementation of the Triangle Visibility Buffer as covered 
 # Tools
 Below are screenshots and descriptions of some of the tools we integrated.
 
+## Ray Tracing Benchmark
+Based on request we are providing a Ray Tracing Benchmark in 16_RayTracing. It allows you to compare the performance of three platforms: 
+  * Windows with DirectX 12 DXR
+  * Windows with Vulkan RTX
+  * Linux with Vulkan RTX
+
+  We will extend this benchmark to the non-public platforms we support to compare the PC performance with console performance. 
+  The benchmark comes with batch files for all three platforms. Each run generates a HTML output file from the profiler that is integrated in TF. The default number of iterations is 64 but you can adjust that.  There is a Readme file in the 16_RayTracing folder that describes the options.
+
+Windows DirectX 12 DXR, GeForce RTX 2070 Super, 3840x1600, NVIDIA Driver 441.99
+
+![Windows DXR output of Ray Tracing Benchmark](Screenshots/16_Path_Tracer_Profile_DX.png) 
+
+Windows Vulkan RTX, GeForce RTX 2070 Super, 3840x1600, NVIDIA Driver 441.99
+
+![Windows RTX output of Ray Tracing Benchmark](Screenshots/16_Path_Tracer_Profile.png) 
+
+
 ## Microprofiler
 We integrated the [Micro Profiler](https://github.com/zeux/microprofile) into our code base by replacing the proprietary UI with imGUI and simplified the usage. Now it is much more tightly and consistently integrated in our code base.
 
@@ -668,6 +688,7 @@ The Forge utilizes the following Open-Source libraries:
 * [SPIRV_Cross](https://github.com/KhronosGroup/SPIRV-Cross)
 * [TinyEXR](https://github.com/syoyo/tinyexr)
 * [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator)
+* [D3D12 Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator)
 * [GeometryFX](https://gpuopen.com/gaming-product/geometryfx/)
 * [WinPixEventRuntime](https://blogs.msdn.microsoft.com/pix/winpixeventruntime/)
 * [Fluid Studios Memory Manager](http://www.paulnettle.com/)
