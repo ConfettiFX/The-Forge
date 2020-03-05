@@ -11,7 +11,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Renderer", "Renderer", "{7F
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Include", "Include", "{C901BF6A-0F32-43B1-A948-B8C8A6C1D79A}"
 	ProjectSection(SolutionItems) = preProject
-		..\..\..\Common_3\Renderer\GpuProfiler.h = ..\..\..\Common_3\Renderer\GpuProfiler.h
 		..\..\..\Common_3\Renderer\IRay.h = ..\..\..\Common_3\Renderer\IRay.h
 		..\..\..\Common_3\Renderer\IRenderer.h = ..\..\..\Common_3\Renderer\IRenderer.h
 		..\..\..\Common_3\Renderer\IResourceLoader.h = ..\..\..\Common_3\Renderer\IResourceLoader.h

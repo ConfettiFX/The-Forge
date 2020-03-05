@@ -211,6 +211,7 @@ struct InputSystemImpl : public gainput::InputListener
 		{ InputBindings::BUTTON_NORTH, gainput::KeySpace },
 		{ InputBindings::BUTTON_R3, gainput::KeyF1 },
 		{ InputBindings::BUTTON_L3, gainput::KeyF2 },
+		{ InputBindings::BUTTON_DUMP, gainput::KeyF3 },
 	};
 
 	const eastl::unordered_map<uint32_t, gainput::PadButton> mGamepadMap =
@@ -552,6 +553,26 @@ struct InputSystemImpl : public gainput::InputListener
 			mControls[mKeyboardDeviceID][gainput::KeyReturn].emplace_back(pControl);
 			mControls[mKeyboardDeviceID][gainput::KeyAltL].emplace_back(pControl);
 		}
+        else if (InputBindings::BUTTON_DUMP == control)
+        {
+            ComboControl* pGamePadControl = AllocateControl<ComboControl>();
+            ASSERT(pGamePadControl);
+
+            pGamePadControl->mType = CONTROL_COMBO;
+            pGamePadControl->pAction = pAction;
+            pGamePadControl->mPressButton = gainput::PadButtonStart;
+            pGamePadControl->mTriggerButton = gainput::PadButtonB;
+            mControls[gamepadDeviceId][pGamePadControl->mTriggerButton].emplace_back(pGamePadControl);
+            mControls[gamepadDeviceId][pGamePadControl->mPressButton].emplace_back(pGamePadControl);
+
+            ComboControl* pControl = AllocateControl<ComboControl>();
+            ASSERT(pControl);
+            pControl->mType = CONTROL_BUTTON;
+            pControl->pAction = pAction;
+            decltype(mKeyMap)::const_iterator keyIt = mKeyMap.find(control);
+            if (keyIt != mKeyMap.end())
+                mControls[mKeyboardDeviceID][keyIt->second].emplace_back(pControl);
+        }
 		else if (InputBindings::BUTTON_BINDINGS_BEGIN <= control && InputBindings::BUTTON_BINDINGS_END >= control)
 		{
 			IControl* pControl = AllocateControl<IControl>();

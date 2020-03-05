@@ -100,9 +100,6 @@ struct ShaderResource
     bool                mIsArgumentBufferField;
     ArgumentDescriptor  mtlArgumentDescriptors;
 #endif
-#if defined(DIRECT3D11)
-	uint32_t constant_size;
-#endif
 };
 
 struct ShaderVariable

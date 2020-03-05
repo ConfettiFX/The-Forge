@@ -22,11 +22,12 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\CommonShaderReflection.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Hooks.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12MemoryAllocator.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12Raytracing.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D12\Direct3D12ShaderReflection.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\GpuProfiler.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\ResourceLoader.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\D3D12MemoryAllocator\Direct3D12MemoryAllocator.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{DFAAEF2D-9A5E-475E-86BA-59529DD39CF3}</ProjectGuid>

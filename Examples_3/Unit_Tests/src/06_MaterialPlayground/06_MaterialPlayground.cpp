@@ -158,9 +158,7 @@ static const char* woodEnumNames[] = { "Wooden Plank 05", "Wooden Plank 06", "Wo
 static const uint32_t MATERIAL_INSTANCE_COUNT = sizeof(metalEnumNames) / sizeof(metalEnumNames[0]) - 1;
 
 const uint32_t gImageCount = 3;
-bool           gMicroProfiler = false;
-bool           bPrevToggleMicroProfiler = false;
-
+ProfileToken   gGpuProfileToken;
 //--------------------------------------------------------------------------------------------
 // STRUCT DEFINTIONS
 //--------------------------------------------------------------------------------------------
@@ -426,7 +424,6 @@ ICameraController* pCameraController = NULL;
 ICameraController* pLightView = NULL;
 TextDrawDesc       gFrameTimeDraw = TextDrawDesc(0, 0xff00ff00, 18);
 TextDrawDesc       gErrMsgDrawDesc = TextDrawDesc(0, 0xff0000ee, 18);
-GpuProfiler*       pGpuProfiler = NULL;
 GuiComponent*      pGuiWindowMain = NULL;
 GuiComponent*      pGuiWindowHairSimulation = NULL;
 GuiComponent*      pGuiWindowMaterial = NULL;
@@ -434,28 +431,6 @@ LuaManager         gLuaManager;
 ThreadSystem*      pIOThreads = NULL;
 
 VirtualJoystickUI gVirtualJoystick;
-
-//--------------------------------------------------------------------------------------------
-// RASTERIZER STATES
-//--------------------------------------------------------------------------------------------
-RasterizerState* pRasterizerStateCullNone = NULL;
-RasterizerState* pRasterizerStateCullFront = NULL;
-
-//--------------------------------------------------------------------------------------------
-// DEPTH STATES
-//--------------------------------------------------------------------------------------------
-DepthState* pDepthStateEnable = NULL;
-DepthState* pDepthStateDisable = NULL;
-DepthState* pDepthStateNoWrite = NULL;
-DepthState* pDepthStateDepthResolve = NULL;
-
-//--------------------------------------------------------------------------------------------
-// BLEND STATES
-//--------------------------------------------------------------------------------------------
-BlendState* pBlendStateAlphaBlend = NULL;
-BlendState* pBlendStateDepthPeeling = NULL;
-BlendState* pBlendStateAdd = NULL;
-BlendState* pBlendStateColorResolve = NULL;
 
 //--------------------------------------------------------------------------------------------
 // SAMPLERS
@@ -836,9 +811,6 @@ class MaterialPlayground: public IApp
 		
 		LoadModelsAndTextures();
 
-		CreateRasterizerStates();
-		CreateDepthStates();
-		CreateBlendStates();
 		CreateSamplers();
 		//CreateShaders();
 		CreateRootSignatures();
@@ -862,8 +834,8 @@ class MaterialPlayground: public IApp
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
-		initProfiler();
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
+        initProfiler();
+        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "GpuProfiler");
 
 		GuiDesc guiDesc = {};
 		float dpiScale = getDpiScale().x;
@@ -925,11 +897,13 @@ class MaterialPlayground: public IApp
 
 		// ... add more as new mateirals are introduced.
 
-		if (!initInputSystem(pWindow))
-			return false;
+        if (!initInputSystem(pWindow))
+            return false;
 
 		// App Actions
-    InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+        InputActionDesc actionDesc = { InputBindings::BUTTON_DUMP, [](InputActionContext* ctx) { dumpProfileData(((IApp*)ctx->pUserData)->GetName()); return true; }, this };
+        addInputAction(&actionDesc);
+        actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
@@ -946,7 +920,7 @@ class MaterialPlayground: public IApp
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!gMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
+			if (!gAppUI.IsFocused() && *ctx->pCaptured)
 			{
 				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
@@ -995,13 +969,8 @@ class MaterialPlayground: public IApp
 		DestroyShaders();
 
 		DestroySamplers();
-		DestroyBlendStates();
-		DestroyDepthStates();
-		DestroyRasterizerStates();
 
 		gVirtualJoystick.Exit();
-
-		removeGpuProfiler(pRenderer, pGpuProfiler);
 
 		GuiController::Exit();
 		gAppUI.Exit();
@@ -1044,7 +1013,7 @@ class MaterialPlayground: public IApp
 		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
 
-		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		waitForAllResourceLoads();
 
@@ -1057,7 +1026,7 @@ class MaterialPlayground: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		unloadProfiler();
+		unloadProfilerUI();
 		gAppUI.Unload();
 
 		gVirtualJoystick.Unload();
@@ -1069,12 +1038,6 @@ class MaterialPlayground: public IApp
 	void Update(float deltaTime)
 	{
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
-
-		if (gMicroProfiler != bPrevToggleMicroProfiler)
-		{
-      toggleProfiler();
-			bPrevToggleMicroProfiler = gMicroProfiler;
-		}
 
 		// UPDATE UI & CAMERA
 		//
@@ -1381,7 +1344,7 @@ class MaterialPlayground: public IApp
 		Cmd*                  cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
 
-		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
+		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
 		RenderTargetBarrier barriers[] =
 		{
@@ -1394,7 +1357,7 @@ class MaterialPlayground: public IApp
 
 		// DRAW DIRECTIONAL SHADOW MAP
 		//
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Shadow Pass", true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Shadow Pass");
 
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
@@ -1403,8 +1366,8 @@ class MaterialPlayground: public IApp
 		loadActions.mClearDepth.stencil = 0;
 
 		cmdBindRenderTargets(cmd, 0, NULL, pRenderTargetShadowMap, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetShadowMap->mDesc.mWidth, (float)pRenderTargetShadowMap->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, pRenderTargetShadowMap->mDesc.mWidth, pRenderTargetShadowMap->mDesc.mHeight);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTargetShadowMap->mWidth, (float)pRenderTargetShadowMap->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pRenderTargetShadowMap->mWidth, pRenderTargetShadowMap->mHeight);
 		cmdBindPipeline(cmd, pPipelineShadowPass);
 
 		if (gMaterialType != MATERIAL_HAIR)
@@ -1413,8 +1376,8 @@ class MaterialPlayground: public IApp
 
 			// DRAW THE GROUND
 			//
-			cmdBindVertexBuffer(cmd, 1, &gMeshes[MESH_CUBE]->pVertexBuffers[0], NULL);
-			cmdBindIndexBuffer(cmd, gMeshes[MESH_CUBE]->pIndexBuffer, 0);
+			cmdBindVertexBuffer(cmd, 1, &gMeshes[MESH_CUBE]->pVertexBuffers[0], &gMeshes[MESH_CUBE]->mVertexStrides[0], NULL);
+			cmdBindIndexBuffer(cmd, gMeshes[MESH_CUBE]->pIndexBuffer, gMeshes[MESH_CUBE]->mIndexType, 0);
 
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetShadow[1]);
 			cmdDrawIndexed(cmd, gMeshes[MESH_CUBE]->mIndexCount, 0, 0);
@@ -1429,8 +1392,8 @@ class MaterialPlayground: public IApp
 
 			// DRAW THE MATERIAL BALLS
 			//
-			cmdBindVertexBuffer(cmd, 1, &gMeshes[MESH_MAT_BALL]->pVertexBuffers[0], NULL);
-			cmdBindIndexBuffer(cmd, gMeshes[MESH_MAT_BALL]->pIndexBuffer, 0);
+			cmdBindVertexBuffer(cmd, 1, &gMeshes[MESH_MAT_BALL]->pVertexBuffers[0], &gMeshes[MESH_MAT_BALL]->mVertexStrides[0], NULL);
+			cmdBindIndexBuffer(cmd, gMeshes[MESH_MAT_BALL]->pIndexBuffer, gMeshes[MESH_MAT_BALL]->mIndexType, 0);
 			for (int i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
 			{
 				cmdBindDescriptorSet(cmd, 1 + MATERIAL_INSTANCE_COUNT + (gFrameIndex * MATERIAL_INSTANCE_COUNT + i), pDescriptorSetShadow[1]);
@@ -1438,30 +1401,31 @@ class MaterialPlayground: public IApp
 			}
 		}
 
-		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);	// Shadow Pass
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);	// Shadow Pass
 
 
 
 		// DRAW SKYBOX
 		//
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Skybox Pass", true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Skybox Pass");
 		loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
 		if (gDrawSkybox)    // TODO: do we need this condition?
 		{
+			const uint32_t skyboxStride = sizeof(float) * 4;
 			cmdBindPipeline(cmd, pPipelineSkybox);
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetSkybox[0]);
 			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSkybox[1]);
-			cmdBindVertexBuffer(cmd, 1, &pVertexBufferSkybox, NULL);
+			cmdBindVertexBuffer(cmd, 1, &pVertexBufferSkybox, &skyboxStride, NULL);
 			cmdDraw(cmd, 36, 0);
 		}
-		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);	// Skybox Pass
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);	// Skybox Pass
 
 
 		// DRAW THE OBJECTS W/ MATERIALS
@@ -1473,19 +1437,19 @@ class MaterialPlayground: public IApp
 
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth = pRenderTargetDepth->mDesc.mClearValue;
+		loadActions.mClearDepth = pRenderTargetDepth->mClearValue;
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 		cmdBindPipeline(cmd, pPipelineBRDF);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetBRDF[0]);
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetBRDF[1]);
 
 		// DRAW THE GROUND PLANE
 		//
-		cmdBindVertexBuffer(cmd, 1, &gMeshes[MESH_CUBE]->pVertexBuffers[0], NULL);
-		cmdBindIndexBuffer(cmd, gMeshes[MESH_CUBE]->pIndexBuffer, 0);
+		cmdBindVertexBuffer(cmd, 1, &gMeshes[MESH_CUBE]->pVertexBuffers[0], &gMeshes[MESH_CUBE]->mVertexStrides[0], NULL);
+		cmdBindIndexBuffer(cmd, gMeshes[MESH_CUBE]->pIndexBuffer, gMeshes[MESH_CUBE]->mIndexType, 0);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetBRDF[2]);
 		cmdDrawIndexed(cmd, gMeshes[MESH_CUBE]->mIndexCount, 0, 0);
 
@@ -1493,7 +1457,7 @@ class MaterialPlayground: public IApp
 		//
 		if (gMaterialType != MATERIAL_HAIR)
 		{
-			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Lighting Pass", true);
+			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Lighting Pass");
 
 			// DRAW THE LABEL PLATES
 			//
@@ -1503,8 +1467,8 @@ class MaterialPlayground: public IApp
 				cmdDrawIndexed(cmd, gMeshes[MESH_CUBE]->mIndexCount, 0, 0);
 			}
 
-			cmdBindVertexBuffer(cmd, 1, &gMeshes[MESH_MAT_BALL]->pVertexBuffers[0], NULL);
-			cmdBindIndexBuffer(cmd, gMeshes[MESH_MAT_BALL]->pIndexBuffer, 0);
+			cmdBindVertexBuffer(cmd, 1, &gMeshes[MESH_MAT_BALL]->pVertexBuffers[0], &gMeshes[MESH_MAT_BALL]->mVertexStrides[0], NULL);
+			cmdBindIndexBuffer(cmd, gMeshes[MESH_MAT_BALL]->pIndexBuffer, gMeshes[MESH_MAT_BALL]->mIndexType, 0);
 
 			// DRAW THE MATERIAL BALLS
 			//
@@ -1517,7 +1481,7 @@ class MaterialPlayground: public IApp
 			}
 #endif
 
-			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);	// Lighting Pass
+			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);	// Lighting Pass
 		}
 #if !defined(DIRECT3D11)
 		// Draw hair
@@ -1531,7 +1495,7 @@ class MaterialPlayground: public IApp
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 			// Hair simulation
-			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Hair simulation", true);
+			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Hair simulation");
 			for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 			{
 				if (!gHairTypeInfo[hairType].mInView)
@@ -1566,7 +1530,7 @@ class MaterialPlayground: public IApp
 						for (int j = 0; j < 3; ++j)
 						{
 							bufferBarriers[j].pBuffer = gHair[k].pBufferHairSimulationVertexPositions[j];
-							bufferBarriers[j].mNewState = gHair[k].pBufferHairSimulationVertexPositions[j]->mCurrentState;
+							bufferBarriers[j].mNewState = (ResourceState)gHair[k].pBufferHairSimulationVertexPositions[j]->mCurrentState;
 						}
 						cmdResourceBarrier(cmd, 3, bufferBarriers, 0, NULL, 0, NULL);
 					}
@@ -1578,7 +1542,7 @@ class MaterialPlayground: public IApp
 					for (int j = 0; j < 3; ++j)
 					{
 						bufferBarriers[j].pBuffer = gHair[k].pBufferHairSimulationVertexPositions[j];
-						bufferBarriers[j].mNewState = gHair[k].pBufferHairSimulationVertexPositions[j]->mCurrentState;
+						bufferBarriers[j].mNewState = (ResourceState)gHair[k].pBufferHairSimulationVertexPositions[j]->mCurrentState;
 					}
 					cmdResourceBarrier(cmd, 3, bufferBarriers, 0, NULL, 0, NULL);
 
@@ -1591,7 +1555,7 @@ class MaterialPlayground: public IApp
 						for (int j = 0; j < 3; ++j)
 						{
 							bufferBarriers[j].pBuffer = gHair[k].pBufferHairSimulationVertexPositions[j];
-							bufferBarriers[j].mNewState = gHair[k].pBufferHairSimulationVertexPositions[j]->mCurrentState;
+							bufferBarriers[j].mNewState = (ResourceState)gHair[k].pBufferHairSimulationVertexPositions[j]->mCurrentState;
 						}
 						cmdResourceBarrier(cmd, 3, bufferBarriers, 0, NULL, 0, NULL);
 					}
@@ -1605,7 +1569,7 @@ class MaterialPlayground: public IApp
 						for (int j = 0; j < 3; ++j)
 						{
 							bufferBarriers[j].pBuffer = gHair[k].pBufferHairSimulationVertexPositions[j];
-							bufferBarriers[j].mNewState = gHair[k].pBufferHairSimulationVertexPositions[j]->mCurrentState;
+							bufferBarriers[j].mNewState = (ResourceState)gHair[k].pBufferHairSimulationVertexPositions[j]->mCurrentState;
 						}
 
 						for (int j = 0; j < (int)gHair[k].mUniformDataHairSimulation.mLocalConstraintIterations; ++j)
@@ -1654,10 +1618,10 @@ class MaterialPlayground: public IApp
 
 				gHairTypeInfo[hairType].mPreWarm = false;
 			}
-			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 			// Draw hair - shadow map
-			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Hair rendering", true);
+			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Hair rendering");
 
 			uint32_t shadowDescriptorSetIndex[2] =
 			{
@@ -1669,7 +1633,7 @@ class MaterialPlayground: public IApp
 			BufferBarrier  bufferBarrier[1] = {};
 #endif
 
-			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Hair shadow", true);
+			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Hair shadow");
 
 			for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 			{
@@ -1689,15 +1653,15 @@ class MaterialPlayground: public IApp
 
 					loadActions.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
 					loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-					loadActions.mClearDepth = pRenderTargetHairShadows[hairType][i]->mDesc.mClearValue;
+					loadActions.mClearDepth = pRenderTargetHairShadows[hairType][i]->mClearValue;
 
 					cmdBindRenderTargets(cmd, 0, NULL, pRenderTargetHairShadows[hairType][i], &loadActions, NULL, NULL, -1, -1);
 					cmdSetViewport(
-						cmd, 0.0f, 0.0f, (float)pRenderTargetHairShadows[hairType][i]->mDesc.mWidth,
-						(float)pRenderTargetHairShadows[hairType][i]->mDesc.mHeight, 0.0f, 1.0f);
+						cmd, 0.0f, 0.0f, (float)pRenderTargetHairShadows[hairType][i]->mWidth,
+						(float)pRenderTargetHairShadows[hairType][i]->mHeight, 0.0f, 1.0f);
 					cmdSetScissor(
-						cmd, 0, 0, pRenderTargetHairShadows[hairType][i]->mDesc.mWidth,
-						pRenderTargetHairShadows[hairType][i]->mDesc.mHeight);
+						cmd, 0, 0, pRenderTargetHairShadows[hairType][i]->mWidth,
+						pRenderTargetHairShadows[hairType][i]->mHeight);
 
 					cmdBindPipeline(cmd, pPipelineHairShadow);
 					cmdBindDescriptorSet(cmd, shadowDescriptorSetIndex[0], pDescriptorSetHairShadow[0]);
@@ -1707,7 +1671,7 @@ class MaterialPlayground: public IApp
 						uint k = gHairTypeIndices[hairType][j];
 
 						cmdBindDescriptorSet(cmd, shadowDescriptorSetIndex[1], pDescriptorSetHairShadow[1]);
-						cmdBindIndexBuffer(cmd, gHair[k].pBufferTriangleIndices, 0);
+						cmdBindIndexBuffer(cmd, gHair[k].pBufferTriangleIndices, gHair[k].pGeom->mIndexType, 0);
 						cmdDrawIndexed(cmd, gHair[k].mIndexCountHair, 0, 0);
 
 						++shadowDescriptorSetIndex[1];
@@ -1720,7 +1684,7 @@ class MaterialPlayground: public IApp
 			// Draw hair - clear hair depths texture
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 #ifndef METAL
 			textureBarriers[0].pTexture = pTextureHairDepth;
@@ -1732,12 +1696,12 @@ class MaterialPlayground: public IApp
 			cmdResourceBarrier(cmd, 1, bufferBarrier, 0, NULL, 0, NULL);
 #endif
 
-			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Hair clear", true);
+			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Hair clear");
 
 			loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
 			cmdBindRenderTargets(cmd, 0, NULL, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
-			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-			cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
 			cmdBindPipeline(cmd, pPipelineHairClear);
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetHairClear);
@@ -1745,9 +1709,9 @@ class MaterialPlayground: public IApp
 
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
-			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Hair depth peeling", true);
+			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Hair depth peeling");
 
 			// Draw hair - depth peeling and alpha accumulaiton
 			textureBarriers[0].pTexture = pRenderTargetDepthPeeling->pTexture;
@@ -1755,14 +1719,14 @@ class MaterialPlayground: public IApp
 			cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 0, NULL);
 
 			loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-			loadActions.mClearColorValues[0] = pRenderTargetDepthPeeling->mDesc.mClearValue;
+			loadActions.mClearColorValues[0] = pRenderTargetDepthPeeling->mClearValue;
 			loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
 
 			cmdBindRenderTargets(cmd, 1, &pRenderTargetDepthPeeling, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
 			cmdSetViewport(
-				cmd, 0.0f, 0.0f, (float)pRenderTargetDepthPeeling->mDesc.mWidth, (float)pRenderTargetDepthPeeling->mDesc.mHeight, 0.0f,
+				cmd, 0.0f, 0.0f, (float)pRenderTargetDepthPeeling->mWidth, (float)pRenderTargetDepthPeeling->mHeight, 0.0f,
 				1.0f);
-			cmdSetScissor(cmd, 0, 0, pRenderTargetDepthPeeling->mDesc.mWidth, pRenderTargetDepthPeeling->mDesc.mHeight);
+			cmdSetScissor(cmd, 0, 0, pRenderTargetDepthPeeling->mWidth, pRenderTargetDepthPeeling->mHeight);
 
 			cmdBindPipeline(cmd, pPipelineHairDepthPeeling);
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetHairDepthPeeling[0]);
@@ -1782,7 +1746,7 @@ class MaterialPlayground: public IApp
 				{
 					uint32_t k = gHairTypeIndices[hairType][i];
 					cmdBindDescriptorSet(cmd, descriptorSetIndex, pDescriptorSetHairDepthPeeling[2]);
-					cmdBindIndexBuffer(cmd, gHair[k].pBufferTriangleIndices, 0);
+					cmdBindIndexBuffer(cmd, gHair[k].pBufferTriangleIndices, gHair[k].pGeom->mIndexType, 0);
 					cmdDrawIndexed(cmd, gHair[k].mIndexCountHair, 0, 0);
 
 					++descriptorSetIndex;
@@ -1791,9 +1755,9 @@ class MaterialPlayground: public IApp
 
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
-			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Hair depth resolve", true);
+			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Hair depth resolve");
 
 			// Draw hair - depth resolve
 #ifndef METAL
@@ -1813,9 +1777,9 @@ class MaterialPlayground: public IApp
 
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
-			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Hair fill colors", true);
+			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Hair fill colors");
 
 			// Draw hair - fill colors
 			textureBarriers[0].pTexture = pRenderTargetFillColors->pTexture;
@@ -1835,12 +1799,12 @@ class MaterialPlayground: public IApp
 				}
 			}
 
-			loadActions.mClearColorValues[0] = pRenderTargetFillColors->mDesc.mClearValue;
+			loadActions.mClearColorValues[0] = pRenderTargetFillColors->mClearValue;
 
 			cmdBindRenderTargets(cmd, 1, &pRenderTargetFillColors, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
 			cmdSetViewport(
-				cmd, 0.0f, 0.0f, (float)pRenderTargetFillColors->mDesc.mWidth, (float)pRenderTargetFillColors->mDesc.mHeight, 0.0f, 1.0f);
-			cmdSetScissor(cmd, 0, 0, pRenderTargetFillColors->mDesc.mWidth, pRenderTargetFillColors->mDesc.mHeight);
+				cmd, 0.0f, 0.0f, (float)pRenderTargetFillColors->mWidth, (float)pRenderTargetFillColors->mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pRenderTargetFillColors->mWidth, pRenderTargetFillColors->mHeight);
 
 			cmdBindPipeline(cmd, pPipelineHairFillColors);
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetHairFillColors[0]);
@@ -1863,7 +1827,7 @@ class MaterialPlayground: public IApp
 					uint32_t k = gHairTypeIndices[hairType][i];
 
 					cmdBindDescriptorSet(cmd, descriptorSetIndex, pDescriptorSetHairFillColors[3]);
-					cmdBindIndexBuffer(cmd, gHair[k].pBufferTriangleIndices, 0);
+					cmdBindIndexBuffer(cmd, gHair[k].pBufferTriangleIndices, gHair[k].pGeom->mIndexType, 0);
 					cmdDrawIndexed(cmd, gHair[k].mIndexCountHair, 0, 0);
 
 					++descriptorSetIndex;
@@ -1872,9 +1836,9 @@ class MaterialPlayground: public IApp
 
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
-			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Hair resolve colors", true);
+			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Hair resolve colors");
 
 			// Draw hair - color resolve
 			textureBarriers[0].pTexture = pRenderTargetFillColors->pTexture;
@@ -1886,27 +1850,27 @@ class MaterialPlayground: public IApp
 			loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 
 			cmdBindRenderTargets(cmd, 1, &pRenderTarget, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
-			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-			cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
 			cmdBindPipeline(cmd, pPipelineHairColorResolve);
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetHairColorResolve);
 			cmdDraw(cmd, 3, 0);
 
-			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
-			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 #if HAIR_MAX_CAPSULE_COUNT > 0
 			if (gShowCapsules)
 			{
 				cmdBindRenderTargets(cmd, 1, &pRenderTarget, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
-				cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-				cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+				cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+				cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
 				cmdBindPipeline(cmd, pPipelineShowCapsules);
-				cmdBindVertexBuffer(cmd, 1, &gMeshes[MESH_CAPSULE]->pVertexBuffers[0], NULL);
-				cmdBindIndexBuffer(cmd, gMeshes[MESH_CAPSULE]->pIndexBuffer, 0);
+				cmdBindVertexBuffer(cmd, 1, &gMeshes[MESH_CAPSULE]->pVertexBuffers[0], &gMeshes[MESH_CAPSULE]->mVertexStrides[0], NULL);
+				cmdBindIndexBuffer(cmd, gMeshes[MESH_CAPSULE]->pIndexBuffer, gMeshes[MESH_CAPSULE]->mIndexType, 0);
 				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetShowCapsule);
 
 				for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
@@ -1937,11 +1901,11 @@ class MaterialPlayground: public IApp
 		loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
 		// draw world-space text
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Text", true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Text");
 		const char** ppMaterialNames = NULL;
 		switch (GuiController::currentMaterialType)
 		{
@@ -1971,47 +1935,38 @@ class MaterialPlayground: public IApp
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 
-		static HiresTimer gTimer;
-		gTimer.GetUSec(true);
-
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 
 		// draw HUD text
-		gAppUI.DrawText(
-			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
-#ifndef METAL    // Metal doesn't support GPU profilers
-		gAppUI.DrawText(
-			cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
-			&gFrameTimeDraw);
-		gAppUI.DrawDebugGpuProfile(cmd, float2(8.0f, 90.0f), pGpuProfiler, NULL);
-#endif
+        cmdDrawCpuProfile(cmd, float2(8, 15), &gFrameTimeDraw);
+		cmdDrawGpuProfile(cmd, float2(8.0f, 40.0f), gGpuProfileToken, &gFrameTimeDraw);
 
 		if (!gbLuaScriptingSystemLoadedSuccessfully)
 		{
 			gAppUI.DrawText(cmd, float2(8, 75), "Error loading LUA scripts!", &gErrMsgDrawDesc);
 		}
-		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);	// HUD Text
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);	// HUD Text
 
 
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "UI", true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "UI");
 		gAppUI.Gui(pGuiWindowMain);
 		if (GuiController::currentMaterialType == MATERIAL_HAIR)
 			gAppUI.Gui(pGuiWindowHairSimulation);
 		else
 			gAppUI.Gui(pGuiWindowMaterial);
 
-		cmdDrawProfiler();
+		cmdDrawProfilerUI();
 
 		gAppUI.Draw(cmd);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);	// UI
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);	// UI
 
 		// PRESENT THE GFX QUEUE
 		//
 		// Transition our texture to present state
 		barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
-		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
+		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 		endCmd(cmd);
 		allCmds.push_back(cmd);
 
@@ -2064,117 +2019,6 @@ class MaterialPlayground: public IApp
 	//--------------------------------------------------------------------------------------------
 	// INIT FUNCTIONS
 	//--------------------------------------------------------------------------------------------
-	void CreateRasterizerStates()
-	{
-		RasterizerStateDesc rasterizerStateDesc = {};
-		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRasterizerStateCullNone);
-
-		rasterizerStateDesc = {};
-		rasterizerStateDesc.mCullMode = CULL_MODE_BACK;
-		addRasterizerState(pRenderer, &rasterizerStateDesc, &pRasterizerStateCullFront);
-	}
-
-	void DestroyRasterizerStates()
-	{
-		removeRasterizerState(pRasterizerStateCullNone);
-		removeRasterizerState(pRasterizerStateCullFront);
-	}
-
-	void CreateDepthStates()
-	{
-		DepthStateDesc depthStateDesc = {};
-		depthStateDesc.mDepthTest = true;
-		depthStateDesc.mDepthWrite = true;
-		depthStateDesc.mDepthFunc = CMP_LEQUAL;
-		addDepthState(pRenderer, &depthStateDesc, &pDepthStateEnable);
-
-		DepthStateDesc depthStateDisableDesc = {};
-		depthStateDisableDesc.mDepthTest = false;
-		depthStateDisableDesc.mDepthWrite = false;
-		depthStateDisableDesc.mDepthFunc = CMP_LEQUAL;
-		addDepthState(pRenderer, &depthStateDisableDesc, &pDepthStateDisable);
-
-		DepthStateDesc depthStateNoWriteDesc = {};
-		depthStateNoWriteDesc.mDepthTest = true;
-		depthStateNoWriteDesc.mDepthWrite = false;
-		depthStateNoWriteDesc.mDepthFunc = CMP_LEQUAL;
-		addDepthState(pRenderer, &depthStateNoWriteDesc, &pDepthStateNoWrite);
-
-		DepthStateDesc depthStateDepthResolveDesc = {};
-		depthStateDepthResolveDesc.mDepthTest = true;
-		depthStateDepthResolveDesc.mDepthWrite = true;
-		depthStateDepthResolveDesc.mDepthFunc = CMP_LEQUAL;
-		addDepthState(pRenderer, &depthStateDepthResolveDesc, &pDepthStateDepthResolve);
-	}
-
-	void DestroyDepthStates()
-	{
-		removeDepthState(pDepthStateEnable);
-		removeDepthState(pDepthStateDisable);
-		removeDepthState(pDepthStateNoWrite);
-		removeDepthState(pDepthStateDepthResolve);
-	}
-
-	void CreateBlendStates()
-	{
-		BlendStateDesc blendStateDesc = {};
-		blendStateDesc.mSrcFactors[0] = BC_SRC_ALPHA;
-		blendStateDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
-		blendStateDesc.mBlendModes[0] = BM_ADD;
-		blendStateDesc.mSrcAlphaFactors[0] = BC_ONE;
-		blendStateDesc.mDstAlphaFactors[0] = BC_ZERO;
-		blendStateDesc.mBlendAlphaModes[0] = BM_ADD;
-		blendStateDesc.mMasks[0] = ALL;
-		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
-		blendStateDesc.mIndependentBlend = false;
-		addBlendState(pRenderer, &blendStateDesc, &pBlendStateAlphaBlend);
-
-		BlendStateDesc blendStateDepthPeelingDesc = {};
-		blendStateDepthPeelingDesc.mSrcFactors[0] = BC_ZERO;
-		blendStateDepthPeelingDesc.mDstFactors[0] = BC_SRC_COLOR;
-		blendStateDepthPeelingDesc.mBlendModes[0] = BM_ADD;
-		blendStateDepthPeelingDesc.mSrcAlphaFactors[0] = BC_ZERO;
-		blendStateDepthPeelingDesc.mDstAlphaFactors[0] = BC_SRC_ALPHA;
-		blendStateDepthPeelingDesc.mBlendAlphaModes[0] = BM_ADD;
-		blendStateDepthPeelingDesc.mMasks[0] = RED;
-		blendStateDepthPeelingDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
-		blendStateDepthPeelingDesc.mIndependentBlend = false;
-		addBlendState(pRenderer, &blendStateDepthPeelingDesc, &pBlendStateDepthPeeling);
-
-		BlendStateDesc blendStateAddDesc = {};
-		blendStateAddDesc.mSrcFactors[0] = BC_ONE;
-		blendStateAddDesc.mDstFactors[0] = BC_ONE;
-		blendStateAddDesc.mBlendModes[0] = BM_ADD;
-		blendStateAddDesc.mSrcAlphaFactors[0] = BC_ONE;
-		blendStateAddDesc.mDstAlphaFactors[0] = BC_ONE;
-		blendStateAddDesc.mBlendAlphaModes[0] = BM_ADD;
-		blendStateAddDesc.mMasks[0] = ALL;
-		blendStateAddDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
-		blendStateAddDesc.mIndependentBlend = false;
-		addBlendState(pRenderer, &blendStateAddDesc, &pBlendStateAdd);
-
-		BlendStateDesc blendStateColorResolveDesc = {};
-		blendStateColorResolveDesc.mSrcFactors[0] = BC_ONE;
-		blendStateColorResolveDesc.mDstFactors[0] = BC_SRC_ALPHA;
-		blendStateColorResolveDesc.mBlendModes[0] = BM_ADD;
-		blendStateColorResolveDesc.mSrcAlphaFactors[0] = BC_ZERO;
-		blendStateColorResolveDesc.mDstAlphaFactors[0] = BC_ZERO;
-		blendStateColorResolveDesc.mBlendAlphaModes[0] = BM_ADD;
-		blendStateColorResolveDesc.mMasks[0] = ALL;
-		blendStateColorResolveDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
-		blendStateColorResolveDesc.mIndependentBlend = false;
-		addBlendState(pRenderer, &blendStateColorResolveDesc, &pBlendStateColorResolve);
-	}
-
-	void DestroyBlendStates()
-	{
-		removeBlendState(pBlendStateAlphaBlend);
-		removeBlendState(pBlendStateDepthPeeling);
-		removeBlendState(pBlendStateAdd);
-		removeBlendState(pBlendStateColorResolve);
-	}
-
 	void CreateSamplers()
 	{
 		SamplerDesc bilinearSamplerDesc = {};
@@ -3141,7 +2985,7 @@ class MaterialPlayground: public IApp
 		ShaderLoadDesc panoToCubeShaderDesc = {};
 		panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", NULL, 0, RD_SHADER_SOURCES };
 
-		GPUPresetLevel presetLevel = pRenderer->mGpuSettings->mGpuVendorPreset.mPresetLevel;
+		GPUPresetLevel presetLevel = pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel;
 		uint32_t       importanceSampleCounts[GPUPresetLevel::GPU_PRESET_COUNT] = { 0, 0, 64, 128, 256, 1024 };
 		uint32_t       importanceSampleCount = importanceSampleCounts[presetLevel];
 		char           importanceSampleCountBuffer[5] = {};
@@ -3248,7 +3092,7 @@ class MaterialPlayground: public IApp
 		params[0].ppTextures = &pTextureBRDFIntegrationMap;
 		updateDescriptorSet(pRenderer, 0, pDescriptorSetBRDF, 1, params);
 		cmdBindDescriptorSet(pCmd, 0, pDescriptorSetBRDF);
-		const uint32_t* pThreadGroupSize = pBRDFIntegrationShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
+		const uint32_t* pThreadGroupSize = pBRDFIntegrationShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
 		cmdDispatch(
 			pCmd, gBRDFIntegrationSize / pThreadGroupSize[0], gBRDFIntegrationSize / pThreadGroupSize[1],
 			pThreadGroupSize[2]);
@@ -3281,7 +3125,7 @@ class MaterialPlayground: public IApp
 			updateDescriptorSet(pRenderer, i, pDescriptorSetPanoToCube[1], 1, params);
 			cmdBindDescriptorSet(pCmd, i, pDescriptorSetPanoToCube[1]);
 
-			pThreadGroupSize = pPanoToCubeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
+			pThreadGroupSize = pPanoToCubeShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
 			cmdDispatch(
 				pCmd, max(1u, (uint32_t)(rootConstantData.textureSize >> i) / pThreadGroupSize[0]),
 				max(1u, (uint32_t)(rootConstantData.textureSize >> i) / pThreadGroupSize[1]), 6);
@@ -3301,7 +3145,7 @@ class MaterialPlayground: public IApp
 		params[1].ppTextures = &pTextureIrradianceMap;
 		updateDescriptorSet(pRenderer, 0, pDescriptorSetIrradiance, 2, params);
 		cmdBindDescriptorSet(pCmd, 0, pDescriptorSetIrradiance);
-		pThreadGroupSize = pIrradianceShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
+		pThreadGroupSize = pIrradianceShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
 		cmdDispatch(pCmd, gIrradianceSize / pThreadGroupSize[0], gIrradianceSize / pThreadGroupSize[1], 6);
 		/************************************************************************/
 		// Compute specular sky
@@ -3329,7 +3173,7 @@ class MaterialPlayground: public IApp
 			params[0].mUAVMipSlice = i;
 			updateDescriptorSet(pRenderer, i, pDescriptorSetSpecular[1], 1, params);
 			cmdBindDescriptorSet(pCmd, i, pDescriptorSetSpecular[1]);
-			pThreadGroupSize = pIrradianceShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
+			pThreadGroupSize = pIrradianceShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
 			cmdDispatch(
 				pCmd, max(1u, (gSpecularSize >> i) / pThreadGroupSize[0]),
 				max(1u, (gSpecularSize >> i) / pThreadGroupSize[1]), 6);
@@ -3438,7 +3282,6 @@ class MaterialPlayground: public IApp
 		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
-		skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
 		skyboxVbDesc.pData = skyBoxPoints;
 		skyboxVbDesc.ppBuffer = &pVertexBufferSkybox;
 		addResource(&skyboxVbDesc, NULL, LOAD_PRIORITY_NORMAL);
@@ -3586,7 +3429,6 @@ class MaterialPlayground: public IApp
 		jointVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		jointVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		jointVbDesc.mDesc.mSize = jointDataSize;
-		jointVbDesc.mDesc.mVertexStride = sizeof(float) * 6;
 		jointVbDesc.pData = pStagingData->pJointPoints;
 		jointVbDesc.ppBuffer = &pVertexBufferSkeletonJoint;
 		addResource(&jointVbDesc, NULL, LOAD_PRIORITY_NORMAL);
@@ -3599,7 +3441,6 @@ class MaterialPlayground: public IApp
 		boneVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		boneVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		boneVbDesc.mDesc.mSize = boneDataSize;
-		boneVbDesc.mDesc.mVertexStride = sizeof(float) * 6;
 		boneVbDesc.pData = pStagingData->pBonePoints;
 		boneVbDesc.ppBuffer = &pVertexBufferSkeletonBone;
 		addResource(&boneVbDesc, NULL, LOAD_PRIORITY_NORMAL);
@@ -4063,6 +3904,8 @@ class MaterialPlayground: public IApp
 		skeletonRenderDesc.mDrawBones = true;
 		skeletonRenderDesc.mBoneVertexBuffer = pVertexBufferSkeletonBone;
 		skeletonRenderDesc.mNumBonePoints = gVertexCountSkeletonBone;
+		skeletonRenderDesc.mBoneVertexStride = sizeof(float) * 6;
+		skeletonRenderDesc.mJointVertexStride = sizeof(float) * 6;
 
 		gSkeletonBatcher.Initialize(skeletonRenderDesc);
 
@@ -4169,62 +4012,132 @@ class MaterialPlayground: public IApp
 		graphicsPipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
 		GraphicsPipelineDesc& pipelineSettings = graphicsPipelineDesc.mGraphicsDesc;
 
+		RasterizerStateDesc rasterizerStateCullNoneDesc = {};
+		rasterizerStateCullNoneDesc.mCullMode = CULL_MODE_NONE;
+
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_BACK;
+
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = true;
+		depthStateDesc.mDepthWrite = true;
+		depthStateDesc.mDepthFunc = CMP_LEQUAL;
+
+		DepthStateDesc depthStateDisableDesc = {};
+		depthStateDisableDesc.mDepthTest = false;
+		depthStateDisableDesc.mDepthWrite = false;
+		depthStateDisableDesc.mDepthFunc = CMP_LEQUAL;
+
+		DepthStateDesc depthStateNoWriteDesc = {};
+		depthStateNoWriteDesc.mDepthTest = true;
+		depthStateNoWriteDesc.mDepthWrite = false;
+		depthStateNoWriteDesc.mDepthFunc = CMP_LEQUAL;
+
+		DepthStateDesc depthStateDepthResolveDesc = {};
+		depthStateDepthResolveDesc.mDepthTest = true;
+		depthStateDepthResolveDesc.mDepthWrite = true;
+		depthStateDepthResolveDesc.mDepthFunc = CMP_LEQUAL;
+
+		BlendStateDesc blendStateDesc = {};
+		blendStateDesc.mSrcFactors[0] = BC_SRC_ALPHA;
+		blendStateDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
+		blendStateDesc.mBlendModes[0] = BM_ADD;
+		blendStateDesc.mSrcAlphaFactors[0] = BC_ONE;
+		blendStateDesc.mDstAlphaFactors[0] = BC_ZERO;
+		blendStateDesc.mBlendAlphaModes[0] = BM_ADD;
+		blendStateDesc.mMasks[0] = ALL;
+		blendStateDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
+		blendStateDesc.mIndependentBlend = false;
+
+		BlendStateDesc blendStateDepthPeelingDesc = {};
+		blendStateDepthPeelingDesc.mSrcFactors[0] = BC_ZERO;
+		blendStateDepthPeelingDesc.mDstFactors[0] = BC_SRC_COLOR;
+		blendStateDepthPeelingDesc.mBlendModes[0] = BM_ADD;
+		blendStateDepthPeelingDesc.mSrcAlphaFactors[0] = BC_ZERO;
+		blendStateDepthPeelingDesc.mDstAlphaFactors[0] = BC_SRC_ALPHA;
+		blendStateDepthPeelingDesc.mBlendAlphaModes[0] = BM_ADD;
+		blendStateDepthPeelingDesc.mMasks[0] = RED;
+		blendStateDepthPeelingDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
+		blendStateDepthPeelingDesc.mIndependentBlend = false;
+
+		BlendStateDesc blendStateAddDesc = {};
+		blendStateAddDesc.mSrcFactors[0] = BC_ONE;
+		blendStateAddDesc.mDstFactors[0] = BC_ONE;
+		blendStateAddDesc.mBlendModes[0] = BM_ADD;
+		blendStateAddDesc.mSrcAlphaFactors[0] = BC_ONE;
+		blendStateAddDesc.mDstAlphaFactors[0] = BC_ONE;
+		blendStateAddDesc.mBlendAlphaModes[0] = BM_ADD;
+		blendStateAddDesc.mMasks[0] = ALL;
+		blendStateAddDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
+		blendStateAddDesc.mIndependentBlend = false;
+
+		BlendStateDesc blendStateColorResolveDesc = {};
+		blendStateColorResolveDesc.mSrcFactors[0] = BC_ONE;
+		blendStateColorResolveDesc.mDstFactors[0] = BC_SRC_ALPHA;
+		blendStateColorResolveDesc.mBlendModes[0] = BM_ADD;
+		blendStateColorResolveDesc.mSrcAlphaFactors[0] = BC_ZERO;
+		blendStateColorResolveDesc.mDstAlphaFactors[0] = BC_ZERO;
+		blendStateColorResolveDesc.mBlendAlphaModes[0] = BM_ADD;
+		blendStateColorResolveDesc.mMasks[0] = ALL;
+		blendStateColorResolveDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
+		blendStateColorResolveDesc.mIndependentBlend = false;
+
 		// skybox
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = NULL;
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
 		pipelineSettings.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
 		pipelineSettings.pRootSignature = pRootSignatureSkybox;
 		pipelineSettings.pShaderProgram = pShaderSkybox;
 		pipelineSettings.pVertexLayout = &skyboxVertexLayout;
-		pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
+		pipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
 		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineSkybox);
 
 		// shadow pass
 		pipelineSettings = {};
 		pipelineSettings.mPrimitiveTopo      = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount  = 0;
-		pipelineSettings.pDepthState         = pDepthStateEnable;
+		pipelineSettings.pDepthState         = &depthStateDesc;
 		pipelineSettings.pColorFormats       = NULL;
 		pipelineSettings.mSampleCount        = SAMPLE_COUNT_1;
 		pipelineSettings.mSampleQuality      = 0;
-		pipelineSettings.mDepthStencilFormat = pRenderTargetShadowMap->mDesc.mFormat;
+		pipelineSettings.mDepthStencilFormat = pRenderTargetShadowMap->mFormat;
 		pipelineSettings.pRootSignature      = pRootSignatureShadowPass;
 		pipelineSettings.pShaderProgram      = pShaderShadowPass;
 		pipelineSettings.pVertexLayout       = &gVertexLayoutDefault;
-		pipelineSettings.pRasterizerState    = pRasterizerStateCullNone;
+		pipelineSettings.pRasterizerState    = &rasterizerStateCullNoneDesc;
 		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineShadowPass);
 
 		// brdf
 		pipelineSettings = {};
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = pDepthStateEnable;
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pRenderTargetDepth->mDesc.mFormat;
+		pipelineSettings.pDepthState = &depthStateDesc;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pRenderTargetDepth->mFormat;
 		pipelineSettings.pRootSignature = pRootSignatureBRDF;
 		pipelineSettings.pShaderProgram = pShaderBRDF;
 		pipelineSettings.pVertexLayout = &gVertexLayoutDefault;
-		pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
+		pipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
 		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineBRDF);
 
 #if !defined(DIRECT3D11)
 		pipelineSettings = {};
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 0;
-		pipelineSettings.pDepthState = pDepthStateDisable;
+		pipelineSettings.pDepthState = &depthStateDisableDesc;
 		pipelineSettings.pColorFormats = NULL;
 		pipelineSettings.mSampleCount = SAMPLE_COUNT_1;
 		pipelineSettings.mSampleQuality = 0;
-		pipelineSettings.mDepthStencilFormat = pRenderTargetDepth->mDesc.mFormat;
+		pipelineSettings.mDepthStencilFormat = pRenderTargetDepth->mFormat;
 		pipelineSettings.pRootSignature = pRootSignatureHairClear;
 		pipelineSettings.pShaderProgram = pShaderHairClear;
-		pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
+		pipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
 		pipelineSettings.pBlendState = NULL;
 		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineHairClear);
 
@@ -4233,28 +4146,28 @@ class MaterialPlayground: public IApp
 		pipelineSettings = {};
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = pDepthStateNoWrite;
+		pipelineSettings.pDepthState = &depthStateNoWriteDesc;
 		pipelineSettings.pColorFormats = &depthPeelingFormat;
 		pipelineSettings.mSampleCount = SAMPLE_COUNT_1;
 		pipelineSettings.mSampleQuality = 0;
-		pipelineSettings.mDepthStencilFormat = pRenderTargetDepth->mDesc.mFormat;
+		pipelineSettings.mDepthStencilFormat = pRenderTargetDepth->mFormat;
 		pipelineSettings.pRootSignature = pRootSignatureHairDepthPeeling;
 		pipelineSettings.pShaderProgram = pShaderHairDepthPeeling;
-		pipelineSettings.pRasterizerState = pRasterizerStateCullFront;
-		pipelineSettings.pBlendState = pBlendStateDepthPeeling;
+		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
+		pipelineSettings.pBlendState = &blendStateDepthPeelingDesc;
 		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineHairDepthPeeling);
 
 		pipelineSettings = {};
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 0;
-		pipelineSettings.pDepthState = pDepthStateDepthResolve;
+		pipelineSettings.pDepthState = &depthStateDepthResolveDesc;
 		pipelineSettings.pColorFormats = NULL;
 		pipelineSettings.mSampleCount = SAMPLE_COUNT_1;
 		pipelineSettings.mSampleQuality = 0;
-		pipelineSettings.mDepthStencilFormat = pRenderTargetDepth->mDesc.mFormat;
+		pipelineSettings.mDepthStencilFormat = pRenderTargetDepth->mFormat;
 		pipelineSettings.pRootSignature = pRootSignatureHairDepthResolve;
 		pipelineSettings.pShaderProgram = pShaderHairDepthResolve;
-		pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
+		pipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
 		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineHairDepthResolve);
 
 		TinyImageFormat fillColorsFormat = TinyImageFormat_R16G16B16A16_SFLOAT;
@@ -4262,41 +4175,41 @@ class MaterialPlayground: public IApp
 		pipelineSettings = {};
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = pDepthStateNoWrite;
+		pipelineSettings.pDepthState = &depthStateNoWriteDesc;
 		pipelineSettings.pColorFormats = &fillColorsFormat;
 		pipelineSettings.mSampleCount = SAMPLE_COUNT_1;
 		pipelineSettings.mSampleQuality = 0;
-		pipelineSettings.mDepthStencilFormat = pRenderTargetDepth->mDesc.mFormat;
+		pipelineSettings.mDepthStencilFormat = pRenderTargetDepth->mFormat;
 		pipelineSettings.pRootSignature = pRootSignatureHairFillColors;
 		pipelineSettings.pShaderProgram = pShaderHairFillColors;
-		pipelineSettings.pRasterizerState = pRasterizerStateCullFront;
-		pipelineSettings.pBlendState = pBlendStateAdd;
+		pipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
+		pipelineSettings.pBlendState = &blendStateAddDesc;
 		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineHairFillColors);
 
 		pipelineSettings = {};
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = pDepthStateDisable;
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pRenderTargetDepth->mDesc.mFormat;
+		pipelineSettings.pDepthState = &depthStateDisableDesc;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pRenderTargetDepth->mFormat;
 		pipelineSettings.pRootSignature = pRootSignatureHairColorResolve;
 		pipelineSettings.pShaderProgram = pShaderHairResolveColor;
-		pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
-		pipelineSettings.pBlendState = pBlendStateColorResolve;
+		pipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
+		pipelineSettings.pBlendState = &blendStateColorResolveDesc;
 		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineHairColorResolve);
 
 		pipelineSettings = {};
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 0;
-		pipelineSettings.pDepthState = pDepthStateEnable;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pRenderTargetHairShadows[0][0]->mDesc.mFormat;
+		pipelineSettings.pDepthState = &depthStateDesc;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pRenderTargetHairShadows[0][0]->mFormat;
 		pipelineSettings.pRootSignature = pRootSignatureHairShadow;
 		pipelineSettings.pShaderProgram = pShaderHairShadow;
-		pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
+		pipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
 		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineHairShadow);
 
 		PipelineDesc computeDesc = {};
@@ -4334,30 +4247,30 @@ class MaterialPlayground: public IApp
 		pipelineSettings = {};
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = pDepthStateNoWrite;
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pRenderTargetDepth->mDesc.mFormat;
+		pipelineSettings.pDepthState = &depthStateNoWriteDesc;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pRenderTargetDepth->mFormat;
 		pipelineSettings.pRootSignature = pRootSignatureShowCapsules;
 		pipelineSettings.pShaderProgram = pShaderShowCapsules;
 		pipelineSettings.pVertexLayout = &gVertexLayoutDefault;
-		pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
-		pipelineSettings.pBlendState = pBlendStateAlphaBlend;
+		pipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
+		pipelineSettings.pBlendState = &blendStateAddDesc;
 		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineShowCapsules);
 
 		pipelineSettings = {};
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = pDepthStateEnable;
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pRenderTargetDepth->mDesc.mFormat;
+		pipelineSettings.pDepthState = &depthStateDesc;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pRenderTargetDepth->mFormat;
 		pipelineSettings.pRootSignature = pRootSignatureSkeleton;
 		pipelineSettings.pShaderProgram = pShaderSkeleton;
 		pipelineSettings.pVertexLayout = &skeletonVertexLayout;
-		pipelineSettings.pRasterizerState = pRasterizerStateCullNone;
+		pipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
 		pipelineSettings.pBlendState = NULL;
 		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineSkeleton);
 		gSkeletonBatcher.LoadPipeline(pPipelineSkeleton);
@@ -4515,7 +4428,6 @@ class MaterialPlayground: public IApp
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
         swapChainDesc.mColorClearValue.r = 0.0f;
         swapChainDesc.mColorClearValue.g = 0.0f;
@@ -4592,7 +4504,7 @@ void GuiController::UpdateDynamicUI()
 	}
 
 #if !defined(TARGET_IOS) && !defined(_DURANGO) && !defined(__ANDROID__)
-	if (pSwapChain->mDesc.mEnableVsync != gVSyncEnabled)
+	if (pSwapChain->mEnableVsync != gVSyncEnabled)
 	{
 		waitQueueIdle(pGraphicsQueue);
 		::toggleVSync(pRenderer, &pSwapChain);
@@ -4639,8 +4551,6 @@ void GuiController::AddGui()
 		RENDER_MODE_SHADED, RENDER_MODE_ALBEDO, RENDER_MODE_NORMALS, RENDER_MODE_ROUGHNESS, RENDER_MODE_METALLIC, RENDER_MODE_AO, (uint32_t)NULL
 	};
 	const uint32_t dropDownCount3 = (sizeof(renderModeNames) / sizeof(renderModeNames[0])) - 1;
-
-  pGuiWindowMain->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
 
 	// SCENE GUI
 #if !defined(TARGET_IOS) && !defined(_DURANGO) && !defined(__ANDROID__)

@@ -9,9 +9,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\GpuProfiler.cpp">
-      <Filter>Renderer</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\CommonShaderReflection.cpp">
       <Filter>Renderer</Filter>
     </ClCompile>

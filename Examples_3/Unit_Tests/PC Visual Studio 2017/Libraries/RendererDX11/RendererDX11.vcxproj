@@ -31,7 +31,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11Raytracing.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11ShaderReflection.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\GpuProfiler.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\ResourceLoader.cpp" />
   </ItemGroup>
   <ItemGroup>

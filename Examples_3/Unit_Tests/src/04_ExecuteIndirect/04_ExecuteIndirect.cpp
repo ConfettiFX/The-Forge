@@ -170,9 +170,7 @@ const uint32_t gNumAsteroidsPerSubset = (gNumAsteroids + gNumSubsets - 1) / gNum
 const uint32_t gTextureCount = 10;
 
 const uint32_t gImageCount = 3;
-bool           gMicroProfiler = false;
-bool           bPrevToggleMicroProfiler = false;
-
+ProfileToken   gGpuProfileToken;
 AsteroidSimulation      gAsteroidSim;
 eastl::vector<Subset>   gAsteroidSubsets;
 ThreadData              gThreadData[gNumSubsets];
@@ -191,7 +189,6 @@ CmdPool*    pComputeCmdPool = NULL;
 Cmd**       ppComputeCmds = NULL;
 CmdPool*    pUICmdPool = NULL;
 Cmd**       ppUICmds = NULL;
-DepthState* pDepth = NULL;
 
 SwapChain*    pSwapChain = NULL;
 RenderTarget* pDepthBuffer = NULL;
@@ -202,7 +199,6 @@ Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
 // Basic shader variables, used by instanced rendering.
 Shader*           pBasicShader = NULL;
 Pipeline*         pBasicPipeline = NULL;
-RasterizerState*  pBasicRast = NULL;
 RootSignature*    pBasicRoot = NULL;
 Sampler*          pBasicSampler = NULL;
 
@@ -224,7 +220,6 @@ Buffer*           pComputeUniformBuffer[gImageCount] = {};
 // Skybox Variables
 Shader*           pSkyBoxDrawShader = NULL;
 Pipeline*         pSkyBoxDrawPipeline = NULL;
-RasterizerState*  pSkyboxRast = NULL;
 RootSignature*    pSkyBoxRoot = NULL;
 Sampler*          pSkyBoxSampler = NULL;
 Buffer*           pSkyboxUniformBuffer[gImageCount] = { NULL };
@@ -249,7 +244,6 @@ GuiComponent*      pGui;
 ICameraController* pCameraController = NULL;
 VirtualJoystickUI gVirtualJoystick;
 
-GpuProfiler* pGpuProfiler = NULL;
 
 uint32_t gFrameIndex = 0;
 
@@ -438,20 +432,6 @@ class ExecuteIndirect: public IApp
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetDirectDraw[1]);
 
 		/* Setup Pipelines */
-
-		DepthStateDesc depthStateDesc = {};
-		depthStateDesc.mDepthTest = true;
-		depthStateDesc.mDepthWrite = true;
-		depthStateDesc.mDepthFunc = CMP_GEQUAL;
-		addDepthState(pRenderer, &depthStateDesc, &pDepth);
-
-		RasterizerStateDesc rasterizerStateDesc = {};
-		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-		RasterizerStateDesc rasterizerStateCullDesc = {};
-		rasterizerStateCullDesc.mCullMode = CULL_MODE_BACK;
-		addRasterizerState(pRenderer, &rasterizerStateCullDesc, &pBasicRast);
-		addRasterizerState(pRenderer, &rasterizerStateDesc, &pSkyboxRast);
-
 		PipelineDesc desc = {};
 		desc.mType = PIPELINE_TYPE_COMPUTE;
 		ComputePipelineDesc& computePipelineDesc = desc.mComputeDesc;
@@ -480,7 +460,6 @@ class ExecuteIndirect: public IApp
 		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		bufDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		bufDesc.mDesc.mSize = skyBoxDataSize;
-		bufDesc.mDesc.mVertexStride = sizeof(float) * 4;
 		bufDesc.pData = skyBoxPoints;
 		bufDesc.ppBuffer = &pSkyBoxVertexBuffer;
 		addResource(&bufDesc, NULL, LOAD_PRIORITY_NORMAL);
@@ -531,7 +510,6 @@ class ExecuteIndirect: public IApp
 		bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		bufDesc.mDesc.mSize = sizeof(Vertex) * (uint32_t)vertices.size();
-		bufDesc.mDesc.mVertexStride = sizeof(Vertex);
 		bufDesc.pData = vertices.data();
 		bufDesc.ppBuffer = &pAsteroidVertexBuffer;
 		addResource(&bufDesc, NULL, LOAD_PRIORITY_NORMAL);
@@ -540,7 +518,6 @@ class ExecuteIndirect: public IApp
 		bufDesc = {};
 		bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
 		bufDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		bufDesc.mDesc.mIndexType = INDEX_TYPE_UINT16;
 		bufDesc.mDesc.mSize = sizeof(uint16_t) * (uint32_t)indices.size();
 		bufDesc.pData = indices.data();
 		bufDesc.ppBuffer = &pAsteroidIndexBuffer;
@@ -652,10 +629,9 @@ class ExecuteIndirect: public IApp
 		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition += vec2(0, 40.0f * getDpiScale().x);
 		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
-		pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
 
-		initProfiler();
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
+        initProfiler();
+        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "GpuProfiler");
 
 		static const char*    enumNames[] = { "Instanced Rendering", "Execute Indirect", "Execute Indirect with GPU Compute", NULL };
 		static const uint32_t enumValues[] = { RenderingMode_Instanced, RenderingMode_ExecuteIndirect, RenderingMode_GPUUpdate, 0 };
@@ -717,7 +693,7 @@ class ExecuteIndirect: public IApp
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!gMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
+			if (!gAppUI.IsFocused() && *ctx->pCaptured)
 			{
 				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
@@ -820,8 +796,6 @@ class ExecuteIndirect: public IApp
 
 		gAppUI.Exit();
 
-		removeGpuProfiler(pRenderer, pGpuProfiler);
-
 		exitProfiler();
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -887,11 +861,8 @@ class ExecuteIndirect: public IApp
 		removeRootSignature(pRenderer, pIndirectRoot);
 		removeRootSignature(pRenderer, pComputeRoot);
 
-		removeDepthState(pDepth);
 		removeSampler(pRenderer, pSkyBoxSampler);
 		removeSampler(pRenderer, pBasicSampler);
-		removeRasterizerState(pSkyboxRast);
-		removeRasterizerState(pBasicRast);
 
 		removeCmd_n(pRenderer, gImageCount, ppCmds);
 		removeCmd_n(pRenderer, gImageCount, ppUICmds);
@@ -929,7 +900,7 @@ class ExecuteIndirect: public IApp
 		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
 
-		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		VertexLayout vertexLayout = {};
 		vertexLayout.mAttribCount = 2;
@@ -944,17 +915,27 @@ class ExecuteIndirect: public IApp
 		vertexLayout.mAttribs[1].mLocation = 1;
 		vertexLayout.mAttribs[1].mOffset = sizeof(vec4);
 
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = true;
+		depthStateDesc.mDepthWrite = true;
+		depthStateDesc.mDepthFunc = CMP_GEQUAL;
+
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+		RasterizerStateDesc rasterizerStateCullDesc = {};
+		rasterizerStateCullDesc.mCullMode = CULL_MODE_BACK;
+
 		PipelineDesc desc = {};
 		desc.mType = PIPELINE_TYPE_GRAPHICS;
 		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = pDepth;
-		pipelineSettings.pRasterizerState = pBasicRast;
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
+		pipelineSettings.pDepthState = &depthStateDesc;
+		pipelineSettings.pRasterizerState = &rasterizerStateCullDesc;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
 		pipelineSettings.pRootSignature = pBasicRoot;
 		pipelineSettings.pShaderProgram = pBasicShader;
 		pipelineSettings.pVertexLayout = &vertexLayout;
@@ -974,7 +955,7 @@ class ExecuteIndirect: public IApp
 
 		pipelineSettings.pBlendState = NULL;
 		pipelineSettings.pDepthState = NULL;
-		pipelineSettings.pRasterizerState = pSkyboxRast;
+		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
 		pipelineSettings.pRootSignature = pSkyBoxRoot;
 		pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
 		addPipeline(pRenderer, &desc, &pSkyBoxDrawPipeline);
@@ -985,9 +966,9 @@ class ExecuteIndirect: public IApp
 
 		RenderTargetDesc postProcRTDesc = {};
 		postProcRTDesc.mArraySize = 1;
-		postProcRTDesc.mClearValue = { {{0.0f, 0.0f, 0.0f, 0.0f}} };
+		postProcRTDesc.mClearValue = {{0.0f, 0.0f, 0.0f, 0.0f}};
 		postProcRTDesc.mDepth = 1;
-		postProcRTDesc.mFormat = pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
+		postProcRTDesc.mFormat = pSwapChain->ppRenderTargets[0]->mFormat;
 		postProcRTDesc.mHeight = mSettings.mHeight;
 		postProcRTDesc.mWidth = mSettings.mWidth;
 		postProcRTDesc.mSampleCount = SAMPLE_COUNT_1;
@@ -1010,7 +991,7 @@ class ExecuteIndirect: public IApp
 	{
 		waitQueueIdle(pGraphicsQueue);
 
-		unloadProfiler();
+		unloadProfilerUI();
 
 		gVirtualJoystick.Unload();
 
@@ -1036,7 +1017,7 @@ class ExecuteIndirect: public IApp
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
-		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
+		if (pSwapChain->mEnableVsync != gToggleVSync)
 		{
 			waitQueueIdle(pGraphicsQueue);
 			::toggleVSync(pRenderer, &pSwapChain);
@@ -1046,12 +1027,6 @@ class ExecuteIndirect: public IApp
 		frameTime = deltaTime;
 
 		pCameraController->update(deltaTime);
-
-    if (gMicroProfiler != bPrevToggleMicroProfiler)
-    {
-      toggleProfiler();
-      bPrevToggleMicroProfiler = gMicroProfiler;
-    }
 
 		gAppUI.Update(deltaTime);
 
@@ -1117,9 +1092,9 @@ class ExecuteIndirect: public IApp
 		// Load screen cleaning command
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-		loadActions.mClearColorValues[0] = { {{0.0f, 0.0f, 0.0f, 0.0f}} };
+		loadActions.mClearColorValues[0] = {{0.0f, 0.0f, 0.0f, 0.0f}};
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth = pDepthBuffer->mDesc.mClearValue;
+		loadActions.mClearDepth = pDepthBuffer->mClearValue;
 
 		eastl::vector<Cmd*> allCmds;
 
@@ -1128,7 +1103,7 @@ class ExecuteIndirect: public IApp
 		/************************************************************************/
 		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
-		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
+		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
 		UniformViewProj viewProjUniformData;
 		viewProjUniformData.mProjectView = viewProjMat;
@@ -1148,14 +1123,15 @@ class ExecuteIndirect: public IApp
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
 
 		cmdBindRenderTargets(cmd, 1, &pSceneRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSceneRenderTarget->mDesc.mWidth, (float)pSceneRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, pSceneRenderTarget->mDesc.mWidth, pSceneRenderTarget->mDesc.mHeight);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSceneRenderTarget->mWidth, (float)pSceneRenderTarget->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pSceneRenderTarget->mWidth, pSceneRenderTarget->mHeight);
 
         cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetSkybox[0]);
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSkybox[1]);
 
-        cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, NULL);
+		const uint32_t skyboxStride = sizeof(float) * 4;
+        cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, &skyboxStride, NULL);
 		cmdDraw(cmd, 36, 0);
 
 		endCmd(cmd);
@@ -1223,7 +1199,7 @@ class ExecuteIndirect: public IApp
 			*(UniformCompute*)computeUniformUpdate.pMappedData = computeUniformData;
 			endUpdateResource(&computeUniformUpdate, NULL);
 
-			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "GPU Culling");
+			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "GPU Culling");
 
 			// Update dynamic asteroid positions using compute shader
 			BufferBarrier uavBarrier = { pIndirectBuffer, RESOURCE_STATE_UNORDERED_ACCESS };
@@ -1234,26 +1210,27 @@ class ExecuteIndirect: public IApp
 			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetCompute[1]);
 
 			cmdDispatch(cmd, uint32_t(ceil(gNumAsteroids / 128.0f)), 1, 1);
-			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
-			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Asteroid rendering");
+			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Asteroid rendering");
 
 			BufferBarrier srvBarrier = { pIndirectBuffer, RESOURCE_STATE_INDIRECT_ARGUMENT };
 			cmdResourceBarrier(cmd, 1, &srvBarrier, 0, NULL, 0, NULL);
 
 			// Execute indirect
 			cmdBindRenderTargets(cmd, 1, &pSceneRenderTarget, pDepthBuffer, NULL, NULL, NULL, -1, -1);
-			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSceneRenderTarget->mDesc.mWidth, (float)pSceneRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-			cmdSetScissor(cmd, 0, 0, pSceneRenderTarget->mDesc.mWidth, pSceneRenderTarget->mDesc.mHeight);
+			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSceneRenderTarget->mWidth, (float)pSceneRenderTarget->mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pSceneRenderTarget->mWidth, pSceneRenderTarget->mHeight);
 
+			const uint32_t asteroidStride = sizeof(Vertex);
             cmdBindPipeline(cmd, pIndirectPipeline);
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetIndirectDraw[0]);
 			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetIndirectDraw[1]);
-			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, NULL);
-			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer, 0);
+			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, &asteroidStride, NULL);
+			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer, INDEX_TYPE_UINT16, 0);
 			cmdExecuteIndirect(cmd, pIndirectCommandSignature, gNumAsteroids, pIndirectBuffer, 0, NULL, 0);
 
-			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 			endCmd(cmd);
 			allCmds.push_back(cmd);
@@ -1271,7 +1248,7 @@ class ExecuteIndirect: public IApp
 		// create the load action here, and assign the pLoadAction pointer later on if necessary.
 		LoadActionsDesc swapChainClearAction = {};
 		swapChainClearAction.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-		swapChainClearAction.mClearColorValues[0] = pSwapchainRenderTarget->mDesc.mClearValue;
+		swapChainClearAction.mClearColorValues[0] = pSwapchainRenderTarget->mClearValue;
 
 		if (gbPaniniEnabled)
 		{
@@ -1285,30 +1262,23 @@ class ExecuteIndirect: public IApp
 
 		cmdBindRenderTargets(cmd, 1, &pSwapchainRenderTarget, NULL, pLoadAction, NULL, NULL, -1, -1);
 		cmdSetViewport(
-			cmd, 0.0f, 0.0f, (float)pSwapchainRenderTarget->mDesc.mWidth, (float)pSwapchainRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, pSwapchainRenderTarget->mDesc.mWidth, pSwapchainRenderTarget->mDesc.mHeight);
+			cmd, 0.0f, 0.0f, (float)pSwapchainRenderTarget->mWidth, (float)pSwapchainRenderTarget->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pSwapchainRenderTarget->mWidth, pSwapchainRenderTarget->mHeight);
 
 #if !defined(TARGET_IOS)
 		if (gbPaniniEnabled)
 		{
-			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Panini Projection Pass");
+			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Panini Projection Pass");
 			gPanini.Draw(cmd);
-			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 			//cmdEndRender(cmd, 1, &pSwapchainRenderTarget, NULL);
 		}
 #endif
-		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
-
-		static HiresTimer timer;
-		timer.GetUSec(true);
+		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 
-		gAppUI.DrawText(
-			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", timer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
-		gAppUI.DrawText(
-			cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
-			&gFrameTimeDraw);
+        cmdDrawCpuProfile(cmd, float2(8, 15), &gFrameTimeDraw);
 
 		char buff[256] = "";
 		char modeStr[128] = "Instanced";
@@ -1318,18 +1288,16 @@ class ExecuteIndirect: public IApp
 			strcpy(modeStr, "GPU update");
 
 		sprintf(buff, "SPACE - Rendering mode - %s", modeStr);
-		gAppUI.DrawText(cmd, float2(8, 65), buff, NULL);
+		gAppUI.DrawText(cmd, float2(8, 40), buff, NULL);
 
 #ifndef TARGET_IOS
-		gAppUI.DrawText(cmd, float2(8, 80), "F1 - Toggle UI", NULL);
+		gAppUI.DrawText(cmd, float2(8, 65), "F1 - Toggle UI", NULL);
 		gAppUI.Gui(pGui);
 #endif
 
-#ifndef METAL
-		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 110), pGpuProfiler, NULL);
-#endif
+        cmdDrawGpuProfile(cmd, float2(8, 80), gGpuProfileToken);
 
-		cmdDrawProfiler();
+		cmdDrawProfilerUI();
 		gAppUI.Draw(cmd);
 		cmdEndDebugMarker(cmd);
 
@@ -1374,7 +1342,6 @@ class ExecuteIndirect: public IApp
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
 		swapChainDesc.mEnableVsync = false;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
@@ -1741,15 +1708,16 @@ class ExecuteIndirect: public IApp
 
 			// Render all asteroids
 			cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, NULL, NULL, NULL, -1, -1);
-			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-			cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
             cmdBindPipeline(cmd, pBasicPipeline);
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetDirectDraw[0]);
 			cmdBindDescriptorSet(cmd, index, pDescriptorSetDirectDraw[1]);
             
-			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, NULL);
-			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer, 0);
+			const uint32_t asteroidStride = sizeof(Vertex);
+			cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, &asteroidStride, NULL);
+			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer, INDEX_TYPE_UINT16, 0);
 
 			for (uint32_t i = startIdx; i < endIdx; i++)
 			{
@@ -1805,15 +1773,16 @@ class ExecuteIndirect: public IApp
 
 			//// Execute Indirect Draw
 			cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, NULL, NULL, NULL, -1, -1);
-			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-			cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
             cmdBindPipeline(cmd, pIndirectPipeline);
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetIndirectDraw[0]);
 			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetIndirectDraw[1]);
 
-            cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, NULL);
-			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer, 0);
+			const uint32_t asteroidStride = sizeof(Vertex);
+            cmdBindVertexBuffer(cmd, 1, &pAsteroidVertexBuffer, &asteroidStride, NULL);
+			cmdBindIndexBuffer(cmd, pAsteroidIndexBuffer, INDEX_TYPE_UINT16, 0);
 			cmdExecuteIndirect(cmd, pIndirectSubsetCommandSignature, numToDraw, subset.pSubsetIndirect, 0, NULL, 0);
 		}
 

@@ -118,31 +118,31 @@
 		5CABF36D2141540E00EFD76A /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
 		650CCC422223C40F003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		6543D8E222931D7C0098B17B /* TitilliumText-Bold.otf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "TitilliumText-Bold.otf"; path = "../../../Unit_Tests/UnitTestResources/Fonts/TitilliumText/TitilliumText-Bold.otf"; sourceTree = "<group>"; };
-		6543D8EB22932F7A0098B17B /* Example.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Example.cpp; path = ../../../../../CustomMiddleware/Ephemeris/src/EphemerisExample/Example.cpp; sourceTree = "<group>"; };
-		6543D8F022932FC20098B17B /* SkyCommon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SkyCommon.h; path = ../../../../../CustomMiddleware/Ephemeris/Sky/src/SkyCommon.h; sourceTree = "<group>"; };
-		6543D8F122932FC20098B17B /* LocalTime.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LocalTime.h; path = ../../../../../CustomMiddleware/Ephemeris/Sky/src/LocalTime.h; sourceTree = "<group>"; };
-		6543D8F222932FC20098B17B /* Ephemeris.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Ephemeris.cpp; path = ../../../../../CustomMiddleware/Ephemeris/Sky/src/Ephemeris.cpp; sourceTree = "<group>"; };
-		6543D8F322932FC20098B17B /* Sky.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Sky.cpp; path = ../../../../../CustomMiddleware/Ephemeris/Sky/src/Sky.cpp; sourceTree = "<group>"; };
-		6543D8F422932FC20098B17B /* Ephemeris.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Ephemeris.h; path = ../../../../../CustomMiddleware/Ephemeris/Sky/src/Ephemeris.h; sourceTree = "<group>"; };
-		6543D8F522932FC20098B17B /* LocalTime.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = LocalTime.cpp; path = ../../../../../CustomMiddleware/Ephemeris/Sky/src/LocalTime.cpp; sourceTree = "<group>"; };
-		6543D8F622932FC20098B17B /* Location.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Location.h; path = ../../../../../CustomMiddleware/Ephemeris/Sky/src/Location.h; sourceTree = "<group>"; };
-		6543D8F722932FC20098B17B /* Sky.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Sky.h; path = ../../../../../CustomMiddleware/Ephemeris/Sky/src/Sky.h; sourceTree = "<group>"; };
-		6543D8FB22932FD80098B17B /* HeightData.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = HeightData.cpp; path = ../../../../../CustomMiddleware/Ephemeris/Terrain/src/HeightData.cpp; sourceTree = "<group>"; };
-		6543D8FC22932FD80098B17B /* Hemisphere.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Hemisphere.h; path = ../../../../../CustomMiddleware/Ephemeris/Terrain/src/Hemisphere.h; sourceTree = "<group>"; };
-		6543D8FD22932FD80098B17B /* HeightData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HeightData.h; path = ../../../../../CustomMiddleware/Ephemeris/Terrain/src/HeightData.h; sourceTree = "<group>"; };
-		6543D8FE22932FD90098B17B /* Terrain.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Terrain.h; path = ../../../../../CustomMiddleware/Ephemeris/Terrain/src/Terrain.h; sourceTree = "<group>"; };
-		6543D8FF22932FD90098B17B /* Terrain.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Terrain.cpp; path = ../../../../../CustomMiddleware/Ephemeris/Terrain/src/Terrain.cpp; sourceTree = "<group>"; };
-		6543D90022932FD90098B17B /* Visibility.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Visibility.h; path = ../../../../../CustomMiddleware/Ephemeris/Terrain/src/Visibility.h; sourceTree = "<group>"; };
-		6543D90322932FEB0098B17B /* VolumetricClouds.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = VolumetricClouds.cpp; path = ../../../../../CustomMiddleware/Ephemeris/VolumetricClouds/src/VolumetricClouds.cpp; sourceTree = "<group>"; };
-		6543D90422932FEB0098B17B /* VolumetricClouds.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = VolumetricClouds.h; path = ../../../../../CustomMiddleware/Ephemeris/VolumetricClouds/src/VolumetricClouds.h; sourceTree = "<group>"; };
-		6543D9292293311A0098B17B /* GenNormalMap.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = GenNormalMap.vert.metal; path = ../../../../../../../CustomMiddleware/Ephemeris/Terrain/resources/Shaders/Metal/GenNormalMap.vert.metal; sourceTree = "<group>"; };
-		6543D92A2293311A0098B17B /* terrain.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = terrain.frag.metal; path = ../../../../../../../CustomMiddleware/Ephemeris/Terrain/resources/Shaders/Metal/terrain.frag.metal; sourceTree = "<group>"; };
-		6543D92B2293311A0098B17B /* RenderTerrain.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = RenderTerrain.vert.metal; path = ../../../../../../../CustomMiddleware/Ephemeris/Terrain/resources/Shaders/Metal/RenderTerrain.vert.metal; sourceTree = "<group>"; };
-		6543D92C2293311B0098B17B /* terrain.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = terrain.vert.metal; path = ../../../../../../../CustomMiddleware/Ephemeris/Terrain/resources/Shaders/Metal/terrain.vert.metal; sourceTree = "<group>"; };
-		6543D92D2293311B0098B17B /* GenNormalMap.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = GenNormalMap.frag.metal; path = ../../../../../../../CustomMiddleware/Ephemeris/Terrain/resources/Shaders/Metal/GenNormalMap.frag.metal; sourceTree = "<group>"; };
-		6543D92E2293311B0098B17B /* LightingTerrain.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = LightingTerrain.vert.metal; path = ../../../../../../../CustomMiddleware/Ephemeris/Terrain/resources/Shaders/Metal/LightingTerrain.vert.metal; sourceTree = "<group>"; };
-		6543D92F2293311B0098B17B /* LightingTerrain.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = LightingTerrain.frag.metal; path = ../../../../../../../CustomMiddleware/Ephemeris/Terrain/resources/Shaders/Metal/LightingTerrain.frag.metal; sourceTree = "<group>"; };
-		6543D9302293311B0098B17B /* RenderTerrain.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = RenderTerrain.frag.metal; path = ../../../../../../../CustomMiddleware/Ephemeris/Terrain/resources/Shaders/Metal/RenderTerrain.frag.metal; sourceTree = "<group>"; };
+		6543D8EB22932F7A0098B17B /* Example.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Example.cpp; path = ../../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Example.cpp; sourceTree = "<group>"; };
+		6543D8F022932FC20098B17B /* SkyCommon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SkyCommon.h; path = ../../../../../Custom-Middleware/Ephemeris/Sky/src/SkyCommon.h; sourceTree = "<group>"; };
+		6543D8F122932FC20098B17B /* LocalTime.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LocalTime.h; path = ../../../../../Custom-Middleware/Ephemeris/Sky/src/LocalTime.h; sourceTree = "<group>"; };
+		6543D8F222932FC20098B17B /* Ephemeris.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Ephemeris.cpp; path = ../../../../../Custom-Middleware/Ephemeris/Sky/src/Ephemeris.cpp; sourceTree = "<group>"; };
+		6543D8F322932FC20098B17B /* Sky.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Sky.cpp; path = ../../../../../Custom-Middleware/Ephemeris/Sky/src/Sky.cpp; sourceTree = "<group>"; };
+		6543D8F422932FC20098B17B /* Ephemeris.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Ephemeris.h; path = ../../../../../Custom-Middleware/Ephemeris/Sky/src/Ephemeris.h; sourceTree = "<group>"; };
+		6543D8F522932FC20098B17B /* LocalTime.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = LocalTime.cpp; path = ../../../../../Custom-Middleware/Ephemeris/Sky/src/LocalTime.cpp; sourceTree = "<group>"; };
+		6543D8F622932FC20098B17B /* Location.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Location.h; path = ../../../../../Custom-Middleware/Ephemeris/Sky/src/Location.h; sourceTree = "<group>"; };
+		6543D8F722932FC20098B17B /* Sky.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Sky.h; path = ../../../../../Custom-Middleware/Ephemeris/Sky/src/Sky.h; sourceTree = "<group>"; };
+		6543D8FB22932FD80098B17B /* HeightData.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = HeightData.cpp; path = ../../../../../Custom-Middleware/Ephemeris/Terrain/src/HeightData.cpp; sourceTree = "<group>"; };
+		6543D8FC22932FD80098B17B /* Hemisphere.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Hemisphere.h; path = ../../../../../Custom-Middleware/Ephemeris/Terrain/src/Hemisphere.h; sourceTree = "<group>"; };
+		6543D8FD22932FD80098B17B /* HeightData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HeightData.h; path = ../../../../../Custom-Middleware/Ephemeris/Terrain/src/HeightData.h; sourceTree = "<group>"; };
+		6543D8FE22932FD90098B17B /* Terrain.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Terrain.h; path = ../../../../../Custom-Middleware/Ephemeris/Terrain/src/Terrain.h; sourceTree = "<group>"; };
+		6543D8FF22932FD90098B17B /* Terrain.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Terrain.cpp; path = ../../../../../Custom-Middleware/Ephemeris/Terrain/src/Terrain.cpp; sourceTree = "<group>"; };
+		6543D90022932FD90098B17B /* Visibility.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Visibility.h; path = ../../../../../Custom-Middleware/Ephemeris/Terrain/src/Visibility.h; sourceTree = "<group>"; };
+		6543D90322932FEB0098B17B /* VolumetricClouds.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = VolumetricClouds.cpp; path = ../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/src/VolumetricClouds.cpp; sourceTree = "<group>"; };
+		6543D90422932FEB0098B17B /* VolumetricClouds.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = VolumetricClouds.h; path = ../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/src/VolumetricClouds.h; sourceTree = "<group>"; };
+		6543D9292293311A0098B17B /* GenNormalMap.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = GenNormalMap.vert.metal; path = ../../../../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Metal/GenNormalMap.vert.metal; sourceTree = "<group>"; };
+		6543D92A2293311A0098B17B /* terrain.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = terrain.frag.metal; path = ../../../../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Metal/terrain.frag.metal; sourceTree = "<group>"; };
+		6543D92B2293311A0098B17B /* RenderTerrain.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = RenderTerrain.vert.metal; path = ../../../../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Metal/RenderTerrain.vert.metal; sourceTree = "<group>"; };
+		6543D92C2293311B0098B17B /* terrain.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = terrain.vert.metal; path = ../../../../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Metal/terrain.vert.metal; sourceTree = "<group>"; };
+		6543D92D2293311B0098B17B /* GenNormalMap.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = GenNormalMap.frag.metal; path = ../../../../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Metal/GenNormalMap.frag.metal; sourceTree = "<group>"; };
+		6543D92E2293311B0098B17B /* LightingTerrain.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = LightingTerrain.vert.metal; path = ../../../../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Metal/LightingTerrain.vert.metal; sourceTree = "<group>"; };
+		6543D92F2293311B0098B17B /* LightingTerrain.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = LightingTerrain.frag.metal; path = ../../../../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Metal/LightingTerrain.frag.metal; sourceTree = "<group>"; };
+		6543D9302293311B0098B17B /* RenderTerrain.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = RenderTerrain.frag.metal; path = ../../../../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Metal/RenderTerrain.frag.metal; sourceTree = "<group>"; };
 		6543D9432293337A0098B17B /* present.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = present.frag.metal; sourceTree = "<group>"; };
 		6543D9442293337A0098B17B /* Triangular.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = Triangular.vert.metal; sourceTree = "<group>"; };
 		6543D9452293337A0098B17B /* depthLinearization.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = depthLinearization.frag.metal; sourceTree = "<group>"; };
@@ -193,24 +193,24 @@
 		B21F76BB21420E7000DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		B26A8DA423F4CC4000C44F6B /* libgainputstatic.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libgainputstatic.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		B27859C2236757150035CBA4 /* FXAA.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = FXAA.frag.metal; sourceTree = "<group>"; };
-		B2AF9DB7235E56AA001AD833 /* MilkyWay.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = MilkyWay.frag.metal; path = ../../../../../CustomMiddleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/MilkyWay.frag.metal; sourceTree = "<group>"; };
-		B2AF9DB8235E56AA001AD833 /* Star.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Star.frag.metal; path = ../../../../../CustomMiddleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Star.frag.metal; sourceTree = "<group>"; };
-		B2AF9DB9235E56AA001AD833 /* Aurora.comp.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Aurora.comp.metal; path = ../../../../../CustomMiddleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Aurora.comp.metal; sourceTree = "<group>"; };
-		B2AF9DBA235E56AA001AD833 /* Star.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Star.vert.metal; path = ../../../../../CustomMiddleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Star.vert.metal; sourceTree = "<group>"; };
-		B2AF9DBB235E56AA001AD833 /* Sun.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Sun.vert.metal; path = ../../../../../CustomMiddleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Sun.vert.metal; sourceTree = "<group>"; };
-		B2AF9DBC235E56AA001AD833 /* Aurora.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Aurora.vert.metal; path = ../../../../../CustomMiddleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Aurora.vert.metal; sourceTree = "<group>"; };
-		B2AF9DBD235E56AA001AD833 /* MilkyWay.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = MilkyWay.vert.metal; path = ../../../../../CustomMiddleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/MilkyWay.vert.metal; sourceTree = "<group>"; };
-		B2AF9DBE235E56AB001AD833 /* Sun.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Sun.frag.metal; path = ../../../../../CustomMiddleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Sun.frag.metal; sourceTree = "<group>"; };
-		B2AF9DBF235E56AB001AD833 /* Aurora.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Aurora.frag.metal; path = ../../../../../CustomMiddleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Aurora.frag.metal; sourceTree = "<group>"; };
+		B2AF9DB7235E56AA001AD833 /* MilkyWay.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = MilkyWay.frag.metal; path = ../../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/MilkyWay.frag.metal; sourceTree = "<group>"; };
+		B2AF9DB8235E56AA001AD833 /* Star.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Star.frag.metal; path = ../../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Star.frag.metal; sourceTree = "<group>"; };
+		B2AF9DB9235E56AA001AD833 /* Aurora.comp.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Aurora.comp.metal; path = ../../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Aurora.comp.metal; sourceTree = "<group>"; };
+		B2AF9DBA235E56AA001AD833 /* Star.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Star.vert.metal; path = ../../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Star.vert.metal; sourceTree = "<group>"; };
+		B2AF9DBB235E56AA001AD833 /* Sun.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Sun.vert.metal; path = ../../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Sun.vert.metal; sourceTree = "<group>"; };
+		B2AF9DBC235E56AA001AD833 /* Aurora.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Aurora.vert.metal; path = ../../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Aurora.vert.metal; sourceTree = "<group>"; };
+		B2AF9DBD235E56AA001AD833 /* MilkyWay.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = MilkyWay.vert.metal; path = ../../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/MilkyWay.vert.metal; sourceTree = "<group>"; };
+		B2AF9DBE235E56AB001AD833 /* Sun.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Sun.frag.metal; path = ../../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Sun.frag.metal; sourceTree = "<group>"; };
+		B2AF9DBF235E56AB001AD833 /* Aurora.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Aurora.frag.metal; path = ../../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Aurora.frag.metal; sourceTree = "<group>"; };
 		B2AF9DC9235E56C3001AD833 /* volumetricCloudWithDepth.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = volumetricCloudWithDepth.frag.metal; sourceTree = "<group>"; };
 		B2AF9DCA235E56C3001AD833 /* volumetricCloud_2ndWithDepth.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = volumetricCloud_2ndWithDepth.frag.metal; sourceTree = "<group>"; };
 		B2AF9DCB235E56C3001AD833 /* volumetricCloud_2nd.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = volumetricCloud_2nd.frag.metal; sourceTree = "<group>"; };
 		B2AF9DD0235E579C001AD833 /* SpaceObjects.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = SpaceObjects.cpp; path = src/SpaceObjects.cpp; sourceTree = "<group>"; };
 		B2AF9DD1235E579C001AD833 /* SpaceObjects.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SpaceObjects.h; path = src/SpaceObjects.h; sourceTree = "<group>"; };
-		B2BF7EA022F8B2AA0095A0C8 /* Perlin.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Perlin.h; path = ../../../../../CustomMiddleware/Ephemeris/src/Perlin.h; sourceTree = "<group>"; };
-		B2BF7EA122F8B2AA0095A0C8 /* Perlin.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Perlin.cpp; path = ../../../../../CustomMiddleware/Ephemeris/src/Perlin.cpp; sourceTree = "<group>"; };
-		B2E2519722F0F1BB00E37226 /* Icosahedron.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Icosahedron.cpp; path = ../../../../../CustomMiddleware/Ephemeris/Sky/src/Icosahedron.cpp; sourceTree = "<group>"; };
-		B2E2519B22F0F1C800E37226 /* Icosahedron.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Icosahedron.h; path = ../../../../../CustomMiddleware/Ephemeris/Sky/src/Icosahedron.h; sourceTree = "<group>"; };
+		B2BF7EA022F8B2AA0095A0C8 /* Perlin.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Perlin.h; path = ../../../../../Custom-Middleware/Ephemeris/src/Perlin.h; sourceTree = "<group>"; };
+		B2BF7EA122F8B2AA0095A0C8 /* Perlin.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Perlin.cpp; path = ../../../../../Custom-Middleware/Ephemeris/src/Perlin.cpp; sourceTree = "<group>"; };
+		B2E2519722F0F1BB00E37226 /* Icosahedron.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Icosahedron.cpp; path = ../../../../../Custom-Middleware/Ephemeris/Sky/src/Icosahedron.cpp; sourceTree = "<group>"; };
+		B2E2519B22F0F1C800E37226 /* Icosahedron.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Icosahedron.h; path = ../../../../../Custom-Middleware/Ephemeris/Sky/src/Icosahedron.h; sourceTree = "<group>"; };
 		B2E562B923F57D94008479DE /* RenderSky.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; path = RenderSky.h; sourceTree = "<group>"; };
 		B2E562BA23F57D94008479DE /* RenderSky.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; path = RenderSky.vert.metal; sourceTree = "<group>"; };
 		B2E562BB23F57D94008479DE /* SkyCommon.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; path = SkyCommon.h; sourceTree = "<group>"; };
@@ -266,7 +266,7 @@
 				6543D9062293306D0098B17B /* Sky */,
 			);
 			name = Shaders;
-			path = ../../../../../CustomMiddleware/Ephemeris/src/EphemerisExample/Shaders/Metal;
+			path = ../../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Shaders/Metal;
 			sourceTree = "<group>";
 		};
 		28A5AB88201F3A44000E571F /* Fonts */ = {
@@ -379,7 +379,7 @@
 				B2E562BD23F57D94008479DE /* Space.vert.metal */,
 			);
 			name = Sky;
-			path = ../../../../../../../CustomMiddleware/Ephemeris/Sky/resources/Shaders/Metal;
+			path = ../../../../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/Metal;
 			sourceTree = "<group>";
 		};
 		6543D9072293307A0098B17B /* Terrain */ = {
@@ -395,7 +395,7 @@
 				6543D92C2293311B0098B17B /* terrain.vert.metal */,
 			);
 			name = Terrain;
-			path = ../../../../../../../CustomMiddleware/Ephemeris/Terrain/resources/Shaders/Metal;
+			path = ../../../../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Metal;
 			sourceTree = "<group>";
 		};
 		6543D908229330820098B17B /* VolumetricClouds */ = {
@@ -431,7 +431,7 @@
 				65E90DBF2294837200549B03 /* volumetricCloud.h */,
 			);
 			name = VolumetricClouds;
-			path = ../../../../../../../CustomMiddleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal;
+			path = ../../../../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal;
 			sourceTree = "<group>";
 		};
 		B2AF9DB6235E566E001AD833 /* SpaceObjects */ = {
@@ -457,7 +457,7 @@
 				B2AF9DD1235E579C001AD833 /* SpaceObjects.h */,
 			);
 			name = SpaceObjects;
-			path = ../../../../../CustomMiddleware/Ephemeris/SpaceObjects;
+			path = ../../../../../Custom-Middleware/Ephemeris/SpaceObjects;
 			sourceTree = "<group>";
 		};
 		B2FA5A2223F4CCFE00BE83C2 /* Products */ = {

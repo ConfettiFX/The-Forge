@@ -24,10 +24,6 @@
 
 #pragma once
 
-struct BufferCreateInfo;
-struct TextureCreateInfo;
-struct ResourceAllocator;
-
 void initHooks();
 
 typedef uint32_t (*PFN_HOOK_ADD_DESCRIPTIOR_HEAP)(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t numDescriptors);
@@ -36,11 +32,11 @@ typedef void (*PFN_HOOK_POST_INIT_RENDERER)(Renderer* pRenderer);
 
 typedef void (*PFN_HOOK_POST_REMOVE_RENDERER)(Renderer* pRenderer);
 
-typedef void (*PFN_HOOK_ADD_BUFFER)(Buffer* pBuffer, D3D12_RESOURCE_DESC& desc);
+typedef void (*PFN_HOOK_ADD_BUFFER)(const BufferDesc* pBuffer, D3D12_RESOURCE_DESC& desc);
 
 typedef void (*PFN_HOOK_ENABLE_DEBUG_LAYER)(Renderer* pRenderer);
 
-typedef void (*PFN_HOOK_HEAP_DESC)(uint32_t resourceAllocMemReqFlags, D3D12_HEAP_DESC& heapDesc);
+typedef void (*PFN_HOOK_HEAP_FLAGS)(DescriptorType type, D3D12_HEAP_FLAGS& flags);
 
 typedef TinyImageFormat (*PFN_HOOK_GET_RECOMMENDED_SWAP_CHAIN_FORMAT)(bool hintHDR);
 
@@ -53,10 +49,10 @@ typedef void (*PFN_HOOK_SHADER_COMPILE_FLAGS)(uint32_t& compileFlags);
 typedef void (*PFN_HOOK_RESOURCE_ALLOCATION_INFO)(D3D12_RESOURCE_ALLOCATION_INFO& info, UINT64 alignment);
 
 typedef bool (*PFN_HOOK_SPECIAL_BUFFER_ALLOCATION)(
-	Renderer* pRenderer, Buffer* pBuffer, const BufferCreateInfo* pCreateInfo, ResourceAllocator* allocator);
+	Renderer* pRenderer, const D3D12_RESOURCE_DESC* pCreateInfo, D3D12_RESOURCE_STATES startState, BufferCreationFlags flags, ID3D12Resource** res);
 
 typedef bool (*PFN_HOOK_SPECIAL_TEXTURE_ALLOCATION)(
-	Renderer* pRenderer, Texture* pBuffer, const TextureCreateInfo* pCreateInfo, ResourceAllocator* allocator);
+	Renderer* pRenderer, const D3D12_RESOURCE_DESC* pCreateInfo, const D3D12_CLEAR_VALUE* clearValue, D3D12_RESOURCE_STATES startState, TextureCreationFlags flags, ID3D12Resource** res);
 
 typedef void (*PFN_HOOK_RESOURCE_FLAGS)(D3D12_RESOURCE_FLAGS& resourceFlags, TextureCreationFlags creationFlags);
 
@@ -65,7 +61,7 @@ extern PFN_HOOK_POST_INIT_RENDERER                fnHookPostInitRenderer;
 extern PFN_HOOK_POST_REMOVE_RENDERER              fnHookPostRemoveRenderer;
 extern PFN_HOOK_ADD_BUFFER                        fnHookAddBuffer;
 extern PFN_HOOK_ENABLE_DEBUG_LAYER                fnHookEnableDebugLayer;
-extern PFN_HOOK_HEAP_DESC                         fnHookHeapDesc;
+extern PFN_HOOK_HEAP_FLAGS                        fnHookHeapFlags;
 extern PFN_HOOK_GET_RECOMMENDED_SWAP_CHAIN_FORMAT fnHookGetRecommendedSwapChainFormat;
 extern PFN_HOOK_MODIFY_SWAP_CHAIN_DESC            fnHookModifySwapChainDesc;
 extern PFN_HOOK_GET_SWAP_CHAIN_IMAGE_INDEX        fnHookGetSwapChainImageIndex;

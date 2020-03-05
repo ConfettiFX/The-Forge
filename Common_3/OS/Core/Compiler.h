@@ -65,3 +65,6 @@
 #define DEFINE_ALIGNED(def, a) alignas(a) def
 #endif
 #endif
+
+// Generates a compile error if the expression evaluates to false
+#define COMPILE_ASSERT(exp) static_assert((exp), #exp)

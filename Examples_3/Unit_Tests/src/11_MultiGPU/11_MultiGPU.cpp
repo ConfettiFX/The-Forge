@@ -76,8 +76,6 @@ struct UniformBlock
 };
 
 const uint32_t gImageCount = 3;
-bool           gMicroProfiler = false;
-bool           bPrevToggleMicroProfiler = false;
 
 const uint32_t gViewCount = 2;
 bool           gToggleVSync = false;
@@ -100,7 +98,6 @@ Semaphore*    pRenderCompleteSemaphores[gImageCount][gViewCount] = {{ NULL }};
 Buffer*       pSphereVertexBuffer[gViewCount] = { NULL };
 Buffer*       pSkyBoxVertexBuffer[gViewCount] = { NULL };
 Texture*      pSkyBoxTextures[gViewCount][6];
-GpuProfiler*  pGpuProfilers[gViewCount] = { NULL };
 RenderTarget* pRenderTargets[gImageCount][gViewCount] = {{ NULL }};
 RenderTarget* pDepthBuffers[gViewCount] = { NULL };
 
@@ -116,9 +113,6 @@ RootSignature*    pRootSignature = NULL;
 Sampler*          pSamplerSkyBox = NULL;
 DescriptorSet*    pDescriptorSetTexture[gViewCount] = { NULL };
 DescriptorSet*    pDescriptorSetUniforms[gViewCount] = { NULL };
-
-DepthState*      pDepth = NULL;
-RasterizerState* pSkyboxRast = NULL;
 
 Buffer* pProjViewUniformBuffer[gImageCount] = { NULL };
 Buffer* pSkyboxUniformBuffer[gImageCount] = { NULL };
@@ -138,6 +132,9 @@ GuiComponent* pGui;
 
 const char* pSkyBoxImageFileNames[] = { "Skybox_right1",  "Skybox_left2",  "Skybox_top3",
 										"Skybox_bottom4", "Skybox_front5", "Skybox_back6" };
+const char* pGpuProfilerNames[gViewCount] = { NULL };
+eastl::string gGpuProfilerNames[gViewCount];
+ProfileToken gGpuProfilerTokens[gViewCount];
 
 TextDrawDesc     gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 ClearValue       gClearColor; // initialization in Init
@@ -190,22 +187,24 @@ public:
 
 		initResourceLoaderInterface(pRenderer);
 
-		if (pRenderer->mSettings.mGpuMode == GPU_MODE_SINGLE && gMultiGPU)
+		if (pRenderer->mGpuMode == GPU_MODE_SINGLE && gMultiGPU)
 		{
 			LOGF(LogLevel::eWARNING, "Multi GPU will be disabled since the system only has one GPU");
 			gMultiGPU = false;
 		}
-
 		for (uint32_t i = 0; i < gViewCount; ++i)
 		{
 			QueueDesc queueDesc = {};
 			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+            queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 			queueDesc.mNodeIndex = i;
 
 			if (!gMultiGPU && i > 0)
 				pGraphicsQueue[i] = pGraphicsQueue[0];
 			else
 				addQueue(pRenderer, &queueDesc, &pGraphicsQueue[i]);
+            gGpuProfilerNames[i] = eastl::string("GpuProfiler") + eastl::to_string(i);
+            pGpuProfilerNames[i] = gGpuProfilerNames[i].c_str();
 		}
 
     if (!gAppUI.Init(pRenderer))
@@ -215,8 +214,8 @@ public:
     GuiDesc guiDesc = {};
     pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
-    initProfiler();
-		char gpu_profile_name[16] = { 0 };
+
+    initProfiler(pRenderer, pGraphicsQueue, pGpuProfilerNames, gGpuProfilerTokens, gViewCount);
 
 		for (uint32_t i = 0; i < gViewCount; ++i)
 		{
@@ -232,8 +231,6 @@ public:
 				addFence(pRenderer, &pRenderCompleteFences[frameIdx][i]);
 				addSemaphore(pRenderer, &pRenderCompleteSemaphores[frameIdx][i]);
 			}
-			sprintf(gpu_profile_name, "GpuProfiler%d", i);
-			addGpuProfiler(pRenderer, pGraphicsQueue[i], &pGpuProfilers[i], gpu_profile_name);
 		}
 
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
@@ -282,16 +279,6 @@ public:
 			}
 		}
 
-		RasterizerStateDesc rasterizerStateDesc = {};
-		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-		addRasterizerState(pRenderer, &rasterizerStateDesc, &pSkyboxRast);
-
-		DepthStateDesc depthStateDesc = {};
-		depthStateDesc.mDepthTest = true;
-		depthStateDesc.mDepthWrite = true;
-		depthStateDesc.mDepthFunc = CMP_LEQUAL;
-		addDepthState(pRenderer, &depthStateDesc, &pDepth);
-
 		// Generate sphere vertex buffer
 		if (!pSpherePoints)
 			generateSpherePoints(&pSpherePoints, &gNumberOfSpherePoints, gSphereResolution, gSphereDiameter);
@@ -301,7 +288,6 @@ public:
 		sphereVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		sphereVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		sphereVbDesc.mDesc.mSize = sphereDataSize;
-		sphereVbDesc.mDesc.mVertexStride = sizeof(float) * 6;
 		sphereVbDesc.pData = pSpherePoints;
 
 		//Generate sky box vertex buffer
@@ -336,7 +322,6 @@ public:
 		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
-		skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
 		skyboxVbDesc.pData = skyBoxPoints;
 
 		TextureLoadDesc textureDesc = {};
@@ -492,8 +477,6 @@ public:
 		gPlanetInfoData[10].mScaleMat = mat4::scale(vec3(1));
 		gPlanetInfoData[10].mColor = vec4(0.3f, 0.3f, 0.4f, 1.0f);
 
-		pGui->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
-
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
 		pGui->AddWidget(CheckboxWidget("Toggle VSync", &gToggleVSync));
 #endif
@@ -537,7 +520,7 @@ public:
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!gMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
+			if (!gAppUI.IsFocused() && *ctx->pCaptured)
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			return true;
 		};
@@ -629,9 +612,6 @@ public:
 		removeShader(pRenderer, pSkyBoxDrawShader);
 		removeRootSignature(pRenderer, pRootSignature);
 
-		removeDepthState(pDepth);
-		removeRasterizerState(pSkyboxRast);
-
 		for (uint32_t view = 0; view < gViewCount; ++view)
 		{
 			for (uint32_t i = 0; i < gImageCount; ++i)
@@ -642,7 +622,6 @@ public:
 
 			removeCmd_n(pRenderer, gImageCount, ppCmds[view]);
 			removeCmdPool(pRenderer, pCmdPool[view]);
-			removeGpuProfiler(pRenderer, pGpuProfilers[view]);
 		}
 
 		for (uint32_t view = 0; view < gViewCount; ++view)
@@ -675,7 +654,7 @@ public:
 		if (!gPanini.Load(pSwapChain->ppRenderTargets))
 			return false;
 
-		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		//layout and pipeline for sphere draw
 		VertexLayout vertexLayout = {};
@@ -691,20 +670,28 @@ public:
 		vertexLayout.mAttribs[1].mLocation = 1;
 		vertexLayout.mAttribs[1].mOffset = 3 * sizeof(float);
 
+		RasterizerStateDesc rasterizerStateDesc = {};
+		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+
+		DepthStateDesc depthStateDesc = {};
+		depthStateDesc.mDepthTest = true;
+		depthStateDesc.mDepthWrite = true;
+		depthStateDesc.mDepthFunc = CMP_LEQUAL;
+
 		PipelineDesc desc = {};
 		desc.mType = PIPELINE_TYPE_GRAPHICS;
 		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pDepthState = pDepth;
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pDepthBuffers[0]->mDesc.mFormat;
+		pipelineSettings.pDepthState = &depthStateDesc;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffers[0]->mFormat;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pSphereShader;
 		pipelineSettings.pVertexLayout = &vertexLayout;
-		pipelineSettings.pRasterizerState = pSkyboxRast;
+		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
 		addPipeline(pRenderer, &desc, &pSpherePipeline);
 
 		//layout and pipeline for skybox draw
@@ -717,7 +704,7 @@ public:
 		vertexLayout.mAttribs[0].mOffset = 0;
 
 		pipelineSettings.pDepthState = NULL;
-		pipelineSettings.pRasterizerState = pSkyboxRast;
+		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
 		pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
 		addPipeline(pRenderer, &desc, &pSkyBoxDrawPipeline);
 
@@ -737,7 +724,7 @@ public:
 		for (uint32_t i = 0; i < gViewCount; ++i)
 			waitQueueIdle(pGraphicsQueue[i]);
 
-		unloadProfiler();
+		unloadProfilerUI();
 		gPanini.Unload();
 		gAppUI.Unload();
 
@@ -758,7 +745,7 @@ public:
 		updateInputSystem(mSettings.mHeight, mSettings.mHeight);
 
 #if !defined(TARGET_IOS) && !defined(_DURANGO)
-		if (pSwapChain->mDesc.mEnableVsync != gToggleVSync)
+		if (pSwapChain->mEnableVsync != gToggleVSync)
 		{
 			waitQueueIdle(pGraphicsQueue[0]);
 			::toggleVSync(pRenderer, &pSwapChain);
@@ -829,15 +816,7 @@ public:
 		gUniformDataSky = gUniformData;
 		viewMat.setTranslation(vec3(0));
 		gUniformDataSky.mProjectView = projMat * viewMat;
-		/************************************************************************/
-		/************************************************************************/
-		// ProfileSetDisplayMode()
-		// TODO: need to change this better way 
-		if (gMicroProfiler != bPrevToggleMicroProfiler)
-		{
-		  toggleProfiler();
-		  bPrevToggleMicroProfiler = gMicroProfiler;
-		}
+
 		/************************************************************************/
 		// Update GUI
 		/************************************************************************/
@@ -849,8 +828,6 @@ public:
 
 	void Draw()
 	{
-		static HiresTimer gTimer;
-
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 
 		// Update uniform buffers
@@ -871,7 +848,6 @@ public:
 			Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex][i];
 			Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex][i];
 			Cmd*          cmd = ppCmds[i][gFrameIndex];
-			GpuProfiler*  pGpuProfiler = pGpuProfilers[i];
 
 			// simply record the screen cleaning command
 			LoadActionsDesc loadActions = {};
@@ -881,7 +857,7 @@ public:
 			loadActions.mClearDepth = gClearDepth;
 
 			beginCmd(cmd);
-			cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
+			cmdBeginGpuFrameProfile(cmd, gGpuProfilerTokens[i]);
 
 			RenderTargetBarrier barriers[] = {
 				{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
@@ -890,25 +866,27 @@ public:
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
 			cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 
-			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-			cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+			cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
 			//// draw skybox
-			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw skybox", true);
+			const uint32_t skyboxStride = sizeof(float) * 4;
+			cmdBeginGpuTimestampQuery(cmd, gGpuProfilerTokens[i], "Draw skybox");
 			cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetTexture[i]);
 			cmdBindDescriptorSet(cmd, gFrameIndex * 2 + 0, pDescriptorSetUniforms[i]);
-			cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer[i], NULL);
+			cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer[i], &skyboxStride, NULL);
 			cmdDraw(cmd, 36, 0);
-			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+			cmdEndGpuTimestampQuery(cmd, gGpuProfilerTokens[i]);
 
 			////// draw planets
-			cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Planets", true);
+			const uint32_t sphereStride = sizeof(float) * 6;
+			cmdBeginGpuTimestampQuery(cmd, gGpuProfilerTokens[i], "Draw Planets");
 			cmdBindPipeline(cmd, pSpherePipeline);
 			cmdBindDescriptorSet(cmd, gFrameIndex * 2 + 1, pDescriptorSetUniforms[i]);
-			cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer[i], NULL);
+			cmdBindVertexBuffer(cmd, 1, &pSphereVertexBuffer[i], &sphereStride, NULL);
 			cmdDrawInstanced(cmd, gNumberOfSpherePoints / 6, 0, gNumPlanets, 0);
-			cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+			cmdEndGpuTimestampQuery(cmd, gGpuProfilerTokens[i]);
 
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
@@ -919,7 +897,7 @@ public:
 
 			if (i == 0)
 			{
-				cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw Results");
+				cmdBeginGpuTimestampQuery(cmd, gGpuProfilerTokens[i], "Draw Results");
 				loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 
 				RenderTarget*  pRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
@@ -931,7 +909,7 @@ public:
 
 				cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 
-				cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Panini Projection");
+				cmdBeginGpuTimestampQuery(cmd, gGpuProfilerTokens[i], "Panini Projection");
 
 				cmdSetViewport(cmd, 0.0f, 0.0f, (float)mSettings.mWidth * 0.5f, (float)mSettings.mHeight, 0.0f, 1.0f);
 				cmdSetScissor(cmd, 0, 0, mSettings.mWidth, mSettings.mHeight);
@@ -942,55 +920,19 @@ public:
 				cmdSetScissor(cmd, 0, 0, mSettings.mWidth, mSettings.mHeight);
 				gPanini.Draw(cmd);
 
-				cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+				cmdEndGpuTimestampQuery(cmd, gGpuProfilerTokens[i]);
 
 				cmdSetViewport(cmd, 0.0f, 0.0f, (float)mSettings.mWidth, (float)mSettings.mHeight, 0.0f, 1.0f);
 
 				gAppUI.Gui(pGui);
 
-				gAppUI.DrawText(
-					cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
+                cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
+                for (uint32_t j = 0; j < gViewCount; ++j)
+                {
+                    cmdDrawGpuProfile(cmd, float2(8, 75 + (int)j * 175), gGpuProfilerTokens[j]);
+                }
 
-				if (gMultiGPU)
-				{
-					gAppUI.DrawText(
-						cmd, float2(8, 40),
-						eastl::string()
-							.sprintf("GPU %f ms", max(pGpuProfilers[0]->mCumulativeTime, pGpuProfilers[1]->mCumulativeTime) * 1000.0)
-							.c_str(),
-						&gFrameTimeDraw);
-
-					gAppUI.DrawText(
-						cmd, float2(8, 75), eastl::string().sprintf("First GPU %f ms", pGpuProfilers[0]->mCumulativeTime * 1000.0).c_str(),
-						&gFrameTimeDraw);
-					gAppUI.DrawDebugGpuProfile(cmd, float2(8, 100), pGpuProfilers[0], NULL);
-
-					gAppUI.DrawText(
-						cmd, float2(8, 275),
-						eastl::string().sprintf("Second GPU %f ms", pGpuProfilers[1]->mCumulativeTime * 1000.0).c_str(), &gFrameTimeDraw);
-					gAppUI.DrawDebugGpuProfile(cmd, float2(8, 300), pGpuProfilers[1], NULL);
-				}
-				else
-				{
-					gAppUI.DrawText(
-						cmd, float2(8, 40),
-						eastl::string()
-							.sprintf("GPU %f ms", (pGpuProfilers[0]->mCumulativeTime + pGpuProfilers[1]->mCumulativeTime) * 1000.0)
-							.c_str(),
-						&gFrameTimeDraw);
-
-					gAppUI.DrawText(
-						cmd, float2(8, 75), eastl::string().sprintf("First CMD %f ms", pGpuProfilers[0]->mCumulativeTime * 1000.0).c_str(),
-						&gFrameTimeDraw);
-					gAppUI.DrawDebugGpuProfile(cmd, float2(8, 100), pGpuProfilers[0], NULL);
-
-					gAppUI.DrawText(
-						cmd, float2(8, 275),
-						eastl::string().sprintf("Second CMD %f ms", pGpuProfilers[1]->mCumulativeTime * 1000.0).c_str(), &gFrameTimeDraw);
-					gAppUI.DrawDebugGpuProfile(cmd, float2(8, 300), pGpuProfilers[1], NULL);
-				}
-
-				cmdDrawProfiler();
+				cmdDrawProfilerUI();
 
 				gAppUI.Draw(cmd);
 
@@ -998,10 +940,10 @@ public:
 
 				barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
 				cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
-				cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+				cmdEndGpuTimestampQuery(cmd, gGpuProfilerTokens[i]);
 			}
 
-			cmdEndGpuFrameProfile(cmd, pGpuProfiler);
+			cmdEndGpuFrameProfile(cmd, gGpuProfilerTokens[i]);
 			endCmd(cmd);
 
 			if (i == 0)
@@ -1049,8 +991,6 @@ public:
 			}
 		}
 		flipProfiler();
-
-		gTimer.GetUSec(true);
 	}
 
 	const char* GetName() { return "11_MultiGPU"; }
@@ -1064,7 +1004,6 @@ public:
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
 		swapChainDesc.mEnableVsync = false;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);

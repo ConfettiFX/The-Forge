@@ -41,14 +41,8 @@ struct RootSignature;
 struct DescriptorSet;
 struct Pipeline;
 struct Sampler;
-struct RasterizerState;
-struct DepthState;
-struct BlendState;
 struct Buffer;
 struct Texture;
-
-struct GpuProfiler;
-struct GpuProfileDrawDesc;
 
 class IWidget
 {
@@ -785,6 +779,7 @@ class GuiComponent
 	float4                         mCurrentWindowRect;
 	eastl::string                  mTitle;
 	uintptr_t                      pFont;
+    float                          mAlpha;
 	// defaults to GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE
 	int32_t                        mFlags;
 
@@ -861,7 +856,7 @@ public:
 	virtual bool init(Renderer* pRenderer, uint32_t const maxDynamicUIUpdatesPerBatch) = 0;
 	virtual void exit() = 0;
 
-	virtual bool load(RenderTarget** ppRts, uint32_t count) = 0;
+	virtual bool load(RenderTarget** pRts, uint32_t count) = 0;
 	virtual void unload() = 0;
 
 	// For GUI with custom shaders not necessary in a normal application
@@ -940,8 +935,6 @@ class UIApp: public IMiddleware
 	//
 	void DrawTextInWorldSpace(Cmd* pCmd, const char* pText, const mat4& matWorld, const mat4& matProjView, const TextDrawDesc* pDrawDesc = NULL);
 
-	void DrawDebugGpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, GpuProfiler* pGpuProfiler, const GpuProfileDrawDesc* pDrawDesc = NULL);
-
 	bool    OnText(const wchar_t* pText) { return pDriver->onText(pText); }
 	bool    OnButton(uint32_t button, bool press, const float2* vec) { return pDriver->onButton(button, press, vec); }
     uint8_t WantTextInput() { return pDriver->wantTextInput(); }
@@ -991,9 +984,6 @@ private:
 	Pipeline*         pPipeline;
 	Texture*          pTexture;
 	Sampler*          pSampler;
-	BlendState*       pBlendAlpha;
-	DepthState*       pDepthState;
-	RasterizerState*  pRasterizerState;
 	Buffer*           pMeshBuffer;
 	float2            mRenderSize;
 	//input related

@@ -55,7 +55,7 @@ public:
 	bool init(Renderer* pRenderer, uint32_t width, uint32_t height);
 	void exit();
 
-	bool load(RenderTarget** ppRts, uint32_t count);
+	bool load(RenderTarget** pRts, uint32_t count);
 	void unload();
 
 	//! Makes a font available to the font stash.

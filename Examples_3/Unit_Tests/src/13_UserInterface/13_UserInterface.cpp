@@ -68,8 +68,6 @@ Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
 
 Texture*	  pSpriteTexture = NULL;
 
-DepthState* pDepth = NULL;
-
 //Buffer*			pProjViewUniformBuffer[gImageCount] = { NULL };
 uint32_t gFrameIndex = 0;
 
@@ -244,14 +242,6 @@ public:
 		addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		waitForAllResourceLoads();
-
-		// INITIALIZE PIPILINE STATES
-		//
-		DepthStateDesc depthStateDesc = {};
-		depthStateDesc.mDepthTest = true;
-		depthStateDesc.mDepthWrite = true;
-		depthStateDesc.mDepthFunc = CMP_LEQUAL;
-		addDepthState(pRenderer, &depthStateDesc, &pDepth);
 
 		// INITIALIZE THE USER INTERFACE
 		//
@@ -437,8 +427,6 @@ public:
 
 		removeResource(pSpriteTexture);
 
-		removeDepthState(pDepth);
-
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			removeFence(pRenderer, pRenderCompleteFences[i]);
@@ -527,8 +515,8 @@ public:
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		loadActions.mClearColorValues[0] = clearVal;
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
 		//
 		// world's draw logic goes here - this is a UI unit test so we don't do any world rendering.
@@ -581,7 +569,6 @@ public:
 		swapChainDesc.mWidth = mSettings.mWidth;
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
 		swapChainDesc.mEnableVsync = false;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);

@@ -33,6 +33,7 @@
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
 #include "../../../../Common_3/OS/Interfaces/IApp.h"
 #include "../../../../Common_3/OS/Interfaces/ILog.h"
+#include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Common_3/OS/Interfaces/IFileSystem.h"
 #include "../../../../Common_3/OS/Interfaces/IThread.h"
 #include "../../../../Common_3/OS/Core/ThreadSystem.h"
@@ -42,11 +43,6 @@
 #include "../../../../Common_3/Renderer/IRenderer.h"
 #include "../../../../Common_3/Renderer/IResourceLoader.h"
 #include "../../../../Common_3/OS/Core/RingBuffer.h"
-//GPU Profiler
-#include "../../../../Common_3/Renderer/GpuProfiler.h"
-
-
-#include "../../../../Common_3/ThirdParty/OpenSource/MicroProfile/ProfilerBase.h"
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
@@ -97,7 +93,6 @@ struct
 {
 	bool mHoldFilteredTriangles = false;
 	bool mIsGeneratingSDF = false;
-	bool mMicroProfiler = false;
 	bool mToggleVsync = false;
 }gAppSettings;
 
@@ -332,9 +327,6 @@ Texture* pTextureSkybox = NULL;
 Buffer* pBufferSkyboxVertex = NULL;
 Buffer* pBufferSkyboxUniform[gImageCount] = { NULL };
 Buffer* pBufferQuadVertex = NULL;
-Buffer* pBufferBoxIndex = NULL;
-
-
 
 const float gQuadVertices[] ={
 	// positions   // texCoords
@@ -513,22 +505,8 @@ Sampler* pSamplerComparisonShadow = NULL;
 Sampler* pSamplerMiplessClampToBorderNear = NULL;
 Sampler* pSamplerLinearRepeat = NULL;
 /************************************************************************/
-// Rasterizer states
-/************************************************************************/
-RasterizerState* pRasterizerStateCullFront = NULL;
-RasterizerState* pRasterizerStateCullNone = NULL;
-RasterizerState* pRasterizerStateNonBiasCullFront = NULL;
-RasterizerState* pRasterizerStateCullBack = NULL;
-
-/************************************************************************/
-// Blend states
-/************************************************************************/
-BlendState* pBlendStateSkyBox = NULL;
-
-/************************************************************************/
 // Constant buffers
 /************************************************************************/
-
 Buffer* pBufferMeshTransforms[MESH_COUNT][gImageCount] = { {NULL} };
 Buffer* pBufferMeshShadowProjectionTransforms[MESH_COUNT][gImageCount] = { {NULL} };
 
@@ -589,17 +567,6 @@ RenderTarget* pRenderTargetUpSampleSDFShadow = NULL;
 Texture* pTextureSDFVolumeAtlas = NULL;
 
 Buffer* pBufferSDFVolumeAtlas[gImageCount] = { NULL };
-
-/************************************************************************/
-// Depth State
-/************************************************************************/
-DepthState* pDepthStateEnable = NULL;
-DepthState* pDepthStateDisable = NULL;
-DepthState* pDepthStateTestOnly = NULL;
-DepthState* pDepthStateStencilShadow = NULL;
-DepthState* pDepthStateLEQUALEnable = NULL;
-
-
 /************************************************************************/
 // Bindless texture array
 /************************************************************************/
@@ -652,7 +619,6 @@ bool gBufferUpdateSDFMeshConstantFlags[3] = { true, true, true };
 
 // Constants
 uint32_t					gFrameIndex = 0;
-GpuProfiler*				pGpuProfilerGraphics = NULL;
 
 RenderSettingsUniformData gRenderSettings;
 
@@ -697,6 +663,7 @@ GuiComponent* pGuiWindow = NULL;
 GuiComponent* pUIASMDebugTexturesWindow = NULL;
 GuiComponent* pLoadingGui = NULL;
 TextDrawDesc  gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+ProfileToken gGpuProfileToken;
 
 Renderer* pRenderer = NULL;
 
@@ -709,8 +676,6 @@ Fence*     pRenderCompleteFences[gImageCount] = { NULL };
 Fence*     pTransitionFences = NULL;
 Semaphore* pImageAcquiredSemaphore = NULL;
 Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
-
-HiresTimer gTimer;
 
 uint32_t gCurrentShadowType = SHADOW_TYPE_ASM;
 
@@ -726,7 +691,7 @@ static void setRenderTarget(
 		// sets the rectangles to match with first attachment, I know that it's not very portable.
 		RenderTarget* pSizeTarget = pDepthStencilTarget ? pDepthStencilTarget : pDestinationRenderTargets[0];
 		cmdSetViewport(cmd, viewPortLoc.getX(), viewPortLoc.getY(), viewPortSize.getX(), viewPortSize.getY(), 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, pSizeTarget->mDesc.mWidth, pSizeTarget->mDesc.mHeight);
+		cmdSetScissor(cmd, 0, 0, pSizeTarget->mWidth, pSizeTarget->mHeight);
 	}
 }
 
@@ -741,8 +706,8 @@ static void setRenderTarget(
 	{
 		cmdBindRenderTargets(cmd, count, pDestinationRenderTargets, pDepthStencilTarget, loadActions, NULL, NULL, -1, -1);
 		RenderTarget* pSizeTarget = pDepthStencilTarget ? pDepthStencilTarget : pDestinationRenderTargets[0];
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSizeTarget->mDesc.mWidth, (float)pSizeTarget->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, pSizeTarget->mDesc.mWidth, pSizeTarget->mDesc.mHeight);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSizeTarget->mWidth, (float)pSizeTarget->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pSizeTarget->mWidth, pSizeTarget->mHeight);
 	}
 }
 
@@ -2283,7 +2248,6 @@ struct ASMRendererContext
 {
 	Renderer* m_pRenderer;
 	Cmd* m_pCmd;
-	GpuProfiler* m_pGpuProfiler;
 };
 
 
@@ -2694,8 +2658,8 @@ public:
 		ASMRendererContext* rendererContext = context.m_pRendererContext;
 		Cmd* pCurCmd = rendererContext->m_pCmd;
 
-		uint32_t workBufferWidth = demWorkBufferColor->mDesc.mWidth;
-		uint32_t workBufferHeight = demWorkBufferColor->mDesc.mHeight;
+		uint32_t workBufferWidth = demWorkBufferColor->mWidth;
+		uint32_t workBufferHeight = demWorkBufferColor->mHeight;
 		uint32_t numTilesW = workBufferWidth / gs_ASMDEMTileSize;
 		uint32_t numTilesH = workBufferHeight / gs_ASMDEMTileSize;
 		uint32_t maxTilesPerPass = numTilesW * numTilesH;
@@ -2764,20 +2728,20 @@ public:
 
 
 				LoadActionsDesc clearDEMLoadActions = {};
-				clearDEMLoadActions.mClearColorValues[0] = pRenderTargetASMDEMAtlas->mDesc.mClearValue;
+				clearDEMLoadActions.mClearColorValues[0] = pRenderTargetASMDEMAtlas->mClearValue;
 				clearDEMLoadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 				clearDEMLoadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 				clearDEMLoadActions.mLoadActionStencil = LOAD_ACTION_DONTCARE;
 
 				setRenderTarget(pCurCmd, 1, &pRenderTargetASMDEMAtlas, NULL, &clearDEMLoadActions,
-					vec2(0.f, 0.f), vec2((float)pRenderTargetASMDEMAtlas->pTexture->mDesc.mWidth, (float)pRenderTargetASMDEMAtlas->pTexture->mDesc.mHeight));
+					vec2(0.f, 0.f), vec2((float)pRenderTargetASMDEMAtlas->pTexture->mWidth, (float)pRenderTargetASMDEMAtlas->pTexture->mHeight));
 
 				setRenderTarget(pCurCmd, 0, NULL, NULL, NULL, vec2(0.f), vec2(0.f));
 				mDEMFirstTimeRender = false;
 			}
 #endif
 
-			cmdBeginGpuTimestampQuery(pCurCmd, rendererContext->m_pGpuProfiler, "DEM Atlas To Color", true);
+			cmdBeginGpuTimestampQuery(pCurCmd, gGpuProfileToken, "DEM Atlas To Color");
 
 			RenderTargetBarrier asmAtlasToColorBarrier[] = {
 				{  demWorkBufferColor, RESOURCE_STATE_RENDER_TARGET },
@@ -2786,17 +2750,17 @@ public:
 			cmdResourceBarrier(pCurCmd, 0, NULL, 0, NULL, 2, asmAtlasToColorBarrier);
 
 			LoadActionsDesc atlasToColorLoadAction = {};
-			atlasToColorLoadAction.mClearColorValues[0] = demWorkBufferColor->mDesc.mClearValue;
+			atlasToColorLoadAction.mClearColorValues[0] = demWorkBufferColor->mClearValue;
 			atlasToColorLoadAction.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 			//atlasToColorLoadAction.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
-			atlasToColorLoadAction.mClearDepth = pRenderTargetASMDepthAtlas->mDesc.mClearValue;
+			atlasToColorLoadAction.mClearDepth = pRenderTargetASMDepthAtlas->mClearValue;
 			atlasToColorLoadAction.mLoadActionStencil = LOAD_ACTION_DONTCARE;
 			atlasToColorLoadAction.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 
 			setRenderTarget(pCurCmd, 1, &demWorkBufferColor, NULL,
 				&atlasToColorLoadAction, vec2(0.f, 0.f),
-				vec2((float)demWorkBufferColor->mDesc.mWidth,
-				(float)demWorkBufferColor->mDesc.mHeight));
+				vec2((float)demWorkBufferColor->mWidth,
+				(float)demWorkBufferColor->mHeight));
 
 			//GenerateDEMAtlasToColorRenderData& atlasToColorRenderData = gASMTickData.mDEMAtlasToColorRenderData;
 
@@ -2816,14 +2780,14 @@ public:
 
 			cmdBindRenderTargets(pCurCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-			cmdEndGpuTimestampQuery(pCurCmd, rendererContext->m_pGpuProfiler, NULL);
+			cmdEndGpuTimestampQuery(pCurCmd, gGpuProfileToken);
 
-			cmdBeginGpuTimestampQuery(pCurCmd, rendererContext->m_pGpuProfiler, "DEM Color To Atlas", true);
+			cmdBeginGpuTimestampQuery(pCurCmd, gGpuProfileToken, "DEM Color To Atlas");
 
 			LoadActionsDesc colorToAtlasLoadAction = {};
-			colorToAtlasLoadAction.mClearColorValues[0] = pRenderTargetASMDEMAtlas->mDesc.mClearValue;
+			colorToAtlasLoadAction.mClearColorValues[0] = pRenderTargetASMDEMAtlas->mClearValue;
 			colorToAtlasLoadAction.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
-			colorToAtlasLoadAction.mClearDepth = pRenderTargetASMDEMAtlas->mDesc.mClearValue;
+			colorToAtlasLoadAction.mClearDepth = pRenderTargetASMDEMAtlas->mClearValue;
 			colorToAtlasLoadAction.mLoadActionStencil = LOAD_ACTION_DONTCARE;
 			colorToAtlasLoadAction.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 
@@ -2835,8 +2799,8 @@ public:
 			cmdResourceBarrier(pCurCmd, 0, NULL, 0, NULL, 2, asmColorToAtlasBarriers);
 
 			setRenderTarget(pCurCmd, 1, &pRenderTargetASMDEMAtlas, NULL,
-				&colorToAtlasLoadAction, vec2(0.f, 0.f), vec2((float)pRenderTargetASMDEMAtlas->mDesc.mWidth,
-				(float)pRenderTargetASMDEMAtlas->mDesc.mHeight));
+				&colorToAtlasLoadAction, vec2(0.f, 0.f), vec2((float)pRenderTargetASMDEMAtlas->mWidth,
+				(float)pRenderTargetASMDEMAtlas->mHeight));
 
 			cmdBindPipeline(pCurCmd, pPipelineASMDEMColorToAtlas);
 
@@ -2859,7 +2823,7 @@ public:
 
 			cmdBindRenderTargets(pCurCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-			cmdEndGpuTimestampQuery(pCurCmd, rendererContext->m_pGpuProfiler, NULL);
+			cmdEndGpuTimestampQuery(pCurCmd, gGpuProfileToken);
 		}
 
 		conf_free(atlasToBulkQuads);
@@ -2882,10 +2846,9 @@ public:
 		ASMSShadowMapRenderContext& renderContext)
 	{
 		Cmd* pCurCmd = renderContext.m_pRendererContext->m_pCmd;
-		
 
-		cmdBindIndexBuffer(pCurCmd,  pBufferFilteredIndex[gFrameIndex][VIEW_SHADOW], 0);
-			   
+		cmdBindIndexBuffer(pCurCmd, pBufferFilteredIndex[gFrameIndex][VIEW_SHADOW], INDEX_TYPE_UINT32, 0);
+
 		cmdSetViewport(pCurCmd,
 			static_cast<float>(viewPortLoc.getX()),
 			static_cast<float>(viewPortLoc.getY()),
@@ -2904,7 +2867,7 @@ public:
 		endUpdateResource(&updateDesc, NULL);
 
 		cmdBindPipeline(pCurCmd, pPipelineIndirectDepthPass);
-		cmdBindVertexBuffer(pCurCmd, 1, &pGeom->pVertexBuffers[0], NULL);
+		cmdBindVertexBuffer(pCurCmd, 1, &pGeom->pVertexBuffers[0], pGeom->mVertexStrides, NULL);
 
 		cmdBindDescriptorSet(pCurCmd, 0, pDescriptorSetVBPass[0]);
 		cmdBindDescriptorSet(pCurCmd, gFrameIndex, pDescriptorSetVBPass[1]);
@@ -2921,14 +2884,11 @@ public:
 		cmdBindPipeline(pCurCmd, pPipelineIndirectAlphaDepthPass);
 		Buffer* pVertexBuffersPosTex[] = { pGeom->pVertexBuffers[0],
 			pGeom->pVertexBuffers[1] };
-		cmdBindVertexBuffer(pCurCmd, 2, pVertexBuffersPosTex, NULL);
+		cmdBindVertexBuffer(pCurCmd, 2, pVertexBuffersPosTex, pGeom->mVertexStrides, NULL);
 		
-#if defined(METAL) || defined(ORBIS)
-		// #TODO: Automate this inside the Metal renderer
 		cmdBindDescriptorSet(pCurCmd, 0, pDescriptorSetVBPass[0]);
 		cmdBindDescriptorSet(pCurCmd, gFrameIndex, pDescriptorSetVBPass[1]);
 		cmdBindDescriptorSet(pCurCmd, gFrameIndex * 3 + 2, pDescriptorSetVBPass[2]);
-#endif
 
 		cmdExecuteIndirect(
 			pCurCmd, pCmdSignatureVBPass,
@@ -4021,7 +3981,7 @@ private:
 		if (mFirstTimeRender)
 		{
 			loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-			loadActions.mClearColorValues[0] = m_indirectionTexturesMips[m_cfg.m_maxRefinement]->mDesc.mClearValue;
+			loadActions.mClearColorValues[0] = m_indirectionTexturesMips[m_cfg.m_maxRefinement]->mClearValue;
 			mFirstTimeRender = false;
 		}
 #endif
@@ -4063,8 +4023,8 @@ private:
 
 			setRenderTarget(curRendererContext->m_pCmd, 1, &m_indirectionTexturesMips[mip],
 				NULL, &loadActions, vec2(0.f),
-				vec2((float)m_indirectionTexturesMips[mip]->mDesc.mWidth,
-				(float)m_indirectionTexturesMips[mip]->mDesc.mHeight)
+				vec2((float)m_indirectionTexturesMips[mip]->mWidth,
+				(float)m_indirectionTexturesMips[mip]->mHeight)
 			);
 
 			//------------------Clear ASM indirection quad
@@ -4112,8 +4072,8 @@ private:
 		loadActions.mLoadActionStencil = LOAD_ACTION_DONTCARE;
 
 		setRenderTarget(pCurCmd, 1, &lodClampTexture, NULL, &loadActions,
-			vec2(0.f, 0.f), vec2((float)lodClampTexture->mDesc.mWidth,
-			(float)lodClampTexture->mDesc.mHeight));
+			vec2(0.f, 0.f), vec2((float)lodClampTexture->mWidth,
+			(float)lodClampTexture->mHeight));
 
 
 		BufferUpdateDesc updateBufferDesc = { pBufferASMLodClampPackedQuadsUniform[gFrameIndex] };
@@ -4152,8 +4112,8 @@ void ASMTileCache::RenderTiles(
 	Cmd* pCurCmd = curRendererContext->m_pCmd;
 	//Renderer* pRenderer = curRendererContext->m_pRenderer;
 
-	uint32_t workBufferWidth = workBufferDepth->mDesc.mWidth;
-	uint32_t workBufferHeight = workBufferDepth->mDesc.mHeight;
+	uint32_t workBufferWidth = workBufferDepth->mWidth;
+	uint32_t workBufferHeight = workBufferDepth->mHeight;
 	uint32_t numTilesW = workBufferWidth / gs_ASMTileSize;
 	uint32_t numTilesH = workBufferHeight / gs_ASMTileSize;
 	uint32_t maxTilesPerPass = numTilesW * numTilesH;
@@ -4175,7 +4135,7 @@ void ASMTileCache::RenderTiles(
 		uint32_t tilesToRender = min(maxTilesPerPass, numTiles - i);
 
 		LoadActionsDesc loadActions = {};
-		loadActions.mClearDepth = workBufferDepth->mDesc.mClearValue;
+		loadActions.mClearDepth = workBufferDepth->mClearValue;
 		loadActions.mLoadActionStencil = LOAD_ACTION_CLEAR;
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
 
@@ -4188,7 +4148,7 @@ void ASMTileCache::RenderTiles(
 			cmdResourceBarrier(pCurCmd, 1, bufferBarriers, 0, NULL, 1, textureBarriers);
 
 			setRenderTarget(context.m_pRendererContext->m_pCmd, 0, NULL,
-				workBufferDepth, &loadActions, vec2(0.f, 0.f), vec2((float)workBufferDepth->mDesc.mWidth, (float)workBufferDepth->mDesc.mHeight));
+				workBufferDepth, &loadActions, vec2(0.f, 0.f), vec2((float)workBufferDepth->mWidth, (float)workBufferDepth->mHeight));
 		}
 
 		for (uint32_t j = 0; j < tilesToRender; ++j)
@@ -4250,7 +4210,7 @@ void ASMTileCache::RenderTiles(
 		cmdResourceBarrier(pCurCmd, 0, NULL, 0, NULL, 2, copyDepthBarrier);
 
 		LoadActionsDesc copyDepthQuadLoadAction = {};
-		copyDepthQuadLoadAction.mClearColorValues[0] = pRenderTargetASMDepthAtlas->mDesc.mClearValue;
+		copyDepthQuadLoadAction.mClearColorValues[0] = pRenderTargetASMDepthAtlas->mClearValue;
 		copyDepthQuadLoadAction.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
 
 #if defined(_DURANGO)
@@ -4261,14 +4221,14 @@ void ASMTileCache::RenderTiles(
 	}
 #endif
 
-		copyDepthQuadLoadAction.mClearDepth = pRenderTargetASMDepthAtlas->mDesc.mClearValue;
+		copyDepthQuadLoadAction.mClearDepth = pRenderTargetASMDepthAtlas->mClearValue;
 		copyDepthQuadLoadAction.mLoadActionStencil = LOAD_ACTION_DONTCARE;
 
 		copyDepthQuadLoadAction.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 
 		setRenderTarget(pCurCmd, 1, &pRenderTargetASMDepthAtlas, NULL,
 			&copyDepthQuadLoadAction, vec2(0.f, 0.f),
-			vec2((float)pRenderTargetASMDepthAtlas->mDesc.mWidth, (float)pRenderTargetASMDepthAtlas->mDesc.mHeight));
+			vec2((float)pRenderTargetASMDepthAtlas->mWidth, (float)pRenderTargetASMDepthAtlas->mHeight));
 
 		ASMAtlasQuadsUniform asmAtlasQuadsData = {};
 		//WARNING: only using one buffer, but there is a possibility of multiple tile copying
@@ -4308,16 +4268,16 @@ void ASMTileCache::RenderTiles(
 		cmdResourceBarrier(pCurCmd, 0, NULL, 0, NULL, 2, asmCopyDEMBarrier);
 
 		LoadActionsDesc copyDEMQuadLoadAction = {};
-		copyDEMQuadLoadAction.mClearColorValues[0] = pRenderTargetASMDepthAtlas->mDesc.mClearValue;
+		copyDEMQuadLoadAction.mClearColorValues[0] = pRenderTargetASMDepthAtlas->mClearValue;
 		copyDEMQuadLoadAction.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
-		copyDEMQuadLoadAction.mClearDepth = pRenderTargetASMDepthAtlas->mDesc.mClearValue;
+		copyDEMQuadLoadAction.mClearDepth = pRenderTargetASMDepthAtlas->mClearValue;
 		copyDEMQuadLoadAction.mLoadActionStencil = LOAD_ACTION_DONTCARE;
 
 		copyDEMQuadLoadAction.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 
 		setRenderTarget(pCurCmd, 1, &pRenderTargetASMDEMAtlas, NULL,
-			&copyDEMQuadLoadAction, vec2(0.f, 0.f), vec2((float)pRenderTargetASMDEMAtlas->mDesc.mWidth,
-			(float)pRenderTargetASMDEMAtlas->mDesc.mHeight));
+			&copyDEMQuadLoadAction, vec2(0.f, 0.f), vec2((float)pRenderTargetASMDEMAtlas->mWidth,
+			(float)pRenderTargetASMDEMAtlas->mHeight));
 
 	
 
@@ -4736,8 +4696,8 @@ void SetupASMDebugTextures()
 	else
 	{
 		float scale = 0.15f;
-		float2 screenSize = { (float)pRenderTargetVBPass->mDesc.mWidth,
-			(float)pRenderTargetVBPass->mDesc.mHeight };
+		float2 screenSize = { (float)pRenderTargetVBPass->mWidth,
+			(float)pRenderTargetVBPass->mHeight };
 		float2 texSize = screenSize * scale;
 
 		if (!pUIASMDebugTexturesWindow)
@@ -4942,37 +4902,6 @@ class LightShadowPlayground: public IApp
 		cmdDesc.pPool = pCmdPool;
 		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
 
-		DepthStateDesc depthStateEnabledDesc = {};
-		depthStateEnabledDesc.mDepthFunc = CMP_GEQUAL;
-		depthStateEnabledDesc.mDepthWrite = true;
-		depthStateEnabledDesc.mDepthTest = true;
-
-		DepthStateDesc depthStateLEQUALEnabledDesc = {};
-		depthStateLEQUALEnabledDesc.mDepthFunc = CMP_LEQUAL;
-		depthStateLEQUALEnabledDesc.mDepthWrite = true;
-		depthStateLEQUALEnabledDesc.mDepthTest = true;
-
-		DepthStateDesc depthStateTestOnlyDesc = {};
-		depthStateTestOnlyDesc.mDepthFunc = CMP_EQUAL;
-		depthStateTestOnlyDesc.mDepthWrite = false;
-		depthStateTestOnlyDesc.mDepthTest = true;
-
-		DepthStateDesc depthStateStencilShadow = {};
-		depthStateStencilShadow.mDepthFunc = CMP_LESS;
-		depthStateStencilShadow.mDepthWrite = false;
-		depthStateStencilShadow.mDepthTest = true;
-
-		DepthStateDesc depthStateDisableDesc = {};
-		
-		
-		depthStateStencilShadow.mStencilTest = false;
-
-		addDepthState(pRenderer, &depthStateEnabledDesc, &pDepthStateEnable);
-		addDepthState(pRenderer, &depthStateTestOnlyDesc, &pDepthStateTestOnly);
-		addDepthState(pRenderer, &depthStateStencilShadow, &pDepthStateStencilShadow);
-		addDepthState(pRenderer, &depthStateLEQUALEnabledDesc, &pDepthStateLEQUALEnable);
-		addDepthState(pRenderer, &depthStateDisableDesc, &pDepthStateDisable);
-
 		addFence(pRenderer, &pTransitionFences);
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
@@ -4987,22 +4916,11 @@ class LightShadowPlayground: public IApp
 		/************************************************************************/
 		// Geometry data for the scene
 		/************************************************************************/
-
-		BufferLoadDesc boxIbDesc = {};
-		boxIbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
-		boxIbDesc.mDesc.mIndexType = INDEX_TYPE_UINT16;
-		boxIbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		boxIbDesc.mDesc.mSize = sizeof(gBoxIndices);
-		boxIbDesc.pData = gBoxIndices;
-		boxIbDesc.ppBuffer = &pBufferBoxIndex;
-		addResource(&boxIbDesc, NULL, LOAD_PRIORITY_NORMAL);
-
 		uint64_t quadDataSize = sizeof(gQuadVertices);
 		BufferLoadDesc quadVbDesc = {};
 		quadVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		quadVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		quadVbDesc.mDesc.mSize = quadDataSize;
-		quadVbDesc.mDesc.mVertexStride = sizeof(float) * 6;
 		quadVbDesc.pData = gQuadVertices;
 		quadVbDesc.ppBuffer = &pBufferQuadVertex;
 		addResource(&quadVbDesc, NULL, LOAD_PRIORITY_NORMAL);
@@ -5342,7 +5260,7 @@ class LightShadowPlayground: public IApp
 		/************************************************************************/
 		// Add GPU profiler
 		/************************************************************************/
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfilerGraphics, "GpuProfiler");
+        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "GpuProfiler");
 		/************************************************************************/
 		// Add samplers
 		/************************************************************************/
@@ -5698,36 +5616,6 @@ class LightShadowPlayground: public IApp
 		
 #endif
 		/************************************************************************/
-		// setup Rasterizer State
-		/************************************************************************/
-		RasterizerStateDesc rasterStateDesc = {};
-		rasterStateDesc.mCullMode = CULL_MODE_FRONT;
-		rasterStateDesc.mSlopeScaledDepthBias = -3.0;
-		addRasterizerState(pRenderer, &rasterStateDesc, &pRasterizerStateCullFront);
-
-		RasterizerStateDesc nonDepthBiasRasterFrontStateDesc = {};
-		nonDepthBiasRasterFrontStateDesc.mCullMode = CULL_MODE_FRONT;
-		addRasterizerState(pRenderer, &nonDepthBiasRasterFrontStateDesc, &pRasterizerStateNonBiasCullFront);
-
-		RasterizerStateDesc rasterBackStateDesc = {};
-		rasterBackStateDesc.mCullMode = CULL_MODE_BACK;
-		addRasterizerState(pRenderer, &rasterBackStateDesc, &pRasterizerStateCullBack);
-
-		rasterStateDesc.mCullMode = CULL_MODE_NONE;
-		rasterStateDesc.mSlopeScaledDepthBias = 0.f;
-		addRasterizerState(pRenderer, &rasterStateDesc, &pRasterizerStateCullNone);
-
-		BlendStateDesc blendStateSkyBoxDesc = {};
-		blendStateSkyBoxDesc.mBlendModes[0] = BM_ADD;
-		blendStateSkyBoxDesc.mBlendAlphaModes[0] = BM_ADD;
-		blendStateSkyBoxDesc.mSrcFactors[0] = BC_ONE_MINUS_DST_ALPHA;
-		blendStateSkyBoxDesc.mDstFactors[0] = BC_DST_ALPHA;
-		blendStateSkyBoxDesc.mSrcAlphaFactors[0] = BC_ZERO;
-		blendStateSkyBoxDesc.mDstAlphaFactors[0] = BC_ONE;
-		blendStateSkyBoxDesc.mMasks[0] = ALL;
-		blendStateSkyBoxDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
-		//blendStateSkyBoxDesc.mIndependentBlend = false;
-		addBlendState(pRenderer, &blendStateSkyBoxDesc, &pBlendStateSkyBox);
 		/************************************************************************/
 		waitThreadSystemIdle(pThreadSystem);
 		waitForAllResourceLoads();
@@ -5863,7 +5751,6 @@ class LightShadowPlayground: public IApp
 		BufferLoadDesc filterIbDesc = {};
 		filterIbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER | DESCRIPTOR_TYPE_BUFFER_RAW | DESCRIPTOR_TYPE_RW_BUFFER_RAW;
 		filterIbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		filterIbDesc.mDesc.mIndexType = INDEX_TYPE_UINT32;
 		filterIbDesc.mDesc.mElementCount = pGeom->mIndexCount;
 		filterIbDesc.mDesc.mStructStride = sizeof(uint32_t);
 		filterIbDesc.mDesc.mSize = filterIbDesc.mDesc.mElementCount * filterIbDesc.mDesc.mStructStride;
@@ -6020,7 +5907,7 @@ class LightShadowPlayground: public IApp
 		TextureDesc sdfVolumeTextureAtlasDesc = {};
 		sdfVolumeTextureAtlasDesc.mArraySize = 1;
 		sdfVolumeTextureAtlasDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
-		sdfVolumeTextureAtlasDesc.mClearValue = { {{0.f, 0.f, 0.f, 1.f}} };
+		sdfVolumeTextureAtlasDesc.mClearValue = {{0.f, 0.f, 0.f, 1.f}};
 		sdfVolumeTextureAtlasDesc.mDepth = SDF_VOLUME_TEXTURE_ATLAS_DEPTH;
 		sdfVolumeTextureAtlasDesc.mFormat = TinyImageFormat_R16_SFLOAT;
 		sdfVolumeTextureAtlasDesc.mWidth = SDF_VOLUME_TEXTURE_ATLAS_WIDTH;
@@ -6089,7 +5976,7 @@ class LightShadowPlayground: public IApp
 		typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 		static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 		{
-			if (!gAppSettings.mMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
+			if (!gAppUI.IsFocused() && *ctx->pCaptured)
 			{
 				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
@@ -6214,7 +6101,7 @@ class LightShadowPlayground: public IApp
 			updateDescriptorSet(pRenderer, i, pPanoToCubeDescriptorSet[1], 1, params);
 			cmdBindDescriptorSet(cmd, i, pPanoToCubeDescriptorSet[1]);
 
-			const uint32_t* pThreadGroupSize = pPanoToCubeShader->mReflection.mStageReflections[0].mNumThreadsPerGroup;
+			const uint32_t* pThreadGroupSize = pPanoToCubeShader->pReflection->mStageReflections[0].mNumThreadsPerGroup;
 			cmdDispatch(
 				cmd, max(1u, (uint32_t)(data.textureSize >> i) / pThreadGroupSize[0]),
 				max(1u, (uint32_t)(data.textureSize >> i) / pThreadGroupSize[1]), 6);
@@ -6291,7 +6178,6 @@ class LightShadowPlayground: public IApp
 		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
-		skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
 		skyboxVbDesc.pData = skyBoxPoints;
 		skyboxVbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		skyboxVbDesc.ppBuffer = &pBufferSkyboxVertex;
@@ -6475,7 +6361,6 @@ class LightShadowPlayground: public IApp
 			removeResource(pBufferSDFVolumeData[i]);
 		}
 		//removeResource(pBufferSDFVolumeData);
-		removeResource(pBufferBoxIndex);
 		removeResource(pBufferMaterialProperty);
 		removeResource(pBufferMeshConstants);
 		removeResource(pBufferQuadVertex);
@@ -6538,8 +6423,6 @@ class LightShadowPlayground: public IApp
 		}
 
 		gVirtualJoystick.Exit();
-
-		removeGpuProfiler(pRenderer, pGpuProfilerGraphics);
 
 		removeSampler(pRenderer, pSamplerTrilinearAniso);
 		removeSampler(pRenderer, pSamplerMiplessSampler);
@@ -6611,19 +6494,6 @@ class LightShadowPlayground: public IApp
 
 		removeIndirectCommandSignature(pRenderer, pCmdSignatureVBPass);
 
-		removeDepthState(pDepthStateEnable);
-		removeDepthState(pDepthStateTestOnly);
-		removeDepthState(pDepthStateStencilShadow);
-		removeDepthState(pDepthStateDisable);
-		removeDepthState(pDepthStateLEQUALEnable);
-		removeBlendState(pBlendStateSkyBox);
-
-		removeRasterizerState(pRasterizerStateCullFront);
-		removeRasterizerState(pRasterizerStateCullNone);
-		removeRasterizerState(pRasterizerStateCullBack);
-		removeRasterizerState(pRasterizerStateNonBiasCullFront);
-
-
 		removeResource(pTextureSkybox);
 		removeFence(pRenderer, pTransitionFences);
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
@@ -6664,7 +6534,7 @@ class LightShadowPlayground: public IApp
 		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
 			return false;
 
-		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
@@ -6754,6 +6624,54 @@ class LightShadowPlayground: public IApp
 		vertexLayoutQuad.mAttribs[1].mLocation = 1;
 		vertexLayoutQuad.mAttribs[1].mOffset = 4 * sizeof(float);
 
+		DepthStateDesc depthStateEnabledDesc = {};
+		depthStateEnabledDesc.mDepthFunc = CMP_GEQUAL;
+		depthStateEnabledDesc.mDepthWrite = true;
+		depthStateEnabledDesc.mDepthTest = true;
+
+		DepthStateDesc depthStateLEQUALEnabledDesc = {};
+		depthStateLEQUALEnabledDesc.mDepthFunc = CMP_LEQUAL;
+		depthStateLEQUALEnabledDesc.mDepthWrite = true;
+		depthStateLEQUALEnabledDesc.mDepthTest = true;
+
+		DepthStateDesc depthStateTestOnlyDesc = {};
+		depthStateTestOnlyDesc.mDepthFunc = CMP_EQUAL;
+		depthStateTestOnlyDesc.mDepthWrite = false;
+		depthStateTestOnlyDesc.mDepthTest = true;
+
+		DepthStateDesc depthStateStencilShadow = {};
+		depthStateStencilShadow.mDepthFunc = CMP_LESS;
+		depthStateStencilShadow.mDepthWrite = false;
+		depthStateStencilShadow.mDepthTest = true;
+
+		DepthStateDesc depthStateDisableDesc = {};
+		depthStateStencilShadow.mStencilTest = false;
+
+		RasterizerStateDesc rasterStateDesc = {};
+		rasterStateDesc.mCullMode = CULL_MODE_FRONT;
+		rasterStateDesc.mSlopeScaledDepthBias = -3.0;
+
+		RasterizerStateDesc nonDepthBiasRasterFrontStateDesc = {};
+		nonDepthBiasRasterFrontStateDesc.mCullMode = CULL_MODE_FRONT;
+
+		RasterizerStateDesc rasterBackStateDesc = {};
+		rasterBackStateDesc.mCullMode = CULL_MODE_BACK;
+
+		RasterizerStateDesc rasterStateCullNoneDesc = {};
+		rasterStateCullNoneDesc.mCullMode = CULL_MODE_NONE;
+		rasterStateCullNoneDesc.mSlopeScaledDepthBias = 0.f;
+
+		BlendStateDesc blendStateSkyBoxDesc = {};
+		blendStateSkyBoxDesc.mBlendModes[0] = BM_ADD;
+		blendStateSkyBoxDesc.mBlendAlphaModes[0] = BM_ADD;
+		blendStateSkyBoxDesc.mSrcFactors[0] = BC_ONE_MINUS_DST_ALPHA;
+		blendStateSkyBoxDesc.mDstFactors[0] = BC_DST_ALPHA;
+		blendStateSkyBoxDesc.mSrcAlphaFactors[0] = BC_ZERO;
+		blendStateSkyBoxDesc.mDstAlphaFactors[0] = BC_ONE;
+		blendStateSkyBoxDesc.mMasks[0] = ALL;
+		blendStateSkyBoxDesc.mRenderTargetMask = BLEND_STATE_TARGET_0;
+		//blendStateSkyBoxDesc.mIndependentBlend = false;
+
 
 		PipelineDesc desc = {};
 		desc.mType = PIPELINE_TYPE_GRAPHICS;
@@ -6766,12 +6684,12 @@ class LightShadowPlayground: public IApp
 		upSampleSDFShadowPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		upSampleSDFShadowPipelineSettings.mRenderTargetCount = 1;
 		upSampleSDFShadowPipelineSettings.pDepthState = NULL;
-		upSampleSDFShadowPipelineSettings.pRasterizerState = pRasterizerStateCullNone;
+		upSampleSDFShadowPipelineSettings.pRasterizerState = &rasterStateCullNoneDesc;
 		upSampleSDFShadowPipelineSettings.pRootSignature = pRootSignatureUpsampleSDFShadow;
 		upSampleSDFShadowPipelineSettings.pShaderProgram = pShaderUpsampleSDFShadow;
 		upSampleSDFShadowPipelineSettings.mSampleCount = SAMPLE_COUNT_1;
-		upSampleSDFShadowPipelineSettings.pColorFormats = &pRenderTargetUpSampleSDFShadow->mDesc.mFormat;
-		upSampleSDFShadowPipelineSettings.mSampleQuality = pRenderTargetUpSampleSDFShadow->mDesc.mSampleQuality;
+		upSampleSDFShadowPipelineSettings.pColorFormats = &pRenderTargetUpSampleSDFShadow->mFormat;
+		upSampleSDFShadowPipelineSettings.mSampleQuality = pRenderTargetUpSampleSDFShadow->mSampleQuality;
 		upSampleSDFShadowPipelineSettings.pVertexLayout = &vertexLayoutQuad;
 
 		addPipeline(pRenderer, &desc, &pPipelineUpsampleSDFShadow);
@@ -6786,11 +6704,11 @@ class LightShadowPlayground: public IApp
 		GraphicsPipelineDesc& vbPassPipelineSettings = desc.mGraphicsDesc;
 		vbPassPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		vbPassPipelineSettings.mRenderTargetCount = 1;
-		vbPassPipelineSettings.pDepthState = pDepthStateEnable;
-		vbPassPipelineSettings.pColorFormats = &pRenderTargetVBPass->mDesc.mFormat;
-		vbPassPipelineSettings.mSampleCount = pRenderTargetVBPass->mDesc.mSampleCount;
-		vbPassPipelineSettings.mSampleQuality = pRenderTargetVBPass->mDesc.mSampleQuality;
-		vbPassPipelineSettings.mDepthStencilFormat = pRenderTargetDepth->mDesc.mFormat;
+		vbPassPipelineSettings.pDepthState = &depthStateEnabledDesc;
+		vbPassPipelineSettings.pColorFormats = &pRenderTargetVBPass->mFormat;
+		vbPassPipelineSettings.mSampleCount = pRenderTargetVBPass->mSampleCount;
+		vbPassPipelineSettings.mSampleQuality = pRenderTargetVBPass->mSampleQuality;
+		vbPassPipelineSettings.mDepthStencilFormat = pRenderTargetDepth->mFormat;
 		vbPassPipelineSettings.pRootSignature = pRootSignatureVBPass;
 		vbPassPipelineSettings.pVertexLayout = &vertexLayoutPosAndTex;
 
@@ -6801,7 +6719,7 @@ class LightShadowPlayground: public IApp
 
 
 			vbPassPipelineSettings.pRasterizerState = i == GEOMSET_ALPHATESTED ?
-				pRasterizerStateCullNone : pRasterizerStateCullFront;
+				&rasterStateCullNoneDesc : &rasterStateDesc;
 
 			vbPassPipelineSettings.pShaderProgram = pShaderVBBufferPass[i];
 
@@ -6828,13 +6746,13 @@ class LightShadowPlayground: public IApp
 		GraphicsPipelineDesc& vbShadePipelineSettings = desc.mGraphicsDesc;
 		vbShadePipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		vbShadePipelineSettings.mRenderTargetCount = 1;
-		vbShadePipelineSettings.pDepthState = pDepthStateDisable;
-		vbShadePipelineSettings.pRasterizerState = pRasterizerStateCullNone;
+		vbShadePipelineSettings.pDepthState = &depthStateDisableDesc;
+		vbShadePipelineSettings.pRasterizerState = &rasterStateCullNoneDesc;
 		vbShadePipelineSettings.pRootSignature = pRootSignatureVBShade;
 		vbShadePipelineSettings.pShaderProgram = pShaderVBShade;
 		vbShadePipelineSettings.mSampleCount = SAMPLE_COUNT_1;
-		vbShadePipelineSettings.pColorFormats = &pRenderTargetIntermediate->mDesc.mFormat;
-		vbShadePipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
+		vbShadePipelineSettings.pColorFormats = &pRenderTargetIntermediate->mFormat;
+		vbShadePipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
 
 #if defined(_DURANGO) && 1
 		ExtendedGraphicsPipelineDesc edescs[2];
@@ -6910,7 +6828,6 @@ class LightShadowPlayground: public IApp
 		/************************************************************************/
 		// Setup Skybox pipeline
 		/************************************************************************/
-
 		//layout and pipeline for skybox draw
 		VertexLayout vertexLayoutSkybox = {};
 		vertexLayoutSkybox.mAttribCount = 1;
@@ -6926,16 +6843,14 @@ class LightShadowPlayground: public IApp
 		skyboxPipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		skyboxPipelineSettings.mRenderTargetCount = 1;
 		skyboxPipelineSettings.pDepthState = NULL;
-
-		skyboxPipelineSettings.pBlendState = pBlendStateSkyBox;
-
-		skyboxPipelineSettings.pColorFormats = &pRenderTargetIntermediate->mDesc.mFormat;
-		skyboxPipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
-		skyboxPipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
+		skyboxPipelineSettings.pBlendState = &blendStateSkyBoxDesc;
+		skyboxPipelineSettings.pColorFormats = &pRenderTargetIntermediate->mFormat;
+		skyboxPipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		skyboxPipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
 		skyboxPipelineSettings.pRootSignature = pRootSignatureSkybox;
 		skyboxPipelineSettings.pShaderProgram = pShaderSkybox;
 		skyboxPipelineSettings.pVertexLayout = &vertexLayoutSkybox;
-		skyboxPipelineSettings.pRasterizerState = pRasterizerStateCullNone;
+		skyboxPipelineSettings.pRasterizerState = &rasterStateCullNoneDesc;
 		addPipeline(pRenderer, &desc, &pPipelineSkybox);
 		/************************************************************************/
 		// Setup the resources needed SDF volume texture update
@@ -6948,19 +6863,19 @@ class LightShadowPlayground: public IApp
 		GraphicsPipelineDesc& ASMIndirectDepthPassPipelineDesc = desc.mGraphicsDesc;
 		ASMIndirectDepthPassPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		ASMIndirectDepthPassPipelineDesc.mRenderTargetCount = 0;
-		ASMIndirectDepthPassPipelineDesc.pDepthState = pDepthStateEnable;
-		ASMIndirectDepthPassPipelineDesc.mDepthStencilFormat = pRenderTargetASMDepthPass->mDesc.mFormat;
-		ASMIndirectDepthPassPipelineDesc.mSampleCount = pRenderTargetASMDepthPass->mDesc.mSampleCount;
-		ASMIndirectDepthPassPipelineDesc.mSampleQuality = pRenderTargetASMDepthPass->mDesc.mSampleQuality;
+		ASMIndirectDepthPassPipelineDesc.pDepthState = &depthStateEnabledDesc;
+		ASMIndirectDepthPassPipelineDesc.mDepthStencilFormat = pRenderTargetASMDepthPass->mFormat;
+		ASMIndirectDepthPassPipelineDesc.mSampleCount = pRenderTargetASMDepthPass->mSampleCount;
+		ASMIndirectDepthPassPipelineDesc.mSampleQuality = pRenderTargetASMDepthPass->mSampleQuality;
 		ASMIndirectDepthPassPipelineDesc.pRootSignature = pRootSignatureVBPass;
 		ASMIndirectDepthPassPipelineDesc.pShaderProgram = pShaderIndirectDepthPass;
-		ASMIndirectDepthPassPipelineDesc.pRasterizerState = pRasterizerStateCullFront;
+		ASMIndirectDepthPassPipelineDesc.pRasterizerState = &rasterStateDesc;
 		ASMIndirectDepthPassPipelineDesc.pVertexLayout = &vertexLayoutPositionOnly;
 		addPipeline(pRenderer, &desc, &pPipelineIndirectDepthPass);
 
 		ASMIndirectDepthPassPipelineDesc.pShaderProgram = pShaderIndirectAlphaDepthPass;
 		ASMIndirectDepthPassPipelineDesc.pVertexLayout = &vertexLayoutPosAndTex;
-		ASMIndirectDepthPassPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+		ASMIndirectDepthPassPipelineDesc.pRasterizerState = &rasterStateCullNoneDesc;
 
 		addPipeline(pRenderer, &desc, &pPipelineIndirectAlphaDepthPass);
 
@@ -6968,12 +6883,12 @@ class LightShadowPlayground: public IApp
 		GraphicsPipelineDesc& indirectESMDepthPassPipelineDesc = desc.mGraphicsDesc;
 		indirectESMDepthPassPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		indirectESMDepthPassPipelineDesc.mRenderTargetCount = 0;
-		indirectESMDepthPassPipelineDesc.pDepthState = pDepthStateLEQUALEnable;
-		indirectESMDepthPassPipelineDesc.mDepthStencilFormat = pRenderTargetShadowMap->mDesc.mFormat;
-		indirectESMDepthPassPipelineDesc.mSampleCount = pRenderTargetShadowMap->mDesc.mSampleCount;
-		indirectESMDepthPassPipelineDesc.mSampleQuality = pRenderTargetShadowMap->mDesc.mSampleQuality;
+		indirectESMDepthPassPipelineDesc.pDepthState = &depthStateLEQUALEnabledDesc;
+		indirectESMDepthPassPipelineDesc.mDepthStencilFormat = pRenderTargetShadowMap->mFormat;
+		indirectESMDepthPassPipelineDesc.mSampleCount = pRenderTargetShadowMap->mSampleCount;
+		indirectESMDepthPassPipelineDesc.mSampleQuality = pRenderTargetShadowMap->mSampleQuality;
 		indirectESMDepthPassPipelineDesc.pRootSignature = pRootSignatureVBPass;
-		indirectESMDepthPassPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+		indirectESMDepthPassPipelineDesc.pRasterizerState = &rasterStateCullNoneDesc;
 		indirectESMDepthPassPipelineDesc.pVertexLayout = &vertexLayoutPositionOnly;
 		indirectESMDepthPassPipelineDesc.pShaderProgram = pShaderIndirectDepthPass;
 
@@ -6990,16 +6905,16 @@ class LightShadowPlayground: public IApp
 		GraphicsPipelineDesc& quadPipelineDesc = desc.mGraphicsDesc;
 		quadPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		quadPipelineDesc.mRenderTargetCount = 1;
-		quadPipelineDesc.pDepthState = pDepthStateDisable;
-		quadPipelineDesc.pColorFormats = &pRenderTargetIntermediate->mDesc.mFormat;
-		quadPipelineDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
-		quadPipelineDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
-		quadPipelineDesc.mDepthStencilFormat = pRenderTargetDepth->mDesc.mFormat;
+		quadPipelineDesc.pDepthState = &depthStateDisableDesc;
+		quadPipelineDesc.pColorFormats = &pRenderTargetIntermediate->mFormat;
+		quadPipelineDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		quadPipelineDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+		quadPipelineDesc.mDepthStencilFormat = pRenderTargetDepth->mFormat;
 		quadPipelineDesc.pRootSignature = pRootSignatureQuad;
 		// END COMMON DATA
 
 		quadPipelineDesc.pShaderProgram = pShaderQuad;
-		quadPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+		quadPipelineDesc.pRasterizerState = &rasterStateCullNoneDesc;
 		quadPipelineDesc.pVertexLayout = &vertexLayoutQuad;
 
 		addPipeline(pRenderer, &desc, &pPipelineQuad);
@@ -7009,12 +6924,12 @@ class LightShadowPlayground: public IApp
 		ASMCopyDepthQuadPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		ASMCopyDepthQuadPipelineDesc.mRenderTargetCount = 1;
 		ASMCopyDepthQuadPipelineDesc.pDepthState = NULL;
-		ASMCopyDepthQuadPipelineDesc.pColorFormats = &pRenderTargetASMDepthAtlas->mDesc.mFormat;
-		ASMCopyDepthQuadPipelineDesc.mSampleCount = pRenderTargetASMDepthAtlas->mDesc.mSampleCount;
-		ASMCopyDepthQuadPipelineDesc.mSampleQuality = pRenderTargetASMDepthAtlas->mDesc.mSampleQuality;
+		ASMCopyDepthQuadPipelineDesc.pColorFormats = &pRenderTargetASMDepthAtlas->mFormat;
+		ASMCopyDepthQuadPipelineDesc.mSampleCount = pRenderTargetASMDepthAtlas->mSampleCount;
+		ASMCopyDepthQuadPipelineDesc.mSampleQuality = pRenderTargetASMDepthAtlas->mSampleQuality;
 		ASMCopyDepthQuadPipelineDesc.pRootSignature = pRootSignatureASMCopyDepthQuadPass;
 		ASMCopyDepthQuadPipelineDesc.pShaderProgram = pShaderASMCopyDepthQuadPass;
-		ASMCopyDepthQuadPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+		ASMCopyDepthQuadPipelineDesc.pRasterizerState = &rasterStateCullNoneDesc;
 		addPipeline(pRenderer, &desc, &pPipelineASMCopyDepthQuadPass);
 
 
@@ -7023,12 +6938,12 @@ class LightShadowPlayground: public IApp
 		ASMCopyDEMQuadPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		ASMCopyDEMQuadPipelineDesc.mRenderTargetCount = 1;
 		ASMCopyDEMQuadPipelineDesc.pDepthState = NULL;
-		ASMCopyDEMQuadPipelineDesc.pColorFormats = &pRenderTargetASMDEMAtlas->mDesc.mFormat;
-		ASMCopyDEMQuadPipelineDesc.mSampleCount = pRenderTargetASMDEMAtlas->mDesc.mSampleCount;
-		ASMCopyDEMQuadPipelineDesc.mSampleQuality = pRenderTargetASMDEMAtlas->mDesc.mSampleQuality;
+		ASMCopyDEMQuadPipelineDesc.pColorFormats = &pRenderTargetASMDEMAtlas->mFormat;
+		ASMCopyDEMQuadPipelineDesc.mSampleCount = pRenderTargetASMDEMAtlas->mSampleCount;
+		ASMCopyDEMQuadPipelineDesc.mSampleQuality = pRenderTargetASMDEMAtlas->mSampleQuality;
 		ASMCopyDEMQuadPipelineDesc.pRootSignature = pRootSignatureASMCopyDEM;
 		ASMCopyDEMQuadPipelineDesc.pShaderProgram = pShaderASMCopyDEM;
-		ASMCopyDEMQuadPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+		ASMCopyDEMQuadPipelineDesc.pRasterizerState = &rasterStateCullNoneDesc;
 		addPipeline(pRenderer, &desc, &pPipelineASMCopyDEM);
 
 		desc.mGraphicsDesc = {};
@@ -7036,12 +6951,12 @@ class LightShadowPlayground: public IApp
 		ASMAtlasToColorPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		ASMAtlasToColorPipelineDesc.mRenderTargetCount = 1;
 		ASMAtlasToColorPipelineDesc.pDepthState = NULL;
-		ASMAtlasToColorPipelineDesc.pColorFormats = &pRenderTargetASMColorPass->mDesc.mFormat;
-		ASMAtlasToColorPipelineDesc.mSampleCount = pRenderTargetASMColorPass->mDesc.mSampleCount;
-		ASMAtlasToColorPipelineDesc.mSampleQuality = pRenderTargetASMColorPass->mDesc.mSampleQuality;
+		ASMAtlasToColorPipelineDesc.pColorFormats = &pRenderTargetASMColorPass->mFormat;
+		ASMAtlasToColorPipelineDesc.mSampleCount = pRenderTargetASMColorPass->mSampleCount;
+		ASMAtlasToColorPipelineDesc.mSampleQuality = pRenderTargetASMColorPass->mSampleQuality;
 		ASMAtlasToColorPipelineDesc.pRootSignature = pRootSignatureASMDEMAtlasToColor;
 		ASMAtlasToColorPipelineDesc.pShaderProgram = pShaderASMGenerateDEM;
-		ASMAtlasToColorPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+		ASMAtlasToColorPipelineDesc.pRasterizerState = &rasterStateCullNoneDesc;
 		addPipeline(pRenderer, &desc, &pPipelineASMDEMAtlasToColor);
 
 		desc.mGraphicsDesc = {};
@@ -7049,12 +6964,12 @@ class LightShadowPlayground: public IApp
 		ASMColorToAtlasPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		ASMColorToAtlasPipelineDesc.mRenderTargetCount = 1;
 		ASMColorToAtlasPipelineDesc.pDepthState = NULL;
-		ASMColorToAtlasPipelineDesc.pColorFormats = &pRenderTargetASMDEMAtlas->mDesc.mFormat;
-        ASMColorToAtlasPipelineDesc.mSampleCount = pRenderTargetASMDEMAtlas->mDesc.mSampleCount;
-		ASMColorToAtlasPipelineDesc.mSampleQuality = pRenderTargetASMDEMAtlas->mDesc.mSampleQuality;
+		ASMColorToAtlasPipelineDesc.pColorFormats = &pRenderTargetASMDEMAtlas->mFormat;
+        ASMColorToAtlasPipelineDesc.mSampleCount = pRenderTargetASMDEMAtlas->mSampleCount;
+		ASMColorToAtlasPipelineDesc.mSampleQuality = pRenderTargetASMDEMAtlas->mSampleQuality;
 		ASMColorToAtlasPipelineDesc.pRootSignature = pRootSignatureASMDEMColorToAtlas;
 		ASMColorToAtlasPipelineDesc.pShaderProgram = pShaderASMGenerateDEM;
-		ASMColorToAtlasPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+		ASMColorToAtlasPipelineDesc.pRasterizerState = &rasterStateCullNoneDesc;
 		addPipeline(pRenderer, &desc, &pPipelineASMDEMColorToAtlas);
 
 		desc.mGraphicsDesc = {};
@@ -7062,12 +6977,12 @@ class LightShadowPlayground: public IApp
 		ASMIndirectionPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		ASMIndirectionPipelineDesc.mRenderTargetCount = 1;
 		ASMIndirectionPipelineDesc.pDepthState = NULL;
-		ASMIndirectionPipelineDesc.pColorFormats = &pRenderTargetASMIndirection[0]->mDesc.mFormat;
-		ASMIndirectionPipelineDesc.mSampleCount = pRenderTargetASMIndirection[0]->mDesc.mSampleCount;
-		ASMIndirectionPipelineDesc.mSampleQuality = pRenderTargetASMIndirection[0]->mDesc.mSampleQuality;
+		ASMIndirectionPipelineDesc.pColorFormats = &pRenderTargetASMIndirection[0]->mFormat;
+		ASMIndirectionPipelineDesc.mSampleCount = pRenderTargetASMIndirection[0]->mSampleCount;
+		ASMIndirectionPipelineDesc.mSampleQuality = pRenderTargetASMIndirection[0]->mSampleQuality;
 		ASMIndirectionPipelineDesc.pRootSignature = pRootSignatureASMFillIndirection;
 		ASMIndirectionPipelineDesc.pShaderProgram = pShaderASMFillIndirection;
-		ASMIndirectionPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+		ASMIndirectionPipelineDesc.pRasterizerState = &rasterStateCullNoneDesc;
 		addPipeline(pRenderer, &desc, &pPipelineASMFillIndirection);
 
 		desc.mGraphicsDesc = {};
@@ -7075,16 +6990,16 @@ class LightShadowPlayground: public IApp
 		ASMFillLodClampPipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		ASMFillLodClampPipelineDesc.mRenderTargetCount = 1;
 		ASMFillLodClampPipelineDesc.pDepthState = NULL;
-		ASMFillLodClampPipelineDesc.pColorFormats = &pRenderTargetASMLodClamp->mDesc.mFormat;
-		ASMFillLodClampPipelineDesc.mSampleCount = pRenderTargetASMLodClamp->mDesc.mSampleCount;
-		ASMFillLodClampPipelineDesc.mSampleQuality = pRenderTargetASMLodClamp->mDesc.mSampleQuality;
+		ASMFillLodClampPipelineDesc.pColorFormats = &pRenderTargetASMLodClamp->mFormat;
+		ASMFillLodClampPipelineDesc.mSampleCount = pRenderTargetASMLodClamp->mSampleCount;
+		ASMFillLodClampPipelineDesc.mSampleQuality = pRenderTargetASMLodClamp->mSampleQuality;
 		ASMFillLodClampPipelineDesc.pRootSignature = pRootSignatureASMFillLodClamp;
 #if defined(ORBIS)
 		ASMFillLodClampPipelineDesc.pShaderProgram = pShaderASMFillIndirectionFP16;
 #else
 		ASMFillLodClampPipelineDesc.pShaderProgram = pShaderASMFillIndirection;
 #endif
-		ASMFillLodClampPipelineDesc.pRasterizerState = pRasterizerStateCullNone;
+		ASMFillLodClampPipelineDesc.pRasterizerState = &rasterStateCullNoneDesc;
 		addPipeline(pRenderer, &desc, &pPipelineASMFillLodClamp);
 
 		VertexLayout vertexLayoutCopyShaders = {};
@@ -7096,11 +7011,11 @@ class LightShadowPlayground: public IApp
 		desc.mGraphicsDesc = {};
 		GraphicsPipelineDesc& pipelineSettingsFinalPass = desc.mGraphicsDesc;
 		pipelineSettingsFinalPass.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
-		pipelineSettingsFinalPass.pRasterizerState = pRasterizerStateCullNone;
+		pipelineSettingsFinalPass.pRasterizerState = &rasterStateCullNoneDesc;
 		pipelineSettingsFinalPass.mRenderTargetCount = 1;
-		pipelineSettingsFinalPass.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
-		pipelineSettingsFinalPass.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettingsFinalPass.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettingsFinalPass.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettingsFinalPass.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettingsFinalPass.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
 		pipelineSettingsFinalPass.pVertexLayout = &vertexLayoutCopyShaders;
 		pipelineSettingsFinalPass.pRootSignature = pRootSignaturePresentPass;
 		pipelineSettingsFinalPass.pShaderProgram = pShaderPresentPass;
@@ -7132,7 +7047,7 @@ class LightShadowPlayground: public IApp
 
 		gVirtualJoystick.Unload();
 
-		unloadProfiler();
+		unloadProfilerUI();
 		gAppUI.Unload();
 
 		removePipeline(pRenderer, pPipelinePresentPass);
@@ -7284,7 +7199,7 @@ class LightShadowPlayground: public IApp
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
 #if !defined(TARGET_IOS)
-		if (pSwapChain->mDesc.mEnableVsync != gAppSettings.mToggleVsync)
+		if (pSwapChain->mEnableVsync != gAppSettings.mToggleVsync)
 		{
 			waitQueueIdle(pGraphicsQueue);
 			::toggleVSync(pRenderer, &pSwapChain);
@@ -7389,16 +7304,16 @@ class LightShadowPlayground: public IApp
 
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth = pRenderTargetShadowMap->mDesc.mClearValue;
+		loadActions.mClearDepth = pRenderTargetShadowMap->mClearValue;
 
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfilerGraphics, "Draw ESM Shadow Map", true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw ESM Shadow Map");
 		// Start render pass and apply load actions
 		setRenderTarget(cmd, 0, NULL, pRenderTargetShadowMap, &loadActions);
 		
-		cmdBindIndexBuffer(cmd, pBufferFilteredIndex[gFrameIndex][VIEW_SHADOW], 0);
+		cmdBindIndexBuffer(cmd, pBufferFilteredIndex[gFrameIndex][VIEW_SHADOW], INDEX_TYPE_UINT32, 0);
 
 		cmdBindPipeline(cmd, pPipelineESMIndirectDepthPass);
-		cmdBindVertexBuffer(cmd, 1, &pGeom->pVertexBuffers[0], NULL);
+		cmdBindVertexBuffer(cmd, 1, &pGeom->pVertexBuffers[0], pGeom->mVertexStrides, NULL);
 
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetVBPass[0]);
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetVBPass[1]);
@@ -7415,14 +7330,11 @@ class LightShadowPlayground: public IApp
 		cmdBindPipeline(cmd, pPipelineESMIndirectAlphaDepthPass);
 		Buffer* pVertexBuffersPosTex[] = { pGeom->pVertexBuffers[0],
 			pGeom->pVertexBuffers[1] };
-		cmdBindVertexBuffer(cmd, 2, pVertexBuffersPosTex, NULL);
+		cmdBindVertexBuffer(cmd, 2, pVertexBuffersPosTex, pGeom->mVertexStrides, NULL);
 
-#if defined(METAL) || defined(ORBIS)
-		// #TODO: Automate this inside the Metal renderer
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetVBPass[0]);
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetVBPass[1]);
 		cmdBindDescriptorSet(cmd, gFrameIndex * 3 + 1, pDescriptorSetVBPass[2]);
-#endif
 		
 		cmdExecuteIndirect(
 			cmd, pCmdSignatureVBPass,
@@ -7433,12 +7345,12 @@ class LightShadowPlayground: public IApp
 			DRAW_COUNTER_SLOT_OFFSET_IN_BYTES);
 
 		setRenderTarget(cmd, 0, NULL, NULL, NULL);
-		cmdEndGpuTimestampQuery(cmd, pGpuProfilerGraphics);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 	}
 
 	static void drawSkybox(Cmd* cmd)
 	{
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfilerGraphics, "Draw Skybox", true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Skybox");
 
 		BufferUpdateDesc updateDesc = { pBufferSkyboxUniform[gFrameIndex] };
 		beginUpdateResource(&updateDesc);
@@ -7452,20 +7364,21 @@ class LightShadowPlayground: public IApp
 		setRenderTarget(cmd, 1, &pRenderTargetScreen, NULL, NULL);
 
 		// Draw the skybox
+		const uint32_t skyboxStride = sizeof(float) * 4;
 		cmdBindPipeline(cmd, pPipelineSkybox);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetSkybox[0]);
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSkybox[1]);
-		cmdBindVertexBuffer(cmd, 1, &pBufferSkyboxVertex, NULL);
+		cmdBindVertexBuffer(cmd, 1, &pBufferSkyboxVertex, &skyboxStride, NULL);
 		cmdDraw(cmd, 36, 0);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-		cmdEndGpuTimestampQuery(cmd, pGpuProfilerGraphics);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 	}
 
 	static void drawSDFVolumeTextureAtlas(Cmd* cmd, SDFVolumeTextureNode* node)
 	{
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfilerGraphics, "Draw update texture atlas");
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw update texture atlas");
 
 		BufferUpdateDesc updateDesc = { pBufferSDFVolumeData[gFrameIndex] };
 		beginUpdateResource(&updateDesc);
@@ -7490,19 +7403,19 @@ class LightShadowPlayground: public IApp
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetUpdateSDFVolumeTextureAtlas[0]);
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUpdateSDFVolumeTextureAtlas[1]);
 
-		uint32_t* threadGroup = pShaderUpdateSDFVolumeTextureAtlas->mReflection.mStageReflections[0].mNumThreadsPerGroup;
+		uint32_t* threadGroup = pShaderUpdateSDFVolumeTextureAtlas->pReflection->mStageReflections[0].mNumThreadsPerGroup;
 
 		cmdDispatch(cmd, 
-			pTextureSDFVolumeAtlas->mDesc.mWidth / threadGroup[0],
-			pTextureSDFVolumeAtlas->mDesc.mHeight / threadGroup[1],
-			pTextureSDFVolumeAtlas->mDesc.mDepth / threadGroup[2]);
+			SDF_VOLUME_TEXTURE_ATLAS_WIDTH / threadGroup[0],
+			SDF_VOLUME_TEXTURE_ATLAS_HEIGHT / threadGroup[1],
+			SDF_VOLUME_TEXTURE_ATLAS_DEPTH / threadGroup[2]);
 			   
-		cmdEndGpuTimestampQuery(cmd, pGpuProfilerGraphics);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 	}
 
-	void drawSDFMeshVisualizationOnScene(Cmd* cmd, GpuProfiler* pGpuProfiler)
+	void drawSDFMeshVisualizationOnScene(Cmd* cmd)
 	{
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Visualize SDF Geometry On The Scene");
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Visualize SDF Geometry On The Scene");
 		RenderTargetBarrier rtBarriers[] = 
 		{ 
 			{
@@ -7527,17 +7440,17 @@ class LightShadowPlayground: public IApp
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetSDFMeshVisualization[0]);
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSDFMeshVisualization[1]);
 		cmdDispatch(cmd,
-			(uint32_t) ceil((float)(pRenderTargetSDFMeshVisualization->pTexture->mDesc.mWidth) / (float)(SDF_MESH_VISUALIZATION_THREAD_X)),
-			(uint32_t) ceil((float)(pRenderTargetSDFMeshVisualization->pTexture->mDesc.mHeight) / (float)(SDF_MESH_VISUALIZATION_THREAD_Y)),
+			(uint32_t) ceil((float)(pRenderTargetSDFMeshVisualization->mWidth) / (float)(SDF_MESH_VISUALIZATION_THREAD_X)),
+			(uint32_t) ceil((float)(pRenderTargetSDFMeshVisualization->mHeight) / (float)(SDF_MESH_VISUALIZATION_THREAD_Y)),
 			1);
 				
-		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 	}
 
 
-	void drawSDFMeshShadow(Cmd* cmd, GpuProfiler* pGpuProfiler)
+	void drawSDFMeshShadow(Cmd* cmd)
 	{
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw SDF mesh shadow");
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw SDF mesh shadow");
 		
 		RenderTargetBarrier rtBarriers[] =
 		{
@@ -7564,17 +7477,17 @@ class LightShadowPlayground: public IApp
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSDFMeshShadow[1]);
 
 		cmdDispatch(cmd,
-			(uint32_t) ceil ((float)(pRenderTargetSDFMeshShadow->pTexture->mDesc.mWidth) / (float)(SDF_MESH_SHADOW_THREAD_X) ),
-			(uint32_t) ceil ((float)(pRenderTargetSDFMeshShadow->pTexture->mDesc.mHeight) / (float)(SDF_MESH_SHADOW_THREAD_Y) ),
+			(uint32_t) ceil ((float)(pRenderTargetSDFMeshShadow->mWidth) / (float)(SDF_MESH_SHADOW_THREAD_X) ),
+			(uint32_t) ceil ((float)(pRenderTargetSDFMeshShadow->mHeight) / (float)(SDF_MESH_SHADOW_THREAD_Y) ),
 			1);
 		
 
-		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 	}
 
 	void upSampleSDFShadow(Cmd* cmd)
 	{
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfilerGraphics, "Up Sample SDF Mesh Shadow");
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Up Sample SDF Mesh Shadow");
 		
 		RenderTargetBarrier rtBarriers[] =
 		{
@@ -7597,25 +7510,25 @@ class LightShadowPlayground: public IApp
 		loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 		loadActions.mLoadActionStencil = LOAD_ACTION_DONTCARE;
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-		loadActions.mClearColorValues[0] = pRenderTargetUpSampleSDFShadow->mDesc.mClearValue;
+		loadActions.mClearColorValues[0] = pRenderTargetUpSampleSDFShadow->mClearValue;
 
 		setRenderTarget(cmd, 1, &pRenderTargetUpSampleSDFShadow, NULL, &loadActions);
 
-
+		const uint32_t quadStride = sizeof(float) * 6;
 		cmdBindPipeline(cmd, pPipelineUpsampleSDFShadow);
-		cmdBindVertexBuffer(cmd, 1, &pBufferQuadVertex, NULL);
+		cmdBindVertexBuffer(cmd, 1, &pBufferQuadVertex, &quadStride, NULL);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetUpsampleSDFShadow[0]);
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetUpsampleSDFShadow[1]);
 		cmdDraw(cmd, 6, 0);
 
 		setRenderTarget(cmd, 0, NULL, NULL, NULL);
 
-		cmdEndGpuTimestampQuery(cmd, pGpuProfilerGraphics);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 	}
 
-	void triangleFilteringPass(Cmd* cmd, GpuProfiler* pGpuProfilerGraphics, uint32_t frameIdx)
+	void triangleFilteringPass(Cmd* cmd, uint32_t frameIdx)
 	{
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfilerGraphics, "Triangle Filtering Pass", true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Triangle Filtering Pass");
 
 		/************************************************************************/
 		// Barriers to transition uncompacted draw buffer to uav
@@ -7627,17 +7540,17 @@ class LightShadowPlayground: public IApp
 		/************************************************************************/
 		// Clear previous indirect arguments
 		/************************************************************************/
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfilerGraphics, "Clear Buffers", true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Clear Buffers");
 		cmdBindPipeline(cmd, pPipelineClearBuffers);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetTriangleFiltering[0]);
 		cmdBindDescriptorSet(cmd, frameIdx * 3 + 0, pDescriptorSetTriangleFiltering[1]);
 		uint32_t numGroups = (MAX_DRAWS_INDIRECT / CLEAR_THREAD_COUNT) + 1;
 		cmdDispatch(cmd, numGroups, 1, 1);
-		cmdEndGpuTimestampQuery(cmd, pGpuProfilerGraphics);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 		/************************************************************************/
 		// Synchronization
 		/************************************************************************/
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfilerGraphics, "Clear Buffers Synchronization", true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Clear Buffers Synchronization");
 		uint32_t numBarriers = (NUM_CULLING_VIEWPORTS * gNumGeomSets) + NUM_CULLING_VIEWPORTS;
 		BufferBarrier* clearBarriers = (BufferBarrier*)alloca(numBarriers * sizeof(BufferBarrier));
 		uint32_t index = 0;
@@ -7648,7 +7561,7 @@ class LightShadowPlayground: public IApp
 			clearBarriers[index++] = { pBufferFilteredIndirectDrawArguments[frameIdx][GEOMSET_OPAQUE][i], RESOURCE_STATE_UNORDERED_ACCESS };
 		}
 		cmdResourceBarrier(cmd, numBarriers, clearBarriers, 0, NULL, 0, NULL);
-		cmdEndGpuTimestampQuery(cmd, pGpuProfilerGraphics);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 		/************************************************************************/
 		// Run triangle filtering shader
 		/************************************************************************/
@@ -7658,7 +7571,7 @@ class LightShadowPlayground: public IApp
 		uint accumNumTrianglesAtStartOfBatch = 0;
 		uint batchStart = 0;
 
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfilerGraphics, "Filter Triangles", true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Filter Triangles");
 		cmdBindPipeline(cmd, pPipelineTriangleFiltering);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetTriangleFiltering[0]);
 		cmdBindDescriptorSet(cmd, frameIdx * 3 + 1, pDescriptorSetTriangleFiltering[1]);
@@ -7719,7 +7632,7 @@ class LightShadowPlayground: public IApp
 		filterTriangles(cmd, frameIdx, pFilterBatchChunk[frameIdx][currentSmallBatchChunk],
 			offset.pBuffer, (batches - origin) * sizeof(FilterBatchData));
 		endUpdateResource(&updateDesc, NULL);
-		cmdEndGpuTimestampQuery(cmd, pGpuProfilerGraphics);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 		/************************************************************************/
 		// Synchronization
 		/************************************************************************/
@@ -7729,17 +7642,17 @@ class LightShadowPlayground: public IApp
 		/************************************************************************/
 		// Batch compaction
 		/************************************************************************/
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfilerGraphics, "Batch Compaction", true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Batch Compaction");
 		cmdBindPipeline(cmd, pPipelineBatchCompaction);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetTriangleFiltering[0]);
 		cmdBindDescriptorSet(cmd, frameIdx * 3 + 2, pDescriptorSetTriangleFiltering[1]);
 		numGroups = (MAX_DRAWS_INDIRECT / CLEAR_THREAD_COUNT) + 1;
 		cmdDispatch(cmd, numGroups, 1, 1);
-		cmdEndGpuTimestampQuery(cmd, pGpuProfilerGraphics);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 		/************************************************************************/
 		/************************************************************************/
 
-		cmdEndGpuTimestampQuery(cmd, pGpuProfilerGraphics);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 	}
 
 	void filterTriangles(Cmd* cmd, uint32_t frameIdx, FilterBatchChunk* batchChunk, Buffer* pBuffer, uint64_t offset)
@@ -7801,16 +7714,16 @@ class LightShadowPlayground: public IApp
 		const char* profileNames[gNumGeomSets] = { "VB pass Opaque", "VB pass Alpha" };
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-		loadActions.mClearColorValues[0] = pRenderTargetVBPass->mDesc.mClearValue;
+		loadActions.mClearColorValues[0] = pRenderTargetVBPass->mClearValue;
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth = pRenderTargetDepth->mDesc.mClearValue;
+		loadActions.mClearDepth = pRenderTargetDepth->mClearValue;
 
 		setRenderTarget(cmd, 1, &pRenderTargetVBPass, pRenderTargetDepth, &loadActions);
 
 		Buffer* pIndexBuffer = pBufferFilteredIndex[gFrameIndex][VIEW_CAMERA];
 		//Buffer* pIndirectMaterialBuffer = pBufferFilterIndirectMaterial[gFrameIndex];
 
-		cmdBindIndexBuffer(cmd, pIndexBuffer, 0);
+		cmdBindIndexBuffer(cmd, pIndexBuffer, INDEX_TYPE_UINT32, 0);
 		
 		
 		Buffer* pVertexBuffersPosTex[] = { pGeom->pVertexBuffers[0],
@@ -7821,26 +7734,24 @@ class LightShadowPlayground: public IApp
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetVBPass[0]);
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetVBPass[1]);
 		cmdBindDescriptorSet(cmd, gFrameIndex * 3 + 0, pDescriptorSetVBPass[2]);
-		cmdBindVertexBuffer(cmd, 2, pVertexBuffersPosTex, NULL);
+		cmdBindVertexBuffer(cmd, 2, pVertexBuffersPosTex, pGeom->mVertexStrides, NULL);
 
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfilerGraphics, profileNames[0], true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, profileNames[0]);
 		
 		Buffer* pIndirectBufferPositionOnly = pBufferFilteredIndirectDrawArguments[gFrameIndex][GEOMSET_OPAQUE][VIEW_CAMERA];
 		cmdExecuteIndirect(
 			cmd, pCmdSignatureVBPass, gPerFrameData[gFrameIndex].gDrawCount[GEOMSET_OPAQUE], pIndirectBufferPositionOnly, 0, pIndirectBufferPositionOnly,
 			DRAW_COUNTER_SLOT_OFFSET_IN_BYTES);
-		cmdEndGpuTimestampQuery(cmd, pGpuProfilerGraphics);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfilerGraphics, profileNames[1], true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, profileNames[1]);
 		cmdBindPipeline(cmd, pPipelineVBBufferPass[GEOMSET_ALPHATESTED]);
 		
-#if defined(METAL) || defined(ORBIS)
 		// #TODO: Automate this inside the Metal renderer
-		cmdBindVertexBuffer(cmd, 2, pVertexBuffersPosTex, NULL);
+		cmdBindVertexBuffer(cmd, 2, pVertexBuffersPosTex, pGeom->mVertexStrides, NULL);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetVBPass[0]);
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetVBPass[1]);
 		cmdBindDescriptorSet(cmd, gFrameIndex * 3 + 0, pDescriptorSetVBPass[2]);
-#endif
 		
 		Buffer* pIndirectBufferPositionAndTex = 
 			pBufferFilteredIndirectDrawArguments[gFrameIndex][GEOMSET_ALPHATESTED][VIEW_CAMERA];
@@ -7851,7 +7762,7 @@ class LightShadowPlayground: public IApp
 
 		setRenderTarget(cmd, 0, NULL, NULL, NULL);
 
-		cmdEndGpuTimestampQuery(cmd, pGpuProfilerGraphics);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 	}
 
 
@@ -7891,12 +7802,12 @@ class LightShadowPlayground: public IApp
 		};
 		cmdResourceBarrier(cmd, 5, bufferBarriers, 0, NULL, 3, rtBarriers);
 
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfilerGraphics, "VB Shade Pass");
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "VB Shade Pass");
 
 		RenderTarget* pDestRenderTarget = pRenderTargetScreen;
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-		loadActions.mClearColorValues[0] = pDestRenderTarget->mDesc.mClearValue;
+		loadActions.mClearColorValues[0] = pDestRenderTarget->mClearValue;
 
 		setRenderTarget(cmd, 1, &pDestRenderTarget, NULL, &loadActions);
 
@@ -7907,7 +7818,7 @@ class LightShadowPlayground: public IApp
 		// A single triangle is rendered without specifying a vertex buffer (triangle positions are calculated internally using vertex_id)
 		cmdDraw(cmd, 3, 0);
 
-		cmdEndGpuTimestampQuery(cmd, pGpuProfilerGraphics);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 		
 		drawSkybox(cmd);
 
@@ -7985,7 +7896,6 @@ class LightShadowPlayground: public IApp
 		ASMRendererContext rendererContext;
 		rendererContext.m_pCmd = cmd;
 		rendererContext.m_pRenderer = pRenderer;
-		rendererContext.m_pGpuProfiler = pGpuProfilerGraphics;
 
 		pASM->Render(pRenderTargetASMDepthPass, pRenderTargetASMColorPass, rendererContext,  &mainViewProjection);
 	}
@@ -8037,8 +7947,9 @@ class LightShadowPlayground: public IApp
 
 		setRenderTarget(cmd, 1, &pRenderTargetScreen, pRenderTargetDepth, &loadActions);
 
+		const uint32_t quadStride = sizeof(float) * 6;
 		cmdBindPipeline(cmd, pPipelineQuad);
-		cmdBindVertexBuffer(cmd, 1, &pBufferQuadVertex, NULL);
+		cmdBindVertexBuffer(cmd, 1, &pBufferQuadVertex, &quadStride, NULL);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetQuad[0]);
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetQuad[1]);
 
@@ -8057,8 +7968,8 @@ class LightShadowPlayground: public IApp
 			/************************************************************************/
 			// Update Camera
 			/************************************************************************/
-			const uint32_t width = pSwapChain->mDesc.mWidth;
-			const uint32_t height = pSwapChain->mDesc.mHeight;
+			const uint32_t width = mSettings.mWidth;
+			const uint32_t height = mSettings.mHeight;
 
 			float aspectInverse = (float)height / (float)width;
 			constexpr float horizontal_fov = PI / 2.0f;
@@ -8169,7 +8080,7 @@ class LightShadowPlayground: public IApp
 			* vec4(0.f, 0.f, 0.f, 1.f)).getXYZ();
 		
 		gVisibilityBufferConstants[gFrameIndex].mWorldViewProjMat[VIEW_CAMERA] = gCameraUniformData.mViewProject * gMeshInfoUniformData[0][gFrameIndex].mWorldMat;
-		gVisibilityBufferConstants[gFrameIndex].mCullingViewports[VIEW_CAMERA].mWindowSize = { (float)pSwapChain->mDesc.mWidth, (float)pSwapChain->mDesc.mHeight };
+		gVisibilityBufferConstants[gFrameIndex].mCullingViewports[VIEW_CAMERA].mWindowSize = { (float)mSettings.mWidth, (float)mSettings.mHeight };
 		gVisibilityBufferConstants[gFrameIndex].mCullingViewports[VIEW_CAMERA].mSampleCount = 1;
 	}
 
@@ -8274,11 +8185,11 @@ class LightShadowPlayground: public IApp
 
 
 
-			cmdBeginGpuFrameProfile(cmd, pGpuProfilerGraphics);
+			cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
 			if (!gAppSettings.mHoldFilteredTriangles)
 			{
-				triangleFilteringPass(cmd, pGpuProfilerGraphics, gFrameIndex);
+				triangleFilteringPass(cmd, gFrameIndex);
 			}
 			{
 				const uint32_t numBarriers = (gNumGeomSets * NUM_CULLING_VIEWPORTS) +
@@ -8302,10 +8213,10 @@ class LightShadowPlayground: public IApp
 
 			if (gCurrentShadowType == SHADOW_TYPE_ASM)
 			{
-				cmdBeginGpuTimestampQuery(cmd, pGpuProfilerGraphics, "Draw ASM", true);
+				cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw ASM");
 				drawASM(cmd);
 				setRenderTarget(cmd, 0, NULL, NULL, NULL);
-				cmdEndGpuTimestampQuery(cmd, pGpuProfilerGraphics);
+				cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 			}
 			else if (gCurrentShadowType == SHADOW_TYPE_ESM)
 			{
@@ -8368,12 +8279,12 @@ class LightShadowPlayground: public IApp
 
 				if (gBakedSDFMeshSettings.mDrawSDFMeshVisualization)
 				{
-					drawSDFMeshVisualizationOnScene(cmd, pGpuProfilerGraphics);
+					drawSDFMeshVisualizationOnScene(cmd);
 				}
 				
 				else
 				{
-					drawSDFMeshShadow(cmd, pGpuProfilerGraphics);
+					drawSDFMeshShadow(cmd);
 
 #if ENABLE_SDF_SHADOW_DOWNSAMPLE
 					upSampleSDFShadow(cmd);
@@ -8425,7 +8336,7 @@ class LightShadowPlayground: public IApp
 				barriers2[index++] = { pBufferFilterIndirectMaterial[gFrameIndex], RESOURCE_STATE_UNORDERED_ACCESS };
 				cmdResourceBarrier(cmd, numBarriers, barriers2, 0, NULL, 1, &barrierPresent);
 			}
-			cmdEndGpuFrameProfile(cmd, pGpuProfilerGraphics);
+			cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 			endCmd(cmd);
 
 			// Submit all the work to the GPU and present
@@ -8453,30 +8364,16 @@ class LightShadowPlayground: public IApp
 	void drawGUI(Cmd* cmd, uint32_t frameIdx)
 	{
 
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfilerGraphics, "Draw UI");
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
 
 		pRenderTargetScreen = pSwapChain->ppRenderTargets[frameIdx];
 #if !defined(TARGET_IOS)
 		cmdBindRenderTargets(cmd, 1, &pRenderTargetScreen, NULL, NULL, NULL, NULL, -1, -1);
 
-		if (gAppSettings.mMicroProfiler)
-		{
-			cmdDrawProfiler();
-		}
-		else
-		{
-			gTimer.GetUSec(true);
-			gAppUI.DrawText(
-				cmd, float2(8.0f, 15.0f), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
+        cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
 
-			// NOTE: Realtime GPU Profiling is not supported on Metal.
-
-			gAppUI.DrawText(
-				cmd, float2(8.0f, 40.0f),
-				eastl::string().sprintf("GPU %f ms", (float)pGpuProfilerGraphics->mCumulativeTime * 1000.0f).c_str(), &gFrameTimeDraw);
-			gAppUI.DrawDebugGpuProfile(cmd, float2(8.0f, 65.0f), pGpuProfilerGraphics, NULL);
-		}
-
+		// NOTE: Realtime GPU Profiling is not supported on Metal.
+        cmdDrawGpuProfile(cmd, float2(8.0f, 40.0f), gGpuProfileToken);
 		gAppUI.Gui(pGuiWindow);
 
 		if (gAppSettings.mIsGeneratingSDF)
@@ -8489,29 +8386,30 @@ class LightShadowPlayground: public IApp
 			gAppUI.Gui(pUIASMDebugTexturesWindow);
 		}
 		
+        cmdDrawProfilerUI();
 
 		gAppUI.Draw(cmd);
 #endif
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-		cmdEndGpuTimestampQuery(cmd, pGpuProfilerGraphics);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 	}
 
 	void presentImage(Cmd* cmd, Texture* pSrc, uint32_t index, RenderTarget* pDstCol)
 	{
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfilerGraphics, "Present Image", true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Present Image");
 
 		cmdBindRenderTargets(cmd, 1, &pDstCol, NULL, NULL, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pDstCol->mDesc.mWidth, (float)pDstCol->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, pDstCol->mDesc.mWidth, pDstCol->mDesc.mHeight);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pDstCol->mWidth, (float)pDstCol->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pDstCol->mWidth, pDstCol->mHeight);
 
 		cmdBindPipeline(cmd, pPipelinePresentPass);
 		cmdBindDescriptorSet(cmd, index, pDescriptorSetPresentPass);
 		cmdDraw(cmd, 3, 0);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-		cmdEndGpuTimestampQuery(cmd, pGpuProfilerGraphics);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 	}
 
 	const char* GetName() override { return "09_LightShadowPlayground"; }
@@ -8527,9 +8425,8 @@ class LightShadowPlayground: public IApp
 		swapChainDesc.mWidth = width;
 		swapChainDesc.mHeight = height;
 		swapChainDesc.mImageCount = gImageCount;
-		swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
-		swapChainDesc.mColorClearValue = { {{0,0,0,0}} };
+		swapChainDesc.mColorClearValue = {{0,0,0,0}};
 
 		swapChainDesc.mEnableVsync = false;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
@@ -8541,13 +8438,13 @@ class LightShadowPlayground: public IApp
 		const uint32_t width = mSettings.mWidth;
 		const uint32_t height = mSettings.mHeight;
 
-		const ClearValue depthStencilClear = { {{0.0f, 0}} };
+		const ClearValue depthStencilClear ={{0.0f, 0}};
 		//Used for ESM render target shadow
-		const ClearValue lessEqualDepthStencilClear = { {{1.f, 0}} };
+		const ClearValue lessEqualDepthStencilClear = {{1.f, 0}};
 
 		//const ClearValue reverseDepthStencilClear = { {{1.0f, 0}} };
-		const ClearValue colorClearBlack = { {{0.0f, 0.0f, 0.0f, 0.0f}} };
-		const ClearValue colorClearWhite = { {{1.0f, 1.0f, 1.0f, 1.0f}} };
+		const ClearValue colorClearBlack = {{0.0f, 0.0f, 0.0f, 0.0f}};
+		const ClearValue colorClearWhite = {{1.0f, 1.0f, 1.0f, 1.0f}};
 
 		addSwapChain();
 
@@ -8577,13 +8474,13 @@ class LightShadowPlayground: public IApp
 		/************************************************************************/
 		RenderTargetDesc postProcRTDesc = {};
 		postProcRTDesc.mArraySize = 1;
-		postProcRTDesc.mClearValue = { {{0.0f, 0.0f, 0.0f, 0.0f}} };
+		postProcRTDesc.mClearValue = {{0.0f, 0.0f, 0.0f, 0.0f}};
 		postProcRTDesc.mDepth = 1;
 		postProcRTDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
 		postProcRTDesc.mHeight = mSettings.mHeight;
 		postProcRTDesc.mWidth = mSettings.mWidth;
-		postProcRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
-		postProcRTDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
+		postProcRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		postProcRTDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
 		postProcRTDesc.pDebugName = L"pIntermediateRenderTarget";
 		addRenderTarget(pRenderer, &postProcRTDesc, &pRenderTargetIntermediate);
 			   
@@ -9336,26 +9233,7 @@ void GuiController::updateDynamicUI()
 
 		GuiController::currentlyShadowType = (ShadowType)gRenderSettings.mShadowType;
 	}
-
-	static bool wasMicroProfileActivated = gAppSettings.mMicroProfiler;
-	if (wasMicroProfileActivated != gAppSettings.mMicroProfiler)
-	{
-		wasMicroProfileActivated = gAppSettings.mMicroProfiler;
-
-		// ProfileSetDisplayMode()
-		// TODO: need to change this better way 
-
-		Profile& S = *ProfileGet();
-		int32_t nValue = wasMicroProfileActivated ? 1 : 0;
-		nValue = nValue >= 0 && nValue < P_DRAW_SIZE ? nValue : S.nDisplay;
-		S.nDisplay = nValue;
-
-		//ActivateMicroProfile(&gAppUI, gAppSettings.mActivateMicroProfiler);
-		//ProfileSetDisplayMode(P_DRAW_BARS);
-	}
 }
-
-
 
 void GuiController::addGui()
 {
@@ -9375,8 +9253,6 @@ void GuiController::addGui()
 		float2(-PI), float2(PI), float2(0.00001f));
 	SliderFloatWidget esmControlUI("ESM Control", &gEsmCpuSettings.mEsmControl, 1.f, 300.f);
 
-	CheckboxWidget microprofile("Activate Microprofile", &gAppSettings.mMicroProfiler);
-	pGuiWindow->AddWidget(microprofile);
 	pGuiWindow->AddWidget(CheckboxWidget("Hold triangles", &gAppSettings.mHoldFilteredTriangles));
 #if !defined(TARGET_IOS)
 	CheckboxWidget vsyncProp("Toggle VSync", &gAppSettings.mToggleVsync);

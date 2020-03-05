@@ -66,482 +66,482 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\CustomMiddleware\Ephemeris\src\EphemerisExample\Example.cpp">
+    <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Example.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\src\VolumetricClouds.cpp">
+    <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\src\VolumetricClouds.cpp">
       <Filter>Source Files\Ephemeris\VolumetricClouds</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\src\HeightData.cpp">
+    <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\src\HeightData.cpp">
       <Filter>Source Files\Ephemeris\Terrain</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\src\Terrain.cpp">
+    <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\src\Terrain.cpp">
       <Filter>Source Files\Ephemeris\Terrain</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\Ephemeris.cpp">
+    <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\Ephemeris.cpp">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\LocalTime.cpp">
+    <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\LocalTime.cpp">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\Sky.cpp">
+    <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\Sky.cpp">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\CloudImpostor.cpp">
+    <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\CloudImpostor.cpp">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\CloudsManager.cpp">
+    <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\CloudsManager.cpp">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\CumulusCloud.cpp">
+    <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\CumulusCloud.cpp">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\DistantCloud.cpp">
+    <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\DistantCloud.cpp">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\Icosahedron.cpp">
+    <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\Icosahedron.cpp">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\CustomMiddleware\Ephemeris\src\Perlin.cpp">
+    <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\src\Perlin.cpp">
       <Filter>Source Files\Ephemeris</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\B_Spline.cpp">
+    <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\B_Spline.cpp">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\Aurora.cpp">
+    <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\Aurora.cpp">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\src\SpaceObjects.cpp">
+    <ClCompile Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\src\SpaceObjects.cpp">
       <Filter>Source Files\Ephemeris\SpaceObjects</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\resources\Shaders\D3D12\GenNormalMap.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\D3D12\GenNormalMap.frag">
       <Filter>Shaders\D3D12\Ephemeris\Terrain</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\resources\Shaders\D3D12\GenNormalMap.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\D3D12\GenNormalMap.vert">
       <Filter>Shaders\D3D12\Ephemeris\Terrain</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\resources\Shaders\D3D12\RenderTerrain.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\D3D12\RenderTerrain.frag">
       <Filter>Shaders\D3D12\Ephemeris\Terrain</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\resources\Shaders\D3D12\RenderTerrain.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\D3D12\RenderTerrain.vert">
       <Filter>Shaders\D3D12\Ephemeris\Terrain</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\resources\Shaders\D3D12\terrain.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\D3D12\terrain.frag">
       <Filter>Shaders\D3D12\Ephemeris\Terrain</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\resources\Shaders\D3D12\terrain.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\D3D12\terrain.vert">
       <Filter>Shaders\D3D12\Ephemeris\Terrain</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\resources\Shaders\D3D12\RenderSky.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\RenderSky.frag">
       <Filter>Shaders\D3D12\Ephemeris\Sky</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\resources\Shaders\D3D12\RenderSky.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\RenderSky.vert">
       <Filter>Shaders\D3D12\Ephemeris\Sky</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\resources\Shaders\D3D12\Space.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\Space.frag">
       <Filter>Shaders\D3D12\Ephemeris\Sky</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\resources\Shaders\D3D12\Space.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\Space.vert">
       <Filter>Shaders\D3D12\Ephemeris\Sky</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\BlurHorizontal.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\BlurHorizontal.comp">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\BlurVertical.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\BlurVertical.comp">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\castShadow.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\castShadow.frag">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\composite.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\composite.frag">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\compositeOverlay.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\compositeOverlay.frag">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\copyRT.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\copyRT.comp">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\copyTexture.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\copyTexture.comp">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\gen3DtexMipmap.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\gen3DtexMipmap.comp">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\genHighTopFreq3Dtex.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\genHighTopFreq3Dtex.comp">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\genLowTopFreq3Dtex.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\genLowTopFreq3Dtex.comp">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\godray.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\godray.frag">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\godrayAdd.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\godrayAdd.frag">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\HiZdownSampling.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\HiZdownSampling.comp">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\HiZdownSamplingPR.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\HiZdownSamplingPR.comp">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\postProcess.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\postProcess.frag">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\reprojection.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\reprojection.comp">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\reprojection.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\reprojection.frag">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\Triangular.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\Triangular.vert">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\volumetricCloud.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\volumetricCloud.comp">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\volumetricCloud.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\volumetricCloud.frag">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\volumetricCloud.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\volumetricCloud.vert">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\copyWeatherTexture.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\copyWeatherTexture.comp">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\resources\Shaders\Vulkan\RenderSky.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\Vulkan\RenderSky.frag">
       <Filter>Shaders\Vulkan\Ephemeris\Sky</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\resources\Shaders\Vulkan\RenderSky.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\Vulkan\RenderSky.vert">
       <Filter>Shaders\Vulkan\Ephemeris\Sky</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\resources\Shaders\Vulkan\Space.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\Vulkan\Space.frag">
       <Filter>Shaders\Vulkan\Ephemeris\Sky</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\resources\Shaders\Vulkan\Space.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\Vulkan\Space.vert">
       <Filter>Shaders\Vulkan\Ephemeris\Sky</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\resources\Shaders\Vulkan\GenNormalMap.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\Vulkan\GenNormalMap.frag">
       <Filter>Shaders\Vulkan\Ephemeris\Terrain</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\resources\Shaders\Vulkan\GenNormalMap.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\Vulkan\GenNormalMap.vert">
       <Filter>Shaders\Vulkan\Ephemeris\Terrain</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\resources\Shaders\Vulkan\LightingTerrain.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\Vulkan\LightingTerrain.frag">
       <Filter>Shaders\Vulkan\Ephemeris\Terrain</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\resources\Shaders\Vulkan\LightingTerrain.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\Vulkan\LightingTerrain.vert">
       <Filter>Shaders\Vulkan\Ephemeris\Terrain</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\resources\Shaders\Vulkan\RenderTerrain.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\Vulkan\RenderTerrain.frag">
       <Filter>Shaders\Vulkan\Ephemeris\Terrain</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\resources\Shaders\Vulkan\RenderTerrain.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\Vulkan\RenderTerrain.vert">
       <Filter>Shaders\Vulkan\Ephemeris\Terrain</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\resources\Shaders\Vulkan\terrain.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\Vulkan\terrain.frag">
       <Filter>Shaders\Vulkan\Ephemeris\Terrain</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\resources\Shaders\Vulkan\terrain.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\Vulkan\terrain.vert">
       <Filter>Shaders\Vulkan\Ephemeris\Terrain</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloud.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloud.frag">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloud.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloud.comp">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\reprojection.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\reprojection.frag">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\reprojection.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\reprojection.comp">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\godrayAdd.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\godrayAdd.frag">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\godray.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\godray.frag">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\castShadow.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\castShadow.frag">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\compositeOverlay.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\compositeOverlay.frag">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\composite.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\composite.frag">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\HiZdownSamplingPR.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\HiZdownSamplingPR.comp">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\HiZdownSampling.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\HiZdownSampling.comp">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\genLowTopFreq3Dtex.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\genLowTopFreq3Dtex.comp">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\genHighTopFreq3Dtex.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\genHighTopFreq3Dtex.comp">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\gen3DtexMipmap.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\gen3DtexMipmap.comp">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\copyWeatherTexture.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\copyWeatherTexture.comp">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\copyTexture.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\copyTexture.comp">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\copyRT.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\copyRT.comp">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\BlurVertical.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\BlurVertical.comp">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\BlurHorizontal.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\BlurHorizontal.comp">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\Triangular.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\Triangular.vert">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\postProcess.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\postProcess.frag">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloud.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloud.vert">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\volumetricCloudWithDepth.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\volumetricCloudWithDepth.comp">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloudWithDepth.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloudWithDepth.comp">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\postProcessWithBlur.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\postProcessWithBlur.frag">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\postProcessWithBlur.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\postProcessWithBlur.frag">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\resources\Shaders\D3D12\LightingTerrain.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\D3D12\LightingTerrain.frag">
       <Filter>Shaders\D3D12\Ephemeris\Terrain</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\resources\Shaders\D3D12\LightingTerrain.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\D3D12\LightingTerrain.vert">
       <Filter>Shaders\D3D12\Ephemeris\Terrain</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\resources\Shaders\D3D12\clCumulusCloud.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\clCumulusCloud.frag">
       <Filter>Shaders\D3D12\Ephemeris\Sky</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\resources\Shaders\D3D12\clCumulusCloud.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\clCumulusCloud.vert">
       <Filter>Shaders\D3D12\Ephemeris\Sky</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\resources\Shaders\D3D12\clDistanceCloud.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\clDistanceCloud.frag">
       <Filter>Shaders\D3D12\Ephemeris\Sky</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\resources\Shaders\D3D12\clDistanceCloud.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\clDistanceCloud.vert">
       <Filter>Shaders\D3D12\Ephemeris\Sky</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\resources\Shaders\D3D12\clCumulusCloud.geom">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\clCumulusCloud.geom">
       <Filter>Shaders\D3D12\Ephemeris\Sky</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\resources\Shaders\D3D12\clImpostorCloud.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\clImpostorCloud.frag">
       <Filter>Shaders\D3D12\Ephemeris\Sky</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\resources\Shaders\D3D12\clImpostorCloud.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\clImpostorCloud.vert">
       <Filter>Shaders\D3D12\Ephemeris\Sky</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\src\EphemerisExample\Shaders\D3D12\depthLinearization.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\D3D12\depthLinearization.comp">
       <Filter>Shaders\D3D12\Ephemeris\Example</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\src\EphemerisExample\Shaders\D3D12\depthLinearization.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\D3D12\depthLinearization.frag">
       <Filter>Shaders\D3D12\Ephemeris\Example</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\src\EphemerisExample\Shaders\D3D12\present.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\D3D12\present.frag">
       <Filter>Shaders\D3D12\Ephemeris\Example</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\src\EphemerisExample\Shaders\D3D12\Triangular.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\D3D12\Triangular.vert">
       <Filter>Shaders\D3D12\Ephemeris\Example</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\src\EphemerisExample\Shaders\Vulkan\depthLinearization.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\Vulkan\depthLinearization.comp">
       <Filter>Shaders\Vulkan\Ephemeris\Example</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\src\EphemerisExample\Shaders\Vulkan\depthLinearization.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\Vulkan\depthLinearization.frag">
       <Filter>Shaders\Vulkan\Ephemeris\Example</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\src\EphemerisExample\Shaders\Vulkan\present.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\Vulkan\present.frag">
       <Filter>Shaders\Vulkan\Ephemeris\Example</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\src\EphemerisExample\Shaders\Vulkan\Triangular.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\Vulkan\Triangular.vert">
       <Filter>Shaders\Vulkan\Ephemeris\Example</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\volumetricCloud_2nd.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\volumetricCloud_2nd.comp">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Aurora.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Aurora.comp">
       <Filter>Shaders\D3D12\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Aurora.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Aurora.frag">
       <Filter>Shaders\D3D12\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Aurora.geom">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Aurora.geom">
       <Filter>Shaders\D3D12\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Aurora.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Aurora.vert">
       <Filter>Shaders\D3D12\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\MilkyWay.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\MilkyWay.frag">
       <Filter>Shaders\D3D12\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\MilkyWay.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\MilkyWay.vert">
       <Filter>Shaders\D3D12\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Star.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Star.frag">
       <Filter>Shaders\D3D12\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Star.geom">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Star.geom">
       <Filter>Shaders\D3D12\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Star.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Star.vert">
       <Filter>Shaders\D3D12\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Sun.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Sun.frag">
       <Filter>Shaders\D3D12\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Sun.geom">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Sun.geom">
       <Filter>Shaders\D3D12\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Sun.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\D3D12\Sun.vert">
       <Filter>Shaders\D3D12\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Aurora.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Aurora.comp">
       <Filter>Shaders\Vulkan\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Aurora.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Aurora.frag">
       <Filter>Shaders\Vulkan\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Aurora.geom">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Aurora.geom">
       <Filter>Shaders\Vulkan\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Aurora.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Aurora.vert">
       <Filter>Shaders\Vulkan\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\MilkyWay.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\MilkyWay.frag">
       <Filter>Shaders\Vulkan\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\MilkyWay.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\MilkyWay.vert">
       <Filter>Shaders\Vulkan\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Star.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Star.frag">
       <Filter>Shaders\Vulkan\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Star.geom">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Star.geom">
       <Filter>Shaders\Vulkan\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Star.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Star.vert">
       <Filter>Shaders\Vulkan\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Sun.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Sun.frag">
       <Filter>Shaders\Vulkan\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Sun.geom">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Sun.geom">
       <Filter>Shaders\Vulkan\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Sun.vert">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\Vulkan\Sun.vert">
       <Filter>Shaders\Vulkan\Ephemeris\SpaceObjects</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloud_2nd.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloud_2nd.comp">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloud_2ndWithDepth.comp">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloud_2ndWithDepth.comp">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\src\EphemerisExample\Shaders\D3D12\FXAA.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\D3D12\FXAA.frag">
       <Filter>Shaders\D3D12\Ephemeris\Example</Filter>
     </None>
-    <None Include="..\..\..\..\CustomMiddleware\Ephemeris\src\EphemerisExample\Shaders\Vulkan\FXAA.frag">
+    <None Include="..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\Vulkan\FXAA.frag">
       <Filter>Shaders\Vulkan\Ephemeris\Example</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\resources\Shaders\D3D12\RenderSky.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\RenderSky.h">
       <Filter>Shaders\D3D12\Ephemeris\Sky</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\volumetricCloud.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\D3D12\volumetricCloud.h">
       <Filter>Shaders\D3D12\Ephemeris\VolumetricClouds</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\src\VolumetricClouds.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\src\VolumetricClouds.h">
       <Filter>Source Files\Ephemeris\VolumetricClouds</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\src\HeightData.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\src\HeightData.h">
       <Filter>Source Files\Ephemeris\Terrain</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\src\Hemisphere.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\src\Hemisphere.h">
       <Filter>Source Files\Ephemeris\Terrain</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\src\Terrain.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\src\Terrain.h">
       <Filter>Source Files\Ephemeris\Terrain</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Terrain\src\Visibility.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Terrain\src\Visibility.h">
       <Filter>Source Files\Ephemeris\Terrain</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\Ephemeris.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\Ephemeris.h">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\LocalTime.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\LocalTime.h">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\Location.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\Location.h">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\Sky.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\Sky.h">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\SkyCommon.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\SkyCommon.h">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\resources\Shaders\Vulkan\RenderSky.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\Vulkan\RenderSky.h">
       <Filter>Shaders\Vulkan\Ephemeris\Sky</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloud.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\Vulkan\volumetricCloud.h">
       <Filter>Shaders\Vulkan\Ephemeris\VolumetricClouds</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\resources\Shaders\D3D12\SkyCommon.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\D3D12\SkyCommon.h">
       <Filter>Shaders\D3D12\Ephemeris\Sky</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\CloudImpostor.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\CloudImpostor.h">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\CloudsManager.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\CloudsManager.h">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\CumulusCloud.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\CumulusCloud.h">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\DistantCloud.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\DistantCloud.h">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\SkyDomeParams.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\SkyDomeParams.h">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\IndexManager.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\IndexManager.h">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\Icosahedron.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\Icosahedron.h">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\src\Perlin.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\src\Perlin.h">
       <Filter>Source Files\Ephemeris</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\B_Spline.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\B_Spline.h">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\Sky\src\Aurora.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\Sky\src\Aurora.h">
       <Filter>Source Files\Ephemeris\Sky</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\CustomMiddleware\Ephemeris\SpaceObjects\src\SpaceObjects.h">
+    <ClInclude Include="..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\src\SpaceObjects.h">
       <Filter>Source Files\Ephemeris\SpaceObjects</Filter>
     </ClInclude>
   </ItemGroup>

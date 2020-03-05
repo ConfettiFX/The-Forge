@@ -218,7 +218,7 @@ kernel void classifyIntersections(constant ClassifyIntersectionsArguments& argum
 #define THREADS_PER_THREADGROUP 64
 
 extern void mtl_createShaderReflection(Renderer* pRenderer, Shader* shader, const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, eastl::unordered_map<uint32_t, MTLVertexFormat>* vertexAttributeFormats, ShaderReflection* pOutReflection);
-extern void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture, const bool isRT = false, const bool forceNonPrivate = false);
+extern void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** pTexture, const bool isRT = false, const bool forceNonPrivate = false);
 
 struct AccelerationStructure
 {
@@ -296,13 +296,13 @@ struct RaytracingPipeline
 	id <MTLBuffer> mClassificationArgumentsBuffer;
 	id <MTLBuffer> mRaytracingArgumentsBuffer;
 	
-	Buffer* pRayCountBuffer[2];
-	Buffer* pPathHitGroupsBuffer;
-	Buffer* pSortedPathHitGroupsBuffer;
-	Buffer* pPathIndicesBuffer;
-	Buffer* pSortedPathIndicesBuffer;
-	Buffer* pHitGroupsOffsetBuffer;
-	Buffer* pHitGroupIndirectArgumentsBuffer;
+	Buffer*      pRayCountBuffer[2];
+	Buffer*      pPathHitGroupsBuffer;
+	Buffer*      pSortedPathHitGroupsBuffer;
+	Buffer*      pPathIndicesBuffer;
+	Buffer*      pSortedPathIndicesBuffer;
+	Buffer*      pHitGroupsOffsetBuffer;
+	Buffer*      pHitGroupIndirectArgumentsBuffer;
 	
 	uint32_t	mMaxRaysCount;
 	uint32_t	mPayloadRecordSize;
@@ -737,32 +737,6 @@ void cmdBuildAccelerationStructure(Cmd* pCmd, Raytracing* pRaytracing, Raytracin
 	cmdBuildTopAS(pCmd, pRaytracing, pDesc->pAccelerationStructure);
 }
 
-void cmdCopyTexture(Cmd* pCmd, Texture* pDst, Texture* pSrc)
-{
-	ASSERT(pDst->mDesc.mWidth == pSrc->mDesc.mWidth);
-	ASSERT(pDst->mDesc.mHeight == pSrc->mDesc.mHeight);
-	ASSERT(pDst->mDesc.mMipLevels == pSrc->mDesc.mMipLevels);
-	ASSERT(pDst->mDesc.mArraySize == pSrc->mDesc.mArraySize);
-	util_end_current_encoders(pCmd, false);
-	
-	pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
-	
-	uint nLayers = min(pSrc->mDesc.mArraySize, pDst->mDesc.mArraySize);
-	uint nMips = min(pSrc->mDesc.mMipLevels, pDst->mDesc.mMipLevels);
-	uint32_t width = min(pSrc->mDesc.mWidth, pDst->mDesc.mWidth);
-	uint height = min(pSrc->mDesc.mHeight, pDst->mDesc.mHeight);
-	for (uint32_t l = 0; l < nLayers; ++l)
-	{
-		for (uint32_t m = 0; m < nMips; ++m)
-		{
-			uint32_t mipmapWidth    = max(width >> m, 1u);
-			uint32_t mipmapHeight   = max(height >> m, 1u);
-			
-			[pCmd->mtlBlitEncoder copyFromTexture:pSrc->mtlTexture sourceSlice:l sourceLevel:m sourceOrigin:MTLOriginMake(0, 0, 0) sourceSize:MTLSizeMake(mipmapWidth, mipmapHeight, 1) toTexture:pDst->mtlTexture destinationSlice:l destinationLevel:m destinationOrigin:MTLOriginMake(0, 0, 0)];
-		}
-	}
-}
-
 void removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
 {
 	ASSERT(pRaytracing);
@@ -800,15 +774,19 @@ void addSubFunctions(MTLComputePipelineDescriptor* computeDescriptor, id<MTLLibr
 	}
 }
 
-void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPipeline)
+void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppGenericPipeline)
 {
 	ASSERT(pDesc);
-	ASSERT(ppPipeline);
+	ASSERT(ppGenericPipeline);
 	
 	Raytracing* pRaytracing = pDesc->pRaytracing;
 	ASSERT(pRaytracing);
 	
-	Pipeline* pGenericPipeline = (Pipeline*)conf_calloc(1, sizeof(Pipeline));
+	Pipeline* pGenericPipeline =(Pipeline*)conf_calloc(1, sizeof(Pipeline));
+	ASSERT(pGenericPipeline);
+	
+	pGenericPipeline->pShader = pDesc->pRayGenShader;
+	pGenericPipeline->mType = PIPELINE_TYPE_RAYTRACING;
 	
 	RaytracingPipeline* pPipeline = (RaytracingPipeline*)conf_calloc(1, sizeof(RaytracingPipeline));
 	memset(pPipeline, 0, sizeof(*pPipeline));
@@ -1052,9 +1030,7 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 	[raytracingArgumentEncoder setBuffer:pPipeline->mPathCallStackBuffer offset:pPipeline->mMaxRaysCount * 4 atIndex:4];
 	[raytracingArgumentEncoder setBuffer:pPipeline->mPayloadBuffer offset:0 atIndex:5];
 	
-	pGenericPipeline->pShader = pDesc->pRayGenShader;
-	pGenericPipeline->mType = PIPELINE_TYPE_RAYTRACING;
-	*ppPipeline = pGenericPipeline;
+	*ppGenericPipeline = pGenericPipeline;
 }
 
 void removeRaytracingPipeline(RaytracingPipeline* pPipeline)
@@ -1091,8 +1067,8 @@ void removeRaytracingPipeline(RaytracingPipeline* pPipeline)
 	removeResource(pPipeline->pHitGroupsOffsetBuffer);
 	removeResource(pPipeline->pHitGroupIndirectArgumentsBuffer);
 	
-	pPipeline->~RaytracingPipeline();
-	memset(pPipeline, 0, sizeof(*pPipeline));
+//	pPipeline->~RaytracingPipeline();
+//	memset(pPipeline, 0, sizeof(*pPipeline));
 	
 	conf_free(pPipeline);
 }
@@ -1247,7 +1223,7 @@ void invokeShaders(Cmd* pCmd, Raytracing* pRaytracing,
 	
 	for (uint32_t i = 0; i <= pPipeline->mMaxTraceRecursionDepth; i += 1)
 	{
-		[pCmd->mtlComputeEncoder updateFence:pCmd->mDesc.pPool->pQueue->mtlQueueFence];
+		[pCmd->mtlComputeEncoder updateFence:pCmd->pQueue->mtlQueueFence];
 		[pCmd->mtlComputeEncoder endEncoding];
 		pCmd->mtlComputeEncoder = nil;
 		
@@ -1268,7 +1244,7 @@ void invokeShaders(Cmd* pCmd, Raytracing* pRaytracing,
 
 		id <MTLComputeCommandEncoder> computeEncoder = [pCmd->mtlCommandBuffer computeCommandEncoderWithDispatchType:MTLDispatchTypeConcurrent];
 		pCmd->mtlComputeEncoder = computeEncoder;
-		[computeEncoder waitForFence:pCmd->mDesc.pPool->pQueue->mtlQueueFence];
+		[computeEncoder waitForFence:pCmd->pQueue->mtlQueueFence];
 		
 		{
 			// Declare all the resources we'll use.
@@ -1501,7 +1477,7 @@ void clearSSVGFDenoiserTemporalHistory(SSVGFDenoiser* pDenoiser)
 	}
 }
 
-Texture* cmdSSVGFDenoise(Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTexture, Texture* pMotionVectorTexture, Texture* pDepthNormalTexture, Texture* pPreviousDepthNormalTexture)
+void cmdSSVGFDenoise(Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTexture, Texture* pMotionVectorTexture, Texture* pDepthNormalTexture, Texture* pPreviousDepthNormalTexture, Texture** ppOut)
 {
 	ASSERT(pDenoiser);
 	
@@ -1535,12 +1511,11 @@ Texture* cmdSSVGFDenoise(Cmd* pCmd, SSVGFDenoiser* pDenoiser, Texture* pSourceTe
 
 		resultTextureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 
-		Texture* texture = NULL;
-		add_texture(pCmd->pRenderer, &resultTextureDesc, &texture, false);
-		texture->mpsTextureAllocator = denoiser.textureAllocator;
-		return texture;
+		add_texture(pCmd->pRenderer, &resultTextureDesc, ppOut, false);
+		(*ppOut)->mpsTextureAllocator = denoiser.textureAllocator;
 	} else {
-		return NULL;
+		*ppOut = {};
+		return;
 	}
 }
 

@@ -153,12 +153,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.h">
       <Filter>OS\Core</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerBase.h">
-      <Filter>OS\Profiler</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerHTML.h">
-      <Filter>OS\Profiler</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IProfiler.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
@@ -177,9 +171,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IInput.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerWidgetsUI.h">
-      <Filter>OS\Profiler</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystemInternal.h">
       <Filter>OS\FileSystem</Filter>
     </ClInclude>
@@ -194,6 +185,15 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\MemoryStream.h">
       <Filter>OS\FileSystem</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\GpuProfiler.h">
+      <Filter>OS\Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerBase.h">
+      <Filter>OS\Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerHTML.h">
+      <Filter>OS\Profiler</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -290,12 +290,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\allocator_forge.cpp">
       <Filter>Dependencies\EASTL</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\Profiler.cpp">
-      <Filter>OS\Profiler</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerBase.cpp">
-      <Filter>OS\Profiler</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsTime.cpp">
       <Filter>OS\Windows</Filter>
     </ClCompile>
@@ -313,9 +307,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp">
       <Filter>OS\Image</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerWidgetsUI.cpp">
-      <Filter>OS\Profiler</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystemInternal.cpp">
       <Filter>OS\FileSystem</Filter>
@@ -337,6 +328,15 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\MemoryStream.cpp">
       <Filter>OS\FileSystem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\GpuProfiler.cpp">
+      <Filter>OS\Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerBase.cpp">
+      <Filter>OS\Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerWidgetsUI.cpp">
+      <Filter>OS\Profiler</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\zip\zip.cpp">
       <Filter>Dependencies\zip</Filter>

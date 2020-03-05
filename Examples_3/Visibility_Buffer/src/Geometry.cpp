@@ -1148,7 +1148,6 @@ void createCubeBuffers(Renderer* pRenderer, CmdPool* cmdPool, Buffer** ppVertexB
 	vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 	vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 	vbDesc.mDesc.mSize = sizeof(vertexData);
-	vbDesc.mDesc.mVertexStride = sizeof(float) * 4;
 	vbDesc.pData = vertexData;
 	vbDesc.ppBuffer = ppVertexBuffer;
 	vbDesc.mDesc.pDebugName = L"VB Desc";
@@ -1163,7 +1162,6 @@ void createCubeBuffers(Renderer* pRenderer, CmdPool* cmdPool, Buffer** ppVertexB
 	ibDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
 	ibDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 	ibDesc.mDesc.mSize = sizeof(indices);
-	ibDesc.mDesc.mIndexType = INDEX_TYPE_UINT16;
 	ibDesc.pData = indices;
 	ibDesc.ppBuffer = ppIndexBuffer;
 	ibDesc.mDesc.pDebugName = L"IB Desc";

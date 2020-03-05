@@ -32,6 +32,8 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
 	mRootSignature = skeletonRenderDesc.mRootSignature;
 	mJointVertexBuffer = skeletonRenderDesc.mJointVertexBuffer;
 	mNumJointPoints = skeletonRenderDesc.mNumJointPoints;
+	mJointVertexStride = skeletonRenderDesc.mJointVertexStride;
+	mBoneVertexStride = skeletonRenderDesc.mBoneVertexStride;
 
 	// 2 because updates buffer twice per instanced draw call: one for joints and one for bones
 	DescriptorSetDesc setDesc = { mRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, MAX_BATCHES * 2 * ImageCount };
@@ -209,7 +211,7 @@ void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t& frameIndex)
 
 	// Joints
 	cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Skeletons Joints");
-	cmdBindVertexBuffer(cmd, 1, &mJointVertexBuffer, NULL);
+	cmdBindVertexBuffer(cmd, 1, &mJointVertexBuffer, &mJointVertexStride, NULL);
 
 	// for each batch of joints
 	for (unsigned int batchIndex = 0; batchIndex < numBatches; batchIndex++)
@@ -229,11 +231,10 @@ void SkeletonBatcher::Draw(Cmd* cmd, const uint32_t& frameIndex)
 	}
 	cmdEndDebugMarker(cmd);
 
-
 	// Bones
 	if (mDrawBones)
 	{
-		cmdBindVertexBuffer(cmd, 1, &mBoneVertexBuffer, NULL);
+		cmdBindVertexBuffer(cmd, 1, &mBoneVertexBuffer, &mBoneVertexStride, NULL);
 		cmdBeginDebugMarker(cmd, 1, 0, 1, "Draw Skeletons Bones");
 
 		// for each batch of bones

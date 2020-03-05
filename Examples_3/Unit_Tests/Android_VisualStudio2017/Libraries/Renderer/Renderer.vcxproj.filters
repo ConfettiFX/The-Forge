@@ -4,9 +4,6 @@
     <Filter Include="Renderer">
       <UniqueIdentifier>{cb9abde3-fc61-410f-94cf-fcf129a3156d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Profiler">
-      <UniqueIdentifier>{468fa3e2-17ae-4835-8e35-cfd639ad057d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Image">
       <UniqueIdentifier>{ab6cd5e0-738c-4799-9ccd-ebfa778228c0}</UniqueIdentifier>
     </Filter>
@@ -26,9 +23,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\ResourceLoader.cpp">
       <Filter>Renderer</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\Renderer\GpuProfiler.cpp">
-      <Filter>Profiler</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Image\Image.cpp">
       <Filter>Image</Filter>

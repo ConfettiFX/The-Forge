@@ -71,7 +71,7 @@
 // CONFFX: We do not support profile when dealing with multiple runtime graphic apis
 // CONFFX: We do not support xbox yet
 
-#include "../../../OS/Interfaces/IProfiler.h"
+#include "../Interfaces/IProfiler.h"
 
 #if 0 == PROFILE_ENABLED
 
@@ -102,7 +102,6 @@
 #define ProfileGetTime(group, name) 0.f
 #define ProfileOnThreadCreate(foo) do{}while(0)
 #define ProfileFlip() do{}while(0)
-#define ProfileSetAggregateFrames(a) do{}while(0)
 #define ProfileGetAggregateFrames() 0
 #define ProfileGetCurrentAggregateFrames() 0
 #define ProfileTogglePause() do{}while(0)
@@ -129,16 +128,8 @@
 
 #else
 
-#include <string.h>
-
-#ifndef PROFILE_NOCXX11
-//#include <thread>
-#include "../../../OS/Interfaces/IThread.h"
-#include <mutex>
-#include <atomic>
-#endif
-#include "../../../OS/Interfaces/IFileSystem.h"
-
+#include "../Interfaces/IThread.h"
+#include "../Core/Atomics.h"
 #ifndef PROFILE_API
 #define PROFILE_API
 #endif
@@ -165,20 +156,13 @@ inline int64_t ProfileTicksPerSecondCpu()
 	}
 	return nTicksPerSecond;
 }
-inline uint64_t ProfileGetCurrentThreadId()
-{
-	uint64_t tid;
-	pthread_threadid_np(nullptr, &tid);
-	return tid;
-}
 
 #define P_BREAK() __builtin_trap()
 #if __has_feature(tls)
 #define P_THREAD_LOCAL thread_local
 #endif
 #define P_STRCASECMP strcasecmp
-#define P_GETCURRENTTHREADID() ProfileGetCurrentThreadId()
-typedef uint64_t ProfileThreadIdType;
+
 #define P_GETCURRENTPROCESSID() getpid()
 typedef uint32_t ProfileProcessIdType;
 #elif defined(_WIN32)
@@ -187,7 +171,6 @@ int64_t ProfileGetTick();
 #define P_BREAK() __debugbreak()
 #define P_THREAD_LOCAL __declspec(thread)
 #define P_STRCASECMP _stricmp
-#define P_GETCURRENTTHREADID() GetCurrentThreadId()
 typedef uint32_t ProfileThreadIdType;
 #define P_GETCURRENTPROCESSID() GetCurrentProcessId()
 typedef uint32_t ProfileProcessIdType;
@@ -215,7 +198,6 @@ inline int64_t ProfileGetTick()
 #define P_THREAD_LOCAL thread_local
 //#endif
 #define P_STRCASECMP strcasecmp
-#define P_GETCURRENTTHREADID() (uint64_t)pthread_self()
 typedef uint64_t ProfileThreadIdType;
 #define P_GETCURRENTPROCESSID() getpid()
 typedef uint32_t ProfileProcessIdType;
@@ -240,11 +222,6 @@ inline int64_t ProfileTicksPerSecondCpu()
 #define P_STRCASECMP strcasecmp
 #endif
 
-#ifndef P_GETCURRENTTHREADID 
-#define P_GETCURRENTTHREADID() 0
-typedef uint32_t ProfileThreadIdType;
-#endif
-
 #ifndef P_GETCURRENTPROCESSID
 #define P_GETCURRENTPROCESSID() 0
 typedef uint32_t ProfileProcessIdType;
@@ -254,10 +231,6 @@ typedef uint32_t ProfileProcessIdType;
 #define P_ASSERT(a) do{if(!(a)){P_BREAK();} }while(0)
 #endif
 
-struct Cmd;
-struct GpuProfiler;
-
-typedef uint64_t ProfileToken;
 typedef uint16_t ProfileGroupId;
 
 #define PROFILE_DECLARE(var) extern ProfileToken g_mp_##var
@@ -349,7 +322,6 @@ typedef uint16_t ProfileGroupId;
 #define PROFILE_GROUP_MASK_ALL 0xffffffffffff
 
 
-#define PROFILE_INVALID_TOKEN (uint64_t)0
 
 enum ProfileTokenType
 {
@@ -371,7 +343,7 @@ enum ProfileDumpType
 
 struct Profile;
 
-PROFILE_API ProfileToken ProfileFindToken(const char* sGroup, const char* sName);
+PROFILE_API ProfileToken ProfileFindToken(const char* sGroup, const char* sName, ThreadID* pThread = NULL);
 PROFILE_API ProfileToken ProfileGetToken(const char* sGroup, const char* sName, uint32_t nColor, ProfileTokenType Token = ProfileTokenTypeCpu);
 PROFILE_API ProfileToken ProfileGetLabelToken(const char* sGroup, ProfileTokenType Token = ProfileTokenTypeCpu);
 PROFILE_API const char* ProfileGetLabel(uint32_t eType, uint64_t nLabel);
@@ -382,8 +354,6 @@ PROFILE_API void ProfileCounterAdd(ProfileToken nToken, int64_t nCount);
 PROFILE_API void ProfileCounterSet(ProfileToken nToken, int64_t nCount);
 PROFILE_API void ProfileCounterSetLimit(ProfileToken nToken, int64_t nCount);
 PROFILE_API void ProfileCounterConfig(const char* pCounterName, uint32_t nFormat, int64_t nLimit, uint32_t nFlags);
-PROFILE_API uint64_t ProfileEnter(ProfileToken nToken);
-PROFILE_API void ProfileLeave(ProfileToken nToken, uint64_t nTick);
 PROFILE_API void ProfileLabel(ProfileToken nToken, const char* pName);
 PROFILE_FORMAT(2, 3) PROFILE_API void ProfileLabelFormat(ProfileToken nToken, const char* pName, ...);
 PROFILE_API void ProfileLabelFormatV(ProfileToken nToken, const char* pName, va_list args);
@@ -392,11 +362,9 @@ inline uint16_t ProfileGetTimerIndex(ProfileToken t) { return (t & 0xffff); }
 inline uint64_t ProfileGetGroupMask(ProfileToken t) { return ((t >> 16)&PROFILE_GROUP_MASK_ALL); }
 inline ProfileToken ProfileMakeToken(uint64_t nGroupMask, uint16_t nTimer) { return (nGroupMask << 16) | nTimer; }
 
-PROFILE_API void ProfileFlip(); //! call once per frame.
 PROFILE_API void ProfileTogglePause();
 PROFILE_API void ProfileForceEnableGroup(const char* pGroup, ProfileTokenType Type);
 PROFILE_API void ProfileForceDisableGroup(const char* pGroup, ProfileTokenType Type);
-PROFILE_API float ProfileGetTime(const char* pGroup, const char* pName);
 
 PROFILE_API void ProfileOnThreadCreate(const char* pThreadName); //should be called from newly created threads
 PROFILE_API void ProfileOnThreadExit(); //call on exit to reuse log
@@ -410,12 +378,11 @@ PROFILE_API void ProfileSetForceMetaCounters(bool bEnable);
 PROFILE_API bool ProfileGetForceMetaCounters();
 PROFILE_API void ProfileEnableMetaCounter(const char* pMet);
 PROFILE_API void ProfileDisableMetaCounter(const char* pMet);
-PROFILE_API void ProfileSetAggregateFrames(int frames);
 PROFILE_API int ProfileGetAggregateFrames();
 PROFILE_API int ProfileGetCurrentAggregateFrames();
 PROFILE_API Profile* ProfileGet();
 PROFILE_API void ProfileGetRange(uint32_t nPut, uint32_t nGet, uint32_t nRange[2][2]);
-PROFILE_API std::recursive_mutex& ProfileGetMutex();
+PROFILE_API Mutex& ProfileGetMutex();
 PROFILE_API struct ProfileThreadLog* ProfileCreateThreadLog(const char* pName);
 PROFILE_API void ProfileRemoveThreadLog(struct ProfileThreadLog * pLog);
 
@@ -425,7 +392,7 @@ PROFILE_API void ProfileContextSwitchTraceStop();
 struct ProfileThreadInfo
 {
 	ProfileProcessIdType nProcessId;
-	ProfileThreadIdType nThreadId;
+	ThreadID nThreadId;
 };
 
 PROFILE_API void ProfileContextSwitchSearch(uint32_t* pContextSwitchStart, uint32_t* pContextSwitchEnd, uint64_t nBaseTicksCpu, uint64_t nBaseTicksEndCpu);
@@ -444,15 +411,8 @@ PROFILE_API void ProfileWebServerStart();
 PROFILE_API void ProfileWebServerStop();
 PROFILE_API uint32_t ProfileWebServerPort();
 
-PROFILE_API void ProfileGpuSetContext(GpuProfiler* pGpuProfiler);
-
-PROFILE_API uint64_t ProfileGpuGetTimeStamp(uint32_t nKey);
-PROFILE_API uint64_t ProfileGpuGetTimeStamp(struct ProfileThreadLog * pLog, uint32_t nIndex);
-PROFILE_API uint64_t ProfileTicksPerSecondGpu();
-PROFILE_API uint32_t ProfileGpuFlip();
-PROFILE_API bool ProfileGetGpuTickReference(int64_t* pOutCpu, int64_t* pOutGpu);
-PROFILE_API uint64_t ProfileEnterGpu(ProfileToken nToken, uint32_t nTimerIndex);
-PROFILE_API void ProfileLeaveGpu(ProfileToken nToken, uint32_t nTick);
+PROFILE_API uint64_t ProfileEnterGpu(ProfileToken nToken, uint64_t nTick, ProfileThreadLog* pLog);
+PROFILE_API void ProfileLeaveGpu(ProfileToken nToken, uint64_t nTick, ProfileThreadLog* pLog);
 
 PROFILE_API const char* ProfileGetThreadName();
 
@@ -466,11 +426,11 @@ struct ProfileScopeHandlerCpu
 	uint64_t nTick;
 	ProfileScopeHandlerCpu(ProfileToken Token) :nToken(Token)
 	{
-		nTick = ProfileEnter(nToken);
+		nTick = cpuProfileEnter(nToken);
 	}
 	~ProfileScopeHandlerCpu()
 	{
-		ProfileLeave(nToken, nTick);
+        cpuProfileLeave(nToken, nTick);
 	}
 };
 
@@ -620,6 +580,7 @@ struct ProfileGroupInfo
 	uint32_t nColor;
 	uint32_t nCategory;
 	ProfileTokenType Type;
+	ProfileToken nGpuProfileToken;
 };
 
 struct ProfileTimerInfo
@@ -630,6 +591,7 @@ struct ProfileTimerInfo
 	char pName[PROFILE_NAME_MAX_LEN];
 	uint32_t nNameLen;
 	uint32_t nColor;
+	ThreadID threadID;
 	bool bGraph;
 };
 
@@ -661,8 +623,8 @@ struct ProfileGraphState
 
 struct ProfileContextSwitch
 {
-	ProfileThreadIdType nThreadOut;
-	ProfileThreadIdType nThreadIn;
+	ThreadID nThreadOut;
+	ThreadID nThreadIn;
 	ProfileProcessIdType nProcessIn;
 	int64_t nCpu : 8;
 	int64_t nTicks : 56;
@@ -672,26 +634,20 @@ struct ProfileContextSwitch
 struct ProfileFrameState
 {
 	int64_t nFrameStartCpu;
-	int64_t nFrameStartGpu;
-	uint32_t nFrameStartGpuTimer;
+	int64_t nFrameStartGpu[PROFILE_MAX_THREADS];
 	uint32_t nLogStart[PROFILE_MAX_THREADS];
 };
 
 struct ProfileThreadLog
 {
 	ProfileLogEntry*	Log;
-	std::atomic<uint32_t>	nPut;
-	std::atomic<uint32_t>	nGet;
-
-	ProfileLogEntry*	LogGpu;
-	std::atomic<uint32_t>	nPutGpu;
-	uint32_t				nStartGpu;
-	uint32_t				bActiveGpu;
-	GpuProfiler*		pGpuProfiler;
+    tfrg_atomic32_t     nPut;
+    tfrg_atomic32_t	    nGet;
 
 	uint32_t 				nGpu;
-	ProfileThreadIdType nThreadId;
+	ThreadID 				nThreadId;
 	uint32_t 				nLogIndex;
+    ProfileToken            nGpuToken;
 
 	uint32_t				nStack[PROFILE_STACK_MAX];
 	int64_t					nChildTickStack[PROFILE_STACK_MAX];
@@ -827,8 +783,10 @@ struct Profile
 	uint64_t				nFlipTicks;
 	uint64_t				nFlipAggregate;
 	uint64_t				nFlipMax;
+	uint64_t				nFlipMin;
 	uint64_t				nFlipAggregateDisplay;
 	uint64_t				nFlipMaxDisplay;
+	uint64_t				nFlipMinDisplay;
 
 	ProfileThread 			ContextSwitchThread;
 	bool  						bContextSwitchRunning;
@@ -841,9 +799,9 @@ struct Profile
 
 	int64_t						nContextSwitchHoverTickIn;
 	int64_t						nContextSwitchHoverTickOut;
-	ProfileThreadIdType	nContextSwitchHoverThread;
-	ProfileThreadIdType	nContextSwitchHoverThreadBefore;
-	ProfileThreadIdType	nContextSwitchHoverThreadAfter;
+	ThreadID					nContextSwitchHoverThread;
+	ThreadID					nContextSwitchHoverThreadBefore;
+	ThreadID					nContextSwitchHoverThreadAfter;
 	uint8_t						nContextSwitchHoverCpu;
 	uint8_t						nContextSwitchHoverCpuNext;
 
@@ -859,14 +817,14 @@ struct Profile
 	uint32_t					nWebServerPut;
 	uint64_t 					nWebServerDataSent;
 
-	std::atomic<char*>			LabelBuffer;
-	std::atomic<uint64_t>		nLabelPut;
+    tfrg_atomicptr_t			LabelBuffer;
+    tfrg_atomic64_t     		nLabelPut;
 
 	char 						CounterNames[PROFILE_MAX_COUNTER_NAME_CHARS];
 	ProfileCounterInfo 	CounterInfo[PROFILE_MAX_COUNTERS];
 	uint32_t					nNumCounters;
 	uint32_t					nCounterNamePos;
-	std::atomic<int64_t> 		Counters[PROFILE_MAX_COUNTERS];
+    tfrg_atomic64_t      		Counters[PROFILE_MAX_COUNTERS];
 
 #if PROFILE_COUNTER_HISTORY // uses 1kb per allocated counter. 512kb for default counter count
 	uint32_t					nCounterHistoryPut;
@@ -874,8 +832,6 @@ struct Profile
 	int64_t 					nCounterMax[PROFILE_MAX_COUNTERS];
 	int64_t 					nCounterMin[PROFILE_MAX_COUNTERS];
 #endif
-
-	uint32_t					nGpuFrameTimer;
 };
 
 #define P_LOG_TICK_MASK  0x0000ffffffffffff
@@ -899,7 +855,7 @@ inline uint64_t ProfileLogTimerIndex(ProfileLogEntry Index)
 	return (P_LOG_INDEX_MASK & Index) >> 48;
 }
 
-inline ProfileLogEntry ProfileMakeLogIndex(uint64_t nBegin, ProfileToken nToken, int64_t nTick)
+inline ProfileLogEntry ProfileMakeLogIndex(uint64_t nBegin, ProfileToken nToken, uint64_t nTick)
 {
 	return (nBegin << 61) | (P_LOG_INDEX_MASK&(nToken << 48)) | (P_LOG_TICK_MASK&nTick);
 }

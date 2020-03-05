@@ -52,7 +52,6 @@
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
 
 Timer      gAccumTimer;
-HiresTimer gTimer;
 
 struct AABBox
 {
@@ -110,8 +109,6 @@ struct BVHNode
 };
 
 const uint32_t gImageCount = 3;
-bool           gMicroProfiler = false;
-bool           bPrevToggleMicroProfiler = false;
 
 class RenderPassData
 {
@@ -231,10 +228,6 @@ Queue*    pGraphicsQueue = NULL;
 Sampler* pSamplerPointClamp = NULL;
 Sampler* pSamplerLinearWrap = NULL;
 
-RasterizerState* pRasterDefault = NULL;
-DepthState*      pDepthDefault = NULL;
-DepthState*      pDepthNone = NULL;
-
 Fence*     pRenderCompleteFences[gImageCount] = { NULL };
 Semaphore* pImageAcquiredSemaphore = NULL;
 Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
@@ -254,7 +247,6 @@ uint32_t gFrameIndex = 0;
 
 UIApp              gAppUI;
 GuiComponent*      pGuiWindow = NULL;
-GpuProfiler*       pGpuProfiler = NULL;
 ICameraController* pCameraController = NULL;
 
 float gLightRotationX = 0.0f;
@@ -431,6 +423,7 @@ AABBox gWholeSceneBBox;
 RenderTarget* pDepthBuffer = NULL;
 
 TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+ProfileToken gGpuProfileToken;
 
 uint gFrameNumber = 0;
 
@@ -879,6 +872,7 @@ class HybridRaytracing: public IApp
 
 		QueueDesc queueDesc = {};
 		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+        queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
 
 		//Add rendering passes
@@ -919,7 +913,7 @@ class HybridRaytracing: public IApp
     gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
 		initProfiler();
-		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
+        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "GpuProfiler");
 
 		//Load shaders
 		{
@@ -958,27 +952,6 @@ class HybridRaytracing: public IApp
 			copyShader.mStages[0] = { "display.vert", NULL, 0, RD_SHADER_SOURCES };
 			copyShader.mStages[1] = { "display.frag", NULL, 0, RD_SHADER_SOURCES };
 			addShader(pRenderer, &copyShader, &RenderPasses[RenderPass::CopyToBackbuffer]->pShader);
-		}
-
-		//Create rasteriser state objects
-		{
-			RasterizerStateDesc rasterizerStateDesc = {};
-			rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
-			addRasterizerState(pRenderer, &rasterizerStateDesc, &pRasterDefault);
-		}
-
-		//Create depth state objects
-		{
-			DepthStateDesc depthStateDesc = {};
-			depthStateDesc.mDepthTest = true;
-			depthStateDesc.mDepthWrite = true;
-			depthStateDesc.mDepthFunc = CMP_LEQUAL;
-			addDepthState(pRenderer, &depthStateDesc, &pDepthDefault);
-
-			depthStateDesc.mDepthTest = false;
-			depthStateDesc.mDepthWrite = false;
-			depthStateDesc.mDepthFunc = CMP_ALWAYS;
-			addDepthState(pRenderer, &depthStateDesc, &pDepthNone);
 		}
 
 		//Create sampler state objects
@@ -1138,7 +1111,6 @@ guiDesc.mStartPosition = vec2(5, 200.0f) / dpiScale;
 guiDesc.mStartSize = vec2(450, 600) / dpiScale;
 pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
-pGuiWindow->AddWidget(CheckboxWidget("Toggle Micro Profiler", &gMicroProfiler));
 pGuiWindow->AddWidget(SliderFloatWidget("Light Rotation X", &gLightRotationX, (float)-M_PI, (float)M_PI));
 pGuiWindow->AddWidget(SliderFloatWidget("Light Rotation Z", &gLightRotationZ, (float)-M_PI, (float)M_PI));
 
@@ -1179,7 +1151,7 @@ addInputAction(&actionDesc);
 typedef bool (*CameraInputHandler)(InputActionContext* ctx, uint32_t index);
 static CameraInputHandler onCameraInput = [](InputActionContext* ctx, uint32_t index)
 {
-	if (!gMicroProfiler && !gAppUI.IsFocused() && *ctx->pCaptured)
+	if (!gAppUI.IsFocused() && *ctx->pCaptured)
 	{
 		gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
 		index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
@@ -1224,10 +1196,6 @@ void Exit()
 
 	removeSampler(pRenderer, pSamplerLinearWrap);
 	removeSampler(pRenderer, pSamplerPointClamp);
-
-	removeRasterizerState(pRasterDefault);
-	removeDepthState(pDepthDefault);
-	removeDepthState(pDepthNone);
 
 	//Delete rendering passes
 	for (RenderPassMap::iterator iter = RenderPasses.begin(); iter != RenderPasses.end(); ++iter)
@@ -1280,7 +1248,6 @@ void Exit()
 
 	removeResource(BVHBoundingBoxesBuffer);
 
-	removeGpuProfiler(pRenderer, pGpuProfiler);
     exitResourceLoaderInterface(pRenderer);
 	removeQueue(pRenderer, pGraphicsQueue);
 	removeRenderer(pRenderer);
@@ -1593,7 +1560,7 @@ void CreateRenderTargets()
 {
 	//Create rendertargets
 	{
-		ClearValue colorClearBlack = { {{0.0f, 0.0f, 0.0f, 0.0f}} };
+		ClearValue colorClearBlack = {{0.0f, 0.0f, 0.0f, 0.0f}};
 
 		// Add G-buffer render targets
 		{
@@ -1626,7 +1593,7 @@ void CreateRenderTargets()
 		{
 			RenderTargetDesc depthRT = {};
 			depthRT.mArraySize = 1;
-			depthRT.mClearValue = { {{1.0f, 0}} };
+			depthRT.mClearValue = {{1.0f, 0}};
 			depthRT.mDepth = 1;
 			depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
 			depthRT.mHeight = mSettings.mHeight;
@@ -1718,13 +1685,28 @@ bool Load()
 
 	CreateRenderTargets();
 
+	//Create rasteriser state objects
+	RasterizerStateDesc rasterizerStateDesc = {};
+	rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+
+	//Create depth state objects
+	DepthStateDesc depthStateDesc = {};
+	depthStateDesc.mDepthTest = true;
+	depthStateDesc.mDepthWrite = true;
+	depthStateDesc.mDepthFunc = CMP_LEQUAL;
+
+	DepthStateDesc depthStateNoneDesc = {};
+	depthStateNoneDesc.mDepthTest = false;
+	depthStateNoneDesc.mDepthWrite = false;
+	depthStateNoneDesc.mDepthFunc = CMP_ALWAYS;
+
 	//add gbuffer pipeline
 	{
 		//set up g-prepass buffer formats
 		TinyImageFormat deferredFormats[GBufferRT::Noof] = {};
 		for (uint32_t i = 0; i < GBufferRT::Noof; ++i)
 		{
-			deferredFormats[i] = RenderPasses[RenderPass::GBuffer]->RenderTargets[i]->mDesc.mFormat;
+			deferredFormats[i] = RenderPasses[RenderPass::GBuffer]->RenderTargets[i]->mFormat;
 		}
 
 		PipelineDesc desc = {};
@@ -1732,18 +1714,18 @@ bool Load()
 		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = GBufferRT::Noof;
-		pipelineSettings.pDepthState = pDepthDefault;
+		pipelineSettings.pDepthState = &depthStateDesc;
 
 		pipelineSettings.pColorFormats = deferredFormats;
 
-		pipelineSettings.mSampleCount = RenderPasses[RenderPass::GBuffer]->RenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = RenderPasses[RenderPass::GBuffer]->RenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.mSampleCount = RenderPasses[RenderPass::GBuffer]->RenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = RenderPasses[RenderPass::GBuffer]->RenderTargets[0]->mSampleQuality;
 
-		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
+		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
 		pipelineSettings.pRootSignature = RenderPasses[RenderPass::GBuffer]->pRootSignature;
 		pipelineSettings.pShaderProgram = RenderPasses[RenderPass::GBuffer]->pShader;
 		pipelineSettings.pVertexLayout = &gVertexLayoutGPrepass;
-		pipelineSettings.pRasterizerState = pRasterDefault;
+		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
 
 		addPipeline(pRenderer, &desc, &RenderPasses[RenderPass::GBuffer]->pPipeline);
 	}
@@ -1788,13 +1770,13 @@ bool Load()
 		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pRasterizerState = pRasterDefault;
+		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
 		pipelineSettings.pVertexLayout = &vertexLayout;
-		pipelineSettings.pDepthState = pDepthNone;
+		pipelineSettings.pDepthState = &depthStateNoneDesc;
 
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
 
 		pipelineSettings.pRootSignature = RenderPasses[RenderPass::CopyToBackbuffer]->pRootSignature;
 		pipelineSettings.pShaderProgram = RenderPasses[RenderPass::CopyToBackbuffer]->pShader;
@@ -1810,7 +1792,7 @@ bool Load()
 	if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 		return false;
 
-	loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+	loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 	waitForAllResourceLoads();
 
@@ -1823,7 +1805,7 @@ void Unload()
 {
 	waitQueueIdle(pGraphicsQueue);
 
-	unloadProfiler();
+	unloadProfilerUI();
 	gAppUI.Unload();
 
 	gVirtualJoystick.Unload();
@@ -1890,10 +1872,10 @@ void Update(float deltaTime)
 		gShadowPassUniformData.mProjectView = projectView;
 		gShadowPassUniformData.mInvProjectView = invProjectView;
 		gShadowPassUniformData.mRTSize = vec4(
-			(float)RenderPasses[RenderPass::RaytracedShadows]->Textures[0]->mDesc.mWidth,
-			(float)RenderPasses[RenderPass::RaytracedShadows]->Textures[0]->mDesc.mHeight,
-			1.0f / RenderPasses[RenderPass::RaytracedShadows]->Textures[0]->mDesc.mWidth,
-			1.0f / RenderPasses[RenderPass::RaytracedShadows]->Textures[0]->mDesc.mHeight);
+			(float)mSettings.mWidth,
+			(float)mSettings.mHeight,
+			1.0f / mSettings.mWidth,
+			1.0f / mSettings.mHeight);
 
 		gShadowPassUniformData.mLightDir = lightDir;
 
@@ -1908,29 +1890,23 @@ void Update(float deltaTime)
 		gLightPassUniformData.mProjectView = projectView;
 		gLightPassUniformData.mInvProjectView = invProjectView;
 		gLightPassUniformData.mRTSize = vec4(
-			(float)RenderPasses[RenderPass::Lighting]->Textures[0]->mDesc.mWidth,
-			(float)RenderPasses[RenderPass::Lighting]->Textures[0]->mDesc.mHeight,
-			1.0f / RenderPasses[RenderPass::Lighting]->Textures[0]->mDesc.mWidth,
-			1.0f / RenderPasses[RenderPass::Lighting]->Textures[0]->mDesc.mHeight);
+			(float)mSettings.mWidth,
+			(float)mSettings.mHeight,
+			1.0f / mSettings.mWidth,
+			1.0f / mSettings.mHeight);
 		gLightPassUniformData.mLightDir = lightDir;
 	}
 
 	//update Composite pass constant buffer
 	{
 		gDefaultPassUniformData.mRTSize = vec4(
-			(float)RenderPasses[RenderPass::Composite]->Textures[0]->mDesc.mWidth,
-			(float)RenderPasses[RenderPass::Composite]->Textures[0]->mDesc.mHeight,
-			1.0f / RenderPasses[RenderPass::Composite]->Textures[0]->mDesc.mWidth,
-			1.0f / RenderPasses[RenderPass::Composite]->Textures[0]->mDesc.mHeight);
+			(float)mSettings.mWidth,
+			(float)mSettings.mHeight,
+			1.0f / mSettings.mWidth,
+			1.0f / mSettings.mHeight);
 	}
 
 	gFrameNumber++;
-
-  if (gMicroProfiler != bPrevToggleMicroProfiler)
-  {
-    toggleProfiler();
-    bPrevToggleMicroProfiler = gMicroProfiler;
-  }
 
   /************************************************************************/
   gAppUI.Update(deltaTime);
@@ -1977,19 +1953,19 @@ void Draw()
 		Cmd* cmd = RenderPasses[RenderPass::GBuffer]->ppCmds[gFrameIndex];
 		beginCmd(cmd);
 
-		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
+		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
 		//Clear G-buffers and Depth buffer
 		LoadActionsDesc loadActions = {};
 		for (uint32_t i = 0; i < RenderPasses[RenderPass::GBuffer]->RenderTargets.size(); ++i)
 		{
 			loadActions.mLoadActionsColor[i] = LOAD_ACTION_CLEAR;
-			loadActions.mClearColorValues[i] = RenderPasses[RenderPass::GBuffer]->RenderTargets[i]->mDesc.mClearValue;
+			loadActions.mClearColorValues[i] = RenderPasses[RenderPass::GBuffer]->RenderTargets[i]->mClearValue;
 		}
 
 		// Clear depth to the far plane and stencil to 0
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth = { {{1.0f, 0.0f}} };
+		loadActions.mClearDepth = {{1.0f, 0.0f}};
 
 		// Transfer G-buffers to render target state for each buffer
 		RenderTargetBarrier* barriers = (RenderTargetBarrier*)alloca((RenderPasses[RenderPass::GBuffer]->RenderTargets.size() + 1) * sizeof(*barriers));
@@ -2005,14 +1981,14 @@ void Draw()
 			cmd, (uint32_t)RenderPasses[RenderPass::GBuffer]->RenderTargets.size(), RenderPasses[RenderPass::GBuffer]->RenderTargets.data(),
 			pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(
-			cmd, 0.0f, 0.0f, (float)RenderPasses[RenderPass::GBuffer]->RenderTargets[0]->mDesc.mWidth,
-			(float)RenderPasses[RenderPass::GBuffer]->RenderTargets[0]->mDesc.mHeight, 0.0f, 1.0f);
+			cmd, 0.0f, 0.0f, (float)RenderPasses[RenderPass::GBuffer]->RenderTargets[0]->mWidth,
+			(float)RenderPasses[RenderPass::GBuffer]->RenderTargets[0]->mHeight, 0.0f, 1.0f);
 		cmdSetScissor(
-			cmd, 0, 0, RenderPasses[RenderPass::GBuffer]->RenderTargets[0]->mDesc.mWidth,
-			RenderPasses[RenderPass::GBuffer]->RenderTargets[0]->mDesc.mHeight);
+			cmd, 0, 0, RenderPasses[RenderPass::GBuffer]->RenderTargets[0]->mWidth,
+			RenderPasses[RenderPass::GBuffer]->RenderTargets[0]->mHeight);
 
 		// Draw props
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "GBuffer Pass", true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "GBuffer Pass");
 
 		cmdBindPipeline(cmd, RenderPasses[RenderPass::GBuffer]->pPipeline);
 
@@ -2023,8 +1999,8 @@ void Draw()
 				uint mapIDs[5];
 			} data;
 
-			cmdBindVertexBuffer(cmd, 3, SponzaProp.Geom->pVertexBuffers, NULL);
-			cmdBindIndexBuffer(cmd, SponzaProp.Geom->pIndexBuffer, 0);
+			cmdBindVertexBuffer(cmd, 3, SponzaProp.Geom->pVertexBuffers, SponzaProp.Geom->mVertexStrides, NULL);
+			cmdBindIndexBuffer(cmd, SponzaProp.Geom->pIndexBuffer, SponzaProp.Geom->mIndexType, 0);
 
 			for (uint32_t i = 0; i < (uint32_t)SponzaProp.Geom->mDrawArgCount; ++i)
 			{
@@ -2053,7 +2029,7 @@ void Draw()
 			}
 		}
 
-		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 		endCmd(cmd);
 		allCmds.push_back(cmd);
@@ -2065,7 +2041,7 @@ void Draw()
 
 		beginCmd(cmd);
 
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Raytraced shadow Pass", true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Raytraced shadow Pass");
 
 		// Transfer DepthBuffer and normals to SRV State
 		RenderTargetBarrier barriers[] = {
@@ -2080,12 +2056,12 @@ void Draw()
 		cmdBindDescriptorSet(cmd, 0, RenderPasses[RenderPass::RaytracedShadows]->pDescriptorSets[0]);
 		cmdBindDescriptorSet(cmd, gFrameIndex, RenderPasses[RenderPass::RaytracedShadows]->pDescriptorSets[1]);
 
-		const uint32_t threadGroupSizeX = RenderPasses[RenderPass::RaytracedShadows]->Textures[0]->mDesc.mWidth / 8 + 1;
-		const uint32_t threadGroupSizeY = RenderPasses[RenderPass::RaytracedShadows]->Textures[0]->mDesc.mHeight / 8 + 1;
+		const uint32_t threadGroupSizeX = mSettings.mWidth / 8 + 1;
+		const uint32_t threadGroupSizeY = mSettings.mHeight / 8 + 1;
 
 		cmdDispatch(cmd, threadGroupSizeX, threadGroupSizeY, 1);
 
-		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 		endCmd(cmd);
 		allCmds.push_back(cmd);
@@ -2097,7 +2073,7 @@ void Draw()
 
 		beginCmd(cmd);
 
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Lighting Pass", true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Lighting Pass");
 
 		// Transfer shadowbuffer to SRV and lightbuffer to UAV states
 		TextureBarrier barriers[] = { { RenderPasses[RenderPass::RaytracedShadows]->Textures[0], RESOURCE_STATE_SHADER_RESOURCE },
@@ -2108,12 +2084,12 @@ void Draw()
 		cmdBindDescriptorSet(cmd, 0, RenderPasses[RenderPass::Lighting]->pDescriptorSets[0]);
 		cmdBindDescriptorSet(cmd, gFrameIndex, RenderPasses[RenderPass::Lighting]->pDescriptorSets[1]);
 
-		const uint32_t threadGroupSizeX = RenderPasses[RenderPass::Lighting]->Textures[0]->mDesc.mWidth / 16 + 1;
-		const uint32_t threadGroupSizeY = RenderPasses[RenderPass::Lighting]->Textures[0]->mDesc.mHeight / 16 + 1;
+		const uint32_t threadGroupSizeX = mSettings.mWidth / 16 + 1;
+		const uint32_t threadGroupSizeY = mSettings.mHeight / 16 + 1;
 
 		cmdDispatch(cmd, threadGroupSizeX, threadGroupSizeY, 1);
 
-		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 		endCmd(cmd);
 		allCmds.push_back(cmd);
@@ -2124,7 +2100,7 @@ void Draw()
 		Cmd* cmd = RenderPasses[RenderPass::Composite]->ppCmds[gFrameIndex];
 		beginCmd(cmd);
 
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Composite Pass", true);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Composite Pass");
 
 		// Transfer albedo and lighting to SRV State
 		TextureBarrier barriers[] = { { RenderPasses[RenderPass::Lighting]->Textures[0], RESOURCE_STATE_SHADER_RESOURCE },
@@ -2134,12 +2110,12 @@ void Draw()
 		cmdBindPipeline(cmd, RenderPasses[RenderPass::Composite]->pPipeline);
 		cmdBindDescriptorSet(cmd, 0, RenderPasses[RenderPass::Composite]->pDescriptorSets[0]);
 
-		const uint32_t threadGroupSizeX = RenderPasses[RenderPass::Composite]->Textures[0]->mDesc.mWidth / 16 + 1;
-		const uint32_t threadGroupSizeY = RenderPasses[RenderPass::Composite]->Textures[0]->mDesc.mHeight / 16 + 1;
+		const uint32_t threadGroupSizeX = mSettings.mWidth / 16 + 1;
+		const uint32_t threadGroupSizeY = mSettings.mHeight / 16 + 1;
 
 		cmdDispatch(cmd, threadGroupSizeX, threadGroupSizeY, 1);
 
-		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 		RenderTargetBarrier rtBarrier = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET };
 		barriers[0] = { RenderPasses[RenderPass::Composite]->Textures[0], RESOURCE_STATE_SHADER_RESOURCE };
@@ -2157,10 +2133,10 @@ void Draw()
 
 		LoadActionsDesc loadActions = {};
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
-		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
-		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Copy to Backbuffer Pass");
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Copy to Backbuffer Pass");
 
 		// Draw  results
 		cmdBindPipeline(cmd, RenderPasses[RenderPass::CopyToBackbuffer]->pPipeline);
@@ -2169,23 +2145,17 @@ void Draw()
 		//draw fullscreen triangle
 		cmdDraw(cmd, 3, 0);
 
-		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
-		gTimer.GetUSec(true);
 
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 
-		gAppUI.DrawText(
-			cmd, float2(8, 15), eastl::string().sprintf("CPU %f ms", gTimer.GetUSecAverage() / 1000.0f).c_str(), &gFrameTimeDraw);
+        cmdDrawCpuProfile(cmd, float2(8, 15), &gFrameTimeDraw);
+		cmdDrawGpuProfile(cmd, float2(8, 40), gGpuProfileToken);
 
-		gAppUI.DrawText(
-			cmd, float2(8, 40), eastl::string().sprintf("GPU %f ms", (float)pGpuProfiler->mCumulativeTime * 1000.0f).c_str(),
-			&gFrameTimeDraw);
-		gAppUI.DrawDebugGpuProfile(cmd, float2(8, 65), pGpuProfiler, NULL);
-
-		cmdDrawProfiler();
+		cmdDrawProfilerUI();
 
 		gAppUI.Gui(pGuiWindow);
 		gAppUI.Draw(cmd);
@@ -2195,7 +2165,7 @@ void Draw()
 		RenderTargetBarrier barriers[] = { { pRenderTarget, RESOURCE_STATE_PRESENT } };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
-		cmdEndGpuFrameProfile(cmd, pGpuProfiler);
+		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 
 		endCmd(cmd);
 		allCmds.push_back(cmd);
@@ -2334,7 +2304,6 @@ bool addSwapChain()
 	swapChainDesc.mWidth = mSettings.mWidth;
 	swapChainDesc.mHeight = mSettings.mHeight;
 	swapChainDesc.mImageCount = gImageCount;
-	swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 	swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
 	swapChainDesc.mEnableVsync = false;
 	::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);

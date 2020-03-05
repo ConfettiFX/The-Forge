@@ -60,11 +60,12 @@ void getRecommendedResolution(RectDesc* rect) { *rect = { 0, 0, 1920, 1080 }; }
 
 void requestShutdown()
 {
-	// #TODO: Test this
 	XEvent event = {};
 	event.type = ClientMessage;
-	event.xclient.data.l[0] == gWindow.handle.xlib_wm_delete_window;
-	XSendEvent(gWindow.handle.display, gWindow.handle.window, false, 0, &event);
+	event.xclient.format = 32;
+	event.xclient.data.l[0] = gWindow.handle.xlib_wm_delete_window;
+	if(XSendEvent(gWindow.handle.display, gWindow.handle.window, false, 0, &event) == 0)
+		LOGF(LogLevel::eERROR, "Failed to sent shutdown event to window!");
 }
 
 void toggleFullscreen(WindowsDesc* window)
@@ -196,9 +197,10 @@ bool handleMessages(WindowsDesc* winDesc)
 	while (XPending(winDesc->handle.display) > 0)
 	{
 		XNextEvent(winDesc->handle.display, &event);
-        if (winDesc->callbacks.onHandleMessage)
+		
+		if (winDesc->callbacks.onHandleMessage)
             winDesc->callbacks.onHandleMessage(winDesc, &event);
-
+			
 		switch (event.type)
 		{
 			case ClientMessage:
@@ -257,10 +259,14 @@ int LinuxMain(int argc, char** argv, IApp* app)
 	IApp::Settings* pSettings = &pApp->mSettings;
 	Timer           deltaTimer;
 
+    RectDesc rect = {};
+    getRecommendedResolution(&rect);
+
+    //TODO find a way to set linux fullscreen mode
+    gWindow.fullscreenRect = rect;
+
 	if (pSettings->mWidth == -1 || pSettings->mHeight == -1)
 	{
-		RectDesc rect = {};
-		getRecommendedResolution(&rect);
 		pSettings->mWidth = getRectWidth(rect);
 		pSettings->mHeight = getRectHeight(rect);
 	}
