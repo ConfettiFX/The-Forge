@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -32,6 +32,7 @@
 #ifndef IMEMORY_H
 #define IMEMORY_H
 #include <new>
+#include "../../ThirdParty/OpenSource/EASTL/utility.h"
 
 void* conf_malloc_internal(size_t size, const char *f, int l, const char *sf);
 void* conf_memalign_internal(size_t align, size_t size, const char *f, int l, const char *sf);
@@ -40,16 +41,16 @@ void* conf_realloc_internal(void* ptr, size_t size, const char *f, int l, const 
 void  conf_free_internal(void* ptr, const char *f, int l, const char *sf);
 
 template <typename T, typename... Args>
-static T* conf_placement_new(void* ptr, Args... args)
+static T* conf_placement_new(void* ptr, Args&&... args)
 {
-	return new (ptr) T(args...);
+	return new (ptr) T(eastl::forward<Args>(args)...);
 }
 
 template <typename T, typename... Args>
-static T* conf_new_internal(const char *f, int l, const char *sf, Args... args)
+static T* conf_new_internal(const char *f, int l, const char *sf, Args&&... args)
 {
 	T* ptr = (T*)conf_malloc_internal(sizeof(T), f, l, sf);
-	return conf_placement_new<T>(ptr, args...);
+	return conf_placement_new<T>(ptr, eastl::forward<Args>(args)...);
 }
 
 template <typename T>

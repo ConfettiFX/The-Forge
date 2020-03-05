@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -316,11 +316,17 @@ typedef struct AllocatorHeapProperties
 	const char*     pName;
 } AllocatorHeapProperties;
 
+#ifdef TARGET_IOS
+#define MTLStorageModePrivateBuffer MTLStorageModeShared
+#else
+#define MTLStorageModePrivateBuffer MTLStorageModePrivate
+#endif
+
 static const AllocatorHeapProperties gHeapProperties[RESOURCE_MEMORY_TYPE_NUM_TYPES] = {
 	/// Default Buffer
 	{
 		RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE,
-		MTLStorageModePrivate,
+		MTLStorageModePrivateBuffer,
 		MTLCPUCacheModeDefaultCache,
 		"Default Buffers Heap",
 	},
@@ -404,7 +410,7 @@ static const AllocatorHeapProperties gHeapProperties[RESOURCE_MEMORY_TYPE_NUM_TY
 	/// Default UAV Buffer
 	{
 		RESOURCE_DEFAULT_LARGE_HEAP_BLOCK_SIZE,
-		MTLStorageModePrivate,
+		MTLStorageModePrivateBuffer,
 		MTLCPUCacheModeDefaultCache,
 		"Default UAV Buffers Heap",
 	},
@@ -3519,7 +3525,11 @@ long createBuffer(
 	switch (pMemoryRequirements->usage)
 	{
 		case RESOURCE_MEMORY_USAGE_GPU_ONLY:
+#ifdef TARGET_IOS
+            mtlResourceOptions = MTLResourceStorageModeShared;
+#else
             mtlResourceOptions = MTLResourceStorageModePrivate;
+#endif
             break;
 		case RESOURCE_MEMORY_USAGE_CPU_ONLY:
             mtlResourceOptions = MTLResourceCPUCacheModeDefaultCache | MTLResourceStorageModeShared;

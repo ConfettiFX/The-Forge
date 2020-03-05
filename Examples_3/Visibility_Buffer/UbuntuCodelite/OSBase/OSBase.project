@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Project Name="OS" InternalType="Library" Version="10.0.0">
+  <Plugins>
+    <Plugin Name="qmake">
+      <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
+    </Plugin>
+  </Plugins>
   <VirtualDirectory Name="FileSystem">
     <File Name="../../../../Common_3/OS/FileSystem/ZipFileSystem.h"/>
     <File Name="../../../../Common_3/OS/FileSystem/ZipFileSystem.cpp"/>
@@ -15,11 +20,6 @@
     <File Name="../../../../Common_3/OS/FileSystem/FileSystemInternal.h"/>
     <File Name="../../../../Common_3/OS/FileSystem/FileSystemInternal.cpp"/>
   </VirtualDirectory>
-  <Plugins>
-    <Plugin Name="qmake">
-      <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
-    </Plugin>
-  </Plugins>
   <VirtualDirectory Name="Middleware_3">
     <VirtualDirectory Name="UI">
       <File Name="../../../../Middleware_3/Text/Fontstash.h"/>
@@ -87,7 +87,7 @@
     <File Name="../../../../Common_3/OS/Linux/LinuxTime.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Dependencies">
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/TinyEXR/tinyexr.cpp"/>
+    <File Name="../../../../Common_3/ThirdParty/OpenSource/zip/zip.cpp"/>
   </VirtualDirectory>
   <Dependencies Name="Debug">
     <Project Name="gainput"/>

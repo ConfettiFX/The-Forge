@@ -133,8 +133,6 @@
 		D0BBDFB5214267EA0081CE0F /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D1CEB320EAECDB001BB8C4 /* UIKit.framework */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
-		E94F1DC12346F2670088A2CE /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E94F1DC02346F2640088A2CE /* libbz2.tbd */; };
-		E94F1DC32346F2700088A2CE /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E94F1DC22346F26C0088A2CE /* libbz2.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -319,7 +317,6 @@
 				D0BBDFB5214267EA0081CE0F /* UIKit.framework in Frameworks */,
 				5C512C522141559F00E7A798 /* libThe-Forge_iOS.a in Frameworks */,
 				B27D879A20E2E88B00081DB0 /* GameController.framework in Frameworks */,
-				E94F1DC32346F2700088A2CE /* libbz2.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -330,7 +327,6 @@
 				650FCB2522C1583700EF81BC /* AudioToolbox.framework in Frameworks */,
 				650CCC6D2223CD07003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				D0BBDFB1214267DD0081CE0F /* Metal.framework in Frameworks */,
-				E94F1DC12346F2670088A2CE /* libbz2.tbd in Frameworks */,
 				D0BBDFB2214267DD0081CE0F /* MetalKit.framework in Frameworks */,
 				5C512C512141559800E7A798 /* libThe-Forge.a in Frameworks */,
 			);

@@ -89,45 +89,55 @@ static const float shadowSamples[NUM_SHADOW_SAMPLES * 2] =
 cbuffer cbPerPass : register(b0, UPDATE_FREQ_PER_FRAME)
 {
 	float4x4	projView;
+	float4x4	shadowLightViewProj;
 	float4      camPos;
 	float4      lightColor[4];
 	float4      lightDirection[3];
-	int4        quantizationParams;
 }
 
-cbuffer cbPerProp : register(b1, UPDATE_FREQ_PER_DRAW)
+struct GLTFTextureProperties
 {
-	float4x4	world;
-	float4x4	InvTranspose;
-	int         unlit;
-	int         hasAlbedoMap;
-	int         hasNormalMap;
-	int			hasMetallicRoughnessMap;
-	int         hasAOMap;
-	int         hasEmissiveMap;
-	float4		posOffset;
-	float2		uvOffset;
-	float2		uvScale;
-	float2		padding00;
-}
-
-cbuffer ShadowUniformBuffer : register(b2, UPDATE_FREQ_PER_FRAME)
-{
-    float4x4 LightViewProj;
+    uint mTextureSamplerIndex;
+	int mUVStreamIndex;
+	float mRotation;
+	float mValueScale;
+	float2 mOffset;
+	float2 mScale;
 };
 
-Texture2D albedoMap				: register(t0, UPDATE_FREQ_PER_DRAW);
+struct GLTFMaterialData
+{
+	uint mAlphaMode;
+	float mAlphaCutoff;
+	float2 mEmissiveGBScale;
+	
+    float4 mBaseColorFactor;
+    float4 mMetallicRoughnessFactors; // RG, or specular RGB + A glossiness
+	
+	GLTFTextureProperties mBaseColorProperties;
+	GLTFTextureProperties mMetallicRoughnessProperties;
+	
+	GLTFTextureProperties mNormalTextureProperties;
+	GLTFTextureProperties mOcclusionTextureProperties;
+	GLTFTextureProperties mEmissiveTextureProperties;
+};
+
+cbuffer cbMaterialData : register(b0, UPDATE_FREQ_PER_DRAW) {
+	GLTFMaterialData materialData;
+};
+
+Texture2D baseColorMap			: register(t0, UPDATE_FREQ_PER_DRAW);
 Texture2D normalMap				: register(t1, UPDATE_FREQ_PER_DRAW);
 Texture2D metallicRoughnessMap	: register(t2, UPDATE_FREQ_PER_DRAW);
-Texture2D aoMap					: register(t3, UPDATE_FREQ_PER_DRAW);
+Texture2D occlusionMap			: register(t3, UPDATE_FREQ_PER_DRAW);
 Texture2D emissiveMap			: register(t4, UPDATE_FREQ_PER_DRAW);
-Texture2D ShadowTexture		    : register(t14);
+Texture2D ShadowTexture		    : register(t14, UPDATE_FREQ_NONE);
 
-SamplerState samplerAlbedo		: register(s0, UPDATE_FREQ_PER_DRAW);
-SamplerState samplerNormal		: register(s1, UPDATE_FREQ_PER_DRAW);
-SamplerState samplerMR			: register(s2, UPDATE_FREQ_PER_DRAW);
-SamplerState samplerAO			: register(s3, UPDATE_FREQ_PER_DRAW);
-SamplerState samplerEmissive	: register(s4, UPDATE_FREQ_PER_DRAW);
+SamplerState baseColorSampler			: register(s0, UPDATE_FREQ_PER_DRAW);
+SamplerState normalMapSampler			: register(s1, UPDATE_FREQ_PER_DRAW);
+SamplerState metallicRoughnessSampler	: register(s2, UPDATE_FREQ_PER_DRAW);
+SamplerState occlusionMapSampler		: register(s3, UPDATE_FREQ_PER_DRAW);
+SamplerState emissiveMapSampler			: register(s4, UPDATE_FREQ_PER_DRAW);
 SamplerState clampMiplessLinearSampler : register(s7);
 
 struct PsIn
@@ -135,9 +145,6 @@ struct PsIn
     float3 pos               : POSITION;
 	float3 normal	         : NORMAL;
 	float2 texCoord          : TEXCOORD0;
-	float4 baseColor         : COLOR;
-	float2 metallicRoughness : TEXCOORD1;
-	float2 alphaSettings     : TEXCOORD2;
 };
 
 struct PSOut
@@ -155,6 +162,29 @@ float3 fresnelSchlick(float cosTheta, float3 F0)
 {
 	float Fc = pow(1.0f - cosTheta, 5.0f);
 	return F0 + (1.0f - F0) * Fc;
+}
+
+float4 sampleTexture(GLTFTextureProperties textureProperties, 
+					Texture2D tex, SamplerState s, 
+					float4 scaleFactor,
+					float2 uv)
+{
+	uint textureIndex = textureProperties.mTextureSamplerIndex & 0xFFFF;
+	uint samplerIndex = textureProperties.mTextureSamplerIndex >> 16;
+	if (textureIndex == 0xFFFF)
+	{
+		return scaleFactor;
+	}
+
+	float2 texCoord = uv * textureProperties.mScale + textureProperties.mOffset;
+	if (textureProperties.mRotation)
+	{
+		float s, c;
+		sincos(textureProperties.mRotation, s, c);
+		texCoord = float2(c * texCoord.x - s * texCoord.y, s * texCoord.x + c * texCoord.y);
+	}
+
+	return tex.Sample(s, texCoord) * textureProperties.mValueScale * scaleFactor;
 }
 
 float distributionGGX(float3 N, float3 H, float roughness)
@@ -210,7 +240,13 @@ float3 reconstructNormal(in float4 sampleNormal)
 
 float3 getNormalFromMap(float3 normal, float3 pos, float2 uv)
 {
-	float3 tangentNormal = reconstructNormal(normalMap.Sample(samplerNormal, uv));
+	uint textureIndex = materialData.mNormalTextureProperties.mTextureSamplerIndex & 0xFFFF;
+	if (textureIndex == 0xFFFF) 
+	{
+		return normalize(normal);
+	}
+
+	float3 tangentNormal = reconstructNormal(normalMap.Sample(normalMapSampler, uv));
 
 	float3 Q1 = ddx(pos);
 	float3 Q2 = ddy(pos);
@@ -236,8 +272,7 @@ float3 getNormalFromMap(float3 normal, float3 pos, float2 uv)
 
 float3 ComputeLight(float3 albedo, float3 lightColor,
 float3 metalness, float roughness,
-float3 N, float3 L, float3 V, float3 H, float NoL, float NoV,
-uint alphaMode)
+float3 N, float3 L, float3 V, float3 H, float NoL, float NoV)
 {
 	float a  = roughness * roughness;
 	// 0.04 is the index of refraction for metal
@@ -254,17 +289,13 @@ uint alphaMode)
 
 	float3 irradiance = float3(lightColor.r,lightColor.g,lightColor.b) * float3(1.0, 1.0, 1.0);
 	float3 result = (diffuse + specular) * NoL * irradiance;
-	
-	// Do not Light alpha blended materials
-	if (alphaMode != 0 || unlit != 0)
-		result = albedo;
 
 	return result;
 }
 
 float CalcESMShadowFactor(float3 worldPos)
 {
-	float4 posLS = mul(LightViewProj, float4(worldPos.xyz, 1.0));
+	float4 posLS = mul(shadowLightViewProj, float4(worldPos.xyz, 1.0));
 	posLS /= posLS.w;
 	posLS.y *= -1;
 	posLS.xy = posLS.xy * 0.5 + float2(0.5, 0.5);
@@ -297,7 +328,7 @@ float random(float3 seed, float3 freq)
 
 float CalcPCFShadowFactor(float3 worldPos)
 {
-	float4 posLS = mul(LightViewProj, float4(worldPos.xyz, 1.0));
+	float4 posLS = mul(shadowLightViewProj, float4(worldPos.xyz, 1.0));
 	posLS /= posLS.w;
 	posLS.y *= -1;
 	posLS.xy = posLS.xy * 0.5 + float2(0.5, 0.5);
@@ -327,13 +358,13 @@ float CalcPCFShadowFactor(float3 worldPos)
 	return shadowFactor;
 }
 
-float ClaculateShadow(float3 worldPos)
+float CalculateShadow(float3 worldPos)
 {
-	float4 NDC = mul(LightViewProj, float4(worldPos, 1.0));
+	float4 NDC = mul(shadowLightViewProj, float4(worldPos, 1.0));
 	NDC /= NDC.w;
 	float Depth = NDC.z;
 	float2 ShadowCoord = float2((NDC.x + 1.0)*0.5, (1.0 - NDC.y)*0.5);
-	float ShadowDepth = ShadowTexture.Sample(samplerAlbedo, ShadowCoord).r;
+	float ShadowDepth = ShadowTexture.Sample(clampMiplessLinearSampler, ShadowCoord).r;
 	
 
 	if(ShadowDepth - 0.002f > Depth)
@@ -347,54 +378,43 @@ PSOut main(PsIn input) : SV_TARGET
 {	
 	PSOut Out = (PSOut) 0;
 
-	//load albedo
-	float4 albedoInfo = albedoMap.Sample(samplerAlbedo, input.texCoord);
-	float3 albedo = albedoInfo.rgb;
-	float alpha = albedoInfo.a;
-	float3 metallicRoughness = metallicRoughnessMap.Sample(samplerMR, input.texCoord).rgb;
-	float ao = aoMap.Sample(samplerAO, input.texCoord).r;
-	float3 emissive = emissiveMap.Sample(samplerEmissive, input.texCoord).rgb;
+	// TODO: multiply factors (e.g. mBaseColorFactor) by vertex colours.
+
+	float4 baseColor = sampleTexture(materialData.mBaseColorProperties, 
+							baseColorMap, baseColorSampler, 
+							materialData.mBaseColorFactor,
+							input.texCoord);
+
+	float4 metallicRoughness = sampleTexture(materialData.mMetallicRoughnessProperties, 
+									metallicRoughnessMap, metallicRoughnessSampler, 
+									materialData.mMetallicRoughnessFactors,
+									input.texCoord);
+
+	float ao = sampleTexture(materialData.mOcclusionTextureProperties, 
+					occlusionMap, occlusionMapSampler, 
+					1.0,
+					input.texCoord).x;
+
+	float3 emissive = sampleTexture(materialData.mEmissiveTextureProperties, 
+							emissiveMap, emissiveMapSampler, 
+							1.0,
+							input.texCoord).rgb;
+	emissive *= materialData.mEmissiveTextureProperties.mValueScale;
+	emissive.gb *= materialData.mEmissiveGBScale;
 
 	float3 normal = getNormalFromMap(input.normal, input.pos, input.texCoord);
 
 	float3 metalness = float3(metallicRoughness.b, metallicRoughness.b, metallicRoughness.b);
 	float roughness = metallicRoughness.g;
 	
-	// Apply alpha mask
-	uint alphaMode = uint(input.alphaSettings.x);
-	
-	if (alphaMode == 1)
-	{
-		float alphaCutoff = input.alphaSettings.y;
-		if(alpha < alphaCutoff)
-			discard;
-		else
-			alpha = 1.0f;
-	}
-	else
-	{
-		alpha = lerp(input.baseColor.a, alpha * input.baseColor.a, (float)hasAlbedoMap);
-	}
-		
+	if (materialData.mAlphaMode == 1 && materialData.mAlphaCutoff < 1.f && baseColor.a < materialData.mAlphaCutoff) { discard; }
 
-	albedo = albedo * input.baseColor.rgb;
-	metalness = metalness * input.metallicRoughness.x;
-	roughness = roughness * input.metallicRoughness.y;
-	
-	albedo = lerp(input.baseColor.rgb, albedo, (float)hasAlbedoMap);
-	normal = normalize(lerp(input.normal, normal, (float)hasNormalMap));
-	metalness = lerp(float3(input.metallicRoughness.x, input.metallicRoughness.x, input.metallicRoughness.x), metalness, (float)hasMetallicRoughnessMap);
-	roughness = lerp(input.metallicRoughness.y, roughness, (float)hasMetallicRoughnessMap);
-	emissive = lerp(float3(0.0f,0.0f,0.0f), emissive, (float)hasEmissiveMap);
-	ao = lerp(saturate(1.0f - metallicRoughness.r), ao, (float)hasAOMap);	
-
-	roughness = clamp(0.05f, 1.0f, roughness);
+	roughness = clamp(0.02f, 1.0f, roughness);
 
 	// Compute Direction light
 	float3 N = normal;	
 	float3 V = normalize(camPos.xyz - input.pos);
 	float NoV = max(dot(N,V), 0.0);	
-
 
 	float3 result = float3(0.0, 0.0, 0.0);		
 
@@ -405,7 +425,7 @@ PSOut main(PsIn input) : SV_TARGET
 		float3 H = normalize(V + L);	
 		float NoL = max(dot(N,L), 0.0);
 
-		result += ComputeLight(albedo, lightColor[i].rgb, metalness, roughness, N, L, V, H, NoL, NoV, alphaMode) * lightColor[i].a;
+		result += ComputeLight(baseColor.rgb, lightColor[i].rgb, metalness, roughness, N, L, V, H, NoL, NoV) * lightColor[i].a;
 	}
 
 	// AO
@@ -414,18 +434,12 @@ PSOut main(PsIn input) : SV_TARGET
 	result *= CalcPCFShadowFactor(input.pos);
 
 	// Ambeint Light
-	result += albedo * lightColor[3].rgb * lightColor[3].a;
+	result += baseColor.rgb * lightColor[3].rgb * lightColor[3].a;
 	result += emissive;
 	
 	// Tonemap and gamma correct
-	//color = color/(color+float3(1.0, 1.0, 1.0));
-	//result = pow(result, 1.0/2.2);
+	// result = result/(result+float3(1.0, 1.0, 1.0));
 
-	//color = albedo;
-	//metallicRoughness.r = 0;
-	//result = float3(roughness, roughness, roughness);
-	//result = V;
-	//color = float3(input.texCoord.xy, 0.0);
-	Out.outColor = float4(result.r, result.g, result.b, alpha);
+	Out.outColor = float4(result.r, result.g, result.b, baseColor.a);
 	return Out;
 }

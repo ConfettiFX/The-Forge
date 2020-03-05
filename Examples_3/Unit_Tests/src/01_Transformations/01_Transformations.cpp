@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -38,7 +38,7 @@
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/Renderer/IResourceLoader.h"
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
@@ -160,11 +160,15 @@ public:
 			return false;
 
 		QueueDesc queueDesc = {};
-		queueDesc.mType = CMD_POOL_DIRECT;
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
 		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		addCmdPool(pRenderer, pGraphicsQueue, false, &pCmdPool);
-		addCmd_n(pCmdPool, false, gImageCount, &ppCmds);
+		CmdPoolDesc cmdPoolDesc = {};
+		cmdPoolDesc.pQueue = pGraphicsQueue;
+		addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
+		CmdDesc cmdDesc = {};
+		cmdDesc.pPool = pCmdPool;
+		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -182,7 +186,7 @@ public:
 			TextureLoadDesc textureDesc = {};
 			textureDesc.pFilePath = textureFilePath;
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
-			addResource(&textureDesc, true);
+			addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
@@ -235,7 +239,7 @@ public:
 		DepthStateDesc depthStateDesc = {};
 		depthStateDesc.mDepthTest = true;
 		depthStateDesc.mDepthWrite = true;
-		depthStateDesc.mDepthFunc = CMP_LEQUAL;
+		depthStateDesc.mDepthFunc = CMP_GEQUAL;
 		addDepthState(pRenderer, &depthStateDesc, &pDepth);
 
 		// Generate sphere vertex buffer
@@ -250,10 +254,7 @@ public:
 		sphereVbDesc.mDesc.mVertexStride = sizeof(float) * 6;
 		sphereVbDesc.pData = pSpherePoints;
 		sphereVbDesc.ppBuffer = &pSphereVertexBuffer;
-		addResource(&sphereVbDesc);
-
-		// Need to free memory;
-		conf_free(pSpherePoints);
+		addResource(&sphereVbDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		//Generate sky box vertex buffer
 		float skyBoxPoints[] = {
@@ -290,7 +291,7 @@ public:
 		skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
 		skyboxVbDesc.pData = skyBoxPoints;
 		skyboxVbDesc.ppBuffer = &pSkyBoxVertexBuffer;
-		addResource(&skyboxVbDesc);
+		addResource(&skyboxVbDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		BufferLoadDesc ubDesc = {};
 		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -301,11 +302,10 @@ public:
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
-			addResource(&ubDesc);
+			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
 			ubDesc.ppBuffer = &pSkyboxUniformBuffer[i];
-			addResource(&ubDesc);
+			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
-		finishResourceLoading();
 
 		// Setup planets (Rotation speeds are relative to Earth's, some values randomly given)
 
@@ -424,7 +424,7 @@ public:
 
 		CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
 		vec3                   camPos{ 48.0f, 48.0f, 20.0f };
-		vec3                   lookAt{ 0 };
+		vec3                   lookAt{ vec3(0) };
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
 
@@ -433,14 +433,14 @@ public:
 		if (!initInputSystem(pWindow))
 			return false;
 
-    // Initialize microprofiler and it's UI.
-    initProfiler();
+		// Initialize microprofiler and it's UI.
+		initProfiler();
     
-    // Gpu profiler can only be added after initProfile.
-    addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
+		// Gpu profiler can only be added after initProfile.
+		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		// App Actions
-    InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
@@ -470,6 +470,11 @@ public:
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
+
+		waitForAllResourceLoads();
+
+		// Need to free memory;
+		conf_free(pSpherePoints);
 		
 		// Prepare descriptor sets
 		DescriptorData params[6] = {};
@@ -494,6 +499,7 @@ public:
 			params[0].ppBuffers = &pSkyboxUniformBuffer[i];
 			updateDescriptorSet(pRenderer, i * 2 + 0, pDescriptorSetUniforms, 1, params);
 
+			params[0].pName = "uniformBlock";
 			params[0].ppBuffers = &pProjViewUniformBuffer[i];
 			updateDescriptorSet(pRenderer, i * 2 + 1, pDescriptorSetUniforms, 1, params);
 		}
@@ -514,7 +520,7 @@ public:
 		gAppUI.Exit();
 
 		// Exit profile
-    exitProfiler();
+		exitProfiler();
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -547,12 +553,12 @@ public:
 		}
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
 
-		removeCmd_n(pCmdPool, gImageCount, ppCmds);
+		removeCmd_n(pRenderer, gImageCount, ppCmds);
 		removeCmdPool(pRenderer, pCmdPool);
 
 		removeGpuProfiler(pRenderer, pGpuProfiler);
-		removeResourceLoaderInterface(pRenderer);
-		removeQueue(pGraphicsQueue);
+		exitResourceLoaderInterface(pRenderer);
+		removeQueue(pRenderer, pGraphicsQueue);
 		removeRenderer(pRenderer);
 	}
 
@@ -564,10 +570,10 @@ public:
 		if (!addDepthBuffer())
 			return false;
 
-		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
+		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
 			return false;
 
-		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
+		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
 
 		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
@@ -592,9 +598,9 @@ public:
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepth;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mDesc.mFormat;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pSphereShader;
@@ -651,7 +657,7 @@ public:
 
 		const float aspectInverse = (float)mSettings.mHeight / (float)mSettings.mWidth;
 		const float horizontal_fov = PI / 2.0f;
-		mat4        projMat = mat4::perspective(horizontal_fov, aspectInverse, 0.1f, 1000.0f);
+		mat4        projMat = mat4::perspective(horizontal_fov, aspectInverse, 1000.0f, 0.1f);
 		gUniformData.mProjectView = projMat * viewMat;
 
 		// point light parameters
@@ -702,7 +708,7 @@ public:
 	{
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
 
-		RenderTarget* pRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
 		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
@@ -713,11 +719,26 @@ public:
 			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
 		// Update uniform buffers
-		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex], &gUniformData };
-		updateResource(&viewProjCbv);
+		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex] };
+		beginUpdateResource(&viewProjCbv);
+		*(UniformBlock*)viewProjCbv.pMappedData = gUniformData;
+		endUpdateResource(&viewProjCbv, NULL);
 
-		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex], &gUniformDataSky };
-		updateResource(&skyboxViewProjCbv);
+		BufferUpdateDesc skyboxViewProjCbv = { pSkyboxUniformBuffer[gFrameIndex] };
+		beginUpdateResource(&skyboxViewProjCbv);
+		*(UniformBlock*)skyboxViewProjCbv.pMappedData = gUniformDataSky;
+		endUpdateResource(&skyboxViewProjCbv, NULL);
+
+		Cmd* cmd = ppCmds[gFrameIndex];
+		beginCmd(cmd);
+
+		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
+
+		RenderTargetBarrier barriers[] = {
+			{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
+			{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE },
+		};
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
 
 		// simply record the screen cleaning command
 		LoadActionsDesc loadActions = {};
@@ -727,29 +748,16 @@ public:
 		loadActions.mClearColorValues[0].b = 0.0f;
 		loadActions.mClearColorValues[0].a = 0.0f;
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth.depth = 1.0f;
+		loadActions.mClearDepth.depth = 0.0f;
 		loadActions.mClearDepth.stencil = 0;
-
-		Cmd* cmd = ppCmds[gFrameIndex];
-		beginCmd(cmd);
-
-		cmdBeginGpuFrameProfile(cmd, pGpuProfiler);
-
-		TextureBarrier barriers[] = {
-			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
-			{ pDepthBuffer->pTexture, RESOURCE_STATE_DEPTH_WRITE },
-		};
-		cmdResourceBarrier(cmd, 0, NULL, 2, barriers);
-
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mDesc.mWidth, pRenderTarget->mDesc.mHeight);
 
-		cmdBindDescriptorSet(cmd, 0, pDescriptorSetTexture);
-    
-		//// draw skybox
+		// draw skybox
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Draw skybox", true);
 		cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
+		cmdBindDescriptorSet(cmd, 0, pDescriptorSetTexture);
 		cmdBindDescriptorSet(cmd, gFrameIndex * 2 + 0, pDescriptorSetUniforms);
 		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, NULL);
 		cmdDraw(cmd, 36, 0);
@@ -790,15 +798,29 @@ public:
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
     cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 
-		barriers[0] = { pRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(cmd, 0, NULL, 1, barriers);
+		barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
     cmdEndGpuFrameProfile(cmd, pGpuProfiler);
 		endCmd(cmd);
 
-		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
-		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
-    flipProfiler();
+		QueueSubmitDesc submitDesc = {};
+		submitDesc.mCmdCount = 1;
+		submitDesc.mSignalSemaphoreCount = 1;
+		submitDesc.mWaitSemaphoreCount = 1;
+		submitDesc.ppCmds = &cmd;
+		submitDesc.ppSignalSemaphores = &pRenderCompleteSemaphore;
+		submitDesc.ppWaitSemaphores = &pImageAcquiredSemaphore;
+		submitDesc.pSignalFence = pRenderCompleteFence;
+		queueSubmit(pGraphicsQueue, &submitDesc);
+		QueuePresentDesc presentDesc = {};
+		presentDesc.mIndex = gFrameIndex;
+		presentDesc.mWaitSemaphoreCount = 1;
+		presentDesc.pSwapChain = pSwapChain;
+		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
+		presentDesc.mSubmitDone = true;
+		queuePresent(pGraphicsQueue, &presentDesc);
+		flipProfiler();
 	}
 
 	const char* GetName() { return "01_Transformations"; }
@@ -825,7 +847,7 @@ public:
 		// Add depth buffer
 		RenderTargetDesc depthRT = {};
 		depthRT.mArraySize = 1;
-		depthRT.mClearValue.depth = 1.0f;
+		depthRT.mClearValue.depth = 0.0f;
 		depthRT.mClearValue.stencil = 0;
 		depthRT.mDepth = 1;
 		depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
@@ -839,5 +861,4 @@ public:
 		return pDepthBuffer != NULL;
 	}
 };
-
 DEFINE_APPLICATION_MAIN(Transformations)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -27,7 +27,7 @@
 
 #include "../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../../Common_3/Renderer/IRenderer.h"
-#include "../../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../Common_3/Renderer/IResourceLoader.h"
 
 #if defined(METAL)
 #include "Shaders/Metal/shader_defs.h"
@@ -37,9 +37,10 @@
 #elif defined(VULKAN)
 #define NO_GLSL_DEFINITIONS
 #include "Shaders/Vulkan/shader_defs.h"
+#elif defined(ORBIS)
+#define NO_ORBIS_DEFINITIONS
+#include "../../../PS4/Examples_3/Visibility_Buffer/src/Shaders/shader_defs.h"
 #endif
-
-#define MAX_PATH 260
 
 // Type definitions
 
@@ -47,40 +48,6 @@ typedef struct SceneVertexPos
 {
 	float x, y, z;
 } SceneVertexPos;
-
-struct Vertex
-{
-	float3 mPos;
-	float3 mNormal;
-	float2 mUv;
-};
-
-typedef struct SceneVertexTexCoord
-{
-#if defined(METAL) || defined(__linux__)
-	float u, v;    // texture coords
-#else
-	uint32_t texCoord;
-#endif
-} SceneVertexTexCoord;
-
-typedef struct SceneVertexNormal
-{
-#if defined(METAL) || defined(__linux__)
-	float nx, ny, nz;    // normals
-#else
-	uint32_t normal;
-#endif
-} SceneVertexNormal;
-
-typedef struct SceneVertexTangent
-{
-#if defined(METAL) || defined(__linux__)
-	float tx, ty, tz;    // tangents
-#else
-	uint32_t tangent;
-#endif
-} SceneVertexTangent;
 
 typedef struct ClusterCompact
 {
@@ -97,39 +64,12 @@ typedef struct Cluster
 	bool   valid;
 } Cluster;
 
-typedef struct AABoundingBox
+typedef struct ClusterContainer
 {
-	float4 Center;     // Center of the box.
-	float4 Extents;    // Distance from the center to each side.
-
-	float4 minPt;
-	float4 maxPt;
-
-	float4 corners[8];
-} AABoundingBox;
-
-typedef struct MeshIn
-{
-#if 0 //defined(METAL)
-	uint32_t startVertex;
-	uint32_t triangleCount;
-#else
-	uint32_t startIndex;
-	uint32_t indexCount;
-#endif
-	uint32_t        vertexCount;
-	float3          minBBox, maxBBox;
 	uint32_t        clusterCount;
 	ClusterCompact* clusterCompacts;
 	Cluster*        clusters;
-	uint32_t        materialId;
-
-	AABoundingBox AABB;
-
-	Buffer* pVertexBuffer;
-	Buffer* pIndexBuffer;
-
-} MeshIn;
+} ClusterContainer;
 
 typedef struct Material
 {
@@ -139,17 +79,8 @@ typedef struct Material
 
 typedef struct Scene
 {
-	uint32_t                           numMeshes;
-	uint32_t                           numMaterials;
-	uint32_t                           totalTriangles;
-	uint32_t                           totalVertices;
-	MeshIn*                            meshes;
+	Geometry*                          geom;
 	Material*                          materials;
-	SceneVertexPos*                    positions;
-	SceneVertexTexCoord*               texCoords;
-	SceneVertexNormal*                 normals;
-	SceneVertexTangent*                tangents;
-	uint32_t*                          indices;
 	char**                             textures;
 	char**                             normalMaps;
 	char**                             specularMaps;
@@ -176,35 +107,20 @@ typedef struct FilterBatchData
 
 typedef struct FilterBatchChunk
 {
-	FilterBatchData* batches;
 	uint32_t         currentBatchCount;
 	uint32_t         currentDrawCallCount;
-#if defined(METAL)
-	Buffer* batchDataBuffer;    // GPU buffer containing all batch data
-#else
-#endif
 } FilterBatchChunk;
 
 // Exposed functions
 
 Scene* loadScene(const Path* filePath, float scale, float offsetX, float offsetY, float offsetZ);
 void   removeScene(Scene* scene);
-void   removeSceneCPUData(Scene* scene);
-void   createAABB(const Scene* pScene, MeshIn* mesh);
-void   createClusters(bool twoSided, const Scene* pScene, MeshIn* mesh);
-void   destroyClusters(MeshIn* mesh);
+void   createClusters(bool twoSided, const Scene* pScene, IndirectDrawIndexArguments* draw, ClusterContainer* mesh);
+void   destroyClusters(ClusterContainer* mesh);
 
-bool   loadModel(const Path* filePath, eastl::vector<Vertex>& vertices, eastl::vector<uint16_t>& indices);
-
-#if 0 //defined(METAL)
-void addClusterToBatchChunk(
-	const ClusterCompact* cluster, const MeshIn* mesh, uint32_t meshIdx, bool isTwoSided, FilterBatchChunk* batchChunk);
-#else
 void addClusterToBatchChunk(
 	const ClusterCompact* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex,
-	FilterBatchChunk* batchChunk);
-#endif
+	FilterBatchChunk* batchChunk, FilterBatchData* batches);
 void createCubeBuffers(Renderer* pRenderer, CmdPool* cmdPool, Buffer** outVertexBuffer, Buffer** outIndexBuffer);
-void destroyBuffers(Renderer* pRenderer, Buffer* outVertexBuffer, Buffer* outIndexBuffer);
 
 #endif

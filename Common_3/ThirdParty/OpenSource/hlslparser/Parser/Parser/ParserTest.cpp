@@ -332,6 +332,9 @@ int ParserTest()
 	eastl::vector < eastl::string > importanceSampleLhs = { "IMPORTANCE_SAMPLE_COUNT" };
 	eastl::vector < eastl::string > importanceSampleRhs = { "128" };
 
+	eastl::vector < eastl::string > irradianceSampleLhs = { "SAMPLE_DELTA" };
+	eastl::vector < eastl::string > irradianceSampleRhs = { "0.025f" };
+
 	// 01
 	if (1)
 	{
@@ -498,7 +501,7 @@ int ParserTest()
 			eastl::vector < eastl::string > emptyRhs;
 
 			itemList.push_back(MakeTestItem("BRDFIntegration", false, false, true, importanceSampleLhs, importanceSampleRhs));
-			itemList.push_back(MakeTestItem("computeIrradianceMap", false, false, true, emptyLhs, emptyRhs));
+			itemList.push_back(MakeTestItem("computeIrradianceMap", false, false, true, irradianceSampleLhs, irradianceSampleRhs));
 			itemList.push_back(MakeTestItem("computeSpecularMap", false, false, true, importanceSampleLhs, importanceSampleRhs));
 			itemList.push_back(MakeTestItem("fullscreen", true, false, false, emptyLhs, emptyRhs));
 			itemList.push_back(MakeTestItem("panoToCube", false, false, true, emptyLhs, emptyRhs));
@@ -699,7 +702,7 @@ int ParserTest()
 
 		eastl::vector < ShaderTestItem > itemList;
 		itemList.push_back(MakeTestItem("BRDFIntegration", false, false, true, importanceSampleLhs, importanceSampleRhs));
-		itemList.push_back(MakeTestItem("computeIrradianceMap", false, false, true, emptyLhs, emptyRhs));
+		itemList.push_back(MakeTestItem("computeIrradianceMap", false, false, true, irradianceSampleLhs, irradianceSampleRhs));
 		itemList.push_back(MakeTestItem("computeSpecularMap", false, false, true, importanceSampleLhs, importanceSampleRhs));
 		itemList.push_back(MakeTestItem("fillGbuffers", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("panoToCube", false, false, true, emptyLhs, emptyRhs));

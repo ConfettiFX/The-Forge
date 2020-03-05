@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -50,11 +50,11 @@
 
 #include "Shader_Defs.h"
 
-StructuredBuffer<float3> vertexDataBuffer : UNIT_VERTEX_DATA;
-StructuredBuffer<uint> indexDataBuffer : UNIT_INDEX_DATA;
+ByteAddressBuffer vertexDataBuffer : UNIT_VERTEX_DATA;
+ByteAddressBuffer indexDataBuffer : UNIT_INDEX_DATA;
 StructuredBuffer<MeshConstants> meshConstantsBuffer : UNIT_MESH_CONSTANTS;
 
-RWStructuredBuffer<uint> filteredIndicesBuffer[NUM_CULLING_VIEWPORTS] : UNIT_INDEX_DATA_RW;
+RWByteAddressBuffer filteredIndicesBuffer[NUM_CULLING_VIEWPORTS] : UNIT_INDEX_DATA_RW;
 RWStructuredBuffer<UncompactedDrawArguments> uncompactedDrawArgsRW[NUM_CULLING_VIEWPORTS] : UNIT_UNCOMPACTED_ARGS_RW;
 
 cbuffer batchData_rootcbv : UNIT_BATCH_DATA_CBV
@@ -80,7 +80,7 @@ groupshared uint workGroupIndexCount[NUM_CULLING_VIEWPORTS];
 
 float4 LoadVertex(uint index)
 {
-	return float4(vertexDataBuffer[index], 1);
+	return float4(asfloat(vertexDataBuffer.Load4(index * 12)).xyz, 1);
 }
 
 static const uint cullFlags = 0xFFFFFFFF;
@@ -238,9 +238,9 @@ void main(uint3 inGroupId : SV_GroupThreadID,
 	uint indices[3] = { 0, 0, 0 };
 	if (inGroupId.x < smallBatchDataBuffer[groupId.x].mFaceCount)
 	{
-		indices[0] = indexDataBuffer[inGroupId.x * 3 + 0 + batchInputIndexOffset];
-		indices[1] = indexDataBuffer[inGroupId.x * 3 + 1 + batchInputIndexOffset];
-		indices[2] = indexDataBuffer[inGroupId.x * 3 + 2 + batchInputIndexOffset];
+		indices[0] = indexDataBuffer.Load((inGroupId.x * 3 + 0 + batchInputIndexOffset) << 2);
+		indices[1] = indexDataBuffer.Load((inGroupId.x * 3 + 1 + batchInputIndexOffset) << 2);
+		indices[2] = indexDataBuffer.Load((inGroupId.x * 3 + 2 + batchInputIndexOffset) << 2);
 
 		float4 vert[3] =
 		{
@@ -288,9 +288,9 @@ void main(uint3 inGroupId : SV_GroupThreadID,
 	{
 		if (!cull[i])
 		{
-			filteredIndicesBuffer[i][workGroupOutputSlot[i] + smallBatchDataBuffer[groupId.x].mOutputIndexOffset + threadOutputSlot[i] + 0] = indices[0];
-			filteredIndicesBuffer[i][workGroupOutputSlot[i] + smallBatchDataBuffer[groupId.x].mOutputIndexOffset + threadOutputSlot[i] + 1] = indices[1];
-			filteredIndicesBuffer[i][workGroupOutputSlot[i] + smallBatchDataBuffer[groupId.x].mOutputIndexOffset + threadOutputSlot[i] + 2] = indices[2];
+			filteredIndicesBuffer[i].Store((workGroupOutputSlot[i] + smallBatchDataBuffer[groupId.x].mOutputIndexOffset + threadOutputSlot[i] + 0) << 2, indices[0]);
+			filteredIndicesBuffer[i].Store((workGroupOutputSlot[i] + smallBatchDataBuffer[groupId.x].mOutputIndexOffset + threadOutputSlot[i] + 1) << 2, indices[1]);
+			filteredIndicesBuffer[i].Store((workGroupOutputSlot[i] + smallBatchDataBuffer[groupId.x].mOutputIndexOffset + threadOutputSlot[i] + 2) << 2, indices[2]);
 		}
 	}
 

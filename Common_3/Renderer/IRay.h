@@ -103,7 +103,7 @@ typedef struct AccelerationStructureInstanceDesc
 typedef struct AccelerationStructureGeometryDesc
 {
 	AccelerationStructureGeometryFlags  mFlags;
-    float3*     pVertexArray;
+    void*       pVertexArray;
     unsigned    vertexCount;
     union{
         uint32_t*       pIndices32;

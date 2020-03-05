@@ -427,7 +427,7 @@ public:
 
     // Convert from integer vector to float vector.
     //
-    explicit inline Vector4(const Vector4Int & vecInt);
+	static inline const Vector4 fromVector4Int(const Vector4Int vecInt);
 
     //========================================= #ConfettiAnimationMathExtensionsEnd =======================================
     //========================================= #ConfettiMathExtensionsEnd ================================================
@@ -2839,13 +2839,13 @@ inline const uint sum(const UVector3 & vec);
 
 #ifdef VECTORMATH_DEBUG
 
-// Pruint a 3-D vector
+// Print a 3-D vector
 // NOTE:
 // Function is only defined when VECTORMATH_DEBUG is defined.
 //
 inline void print(const UVector3 & vec);
 
-// Pruint a 3-D vector and an associated string identifier
+// Print a 3-D vector and an associated string identifier
 // NOTE:
 // Function is only defined when VECTORMATH_DEBUG is defined.
 //
@@ -3207,13 +3207,13 @@ inline const uint sum(const UVector4 & vec);
 
 #ifdef VECTORMATH_DEBUG
 
-// Pruint a 4-D vector
+// Print a 4-D vector
 // NOTE:
 // Function is only defined when VECTORMATH_DEBUG is defined.
 //
 inline void print(const UVector4 & vec);
 
-// Pruint a 4-D vector and an associated string identifier
+// Print a 4-D vector and an associated string identifier
 // NOTE:
 // Function is only defined when VECTORMATH_DEBUG is defined.
 //

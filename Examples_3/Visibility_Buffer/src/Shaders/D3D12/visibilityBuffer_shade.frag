@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -117,11 +117,11 @@ Texture2D diffuseMaps[] : register(t0, space4);
 Texture2D normalMaps[] : register(t0, space5);
 Texture2D specularMaps[] : register(t0, space6);
 
-StructuredBuffer<float3> vertexPos: register(t10);
-StructuredBuffer<uint> vertexTexCoord: register(t11);
-StructuredBuffer<uint> vertexNormal: register(t12);
-StructuredBuffer<uint> vertexTangent: register(t13);
-StructuredBuffer<uint> filteredIndexBuffer: register(t14, UPDATE_FREQ_PER_FRAME);
+ByteAddressBuffer vertexPos: register(t10);
+ByteAddressBuffer vertexTexCoord: register(t11);
+ByteAddressBuffer vertexNormal: register(t12);
+ByteAddressBuffer vertexTangent: register(t13);
+ByteAddressBuffer filteredIndexBuffer: register(t14, UPDATE_FREQ_PER_FRAME);
 StructuredBuffer<uint> indirectMaterialBuffer: register(t15, UPDATE_FREQ_PER_FRAME);
 StructuredBuffer<MeshConstants> meshConstantsBuffer: register(t16);
 
@@ -168,14 +168,14 @@ float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target0
 	uint triIdx1 = (triangleID * 3 + 1) + startIndex;
 	uint triIdx2 = (triangleID * 3 + 2) + startIndex;
 
-	uint index0 = filteredIndexBuffer[triIdx0];
-	uint index1 = filteredIndexBuffer[triIdx1];
-	uint index2 = filteredIndexBuffer[triIdx2];
+	uint index0 = filteredIndexBuffer.Load(triIdx0 << 2);
+	uint index1 = filteredIndexBuffer.Load(triIdx1 << 2);
+	uint index2 = filteredIndexBuffer.Load(triIdx2 << 2);
 
 	// Load vertex data of the 3 vertices
-	float3 v0pos = vertexPos[index0];
-	float3 v1pos = vertexPos[index1];
-	float3 v2pos = vertexPos[index2];
+	float3 v0pos = asfloat(vertexPos.Load4(index0 * 12)).xyz;
+	float3 v1pos = asfloat(vertexPos.Load4(index1 * 12)).xyz;
+	float3 v2pos = asfloat(vertexPos.Load4(index2 * 12)).xyz;
 
 	// Transform positions to clip space
 	float4 pos0 = mul(uniforms.transform[VIEW_CAMERA].mvp, float4(v0pos, 1));
@@ -215,9 +215,9 @@ float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target0
 	// Apply perspective correction to texture coordinates
 	float3x2 texCoords =
 	{
-			unpack2Floats(vertexTexCoord.Load(index0)) * one_over_w[0],
-			unpack2Floats(vertexTexCoord.Load(index1)) * one_over_w[1],
-			unpack2Floats(vertexTexCoord.Load(index2)) * one_over_w[2]
+			unpack2Floats(vertexTexCoord.Load(index0 << 2)) * one_over_w[0],
+			unpack2Floats(vertexTexCoord.Load(index1 << 2)) * one_over_w[1],
+			unpack2Floats(vertexTexCoord.Load(index2 << 2)) * one_over_w[2]
 	};
 
 	// Interpolate texture coordinates and calculate the gradients for texture sampling with mipmapping support
@@ -236,9 +236,9 @@ float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target0
 	// Apply perspective division to tangents
 	float3x3 tangents =
 	{
-			decodeDir(unpackUnorm2x16(vertexTangent.Load(index0))) * one_over_w[0],
-			decodeDir(unpackUnorm2x16(vertexTangent.Load(index1))) * one_over_w[1],
-			decodeDir(unpackUnorm2x16(vertexTangent.Load(index2))) * one_over_w[2]
+			decodeDir(unpackUnorm2x16(vertexTangent.Load(index0 << 2))) * one_over_w[0],
+			decodeDir(unpackUnorm2x16(vertexTangent.Load(index1 << 2))) * one_over_w[1],
+			decodeDir(unpackUnorm2x16(vertexTangent.Load(index2 << 2))) * one_over_w[2]
 	};
 
 	float3 tangent = normalize(interpolateAttribute(tangents, derivativesOut.db_dx, derivativesOut.db_dy, d));
@@ -278,9 +278,9 @@ float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target0
 	// Apply perspective division to normals
 	float3x3 normals =
 	{
-		decodeDir(unpackUnorm2x16(vertexNormal.Load(index0))) * one_over_w[0],
-		decodeDir(unpackUnorm2x16(vertexNormal.Load(index1))) * one_over_w[1],
-		decodeDir(unpackUnorm2x16(vertexNormal.Load(index2))) * one_over_w[2]
+		decodeDir(unpackUnorm2x16(vertexNormal.Load(index0 << 2))) * one_over_w[0],
+		decodeDir(unpackUnorm2x16(vertexNormal.Load(index1 << 2))) * one_over_w[1],
+		decodeDir(unpackUnorm2x16(vertexNormal.Load(index2 << 2))) * one_over_w[2]
 	};
 	float3 normal = normalize(interpolateAttribute(normals, derivativesOut.db_dx, derivativesOut.db_dy, d));
 

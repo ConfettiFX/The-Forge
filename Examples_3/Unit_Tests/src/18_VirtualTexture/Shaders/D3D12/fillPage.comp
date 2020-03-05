@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2019 Confetti Interactive Inc.
+* Copyright (c) 2018-2020 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -40,11 +40,9 @@ RWStructuredBuffer<uint> PageTableBuffer : register(u1, space1);
 
 RWStructuredBuffer<uint> AlivePageTableBuffer : register(u2, space1);
 
-RWStructuredBuffer<uint> AlivePageCountBuffer : register(u4, space1);
+RWStructuredBuffer<uint> RemovePageTableBuffer : register(u3, space1);
 
-RWStructuredBuffer<uint> RemovePageTableBuffer : register(u5, space1);
-
-RWStructuredBuffer<uint> RemovePageCountBuffer : register(u7, space1);
+RWStructuredBuffer<uint> PageCountsBuffer : register(u4, space1);
 
 [numthreads(THREAD_SIZE_X, 1, 1)]
 void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint GI : SV_GroupIndex)
@@ -60,7 +58,7 @@ void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid :
   if (PageTableBuffer[Index] == 1)
 	{
     uint currentTexureID;
-    InterlockedAdd(AlivePageCountBuffer[0], 1, currentTexureID);
+    InterlockedAdd(PageCountsBuffer[0], 1, currentTexureID);
 
     // save the index of alive page
     AlivePageTableBuffer[currentTexureID] = Index;    
@@ -68,7 +66,7 @@ void main(uint3 Gid : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid :
   else if(PrevPageTableBuffer[Index] == 1)
   {
     uint currentTexureID;
-    InterlockedAdd(RemovePageCountBuffer[0], 1, currentTexureID);
+    InterlockedAdd(PageCountsBuffer[1], 1, currentTexureID);
 
     // remove the index of alive page
     RemovePageTableBuffer[currentTexureID] = Index;

@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 
 <head>
-  <script src="https://cdn.jsdelivr.net/npm/three@v0.104.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@v0.108.0"></script>
   <script src="GLTFLoader.js"></script>
   <script src="BasisTextureLoader.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@v0.104.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="../transcoder/build/basis_transcoder.js"></script>
+  <!-- <script src="../transcoder/build/basis_transcoder.js"></script> -->
   <style>
     html, body { width:100%; height:100%; margin:0; padding:0; }
     canvas { display:block; }
@@ -14,90 +14,104 @@
 </head>
 
 <body>
+    <div id="panel">
+      <strong>Basis Texture Transcoder glTF Demo</strong>
+      <div id="log"></div>
+  
+    </div>
   <script>
-    BASIS().then(Module => {
+    const renderer = new THREE.WebGLRenderer( { antialias: true } );
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.gammaOutput = true;
+    renderer.gammaFactor = 2.2;
 
-      const { BasisFile, initializeBasis } = Module;
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color( 0xf0f0f0 );
 
-      window.BasisFile = BasisFile;
+    const light = new THREE.AmbientLight();
+    scene.add( light );
 
-      initializeBasis();
+    const light2 = new THREE.PointLight();
+    scene.add( light2 );
 
-      // Initialize three.js scene and renderer.
+    const camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 100 );
+    camera.position.set( 8, 6, 5 );
+    camera.lookAt( new THREE.Vector3( 0, -2, 0 ) );
 
-      const renderer = new THREE.WebGLRenderer( { antialias: true } );
+    const controls = new THREE.OrbitControls( camera, renderer.domElement );
+    controls.autoRotate = true;
+
+    // Create BasisTextureLoader and detect supported target formats.
+
+    const basisLoader = new THREE.BasisTextureLoader();
+    basisLoader.setTranscoderPath( '../transcoder/build/' );
+    basisLoader.useAlpha = false;
+    basisLoader.detectSupport( renderer );
+
+    let formatName = 'Unknown format';
+    switch(basisLoader.workerConfig.format)
+    {
+      case THREE.BasisTextureLoader.BASIS_FORMAT.cTFASTC_4x4:
+        formatName = 'ASTC';
+        break;
+      case THREE.BasisTextureLoader.BASIS_FORMAT.cTFBC1:
+        formatName = 'BC1';
+        break;
+      case THREE.BasisTextureLoader.BASIS_FORMAT.cTFBC3:
+        formatName = 'BC3';
+        break;
+      case THREE.BasisTextureLoader.BASIS_FORMAT.cTFPVRTC1_4_RGB:
+      case THREE.BasisTextureLoader.BASIS_FORMAT.cTFPVRTC1_4_RGBA:
+        formatName = 'PVRTC';
+        break;
+      case THREE.BasisTextureLoader.BASIS_FORMAT.cTFETC1:
+        formatName = 'ETC1';
+        break;
+      default:
+        break;
+    }
+    log(`Transcode to: <strong>${formatName}</strong>`);
+
+    // Register BasisTextureLoader for .basis extension.
+
+    THREE.Loader.Handlers.add( /\.basis$/, basisLoader );
+
+    // Create GLTFLoader, load model, and render.
+
+    const loader = new THREE.GLTFLoader();
+
+    loader.load( 'assets/AgiHqSmall.gltf', ( gltf ) => {
+
+      const model = gltf.scene;
+      model.scale.set( 0.01, 0.01, 0.01 );
+
+      scene.add( model );
+
+      document.body.appendChild( renderer.domElement );
+
+      animate();
+
+    }, undefined, ( e ) => console.error( e ) );
+
+    // Main render loop.
+
+    function animate() {
+
+      requestAnimationFrame( animate );
+      controls.update();
+      renderer.render( scene, camera );
+
+    }
+
+    // Support viewport resizing.
+
+    window.addEventListener( 'resize', () => {
+
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
       renderer.setSize( window.innerWidth, window.innerHeight );
-      renderer.gammaOutput = true;
-      renderer.gammaFactor = 2.2;
 
-      const scene = new THREE.Scene();
-      scene.background = new THREE.Color( 0xf0f0f0 );
-
-      const light = new THREE.AmbientLight();
-      scene.add( light );
-
-      const light2 = new THREE.PointLight();
-      scene.add( light2 );
-
-      const camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 0.1, 100 );
-      camera.position.set( 8, 6, 5 );
-      camera.lookAt( new THREE.Vector3( 0, -2, 0 ) );
-
-      const controls = new THREE.OrbitControls( camera, renderer.domElement );
-      controls.autoRotate = true;
-
-      // Create BasisTextureLoader and detect supported target formats.
-
-      const basisLoader = new THREE.BasisTextureLoader();
-      basisLoader.detectSupport( renderer );
-
-      const formatName = basisLoader.etcSupported
-        ? 'ETC1'
-        : ( basisLoader.dxtSupported ? 'BC1' : 'PVRTC' );
-      log(`Transcode to: <strong>${formatName}</strong>`);
-
-      // Register BasisTextureLoader for .basis extension.
-
-      THREE.Loader.Handlers.add( /\.basis$/, basisLoader );
-
-      // Create GLTFLoader, load model, and render.
-
-      const loader = new THREE.GLTFLoader();
-
-      loader.load( 'assets/AgiHqSmall.gltf', ( gltf ) => {
-
-        const model = gltf.scene;
-        model.scale.set( 0.01, 0.01, 0.01 );
-
-        scene.add( model );
-
-        document.body.appendChild( renderer.domElement );
-
-        animate();
-
-      }, undefined, ( e ) => console.error( e ) );
-
-      // Main render loop.
-
-      function animate() {
-
-        requestAnimationFrame( animate );
-        controls.update();
-        renderer.render( scene, camera );
-
-      }
-
-      // Support viewport resizing.
-
-      window.addEventListener( 'resize', () => {
-
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize( window.innerWidth, window.innerHeight );
-
-      }, false );
-
-    });
+    }, false );
 
     function log(s) {
 
@@ -107,11 +121,7 @@
 
     }
   </script>
-  <div id="panel">
-    <strong>Basis Texture Transcoder glTF Demo</strong>
-    <div id="log"></div>
-
-  </div>
+  
 </body>
 
 </html>

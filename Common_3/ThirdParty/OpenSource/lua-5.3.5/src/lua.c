@@ -6,10 +6,20 @@
 
 #define lua_c
 
+#if defined(__clang__)
+#pragma clang diagnostic ignored "-Wimplicit-function-declaration"
+#pragma clang diagnostic ignored "-Wint-conversion"
+#pragma clang diagnostic ignored "-Wunused-function"
+#endif
+
 #include "lprefix.h"
 
-
+#ifdef ORBIS
+#include <machine/signal.h>
+#include <sys/signal.h>
+#else
 #include <signal.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

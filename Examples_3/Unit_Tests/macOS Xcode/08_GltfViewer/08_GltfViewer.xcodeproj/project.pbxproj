@@ -78,10 +78,6 @@
 		E921BB2E22CAB5910082D103 /* profile.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E921B7D122C6E44B0082D103 /* profile.frag.metal */; };
 		E921BB2F22CAB5910082D103 /* profile.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E921B7D222C6E44B0082D103 /* profile.vert.metal */; };
 		E921BB3122CAB5D10082D103 /* basic.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E921B7CB22C6E4300082D103 /* basic.vert.metal */; };
-		E921BE1A22CFD1800082D103 /* libAssetPipeline.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E921BE1522CFD14C0082D103 /* libAssetPipeline.a */; };
-		E921BE1D22CFD7B70082D103 /* libAssetPipeline_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E921BE1722CFD14C0082D103 /* libAssetPipeline_iOS.a */; };
-		E970F797233C5F26009FE7C4 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E970F794233C5F23009FE7C4 /* libbz2.tbd */; };
-		E970F799233C5F2F009FE7C4 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E970F798233C5F2C009FE7C4 /* libbz2.tbd */; };
 		E9BF150322FE2699001F2264 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = E9BF150122FE2699001F2264 /* Main.storyboard */; };
 		E9BF15F72315B479001F2264 /* floor.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9BF15AB2314C0E2001F2264 /* floor.vert.metal */; };
 		E9BF15F82315B482001F2264 /* FXAA.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9BF159E2314C0E1001F2264 /* FXAA.frag.metal */; };
@@ -144,54 +140,12 @@
 			remoteGlobalIDString = 5C172FC721414C490074EE71;
 			remoteInfo = "The-Forge_iOS";
 		};
-		E921BE1422CFD14C0082D103 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = E921BE0F22CFD14C0082D103 /* AssetPipeline.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = B28C6E4B21B204A200FBA1BF;
-			remoteInfo = AssetPipeline;
-		};
-		E921BE1622CFD14C0082D103 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = E921BE0F22CFD14C0082D103 /* AssetPipeline.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = E921BDBC22CFC7700082D103;
-			remoteInfo = AssetPipeline_iOS;
-		};
-		E921BE1B22CFD7A30082D103 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = E921BE0F22CFD14C0082D103 /* AssetPipeline.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = E921BD9522CFC7700082D103;
-			remoteInfo = AssetPipeline_iOS;
-		};
-		E958920F23415BA500B68D6A /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = E921BE0F22CFD14C0082D103 /* AssetPipeline.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = B28C6E4A21B204A200FBA1BF;
-			remoteInfo = AssetPipeline;
-		};
 		E958921123415BAB00B68D6A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 5C0F3ADE21418BD20088BBB0 /* The-Forge.xcodeproj */;
 			proxyType = 1;
 			remoteGlobalIDString = 5C5582DF21413D180019960B;
 			remoteInfo = "The-Forge";
-		};
-		E96F272E22C3E8C400416F6C /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = E96F272A22C3E8C400416F6C /* MeshOptimizer.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = B28C6E4B21B204A200FBA1BF;
-			remoteInfo = MeshOptimizer;
-		};
-		E96F27C322C4050400416F6C /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = E96F27BF22C4050300416F6C /* MeshOptimizer_iOS.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = B28C6E4B21B204A200FBA1BF;
-			remoteInfo = MeshOptimizer;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -364,9 +318,6 @@
 		E921B7D522C6E45D0082D103 /* 08_GltfViewer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 08_GltfViewer.cpp; path = ../../src/08_GltfViewer/08_GltfViewer.cpp; sourceTree = "<group>"; usesTabs = 1; };
 		E921BAA122CAAF5A0082D103 /* 08_GltfViewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 08_GltfViewer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E921BAA222CAAF5A0082D103 /* 08_GltfViewer_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 08_GltfViewer_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		E921BE0F22CFD14C0082D103 /* AssetPipeline.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = AssetPipeline.xcodeproj; path = ../../../../Common_3/Tools/AssetPipeline/Apple/AssetPipeline.xcodeproj; sourceTree = "<group>"; };
-		E96F272A22C3E8C400416F6C /* MeshOptimizer.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = MeshOptimizer.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/Apple/MeshOptimizer.xcodeproj; sourceTree = "<group>"; };
-		E96F27BF22C4050300416F6C /* MeshOptimizer_iOS.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = MeshOptimizer_iOS.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/meshoptimizer/Apple/MeshOptimizer_iOS.xcodeproj; sourceTree = "<group>"; };
 		E970F794233C5F23009FE7C4 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.0.sdk/usr/lib/libbz2.tbd; sourceTree = DEVELOPER_DIR; };
 		E970F798233C5F2C009FE7C4 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		E9BF135122E8D39C001F2264 /* 08_GltfViewer_iOS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = 08_GltfViewer_iOS.entitlements; sourceTree = "<group>"; };
@@ -411,14 +362,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E921BE1D22CFD7B70082D103 /* libAssetPipeline_iOS.a in Frameworks */,
 				650CCC672223CB6C003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				B21F76EE21420EE900DF2297 /* UIKit.framework in Frameworks */,
 				B21F76EF21420EE900DF2297 /* MetalKit.framework in Frameworks */,
 				B21F76F021420EE900DF2297 /* Metal.framework in Frameworks */,
 				5C0F3AEC21418C010088BBB0 /* GameController.framework in Frameworks */,
 				5C0F3AEA21418BFC0088BBB0 /* libThe-Forge_iOS.a in Frameworks */,
-				E970F797233C5F26009FE7C4 /* libbz2.tbd in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -426,10 +375,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E921BE1A22CFD1800082D103 /* libAssetPipeline.a in Frameworks */,
 				650CCC652223CB56003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				B2087DF721421A6E006F372D /* MetalKit.framework in Frameworks */,
-				E970F799233C5F2F009FE7C4 /* libbz2.tbd in Frameworks */,
 				B2087DF821421A6E006F372D /* Metal.framework in Frameworks */,
 				5C0F3AE921418BF50088BBB0 /* libThe-Forge.a in Frameworks */,
 			);
@@ -545,40 +492,6 @@
 			path = ..;
 			sourceTree = "<group>";
 		};
-		E921BE1022CFD14C0082D103 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				E921BE1522CFD14C0082D103 /* libAssetPipeline.a */,
-				E921BE1722CFD14C0082D103 /* libAssetPipeline_iOS.a */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		E96F272722C3E86800416F6C /* MeshOptimizer */ = {
-			isa = PBXGroup;
-			children = (
-				E96F27BF22C4050300416F6C /* MeshOptimizer_iOS.xcodeproj */,
-				E96F272A22C3E8C400416F6C /* MeshOptimizer.xcodeproj */,
-			);
-			name = MeshOptimizer;
-			sourceTree = "<group>";
-		};
-		E96F272B22C3E8C400416F6C /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				E96F272F22C3E8C400416F6C /* libMeshOptimizer.a */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		E96F27C022C4050300416F6C /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				E96F27C422C4050400416F6C /* libMeshOptimizer_iOS.a */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
 		E9BF165423161548001F2264 /* Textures */ = {
 			isa = PBXGroup;
 			children = (
@@ -629,11 +542,9 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
-				E921BE0F22CFD14C0082D103 /* AssetPipeline.xcodeproj */,
 				E921B7D522C6E45D0082D103 /* 08_GltfViewer.cpp */,
 				E921B7D122C6E44B0082D103 /* profile.frag.metal */,
 				E921B7D222C6E44B0082D103 /* profile.vert.metal */,
-				E96F272722C3E86800416F6C /* MeshOptimizer */,
 				5CA80E1821F09F8700C99983 /* CommonShaders */,
 				5C0F3ADE21418BD20088BBB0 /* The-Forge.xcodeproj */,
 				B20A6264213F8D6400FE4944 /* Meshes */,
@@ -678,7 +589,6 @@
 			buildRules = (
 			);
 			dependencies = (
-				E921BE1C22CFD7A30082D103 /* PBXTargetDependency */,
 				5C0F3AEE21418C0B0088BBB0 /* PBXTargetDependency */,
 			);
 			name = 08_GltfViewer_iOS;
@@ -698,7 +608,6 @@
 			);
 			dependencies = (
 				E958921223415BAB00B68D6A /* PBXTargetDependency */,
-				E958921023415BA500B68D6A /* PBXTargetDependency */,
 			);
 			name = 08_GltfViewer;
 			productName = 02_Texture;
@@ -744,18 +653,6 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = E921BE1022CFD14C0082D103 /* Products */;
-					ProjectRef = E921BE0F22CFD14C0082D103 /* AssetPipeline.xcodeproj */;
-				},
-				{
-					ProductGroup = E96F272B22C3E8C400416F6C /* Products */;
-					ProjectRef = E96F272A22C3E8C400416F6C /* MeshOptimizer.xcodeproj */;
-				},
-				{
-					ProductGroup = E96F27C022C4050300416F6C /* Products */;
-					ProjectRef = E96F27BF22C4050300416F6C /* MeshOptimizer_iOS.xcodeproj */;
-				},
-				{
 					ProductGroup = 5C0F3ADF21418BD20088BBB0 /* Products */;
 					ProjectRef = 5C0F3ADE21418BD20088BBB0 /* The-Forge.xcodeproj */;
 				},
@@ -781,34 +678,6 @@
 			fileType = archive.ar;
 			path = "libThe-Forge_iOS.a";
 			remoteRef = 5C0F3AE521418BD30088BBB0 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		E921BE1522CFD14C0082D103 /* libAssetPipeline.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libAssetPipeline.a;
-			remoteRef = E921BE1422CFD14C0082D103 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		E921BE1722CFD14C0082D103 /* libAssetPipeline_iOS.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libAssetPipeline_iOS.a;
-			remoteRef = E921BE1622CFD14C0082D103 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		E96F272F22C3E8C400416F6C /* libMeshOptimizer.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libMeshOptimizer.a;
-			remoteRef = E96F272E22C3E8C400416F6C /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		E96F27C422C4050400416F6C /* libMeshOptimizer_iOS.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libMeshOptimizer_iOS.a;
-			remoteRef = E96F27C322C4050400416F6C /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */
@@ -886,16 +755,6 @@
 			isa = PBXTargetDependency;
 			name = "The-Forge_iOS";
 			targetProxy = 5C0F3AED21418C0B0088BBB0 /* PBXContainerItemProxy */;
-		};
-		E921BE1C22CFD7A30082D103 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = AssetPipeline_iOS;
-			targetProxy = E921BE1B22CFD7A30082D103 /* PBXContainerItemProxy */;
-		};
-		E958921023415BA500B68D6A /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = AssetPipeline;
-			targetProxy = E958920F23415BA500B68D6A /* PBXContainerItemProxy */;
 		};
 		E958921223415BAB00B68D6A /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;

@@ -192,7 +192,7 @@ typedef uint32_t ProfileThreadIdType;
 #define P_GETCURRENTPROCESSID() GetCurrentProcessId()
 typedef uint32_t ProfileProcessIdType;
 
-#elif defined(__linux__)
+#elif defined(__linux__) || defined(ORBIS)
 #include <unistd.h>
 #include <time.h>
 inline int64_t ProfileTicksPerSecondCpu()
@@ -219,8 +219,26 @@ inline int64_t ProfileGetTick()
 typedef uint64_t ProfileThreadIdType;
 #define P_GETCURRENTPROCESSID() getpid()
 typedef uint32_t ProfileProcessIdType;
-#endif
 
+#elif defined(NX64)
+#include <time.h>
+inline int64_t ProfileGetTick()
+{
+	timespec ts;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	return 1000000000ll * ts.tv_sec + ts.tv_nsec;
+}
+
+inline int64_t ProfileTicksPerSecondCpu()
+{
+	return 1000000000ll;
+}
+
+#define P_TICK() ProfileGetTick()
+#define P_BREAK() __builtin_trap()
+#define P_THREAD_LOCAL thread_local
+#define P_STRCASECMP strcasecmp
+#endif
 
 #ifndef P_GETCURRENTTHREADID 
 #define P_GETCURRENTTHREADID() 0
@@ -415,7 +433,7 @@ PROFILE_API uint32_t ProfileContextSwitchGatherThreads(uint32_t nContextSwitchSt
 
 PROFILE_API const char* ProfileGetProcessName(ProfileProcessIdType nId, char* Buffer, uint32_t nSize);
 
-PROFILE_API void ProfileDumpFile(const char* pPath, ProfileDumpType eType, uint32_t nFrames);
+PROFILE_API void ProfileDumpFile(const Path* pPath, ProfileDumpType eType, uint32_t nFrames);
 
 typedef void ProfileWriteCallback(void* Handle, size_t size, const char* pData);
 PROFILE_API void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, const char* pHost);

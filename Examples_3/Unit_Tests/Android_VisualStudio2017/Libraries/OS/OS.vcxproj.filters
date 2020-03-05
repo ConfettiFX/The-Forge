@@ -64,6 +64,12 @@
     <Filter Include="OS\Profiler">
       <UniqueIdentifier>{0e969667-faa3-46dc-a14d-4ec572491ebc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OS\Middleware_3\ECS">
+      <UniqueIdentifier>{4d66c6ba-8149-42cf-99ea-23159b0fd8b0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dependencies\zip">
+      <UniqueIdentifier>{23b43062-cd3f-4906-8466-abfce35c9edb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EAStdC\EAMemory.cpp">
@@ -98,9 +104,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\thread_support.cpp">
       <Filter>Dependencies\EASTL</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\TinyEXR\tinyexr.cpp">
-      <Filter>Dependencies</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.cpp">
       <Filter>OS\Core</Filter>
@@ -159,9 +162,6 @@
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.cpp">
       <Filter>OS\Middleware_3\Animation</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.cpp" />
-    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.cpp" />
-    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Logging\Log.cpp">
       <Filter>OS\Logging</Filter>
     </ClCompile>
@@ -212,6 +212,18 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerWidgetsUI.cpp">
       <Filter>OS\Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.cpp">
+      <Filter>OS\Middleware_3\ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.cpp">
+      <Filter>OS\Middleware_3\ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.cpp">
+      <Filter>OS\Middleware_3\ECS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\zip\zip.cpp">
+      <Filter>Dependencies\zip</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -296,9 +308,6 @@
     <ClInclude Include="..\..\..\..\..\Middleware_3\Animation\SkeletonBatcher.h">
       <Filter>OS\Middleware_3\Animation</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.h" />
-    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.h" />
-    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ILog.h">
       <Filter>OS\Interfaces</Filter>
     </ClInclude>
@@ -340,6 +349,15 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerWidgetsUI.h">
       <Filter>OS\Profiler</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.h">
+      <Filter>OS\Middleware_3\ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.h">
+      <Filter>OS\Middleware_3\ECS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.h">
+      <Filter>OS\Middleware_3\ECS</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

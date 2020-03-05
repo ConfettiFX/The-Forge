@@ -44,12 +44,12 @@
 		971BCFA8217040F9007F2B2F /* renderSceneBRDF.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = D0A2072B20DB72AC0008F6A4 /* renderSceneBRDF.vert.metal */; };
 		971BCFA9217040F9007F2B2F /* skybox.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = D0A2072720DB72AC0008F6A4 /* skybox.frag.metal */; };
 		971BCFAA217040F9007F2B2F /* skybox.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = D0A2071F20DB72AC0008F6A4 /* skybox.vert.metal */; };
-		971BD0B1218A17C2007F2B2F /* lion.obj in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B277221920F701C30074529C /* lion.obj */; };
-		971BD0B2218A17C2007F2B2F /* sponza.mtl in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B277221A20F701C40074529C /* sponza.mtl */; };
-		971BD0B3218A17C2007F2B2F /* sponza.obj in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B277221820F701C30074529C /* sponza.obj */; };
 		B2087DFB21421A76006F372D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DF921421A76006F372D /* MetalKit.framework */; };
 		B2087DFC21421A76006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DFA21421A76006F372D /* Metal.framework */; };
 		B212C47E20DD6C6D00211A33 /* 10_PixelProjectedReflections.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D00A0D8120DB6B6A00895D71 /* 10_PixelProjectedReflections.cpp */; };
+		B217E2C223F5A25200C95904 /* lion.gltf in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B217E2B923F5A21E00C95904 /* lion.gltf */; };
+		B217E2C323F5A25400C95904 /* Sponza.bin in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B217E2BA23F5A21E00C95904 /* Sponza.bin */; };
+		B217E2C423F5A25700C95904 /* Sponza.gltf in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B217E2BB23F5A21E00C95904 /* Sponza.gltf */; };
 		B21F76F421420EF500DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76F121420EF500DF2297 /* UIKit.framework */; };
 		B21F76F521420EF500DF2297 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76F221420EF500DF2297 /* MetalKit.framework */; };
 		B21F76F621420EF500DF2297 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76F321420EF500DF2297 /* Metal.framework */; };
@@ -59,8 +59,6 @@
 		D00A0D6E20DB69F400895D71 /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = D00A0D6C20DB69F400895D71 /* Info.plist */; };
 		D00A0D8220DB6B6A00895D71 /* 10_PixelProjectedReflections.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D00A0D8120DB6B6A00895D71 /* 10_PixelProjectedReflections.cpp */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
-		E9A438A9233DBF25005BF1C7 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A438A8233DBF25005BF1C7 /* libbz2.tbd */; };
-		E9A438AB233DBF2C005BF1C7 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A438AA233DBF2C005BF1C7 /* libbz2.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -84,20 +82,6 @@
 			proxyType = 1;
 			remoteGlobalIDString = 5C172FC721414C490074EE71;
 			remoteInfo = "The-Forge_iOS";
-		};
-		B27F93EC238DA6FC004F9599 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B27F93E7238DA6FC004F9599 /* 12_ZipFileSystem.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = EA463C8B1EF81E8F005AC8C7;
-			remoteInfo = 12_ZipFileSystem;
-		};
-		B27F93EE238DA6FC004F9599 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = B27F93E7238DA6FC004F9599 /* 12_ZipFileSystem.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = 28A5AD43201F7276000E571F;
-			remoteInfo = 12_ZipFileSystem_iOS;
 		};
 		E958921823415BCA00B68D6A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -185,9 +169,9 @@
 			dstPath = Meshes;
 			dstSubfolderSpec = 7;
 			files = (
-				971BD0B1218A17C2007F2B2F /* lion.obj in Copy Meshes */,
-				971BD0B2218A17C2007F2B2F /* sponza.mtl in Copy Meshes */,
-				971BD0B3218A17C2007F2B2F /* sponza.obj in Copy Meshes */,
+				B217E2C223F5A25200C95904 /* lion.gltf in Copy Meshes */,
+				B217E2C323F5A25400C95904 /* Sponza.bin in Copy Meshes */,
+				B217E2C423F5A25700C95904 /* Sponza.gltf in Copy Meshes */,
 			);
 			name = "Copy Meshes";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -218,18 +202,17 @@
 		B212C48220DD6CCA00211A33 /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/assimp.a"; sourceTree = "<group>"; };
 		B212C48320DD6CCA00211A33 /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/IrrXML.a"; sourceTree = "<group>"; };
 		B212C48420DD6CCA00211A33 /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/zlibstatic.a"; sourceTree = "<group>"; };
+		B217E2B923F5A21E00C95904 /* lion.gltf */ = {isa = PBXFileReference; lastKnownFileType = text; name = lion.gltf; path = ../../../../../Art/Sponza/Meshes/lion.gltf; sourceTree = "<group>"; };
+		B217E2BA23F5A21E00C95904 /* Sponza.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = Sponza.bin; path = ../../../../../Art/Sponza/Meshes/Sponza.bin; sourceTree = "<group>"; };
+		B217E2BB23F5A21E00C95904 /* Sponza.gltf */ = {isa = PBXFileReference; lastKnownFileType = text; name = Sponza.gltf; path = ../../../../../Art/Sponza/Meshes/Sponza.gltf; sourceTree = "<group>"; };
 		B21F76F121420EF500DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76F221420EF500DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76F321420EF500DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
-		B277221820F701C30074529C /* sponza.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = sponza.obj; path = ../../../../../Art/Sponza/Meshes/sponza.obj; sourceTree = "<group>"; };
-		B277221920F701C30074529C /* lion.obj */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = lion.obj; path = ../../../../../Art/Sponza/Meshes/lion.obj; sourceTree = "<group>"; };
-		B277221A20F701C40074529C /* sponza.mtl */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = sponza.mtl; path = ../../../../../Art/Sponza/Meshes/sponza.mtl; sourceTree = "<group>"; };
 		B277221E20F701D00074529C /* SponzaPBR_Textures */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SponzaPBR_Textures; path = ../../../../../Art/Sponza/Textures/SponzaPBR_Textures; sourceTree = "<group>"; };
 		B277221F20F701D00074529C /* lion */ = {isa = PBXFileReference; lastKnownFileType = folder; name = lion; path = ../../../../../Art/Sponza/Textures/lion; sourceTree = "<group>"; };
 		B277222220F7077B0074529C /* fillGbuffers.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = fillGbuffers.vert.metal; path = ../../../src/10_PixelProjectedReflections/Shaders/Metal/fillGbuffers.vert.metal; sourceTree = "<group>"; };
 		B277222320F7077B0074529C /* fillGbuffers.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = fillGbuffers.frag.metal; path = ../../../src/10_PixelProjectedReflections/Shaders/Metal/fillGbuffers.frag.metal; sourceTree = "<group>"; };
 		B277222C20F7CBE80074529C /* fillGbuffers_iOS.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = fillGbuffers_iOS.frag.metal; path = ../../../src/10_PixelProjectedReflections/Shaders/Metal/fillGbuffers_iOS.frag.metal; sourceTree = "<group>"; };
-		B27F93E7238DA6FC004F9599 /* 12_ZipFileSystem.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = 12_ZipFileSystem.xcodeproj; path = ../12_ZipFileSystem/12_ZipFileSystem.xcodeproj; sourceTree = "<group>"; };
 		B2C0C08B20F5847E00BD4BAA /* circlepad.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = circlepad.ktx; path = ../../../UnitTestResources/Textures/circlepad.ktx; sourceTree = "<group>"; };
 		B2C0C08D20F5849800BD4BAA /* LA_Helipad.ktx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = LA_Helipad.ktx; path = ../../../UnitTestResources/Textures/LA_Helipad.ktx; sourceTree = "<group>"; };
 		C95132ED2010E68A002E584B /* 10_PixelProjectedReflections_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 10_PixelProjectedReflections_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -266,7 +249,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E9A438AB233DBF2C005BF1C7 /* libbz2.tbd in Frameworks */,
 				650CCC6B2223CC6C003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				B21F76F421420EF500DF2297 /* UIKit.framework in Frameworks */,
 				B21F76F521420EF500DF2297 /* MetalKit.framework in Frameworks */,
@@ -280,7 +262,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E9A438A9233DBF25005BF1C7 /* libbz2.tbd in Frameworks */,
 				650CCC692223CC61003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				B2087DFB21421A76006F372D /* MetalKit.framework in Frameworks */,
 				B2087DFC21421A76006F372D /* Metal.framework in Frameworks */,
@@ -385,21 +366,12 @@
 		B212C48B20DD6DB000211A33 /* Meshes */ = {
 			isa = PBXGroup;
 			children = (
-				B277221920F701C30074529C /* lion.obj */,
-				B277221A20F701C40074529C /* sponza.mtl */,
-				B277221820F701C30074529C /* sponza.obj */,
+				B217E2B923F5A21E00C95904 /* lion.gltf */,
+				B217E2BA23F5A21E00C95904 /* Sponza.bin */,
+				B217E2BB23F5A21E00C95904 /* Sponza.gltf */,
 			);
 			name = Meshes;
 			path = 10_PixelProjectedReflections_iOS;
-			sourceTree = "<group>";
-		};
-		B27F93E8238DA6FC004F9599 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				B27F93ED238DA6FC004F9599 /* 12_ZipFileSystem.app */,
-				B27F93EF238DA6FC004F9599 /* 12_ZipFileSystem_iOS.app */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 		C95132EE2010E68A002E584B /* 10_PixelProjectedReflections_iOS */ = {
@@ -417,7 +389,6 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
-				B27F93E7238DA6FC004F9599 /* 12_ZipFileSystem.xcodeproj */,
 				5B17816122A5C79E00991DCB /* profile.frag.metal */,
 				5B17816222A5C79E00991DCB /* profile.vert.metal */,
 				5CA80E1921F09F9300C99983 /* CommonShaders */,
@@ -533,10 +504,6 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = B27F93E8238DA6FC004F9599 /* Products */;
-					ProjectRef = B27F93E7238DA6FC004F9599 /* 12_ZipFileSystem.xcodeproj */;
-				},
-				{
 					ProductGroup = 5C172FBA21414BD90074EE71 /* Products */;
 					ProjectRef = 5C172FB921414BD90074EE71 /* The-Forge.xcodeproj */;
 				},
@@ -562,20 +529,6 @@
 			fileType = archive.ar;
 			path = "libThe-Forge_iOS.a";
 			remoteRef = 5C17305921414EB40074EE71 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B27F93ED238DA6FC004F9599 /* 12_ZipFileSystem.app */ = {
-			isa = PBXReferenceProxy;
-			fileType = wrapper.application;
-			path = 12_ZipFileSystem.app;
-			remoteRef = B27F93EC238DA6FC004F9599 /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B27F93EF238DA6FC004F9599 /* 12_ZipFileSystem_iOS.app */ = {
-			isa = PBXReferenceProxy;
-			fileType = wrapper.application;
-			path = 12_ZipFileSystem_iOS.app;
-			remoteRef = B27F93EE238DA6FC004F9599 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 /* End PBXReferenceProxy section */

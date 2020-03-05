@@ -67,6 +67,9 @@
     <Filter Include="Utils">
       <UniqueIdentifier>{f6c4d317-0683-49d8-98da-c8e3ec613e69}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Dependencies\zip">
+      <UniqueIdentifier>{94561365-2e90-4140-bacd-276c1b9c04cb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFileSystem.h">
@@ -192,15 +195,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\MemoryStream.h">
       <Filter>OS\FileSystem</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.h">
-      <Filter>OS\Middleware_3\ECS</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.h">
-      <Filter>OS\Middleware_3\ECS</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.h">
-      <Filter>OS\Middleware_3\ECS</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsBase.cpp">
@@ -208,9 +202,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Image\Image.cpp">
       <Filter>OS\Image</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\TinyEXR\tinyexr.cpp">
-      <Filter>Dependencies</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Timer.cpp">
       <Filter>OS\Core</Filter>
@@ -347,14 +338,8 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\MemoryStream.cpp">
       <Filter>OS\FileSystem</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\BaseComponent.cpp">
-      <Filter>OS\Middleware_3\ECS</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\ComponentRepresentation.cpp">
-      <Filter>OS\Middleware_3\ECS</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Middleware_3\ECS\EntityManager.cpp">
-      <Filter>OS\Middleware_3\ECS</Filter>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\zip\zip.cpp">
+      <Filter>Dependencies\zip</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

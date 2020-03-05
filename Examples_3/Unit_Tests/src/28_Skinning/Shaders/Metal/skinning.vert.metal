@@ -18,12 +18,6 @@ struct Vertex_Shader
 	};
 	constant Uniforms_boneMatrices & boneMatrices;
 	
-	struct Uniforms_boneOffsetMatrices
-	{
-		float4x4 boneOffsetMatrix[MAX_NUM_BONES];
-	};
-	constant Uniforms_boneOffsetMatrices & boneOffsetMatrices;
-	
     struct VSInput
     {
         float3 Position [[attribute(0)]];
@@ -44,10 +38,10 @@ struct Vertex_Shader
     {
 		VSOutput result;
 		
-		float4x4 boneTransform = (boneMatrices.boneMatrix[input.BoneIndices[0]] * boneOffsetMatrices.boneOffsetMatrix[input.BoneIndices[0]]) * input.BoneWeights[0];
-		boneTransform += (boneMatrices.boneMatrix[input.BoneIndices[1]] * boneOffsetMatrices.boneOffsetMatrix[input.BoneIndices[1]]) * input.BoneWeights[1];
-		boneTransform += (boneMatrices.boneMatrix[input.BoneIndices[2]] * boneOffsetMatrices.boneOffsetMatrix[input.BoneIndices[2]]) * input.BoneWeights[2];
-		boneTransform += (boneMatrices.boneMatrix[input.BoneIndices[3]] * boneOffsetMatrices.boneOffsetMatrix[input.BoneIndices[3]]) * input.BoneWeights[3];
+		float4x4 boneTransform = boneMatrices.boneMatrix[input.BoneIndices[0]] * input.BoneWeights[0];
+		boneTransform += boneMatrices.boneMatrix[input.BoneIndices[1]] * input.BoneWeights[1];
+		boneTransform += boneMatrices.boneMatrix[input.BoneIndices[2]] * input.BoneWeights[2];
+		boneTransform += boneMatrices.boneMatrix[input.BoneIndices[3]] * input.BoneWeights[3];
 		
 		result.Position = boneTransform * float4(input.Position, 1.0f);
 		result.Position = uniformBlock.modelMatrix * result.Position;
@@ -59,15 +53,9 @@ struct Vertex_Shader
     };
 
     Vertex_Shader(constant Uniforms_uniformBlock & uniformBlock,
-				  constant Uniforms_boneMatrices & boneMatrices,
-				  constant Uniforms_boneOffsetMatrices & boneOffsetMatrices) :
+				  constant Uniforms_boneMatrices & boneMatrices) :
 	uniformBlock(uniformBlock),
-	boneMatrices(boneMatrices),
-	boneOffsetMatrices(boneOffsetMatrices){}
-};
-
-struct VSData {
-    constant     Vertex_Shader::Uniforms_boneOffsetMatrices & boneOffsetMatrices;
+	boneMatrices(boneMatrices){}
 };
 
 struct VSDataPerDraw {
@@ -76,7 +64,6 @@ struct VSDataPerDraw {
 };
 
 vertex Vertex_Shader::VSOutput stageMain(Vertex_Shader::VSInput input [[stage_in]],
-constant VSData& vsData [[buffer(UPDATE_FREQ_NONE)]],
 constant VSDataPerDraw& vsDataPerDraw [[buffer(UPDATE_FREQ_PER_DRAW)]]
 ) {
     Vertex_Shader::VSInput input0;
@@ -85,6 +72,6 @@ constant VSDataPerDraw& vsDataPerDraw [[buffer(UPDATE_FREQ_PER_DRAW)]]
 	input0.UV = input.UV;
 	input0.BoneWeights = input.BoneWeights;
 	input0.BoneIndices = input.BoneIndices;
-    Vertex_Shader main(vsDataPerDraw.uniformBlock, vsDataPerDraw.boneMatrices, vsData.boneOffsetMatrices);
+    Vertex_Shader main(vsDataPerDraw.uniformBlock, vsDataPerDraw.boneMatrices);
         return main.main(input0);
 }

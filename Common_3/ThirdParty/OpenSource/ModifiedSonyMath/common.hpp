@@ -90,18 +90,17 @@ inline Matrix4 makeShadowMatrix(const Vector4 & plane, const Vector4 & light)
 #include <stdint.h>
 #include <stdlib.h>
 
-#ifdef TARGET_IOS
-#else
-#ifdef __ANDROID__
+#if defined(TARGET_IOS)
+#elif defined(__ANDROID__)
+#elif defined(NN_NINTENDO_SDK)
 #else
 #include <immintrin.h>
-#endif
 #endif
 
 #include "../../../OS/Core/Compiler.h"
 
 /*
-* Copyright (c) 2018-2019 Confetti Interactive Inc.
+* Copyright (c) 2018-2020 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -867,7 +866,7 @@ inline Vector3 max(const Vector3 &a, const Vector3 &b)
 inline Vector4 min(const Vector4& a, const Vector4& b)
 {
 #if VECTORMATH_MODE_SCALAR
-	return Vector3(
+	return Vector4(
 		min(a.getX(), b.getX()),
 		min(a.getY(), b.getY()),
 		min(a.getZ(), b.getZ()),
@@ -879,7 +878,7 @@ inline Vector4 min(const Vector4& a, const Vector4& b)
 inline Vector4 max(const Vector4& a, const Vector4& b)
 {
 #if VECTORMATH_MODE_SCALAR
-	return Vector3(
+	return Vector4(
 		max(a.getX(), b.getX()),
 		max(a.getY(), b.getY()),
 		max(a.getZ(), b.getZ()),
@@ -1442,11 +1441,11 @@ struct TexVertex
 	float2 texCoord;
 };
 
-#define MAKETEXQUAD(x0, y0, x1, y1, o)\
-	TexVertex(float2(x0 + o, y0 + o), float2(0, 0)),\
-	TexVertex(float2(x0 + o, y1 - o), float2(0, 1)),\
-	TexVertex(float2(x1 - o, y0 + o), float2(1, 0)),\
-	TexVertex(float2(x1 - o, y1 - o), float2(1, 1)),
+#define MAKETEXQUAD(vert, x0, y0, x1, y1, o)\
+	vert[0] = TexVertex(float2(x0 + o, y0 + o), float2(0, 0));\
+	vert[1] = TexVertex(float2(x0 + o, y1 - o), float2(0, 1));\
+	vert[2] = TexVertex(float2(x1 - o, y0 + o), float2(1, 0));\
+	vert[3] = TexVertex(float2(x1 - o, y1 - o), float2(1, 1));
 //----------------------------------------------------------------------------
 // Intersection Helpers
 //----------------------------------------------------------------------------

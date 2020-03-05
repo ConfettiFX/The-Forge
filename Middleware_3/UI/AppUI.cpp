@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -28,7 +28,7 @@
 #include "../../Common_3/OS/Interfaces/IFileSystem.h"
 
 #include "../../Common_3/Renderer/GpuProfiler.h"
-#include "../../Common_3/Renderer/ResourceLoader.h"
+#include "../../Common_3/Renderer/IResourceLoader.h"
 
 #include "../../Common_3/ThirdParty/OpenSource/EASTL/unordered_map.h"
 #include "../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
@@ -427,7 +427,7 @@ bool UIApp::Init(Renderer* renderer)
 {
 	mShowDemoUiWindow = false;
 
-	pImpl = (struct UIAppImpl*)conf_calloc(1, sizeof(*pImpl));
+	pImpl = conf_new(UIAppImpl);
 	pImpl->pRenderer = renderer;
 
 	pDriver = NULL;
@@ -440,7 +440,7 @@ bool UIApp::Init(Renderer* renderer)
 	if (mFontAtlasSize <= 0) // then we assume we'll only draw debug text in the UI, in which case the atlas size can be kept small
 		mFontAtlasSize = 256;
 
-	pImpl->pFontStash = (Fontstash*)conf_calloc(1, sizeof(Fontstash));
+	pImpl->pFontStash = conf_new(Fontstash);
 	bool success = pImpl->pFontStash->init(renderer, mFontAtlasSize, mFontAtlasSize);
 
 	initGUIDriver(pImpl->pRenderer, &pDriver);
@@ -456,14 +456,13 @@ void UIApp::Exit()
 	RemoveAllGuiComponents();
 
 	pImpl->pFontStash->exit();
-	conf_free(pImpl->pFontStash);
+	conf_delete(pImpl->pFontStash);
 
 	pDriver->exit();
 	removeGUIDriver(pDriver);
 	pDriver = NULL;
 
-	pImpl->~UIAppImpl();
-	conf_free(pImpl);
+	conf_delete(pImpl);
 }
 
 bool UIApp::Load(RenderTarget** rts, uint32_t count)
@@ -515,8 +514,8 @@ void UIApp::DrawTextInWorldSpace(Cmd* pCmd, const char* pText, const mat4& matWo
 		pCmd, pText, matProjView, matWorld, pDesc->mFontID, pDesc->mFontColor, pDesc->mFontSize, pDesc->mFontSpacing, pDesc->mFontBlur);
 }
 
-#if defined(__linux__)
-#define sprintf_s sprintf    // On linux, we should use sprintf as sprintf_s is not part of the standard c library
+#if defined(__linux__) || defined(NX64)
+#define sprintf_s sprintf    // On linux and NX, we should use sprintf as sprintf_s is not part of the standard c library
 #endif
 
 
@@ -524,7 +523,7 @@ static void draw_gpu_profile_recurse(
 	Cmd* pCmd, Fontstash* pFontStash, float2& startPos, const GpuProfileDrawDesc* pDrawDesc, struct GpuProfiler* pGpuProfiler,
 	GpuTimerTree* pRoot)
 {
-#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11)
+#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11) || defined(ORBIS)
 	if (!pRoot)
 		return;
 
@@ -689,7 +688,7 @@ void GuiComponent::RemoveAllWidgets()
 	mWidgetsClone.clear();
 }
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
+#if defined(TARGET_IOS) || defined(__ANDROID__) || defined(NX64)
 #define TOUCH_INPUT 1
 #endif
 
@@ -702,10 +701,12 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 
     PathHandle joystickTexturePath = fsCopyPathInResourceDirectory((ResourceDirectory)root, pJoystickTexture);
 	TextureLoadDesc loadDesc = {};
+	SyncToken token = {};
     loadDesc.pFilePath = joystickTexturePath;
 	loadDesc.ppTexture = &pTexture;
 	loadDesc.mCreationFlag = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-	addResource(&loadDesc);
+	addResource(&loadDesc, &token, LOAD_PRIORITY_HIGH);
+	waitForToken(&token);
     
 	if (!pTexture)
 	{
@@ -769,7 +770,7 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 	vbDesc.mDesc.mSize = 128 * 4 * sizeof(float4);
 	vbDesc.mDesc.mVertexStride = sizeof(float4);
 	vbDesc.ppBuffer = &pMeshBuffer;
-	addResource(&vbDesc);
+	addResource(&vbDesc, NULL, LOAD_PRIORITY_NORMAL);
 	/************************************************************************/
 	// Prepare descriptor sets
 	/************************************************************************/
@@ -850,7 +851,8 @@ void VirtualJoystickUI::Update(float dt)
 bool VirtualJoystickUI::OnMove(uint32_t id, bool press, const float2* vec)
 {
 #if TOUCH_INPUT
-	ASSERT(vec);
+	if (!vec) return false;
+
 
     if (!mSticks[id].mPressed)
     {
@@ -899,11 +901,12 @@ void VirtualJoystickUI::Draw(Cmd* pCmd, const float4& color)
 			float2 joystickCenter = mSticks[i].mStartPos - float2(0.0f, mRenderSize.y * 0.1f);
             float2 joystickPos = joystickCenter - joystickSize * 0.5f;
 
+			BufferUpdateDesc updateDesc = { pMeshBuffer, bufferOffset };
+			beginUpdateResource(&updateDesc);
+			TexVertex* vertices = (TexVertex*)updateDesc.pMappedData;
 			// the last variable can be used to create a border
-			TexVertex        vertices[4] = { MAKETEXQUAD(
-				joystickPos.x, joystickPos.y, joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0) };
-			BufferUpdateDesc updateDesc = { pMeshBuffer, vertices, 0, bufferOffset, sizeof(vertices) };
-			updateResource(&updateDesc);
+			MAKETEXQUAD(vertices, joystickPos.x, joystickPos.y, joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0);
+			endUpdateResource(&updateDesc, NULL);
 			cmdBindVertexBuffer(pCmd, 1, &pMeshBuffer, &bufferOffset);
 			cmdDraw(pCmd, 4, 0);
 			bufferOffset += sizeof(vertices);
@@ -912,11 +915,12 @@ void VirtualJoystickUI::Draw(Cmd* pCmd, const float4& color)
 			joystickCenter = mSticks[i].mCurrPos - float2(0.0f, mRenderSize.y * 0.1f);
 			joystickPos = float2(joystickCenter.getX(), joystickCenter.getY()) - 0.5f * joystickSize;
 
+			updateDesc = { pMeshBuffer, bufferOffset };
+			beginUpdateResource(&updateDesc);
+			TexVertex* verticesInner = (TexVertex*)updateDesc.pMappedData;
 			// the last variable can be used to create a border
-			TexVertex verticesInner[4] = { MAKETEXQUAD(
-				joystickPos.x, joystickPos.y, joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0) };
-			updateDesc = { pMeshBuffer, verticesInner, 0, bufferOffset, sizeof(verticesInner) };
-			updateResource(&updateDesc);
+			MAKETEXQUAD(verticesInner, joystickPos.x, joystickPos.y, joystickPos.x + joystickSize.x, joystickPos.y + joystickSize.y, 0);
+			endUpdateResource(&updateDesc, NULL);
 			cmdBindVertexBuffer(pCmd, 1, &pMeshBuffer, &bufferOffset);
 			cmdDraw(pCmd, 4, 0);
 			bufferOffset += sizeof(verticesInner);

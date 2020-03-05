@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -99,6 +99,11 @@ int systemRun(const char* command, const char** arguments, size_t argumentCount,
 #elif TARGET_OS_IPHONE
 
 	ASSERT(false && "processRun is unsupported on iOS");
+	return -1;
+#elif NX64
+	ASSERT(false && "processRun is unsupported on NX");
+	return -1;
+#elif defined(ORBIS)
 	return -1;
 #else
 

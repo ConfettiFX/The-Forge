@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2019 Confetti Interactive Inc.
+* Copyright (c) 2018-2020 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -48,11 +48,6 @@ cbuffer cbPerProp : register(b1, UPDATE_FREQ_PER_DRAW)
 struct VsIn
 {
 	uint4 position          : POSITION;
-	int4 normal             : NORMAL;
-	uint2 texCoord          : TEXCOORD0;
-	uint4 baseColor         : COLOR;
-	uint2 metallicRoughness : TEXCOORD1;
-	uint2 alphaSettings     : TEXCOORD2;
 };
 
 struct PsIn

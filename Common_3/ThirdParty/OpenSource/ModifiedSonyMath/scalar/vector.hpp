@@ -460,12 +460,14 @@ inline Vector4::Vector4(float scalar)
 //========================================= #ConfettiMathExtensionsBegin ================================================
 //========================================= #ConfettiAnimationMathExtensionsBegin =======================================
 
-inline Vector4::Vector4(const Vector4Int & vecInt)
+inline const Vector4 Vector4::fromVector4Int(const Vector4Int vecInt)
 {
-	mX = static_cast<float>(vecInt.x);
-	mY = static_cast<float>(vecInt.y);
-	mZ = static_cast<float>(vecInt.z);
-	mW = static_cast<float>(vecInt.w);
+	Vector4 ret = {};
+	ret.mX = static_cast<float>(vecInt.x);
+	ret.mY = static_cast<float>(vecInt.y);
+	ret.mZ = static_cast<float>(vecInt.z);
+	ret.mW = static_cast<float>(vecInt.w);
+	return ret;
 }
 
 //========================================= #ConfettiAnimationMathExtensionsEnd =======================================

@@ -18,6 +18,7 @@
       <Filter>transcoder</Filter>
     </ClCompile>
     <ClCompile Include="basisu_ssim.cpp" />
+    <ClCompile Include="basisu_astc_decomp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basisu_basis_file.h" />
@@ -47,6 +48,7 @@
       <Filter>transcoder</Filter>
     </ClInclude>
     <ClInclude Include="basisu_ssim.h" />
+    <ClInclude Include="basisu_astc_decomp.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="transcoder\basisu_transcoder_tables_dxt1_6.inc">
@@ -56,6 +58,24 @@
       <Filter>transcoder</Filter>
     </None>
     <None Include="transcoder\basisu_transcoder_tables_bc7_m6.inc">
+      <Filter>transcoder</Filter>
+    </None>
+    <None Include="transcoder\basisu_transcoder_tables_astc.inc">
+      <Filter>transcoder</Filter>
+    </None>
+    <None Include="transcoder\basisu_transcoder_tables_astc_0_255.inc">
+      <Filter>transcoder</Filter>
+    </None>
+    <None Include="transcoder\basisu_transcoder_tables_bc7_m5_alpha.inc">
+      <Filter>transcoder</Filter>
+    </None>
+    <None Include="transcoder\basisu_transcoder_tables_bc7_m5_color.inc">
+      <Filter>transcoder</Filter>
+    </None>
+    <None Include="transcoder\basisu_transcoder_tables_atc_55.inc">
+      <Filter>transcoder</Filter>
+    </None>
+    <None Include="transcoder\basisu_transcoder_tables_atc_56.inc">
       <Filter>transcoder</Filter>
     </None>
   </ItemGroup>

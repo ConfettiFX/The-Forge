@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -727,7 +727,9 @@ static void AddDevice(Renderer* pRenderer)
 		IDXGIAdapter1*                    pGpu = NULL;
 		D3D_FEATURE_LEVEL                 mMaxSupportedFeatureLevel = (D3D_FEATURE_LEVEL)0;
 		D3D11_FEATURE_DATA_D3D11_OPTIONS  mFeatureDataOptions = {};
+#if WINVER > _WIN32_WINNT_WINBLUE
 		D3D11_FEATURE_DATA_D3D11_OPTIONS2 mFeatureDataOptions2 = {};
+#endif
 		SIZE_T                            mDedicatedVideoMemory = 0;
 		char                              mVendorId[MAX_GPU_VENDOR_STRING_LENGTH];
 		char                              mDeviceId[MAX_GPU_VENDOR_STRING_LENGTH];
@@ -764,16 +766,18 @@ static void AddDevice(Renderer* pRenderer)
 					if (FAILED(hr)) {
 						LOGF(LogLevel::eINFO, "D3D11 CheckFeatureSupport D3D11_FEATURE_D3D11_OPTIONS error 0x%x", hr);
 					}
+#if WINVER > _WIN32_WINNT_WINBLUE
 					D3D11_FEATURE_DATA_D3D11_OPTIONS2 featureData2 = {};
 					hr = pRenderer->pDxDevice->CheckFeatureSupport(D3D11_FEATURE_D3D11_OPTIONS2, &featureData2, sizeof(featureData2));
 					if (FAILED(hr)) {
 						LOGF(LogLevel::eINFO, "D3D11 CheckFeatureSupport D3D11_FEATURE_D3D11_OPTIONS2 error 0x%x", hr);
 					}
 
+					gpuDesc[pRenderer->mNumOfGPUs].mFeatureDataOptions2 = featureData2;
+#endif
 					gpuDesc[pRenderer->mNumOfGPUs].mMaxSupportedFeatureLevel = featLevelOut;
 					gpuDesc[pRenderer->mNumOfGPUs].mDedicatedVideoMemory = desc.DedicatedVideoMemory;
 					gpuDesc[pRenderer->mNumOfGPUs].mFeatureDataOptions = featureData;
-					gpuDesc[pRenderer->mNumOfGPUs].mFeatureDataOptions2 = featureData2;
 
 					//save vendor and model Id as string
 					//char hexChar[10];
@@ -846,7 +850,11 @@ static void AddDevice(Renderer* pRenderer)
 
 		// Determine root signature size for this gpu driver
 		pRenderer->mGpuSettings[i].mMaxRootSignatureDWORDS = 0U;    // no such thing
+#if WINVER > _WIN32_WINNT_WINBLUE
 		pRenderer->mGpuSettings[i].mROVsSupported = gpuDesc[i].mFeatureDataOptions2.ROVsSupported ? true : false;
+#else
+		pRenderer->mGpuSettings[i].mROVsSupported = false;
+#endif
 		pRenderer->mGpuSettings[i].mPartialUpdateConstantBufferSupported = gpuDesc[i].mFeatureDataOptions.ConstantBufferPartialUpdate ? true : false;
 	}
 
@@ -920,7 +928,12 @@ static void RemoveDevice(Renderer* pRenderer)
 	pRenderer->pDxDevice->QueryInterface(&pDebugDevice);
 	SAFE_RELEASE(pRenderer->pDxDevice);
 
+#if WINVER > _WIN32_WINNT_WINBLUE
 	pDebugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL | D3D11_RLDO_IGNORE_INTERNAL);
+#else
+	pDebugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+#endif
+
 	pDebugDevice->Release();
 #else
 	SAFE_RELEASE(pRenderer->pDxDevice);
@@ -1094,7 +1107,7 @@ void addQueue(Renderer* pRenderer, QueueDesc* pQDesc, Queue** ppQueue)
 	// Provided description for queue creation.
 	// Note these don't really mean much w/ DX11 but we can use it for debugging
 	// what the client is intending to do.
-	pQueue->mQueueDesc = *pQDesc;
+	pQueue->mDesc = *pQDesc;
 	pQueue->mUploadGranularity = { 1, 1, 1 };
 	eastl::string queueType = "DUMMY QUEUE FOR DX11 BACKEND";
 	pQueue->pRenderer = pRenderer;
@@ -1102,7 +1115,7 @@ void addQueue(Renderer* pRenderer, QueueDesc* pQDesc, Queue** ppQueue)
 	*ppQueue = pQueue;
 }
 
-void removeQueue(Queue* pQueue)
+void removeQueue(Renderer* pRenderer, Queue* pQueue)
 {
 	ASSERT(pQueue != NULL);
 	SAFE_FREE(pQueue);
@@ -1177,13 +1190,13 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	descColor.mSampleCount = SAMPLE_COUNT_1;
 	descColor.mSampleQuality = 0;
 
-	pSwapChain->ppSwapchainRenderTargets =
-		(RenderTarget**)conf_calloc(pSwapChain->mDesc.mImageCount, sizeof(*pSwapChain->ppSwapchainRenderTargets));
+	pSwapChain->ppRenderTargets =
+		(RenderTarget**)conf_calloc(pSwapChain->mDesc.mImageCount, sizeof(*pSwapChain->ppRenderTargets));
 
 	for (uint32_t i = 0; i < pSwapChain->mDesc.mImageCount; ++i)
 	{
 		descColor.pNativeHandle = (void*)pSwapChain->ppDxSwapChainResources[i];
-		::addRenderTarget(pRenderer, &descColor, &pSwapChain->ppSwapchainRenderTargets[i]);
+		::addRenderTarget(pRenderer, &descColor, &pSwapChain->ppRenderTargets[i]);
 	}
 
 	*ppSwapChain = pSwapChain;
@@ -1193,36 +1206,32 @@ void removeSwapChain(Renderer* pRenderer, SwapChain* pSwapChain)
 {
 	for (uint32_t i = 0; i < pSwapChain->mDesc.mImageCount; ++i)
 	{
-		::removeRenderTarget(pRenderer, pSwapChain->ppSwapchainRenderTargets[i]);
+		::removeRenderTarget(pRenderer, pSwapChain->ppRenderTargets[i]);
 		SAFE_RELEASE(pSwapChain->ppDxSwapChainResources[i]);
 	}
 
 	SAFE_RELEASE(pSwapChain->pDxSwapChain);
-	SAFE_FREE(pSwapChain->ppSwapchainRenderTargets);
+	SAFE_FREE(pSwapChain->ppRenderTargets);
 	SAFE_FREE(pSwapChain->ppDxSwapChainResources);
 	SAFE_FREE(pSwapChain);
 }
 /************************************************************************/
 // Command Pool Functions
 /************************************************************************/
-void addCmdPool(Renderer* pRenderer, Queue* pQueue, bool transient, CmdPool** ppCmdPool)
+void addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppCmdPool)
 {
 	// NOTE: We will still use cmd pools to be able to generate
 	// a dependency graph to serialize parallel GPU workload.
 
-	UNREF_PARAM(transient);
 	//ASSERT that renderer is valid
 	ASSERT(pRenderer);
+	ASSERT(pDesc);
 
 	//create one new CmdPool and add to renderer
 	CmdPool* pCmdPool = (CmdPool*)conf_calloc(1, sizeof(*pCmdPool));
 	ASSERT(pCmdPool);
 
-	CmdPoolDesc defaultDesc = {};
-	defaultDesc.mCmdPoolType = pQueue->mQueueDesc.mType;
-
-	pCmdPool->pQueue = pQueue;
-	pCmdPool->mCmdPoolDesc.mCmdPoolType = defaultDesc.mCmdPoolType;
+	pCmdPool->pQueue = pDesc->pQueue;
 
 	*ppCmdPool = pCmdPool;
 }
@@ -1235,37 +1244,28 @@ void removeCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
 	SAFE_FREE(pCmdPool);
 }
 
-void addCmd(CmdPool* pCmdPool, bool secondary, Cmd** ppCmd)
+void addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
 {
-	UNREF_PARAM(secondary);
 	//verify that given pool is valid
-	ASSERT(pCmdPool);
+	ASSERT(pRenderer);
 
 	//allocate new command
 	Cmd* pCmd = (Cmd*)conf_calloc(1, sizeof(*pCmd));
 	ASSERT(pCmd);
 
 	//set command pool of new command
-	pCmd->pRenderer = pCmdPool->pQueue->pRenderer;
-	pCmd->pCmdPool = pCmdPool;
-	pCmd->mNodeIndex = pCmdPool->pQueue->mQueueDesc.mNodeIndex;
-
-	//add command to pool
-	//ASSERT(pCmdPool->pDxCmdAlloc);
-	ASSERT(pCmdPool->pQueue->pRenderer);
-	ASSERT(pCmdPool->mCmdPoolDesc.mCmdPoolType < CmdPoolType::MAX_CMD_TYPE);
-
-	ASSERT(pCmd->pRenderer->pDxDevice);
-	ASSERT(pCmdPool->mCmdPoolDesc.mCmdPoolType < CmdPoolType::MAX_CMD_TYPE);
+	pCmd->pRenderer = pRenderer;
+	pCmd->mDesc = *pDesc;
+	pCmd->mNodeIndex = pDesc->pPool->pQueue->mDesc.mNodeIndex;
 
 	//set new command
 	*ppCmd = pCmd;
 }
 
-void removeCmd(CmdPool* pCmdPool, Cmd* pCmd)
+void removeCmd(Renderer* pRenderer, Cmd* pCmd)
 {
 	//verify that given command and pool are valid
-	ASSERT(pCmdPool);
+	ASSERT(pRenderer);
 	ASSERT(pCmd);
 
 	if (pCmd->pRootConstantBuffer)
@@ -1280,7 +1280,7 @@ void removeCmd(CmdPool* pCmdPool, Cmd* pCmd)
 	SAFE_FREE(pCmd);
 }
 
-void addCmd_n(CmdPool* pCmdPool, bool secondary, uint32_t cmdCount, Cmd*** pppCmd)
+void addCmd_n(Renderer* pRenderer, const CmdDesc* pDesc, uint32_t cmdCount, Cmd*** pppCmd)
 {
 	//verify that ***cmd is valid
 	ASSERT(pppCmd);
@@ -1292,13 +1292,13 @@ void addCmd_n(CmdPool* pCmdPool, bool secondary, uint32_t cmdCount, Cmd*** pppCm
 	//add n new cmds to given pool
 	for (uint32_t i = 0; i < cmdCount; ++i)
 	{
-		::addCmd(pCmdPool, secondary, &(ppCmd[i]));
+		::addCmd(pRenderer, pDesc, &(ppCmd[i]));
 	}
 	//return new list of cmds
 	*pppCmd = ppCmd;
 }
 
-void removeCmd_n(CmdPool* pCmdPool, uint32_t cmdCount, Cmd** ppCmd)
+void removeCmd_n(Renderer* pRenderer, uint32_t cmdCount, Cmd** ppCmd)
 {
 	//verify that given command list is valid
 	ASSERT(ppCmd);
@@ -1306,7 +1306,7 @@ void removeCmd_n(CmdPool* pCmdPool, uint32_t cmdCount, Cmd** ppCmd)
 	//remove every given cmd in array
 	for (uint32_t i = 0; i < cmdCount; ++i)
 	{
-		::removeCmd(pCmdPool, ppCmd[i]);
+		::removeCmd(pRenderer, ppCmd[i]);
 	}
 
 	SAFE_FREE(ppCmd);
@@ -1531,7 +1531,13 @@ void compileShader(
 	UINT compile_flags = D3DCOMPILE_OPTIMIZATION_LEVEL3;
 #endif
 
+#if WINVER > _WIN32_WINNT_WINBLUE
 	compile_flags |= (D3DCOMPILE_DEBUG | D3DCOMPILE_ALL_RESOURCES_BOUND | D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES);
+
+#else
+	compile_flags |= (D3DCOMPILE_DEBUG);
+#endif
+
 
 	int major;
 	int minor;
@@ -1777,6 +1783,12 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 	ASSERT(pDesc);
 	ASSERT(pDesc->mSize > 0);
 
+	// Vertex buffer cannot have SRV or UAV in D3D11
+	if (pDesc->mDescriptors & DESCRIPTOR_TYPE_BUFFER && pDesc->mDescriptors & DESCRIPTOR_TYPE_VERTEX_BUFFER)
+		((BufferDesc*)pDesc)->mDescriptors = pDesc->mDescriptors & (DescriptorType)~DESCRIPTOR_TYPE_BUFFER;
+	if (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_BUFFER && pDesc->mDescriptors & DESCRIPTOR_TYPE_VERTEX_BUFFER)
+		((BufferDesc*)pDesc)->mDescriptors = pDesc->mDescriptors & (DescriptorType)~DESCRIPTOR_TYPE_RW_BUFFER;
+
 	//allocate new buffer
 	Buffer* pBuffer = (Buffer*)conf_calloc(1, sizeof(*pBuffer));
 	ASSERT(pBuffer);
@@ -1994,21 +2006,18 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		{
 		case D3D11_RESOURCE_DIMENSION_TEXTURE1D:
 		{
-			ID3D11Texture3D*     pTex2D;
-			D3D11_TEXTURE3D_DESC desc = {};
+			ID3D11Texture1D*     pTex1D;
+			D3D11_TEXTURE1D_DESC desc = {};
+			desc.ArraySize = pDesc->mArraySize;
 			desc.BindFlags = util_determine_dx_bind_flags(pDesc->mDescriptors, pDesc->mStartState);
 			desc.CPUAccessFlags = 0;
-			desc.Depth = pDesc->mDepth;
 			desc.Format = (DXGI_FORMAT)TinyImageFormat_DXGI_FORMATToTypeless((TinyImageFormat_DXGI_FORMAT)dxFormat);
-			desc.Height = pDesc->mHeight;
 			desc.MipLevels = pDesc->mMipLevels;
 			desc.MiscFlags = util_determine_dx_resource_misc_flags(pDesc->mDescriptors, pDesc->mFormat);
-			if (pDesc->mFlags & TEXTURE_CREATION_FLAG_EXPORT_BIT)
-				desc.MiscFlags |= D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
 			desc.Usage = util_to_dx_usage(RESOURCE_MEMORY_USAGE_GPU_ONLY);
 			desc.Width = pDesc->mWidth;
-			pRenderer->pDxDevice->CreateTexture3D(&desc, NULL, &pTex2D);
-			pTexture->pDxResource = pTex2D;
+			pRenderer->pDxDevice->CreateTexture1D(&desc, NULL, &pTex1D);
+			pTexture->pDxResource = pTex1D;
 			break;
 		}
 		case D3D11_RESOURCE_DIMENSION_TEXTURE2D:
@@ -2032,18 +2041,21 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		}
 		case D3D11_RESOURCE_DIMENSION_TEXTURE3D:
 		{
-			ID3D11Texture1D*     pTex1D;
-			D3D11_TEXTURE1D_DESC desc = {};
-			desc.ArraySize = pDesc->mArraySize;
+			ID3D11Texture3D*     pTex3D;
+			D3D11_TEXTURE3D_DESC desc = {};
 			desc.BindFlags = util_determine_dx_bind_flags(pDesc->mDescriptors, pDesc->mStartState);
 			desc.CPUAccessFlags = 0;
+			desc.Depth = pDesc->mDepth;
 			desc.Format = (DXGI_FORMAT)TinyImageFormat_DXGI_FORMATToTypeless((TinyImageFormat_DXGI_FORMAT)dxFormat);
+			desc.Height = pDesc->mHeight;
 			desc.MipLevels = pDesc->mMipLevels;
 			desc.MiscFlags = util_determine_dx_resource_misc_flags(pDesc->mDescriptors, pDesc->mFormat);
+			if (pDesc->mFlags & TEXTURE_CREATION_FLAG_EXPORT_BIT)
+				desc.MiscFlags |= D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX;
 			desc.Usage = util_to_dx_usage(RESOURCE_MEMORY_USAGE_GPU_ONLY);
 			desc.Width = pDesc->mWidth;
-			pRenderer->pDxDevice->CreateTexture1D(&desc, NULL, &pTex1D);
-			pTexture->pDxResource = pTex1D;
+			pRenderer->pDxDevice->CreateTexture3D(&desc, NULL, &pTex3D);
+			pTexture->pDxResource = pTex3D;
 			break;
 		}
 		default:
@@ -2589,7 +2601,7 @@ void addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipelin
 			input_elements[input_elementCount].SemanticIndex = semantic_index;
 			input_elements[input_elementCount].Format = (DXGI_FORMAT)TinyImageFormat_ToDXGI_FORMAT(attrib->mFormat);
 			input_elements[input_elementCount].InputSlot = attrib->mBinding;
-			input_elements[input_elementCount].AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
+			input_elements[input_elementCount].AlignedByteOffset = attrib->mOffset;
 			if (attrib->mRate == VERTEX_ATTRIB_RATE_INSTANCE)
 			{
 				input_elements[input_elementCount].InputSlotClass = D3D11_INPUT_PER_INSTANCE_DATA;
@@ -2825,7 +2837,7 @@ void addRasterizerState(Renderer* pRenderer, const RasterizerStateDesc* pDesc, R
 	desc.DepthBias = pDesc->mDepthBias;
 	desc.DepthBiasClamp = 0.0f;
 	desc.SlopeScaledDepthBias = pDesc->mSlopeScaledDepthBias;
-	desc.DepthClipEnable = TRUE;
+	desc.DepthClipEnable = !pDesc->mDepthClampEnable;
 	desc.MultisampleEnable = pDesc->mMultiSample ? TRUE : FALSE;
 	desc.AntialiasedLineEnable = FALSE;
 
@@ -3548,7 +3560,10 @@ void cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t
 /************************************************************************/
 // Transition Commands
 /************************************************************************/
-void cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarrier* pBufferBarriers, uint32_t numTextureBarriers, TextureBarrier* pTextureBarriers)
+void cmdResourceBarrier(Cmd* pCmd,
+	uint32_t numBufferBarriers, BufferBarrier* pBufferBarriers,
+	uint32_t numTextureBarriers, TextureBarrier* pTextureBarriers,
+	uint32_t numRtBarriers, RenderTargetBarrier* pRtBarriers)
 {
 }
 /************************************************************************/
@@ -3649,9 +3664,11 @@ void set_samplers(ID3D11DeviceContext* pContext, ShaderStage used_stages, uint32
 }
 
 void queueSubmit(
-	Queue* pQueue, uint32_t cmdCount, Cmd** ppCmds, Fence* pFence, uint32_t waitSemaphoreCount, Semaphore** ppWaitSemaphores,
-	uint32_t signalSemaphoreCount, Semaphore** ppSignalSemaphores)
+	Queue* pQueue, const QueueSubmitDesc* pDesc)
 {
+	uint32_t cmdCount = pDesc->mCmdCount;
+	Cmd** ppCmds = pDesc->ppCmds;
+
 	ID3D11DeviceContext* pContext = pQueue->pRenderer->pDxContext;
 	ID3D11Device*        pDevice = pQueue->pRenderer->pDxDevice;
 	for (uint32_t i = 0; i < cmdCount; ++i)
@@ -3941,10 +3958,12 @@ void queueSubmit(
 	}
 }
 
-void queuePresent(
-	Queue* pQueue, SwapChain* pSwapChain, uint32_t swapChainImageIndex, uint32_t waitSemaphoreCount, Semaphore** ppWaitSemaphores)
+void queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 {
-	pSwapChain->pDxSwapChain->Present(pSwapChain->mDxSyncInterval, 0);
+	if (pDesc->pSwapChain)
+	{
+		pDesc->pSwapChain->pDxSwapChain->Present(pDesc->pSwapChain->mDxSyncInterval, 0);
+	}
 }
 
 void getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatus) { *pFenceStatus = FENCE_STATUS_COMPLETE; }

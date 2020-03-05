@@ -55,7 +55,7 @@ layout(location = 1) in vec2 fragInput_TEXCOORD;
 layout(location = 0) out vec4 rast_FragData0; 
 
 layout(UPDATE_FREQ_NONE, binding = 14) uniform texture2D ShadowTexture;
-layout(UPDATE_FREQ_NONE, binding = 16) uniform sampler clampMiplessLinearSampler;
+layout(UPDATE_FREQ_NONE, binding = 7) uniform sampler clampMiplessLinearSampler;
 
 layout(std140, UPDATE_FREQ_PER_FRAME, binding = 2) uniform ShadowUniformBuffer
 {

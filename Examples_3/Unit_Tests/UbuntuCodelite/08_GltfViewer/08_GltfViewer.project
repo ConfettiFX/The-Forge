@@ -16,9 +16,9 @@
         <IncludePath Value="."/>
       </Compiler>
       <Linker Options="">
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/Libraries/Linux"/>
-        <Library Value="libzip.a"/>
-        <Library Value="libz"/>
+
+        
+
       </Linker>
       <ResourceCompiler Options=""/>
     </GlobalSettings>
@@ -26,7 +26,7 @@
       <Compiler Options="-g;-O0;-std=c++14;-Wall;-Wno-unknown-pragmas;-msse4.1" C_Options="-g;-O0;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
-        <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include"/>
+
         <IncludePath Value="$(ProjectPath)/../../../.."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
@@ -38,26 +38,22 @@
         <LibraryPath Value="$(ProjectPath)/../OSBase/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
+
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/Tools/AssetPipeline/Linux/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../ozz_base/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../ozz_animation/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../ozz_animation_offline/Debug/"/>
-        <LibraryPath Value="$(ProjectPath)/../MeshOptimizer/Debug/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
-        <Library Value="libassimp.a"/>
+
         <Library Value="libgainput.a"/>
         <Library Value="libEASTL.a"/>
-        <Library Value="libAssetPipeline.a"/>
         <Library Value="libozz_animation.a"/>
         <Library Value="libozz_base.a"/>
         <Library Value="libozz_animation_offline.a"/>
-        <Library Value="libMeshOptimizer.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
@@ -99,7 +95,7 @@
       <Compiler Options="-O2;-std=c++14;-Wall;-Wno-unknown-pragmas;-msse4.1; " C_Options="-O2;-Wall" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <IncludePath Value="$(ProjectPath)/../.."/>
-        <IncludePath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include"/>
+
         <IncludePath Value="$(ProjectPath)/../../../.."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>
@@ -110,26 +106,22 @@
         <LibraryPath Value="$(ProjectPath)/../OSBase/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/linux/Bin"/>
+
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
-        <LibraryPath Value="$(ProjectPath)/../../../../Common_3/Tools/AssetPipeline/Linux/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../ozz_base/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../ozz_animation/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../ozz_animation_offline/Release/"/>
-        <LibraryPath Value="$(ProjectPath)/../MeshOptimizer/Release/"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
         <Library Value="libX11.a"/>
         <Library Value="libSpirVTools.a"/>
         <Library Value="libvulkan.so"/>
-        <Library Value="libassimp.a"/>
+
         <Library Value="libgainput.a"/>
         <Library Value="libEASTL.a"/>
-        <Library Value="libAssetPipeline.a"/>
         <Library Value="libozz_animation.a"/>
         <Library Value="libozz_base.a"/>
         <Library Value="libozz_animation_offline.a"/>
-        <Library Value="libMeshOptimizer.a"/>
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Release" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
@@ -170,16 +162,14 @@
     <Project Name="SpirVTools"/>
     <Project Name="Renderer"/>
     <Project Name="OS"/>
-    <Project Name="AssimpImporter"/>
+
     <Project Name="gainput"/>
-    <Project Name="assimp"/>
+
     <Project Name="ozz_base"/>
     <Project Name="ozz_animation"/>
     <Project Name="ozz_animation_offline"/>
-    <Project Name="MeshOptimizer"/>
     <Project Name="LuaManager"/>
     <Project Name="EASTL"/>
-    <Project Name="AssetPipeline"/>
     <Project Name="AssetPipelineCmd"/>
   </Dependencies>
   <Dependencies Name="Release">
@@ -188,14 +178,12 @@
     <Project Name="SpirVTools"/>
     <Project Name="Renderer"/>
     <Project Name="OS"/>
-    <Project Name="AssimpImporter"/>
+
     <Project Name="gainput"/>
-    <Project Name="assimp"/>
+
     <Project Name="LuaManager"/>
     <Project Name="EASTL"/>
     <Project Name="ozz_animation_offline"/>
-    <Project Name="MeshOptimizer"/>
-    <Project Name="AssetPipeline"/>
     <Project Name="AssetPipelineCmd"/>
   </Dependencies>
 </CodeLite_Project>

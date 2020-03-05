@@ -1,6 +1,10 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
 #include "meshoptimizer.h"
 
+#include <assert.h>
+#include <math.h>
+#include <string.h>
+
 // This work is based on:
 // Pedro Sander, Diego Nehab and Joshua Barczak. Fast Triangle Reordering for Vertex Locality and Reduced Overdraw. 2007
 namespace meshopt
@@ -29,7 +33,7 @@ static void calculateSortData(float* sort_data, const unsigned int* indices, siz
 	{
 		size_t cluster_begin = clusters[cluster] * 3;
 		size_t cluster_end = (cluster + 1 < cluster_count) ? clusters[cluster + 1] * 3 : index_count;
-		ASSERT(cluster_begin < cluster_end);
+		assert(cluster_begin < cluster_end);
 
 		float cluster_area = 0;
 		float cluster_centroid[3] = {};
@@ -119,7 +123,7 @@ static void calculateSortOrderRadix(unsigned int* sort_order, const float* sort_
 		histogram_sum += count;
 	}
 
-	ASSERT(histogram_sum == cluster_count);
+	assert(histogram_sum == cluster_count);
 
 	// compute sort order based on offsets
 	for (size_t i = 0; i < cluster_count; ++i)
@@ -178,7 +182,7 @@ static size_t generateHardBoundaries(unsigned int* destination, const unsigned i
 		}
 	}
 
-	ASSERT(result <= index_count / 3);
+	assert(result <= index_count / 3);
 
 	return result;
 }
@@ -195,7 +199,7 @@ static size_t generateSoftBoundaries(unsigned int* destination, const unsigned i
 	{
 		size_t start = clusters[it];
 		size_t end = (it + 1 < cluster_count) ? clusters[it + 1] : index_count / 3;
-		ASSERT(start < end);
+		assert(start < end);
 
 		// reset cache
 		timestamp += cache_size + 1;
@@ -255,8 +259,8 @@ static size_t generateSoftBoundaries(unsigned int* destination, const unsigned i
 		}
 	}
 
-	ASSERT(result >= cluster_count);
-	ASSERT(result <= index_count / 3);
+	assert(result >= cluster_count);
+	assert(result <= index_count / 3);
 
 	return result;
 }
@@ -267,9 +271,9 @@ void meshopt_optimizeOverdraw(unsigned int* destination, const unsigned int* ind
 {
 	using namespace meshopt;
 
-	ASSERT(index_count % 3 == 0);
-	ASSERT(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
-	ASSERT(vertex_positions_stride % sizeof(float) == 0);
+	assert(index_count % 3 == 0);
+	assert(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
+	assert(vertex_positions_stride % sizeof(float) == 0);
 
 	meshopt_Allocator allocator;
 
@@ -280,33 +284,33 @@ void meshopt_optimizeOverdraw(unsigned int* destination, const unsigned int* ind
 	// support in-place optimization
 	if (destination == indices)
 	{
-		unsigned int* indices_copy = (unsigned int*)allocator.allocate(sizeof(unsigned int) * index_count);
+		unsigned int* indices_copy = allocator.allocate<unsigned int>(index_count);
 		memcpy(indices_copy, indices, index_count * sizeof(unsigned int));
 		indices = indices_copy;
 	}
 
 	unsigned int cache_size = 16;
 
-	unsigned int* cache_timestamps = (unsigned int*)allocator.allocate(sizeof(unsigned int) * vertex_count);
+	unsigned int* cache_timestamps = allocator.allocate<unsigned int>(vertex_count);
 
 	// generate hard boundaries from full-triangle cache misses
-	unsigned int* hard_clusters = (unsigned int*)allocator.allocate(sizeof(unsigned int) * index_count / 3);
+	unsigned int* hard_clusters = allocator.allocate<unsigned int>(index_count / 3);
 	size_t hard_cluster_count = generateHardBoundaries(hard_clusters, indices, index_count, vertex_count, cache_size, cache_timestamps);
 
 	// generate soft boundaries
-	unsigned int* soft_clusters = (unsigned int*)allocator.allocate(sizeof(unsigned int) * (index_count / 3 + 1));
+	unsigned int* soft_clusters = allocator.allocate<unsigned int>(index_count / 3 + 1);
 	size_t soft_cluster_count = generateSoftBoundaries(soft_clusters, indices, index_count, vertex_count, hard_clusters, hard_cluster_count, cache_size, threshold, cache_timestamps);
 
 	const unsigned int* clusters = soft_clusters;
 	size_t cluster_count = soft_cluster_count;
 
 	// fill sort data
-	float* sort_data = (float*)allocator.allocate(sizeof(float) * cluster_count);
+	float* sort_data = allocator.allocate<float>(cluster_count);
 	calculateSortData(sort_data, indices, index_count, vertex_positions, vertex_positions_stride, clusters, cluster_count);
 
 	// sort clusters using sort data
-	unsigned short* sort_keys = (unsigned short*)allocator.allocate(sizeof(unsigned short) * cluster_count);
-	unsigned int* sort_order = (unsigned int*)allocator.allocate(sizeof(unsigned int) * cluster_count);
+	unsigned short* sort_keys = allocator.allocate<unsigned short>(cluster_count);
+	unsigned int* sort_order = allocator.allocate<unsigned int>(cluster_count);
 	calculateSortOrderRadix(sort_order, sort_data, sort_keys, cluster_count);
 
 	// fill output buffer
@@ -315,15 +319,15 @@ void meshopt_optimizeOverdraw(unsigned int* destination, const unsigned int* ind
 	for (size_t it = 0; it < cluster_count; ++it)
 	{
 		unsigned int cluster = sort_order[it];
-		ASSERT(cluster < cluster_count);
+		assert(cluster < cluster_count);
 
 		size_t cluster_begin = clusters[cluster] * 3;
 		size_t cluster_end = (cluster + 1 < cluster_count) ? clusters[cluster + 1] * 3 : index_count;
-		ASSERT(cluster_begin < cluster_end);
+		assert(cluster_begin < cluster_end);
 
 		memcpy(destination + offset, indices + cluster_begin, (cluster_end - cluster_begin) * sizeof(unsigned int));
 		offset += cluster_end - cluster_begin;
 	}
 
-	ASSERT(offset == index_count);
+	assert(offset == index_count);
 }

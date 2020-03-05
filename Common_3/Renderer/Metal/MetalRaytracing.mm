@@ -44,12 +44,12 @@
 #include "../../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_apis.h"
 #import "../IRenderer.h"
 #import "../IRay.h"
-#import "../ResourceLoader.h"
+#import "../IResourceLoader.h"
 #include "../../../Middleware_3/ParallelPrimitives/ParallelPrimitives.h"
 #include "../../OS/Interfaces/ILog.h"
 #include "../../OS/Interfaces/IMemory.h"
 
-extern void util_barrier_required(Cmd* pCmd, const CmdPoolType& encoderType);
+extern void util_barrier_required(Cmd* pCmd, const QueueType& encoderType);
 
 static const char* pClassificationShader = R"(
 #include <metal_stdlib>
@@ -1004,29 +1004,29 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 	loadDesc.mDesc.mSize = 4 * sizeof(uint32_t);
 	for (uint32_t i = 0; i < 2; i += 1) {
 		loadDesc.ppBuffer = &pPipeline->pRayCountBuffer[i];
-		addResource(&loadDesc);
+		addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
 	}
 	
 	loadDesc.mDesc.mSize = pPipeline->mMaxRaysCount * sizeof(uint32_t);
 	loadDesc.ppBuffer = &pPipeline->pPathHitGroupsBuffer;
-	addResource(&loadDesc);
+	addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
 	
 	loadDesc.ppBuffer = &pPipeline->pSortedPathHitGroupsBuffer;
-	addResource(&loadDesc);
+	addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
 	
 	loadDesc.ppBuffer = &pPipeline->pPathIndicesBuffer;
-	addResource(&loadDesc);
+	addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
 	
 	loadDesc.ppBuffer = &pPipeline->pSortedPathIndicesBuffer;
-	addResource(&loadDesc);
+	addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
 	
 	loadDesc.mDesc.mSize = pPipeline->mMetalPipelines.count * sizeof(uint32_t);
 	loadDesc.ppBuffer = &pPipeline->pHitGroupsOffsetBuffer;
-	addResource(&loadDesc);
+	addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
 	
 	loadDesc.mDesc.mSize = pPipeline->mMetalPipelines.count * 8 * sizeof(uint32_t);
 	loadDesc.ppBuffer = &pPipeline->pHitGroupIndirectArgumentsBuffer;
-	addResource(&loadDesc);
+	addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
 	
 	NSInteger pathCallStackHeadersLength = (sizeof(int16_t) + 2 * sizeof(uint8_t)) * pPipeline->mMaxRaysCount;
 	NSInteger pathCallStackFunctionsLength = pPipeline->mMaxTraceRecursionDepth * pPipeline->mMaxRaysCount * sizeof(int16_t);
@@ -1247,7 +1247,7 @@ void invokeShaders(Cmd* pCmd, Raytracing* pRaytracing,
 	
 	for (uint32_t i = 0; i <= pPipeline->mMaxTraceRecursionDepth; i += 1)
 	{
-		[pCmd->mtlComputeEncoder updateFence:pCmd->pCmdPool->pQueue->mtlQueueFence];
+		[pCmd->mtlComputeEncoder updateFence:pCmd->mDesc.pPool->pQueue->mtlQueueFence];
 		[pCmd->mtlComputeEncoder endEncoding];
 		pCmd->mtlComputeEncoder = nil;
 		
@@ -1268,7 +1268,7 @@ void invokeShaders(Cmd* pCmd, Raytracing* pRaytracing,
 
 		id <MTLComputeCommandEncoder> computeEncoder = [pCmd->mtlCommandBuffer computeCommandEncoderWithDispatchType:MTLDispatchTypeConcurrent];
 		pCmd->mtlComputeEncoder = computeEncoder;
-		[computeEncoder waitForFence:pCmd->pCmdPool->pQueue->mtlQueueFence];
+		[computeEncoder waitForFence:pCmd->mDesc.pPool->pQueue->mtlQueueFence];
 		
 		{
 			// Declare all the resources we'll use.
@@ -1383,7 +1383,7 @@ void invokeShaders(Cmd* pCmd, Raytracing* pRaytracing,
 
 void cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatchDesc* pDesc)
 {
-	util_barrier_required(pCmd, CMD_POOL_DIRECT);
+	util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS);
 	
 	NSUInteger width = (NSUInteger)pDesc->mWidth;
 	NSUInteger height = (NSUInteger)pDesc->mHeight;

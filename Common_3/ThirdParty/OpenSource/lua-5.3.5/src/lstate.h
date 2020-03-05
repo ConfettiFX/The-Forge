@@ -56,7 +56,11 @@ struct lua_longjmp;  /* defined in ldo.c */
 ** is thread safe
 */
 #if !defined(l_signalT)
+#if defined(ORBIS)
+#include <machine/signal.h>
+#else
 #include <signal.h>
+#endif
 #define l_signalT	sig_atomic_t
 #endif
 

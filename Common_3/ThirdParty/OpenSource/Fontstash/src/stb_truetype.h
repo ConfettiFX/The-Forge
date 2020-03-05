@@ -462,6 +462,10 @@ int main(int arg, char **argv)
    #endif
 #endif
 
+#if defined(__GNUC__) || defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-function"
+#endif
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ////
@@ -4453,6 +4457,7 @@ STBTT_DEF UNUSED_WARNING_FIX int stbtt_CompareUTF8toUTF16_bigendian(const char *
 
 #if defined(__GNUC__) || defined(__clang__)
 #pragma GCC diagnostic pop
+#pragma clang diagnostic pop
 #endif
 
 #endif // STB_TRUETYPE_IMPLEMENTATION

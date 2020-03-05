@@ -58,7 +58,7 @@
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\Profiler.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerBase.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\MicroProfile\ProfilerWidgetsUI.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\TinyEXR\tinyexr.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\zip\zip.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\AnimatedObject.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Animation.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Clip.cpp" />
@@ -235,8 +235,8 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>ZIP_STATIC;USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\contrib\zlib;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\libzip-1.1.2\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;VULKAN;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -250,7 +250,8 @@
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Lib>
-      <AdditionalDependencies>libzip-static.lib;libz-static.lib</AdditionalDependencies>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Win64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Lib>
@@ -265,8 +266,8 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>ZIP_STATIC;USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;DIRECT3D12;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\contrib\zlib;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\libzip-1.1.2\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;DIRECT3D12;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -280,7 +281,8 @@
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Lib>
-      <AdditionalDependencies>libzip-static.lib;libz-static.lib</AdditionalDependencies>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Win64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Lib>
@@ -295,8 +297,8 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>ZIP_STATIC;USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;DIRECT3D11;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\contrib\zlib;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\libzip-1.1.2\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>USE_MEMORY_TRACKING;_DEBUG;_WINDOWS;DIRECT3D11;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>
       </MultiProcessorCompilation>
@@ -311,7 +313,8 @@
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Lib>
-      <AdditionalDependencies>libzip-static.lib;libz-static.lib</AdditionalDependencies>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Win64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Lib>
@@ -328,8 +331,8 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>ZIP_STATIC;NDEBUG;_WINDOWS;VULKAN;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\contrib\zlib;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\libzip-1.1.2\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;VULKAN;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -345,7 +348,8 @@
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Lib>
-      <AdditionalDependencies>libzip-static.lib;libz-static.lib</AdditionalDependencies>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Win64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Lib>
@@ -362,8 +366,8 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>ZIP_STATIC;NDEBUG;_WINDOWS;DIRECT3D12;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\contrib\zlib;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\libzip-1.1.2\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;DIRECT3D12;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -379,7 +383,8 @@
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Lib>
-      <AdditionalDependencies>libzip-static.lib;libz-static.lib</AdditionalDependencies>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Win64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Lib>
@@ -396,8 +401,8 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>ZIP_STATIC;NDEBUG;_WINDOWS;DIRECT3D11;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\contrib\zlib;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\assimp\4.1.0\win64;$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\libzip-1.1.2\lib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;_WINDOWS;DIRECT3D11;_CRT_SECURE_NO_WARNINGS;_CRT_NONSTDC_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <TreatWarningAsError>true</TreatWarningAsError>
       <MultiProcessorCompilation>
       </MultiProcessorCompilation>
@@ -414,7 +419,8 @@
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <Lib>
-      <AdditionalDependencies>libzip-static.lib;libz-static.lib</AdditionalDependencies>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
       <AdditionalLibraryDirectories>$(ProjectDir)..\..\..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Win64\Release;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Lib>

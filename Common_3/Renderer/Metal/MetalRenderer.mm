@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -297,6 +297,9 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer)
 void removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
 void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
 void removeTexture(Renderer* pRenderer, Texture* pTexture);
+
+void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
+void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 /************************************************************************/
 // Globals
 /************************************************************************/
@@ -439,8 +442,8 @@ enum BarrierFlag
 // Internal functions
 /************************************************************************/
 void util_end_current_encoders(Cmd* pCmd, bool forceBarrier);
-void util_barrier_update(Cmd* pCmd, const CmdPoolType& encoderType);
-void util_barrier_required(Cmd* pCmd, const CmdPoolType& encoderType);
+void util_barrier_update(Cmd* pCmd, const QueueType& encoderType);
+void util_barrier_required(Cmd* pCmd, const QueueType& encoderType);
 void util_bind_push_constant(Cmd* pCmd, const DescriptorInfo* pDesc, const void* pConstants);
 
 id<MTLBuffer> util_get_buffer_from_descriptorset(DescriptorSet* pDescriptorSet, uint32_t index);
@@ -1296,9 +1299,9 @@ void create_default_resources(Renderer* pRenderer)
 	addBlendState(pRenderer, &blendStateDesc, &pDefaultBlendState);
 
 	DepthStateDesc depthStateDesc = {};
-	depthStateDesc.mDepthFunc = CMP_LEQUAL;
+	depthStateDesc.mDepthFunc = CMP_ALWAYS;
 	depthStateDesc.mDepthTest = false;
-	depthStateDesc.mDepthWrite = true;
+	depthStateDesc.mDepthWrite = false;
 	depthStateDesc.mStencilBackFunc = CMP_ALWAYS;
 	depthStateDesc.mStencilFrontFunc = CMP_ALWAYS;
 	depthStateDesc.mStencilReadMask = 0xFF;
@@ -1765,7 +1768,7 @@ void addQueue(Renderer* pRenderer, QueueDesc* pQDesc, Queue** ppQueue)
 
 	*ppQueue = pQueue;
 }
-void removeQueue(Queue* pQueue)
+void removeQueue(Renderer* pRenderer, Queue* pQueue)
 {
 	ASSERT(pQueue);
 	pQueue->mtlCommandQueue = nil;
@@ -1773,7 +1776,7 @@ void removeQueue(Queue* pQueue)
 	SAFE_FREE(pQueue);
 }
 
-void addCmdPool(Renderer* pRenderer, Queue* pQueue, bool transient, CmdPool** ppCmdPool)
+void addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppCmdPool)
 {
 	ASSERT(pRenderer);
 	ASSERT(pRenderer->pDevice != nil);
@@ -1781,8 +1784,7 @@ void addCmdPool(Renderer* pRenderer, Queue* pQueue, bool transient, CmdPool** pp
 	CmdPool* pCmdPool = (CmdPool*)conf_calloc(1, sizeof(*pCmdPool));
 	ASSERT(pCmdPool);
 
-	pCmdPool->mCmdPoolDesc = { pQueue->mQueueDesc.mType };
-	pCmdPool->pQueue = pQueue;
+	pCmdPool->pQueue = pDesc->pQueue;
 
 	*ppCmdPool = pCmdPool;
 }
@@ -1792,20 +1794,20 @@ void removeCmdPool(Renderer* pRenderer, CmdPool* pCmdPool)
 	SAFE_FREE(pCmdPool);
 }
 
-void addCmd(CmdPool* pCmdPool, bool secondary, Cmd** ppCmd)
+void addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
 {
-	ASSERT(pCmdPool);
-	ASSERT(pCmdPool->pQueue->pRenderer->pDevice != nil);
+	ASSERT(pRenderer);
+	ASSERT(pRenderer->pDevice != nil);
 
 	Cmd* pCmd = (Cmd*)conf_calloc(1, sizeof(*pCmd));
 	ASSERT(pCmd);
 
-	pCmd->pRenderer = pCmdPool->pQueue->pRenderer;
-	pCmd->pCmdPool = pCmdPool;
+	pCmd->pRenderer = pRenderer;
+	pCmd->mDesc = *pDesc;
 
 	*ppCmd = pCmd;
 }
-void removeCmd(CmdPool* pCmdPool, Cmd* pCmd)
+void removeCmd(Renderer* pRenderer, Cmd* pCmd)
 {
 	ASSERT(pCmd);
 	pCmd->mtlCommandBuffer = nil;
@@ -1814,7 +1816,7 @@ void removeCmd(CmdPool* pCmdPool, Cmd* pCmd)
 	SAFE_FREE(pCmd);
 }
 
-void addCmd_n(CmdPool* pCmdPool, bool secondary, uint32_t cmdCount, Cmd*** pppCmd)
+void addCmd_n(Renderer* pRenderer, const CmdDesc* pDesc, uint32_t cmdCount, Cmd*** pppCmd)
 {
 	ASSERT(pppCmd);
 
@@ -1823,18 +1825,18 @@ void addCmd_n(CmdPool* pCmdPool, bool secondary, uint32_t cmdCount, Cmd*** pppCm
 
 	for (uint32_t i = 0; i < cmdCount; ++i)
 	{
-		addCmd(pCmdPool, secondary, &(ppCmd[i]));
+		addCmd(pRenderer, pDesc, &(ppCmd[i]));
 	}
 
 	*pppCmd = ppCmd;
 }
-void removeCmd_n(CmdPool* pCmdPool, uint32_t cmdCount, Cmd** ppCmd)
+void removeCmd_n(Renderer* pRenderer, uint32_t cmdCount, Cmd** ppCmd)
 {
 	ASSERT(ppCmd);
 
 	for (uint32_t i = 0; i < cmdCount; ++i)
 	{
-		removeCmd(pCmdPool, ppCmd[i]);
+		removeCmd(pRenderer, ppCmd[i]);
 	}
 
 	SAFE_FREE(ppCmd);
@@ -1913,12 +1915,12 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	descColor.mSampleCount = SAMPLE_COUNT_1;
 	descColor.mSampleQuality = 0;
 
-	pSwapChain->ppSwapchainRenderTargets =
-		(RenderTarget**)conf_calloc(pSwapChain->mDesc.mImageCount, sizeof(*pSwapChain->ppSwapchainRenderTargets));
+	pSwapChain->ppRenderTargets =
+		(RenderTarget**)conf_calloc(pSwapChain->mDesc.mImageCount, sizeof(*pSwapChain->ppRenderTargets));
 	for (uint32_t i = 0; i < pSwapChain->mDesc.mImageCount; ++i)
 	{
-		addRenderTarget(pRenderer, &descColor, &pSwapChain->ppSwapchainRenderTargets[i]);
-		destroyTexture(pRenderer->pResourceAllocator, pSwapChain->ppSwapchainRenderTargets[i]->pTexture);
+		addRenderTarget(pRenderer, &descColor, &pSwapChain->ppRenderTargets[i]);
+		destroyTexture(pRenderer->pResourceAllocator, pSwapChain->ppRenderTargets[i]->pTexture);
 	}
 
 	*ppSwapChain = pSwapChain;
@@ -1932,9 +1934,9 @@ void removeSwapChain(Renderer* pRenderer, SwapChain* pSwapChain)
 	pSwapChain->presentCommandBuffer = nil;
 
 	for (uint32_t i = 0; i < pSwapChain->mDesc.mImageCount; ++i)
-		removeRenderTarget(pRenderer, pSwapChain->ppSwapchainRenderTargets[i]);
+		removeRenderTarget(pRenderer, pSwapChain->ppRenderTargets[i]);
 
-	SAFE_FREE(pSwapChain->ppSwapchainRenderTargets);
+	SAFE_FREE(pSwapChain->ppRenderTargets);
 	SAFE_FREE(pSwapChain);
 }
 
@@ -1978,6 +1980,10 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 	bool             allocSuccess;
 	allocSuccess = createBuffer(pRenderer->pResourceAllocator, &alloc_info, &mem_reqs, pBuffer);
 	ASSERT(allocSuccess);
+	
+#ifdef TARGET_IOS
+	mapBuffer(pRenderer, pBuffer, NULL);
+#endif
 
 	pBuffer->mCurrentState = pBuffer->mDesc.mStartState;
 
@@ -2476,7 +2482,6 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 
     renderPipelineDesc.supportIndirectCommandBuffers = pDesc->mSupportIndirectCommandBuffer;
     
-	uint32_t inputBindingCount = 0;
 	// add vertex layout to descriptor
 	if (pPipeline->mGraphics.pVertexLayout != nil)
 	{
@@ -2489,22 +2494,21 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 			if (bindingValue != attrib->mBinding)
 			{
 				bindingValue = attrib->mBinding;
-				inputBindingCount++;
 			}
 
-			renderPipelineDesc.vertexDescriptor.attributes[i].offset = attrib->mOffset;
-			renderPipelineDesc.vertexDescriptor.attributes[i].bufferIndex = attrib->mBinding + VERTEX_BINDING_OFFSET;
-			renderPipelineDesc.vertexDescriptor.attributes[i].format = util_to_mtl_vertex_format(attrib->mFormat);
+			renderPipelineDesc.vertexDescriptor.attributes[attrib->mLocation].offset = attrib->mOffset;
+			renderPipelineDesc.vertexDescriptor.attributes[attrib->mLocation].bufferIndex = attrib->mBinding + VERTEX_BINDING_OFFSET;
+			renderPipelineDesc.vertexDescriptor.attributes[attrib->mLocation].format = util_to_mtl_vertex_format(attrib->mFormat);
 
 			//setup layout for all bindings instead of just 0.
-			renderPipelineDesc.vertexDescriptor.layouts[inputBindingCount + VERTEX_BINDING_OFFSET- 1].stride += TinyImageFormat_BitSizeOfBlock(attrib->mFormat) / 8;
-			renderPipelineDesc.vertexDescriptor.layouts[inputBindingCount + VERTEX_BINDING_OFFSET - 1].stepRate = 1;
+			renderPipelineDesc.vertexDescriptor.layouts[attrib->mBinding + VERTEX_BINDING_OFFSET].stride += TinyImageFormat_BitSizeOfBlock(attrib->mFormat) / 8;
+			renderPipelineDesc.vertexDescriptor.layouts[attrib->mBinding + VERTEX_BINDING_OFFSET].stepRate = 1;
 			if(pPipeline->pShader->mtlVertexShader.patchType != MTLPatchTypeNone)
-				renderPipelineDesc.vertexDescriptor.layouts[inputBindingCount +VERTEX_BINDING_OFFSET - 1].stepFunction = MTLVertexStepFunctionPerPatchControlPoint;
+				renderPipelineDesc.vertexDescriptor.layouts[attrib->mBinding +VERTEX_BINDING_OFFSET].stepFunction = MTLVertexStepFunctionPerPatchControlPoint;
 			else if(attrib->mRate == VERTEX_ATTRIB_RATE_INSTANCE)
-				renderPipelineDesc.vertexDescriptor.layouts[inputBindingCount + VERTEX_BINDING_OFFSET - 1].stepFunction = MTLVertexStepFunctionPerInstance;
+				renderPipelineDesc.vertexDescriptor.layouts[attrib->mBinding + VERTEX_BINDING_OFFSET].stepFunction = MTLVertexStepFunctionPerInstance;
 			else
-				renderPipelineDesc.vertexDescriptor.layouts[inputBindingCount + VERTEX_BINDING_OFFSET - 1].stepFunction = MTLVertexStepFunctionPerVertex;
+				renderPipelineDesc.vertexDescriptor.layouts[attrib->mBinding + VERTEX_BINDING_OFFSET].stepFunction = MTLVertexStepFunctionPerVertex;
 		}
 	}
 
@@ -2720,13 +2724,13 @@ void addDepthState(Renderer* pRenderer, const DepthStateDesc* pDesc, DepthState*
 	// Set comparison function to always if depth test is disabled
 	descriptor.depthCompareFunction = pDesc->mDepthTest ? gMtlComparisonFunctionTranslator[pDesc->mDepthFunc] : MTLCompareFunctionAlways;
 	descriptor.depthWriteEnabled = pDesc->mDepthWrite;
-	descriptor.backFaceStencil.stencilCompareFunction = gMtlComparisonFunctionTranslator[pDesc->mStencilBackFunc];
+	descriptor.backFaceStencil.stencilCompareFunction = pDesc->mStencilTest ? gMtlComparisonFunctionTranslator[pDesc->mStencilBackFunc] : MTLCompareFunctionAlways;
 	descriptor.backFaceStencil.depthFailureOperation = gMtlStencilOpTranslator[pDesc->mDepthBackFail];
 	descriptor.backFaceStencil.stencilFailureOperation = gMtlStencilOpTranslator[pDesc->mStencilBackFail];
 	descriptor.backFaceStencil.depthStencilPassOperation = gMtlStencilOpTranslator[pDesc->mStencilBackPass];
 	descriptor.backFaceStencil.readMask = pDesc->mStencilReadMask;
 	descriptor.backFaceStencil.writeMask = pDesc->mStencilWriteMask;
-	descriptor.frontFaceStencil.stencilCompareFunction = gMtlComparisonFunctionTranslator[pDesc->mStencilFrontFunc];
+	descriptor.frontFaceStencil.stencilCompareFunction = pDesc->mStencilTest ? gMtlComparisonFunctionTranslator[pDesc->mStencilFrontFunc] : MTLCompareFunctionAlways;
 	descriptor.frontFaceStencil.depthFailureOperation = gMtlStencilOpTranslator[pDesc->mDepthFrontFail];
 	descriptor.frontFaceStencil.stencilFailureOperation = gMtlStencilOpTranslator[pDesc->mStencilFrontFail];
 	descriptor.frontFaceStencil.depthStencilPassOperation = gMtlStencilOpTranslator[pDesc->mStencilFrontPass];
@@ -2820,12 +2824,12 @@ void removeIndirectCommandSignature(Renderer* pRenderer, CommandSignature* pComm
 // -------------------------------------------------------------------------------------------------
 void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange)
 {
-	ASSERT(pBuffer->mDesc.mMemoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY && "Trying to map non-cpu accessible resource");
+	ASSERT(pBuffer->mtlBuffer.storageMode != MTLStorageModePrivate && "Trying to map non-cpu accessible resource");
 	pBuffer->pCpuMappedAddress = pBuffer->mtlBuffer.contents;
 }
 void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer)
 {
-	ASSERT(pBuffer->mDesc.mMemoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY && "Trying to unmap non-cpu accessible resource");
+	ASSERT(pBuffer->mtlBuffer.storageMode != MTLStorageModePrivate && "Trying to unmap non-cpu accessible resource");
 	pBuffer->pCpuMappedAddress = nil;
 }
 
@@ -2846,7 +2850,7 @@ void beginCmd(Cmd* pCmd)
 		pCmd->selectedIndexBuffer = nil;
 		pCmd->pBoundRootSignature = nil;
 		pCmd->pLastFrameQuery = nil;
-		pCmd->mtlCommandBuffer = [pCmd->pCmdPool->pQueue->mtlCommandQueue commandBuffer];
+		pCmd->mtlCommandBuffer = [pCmd->mDesc.pPool->pQueue->mtlCommandQueue commandBuffer];
 	}
 }
 
@@ -2959,7 +2963,7 @@ void cmdBindRenderTargets(
 			{
 				pCmd->pRenderPassDesc.depthAttachment.clearDepth = pLoadActions->mClearDepth.depth;
 				if (isStencilEnabled)
-					pCmd->pRenderPassDesc.stencilAttachment.clearStencil = 0;
+					pCmd->pRenderPassDesc.stencilAttachment.clearStencil = pLoadActions->mClearDepth.stencil;
 			}
 		}
 		else
@@ -3122,7 +3126,7 @@ void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, ui
 void cmdDraw(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex)
 {
 	ASSERT(pCmd);
-	util_barrier_required(pCmd, CMD_POOL_DIRECT);
+	util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS);
 	
 	if (pCmd->pShader->mtlVertexShader.patchType == MTLPatchTypeNone)
 	{
@@ -3144,7 +3148,7 @@ void cmdDrawInstanced(Cmd* pCmd, uint32_t vertexCount, uint32_t firstVertex, uin
 {
 	ASSERT(pCmd);
 	
-	util_barrier_required(pCmd, CMD_POOL_DIRECT);
+	util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS);
 	
 	if (pCmd->pShader->mtlVertexShader.patchType == MTLPatchTypeNone)
 	{
@@ -3180,7 +3184,7 @@ void cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_
 {
 	ASSERT(pCmd);
 	
-	util_barrier_required(pCmd, CMD_POOL_DIRECT);
+	util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS);
 	
 	Buffer*      indexBuffer = pCmd->selectedIndexBuffer;
 	MTLIndexType indexType = (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32);
@@ -3233,7 +3237,7 @@ void cmdDrawIndexedInstanced(
 {
 	ASSERT(pCmd);
 
-	util_barrier_required(pCmd, CMD_POOL_DIRECT);
+	util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS);
 	
 	Buffer*      indexBuffer = pCmd->selectedIndexBuffer;
 	MTLIndexType indexType = (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32);
@@ -3272,7 +3276,7 @@ void cmdDispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t
 	ASSERT(pCmd);
 	ASSERT(pCmd->mtlComputeEncoder != nil);
 
-	util_barrier_required(pCmd, CMD_POOL_COMPUTE);
+	util_barrier_required(pCmd, QUEUE_TYPE_COMPUTE);
 	
 	Shader* shader = pCmd->pShader;
 
@@ -3358,7 +3362,7 @@ void cmdExecuteIndirect(
         ];
     }
     
-    util_barrier_required(pCmd, CMD_POOL_DIRECT);
+    util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS);
     [pCmd->mtlRenderEncoder executeCommandsInBuffer:_indirectCommandBuffer withRange:NSMakeRange(0, maxCommandCount)];
     */
     
@@ -3370,7 +3374,7 @@ void cmdExecuteIndirect(
 	{
 		if (maxCommandCount)
 		{
-			util_barrier_required(pCmd, CMD_POOL_DIRECT);
+			util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS);
 			[pCmd->mtlRenderEncoder executeCommandsInBuffer:pIndirectBuffer->mtlIndirectCommandBuffer withRange:NSMakeRange(0, maxCommandCount)];
 		}
 	}
@@ -3380,7 +3384,7 @@ void cmdExecuteIndirect(
 		{
 			if (pCommandSignature->mDrawType == INDIRECT_DRAW)
 			{
-				util_barrier_required(pCmd, CMD_POOL_DIRECT);
+				util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS);
 				
 				uint64_t indirectBufferOffset = bufferOffset + sizeof(IndirectDrawArguments) * i;
 				if (pCmd->pShader->mtlVertexShader.patchType == MTLPatchTypeNone)
@@ -3420,7 +3424,7 @@ void cmdExecuteIndirect(
 			}
 			else if (pCommandSignature->mDrawType == INDIRECT_DRAW_INDEX)
 			{
-				util_barrier_required(pCmd, CMD_POOL_DIRECT);
+				util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS);
 				
 				Buffer*      indexBuffer = pCmd->selectedIndexBuffer;
 				MTLIndexType indexType = (indexBuffer->mDesc.mIndexType == INDEX_TYPE_UINT16 ? MTLIndexTypeUInt16 : MTLIndexTypeUInt32);
@@ -3470,7 +3474,7 @@ void cmdExecuteIndirect(
 			}
 			else if (pCommandSignature->mDrawType == INDIRECT_DISPATCH)
 			{
-				util_barrier_required(pCmd, CMD_POOL_COMPUTE);
+				util_barrier_required(pCmd, QUEUE_TYPE_COMPUTE);
 
 				Shader* shader = pCmd->pShader;
 				MTLSize threadsPerThreadgroup =
@@ -3482,7 +3486,10 @@ void cmdExecuteIndirect(
 	}
 }
 
-void cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarrier* pBufferBarriers, uint32_t numTextureBarriers, TextureBarrier* pTextureBarriers)
+void cmdResourceBarrier(Cmd* pCmd,
+uint32_t numBufferBarriers, BufferBarrier* pBufferBarriers,
+uint32_t numTextureBarriers, TextureBarrier* pTextureBarriers,
+uint32_t numRtBarriers, RenderTargetBarrier* pRtBarriers)
 {
     if (numBufferBarriers)
     {
@@ -3493,7 +3500,7 @@ void cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarrier* pB
             
             if (!(pTrans->mNewState & pBuffer->mCurrentState) || pBuffer->mCurrentState == RESOURCE_STATE_UNORDERED_ACCESS)
             {
-				pCmd->pCmdPool->pQueue->mBarrierFlags |= BARRIER_FLAG_BUFFERS;
+				pCmd->mDesc.pPool->pQueue->mBarrierFlags |= BARRIER_FLAG_BUFFERS;
                 pBuffer->mCurrentState = pTrans->mNewState;
             }
         }
@@ -3508,18 +3515,23 @@ void cmdResourceBarrier(Cmd* pCmd, uint32_t numBufferBarriers, BufferBarrier* pB
             
             if (!(pTrans->mNewState & pTexture->mCurrentState) || pTexture->mCurrentState == RESOURCE_STATE_UNORDERED_ACCESS)
             {
-				if (pTrans->mNewState == RESOURCE_STATE_DEPTH_WRITE ||
-					pTrans->mNewState == RESOURCE_STATE_DEPTH_READ ||
-					pTrans->mNewState == RESOURCE_STATE_RENDER_TARGET ||
-					pTexture->mCurrentState == RESOURCE_STATE_DEPTH_WRITE ||
-					pTexture->mCurrentState == RESOURCE_STATE_DEPTH_READ ||
-					pTexture->mCurrentState == RESOURCE_STATE_RENDER_TARGET ||
-                    pTexture->mCurrentState == RESOURCE_STATE_PRESENT)
-				{
-					pCmd->pCmdPool->pQueue->mBarrierFlags |= BARRIER_FLAG_RENDERTARGETS;
-				}
-				
-				pCmd->pCmdPool->pQueue->mBarrierFlags |= BARRIER_FLAG_TEXTURES;
+				pCmd->mDesc.pPool->pQueue->mBarrierFlags |= BARRIER_FLAG_TEXTURES;
+                pTexture->mCurrentState = pTrans->mNewState;
+            }
+        }
+    }
+	
+	if (numRtBarriers)
+    {
+        for (uint32_t i = 0; i < numRtBarriers; ++i)
+        {
+            RenderTargetBarrier* pTrans = &pRtBarriers[i];
+            Texture*        pTexture = pTrans->pRenderTarget->pTexture;
+            
+            if (!(pTrans->mNewState & pTexture->mCurrentState) || pTexture->mCurrentState == RESOURCE_STATE_UNORDERED_ACCESS)
+            {
+				pCmd->mDesc.pPool->pQueue->mBarrierFlags |= BARRIER_FLAG_RENDERTARGETS;
+				pCmd->mDesc.pPool->pQueue->mBarrierFlags |= BARRIER_FLAG_TEXTURES;
                 pTexture->mCurrentState = pTrans->mNewState;
             }
         }
@@ -3539,7 +3551,7 @@ void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSr
 	util_end_current_encoders(pCmd, false);
 	pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
 
-	util_barrier_required(pCmd, CMD_POOL_COPY);
+	util_barrier_required(pCmd, QUEUE_TYPE_TRANSFER);
 	
 	[pCmd->mtlBlitEncoder copyFromBuffer:pSrcBuffer->mtlBuffer
 							sourceOffset:pSrcBuffer->mPositionInHeap + srcOffset
@@ -3553,7 +3565,7 @@ void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pIntermediate, S
 	util_end_current_encoders(pCmd, false);
 	pCmd->mtlBlitEncoder = [pCmd->mtlCommandBuffer blitCommandEncoder];
 
-	util_barrier_required(pCmd, CMD_POOL_COPY);
+	util_barrier_required(pCmd, QUEUE_TYPE_TRANSFER);
 	
 #ifndef TARGET_IOS
 	MTLBlitOption blitOptions = MTLBlitOptionNone;
@@ -3594,7 +3606,7 @@ void acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSi
 	// If not found: assign it to an empty slot
 	for (uint32_t i = 0; i < pSwapChain->mDesc.mImageCount; i++)
 	{
-		RenderTarget* renderTarget = pSwapChain->ppSwapchainRenderTargets[i];
+		RenderTarget* renderTarget = pSwapChain->ppRenderTargets[i];
 		if (renderTarget->pTexture->mtlTexture == pSwapChain->mMTKDrawable.texture)
 		{
 			*pImageIndex = i;
@@ -3605,7 +3617,7 @@ void acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSi
 	// Not found: assign the texture to an empty slot
 	for (uint32_t i = 0; i < pSwapChain->mDesc.mImageCount; i++)
 	{
-		RenderTarget* renderTarget = pSwapChain->ppSwapchainRenderTargets[i];
+		RenderTarget* renderTarget = pSwapChain->ppRenderTargets[i];
 		if (renderTarget->pTexture->mtlTexture == nil)
 		{
 			renderTarget->pTexture->mtlTexture = pSwapChain->mMTKDrawable.texture;
@@ -3613,8 +3625,8 @@ void acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSi
 			// Update the swapchain RT size according to the new drawable's size.
 			renderTarget->pTexture->mDesc.mWidth = (uint32_t)pSwapChain->mMTKDrawable.texture.width;
 			renderTarget->pTexture->mDesc.mHeight = (uint32_t)pSwapChain->mMTKDrawable.texture.height;
-			pSwapChain->ppSwapchainRenderTargets[i]->mDesc.mWidth = renderTarget->pTexture->mDesc.mWidth;
-			pSwapChain->ppSwapchainRenderTargets[i]->mDesc.mHeight = renderTarget->pTexture->mDesc.mHeight;
+			pSwapChain->ppRenderTargets[i]->mDesc.mWidth = renderTarget->pTexture->mDesc.mWidth;
+			pSwapChain->ppRenderTargets[i]->mDesc.mHeight = renderTarget->pTexture->mDesc.mHeight;
 
 			*pImageIndex = i;
 			return;
@@ -3625,16 +3637,24 @@ void acquireNextImage(Renderer* pRenderer, SwapChain* pSwapChain, Semaphore* pSi
 	// Invalidate the texures and re-acquire the render targets
 	for (uint32_t i = 0; i < pSwapChain->mDesc.mImageCount; i++)
 	{
-		pSwapChain->ppSwapchainRenderTargets[i]->pTexture->mtlTexture = nil;
+		pSwapChain->ppRenderTargets[i]->pTexture->mtlTexture = nil;
 	}
 	acquireNextImage(pRenderer, pSwapChain, pSignalSemaphore, pFence, pImageIndex);
 }
 
-void queueSubmit(
-	Queue* pQueue, uint32_t cmdCount, Cmd** ppCmds, Fence* pFence, uint32_t waitSemaphoreCount, Semaphore** ppWaitSemaphores,
-	uint32_t signalSemaphoreCount, Semaphore** ppSignalSemaphores)
+void queueSubmit(Queue* pQueue, const QueueSubmitDesc* pDesc)
 {
 	ASSERT(pQueue);
+	ASSERT(pDesc);
+	
+	uint32_t cmdCount = pDesc->mCmdCount;
+	Cmd** ppCmds = pDesc->ppCmds;
+	Fence* pFence = pDesc->pSignalFence;
+	uint32_t waitSemaphoreCount = pDesc->mWaitSemaphoreCount;
+	Semaphore** ppWaitSemaphores = pDesc->ppWaitSemaphores;
+	uint32_t signalSemaphoreCount = pDesc->mSignalSemaphoreCount;
+	Semaphore** ppSignalSemaphores = pDesc->ppSignalSemaphores;
+	
 	ASSERT(cmdCount > 0);
 	ASSERT(ppCmds);
 	if (waitSemaphoreCount > 0)
@@ -3698,32 +3718,33 @@ void queueSubmit(
 	}
 }
 
-void queuePresent(
-	Queue* pQueue, SwapChain* pSwapChain, uint32_t swapChainImageIndex, uint32_t waitSemaphoreCount, Semaphore** ppWaitSemaphores)
+void queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 {
 	ASSERT(pQueue);
-	if (waitSemaphoreCount > 0)
-	{
-		ASSERT(ppWaitSemaphores);
-	}
-	ASSERT(pQueue->mtlCommandQueue != nil);
+	ASSERT(pDesc);
 
-	@autoreleasepool
+	if (pDesc->pSwapChain)
 	{
+		SwapChain* pSwapChain = pDesc->pSwapChain;
+		ASSERT(pQueue->mtlCommandQueue != nil);
+
+		@autoreleasepool
+		{
 #ifndef TARGET_IOS
-		[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable];
+			[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable];
 #else
-		//[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable
-		//							 afterMinimumDuration:1.0 / 120.0];
-		[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable];
+			//[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable
+			//							 afterMinimumDuration:1.0 / 120.0];
+			[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable];
 #endif
-	}
-	
-	[pSwapChain->presentCommandBuffer commit];
+		}
+		
+		[pSwapChain->presentCommandBuffer commit];
 
-	// after committing a command buffer no more commands can be encoded on it: create a new command buffer for future commands
-	pSwapChain->presentCommandBuffer = [pQueue->mtlCommandQueue commandBuffer];
-	pSwapChain->mMTKDrawable = nil;
+		// after committing a command buffer no more commands can be encoded on it: create a new command buffer for future commands
+		pSwapChain->presentCommandBuffer = [pQueue->mtlCommandQueue commandBuffer];
+		pSwapChain->mMTKDrawable = nil;
+	}
 }
 
 void waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
@@ -3858,8 +3879,8 @@ void cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffer, 
 {
     uint64_t* data = (uint64_t*)pReadbackBuffer->mtlBuffer.contents;
     
-    memcpy(&data[0], &pQueryPool->mGpuTimestampStart, sizeof(uint64_t));
-    memcpy(&data[1], &pQueryPool->mGpuTimestampEnd, sizeof(uint64_t));
+    data[0] = pQueryPool->mGpuTimestampStart;
+    data[1] = pQueryPool->mGpuTimestampEnd;
 }
     
 // -------------------------------------------------------------------------------------------------
@@ -4268,7 +4289,7 @@ MTLLoadAction util_to_mtl_load_action(const LoadActionType loadActionType)
 	
 void util_end_current_encoders(Cmd* pCmd, bool forceBarrier)
 {
-	const bool barrierRequired(pCmd->pCmdPool->pQueue->mBarrierFlags);
+	const bool barrierRequired(pCmd->mDesc.pPool->pQueue->mBarrierFlags);
 	
 	if (pCmd->mtlRenderEncoder != nil)
 	{
@@ -4276,8 +4297,8 @@ void util_end_current_encoders(Cmd* pCmd, bool forceBarrier)
 		
 		if (barrierRequired || forceBarrier)
 		{
-			[pCmd->mtlRenderEncoder updateFence:pCmd->pCmdPool->pQueue->mtlQueueFence afterStages:MTLRenderStageFragment];
-			pCmd->pCmdPool->pQueue->mBarrierFlags |= BARRIER_FLAG_FENCE;
+			[pCmd->mtlRenderEncoder updateFence:pCmd->mDesc.pPool->pQueue->mtlQueueFence afterStages:MTLRenderStageFragment];
+			pCmd->mDesc.pPool->pQueue->mBarrierFlags |= BARRIER_FLAG_FENCE;
 		}
 		
 		[pCmd->mtlRenderEncoder endEncoding];
@@ -4290,8 +4311,8 @@ void util_end_current_encoders(Cmd* pCmd, bool forceBarrier)
 		
 		if (barrierRequired || forceBarrier)
 		{
-			[pCmd->mtlComputeEncoder updateFence:pCmd->pCmdPool->pQueue->mtlQueueFence];
-			pCmd->pCmdPool->pQueue->mBarrierFlags |= BARRIER_FLAG_FENCE;
+			[pCmd->mtlComputeEncoder updateFence:pCmd->mDesc.pPool->pQueue->mtlQueueFence];
+			pCmd->mDesc.pPool->pQueue->mBarrierFlags |= BARRIER_FLAG_FENCE;
 		}
 		
 		[pCmd->mtlComputeEncoder endEncoding];
@@ -4304,8 +4325,8 @@ void util_end_current_encoders(Cmd* pCmd, bool forceBarrier)
 		
 		if (barrierRequired || forceBarrier)
 		{
-			[pCmd->mtlBlitEncoder updateFence:pCmd->pCmdPool->pQueue->mtlQueueFence];
-			pCmd->pCmdPool->pQueue->mBarrierFlags |= BARRIER_FLAG_FENCE;
+			[pCmd->mtlBlitEncoder updateFence:pCmd->mDesc.pPool->pQueue->mtlQueueFence];
+			pCmd->mDesc.pPool->pQueue->mBarrierFlags |= BARRIER_FLAG_FENCE;
 		}
 		
 		[pCmd->mtlBlitEncoder endEncoding];
@@ -4313,22 +4334,22 @@ void util_end_current_encoders(Cmd* pCmd, bool forceBarrier)
 	}
 }
 
-void util_barrier_required(Cmd* pCmd, const CmdPoolType& encoderType)
+void util_barrier_required(Cmd* pCmd, const QueueType& encoderType)
 {
-	if (pCmd->pCmdPool->pQueue->mBarrierFlags)
+	if (pCmd->mDesc.pPool->pQueue->mBarrierFlags)
 	{
-		if (pCmd->pCmdPool->pQueue->mBarrierFlags & BARRIER_FLAG_FENCE)
+		if (pCmd->mDesc.pPool->pQueue->mBarrierFlags & BARRIER_FLAG_FENCE)
 		{
 			switch (encoderType)
 			{
-				case CMD_POOL_DIRECT:
-					[pCmd->mtlRenderEncoder waitForFence:pCmd->pCmdPool->pQueue->mtlQueueFence beforeStages:MTLRenderStageVertex];
+				case QUEUE_TYPE_GRAPHICS:
+					[pCmd->mtlRenderEncoder waitForFence:pCmd->mDesc.pPool->pQueue->mtlQueueFence beforeStages:MTLRenderStageVertex];
 					break;
-				case CMD_POOL_COMPUTE:
-					[pCmd->mtlComputeEncoder waitForFence:pCmd->pCmdPool->pQueue->mtlQueueFence];
+				case QUEUE_TYPE_COMPUTE:
+					[pCmd->mtlComputeEncoder waitForFence:pCmd->mDesc.pPool->pQueue->mtlQueueFence];
 					break;
-				case CMD_POOL_COPY:
-					[pCmd->mtlBlitEncoder waitForFence:pCmd->pCmdPool->pQueue->mtlQueueFence];
+				case QUEUE_TYPE_TRANSFER:
+					[pCmd->mtlBlitEncoder waitForFence:pCmd->mDesc.pPool->pQueue->mtlQueueFence];
 					break;
 				default:
 					ASSERT(false);
@@ -4338,46 +4359,46 @@ void util_barrier_required(Cmd* pCmd, const CmdPoolType& encoderType)
 		{
 			switch (encoderType)
 			{
-				case CMD_POOL_DIRECT:
+				case QUEUE_TYPE_GRAPHICS:
 #ifdef TARGET_IOS
 					// memoryBarrierWithScope for render encoder is unavailable for iOS
 					// fallback to fence
-					[pCmd->mtlRenderEncoder waitForFence:pCmd->pCmdPool->pQueue->mtlQueueFence beforeStages:MTLRenderStageVertex];
+					[pCmd->mtlRenderEncoder waitForFence:pCmd->mDesc.pPool->pQueue->mtlQueueFence beforeStages:MTLRenderStageVertex];
 #else
-					if (pCmd->pCmdPool->pQueue->mBarrierFlags & BARRIER_FLAG_BUFFERS)
+					if (pCmd->mDesc.pPool->pQueue->mBarrierFlags & BARRIER_FLAG_BUFFERS)
 					{
 						[pCmd->mtlRenderEncoder memoryBarrierWithScope:MTLBarrierScopeBuffers afterStages:MTLRenderStageFragment beforeStages:MTLRenderStageVertex];
 					}
 					
-					if (pCmd->pCmdPool->pQueue->mBarrierFlags & BARRIER_FLAG_TEXTURES)
+					if (pCmd->mDesc.pPool->pQueue->mBarrierFlags & BARRIER_FLAG_TEXTURES)
 					{
 						[pCmd->mtlRenderEncoder memoryBarrierWithScope:MTLBarrierScopeTextures afterStages:MTLRenderStageFragment beforeStages:MTLRenderStageVertex];
 					}
 					
-					if (pCmd->pCmdPool->pQueue->mBarrierFlags & BARRIER_FLAG_RENDERTARGETS)
+					if (pCmd->mDesc.pPool->pQueue->mBarrierFlags & BARRIER_FLAG_RENDERTARGETS)
 					{
 						[pCmd->mtlRenderEncoder memoryBarrierWithScope:MTLBarrierScopeRenderTargets afterStages:MTLRenderStageFragment beforeStages:MTLRenderStageVertex];
 					}
 #endif
 					break;
 					
-				case CMD_POOL_COMPUTE:
-					if (pCmd->pCmdPool->pQueue->mBarrierFlags & BARRIER_FLAG_BUFFERS)
+				case QUEUE_TYPE_COMPUTE:
+					if (pCmd->mDesc.pPool->pQueue->mBarrierFlags & BARRIER_FLAG_BUFFERS)
 					{
 						[pCmd->mtlComputeEncoder memoryBarrierWithScope:MTLBarrierScopeBuffers];
 					}
 					
-					if (pCmd->pCmdPool->pQueue->mBarrierFlags & BARRIER_FLAG_TEXTURES)
+					if (pCmd->mDesc.pPool->pQueue->mBarrierFlags & BARRIER_FLAG_TEXTURES)
 					{
 						[pCmd->mtlComputeEncoder memoryBarrierWithScope:MTLBarrierScopeTextures];
 					}
 					break;
 					
-				case CMD_POOL_COPY:
+				case QUEUE_TYPE_TRANSFER:
 					// we cant use barriers with blit encoder, only fence if available
-					if (pCmd->pCmdPool->pQueue->mBarrierFlags & BARRIER_FLAG_FENCE)
+					if (pCmd->mDesc.pPool->pQueue->mBarrierFlags & BARRIER_FLAG_FENCE)
 					{
-						[pCmd->mtlBlitEncoder waitForFence:pCmd->pCmdPool->pQueue->mtlQueueFence];
+						[pCmd->mtlBlitEncoder waitForFence:pCmd->mDesc.pPool->pQueue->mtlQueueFence];
 					}
 					break;
 					
@@ -4386,7 +4407,7 @@ void util_barrier_required(Cmd* pCmd, const CmdPoolType& encoderType)
 			}
 		}
 		
-		pCmd->pCmdPool->pQueue->mBarrierFlags = 0;
+		pCmd->mDesc.pPool->pQueue->mBarrierFlags = 0;
 	}
 }
 

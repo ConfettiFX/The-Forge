@@ -19,13 +19,11 @@
 		650CCCB12223D082003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCCAF2223D082003533D9 /* MetalPerformanceShaders.framework */; };
 		650CCCB32223D08B003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCCB22223D08B003533D9 /* MetalPerformanceShaders.framework */; };
 		654D958921CDC12900113964 /* stormtrooper in CopyFiles */ = {isa = PBXBuildFile; fileRef = 654D958721CDC11800113964 /* stormtrooper */; };
-		65AC216921CC626000F7E103 /* libAssetPipeline.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 656958B521CC519300EE1F7D /* libAssetPipeline.a */; };
 		65AC216E21CC62A500F7E103 /* ozz_animation offline.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6F7321B227DA00FBA1BF /* ozz_animation offline.a */; };
 		B214AD3320E2DD620025F76B /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B214AD3120E2DD620025F76B /* Metal.framework */; };
 		B214AD3420E2DD620025F76B /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B214AD3220E2DD620025F76B /* MetalKit.framework */; };
 		B22D906920E2EDCE0036B88E /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906220E2EDCE0036B88E /* Metal.framework */; };
 		B22D906A20E2EDCE0036B88E /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906820E2EDCE0036B88E /* MetalKit.framework */; };
-		B247268621B26F7900AA053C /* fbx in CopyFiles */ = {isa = PBXBuildFile; fileRef = B28C6D1221B07B4B00FBA1BF /* fbx */; };
 		B247268821B26F8200AA053C /* skinning.frag.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = B28C6C9121AF806500FBA1BF /* skinning.frag.metal */; };
 		B247268921B26F8200AA053C /* skinning.vert.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = B28C6C9221AF806500FBA1BF /* skinning.vert.metal */; };
 		B247268A21B26F8200AA053C /* basic.frag.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = B28C6C8B21AF7FFC00FBA1BF /* basic.frag.metal */; };
@@ -52,31 +50,36 @@
 		D0A0FAFF21B27F670059AEDB /* circlepad.ktx in Resources */ = {isa = PBXBuildFile; fileRef = B2B7406A21755F1200324803 /* circlepad.ktx */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
-		E9A4390F233DC728005BF1C7 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A4390C233DC728005BF1C7 /* libbz2.tbd */; };
-		E9A43911233DC730005BF1C7 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A43910233DC730005BF1C7 /* libbz2.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		656958B421CC519300EE1F7D /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 656958B021CC519300EE1F7D /* AssetPipeline.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = B28C6E4B21B204A200FBA1BF;
-			remoteInfo = AssetPipeline;
-		};
-		65AC216A21CC627300F7E103 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 656958B021CC519300EE1F7D /* AssetPipeline.xcodeproj */;
-			proxyType = 1;
-			remoteGlobalIDString = B28C6E4A21B204A200FBA1BF;
-			remoteInfo = AssetPipeline;
-		};
 		65AC216C21CC627600F7E103 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = B23FA44B211E24F70059929A /* ozz.xcodeproj */;
 			proxyType = 1;
 			remoteGlobalIDString = B28C6EDE21B209AA00FBA1BF;
 			remoteInfo = "ozz_animation offline";
+		};
+		B231A1A523F2E2AE006D7450 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B231A1A023F2E2AD006D7450 /* AssetPipelineCmd.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = B231A0E923F2DB2D006D7450;
+			remoteInfo = AssetPipelineCmd;
+		};
+		B231A1A723F2E2BF006D7450 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B231A1A023F2E2AD006D7450 /* AssetPipelineCmd.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = B231A0E823F2DB2D006D7450;
+			remoteInfo = AssetPipelineCmd;
+		};
+		B231A1A923F2E2C6006D7450 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B231A1A023F2E2AD006D7450 /* AssetPipelineCmd.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = B231A0E823F2DB2D006D7450;
+			remoteInfo = AssetPipelineCmd;
 		};
 		B23FA455211E24F70059929A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -140,13 +143,6 @@
 			proxyType = 1;
 			remoteGlobalIDString = ECEC0611C3BB4CAF82DAF102;
 			remoteInfo = ozz_base;
-		};
-		B2F8F03A231F4FAD007AC807 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = 656958B021CC519300EE1F7D /* AssetPipeline.xcodeproj */;
-			proxyType = 2;
-			remoteGlobalIDString = E921BDBC22CFC7700082D103;
-			remoteInfo = AssetPipeline_iOS;
 		};
 		D0796ADF211ED7950028AFFD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -240,7 +236,6 @@
 			dstSubfolderSpec = 7;
 			files = (
 				654D958921CDC12900113964 /* stormtrooper in CopyFiles */,
-				B247268621B26F7900AA053C /* fbx in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -259,11 +254,11 @@
 		650CCCAF2223D082003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		650CCCB22223D08B003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
 		654D958721CDC11800113964 /* stormtrooper */ = {isa = PBXFileReference; lastKnownFileType = folder; path = stormtrooper; sourceTree = "<group>"; };
-		656958B021CC519300EE1F7D /* AssetPipeline.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = AssetPipeline.xcodeproj; path = ../../../../Common_3/Tools/AssetPipeline/Apple/AssetPipeline.xcodeproj; sourceTree = "<group>"; };
 		B214AD3120E2DD620025F76B /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		B214AD3220E2DD620025F76B /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B22D906220E2EDCE0036B88E /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		B22D906820E2EDCE0036B88E /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
+		B231A1A023F2E2AD006D7450 /* AssetPipelineCmd.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = AssetPipelineCmd.xcodeproj; path = ../../../../Common_3/Tools/AssetPipeline/Apple/AssetPipelineCmd.xcodeproj; sourceTree = "<group>"; };
 		B23FA44B211E24F70059929A /* ozz.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = ozz.xcodeproj; path = "../../../../Common_3/ThirdParty/OpenSource/ozz-animation/MacOS/ozz.xcodeproj"; sourceTree = "<group>"; };
 		B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
 		B27D879920E2E88B00081DB0 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
@@ -274,7 +269,6 @@
 		B28C6C9121AF806500FBA1BF /* skinning.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = skinning.frag.metal; path = ../../src/28_Skinning/Shaders/Metal/skinning.frag.metal; sourceTree = "<group>"; };
 		B28C6C9221AF806500FBA1BF /* skinning.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = skinning.vert.metal; path = ../../src/28_Skinning/Shaders/Metal/skinning.vert.metal; sourceTree = "<group>"; };
 		B28C6CE321B0799000FBA1BF /* Stormtrooper_D.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; path = Stormtrooper_D.ktx; sourceTree = "<group>"; };
-		B28C6D1221B07B4B00FBA1BF /* fbx */ = {isa = PBXFileReference; lastKnownFileType = folder; path = fbx; sourceTree = "<group>"; };
 		B2B73F1721751BF900324803 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
 		B2B73FC621754A3B00324803 /* 28_Skinning.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 28_Skinning.cpp; path = ../../src/28_Skinning/28_Skinning.cpp; sourceTree = "<group>"; };
 		B2B73FE221754CB400324803 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
@@ -301,7 +295,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E9A43911233DC730005BF1C7 /* libbz2.tbd in Frameworks */,
 				650CCCB32223D08B003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				B2541CFD21751B5B00F702BB /* libThe-Forge_iOS.a in Frameworks */,
 				D0796AEA211ED7A70028AFFD /* ozz_animation_IOS.a in Frameworks */,
@@ -317,10 +310,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E9A4390F233DC728005BF1C7 /* libbz2.tbd in Frameworks */,
 				650CCCB12223D082003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				65AC216E21CC62A500F7E103 /* ozz_animation offline.a in Frameworks */,
-				65AC216921CC626000F7E103 /* libAssetPipeline.a in Frameworks */,
 				B2541CFE21751B6200F702BB /* libThe-Forge.a in Frameworks */,
 				B2C44078211E2563008F57D5 /* ozz_animation.a in Frameworks */,
 				B2C44079211E2563008F57D5 /* ozz_base.a in Frameworks */,
@@ -364,11 +355,10 @@
 			name = CommonShaders;
 			sourceTree = "<group>";
 		};
-		656958B121CC519300EE1F7D /* Products */ = {
+		B231A1A123F2E2AD006D7450 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				656958B521CC519300EE1F7D /* libAssetPipeline.a */,
-				B2F8F03B231F4FAD007AC807 /* libAssetPipeline_iOS.a */,
+				B231A1A623F2E2AE006D7450 /* AssetPipelineCmd */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -408,7 +398,6 @@
 			isa = PBXGroup;
 			children = (
 				654D958721CDC11800113964 /* stormtrooper */,
-				B28C6D1221B07B4B00FBA1BF /* fbx */,
 			);
 			name = Animation;
 			path = ../../UnitTestResources/Animation;
@@ -452,10 +441,10 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
+				B231A1A023F2E2AD006D7450 /* AssetPipelineCmd.xcodeproj */,
 				5B17819F22A5C91900991DCB /* profile.frag.metal */,
 				5B17819D22A5C91900991DCB /* profile.vert.metal */,
 				5C5A239721F0AD24006B09C7 /* CommonShaders */,
-				656958B021CC519300EE1F7D /* AssetPipeline.xcodeproj */,
 				B2B7405621755BC200324803 /* Shaders */,
 				B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */,
 				B23FA44B211E24F70059929A /* ozz.xcodeproj */,
@@ -510,6 +499,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				B231A1AA23F2E2C6006D7450 /* PBXTargetDependency */,
 				B2541D0221751B6F00F702BB /* PBXTargetDependency */,
 				D0796AE0211ED7950028AFFD /* PBXTargetDependency */,
 				D0796AE2211ED7950028AFFD /* PBXTargetDependency */,
@@ -526,13 +516,14 @@
 				EA463C871EF81E8F005AC8C7 /* Sources */,
 				EA463C881EF81E8F005AC8C7 /* Frameworks */,
 				EA463C891EF81E8F005AC8C7 /* Resources */,
+				B231A1B123F2E639006D7450 /* ShellScript */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				B231A1A823F2E2BF006D7450 /* PBXTargetDependency */,
 				E958923323416EFA00B68D6A /* PBXTargetDependency */,
 				65AC216D21CC627600F7E103 /* PBXTargetDependency */,
-				65AC216B21CC627300F7E103 /* PBXTargetDependency */,
 				B2C44070211E254B008F57D5 /* PBXTargetDependency */,
 				B2C44072211E254B008F57D5 /* PBXTargetDependency */,
 			);
@@ -573,8 +564,8 @@
 			projectDirPath = "";
 			projectReferences = (
 				{
-					ProductGroup = 656958B121CC519300EE1F7D /* Products */;
-					ProjectRef = 656958B021CC519300EE1F7D /* AssetPipeline.xcodeproj */;
+					ProductGroup = B231A1A123F2E2AD006D7450 /* Products */;
+					ProjectRef = B231A1A023F2E2AD006D7450 /* AssetPipelineCmd.xcodeproj */;
 				},
 				{
 					ProductGroup = B23FA44C211E24F70059929A /* Products */;
@@ -594,11 +585,11 @@
 /* End PBXProject section */
 
 /* Begin PBXReferenceProxy section */
-		656958B521CC519300EE1F7D /* libAssetPipeline.a */ = {
+		B231A1A623F2E2AE006D7450 /* AssetPipelineCmd */ = {
 			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libAssetPipeline.a;
-			remoteRef = 656958B421CC519300EE1F7D /* PBXContainerItemProxy */;
+			fileType = "compiled.mach-o.executable";
+			path = AssetPipelineCmd;
+			remoteRef = B231A1A523F2E2AE006D7450 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 		B23FA456211E24F70059929A /* json_d.a */ = {
@@ -641,13 +632,6 @@
 			fileType = archive.ar;
 			path = "ozz_animation offline.a";
 			remoteRef = B28C6F7221B227DA00FBA1BF /* PBXContainerItemProxy */;
-			sourceTree = BUILT_PRODUCTS_DIR;
-		};
-		B2F8F03B231F4FAD007AC807 /* libAssetPipeline_iOS.a */ = {
-			isa = PBXReferenceProxy;
-			fileType = archive.ar;
-			path = libAssetPipeline_iOS.a;
-			remoteRef = B2F8F03A231F4FAD007AC807 /* PBXContainerItemProxy */;
 			sourceTree = BUILT_PRODUCTS_DIR;
 		};
 		D0796AE7211ED7950028AFFD /* ozz_animation_IOS.a */ = {
@@ -704,7 +688,24 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "xcodebuild -quiet -workspace \"${PROJECT_DIR}/../../../../Common_3/Tools/AssetPipeline/Apple/AssetPipeline.xcworkspace\" -configuration Release build -scheme AssetPipelineCmd CODE_SIGN_IDENTITY=\"\" CODE_SIGNING_REQUIRED=\"NO\" CODE_SIGN_ENTITLEMENTS=\"\" CODE_SIGNING_ALLOWED=\"NO\"\n\"../../../../Common_3/Tools/AssetPipeline/Apple/Release/AssetPipelineCmd\" -pa \"../../UnitTestResources/Animation/fbx\" \"../../UnitTestResources/Animation\"\n\n";
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\nCMD=\"$SRCROOT/../../../../Common_3/Tools/AssetPipeline/Apple/Bin/Debug/AssetPipelineCmd\"\necho $CMD\n\"$CMD\" -pa \"$SRCROOT/../../UnitTestResources/Animation\" \"$SRCROOT/../../UnitTestResources/Animation\"\n";
+		};
+		B231A1B123F2E639006D7450 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\nCMD=\"$SRCROOT/../../../../Common_3/Tools/AssetPipeline/Apple/Bin/Debug/AssetPipelineCmd\"\necho $CMD\n\"$CMD\" -pa \"$SRCROOT/../../UnitTestResources/Animation\" \"$SRCROOT/../../UnitTestResources/Animation\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -730,15 +731,20 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		65AC216B21CC627300F7E103 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			name = AssetPipeline;
-			targetProxy = 65AC216A21CC627300F7E103 /* PBXContainerItemProxy */;
-		};
 		65AC216D21CC627600F7E103 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			name = "ozz_animation offline";
 			targetProxy = 65AC216C21CC627600F7E103 /* PBXContainerItemProxy */;
+		};
+		B231A1A823F2E2BF006D7450 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = AssetPipelineCmd;
+			targetProxy = B231A1A723F2E2BF006D7450 /* PBXContainerItemProxy */;
+		};
+		B231A1AA23F2E2C6006D7450 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = AssetPipelineCmd;
+			targetProxy = B231A1A923F2E2C6006D7450 /* PBXContainerItemProxy */;
 		};
 		B2541D0221751B6F00F702BB /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;

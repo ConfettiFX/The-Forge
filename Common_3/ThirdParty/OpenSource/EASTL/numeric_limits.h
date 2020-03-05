@@ -56,7 +56,7 @@ EA_DISABLE_VC_WARNING(4310 4296)
 // Indicates whether we need to define our own implementations of inf, nan, snan, denorm floating point constants. 
 //
 #if !defined(EASTL_CUSTOM_FLOAT_CONSTANTS_REQUIRED)
-	#if (defined(EA_COMPILER_GNUC) || defined(EA_COMPILER_CLANG) && defined(__FLT_MIN__)) || defined(_CPPLIB_VER) // __FLT_MIN__ detects if it's really GCC/clang and not a mimic. _CPPLIB_VER (Dinkumware) covers VC++, and Microsoft platforms.
+	#if (defined(EA_COMPILER_GNUC) || defined(EA_COMPILER_CLANG) || defined(EA_COMPILER_CLANG_CL) && defined(__FLT_MIN__)) || defined(_CPPLIB_VER) // __FLT_MIN__ detects if it's really GCC/clang and not a mimic. _CPPLIB_VER (Dinkumware) covers VC++, and Microsoft platforms.
 		#define EASTL_CUSTOM_FLOAT_CONSTANTS_REQUIRED 0
 	#else
 		#define EASTL_CUSTOM_FLOAT_CONSTANTS_REQUIRED 1

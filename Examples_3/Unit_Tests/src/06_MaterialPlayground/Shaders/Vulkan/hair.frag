@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  * 
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -471,7 +471,7 @@ layout(location = 0) out vec4 FragColor;
 void main()
 {
 	vec3 NDC = ScreenPosToNDC(gl_FragCoord.xyz, Viewport);
-	vec3 worldPos = Cam.InvVPMatrix * vec4(NDC, 1.0f);
+//	vec3 worldPos = Cam.InvVPMatrix * vec4(NDC, 1.0f);
 
 	float coverage = ComputeCoverage(P0P1.xy, P0P1.zw, NDC.xy, Viewport.zw);
 	if (coverage < 0.0f)

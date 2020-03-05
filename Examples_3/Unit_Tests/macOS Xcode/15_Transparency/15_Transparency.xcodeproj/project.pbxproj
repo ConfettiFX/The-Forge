@@ -15,7 +15,6 @@
 		B2087DF421421A66006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DF221421A66006F372D /* Metal.framework */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
-		E9A438CE233DC107005BF1C7 /* libbz2.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = E9A438CC233DC103005BF1C7 /* libbz2.tbd */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -68,7 +67,6 @@
 		65AC435821ACEFD800F6DE4E /* libIrrXML.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libIrrXML.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		65AC435A21ACEFD800F6DE4E /* libzlibstatic.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzlibstatic.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		65AC435D21ACEFE800F6DE4E /* libassimp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libassimp.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		65AC436121ACEFF900F6DE4E /* Assimp.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = Assimp.xcodeproj; path = ../../ThirdParty/OpenSource/assimp/4.1.0/Apple/Assimp.xcodeproj; sourceTree = "<group>"; };
 		971BCF5021701D4F007F2B2F /* downsample.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = downsample.frag.metal; path = ../../src/15_Transparency/Shaders/Metal/downsample.frag.metal; sourceTree = "<group>"; };
 		971BCF5121701D4F007F2B2F /* shadow.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = shadow.vert.metal; path = ../../src/15_Transparency/Shaders/Metal/shadow.vert.metal; sourceTree = "<group>"; };
 		971BCF5221701D4F007F2B2F /* skybox.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = skybox.vert.metal; path = ../../src/15_Transparency/Shaders/Metal/skybox.vert.metal; sourceTree = "<group>"; };
@@ -108,7 +106,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				650CCC792223CD6B003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
-				E9A438CE233DC107005BF1C7 /* libbz2.tbd in Frameworks */,
 				B2087DF321421A66006F372D /* MetalKit.framework in Frameworks */,
 				B2087DF421421A66006F372D /* Metal.framework in Frameworks */,
 				5C172FB021414B730074EE71 /* libThe-Forge.a in Frameworks */,

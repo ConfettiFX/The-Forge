@@ -1,6 +1,10 @@
 // This file is part of meshoptimizer library; see meshoptimizer.h for version/license details
 #include "meshoptimizer.h"
 
+#include <assert.h>
+#include <float.h>
+#include <string.h>
+
 // This work is based on:
 // Nicolas Capens. Advanced Rasterization. 2004
 namespace meshopt
@@ -142,9 +146,9 @@ meshopt_OverdrawStatistics meshopt_analyzeOverdraw(const unsigned int* indices, 
 {
 	using namespace meshopt;
 
-	ASSERT(index_count % 3 == 0);
-	ASSERT(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
-	ASSERT(vertex_positions_stride % sizeof(float) == 0);
+	assert(index_count % 3 == 0);
+	assert(vertex_positions_stride > 0 && vertex_positions_stride <= 256);
+	assert(vertex_positions_stride % sizeof(float) == 0);
 
 	meshopt_Allocator allocator;
 
@@ -169,12 +173,12 @@ meshopt_OverdrawStatistics meshopt_analyzeOverdraw(const unsigned int* indices, 
 	float extent = max(maxv[0] - minv[0], max(maxv[1] - minv[1], maxv[2] - minv[2]));
 	float scale = kViewport / extent;
 
-	float* triangles = (float*)allocator.allocate(sizeof(float) * index_count * 3);
+	float* triangles = allocator.allocate<float>(index_count * 3);
 
 	for (size_t i = 0; i < index_count; ++i)
 	{
 		unsigned int index = indices[i];
-		ASSERT(index < vertex_count);
+		assert(index < vertex_count);
 
 		const float* v = vertex_positions + index * vertex_stride_float;
 
@@ -183,7 +187,7 @@ meshopt_OverdrawStatistics meshopt_analyzeOverdraw(const unsigned int* indices, 
 		triangles[i * 3 + 2] = (v[2] - minv[2]) * scale;
 	}
 
-	OverdrawBuffer* buffer = (OverdrawBuffer*)allocator.allocate(sizeof(OverdrawBuffer) * 1);
+	OverdrawBuffer* buffer = allocator.allocate<OverdrawBuffer>(1);
 
 	for (int axis = 0; axis < 3; ++axis)
 	{

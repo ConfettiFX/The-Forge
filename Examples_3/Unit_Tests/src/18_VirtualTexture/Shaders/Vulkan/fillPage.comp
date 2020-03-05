@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2019 Confetti Interactive Inc.
+* Copyright (c) 2018-2020 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -50,16 +50,13 @@ layout(std430, set = 1, binding = 2) restrict buffer AlivePageTableBuffer {
  	 uint AlivePage[];
 };
 
-layout(std430, set = 1, binding = 4) restrict buffer AlivePageCountBuffer {
- 	 uint AlivePageCount[];
+layout(std430, set = 1, binding = 4) restrict buffer PageCountsBuffer {
+ 	 uint AlivePageCount[1];
+   uint RemovePageCount[1];
 };
 
 layout(std430, set = 1, binding = 5) restrict buffer RemovePageTableBuffer {
  	 uint RemovePage[];
-};
-
-layout(std430, set = 1, binding = 7) restrict buffer RemovePageCountBuffer {
- 	 uint RemovePageCount[];
 };
 
 void main(void)

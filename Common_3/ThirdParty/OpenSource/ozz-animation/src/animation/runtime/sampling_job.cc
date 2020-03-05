@@ -228,13 +228,13 @@ void UpdateSoaTranslations(int _num_soa_tracks,
     /* Rebuilds quaternion from quantized values.*/                            \
     Vector4 cpnt[4] = {                                               \
         mulPerElem(kInt2Float,                                                           \
-            Vector4(vector4int::LoadPtr(cmp_keys[0]))), \
+            Vector4::fromVector4Int(vector4int::LoadPtr(cmp_keys[0]))), \
         mulPerElem(kInt2Float,                                                           \
-            Vector4(vector4int::LoadPtr(cmp_keys[1]))), \
+            Vector4::fromVector4Int(vector4int::LoadPtr(cmp_keys[1]))), \
         mulPerElem(kInt2Float,                                                           \
-            Vector4(vector4int::LoadPtr(cmp_keys[2]))), \
+            Vector4::fromVector4Int(vector4int::LoadPtr(cmp_keys[2]))), \
         mulPerElem(kInt2Float,                                                           \
-            Vector4(vector4int::LoadPtr(cmp_keys[3]))), \
+            Vector4::fromVector4Int(vector4int::LoadPtr(cmp_keys[3]))), \
     };                                                                         \
                                                                                \
     /* Get back length of 4th component. Favors performance over accuracy by*/ \

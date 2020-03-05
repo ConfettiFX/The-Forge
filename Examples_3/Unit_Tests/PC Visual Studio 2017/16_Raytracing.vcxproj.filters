@@ -30,12 +30,6 @@
     <None Include="..\src\16_Raytracing\Shaders\D3D12\ClosestHit.rchit">
       <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\16_Raytracing\Shaders\D3D12\ClosestHitPlane.rchit">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\16_Raytracing\Shaders\D3D12\ClosestHitShadow.rchit">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
     <None Include="..\src\16_Raytracing\Shaders\D3D12\Miss.rmiss">
       <Filter>Shaders\D3D12</Filter>
     </None>

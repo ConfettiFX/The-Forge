@@ -9,21 +9,18 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="src\transcoder">
-      <UniqueIdentifier>{2d6d195a-ebe1-467a-a713-8abb5d133ce6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="inc\transcoder">
-      <UniqueIdentifier>{724b1ae2-a9f5-4706-b406-26d4660d72e0}</UniqueIdentifier>
+    <Filter Include="res">
+      <UniqueIdentifier>{f4f72237-4818-48a4-9192-33d12efece22}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="basisthumbprovider.h">
       <Filter>inc</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\transcoder\basisu_transcoder.h">
-      <Filter>inc\transcoder</Filter>
-    </ClInclude>
     <ClInclude Include="helpers.h">
+      <Filter>inc</Filter>
+    </ClInclude>
+    <ClInclude Include="..\lib\basisu_transcoder.h">
       <Filter>inc</Filter>
     </ClInclude>
   </ItemGroup>
@@ -34,10 +31,10 @@
     <ClCompile Include="previewers.cpp">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\transcoder\basisu_transcoder.cpp">
-      <Filter>src\transcoder</Filter>
-    </ClCompile>
     <ClCompile Include="helpers.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="..\lib\basisu_transcoder.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>

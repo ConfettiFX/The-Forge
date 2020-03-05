@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018-2019 Confetti Interactive Inc.
+* Copyright (c) 2018-2020 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -55,10 +55,10 @@
 #include "../../../../Common_3/OS/Interfaces/ITime.h"
 #include "../../../../Common_3/OS/Interfaces/IProfiler.h"
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
+#include "../../../../Common_3/OS/Core/ThreadSystem.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/ResourceLoader.h"
-#include "../../../../Common_3/Tools/AssimpImporter/AssimpImporter.h"
+#include "../../../../Common_3/Renderer/IResourceLoader.h"
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
@@ -76,12 +76,12 @@ const uint32_t gImageCount = 3;
 bool           gMicroProfiler = false;
 bool           bPrevToggleMicroProfiler = false;
 
-typedef struct Vertex
+typedef struct ParticleVertex
 {
 	float3 mPosition;
 	float3 mNormal;
 	float2 mUV;
-} Vertex;
+} ParticleVertex;
 
 typedef struct Material
 {
@@ -108,14 +108,6 @@ typedef enum MeshResource
 	/* vvv These meshes have different behaviour to the other meshes vvv */
 	MESH_PARTICLE_SYSTEM
 } MeshResource;
-
-typedef struct MeshData
-{
-	Buffer* pVertexBuffer = NULL;
-	uint    mVertexCount = 0;
-	Buffer* pIndexBuffer = NULL;
-	uint    mIndexCount = 0;
-} MeshData;
 
 typedef struct Object
 {
@@ -440,7 +432,7 @@ VertexLayout* pVertexLayoutDefault = NULL;
 // Resources
 /************************************************************************/
 Buffer*   pBufferSkyboxVertex = NULL;
-MeshData* pMeshes[MESH_COUNT] = {};
+Geometry* pMeshes[MESH_COUNT] = {};
 Texture*  pTextures[TEXTURE_COUNT] = {};
 
 /************************************************************************/
@@ -479,6 +471,8 @@ VirtualJoystickUI gVirtualJoystick;
 uint32_t     gFrameIndex = 0;
 GpuProfiler* pGpuProfiler = NULL;
 float        gCurrentTime = 0.0f;
+
+VertexLayout vertexLayoutDefault = {};
 
 MaterialUniformBlock   gMaterialUniformData;
 ObjectInfoUniformBlock gObjectInfoUniformData;
@@ -539,10 +533,10 @@ void AddParticleSystem(vec3 position, vec4 color, vec3 translucency = vec3(0.0f)
 	particleBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 	particleBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 	particleBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-	particleBufferDesc.mDesc.mSize = sizeof(Vertex) * 6 * MAX_NUM_PARTICLES;
-	particleBufferDesc.mDesc.mVertexStride = sizeof(Vertex);
+	particleBufferDesc.mDesc.mSize = sizeof(ParticleVertex) * 6 * MAX_NUM_PARTICLES;
+	particleBufferDesc.mDesc.mVertexStride = sizeof(ParticleVertex);
 	particleBufferDesc.ppBuffer = &pParticleBuffer;
-	addResource(&particleBufferDesc);
+	addResource(&particleBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 	gScene.mParticleSystems.push_back(ParticleSystem{
 		pParticleBuffer,
@@ -663,11 +657,12 @@ DynamicUIWidgets GuiController::alphaBlendDynamicWidgets;
 DynamicUIWidgets GuiController::weightedBlendedOitDynamicWidgets;
 DynamicUIWidgets GuiController::weightedBlendedOitVolitionDynamicWidgets;
 TransparencyType  GuiController::currentTransparencyType;
+
 //////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////
 class Transparency: public IApp
 {
-	public:
+public:
 	bool Init() override
 	{
         // FILE PATHS
@@ -689,10 +684,15 @@ class Transparency: public IApp
 		initRenderer(GetName(), &settings, &pRenderer);
 
 		QueueDesc queueDesc = {};
-		queueDesc.mType = CMD_POOL_DIRECT;
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		addCmdPool(pRenderer, pGraphicsQueue, false, &pCmdPool);
-		addCmd_n(pCmdPool, false, gImageCount, &ppCmds);
+		CmdPoolDesc cmdPoolDesc = {};
+		cmdPoolDesc.pQueue = pGraphicsQueue;
+		addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
+		CmdDesc cmdDesc = {};
+		cmdDesc.pPool = pCmdPool;
+		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -702,6 +702,8 @@ class Transparency: public IApp
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		initResourceLoaderInterface(pRenderer);
+
+		LoadModels();
 
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_ROOT))
 			return false;
@@ -719,15 +721,15 @@ class Transparency: public IApp
 		/************************************************************************/
 		// Add GPU profiler
 		/************************************************************************/
-    if (!gAppUI.Init(pRenderer))
-      return false;
-    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		if (!gAppUI.Init(pRenderer))
+			return false;
+
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
 		initProfiler();
 		addGpuProfiler(pRenderer, pGraphicsQueue, &pGpuProfiler, "GpuProfiler");
 
 		CreateScene();
-		finishResourceLoading();
 
 		GuiDesc guiDesc = {};
 		float   dpiScale = getDpiScale().x;
@@ -749,7 +751,7 @@ class Transparency: public IApp
 			return false;
 
 		// App Actions
-    InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
+		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_EXIT, [](InputActionContext* ctx) { requestShutdown(); return true; } };
 		addInputAction(&actionDesc);
@@ -779,7 +781,6 @@ class Transparency: public IApp
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
-
 
 		return true;
 	}
@@ -827,11 +828,11 @@ class Transparency: public IApp
 		}
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
 
-		removeCmd_n(pCmdPool, gImageCount, ppCmds);
+		removeCmd_n(pRenderer, gImageCount, ppCmds);
 		removeCmdPool(pRenderer, pCmdPool);
 
-		removeResourceLoaderInterface(pRenderer);
-		removeQueue(pGraphicsQueue);
+		exitResourceLoaderInterface(pRenderer);
+		removeQueue(pRenderer, pGraphicsQueue);
 		removeRenderer(pRenderer);
 	}
 
@@ -839,13 +840,15 @@ class Transparency: public IApp
 	{
 		if (!CreateRenderTargetsAndSwapChain())
 			return false;
-		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
+		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
 			return false;
-		if (!gVirtualJoystick.Load(pSwapChain->ppSwapchainRenderTargets[0]))
+		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
 		loadProfiler(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		CreatePipelines();
+
+		waitForAllResourceLoads();
 
 		PrepareDescriptorSets();
 
@@ -944,14 +947,18 @@ class Transparency: public IApp
 
 	void UpdateParticleSystems(float deltaTime, mat4 viewMat, vec3 camPos)
 	{
-		eastl::vector<Vertex> tempVertexBuffer(6 * MAX_NUM_PARTICLES);
 		const float             particleSize = 0.2f;
-		const vec3              camRight = vec3(viewMat[0][0], viewMat[1][0], viewMat[2][0]) * particleSize;
-		const vec3              camUp = vec3(viewMat[0][1], viewMat[1][1], viewMat[2][1]) * particleSize;
+		const vec3              camRight = vec3((float)viewMat[0][0], viewMat[1][0], viewMat[2][0]) * particleSize;
+		const vec3              camUp = vec3((float)viewMat[0][1], viewMat[1][1], viewMat[2][1]) * particleSize;
 
 		for (size_t i = 0; i < gScene.mParticleSystems.size(); ++i)
 		{
 			ParticleSystem* pParticleSystem = &gScene.mParticleSystems[i];
+
+			BufferUpdateDesc particleBufferUpdateDesc = { pParticleSystem->pParticleBuffer };
+			particleBufferUpdateDesc.mSize = sizeof(ParticleVertex) * 6 * pParticleSystem->mLifeParticleCount;
+			beginUpdateResource(&particleBufferUpdateDesc);
+			ParticleVertex* particleVertexData = (ParticleVertex*)particleBufferUpdateDesc.pMappedData;
 
 			// Remove dead particles
 			for (size_t j = 0; j < pParticleSystem->mLifeParticleCount; ++j)
@@ -1001,12 +1008,12 @@ class Transparency: public IApp
 				for (uint j = 0; j < sortedArray.size(); ++j)
 				{
 					vec3 pos = pParticleSystem->mParticlePositions[(int)sortedArray[sortedArray.size() - j - 1][1]];
-					tempVertexBuffer[j * 6 + 0] = { v3ToF3(pos - camUp - camRight), float3(0.0f, 1.0f, 0.0f), float2(0.0f, 0.0f) };
-					tempVertexBuffer[j * 6 + 1] = { v3ToF3(pos + camUp - camRight), float3(0.0f, 1.0f, 0.0f), float2(0.0f, 1.0f) };
-					tempVertexBuffer[j * 6 + 2] = { v3ToF3(pos - camUp + camRight), float3(0.0f, 1.0f, 0.0f), float2(1.0f, 0.0f) };
-					tempVertexBuffer[j * 6 + 3] = { v3ToF3(pos + camUp + camRight), float3(0.0f, 1.0f, 0.0f), float2(1.0f, 1.0f) };
-					tempVertexBuffer[j * 6 + 4] = { v3ToF3(pos - camUp + camRight), float3(0.0f, 1.0f, 0.0f), float2(1.0f, 0.0f) };
-					tempVertexBuffer[j * 6 + 5] = { v3ToF3(pos + camUp - camRight), float3(0.0f, 1.0f, 0.0f), float2(0.0f, 1.0f) };
+					particleVertexData[j * 6 + 0] = { v3ToF3(pos - camUp - camRight), float3(0.0f, 1.0f, 0.0f), float2(0.0f, 0.0f) };
+					particleVertexData[j * 6 + 1] = { v3ToF3(pos + camUp - camRight), float3(0.0f, 1.0f, 0.0f), float2(0.0f, 1.0f) };
+					particleVertexData[j * 6 + 2] = { v3ToF3(pos - camUp + camRight), float3(0.0f, 1.0f, 0.0f), float2(1.0f, 0.0f) };
+					particleVertexData[j * 6 + 3] = { v3ToF3(pos + camUp + camRight), float3(0.0f, 1.0f, 0.0f), float2(1.0f, 1.0f) };
+					particleVertexData[j * 6 + 4] = { v3ToF3(pos - camUp + camRight), float3(0.0f, 1.0f, 0.0f), float2(1.0f, 0.0f) };
+					particleVertexData[j * 6 + 5] = { v3ToF3(pos + camUp - camRight), float3(0.0f, 1.0f, 0.0f), float2(0.0f, 1.0f) };
 				}
 			}
 			else
@@ -1014,18 +1021,16 @@ class Transparency: public IApp
 				for (uint j = 0; j < pParticleSystem->mLifeParticleCount; ++j)
 				{
 					vec3 pos = pParticleSystem->mParticlePositions[j];
-					tempVertexBuffer[j * 6 + 0] = { v3ToF3(pos - camUp - camRight), float3(0.0f, 1.0f, 0.0f), float2(0.0f, 0.0f) };
-					tempVertexBuffer[j * 6 + 1] = { v3ToF3(pos + camUp - camRight), float3(0.0f, 1.0f, 0.0f), float2(0.0f, 1.0f) };
-					tempVertexBuffer[j * 6 + 2] = { v3ToF3(pos - camUp + camRight), float3(0.0f, 1.0f, 0.0f), float2(1.0f, 0.0f) };
-					tempVertexBuffer[j * 6 + 3] = { v3ToF3(pos + camUp + camRight), float3(0.0f, 1.0f, 0.0f), float2(1.0f, 1.0f) };
-					tempVertexBuffer[j * 6 + 4] = { v3ToF3(pos - camUp + camRight), float3(0.0f, 1.0f, 0.0f), float2(1.0f, 0.0f) };
-					tempVertexBuffer[j * 6 + 5] = { v3ToF3(pos + camUp - camRight), float3(0.0f, 1.0f, 0.0f), float2(0.0f, 1.0f) };
+					particleVertexData[j * 6 + 0] = { v3ToF3(pos - camUp - camRight), float3(0.0f, 1.0f, 0.0f), float2(0.0f, 0.0f) };
+					particleVertexData[j * 6 + 1] = { v3ToF3(pos + camUp - camRight), float3(0.0f, 1.0f, 0.0f), float2(0.0f, 1.0f) };
+					particleVertexData[j * 6 + 2] = { v3ToF3(pos - camUp + camRight), float3(0.0f, 1.0f, 0.0f), float2(1.0f, 0.0f) };
+					particleVertexData[j * 6 + 3] = { v3ToF3(pos + camUp + camRight), float3(0.0f, 1.0f, 0.0f), float2(1.0f, 1.0f) };
+					particleVertexData[j * 6 + 4] = { v3ToF3(pos - camUp + camRight), float3(0.0f, 1.0f, 0.0f), float2(1.0f, 0.0f) };
+					particleVertexData[j * 6 + 5] = { v3ToF3(pos + camUp - camRight), float3(0.0f, 1.0f, 0.0f), float2(0.0f, 1.0f) };
 				}
 			}
 
-			BufferUpdateDesc particleBufferUpdateDesc = { pParticleSystem->pParticleBuffer, tempVertexBuffer.data() };
-			particleBufferUpdateDesc.mSize = sizeof(Vertex) * 6 * pParticleSystem->mLifeParticleCount;
-			updateResource(&particleBufferUpdateDesc);
+			endUpdateResource(&particleBufferUpdateDesc, NULL);
 		}
 	}
 
@@ -1182,8 +1187,8 @@ class Transparency: public IApp
 		if (gTransparencyType == TRANSPARENCY_TYPE_PHENOMENOLOGICAL)
 		{
 			rt = pRenderTargetPTBackground;
-			TextureBarrier barrier = { rt->pTexture, RESOURCE_STATE_RENDER_TARGET };
-			cmdResourceBarrier(pCmd, 0, NULL, 1, &barrier);
+			RenderTargetBarrier barrier = { rt, RESOURCE_STATE_RENDER_TARGET };
+			cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 1, &barrier);
 		}
 
 		LoadActionsDesc loadActions = {};
@@ -1212,12 +1217,12 @@ class Transparency: public IApp
 	void ShadowPass(Cmd* pCmd)
 	{
 #if USE_SHADOWS != 0
-		TextureBarrier barriers[2] = {};
-		barriers[0].pTexture = pRenderTargetShadowVariance[0]->pTexture;
+		RenderTargetBarrier barriers[2] = {};
+		barriers[0].pRenderTarget = pRenderTargetShadowVariance[0];
 		barriers[0].mNewState = RESOURCE_STATE_RENDER_TARGET;
-		barriers[1].pTexture = pRenderTargetShadowDepth->pTexture;
+		barriers[1].pRenderTarget = pRenderTargetShadowDepth;
 		barriers[1].mNewState = RESOURCE_STATE_DEPTH_WRITE;
-		cmdResourceBarrier(pCmd, 0, NULL, 2, barriers);
+		cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 2, barriers);
 
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
@@ -1243,7 +1248,7 @@ class Transparency: public IApp
 
 		// Blur shadow map
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Blur shadow map");
-		loadActions.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
+		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 
 		for (int i = 0; i < 1; ++i)
@@ -1252,11 +1257,11 @@ class Transparency: public IApp
 
 			cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-			barriers[0].pTexture = pRenderTargetShadowVariance[0]->pTexture;
+			barriers[0].pRenderTarget = pRenderTargetShadowVariance[0];
 			barriers[0].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
-			barriers[1].pTexture = pRenderTargetShadowVariance[1]->pTexture;
+			barriers[1].pRenderTarget = pRenderTargetShadowVariance[1];
 			barriers[1].mNewState = RESOURCE_STATE_RENDER_TARGET;
-			cmdResourceBarrier(pCmd, 0, NULL, 2, barriers);
+			cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 2, barriers);
 
 			cmdBindRenderTargets(pCmd, 1, &pRenderTargetShadowVariance[1], NULL, &loadActions, NULL, NULL, -1, -1);
 
@@ -1267,11 +1272,11 @@ class Transparency: public IApp
 
 			cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-			barriers[0].pTexture = pRenderTargetShadowVariance[1]->pTexture;
+			barriers[0].pRenderTarget = pRenderTargetShadowVariance[1];
 			barriers[0].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
-			barriers[1].pTexture = pRenderTargetShadowVariance[0]->pTexture;
+			barriers[1].pRenderTarget = pRenderTargetShadowVariance[0];
 			barriers[1].mNewState = RESOURCE_STATE_RENDER_TARGET;
-			cmdResourceBarrier(pCmd, 0, NULL, 2, barriers);
+			cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 2, barriers);
 
 			cmdBindRenderTargets(pCmd, 1, &pRenderTargetShadowVariance[0], NULL, &loadActions, NULL, NULL, -1, -1);
 			cmdBindPipeline(pCmd, pPipelineGaussianBlur);
@@ -1286,9 +1291,9 @@ class Transparency: public IApp
 		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
 		cmdEndDebugMarker(pCmd);
 
-		barriers[0].pTexture = pRenderTargetShadowVariance[0]->pTexture;
+		barriers[0].pRenderTarget = pRenderTargetShadowVariance[0];
 		barriers[0].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
-		cmdResourceBarrier(pCmd, 0, NULL, 1, barriers);
+		cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 1, barriers);
 #endif
 	}
 
@@ -1451,7 +1456,7 @@ class Transparency: public IApp
 				}
 				else
 				{
-					cmdBindVertexBuffer(pCmd, 1, &pMeshes[dc->mMesh]->pVertexBuffer, NULL);
+					cmdBindVertexBuffer(pCmd, 1, &pMeshes[dc->mMesh]->pVertexBuffers[0], NULL);
 					if (pMeshes[dc->mMesh]->pIndexBuffer)
 						cmdBindIndexBuffer(pCmd, pMeshes[dc->mMesh]->pIndexBuffer, NULL);
 					vertexCount = pMeshes[dc->mMesh]->mVertexCount;
@@ -1495,10 +1500,10 @@ class Transparency: public IApp
 #if PT_USE_DIFFUSION != 0
 		if (gTransparencyType == TRANSPARENCY_TYPE_PHENOMENOLOGICAL)
 		{
-			TextureBarrier barrier = {};
-			barrier.pTexture = rt->pTexture;
+			RenderTargetBarrier barrier = {};
+			barrier.pRenderTarget = rt;
 			barrier.mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
-			cmdResourceBarrier(pCmd, 0, NULL, 1, &barrier);
+			cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 1, &barrier);
 
 			uint32_t mipSizeX = 1 << (uint32_t)ceil(log2((float)rt->mDesc.mWidth));
 			uint32_t mipSizeY = 1 << (uint32_t)ceil(log2((float)rt->mDesc.mHeight));
@@ -1520,9 +1525,9 @@ class Transparency: public IApp
 				cmdDispatch(pCmd, groupCountX, groupCountY, 1);
 			}
 
-			barrier.pTexture = rt->pTexture;
+			barrier.pRenderTarget = rt;
 			barrier.mNewState = RESOURCE_STATE_SHADER_RESOURCE;
-			cmdResourceBarrier(pCmd, 0, NULL, 1, &barrier);
+			cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 1, &barrier);
 		}
 #endif
 
@@ -1560,13 +1565,13 @@ class Transparency: public IApp
 		Pipeline*      pShadePipeline = volition ? pPipelineWBOITVShade : pPipelineWBOITShade;
 		Pipeline*      pCompositePipeline = volition ? pPipelineWBOITVComposite : pPipelineWBOITComposite;
 
-		TextureBarrier textureBarriers[WBOIT_RT_COUNT] = {};
+		RenderTargetBarrier textureBarriers[WBOIT_RT_COUNT] = {};
 		for (int i = 0; i < WBOIT_RT_COUNT; ++i)
 		{
-			textureBarriers[i].pTexture = pRenderTargetWBOIT[i]->pTexture;
+			textureBarriers[i].pRenderTarget = pRenderTargetWBOIT[i];
 			textureBarriers[i].mNewState = RESOURCE_STATE_RENDER_TARGET;
 		}
-		cmdResourceBarrier(pCmd, 0, NULL, WBOIT_RT_COUNT, textureBarriers);
+		cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, WBOIT_RT_COUNT, textureBarriers);
 
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
@@ -1597,10 +1602,10 @@ class Transparency: public IApp
 		// Composite WBOIT buffers
 		for (int i = 0; i < WBOIT_RT_COUNT; ++i)
 		{
-			textureBarriers[i].pTexture = pRenderTargetWBOIT[i]->pTexture;
+			textureBarriers[i].pRenderTarget = pRenderTargetWBOIT[i];
 			textureBarriers[i].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
 		}
-		cmdResourceBarrier(pCmd, 0, NULL, WBOIT_RT_COUNT, textureBarriers);
+		cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, WBOIT_RT_COUNT, textureBarriers);
 
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 		loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
@@ -1624,16 +1629,16 @@ class Transparency: public IApp
 
 	void PhenomenologicalTransparencyPass(Cmd* pCmd)
 	{
-		TextureBarrier  textureBarriers[PT_RT_COUNT + 1] = {};
+		RenderTargetBarrier  textureBarriers[PT_RT_COUNT + 1] = {};
 		LoadActionsDesc loadActions = {};
 
 #if PT_USE_DIFFUSION != 0
 		// Copy depth buffer
-		textureBarriers[0].pTexture = pRenderTargetDepth->pTexture;
+		textureBarriers[0].pRenderTarget = pRenderTargetDepth;
 		textureBarriers[0].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
-		textureBarriers[1].pTexture = pRenderTargetPTDepthCopy->pTexture;
+		textureBarriers[1].pRenderTarget = pRenderTargetPTDepthCopy;
 		textureBarriers[1].mNewState = RESOURCE_STATE_RENDER_TARGET;
-		cmdResourceBarrier(pCmd, 0, NULL, 2, textureBarriers);
+		cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 2, textureBarriers);
 
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
 		loadActions.mClearColorValues[0] = pRenderTargetPTDepthCopy->pTexture->mDesc.mClearValue;
@@ -1655,19 +1660,19 @@ class Transparency: public IApp
 		cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
 		cmdEndDebugMarker(pCmd);
 
-		textureBarriers[0].pTexture = pRenderTargetDepth->pTexture;
+		textureBarriers[0].pRenderTarget = pRenderTargetDepth;
 		textureBarriers[0].mNewState = RESOURCE_STATE_DEPTH_WRITE;
-		textureBarriers[1].pTexture = pRenderTargetPTDepthCopy->pTexture;
+		textureBarriers[1].pRenderTarget = pRenderTargetPTDepthCopy;
 		textureBarriers[1].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
-		cmdResourceBarrier(pCmd, 0, NULL, 2, textureBarriers);
+		cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 2, textureBarriers);
 #endif
 
 		for (int i = 0; i < PT_RT_COUNT; ++i)
 		{
-			textureBarriers[i].pTexture = pRenderTargetPT[i]->pTexture;
+			textureBarriers[i].pRenderTarget = pRenderTargetPT[i];
 			textureBarriers[i].mNewState = RESOURCE_STATE_RENDER_TARGET;
 		}
-		cmdResourceBarrier(pCmd, 0, NULL, PT_RT_COUNT, textureBarriers);
+		cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, PT_RT_COUNT, textureBarriers);
 
 		loadActions = {};
 		for (int i = 0; i < PT_RT_COUNT; ++i)
@@ -1698,12 +1703,12 @@ class Transparency: public IApp
 		// Composite PT buffers
 		for (int i = 0; i < PT_RT_COUNT; ++i)
 		{
-			textureBarriers[i].pTexture = pRenderTargetPT[i]->pTexture;
+			textureBarriers[i].pRenderTarget = pRenderTargetPT[i];
 			textureBarriers[i].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
 		}
-		textureBarriers[PT_RT_COUNT].pTexture = pRenderTargetPTBackground->pTexture;
+		textureBarriers[PT_RT_COUNT].pRenderTarget = pRenderTargetPTBackground;
 		textureBarriers[PT_RT_COUNT].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
-		cmdResourceBarrier(pCmd, 0, NULL, PT_RT_COUNT + 1, textureBarriers);
+		cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, PT_RT_COUNT + 1, textureBarriers);
 
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 		loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
@@ -1729,7 +1734,7 @@ class Transparency: public IApp
 	void AdaptiveOrderIndependentTransparency(Cmd* pCmd)
 	{
 		TextureBarrier textureBarrier = { pTextureAOITClearMask, RESOURCE_STATE_UNORDERED_ACCESS };
-		cmdResourceBarrier(pCmd, 0, NULL, 1, &textureBarrier);
+		cmdResourceBarrier(pCmd, 0, NULL, 1, &textureBarrier, 0, NULL);
 
 		// Clear AOIT buffers
 		LoadActionsDesc loadActions = {};
@@ -1756,10 +1761,10 @@ class Transparency: public IApp
 		// Start render pass and apply load actions
 		cmdBindRenderTargets(pCmd, 0, NULL, pRenderTargetDepth, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(
-			pCmd, 0.0f, 0.0f, (float)pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mWidth,
-			(float)pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mHeight, 0.0f, 1.0f);
+			pCmd, 0.0f, 0.0f, (float)pSwapChain->ppRenderTargets[0]->mDesc.mWidth,
+			(float)pSwapChain->ppRenderTargets[0]->mDesc.mHeight, 0.0f, 1.0f);
 		cmdSetScissor(
-			pCmd, 0, 0, pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mWidth, pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mHeight);
+			pCmd, 0, 0, pSwapChain->ppRenderTargets[0]->mDesc.mWidth, pSwapChain->ppRenderTargets[0]->mDesc.mHeight);
 
 		// Draw the transparent geometry.
 		cmdBeginDebugMarker(pCmd, 1, 0, 1, "Draw transparent geometry (AOIT)");
@@ -1784,7 +1789,7 @@ class Transparency: public IApp
 		bufferBarriers[1].pBuffer = pBufferAOITDepthData;
 		bufferBarrierCount = 2;
 #endif
-		cmdResourceBarrier(pCmd, bufferBarrierCount, bufferBarriers, 1, &textureBarrier);
+		cmdResourceBarrier(pCmd, bufferBarrierCount, bufferBarriers, 1, &textureBarrier, 0, NULL);
 
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 		loadActions.mLoadActionDepth = LOAD_ACTION_LOAD;
@@ -1824,39 +1829,54 @@ class Transparency: public IApp
 		/************************************************************************/
 		// Update uniform buffers
 		/************************************************************************/
-		BufferUpdateDesc materialBufferUpdateDesc = { pBufferMaterials[gFrameIndex], &gMaterialUniformData };
-		updateResource(&materialBufferUpdateDesc);
-		BufferUpdateDesc opaqueBufferUpdateDesc = { pBufferOpaqueObjectTransforms[gFrameIndex], &gObjectInfoUniformData };
-		updateResource(&opaqueBufferUpdateDesc);
-		BufferUpdateDesc transparentBufferUpdateDesc = { pBufferTransparentObjectTransforms[gFrameIndex],
-														 &gTransparentObjectInfoUniformData };
-		updateResource(&transparentBufferUpdateDesc);
+		BufferUpdateDesc materialBufferUpdateDesc = { pBufferMaterials[gFrameIndex] };
+		beginUpdateResource(&materialBufferUpdateDesc);
+		*(MaterialUniformBlock*)materialBufferUpdateDesc.pMappedData = gMaterialUniformData;
+		endUpdateResource(&materialBufferUpdateDesc, NULL);
+		BufferUpdateDesc opaqueBufferUpdateDesc = { pBufferOpaqueObjectTransforms[gFrameIndex] };
+		beginUpdateResource(&opaqueBufferUpdateDesc);
+		*(ObjectInfoUniformBlock*)opaqueBufferUpdateDesc.pMappedData = gObjectInfoUniformData;
+		endUpdateResource(&opaqueBufferUpdateDesc, NULL);
+		BufferUpdateDesc transparentBufferUpdateDesc = { pBufferTransparentObjectTransforms[gFrameIndex] };
+		beginUpdateResource(&transparentBufferUpdateDesc);
+		*(ObjectInfoUniformBlock*)transparentBufferUpdateDesc.pMappedData = gTransparentObjectInfoUniformData;
+		endUpdateResource(&transparentBufferUpdateDesc, NULL);
 
-		BufferUpdateDesc cameraCbv = { pBufferCameraUniform[gFrameIndex], &gCameraUniformData };
-		updateResource(&cameraCbv);
+		BufferUpdateDesc cameraCbv = { pBufferCameraUniform[gFrameIndex] };
+		beginUpdateResource(&cameraCbv);
+		*(CameraUniform*)cameraCbv.pMappedData = gCameraUniformData;
+		endUpdateResource(&cameraCbv, NULL);
 
-		BufferUpdateDesc cameraLightBufferCbv = { pBufferCameraLightUniform[gFrameIndex], &gCameraLightUniformData };
-		updateResource(&cameraLightBufferCbv);
+		BufferUpdateDesc cameraLightBufferCbv = { pBufferCameraLightUniform[gFrameIndex] };
+		beginUpdateResource(&cameraLightBufferCbv);
+		*(CameraUniform*)cameraLightBufferCbv.pMappedData = gCameraLightUniformData;
+		endUpdateResource(&cameraLightBufferCbv, NULL);
 
-		BufferUpdateDesc skyboxViewProjCbv = { pBufferSkyboxUniform[gFrameIndex], &gSkyboxUniformData };
-		updateResource(&skyboxViewProjCbv);
+		BufferUpdateDesc skyboxViewProjCbv = { pBufferSkyboxUniform[gFrameIndex] };
+		beginUpdateResource(&skyboxViewProjCbv);
+		*(SkyboxUniformBlock*)skyboxViewProjCbv.pMappedData = gSkyboxUniformData;
+		endUpdateResource(&skyboxViewProjCbv, NULL);
 
-		BufferUpdateDesc lightBufferCbv = { pBufferLightUniform[gFrameIndex], &gLightUniformData };
-		updateResource(&lightBufferCbv);
+		BufferUpdateDesc lightBufferCbv = { pBufferLightUniform[gFrameIndex] };
+		beginUpdateResource(&lightBufferCbv);
+		*(LightUniformBlock*)lightBufferCbv.pMappedData = gLightUniformData;
+		endUpdateResource(&lightBufferCbv, NULL);
 		/************************************************************************/
 		// Update transparency settings
 		/************************************************************************/
 		if (gTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT)
 		{
-			BufferUpdateDesc wboitSettingsUpdateDesc = { pBufferWBOITSettings[gFrameIndex], &gWBOITSettingsData };
-			wboitSettingsUpdateDesc.mSize = sizeof(WBOITSettings);
-			updateResource(&wboitSettingsUpdateDesc);
+			BufferUpdateDesc wboitSettingsUpdateDesc = { pBufferWBOITSettings[gFrameIndex] };
+			beginUpdateResource(&wboitSettingsUpdateDesc);
+			*(WBOITSettings*)wboitSettingsUpdateDesc.pMappedData = gWBOITSettingsData;
+			endUpdateResource(&wboitSettingsUpdateDesc, NULL);
 		}
 		else if (gTransparencyType == TRANSPARENCY_TYPE_WEIGHTED_BLENDED_OIT_VOLITION)
 		{
-			BufferUpdateDesc wboitSettingsUpdateDesc = { pBufferWBOITSettings[gFrameIndex], &gWBOITVolitionSettingsData };
-			wboitSettingsUpdateDesc.mSize = sizeof(WBOITVolitionSettings);
-			updateResource(&wboitSettingsUpdateDesc);
+			BufferUpdateDesc wboitSettingsUpdateDesc = { pBufferWBOITSettings[gFrameIndex] };
+			beginUpdateResource(&wboitSettingsUpdateDesc);
+			*(WBOITVolitionSettings*)wboitSettingsUpdateDesc.pMappedData = gWBOITVolitionSettingsData;
+			endUpdateResource(&wboitSettingsUpdateDesc, NULL);
 		}
 		/************************************************************************/
 		// Rendering
@@ -1864,14 +1884,14 @@ class Transparency: public IApp
 		// Get command list to store rendering commands for this frame
 		Cmd* pCmd = ppCmds[gFrameIndex];
 
-		pRenderTargetScreen = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+		pRenderTargetScreen = pSwapChain->ppRenderTargets[gFrameIndex];
 		beginCmd(pCmd);
 		cmdBeginGpuFrameProfile(pCmd, pGpuProfiler);
-		TextureBarrier barriers1[] = {
-			{ pRenderTargetScreen->pTexture, RESOURCE_STATE_RENDER_TARGET },
-			{ pRenderTargetDepth->pTexture, RESOURCE_STATE_DEPTH_WRITE },
+		RenderTargetBarrier barriers1[] = {
+			{ pRenderTargetScreen, RESOURCE_STATE_RENDER_TARGET },
+			{ pRenderTargetDepth, RESOURCE_STATE_DEPTH_WRITE },
 		};
-		cmdResourceBarrier(pCmd, 0, NULL, 2, barriers1);
+		cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 2, barriers1);
 
 		DrawSkybox(pCmd);
 		ShadowPass(pCmd);
@@ -1925,14 +1945,28 @@ class Transparency: public IApp
 		cmdEndDebugMarker(pCmd);
 		////////////////////////////////////////////////////////
 
-		barriers1[0] = { pRenderTargetScreen->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(pCmd, 0, NULL, 1, barriers1);
+		barriers1[0] = { pRenderTargetScreen, RESOURCE_STATE_PRESENT };
+		cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 1, barriers1);
 
 		cmdEndGpuFrameProfile(pCmd, pGpuProfiler);
 		endCmd(pCmd);
 
-		queueSubmit(pGraphicsQueue, 1, &pCmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
-		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		QueueSubmitDesc submitDesc = {};
+		submitDesc.mCmdCount = 1;
+		submitDesc.mSignalSemaphoreCount = 1;
+		submitDesc.mWaitSemaphoreCount = 1;
+		submitDesc.ppCmds = &pCmd;
+		submitDesc.ppSignalSemaphores = &pRenderCompleteSemaphore;
+		submitDesc.ppWaitSemaphores = &pImageAcquiredSemaphore;
+		submitDesc.pSignalFence = pRenderCompleteFence;
+		queueSubmit(pGraphicsQueue, &submitDesc);
+		QueuePresentDesc presentDesc = {};
+		presentDesc.mIndex = gFrameIndex;
+		presentDesc.mWaitSemaphoreCount = 1;
+		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
+		presentDesc.pSwapChain = pSwapChain;
+		presentDesc.mSubmitDone = true;
+		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
 	}
 
@@ -2834,7 +2868,6 @@ class Transparency: public IApp
 
 	void CreateResources()
 	{
-		LoadModels();
 		LoadTextures();
 
 		const float gSkyboxPointArray[] = {
@@ -2871,14 +2904,14 @@ class Transparency: public IApp
 		skyboxVbDesc.mDesc.mVertexStride = sizeof(float) * 4;
 		skyboxVbDesc.pData = gSkyboxPointArray;
 		skyboxVbDesc.ppBuffer = &pBufferSkyboxVertex;
-		addResource(&skyboxVbDesc);
+		addResource(&skyboxVbDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 #if USE_SHADOWS != 0
 		const uint shadowMapResolution = 1024;
 
 		RenderTargetDesc renderTargetDesc = {};
 		renderTargetDesc.mArraySize = 1;
-		renderTargetDesc.mClearValue = { 1.0f, 1.0f, 1.0f, 1.0f };
+		renderTargetDesc.mClearValue = { {{1.0f, 1.0f, 1.0f, 1.0f}} };
 		renderTargetDesc.mDepth = 1;
 		renderTargetDesc.mFormat = TinyImageFormat_R16G16_SFLOAT;
 		renderTargetDesc.mWidth = shadowMapResolution;
@@ -2891,7 +2924,7 @@ class Transparency: public IApp
 
 		RenderTargetDesc shadowRT = {};
 		shadowRT.mArraySize = 1;
-		shadowRT.mClearValue = { 1.0f, 0.0f };
+		shadowRT.mClearValue = { {{1.0f, 0.0f}} };
 		shadowRT.mDepth = 1;
 		shadowRT.mFormat = TinyImageFormat_D16_UNORM;
 		shadowRT.mWidth = shadowMapResolution;
@@ -2956,84 +2989,47 @@ class Transparency: public IApp
 		DestroyModels();
 	}
 
+	void LoadModel(size_t m)
+	{
+		static const char* modelNames[MESH_COUNT] = { "cube.gltf", "sphere.gltf", "plane.gltf", "lion.gltf" };
+
+		PathHandle modelPath = fsCopyPathInResourceDirectory(RD_MESHES, modelNames[m]);
+		GeometryLoadDesc loadDesc = {};
+		loadDesc.pFilePath = modelPath;
+		loadDesc.ppGeometry = &pMeshes[m];
+		loadDesc.pVertexLayout = &vertexLayoutDefault;
+		addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+	}
+
 	void LoadModels()
 	{
-		AssimpImporter          importer;
-		eastl::vector<Vertex> vertices = {};
-		eastl::vector<uint>   indices = {};
+		vertexLayoutDefault.mAttribCount = 3;
+		vertexLayoutDefault.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+		vertexLayoutDefault.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		vertexLayoutDefault.mAttribs[0].mBinding = 0;
+		vertexLayoutDefault.mAttribs[0].mLocation = 0;
+		vertexLayoutDefault.mAttribs[0].mOffset = 0;
+		vertexLayoutDefault.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
+		vertexLayoutDefault.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		vertexLayoutDefault.mAttribs[1].mBinding = 0;
+		vertexLayoutDefault.mAttribs[1].mLocation = 1;
+		vertexLayoutDefault.mAttribs[1].mOffset = 3 * sizeof(float);
+		vertexLayoutDefault.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
+		vertexLayoutDefault.mAttribs[2].mFormat = TinyImageFormat_R32G32_SFLOAT;
+		vertexLayoutDefault.mAttribs[2].mBinding = 0;
+		vertexLayoutDefault.mAttribs[2].mLocation = 2;
+		vertexLayoutDefault.mAttribs[2].mOffset = 6 * sizeof(float);
 
-		const char* modelNames[MESH_COUNT] = { "cube.obj", "sphere.obj", "plane.obj", "lion.obj" };
-
-		for (int m = 0; m < MESH_COUNT; ++m)
+		for (size_t i = 0; i < MESH_COUNT; i += 1)
 		{
-			AssimpImporter::Model model;
-            PathHandle modelPath = fsCopyPathInResourceDirectory(RD_MESHES, modelNames[m]);
-			if (importer.ImportModel(modelPath, &model))
-			{
-				vertices.clear();
-				indices.clear();
-
-				for (size_t i = 0; i < model.mMeshArray.size(); ++i)
-				{
-					AssimpImporter::Mesh* mesh = &model.mMeshArray[i];
-					vertices.reserve(vertices.size() + mesh->mPositions.size());
-					indices.reserve(indices.size() + mesh->mIndices.size());
-
-					for (size_t v = 0; v < mesh->mPositions.size(); ++v)
-					{
-						Vertex vertex = { float3(0.0f), float3(0.0f, 1.0f, 0.0f) };
-						vertex.mPosition = mesh->mPositions[v];
-						vertex.mNormal = mesh->mNormals[v];
-						vertex.mUV = mesh->mUvs[v];
-						vertices.push_back(vertex);
-					}
-
-					for (size_t j = 0; j < mesh->mIndices.size(); ++j)
-						indices.push_back(mesh->mIndices[j]);
-				}
-
-				MeshData* meshData = conf_placement_new<MeshData>(conf_malloc(sizeof(MeshData)));
-				meshData->mVertexCount = (uint)vertices.size();
-				meshData->mIndexCount = (uint)indices.size();
-
-				BufferLoadDesc vertexBufferDesc = {};
-				vertexBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-				vertexBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-				vertexBufferDesc.mDesc.mSize = sizeof(Vertex) * meshData->mVertexCount;
-				vertexBufferDesc.mDesc.mVertexStride = sizeof(Vertex);
-				vertexBufferDesc.pData = vertices.data();
-				vertexBufferDesc.ppBuffer = &meshData->pVertexBuffer;
-				addResource(&vertexBufferDesc);
-
-				if (meshData->mIndexCount > 0)
-				{
-					BufferLoadDesc indexBufferDesc = {};
-					indexBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
-					indexBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-					indexBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
-					indexBufferDesc.mDesc.mSize = sizeof(uint) * meshData->mIndexCount;
-					indexBufferDesc.mDesc.mIndexType = INDEX_TYPE_UINT32;
-					indexBufferDesc.pData = indices.data();
-					indexBufferDesc.ppBuffer = &meshData->pIndexBuffer;
-					addResource(&indexBufferDesc);
-				}
-
-				pMeshes[m] = meshData;
-			}
-			else
-				LOGF(eERROR, "Failed to load model.");
+			LoadModel(i);
 		}
 	}
 
 	void DestroyModels()
 	{
 		for (int i = 0; i < MESH_COUNT; ++i)
-		{
-			removeResource(pMeshes[i]->pVertexBuffer);
-			if (pMeshes[i]->pIndexBuffer)
-				removeResource(pMeshes[i]->pIndexBuffer);
-			conf_free(pMeshes[i]);
-		}
+			removeResource(pMeshes[i]);
 	}
 
 	void LoadTextures()
@@ -3054,7 +3050,7 @@ class Transparency: public IApp
 			TextureLoadDesc textureDesc = {};
 			textureDesc.pFilePath = path;
 			textureDesc.ppTexture = &pTextures[i];
-			addResource(&textureDesc, true);
+			addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 	}
 
@@ -3075,7 +3071,7 @@ class Transparency: public IApp
 		for (int i = 0; i < gImageCount; ++i)
 		{
 			materialUBDesc.ppBuffer = &pBufferMaterials[i];
-			addResource(&materialUBDesc);
+			addResource(&materialUBDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
 		BufferLoadDesc ubDesc = {};
@@ -3087,12 +3083,12 @@ class Transparency: public IApp
 		for (int i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pBufferOpaqueObjectTransforms[i];
-			addResource(&ubDesc);
+			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 		for (int i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pBufferTransparentObjectTransforms[i];
-			addResource(&ubDesc);
+			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
 		BufferLoadDesc skyboxDesc = {};
@@ -3104,7 +3100,7 @@ class Transparency: public IApp
 		for (int i = 0; i < gImageCount; ++i)
 		{
 			skyboxDesc.ppBuffer = &pBufferSkyboxUniform[i];
-			addResource(&skyboxDesc);
+			addResource(&skyboxDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
 		BufferLoadDesc camUniDesc = {};
@@ -3116,7 +3112,7 @@ class Transparency: public IApp
 		for (int i = 0; i < gImageCount; ++i)
 		{
 			camUniDesc.ppBuffer = &pBufferCameraUniform[i];
-			addResource(&camUniDesc);
+			addResource(&camUniDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
 		BufferLoadDesc camLightUniDesc = {};
@@ -3128,7 +3124,7 @@ class Transparency: public IApp
 		for (int i = 0; i < gImageCount; ++i)
 		{
 			camLightUniDesc.ppBuffer = &pBufferCameraLightUniform[i];
-			addResource(&camLightUniDesc);
+			addResource(&camLightUniDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
 		BufferLoadDesc lightUniformDesc = {};
@@ -3140,7 +3136,7 @@ class Transparency: public IApp
 		for (int i = 0; i < gImageCount; ++i)
 		{
 			lightUniformDesc.ppBuffer = &pBufferLightUniform[i];
-			addResource(&lightUniformDesc);
+			addResource(&lightUniformDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 		BufferLoadDesc wboitSettingsDesc = {};
 		wboitSettingsDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -3151,7 +3147,7 @@ class Transparency: public IApp
 		for (int i = 0; i < gImageCount; ++i)
 		{
 			wboitSettingsDesc.ppBuffer = &pBufferWBOITSettings[i];
-			addResource(&wboitSettingsDesc);
+			addResource(&wboitSettingsDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 	}
 
@@ -3178,11 +3174,10 @@ class Transparency: public IApp
 		const uint32_t width = mSettings.mWidth;
 		const uint32_t height = mSettings.mHeight;
 
-		const ClearValue depthClear = { 1.0f, 0 };
-		const ClearValue colorClearBlack = { 0.0f, 0.0f, 0.0f, 0.0f };
-		const ClearValue colorClearWhite = { 1.0f, 1.0f, 1.0f, 1.0f };
-		const ClearValue colorClearTransparentWhite = { 1.0f, 1.0f, 1.0f, 0.0f };
-
+		const ClearValue depthClear = { {{1.0f, 0}} };
+		const ClearValue colorClearBlack = { {{0.0f, 0.0f, 0.0f, 0.0f}} };
+		const ClearValue colorClearWhite = { {{1.0f, 1.0f, 1.0f, 1.0f}} };
+		const ClearValue colorClearTransparentWhite = { {{1.0f, 1.0f, 1.0f, 0.0f}} };
 		/************************************************************************/
 		// Main depth buffer
 		/************************************************************************/
@@ -3218,7 +3213,7 @@ class Transparency: public IApp
 			swapChainDesc.mImageCount = gImageCount;
 			swapChainDesc.mSampleCount = SAMPLE_COUNT_1;
 			swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
-			swapChainDesc.mColorClearValue = { 1, 0, 1, 1 };
+			swapChainDesc.mColorClearValue = { {{1, 0, 1, 1}} };
 
 			swapChainDesc.mEnableVsync = false;
 			::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
@@ -3226,7 +3221,6 @@ class Transparency: public IApp
 			if (pSwapChain == NULL)
 				return false;
 		}
-
 		/************************************************************************/
 		// WBOIT render targets
 		/************************************************************************/
@@ -3310,7 +3304,7 @@ class Transparency: public IApp
 			TextureLoadDesc aoitClearMaskTextureLoadDesc = {};
 			aoitClearMaskTextureLoadDesc.pDesc = &aoitClearMaskTextureDesc;
 			aoitClearMaskTextureLoadDesc.ppTexture = &pTextureAOITClearMask;
-			addResource(&aoitClearMaskTextureLoadDesc);
+			addResource(&aoitClearMaskTextureLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 #if AOIT_NODE_COUNT != 2
 			BufferLoadDesc aoitDepthDataLoadDesc = {};
@@ -3322,7 +3316,7 @@ class Transparency: public IApp
 			aoitDepthDataLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_BUFFER;
 			aoitDepthDataLoadDesc.mDesc.pDebugName = L"AOIT Depth Data";
 			aoitDepthDataLoadDesc.ppBuffer = &pBufferAOITDepthData;
-			addResource(&aoitDepthDataLoadDesc);
+			addResource(&aoitDepthDataLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
 #endif
 
 			BufferLoadDesc aoitColorDataLoadDesc = {};
@@ -3334,7 +3328,7 @@ class Transparency: public IApp
 			aoitColorDataLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_BUFFER;
 			aoitColorDataLoadDesc.mDesc.pDebugName = L"AOIT Color Data";
 			aoitColorDataLoadDesc.ppBuffer = &pBufferAOITColorData;
-			addResource(&aoitColorDataLoadDesc);
+			addResource(&aoitColorDataLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 #endif
 
@@ -3380,24 +3374,6 @@ class Transparency: public IApp
 		vertexLayoutSkybox.mAttribs[0].mBinding = 0;
 		vertexLayoutSkybox.mAttribs[0].mLocation = 0;
 		vertexLayoutSkybox.mAttribs[0].mOffset = 0;
-
-		VertexLayout vertexLayoutDefault = {};
-		vertexLayoutDefault.mAttribCount = 3;
-		vertexLayoutDefault.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		vertexLayoutDefault.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayoutDefault.mAttribs[0].mBinding = 0;
-		vertexLayoutDefault.mAttribs[0].mLocation = 0;
-		vertexLayoutDefault.mAttribs[0].mOffset = 0;
-		vertexLayoutDefault.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
-		vertexLayoutDefault.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		vertexLayoutDefault.mAttribs[1].mBinding = 0;
-		vertexLayoutDefault.mAttribs[1].mLocation = 1;
-		vertexLayoutDefault.mAttribs[1].mOffset = 3 * sizeof(float);
-		vertexLayoutDefault.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayoutDefault.mAttribs[2].mFormat = TinyImageFormat_R32G32_SFLOAT;
-		vertexLayoutDefault.mAttribs[2].mBinding = 0;
-		vertexLayoutDefault.mAttribs[2].mLocation = 2;
-		vertexLayoutDefault.mAttribs[2].mOffset = 6 * sizeof(float);
 
 		// Skybox pipeline
 		PipelineDesc desc = {};
@@ -3647,7 +3623,7 @@ class Transparency: public IApp
 		addPipeline(pRenderer, &desc, &pPipelinePTComposite);
 
 #if PT_USE_DIFFUSION != 0
-		TinyImageFormat ptCopyDepthFormat = TinyImageFormat_R32_SFLOAT;
+		TinyImageFormat ptCopyDepthFormat = pRenderTargetPTDepthCopy->mDesc.mFormat;
 
 		// PT copy depth pipeline
 		desc.mGraphicsDesc = {};

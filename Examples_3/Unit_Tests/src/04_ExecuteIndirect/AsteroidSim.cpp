@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -50,7 +50,7 @@
 
 #include "AsteroidSim.h"
 #include "Random.h"
-#if !defined(TARGET_IOS) && !defined(__ANDROID__)
+#if !defined(TARGET_IOS) && !defined(__ANDROID__) && !defined(NX64)
 #include <immintrin.h>
 #endif
 
@@ -179,7 +179,7 @@ void AsteroidSimulation::Update(float deltaTime, unsigned startIdx, unsigned end
 			staticAsteroid.rotationSpeed * deltaTime,
 			vec3(staticAsteroid.rotationAxis.getX(), staticAsteroid.rotationAxis.getY(), staticAsteroid.rotationAxis.getZ()));
 
-#if defined(_DURANGO) || defined(TARGET_IOS)
+#if defined(_DURANGO) || defined(TARGET_IOS) || defined(NX64)
 		// XBoxOne/iOS don't support some of these SSE instructions.
 		// 0xC000001D: Illegal Instruction
 		// Implement it without SSE

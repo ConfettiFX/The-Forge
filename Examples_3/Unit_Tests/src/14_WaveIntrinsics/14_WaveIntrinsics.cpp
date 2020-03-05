@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -36,7 +36,7 @@
 #include "../../../../Common_3/OS/Interfaces/IInput.h"
 #include "../../../../Middleware_3/UI/AppUI.h"
 #include "../../../../Common_3/Renderer/IRenderer.h"
-#include "../../../../Common_3/Renderer/ResourceLoader.h"
+#include "../../../../Common_3/Renderer/IResourceLoader.h"
 
 //Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
@@ -170,10 +170,15 @@ class WaveIntrinsics: public IApp
 #endif
 
 		QueueDesc queueDesc = {};
-		queueDesc.mType = CMD_POOL_DIRECT;
+		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		addCmdPool(pRenderer, pGraphicsQueue, false, &pCmdPool);
-		addCmd_n(pCmdPool, false, gImageCount, &ppCmds);
+		CmdPoolDesc cmdPoolDesc = {};
+		cmdPoolDesc.pQueue = pGraphicsQueue;
+		addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
+		CmdDesc cmdDesc = {};
+		cmdDesc.pPool = pCmdPool;
+		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -259,7 +264,7 @@ class WaveIntrinsics: public IApp
 		triangleColorDesc.mDesc.mSize = sizeof(triangleVertices);
 		triangleColorDesc.pData = triangleVertices;
 		triangleColorDesc.ppBuffer = &pVertexBufferTriangle;
-		addResource(&triangleColorDesc);
+		addResource(&triangleColorDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		// Define the geometry for a rectangle.
 		Vertex2 quadVertices[] = { { { -1.0f, -1.0f, 0.0f }, { 0.0f, 1.0f } }, { { -1.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
@@ -275,7 +280,7 @@ class WaveIntrinsics: public IApp
 		quadUVDesc.mDesc.mSize = sizeof(quadVertices);
 		quadUVDesc.pData = quadVertices;
 		quadUVDesc.ppBuffer = &pVertexBufferQuad;
-		addResource(&quadUVDesc);
+		addResource(&quadUVDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		BufferLoadDesc ubDesc = {};
 		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -286,10 +291,10 @@ class WaveIntrinsics: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pUniformBuffer[i];
-			addResource(&ubDesc);
+			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
-		finishResourceLoading();
+		waitForAllResourceLoads();
 
 		if (!gAppUI.Init(pRenderer))
 			return false;
@@ -399,11 +404,11 @@ class WaveIntrinsics: public IApp
 		}
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
 
-		removeCmd_n(pCmdPool, gImageCount, ppCmds);
+		removeCmd_n(pRenderer, gImageCount, ppCmds);
 		removeCmdPool(pRenderer, pCmdPool);
 
-		removeResourceLoaderInterface(pRenderer);
-		removeQueue(pGraphicsQueue);
+		exitResourceLoaderInterface(pRenderer);
+		removeQueue(pRenderer, pGraphicsQueue);
 		removeRenderer(pRenderer);
 	}
 
@@ -415,7 +420,7 @@ class WaveIntrinsics: public IApp
 		if (!addIntermediateRenderTarget())
 			return false;
 
-		if (!gAppUI.Load(pSwapChain->ppSwapchainRenderTargets))
+		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
 			return false;
 
 		//layout and pipeline for sphere draw
@@ -438,9 +443,9 @@ class WaveIntrinsics: public IApp
 		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 		pipelineSettings.mRenderTargetCount = 1;
 		pipelineSettings.pDepthState = pDepthNone;
-		pipelineSettings.pColorFormats = &pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppSwapchainRenderTargets[0]->mDesc.mSampleQuality;
+		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mDesc.mFormat;
+		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mDesc.mSampleCount;
+		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mDesc.mSampleQuality;
 		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pShaderProgram = pShaderWave;
 		pipelineSettings.pVertexLayout = &vertexLayout;
@@ -503,7 +508,7 @@ class WaveIntrinsics: public IApp
 		if (pMovePosition)
 			gSceneData.mousePosition = *pMovePosition;
 
-		gSceneData.mousePosition += gMoveDelta;
+		gSceneData.mousePosition += float2(gMoveDelta.x, -gMoveDelta.y);
 	}
 
 	void Draw()
@@ -520,11 +525,13 @@ class WaveIntrinsics: public IApp
 		/************************************************************************/
 		// Scene Update
 		/************************************************************************/
-		BufferUpdateDesc viewProjCbv = { pUniformBuffer[gFrameIndex], &gSceneData };
-		updateResource(&viewProjCbv);
+		BufferUpdateDesc viewProjCbv = { pUniformBuffer[gFrameIndex] };
+		beginUpdateResource(&viewProjCbv);
+		*(SceneConstantBuffer*)viewProjCbv.pMappedData = gSceneData;
+		endUpdateResource(&viewProjCbv, NULL);
 
 		RenderTarget* pRenderTarget = pRenderTargetIntermediate;
-		RenderTarget* pScreenRenderTarget = pSwapChain->ppSwapchainRenderTargets[gFrameIndex];
+		RenderTarget* pScreenRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
 
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence*     pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
@@ -537,11 +544,11 @@ class WaveIntrinsics: public IApp
 		Cmd* cmd = ppCmds[gFrameIndex];
 		beginCmd(cmd);
 
-		TextureBarrier rtBarrier[] = {
-			{ pRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
-			{ pScreenRenderTarget->pTexture, RESOURCE_STATE_RENDER_TARGET },
+		RenderTargetBarrier rtBarrier[] = {
+			{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
+			{ pScreenRenderTarget, RESOURCE_STATE_RENDER_TARGET },
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 2, rtBarrier);
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, rtBarrier);
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mDesc.mWidth, (float)pRenderTarget->mDesc.mHeight, 0.0f, 1.0f);
@@ -558,10 +565,10 @@ class WaveIntrinsics: public IApp
 
 		// magnify
 		cmdBeginDebugMarker(cmd, 1, 0, 1, "Magnify");
-		TextureBarrier srvBarrier[] = {
-			{ pRenderTarget->pTexture, RESOURCE_STATE_SHADER_RESOURCE },
+		RenderTargetBarrier srvBarrier[] = {
+			{ pRenderTarget, RESOURCE_STATE_SHADER_RESOURCE },
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 1, srvBarrier);
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, srvBarrier);
 
 		loadActions.mClearColorValues[0] = pScreenRenderTarget->mDesc.mClearValue;
 		cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
@@ -586,12 +593,26 @@ class WaveIntrinsics: public IApp
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndDebugMarker(cmd);
 
-		TextureBarrier presentBarrier = { pScreenRenderTarget->pTexture, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(cmd, 0, NULL, 1, &presentBarrier);
+		RenderTargetBarrier presentBarrier = { pScreenRenderTarget, RESOURCE_STATE_PRESENT };
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &presentBarrier);
 		endCmd(cmd);
 
-		queueSubmit(pGraphicsQueue, 1, &cmd, pRenderCompleteFence, 1, &pImageAcquiredSemaphore, 1, &pRenderCompleteSemaphore);
-		queuePresent(pGraphicsQueue, pSwapChain, gFrameIndex, 1, &pRenderCompleteSemaphore);
+		QueueSubmitDesc submitDesc = {};
+		submitDesc.mCmdCount = 1;
+		submitDesc.mSignalSemaphoreCount = 1;
+		submitDesc.mWaitSemaphoreCount = 1;
+		submitDesc.ppCmds = &cmd;
+		submitDesc.ppSignalSemaphores = &pRenderCompleteSemaphore;
+		submitDesc.ppWaitSemaphores = &pImageAcquiredSemaphore;
+		submitDesc.pSignalFence = pRenderCompleteFence;
+		queueSubmit(pGraphicsQueue, &submitDesc);
+		QueuePresentDesc presentDesc = {};
+		presentDesc.mIndex = gFrameIndex;
+		presentDesc.mWaitSemaphoreCount = 1;
+		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
+		presentDesc.pSwapChain = pSwapChain;
+		presentDesc.mSubmitDone = true;
+		queuePresent(pGraphicsQueue, &presentDesc);
 	}
 
 	const char* GetName() { return "14_WaveIntrinsics"; }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019 Confetti Interactive Inc.
+ * Copyright (c) 2018-2020 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -24,6 +24,7 @@
 
 #define _USE_MATH_DEFINES
 #include "../Interfaces/ICameraController.h"
+// Include this file as last include in all cpp files allocating memory
 #include "../Interfaces/IMemory.h"
 
 static const float k_scrollSpeed = -5.0f;
@@ -31,7 +32,7 @@ static const float k_RotationSpeed = 0.016f;
 
 class FpsCameraController: public ICameraController
 {
-	public:
+public:
 	FpsCameraController():
 		viewRotation{ 0 },
 		viewPosition{ 0 },
