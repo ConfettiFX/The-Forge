@@ -614,7 +614,7 @@ public:
             }
             else if (strcmp(argv[i], "-o") == 0 && i + 1 < argc)
             {
-                mOutput = argv[i + 1];
+				strcpy(mOutput, argv[i + 1]);
             }
         }
     }
@@ -956,7 +956,7 @@ public:
 
         if (mBenchmark)
         {
-            dumpProfileData(mOutput.c_str(), nBenchmarkFrames);
+            dumpProfileData(mOutput, nBenchmarkFrames);
         }
 
 		exitProfiler();
@@ -1554,7 +1554,7 @@ private:
     uint32_t                nFrameCount = 0;
     uint32_t                nBenchmarkFrames = 64;
 	bool					mBenchmark  = false;
-    eastl::string           mOutput = "";
+	char					mOutput[1024] = "\0";
 	
 	Renderer*			   pRenderer;
 	Raytracing*			 pRaytracing;

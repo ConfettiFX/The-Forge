@@ -567,12 +567,10 @@ static void onResize(WindowsDesc* wnd, int32_t newSizeX, int32_t newSizeY)
 {
 	if (!pApp)
 		return;
-
+	
 	pApp->mSettings.mWidth = newSizeX;
 	pApp->mSettings.mHeight = newSizeY;
 
-    if (pApp->mSettings.mFullScreen == wnd->fullScreen)
-        return;
 	pApp->mSettings.mFullScreen = wnd->fullScreen;
 	pApp->Unload();
 	pApp->Load();
@@ -615,7 +613,6 @@ int WindowsMain(int argc, char** argv, IApp* app)
 		pSettings->mHeight = getRectHeight(rect); 
 	}
 
-	window.callbacks.onResize = onResize;
 
 	window.windowedRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
 	window.fullScreen = pSettings->mFullScreen;
@@ -638,6 +635,9 @@ int WindowsMain(int argc, char** argv, IApp* app)
 			return EXIT_FAILURE;
 		LOGF(LogLevel::eINFO, "Application Init+Load %f", t.GetMSec(false)/1000.0f);
 	}
+
+	// register callback after app has loaded since the callback needs to unload
+	window.callbacks.onResize = onResize;
 
 	bool quit = false;
 
