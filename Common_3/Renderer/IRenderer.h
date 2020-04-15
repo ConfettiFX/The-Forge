@@ -98,7 +98,6 @@ enum
 #define ENABLE_RAYTRACING
 #endif
 #elif defined(DIRECT3D12)
-//#define USE_PIX
 
 // Raytracing
 #ifdef D3D12_RAYTRACING_AABB_BYTE_ALIGNMENT

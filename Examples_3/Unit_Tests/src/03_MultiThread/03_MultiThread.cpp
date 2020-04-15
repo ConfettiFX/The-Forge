@@ -247,12 +247,15 @@ class MultiThread: public IApp
         
 		InitCpuUsage();
 
+		// gThreadCount is the amount of secondary threads: the amount of physical cores except the main thread
 		gThreadCount = gCoresCount - 1;
 		pThreadData = (ThreadData*)conf_calloc(gThreadCount, sizeof(ThreadData));
-        pGpuProfiletokens = (ProfileToken*)conf_calloc(gThreadCount, sizeof(ProfileToken));
-        eastl::string* ppGpuProfileNames = (eastl::string*)conf_calloc(gThreadCount, sizeof(eastl::string));
-        const char** ppConstGpuProfileNames = (const char**)conf_calloc(gThreadCount, sizeof(const char*));
-        Queue** ppQueues = (Queue**)conf_calloc(gThreadCount, sizeof(Queue*));
+
+		// This information is per core
+        pGpuProfiletokens = (ProfileToken*)conf_calloc(gCoresCount, sizeof(ProfileToken));
+        eastl::string* ppGpuProfileNames = (eastl::string*)conf_calloc(gCoresCount, sizeof(eastl::string));
+        const char** ppConstGpuProfileNames = (const char**)conf_calloc(gCoresCount, sizeof(const char*));
+        Queue** ppQueues = (Queue**)conf_calloc(gCoresCount, sizeof(Queue*));
 
 		gGraphWidth = mSettings.mWidth / 6;    //200;
 		gGraphHeight = gCoresCount ? (mSettings.mHeight - 30 - gCoresCount * 10) / gCoresCount : 0;
@@ -279,7 +282,7 @@ class MultiThread: public IApp
 		cmdDesc.pPool = pGraphCmdPool;
 		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppGraphCmds);
 
-		// initial needed datat for each thread
+		// initial needed data for each thread
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 		{
 			// create cmd pools and and cmdbuffers for all thread
@@ -290,12 +293,15 @@ class MultiThread: public IApp
 			// fill up the data for drawing point
 			pThreadData[i].mStartPoint = i * (gTotalParticleCount / gThreadCount);
 			pThreadData[i].mDrawCount = (gTotalParticleCount / gThreadCount);
-            pThreadData[i].mThreadIndex = i;
-            pThreadData[i].mThreadID = Thread::mainThreadID;
+			pThreadData[i].mThreadIndex = i;
+			pThreadData[i].mThreadID = Thread::mainThreadID;
+		}
 
-            ppGpuProfileNames[i] = eastl::string().sprintf("GpuProfiler %u", i);
+		// initial Gpu profilers for each core
+		for (uint32_t i = 0; i < gCoresCount; ++i)
+		{
+			ppGpuProfileNames[i] = (i == 0 ? eastl::string().sprintf("Gpu Main thread") : eastl::string().sprintf("Gpu Particle thread %u", i - 1));
             ppConstGpuProfileNames[i] = ppGpuProfileNames[i].c_str();
-
             ppQueues[i] = pGraphicsQueue;
 		}
 
@@ -513,7 +519,7 @@ class MultiThread: public IApp
 		guiDesc.mStartPosition = vec2(mSettings.mWidth - guiDesc.mStartSize.getX() * 4.1f, guiDesc.mStartSize.getY() * 0.5f);
 
 		// Initialize profiler
-		initProfiler(pRenderer, ppQueues, ppConstGpuProfileNames, pGpuProfiletokens, gThreadCount);
+		initProfiler(pRenderer, ppQueues, ppConstGpuProfileNames, pGpuProfiletokens, gCoresCount);
         conf_free(ppQueues);
         conf_free(ppConstGpuProfileNames);
         conf_free(ppGpuProfileNames);
@@ -923,7 +929,8 @@ class MultiThread: public IApp
 
 		Cmd* cmd = ppCmds[frameIdx];
 		beginCmd(cmd);
-
+		cmdBeginGpuFrameProfile(cmd, pGpuProfiletokens[0]); // pGpuProfiletokens[0] is reserved for main thread
+		
 		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex] };
 		beginUpdateResource(&viewProjCbv);
 		*(mat4*)viewProjCbv.pMappedData = gProjectView;
@@ -954,16 +961,22 @@ class MultiThread: public IApp
 
         cmdDrawCpuProfile(cmd, float2(8, 15), &gFrameTimeDraw);
 
-		gAppUI.DrawText(cmd, float2(8, 65), "Particle CPU Times", NULL);
+		gAppUI.DrawText(cmd, float2(8, 65), "CPU Times", NULL);
+
+		gAppUI.DrawText(
+			cmd, float2(8.f, 90.0f),
+			eastl::string().sprintf("Main Thread - %f ms", getCpuAvgFrameTime()).c_str(),
+			&gFrameTimeDraw);
+
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 		{
 			gAppUI.DrawText(
-				cmd, float2(8.f, 90.0f + i * 25.0f),
-				eastl::string().sprintf("- Thread %u  %f ms", i, getCpuProfileAvgTime("Threads", "Cpu draw", &pThreadData[i].mThreadID)).c_str(),
+				cmd, float2(8.f, 115.0f + i * 25.0f),
+				eastl::string().sprintf("Particle Thread %u - %f ms", i, getCpuProfileAvgTime("Threads", "Cpu draw", &pThreadData[i].mThreadID)).c_str(),
 				&gFrameTimeDraw);
 		}
 
-		for (uint32_t i = 0; i < gThreadCount; ++i)
+		for (uint32_t i = 0; i < gCoresCount; ++i)
 		{
             cmdDrawGpuProfile(cmd, float2(8.f, (130 + gThreadCount * 25.0f) + i * 50.0f), pGpuProfiletokens[i]);
 		}
@@ -971,6 +984,7 @@ class MultiThread: public IApp
 		gAppUI.Draw(cmd);
 		cmdEndDebugMarker(cmd);
 
+		cmdEndGpuFrameProfile(cmd, pGpuProfiletokens[0]); // pGpuProfiletokens[0] is reserved for main thread
 		endCmd(cmd);
 
 		beginCmd(ppGraphCmds[frameIdx]);
@@ -1474,7 +1488,7 @@ class MultiThread: public IApp
         PROFILER_SET_CPU_SCOPE("Threads", "Cpu draw", 0xffffff);
 		Cmd*        cmd = data.ppCmds[data.mFrameIndex];
 		beginCmd(cmd);
-		cmdBeginGpuFrameProfile(cmd, pGpuProfiletokens[data.mThreadIndex]);
+		cmdBeginGpuFrameProfile(cmd, pGpuProfiletokens[data.mThreadIndex + 1]); // pGpuProfiletokens[0] is reserved for main thread
 
 		cmdBindRenderTargets(cmd, 1, &data.pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)data.pRenderTarget->mWidth, (float)data.pRenderTarget->mHeight, 0.0f, 1.0f);
@@ -1489,7 +1503,7 @@ class MultiThread: public IApp
 
 		cmdDrawInstanced(cmd, data.mDrawCount, data.mStartPoint, 1, 0);
 
-		cmdEndGpuFrameProfile(cmd, pGpuProfiletokens[data.mThreadIndex]);
+		cmdEndGpuFrameProfile(cmd, pGpuProfiletokens[data.mThreadIndex + 1]);  // pGpuProfiletokens[0] is reserved for main thread
 		endCmd(cmd);
 	}
 };

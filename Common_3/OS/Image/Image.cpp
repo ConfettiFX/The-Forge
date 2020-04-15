@@ -1047,7 +1047,7 @@ ImageLoadingResult iLoadPVRFromStream(Image* pImage, FileStream* pStream, memory
 
 
 	// Extract the pixel data
-	size_t totalHeaderSizeWithMetadata = sizeof(PVR_Texture_Header) + psPVRHeader.mMetaDataSize;
+//	size_t totalHeaderSizeWithMetadata = sizeof(PVR_Texture_Header) + psPVRHeader.mMetaDataSize;
 	size_t pixelDataSize = pImage->GetSizeInBytes();
 
 	if (pAllocator)

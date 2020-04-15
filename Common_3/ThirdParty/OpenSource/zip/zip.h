@@ -142,7 +142,7 @@ extern int zip_entry_close(struct zip_t *zip);
  * All slashes MUST be forward slashes '/' as opposed to backwards slashes '\'
  * for compatibility with Amiga and UNIX file systems etc.
  *
- * @param zip: zip archive handler.
+ * @param zip zip archive handler.
  *
  * @return the pointer to the current zip entry name, or NULL on error.
  */
@@ -292,7 +292,7 @@ extern int zip_total_entries(struct zip_t *zip);
  *
  * @param zipname zip archive file.
  * @param filenames input files.
- * @param len: number of input files.
+ * @param len number of input files.
  *
  * @return the return code - 0 on success, negative number (< 0) on error.
  */

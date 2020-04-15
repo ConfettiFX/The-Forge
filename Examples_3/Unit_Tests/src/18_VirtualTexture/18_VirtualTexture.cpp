@@ -607,7 +607,7 @@ public:
         initProfiler();
     
         // Gpu profiler can only be added after initProfile.
-        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "GpuProfiler" );
+        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics" );
 
 		// App Actions
 		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };

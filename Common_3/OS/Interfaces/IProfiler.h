@@ -16,6 +16,7 @@
 #endif
 
 #include "ILog.h"
+#include "IApp.h"
 #include "IOperatingSystem.h"
 #include "IThread.h"
 
@@ -41,7 +42,11 @@ void flipProfiler();
 void setAggregateFrames(uint32_t nFrames);
 
 // Dump profile data to "profile-(date).html" of recorded frames, until a maximum amount of frames
-void dumpProfileData(const char* appName = "" , uint32_t nMaxFrames = 64);
+void dumpProfileData(Renderer* pRenderer, const char* appName = "" , uint32_t nMaxFrames = 64);
+
+// Dump benchmark data to "benchmark-(data).txt" of recorded frames
+void dumpBenchmarkData(Renderer* pRenderer, IApp::Settings* pSettings, const char* appName = "");
+
 
 //------ Profiler UI Widget --------//
 

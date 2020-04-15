@@ -657,6 +657,7 @@ def BuildXcodeProjects(skipMacos, skipIos, skipIosCodeSigning, skipDebugBuild, s
                 "/Examples_3/Visibility_Buffer/macOS Xcode/Visibility_Buffer.xcodeproj", 
 				"/Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace"]
 
+
 	#if derivedDataPath is not specified then use the default location
 	if derivedDataPath == 'Null':
 		DDpath = derivedDataPath
@@ -1568,7 +1569,7 @@ def FindMemoryLeaks(memLeakLog):
 		lines = f.readlines()
 	lineContents = "".join(lines)
 	# try to match the number of leaks. if this doesn't match a valid ressult then no leaks were detected.
-	leaksMatch = re.findall(r"^(\d+)\s+memory leaks found:$", lineContents, re.MULTILINE | re.IGNORECASE)
+	leaksMatch = re.findall(r"^(\d+)\s+memory leak+(s)? found:$", lineContents, re.MULTILINE | re.IGNORECASE)
 	if len(leaksMatch) > 0:
 		# find all text with ----- that separates the different memleaks sections
 		iteratorMatches = re.finditer(r"(----*.*?)$", lineContents, re.MULTILINE | re.IGNORECASE)

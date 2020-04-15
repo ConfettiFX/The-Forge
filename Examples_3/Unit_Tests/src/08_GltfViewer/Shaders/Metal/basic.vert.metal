@@ -1,20 +1,12 @@
 #include <metal_stdlib>
 using namespace metal;
 
-inline float3 unpackNormalOctQuad(float2 f) {
-    float3 n = float3(f.x, f.y, 1.0 - abs(f.x) - abs(f.y));
-    float t = max(-n.z, 0.0);
-    n.x += n.x >= 0.0 ? -t : t;
-    n.y += n.y >= 0.0 ? -t : t;
-    return normalize(n);
-}
-
 struct Vertex_Shader
 {
     struct VsIn
     {
         float4 position;
-        float2 normal;
+        float3 normal;
         float2 texCoord;
     };
     struct Uniforms_cbPerPass
@@ -44,7 +36,7 @@ struct Vertex_Shader
         float4x4 modelToWorld = modelToWorldMatrices[cbRootConstants.nodeIndex];
         PsIn Out;
         float4 inPos = float4(((In).position).xyz, 1.0);
-        float3 inNormal = unpackNormalOctQuad(In.normal);
+        float3 inNormal = normalize((modelToWorld * float4(In.normal,0)).xyz);
         float4 worldPosition = ((modelToWorld)*(inPos));
         ((Out).position = ((cbPerPass.projView)*(worldPosition)));
         ((Out).pos = (worldPosition).xyz);
@@ -61,7 +53,7 @@ struct Vertex_Shader
 struct main_input
 {
     float4 POSITION [[attribute(0)]];
-    float2 NORMAL [[attribute(1)]];
+    float3 NORMAL [[attribute(1)]];
     float2 TEXCOORD0 [[attribute(2)]];
 };
 

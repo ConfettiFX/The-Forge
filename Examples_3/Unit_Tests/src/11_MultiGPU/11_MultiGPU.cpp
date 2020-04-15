@@ -203,7 +203,7 @@ public:
 				pGraphicsQueue[i] = pGraphicsQueue[0];
 			else
 				addQueue(pRenderer, &queueDesc, &pGraphicsQueue[i]);
-            gGpuProfilerNames[i] = eastl::string("GpuProfiler") + eastl::to_string(i);
+            gGpuProfilerNames[i] = eastl::string("Graphics") + eastl::to_string(i);
             pGpuProfilerNames[i] = gGpuProfilerNames[i].c_str();
 		}
 

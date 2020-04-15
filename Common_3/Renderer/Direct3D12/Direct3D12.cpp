@@ -55,7 +55,11 @@
 #include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 #include "../../ThirdParty/OpenSource/EASTL/string_hash_map.h"
 
+#ifdef _DURANGO
+#include <pix3.h>
+#else
 #include "../../ThirdParty/OpenSource/winpixeventruntime/Include/WinPixEventRuntime/pix3.h"
+#endif
 
 #include "../../ThirdParty/OpenSource/renderdoc/renderdoc_app.h"
 
@@ -2515,7 +2519,7 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 		pBuffer->pDxAllocation->SetName(pDesc->pDebugName);
 	}
 
-	if (pDesc->mFlags & BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT)
+	if (pDesc->mMemoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY && pDesc->mFlags & BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT)
 		pBuffer->pDxResource->Map(0, NULL, &pBuffer->pCpuMappedAddress);
 
 	pBuffer->mCurrentState = start_state;
@@ -5902,17 +5906,14 @@ void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName
 	// is not installed, or a variety of other reasons. It should be a separate #ifdef flag?
 #if defined(USE_PIX)
 	//color is in B8G8R8X8 format where X is padding
-	uint64_t color = packColorF32(r, g, b, 0 /*there is no alpha, that's padding*/);
-	PIXBeginEvent(pCmd->pDxCmdList, color, pName);
+	PIXBeginEvent(pCmd->pDxCmdList, PIX_COLOR((BYTE)(r * 255), (BYTE)(g * 255), (BYTE)(b * 255)), pName);
 #endif
 }
 
 void cmdEndDebugMarker(Cmd* pCmd)
 {
-#ifndef FORGE_JHABLE_EDITS_V01
 #if defined(USE_PIX)
 	PIXEndEvent(pCmd->pDxCmdList);
-#endif
 #endif
 }
 
@@ -5920,8 +5921,7 @@ void cmdAddDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
 #if defined(USE_PIX)
 	//color is in B8G8R8X8 format where X is padding
-	uint64_t color = packColorF32(r, g, b, 0 /*there is no alpha, that's padding*/);
-	PIXSetMarker(pCmd->pDxCmdList, color, pName);
+	PIXSetMarker(pCmd->pDxCmdList, PIX_COLOR((BYTE)(r * 255), (BYTE)(g * 255), (BYTE)(b * 255)), pName);
 #endif
 }
 /************************************************************************/

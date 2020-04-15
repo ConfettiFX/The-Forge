@@ -164,7 +164,13 @@ enum
 };
 
 // Simulation parameters
+// 2.5k asteroids for switch debug because NX Cpu in debug mode can't loop over more objects at a practical speed for this demo.
+#if defined(NX64) && defined(NN_SDK_BUILD_DEBUG)
+const uint32_t gNumAsteroids = 2500U;
+#else
 const uint32_t gNumAsteroids = 50000U;    // 50000 is optimal.
+#endif
+
 const uint32_t gNumSubsets = 1;           // 4 is optimal. Also equivalent to the number of threads used.
 const uint32_t gNumAsteroidsPerSubset = (gNumAsteroids + gNumSubsets - 1) / gNumSubsets;
 const uint32_t gTextureCount = 10;
@@ -631,7 +637,7 @@ class ExecuteIndirect: public IApp
 		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
         initProfiler();
-        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "GpuProfiler");
+        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
 		static const char*    enumNames[] = { "Instanced Rendering", "Execute Indirect", "Execute Indirect with GPU Compute", NULL };
 		static const uint32_t enumValues[] = { RenderingMode_Instanced, RenderingMode_ExecuteIndirect, RenderingMode_GPUUpdate, 0 };

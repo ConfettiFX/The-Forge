@@ -196,7 +196,7 @@ public:
         initProfiler();
         
         // Gpu profiler can only be added after initProfile.
-        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "GpuProfiler");
+        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
         PathHandle zipFilePath = fsCopyPathInResourceDirectory(RD_OTHER_FILES, pZipFiles);
         

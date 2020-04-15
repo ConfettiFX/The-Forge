@@ -342,7 +342,7 @@ class Blending: public IApp
 
 		initProfiler();
 
-        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "GpuProfiler");
+        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
 		// INITIALIZE PIPILINE STATES
 		//

@@ -26,9 +26,9 @@
 		B2541CFE21751B6200F702BB /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B2541CFA21751B4E00F702BB /* libThe-Forge.a */; };
 		B27D879A20E2E88B00081DB0 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B27D879920E2E88B00081DB0 /* GameController.framework */; };
 		B2B73FC721754A3B00324803 /* 29_InverseKinematic.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B73FC621754A3B00324803 /* 29_InverseKinematic.cpp */; };
-		B2B73FE421754CB400324803 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = B2B73FE221754CB400324803 /* AppDelegate.m */; };
+		B2B73FE421754CB400324803 /* macOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = B2B73FE221754CB400324803 /* macOSAppDelegate.m */; };
 		B2B73FEA2175504F00324803 /* 29_InverseKinematic.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B73FC621754A3B00324803 /* 29_InverseKinematic.cpp */; };
-		B2B7400F2175533E00324803 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = B2B7400E2175533E00324803 /* AppDelegate.m */; };
+		B2B7400F2175533E00324803 /* iOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = B2B7400E2175533E00324803 /* iOSAppDelegate.m */; };
 		B2B740162175553800324803 /* TitilliumText in CopyFiles */ = {isa = PBXBuildFile; fileRef = B2B740152175553800324803 /* TitilliumText */; };
 		B2B740222175571D00324803 /* stickFigure in CopyFiles */ = {isa = PBXBuildFile; fileRef = B2B740212175571C00324803 /* stickFigure */; };
 		B2B7405F21755BF800324803 /* basic.frag.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = B2B7405921755BE100324803 /* basic.frag.metal */; };
@@ -225,10 +225,10 @@
 		B27D879920E2E88B00081DB0 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
 		B2B73F1721751BF900324803 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
 		B2B73FC621754A3B00324803 /* 29_InverseKinematic.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 29_InverseKinematic.cpp; path = ../../src/29_InverseKinematic/29_InverseKinematic.cpp; sourceTree = "<group>"; };
-		B2B73FE221754CB400324803 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/macOS/AppDelegate.m; sourceTree = "<group>"; };
-		B2B73FE321754CB400324803 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/macOS/AppDelegate.h; sourceTree = "<group>"; };
-		B2B7400C2175532600324803 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/iOS/AppDelegate.h; sourceTree = "<group>"; };
-		B2B7400E2175533E00324803 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/iOS/AppDelegate.m; sourceTree = "<group>"; };
+		B2B73FE221754CB400324803 /* macOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = macOSAppDelegate.m; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
+		B2B73FE321754CB400324803 /* macOSAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = macOSAppDelegate.h; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
+		B2B7400C2175532600324803 /* iOSAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = iOSAppDelegate.h; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
+		B2B7400E2175533E00324803 /* iOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = iOSAppDelegate.m; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
 		B2B740152175553800324803 /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; path = TitilliumText; sourceTree = "<group>"; };
 		B2B740212175571C00324803 /* stickFigure */ = {isa = PBXFileReference; lastKnownFileType = folder; path = stickFigure; sourceTree = "<group>"; };
 		B2B7405721755BE100324803 /* plane.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = plane.vert.metal; path = ../../src/21_Playback/Shaders/Metal/plane.vert.metal; sourceTree = "<group>"; };
@@ -372,8 +372,8 @@
 		C95132EE2010E68A002E584B /* 29_InverseKinematic_iOS */ = {
 			isa = PBXGroup;
 			children = (
-				B2B7400E2175533E00324803 /* AppDelegate.m */,
-				B2B7400C2175532600324803 /* AppDelegate.h */,
+				B2B7400E2175533E00324803 /* iOSAppDelegate.m */,
+				B2B7400C2175532600324803 /* iOSAppDelegate.h */,
 				C95132FE2010E68A002E584B /* Assets.xcassets */,
 				D0296BEA211EE433000C9281 /* LaunchScreen.storyboard */,
 				C95133032010E68A002E584B /* Info.plist */,
@@ -413,8 +413,8 @@
 		EA463C941EF81E8F005AC8C7 /* 29_InverseKinematic */ = {
 			isa = PBXGroup;
 			children = (
-				B2B73FE321754CB400324803 /* AppDelegate.h */,
-				B2B73FE221754CB400324803 /* AppDelegate.m */,
+				B2B73FE321754CB400324803 /* macOSAppDelegate.h */,
+				B2B73FE221754CB400324803 /* macOSAppDelegate.m */,
 				D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */,
 				D28782EF1F0A7F52004DC624 /* Assets.xcassets */,
 				EADF9D661EFD160E00B2008B /* Info.plist */,
@@ -475,7 +475,7 @@
 		EA463C831EF81E8F005AC8C7 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 1020;
+				LastUpgradeCheck = 1130;
 				ORGANIZATIONNAME = "Confetti-FX";
 				TargetAttributes = {
 					C95132EC2010E68A002E584B = {
@@ -604,7 +604,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B2B7400F2175533E00324803 /* AppDelegate.m in Sources */,
+				B2B7400F2175533E00324803 /* iOSAppDelegate.m in Sources */,
 				B2B73FEA2175504F00324803 /* 29_InverseKinematic.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -613,7 +613,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B2B73FE421754CB400324803 /* AppDelegate.m in Sources */,
+				B2B73FE421754CB400324803 /* macOSAppDelegate.m in Sources */,
 				B2B73FC721754A3B00324803 /* 29_InverseKinematic.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -859,6 +859,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_WARN_COMMA = NO;
+				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
@@ -885,6 +886,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_WARN_COMMA = NO;
+				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
