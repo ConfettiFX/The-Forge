@@ -5260,7 +5260,7 @@ class LightShadowPlayground: public IApp
 		/************************************************************************/
 		// Add GPU profiler
 		/************************************************************************/
-        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "GpuProfiler");
+        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 		/************************************************************************/
 		// Add samplers
 		/************************************************************************/

@@ -120,14 +120,13 @@ static void calculateTimes(Cmd* pCmd, GpuProfiler* pGpuProfiler, uint32_t index)
         {
             ProfileEnterGpu(pRoot->mMicroProfileToken, pRoot->mStartGpuTime, pGpuProfiler->pLog);
 
-           uint16_t groupIndex = ProfileGetGroupIndex(pRoot->mMicroProfileToken);
-           uint16_t timerIndex = ProfileGetTimerIndex(pRoot->mMicroProfileToken);
-           S->Frame[timerIndex].nCount = 1;
-           S->Frame[timerIndex].nTicks = elapsedTime;
-           S->AccumTimers[timerIndex].nTicks += S->Frame[timerIndex].nTicks;
-           S->AccumTimers[timerIndex].nCount += S->Frame[timerIndex].nCount;
-           S->AccumMinTimers[timerIndex] = ProfileMin(S->AccumMinTimers[timerIndex], S->Frame[timerIndex].nTicks);
-           S->AccumMaxTimers[timerIndex] = ProfileMax(S->AccumMaxTimers[timerIndex], S->Frame[timerIndex].nTicks);
+			uint16_t timerIndex = ProfileGetTimerIndex(pRoot->mMicroProfileToken);
+			S->Frame[timerIndex].nCount = 1;
+			S->Frame[timerIndex].nTicks = elapsedTime;
+			S->AccumTimers[timerIndex].nTicks += S->Frame[timerIndex].nTicks;
+			S->AccumTimers[timerIndex].nCount += S->Frame[timerIndex].nCount;
+			S->AccumMinTimers[timerIndex] = ProfileMin(S->AccumMinTimers[timerIndex], S->Frame[timerIndex].nTicks);
+			S->AccumMaxTimers[timerIndex] = ProfileMax(S->AccumMaxTimers[timerIndex], S->Frame[timerIndex].nTicks);
         }  
     }
 

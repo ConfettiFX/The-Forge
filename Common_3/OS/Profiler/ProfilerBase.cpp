@@ -3,7 +3,8 @@
 void initProfiler(Renderer* pRenderer, Queue** ppQueue, const char** ppProfilerNames, ProfileToken* pProfileTokens, uint32_t nGpuProfilerCount) {}
 void exitProfiler() {}
 void flipProfiler() {}
-void dumpProfileData(const char* appName, uint32_t nMaxFrames) {}
+void dumpProfileData(Renderer* pRenderer, const char* appName, uint32_t nMaxFrames) {}
+void dumpBenchmarkData(Renderer* pRenderer, IApp::Settings* pSettings, const char* appName) {}
 void setAggregateFrames(uint32_t nFrames) {}
 float getCpuProfileTime(const char* pGroup, const char* pName, ThreadID* pThreadID) { return -1.0f; }
 float getCpuProfileAvgTime(const char* pGroup, const char* pName, ThreadID* pThreadID) { return -1.0f; }
@@ -20,6 +21,7 @@ void cpuProfileLeave(ProfileToken nToken, uint64_t nTick) {}
 ProfileToken getCpuProfileToken(const char* pGroup, const char* pName, uint32_t nColor) { return PROFILE_INVALID_TOKEN; }
 
 #else
+#include  "../../Renderer/IRenderer.h"
 #include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/IMemory.h"
 
@@ -1001,7 +1003,7 @@ void ProfileGetRange(uint32_t nPut, uint32_t nGet, uint32_t nRange[2][2])
 	}
 }
 
-void ProfileDumpToFile();
+void ProfileDumpToFile(Renderer* pRenderer);
 
 void ProfileFlipCpu()
 {
@@ -1027,7 +1029,7 @@ void ProfileFlipCpu()
 	uint32_t nAggregateClear = S.nAggregateClear || S.nAutoClearFrames, nAggregateFlip = 0;
 	if (S.nDumpFileNextFrame)
 	{
-		ProfileDumpToFile();
+		ProfileDumpToFile(nullptr);
 		S.nDumpFileNextFrame = 0;
 		S.nAutoClearFrames = PROFILE_GPU_FRAME_DELAY + 3; //hide spike from dumping webpage
 	}
@@ -1647,7 +1649,6 @@ float getCpuProfileMinTime(const char* pGroup, const char* pName, ThreadID* pThr
     }
     Profile & S = g_Profile;
     uint32_t nTimerIndex = ProfileGetTimerIndex(nToken);
-    uint32_t nGroupIndex = ProfileGetGroupIndex(nToken);
     float fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
     return fToMs * (S.AggregateMin[nTimerIndex] != uint64_t(-1) ? S.AggregateMin[nTimerIndex] : 0);
 }
@@ -1661,7 +1662,6 @@ float getCpuProfileMaxTime(const char* pGroup, const char* pName, ThreadID* pThr
     }
     Profile & S = g_Profile;
     uint32_t nTimerIndex = ProfileGetTimerIndex(nToken);
-    uint32_t nGroupIndex = ProfileGetGroupIndex(nToken);
     float fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
     return fToMs * (S.AggregateMax[nTimerIndex]);
 }
@@ -1675,7 +1675,6 @@ float getCpuProfileAvgTime(const char* pGroup, const char* pName, ThreadID* pThr
     }
     Profile & S = g_Profile;
     uint32_t nTimerIndex = ProfileGetTimerIndex(nToken);
-    uint32_t nGroupIndex = ProfileGetGroupIndex(nToken);
     uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
     float fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
     return fToMs * (S.Aggregate[nTimerIndex].nTicks / nAggregateFrames);
@@ -1690,7 +1689,6 @@ float getCpuProfileTime(const char* pGroup, const char* pName, ThreadID* pThread
 	}
 	Profile & S = g_Profile;
 	uint32_t nTimerIndex = ProfileGetTimerIndex(nToken);
-	uint32_t nGroupIndex = ProfileGetGroupIndex(nToken);
 	float fToMs = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
 	return S.Frame[nTimerIndex].nTicks * fToMs;
 }
@@ -1981,7 +1979,7 @@ extern size_t g_ProfileHtml_end_sizes[];
 extern size_t g_ProfileHtml_end_count;
 
 
-void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, const char* pHost)
+void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, const char* pHost, Renderer* pRenderer)
 {
 	Profile & S = g_Profile;
 	uint32_t nRunning = S.nRunning;
@@ -1998,6 +1996,13 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 	}
 
 	//dump info
+    if (pRenderer != NULL)
+    {
+        ProfilePrintf(CB, Handle, "var GpuName = '%s';\n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mGpuName);
+        ProfilePrintf(CB, Handle, "var VendorID = '%s';\n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId);
+        ProfilePrintf(CB, Handle, "var ModelID = '%s';\n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId);
+    }
+
 	uint64_t nTicks = P_TICK();
 
 	float fToMsCPU = ProfileTickToMsMultiplier(ProfileTicksPerSecondCpu());
@@ -2522,7 +2527,7 @@ void ProfileWriteFile(void* Handle, size_t nSize, const char* pData)
 	fsWriteToStream((FileStream*)Handle, pData, nSize);
 }
 
-void ProfileDumpToFile()
+void ProfileDumpToFile(Renderer* pRenderer)
 {
     MutexLock lock(ProfileMutex());
 	Profile & S = g_Profile;
@@ -2532,7 +2537,7 @@ void ProfileDumpToFile()
 	if (fh)
 	{
 		if (S.eDumpType == ProfileDumpTypeHtml)
-			ProfileDumpHtml(ProfileWriteFile, fh, S.nDumpFrames, 0);
+			ProfileDumpHtml(ProfileWriteFile, fh, S.nDumpFrames, 0, pRenderer);
 		else if (S.eDumpType == ProfileDumpTypeCsv)
 			ProfileDumpCsv(ProfileWriteFile, fh, S.nDumpFrames);
 
@@ -2541,7 +2546,7 @@ void ProfileDumpToFile()
     fsFreePath(S.DumpPath);
 }
 
-void dumpProfileData(const char* appName, uint32_t nMaxFrames)
+void dumpProfileData(Renderer* pRenderer, const char* appName, uint32_t nMaxFrames)
 {
     MutexLock lock(ProfileMutex());
     // Dump frames to file.
@@ -2553,8 +2558,64 @@ void dumpProfileData(const char* appName, uint32_t nMaxFrames)
     FileStream* fh = fsOpenFile(dumpPath, FM_WRITE);
     if (fh)
     {
-        ProfileDumpHtml(ProfileWriteFile, fh, nMaxFrames, 0);
+        ProfileDumpHtml(ProfileWriteFile, fh, nMaxFrames, 0, pRenderer);
         fsCloseStream(fh);
+    }
+}
+
+void dumpBenchmarkData(Renderer* pRenderer, IApp::Settings* pSettings, const char* appName)
+{
+    time_t t = time(0);
+    eastl::string tempName = eastl::string().sprintf("%s", appName) + eastl::string(R"(Benchmark-%Y-%m-%d-%H.%M.%S.txt)");
+    char name[128] = {};
+    strftime(name, sizeof(name), tempName.c_str(), localtime(&t));
+    PathHandle dumpPath = fsAppendPathComponent(PathHandle(fsCopyLogFileDirectoryPath()), name);
+    FileStream* statsFile = fsOpenFile(dumpPath, FM_WRITE);
+    if (statsFile)
+    {
+        fsPrintToStream(statsFile, "{\n");
+
+        fsPrintToStream(statsFile, "\"Application\": \"%s\", \n", pRenderer->pName);
+        fsPrintToStream(statsFile, "\"Width\": %d, \n", pSettings->mWidth);
+        fsPrintToStream(statsFile, "\"Height\": %d, \n\n", pSettings->mHeight);
+        fsPrintToStream(statsFile, "\"GpuName\": \"%s\", \n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mGpuName);
+        fsPrintToStream(statsFile, "\"VendorID\": \"%s\", \n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId);
+        fsPrintToStream(statsFile, "\"ModelID\": \"%s\", \n\n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId);
+        const Profile& S = *ProfileGet();
+        for (uint32_t groupIndex = 0; groupIndex < S.nGroupCount; ++groupIndex)
+        {
+            if (S.GroupInfo[groupIndex].Type != ProfileTokenTypeGpu)
+                continue;
+
+            for (uint32_t timerIndex = 0; timerIndex < S.nTotalTimers; ++timerIndex)
+            {
+                if (strcmp(S.TimerInfo[timerIndex].pName, S.GroupInfo[groupIndex].pName) == 0)
+                {
+                    fsPrintToStream(statsFile, "\"%s\": { \n", S.GroupInfo[groupIndex].pName);
+                    float fToMs = ProfileTickToMsMultiplier(getGpuProfileTicksPerSecond(S.GroupInfo[groupIndex].nGpuProfileToken));
+                    uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
+                    uint32_t nAggregateCount = S.Aggregate[timerIndex].nCount ? S.Aggregate[timerIndex].nCount : 1;
+                    float fAverage = fToMs * (S.Aggregate[timerIndex].nTicks / nAggregateFrames);
+                    float fMax = fToMs * (S.AggregateMax[timerIndex]);
+                    float fMin = fToMs * (S.AggregateMin[timerIndex]);
+                    fsPrintToStream(statsFile, "\"Average\": %0.4f, \n", fAverage);
+                    fsPrintToStream(statsFile, "\"Min\": %0.4f, \n", fMin);
+                    fsPrintToStream(statsFile, "\"Max\": %0.4f, \n", fMax);
+                    fsPrintToStream(statsFile, "\"Frames\": %d \n", nAggregateCount);
+                    fsPrintToStream(statsFile, "}, \n\n");
+                    break;
+                }
+            }
+        }
+        fsPrintToStream(statsFile, "\"Cpu\": { \n");
+        fsPrintToStream(statsFile, "\"Average\": %0.4f, \n", getCpuAvgFrameTime());
+        fsPrintToStream(statsFile, "\"Min\": %0.4f, \n", getCpuMinFrameTime());
+        fsPrintToStream(statsFile, "\"Max\": %0.4f, \n", getCpuMaxFrameTime());
+        fsPrintToStream(statsFile, "\"Frames\": %d \n", S.nAggregateFrames);
+        fsPrintToStream(statsFile, "} \n");
+        fsPrintToStream(statsFile, "}");
+
+        fsCloseStream(statsFile);
     }
 }
 

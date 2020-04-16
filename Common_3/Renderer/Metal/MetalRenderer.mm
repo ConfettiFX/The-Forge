@@ -2858,14 +2858,10 @@ void cmdBindRenderTargets(
 	uint32_t* pColorArraySlices, uint32_t* pColorMipSlices, uint32_t depthArraySlice, uint32_t depthMipSlice)
 {
 	ASSERT(pCmd);
-
-    @autoreleasepool
-    {
-        util_end_current_encoders(pCmd, true);
-    }
-
-	if (!renderTargetCount && !pDepthStencil)
+	
+	if (!renderTargetCount && !pDepthStencil){
 		return;
+	}
 
 	@autoreleasepool
 	{
@@ -2968,6 +2964,7 @@ void cmdBindRenderTargets(
 			pCmd->pRenderPassDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
 		}
 
+		util_barrier_required(pCmd, QUEUE_TYPE_GRAPHICS); // apply the graphics barriers before flushing them
 		util_end_current_encoders(pCmd, false);
 		pCmd->mtlRenderEncoder = [pCmd->mtlCommandBuffer renderCommandEncoderWithDescriptor:pCmd->pRenderPassDesc];
 	}

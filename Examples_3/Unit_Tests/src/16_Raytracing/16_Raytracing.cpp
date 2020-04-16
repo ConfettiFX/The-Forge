@@ -673,7 +673,7 @@ public:
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
-        const char* ppGpuProfilerName[1] = { "GpuProfiler" };
+        const char* ppGpuProfilerName[1] = { "Graphics" };
         initProfiler(pRenderer, &pQueue, ppGpuProfilerName, &gGpuProfileToken, 1);
         if (mBenchmark) setAggregateFrames(nBenchmarkFrames);
 
@@ -744,7 +744,7 @@ public:
 			return false;
 		
 		// App Actions
-        InputActionDesc actionDesc = { InputBindings::BUTTON_DUMP, [](InputActionContext* ctx) { dumpProfileData(((IApp*)ctx->pUserData)->GetName()); return true; }, this };
+        InputActionDesc actionDesc = { InputBindings::BUTTON_DUMP, [](InputActionContext* ctx) { dumpProfileData(((Renderer*)ctx->pUserData), ((Renderer*)ctx->pUserData)->pName); return true; }, pRenderer };
         addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
 		addInputAction(&actionDesc);
@@ -956,9 +956,10 @@ public:
 
         if (mBenchmark)
         {
-            dumpProfileData(mOutput, nBenchmarkFrames);
+            dumpProfileData(pRenderer, mOutput, nBenchmarkFrames);
+            dumpBenchmarkData(pRenderer, &mSettings, mOutput);
         }
-
+        
 		exitProfiler();
         
 		destroyCameraController(pCameraController);

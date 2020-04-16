@@ -2658,7 +2658,7 @@ void vk_compileShader(
 	{
 		fsDeleteFile(logFilePath);
 	}
-	LOGF(LogLevel::eINFO, "args: ", args);
+
 	if (systemRun(glslangValidator.c_str(), args, 1, logFilePath) == 0)
 	{
 		FileStream* fh = fsOpenFile(outFilePath, FM_READ_BINARY);

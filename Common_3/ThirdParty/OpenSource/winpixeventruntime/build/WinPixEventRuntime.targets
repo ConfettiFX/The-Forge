@@ -8,30 +8,59 @@
     </ClCompile>
   </ItemDefinitionGroup>
 
-  <ItemDefinitionGroup Condition="'$(Platform)'=='x64' And '$(TargetPlatformIdentifier)'=='UAP'">
+  <ItemDefinitionGroup Condition="'$(PlatformTarget)'=='x64' And '$(TargetPlatformIdentifier)'=='UAP'">
     <Link>
-      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\bin\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>WinPixEventRuntime_UAP.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
 
-  <ItemGroup Label="WinPixEventRuntime" Condition="'$(Platform)'=='x64' And '$(TargetPlatformIdentifier)'=='UAP'">
-    <PackagingOutputs Include="$(MSBuildThisFileDirectory)..\bin\WinPixEventRuntime_UAP.dll">
+  <ItemDefinitionGroup Condition="'$(PlatformTarget)'=='ARM64' And '$(TargetPlatformIdentifier)'=='UAP'">
+    <Link>
+      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\bin\ARM64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>WinPixEventRuntime_UAP.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <ItemGroup Label="WinPixEventRuntime" Condition="'$(PlatformTarget)'=='x64' And '$(TargetPlatformIdentifier)'=='UAP'">
+    <PackagingOutputs Include="$(MSBuildThisFileDirectory)..\bin\x64\WinPixEventRuntime_UAP.dll">
         <OutputGroup>WinPixEventBinary</OutputGroup>
         <ProjectName>$(ProjectName)</ProjectName>
         <TargetPath>%(Filename)%(Extension)</TargetPath>
     </PackagingOutputs>
   </ItemGroup>
 
-  <ItemDefinitionGroup Condition="'$(Platform)'=='x64' And '$(TargetPlatformIdentifier)'!='UAP'">
+  <ItemGroup Label="WinPixEventRuntime" Condition="'$(PlatformTarget)'=='ARM64' And '$(TargetPlatformIdentifier)'=='UAP'">
+    <PackagingOutputs Include="$(MSBuildThisFileDirectory)..\bin\ARM64\WinPixEventRuntime_UAP.dll">
+        <OutputGroup>WinPixEventBinary</OutputGroup>
+        <ProjectName>$(ProjectName)</ProjectName>
+        <TargetPath>%(Filename)%(Extension)</TargetPath>
+    </PackagingOutputs>
+  </ItemGroup>
+
+  <ItemDefinitionGroup Condition="'$(PlatformTarget)'=='x64' And '$(TargetPlatformIdentifier)'!='UAP'">
     <Link>
-      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\bin;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\bin\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>WinPixEventRuntime.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
 
-  <ItemGroup Condition="'$(Platform)'=='x64' And '$(TargetPlatformIdentifier)'!='UAP'">
-    <Content Include="$(MSBuildThisFileDirectory)..\bin\WinPixEventRuntime.dll">
+  <ItemDefinitionGroup Condition="'$(PlatformTarget)'=='ARM64' And '$(TargetPlatformIdentifier)'!='UAP'">
+    <Link>
+      <AdditionalLibraryDirectories>$(MSBuildThisFileDirectory)..\bin\ARM64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>WinPixEventRuntime.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+
+  <ItemGroup Condition="'$(PlatformTarget)'=='x64' And '$(TargetPlatformIdentifier)'!='UAP'">
+    <Content Include="$(MSBuildThisFileDirectory)..\bin\x64\WinPixEventRuntime.dll">
+      <Link>%(RecursiveDir)%(FileName)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(PlatformTarget)'=='ARM64' And '$(TargetPlatformIdentifier)'!='UAP'">
+    <Content Include="$(MSBuildThisFileDirectory)..\bin\ARM64\WinPixEventRuntime.dll">
       <Link>%(RecursiveDir)%(FileName)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

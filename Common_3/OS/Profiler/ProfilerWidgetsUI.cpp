@@ -422,7 +422,7 @@ vec2 profileUtilCalcWindowSize(int32_t width, int32_t height)
 void profileCallbkDumpFramesToFile()
 {
     ASSERT(pAppUIRef);
-    dumpProfileData(pAppUIRef->pImpl->pRenderer->pName, profileUtilDumpFramesFromFileEnum(gDumpFramesToFile));
+    dumpProfileData(pAppUIRef->pImpl->pRenderer, pAppUIRef->pImpl->pRenderer->pName, profileUtilDumpFramesFromFileEnum(gDumpFramesToFile));
 }
 
 void profileCallbkDumpFrames()
@@ -523,7 +523,6 @@ void profileUpdateDetailedModeData(Profile& S)
   for (uint32_t i = 0; i < PROFILE_MAX_THREADS; ++i)
   {
       ProfileThreadLog* pLog = S.Pool[i];
-      uint32_t framenumber = 1;
       if (!pLog)
           continue;
 

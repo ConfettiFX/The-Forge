@@ -919,10 +919,9 @@ namespace basist
 	// encoding from LSB to MSB: low8, high8, error16, size is [32*8][NUM_ETC1_TO_BC7_M6_SELECTOR_RANGES][NUM_ETC1_TO_BC7_M6_SELECTOR_MAPPINGS]
 	extern const uint32_t* g_etc1_to_bc7_m6_table[];
 
-	const uint16_t s_bptc_table_aWeight4[16] = { 0, 4, 9, 13, 17, 21, 26, 30, 34, 38, 43, 47, 51, 55, 60, 64 };
-
 #if BASISD_WRITE_NEW_BC7_TABLES
-	static void create_etc1_to_bc7_m6_conversion_table()
+    const uint16_t s_bptc_table_aWeight4[16] = { 0, 4, 9, 13, 17, 21, 26, 30, 34, 38, 43, 47, 51, 55, 60, 64 };
+    static void create_etc1_to_bc7_m6_conversion_table()
 	{
 		FILE* pFile = NULL;
 
@@ -1269,6 +1268,8 @@ namespace basist
 #endif
 
 #if BASISD_SUPPORT_ETC2_EAC_A8 || BASISD_SUPPORT_ETC2_EAC_RG11
+
+#if BASISD_WRITE_NEW_ETC2_EAC_A8_TABLES
 	static const int8_t g_eac_modifier_table[16][8] =
 	{
 		{ -3, -6, -9, -15, 2, 5, 8, 14 },
@@ -1289,6 +1290,7 @@ namespace basist
 		{ -4, -6, -8, -9, 3, 5, 7, 8 },
 		{ -3, -5, -7, -9, 2, 4, 6, 8 }
 	};
+#endif // BASISD_WRITE_NEW_ETC2_EAC_A8_TABLES
 
 	// Used by ETC2 EAC A8 and ETC2 EAC R11/RG11.
 	struct eac_block
@@ -3304,13 +3306,13 @@ namespace basist
 		}
 	};
 
-	static const uint8_t g_pvrtc_bilinear_weights[16][4] =
-	{
-		{ 4, 4, 4, 4 }, { 2, 6, 2, 6 }, { 8, 0, 8, 0 }, { 6, 2, 6, 2 },
-		{ 2, 2, 6, 6 }, { 1, 3, 3, 9 }, { 4, 0, 12, 0 }, { 3, 1, 9, 3 },
-		{ 8, 8, 0, 0 }, { 4, 12, 0, 0 }, { 16, 0, 0, 0 }, { 12, 4, 0, 0 },
-		{ 6, 6, 2, 2 }, { 3, 9, 1, 3 }, { 12, 0, 4, 0 }, { 9, 3, 3, 1 },
-	};
+//	static const uint8_t g_pvrtc_bilinear_weights[16][4] =
+//	{
+//		{ 4, 4, 4, 4 }, { 2, 6, 2, 6 }, { 8, 0, 8, 0 }, { 6, 2, 6, 2 },
+//		{ 2, 2, 6, 6 }, { 1, 3, 3, 9 }, { 4, 0, 12, 0 }, { 3, 1, 9, 3 },
+//		{ 8, 8, 0, 0 }, { 4, 12, 0, 0 }, { 16, 0, 0, 0 }, { 12, 4, 0, 0 },
+//		{ 6, 6, 2, 2 }, { 3, 9, 1, 3 }, { 12, 0, 4, 0 }, { 9, 3, 3, 1 },
+//	};
 
 	struct pvrtc1_temp_block
 	{
@@ -3411,7 +3413,6 @@ namespace basist
 		const uint32_t x_bits = basisu::total_bits(x_mask);
 		const uint32_t y_bits = basisu::total_bits(y_mask);
 		const uint32_t min_bits = basisu::minimum(x_bits, y_bits);
-		const uint32_t max_bits = basisu::maximum(x_bits, y_bits);
 		const uint32_t swizzle_mask = (1 << (min_bits * 2)) - 1;
 
 		uint32_t block_index = 0;
@@ -3592,7 +3593,6 @@ namespace basist
 		const uint32_t x_bits = basisu::total_bits(x_mask);
 		const uint32_t y_bits = basisu::total_bits(y_mask);
 		const uint32_t min_bits = basisu::minimum(x_bits, y_bits);
-		const uint32_t max_bits = basisu::maximum(x_bits, y_bits);
 		const uint32_t swizzle_mask = (1 << (min_bits * 2)) - 1;
 
 		uint32_t block_index = 0;
@@ -6256,9 +6256,9 @@ namespace basist
 #include "basisu_transcoder_tables_pvrtc2_45.inc"
 	};
 		
-	static const etc1s_to_atc_solution g_etc1s_to_pvrtc2_alpha_33[32 * 8 * NUM_ETC1S_TO_ATC_SELECTOR_MAPPINGS * NUM_ETC1S_TO_ATC_SELECTOR_RANGES] = {
-#include "basisu_transcoder_tables_pvrtc2_alpha_33.inc"
-	};
+//	static const etc1s_to_atc_solution g_etc1s_to_pvrtc2_alpha_33[32 * 8 * NUM_ETC1S_TO_ATC_SELECTOR_MAPPINGS * NUM_ETC1S_TO_ATC_SELECTOR_RANGES] = {
+//#include "basisu_transcoder_tables_pvrtc2_alpha_33.inc"
+//	};
 #endif
 
 	static const etc1s_to_atc_solution g_etc1s_to_atc_55[32 * 8 * NUM_ETC1S_TO_ATC_SELECTOR_MAPPINGS * NUM_ETC1S_TO_ATC_SELECTOR_RANGES] = {
@@ -7168,7 +7168,7 @@ namespace basist
 
 	typedef struct { float c[4]; } vec4F;
 
-	static inline int32_t clampi(int32_t value, int32_t low, int32_t high) { if (value < low) value = low; else if (value > high) value = high;	return value; }
+//	static inline int32_t clampi(int32_t value, int32_t low, int32_t high) { if (value < low) value = low; else if (value > high) value = high;	return value; }
 	static inline float clampf(float value, float low, float high) { if (value < low) value = low; else if (value > high) value = high;	return value; }
 	static inline float saturate(float value) { return clampf(value, 0, 1.0f); }
 	static inline vec4F* vec4F_set_scalar(vec4F* pV, float x) { pV->c[0] = x; pV->c[1] = x; pV->c[2] = x;	pV->c[3] = x;	return pV; }
@@ -7648,7 +7648,7 @@ namespace basist
 
 					uint32_t m = (le * 5 + he * 3) / 8;
 
-					int err = labs((int)v - (int)m);
+					int err = abs((int)v - (int)m);
 					if (err < lowest_err)
 					{
 						lowest_err = err;
@@ -7671,7 +7671,7 @@ namespace basist
 				uint32_t le = (l << 1);
 				le = (le << 4) | le;
 
-				int err = labs((int)v - (int)le);
+				int err = abs((int)v - (int)le);
 				if (err < lowest_err)
 				{
 					lowest_err = err;
@@ -7693,7 +7693,7 @@ namespace basist
 				uint32_t he = (h << 1) | 1;
 				he = (he << 4) | he;
 
-				int err = labs((int)v - (int)he);
+				int err = abs((int)v - (int)he);
 				if (err < lowest_err)
 				{
 					lowest_err = err;
@@ -7722,7 +7722,7 @@ namespace basist
 
 					uint32_t m = (le * 5 + he * 3) / 8;
 
-					int err = labs((int)v - (int)m);
+					int err = abs((int)v - (int)m);
 					if (err < lowest_err)
 					{
 						lowest_err = err;
@@ -7752,7 +7752,7 @@ namespace basist
 
 					uint32_t m = (le * 5 + he * 3) / 8;
 
-					int err = labs((int)v - (int)m);
+					int err = abs((int)v - (int)m);
 					if (err < lowest_err)
 					{
 						lowest_err = err;

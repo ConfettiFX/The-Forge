@@ -125,7 +125,7 @@ static Entity* avoidEntities[AvoidCount];
 EntityManager* pEntityManager = nullptr;
 
 ThreadSystem* pThreadSystem = nullptr;
-bool multiThread			= false;
+bool multiThread			= true;
 
 GuiComponent* GUIWindow = nullptr;
 
@@ -436,7 +436,7 @@ class EntityComponentSystem: public IApp
 
 		initProfiler();
 
-		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "GpuProfiler");
+		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
 		// TODO: rename to sprite
 		ShaderLoadDesc spriteShader = {};

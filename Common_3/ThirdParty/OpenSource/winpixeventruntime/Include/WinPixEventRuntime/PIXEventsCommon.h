@@ -12,11 +12,54 @@
 #ifndef _PIXEventsCommon_H_
 #define _PIXEventsCommon_H_
 
-#if defined(_AMD64_) || defined(_X86_)
-#include <emmintrin.h>
-#endif // _AMD64_ || _X86_
+#include <cstdint>
 
-extern "C" UINT64 WINAPI PIXEventsReplaceBlock(bool getEarliestTime);
+#if defined(_M_X64) || defined(_M_IX86)
+#include <emmintrin.h>
+#endif
+
+//
+// The PIXBeginEvent and PIXSetMarker functions have an optimized path for
+// copying strings that work by copying 128-bit or 64-bits at a time. In some
+// circumstances this may result in PIX logging the remaining memory after the
+// null terminator.
+//
+// By default this optimization is enabled unless Address Sanitizer is enabled,
+// since this optimization can trigger a global-buffer-overflow when copying
+// string literals.
+//
+// The PIX_ENABLE_BLOCK_ARGUMENT_COPY controls whether or not this optimization
+// is enabled. Applications may also explicitly set this macro to 0 to disable
+// the optimization if necessary.
+//
+
+#if defined(PIX_ENABLE_BLOCK_ARGUMENT_COPY)
+// Previously set values override everything
+# define PIX_ENABLE_BLOCK_ARGUMENT_COPY_SET 0
+#elif defined(__has_feature)
+# if __has_feature(address_sanitizer)
+// Disable block argument copy when address sanitizer is enabled
+#  define PIX_ENABLE_BLOCK_ARGUMENT_COPY 0
+#  define PIX_ENABLE_BLOCK_ARGUMENT_COPY_SET 1
+# endif
+#endif
+
+#if !defined(PIX_ENABLE_BLOCK_ARGUMENT_COPY)
+// Default to enabled.
+# define PIX_ENABLE_BLOCK_ARGUMENT_COPY 1
+# define PIX_ENABLE_BLOCK_ARGUMENT_COPY_SET 1
+#endif
+
+struct PIXEventsBlockInfo;
+
+struct PIXEventsThreadInfo
+{
+    PIXEventsBlockInfo* block;
+    UINT64* biasedLimit;
+    UINT64* destination;
+};
+
+extern "C" UINT64 WINAPI PIXEventsReplaceBlock(PIXEventsThreadInfo* threadInfo, bool getEarliestTime) noexcept;
 
 enum PIXEventType
 {
@@ -98,12 +141,58 @@ inline bool PIXIsPointerAligned(T* pointer)
     return !(((UINT64)pointer) & (alignment - 1));
 }
 
+// Generic template version slower because of the additional clear write
 template<class T>
 inline void PIXCopyEventArgument(_Out_writes_to_ptr_(limit) UINT64*& destination, _In_ const UINT64* limit, T argument)
 {
     if (destination < limit)
     {
+        *destination = 0ull;
         *((T*)destination) = argument;
+        ++destination;
+    }
+}
+
+// int32 specialization to avoid slower double memory writes
+template<>
+inline void PIXCopyEventArgument<INT32>(_Out_writes_to_ptr_(limit) UINT64*& destination, _In_ const UINT64* limit, INT32 argument)
+{
+    if (destination < limit)
+    {
+        *reinterpret_cast<INT64*>(destination) = static_cast<INT64>(argument);
+        ++destination;
+    }
+}
+
+// unsigned int32 specialization to avoid slower double memory writes
+template<>
+inline void PIXCopyEventArgument<UINT32>(_Out_writes_to_ptr_(limit) UINT64*& destination, _In_ const UINT64* limit, UINT32 argument)
+{
+    if (destination < limit)
+    {
+        *destination = static_cast<UINT64>(argument);
+        ++destination;
+    }
+}
+
+// int64 specialization to avoid slower double memory writes
+template<>
+inline void PIXCopyEventArgument<INT64>(_Out_writes_to_ptr_(limit) UINT64*& destination, _In_ const UINT64* limit, INT64 argument)
+{
+    if (destination < limit)
+    {
+        *reinterpret_cast<INT64*>(destination) = argument;
+        ++destination;
+    }
+}
+
+// unsigned int64 specialization to avoid slower double memory writes
+template<>
+inline void PIXCopyEventArgument<UINT64>(_Out_writes_to_ptr_(limit) UINT64*& destination, _In_ const UINT64* limit, UINT64 argument)
+{
+    if (destination < limit)
+    {
+        *destination = argument;
         ++destination;
     }
 }
@@ -115,7 +204,7 @@ inline void PIXCopyEventArgument<float>(_Out_writes_to_ptr_(limit) UINT64*& dest
 {
     if (destination < limit)
     {
-        *((double*)destination) = (double)(argument);
+        *reinterpret_cast<double*>(destination) = static_cast<double>(argument);
         ++destination;
     }
 }
@@ -127,7 +216,7 @@ inline void PIXCopyEventArgument<char>(_Out_writes_to_ptr_(limit) UINT64*& desti
 {
     if (destination < limit)
     {
-        *((INT64*)destination) = (INT64)(argument);
+        *reinterpret_cast<INT64*>(destination) = static_cast<INT64>(argument);
         ++destination;
     }
 }
@@ -139,7 +228,7 @@ inline void PIXCopyEventArgument<unsigned char>(_Out_writes_to_ptr_(limit) UINT6
 {
     if (destination < limit)
     {
-        *destination = (UINT64)(argument);
+        *destination = static_cast<UINT64>(argument);
         ++destination;
     }
 }
@@ -151,7 +240,7 @@ inline void PIXCopyEventArgument<bool>(_Out_writes_to_ptr_(limit) UINT64*& desti
 {
     if (destination < limit)
     {
-        *destination = (UINT64)(argument);
+        *destination = static_cast<UINT64>(argument);
         ++destination;
     }
 }
@@ -161,56 +250,56 @@ inline void PIXCopyEventArgumentSlowest(_Out_writes_to_ptr_(limit) UINT64*& dest
     *destination++ = PIXEncodeStringInfo(0, 8, TRUE, FALSE);
     while (destination < limit)
     {
-        UINT64 c = argument[0];
+        UINT64 c = static_cast<uint8_t>(argument[0]);
         if (!c)
         {
             *destination++ = 0;
             return;
         }
         UINT64 x = c;
-        c = argument[1];
+        c = static_cast<uint8_t>(argument[1]);
         if (!c)
         {
             *destination++ = x;
             return;
         }
         x |= c << 8;
-        c = argument[2];
+        c = static_cast<uint8_t>(argument[2]);
         if (!c)
         {
             *destination++ = x;
             return;
         }
         x |= c << 16;
-        c = argument[3];
+        c = static_cast<uint8_t>(argument[3]);
         if (!c)
         {
             *destination++ = x;
             return;
         }
         x |= c << 24;
-        c = argument[4];
+        c = static_cast<uint8_t>(argument[4]);
         if (!c)
         {
             *destination++ = x;
             return;
         }
         x |= c << 32;
-        c = argument[5];
+        c = static_cast<uint8_t>(argument[5]);
         if (!c)
         {
             *destination++ = x;
             return;
         }
         x |= c << 40;
-        c = argument[6];
+        c = static_cast<uint8_t>(argument[6]);
         if (!c)
         {
             *destination++ = x;
             return;
         }
         x |= c << 48;
-        c = argument[7];
+        c = static_cast<uint8_t>(argument[7]);
         if (!c)
         {
             *destination++ = x;
@@ -224,6 +313,7 @@ inline void PIXCopyEventArgumentSlowest(_Out_writes_to_ptr_(limit) UINT64*& dest
 
 inline void PIXCopyEventArgumentSlow(_Out_writes_to_ptr_(limit) UINT64*& destination, _In_ const UINT64* limit, _In_ PCSTR argument)
 {
+#if PIX_ENABLE_BLOCK_ARGUMENT_COPY
     if (PIXIsPointerAligned<8>(argument))
     {
         *destination++ = PIXEncodeStringInfo(0, 8, TRUE, FALSE);
@@ -247,6 +337,7 @@ inline void PIXCopyEventArgumentSlow(_Out_writes_to_ptr_(limit) UINT64*& destina
         }
     }
     else
+#endif // PIX_ENABLE_BLOCK_ARGUMENT_COPY
     {
         PIXCopyEventArgumentSlowest(destination, limit, argument);
     }
@@ -259,7 +350,7 @@ inline void PIXCopyEventArgument<PCSTR>(_Out_writes_to_ptr_(limit) UINT64*& dest
     {
         if (argument != nullptr)
         {
-#if defined(_AMD64_) || defined(_X86_)
+#if (defined(_M_X64) || defined(_M_IX86)) && PIX_ENABLE_BLOCK_ARGUMENT_COPY
             if (PIXIsPointerAligned<16>(argument))
             {
                 *destination++ = PIXEncodeStringInfo(0, 16, TRUE, FALSE);
@@ -294,7 +385,7 @@ inline void PIXCopyEventArgument<PCSTR>(_Out_writes_to_ptr_(limit) UINT64*& dest
                 }
             }
             else
-#endif // _AMD64_ || _X86_
+#endif // (defined(_M_X64) || defined(_M_IX86)) && PIX_ENABLE_BLOCK_ARGUMENT_COPY
             {
                 PIXCopyEventArgumentSlow(destination, limit, argument);
             }
@@ -317,28 +408,28 @@ inline void PIXCopyEventArgumentSlowest(_Out_writes_to_ptr_(limit) UINT64*& dest
     *destination++ = PIXEncodeStringInfo(0, 8, FALSE, FALSE);
     while (destination < limit)
     {
-        UINT64 c = argument[0];
+        UINT64 c = static_cast<uint16_t>(argument[0]);
         if (!c)
         {
             *destination++ = 0;
             return;
         }
         UINT64 x = c;
-        c = argument[1];
+        c = static_cast<uint16_t>(argument[1]);
         if (!c)
         {
             *destination++ = x;
             return;
         }
         x |= c << 16;
-        c = argument[2];
+        c = static_cast<uint16_t>(argument[2]);
         if (!c)
         {
             *destination++ = x;
             return;
         }
         x |= c << 32;
-        c = argument[3];
+        c = static_cast<uint16_t>(argument[3]);
         if (!c)
         {
             *destination++ = x;
@@ -352,6 +443,7 @@ inline void PIXCopyEventArgumentSlowest(_Out_writes_to_ptr_(limit) UINT64*& dest
 
 inline void PIXCopyEventArgumentSlow(_Out_writes_to_ptr_(limit) UINT64*& destination, _In_ const UINT64* limit, _In_ PCWSTR argument)
 {
+#if PIX_ENABLE_BLOCK_ARGUMENT_COPY
     if (PIXIsPointerAligned<8>(argument))
     {
         *destination++ = PIXEncodeStringInfo(0, 8, FALSE, FALSE);
@@ -372,6 +464,7 @@ inline void PIXCopyEventArgumentSlow(_Out_writes_to_ptr_(limit) UINT64*& destina
         }
     }
     else
+#endif // PIX_ENABLE_BLOCK_ARGUMENT_COPY
     {
         PIXCopyEventArgumentSlowest(destination, limit, argument);
     }
@@ -384,7 +477,7 @@ inline void PIXCopyEventArgument<PCWSTR>(_Out_writes_to_ptr_(limit) UINT64*& des
     {
         if (argument != nullptr)
         {
-#if defined(_AMD64_) || defined(_X86_)
+#if (defined(_M_X64) || defined(_M_IX86)) && PIX_ENABLE_BLOCK_ARGUMENT_COPY
             if (PIXIsPointerAligned<16>(argument))
             {
                 *destination++ = PIXEncodeStringInfo(0, 16, FALSE, FALSE);
@@ -419,7 +512,7 @@ inline void PIXCopyEventArgument<PCWSTR>(_Out_writes_to_ptr_(limit) UINT64*& des
                 }
             }
             else
-#endif // _AMD64_ || _X86_
+#endif // (defined(_M_X64) || defined(_M_IX86)) && PIX_ENABLE_BLOCK_ARGUMENT_COPY
             {
                 PIXCopyEventArgumentSlow(destination, limit, argument);
             }
@@ -439,31 +532,32 @@ inline void PIXCopyEventArgument<PWSTR>(_Out_writes_to_ptr_(limit) UINT64*& dest
 
 #if defined(__d3d12_x_h__) || defined(__d3d12_h__)
 
-inline void PIXSetMarkerOnContext(_In_ ID3D12GraphicsCommandList* commandList, _In_reads_bytes_(size) void* data, UINT size)
+inline void PIXSetGPUMarkerOnContext(_In_ ID3D12GraphicsCommandList* commandList, _In_reads_bytes_(size) void* data, UINT size)
 {
     commandList->SetMarker(D3D12_EVENT_METADATA, data, size);
 }
 
-inline void PIXSetMarkerOnContext(_In_ ID3D12CommandQueue* commandQueue, _In_reads_bytes_(size) void* data, UINT size)
+inline void PIXSetGPUMarkerOnContext(_In_ ID3D12CommandQueue* commandQueue, _In_reads_bytes_(size) void* data, UINT size)
 {
     commandQueue->SetMarker(D3D12_EVENT_METADATA, data, size);
 }
 
-inline void PIXBeginEventOnContext(_In_ ID3D12GraphicsCommandList* commandList, _In_reads_bytes_(size) void* data, UINT size)
+inline void PIXBeginGPUEventOnContext(_In_ ID3D12GraphicsCommandList* commandList, _In_reads_bytes_(size) void* data, UINT size)
 {
     commandList->BeginEvent(D3D12_EVENT_METADATA, data, size);
 }
 
-inline void PIXBeginEventOnContext(_In_ ID3D12CommandQueue* commandQueue, _In_reads_bytes_(size) void* data, UINT size)
+inline void PIXBeginGPUEventOnContext(_In_ ID3D12CommandQueue* commandQueue, _In_reads_bytes_(size) void* data, UINT size)
 {
     commandQueue->BeginEvent(D3D12_EVENT_METADATA, data, size);
 }
-inline void PIXEndEventOnContext(_In_ ID3D12GraphicsCommandList* commandList)
+
+inline void PIXEndGPUEventOnContext(_In_ ID3D12GraphicsCommandList* commandList)
 {
     commandList->EndEvent();
 }
 
-inline void PIXEndEventOnContext(_In_ ID3D12CommandQueue* commandQueue)
+inline void PIXEndGPUEventOnContext(_In_ ID3D12CommandQueue* commandQueue)
 {
     commandQueue->EndEvent();
 }
@@ -482,4 +576,12 @@ template<> struct PIXInferScopedEventType<UINT> { typedef void Type; };
 template<> struct PIXInferScopedEventType<const UINT> { typedef void Type; };
 template<> struct PIXInferScopedEventType<INT> { typedef void Type; };
 template<> struct PIXInferScopedEventType<const INT> { typedef void Type; };
+
+
+#if PIX_ENABLE_BLOCK_ARGUMENT_COPY_SET
+#undef PIX_ENABLE_BLOCK_ARGUMENT_COPY
+#endif
+
+#undef PIX_ENABLE_BLOCK_ARGUMENT_COPY_SET
+
 #endif //_PIXEventsCommon_H_

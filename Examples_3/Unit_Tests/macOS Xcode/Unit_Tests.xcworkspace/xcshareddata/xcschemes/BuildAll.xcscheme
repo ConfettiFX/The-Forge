@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1020"
+   LastUpgradeVersion = "1130"
    version = "1.3">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -336,34 +336,6 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "C95132EC2010E68A002E584B"
-               BuildableName = "16a_SphereTracing_iOS.app"
-               BlueprintName = "16a_SphereTracing_iOS"
-               ReferencedContainer = "container:16a_SphereTracing/16a_SphereTracing.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "16a_SphereTracing.app"
-               BlueprintName = "16a_SphereTracing"
-               ReferencedContainer = "container:16a_SphereTracing/16a_SphereTracing.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
                BuildableName = "17_EntityComponentSystem.app"
                BlueprintName = "17_EntityComponentSystem"
@@ -645,34 +617,6 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "31_Audio.app"
-               BlueprintName = "31_Audio"
-               ReferencedContainer = "container:31_Audio/31_Audio.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "C95132EC2010E68A002E584B"
-               BuildableName = "31_Audio_iOS.app"
-               BlueprintName = "31_Audio_iOS"
-               ReferencedContainer = "container:31_Audio/31_Audio.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
                BuildableName = "08_GltfViewer.app"
                BlueprintName = "08_GltfViewer"
                ReferencedContainer = "container:08_GltfViewer/08_GltfViewer.xcodeproj">
@@ -718,6 +662,34 @@
                BuildableName = "29_InverseKinematic_iOS.app"
                BlueprintName = "29_InverseKinematic_iOS"
                ReferencedContainer = "container:29_InverseKinematic/29_InverseKinematic.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
+               BuildableName = "12_ZipFileSystem.app"
+               BlueprintName = "12_ZipFileSystem"
+               ReferencedContainer = "container:12_ZipFileSystem/12_ZipFileSystem.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "28A5AD42201F7276000E571F"
+               BuildableName = "12_ZipFileSystem_iOS.app"
+               BlueprintName = "12_ZipFileSystem_iOS"
+               ReferencedContainer = "container:12_ZipFileSystem/12_ZipFileSystem.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>

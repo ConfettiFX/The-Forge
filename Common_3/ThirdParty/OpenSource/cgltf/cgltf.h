@@ -1209,26 +1209,27 @@ cgltf_result cgltf_validate(cgltf_data* data)
 
 			if (data->meshes[i].primitives[j].attributes_count)
 			{
+                // This was removed on purpose to explicitly support
 				cgltf_accessor* first = data->meshes[i].primitives[j].attributes[0].data;
 
-				for (cgltf_size k = 0; k < data->meshes[i].primitives[j].attributes_count; ++k)
-				{
-					if (data->meshes[i].primitives[j].attributes[k].data->count != first->count)
-					{
-						return cgltf_result_invalid_gltf;
-					}
-				}
-
-				for (cgltf_size k = 0; k < data->meshes[i].primitives[j].targets_count; ++k)
-				{
-					for (cgltf_size m = 0; m < data->meshes[i].primitives[j].targets[k].attributes_count; ++m)
-					{
-						if (data->meshes[i].primitives[j].targets[k].attributes[m].data->count != first->count)
-						{
-							return cgltf_result_invalid_gltf;
-						}
-					}
-				}
+//				for (cgltf_size k = 0; k < data->meshes[i].primitives[j].attributes_count; ++k)
+//				{
+//					if (data->meshes[i].primitives[j].attributes[k].data->count != first->count)
+//					{
+//						return cgltf_result_invalid_gltf;
+//					}
+//				}
+//
+//				for (cgltf_size k = 0; k < data->meshes[i].primitives[j].targets_count; ++k)
+//				{
+//					for (cgltf_size m = 0; m < data->meshes[i].primitives[j].targets[k].attributes_count; ++m)
+//					{
+//						if (data->meshes[i].primitives[j].targets[k].attributes[m].data->count != first->count)
+//						{
+//							return cgltf_result_invalid_gltf;
+//						}
+//					}
+//				}
 
 				cgltf_accessor* indices = data->meshes[i].primitives[j].indices;
 

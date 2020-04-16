@@ -818,6 +818,11 @@ static void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, F
 			pFrameBuffer->mArraySize = pDesc->pDepthStencil->mArraySize;
 	}
 
+	if (colorAttachmentCount && pDesc->ppRenderTargets[0]->mDepth > 1)
+	{
+		pFrameBuffer->mArraySize = pDesc->ppRenderTargets[0]->mDepth;
+	}
+
 	/************************************************************************/
 	// Add frame buffer
 	/************************************************************************/
@@ -3615,6 +3620,9 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	bool           cubemapRequired = (DESCRIPTOR_TYPE_TEXTURE_CUBE == (descriptors & DESCRIPTOR_TYPE_TEXTURE_CUBE));
 	bool           arrayRequired = false;
 
+	if (image_type == VK_IMAGE_TYPE_3D)
+		arrayRequired = true;
+
 	if (VK_NULL_HANDLE == pTexture->pVkImage)
 	{
 		DECLARE_ZERO(VkImageCreateInfo, add_info);
@@ -3954,12 +3962,10 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 	addTexture(pRenderer, &textureDesc, &pRenderTarget->pTexture);
 
 	VkImageViewType viewType = VK_IMAGE_VIEW_TYPE_MAX_ENUM;
-	if (pDesc->mDepth > 1)
-		viewType = VK_IMAGE_VIEW_TYPE_3D;
-	else if (pDesc->mHeight > 1)
-		viewType = pDesc->mArraySize > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D;
+	if (pDesc->mHeight > 1)
+		viewType = depthOrArraySize > 1 ? VK_IMAGE_VIEW_TYPE_2D_ARRAY : VK_IMAGE_VIEW_TYPE_2D;
 	else
-		viewType = pDesc->mArraySize > 1 ? VK_IMAGE_VIEW_TYPE_1D_ARRAY : VK_IMAGE_VIEW_TYPE_1D;
+		viewType = depthOrArraySize > 1 ? VK_IMAGE_VIEW_TYPE_1D_ARRAY : VK_IMAGE_VIEW_TYPE_1D;
 
 	VkImageViewCreateInfo rtvDesc = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL };
 	rtvDesc.flags = 0;
@@ -3975,9 +3981,6 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 	rtvDesc.subresourceRange.levelCount = 1;
 	rtvDesc.subresourceRange.baseArrayLayer = 0;
 	rtvDesc.subresourceRange.layerCount = depthOrArraySize;
-
-	if (VK_IMAGE_VIEW_TYPE_3D == viewType)
-		rtvDesc.subresourceRange.layerCount = 1;
 
 	vkCreateImageView(pRenderer->pVkDevice, &rtvDesc, NULL, &pRenderTarget->pVkDescriptor);
 

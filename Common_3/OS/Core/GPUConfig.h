@@ -6,7 +6,7 @@
 #include "../Interfaces/IFileSystem.h"
 #include "../../Renderer/IRenderer.h"
 
-static bool parseConfigLine(
+bool parseConfigLine(
 	eastl::string line, eastl::string& vendorId, eastl::string& deviceId, eastl::string& revId, eastl::string& deviceName,
     eastl::string& presetLevel)
 {
@@ -52,7 +52,7 @@ static bool parseConfigLine(
 	return true;
 }
 
-static GPUPresetLevel stringToPresetLevel(eastl::string& presetLevel)
+GPUPresetLevel stringToPresetLevel(eastl::string& presetLevel)
 {
 	if (presetLevel == "office")
 		return GPU_PRESET_OFFICE;
@@ -68,7 +68,7 @@ static GPUPresetLevel stringToPresetLevel(eastl::string& presetLevel)
 	return GPU_PRESET_NONE;
 }
 
-static const char* presetLevelToString(GPUPresetLevel preset)
+const char* presetLevelToString(GPUPresetLevel preset)
 {
 	switch (preset)
 	{
@@ -83,8 +83,7 @@ static const char* presetLevelToString(GPUPresetLevel preset)
 }
 
 #if !defined(METAL) && !defined(NX64)
-static GPUPresetLevel
-	getSinglePresetLevel(eastl::string line, const eastl::string& inVendorId, const eastl::string& inModelId, const eastl::string& inRevId)
+GPUPresetLevel getSinglePresetLevel(eastl::string line, const eastl::string& inVendorId, const eastl::string& inModelId, const eastl::string& inRevId)
 {
 	eastl::string vendorId;
 	eastl::string deviceId;
@@ -112,7 +111,7 @@ static GPUPresetLevel
 
 #if !defined(__ANDROID__) && !defined(NX64)
 //TODO: Add name matching as well.
-static void checkForPresetLevel(eastl::string line, Renderer* pRenderer, uint32_t gpuCount, GPUSettings* pGpuSettings)
+void checkForPresetLevel(eastl::string line, Renderer* pRenderer, uint32_t gpuCount, GPUSettings* pGpuSettings)
 {
 	eastl::string vendorId;
 	eastl::string deviceId;
@@ -148,7 +147,7 @@ static void checkForPresetLevel(eastl::string line, Renderer* pRenderer, uint32_
 #endif
 
 #if !defined(METAL) && !defined(__ANDROID__) && !defined(NX64)
-static bool checkForActiveGPU(eastl::string line, GPUVendorPreset& pActiveGpu)
+bool checkForActiveGPU(eastl::string line, GPUVendorPreset& pActiveGpu)
 {
 	eastl::string vendorId;
 	eastl::string deviceId;
@@ -174,7 +173,7 @@ static bool checkForActiveGPU(eastl::string line, GPUVendorPreset& pActiveGpu)
 
 #if !defined(__ANDROID__) && !defined(NX64)
 //Reads the gpu config and sets the preset level of all available gpu's
-static void setGPUPresetLevel(Renderer* pRenderer, uint32_t gpuCount, GPUSettings* pGpuSettings)
+void setGPUPresetLevel(Renderer* pRenderer, uint32_t gpuCount, GPUSettings* pGpuSettings)
 {
 	FileStream* fh = fsOpenFileInResourceDirectory(RD_GPU_CONFIG, "gpu.cfg", FM_READ);
 	if (!fh)
@@ -198,7 +197,7 @@ static void setGPUPresetLevel(Renderer* pRenderer, uint32_t gpuCount, GPUSetting
 
 #if defined(__ANDROID__) || defined(NX64)
 //Reads the gpu config and sets the preset level of all available gpu's
-static GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::string modelId, const eastl::string revId)
+GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::string modelId, const eastl::string revId)
 {
 	LOGF(LogLevel::eINFO, "No gpu.cfg support. Preset set to Low");
 	GPUPresetLevel foundLevel = GPU_PRESET_LOW;
@@ -209,7 +208,7 @@ static GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const east
 
 #if !defined(METAL) && !defined(__ANDROID__) && !defined(NX64)
 //Reads the gpu config and sets the preset level of all available gpu's
-static GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::string modelId, const eastl::string revId)
+GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::string modelId, const eastl::string revId)
 {
 
 	FileStream* fh = fsOpenFileInResourceDirectory(RD_GPU_CONFIG, "gpu.cfg", FM_READ_BINARY);
@@ -238,7 +237,7 @@ static GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const east
 }
 
 #if defined(AUTOMATED_TESTING) && defined(ACTIVE_TESTING_GPU)
-static bool getActiveGpuConfig(GPUVendorPreset& pActiveGpu)
+bool getActiveGpuConfig(GPUVendorPreset& pActiveGpu)
 {
 	FileStream* fh = fsOpenFileInResourceDirectory(RD_GPU_CONFIG, "activeTestingGpu.cfg", FM_READ_BINARY);
 	if (!fh)

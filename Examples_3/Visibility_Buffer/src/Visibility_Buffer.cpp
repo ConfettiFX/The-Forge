@@ -857,8 +857,8 @@ public:
 
 		initProfiler();
 
-		gGraphicsProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "GraphicsGpuProfiler");
-		gComputeProfileToken = addGpuProfiler(pRenderer, pComputeQueue, "ComputeGpuProfiler");
+		gGraphicsProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+		gComputeProfileToken = addGpuProfiler(pRenderer, pComputeQueue, "Compute");
 		/************************************************************************/
 		// Start timing the scene load
 		/************************************************************************/
@@ -1200,6 +1200,16 @@ public:
 			RENDERMODE_VISBUFF,
 			RENDERMODE_DEFERRED,
 		};
+
+    // Default NX settings for better performance.
+#if NX64
+    // Async compute is not optimal on the NX platform. Turning this off to make use of default graphics queue for triangle visibility.
+    gAppSettings.mAsyncCompute = false;
+    // High fill rate features are also disabled by default for performance.
+    gAppSettings.mEnableGodray = false;
+    gAppSettings.mEnableHDAO = false;
+#endif
+
 		DropdownWidget renderMode("Render Mode", (uint32_t*)&gAppSettings.mRenderMode, renderModeNames, (uint32_t*)renderModeValues, 2U);
 		pGuiWindow->AddWidget(renderMode);
 

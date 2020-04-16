@@ -630,7 +630,7 @@ class WaveIntrinsics: public IApp
 		// Add depth buffer
 		RenderTargetDesc depthRT = {};
 		depthRT.mArraySize = 1;
-		depthRT.mClearValue = { 0.0f, 0.0f, 0.0f, 0.0f };
+		depthRT.mClearValue = { 0.001f, 0.001f, 0.001f, 0.001f }; // This is a temporary workaround for AMD cards on macOS. Setting this to (0,0,0,0) will introduce weird behavior.
 		depthRT.mDepth = 1;
 		depthRT.mFormat = getRecommendedSwapchainFormat(true);
 		depthRT.mHeight = mSettings.mHeight;
