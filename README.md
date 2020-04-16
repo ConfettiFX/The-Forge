@@ -56,6 +56,25 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 
 # News
 
+## Release 1.42 - April 15th, 2020 - macOS / iOS run-time
+Most of us are working from home now due to the Covid-19 outbreak. We are all trying to balance life and work in new ways. Since the last release we made a thorough pass through the macOS / iOS run-time, so that it is easier to make macOS your main development environment for games.
+Unit-tests fixes:
+- Fixed wrong project ordering in XCode
+- Fixed build-time macOS / iOS warnings.
+- Fixed 03_Multithread until test not showing the appropriate charts for all threads
+- Fixed warnings in 06_MaterialPlayground due to wrong GLTF validation
+- Fixed visual artifacts in 08_GLTFViewer not producing correct normals due to wrong Metal shader.
+- Added missing projects to macOS / iOS workspace and removed unnecessary ones.
+- Fixed unit test 14_WaveIntrinsics macOS on AMD iMac. Implemented workaround for AMD driver issue on macOS.
+
+Metal runtime fixes:
+- Fixed Metal issue handling barriers: scheduled barriers were being ignored, introducing visual artifacts due to read-write race condition.
+
+Closed Issues:
+* #168 - 04_ExecuteInDirect poor performance on MacPro 2019, AMD Vega II, Catalina 10.15.3
+* #156 - Benchmark support?
+
+
 ## Release 1.41 - March 5th, 2020 - Path Tracing Benchmark | CPU Cacheline alignment | Improved Profiler | D3D12 Memory Allocator
 * Based on request we are providing a Path Tracing Benchmark in 16_RayTracing. It allows you to compare the performance of three platforms: 
   * Windows with DirectX 12 DXR
