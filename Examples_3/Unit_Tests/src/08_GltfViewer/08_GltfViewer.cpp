@@ -806,18 +806,18 @@ public:
 #endif
 		
         // FILE PATHS
-        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        PathHandle programDirectory = fsGetApplicationDirectory();
         if (!fsPlatformUsesBundledResources())
         {
             PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/08_GltfViewer");
-            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            fsSetResourceDirRootPath(resourceDirRoot);
             
-            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirectory(RD_MESHES,             "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,     "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,     "../../../../Middleware_3/UI");
+            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../UnitTestResources/Textures");
+            fsSetRelativePathForResourceDirEnum(RD_MESHES,             "../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,     "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,     "../../../../Middleware_3/UI");
         }
 		
 		// window and renderer setup
@@ -956,7 +956,7 @@ public:
 		// Get list of Models
 		eastl::vector<eastl::string> filesToLoad;
 		eastl::vector<PathHandle> filesToLoadFullPath;
-		PathHandle meshDirectory = fsCopyPathForResourceDirectory(RD_MESHES);
+		PathHandle meshDirectory = fsGetResourceDirEnumPath(RD_MESHES);
 		eastl::vector<PathHandle> filesInDirectory = fsGetFilesWithExtension(meshDirectory, "gltf");
 		
 		//reduce duplicated filenames
@@ -1015,7 +1015,7 @@ public:
 		gGuiModelToLoad = gModelFiles[0];
 		
 #else
-		PathHandle fullModelPath = fsCopyPathInResourceDirectory(RD_MESHES, gDefaultModelFile);
+		PathHandle fullModelPath = fsGetPathInResourceDirEnum(RD_MESHES, gDefaultModelFile);
 		gModelFile = fullModelPath;
 		gGuiModelToLoad = fullModelPath;
 #endif
@@ -1201,9 +1201,9 @@ public:
 		eastl::vector<PathHandle> intermediateFileLists;
 		
 #if defined(TARGET_IOS)
-		PathHandle meshDirectory = fsCopyParentPath(modelFilePath);
+		PathHandle meshDirectory = fsGetParentPath(modelFilePath);
 #else
-		PathHandle meshDirectory = fsCopyPathForResourceDirectory(RD_MESHES);
+		PathHandle meshDirectory = fsGetResourceDirEnumPath(RD_MESHES);
 #endif
 		eastl::vector<PathHandle> fileLists = fsGetFilesWithExtension(meshDirectory, "gltf");
 		
@@ -1784,7 +1784,7 @@ public:
 		extFilter.push_back("gltf");
 		extFilter.push_back("glb");
 		
-		PathHandle meshDir = fsCopyPathForResourceDirectory(RD_MESHES);
+		PathHandle meshDir = fsGetResourceDirEnumPath(RD_MESHES);
 		
 		fsShowOpenFileDialog("Select model to load", meshDir, SelectModelFunc, &gGuiModelToLoad, "Model File", &extFilter[0], extFilter.size());
 	}
@@ -1797,7 +1797,7 @@ public:
 		extFilter.push_back("gltf");
 		extFilter.push_back("glb");
 		
-		PathHandle meshDir = fsCopyPathForResourceDirectory(RD_MESHES);
+		PathHandle meshDir = fsGetResourceDirEnumPath(RD_MESHES);
 		
 		fsShowOpenFileDialog("Select model to load", meshDir, SelectModelFunc, &gGuiModelToLoad, "Model File", &extFilter[0], extFilter.size());
 	}

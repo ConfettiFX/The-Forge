@@ -29,26 +29,32 @@
 
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/IMemory.h"
+#include "../../ThirdParty/OpenSource/EASTL/sort.h"
 
 // MARK: - Initialization
 
 bool fsInitAPI(void)
 {
-	Path* resourceDirPath = fsCopyProgramDirectoryPath();
+	Path* resourceDirPath = fsGetApplicationDirectory();
 	if (!resourceDirPath)
 		return false;
 	
-	fsSetResourceDirectoryRootPath(resourceDirPath);
+	fsSetResourceDirRootPath(resourceDirPath);
 	fsFreePath(resourceDirPath);
+	
+	Path * preferredLogPath = fsGetPreferredLogDirectory();
+	fsSetLogFileDirectory(preferredLogPath);
+	fsFreePath(preferredLogPath);
 
 #ifdef USE_MEMORY_TRACKING
-	Path* logFilePath = fsCopyLogFileDirectoryPath();
+	Path* logFilePath = fsGetLogFileDirectory();
 	if (!logFilePath)
 		return false;
+
 	mmgrSetLogFileDirectory(fsGetPathAsNativeString(logFilePath));
 	fsFreePath(logFilePath);
 
-	Path* executablePath = fsCopyExecutablePath();
+	Path* executablePath = fsGetApplicationPath();
 	if (!executablePath)
 		return false;
 	
@@ -60,7 +66,7 @@ bool fsInitAPI(void)
 	return true;
 }
 
-void fsDeinitAPI(void)
+void fsExitAPI(void)
 {
 	fsResetResourceDirectories();
 }
@@ -117,6 +123,7 @@ FileMode fsFileModeFromString(const char* modeStr)
 
 const char* fsFileModeToString(FileMode mode)
 {
+	mode = (FileMode)(mode & ~FM_ALLOW_READ);
 	switch (mode)
 	{
 		case FM_READ: return "r";
@@ -205,7 +212,7 @@ Path* fsAppendPathComponent(const Path* basePath, const char* pathComponent)
 
 	if (!pathComponent) { return fsCopyPath(basePath); }
 
-	const size_t rootPathLength = basePath->pFileSystem->GetRootPathLength();
+	const size_t rootPathLength = basePath->pFileSystem->GetRootPathLength(basePath);
 	const char   directorySeparator = basePath->pFileSystem->GetPathDirectorySeparator();
 	const char   forwardSlash = '/';    // Forward slash is accepted on all platforms as a path component.
 
@@ -507,7 +514,7 @@ Path* fsReplacePathExtension(const Path* path, const char* newExtension)
 	return newPath;
 }
 
-Path* fsCopyParentPath(const Path* path)
+Path* fsGetParentPath(const Path* path)
 {
 	if (!path) { return NULL; }
 
@@ -603,6 +610,12 @@ const char* fsGetPathAsNativeString(const Path* path)
 	return &path->mPathBufferOffset;
 }
 
+bool fsPathContainsString(const Path* path, const char * str)
+{
+	return eastl::string(fsGetPathAsNativeString(path)).find(str) != eastl::string::npos;
+}
+
+
 #ifdef _WIN32
 #define strncasecmp _strnicmp
 #endif
@@ -650,7 +663,7 @@ FileSystem* fsCreateFileSystemFromFileAtPath(const Path* rootPath, FileSystemFla
 	return NULL;
 }
 
-Path* fsCopyPathInParentFileSystem(const FileSystem* fileSystem)
+Path* fsGetPathInParentFileSystem(const FileSystem* fileSystem)
 {
 	if (!fileSystem) { return NULL; }
 	
@@ -698,7 +711,7 @@ bool fsFileSystemIsReadOnly(const FileSystem* fileSystem)
 #define SHADER_DIR "Shaders"
 #endif
 
-const char* gResourceDirectoryDefaults[RD_COUNT] = {
+const char* gResourceDirEnumDefaults[RD_COUNT] = {
 	SHADER_DIR "/Binary/",    // RD_BinShaders
 	SHADER_DIR "/",           // RD_SHADER_SOURCES
 	"Textures/",              // RD_TEXTURES
@@ -709,45 +722,61 @@ const char* gResourceDirectoryDefaults[RD_COUNT] = {
 	"Audio/",                 // RD_AUDIO
 };
 
-Path* gResourceDirectoryOverrides[RD_COUNT];
+Path* gResourceDirEnumOverrides[RD_COUNT];
+Path* gLogFileDir;
 
-Path* fsCopyResourceDirectoryRootPath() { 
-	return fsCopyPath(gResourceDirectoryOverrides[RD_ROOT]); 
+Path* fsGetResourceDirRootPath() { 
+	return fsCopyPath(gResourceDirEnumOverrides[RD_ROOT]); 
 }
 
-void fsSetResourceDirectoryRootPath(const Path* path) { 
-	fsSetPathForResourceDirectory(RD_ROOT, path);
+void fsSetResourceDirRootPath(const Path* path) { 
+	fsSetPathForResourceDirEnum(RD_ROOT, path);
 }
 
-Path* fsCopyPathForResourceDirectory(ResourceDirectory resourceDir)
+Path* fsGetResourceDirEnumPath(ResourceDirEnum resourceDir)
 {
-	if (gResourceDirectoryOverrides[resourceDir])
+	if (gResourceDirEnumOverrides[resourceDir])
 	{
-		return fsCopyPath(gResourceDirectoryOverrides[resourceDir]);
+		return fsCopyPath(gResourceDirEnumOverrides[resourceDir]);
 	}
 
-	Path* rootPath = gResourceDirectoryOverrides[RD_ROOT];
+	Path* rootPath = gResourceDirEnumOverrides[RD_ROOT];
 	ASSERT(rootPath);
-	return fsAppendPathComponent(rootPath, gResourceDirectoryDefaults[resourceDir]);
+	return fsAppendPathComponent(rootPath, gResourceDirEnumDefaults[resourceDir]);
 }
 
-void fsSetRelativePathForResourceDirectory(ResourceDirectory resourceDir, const char* relativePath)
+void fsSetRelativePathForResourceDirEnum(ResourceDirEnum resourceDir, const char* relativePath)
 {
-	Path* rootPath = fsCopyResourceDirectoryRootPath();
+	Path* rootPath = fsGetResourceDirRootPath();
 	Path* fullPath = fsAppendPathComponent(rootPath, relativePath);
 
-	fsSetPathForResourceDirectory(resourceDir, fullPath);
+	fsSetPathForResourceDirEnum(resourceDir, fullPath);
 
 	fsFreePath(rootPath);
 	fsFreePath(fullPath);
 }
 
-void fsSetPathForResourceDirectory(ResourceDirectory resourceDir, const Path* path)
+void fsSetLogFileDirectory(const Path * path)
+{
+	ASSERT(path != NULL);
+	fsFreePath(gLogFileDir);
+	gLogFileDir = fsCopyPath(path);
+}
+
+Path* fsGetLogFileDirectory()
+{
+	if (!gLogFileDir) {
+		gLogFileDir = fsGetPreferredLogDirectory();
+	}
+	return fsCopyPath(gLogFileDir);
+}
+
+void fsSetPathForResourceDirEnum(ResourceDirEnum resourceDir, const Path* path)
 {
 	ASSERT(resourceDir != RD_ROOT || path != NULL);
 
-	fsFreePath(gResourceDirectoryOverrides[resourceDir]);    // fsFreePath checks for NULL
-	gResourceDirectoryOverrides[resourceDir] = fsCopyPath(path);
+	fsFreePath(gResourceDirEnumOverrides[resourceDir]);    // fsFreePath checks for NULL
+	gResourceDirEnumOverrides[resourceDir] = fsCopyPath(path);
 }
 
 // NOTE: not thread-safe. It is the application's responsibility to ensure that no modifications to the file system
@@ -756,16 +785,19 @@ void fsResetResourceDirectories()
 { 
 	for (size_t i = 0; i < RD_COUNT; i += 1)
 	{
-		fsFreePath(gResourceDirectoryOverrides[i]);    // fsFreePath checks for NULL
+		fsFreePath(gResourceDirEnumOverrides[i]);    // fsFreePath checks for NULL
 	}
-	memset(gResourceDirectoryOverrides, 0, RD_COUNT * sizeof(Path*));
+	memset(gResourceDirEnumOverrides, 0, RD_COUNT * sizeof(Path*));
+
+	fsFreePath(gLogFileDir);
+	gLogFileDir = nullptr;
 }
 
-const char* fsGetDefaultRelativePathForResourceDirectory(ResourceDirectory resourceDir) { return gResourceDirectoryDefaults[resourceDir]; }
+const char* fsGetDefaultRelativePathForResourceDirEnum(ResourceDirEnum resourceDir) { return gResourceDirEnumDefaults[resourceDir]; }
 
 size_t fsGetExecutableName(char* buffer, size_t maxLength)
 {
-	Path*         executablePath = fsCopyExecutablePath();
+	Path*         executablePath = fsGetApplicationPath();
 	PathComponent fileName = fsGetPathFileName(executablePath);
 
 	strncpy(buffer, fileName.buffer, min(fileName.length, maxLength));
@@ -923,6 +955,14 @@ eastl::vector<PathHandle> fsGetSubDirectories(const Path* directory)
 	return files;
 }
 
+void fsSortPathHandlesByName(eastl::vector<PathHandle>& pathHandles)
+{
+	eastl::sort(pathHandles.begin(), pathHandles.end(), [](PathHandle const & a, PathHandle const & b)
+	{
+		return strcmp(fsGetPathAsNativeString(a), fsGetPathAsNativeString(b)) < 0;
+	});
+}
+
 // MARK: - Resource Directory Utilities
 
 bool fsPlatformUsesBundledResources()
@@ -935,9 +975,9 @@ bool fsPlatformUsesBundledResources()
 }
 
 FileStream*
-	fsOpenFileInResourceDirectory(ResourceDirectory resourceDir, const char* relativePath, FileMode mode)
+	fsOpenFileInResourceDirEnum(ResourceDirEnum resourceDir, const char* relativePath, FileMode mode)
 {
-	Path* path = fsCopyPathInResourceDirectory(resourceDir, relativePath);
+	Path* path = fsGetPathInResourceDirEnum(resourceDir, relativePath);
 	if (!path) { return NULL; }
 
 	FileStream* fh = fsOpenFile(path, mode);
@@ -945,18 +985,18 @@ FileStream*
 	return fh;
 }
 
-Path* fsCopyPathInResourceDirectory(ResourceDirectory resourceDir, const char* relativePath)
+Path* fsGetPathInResourceDirEnum(ResourceDirEnum resourceDir, const char* relativePath)
 {
-	Path* resourceDirPath = fsCopyPathForResourceDirectory(resourceDir);
+	Path* resourceDirPath = fsGetResourceDirEnumPath(resourceDir);
 	Path* result = fsAppendPathComponent(resourceDirPath, relativePath);
 	fsFreePath(resourceDirPath);
 
 	return result;
 }
 
-bool fsFileExistsInResourceDirectory(ResourceDirectory resourceDir, const char* relativePath)
+bool fsFileExistsInResourceDirEnum(ResourceDirEnum resourceDir, const char* relativePath)
 {
-	Path* path = fsCopyPathInResourceDirectory(resourceDir, relativePath);
+	Path* path = fsGetPathInResourceDirEnum(resourceDir, relativePath);
 	bool  fileExists = fsFileExists(path);
 	fsFreePath(path);
 
@@ -974,6 +1014,7 @@ void* fsGetStreamBufferIfPresent(FileStream* stream)
 size_t fsReadFromStream(FileStream* stream, void* outputBuffer, size_t bufferSizeInBytes)
 {
 	if (!stream) { return 0; }
+	if (!outputBuffer) { return 0; }
 	return stream->Read(outputBuffer, bufferSizeInBytes);
 }
 
@@ -1230,22 +1271,8 @@ bool fsWriteToStreamFloat4(FileStream* stream, float4 value) { return fsWriteToS
 
 bool fsWriteToStreamString(FileStream* stream, const char* value)
 {
-	size_t i = 0;
-
-	while (true)
-	{
-		if (!fsWriteToStreamType(stream, value[i]))
-		{
-			return false;
-		}
-		if (value[i] == 0)
-		{
-			break;
-		}
-		i += 1;
-	}
-
-	return true;
+	size_t len = strlen(value);
+	return fsWriteToStream(stream, value, len) == len;
 }
 
 bool fsWriteToStreamLine(FileStream* stream, const char* value)

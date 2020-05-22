@@ -33,30 +33,21 @@
 #include <assert.h>
 #include "../Interfaces/IMemory.h"
 
-void outputLogString(const char* pszStr)
-{
-	_OutputDebugString(pszStr);
-	_OutputDebugString("\n");
-}
-
 void _OutputDebugStringV(const char* str, va_list args)
 {
-#ifdef _DEBUG
-    const unsigned BUFFER_SIZE = 4096;
-    char           buf[BUFFER_SIZE];
-
-    vsprintf_s(buf, BUFFER_SIZE, str, args);
-
-    printf("%s\n", buf);
+#if FORGE_DEBUG
+    vprintf(str, args);
 #endif
 }
 
 void _OutputDebugString(const char* str, ...)
 {
+#if FORGE_DEBUG
 	va_list arglist;
 	va_start(arglist, str);
-	_OutputDebugStringV(str, arglist);
+	vprintf(str, arglist);
 	va_end(arglist);
+#endif
 }
 
 void _FailedAssert(const char* file, int line, const char* statement)
@@ -67,10 +58,8 @@ void _FailedAssert(const char* file, int line, const char* statement)
 	{
 		printf("Failed: (%s)\n\nFile: %s\nLine: %d\n\n", statement, file, line);
 	}
-	//assert(0);
 }
 
-void _PrintUnicode(const eastl::string& str, bool error) { outputLogString(str.c_str()); }
+void _PrintUnicode(const char* str, bool error) { printf(str); }
 
-void _PrintUnicodeLine(const eastl::string& str, bool error) { _PrintUnicode(str, error); }
 #endif    // ifdef __linux__

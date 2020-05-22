@@ -78,12 +78,13 @@ static inline void addUniformGPURingBuffer(Renderer* pRenderer, uint32_t require
 	BufferDesc ubDesc = {};
 #if defined(DIRECT3D11)
 	ubDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_ONLY;
+	ubDesc.mFlags = BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
 #else
 	ubDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	ubDesc.mMemoryUsage = memoryUsage;
-#endif
 	ubDesc.mFlags = (ubDesc.mMemoryUsage != RESOURCE_MEMORY_USAGE_GPU_ONLY ? BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT : BUFFER_CREATION_FLAG_NONE) |
 		BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
+#endif
 	if (ownMemory)
 		ubDesc.mFlags |= BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 	ubDesc.mSize = maxUniformBufferSize;

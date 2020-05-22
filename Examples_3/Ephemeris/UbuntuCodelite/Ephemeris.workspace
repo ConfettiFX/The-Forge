@@ -8,7 +8,7 @@
   <Project Name="gainput" Path="../../../Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
   <Project Name="EASTL" Path="../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/EASTL.project" Active="No"/>
   <BuildMatrix>
-    <WorkspaceConfiguration Name="Debug" Selected="no">
+    <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>
       <Project Name="zlibstatic" ConfigName="NoConfig"/>
       <Project Name="SpirVTools" ConfigName="Debug"/>
@@ -24,7 +24,7 @@
       <Project Name="gainput" ConfigName="Debug"/>
       <Project Name="EASTL" ConfigName="Debug"/>
     </WorkspaceConfiguration>
-    <WorkspaceConfiguration Name="Release" Selected="yes">
+    <WorkspaceConfiguration Name="Release" Selected="no">
       <Environment/>
       <Project Name="OS" ConfigName="Release"/>
       <Project Name="Ephemeris" ConfigName="Release"/>

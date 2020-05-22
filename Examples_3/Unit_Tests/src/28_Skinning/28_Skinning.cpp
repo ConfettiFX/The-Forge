@@ -58,8 +58,6 @@
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 
-#include "../../../../Common_3/ThirdParty/OpenSource/cgltf/GLTFLoader.h"
-
 // Math
 #include "../../../../Common_3/OS/Math/MathTypes.h"
 
@@ -217,18 +215,18 @@ class Skinning: public IApp
 	bool Init()
 	{
         // FILE PATHS
-        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        PathHandle programDirectory = fsGetApplicationDirectory();
         if (!fsPlatformUsesBundledResources())
         {
             PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/28_Skinning");
-            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            fsSetResourceDirRootPath(resourceDirRoot);
             
-            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirectory(RD_MESHES,             "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,     "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,     "../../../../Middleware_3/UI");
+            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../UnitTestResources/Textures");
+            fsSetRelativePathForResourceDirEnum(RD_MESHES,             "../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,     "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,     "../../../../Middleware_3/UI");
         }
 
 		// WINDOW AND RENDERER SETUP
@@ -282,7 +280,7 @@ class Skinning: public IApp
 
 		// RIGS
 		//
-        PathHandle fullPath = fsCopyPathInResourceDirectory(RD_ANIMATIONS, gStickFigureName);
+        PathHandle fullPath = fsGetPathInResourceDirEnum(RD_ANIMATIONS, gStickFigureName);
 
 		// Initialize the rig with the path to its ozz file
 		gStickFigureRig.Initialize(fullPath);
@@ -292,7 +290,7 @@ class Skinning: public IApp
 
 		// CLIPS
 		//
-		fullPath = fsCopyPathInResourceDirectory(RD_ANIMATIONS, gClipName);
+		fullPath = fsGetPathInResourceDirEnum(RD_ANIMATIONS, gClipName);
 
 		gClip.Initialize(fullPath, &gStickFigureRig);
 
@@ -428,7 +426,7 @@ class Skinning: public IApp
 		/************************************************************************/
 		// LOAD SKINNED MESH
 		/************************************************************************/
-		fullPath = fsCopyPathInResourceDirectory(RD_ANIMATIONS, "stormtrooper/riggedMesh.gltf");
+		fullPath = fsGetPathInResourceDirEnum(RD_ANIMATIONS, "stormtrooper/riggedMesh.gltf");
 
 		gVertexLayoutSkinned.mAttribCount = 5;
 		gVertexLayoutSkinned.mAttribs[0].mSemantic = SEMANTIC_POSITION;
@@ -475,7 +473,7 @@ class Skinning: public IApp
 			addResource(&boneBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
-        PathHandle texturePath = fsCopyPathInResourceDirectory(RD_TEXTURES, gDiffuseTexture);
+        PathHandle texturePath = fsGetPathInResourceDirEnum(RD_TEXTURES, gDiffuseTexture);
 		TextureLoadDesc diffuseTextureDesc = {};
 		diffuseTextureDesc.pFilePath = texturePath;
 		diffuseTextureDesc.ppTexture = &pTextureDiffuse;

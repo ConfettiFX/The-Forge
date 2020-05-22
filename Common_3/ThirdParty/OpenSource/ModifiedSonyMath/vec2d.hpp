@@ -487,7 +487,7 @@ inline const Vector2 absPerElem(const Vector2 & vec)
 
 inline const Vector2 mulPerElem(const Vector2 & vec0, const Vector2 & vec1)
 {
-    return Vector2(vec0[0] * vec1[1], vec0[1] * vec1[1]);
+    return Vector2(vec0[0] * vec1[0], vec0[1] * vec1[1]);
 }
 
 inline const Vector2 maxPerElem(const Vector2 & vec0, const Vector2 & vec1)

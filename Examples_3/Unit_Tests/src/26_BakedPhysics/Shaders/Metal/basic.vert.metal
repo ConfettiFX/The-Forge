@@ -36,8 +36,10 @@ struct Vertex_Shader
     VSOutput main(VSInput input, uint InstanceID)
     {
         VSOutput result;
-        float4x4 tempMat = ((uniformBlock.mvp)*(uniformBlock.toWorld[InstanceID]));
-        result.Position = ((tempMat)*(input.Position));
+		float scaleFactor = 0.065f;
+		float4x4 scaleMat = {{scaleFactor, 0.0, 0.0, 0.0}, {0.0f, scaleFactor, 0.0, 0.0}, {0.0f, 0.0, scaleFactor, 0.0}, {0.0f, 0.0, 0.0, 1.0f}};
+		float4x4 tempMat = uniformBlock.mvp * uniformBlock.toWorld[InstanceID] * scaleMat;
+		result.Position = ((tempMat)*(input.Position));
 
         float4 normal = normalize(((uniformBlock.toWorld[InstanceID])*(float4(input.Normal.xyz, 0.0))));
         float4 pos = ((uniformBlock.toWorld[InstanceID])*(float4(input.Position.xyz, 1.0)));

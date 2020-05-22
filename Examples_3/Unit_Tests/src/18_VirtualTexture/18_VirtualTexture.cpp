@@ -193,18 +193,18 @@ public:
 	bool Init()
 	{
         // FILE PATHS
-        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        PathHandle programDirectory = fsGetApplicationDirectory();
         if (!fsPlatformUsesBundledResources())
         {
             PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/18_VirtualTexture");
-            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            fsSetResourceDirRootPath(resourceDirRoot);
             
-            fsSetRelativePathForResourceDirectory(RD_TEXTURES,				"../../../../Art/SparseTextures");
-            fsSetRelativePathForResourceDirectory(RD_MESHES,					"../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,		"../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,			"../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,	"../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,		"../../../../Middleware_3/UI");
+            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,				"../../../../Art/SparseTextures");
+            fsSetRelativePathForResourceDirEnum(RD_MESHES,					"../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,		"../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,			"../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,	"../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,		"../../../../Middleware_3/UI");
         }
         
 		// window and renderer setup
@@ -255,7 +255,7 @@ public:
 /*
 		for (int i = 0; i < 6; ++i)
 		{
-			PathHandle textureFilePath = fsCopyPathInResourceDirectory(RD_TEXTURES, pSkyBoxImageFileNames[i]);
+			PathHandle textureFilePath = fsGetPathInResourceDirEnum(RD_TEXTURES, pSkyBoxImageFileNames[i]);
 			TextureLoadDesc textureDesc = {};
 			textureDesc.pFilePath = textureFilePath;
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
@@ -265,7 +265,7 @@ public:
 		for (int i = 1; i < gNumPlanets; ++i)
 		{
 			TextureLoadDesc textureLoadDesc = {};
-			PathHandle virtualTexturePath = fsCopyPathInResourceDirectory(RD_TEXTURES, gPlanetName[i]);
+			PathHandle virtualTexturePath = fsGetPathInResourceDirEnum(RD_TEXTURES, gPlanetName[i]);
 
 			textureLoadDesc.pFilePath = virtualTexturePath;
 			textureLoadDesc.ppTexture = &pVirtualTexture[i];
@@ -383,14 +383,14 @@ public:
 //						Load Models
 /////////////////////////////////////
 		{
-			PathHandle sceneFullPath = fsCopyPathInResourceDirectory(RD_MESHES, "sphereHires.gltf");
+			PathHandle sceneFullPath = fsGetPathInResourceDirEnum(RD_MESHES, "sphereHires.gltf");
 			GeometryLoadDesc loadDesc = {};
 			loadDesc.pFilePath = sceneFullPath;
 			loadDesc.ppGeometry = &pSphere;
 			loadDesc.pVertexLayout = &gVertexLayoutDefault;
 			addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
 
-			sceneFullPath = fsCopyPathInResourceDirectory(RD_MESHES, "saturn.gltf");
+			sceneFullPath = fsGetPathInResourceDirEnum(RD_MESHES, "saturn.gltf");
 			loadDesc.pFilePath = sceneFullPath;
 			loadDesc.ppGeometry = &pSaturn;
 			addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);

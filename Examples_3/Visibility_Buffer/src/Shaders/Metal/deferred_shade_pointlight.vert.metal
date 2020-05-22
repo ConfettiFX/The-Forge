@@ -27,6 +27,7 @@ using namespace metal;
 
 #include "shader_defs.h"
 #include "shading.h"
+#include "deferred_shade_pointlight.h"
 
 struct VSInput
 {
@@ -40,18 +41,10 @@ struct VSOutput
     float3 lightPos;
 };
 
-struct VSData {
-    constant LightData* lights            [[id(0)]];
-};
-
-struct VSDataPerFrame {
-    constant PerFrameConstants& uniforms  [[id(0)]];
-};
-
 vertex VSOutput stageMain(VSInput input                         [[stage_in]],
                           uint instanceId                       [[instance_id]],
-                          constant VSData& vsData [[buffer(UPDATE_FREQ_NONE)]],
-                          constant VSDataPerFrame& vsDataPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]]
+                          constant ArgData& vsData [[buffer(UPDATE_FREQ_NONE)]],
+                          constant ArgDataPerFrame& vsDataPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]]
 )
 {
     VSOutput output;

@@ -890,102 +890,6 @@ static void SetMaterials(Scene* pScene)
 	}
 }
 
-
-#if !defined(METAL)
-
-//static inline float2 abs(const float2& v) { return float2(fabsf(v.getX()), fabsf(v.getY())); }
-//static inline float2 subtract(const float2& v, const float2& w) { return float2(v.getX() - w.getX(), v.getY() - w.getY()); }
-//static inline float2 step(const float2& y, const float2& x)
-//{
-//	return float2(x.getX() >= y.getX() ? 1.f : 0.f, x.getY() >= y.getY() ? 1.f : 0.f);
-//}
-//static inline float2 mulPerElem(const float2& v, float f) { return float2(v.getX() * f, v.getY() * f); }
-//static inline float2 mulPerElem(const float2& v, const float2& w) { return float2(v.getX() * w.getX(), v.getY() * w.getY()); }
-//static inline float2 sumPerElem(const float2& v, const float2& w) { return float2(v.getX() + w.getX(), v.getY() + w.getY()); }
-//static inline float2 sign_not_zero(const float2& v) { return subtract(mulPerElem(step(float2(0, 0), v), 2.0), float2(1, 1)); }
-//static inline uint   packSnorm2x16(const float2& v)
-//{
-//	uint x = (uint)round(clamp(v.getX(), -1, 1) * 32767.0f);
-//	uint y = (uint)round(clamp(v.getY(), -1, 1) * 32767.0f);
-//	return ((uint)0x0000FFFF & x) | ((y << 16) & (uint)0xFFFF0000);
-//}
-static inline uint packUnorm2x16(const float2& v)
-{
-	uint x = (uint)round(clamp(v.getX(), 0, 1) * 65535.0f);
-	uint y = (uint)round(clamp(v.getY(), 0, 1) * 65535.0f);
-	return ((uint)0x0000FFFF & x) | ((y << 16) & (uint)0xFFFF0000);
-}
-
-#define F16_EXPONENT_BITS 0x1F
-#define F16_EXPONENT_SHIFT 10
-#define F16_EXPONENT_BIAS 15
-#define F16_MANTISSA_BITS 0x3ff
-#define F16_MANTISSA_SHIFT (23 - F16_EXPONENT_SHIFT)
-#define F16_MAX_EXPONENT (F16_EXPONENT_BITS << F16_EXPONENT_SHIFT)
-
-static inline unsigned short F32toF16(float val)
-{
-	uint           f32 = (*(uint*)&val);
-	unsigned short f16 = 0;
-	/* Decode IEEE 754 little-endian 32-bit floating-point value */
-	int sign = (f32 >> 16) & 0x8000;
-	/* Map exponent to the range [-127,128] */
-	int exponent = ((f32 >> 23) & 0xff) - 127;
-	int mantissa = f32 & 0x007fffff;
-	if (exponent == 128)
-	{ /* Infinity or NaN */
-		f16 = (unsigned short)(sign | F16_MAX_EXPONENT);
-		if (mantissa)
-			f16 |= (mantissa & F16_MANTISSA_BITS);
-	}
-	else if (exponent > 15)
-	{ /* Overflow - flush to Infinity */
-		f16 = (unsigned short)(sign | F16_MAX_EXPONENT);
-	}
-	else if (exponent > -15)
-	{ /* Representable value */
-		exponent += F16_EXPONENT_BIAS;
-		mantissa >>= F16_MANTISSA_SHIFT;
-		f16 = (unsigned short)(sign | exponent << F16_EXPONENT_SHIFT | mantissa);
-	}
-	else
-	{
-		f16 = (unsigned short)sign;
-	}
-	return f16;
-}
-static inline uint pack2Floats(float2 f) { return (F32toF16(f.getX()) & 0x0000FFFF) | ((F32toF16(f.getY()) << 16) & 0xFFFF0000); }
-
-//static inline float2 normalize(const float2& vec)
-//{
-//	float lenSqr = vec.getX() * vec.getX() + vec.getY() * vec.getY();
-//	float lenInv = (1.0f / sqrtf(lenSqr));
-//	return float2(vec.getX() * lenInv, vec.getY() * lenInv);
-//}
-
-static inline float OctWrap(float v, float w) { return (1.0f - abs(w)) * (v >= 0.0f ? 1.0f : -1.0f); }
-
-static inline uint encodeDir(const float3& n)
-{
-	float  absLength = (abs(n.getX()) + abs(n.getY()) + abs(n.getZ()));
-	float3 enc;
-	enc.setX(n.getX() / absLength);
-	enc.setY(n.getY() / absLength);
-	enc.setZ(n.getZ() / absLength);
-
-	if (enc.getZ() < 0)
-	{
-		float oldX = enc.getX();
-		enc.setX(OctWrap(enc.getX(), enc.getY()));
-		enc.setY(OctWrap(enc.getY(), oldX));
-	}
-	enc.setX(enc.getX() * 0.5f + 0.5f);
-	enc.setY(enc.getY() * 0.5f + 0.5f);
-
-	return packUnorm2x16(float2(enc.getX(), enc.getY()));
-}
-#endif
-
 // Loads a scene and returns a Scene object with scene information
 Scene* loadScene(const Path* filePath, struct SyncToken* token, float scale, float offsetX, float offsetY, float offsetZ)
 {
@@ -1070,12 +974,6 @@ void removeScene(Scene* scene)
 	//conf_free(scene->meshes);
 	conf_free(scene->materials);
 	conf_free(scene);
-}
-
-Path* GetSDFBakedFilePath(const eastl::string& fileName)
-{
-	eastl::string newCompleteCacheFileName = "Baked_" + fileName + ".bin";
-	return fsCopyPathInResourceDirectory(RD_OTHER_FILES, newCompleteCacheFileName.c_str());
 }
 
 // Compute an array of clusters from the mesh vertices. Clusters are sub batches of the original mesh limited in number
@@ -1618,7 +1516,7 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 					SDF_DOUBLE_MAX_VOXEL_ONE_DIMENSION_Z);
 			}
 			
-            PathHandle meshPath = fsCopyPathInResourceDirectory(RD_OTHER_FILES, customSubMesh.mMeshName.c_str());
+            PathHandle meshPath = fsGetPathInResourceDirEnum(RD_OTHER_FILES, customSubMesh.mMeshName.c_str());
 			(*generateVolumeDataFromFileFunc)(&volumeData, meshPath, customSubMesh.mMeshName, customSubMesh.mTwoSidedWorldSpaceBias);
 
 			if (volumeData)
@@ -1774,7 +1672,7 @@ void loadSDFMesh(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outM
 					SDF_DOUBLE_MAX_VOXEL_ONE_DIMENSION_Z);
 			}
             
-			PathHandle meshPath = fsCopyPathInResourceDirectory(RD_OTHER_FILES, customSubMesh.mMeshName.c_str());
+			PathHandle meshPath = fsGetPathInResourceDirEnum(RD_OTHER_FILES, customSubMesh.mMeshName.c_str());
 			(*generateVolumeDataFromFileFunc)(&volumeData, meshPath, customSubMesh.mMeshName, customSubMesh.mTwoSidedWorldSpaceBias);
 
 			if (volumeData)

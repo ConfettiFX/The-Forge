@@ -5,6 +5,8 @@
 // Cf. http://msdn.microsoft.com/en-us/library/windows/desktop/ee417005%28v=vs.85%29.aspx
 
 #include "../GainputWindows.h"
+#include "GainputInputDevicePadImpl.h"
+#include "GainputInputDirectInputPadWin.h"
 #include <XInput.h>
 
 namespace gainput
@@ -31,7 +33,7 @@ public:
 	{
 		padIndex_ = index;
 		GAINPUT_ASSERT(padIndex_ < MaxPadCount);
-
+		dinpt.Init(padIndex_, manager.window_instance_);
 #if 0
 		XINPUT_BATTERY_INFORMATION xbattery;
 		DWORD result = XInputGetBatteryInformation(padIndex, BATTERY_DEVTYPE_GAMEPAD, &xbattery);
@@ -53,9 +55,19 @@ public:
 		XINPUT_STATE xstate;
 		DWORD result = XInputGetState(padIndex_, &xstate);
 
+		//added
+		if (fb.duration_ms)
+		{
+			if (getSystemTime() > fb.duration_ms)
+			{
+				SetRumbleEffect(0.0f, 0.0f, 0);
+			}
+		}
+
 		if (result != ERROR_SUCCESS)
 		{
-			deviceState_ = InputDevice::DS_UNAVAILABLE;
+			dinpt.Update(delta, state_, device_);
+			deviceState_ = dinpt.created ? InputDevice::DS_OK : InputDevice::DS_UNAVAILABLE;
 			return;
 		}
 
@@ -135,6 +147,84 @@ public:
 		return result == ERROR_SUCCESS;
 	}
 
+	//added
+	const char* GetDeviceName()
+	{
+		if (dinpt.created)
+		{
+			return dinpt.GetDeviceName();
+		}
+		return "Not Set";
+	}
+
+	void HandleMessage(const MSG& msg)
+	{
+		//only for dinput
+		/*
+		PDEV_BROADCAST_DEVICEINTERFACE b = (PDEV_BROADCAST_DEVICEINTERFACE)msg.lParam;
+		if (!b)
+		{
+			return;
+		}*/
+		switch (msg.wParam)
+		{
+		case DBT_DEVICEARRIVAL:
+		{
+			dinpt.OnDeviceAdd(padIndex_, msg.hwnd);
+		}
+		break;
+		case DBT_DEVICEREMOVECOMPLETE:
+		{
+			dinpt.OnDeviceRemove(padIndex_, msg.hwnd);
+		}
+		break;
+		default:
+		{}
+		}
+
+		if (msg.message == WM_INPUT)
+		{
+			dinpt.ParseMessage((void*)msg.lParam);
+		}
+	}
+
+	virtual bool SetRumbleEffect(float leftMotor, float rightMotor, uint32_t duration_ms)
+	{
+		fb.vibration_left = uint8_t(leftMotor * MaxMotorSpeed);
+		fb.vibration_right = uint8_t(rightMotor * MaxMotorSpeed);
+		if(duration_ms)
+			fb.duration_ms = getSystemTime() + duration_ms;
+		else
+			fb.duration_ms = 0;
+
+		if (dinpt.created)
+		{
+			return dinpt.SetControllerFeedback(fb);
+		}
+		else
+		{
+			GAINPUT_ASSERT(leftMotor >= 0.0f && leftMotor <= 1.0f);
+			GAINPUT_ASSERT(rightMotor >= 0.0f && rightMotor <= 1.0f);
+			XINPUT_VIBRATION xvibration;
+			xvibration.wLeftMotorSpeed = static_cast<WORD>(leftMotor*MaxMotorSpeed);
+			xvibration.wRightMotorSpeed = static_cast<WORD>(rightMotor*MaxMotorSpeed);
+			DWORD result = XInputSetState(padIndex_, &xvibration);
+			return result == ERROR_SUCCESS;
+		}
+	}
+
+	virtual void SetLEDColor(uint8_t r, uint8_t g, uint8_t b)
+	{
+		if (dinpt.created)
+		{
+			ControllerFeedback feedBack;
+			feedBack.r = r;
+			feedBack.g = g;
+			feedBack.b = b;
+			dinpt.SetControllerFeedback(feedBack);
+		}
+	}
+
 private:
 	InputManager& manager_;
 	InputDevice& device_;
@@ -144,6 +234,9 @@ private:
 	unsigned padIndex_;
 	DWORD lastPacketNumber_;
 	bool hasBattery_;
+	//added
+	GainputInputDirectInputPadWin dinpt;
+	ControllerFeedback fb;
 
     static float GetAxisValue(SHORT value)
     {

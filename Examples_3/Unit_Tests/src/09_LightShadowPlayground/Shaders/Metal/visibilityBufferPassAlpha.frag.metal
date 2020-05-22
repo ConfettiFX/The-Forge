@@ -28,23 +28,11 @@
 using namespace metal;
 
 #include "Shader_Defs.h"
-
-struct PackedVertexPosData {
-    packed_float3 position;
-};
-
-struct PackedVertexTexcoord {
-    packed_float2 texCoord;
-};
+#include "vb_argument_buffers.h"
 
 struct VSOutput {
 	float4 position [[position]];
 	float2 texCoord;
-};
-
-struct PerBatchUniforms {
-    uint drawId;
-    uint twoSided;
 };
 
 uint packVisBufData(bool opaque, uint drawId, uint triangleId)
@@ -53,25 +41,12 @@ uint packVisBufData(bool opaque, uint drawId, uint triangleId)
     return (opaque ? packed : (1 << 31) | packed);
 }
 
-struct BindlessDiffuseData
-{
-};
-
-struct FSData {
-    sampler nearClampSampler                                  [[id(0)]];
-    array<texture2d<float>,MATERIAL_BUFFER_SIZE> diffuseMaps;
-};
-
-struct FSDataPerFrame {
-    constant uint* indirectMaterialBuffer         [[id(0)]];
-};
-
 // Pixel shader for alpha tested geometry
 fragment float4 stageMain(
     VSOutput input                              [[stage_in]],
     uint primitiveID                            [[primitive_id]],
-    constant FSData& fsData                     [[buffer(UPDATE_FREQ_NONE)]],
-    constant FSDataPerFrame& fsDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]],
+    constant ArgData& fsData                     [[buffer(UPDATE_FREQ_NONE)]],
+    constant ArgDataPerFrame& fsDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]],
     constant uint& drawID                       [[buffer(UPDATE_FREQ_USER)]]
 )
 {

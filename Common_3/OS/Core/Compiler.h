@@ -32,6 +32,8 @@
 #define UNREF_PARAM(x) (x)
 #elif defined(ORBIS)
 #define UNREF_PARAM(x) ((void)(x))
+#elif defined(__APPLE__)
+#define UNREF_PARAM(x) ((void)(x))
 #else
 //Add more compilers and platforms as we need them
 #define UNREF_PARAM(x)

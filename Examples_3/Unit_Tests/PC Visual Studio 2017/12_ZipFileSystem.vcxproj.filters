@@ -13,9 +13,6 @@
     <Filter Include="Shaders\Vulkan">
       <UniqueIdentifier>{b3286b4d-b567-4e7d-8305-9dacbe25e416}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Shaders\Metal">
-      <UniqueIdentifier>{645c4df9-0b05-4054-ae23-e4c89a5aff72}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files">
       <UniqueIdentifier>{962fea6c-2cda-4bdd-b594-1717ffe9a1e3}</UniqueIdentifier>
     </Filter>
@@ -27,46 +24,16 @@
     <None Include="..\src\27_File_System\Shaders\D3D11\basic.vert">
       <Filter>Shaders\D3D11</Filter>
     </None>
-    <None Include="..\src\27_File_System\Shaders\D3D11\profile.frag">
-      <Filter>Shaders\D3D11</Filter>
-    </None>
-    <None Include="..\src\27_File_System\Shaders\D3D11\profile.vert">
-      <Filter>Shaders\D3D11</Filter>
-    </None>
     <None Include="..\src\27_File_System\Shaders\D3D11\skybox.frag">
       <Filter>Shaders\D3D11</Filter>
     </None>
     <None Include="..\src\27_File_System\Shaders\D3D11\skybox.vert">
       <Filter>Shaders\D3D11</Filter>
     </None>
-    <None Include="..\src\27_File_System\Shaders\Metal\basic.frag.metal">
-      <Filter>Shaders\Metal</Filter>
-    </None>
-    <None Include="..\src\27_File_System\Shaders\Metal\basic.vert.metal">
-      <Filter>Shaders\Metal</Filter>
-    </None>
-    <None Include="..\src\27_File_System\Shaders\Metal\profile.frag.metal">
-      <Filter>Shaders\Metal</Filter>
-    </None>
-    <None Include="..\src\27_File_System\Shaders\Metal\profile.vert.metal">
-      <Filter>Shaders\Metal</Filter>
-    </None>
-    <None Include="..\src\27_File_System\Shaders\Metal\skybox.frag.metal">
-      <Filter>Shaders\Metal</Filter>
-    </None>
-    <None Include="..\src\27_File_System\Shaders\Metal\skybox.vert.metal">
-      <Filter>Shaders\Metal</Filter>
-    </None>
     <None Include="..\src\27_File_System\Shaders\Vulkan\basic.frag">
       <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\27_File_System\Shaders\Vulkan\basic.vert">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\27_File_System\Shaders\Vulkan\profile.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\27_File_System\Shaders\Vulkan\profile.vert">
       <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\27_File_System\Shaders\Vulkan\skybox.frag">
@@ -85,12 +52,6 @@
       <Filter>Shaders\D3D12</Filter>
     </None>
     <None Include="..\src\27_File_System\Shaders\D3D12\basic.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\27_File_System\Shaders\D3D12\profile.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\27_File_System\Shaders\D3D12\profile.vert">
       <Filter>Shaders\D3D12</Filter>
     </None>
     <None Include="..\src\27_File_System\Shaders\D3D12\skybox.frag">

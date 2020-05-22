@@ -10,8 +10,8 @@
 		28A5ABA4201F459F000E571F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ABA3201F459F000E571F /* Assets.xcassets */; };
 		28A5ABA7201F459F000E571F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5ABA5201F459F000E571F /* LaunchScreen.storyboard */; };
 		28A5ABB8201F4662000E571F /* 02_Compute.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D25F24E31F347D7500751335 /* 02_Compute.cpp */; };
-		5B1A66C72295FC3400BD858E /* profile.frag.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5B1A66C52295FC3400BD858E /* profile.frag.metal */; };
-		5B1A66C82295FC3400BD858E /* profile.vert.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5B1A66C62295FC3400BD858E /* profile.vert.metal */; };
+
+
 		5C172F2A214145D50074EE71 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172F29214145CB0074EE71 /* libThe-Forge.a */; };
 		5C172F38214147930074EE71 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F36214147930074EE71 /* AppDelegate.m */; };
 		5C17300C21414D530074EE71 /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C17300B21414D4C0074EE71 /* libThe-Forge_iOS.a */; };
@@ -99,8 +99,8 @@
 			dstPath = Shaders/Metal;
 			dstSubfolderSpec = 7;
 			files = (
-				5B1A66C72295FC3400BD858E /* profile.frag.metal in CopyFiles */,
-				5B1A66C82295FC3400BD858E /* profile.vert.metal in CopyFiles */,
+
+
 				5CA80F5321F0A0DD00C99983 /* imgui.frag.metal in CopyFiles */,
 				5CA80F5421F0A0DD00C99983 /* imgui.vert.metal in CopyFiles */,
 				5CA80F5521F0A0DD00C99983 /* textured_mesh.frag.metal in CopyFiles */,
@@ -126,8 +126,8 @@
 		28A5ABB2201F4637000E571F /* compute.comp.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = compute.comp.metal; path = ../../../src/02_Compute/Shaders/Metal/compute.comp.metal; sourceTree = "<group>"; };
 		28A5ABB3201F4637000E571F /* display.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = display.vert.metal; path = ../../../src/02_Compute/Shaders/Metal/display.vert.metal; sourceTree = "<group>"; };
 		28A5ABB6201F465B000E571F /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = ../../../UnitTestResources/Fonts/TitilliumText; sourceTree = "<group>"; };
-		5B1A66C52295FC3400BD858E /* profile.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.frag.metal; path = ../../src/02_Compute/Shaders/Metal/profile.frag.metal; sourceTree = "<group>"; };
-		5B1A66C62295FC3400BD858E /* profile.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.vert.metal; path = ../../src/02_Compute/Shaders/Metal/profile.vert.metal; sourceTree = "<group>"; };
+
+
 		5C172F24214145CB0074EE71 /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
 		5C172F36214147930074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
 		5C172F37214147930074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
@@ -269,8 +269,8 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
-				5B1A66C52295FC3400BD858E /* profile.frag.metal */,
-				5B1A66C62295FC3400BD858E /* profile.vert.metal */,
+
+
 				5CA80E1021F09F5000C99983 /* CommonShaders */,
 				5C172F24214145CB0074EE71 /* The-Forge.xcodeproj */,
 				28A5ABAE201F4600000E571F /* Fonts */,

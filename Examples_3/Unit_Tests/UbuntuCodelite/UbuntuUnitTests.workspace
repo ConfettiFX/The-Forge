@@ -16,7 +16,7 @@
   <Project Name="13_UserInterface" Path="13_UserInterface/13_UserInterface.project" Active="No"/>
   <Project Name="14_WaveIntrinsics" Path="14_WaveIntrinsics/14_WaveIntrinsics.project" Active="No"/>
   <Project Name="15_Transparency" Path="15_Transparency/15_Transparency.project" Active="No"/>
-  <Project Name="16_Raytracing" Path="16_Raytracing/16_Raytracing.project" Active="Yes"/>
+  <Project Name="16_Raytracing" Path="16_Raytracing/16_Raytracing.project" Active="No"/>
   <Project Name="16a_SphereTracing" Path="16a_SphereTracing/16a_SphereTracing.project" Active="No"/>
   <Project Name="17_EntityComponentSystem" Path="17_EntityComponentSystem/17_EntityComponentSystem.project" Active="No"/>
   <Project Name="21_Playback" Path="21_Playback/21_Playback.project" Active="No"/>
@@ -26,7 +26,7 @@
   <Project Name="25_AdditiveBlending" Path="25_AdditiveBlending/25_AdditiveBlending.project" Active="No"/>
   <Project Name="26_BakedPhysics" Path="26_BakedPhysics/26_BakedPhysics.project" Active="No"/>
   <Project Name="27_MultiThread" Path="27_MultiThread/27_MultiThread.project" Active="No"/>
-  <Project Name="28_Skinning" Path="28_Skinning/28_Skinning.project" Active="No"/>
+  <Project Name="28_Skinning" Path="28_Skinning/28_Skinning.project" Active="Yes"/>
   <Project Name="gainput" Path="../../../Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
   <Project Name="LuaManager" Path="LuaManager/LuaManager.project" Active="No"/>
   <Project Name="ozz_base" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_base.project" Active="No"/>
@@ -39,7 +39,7 @@
   <Project Name="29_InverseKinematic" Path="29_InverseKinematic/29_InverseKinematic.project" Active="No"/>
   <Project Name="18_VirtualTexture" Path="18_VirtualTexture/18_VirtualTexture.project" Active="No"/>
   <BuildMatrix>
-    <WorkspaceConfiguration Name="Debug" Selected="no">
+    <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>
       <Project Name="SpirVTools" ConfigName="Debug"/>
       <Project Name="LuaManager" ConfigName="Debug"/>
@@ -81,7 +81,7 @@
       <Project Name="29_InverseKinematic" ConfigName="Debug"/>
       <Project Name="18_VirtualTexture" ConfigName="Debug"/>
     </WorkspaceConfiguration>
-    <WorkspaceConfiguration Name="Release" Selected="yes">
+    <WorkspaceConfiguration Name="Release" Selected="no">
       <Environment/>
       <Project Name="SpirVTools" ConfigName="Release"/>
       <Project Name="Renderer" ConfigName="Release"/>

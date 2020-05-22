@@ -348,7 +348,6 @@ int ParserTest()
 		eastl::vector < ShaderTestItem > itemList;
 		itemList.push_back(MakeTestItem("basic", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("skybox", true, true, false, {}, {}));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
@@ -365,7 +364,6 @@ int ParserTest()
 		eastl::vector < ShaderTestItem > itemList;
 		itemList.push_back(MakeTestItem("compute", false, false, true, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("display", true, true, false, emptyLhs, emptyRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
@@ -383,7 +381,6 @@ int ParserTest()
 		itemList.push_back(MakeTestItem("Graph", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("Particle", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("Skybox", true, true, false, emptyLhs, emptyRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
@@ -402,25 +399,13 @@ int ParserTest()
 		itemList.push_back(MakeTestItem("skybox", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("ExecuteIndirect", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("ComputeUpdate", false, false, true, emptyLhs, emptyRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
 
 	// 05
-	if (1)
 	{
 		// none
-		eastl::string srcDir = srcBaseDir + "05_FontRendering/Shaders/D3D12/";
-		eastl::string dstDir = dstBaseDir + "built/05_FontRendering/";
-
-		eastl::vector < eastl::string > emptyLhs;
-		eastl::vector < eastl::string > emptyRhs;
-
-		eastl::vector < ShaderTestItem > itemList;
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
-
-		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
 
 	// 06
@@ -563,8 +548,6 @@ int ParserTest()
 			itemList.push_back(MakeTestItemVariation("hair", false, isFrag, !isFrag, macroLhs, macroRhs, variation));
 		}
 
-		//itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
-
 		result |= BuildShaderGroup(dstDir,srcDir,itemList, &bindingVec);
 	}
 
@@ -584,7 +567,6 @@ int ParserTest()
 		grass.AddDs();
 
 		itemList.push_back(grass);
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
@@ -608,7 +590,6 @@ int ParserTest()
 		itemList.push_back(MakeTestItem("watermark", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("zPass", true, false, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("zPassFloor", true, false, false, emptyLhs, emptyRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
@@ -646,7 +627,6 @@ int ParserTest()
 		itemList.push_back(MakeTestItem("meshDepthPass", true, false, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("meshDepthPassAlpha", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("panoToCube", false, false, true, emptyLhs, emptyRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 		itemList.push_back(MakeTestItem("quad", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("skybox", false, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("triangleFiltering", false, false, true, emptyLhs, emptyRhs));
@@ -676,7 +656,6 @@ int ParserTest()
 		itemList.push_back(MakeTestItem("lightingPass", false, false, true, currLhs, currRhs));
 		itemList.push_back(MakeTestItem("raytracedShadowsPass", false, false, true, currLhs, currRhs));
 		itemList.push_back(MakeTestItem("raytracedShadowsUpscalePass", false, false, true, currLhs, currRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
@@ -711,7 +690,6 @@ int ParserTest()
 		itemList.push_back(MakeTestItem("PPR_Reflection", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("renderSceneBRDF", true, true, false, macroLhs, macroRhs));
 		itemList.push_back(MakeTestItem("skybox", true, true, false, emptyLhs, emptyRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
@@ -728,7 +706,6 @@ int ParserTest()
 		eastl::vector < ShaderTestItem > itemList;
 		itemList.push_back(MakeTestItem("basic", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("skybox", true, true, false, emptyLhs, emptyRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
@@ -792,7 +769,6 @@ int ParserTest()
 		itemList.push_back(MakeTestItem("weightedBlendedOITComposite", false, true, false, macroLhs, macroRhs));
 		itemList.push_back(MakeTestItem("weightedBlendedOITVolition", false, true, false, macroLhs, macroRhs));
 		itemList.push_back(MakeTestItem("weightedBlendedOITVolitionComposite", false, true, false, macroLhs, macroRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
@@ -808,7 +784,6 @@ int ParserTest()
 
 		eastl::vector < ShaderTestItem > itemList;
 		itemList.push_back(MakeTestItem("DisplayTexture", true, true, false, emptyLhs, emptyRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
@@ -825,7 +800,6 @@ int ParserTest()
 		eastl::vector < ShaderTestItem > itemList;
 		itemList.push_back(MakeTestItem("fstri", true, false, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("rt", false, true, false, emptyLhs, emptyRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
@@ -841,7 +815,6 @@ int ParserTest()
 
 		eastl::vector < ShaderTestItem > itemList;
 		itemList.push_back(MakeTestItem("basic", true, true, false, emptyLhs, emptyRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
@@ -873,7 +846,6 @@ int ParserTest()
 		eastl::vector < ShaderTestItem > itemList;
 		itemList.push_back(MakeTestItem("basic", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("plane", true, true, false, emptyLhs, emptyRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
@@ -890,7 +862,6 @@ int ParserTest()
 		eastl::vector < ShaderTestItem > itemList;
 		itemList.push_back(MakeTestItem("basic", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("plane", true, true, false, emptyLhs, emptyRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
@@ -907,7 +878,6 @@ int ParserTest()
 		eastl::vector < ShaderTestItem > itemList;
 		itemList.push_back(MakeTestItem("basic", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("plane", true, true, false, emptyLhs, emptyRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
@@ -924,7 +894,6 @@ int ParserTest()
 		eastl::vector < ShaderTestItem > itemList;
 		itemList.push_back(MakeTestItem("basic", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("plane", true, true, false, emptyLhs, emptyRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
@@ -941,7 +910,6 @@ int ParserTest()
 		eastl::vector < ShaderTestItem > itemList;
 		itemList.push_back(MakeTestItem("basic", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("plane", true, true, false, emptyLhs, emptyRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
@@ -958,7 +926,6 @@ int ParserTest()
 		eastl::vector < ShaderTestItem > itemList;
 		itemList.push_back(MakeTestItem("basic", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("plane", true, true, false, emptyLhs, emptyRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
@@ -975,7 +942,6 @@ int ParserTest()
 		eastl::vector < ShaderTestItem > itemList;
 		itemList.push_back(MakeTestItem("basic", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("plane", true, true, false, emptyLhs, emptyRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
@@ -997,15 +963,13 @@ int ParserTest()
 		itemList.push_back(MakeTestItem("basic", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("plane", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("skinning", true, true, false, boneLhs,boneRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}
 
 	// 29
-	if (1)
 	{
-
+		// none
 	}
 
 	// Visibility Buffer
@@ -1046,7 +1010,6 @@ int ParserTest()
 		itemList.push_back(MakeTestItem("visibilityBuffer_pass", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("visibilityBuffer_pass_alpha", true, true, false, emptyLhs, emptyRhs));
 		itemList.push_back(MakeTestItem("visibilityBuffer_shade", true, true, false, emptyLhs, emptyRhs));
-		itemList.push_back(MakeTestItem("profile", true, true, false, {}, {}));
 
 		result |= BuildShaderGroup(dstDir, srcDir, itemList, nullptr);
 	}

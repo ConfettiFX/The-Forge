@@ -12,16 +12,17 @@ const char* gApplicationName = NULL;
 void PrintHelp()
 {
 	printf("AssetPipelineCmd\n");
-	printf("\nCommand: processanimations \"animation/directory/\" \"output/directory/\" [flags]\n");
-	printf("\t--quiet: Print only error messages.\n");
-	printf("\t--force: Force all assets to be processed. Including ones that are already up-to-date.\n");
-	printf("\nCommand: processmeshes \"meshes/directory/\" \"output/directory/\" [arguments]\n");
-	printf("\t-posbits N: use N-bit quantization for positions (default: 16; N should be between 1 and 16)\n");
-	printf("\t-texbits N: use N-bit quantization for texture coordinates (default: 12; N should be between 1 and 16)\n");
-	printf("\t-normbits N: use N-bit quantization for normals and tangents (default: 8; N should be between 1 and 8)\n");
-	printf("\nCommand: processtextures \"textures/directory/\" \"output/directory/\" \n");
-	printf("\nOther:\n");
-	printf("\t-h or -help: Print usage information.\n");
+	printf(
+		"\nCommand: ProcessAnimations          (GLTF to OZZ) -pa   \"animation/directory/\" \"output/directory/\" [flags]\n"
+		"\nCommand: ProcessVirtualTextures     (DDS to SVT)  -pvt  \"source texture directory/\" \"output directory/\" [flags]\n"
+		"\nCommand: ProcessTFX                 (TFX to GLTF) -ptfx \"source tfx directory/\" \"output directory/\" [flags]\n"
+			"\t --fhc | -followhaircount      : Number of follow hairs around loaded guide hairs procedually\n"
+			"\t --tsf | -tipseparationfactor  : Separation factor for the follow hairs\n"
+			"\t --maxradius | -maxradius      : Max radius of the random distribution to generate follow hairs\n"
+		"\nCommon Options:\n"
+			"\t --quiet                       : Print only error messages.\n"
+			"\t --force                       : Force all assets to be processed. Including ones that are already up-to-date.\n"
+			"\t -h | -help                    : Print usage information.\n");
 }
 
 int AssetPipelineCmd(int argc, char** argv)
@@ -30,7 +31,7 @@ int AssetPipelineCmd(int argc, char** argv)
 	if (argc > 0)
 	{
 		gApplicationName = argv[0];
-        PathHandle applicationPath = fsCopyExecutablePath();
+        PathHandle applicationPath = fsGetApplicationPath();
 		appLastModified = fsGetLastModifiedTime(applicationPath);
 	}
 
@@ -53,7 +54,7 @@ int AssetPipelineCmd(int argc, char** argv)
 	}
 
     FileSystem* fileSystem = fsGetSystemFileSystem();
-    PathHandle workingDir = fsCopyWorkingDirectoryPath();
+    PathHandle workingDir = fsGetApplicationDirectory();
     
 	PathHandle inputDir = fsCreatePath(fileSystem, argv[2]);
     if (!inputDir)
@@ -67,9 +68,6 @@ int AssetPipelineCmd(int argc, char** argv)
 	settings.quiet = false;
 	settings.force = false;
 	settings.minLastModifiedTime = (unsigned int)appLastModified;
-	settings.quantizePositionBits = 16;
-	settings.quantizeTexBits = 16;
-	settings.quantizeNormalBits = 8;
 
 	const char* command = argv[1];
 
@@ -84,49 +82,6 @@ int AssetPipelineCmd(int argc, char** argv)
 		else if (stricmp(arg, "--force") == 0)
 		{
 			settings.force = true;
-		}
-		if (stricmp(arg, "-posbits") == 0)
-		{
-			if (i + 1 < argc && isdigit(argv[i + 1][0]))
-				settings.quantizePositionBits = atoi(argv[++i]);
-			else
-				printf("WARNING: Argument expects a value: %s\n", arg);
-
-			if (settings.quantizePositionBits < 1 || settings.quantizePositionBits > 16)
-			{
-				printf("WARNING: Argument outide of range 1-16: %s\n", arg);
-				printf("         Using default value\n");
-				settings.quantizePositionBits = 16;
-			}
-		}
-		else if (stricmp(arg, "-texbits") == 0)
-		{
-			if (i + 1 < argc && isdigit(argv[i + 1][0]))
-				settings.quantizeTexBits = atoi(argv[++i]);
-			else
-				printf("WARNING: Argument expects a value: %s\n", arg);
-
-			if (settings.quantizeTexBits < 1 || settings.quantizeTexBits > 16)
-			{
-				printf("WARNING: Argument outide of range 1-16: %s\n", arg);
-				printf("         Using default value\n");
-				settings.quantizeTexBits = 16;
-			}
-		}
-		else if (stricmp(arg, "-normbits") == 0)
-		{
-			if (i + 1 < argc && isdigit(argv[i + 1][0]))
-				settings.quantizeNormalBits = atoi(argv[++i]);
-			else
-				printf("WARNING: Argument expects a value: %s\n", arg);
-
-
-			if (settings.quantizeNormalBits < 1 || settings.quantizeNormalBits > 8)
-			{
-				printf("WARNING: Argument outide of range 1-8: %s\n", arg);
-				printf("         Using default value\n");
-				settings.quantizeNormalBits = 8;
-			}
 		}
 		else if (stricmp(arg, "-followhaircount") == 0 || stricmp(arg, "--fhc") == 0)
 		{
@@ -193,7 +148,7 @@ int main(int argc, char** argv)
 	int ret = AssetPipelineCmd(argc, argv);
 
 	Log::Exit();
-	fsDeinitAPI();
+	fsExitAPI();
 	MemAllocExit();
 
 	return ret;

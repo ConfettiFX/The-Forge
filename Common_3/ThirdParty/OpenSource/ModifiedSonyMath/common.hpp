@@ -199,8 +199,8 @@ struct half
 {
 	unsigned short sh;
 
-	half() {};
-	inline half(const float x)
+	half() = default;
+	inline explicit half(float x)
 	{
 		union {
 			float floatI;
@@ -295,18 +295,18 @@ struct half
 struct float2
 {
 	float2() = default;
-	float2(float x, float y)       : x(x), y(y) {}
-	float2(int32_t x, int32_t y)   : x((float)x), y((float)y) {}
-	float2(uint32_t x, uint32_t y) : x((float)x), y((float)y) {}
-	float2(int64_t x, int64_t y)   : x((float)x), y((float)y) {}
-	float2(uint64_t x, uint64_t y) : x((float)x), y((float)y) {}
-	float2(float x)                : x(x), y(x) {}
-	float2(int32_t x)              : x((float)x), y((float)x) {}
-	float2(uint32_t  x)            : x((float)x), y((float)x) {}
-	float2(int64_t x)              : x((float)x), y((float)x) {}
-	float2(uint64_t  x)            : x((float)x), y((float)x) {}
-	float2(const float2& f)        : x(f.x), y(f.y) {}
-	float2(const float(&fv)[2])    : x(fv[0]), y(fv[1]){}
+	constexpr float2(float x, float y)       : x(x), y(y) {}
+	constexpr float2(int32_t x, int32_t y)   : x((float)x), y((float)y) {}
+	constexpr float2(uint32_t x, uint32_t y) : x((float)x), y((float)y) {}
+	constexpr float2(int64_t x, int64_t y)   : x((float)x), y((float)y) {}
+	constexpr float2(uint64_t x, uint64_t y) : x((float)x), y((float)y) {}
+	constexpr explicit float2(float x)       : x(x), y(x) {}
+	constexpr explicit float2(int32_t x)     : x((float)x), y((float)x) {}
+	constexpr explicit float2(uint32_t  x)   : x((float)x), y((float)x) {}
+	constexpr explicit float2(int64_t x)     : x((float)x), y((float)x) {}
+	constexpr explicit float2(uint64_t  x)   : x((float)x), y((float)x) {}
+	constexpr float2(const float2& f)        : x(f.x), y(f.y) {}
+	constexpr float2(const float(&fv)[2])    : x(fv[0]), y(fv[1]){}
 
 	float& operator[](int i) { return (&x)[i]; }
 	float operator[](int i) const { return (&x)[i]; }
@@ -353,18 +353,18 @@ inline const float2& operator/=(float2&a, const float2& b) { return a = a / b; }
 struct float3
 {
 	float3() = default;
-	float3(float x, float y, float z)          : x(x), y(y), z(z) {}
-	float3(int32_t x, int32_t y, int32_t z)    : x((float)x), y((float)y), z((float)z) {}
-	float3(uint32_t x, uint32_t y, uint32_t z) : x((float)x), y((float)y), z((float)z) {}
-	float3(int64_t x, int64_t y, int64_t z)    : x((float)x), y((float)y), z((float)z) {}
-	float3(uint64_t x, uint64_t y, uint64_t z) : x((float)x), y((float)y), z((float)z) {}
-	float3(float x)                            : x(x), y(x), z(x) {}
-	float3(int32_t x)                          : x((float)x), y((float)x), z((float)x) {}
-	float3(uint32_t x)                         : x((float)x), y((float)x), z((float)x) {}
-	float3(int64_t x)                          : x((float)x), y((float)x), z((float)x) {}
-	float3(uint64_t x)                         : x((float)x), y((float)x), z((float)x) {}
-	float3(const float3& f)                    : x(f.x), y(f.y), z(f.z) {}
-	float3(const float(&fv)[3])                : x(fv[0]), y(fv[1]), z(fv[2]) {}
+	constexpr float3(float x, float y, float z)          : x(x), y(y), z(z) {}
+	constexpr float3(int32_t x, int32_t y, int32_t z)    : x((float)x), y((float)y), z((float)z) {}
+	constexpr float3(uint32_t x, uint32_t y, uint32_t z) : x((float)x), y((float)y), z((float)z) {}
+	constexpr float3(int64_t x, int64_t y, int64_t z)    : x((float)x), y((float)y), z((float)z) {}
+	constexpr float3(uint64_t x, uint64_t y, uint64_t z) : x((float)x), y((float)y), z((float)z) {}
+	constexpr explicit float3(float x)                   : x(x), y(x), z(x) {}
+	constexpr explicit float3(int32_t x)                 : x((float)x), y((float)x), z((float)x) {}
+	constexpr explicit float3(uint32_t x)                : x((float)x), y((float)x), z((float)x) {}
+	constexpr explicit float3(int64_t x)                 : x((float)x), y((float)x), z((float)x) {}
+	constexpr explicit float3(uint64_t x)                : x((float)x), y((float)x), z((float)x) {}
+	constexpr float3(const float3& f)                    : x(f.x), y(f.y), z(f.z) {}
+	constexpr float3(const float(&fv)[3])                : x(fv[0]), y(fv[1]), z(fv[2]) {}
 
 	float& operator[](int i) { return (&x)[i]; }
 	float operator[](int i) const { return (&x)[i]; }
@@ -406,19 +406,19 @@ inline const float3& operator/=(float3&a, const float3& b) { return a = a / b; }
 struct float4
 {
 	float4() = default;
-	float4(float x, float y, float z, float w)             : x(x), y(y), z(z), w(w) {}
-	float4(int32_t x, int32_t y, int32_t z, int32_t w)     : x((float)x), y((float)y), z((float)z), w((float)w) {}
-	float4(uint32_t x, uint32_t y, uint32_t z, uint32_t w) : x((float)x), y((float)y), z((float)z), w((float)w) {}
-	float4(int64_t x, int64_t y, int64_t z, int64_t w)     : x((float)x), y((float)y), z((float)z), w((float)w) {}
-	float4(uint64_t x, uint64_t y, uint64_t z, uint64_t w) : x((float)x), y((float)y), z((float)z), w((float)w) {}
-	float4(float x)                                        : x(x), y(x), z(x), w(x) {}
-	float4(int32_t x)                                      : x((float)x), y((float)x), z((float)x), w((float)x) {}
-	float4(uint32_t x)                                     : x((float)x), y((float)x), z((float)x), w((float)x) {}
-	float4(int64_t x)                                      : x((float)x), y((float)x), z((float)x), w((float)x) {}
-	float4(uint64_t x)                                     : x((float)x), y((float)x), z((float)x), w((float)x) {}
-	float4(const float3& f, float w) : x(f.x), y(f.y), z(f.z), w(w) {}
-	float4(const float4& f) : x(f.x), y(f.y), z(f.z), w(f.w) {}
-	float4(const float(&fv)[4]) : x(fv[0]), y(fv[1]), z(fv[2]), w(fv[3]) {}
+	constexpr float4(float x, float y, float z, float w)             : x(x), y(y), z(z), w(w) {}
+	constexpr float4(int32_t x, int32_t y, int32_t z, int32_t w)     : x((float)x), y((float)y), z((float)z), w((float)w) {}
+	constexpr float4(uint32_t x, uint32_t y, uint32_t z, uint32_t w) : x((float)x), y((float)y), z((float)z), w((float)w) {}
+	constexpr float4(int64_t x, int64_t y, int64_t z, int64_t w)     : x((float)x), y((float)y), z((float)z), w((float)w) {}
+	constexpr float4(uint64_t x, uint64_t y, uint64_t z, uint64_t w) : x((float)x), y((float)y), z((float)z), w((float)w) {}
+	constexpr explicit float4(float x)                               : x(x), y(x), z(x), w(x) {}
+	constexpr explicit float4(int32_t x)                             : x((float)x), y((float)x), z((float)x), w((float)x) {}
+	constexpr explicit float4(uint32_t x)                            : x((float)x), y((float)x), z((float)x), w((float)x) {}
+	constexpr explicit float4(int64_t x)                             : x((float)x), y((float)x), z((float)x), w((float)x) {}
+	constexpr explicit float4(uint64_t x)                            : x((float)x), y((float)x), z((float)x), w((float)x) {}
+	constexpr float4(const float3& f, float w)                       : x(f.x), y(f.y), z(f.z), w(w) {}
+	constexpr float4(const float4& f)                                : x(f.x), y(f.y), z(f.z), w(f.w) {}
+	constexpr float4(const float(&fv)[4])                            : x(fv[0]), y(fv[1]), z(fv[2]), w(fv[3]) {}
 
 	float& operator[](int i) { return (&x)[i]; }
 	float operator[](int i) const { return (&x)[i]; }
@@ -507,10 +507,10 @@ inline Vector4 f4Tov4(const float4& f4) { return Vector4(f4.x, f4.y, f4.z, f4.w)
 struct int2
 {
 	int2() = default;
-	int2(int x, int y) : x(x), y(y) {}
-	int2(int x) : x(x), y(x) {}
-	int2(const int2& f) : x(f.x), y(f.y) {}
-	int2(const int(&fv)[2]) : x(fv[0]), y(fv[1]) {}
+	constexpr int2(int x, int y)      : x(x), y(y) {}
+	constexpr explicit int2(int x)    : x(x), y(x) {}
+	constexpr int2(const int2& f)     : x(f.x), y(f.y) {}
+	constexpr int2(const int(&fv)[2]) : x(fv[0]), y(fv[1]) {}
 
 	int& operator[](int i) { return (&x)[i]; }
 	int operator[](int i) const { return (&x)[i]; }
@@ -555,10 +555,10 @@ inline const int2& operator/=(int2&a, const int2& b) { return a = a / b; }
 struct int3
 {
 	int3() = default;
-	int3(int x, int y, int z) : x(x), y(y), z(z) {}
-	int3(int x) : x(x), y(x), z(x) {}
-	int3(const int3& f) : x(f.x), y(f.y), z(f.z) {}
-	int3(const int(&fv)[3]) : x(fv[0]), y(fv[1]), z(fv[2]) {}
+	constexpr int3(int x, int y, int z) : x(x), y(y), z(z) {}
+	constexpr explicit int3(int x)      : x(x), y(x), z(x) {}
+	constexpr int3(const int3& f)       : x(f.x), y(f.y), z(f.z) {}
+	constexpr int3(const int(&fv)[3])   : x(fv[0]), y(fv[1]), z(fv[2]) {}
 
 	int& operator[](int i) { return (&x)[i]; }
 	int operator[](int i) const { return (&x)[i]; }
@@ -598,11 +598,11 @@ inline const int3& operator/=(int3&a, const int3& b) { return a = a / b; }
 struct int4
 {
 	int4() = default;
-	int4(int x, int y, int z, int w) : x(x), y(y), z(z), w(w) {}
-	int4(int x) : x(x), y(x), z(x), w(x) {}
-	int4(const int3& f, int w) : x(f.x), y(f.y), z(f.z), w(w) {}
-	int4(const int4& f) : x(f.x), y(f.y), z(f.z), w(f.w) {}
-	int4(const int(&fv)[4]) : x(fv[0]), y(fv[1]), z(fv[2]), w(fv[3]) {}
+	constexpr int4(int x, int y, int z, int w) : x(x), y(y), z(z), w(w) {}
+	constexpr explicit int4(int x)             : x(x), y(x), z(x), w(x) {}
+	constexpr int4(const int3& f, int w)       : x(f.x), y(f.y), z(f.z), w(w) {}
+	constexpr int4(const int4& f)              : x(f.x), y(f.y), z(f.z), w(f.w) {}
+	constexpr int4(const int(&fv)[4])          : x(fv[0]), y(fv[1]), z(fv[2]), w(fv[3]) {}
 
 	int& operator[](int i) { return (&x)[i]; }
 	int operator[](int i) const { return (&x)[i]; }
@@ -672,10 +672,10 @@ typedef unsigned uint;
 struct uint2
 {
 	uint2() = default;
-	constexpr uint2(uint x, uint y) : x(x), y(y) {}
-	uint2(uint x) : x(x), y(x) {}
-	uint2(const uint2& f) : x(f.x), y(f.y) {}
-	uint2(const uint(&fv)[2]) : x(fv[0]), y(fv[1]) {}
+	constexpr uint2(uint x, uint y)     : x(x), y(y) {}
+	constexpr explicit uint2(uint x)    : x(x), y(x) {}
+	constexpr uint2(const uint2& f)     : x(f.x), y(f.y) {}
+	constexpr uint2(const uint(&fv)[2]) : x(fv[0]), y(fv[1]) {}
 
 	uint& operator[](uint i) { return (&x)[i]; }
 	uint operator[](uint i) const { return (&x)[i]; }
@@ -720,9 +720,9 @@ struct uint3
 {
 	uint3() = default;
 	constexpr uint3(uint x, uint y, uint z) : x(x), y(y), z(z) {}
-	uint3(uint x) : x(x), y(x), z(x) {}
-	uint3(const uint3& f) : x(f.x), y(f.y), z(f.z) {}
-	uint3(const uint(&fv)[3]) : x(fv[0]), y(fv[1]), z(fv[2]) {}
+	constexpr explicit uint3(uint x)        : x(x), y(x), z(x) {}
+	constexpr uint3(const uint3& f)         : x(f.x), y(f.y), z(f.z) {}
+	constexpr uint3(const uint(&fv)[3])     : x(fv[0]), y(fv[1]), z(fv[2]) {}
 
 	uint& operator[](uint i) { return (&x)[i]; }
 	uint operator[](uint i) const { return (&x)[i]; }
@@ -762,10 +762,10 @@ struct uint4
 {
 	uint4() = default;
 	constexpr uint4(uint x, uint y, uint z, uint w) : x(x), y(y), z(z), w(w) {}
-	uint4(uint x) : x(x), y(x), z(x), w(x) {}
-	uint4(const uint3& f, uint w) : x(f.x), y(f.y), z(f.z), w(w) {}
-	uint4(const uint4& f) : x(f.x), y(f.y), z(f.z), w(f.w) {}
-	uint4(const uint(&fv)[4]) : x(fv[0]), y(fv[1]), z(fv[2]), w(fv[3]) {}
+	constexpr explicit uint4(uint x)                : x(x), y(x), z(x), w(x) {}
+	constexpr uint4(const uint3& f, uint w)         : x(f.x), y(f.y), z(f.z), w(w) {}
+	constexpr uint4(const uint4& f)                 : x(f.x), y(f.y), z(f.z), w(f.w) {}
+	constexpr uint4(const uint(&fv)[4])             : x(fv[0]), y(fv[1]), z(fv[2]), w(fv[3]) {}
 
 	uint& operator[](uint i) { return (&x)[i]; }
 	uint operator[](uint i) const { return (&x)[i]; }

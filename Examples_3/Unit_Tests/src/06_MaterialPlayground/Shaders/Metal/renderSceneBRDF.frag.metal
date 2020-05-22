@@ -24,61 +24,10 @@
 #include <metal_stdlib>
 using namespace metal;
 
-struct PointLight
-{
-	float4 positionAndRadius;
-	float4 colorAndIntensity;
-};
-
-struct DirectionalLight
-{
-	float4 directionAndShadowMap;
-	float4 colorAndIntensity;
-	float shadowRange;
-	float _pad0;
-	float _pad1;
-	int shadowMapDimensions;
-	float4x4 viewProj;
-};
+#include "renderSceneBRDF.h"
 
 static constant float PI = 3.14159265359;
 static constant float PI_DIV2 = 1.57079632679;
-
-struct CameraData
-{
-    float4x4 projView;
-    float4x4 invProjView;
-    float3 camPos;
-
-	float fAmbientLightIntensity;
-	int bUseEnvironmentLight;
-	float fEnvironmentLightIntensity;
-	float fAOIntensity;
-
-	int renderMode;
-	float fNormalMapIntensity;
-};
-
-struct ObjectData
-{
-	float4x4 worldMat;
-	float4 albedoAndRoughness;
-	float2 tiling;
-	float metalness;
-	int textureConfig;
-};
-
-struct PointLightData
-{
-	PointLight PointLights[MAX_NUM_POINT_LIGHTS];
-	int NumPointLights;
-};
-
-struct DirectionalLightData
-{
-	DirectionalLight DirectionalLights[MAX_NUM_DIRECTIONAL_LIGHTS];
-	int NumDirectionalLights;
-};
 
 struct VSOutput
 {
@@ -313,33 +262,6 @@ float ShadowTest(texture2d<float> shadowMap, sampler bilinearSampler, float4 Pl,
 	shadow /= (rowHalfSize * 2 + 1) * (rowHalfSize * 2 + 1);
 	return 1.0 - shadow;
 }
-
-struct VSData {
-    constant PointLightData& cbPointLights              [[id(0)]];
-    constant DirectionalLightData& cbDirectionalLights  [[id(1)]];
-    
-    texture2d<float, access::sample> brdfIntegrationMap [[id(2)]];
-    texturecube<float, access::sample> irradianceMap    [[id(3)]];
-    texturecube<float, access::sample> specularMap      [[id(4)]];
-    texture2d<float, access::sample> shadowMap          [[id(5)]];
-
-    sampler bilinearSampler                             [[id(6)]];
-    sampler bilinearClampedSampler                      [[id(7)]];
-};
-
-struct VSDataPerFrame {
-    constant CameraData& cbCamera                       [[id(0)]];
-};
-
-struct VSDataPerDraw {
-    constant ObjectData& cbObject                       [[id(0)]];
-    
-    texture2d<float> albedoMap                          [[id(1)]];
-    texture2d<float, access::sample> normalMap          [[id(2)]];
-    texture2d<float, access::sample> metallicMap        [[id(3)]];
-    texture2d<float, access::sample> roughnessMap       [[id(4)]];
-    texture2d<float, access::sample> aoMap              [[id(5)]];
-};
 
 fragment float4 stageMain(VSOutput In[[stage_in]],
 						  constant VSData& vsData                  [[buffer(UPDATE_FREQ_NONE)]],

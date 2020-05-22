@@ -483,7 +483,7 @@ void assignSponzaTextures();
 class PixelProjectedReflections: public IApp
 {
 	size_t mProgressBarValue = 0, mProgressBarValueMax = 1024;
-	size_t mAtomicProgress = 0;
+	//size_t mAtomicProgress = 0;
 
 	public:
 	PixelProjectedReflections()
@@ -496,19 +496,19 @@ class PixelProjectedReflections: public IApp
 	bool Init()
 	{
 		// FILE PATHS
-		PathHandle programDirectory = fsCopyProgramDirectoryPath();
+		PathHandle programDirectory = fsGetApplicationDirectory();
 		if (!fsPlatformUsesBundledResources())
 		{
 			PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/10_PixelProjectedReflections");
-			fsSetResourceDirectoryRootPath(resourceDirRoot);
+			fsSetResourceDirRootPath(resourceDirRoot);
 			
-			fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../../../Art/Sponza/Textures");
-			fsSetRelativePathForResourceDirectory(RD_MESHES,          "../../../../Art/Sponza/Meshes");
-			fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
-			fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
-			fsSetRelativePathForResourceDirectory(RD_OTHER_FILES,      "../../UnitTestResources/Textures");
-			fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
-			fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
+			fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../../../Art/Sponza/Textures");
+			fsSetRelativePathForResourceDirEnum(RD_MESHES,          "../../../../Art/Sponza/Meshes");
+			fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
+			fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
+			fsSetRelativePathForResourceDirEnum(RD_OTHER_FILES,      "../../UnitTestResources/Textures");
+			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
+			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
 		}
 
 		RendererDesc settings = { 0 };
@@ -1202,7 +1202,7 @@ class PixelProjectedReflections: public IApp
 
 		// Load the skybox panorama texture.
 		SyncToken token = {};
-		PathHandle panoramaFilePath = fsCopyPathInResourceDirectory(RD_OTHER_FILES, skyboxNames[skyboxIndex]);
+		PathHandle panoramaFilePath = fsGetPathInResourceDirEnum(RD_OTHER_FILES, skyboxNames[skyboxIndex]);
 		TextureLoadDesc panoDesc = {};
 		panoDesc.pFilePath = panoramaFilePath;
 		panoDesc.ppTexture = &pPanoSkybox;
@@ -1301,11 +1301,9 @@ class PixelProjectedReflections: public IApp
 		ShaderLoadDesc specularShaderDesc = {};
 		specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", &importanceSampleMacro, 1, RD_SHADER_SOURCES };
 
-#ifndef TARGET_IOS
 		addShader(pRenderer, &panoToCubeShaderDesc, &pPanoToCubeShader);
 		addShader(pRenderer, &irradianceShaderDesc, &pIrradianceShader);
 		addShader(pRenderer, &specularShaderDesc, &pSpecularShader);
-#endif
 		addShader(pRenderer, &brdfIntegrationShaderDesc, &pBRDFIntegrationShader);
 
 		const char*       pStaticSamplerNames[] = { "skyboxSampler" };
@@ -1325,16 +1323,13 @@ class PixelProjectedReflections: public IApp
 		specularRootDesc.mStaticSamplerCount = 1;
 		specularRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
 		specularRootDesc.ppStaticSamplers = &pSkyboxSampler;
-#ifndef TARGET_IOS
 		addRootSignature(pRenderer, &panoRootDesc, &pPanoToCubeRootSignature);
 		addRootSignature(pRenderer, &irradianceRootDesc, &pIrradianceRootSignature);
 		addRootSignature(pRenderer, &specularRootDesc, &pSpecularRootSignature);
-#endif
 		addRootSignature(pRenderer, &brdfRootDesc, &pBRDFIntegrationRootSignature);
 
 		DescriptorSetDesc setDesc = { pBRDFIntegrationRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetBRDF);
-#ifndef TARGET_IOS
 		setDesc = { pPanoToCubeRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPanoToCube[0]);
 		setDesc = { pPanoToCubeRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gSkyboxMips };
@@ -1345,12 +1340,10 @@ class PixelProjectedReflections: public IApp
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSpecular[0]);
 		setDesc = { pSpecularRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gSkyboxMips };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSpecular[1]);
-#endif
 
 		PipelineDesc desc = {};
 		desc.mType = PIPELINE_TYPE_COMPUTE;
 		ComputePipelineDesc& pipelineSettings = desc.mComputeDesc;
-#ifndef TARGET_IOS
 		pipelineSettings.pShaderProgram = pPanoToCubeShader;
 		pipelineSettings.pRootSignature = pPanoToCubeRootSignature;
 		addPipeline(pRenderer, &desc, &pPanoToCubePipeline);
@@ -1360,7 +1353,6 @@ class PixelProjectedReflections: public IApp
 		pipelineSettings.pShaderProgram = pSpecularShader;
 		pipelineSettings.pRootSignature = pSpecularRootSignature;
 		addPipeline(pRenderer, &desc, &pSpecularPipeline);
-#endif
 		pipelineSettings.pShaderProgram = pBRDFIntegrationShader;
 		pipelineSettings.pRootSignature = pBRDFIntegrationRootSignature;
 		addPipeline(pRenderer, &desc, &pBRDFIntegrationPipeline);
@@ -1393,7 +1385,6 @@ class PixelProjectedReflections: public IApp
 
 		cmdResourceBarrier(pCmd, 0, NULL, 1, srvBarrier, 0, NULL);
 
-#ifndef TARGET_IOS
 		// Store the panorama texture inside a cubemap.
 		cmdBindPipeline(pCmd, pPanoToCubePipeline);
 		params[0].pName = "srcTexture";
@@ -1471,8 +1462,6 @@ class PixelProjectedReflections: public IApp
 				pCmd, max(1u, (gSpecularSize >> i) / pThreadGroupSize[0]),
 				max(1u, (gSpecularSize >> i) / pThreadGroupSize[1]), 6);
 		}
-#endif
-		
 		/************************************************************************/
 		/************************************************************************/
 		TextureBarrier srvBarriers2[2] = { { pIrradianceMap, RESOURCE_STATE_SHADER_RESOURCE },
@@ -1490,7 +1479,6 @@ class PixelProjectedReflections: public IApp
 		waitForFences(pRenderer, 1, &pRenderCompleteFences[0]);
 
 		removeDescriptorSet(pRenderer, pDescriptorSetBRDF);
-#ifndef TARGET_IOS
 		removeDescriptorSet(pRenderer, pDescriptorSetPanoToCube[0]);
 		removeDescriptorSet(pRenderer, pDescriptorSetPanoToCube[1]);
 		removeDescriptorSet(pRenderer, pDescriptorSetIrradiance);
@@ -1505,7 +1493,7 @@ class PixelProjectedReflections: public IApp
 		removePipeline(pRenderer, pPanoToCubePipeline);
 		removeRootSignature(pRenderer, pPanoToCubeRootSignature);
 		removeShader(pRenderer, pPanoToCubeShader);
-#endif
+
 		removePipeline(pRenderer, pBRDFIntegrationPipeline);
 		removeRootSignature(pRenderer, pBRDFIntegrationRootSignature);
 		removeShader(pRenderer, pBRDFIntegrationShader);
@@ -1516,7 +1504,7 @@ class PixelProjectedReflections: public IApp
 	void loadMesh(size_t index)
 	{
 		//Load Sponza
-		PathHandle sceneFullPath = fsCopyPathInResourceDirectory(RD_MESHES, gModelNames[index]);
+		PathHandle sceneFullPath = fsGetPathInResourceDirEnum(RD_MESHES, gModelNames[index]);
 		GeometryLoadDesc loadDesc = {};
 		loadDesc.pFilePath = sceneFullPath;
 		loadDesc.ppGeometry = &gModels[index];
@@ -1526,7 +1514,7 @@ class PixelProjectedReflections: public IApp
 
 	void loadTexture(size_t index)
 	{
-		PathHandle texturePath = fsCopyPathInResourceDirectory(RD_TEXTURES, pMaterialImageFileNames[index]);
+		PathHandle texturePath = fsGetPathInResourceDirEnum(RD_TEXTURES, pMaterialImageFileNames[index]);
 		TextureLoadDesc textureDesc = {};
 		textureDesc.pFilePath = texturePath;
 		textureDesc.ppTexture = &pMaterialTextures[index];
@@ -1933,7 +1921,7 @@ class PixelProjectedReflections: public IApp
 
 		static bool prevDataLoaded = false;
 		
-		SyncToken lastCompletedToken = getLastTokenCompleted();
+		//SyncToken lastCompletedToken = getLastTokenCompleted();
 		bool dataLoaded = isTokenCompleted(&gResourceSyncToken);
 		if (dataLoaded)
 		{

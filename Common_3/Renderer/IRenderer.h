@@ -104,6 +104,11 @@ enum
 #define ENABLE_RAYTRACING
 #endif
 
+// Enable graphics validation in debug builds by default.
+#if defined(FORGE_DEBUG) && !defined(ENABLE_GRAPHICS_DEBUG)
+#define ENABLE_GRAPHICS_DEBUG 1
+#endif
+
 // Forward declare memory allocator classes
 namespace D3D12MA
 {
@@ -203,6 +208,7 @@ typedef enum ResourceState
 	RESOURCE_STATE_GENERIC_READ = (((((0x1 | 0x2) | 0x40) | 0x80) | 0x200) | 0x800),
 	RESOURCE_STATE_PRESENT = 0x1000,
 	RESOURCE_STATE_COMMON = 0x2000,
+	RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE = 0x4000,
 } ResourceState;
 MAKE_ENUM_FLAG(uint32_t, ResourceState)
 
@@ -280,8 +286,11 @@ typedef enum IndirectArgumentType
 	INDIRECT_CONSTANT_BUFFER_VIEW,    // only for dx
 	INDIRECT_SHADER_RESOURCE_VIEW,    // only for dx
 	INDIRECT_UNORDERED_ACCESS_VIEW,   // only for dx
-  INDIRECT_COMMAND_BUFFER,          // metal ICB
-  INDIRECT_COMMAND_BUFFER_OPTIMIZE  // metal indirect buffer optimization
+#if defined(METAL)
+	INDIRECT_COMMAND_BUFFER,          // metal ICB
+	INDIRECT_COMMAND_BUFFER_RESET,    // metal ICB reset
+	INDIRECT_COMMAND_BUFFER_OPTIMIZE  // metal ICB optimization
+#endif
 } IndirectArgumentType;
 /************************************************/
 
@@ -713,8 +722,8 @@ typedef struct DEFINE_ALIGNED(QueryPool, 16)
 	uint32_t         mCount;
 #endif
 #if defined(METAL)
-    uint64_t         mGpuTimestampStart;
-    uint64_t         mGpuTimestampEnd;
+    double           mGpuTimestampStart;
+    double           mGpuTimestampEnd;
 	uint32_t         mCount;
 #endif
 #if defined(ORBIS)
@@ -756,6 +765,7 @@ typedef struct BufferDesc
 	/// Flags specifying the suitable usage of this buffer (Uniform buffer, Vertex Buffer, Index Buffer,...)
 	DescriptorType mDescriptors;
 	/// Debug name used in gpu profile
+	// #TODO: Use char*
 	const wchar_t* pDebugName;
 	uint32_t*      pSharedNodeIndices;
 	uint32_t       mNodeIndex;
@@ -798,14 +808,10 @@ typedef struct DEFINE_ALIGNED(Buffer, 64)
 	uint64_t                         mOffset;
 #endif
 #if defined(METAL)
-	/// Contains resource allocation info such as parent heap, offset in heap
-	struct ResourceAllocation*       pMtlAllocation;
-	/// Native handle of the underlying resource
+	struct VmaAllocation_T*          pAllocation;
 	id<MTLBuffer>                    mtlBuffer;
 	id<MTLIndirectCommandBuffer>     mtlIndirectCommandBuffer;
-	// #TODO: Update Metal Memory Allocator with reference to the new D3D12 Memory Allocator
-	uint32_t                         mPositionInHeap;
-	uint32_t                         mPadA;
+	uint64_t                         mOffset;
 	uint64_t                         mPadB;
 #endif
 #if defined(ORBIS)
@@ -855,6 +861,7 @@ typedef struct TextureDesc
 	/// Pointer to native texture handle if the texture does not own underlying resource
 	const void* pNativeHandle;
 	/// Debug name used in gpu profile
+	// #TODO: Use char*
 	const wchar_t* pDebugName;
 	/// GPU indices to share this texture
 	uint32_t* pSharedNodeIndices;
@@ -961,8 +968,7 @@ typedef struct DEFINE_ALIGNED(Texture, 64)
 	/// Contains resource allocation info such as parent heap, offset in heap
 	D3D12MA::Allocation*         pDxAllocation;
 	uint64_t                     mHandleCount : 24;
-	uint64_t                     mDescriptorSize : 6;
-	uint64_t                     mPadB;
+	uint32_t                     mDescriptorSize;
 #endif
 #if defined(VULKAN)
 	/// Opaque handle used by shaders for doing read/write operations on the texture
@@ -977,15 +983,14 @@ typedef struct DEFINE_ALIGNED(Texture, 64)
 	struct VmaAllocation_T*      pVkAllocation;
 #endif
 #if defined(METAL)
-	/// Contains resource allocation info such as parent heap, offset in heap
-	struct ResourceAllocation*   pMtlAllocation;
+	struct VmaAllocation_T*      pAllocation;
 	/// Native handle of the underlying resource
 	id<MTLTexture>               mtlTexture;
 	id<MTLTexture> __strong*     pMtlUAVDescriptors;
 	id                           mpsTextureAllocator;
-	uint64_t                     mtlPixelFormat : 32;
-	uint64_t                     mFlags : 31;
-	uint64_t                     mIsCompressed : 1;
+	uint32_t                     mtlPixelFormat;
+	uint32_t                     mFlags : 31;
+	uint32_t                     mIsColorAttachment : 1;
 #endif
 #if defined(DIRECT3D11)
 	ID3D11Resource*              pDxResource;
@@ -1046,6 +1051,7 @@ typedef struct RenderTargetDesc
 	DescriptorType mDescriptors;
 	const void*    pNativeHandle;
 	/// Debug name used in gpu profile
+	// #TODO: Use char*
 	const wchar_t* pDebugName;
 	/// GPU indices to share this texture
 	uint32_t* pSharedNodeIndices;
@@ -1195,11 +1201,10 @@ typedef struct DEFINE_ALIGNED(DescriptorInfo, 16)
 #endif
 #if defined(METAL)
     id<MTLSamplerState>       mtlStaticSampler;
-	const ArgumentDescriptor* mtlArgumentDescriptors;
 	uint32_t                  mUsedStages : 6;
 	uint32_t                  mReg : 10;
 	uint32_t                  mIsArgumentBufferField : 1;
-	uint32_t                  mPadA;
+	MTLResourceUsage          mUsage;
 	uint64_t                  mPadB[2];
 #endif
 #endif
@@ -1273,18 +1278,10 @@ typedef struct DEFINE_ALIGNED(RootSignature, 64)
 	uint64_t                   mPadB[7];
 #endif
 #if defined(METAL)
-	// paramIndex support
-	typedef struct IndexedDescriptor
-	{
-		const DescriptorInfo** pDescriptors;
-		uint32_t               mDescriptorCount;
-	} IndexedDescriptor;
-
-	ShaderDescriptors*         pShaderDescriptors;
-	IndexedDescriptor*         mIndexedDescriptorInfo;
-	uint32_t                   mShaderDescriptorsCount;
-	uint32_t                   mIndexedDescriptorCount;
-	uint64_t                   mPadA[2];
+	NSMutableArray<MTLArgumentDescriptor*>* mArgumentDescriptors[DESCRIPTOR_UPDATE_FREQ_COUNT];
+	uint32_t                   mRootTextureCount : 10;
+	uint32_t                   mRootBufferCount : 10;
+	uint32_t                   mRootSamplerCount : 10;
 #endif
 #if defined(DIRECT3D11)
 	ID3D11SamplerState**       ppStaticSamplers;
@@ -1394,7 +1391,17 @@ typedef struct DEFINE_ALIGNED(DescriptorSet, 64)
 	uint8_t                       mNodeIndex;
 	uint8_t                       mPadA;
 #elif defined(METAL)
-	struct MTLDescriptorSet*      pMtl;
+	id<MTLArgumentEncoder>        mArgumentEncoder;
+	Buffer*                       mArgumentBuffer;
+	const RootSignature*          pRootSignature;
+	/// Descriptors that are bound without argument buffers
+	/// This is necessary since there are argument buffers bugs in some iOS Metal drivers which causes shader compiler crashes or incorrect shader generation. This makes it necessary to keep fallback descriptor binding path alive
+	struct RootDescriptorData*    pRootDescriptorData;
+	uint32_t                      mChunkSize;
+	uint32_t                      mMaxSets;
+	uint8_t                       mUpdateFrequency;
+	uint8_t                       mNodeIndex;
+	uint8_t                       mStages;
 #elif defined(DIRECT3D11)
 	struct DescriptorDataArray*   pHandles;
 	struct CBV**                  pDynamicCBVs;
@@ -1483,6 +1490,7 @@ typedef struct DEFINE_ALIGNED(Cmd, 64)
 	uint64_t                     mIndexStride : 3;
 	uint64_t                     selectedPrimitiveType : 4;
 	QueryPool*                   pLastFrameQuery;
+	PipelineType                 mPipelineType;
 	uint64_t                     mPadA[5];
 #endif
 #if defined(DIRECT3D11)
@@ -1531,10 +1539,11 @@ typedef struct DEFINE_ALIGNED(Fence, 32)
 	uint64_t             mPadC;
 #endif
 #if defined(DIRECT3D11)
-	uint64_t             mPadA;
+	ID3D11Query*         pDX11Query;
+	uint32_t             mSubmitted : 1;
+	uint32_t             mPadA;
 	uint64_t             mPadB;
 	uint64_t             mPadC;
-	uint64_t             mPadD;
 #endif
 #if defined(ORBIS)
 	OrbisFence           mStruct;
@@ -1574,10 +1583,10 @@ typedef struct DEFINE_ALIGNED(Semaphore, 32)
 	uint64_t             mPadC;
 #endif
 #if defined(METAL)
-	dispatch_semaphore_t pMtlSemaphore;
-	uint64_t             mPadA;
+	id<MTLEvent>         pMtlSemaphore;
+	uint32_t             mSignaled;
+	uint32_t             mPadA;
 	uint64_t             mPadB;
-	uint64_t             mPadC;
 #endif
 #if defined(ORBIS)
 	OrbisFence           mStruct;
@@ -1627,6 +1636,7 @@ typedef struct DEFINE_ALIGNED(Queue, 64)
 	uint32_t             mType : 3;
 	uint32_t             mNodeIndex : 4;
 	Extent3D             mUploadGranularity;
+	Fence*               pFence;
 #endif
 #if defined(ORBIS)
 	OrbisQueue           mStruct;
@@ -1757,15 +1767,15 @@ typedef struct DepthStateDesc
 {
 	bool        mDepthTest;
 	bool        mDepthWrite;
-	CompareMode mDepthFunc = CompareMode::CMP_LEQUAL;
+	CompareMode mDepthFunc;
 	bool        mStencilTest;
 	uint8_t     mStencilReadMask;
 	uint8_t     mStencilWriteMask;
-	CompareMode mStencilFrontFunc = CompareMode::CMP_ALWAYS;
+	CompareMode mStencilFrontFunc;
 	StencilOp   mStencilFrontFail;
 	StencilOp   mDepthFrontFail;
 	StencilOp   mStencilFrontPass;
-	CompareMode mStencilBackFunc = CompareMode::CMP_ALWAYS;
+	CompareMode mStencilBackFunc;
 	StencilOp   mStencilBackFail;
 	StencilOp   mDepthBackFail;
 	StencilOp   mStencilBackPass;
@@ -2036,7 +2046,7 @@ typedef struct DEFINE_ALIGNED(SwapChain, 64)
 	id<MTLCommandBuffer>     presentCommandBuffer;
 	uint32_t                 mImageCount : 3;
 	uint32_t                 mEnableVsync : 1;
-	uint32_t                 mPadA;
+	uint32_t                 mIndex;
 	uint64_t                 mPadB[4];
 #endif
 #if defined(ORBIS)
@@ -2181,8 +2191,13 @@ typedef struct DEFINE_ALIGNED(Renderer, 64)
 #endif
 #if defined(METAL)
 	id<MTLDevice>                   pDevice;
-	struct ResourceAllocator*       pResourceAllocator;
-	uint64_t                        mPadA[8];
+	struct VmaAllocator_T*          pVmaAllocator;
+	__unsafe_unretained id<MTLHeap>*pHeaps;
+	uint32_t                        mHeapCount;
+	uint32_t                        mHeapCapacity;
+	// #TODO: Store this in GpuSettings struct
+	uint64_t                        mVRAM;
+	uint64_t                        mPadA[5];
 #endif
 #if defined(ORBIS)
 	uint64_t                        mPadA;
@@ -2251,7 +2266,6 @@ typedef struct DescriptorSetDesc
 	DescriptorUpdateFrequency  mUpdateFrequency;
 	uint32_t                   mMaxSets;
 	uint32_t                   mNodeIndex;
-//    const wchar_t*             pDebugName;
 } DescriptorSetDesc;
 
 typedef struct QueueSubmitDesc
@@ -2393,6 +2407,7 @@ API_INTERFACE void FORGE_CALLCONV cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPo
 // Stats Info Interface
 /************************************************************************/
 API_INTERFACE void FORGE_CALLCONV calculateMemoryStats(Renderer* pRenderer, char** stats);
+API_INTERFACE void FORGE_CALLCONV calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* totalAllocatedBytes);
 API_INTERFACE void FORGE_CALLCONV freeMemoryStats(Renderer* pRenderer, char* stats);
 /************************************************************************/
 // Debug Marker Interface

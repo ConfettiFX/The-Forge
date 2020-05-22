@@ -27,8 +27,8 @@ using namespace metal;
 
 struct Compute_Shader
 {
-    texture2d<float, access::read_write> Source;
-    texture2d<float, access::read_write> Destination;
+    texture2d<float, access::read> Source;
+    texture2d<float, access::write> Destination;
     struct Uniforms_RootConstant
     {
         uint2 MipSize;
@@ -51,8 +51,8 @@ struct Compute_Shader
     };
 
     Compute_Shader(
-		texture2d<float, access::read_write> Source,
-        texture2d<float, access::read_write> Destination,
+		texture2d<float, access::read> Source,
+        texture2d<float, access::write> Destination,
         constant Uniforms_RootConstant & RootConstant) :
 			Source(Source),
     		Destination(Destination),
@@ -60,21 +60,16 @@ struct Compute_Shader
         {}
 };
 
-struct CSData
-{
-    texture2d<float, access::read_write> Source      [[id(0)]];
-    texture2d<float, access::read_write> Destination [[id(1)]];
-};
-
 //[numthreads(16, 16, 1)]
 kernel void stageMain(
     uint3 id [[thread_position_in_grid]],
-    constant CSData& csData [[buffer(UPDATE_FREQ_PER_DRAW)]],
+	texture2d<float, access::read> Source       [[texture(0)]],
+    texture2d<float, access::write> Destination [[texture(1)]],
     constant Compute_Shader::Uniforms_RootConstant& RootConstant [[buffer(UPDATE_FREQ_USER)]]
 )
 {
     uint3 id0;
     id0 = id;
-    Compute_Shader main(csData.Source, csData.Destination, RootConstant);
+    Compute_Shader main(Source, Destination, RootConstant);
     return main.main(id0);
 }

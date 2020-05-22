@@ -31,9 +31,14 @@
 #include "../Interfaces/IMemory.h"
 
 #define LOG_PREAMBLE_SIZE (56 + MAX_THREAD_NAME_LENGTH + FILENAME_NAME_LENGTH_LOG)
+#define LOG_LEVEL_SIZE 6
+#define LOG_MESSAGE_OFFSET (LOG_PREAMBLE_SIZE + LOG_LEVEL_SIZE)
 
-static Log* pLogger;
+static Log* pLogger = NULL;
 static bool gOnce = true;
+
+thread_local char Log::Buffer[MAX_BUFFER+2];
+bool Log::sConsoleLogging = true;
 
 eastl::string GetTimeStamp()
 {
@@ -56,12 +61,12 @@ const char* get_filename(const char* path)
 }
 
 // Default callback
-void log_write(void * user_data, const eastl::string & message)
+void log_write(void * user_data, const char* message)
 {
 	FileStream* fh = (FileStream*)user_data;
     ASSERT(fh);
     
-    fsWriteToStreamLine(fh, message.c_str());
+    fsWriteToStreamString(fh, message);
     fsFlushStream(fh);
 }
 
@@ -84,8 +89,11 @@ void log_flush(void * user_data)
 
 void Log::Init(LogLevel level /* = LogLevel::eALL */)
 {
-	pLogger = conf_new(Log, level);
-	pLogger->mLogMutex.Init();
+	if (!pLogger)
+	{
+		pLogger = conf_new(Log, level);
+		pLogger->mLogMutex.Init();
+	}
 }
 
 void Log::Exit()
@@ -109,7 +117,7 @@ Log::LogScope::LogScope(uint32_t log_level, const char * file, int line, const c
 	mMessage = buf;
 
 	// Write to log and update indentation
-	Log::Write(mLevel, "{ " + mMessage, mFile, mLine);
+	Log::Write(mLevel, mFile, mLine, "{ %s", buf);
 	{
 		MutexLock lock{ pLogger->mLogMutex };
 		++pLogger->mIndentation;
@@ -123,7 +131,7 @@ Log::LogScope::~LogScope()
 		MutexLock lock{ pLogger->mLogMutex };
 		--pLogger->mIndentation;
 	}
-	Log::Write(mLevel, "} " + mMessage, mFile, mLine);
+	Log::Write(mLevel, mFile, mLine, "} %s", mMessage.c_str());
 }
 
 void Log::SetLevel(LogLevel level)             { pLogger->mLogLevel = level; }
@@ -131,10 +139,10 @@ void Log::SetQuiet(bool bQuiet)                { pLogger->mQuietMode = bQuiet; }
 void Log::SetTimeStamp(bool bEnable)           { pLogger->mRecordTimestamp = bEnable; }
 void Log::SetRecordingFile(bool bEnable)       { pLogger->mRecordFile = bEnable; }
 void Log::SetRecordingThreadName(bool bEnable) { pLogger->mRecordThreadName = bEnable; }
+void Log::SetConsoleLogging(bool bEnable)      { pLogger->sConsoleLogging = bEnable; } // @CONFFX: Change by Koste: Controllable console logging
 
 // Gettors
 uint32_t Log::GetLevel()            { return pLogger->mLogLevel; }
-eastl::string Log::GetLastMessage() { return pLogger->mLastMessage; }
 bool Log::IsQuiet()                 { return pLogger->mQuietMode; }
 bool Log::IsRecordingTimeStamp()    { return pLogger->mRecordTimestamp; }
 bool Log::IsRecordingFile()         { return pLogger->mRecordFile; }
@@ -145,7 +153,7 @@ void Log::AddFile(const char * filename, FileMode file_mode, LogLevel log_level)
 	if (filename == NULL)
 		return;
 	
-    PathHandle logFileDirectory = fsCopyLogFileDirectoryPath();
+    PathHandle logFileDirectory = fsGetLogFileDirectory();
     PathHandle path = fsAppendPathComponent(logFileDirectory, filename);
     FileStream* fh = fsOpenFile(path, file_mode);
 	if (fh)//If the File Exists
@@ -173,11 +181,11 @@ void Log::AddFile(const char * filename, FileMode file_mode, LogLevel log_level)
 			//file->Flush();
 		}
 
-		Write(LogLevel::eINFO, "Opened log file " + eastl::string{ filename }, __FILE__, __LINE__);
+		Write(LogLevel::eINFO, __FILE__, __LINE__, "Opened log file %s", filename);
 	}
 	else
 	{
-		Write(LogLevel::eERROR, "Failed to create log file " + eastl::string{ filename }, __FILE__, __LINE__); // will try to acquire mutex
+		Write(LogLevel::eERROR, __FILE__, __LINE__, "Failed to create log file %s", filename); // will try to acquire mutex
 	}
 }
 
@@ -192,32 +200,33 @@ void Log::AddCallback(const char * id, uint32_t log_level, void * user_data, log
 		close(user_data);
 }
 
-void Log::Write(uint32_t level, const eastl::string & message, const char * filename, int line_number)
+
+typedef char LogStr[LOG_LEVEL_SIZE+1];
+
+void Log::Write(uint32_t level, const char * filename, int line_number, const char* message, ...)
 {
-	static eastl::pair<uint32_t, eastl::string> logLevelPrefixes[] =
+	static eastl::pair<uint32_t, const char*> logLevelPrefixes[] =
 	{
-		eastl::pair<uint32_t, eastl::string>{ LogLevel::eWARNING, eastl::string{ "WARN" } },
-		eastl::pair<uint32_t, eastl::string>{ LogLevel::eINFO, eastl::string{ "INFO" } },
-		eastl::pair<uint32_t, eastl::string>{ LogLevel::eDEBUG, eastl::string{ " DBG" } },
-		eastl::pair<uint32_t, eastl::string>{ LogLevel::eERROR, eastl::string{ " ERR" } }
+		eastl::pair<uint32_t, const char*>{ LogLevel::eWARNING, "WARN| " },
+		eastl::pair<uint32_t, const char*>{ LogLevel::eINFO, "INFO| " },
+		eastl::pair<uint32_t, const char*>{ LogLevel::eDEBUG, " DBG| " },
+		eastl::pair<uint32_t, const char*>{ LogLevel::eERROR, " ERR| " }
 	};
 
-	eastl::string log_level_strings[LEVELS_LOG];
 	uint32_t log_levels[LEVELS_LOG];
 	uint32_t log_level_count = 0;
 
 	// Check flags
 	for (uint32_t i = 0; i < sizeof(logLevelPrefixes) / sizeof(logLevelPrefixes[0]); ++i)
 	{
-		const eastl::pair<uint32_t, eastl::string>* it = &logLevelPrefixes[i];
-		if (it->first & level)
+		eastl::pair<uint32_t, const char*>& it = logLevelPrefixes[i];
+		if (it.first & level)
 		{
-			log_level_strings[log_level_count] = it->second + "| ";
-			log_levels[log_level_count] = it->first;
+			log_levels[log_level_count] = i;
 			++log_level_count;
 		}
 	}
-	
+
 	bool do_once = false;
 	{
 		MutexLock lock{ pLogger->mLogMutex }; // scope lock as stack frames from calling AddInitialLogFile will attempt to lock mutex
@@ -227,45 +236,50 @@ void Log::Write(uint32_t level, const eastl::string & message, const char * file
 	if (do_once)
 		AddInitialLogFile();
 
-	MutexLock lock{ pLogger->mLogMutex };
-	pLogger->mLastMessage = message;
-
-	char preamble[LOG_PREAMBLE_SIZE] = { 0 };
-	WritePreamble(preamble, LOG_PREAMBLE_SIZE, filename, line_number);
+	uint32_t preable_end = WritePreamble(Buffer, LOG_PREAMBLE_SIZE, filename, line_number);
 
 	// Prepare indentation
-	eastl::string indentation;
-	indentation.resize(pLogger->mIndentation * INDENTATION_SIZE_LOG);
-	memset(indentation.begin(), ' ', indentation.size());
+	uint32_t indentation = pLogger->mIndentation * INDENTATION_SIZE_LOG;
+	memset(Buffer+preable_end, ' ', indentation);
+
+	uint32_t offset = preable_end + LOG_LEVEL_SIZE + indentation;
+	va_list args;
+	va_start(args, message);
+	offset += vsnprintf(Buffer + offset, MAX_BUFFER - offset, message, args);
+	va_end(args);
+
+	offset = (offset > MAX_BUFFER) ? MAX_BUFFER : offset;
+	Buffer[offset] = '\n';
+	Buffer[offset + 1] = 0;
 
 	// Log for each flag
 	for (uint32_t i = 0; i < log_level_count; ++i)
 	{
-        eastl::string formattedMessage = preamble + log_level_strings[i] + indentation + message;
+		strncpy(Buffer + preable_end, logLevelPrefixes[log_levels[i]].second, LOG_LEVEL_SIZE);
 
-		if (pLogger->mQuietMode)
+		if (sConsoleLogging)
 		{
-			if (level & LogLevel::eERROR)
-				_PrintUnicodeLine(formattedMessage, true);
+			if (pLogger->mQuietMode)
+			{
+				if (level & LogLevel::eERROR)
+					_PrintUnicode(Buffer, true);
+			}
+			else
+			{
+				_PrintUnicode(Buffer, level & LogLevel::eERROR);
+			}
 		}
-		else
-		{
-			_PrintUnicodeLine(formattedMessage, level & LogLevel::eERROR);
-		}
-	}
-	
-	for (LogCallback & callback : pLogger->mCallbacks)
-	{
-		// Log for each flag
-		for (uint32_t i = 0; i < log_level_count; ++i)
+
+		MutexLock lock{ pLogger->mLogMutex };
+		for (LogCallback & callback : pLogger->mCallbacks)
 		{
 			if (callback.mLevel & log_levels[i])
-				callback.mCallback(callback.mUserData, preamble + log_level_strings[i] + indentation + message);
+				callback.mCallback(callback.mUserData, Buffer);
 		}
 	}
 }
 
-void Log::WriteRaw(uint32_t level, const eastl::string & message, bool error)
+void Log::WriteRaw(uint32_t level, bool error, const char* message, ...)
 {
 	bool do_once = false;
 	{
@@ -276,22 +290,27 @@ void Log::WriteRaw(uint32_t level, const eastl::string & message, bool error)
 	if (do_once)
 		AddInitialLogFile();
 	
-	MutexLock lock{ pLogger->mLogMutex };
-	
-	pLogger->mLastMessage = message;
-	
-	if (pLogger->mQuietMode)
+	va_list args;
+	va_start(args, message);
+	vsnprintf(Buffer, MAX_BUFFER, message, args);
+	va_end(args);
+
+	if (sConsoleLogging)
 	{
-		if (error)
-			_PrintUnicode(message, true);
+		if (pLogger->mQuietMode)
+		{
+			if (error)
+				_PrintUnicode(Buffer, true);
+		}
+		else
+			_PrintUnicode(Buffer, error);
 	}
-	else
-		_PrintUnicode(message, error);
-	
+
+	MutexLock lock{ pLogger->mLogMutex };
 	for (LogCallback & callback : pLogger->mCallbacks)
 	{
 		if (callback.mLevel & level)
-			callback.mCallback(callback.mUserData, message);
+			callback.mCallback(callback.mUserData, Buffer);
 	}
 }
 
@@ -313,28 +332,29 @@ void Log::AddInitialLogFile()
     }
     strncat(exeFileName, extension, extensionLength);
     
-    AddFile(exeFileName, FM_WRITE_BINARY, LogLevel::eALL);
+    AddFile(exeFileName, FM_WRITE_BINARY_ALLOW_READ, LogLevel::eALL);
 }
 
-void Log::WritePreamble(char * buffer, uint32_t buffer_size, const char * file, int line)
+uint32_t Log::WritePreamble(char * buffer, uint32_t buffer_size, const char * file, int line)
 {
-	time_t  t = time(NULL);
-	tm time_info;
-#ifdef _WIN32
-	localtime_s(&time_info, &t);
-#elif defined(ORBIS)
-	localtime_s(&t, &time_info);
-#else
-	localtime_r(&t, &time_info);
-#endif
-
 	uint32_t pos = 0;
 	// Date and time
 	if (pLogger->mRecordTimestamp && pos < buffer_size)
 	{
-		pos += snprintf(buffer + pos, buffer_size - pos, "%04d-%02d-%02d ",
-			1900 + time_info.tm_year, 1 + time_info.tm_mon, time_info.tm_mday);
-		pos += snprintf(buffer + pos, buffer_size - pos, "%02d:%02d:%02d ",
+		time_t  t = time(NULL);
+		tm time_info;
+	#ifdef _WIN32
+		localtime_s(&time_info, &t);
+	#elif defined(ORBIS)
+		localtime_s(&t, &time_info);
+	#elif defined(NX64)
+		t = getTimeSinceStart();
+		localtime_r(&t, &time_info);
+	#else
+		localtime_r(&t, &time_info);
+	#endif
+		pos += snprintf(buffer + pos, buffer_size - pos, "%04d-%02d-%02d %02d:%02d:%02d ",
+			1900 + time_info.tm_year, 1 + time_info.tm_mon, time_info.tm_mday,
 			time_info.tm_hour, time_info.tm_min, time_info.tm_sec);
 	}
 
@@ -342,23 +362,17 @@ void Log::WritePreamble(char * buffer, uint32_t buffer_size, const char * file, 
 	{
 		char thread_name[MAX_THREAD_NAME_LENGTH + 1] = { 0 };
 		Thread::GetCurrentThreadName(thread_name, MAX_THREAD_NAME_LENGTH + 1);
-
-		// No thread name
-		if (thread_name[0] == 0)
-			snprintf(thread_name, MAX_THREAD_NAME_LENGTH + 1, "NoName");
-
-		pos += snprintf(buffer + pos, buffer_size - pos, "[%-15s]", thread_name);
+		pos += snprintf(buffer + pos, buffer_size - pos, "[%-15s]", thread_name[0] == 0 ? "NoName" : thread_name);
 	}
 
 	// File and line
 	if (pLogger->mRecordFile && pos < buffer_size)
 	{
 		file = get_filename(file);
-
-		char shortened_filename[FILENAME_NAME_LENGTH_LOG + 1];
-		snprintf(shortened_filename, FILENAME_NAME_LENGTH_LOG + 1, "%s", file);
-		pos += snprintf(buffer + pos, buffer_size - pos, " %22s:%-5u ", shortened_filename, line);
+		pos += snprintf(buffer + pos, buffer_size - pos, " %22.*s:%-5u ", FILENAME_NAME_LENGTH_LOG, file, line);
 	}
+
+	return pos;
 }
 
 bool Log::CallbackExists(const char * id)
@@ -393,17 +407,4 @@ Log::~Log()
 	}
 	
 	mCallbacks.clear();
-}
-
-eastl::string ToString(const char* format, ...)
-{
-	const unsigned BUFFER_SIZE = 4096;
-	char           buf[BUFFER_SIZE];
-
-	va_list arglist;
-	va_start(arglist, format);
-	vsprintf_s(buf, BUFFER_SIZE, format, arglist);
-	va_end(arglist);
-
-	return eastl::string(buf);
 }

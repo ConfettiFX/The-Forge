@@ -73,11 +73,5 @@
     <None Include="..\..\..\src\17_EntityComponentSystem\Shaders\Vulkan\basic.vert">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="..\..\..\src\17_EntityComponentSystem\Shaders\Vulkan\profile.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\17_EntityComponentSystem\Shaders\Vulkan\profile.vert">
-      <Filter>Shaders</Filter>
-    </None>
   </ItemGroup>
 </Project>

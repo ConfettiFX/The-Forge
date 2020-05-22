@@ -50,8 +50,8 @@ struct Compute_Shader
     };
     constant Uniforms_RootConstant & RootConstant;
 
-    //texturecube<float> srcTexture;
-    //texture2d_array<float, access::read_write> dstTexture;
+    texturecube<float> srcTexture;
+    texture2d_array<float, access::write> dstTexture;
     sampler skyboxSampler;
 
     float RadicalInverse_VdC(uint bits)
@@ -104,7 +104,7 @@ struct Compute_Shader
         return normalize(sampleVec);
     };
 
-	void main(uint3 DTid,  texturecube<float> srcTexture, texture2d_array<float, access::read_write> dstTexture)
+    void main(uint3 DTid)
     {
         uint3 threadPos = DTid;
 
@@ -156,6 +156,7 @@ struct Compute_Shader
 
         float totalWeight = 0.0;
         float4 prefilteredColor = float4(0.0, 0.0, 0.0, 0.0);
+	    float srcTextureSize = float(srcTexture.get_width());
 
         for (int i = 0; i < SampleCount; (++i)) {
 
@@ -172,10 +173,10 @@ struct Compute_Shader
                 float HdotV = max(dot(H, V), 0.0);
                 float pdf = ((D * NdotH) / ((float)(4.0) * HdotV)) + (float)(0.00010000000);
 
-                float saTexel = ((float)(4.0) * Pi) / (float)(((6.0 * (half)(mipSize)) * (half)(mipSize)));
+                float saTexel = ((float)(4.0) * Pi) / (float)(((6.0 * (half)(srcTextureSize)) * (half)(srcTextureSize)));
                 float saSample = (float)(1.0) / (float(SampleCount) * pdf + 0.0001);
 
-                float mipLevel = ((mipRoughness == (float)(0.0))?(0.0):((float)(0.5) * log2(saSample / saTexel)));
+			    float mipLevel = mipRoughness == 0.0 ? 0.0 : max(0.5 * log2(saSample / saTexel) + 1.0f, 0.0f);
 
                 prefilteredColor += ( srcTexture.sample(skyboxSampler, L, level(mipLevel)) * (float4)(NdotL));
 
@@ -188,29 +189,53 @@ struct Compute_Shader
     };
 
     Compute_Shader(constant Uniforms_RootConstant & RootConstant,
+        texturecube<float> srcTexture,
+        texture2d_array<float, access::write> dstTexture,
     sampler skyboxSampler) : RootConstant(RootConstant),
+    srcTexture(srcTexture),
+    dstTexture(dstTexture),
     skyboxSampler(skyboxSampler) {}
 };
 
-struct CSData {
-    texturecube<float> srcTexture                           [[id(0)]];
-    sampler skyboxSampler                                   [[id(1)]];
+#ifndef TARGET_IOS
+struct CSData
+{
+    texturecube<float> srcTexture                         [[id(0)]];
+    sampler skyboxSampler                                 [[id(1)]];
 };
 
-struct CSDataPerDraw {
-    texture2d_array<float, access::read_write> dstTexture   [[id(0)]];
+struct CSDataPerDraw
+{
+    texture2d_array<float, access::write> dstTexture [[id(0)]];
 };
+#endif
 
 //[numthreads(16, 16, 1)]
 kernel void stageMain(
-    uint3 DTid [[thread_position_in_grid]],
-    constant CSData& csData                                        [[buffer(UPDATE_FREQ_NONE)]],
-    constant CSDataPerDraw& csDataPerDraw                          [[buffer(UPDATE_FREQ_PER_DRAW)]],
-    constant Compute_Shader::Uniforms_RootConstant& RootConstant   [[buffer(UPDATE_FREQ_USER)]]
+					  uint3 DTid [[thread_position_in_grid]],
+#ifndef TARGET_IOS
+                      constant CSData& csData                                      [[buffer(UPDATE_FREQ_NONE)]],
+                      device CSDataPerDraw& csDataPerDraw                          [[buffer(UPDATE_FREQ_PER_DRAW)]],
+#else
+					  texturecube<float> srcTexture                         [[texture(0)]],
+					  texture2d_array<float, access::write> dstTexture      [[texture(1)]],
+					  sampler skyboxSampler                                 [[sampler(0)]],
+#endif
+                      constant Compute_Shader::Uniforms_RootConstant& RootConstant [[buffer(UPDATE_FREQ_USER)]]
 )
 {
     uint3 DTid0;
     DTid0 = DTid;
-    Compute_Shader main(RootConstant, csData.skyboxSampler);
-    return main.main(DTid0, csData.srcTexture, csDataPerDraw.dstTexture);
+    Compute_Shader main(RootConstant,
+#ifndef TARGET_IOS
+						csData.srcTexture,
+						csDataPerDraw.dstTexture,
+						csData.skyboxSampler
+#else
+						srcTexture,
+						dstTexture,
+						skyboxSampler
+#endif
+						);
+    return main.main(DTid0);
 }

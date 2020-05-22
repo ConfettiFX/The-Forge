@@ -342,14 +342,14 @@ const float gQuadVertices[] ={
 
 // Warning these indices are not good indices for cubes that want correct normals
 // (a.k.a. all vertices are shared)
-const uint16_t gBoxIndices[36] = {
-	0, 1, 4, 4, 1, 5,    //y-
-	0, 4, 2, 2, 4, 6,    //x-
-	0, 2, 1, 1, 2, 3,    //z-
-	2, 6, 3, 3, 6, 7,    //y+
-	1, 3, 5, 5, 3, 7,    //x+
-	4, 5, 6, 6, 5, 7     //z+
-};
+//const uint16_t gBoxIndices[36] = {
+//	0, 1, 4, 4, 1, 5,    //y-
+//	0, 4, 2, 2, 4, 6,    //x-
+//	0, 2, 1, 1, 2, 3,    //z-
+//	2, 6, 3, 3, 6, 7,    //y+
+//	1, 3, 5, 5, 3, 7,    //x+
+//	4, 5, 6, 6, 5, 7     //z+
+//};
 
 /************************************************************************/
 // Skybox Shader Pack
@@ -529,9 +529,6 @@ Buffer* pBufferASMClearIndirectionQuadsUniform[gImageCount] = { NULL };
 
 Buffer* pBufferASMDataUniform[gImageCount] = { NULL };
 
-
-Buffer* pBufferIndirectDrawArgumentsAll[gNumGeomSets] = { NULL };
-Buffer* pBufferIndirectMaterialAll = NULL;
 Buffer* pBufferMeshConstants = NULL;
 
 Buffer* pBufferFilteredIndirectDrawArguments[gImageCount][gNumGeomSets][NUM_CULLING_VIEWPORTS] = { {{NULL}} };
@@ -560,7 +557,7 @@ Buffer* pBufferSDFVolumeData[gImageCount] = { NULL };
 /************************************************************************/
 
 RenderTarget* pRenderTargetSDFMeshVisualization = NULL;
-RenderTarget* pRenderTargetSDFMeshShadow = NULL;
+Texture* pRenderTargetSDFMeshShadow = NULL;
 
 RenderTarget* pRenderTargetUpSampleSDFShadow = NULL;
 
@@ -1769,7 +1766,7 @@ void GenerateVolumeDataFromMesh(ThreadSystem* threadSystem, SDFMesh* mainMesh, S
 	const eastl::string& subMeshName, float twoSidedWorldSpaceBias = 0.4f,
 	const ivec3& specialMaxVoxelValue = ivec3(0))
 {
-	PathHandle newCompleteCacheFilePath = GetSDFBakedFilePath(subMeshName);
+	PathHandle newCompleteCacheFilePath = fsGetPathInResourceDirEnum(RD_OTHER_FILES, subMeshName.c_str());
 
 	if (GenerateVolumeDataFromFile(outVolumeDataPP, newCompleteCacheFilePath, subMeshName, twoSidedWorldSpaceBias))
 	{
@@ -4789,15 +4786,15 @@ class LightShadowPlayground: public IApp
 		pSDFMeshes[0] = conf_new(SDFMesh);
 		pSDFMeshes[1] = conf_new(SDFMesh);
 		pSDFMeshes[2] = conf_new(SDFMesh);
-        PathHandle model1Path = fsCopyPathInResourceDirectory(RD_MESHES, gSDFModelNames[1]);
+        PathHandle model1Path = fsGetPathInResourceDirEnum(RD_MESHES, gSDFModelNames[1]);
 		loadSDFMeshAlphaTested(pThreadSystem, model1Path, pSDFMeshes[1], MESH_SCALE,
 			SAN_MIGUEL_OFFSETX, ENABLE_SDF_MESH_GENERATION, gSDFVolumeInstances, &GenerateVolumeDataFromFile);
 
-        PathHandle model0Path = fsCopyPathInResourceDirectory(RD_MESHES, gSDFModelNames[0]);
+        PathHandle model0Path = fsGetPathInResourceDirEnum(RD_MESHES, gSDFModelNames[0]);
 		loadSDFMesh(pThreadSystem, model0Path, pSDFMeshes[0], MESH_SCALE,
 			SAN_MIGUEL_OFFSETX, ENABLE_SDF_MESH_GENERATION, gSDFVolumeInstances, &GenerateVolumeDataFromFile);
 
-        PathHandle model2Path = fsCopyPathInResourceDirectory(RD_MESHES, gSDFModelNames[2]);
+        PathHandle model2Path = fsGetPathInResourceDirEnum(RD_MESHES, gSDFModelNames[2]);
 		loadSDFMesh(pThreadSystem, model2Path, pSDFMeshes[2], MESH_SCALE,
 			SAN_MIGUEL_OFFSETX, ENABLE_SDF_MESH_GENERATION, gSDFVolumeInstances, &GenerateVolumeDataFromFile);
 
@@ -4860,28 +4857,28 @@ class LightShadowPlayground: public IApp
 	bool Init() override
 	{
         // FILE PATHS
-        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        PathHandle programDirectory = fsGetApplicationDirectory();
         if (!fsPlatformUsesBundledResources())
         {
             PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/09_LightShadowPlayground");
-            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            fsSetResourceDirRootPath(resourceDirRoot);
             
-            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../../../Art/SanMiguel_3/Textures");
-            fsSetRelativePathForResourceDirectory(RD_MESHES,          "../../../../Art/SanMiguel_3/Meshes");
-            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirectory(RD_OTHER_FILES,      "../../UnitTestResources/SDF");
-            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
+            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../../../Art/SanMiguel_3/Textures");
+            fsSetRelativePathForResourceDirEnum(RD_MESHES,          "../../../../Art/SanMiguel_3/Meshes");
+            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirEnum(RD_OTHER_FILES,      "../../UnitTestResources/SDF");
+            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
         }
         
 		initThreadSystem(&pThreadSystem);
 
 		// Overwrite rootpath is required because Textures and meshes are not in /Textures and /Meshes.
 		// We need to set the modified root path so that filesystem can find the meshes and textures.
-        PathHandle mainDirPath = fsCopyPathForResourceDirectory(RD_ROOT);
+        PathHandle mainDirPath = fsGetResourceDirEnumPath(RD_ROOT);
 #ifndef _DURANGO
-        PathHandle sdfDirPath = fsCopyPathForResourceDirectory(RD_OTHER_FILES);
+        PathHandle sdfDirPath = fsGetResourceDirEnumPath(RD_OTHER_FILES);
         fsCreateDirectory(sdfDirPath);
 #endif
 
@@ -5346,7 +5343,7 @@ class LightShadowPlayground: public IApp
 		initSDFMeshes();
 
 		SyncToken token = {};
-        PathHandle sceneFullPath = fsCopyPathInResourceDirectory(RD_MESHES, gSceneName);
+        PathHandle sceneFullPath = fsGetPathInResourceDirEnum(RD_MESHES, gSceneName);
 		//pScene = loadScene(sceneFullPath.c_str(), MESH_SCALE, SAN_MIGUEL_OFFSETX, 0.0f, 0.0f);
 		Scene* pScene = loadScene(sceneFullPath, &token, SAN_MIGUEL_ORIGINAL_SCALE, SAN_MIGUEL_ORIGINAL_OFFSETX, 0.0f, 0.0f);
 		waitForToken(&token);
@@ -5363,15 +5360,15 @@ class LightShadowPlayground: public IApp
 		for (uint32_t i = 0; i < (uint32_t)gDiffuseMaps.size(); ++i)
 		{
 			TextureLoadDesc desc = {};
-			desc.pFilePath = fsCopyPathInResourceDirectory(RD_TEXTURES, pScene->textures[i]);
+			desc.pFilePath = fsGetPathInResourceDirEnum(RD_TEXTURES, pScene->textures[i]);
 			desc.ppTexture = &gDiffuseMaps[i];
 			addResource(&desc, NULL, LOAD_PRIORITY_NORMAL);
 			fsFreePath((Path*)desc.pFilePath);
-			desc.pFilePath = fsCopyPathInResourceDirectory(RD_TEXTURES, pScene->normalMaps[i]);
+			desc.pFilePath = fsGetPathInResourceDirEnum(RD_TEXTURES, pScene->normalMaps[i]);
 			desc.ppTexture = &gNormalMaps[i];
 			addResource(&desc, NULL, LOAD_PRIORITY_NORMAL);
 			fsFreePath((Path*)desc.pFilePath);
-			desc.pFilePath = fsCopyPathInResourceDirectory(RD_TEXTURES, pScene->specularMaps[i]);
+			desc.pFilePath = fsGetPathInResourceDirEnum(RD_TEXTURES, pScene->specularMaps[i]);
 			desc.ppTexture = &gSpecularMaps[i];
 			addResource(&desc, NULL, LOAD_PRIORITY_NORMAL);
 			fsFreePath((Path*)desc.pFilePath);
@@ -5521,14 +5518,15 @@ class LightShadowPlayground: public IApp
 		pVisibilityBufferPassListShaders[3] = pShaderIndirectAlphaDepthPass;
 
 
-		const char* vbPassSamplerNames[] = { "nearClampSampler" };
+		const char* vbPassSamplerNames[] = { "nearClampSampler", "textureFilter" };
+		Sampler* vbPassSamplers[] = { pSamplerMiplessNear, pSamplerMiplessNear };
 		RootSignatureDesc vbPassRootDesc = { pVisibilityBufferPassListShaders, gNumGeomSets * 2 };
 		vbPassRootDesc.mMaxBindlessTextures = gMaterialCount;
 		//vbPassRootDesc.ppStaticSamplerNames = indirectSamplerNames;
 		vbPassRootDesc.ppStaticSamplerNames = vbPassSamplerNames;
-		vbPassRootDesc.mStaticSamplerCount = 1;
+		vbPassRootDesc.mStaticSamplerCount = 2;
 		//vbPassRootDesc.ppStaticSamplers = &pSamplerTrilinearAniso;
-		vbPassRootDesc.ppStaticSamplers = &pSamplerMiplessNear;
+		vbPassRootDesc.ppStaticSamplers = vbPassSamplers;
 
 
 		//Shader* pShadowPassBufferSets[gNumGeomSets] = { pShaderIndirectDepthPass, 
@@ -5667,9 +5665,6 @@ class LightShadowPlayground: public IApp
 
 
 		const uint32_t numBatches = (const uint32_t)gMeshCount;
-		eastl::vector<uint32_t> materialIDPerDrawCall(MATERIAL_BUFFER_SIZE);
-		eastl::vector<BufferIndirectCommand> indirectArgsNoAlpha(MAX_DRAWS_INDIRECT, BufferIndirectCommand{ 0 });
-		eastl::vector<BufferIndirectCommand> indirectArgsAlpha(MAX_DRAWS_INDIRECT, BufferIndirectCommand{ 0 });
 		uint32_t iAlpha = 0, iNoAlpha = 0;
 
 		for (uint32_t i = 0; i < numBatches; ++i)
@@ -5679,72 +5674,20 @@ class LightShadowPlayground: public IApp
 
 			if (mat->alphaTested)
 			{
-				indirectArgsAlpha[iAlpha].arg = pGeom->pDrawArgs[i];
-#if defined(DIRECT3D12)
-				indirectArgsAlpha[iAlpha].drawId = iAlpha;
-#elif defined(ORBIS)
-				indirectArgsAlpha[iAlpha].arg.mStartInstance = iAlpha;
-#endif
-
-				for (uint32_t j = 0; j < NUM_CULLING_VIEWPORTS; ++j)
-				{
-					materialIDPerDrawCall[BaseMaterialBuffer(true, j) + iAlpha] = matID;
-				}
 				++iAlpha;
 			}
 			else
 			{
-				indirectArgsAlpha[iNoAlpha].arg = pGeom->pDrawArgs[i];
-#if defined(DIRECT3D12)
-				indirectArgsNoAlpha[iNoAlpha].drawId = iNoAlpha;
-#elif defined(ORBIS)
-				indirectArgsNoAlpha[iNoAlpha].arg.mStartInstance = iNoAlpha;
-#endif
-
-				for (uint32_t j = 0; j < NUM_CULLING_VIEWPORTS; ++j)
-				{
-					materialIDPerDrawCall[BaseMaterialBuffer(false, j) + iNoAlpha] = matID;
-				}
 				++iNoAlpha;
 
 			}
-			*(((uint32_t*)indirectArgsAlpha.data()) + DRAW_COUNTER_SLOT_POS) = iAlpha;
-			*(((uint32_t*)indirectArgsNoAlpha.data()) + DRAW_COUNTER_SLOT_POS) = iNoAlpha;
-
-			for(int32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
-			{
-				gPerFrameData[frameIdx].gDrawCount[GEOMSET_OPAQUE] = iNoAlpha;
-				gPerFrameData[frameIdx].gDrawCount[GEOMSET_ALPHATESTED] = iAlpha;
-			}
 		}
-
-		for (uint32_t i = 0; i < gNumGeomSets; ++i)
+		
+		for(int32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
 		{
-			BufferLoadDesc indirectBufferDesc = {};
-			indirectBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDIRECT_BUFFER | DESCRIPTOR_TYPE_BUFFER;
-			indirectBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-			indirectBufferDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT * (sizeof(BufferIndirectCommand) / sizeof(uint32_t));
-			indirectBufferDesc.mDesc.mStructStride = sizeof(uint32_t);
-			indirectBufferDesc.mDesc.mSize = indirectBufferDesc.mDesc.mElementCount
-				*  indirectBufferDesc.mDesc.mStructStride;
-			indirectBufferDesc.pData = i == 0 ? indirectArgsNoAlpha.data() : indirectArgsAlpha.data();
-			indirectBufferDesc.ppBuffer = &pBufferIndirectDrawArgumentsAll[i];
-			indirectBufferDesc.mDesc.pDebugName = L"Indirect Draw args buffer desc";
-			addResource(&indirectBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+			gPerFrameData[frameIdx].gDrawCount[GEOMSET_OPAQUE] = iNoAlpha;
+			gPerFrameData[frameIdx].gDrawCount[GEOMSET_ALPHATESTED] = iAlpha;
 		}
-
-		BufferLoadDesc indirectDesc = {};
-		indirectDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER;
-		indirectDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		indirectDesc.mDesc.mElementCount = MATERIAL_BUFFER_SIZE;
-		indirectDesc.mDesc.mStructStride = sizeof(uint32_t);
-		indirectDesc.mDesc.mSize = indirectDesc.mDesc.mElementCount * indirectDesc.mDesc.mStructStride;
-		indirectDesc.pData = materialIDPerDrawCall.data();
-		indirectDesc.ppBuffer = &pBufferIndirectMaterialAll;
-		indirectDesc.mDesc.pDebugName = L"Indirect Desc";
-		addResource(&indirectDesc, NULL, LOAD_PRIORITY_NORMAL);
-
-
 		/************************************************************************/
 		// Indirect buffers for culling
 		/************************************************************************/
@@ -6032,7 +5975,7 @@ class LightShadowPlayground: public IApp
 		addResource(&skyboxLoadDesc, &token, LOAD_PRIORITY_HIGH);
 
 		// Load the skybox panorama texture.
-		PathHandle panoTexturePath = fsCopyPathInResourceDirectory(RD_TEXTURES, "daytime");
+		PathHandle panoTexturePath = fsGetPathInResourceDirEnum(RD_TEXTURES, "daytime");
 		TextureLoadDesc panoDesc = {};
 		panoDesc.pFilePath = panoTexturePath;
 		panoDesc.ppTexture = &pPanoSkybox;
@@ -6270,7 +6213,7 @@ class LightShadowPlayground: public IApp
 		removeRenderTarget(pRenderer, pRenderTargetShadowMap);
 
 		removeRenderTarget(pRenderer, pRenderTargetSDFMeshVisualization);
-		removeRenderTarget(pRenderer, pRenderTargetSDFMeshShadow);
+		removeResource(pRenderTargetSDFMeshShadow);
 		removeRenderTarget(pRenderer, pRenderTargetUpSampleSDFShadow);
 
 		removeSwapChain(pRenderer, pSwapChain);
@@ -6368,15 +6311,6 @@ class LightShadowPlayground: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 			removeResource(pBufferSkyboxUniform[i]);
 
-		// DX12 / Vulkan needs two indirect buffers since ExecuteIndirect 
-		//is not called per mesh but per geometry set (ALPHA_TEST and OPAQUE)
-		for (uint32_t i = 0; i < gNumGeomSets; ++i)
-		{
-			removeResource(pBufferIndirectDrawArgumentsAll[i]);
-		}
-
-		removeResource(pBufferIndirectMaterialAll);
-
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			for (uint32_t j = 0; j < NUM_CULLING_VIEWPORTS; ++j)
@@ -6421,6 +6355,8 @@ class LightShadowPlayground: public IApp
 				conf_delete(gSDFVolumeInstances[i]);
 			}
 		}
+		
+		gSDFVolumeInstances.set_capacity(0);
 
 		gVirtualJoystick.Exit();
 
@@ -6543,13 +6479,6 @@ class LightShadowPlayground: public IApp
 		/************************************************************************/
 		// Setup vertex layout for all shaders
 		/************************************************************************/
-		// Metal has no function to unpack uint to half2 (f16tof32)
-#if defined(METAL)
-		TinyImageFormat texcoordFormat = TinyImageFormat_R16G16_SFLOAT;
-#else
-		TinyImageFormat texcoordFormat = TinyImageFormat_R32_UINT;
-#endif
-
 		VertexLayout vertexLayoutPositionOnly = {};
 		vertexLayoutPositionOnly.mAttribCount = 1;
 		vertexLayoutPositionOnly.mAttribs[0].mSemantic = SEMANTIC_POSITION;
@@ -6566,7 +6495,7 @@ class LightShadowPlayground: public IApp
 		vertexLayoutCompleteModel.mAttribs[0].mBinding = 0;
 		vertexLayoutCompleteModel.mAttribs[0].mLocation = 0;
 		vertexLayoutCompleteModel.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayoutCompleteModel.mAttribs[1].mFormat = texcoordFormat;
+		vertexLayoutCompleteModel.mAttribs[1].mFormat = TinyImageFormat_R32_UINT;
 		vertexLayoutCompleteModel.mAttribs[1].mBinding = 1;
 		vertexLayoutCompleteModel.mAttribs[1].mLocation = 1;
 		vertexLayoutCompleteModel.mAttribs[2].mSemantic = SEMANTIC_NORMAL;
@@ -6585,7 +6514,7 @@ class LightShadowPlayground: public IApp
 		vertexLayoutPosAndTex.mAttribs[0].mBinding = 0;
 		vertexLayoutPosAndTex.mAttribs[0].mLocation = 0;
 		vertexLayoutPosAndTex.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayoutPosAndTex.mAttribs[1].mFormat = texcoordFormat;
+		vertexLayoutPosAndTex.mAttribs[1].mFormat = TinyImageFormat_R32_UINT;
 		vertexLayoutPosAndTex.mAttribs[1].mBinding = 1;
 		vertexLayoutPosAndTex.mAttribs[1].mLocation = 1;
 
@@ -7455,10 +7384,6 @@ class LightShadowPlayground: public IApp
 		RenderTargetBarrier rtBarriers[] =
 		{
 			{
-				pRenderTargetSDFMeshShadow,
-				RESOURCE_STATE_UNORDERED_ACCESS
-			},
-			{
 				pRenderTargetDepth,
 				RESOURCE_STATE_SHADER_RESOURCE
 			}
@@ -7466,11 +7391,15 @@ class LightShadowPlayground: public IApp
 		TextureBarrier textureBarriers[] =
 		{
 			{
+				pRenderTargetSDFMeshShadow,
+				RESOURCE_STATE_UNORDERED_ACCESS
+			},
+			{
 				pTextureSDFVolumeAtlas,
 				RESOURCE_STATE_SHADER_RESOURCE
 			},
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 2, rtBarriers);
+		cmdResourceBarrier(cmd, 0, NULL, 2, textureBarriers, 1, rtBarriers);
 
 		cmdBindPipeline(cmd, pPipelineSDFMeshShadow);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetSDFMeshShadow[0]);
@@ -7492,10 +7421,6 @@ class LightShadowPlayground: public IApp
 		RenderTargetBarrier rtBarriers[] =
 		{
 			{
-				pRenderTargetSDFMeshShadow,
-				RESOURCE_STATE_SHADER_RESOURCE
-			},
-			{
 				pRenderTargetDepth,
 				RESOURCE_STATE_SHADER_RESOURCE
 			},
@@ -7504,7 +7429,14 @@ class LightShadowPlayground: public IApp
 				RESOURCE_STATE_RENDER_TARGET
 			}
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 3, rtBarriers);
+		TextureBarrier textureBarriers[] =
+		{
+			{
+				pRenderTargetSDFMeshShadow,
+				RESOURCE_STATE_SHADER_RESOURCE
+			},
+		};
+		cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 2, rtBarriers);
 
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
@@ -7774,18 +7706,7 @@ class LightShadowPlayground: public IApp
 		if (gCurrentShadowType == SHADOW_TYPE_ASM)
 			updateASMUniform();
 
-#if ENABLE_SDF_SHADOW_DOWNSAMPLE
-		RenderTarget* sdfShadowTexture = pRenderTargetUpSampleSDFShadow;
-#else
-		RenderTarget* sdfShadowTexture = pRenderTargetSDFMeshShadow;
-#endif
 		RenderTarget* esmShadowMap = pRenderTargetShadowMap;
-
-		RenderTargetBarrier rtBarriers[] = {
-			{ sdfShadowTexture, RESOURCE_STATE_SHADER_RESOURCE },
-			{ esmShadowMap, RESOURCE_STATE_SHADER_RESOURCE },
-			{ pRenderTargetVBPass, RESOURCE_STATE_SHADER_RESOURCE }
-		};
 		Buffer* pIndirectBuffers[gNumGeomSets] = { NULL };
 		for (uint32_t i = 0; i < gNumGeomSets; ++i)
 		{
@@ -7800,7 +7721,23 @@ class LightShadowPlayground: public IApp
 			{ pIndirectBuffers[1], RESOURCE_STATE_SHADER_RESOURCE } ,
 			{ pBufferFilterIndirectMaterial[frameIdx], RESOURCE_STATE_SHADER_RESOURCE }
 		};
+#if ENABLE_SDF_SHADOW_DOWNSAMPLE
+		RenderTarget* sdfShadowTexture = pRenderTargetUpSampleSDFShadow;
+		RenderTargetBarrier rtBarriers[] = {
+			{ sdfShadowTexture, RESOURCE_STATE_SHADER_RESOURCE },
+			{ esmShadowMap, RESOURCE_STATE_SHADER_RESOURCE },
+			{ pRenderTargetVBPass, RESOURCE_STATE_SHADER_RESOURCE }
+		};
 		cmdResourceBarrier(cmd, 5, bufferBarriers, 0, NULL, 3, rtBarriers);
+#else
+		Texture* sdfShadowTexture = pRenderTargetSDFMeshShadow;
+		TextureBarrier textureBarriers[] = { { sdfShadowTexture, RESOURCE_STATE_SHADER_RESOURCE } };
+		RenderTargetBarrier rtBarriers[] = {
+			{ esmShadowMap, RESOURCE_STATE_SHADER_RESOURCE },
+			{ pRenderTargetVBPass, RESOURCE_STATE_SHADER_RESOURCE }
+		};
+		cmdResourceBarrier(cmd, 5, bufferBarriers, 1, textureBarriers, 2, rtBarriers);
+#endif
 
 		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "VB Shade Pass");
 
@@ -8521,7 +8458,7 @@ class LightShadowPlayground: public IApp
 		addRenderTarget(pRenderer, &sdfMeshVisualizationRTDesc, &pRenderTargetSDFMeshVisualization);
 
 
-		RenderTargetDesc sdfMeshShadowRTDesc = {};
+		TextureDesc sdfMeshShadowRTDesc = {};
 		sdfMeshShadowRTDesc.mArraySize = 1;
 		sdfMeshShadowRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 		sdfMeshShadowRTDesc.mClearValue = colorClearBlack;
@@ -8538,7 +8475,10 @@ class LightShadowPlayground: public IApp
 		sdfMeshShadowRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		sdfMeshShadowRTDesc.mSampleQuality = 0;
 		sdfMeshShadowRTDesc.pDebugName = L"SDF Mesh Shadow Pass RT";
-		addRenderTarget(pRenderer, &sdfMeshShadowRTDesc, &pRenderTargetSDFMeshShadow);
+		TextureLoadDesc sdfMeshShadowLoadDesc = {};
+		sdfMeshShadowLoadDesc.pDesc = &sdfMeshShadowRTDesc;
+		sdfMeshShadowLoadDesc.ppTexture = &pRenderTargetSDFMeshShadow;
+		addResource(&sdfMeshShadowLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 
 		RenderTargetDesc upSampleSDFShadowRTDesc = {};
@@ -8891,7 +8831,7 @@ class LightShadowPlayground: public IApp
 #if ENABLE_SDF_SHADOW_DOWNSAMPLE
 			Texture* sdfShadowTexture = pRenderTargetUpSampleSDFShadow->pTexture;
 #else
-			Texture* sdfShadowTexture = pRenderTargetSDFMeshShadow->pTexture;
+			Texture* sdfShadowTexture = pRenderTargetSDFMeshShadow;
 #endif
 			Texture* esmShadowMap = pRenderTargetShadowMap->pTexture;
 
@@ -9151,7 +9091,7 @@ class LightShadowPlayground: public IApp
 		{
 			DescriptorData params[3] = {};
 			params[0].pName = "OutTexture";
-			params[0].ppTextures = &pRenderTargetSDFMeshShadow->pTexture;
+			params[0].ppTextures = &pRenderTargetSDFMeshShadow;
 			params[1].pName = "SDFVolumeTextureAtlas";
 			params[1].ppTextures = &pTextureSDFVolumeAtlas;
 			params[2].pName = "DepthTexture";
@@ -9172,7 +9112,7 @@ class LightShadowPlayground: public IApp
 		{
 			DescriptorData params[3] = {};
 			params[0].pName = "SDFShadowTexture";
-			params[0].ppTextures = &pRenderTargetSDFMeshShadow->pTexture;
+			params[0].ppTextures = &pRenderTargetSDFMeshShadow;
 			params[1].pName = "DepthTexture";
 			params[1].ppTextures = &pRenderTargetDepth->pTexture;
 			updateDescriptorSet(pRenderer, 0, pDescriptorSetUpsampleSDFShadow[0], 2, params);

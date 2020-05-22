@@ -30,8 +30,8 @@ struct Fragment_Shader
 };
 
 struct FSData {
-    texture2d<float> uTex    [[id(1)]];
-    sampler uSampler         [[id(2)]];
+    texture2d<float> uTex    [[id(0)]];
+    sampler uSampler         [[id(1)]];
 };
 
 fragment float4 stageMain(

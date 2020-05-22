@@ -1647,6 +1647,12 @@ FORCE_INLINE void _mm_sfence(void)
 	__sync_synchronize();
 }
 
+// #TODO - Implement correctly
+FORCE_INLINE void _mm_stream_ps(float *p, __m128 a)
+{
+	_mm_store_ps(p, a);
+}
+
 // Stores the data in a to the address p without polluting the caches.  If the cache line containing address p is already in the cache, the cache will be updated.Address p must be 16 - byte aligned.  https://msdn.microsoft.com/en-us/library/ba08y07y%28v=vs.90%29.aspx
 FORCE_INLINE void _mm_stream_si128(__m128i *p, __m128i a)
 {

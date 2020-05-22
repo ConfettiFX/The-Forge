@@ -34,6 +34,7 @@
 using namespace metal;
 
 #include "Shader_Defs.h"
+#include "cull_argument_buffers.h"
 
 // These are the tests performed per triangle. They can be toggled on/off setting this define macros to 0/1.
 #define ENABLE_CULL_INDEX				1
@@ -42,45 +43,12 @@ using namespace metal;
 #define ENABLE_CULL_SMALL_PRIMITIVES	1
 #define ENABLE_GUARD_BAND				0
 
-
-struct SceneVertexPos
-{
-    packed_float3 position;
-};
-
-struct SceneVertexAttr
-{
-    packed_float2 texCoord;
-    packed_float3 normal;
-    packed_float3 tangents;
-};
-
 struct BatchData
 {
     uint triangleCount;
     uint triangleOffset;
     uint drawId;
     uint twoSided;
-};
-
-
-
-
-
-struct Uniforms_visibilityBufferConstants
-{
-	float4x4 mWorldViewProjMat[NUM_CULLING_VIEWPORTS];
-	CullingViewPort mCullingViewports[NUM_CULLING_VIEWPORTS];
-};
-
-
-// This is the struct Metal uses to specify an indirect draw call.
-struct IndirectDrawArguments
-{
-    atomic_uint vertexCount;
-    uint instanceCount;
-    uint startVertex;
-    uint startInstance;
 };
 
 // Performs all the culling tests given 3 vertices
@@ -209,62 +177,13 @@ bool FilterTriangle(uint indices[3], float4 vertices[3], bool cullBackFace, floa
 	return false;
 }
 
-void DoViewCulling(uint triangleIdGlobal, float3 pos0, float3 pos1, float3 pos2, float4x4 mvp, float2 viewSize, uint drawId, uint twoSided, device IndirectDrawArguments* indirectDrawArgs, device uint* filteredTriangles)
-{
-	/*
-
-	// Apply model view projection transformation to vertices to clip space
-    float4 vertexArray[3] = {
-        mvp * float4(pos0,1),
-        mvp * float4(pos1,1),
-        mvp * float4(pos2,1)
-    };
-    
-    // Perform visibility culling tests for this triangle
-    bool cull = FilterTriangle(vertexArray, viewSize, 1, twoSided);
-    
-    // If the triangle passes all tests (not culled) then:
-    if (!cull)
-    {
-        // Increase vertexCount for the current batch by 3
-        uint prevVertexCount = atomic_fetch_add_explicit(&indirectDrawArgs[drawId].vertexCount, 3, memory_order_relaxed);
-        uint groupOutputSlot = prevVertexCount / 3;
-        uint startTriangle = indirectDrawArgs[drawId].startVertex / 3;
-        
-        // Store triangle ID in buffer for render
-        filteredTriangles[startTriangle + groupOutputSlot] = triangleIdGlobal - startTriangle;
-    }*/
-}
-
-/*
-struct FilteredIndicesBufferData {
-	device uint* data[NUM_CULLING_VIEWPORTS];
-};
-
-struct UncompactedDrawArgsData {
-	device UncompactedDrawArguments* data[NUM_CULLING_VIEWPORTS];
-};
-*/
- 
-struct CSData {
-    constant SceneVertexPos* vertexDataBuffer               [[id(0)]];
-    constant uint* indexDataBuffer                          [[id(1)]];
-    constant MeshConstants* meshConstantsBuffer             [[id(2)]];
-    constant SmallBatchData* batchData_rootcbv              [[id(3)]];
-};
-
-struct CSDataPerFrame {
-    constant Uniforms_visibilityBufferConstants & visibilityBufferConstants;
-    device uint* filteredIndicesBuffer[NUM_CULLING_VIEWPORTS];
-    device UncompactedDrawArguments* uncompactedDrawArgsRW[NUM_CULLING_VIEWPORTS];
-};
-
 //[numthreads(256, 1, 1)]
 kernel void stageMain(
     uint3 inGroupId                             [[thread_position_in_threadgroup]],
     uint3 groupId                               [[threadgroup_position_in_grid]],
     constant CSData& csData                     [[buffer(UPDATE_FREQ_NONE)]],
-    constant CSDataPerFrame& csDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]]
+    constant CSDataPerFrame& csDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]],
+	constant SmallBatchData* batchData_rootcbv  [[buffer(UPDATE_FREQ_USER)]]
 )
 {
 	threadgroup atomic_uint workGroupOutputSlot[NUM_CULLING_VIEWPORTS];
@@ -287,12 +206,12 @@ kernel void stageMain(
 		cull[i] = true;
 	}
 	
-	uint batchMeshIndex = csData.batchData_rootcbv[groupId.x].mMeshIndex;
-	uint batchInputIndexOffset = (csData.meshConstantsBuffer[batchMeshIndex].indexOffset + csData.batchData_rootcbv[groupId.x].mIndexOffset);
+	uint batchMeshIndex = batchData_rootcbv[groupId.x].mMeshIndex;
+	uint batchInputIndexOffset = (csData.meshConstantsBuffer[batchMeshIndex].indexOffset + batchData_rootcbv[groupId.x].mIndexOffset);
 	bool twoSided = (csData.meshConstantsBuffer[batchMeshIndex].twoSided == 1);
 
 	uint indices[3] = { 0, 0, 0 };
-	if (inGroupId.x < csData.batchData_rootcbv[groupId.x].mFaceCount)
+	if (inGroupId.x < batchData_rootcbv[groupId.x].mFaceCount)
 	{
 		indices[0] = csData.indexDataBuffer[inGroupId.x * 3 + 0 + batchInputIndexOffset];
 		indices[1] = csData.indexDataBuffer[inGroupId.x * 3 + 1 + batchInputIndexOffset];
@@ -324,7 +243,7 @@ kernel void stageMain(
 
 	threadgroup_barrier(mem_flags::mem_threadgroup);
 	
-	uint accumBatchDrawIndex = csData.batchData_rootcbv[groupId.x].mAccumDrawIndex;
+	uint accumBatchDrawIndex = batchData_rootcbv[groupId.x].mAccumDrawIndex;
 	
 	if (inGroupId.x == 0)
 	{
@@ -337,7 +256,7 @@ kernel void stageMain(
 		}
 	}
 
-	threadgroup_barrier(mem_flags::mem_device);
+	threadgroup_barrier(mem_flags::mem_device | mem_flags::mem_threadgroup);
 	
 	for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 	{
@@ -345,15 +264,15 @@ kernel void stageMain(
 		{
 			uint index = atomic_load_explicit(&workGroupOutputSlot[i], memory_order_relaxed);
 			
-			csDataPerFrame.filteredIndicesBuffer[i][index + csData.batchData_rootcbv[groupId.x].mOutputIndexOffset + threadOutputSlot[i] + 0] = indices[0];
-			csDataPerFrame.filteredIndicesBuffer[i][index + csData.batchData_rootcbv[groupId.x].mOutputIndexOffset + threadOutputSlot[i] + 1] = indices[1];
-			csDataPerFrame.filteredIndicesBuffer[i][index + csData.batchData_rootcbv[groupId.x].mOutputIndexOffset + threadOutputSlot[i] + 2] = indices[2];
+			csDataPerFrame.filteredIndicesBuffer[i][index + batchData_rootcbv[groupId.x].mOutputIndexOffset + threadOutputSlot[i] + 0] = indices[0];
+			csDataPerFrame.filteredIndicesBuffer[i][index + batchData_rootcbv[groupId.x].mOutputIndexOffset + threadOutputSlot[i] + 1] = indices[1];
+			csDataPerFrame.filteredIndicesBuffer[i][index + batchData_rootcbv[groupId.x].mOutputIndexOffset + threadOutputSlot[i] + 2] = indices[2];
 		}
 	}
 	
-	if (inGroupId.x == 0 && groupId.x == csData.batchData_rootcbv[groupId.x].mDrawBatchStart)
+	if (inGroupId.x == 0 && groupId.x == batchData_rootcbv[groupId.x].mDrawBatchStart)
 	{
-		uint outIndexOffset = csData.batchData_rootcbv[groupId.x].mOutputIndexOffset;
+		uint outIndexOffset = batchData_rootcbv[groupId.x].mOutputIndexOffset;
 		
 		for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 		{

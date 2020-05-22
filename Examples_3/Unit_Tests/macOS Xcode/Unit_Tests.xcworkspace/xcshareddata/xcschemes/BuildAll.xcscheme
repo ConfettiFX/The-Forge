@@ -692,6 +692,20 @@
                ReferencedContainer = "container:12_ZipFileSystem/12_ZipFileSystem.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "5CB55CA0246C128800BAE550"
+               BuildableName = "15_Transparency_iOS.app"
+               BlueprintName = "15_Transparency_iOS"
+               ReferencedContainer = "container:15_Transparency/15_Transparency.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction

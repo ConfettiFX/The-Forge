@@ -98,16 +98,19 @@ struct PSOut
     float4 specular [[color(2)]];
 };
 
-struct FSData {
+struct FSData
+{
     sampler defaultSampler                          [[id(0)]];
     const array<texture2d<float>, 84> textureMaps;
 };
 
-struct FSDataPerFrame {
+struct FSDataPerFrame
+{
     constant CameraData& cbCamera                   [[id(0)]];
 };
 
-struct FSDataPerDraw {
+struct FSDataPerDraw
+{
     constant ObjectData& cbObject                   [[id(0)]];
 };
 

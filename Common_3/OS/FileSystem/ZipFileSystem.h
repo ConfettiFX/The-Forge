@@ -48,15 +48,16 @@ class ZipFileSystem: public FileSystem
 	time_t                           mLastAccessedTime;
 
 public:
-    ZipFileSystem(const Path* pathInParent, zip_t* zipFile, FileSystemFlags flags, time_t creationTime, time_t lastAccessedTime);
+	ZipFileSystem(const Path* pathInParent, zip_t* zipFile, FileSystemFlags flags, time_t creationTime, time_t lastAccessedTime);
 	~ZipFileSystem();
 
 	static ZipFileSystem* CreateWithRootAtPath(const Path* rootPath, FileSystemFlags flags);
-    
-    Path*  CopyPathInParent() const override;
+
+	Path*  CopyPathInParent() const override;
 	char   GetPathDirectorySeparator() const override;
-	size_t GetRootPathLength() const override;
-	
+	size_t GetDefaultRootPathLength() const override;
+	size_t GetRootPathLength(const Path * path) const override;
+
 	bool   IsReadOnly() const override;
 	bool   IsCaseSensitive() const override;
 

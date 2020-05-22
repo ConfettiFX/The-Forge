@@ -183,6 +183,9 @@ copy $(TargetPath) $(SolutionDir)..\Release\$(TargetName).exe</Command>
     <ClCompile Include="..\..\..\EASTL\red_black_tree.cpp" />
     <ClCompile Include="..\..\..\EASTL\string.cpp" />
     <ClCompile Include="..\..\..\EASTL\thread_support.cpp" />
+    <ClCompile Include="..\..\..\rmem\src\rmem_get_module_info.cpp" />
+    <ClCompile Include="..\..\..\rmem\src\rmem_hook.cpp" />
+    <ClCompile Include="..\..\..\rmem\src\rmem_lib.cpp" />
     <ClCompile Include="..\..\..\zip\zip.cpp" />
     <ClCompile Include="CodeWriter.cpp" />
     <ClCompile Include="Engine.cpp" />

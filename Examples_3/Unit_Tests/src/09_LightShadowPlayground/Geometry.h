@@ -205,8 +205,6 @@ void   removeScene(Scene* scene);
 
 void   createClusters(bool twoSided, const Scene* scene, IndirectDrawIndexArguments* draw, ClusterContainer* subMesh);
 
-Path* GetSDFBakedFilePath(const eastl::string& fileName);
-
 
 void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outMesh, float scale,
 	float offsetX, bool generateSDFVolumeData,

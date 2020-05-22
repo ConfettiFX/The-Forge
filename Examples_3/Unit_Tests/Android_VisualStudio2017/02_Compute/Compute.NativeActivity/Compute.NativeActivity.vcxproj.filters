@@ -22,11 +22,5 @@
     <None Include="..\..\..\src\02_Compute\Shaders\Vulkan\display.vert">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="..\..\..\src\02_Compute\Shaders\Vulkan\profile.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\02_Compute\Shaders\Vulkan\profile.vert">
-      <Filter>Shaders</Filter>
-    </None>
   </ItemGroup>
 </Project>

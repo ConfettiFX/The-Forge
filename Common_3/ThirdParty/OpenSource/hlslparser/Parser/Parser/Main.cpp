@@ -335,8 +335,10 @@ int ParserMain( int argc, char* argv[] )
 	eastl::vector < eastl::string > macroLhs{"UPDATE_FREQ_NONE", "UPDATE_FREQ_PER_FRAME", "UPDATE_FREQ_PER_BATCH", "UPDATE_FREQ_PER_DRAW"};
 	eastl::vector < eastl::string > macroRhs{"space0", "space1", "space2", "space3"};
 
-	Parser::ProcessFile(parsedData, srcFile, entryName, options, macroLhs, macroRhs);
+	return Parser::ProcessFile(parsedData, srcFile, entryName, options, macroLhs, macroRhs) ? 0 : 1;
 #endif
+
+	return 0;
 }
 
 int main(int argc, char** argv)

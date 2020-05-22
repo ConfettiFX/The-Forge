@@ -29,46 +29,11 @@
 using namespace metal;
 
 #include "shader_defs.h"
+#include "cull_argument_buffers.h"
 
 struct RootConstantData
 {
     uint numBatches;
-};
-
-struct IndirectDrawIndexArguments
-{
-    uint indexCount;
-    uint instanceCount;
-    uint startIndex;
-    uint vertexOffset;
-    uint startInstance;
-};
-
-struct BindlessDiffuseData
-{
-    array<texture2d<float>,MATERIAL_BUFFER_SIZE> textures;
-};
-
-struct CSData {
-    constant void* vertexDataBuffer;
-    constant void* vertexTexCoord;
-    constant void* vertexTangent;
-    constant void* vertexNormal;
-    constant uint* drawIDs;
-    constant void* texturesArgBuffer;
-};
-
-struct CSDataPerFrame {
-    constant IndirectDrawIndexArguments* indirectDrawArgsBufferAlpha    [[id(0)]]   [NUM_CULLING_VIEWPORTS];
-    constant IndirectDrawIndexArguments* indirectDrawArgsBufferNoAlpha  [[id(2)]]   [NUM_CULLING_VIEWPORTS];
-    device UncompactedDrawArguments* uncompactedDrawArgsRW              [[id(4)]]   [NUM_CULLING_VIEWPORTS];
-    constant uint* filteredIndicesBuffer                                [[id(6)]]   [NUM_CULLING_VIEWPORTS];
-    constant uint* indirectMaterialBuffer                               [[id(8)]];
-    constant void* uniforms                                             [[id(9)]];
-    command_buffer icbContainerShadow                                   [[id(10)]]; // alpha, no alpha
-    command_buffer icbContainerCamera                                   [[id(11)]]; // alpha, no alpha
-    render_pipeline_state piplineStatesShadow                           [[id(12)]]  [2];
-    render_pipeline_state piplineStatesCamera                           [[id(14)]]  [2];
 };
 
 void cmdDrawIndexedPrimitive(
@@ -80,7 +45,7 @@ void cmdDrawIndexedPrimitive(
                      constant void* vertexTexCoord,
                      constant void* vertexTangent,
                      constant void* vertexNormal,
-                     constant void* uniforms,
+                     constant PerFrameConstants& uniforms,
                      constant uint* drawIDs,
                      constant void* texturesArgBuffer,
                      constant uint* indirectMaterialBuffer,
@@ -101,7 +66,7 @@ void cmdDrawIndexedPrimitive(
         cmd.set_vertex_buffer(vertexTexCoord,           UNIT_VBPASS_TEXCOORD);
         cmd.set_vertex_buffer(vertexTangent,            UNIT_VBPASS_TANGENT);
         cmd.set_vertex_buffer(vertexNormal,             UNIT_VBPASS_NORMAL);
-        cmd.set_vertex_buffer(uniforms,                 UNIT_VBPASS_UNIFORMS);
+        cmd.set_vertex_buffer(&uniforms,                 UNIT_VBPASS_UNIFORMS);
         cmd.set_fragment_buffer(texturesArgBuffer,      UNIT_VBPASS_TEXTURES);
         cmd.set_fragment_buffer(drawIDs + tid,          UINT_VBPASS_DRAWID);
         cmd.set_fragment_buffer(indirectMaterialBuffer, UNIT_INDIRECT_MATERIAL_RW);
@@ -125,10 +90,11 @@ void cmdDrawIndexedPrimitive(
 kernel void stageMain(uint     tid                              [[thread_position_in_grid]],
                       uint     inGroupId                        [[thread_position_in_threadgroup]],
                       constant CSData& csData                   [[buffer(UPDATE_FREQ_NONE)]],
-                      constant CSDataPerFrame& csDataPerFrame   [[buffer(UPDATE_FREQ_PER_FRAME)]]
+                      constant CSDataPerFrame& csDataPerFrame   [[buffer(UPDATE_FREQ_PER_FRAME)]],
+					  constant uint& maxDrawsRootConstant [[buffer(UPDATE_FREQ_USER + 1)]]
 )
 {
-    if (tid >= MAX_DRAWS_INDIRECT)
+    if (tid >= maxDrawsRootConstant)
         return;
     
     // camera view
@@ -143,12 +109,12 @@ kernel void stageMain(uint     tid                              [[thread_positio
                             csDataPerFrame.uniforms,
                             csData.drawIDs,
                             csData.texturesArgBuffer,
-                            csDataPerFrame.indirectMaterialBuffer,
-                            csDataPerFrame.indirectDrawArgsBufferNoAlpha[VIEW_CAMERA],
-                            csDataPerFrame.filteredIndicesBuffer[VIEW_CAMERA]
+                            csDataPerFrame.indirectMaterialBufferICB,
+                            csDataPerFrame.indirectDrawArgsBufferNoAlphaICB[VIEW_CAMERA],
+                            csDataPerFrame.filteredIndicesBufferICB[VIEW_CAMERA]
     );
     cmdDrawIndexedPrimitive(tid,
-                            tid + MAX_DRAWS_INDIRECT,
+                            tid + csDataPerFrame.indirectDrawArgsBufferNoAlphaICB[VIEW_CAMERA][MAX_DRAWS_INDIRECT - 1].indexCount,
                             csDataPerFrame.icbContainerCamera,
                             csDataPerFrame.piplineStatesCamera[1],
                             csData.vertexDataBuffer,
@@ -158,9 +124,9 @@ kernel void stageMain(uint     tid                              [[thread_positio
                             csDataPerFrame.uniforms,
                             csData.drawIDs,
                             csData.texturesArgBuffer,
-                            csDataPerFrame.indirectMaterialBuffer,
-                            csDataPerFrame.indirectDrawArgsBufferAlpha[VIEW_CAMERA],
-                            csDataPerFrame.filteredIndicesBuffer[VIEW_CAMERA]
+                            csDataPerFrame.indirectMaterialBufferICB,
+                            csDataPerFrame.indirectDrawArgsBufferAlphaICB[VIEW_CAMERA],
+                            csDataPerFrame.filteredIndicesBufferICB[VIEW_CAMERA]
     );
 
     // shadow view
@@ -176,11 +142,11 @@ kernel void stageMain(uint     tid                              [[thread_positio
                             csData.drawIDs,
                             nullptr,
                             nullptr,
-                            csDataPerFrame.indirectDrawArgsBufferNoAlpha[VIEW_SHADOW],
-                            csDataPerFrame.filteredIndicesBuffer[VIEW_SHADOW]
+                            csDataPerFrame.indirectDrawArgsBufferNoAlphaICB[VIEW_SHADOW],
+                            csDataPerFrame.filteredIndicesBufferICB[VIEW_SHADOW]
     );
     cmdDrawIndexedPrimitive(tid,
-                            tid + MAX_DRAWS_INDIRECT,
+                            tid + csDataPerFrame.indirectDrawArgsBufferNoAlphaICB[VIEW_SHADOW][MAX_DRAWS_INDIRECT - 1].indexCount,
                             csDataPerFrame.icbContainerShadow,
                             csDataPerFrame.piplineStatesShadow[1],
                             csData.vertexDataBuffer,
@@ -190,8 +156,8 @@ kernel void stageMain(uint     tid                              [[thread_positio
                             csDataPerFrame.uniforms,
                             csData.drawIDs,
                             csData.texturesArgBuffer,
-                            csDataPerFrame.indirectMaterialBuffer,
-                            csDataPerFrame.indirectDrawArgsBufferAlpha[VIEW_SHADOW],
-                            csDataPerFrame.filteredIndicesBuffer[VIEW_SHADOW]
+                            csDataPerFrame.indirectMaterialBufferICB,
+                            csDataPerFrame.indirectDrawArgsBufferAlphaICB[VIEW_SHADOW],
+                            csDataPerFrame.filteredIndicesBufferICB[VIEW_SHADOW]
     );
 }

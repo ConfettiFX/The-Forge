@@ -29,17 +29,8 @@ using namespace metal;
 
 #include "Shader_Defs.h"
 
-struct PackedVertexPosData {
-    packed_float3 position;
-};
-
 struct VSOutput {
 	float4 position [[position]];
-};
-
-struct PerBatchUniforms {
-    uint drawId;
-    uint twoSided;
 };
 
 uint packVisBufData(bool opaque, uint drawId, uint triangleId)

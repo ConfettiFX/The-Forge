@@ -83,6 +83,11 @@
   </VirtualDirectory>
   <VirtualDirectory Name="Dependencies">
     <File Name="../../../../Common_3/ThirdParty/OpenSource/zip/zip.cpp"/>
+    <VirtualDirectory Name="rmem">
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_lib.cpp" ExcludeProjConfig=""/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_hook.cpp" ExcludeProjConfig=""/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_get_module_info.cpp" ExcludeProjConfig=""/>
+    </VirtualDirectory>
   </VirtualDirectory>
   <Dependencies Name="Debug">
     <Project Name="gainput"/>

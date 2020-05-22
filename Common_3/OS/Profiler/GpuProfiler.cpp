@@ -228,11 +228,6 @@ void removeGpuProfiler(struct GpuProfiler* pGpuProfiler)
 
 ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, const char* pName, bool addMarker = true, const float3& color = { 1,1,0 }, bool isRoot = false)
 {
-#if defined(METAL)
-    if (!isRoot)
-        return PROFILE_INVALID_TOKEN;
-#endif
-
     GpuTimer* node = NULL;
     for (uint32_t i = 0; i < pGpuProfiler->mCurrentPoolIndex; ++i)
     {
@@ -284,8 +279,14 @@ ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfil
         pGpuProfiler->pCurrentNode = node;
     }
 
-    QueryDesc desc = { 2 * node->mIndex };
-    cmdBeginQuery(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], &desc);
+	// Metal only supports gpu timers on command buffer boundaries
+#if defined(METAL)
+	if (isRoot)
+#endif
+	{
+		QueryDesc desc = { 2 * node->mIndex };
+		cmdBeginQuery(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], &desc);
+	}
 
     if (addMarker)
     {
@@ -299,13 +300,15 @@ ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfil
 
 void cmdEndGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, bool isRoot = false)
 {
+	// Metal only supports gpu timers on command buffer boundaries
 #if defined(METAL)
-    if (!isRoot)
-        return;
+	if (isRoot)
 #endif
-    // Record gpu time
-    QueryDesc desc = { 2 * pGpuProfiler->pCurrentNode->mIndex + 1 };
-    cmdEndQuery(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], &desc);
+	{
+		// Record gpu time
+		QueryDesc desc = { 2 * pGpuProfiler->pCurrentNode->mIndex + 1 };
+		cmdEndQuery(pCmd, pGpuProfiler->pQueryPool[pGpuProfiler->mBufferIndex], &desc);
+	}
 
     if (pGpuProfiler->pCurrentNode->mDebugMarker)
     {
@@ -340,7 +343,7 @@ ProfileToken addGpuProfiler(Renderer* pRenderer, Queue* pQueue, const char* pNam
 {
     if(gGpuProfilerContainer->mSize >= GpuProfilerContainer::MAX_GPU_PROFILERS)
     {
-        Log::Write(LogLevel::eWARNING, "Reached maximum amount of Gpu Profilers", __FILE__, __LINE__);
+        Log::Write(LogLevel::eWARNING, __FILE__, __LINE__, "Reached maximum amount of Gpu Profilers");
             return PROFILE_INVALID_TOKEN;
     }
 

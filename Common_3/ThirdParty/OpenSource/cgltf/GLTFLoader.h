@@ -343,7 +343,7 @@ static uint32_t gltfLoadContainer(const Path* pPath, GLTFFlags flags, GLTFContai
 
 		if (strncmp(uri, "data:", 5) != 0 && !strstr(uri, "://"))
 		{
-			Path* parent = fsCopyParentPath(pPath);
+			Path* parent = fsGetParentPath(pPath);
 			Path* path = fsAppendPathComponent(parent, uri);
 			FileStream* fs = fsOpenFile(path, FM_READ_BINARY);
 			if (fs)
@@ -752,7 +752,7 @@ static Path* gltfFindTexturePath(const Path* path, const cgltf_image* image)
 		fsFreePath(candidatePath);
 
 	// If it's not there, try the textures directory.
-	candidatePath = fsCopyPathInResourceDirectory(RD_TEXTURES, image->uri);
+	candidatePath = fsGetPathInResourceDirEnum(RD_TEXTURES, image->uri);
 
 	if (fsFileExists(candidatePath))
 		return candidatePath;

@@ -186,13 +186,8 @@ DXGI_FORMAT util_to_dx_uav_format(DXGI_FORMAT defaultFormat);
 DXGI_FORMAT util_to_dx_dsv_format(DXGI_FORMAT defaultFormat);
 DXGI_FORMAT util_to_dx_srv_format(DXGI_FORMAT defaultFormat);
 DXGI_FORMAT util_to_dx_stencil_format(DXGI_FORMAT defaultFormat);
-//DXGI_FORMAT					   util_to_dx_swapchain_format(ImageFormat::Enum format);
-//D3D12_SHADER_VISIBILITY		   util_to_dx_shader_visibility(ShaderStage stages);
-//D3D12_DESCRIPTOR_RANGE_TYPE	   util_to_dx_descriptor_range(DescriptorType type);
-//D3D12_RESOURCE_STATES		 util_to_dx_resource_state(ResourceState state);
 D3D11_FILTER util_to_dx_filter(FilterType minFilter, FilterType magFilter, MipMapMode mipMapMode, bool aniso, bool comparisonFilterEnabled);
 D3D11_TEXTURE_ADDRESS_MODE util_to_dx_texture_address_mode(AddressMode addressMode);
-//D3D12_PRIMITIVE_TOPOLOGY_TYPE util_to_dx_primitive_topology_type(PrimitiveTopology topology);
 
 D3D11_FILTER util_to_dx_filter(FilterType minFilter, FilterType magFilter, MipMapMode mipMapMode, bool aniso, bool comparisonFilterEnabled)
 {
@@ -239,7 +234,7 @@ DXGI_FORMAT util_to_dx_uav_format(DXGI_FORMAT defaultFormat)
 		case DXGI_FORMAT_R32_TYPELESS:
 		case DXGI_FORMAT_R32_FLOAT: return DXGI_FORMAT_R32_FLOAT;
 
-#ifdef _DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG
 		case DXGI_FORMAT_R32G8X24_TYPELESS:
 		case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
 		case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS:
@@ -352,7 +347,7 @@ DXGI_FORMAT util_to_dx_swapchain_format(TinyImageFormat format)
 	// FLIP_DISCARD and FLIP_SEQEUNTIAL swapchain buffers only support these formats
 	switch (format)
 	{
-	case TinyImageFormat_R16G16B16A16_SFLOAT: result = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	case TinyImageFormat_R16G16B16A16_SFLOAT: result = DXGI_FORMAT_R16G16B16A16_FLOAT; break;
 	case TinyImageFormat_B8G8R8A8_UNORM: result = DXGI_FORMAT_B8G8R8A8_UNORM; break;
 	case TinyImageFormat_R8G8B8A8_UNORM: result = DXGI_FORMAT_R8G8B8A8_UNORM; break;
 	case TinyImageFormat_B8G8R8A8_SRGB: result = DXGI_FORMAT_B8G8R8A8_UNORM; break;
@@ -724,13 +719,13 @@ static void AddDevice(Renderer* pRenderer)
 	// Enumerate all adapters
 	typedef struct GpuDesc
 	{
-		IDXGIAdapter1*                    pGpu = NULL;
-		D3D_FEATURE_LEVEL                 mMaxSupportedFeatureLevel = (D3D_FEATURE_LEVEL)0;
-		D3D11_FEATURE_DATA_D3D11_OPTIONS  mFeatureDataOptions = {};
+		IDXGIAdapter1*                    pGpu;
+		D3D_FEATURE_LEVEL                 mMaxSupportedFeatureLevel;
+		D3D11_FEATURE_DATA_D3D11_OPTIONS  mFeatureDataOptions;
 #if WINVER > _WIN32_WINNT_WINBLUE
-		D3D11_FEATURE_DATA_D3D11_OPTIONS2 mFeatureDataOptions2 = {};
+		D3D11_FEATURE_DATA_D3D11_OPTIONS2 mFeatureDataOptions2;
 #endif
-		SIZE_T                            mDedicatedVideoMemory = 0;
+		SIZE_T                            mDedicatedVideoMemory;
 		char                              mVendorId[MAX_GPU_VENDOR_STRING_LENGTH];
 		char                              mDeviceId[MAX_GPU_VENDOR_STRING_LENGTH];
 		char                              mRevisionId[MAX_GPU_VENDOR_STRING_LENGTH];
@@ -797,7 +792,6 @@ static void AddDevice(Renderer* pRenderer)
 					wcstombs(gpuDesc[gpuCount].mName, desc.Description, MAX_PATH);
 					++gpuCount;
 					SAFE_RELEASE(pRenderer->pDxDevice);
-					break;
 				}
 			}
 		}
@@ -910,7 +904,7 @@ static void AddDevice(Renderer* pRenderer)
 	// Create the actual device
 	DWORD deviceFlags = 0;
 
-#ifdef _DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG
 	deviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
@@ -936,10 +930,13 @@ static void RemoveDevice(Renderer* pRenderer)
 	SAFE_RELEASE(pRenderer->pDxActiveGPU);
 
 	SAFE_RELEASE(pRenderer->pDxContext);
-#ifdef _DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG
 	ID3D11Debug* pDebugDevice = NULL;
 	pRenderer->pDxDevice->QueryInterface(&pDebugDevice);
 	SAFE_RELEASE(pRenderer->pDxDevice);
+
+	// Debug device is released first so report live objects don't show its ref as a warning.
+	pDebugDevice->Release();
 
 #if WINVER > _WIN32_WINNT_WINBLUE
 	pDebugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL | D3D11_RLDO_IGNORE_INTERNAL);
@@ -947,11 +944,9 @@ static void RemoveDevice(Renderer* pRenderer)
 	pDebugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
 #endif
 
-	pDebugDevice->Release();
 #else
 	SAFE_RELEASE(pRenderer->pDxDevice);
 #endif
-
 	SAFE_FREE(pRenderer->pActiveGpuSettings);
 }
 /************************************************************************/
@@ -962,7 +957,7 @@ static ID3D11BlendState* util_to_blend_state(Renderer* pRenderer, const BlendSta
 	UNREF_PARAM(pRenderer);
 
 	int blendDescIndex = 0;
-#ifdef _DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG
 
 	for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
 	{
@@ -986,7 +981,7 @@ static ID3D11BlendState* util_to_blend_state(Renderer* pRenderer, const BlendSta
 	D3D11_BLEND_DESC desc = {};
 
 	desc.AlphaToCoverageEnable = (BOOL)pDesc->mAlphaToCoverage;
-	desc.IndependentBlendEnable = TRUE;
+	desc.IndependentBlendEnable = pDesc->mIndependentBlend;
 	for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; i++)
 	{
 		if (pDesc->mRenderTargetMask & (1 << i))
@@ -1132,9 +1127,9 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 	pRenderer->mApi = RENDERER_API_D3D11;
 
 	pRenderer->pName = (char*)conf_calloc(strlen(appName) + 1, sizeof(char));
-	memcpy(pRenderer->pName, appName, strlen(appName));
+	strcpy(pRenderer->pName, appName);
 
-	// Initialize the D3D12 bits
+	// Initialize the D3D11 bits
 	{
 		AddDevice(pRenderer);
 
@@ -1156,7 +1151,7 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 
 			//return NULL pRenderer so that client can gracefully handle exit
 			//This is better than exiting from here in case client has allocated memory or has fallbacks
-			*pRenderer = {};
+			*ppRenderer = NULL;
 			return;
 		}
 	}
@@ -1188,14 +1183,25 @@ void removeRenderer(Renderer* pRenderer)
 /************************************************************************/
 // Resource Creation Functions
 /************************************************************************/
-void addFence(Renderer* pRenderer, Fence** pFence)
+void addFence(Renderer* pRenderer, Fence** ppFence)
 {
-	// NOTE: We will still use it to be able to generate
-	// a dependency graph to serialize parallel GPU workload.
-
 	//ASSERT that renderer is valid
 	ASSERT(pRenderer);
+	ASSERT(ppFence);
+
+	//create a Fence and ASSERT that it is valid
+	Fence* pFence = (Fence*)conf_calloc(1, sizeof(Fence));
 	ASSERT(pFence);
+
+	D3D11_QUERY_DESC desc = {};
+	desc.Query = D3D11_QUERY_EVENT;
+
+	HRESULT hres = pRenderer->pDxDevice->CreateQuery(&desc, &pFence->pDX11Query);
+	ASSERT(SUCCEEDED(hres));
+
+	pFence->mSubmitted = false;
+
+	*ppFence = pFence;
 }
 
 void removeFence(Renderer* pRenderer, Fence* pFence)
@@ -1203,6 +1209,11 @@ void removeFence(Renderer* pRenderer, Fence* pFence)
 	//ASSERT that renderer is valid
 	ASSERT(pRenderer);
 	//ASSERT that given fence to remove is valid
+	ASSERT(pFence);
+
+	SAFE_RELEASE(pFence->pDX11Query);
+
+	SAFE_FREE(pFence);
 }
 
 void addSemaphore(Renderer* pRenderer, Semaphore** pSemaphore)
@@ -1278,11 +1289,10 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	desc.SampleDesc.Count = 1;    // If multisampling is needed, we'll resolve it later
 	desc.SampleDesc.Quality = 0;
 	desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
-	desc.BufferCount = 1;    // pSwapChain->mDesc.mImageCount;
+	desc.BufferCount = pDesc->mImageCount;
 	desc.OutputWindow = hwnd;
 	desc.Windowed = TRUE;
-	desc.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-	desc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
+	desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL;
 	desc.Flags = 0;
 
 	IDXGISwapChain* swapchain;
@@ -1650,14 +1660,7 @@ void compileShader(
 	Renderer* pRenderer, ShaderTarget shaderTarget, ShaderStage stage, const Path* filePath, uint32_t codeSize, const char* code,
 	uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a, const char *f, int l, const char *sf), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint)
 {
-	if ((uint32_t)shaderTarget > pRenderer->mShaderTarget)
-	{
-		LOGF(eERROR, 
-			"Requested shader target (%u) is higher than the shader target that the renderer supports (%u). Shader wont be compiled",
-			(uint32_t)shaderTarget, (uint32_t)pRenderer->mShaderTarget);
-		return;
-	}
-#if defined(_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG)
 	// Enable better shader debugging with the graphics debugging tools.
 	UINT compile_flags = D3DCOMPILE_SKIP_OPTIMIZATION;
 #else
@@ -1672,35 +1675,25 @@ void compileShader(
 #endif
 
 
-	int major;
-	int minor;
-	switch (shaderTarget)
-	{
-		default:
-		case shader_target_5_0:
-		{
-			major = 5;
-			minor = 0;
-		}
-		break;
-	}
+	int major = 5;
+	int minor = 0;
 
-	eastl::string target;
+	char target[32] = {};
 	switch (stage)
 	{
-		case SHADER_STAGE_VERT: target = eastl::string().sprintf("vs_%d_%d", major, minor); break;
-		case SHADER_STAGE_TESC: target = eastl::string().sprintf("hs_%d_%d", major, minor); break;
-		case SHADER_STAGE_TESE: target = eastl::string().sprintf("ds_%d_%d", major, minor); break;
-		case SHADER_STAGE_GEOM: target = eastl::string().sprintf("gs_%d_%d", major, minor); break;
-		case SHADER_STAGE_FRAG: target = eastl::string().sprintf("ps_%d_%d", major, minor); break;
-		case SHADER_STAGE_COMP: target = eastl::string().sprintf("cs_%d_%d", major, minor); break;
+		case SHADER_STAGE_VERT: sprintf(target, "vs_%d_%d", major, minor); break;
+		case SHADER_STAGE_TESC: sprintf(target, "hs_%d_%d", major, minor); break;
+		case SHADER_STAGE_TESE: sprintf(target, "ds_%d_%d", major, minor); break;
+		case SHADER_STAGE_GEOM: sprintf(target, "gs_%d_%d", major, minor); break;
+		case SHADER_STAGE_FRAG: sprintf(target, "ps_%d_%d", major, minor); break;
+		case SHADER_STAGE_COMP: sprintf(target, "cs_%d_%d", major, minor); break;
 		default: break;
 	}
 
 	// Extract shader macro definitions into D3D_SHADER_MACRO scruct
-	// Allocate Size+2 structs: one for D3D12 1 definition and one for null termination
+	// Allocate Size+2 structs: one for D3D11 1 definition and one for null termination
 	D3D_SHADER_MACRO* macros = (D3D_SHADER_MACRO*)alloca((macroCount + 2) * sizeof(D3D_SHADER_MACRO));
-	macros[0] = { "D3D12", "1" };
+	macros[0] = { "D3D11", "1" };
 	for (uint32_t j = 0; j < macroCount; ++j)
 	{
 		macros[j + 1] = { pMacros[j].definition, pMacros[j].value };
@@ -1710,11 +1703,11 @@ void compileShader(
 	//if (fnHookShaderCompileFlags != NULL)
 	//  fnHookShaderCompileFlags(compile_flags);
 
-	eastl::string entryPoint = pEntryPoint ? eastl::string(pEntryPoint) : "main";
+	const char*     entryPoint = pEntryPoint ? pEntryPoint : "main";
 	ID3DBlob*       compiled_code = NULL;
 	ID3DBlob*       error_msgs = NULL;
 	HRESULT         hres = D3DCompile2(
-        code, (size_t)codeSize, fsGetPathAsNativeString(filePath), macros, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint.c_str(), target.c_str(), compile_flags, 0, 0, NULL,
+        code, (size_t)codeSize, fsGetPathAsNativeString(filePath), macros, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint, target, compile_flags, 0, 0, NULL,
         0, &compiled_code, &error_msgs);
 	if (FAILED(hres))
 	{
@@ -1880,7 +1873,7 @@ D3D11_CPU_ACCESS_FLAG util_determine_dx_cpu_access_flags(ResourceMemoryUsage mem
 		case RESOURCE_MEMORY_USAGE_CPU_ONLY: return (D3D11_CPU_ACCESS_FLAG)(D3D11_CPU_ACCESS_READ | D3D11_CPU_ACCESS_WRITE);
 		case RESOURCE_MEMORY_USAGE_CPU_TO_GPU: return (D3D11_CPU_ACCESS_FLAG)(D3D11_CPU_ACCESS_WRITE);
 		case RESOURCE_MEMORY_USAGE_GPU_TO_CPU: return (D3D11_CPU_ACCESS_FLAG)(D3D11_CPU_ACCESS_READ);
-		default: ASSERT(false && "Invalid Memory Usage"); return (D3D11_CPU_ACCESS_FLAG)(-1);
+		default: ASSERT(false && "Invalid Memory Usage"); return (D3D11_CPU_ACCESS_FLAG)0;
 	}
 }
 
@@ -1912,7 +1905,7 @@ D3D11_USAGE util_to_dx_usage(ResourceMemoryUsage mem)
 		case RESOURCE_MEMORY_USAGE_CPU_ONLY: return D3D11_USAGE_STAGING;
 		case RESOURCE_MEMORY_USAGE_CPU_TO_GPU: return D3D11_USAGE_DYNAMIC;
 		case RESOURCE_MEMORY_USAGE_GPU_TO_CPU: return D3D11_USAGE_STAGING;
-		default: ASSERT(false && "Invalid Memory Usage"); return (D3D11_USAGE)(-1);
+		default: ASSERT(false && "Invalid Memory Usage"); return D3D11_USAGE_DEFAULT;
 	}
 }
 
@@ -1960,7 +1953,6 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 		!(pDesc->mFlags & BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION))
 	{
 		D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-		srvDesc.Format = DXGI_FORMAT_UNKNOWN;
 		srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
 		srvDesc.Buffer.FirstElement = (UINT)pDesc->mFirstElement;
 		srvDesc.Buffer.NumElements = (UINT)(pDesc->mElementCount);
@@ -2393,7 +2385,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	{
 		internal_log(
 			LOG_TYPE_WARN,
-			"D3D12 does not support host visible textures, memory of resulting texture will not be mapped for CPU visibility",
+			"D3D11 does not support host visible textures, memory of resulting texture will not be mapped for CPU visibility",
 			"addTexture");
 	}
 
@@ -2590,7 +2582,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 			break;
 		}
 
-		// Find the D3D12 type of the descriptors
+		// Find the D3D11 type of the descriptors
 		if (pDesc->mType == DESCRIPTOR_TYPE_SAMPLER)
 		{
 			// If the sampler is a static sampler, no need to put it in the descriptor table
@@ -2611,11 +2603,11 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 		// No support for arrays of constant buffers to be used as root descriptors as this might bloat the root signature size
 		else if (pDesc->mType == DESCRIPTOR_TYPE_UNIFORM_BUFFER && pDesc->mSize == 1)
 		{
-			// D3D12 has no special syntax to declare root constants like Vulkan
+			// D3D11 has no special syntax to declare root constants like Vulkan
 			// So we assume that all constant buffers with the word "rootconstant" (case insensitive) are root constants
 			eastl::string name = pRes->name;
 			name.make_lower();
-			if (name.find("rootconstant", 0) != eastl::string::npos || pDesc->mType == DESCRIPTOR_TYPE_ROOT_CONSTANT)
+			if (name.find("rootconstant", 0) != eastl::string::npos)
 			{
 				// Make the root param a 32 bit constant if the user explicitly specifies it in the shader
 				pDesc->mType = DESCRIPTOR_TYPE_ROOT_CONSTANT;
@@ -2986,7 +2978,7 @@ void removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
 
 void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
 {
-#ifdef _DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG
 #define VALIDATE_DESCRIPTOR(descriptor,...)																\
 	if (!(descriptor))																					\
 	{																									\
@@ -3007,8 +2999,8 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 
 	for (uint32_t i = 0; i < count; ++i)
 	{
-		uint32_t paramIndex = pParams->mIndex;
 		const DescriptorData* pParam = pParams + i;
+		uint32_t paramIndex = pParam->mIndex;
 		const DescriptorInfo* pDesc = (paramIndex != -1) ? (pRootSignature->pDescriptors + paramIndex) : get_descriptor(pRootSignature, pParam->pName);
 		paramIndex = pDesc->mHandleIndex;
 		const DescriptorType type = (DescriptorType)pDesc->mType;
@@ -3723,11 +3715,25 @@ void set_samplers(ID3D11DeviceContext* pContext, ShaderStage used_stages, uint32
 		pContext->CSSetSamplers(reg, count, pSamplers);
 }
 
+static void util_wait_for_fence(ID3D11DeviceContext* pDxContext, Fence* pFence)
+{
+	HRESULT hres = S_FALSE;
+	while (hres != S_OK && pFence->mSubmitted)
+	{
+		hres = pDxContext->GetData(pFence->pDX11Query, NULL, 0, 0);
+		ASSERT(SUCCEEDED(hres));
+		Thread::Sleep(0);
+	}
+	pFence->mSubmitted = false;
+}
+
 void queueSubmit(
 	Queue* pQueue, const QueueSubmitDesc* pDesc)
 {
 	uint32_t cmdCount = pDesc->mCmdCount;
 	Cmd** ppCmds = pDesc->ppCmds;
+	Fence* pFence = pDesc->pSignalFence;
+	pQueue->pFence = pFence;
 
 	ID3D11DeviceContext* pContext = ppCmds[0]->pRenderer->pDxContext;
 	ID3D11Device*        pDevice = ppCmds[0]->pRenderer->pDxDevice;
@@ -3976,15 +3982,14 @@ void queueSubmit(
 					const ResolveQueryCmd& resolve = cmd.mResolveQueryCmd;
 					if (resolve.queryCount)
 					{
-						uint64_t* pResults = (uint64_t*)alloca(resolve.queryCount * sizeof(uint64_t));
+						D3D11_MAPPED_SUBRESOURCE sub = {};
+						pContext->Map(resolve.pReadbackBuffer->pDxResource, 0, D3D11_MAP_WRITE, 0, &sub);
+						uint64_t* pResults = (uint64_t*)sub.pData;
 						for (uint32_t i = resolve.startQuery; i < resolve.startQuery + resolve.queryCount; ++i)
 						{
 							while (pContext->GetData(resolve.pQueryPool->ppDxQueries[i], &pResults[i], sizeof(uint64_t), 0) != S_OK)
 								Thread::Sleep(0);
 						}
-						D3D11_MAPPED_SUBRESOURCE sub = {};
-						pContext->Map(resolve.pReadbackBuffer->pDxResource, 0, D3D11_MAP_WRITE, 0, &sub);
-						memcpy(sub.pData, pResults, resolve.queryCount * sizeof(uint64_t));
 						pContext->Unmap(resolve.pReadbackBuffer->pDxResource, 0);
 					}
 					break;
@@ -3995,36 +4000,62 @@ void queueSubmit(
 				{
 					const UpdateBufferCmd&   update = cmd.mUpdateBufferCmd;
 					D3D11_MAPPED_SUBRESOURCE sub = {};
-					pContext->Map(update.pSrcBuffer->pDxResource, 0, D3D11_MAP_READ, 0, &sub);
 					D3D11_BOX dstBox = { (UINT)update.dstOffset, 0, 0, (UINT)(update.dstOffset + update.size), 1, 1 };
+					if (!update.pSrcBuffer->pCpuMappedAddress)
+					{
+						pContext->Map(update.pSrcBuffer->pDxResource, 0, D3D11_MAP_READ, 0, &sub);
+					}
+					else
+					{
+						sub = { update.pSrcBuffer->pCpuMappedAddress,0,0 };
+					}
 					pContext->UpdateSubresource(
 						update.pBuffer->pDxResource, 0, &dstBox, (uint8_t*)sub.pData + update.srcOffset, (UINT)update.size, 0);
-					pContext->Unmap(update.pSrcBuffer->pDxResource, 0);
+					if (!update.pSrcBuffer->pCpuMappedAddress)
+					{
+						pContext->Unmap(update.pSrcBuffer->pDxResource, 0);
+					}
 					break;
 				}
 				case CMD_TYPE_cmdUpdateSubresource:
 				{
 					const UpdateSubresourcesCmd& update = cmd.mUpdateSubresourcesCmd;
 					const SubresourceDataDesc&   pSubresource = update.mSubresourceDesc;
+					const Region3D&              pRegion = pSubresource.mRegion;
 					D3D11_MAPPED_SUBRESOURCE     sub = {};
 					UINT                         DstSubresource = pSubresource.mMipLevel + pSubresource.mArrayLayer * (UINT)update.pTexture->mMipLevels;
-					D3D11_BOX                    dstBox = { pSubresource.mRegion.mXOffset,
-                                         pSubresource.mRegion.mYOffset,
-                                         pSubresource.mRegion.mZOffset,
-                                         pSubresource.mRegion.mXOffset + pSubresource.mRegion.mWidth,
-                                         pSubresource.mRegion.mYOffset + pSubresource.mRegion.mHeight,
-                                         pSubresource.mRegion.mZOffset + pSubresource.mRegion.mDepth };
-					pContext->Map(update.pSrcBuffer->pDxResource, 0, D3D11_MAP_READ, 0, &sub);
+					D3D11_BOX                    dstBox = { pRegion.mXOffset, pRegion.mYOffset, pRegion.mZOffset,
+						pRegion.mXOffset + pRegion.mWidth, pRegion.mYOffset + pRegion.mHeight, pRegion.mZOffset + pRegion.mDepth };
+					if (!update.pSrcBuffer->pCpuMappedAddress)
+					{
+						pContext->Map(update.pSrcBuffer->pDxResource, 0, D3D11_MAP_READ, 0, &sub);
+					}
+					else
+					{
+						sub = { update.pSrcBuffer->pCpuMappedAddress,0,0 };
+					}
 					pContext->UpdateSubresource(
 						update.pTexture->pDxResource, DstSubresource, &dstBox, (uint8_t*)sub.pData + pSubresource.mBufferOffset,
 						pSubresource.mRowPitch, pSubresource.mSlicePitch);
-					pContext->Unmap(update.pSrcBuffer->pDxResource, 0);
+					if (!update.pSrcBuffer->pCpuMappedAddress)
+					{
+						pContext->Unmap(update.pSrcBuffer->pDxResource, 0);
+					}
 					break;
 				}
 				default: break;
 			}
 		}
 	}
+
+	if (pFence)
+	{
+		// if work of that query still in flight, wait
+		util_wait_for_fence(pContext, pFence);
+		pFence->mSubmitted = true;
+		pContext->End(pFence->pDX11Query);
+	}
+
 }
 
 void queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
@@ -4035,11 +4066,45 @@ void queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 	}
 }
 
-void getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatus) { *pFenceStatus = FENCE_STATUS_COMPLETE; }
+void getFenceStatus(Renderer* pRenderer, Fence* pFence, FenceStatus* pFenceStatus)
+{
+	UNREF_PARAM(pRenderer);
 
-void waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** pFences) {}
+	if (pFence->mSubmitted)
+	{
+		HRESULT hres = pRenderer->pDxContext->GetData(pFence->pDX11Query, NULL, 0, 0);
+		ASSERT(SUCCEEDED(hres));
+		if (hres == S_OK)
+		{
+			pFence->mSubmitted = false;
+			*pFenceStatus = FENCE_STATUS_COMPLETE;
+		}
+		else
+		{
+			*pFenceStatus = FENCE_STATUS_INCOMPLETE;
+		}
+	}
+	else
+	{
+		*pFenceStatus = FENCE_STATUS_NOTSUBMITTED;
+	}
+}
 
-void waitQueueIdle(Queue* pQueue) {}
+void waitForFences(Renderer* pRenderer, uint32_t fenceCount, Fence** ppFences)
+{
+	for (uint32_t i = 0; i < fenceCount; ++i)
+	{
+		util_wait_for_fence(pRenderer->pDxContext, ppFences[i]);
+	}
+}
+
+void waitQueueIdle(Queue* pQueue)
+{
+	if (pQueue && pQueue->pFence && pQueue->pFence->mSubmitted)
+	{
+		util_wait_for_fence(pQueue->pDxContext, pQueue->pFence);
+	}
+}
 
 void toggleVSync(Renderer* pRenderer, SwapChain** ppSwapChain)
 {
@@ -4080,7 +4145,7 @@ D3D11_QUERY util_to_dx_query(QueryType type)
 		case QUERY_TYPE_TIMESTAMP: return D3D11_QUERY_TIMESTAMP;
 		case QUERY_TYPE_PIPELINE_STATISTICS: return D3D11_QUERY_PIPELINE_STATISTICS;
 		case QUERY_TYPE_OCCLUSION: return D3D11_QUERY_OCCLUSION;
-		default: ASSERT(false && "Invalid query type"); return D3D11_QUERY(-1);
+		default: ASSERT(false && "Invalid query type"); return D3D11_QUERY_OCCLUSION;
 	}
 }
 
@@ -4222,6 +4287,8 @@ void cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffer, 
 // Memory Stats Implementation
 /************************************************************************/
 void calculateMemoryStats(Renderer* pRenderer, char** stats) {}
+
+void calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* totalAllocatedBytes){}
 
 void freeMemoryStats(Renderer* pRenderer, char* stats) {}
 /************************************************************************/

@@ -40,7 +40,7 @@
 namespace PlatformEvents {
 }
 
-ResourceDirectory                         RD_MIDDLEWARE_UI = RD_MIDDLEWARE_1;
+ResourceDirEnum                         RD_MIDDLEWARE_UI = RD_MIDDLEWARE_1;
 
 extern void initGUIDriver(Renderer* pRenderer, GUIDriver** ppDriver);
 extern void removeGUIDriver(GUIDriver* pDriver);
@@ -474,7 +474,7 @@ void UIApp::Unload()
 	pImpl->pFontStash->unload();
 }
 
-uint32_t UIApp::LoadFont(const char* pFontPath, ResourceDirectory root)
+uint32_t UIApp::LoadFont(const char* pFontPath, ResourceDirEnum root)
 {
 	uint32_t fontID = (uint32_t)pImpl->pFontStash->defineFont("default", pFontPath, root);
 	ASSERT(fontID != -1);
@@ -643,7 +643,7 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 #if TOUCH_INPUT
 	pRenderer = renderer;
 
-    PathHandle joystickTexturePath = fsCopyPathInResourceDirectory((ResourceDirectory)root, pJoystickTexture);
+    PathHandle joystickTexturePath = fsGetPathInResourceDirEnum((ResourceDirEnum)root, pJoystickTexture);
 	TextureLoadDesc loadDesc = {};
 	SyncToken token = {};
     loadDesc.pFilePath = joystickTexturePath;
@@ -847,7 +847,7 @@ void VirtualJoystickUI::Draw(Cmd* pCmd, const float4& color)
 			endUpdateResource(&updateDesc, NULL);
 			cmdBindVertexBuffer(pCmd, 1, &pMeshBuffer, &vertexStride, &bufferOffset);
 			cmdDraw(pCmd, 4, 0);
-			bufferOffset += sizeof(vertices);
+			bufferOffset += sizeof(TexVertex) * 4;
 
 			joystickSize = float2(intSide);
 			joystickCenter = mSticks[i].mCurrPos - float2(0.0f, mRenderSize.y * 0.1f);
@@ -861,7 +861,7 @@ void VirtualJoystickUI::Draw(Cmd* pCmd, const float4& color)
 			endUpdateResource(&updateDesc, NULL);
 			cmdBindVertexBuffer(pCmd, 1, &pMeshBuffer, &vertexStride, &bufferOffset);
 			cmdDraw(pCmd, 4, 0);
-			bufferOffset += sizeof(verticesInner);
+			bufferOffset += sizeof(TexVertex) * 4;
 		}
 	}
 #endif

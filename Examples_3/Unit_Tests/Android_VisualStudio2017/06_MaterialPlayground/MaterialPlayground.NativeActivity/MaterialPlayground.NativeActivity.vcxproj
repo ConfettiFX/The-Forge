@@ -135,8 +135,6 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\PBR\*.* $(SolutionD
     <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\hair.frag" />
     <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\hair.vert" />
     <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\panoToCube.comp" />
-    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\profile.frag" />
-    <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\profile.vert" />
     <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\renderSceneBRDF.frag" />
     <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\renderSceneBRDF.vert" />
     <None Include="..\..\..\src\06_MaterialPlayground\Shaders\Vulkan\renderSceneShadows.frag" />

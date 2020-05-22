@@ -15,3 +15,8 @@ float3 decodeDir(float2 encN)
 	n = normalize(n);
 	return n;
 }
+
+float2 unpack2Floats(uint p)
+{
+	return float2(as_type<half2>(p));
+}

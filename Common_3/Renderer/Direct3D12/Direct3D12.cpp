@@ -494,7 +494,7 @@ constexpr D3D12_DEPTH_STENCIL_DESC util_to_depth_desc(const DepthStateDesc* pDes
 constexpr D3D12_BLEND_DESC util_to_blend_desc(const BlendStateDesc* pDesc)
 {
 	int blendDescIndex = 0;
-#ifdef _DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG
 
 	for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
 	{
@@ -1130,7 +1130,7 @@ DXGI_FORMAT util_to_dx_uav_format(DXGI_FORMAT defaultFormat)
 		case DXGI_FORMAT_R32_TYPELESS:
 		case DXGI_FORMAT_R32_FLOAT: return DXGI_FORMAT_R32_FLOAT;
 
-#ifdef _DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG
 		case DXGI_FORMAT_R32G8X24_TYPELESS:
 		case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
 		case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS:
@@ -1243,7 +1243,7 @@ DXGI_FORMAT util_to_dx_swapchain_format(TinyImageFormat const format)
 	// FLIP_DISCARD and FLIP_SEQEUNTIAL swapchain buffers only support these formats
 	switch (format)
 	{
-		case TinyImageFormat_R16G16B16A16_SFLOAT: result = DXGI_FORMAT_R16G16B16A16_FLOAT;
+		case TinyImageFormat_R16G16B16A16_SFLOAT: result = DXGI_FORMAT_R16G16B16A16_FLOAT; break;
 		case TinyImageFormat_B8G8R8A8_UNORM: result = DXGI_FORMAT_B8G8R8A8_UNORM; break;
 		case TinyImageFormat_R8G8B8A8_UNORM: result = DXGI_FORMAT_R8G8B8A8_UNORM; break;
 		case TinyImageFormat_B8G8R8A8_SRGB: result = DXGI_FORMAT_B8G8R8A8_UNORM; break;
@@ -1319,13 +1319,13 @@ D3D12_DESCRIPTOR_RANGE_TYPE util_to_dx_descriptor_range(DescriptorType type)
 #ifdef ENABLE_RAYTRACING
 		case DESCRIPTOR_TYPE_RAY_TRACING: return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 #endif
-		default: ASSERT("Invalid DescriptorInfo Type"); return (D3D12_DESCRIPTOR_RANGE_TYPE)-1;
+		default: ASSERT("Invalid DescriptorInfo Type"); return D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	}
 }
 
 D3D12_RESOURCE_STATES util_to_dx_resource_state(ResourceState state)
 {
-	D3D12_RESOURCE_STATES ret = (D3D12_RESOURCE_STATES)state;
+	D3D12_RESOURCE_STATES ret = D3D12_RESOURCE_STATE_COMMON;
 
 	// These states cannot be combined with other states so we just do an == check
 	if (state == RESOURCE_STATE_GENERIC_READ)
@@ -1361,6 +1361,11 @@ D3D12_RESOURCE_STATES util_to_dx_resource_state(ResourceState state)
 	else if (state & RESOURCE_STATE_SHADER_RESOURCE)
 		ret |= (D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 
+#ifdef ENABLE_RAYTRACING
+	else if (state & RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE)
+		ret |= D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+#endif
+
 	return ret;
 }
 
@@ -1371,7 +1376,7 @@ D3D12_QUERY_HEAP_TYPE util_to_dx_query_heap_type(QueryType type)
 		case QUERY_TYPE_TIMESTAMP: return D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
 		case QUERY_TYPE_PIPELINE_STATISTICS: return D3D12_QUERY_HEAP_TYPE_PIPELINE_STATISTICS;
 		case QUERY_TYPE_OCCLUSION: return D3D12_QUERY_HEAP_TYPE_OCCLUSION;
-		default: ASSERT(false && "Invalid query heap type"); return D3D12_QUERY_HEAP_TYPE(-1);
+		default: ASSERT(false && "Invalid query heap type"); return D3D12_QUERY_HEAP_TYPE_OCCLUSION;
 	}
 }
 
@@ -1382,7 +1387,7 @@ D3D12_QUERY_TYPE util_to_dx_query_type(QueryType type)
 		case QUERY_TYPE_TIMESTAMP: return D3D12_QUERY_TYPE_TIMESTAMP;
 		case QUERY_TYPE_PIPELINE_STATISTICS: return D3D12_QUERY_TYPE_PIPELINE_STATISTICS;
 		case QUERY_TYPE_OCCLUSION: return D3D12_QUERY_TYPE_OCCLUSION;
-		default: ASSERT(false && "Invalid query heap type"); return D3D12_QUERY_TYPE(-1);
+		default: ASSERT(false && "Invalid query heap type"); return D3D12_QUERY_TYPE_OCCLUSION;
 	}
 }
 
@@ -1424,7 +1429,7 @@ static void HANGDUMPCALLBACK(const WCHAR* strFileName) { return; }
 
 static void AddDevice(Renderer* pRenderer)
 {
-#if defined(_DEBUG) || defined(PROFILE)
+#if defined(ENABLE_GRAPHICS_DEBUG) || defined(PROFILE)
 	//add debug layer if in debug mode
 	if (SUCCEEDED(D3D12GetDebugInterface(__uuidof(pRenderer->pDXDebug), (void**)&(pRenderer->pDXDebug))))
 	{
@@ -1446,7 +1451,7 @@ static void AddDevice(Renderer* pRenderer)
 	HRESULT hres = create_device(NULL, &pRenderer->pDxDevice);
 	ASSERT(SUCCEEDED(hres));
 
-#if defined(_DEBUG) || defined(PROFILE)
+#if defined(ENABLE_GRAPHICS_DEBUG) || defined(PROFILE)
 	//Sets the callback functions to invoke when the GPU hangs
 	//pRenderer->pDxDevice->SetHangCallbacksX(HANGBEGINCALLBACK, HANGPRINTCALLBACK, NULL);
 #endif
@@ -1484,7 +1489,7 @@ static void AddDevice(Renderer* pRenderer)
 	};
 #else
 	UINT flags = 0;
-#if defined(_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG)
 	flags = DXGI_CREATE_FACTORY_DEBUG;
 #endif
 	HRESULT hres = CreateDXGIFactory2(flags, IID_ARGS(&pRenderer->pDXGIFactory));
@@ -1744,15 +1749,17 @@ static void RemoveDevice(Renderer* pRenderer)
 
 #if defined(_DURANGO)
 	SAFE_RELEASE(pRenderer->pDxDevice);
-#elif defined(_DEBUG) || defined(PROFILE)
+#elif defined(ENABLE_GRAPHICS_DEBUG) || defined(PROFILE)
 	ID3D12DebugDevice* pDebugDevice = NULL;
 	pRenderer->pDxDevice->QueryInterface(&pDebugDevice);
 
 	SAFE_RELEASE(pRenderer->pDXDebug);
 	SAFE_RELEASE(pRenderer->pDxDevice);
-
-	pDebugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
+	
+	// Debug device is released first so report live objects don't show its ref as a warning.
 	pDebugDevice->Release();
+	pDebugDevice->ReportLiveDeviceObjects(D3D12_RLDO_DETAIL | D3D12_RLDO_IGNORE_INTERNAL);
+
 #else
 	SAFE_RELEASE(pRenderer->pDxDevice);
 #endif
@@ -1780,7 +1787,7 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 #endif
 
 	pRenderer->pName = (char*)conf_calloc(strlen(appName) + 1, sizeof(char));
-	memcpy(pRenderer->pName, appName, strlen(appName));
+	strcpy(pRenderer->pName, appName);
 
 	initHooks();
 
@@ -1807,7 +1814,7 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 
 			//return NULL pRenderer so that client can gracefully handle exit
 			//This is better than exiting from here in case client has allocated memory or has fallbacks
-			*pRenderer = {};
+			*ppRenderer = NULL;
 			return;
 		}
 
@@ -1817,7 +1824,7 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 		{
 			// Query the level of support of Shader Model.
 			D3D12_FEATURE_DATA_SHADER_MODEL   shaderModelSupport = { D3D_SHADER_MODEL_6_0 };
-			D3D12_FEATURE_DATA_D3D12_OPTIONS1 m_WaveIntrinsicsSupport = {};
+			D3D12_FEATURE_DATA_D3D12_OPTIONS1 waveIntrinsicsSupport = {};
 			if (!SUCCEEDED(pRenderer->pDxDevice->CheckFeatureSupport(
 					(D3D12_FEATURE)D3D12_FEATURE_SHADER_MODEL, &shaderModelSupport, sizeof(shaderModelSupport))))
 			{
@@ -1825,13 +1832,13 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 			}
 			// Query the level of support of Wave Intrinsics.
 			if (!SUCCEEDED(pRenderer->pDxDevice->CheckFeatureSupport(
-					(D3D12_FEATURE)D3D12_FEATURE_D3D12_OPTIONS1, &m_WaveIntrinsicsSupport, sizeof(m_WaveIntrinsicsSupport))))
+					(D3D12_FEATURE)D3D12_FEATURE_D3D12_OPTIONS1, &waveIntrinsicsSupport, sizeof(waveIntrinsicsSupport))))
 			{
 				return;
 			}
 
 			// If the device doesn't support SM6 or Wave Intrinsics, try enabling the experimental feature for Shader Model 6 and creating the device again.
-			if (shaderModelSupport.HighestShaderModel != D3D_SHADER_MODEL_6_0 || m_WaveIntrinsicsSupport.WaveOps != TRUE)
+			if (shaderModelSupport.HighestShaderModel != D3D_SHADER_MODEL_6_0 || waveIntrinsicsSupport.WaveOps != TRUE)
 			{
 				RENDERDOC_API_1_1_2* rdoc_api = NULL;
 				// At init, on windows
@@ -1846,8 +1853,8 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 				{
 					// If the device still doesn't support SM6 or Wave Intrinsics after enabling the experimental feature, you could set up your application to use the highest supported shader model.
 					// For simplicity we just exit the application here.
-					if (shaderModelSupport.HighestShaderModel != D3D_SHADER_MODEL_6_0 ||
-						m_WaveIntrinsicsSupport.WaveOps != TRUE && !SUCCEEDED(EnableExperimentalShaderModels()))
+					if (shaderModelSupport.HighestShaderModel < D3D_SHADER_MODEL_6_0 ||
+						(waveIntrinsicsSupport.WaveOps != TRUE && !SUCCEEDED(EnableExperimentalShaderModels())))
 					{
 						RemoveDevice(pRenderer);
 						LOGF(LogLevel::eERROR, "Hardware does not support Shader Model 6.0");
@@ -2348,8 +2355,6 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	// Allowing multiple command queues to present for applications like Alternate Frame Rendering
 	if (pRenderer->mGpuMode == GPU_MODE_LINKED && pDesc->mPresentQueueCount > 1)
 	{
-		ASSERT(pDesc->mPresentQueueCount == pDesc->mImageCount);
-
 		IUnknown** ppQueues = (IUnknown**)alloca(pDesc->mPresentQueueCount * sizeof(IUnknown*));
 		UINT*      pCreationMasks = (UINT*)alloca(pDesc->mPresentQueueCount * sizeof(UINT));
 		for (uint32_t i = 0; i < pDesc->mPresentQueueCount; ++i)
@@ -2358,11 +2363,8 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 			pCreationMasks[i] = (1 << pDesc->ppPresentQueues[i]->mNodeIndex);
 		}
 
-		if (pDesc->mPresentQueueCount)
-		{
-			pSwapChain->pDxSwapChain->ResizeBuffers1(
-				desc.BufferCount, desc.Width, desc.Height, desc.Format, desc.Flags, pCreationMasks, ppQueues);
-		}
+		pSwapChain->pDxSwapChain->ResizeBuffers1(
+			desc.BufferCount, desc.Width, desc.Height, desc.Format, desc.Flags, pCreationMasks, ppQueues);
 	}
 #endif
 
@@ -2557,7 +2559,6 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 			pBuffer->mDxUavOffset = pBuffer->mDxSrvOffset + pHeap->mDescriptorSize * 1;
 
 			D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-			srvDesc.Format = DXGI_FORMAT_UNKNOWN;
 			srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 			srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			srvDesc.Buffer.FirstElement = pDesc->mFirstElement;
@@ -2836,7 +2837,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		}
 		else
 		{
-			HRESULT hr = pRenderer->pResourceAllocator->CreateResource(&alloc_desc, &desc, res_states, pClearValue,
+			hr = pRenderer->pResourceAllocator->CreateResource(&alloc_desc, &desc, res_states, pClearValue,
 				&pTexture->pDxAllocation, IID_ARGS(&pTexture->pDxResource));
 
 			// Set name
@@ -3370,7 +3371,7 @@ void compileShader(
 		eastl::vector<const WCHAR*> compilerArgs;
 		compilerArgs.push_back(L"-Zi");
 		compilerArgs.push_back(L"-all_resources_bound");
-#if defined(_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG)
 		compilerArgs.push_back(L"-Od");
 #else
 		compilerArgs.push_back(L"-O3");
@@ -3439,7 +3440,7 @@ void compileShader(
 	else
 #endif
 	{
-#if defined(_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG)
 		// Enable better shader debugging with the graphics debugging tools.
 		UINT compile_flags = D3DCOMPILE_SKIP_OPTIMIZATION;
 #else
@@ -3448,34 +3449,18 @@ void compileShader(
 
 		compile_flags |= (D3DCOMPILE_DEBUG | D3DCOMPILE_ALL_RESOURCES_BOUND | D3DCOMPILE_ENABLE_UNBOUNDED_DESCRIPTOR_TABLES);
 
-		int major;
-		int minor;
-		switch (shaderTarget)
-		{
-			default:
-			case shader_target_5_1:
-			{
-				major = 5;
-				minor = 1;
-			}
-			break;
-			case shader_target_6_0:
-			{
-				major = 6;
-				minor = 0;
-			}
-			break;
-		}
+		int major = 5;
+		int minor = 1;
 
-		eastl::string target;
+		char target[32] = {};
 		switch (stage)
 		{
-			case SHADER_STAGE_VERT: target.sprintf("vs_%d_%d", major, minor); break;
-			case SHADER_STAGE_TESC: target.sprintf("hs_%d_%d", major, minor); break;
-			case SHADER_STAGE_TESE: target.sprintf("ds_%d_%d", major, minor); break;
-			case SHADER_STAGE_GEOM: target.sprintf("gs_%d_%d", major, minor); break;
-			case SHADER_STAGE_FRAG: target.sprintf("ps_%d_%d", major, minor); break;
-			case SHADER_STAGE_COMP: target.sprintf("cs_%d_%d", major, minor); break;
+			case SHADER_STAGE_VERT: sprintf(target, "vs_%d_%d", major, minor); break;
+			case SHADER_STAGE_TESC: sprintf(target, "hs_%d_%d", major, minor); break;
+			case SHADER_STAGE_TESE: sprintf(target, "ds_%d_%d", major, minor); break;
+			case SHADER_STAGE_GEOM: sprintf(target, "gs_%d_%d", major, minor); break;
+			case SHADER_STAGE_FRAG: sprintf(target, "ps_%d_%d", major, minor); break;
+			case SHADER_STAGE_COMP: sprintf(target, "cs_%d_%d", major, minor); break;
 			default: break;
 		}
 
@@ -3492,11 +3477,11 @@ void compileShader(
 		if (fnHookShaderCompileFlags != NULL)
 			fnHookShaderCompileFlags(compile_flags);
 
-		eastl::string entryPoint = "main";
+		const char*   entryPoint = pEntryPoint ? pEntryPoint : "main";
 		ID3DBlob*     compiled_code = NULL;
 		ID3DBlob*     error_msgs = NULL;
 		HRESULT       hres = D3DCompile2(
-            code, (size_t)codeSize, fsGetPathAsNativeString(filePath), macros, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint.c_str(), target.c_str(), compile_flags,
+            code, (size_t)codeSize, fsGetPathAsNativeString(filePath), macros, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint, target, compile_flags,
             0, 0, NULL, 0, &compiled_code, &error_msgs);
 		if (FAILED(hres))
 		{
@@ -3590,13 +3575,12 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 				}
 				break;
 				case SHADER_STAGE_COMP: { pStage = &pDesc->mComp;
-				}
-				break;
 #ifdef ENABLE_RAYTRACING
 				case SHADER_STAGE_RAYTRACING: { pStage = &pDesc->mComp;
 				}
 				break;
 #endif
+				}
 			}
 
 			D3DCreateBlob(pStage->mByteCodeSize, &pShaderProgram->pShaderBlobs[reflectionCount]);
@@ -3849,8 +3833,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 			// So we assume that all constant buffers with the word "rootconstant" (case insensitive) are root constants
 			eastl::string name = pRes->name;
 			name.make_lower();
-			if (name.find("rootconstant", 0) != eastl::string::npos ||
-				pDesc->mType == DESCRIPTOR_TYPE_ROOT_CONSTANT)
+			if (name.find("rootconstant", 0) != eastl::string::npos)
 			{
 				// Make the root param a 32 bit constant if the user explicitly specifies it in the shader
 				pDesc->mRootDescriptor = 1;
@@ -4291,7 +4274,7 @@ void removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
 
 void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
 {
-#ifdef _DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG
 #define VALIDATE_DESCRIPTOR(descriptor,...)																\
 	if (!(descriptor))																					\
 	{																									\
@@ -5057,7 +5040,7 @@ void cmdBindRenderTargets(
 				flags |= D3D12_CLEAR_FLAG_DEPTH;
 			if (pLoadActions->mLoadActionStencil == LOAD_ACTION_CLEAR)
 				flags |= D3D12_CLEAR_FLAG_STENCIL;
-			ASSERT(flags);
+			ASSERT(flags > 0);
 			pCmd->pDxCmdList->ClearDepthStencilView(dsv, flags, pLoadActions->mClearDepth.depth, (UINT8)pLoadActions->mClearDepth.stencil, 0, NULL);
 		}
 	}
@@ -5862,19 +5845,7 @@ void cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 
 void cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 {
-	D3D12_QUERY_TYPE type = pQueryPool->mType;
-	switch (type)
-	{
-		case D3D12_QUERY_TYPE_OCCLUSION: break;
-		case D3D12_QUERY_TYPE_BINARY_OCCLUSION: break;
-		case D3D12_QUERY_TYPE_TIMESTAMP: pCmd->pDxCmdList->EndQuery(pQueryPool->pDxQueryHeap, type, pQuery->mIndex); break;
-		case D3D12_QUERY_TYPE_PIPELINE_STATISTICS: break;
-		case D3D12_QUERY_TYPE_SO_STATISTICS_STREAM0: break;
-		case D3D12_QUERY_TYPE_SO_STATISTICS_STREAM1: break;
-		case D3D12_QUERY_TYPE_SO_STATISTICS_STREAM2: break;
-		case D3D12_QUERY_TYPE_SO_STATISTICS_STREAM3: break;
-		default: break;
-	}
+	cmdBeginQuery(pCmd, pQueryPool, pQuery);
 }
 
 void cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffer, uint32_t startQuery, uint32_t queryCount)
@@ -5894,6 +5865,14 @@ void calculateMemoryStats(Renderer* pRenderer, char** stats)
 	*stats = (char*)conf_malloc(wcslen(wstats) * sizeof(char));
 	wcstombs(*stats, wstats, wcslen(wstats));
 	pRenderer->pResourceAllocator->FreeStatsString(wstats);
+}
+
+void calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* totalAllocatedBytes)
+{
+	D3D12MA::Stats stats;
+	pRenderer->pResourceAllocator->CalculateStats(&stats);
+	*usedBytes = stats.Total.UsedBytes;
+	*totalAllocatedBytes = *usedBytes + stats.Total.UnusedBytes;
 }
 
 void freeMemoryStats(Renderer* pRenderer, char* stats) { conf_free(stats); }

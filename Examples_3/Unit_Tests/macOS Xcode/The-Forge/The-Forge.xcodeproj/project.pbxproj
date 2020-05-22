@@ -44,6 +44,9 @@
 		5C17301421414D8C0074EE71 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C17301321414D8C0074EE71 /* Metal.framework */; };
 		5C17301621414D900074EE71 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C17301521414D900074EE71 /* MetalKit.framework */; };
 		5C17301821414D940074EE71 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C17301721414D940074EE71 /* MetalPerformanceShaders.framework */; };
+		5C32AEDF246453F40066E921 /* ParallelPrimitives.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C32AEDD246453F40066E921 /* ParallelPrimitives.cpp */; };
+		5C32AEE0246453F40066E921 /* ParallelPrimitives.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C32AEDD246453F40066E921 /* ParallelPrimitives.cpp */; };
+		5C32AEE1246453F40066E921 /* ParallelPrimitives.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C32AEDE246453F40066E921 /* ParallelPrimitives.h */; };
 		5C512C55214155FE00E7A798 /* ImguiGUIDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C512C53214155FE00E7A798 /* ImguiGUIDriver.cpp */; };
 		5C512C56214155FE00E7A798 /* ImguiGUIDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C512C53214155FE00E7A798 /* ImguiGUIDriver.cpp */; };
 		5C512C602141561E00E7A798 /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C512C592141561E00E7A798 /* imgui_draw.cpp */; };
@@ -142,6 +145,9 @@
 		B274042122BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041922BC66AD00F7660D /* ComponentRepresentation.cpp */; };
 		B274042222BC66AD00F7660D /* EntityManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041A22BC66AD00F7660D /* EntityManager.cpp */; };
 		B274042322BC66AD00F7660D /* EntityManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041A22BC66AD00F7660D /* EntityManager.cpp */; };
+		B2B2F1C32472F7BF00B483FF /* rmem_get_module_info.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B2F1C12472F7BF00B483FF /* rmem_get_module_info.cpp */; };
+		B2B2F1C42472F7BF00B483FF /* rmem_hook.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B2F1C22472F7BF00B483FF /* rmem_hook.cpp */; };
+		B2B2F1C62472F7D200B483FF /* rmem_lib.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B2F1C52472F7D200B483FF /* rmem_lib.cpp */; };
 		B2DC6E9823F27C6600D48312 /* zip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2DC6E9723F27C6600D48312 /* zip.cpp */; };
 		B2DC6E9923F27C6600D48312 /* zip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2DC6E9723F27C6600D48312 /* zip.cpp */; };
 		B2F2AACE23FA9C2B006A0A66 /* GpuProfiler.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A24223F40207006D7450 /* GpuProfiler.cpp */; };
@@ -160,8 +166,6 @@
 		E98584E72334397C00692529 /* SystemRun.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E98584E52334397C00692529 /* SystemRun.cpp */; };
 		E98584EA2334609200692529 /* FileSystemInternal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E98584E92334609200692529 /* FileSystemInternal.cpp */; };
 		E98584EB2334609200692529 /* FileSystemInternal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E98584E92334609200692529 /* FileSystemInternal.cpp */; };
-		E9ABCE0923612D26002B8F5B /* ParallelPrimitives.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9ABCE0723612D26002B8F5B /* ParallelPrimitives.cpp */; };
-		E9ABCE0A23612D26002B8F5B /* ParallelPrimitives.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9ABCE0723612D26002B8F5B /* ParallelPrimitives.cpp */; };
 		E9B6292323384CC9009DD4AB /* MemoryStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B28035622319C01A006CE791 /* MemoryStream.cpp */; };
 		E9B6292423384CC9009DD4AB /* MemoryStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B28035622319C01A006CE791 /* MemoryStream.cpp */; };
 		E9B6292523385D33009DD4AB /* SystemFileStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B28035602319C01A006CE791 /* SystemFileStream.cpp */; };
@@ -239,6 +243,8 @@
 		5C17301321414D8C0074EE71 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		5C17301521414D900074EE71 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		5C17301721414D940074EE71 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
+		5C32AEDD246453F40066E921 /* ParallelPrimitives.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp.preprocessed; fileEncoding = 4; name = ParallelPrimitives.cpp; path = ../../../../Middleware_3/ParallelPrimitives/ParallelPrimitives.cpp; sourceTree = "<group>"; };
+		5C32AEDE246453F40066E921 /* ParallelPrimitives.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ParallelPrimitives.h; path = ../../../../Middleware_3/ParallelPrimitives/ParallelPrimitives.h; sourceTree = "<group>"; };
 		5C512C53214155FE00E7A798 /* ImguiGUIDriver.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = ImguiGUIDriver.cpp; path = ../../Middleware_3/UI/ImguiGUIDriver.cpp; sourceTree = "<group>"; };
 		5C512C592141561E00E7A798 /* imgui_draw.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = imgui_draw.cpp; path = ../ThirdParty/OpenSource/imgui/imgui_draw.cpp; sourceTree = "<group>"; };
 		5C512C5A2141561E00E7A798 /* imconfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = imconfig.h; path = ../ThirdParty/OpenSource/imgui/imconfig.h; sourceTree = "<group>"; };
@@ -303,6 +309,9 @@
 		B28035612319C01A006CE791 /* SystemFileStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SystemFileStream.h; path = FileSystem/SystemFileStream.h; sourceTree = "<group>"; };
 		B28035622319C01A006CE791 /* MemoryStream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryStream.cpp; path = FileSystem/MemoryStream.cpp; sourceTree = "<group>"; };
 		B28035632319C01A006CE791 /* MemoryStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MemoryStream.h; path = FileSystem/MemoryStream.h; sourceTree = "<group>"; };
+		B2B2F1C12472F7BF00B483FF /* rmem_get_module_info.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_get_module_info.cpp; path = OpenSource/rmem/src/rmem_get_module_info.cpp; sourceTree = "<group>"; };
+		B2B2F1C22472F7BF00B483FF /* rmem_hook.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_hook.cpp; path = OpenSource/rmem/src/rmem_hook.cpp; sourceTree = "<group>"; };
+		B2B2F1C52472F7D200B483FF /* rmem_lib.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_lib.cpp; path = OpenSource/rmem/src/rmem_lib.cpp; sourceTree = "<group>"; };
 		B2D1CEA320EAD15F001BB8C4 /* gainput.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = gainput.xcodeproj; path = ../../../../Common_3/ThirdParty/OpenSource/gainput/Apple/lib/gainput.xcodeproj; sourceTree = "<group>"; };
 		B2DC6E9723F27C6600D48312 /* zip.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = zip.cpp; path = ../../../../Common_3/ThirdParty/OpenSource/zip/zip.cpp; sourceTree = "<group>"; };
 		C91D461A1FD9974F00564C8B /* MemoryTracking.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryTracking.cpp; path = MemoryTracking/MemoryTracking.cpp; sourceTree = "<group>"; };
@@ -323,8 +332,6 @@
 		E98584E52334397C00692529 /* SystemRun.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SystemRun.cpp; path = FileSystem/SystemRun.cpp; sourceTree = "<group>"; };
 		E98584E82334604300692529 /* FileSystemInternal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FileSystemInternal.h; path = FileSystem/FileSystemInternal.h; sourceTree = "<group>"; usesTabs = 1; };
 		E98584E92334609200692529 /* FileSystemInternal.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FileSystemInternal.cpp; path = FileSystem/FileSystemInternal.cpp; sourceTree = "<group>"; usesTabs = 1; };
-		E9ABCE0723612D26002B8F5B /* ParallelPrimitives.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; name = ParallelPrimitives.cpp; path = ../../../../../Middleware_3/ParallelPrimitives/ParallelPrimitives.cpp; sourceTree = "<group>"; };
-		E9ABCE4923625D6F002B8F5B /* ParallelPrimitives.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ParallelPrimitives.h; path = ../../../../../Middleware_3/ParallelPrimitives/ParallelPrimitives.h; sourceTree = "<group>"; };
 		E9B6292B23388D7C009DD4AB /* UnixFileSystem.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = UnixFileSystem.cpp; path = FileSystem/UnixFileSystem.cpp; sourceTree = "<group>"; };
 		E9B6292C23388D7C009DD4AB /* UnixFileSystem.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UnixFileSystem.h; path = FileSystem/UnixFileSystem.h; sourceTree = "<group>"; usesTabs = 1; };
 		E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = basisu_transcoder.cpp; path = ../ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp; sourceTree = "<group>"; };
@@ -396,6 +403,15 @@
 				5C172F1F214145410074EE71 /* Metal.framework */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		5C32AEDC246453E50066E921 /* ParallelPrimitives */ = {
+			isa = PBXGroup;
+			children = (
+				5C32AEDD246453F40066E921 /* ParallelPrimitives.cpp */,
+				5C32AEDE246453F40066E921 /* ParallelPrimitives.h */,
+			);
+			name = ParallelPrimitives;
 			sourceTree = "<group>";
 		};
 		5C512C582141560D00E7A798 /* imgui */ = {
@@ -490,7 +506,7 @@
 		B22D906C20E3F8BC0036B88E /* Middleware_3 */ = {
 			isa = PBXGroup;
 			children = (
-				E952EB092370F5E50093E1BA /* ParallelPrimitives */,
+				5C32AEDC246453E50066E921 /* ParallelPrimitives */,
 				B2A3551222BC5B4C00E1844E /* ECS */,
 				654D978521E922C800113964 /* Animation */,
 				B25AC23F20EFF13100ED50CF /* Text */,
@@ -533,6 +549,16 @@
 				B274041822BC66AD00F7660D /* EntityManager.h */,
 			);
 			path = ECS;
+			sourceTree = "<group>";
+		};
+		B2B2F1C02472F79300B483FF /* rmem */ = {
+			isa = PBXGroup;
+			children = (
+				B2B2F1C52472F7D200B483FF /* rmem_lib.cpp */,
+				B2B2F1C12472F7BF00B483FF /* rmem_get_module_info.cpp */,
+				B2B2F1C22472F7BF00B483FF /* rmem_hook.cpp */,
+			);
+			name = rmem;
 			sourceTree = "<group>";
 		};
 		B2D1CEA420EAD15F001BB8C4 /* Products */ = {
@@ -595,15 +621,6 @@
 				C91D461A1FD9974F00564C8B /* MemoryTracking.cpp */,
 			);
 			name = MemoryManager;
-			sourceTree = "<group>";
-		};
-		E952EB092370F5E50093E1BA /* ParallelPrimitives */ = {
-			isa = PBXGroup;
-			children = (
-				E9ABCE4923625D6F002B8F5B /* ParallelPrimitives.h */,
-				E9ABCE0723612D26002B8F5B /* ParallelPrimitives.cpp */,
-			);
-			path = ParallelPrimitives;
 			sourceTree = "<group>";
 		};
 		E9E601C3233B098900B21FD6 /* Darwin */ = {
@@ -721,6 +738,7 @@
 		EA463CE41EF81FC5005AC8C7 /* OpenSource */ = {
 			isa = PBXGroup;
 			children = (
+				B2B2F1C02472F79300B483FF /* rmem */,
 				81856EEF229D720600F3A92B /* EASTL */,
 				B214ACF120E2DAFC0025F76B /* gainput */,
 				EA463CE31EF81FC5005AC8C7 /* TinyEXR */,
@@ -801,6 +819,7 @@
 				B274041F22BC66AD00F7660D /* EntityManager.h in Headers */,
 				5C172F50214148840074EE71 /* IRenderer.h in Headers */,
 				5C512C622141561E00E7A798 /* imconfig.h in Headers */,
+				5C32AEE1246453F40066E921 /* ParallelPrimitives.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -944,10 +963,10 @@
 				81856F11229D729000F3A92B /* fixed_pool.cpp in Sources */,
 				E967DE49233B0DE50032E4BA /* iOSBase.mm in Sources */,
 				654D97B721E92F8100113964 /* AnimatedObject.cpp in Sources */,
-				E9ABCE0A23612D26002B8F5B /* ParallelPrimitives.cpp in Sources */,
 				E967DF15233B2F610032E4BA /* iOSFileSystem.mm in Sources */,
 				5C172FEE21414CC60074EE71 /* IRenderer.h in Sources */,
 				B274041E22BC66AD00F7660D /* BaseComponent.cpp in Sources */,
+				5C32AEE0246453F40066E921 /* ParallelPrimitives.cpp in Sources */,
 				5C172FEF21414CC60074EE71 /* IShaderReflection.h in Sources */,
 				5C172FF021414CC60074EE71 /* MetalMemoryAllocator.h in Sources */,
 				5C172FF121414CC60074EE71 /* MetalRenderer.mm in Sources */,
@@ -1002,6 +1021,7 @@
 				B274042022BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */,
 				81FF8E2C2237A9D30009402D /* InputSystem.cpp in Sources */,
 				E9B6292323384CC9009DD4AB /* MemoryStream.cpp in Sources */,
+				B2B2F1C62472F7D200B483FF /* rmem_lib.cpp in Sources */,
 				81856F0A229D729000F3A92B /* allocator_eastl.cpp in Sources */,
 				5C172F55214148840074EE71 /* MetalShaderReflection.mm in Sources */,
 				B274042222BC66AD00F7660D /* EntityManager.cpp in Sources */,
@@ -1011,6 +1031,7 @@
 				5C5582F721413D550019960B /* CameraController.cpp in Sources */,
 				5C5582F921413D550019960B /* MathTypes.h in Sources */,
 				654D979721E922F400113964 /* ClipMask.cpp in Sources */,
+				B2B2F1C32472F7BF00B483FF /* rmem_get_module_info.cpp in Sources */,
 				5C512C55214155FE00E7A798 /* ImguiGUIDriver.cpp in Sources */,
 				654D979F21E922F400113964 /* AnimatedObject.cpp in Sources */,
 				B231A25023F40207006D7450 /* ProfilerWidgetsUI.cpp in Sources */,
@@ -1022,7 +1043,6 @@
 				81856F00229D729000F3A92B /* allocator_forge.cpp in Sources */,
 				654D979B21E922F400113964 /* Animation.cpp in Sources */,
 				81856F0E229D729000F3A92B /* numeric_limits.cpp in Sources */,
-				E9ABCE0923612D26002B8F5B /* ParallelPrimitives.cpp in Sources */,
 				E98584EA2334609200692529 /* FileSystemInternal.cpp in Sources */,
 				654D97A021E922F400113964 /* Clip.cpp in Sources */,
 				81856F0C229D729000F3A92B /* intrusive_list.cpp in Sources */,
@@ -1032,6 +1052,7 @@
 				5C55830921413D550019960B /* tinyexr.cpp in Sources */,
 				E9B6292523385D33009DD4AB /* SystemFileStream.cpp in Sources */,
 				5C55830A21413D550019960B /* tinyexr.h in Sources */,
+				5C32AEDF246453F40066E921 /* ParallelPrimitives.cpp in Sources */,
 				5C55830B21413D550019960B /* Log.cpp in Sources */,
 				B231A24E23F40207006D7450 /* ProfilerBase.cpp in Sources */,
 				81856EF5229D725000F3A92B /* EAMemory.cpp in Sources */,
@@ -1039,6 +1060,7 @@
 				5C55830C21413D550019960B /* Log.h in Sources */,
 				E9B6292D23388D7D009DD4AB /* UnixFileSystem.cpp in Sources */,
 				654D979D21E922F400113964 /* Rig.cpp in Sources */,
+				B2B2F1C42472F7BF00B483FF /* rmem_hook.cpp in Sources */,
 				5C172F54214148840074EE71 /* MetalRenderer.mm in Sources */,
 				E9E1C3482339E2FD003544D5 /* ZipFileSystem.cpp in Sources */,
 				E967DE3A233B0A2C0032E4BA /* DarwinThread.cpp in Sources */,

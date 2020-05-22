@@ -29,17 +29,7 @@
 using namespace metal;
 
 #include "shader_defs.h"
-
-struct RootConstantData
-{
-    uint numBatches;
-};
-
-struct CSDataPerFrame {
-    device uint* indirectDrawArgsBufferAlpha[NUM_CULLING_VIEWPORTS];
-    device uint* indirectDrawArgsBufferNoAlpha[NUM_CULLING_VIEWPORTS];
-    device UncompactedDrawArguments* uncompactedDrawArgsRW[NUM_CULLING_VIEWPORTS];
-};
+#include "cull_argument_buffers.h"
 
 //[numthreads(256, 1, 1)]
 kernel void stageMain(
@@ -59,8 +49,8 @@ kernel void stageMain(
     {
         for (uint i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
         {
-            csDataPerFrame.indirectDrawArgsBufferAlpha[i][DRAW_COUNTER_SLOT_POS] = 0;
-            csDataPerFrame.indirectDrawArgsBufferNoAlpha[i][DRAW_COUNTER_SLOT_POS] = 0;
+		atomic_store_explicit(&csDataPerFrame.indirectDrawArgsBufferAlpha[i][DRAW_COUNTER_SLOT_POS], 0, memory_order_relaxed);
+		atomic_store_explicit(&csDataPerFrame.indirectDrawArgsBufferNoAlpha[i][DRAW_COUNTER_SLOT_POS], 0, memory_order_relaxed);
         }
     }
 }

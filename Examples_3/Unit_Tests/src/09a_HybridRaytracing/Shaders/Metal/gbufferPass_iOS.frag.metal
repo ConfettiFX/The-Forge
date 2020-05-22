@@ -91,16 +91,19 @@ struct Fragment_Shader
     albedoMap(albedoMapIn) {}
 };
 
-struct FSData {
+struct FSData
+{
     constant Fragment_Shader::Uniforms_cbPerProp& cbPerProp [[id(0)]];
     sampler samplerLinear [[id(1)]];
 };
 
-struct FSDataPerFrame {
+struct FSDataPerFrame
+{
     constant Fragment_Shader::Uniforms_cbPerPass & cbPerPass [[id(0)]];
 };
 
-struct FSDataPerDraw {
+struct FSDataPerDraw
+{
 	//    texture2d<float> textureMaps[5];
     texture2d<float, access::sample> albedoMap;
     texture2d<float, access::sample> normalMap;

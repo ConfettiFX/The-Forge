@@ -86,7 +86,8 @@ struct PSOut
 	float4 specular [[color(2)]];
 };
 
-struct FSData {
+struct FSData
+{
     sampler defaultSampler                          [[id(0)]];
     texture2d<float, access::sample> albedoMap      [[id(1)]];
     texture2d<float, access::sample> normalMap      [[id(2)]];
@@ -95,11 +96,13 @@ struct FSData {
     texture2d<float, access::sample> aoMap          [[id(5)]];
 };
 
-struct FSDataPerFrame {
+struct FSDataPerFrame
+{
     constant CameraData& cbCamera                   [[id(0)]];
 };
 
-struct FSDataPerDraw {
+struct FSDataPerDraw
+{
     constant ObjectData& cbObject                   [[id(0)]];
 };
 

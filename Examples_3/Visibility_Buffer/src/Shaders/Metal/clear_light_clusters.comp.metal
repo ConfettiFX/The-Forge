@@ -26,15 +26,12 @@
 using namespace metal;
 
 #include "shader_defs.h"
-
-struct CSData {
-    device uint32_t* lightClustersCount [[id(0)]];
-};
+#include "light_cull_argument_buffers.h"
 
 //[numthreads(8, 8, 1)]
 kernel void stageMain(uint2 threadId [[thread_position_in_grid]],
-                      constant CSData& csData [[buffer(UPDATE_FREQ_PER_FRAME)]]
+                      constant CSDataPerFrame& csDataPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]]
 )
 {
-    csData.lightClustersCount[LIGHT_CLUSTER_COUNT_POS(threadId.x, threadId.y)] = 0;
+	atomic_store_explicit(&csDataPerFrame.lightClustersCount[LIGHT_CLUSTER_COUNT_POS(threadId.x, threadId.y)], 0, memory_order_relaxed);
 }

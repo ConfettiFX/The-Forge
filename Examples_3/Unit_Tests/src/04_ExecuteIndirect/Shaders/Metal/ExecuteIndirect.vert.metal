@@ -25,10 +25,7 @@
 #include <metal_stdlib>
 using namespace metal;
 
-struct UniformBlockData
-{
-    float4x4 viewProj;
-};
+#include "argument_buffers.h"
 
 struct VsIn
 {
@@ -44,42 +41,10 @@ struct PsIn
     float4 albedo;
 };
 
-struct AsteroidDynamic
-{
-	float4x4 transform;
-    uint indexStart;
-    uint indexEnd;
-    uint padding[2];
-};
-
-struct AsteroidStatic
-{
-	float4 rotationAxis;
-	float4 surfaceColor;
-	float4 deepColor;
-
-	float scale;
-	float orbitSpeed;
-	float rotationSpeed;
-
-    uint textureID;
-    uint vertexStart;
-    uint padding[3];
-};
-
-struct VSData {
-    constant AsteroidStatic* asteroidsStatic     [[id(0)]];
-    constant AsteroidDynamic* asteroidsDynamic   [[id(1)]];
-};
-
-struct VSDataPerFrame {
-    constant UniformBlockData& uniformBlock      [[id(0)]];
-};
-
 vertex PsIn stageMain(VsIn In                                       [[stage_in]],
                       uint instanceID                               [[instance_id]],
-                      constant VSData& vsData                       [[buffer(UPDATE_FREQ_NONE)]],
-                      constant VSDataPerFrame& vsDataPerFrame       [[buffer(UPDATE_FREQ_PER_FRAME)]]
+                      constant ExecuteIndirectArgData& vsData                       [[buffer(UPDATE_FREQ_NONE)]],
+                      constant ExecuteIndirectArgDataPerFrame& vsDataPerFrame       [[buffer(UPDATE_FREQ_PER_FRAME)]]
 )
 {
     

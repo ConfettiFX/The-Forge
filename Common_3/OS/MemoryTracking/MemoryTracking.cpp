@@ -24,20 +24,73 @@
 
 #ifdef USE_MEMORY_TRACKING
 
+#define _CRT_SECURE_NO_WARNINGS 1
+
+//#ifndef USE_MTUNER
+//#define USE_MTUNER 1
+//#endif
+
+#if !defined(TARGET_IOS) 
+#include "../../ThirdParty/OpenSource/rmem/inc/rmem.h"
+#endif
+#include "../../ThirdParty/OpenSource/EASTL/EABase/eabase.h"
+#include <stdlib.h>
+#include <memory.h>
+
 // Just include the cpp here so we don't have to add it to the all projects
 #include "../../ThirdParty/OpenSource/FluidStudios/MemoryManager/mmgr.cpp"
 
-void* conf_malloc_internal(size_t size, const char *f, int l, const char *sf) { return mmgrAllocator(f, l, sf, m_alloc_malloc, 0, size); }
+void* conf_malloc_internal(size_t size, const char *f, int l, const char *sf)
+{
+	// Malloc and inform rmem. 
+	void* pMalloc = mmgrAllocator(f, l, sf, m_alloc_malloc, 0, size);
+#if TF_USE_MTUNER
+	rmemAlloc(0, pMalloc, (uint32_t)size, 0); 
+#endif
+	return pMalloc; 
+}
 
-void* conf_memalign_internal(size_t align, size_t size, const char *f, int l, const char *sf) { return mmgrAllocator(f, l, sf, m_alloc_memalign, align, size); }
+void* conf_memalign_internal(size_t align, size_t size, const char *f, int l, const char *sf) 
+{ 
+	// Memory-aligned alloc and inform rmem. 
+	void* pMemAlign = mmgrAllocator(f, l, sf, m_alloc_memalign, align, size);
+#if TF_USE_MTUNER
+	rmemAlloc(0, pMemAlign, (uint32_t)size, (uint32_t)align); 
+#endif
+	return pMemAlign; 
+}
 
-void* conf_calloc_internal(size_t count, size_t size, const char *f, int l, const char *sf) { return mmgrAllocator(f, l, sf, m_alloc_calloc, 0, size * count); }
+void* conf_calloc_internal(size_t count, size_t size, const char *f, int l, const char *sf) 
+{ 
+	// Calloc and inform rmem. 
+	void* pCalloc = mmgrAllocator(f, l, sf, m_alloc_calloc, 0, size * count);
+#if TF_USE_MTUNER
+	rmemAlloc(0, pCalloc, (uint32_t)size, 0);
+#endif
+	return pCalloc; 
+}
 
-void* conf_realloc_internal(void* ptr, size_t size, const char *f, int l, const char *sf) { return mmgrReallocator(f, l, sf, m_alloc_realloc, size, ptr); }
+void* conf_realloc_internal(void* ptr, size_t size, const char *f, int l, const char *sf) 
+{ 
+	// Realloc and inform rmem. 
+	void* pRealloc = mmgrReallocator(f, l, sf, m_alloc_realloc, size, ptr); 
+#if TF_USE_MTUNER 
+	rmemRealloc(0, pRealloc, (uint32_t)size, 0, ptr); 
+#endif
+	return pRealloc; 
 
-void conf_free_internal(void* ptr, const char *f, int l, const char *sf) { mmgrDeallocator(f, l, sf, m_alloc_free, ptr); }
+}
 
-#else
+void conf_free_internal(void* ptr, const char *f, int l, const char *sf) 
+{ 
+	// Free and inform rmem. 
+	mmgrDeallocator(f, l, sf, m_alloc_free, ptr);
+#if TF_USE_MTUNER
+	rmemFree(0, ptr);
+#endif
+}
+
+#else // USE_MEMORY_TRACKING
 
 bool MemAllocInit()
 {
@@ -102,4 +155,4 @@ void* conf_realloc_internal(void* ptr, size_t size, const char *f, int l, const 
 
 void conf_free_internal(void* ptr, const char *f, int l, const char *sf) { conf_free(ptr); }
 
-#endif
+#endif // USE_MEMORY_TRACKING

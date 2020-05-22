@@ -40,7 +40,7 @@ struct SceneVertexPos
 };
 
 struct SceneVertexTexcoord {
-    packed_half2 texCoord;
+    uint texCoord;
 };
 
 struct SceneVertexNormal {
@@ -274,9 +274,9 @@ fragment float4 stageMain(VSOutput input                                        
 		// TEXTURE COORD INTERPOLATION
 		// Apply perspective correction to texture coordinates
 		float3x2 texCoords = {
-			float2(fsData.vertexTexCoord[index0].texCoord) * one_over_w[0],
-			float2(fsData.vertexTexCoord[index1].texCoord) * one_over_w[1],
-			float2(fsData.vertexTexCoord[index2].texCoord) * one_over_w[2]
+			unpack2Floats(fsData.vertexTexCoord[index0].texCoord) * one_over_w[0],
+			unpack2Floats(fsData.vertexTexCoord[index1].texCoord) * one_over_w[1],
+			unpack2Floats(fsData.vertexTexCoord[index2].texCoord) * one_over_w[2]
 		};
 
 		// Interpolate texture coordinates and calculate the gradients for texture sampling with mipmapping support

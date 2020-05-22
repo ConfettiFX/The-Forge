@@ -541,6 +541,7 @@ RenderTarget* pRenderTargetHairShadows[HAIR_TYPE_COUNT][MAX_NUM_DIRECTIONAL_LIGH
 #ifndef METAL
 Texture* pTextureHairDepth = NULL;
 #else
+// Metal does not support atomics on textures so we have to use a buffer
 Buffer* pBufferHairDepth = NULL;
 #endif
 
@@ -745,19 +746,19 @@ class MaterialPlayground: public IApp
 	bool Init()
 	{
         // FILE PATHS
-		PathHandle programDirectory = fsCopyProgramDirectoryPath();
+		PathHandle programDirectory = fsGetApplicationDirectory();
         if (!fsPlatformUsesBundledResources())
         {
             PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/06_MaterialPlayground");
-            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            fsSetResourceDirRootPath(resourceDirRoot);
             
-            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirectory(RD_MESHES,          "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirectory(RD_OTHER_FILES,      "../../../../Art");
-            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
+            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../UnitTestResources/Textures");
+            fsSetRelativePathForResourceDirEnum(RD_MESHES,          "../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirEnum(RD_OTHER_FILES,      "../../../../Art");
+            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
         }
 
 		initThreadSystem(&pIOThreads);
@@ -885,7 +886,7 @@ class MaterialPlayground: public IApp
 			state->PushResultInteger(gbAnimateCamera ? 1 : 0);
 			return 1;    // return amount of arguments
 		});
-        PathHandle updateCameraPath = fsCopyPathInResourceDirectory(RD_MIDDLEWARE_2, "updateCamera.lua");
+        PathHandle updateCameraPath = fsGetPathInResourceDirEnum(RD_MIDDLEWARE_2, "updateCamera.lua");
 		gbLuaScriptingSystemLoadedSuccessfully = gLuaManager.SetUpdatableScript(updateCameraPath, "Update", "Exit");
 
 		// SET MATERIAL LIGHTING MODELS
@@ -2782,7 +2783,7 @@ class MaterialPlayground: public IApp
 			return 0;    //return amount of arguments that we want to send back to script
 		});
         
-        PathHandle loadModelsPath = fsCopyPathInResourceDirectory(RD_MIDDLEWARE_2, "loadModels.lua");
+        PathHandle loadModelsPath = fsGetPathInResourceDirEnum(RD_MIDDLEWARE_2, "loadModels.lua");
 		gLuaManager.AddAsyncScript(loadModelsPath, [&modelsAreLoaded](ScriptState state) { modelsAreLoaded = true; });
 
 		while (!modelsAreLoaded)
@@ -2812,7 +2813,7 @@ class MaterialPlayground: public IApp
 			return 0;
 		});
         
-        PathHandle loadTexturesPath = fsCopyPathInResourceDirectory(RD_MIDDLEWARE_2, "loadTextures.lua");
+        PathHandle loadTexturesPath = fsGetPathInResourceDirEnum(RD_MIDDLEWARE_2, "loadTextures.lua");
 		gLuaManager.AddAsyncScript(loadTexturesPath, [&texturesAreLoaded](ScriptState state) { texturesAreLoaded = true; });
         
 		while (!texturesAreLoaded)
@@ -2835,7 +2836,7 @@ class MaterialPlayground: public IApp
 			return 0;
 		});
         
-        PathHandle loadGroundTexturesPath = fsCopyPathInResourceDirectory(RD_MIDDLEWARE_2, "loadGroundTextures.lua");
+        PathHandle loadGroundTexturesPath = fsGetPathInResourceDirEnum(RD_MIDDLEWARE_2, "loadGroundTextures.lua");
 		gLuaManager.AddAsyncScript(
 			loadGroundTexturesPath, [&groundTexturesAreLoaded](ScriptState state) { groundTexturesAreLoaded = true; });
 
@@ -2850,7 +2851,7 @@ class MaterialPlayground: public IApp
 	static void LoadMaterialTexturesTask(void* data, uintptr_t i)
 	{
         StagingData*    pTaskData = (StagingData*)data;
-        PathHandle path = fsCopyPathInResourceDirectory(RD_OTHER_FILES, pTaskData->mMaterialNamesStorage[i].c_str());
+        PathHandle path = fsGetPathInResourceDirEnum(RD_OTHER_FILES, pTaskData->mMaterialNamesStorage[i].c_str());
 		TextureLoadDesc desc = {};
         desc.pFilePath = path;
 		desc.ppTexture = &gTextureMaterialMaps[i];
@@ -2860,7 +2861,7 @@ class MaterialPlayground: public IApp
 	static void LoadGroundTexturesTask(void* data, uintptr_t i)
 	{
         StagingData*    pTaskData = (StagingData*)data;
-        PathHandle path = fsCopyPathInResourceDirectory(RD_OTHER_FILES, pTaskData->mGroundNamesStorage[i].c_str());
+        PathHandle path = fsGetPathInResourceDirEnum(RD_OTHER_FILES, pTaskData->mGroundNamesStorage[i].c_str());
 		TextureLoadDesc desc = {};
         desc.pFilePath = path;
 		desc.ppTexture = &gTextureMaterialMapsGround[i];
@@ -2896,7 +2897,7 @@ class MaterialPlayground: public IApp
 		// PBR Texture values (these values are mirrored on the shaders).
 		static const uint32_t gBRDFIntegrationSize = 512;
 		static const uint32_t gSkyboxSize = 1024;
-		static const uint32_t gSkyboxMips = 11;
+		static const uint32_t gSkyboxMips = (uint)log2(gSkyboxSize) + 1;
 		static const uint32_t gIrradianceSize = 32;
 		static const uint32_t gSpecularSize = 128;
 		static const uint32_t gSpecularMips = (uint)log2(gSpecularSize) + 1;
@@ -2908,7 +2909,7 @@ class MaterialPlayground: public IApp
 
 		// Load the skybox panorama texture.
 		SyncToken       token = {};
-        PathHandle skyboxPath = fsCopyPathInResourceDirectory(RD_TEXTURES, skyboxNames[skyboxIndex]);
+        PathHandle skyboxPath = fsGetPathInResourceDirEnum(RD_TEXTURES, skyboxNames[skyboxIndex]);
 		TextureLoadDesc panoDesc = {};
 		panoDesc.pFilePath = skyboxPath;
 		panoDesc.ppTexture = &pPanoSkybox;
@@ -3007,11 +3008,9 @@ class MaterialPlayground: public IApp
 		ShaderLoadDesc specularShaderDesc = {};
 		specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", &importanceSampleMacro, 1, RD_SHADER_SOURCES };
 
-#ifndef TARGET_IOS
 		addShader(pRenderer, &panoToCubeShaderDesc, &pPanoToCubeShader);
 		addShader(pRenderer, &irradianceShaderDesc, &pIrradianceShader);
 		addShader(pRenderer, &specularShaderDesc, &pSpecularShader);
-#endif
 		addShader(pRenderer, &brdfIntegrationShaderDesc, &pBRDFIntegrationShader);
 
 		const char*       pStaticSamplerNames[] = { "skyboxSampler" };
@@ -3031,16 +3030,13 @@ class MaterialPlayground: public IApp
 		specularRootDesc.mStaticSamplerCount = 1;
 		specularRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
 		specularRootDesc.ppStaticSamplers = &pSkyboxSampler;
-#ifndef TARGET_IOS
 		addRootSignature(pRenderer, &panoRootDesc, &pPanoToCubeRootSignature);
         addRootSignature(pRenderer, &irradianceRootDesc, &pIrradianceRootSignature);
         addRootSignature(pRenderer, &specularRootDesc, &pSpecularRootSignature);
-#endif
 		addRootSignature(pRenderer, &brdfRootDesc, &pBRDFIntegrationRootSignature);
 
 		DescriptorSetDesc setDesc = { pBRDFIntegrationRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetBRDF);
-#ifndef TARGET_IOS
 		setDesc = { pPanoToCubeRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPanoToCube[0]);
 		setDesc = { pPanoToCubeRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gSkyboxMips };
@@ -3051,12 +3047,10 @@ class MaterialPlayground: public IApp
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSpecular[0]);
 		setDesc = { pSpecularRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_DRAW, gSkyboxMips };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetSpecular[1]);
-#endif
 
 		PipelineDesc desc = {};
 		desc.mType = PIPELINE_TYPE_COMPUTE;
 		ComputePipelineDesc& pipelineSettings = desc.mComputeDesc;
-#ifndef TARGET_IOS
         pipelineSettings.pShaderProgram = pPanoToCubeShader;
 		pipelineSettings.pRootSignature = pPanoToCubeRootSignature;
 		addPipeline(pRenderer, &desc, &pPanoToCubePipeline);
@@ -3066,7 +3060,6 @@ class MaterialPlayground: public IApp
         pipelineSettings.pShaderProgram = pSpecularShader;
         pipelineSettings.pRootSignature = pSpecularRootSignature;
         addPipeline(pRenderer, &desc, &pSpecularPipeline);
-#endif
 		pipelineSettings.pShaderProgram = pBRDFIntegrationShader;
 		pipelineSettings.pRootSignature = pBRDFIntegrationRootSignature;
 		addPipeline(pRenderer, &desc, &pBRDFIntegrationPipeline);
@@ -3101,7 +3094,6 @@ class MaterialPlayground: public IApp
 
 		cmdResourceBarrier(pCmd, 0, NULL, 1, srvBarrier, 0, NULL);
 
-#ifndef TARGET_IOS
 		// Store the panorama texture inside a cubemap.
 		cmdBindPipeline(pCmd, pPanoToCubePipeline);
 		params[0].pName = "srcTexture";
@@ -3183,7 +3175,7 @@ class MaterialPlayground: public IApp
 		TextureBarrier srvBarriers2[2] = { { pTextureIrradianceMap, RESOURCE_STATE_SHADER_RESOURCE },
 										   { pTextureSpecularMap, RESOURCE_STATE_SHADER_RESOURCE } };
 		cmdResourceBarrier(pCmd, 0, NULL, 2, srvBarriers2, 0, NULL);
-#endif
+
 		endCmd(pCmd);
         
 		QueueSubmitDesc submitDesc = {};
@@ -3195,7 +3187,7 @@ class MaterialPlayground: public IApp
 		waitQueueIdle(pGraphicsQueue);
 
 		removeDescriptorSet(pRenderer, pDescriptorSetBRDF);
-#ifndef TARGET_IOS
+
         removeDescriptorSet(pRenderer, pDescriptorSetPanoToCube[0]);
 		removeDescriptorSet(pRenderer, pDescriptorSetPanoToCube[1]);
 		removeDescriptorSet(pRenderer, pDescriptorSetIrradiance);
@@ -3210,7 +3202,7 @@ class MaterialPlayground: public IApp
         removePipeline(pRenderer, pPanoToCubePipeline);
         removeRootSignature(pRenderer, pPanoToCubeRootSignature);
         removeShader(pRenderer, pPanoToCubeShader);
-#endif
+
 		removePipeline(pRenderer, pBRDFIntegrationPipeline);
 		removeRootSignature(pRenderer, pBRDFIntegrationRootSignature);
 		removeShader(pRenderer, pBRDFIntegrationShader);
@@ -3220,7 +3212,7 @@ class MaterialPlayground: public IApp
 
 	void LoadModel(uintptr_t i)
 	{
-		PathHandle modelFilePath = fsCopyPathInResourceDirectory(RD_MESHES, pStagingData->mModelList[i].c_str());
+		PathHandle modelFilePath = fsGetPathInResourceDirEnum(RD_MESHES, pStagingData->mModelList[i].c_str());
 		GeometryLoadDesc loadDesc = {};
 		loadDesc.pFilePath = modelFilePath;
 		loadDesc.ppGeometry = &gMeshes[i];
@@ -3694,7 +3686,7 @@ class MaterialPlayground: public IApp
 		layout.mAttribs[6].mSemantic = SEMANTIC_TEXCOORD7;
 		layout.mAttribs[6].mBinding = 9;
 
-        PathHandle filePath = fsCopyPathInResourceDirectory(RD_OTHER_FILES, tfxFile);
+        PathHandle filePath = fsGetPathInResourceDirEnum(RD_OTHER_FILES, tfxFile);
 		SyncToken token = {};
 		GeometryLoadDesc loadDesc = {};
 		loadDesc.pFilePath = filePath;
@@ -3910,7 +3902,7 @@ class MaterialPlayground: public IApp
 		gSkeletonBatcher.Initialize(skeletonRenderDesc);
 
 		// Load rigs
-        PathHandle rigPath = fsCopyPathInResourceDirectory(RD_ANIMATIONS, "stickFigure/skeleton.ozz");
+        PathHandle rigPath = fsGetPathInResourceDirEnum(RD_ANIMATIONS, "stickFigure/skeleton.ozz");
 		for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 		{
 			gAnimationRig[hairType].Initialize(rigPath);
@@ -3918,10 +3910,10 @@ class MaterialPlayground: public IApp
 		}
 
 		// Load clips
-        PathHandle neckCrackPath = fsCopyPathInResourceDirectory(RD_ANIMATIONS, "stickFigure/animations/neckCrack.ozz");
+        PathHandle neckCrackPath = fsGetPathInResourceDirEnum(RD_ANIMATIONS, "stickFigure/animations/neckCrack.ozz");
 		gAnimationClipNeckCrack.Initialize(neckCrackPath, &gAnimationRig[0]);
         
-        PathHandle standPath = fsCopyPathInResourceDirectory(RD_ANIMATIONS, "stickFigure/animations/stand.ozz");
+        PathHandle standPath = fsGetPathInResourceDirEnum(RD_ANIMATIONS, "stickFigure/animations/stand.ozz");
 		gAnimationClipStand.Initialize(standPath, &gAnimationRig[0]);
 
 		for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)

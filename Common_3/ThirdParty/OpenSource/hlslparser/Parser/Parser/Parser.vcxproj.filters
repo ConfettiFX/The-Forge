@@ -24,6 +24,9 @@
     <Filter Include="zip">
       <UniqueIdentifier>{910b2ab7-6cdd-477b-9201-b30b282b7711}</UniqueIdentifier>
     </Filter>
+    <Filter Include="rmem">
+      <UniqueIdentifier>{4a3dd752-711a-4b08-9766-826c4f9f380a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CodeWriter.cpp">
@@ -160,6 +163,15 @@
     </ClCompile>
     <ClCompile Include="..\..\..\zip\zip.cpp">
       <Filter>zip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\rmem\src\rmem_get_module_info.cpp">
+      <Filter>rmem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\rmem\src\rmem_hook.cpp">
+      <Filter>rmem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\rmem\src\rmem_lib.cpp">
+      <Filter>rmem</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

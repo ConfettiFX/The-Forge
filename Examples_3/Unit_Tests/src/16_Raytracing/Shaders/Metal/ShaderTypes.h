@@ -82,7 +82,8 @@ struct RayGenConfigBlock
 
 #define TOTAL_IMGS 84
 
-struct CSData {
+struct CSData
+{
 #ifndef TARGET_IOS
     texture2d<float, access::read_write> gOutput;
     texture2d<float, access::read_write> gAlbedoTex;
@@ -98,7 +99,8 @@ struct CSData {
 	array<texture2d<float, access::sample>, TOTAL_IMGS> materialTextures;
 };
 	
-struct CSDataPerFrame {
+struct CSDataPerFrame
+{
 	constant RayGenConfigBlock & gSettings;
 };
 

@@ -31,6 +31,7 @@
 #include <ctime>
 
 #include "../../ThirdParty/OpenSource/EASTL/vector.h"
+#include "../../ThirdParty/OpenSource/rmem/inc/rmem.h"
 
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/ILog.h"
@@ -396,6 +397,11 @@ uint32_t testingMaxFrameCount = 120;
 	{
 		extern bool MemAllocInit();
 		MemAllocInit();
+		
+		#if TF_USE_MTUNER
+			rmemInit(0);
+		#endif
+		
 		fsInitAPI();
 		Log::Init();
 		
@@ -493,7 +499,14 @@ uint32_t testingMaxFrameCount = 120;
 	pApp->Unload();
 	pApp->Exit();
 	Log::Exit();
-	fsDeinitAPI();
+
+	fsExitAPI();
+	
+	#if TF_USE_MTUNER
+		rmemUnload();
+		rmemShutDown();
+	#endif
+	
 	extern void MemAllocExit();
 	MemAllocExit();
 }

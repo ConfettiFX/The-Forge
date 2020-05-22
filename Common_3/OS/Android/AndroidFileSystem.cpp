@@ -124,7 +124,7 @@ public:
 		pAssetManager(assetManager) 
 	{
 		Path* rootPath = fsCreatePath(this, ""); 
-		fsSetResourceDirectoryRootPath(rootPath);
+		fsSetResourceDirRootPath(rootPath);
 		fsFreePath(rootPath);
 	}
 
@@ -134,9 +134,14 @@ public:
 
 	char GetPathDirectorySeparator() const override { return '/'; }
 
-	size_t GetRootPathLength() const override
+	size_t GetDefaultRootPathLength() const override
 	{
 		return 0;
+	}
+
+	size_t GetRootPathLength(const Path * path) const override
+	{
+		return GetDefaultRootPathLength();
 	}
 
 	/// Fills path's buffer with the canonical root path corresponding to the root of absolutePathString,
@@ -399,15 +404,7 @@ void AndroidFS_SetNativeActivity(ANativeActivity* nativeActivity)
 	gBundleFileSystem = AndroidBundleFileSystem(nativeActivity->assetManager);
 }
 
-Path* fsCopyWorkingDirectoryPath()
-{
-	char cwd[MAX_PATH];
-	getcwd(cwd, MAX_PATH);
-	Path* path = fsCreatePath(fsGetSystemFileSystem(), cwd);
-	return path;
-}
-
-Path* fsCopyExecutablePath()
+Path* fsGetApplicationPath()
 {
 	char exeName[MAX_PATH];
 	exeName[0] = 0;
@@ -416,7 +413,7 @@ Path* fsCopyExecutablePath()
 	return fsCreatePath(fsGetSystemFileSystem(), exeName);
 }
 
-Path* fsCopyProgramDirectoryPath()
+Path* fsGetApplicationDirectory()
 {
 	return fsCreatePath(&gBundleFileSystem, "");
 }
@@ -427,13 +424,13 @@ Path* fsCopyPreferencesDirectoryPath(const char* organisation, const char* appli
 	return fsCreatePath(fsGetSystemFileSystem(), pNativeActivity->internalDataPath);
 }
 
-Path* fsCopyUserDocumentsDirectoryPath()
+Path* fsGetUserSpecificPath()
 {
 	ASSERT(pNativeActivity);
 	return fsCreatePath(fsGetSystemFileSystem(), pNativeActivity->externalDataPath);
 }
 
-Path* fsCopyLogFileDirectoryPath() 
+Path* fsGetPreferredLogDirectory() 
 {
 	return fsCreatePath(fsGetSystemFileSystem(), pNativeActivity->externalDataPath);
 }

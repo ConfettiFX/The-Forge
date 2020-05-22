@@ -361,6 +361,7 @@ struct PerFrameData
 	uint32_t gTotalClusters = 0;
 	uint32_t gCulledClusters = 0;
 	uint32_t gDrawCount[gNumGeomSets];
+	uint32_t gTotalDrawCount;
 };
 
 /************************************************************************/
@@ -779,18 +780,18 @@ public:
 	bool Init()
 	{
 		// FILE PATHS
-		PathHandle programDirectory = fsCopyProgramDirectoryPath();
+		PathHandle programDirectory = fsGetApplicationDirectory();
 		if (!fsPlatformUsesBundledResources())
 		{
 			PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src");
-			fsSetResourceDirectoryRootPath(resourceDirRoot);
+			fsSetResourceDirRootPath(resourceDirRoot);
 
-			fsSetRelativePathForResourceDirectory(RD_TEXTURES, "../../../Art/SanMiguel_3/Textures");
-			fsSetRelativePathForResourceDirectory(RD_MESHES, "../../../Art/SanMiguel_3/Meshes");
-			fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS, "../Resources/Fonts");
-			fsSetRelativePathForResourceDirectory(RD_OTHER_FILES, "../Resources");
-			fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT, "../../../Middleware_3/Text");
-			fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI, "../../../Middleware_3/UI");
+			fsSetRelativePathForResourceDirEnum(RD_TEXTURES, "../../../Art/SanMiguel_3/Textures");
+			fsSetRelativePathForResourceDirEnum(RD_MESHES, "../../../Art/SanMiguel_3/Meshes");
+			fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS, "../Resources/Fonts");
+			fsSetRelativePathForResourceDirEnum(RD_OTHER_FILES, "../Resources");
+			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT, "../../../Middleware_3/Text");
+			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI, "../../../Middleware_3/UI");
 		}
 
 		initThreadSystem(&pThreadSystem);
@@ -806,7 +807,7 @@ public:
 			return false;
 
 		//Camera Walking
-		FileStream* fh = fsOpenFileInResourceDirectory(RD_OTHER_FILES, "cameraPath.bin", FM_READ_BINARY);
+		FileStream* fh = fsOpenFileInResourceDirEnum(RD_OTHER_FILES, "cameraPath.bin", FM_READ_BINARY);
 		fsReadFromStream(fh, gCameraPathData, sizeof(float3) * 29084);
 		fsCloseStream(fh);
 
@@ -904,7 +905,7 @@ public:
 		/************************************************************************/
 		HiresTimer      sceneLoadTimer;
 
-		PathHandle sceneFullPath = fsCopyPathInResourceDirectory(RD_MESHES, gSceneName);
+		PathHandle sceneFullPath = fsGetPathInResourceDirEnum(RD_MESHES, gSceneName);
 		Scene* pScene = loadScene(sceneFullPath, 50.0f, -20.0f, 0.0f, 0.0f);
 		if (!pScene)
 			return false;
@@ -924,15 +925,15 @@ public:
 		for (uint32_t i = 0; i < (uint32_t)gDiffuseMaps.size(); ++i)
 		{
 			TextureLoadDesc desc = {};
-			desc.pFilePath = fsCopyPathInResourceDirectory(RD_TEXTURES, pScene->textures[i]);
+			desc.pFilePath = fsGetPathInResourceDirEnum(RD_TEXTURES, pScene->textures[i]);
 			desc.ppTexture = &gDiffuseMaps[i];
 			addResource(&desc, NULL, LOAD_PRIORITY_NORMAL);
 			fsFreePath((Path*)desc.pFilePath);
-			desc.pFilePath = fsCopyPathInResourceDirectory(RD_TEXTURES, pScene->normalMaps[i]);
+			desc.pFilePath = fsGetPathInResourceDirEnum(RD_TEXTURES, pScene->normalMaps[i]);
 			desc.ppTexture = &gNormalMaps[i];
 			addResource(&desc, NULL, LOAD_PRIORITY_NORMAL);
 			fsFreePath((Path*)desc.pFilePath);
-			desc.pFilePath = fsCopyPathInResourceDirectory(RD_TEXTURES, pScene->specularMaps[i]);
+			desc.pFilePath = fsGetPathInResourceDirEnum(RD_TEXTURES, pScene->specularMaps[i]);
 			desc.ppTexture = &gSpecularMaps[i];
 			addResource(&desc, NULL, LOAD_PRIORITY_NORMAL);
 			fsFreePath((Path*)desc.pFilePath);
@@ -1147,7 +1148,7 @@ public:
 		gVertexLayoutSun.mAttribs[2].mLocation = 2;
 		gVertexLayoutSun.mAttribs[2].mOffset = sizeof(float3) * 2;
 
-		PathHandle sunFullPath = fsCopyPathInResourceDirectory(RD_MESHES, gSunName);
+		PathHandle sunFullPath = fsGetPathInResourceDirEnum(RD_MESHES, gSunName);
 		GeometryLoadDesc loadDesc = {};
 		loadDesc.pFilePath = sunFullPath;
 		loadDesc.ppGeometry = &pSun;
@@ -1275,7 +1276,7 @@ public:
 		gAppSettings.gGodrayInfo.weight = 1.4f;
 		gAppSettings.gGodrayInfo.NUM_SAMPLES = 80;
 
-		SliderFloat4Widget lightColorUI("Light Color & Intensity", &gAppSettings.mLightColor, 0.0f, 30.0f, 0.01f);
+		SliderFloat4Widget lightColorUI("Light Color & Intensity", &gAppSettings.mLightColor, float4(0.0f), float4(30.0f), float4(0.01f));
 		pGuiWindow->AddWidget(lightColorUI);
 
 		CheckboxWidget toggleGR("Enable Godray", &gAppSettings.mEnableGodray);
@@ -1550,6 +1551,9 @@ public:
 #if defined(METAL)
         removePipeline(pRenderer, pPipelineICBGenerator);
 #endif
+		
+        // Remove descriptor binder
+        removeDescriptorSets();
 
         // Remove root signatures
         removeRootSignature(pRenderer, pRootSignatureResolve);
@@ -1569,10 +1573,7 @@ public:
         removeRootSignature(pRenderer, pRootSignatureDeferredShade);
         removeRootSignature(pRenderer, pRootSignatureDeferredPass);
         removeRootSignature(pRenderer, pRootSignatureVBShade);
-        removeRootSignature(pRenderer, pRootSignatureVBPass);
-
-        // Remove descriptor binder
-        removeDescriptorSets();
+		removeRootSignature(pRenderer, pRootSignatureVBPass);
 
         // Remove indirect command signatures
         removeIndirectCommandSignature(pRenderer, pCmdSignatureDeferredPass);
@@ -1705,25 +1706,20 @@ public:
 		/************************************************************************/
 		// Vertex layout used by all geometry passes (shadow, visibility, deferred)
 		/************************************************************************/
-		// Metal has no function to unpack uint to half2 (f16tof32)
-#if defined(METAL)
-		TinyImageFormat texcoordFormat = TinyImageFormat_R16G16_SFLOAT;
-#else
-		TinyImageFormat texcoordFormat = TinyImageFormat_R32_UINT;
-#endif
-
 		DepthStateDesc depthStateDesc = {};
 		depthStateDesc.mDepthTest = true;
 		depthStateDesc.mDepthWrite = true;
 		depthStateDesc.mDepthFunc = CMP_LEQUAL;
 		DepthStateDesc depthStateDisableDesc = {};
 
-		RasterizerStateDesc rasterizerStateCullFrontDesc = { CULL_MODE_FRONT };
 		RasterizerStateDesc rasterizerStateCullNoneDesc = { CULL_MODE_NONE };
 		RasterizerStateDesc rasterizerStateCullBackDesc = { CULL_MODE_BACK };
+#if (MSAASAMPLECOUNT > 1)
 		RasterizerStateDesc rasterizerStateCullFrontMsDesc = { CULL_MODE_FRONT, 0, 0, FILL_MODE_SOLID, true };
 		RasterizerStateDesc rasterizerStateCullNoneMsDesc = { CULL_MODE_NONE, 0, 0, FILL_MODE_SOLID, true };
-		RasterizerStateDesc rasterizerStateCullBackMsDesc = { CULL_MODE_BACK, 0, 0, FILL_MODE_SOLID, true };
+#else
+		RasterizerStateDesc rasterizerStateCullFrontDesc = { CULL_MODE_FRONT };
+#endif
 
 		BlendStateDesc blendStateDesc = {};
 		blendStateDesc.mSrcAlphaFactors[0] = BC_ONE;
@@ -1755,7 +1751,7 @@ public:
 		vertexLayout.mAttribs[0].mBinding = 0;
 		vertexLayout.mAttribs[0].mLocation = 0;
 		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayout.mAttribs[1].mFormat = texcoordFormat;
+		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32_UINT;
 		vertexLayout.mAttribs[1].mBinding = 1;
 		vertexLayout.mAttribs[1].mLocation = 1;
 		vertexLayout.mAttribs[2].mSemantic = SEMANTIC_NORMAL;
@@ -1774,7 +1770,7 @@ public:
 		vertexLayoutPosAndTex.mAttribs[0].mBinding = 0;
 		vertexLayoutPosAndTex.mAttribs[0].mLocation = 0;
 		vertexLayoutPosAndTex.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayoutPosAndTex.mAttribs[1].mFormat = texcoordFormat;
+		vertexLayoutPosAndTex.mAttribs[1].mFormat = TinyImageFormat_R32_UINT;
 		vertexLayoutPosAndTex.mAttribs[1].mBinding = 1;
 		vertexLayoutPosAndTex.mAttribs[1].mLocation = 1;
 
@@ -2373,7 +2369,7 @@ public:
 		{
 			/************************************************************************/
 			// Triangle filtering async compute pass
-			/************************************************************************/
+		/************************************************************************/
 			Cmd* computeCmd = ppComputeCmds[frameIdx];
 
 			beginCmd(computeCmd);
@@ -2389,7 +2385,7 @@ public:
 			{
 				/************************************************************************/
 				// Synchronization
-				/************************************************************************/
+		/************************************************************************/
 				// Update Light clusters on the GPU
 				cmdBeginGpuTimestampQuery(computeCmd, gComputeProfileToken, "Compute Light Clusters");
 				BufferBarrier barriers[] = { { pLightClustersCount[frameIdx], RESOURCE_STATE_UNORDERED_ACCESS } };
@@ -2769,19 +2765,19 @@ public:
                     for (uint32_t r = 0; r < 2; ++r) // descriptors for VB and DEFERRED stages
                     {
                         DescriptorData icbParams[10] = {};
-                        icbParams[0].pName = "indirectDrawArgsBufferAlpha";
+                        icbParams[0].pName = "indirectDrawArgsBufferAlphaICB";
                         icbParams[0].mCount = gNumViews;
                         icbParams[0].ppBuffers = (f == 1) ? pFilteredIndirectDrawArgumentsBuffer[i][GEOMSET_ALPHATESTED] : indirectDrawBuffersAlpha;
-                        icbParams[1].pName = "indirectDrawArgsBufferNoAlpha";
+                        icbParams[1].pName = "indirectDrawArgsBufferNoAlphaICB";
                         icbParams[1].mCount = gNumViews;
                         icbParams[1].ppBuffers = (f == 1) ? pFilteredIndirectDrawArgumentsBuffer[i][GEOMSET_OPAQUE] : indirectDrawBuffersNoAlpha;
                         icbParams[2].pName = "uncompactedDrawArgsRW";
                         icbParams[2].mCount = gNumViews;
                         icbParams[2].ppBuffers = pUncompactedDrawArgumentsBuffer[i];
-                        icbParams[3].pName = "filteredIndicesBuffer";
+                        icbParams[3].pName = "filteredIndicesBufferICB";
                         icbParams[3].mCount = gNumViews;
                         icbParams[3].ppBuffers = (f == 1) ? pFilteredIndexBuffer[i] : indexBuffersForStages;
-                        icbParams[4].pName = "indirectMaterialBuffer";
+                        icbParams[4].pName = "indirectMaterialBufferICB";
                         icbParams[4].ppBuffers = (f == 1) ? &pFilterIndirectMaterialBuffer[i] : materialBuffersForStages;
                         icbParams[5].pName = "uniforms";
                         icbParams[5].ppBuffers = &pPerFrameUniformBuffers[i];
@@ -4264,7 +4260,7 @@ public:
         cmdBindPipeline(cmd, pPipelineShadowPass[1]);
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetDeferredPass[0]); // useResource for textures
         // ICB alpha + opaque
-        cmdExecuteIndirect(cmd, pCmdSignatureVBPass, MAX_DRAWS_INDIRECT * 2, pIndirectCommandBufferShadow[frameIdx], 0, NULL, 0);
+        cmdExecuteIndirect(cmd, pCmdSignatureVBPass, gPerFrame[frameIdx].gTotalDrawCount, pIndirectCommandBufferShadow[frameIdx], 0, NULL, 0);
 
         cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 #else
@@ -4333,7 +4329,7 @@ public:
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetDeferredPass[0]); // useResource for textures
 
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "VB Opaque and Alpha");
-		cmdExecuteIndirect(cmd, pCmdSignatureVBPass, MAX_DRAWS_INDIRECT * 2, pIndirectCommandBufferCamera[frameIdx], 0, NULL, 0);
+		cmdExecuteIndirect(cmd, pCmdSignatureVBPass, gPerFrame[frameIdx].gTotalDrawCount, pIndirectCommandBufferCamera[frameIdx], 0, NULL, 0);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 #else
 		const char* profileNames[gNumGeomSets] = { "VB Opaque", "VB Alpha" };
@@ -4420,10 +4416,9 @@ public:
 
         cmdBindPipeline(cmd, pPipelineDeferredPass[1]);
         cmdBindDescriptorSet(cmd, 0, pDescriptorSetDeferredPass[0]); // useResource for textures
-		cmdBindDescriptorSet(cmd, frameIdx * 2 + (uint32_t)(!gAppSettings.mFilterTriangles), pDescriptorSetDeferredPass[1]);
         
         cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "DP Opaque and Alpha");
-        cmdExecuteIndirect(cmd, pCmdSignatureVBPass, MAX_DRAWS_INDIRECT * 2, pIndirectCommandBufferCamera[frameIdx], 0, NULL, 0);
+        cmdExecuteIndirect(cmd, pCmdSignatureVBPass, gPerFrame[frameIdx].gTotalDrawCount, pIndirectCommandBufferCamera[frameIdx], 0, NULL, 0);
         cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
 #else
         const char* profileNames[gNumGeomSets] = { "DP Opaque", "DP Alpha" };
@@ -4752,7 +4747,7 @@ public:
     void icbGeneration(Cmd* cmd, ProfileToken pGpuProfiler, uint32_t frameIdx)
     {
         cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "ICB Generation");
-        
+		
         // ICP GPU generation
         cmdBindPipeline(cmd, pPipelineICBGenerator);
         //cmdBindDescriptors(cmd, pDescriptorBinder, pRootSignatureTriangleFiltering, descriptorsCount, vbICBParams);
@@ -4762,13 +4757,14 @@ public:
         
         cmdBindDescriptorSet(cmd, frameIdx * gNumStages + x, pDescriptorSetTriangleFiltering[1]);
 
+		cmdBindPushConstants(cmd, pRootSignatureTriangleFiltering, "maxDrawsRootConstant", &gPerFrame[frameIdx].gDrawCount[0]);
         cmdDispatch(cmd, 1, 1, 1);
         
-        cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
-        
         // optimization pass for ICB, remove all empty commands from buffers
-        cmdExecuteIndirect(cmd, pCmdSignatureICBOptimize, gPerFrame[frameIdx].gDrawCount[0], pIndirectCommandBufferShadow[frameIdx], 0, NULL, 0);
-        cmdExecuteIndirect(cmd, pCmdSignatureICBOptimize, gPerFrame[frameIdx].gDrawCount[0], pIndirectCommandBufferCamera[frameIdx], 0, NULL, 0);
+        cmdExecuteIndirect(cmd, pCmdSignatureICBOptimize, MAX_DRAWS_INDIRECT * 2, pIndirectCommandBufferShadow[frameIdx], 0, NULL, 0);
+        cmdExecuteIndirect(cmd, pCmdSignatureICBOptimize, MAX_DRAWS_INDIRECT * 2, pIndirectCommandBufferCamera[frameIdx], 0, NULL, 0);
+		
+		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
     }
 #endif
 
@@ -4994,6 +4990,10 @@ public:
 					addClusterToBatchChunk(clusterCompactInfo, batchStart, accumDrawCount, accumNumTrianglesAtStartOfBatch, i, batchChunk, batches);
 					accumNumTriangles += clusterCompactInfo->triangleCount;
 				}
+				else
+				{
+					++gPerFrame[frameIdx].gCulledClusters;
+				}
 
 				// check to see if we filled the batch
 				if (batchChunk->currentBatchCount >= BATCH_COUNT)
@@ -5026,6 +5026,7 @@ public:
 
 		gPerFrame[frameIdx].gDrawCount[GEOMSET_OPAQUE] = accumDrawCount;
 		gPerFrame[frameIdx].gDrawCount[GEOMSET_ALPHATESTED] = accumDrawCount;
+		gPerFrame[frameIdx].gTotalDrawCount = accumDrawCount * 2;
 
 		filterTriangles(cmd, frameIdx, pFilterBatchChunk[frameIdx][currentSmallBatchChunk],
 			offset.pBuffer, (batches - origin) * sizeof(FilterBatchData));
@@ -5193,7 +5194,7 @@ public:
 		addResource(&skyboxLoadDesc, &token, LOAD_PRIORITY_HIGH);
 
 		// Load the skybox panorama texture.
-		PathHandle skyboxPath = fsCopyPathInResourceDirectory(RD_TEXTURES, "daytime");
+		PathHandle skyboxPath = fsGetPathInResourceDirEnum(RD_TEXTURES, "daytime");
 		TextureLoadDesc panoDesc = {};
 		panoDesc.pFilePath = skyboxPath;
 		//panoDesc.pFilename = "LA_Helipad.hdr";

@@ -126,8 +126,6 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\21_Playback\Shaders\Vulka
     <None Include="..\..\..\src\21_Playback\Shaders\Vulkan\basic.vert" />
     <None Include="..\..\..\src\21_Playback\Shaders\Vulkan\plane.frag" />
     <None Include="..\..\..\src\21_Playback\Shaders\Vulkan\plane.vert" />
-    <None Include="..\..\..\src\21_Playback\Shaders\Vulkan\profile.frag" />
-    <None Include="..\..\..\src\21_Playback\Shaders\Vulkan\profile.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

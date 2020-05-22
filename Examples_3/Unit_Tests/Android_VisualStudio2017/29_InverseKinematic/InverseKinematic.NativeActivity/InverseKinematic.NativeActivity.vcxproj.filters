@@ -25,11 +25,5 @@
     <None Include="..\..\..\src\29_InverseKinematic\Shaders\Vulkan\plane.vert">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="..\..\..\src\29_InverseKinematic\Shaders\Vulkan\profile.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\29_InverseKinematic\Shaders\Vulkan\profile.vert">
-      <Filter>Shaders</Filter>
-    </None>
   </ItemGroup>
 </Project>

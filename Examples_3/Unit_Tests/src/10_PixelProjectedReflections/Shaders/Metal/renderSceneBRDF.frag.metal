@@ -70,14 +70,14 @@ struct DirectionalLight
 	float4 mDir;
 };
 
-
-struct DLightData {
+struct DLightData
+{
 	DirectionalLight dlights[16];
 	int currAmountOfDLights;
 };
 
-
-struct VSOutput {
+struct VSOutput
+{
 	float4 position [[position]];
 	float2 uv;
 };

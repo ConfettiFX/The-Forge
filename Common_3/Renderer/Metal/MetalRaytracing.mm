@@ -51,6 +51,8 @@
 
 extern void util_barrier_required(Cmd* pCmd, const QueueType& encoderType);
 
+extern void util_set_resources_compute(Cmd* pCmd);
+
 static const char* pClassificationShader = R"(
 #include <metal_stdlib>
 using namespace metal;
@@ -148,7 +150,7 @@ kernel void classifyIntersections(constant ClassifyIntersectionsArguments& argum
 							  const device uint& activePathCount [[ buffer(1) ]],
 							  const device uint* instanceHitGroups [[ buffer(2) ]],
 							  const device packed_short3* hitGroupShaders [[ buffer(3) ]], // Intersection, any hit, closest hit.
-							  const device ushort* missShaderIndices [[ buffer(4) ]], // Intersection, any hit, closest hit.
+							  constant ushort* missShaderIndices [[ buffer(4) ]], // Intersection, any hit, closest hit.
 							  const device uint* pathIndices [[ buffer(5) ]],
                               uint threadIndex [[ thread_position_in_grid ]]) {
     if (threadIndex >= activePathCount) {
@@ -225,11 +227,10 @@ struct AccelerationStructure
 	MPSAccelerationStructureGroup* pSharedGroup;
 	NSMutableArray<MPSTriangleAccelerationStructure*>* pBottomAS;
 	MPSInstanceAccelerationStructure *pInstanceAccel;
-	id <MTLBuffer> mVertexPositionBuffer;
-	id <MTLBuffer> mIndexBuffer;
-	id <MTLBuffer> mMasks;
-	id <MTLBuffer> mInstanceIDs;
-	id <MTLBuffer> mHitGroupIndices;
+	Buffer* mVertexPositionBuffer;
+	Buffer* mIndexBuffer;
+	Buffer* mMasks;
+	Buffer* mHitGroupIndices;
 	eastl::vector<uint32_t> mActiveHitGroups;
 };
 
@@ -238,8 +239,9 @@ struct RaytracingShaderTable
 	Pipeline* pPipeline;
 
 	id<MTLComputePipelineState>		mRayGenPipeline;
-	id<MTLBuffer>					mHitGroupShadersBuffer; // For each hit group index, packed_short3 of intersection, any hit, and closest hit shader indices.
-	id<MTLBuffer>					mMissShaderIndicesBuffer;
+	Buffer*                         mHitGroupShadersBuffer; // For each hit group index, packed_short3 of intersection, any hit, and closest hit shader indices.
+	uint16_t*                       mMissShaderIndicesBuffer;
+	uint32_t                        mMissShaderIndicesSize;
 	
 	uint32_t*						pMissShaderIndices; // Into RaytracingPipeline's mMissPipelines
 	unsigned						mMissShaderCount;
@@ -400,33 +402,42 @@ void copyIndices(T1* dst, T2* src, unsigned count, unsigned baseOffset)
 }
 
 void createVertexAndIndexBuffers(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc,
-								 id <MTLBuffer>* pVbBuffer, id <MTLBuffer>* pIbBuffer,
+								 Buffer** pVb, Buffer** pIb,
 								 eastl::vector<ASOffset>& outOffsets)
 {
 	outOffsets.resize(pDesc->mBottomASDescsCount);
-	// Vertex data should be stored in private or managed buffers on discrete GPU systems (AMD, NVIDIA).
-	// Private buffers are stored entirely in GPU memory and cannot be accessed by the CPU. Managed
-	// buffers maintain a copy in CPU memory and a copy in GPU memory.
-	MTLResourceOptions options = 0;
-#if !TARGET_OS_IPHONE
-	options = MTLResourceStorageModeManaged;
-#else
-	options = MTLResourceStorageModeShared;
-#endif
+
 	unsigned vbSize = 0, ibSize = 0, mskSize = 0;
 	computeBuffersSize(pDesc, &vbSize, &ibSize, &mskSize);
-	id <MTLBuffer> _vertexPositionBuffer = [pRaytracing->pRenderer->pDevice newBufferWithLength:vbSize options:options];
-	id <MTLBuffer> _indexBuffer = nil;
+	
+	BufferLoadDesc vbDesc = {};
+	vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+	vbDesc.mDesc.mSize = vbSize;
+	vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+	vbDesc.ppBuffer = pVb;
+	addResource(&vbDesc, NULL, LOAD_PRIORITY_NORMAL);
 	
 	unsigned vbOffset = 0;
 	unsigned ibOffset = 0;
 	unsigned vertexOffset = 0;
-	uint8_t* vbDstPtr = static_cast<uint8_t*>(_vertexPositionBuffer.contents);
+	
+	BufferUpdateDesc ibUpdateDesc = {};
+	BufferUpdateDesc vbUpdateDesc = { *pVb };
+	beginUpdateResource(&vbUpdateDesc);
+	uint8_t* vbDstPtr = static_cast<uint8_t*>(vbUpdateDesc.pMappedData);
 	uint8_t* ibDstPtr = NULL;
 	if (ibSize > 0)
 	{
-		_indexBuffer = [pRaytracing->pRenderer->pDevice newBufferWithLength:ibSize options:options];
-		ibDstPtr = static_cast<uint8_t*>(_indexBuffer.contents);
+		BufferLoadDesc ibDesc = {};
+		ibDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_INDEX_BUFFER;
+		ibDesc.mDesc.mSize = ibSize;
+		ibDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		ibDesc.ppBuffer = pIb;
+		addResource(&ibDesc, NULL, LOAD_PRIORITY_NORMAL);
+		
+		ibUpdateDesc = { *pIb };
+		beginUpdateResource(&ibUpdateDesc);
+		ibDstPtr = static_cast<uint8_t*>(ibUpdateDesc.pMappedData);
 	}
 	
 	for (unsigned i = 0; i < pDesc->mBottomASDescsCount; ++i)
@@ -496,40 +507,31 @@ void createVertexAndIndexBuffers(Raytracing* pRaytracing, const AccelerationStru
 	}
 	
 #if !TARGET_OS_IPHONE
-	[_vertexPositionBuffer didModifyRange:NSMakeRange(0, _vertexPositionBuffer.length)];
+	endUpdateResource(&vbUpdateDesc, NULL);
 	if (ibSize > 0)
 	{
-		[_indexBuffer didModifyRange:NSMakeRange(0, _indexBuffer.length)];
+		endUpdateResource(&ibUpdateDesc, NULL);
 	}
 #endif
-	
-	*pVbBuffer = _vertexPositionBuffer;
-	*pIbBuffer = _indexBuffer;
 }
 
-id <MTLBuffer> createInstanceIDBuffer(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc)
+void createInstanceIDBuffer(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, Buffer** pBuffer)
 {
-	MTLResourceOptions options = 0;
-#if !TARGET_OS_IPHONE
-	options = MTLResourceStorageModeManaged;
-#else
-	options = MTLResourceStorageModeShared;
-#endif
-	
 	unsigned bufferSize = pDesc->mInstancesDescCount * sizeof(uint32_t);
-	id <MTLBuffer> result = [pRaytracing->pRenderer->pDevice newBufferWithLength:bufferSize options:options];
+	BufferLoadDesc bufferDesc = {};
+	bufferDesc.mDesc.mSize = bufferSize;
+	bufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+	bufferDesc.ppBuffer = pBuffer;
+	addResource(&bufferDesc, NULL, LOAD_PRIORITY_NORMAL);
 	
-	uint32_t *ptr = (uint32_t*)result.contents;
+	BufferUpdateDesc updateDesc = { *pBuffer };
+	beginUpdateResource(&updateDesc);
+	uint32_t *ptr = (uint32_t*)updateDesc.pMappedData;
 	for (unsigned i = 0; i < pDesc->mInstancesDescCount; ++i)
 	{
 		ptr[i] = pDesc->pInstanceDescs[i].mInstanceID;
 	}
-	
-#if !TARGET_OS_IPHONE
-	[result didModifyRange:NSMakeRange(0, result.length)];
-#endif
-	
-	return result;
+	endUpdateResource(&updateDesc, NULL);
 }
 
 id <MTLBuffer> createInstancesIndicesBuffer(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc)
@@ -594,48 +596,46 @@ uint32_t encodeInstanceMask(uint32_t mask, uint32_t hitGroupIndex, uint32_t inst
 	return (instanceID << 16) | (hitGroupIndex << 8) | (mask);
 }
 
-id <MTLBuffer> createInstancesMaskBuffer(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc)
+void createInstancesMaskBuffer(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, Buffer** pMask)
 {
-#if !TARGET_OS_IPHONE
-	MTLResourceOptions options = MTLResourceStorageModeManaged;
-#else
-	MTLResourceOptions options = MTLResourceStorageModeShared;
-#endif
-	
 	unsigned instanceBufferLength = sizeof(uint32_t) * pDesc->mInstancesDescCount;
-	id <MTLBuffer> ids = [pRaytracing->pRenderer->pDevice newBufferWithLength:instanceBufferLength options:options];
-	uint32_t* ptr = static_cast<uint32_t*>(ids.contents);
+	
+	BufferLoadDesc maskDesc = {};
+	maskDesc.mDesc.mSize = instanceBufferLength;
+	maskDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+	maskDesc.ppBuffer = pMask;
+	addResource(&maskDesc, NULL, LOAD_PRIORITY_NORMAL);
+	
+	BufferUpdateDesc maskUpdateDesc = { *pMask };
+	beginUpdateResource(&maskUpdateDesc);
+	uint32_t* ptr = static_cast<uint32_t*>(maskUpdateDesc.pMappedData);
 	for (unsigned i = 0; i < pDesc->mInstancesDescCount; ++i)
 	{
 		ptr[i] = encodeInstanceMask(pDesc->pInstanceDescs[i].mInstanceMask,
 									pDesc->pInstanceDescs[i].mInstanceContributionToHitGroupIndex,
 									pDesc->pInstanceDescs[i].mInstanceID);
 	}
-#if !TARGET_OS_IPHONE
-	[ids didModifyRange:NSMakeRange(0, instanceBufferLength)];
-#endif
-	return ids;
+
+	endUpdateResource(&maskUpdateDesc, NULL);
 }
 
-id <MTLBuffer> createHitGroupIndicesBuffer (Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc)
+void createHitGroupIndicesBuffer (Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, Buffer** pBuffer)
 {
-#if !TARGET_OS_IPHONE
-	MTLResourceOptions options = MTLResourceStorageModeManaged;
-#else
-	MTLResourceOptions options = MTLResourceStorageModeShared;
-#endif
-	
 	unsigned instanceBufferLength = sizeof(uint32_t) * pDesc->mInstancesDescCount;
-	id <MTLBuffer> ids = [pRaytracing->pRenderer->pDevice newBufferWithLength:instanceBufferLength options:options];
-	uint32_t* ptr = static_cast<uint32_t*>(ids.contents);
+	BufferLoadDesc bufferDesc = {};
+	bufferDesc.mDesc.mSize = instanceBufferLength;
+	bufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+	bufferDesc.ppBuffer = pBuffer;
+	addResource(&bufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+	
+	BufferUpdateDesc updateDesc = { *pBuffer };
+	beginUpdateResource(&updateDesc);
+	uint32_t* ptr = static_cast<uint32_t*>(updateDesc.pMappedData);
 	for (unsigned i = 0; i < pDesc->mInstancesDescCount; ++i)
 	{
 		ptr[i] = pDesc->pInstanceDescs[i].mInstanceContributionToHitGroupIndex;
 	}
-#if !TARGET_OS_IPHONE
-	[ids didModifyRange:NSMakeRange(0, instanceBufferLength)];
-#endif
-	return ids;
+	endUpdateResource(&updateDesc, NULL);
 }
 
 //////////////////////////////////////////////////////////////////////////////////
@@ -653,8 +653,8 @@ void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructu
 	AS->pBottomAS = [[NSMutableArray alloc] init];
 	
 	//pDesc->mFlags. Just ignore this
-	id <MTLBuffer> _vertexPositionBuffer = nil;
-	id <MTLBuffer> _indexBuffer = nil;
+	Buffer* _vertexPositionBuffer = NULL;
+	Buffer* _indexBuffer = NULL;
 	eastl::vector<ASOffset> offsets;
 	
 	//copy vertices and indices to buffer
@@ -666,8 +666,7 @@ void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructu
 	AS->pInstanceAccel = as;
 	AS->mIndexBuffer = _indexBuffer;
 	AS->mVertexPositionBuffer = _vertexPositionBuffer;
-	AS->mInstanceIDs = createInstanceIDBuffer(pRaytracing, pDesc);
-	AS->mHitGroupIndices = createHitGroupIndicesBuffer(pRaytracing, pDesc);
+	createHitGroupIndicesBuffer(pRaytracing, pDesc, &AS->mHitGroupIndices);
 	for (unsigned i = 0; i < pDesc->mBottomASDescsCount; ++i)
 	{
 		uint32_t hitID = pDesc->pInstanceDescs[i].mInstanceContributionToHitGroupIndex;
@@ -681,11 +680,12 @@ void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructu
 		// Create an acceleration structure from our vertex position data
 		MPSTriangleAccelerationStructure* _accelerationStructure = [[MPSTriangleAccelerationStructure alloc] initWithGroup:group];
 		
-		_accelerationStructure.vertexBuffer = _vertexPositionBuffer;
-		_accelerationStructure.vertexBufferOffset = offsets[i].vbGeometriesOffsets[0];
+		_accelerationStructure.vertexBuffer = _vertexPositionBuffer->mtlBuffer;
+		_accelerationStructure.vertexBufferOffset = _vertexPositionBuffer->mOffset + offsets[i].vbGeometriesOffsets[0];
 		_accelerationStructure.vertexStride = offsets[i].vertexStride;
 		
-		_accelerationStructure.indexBuffer = _indexBuffer;
+		_accelerationStructure.indexBuffer = _indexBuffer->mtlBuffer;
+		_accelerationStructure.indexBufferOffset = _indexBuffer->mOffset;
 		_accelerationStructure.indexType = pDesc->mIndexType == INDEX_TYPE_UINT32 ? MPSDataTypeUInt32 : MPSDataTypeUInt16;
 		_accelerationStructure.indexBufferOffset = offsets[i].ibGeometriesOffsets[0];
 		
@@ -706,7 +706,9 @@ void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructu
 		AS->pInstanceAccel.transformType = MPSTransformTypeFloat4x4;
 	}
 	//generate instances ID buffer
-	AS->pInstanceAccel.maskBuffer = createInstancesMaskBuffer(pRaytracing, pDesc);
+	 createInstancesMaskBuffer(pRaytracing, pDesc, &AS->mMasks);
+	AS->pInstanceAccel.maskBuffer = AS->mMasks->mtlBuffer;
+	AS->pInstanceAccel.maskBufferOffset = AS->mMasks->mOffset;
 	
 	*ppAccelerationStructure = AS;
 }
@@ -1078,11 +1080,13 @@ void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure*
 	pAccelerationStructure->pSharedGroup = nil;
 	pAccelerationStructure->pBottomAS = nil;
 	pAccelerationStructure->pInstanceAccel = nil;
-	pAccelerationStructure->mVertexPositionBuffer = nil;
-	pAccelerationStructure->mIndexBuffer = nil;
-	pAccelerationStructure->mMasks = nil;
-	pAccelerationStructure->mInstanceIDs = nil;
-	pAccelerationStructure->mHitGroupIndices = nil;
+	removeResource(pAccelerationStructure->mVertexPositionBuffer);
+	if (pAccelerationStructure->mIndexBuffer)
+	{
+		removeResource(pAccelerationStructure->mIndexBuffer);
+	}
+	removeResource(pAccelerationStructure->mMasks);
+	removeResource(pAccelerationStructure->mHitGroupIndices);
 	
 	pAccelerationStructure->~AccelerationStructure();
 	conf_free(pAccelerationStructure);
@@ -1123,23 +1127,22 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 		}
 	}
 	
-#if !TARGET_OS_IPHONE
-	MTLResourceOptions options = MTLResourceStorageModeManaged;
-#else
-	MTLResourceOptions options = MTLResourceStorageModeShared;
-#endif
+	BufferLoadDesc hitGroupDesc = {};
+	hitGroupDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+	hitGroupDesc.mDesc.mSize = sizeof(HitGroupShaders) * pDesc->mHitGroupCount;
+	hitGroupDesc.ppBuffer = &table->mHitGroupShadersBuffer;
+	addResource(&hitGroupDesc, NULL, LOAD_PRIORITY_NORMAL);
 
-	table->mHitGroupShadersBuffer = [pRaytracing->pRenderer->pDevice newBufferWithLength:3 * sizeof(int16_t) * pDesc->mHitGroupCount options:options];
-	HitGroupShaders* hitGroupShaders = (HitGroupShaders*)[table->mHitGroupShadersBuffer contents];
+	BufferUpdateDesc hitGroupUpdateDesc = { table->mHitGroupShadersBuffer };
+	beginUpdateResource(&hitGroupUpdateDesc);
+	HitGroupShaders* hitGroupShaders = (HitGroupShaders*)(hitGroupUpdateDesc.pMappedData);
 
 	for (uint32_t i = 0; i < pDesc->mHitGroupCount; i += 1)
 	{
 		hitGroupShaders[i] = pPipeline->pHitGroupShaders[table->pHitGroupIndices[i]];
 	}
-		
-#if !TARGET_OS_IPHONE
-	[table->mHitGroupShadersBuffer didModifyRange:NSMakeRange(0, table->mHitGroupShadersBuffer.length)];
-#endif
+	
+	endUpdateResource(&hitGroupUpdateDesc, NULL);
 	
 	table->pMissShaderIndices = (uint32_t*)conf_calloc(pDesc->mMissShaderCount, sizeof(uint32_t));
 	table->mMissShaderCount = pDesc->mMissShaderCount;
@@ -1157,17 +1160,16 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 			}
 		}
 	}
-	
-	table->mMissShaderIndicesBuffer = [pRaytracing->pRenderer->pDevice newBufferWithLength:sizeof(uint16_t) * pDesc->mMissShaderCount options:options];
-	uint16_t* missShaders = (uint16_t*)[table->mMissShaderIndicesBuffer contents];
-	for (uint32_t i = 0; i < pDesc->mMissShaderCount; i += 1)
+
+	table->mMissShaderIndicesSize = sizeof(uint16_t) * pDesc->mMissShaderCount;
+	if (table->mMissShaderIndicesSize)
 	{
-		missShaders[i] = pPipeline->pMissShaderIndices[table->pMissShaderIndices[i]];
+		table->mMissShaderIndicesBuffer = (uint16_t*)conf_malloc(sizeof(uint16_t) * pDesc->mMissShaderCount);
+		for (uint32_t i = 0; i < pDesc->mMissShaderCount; i += 1)
+		{
+			table->mMissShaderIndicesBuffer[i] = pPipeline->pMissShaderIndices[table->pMissShaderIndices[i]];
+		}
 	}
-	
-#if !TARGET_OS_IPHONE
-	[table->mMissShaderIndicesBuffer didModifyRange:NSMakeRange(0, table->mMissShaderIndicesBuffer.length)];
-#endif
 	
 	*ppTable = table;
 }
@@ -1177,8 +1179,8 @@ void removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable*
 	ASSERT(pTable);
 	
 	pTable->mRayGenPipeline = nil;
-	pTable->mHitGroupShadersBuffer = nil;
-	pTable->mMissShaderIndicesBuffer = nil;
+	removeResource(pTable->mHitGroupShadersBuffer);
+	conf_free(pTable->mMissShaderIndicesBuffer);
 	
 	conf_free(pTable->pMissShaderIndices);
 	conf_free(pTable->pHitGroupIndices);
@@ -1207,11 +1209,7 @@ void dispatchShader(id<MTLComputeCommandEncoder> computeEncoder, RaytracingPipel
 
 void invokeShaders(Cmd* pCmd, Raytracing* pRaytracing,
 				   const RaytracingDispatchDesc* pDesc,
-				   id <MTLBuffer> indexBuffer,
-				   id <MTLBuffer> instancesIDsBuffer,
 				   id <MTLBuffer> payloadBuffer,
-				   id <MTLBuffer> masksBuffer,
-				   id <MTLBuffer> hitGroupIndices,
 				   MTLSize threadgroups)
 {
 	RaytracingShaderTable* pShaderTable = pDesc->pShaderTable;
@@ -1248,6 +1246,7 @@ void invokeShaders(Cmd* pCmd, Raytracing* pRaytracing,
 		
 		{
 			// Declare all the resources we'll use.
+			util_set_resources_compute(pCmd);
 			
 			// In the raytracing arguments buffer
 			[computeEncoder useResource:pPipeline->mSettingsBuffer usage:MTLResourceUsageRead];
@@ -1270,9 +1269,9 @@ void invokeShaders(Cmd* pCmd, Raytracing* pRaytracing,
 		[computeEncoder setComputePipelineState:pRaytracing->mClassificationPipeline];
 		[computeEncoder setBuffer:pPipeline->mClassificationArgumentsBuffer offset:0 atIndex:0];
 		[computeEncoder setBuffer:pPipeline->pRayCountBuffer[0]->mtlBuffer offset:0 atIndex:1];
-		[computeEncoder setBuffer:pDesc->pTopLevelAccelerationStructure->mHitGroupIndices offset:0 atIndex:2];
-		[computeEncoder setBuffer:pShaderTable->mHitGroupShadersBuffer offset:0 atIndex:3];
-		[computeEncoder setBuffer:pShaderTable->mMissShaderIndicesBuffer offset:0 atIndex:4];
+		[computeEncoder setBuffer:pDesc->pTopLevelAccelerationStructure->mHitGroupIndices->mtlBuffer offset:pDesc->pTopLevelAccelerationStructure->mHitGroupIndices->mOffset atIndex:2];
+		[computeEncoder setBuffer:pShaderTable->mHitGroupShadersBuffer->mtlBuffer offset:pShaderTable->mHitGroupShadersBuffer->mOffset atIndex:3];
+		[computeEncoder setBytes:pShaderTable->mMissShaderIndicesBuffer length:pShaderTable->mMissShaderIndicesSize atIndex:4];
 		[computeEncoder setBuffer:pPipeline->pPathIndicesBuffer->mtlBuffer offset:0 atIndex:5];
 		[computeEncoder dispatchThreadgroupsWithIndirectBuffer:pPipeline->pRayCountBuffer[0]->mtlBuffer indirectBufferOffset:sizeof(uint32_t) threadsPerThreadgroup:MTLSizeMake(64, 1, 1)];
 		
@@ -1431,11 +1430,7 @@ void cmdDispatchRays(Cmd* pCmd, Raytracing* pRaytracing, const RaytracingDispatc
 	[computeEncoder popDebugGroup];
 	
 	invokeShaders(pCmd, pRaytracing, pDesc,
-				  pDesc->pTopLevelAccelerationStructure->mIndexBuffer,
-				  pDesc->pTopLevelAccelerationStructure->mInstanceIDs,
 				  pRaytracingPipeline->mPayloadBuffer,
-				  pDesc->pTopLevelAccelerationStructure->mMasks,
-				  pDesc->pTopLevelAccelerationStructure->mHitGroupIndices,
 				  threadgroups);
 }
 

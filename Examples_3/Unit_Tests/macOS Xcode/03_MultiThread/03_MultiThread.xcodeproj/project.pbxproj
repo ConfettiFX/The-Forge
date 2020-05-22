@@ -10,8 +10,8 @@
 		28A5AC12201F58BF000E571F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AC11201F58BF000E571F /* Assets.xcassets */; };
 		28A5AC15201F58BF000E571F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AC13201F58BF000E571F /* LaunchScreen.storyboard */; };
 		28A5AC68201F5D50000E571F /* 03_MultiThread.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D2D3C5E61F34797700574C6E /* 03_MultiThread.cpp */; };
-		5B17814122A5C6BF00991DCB /* profile.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5B17813F22A5C6BF00991DCB /* profile.vert.metal */; };
-		5B17814222A5C6BF00991DCB /* profile.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5B17814022A5C6BF00991DCB /* profile.frag.metal */; };
+
+
 		5C172F60214148E90074EE71 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F5E214148E90074EE71 /* AppDelegate.m */; };
 		5C172F61214148F30074EE71 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172F5D214148D40074EE71 /* libThe-Forge.a */; };
 		5C17301E21414DC60074EE71 /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C17301D21414DBE0074EE71 /* libThe-Forge_iOS.a */; };
@@ -126,8 +126,8 @@
 			dstPath = Shaders/Metal;
 			dstSubfolderSpec = 7;
 			files = (
-				5B17814122A5C6BF00991DCB /* profile.vert.metal in Copy Shaders */,
-				5B17814222A5C6BF00991DCB /* profile.frag.metal in Copy Shaders */,
+
+
 				5CA80F6F21F0A17900C99983 /* fontstash.frag.metal in Copy Shaders */,
 				5CA80F7021F0A17900C99983 /* fontstash2D.vert.metal in Copy Shaders */,
 				5CA80F7121F0A17900C99983 /* fontstash3D.vert.metal in Copy Shaders */,
@@ -171,8 +171,8 @@
 		28A5AC37201F5927000E571F /* Skybox.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = Skybox.vert.metal; path = ../../../src/03_MultiThread/Shaders/Metal/Skybox.vert.metal; sourceTree = "<group>"; };
 		28A5AC38201F5927000E571F /* Graph.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = Graph.vert.metal; path = ../../../src/03_MultiThread/Shaders/Metal/Graph.vert.metal; sourceTree = "<group>"; };
 		28A5AC39201F5927000E571F /* Particle.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = Particle.vert.metal; path = ../../../src/03_MultiThread/Shaders/Metal/Particle.vert.metal; sourceTree = "<group>"; };
-		5B17813F22A5C6BF00991DCB /* profile.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.vert.metal; path = ../../src/03_MultiThread/Shaders/Metal/profile.vert.metal; sourceTree = "<group>"; };
-		5B17814022A5C6BF00991DCB /* profile.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.frag.metal; path = ../../src/03_MultiThread/Shaders/Metal/profile.frag.metal; sourceTree = "<group>"; };
+
+
 		5C172F58214148D40074EE71 /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
 		5C172F5E214148E90074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
 		5C172F5F214148E90074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
@@ -328,8 +328,8 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
-				5B17814022A5C6BF00991DCB /* profile.frag.metal */,
-				5B17813F22A5C6BF00991DCB /* profile.vert.metal */,
+
+
 				5CA80E1121F09F5700C99983 /* CommonShaders */,
 				5C172F58214148D40074EE71 /* The-Forge.xcodeproj */,
 				28A5AC1C201F58DC000E571F /* Fonts */,

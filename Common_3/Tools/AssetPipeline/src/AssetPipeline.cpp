@@ -281,7 +281,7 @@ bool AssetPipeline::ProcessTextures(const Path* textureDirectory, const Path* ou
 		}
 	}
 
-    PathHandle currentDir = fsCopyWorkingDirectoryPath();
+    PathHandle currentDir = fsGetApplicationDirectory();
 	currentDir = fsAppendPathComponent(currentDir, "ImageConvertTools/ImageConvertTool.py");
 	eastl::string cmd("python ");
 	cmd.append("\"");
@@ -830,7 +830,7 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 		{
 			if (strstr(data->buffers[i].uri, "://") == NULL)
 			{
-				PathHandle parent = fsCopyParentPath(skeletonAsset);
+				PathHandle parent = fsGetParentPath(skeletonAsset);
 				PathHandle bufferOut = fsAppendPathComponent(parent, data->buffers[i].uri);
 				FileStream* fs = fsOpenFile(bufferOut, FM_WRITE_BINARY);
 				fsWriteToStream(fs, data->buffers[i].data, data->buffers[i].size);

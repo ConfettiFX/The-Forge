@@ -59,6 +59,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;</AdditionalIncludeDirectories>
+      <WarningsAsErrors>true</WarningsAsErrors>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ORBIS'">
@@ -67,6 +68,7 @@
       <OptimizationLevel>Level2</OptimizationLevel>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <AdditionalIncludeDirectories>$(ProjectDir)..\..\..\include;</AdditionalIncludeDirectories>
+      <WarningsAsErrors>true</WarningsAsErrors>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>

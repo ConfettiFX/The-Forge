@@ -19,12 +19,6 @@
     <None Include="..\..\..\src\01_Transformations\Shaders\Vulkan\basic.vert">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="..\..\..\src\01_Transformations\Shaders\Vulkan\profile.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\01_Transformations\Shaders\Vulkan\profile.vert">
-      <Filter>Shaders</Filter>
-    </None>
     <None Include="..\..\..\src\01_Transformations\Shaders\Vulkan\skybox.frag">
       <Filter>Shaders</Filter>
     </None>

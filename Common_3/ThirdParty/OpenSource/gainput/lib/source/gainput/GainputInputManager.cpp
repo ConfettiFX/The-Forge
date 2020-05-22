@@ -14,6 +14,7 @@
 #include "keyboard/GainputInputDeviceKeyboardWinRaw.h"
 #include "mouse/GainputInputDeviceMouseWin.h"
 #include "mouse/GainputInputDeviceMouseWinRaw.h"
+#include "pad/GainputInputDevicePadWin.h"
 #elif defined(GAINPUT_PLATFORM_ANDROID)
 #include <time.h>
 #include <jni.h>
@@ -468,6 +469,16 @@ InputManager::HandleMessage(const MSG& msg)
 				InputDeviceMouseImplWinRaw* mouseImpl = static_cast<InputDeviceMouseImplWinRaw*>(mouse->GetPimpl());
 				GAINPUT_ASSERT(mouseImpl);
 				mouseImpl->HandleMessage(msg);
+			}
+		}
+		else if (it->second->GetType() == InputDevice::DT_PAD)
+		{
+			if (msg.message == WM_DEVICECHANGE || msg.message == WM_INPUT)
+			{
+				InputDevicePad* pad = static_cast<InputDevicePad*>(it->second);
+				InputDevicePadImplWin* padImpl = static_cast<InputDevicePadImplWin*>(pad->GetPimpl());
+				GAINPUT_ASSERT(padImpl);
+				padImpl->HandleMessage(msg);
 			}
 		}
 	}

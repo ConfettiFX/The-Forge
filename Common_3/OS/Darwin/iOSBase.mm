@@ -276,8 +276,18 @@ GameController* pMainViewController;
 
     // Kick-off the MetalKitApplication.
     _application = [[MetalKitApplication alloc] initWithMetalDevice:_device renderDestinationProvider:self];
+	
+	UIWindow* keyWindow = nil;
+	for (UIWindow* window in [UIApplication sharedApplication].windows)
+	{
+		if (window.isKeyWindow)
+		{
+			keyWindow = window;
+			break;
+		}
+	}
     
-    _view = (ForgeMTLView*)UIApplication.sharedApplication.keyWindow.rootViewController.view;
+    _view = (ForgeMTLView*)keyWindow.rootViewController.view;
 
 	// Enable multi-touch in our apps.
 	[_view setMultipleTouchEnabled:true];
@@ -343,6 +353,11 @@ uint32_t testingMaxFrameCount = 120;
 	{
 		extern bool MemAllocInit();
 		MemAllocInit();
+
+		//#if TF_USE_MTUNER
+		//	rmemInit(0);
+		//#endif
+		
 		fsInitAPI();
 		Log::Init();
 		
@@ -434,7 +449,13 @@ uint32_t testingMaxFrameCount = 120;
 	pApp->Exit();
 	Log::Exit();
 	extern void MemAllocExit();
-	fsDeinitAPI();
+	fsExitAPI();
+
+	//#if TF_USE_MTUNER
+	//	rmemUnload();
+	//	rmemShutDown();
+	//#endif
+	
 	MemAllocExit();
 }
 @end

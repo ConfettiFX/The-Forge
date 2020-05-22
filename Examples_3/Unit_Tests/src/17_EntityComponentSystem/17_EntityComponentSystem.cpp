@@ -111,11 +111,7 @@ static float RandomFloat01() { return (float)rand() / (float)RAND_MAX; }
 static float RandomFloat(float from, float to) { return RandomFloat01() * (to - from) + from; }
 
 const uint MaxSpriteCount = 11000;
-#ifdef _DEBUG
-const uint SpriteEntityCount = 5000;
-#else
 const uint SpriteEntityCount = 10000;
-#endif
 const uint AvoidCount = 20;
 
 static Entity* worldBoundsEntity;
@@ -166,49 +162,70 @@ struct timeAndBounds {
 
 struct MoveSystem
 {
-	static void Update(float deltaTime)
+	struct Task
+	{
+		size_t         start;
+		size_t         end;
+		timeAndBounds* data;
+	};
+
+	Task          tasks[MAX_LOAD_THREADS + 2] = {};
+
+	void Update(float deltaTime)
 	{
 		const WorldBoundsComponent& bounds = *worldBoundsEntity->getComponent<WorldBoundsComponent>();
 
-		timeAndBounds data		= { spriteEntities, deltaTime, &bounds};
+		timeAndBounds moveData = { spriteEntities, deltaTime, &bounds };
 		timeAndBounds avoidData = { avoidEntities, deltaTime, &bounds };
 		
-		if (multiThread)
+		// 1 thread used by resource loader
+		const uint32_t numThreads = max(1u, getThreadSystemThreadCount(pThreadSystem) - 1);
+		const uint32_t entitiesPerThread = SpriteEntityCount / (numThreads + 1);
+
+		// Make sure there is enough workload for parallel processing
+		if (multiThread && entitiesPerThread < SpriteEntityCount / 2)
 		{
-			for (size_t i = 0; i < SpriteEntityCount; ++i)
+			uint32_t taskCount = 0;
+
+			for (taskCount = 0; taskCount < numThreads; ++taskCount)
 			{
-				addThreadSystemTask(pThreadSystem, &MoveSystem::threadedUpdate, &data, i);
+				Task* task = &tasks[taskCount];
+				task->start = taskCount * entitiesPerThread;
+				task->end = min((size_t)SpriteEntityCount, task->start + entitiesPerThread);
+				task->data = &moveData;
+				addThreadSystemTask(pThreadSystem, &memberTaskFunc<MoveSystem, &MoveSystem::threadedUpdate>, this, taskCount);
 			}
 
-			for (size_t i = 0; i < AvoidCount; ++i)
-			{
-				addThreadSystemTask(pThreadSystem, &MoveSystem::threadedUpdate, &avoidData, i);
-			}
+			// Remaining entities on main thread
+			tasks[taskCount] = { tasks[taskCount - 1].end, SpriteEntityCount, &moveData };
+			threadedUpdate(taskCount++);
+			
+			tasks[taskCount] = { 0, AvoidCount, &avoidData };
+			threadedUpdate(taskCount++);
 
 			waitThreadSystemIdle(pThreadSystem);
 		}
 		else
 		{
-			for (size_t i = 0; i < SpriteEntityCount; ++i)
-			{
-				threadedUpdate(&data, i);
-			}
+			tasks[0] = { 0, SpriteEntityCount, &moveData };
+			threadedUpdate(0);
 
-			for (size_t i = 0; i < AvoidCount; ++i)
-			{
-				threadedUpdate(&avoidData, i);
-			}
+			tasks[1] = { 0, AvoidCount, &avoidData };
+			threadedUpdate(1);
 		}
 	}
 
-	static void threadedUpdate(void* pData, uintptr_t id)
-	{	
-		timeAndBounds& data			= *(timeAndBounds*)pData;
-		Entity* pEntity				= (data.entities)[id];
-		PositionComponent& position = *(pEntity->getComponent<PositionComponent>());
-		MoveComponent& move			= *(pEntity->getComponent<MoveComponent>());
+	void threadedUpdate(uintptr_t id)
+	{
+		const Task* task = &tasks[id];
+		for (uintptr_t i = task->start; i < task->end; ++i)
+		{
+			Entity* pEntity = (task->data->entities)[i];
+			PositionComponent& position = *(pEntity->getComponent<PositionComponent>());
+			MoveComponent& move = *(pEntity->getComponent<MoveComponent>());
 
-		MoveEntities(position, move, data.deltaTime, *data.bounds);
+			MoveEntities(position, move, task->data->deltaTime, *task->data->bounds);
+		}
 	}
 };
 
@@ -221,6 +238,15 @@ static float DistanceSq(const PositionComponent& a, const PositionComponent& b)
 
 struct AvoidanceSystem
 {
+	struct Task
+	{
+		size_t         start;
+		size_t         end;
+		timeAndBounds* data;
+	};
+
+	Task tasks[MAX_LOAD_THREADS + 1] = {};
+
 	static eastl::vector<float>    avoidDistanceList;
 
 	Mutex emplaceMutex;
@@ -262,52 +288,70 @@ struct AvoidanceSystem
 		pos.y += move.vely * deltaTime * 1.1f;
 	}
 
-	static void Update(float deltaTime)
+	void Update(float deltaTime)
 	{
 		const WorldBoundsComponent& bounds = *worldBoundsEntity->getComponent<WorldBoundsComponent>();
 
 		timeAndBounds data = { spriteEntities, deltaTime, &bounds };
 		
-		if (multiThread)
+		// 1 thread used by resource loader
+		const uint32_t numThreads = max(1u, getThreadSystemThreadCount(pThreadSystem) - 1);
+		const uint32_t entitiesPerThread = SpriteEntityCount / (numThreads + 1);
+
+		// Make sure there is enough workload for parallel processing
+		if (multiThread && entitiesPerThread < SpriteEntityCount / 2)
 		{
-			for (size_t i = 0; i < SpriteEntityCount; ++i)
+			uint32_t taskCount = 0;
+
+			for (taskCount = 0; taskCount < numThreads; ++taskCount)
 			{
-				addThreadSystemTask(pThreadSystem, &AvoidanceSystem::threadedUpdate, &data, i);
+				Task* task = &tasks[taskCount];
+				task->start = taskCount * entitiesPerThread;
+				task->end = min((size_t)SpriteEntityCount, task->start + entitiesPerThread);
+				task->data = &data;
+				addThreadSystemTask(pThreadSystem, &memberTaskFunc<AvoidanceSystem, &AvoidanceSystem::threadedUpdate>, this, taskCount);
 			}
+
+			// Remaining entities on main thread
+			tasks[taskCount] = { tasks[taskCount - 1].end, SpriteEntityCount, &data };
+			threadedUpdate(taskCount++);
 
 			waitThreadSystemIdle(pThreadSystem);
 		}
 		else
 		{
-			for (size_t i = 0; i < SpriteEntityCount; ++i)
-			{
-				threadedUpdate(&data, i);
-			}
+			tasks[0] = { 0, SpriteEntityCount, &data };
+			threadedUpdate(0);
 		}
 	}
 
-	static void threadedUpdate(void* pData, uintptr_t i)
+	void threadedUpdate(uintptr_t id)
 	{
-		timeAndBounds& data			= *(timeAndBounds*)pData;
-		Entity* pEntity				= spriteEntities[i];
-		PositionComponent& position = *(pEntity->getComponent<PositionComponent>());
+		const Task* task = &tasks[id];
+		const timeAndBounds& data = *task->data;
 
-		for (size_t j = 0; j < AvoidCount; ++j)
+		for (uintptr_t i = task->start; i < task->end; ++i)
 		{
-			Entity*					pAvoidEntity = avoidEntities[j];
-			float                    avDistance  = avoidDistanceList[j];
-			PositionComponent&	  avoidPosition  = *(pAvoidEntity->getComponent<PositionComponent>());
+			Entity* pEntity = spriteEntities[i];
+			PositionComponent& position = *(pEntity->getComponent<PositionComponent>());
 
-			// is our position closer to "thing to avoid" position than the avoid distance?
-			if (DistanceSq(position, avoidPosition) < avDistance)
+			for (size_t j = 0; j < AvoidCount; ++j)
 			{
-				resolveCollision(pEntity, data.deltaTime);
-				// also make our sprite take the color of the thing we just bumped into
-				SpriteComponent& avoidSprite = *(pAvoidEntity->getComponent<SpriteComponent>());
-				SpriteComponent& mySprite	 = *(pEntity->getComponent<SpriteComponent>());
-				mySprite.colorR = avoidSprite.colorR;
-				mySprite.colorG = avoidSprite.colorG;
-				mySprite.colorB = avoidSprite.colorB;
+				Entity*					pAvoidEntity = avoidEntities[j];
+				float                    avDistance = avoidDistanceList[j];
+				PositionComponent&	  avoidPosition = *(pAvoidEntity->getComponent<PositionComponent>());
+
+				// is our position closer to "thing to avoid" position than the avoid distance?
+				if (DistanceSq(position, avoidPosition) < avDistance)
+				{
+					resolveCollision(pEntity, data.deltaTime);
+					// also make our sprite take the color of the thing we just bumped into
+					SpriteComponent& avoidSprite = *(pAvoidEntity->getComponent<SpriteComponent>());
+					SpriteComponent& mySprite = *(pEntity->getComponent<SpriteComponent>());
+					mySprite.colorR = avoidSprite.colorR;
+					mySprite.colorG = avoidSprite.colorG;
+					mySprite.colorB = avoidSprite.colorB;
+				}
 			}
 		}
 	}
@@ -380,18 +424,18 @@ class EntityComponentSystem: public IApp
 	bool Init()
 	{
         // FILE PATHS
-        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        PathHandle programDirectory = fsGetApplicationDirectory();
         if (!fsPlatformUsesBundledResources())
         {
             PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/17_EntityComponentSystem");
-            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            fsSetResourceDirRootPath(resourceDirRoot);
             
-            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirectory(RD_MESHES,          "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
+            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../UnitTestResources/Textures");
+            fsSetRelativePathForResourceDirEnum(RD_MESHES,          "../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
         }
         
 
@@ -497,7 +541,7 @@ class EntityComponentSystem: public IApp
 		addResource(&spriteIBDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		// Sprites texture
-        PathHandle spritesPath = fsCopyPathInResourceDirectory(RD_TEXTURES, "sprites");
+        PathHandle spritesPath = fsGetPathInResourceDirEnum(RD_TEXTURES, "sprites");
 		TextureLoadDesc textureDesc = {};
 		textureDesc.ppTexture = &pSpriteTexture;
 		textureDesc.pFilePath = spritesPath;
@@ -541,27 +585,14 @@ class EntityComponentSystem: public IApp
 		CreationData data	   = { spriteEntities, bounds, "sprite" };
 		CreationData avoidData = { avoidEntities,  bounds, "avoid" };
 		
-		if (multiThread)
+		for (size_t i = 0; i < SpriteEntityCount; ++i)
 		{
-			for (size_t i = 0; i < SpriteEntityCount; ++i) {
-				addThreadSystemTask(pThreadSystem, &createEntities, &data, i);
-			}
-			
-			for (size_t i = 0; i < AvoidCount; ++i) {
-				addThreadSystemTask(pThreadSystem, &createEntities, &avoidData, i);
-			}
-
-			waitThreadSystemIdle(pThreadSystem);
+			createEntities(&data, i);
 		}
-		else
-		{
-			for (size_t i = 0; i < SpriteEntityCount; ++i) {
-				createEntities(&data, i);
-			}
 
-			for (size_t i = 0; i < AvoidCount; ++i) {
-				createEntities(&avoidData, i);
-			}
+		for (size_t i = 0; i < AvoidCount; ++i)
+		{
+			createEntities(&avoidData, i);
 		}
 
 		if (!initInputSystem(pWindow))
@@ -773,11 +804,12 @@ class EntityComponentSystem: public IApp
 		float aspect = w / h;
 
 		// Update vertex buffer
+		SyncToken updateComplete = {};
 		ASSERT(gDrawSpriteCount >= 0 && gDrawSpriteCount <= MaxSpriteCount);
 		BufferUpdateDesc vboUpdateDesc = { pSpriteVertexBuffers[gFrameIndex] };
 		beginUpdateResource(&vboUpdateDesc);
 		memcpy(vboUpdateDesc.pMappedData, gSpriteData, gDrawSpriteCount * sizeof(SpriteData));
-		endUpdateResource(&vboUpdateDesc, NULL);
+		endUpdateResource(&vboUpdateDesc, &updateComplete);
 
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		Fence*      pNextFence = pRenderCompleteFences[gFrameIndex];
@@ -850,6 +882,8 @@ class EntityComponentSystem: public IApp
 
 		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 		endCmd(cmd);
+
+		waitForToken(&updateComplete);
 
 		QueueSubmitDesc submitDesc = {};
 		submitDesc.mCmdCount = 1;

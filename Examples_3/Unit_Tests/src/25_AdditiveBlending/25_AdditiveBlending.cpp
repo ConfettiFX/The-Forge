@@ -253,18 +253,18 @@ class AdditiveBlending: public IApp
 	bool Init()
 	{
         // FILE PATHS
-        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        PathHandle programDirectory = fsGetApplicationDirectory();
         if (!fsPlatformUsesBundledResources())
         {
             PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/25_AdditiveBlending");
-            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            fsSetResourceDirRootPath(resourceDirRoot);
             
-            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirectory(RD_MESHES,             "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,     "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,     "../../../../Middleware_3/UI");
+            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../UnitTestResources/Textures");
+            fsSetRelativePathForResourceDirEnum(RD_MESHES,             "../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,     "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,     "../../../../Middleware_3/UI");
         }
 		
 		// WINDOW AND RENDERER SETUP
@@ -410,7 +410,7 @@ class AdditiveBlending: public IApp
 		
 		// RIGS
 		//
-		PathHandle fullPath = fsCopyPathInResourceDirectory(RD_ANIMATIONS, gStickFigureName);
+		PathHandle fullPath = fsGetPathInResourceDirEnum(RD_ANIMATIONS, gStickFigureName);
 
 		// Initialize the rig with the path to its ozz file
 		gStickFigureRig.Initialize(fullPath);
@@ -420,11 +420,11 @@ class AdditiveBlending: public IApp
 
 		// CLIPS
 		//
-		fullPath = fsCopyPathInResourceDirectory(RD_ANIMATIONS, gWalkClipName);
+		fullPath = fsGetPathInResourceDirEnum(RD_ANIMATIONS, gWalkClipName);
 
 		gWalkClip.Initialize(fullPath, &gStickFigureRig);
 
-		fullPath = fsCopyPathInResourceDirectory(RD_ANIMATIONS, gNeckCrackClipName);
+		fullPath = fsGetPathInResourceDirEnum(RD_ANIMATIONS, gNeckCrackClipName);
 
 		gNeckCrackClip.Initialize(fullPath, &gStickFigureRig);
 

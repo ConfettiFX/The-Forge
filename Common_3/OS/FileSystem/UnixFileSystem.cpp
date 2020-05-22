@@ -36,9 +36,14 @@ bool UnixFileSystem::IsReadOnly() const { return false; }
 
 char UnixFileSystem::GetPathDirectorySeparator() const { return '/'; }
 
-size_t UnixFileSystem::GetRootPathLength() const
+size_t UnixFileSystem::GetDefaultRootPathLength() const
 {
 	return 1;    // A single /
+}
+
+size_t UnixFileSystem::GetRootPathLength(const Path * path) const
+{
+	return GetDefaultRootPathLength();
 }
 
 bool UnixFileSystem::FormRootPath(const char* absolutePathString, Path* path, size_t* pathComponentOffset) const
@@ -99,7 +104,7 @@ bool UnixFileSystem::CreateDirectory(const Path* directoryPath) const
 	}
 
 	// Recursively create all parent directories.
-	if (Path* parentPath = fsCopyParentPath(directoryPath))
+	if (Path* parentPath = fsGetParentPath(directoryPath))
 	{
 		CreateDirectory(parentPath);
         fsFreePath(parentPath);

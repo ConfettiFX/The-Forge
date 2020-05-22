@@ -37,7 +37,8 @@ sampler PointSampler,texture2d<float> AccumulationTexture,texture2d<float> Revea
 PointSampler(PointSampler),AccumulationTexture(AccumulationTexture),RevealageTexture(RevealageTexture) {}
 };
 
-struct FSData {
+struct FSData
+{
     sampler PointSampler;
     texture2d<float> AccumulationTexture;
     texture2d<float> RevealageTexture;

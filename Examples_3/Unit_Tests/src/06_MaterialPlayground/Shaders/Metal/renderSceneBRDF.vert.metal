@@ -25,29 +25,7 @@
 #include <metal_stdlib>
 using namespace metal;
 
-struct CameraData
-{
-	float4x4 projView;
-	float4x4 invProjView;
-	float3 camPos;
-
-	float fAmbientLightIntensity;
-	int bUseEnvironmentLight;
-	float fEnvironmentLightIntensity;
-	float fAOIntensity;
-
-	int renderMode;
-	float fNormalMapIntensity;
-};
-
-struct ObjectData
-{
-	float4x4 worldMat;
-	float4 albedoAndRoughness;
-	float2 tiling;
-	float metalness;
-	int textureConfig;
-};
+#include "renderSceneBRDF.h"
 
 struct VSInput
 {
@@ -61,14 +39,6 @@ struct VSOutput {
     float3 pos;
     float3 normal;
     float2 uv;
-};
-
-struct VSDataPerFrame {
-    constant CameraData& cbCamera [[id(0)]];
-};
-
-struct VSDataPerDraw {
-    constant ObjectData& cbObject [[id(0)]];
 };
 
 vertex VSOutput stageMain(VSInput In                              [[stage_in]],

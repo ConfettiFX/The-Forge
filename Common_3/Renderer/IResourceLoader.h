@@ -104,9 +104,9 @@ typedef struct TextureLoadDesc
 	const Path* pFilePath;
 	uint32_t    mNodeIndex;
 	/// Load texture from raw data
-	RawImageData* pRawImageData = NULL;
+	RawImageData* pRawImageData;
 	/// Load texture from binary data (with header)
-	BinaryImageData* pBinaryImageData = NULL;
+	BinaryImageData* pBinaryImageData;
 
 	// Following is ignored if pDesc != NULL.  pDesc->mFlags will be considered instead.
 	TextureCreationFlags mCreationFlag;
@@ -220,10 +220,11 @@ typedef struct BufferUpdateDesc
 typedef struct TextureUpdateDesc
 {
 	Texture* 		pTexture;
-	RawImageData* 	pRawImageData = NULL;
+	RawImageData* 	pRawImageData;
 	
 	void* pMappedData;
-	struct {
+	struct
+	{
 		MappedMemoryRange mMappedRange;
 	} mInternalData;
 } TextureUpdateDesc;
@@ -233,7 +234,7 @@ typedef struct ShaderStageLoadDesc
 	const char*         pFileName;
 	ShaderMacro*        pMacros;
 	uint32_t            mMacroCount;
-	ResourceDirectory   mRoot;
+	ResourceDirEnum   mRoot;
     const char*         pEntryPointName;
 } ShaderStageLoadDesc;
 

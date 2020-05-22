@@ -367,7 +367,7 @@ int AndroidMain(void* param, IApp* app)
 	pApp->Exit();
 
 	Log::Exit();
-	fsDeinitAPI();
+	fsExitAPI();
 	MemAllocExit();
 
 #ifdef AUTOMATED_TESTING
