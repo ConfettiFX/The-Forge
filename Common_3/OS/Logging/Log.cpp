@@ -34,7 +34,7 @@
 #define LOG_LEVEL_SIZE 6
 #define LOG_MESSAGE_OFFSET (LOG_PREAMBLE_SIZE + LOG_LEVEL_SIZE)
 
-static Log* pLogger;
+static Log* pLogger = NULL;
 static bool gOnce = true;
 
 thread_local char Log::Buffer[MAX_BUFFER+2];
@@ -89,8 +89,11 @@ void log_flush(void * user_data)
 
 void Log::Init(LogLevel level /* = LogLevel::eALL */)
 {
-	pLogger = conf_new(Log, level);
-	pLogger->mLogMutex.Init();
+	if (!pLogger)
+	{
+		pLogger = conf_new(Log, level);
+		pLogger->mLogMutex.Init();
+	}
 }
 
 void Log::Exit()

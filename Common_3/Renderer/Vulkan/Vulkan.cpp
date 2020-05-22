@@ -1038,7 +1038,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL internal_debug_report_callback(
 static inline VkPipelineColorBlendStateCreateInfo util_to_blend_desc(const BlendStateDesc* pDesc, VkPipelineColorBlendAttachmentState* pAttachments)
 {
 	int blendDescIndex = 0;
-#ifdef _DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG
 
 	for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
 	{
@@ -2570,7 +2570,7 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 		const char** instanceLayers = (const char**)alloca((2 + pDesc->mInstanceLayerCount) * sizeof(char*));
 		uint32_t instanceLayerCount = 0;
 
-#if defined(_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG)
 		// this turns on all validation layers
 		instanceLayers[instanceLayerCount++] = "VK_LAYER_LUNARG_standard_validation";
 #endif
@@ -3315,7 +3315,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	swapChainCreateInfo.imageColorSpace = surface_format.colorSpace;
 	swapChainCreateInfo.imageExtent = extent;
 	swapChainCreateInfo.imageArrayLayers = 1;
-	swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+	swapChainCreateInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 	swapChainCreateInfo.imageSharingMode = sharing_mode;
 	swapChainCreateInfo.queueFamilyIndexCount = queue_family_index_count;
 	swapChainCreateInfo.pQueueFamilyIndices = queue_family_indices;
@@ -3641,7 +3641,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		if (arrayRequired)
 			add_info.flags |= VK_IMAGE_CREATE_2D_ARRAY_COMPATIBLE_BIT_KHR;
 
-		if (VK_IMAGE_USAGE_SAMPLED_BIT & add_info.usage)
+		if ((VK_IMAGE_USAGE_SAMPLED_BIT & add_info.usage) || (VK_IMAGE_USAGE_STORAGE_BIT & add_info.usage))
 		{
 			// Make it easy to copy to and from textures
 			add_info.usage |= (VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT);
@@ -4190,7 +4190,7 @@ void removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
 
 void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
 {
-#ifdef _DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG
 #define VALIDATE_DESCRIPTOR(descriptor,...)																\
 	if (!(descriptor))																					\
 	{																									\

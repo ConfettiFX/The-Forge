@@ -95,7 +95,7 @@ typedef SSIZE_T ssize_t;
 #endif
 
 #ifndef FORGE_DEBUG
-#if defined(DEBUG) || defined(AUTOMATED_TESTING)
+#if defined(DEBUG) || defined(_DEBUG) || defined(AUTOMATED_TESTING)
 #define FORGE_DEBUG 1
 #else
 #define FORGE_DEBUG 0
@@ -137,6 +137,7 @@ struct WindowsDesc;
 struct WindowCallbacks
 {
 	void    (*onResize)(WindowsDesc* window, int32_t newSizeX, int32_t newSizeY);
+	void	(*setCursor)();
 	int32_t (*onHandleMessage)(WindowsDesc* window, void* msg);
 };
 

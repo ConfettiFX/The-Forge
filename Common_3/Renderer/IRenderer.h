@@ -104,6 +104,11 @@ enum
 #define ENABLE_RAYTRACING
 #endif
 
+// Enable graphics validation in debug builds by default.
+#if defined(FORGE_DEBUG) && !defined(ENABLE_GRAPHICS_DEBUG)
+#define ENABLE_GRAPHICS_DEBUG 1
+#endif
+
 // Forward declare memory allocator classes
 namespace D3D12MA
 {

@@ -294,5 +294,23 @@ InputDevicePad::Vibrate(float leftMotor, float rightMotor)
 	return impl_->Vibrate(leftMotor, rightMotor);
 }
 
+const char*
+InputDevicePad::GetDeviceName()
+{
+	return impl_->GetDeviceName();
+}
+
+bool
+InputDevicePad::SetRumbleEffect(float left_motor, float right_motor, uint32_t duration_ms)
+{
+	return impl_->SetRumbleEffect(left_motor, right_motor, duration_ms);
+}
+
+
+void InputDevicePad::SetLEDColor(uint8_t r, uint8_t g, uint8_t b)
+{
+	impl_->SetLEDColor(r, g, b);
+}
+
 }
     

@@ -265,6 +265,8 @@ private:
 	// Do not copy.
 	InputManager(const InputManager &);
 	InputManager& operator=(const InputManager &);
+public:
+	void* window_instance_;
 };
 
 

@@ -8,6 +8,7 @@ namespace gainput
 /// All valid device buttons for InputDeviceKeyboard.
 enum Key
 {
+	KeyInvalid =-1,
 	KeyEscape,
 	KeyF1,
 	KeyF2,

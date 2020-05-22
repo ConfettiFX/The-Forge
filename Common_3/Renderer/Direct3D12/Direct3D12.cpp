@@ -494,7 +494,7 @@ constexpr D3D12_DEPTH_STENCIL_DESC util_to_depth_desc(const DepthStateDesc* pDes
 constexpr D3D12_BLEND_DESC util_to_blend_desc(const BlendStateDesc* pDesc)
 {
 	int blendDescIndex = 0;
-#ifdef _DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG
 
 	for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
 	{
@@ -1130,7 +1130,7 @@ DXGI_FORMAT util_to_dx_uav_format(DXGI_FORMAT defaultFormat)
 		case DXGI_FORMAT_R32_TYPELESS:
 		case DXGI_FORMAT_R32_FLOAT: return DXGI_FORMAT_R32_FLOAT;
 
-#ifdef _DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG
 		case DXGI_FORMAT_R32G8X24_TYPELESS:
 		case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
 		case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS:
@@ -1429,7 +1429,7 @@ static void HANGDUMPCALLBACK(const WCHAR* strFileName) { return; }
 
 static void AddDevice(Renderer* pRenderer)
 {
-#if defined(_DEBUG) || defined(PROFILE)
+#if defined(ENABLE_GRAPHICS_DEBUG) || defined(PROFILE)
 	//add debug layer if in debug mode
 	if (SUCCEEDED(D3D12GetDebugInterface(__uuidof(pRenderer->pDXDebug), (void**)&(pRenderer->pDXDebug))))
 	{
@@ -1451,7 +1451,7 @@ static void AddDevice(Renderer* pRenderer)
 	HRESULT hres = create_device(NULL, &pRenderer->pDxDevice);
 	ASSERT(SUCCEEDED(hres));
 
-#if defined(_DEBUG) || defined(PROFILE)
+#if defined(ENABLE_GRAPHICS_DEBUG) || defined(PROFILE)
 	//Sets the callback functions to invoke when the GPU hangs
 	//pRenderer->pDxDevice->SetHangCallbacksX(HANGBEGINCALLBACK, HANGPRINTCALLBACK, NULL);
 #endif
@@ -1489,7 +1489,7 @@ static void AddDevice(Renderer* pRenderer)
 	};
 #else
 	UINT flags = 0;
-#if defined(_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG)
 	flags = DXGI_CREATE_FACTORY_DEBUG;
 #endif
 	HRESULT hres = CreateDXGIFactory2(flags, IID_ARGS(&pRenderer->pDXGIFactory));
@@ -1749,7 +1749,7 @@ static void RemoveDevice(Renderer* pRenderer)
 
 #if defined(_DURANGO)
 	SAFE_RELEASE(pRenderer->pDxDevice);
-#elif defined(_DEBUG) || defined(PROFILE)
+#elif defined(ENABLE_GRAPHICS_DEBUG) || defined(PROFILE)
 	ID3D12DebugDevice* pDebugDevice = NULL;
 	pRenderer->pDxDevice->QueryInterface(&pDebugDevice);
 
@@ -3371,7 +3371,7 @@ void compileShader(
 		eastl::vector<const WCHAR*> compilerArgs;
 		compilerArgs.push_back(L"-Zi");
 		compilerArgs.push_back(L"-all_resources_bound");
-#if defined(_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG)
 		compilerArgs.push_back(L"-Od");
 #else
 		compilerArgs.push_back(L"-O3");
@@ -3440,7 +3440,7 @@ void compileShader(
 	else
 #endif
 	{
-#if defined(_DEBUG)
+#if defined(ENABLE_GRAPHICS_DEBUG)
 		// Enable better shader debugging with the graphics debugging tools.
 		UINT compile_flags = D3DCOMPILE_SKIP_OPTIMIZATION;
 #else
@@ -4274,7 +4274,7 @@ void removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
 
 void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
 {
-#ifdef _DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG
 #define VALIDATE_DESCRIPTOR(descriptor,...)																\
 	if (!(descriptor))																					\
 	{																									\

@@ -15,6 +15,9 @@ public:
 	virtual bool IsValidButton(DeviceButtonId deviceButton) const = 0;
 	virtual bool Vibrate(float leftMotor, float rightMotor) = 0;
 	virtual InputState* GetNextInputState() { return 0; }
+	virtual const char* GetDeviceName() { return "Not Set"; }
+	virtual bool SetRumbleEffect(float leftMotor, float rightMotor, uint32_t duration_ms) { return false; }
+	virtual void SetLEDColor(uint8_t r, uint8_t g, uint8_t b) { }
 };
 
 }

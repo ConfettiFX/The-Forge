@@ -234,7 +234,7 @@ DXGI_FORMAT util_to_dx_uav_format(DXGI_FORMAT defaultFormat)
 		case DXGI_FORMAT_R32_TYPELESS:
 		case DXGI_FORMAT_R32_FLOAT: return DXGI_FORMAT_R32_FLOAT;
 
-#if FORGE_DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG
 		case DXGI_FORMAT_R32G8X24_TYPELESS:
 		case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
 		case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS:
@@ -904,7 +904,7 @@ static void AddDevice(Renderer* pRenderer)
 	// Create the actual device
 	DWORD deviceFlags = 0;
 
-#ifdef _DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG
 	deviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
 
@@ -930,7 +930,7 @@ static void RemoveDevice(Renderer* pRenderer)
 	SAFE_RELEASE(pRenderer->pDxActiveGPU);
 
 	SAFE_RELEASE(pRenderer->pDxContext);
-#ifdef _DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG
 	ID3D11Debug* pDebugDevice = NULL;
 	pRenderer->pDxDevice->QueryInterface(&pDebugDevice);
 	SAFE_RELEASE(pRenderer->pDxDevice);
@@ -957,7 +957,7 @@ static ID3D11BlendState* util_to_blend_state(Renderer* pRenderer, const BlendSta
 	UNREF_PARAM(pRenderer);
 
 	int blendDescIndex = 0;
-#ifdef FORGE_DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG
 
 	for (int i = 0; i < MAX_RENDER_TARGET_ATTACHMENTS; ++i)
 	{
@@ -1660,7 +1660,7 @@ void compileShader(
 	Renderer* pRenderer, ShaderTarget shaderTarget, ShaderStage stage, const Path* filePath, uint32_t codeSize, const char* code,
 	uint32_t macroCount, ShaderMacro* pMacros, void* (*allocator)(size_t a, const char *f, int l, const char *sf), uint32_t* pByteCodeSize, char** ppByteCode, const char* pEntryPoint)
 {
-#if FORGE_DEBUG
+#if defined(ENABLE_GRAPHICS_DEBUG)
 	// Enable better shader debugging with the graphics debugging tools.
 	UINT compile_flags = D3DCOMPILE_SKIP_OPTIMIZATION;
 #else
@@ -2978,7 +2978,7 @@ void removeDescriptorSet(Renderer* pRenderer, DescriptorSet* pDescriptorSet)
 
 void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDescriptorSet, uint32_t count, const DescriptorData* pParams)
 {
-#if FORGE_DEBUG
+#ifdef ENABLE_GRAPHICS_DEBUG
 #define VALIDATE_DESCRIPTOR(descriptor,...)																\
 	if (!(descriptor))																					\
 	{																									\

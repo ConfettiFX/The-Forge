@@ -90,7 +90,7 @@ LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 		// Make sure to keep consistent background color when resizing.
 		HDC hdc = (HDC)wParam;
 		RECT rc;
-		HBRUSH hbrWhite = CreateSolidBrush(0x00FFFFFF);
+		HBRUSH hbrWhite = CreateSolidBrush(0x00000000);
 		GetClientRect(_hwnd, &rc);
 		FillRect(hdc, &rc, hbrWhite);
 		break;
@@ -124,6 +124,20 @@ LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 
 		if (pCurrentWindow->callbacks.onResize)
 			pCurrentWindow->callbacks.onResize(pCurrentWindow, getRectWidth(rect), getRectHeight(rect));
+		break;
+	}
+	case WM_SETCURSOR:
+	{
+		if (LOWORD(lParam) == HTCLIENT)
+		{
+			if (pCurrentWindow->callbacks.setCursor)
+				pCurrentWindow->callbacks.setCursor();
+			else
+			{
+				static HCURSOR defaultCurosr = LoadCursor(NULL, IDC_ARROW);
+				SetCursor(defaultCurosr);
+			}
+		}
 		break;
 	}
 	case WM_DESTROY:
@@ -412,12 +426,12 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 			else if (winDesc->minimized)
 			{
 				ShowWindow(hwnd, SW_MINIMIZE);
-			}	
+			}
 			else if (winDesc->fullScreen)
 			{
 				adjustWindow(winDesc);
 			}
-			else if (winDesc->borderlessWindow) 
+			else if (winDesc->borderlessWindow)
 			{
 				winDesc->borderlessWindow = false;
 				toggleBorderless(winDesc, getRectWidth(rect), getRectHeight(rect));
@@ -475,7 +489,7 @@ void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
 	// This is not needed in borderless mode.
 	if(!winDesc->borderlessWindow)
 	{
-		AdjustWindowRect(&clientRect, windowStyle, FALSE);	
+		AdjustWindowRect(&clientRect, windowStyle, FALSE);
 	}
 
 	currentRect = { clientRect.left, clientRect.top, clientRect.right, clientRect.bottom };
@@ -641,6 +655,10 @@ bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes)
 	return false;
 }
 
+static inline float CounterToSecondsElapsed(int64_t start, int64_t end)
+{
+	return (float)(end - start) / (float)1e6;
+}
 /************************************************************************/
 // App Entrypoint
 /************************************************************************/
@@ -648,7 +666,7 @@ static void onResize(WindowsDesc* wnd, int32_t newSizeX, int32_t newSizeY)
 {
 	if (!pApp)
 		return;
-	
+
 	pApp->mSettings.mWidth = newSizeX;
 	pApp->mSettings.mHeight = newSizeY;
 
@@ -674,7 +692,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 	Log::Init();
 
-	static WindowClass wnd;
+	WindowClass wnd;
 
 	pApp = app;
 
@@ -690,28 +708,86 @@ int WindowsMain(int argc, char** argv, IApp* app)
 	WindowsDesc window = {};
 	Timer deltaTimer;
 
-	if (pSettings->mWidth == -1 || pSettings->mHeight == -1)
+	if (!pSettings->mInitialized)
 	{
-		RectDesc rect = {};
-		getRecommendedResolution(&rect);
-		pSettings->mWidth = getRectWidth(rect);
-		pSettings->mHeight = getRectHeight(rect); 
+		pApp->pWindow = &window;
+		if (pSettings->mWidth == -1 || pSettings->mHeight == -1)
+		{
+			RectDesc rect = {};
+			getRecommendedResolution(&rect);
+			pSettings->mWidth = getRectWidth(rect);
+			pSettings->mHeight = getRectHeight(rect);
+		}
+
+
+		window.windowedRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
+		window.fullScreen = pSettings->mFullScreen;
+		window.maximized = false;
+		window.noresizeFrame = !pSettings->mDragToResize;
+		window.borderlessWindow = pSettings->mBorderlessWindow;
+	}
+	else
+	{
+		//get the requested monitor info and calculate windowedRect
+		if (pSettings->mMonitorIndex <= 0 || pSettings->mMonitorIndex >= (int)gMonitorCount)
+		{
+			pSettings->mMonitorIndex = 0;
+		}
+		MonitorDesc* monitor = getMonitor(pSettings->mMonitorIndex);
+		int windowWidth = pSettings->mWidth;
+		if (windowWidth <= 0 || windowWidth >= (int)monitor->defaultResolution.mWidth)
+		{
+			if (pSettings->mAllowedOverSizeWindows)
+			{
+				windowWidth = max(windowWidth, (int)monitor->defaultResolution.mWidth);
+			}
+			else
+			{
+				windowWidth = monitor->defaultResolution.mWidth;
+			}
+			pSettings->mWidth = windowWidth;
+		}
+		int windowHeight = pSettings->mHeight;
+		if (windowHeight <= 0 || windowHeight >= (int)monitor->defaultResolution.mHeight)
+		{
+			if (pSettings->mAllowedOverSizeWindows)
+			{
+				windowHeight = max(windowHeight, (int)monitor->defaultResolution.mHeight);
+			}
+			else
+			{
+				windowHeight = monitor->defaultResolution.mHeight;
+			}
+			pSettings->mHeight = windowHeight;
+		}
+
+		int screenSizeX = GetSystemMetrics(SM_CXSCREEN);
+		int screenSizeY = GetSystemMetrics(SM_CYSCREEN);
+
+		// Percent ratio of requested size to display size.
+		float screenRatioX = 1.f - ((float)pSettings->mWidth / (float)screenSizeX);
+		float screenRatioY = 1.f - ((float)pSettings->mHeight / (float)screenSizeY);
+
+		//check if requested windowX and windowY fall in bounds else default to center or if the window is fullscreen
+		int windowX = pSettings->mWindowX;
+		if (windowX < (int)monitor->monitorRect.left || windowX >= (int)monitor->monitorRect.left + (int)monitor->defaultResolution.mWidth || pApp->pWindow->fullScreen)
+			pSettings->mWindowX = (int)(screenSizeX * screenRatioX * 0.5f);
+
+		int windowY = pSettings->mWindowY;
+		if (windowY < (int)monitor->monitorRect.top || windowY >= (int)monitor->monitorRect.top + (int)monitor->defaultResolution.mHeight || pApp->pWindow->fullScreen)
+			pSettings->mWindowY = (int)(screenSizeY * screenRatioY * 0.5f);
+
+		pApp->pWindow->windowedRect = { pSettings->mWindowX, pSettings->mWindowY, pSettings->mWindowX + (int)pSettings->mWidth, pSettings->mWindowY + (int)pSettings->mHeight };
+		//original client rect before adjustment
+		pApp->pWindow->clientRect = pApp->pWindow->windowedRect;
 	}
 
-
-	window.windowedRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
-	window.fullScreen = pSettings->mFullScreen;
-	window.maximized = false;
-	window.noresizeFrame = !pSettings->mDragToResize;
-	window.borderlessWindow = pSettings->mBorderlessWindow;
-
 	if (!pSettings->mExternalWindow)
-		openWindow(pApp->GetName(), &window);
+		openWindow(pApp->GetName(), pApp->pWindow);
 
-	pSettings->mWidth = window.fullScreen ? getRectWidth(window.fullscreenRect) : getRectWidth(window.windowedRect);
-	pSettings->mHeight = window.fullScreen ? getRectHeight(window.fullscreenRect) : getRectHeight(window.windowedRect);
+	pSettings->mWidth = pApp->pWindow->fullScreen ? getRectWidth(pApp->pWindow->fullscreenRect) : getRectWidth(pApp->pWindow->windowedRect);
+	pSettings->mHeight = pApp->pWindow->fullScreen ? getRectHeight(pApp->pWindow->fullscreenRect) : getRectHeight(pApp->pWindow->windowedRect);
 
-	pApp->pWindow = &window;
 	pApp->pCommandLine = GetCommandLineA();
 	{
 		Timer t;
@@ -727,15 +803,18 @@ int WindowsMain(int argc, char** argv, IApp* app)
 	window.callbacks.onResize = onResize;
 
 	bool quit = false;
-
+	int64_t lastCounter = getUSec();
 	while (!quit)
 	{
-		float deltaTime = deltaTimer.GetMSec(true) / 1000.0f;
+		int64_t counter = getUSec();
+		float deltaTime = CounterToSecondsElapsed(lastCounter, counter);
+		lastCounter = counter;
+
 		// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
 		if (deltaTime > 0.15f)
 			deltaTime = 0.05f;
 
-		quit = handleMessages();
+		quit = handleMessages() || pSettings->mQuit;
 
 		// If window is minimized let other processes take over
 		if (window.minimized)
@@ -749,9 +828,12 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 #ifdef AUTOMATED_TESTING
 		//used in automated tests only.
-		testingFrameCount++;
-		if (testingFrameCount >= testingDesiredFrameCount)
-			quit = true;
+		if (pSettings->mDefaultAutomatedTesting)
+		{
+			testingFrameCount++;
+			if (testingFrameCount >= testingDesiredFrameCount)
+				quit = true;
+		}
 #endif
 	}
 
@@ -772,6 +854,4 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 	return 0;
 }
-/************************************************************************/
-/************************************************************************/
 #endif
