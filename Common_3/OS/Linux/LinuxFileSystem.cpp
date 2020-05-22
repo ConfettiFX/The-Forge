@@ -128,15 +128,7 @@ LinuxFileSystem gDefaultFS;
 
 FileSystem* fsGetSystemFileSystem() { return &gDefaultFS; }
 
-Path* fsCopyWorkingDirectoryPath()
-{
-	char cwd[MAX_PATH];
-	getcwd(cwd, MAX_PATH);
-	Path* path = fsCreatePath(fsGetSystemFileSystem(), cwd);
-	return path;
-}
-
-Path* fsCopyExecutablePath()
+Path* fsGetApplicationPath()
 {
 	char exeName[MAX_PATH];
 	exeName[0] = 0;
@@ -145,10 +137,10 @@ Path* fsCopyExecutablePath()
 	return fsCreatePath(fsGetSystemFileSystem(), exeName);
 }
 
-Path* fsCopyProgramDirectoryPath()
+Path* fsGetApplicationDirectory()
 {
-	Path* exePath = fsCopyExecutablePath();
-	Path* directory = fsCopyParentPath(exePath);
+	Path* exePath = fsGetApplicationPath();
+	Path* directory = fsGetParentPath(exePath);
 	fsFreePath(exePath);
 	return directory;
 }
@@ -165,7 +157,7 @@ Path* fsCopyPreferencesDirectoryPath(const char* organisation, const char* appli
 	return homePath;
 }
 
-Path* fsCopyUserDocumentsDirectoryPath()
+Path* fsGetUserSpecificPath()
 {
 	const char* homedir;
 	if ((homedir = getenv("HOME")) == NULL)
@@ -179,7 +171,7 @@ Path* fsCopyUserDocumentsDirectoryPath()
 	return documents;
 }
 
-Path* fsCopyLogFileDirectoryPath() { return fsCopyProgramDirectoryPath(); }
+Path* fsGetPreferredLogDirectory() { return fsGetApplicationDirectory(); }
 
 #pragma mark - FileManager Dialogs
 

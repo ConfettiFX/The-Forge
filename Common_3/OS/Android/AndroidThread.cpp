@@ -151,7 +151,6 @@ void Thread::Sleep(unsigned mSec)
 // threading class (Static functions)
 unsigned int Thread::GetNumCPUCores(void)
 {
-	size_t       len;
 	unsigned int ncpu;
 	ncpu = sysconf(_SC_NPROCESSORS_ONLN);
 	return ncpu;

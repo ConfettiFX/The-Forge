@@ -25,15 +25,7 @@
 #include <metal_stdlib>
 using namespace metal;
 
-struct InstanceData
-{
-    float4x4 mvp;
-    float4x4 normalMat;
-    float4 surfaceColor;
-    float4 deepColor;
-    int textureID;
-    uint _pad0[3];
-};
+#include "argument_buffers.h"
 
 struct RootConstantData
 {
@@ -59,12 +51,8 @@ float linstep(float min, float max, float s)
     return saturate((s - min) / (max - min));
 }
 
-struct VSDataPerBatch {
-    constant InstanceData* instanceBuffer    [[id(0)]];
-};
-
 vertex PsIn stageMain(VsIn In [[stage_in]],
-                      constant VSDataPerBatch& vsDataPerBatch     [[buffer(UPDATE_FREQ_PER_BATCH)]],
+                      constant BasicArgDataPerBatch& vsDataPerBatch     [[buffer(UPDATE_FREQ_PER_BATCH)]],
                       constant RootConstantData& rootConstant     [[buffer(UPDATE_FREQ_USER)]]
 )
 {

@@ -1049,6 +1049,9 @@ bool ImguiGUIDriver::update(GUIUpdate* pGuiUpdate)
 					float2(windowRect.z * dpiScale.x, windowRect.w * dpiScale.y), overrideSize ? ImGuiCond_Always : ImGuiCond_Once);
 				ImGui::SetWindowPos(
 					float2(windowRect.x * dpiScale.x, windowRect.y * dpiScale.y), overridePos ? ImGuiCond_Always : ImGuiCond_Once);
+#if defined(TARGET_IOS) || defined(__ANDROID__)
+				ImGui::SetWindowCollapsed(true, ImGuiCond_Once);
+#endif
 
 				for (uint32_t i = 0; i < propCount; ++i)
 					if (pProps[i])

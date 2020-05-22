@@ -259,7 +259,7 @@ float gMinPlotReferenceTime = 0.f;
 float gFrameTime = 0.f;
 float gFrameTimeData[FRAME_HISTORY_LEN] = { 0.f };
 float gGPUFrameTime[PROFILE_MAX_GROUPS];
-float gGPUFrameTimeData[PROFILE_MAX_GROUPS][FRAME_HISTORY_LEN] = { 0.f };
+float gGPUFrameTimeData[PROFILE_MAX_GROUPS][FRAME_HISTORY_LEN] = { { 0.0f } };
 eastl::string gFrameTimerTitle = "FrameTimer";
 eastl::string gGPUTimerTitle[PROFILE_MAX_GROUPS];
 float2 gHistogramSize;
@@ -696,7 +696,7 @@ void profileDrawDetailedMode(Profile& S)
     ProfileDetailedModeFrame& frameToDraw = gDetailedModeDump[frameIndex];
     if (timerCount > MAX_DETAILED_TIMERS_DRAW)
     {
-        Log::Write(LogLevel::eWARNING, "Reached maximum amount of drawable detailed timers", __FILE__, __LINE__);
+        Log::Write(LogLevel::eWARNING, __FILE__, __LINE__, "Reached maximum amount of drawable detailed timers");
         break;
     }
 
@@ -982,15 +982,15 @@ void profileUpdateTimerModeData(Profile& S, uint32_t groupIndex, uint32_t timerI
   fAverageExclusive > warnTime  ? *timeColor[7] = gWarningColor : *timeColor[7] = gNormalColor;
   fMaxExclusive     > warnTime  ? *timeColor[8] = gWarningColor : *timeColor[8] = gNormalColor;
 
-  fTime             > criticalTime  ? *timeColor[0] = gCriticalColor : 0;
-  fAverage          > criticalTime  ? *timeColor[1] = gCriticalColor : 0;
-  fMax              > criticalTime  ? *timeColor[2] = gCriticalColor : 0;
-  fMin              > criticalTime  ? *timeColor[3] = gCriticalColor : 0;
-  fCallAverage      > criticalTime  ? *timeColor[4] = gCriticalColor : 0;
-  fCallCount        > criticalCount ? *timeColor[5] = gCriticalColor : 0;
-  fFrameMsExclusive > criticalTime  ? *timeColor[6] = gCriticalColor : 0;
-  fAverageExclusive > criticalTime  ? *timeColor[7] = gCriticalColor : 0;
-  fMaxExclusive     > criticalTime  ? *timeColor[8] = gCriticalColor : 0;
+  fTime             > criticalTime  ? *timeColor[0] = gCriticalColor : float4(0.0f);
+  fAverage          > criticalTime  ? *timeColor[1] = gCriticalColor : float4(0.0f);
+  fMax              > criticalTime  ? *timeColor[2] = gCriticalColor : float4(0.0f);
+  fMin              > criticalTime  ? *timeColor[3] = gCriticalColor : float4(0.0f);
+  fCallAverage      > criticalTime  ? *timeColor[4] = gCriticalColor : float4(0.0f);
+  fCallCount        > criticalCount ? *timeColor[5] = gCriticalColor : float4(0.0f);
+  fFrameMsExclusive > criticalTime  ? *timeColor[6] = gCriticalColor : float4(0.0f);
+  fAverageExclusive > criticalTime  ? *timeColor[7] = gCriticalColor : float4(0.0f);
+  fMaxExclusive     > criticalTime  ? *timeColor[8] = gCriticalColor : float4(0.0f);
 }
 
 void unloadProfilerUI()
@@ -1071,6 +1071,10 @@ void drawGpuProfileRecursive(Cmd* pCmd, const GpuProfiler* pGpuProfiler, const T
         pDrawDesc->mFontSize, pDrawDesc->mFontSpacing, pDrawDesc->mFontBlur);
     origin.y += pGpuDrawDesc->mHeightOffset;
 
+	// Metal only supports gpu timers on command buffer boundaries so all timers other than root will be zero
+#ifdef METAL
+	return;
+#else
     for (uint32_t i = index + 1; i < pGpuProfiler->mCurrentPoolIndex; ++i)
     {
         if (pGpuProfiler->pGpuTimerPool[i].pParent == pRoot)
@@ -1078,6 +1082,7 @@ void drawGpuProfileRecursive(Cmd* pCmd, const GpuProfiler* pGpuProfiler, const T
             drawGpuProfileRecursive(pCmd, pGpuProfiler, pDrawDesc, origin, i);
         }
     }
+#endif
 }
 
 void cmdDrawGpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, ProfileToken nProfileToken, const TextDrawDesc* pDrawDesc)

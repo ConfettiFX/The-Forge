@@ -31,6 +31,7 @@
 
 #include "../../ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
+#include "../../ThirdParty/OpenSource/rmem/inc/rmem.h"
 
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/ILog.h"
@@ -242,6 +243,11 @@ int LinuxMain(int argc, char** argv, IApp* app)
 
 	if (!MemAllocInit())
 		return EXIT_FAILURE;
+		
+		
+#if TF_USE_MTUNER
+	rmemInit(0);
+#endif
 
 	if (!fsInitAPI())
 		return EXIT_FAILURE;
@@ -314,7 +320,14 @@ int LinuxMain(int argc, char** argv, IApp* app)
 	pApp->Exit();
 	
 	Log::Exit();
-	fsDeinitAPI();
+
+	fsExitAPI();
+
+#if TF_USE_MTUNER
+	rmemUnload();
+	rmemShutDown();
+#endif
+
 	MemAllocExit();
 
 	return 0;

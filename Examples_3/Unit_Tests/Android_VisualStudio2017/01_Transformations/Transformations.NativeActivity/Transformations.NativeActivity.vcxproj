@@ -122,8 +122,6 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\01_Transformations\Shader
   <ItemGroup>
     <None Include="..\..\..\src\01_Transformations\Shaders\Vulkan\basic.frag" />
     <None Include="..\..\..\src\01_Transformations\Shaders\Vulkan\basic.vert" />
-    <None Include="..\..\..\src\01_Transformations\Shaders\Vulkan\profile.frag" />
-    <None Include="..\..\..\src\01_Transformations\Shaders\Vulkan\profile.vert" />
     <None Include="..\..\..\src\01_Transformations\Shaders\Vulkan\skybox.frag" />
     <None Include="..\..\..\src\01_Transformations\Shaders\Vulkan\skybox.vert" />
   </ItemGroup>

@@ -48,7 +48,7 @@
 
 #include "../../Common_3/OS/Interfaces/IMemory.h"
 
-ResourceDirectory RD_MIDDLEWARE_TEXT = RD_MIDDLEWARE_0;
+ResourceDirEnum RD_MIDDLEWARE_TEXT = RD_MIDDLEWARE_0;
 
 class _Impl_FontStash
 {
@@ -338,11 +338,11 @@ void Fontstash::unload()
 	impl->unload();
 }
 
-int Fontstash::defineFont(const char* identification, const char* filename, ResourceDirectory root)
+int Fontstash::defineFont(const char* identification, const char* filename, ResourceDirEnum root)
 {
 	FONScontext* fs = impl->pContext;
 	
-    PathHandle filePath = fsCopyPathInResourceDirectory(root, filename);
+    PathHandle filePath = fsGetPathInResourceDirEnum(root, filename);
     FileStream* fh = fsOpenFile(filePath, FM_READ_BINARY);
     ssize_t bytes = fsGetStreamFileSize(fh);
 	void*    buffer = conf_malloc(bytes);

@@ -50,7 +50,7 @@ struct Compute_Shader
 
     texture2d<float> srcTexture;
 
-    texture2d_array<float, access::read_write> dstTexture;
+    texture2d_array<float, access::write> dstTexture;
     sampler skyboxSampler;
 
 #define Pi 3.14159274
@@ -116,31 +116,35 @@ struct Compute_Shader
 
     Compute_Shader(constant Uniforms_RootConstant & RootConstant,
         texture2d<float> srcTexture,
-        texture2d_array<float, access::read_write> dstTexture,
+        texture2d_array<float, access::write> dstTexture,
     sampler skyboxSampler) : RootConstant(RootConstant),
     srcTexture(srcTexture),
     dstTexture(dstTexture),
     skyboxSampler(skyboxSampler) {}
 };
 
-struct CSData {
+struct CSData
+{
     texture2d<float> srcTexture                           [[id(0)]];
     sampler skyboxSampler                                 [[id(1)]];
 };
 
 #ifndef TARGET_IOS
-struct CSDataPerDraw {
-    texture2d_array<float, access::read_write> dstTexture [[id(0)]];
+struct CSDataPerDraw
+{
+    texture2d_array<float, access::write> dstTexture [[id(0)]];
 };
 #endif
 
 //[numthreads(16, 16, 1)]
 kernel void stageMain(uint3 DTid                                                   [[thread_position_in_grid]],
-                      constant CSData& csData                                      [[buffer(UPDATE_FREQ_NONE)]],
 #ifndef TARGET_IOS
+                      constant CSData& csData                                      [[buffer(UPDATE_FREQ_NONE)]],
                       device CSDataPerDraw& csDataPerDraw                          [[buffer(UPDATE_FREQ_PER_DRAW)]],
 #else
-					  texture2d_array<float, access::read_write> dstTexture        [[texture(0)]],
+					  texture2d<float> srcTexture                           [[texture(0)]],
+					  texture2d_array<float, access::write> dstTexture      [[texture(1)]],
+					  sampler skyboxSampler                                 [[sampler(0)]],
 #endif
                       constant Compute_Shader::Uniforms_RootConstant& RootConstant [[buffer(UPDATE_FREQ_USER)]]
 )
@@ -148,12 +152,15 @@ kernel void stageMain(uint3 DTid                                                
     uint3 DTid0;
     DTid0 = DTid;
     Compute_Shader main(RootConstant,
-						csData.srcTexture,
 #ifndef TARGET_IOS
+						csData.srcTexture,
 						csDataPerDraw.dstTexture,
+						csData.skyboxSampler
 #else
+						srcTexture,
 						dstTexture,
+						skyboxSampler
 #endif
-						csData.skyboxSampler);
+						);
     return main.main(DTid0);
 }

@@ -138,8 +138,6 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\17_EntityComponentSystem\
   <ItemGroup>
     <None Include="..\..\..\src\17_EntityComponentSystem\Shaders\Vulkan\basic.frag" />
     <None Include="..\..\..\src\17_EntityComponentSystem\Shaders\Vulkan\basic.vert" />
-    <None Include="..\..\..\src\17_EntityComponentSystem\Shaders\Vulkan\profile.frag" />
-    <None Include="..\..\..\src\17_EntityComponentSystem\Shaders\Vulkan\profile.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

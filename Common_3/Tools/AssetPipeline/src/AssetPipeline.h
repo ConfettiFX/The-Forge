@@ -34,9 +34,6 @@ struct ProcessAssetsSettings
 	bool quiet;                  // Only output warnings.
 	bool force;                  // Force all assets to be processed.
 	uint minLastModifiedTime;    // Force all assets older than this to be processed.
-	uint quantizePositionBits;   // N value for N-Bit position quantization.
-	uint quantizeNormalBits;     // N value for N-Bit normal and tangent quantization.
-	uint quantizeTexBits;        // N value for N-Bit texture coordinate quantization.
 
 	// TressFX settings
 	uint32_t    mFollowHairCount;

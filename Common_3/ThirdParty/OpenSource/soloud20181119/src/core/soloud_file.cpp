@@ -95,7 +95,7 @@ namespace SoLoud
 		if (!aFilename)
 			return INVALID_PARAMETER;	
 
-        mForgeFile = fsOpenFileInResourceDirectory(RD_AUDIO, aFilename, FM_READ_BINARY);
+        mForgeFile = fsOpenFileInResourceDirEnum(RD_AUDIO, aFilename, FM_READ_BINARY);
 
 		if(!mForgeFile)
 			return FILE_NOT_FOUND;

@@ -3,6 +3,11 @@ using namespace metal;
 
 struct Fragment_Shader
 {
+    struct Uniforms_uniformBlockVS
+    {
+        float4x4 ProjectionMatrix;
+    };
+    constant Uniforms_uniformBlockVS & uniformBlockVS;
     struct PS_INPUT
     {
         float4 pos [[position]];
@@ -18,11 +23,13 @@ struct Fragment_Shader
     };
 
     Fragment_Shader(
-texture2d<float> uTex,sampler uSampler) :
-uTex(uTex),uSampler(uSampler) {}
+texture2d<float> uTex,sampler uSampler,
+constant Uniforms_uniformBlockVS & uniformBlockVS) :
+uTex(uTex),uSampler(uSampler),uniformBlockVS(uniformBlockVS) {}
 };
   
 struct FSDataFreqNone {
+	constant Fragment_Shader::Uniforms_uniformBlockVS& uniformBlockVS [[id(0)]];
     sampler uSampler [[id(1)]];
 };
 
@@ -40,6 +47,6 @@ fragment float4 stageMain(
     input0.pos = float4(input.pos.xyz, 1.0 / input.pos.w);
     input0.col = input.col;
     input0.uv = input.uv;
-    Fragment_Shader main(fsDataPerBatch.uTex, fsData.uSampler);
+    Fragment_Shader main(fsDataPerBatch.uTex, fsData.uSampler, fsData.uniformBlockVS);
     return main.main(input0);
 }

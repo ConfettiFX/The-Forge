@@ -104,6 +104,10 @@ public:
 		bool     mFullScreen = false;
 		/// Set to true if app wants to use an external window
 		bool     mExternalWindow = false;
+		/// Drag to resize enabled
+		bool		mDragToResize = true;
+		/// Border less window
+		bool		mBorderlessWindow = false;
 #if defined(TARGET_IOS)
 		bool     mShowStatusBar = false;
 		float    mContentScaleFactor = 0.f;

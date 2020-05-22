@@ -26,6 +26,7 @@
 using namespace metal;
 
 #include "shader_defs.h"
+#include "packing.h"
 
 struct VSOut {
     float4 position [[position]];
@@ -48,7 +49,7 @@ struct IndirectDrawArguments
 struct VSInput
 {
 	float4 Position [[attribute(UNIT_VBPASS_POSITION)]];
-	half2 TexCoord [[attribute(UNIT_VBPASS_TEXCOORD)]];
+	uint TexCoord [[attribute(UNIT_VBPASS_TEXCOORD)]];
 };
 
 vertex VSOut stageMain(
@@ -58,6 +59,6 @@ vertex VSOut stageMain(
 {
 	VSOut output;
 	output.position = uniforms.transform[VIEW_SHADOW].mvp * input.Position;
-	output.texCoord = float2(input.TexCoord);
+	output.texCoord = unpack2Floats(input.TexCoord);
 	return output;
 }

@@ -34,32 +34,21 @@
 #include "../Interfaces/IMemory.h"
 #include <android/log.h>
 
-void outputLogString(const char* pszStr)
-{
-	_OutputDebugString(pszStr);
-	_OutputDebugString("\n");
-}
-
 void _OutputDebugStringV(const char* str, va_list args)
 {
-#if defined(_DEBUG) || defined(AUTOMATED_TESTING)
-	const unsigned BUFFER_SIZE = 4096;
-    char           buf[BUFFER_SIZE];
-
-    vsprintf_s(buf, BUFFER_SIZE, str, args);
-
-	// stdout doesn't work on android. we need to use ndk log functionality.
-    //printf("%s\n", buf);
-	__android_log_print(ANDROID_LOG_INFO, "The-Forge", buf);
+#if FORGE_DEBUG
+	__android_log_vprint(ANDROID_LOG_INFO, "The-Forge", str, args);
 #endif
 }
 
 void _OutputDebugString(const char* str, ...)
 {
+#if FORGE_DEBUG
 	va_list arglist;
 	va_start(arglist, str);
-	_OutputDebugStringV(str, arglist);
+	__android_log_vprint(ANDROID_LOG_INFO, "The-Forge", str, arglist);
 	va_end(arglist);
+#endif
 }
 
 void _FailedAssert(const char* file, int line, const char* statement)
@@ -68,22 +57,12 @@ void _FailedAssert(const char* file, int line, const char* statement)
 
 	if (debug)
 	{
-		printf("Failed: (%s)\n\nFile: %s\nLine: %d\n\n", statement, file, line);
-	}
-	assert(0);
-}
-
-void _PrintUnicode(const eastl::string& str, bool error) { 
-
-	if (error)
-	{
-		__android_log_print(ANDROID_LOG_ERROR, "The-Forge", str.c_str());
-	}
-	else
-	{
-		outputLogString(str.c_str());
+		__android_log_print(ANDROID_LOG_ERROR, "The-Forge", "Assertion failed: (%s)\n\nFile: %s\nLine: %d\n\n", statement, file, line);
 	}
 }
 
-void _PrintUnicodeLine(const eastl::string& str, bool error) { _PrintUnicode(str, error); }
+void _PrintUnicode(const char* str, bool error) { 
+
+	__android_log_write(error ? ANDROID_LOG_ERROR : ANDROID_LOG_INFO, "The-Forge", str);
+}
 #endif    // ifdef __ANDROID__

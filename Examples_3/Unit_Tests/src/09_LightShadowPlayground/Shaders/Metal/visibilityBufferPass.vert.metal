@@ -28,30 +28,11 @@
 using namespace metal;
 
 #include "Shader_Defs.h"
+#include "vb_argument_buffers.h"
 
-struct PackedVertexPosData {
-    packed_float3 position;
-};
-
-struct PackedVertexTexcoord {
-    packed_float2 texCoord;
-};
-
-struct VSOutput {
-	float4 position [[position]];
-};
-
-struct PerBatchUniforms {
-    uint drawId;
-    uint twoSided;
-};
-
-struct IndirectDrawArguments
+struct VSOutput
 {
-    uint vertexCount;
-    uint instanceCount;
-    uint startVertex;
-    uint startInstance;
+	float4 position [[position]];
 };
 
 struct VSInput
@@ -59,20 +40,10 @@ struct VSInput
 	float4 Position [[attribute(0)]];
 };
 
-struct Uniforms_objectUniformBlock
-{
-	float4x4 mWorldViewProjMat;
-	float4x4 mWorldMat;
-};
-
-struct VSData {
-    constant Uniforms_objectUniformBlock & objectUniformBlock   [[id(0)]];
-};
-
 // Vertex shader
 vertex VSOutput stageMain(
     VSInput input                           [[stage_in]],
-    constant VSData& vsData                 [[buffer(UPDATE_FREQ_PER_DRAW)]]
+    constant ArgDataPerDraw& vsData                 [[buffer(UPDATE_FREQ_PER_DRAW)]]
 )
 {
 	VSOutput result;

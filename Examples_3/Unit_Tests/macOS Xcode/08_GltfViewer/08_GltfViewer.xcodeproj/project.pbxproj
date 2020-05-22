@@ -75,8 +75,8 @@
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
 		E921B7D622C6E45D0082D103 /* 08_GltfViewer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E921B7D522C6E45D0082D103 /* 08_GltfViewer.cpp */; };
 		E921B80822C6E81D0082D103 /* 08_GltfViewer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E921B7D522C6E45D0082D103 /* 08_GltfViewer.cpp */; };
-		E921BB2E22CAB5910082D103 /* profile.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E921B7D122C6E44B0082D103 /* profile.frag.metal */; };
-		E921BB2F22CAB5910082D103 /* profile.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E921B7D222C6E44B0082D103 /* profile.vert.metal */; };
+
+
 		E921BB3122CAB5D10082D103 /* basic.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E921B7CB22C6E4300082D103 /* basic.vert.metal */; };
 		E9BF150322FE2699001F2264 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = E9BF150122FE2699001F2264 /* Main.storyboard */; };
 		E9BF15F72315B479001F2264 /* floor.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9BF15AB2314C0E2001F2264 /* floor.vert.metal */; };
@@ -167,8 +167,8 @@
 				E9BF15F82315B482001F2264 /* FXAA.frag.metal in Copy Shaders */,
 				E9BF15F72315B479001F2264 /* floor.vert.metal in Copy Shaders */,
 				E921BB3122CAB5D10082D103 /* basic.vert.metal in Copy Shaders */,
-				E921BB2E22CAB5910082D103 /* profile.frag.metal in Copy Shaders */,
-				E921BB2F22CAB5910082D103 /* profile.vert.metal in Copy Shaders */,
+
+
 				5CA80FA121F0A21100C99983 /* fontstash.frag.metal in Copy Shaders */,
 				5CA80FA221F0A21100C99983 /* fontstash2D.vert.metal in Copy Shaders */,
 				5CA80FA321F0A21100C99983 /* fontstash3D.vert.metal in Copy Shaders */,
@@ -313,8 +313,8 @@
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		E921B7CB22C6E4300082D103 /* basic.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = basic.vert.metal; path = ../../src/08_GltfViewer/Shaders/Metal/basic.vert.metal; sourceTree = "<group>"; };
 		E921B7CD22C6E4300082D103 /* basic.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = basic.frag.metal; path = ../../src/08_GltfViewer/Shaders/Metal/basic.frag.metal; sourceTree = "<group>"; };
-		E921B7D122C6E44B0082D103 /* profile.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = profile.frag.metal; path = ../../src/08_GltfViewer/Shaders/Metal/profile.frag.metal; sourceTree = "<group>"; };
-		E921B7D222C6E44B0082D103 /* profile.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = profile.vert.metal; path = ../../src/08_GltfViewer/Shaders/Metal/profile.vert.metal; sourceTree = "<group>"; };
+
+
 		E921B7D522C6E45D0082D103 /* 08_GltfViewer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 08_GltfViewer.cpp; path = ../../src/08_GltfViewer/08_GltfViewer.cpp; sourceTree = "<group>"; usesTabs = 1; };
 		E921BAA122CAAF5A0082D103 /* 08_GltfViewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 08_GltfViewer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E921BAA222CAAF5A0082D103 /* 08_GltfViewer_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 08_GltfViewer_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -543,8 +543,8 @@
 			isa = PBXGroup;
 			children = (
 				E921B7D522C6E45D0082D103 /* 08_GltfViewer.cpp */,
-				E921B7D122C6E44B0082D103 /* profile.frag.metal */,
-				E921B7D222C6E44B0082D103 /* profile.vert.metal */,
+
+
 				5CA80E1821F09F8700C99983 /* CommonShaders */,
 				5C0F3ADE21418BD20088BBB0 /* The-Forge.xcodeproj */,
 				B20A6264213F8D6400FE4944 /* Meshes */,

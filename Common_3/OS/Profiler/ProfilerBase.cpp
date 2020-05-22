@@ -1956,7 +1956,7 @@ void ProfileDumpCsv(ProfileWriteCallback CB, void* Handle, int nMaxFrames)
 		uint32_t nFrame = (nStart + PROFILE_MAX_FRAME_HISTORY - i) % PROFILE_MAX_FRAME_HISTORY;
 		uint32_t nFrameNext = (nStart + PROFILE_MAX_FRAME_HISTORY - i + 1) % PROFILE_MAX_FRAME_HISTORY;
 		uint64_t nTicks = S.Frames[nFrameNext].nFrameStartGpu - S.Frames[nFrame].nFrameStartGpu;
-		ProfilePrintf(CB, Handle, "%llu,", nTicks);
+		ProfilePrintf(CB, Handle, "%" PRIu64 ",", nTicks);
 	}
 	ProfilePrintf(CB, Handle, "\n\n");
 	ProfilePrintf(CB, Handle, "Meta\n");//only single frame snapshot
@@ -2554,7 +2554,7 @@ void dumpProfileData(Renderer* pRenderer, const char* appName, uint32_t nMaxFram
     eastl::string tempName = eastl::string().sprintf("%s", appName) + eastl::string(R"(Profile-%Y-%m-%d-%H.%M.%S.html)");
     char name[128] = {};
     strftime(name, sizeof(name), tempName.c_str(), localtime(&t));
-    PathHandle dumpPath = fsAppendPathComponent(PathHandle(fsCopyLogFileDirectoryPath()), name);
+    PathHandle dumpPath = fsAppendPathComponent(PathHandle(fsGetLogFileDirectory()), name);
     FileStream* fh = fsOpenFile(dumpPath, FM_WRITE);
     if (fh)
     {
@@ -2569,7 +2569,7 @@ void dumpBenchmarkData(Renderer* pRenderer, IApp::Settings* pSettings, const cha
     eastl::string tempName = eastl::string().sprintf("%s", appName) + eastl::string(R"(Benchmark-%Y-%m-%d-%H.%M.%S.txt)");
     char name[128] = {};
     strftime(name, sizeof(name), tempName.c_str(), localtime(&t));
-    PathHandle dumpPath = fsAppendPathComponent(PathHandle(fsCopyLogFileDirectoryPath()), name);
+    PathHandle dumpPath = fsAppendPathComponent(PathHandle(fsGetLogFileDirectory()), name);
     FileStream* statsFile = fsOpenFile(dumpPath, FM_WRITE);
     if (statsFile)
     {

@@ -32,8 +32,7 @@ void _FailedAssert(const char* file, int line, const char* statement);
 void _OutputDebugString(const char* str, ...);
 void _OutputDebugStringV(const char* str, va_list args);
 
-void _PrintUnicode(const eastl::string& str, bool error = false);
-void _PrintUnicodeLine(const eastl::string& str, bool error = false);
+void _PrintUnicode(const char* str, bool error = false);
 
 #if _MSC_VER >= 1400
 // To make MSVC 2005 happy
@@ -45,7 +44,7 @@ void _PrintUnicodeLine(const eastl::string& str, bool error = false);
 #define no_alias
 #endif
 
-#ifdef _DEBUG
+#if defined(FORGE_DEBUG)
 #define IFASSERT(x) x
 
 #if defined(_XBOX)
@@ -69,18 +68,18 @@ void _PrintUnicodeLine(const eastl::string& str, bool error = false);
 #endif
 
 // Usage: LOGF(LogLevel::eINFO | LogLevel::eDEBUG, "Whatever string %s, this is an int %d", "This is a string", 1)
-#define LOGF(log_level, ...) Log::Write((log_level), ToString(__VA_ARGS__), __FILE__, __LINE__)
+#define LOGF(log_level, ...) Log::Write((log_level), __FILE__, __LINE__, __VA_ARGS__)
 // Usage: LOGF_IF(LogLevel::eINFO | LogLevel::eDEBUG, boolean_value && integer_value == 5, "Whatever string %s, this is an int %d", "This is a string", 1)
-#define LOGF_IF(log_level, condition, ...) ((condition) ? Log::Write((log_level), ToString(__VA_ARGS__), __FILE__, __LINE__) : (void)0)
+#define LOGF_IF(log_level, condition, ...) ((condition) ? Log::Write((log_level), __FILE__, __LINE__, __VA_ARGS__) : (void)0)
 //
 #define LOGF_SCOPE(log_level, ...) Log::LogScope ANONIMOUS_VARIABLE_LOG(scope_log_){ (log_level), __FILE__, __LINE__, __VA_ARGS__ }
 
 // Usage: RAW_LOGF(LogLevel::eINFO | LogLevel::eDEBUG, "Whatever string %s, this is an int %d", "This is a string", 1)
-#define RAW_LOGF(log_level, ...) Log::WriteRaw((log_level), ToString(__VA_ARGS__))
+#define RAW_LOGF(log_level, ...) Log::WriteRaw((log_level), false, __VA_ARGS__)
 // Usage: RAW_LOGF_IF(LogLevel::eINFO | LogLevel::eDEBUG, boolean_value && integer_value == 5, "Whatever string %s, this is an int %d", "This is a string", 1)
-#define RAW_LOGF_IF(log_level, condition, ...) ((condition) ? Log::WriteRaw((log_level), ToString(__VA_ARGS__)))
+#define RAW_LOGF_IF(log_level, condition, ...) ((condition) ? Log::WriteRaw((log_level), false, __VA_ARGS__))
 
-#ifdef _DEBUG
+#if defined(FORGE_DEBUG)
 
 // Usage: DLOGF(LogLevel::eINFO | LogLevel::eDEBUG, "Whatever string %s, this is an int %d", "This is a string", 1)
 #define DLOGF(log_level, ...) LOGF(log_level, __VA_ARGS__)
@@ -115,16 +114,16 @@ void _PrintUnicodeLine(const eastl::string& str, bool error = false);
 #endif
 
 #ifdef USE_LOGGING
-#define LOGDEBUG(message) LogManager::Write(LogLevel::eDEBUG, ToString(__FUNCTION__, message, ""))
-#define LOGINFO(message) LogManager::Write(LogLevel::eINFO, ToString(__FUNCTION__, message, ""))
-#define LOGWARNING(message) LogManager::Write(LogLevel::eWARNING, ToString(__FUNCTION__, message, ""))
-#define LOGERROR(message) LogManager::Write(LogLevel::eERROR, ToString(__FUNCTION__, message, ""))
-#define LOGRAW(message) LogManager::WriteRaw(ToString(__FUNCTION__, message, ""))
-#define LOGDEBUGF(format, ...) LogManager::Write(LogLevel::eDEBUG, ToString(__FUNCTION__, format, ##__VA_ARGS__))
-#define LOGINFOF(format, ...) LogManager::Write(LogLevel::eINFO, ToString(__FUNCTION__, format, ##__VA_ARGS__))
-#define LOGWARNINGF(format, ...) LogManager::Write(LogLevel::eWARNING, ToString(__FUNCTION__, format, ##__VA_ARGS__))
-#define LOGERRORF(format, ...) LogManager::Write(LogLevel::eERROR, ToString(__FUNCTION__, format, ##__VA_ARGS__))
-#define LOGRAWF(format, ...) LogManager::WriteRaw(ToString(__FUNCTION__, format, ##__VA_ARGS__))
+#define LOGDEBUG(message) LogManager::Write(LogLevel::eDEBUG, __FILE__, __LINE__, message)
+#define LOGINFO(message) LogManager::Write(LogLevel::eINFO, __FILE__, __LINE__, message)
+#define LOGWARNING(message) LogManager::Write(LogLevel::eWARNING, __FILE__, __LINE__, message)
+#define LOGERROR(message) LogManager::Write(LogLevel::eERROR, __FILE__, __LINE__, message)
+#define LOGRAW(message) LogManager::WriteRaw(LogLevel::eINFO, false, message)
+#define LOGDEBUGF(format, ...) LogManager::Write(LogLevel::eDEBUG, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define LOGINFOF(format, ...) LogManager::Write(LogLevel::eINFO, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define LOGWARNINGF(format, ...) LogManager::Write(LogLevel::eWARNING, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define LOGERRORF(format, ...) LogManager::Write(LogLevel::eERROR, __FILE__, __LINE__, format, ##__VA_ARGS__)
+#define LOGRAWF(format, ...) LogManager::WriteRaw(LogLevel::eINFO, false, format, ##__VA_ARGS__)
 #else
 #define LOGDEBUG(message) ((void)0)
 #define LOGINFO(message) ((void)0)

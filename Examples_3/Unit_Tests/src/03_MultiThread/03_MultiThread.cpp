@@ -231,18 +231,18 @@ class MultiThread: public IApp
 	bool Init()
 	{
         // FILE PATHS
-        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        PathHandle programDirectory = fsGetApplicationDirectory();
         if (!fsPlatformUsesBundledResources())
         {
             PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/03_MultiThread");
-            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            fsSetResourceDirRootPath(resourceDirRoot);
             
-            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirectory(RD_MESHES,             "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,     "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,     "../../../../Middleware_3/UI");
+            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../UnitTestResources/Textures");
+            fsSetRelativePathForResourceDirEnum(RD_MESHES,             "../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,     "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,     "../../../../Middleware_3/UI");
         }
         
 		InitCpuUsage();
@@ -318,7 +318,7 @@ class MultiThread: public IApp
 		// load all image to GPU
 		for (int i = 0; i < 5; ++i)
 		{
-            PathHandle path = fsCopyPathInResourceDirectory(RD_TEXTURES, pImageFileNames[i]);
+            PathHandle path = fsGetPathInResourceDirEnum(RD_TEXTURES, pImageFileNames[i]);
 			TextureLoadDesc textureDesc = {};
             textureDesc.pFilePath = path;
 			textureDesc.ppTexture = &pTextures[i];
@@ -327,7 +327,7 @@ class MultiThread: public IApp
 
 		for (int i = 0; i < 6; ++i)
 		{
-            PathHandle path = fsCopyPathInResourceDirectory(RD_TEXTURES, pSkyBoxImageFileNames[i]);
+            PathHandle path = fsGetPathInResourceDirEnum(RD_TEXTURES, pSkyBoxImageFileNames[i]);
 			TextureLoadDesc textureDesc = {};
 			textureDesc.pFilePath = path;
 			textureDesc.ppTexture = &pSkyBoxTextures[i];

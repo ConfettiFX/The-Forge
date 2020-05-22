@@ -47,44 +47,9 @@
 #include <metal_stdlib>
 using namespace metal;
 
+#include "hair.h"
+
 #define EPSILON 1e-7f
-
-struct CameraData
-{
-	float4x4 CamVPMatrix;
-	float4x4 CamInvVPMatrix;
-	float3 CamPos;
-	float fAmbientLightIntensity;
-	int bUseEnvironmentLight;
-	float fEnvironmentLightIntensity;
-	float fAOIntensity;
-
-	int renderMode;
-	float fNormalMapIntensity;
-};
-struct HairData
-{
-	float4x4 Transform;
-	uint RootColor;
-	uint StrandColor;
-	float ColorBias;
-	float Kd;
-	float Ks1;
-	float Ex1;
-	float Ks2;
-	float Ex2;
-	float FiberRadius;
-	float FiberSpacing;
-	uint NumVerticesPerStrand;
-};
-
-struct GlobalHairData
-{
-	float4 Viewport;
-	float4 Gravity;
-	float4 Wind;
-	float TimeStep;
-};
 
 float4 GetStrandColor(int index, uint RootColor, uint StrandColor, uint NumVerticesPerStrand, float ColorBias)
 {
@@ -96,34 +61,6 @@ float4 GetStrandColor(int index, uint RootColor, uint StrandColor, uint NumVerti
 
 	return mix(rootColor, strandColor, colorWeight);
 }
-
-struct VSData
-{
-    constant GlobalHairData& cbHairGlobal      [[id(0)]];
-};
-
-struct VSDataPerFrame
-{
-#if !defined(HAIR_SHADOW)
-    constant CameraData& cbCamera              [[id(0)]];
-#endif
-};
-
-struct VSDataPerBatch
-{
-#if defined(HAIR_SHADOW)
-    constant CameraData& cbCamera              [[id(0)]];
-#endif
-};
-
-struct VSDataPerDraw
-{
-    constant HairData& cbHair                  [[id(0)]];
-
-    constant float4* GuideHairVertexPositions  [[id(1)]];
-    constant float4* GuideHairVertexTangents   [[id(2)]];
-    constant float* HairThicknessCoefficients  [[id(3)]];
-};
 
 #if defined(HAIR_SHADOW)
 struct VSOutput

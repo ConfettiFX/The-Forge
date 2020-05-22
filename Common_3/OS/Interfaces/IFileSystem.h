@@ -52,7 +52,7 @@ typedef void (*FileDialogCallbackFn)(const Path* path, void* userData);
 bool fsInitAPI(void);
 
 /// Frees resources associated with the FileSystem API
-void fsDeinitAPI(void);
+void fsExitAPI(void);
 
 // MARK: - Path Operations
 
@@ -100,7 +100,7 @@ typedef struct PathComponent {
 void fsGetPathComponents(const Path* path, PathComponent* directoryName, PathComponent* fileName, PathComponent* extension);
 
 /// Copies `path`'s parent path, returning a new Path for which the caller has ownership. May return NULL if `path` has no parent.
-Path* fsCopyParentPath(const Path* path);
+Path* fsGetParentPath(const Path* path);
 
 /// Returns `path`'s directory name as a PathComponent. The return value is guaranteed to live for as long as `path` lives.
 PathComponent fsGetPathDirectoryName(const Path* path);
@@ -121,20 +121,20 @@ size_t fsGetLowercasedPathExtension(const Path* path, char* buffer, size_t maxLe
 /// The path string is guaranteed to live for as long as the Path object lives.
 const char* fsGetPathAsNativeString(const Path* path);
                  
+/// Returns if the path contains a certain name in the directory
+bool fsPathContainsString(const Path* path, const char * str);
+
 /// Returns true if `pathA` and `pathB` point to the same file within the same FileSystem.
 bool fsPathsEqual(const Path* pathA, const Path* pathB);
 
 // MARK: - FileSystem-Independent Queries
 
-/// Copies the current working directory path, returning a new Path for which the caller has ownership.
-Path* fsCopyWorkingDirectoryPath(void);
-
 /// Copies the path for the directory containing either the executable (on most platforms) or the app bundle (on macOS),
 /// returning a new Path for which the caller has ownership.
-Path* fsCopyProgramDirectoryPath(void);
+Path* fsGetApplicationDirectory(void);
 
 /// Copies the path to the currently running executable, returning a new Path for which the caller has ownership.
-Path* fsCopyExecutablePath(void);
+Path* fsGetApplicationPath(void);
 
 /// Copies the executable name (excluding its extension) to `buffer`, writing at most `maxLength` UTF-8 codepoints.
 /// Returns the length of the full executable name; if this is larger than `maxLength` only part of the executable name was written.
@@ -143,13 +143,13 @@ size_t fsGetExecutableName(char* buffer, size_t maxLength);
 
 /// Copies the path to the preferences directory for `organisation` and `application`, returning a new Path for which the caller has ownership.
 /// The path may not exist in its underlying file system; call `fsCreateDirectory` to create it.
-Path* fsCopyPreferencesDirectoryPath(const char* organisation, const char* application);
+Path* fsGetPreferencesDirectoryPath(const char* organisation, const char* application);
 
 /// Copies the path to the user's documents directory, returning a new Path for which the caller has ownership.
-Path* fsCopyUserDocumentsDirectoryPath(void);
+Path* fsGetUserSpecificPath(void);
 
-/// Copies the preferred path for output log files, returning a new Path for which the caller has ownership.
-Path* fsCopyLogFileDirectoryPath(void);
+/// Copies the path to the user's local app data directory, returning a new Path for which the caller has ownership.
+Path* fsGetAppTempDirectory(void);
 
 /// Displays an open file dialog for files in `directory`, calling `callback` for the selected file. The selection is filtered to only include files with extensions `fileExtensions` if `fileExtensionCount` is non-zero.
 void fsShowOpenFileDialog(const char* title, const Path* directory, FileDialogCallbackFn callback, void* userData, const char* fileDesc, const char** fileExtensions, size_t fileExtensionCount);
@@ -199,7 +199,7 @@ void fsEnumerateSubDirectories(const Path* directory, bool (*processDirectory)(c
 
 // MARK: - Resource Directories
 
-typedef enum ResourceDirectory
+typedef enum ResourceDirEnum
 {
     /// The main application's shader binaries folder
     RD_SHADER_BINARIES = 0,
@@ -227,48 +227,57 @@ typedef enum ResourceDirectory
     ____rd_lib_counter_end = ____rd_lib_counter_begin + 99 * 3,
     RD_ROOT,
     RD_COUNT
-} ResourceDirectory;
+} ResourceDirEnum;
 
 /// Gets the default relative path for `resourceDir``. For example, given `RD_SHADER_BINARIES`, the return value
 /// might be `Shaders/D3D12/Binary` for a DirectX 12 application.
-const char* fsGetDefaultRelativePathForResourceDirectory(ResourceDirectory resourceDir);
+const char* fsGetDefaultRelativePathForResourceDirEnum(ResourceDirEnum resourceDir);
 
 /// Returns true if resources are bundled together with the application on the target platform. 
 bool fsPlatformUsesBundledResources(void);
 
-/// Copies the path to the root ResourceDirectory for `fileSystem`, returning a new Path for which the caller has ownership.
-Path* fsCopyResourceDirectoryRootPath(void);
+/// Copies the path to the root ResourceDirEnum for `fileSystem`, returning a new Path for which the caller has ownership.
+Path* fsGetResourceDirRootPath(void);
 
 /// Copies the path to `resourceDir` within `fileSystem`, returning a new Path for which the caller has ownership.
-Path* fsCopyPathForResourceDirectory(ResourceDirectory resourceDir);
+Path* fsGetResourceDirEnumPath(ResourceDirEnum resourceDir);
 
 /// Forms a path by appending `relativePath` to the path for `resourceDir` in `fileSystem`, returning a new Path for which the caller has ownership.
-Path* fsCopyPathInResourceDirectory(ResourceDirectory resourceDir, const char* relativePath);
+Path* fsGetPathInResourceDirEnum(ResourceDirEnum resourceDir, const char* relativePath);
 
 /// Returns true if a file exists at `relativePath` within `resourceDir` on `fileSystem`.
-bool fsFileExistsInResourceDirectory(ResourceDirectory resourceDir, const char* relativePath);
+bool fsFileExistsInResourceDirEnum(ResourceDirEnum resourceDir, const char* relativePath);
 
 /// Sets the root resource directory path (which all other resource directory paths are by default relative to) to `path`.
-/// Equivalent to calling fsSetPathForResourceDirectory with RD_ROOT.
-///
+/// Equivalent to calling fsSetPathForResourceDirEnum with RD_ROOT.
+///fsGetResourceDirRootPath
 /// NOTE: This call is not thread-safe. It is the application's responsibility to ensure that
 /// no modifications to the file system are occurring at the time of this call.
-void fsSetResourceDirectoryRootPath(const Path* path);
+void fsSetResourceDirRootPath(const Path* path);
 
-/// Sets the absolute path for `resourceDir` to `path`. Future modifications through `fsSetResourceDirectoryRootPath`
+/// Sets the absolute path for `resourceDir` to `path`. Future modifications through `fsSetResourceDirRootPath`
 /// do not affect `resourceDir` after this call.
 ///
 /// NOTE: This call is not thread-safe. It is the application's responsibility to ensure that
 /// no modifications to the file system are occurring at the time of this call.
-void fsSetPathForResourceDirectory(ResourceDirectory resourceDir, const Path* path);
+void fsSetPathForResourceDirEnum(ResourceDirEnum resourceDir, const Path* path);
 
 /// Sets the relative path for `resourceDir` on `fileSystem` to `relativePath`, where the base path is the root resource directory path.
-/// If `fsSetResourceDirectoryRootPath` is called after this function, this function must be called again to ensure `resourceDir`'s path
+/// If `fsSetResourceDirRootPath` is called after this function, this function must be called again to ensure `resourceDir`'s path
 /// is relative to the new root path.
 ///
 /// NOTE: This call is not thread-safe. It is the application's responsibility to ensure that
 /// no modifications to the file system are occurring at the time of this call.
-void fsSetRelativePathForResourceDirectory(ResourceDirectory resourceDir, const char* relativePath);
+void fsSetRelativePathForResourceDirEnum(ResourceDirEnum resourceDir, const char* relativePath);
+
+/// Sets the preferred path for output log files.
+void fsSetLogFileDirectory(const Path* path);
+
+/// Copies the current path for output log files, returning a new Path for which the caller has ownership.
+Path* fsGetLogFileDirectory(void);
+
+/// Copies the preferred path for output log files, returning a new Path for which the caller has ownership.
+Path* fsGetPreferredLogDirectory();
 
 /// Resets all resource directories (including the root) on `fileSystem` to their default values.
 ///
@@ -291,6 +300,7 @@ typedef enum FileMode
     FM_WRITE = 1 << 1,
     FM_APPEND = 1 << 2,
     FM_BINARY = 1 << 3,
+    FM_ALLOW_READ = 1 << 4, // Read Access to Other Processes, Usefull for Log System
     FM_READ_WRITE = FM_READ | FM_WRITE,
     FM_READ_APPEND = FM_READ | FM_APPEND,
     FM_WRITE_BINARY = FM_WRITE | FM_BINARY,
@@ -298,6 +308,14 @@ typedef enum FileMode
     FM_APPEND_BINARY = FM_APPEND | FM_BINARY,
     FM_READ_WRITE_BINARY = FM_READ | FM_WRITE | FM_BINARY,
     FM_READ_APPEND_BINARY = FM_READ | FM_APPEND | FM_BINARY,
+    FM_WRITE_ALLOW_READ = FM_WRITE | FM_ALLOW_READ,
+    FM_APPEND_ALLOW_READ = FM_READ | FM_ALLOW_READ,
+    FM_READ_WRITE_ALLOW_READ = FM_READ | FM_WRITE | FM_ALLOW_READ,
+    FM_READ_APPEND_ALLOW_READ = FM_READ | FM_APPEND | FM_ALLOW_READ,
+    FM_WRITE_BINARY_ALLOW_READ = FM_WRITE | FM_BINARY | FM_ALLOW_READ,
+    FM_APPEND_BINARY_ALLOW_READ = FM_APPEND | FM_BINARY | FM_ALLOW_READ,
+    FM_READ_WRITE_BINARY_ALLOW_READ = FM_READ | FM_WRITE | FM_BINARY | FM_ALLOW_READ,
+    FM_READ_APPEND_BINARY_ALLOW_READ = FM_READ | FM_APPEND | FM_BINARY | FM_ALLOW_READ
 } FileMode;
 
 /// Converts `modeStr` to a `FileMode` mask, where `modeStr` follows the C standard library conventions
@@ -314,7 +332,7 @@ FileStream* fsOpenFile(const Path* filePath, FileMode mode);
 
 /// Opens the file at `relativePath` within `resourceDir` using the mode `mode`, returning
 /// a new FileStream that can be used to read from or modify the file. May return NULL if the file could not be opened.
-FileStream* fsOpenFileInResourceDirectory(ResourceDirectory resourceDir, const char *relativePath, FileMode mode);
+FileStream* fsOpenFileInResourceDirEnum(ResourceDirEnum resourceDir, const char *relativePath, FileMode mode);
 
 /// Opens a FILE* as a FileStream. The caller 
 FileStream* fsCreateStreamFromFILE(FILE* file);
@@ -460,7 +478,7 @@ FileSystem* fsCreateFileSystemFromFileAtPath(const Path* rootPath, FileSystemFla
 /// If `fileSystem` is parented under another file system (e.g. is a zip file system), returns the path
 /// to the file system under its parent file system.
 /// Otherwise, returns NULL.
-Path* fsCopyPathInParentFileSystem(const FileSystem* fileSystem);
+Path* fsGetPathInParentFileSystem(const FileSystem* fileSystem);
 
 /// Decrements the reference count for `fileSystem`, freeing it if there are no outstanding references.
 /// NOTE: `Path`s and `FileStream`s hold references to their FileSystem.
@@ -516,8 +534,13 @@ public:
     
     inline PathHandle(const PathHandle& other) : pPath(fsCopyPath(other.pPath)) {}
     
-    inline ~PathHandle() {
+    inline void Release() { //NOTE(Erfan): reason = release static PathHandles before MemLeak Detection -> Find Better 
         fsFreePath(pPath);
+        pPath = nullptr;
+    }
+
+    inline ~PathHandle() {
+        Release();
     }
     
     inline operator const Path*() const { return pPath; }
@@ -576,6 +599,9 @@ eastl::vector<PathHandle> fsGetFilesWithExtension(const Path* directory, const c
 
 /// Collects the results of calling `fsEnumerateSubdirectories` with `directory` into an `eastl::vector<PathHandle>`.
 eastl::vector<PathHandle> fsGetSubDirectories(const Path* directory);
+
+/// Sorts all path handles by their path name in alphabetic order
+void fsSortPathHandlesByName(eastl::vector<PathHandle>& pathHandles);
 
 #endif // defined(EASTL_VECTOR_H) && !defined(IFileSystem_h_STLVector)
 

@@ -36,7 +36,6 @@
 #include "../OS/Interfaces/ILog.h"
 #include "../OS/Interfaces/IThread.h"
 #include "../OS/Image/Image.h"
-
 //this is needed for unix as PATH_MAX is defined instead of MAX_PATH
 #ifndef _WIN32
 //linux needs limits.h for PATH_MAX
@@ -77,6 +76,11 @@ extern void updateVirtualTexture(Renderer* pRenderer, Queue* pQueue, Texture* pT
 #endif
 
 #define MAX_FRAMES 3U
+
+#ifdef DIRECT3D11
+Mutex gContextLock;
+#endif
+
 //////////////////////////////////////////////////////////////////////////
 // Internal TextureUpdateDesc
 // Used internally as to not expose Image class in the public interface
@@ -408,6 +412,9 @@ static void waitCopyEngineSet(Renderer* pRenderer, CopyEngine* pCopyEngine, size
 {
 	ASSERT(!pCopyEngine->isRecording);
 	CopyResourceSet& resourceSet = pCopyEngine->resourceSets[activeSet];
+#ifdef DIRECT3D11
+	MutexLock lock(gContextLock);
+#endif
 	waitForFences(pRenderer, 1, &resourceSet.pFence);
 }
 
@@ -420,7 +427,10 @@ static void resetCopyEngineSet(Renderer* pRenderer, CopyEngine* pCopyEngine, siz
 #if defined(DIRECT3D11)
 	Buffer* pStagingBuffer = pCopyEngine->resourceSets[activeSet].mBuffer;
 	if (!pStagingBuffer->pCpuMappedAddress)
+	{
+		MutexLock lock(gContextLock);
 		mapBuffer(pResourceLoader->pRenderer, pCopyEngine->resourceSets[activeSet].mBuffer, NULL);
+	}
 #endif
 
 	for (Buffer*& buffer : pCopyEngine->resourceSets[activeSet].mTempBuffers)
@@ -450,10 +460,13 @@ static void streamerFlush(CopyEngine* pCopyEngine, size_t activeSet)
 		submitDesc.ppCmds = &resourceSet.pCmd;
 		submitDesc.pSignalFence = resourceSet.pFence;
 
+		{
 #if defined(DIRECT3D11)
-		unmapBuffer(pResourceLoader->pRenderer, resourceSet.mBuffer);
+			MutexLock lock(gContextLock);
+			unmapBuffer(pResourceLoader->pRenderer, resourceSet.mBuffer);
 #endif
-		queueSubmit(pCopyEngine->pQueue, &submitDesc);
+			queueSubmit(pCopyEngine->pQueue, &submitDesc);
+		}
 		pCopyEngine->isRecording = false;
 	}
 }
@@ -496,7 +509,10 @@ static MappedMemoryRange allocateStagingMemory(uint64_t memoryRequirement, uint3
 			bufferDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 			addBuffer(pResourceLoader->pRenderer, &bufferDesc, &buffer);
 #if defined(DIRECT3D11)
-			mapBuffer(pResourceLoader->pRenderer, buffer, NULL);
+			{
+				MutexLock lock(gContextLock);
+				mapBuffer(pResourceLoader->pRenderer, buffer, NULL);
+			}
 #endif
 			pResourceSet->mTempBuffers.emplace_back(buffer);
 			return { (uint8_t*)buffer->pCpuMappedAddress, pResourceSet->mTempBuffers.back(), 0, memoryRequirement };
@@ -522,7 +538,10 @@ static MappedMemoryRange allocateStagingMemory(uint64_t memoryRequirement, uint3
 	bufferDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 	addBuffer(pResourceLoader->pRenderer, &bufferDesc, &buffer);
 #if defined(DIRECT3D11)
-	mapBuffer(pResourceLoader->pRenderer, buffer, NULL);
+	{
+		MutexLock lock(gContextLock);
+		mapBuffer(pResourceLoader->pRenderer, buffer, NULL);
+	}
 #endif
 	pResourceSet->mTempBuffers.emplace_back(buffer);
 	return { (uint8_t*)buffer->pCpuMappedAddress, pResourceSet->mTempBuffers.back(), 0, memoryRequirement };
@@ -629,9 +648,9 @@ uint64_t GetMipMappedSizeUpTo(uint3 dims, uint32_t nMipMapLevels, int32_t slices
 	uint64_t size = 0;
 	for (uint32_t i = 0; i < nMipMapLevels; ++i)
 	{
-		uint64_t bx = TinyImageFormat_WidthOfBlock(format);
-		uint64_t by = TinyImageFormat_HeightOfBlock(format);
-		uint64_t bz = TinyImageFormat_DepthOfBlock(format);
+		uint64_t bx = min(1u, TinyImageFormat_WidthOfBlock(format));
+		uint64_t by = min(1u, TinyImageFormat_HeightOfBlock(format));
+		uint64_t bz = min(1u, TinyImageFormat_DepthOfBlock(format));
 
 		uint64_t tmpsize = ((w + bx - 1) / bx) * ((h + by - 1) / by) * ((d + bz - 1) / bz);
 		tmpsize *= slices;
@@ -731,7 +750,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
 	uint32_t	nSlices;
 	uint32_t	arrayCount;
 
-	blockSize = TinyImageFormat_BitSizeOfBlock(fmt) / 8;
+	blockSize = min(1u, TinyImageFormat_BitSizeOfBlock(fmt) / 8);
 	pxBlockDim = { TinyImageFormat_WidthOfBlock(fmt),
 								 TinyImageFormat_HeightOfBlock(fmt),
 								 TinyImageFormat_DepthOfBlock(fmt) };
@@ -1111,8 +1130,6 @@ static inline constexpr TinyImageFormat cgltf_type_to_image_format(cgltf_type ty
 	case cgltf_type_scalar:
 		if (cgltf_component_type_r_8 == compType)
 			return TinyImageFormat_R8_SINT;
-		else if (cgltf_component_type_r_16u == compType)
-			return TinyImageFormat_R8_UINT;
 		else if (cgltf_component_type_r_16 == compType)
 			return TinyImageFormat_R16_SINT;
 		else if (cgltf_component_type_r_16u == compType)
@@ -1124,8 +1141,6 @@ static inline constexpr TinyImageFormat cgltf_type_to_image_format(cgltf_type ty
 	case cgltf_type_vec2:
 		if (cgltf_component_type_r_8 == compType)
 			return TinyImageFormat_R8G8_SINT;
-		else if (cgltf_component_type_r_16u == compType)
-			return TinyImageFormat_R8G8_UINT;
 		else if (cgltf_component_type_r_16 == compType)
 			return TinyImageFormat_R16G16_SINT;
 		else if (cgltf_component_type_r_16u == compType)
@@ -1137,8 +1152,6 @@ static inline constexpr TinyImageFormat cgltf_type_to_image_format(cgltf_type ty
 	case cgltf_type_vec3:
 		if (cgltf_component_type_r_8 == compType)
 			return TinyImageFormat_R8G8B8_SINT;
-		else if (cgltf_component_type_r_16u == compType)
-			return TinyImageFormat_R8G8B8_UINT;
 		else if (cgltf_component_type_r_16 == compType)
 			return TinyImageFormat_R16G16B16_SINT;
 		else if (cgltf_component_type_r_16u == compType)
@@ -1150,8 +1163,6 @@ static inline constexpr TinyImageFormat cgltf_type_to_image_format(cgltf_type ty
 	case cgltf_type_vec4:
 		if (cgltf_component_type_r_8 == compType)
 			return TinyImageFormat_R8G8B8A8_SINT;
-		else if (cgltf_component_type_r_16u == compType)
-			return TinyImageFormat_R8G8B8A8_UINT;
 		else if (cgltf_component_type_r_16 == compType)
 			return TinyImageFormat_R16G16B16A16_SINT;
 		else if (cgltf_component_type_r_16u == compType)
@@ -1347,7 +1358,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 			return UPLOAD_FUNCTION_RESULT_INVALID_REQUEST;
 		}
 
-#ifdef _DEBUG
+#ifdef FORGE_DEBUG
 		result = cgltf_validate(data);
 		if (cgltf_result_success != result)
 		{
@@ -1367,7 +1378,7 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 
 			if (strncmp(uri, "data:", 5) != 0 && !strstr(uri, "://"))
 			{
-				Path* parent = fsCopyParentPath(pDesc->pFilePath);
+				Path* parent = fsGetParentPath(pDesc->pFilePath);
 				Path* path = fsAppendPathComponent(parent, uri);
 				FileStream* fs = fsOpenFile(path, FM_READ_BINARY);
 				if (fs)
@@ -1685,12 +1696,13 @@ static UploadFunctionResult loadGeometry(Renderer* pRenderer, CopyEngine* pCopyE
 			{
 				const char* jointRemaps = (const char*)data->json + skin->extras.start_offset;
 				jsmn_parser parser = {};
-				jsmntok_t* tokens = (jsmntok_t*)alloca((skin->joints_count + 1) * sizeof(jsmntok_t));
+				jsmntok_t* tokens = (jsmntok_t*)conf_malloc((skin->joints_count + 1) * sizeof(jsmntok_t));
 				jsmn_parse(&parser, (const char*)jointRemaps, extrasSize, tokens, skin->joints_count + 1);
 				ASSERT(tokens[0].size == skin->joints_count + 1);
 				cgltf_accessor_unpack_floats(skin->inverse_bind_matrices, (cgltf_float*)geom->pInverseBindPoses, skin->joints_count * sizeof(float[16]) / sizeof(float));
 				for (uint32_t r = 0; r < skin->joints_count; ++r)
 					geom->pJointRemaps[remapCount + r] = atoi(jointRemaps + tokens[1 + r].start);
+				conf_free(tokens);
 			}
 
 			remapCount += (uint32_t)skin->joints_count;
@@ -1797,6 +1809,7 @@ static void streamerThreadFunc(void* pThreadData)
 	for (uint32_t i = 0; i < linkedGPUCount; ++i)
 	{
 		Buffer* pStagingBuffer = pLoader->pCopyEngines[i].resourceSets[pLoader->mActiveSetIndex].mBuffer;
+		MutexLock lock(gContextLock);
 		mapBuffer(pLoader->pRenderer, pStagingBuffer, NULL);
 	}
 #endif
@@ -1824,7 +1837,7 @@ static void streamerThreadFunc(void* pThreadData)
 			pLoader->mTokenCond.WakeAll();
 
 			// Sleep until someone adds an update request to the queue
-			pLoader->mQueueCond.Wait(pLoader->mQueueMutex);
+			pLoader->mQueueCond.Wait(pLoader->mQueueMutex);	
 		}
 		pLoader->mQueueMutex.Release();
 
@@ -1964,6 +1977,9 @@ static void streamerThreadFunc(void* pThreadData)
 	for (uint32_t i = 0; i < linkedGPUCount; ++i)
 	{
 		streamerFlush(&pLoader->pCopyEngines[i], pLoader->mActiveSetIndex);
+#ifdef DIRECT3D11
+		MutexLock lock(gContextLock);
+#endif
 		waitQueueIdle(pLoader->pCopyEngines[i].pQueue);
 		cleanupCopyEngine(pLoader->pRenderer, &pLoader->pCopyEngines[i]);
 	}
@@ -2003,6 +2019,8 @@ static void addResourceLoader(Renderer* pRenderer, ResourceLoaderDesc* pDesc, Re
 #if defined(NX64)
 	pLoader->mThreadDesc.pThreadStack = aligned_alloc(THREAD_STACK_ALIGNMENT_NX, ALIGNED_THREAD_STACK_SIZE_NX);
 	pLoader->mThreadDesc.hThread = &pLoader->mThreadType;
+	pLoader->mThreadDesc.pThreadName = "ResourceLoaderTask";
+	pLoader->mThreadDesc.preferredCore = 1;
 #endif
 
 	pLoader->mThread = create_thread(&pLoader->mThreadDesc);
@@ -2148,6 +2166,9 @@ static void waitForToken(ResourceLoader* pLoader, const SyncToken* token)
 
 void initResourceLoaderInterface(Renderer* pRenderer, ResourceLoaderDesc* pDesc)
 {
+#ifdef DIRECT3D11
+	gContextLock.Init();
+#endif
 	addResourceLoader(pRenderer, pDesc, &pResourceLoader);
 
 	ResourceLoader::InitImageClass();
@@ -2158,6 +2179,9 @@ void exitResourceLoaderInterface(Renderer* pRenderer)
 	ResourceLoader::ExitImageClass();
 
 	removeResourceLoader(pResourceLoader);
+#ifdef DIRECT3D11
+	gContextLock.Destroy();
+#endif
 }
 
 static uint64_t getMaximumStagingAllocationSize()
@@ -2384,6 +2408,9 @@ void beginUpdateResource(BufferUpdateDesc* pBufferUpdate)
 
 		if (map)
 		{
+#ifdef DIRECT3D11
+			MutexLock lock(gContextLock);
+#endif
 			mapBuffer(pResourceLoader->pRenderer, pBuffer, NULL);
 		}
 
@@ -2455,6 +2482,9 @@ void endUpdateResource(BufferUpdateDesc* pBufferUpdate, SyncToken* token)
 {
 	if (pBufferUpdate->mInternalData.mBufferNeedsUnmap)
 	{
+#ifdef DIRECT3D11
+		MutexLock lock(gContextLock);
+#endif
 		unmapBuffer(pResourceLoader->pRenderer, pBufferUpdate->pBuffer);
 	}
 
@@ -2597,7 +2627,7 @@ void vk_compileShader(
 	Renderer* pRenderer, ShaderTarget target, const Path* filePath, const Path* outFilePath, uint32_t macroCount,
 	ShaderMacro* pMacros, eastl::vector<char>* pByteCode, const char* pEntryPoint)
 {
-	PathHandle parentDirectory = fsCopyParentPath(outFilePath);
+	PathHandle parentDirectory = fsGetParentPath(outFilePath);
 	if (!fsFileExists(parentDirectory))
 		fsCreateDirectory(parentDirectory);
 
@@ -2693,7 +2723,7 @@ void mtl_compileShader(
 	eastl::vector<char>* pByteCode, const char* /*pEntryPoint*/)
 {
 
-	PathHandle outFileDirectory = fsCopyParentPath(outFilePath);
+	PathHandle outFileDirectory = fsGetParentPath(outFilePath);
 	if (!fsFileExists(outFileDirectory))
 	{
 		fsCreateDirectory(outFileDirectory);
@@ -2807,7 +2837,7 @@ static bool process_source_file(const char* pAppName, FileStream* original, cons
 		return true; // The source file is missing, but we may still be able to use the shader binary.
 	}
 
-	PathHandle fileDirectory = fsCopyParentPath(filePath);
+	PathHandle fileDirectory = fsGetParentPath(filePath);
 
 	const eastl::string pIncludeDirective = "#include";
 	while (!fsStreamAtEnd(file))
@@ -2930,7 +2960,7 @@ bool check_for_byte_code(const Path* binaryShaderPath, time_t sourceTimeStamp, e
 // Saves bytecode to a file
 bool save_byte_code(const Path* binaryShaderPath, const eastl::vector<char>& byteCode)
 {
-	PathHandle parentDirectory = fsCopyParentPath(binaryShaderPath);
+	PathHandle parentDirectory = fsGetParentPath(binaryShaderPath);
 	if (!fsFileExists(parentDirectory))
 	{
 		fsCreateDirectory(parentDirectory);
@@ -2975,7 +3005,7 @@ bool load_shader_stage_byte_code(
 	MurmurHash3_x86_32(shaderDefines.c_str(), shaderDefines.size(), 0, &hash);
 
 	char hashStringBuffer[10];
-	sprintf(&hashStringBuffer[0], "%zu", hash);
+	sprintf(&hashStringBuffer[0], "%zu", (size_t)hash);
 
 	PathHandle nxShaderPath = fsAppendPathExtension(filePath, hashStringBuffer);
 	nxShaderPath = fsAppendPathExtension(nxShaderPath, "spv");
@@ -3045,7 +3075,7 @@ bool load_shader_stage_byte_code(
 		eastl::string().sprintf("_%zu", eastl::string_hash<eastl::string>()(shaderDefines)) + fsPathComponentToString(extension) +
 		eastl::string().sprintf("%u", target) + ".bin";
 
-	PathHandle binaryShaderPath = fsCopyPathInResourceDirectory(RD_SHADER_BINARIES, binaryShaderComponent.c_str());
+	PathHandle binaryShaderPath = fsGetPathInResourceDirEnum(RD_SHADER_BINARIES, binaryShaderComponent.c_str());
 #endif
 
 	// Shader source is newer than binary
@@ -3053,7 +3083,7 @@ bool load_shader_stage_byte_code(
 	{
 		if (!sourceFileStream)
 		{
-			LOGF(eERROR, "No source shader or precompiled binary present for file %s", fileName);
+			LOGF(eERROR, "No source shader or precompiled binary present for file %s", fileName.buffer);
 			fsCloseStream(sourceFileStream);
 			return false;
 		}
@@ -3098,7 +3128,7 @@ bool load_shader_stage_byte_code(
 		}
 		if (!byteCode.size())
 		{
-			LOGF(eERROR, "Error while generating bytecode for shader %s", fileName);
+			LOGF(eERROR, "Error while generating bytecode for shader %s", fileName.buffer);
 			fsCloseStream(sourceFileStream);
 			return false;
 		}
@@ -3206,6 +3236,7 @@ bool find_shader_stage(
 #endif
 void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShader)
 {
+#ifndef DIRECT3D11
 	if ((uint32_t)pDesc->mTarget > pRenderer->mShaderTarget)
 	{
 		eastl::string error = eastl::string().sprintf("Requested shader target (%u) is higher than the shader target that the renderer supports (%u). Shader wont be compiled",
@@ -3213,6 +3244,7 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 		LOGF(LogLevel::eERROR, error.c_str());
 		return;
 	}
+#endif
 
 #ifndef TARGET_IOS
 
@@ -3227,12 +3259,12 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 	{
 		if (pDesc->mStages[i].pFileName && strlen(pDesc->mStages[i].pFileName) != 0)
 		{
-			ResourceDirectory resourceDir = pDesc->mStages[i].mRoot;
+			ResourceDirEnum resourceDir = pDesc->mStages[i].mRoot;
 
-			PathHandle resourceDirBasePath = fsCopyPathForResourceDirectory(resourceDir);
+			PathHandle resourceDirBasePath = fsGetResourceDirEnumPath(resourceDir);
 
 			if (resourceDir != RD_SHADER_SOURCES && resourceDir != RD_ROOT) {
-				resourceDirBasePath = fsAppendPathComponent(resourceDirBasePath, fsGetDefaultRelativePathForResourceDirectory(RD_SHADER_SOURCES));
+				resourceDirBasePath = fsAppendPathComponent(resourceDirBasePath, fsGetDefaultRelativePathForResourceDirEnum(RD_SHADER_SOURCES));
 			}
 
 			PathHandle filePath = fsAppendPathComponent(resourceDirBasePath, pDesc->mStages[i].pFileName);
@@ -3248,12 +3280,12 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 	{
 		if (pDesc->mStages[i].pFileName && strlen(pDesc->mStages[i].pFileName) != 0)
 		{
-			ResourceDirectory resourceDir = pDesc->mStages[i].mRoot;
+			ResourceDirEnum resourceDir = pDesc->mStages[i].mRoot;
 
-			PathHandle resourceDirBasePath = fsCopyPathForResourceDirectory(resourceDir);
+			PathHandle resourceDirBasePath = fsGetResourceDirEnumPath(resourceDir);
 
 			if (resourceDir != RD_SHADER_SOURCES && resourceDir != RD_ROOT) {
-				resourceDirBasePath = fsAppendPathComponent(resourceDirBasePath, fsGetDefaultRelativePathForResourceDirectory(RD_SHADER_SOURCES));
+				resourceDirBasePath = fsAppendPathComponent(resourceDirBasePath, fsGetDefaultRelativePathForResourceDirEnum(RD_SHADER_SOURCES));
 			}
 
 			PathHandle filePath = fsAppendPathComponent(resourceDirBasePath, pDesc->mStages[i].pFileName);
@@ -3322,12 +3354,12 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** ppShad
 	{
 		if (pDesc->mStages[i].pFileName && strlen(pDesc->mStages[i].pFileName))
 		{
-			ResourceDirectory resourceDir = pDesc->mStages[i].mRoot;
+			ResourceDirEnum resourceDir = pDesc->mStages[i].mRoot;
 
-			PathHandle resourceDirBasePath = fsCopyPathForResourceDirectory(resourceDir);
+			PathHandle resourceDirBasePath = fsGetResourceDirEnumPath(resourceDir);
 
 			if (resourceDir != RD_SHADER_SOURCES && resourceDir != RD_ROOT) {
-				resourceDirBasePath = fsAppendPathComponent(resourceDirBasePath, fsGetDefaultRelativePathForResourceDirectory(RD_SHADER_SOURCES));
+				resourceDirBasePath = fsAppendPathComponent(resourceDirBasePath, fsGetDefaultRelativePathForResourceDirEnum(RD_SHADER_SOURCES));
 			}
 
 			PathHandle filePath = fsAppendPathComponent(resourceDirBasePath, pDesc->mStages[i].pFileName);

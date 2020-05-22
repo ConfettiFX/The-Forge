@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		5B17816F22A5C84300991DCB /* profile.vert.metal in Copy Files */ = {isa = PBXBuildFile; fileRef = 5B17816D22A5C84300991DCB /* profile.vert.metal */; };
-		5B17817022A5C84300991DCB /* profile.frag.metal in Copy Files */ = {isa = PBXBuildFile; fileRef = 5B17816E22A5C84300991DCB /* profile.frag.metal */; };
+
+
 		5C17300521414D110074EE71 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C17300421414D110074EE71 /* AppDelegate.m */; };
 		5C17300621414D310074EE71 /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C17300221414CFA0074EE71 /* libThe-Forge_iOS.a */; };
 		5C55835021413FD10019960B /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C55833D21413EE30019960B /* libThe-Forge.a */; };
@@ -112,8 +112,8 @@
 			dstSubfolderSpec = 7;
 			files = (
 				E991F94F2378EC2000F4DB3A /* MissShader.h in Copy Files */,
-				5B17816F22A5C84300991DCB /* profile.vert.metal in Copy Files */,
-				5B17817022A5C84300991DCB /* profile.frag.metal in Copy Files */,
+
+
 				6562C85422084D2E00721714 /* DisplayTexture.frag.metal in Copy Files */,
 				6562C85522084D2E00721714 /* DisplayTexture.vert.metal in Copy Files */,
 				6562C8272208031B00721714 /* MissShadow.rmiss.metal in Copy Files */,
@@ -148,8 +148,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		5B17816D22A5C84300991DCB /* profile.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.vert.metal; path = ../../src/16_Raytracing/Shaders/Metal/profile.vert.metal; sourceTree = "<group>"; };
-		5B17816E22A5C84300991DCB /* profile.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.frag.metal; path = ../../src/16_Raytracing/Shaders/Metal/profile.frag.metal; sourceTree = "<group>"; };
+
+
 		5C17300321414D110074EE71 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
 		5C17300421414D110074EE71 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
 		5C55833721413EE30019960B /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
@@ -325,8 +325,8 @@
 				E991F9612378F38F00F4DB3A /* UnitTestResources */,
 				E930187C235EC057007D1D12 /* Meshes */,
 				E930187B235EC057007D1D12 /* Textures */,
-				5B17816E22A5C84300991DCB /* profile.frag.metal */,
-				5B17816D22A5C84300991DCB /* profile.vert.metal */,
+
+
 				6512E9F022098AA700B24B31 /* 16_Raytracing.cpp */,
 				6562C80A2207FE5200721714 /* CommonShaders */,
 				5C55833721413EE30019960B /* The-Forge.xcodeproj */,

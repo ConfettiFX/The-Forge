@@ -118,13 +118,7 @@ FileSystem* fsGetSystemFileSystem() {
     return &gDefaultFS;
 }
 
-Path* fsCopyWorkingDirectoryPath() {
-    NSString *directoryPath = [NSFileManager defaultManager].currentDirectoryPath;
-    const char *utf8String = directoryPath.UTF8String;
-    return fsCreatePath(fsGetSystemFileSystem(), utf8String);
-}
-
-Path* fsCopyProgramDirectoryPath() {
+Path* fsGetApplicationDirectory() {
 #if TARGET_OS_IPHONE
     NSString *directoryPath = [NSBundle mainBundle].bundlePath;
 #else
@@ -134,7 +128,7 @@ Path* fsCopyProgramDirectoryPath() {
     return fsCreatePath(fsGetSystemFileSystem(), [directoryPath UTF8String]);
 }
 
-Path* fsCopyExecutablePath() {
+Path* fsGetApplicationPath() {
     NSString *path = [[NSBundle mainBundle] executablePath];
     const char *utf8String = [path UTF8String];
     return fsCreatePath(fsGetSystemFileSystem(), utf8String);
@@ -165,7 +159,7 @@ Path* fsCopyPreferencesDirectoryPath(const char* organisation, const char* appli
     return fsCreatePath(fsGetSystemFileSystem(), [[fullURL path] UTF8String]);
 }
 
-Path* fsCopyUserDocumentsDirectoryPath() {
+Path* fsGetUserSpecificPath() {
     NSFileManager *fileManager = [NSFileManager defaultManager];
     
     NSError *error = nil;
@@ -179,7 +173,7 @@ Path* fsCopyUserDocumentsDirectoryPath() {
 }
 
 
-Path* fsCopyLogFileDirectoryPath() {
+Path* fsGetPreferredLogDirectory() {
 #if TARGET_OS_IPHONE
     // Place log files in the application support directory on iOS.
     NSFileManager *fileManager = [NSFileManager defaultManager];
@@ -189,6 +183,6 @@ Path* fsCopyLogFileDirectoryPath() {
     
     return fsCreatePath(fsGetSystemFileSystem(), url.path.UTF8String);
 #else
-    return fsCopyProgramDirectoryPath();
+    return fsGetApplicationDirectory();
 #endif
 }

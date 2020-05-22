@@ -899,10 +899,10 @@ struct InputSystemImpl : public gainput::InputListener
 			ctx.mDeviceType = pDeviceTypes[device];
 			ctx.pCaptured = IsPointerType(device) ? &mInputCaptured : &mDefaultCapture;
 #if TOUCH_INPUT
-			const uint32_t touchIndex = 0; 
+			uint32_t touchIndex = 0;
 			if (device == mTouchDeviceID)
 			{
-				const uint32_t touchIndex = TOUCH_USER(deviceButton);
+				touchIndex = TOUCH_USER(deviceButton);
 				gainput::InputDeviceTouch* pTouch = (gainput::InputDeviceTouch*)pInputManager->GetDevice(mTouchDeviceID);
 				mTouchPositions[touchIndex][0] = pTouch->GetFloat(TOUCH_X(touchIndex));
 				mTouchPositions[touchIndex][1] = pTouch->GetFloat(TOUCH_Y(touchIndex));

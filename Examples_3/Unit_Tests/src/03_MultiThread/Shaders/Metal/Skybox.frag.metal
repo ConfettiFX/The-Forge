@@ -35,13 +35,16 @@ struct VSOutput {
 };
 
 struct FSData {
-    sampler uSkyboxSampler                       [[id(0)]];
-    texture2d<float,access::sample> RightText    [[id(1)]];
-    texture2d<float,access::sample> LeftText     [[id(2)]];
-    texture2d<float,access::sample> TopText      [[id(3)]];
-    texture2d<float,access::sample> BotText      [[id(4)]];
-    texture2d<float,access::sample> FrontText    [[id(5)]];
-    texture2d<float,access::sample> BackText     [[id(6)]];
+    sampler uSkyboxSampler                   ;
+    texture2d<float,access::sample> RightText;
+    texture2d<float,access::sample> LeftText ;
+    texture2d<float,access::sample> TopText  ;
+    texture2d<float,access::sample> BotText  ;
+    texture2d<float,access::sample> FrontText;
+    texture2d<float,access::sample> BackText ;
+	
+    sampler uSampler0;
+    texture1d<float,access::sample> uTex0[5];
 };
 
 fragment float4 stageMain(

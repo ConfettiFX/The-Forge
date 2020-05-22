@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		5B1781A022A5C91900991DCB /* profile.vert.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5B17819D22A5C91900991DCB /* profile.vert.metal */; };
-		5B1781A122A5C91900991DCB /* profile.frag.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5B17819F22A5C91900991DCB /* profile.frag.metal */; };
+
+
 		5C5A23AE21F0AD44006B09C7 /* fontstash.frag.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5C5A23A621F0AD3B006B09C7 /* fontstash.frag.metal */; };
 		5C5A23AF21F0AD44006B09C7 /* fontstash2D.vert.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5C5A23A721F0AD3B006B09C7 /* fontstash2D.vert.metal */; };
 		5C5A23B021F0AD44006B09C7 /* fontstash3D.vert.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5C5A23A521F0AD3B006B09C7 /* fontstash3D.vert.metal */; };
@@ -211,8 +211,8 @@
 			dstPath = Shaders/Metal;
 			dstSubfolderSpec = 7;
 			files = (
-				5B1781A022A5C91900991DCB /* profile.vert.metal in CopyFiles */,
-				5B1781A122A5C91900991DCB /* profile.frag.metal in CopyFiles */,
+
+
 				5C5A23AE21F0AD44006B09C7 /* fontstash.frag.metal in CopyFiles */,
 				5C5A23AF21F0AD44006B09C7 /* fontstash2D.vert.metal in CopyFiles */,
 				5C5A23B021F0AD44006B09C7 /* fontstash3D.vert.metal in CopyFiles */,
@@ -242,8 +242,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		5B17819D22A5C91900991DCB /* profile.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.vert.metal; path = ../../src/28_Skinning/Shaders/Metal/profile.vert.metal; sourceTree = "<group>"; };
-		5B17819F22A5C91900991DCB /* profile.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.frag.metal; path = ../../src/28_Skinning/Shaders/Metal/profile.frag.metal; sourceTree = "<group>"; };
+
+
 		5C5A239921F0AD33006B09C7 /* imgui.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = imgui.frag.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/imgui.frag.metal; sourceTree = "<group>"; };
 		5C5A239A21F0AD33006B09C7 /* textured_mesh.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = textured_mesh.frag.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/textured_mesh.frag.metal; sourceTree = "<group>"; };
 		5C5A239B21F0AD33006B09C7 /* textured_mesh.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = textured_mesh.vert.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/textured_mesh.vert.metal; sourceTree = "<group>"; };
@@ -442,8 +442,8 @@
 			isa = PBXGroup;
 			children = (
 				B231A1A023F2E2AD006D7450 /* AssetPipelineCmd.xcodeproj */,
-				5B17819F22A5C91900991DCB /* profile.frag.metal */,
-				5B17819D22A5C91900991DCB /* profile.vert.metal */,
+
+
 				5C5A239721F0AD24006B09C7 /* CommonShaders */,
 				B2B7405621755BC200324803 /* Shaders */,
 				B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */,

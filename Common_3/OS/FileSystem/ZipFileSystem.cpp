@@ -74,7 +74,7 @@ ZipFileSystem* ZipFileSystem::CreateWithRootAtPath(const Path* rootPath, FileSys
 
 ZipFileSystem::ZipFileSystem(const Path* pathInParent, zip_t* zipFile, FileSystemFlags flags, time_t creationTime, time_t lastAccessedTime):
 	FileSystem(FSK_ZIP),
-    pPathInParent(fsCopyPath(pathInParent)),
+	pPathInParent(fsCopyPath(pathInParent)),
 	pZipFile(zipFile),
 	mFlags(flags),
 	mCreationTime(creationTime),
@@ -101,7 +101,12 @@ bool ZipFileSystem::IsCaseSensitive() const {
 
 char ZipFileSystem::GetPathDirectorySeparator() const { return '/'; }
 
-size_t ZipFileSystem::GetRootPathLength() const { return 0; }
+size_t ZipFileSystem::GetDefaultRootPathLength() const { return 0; }
+
+size_t ZipFileSystem::GetRootPathLength(const Path* path) const
+{
+	return GetDefaultRootPathLength();
+}
 
 bool ZipFileSystem::FormRootPath(const char* absolutePathString, Path* path, size_t* pathComponentOffset) const
 {

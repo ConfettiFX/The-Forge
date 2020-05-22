@@ -173,35 +173,15 @@ def ExecuteTimedCommand(cmdList,outStream=subprocess.PIPE):
 			print("Executing Timed command: " + ' '.join(cmdList))
 		else:
 			print("Executing Timed command: " + cmdList)		
-
-		#open subprocess without piping output
-		# otherwise process blocks until we call communicate or wait
-		proc = subprocess.Popen(cmdList, stdout=None, stderr=None)		
 		
-		#get start time of process
-		startTime = time.time()
-		
-		"""Wait for a process to finish, or raise exception after timeout"""
-		end = startTime + maxIdleTime
-		interval = max(maxIdleTime / 1000.0, 0.005)
-		
-		#loop until time expires or process exits alone
-		while True:
-			result = proc.poll()
-			if result is not None:
-				break
-			if time.time() >= end:
-				print ("Killed Application. Something went wrong with the app, it was idle for too long.")
-				proc.kill()
-				proc.wait()
-				break
-			time.sleep(interval)
-			
-		rc = proc.returncode
-		if rc != 0:			
-			print("Process was killed or has crashed.")
-			return rc
-
+		#10 minutes timeout
+		proc = subprocess.run(cmdList, capture_output=True, timeout=maxIdleTime)
+		if proc.returncode != 0:
+			return proc.returncode
+	except subprocess.TimeoutExpired as timeout:
+		print(timeout)
+		print("App hanged and was forcibly closed.")
+		return -1
 	except Exception as ex:
 		print("-------------------------------------")
 		if isinstance(cmdList, list): 
@@ -1156,9 +1136,21 @@ def AndroidADBCheckRunningProcess(adbCommand, processName, packageName):
 		output = ExecuteCommandWOutput(adbCommand, False)
 		output = (b"".join(output)).decode('utf-8')
 		print(output)
+		
+		# try to match the number of leaks. if this doesn't match a valid ressult then no leaks were detected.
+		runningMatch = re.findall(r"(S|D)\s+com.forge.unittest", output, re.MULTILINE | re.IGNORECASE)
+		print(runningMatch)
+
+		if len(runningMatch) > 0:
+			value = runningMatch[0]
+			#try to print only section containing the source of leaks
+			if value == "D":
+				return True
+		
 		if processName not in output:
 			waitingForExit = False
 		
+	return True
 
 def TestAndroidProjects():
 	errorOccured = False
@@ -1209,8 +1201,9 @@ def TestAndroidProjects():
 		retCode = ExecuteCommand(uninstallCommand, None)
 		retCode = ExecuteCommand(installCommand, sys.stdout)
 		ExecuteCommand(clearLogCatCommand, None)
-		retCode = ExecuteTest(runCommand, filenameNoExt, False)
+		retCode = ExecuteTest(runCommand, filenameNoExt, True)
 		AndroidADBCheckRunningProcess(grepPSCommand, filenameNoExt, apkName)
+		time.sleep(2)
 		output = ExecuteCommandWOutput(logCatCommand)	
 		output = (b"\n".join(output).decode('utf-8'))	
 		print(output)

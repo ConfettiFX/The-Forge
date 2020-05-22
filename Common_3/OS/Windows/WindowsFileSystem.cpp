@@ -71,9 +71,30 @@ struct WindowsFileSystem: public FileSystem
 
 	char GetPathDirectorySeparator() const override { return '\\'; }
 
-	size_t GetRootPathLength() const override
+	size_t GetDefaultRootPathLength() const override
 	{
-		return 7;    // e.g. { '\\', '\\', '?', '\\', 'C', ':', '\\' }
+		return 3;    // e.g. { 'C', ':', '\\' }
+	}
+	
+	size_t GetRootPathLength(const Path * path) const override
+	{
+		// Allocate a stack buffer for the base path.
+		struct
+		{
+			Path path;
+			char pathBuffer[16];
+		} stackPath = {};
+
+		const char * absolutePathString = fsGetPathAsNativeString(path);
+
+		size_t pathComponentOffset;
+		if (!FormRootPath(absolutePathString, &stackPath.path, &pathComponentOffset))
+		{
+			LOGF(LogLevel::eERROR, "Path string '%s' is not an absolute path", absolutePathString);
+			return NULL;
+		}
+
+		return pathComponentOffset;    // e.g. { 'C', ':', '\\' } ir { '\\', '\\' }
 	}
 
 	/// Fills path's buffer with the canonical root path corresponding to the root of absolutePathString,
@@ -81,39 +102,46 @@ struct WindowsFileSystem: public FileSystem
 	/// path is assumed to have storage for up to 16 characters.
 	bool FormRootPath(const char* absolutePathString, Path* path, size_t* pathComponentOffset) const override
 	{
-		strncpy(&path->mPathBufferOffset, "\\\\?\\", 4);
+		if (absolutePathString[0] == '\\' && absolutePathString[0] == '\\') { // Network Paths
+			(&path->mPathBufferOffset)[0] = '\\';
+			(&path->mPathBufferOffset)[1] = '\\';
+			(&path->mPathBufferOffset)[2] = 0;
+			path->mPathLength = 2;
+			*pathComponentOffset = 1;    // After the :\ in the drive name.
+			return true;
+		} else { // Normal Windows Paths
+			// Find the colon after the drive letter.
+			size_t colonOffset = 1;
+			for (;;)
+			{
+				if (absolutePathString[colonOffset] == 0)
+				{
+					return false;
+				}
+				if (absolutePathString[colonOffset] == ':')
+				{
+					break;
+				}
+				colonOffset += 1;
+			}
 
-		// Assume all paths are on a local hard drive for now.
-		// Find the colon after the drive letter.
-		size_t colonOffset = 1;
-		for (;;)
-		{
-			if (absolutePathString[colonOffset] == 0)
+			if (absolutePathString[colonOffset + 1] != '\\' && absolutePathString[colonOffset + 1] != '/')
 			{
 				return false;
 			}
-			if (absolutePathString[colonOffset] == ':')
-			{
-				break;
-			}
-			colonOffset += 1;
+
+			char driveLetter = absolutePathString[colonOffset - 1];
+			(&path->mPathBufferOffset)[0] = driveLetter;
+			(&path->mPathBufferOffset)[1] = ':';
+			(&path->mPathBufferOffset)[2] = '\\';
+			(&path->mPathBufferOffset)[3] = 0;
+			path->mPathLength = 3;
+
+			*pathComponentOffset = colonOffset + 2;    // After the :\ in the drive name.
+
+			return true;
 		}
 
-		if (absolutePathString[colonOffset + 1] != '\\' && absolutePathString[colonOffset + 1] != '/')
-		{
-			return false;
-		}
-
-		char driveLetter = absolutePathString[colonOffset - 1];
-		(&path->mPathBufferOffset)[4] = driveLetter;
-		(&path->mPathBufferOffset)[5] = ':';
-		(&path->mPathBufferOffset)[6] = '\\';
-		(&path->mPathBufferOffset)[7] = 0;
-		path->mPathLength = 7;
-
-		*pathComponentOffset = colonOffset + 2;    // After the :\ in the drive name.
-
-		return true;
 	}
 
 	time_t GetCreationTime(const Path* filePath) const override
@@ -126,23 +154,35 @@ struct WindowsFileSystem: public FileSystem
 
 	time_t GetLastAccessedTime(const Path* filePath) const override
 	{
-		struct stat fileInfo = { 0 };
+		const char* nativePath = fsGetPathAsNativeString( filePath );
 
-		stat(fsGetPathAsNativeString(filePath), &fileInfo);
+		// Fix paths for Windows 7 - needs to be generalized and propagated
+		eastl::string path = eastl::string( nativePath );
+		auto directoryPos = path.find( ":" );
+		eastl::string cleanPath = path.substr( directoryPos - 1 );
+
+		struct stat fileInfo = { 0 };
+		stat( cleanPath.c_str(), &fileInfo );
 		return fileInfo.st_atime;
 	}
 
 	time_t GetLastModifiedTime(const Path* filePath) const override
 	{
-		struct stat fileInfo = { 0 };
+		const char* nativePath = fsGetPathAsNativeString( filePath );
 
-		stat(fsGetPathAsNativeString(filePath), &fileInfo);
+		// Fix paths for Windows 7 - needs to be generalized and propagated
+		eastl::string path = eastl::string( nativePath );
+		auto directoryPos = path.find( ":" );
+		eastl::string cleanPath = path.substr( directoryPos - 1 );
+
+		struct stat fileInfo = { 0 };
+		stat( cleanPath.c_str(), &fileInfo);
 		return fileInfo.st_mtime;
 	}
 
 	bool CreateDirectory(const Path* directoryPath) const override
 	{
-		if (Path* parentPath = fsCopyParentPath(directoryPath))
+		if (Path* parentPath = fsGetParentPath(directoryPath))
 		{
 			if (!FileExists(parentPath))
 			{
@@ -171,17 +211,29 @@ struct WindowsFileSystem: public FileSystem
 	{
 		return withUTF16Path<bool>(path, [](const wchar_t* pathStr) {
 			DWORD attributes = GetFileAttributesW(pathStr);
-			return (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0;
+			return (attributes != INVALID_FILE_ATTRIBUTES &&  (attributes & FILE_ATTRIBUTE_DIRECTORY));
 		});
 	}
 
 	FileStream* OpenFile(const Path* filePath, FileMode mode) const override
 	{
 		FILE* fp;
-		fopen_s(&fp, fsGetPathAsNativeString(filePath), fsFileModeToString(mode));
+
+		const char * pathStr = fsGetPathAsNativeString(filePath);
+
+		if (0 != (mode & FM_ALLOW_READ)) {
+			fp = _fsopen( pathStr, fsFileModeToString(mode), _SH_DENYWR);
+		} else {
+			fopen_s(&fp, pathStr, fsFileModeToString(mode));
+		}
+
 		if (fp)
 		{
 			return conf_new(SystemFileStream, fp, mode, filePath);
+		}
+		else
+		{
+			DLOGF(LogLevel::eERROR, "Error opening file: %s -- %s (error: %s)", fsGetPathAsNativeString(filePath), fsFileModeToString(mode), strerror(errno));
 		}
 		return NULL;
 	}
@@ -203,12 +255,21 @@ struct WindowsFileSystem: public FileSystem
 	void EnumerateFilesWithExtension(
 		const Path* directory, const char* extension, bool (*processFile)(const Path*, void* userData), void* userData) const override
 	{
-		if (extension[0] == '.')
-		{
+		size_t extensionLen = strlen(extension);
+		if (extension[0] == '*') {
+			extension += 1;
+		}
+		if (extension[0] == '.') {
 			extension += 1;
 		}
 
-		size_t extensionLen = strlen(extension);
+		bool hasPattern = false;
+		for(size_t i = 0; i < extensionLen - 1; ++i) {
+			if(extension[i] == '*' || extension[i] == '.') {
+				hasPattern = true;
+				break;
+			}
+		}
 
 		wchar_t* buffer = (wchar_t*)alloca((directory->mPathLength + 4 + extensionLen) * sizeof(wchar_t));
 
@@ -218,11 +279,12 @@ struct WindowsFileSystem: public FileSystem
 		buffer[utf16Len + 0] = '\\';
 		buffer[utf16Len + 1] = '*';
 		buffer[utf16Len + 2] = '.';
+		int extensionOffset = (hasPattern) ? 1 : 3;
 		for (size_t i = 0; i < extensionLen; i += 1)
 		{
-			buffer[utf16Len + 3 + i] = (wchar_t)extension[i];
+			buffer[utf16Len + extensionOffset + i] = (wchar_t)extension[i];
 		}
-		buffer[utf16Len + 3 + extensionLen] = 0;
+		buffer[utf16Len + extensionOffset + extensionLen] = 0;
 
 		WIN32_FIND_DATAW fd;
 		HANDLE           hFind = ::FindFirstFileW(buffer, &fd);
@@ -279,16 +341,7 @@ WindowsFileSystem gDefaultFS;
 
 FileSystem* fsGetSystemFileSystem() { return &gDefaultFS; }
 
-Path* fsCopyWorkingDirectoryPath()
-{
-	DWORD    pathLength = GetCurrentDirectoryW(0, NULL);
-	wchar_t* utf16Path = (wchar_t*)alloca(pathLength * sizeof(wchar_t));
-	GetCurrentDirectoryW(pathLength, utf16Path);
-
-	return fsCreatePathFromWideString(utf16Path, pathLength);
-}
-
-Path* fsCopyExecutablePath()
+Path* fsGetApplicationPath()
 {
 	wchar_t utf16Path[MAX_PATH];
 	DWORD   pathLength = GetModuleFileNameW(0, utf16Path, MAX_PATH);
@@ -296,17 +349,17 @@ Path* fsCopyExecutablePath()
 	return fsCreatePathFromWideString(utf16Path, pathLength);
 }
 
-Path* fsCopyProgramDirectoryPath()
+Path* fsGetApplicationDirectory()
 {
-	Path* programPath = fsCopyExecutablePath();
-	Path* programDir = fsCopyParentPath(programPath);
+	Path* programPath = fsGetApplicationPath();
+	Path* programDir = fsGetParentPath(programPath);
 	fsFreePath(programPath);
 	return programDir;
 }
 
-Path* fsCopyLogFileDirectoryPath() { return fsCopyProgramDirectoryPath(); }
+Path* fsGetPreferredLogDirectory() { return fsGetApplicationDirectory(); }
 
-Path* fsCopyPreferencesDirectoryPath(const char* org, const char* app)
+Path* fsGetPreferencesDirectoryPath(const char* org, const char* app)
 {
 	PWSTR preferencesDir = NULL;
 	SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_CREATE, NULL, &preferencesDir);
@@ -330,7 +383,7 @@ Path* fsCopyPreferencesDirectoryPath(const char* org, const char* app)
 	return resultPath;
 }
 
-Path* fsCopyUserDocumentsDirectoryPath()
+Path* fsGetUserSpecificPath()
 {
 	PWSTR userDocuments = NULL;
 	SHGetKnownFolderPath(FOLDERID_Documents, 0, NULL, &userDocuments);
@@ -338,6 +391,17 @@ Path* fsCopyUserDocumentsDirectoryPath()
 
 	Path* path = fsCreatePathFromWideString(userDocuments, pathLength);
 	CoTaskMemFree(userDocuments);
+	return path;
+}
+
+Path* fsGetAppTempDirectory()
+{
+	PWSTR localAppdata = NULL;
+	SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, NULL, &localAppdata);
+	size_t pathLength = wcslen(localAppdata);
+
+	Path* path = fsCreatePathFromWideString(localAppdata, pathLength);
+	CoTaskMemFree(localAppdata);
 	return path;
 }
 
@@ -469,6 +533,7 @@ typedef struct FileWatcher
 
 void fswThreadFunc(void* data)
 {
+	Thread::SetCurrentThreadName("FileWatcher");
 	FileWatcher* fs = (FileWatcher*)data;
 
 	HANDLE hDir = withUTF16Path<HANDLE>(fs->mWatchDir, [](const wchar_t* pathStr) {
@@ -479,6 +544,7 @@ void fswThreadFunc(void* data)
 	HANDLE hEvt = ::CreateEvent(NULL, TRUE, FALSE, NULL);
 
 	BYTE       notifyBuffer[1024];
+	char       utf8Name[100];
 	OVERLAPPED ovl = { 0 };
 	ovl.hEvent = hEvt;
 
@@ -522,11 +588,15 @@ void fswThreadFunc(void* data)
 				default: break;
 			}
 
-			size_t utf8Length = fni->FileNameLength * sizeof(wchar_t) / sizeof(char);
-			char*  utf8Name = (char*)alloca(utf8Length);
-			WideCharToMultiByte(CP_UTF8, 0, fni->FileName, fni->FileNameLength, utf8Name, (int)utf8Length, NULL, NULL);
+			int outputLength = WideCharToMultiByte(CP_UTF8, 0, fni->FileName, fni->FileNameLength / sizeof(WCHAR), utf8Name, sizeof(utf8Name) - 1, NULL, NULL);
+			if (outputLength == 0)
+			{
+				continue;
+			}
 
+			utf8Name[outputLength] = 0;
 			Path* path = fsAppendPathComponent(fs->mWatchDir, utf8Name);
+			DLOGF(LogLevel::eINFO, "Monitoring activity of file: %s -- Action: %d", fsGetPathAsNativeString(path), fni->Action);
 			fs->mCallback(path, action);
 			fsFreePath(path);
 

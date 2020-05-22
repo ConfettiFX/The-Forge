@@ -47,76 +47,12 @@
 #include <metal_stdlib>
 using namespace metal;
 
+#include "hair.h"
+
 #define SHORT_CUT_MIN_ALPHA 0.02f
 #define PI 3.1415926
 #define e 2.71828183
 #define EPSILON 1e-7f
-
-struct PointLight
-{
-    float4 positionAndRadius;
-    float4 colorAndIntensity;
-};
-
-struct DirectionalLight
-{
-	packed_float3 direction;
-	int shadowMap;
-	packed_float3 color;
-	float intensity;
-	float shadowRange;
-	float _pad0;
-	float _pad1;
-	int shadowMapDimensions;
-	float4x4 viewProj;
-};
-
-struct CameraData
-{
-	float4x4 CamVPMatrix;
-	float4x4 CamInvVPMatrix;
-	float3 CamPos;
-	float fAmbientLightIntensity;
-	int bUseEnvironmentLight;
-	float fEnvironmentLightIntensity;
-	float fAOIntensity;
-
-	int renderMode;
-	float fNormalMapIntensity;
-};
-
-struct HairData
-{
-	float4x4 Transform;
-	uint RootColor;
-	uint StrandColor;
-	float ColorBias;
-	float Kd;
-	float Ks1;
-	float Ex1;
-	float Ks2;
-	float Ex2;
-	float FiberRadius;
-	float FiberSpacing;
-	uint NumVerticesPerStrand;
-};
-
-struct PointLightData
-{
-	PointLight PointLights[MAX_NUM_POINT_LIGHTS];
-	uint NumPointLights;
-};
-
-struct DirectionalLightData
-{
-	DirectionalLight DirectionalLights[MAX_NUM_DIRECTIONAL_LIGHTS];
-	uint NumDirectionalLights;
-};
-
-struct DirectionalLightCameraData
-{
-    CameraData Cam[MAX_NUM_DIRECTIONAL_LIGHTS];
-};
 
 /*
 #define DIRECTIONAL_LIGHT_SHADOW_MAPS_NAME DirectionalLightShadowMaps
@@ -136,51 +72,6 @@ struct DirectionalLightShadowMapsBuffer
 #define GET_DIRECTIONAL_LIGHT_SHADOW_MAP(i) DIRECTIONAL_LIGHT_SHADOW_MAPS_NAME
 #endif
 */
-
-struct GlobalHairData
-{
-	float4 Viewport;
-	float4 Gravity;
-	float4 Wind;
-	float TimeStep;
-};
-
-struct VSData
-{
-    constant GlobalHairData& cbHairGlobal               [[id(0)]];
-    
-    constant PointLightData& cbPointLights              [[id(1)]];
-    constant DirectionalLightData& cbDirectionalLights  [[id(2)]];
-    
-    device uint* DepthsTexture                          [[id(3)]];
-    
-    sampler PointSampler                                [[id(4)]];
-    
-    texture2d<float, access::read> ColorsTexture        [[id(5)]];
-    texture2d<float, access::read> InvAlphaTexture      [[id(6)]];
-};
-
-struct VSDataPerFrame
-{
-#if !defined(HAIR_SHADOW)
-    constant CameraData& cbCamera                       [[id(0)]];
-#endif
-};
-
-struct VSDataPerBatch {
-#if defined(HAIR_SHADOW)
-        constant CameraData& cbCamera                   [[id(0)]];
-#endif
-    
-    constant DirectionalLightCameraData& cbDirectionalLightShadowCameras [[id(1)]];
-    
-    array<texture2d<float, access::sample>, MAX_NUM_DIRECTIONAL_LIGHTS> DirectionalLightShadowMaps [[id(2)]];
-};
-
-struct VSDataPerDraw
-{
-    constant HairData& cbHair                           [[id(0)]];
-};
 
 struct VSOutput
 {

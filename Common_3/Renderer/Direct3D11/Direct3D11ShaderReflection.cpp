@@ -97,7 +97,7 @@ void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 		{
 			D3D11_SIGNATURE_PARAMETER_DESC paramDesc;
 			d3d11reflection->GetInputParameterDesc(i, &paramDesc);
-			reflection.mNamePoolSize += (uint32_t)strlen(paramDesc.SemanticName) + 1;
+			reflection.mNamePoolSize += (uint32_t)strlen(paramDesc.SemanticName) + 2;
 		}
 	}
 	//Get the number of threads per group
@@ -132,7 +132,7 @@ void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 			variable->GetDesc(&varDesc);
 
 			//Only count used variables
-			if (varDesc.uFlags | D3D_SVF_USED)
+			if ((varDesc.uFlags | D3D_SVF_USED) != 0)
 			{
 				reflection.mNamePoolSize += (uint32_t)strlen(varDesc.Name) + 1;
 				reflection.mVariableCount++;
@@ -156,14 +156,17 @@ void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 			d3d11reflection->GetInputParameterDesc(i, &paramDesc);
 
 			//Get the length of the semantic name
-			uint32_t len = (uint32_t)strlen(paramDesc.SemanticName);
+			eastl::string inputNameWithIndex = paramDesc.SemanticName;
+			bool hasParamIndex = paramDesc.SemanticIndex > 0 || inputNameWithIndex == "TEXCOORD";
+			inputNameWithIndex += hasParamIndex ? eastl::to_string(paramDesc.SemanticIndex) : "";
+			uint32_t len = (uint32_t)strlen(paramDesc.SemanticName) + (hasParamIndex ? 1 : 0);
 
 			reflection.pVertexInputs[i].name = pCurrentName;
 			reflection.pVertexInputs[i].name_size = len;
-			reflection.pVertexInputs[i].size = 0;
+			reflection.pVertexInputs[i].size = (uint32_t)log2(paramDesc.Mask + 1) * sizeof(uint8_t[4]);
 
 			//Copy over the name into the name pool
-			memcpy(pCurrentName, paramDesc.SemanticName, len);
+			memcpy(pCurrentName, inputNameWithIndex.c_str(), len);
 			pCurrentName[len] = '\0';    //add a null terminator
 			pCurrentName += len + 1;     //move the name pointer through the name pool
 		}
@@ -240,7 +243,7 @@ void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 				variable->GetDesc(&varDesc);
 
 				//If the variable is used in the shader
-				if (varDesc.uFlags | D3D_SVF_USED)
+				if ((varDesc.uFlags | D3D_SVF_USED) != 0)
 				{
 					uint32_t len = (uint32_t)strlen(varDesc.Name);
 

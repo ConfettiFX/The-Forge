@@ -27,19 +27,10 @@
 using namespace metal;
 
 #include "shader_defs.h"
+#include "light_cull_argument_buffers.h"
 
 // This compute shader determines if a light of index groupId overlaps
 // the cluster (thread.x,thread.y). Then the light is added to the cluster.
-
-struct CSData {
-    constant LightData* lights [[id(0)]];
-};
-
-struct CSDataPerFrame {
-    device atomic_uint* lightClustersCount  [[id(0)]];
-    device atomic_uint* lightClusters       [[id(1)]];
-    constant PerFrameConstants& uniforms    [[id(2)]];
-};
 
 //[numthreads(8, 8, 1)]
 kernel void stageMain(

@@ -151,7 +151,7 @@ float CalcPCFShadowFactor(float3 worldPos, float4x4 shadowLightViewProj, texture
     ((posLS).y *= float((-1)));
     ((posLS).xy = (((posLS).xy * float2(0.5)) + float2((float)0.5, (float)0.5)));
     float2 HalfGaps = float2((float)0.00048828124, (float)0.00048828124);
-    float2 Gaps = float2((float)0.0009765625, (float)0.0009765625);
+//    float2 Gaps = float2((float)0.0009765625, (float)0.0009765625);
     ((posLS).xy += HalfGaps);
     float shadowFactor = float(1.0);
     float shadowFilterSize = float(0.0016000000);

@@ -175,7 +175,7 @@ bool checkForActiveGPU(eastl::string line, GPUVendorPreset& pActiveGpu)
 //Reads the gpu config and sets the preset level of all available gpu's
 void setGPUPresetLevel(Renderer* pRenderer, uint32_t gpuCount, GPUSettings* pGpuSettings)
 {
-	FileStream* fh = fsOpenFileInResourceDirectory(RD_GPU_CONFIG, "gpu.cfg", FM_READ);
+	FileStream* fh = fsOpenFileInResourceDirEnum(RD_GPU_CONFIG, "gpu.cfg", FM_READ);
 	if (!fh)
 	{
 		LOGF(LogLevel::eWARNING, "gpu.cfg could not be found, setting preset to Low as a default.");
@@ -211,7 +211,7 @@ GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::stri
 GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::string modelId, const eastl::string revId)
 {
 
-	FileStream* fh = fsOpenFileInResourceDirectory(RD_GPU_CONFIG, "gpu.cfg", FM_READ_BINARY);
+	FileStream* fh = fsOpenFileInResourceDirEnum(RD_GPU_CONFIG, "gpu.cfg", FM_READ_BINARY);
 	if (!fh)
 	{
 		LOGF(LogLevel::eWARNING, "gpu.cfg could not be found, setting preset to Low as a default.");
@@ -239,7 +239,7 @@ GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::stri
 #if defined(AUTOMATED_TESTING) && defined(ACTIVE_TESTING_GPU)
 bool getActiveGpuConfig(GPUVendorPreset& pActiveGpu)
 {
-	FileStream* fh = fsOpenFileInResourceDirectory(RD_GPU_CONFIG, "activeTestingGpu.cfg", FM_READ_BINARY);
+	FileStream* fh = fsOpenFileInResourceDirEnum(RD_GPU_CONFIG, "activeTestingGpu.cfg", FM_READ_BINARY);
 	if (!fh)
 	{
 		LOGF(LogLevel::eINFO, "activeTestingGpu.cfg could not be found, Using default GPU.");

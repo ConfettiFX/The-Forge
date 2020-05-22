@@ -2,13 +2,10 @@
 #include <metal_stdlib>
 using namespace metal;
 
+#include "vb_argument_buffers.h"
+
 struct Vertex_Shader
 {
-	struct Uniforms_objectUniformBlock
-	{
-		float4x4 WorldViewProjMat;
-		float4x4 WorldMat;
-	};
 	constant Uniforms_objectUniformBlock & objectUniformBlock;
 	struct VsIn
 	{
@@ -21,7 +18,7 @@ struct Vertex_Shader
 	PsIn main(VsIn input)
 	{
 		PsIn output;
-		((output).Position = ((objectUniformBlock.WorldViewProjMat)*(float4(((input).Position).xyz, 1.0))));
+		((output).Position = ((objectUniformBlock.mWorldViewProjMat)*(float4(((input).Position).xyz, 1.0))));
 		return output;
 	};
 	
@@ -30,13 +27,9 @@ struct Vertex_Shader
 	objectUniformBlock(objectUniformBlock) {}
 };
 
-struct VSData {
-    constant Vertex_Shader::Uniforms_objectUniformBlock & objectUniformBlock             [[id(0)]];
-};
-
 vertex Vertex_Shader::PsIn stageMain(
     Vertex_Shader::VsIn input [[stage_in]],
-    constant VSData& vsData     [[buffer(UPDATE_FREQ_PER_DRAW)]]
+    constant ArgDataPerDraw& vsData     [[buffer(UPDATE_FREQ_PER_DRAW)]]
 )
 {
 	Vertex_Shader::VsIn input0;

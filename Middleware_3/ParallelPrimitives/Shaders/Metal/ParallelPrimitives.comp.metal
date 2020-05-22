@@ -231,10 +231,10 @@ struct ScanExclusiveArgs_##type##4 {\
 device type##4 const* inputArray;\
 device type##4* outputArray;\
 };\
-kernel void scan_exclusive_##type##4(constant ScanExclusiveArgs_##type##4 &arguments [[buffer(UPDATE_FREQ_PER_DRAW)]], constant uint& elementCount [[buffer(UPDATE_FREQ_USER)]], uint globalId [[ thread_position_in_grid ]], uint localId [[ thread_position_in_threadgroup ]], uint groupSize [[ threads_per_threadgroup ]], uint simdLaneId [[ thread_index_in_simdgroup ]], uint threadsPerSIMDGroup [[ threads_per_simdgroup ]], uint simdGroupId [[ simdgroup_index_in_threadgroup ]]) {\
+kernel void scan_exclusive_##type##4(constant ScanExclusiveArgs_##type##4 &arguments [[buffer(UPDATE_FREQ_PER_DRAW)]], constant uint& elementCountRootConstant [[buffer(UPDATE_FREQ_USER)]], uint globalId [[ thread_position_in_grid ]], uint localId [[ thread_position_in_threadgroup ]], uint groupSize [[ threads_per_threadgroup ]], uint simdLaneId [[ thread_index_in_simdgroup ]], uint threadsPerSIMDGroup [[ threads_per_simdgroup ]], uint simdGroupId [[ simdgroup_index_in_threadgroup ]]) {\
 threadgroup type shmem[GROUP_SIZE];\
-type##4 v1 = safe_load_4(arguments.inputArray, 2*globalId, elementCount);\
-type##4 v2 = safe_load_4(arguments.inputArray, 2*globalId + 1, elementCount);\
+type##4 v1 = safe_load_4(arguments.inputArray, 2*globalId, elementCountRootConstant);\
+type##4 v2 = safe_load_4(arguments.inputArray, 2*globalId + 1, elementCountRootConstant);\
 v1.y += v1.x; v1.w += v1.z; v1.w += v1.y;\
 v2.y += v2.x; v2.w += v2.z; v2.w += v2.y;\
 v2.w += v1.w;\
@@ -249,8 +249,8 @@ t = v1.x; v1.x = v1.y; v1.y += t;\
 t = v2.x; v2.x = v2.y; v2.y += t;\
 t = v1.z; v1.z = v1.w; v1.w += t;\
 t = v2.z; v2.z = v2.w; v2.w += t;\
-safe_store_4(v2, arguments.outputArray, 2 * globalId + 1, elementCount);\
-safe_store_4(v1, arguments.outputArray, 2 * globalId, elementCount);\
+safe_store_4(v2, arguments.outputArray, 2 * globalId + 1, elementCountRootConstant);\
+safe_store_4(v1, arguments.outputArray, 2 * globalId, elementCountRootConstant);\
 }
 #else
 #define DEFINE_SCAN_EXCLUSIVE_4(type)\
@@ -258,10 +258,10 @@ struct ScanExclusiveArgs_##type##4 {\
 device type##4 const* inputArray;\
 device type##4* outputArray;\
 };\
-kernel void scan_exclusive_##type##4(constant ScanExclusiveArgs_##type##4 &arguments [[buffer(UPDATE_FREQ_PER_DRAW)]], constant uint& elementCount [[buffer(UPDATE_FREQ_USER)]], uint globalId [[ thread_position_in_grid ]], uint localId [[ thread_position_in_threadgroup ]], uint groupSize [[ threads_per_threadgroup ]]) {\
+kernel void scan_exclusive_##type##4(constant ScanExclusiveArgs_##type##4 &arguments [[buffer(UPDATE_FREQ_PER_DRAW)]], constant uint& elementCountRootConstant [[buffer(UPDATE_FREQ_USER)]], uint globalId [[ thread_position_in_grid ]], uint localId [[ thread_position_in_threadgroup ]], uint groupSize [[ threads_per_threadgroup ]]) {\
 threadgroup type shmem[GROUP_SIZE];\
-type##4 v1 = safe_load_4(arguments.inputArray, 2*globalId, elementCount);\
-type##4 v2 = safe_load_4(arguments.inputArray, 2*globalId + 1, elementCount);\
+type##4 v1 = safe_load_4(arguments.inputArray, 2*globalId, elementCountRootConstant);\
+type##4 v2 = safe_load_4(arguments.inputArray, 2*globalId + 1, elementCountRootConstant);\
 v1.y += v1.x; v1.w += v1.z; v1.w += v1.y;\
 v2.y += v2.x; v2.w += v2.z; v2.w += v2.y;\
 v2.w += v1.w;\
@@ -276,8 +276,8 @@ t = v1.x; v1.x = v1.y; v1.y += t;\
 t = v2.x; v2.x = v2.y; v2.y += t;\
 t = v1.z; v1.z = v1.w; v1.w += t;\
 t = v2.z; v2.z = v2.w; v2.w += t;\
-safe_store_4(v2, arguments.outputArray, 2 * globalId + 1, elementCount);\
-safe_store_4(v1, arguments.outputArray, 2 * globalId, elementCount);\
+safe_store_4(v2, arguments.outputArray, 2 * globalId + 1, elementCountRootConstant);\
+safe_store_4(v1, arguments.outputArray, 2 * globalId, elementCountRootConstant);\
 }
 #endif // USE_SIMD
 
@@ -290,10 +290,10 @@ device type##4 const* inputArray;\
 device type##4* outputArray;\
 device type* outputSums;\
 };\
-kernel void scan_exclusive_part_##type##4(constant ScanExclusivePartArgs_##type##4& arguments [[ buffer(UPDATE_FREQ_PER_DRAW) ]], constant uint& elementCount [[ buffer(UPDATE_FREQ_USER) ]], uint globalId [[ thread_position_in_grid ]], uint localId [[ thread_position_in_threadgroup ]], uint groupSize [[ threads_per_threadgroup ]], uint groupId [[ threadgroup_position_in_grid ]]) {\
+kernel void scan_exclusive_part_##type##4(constant ScanExclusivePartArgs_##type##4& arguments [[ buffer(UPDATE_FREQ_PER_DRAW) ]], constant uint& elementCountRootConstant [[ buffer(UPDATE_FREQ_USER) ]], uint globalId [[ thread_position_in_grid ]], uint localId [[ thread_position_in_threadgroup ]], uint groupSize [[ threads_per_threadgroup ]], uint groupId [[ threadgroup_position_in_grid ]]) {\
 threadgroup type shmem[GROUP_SIZE];\
-type##4 v1 = safe_load_4(arguments.inputArray, 2*globalId, elementCount);\
-type##4 v2 = safe_load_4(arguments.inputArray, 2*globalId + 1, elementCount);\
+type##4 v1 = safe_load_4(arguments.inputArray, 2*globalId, elementCountRootConstant);\
+type##4 v2 = safe_load_4(arguments.inputArray, 2*globalId + 1, elementCountRootConstant);\
 v1.y += v1.x; v1.w += v1.z; v1.w += v1.y;\
 v2.y += v2.x; v2.w += v2.z; v2.w += v2.y;\
 v2.w += v1.w;\
@@ -309,8 +309,8 @@ t = v1.x; v1.x = v1.y; v1.y += t;\
 t = v2.x; v2.x = v2.y; v2.y += t;\
 t = v1.z; v1.z = v1.w; v1.w += t;\
 t = v2.z; v2.z = v2.w; v2.w += t;\
-safe_store_4(v2, arguments.outputArray, 2 * globalId + 1, elementCount);\
-safe_store_4(v1, arguments.outputArray, 2 * globalId, elementCount);\
+safe_store_4(v2, arguments.outputArray, 2 * globalId + 1, elementCountRootConstant);\
+safe_store_4(v1, arguments.outputArray, 2 * globalId, elementCountRootConstant);\
 }
 
 DEFINE_SCAN_EXCLUSIVE_PART_4(int)
@@ -335,12 +335,12 @@ struct DistributePartSumArgs_##type##4 {\
 device type const* inputSums;\
 device type##4* inoutArray;\
 };\
-kernel void distribute_part_sum_##type##4(constant DistributePartSumArgs_##type##4& arguments [[ buffer(UPDATE_FREQ_PER_DRAW) ]], constant uint& elementCount [[ buffer(UPDATE_FREQ_USER) ]], uint globalId [[ thread_position_in_grid ]], uint groupId [[ threadgroup_position_in_grid ]])\
+kernel void distribute_part_sum_##type##4(constant DistributePartSumArgs_##type##4& arguments [[ buffer(UPDATE_FREQ_PER_DRAW) ]], constant uint& elementCountRootConstant [[ buffer(UPDATE_FREQ_USER) ]], uint globalId [[ thread_position_in_grid ]], uint groupId [[ threadgroup_position_in_grid ]])\
 {\
-type##4 v1 = safe_load_4(arguments.inoutArray, globalId, elementCount);\
+type##4 v1 = safe_load_4(arguments.inoutArray, globalId, elementCountRootConstant);\
 type    sum = arguments.inputSums[groupId >> 1];\
 v1.xyzw += sum;\
-safe_store_4(v1, arguments.inoutArray, globalId, elementCount);\
+safe_store_4(v1, arguments.inoutArray, globalId, elementCountRootConstant);\
 }
 
 DEFINE_DISTRIBUTE_PART_SUM_4(int)
@@ -643,7 +643,7 @@ void safe_store_int(int val, device int* dest, uint idx, uint sizeInInts)
 }
 
 // Split kernel launcher
-kernel void split4way(constant int& bitShift, device uint4* inputArray, constant uint& elementCount, device int* outputHistograms, device uint4* outputArray,
+kernel void split4way(constant int& bitShift, device uint4* inputArray, constant uint& elementCountRootConstant, device int* outputHistograms, device uint4* outputArray,
                       device int* out_local_histograms,
                       device uint4* out_debug_offset,
                       threadgroup short* shmem,
@@ -654,7 +654,7 @@ kernel void split4way(constant int& bitShift, device uint4* inputArray, constant
                       uint numGroups [[ threadgroups_per_grid ]])
 {
     /// Load single uint4 value
-    uint4 val = safe_load_uint4_intmax(inputArray, globalId, elementCount);
+    uint4 val = safe_load_uint4_intmax(inputArray, globalId, elementCountRootConstant);
     
     uint4 localOffset;
     short4 localHistogram;
@@ -674,16 +674,16 @@ kernel void split4way(constant int& bitShift, device uint4* inputArray, constant
     threadgroup_barrier(mem_flags::mem_threadgroup);
     
     // Now store to memory
-    if (((globalId + 1) << 2) <= elementCount)
+    if (((globalId + 1) << 2) <= elementCountRootConstant)
     {
         outputArray[globalId] = sharedData4[localId];
         out_debug_offset[globalId] = localOffset;
     }
     else
     {
-        if ((globalId << 2) < elementCount) outputArray[globalId].x = sharedData4[localId].x;
-        if ((globalId << 2) + 1 < elementCount) outputArray[globalId].y = sharedData4[localId].y;
-        if ((globalId << 2) + 2 < elementCount) outputArray[globalId].z = sharedData4[localId].z;
+        if ((globalId << 2) < elementCountRootConstant) outputArray[globalId].x = sharedData4[localId].x;
+        if ((globalId << 2) + 1 < elementCountRootConstant) outputArray[globalId].y = sharedData4[localId].y;
+        if ((globalId << 2) + 2 < elementCountRootConstant) outputArray[globalId].z = sharedData4[localId].z;
     }
     
     if (localId == 0)
@@ -720,7 +720,7 @@ struct BitHistogramArguments {
 #if USE_SIMD
 kernel void BitHistogram(
                          constant BitHistogramArguments& arguments [[ buffer(UPDATE_FREQ_PER_DRAW) ]],
-						 constant BitHistogramPushConstants& pushConstants [[ buffer(UPDATE_FREQ_USER) ]],
+						 constant BitHistogramPushConstants& rootConstants [[ buffer(UPDATE_FREQ_USER) ]],
                          uint globalId [[ thread_position_in_grid ]],
                          uint localId [[ thread_position_in_threadgroup ]],
                          uint simdLaneId [[ thread_index_in_simdgroup ]],
@@ -745,7 +745,7 @@ kernel void BitHistogram(
     for (int block = 0; block < min(blockCountPerGroup, maxBlocks); ++block, loadIndex += GROUP_SIZE) {
         /// Load single uint4 value
         uint4 value = safe_load_uint4_intmax(arguments.inputArray, loadIndex, arguments.elementCount);
-        uint4 bin = ((value >> pushConstants.bitShift) & 0b1111);
+        uint4 bin = ((value >> rootConstants.bitShift) & 0b1111);
         
         threadCounts[bin.x] += 1;
         threadCounts[bin.y] += 1;
@@ -785,7 +785,7 @@ kernel void BitHistogram(
 #else
 kernel void BitHistogram(
 							constant BitHistogramArguments& arguments [[ buffer(UPDATE_FREQ_PER_DRAW) ]],
-							constant BitHistogramPushConstants& pushConstants [[ buffer(UPDATE_FREQ_USER) ]],
+							constant BitHistogramPushConstants& rootConstants [[ buffer(UPDATE_FREQ_USER) ]],
                             uint globalId [[ thread_position_in_grid ]],
                             uint localId [[ thread_position_in_threadgroup ]],
                             uint groupSize [[ threads_per_threadgroup ]],
@@ -819,7 +819,7 @@ kernel void BitHistogram(
         
         /// Handle value adding histogram bins
         /// for all 4 elements
-        uint4 bin = ((value >> pushConstants.bitShift) & 0xF);
+        uint4 bin = ((value >> rootConstants.bitShift) & 0xF);
         //++histogram[localId*kNumBins + bin];
         atomic_fetch_add_explicit(&histogram[bin.x*GROUP_SIZE + localId], 1, memory_order::memory_order_relaxed);
         //bin = ((value.y >> bitShift) & 0xF);
@@ -867,7 +867,7 @@ struct ScatterKeysArguments {
 kernel
 //__attribute__((reqd_work_group_size(GROUP_SIZE, 1, 1)))
 void ScatterKeys(
-				 constant ScatterKeysPushConstants& pushConstants [[ buffer(UPDATE_FREQ_USER) ]],
+				 constant ScatterKeysPushConstants& rootConstants [[ buffer(UPDATE_FREQ_USER) ]],
 				 constant ScatterKeysArguments& arguments [[ buffer(UPDATE_FREQ_PER_DRAW) ]],
 				 uint globalId [[ thread_position_in_grid ]],
 				 uint localId [[ thread_position_in_threadgroup ]],
@@ -909,7 +909,7 @@ void ScatterKeys(
         
         // Do a 2-bit sort twice.
         for (uint bit = 0; bit <= 2; bit += 2) {
-            uchar4 bin = uchar4((keys >> (pushConstants.bitShift + bit)) & 0b11);
+            uchar4 bin = uchar4((keys >> (rootConstants.bitShift + bit)) & 0b11);
 
             ushort4 threadCounts = ushort4(0);
 
@@ -993,12 +993,12 @@ void ScatterKeys(
         
         uchar previousBucket = 0;
         if (localId > 0) {
-            previousBucket = (sortedKeys[4 * localId - 1] >> pushConstants.bitShift) & 0b1111;
+            previousBucket = (sortedKeys[4 * localId - 1] >> rootConstants.bitShift) & 0b1111;
         } else {
             threadgroupBucketOffsets[0] = 0;
         }
         
-        uchar4 buckets = uchar4((keys >> pushConstants.bitShift) & 0b1111);
+        uchar4 buckets = uchar4((keys >> rootConstants.bitShift) & 0b1111);
         for (ushort i = 0; i < validCount; i += 1) {
             uchar bucket = buckets[i];
             if (bucket != previousBucket) {
@@ -1031,7 +1031,7 @@ void ScatterKeys(
 kernel
 //__attribute__((reqd_work_group_size(GROUP_SIZE, 1, 1)))
 void ScatterKeys(
-				 constant ScatterKeysPushConstants& pushConstants [[ buffer(UPDATE_FREQ_USER) ]],
+				 constant ScatterKeysPushConstants& rootConstants [[ buffer(UPDATE_FREQ_USER) ]],
 				 constant ScatterKeysArguments& arguments [[ buffer(UPDATE_FREQ_PER_DRAW) ]],
 				 uint globalId [[ thread_position_in_grid ]],
 				 uint localId [[ thread_position_in_threadgroup ]],
@@ -1074,7 +1074,7 @@ void ScatterKeys(
 		 for (int bit = 0; bit <= 2; bit += 2)
 		 {
 			 // Count histogram
-			 uint4 b = ((localkeys >> pushConstants.bitShift) >> bit) & 0x3;
+			 uint4 b = ((localkeys >> rootConstants.bitShift) >> bit) & 0x3;
 			 
 			 uint4 p;
 			 p.x = 1 << (8 * b.x);
@@ -1143,7 +1143,7 @@ void ScatterKeys(
 		 threadgroup atomic_uint* histogramAtomic = (threadgroup atomic_uint*)histogram;
 		 
 		 // Reconstruct 16 bins histogram
-		 uint4 bin = (localkeys >> pushConstants.bitShift) & 0xF;
+		 uint4 bin = (localkeys >> rootConstants.bitShift) & 0xF;
 		 atom_inc(&histogramAtomic[bin.x]);
 		 atom_inc(&histogramAtomic[bin.y]);
 		 atom_inc(&histogramAtomic[bin.z]);
@@ -1218,7 +1218,7 @@ struct ScatterKeysAndValuesArguments {
 kernel
 //__attribute__((reqd_work_group_size(GROUP_SIZE, 1, 1)))
 void ScatterKeysAndValues(// Number of bits to shift
-						  constant ScatterKeysAndValuesPushConstants& pushConstants [[ buffer(UPDATE_FREQ_USER) ]],
+						  constant ScatterKeysAndValuesPushConstants& rootConstants [[ buffer(UPDATE_FREQ_USER) ]],
 						  constant ScatterKeysAndValuesArguments& arguments [[ buffer(UPDATE_FREQ_PER_DRAW) ]],
                           uint globalId [[ thread_position_in_grid ]],
                           uint localId [[ thread_position_in_threadgroup ]],
@@ -1263,7 +1263,7 @@ void ScatterKeysAndValues(// Number of bits to shift
         
         // Do a 2-bit sort twice.
         for (uint bit = 0; bit <= 2; bit += 2) {
-            uchar4 bin = uchar4((keys >> (pushConstants.bitShift + bit)) & 0b11);
+            uchar4 bin = uchar4((keys >> (rootConstants.bitShift + bit)) & 0b11);
 
             ushort4 threadCounts = ushort4(0);
 
@@ -1349,12 +1349,12 @@ void ScatterKeysAndValues(// Number of bits to shift
         
         uchar previousBucket = 0;
         if (localId > 0) {
-            previousBucket = (sortedKeys[4 * localId - 1] >> pushConstants.bitShift) & 0b1111;
+            previousBucket = (sortedKeys[4 * localId - 1] >> rootConstants.bitShift) & 0b1111;
         } else {
             threadgroupBucketOffsets[0] = 0;
         }
         
-        uchar4 buckets = uchar4((keys >> pushConstants.bitShift) & 0b1111);
+        uchar4 buckets = uchar4((keys >> rootConstants.bitShift) & 0b1111);
         for (ushort i = 0; i < validCount; i += 1) {
             uchar bucket = buckets[i];
             if (bucket != previousBucket) {
@@ -1388,7 +1388,7 @@ void ScatterKeysAndValues(// Number of bits to shift
 kernel
 //__attribute__((reqd_work_group_size(GROUP_SIZE, 1, 1)))
 void ScatterKeysAndValues(// Number of bits to shift
-						  constant ScatterKeysAndValuesPushConstants& pushConstants [[ buffer(UPDATE_FREQ_USER) ]],
+						  constant ScatterKeysAndValuesPushConstants& rootConstants [[ buffer(UPDATE_FREQ_USER) ]],
 						  constant ScatterKeysAndValuesArguments& arguments [[ buffer(UPDATE_FREQ_PER_DRAW) ]],
                           uint globalId [[ thread_position_in_grid ]],
                           uint localId [[ thread_position_in_threadgroup ]],
@@ -1437,7 +1437,7 @@ void ScatterKeysAndValues(// Number of bits to shift
 	   for (int bit = 0; bit <= 2; bit += 2)
 	   {
 		   // Count histogram
-		   uint4 b = ((localkeys >> pushConstants.bitShift) >> bit) & 0x3;
+		   uint4 b = ((localkeys >> rootConstants.bitShift) >> bit) & 0x3;
 		   
 		   uint4 p;
 		   p.x = 1 << (8 * b.x);
@@ -1523,7 +1523,7 @@ void ScatterKeysAndValues(// Number of bits to shift
 	   threadgroup atomic_uint* histogramAtomic = (threadgroup atomic_uint*)histogram;
 	   
 	   // Reconstruct 16 bins histogram
-	   uint4 bin = (localkeys >> pushConstants.bitShift) & 0xF;
+	   uint4 bin = (localkeys >> rootConstants.bitShift) & 0xF;
 	   atom_inc(&histogramAtomic[bin.x]);
 	   atom_inc(&histogramAtomic[bin.y]);
 	   atom_inc(&histogramAtomic[bin.z]);
@@ -1861,7 +1861,7 @@ void group_segmented_scan_exclusive_int_nocut_part(
 
 kernel void segmented_scan_exclusive_int_nocut(device int const* inputArray,
                                                device int const* in_segment_heads_array,
-                                               constant uint& elementCount,
+                                               constant uint& elementCountRootConstant,
                                                device int* outputArray,
                                                threadgroup int* shmem,
                                                uint globalId [[ thread_position_in_grid ]],
@@ -1873,8 +1873,8 @@ kernel void segmented_scan_exclusive_int_nocut(device int const* inputArray,
     threadgroup int* keys = shmem;
     threadgroup char* flags = (threadgroup char*)(keys + groupSize);
     
-    keys[localId] = globalId < elementCount ? inputArray[globalId] : 0;
-    flags[localId] = globalId < elementCount ? (in_segment_heads_array[globalId] ? 3 : 0) : 0;
+    keys[localId] = globalId < elementCountRootConstant ? inputArray[globalId] : 0;
+    flags[localId] = globalId < elementCountRootConstant ? (in_segment_heads_array[globalId] ? 3 : 0) : 0;
     
     threadgroup_barrier(mem_flags::mem_threadgroup);
     
@@ -1885,7 +1885,7 @@ kernel void segmented_scan_exclusive_int_nocut(device int const* inputArray,
 
 kernel void segmented_scan_exclusive_int(device int const* inputArray,
                                          device int const* in_segment_heads_array,
-                                         constant uint& elementCount,
+                                         constant uint& elementCountRootConstant,
                                          device int* outputArray,
                                          threadgroup int* shmem,
                                          uint globalId [[ thread_position_in_grid ]],
@@ -1897,8 +1897,8 @@ kernel void segmented_scan_exclusive_int(device int const* inputArray,
     threadgroup int* keys = shmem;
     threadgroup char* flags = (threadgroup char*)(keys + groupSize);
     
-    keys[localId] = globalId < elementCount ? inputArray[globalId] : 0;
-    flags[localId] = globalId < elementCount ? (in_segment_heads_array[globalId] ? 3 : 0) : 0;
+    keys[localId] = globalId < elementCountRootConstant ? inputArray[globalId] : 0;
+    flags[localId] = globalId < elementCountRootConstant ? (in_segment_heads_array[globalId] ? 3 : 0) : 0;
     
     threadgroup_barrier(mem_flags::mem_threadgroup);
     
@@ -1909,7 +1909,7 @@ kernel void segmented_scan_exclusive_int(device int const* inputArray,
 
 kernel void segmented_scan_exclusive_int_part(device int const* inputArray,
                                               device int const* in_segment_heads_array,
-                                              constant uint& elementCount,
+                                              constant uint& elementCountRootConstant,
                                               device int* outputArray,
                                               device int* out_part_sums,
                                               device int* out_part_flags,
@@ -1923,8 +1923,8 @@ kernel void segmented_scan_exclusive_int_part(device int const* inputArray,
     threadgroup int* keys = shmem;
     threadgroup char* flags = (threadgroup char*)(keys + groupSize);
     
-    keys[localId] = globalId < elementCount ? inputArray[globalId] : 0;
-    flags[localId] = globalId < elementCount ? (in_segment_heads_array[globalId] ? 3 : 0) : 0;
+    keys[localId] = globalId < elementCountRootConstant ? inputArray[globalId] : 0;
+    flags[localId] = globalId < elementCountRootConstant ? (in_segment_heads_array[globalId] ? 3 : 0) : 0;
     
     threadgroup_barrier(mem_flags::mem_threadgroup);
     
@@ -1935,7 +1935,7 @@ kernel void segmented_scan_exclusive_int_part(device int const* inputArray,
 
 kernel void segmented_scan_exclusive_int_nocut_part(device int const* inputArray,
                                                     device int const* in_segment_heads_array,
-                                                    constant uint& elementCount,
+                                                    constant uint& elementCountRootConstant,
                                                     device int* outputArray,
                                                     device int* out_part_sums,
                                                     device int* out_part_flags,
@@ -1950,8 +1950,8 @@ kernel void segmented_scan_exclusive_int_nocut_part(device int const* inputArray
     threadgroup int* keys = shmem;
     threadgroup char* flags = (threadgroup char*)(keys + groupSize);
     
-    keys[localId] = globalId < elementCount ? inputArray[globalId] : 0;
-    flags[localId] = globalId < elementCount ? (in_segment_heads_array[globalId] ? 3 : 0) : 0;
+    keys[localId] = globalId < elementCountRootConstant ? inputArray[globalId] : 0;
+    flags[localId] = globalId < elementCountRootConstant ? (in_segment_heads_array[globalId] ? 3 : 0) : 0;
     
     threadgroup_barrier(mem_flags::mem_threadgroup);
     
@@ -1964,7 +1964,7 @@ kernel void segmented_scan_exclusive_int_nocut_part(device int const* inputArray
 kernel void segmented_distribute_part_sum_int(
                                               device int* inoutArray,
                                               device int* in_flags,
-                                              constant uint& elementCount,
+                                              constant uint& elementCountRootConstant,
                                               device int* inputSums,
                                               uint globalId [[ thread_position_in_grid ]],
                                               uint localId [[ thread_position_in_threadgroup ]],
@@ -1980,7 +1980,7 @@ kernel void segmented_distribute_part_sum_int(
     {
         for (uint i = 0; in_flags[globalId + i] == 0 && i < groupSize; ++i)
         {
-            if (globalId + i < elementCount)
+            if (globalId + i < elementCountRootConstant)
             {
                 inoutArray[globalId + i] += sum;
             }
@@ -1991,7 +1991,7 @@ kernel void segmented_distribute_part_sum_int(
 kernel void segmented_distribute_part_sum_int_nocut(
                                                     device int* inoutArray,
                                                     device int* in_flags,
-                                                    constant uint& elementCount,
+                                                    constant uint& elementCountRootConstant,
                                                     device int* inputSums,
                                                     uint globalId [[ thread_position_in_grid ]],
                                                     uint localId [[ thread_position_in_threadgroup ]],
@@ -2008,7 +2008,7 @@ kernel void segmented_distribute_part_sum_int_nocut(
     {
         for (uint i = 0; i < groupSize; ++i)
         {
-            if (globalId + i < elementCount)
+            if (globalId + i < elementCountRootConstant)
             {
                 if (in_flags[globalId + i] == 0)
                 {
@@ -2044,23 +2044,23 @@ struct OffsetBufferGenerationArguments {
 };
 
 // Input is a sorted buffer of category indices, and output is where in that buffer each category starts.
-kernel void ClearOffsetBuffer(constant OffsetBufferGenerationPushConstants &pushConstants [[ buffer(UPDATE_FREQ_USER) ]],
+kernel void ClearOffsetBuffer(constant OffsetBufferGenerationPushConstants &rootConstants [[ buffer(UPDATE_FREQ_USER) ]],
 							  constant OffsetBufferGenerationArguments& args [[ buffer(UPDATE_FREQ_PER_DRAW) ]],
                                 uint globalId [[ thread_position_in_grid ]]) {
-	uint threadsNeeded = (pushConstants.categoryCount + 3) / 4;
+	uint threadsNeeded = (rootConstants.categoryCount + 3) / 4;
 	if (globalId >= threadsNeeded) {
 		return;
 	}
 	
 	uint lowerBound = globalId * 4;
-	uint upperBound = min(pushConstants.categoryCount, lowerBound + 4);
+	uint upperBound = min(rootConstants.categoryCount, lowerBound + 4);
 	for (uint i = lowerBound; i < upperBound; i += 1) {
 		args.offsetBuffer[i] = ~0;
 	}
 }
 
 // Input is a sorted buffer of category indices, and output is where in that buffer each category starts.
-kernel void GenerateOffsetBuffer(constant OffsetBufferGenerationPushConstants &pushConstants [[ buffer(UPDATE_FREQ_USER) ]],
+kernel void GenerateOffsetBuffer(constant OffsetBufferGenerationPushConstants &rootConstants [[ buffer(UPDATE_FREQ_USER) ]],
                                 constant OffsetBufferGenerationArguments& args [[ buffer(UPDATE_FREQ_PER_DRAW) ]],
                                 uint globalId [[ thread_position_in_grid ]]) {
 	// If no threads will get to run, make sure we clear the indirect count buffer.
@@ -2078,12 +2078,12 @@ kernel void GenerateOffsetBuffer(constant OffsetBufferGenerationPushConstants &p
     uint indexInIndices = globalId + 1;
     
     uint previousIndex = args.sortedIndices[indexInIndices - 1];
-    uint currentIndex = indexInIndices == args.sortedIndicesCount ? pushConstants.categoryCount : args.sortedIndices[indexInIndices];
+    uint currentIndex = indexInIndices == args.sortedIndicesCount ? rootConstants.categoryCount : args.sortedIndices[indexInIndices];
     
-    if (previousIndex < currentIndex && previousIndex + 1 < pushConstants.categoryCount) {
+    if (previousIndex < currentIndex && previousIndex + 1 < rootConstants.categoryCount) {
         args.offsetBuffer[previousIndex + 1] = indexInIndices;
         
-        if (currentIndex < pushConstants.categoryCount) {
+        if (currentIndex < rootConstants.categoryCount) {
             args.offsetBuffer[currentIndex] = indexInIndices;
         }
     }
@@ -2092,22 +2092,22 @@ kernel void GenerateOffsetBuffer(constant OffsetBufferGenerationPushConstants &p
         uint currentIndex = args.sortedIndices[0];
 		args.offsetBuffer[0] = 0;
             
-        if (currentIndex < pushConstants.categoryCount) {
+        if (currentIndex < rootConstants.categoryCount) {
             args.offsetBuffer[currentIndex] = 0;
         }
     }
     
-    if (currentIndex >= pushConstants.categoryCount &&
-        (previousIndex < pushConstants.categoryCount || (globalId == 0 && previousIndex >= pushConstants.categoryCount))) { // Will only be true for one element.
+    if (currentIndex >= rootConstants.categoryCount &&
+        (previousIndex < rootConstants.categoryCount || (globalId == 0 && previousIndex >= rootConstants.categoryCount))) { // Will only be true for one element.
         // Put into the rayCount buffer: [count], [threadgroupsX, 1, 1], [max(threadgroupsX, 1), 1, 1]
         uint activeCount = indexInIndices;
-        if (globalId == 0 && previousIndex >= pushConstants.categoryCount) {
+        if (globalId == 0 && previousIndex >= rootConstants.categoryCount) {
             activeCount = 0;
         }
         
         args.totalCountAndIndirectArgs[0] = activeCount;
         
-        uint threadgroupsX = (activeCount + pushConstants.indirectThreadsPerThreadgroup - 1) / pushConstants.indirectThreadsPerThreadgroup;
+        uint threadgroupsX = (activeCount + rootConstants.indirectThreadsPerThreadgroup - 1) / rootConstants.indirectThreadsPerThreadgroup;
         args.totalCountAndIndirectArgs[1] = max(1u, threadgroupsX);
         args.totalCountAndIndirectArgs[2] = 1;
         args.totalCountAndIndirectArgs[3] = 1;
@@ -2129,11 +2129,11 @@ struct IndirectArgsFromOffsetBufferArguments {
 	device uint* indirectArgumentsBuffer; // Offset, total count, then threadgroups X, Y, Z (stride of 5)
 };
 
-kernel void GenerateIndirectArgumentsFromOffsetBuffer(constant IndirectArgsFromOffsetBufferPushConstants &pushConstants [[ buffer(UPDATE_FREQ_USER) ]],
+kernel void GenerateIndirectArgumentsFromOffsetBuffer(constant IndirectArgsFromOffsetBufferPushConstants &rootConstants [[ buffer(UPDATE_FREQ_USER) ]],
                                 constant IndirectArgsFromOffsetBufferArguments& args [[ buffer(UPDATE_FREQ_PER_DRAW) ]],
                                 uint globalId [[ thread_position_in_grid ]]) {
 
-	if (globalId >= pushConstants.categoryCount) {
+	if (globalId >= rootConstants.categoryCount) {
 		return;
 	}
 	
@@ -2144,7 +2144,7 @@ kernel void GenerateIndirectArgumentsFromOffsetBuffer(constant IndirectArgsFromO
 	if (threadIndexLowerBound == UINT_MAX) {
 		threadIndexUpperBound = threadIndexLowerBound;
 	} else {
-		threadIndexUpperBound = (categoryIndex + 1 >= pushConstants.categoryCount) ? args.totalIndexCount : args.offsetBuffer[categoryIndex + 1];
+		threadIndexUpperBound = (categoryIndex + 1 >= rootConstants.categoryCount) ? args.totalIndexCount : args.offsetBuffer[categoryIndex + 1];
 		if (threadIndexUpperBound == UINT_MAX) {
 			threadIndexUpperBound = threadIndexLowerBound;
 		}
@@ -2155,7 +2155,7 @@ kernel void GenerateIndirectArgumentsFromOffsetBuffer(constant IndirectArgsFromO
 	device uint* output = &args.indirectArgumentsBuffer[8 * categoryIndex];
 	output[0] = threadIndexLowerBound;
 	output[1] = count;
-	output[2] = (count + pushConstants.indirectThreadsPerThreadgroup - 1) / pushConstants.indirectThreadsPerThreadgroup;
+	output[2] = (count + rootConstants.indirectThreadsPerThreadgroup - 1) / rootConstants.indirectThreadsPerThreadgroup;
 	output[3] = 1;
 	output[4] = 1;
 }

@@ -727,7 +727,7 @@ TIF_CONSTEXPR inline bool TinyImageFormat_IsHomogenous(TinyImageFormat const fmt
 
 TIF_CONSTEXPR inline uint32_t TinyImageFormat_WidthOfBlock(TinyImageFormat const fmt) {
 	switch(fmt) {
-		case TinyImageFormat_UNDEFINED: return 0;
+		case TinyImageFormat_UNDEFINED: return 1;
 		case TinyImageFormat_R1_UNORM: return 8;
 		case TinyImageFormat_R2_UNORM: return 4;
 		case TinyImageFormat_R4_UNORM: return 2;
@@ -800,7 +800,7 @@ TIF_CONSTEXPR inline uint32_t TinyImageFormat_WidthOfBlock(TinyImageFormat const
 
 TIF_CONSTEXPR inline uint32_t TinyImageFormat_HeightOfBlock(TinyImageFormat const fmt) {
 	switch(fmt) {
-		case TinyImageFormat_UNDEFINED: return 0;
+		case TinyImageFormat_UNDEFINED: return 1;
 		case TinyImageFormat_DXBC1_RGB_UNORM: return 4;
 		case TinyImageFormat_DXBC1_RGB_SRGB: return 4;
 		case TinyImageFormat_DXBC1_RGBA_UNORM: return 4;
@@ -869,7 +869,7 @@ TIF_CONSTEXPR inline uint32_t TinyImageFormat_HeightOfBlock(TinyImageFormat cons
 
 TIF_CONSTEXPR inline uint32_t TinyImageFormat_DepthOfBlock(TinyImageFormat const fmt) {
 	switch(fmt) {
-		case TinyImageFormat_UNDEFINED: return 0;
+		case TinyImageFormat_UNDEFINED: return 1;
 		default: return 1;
 	}
 }

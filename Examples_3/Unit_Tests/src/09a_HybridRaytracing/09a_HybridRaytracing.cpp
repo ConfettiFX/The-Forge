@@ -848,18 +848,18 @@ class HybridRaytracing: public IApp
 	bool Init()
 	{
         // FILE PATHS
-        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        PathHandle programDirectory = fsGetApplicationDirectory();
 		if (!fsPlatformUsesBundledResources())
 		{
 			PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/09a_HybridRaytracing");
-			fsSetResourceDirectoryRootPath(resourceDirRoot);
+			fsSetResourceDirRootPath(resourceDirRoot);
 			
-			fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../../../Art/Sponza/Textures");
-			fsSetRelativePathForResourceDirectory(RD_MESHES,          "../../../../Art/Sponza/Meshes");
-			fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
-			fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
-			fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
-			fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
+			fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../../../Art/Sponza/Textures");
+			fsSetRelativePathForResourceDirEnum(RD_MESHES,          "../../../../Art/Sponza/Meshes");
+			fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
+			fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
+			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
+			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
 		}
 		
 		// window and renderer setup
@@ -1449,7 +1449,7 @@ bool LoadSponza(SyncToken* token)
 	//adding material textures
 	for (int i = 0; i < TOTAL_IMGS; ++i)
 	{
-        PathHandle texturePath = fsCopyPathInResourceDirectory(RD_TEXTURES, pMaterialImageFileNames[i]);
+        PathHandle texturePath = fsGetPathInResourceDirEnum(RD_TEXTURES, pMaterialImageFileNames[i]);
 		TextureLoadDesc textureDesc = {};
 		textureDesc.pFilePath = texturePath;
 		textureDesc.ppTexture = &pMaterialTextures[i];
@@ -1482,7 +1482,7 @@ bool LoadSponza(SyncToken* token)
 
 	SponzaProp.WorldMatrix = mat4::identity();
 
-    PathHandle sceneFullPath = fsCopyPathInResourceDirectory(RD_MESHES, gModel_Sponza_File);
+    PathHandle sceneFullPath = fsGetPathInResourceDirEnum(RD_MESHES, gModel_Sponza_File);
 	GeometryLoadDesc loadDesc = {};
 	loadDesc.pFilePath = sceneFullPath;
 	loadDesc.ppGeometry = &SponzaProp.Geom;
@@ -2148,7 +2148,6 @@ void Draw()
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
-		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 

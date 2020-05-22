@@ -101,6 +101,8 @@ struct ThreadDesc
 #if defined(NX64)
 	ThreadHandle hThread;
 	void *pThreadStack;
+	const char* pThreadName;
+	int preferredCore;
 #endif
 	/// Work item description and thread index (Main thread => 0)
 	ThreadFunction pFunc;

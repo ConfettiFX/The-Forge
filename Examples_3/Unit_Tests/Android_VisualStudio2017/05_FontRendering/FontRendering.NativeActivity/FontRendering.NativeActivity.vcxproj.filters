@@ -12,12 +12,4 @@
       <UniqueIdentifier>{4a286d4d-adb0-4397-8b3e-3862b4cc02e3}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\..\src\05_FontRendering\Shaders\Vulkan\profile.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\05_FontRendering\Shaders\Vulkan\profile.vert">
-      <Filter>Shaders</Filter>
-    </None>
-  </ItemGroup>
 </Project>

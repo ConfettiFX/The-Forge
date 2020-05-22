@@ -31,31 +31,25 @@
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/IMemory.h"
 
-void outputLogString(const char* pszStr)
-{
-	OutputDebugStringA(pszStr);
-	OutputDebugStringA("\n");
-}
-
 void _OutputDebugStringV(const char* str, va_list args)
 {
-#ifdef _DEBUG
+#if FORGE_DEBUG
     const unsigned BUFFER_SIZE = 4096;
     char           buf[BUFFER_SIZE];
 
     vsprintf_s(buf, BUFFER_SIZE, str, args);
-
 	OutputDebugStringA(buf);
-	OutputDebugStringA("\n");
 #endif
 }
 
 void _OutputDebugString(const char* str, ...)
 {
+#if FORGE_DEBUG
 	va_list arglist;
 	va_start(arglist, str);
 	_OutputDebugStringV(str, arglist);
 	va_end(arglist);
+#endif
 }
 
 void _FailedAssert(const char* file, int line, const char* statement)
@@ -80,7 +74,7 @@ void _FailedAssert(const char* file, int line, const char* statement)
 #if _MSC_VER >= 1400
 				__debugbreak();
 #else
-				_asm int 0x03;  
+				_asm int 0x03;
 #endif
 			}
 			else if (res == IDCANCEL)
@@ -99,24 +93,22 @@ void _FailedAssert(const char* file, int line, const char* statement)
 	}
 }
 
-void _PrintUnicode(const eastl::string& str, bool error)
+void _PrintUnicode(const char* str, bool error)
 {
 	// If the output stream has been redirected, use fprintf instead of WriteConsoleW,
 	// though it means that proper Unicode output will not work
 	FILE* out = error ? stderr : stdout;
 	if (!_isatty(_fileno(out)))
-		fprintf(out, "%s\n", str.c_str());
+		fprintf(out, "%s", str);
 	else
 	{
 		if (error)
-			printf("%s\n", str.c_str());    // use this for now because WriteCosnoleW sometimes cause blocking
+			printf("%s", str);    // use this for now because WriteCosnoleW sometimes cause blocking
 		else
-			printf("%s\n", str.c_str());
+			printf("%s", str);
 	}
 
-	outputLogString(str.c_str());
+	_OutputDebugString(str);
 }
-
-void _PrintUnicodeLine(const eastl::string& str, bool error) { _PrintUnicode(str, error); }
 
 #endif

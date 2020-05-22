@@ -58,6 +58,7 @@ size_t MemoryStream::Write(const void* sourceBuffer, size_t byteCount)
 	}
 	size_t bytesToWrite = AvailableCapacity(byteCount);
 	memcpy(pBuffer + mCursor, sourceBuffer, bytesToWrite);
+	mCursor += bytesToWrite;
 	return bytesToWrite;
 }
 

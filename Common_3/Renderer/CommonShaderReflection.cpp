@@ -51,7 +51,7 @@ static bool ShaderResourceCmp(ShaderResource* a, ShaderResource* b)
 	if (isSame == false)
 		return isSame;
 
-	isSame = isSame && (strcmp(a->name, b->name) == 0);
+	isSame = (strcmp(a->name, b->name) == 0);
 #endif
 	return isSame;
 }
@@ -68,7 +68,7 @@ static bool ShaderVariableCmp(ShaderVariable* a, ShaderVariable* b)
 	if (isSame == false)
 		return isSame;
 
-	isSame = isSame && (strcmp(a->name, b->name) == 0);
+	isSame = (strcmp(a->name, b->name) == 0);
 
 	return isSame;
 }

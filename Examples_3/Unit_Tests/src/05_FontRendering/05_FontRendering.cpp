@@ -226,7 +226,7 @@ float2       GetCenteredTextPosition(const char* pText, const TextDrawDesc& draw
 
 //static float gBiasX = 0.0f;
 //static float gBiasY = 0.0f;
-static float2 gBias(0.0f, 0.0f);
+//static float2 gBias(0.0f, 0.0f);
 
 /************************************************************************/
 /* APP IMPLEMENTATION
@@ -246,18 +246,18 @@ class FontRendering: public IApp
 	bool Init()
 	{
         // FILE PATHS
-        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        PathHandle programDirectory = fsGetApplicationDirectory();
         if (!fsPlatformUsesBundledResources())
         {
             PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/05_FontRendering");
-            fsSetResourceDirectoryRootPath(resourceDirRoot);
+            fsSetResourceDirRootPath(resourceDirRoot);
             
-            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirectory(RD_MESHES,             "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,     "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,     "../../../../Middleware_3/UI");
+            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../UnitTestResources/Textures");
+            fsSetRelativePathForResourceDirEnum(RD_MESHES,             "../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,     "../../UnitTestResources/Fonts");
+            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,     "../../../../Middleware_3/UI");
         }
         
 		// window and renderer setup
@@ -294,7 +294,7 @@ class FontRendering: public IApp
 			return false;    // report?
 
 		// load the fonts
-		const ResourceDirectory fontRoot = ResourceDirectory::RD_BUILTIN_FONTS;
+		const ResourceDirEnum fontRoot = ResourceDirEnum::RD_BUILTIN_FONTS;
 		gFonts.titilliumBold = gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", fontRoot);
 		gFonts.comicRelief = gAppUI.LoadFont("ComicRelief/ComicRelief.ttf", fontRoot);
 		gFonts.crimsonSerif = gAppUI.LoadFont("Crimson/Crimson-Roman.ttf", fontRoot);

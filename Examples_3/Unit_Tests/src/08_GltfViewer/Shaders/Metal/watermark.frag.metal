@@ -28,8 +28,8 @@ struct main_input
 
 struct ArgBuffer0
 {
-    texture2d<float> sceneTexture [[id(6)]];
-    sampler clampMiplessLinearSampler [[id(7)]];
+    texture2d<float> sceneTexture [[id(0)]];
+    sampler clampMiplessLinearSampler [[id(1)]];
 };
 
 fragment float4 stageMain(

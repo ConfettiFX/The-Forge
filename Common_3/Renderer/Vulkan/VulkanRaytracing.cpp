@@ -175,15 +175,17 @@ AccelerationStructureBottom* createBottomAS(Raytracing* pRaytracing, const Accel
 			pGeometry->geometry.triangles.vertexOffset = 0;
 			pGeometry->geometry.triangles.vertexCount = (uint32_t)vbDesc.mDesc.mSize / sizeof(float3);
 			pGeometry->geometry.triangles.vertexStride = sizeof(float3);
+			pGeometry->geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
 
-			if (pGeometry->geometry.triangles.vertexStride == sizeof(float))
-				pGeometry->geometry.triangles.vertexFormat = VK_FORMAT_R32_SFLOAT;
-			else if (pGeometry->geometry.triangles.vertexStride == sizeof(float) * 2)
-				pGeometry->geometry.triangles.vertexFormat = VK_FORMAT_R32G32_SFLOAT;
-			else if (pGeometry->geometry.triangles.vertexStride == sizeof(float) * 3)
-				pGeometry->geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
-			else if (pGeometry->geometry.triangles.vertexStride == sizeof(float) * 4)
-				pGeometry->geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
+			// #TODO
+			//if (pGeometry->geometry.triangles.vertexStride == sizeof(float))
+			//	pGeometry->geometry.triangles.vertexFormat = VK_FORMAT_R32_SFLOAT;
+			//else if (pGeometry->geometry.triangles.vertexStride == sizeof(float) * 2)
+			//	pGeometry->geometry.triangles.vertexFormat = VK_FORMAT_R32G32_SFLOAT;
+			//else if (pGeometry->geometry.triangles.vertexStride == sizeof(float) * 3)
+			//	pGeometry->geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
+			//else if (pGeometry->geometry.triangles.vertexStride == sizeof(float) * 4)
+			//	pGeometry->geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
 
 			//initialize AABBs
 			pGeometry->geometry.aabbs = VkGeometryAABBNV{};
@@ -632,8 +634,6 @@ VkGeometryFlagsNV util_to_vk_geometry_flags(AccelerationStructureGeometryFlags f
 VkGeometryInstanceFlagsNV util_to_vk_instance_flags(AccelerationStructureInstanceFlags flags)
 {
 	VkGeometryInstanceFlagsNV ret = 0;
-	if (flags & ACCELERATION_STRUCTURE_INSTANCE_FLAG_FORCE_OPAQUE)
-		ret |= VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_NV;
 	if (flags & ACCELERATION_STRUCTURE_INSTANCE_FLAG_FORCE_OPAQUE)
 		ret |= VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_NV;
 	if (flags & ACCELERATION_STRUCTURE_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE)

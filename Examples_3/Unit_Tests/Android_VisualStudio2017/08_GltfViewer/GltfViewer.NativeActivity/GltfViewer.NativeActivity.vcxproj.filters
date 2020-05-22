@@ -39,12 +39,6 @@
     <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\FXAA.frag">
       <Filter>Shaders</Filter>
     </None>
-    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\profile.frag">
-      <Filter>Shaders</Filter>
-    </None>
-    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\profile.vert">
-      <Filter>Shaders</Filter>
-    </None>
     <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\Triangular.vert">
       <Filter>Shaders</Filter>
     </None>

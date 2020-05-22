@@ -2,12 +2,10 @@
 #include <metal_stdlib>
 using namespace metal;
 
+#include "argument_buffers.h"
+
 struct Fragment_Shader
 {
-#ifndef MAX_NUM_OBJECTS
-#define MAX_NUM_OBJECTS 64
-#endif
-
 #define SPECULAR_EXP 10.0
 #if USE_SHADOWS!=0
     texture2d<float> VSM;
@@ -52,38 +50,8 @@ struct Fragment_Shader
     };
 #endif
 
-    struct Material
-    {
-        float4 Color;
-        float4 Transmission;
-        float RefractionRatio;
-        float Collimation;
-		float2 Padding;
-        uint TextureFlags;
-        uint AlbedoTexID;
-        uint MetallicTexID;
-        uint RoughnessTexID;
-        uint EmissiveTexID;
-    };
-    struct Uniforms_LightUniformBlock
-    {
-        float4x4 lightViewProj;
-        float4 lightDirection;
-        float4 lightColor;
-    };
     constant Uniforms_LightUniformBlock & LightUniformBlock;
-    struct Uniforms_CameraUniform
-    {
-        float4x4 camViewProj;
-        float4x4 camViewMat;
-        float4 camClipInfo;
-        float4 camPosition;
-    };
     constant Uniforms_CameraUniform & CameraUniform;
-    struct Uniforms_MaterialUniform
-    {
-        Material Materials[MAX_NUM_OBJECTS];
-    };
     constant Uniforms_MaterialUniform & MaterialUniform;
     
     constant texture2d<float, access::sample>* MaterialTextures;
@@ -137,16 +105,6 @@ struct Fragment_Shader
 #endif
     };
 #if PT_USE_DIFFUSION!=0
-    struct ObjectInfo
-    {
-        float4x4 toWorld;
-        float4x4 normalMat;
-        uint matID;
-    };
-    struct Uniforms_ObjectUniformBlock
-    {
-        ObjectInfo objectInfo[MAX_NUM_OBJECTS];
-    };
     constant Uniforms_ObjectUniformBlock & ObjectUniformBlock;
     texture2d<float> DepthTexture;
     sampler PointSampler;
@@ -264,37 +222,9 @@ LightUniformBlock(LightUniformBlock),CameraUniform(CameraUniform),MaterialUnifor
  {}
 };
 
-struct FSData {
-#if USE_SHADOWS!=0
-    texture2d<float> VSM;
-    sampler VSMSampler;
-#if PT_USE_CAUSTICS!=0
-    texture2d<float> VSMRed;
-    texture2d<float> VSMGreen;
-    texture2d<float> VSMBlue;
-#endif
-#endif
-#if PT_USE_DIFFUSION!=0
-    texture2d<float> DepthTexture;
-    sampler PointSampler;
-#endif
-    sampler LinearSampler;
-    texture2d<float, access::sample> MaterialTextures[MAX_NUM_TEXTURES];
-};
-
-struct FSDataPerFrame {
-    constant Fragment_Shader::Uniforms_LightUniformBlock & LightUniformBlock    [[id(0)]];
-    constant Fragment_Shader::Uniforms_CameraUniform & CameraUniform            [[id(1)]];
-    constant Fragment_Shader::Uniforms_MaterialUniform & MaterialUniform        [[id(2)]];
-#if PT_USE_DIFFUSION!=0
-    constant Fragment_Shader::Uniforms_ObjectUniformBlock & ObjectUniformBlock  [[id(3)]];
-#endif
-};
-
 fragment Fragment_Shader::PSOutput stageMain(
     Fragment_Shader::VSOutput input [[stage_in]],
-    constant FSData& fsData     [[buffer(UPDATE_FREQ_NONE)]],
-    constant FSDataPerFrame& fsDataPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]]
+	DECLARE_ARG_DATA()
 )
 {
     Fragment_Shader::VSOutput input0;
@@ -309,27 +239,28 @@ fragment Fragment_Shader::PSOutput stageMain(
 #if PT_USE_REFRACTION != 0
     input0.CSNormal = input.CSNormal;
 #endif
+	
     Fragment_Shader main(
 #if USE_SHADOWS!=0
-    fsData.VSM,
-    fsData.VSMSampler,
+	VSM,
+	VSMSampler,
 #if PT_USE_CAUSTICS!=0
-    fsData.VSMRed,
-    fsData.VSMGreen,
-    fsData.VSMBlue,
+	VSMRed,
+	VSMGreen,
+	VSMBlue,
 #endif
 #endif
-    fsDataPerFrame.LightUniformBlock,
-    fsDataPerFrame.CameraUniform,
-    fsDataPerFrame.MaterialUniform,
-    fsData.MaterialTextures,
-    fsData.LinearSampler
+	fsDataPerFrame.LightUniformBlock,
+	fsDataPerFrame.CameraUniform,
+	fsDataPerFrame.MaterialUniform,
+	fsData.MaterialTextures,
+	LinearSampler
 #if PT_USE_DIFFUSION!=0
-    ,
-    fsDataPerFrame.ObjectUniformBlock,
-    fsData.DepthTexture,
-    fsData.PointSampler
+,
+	fsDataPerFrame.ObjectUniformBlock,
+	DepthTexture,
+	PointSampler
 #endif
-                         );
+	);
     return main.main(input0);
 }

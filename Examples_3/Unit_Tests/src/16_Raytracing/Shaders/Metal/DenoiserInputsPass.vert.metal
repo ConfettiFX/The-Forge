@@ -34,7 +34,8 @@ struct VertexOutput
 	float3 worldSpaceNormal;
 };
 
-struct Uniforms {
+struct Uniforms
+{
 	float4x4 worldToCamera;
 	float4x4 cameraToProjection;
 	float4x4 worldToProjectionPrevious;
@@ -43,7 +44,8 @@ struct Uniforms {
 	uint padding;
 };
 
-struct UniformDataPerFrame {
+struct UniformDataPerFrame
+{
     constant Uniforms &uniforms;
 };
 

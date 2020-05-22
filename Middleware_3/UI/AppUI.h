@@ -32,7 +32,7 @@
 
 typedef void (*WidgetCallback)();
 
-extern ResourceDirectory RD_MIDDLEWARE_UI;
+extern ResourceDirEnum RD_MIDDLEWARE_UI;
 
 struct Renderer;
 struct Texture;
@@ -912,7 +912,7 @@ class UIApp: public IMiddleware
 	void Update(float deltaTime);
 	void Draw(Cmd* cmd);
 
-	uint          LoadFont(const char* pFontPath, ResourceDirectory root);
+	uint          LoadFont(const char* pFontPath, ResourceDirEnum root);
 	GuiComponent* AddGuiComponent(const char* pTitle, const GuiDesc* pDesc);
 	void          RemoveGuiComponent(GuiComponent* pComponent);
 	void          RemoveAllGuiComponents();

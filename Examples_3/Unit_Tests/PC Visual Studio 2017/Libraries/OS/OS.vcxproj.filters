@@ -70,6 +70,9 @@
     <Filter Include="Dependencies\zip">
       <UniqueIdentifier>{94561365-2e90-4140-bacd-276c1b9c04cb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Dependencies\rmem">
+      <UniqueIdentifier>{b4df5063-637c-4986-968c-c129bdde13c4}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFileSystem.h">
@@ -340,6 +343,15 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\zip\zip.cpp">
       <Filter>Dependencies\zip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\rmem\src\rmem_get_module_info.cpp">
+      <Filter>Dependencies\rmem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\rmem\src\rmem_hook.cpp">
+      <Filter>Dependencies\rmem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\rmem\src\rmem_lib.cpp">
+      <Filter>Dependencies\rmem</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

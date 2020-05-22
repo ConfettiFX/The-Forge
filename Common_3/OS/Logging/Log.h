@@ -62,7 +62,7 @@ enum LogLevel
 };
 
 
-typedef void(*log_callback_t)(void * user_data, const eastl::string & message);
+typedef void(*log_callback_t)(void * user_data, const char* message);
 typedef void(*log_close_t)(void * user_data);
 typedef void(*log_flush_t)(void * user_data);
 
@@ -92,6 +92,7 @@ public:
 	static void SetTimeStamp(bool bEnable);
 	static void SetRecordingFile(bool bEnable);
 	static void SetRecordingThreadName(bool bEnable);
+	static void SetConsoleLogging(bool bEnable);
 
 	static uint32_t        GetLevel();
 	static eastl::string   GetLastMessage();
@@ -103,12 +104,12 @@ public:
 	static void AddFile(const char * filename, FileMode file_mode, LogLevel log_level);
 	static void AddCallback(const char * id, uint32_t log_level, void * user_data, log_callback_t callback, log_close_t close = nullptr, log_flush_t flush = nullptr);
 
-	static void Write(uint32_t level, const eastl::string& message, const char * filename, int line_number);
-	static void WriteRaw(uint32_t level, const eastl::string& message, bool error = false);
+	static void Write(uint32_t level, const char * filename, int line_number, const char* message, ...);
+	static void WriteRaw(uint32_t level, bool error, const char* message, ...);
 
 private:
 	static void AddInitialLogFile();
-	static void WritePreamble(char * buffer, uint32_t buffer_size, const char * file, int line);
+	static uint32_t WritePreamble(char * buffer, uint32_t buffer_size, const char * file, int line);
 	static bool CallbackExists(const char * id);
 
 	// Singleton
@@ -139,13 +140,17 @@ private:
 	eastl::vector<LogCallback> mCallbacks;
 	/// Mutex for threaded operation.
 	Mutex           mLogMutex;
-	eastl::string   mLastMessage;
 	uint32_t        mLogLevel;
 	uint32_t        mIndentation;
 	bool            mQuietMode;
 	bool            mRecordTimestamp;
 	bool            mRecordFile;
 	bool            mRecordThreadName;
+
+	enum{MAX_BUFFER=1024};
+
+	static thread_local char Buffer[MAX_BUFFER+2];
+	static bool sConsoleLogging;
 };
 
 eastl::string ToString(const char* formatString, ...);

@@ -35,6 +35,9 @@
 		B231A16623F2E124006D7450 /* eastl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A16523F2E124006D7450 /* eastl.cpp */; };
 		B231A16A23F2E174006D7450 /* macOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = B231A16923F2E174006D7450 /* macOSBase.mm */; };
 		B231A19D23F2E217006D7450 /* macOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = B231A19C23F2E217006D7450 /* macOSAppDelegate.m */; };
+		B2B2F1F92472F85900B483FF /* rmem_get_module_info.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B2F1F82472F85900B483FF /* rmem_get_module_info.cpp */; };
+		B2B2F1FB2472F86E00B483FF /* rmem_hook.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B2F1FA2472F86E00B483FF /* rmem_hook.cpp */; };
+		B2B2F1FD2472F87F00B483FF /* rmem_lib.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B2F1FC2472F87F00B483FF /* rmem_lib.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -145,6 +148,9 @@
 		B231A19823F2E1F8006D7450 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B231A19923F2E1F8006D7450 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		B231A19C23F2E217006D7450 /* macOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = macOSAppDelegate.m; path = ../../../OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
+		B2B2F1F82472F85900B483FF /* rmem_get_module_info.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_get_module_info.cpp; path = ../../../ThirdParty/OpenSource/rmem/src/rmem_get_module_info.cpp; sourceTree = "<group>"; };
+		B2B2F1FA2472F86E00B483FF /* rmem_hook.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_hook.cpp; path = ../../../ThirdParty/OpenSource/rmem/src/rmem_hook.cpp; sourceTree = "<group>"; };
+		B2B2F1FC2472F87F00B483FF /* rmem_lib.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_lib.cpp; path = ../../../ThirdParty/OpenSource/rmem/src/rmem_lib.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -310,6 +316,7 @@
 		B231A15C23F2E056006D7450 /* Dependencies */ = {
 			isa = PBXGroup;
 			children = (
+				B2B2F1F12472F83D00B483FF /* rmem */,
 				B231A16423F2E10E006D7450 /* eastl */,
 				B231A16023F2E0CE006D7450 /* basis */,
 				B231A15F23F2E0BE006D7450 /* zip */,
@@ -340,6 +347,16 @@
 				B231A16523F2E124006D7450 /* eastl.cpp */,
 			);
 			name = eastl;
+			sourceTree = "<group>";
+		};
+		B2B2F1F12472F83D00B483FF /* rmem */ = {
+			isa = PBXGroup;
+			children = (
+				B2B2F1FC2472F87F00B483FF /* rmem_lib.cpp */,
+				B2B2F1FA2472F86E00B483FF /* rmem_hook.cpp */,
+				B2B2F1F82472F85900B483FF /* rmem_get_module_info.cpp */,
+			);
+			name = rmem;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -450,6 +467,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B2B2F1FB2472F86E00B483FF /* rmem_hook.cpp in Sources */,
 				B231A13623F2DCA4006D7450 /* SystemFileStream.cpp in Sources */,
 				B231A13823F2DCA4006D7450 /* FileSystemInternal.cpp in Sources */,
 				B231A19D23F2E217006D7450 /* macOSAppDelegate.m in Sources */,
@@ -465,10 +483,12 @@
 				B231A16323F2E0F9006D7450 /* basisu_transcoder.cpp in Sources */,
 				B231A15E23F2E07A006D7450 /* zip.cpp in Sources */,
 				B231A14523F2DCC1006D7450 /* FileSystem.cpp in Sources */,
+				B2B2F1FD2472F87F00B483FF /* rmem_lib.cpp in Sources */,
 				B231A15723F2DD07006D7450 /* MemoryTracking.cpp in Sources */,
 				B231A12623F2DC86006D7450 /* Image.cpp in Sources */,
 				B231A15123F2DCF0006D7450 /* DarwinLog.cpp in Sources */,
 				B231A13923F2DCA4006D7450 /* UnixFileSystem.cpp in Sources */,
+				B2B2F1F92472F85900B483FF /* rmem_get_module_info.cpp in Sources */,
 				B231A11A23F2DBD5006D7450 /* AssetPipelineCmd.cpp in Sources */,
 				B231A13523F2DCA4006D7450 /* ZipFileSystem.cpp in Sources */,
 				B231A11E23F2DBE9006D7450 /* TressFXAsset.cpp in Sources */,

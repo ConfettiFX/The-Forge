@@ -36,7 +36,7 @@ namespace eastl
 	struct has_equality<vec4> : eastl::false_type {};
 }
 
-ResourceDirectory RD_MIDDLEWARE_PANINI = RD_MIDDLEWARE_2;
+ResourceDirEnum RD_MIDDLEWARE_PANINI = RD_MIDDLEWARE_2;
 /************************************************************************/
 /* HELPER FUNCTIONS
 ************************************************************************/

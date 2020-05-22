@@ -25,15 +25,7 @@
 #include <metal_stdlib>
 using namespace metal;
 
-struct InstanceData
-{
-    float4x4 mvp;
-    float4x4 normalMat;
-    float4 surfaceColor;
-    float4 deepColor;
-    int textureID;
-    uint _pad0[3];
-};
+#include "argument_buffers.h"
 
 struct RootConstantData
 {
@@ -54,19 +46,10 @@ struct PsIn
     float3 albedo;
 };
 
-struct FSData {
-    texture2d_array<float> uTex0             [[id(0)]];
-    sampler uSampler0                        [[id(1)]];
-};
-
-struct FSDataPerBatch {
-    constant InstanceData* instanceBuffer    [[id(0)]];
-};
-
 fragment float4 stageMain(
     PsIn In                                     [[stage_in]],
-    constant FSData& fsData                     [[buffer(UPDATE_FREQ_NONE)]],
-    constant FSDataPerBatch& fsDataPerBatch     [[buffer(UPDATE_FREQ_PER_BATCH)]],
+    constant BasicArgData& fsData                     [[buffer(UPDATE_FREQ_NONE)]],
+    constant BasicArgDataPerBatch& fsDataPerBatch     [[buffer(UPDATE_FREQ_PER_BATCH)]],
     constant RootConstantData& rootConstant     [[buffer(UPDATE_FREQ_USER)]]
 )
 {

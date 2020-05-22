@@ -35,12 +35,6 @@
     <None Include="..\src\08_GltfViewer\Shaders\D3D12\FXAA.frag">
       <Filter>Shaders\D3D12</Filter>
     </None>
-    <None Include="..\src\08_GltfViewer\Shaders\D3D12\profile.frag">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\D3D12\profile.vert">
-      <Filter>Shaders\D3D12</Filter>
-    </None>
     <None Include="..\src\08_GltfViewer\Shaders\D3D12\Triangular.vert">
       <Filter>Shaders\D3D12</Filter>
     </None>
@@ -78,12 +72,6 @@
       <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\08_GltfViewer\Shaders\Vulkan\FXAA.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\profile.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
-    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\profile.vert">
       <Filter>Shaders\Vulkan</Filter>
     </None>
     <None Include="..\src\08_GltfViewer\Shaders\Vulkan\Triangular.vert">

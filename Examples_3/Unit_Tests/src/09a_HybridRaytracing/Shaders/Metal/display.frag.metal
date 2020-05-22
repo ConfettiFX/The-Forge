@@ -49,7 +49,7 @@ fragment float4 stageMain(PsIn input        [[stage_in]],
     constant FSData& fsData                 [[buffer(UPDATE_FREQ_NONE)]]
 )
 {
-	float3 colour = fsData.inputRT.read(ushort2(input.position.xy)).xyz;
+	float3 colour = fsData.inputRT.read(uint2(input.position.xy)).xyz;
 
 	float exposure = 0.7;
 

@@ -46,7 +46,7 @@ THE SOFTWARE.
 #include "../../Common_3/Renderer/IRenderer.h"
 #include "../../Common_3/OS/Interfaces/ILog.h"
 
-extern ResourceDirectory RD_MIDDLEWARE_PARALLEL_PRIMITIVES;
+extern ResourceDirEnum RD_MIDDLEWARE_PARALLEL_PRIMITIVES;
 
 struct IndirectCountBuffer {
 	Buffer *pBuffer; // Containing four `uint32_t`s: the count, the threadgroups X (ceil(count / THREADS_PER_THREADGROUP)), and threadgroups Y/Z (should be 1).

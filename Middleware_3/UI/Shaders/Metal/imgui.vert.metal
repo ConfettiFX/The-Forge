@@ -36,6 +36,7 @@ uniformBlockVS(uniformBlockVS) {}
 
 struct VSData {
     constant Vertex_Shader::Uniforms_uniformBlockVS& uniformBlockVS [[id(0)]];
+	sampler uSampler [[id(1)]];
 };
 
 vertex Vertex_Shader::PS_INPUT stageMain(

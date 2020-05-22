@@ -125,8 +125,6 @@ rd $(SolutionDir)$(Platform)\$(Configuration)\libs\ /s /q</Command>
     <None Include="..\..\..\src\27_MultiThread\Shaders\Vulkan\basic.vert" />
     <None Include="..\..\..\src\27_MultiThread\Shaders\Vulkan\plane.frag" />
     <None Include="..\..\..\src\27_MultiThread\Shaders\Vulkan\plane.vert" />
-    <None Include="..\..\..\src\27_MultiThread\Shaders\Vulkan\profile.frag" />
-    <None Include="..\..\..\src\27_MultiThread\Shaders\Vulkan\profile.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

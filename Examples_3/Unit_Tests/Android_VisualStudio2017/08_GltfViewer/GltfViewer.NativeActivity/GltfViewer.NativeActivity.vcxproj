@@ -121,8 +121,6 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\08_GltfViewer\Shaders\Vul
     <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\floor.vert" />
     <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\floorMOBILE.frag" />
     <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\FXAA.frag" />
-    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\profile.frag" />
-    <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\profile.vert" />
     <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\Triangular.vert" />
     <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\vignette.frag" />
     <None Include="..\..\..\src\08_GltfViewer\Shaders\Vulkan\watermark.frag" />

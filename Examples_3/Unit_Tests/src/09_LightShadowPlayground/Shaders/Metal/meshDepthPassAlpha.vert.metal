@@ -27,48 +27,28 @@
 using namespace metal;
 
 #include "Shader_Defs.h"
+#include "packing.h"
+#include "vb_argument_buffers.h"
 
-struct PsIn {
+struct PsIn
+{
 	float4 Position [[position]];
 	float2 TexCoord;
-};
-
-struct PerBatchUniforms {
-	uint drawId;
-	uint twoSided;
-};
-
-struct IndirectDrawArguments
-{
-	uint vertexCount;
-	uint instanceCount;
-	uint startVertex;
-	uint startInstance;
 };
 
 struct VSInput
 {
 	float4 Position [[attribute(0)]];
-	half2 TexCoord [[attribute(1)]];
-};
-
-struct Uniforms_objectUniformBlock
-{
-	float4x4 WorldViewProjMat;
-	float4x4 WorldMat;
-};
-
-struct VSData {
-    constant Uniforms_objectUniformBlock& objectUniformBlock             [[id(0)]];
+	uint TexCoord [[attribute(1)]];
 };
 
 vertex PsIn stageMain(
     VSInput input               [[stage_in]],
-    constant VSData& vsData     [[buffer(UPDATE_FREQ_PER_DRAW)]]
+    constant ArgDataPerDraw& vsData     [[buffer(UPDATE_FREQ_PER_DRAW)]]
 )
 {
 	PsIn output;
-	output.Position = vsData.objectUniformBlock.WorldViewProjMat * input.Position;
-	output.TexCoord = float2(input.TexCoord);
+	output.Position = vsData.objectUniformBlock.mWorldViewProjMat * input.Position;
+	output.TexCoord = unpack2Floats(input.TexCoord);
 	return output;
 }

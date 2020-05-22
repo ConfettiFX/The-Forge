@@ -39,7 +39,7 @@ void mmgrSetLogFileDirectory(const char* directory);
 
 struct FileSystem
 {
-	public:
+public:
 	FileSystemKind mKind;
 	tfrg_atomicptr_t mRefCount;
 
@@ -51,7 +51,8 @@ struct FileSystem
 	virtual bool   IsReadOnly() const = 0;
 	virtual bool   IsCaseSensitive() const = 0;
 	virtual char   GetPathDirectorySeparator() const = 0;
-	virtual size_t GetRootPathLength() const = 0;
+	virtual size_t GetDefaultRootPathLength() const = 0;
+	virtual size_t GetRootPathLength(const Path * filePath) const = 0;
 
 	/// Fills path's buffer with the canonical root path corresponding to the root of absolutePathString,
 	/// and returns an offset into absolutePathString containing the path component after the root by pathComponentOffset.
@@ -73,8 +74,7 @@ struct FileSystem
 
 	virtual void EnumerateFilesWithExtension(
 		const Path* directory, const char* extension, bool (*processFile)(const Path*, void* userData), void* userData) const = 0;
-	virtual void
-		EnumerateSubDirectories(const Path* directory, bool (*processDirectory)(const Path*, void* userData), void* userData) const = 0;
+	virtual void EnumerateSubDirectories(const Path* directory, bool(*processDirectory)(const Path*, void* userData), void* userData) const = 0;
 };
 
 // MARK: - Path
@@ -110,7 +110,7 @@ typedef enum FileStreamType
 
 struct FileStream
 {
-	protected:
+protected:
 	FileStreamType mType;
 	Path* pPath;
 

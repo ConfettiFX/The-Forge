@@ -460,45 +460,52 @@ void mtl_createShaderReflection(
 		// the reflection information.
 		MTLVertexDescriptor* vertexDesc = [[MTLVertexDescriptor alloc] init];
 
-		if (shaderStage == SHADER_STAGE_VERT)
+		for (uint32_t i = 0; i < shader->mtlVertexShader.vertexAttributes.count; ++i)
 		{
-			// read line by line and find vertex attribute definitions
-			char *p, *temp;
-			p = strtok_r((char*)shaderCode, "\n", &temp);
-			do
+			MTLDataType type = shader->mtlVertexShader.vertexAttributes[i].attributeType;
+			uint32_t index = (uint32_t) shader->mtlVertexShader.vertexAttributes[i].attributeIndex;
+			
+			switch(type)
 			{
-				const char* pattern = "attribute(";
-				const char* start = strstr(p, pattern);
-				if (start != nil)
-				{
-					// vertex attribute definition found: create a vertex descriptor for this
-					int             attrNumber = atoi(start + strlen(pattern));
-					MTLVertexFormat vf = (strstr((const char*)p, "int") ? MTLVertexFormatInt : MTLVertexFormatFloat);
-					vf = (strstr((const char*)p, "uint") ? MTLVertexFormatUInt : vf);
-					// In case this is defined through a macro and we dont have
-					// the numerical value just find an empty attribute index
-					// Example: float4 position [attribute(UNIT_VB_PASS)];
-					if (!isdigit(start[strlen(pattern)]))
-						while (vertexAttributeFormats->find(attrNumber) != vertexAttributeFormats->end())
-							++attrNumber;
-					(*vertexAttributeFormats)[attrNumber] = vf;
-				}
-			} while ((p = strtok_r(NULL, "\n", &temp)) != NULL);
+				case MTLDataTypeFloat:
+				case MTLDataTypeFloat2:
+				case MTLDataTypeFloat3:
+				case MTLDataTypeFloat4:
+				case MTLDataTypeHalf:
+				case MTLDataTypeHalf2:
+				case MTLDataTypeHalf3:
+				case MTLDataTypeHalf4:
+					vertexDesc.attributes[index].format = MTLVertexFormatFloat;
+					break;
+				case MTLDataTypeInt:
+				case MTLDataTypeInt2:
+				case MTLDataTypeInt3:
+				case MTLDataTypeInt4:
+				case MTLDataTypeShort:
+				case MTLDataTypeShort2:
+				case MTLDataTypeShort3:
+				case MTLDataTypeShort4:
+					vertexDesc.attributes[index].format = MTLVertexFormatInt;
+					break;
+				case MTLDataTypeUInt:
+				case MTLDataTypeUInt2:
+				case MTLDataTypeUInt3:
+				case MTLDataTypeUInt4:
+				case MTLDataTypeUShort:
+				case MTLDataTypeUShort2:
+				case MTLDataTypeUShort3:
+				case MTLDataTypeUShort4:
+					vertexDesc.attributes[index].format = MTLVertexFormatUInt;
+					break;
+				default:
+					vertexDesc.attributes[index].format = MTLVertexFormatFloat;
+					break;
+			}
+			
+			vertexDesc.attributes[index].offset = 0;
+			vertexDesc.attributes[index].bufferIndex = 0;
 		}
 
-		for (uint32_t i = 0; i < MAX_VERTEX_ATTRIBS; i++)
-		{
-			vertexDesc.attributes[i].offset = 0;
-			vertexDesc.attributes[i].bufferIndex = 0;
-
-			MTLVertexFormat vf = MTLVertexFormatFloat;
-
-			eastl::unordered_map<uint32_t, MTLVertexFormat>::iterator it = vertexAttributeFormats->find(i);
-			if (it != vertexAttributeFormats->end())
-				vf = it->second;
-
-			vertexDesc.attributes[i].format = vf;
-		}
 		vertexDesc.layouts[0].stride = MAX_VERTEX_ATTRIBS * sizeof(float);
 		vertexDesc.layouts[0].stepRate = 1;
 		vertexDesc.layouts[0].stepFunction = shader->mtlVertexShader.patchType != MTLPatchTypeNone

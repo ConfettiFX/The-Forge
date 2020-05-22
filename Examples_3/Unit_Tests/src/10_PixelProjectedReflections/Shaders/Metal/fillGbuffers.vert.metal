@@ -54,11 +54,13 @@ struct PsIn
 	float2 uv;
 };
 
-struct FSDataPerFrame {
+struct FSDataPerFrame
+{
     constant CameraData& cbCamera                   [[id(0)]];
 };
 
-struct FSDataPerDraw {
+struct FSDataPerDraw
+{
     constant ObjectData& cbObject                   [[id(0)]];
 };
 

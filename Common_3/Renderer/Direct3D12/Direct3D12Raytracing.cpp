@@ -223,7 +223,7 @@ AccelerationStructureBottom* createBottomAS(Raytracing* pRaytracing, const Accel
 		bufferDesc.mFirstElement = 0;
 		bufferDesc.mElementCount = info.ResultDataMaxSizeInBytes / sizeof(UINT32);
 		bufferDesc.mSize = info.ResultDataMaxSizeInBytes; //Rustam: isn't this should be sizeof(UINT32) ?
-		bufferDesc.mStartState = (ResourceState)D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+		bufferDesc.mStartState = RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
 		addBuffer(pRaytracing->pRenderer, &bufferDesc, &pResult[i].pASBuffer);
 		/************************************************************************/
 		// Store the scratch buffer size so user can create the scratch buffer accordingly
@@ -290,7 +290,7 @@ Buffer* createTopAS(Raytracing* pRaytracing, const AccelerationStructureDescTop*
 	bufferDesc.mFirstElement = 0;
 	bufferDesc.mElementCount = info.ResultDataMaxSizeInBytes / sizeof(UINT32);
 	bufferDesc.mSize = info.ResultDataMaxSizeInBytes;
-	bufferDesc.mStartState = (ResourceState)D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
+	bufferDesc.mStartState = RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
 	Buffer* pTopASBuffer = {};
 	addBuffer(pRaytracing->pRenderer, &bufferDesc, &pTopASBuffer);
 
@@ -697,8 +697,6 @@ D3D12_RAYTRACING_INSTANCE_FLAGS util_to_dx_instance_flags(AccelerationStructureI
 {
 	D3D12_RAYTRACING_INSTANCE_FLAGS ret = D3D12_RAYTRACING_INSTANCE_FLAG_NONE;
 	if (flags & ACCELERATION_STRUCTURE_INSTANCE_FLAG_FORCE_OPAQUE)
-		ret |= D3D12_RAYTRACING_INSTANCE_FLAG_FORCE_NON_OPAQUE;
-	if (flags & ACCELERATION_STRUCTURE_INSTANCE_FLAG_FORCE_OPAQUE)
 		ret |= D3D12_RAYTRACING_INSTANCE_FLAG_FORCE_OPAQUE;
 	if (flags & ACCELERATION_STRUCTURE_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE)
 		ret |= D3D12_RAYTRACING_INSTANCE_FLAG_TRIANGLE_CULL_DISABLE;
@@ -887,8 +885,7 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 	D3D12_LOCAL_ROOT_SIGNATURE             rayGenRSdesc = {};
 	if (pDesc->pRayGenRootSignature)
 	{
-		rayGenRSdesc.pLocalRootSignature =
-			pDesc->pRayGenRootSignature ? pDesc->pRayGenRootSignature->pDxRootSignature : pDesc->pEmptyRootSignature->pDxRootSignature;
+		rayGenRSdesc.pLocalRootSignature = pDesc->pRayGenRootSignature->pDxRootSignature;
 		subobjects.emplace_back(D3D12_STATE_SUBOBJECT{ D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE, &rayGenRSdesc });
 
 		rayGenRootSignatureAssociation.NumExports = 1;
@@ -901,16 +898,13 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 	eastl::vector<D3D12_STATE_SUBOBJECT>                  missRootSignatures(pDesc->mMissShaderCount);
 	eastl::vector<D3D12_SUBOBJECT_TO_EXPORTS_ASSOCIATION> missRootSignaturesAssociation(pDesc->mMissShaderCount);
 	eastl::vector<D3D12_LOCAL_ROOT_SIGNATURE>             mMissShaderRSDescs(pDesc->mMissShaderCount);
-	;
+	
 	for (uint32_t i = 0; i < pDesc->mMissShaderCount; ++i)
 	{
 		if (pDesc->ppMissRootSignatures && pDesc->ppMissRootSignatures[i])
 		{
 			missRootSignatures[i].Type = D3D12_STATE_SUBOBJECT_TYPE_LOCAL_ROOT_SIGNATURE;
-			if (pDesc->ppMissRootSignatures && pDesc->ppMissRootSignatures[i])
-				mMissShaderRSDescs[i].pLocalRootSignature = pDesc->ppMissRootSignatures[i]->pDxRootSignature;
-			else
-				mMissShaderRSDescs[i].pLocalRootSignature = pDesc->pEmptyRootSignature->pDxRootSignature;
+			mMissShaderRSDescs[i].pLocalRootSignature = pDesc->ppMissRootSignatures[i]->pDxRootSignature;
 			missRootSignatures[i].pDesc = &mMissShaderRSDescs[i];
 			subobjects.emplace_back(missRootSignatures[i]);
 

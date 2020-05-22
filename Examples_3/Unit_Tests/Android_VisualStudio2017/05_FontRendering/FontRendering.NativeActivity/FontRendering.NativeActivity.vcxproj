@@ -82,8 +82,7 @@
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\05_FontRendering\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y</Command>
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -108,8 +107,7 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\05_FontRendering\Shaders\
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\05_FontRendering\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y</Command>
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -118,10 +116,6 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\05_FontRendering\Shaders\
   <ItemGroup>
     <ClCompile Include="..\..\..\src\05_FontRendering\05_FontRendering.cpp" />
     <ClCompile Include="android_native_app_glue.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\..\src\05_FontRendering\Shaders\Vulkan\profile.frag" />
-    <None Include="..\..\..\src\05_FontRendering\Shaders\Vulkan\profile.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -64,6 +64,9 @@
     <Filter Include="OS\FileSystem">
       <UniqueIdentifier>{c1eba150-149e-484b-916a-d87a24af543d}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Dependencies\rmem">
+      <UniqueIdentifier>{01bda268-fc55-432a-9ecc-06b2a7d24aaf}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\allocator_forge.cpp">
@@ -188,6 +191,15 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerWidgetsUI.cpp">
       <Filter>OS\Profiler</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\rmem\src\rmem_get_module_info.cpp">
+      <Filter>Dependencies\rmem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\rmem\src\rmem_hook.cpp">
+      <Filter>Dependencies\rmem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\rmem\src\rmem_lib.cpp">
+      <Filter>Dependencies\rmem</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

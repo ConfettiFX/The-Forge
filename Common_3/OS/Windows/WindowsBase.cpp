@@ -36,6 +36,7 @@
 
 #include "../../ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
+#include "../../ThirdParty/OpenSource/rmem/inc/rmem.h"
 
 #include "../Interfaces/IOperatingSystem.h"
 #include "../Interfaces/ILog.h"
@@ -82,6 +83,16 @@ LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 		LPMINMAXINFO lpMMI = (LPMINMAXINFO)lParam;
 		lpMMI->ptMinTrackSize.x = 128;
 		lpMMI->ptMinTrackSize.y = 128;
+		break;
+	}
+	case WM_ERASEBKGND:
+	{
+		// Make sure to keep consistent background color when resizing.
+		HDC hdc = (HDC)wParam;
+		RECT rc;
+		HBRUSH hbrWhite = CreateSolidBrush(0x00FFFFFF);
+		GetClientRect(_hwnd, &rc);
+		FillRect(hdc, &rc, hbrWhite);
 		break;
 	}
 	case WM_SIZE:
@@ -352,25 +363,42 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 		getRecommendedResolution(&winDesc->windowedRect);
 	}
 
+	// Adjust windowed rect for windowed mode rendering.
 	RECT clientRect = { (LONG)winDesc->windowedRect.left, (LONG)winDesc->windowedRect.top, (LONG)winDesc->windowedRect.right,
 						(LONG)winDesc->windowedRect.bottom };
-	AdjustWindowRect(&clientRect, WS_OVERLAPPEDWINDOW, FALSE);
+	DWORD windowStyle = WS_OVERLAPPEDWINDOW;
+	if (winDesc->noresizeFrame) windowStyle ^= WS_THICKFRAME | WS_MAXIMIZEBOX;
+	if (winDesc->borderlessWindow) windowStyle ^= WS_CAPTION;
+	AdjustWindowRect(&clientRect, windowStyle, FALSE);
 	winDesc->windowedRect = { (int)clientRect.left, (int)clientRect.top, (int)clientRect.right, (int)clientRect.bottom };
 
-	RectDesc& rect = winDesc->fullScreen ? winDesc->fullscreenRect : winDesc->windowedRect;
+	// Always open in adjusted windowed mode. Adjust to full screen after opening.
+	RectDesc& rect = winDesc->windowedRect;
 
 	WCHAR app[MAX_PATH];
 	size_t charConverted = 0;
 	mbstowcs_s(&charConverted, app, app_name, MAX_PATH);
 
+	int windowX = rect.left;
+	if (windowX < 0)
+		windowX = CW_USEDEFAULT;
+
+	int windowY = rect.top;
+	if (windowY < 0)
+		windowY = CW_USEDEFAULT;
+
 	HWND hwnd = CreateWindowW(
-		CONFETTI_WINDOW_CLASS, app, WS_OVERLAPPEDWINDOW | ((winDesc->hide) ? 0 : WS_VISIBLE), CW_USEDEFAULT, CW_USEDEFAULT,
-		rect.right - rect.left, rect.bottom - rect.top, NULL, NULL, (HINSTANCE)GetModuleHandle(NULL), 0);
+		CONFETTI_WINDOW_CLASS,
+		app,
+		windowStyle | ((winDesc->hide) ? 0 : WS_VISIBLE) | WS_BORDER,
+		windowX, windowY,
+		rect.right - rect.left, rect.bottom - rect.top,
+		NULL, NULL, (HINSTANCE)GetModuleHandle(NULL), 0);
 
 	if (hwnd)
 	{
 		GetClientRect(hwnd, &clientRect);
-		winDesc->windowedRect = { (int)clientRect.left, (int)clientRect.top, (int)clientRect.right, (int)clientRect.bottom };
+		rect = { (int)clientRect.left, (int)clientRect.top, (int)clientRect.right, (int)clientRect.bottom };
 
 		winDesc->handle.window = hwnd;
 		pCurrentWindow = winDesc;
@@ -384,10 +412,15 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 			else if (winDesc->minimized)
 			{
 				ShowWindow(hwnd, SW_MINIMIZE);
-			}
+			}	
 			else if (winDesc->fullScreen)
 			{
 				adjustWindow(winDesc);
+			}
+			else if (winDesc->borderlessWindow) 
+			{
+				winDesc->borderlessWindow = false;
+				toggleBorderless(winDesc, getRectWidth(rect), getRectHeight(rect));
 			}
 		}
 
@@ -427,12 +460,48 @@ void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
 	HWND hwnd = (HWND)winDesc->handle.window;
 	RectDesc& currentRect = winDesc->fullScreen ? winDesc->fullscreenRect : winDesc->windowedRect;
 	currentRect = rect;
-	MoveWindow(hwnd, rect.left, rect.top, getRectWidth(rect), getRectHeight(rect), TRUE);
+
+	RECT clientRect = { (LONG)winDesc->windowedRect.left, (LONG)winDesc->windowedRect.top, (LONG)winDesc->windowedRect.right,
+						(LONG)winDesc->windowedRect.bottom };
+
+	DWORD windowStyle = WS_OVERLAPPEDWINDOW;
+	if (winDesc->noresizeFrame) windowStyle ^= WS_THICKFRAME | WS_MAXIMIZEBOX;
+	if (winDesc->borderlessWindow) windowStyle ^= WS_CAPTION;
+
+	// Apply the new style.
+	SetWindowLong((HWND)winDesc->handle.window, GWL_STYLE, windowStyle);
+
+	// Adjust window rect to maintain the client area and adjust by the caption border size.
+	// This is not needed in borderless mode.
+	if(!winDesc->borderlessWindow)
+	{
+		AdjustWindowRect(&clientRect, windowStyle, FALSE);	
+	}
+
+	currentRect = { clientRect.left, clientRect.top, clientRect.right, clientRect.bottom };
+	// Set the window position.
+	MoveWindow(hwnd, currentRect.left, currentRect.top, getRectWidth(currentRect), getRectHeight(currentRect), TRUE);
+
+	showWindow(winDesc);
 }
 
 void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height)
 {
-	setWindowRect(winDesc, { 0, 0, (int)width, (int)height });
+	// Center the window position with the new size. Otherwise it is stuck to the top-left at 0,0.
+	// Get primary display's width and height.
+	int screenSizeX = GetSystemMetrics(SM_CXSCREEN);
+	int screenSizeY = GetSystemMetrics(SM_CYSCREEN);
+
+	// Percent ratio of requested size to display size.
+	float screenRatioX = 1.f - ((float)width / (float)screenSizeX);
+	float screenRatioY = 1.f - ((float)height / (float)screenSizeY);
+
+	// Get the centered start position in pixels.
+	float screenStartX = screenSizeX * screenRatioX * 0.5f;
+	float screenStartY = screenSizeY * screenRatioY * 0.5f;
+
+	// Set the start and end positions of the window in pixels.
+	setWindowRect(winDesc, { (int)screenStartX, (int)screenStartY,  (int)(screenStartX + width), (int)(screenStartY + height) });
 }
 
 void adjustWindow(WindowsDesc* winDesc)
@@ -463,8 +532,11 @@ void adjustWindow(WindowsDesc* winDesc)
 	}
 	else
 	{
-		// Restore the window's attributes and size.
-		SetWindowLong(hwnd, GWL_STYLE, WS_OVERLAPPEDWINDOW);
+		// Restore the window's attributes and size. Remember to set the correct style.
+		DWORD windowStyle = WS_OVERLAPPEDWINDOW;
+		if (winDesc->noresizeFrame) windowStyle ^= WS_THICKFRAME | WS_MAXIMIZEBOX;
+		if (winDesc->borderlessWindow) windowStyle ^= WS_CAPTION;
+		SetWindowLong(hwnd, GWL_STYLE, windowStyle);
 
 		SetWindowPos(
 			hwnd, HWND_NOTOPMOST, winDesc->windowedRect.left, winDesc->windowedRect.top,
@@ -486,6 +558,15 @@ void toggleFullscreen(WindowsDesc* winDesc)
 {
 	winDesc->fullScreen = !winDesc->fullScreen;
 	adjustWindow(winDesc);
+}
+
+void toggleBorderless(WindowsDesc* winDesc, unsigned width, unsigned height)
+{
+	if (!winDesc->fullScreen)
+	{
+		winDesc->borderlessWindow = !winDesc->borderlessWindow;
+		setWindowSize(winDesc, width, height);
+	}
 }
 
 void showWindow(WindowsDesc* winDesc)
@@ -584,6 +665,10 @@ int WindowsMain(int argc, char** argv, IApp* app)
 	if (!MemAllocInit())
 		return EXIT_FAILURE;
 
+#if TF_USE_MTUNER
+	rmemInit(0);
+#endif
+
 	if (!fsInitAPI())
 		return EXIT_FAILURE;
 
@@ -617,6 +702,8 @@ int WindowsMain(int argc, char** argv, IApp* app)
 	window.windowedRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
 	window.fullScreen = pSettings->mFullScreen;
 	window.maximized = false;
+	window.noresizeFrame = !pSettings->mDragToResize;
+	window.borderlessWindow = pSettings->mBorderlessWindow;
 
 	if (!pSettings->mExternalWindow)
 		openWindow(pApp->GetName(), &window);
@@ -673,7 +760,14 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 	wnd.Exit();
 	Log::Exit();
-	fsDeinitAPI();
+
+	fsExitAPI();
+
+#if TF_USE_MTUNER
+	rmemUnload();
+	rmemShutDown();
+#endif
+
 	MemAllocExit();
 
 	return 0;

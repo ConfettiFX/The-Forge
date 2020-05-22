@@ -35,8 +35,6 @@
     <None Include="..\src\08_GltfViewer\Shaders\D3D12\floor.frag" />
     <None Include="..\src\08_GltfViewer\Shaders\D3D12\floor.vert" />
     <None Include="..\src\08_GltfViewer\Shaders\D3D12\FXAA.frag" />
-    <None Include="..\src\08_GltfViewer\Shaders\D3D12\profile.frag" />
-    <None Include="..\src\08_GltfViewer\Shaders\D3D12\profile.vert" />
     <None Include="..\src\08_GltfViewer\Shaders\D3D12\Triangular.vert" />
     <None Include="..\src\08_GltfViewer\Shaders\D3D12\vignette.frag" />
     <None Include="..\src\08_GltfViewer\Shaders\D3D12\watermark.frag" />
@@ -50,8 +48,6 @@
     <None Include="..\src\08_GltfViewer\Shaders\Vulkan\floor.vert" />
     <None Include="..\src\08_GltfViewer\Shaders\Vulkan\floorMOBILE.frag" />
     <None Include="..\src\08_GltfViewer\Shaders\Vulkan\FXAA.frag" />
-    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\profile.frag" />
-    <None Include="..\src\08_GltfViewer\Shaders\Vulkan\profile.vert" />
     <None Include="..\src\08_GltfViewer\Shaders\Vulkan\Triangular.vert" />
     <None Include="..\src\08_GltfViewer\Shaders\Vulkan\vignette.frag" />
     <None Include="..\src\08_GltfViewer\Shaders\Vulkan\watermark.frag" />

@@ -33,7 +33,7 @@ using namespace metal;
 struct VSInput
 {
 	float4 position [[attribute(0)]];
-	half2 texCoord [[attribute(1)]];
+	uint texCoord [[attribute(1)]];
 	uint normal   [[attribute(2)]];
 	uint tangent  [[attribute(3)]];
 };
@@ -70,7 +70,7 @@ vertex VSOutput stageMain(
 {
 	VSOutput Out;
 	Out.position = uniforms.transform[VIEW_CAMERA].mvp * input.position;
-	Out.texCoord = float2(input.texCoord);
+	Out.texCoord = unpack2Floats(input.texCoord);
 	Out.normal =  decodeDir(unpack_unorm2x16_to_float(input.normal));
 	Out.tangent = decodeDir(unpack_unorm2x16_to_float(input.tangent));
 	return Out;

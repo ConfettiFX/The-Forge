@@ -1,3 +1,4 @@
+#pragma once
 /*
  * Copyright (c) 2019 Confetti Interactive Inc.
  *
@@ -38,15 +39,22 @@ static void memberTaskFunc0(void* userData, size_t)
 	(pThis->*callback)();
 }
 
+enum
+{
+	MAX_LOAD_THREADS = 16
+};
+
 struct ThreadSystem;
 
-void initThreadSystem(ThreadSystem** ppThreadSystem);
+void initThreadSystem(ThreadSystem** ppThreadSystem, uint32_t numRequestedThreads = MAX_LOAD_THREADS, int preferreCore = 0, const char* threadName = "");
 
 void shutdownThreadSystem(ThreadSystem* pThreadSystem);
 
 void addThreadSystemRangeTask(ThreadSystem* pThreadSystem, TaskFunc task, void* user, uintptr_t count);
 void addThreadSystemRangeTask(ThreadSystem* pThreadSystem, TaskFunc task, void* user, uintptr_t start, uintptr_t end);
 void addThreadSystemTask(ThreadSystem* pThreadSystem, TaskFunc task, void* user, uintptr_t index = 0);
+
+uint32_t getThreadSystemThreadCount(ThreadSystem* pThreadSystem);
 
 bool assistThreadSystem(ThreadSystem* pThreadSystem);
 

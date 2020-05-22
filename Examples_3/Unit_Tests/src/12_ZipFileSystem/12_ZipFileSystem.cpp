@@ -142,6 +142,8 @@ eastl::vector<eastl::string> gTextDataVector;
 Geometry* pMesh;
 VertexLayout gVertexLayoutDefault = {};
 
+const char* pMTunerOut = "testout.txt";
+
 class FileSystemUnitTest : public IApp
 {
 public:
@@ -149,19 +151,19 @@ public:
 	bool Init()
 	{
         // FILE PATHS
-        PathHandle programDirectory = fsCopyProgramDirectoryPath();
+        PathHandle programDirectory = fsGetApplicationDirectory();
         if (!fsPlatformUsesBundledResources())
         {
             PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/12_ZipFileSystem");
-            fsSetResourceDirectoryRootPath(resourceDirRoot);
-            
-            fsSetRelativePathForResourceDirectory(RD_TEXTURES,        "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirectory(RD_MESHES,          "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirectory(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirectory(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirectory(RD_OTHER_FILES,      "../../UnitTestResources/ZipFiles");
-            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirectory(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
+            fsSetResourceDirRootPath(resourceDirRoot);
+
+            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../UnitTestResources/Textures");
+            fsSetRelativePathForResourceDirEnum(RD_MESHES,          "../../UnitTestResources/Meshes");
+            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,   "../../UnitTestResources/Fonts");
+			fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
+            fsSetRelativePathForResourceDirEnum(RD_OTHER_FILES,     "../../UnitTestResources/ZipFiles");
+            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT, "../../../../Middleware_3/Text");
+            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,   "../../../../Middleware_3/UI");
         }
         
 		// window and renderer setup
@@ -198,9 +200,10 @@ public:
         // Gpu profiler can only be added after initProfile.
         gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
-        PathHandle zipFilePath = fsCopyPathInResourceDirectory(RD_OTHER_FILES, pZipFiles);
-        
+
+        PathHandle zipFilePath = fsGetPathInResourceDirEnum(RD_OTHER_FILES, pZipFiles);
         FileSystem* zipFileSystem = fsCreateFileSystemFromFileAtPath(zipFilePath, FSF_READ_ONLY);
+
 		if (!zipFileSystem)
 		{
 			ASSERT("Failed to Open zip file");

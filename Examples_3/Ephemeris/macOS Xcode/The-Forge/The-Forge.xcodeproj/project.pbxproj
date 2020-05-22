@@ -130,6 +130,9 @@
 		B21B9D4D23F561A9003EBFAC /* ProfilerWidgetsUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B21B9D4223F561A9003EBFAC /* ProfilerWidgetsUI.cpp */; };
 		B21B9D4E23F561A9003EBFAC /* ProfilerWidgetsUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B21B9D4223F561A9003EBFAC /* ProfilerWidgetsUI.cpp */; };
 		B21B9D5023F561A9003EBFAC /* ProfilerHTML.h in Headers */ = {isa = PBXBuildFile; fileRef = B21B9D4423F561A9003EBFAC /* ProfilerHTML.h */; };
+		B236BE07246B50F7000AAC0A /* rmem_get_module_info.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B236BE06246B50F7000AAC0A /* rmem_get_module_info.cpp */; };
+		B236BE09246B5102000AAC0A /* rmem_hook.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B236BE08246B5102000AAC0A /* rmem_hook.cpp */; };
+		B236BE0B246B510E000AAC0A /* rmem_lib.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B236BE0A246B510E000AAC0A /* rmem_lib.cpp */; };
 		B274041B22BC66AD00F7660D /* BaseComponent.h in Headers */ = {isa = PBXBuildFile; fileRef = B274041522BC66AD00F7660D /* BaseComponent.h */; };
 		B274041C22BC66AD00F7660D /* ComponentRepresentation.h in Headers */ = {isa = PBXBuildFile; fileRef = B274041622BC66AD00F7660D /* ComponentRepresentation.h */; };
 		B274041D22BC66AD00F7660D /* BaseComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041722BC66AD00F7660D /* BaseComponent.cpp */; };
@@ -292,6 +295,9 @@
 		B21B9D4423F561A9003EBFAC /* ProfilerHTML.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProfilerHTML.h; sourceTree = "<group>"; };
 		B22E4F56231E050D00D94FD6 /* ZipFileStream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZipFileStream.cpp; path = FileSystem/ZipFileStream.cpp; sourceTree = "<group>"; };
 		B22E4F57231E050D00D94FD6 /* ZipFileStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ZipFileStream.h; path = FileSystem/ZipFileStream.h; sourceTree = "<group>"; usesTabs = 1; };
+		B236BE06246B50F7000AAC0A /* rmem_get_module_info.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_get_module_info.cpp; path = OpenSource/rmem/src/rmem_get_module_info.cpp; sourceTree = "<group>"; };
+		B236BE08246B5102000AAC0A /* rmem_hook.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_hook.cpp; path = OpenSource/rmem/src/rmem_hook.cpp; sourceTree = "<group>"; };
+		B236BE0A246B510E000AAC0A /* rmem_lib.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_lib.cpp; path = OpenSource/rmem/src/rmem_lib.cpp; sourceTree = "<group>"; };
 		B25AC24020EFF14500ED50CF /* Fontstash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Fontstash.h; path = ../../Middleware_3/Text/Fontstash.h; sourceTree = "<group>"; };
 		B25AC24120EFF14500ED50CF /* Fontstash.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Fontstash.cpp; path = ../../Middleware_3/Text/Fontstash.cpp; sourceTree = "<group>"; };
 		B274041522BC66AD00F7660D /* BaseComponent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BaseComponent.h; path = ../../../../../Middleware_3/ECS/BaseComponent.h; sourceTree = "<group>"; };
@@ -516,6 +522,16 @@
 			name = Middleware_3;
 			sourceTree = "<group>";
 		};
+		B236BE05246B50D3000AAC0A /* rmem */ = {
+			isa = PBXGroup;
+			children = (
+				B236BE0A246B510E000AAC0A /* rmem_lib.cpp */,
+				B236BE08246B5102000AAC0A /* rmem_hook.cpp */,
+				B236BE06246B50F7000AAC0A /* rmem_get_module_info.cpp */,
+			);
+			name = rmem;
+			sourceTree = "<group>";
+		};
 		B25AC23F20EFF13100ED50CF /* Text */ = {
 			isa = PBXGroup;
 			children = (
@@ -709,6 +725,7 @@
 		EA463CE41EF81FC5005AC8C7 /* OpenSource */ = {
 			isa = PBXGroup;
 			children = (
+				B236BE05246B50D3000AAC0A /* rmem */,
 				81856EEF229D720600F3A92B /* EASTL */,
 				B214ACF120E2DAFC0025F76B /* gainput */,
 				EA463CE31EF81FC5005AC8C7 /* zip */,
@@ -986,6 +1003,7 @@
 				5C172F53214148840074EE71 /* CommonShaderReflection.cpp in Sources */,
 				5C172F57214148840074EE71 /* ResourceLoader.cpp in Sources */,
 				81856F13229D72EF00F3A92B /* assert.cpp in Sources */,
+				B236BE0B246B510E000AAC0A /* rmem_lib.cpp in Sources */,
 				5C512C692141561E00E7A798 /* imgui_widgets.cpp in Sources */,
 				B274042022BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */,
 				81FF8E2C2237A9D30009402D /* InputSystem.cpp in Sources */,
@@ -1011,6 +1029,7 @@
 				654D979B21E922F400113964 /* Animation.cpp in Sources */,
 				81856F0E229D729000F3A92B /* numeric_limits.cpp in Sources */,
 				E9ABCE0923612D26002B8F5B /* ParallelPrimitives.cpp in Sources */,
+				B236BE07246B50F7000AAC0A /* rmem_get_module_info.cpp in Sources */,
 				E98584EA2334609200692529 /* FileSystemInternal.cpp in Sources */,
 				654D97A021E922F400113964 /* Clip.cpp in Sources */,
 				81856F0C229D729000F3A92B /* intrusive_list.cpp in Sources */,
@@ -1024,6 +1043,7 @@
 				E967DF16233B30AA0032E4BA /* CocoaFileSystem.mm in Sources */,
 				5C55830C21413D550019960B /* Log.h in Sources */,
 				E9B6292D23388D7D009DD4AB /* UnixFileSystem.cpp in Sources */,
+				B236BE09246B5102000AAC0A /* rmem_hook.cpp in Sources */,
 				654D979D21E922F400113964 /* Rig.cpp in Sources */,
 				5C172F54214148840074EE71 /* MetalRenderer.mm in Sources */,
 				E9E1C3482339E2FD003544D5 /* ZipFileSystem.cpp in Sources */,

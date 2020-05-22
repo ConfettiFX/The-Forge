@@ -214,68 +214,8 @@
   <ItemGroup>
     <None Include="..\src\01_Transformations\Shaders\D3D12\basic.frag" />
     <None Include="..\src\01_Transformations\Shaders\D3D12\basic.vert" />
-    <None Include="..\src\01_Transformations\Shaders\D3D12\profile.frag" />
-    <None Include="..\src\01_Transformations\Shaders\D3D12\profile.vert" />
     <None Include="..\src\01_Transformations\Shaders\D3D12\skybox.frag" />
     <None Include="..\src\01_Transformations\Shaders\D3D12\skybox.vert" />
-    <CustomBuild Include="..\src\01_Transformations\Shaders\Vulkan\profile.frag">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
-      <FileType>Document</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" "-DUPDATE_FREQ_NONE=set = 0" "-DUPDATE_FREQ_PER_FRAME=set = 1" "-DUPDATE_FREQ_PER_BATCH=set = 2" "-DUPDATE_FREQ_PER_DRAW=set = 3" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" "-DUPDATE_FREQ_NONE=set = 0" "-DUPDATE_FREQ_PER_FRAME=set = 1" "-DUPDATE_FREQ_PER_BATCH=set = 2" "-DUPDATE_FREQ_PER_DRAW=set = 3" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx11|x64'">false</ExcludedFromBuild>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">
-      </Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx11|x64'">
-      </Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx11|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-    </CustomBuild>
-    <CustomBuild Include="..\src\01_Transformations\Shaders\Vulkan\profile.vert">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
-      <FileType>Document</FileType>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</ExcludedFromBuild>
-      <Command Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" "-DUPDATE_FREQ_NONE=set = 0" "-DUPDATE_FREQ_PER_FRAME=set = 1" "-DUPDATE_FREQ_PER_BATCH=set = 2" "-DUPDATE_FREQ_PER_DRAW=set = 3" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">"$(VULKAN_SDK)\bin\glslangValidator.exe" -V "%(FullPath)" "-DUPDATE_FREQ_NONE=set = 0" "-DUPDATE_FREQ_PER_FRAME=set = 1" "-DUPDATE_FREQ_PER_BATCH=set = 2" "-DUPDATE_FREQ_PER_DRAW=set = 3" -o "%(FullPath)\..\Binary\%(Filename)%(Extension).bin"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">Compiling %(Identity) to spirv</Message>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">Compiling %(Identity) to spirv</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">%(FullPath)\..\Binary\%(Filename)%(Extension).bin</Outputs>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</LinkObjects>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">false</LinkObjects>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">false</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugDx11|x64'">false</ExcludedFromBuild>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">
-      </Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx11|x64'">
-      </Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx11|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
-      </Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">false</LinkObjects>
-      <Message Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
-      </Message>
-      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">false</LinkObjects>
-    </CustomBuild>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5938554B-1112-4A6D-9CA0-EDEA01CB7F3F}</ProjectGuid>

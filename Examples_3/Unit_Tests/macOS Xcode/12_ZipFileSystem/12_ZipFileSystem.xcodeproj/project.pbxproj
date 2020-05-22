@@ -9,12 +9,16 @@
 /* Begin PBXBuildFile section */
 		28A5AD55201F7276000E571F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AD54201F7276000E571F /* Assets.xcassets */; };
 		28A5AD58201F7276000E571F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 28A5AD56201F7276000E571F /* LaunchScreen.storyboard */; };
-		5B17814F22A5C71400991DCB /* profile.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5B17814B22A5C71400991DCB /* profile.vert.metal */; };
-		5B17815022A5C71400991DCB /* profile.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5B17814E22A5C71400991DCB /* profile.frag.metal */; };
 		5C172F7E214149FD0074EE71 /* macOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F7C214149FD0074EE71 /* macOSAppDelegate.m */; };
 		5C172F8721414A2C0074EE71 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172F8421414A0B0074EE71 /* libThe-Forge.a */; };
 		5C17303721414E3D0074EE71 /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C17303621414E3D0074EE71 /* libThe-Forge_iOS.a */; };
 		5C17303C21414E500074EE71 /* iOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C17303B21414E500074EE71 /* iOSAppDelegate.m */; };
+		5C3BD32B24697EEF00C1C0D8 /* basic.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5C32AEB3246448AF0066E921 /* basic.frag.metal */; };
+		5C3BD32C24697EEF00C1C0D8 /* basic.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5C32AEB5246448AF0066E921 /* basic.vert.metal */; };
+		5C3BD32D24697EEF00C1C0D8 /* skybox.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5C32AEB2246448AF0066E921 /* skybox.frag.metal */; };
+		5C3BD32E24697EEF00C1C0D8 /* skybox.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5C32AEB6246448AF0066E921 /* skybox.vert.metal */; };
+		5C3BD32F24697EEF00C1C0D8 /* zipTexture.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5C32AEB7246448AF0066E921 /* zipTexture.frag.metal */; };
+		5C3BD33024697EEF00C1C0D8 /* zipTexture.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5C32AEB4246448AF0066E921 /* zipTexture.vert.metal */; };
 		5CA80F8521F0A1DC00C99983 /* fontstash.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80E8121F0A02000C99983 /* fontstash.frag.metal */; };
 		5CA80F8621F0A1DC00C99983 /* fontstash2D.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80E8021F0A02000C99983 /* fontstash2D.vert.metal */; };
 		5CA80F8721F0A1DC00C99983 /* fontstash3D.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80E7F21F0A02000C99983 /* fontstash3D.vert.metal */; };
@@ -41,12 +45,6 @@
 		E9E4CC76234593E60062E694 /* 12_ZipFileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2F8F1D82320447D007AC807 /* 12_ZipFileSystem.cpp */; };
 		E9E4CCA8234594460062E694 /* 12_ZipFileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2F8F1D82320447D007AC807 /* 12_ZipFileSystem.cpp */; };
 		E9E4CCAD234595770062E694 /* 28-ZipFileSystem.zip in Resources */ = {isa = PBXBuildFile; fileRef = B2F8F1E823204674007AC807 /* 28-ZipFileSystem.zip */; };
-		E9E4CCB72345A5600062E694 /* skybox.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9E4CC542345930A0062E694 /* skybox.frag.metal */; };
-		E9E4CCB82345A5600062E694 /* basic.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9E4CC552345930A0062E694 /* basic.vert.metal */; };
-		E9E4CCB92345A5600062E694 /* zipTexture.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9E4CC562345930A0062E694 /* zipTexture.vert.metal */; };
-		E9E4CCBB2345A5600062E694 /* basic.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9E4CC582345930A0062E694 /* basic.frag.metal */; };
-		E9E4CCBC2345A5600062E694 /* skybox.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9E4CC592345930A0062E694 /* skybox.vert.metal */; };
-		E9E4CCBD2345A5600062E694 /* zipTexture.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9E4CC5A2345930A0062E694 /* zipTexture.frag.metal */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -175,8 +173,12 @@
 			dstPath = Shaders/Metal;
 			dstSubfolderSpec = 7;
 			files = (
-				5B17814F22A5C71400991DCB /* profile.vert.metal in Copy Shaders */,
-				5B17815022A5C71400991DCB /* profile.frag.metal in Copy Shaders */,
+				5C3BD32B24697EEF00C1C0D8 /* basic.frag.metal in Copy Shaders */,
+				5C3BD32C24697EEF00C1C0D8 /* basic.vert.metal in Copy Shaders */,
+				5C3BD32D24697EEF00C1C0D8 /* skybox.frag.metal in Copy Shaders */,
+				5C3BD32E24697EEF00C1C0D8 /* skybox.vert.metal in Copy Shaders */,
+				5C3BD32F24697EEF00C1C0D8 /* zipTexture.frag.metal in Copy Shaders */,
+				5C3BD33024697EEF00C1C0D8 /* zipTexture.vert.metal in Copy Shaders */,
 				5CA80F8521F0A1DC00C99983 /* fontstash.frag.metal in Copy Shaders */,
 				5CA80F8621F0A1DC00C99983 /* fontstash2D.vert.metal in Copy Shaders */,
 				5CA80F8721F0A1DC00C99983 /* fontstash3D.vert.metal in Copy Shaders */,
@@ -184,12 +186,6 @@
 				5CA80F8921F0A1DC00C99983 /* imgui.vert.metal in Copy Shaders */,
 				5CA80F8A21F0A1DC00C99983 /* textured_mesh.frag.metal in Copy Shaders */,
 				5CA80F8B21F0A1DC00C99983 /* textured_mesh.vert.metal in Copy Shaders */,
-				E9E4CCB72345A5600062E694 /* skybox.frag.metal in Copy Shaders */,
-				E9E4CCB82345A5600062E694 /* basic.vert.metal in Copy Shaders */,
-				E9E4CCB92345A5600062E694 /* zipTexture.vert.metal in Copy Shaders */,
-				E9E4CCBB2345A5600062E694 /* basic.frag.metal in Copy Shaders */,
-				E9E4CCBC2345A5600062E694 /* skybox.vert.metal in Copy Shaders */,
-				E9E4CCBD2345A5600062E694 /* zipTexture.frag.metal in Copy Shaders */,
 			);
 			name = "Copy Shaders";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -235,13 +231,17 @@
 		28A5AD57201F7276000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		28A5AD59201F7276000E571F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		28A5AD6A201F7300000E571F /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = ../../../UnitTestResources/Fonts/TitilliumText; sourceTree = "<group>"; };
-		5B17814B22A5C71400991DCB /* profile.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.vert.metal; path = ../../src/06_MaterialPlayground/Shaders/Metal/profile.vert.metal; sourceTree = "<group>"; };
-		5B17814E22A5C71400991DCB /* profile.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = profile.frag.metal; path = ../../src/06_MaterialPlayground/Shaders/Metal/profile.frag.metal; sourceTree = "<group>"; };
 		5C172F7C214149FD0074EE71 /* macOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = macOSAppDelegate.m; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
 		5C172F7D214149FD0074EE71 /* macOSAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = macOSAppDelegate.h; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
 		5C172F7F21414A0B0074EE71 /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
 		5C17303A21414E500074EE71 /* iOSAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = iOSAppDelegate.h; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
 		5C17303B21414E500074EE71 /* iOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = iOSAppDelegate.m; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
+		5C32AEB2246448AF0066E921 /* skybox.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = skybox.frag.metal; path = Metal/skybox.frag.metal; sourceTree = "<group>"; };
+		5C32AEB3246448AF0066E921 /* basic.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = basic.frag.metal; path = Metal/basic.frag.metal; sourceTree = "<group>"; };
+		5C32AEB4246448AF0066E921 /* zipTexture.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = zipTexture.vert.metal; path = Metal/zipTexture.vert.metal; sourceTree = "<group>"; };
+		5C32AEB5246448AF0066E921 /* basic.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = basic.vert.metal; path = Metal/basic.vert.metal; sourceTree = "<group>"; };
+		5C32AEB6246448AF0066E921 /* skybox.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = skybox.vert.metal; path = Metal/skybox.vert.metal; sourceTree = "<group>"; };
+		5C32AEB7246448AF0066E921 /* zipTexture.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = zipTexture.frag.metal; path = Metal/zipTexture.frag.metal; sourceTree = "<group>"; };
 		5CA80E7321F0A01400C99983 /* textured_mesh.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = textured_mesh.vert.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/textured_mesh.vert.metal; sourceTree = "<group>"; };
 		5CA80E7421F0A01400C99983 /* textured_mesh.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = textured_mesh.frag.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/textured_mesh.frag.metal; sourceTree = "<group>"; };
 		5CA80E7521F0A01400C99983 /* imgui.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = imgui.frag.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/imgui.frag.metal; sourceTree = "<group>"; };
@@ -269,38 +269,6 @@
 		D0D223C520CB87A600910DF0 /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/IrrXML.a"; sourceTree = "<group>"; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = 12_ZipFileSystem/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
-		E9E4CC532345930A0062E694 /* profile.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = profile.frag.metal; sourceTree = "<group>"; };
-		E9E4CC542345930A0062E694 /* skybox.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = skybox.frag.metal; sourceTree = "<group>"; };
-		E9E4CC552345930A0062E694 /* basic.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = basic.vert.metal; sourceTree = "<group>"; };
-		E9E4CC562345930A0062E694 /* zipTexture.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = zipTexture.vert.metal; sourceTree = "<group>"; };
-		E9E4CC572345930A0062E694 /* profile.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = profile.vert.metal; sourceTree = "<group>"; };
-		E9E4CC582345930A0062E694 /* basic.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = basic.frag.metal; sourceTree = "<group>"; };
-		E9E4CC592345930A0062E694 /* skybox.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = skybox.vert.metal; sourceTree = "<group>"; };
-		E9E4CC5A2345930A0062E694 /* zipTexture.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = zipTexture.frag.metal; sourceTree = "<group>"; };
-		E9E4CC5C2345930A0062E694 /* zipTexture.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = zipTexture.frag; sourceTree = "<group>"; };
-		E9E4CC5D2345930A0062E694 /* skybox.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = skybox.frag; sourceTree = "<group>"; };
-		E9E4CC5E2345930A0062E694 /* profile.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = profile.vert; sourceTree = "<group>"; };
-		E9E4CC5F2345930A0062E694 /* basic.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = basic.vert; sourceTree = "<group>"; };
-		E9E4CC602345930A0062E694 /* skybox.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = skybox.vert; sourceTree = "<group>"; };
-		E9E4CC612345930A0062E694 /* zipTexture.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = zipTexture.vert; sourceTree = "<group>"; };
-		E9E4CC622345930A0062E694 /* basic.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = basic.frag; sourceTree = "<group>"; };
-		E9E4CC632345930A0062E694 /* profile.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = profile.frag; sourceTree = "<group>"; };
-		E9E4CC652345930A0062E694 /* zipTexture.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = zipTexture.frag; sourceTree = "<group>"; };
-		E9E4CC662345930B0062E694 /* skybox.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = skybox.frag; sourceTree = "<group>"; };
-		E9E4CC672345930B0062E694 /* profile.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = profile.vert; sourceTree = "<group>"; };
-		E9E4CC682345930B0062E694 /* basic.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = basic.vert; sourceTree = "<group>"; };
-		E9E4CC692345930B0062E694 /* skybox.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = skybox.vert; sourceTree = "<group>"; };
-		E9E4CC6A2345930B0062E694 /* zipTexture.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = zipTexture.vert; sourceTree = "<group>"; };
-		E9E4CC6B2345930B0062E694 /* basic.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = basic.frag; sourceTree = "<group>"; };
-		E9E4CC6C2345930B0062E694 /* profile.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = profile.frag; sourceTree = "<group>"; };
-		E9E4CC6E2345930B0062E694 /* zipTexture.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = zipTexture.frag; sourceTree = "<group>"; };
-		E9E4CC6F2345930B0062E694 /* skybox.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = skybox.frag; sourceTree = "<group>"; };
-		E9E4CC702345930B0062E694 /* profile.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = profile.vert; sourceTree = "<group>"; };
-		E9E4CC712345930B0062E694 /* basic.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = basic.vert; sourceTree = "<group>"; };
-		E9E4CC722345930B0062E694 /* skybox.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = skybox.vert; sourceTree = "<group>"; };
-		E9E4CC732345930B0062E694 /* zipTexture.vert */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = zipTexture.vert; sourceTree = "<group>"; };
-		E9E4CC742345930B0062E694 /* basic.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = basic.frag; sourceTree = "<group>"; };
-		E9E4CC752345930B0062E694 /* profile.frag */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.glsl; path = profile.frag; sourceTree = "<group>"; };
 		E9E601BF233AFB6A00B21FD6 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
 		E9E601C1233AFB9B00B21FD6 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.0.sdk/usr/lib/libbz2.tbd; sourceTree = DEVELOPER_DIR; };
 		EA463C8B1EF81E8F005AC8C7 /* 12_ZipFileSystem.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 12_ZipFileSystem.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -436,73 +404,15 @@
 		E9E4CC512345930A0062E694 /* Shaders */ = {
 			isa = PBXGroup;
 			children = (
-				E9E4CC522345930A0062E694 /* Metal */,
-				E9E4CC5B2345930A0062E694 /* D3D11 */,
-				E9E4CC642345930A0062E694 /* Vulkan */,
-				E9E4CC6D2345930B0062E694 /* D3D12 */,
+				5C32AEB3246448AF0066E921 /* basic.frag.metal */,
+				5C32AEB5246448AF0066E921 /* basic.vert.metal */,
+				5C32AEB2246448AF0066E921 /* skybox.frag.metal */,
+				5C32AEB6246448AF0066E921 /* skybox.vert.metal */,
+				5C32AEB7246448AF0066E921 /* zipTexture.frag.metal */,
+				5C32AEB4246448AF0066E921 /* zipTexture.vert.metal */,
 			);
 			name = Shaders;
 			path = ../../src/12_ZipFileSystem/Shaders;
-			sourceTree = "<group>";
-		};
-		E9E4CC522345930A0062E694 /* Metal */ = {
-			isa = PBXGroup;
-			children = (
-				E9E4CC532345930A0062E694 /* profile.frag.metal */,
-				E9E4CC542345930A0062E694 /* skybox.frag.metal */,
-				E9E4CC552345930A0062E694 /* basic.vert.metal */,
-				E9E4CC562345930A0062E694 /* zipTexture.vert.metal */,
-				E9E4CC572345930A0062E694 /* profile.vert.metal */,
-				E9E4CC582345930A0062E694 /* basic.frag.metal */,
-				E9E4CC592345930A0062E694 /* skybox.vert.metal */,
-				E9E4CC5A2345930A0062E694 /* zipTexture.frag.metal */,
-			);
-			path = Metal;
-			sourceTree = "<group>";
-		};
-		E9E4CC5B2345930A0062E694 /* D3D11 */ = {
-			isa = PBXGroup;
-			children = (
-				E9E4CC5C2345930A0062E694 /* zipTexture.frag */,
-				E9E4CC5D2345930A0062E694 /* skybox.frag */,
-				E9E4CC5E2345930A0062E694 /* profile.vert */,
-				E9E4CC5F2345930A0062E694 /* basic.vert */,
-				E9E4CC602345930A0062E694 /* skybox.vert */,
-				E9E4CC612345930A0062E694 /* zipTexture.vert */,
-				E9E4CC622345930A0062E694 /* basic.frag */,
-				E9E4CC632345930A0062E694 /* profile.frag */,
-			);
-			path = D3D11;
-			sourceTree = "<group>";
-		};
-		E9E4CC642345930A0062E694 /* Vulkan */ = {
-			isa = PBXGroup;
-			children = (
-				E9E4CC652345930A0062E694 /* zipTexture.frag */,
-				E9E4CC662345930B0062E694 /* skybox.frag */,
-				E9E4CC672345930B0062E694 /* profile.vert */,
-				E9E4CC682345930B0062E694 /* basic.vert */,
-				E9E4CC692345930B0062E694 /* skybox.vert */,
-				E9E4CC6A2345930B0062E694 /* zipTexture.vert */,
-				E9E4CC6B2345930B0062E694 /* basic.frag */,
-				E9E4CC6C2345930B0062E694 /* profile.frag */,
-			);
-			path = Vulkan;
-			sourceTree = "<group>";
-		};
-		E9E4CC6D2345930B0062E694 /* D3D12 */ = {
-			isa = PBXGroup;
-			children = (
-				E9E4CC6E2345930B0062E694 /* zipTexture.frag */,
-				E9E4CC6F2345930B0062E694 /* skybox.frag */,
-				E9E4CC702345930B0062E694 /* profile.vert */,
-				E9E4CC712345930B0062E694 /* basic.vert */,
-				E9E4CC722345930B0062E694 /* skybox.vert */,
-				E9E4CC732345930B0062E694 /* zipTexture.vert */,
-				E9E4CC742345930B0062E694 /* basic.frag */,
-				E9E4CC752345930B0062E694 /* profile.frag */,
-			);
-			path = D3D12;
 			sourceTree = "<group>";
 		};
 		EA463C821EF81E8F005AC8C7 = {
@@ -510,8 +420,6 @@
 			children = (
 				B2F8F1E72320464E007AC807 /* ZipFiles */,
 				B2F8F1C323203C33007AC807 /* Default-568h@2x.png */,
-				5B17814E22A5C71400991DCB /* profile.frag.metal */,
-				5B17814B22A5C71400991DCB /* profile.vert.metal */,
 				B2F8F1D82320447D007AC807 /* 12_ZipFileSystem.cpp */,
 				654D976A21E9218B00113964 /* ozz.xcodeproj */,
 				5CA80E1421F09F6900C99983 /* CommonShaders */,

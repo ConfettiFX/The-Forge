@@ -22,6 +22,7 @@
 * under the License.
 */
 #include <metal_stdlib>
+#include <metal_atomic>
 #include <metal_compute>
 using namespace metal;
 
@@ -37,7 +38,7 @@ struct Compute_Shader
 
     texturecube<float> srcTexture;
 
-    texture2d_array<float, access::read_write> dstTexture;
+    texture2d_array<float, access::write> dstTexture;
     sampler skyboxSampler;
 
     float4 computeIrradiance(float3 N)
@@ -112,34 +113,51 @@ struct Compute_Shader
             sphereDir = normalize(float3((-(texcoords.x - (float)(0.500000))), (-(texcoords.y - (float)(0.500000))), (-0.500000)));
         }
 
-        //uint pixelId = ((float)(pixelOffset) + (threadPos.y * (float)(32))) + threadPos.x;
-
         float4 irradiance = computeIrradiance(sphereDir);
 
         dstTexture.write(irradiance, uint2(int2(threadPos.xy)), threadPos.z);
     };
 
     Compute_Shader(texturecube<float> srcTexture,
-                   texture2d_array<float, access::read_write> dstTexture,
+                   texture2d_array<float, access::write> dstTexture,
                    sampler skyboxSampler) : srcTexture(srcTexture),
                                             dstTexture(dstTexture),
                                             skyboxSampler(skyboxSampler) {}
 };
 
-struct CSData {
-    texturecube<float> srcTexture                           [[id(0)]];
-    texture2d_array<float, access::read_write> dstTexture   [[id(1)]];
-    sampler skyboxSampler                                   [[id(2)]];
+#ifndef TARGET_IOS
+struct CSData
+{
+    texturecube<float> srcTexture;
+    texture2d_array<float, access::write> dstTexture;
+    sampler skyboxSampler;
 };
+#endif
 
 //[numthreads(16, 16, 1)]
 kernel void stageMain(
-    uint3 DTid                  [[thread_position_in_grid]],
-    constant CSData& csData     [[buffer(UPDATE_FREQ_NONE)]]
+					  uint3 DTid                            [[thread_position_in_grid]],
+#ifndef TARGET_IOS
+                      constant CSData& csData               [[buffer(UPDATE_FREQ_NONE)]]
+#else
+					  texturecube<float> srcTexture                    [[texture(0)]],
+					  texture2d_array<float, access::write> dstTexture [[texture(1)]],
+					  sampler skyboxSampler                            [[sampler(0)]]
+#endif
 )
 {
     uint3 DTid0;
     DTid0 = DTid;
-    Compute_Shader main(csData.srcTexture, csData.dstTexture, csData.skyboxSampler);
+    Compute_Shader main(
+#ifndef TARGET_IOS
+						csData.srcTexture,
+						csData.dstTexture,
+						csData.skyboxSampler
+#else
+						srcTexture,
+						dstTexture,
+						skyboxSampler
+#endif
+						);
     return main.main(DTid0);
 }

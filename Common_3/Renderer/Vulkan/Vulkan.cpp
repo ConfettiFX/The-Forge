@@ -1228,7 +1228,6 @@ static void add_default_resources(Renderer* pRenderer)
 
 		// 2D texture array
 		textureDesc.mArraySize = 2;
-		textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		addTexture(pRenderer, &textureDesc, &pRenderer->pNullDescriptors->pDefaultTextureSRV[i][TEXTURE_DIM_2D_ARRAY]);
 		textureDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE;
 		addTexture(pRenderer, &textureDesc, &pRenderer->pNullDescriptors->pDefaultTextureUAV[i][TEXTURE_DIM_2D_ARRAY]);
@@ -1242,14 +1241,11 @@ static void add_default_resources(Renderer* pRenderer)
 		// 3D texture
 		textureDesc.mDepth = 2;
 		textureDesc.mArraySize = 1;
-		textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		addTexture(pRenderer, &textureDesc, &pRenderer->pNullDescriptors->pDefaultTextureSRV[i][TEXTURE_DIM_3D]);
 		textureDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE;
 		addTexture(pRenderer, &textureDesc, &pRenderer->pNullDescriptors->pDefaultTextureUAV[i][TEXTURE_DIM_3D]);
 
 		// Cube texture
-		textureDesc.mWidth = 2;
-		textureDesc.mHeight = 2;
 		textureDesc.mDepth = 1;
 		textureDesc.mArraySize = 6;
 		textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE;
@@ -1888,8 +1884,8 @@ void CreateInstance(const char* app_name,
 			const char* layer_name = layerTemp[i];
 			uint32_t    count = 0;
 			vkEnumerateInstanceExtensionProperties(layer_name, &count, NULL);
-			VkExtensionProperties* properties = (VkExtensionProperties*)conf_calloc(count, sizeof(*properties));
-			ASSERT(properties != NULL);
+			VkExtensionProperties* properties = count ? (VkExtensionProperties*)conf_calloc(count, sizeof(*properties)) : NULL;
+			ASSERT(properties != NULL || count == 0);
 			vkEnumerateInstanceExtensionProperties(layer_name, &count, properties);
 			for (uint32_t j = 0; j < count; ++j)
 			{
@@ -2559,7 +2555,7 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 	pRenderer->mApi = RENDERER_API_VULKAN;
 
 	pRenderer->pName = (char*)conf_calloc(strlen(appName) + 1, sizeof(char));
-	memcpy(pRenderer->pName, appName, strlen(appName));
+	strcpy(pRenderer->pName, appName);
 
 	// Initialize the Vulkan internal bits
 	{
@@ -2621,7 +2617,7 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 
 			//return NULL pRenderer so that client can gracefully handle exit
 			//This is better than exiting from here in case client has allocated memory or has fallbacks
-			*pRenderer = {};
+			*ppRenderer = NULL;
 			return;
 		}
 		/************************************************************************/
@@ -2890,7 +2886,6 @@ void addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 		LOGF(LogLevel::eWARNING, "Could not find queue of type %u. Using default queue", (uint32_t)pDesc->mType);
 	}
 
-	if (found)
 	{
 		VkQueueFamilyProperties& queueProps = queueFamilyProperties[queueFamilyIndex];
 		Queue* pQueue = (Queue*)conf_calloc(1, sizeof(Queue));
@@ -2913,10 +2908,6 @@ void addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 		++pRenderer->pUsedQueueCount[nodeIndex][queueProps.queueFlags];
 
 		*ppQueue = pQueue;
-	}
-	else
-	{
-		LOGF(LogLevel::eERROR, "Cannot create queue of type (%u)", pDesc->mType);
 	}
 }
 
@@ -4681,7 +4672,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 
 			pShaderProgram->pEntryNames[counter] = (char*)mem;
 			mem += (strlen(pStageDesc->pEntryPoint) + 1) * sizeof(char);
-			memcpy(pShaderProgram->pEntryNames[counter], pStageDesc->pEntryPoint, strlen(pStageDesc->pEntryPoint));
+			strcpy(pShaderProgram->pEntryNames[counter], pStageDesc->pEntryPoint);
 			++counter;
 		}
 	}
@@ -5068,7 +5059,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 			pRootSignature->pUpdateTemplateData[setIndex] = (void**)conf_calloc(pRenderer->mLinkedNodeCount, sizeof(DescriptorUpdateData*));
 
 			const UpdateFrequencyLayoutInfo& layout = layouts[setIndex];
-			VkDescriptorUpdateTemplateEntry* pEntries = (VkDescriptorUpdateTemplateEntry*)alloca(pRootSignature->mVkDescriptorCounts[setIndex] * sizeof(VkDescriptorUpdateTemplateEntry));
+			VkDescriptorUpdateTemplateEntry* pEntries = (VkDescriptorUpdateTemplateEntry*)conf_malloc(pRootSignature->mVkDescriptorCounts[setIndex] * sizeof(VkDescriptorUpdateTemplateEntry));
 			uint32_t entryCount = 0;
 
 			for (uint32_t nodeIndex = 0; nodeIndex < pRenderer->mLinkedNodeCount; ++nodeIndex)
@@ -5182,6 +5173,8 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 			createInfo.templateType = VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET_KHR;
 			VkResult vkRes = vkCreateDescriptorUpdateTemplateKHR(pRenderer->pVkDevice, &createInfo, NULL, &pRootSignature->mUpdateTemplates[setIndex]);
 			ASSERT(VK_SUCCESS == vkRes);
+
+			conf_free(pEntries);
 		}
 		else if (VK_NULL_HANDLE != pRootSignature->mVkDescriptorSetLayouts[setIndex])
 		{
@@ -5660,7 +5653,7 @@ void cmdBindRenderTargets(
 	if (depthMipSlice != -1)
 		frameBufferHash = eastl::mem_hash<uint32_t>()(&depthMipSlice, 1, frameBufferHash);
 
-	SampleCount sampleCount = renderTargetCount ? ppRenderTargets[0]->mSampleCount : pDepthStencil->mSampleCount;
+	SampleCount sampleCount = SAMPLE_COUNT_1;
 
 	RenderPassMap&  renderPassMap = get_render_pass_map();
 	FrameBufferMap& frameBufferMap = get_frame_buffer_map();
@@ -5687,6 +5680,11 @@ void cmdBindRenderTargets(
 		if (pDepthStencil)
 		{
 			depthStencilFormat = pDepthStencil->mFormat;
+			sampleCount = pDepthStencil->mSampleCount;
+		}
+		else if (renderTargetCount)
+		{
+			sampleCount = ppRenderTargets[0]->mSampleCount;
 		}
 
 		RenderPassDesc renderPassDesc = {};
@@ -6536,16 +6534,7 @@ void cmdBeginQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 
 void cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 {
-	VkQueryType type = pQueryPool->mType;
-	switch (type)
-	{
-		case VK_QUERY_TYPE_TIMESTAMP:
-			vkCmdWriteTimestamp(pCmd->pVkCmdBuf, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, pQueryPool->pVkQueryPool, pQuery->mIndex);
-			break;
-		case VK_QUERY_TYPE_PIPELINE_STATISTICS: break;
-		case VK_QUERY_TYPE_OCCLUSION: break;
-		default: break;
-	}
+	cmdBeginQuery(pCmd, pQueryPool, pQuery);
 }
 
 void cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffer, uint32_t startQuery, uint32_t queryCount)
@@ -6557,7 +6546,15 @@ void cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffer, 
 /************************************************************************/
 // Memory Stats Implementation
 /************************************************************************/
-void calculateMemoryStats(Renderer* pRenderer, char** stats) { vmaBuildStatsString(pRenderer->pVmaAllocator, stats, 0); }
+void calculateMemoryStats(Renderer* pRenderer, char** stats) { vmaBuildStatsString(pRenderer->pVmaAllocator, stats, VK_TRUE); }
+
+void calculateMemoryUse(Renderer* pRenderer, uint64_t* usedBytes, uint64_t* totalAllocatedBytes)
+{
+	VmaStats stats;
+	pRenderer->pVmaAllocator->CalculateStats(&stats);
+	*usedBytes = stats.total.usedBytes;
+	*totalAllocatedBytes = *usedBytes + stats.total.unusedBytes;
+}
 
 void freeMemoryStats(Renderer* pRenderer, char* stats) { vmaFreeStatsString(pRenderer->pVmaAllocator, stats); }
 /************************************************************************/
@@ -6844,7 +6841,6 @@ struct PageCounts
 void releasePage(Cmd* pCmd, Texture* pTexture)
 {
 	Renderer* pRenderer = pCmd->pRenderer;
-	vkDeviceWaitIdle(pRenderer->pVkDevice);
 
 	eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pTexture->pSvt->pPages;
 
@@ -6954,7 +6950,6 @@ void fillVirtualTexture(Cmd* pCmd, Texture* pTexture, Fence* pFence)
 void fillVirtualTextureLevel(Cmd* pCmd, Texture* pTexture, uint32_t mipLevel)
 {
 	Renderer* pRenderer = pCmd->pRenderer;
-	vkDeviceWaitIdle(pRenderer->pVkDevice);
 
 	eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pTexture->pSvt->pPages;
 
@@ -7134,7 +7129,7 @@ void addVirtualTexture(Renderer * pRenderer, const TextureDesc * pDesc, Texture*
 	pTexture->pSvt->mLastFilledMip = pTexture->pSvt->mMipTailStart - 1;
 
 	// Get sparse image requirements for the color aspect
-	VkSparseImageMemoryRequirements sparseMemoryReq;
+	VkSparseImageMemoryRequirements sparseMemoryReq = {};
 	bool colorAspectFound = false;
 	for (int i = 0; i < (int)sparseMemoryReqs.size(); ++i)
 	{
@@ -7287,7 +7282,6 @@ void addVirtualTexture(Renderer * pRenderer, const TextureDesc * pDesc, Texture*
 	/************************************************************************/
 	VkImageViewCreateInfo view = {};
 	view.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	view.image = pTexture->pVkImage;
 	view.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	view.format = format;
 	view.components = { VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A };

@@ -123,8 +123,6 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\02_Compute\Shaders\Vulkan
     <None Include="..\..\..\src\02_Compute\Shaders\Vulkan\compute.comp" />
     <None Include="..\..\..\src\02_Compute\Shaders\Vulkan\display.frag" />
     <None Include="..\..\..\src\02_Compute\Shaders\Vulkan\display.vert" />
-    <None Include="..\..\..\src\02_Compute\Shaders\Vulkan\profile.frag" />
-    <None Include="..\..\..\src\02_Compute\Shaders\Vulkan\profile.vert" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
