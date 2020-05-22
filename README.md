@@ -56,6 +56,32 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 
 # News
 
+## Release 1.43 - May 22nd, 2020 - MTuner | macOS / iOS run-time
+* Filesystem: it turns out the file system is still confusing and not intuitive. It mixes up several concepts but is not consistent and somehow favors Windows folder naming conventions, that do not exist in most of our target platforms. We did a slight first step with this release. We need to make a deeper change with the next release.
+* DirectX 11: the DirectX 11 run-time gets a lot of mileage now. For one game it went now successfully through a test center. This release holds a wide range of changes especially for multi-threaded rendering.
+* [MTuner](https://github.com/milostosic/MTuner) : we are making another attempt on integrating MTuner into the framework. We need it to tune memory usage in some game titles. The current version only reliably supports Windows but we try to extend it to more platforms.
+  * Integrated Milos Tosic’s MTuner SDK into the Windows 10 runtime of The Forge. Combined with mmgr, this addition will provide the following features:
+    * Automatic generation of .MTuner capture file alongside existing .memleaks file. 
+    * In-depth analysis of the generated file using MTuner’s user-friendly UI app.
+    * Clear and efficient highlighting of memory leaks and usage hotspots.
+  * Support for additional platforms coming soon!
+
+MTuner
+MTuner was integrated into the Windows 10 runtime of The Forge following a request for more in-depth memory profiling capabilities by one of the developers we support. It has been adapted to work closely with our framework and its existing memory tracking capabilities to provide a complete picture of a given application’s memory usage. 
+
+To use The Forge’s MTuner functionality, simply drag and drop the .MTuner file generated alongside your application’s executable into the MTuner host app, and you can immediately begin analyzing your program’s memory usage. The intuitive interface and exhaustive supply of allocation info contained in a single capture file makes it easy to identify usage patterns and hotspots, as well as tracking memory leaks down to the file and line number. The full documentation of MTuner can be found [here](link: https://milostosic.github.io/MTuner/).
+
+Currently, this feature is only available on Windows 10, but support for additional platforms provided by The Forge is forthcoming.
+Here is a screenshot of an example capture done on our first Unit Test, 01_Transformations:
+![MTuner](Screenshots/MTuner.png) 
+
+* Multi-Threading system: especially for the Switch run-time we extended our multi-threading system to support a "preferred" core.
+* macOS / iOS run-time got another make over. This time we brought the overall architecture a bit closer to the rest of the rendering system and we are also working towards supporting lower end hardware like a 2015 MacBook Air and macOS 10.13.6. Those requirements were based on the [Steam Hardware Survey](https://store.steampowered.com/hwsurvey/Steam-Hardware-Software-Survey-Welcome-to-Steam?platform=mac).
+* there are now functions that help you calcuate the memory usage supported by all APIs: look for caculateMemoryUse / freeMemoryStats
+* Windows management got a bit more flexible by offering borderless windows and more style attributes
+* 17_EntityComponentSystem runs now better on AMD CPUs ... there were some inefficiencies in the unit test ...
+
+
 ## Release 1.42 - April 15th, 2020 - macOS / iOS run-time
 Most of us are working from home now due to the Covid-19 outbreak. We are all trying to balance life and work in new ways. Since the last release we made a thorough pass through the macOS / iOS run-time, so that it is easier to make macOS your main development environment for games.
 Unit-tests fixes:
@@ -106,75 +132,6 @@ We will adjust the output of the benchmark to what users request.
 * Now that GDC 2020 was postponed, we will also postpone our GDC related activities. The user meeting and our GDC talk will be postponed until the next GDC happens. If there is a need we can also do a user meeting in an online conference room or in Discord in a private area. Let us know.
 * Renamed CustomMiddleware to Custom-Middleware back ...
 
-
-## Release 1.40 - February 20th, 2020 - Resource Loader | glTF as Geometry Container | GDC Talk | User Group Meeting
-This release took much longer than expected ... :-) 
-* We are going to give a talk at GDC during the GPU Summit day. It will cover our skydome system Ephemeris 2: [GDC 2020 Ephemeris](https://twitter.com/TheForge_FX/status/1227728118883860480)
-* We will also have a user group meeting during GDC: [The Forge User Group](https://twitter.com/TheForge_FX/status/1229478866621583361)
-* A new resource loader can now stream textures, buffers and additionally geometry (extracted from glTF) asynchronously. We replaced assimp with this loader to save compile time and space on GitHub. We still use assimp for our internal tools. Here are the underlying design principles of the resource loader:
-  * Generally glTF is just a geometry container for us. We do not apply any of the underlying principles like material or mesh or scene management that it offers because they are not tailored to our needs. The resource loader only loads a glTF file, extract its geometry and stores this data (including hair and ozz animation system data) in a vertex and index buffer stream.
-  * All texture loading and material loading is the responsibility of the app. Scene partitioning or material support is not used from glTF. Those remain on the App level. Each app has its own lighting and material models and it shouldn't be restricted to the very limiting architecture of glTF
-  * There is no glTF code in any of the unit tests or app examples with the exception of the glTF viewer. The resource loader loads geometry just with a addResource call as it loads textures and buffers ... it can generate a vertex and index buffer stream with offset values for draw calls or for ExecuteIndirect ...
-* All model art assets were converted to glTF
-* libzip was replaced with [zip](https://github.com/kuba--/zip) because it is easier to maintain.
-* Console support: at the end of last year before our three week break, we made the PS4 and Switch run-times ready to ship games (we will see first games shipping this year). We also started on the PS5 and XBOX One Series X support. You need to be an acredited developer to receive the source code for any consoles. We will be asking the console owner for permission before we would provide you with any source code. That means you have to be part of their developer program.
-* Improved Windows 7 support: one of the games TF is launching with requires Windows 7 support. This means we are now testing the Windows 7 run-time more rigourously and committed fixes with this release
-* Math library: added missing vec2 functions
-* Updated copyright statement
-* Resolved issues on GitHub:
-  * issue 162 - 13_UserInterface - Crash
-  * issue 161 - 18_VirtualTexture breaks with dx and vk: only fairly decent cards support virtual textures. We added tracking support in the *.cfg system and throw an error message when the GPU doesn't support the feature.
-  * issue 124 - Missing KeyKpAdd mapping
-
-## Release 1.39 - November 26th - Sparse Virtual Texture Support | Stormland
-The Forge has now support for Sparse Virtual Textures on Windows and Linux with DirectX 12 / Vulkan. Sparse texture (also known as "virtual texture", “tiled texture”, or “mega-texture”) is a technique to load huge size (such as 16k x 16k or more) textures in GPU memory.
-It breaks an original texture down into small square or rectangular tiles to load only visible part of them.
-
-The unit test 18_Virtual_Texture is using 7 sparse textures:
-* Mercury: 8192 x 4096
-* Venus: 8192 x 4096
-* Earth: 8192 x 4096
-* Moon: 16384 x 8192
-* Mars: 8192 x 4096
-* Jupiter: 4096 x 2048
-* Saturn: 4096 x 4096
-
-There is a unit test that shows a solar system where you can approach planets with Sparse Virtual Textures attached and the resolution of the texture will increase when you approach.
-
-Linux 1080p NVIDIA RTX 2060 Vulkan Driver version 435
-
-![Sparse Virtual Texture on Linux Vulkan](Screenshots/Virtual_Texture_Linux.png) 
-
-Windows 10 1080p AMD RX550 DirectX 12 Driver number: Adrenaline software 19.10.1
-
-![Sparse Virtual Texture on Windows 10 DirectX 12](Screenshots/Virtual_Texture.png) 
-
-Windows 10 1080p NVIDIA 1080 Vulkan Driver number: 418.81
-
-![Sparse Virtual Texture on Windows Vulkan](Screenshots/Virtual_Texture_VULKAN_1920_1080_GTX1080.png) 
-
-![Sparse Virtual Texture on Windows Vulkan](Screenshots/Virtual_Texture_VULKAN_1920_1080_GTX1080_CloseUP.png) 
-
-
-Ephemeris 2 - the game Stormland from Insomniac was released. This game is using a custom version of Ephemeris 2. We worked for more than six months on this project.
-
-![Stormland](Screenshots/Stormland/Capture_2019_11_15_08_43_35_881.png) 
-
-![Stormland](Screenshots/Stormland/Capture_2019_11_15_08_43_21_794.png) 
-
-![Stormland](Screenshots/Stormland/Capture_2019_11_15_08_42_52_603.png) 
-
-![Stormland](Screenshots/Stormland/Capture_2019_11_15_08_42_19_713.png) 
-
-![Stormland](Screenshots/Stormland/Capture_2019_11_15_08_42_09_931.png) 
-
-![Stormland](Screenshots/Stormland/Capture_2019_11_15_08_41_47_994.png) 
-
-![Stormland](Screenshots/Stormland/Capture_2019_11_15_08_41_38_457.png) 
-
-Head over to [Custom Middleware](https://github.com/ConfettiFX/Custom-Middleware) to check out the source code.
-
-
 See the release notes from previous releases in the [Release section](https://github.com/ConfettiFX/The-Forge/releases).
 
   
@@ -198,7 +155,7 @@ https://developer.microsoft.com/en-us/windows/downloads/sdk-archive
 
 # macOS Requirements:
 
-1. macOS 10.15 beta 8 (19A558d)
+1. macOS min spec. 10.13.6
 
 2. Xcode 11.0 (11A419c)
 
@@ -591,6 +548,16 @@ There is an example implementation of the Triangle Visibility Buffer as covered 
 
 # Tools
 Below are screenshots and descriptions of some of the tools we integrated.
+
+## MTuner
+MTuner
+MTuner was integrated into the Windows 10 runtime of The Forge following a request for more in-depth memory profiling capabilities by one of the developers we support. It has been adapted to work closely with our framework and its existing memory tracking capabilities to provide a complete picture of a given application’s memory usage. 
+
+To use The Forge’s MTuner functionality, simply drag and drop the .MTuner file generated alongside your application’s executable into the MTuner host app, and you can immediately begin analyzing your program’s memory usage. The intuitive interface and exhaustive supply of allocation info contained in a single capture file makes it easy to identify usage patterns and hotspots, as well as tracking memory leaks down to the file and line number. The full documentation of MTuner can be found [here](link: https://milostosic.github.io/MTuner/).
+
+Currently, this feature is only available on Windows 10, but support for additional platforms provided by The Forge is forthcoming.
+Here is a screenshot of an example capture done on our first Unit Test, 01_Transformations:
+![MTuner](Screenshots/MTuner.png) 
 
 ## Ray Tracing Benchmark
 Based on request we are providing a Ray Tracing Benchmark in 16_RayTracing. It allows you to compare the performance of three platforms: 
