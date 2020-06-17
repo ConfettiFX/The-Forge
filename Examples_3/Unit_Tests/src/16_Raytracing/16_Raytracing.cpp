@@ -51,8 +51,8 @@
 
 // The denoiser is only supported on macOS Catalina and higher. If you want to use the denoiser, set
 // USE_DENOISER to 1 in the #if block below.
-#if defined(METAL) && !defined(TARGET_IOS) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 101500
-#define USE_DENOISER 0
+#if defined(ENABLE_RAYTRACING) && defined(METAL) && !defined(TARGET_IOS)
+#define USE_DENOISER 1
 #else
 #define USE_DENOISER 0
 #endif
@@ -1102,7 +1102,16 @@ public:
 			TinyImageFormat rtFormats[] = { pDepthNormalRenderTarget[0]->mFormat, pMotionVectorRenderTarget->mFormat };
 			
 			VertexLayout vertexLayout = {};
-			vertexLayout.mAttribCount = 0;
+			vertexLayout.mAttribCount = 2;
+			vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+			vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+			vertexLayout.mAttribs[0].mBinding = 0;
+			vertexLayout.mAttribs[0].mLocation = 0;
+			vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
+			vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+			vertexLayout.mAttribs[1].mBinding = 1;
+			vertexLayout.mAttribs[1].mLocation = 1;
+
 			GraphicsPipelineDesc& pipelineSettings = pipelineDesc.mGraphicsDesc;
 			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 			pipelineSettings.pRasterizerState = &rasterState;
