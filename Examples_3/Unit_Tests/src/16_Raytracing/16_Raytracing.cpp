@@ -51,8 +51,8 @@
 
 // The denoiser is only supported on macOS Catalina and higher. If you want to use the denoiser, set
 // USE_DENOISER to 1 in the #if block below.
-#if defined(METAL) && !defined(TARGET_IOS) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 101500
-#define USE_DENOISER 0
+#if defined(ENABLE_RAYTRACING) && defined(METAL) && !defined(TARGET_IOS)
+#define USE_DENOISER 1
 #else
 #define USE_DENOISER 0
 #endif
@@ -1102,7 +1102,16 @@ public:
 			TinyImageFormat rtFormats[] = { pDepthNormalRenderTarget[0]->mFormat, pMotionVectorRenderTarget->mFormat };
 			
 			VertexLayout vertexLayout = {};
-			vertexLayout.mAttribCount = 0;
+			vertexLayout.mAttribCount = 2;
+			vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
+			vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+			vertexLayout.mAttribs[0].mBinding = 0;
+			vertexLayout.mAttribs[0].mLocation = 0;
+			vertexLayout.mAttribs[1].mSemantic = SEMANTIC_NORMAL;
+			vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+			vertexLayout.mAttribs[1].mBinding = 1;
+			vertexLayout.mAttribs[1].mLocation = 1;
+
 			GraphicsPipelineDesc& pipelineSettings = pipelineDesc.mGraphicsDesc;
 			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
 			pipelineSettings.pRasterizerState = &rasterState;
@@ -1394,7 +1403,7 @@ public:
 			loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
 			loadActions.mClearDepth = { 1.f };
 			
-			cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Generate Denoiser Inputs");
+			cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Generate Denoiser Inputs");
 			cmdBindRenderTargets(pCmd, 2, denoiserRTs, pDepthRenderTarget, &loadActions, NULL, NULL, 0, 0);
 			
 			cmdBindPipeline(pCmd, pDenoiserInputsPipeline);
@@ -1407,7 +1416,7 @@ public:
 			cmdDrawIndexed(pCmd, SponzaProp.pGeom->mIndexCount, 0, 0);
 			
 			cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, 0, 0);
-			cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
+			cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
 		}
 #endif
 		
@@ -1458,11 +1467,13 @@ public:
 		
 		Texture* pathTracedTexture = pComputeOutput;
 #if USE_DENOISER
-		Texture* denoisedTexture = cmdSSVGFDenoise(pCmd, pDenoiser,
+		Texture* denoisedTexture = NULL;
+		cmdSSVGFDenoise(pCmd, pDenoiser,
 						pComputeOutput,
 						pMotionVectorRenderTarget->pTexture,
 						pDepthNormalRenderTarget[mPathTracingData.mFrameIndex & 0x1]->pTexture,
-						pDepthNormalRenderTarget[(mPathTracingData.mFrameIndex + 1) & 0x1]->pTexture);
+						pDepthNormalRenderTarget[(mPathTracingData.mFrameIndex + 1) & 0x1]->pTexture,
+						&denoisedTexture);
 		
 		DescriptorData params[1] = {};
 		params[0].pName = "uTex0";

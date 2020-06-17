@@ -2018,6 +2018,12 @@ void removeTexture(Renderer* pRenderer, Texture* pTexture)
 {
 	ASSERT(pTexture);
 	
+	if (pTexture->mpsTextureAllocator)
+	{
+		[(id<MPSSVGFTextureAllocator>)pTexture->mpsTextureAllocator returnTexture:pTexture->mtlTexture];
+		pTexture->mpsTextureAllocator = nil;
+	}
+
 	pTexture->mtlTexture = nil;
 
 	// Destroy descriptors
@@ -2027,12 +2033,6 @@ void removeTexture(Renderer* pRenderer, Texture* pTexture)
 		{
 			pTexture->pMtlUAVDescriptors[i] = nil;
 		}
-	}
-	
-	if (pTexture->mpsTextureAllocator)
-	{
-		[(id<MPSSVGFTextureAllocator>)pTexture->mpsTextureAllocator returnTexture:pTexture->mtlTexture];
-		pTexture->mpsTextureAllocator = nil;
 	}
 	
 	if (pTexture->pAllocation)
