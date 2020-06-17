@@ -1403,7 +1403,7 @@ public:
 			loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
 			loadActions.mClearDepth = { 1.f };
 			
-			cmdBeginGpuTimestampQuery(pCmd, pGpuProfiler, "Generate Denoiser Inputs");
+			cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Generate Denoiser Inputs");
 			cmdBindRenderTargets(pCmd, 2, denoiserRTs, pDepthRenderTarget, &loadActions, NULL, NULL, 0, 0);
 			
 			cmdBindPipeline(pCmd, pDenoiserInputsPipeline);
@@ -1416,7 +1416,7 @@ public:
 			cmdDrawIndexed(pCmd, SponzaProp.pGeom->mIndexCount, 0, 0);
 			
 			cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, 0, 0);
-			cmdEndGpuTimestampQuery(pCmd, pGpuProfiler);
+			cmdEndGpuTimestampQuery(pCmd, gGpuProfileToken);
 		}
 #endif
 		
@@ -1467,11 +1467,13 @@ public:
 		
 		Texture* pathTracedTexture = pComputeOutput;
 #if USE_DENOISER
-		Texture* denoisedTexture = cmdSSVGFDenoise(pCmd, pDenoiser,
+		Texture* denoisedTexture = NULL;
+		cmdSSVGFDenoise(pCmd, pDenoiser,
 						pComputeOutput,
 						pMotionVectorRenderTarget->pTexture,
 						pDepthNormalRenderTarget[mPathTracingData.mFrameIndex & 0x1]->pTexture,
-						pDepthNormalRenderTarget[(mPathTracingData.mFrameIndex + 1) & 0x1]->pTexture);
+						pDepthNormalRenderTarget[(mPathTracingData.mFrameIndex + 1) & 0x1]->pTexture,
+						&denoisedTexture);
 		
 		DescriptorData params[1] = {};
 		params[0].pName = "uTex0";
