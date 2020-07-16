@@ -9,9 +9,9 @@ The Forge is a cross-platform rendering framework supporting
   * Linux Ubuntu 18.04 LTS with Vulkan 1.1 and RTX Ray Tracing API
 - Android Pie with Vulkan 1.1
 - macOS / iOS / iPad OS with Metal 2.2
-- XBOX One / XBOX One X (only available for accredited developers on request)
+- XBOX One / XBOX One X / XBOX Series X (only available for accredited developers on request)
 - PS4 / PS4 Pro (only available for accredited developers on request)
-- PS5 (in development) (only available for accredited developers on request)
+- PS5 (only available for accredited developers on request)
 - Switch (only available for accredited developers on request)
 - Google Stadia (in development) (only available for accredited developers on request)
 
@@ -55,6 +55,44 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+
+## Release 1.44 - July 16th, 2020 - Android | Linux
+* Mobile Devices: DPI scaling is properly handled now so we shouldn't see messed up UI anymore on mobile devices
+* Android: the following Unit-tests are now included for Android:
+    * 03_MultiThread
+![03_MultiThread](Screenshots/Android/03_MultiThread.png) 
+    * 04_ExecuteIndirect
+![04_ExecuteIndirect](Screenshots/Android/04_ExecuteIndirect.JPEG)
+    * 07_Tesselation
+![07_Tesselation](Screenshots/Android/07_Tesselation.JPEG)
+    * 10_PixelProjectedReflections
+![10_PixelProjectedReflections](Screenshots/Android/10_PixelProjectedReflections.png)
+    * 12_ZipFileSystem
+![12_ZipFileSystem](Screenshots/Android/12_ZipFileSystem.png)
+    * 13_UserInterface
+![13_UserInterface](Screenshots/Android/13_UserInterface.JPEG)
+    * 14_WaveIntrinsics
+![14_WaveIntrinsics](Screenshots/Android/14_WaveIntrinsics.jpg)
+    * 15_Transparency
+![15_Transparency](Screenshots/Android/15_Transparency.png)
+* gamepad support: tested with PS4 controller
+* sample size reduction
+* proper closing of apps with the back button
+* proper handling of vSync
+* .zip filesystem handling
+* shader compile #include directive support
+* overall stability improvements
+* improved swapchain creation process and proper handling of current frame index
+
+
+* Linux:
+  * Window management is improved
+  * Borderless fullscreen is supported
+  * Implemented full screen toggle (usually alt-enter)
+  * Cursor position is now correct
+  * Camera movement with mouse now works properly
+  * Resources are freed properly
+
 
 ## Release 1.43 - May 22nd, 2020 - MTuner | macOS / iOS run-time
 * Filesystem: it turns out the file system is still confusing and not intuitive. It mixes up several concepts but is not consistent and somehow favors Windows folder naming conventions, that do not exist in most of our target platforms. We did a slight first step with this release. We need to make a deeper change with the next release.
@@ -215,24 +253,29 @@ We are currently testing on:
 
 1. Android Phone with Android Pie (9.x) for Vulkan 1.1 support
 
-2. Visual Studio 2017 with support for Android API level 28
+2. Visual Studio 2019 (Visual Studio 2017 works too but has a bug in the build module) 
+
+3. Android API level 28 or higher
+
+We can't use Android SDK < 26 due to 
+
+```
+#if _ANDROID_API_ >= 26
+int pthread_getname_np(pthread_t _pthread, char* _buf, size_t _n) _INTRODUCED_IN(26);
+#endif / _ANDROID_API_ >= 26 /
+```
 
 At the moment, the Android run-time does not support the following unit tests due to -what we consider- driver bugs:
-* 04_ExecuteIndirect
-* 07_Tesselation 
 * 08_Procedural
 * 09a_HybridRayTracing
-* 10_PixelProjectedReflections
-* 12_RendererRuntimeSwitch
-* 14_WaveIntrinsics
-* 15_Transparency 
 * 16_RayTracing 
 * 16a_SphereTracing
 * Visibility Buffer 
 
-3. We are currently testing on 
+4. We are currently testing on 
 * [Samsung S10 Galaxy (Qualcomm Adreno 640 Graphics Cardv(Vulkan 1.1.87))](https://www.samsung.com/us/mobile/galaxy-s10/) with Android 9.0. Please note this is the version with the Qualcomm based chipset.
-* [Essential Phone](https://en.wikipedia.org/wiki/Essential_Phone) with Android 9.0 - Build PPR1.181005.034
+* [Essential Phone](https://en.wikipedia.org/wiki/Essential_Phone) (Vulkan 1.1.87) with Android 9.0 - Build PPR1.181005.034
+* [Oneplus 6T](https://www.oneplus.com/oneplus-6t-tmo) (Vulkan API 1.1.87) GPU Adreno 630. Driver version 512.408.0 with Android 10.0
 
 
 
