@@ -26,16 +26,10 @@
 #include <metal_atomic>
 using namespace metal;
 
-struct VertexInput
-{
-	float3 position [[attribute(0)]];
-	float3 normal [[attribute(1)]];
-};
-
 struct VertexOutput
 {
 	float4 position [[position]];
-    	float4 previousPosition;
+    float4 previousPosition;
 	float3 viewSpacePosition;
 	float3 worldSpaceNormal;
 };
