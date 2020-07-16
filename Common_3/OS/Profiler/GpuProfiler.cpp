@@ -184,7 +184,7 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
 #endif
 	bufDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 	bufDesc.mSize = GpuProfiler::MAX_TIMERS * sizeof(uint64_t) * 2;
-	bufDesc.pDebugName = (wchar_t*)L"GPU Profiler ReadBack Buffer";
+	bufDesc.pName = "GPU Profiler ReadBack Buffer";
 	bufDesc.mNodeIndex = nodeIndex;
 	bufDesc.mStartState = RESOURCE_STATE_COPY_DEST;
 

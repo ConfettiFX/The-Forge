@@ -953,7 +953,7 @@ bool TinyKtx_GetValue(TinyKtx_ContextHandle handle, char const *key, void const 
 	}
 
 	TinyKtx_KeyValuePair const *curKey = ctx->keyData;
-	while (((uint8_t *) curKey - (uint8_t *) ctx->keyData) < ctx->header.bytesOfKeyValueData) {
+	while (((uint8_t *) curKey - (uint8_t *) ctx->keyData) < (int32_t)ctx->header.bytesOfKeyValueData) {
 		char const *kvp = (char const *) curKey;
 
 		if (strcmp(kvp, key) == 0) {

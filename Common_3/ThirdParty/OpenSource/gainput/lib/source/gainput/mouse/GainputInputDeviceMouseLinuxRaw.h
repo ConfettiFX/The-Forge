@@ -28,22 +28,9 @@ public:
 		pressedThisFrame_ = static_cast<bool*>(manager_.GetAllocator().Allocate(size));
 		GAINPUT_ASSERT(pressedThisFrame_);
 		prevAbsoluteX = 0;
-		prevAbsoluteX = 0;
+		prevAbsoluteY = 0;
 		deltaX = 0;
 		deltaY = 0;
-		
-		int fd;
-		Display *dpy;
-		Window root, child;
-		int rootX, rootY, winX, winY;
-		unsigned int mask;
-
-		dpy = XOpenDisplay(NULL);
-		XQueryPointer(dpy,DefaultRootWindow(dpy),&root,&child,
-				  &rootX,&rootY,&winX,&winY,&mask); 
-					  
-		prevAbsoluteX = winX;
-		prevAbsoluteY = winY;
 		lastTime = 0;
 	}
 
@@ -62,12 +49,6 @@ public:
 	{
 		prevAbsoluteX = x;
 		prevAbsoluteY = y;				  
-		deltaX = 0;
-		deltaY = 0;
-		HandleAxis(device_, nextState_, delta_, MouseAxisX, 0.f);
-		HandleAxis(device_, nextState_, delta_, MouseAxisY, 0.f);
-		previousState_->Set( MouseAxisX, 0.f);
-		previousState_->Set( MouseAxisY, 0.f);
 	}
 
 	virtual InputState * GetNextInputState() override {

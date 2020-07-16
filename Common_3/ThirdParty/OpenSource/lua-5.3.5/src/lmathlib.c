@@ -24,7 +24,7 @@
 
 
 #if !defined(l_rand)		/* { */
-#if defined(LUA_USE_POSIX) && !defined(ORBIS)
+#if defined(LUA_USE_POSIX) && !defined(ORBIS) && !defined(PROSPERO)
 #define l_rand()	random()
 #define l_srand(x)	srandom(x)
 #define L_RANDMAX	2147483647	/* (2^31 - 1), following POSIX */

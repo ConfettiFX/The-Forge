@@ -22,75 +22,91 @@
  * under the License.
 */
 
-#ifdef USE_MEMORY_TRACKING
-
-#define _CRT_SECURE_NO_WARNINGS 1
-
-//#ifndef USE_MTUNER
-//#define USE_MTUNER 1
-//#endif
-
-#if !defined(TARGET_IOS) 
+#if !defined(TARGET_IOS)
 #include "../../ThirdParty/OpenSource/rmem/inc/rmem.h"
 #endif
+
 #include "../../ThirdParty/OpenSource/EASTL/EABase/eabase.h"
+
 #include <stdlib.h>
 #include <memory.h>
+
+#define ALIGN_TO(size, alignment) (size + alignment - 1) & ~(alignment - 1)
+#define MIN_ALLOC_ALIGNMENT EA_PLATFORM_MIN_MALLOC_ALIGNMENT
+
+#if USE_MTUNER
+#define MTUNER_ALLOC(_handle, _ptr, _size, _overhead)                  rmemAlloc((_handle), (_ptr), (uint32_t)(_size), (uint32_t)(_overhead))
+#define MTUNER_ALIGNED_ALLOC(_handle, _ptr, _size, _overhead, _align)  rmemAllocAligned((_handle), (_ptr), (uint32_t)(_size), (uint32_t)(_overhead), (uint32_t)(_align))
+#define MTUNER_REALLOC(_handle, _ptr, _size, _overhead, _prevPtr)      rmemRealloc((_handle), (_ptr), (uint32_t)(_size), (uint32_t)(_overhead), (_prevPtr))
+#define MTUNER_FREE(_handle, _ptr)                                     rmemFree((_handle), (_ptr))
+#else
+#define MTUNER_ALLOC(_handle, _ptr, _size, _overhead)
+#define MTUNER_ALIGNED_ALLOC(_handle, _ptr, _size, _overhead, _align)
+#define MTUNER_REALLOC(_handle, _ptr, _size, _overhead, _prevPtr)
+#define MTUNER_FREE(_handle, _ptr)
+#endif
+
+#if defined(USE_MEMORY_TRACKING)
+
+#define _CRT_SECURE_NO_WARNINGS 1
 
 // Just include the cpp here so we don't have to add it to the all projects
 #include "../../ThirdParty/OpenSource/FluidStudios/MemoryManager/mmgr.cpp"
 
 void* conf_malloc_internal(size_t size, const char *f, int l, const char *sf)
 {
-	// Malloc and inform rmem. 
-	void* pMalloc = mmgrAllocator(f, l, sf, m_alloc_malloc, 0, size);
-#if TF_USE_MTUNER
-	rmemAlloc(0, pMalloc, (uint32_t)size, 0); 
-#endif
-	return pMalloc; 
-}
-
-void* conf_memalign_internal(size_t align, size_t size, const char *f, int l, const char *sf) 
-{ 
-	// Memory-aligned alloc and inform rmem. 
-	void* pMemAlign = mmgrAllocator(f, l, sf, m_alloc_memalign, align, size);
-#if TF_USE_MTUNER
-	rmemAlloc(0, pMemAlign, (uint32_t)size, (uint32_t)align); 
-#endif
-	return pMemAlign; 
+	return conf_memalign_internal(MIN_ALLOC_ALIGNMENT, size, f, l, sf);
 }
 
 void* conf_calloc_internal(size_t count, size_t size, const char *f, int l, const char *sf) 
-{ 
-	// Calloc and inform rmem. 
-	void* pCalloc = mmgrAllocator(f, l, sf, m_alloc_calloc, 0, size * count);
-#if TF_USE_MTUNER
-	rmemAlloc(0, pCalloc, (uint32_t)size, 0);
-#endif
-	return pCalloc; 
+{
+	return conf_calloc_memalign_internal(count, MIN_ALLOC_ALIGNMENT, size, f, l, sf);
+}
+
+void* conf_memalign_internal(size_t align, size_t size, const char *f, int l, const char *sf)
+{
+	void* pMemAlign = mmgrAllocator(f, l, sf, m_alloc_malloc, align, size);
+
+	// If using MTuner, report allocation to rmem.
+	MTUNER_ALIGNED_ALLOC(0, pMemAlign, size, 0, align);
+
+	// Return handle to allocated memory.
+	return pMemAlign;
+}
+
+void* conf_calloc_memalign_internal(size_t count, size_t align, size_t size, const char *f, int l, const char *sf)
+{
+	size = ALIGN_TO(size, align);
+
+	void* pMemAlign = mmgrAllocator(f, l, sf, m_alloc_calloc, align, size * count);
+
+	// If using MTuner, report allocation to rmem.
+	MTUNER_ALIGNED_ALLOC(0, pMemAlign, size, 0, align);
+
+	// Return handle to allocated memory.
+	return pMemAlign;
 }
 
 void* conf_realloc_internal(void* ptr, size_t size, const char *f, int l, const char *sf) 
-{ 
-	// Realloc and inform rmem. 
-	void* pRealloc = mmgrReallocator(f, l, sf, m_alloc_realloc, size, ptr); 
-#if TF_USE_MTUNER 
-	rmemRealloc(0, pRealloc, (uint32_t)size, 0, ptr); 
-#endif
-	return pRealloc; 
+{
+	void* pRealloc = mmgrReallocator(f, l, sf, m_alloc_realloc, size, ptr);
 
+	// If using MTuner, report reallocation to rmem.
+	MTUNER_REALLOC(0, pRealloc, size, 0, ptr);
+
+	// Return handle to reallocated memory.
+	return pRealloc;
 }
 
-void conf_free_internal(void* ptr, const char *f, int l, const char *sf) 
-{ 
-	// Free and inform rmem. 
+void conf_free_internal(void* ptr, const char *f, int l, const char *sf)
+{
+	// If using MTuner, report free to rmem.
+	MTUNER_FREE(0, ptr);
+
 	mmgrDeallocator(f, l, sf, m_alloc_free, ptr);
-#if TF_USE_MTUNER
-	rmemFree(0, ptr);
-#endif
 }
 
-#else // USE_MEMORY_TRACKING
+#else // defined(USE_MEMORY_TRACKING) || defined(USE_MTUNER)
 
 bool MemAllocInit()
 {
@@ -103,47 +119,98 @@ void MemAllocExit()
 	// Return all allocated memory to the OS. Analyze memory usage, dump memory leaks, ...
 }
 
-#include <stdlib.h>
-
-
 void mmgrSetLogFileDirectory(const char* directory) {}
-
 void mmgrSetExecutableName(const char* name, size_t length) {}
 
-#ifdef _MSC_VER
-#include <memory.h>
-#include "../../ThirdParty/OpenSource/EASTL/EABase/eabase.h"
-void* conf_malloc(size_t size) { return _aligned_malloc(size, EA_PLATFORM_MIN_MALLOC_ALIGNMENT); }
-
-void* conf_calloc(size_t count, size_t size)
+void* conf_malloc(size_t size)
 {
-	size_t sz = count*size;
-	void* ptr = conf_malloc(sz);
-	memset(ptr, 0, sz);
+#ifdef _MSC_VER
+	void* ptr = _aligned_malloc(size, MIN_ALLOC_ALIGNMENT);
+	MTUNER_ALIGNED_ALLOC(0, ptr, size, 0, MIN_ALLOC_ALIGNMENT);
+#else
+	void* ptr = malloc(size);
+	MTUNER_ALLOC(0, ptr, size, 0);
+#endif
+
 	return ptr;
 }
 
-void* conf_memalign(size_t alignment, size_t size) { return _aligned_malloc(size, alignment); }
-
-void* conf_realloc(void* ptr, size_t size) { return _aligned_realloc(ptr, size, EA_PLATFORM_MIN_MALLOC_ALIGNMENT); }
-
-void conf_free(void* ptr) { _aligned_free(ptr); }
+void* conf_calloc(size_t count, size_t size)
+{
+#ifdef _MSC_VER
+	size_t sz = count * size;
+	void* ptr = conf_malloc(sz);
+	memset(ptr, 0, sz);
 #else
-void* conf_malloc(size_t size) { return malloc(size); }
+	void* ptr = calloc(count, size);
+	MTUNER_ALLOC(0, ptr, count * size, 0);
+#endif
 
-void* conf_calloc(size_t count, size_t size) { return calloc(count, size); }
+	return ptr;
+}
 
 void* conf_memalign(size_t alignment, size_t size)
 {
-	void* result;
-	if(posix_memalign(&result, alignment, size)) result = 0;
-	return result;
+#ifdef _MSC_VER
+	void* ptr = _aligned_malloc(size, alignment);
+#else
+	void* ptr;
+	alignment = alignment > sizeof(void*) ? alignment : sizeof(void*);
+	if (posix_memalign(&ptr, alignment, size))
+	{
+		ptr = NULL;
+	}
+#endif
+
+	MTUNER_ALIGNED_ALLOC(0, ptr, size, 0, alignment);
+
+	return ptr;
 }
 
-void* conf_realloc(void* ptr, size_t size) { return realloc(ptr, size); }
+void* conf_calloc_memalign(size_t count, size_t alignment, size_t size)
+{
+	size_t alignedArrayElementSize = ALIGN_TO(size, alignment);
+	size_t totalBytes = count * alignedArrayElementSize;
 
-void conf_free(void* ptr) { free(ptr); }
+#ifdef _MSC_VER
+	void* ptr = _aligned_malloc(totalBytes, alignment);
+#else
+	void* ptr;
+	if (posix_memalign(&ptr, alignment, totalBytes))
+	{
+		ptr = NULL;
+	}
 #endif
+
+	MTUNER_ALIGNED_ALLOC(0, ptr, totalBytes, 0, alignment);
+
+	memset(ptr, 0, totalBytes);
+	return ptr;
+}
+
+void* conf_realloc(void* ptr, size_t size)
+{
+#ifdef _MSC_VER
+	void* reallocPtr = _aligned_realloc(ptr, size, MIN_ALLOC_ALIGNMENT);
+#else
+	void* reallocPtr = realloc(ptr, size);
+#endif
+
+	MTUNER_REALLOC(0, reallocPtr, size, 0, ptr);
+
+	return reallocPtr;
+}
+
+void conf_free(void* ptr)
+{
+	MTUNER_FREE(0, ptr);
+
+#ifdef _MSC_VER
+	_aligned_free(ptr);
+#else
+	free(ptr);
+#endif
+}
 
 void* conf_malloc_internal(size_t size, const char *f, int l, const char *sf) { return conf_malloc(size); }
 
@@ -151,8 +218,10 @@ void* conf_memalign_internal(size_t align, size_t size, const char *f, int l, co
 
 void* conf_calloc_internal(size_t count, size_t size, const char *f, int l, const char *sf) { return conf_calloc(count, size); }
 
+void* conf_calloc_memalign_internal(size_t count, size_t align, size_t size, const char *f, int l, const char *sf) { return conf_calloc_memalign(count, align, size); }
+
 void* conf_realloc_internal(void* ptr, size_t size, const char *f, int l, const char *sf) { return conf_realloc(ptr, size); }
 
 void conf_free_internal(void* ptr, const char *f, int l, const char *sf) { conf_free(ptr); }
 
-#endif // USE_MEMORY_TRACKING
+#endif // defined(USE_MEMORY_TRACKING) || defined(USE_MTUNER)

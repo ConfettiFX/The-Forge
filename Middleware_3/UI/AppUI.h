@@ -43,6 +43,7 @@ struct Pipeline;
 struct Sampler;
 struct Buffer;
 struct Texture;
+struct PipelineCache;
 
 class IWidget
 {
@@ -760,7 +761,8 @@ enum GuiComponentFlags
 		<< 13,    // Ensure child windows without border uses style.WindowPadding (ignored by default for non-bordered child windows, because more convenient)
 	GUI_COMPONENT_FLAGS_NO_NAV_INPUT = 1 << 14,    // No gamepad/keyboard navigation within the window
 	GUI_COMPONENT_FLAGS_NO_NAV_FOCUS =
-		1 << 15    // No focusing toward this window with gamepad/keyboard navigation (e.g. skipped by CTRL+TAB)
+		1 << 15,    // No focusing toward this window with gamepad/keyboard navigation (e.g. skipped by CTRL+TAB)
+	GUI_COMPONENT_FLAGS_START_COLLAPSED = 1 << 16
 };
 
 class GuiComponent
@@ -781,6 +783,7 @@ class GuiComponent
 	uintptr_t                      pFont;
     float                          mAlpha;
 	// defaults to GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE
+	// on mobile, GUI_COMPONENT_FLAGS_START_COLLAPSED is also set
 	int32_t                        mFlags;
 
 	bool                           mActive;
@@ -856,7 +859,7 @@ public:
 	virtual bool init(Renderer* pRenderer, uint32_t const maxDynamicUIUpdatesPerBatch) = 0;
 	virtual void exit() = 0;
 
-	virtual bool load(RenderTarget** pRts, uint32_t count) = 0;
+	virtual bool load(RenderTarget** pRts, uint32_t count, PipelineCache* pCache) = 0;
 	virtual void unload() = 0;
 
 	// For GUI with custom shaders not necessary in a normal application
@@ -901,9 +904,9 @@ struct UIAppImpl
 class UIApp: public IMiddleware
 {
 	public:
-	UIApp(int32_t const fontAtlasSize = 0, uint32_t const maxDynamicUIUpdatesPerBatch = 20u);
+	UIApp(int32_t const fontAtlasSize = 0, uint32_t const maxDynamicUIUpdatesPerBatch = 20u, uint32_t const fontStashRingSizeBytes = 1024 * 1024);
 
-	bool Init(Renderer* renderer);
+	bool Init(Renderer* renderer, PipelineCache* pCache = NULL);
 	void Exit();
 
 	bool Load(RenderTarget** rts, uint32_t count = 1);
@@ -945,6 +948,7 @@ class UIApp: public IMiddleware
 	class GUIDriver*  pDriver;
 	struct UIAppImpl* pImpl;
 	Shader*           pCustomShader = NULL;
+	PipelineCache*    pPipelineCache = NULL;
 
 	// Following var is useful for seeing UI capabilities and tweaking style settings.
 	// Will only take effect if at least one GUI Component is active.
@@ -955,6 +959,7 @@ private:
 	float   mHeight;
 	int32_t  mFontAtlasSize = 0;
 	uint32_t mMaxDynamicUIUpdatesPerBatch = 20;
+	uint32_t mFontstashRingSizeBytes = 0;
 };
 
 class VirtualJoystickUI

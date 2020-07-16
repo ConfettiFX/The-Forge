@@ -125,10 +125,10 @@
 	#endif
 
 
-#elif defined(EA_PLATFORM_XBOXONE) || defined(_DURANGO) || defined(EA_PLATFORM_CAPILANO)
+#elif defined(EA_PLATFORM_XBOXONE) || defined(XBOX) || defined(EA_PLATFORM_CAPILANO)
 	// XBox One
 	// Durango was Microsoft's code-name for the platform, which is now obsolete.
-	// Microsoft uses _DURANGO instead of some variation of _XBOX, though it's not natively defined by the compiler.
+	// Microsoft uses _XBOX instead of some variation of _XBOX, though it's not natively defined by the compiler.
 	// Capilano was an EA-specific code-name for the platform, which is now obsolete.
 	#if defined(EA_PLATFORM_XBOXONE)
 		#undef  EA_PLATFORM_XBOXONE
@@ -148,8 +148,8 @@
 		#endif
 	// End backward compatibility
 
-	#if !defined(_DURANGO)
-		#define _DURANGO
+	#if !defined(XBOX)
+		#define XBOX
 	#endif
 	#define EA_PLATFORM_NAME "XBox One"
   //#define EA_PROCESSOR_X86  Currently our policy is that we don't define this, even though x64 is something of a superset of x86.
@@ -171,7 +171,7 @@
 		#include <winapifamily.h>
 		#if WINAPI_FAMILY == WINAPI_FAMILY_TV_TITLE
 			#define EA_WINAPI_FAMILY EA_WINAPI_FAMILY_TV_TITLE
-		#elif WINAPI_FAMILY == WINAPI_FAMILY_DESKTOP_APP
+		#elif WINAPI_FAMILY  == WINAPI_FAMILY_DESKTOP_APP || WINAPI_FAMILY == WINAPI_FAMILY_GAMES
 			#define EA_WINAPI_FAMILY EA_WINAPI_FAMILY_DESKTOP_APP
 		#else
 			#error Unsupported WINAPI_FAMILY

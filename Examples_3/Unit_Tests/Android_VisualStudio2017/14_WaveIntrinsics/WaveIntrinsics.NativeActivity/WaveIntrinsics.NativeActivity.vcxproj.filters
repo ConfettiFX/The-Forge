@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
+    <ClCompile Include="..\..\..\src\14_WaveIntrinsics\14_WaveIntrinsics.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+  <None Include="..\..\..\src\14_WaveIntrinsics\Shaders\Vulkan\magnify.frag"/>
+    <None Include="..\..\..\src\14_WaveIntrinsics\Shaders\Vulkan\magnify.vert"/>
+    <None Include="..\..\..\src\14_WaveIntrinsics\Shaders\Vulkan\wave.frag"/>
+    <None Include="..\..\..\src\14_WaveIntrinsics\Shaders\Vulkan\wave.vert"/>
+  </ItemGroup>
+</Project>

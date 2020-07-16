@@ -49,15 +49,20 @@ struct UniformDataPerFrame
     constant Uniforms &uniforms;
 };
 
+struct VertexInput
+{
+	float3 position [[attribute(0)]];
+	float3 normal [[attribute(1)]];
+};
+
 vertex VertexOutput stageMain(
     uint vid [[vertex_id]],
-    const device packed_float3* positions [[buffer(0)]],
-    const device packed_float3* normals  [[buffer(1)]],
+    VertexInput input [[stage_in]],
     constant UniformDataPerFrame& uniformDataPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]]
 )
 {
-	float3 position = positions[vid];
-	float3 normal = normals[vid];
+	float3 position = input.position;
+	float3 normal = input.normal;
 	
 	VertexOutput output;
 	output.viewSpacePosition = (uniformDataPerFrame.uniforms.worldToCamera * float4(position, 1)).xyz;

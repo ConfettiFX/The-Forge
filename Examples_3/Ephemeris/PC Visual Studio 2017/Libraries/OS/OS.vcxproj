@@ -36,7 +36,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemRun.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileStream.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Image\Image.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Input\InputSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Logging\Log.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\MemoryTracking\MemoryTracking.cpp" />
@@ -46,6 +45,7 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsBase.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsFileSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsLog.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsStackTraceDump.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsThread.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsTime.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp" />
@@ -83,8 +83,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemFileStream.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileStream.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\Image.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\ImageEnums.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IApp.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ICameraController.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFileSystem.h" />
@@ -101,6 +99,7 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\GpuProfiler.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerBase.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerHTML.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Windows\WindowsStackTraceDump.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imconfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\imgui\imgui_internal.h" />

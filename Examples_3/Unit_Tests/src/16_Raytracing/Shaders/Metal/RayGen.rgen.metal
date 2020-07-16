@@ -224,10 +224,10 @@ struct MetalRayGenShader {
 // with the camera's coordinate system.
 // [numthreads(8, 8, 1)]
 kernel void rayGen(uint2 tid                     [[thread_position_in_grid]],
-				   constant RaytracingArguments & arguments  [[buffer(0)]],
-				   device uint* pathIndices [[buffer(1)]],
-				   device uint4& rayCountIndirectBuffer [[buffer(2)]],
-				   constant short& shaderIndex [[buffer(3)]],
+				   constant RaytracingArguments & arguments  [[buffer(UPDATE_FREQ_USER + 0)]],
+				   device uint* pathIndices [[buffer(UPDATE_FREQ_USER + 1)]],
+				   device uint4& rayCountIndirectBuffer [[buffer(UPDATE_FREQ_USER + 2)]],
+				   constant short& shaderIndex [[buffer(UPDATE_FREQ_USER + 3)]],
 				   constant CSDataPerFrame& csDataPerFrame    [[buffer(UPDATE_FREQ_PER_FRAME)]],
 				   constant CSData& csData                    [[buffer(UPDATE_FREQ_NONE)]]
 #ifdef TARGET_IOS
@@ -250,10 +250,10 @@ kernel void rayGen(uint2 tid                     [[thread_position_in_grid]],
 }
 
 kernel void rayGen_0(uint tid                                [[thread_position_in_grid]],
-					 constant RaytracingArguments & arguments  	[[buffer(0)]],
-					 const device uint* pathIndices			 	[[buffer(1)]],
-					 const device uint2& pathBaseOffsetAndCount [[buffer(2)]],
-					 constant short& shaderIndex             	[[buffer(3)]],
+					 constant RaytracingArguments & arguments  	[[buffer(UPDATE_FREQ_USER + 0)]],
+					 const device uint* pathIndices			 	[[buffer(UPDATE_FREQ_USER + 1)]],
+					 const device uint2& pathBaseOffsetAndCount [[buffer(UPDATE_FREQ_USER + 2)]],
+					 constant short& shaderIndex             	[[buffer(UPDATE_FREQ_USER + 3)]],
 					 constant CSDataPerFrame& csDataPerFrame    	[[buffer(UPDATE_FREQ_PER_FRAME)]],
 					 constant CSData& csData                    	[[buffer(UPDATE_FREQ_NONE)]]
 #ifdef TARGET_IOS

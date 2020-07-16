@@ -51,8 +51,8 @@ struct IndirectDrawArguments
 
 struct VSInput
 {
-	float4 Position [[attribute(UNIT_VBPASS_POSITION)]];
-	uint TexCoord [[attribute(UNIT_VBPASS_TEXCOORD)]];
+	float4 Position [[attribute(0)]];
+	uint TexCoord [[attribute(1)]];
 };
 
 struct VSData {

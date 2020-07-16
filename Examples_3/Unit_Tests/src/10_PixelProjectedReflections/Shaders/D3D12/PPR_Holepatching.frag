@@ -64,7 +64,7 @@ struct VSOutput
 
 float4 main(VSOutput input) : SV_TARGET
 {	
-	float4 outColor;
+	float4 outColor = float4(0.0, 0.0, 0.0, 0.0);
 	float4 ssrColor = SSRTexture.Sample(nearestSampler, input.uv);	
 	
 	if(renderMode == 0)

@@ -51,18 +51,14 @@ struct VSOutput {
     float4 TexCoord;
 };
 
-struct VSData {
-    constant UniformBlock0& uniformBlock [[id(0)]];
-};
-
-vertex VSOutput stageMain(VSInput In                [[stage_in]],
-                          constant VSData& vsData   [[buffer(UPDATE_FREQ_PER_FRAME)]]
+vertex VSOutput stageMain(VSInput In                           [[stage_in]],
+                          constant UniformBlock0& uniformBlock [[buffer(0)]]
 )
 {
 	VSOutput result;
  
     float4 p = float4(In.Position.x*9, In.Position.y*9, In.Position.z*9, 1.0);
-    float4x4 m =  vsData.uniformBlock.mvp;
+    float4x4 m = uniformBlock.mvp;
     p = m * p;
     result.Position = p.xyww;
     result.TexCoord = float4(In.Position.x, In.Position.y, In.Position.z, In.Position.w);

@@ -90,29 +90,29 @@ const float gRotOrbitZScale = 0.00001f;
 
 Renderer* pRenderer = NULL;
 
-Queue*        pGraphicsQueue[gViewCount] = { NULL };
-CmdPool*      pCmdPool[gViewCount] = { NULL };
-Cmd**         ppCmds[gViewCount] = { NULL };
-Fence*        pRenderCompleteFences[gImageCount][gViewCount] = { { NULL } };
-Semaphore*    pRenderCompleteSemaphores[gImageCount][gViewCount] = {{ NULL }};
-Buffer*       pSphereVertexBuffer[gViewCount] = { NULL };
-Buffer*       pSkyBoxVertexBuffer[gViewCount] = { NULL };
-Texture*      pSkyBoxTextures[gViewCount][6];
-RenderTarget* pRenderTargets[gImageCount][gViewCount] = {{ NULL }};
+Queue* pGraphicsQueue[gViewCount] = { NULL };
+CmdPool* pCmdPools[gImageCount][gViewCount] = { NULL };
+Cmd* pCmds[gImageCount][gViewCount] = { NULL };
+Fence* pRenderCompleteFences[gImageCount][gViewCount] = { { NULL } };
+Semaphore* pRenderCompleteSemaphores[gImageCount][gViewCount] = { { NULL } };
+Buffer* pSphereVertexBuffer[gViewCount] = { NULL };
+Buffer* pSkyBoxVertexBuffer[gViewCount] = { NULL };
+Texture* pSkyBoxTextures[gViewCount][6];
+RenderTarget* pRenderTargets[gImageCount][gViewCount] = { { NULL } };
 RenderTarget* pDepthBuffers[gViewCount] = { NULL };
 
 Semaphore* pImageAcquiredSemaphore = NULL;
 SwapChain* pSwapChain = NULL;
 
-Shader*   pSphereShader = NULL;
+Shader* pSphereShader = NULL;
 Pipeline* pSpherePipeline = NULL;
 
-Shader*           pSkyBoxDrawShader = NULL;
-Pipeline*         pSkyBoxDrawPipeline = NULL;
-RootSignature*    pRootSignature = NULL;
-Sampler*          pSamplerSkyBox = NULL;
-DescriptorSet*    pDescriptorSetTexture[gViewCount] = { NULL };
-DescriptorSet*    pDescriptorSetUniforms[gViewCount] = { NULL };
+Shader* pSkyBoxDrawShader = NULL;
+Pipeline* pSkyBoxDrawPipeline = NULL;
+RootSignature* pRootSignature = NULL;
+Sampler* pSamplerSkyBox = NULL;
+DescriptorSet* pDescriptorSetTexture[gViewCount] = { NULL };
+DescriptorSet* pDescriptorSetUniforms[gViewCount] = { NULL };
 
 Buffer* pProjViewUniformBuffer[gImageCount] = { NULL };
 Buffer* pSkyboxUniformBuffer[gImageCount] = { NULL };
@@ -143,9 +143,9 @@ Panini           gPanini = {};
 PaniniParameters gPaniniParams = {};
 bool             gMultiGPU = true;
 bool             gMultiGPURestart = false;
-float*           pSpherePoints;
+float* pSpherePoints;
 
-class MultiGPU: public IApp
+class MultiGPU : public IApp
 {
 public:
 	bool Init()
@@ -165,7 +165,7 @@ public:
 			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT, "../../../../Middleware_3/Text");
 			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI, "../../../../Middleware_3/UI");
 #if !defined(TARGET_IOS)
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_PANINI,  "../../../../Middleware_3/PaniniProjection");
+			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_PANINI, "../../../../Middleware_3/PaniniProjection");
 #endif
 		}
 
@@ -196,40 +196,41 @@ public:
 		{
 			QueueDesc queueDesc = {};
 			queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-            queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
+			queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 			queueDesc.mNodeIndex = i;
 
 			if (!gMultiGPU && i > 0)
 				pGraphicsQueue[i] = pGraphicsQueue[0];
 			else
 				addQueue(pRenderer, &queueDesc, &pGraphicsQueue[i]);
-            gGpuProfilerNames[i] = eastl::string("Graphics") + eastl::to_string(i);
-            pGpuProfilerNames[i] = gGpuProfilerNames[i].c_str();
+			gGpuProfilerNames[i] = eastl::string("Graphics") + eastl::to_string(i);
+			pGpuProfilerNames[i] = gGpuProfilerNames[i].c_str();
 		}
 
-    if (!gAppUI.Init(pRenderer))
-      return false;
+		if (!gAppUI.Init(pRenderer))
+			return false;
 
-    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
-    GuiDesc guiDesc = {};
-    pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		GuiDesc guiDesc = {};
+		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.25f);
+		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
 
-    initProfiler(pRenderer, pGraphicsQueue, pGpuProfilerNames, gGpuProfilerTokens, gViewCount);
+		initProfiler(pRenderer, pGraphicsQueue, pGpuProfilerNames, gGpuProfilerTokens, gViewCount);
 
-		for (uint32_t i = 0; i < gViewCount; ++i)
+		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
-			CmdPoolDesc cmdPoolDesc = {};
-			cmdPoolDesc.pQueue = pGraphicsQueue[i];
-			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool[i]);
-			CmdDesc cmdDesc = {};
-			cmdDesc.pPool = pCmdPool[i];
-			addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds[i]);
-
-			for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
+			for (uint32_t j = 0; j < gViewCount; ++j)
 			{
-				addFence(pRenderer, &pRenderCompleteFences[frameIdx][i]);
-				addSemaphore(pRenderer, &pRenderCompleteSemaphores[frameIdx][i]);
+				CmdPoolDesc cmdPoolDesc = {};
+				cmdPoolDesc.pQueue = pGraphicsQueue[j];
+				addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i][j]);
+				CmdDesc cmdDesc = {};
+				cmdDesc.pPool = pCmdPools[i][j];
+				addCmd(pRenderer, &cmdDesc, &pCmds[i][j]);
+
+				addFence(pRenderer, &pRenderCompleteFences[i][j]);
+				addSemaphore(pRenderer, &pRenderCompleteSemaphores[i][j]);
 			}
 		}
 
@@ -253,8 +254,8 @@ public:
 									ADDRESS_MODE_CLAMP_TO_EDGE };
 		addSampler(pRenderer, &samplerDesc, &pSamplerSkyBox);
 
-		Shader*           shaders[] = { pSphereShader, pSkyBoxDrawShader };
-		const char*       pStaticSamplers[] = { "uSampler0" };
+		Shader* shaders[] = { pSphereShader, pSkyBoxDrawShader };
+		const char* pStaticSamplers[] = { "uSampler0" };
 		RootSignatureDesc rootDesc = {};
 		rootDesc.mStaticSamplerCount = 1;
 		rootDesc.ppStaticSamplerNames = pStaticSamplers;
@@ -477,7 +478,7 @@ public:
 		gPlanetInfoData[10].mScaleMat = mat4::scale(vec3(1));
 		gPlanetInfoData[10].mColor = vec4(0.3f, 0.3f, 0.4f, 1.0f);
 
-#if !defined(TARGET_IOS) && !defined(_DURANGO)
+#if !defined(TARGET_IOS)
 		pGui->AddWidget(CheckboxWidget("Toggle VSync", &gToggleVSync));
 #endif
 
@@ -496,7 +497,7 @@ public:
 
 		if (!gPanini.Init(pRenderer))
 			return false;
-		
+
 		gPanini.SetMaxDraws(gImageCount * 2);
 
 		if (!initInputSystem(pWindow))
@@ -530,7 +531,7 @@ public:
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
-		
+
 		// Prepare descriptor sets
 		for (uint32_t i = 0; i < gViewCount; ++i)
 		{
@@ -612,16 +613,15 @@ public:
 		removeShader(pRenderer, pSkyBoxDrawShader);
 		removeRootSignature(pRenderer, pRootSignature);
 
-		for (uint32_t view = 0; view < gViewCount; ++view)
+		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
-			for (uint32_t i = 0; i < gImageCount; ++i)
+			for (uint32_t j = 0; j < gViewCount; ++j)
 			{
-				removeFence(pRenderer, pRenderCompleteFences[i][view]);
-				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i][view]);
+				removeFence(pRenderer, pRenderCompleteFences[i][j]);
+				removeSemaphore(pRenderer, pRenderCompleteSemaphores[i][j]);
+				removeCmd(pRenderer, pCmds[i][j]);
+				removeCmdPool(pRenderer, pCmdPools[i][j]);
 			}
-
-			removeCmd_n(pRenderer, gImageCount, ppCmds[view]);
-			removeCmdPool(pRenderer, pCmdPool[view]);
 		}
 
 		for (uint32_t view = 0; view < gViewCount; ++view)
@@ -744,7 +744,7 @@ public:
 	{
 		updateInputSystem(mSettings.mHeight, mSettings.mHeight);
 
-#if !defined(TARGET_IOS) && !defined(_DURANGO)
+#if !defined(TARGET_IOS)
 		if (pSwapChain->mEnableVsync != gToggleVSync)
 		{
 			waitQueueIdle(pGraphicsQueue[0]);
@@ -828,7 +828,8 @@ public:
 
 	void Draw()
 	{
-		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+		uint32_t swapchainImageIndex;
+		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
 		// Update uniform buffers
 		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex] };
@@ -845,9 +846,9 @@ public:
 		{
 			RenderTarget* pRenderTarget = pRenderTargets[gFrameIndex][i];
 			RenderTarget* pDepthBuffer = pDepthBuffers[i];
-			Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex][i];
-			Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex][i];
-			Cmd*          cmd = ppCmds[i][gFrameIndex];
+			Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex][i];
+			Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex][i];
+			Cmd* cmd = pCmds[gFrameIndex][i];
 
 			// simply record the screen cleaning command
 			LoadActionsDesc loadActions = {};
@@ -900,7 +901,7 @@ public:
 				cmdBeginGpuTimestampQuery(cmd, gGpuProfilerTokens[i], "Draw Results");
 				loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 
-				RenderTarget*  pRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
+				RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
 				RenderTargetBarrier barriers[1 + gViewCount] = {};
 				for (uint32_t i = 0; i < gViewCount; ++i)
 					barriers[i] = { pRenderTargets[gFrameIndex][i], RESOURCE_STATE_SHADER_RESOURCE };
@@ -926,11 +927,15 @@ public:
 
 				gAppUI.Gui(pGui);
 
-                cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
-                for (uint32_t j = 0; j < gViewCount; ++j)
-                {
-                    cmdDrawGpuProfile(cmd, float2(8, 75 + (int)j * 175), gGpuProfilerTokens[j]);
-                }
+				const float txtIndentY = 12.f;
+				float txtOrigY = txtIndentY;
+				float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, txtOrigY), &gFrameTimeDraw);
+				txtOrigY += txtSize.y + txtIndentY;
+				for (uint32_t j = 0; j < gViewCount; ++j)
+				{
+					txtSize = cmdDrawGpuProfile(cmd, float2(8.f, txtOrigY), gGpuProfilerTokens[j]);
+					txtOrigY += txtSize.y + txtIndentY;
+				}
 
 				cmdDrawProfilerUI();
 
@@ -960,7 +965,7 @@ public:
 				submitDesc.ppWaitSemaphores = pWaitSemaphores;
 				queueSubmit(pGraphicsQueue[i], &submitDesc);
 				QueuePresentDesc presentDesc = {};
-				presentDesc.mIndex = gFrameIndex;
+				presentDesc.mIndex = swapchainImageIndex;
 				presentDesc.mWaitSemaphoreCount = 1;
 				presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 				presentDesc.pSwapChain = pSwapChain;
@@ -982,15 +987,19 @@ public:
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		for (uint32_t i = 0; i < gViewCount; ++i)
 		{
-			Fence*      pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount][i];
+			Fence* pNextFence = pRenderCompleteFences[(gFrameIndex + 1) % gImageCount][i];
 			FenceStatus fenceStatus;
 			getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 			if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			{
 				waitForFences(pRenderer, 1, &pNextFence);
 			}
+
+			resetCmdPool(pRenderer, pCmdPools[(gFrameIndex + 1) % gImageCount][i]);
 		}
 		flipProfiler();
+
+		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
 
 	const char* GetName() { return "11_MultiGPU"; }

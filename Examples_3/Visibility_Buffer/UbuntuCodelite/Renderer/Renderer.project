@@ -8,12 +8,6 @@
   <Description/>
   <Dependencies/>
   <VirtualDirectory Name="Common">
-    <VirtualDirectory Name="Image">
-      <File Name="../../../../Common_3/OS/Image/Image.cpp"/>
-      <File Name="../../../../Common_3/OS/Image/Image.h"/>
-      <File Name="../../../../Common_3/OS/Image/ImageEnums.h"/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp"/>
-    </VirtualDirectory>
     <File Name="../../../../Common_3/Renderer/CommonShaderReflection.cpp"/>
     <File Name="../../../../Common_3/Renderer/IMemoryAllocator.h"/>
     <File Name="../../../../Common_3/Renderer/IRenderer.h"/>

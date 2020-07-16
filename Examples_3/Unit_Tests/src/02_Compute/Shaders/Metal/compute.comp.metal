@@ -389,55 +389,37 @@ float4 QJulia(float3 rO,                // ray origin
 	return color;
 }
 
-#ifndef TARGET_IOS
-struct CSData {
-    texture2d<float,access::write> outputTexture    [[id(0)]];
-};
-#endif
-
-struct CSDataFrame {
-    constant UniformBlock0& uniformBlock            [[id(0)]];
-};
-
 //[numthreads(16, 16, 1)]
 kernel void stageMain(uint3 Gid                             [[threadgroup_position_in_grid]],
                       uint3 DTid                            [[thread_position_in_grid]],
                       uint3 GTid                            [[thread_position_in_threadgroup]],
                       uint GI                               [[thread_index_in_threadgroup]],
-#ifndef TARGET_IOS
-                      constant CSData& csData               [[buffer(UPDATE_FREQ_NONE)]],
-#else
 					  texture2d<float,access::write> outputTexture [[texture(0)]],
-#endif
-                      constant CSDataFrame& csDataFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]]
+                      constant UniformBlock0& uniformBlock         [[buffer(0)]]
 )
 {
 
 	float4 coord = float4((float)DTid.x, (float)DTid.y, 0.0f, 0.0f);
 
-	float2 size = float2((float)csDataFrame.uniformBlock.c_width, (float)csDataFrame.uniformBlock.c_height);
+	float2 size = float2((float)uniformBlock.c_width, (float)uniformBlock.c_height);
 	float scale = min(size.x, size.y);
-	float2 position = (coord.xy - float2(0.5f, 0.5f) * size) / scale * BOUNDING_RADIUS_2 * csDataFrame.uniformBlock.zoom;
+	float2 position = (coord.xy - float2(0.5f, 0.5f) * size) / scale * BOUNDING_RADIUS_2 * uniformBlock.zoom;
 
 	float3 light = float3(1.5f, 0.5f, 4.0f);
 	float3 eye = float3(0.0f, 0.0f, 4.0f);
 	float3 ray = float3(position.x, position.y, 0.0f);
 
 	// rotate fractal
-	light = (csDataFrame.uniformBlock.mvp * float4(light,0)).xyz;
-	eye = (csDataFrame.uniformBlock.mvp * float4(eye,0)).xyz;
-	ray = (csDataFrame.uniformBlock.mvp * float4(ray,0)).xyz;
+	light = (uniformBlock.mvp * float4(light,0)).xyz;
+	eye = (uniformBlock.mvp * float4(eye,0)).xyz;
+	ray = (uniformBlock.mvp * float4(ray,0)).xyz;
 
 	// ray start and ray direction
 	float3 rO = eye;
 	float3 rD = ray - rO;
 
-	float4 color = QJulia(rO, rD, csDataFrame.uniformBlock.c_mu, csDataFrame.uniformBlock.c_epsilon, eye, light, csDataFrame.uniformBlock.c_renderSoftShadows, csDataFrame.uniformBlock.c_diffuse);
+	float4 color = QJulia(rO, rD, uniformBlock.c_mu, uniformBlock.c_epsilon, eye, light, uniformBlock.c_renderSoftShadows, uniformBlock.c_diffuse);
 
-#ifndef TARGET_IOS
-	csData.outputTexture.write(color, DTid.xy);
-#else
 	outputTexture.write(color, DTid.xy);
-#endif
 	
 }

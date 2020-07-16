@@ -19,7 +19,7 @@ inline void utils_caps_builder(Renderer* pRenderer)
 #ifndef TARGET_IOS
 			pRenderer->pCapBits->canShaderReadFrom[i] = TinyImageFormat_MTLPixelFormatOnMac(mtlFmt);
 #else
-			pRenderer->pCapBits->canShaderReadFrom[i] = TinyImageFormat_MTLPixelFormatOnIOs(mtlFmt);
+			pRenderer->pCapBits->canShaderReadFrom[i] = TinyImageFormat_MTLPixelFormatOnIOS(mtlFmt);
 #endif
 		}
 		else
@@ -30,45 +30,65 @@ inline void utils_caps_builder(Renderer* pRenderer)
 #define CAN_SHADER_WRITE(x) pRenderer->pCapBits->canShaderWriteTo[TinyImageFormat_##x] = true;
 #define CAN_RENDER_TARGET_WRITE(x) pRenderer->pCapBits->canRenderTargetWriteTo[TinyImageFormat_##x] = true;
 
-	// this call is supported on mac and ios
-	// technially I think you can write but not read some texture, this is telling
-	// you you can do both. TODO work out the semantics behind write vs read/write.
-	MTLReadWriteTextureTier rwTextureTier = [pRenderer->pDevice readWriteTextureSupport];
-	// intentional fall through on this switch
-	switch(rwTextureTier)
+#if defined(ENABLE_TEXTURE_READ_WRITE)
+	if (@available(macOS 10.13, iOS 11.0, *))
 	{
-	default:
-	case MTLReadWriteTextureTier2:
-		CAN_SHADER_WRITE(R32G32B32A32_SFLOAT);
-		CAN_SHADER_WRITE(R32G32B32A32_UINT);
-		CAN_SHADER_WRITE(R32G32B32A32_SINT);
-		CAN_SHADER_WRITE(R16G16B16A16_SFLOAT);
-		CAN_SHADER_WRITE(R16G16B16A16_UINT);
-		CAN_SHADER_WRITE(R16G16B16A16_SINT);
-		CAN_SHADER_WRITE(R8G8B8A8_UNORM);
-		CAN_SHADER_WRITE(R8G8B8A8_UINT);
-		CAN_SHADER_WRITE(R8G8B8A8_SINT);
-		CAN_SHADER_WRITE(R16_SFLOAT);
-		CAN_SHADER_WRITE(R16_UINT);
-		CAN_SHADER_WRITE(R16_SINT);
-		CAN_SHADER_WRITE(R8_UNORM);
-		CAN_SHADER_WRITE(R8_UINT);
-		CAN_SHADER_WRITE(R8_SINT);
-	case MTLReadWriteTextureTier1:
-		CAN_SHADER_WRITE(R32_SFLOAT);
-		CAN_SHADER_WRITE(R32_UINT);
-		CAN_SHADER_WRITE(R32_SINT);
-	case MTLReadWriteTextureTierNone: break;
+		// this call is supported on mac and ios
+		// technially I think you can write but not read some texture, this is telling
+		// you you can do both. TODO work out the semantics behind write vs read/write.
+		MTLReadWriteTextureTier rwTextureTier = [pRenderer->pDevice readWriteTextureSupport];
+		// intentional fall through on this switch
+		switch(rwTextureTier)
+		{
+		default:
+		case MTLReadWriteTextureTier2:
+			CAN_SHADER_WRITE(R32G32B32A32_SFLOAT);
+			CAN_SHADER_WRITE(R32G32B32A32_UINT);
+			CAN_SHADER_WRITE(R32G32B32A32_SINT);
+			CAN_SHADER_WRITE(R16G16B16A16_SFLOAT);
+			CAN_SHADER_WRITE(R16G16B16A16_UINT);
+			CAN_SHADER_WRITE(R16G16B16A16_SINT);
+			CAN_SHADER_WRITE(R8G8B8A8_UNORM);
+			CAN_SHADER_WRITE(R8G8B8A8_UINT);
+			CAN_SHADER_WRITE(R8G8B8A8_SINT);
+			CAN_SHADER_WRITE(R16_SFLOAT);
+			CAN_SHADER_WRITE(R16_UINT);
+			CAN_SHADER_WRITE(R16_SINT);
+			CAN_SHADER_WRITE(R8_UNORM);
+			CAN_SHADER_WRITE(R8_UINT);
+			CAN_SHADER_WRITE(R8_SINT);
+		case MTLReadWriteTextureTier1:
+			CAN_SHADER_WRITE(R32_SFLOAT);
+			CAN_SHADER_WRITE(R32_UINT);
+			CAN_SHADER_WRITE(R32_SINT);
+		case MTLReadWriteTextureTierNone: break;
+		}
 	}
+#endif
 
 #ifndef TARGET_IOS
 	uint32_t familyTier = 0;
 	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_macOS_GPUFamily1_v1] ? 1 : familyTier;
-	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_macOS_GPUFamily1_v2] ? 1 : familyTier;
-	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_macOS_GPUFamily1_v3] ? 1 : familyTier;
-	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_macOS_GPUFamily1_v4] ? 1 : familyTier;
+#if defined(ENABLE_GPU_FAMILY_1_V2)
+	if (@available(macOS 10.12, *))
+	{
+		familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_macOS_GPUFamily1_v2] ? 1 : familyTier;
+	}
+#endif
+#if defined(ENABLE_GPU_FAMILY_1_V3)
+	if (@available(macOS 10.13, *))
+	{
+		familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_macOS_GPUFamily1_v3] ? 1 : familyTier;
+	}
+#endif
+#if defined(ENABLE_GPU_FAMILY_1_V4)
+    if (@available(macOS 10.14, *))
+    {
+        familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_macOS_GPUFamily1_v4] ? 1 : familyTier;
+    }
+#endif
 
-	if( familyTier >= 1 )
+	if (familyTier >= 1)
 	{
 		CAN_RENDER_TARGET_WRITE(R8_UNORM); // this has a subscript 8 which makes no sense
 		CAN_RENDER_TARGET_WRITE(R8_SNORM);
@@ -123,27 +143,29 @@ inline void utils_caps_builder(Renderer* pRenderer)
     
 #else // iOS
 	uint32_t familyTier = 0;
+	
+	// Tier 1
 	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily1_v1] ? 1 : familyTier;
-	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily1_v2] ? 1 : familyTier;
-	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily1_v3] ? 1 : familyTier;
-	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily1_v4] ? 1 : familyTier;
-	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily1_v5] ? 1 : familyTier;
-
+	
+	// Tier 2
 	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily2_v1] ? 2 : familyTier;
-	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily2_v2] ? 2 : familyTier;
-	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily2_v3] ? 2 : familyTier;
-	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily2_v4] ? 2 : familyTier;
-	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily2_v5] ? 2 : familyTier;
+	
+	// Tier 3
+#if defined(ENABLE_GPU_FAMILY_3)
+	if (@available(iOS 9.0, *))
+	{
+		familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily3_v1] ? 3 : familyTier;
+	}
+#endif
+#if defined(ENABLE_GPU_FAMILY_4)
+	// Tier 4
+	if (@available(iOS 11.0, *))
+	{
+		familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily4_v1] ? 4 : familyTier;
+	}
+#endif
 
-	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily3_v1] ? 3 : familyTier;
-	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily3_v2] ? 3 : familyTier;
-	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily3_v3] ? 3 : familyTier;
-	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily3_v4] ? 3 : familyTier;
-
-	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily4_v1] ? 4 : familyTier;
-	familyTier = [pRenderer->pDevice supportsFeatureSet: MTLFeatureSet_iOS_GPUFamily4_v2] ? 4 : familyTier;
-
-    if(familyTier == 1)
+    if (familyTier == 1)
 	{
 		// this is a tier 1 decide so no astc and XR
 		pRenderer->pCapBits->canShaderReadFrom[TinyImageFormat_ASTC_4x4_UNORM] = false;

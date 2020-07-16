@@ -11,17 +11,11 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Image\Image.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\CommonShaderReflection.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\ResourceLoader.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\Vulkan.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanRaytracing.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Vulkan\VulkanShaderReflection.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\Image.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\ImageEnums.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{12d02c10-8fb1-485a-827a-b489cbd8b88f}</ProjectGuid>
@@ -93,7 +87,7 @@
       <CompileAs>CompileAsCpp</CompileAs>
       <PreprocessorDefinitions>VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;API_EXPORT;ANDROID;VULKAN;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <EnableNeonCodegen>false</EnableNeonCodegen>
-      <FloatABI>softfp</FloatABI>
+      <FloatABI></FloatABI>
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <PreBuildEvent>

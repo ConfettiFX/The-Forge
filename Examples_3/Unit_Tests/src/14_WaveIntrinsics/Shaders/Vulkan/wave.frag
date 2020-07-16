@@ -100,7 +100,12 @@ void main()
 		outputColor = vec4(activeRatio, activeRatio, activeRatio, 1.0);
 */
 #else
+#ifdef TARGET_ANDROID
+		//Due to driver bugs Android currently crashes while calling subgroupBallot(true)
+		uvec4 activeLaneMask = subgroupBallot(false);
+#else
 		uvec4 activeLaneMask = subgroupBallot(true);
+#endif //TARGET_ANDROID
 		uint numActiveLanes = bitCount(activeLaneMask.x) + bitCount(activeLaneMask.y) + bitCount(activeLaneMask.z) + bitCount(activeLaneMask.w);
 		float activeRatio = float(numActiveLanes) / float(laneSize);
 		outputColor = vec4(activeRatio, activeRatio, activeRatio, 1.0);
@@ -131,7 +136,12 @@ void main()
 		//outputColor = avgColor;
 */
 #else
+#ifdef TARGET_ANDROID
+		//Due to driver bugs Android currently crashes while calling subgroupBallot(true)
+		uvec4 activeLaneMask = subgroupBallot(false);
+#else
 		uvec4 activeLaneMask = subgroupBallot(true);
+#endif //TARGET_ANDROID
 		uint numActiveLanes = bitCount(activeLaneMask.x) + bitCount(activeLaneMask.y) + bitCount(activeLaneMask.z) + bitCount(activeLaneMask.w);
 		vec4 avgColor = subgroupAdd(outputColor) / float(numActiveLanes);
 		outputColor = avgColor;
@@ -149,7 +159,12 @@ void main()
 		vec4 prefixSumPos = subgroupExclusiveAdd(gl_FragCoord - basePos);
 
 		// Get the number of total active lanes.
+#ifdef TARGET_ANDROID
+		//Due to driver bugs Android currently crashes while calling subgroupBallot(true)
+		uvec4 activeLaneMask = subgroupBallot(false);
+#else
 		uvec4 activeLaneMask = subgroupBallot(true);
+#endif //TARGET_ANDROID
 		uint numActiveLanes = bitCount(activeLaneMask.x) + bitCount(activeLaneMask.y) + bitCount(activeLaneMask.z) + bitCount(activeLaneMask.w);
 
 		outputColor = prefixSumPos / numActiveLanes;
@@ -171,7 +186,7 @@ void main()
 		//  V
 		//  Y
 		//
-#ifdef TARGET_SWITCH
+#if defined(TARGET_SWITCH) || defined(TARGET_ANDROID)
 /*
 		// NV_shader_thread_group ?
 		float dx = quadSwizzleXNV(gl_FragCoord.x) - gl_FragCoord.x;

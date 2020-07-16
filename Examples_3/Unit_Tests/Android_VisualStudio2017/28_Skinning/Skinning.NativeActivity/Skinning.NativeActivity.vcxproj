@@ -67,7 +67,7 @@
       <CppLanguageStandard>c++11</CppLanguageStandard>
       <PreprocessorDefinitions>VULKAN;ANDROID;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;_DEBUG;USE_MEMORY_TRACKING</PreprocessorDefinitions>
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
-      <EnableNeonCodegen>true</EnableNeonCodegen>
+      <EnableNeonCodegen>false</EnableNeonCodegen>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -78,7 +78,10 @@
       <Command>"$(MSBuildBinPath)\msbuild.exe" $(ProjectDir)..\..\..\..\..\Common_3\Tools\AssetPipeline\Win64\AssetPipeline.sln /p:Configuration=$(Configuration)Vk /p:Platform=x64 /p:BuildInParallel=true /t:Build 
 "$(ProjectDir)..\..\..\..\..\Common_3\Tools\AssetPipeline\Win64\x64\$(Configuration)Vk\AssetPipelineCmd.exe" -pa " $(ProjectDir)../../../UnitTestResources/Animation" "$(ProjectDir)../../../UnitTestResources/Animation"
 
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Animation\stormtrooper\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Animation\stormtrooper\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\circlepad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\Stormtrooper_D.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\TitilliumText\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\28_Skinning\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y</Command>
@@ -94,11 +97,11 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\28_Skinning\Shaders\Vulka
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <CompileAs>CompileAsCpp</CompileAs>
       <ExceptionHandling>Disabled</ExceptionHandling>
-      <FloatABI>softfp</FloatABI>
+      <FloatABI></FloatABI>
       <CppLanguageStandard>c++11</CppLanguageStandard>
       <PreprocessorDefinitions>VULKAN;ANDROID;VK_USE_PLATFORM_ANDROID_KHR;ANDROID_ARM_NEON;USE_MEMORY_TRACKING</PreprocessorDefinitions>
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
-      <EnableNeonCodegen>true</EnableNeonCodegen>
+      <EnableNeonCodegen>false</EnableNeonCodegen>
     </ClCompile>
     <Link>
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(SolutionDir)$(Platform)\$(Configuration)\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
@@ -109,7 +112,10 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\28_Skinning\Shaders\Vulka
       <Command>"$(MSBuildBinPath)\msbuild.exe" $(ProjectDir)..\..\..\..\..\Common_3\Tools\AssetPipeline\Win64\AssetPipeline.sln /p:Configuration=$(Configuration)Vk /p:Platform=x64 /p:BuildInParallel=true /t:Build 
 "$(ProjectDir)..\..\..\..\..\Common_3\Tools\AssetPipeline\Win64\x64\$(Configuration)Vk\AssetPipelineCmd.exe" -pa " $(ProjectDir)../../../UnitTestResources/Animation" "$(ProjectDir)../../../UnitTestResources/Animation"
 
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Animation\stormtrooper\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Animation\stormtrooper\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\circlepad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\Stormtrooper_D.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\TitilliumText\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\28_Skinning\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y</Command>
@@ -120,11 +126,11 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\28_Skinning\Shaders\Vulka
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="android_native_app_glue.h" />
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\src\28_Skinning\28_Skinning.cpp" />
-    <ClCompile Include="android_native_app_glue.c" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\src\28_Skinning\Shaders\Vulkan\basic.frag" />

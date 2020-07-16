@@ -16,14 +16,9 @@ struct Vertex_Shader
     struct Uniforms_uRootConstants
     {
         packed_float4 color;
-        packed_float2 scaleBias;
+        float2 scaleBias;
     };
     constant Uniforms_uRootConstants & uRootConstants;
-    struct Uniforms_uniformBlock
-    {
-        float4x4 mvp;
-    };
-    constant Uniforms_uniformBlock & uniformBlock;
     PsIn main(VsIn In)
     {
         PsIn Out;
@@ -33,22 +28,20 @@ struct Vertex_Shader
         return Out;
     };
 
-    Vertex_Shader(constant Uniforms_uRootConstants & uRootConstants,constant Uniforms_uniformBlock & uniformBlock)
+    Vertex_Shader(constant Uniforms_uRootConstants & uRootConstants)
         : uRootConstants(uRootConstants)
-        , uniformBlock(uniformBlock)
     {
     }
 };
 
 vertex Vertex_Shader::PsIn stageMain(
                                      Vertex_Shader::VsIn In                                           [[stage_in]],
-									  constant Vertex_Shader::Uniforms_uniformBlock& uniformBlock_rootcbv     [[buffer(UPDATE_FREQ_USER + 1)]],
-                                     constant Vertex_Shader::Uniforms_uRootConstants& uRootConstants  [[buffer(UPDATE_FREQ_USER)]]
+                                     constant Vertex_Shader::Uniforms_uRootConstants& uRootConstants [[buffer(0)]]
 )
 {
     Vertex_Shader::VsIn In0;
     In0.position = In.position;
     In0.texCoord = In.texCoord;
-    Vertex_Shader main(uRootConstants, uniformBlock_rootcbv);
+    Vertex_Shader main(uRootConstants);
     return main.main(In0);
 }

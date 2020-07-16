@@ -22,17 +22,31 @@
  * under the License.
 */
 
-#if defined(DIRECT3D12)
 #include "../IRenderer.h"
 #include "Direct3D12Hooks.h"
+
 #include "../../OS/Interfaces/IMemory.h"
 
-static void enable_debug_layer_hook(Renderer* pRenderer)
+HMODULE hook_get_d3d12_module_handle()
 {
-#if defined(_DEBUG) || defined(PROFILE)
+	return GetModuleHandle(TEXT("d3d12.dll"));
+}
+
+void hook_post_init_renderer(Renderer*)
+{
+}
+
+void hook_post_remove_renderer(Renderer*)
+{
+}
+
+void hook_enable_debug_layer(Renderer* pRenderer)
+{
+	UNREF_PARAM(pRenderer);
+#if defined(ENABLE_GRAPHICS_DEBUG)
 	pRenderer->pDXDebug->EnableDebugLayer();
 	ID3D12Debug1* pDebug1 = NULL;
-	if (S_OK == pRenderer->pDXDebug->QueryInterface(IID_PPV_ARGS(&pDebug1)))
+	if (SUCCEEDED(pRenderer->pDXDebug->QueryInterface(IID_PPV_ARGS(&pDebug1))))
 	{
 		pDebug1->SetEnableGPUBasedValidation(pRenderer->mEnableGpuBasedValidation);
 		pDebug1->Release();
@@ -40,20 +54,137 @@ static void enable_debug_layer_hook(Renderer* pRenderer)
 #endif
 }
 
-static TinyImageFormat get_recommended_swapchain_format(bool hintHDR)
+HRESULT hook_create_device(void* pAdapter, D3D_FEATURE_LEVEL featureLevel, ID3D12Device** ppDevice)
+{
+	return D3D12CreateDevice((IUnknown*)pAdapter, featureLevel, IID_PPV_ARGS(ppDevice));
+}
+
+HRESULT hook_create_command_queue(ID3D12Device* pDevice, const D3D12_COMMAND_QUEUE_DESC* pDesc, ID3D12CommandQueue** ppQueue)
+{
+	return pDevice->CreateCommandQueue(pDesc, IID_PPV_ARGS(ppQueue));
+}
+
+HRESULT hook_create_copy_cmd(ID3D12Device* pDevice, uint32_t nodeMask, ID3D12CommandAllocator* pAlloc, Cmd* pCmd)
+{
+	return pDevice->CreateCommandList(nodeMask, D3D12_COMMAND_LIST_TYPE_COPY, pAlloc, NULL, IID_PPV_ARGS(&pCmd->pDxCmdList));
+}
+
+void hook_remove_copy_cmd(Cmd* pCmd)
+{
+	if (pCmd->pDxCmdList)
+	{
+		pCmd->pDxCmdList->Release();
+		pCmd->pDxCmdList = NULL;
+	}
+}
+
+HRESULT hook_create_graphics_pipeline_state(ID3D12Device* pDevice, const D3D12_GRAPHICS_PIPELINE_STATE_DESC* pDesc, void*, uint32_t, ID3D12PipelineState** ppPipeline)
+{
+	return pDevice->CreateGraphicsPipelineState(pDesc, IID_PPV_ARGS(ppPipeline));
+}
+
+HRESULT hook_create_compute_pipeline_state(ID3D12Device* pDevice, const D3D12_COMPUTE_PIPELINE_STATE_DESC* pDesc, void*, uint32_t, ID3D12PipelineState** ppPipeline)
+{
+	return pDevice->CreateComputePipelineState(pDesc, IID_PPV_ARGS(ppPipeline));
+}
+
+HRESULT hook_create_special_resource(
+	Renderer*,
+	const D3D12_RESOURCE_DESC*,
+	const D3D12_CLEAR_VALUE*,
+	D3D12_RESOURCE_STATES,
+	uint32_t,
+	ID3D12Resource**)
+{
+	return E_NOINTERFACE;
+}
+
+TinyImageFormat hook_get_recommended_swapchain_format(bool)
 {
 	return TinyImageFormat_B8G8R8A8_UNORM;
 }
 
-static uint32_t get_swap_chain_image_index(SwapChain* pSwapChain)
+uint32_t hook_get_swapchain_image_index(SwapChain* pSwapChain)
 {
 	return pSwapChain->pDxSwapChain->GetCurrentBackBufferIndex();
 }
 
-void initHooks()
+HRESULT hook_acquire_next_image(ID3D12Device*, SwapChain*)
 {
-	fnHookEnableDebugLayer = enable_debug_layer_hook;
-	fnHookGetRecommendedSwapChainFormat = get_recommended_swapchain_format;
-	fnHookGetSwapChainImageIndex = get_swap_chain_image_index;
+	return S_OK;
 }
-#endif
+
+HRESULT hook_queue_present(Queue*, SwapChain* pSwapChain, uint32_t)
+{
+	return pSwapChain->pDxSwapChain->Present(pSwapChain->mDxSyncInterval, 0);
+}
+
+extern void hook_fill_gpu_desc(Renderer* pRenderer, D3D_FEATURE_LEVEL featureLevel, GpuDesc* pInOutDesc)
+{
+	// Query the level of support of Shader Model.
+	D3D12_FEATURE_DATA_D3D12_OPTIONS  featureData = {};
+	D3D12_FEATURE_DATA_D3D12_OPTIONS1 featureData1 = {};
+	// Query the level of support of Wave Intrinsics.
+	pRenderer->pDxDevice->CheckFeatureSupport(
+		(D3D12_FEATURE)D3D12_FEATURE_D3D12_OPTIONS, &featureData, sizeof(featureData));
+	pRenderer->pDxDevice->CheckFeatureSupport(
+		(D3D12_FEATURE)D3D12_FEATURE_D3D12_OPTIONS1, &featureData1, sizeof(featureData1));
+
+	GpuDesc& gpuDesc = *pInOutDesc;
+	DXGI_ADAPTER_DESC3 desc = {};
+	gpuDesc.pGpu->GetDesc3(&desc);
+
+	gpuDesc.mMaxSupportedFeatureLevel = featureLevel;
+	gpuDesc.mDedicatedVideoMemory = desc.DedicatedVideoMemory;
+	gpuDesc.mFeatureDataOptions = featureData;
+	gpuDesc.mFeatureDataOptions1 = featureData1;
+	gpuDesc.pRenderer = pRenderer;
+
+	//save vendor and model Id as string
+	//char hexChar[10];
+	//convert deviceId and assign it
+	sprintf_s(gpuDesc.mDeviceId, "%#x\0", desc.DeviceId);
+	//convert modelId and assign it
+	sprintf_s(gpuDesc.mVendorId, "%#x\0", desc.VendorId);
+	//convert Revision Id
+	sprintf_s(gpuDesc.mRevisionId, "%#x\0", desc.Revision);
+
+	//save gpu name (Some situtations this can show description instead of name)
+	//char sName[MAX_PATH];
+	size_t numConverted = 0;
+	wcstombs_s(&numConverted, gpuDesc.mName, desc.Description, MAX_GPU_VENDOR_STRING_LENGTH);
+}
+
+void hook_modify_descriptor_heap_size(D3D12_DESCRIPTOR_HEAP_TYPE, uint32_t*)
+{
+}
+
+void hook_modify_swapchain_desc(DXGI_SWAP_CHAIN_DESC1*)
+{
+}
+
+void hook_modify_heap_flags(DescriptorType, D3D12_HEAP_FLAGS*)
+{
+}
+
+void hook_modify_buffer_resource_desc(const BufferDesc*, D3D12_RESOURCE_DESC*)
+{
+}
+
+void hook_modify_texture_resource_flags(TextureCreationFlags, D3D12_RESOURCE_FLAGS*)
+{
+}
+
+void hook_modify_shader_compile_flags(uint32_t, bool, const WCHAR**, uint32_t* pOutNumFlags)
+{
+	*pOutNumFlags = 0;
+}
+
+void hook_modify_rootsignature_flags(uint32_t, D3D12_ROOT_SIGNATURE_FLAGS*)
+{
+}
+
+void hook_modify_command_signature_desc(D3D12_COMMAND_SIGNATURE_DESC* pInOutDesc, uint32_t padding)
+{
+	pInOutDesc->ByteStride += padding;
+}

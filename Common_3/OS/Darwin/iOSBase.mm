@@ -31,6 +31,9 @@
 
 #include <ctime>
 
+#include <mach/clock.h>
+#include <mach/mach.h>
+
 #include "../../ThirdParty/OpenSource/EASTL/vector.h"
 
 #include "../Interfaces/IOperatingSystem.h"
@@ -49,6 +52,7 @@
 
 static WindowsDesc gCurrentWindow;
 static eastl::vector<MonitorDesc> gMonitors;
+static uint32_t gMonitorCount = 0;
 static int gCurrentTouchEvent = 0;
 
 static float2 gRetinaScale = { 1.0f, 1.0f };
@@ -75,18 +79,38 @@ void getRecommendedResolution(RectDesc* rect) { *rect = RectDesc{ 0, 0, gDeviceW
 /************************************************************************/
 // Time Related Functions
 /************************************************************************/
+#ifdef __IPHONE_10_0
+#if __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_10_0
+#define ENABLE_CLOCK_GETTIME
+#endif
+#endif
 
 unsigned getSystemTime()
 {
-	long			ms; // Milliseconds
-	time_t		s;  // Seconds
+	long            ms;    // Milliseconds
+	time_t          s;     // Seconds
 	struct timespec spec;
-
-	clock_gettime(_CLOCK_MONOTONIC, &spec);
-
-	s  = spec.tv_sec;
-	ms = round(spec.tv_nsec / 1.0e6); // Convert nanoseconds to milliseconds
-
+	
+#if defined(ENABLE_CLOCK_GETTIME)
+	if (@available(iOS 10.0, *))
+	{
+		clock_gettime(_CLOCK_MONOTONIC, &spec);
+	}
+	else
+#endif
+	{
+		// https://stackoverflow.com/questions/5167269/clock-gettime-alternative-in-mac-os-x
+		clock_serv_t cclock;
+		mach_timespec_t mts;
+		host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+		clock_get_time(cclock, &mts);
+		mach_port_deallocate(mach_task_self(), cclock);
+		spec.tv_sec = mts.tv_sec;
+		spec.tv_nsec = mts.tv_nsec;
+	}
+	
+	s = spec.tv_sec;
+	ms = round(spec.tv_nsec / 1.0e6);    // Convert nanoseconds to milliseconds
 	ms += s * 1000;
 
 	return (unsigned int)ms;
@@ -95,7 +119,25 @@ unsigned getSystemTime()
 int64_t getUSec()
 {
 	timespec ts;
-	clock_gettime(_CLOCK_MONOTONIC, &ts);
+	
+#if defined(ENABLE_CLOCK_GETTIME)
+	if (@available(iOS 10.0, *))
+	{
+		clock_gettime(_CLOCK_MONOTONIC, &ts);
+	}
+	else
+#endif
+	{
+		// https://stackoverflow.com/questions/5167269/clock-gettime-alternative-in-mac-os-x
+		clock_serv_t cclock;
+		mach_timespec_t mts;
+		host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+		clock_get_time(cclock, &mts);
+		mach_port_deallocate(mach_task_self(), cclock);
+		ts.tv_sec = mts.tv_sec;
+		ts.tv_nsec = mts.tv_nsec;
+	}
+	
 	long us = (ts.tv_nsec / 1000);
 	us += ts.tv_sec * 1e6;
 	return us;
@@ -108,6 +150,12 @@ int64_t getTimerFrequency()
 
 unsigned getTimeSinceStart() { return (unsigned)time(NULL); }
 
+MonitorDesc* getMonitor(uint32_t index)
+{
+	ASSERT(gMonitorCount > index);
+	return &gMonitors[index];
+}
+
 float2 getDpiScale() { return gRetinaScale; }
 
 /************************************************************************/
@@ -119,6 +167,21 @@ static IApp* pApp = NULL;
 int iOSMain(int argc, char** argv, IApp* app)
 {
     pApp = app;
+	
+	NSDictionary* info = [[NSBundle mainBundle] infoDictionary];
+	NSString* minVersion = info[@"MinimumOSVersion"];
+	NSArray* versionStr = [minVersion componentsSeparatedByString:@"."];
+	NSOperatingSystemVersion version = {};
+	version.majorVersion = versionStr.count > 0 ? [versionStr[0] integerValue] : 9;
+	version.minorVersion = versionStr.count > 1 ? [versionStr[1] integerValue] : 0;
+	version.patchVersion = versionStr.count > 2 ? [versionStr[2] integerValue] : 0;
+	if (![[NSProcessInfo processInfo] isOperatingSystemAtLeastVersion:version])
+	{
+		NSString* osVersion = [[NSProcessInfo processInfo] operatingSystemVersionString];
+		NSLog(@"Application requires at least iOS %@, but is being run on %@, and so is exiting", minVersion, osVersion);
+		return 0;
+	}
+	
     @autoreleasepool
     {
         return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
@@ -382,6 +445,7 @@ uint32_t testingMaxFrameCount = 120;
 
         ForgeMTLView *forgeView = (ForgeMTLView*)((__bridge UIWindow*)(gCurrentWindow.handle.window)).rootViewController.view;
         forgeView.delegate = self;
+		gCurrentWindow.handle.window = (void*)CFBridgingRetain(forgeView);
         
 		pSettings->mWidth = getRectWidth(gCurrentWindow.fullscreenRect);
 		pSettings->mHeight = getRectHeight(gCurrentWindow.fullscreenRect);

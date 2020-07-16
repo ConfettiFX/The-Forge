@@ -60,7 +60,7 @@ typedef struct GpuTimer
 typedef struct GpuProfiler
 {
 	// double buffered
-	static const uint32_t NUM_OF_FRAMES = 2;
+	static const uint32_t NUM_OF_FRAMES = 3;
 	static const uint32_t MAX_TIMERS = 512;
 
     Renderer*             pRenderer;

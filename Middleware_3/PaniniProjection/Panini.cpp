@@ -127,9 +127,10 @@ void createTessellatedQuadBuffers(
 /************************************************************************/
 /* INTERFACE FUNCTIONS
 ************************************************************************/
-bool Panini::Init(Renderer* renderer)
+bool Panini::Init(Renderer* renderer, PipelineCache* pCache)
 {
 	pRenderer = renderer;
+	pPipelineCache = pCache;
 	mIndex = -1;
 
 	// SHADER
@@ -168,9 +169,8 @@ void Panini::Exit()
 
 	removeSampler(pRenderer, pSamplerPointWrap);
 
-	removeRootSignature(pRenderer, pRootSignature);
 	removeDescriptorSet(pRenderer, pDescriptorSet);
-	pDescriptorSet = NULL;
+	removeRootSignature(pRenderer, pRootSignature);
 
 	removeResource(pVertexBufferTessellatedQuad);
 	removeResource(pIndexBufferTessellatedQuad);
@@ -194,6 +194,7 @@ bool Panini::Load(RenderTarget** rts, uint32_t count)
 	depthStateDesc.mDepthWrite = false;
 
 	PipelineDesc graphicsPipelineDesc = {};
+	graphicsPipelineDesc.pCache = pPipelineCache;
 	graphicsPipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
 	GraphicsPipelineDesc& pipelineSettings = graphicsPipelineDesc.mGraphicsDesc;
 	pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;

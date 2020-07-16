@@ -124,7 +124,7 @@ class ImguiGUIDriver: public GUIDriver
 	bool init(Renderer* pRenderer, uint32_t const maxDynamicUIUpdatesPerBatch);
 	void exit();
 
-	bool load(RenderTarget** ppRts, uint32_t count);
+	bool load(RenderTarget** ppRts, uint32_t count, PipelineCache* pCache);
 	void unload();
 
 	bool addFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGlyphRanges, float fontSize, uintptr_t* pFont);
@@ -701,6 +701,9 @@ static void SetDefaultStyle()
 	colors[ImGuiCol_DragDropTarget] = float4(1.00f, 1.00f, 0.00f, 0.90f);
 	colors[ImGuiCol_NavHighlight] = float4(0.60f, 0.60f, 0.60f, 1.00f);
 	colors[ImGuiCol_NavWindowingHighlight] = float4(1.00f, 1.00f, 1.00f, 0.70f);
+
+	const float2 dpiScale = getDpiScale();
+	style.ScaleAllSizes(min(dpiScale.x, dpiScale.y));
 }
 
 bool ImguiGUIDriver::init(Renderer* renderer, uint32_t const maxDynamicUIUpdatesPerBatch)
@@ -756,7 +759,7 @@ bool ImguiGUIDriver::init(Renderer* renderer, uint32_t const maxDynamicUIUpdates
 	vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 	vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 	vbDesc.mDesc.mSize = VERTEX_BUFFER_SIZE * MAX_FRAMES;
-	vbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+	vbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 	vbDesc.ppBuffer = &pVertexBuffer;
 	addResource(&vbDesc, NULL, LOAD_PRIORITY_NORMAL);
 
@@ -769,7 +772,7 @@ bool ImguiGUIDriver::init(Renderer* renderer, uint32_t const maxDynamicUIUpdates
 	BufferLoadDesc ubDesc = {};
 	ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-	ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+	ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 	ubDesc.mDesc.mSize = sizeof(mat4);
 	for (uint32_t i = 0; i < MAX_FRAMES; ++i)
 	{
@@ -845,7 +848,7 @@ void ImguiGUIDriver::exit()
 bool ImguiGUIDriver::addFont(void* pFontBuffer, uint32_t fontBufferSize, void* pFontGlyphRanges, float fontSize, uintptr_t* pFont)
 {
 	// Build and load the texture atlas into a texture
-	int            width, height;
+	int            width, height, bytesPerPixel;
 	unsigned char* pixels = NULL;
 	ImGuiIO& io = ImGui::GetIO();
 
@@ -865,21 +868,40 @@ bool ImguiGUIDriver::addFont(void* pFontBuffer, uint32_t fontBufferSize, void* p
 	}
 
 	io.Fonts->Build();
-	io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
+	io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height, &bytesPerPixel);
 
 	// At this point you've got the texture data and you need to upload that your your graphic system:
 	// After we have created the texture, store its pointer/identifier (_in whichever format your engine uses_) in 'io.Fonts->TexID'.
 	// This will be passed back to your via the renderer. Basically ImTextureID == void*. Read FAQ below for details about ImTextureID.
 	Texture* pTexture = NULL;
-	RawImageData    rawData = { pixels, TinyImageFormat_R8G8B8A8_UNORM, (uint32_t)width, (uint32_t)height, 1, 1, 1 };
 	SyncToken token = {};
 	TextureLoadDesc loadDesc = {};
-	loadDesc.pRawImageData = &rawData;
+	TextureDesc textureDesc = {};
+	textureDesc.mArraySize = 1;
+	textureDesc.mDepth = 1;
+	textureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+	textureDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
+	textureDesc.mHeight = height;
+	textureDesc.mMipLevels = 1;
+	textureDesc.mSampleCount = SAMPLE_COUNT_1;
+	textureDesc.mStartState = RESOURCE_STATE_COMMON;
+	textureDesc.mWidth = width;
+	textureDesc.pName = "ImGui Font Texture";
+	loadDesc.pDesc = &textureDesc;
 	loadDesc.ppTexture = &pTexture;
 	loadDesc.mCreationFlag = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
 	addResource(&loadDesc, &token, LOAD_PRIORITY_HIGH);
-
 	waitForToken(&token);
+
+	TextureUpdateDesc updateDesc = { pTexture };
+	beginUpdateResource(&updateDesc);
+	for (uint32_t r = 0; r < updateDesc.mRowCount; ++r)
+	{
+		memcpy(updateDesc.pMappedData + r * updateDesc.mDstRowStride,
+			pixels + r * updateDesc.mSrcRowStride, updateDesc.mSrcRowStride);
+	}
+	endUpdateResource(&updateDesc, &token);
+
 	mFontTextures.emplace_back(pTexture);
 	io.Fonts->TexID = (void*)(mFontTextures.size() - 1);
 
@@ -891,7 +913,7 @@ bool ImguiGUIDriver::addFont(void* pFontBuffer, uint32_t fontBufferSize, void* p
 	return true;
 }
 
-bool ImguiGUIDriver::load(RenderTarget** ppRts, uint32_t count)
+bool ImguiGUIDriver::load(RenderTarget** ppRts, uint32_t count, PipelineCache* pCache)
 {
 	UNREF_PARAM(count);
 
@@ -913,6 +935,7 @@ bool ImguiGUIDriver::load(RenderTarget** ppRts, uint32_t count)
 	rasterizerStateDesc.mScissor = true;
 	
 	PipelineDesc desc = {};
+	desc.pCache = pCache;
 	desc.mType = PIPELINE_TYPE_GRAPHICS;
 	GraphicsPipelineDesc& pipelineDesc = desc.mGraphicsDesc;
 	pipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
@@ -1046,12 +1069,12 @@ bool ImguiGUIDriver::update(GUIUpdate* pGuiUpdate)
 					overridePos = true;
 
 				ImGui::SetWindowSize(
-					float2(windowRect.z * dpiScale.x, windowRect.w * dpiScale.y), overrideSize ? ImGuiCond_Always : ImGuiCond_Once);
+					float2(windowRect.z, windowRect.w), overrideSize ? ImGuiCond_Always : ImGuiCond_Once);
 				ImGui::SetWindowPos(
-					float2(windowRect.x * dpiScale.x, windowRect.y * dpiScale.y), overridePos ? ImGuiCond_Always : ImGuiCond_Once);
-#if defined(TARGET_IOS) || defined(__ANDROID__)
-				ImGui::SetWindowCollapsed(true, ImGuiCond_Once);
-#endif
+					float2(windowRect.x, windowRect.y), overridePos ? ImGuiCond_Always : ImGuiCond_Once);
+
+				if (guiComponentFlags & GUI_COMPONENT_FLAGS_START_COLLAPSED)
+					ImGui::SetWindowCollapsed(true, ImGuiCond_Once);
 
 				for (uint32_t i = 0; i < propCount; ++i)
 					if (pProps[i])

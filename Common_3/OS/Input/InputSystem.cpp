@@ -211,8 +211,8 @@ struct InputSystemImpl : public gainput::InputListener
 		{ InputBindings::BUTTON_MOUSE_MIDDLE, gainput::MouseButtonMiddle },
 		{ InputBindings::BUTTON_MOUSE_SCROLL_UP, gainput::MouseButtonWheelUp },
 		{ InputBindings::BUTTON_MOUSE_SCROLL_DOWN, gainput::MouseButtonWheelDown },
-		{ InputBindings::BUTTON_MOUSE_4, gainput::MouseButton4},
 		{ InputBindings::BUTTON_MOUSE_5, gainput::MouseButton5},
+		{ InputBindings::BUTTON_MOUSE_6, gainput::MouseButton6},
 #endif
 	};
 
@@ -902,8 +902,11 @@ struct InputSystemImpl : public gainput::InputListener
 #ifdef __APPLE__
 		if (pWindow)
 		{
+			void* view = pWindow->handle.window;
+			if (!view)
+				return false;
+			
 #ifdef TARGET_IOS
-			void* view = (__bridge void*)((__bridge UIWindow*)(pWindow->handle.window)).rootViewController.view;
 			UIView*      mainView = (UIView*)CFBridgingRelease(view);
 			GainputView* newView = [[GainputView alloc] initWithFrame:mainView.bounds inputManager : *pInputManager];
 			//we want everything to resize with main view.
@@ -911,10 +914,6 @@ struct InputSystemImpl : public gainput::InputListener
 				UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin |
 				UIViewAutoresizingFlexibleBottomMargin)];
 #else
-			void* view = (__bridge void*)((__bridge NSWindow*)pWindow->handle.window).contentView;
-			if (!view)
-				return false;
-
 			NSView* mainView = (__bridge NSView*)view;
 			float retinScale = ((CAMetalLayer*)(mainView.layer)).drawableSize.width / mainView.frame.size.width;
 			GainputMacInputView* newView = [[GainputMacInputView alloc] initWithFrame:mainView.bounds
@@ -958,7 +957,7 @@ struct InputSystemImpl : public gainput::InputListener
 	{
 		ASSERT(pWindow);
 
-#if defined(_WIN32) && !defined(_DURANGO)
+#if defined(_WIN32) && !defined(XBOX)
 		static int32_t lastCursorPosX = 0;
 		static int32_t lastCursorPosY = 0;
 
@@ -1080,7 +1079,7 @@ struct InputSystemImpl : public gainput::InputListener
 #endif
 	}
 
-	inline constexpr bool IsPointerType(gainput::DeviceId device)
+	inline constexpr bool IsPointerType(gainput::DeviceId device) const
 	{
 #if TOUCH_INPUT
 		return false;
@@ -1116,6 +1115,7 @@ struct InputSystemImpl : public gainput::InputListener
 				mMousePosition[0] = pMouse->GetFloat(gainput::MouseAxisX);
 				mMousePosition[1] = pMouse->GetFloat(gainput::MouseAxisY);
 				ctx.pPosition = &mMousePosition;
+				ctx.mScrollValue = pMouse->GetFloat(gainput::MouseButtonMiddle);
 			}
 #endif
 			bool executeNext = true;
@@ -1593,7 +1593,7 @@ struct InputSystemImpl : public gainput::InputListener
 
 static InputSystemImpl* pInputSystem = NULL;
 
-#if defined(_WIN32) && !defined(_DURANGO)
+#if defined(_WIN32) && !defined(XBOX)
 static void ResetInputStates()
 {
 	pInputSystem->pInputManager->ClearAllStates(pInputSystem->mMouseDeviceID);
@@ -1607,9 +1607,9 @@ static void ResetInputStates()
 
 static int32_t InputSystemHandleMessage(WindowsDesc* pWindow, void* msg)
 {
-#if defined(_WIN32) && !defined(_DURANGO)
+#if defined(_WIN32) && !defined(XBOX)
 	pInputSystem->pInputManager->HandleMessage(*(MSG*)msg);
-	if ((*(MSG*)msg).lParam == WA_INACTIVE)
+	if ((*(MSG*)msg).message == WM_ACTIVATEAPP && (*(MSG*)msg).wParam == WA_INACTIVE)
 	{
 		ResetInputStates();
 	}
@@ -1633,8 +1633,15 @@ bool initInputSystem(WindowsDesc* window)
 void exitInputSystem()
 {
 	ASSERT(pInputSystem);
+
+	if (pInputSystem->pWindow)
+	{
+		pInputSystem->pWindow->callbacks.onHandleMessage = NULL;
+	}
+
 	pInputSystem->Exit();
 	conf_delete(pInputSystem);
+	pInputSystem = NULL;
 }
 
 void updateInputSystem(uint32_t width, uint32_t height)

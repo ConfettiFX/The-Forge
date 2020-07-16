@@ -14,6 +14,44 @@
 		5C0F3AEC21418C010088BBB0 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C0F3AEB21418C010088BBB0 /* GameController.framework */; };
 		5C0F3AF121418C1F0088BBB0 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C0F3AEF21418C1F0088BBB0 /* AppDelegate.m */; };
 		5C0F3AF421418C290088BBB0 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C0F3AF321418C290088BBB0 /* AppDelegate.m */; };
+		5C55187B24BDF7140091470A /* FlightHelmet_Materials_RubberWoodMat_BaseColor.basis in Resources */ = {isa = PBXBuildFile; fileRef = 5C55186824BDF7130091470A /* FlightHelmet_Materials_RubberWoodMat_BaseColor.basis */; };
+		5C55187C24BDF7140091470A /* FlightHelmet_Materials_LensesMat_BaseColor.basis in Resources */ = {isa = PBXBuildFile; fileRef = 5C55186924BDF7130091470A /* FlightHelmet_Materials_LensesMat_BaseColor.basis */; };
+		5C55187D24BDF7140091470A /* FlightHelmet_Materials_MetalPartsMat_BaseColor.basis in Resources */ = {isa = PBXBuildFile; fileRef = 5C55186A24BDF7130091470A /* FlightHelmet_Materials_MetalPartsMat_BaseColor.basis */; };
+		5C55187E24BDF7140091470A /* FlightHelmet_Materials_LensesMat_OcclusionRoughMetal.basis in Resources */ = {isa = PBXBuildFile; fileRef = 5C55186B24BDF7130091470A /* FlightHelmet_Materials_LensesMat_OcclusionRoughMetal.basis */; };
+		5C55187F24BDF7140091470A /* FlightHelmet_Materials_GlassPlasticMat_OcclusionRoughMetal.basis in Resources */ = {isa = PBXBuildFile; fileRef = 5C55186C24BDF7130091470A /* FlightHelmet_Materials_GlassPlasticMat_OcclusionRoughMetal.basis */; };
+		5C55188024BDF7140091470A /* Lantern_baseColor.basis in Resources */ = {isa = PBXBuildFile; fileRef = 5C55186D24BDF7130091470A /* Lantern_baseColor.basis */; };
+		5C55188124BDF7140091470A /* Lantern_emissive.basis in Resources */ = {isa = PBXBuildFile; fileRef = 5C55186E24BDF7130091470A /* Lantern_emissive.basis */; };
+		5C55188224BDF7140091470A /* Lantern_normal.basis in Resources */ = {isa = PBXBuildFile; fileRef = 5C55186F24BDF7130091470A /* Lantern_normal.basis */; };
+		5C55188324BDF7140091470A /* FlightHelmet_Materials_MetalPartsMat_Normal.basis in Resources */ = {isa = PBXBuildFile; fileRef = 5C55187024BDF7130091470A /* FlightHelmet_Materials_MetalPartsMat_Normal.basis */; };
+		5C55188424BDF7140091470A /* FlightHelmet_Materials_MetalPartsMat_OcclusionRoughMetal.basis in Resources */ = {isa = PBXBuildFile; fileRef = 5C55187124BDF7130091470A /* FlightHelmet_Materials_MetalPartsMat_OcclusionRoughMetal.basis */; };
+		5C55188524BDF7140091470A /* FlightHelmet_Materials_LeatherPartsMat_OcclusionRoughMetal.basis in Resources */ = {isa = PBXBuildFile; fileRef = 5C55187224BDF7130091470A /* FlightHelmet_Materials_LeatherPartsMat_OcclusionRoughMetal.basis */; };
+		5C55188624BDF7140091470A /* FlightHelmet_Materials_LeatherPartsMat_Normal.basis in Resources */ = {isa = PBXBuildFile; fileRef = 5C55187324BDF7130091470A /* FlightHelmet_Materials_LeatherPartsMat_Normal.basis */; };
+		5C55188724BDF7140091470A /* FlightHelmet_Materials_LeatherPartsMat_BaseColor.basis in Resources */ = {isa = PBXBuildFile; fileRef = 5C55187424BDF7130091470A /* FlightHelmet_Materials_LeatherPartsMat_BaseColor.basis */; };
+		5C55188824BDF7140091470A /* FlightHelmet_Materials_GlassPlasticMat_Normal.basis in Resources */ = {isa = PBXBuildFile; fileRef = 5C55187524BDF7130091470A /* FlightHelmet_Materials_GlassPlasticMat_Normal.basis */; };
+		5C55188924BDF7140091470A /* FlightHelmet_Materials_GlassPlasticMat_BaseColor.basis in Resources */ = {isa = PBXBuildFile; fileRef = 5C55187624BDF7130091470A /* FlightHelmet_Materials_GlassPlasticMat_BaseColor.basis */; };
+		5C55188A24BDF7140091470A /* FlightHelmet_Materials_LensesMat_Normal.basis in Resources */ = {isa = PBXBuildFile; fileRef = 5C55187724BDF7140091470A /* FlightHelmet_Materials_LensesMat_Normal.basis */; };
+		5C55188B24BDF7140091470A /* FlightHelmet_Materials_RubberWoodMat_Normal.basis in Resources */ = {isa = PBXBuildFile; fileRef = 5C55187824BDF7140091470A /* FlightHelmet_Materials_RubberWoodMat_Normal.basis */; };
+		5C55188C24BDF7140091470A /* FlightHelmet_Materials_RubberWoodMat_OcclusionRoughMetal.basis in Resources */ = {isa = PBXBuildFile; fileRef = 5C55187924BDF7140091470A /* FlightHelmet_Materials_RubberWoodMat_OcclusionRoughMetal.basis */; };
+		5C55188D24BDF7140091470A /* Lantern_roughnessMetallic.basis in Resources */ = {isa = PBXBuildFile; fileRef = 5C55187A24BDF7140091470A /* Lantern_roughnessMetallic.basis */; };
+		5C55188E24BDF71F0091470A /* FlightHelmet_Materials_GlassPlasticMat_BaseColor.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = 5C55187624BDF7130091470A /* FlightHelmet_Materials_GlassPlasticMat_BaseColor.basis */; };
+		5C55188F24BDF71F0091470A /* FlightHelmet_Materials_GlassPlasticMat_Normal.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = 5C55187524BDF7130091470A /* FlightHelmet_Materials_GlassPlasticMat_Normal.basis */; };
+		5C55189024BDF71F0091470A /* FlightHelmet_Materials_GlassPlasticMat_OcclusionRoughMetal.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = 5C55186C24BDF7130091470A /* FlightHelmet_Materials_GlassPlasticMat_OcclusionRoughMetal.basis */; };
+		5C55189124BDF71F0091470A /* FlightHelmet_Materials_LeatherPartsMat_BaseColor.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = 5C55187424BDF7130091470A /* FlightHelmet_Materials_LeatherPartsMat_BaseColor.basis */; };
+		5C55189224BDF71F0091470A /* FlightHelmet_Materials_LeatherPartsMat_Normal.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = 5C55187324BDF7130091470A /* FlightHelmet_Materials_LeatherPartsMat_Normal.basis */; };
+		5C55189324BDF71F0091470A /* FlightHelmet_Materials_LeatherPartsMat_OcclusionRoughMetal.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = 5C55187224BDF7130091470A /* FlightHelmet_Materials_LeatherPartsMat_OcclusionRoughMetal.basis */; };
+		5C55189424BDF71F0091470A /* FlightHelmet_Materials_LensesMat_BaseColor.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = 5C55186924BDF7130091470A /* FlightHelmet_Materials_LensesMat_BaseColor.basis */; };
+		5C55189524BDF71F0091470A /* FlightHelmet_Materials_LensesMat_Normal.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = 5C55187724BDF7140091470A /* FlightHelmet_Materials_LensesMat_Normal.basis */; };
+		5C55189624BDF71F0091470A /* FlightHelmet_Materials_LensesMat_OcclusionRoughMetal.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = 5C55186B24BDF7130091470A /* FlightHelmet_Materials_LensesMat_OcclusionRoughMetal.basis */; };
+		5C55189724BDF71F0091470A /* FlightHelmet_Materials_MetalPartsMat_BaseColor.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = 5C55186A24BDF7130091470A /* FlightHelmet_Materials_MetalPartsMat_BaseColor.basis */; };
+		5C55189824BDF71F0091470A /* FlightHelmet_Materials_MetalPartsMat_Normal.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = 5C55187024BDF7130091470A /* FlightHelmet_Materials_MetalPartsMat_Normal.basis */; };
+		5C55189924BDF71F0091470A /* FlightHelmet_Materials_MetalPartsMat_OcclusionRoughMetal.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = 5C55187124BDF7130091470A /* FlightHelmet_Materials_MetalPartsMat_OcclusionRoughMetal.basis */; };
+		5C55189A24BDF71F0091470A /* FlightHelmet_Materials_RubberWoodMat_BaseColor.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = 5C55186824BDF7130091470A /* FlightHelmet_Materials_RubberWoodMat_BaseColor.basis */; };
+		5C55189B24BDF71F0091470A /* FlightHelmet_Materials_RubberWoodMat_Normal.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = 5C55187824BDF7140091470A /* FlightHelmet_Materials_RubberWoodMat_Normal.basis */; };
+		5C55189C24BDF71F0091470A /* FlightHelmet_Materials_RubberWoodMat_OcclusionRoughMetal.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = 5C55187924BDF7140091470A /* FlightHelmet_Materials_RubberWoodMat_OcclusionRoughMetal.basis */; };
+		5C55189D24BDF71F0091470A /* Lantern_baseColor.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = 5C55186D24BDF7130091470A /* Lantern_baseColor.basis */; };
+		5C55189E24BDF71F0091470A /* Lantern_emissive.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = 5C55186E24BDF7130091470A /* Lantern_emissive.basis */; };
+		5C55189F24BDF71F0091470A /* Lantern_normal.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = 5C55186F24BDF7130091470A /* Lantern_normal.basis */; };
+		5C5518A024BDF71F0091470A /* Lantern_roughnessMetallic.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = 5C55187A24BDF7140091470A /* Lantern_roughnessMetallic.basis */; };
 		5CA80FA121F0A21100C99983 /* fontstash.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80ED521F0A06000C99983 /* fontstash.frag.metal */; };
 		5CA80FA221F0A21100C99983 /* fontstash2D.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80ED421F0A06000C99983 /* fontstash2D.vert.metal */; };
 		5CA80FA321F0A21100C99983 /* fontstash3D.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80ED321F0A06000C99983 /* fontstash3D.vert.metal */; };
@@ -29,54 +67,12 @@
 		B21F76EE21420EE900DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76EB21420EE900DF2297 /* UIKit.framework */; };
 		B21F76EF21420EE900DF2297 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76EC21420EE900DF2297 /* MetalKit.framework */; };
 		B21F76F021420EE900DF2297 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76ED21420EE900DF2297 /* Metal.framework */; };
-		B2F8D2932317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic4.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D27D2317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic4.basis */; };
-		B2F8D2952317279B0010C631 /* Lantern_baseColor.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D27E2317279A0010C631 /* Lantern_baseColor.basis */; };
-		B2F8D2972317279B0010C631 /* FlightHelmet_normal.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D27F2317279A0010C631 /* FlightHelmet_normal.basis */; };
-		B2F8D2992317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic1.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2802317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic1.basis */; };
-		B2F8D29B2317279B0010C631 /* FlightHelmet_baseColor3.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2812317279A0010C631 /* FlightHelmet_baseColor3.basis */; };
-		B2F8D29D2317279B0010C631 /* FlightHelmet_baseColor4.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2822317279A0010C631 /* FlightHelmet_baseColor4.basis */; };
-		B2F8D29F2317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic2.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2832317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic2.basis */; };
-		B2F8D2A12317279B0010C631 /* Lantern_emissive.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2842317279A0010C631 /* Lantern_emissive.basis */; };
-		B2F8D2A32317279B0010C631 /* Lantern_roughnessMetallic.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2852317279A0010C631 /* Lantern_roughnessMetallic.basis */; };
-		B2F8D2A52317279B0010C631 /* Lantern_normal.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2862317279A0010C631 /* Lantern_normal.basis */; };
-		B2F8D2A72317279B0010C631 /* FlightHelmet_baseColor1.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2872317279A0010C631 /* FlightHelmet_baseColor1.basis */; };
-		B2F8D2A92317279B0010C631 /* FlightHelmet_normal2.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2882317279A0010C631 /* FlightHelmet_normal2.basis */; };
-		B2F8D2AB2317279B0010C631 /* FlightHelmet_normal3.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2892317279A0010C631 /* FlightHelmet_normal3.basis */; };
-		B2F8D2AD2317279B0010C631 /* FlightHelmet_baseColor.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D28A2317279A0010C631 /* FlightHelmet_baseColor.basis */; };
-		B2F8D2AF2317279B0010C631 /* circlepad.dds in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D28B2317279A0010C631 /* circlepad.dds */; };
-		B2F8D2B12317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D28C2317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic.basis */; };
-		B2F8D2B32317279B0010C631 /* FlightHelmet_normal1.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D28D2317279A0010C631 /* FlightHelmet_normal1.basis */; };
-		B2F8D2B52317279B0010C631 /* FlightHelmet_baseColor2.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D28E2317279B0010C631 /* FlightHelmet_baseColor2.basis */; };
-		B2F8D2B72317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic3.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D28F2317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic3.basis */; };
-		B2F8D2B92317279B0010C631 /* FlightHelmet_normal4.basis in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2902317279B0010C631 /* FlightHelmet_normal4.basis */; };
 		B2F8D2BB2317279B0010C631 /* circlepad.ktx in Resources */ = {isa = PBXBuildFile; fileRef = B2F8D2912317279B0010C631 /* circlepad.ktx */; };
-		B2F8D2BF231727D50010C631 /* circlepad.dds in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D28B2317279A0010C631 /* circlepad.dds */; };
 		B2F8D2C0231727D50010C631 /* circlepad.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2912317279B0010C631 /* circlepad.ktx */; };
-		B2F8D2C1231727D50010C631 /* FlightHelmet_baseColor.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D28A2317279A0010C631 /* FlightHelmet_baseColor.basis */; };
-		B2F8D2C2231727D50010C631 /* FlightHelmet_baseColor1.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2872317279A0010C631 /* FlightHelmet_baseColor1.basis */; };
-		B2F8D2C3231727D50010C631 /* FlightHelmet_baseColor2.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D28E2317279B0010C631 /* FlightHelmet_baseColor2.basis */; };
-		B2F8D2C4231727D50010C631 /* FlightHelmet_baseColor3.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2812317279A0010C631 /* FlightHelmet_baseColor3.basis */; };
-		B2F8D2C5231727D50010C631 /* FlightHelmet_baseColor4.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2822317279A0010C631 /* FlightHelmet_baseColor4.basis */; };
-		B2F8D2C6231727D50010C631 /* FlightHelmet_normal.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D27F2317279A0010C631 /* FlightHelmet_normal.basis */; };
-		B2F8D2C7231727D50010C631 /* FlightHelmet_normal1.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D28D2317279A0010C631 /* FlightHelmet_normal1.basis */; };
-		B2F8D2C8231727D50010C631 /* FlightHelmet_normal2.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2882317279A0010C631 /* FlightHelmet_normal2.basis */; };
-		B2F8D2C9231727D50010C631 /* FlightHelmet_normal3.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2892317279A0010C631 /* FlightHelmet_normal3.basis */; };
-		B2F8D2CA231727D50010C631 /* FlightHelmet_normal4.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2902317279B0010C631 /* FlightHelmet_normal4.basis */; };
-		B2F8D2CB231727D50010C631 /* FlightHelmet_occlusionRoughnessMetallic.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D28C2317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic.basis */; };
-		B2F8D2CC231727D50010C631 /* FlightHelmet_occlusionRoughnessMetallic1.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2802317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic1.basis */; };
-		B2F8D2CD231727D50010C631 /* FlightHelmet_occlusionRoughnessMetallic2.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2832317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic2.basis */; };
-		B2F8D2CE231727D50010C631 /* FlightHelmet_occlusionRoughnessMetallic3.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D28F2317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic3.basis */; };
-		B2F8D2CF231727D50010C631 /* FlightHelmet_occlusionRoughnessMetallic4.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D27D2317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic4.basis */; };
-		B2F8D2D0231727D50010C631 /* Lantern_baseColor.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D27E2317279A0010C631 /* Lantern_baseColor.basis */; };
-		B2F8D2D1231727D50010C631 /* Lantern_emissive.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2842317279A0010C631 /* Lantern_emissive.basis */; };
-		B2F8D2D2231727D50010C631 /* Lantern_normal.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2862317279A0010C631 /* Lantern_normal.basis */; };
-		B2F8D2D3231727D50010C631 /* Lantern_roughnessMetallic.basis in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8D2852317279A0010C631 /* Lantern_roughnessMetallic.basis */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
 		E921B7D622C6E45D0082D103 /* 08_GltfViewer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E921B7D522C6E45D0082D103 /* 08_GltfViewer.cpp */; };
 		E921B80822C6E81D0082D103 /* 08_GltfViewer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E921B7D522C6E45D0082D103 /* 08_GltfViewer.cpp */; };
-
-
 		E921BB3122CAB5D10082D103 /* basic.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E921B7CB22C6E4300082D103 /* basic.vert.metal */; };
 		E9BF150322FE2699001F2264 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = E9BF150122FE2699001F2264 /* Main.storyboard */; };
 		E9BF15F72315B479001F2264 /* floor.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9BF15AB2314C0E2001F2264 /* floor.vert.metal */; };
@@ -85,8 +81,6 @@
 		E9BF15FA2315B491001F2264 /* vignette.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9BF15AD2314C0E2001F2264 /* vignette.frag.metal */; };
 		E9BF15FB2315B499001F2264 /* watermark.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9BF15AC2314C0E2001F2264 /* watermark.frag.metal */; };
 		E9BF15FC2315B4A3001F2264 /* watermark.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9BF15AE2314C0E2001F2264 /* watermark.vert.metal */; };
-		E9BF15FD2315B4AA001F2264 /* zPass.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9BF15A92314C0E2001F2264 /* zPass.vert.metal */; };
-		E9BF15FE2315B4B4001F2264 /* zPassFloor.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9BF15AA2314C0E2001F2264 /* zPassFloor.vert.metal */; };
 		E9BF164F23161466001F2264 /* Lantern.bin in Resources */ = {isa = PBXBuildFile; fileRef = E9BF164B23161465001F2264 /* Lantern.bin */; };
 		E9BF165023161466001F2264 /* FlightHelmet.bin in Resources */ = {isa = PBXBuildFile; fileRef = E9BF164C23161465001F2264 /* FlightHelmet.bin */; };
 		E9BF165123161466001F2264 /* FlightHelmet.gltf in Resources */ = {isa = PBXBuildFile; fileRef = E9BF164D23161465001F2264 /* FlightHelmet.gltf */; };
@@ -95,25 +89,6 @@
 		E9BF16B5231615B7001F2264 /* FlightHelmet.gltf in Copy Meshes */ = {isa = PBXBuildFile; fileRef = E9BF164D23161465001F2264 /* FlightHelmet.gltf */; };
 		E9BF16B6231615B7001F2264 /* Lantern.bin in Copy Meshes */ = {isa = PBXBuildFile; fileRef = E9BF164B23161465001F2264 /* Lantern.bin */; };
 		E9BF16B7231615B7001F2264 /* Lantern.gltf in Copy Meshes */ = {isa = PBXBuildFile; fileRef = E9BF164E23161466001F2264 /* Lantern.gltf */; };
-		E9BF193F23175E50001F2264 /* FlightHelmet_baseColor.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF191D23175E25001F2264 /* FlightHelmet_baseColor.ktx */; };
-		E9BF194023175E50001F2264 /* FlightHelmet_baseColor1.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192023175E25001F2264 /* FlightHelmet_baseColor1.ktx */; };
-		E9BF194123175E50001F2264 /* FlightHelmet_baseColor2.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192523175E25001F2264 /* FlightHelmet_baseColor2.ktx */; };
-		E9BF194223175E50001F2264 /* FlightHelmet_baseColor3.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192623175E25001F2264 /* FlightHelmet_baseColor3.ktx */; };
-		E9BF194323175E50001F2264 /* FlightHelmet_baseColor4.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192823175E25001F2264 /* FlightHelmet_baseColor4.ktx */; };
-		E9BF194423175E50001F2264 /* FlightHelmet_normal.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF191E23175E25001F2264 /* FlightHelmet_normal.ktx */; };
-		E9BF194523175E50001F2264 /* FlightHelmet_normal1.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192723175E25001F2264 /* FlightHelmet_normal1.ktx */; };
-		E9BF194623175E50001F2264 /* FlightHelmet_normal2.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF191123175E24001F2264 /* FlightHelmet_normal2.ktx */; };
-		E9BF194723175E50001F2264 /* FlightHelmet_normal3.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192923175E25001F2264 /* FlightHelmet_normal3.ktx */; };
-		E9BF194823175E50001F2264 /* FlightHelmet_normal4.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF191A23175E24001F2264 /* FlightHelmet_normal4.ktx */; };
-		E9BF194923175E50001F2264 /* FlightHelmet_occlusionRoughnessMetallic.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192A23175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic.ktx */; };
-		E9BF194A23175E50001F2264 /* FlightHelmet_occlusionRoughnessMetallic1.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192223175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic1.ktx */; };
-		E9BF194B23175E50001F2264 /* FlightHelmet_occlusionRoughnessMetallic2.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192B23175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic2.ktx */; };
-		E9BF194C23175E50001F2264 /* FlightHelmet_occlusionRoughnessMetallic3.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192323175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic3.ktx */; };
-		E9BF194D23175E50001F2264 /* FlightHelmet_occlusionRoughnessMetallic4.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF191B23175E24001F2264 /* FlightHelmet_occlusionRoughnessMetallic4.ktx */; };
-		E9BF194E23175E50001F2264 /* Lantern_baseColor.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192423175E25001F2264 /* Lantern_baseColor.ktx */; };
-		E9BF194F23175E50001F2264 /* Lantern_emissive.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF191C23175E24001F2264 /* Lantern_emissive.ktx */; };
-		E9BF195023175E50001F2264 /* Lantern_normal.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF192123175E25001F2264 /* Lantern_normal.ktx */; };
-		E9BF195123175E50001F2264 /* Lantern_roughnessMetallic.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = E9BF191F23175E25001F2264 /* Lantern_roughnessMetallic.ktx */; };
 		E9BF19AE23183075001F2264 /* floor.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E9BF15A72314C0E1001F2264 /* floor.frag.metal */; };
 		E9BF19AF23183075001F2264 /* basic.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = E921B7CD22C6E4300082D103 /* basic.frag.metal */; };
 /* End PBXBuildFile section */
@@ -158,8 +133,6 @@
 			files = (
 				E9BF19AE23183075001F2264 /* floor.frag.metal in Copy Shaders */,
 				E9BF19AF23183075001F2264 /* basic.frag.metal in Copy Shaders */,
-				E9BF15FE2315B4B4001F2264 /* zPassFloor.vert.metal in Copy Shaders */,
-				E9BF15FD2315B4AA001F2264 /* zPass.vert.metal in Copy Shaders */,
 				E9BF15FC2315B4A3001F2264 /* watermark.vert.metal in Copy Shaders */,
 				E9BF15FB2315B499001F2264 /* watermark.frag.metal in Copy Shaders */,
 				E9BF15FA2315B491001F2264 /* vignette.frag.metal in Copy Shaders */,
@@ -167,8 +140,6 @@
 				E9BF15F82315B482001F2264 /* FXAA.frag.metal in Copy Shaders */,
 				E9BF15F72315B479001F2264 /* floor.vert.metal in Copy Shaders */,
 				E921BB3122CAB5D10082D103 /* basic.vert.metal in Copy Shaders */,
-
-
 				5CA80FA121F0A21100C99983 /* fontstash.frag.metal in Copy Shaders */,
 				5CA80FA221F0A21100C99983 /* fontstash2D.vert.metal in Copy Shaders */,
 				5CA80FA321F0A21100C99983 /* fontstash3D.vert.metal in Copy Shaders */,
@@ -197,46 +168,26 @@
 			dstPath = Textures;
 			dstSubfolderSpec = 7;
 			files = (
-				E9BF193F23175E50001F2264 /* FlightHelmet_baseColor.ktx in Copy Textures */,
-				E9BF194023175E50001F2264 /* FlightHelmet_baseColor1.ktx in Copy Textures */,
-				E9BF194123175E50001F2264 /* FlightHelmet_baseColor2.ktx in Copy Textures */,
-				E9BF194223175E50001F2264 /* FlightHelmet_baseColor3.ktx in Copy Textures */,
-				E9BF194323175E50001F2264 /* FlightHelmet_baseColor4.ktx in Copy Textures */,
-				E9BF194423175E50001F2264 /* FlightHelmet_normal.ktx in Copy Textures */,
-				E9BF194523175E50001F2264 /* FlightHelmet_normal1.ktx in Copy Textures */,
-				E9BF194623175E50001F2264 /* FlightHelmet_normal2.ktx in Copy Textures */,
-				E9BF194723175E50001F2264 /* FlightHelmet_normal3.ktx in Copy Textures */,
-				E9BF194823175E50001F2264 /* FlightHelmet_normal4.ktx in Copy Textures */,
-				E9BF194923175E50001F2264 /* FlightHelmet_occlusionRoughnessMetallic.ktx in Copy Textures */,
-				E9BF194A23175E50001F2264 /* FlightHelmet_occlusionRoughnessMetallic1.ktx in Copy Textures */,
-				E9BF194B23175E50001F2264 /* FlightHelmet_occlusionRoughnessMetallic2.ktx in Copy Textures */,
-				E9BF194C23175E50001F2264 /* FlightHelmet_occlusionRoughnessMetallic3.ktx in Copy Textures */,
-				E9BF194D23175E50001F2264 /* FlightHelmet_occlusionRoughnessMetallic4.ktx in Copy Textures */,
-				E9BF194E23175E50001F2264 /* Lantern_baseColor.ktx in Copy Textures */,
-				E9BF194F23175E50001F2264 /* Lantern_emissive.ktx in Copy Textures */,
-				E9BF195023175E50001F2264 /* Lantern_normal.ktx in Copy Textures */,
-				E9BF195123175E50001F2264 /* Lantern_roughnessMetallic.ktx in Copy Textures */,
-				B2F8D2BF231727D50010C631 /* circlepad.dds in Copy Textures */,
+				5C55188E24BDF71F0091470A /* FlightHelmet_Materials_GlassPlasticMat_BaseColor.basis in Copy Textures */,
+				5C55188F24BDF71F0091470A /* FlightHelmet_Materials_GlassPlasticMat_Normal.basis in Copy Textures */,
+				5C55189024BDF71F0091470A /* FlightHelmet_Materials_GlassPlasticMat_OcclusionRoughMetal.basis in Copy Textures */,
+				5C55189124BDF71F0091470A /* FlightHelmet_Materials_LeatherPartsMat_BaseColor.basis in Copy Textures */,
+				5C55189224BDF71F0091470A /* FlightHelmet_Materials_LeatherPartsMat_Normal.basis in Copy Textures */,
+				5C55189324BDF71F0091470A /* FlightHelmet_Materials_LeatherPartsMat_OcclusionRoughMetal.basis in Copy Textures */,
+				5C55189424BDF71F0091470A /* FlightHelmet_Materials_LensesMat_BaseColor.basis in Copy Textures */,
+				5C55189524BDF71F0091470A /* FlightHelmet_Materials_LensesMat_Normal.basis in Copy Textures */,
+				5C55189624BDF71F0091470A /* FlightHelmet_Materials_LensesMat_OcclusionRoughMetal.basis in Copy Textures */,
+				5C55189724BDF71F0091470A /* FlightHelmet_Materials_MetalPartsMat_BaseColor.basis in Copy Textures */,
+				5C55189824BDF71F0091470A /* FlightHelmet_Materials_MetalPartsMat_Normal.basis in Copy Textures */,
+				5C55189924BDF71F0091470A /* FlightHelmet_Materials_MetalPartsMat_OcclusionRoughMetal.basis in Copy Textures */,
+				5C55189A24BDF71F0091470A /* FlightHelmet_Materials_RubberWoodMat_BaseColor.basis in Copy Textures */,
+				5C55189B24BDF71F0091470A /* FlightHelmet_Materials_RubberWoodMat_Normal.basis in Copy Textures */,
+				5C55189C24BDF71F0091470A /* FlightHelmet_Materials_RubberWoodMat_OcclusionRoughMetal.basis in Copy Textures */,
+				5C55189D24BDF71F0091470A /* Lantern_baseColor.basis in Copy Textures */,
+				5C55189E24BDF71F0091470A /* Lantern_emissive.basis in Copy Textures */,
+				5C55189F24BDF71F0091470A /* Lantern_normal.basis in Copy Textures */,
+				5C5518A024BDF71F0091470A /* Lantern_roughnessMetallic.basis in Copy Textures */,
 				B2F8D2C0231727D50010C631 /* circlepad.ktx in Copy Textures */,
-				B2F8D2C1231727D50010C631 /* FlightHelmet_baseColor.basis in Copy Textures */,
-				B2F8D2C2231727D50010C631 /* FlightHelmet_baseColor1.basis in Copy Textures */,
-				B2F8D2C3231727D50010C631 /* FlightHelmet_baseColor2.basis in Copy Textures */,
-				B2F8D2C4231727D50010C631 /* FlightHelmet_baseColor3.basis in Copy Textures */,
-				B2F8D2C5231727D50010C631 /* FlightHelmet_baseColor4.basis in Copy Textures */,
-				B2F8D2C6231727D50010C631 /* FlightHelmet_normal.basis in Copy Textures */,
-				B2F8D2C7231727D50010C631 /* FlightHelmet_normal1.basis in Copy Textures */,
-				B2F8D2C8231727D50010C631 /* FlightHelmet_normal2.basis in Copy Textures */,
-				B2F8D2C9231727D50010C631 /* FlightHelmet_normal3.basis in Copy Textures */,
-				B2F8D2CA231727D50010C631 /* FlightHelmet_normal4.basis in Copy Textures */,
-				B2F8D2CB231727D50010C631 /* FlightHelmet_occlusionRoughnessMetallic.basis in Copy Textures */,
-				B2F8D2CC231727D50010C631 /* FlightHelmet_occlusionRoughnessMetallic1.basis in Copy Textures */,
-				B2F8D2CD231727D50010C631 /* FlightHelmet_occlusionRoughnessMetallic2.basis in Copy Textures */,
-				B2F8D2CE231727D50010C631 /* FlightHelmet_occlusionRoughnessMetallic3.basis in Copy Textures */,
-				B2F8D2CF231727D50010C631 /* FlightHelmet_occlusionRoughnessMetallic4.basis in Copy Textures */,
-				B2F8D2D0231727D50010C631 /* Lantern_baseColor.basis in Copy Textures */,
-				B2F8D2D1231727D50010C631 /* Lantern_emissive.basis in Copy Textures */,
-				B2F8D2D2231727D50010C631 /* Lantern_normal.basis in Copy Textures */,
-				B2F8D2D3231727D50010C631 /* Lantern_roughnessMetallic.basis in Copy Textures */,
 			);
 			name = "Copy Textures";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -268,6 +219,25 @@
 		5C0F3AF021418C1F0088BBB0 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
 		5C0F3AF221418C290088BBB0 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
 		5C0F3AF321418C290088BBB0 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
+		5C55186824BDF7130091470A /* FlightHelmet_Materials_RubberWoodMat_BaseColor.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_Materials_RubberWoodMat_BaseColor.basis; path = ../../UnitTestResources/Textures/FlightHelmet_Materials_RubberWoodMat_BaseColor.basis; sourceTree = "<group>"; };
+		5C55186924BDF7130091470A /* FlightHelmet_Materials_LensesMat_BaseColor.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_Materials_LensesMat_BaseColor.basis; path = ../../UnitTestResources/Textures/FlightHelmet_Materials_LensesMat_BaseColor.basis; sourceTree = "<group>"; };
+		5C55186A24BDF7130091470A /* FlightHelmet_Materials_MetalPartsMat_BaseColor.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_Materials_MetalPartsMat_BaseColor.basis; path = ../../UnitTestResources/Textures/FlightHelmet_Materials_MetalPartsMat_BaseColor.basis; sourceTree = "<group>"; };
+		5C55186B24BDF7130091470A /* FlightHelmet_Materials_LensesMat_OcclusionRoughMetal.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_Materials_LensesMat_OcclusionRoughMetal.basis; path = ../../UnitTestResources/Textures/FlightHelmet_Materials_LensesMat_OcclusionRoughMetal.basis; sourceTree = "<group>"; };
+		5C55186C24BDF7130091470A /* FlightHelmet_Materials_GlassPlasticMat_OcclusionRoughMetal.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_Materials_GlassPlasticMat_OcclusionRoughMetal.basis; path = ../../UnitTestResources/Textures/FlightHelmet_Materials_GlassPlasticMat_OcclusionRoughMetal.basis; sourceTree = "<group>"; };
+		5C55186D24BDF7130091470A /* Lantern_baseColor.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = Lantern_baseColor.basis; path = ../../UnitTestResources/Textures/Lantern_baseColor.basis; sourceTree = "<group>"; };
+		5C55186E24BDF7130091470A /* Lantern_emissive.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = Lantern_emissive.basis; path = ../../UnitTestResources/Textures/Lantern_emissive.basis; sourceTree = "<group>"; };
+		5C55186F24BDF7130091470A /* Lantern_normal.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = Lantern_normal.basis; path = ../../UnitTestResources/Textures/Lantern_normal.basis; sourceTree = "<group>"; };
+		5C55187024BDF7130091470A /* FlightHelmet_Materials_MetalPartsMat_Normal.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_Materials_MetalPartsMat_Normal.basis; path = ../../UnitTestResources/Textures/FlightHelmet_Materials_MetalPartsMat_Normal.basis; sourceTree = "<group>"; };
+		5C55187124BDF7130091470A /* FlightHelmet_Materials_MetalPartsMat_OcclusionRoughMetal.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_Materials_MetalPartsMat_OcclusionRoughMetal.basis; path = ../../UnitTestResources/Textures/FlightHelmet_Materials_MetalPartsMat_OcclusionRoughMetal.basis; sourceTree = "<group>"; };
+		5C55187224BDF7130091470A /* FlightHelmet_Materials_LeatherPartsMat_OcclusionRoughMetal.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_Materials_LeatherPartsMat_OcclusionRoughMetal.basis; path = ../../UnitTestResources/Textures/FlightHelmet_Materials_LeatherPartsMat_OcclusionRoughMetal.basis; sourceTree = "<group>"; };
+		5C55187324BDF7130091470A /* FlightHelmet_Materials_LeatherPartsMat_Normal.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_Materials_LeatherPartsMat_Normal.basis; path = ../../UnitTestResources/Textures/FlightHelmet_Materials_LeatherPartsMat_Normal.basis; sourceTree = "<group>"; };
+		5C55187424BDF7130091470A /* FlightHelmet_Materials_LeatherPartsMat_BaseColor.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_Materials_LeatherPartsMat_BaseColor.basis; path = ../../UnitTestResources/Textures/FlightHelmet_Materials_LeatherPartsMat_BaseColor.basis; sourceTree = "<group>"; };
+		5C55187524BDF7130091470A /* FlightHelmet_Materials_GlassPlasticMat_Normal.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_Materials_GlassPlasticMat_Normal.basis; path = ../../UnitTestResources/Textures/FlightHelmet_Materials_GlassPlasticMat_Normal.basis; sourceTree = "<group>"; };
+		5C55187624BDF7130091470A /* FlightHelmet_Materials_GlassPlasticMat_BaseColor.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_Materials_GlassPlasticMat_BaseColor.basis; path = ../../UnitTestResources/Textures/FlightHelmet_Materials_GlassPlasticMat_BaseColor.basis; sourceTree = "<group>"; };
+		5C55187724BDF7140091470A /* FlightHelmet_Materials_LensesMat_Normal.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_Materials_LensesMat_Normal.basis; path = ../../UnitTestResources/Textures/FlightHelmet_Materials_LensesMat_Normal.basis; sourceTree = "<group>"; };
+		5C55187824BDF7140091470A /* FlightHelmet_Materials_RubberWoodMat_Normal.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_Materials_RubberWoodMat_Normal.basis; path = ../../UnitTestResources/Textures/FlightHelmet_Materials_RubberWoodMat_Normal.basis; sourceTree = "<group>"; };
+		5C55187924BDF7140091470A /* FlightHelmet_Materials_RubberWoodMat_OcclusionRoughMetal.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_Materials_RubberWoodMat_OcclusionRoughMetal.basis; path = ../../UnitTestResources/Textures/FlightHelmet_Materials_RubberWoodMat_OcclusionRoughMetal.basis; sourceTree = "<group>"; };
+		5C55187A24BDF7140091470A /* Lantern_roughnessMetallic.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = Lantern_roughnessMetallic.basis; path = ../../UnitTestResources/Textures/Lantern_roughnessMetallic.basis; sourceTree = "<group>"; };
 		5CA80EC721F0A05800C99983 /* textured_mesh.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = textured_mesh.vert.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/textured_mesh.vert.metal; sourceTree = "<group>"; };
 		5CA80EC821F0A05800C99983 /* textured_mesh.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = textured_mesh.frag.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/textured_mesh.frag.metal; sourceTree = "<group>"; };
 		5CA80EC921F0A05800C99983 /* imgui.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = imgui.frag.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/imgui.frag.metal; sourceTree = "<group>"; };
@@ -285,26 +255,6 @@
 		B21F76EB21420EE900DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76EC21420EE900DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76ED21420EE900DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
-		B2F8D27D2317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic4.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_occlusionRoughnessMetallic4.basis; path = ../../UnitTestResources/Textures/FlightHelmet_occlusionRoughnessMetallic4.basis; sourceTree = "<group>"; };
-		B2F8D27E2317279A0010C631 /* Lantern_baseColor.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = Lantern_baseColor.basis; path = ../../UnitTestResources/Textures/Lantern_baseColor.basis; sourceTree = "<group>"; };
-		B2F8D27F2317279A0010C631 /* FlightHelmet_normal.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_normal.basis; path = ../../UnitTestResources/Textures/FlightHelmet_normal.basis; sourceTree = "<group>"; };
-		B2F8D2802317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic1.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_occlusionRoughnessMetallic1.basis; path = ../../UnitTestResources/Textures/FlightHelmet_occlusionRoughnessMetallic1.basis; sourceTree = "<group>"; };
-		B2F8D2812317279A0010C631 /* FlightHelmet_baseColor3.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_baseColor3.basis; path = ../../UnitTestResources/Textures/FlightHelmet_baseColor3.basis; sourceTree = "<group>"; };
-		B2F8D2822317279A0010C631 /* FlightHelmet_baseColor4.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_baseColor4.basis; path = ../../UnitTestResources/Textures/FlightHelmet_baseColor4.basis; sourceTree = "<group>"; };
-		B2F8D2832317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic2.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_occlusionRoughnessMetallic2.basis; path = ../../UnitTestResources/Textures/FlightHelmet_occlusionRoughnessMetallic2.basis; sourceTree = "<group>"; };
-		B2F8D2842317279A0010C631 /* Lantern_emissive.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = Lantern_emissive.basis; path = ../../UnitTestResources/Textures/Lantern_emissive.basis; sourceTree = "<group>"; };
-		B2F8D2852317279A0010C631 /* Lantern_roughnessMetallic.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = Lantern_roughnessMetallic.basis; path = ../../UnitTestResources/Textures/Lantern_roughnessMetallic.basis; sourceTree = "<group>"; };
-		B2F8D2862317279A0010C631 /* Lantern_normal.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = Lantern_normal.basis; path = ../../UnitTestResources/Textures/Lantern_normal.basis; sourceTree = "<group>"; };
-		B2F8D2872317279A0010C631 /* FlightHelmet_baseColor1.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_baseColor1.basis; path = ../../UnitTestResources/Textures/FlightHelmet_baseColor1.basis; sourceTree = "<group>"; };
-		B2F8D2882317279A0010C631 /* FlightHelmet_normal2.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_normal2.basis; path = ../../UnitTestResources/Textures/FlightHelmet_normal2.basis; sourceTree = "<group>"; };
-		B2F8D2892317279A0010C631 /* FlightHelmet_normal3.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_normal3.basis; path = ../../UnitTestResources/Textures/FlightHelmet_normal3.basis; sourceTree = "<group>"; };
-		B2F8D28A2317279A0010C631 /* FlightHelmet_baseColor.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_baseColor.basis; path = ../../UnitTestResources/Textures/FlightHelmet_baseColor.basis; sourceTree = "<group>"; };
-		B2F8D28B2317279A0010C631 /* circlepad.dds */ = {isa = PBXFileReference; lastKnownFileType = file; name = circlepad.dds; path = ../../UnitTestResources/Textures/circlepad.dds; sourceTree = "<group>"; };
-		B2F8D28C2317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_occlusionRoughnessMetallic.basis; path = ../../UnitTestResources/Textures/FlightHelmet_occlusionRoughnessMetallic.basis; sourceTree = "<group>"; };
-		B2F8D28D2317279A0010C631 /* FlightHelmet_normal1.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_normal1.basis; path = ../../UnitTestResources/Textures/FlightHelmet_normal1.basis; sourceTree = "<group>"; };
-		B2F8D28E2317279B0010C631 /* FlightHelmet_baseColor2.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_baseColor2.basis; path = ../../UnitTestResources/Textures/FlightHelmet_baseColor2.basis; sourceTree = "<group>"; };
-		B2F8D28F2317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic3.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_occlusionRoughnessMetallic3.basis; path = ../../UnitTestResources/Textures/FlightHelmet_occlusionRoughnessMetallic3.basis; sourceTree = "<group>"; };
-		B2F8D2902317279B0010C631 /* FlightHelmet_normal4.basis */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_normal4.basis; path = ../../UnitTestResources/Textures/FlightHelmet_normal4.basis; sourceTree = "<group>"; };
 		B2F8D2912317279B0010C631 /* circlepad.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = circlepad.ktx; path = ../../UnitTestResources/Textures/circlepad.ktx; sourceTree = "<group>"; };
 		D01089FC213CC5CB0038EA0F /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/zlibstatic.a"; sourceTree = "<group>"; };
 		D01089FD213CC5CC0038EA0F /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/assimp.a"; sourceTree = "<group>"; };
@@ -313,8 +263,6 @@
 		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
 		E921B7CB22C6E4300082D103 /* basic.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = basic.vert.metal; path = ../../src/08_GltfViewer/Shaders/Metal/basic.vert.metal; sourceTree = "<group>"; };
 		E921B7CD22C6E4300082D103 /* basic.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = basic.frag.metal; path = ../../src/08_GltfViewer/Shaders/Metal/basic.frag.metal; sourceTree = "<group>"; };
-
-
 		E921B7D522C6E45D0082D103 /* 08_GltfViewer.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 08_GltfViewer.cpp; path = ../../src/08_GltfViewer/08_GltfViewer.cpp; sourceTree = "<group>"; usesTabs = 1; };
 		E921BAA122CAAF5A0082D103 /* 08_GltfViewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 08_GltfViewer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E921BAA222CAAF5A0082D103 /* 08_GltfViewer_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 08_GltfViewer_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -325,8 +273,6 @@
 		E9BF159E2314C0E1001F2264 /* FXAA.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = FXAA.frag.metal; path = ../../src/08_GltfViewer/Shaders/Metal/FXAA.frag.metal; sourceTree = "<group>"; };
 		E9BF15A72314C0E1001F2264 /* floor.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = floor.frag.metal; path = ../../src/08_GltfViewer/Shaders/Metal/floor.frag.metal; sourceTree = "<group>"; };
 		E9BF15A82314C0E1001F2264 /* Triangular.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = Triangular.vert.metal; path = ../../src/08_GltfViewer/Shaders/Metal/Triangular.vert.metal; sourceTree = "<group>"; };
-		E9BF15A92314C0E2001F2264 /* zPass.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = zPass.vert.metal; path = ../../src/08_GltfViewer/Shaders/Metal/zPass.vert.metal; sourceTree = "<group>"; };
-		E9BF15AA2314C0E2001F2264 /* zPassFloor.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = zPassFloor.vert.metal; path = ../../src/08_GltfViewer/Shaders/Metal/zPassFloor.vert.metal; sourceTree = "<group>"; };
 		E9BF15AB2314C0E2001F2264 /* floor.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = floor.vert.metal; path = ../../src/08_GltfViewer/Shaders/Metal/floor.vert.metal; sourceTree = "<group>"; };
 		E9BF15AC2314C0E2001F2264 /* watermark.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = watermark.frag.metal; path = ../../src/08_GltfViewer/Shaders/Metal/watermark.frag.metal; sourceTree = "<group>"; };
 		E9BF15AD2314C0E2001F2264 /* vignette.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = vignette.frag.metal; path = ../../src/08_GltfViewer/Shaders/Metal/vignette.frag.metal; sourceTree = "<group>"; };
@@ -335,25 +281,6 @@
 		E9BF164C23161465001F2264 /* FlightHelmet.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = FlightHelmet.bin; path = ../../UnitTestResources/Meshes/FlightHelmet.bin; sourceTree = "<group>"; };
 		E9BF164D23161465001F2264 /* FlightHelmet.gltf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = FlightHelmet.gltf; path = ../../UnitTestResources/Meshes/FlightHelmet.gltf; sourceTree = "<group>"; };
 		E9BF164E23161466001F2264 /* Lantern.gltf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Lantern.gltf; path = ../../UnitTestResources/Meshes/Lantern.gltf; sourceTree = "<group>"; };
-		E9BF191123175E24001F2264 /* FlightHelmet_normal2.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_normal2.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_normal2.ktx; sourceTree = "<group>"; };
-		E9BF191A23175E24001F2264 /* FlightHelmet_normal4.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_normal4.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_normal4.ktx; sourceTree = "<group>"; };
-		E9BF191B23175E24001F2264 /* FlightHelmet_occlusionRoughnessMetallic4.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_occlusionRoughnessMetallic4.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_occlusionRoughnessMetallic4.ktx; sourceTree = "<group>"; };
-		E9BF191C23175E24001F2264 /* Lantern_emissive.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = Lantern_emissive.ktx; path = ../../UnitTestResources/Textures/Lantern_emissive.ktx; sourceTree = "<group>"; };
-		E9BF191D23175E25001F2264 /* FlightHelmet_baseColor.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_baseColor.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_baseColor.ktx; sourceTree = "<group>"; };
-		E9BF191E23175E25001F2264 /* FlightHelmet_normal.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_normal.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_normal.ktx; sourceTree = "<group>"; };
-		E9BF191F23175E25001F2264 /* Lantern_roughnessMetallic.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = Lantern_roughnessMetallic.ktx; path = ../../UnitTestResources/Textures/Lantern_roughnessMetallic.ktx; sourceTree = "<group>"; };
-		E9BF192023175E25001F2264 /* FlightHelmet_baseColor1.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_baseColor1.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_baseColor1.ktx; sourceTree = "<group>"; };
-		E9BF192123175E25001F2264 /* Lantern_normal.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = Lantern_normal.ktx; path = ../../UnitTestResources/Textures/Lantern_normal.ktx; sourceTree = "<group>"; };
-		E9BF192223175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic1.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_occlusionRoughnessMetallic1.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_occlusionRoughnessMetallic1.ktx; sourceTree = "<group>"; };
-		E9BF192323175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic3.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_occlusionRoughnessMetallic3.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_occlusionRoughnessMetallic3.ktx; sourceTree = "<group>"; };
-		E9BF192423175E25001F2264 /* Lantern_baseColor.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = Lantern_baseColor.ktx; path = ../../UnitTestResources/Textures/Lantern_baseColor.ktx; sourceTree = "<group>"; };
-		E9BF192523175E25001F2264 /* FlightHelmet_baseColor2.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_baseColor2.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_baseColor2.ktx; sourceTree = "<group>"; };
-		E9BF192623175E25001F2264 /* FlightHelmet_baseColor3.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_baseColor3.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_baseColor3.ktx; sourceTree = "<group>"; };
-		E9BF192723175E25001F2264 /* FlightHelmet_normal1.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_normal1.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_normal1.ktx; sourceTree = "<group>"; };
-		E9BF192823175E25001F2264 /* FlightHelmet_baseColor4.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_baseColor4.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_baseColor4.ktx; sourceTree = "<group>"; };
-		E9BF192923175E25001F2264 /* FlightHelmet_normal3.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_normal3.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_normal3.ktx; sourceTree = "<group>"; };
-		E9BF192A23175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_occlusionRoughnessMetallic.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_occlusionRoughnessMetallic.ktx; sourceTree = "<group>"; };
-		E9BF192B23175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic2.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = FlightHelmet_occlusionRoughnessMetallic2.ktx; path = ../../UnitTestResources/Textures/FlightHelmet_occlusionRoughnessMetallic2.ktx; sourceTree = "<group>"; };
 		EADF9D661EFD160E00B2008B /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ../02_Compute/02_Compute/Info.plist; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -395,7 +322,6 @@
 				E9BF150122FE2699001F2264 /* Main.storyboard */,
 				28A5AE1B201F7D41000E571F /* LaunchScreen.storyboard */,
 				28A5AE1E201F7D41000E571F /* Info.plist */,
-				E921B80722C6E6360082D103 /* Products */,
 			);
 			path = 08_GltfViewer_iOS;
 			sourceTree = "<group>";
@@ -433,8 +359,6 @@
 				E9BF15AD2314C0E2001F2264 /* vignette.frag.metal */,
 				E9BF15AC2314C0E2001F2264 /* watermark.frag.metal */,
 				E9BF15AE2314C0E2001F2264 /* watermark.vert.metal */,
-				E9BF15A92314C0E2001F2264 /* zPass.vert.metal */,
-				E9BF15AA2314C0E2001F2264 /* zPassFloor.vert.metal */,
 				E921B7CD22C6E4300082D103 /* basic.frag.metal */,
 				E921B7CB22C6E4300082D103 /* basic.vert.metal */,
 			);
@@ -489,52 +413,31 @@
 			children = (
 			);
 			name = Products;
-			path = ..;
 			sourceTree = "<group>";
 		};
 		E9BF165423161548001F2264 /* Textures */ = {
 			isa = PBXGroup;
 			children = (
-				E9BF191D23175E25001F2264 /* FlightHelmet_baseColor.ktx */,
-				E9BF192023175E25001F2264 /* FlightHelmet_baseColor1.ktx */,
-				E9BF192523175E25001F2264 /* FlightHelmet_baseColor2.ktx */,
-				E9BF192623175E25001F2264 /* FlightHelmet_baseColor3.ktx */,
-				E9BF192823175E25001F2264 /* FlightHelmet_baseColor4.ktx */,
-				E9BF191E23175E25001F2264 /* FlightHelmet_normal.ktx */,
-				E9BF192723175E25001F2264 /* FlightHelmet_normal1.ktx */,
-				E9BF191123175E24001F2264 /* FlightHelmet_normal2.ktx */,
-				E9BF192923175E25001F2264 /* FlightHelmet_normal3.ktx */,
-				E9BF191A23175E24001F2264 /* FlightHelmet_normal4.ktx */,
-				E9BF192A23175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic.ktx */,
-				E9BF192223175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic1.ktx */,
-				E9BF192B23175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic2.ktx */,
-				E9BF192323175E25001F2264 /* FlightHelmet_occlusionRoughnessMetallic3.ktx */,
-				E9BF191B23175E24001F2264 /* FlightHelmet_occlusionRoughnessMetallic4.ktx */,
-				E9BF192423175E25001F2264 /* Lantern_baseColor.ktx */,
-				E9BF191C23175E24001F2264 /* Lantern_emissive.ktx */,
-				E9BF192123175E25001F2264 /* Lantern_normal.ktx */,
-				E9BF191F23175E25001F2264 /* Lantern_roughnessMetallic.ktx */,
-				B2F8D28B2317279A0010C631 /* circlepad.dds */,
+				5C55187624BDF7130091470A /* FlightHelmet_Materials_GlassPlasticMat_BaseColor.basis */,
+				5C55187524BDF7130091470A /* FlightHelmet_Materials_GlassPlasticMat_Normal.basis */,
+				5C55186C24BDF7130091470A /* FlightHelmet_Materials_GlassPlasticMat_OcclusionRoughMetal.basis */,
+				5C55187424BDF7130091470A /* FlightHelmet_Materials_LeatherPartsMat_BaseColor.basis */,
+				5C55187324BDF7130091470A /* FlightHelmet_Materials_LeatherPartsMat_Normal.basis */,
+				5C55187224BDF7130091470A /* FlightHelmet_Materials_LeatherPartsMat_OcclusionRoughMetal.basis */,
+				5C55186924BDF7130091470A /* FlightHelmet_Materials_LensesMat_BaseColor.basis */,
+				5C55187724BDF7140091470A /* FlightHelmet_Materials_LensesMat_Normal.basis */,
+				5C55186B24BDF7130091470A /* FlightHelmet_Materials_LensesMat_OcclusionRoughMetal.basis */,
+				5C55186A24BDF7130091470A /* FlightHelmet_Materials_MetalPartsMat_BaseColor.basis */,
+				5C55187024BDF7130091470A /* FlightHelmet_Materials_MetalPartsMat_Normal.basis */,
+				5C55187124BDF7130091470A /* FlightHelmet_Materials_MetalPartsMat_OcclusionRoughMetal.basis */,
+				5C55186824BDF7130091470A /* FlightHelmet_Materials_RubberWoodMat_BaseColor.basis */,
+				5C55187824BDF7140091470A /* FlightHelmet_Materials_RubberWoodMat_Normal.basis */,
+				5C55187924BDF7140091470A /* FlightHelmet_Materials_RubberWoodMat_OcclusionRoughMetal.basis */,
+				5C55186D24BDF7130091470A /* Lantern_baseColor.basis */,
+				5C55186E24BDF7130091470A /* Lantern_emissive.basis */,
+				5C55186F24BDF7130091470A /* Lantern_normal.basis */,
+				5C55187A24BDF7140091470A /* Lantern_roughnessMetallic.basis */,
 				B2F8D2912317279B0010C631 /* circlepad.ktx */,
-				B2F8D28A2317279A0010C631 /* FlightHelmet_baseColor.basis */,
-				B2F8D2872317279A0010C631 /* FlightHelmet_baseColor1.basis */,
-				B2F8D28E2317279B0010C631 /* FlightHelmet_baseColor2.basis */,
-				B2F8D2812317279A0010C631 /* FlightHelmet_baseColor3.basis */,
-				B2F8D2822317279A0010C631 /* FlightHelmet_baseColor4.basis */,
-				B2F8D27F2317279A0010C631 /* FlightHelmet_normal.basis */,
-				B2F8D28D2317279A0010C631 /* FlightHelmet_normal1.basis */,
-				B2F8D2882317279A0010C631 /* FlightHelmet_normal2.basis */,
-				B2F8D2892317279A0010C631 /* FlightHelmet_normal3.basis */,
-				B2F8D2902317279B0010C631 /* FlightHelmet_normal4.basis */,
-				B2F8D28C2317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic.basis */,
-				B2F8D2802317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic1.basis */,
-				B2F8D2832317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic2.basis */,
-				B2F8D28F2317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic3.basis */,
-				B2F8D27D2317279A0010C631 /* FlightHelmet_occlusionRoughnessMetallic4.basis */,
-				B2F8D27E2317279A0010C631 /* Lantern_baseColor.basis */,
-				B2F8D2842317279A0010C631 /* Lantern_emissive.basis */,
-				B2F8D2862317279A0010C631 /* Lantern_normal.basis */,
-				B2F8D2852317279A0010C631 /* Lantern_roughnessMetallic.basis */,
 			);
 			name = Textures;
 			sourceTree = "<group>";
@@ -542,9 +445,10 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
+				E921B80722C6E6360082D103 /* Products */,
+				E921BAA122CAAF5A0082D103 /* 08_GltfViewer.app */,
+				E921BAA222CAAF5A0082D103 /* 08_GltfViewer_iOS.app */,
 				E921B7D522C6E45D0082D103 /* 08_GltfViewer.cpp */,
-
-
 				5CA80E1821F09F8700C99983 /* CommonShaders */,
 				5C0F3ADE21418BD20088BBB0 /* The-Forge.xcodeproj */,
 				B20A6264213F8D6400FE4944 /* Meshes */,
@@ -554,8 +458,6 @@
 				EA463C941EF81E8F005AC8C7 /* 08_GltfViewer */,
 				28A5AE09201F7D41000E571F /* 08_GltfViewer_iOS */,
 				28A5AE24201F7D5C000E571F /* Frameworks */,
-				E921BAA122CAAF5A0082D103 /* 08_GltfViewer.app */,
-				E921BAA222CAAF5A0082D103 /* 08_GltfViewer_iOS.app */,
 			);
 			sourceTree = "<group>";
 		};
@@ -688,8 +590,27 @@
 			buildActionMask = 2147483647;
 			files = (
 				E9BF150322FE2699001F2264 /* Main.storyboard in Resources */,
+				5C55188424BDF7140091470A /* FlightHelmet_Materials_MetalPartsMat_OcclusionRoughMetal.basis in Resources */,
+				5C55188824BDF7140091470A /* FlightHelmet_Materials_GlassPlasticMat_Normal.basis in Resources */,
+				5C55187D24BDF7140091470A /* FlightHelmet_Materials_MetalPartsMat_BaseColor.basis in Resources */,
 				28A5AE1D201F7D41000E571F /* LaunchScreen.storyboard in Resources */,
+				5C55188624BDF7140091470A /* FlightHelmet_Materials_LeatherPartsMat_Normal.basis in Resources */,
+				5C55188224BDF7140091470A /* Lantern_normal.basis in Resources */,
 				28A5AE1A201F7D41000E571F /* Assets.xcassets in Resources */,
+				5C55188924BDF7140091470A /* FlightHelmet_Materials_GlassPlasticMat_BaseColor.basis in Resources */,
+				5C55188324BDF7140091470A /* FlightHelmet_Materials_MetalPartsMat_Normal.basis in Resources */,
+				5C55188A24BDF7140091470A /* FlightHelmet_Materials_LensesMat_Normal.basis in Resources */,
+				5C55188D24BDF7140091470A /* Lantern_roughnessMetallic.basis in Resources */,
+				5C55187C24BDF7140091470A /* FlightHelmet_Materials_LensesMat_BaseColor.basis in Resources */,
+				5C55188C24BDF7140091470A /* FlightHelmet_Materials_RubberWoodMat_OcclusionRoughMetal.basis in Resources */,
+				5C55188524BDF7140091470A /* FlightHelmet_Materials_LeatherPartsMat_OcclusionRoughMetal.basis in Resources */,
+				5C55188024BDF7140091470A /* Lantern_baseColor.basis in Resources */,
+				5C55187B24BDF7140091470A /* FlightHelmet_Materials_RubberWoodMat_BaseColor.basis in Resources */,
+				5C55187F24BDF7140091470A /* FlightHelmet_Materials_GlassPlasticMat_OcclusionRoughMetal.basis in Resources */,
+				5C55188724BDF7140091470A /* FlightHelmet_Materials_LeatherPartsMat_BaseColor.basis in Resources */,
+				5C55188124BDF7140091470A /* Lantern_emissive.basis in Resources */,
+				5C55187E24BDF7140091470A /* FlightHelmet_Materials_LensesMat_OcclusionRoughMetal.basis in Resources */,
+				5C55188B24BDF7140091470A /* FlightHelmet_Materials_RubberWoodMat_Normal.basis in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -697,32 +618,12 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B2F8D2A52317279B0010C631 /* Lantern_normal.basis in Resources */,
-				B2F8D2B32317279B0010C631 /* FlightHelmet_normal1.basis in Resources */,
-				B2F8D2B12317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic.basis in Resources */,
 				E9BF165023161466001F2264 /* FlightHelmet.bin in Resources */,
-				B2F8D2AD2317279B0010C631 /* FlightHelmet_baseColor.basis in Resources */,
-				B2F8D2B92317279B0010C631 /* FlightHelmet_normal4.basis in Resources */,
-				B2F8D2B52317279B0010C631 /* FlightHelmet_baseColor2.basis in Resources */,
 				D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */,
-				B2F8D2B72317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic3.basis in Resources */,
-				B2F8D2A92317279B0010C631 /* FlightHelmet_normal2.basis in Resources */,
 				E9BF164F23161466001F2264 /* Lantern.bin in Resources */,
 				E9BF165223161466001F2264 /* Lantern.gltf in Resources */,
-				B2F8D2952317279B0010C631 /* Lantern_baseColor.basis in Resources */,
-				B2F8D29B2317279B0010C631 /* FlightHelmet_baseColor3.basis in Resources */,
 				D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */,
-				B2F8D2AB2317279B0010C631 /* FlightHelmet_normal3.basis in Resources */,
 				B2F8D2BB2317279B0010C631 /* circlepad.ktx in Resources */,
-				B2F8D29D2317279B0010C631 /* FlightHelmet_baseColor4.basis in Resources */,
-				B2F8D2A72317279B0010C631 /* FlightHelmet_baseColor1.basis in Resources */,
-				B2F8D2AF2317279B0010C631 /* circlepad.dds in Resources */,
-				B2F8D2A12317279B0010C631 /* Lantern_emissive.basis in Resources */,
-				B2F8D2932317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic4.basis in Resources */,
-				B2F8D2992317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic1.basis in Resources */,
-				B2F8D2A32317279B0010C631 /* Lantern_roughnessMetallic.basis in Resources */,
-				B2F8D2972317279B0010C631 /* FlightHelmet_normal.basis in Resources */,
-				B2F8D29F2317279B0010C631 /* FlightHelmet_occlusionRoughnessMetallic2.basis in Resources */,
 				E9BF165123161466001F2264 /* FlightHelmet.gltf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -794,6 +695,7 @@
 		28A5AE21201F7D41000E571F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_WARN_COMMA = NO;
@@ -819,7 +721,7 @@
 					"$(PROJECT_DIR)/../../../../",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/08_GltfViewer_iOS/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -836,6 +738,7 @@
 		28A5AE22201F7D41000E571F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_WARN_COMMA = NO;
@@ -859,7 +762,7 @@
 					"$(PROJECT_DIR)/../../../../",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/08_GltfViewer_iOS/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1013,7 +916,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-08-glTFViewer";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				USER_HEADER_SEARCH_PATHS = (
@@ -1050,7 +953,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-08-glTFViewer";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				USER_HEADER_SEARCH_PATHS = (

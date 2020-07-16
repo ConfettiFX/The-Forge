@@ -405,10 +405,10 @@ struct HairTypeInfo
 //--------------------------------------------------------------------------------------------
 Renderer*  pRenderer = NULL;
 Queue*     pGraphicsQueue = NULL;
-CmdPool*   pCmdPool = NULL;
-Cmd**      ppCmds = NULL;
-CmdPool*   pUICmdPool = NULL;
-Cmd**      ppUICmds = NULL;
+CmdPool*   pCmdPools[gImageCount];
+Cmd*       pCmds[gImageCount];
+CmdPool*   pUICmdPools[gImageCount];
+Cmd*       pUICmds[gImageCount];
 SwapChain* pSwapChain = NULL;
 Fence*     pRenderCompleteFences[gImageCount] = { NULL };
 Semaphore* pImageAcquiredSemaphore = NULL;
@@ -598,7 +598,6 @@ UniformCamData               gUniformDataCamera;
 UniformCamData               gUniformDataCameraSkybox;
 UniformCamData               gUniformDataCameraHairShadows[HAIR_TYPE_COUNT][MAX_NUM_DIRECTIONAL_LIGHTS];
 UniformDataPointLights       gUniformDataPointLights;
-UniformObjData               gUniformDataObject;
 UniformObjData               gUniformDataMatBall[MATERIAL_INSTANCE_COUNT];
 UniformDataDirectionalLights gUniformDataDirectionalLights;
 UniformDataHairGlobal        gUniformDataHairGlobal;
@@ -777,16 +776,19 @@ class MaterialPlayground: public IApp
 		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
 		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		CmdPoolDesc cmdPoolDesc = {};
-		cmdPoolDesc.pQueue = pGraphicsQueue;
-		addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
-		CmdDesc cmdDesc = {};
-		cmdDesc.pPool = pCmdPool;
-		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
 
-		addCmdPool(pRenderer, &cmdPoolDesc, &pUICmdPool);
-		cmdDesc.pPool = pUICmdPool;
-		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppUICmds);
+			addCmdPool(pRenderer, &cmdPoolDesc, &pUICmdPools[i]);
+			cmdDesc.pPool = pUICmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pUICmds[i]);
+		}
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -838,18 +840,17 @@ class MaterialPlayground: public IApp
         initProfiler();
         gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
-		GuiDesc guiDesc = {};
-		float dpiScale = getDpiScale().x;
-		guiDesc.mStartPosition = vec2(5, 220.0f) / dpiScale;
-		guiDesc.mStartSize = vec2(450, 600) / dpiScale;
+		GuiDesc guiDesc = {};		
+		guiDesc.mStartPosition = vec2(5, 220.0f);
+		guiDesc.mStartSize = vec2(450, 600);
 		pGuiWindowMain = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 		
 		//guiDesc.mStartPosition = vec2(300, 300.0f) / dpiScale;
-		guiDesc.mStartPosition = vec2((float)mSettings.mWidth - 300.0f * dpiScale, 20.0f) / dpiScale;
+		guiDesc.mStartPosition = vec2((float)mSettings.mWidth - 300.0f, 20.0f);
 		pGuiWindowMaterial = gAppUI.AddGuiComponent("Material Properties", &guiDesc);
 
-		guiDesc.mStartPosition = vec2((float)mSettings.mWidth - 300.0f * dpiScale, 200.0f) / dpiScale;
-		guiDesc.mStartSize = vec2(450, 600) / dpiScale;
+		guiDesc.mStartPosition = vec2((float)mSettings.mWidth - 300.0f, 200.0f);
+		guiDesc.mStartSize = vec2(450, 600);
 		pGuiWindowHairSimulation = gAppUI.AddGuiComponent("Hair simulation", &guiDesc);
 		GuiController::AddGui();
 
@@ -977,11 +978,15 @@ class MaterialPlayground: public IApp
 		gAppUI.Exit();
 
 		// Remove commands and command pool&
-		removeCmd_n(pRenderer, gImageCount, ppUICmds);
-		removeCmdPool(pRenderer, pUICmdPool);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeCmd(pRenderer, pUICmds[i]);
+			removeCmdPool(pRenderer, pUICmdPools[i]);
 
-		removeCmd_n(pRenderer, gImageCount, ppCmds);
-		removeCmdPool(pRenderer, pCmdPool);
+			removeCmd(pRenderer, pCmds[i]);
+			removeCmdPool(pRenderer, pCmdPools[i]);
+		}
+
 		removeQueue(pRenderer, pGraphicsQueue);
 
 		// Remove resource loader and renderer
@@ -1101,30 +1106,30 @@ class MaterialPlayground: public IApp
 		//
 		for (int i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
 		{
-			gUniformDataObject = gUniformDataMatBall[i];
+			UniformObjData& objUniform = gUniformDataMatBall[i];
 
 			// Add the Oren-Nayar diffuse model to the texture config.
-			gUniformDataObject.textureConfig = ETextureConfigFlags::TEXTURE_CONFIG_FLAGS_ALL;
+			objUniform.textureConfig = ETextureConfigFlags::TEXTURE_CONFIG_FLAGS_ALL;
 			if (gDiffuseReflectionModel == OREN_NAYAR_REFLECTION)
-				gUniformDataObject.textureConfig |= ETextureConfigFlags::OREN_NAYAR;
+				objUniform.textureConfig |= ETextureConfigFlags::OREN_NAYAR;
 			
 			// Update material properties
 			if (gOverrideRoughnessTextures)
 			{
-				gUniformDataObject.textureConfig = gUniformDataObject.textureConfig & ~ETextureConfigFlags::ROUGHNESS;
-				gUniformDataObject.mRoughness = gRoughnessOverride;
+				objUniform.textureConfig = objUniform.textureConfig & ~ETextureConfigFlags::ROUGHNESS;
+				objUniform.mRoughness = gRoughnessOverride;
 			}
 			if (gDisableNormalMaps)
 			{
-				gUniformDataObject.textureConfig = gUniformDataObject.textureConfig & ~ETextureConfigFlags::NORMAL;
+				objUniform.textureConfig = objUniform.textureConfig & ~ETextureConfigFlags::NORMAL;
 			}
 			if (gDisableAOMaps)
 			{
-				gUniformDataObject.textureConfig = gUniformDataObject.textureConfig & ~ETextureConfigFlags::AO;
+				objUniform.textureConfig = objUniform.textureConfig & ~ETextureConfigFlags::AO;
 			}
 			if (SKIP_LOADING_TEXTURES != 0)
 			{
-				gUniformDataObject.textureConfig = ETextureConfigFlags::TEXTURE_CONFIG_FLAGS_NONE;
+				objUniform.textureConfig = ETextureConfigFlags::TEXTURE_CONFIG_FLAGS_NONE;
 			}
 		}
 #if !defined(DIRECT3D11)
@@ -1259,9 +1264,10 @@ class MaterialPlayground: public IApp
 		// FRAME SYNC
 		//
 		// This will acquire the next swapchain image
-		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+		uint32_t swapchainImageIndex;
+		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
-		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
+		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
 		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
@@ -1269,6 +1275,9 @@ class MaterialPlayground: public IApp
 		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pRenderer, 1, &pRenderCompleteFence);
+
+		resetCmdPool(pRenderer, pCmdPools[gFrameIndex]);
+		resetCmdPool(pRenderer, pUICmdPools[gFrameIndex]);
 
 		// SET CONSTANT BUFFERS
 		//
@@ -1342,7 +1351,7 @@ class MaterialPlayground: public IApp
 
 		// Draw
 		eastl::vector<Cmd*> allCmds;
-		Cmd*                  cmd = ppCmds[gFrameIndex];
+		Cmd*                cmd = pCmds[gFrameIndex];
 		beginCmd(cmd);
 
 		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
@@ -1629,6 +1638,7 @@ class MaterialPlayground: public IApp
 				gFrameIndex * MAX_NUM_DIRECTIONAL_LIGHTS * HAIR_TYPE_COUNT,
 				gFrameIndex * gHairDynamicDescriptorSetCount * MAX_NUM_DIRECTIONAL_LIGHTS
 			};
+			RenderTargetBarrier rtBarriers[2] = {};
 			TextureBarrier textureBarriers[2] = {};
 #if defined(METAL)
 			BufferBarrier  bufferBarrier[1] = {};
@@ -1648,9 +1658,9 @@ class MaterialPlayground: public IApp
 				for (int i = 0; i < MAX_NUM_DIRECTIONAL_LIGHTS; ++i)
 				{
 					cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-					textureBarriers[0].pTexture = pRenderTargetHairShadows[hairType][i]->pTexture;
-					textureBarriers[0].mNewState = RESOURCE_STATE_DEPTH_WRITE;
-					cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 0, NULL);
+					rtBarriers[0].pRenderTarget = pRenderTargetHairShadows[hairType][i];
+					rtBarriers[0].mNewState = RESOURCE_STATE_DEPTH_WRITE;
+					cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, rtBarriers);
 
 					loadActions.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
 					loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
@@ -1715,9 +1725,9 @@ class MaterialPlayground: public IApp
 			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Hair depth peeling");
 
 			// Draw hair - depth peeling and alpha accumulaiton
-			textureBarriers[0].pTexture = pRenderTargetDepthPeeling->pTexture;
-			textureBarriers[0].mNewState = RESOURCE_STATE_RENDER_TARGET;
-			cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 0, NULL);
+			rtBarriers[0].pRenderTarget = pRenderTargetDepthPeeling;
+			rtBarriers[0].mNewState = RESOURCE_STATE_RENDER_TARGET;
+			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, rtBarriers);
 
 			loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 			loadActions.mClearColorValues[0] = pRenderTargetDepthPeeling->mClearValue;
@@ -1783,9 +1793,9 @@ class MaterialPlayground: public IApp
 			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Hair fill colors");
 
 			// Draw hair - fill colors
-			textureBarriers[0].pTexture = pRenderTargetFillColors->pTexture;
-			textureBarriers[0].mNewState = RESOURCE_STATE_RENDER_TARGET;
-			cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 0, NULL);
+			rtBarriers[0].pRenderTarget = pRenderTargetFillColors;
+			rtBarriers[0].mNewState = RESOURCE_STATE_RENDER_TARGET;
+			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, rtBarriers);
 
 			for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 			{
@@ -1794,10 +1804,10 @@ class MaterialPlayground: public IApp
 
 				for (int i = 0; i < MAX_NUM_DIRECTIONAL_LIGHTS; ++i)
 				{
-					textureBarriers[0].pTexture = pRenderTargetHairShadows[hairType][i]->pTexture;
-					textureBarriers[0].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
-					cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 0, NULL);
+					rtBarriers[i].pRenderTarget = pRenderTargetHairShadows[hairType][i];
+					rtBarriers[i].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
 				}
+				cmdResourceBarrier(cmd, 0, NULL, 0, NULL, MAX_NUM_DIRECTIONAL_LIGHTS, rtBarriers);
 			}
 
 			loadActions.mClearColorValues[0] = pRenderTargetFillColors->mClearValue;
@@ -1842,11 +1852,11 @@ class MaterialPlayground: public IApp
 			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Hair resolve colors");
 
 			// Draw hair - color resolve
-			textureBarriers[0].pTexture = pRenderTargetFillColors->pTexture;
-			textureBarriers[0].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
-			textureBarriers[1].pTexture = pRenderTargetDepthPeeling->pTexture;
-			textureBarriers[1].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
-			cmdResourceBarrier(cmd, 0, NULL, 2, textureBarriers, 0, NULL);
+			rtBarriers[0].pRenderTarget = pRenderTargetFillColors;
+			rtBarriers[0].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
+			rtBarriers[1].pRenderTarget = pRenderTargetDepthPeeling;
+			rtBarriers[1].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
+			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, rtBarriers);
 
 			loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 
@@ -1895,7 +1905,7 @@ class MaterialPlayground: public IApp
 
 		// SET UP DRAW COMMANDS (UI)
 		//
-		cmd = ppUICmds[gFrameIndex];
+		cmd = pUICmds[gFrameIndex];
 		beginCmd(cmd);
 
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
@@ -1939,8 +1949,8 @@ class MaterialPlayground: public IApp
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 
 		// draw HUD text
-        cmdDrawCpuProfile(cmd, float2(8, 15), &gFrameTimeDraw);
-		cmdDrawGpuProfile(cmd, float2(8.0f, 40.0f), gGpuProfileToken, &gFrameTimeDraw);
+        float2 txtSize = cmdDrawCpuProfile(cmd, float2(8, 15), &gFrameTimeDraw);
+		cmdDrawGpuProfile(cmd, float2(8.0f, txtSize.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
 
 		if (!gbLuaScriptingSystemLoadedSuccessfully)
 		{
@@ -1981,13 +1991,15 @@ class MaterialPlayground: public IApp
 		submitDesc.pSignalFence = pRenderCompleteFence;
 		queueSubmit(pGraphicsQueue, &submitDesc);
 		QueuePresentDesc presentDesc = {};
-		presentDesc.mIndex = gFrameIndex;
+		presentDesc.mIndex = swapchainImageIndex;
 		presentDesc.mWaitSemaphoreCount = 1;
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
 		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
+
+		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
 
 	const char* GetName() { return "06_MaterialPlayground"; }
@@ -2925,7 +2937,7 @@ class MaterialPlayground: public IApp
 		skyboxImgDesc.mSampleCount = SAMPLE_COUNT_1;
 		skyboxImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		skyboxImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
-		skyboxImgDesc.pDebugName = L"skyboxImgBuff";
+		skyboxImgDesc.pName = "skyboxImgBuff";
 
 		TextureLoadDesc skyboxLoadDesc = {};
 		skyboxLoadDesc.pDesc = &skyboxImgDesc;
@@ -2942,7 +2954,7 @@ class MaterialPlayground: public IApp
 		irrImgDesc.mSampleCount = SAMPLE_COUNT_1;
 		irrImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		irrImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
-		irrImgDesc.pDebugName = L"irrImgBuff";
+		irrImgDesc.pName = "irrImgBuff";
 
 		TextureLoadDesc irrLoadDesc = {};
 		irrLoadDesc.pDesc = &irrImgDesc;
@@ -2959,7 +2971,7 @@ class MaterialPlayground: public IApp
 		specImgDesc.mSampleCount = SAMPLE_COUNT_1;
 		specImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		specImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
-		specImgDesc.pDebugName = L"specImgBuff";
+		specImgDesc.pName = "specImgBuff";
 
 		TextureLoadDesc specImgLoadDesc = {};
 		specImgLoadDesc.pDesc = &specImgDesc;
@@ -3066,7 +3078,7 @@ class MaterialPlayground: public IApp
 
 		waitForToken(&token);
 
-		Cmd* pCmd = ppCmds[0];
+		Cmd* pCmd = pCmds[0];
 
 		// Compute the BRDF Integration map.
 		beginCmd(pCmd);
@@ -3591,16 +3603,16 @@ class MaterialPlayground: public IApp
 			mat4 modelmat =
 				mat4::translation(vec3(baseX - i - offsetX * i, baseY, baseZ)) * mat4::scale(vec3(scaleVal)) * mat4::rotationY(PI);
 
-			gUniformDataObject.mWorldMat = modelmat;
-			gUniformDataObject.mMetallic = i / (float)MATERIAL_INSTANCE_COUNT;
-			gUniformDataObject.mRoughness = 0.04f + roughDelta;
-			gUniformDataObject.textureConfig = ETextureConfigFlags::TEXTURE_CONFIG_FLAGS_ALL;
+			gUniformDataMatBall[i] = {};
+			gUniformDataMatBall[i].mWorldMat = modelmat;
+			gUniformDataMatBall[i].mMetallic = i / (float)MATERIAL_INSTANCE_COUNT;
+			gUniformDataMatBall[i].mRoughness = 0.04f + roughDelta;
+			gUniformDataMatBall[i].textureConfig = ETextureConfigFlags::TEXTURE_CONFIG_FLAGS_ALL;
 			//if not enough materials specified then set pbrMaterials to -1
 
-			gUniformDataMatBall[i] = gUniformDataObject;
 			BufferUpdateDesc objBuffUpdateDesc = { pUniformBufferMatBall[gFrameIndex][i] };
 			beginUpdateResource(&objBuffUpdateDesc);
-			*(UniformObjData*)objBuffUpdateDesc.pMappedData = gUniformDataObject;
+			*(UniformObjData*)objBuffUpdateDesc.pMappedData = gUniformDataMatBall[i];
 			endUpdateResource(&objBuffUpdateDesc, NULL);
 			roughDelta -= .25f;
 
@@ -3608,14 +3620,15 @@ class MaterialPlayground: public IApp
 				//plates
 				modelmat = mat4::translation(vec3(baseX - i - offsetX * i, -5.8f, baseZ + materialPlateOffset)) *
 						   mat4::rotationX(3.1415f * 0.2f) * mat4::scale(vec3(3.0f, 0.1f, 1.0f));
-				gUniformDataObject.mWorldMat = modelmat;
-				gUniformDataObject.mMetallic = 1.0f;
-				gUniformDataObject.mRoughness = 0.4f;
-				gUniformDataObject.mAlbedo = float3(0.04f);
-				gUniformDataObject.textureConfig = 0;
+				UniformObjData plateUniform = {};
+				plateUniform.mWorldMat = modelmat;
+				plateUniform.mMetallic = 1.0f;
+				plateUniform.mRoughness = 0.4f;
+				plateUniform.mAlbedo = float3(0.04f);
+				plateUniform.textureConfig = 0;
 				BufferUpdateDesc objBuffUpdateDesc1 = { pUniformBufferNamePlates[i] };
 				beginUpdateResource(&objBuffUpdateDesc1);
-				*(UniformObjData*)objBuffUpdateDesc1.pMappedData = gUniformDataObject;
+				*(UniformObjData*)objBuffUpdateDesc1.pMappedData = plateUniform;
 				endUpdateResource(&objBuffUpdateDesc1, NULL);
 
 				//text
@@ -3627,18 +3640,19 @@ class MaterialPlayground: public IApp
 		}
 
 		// ground plane
+		UniformObjData groundUniform = {};
 		vec3 groundScale = vec3(30.0f, 0.2f, 20.0f);
 		mat4 modelmat = mat4::translation(vec3(0.0f, -6.0f, 5.0f)) * mat4::scale(groundScale);
-		gUniformDataObject.mWorldMat = modelmat;
-		gUniformDataObject.mMetallic = 0;
-		gUniformDataObject.mRoughness = 0.74f;
-		gUniformDataObject.mAlbedo = float3(0.3f, 0.3f, 0.3f);
-		gUniformDataObject.textureConfig = ETextureConfigFlags::TEXTURE_CONFIG_FLAGS_ALL;
-		gUniformDataObject.tiling = float2(groundScale.getX() / groundScale.getZ(), 1.0f);
+		groundUniform.mWorldMat = modelmat;
+		groundUniform.mMetallic = 0;
+		groundUniform.mRoughness = 0.74f;
+		groundUniform.mAlbedo = float3(0.3f, 0.3f, 0.3f);
+		groundUniform.textureConfig = ETextureConfigFlags::TEXTURE_CONFIG_FLAGS_ALL;
+		groundUniform.tiling = float2(groundScale.getX() / groundScale.getZ(), 1.0f);
 		//gUniformDataObject.textureConfig = ETextureConfigFlags::NORMAL | ETextureConfigFlags::METALLIC | ETextureConfigFlags::AO | ETextureConfigFlags::ROUGHNESS;
 		BufferUpdateDesc objBuffUpdateDesc = { pUniformBufferGroundPlane };
 		beginUpdateResource(&objBuffUpdateDesc);
-		*(UniformObjData*)objBuffUpdateDesc.pMappedData = gUniformDataObject;
+		*(UniformObjData*)objBuffUpdateDesc.pMappedData = groundUniform;
 		endUpdateResource(&objBuffUpdateDesc, NULL);
 
 		// Directional light
@@ -3713,13 +3727,13 @@ class MaterialPlayground: public IApp
 		vertexPositionsBufferDesc.mDesc.mFormat = TinyImageFormat_UNDEFINED;
 		vertexPositionsBufferDesc.mDesc.mSize =
 			vertexPositionsBufferDesc.mDesc.mElementCount * vertexPositionsBufferDesc.mDesc.mStructStride;
-		vertexPositionsBufferDesc.mDesc.pDebugName = L"Hair vertex positions";
+		vertexPositionsBufferDesc.mDesc.pName = "Hair vertex positions";
 
 		for (int i = 0; i < 3; ++i)
 		{
 			vertexPositionsBufferDesc.mDesc.mDescriptors =
 				(DescriptorType)(DESCRIPTOR_TYPE_RW_BUFFER | (i == 0 ? DESCRIPTOR_TYPE_BUFFER : 0));
-			vertexPositionsBufferDesc.mDesc.pDebugName = L"Hair simulation vertex positions";
+			vertexPositionsBufferDesc.mDesc.pName = "Hair simulation vertex positions";
 			vertexPositionsBufferDesc.ppBuffer = &hairBuffer.pBufferHairSimulationVertexPositions[i];
 			addResource(&vertexPositionsBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
@@ -4311,7 +4325,7 @@ class MaterialPlayground: public IApp
         depthPeelingRenderTargetDesc.mSampleQuality = 0;
 		depthPeelingRenderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		depthPeelingRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-		depthPeelingRenderTargetDesc.pDebugName = L"Depth peeling RT";
+		depthPeelingRenderTargetDesc.pName = "Depth peeling RT";
 		addRenderTarget(pRenderer, &depthPeelingRenderTargetDesc, &pRenderTargetDepthPeeling);
 
 #ifndef METAL
@@ -4328,7 +4342,7 @@ class MaterialPlayground: public IApp
         hairDepthsTextureDesc.mClearValue.b = 1.0f;
         hairDepthsTextureDesc.mClearValue.a = 1.0f;
 		hairDepthsTextureDesc.mDescriptors = DESCRIPTOR_TYPE_RW_TEXTURE | DESCRIPTOR_TYPE_TEXTURE;
-		hairDepthsTextureDesc.pDebugName = L"Hair depths texture";
+		hairDepthsTextureDesc.pName = "Hair depths texture";
 
 		TextureLoadDesc hairDepthsTextureLoadDesc = {};
 		hairDepthsTextureLoadDesc.pDesc = &hairDepthsTextureDesc;
@@ -4342,7 +4356,7 @@ class MaterialPlayground: public IApp
 		hairDepthsBufferLoadDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 		hairDepthsBufferLoadDesc.mDesc.mStructStride = sizeof(uint);
 		hairDepthsBufferLoadDesc.mDesc.mSize = hairDepthsBufferLoadDesc.mDesc.mElementCount * hairDepthsBufferLoadDesc.mDesc.mStructStride;
-		hairDepthsBufferLoadDesc.mDesc.pDebugName = L"Hair depths buffer";
+		hairDepthsBufferLoadDesc.mDesc.pName = "Hair depths buffer";
 		hairDepthsBufferLoadDesc.ppBuffer = &pBufferHairDepth;
 		addResource(&hairDepthsBufferLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
 #endif
@@ -4362,7 +4376,7 @@ class MaterialPlayground: public IApp
 		fillColorsRenderTargetDesc.mSampleQuality = 0;
 		fillColorsRenderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		fillColorsRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-		fillColorsRenderTargetDesc.pDebugName = L"Fill colors RT";
+		fillColorsRenderTargetDesc.pName = "Fill colors RT";
 		addRenderTarget(pRenderer, &fillColorsRenderTargetDesc, &pRenderTargetFillColors);
 
 		RenderTargetDesc hairShadowRenderTargetDesc = {};
@@ -4378,7 +4392,7 @@ class MaterialPlayground: public IApp
 		hairShadowRenderTargetDesc.mSampleQuality = 0;
 		hairShadowRenderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		hairShadowRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-		hairShadowRenderTargetDesc.pDebugName = L"Hair shadow RT";
+		hairShadowRenderTargetDesc.pName = "Hair shadow RT";
 		for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 		{
 			for (int i = 0; i < MAX_NUM_DIRECTIONAL_LIGHTS; ++i)
@@ -4396,7 +4410,7 @@ class MaterialPlayground: public IApp
 		depthRenderTargetDesc.mSampleQuality = 0;
 		depthRenderTargetDesc.mWidth = mSettings.mWidth;
 		depthRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-		depthRenderTargetDesc.pDebugName = L"Depth buffer";
+		depthRenderTargetDesc.pName = "Depth buffer";
 		addRenderTarget(pRenderer, &depthRenderTargetDesc, &pRenderTargetDepth);
 
 		RenderTargetDesc shadowPassRenderTargetDesc = {};
@@ -4404,13 +4418,14 @@ class MaterialPlayground: public IApp
         shadowPassRenderTargetDesc.mClearValue.depth = 1.0f;
         shadowPassRenderTargetDesc.mClearValue.stencil = 0;
 		shadowPassRenderTargetDesc.mDepth = 1;
+		shadowPassRenderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		shadowPassRenderTargetDesc.mFormat = TinyImageFormat_D32_SFLOAT;
 		shadowPassRenderTargetDesc.mHeight = gShadowMapDimensions;
 		shadowPassRenderTargetDesc.mWidth  = gShadowMapDimensions;
 		shadowPassRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
 		shadowPassRenderTargetDesc.mSampleQuality = 0;
 		shadowPassRenderTargetDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-		shadowPassRenderTargetDesc.pDebugName = L"Shadow Map Render Target";
+		shadowPassRenderTargetDesc.pName = "Shadow Map Render Target";
 		addRenderTarget(pRenderer, &shadowPassRenderTargetDesc, &pRenderTargetShadowMap);
 
 		SwapChainDesc swapChainDesc = {};
@@ -4425,7 +4440,7 @@ class MaterialPlayground: public IApp
         swapChainDesc.mColorClearValue.g = 0.0f;
         swapChainDesc.mColorClearValue.b = 0.0f;
         swapChainDesc.mColorClearValue.a = 0.0f;
-		swapChainDesc.mEnableVsync = false;
+		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 	}
 
@@ -4495,7 +4510,7 @@ void GuiController::UpdateDynamicUI()
 		GuiController::hairDynamicWidgets[gHairType].hairSimulation.ShowWidgets(pGuiWindowHairSimulation);
 	}
 
-#if !defined(TARGET_IOS) && !defined(_DURANGO) && !defined(__ANDROID__)
+#if !defined(TARGET_IOS) && !defined(__ANDROID__)
 	if (pSwapChain->mEnableVsync != gVSyncEnabled)
 	{
 		waitQueueIdle(pGraphicsQueue);
@@ -4545,7 +4560,7 @@ void GuiController::AddGui()
 	const uint32_t dropDownCount3 = (sizeof(renderModeNames) / sizeof(renderModeNames[0])) - 1;
 
 	// SCENE GUI
-#if !defined(TARGET_IOS) && !defined(_DURANGO) && !defined(__ANDROID__)
+#if !defined(TARGET_IOS) && !defined(__ANDROID__)
 	pGuiWindowMain->AddWidget(CheckboxWidget("V-Sync", &gVSyncEnabled));
 #endif
 	pGuiWindowMain->AddWidget(DropdownWidget("Material Type", &gMaterialType, materialTypeNames, materialTypeValues, dropDownCount));

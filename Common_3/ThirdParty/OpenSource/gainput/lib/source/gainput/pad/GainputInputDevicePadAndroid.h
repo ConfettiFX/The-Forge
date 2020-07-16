@@ -4,6 +4,7 @@
 
 #include "GainputInputDevicePadImpl.h"
 #include <gainput/GainputHelpers.h>
+#include <android/native_activity.h>
 
 namespace gainput
 {
@@ -61,6 +62,30 @@ public:
 	}
 
 	InputState* GetNextInputState() { return &nextState_; }
+
+	int32_t HandleInput(AInputEvent* event)
+	{
+		GAINPUT_ASSERT(state_);
+		GAINPUT_ASSERT(previousState_);
+		GAINPUT_ASSERT(event);
+
+		if (AInputEvent_getType(event) != AINPUT_EVENT_TYPE_MOTION ||
+			!(AInputEvent_getSource(event) & AINPUT_SOURCE_JOYSTICK))
+		{
+			return 0;
+		}
+
+		float x = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_X, 0);
+		float y = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_Y, 0);
+		manager_.EnqueueConcurrentChange(device_, *state_, delta_, PadButtonLeftStickX, x);
+		manager_.EnqueueConcurrentChange(device_, *state_, delta_, PadButtonLeftStickY, y);
+		x = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_Z, 0);
+		y = AMotionEvent_getAxisValue(event, AMOTION_EVENT_AXIS_RZ, 0);
+		manager_.EnqueueConcurrentChange(device_, *state_, delta_, PadButtonRightStickX, x);
+		manager_.EnqueueConcurrentChange(device_, *state_, delta_, PadButtonRightStickY, y);
+
+		return 1;
+	}
 
 private:
 	InputManager& manager_;

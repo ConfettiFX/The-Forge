@@ -130,7 +130,7 @@ float2 PaniniProjectionScreenPosition(float2 screenPosition, float fovH, float D
 
 // Vertex shader
 vertex VSOutput stageMain(VSInput input [[stage_in]],
-                       constant PaniniParameters& PaniniRootConstants [[buffer(UPDATE_FREQ_USER)]])
+                       constant PaniniParameters& PaniniRootConstants [[buffer(0)]])
 {
     VSOutput output;
     

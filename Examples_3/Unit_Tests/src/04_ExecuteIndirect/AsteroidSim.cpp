@@ -179,7 +179,7 @@ void AsteroidSimulation::Update(float deltaTime, unsigned startIdx, unsigned end
 			staticAsteroid.rotationSpeed * deltaTime,
 			vec3(staticAsteroid.rotationAxis.getX(), staticAsteroid.rotationAxis.getY(), staticAsteroid.rotationAxis.getZ()));
 
-#if defined(_DURANGO) || defined(TARGET_IOS) || defined(NX64)
+#if defined(XBOX) || defined(TARGET_IOS) || defined(NX64)
 		// XBoxOne/iOS don't support some of these SSE instructions.
 		// 0xC000001D: Illegal Instruction
 		// Implement it without SSE

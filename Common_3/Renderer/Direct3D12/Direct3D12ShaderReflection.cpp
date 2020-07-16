@@ -26,12 +26,11 @@
 #include "../IRenderer.h"
 #include "../../OS/Interfaces/ILog.h"
 
-#ifdef _DURANGO
-#include "../../../Xbox/Common_3/Renderer/XBoxPrivateHeaders.h"
+#if defined(XBOX)
+#include "../../../Xbox/Common_3/Renderer/Direct3D12/Direct3D12X.h"
 #else
-#include <d3dcompiler.h>
-#include "../../ThirdParty/OpenSource/DirectXShaderCompiler/dxcapi.use.h"
-extern dxc::DxcDllSupport gDxcDllHelper;
+#include "../../ThirdParty/OpenSource/DirectXShaderCompiler/inc/dxcapi.h"
+#include <d3d12shader.h>
 #endif
 
 #include "../../OS/Interfaces/IMemory.h"
@@ -290,7 +289,6 @@ void d3d12_createShaderReflection(ID3D12ShaderReflection* d3d12reflection, Shade
 	fill_shader_resources(d3d12reflection, shaderDesc, shaderStage, pCurrentName, reflection);
 }
 
-#ifndef _DURANGO
 //template<typename RefInterface = ID3D12LibraryReflection>
 void d3d12_createShaderReflection(ID3D12LibraryReflection* d3d12LibReflection, ShaderStage shaderStage, ShaderReflection& reflection)
 {
@@ -309,7 +307,6 @@ void d3d12_createShaderReflection(ID3D12LibraryReflection* d3d12LibReflection, S
 
 	fill_shader_resources(d3d12reflection, shaderDesc, shaderStage, pCurrentName, reflection);
 }
-#endif
 
 void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, ShaderStage shaderStage, ShaderReflection* pOutReflection)
 {
@@ -331,49 +328,40 @@ void d3d12_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 	}
 
 	//Run the D3D12 shader reflection on the compiled shader
-#ifndef _DURANGO
 	ID3D12LibraryReflection* d3d12LibReflection = NULL;
-#endif
 	ID3D12ShaderReflection* d3d12reflection = NULL;
-	D3DReflect(shaderCode, shaderSize, IID_PPV_ARGS(&d3d12reflection));
-#ifndef _DURANGO
-	if (!d3d12reflection)
-	{
-		IDxcLibrary* pLibrary = NULL;
-		gDxcDllHelper.CreateInstance(CLSID_DxcLibrary, &pLibrary);
-		IDxcBlobEncoding* pBlob = NULL;
-		pLibrary->CreateBlobWithEncodingFromPinned((LPBYTE)shaderCode, (UINT32)shaderSize, 0, &pBlob);
+
+	IDxcLibrary* pLibrary = NULL;
+	DxcCreateInstance(CLSID_DxcLibrary, IID_PPV_ARGS(&pLibrary));
+	IDxcBlobEncoding* pBlob = NULL;
+	pLibrary->CreateBlobWithEncodingFromPinned((LPBYTE)shaderCode, (UINT32)shaderSize, 0, &pBlob);
 #define DXIL_FOURCC(ch0, ch1, ch2, ch3) \
-	((uint32_t)(uint8_t)(ch0) | (uint32_t)(uint8_t)(ch1) << 8 | (uint32_t)(uint8_t)(ch2) << 16 | (uint32_t)(uint8_t)(ch3) << 24)
+((uint32_t)(uint8_t)(ch0) | (uint32_t)(uint8_t)(ch1) << 8 | (uint32_t)(uint8_t)(ch2) << 16 | (uint32_t)(uint8_t)(ch3) << 24)
 
-		IDxcContainerReflection* pReflection;
-		UINT32                   shaderIdx;
-		gDxcDllHelper.CreateInstance(CLSID_DxcContainerReflection, &pReflection);
-		pReflection->Load(pBlob);
-		(pReflection->FindFirstPartKind(DXIL_FOURCC('D', 'X', 'I', 'L'), &shaderIdx));
+	IDxcContainerReflection* pReflection;
+	UINT32                   shaderIdx;
+	DxcCreateInstance(CLSID_DxcContainerReflection, IID_PPV_ARGS(&pReflection));
+	pReflection->Load(pBlob);
+	(pReflection->FindFirstPartKind(DXIL_FOURCC('D', 'X', 'I', 'L'), &shaderIdx));
 
-		if (shaderStage == SHADER_STAGE_RAYTRACING)
-			pReflection->GetPartReflection(shaderIdx, IID_PPV_ARGS(&d3d12LibReflection));
-		else
-			pReflection->GetPartReflection(shaderIdx, IID_PPV_ARGS(&d3d12reflection));
+	if (shaderStage == SHADER_STAGE_RAYTRACING)
+		pReflection->GetPartReflection(shaderIdx, IID_PPV_ARGS(&d3d12LibReflection));
+	else
+		pReflection->GetPartReflection(shaderIdx, IID_PPV_ARGS(&d3d12reflection));
 
-		pBlob->Release();
-		pLibrary->Release();
-		pReflection->Release();
-	}
-#endif
+	pBlob->Release();
+	pLibrary->Release();
+	pReflection->Release();
 
 	//Allocate our internal shader reflection structure on the stack
 	ShaderReflection reflection = {};    //initialize the struct to 0
 
-#ifndef _DURANGO
 	if (shaderStage == SHADER_STAGE_RAYTRACING)
 	{
 		d3d12_createShaderReflection(d3d12LibReflection, shaderStage, reflection);
 		d3d12LibReflection->Release();
 	}
 	else
-#endif
 	{
 		d3d12_createShaderReflection(d3d12reflection, shaderStage, reflection);
 		d3d12reflection->Release();

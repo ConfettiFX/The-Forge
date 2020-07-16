@@ -21,6 +21,7 @@ struct IndirectDrawIndexArguments
     uint startIndex;
     uint vertexOffset;
     uint startInstance;
+	uint pad[3];
 };
 
 struct CSData

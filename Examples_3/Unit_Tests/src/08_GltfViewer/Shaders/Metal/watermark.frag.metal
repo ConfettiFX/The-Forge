@@ -26,19 +26,15 @@ struct main_input
     float2 TEXCOORD;
 };
 
-struct ArgBuffer0
-{
-    texture2d<float> sceneTexture [[id(0)]];
-    sampler clampMiplessLinearSampler [[id(1)]];
-};
-
 fragment float4 stageMain(
 	main_input inputData [[stage_in]],
-    constant ArgBuffer0& argBuffer0 [[buffer(UPDATE_FREQ_NONE)]])
+	texture2d<float> sceneTexture [[texture(0)]],
+    sampler clampMiplessLinearSampler [[sampler(0)]]
+)
 {
     Fragment_Shader::VSOutput input0;
     input0.Position = inputData.SV_POSITION;
     input0.TexCoord = inputData.TEXCOORD;
-    Fragment_Shader main(argBuffer0.sceneTexture, argBuffer0.clampMiplessLinearSampler);
+    Fragment_Shader main(sceneTexture, clampMiplessLinearSampler);
     return main.main(input0);
 }

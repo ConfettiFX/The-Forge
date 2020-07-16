@@ -94,6 +94,8 @@ public:
 			mLanguage = (Language)-1;
 			mTarget = (Target)-1;
 			mOperation = (Operation)-1;
+
+			mUseArgumentBuffers = false;
 		}
 
 		// if true, stores a tokens file
@@ -118,6 +120,8 @@ public:
 		eastl::vector < BindingOverride > mOverrideVec;
 
 		eastl::vector < BindingShift > mShiftVec;
+
+		bool mUseArgumentBuffers;
 
 
 		// what operation to actually do with the file. options are:

@@ -33,7 +33,7 @@
 
 void _OutputDebugStringV(const char* str, va_list args)
 {
-#if FORGE_DEBUG
+#if defined(FORGE_DEBUG)
     const unsigned BUFFER_SIZE = 4096;
     char           buf[BUFFER_SIZE];
 
@@ -44,7 +44,7 @@ void _OutputDebugStringV(const char* str, va_list args)
 
 void _OutputDebugString(const char* str, ...)
 {
-#if FORGE_DEBUG
+#if defined(FORGE_DEBUG)
 	va_list arglist;
 	va_start(arglist, str);
 	_OutputDebugStringV(str, arglist);
@@ -84,11 +84,15 @@ void _FailedAssert(const char* file, int line, const char* statement)
 		}
 		else
 		{
+#ifdef FORGE_STACKTRACE_DUMP
+			__debugbreak();
+#else
 			wcscat(str, L"Display more asserts?");
 			if (MessageBoxW(NULL, str, L"Assert failed", MB_YESNO | MB_ICONERROR | MB_DEFBUTTON2) != IDYES)
 			{
 				debug = false;
 			}
+#endif
 		}
 	}
 }

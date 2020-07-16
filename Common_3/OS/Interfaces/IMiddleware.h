@@ -27,6 +27,7 @@
 struct Renderer;
 struct RenderTarget;
 struct Cmd;
+struct PipelineCache;
 
 #include "IOperatingSystem.h"
 
@@ -35,7 +36,7 @@ class IMiddleware
 	public:
 	// Our init function should only be called once
 	// The middleware has to keep these pointers
-	virtual bool Init(Renderer* renderer) = 0;
+	virtual bool Init(Renderer* renderer, PipelineCache* pCache = NULL) = 0;
 	virtual void Exit() = 0;
 
 	// When app is loaded, app is provided of the render targets to load

@@ -52,17 +52,17 @@ float linstep(float min, float max, float s)
 }
 
 vertex PsIn stageMain(VsIn In [[stage_in]],
-                      constant BasicArgDataPerBatch& vsDataPerBatch     [[buffer(UPDATE_FREQ_PER_BATCH)]],
-                      constant RootConstantData& rootConstant     [[buffer(UPDATE_FREQ_USER)]]
+                      constant InstanceData* instanceBuffer   [[buffer(0)]],
+                      constant RootConstantData& rootConstant [[buffer(1)]]
 )
 {
     PsIn result;
-    result.position = vsDataPerBatch.instanceBuffer[rootConstant.index].mvp * float4(In.position.xyz, 1);
+    result.position = instanceBuffer[rootConstant.index].mvp * float4(In.position.xyz, 1);
     result.posModel = In.position.xyz;
-    result.normal = normalize((vsDataPerBatch.instanceBuffer[rootConstant.index].normalMat * float4(In.normal.xyz, 0)).xyz);
+    result.normal = normalize((instanceBuffer[rootConstant.index].normalMat * float4(In.normal.xyz, 0)).xyz);
 
     float depth = linstep(0.5f, 0.7f, length(In.position.xyz));
-    result.albedo = mix(vsDataPerBatch.instanceBuffer[rootConstant.index].deepColor.xyz, vsDataPerBatch.instanceBuffer[rootConstant.index].surfaceColor.xyz, depth);
+    result.albedo = mix(instanceBuffer[rootConstant.index].deepColor.xyz, instanceBuffer[rootConstant.index].surfaceColor.xyz, depth);
 
     return result;
 }

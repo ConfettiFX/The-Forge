@@ -31,7 +31,7 @@
 
 #if defined(METAL)
 #include "Shaders/Metal/shader_defs.h"
-#elif defined(DIRECT3D12) || defined(_DURANGO)
+#elif defined(DIRECT3D12) || defined(XBOX)
 #define NO_HLSL_DEFINITIONS
 #include "Shaders/D3D12/shader_defs.h"
 #elif defined(VULKAN)
@@ -40,6 +40,9 @@
 #elif defined(ORBIS)
 #define NO_ORBIS_DEFINITIONS
 #include "../../../PS4/Examples_3/Visibility_Buffer/src/Shaders/shader_defs.h"
+#elif defined(PROSPERO)
+#define NO_PROSPERO_DEFINITIONS
+#include "../../../Prospero/Examples_3/Visibility_Buffer/src/Shaders/shader_defs.h"
 #endif
 
 // Type definitions
@@ -121,6 +124,6 @@ void   destroyClusters(ClusterContainer* mesh);
 void addClusterToBatchChunk(
 	const ClusterCompact* cluster, uint batchStart, uint accumDrawCount, uint accumNumTriangles, int meshIndex,
 	FilterBatchChunk* batchChunk, FilterBatchData* batches);
-void createCubeBuffers(Renderer* pRenderer, CmdPool* cmdPool, Buffer** outVertexBuffer, Buffer** outIndexBuffer);
+void createCubeBuffers(Renderer* pRenderer, Buffer** outVertexBuffer, Buffer** outIndexBuffer);
 
 #endif

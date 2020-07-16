@@ -166,6 +166,7 @@ bool Parser::ProcessFile(
 		mslOptions.bindingRequired = options.mOverrideRequired;
 		mslOptions.bindingOverrides = options.mOverrideVec;
 		mslOptions.shiftVec = options.mShiftVec;
+		mslOptions.useArgBufs = options.mUseArgumentBuffers;
 
 		parsedData.mIsGenerateOk = generator.Generate(&stringLibrary, &tree, (MSLGenerator::Target)options.mTarget, entryName.c_str(), mslOptions);
 		parsedData.mGeneratedData = generator.GetResult();

@@ -149,11 +149,11 @@ ProfileToken   gGpuProfileToken;
 Renderer* pRenderer = NULL;
 
 Queue*   pGraphicsQueue = NULL;
-CmdPool* pCmdPool = NULL;
-Cmd**    ppCmds = NULL;
+CmdPool* pCmdPools[gImageCount];
+Cmd*     pCmds[gImageCount];
 
-CmdPool* pUICmdPool = NULL;
-Cmd**    ppUICmds = NULL;
+CmdPool* pUICmdPools[gImageCount];
+Cmd*     pUICmds[gImageCount];
 
 SwapChain*    pSwapChain = NULL;
 RenderTarget* pDepthBuffer = NULL;
@@ -226,25 +226,26 @@ class Tessellation: public IApp
 #ifdef TARGET_IOS
 		mSettings.mContentScaleFactor = 1.f;
 #endif
+		gToggleVSync = mSettings.mDefaultVSyncEnabled;
 	}
 	
 	bool Init()
 	{
-        // FILE PATHS
-        PathHandle programDirectory = fsGetApplicationDirectory();
-        if (!fsPlatformUsesBundledResources())
-        {
-            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/07_Tessellation");
-            fsSetResourceDirRootPath(resourceDirRoot);
-            
-            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirEnum(RD_MESHES,             "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,     "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,     "../../../../Middleware_3/UI");
-        }
-        
+		// FILE PATHS
+		PathHandle programDirectory = fsGetApplicationDirectory();
+		if (!fsPlatformUsesBundledResources())
+		{
+			PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/07_Tessellation");
+			fsSetResourceDirRootPath(resourceDirRoot);
+
+			fsSetRelativePathForResourceDirEnum(RD_TEXTURES, "../../UnitTestResources/Textures");
+			fsSetRelativePathForResourceDirEnum(RD_MESHES, "../../UnitTestResources/Meshes");
+			fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS, "../../UnitTestResources/Fonts");
+			fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS, "../../UnitTestResources/Animation");
+			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT, "../../../../Middleware_3/Text");
+			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI, "../../../../Middleware_3/UI");
+		}
+
 		initNoise();
 
 		initBlades();
@@ -266,16 +267,20 @@ class Tessellation: public IApp
 		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
 		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		CmdPoolDesc cmdPoolDesc = {};
-		cmdPoolDesc.pQueue = pGraphicsQueue;
-		addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
-		CmdDesc cmdDesc = {};
-		cmdDesc.pPool = pCmdPool;
-		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
 
-		addCmdPool(pRenderer, &cmdPoolDesc, &pUICmdPool);
-		cmdDesc.pPool = pUICmdPool;
-		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppUICmds);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+
+			addCmdPool(pRenderer, &cmdPoolDesc, &pUICmdPools[i]);
+			cmdDesc.pPool = pUICmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pUICmds[i]);
+		}
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -286,57 +291,70 @@ class Tessellation: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_ROOT))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
 		{
 			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
 			return false;
 		}
 
+		if (pRenderer->pActiveGpuSettings->mTessellationSupported)
+		{
 #if !defined(METAL)
-		ShaderLoadDesc grassShader = {};
-		grassShader.mStages[0] = { "grass.vert", NULL, 0, RD_SHADER_SOURCES };
-		grassShader.mStages[1] = { "grass.frag", NULL, 0, RD_SHADER_SOURCES };
-		grassShader.mStages[2] = { "grass.tesc", NULL, 0, RD_SHADER_SOURCES };
-		grassShader.mStages[3] = { "grass.tese", NULL, 0, RD_SHADER_SOURCES };
+			ShaderLoadDesc grassShader = {};
+			grassShader.mStages[0] = { "grass.vert", NULL, 0, RD_SHADER_SOURCES };
+			grassShader.mStages[1] = { "grass.frag", NULL, 0, RD_SHADER_SOURCES };
+			grassShader.mStages[2] = { "grass.tesc", NULL, 0, RD_SHADER_SOURCES };
+			grassShader.mStages[3] = { "grass.tese", NULL, 0, RD_SHADER_SOURCES };
 #else
-		ShaderLoadDesc grassVertexHullShader = {};
-		grassVertexHullShader.mStages[0] = { "grass_verthull.comp", NULL, 0, RD_SHADER_SOURCES };
+			ShaderLoadDesc grassVertexHullShader = {};
+			grassVertexHullShader.mStages[0] = { "grass_verthull.comp", NULL, 0, RD_SHADER_SOURCES };
 
-		ShaderLoadDesc grassShader = {};
-		grassShader.mStages[0] = { "grass.domain.vert", NULL, 0, RD_SHADER_SOURCES };
-		grassShader.mStages[1] = { "grass.frag", NULL, 0, RD_SHADER_SOURCES };
+			ShaderLoadDesc grassShader = {};
+			grassShader.mStages[0] = { "grass.domain.vert", NULL, 0, RD_SHADER_SOURCES };
+			grassShader.mStages[1] = { "grass.frag", NULL, 0, RD_SHADER_SOURCES };
 #endif
+
+			addShader(pRenderer, &grassShader, &pGrassShader);
+
+			RootSignatureDesc grassRootDesc = { &pGrassShader, 1 };
+			addRootSignature(pRenderer, &grassRootDesc, &pGrassRootSignature);
+
+			DescriptorSetDesc setDesc = { pGrassRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGrass);
+
+#ifdef METAL
+			addShader(pRenderer, &grassVertexHullShader, &pGrassVertexHullShader);
+
+			RootSignatureDesc vertexHullRootDesc = { &pGrassVertexHullShader, 1 };
+			addRootSignature(pRenderer, &vertexHullRootDesc, &pGrassVertexHullRootSignature);
+
+			setDesc = { pGrassVertexHullRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGrassVertexHull[0]);
+			setDesc = { pGrassVertexHullRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
+			addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGrassVertexHull[1]);
+
+			PipelineDesc pipelineDesc = {};
+			pipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
+			ComputePipelineDesc& grassVertexHullPipelineDesc = pipelineDesc.mComputeDesc;
+			grassVertexHullPipelineDesc.pRootSignature = pGrassVertexHullRootSignature;
+			grassVertexHullPipelineDesc.pShaderProgram = pGrassVertexHullShader;
+			addPipeline(pRenderer, &pipelineDesc, &pGrassVertexHullPipeline);
+#endif
+		}
+
 		ShaderLoadDesc computeShader = {};
 		computeShader.mStages[0] = { "compute.comp", NULL, 0, RD_SHADER_SOURCES };
-
-		addShader(pRenderer, &grassShader, &pGrassShader);
 		addShader(pRenderer, &computeShader, &pComputeShader);
 
-		RootSignatureDesc grassRootDesc = { &pGrassShader, 1 };
 		RootSignatureDesc computeRootDesc = { &pComputeShader, 1 };
-		addRootSignature(pRenderer, &grassRootDesc, &pGrassRootSignature);
 		addRootSignature(pRenderer, &computeRootDesc, &pComputeRootSignature);
 
 		DescriptorSetDesc setDesc = { pComputeRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetCompute[0]);
 		setDesc = { pComputeRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetCompute[1]);
-		setDesc = { pGrassRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGrass);
 
-#ifdef METAL
-		addShader(pRenderer, &grassVertexHullShader, &pGrassVertexHullShader);
-
-		RootSignatureDesc vertexHullRootDesc = { &pGrassVertexHullShader, 1 };
-		addRootSignature(pRenderer, &vertexHullRootDesc, &pGrassVertexHullRootSignature);
-
-		setDesc = { pGrassVertexHullRootSignature, DESCRIPTOR_UPDATE_FREQ_NONE, 1 };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGrassVertexHull[0]);
-		setDesc = { pGrassVertexHullRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
-		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetGrassVertexHull[1]);
-#endif
-
-		PipelineDesc pipelineDesc = { };
+		PipelineDesc pipelineDesc = {};
 		pipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
 		ComputePipelineDesc& computePipelineDesc = pipelineDesc.mComputeDesc;
 		computePipelineDesc.pRootSignature = pComputeRootSignature;
@@ -350,14 +368,6 @@ class Tessellation: public IApp
 									ADDRESS_MODE_CLAMP_TO_EDGE,
 									ADDRESS_MODE_CLAMP_TO_EDGE };
 		addSampler(pRenderer, &samplerDesc, &pSampler);
-
-#ifdef METAL
-        pipelineDesc.mComputeDesc = {};
-		ComputePipelineDesc& grassVertexHullPipelineDesc = pipelineDesc.mComputeDesc;
-		grassVertexHullPipelineDesc.pRootSignature = pGrassVertexHullRootSignature;
-		grassVertexHullPipelineDesc.pShaderProgram = pGrassVertexHullShader;
-		addPipeline(pRenderer, &pipelineDesc, &pGrassVertexHullPipeline);
-#endif
 
 		BufferLoadDesc ubGrassDesc = {};
 		ubGrassDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -400,12 +410,7 @@ class Tessellation: public IApp
 		sbBladeNumDesc.mDesc.mFirstElement = 0;
 		sbBladeNumDesc.mDesc.mElementCount = 1;
 		sbBladeNumDesc.mDesc.mStructStride = sizeof(BladeDrawIndirect);
-#ifndef TARGET_IOS
 		sbBladeNumDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-#else
-		sbBladeNumDesc.mDesc.mMemoryUsage =
-			RESOURCE_MEMORY_USAGE_CPU_TO_GPU;    // On iOS, we need to map this buffer to CPU memory to support tessellated execute-indirect.
-#endif
 		sbBladeNumDesc.mDesc.mSize = sizeof(BladeDrawIndirect);
 
 		sbBladeNumDesc.pData = &indirectDraw;
@@ -436,13 +441,12 @@ class Tessellation: public IApp
 		addResource(&hullOutputBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
 #endif
 
-		eastl::vector<IndirectArgumentDescriptor> indirectArgDescs(1);
+		IndirectArgumentDescriptor indirectArgDescs[1] = {};
 		indirectArgDescs[0] = {};
 		indirectArgDescs[0].mType = INDIRECT_DRAW;    // Indirect Index Draw Arguments
 		CommandSignatureDesc cmdSigDesc = {};
-		cmdSigDesc.mIndirectArgCount = (uint32_t)indirectArgDescs.size();
-		cmdSigDesc.pArgDescs = indirectArgDescs.data();
-		cmdSigDesc.pCmdPool = pCmdPool;
+		cmdSigDesc.mIndirectArgCount = sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]);
+		cmdSigDesc.pArgDescs = indirectArgDescs;
 		cmdSigDesc.pRootSignature = pGrassRootSignature;
 		addIndirectCommandSignature(pRenderer, &cmdSigDesc, &pIndirectCommandSignature);
 
@@ -450,10 +454,8 @@ class Tessellation: public IApp
 		gGrassUniformData.mMaxTessellationLevel = gMaxTessellationLevel;
 		gGrassUniformData.mWindMode = gWindMode;
 
-		GuiDesc guiDesc = {};
-		float   dpiScale = getDpiScale().x;
-		guiDesc.mStartSize = vec2(300.0f, 250.0f) / dpiScale;
-		guiDesc.mStartPosition = vec2(0.0f, guiDesc.mStartSize.getY());
+		GuiDesc guiDesc = {};				
+		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f , mSettings.mHeight * 0.2f);
 
 		if (!gAppUI.Init(pRenderer))
 			return false;
@@ -461,36 +463,43 @@ class Tessellation: public IApp
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 		pGui = gAppUI.AddGuiComponent("Tessellation Properties", &guiDesc);
 
-		static const char* enumNames[] = {
-			"SOLID",
-			"WIREFRAME",
-		};
-		static const uint32_t enumValues[] = {
-			FILL_MODE_SOLID,
-			FILL_MODE_WIREFRAME,
-		};
+		if (pRenderer->pActiveGpuSettings->mTessellationSupported)
+		{
+			static const char* enumNames[] = {
+				"SOLID",
+				"WIREFRAME",
+			};
+			static const uint32_t enumValues[] = {
+				FILL_MODE_SOLID,
+				FILL_MODE_WIREFRAME,
+			};
 
-		static const char* enumWindNames[] = {
-			"STRAIGHT",
-			"RADIAL",
-		};
-		static const uint32_t enumWindValues[] = {
-			WIND_MODE_STRAIGHT,
-			WIND_MODE_RADIAL,
-		};
+			static const char* enumWindNames[] = {
+				"STRAIGHT",
+				"RADIAL",
+			};
+			static const uint32_t enumWindValues[] = {
+				WIND_MODE_STRAIGHT,
+				WIND_MODE_RADIAL,
+			};
 
-		pGui->AddWidget(DropdownWidget("Fill Mode : ", &gFillMode, enumNames, enumValues, 2));
-		pGui->AddWidget(DropdownWidget("Wind Mode", &gWindMode, enumWindNames, enumWindValues, 2));
+			pGui->AddWidget(DropdownWidget("Fill Mode : ", &gFillMode, enumNames, enumValues, 2));
+			pGui->AddWidget(DropdownWidget("Wind Mode", &gWindMode, enumWindNames, enumWindValues, 2));
 
-		pGui->AddWidget(SliderFloatWidget("Wind Speed : ", &gWindSpeed, 1.0f, 100.0f));
-		pGui->AddWidget(SliderFloatWidget("Wave Width : ", &gWindWidth, 1.0f, 20.0f));
-		pGui->AddWidget(SliderFloatWidget("Wind Strength : ", &gWindStrength, 1.0f, 100.0f));
+			pGui->AddWidget(SliderFloatWidget("Wind Speed : ", &gWindSpeed, 1.0f, 100.0f));
+			pGui->AddWidget(SliderFloatWidget("Wave Width : ", &gWindWidth, 1.0f, 20.0f));
+			pGui->AddWidget(SliderFloatWidget("Wind Strength : ", &gWindStrength, 1.0f, 100.0f));
 
-		pGui->AddWidget(SliderUintWidget("Max Tessellation Level : ", &gMaxTessellationLevel, 1, 10));
+			pGui->AddWidget(SliderUintWidget("Max Tessellation Level : ", &gMaxTessellationLevel, 1, 10));
 
-#if !defined(TARGET_IOS) && !defined(_DURANGO)
-		pGui->AddWidget(CheckboxWidget("Toggle Vsync", &gToggleVSync));
+#if !defined(TARGET_IOS)
+			pGui->AddWidget(CheckboxWidget("Toggle Vsync", &gToggleVSync));
 #endif
+		}
+		else
+		{
+			pGui->AddWidget(LabelWidget("Tessellation is not supported on this GPU"));
+		}
 
 		CameraMotionParameters cmp{ 100.0f, 150.0f, 300.0f };
 		vec3                   camPos{ 48.0f, 48.0f, 20.0f };
@@ -503,8 +512,8 @@ class Tessellation: public IApp
 		if (!initInputSystem(pWindow))
 			return false;
 
-        initProfiler();
-        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+		initProfiler();
+		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
 		// App Actions
 		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
@@ -554,23 +563,29 @@ class Tessellation: public IApp
 			computeParams[0].pName = "GrassUniformBlock";
 			computeParams[0].ppBuffers = &pGrassUniformBuffer[i];
 			updateDescriptorSet(pRenderer, i, pDescriptorSetCompute[1], 1, computeParams);
-			updateDescriptorSet(pRenderer, i, pDescriptorSetGrass, 1, computeParams);
+			if (pRenderer->pActiveGpuSettings->mTessellationSupported)
+			{
+				updateDescriptorSet(pRenderer, i, pDescriptorSetGrass, 1, computeParams);
 #ifdef METAL
-			updateDescriptorSet(pRenderer, i, pDescriptorSetGrassVertexHull[1], 1, computeParams);
+				updateDescriptorSet(pRenderer, i, pDescriptorSetGrassVertexHull[1], 1, computeParams);
 #endif
+			}
 		}
 
 #ifdef METAL
-		DescriptorData vertexHullParams[4] = {};
-		vertexHullParams[0].pName = "vertexInput";
-		vertexHullParams[0].ppBuffers = &pCulledBladeStorageBuffer;
-		vertexHullParams[1].pName = "drawInfo";
-		vertexHullParams[1].ppBuffers = &pBladeNumBuffer;
-		vertexHullParams[2].pName = "tessellationFactorBuffer";
-		vertexHullParams[2].ppBuffers = &pTessFactorsBuffer;
-		vertexHullParams[3].pName = "hullOutputBuffer";
-		vertexHullParams[3].ppBuffers = &pHullOutputBuffer;
-		updateDescriptorSet(pRenderer, 0, pDescriptorSetGrassVertexHull[0], 4, vertexHullParams);
+		if (pRenderer->pActiveGpuSettings->mTessellationSupported)
+		{
+			DescriptorData vertexHullParams[4] = {};
+			vertexHullParams[0].pName = "vertexInput";
+			vertexHullParams[0].ppBuffers = &pCulledBladeStorageBuffer;
+			vertexHullParams[1].pName = "drawInfo";
+			vertexHullParams[1].ppBuffers = &pBladeNumBuffer;
+			vertexHullParams[2].pName = "tessellationFactorBuffer";
+			vertexHullParams[2].ppBuffers = &pTessFactorsBuffer;
+			vertexHullParams[3].pName = "hullOutputBuffer";
+			vertexHullParams[3].ppBuffers = &pHullOutputBuffer;
+			updateDescriptorSet(pRenderer, 0, pDescriptorSetGrassVertexHull[0], 4, vertexHullParams);
+	}
 #endif
 
 		return true;
@@ -588,13 +603,25 @@ class Tessellation: public IApp
 
 		gAppUI.Exit();
 
-		removeDescriptorSet(pRenderer, pDescriptorSetGrass);
+		if (pRenderer->pActiveGpuSettings->mTessellationSupported)
+		{
+			removeDescriptorSet(pRenderer, pDescriptorSetGrass);
+
+#ifdef METAL
+			removeDescriptorSet(pRenderer, pDescriptorSetGrassVertexHull[0]);
+			removeDescriptorSet(pRenderer, pDescriptorSetGrassVertexHull[1]);
+
+			removeShader(pRenderer, pGrassVertexHullShader);
+			removePipeline(pRenderer, pGrassVertexHullPipeline);
+			removeRootSignature(pRenderer, pGrassVertexHullRootSignature);
+#endif
+
+			removeShader(pRenderer, pGrassShader);
+			removeRootSignature(pRenderer, pGrassRootSignature);
+		}
+
 		removeDescriptorSet(pRenderer, pDescriptorSetCompute[0]);
 		removeDescriptorSet(pRenderer, pDescriptorSetCompute[1]);
-#ifdef METAL
-		removeDescriptorSet(pRenderer, pDescriptorSetGrassVertexHull[0]);
-		removeDescriptorSet(pRenderer, pDescriptorSetGrassVertexHull[1]);
-#endif
 
 		removeResource(pBladeStorageBuffer);
 		removeResource(pCulledBladeStorageBuffer);
@@ -618,32 +645,24 @@ class Tessellation: public IApp
 
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
 
-		removeCmd_n(pRenderer, gImageCount, ppCmds);
-		removeCmdPool(pRenderer, pCmdPool);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeCmd(pRenderer, pCmds[i]);
+			removeCmdPool(pRenderer, pCmdPools[i]);
 
-		removeCmd_n(pRenderer, gImageCount, ppUICmds);
-		removeCmdPool(pRenderer, pUICmdPool);
+			removeCmd(pRenderer, pUICmds[i]);
+			removeCmdPool(pRenderer, pUICmdPools[i]);
+		}
 
 		removeSampler(pRenderer, pSampler);
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 			removeResource(pGrassUniformBuffer[i]);
 
-		removeShader(pRenderer, pGrassShader);
-#ifdef METAL
-		removeShader(pRenderer, pGrassVertexHullShader);
-#endif
 		removeShader(pRenderer, pComputeShader);
 
-#ifdef METAL
-		removePipeline(pRenderer, pGrassVertexHullPipeline);
-#endif
 		removePipeline(pRenderer, pComputePipeline);
 
-		removeRootSignature(pRenderer, pGrassRootSignature);
-#ifdef METAL
-		removeRootSignature(pRenderer, pGrassVertexHullRootSignature);
-#endif
 		removeRootSignature(pRenderer, pComputeRootSignature);
 
         exitResourceLoaderInterface(pRenderer);
@@ -669,79 +688,82 @@ class Tessellation: public IApp
 
 		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
-		VertexLayout vertexLayout = {};
+		if (pRenderer->pActiveGpuSettings->mTessellationSupported)
+		{
+			VertexLayout vertexLayout = {};
 #ifndef METAL
-		vertexLayout.mAttribCount = 4;
+			vertexLayout.mAttribCount = 4;
 #else
-		vertexLayout.mAttribCount = 5;
+			vertexLayout.mAttribCount = 5;
 #endif
 
-		//v0 -- position (Metal)
-		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_TEXCOORD0;
-		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
-		vertexLayout.mAttribs[0].mBinding = 0;
-		vertexLayout.mAttribs[0].mLocation = 0;
-		vertexLayout.mAttribs[0].mOffset = 0;
+			//v0 -- position (Metal)
+			vertexLayout.mAttribs[0].mSemantic = SEMANTIC_TEXCOORD0;
+			vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
+			vertexLayout.mAttribs[0].mBinding = 0;
+			vertexLayout.mAttribs[0].mLocation = 0;
+			vertexLayout.mAttribs[0].mOffset = 0;
 
-		//v1
-		vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD1;
-		vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
-		vertexLayout.mAttribs[1].mBinding = 0;
-		vertexLayout.mAttribs[1].mLocation = 1;
-		vertexLayout.mAttribs[1].mOffset = 4 * sizeof(float);
+			//v1
+			vertexLayout.mAttribs[1].mSemantic = SEMANTIC_TEXCOORD1;
+			vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
+			vertexLayout.mAttribs[1].mBinding = 0;
+			vertexLayout.mAttribs[1].mLocation = 1;
+			vertexLayout.mAttribs[1].mOffset = 4 * sizeof(float);
 
-		//v2
-		vertexLayout.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD2;
-		vertexLayout.mAttribs[2].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
-		vertexLayout.mAttribs[2].mBinding = 0;
-		vertexLayout.mAttribs[2].mLocation = 2;
-		vertexLayout.mAttribs[2].mOffset = 8 * sizeof(float);
+			//v2
+			vertexLayout.mAttribs[2].mSemantic = SEMANTIC_TEXCOORD2;
+			vertexLayout.mAttribs[2].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
+			vertexLayout.mAttribs[2].mBinding = 0;
+			vertexLayout.mAttribs[2].mLocation = 2;
+			vertexLayout.mAttribs[2].mOffset = 8 * sizeof(float);
 
-		//up
-		vertexLayout.mAttribs[3].mSemantic = SEMANTIC_TEXCOORD3;
-		vertexLayout.mAttribs[3].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
-		vertexLayout.mAttribs[3].mBinding = 0;
-		vertexLayout.mAttribs[3].mLocation = 3;
-		vertexLayout.mAttribs[3].mOffset = 12 * sizeof(float);
+			//up
+			vertexLayout.mAttribs[3].mSemantic = SEMANTIC_TEXCOORD3;
+			vertexLayout.mAttribs[3].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
+			vertexLayout.mAttribs[3].mBinding = 0;
+			vertexLayout.mAttribs[3].mLocation = 3;
+			vertexLayout.mAttribs[3].mOffset = 12 * sizeof(float);
 
 #ifdef METAL
-		// widthDir
-		vertexLayout.mAttribs[4].mSemantic = SEMANTIC_TEXCOORD3;
-		vertexLayout.mAttribs[4].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
-		vertexLayout.mAttribs[4].mBinding = 0;
-		vertexLayout.mAttribs[4].mLocation = 4;
-		vertexLayout.mAttribs[4].mOffset = 16 * sizeof(float);
+			// widthDir
+			vertexLayout.mAttribs[4].mSemantic = SEMANTIC_TEXCOORD3;
+			vertexLayout.mAttribs[4].mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
+			vertexLayout.mAttribs[4].mBinding = 0;
+			vertexLayout.mAttribs[4].mLocation = 4;
+			vertexLayout.mAttribs[4].mOffset = 16 * sizeof(float);
 #endif
 
-		DepthStateDesc depthStateDesc = {};
-		depthStateDesc.mDepthTest = true;
-		depthStateDesc.mDepthWrite = true;
-		depthStateDesc.mDepthFunc = CMP_GEQUAL;
+			DepthStateDesc depthStateDesc = {};
+			depthStateDesc.mDepthTest = true;
+			depthStateDesc.mDepthWrite = true;
+			depthStateDesc.mDepthFunc = CMP_GEQUAL;
 
-		RasterizerStateDesc rasterizerStateDesc = {};
-		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
+			RasterizerStateDesc rasterizerStateDesc = {};
+			rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
 
-		RasterizerStateDesc rasterizerStateWireframeDesc = {};
-		rasterizerStateWireframeDesc.mCullMode = CULL_MODE_NONE;
-		rasterizerStateWireframeDesc.mFillMode = FILL_MODE_WIREFRAME;
+			RasterizerStateDesc rasterizerStateWireframeDesc = {};
+			rasterizerStateWireframeDesc.mCullMode = CULL_MODE_NONE;
+			rasterizerStateWireframeDesc.mFillMode = FILL_MODE_WIREFRAME;
 
-		PipelineDesc desc = {};
-		desc.mType = PIPELINE_TYPE_GRAPHICS;
-		GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
-		pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_PATCH_LIST;
-		pipelineSettings.pRasterizerState = &rasterizerStateDesc;
-		pipelineSettings.pDepthState = &depthStateDesc;
-		pipelineSettings.mRenderTargetCount = 1;
-		pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
-		pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
-		pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-		pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
-		pipelineSettings.pVertexLayout = &vertexLayout;
-		pipelineSettings.pRootSignature = pGrassRootSignature;
-		pipelineSettings.pShaderProgram = pGrassShader;
-		addPipeline(pRenderer, &desc, &pGrassPipeline);
-		pipelineSettings.pRasterizerState = &rasterizerStateWireframeDesc;
-		addPipeline(pRenderer, &desc, &pGrassPipelineForWireframe);
+			PipelineDesc desc = {};
+			desc.mType = PIPELINE_TYPE_GRAPHICS;
+			GraphicsPipelineDesc& pipelineSettings = desc.mGraphicsDesc;
+			pipelineSettings.mPrimitiveTopo = PRIMITIVE_TOPO_PATCH_LIST;
+			pipelineSettings.pRasterizerState = &rasterizerStateDesc;
+			pipelineSettings.pDepthState = &depthStateDesc;
+			pipelineSettings.mRenderTargetCount = 1;
+			pipelineSettings.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
+			pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
+			pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
+			pipelineSettings.mDepthStencilFormat = pDepthBuffer->mFormat;
+			pipelineSettings.pVertexLayout = &vertexLayout;
+			pipelineSettings.pRootSignature = pGrassRootSignature;
+			pipelineSettings.pShaderProgram = pGrassShader;
+			addPipeline(pRenderer, &desc, &pGrassPipeline);
+			pipelineSettings.pRasterizerState = &rasterizerStateWireframeDesc;
+			addPipeline(pRenderer, &desc, &pGrassPipelineForWireframe);
+		}
 
 #if defined(VULKAN)
 		transitionRenderTargets();
@@ -760,8 +782,11 @@ class Tessellation: public IApp
 
 		gAppUI.Unload();
 
-		removePipeline(pRenderer, pGrassPipeline);
-		removePipeline(pRenderer, pGrassPipelineForWireframe);
+		if (pRenderer->pActiveGpuSettings->mTessellationSupported)
+		{
+			removePipeline(pRenderer, pGrassPipeline);
+			removePipeline(pRenderer, pGrassPipelineForWireframe);
+		}
 
 		removeSwapChain(pRenderer, pSwapChain);
 		removeRenderTarget(pRenderer, pDepthBuffer);
@@ -772,7 +797,7 @@ class Tessellation: public IApp
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
 		//check for Vsync toggle
-#if !defined(TARGET_IOS) && !defined(_DURANGO)
+#if !defined(TARGET_IOS)
 		if (pSwapChain->mEnableVsync != gToggleVSync)
 		{
 			waitQueueIdle(pGraphicsQueue);
@@ -799,8 +824,9 @@ class Tessellation: public IApp
 		gGrassUniformData.mInvView = inverse(viewMat);
 		gGrassUniformData.mWorld = mat4::identity();
 
-		gGrassUniformData.mTotalTime = (float)(getSystemTime() - gStartTime) / 1000.0f;
-		;
+		static float t = 0.0f;
+		t += deltaTime;
+		gGrassUniformData.mTotalTime = t;
 
 		gGrassUniformData.mMaxTessellationLevel = gMaxTessellationLevel;
 		gGrassUniformData.mWindMode = gWindMode;
@@ -819,9 +845,10 @@ class Tessellation: public IApp
 
 	void Draw()
 	{
-		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+		uint32_t swapchainImageIndex;
+		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
-		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
+		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
 		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
@@ -831,12 +858,15 @@ class Tessellation: public IApp
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
+		resetCmdPool(pRenderer, pCmdPools[gFrameIndex]);
+		resetCmdPool(pRenderer, pUICmdPools[gFrameIndex]);
+
 		// simply record the screen cleaning command
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-		loadActions.mClearColorValues[0] = {{0.0f, 0.0f, 0.0f, 0.0f}};
+		loadActions.mClearColorValues[0] = { {0.0f, 0.0f, 0.0f, 0.0f} };
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth = {{0.0f, 0}};    // Clear depth to the far plane and stencil to 0
+		loadActions.mClearDepth = { {0.0f, 0} };    // Clear depth to the far plane and stencil to 0
 
 		eastl::vector<Cmd*> allCmds;
 
@@ -848,7 +878,7 @@ class Tessellation: public IApp
 		*(GrassUniformBlock*)cbvUpdate.pMappedData = gGrassUniformData;
 		endUpdateResource(&cbvUpdate, NULL);
 
-		Cmd* cmd = ppCmds[gFrameIndex];
+		Cmd* cmd = pCmds[gFrameIndex];
 		beginCmd(cmd);
 
 		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
@@ -865,18 +895,21 @@ class Tessellation: public IApp
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 #ifdef METAL
-		BufferBarrier metalSRVBarriers[] = {
+		BufferBarrier metalSRVBarriers[] =
+		{
 			{ pBladeNumBuffer, RESOURCE_STATE_INDIRECT_ARGUMENT },
 			{ pCulledBladeStorageBuffer, RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER },
 		};
 		cmdResourceBarrier(cmd, 2, metalSRVBarriers, 0, NULL, 0, NULL);
-		
-		// On Metal, we have to run the grass_vertexHull compute shader before running the post-tesselation shaders.
-		DescriptorData vertexHullParams[5] = {};
-		cmdBindPipeline(cmd, pGrassVertexHullPipeline);
-		cmdBindDescriptorSet(cmd, 0, pDescriptorSetGrassVertexHull[0]);
-		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetGrassVertexHull[1]);
-		cmdDispatch(cmd, (int)ceil(NUM_BLADES / pThreadGroupSize[0]), pThreadGroupSize[1], pThreadGroupSize[2]);
+
+		if (pRenderer->pActiveGpuSettings->mTessellationSupported)
+		{
+			// On Metal, we have to run the grass_vertexHull compute shader before running the post-tesselation shaders.
+			cmdBindPipeline(cmd, pGrassVertexHullPipeline);
+			cmdBindDescriptorSet(cmd, 0, pDescriptorSetGrassVertexHull[0]);
+			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetGrassVertexHull[1]);
+			cmdDispatch(cmd, (int)ceil(NUM_BLADES / pThreadGroupSize[0]), pThreadGroupSize[1], pThreadGroupSize[2]);
+		}
 #endif
 		
 		RenderTargetBarrier barriers[] = {
@@ -892,27 +925,30 @@ class Tessellation: public IApp
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
-		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Pass");
+		if (pRenderer->pActiveGpuSettings->mTessellationSupported)
+		{
+			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Pass");
 
-		// Draw computed results
-		if (gFillMode == FILL_MODE_SOLID)
-			cmdBindPipeline(cmd, pGrassPipeline);
-		else if (gFillMode == FILL_MODE_WIREFRAME)
-			cmdBindPipeline(cmd, pGrassPipelineForWireframe);
+			// Draw computed results
+			if (gFillMode == FILL_MODE_SOLID)
+				cmdBindPipeline(cmd, pGrassPipeline);
+			else if (gFillMode == FILL_MODE_WIREFRAME)
+				cmdBindPipeline(cmd, pGrassPipelineForWireframe);
 
-		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetGrass);
+			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetGrass);
 
 #ifndef METAL
-		const uint32_t stride = sizeof(Blade);
-		cmdBindVertexBuffer(cmd, 1, &pCulledBladeStorageBuffer, &stride, NULL);
+			const uint32_t stride = sizeof(Blade);
+			cmdBindVertexBuffer(cmd, 1, &pCulledBladeStorageBuffer, &stride, NULL);
 #else
-		// When using tessellation on Metal, you should always bind the tessellationFactors buffer and the controlPointBuffer together as vertex buffer (following this order).
-		Buffer* tessBuffers[] = { pTessFactorsBuffer, pHullOutputBuffer };
-		const uint32_t strides[] = { sizeof(Blade), sizeof(HullOut) };
-		cmdBindVertexBuffer(cmd, 2, tessBuffers, strides, NULL);
+			// When using tessellation on Metal, you should always bind the tessellationFactors buffer and the controlPointBuffer together as vertex buffer (following this order).
+			Buffer* tessBuffers[] = { pTessFactorsBuffer, pHullOutputBuffer };
+			const uint32_t strides[] = { sizeof(Blade), sizeof(HullOut) };
+			cmdBindVertexBuffer(cmd, 2, tessBuffers, strides, NULL);
 #endif
-		cmdExecuteIndirect(cmd, pIndirectCommandSignature, 1, pBladeNumBuffer, 0, NULL, 0);
-		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+			cmdExecuteIndirect(cmd, pIndirectCommandSignature, 1, pBladeNumBuffer, 0, NULL, 0);
+			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+		}
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
@@ -929,18 +965,21 @@ class Tessellation: public IApp
 		allCmds.push_back(cmd);
 
 		// Draw UI
-		cmd = ppUICmds[gFrameIndex];
+		cmd = pUICmds[gFrameIndex];
 		beginCmd(cmd);
 
+		LoadActionsDesc loadActionLoad = {};
+		loadActionLoad.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
-		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActionLoad, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
-        cmdDrawCpuProfile(cmd, float2(8, 15), &gFrameTimeDraw);
+        float2 txtSize = cmdDrawCpuProfile(cmd, float2(8, 15), &gFrameTimeDraw);
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 
-        cmdDrawGpuProfile(cmd, float2(8, 40), gGpuProfileToken);
+        cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
 
 		cmdDrawProfilerUI();
 
@@ -966,13 +1005,15 @@ class Tessellation: public IApp
 		submitDesc.pSignalFence = pRenderCompleteFence;
 		queueSubmit(pGraphicsQueue, &submitDesc);
 		QueuePresentDesc presentDesc = {};
-		presentDesc.mIndex = gFrameIndex;
+		presentDesc.mIndex = swapchainImageIndex;
 		presentDesc.mWaitSemaphoreCount = 1;
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
 		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
+
+		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
 
 	const char* GetName() { return "07_Tessellation"; }
@@ -987,7 +1028,7 @@ class Tessellation: public IApp
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
-		swapChainDesc.mEnableVsync = false;
+		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;
@@ -1050,12 +1091,12 @@ class Tessellation: public IApp
 	void transitionRenderTargets()
 	{
 		RenderTargetBarrier barrier = { pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE };
-		beginCmd(ppCmds[0]);
-		cmdResourceBarrier(ppCmds[0], 0, NULL, 0, NULL, 1, &barrier);
-		endCmd(ppCmds[0]);
+		beginCmd(pCmds[0]);
+		cmdResourceBarrier(pCmds[0], 0, NULL, 0, NULL, 1, &barrier);
+		endCmd(pCmds[0]);
 		QueueSubmitDesc submitDesc = {};
 		submitDesc.mCmdCount = 1;
-		submitDesc.ppCmds = ppCmds;
+		submitDesc.ppCmds = pCmds;
 		submitDesc.pSignalFence = pRenderCompleteFences[0];
 		queueSubmit(pGraphicsQueue, &submitDesc);
 		waitForFences(pRenderer, 1, &pRenderCompleteFences[0]);

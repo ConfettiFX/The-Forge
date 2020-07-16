@@ -6,7 +6,7 @@
 
 #include "../GainputWindows.h"
 #include "GainputInputDevicePadImpl.h"
-#include "GainputInputDirectInputPadWin.h"
+#include "GainputInputDevicePadWinDirectInput.h"
 #include <XInput.h>
 
 namespace gainput

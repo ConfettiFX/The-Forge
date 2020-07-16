@@ -33,11 +33,11 @@ struct Fragment_Shader
     Fragment_Shader() {}
 };
 
-
-fragment float4 stageMain(Fragment_Shader::VSOutput input [[stage_in]]) {
+fragment float4 stageMain(Fragment_Shader::VSOutput input [[stage_in]])
+{
     Fragment_Shader::VSOutput input0;
     input0.Position = float4(input.Position.xyz, 1.0 / input.Position.w);
     input0.Color = input.Color;
     Fragment_Shader main;
-        return main.main(input0);
+    return main.main(input0);
 }

@@ -33,7 +33,7 @@
 #pragma message("Warning: Pix markers are only supported on AMD64 and ARM64")
 #endif
 
-#if defined(XBOX) || defined(_XBOX_ONE) || defined(_DURANGO) || defined(_GAMING_XBOX)
+#if defined(XBOX) || defined(_XBOX_ONE) || defined(_GAMING_XBOX)
 #include "pix3_xbox.h"
 #else
 #include "pix3_win.h"

@@ -54,7 +54,7 @@ struct IndirectDrawArguments
 
 struct VSInput
 {
-	float4 Position [[attribute(UNIT_VBPASS_POSITION)]];
+	float4 Position [[attribute(0)]];
 };
 
 vertex VSOut stageMain(

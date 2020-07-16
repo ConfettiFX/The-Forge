@@ -30,15 +30,11 @@ struct PsIn {
 	float2 texCoord;
 };
 
-struct FSData {
-    texture2d<float> uTex0      [[texture(0)]];
-    sampler uSampler0           [[sampler(0)]];
-};
-
 fragment float4 stageMain(
     PsIn In [[stage_in]],
-    constant FSData& fsData [[buffer(UPDATE_FREQ_NONE)]]
+	texture2d<float> uTex0      [[texture(0)]],
+    sampler uSampler0           [[sampler(0)]]
 )
 {
-	return fsData.uTex0.sample(fsData.uSampler0, In.texCoord);
+	return uTex0.sample(uSampler0, In.texCoord);
 }

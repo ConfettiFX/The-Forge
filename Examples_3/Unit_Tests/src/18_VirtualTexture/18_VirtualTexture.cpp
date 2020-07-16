@@ -103,16 +103,15 @@ bool								gPlay = true;
 Renderer*						pRenderer = NULL;
 
 Queue*							pGraphicsQueue = NULL;
-CmdPool*						pCmdPool = NULL;
-Cmd**							ppCmds = NULL;
+CmdPool*						pCmdPools[gImageCount];
+Cmd*							pCmds[gImageCount];
 
 Queue*							pComputeQueue = NULL;
-CmdPool*						pComputeCmdPool = NULL;
-Cmd**							ppComputeCmds = NULL;
+CmdPool*						pComputeCmdPools[gImageCount];
+Cmd*							pComputeCmds[gImageCount];
 
-Queue*							pVirtualTextureQueue = NULL;
-CmdPool*						pVirtualTextureCmdPool = NULL;
-Cmd**							ppVirtualTextureCmds = NULL;
+CmdPool*						pVirtualTextureCmdPools[gImageCount];
+Cmd*							pVirtualTextureCmds[gImageCount];
 
 SwapChain*					pSwapChain = NULL;
 RenderTarget*				pDepthBuffer = NULL;
@@ -218,28 +217,38 @@ public:
 		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
 		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		CmdPoolDesc cmdPoolDesc = {};
-		cmdPoolDesc.pQueue = pGraphicsQueue;
-		addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
-		CmdDesc cmdDesc = {};
-		cmdDesc.pPool = pCmdPool;
-		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+		}
 
 		queueDesc = {};
 		queueDesc.mType = QUEUE_TYPE_COMPUTE;
 		addQueue(pRenderer, &queueDesc, &pComputeQueue);
-		cmdPoolDesc.pQueue = pComputeQueue;
-		addCmdPool(pRenderer, &cmdPoolDesc, &pComputeCmdPool);
-		cmdDesc.pPool = pComputeCmdPool;
-		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppComputeCmds);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pComputeQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pComputeCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pComputeCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pComputeCmds[i]);
+		}
 
-		queueDesc = {};
-		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
-		addQueue(pRenderer, &queueDesc, &pVirtualTextureQueue);
-		cmdPoolDesc.pQueue = pVirtualTextureQueue;
-		addCmdPool(pRenderer, &cmdPoolDesc, &pVirtualTextureCmdPool);
-		cmdDesc.pPool = pVirtualTextureCmdPool;
-		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppVirtualTextureCmds);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pVirtualTextureCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pVirtualTextureCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pVirtualTextureCmds[i]);
+		}
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -574,9 +583,7 @@ public:
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
 		GuiDesc guiDesc = {};
-		float   dpiScale = getDpiScale().x;
-		guiDesc.mStartSize = vec2(140.0f, 320.0f);
-		guiDesc.mStartPosition = vec2(0.0f, guiDesc.mStartSize.getY() * 0.5f);
+		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.25f);
 
 		pGui = gAppUI.AddGuiComponent("Micro profiler", &guiDesc);
 
@@ -810,20 +817,22 @@ public:
 		}
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
 
-		removeCmd_n(pRenderer, gImageCount, ppCmds);
-		removeCmdPool(pRenderer, pCmdPool);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeCmd(pRenderer, pCmds[i]);
+			removeCmdPool(pRenderer, pCmdPools[i]);
 
-		removeCmd_n(pRenderer, gImageCount, ppComputeCmds);
-		removeCmdPool(pRenderer, pComputeCmdPool);		
+			removeCmd(pRenderer, pComputeCmds[i]);
+			removeCmdPool(pRenderer, pComputeCmdPools[i]);
 
-		removeCmd_n(pRenderer, gImageCount, ppVirtualTextureCmds);
-		removeCmdPool(pRenderer, pVirtualTextureCmdPool);
+			removeCmd(pRenderer, pVirtualTextureCmds[i]);
+			removeCmdPool(pRenderer, pVirtualTextureCmdPools[i]);
+		}
 
 		exitResourceLoaderInterface(pRenderer);
 
 		removeQueue(pRenderer, pGraphicsQueue);
 		removeQueue(pRenderer, pComputeQueue);
-        removeQueue(pRenderer, pVirtualTextureQueue);
 
 		removeRenderer(pRenderer);
 	}
@@ -1057,9 +1066,10 @@ public:
 
 	void Draw()
 	{
-		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+		uint32_t swapchainImageIndex;
+		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
-		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
+		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
 		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];		
 
@@ -1068,6 +1078,10 @@ public:
 		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pRenderer, 1, &pRenderCompleteFence);
+
+		resetCmdPool(pRenderer, pCmdPools[gFrameIndex]);
+		resetCmdPool(pRenderer, pComputeCmdPools[gFrameIndex]);
+		resetCmdPool(pRenderer, pVirtualTextureCmdPools[gFrameIndex]);
 
 		// Update uniform buffers
 		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex] };
@@ -1091,7 +1105,7 @@ public:
 		loadActions.mClearDepth.depth = 1.0f;
 		loadActions.mClearDepth.stencil = 0;
 
-		Cmd* cmd = ppCmds[gFrameIndex];
+		Cmd* cmd = pCmds[gFrameIndex];
 		beginCmd(cmd);
 
 		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
@@ -1165,14 +1179,14 @@ public:
 
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 
-        cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
+        float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
 
 #if !defined(__ANDROID__)
 		gAppUI.DrawText(
-			cmd, float2(8, 40), eastl::string().sprintf("Update Virtual Texture %f ms", getCpuAvgFrameTime() - (float)getGpuProfileTime(gGpuProfileToken)).c_str(),
+			cmd, float2(8.f, txtSize.y + 30.f), eastl::string().sprintf("Update Virtual Texture %f ms", getCpuAvgFrameTime() - (float)getGpuProfileTime(gGpuProfileToken)).c_str(),
 			&gFrameTimeDraw);
 
-    cmdDrawGpuProfile(cmd, float2(8, 65), gGpuProfileToken);
+    cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y * 2.f + 45.f), gGpuProfileToken, &gFrameTimeDraw);
 #endif
 
     cmdDrawProfilerUI();
@@ -1199,7 +1213,7 @@ public:
 		submitDesc.pSignalFence = pRenderCompleteFence;
 		queueSubmit(pGraphicsQueue, &submitDesc);
 		QueuePresentDesc presentDesc = {};
-		presentDesc.mIndex = gFrameIndex;
+		presentDesc.mIndex = swapchainImageIndex;
 		presentDesc.mWaitSemaphoreCount = 1;
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
@@ -1213,7 +1227,7 @@ public:
 			// Extract only alive page
 			Cmd* pCmdCompute = NULL;
 
-			pCmdCompute = ppComputeCmds[gFrameIndex];
+			pCmdCompute = pComputeCmds[gFrameIndex];
 			beginCmd(pCmdCompute);
 
 			for (int i = 1; i < gNumPlanets; ++i)
@@ -1304,7 +1318,7 @@ public:
 			queueSubmit(pComputeQueue, &submitDesc);
 			waitQueueIdle(pComputeQueue);
 
-			Cmd* pCmdVirtualTexture = ppVirtualTextureCmds[gFrameIndex];
+			Cmd* pCmdVirtualTexture = pVirtualTextureCmds[gFrameIndex];
 			beginCmd(pCmdVirtualTexture);
 
 			for (int i = 1; i < gNumPlanets; ++i)
@@ -1315,11 +1329,13 @@ public:
 			endCmd(pCmdVirtualTexture);
 
 			submitDesc.ppCmds = &pCmdVirtualTexture;
-			queueSubmit(pVirtualTextureQueue, &submitDesc);
-			waitQueueIdle(pVirtualTextureQueue);
+			queueSubmit(pGraphicsQueue, &submitDesc);
+			waitQueueIdle(pGraphicsQueue);
 		}
 
 		gAccuFrameIndex++;
+
+		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
 
 	const char* GetName() { return "18_VirtualTexture"; }

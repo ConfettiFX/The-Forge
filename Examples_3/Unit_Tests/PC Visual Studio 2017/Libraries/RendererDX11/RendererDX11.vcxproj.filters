@@ -4,6 +4,9 @@
     <Filter Include="Renderer">
       <UniqueIdentifier>{c41771f8-0d51-4636-9d1d-1a2145d6bd35}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Renderer\Dependencies">
+      <UniqueIdentifier>{d303e324-c20a-47fa-a60b-27e39892040b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11.cpp">
@@ -20,6 +23,12 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\Renderer\Direct3D11\Direct3D11Raytracing.cpp">
       <Filter>Renderer</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\gpudetect\src\DeviceId.cpp">
+      <Filter>Renderer\Dependencies</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\gpudetect\src\GPUDetect.cpp">
+      <Filter>Renderer\Dependencies</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

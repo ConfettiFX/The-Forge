@@ -22,11 +22,12 @@
  * under the License.
 */
 
+// Shader for Skybox in Unit Test 01 - Transformations
+
 #include <metal_stdlib>
 using namespace metal;
 
-struct VSInput
-{
+struct VSInput {
     float4 Position [[attribute(0)]];
 };
 
@@ -35,58 +36,53 @@ struct VSOutput {
     float4 TexCoord;
 };
 
-struct FSData {
-    texture2d<float> RightText    [[id(0)]];
-    texture2d<float> LeftText     [[id(1)]];
-    texture2d<float> TopText      [[id(2)]];
-    texture2d<float> BotText      [[id(3)]];
-    texture2d<float> FrontText    [[id(4)]];
-    texture2d<float> BackText     [[id(5)]];
-    sampler uSampler0             [[id(6)]];
-};
-
-fragment float4 stageMain(
-                          VSOutput input                [[stage_in]],
-                          constant FSData& fsData       [[buffer(UPDATE_FREQ_NONE)]]
+fragment float4 stageMain(VSOutput input                              [[stage_in]],
+						  texture2d<float,access::sample> RightText   [[texture(0)]],
+						  texture2d<float,access::sample> LeftText    [[texture(1)]],
+						  texture2d<float,access::sample> TopText     [[texture(2)]],
+						  texture2d<float,access::sample> BotText     [[texture(3)]],
+						  texture2d<float,access::sample> FrontText   [[texture(4)]],
+						  texture2d<float,access::sample> BackText    [[texture(5)]],
+						  sampler uSampler0                           [[sampler(0)]]
 )
 {
     float2 newtextcoord;
     float side = round(input.TexCoord.w);
 
-	if(side == 1.0f)
+	if(side==1.0f)
     {
         newtextcoord = (input.TexCoord.zy) / 20 + 0.5;
         newtextcoord = float2(1 - newtextcoord.x, 1 - newtextcoord.y);
-        return fsData.RightText.sample(fsData.uSampler0, newtextcoord);
+        return RightText.sample(uSampler0, newtextcoord);
     }
     else if (side == 2.0f)
     {
         newtextcoord = (input.TexCoord.zy) / 20 + 0.5;
         newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);
-        return fsData.LeftText.sample(fsData.uSampler0, newtextcoord);
+        return LeftText.sample(uSampler0, newtextcoord);
     }
     else if (side == 4.0f)
     {
         newtextcoord = (input.TexCoord.xz) / 20 +0.5;
         newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);
-        return fsData.BotText.sample(fsData.uSampler0, newtextcoord);
+        return BotText.sample(uSampler0, newtextcoord);
     }
     else if (side == 5.0f)
     {
         newtextcoord = (input.TexCoord.xy) / 20 + 0.5;
         newtextcoord = float2(newtextcoord.x, 1 - newtextcoord.y);
-        return fsData.FrontText.sample(fsData.uSampler0, newtextcoord);
+        return FrontText.sample(uSampler0, newtextcoord);
     }
     else if (side == 6.0f)
     {
         newtextcoord = (input.TexCoord.xy) / 20 + 0.5;
         newtextcoord = float2(1-newtextcoord.x, 1 - newtextcoord.y);
-        return fsData.BackText.sample(fsData.uSampler0, newtextcoord);
+        return BackText.sample(uSampler0, newtextcoord);
     }
 	else
     {
         newtextcoord = (input.TexCoord.xz) / 20 + 0.5;
         newtextcoord = float2(newtextcoord.x, newtextcoord.y);
-        return fsData.TopText.sample(fsData.uSampler0, newtextcoord);
+        return TopText.sample(uSampler0, newtextcoord);
     }
 }

@@ -78,6 +78,8 @@ namespace SoLoud
 				Thread::sleep(10);
 			}
 
+			Thread::release(mAudioThread);
+
 			if(playerObj)
 			{
 				(*playerObj)->Destroy(playerObj);
@@ -123,6 +125,7 @@ namespace SoLoud
 		int buffersQueued;
 		int activeBuffer;
 		volatile int threadrun;
+		ThreadHandle mAudioThread;
 
 		SLDataLocator_AndroidSimpleBufferQueue inLocator;
 	};
@@ -293,7 +296,7 @@ namespace SoLoud
 		aSoloud->mBackendCleanupFunc = soloud_opensles_deinit;
 
 		LOG_INFO( "Creating audio thread." );
-		Thread::createThread(opensles_thread, (void*)aSoloud);
+		data->mAudioThread = Thread::createThread(opensles_thread, (void*)aSoloud);
 
 		aSoloud->mBackendString = "OpenSL ES";
 		return SO_NO_ERROR;

@@ -29,19 +29,16 @@ struct Fragment_Shader
     }
 };
 
-struct FSData {
-    texture2d<float> uTex    [[id(0)]];
-    sampler uSampler         [[id(1)]];
-};
-
 fragment float4 stageMain(
     Fragment_Shader::PsIn input                                        [[stage_in]],
-    constant Fragment_Shader::Uniforms_uRootConstants& uRootConstants  [[buffer(UPDATE_FREQ_USER)]],
-    constant FSData& fsData                                            [[buffer(UPDATE_FREQ_NONE)]])
+    constant Fragment_Shader::Uniforms_uRootConstants& uRootConstants  [[buffer(0)]],
+    texture2d<float> uTex                                              [[texture(0)]],
+    sampler uSampler                                                   [[sampler(0)]]
+)
 {
     Fragment_Shader::PsIn input0;
     input0.position = float4(input.position.xyz, 1.0 / input.position.w);
     input0.texcoord = input.texcoord;
-    Fragment_Shader main(uRootConstants, fsData.uTex, fsData.uSampler);
+    Fragment_Shader main(uRootConstants, uTex, uSampler);
     return main.main(input0);
 }

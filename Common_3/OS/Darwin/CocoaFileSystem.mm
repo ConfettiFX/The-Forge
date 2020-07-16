@@ -66,25 +66,81 @@ void CocoaFileSystem::EnumerateFilesWithExtension(const Path* directory, const c
         LOGF(LogLevel::eWARNING, "Error enumerating directory at url %s: %s", [[url path] UTF8String], [[error description] UTF8String]);
         return YES;
     }];
-    
-    NSString *extensionString = nil;
-    if (extension) {
-        extensionString = [[NSString stringWithUTF8String:extension] lowercaseString];
+	NSString *pathComponent = nil;
+	
+	const char* pathComponentutf8 = extension;
+	if(pathComponentutf8[0] == '*') {
+		++pathComponentutf8;
+	}
+	if(pathComponentutf8[0] == '.') {
+		++pathComponentutf8;
+	}
+	
+	bool hasAnyRegex = false;
+	
+	NSString* beforeAnyRegex = nil;
+	NSString* afterAnyRegex = nil;
+	if (pathComponentutf8 != nil) {
+		pathComponent = [NSString stringWithUTF8String:pathComponentutf8];
+		
+		const char* fullExpression = pathComponentutf8;
+		while(*fullExpression != '\0') {
+			if (*fullExpression == '*') {
+				size_t index = fullExpression - pathComponentutf8;
+				size_t last = [pathComponent length] - 1;
+				
+				if(index == 0 || index == last) {
+					break;
+				}
+				
+				hasAnyRegex = true;
+				
+				NSRange range = NSMakeRange(0, index);
+				beforeAnyRegex = [pathComponent substringWithRange:range];
+				range = NSMakeRange(index + 1, last - index);
+				afterAnyRegex = [pathComponent substringWithRange:range];
+				
+				break;
+			}
+			++fullExpression;
+		}
     }
+	
+	NSMutableArray *unsortedArray = [NSMutableArray array];
     
-    for (NSURL* url in enumerator) {
-        if (extensionString && ![[url.pathExtension lowercaseString] isEqualToString:extensionString]) {
-            continue;
-        }
-        
-        Path *path = fsCreatePath(this, [url.path UTF8String]);
-        bool shouldContinue = processFile(path, userData);
-        fsFreePath(path);
-        
-        if (!shouldContinue) {
-            break;
-        } 
-    }
+	for (NSURL* url in enumerator) {
+		NSString* lastPathComponent = url.lastPathComponent;
+		if(hasAnyRegex) {
+			if(![lastPathComponent containsString:beforeAnyRegex] ||
+			   ![lastPathComponent containsString:afterAnyRegex]) {
+				continue;
+			}
+		}
+		else {
+			if (![lastPathComponent containsString:pathComponent]) {
+				continue;
+			}
+		}
+		
+		[unsortedArray addObject:url];
+	}
+	
+	NSArray* sortedArray = [unsortedArray sortedArrayUsingComparator:^NSComparisonResult(NSURL* _Nonnull first, NSURL* _Nonnull second)
+	{
+		return [[first path] compare:[second path]];
+	}];
+	
+	NSEnumerator* sortedEnumerator = [sortedArray objectEnumerator];
+	
+	for (NSURL* url in sortedEnumerator) {
+		Path *path = fsCreatePath(this, [url.path UTF8String]);
+		bool shouldContinue = processFile(path, userData);
+		fsFreePath(path);
+		
+		if (!shouldContinue) {
+			break;
+		}
+	}
 }
 
 void CocoaFileSystem::EnumerateSubDirectories(const Path* directory, bool (*processDirectory)(const Path*, void* userData), void* userData) const {

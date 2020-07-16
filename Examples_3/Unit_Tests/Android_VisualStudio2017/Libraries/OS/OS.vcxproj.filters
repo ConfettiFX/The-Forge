@@ -55,9 +55,6 @@
     <Filter Include="OS\Middleware_3\UI\imgui">
       <UniqueIdentifier>{d26a2315-b096-4aa4-84b4-b1b9fb9ee885}</UniqueIdentifier>
     </Filter>
-    <Filter Include="OS\Image">
-      <UniqueIdentifier>{055a9d1e-24a1-4c86-a6d8-615a99f2f754}</UniqueIdentifier>
-    </Filter>
     <Filter Include="OS\FileSystem">
       <UniqueIdentifier>{c65df5cc-0166-4c6c-ba6f-25a157abde07}</UniqueIdentifier>
     </Filter>
@@ -69,6 +66,9 @@
     </Filter>
     <Filter Include="Dependencies\zip">
       <UniqueIdentifier>{23b43062-cd3f-4906-8466-abfce35c9edb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Dependencies\basisu">
+      <UniqueIdentifier>{1b9bb678-230b-4300-af74-61eedf39a98e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -177,9 +177,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\MemoryTracking\MemoryTracking.cpp">
       <Filter>OS\MemoryTracking</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Image\Image.cpp">
-      <Filter>OS\Image</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystemInternal.cpp">
       <Filter>OS\FileSystem</Filter>
     </ClCompile>
@@ -224,6 +221,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\zip\zip.cpp">
       <Filter>Dependencies\zip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp">
+      <Filter>Dependencies\basisu</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -319,12 +319,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\MemoryTracking\NoMemoryDefines.h">
       <Filter>OS\MemoryTracking</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\ImageHelper.h">
-      <Filter>OS\Image</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\Image.h">
-      <Filter>OS\Image</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystemInternal.h">
       <Filter>OS\FileSystem</Filter>

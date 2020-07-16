@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
+    <ClCompile Include="..\..\..\src\03_MultiThread\03_MultiThread.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{97028d05-c873-4dc4-9202-8e958de8afd4}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\src\03_MultiThread\Shaders\Vulkan\Graph.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\03_MultiThread\Shaders\Vulkan\Graph.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\03_MultiThread\Shaders\Vulkan\Particle.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\03_MultiThread\Shaders\Vulkan\Particle.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\03_MultiThread\Shaders\Vulkan\Skybox.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\03_MultiThread\Shaders\Vulkan\Skybox.vert">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+</Project>

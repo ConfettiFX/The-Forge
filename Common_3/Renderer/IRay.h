@@ -33,12 +33,6 @@ static inline ENUM_TYPE operator&=(ENUM_TYPE& a, ENUM_TYPE b) \
 #import <MetalPerformanceShaders/MetalPerformanceShaders.h>
 #endif
 
-#if defined(VULKAN)
-#define ApiExport //extern "C"
-#else
-#define ApiExport
-#endif
-
 typedef struct Renderer Renderer;
 typedef struct Buffer Buffer;
 typedef struct Texture Texture;
@@ -66,7 +60,7 @@ typedef enum AccelerationStructureBuildFlags
 	ACCELERATION_STRUCTURE_BUILD_FLAG_MINIMIZE_MEMORY = 0x10,
 	ACCELERATION_STRUCTURE_BUILD_FLAG_PERFORM_UPDATE = 0x20,
 } AccelerationStructureBuildFlags;
-MAKE_ENUM_FLAG(unsigned, AccelerationStructureBuildFlags)
+MAKE_ENUM_FLAG(uint32_t, AccelerationStructureBuildFlags)
 
 //Rustam: check if this can be mapped to Metal
 typedef enum AccelerationStructureGeometryFlags
@@ -75,7 +69,7 @@ typedef enum AccelerationStructureGeometryFlags
 	ACCELERATION_STRUCTURE_GEOMETRY_FLAG_OPAQUE = 0x1,
 	ACCELERATION_STRUCTURE_GEOMETRY_FLAG_NO_DUPLICATE_ANYHIT_INVOCATION = 0x2
 } AccelerationStructureGeometryFlags;
-MAKE_ENUM_FLAG(unsigned, AccelerationStructureGeometryFlags)
+MAKE_ENUM_FLAG(uint32_t, AccelerationStructureGeometryFlags)
 
 //Rustam: check if this can be mapped to Metal
 typedef enum AccelerationStructureInstanceFlags
@@ -86,31 +80,32 @@ typedef enum AccelerationStructureInstanceFlags
 	ACCELERATION_STRUCTURE_INSTANCE_FLAG_FORCE_OPAQUE = 0x4,
 	ACCELERATION_STRUCTURE_INSTANCE_FLAG_FORCE_NON_OPAQUE = 0x8
 } AccelerationStructureInstanceFlags;
-MAKE_ENUM_FLAG(unsigned, AccelerationStructureInstanceFlags)
+MAKE_ENUM_FLAG(uint32_t, AccelerationStructureInstanceFlags)
 
 typedef struct AccelerationStructureInstanceDesc
 {
-    unsigned                mAccelerationStructureIndex;
+	uint32_t                mAccelerationStructureIndex;
 	/// Row major affine transform for transforming the vertices in the geometry stored in pAccelerationStructure
-	float				   mTransform[12];
+	float                   mTransform[12];
 	/// User defined instanced ID which can be queried in the shader
-	unsigned				mInstanceID;
-	unsigned				mInstanceMask;
-	unsigned				mInstanceContributionToHitGroupIndex;
+	uint32_t                mInstanceID;
+	uint32_t                mInstanceMask;
+	uint32_t                mInstanceContributionToHitGroupIndex;
 	AccelerationStructureInstanceFlags  mFlags;
 } AccelerationStructureInstanceDesc;
 
 typedef struct AccelerationStructureGeometryDesc
 {
 	AccelerationStructureGeometryFlags  mFlags;
-    void*       pVertexArray;
-    unsigned    vertexCount;
-    union{
-        uint32_t*       pIndices32;
-        uint16_t*       pIndices16;
+	void*                               pVertexArray;
+	uint32_t                            mVertexCount;
+    union
+	{
+        uint32_t*                       pIndices32;
+        uint16_t*                       pIndices16;
     };
-    unsigned    indicesCount;
-    IndexType   indexType;
+	uint32_t                            mIndexCount;
+	IndexType                           mIndexType;
 } AccelerationStructureGeometryDesc;
 /************************************************************************/
 //	  Bottom Level Structures define the geometry data such as vertex buffers, index buffers
@@ -119,20 +114,19 @@ typedef struct AccelerationStructureGeometryDesc
 /************************************************************************/
 typedef struct AccelerationStructureDescBottom
 {
-	AccelerationStructureBuildFlags		    mFlags;
+	AccelerationStructureBuildFlags         mFlags;
 	/// Number of geometries / instances in thie acceleration structure
-	unsigned								mDescCount;
+	uint32_t                                mDescCount;
     /// Array of geometries in the bottom level acceleration structure
-    AccelerationStructureGeometryDesc*  pGeometryDescs;
+    AccelerationStructureGeometryDesc*      pGeometryDescs;
 } AccelerationStructureDescBottom;
 
 typedef struct AccelerationStructureDescTop
 {
     AccelerationStructureBuildFlags         mFlags;
-    unsigned                                mInstancesDescCount;
+	uint32_t                                mInstancesDescCount;
     AccelerationStructureInstanceDesc*      pInstanceDescs;
-    unsigned                                mBottomASDescsCount;
-    AccelerationStructureDescBottom*        mBottomASDescs;
+    AccelerationStructureDescBottom*        mBottomASDesc;
     IndexType                               mIndexType;
 } AccelerationStructureDescTop;
 /************************************************************************/
@@ -157,19 +151,19 @@ typedef struct RaytracingHitGroup
 
 typedef struct RaytracingShaderTableDesc
 {
-	Pipeline*						    pPipeline;
-	RootSignature*						pEmptyRootSignature;
-	const char*							pRayGenShader;
-	const char**						pMissShaders;
-	const char**						pHitGroups;
-	unsigned							mMissShaderCount;
-	unsigned							mHitGroupCount;
+	Pipeline*                           pPipeline;
+	RootSignature*                      pGlobalRootSignature;
+	const char*                         pRayGenShader;
+	const char**                        pMissShaders;
+	const char**                        pHitGroups;
+	uint32_t                            mMissShaderCount;
+	uint32_t                            mHitGroupCount;
 } RaytracingShaderTableDesc;
 
 typedef struct RaytracingDispatchDesc
 {
-	uint32_t				mWidth;
-	uint32_t				mHeight;
+	uint32_t                mWidth;
+	uint32_t                mHeight;
 	RaytracingShaderTable*  pShaderTable;
 #if defined(METAL)
 	AccelerationStructure*  pTopLevelAccelerationStructure;
@@ -180,27 +174,27 @@ typedef struct RaytracingDispatchDesc
 
 typedef struct RaytracingBuildASDesc
 {
-	AccelerationStructure* pAccelerationStructure;
-	unsigned  mBottomASIndicesCount;
-	unsigned* pBottomASIndices;
+	AccelerationStructure** ppAccelerationStructures;
+	uint32_t                mCount;
+	uint32_t                mBottomASIndicesCount;
+	uint32_t*               pBottomASIndices;
 } RaytracingBuildASDesc;
 
 struct Raytracing
 {
-	Renderer*		pRenderer;
+	Renderer*                    pRenderer;
 
 #ifdef DIRECT3D12
-	ID3D12Device5*	pDxrDevice;
-	uint64_t		mDescriptorsAllocated;
+	ID3D12Device5*               pDxrDevice;
+	uint64_t                     mDescriptorsAllocated;
 #endif
 #ifdef METAL
-    MPSRayIntersector* pIntersector;
+    MPSRayIntersector*           pIntersector API_AVAILABLE(macos(10.14), ios(12.0));
 	
-	ParallelPrimitives *pParallelPrimitives;
+	ParallelPrimitives*          pParallelPrimitives;
 	id <MTLComputePipelineState> mClassificationPipeline;
-	id <MTLArgumentEncoder> mClassificationArgumentEncoder;
+	id <MTLArgumentEncoder>      mClassificationArgumentEncoder API_AVAILABLE(macos(10.13), ios(11.0));
 #endif
-
 #ifdef VULKAN
 #ifdef VK_NV_RAY_TRACING_SPEC_VERSION
 	VkPhysicalDeviceRayTracingPropertiesNV mRayTracingProperties;
@@ -215,6 +209,9 @@ API_INTERFACE void FORGE_CALLCONV removeRaytracing(Renderer* pRenderer, Raytraci
 /// pScratchBufferSize - Holds the size of scratch buffer to be passed to cmdBuildAccelerationStructure
 API_INTERFACE void FORGE_CALLCONV addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, AccelerationStructure** ppAccelerationStructure);
 API_INTERFACE void FORGE_CALLCONV removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
+/// Free the scratch memory allocated by acceleration structure after it has been built completely
+/// Does not free acceleration structure
+API_INTERFACE void FORGE_CALLCONV removeAccelerationStructureScratch(Raytracing* pRaytracing, AccelerationStructure* pAccelerationStructure);
 
 API_INTERFACE void FORGE_CALLCONV addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTableDesc* pDesc, RaytracingShaderTable** ppTable);
 API_INTERFACE void FORGE_CALLCONV removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable* pTable);

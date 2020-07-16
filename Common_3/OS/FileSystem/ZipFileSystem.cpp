@@ -47,7 +47,7 @@ ZipFileSystem* ZipFileSystem::CreateWithRootAtPath(const Path* rootPath, FileSys
 		mode = 'a';
 	}
 
-	zip_t* zipFile = zip_open(fsGetPathAsNativeString(rootPath), ZIP_DEFAULT_COMPRESSION_LEVEL, mode);
+	zip_t* zipFile = zip_open(rootPath, ZIP_DEFAULT_COMPRESSION_LEVEL, mode);
 
 	if (!zipFile)
 	{
@@ -74,8 +74,8 @@ ZipFileSystem* ZipFileSystem::CreateWithRootAtPath(const Path* rootPath, FileSys
 
 ZipFileSystem::ZipFileSystem(const Path* pathInParent, zip_t* zipFile, FileSystemFlags flags, time_t creationTime, time_t lastAccessedTime):
 	FileSystem(FSK_ZIP),
-	pPathInParent(fsCopyPath(pathInParent)),
 	pZipFile(zipFile),
+	pPathInParent(fsCopyPath(pathInParent)),
 	mFlags(flags),
 	mCreationTime(creationTime),
 	mLastAccessedTime(lastAccessedTime)
@@ -168,7 +168,15 @@ FileStream* ZipFileSystem::OpenFile(const Path* filePath, FileMode mode) const
 		return NULL;
 	}
 
-	return conf_new(ZipFileStream, pZipFile, mode, filePath);
+	// Extract the contents of the zip entry
+	ssize_t uncompressedSize = zip_entry_size(pZipFile);
+	void* uncompressed = conf_malloc(uncompressedSize);
+	ssize_t bytesRead = zip_entry_noallocread(pZipFile, uncompressed, uncompressedSize);
+	UNREF_PARAM(bytesRead);
+	ASSERT(bytesRead == zip_entry_size(pZipFile));
+	zip_entry_close(pZipFile);
+
+	return fsOpenReadOnlyMemory(uncompressed, uncompressedSize, true);
 }
 
 time_t ZipFileSystem::GetCreationTime(const Path* filePath) const { return mCreationTime; }

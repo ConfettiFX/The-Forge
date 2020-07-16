@@ -175,7 +175,7 @@ typedef uint32_t ProfileThreadIdType;
 #define P_GETCURRENTPROCESSID() GetCurrentProcessId()
 typedef uint32_t ProfileProcessIdType;
 
-#elif defined(__linux__) || defined(ORBIS)
+#elif defined(__linux__) || defined(ORBIS) || defined(PROSPERO)
 #include <unistd.h>
 #include <time.h>
 inline int64_t ProfileTicksPerSecondCpu()

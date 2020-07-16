@@ -33,10 +33,6 @@ struct Fragment_Shader
     Fragment_Shader() {}
 };
 
-struct FSData {
-    constant     Fragment_Shader::Uniforms_uniformBlock & uniformBlock;
-};
-
 fragment float4 stageMain(Fragment_Shader::VSOutput input [[stage_in]])
 {
     Fragment_Shader::VSOutput input0;

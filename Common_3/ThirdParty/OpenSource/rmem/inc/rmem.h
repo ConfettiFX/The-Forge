@@ -97,7 +97,7 @@
 #if defined(_XBOX_VER)
 #undef  RMEM_PLATFORM_XBOX360
 #define RMEM_PLATFORM_XBOX360		1
-#elif defined(_DURANGO) || defined(_XBOX_ONE)
+#elif defined(XBOX) || defined(_XBOX_ONE)
 #undef  RMEM_PLATFORM_XBOXONE
 #define RMEM_PLATFORM_XBOXONE		1
 #elif defined(_WIN32) || defined(_WIN64) || defined(__WINDOWS__)
@@ -134,9 +134,13 @@
 // Always off if platform not currently supported.
 // List should contain all TF supported platforms in time. 
 #if !(RMEM_PLATFORM_WINDOWS)
-#define TF_USE_MTUNER               0
-#else
-#define TF_USE_MTUNER               1
+
+#ifdef USE_MTUNER
+#undef USE_MTUNER
+#endif
+
+#define USE_MTUNER                  0
+
 #endif
 
 /*--------------------------------------------------------------------------
@@ -324,7 +328,7 @@ extern "C" {
  *------------------------------------------------------------------------*/
 struct RMemTagScope
 {
-	RMemTag*	m_tag;				//< Tag for scoped tracking
+	RMemTag*	m_tag;				// Tag for scoped tracking
 
 	RMemTagScope(RMemTag* _tag);
 	~RMemTagScope();

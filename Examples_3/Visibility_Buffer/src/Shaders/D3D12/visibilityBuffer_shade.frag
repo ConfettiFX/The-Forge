@@ -370,9 +370,9 @@ float4 main(VSOutput input, uint i : SV_SampleIndex) : SV_Target0
 	uint numLightsInCluster = lightClustersCount.Load(LIGHT_CLUSTER_COUNT_POS(clusterCoords.x, clusterCoords.y) * 4);
 
 	// Accumulate light contributions
-	for (uint i = 0; i < numLightsInCluster; i++)
+	for (uint j = 0; j < numLightsInCluster; j++)
 	{
-		uint lightId = lightClusters.Load(LIGHT_CLUSTER_DATA_POS(i, clusterCoords.x, clusterCoords.y) * 4);
+		uint lightId = lightClusters.Load(LIGHT_CLUSTER_DATA_POS(j, clusterCoords.x, clusterCoords.y) * 4);
 
 		shadedColor += pointLightShade(
 		normal,

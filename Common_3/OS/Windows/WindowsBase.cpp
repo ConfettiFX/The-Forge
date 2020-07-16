@@ -29,7 +29,7 @@
 #include <windowsx.h>
 #include <ntverp.h>
 
-#if !defined(_DURANGO)
+#if !defined(XBOX)
 #include <shlwapi.h>
 #pragma comment(lib, "shlwapi.lib")
 #endif
@@ -45,6 +45,10 @@
 #include "../Interfaces/IApp.h"
 #include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/IMemory.h"
+
+#ifdef FORGE_STACKTRACE_DUMP
+#include "WindowsStackTraceDump.h"
+#endif
 
 #define CONFETTI_WINDOW_CLASS L"confetti"
 #define MAX_KEYS 256
@@ -160,17 +164,26 @@ LRESULT CALLBACK WinProc(HWND _hwnd, UINT _id, WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
+struct MonitorInfo
+{
+	unsigned index;
+	WCHAR adapterName[32];
+};
+
 static BOOL CALLBACK monitorCallback(HMONITOR pMonitor, HDC pDeviceContext, LPRECT pRect, LPARAM pParam)
 {
-	MONITORINFO info;
+	MONITORINFOEXW info;
 	info.cbSize = sizeof(info);
-	GetMonitorInfo(pMonitor, &info);
-	unsigned index = (unsigned)pParam;
+	GetMonitorInfoW(pMonitor, &info);
+	MonitorInfo* data = (MonitorInfo*)pParam;
+	unsigned index = data->index;
 
-	gMonitors[index].monitorRect = { (int)info.rcMonitor.left, (int)info.rcMonitor.top, (int)info.rcMonitor.right,
-									 (int)info.rcMonitor.bottom };
-	gMonitors[index].workRect = { (int)info.rcWork.left, (int)info.rcWork.top, (int)info.rcWork.right, (int)info.rcWork.bottom };
-
+	if (wcscmp(info.szDevice, data->adapterName) == 0)
+	{
+		gMonitors[index].monitorRect = { (int)info.rcMonitor.left, (int)info.rcMonitor.top, (int)info.rcMonitor.right,
+										 (int)info.rcMonitor.bottom };
+		gMonitors[index].workRect = { (int)info.rcWork.left, (int)info.rcWork.top, (int)info.rcWork.right, (int)info.rcWork.bottom };
+	}
 	return TRUE;
 }
 
@@ -204,52 +217,87 @@ static void collectMonitorInfo()
 		}
 	}
 
-	gMonitorCount = monitorCount;
-	gMonitors = (MonitorDesc*)conf_calloc(monitorCount, sizeof(MonitorDesc));
-
-	for (int adapterIndex = 0;; ++adapterIndex)
+	if (monitorCount)
 	{
-		if (!EnumDisplayDevicesW(NULL, adapterIndex, &adapter, 0))
-			break;
-
-		if (!(adapter.StateFlags & DISPLAY_DEVICE_ACTIVE))
-			continue;
-
-		for (int displayIndex = 0;; displayIndex++)
+		gMonitorCount = monitorCount;
+		gMonitors = (MonitorDesc*)conf_calloc(monitorCount, sizeof(MonitorDesc));
+		for (int adapterIndex = 0;; ++adapterIndex)
 		{
-			DISPLAY_DEVICEW display;
-			HDC dc;
-
-			display.cb = sizeof(display);
-
-			if (!EnumDisplayDevicesW(adapter.DeviceName, displayIndex, &display, 0))
+			if (!EnumDisplayDevicesW(NULL, adapterIndex, &adapter, 0))
 				break;
 
-			dc = CreateDCW(L"DISPLAY", adapter.DeviceName, NULL, NULL);
+			if (!(adapter.StateFlags & DISPLAY_DEVICE_ACTIVE))
+				continue;
 
-			MonitorDesc desc;
-			desc.modesPruned = (adapter.StateFlags & DISPLAY_DEVICE_MODESPRUNED) != 0;
-
-			wcsncpy_s(desc.adapterName, adapter.DeviceName, elementsOf(adapter.DeviceName));
-			wcsncpy_s(desc.publicAdapterName, adapter.DeviceName, elementsOf(adapter.DeviceName));
-			wcsncpy_s(desc.displayName, display.DeviceName, elementsOf(display.DeviceName));
-			wcsncpy_s(desc.publicDisplayName, display.DeviceName, elementsOf(display.DeviceName));
-
-			gMonitors[found] = (desc);
-			EnumDisplayMonitors(NULL, NULL, monitorCallback, found);
-
-			DeleteDC(dc);
-
-			if ((adapter.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE) && displayIndex == 0)
+			for (int displayIndex = 0;; displayIndex++)
 			{
-				MonitorDesc desc = gMonitors[0];
-				gMonitors[0] = gMonitors[found];
-				gMonitors[found] = desc;
-			}
+				DISPLAY_DEVICEW display;
+				HDC dc;
 
-			found++;
+				display.cb = sizeof(display);
+
+				if (!EnumDisplayDevicesW(adapter.DeviceName, displayIndex, &display, 0))
+					break;
+
+				dc = CreateDCW(L"DISPLAY", adapter.DeviceName, NULL, NULL);
+
+				MonitorDesc desc;
+				desc.modesPruned = (adapter.StateFlags & DISPLAY_DEVICE_MODESPRUNED) != 0;
+
+				wcsncpy_s(desc.adapterName, adapter.DeviceName, elementsOf(adapter.DeviceName));
+				wcsncpy_s(desc.publicAdapterName, adapter.DeviceString, elementsOf(adapter.DeviceString));
+				wcsncpy_s(desc.displayName, display.DeviceName, elementsOf(display.DeviceName));
+				wcsncpy_s(desc.publicDisplayName, display.DeviceString, elementsOf(display.DeviceString));
+
+				gMonitors[found] = (desc);
+				MonitorInfo data = {};
+				data.index = found;
+				wcsncpy_s(data.adapterName, adapter.DeviceName, elementsOf(adapter.DeviceName));
+
+				EnumDisplayMonitors(NULL, NULL, monitorCallback, (LPARAM)(&data));
+
+				DeleteDC(dc);
+
+				if ((adapter.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE) && displayIndex == 0)
+				{
+					MonitorDesc desc = gMonitors[0];
+					gMonitors[0] = gMonitors[found];
+					gMonitors[found] = desc;
+				}
+
+				found++;
+			}
 		}
 	}
+	else
+	{
+		LOGF(LogLevel::eDEBUG, "FallBack Option");
+		//Fallback options incase enumeration fails
+		//then default to the primary device 
+		monitorCount = 0;
+		HMONITOR  currentMonitor = NULL;
+		currentMonitor = MonitorFromWindow(NULL, MONITOR_DEFAULTTOPRIMARY);
+		if (currentMonitor)
+		{
+			monitorCount = 1;
+			gMonitors = (MonitorDesc*)conf_calloc(monitorCount, sizeof(MonitorDesc));
+
+			MONITORINFOEXW info;
+			info.cbSize = sizeof(MONITORINFOEXW);
+			bool infoRead = GetMonitorInfoW(currentMonitor, &info);
+			MonitorDesc desc = {};
+
+			wcsncpy_s(desc.adapterName, info.szDevice, elementsOf(info.szDevice));
+			wcsncpy_s(desc.publicAdapterName, info.szDevice, elementsOf(info.szDevice));
+			wcsncpy_s(desc.displayName, info.szDevice, elementsOf(info.szDevice));
+			wcsncpy_s(desc.publicDisplayName, info.szDevice, elementsOf(info.szDevice));
+			desc.monitorRect = { (int)info.rcMonitor.left, (int)info.rcMonitor.top, (int)info.rcMonitor.right, (int)info.rcMonitor.bottom };
+			desc.workRect = { (int)info.rcWork.left, (int)info.rcWork.top, (int)info.rcWork.right, (int)info.rcWork.bottom };
+			gMonitors[0] = (desc);
+			gMonitorCount = monitorCount;
+		}
+	}
+
 
 	for (uint32_t monitor = 0; monitor < monitorCount; ++monitor)
 	{
@@ -393,12 +441,15 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 	size_t charConverted = 0;
 	mbstowcs_s(&charConverted, app, app_name, MAX_PATH);
 
+
+	//
+	int windowY = rect.top;
+	//because on dual monitor setup this results to always 0 which might not be the case in reality
 	int windowX = rect.left;
-	if (windowX < 0)
+	if (!winDesc->overrideDefaultPosition && windowX < 0)
 		windowX = CW_USEDEFAULT;
 
-	int windowY = rect.top;
-	if (windowY < 0)
+	if (!winDesc->overrideDefaultPosition && windowY < 0)
 		windowY = CW_USEDEFAULT;
 
 	HWND hwnd = CreateWindowW(
@@ -502,20 +553,30 @@ void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
 void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height)
 {
 	// Center the window position with the new size. Otherwise it is stuck to the top-left at 0,0.
-	// Get primary display's width and height.
-	int screenSizeX = GetSystemMetrics(SM_CXSCREEN);
-	int screenSizeY = GetSystemMetrics(SM_CYSCREEN);
+	// Get the current monitor on which the window is displayed.
+	HMONITOR  currentMonitor = MonitorFromWindow((HWND)pApp->pWindow->handle.window, MONITOR_DEFAULTTOPRIMARY);
+	MONITORINFOEX info;
+	info.cbSize = sizeof(MONITORINFOEX);
+	bool infoRead = GetMonitorInfo(currentMonitor, &info);
+
+	int offsetX = info.rcMonitor.left;
+	int offsetY = info.rcMonitor.top;
+
+	int screenSizeX = gMonitors[pApp->mSettings.mMonitorIndex].defaultResolution.mWidth;
+	int screenSizeY = gMonitors[pApp->mSettings.mMonitorIndex].defaultResolution.mHeight;
 
 	// Percent ratio of requested size to display size.
 	float screenRatioX = 1.f - ((float)width / (float)screenSizeX);
 	float screenRatioY = 1.f - ((float)height / (float)screenSizeY);
 
 	// Get the centered start position in pixels.
-	float screenStartX = screenSizeX * screenRatioX * 0.5f;
-	float screenStartY = screenSizeY * screenRatioY * 0.5f;
+	float screenStartX = offsetX + (screenSizeX * screenRatioX * 0.5f);
+	float screenStartY = offsetY + (screenSizeY * screenRatioY * 0.5f);
 
+	pApp->mSettings.mWindowX = (int)screenStartX;
+	pApp->mSettings.mWindowY = (int)screenStartY;
 	// Set the start and end positions of the window in pixels.
-	setWindowRect(winDesc, { (int)screenStartX, (int)screenStartY,  (int)(screenStartX + width), (int)(screenStartY + height) });
+	setWindowRect(winDesc, { (int)screenStartX,  (int)screenStartY,  (int)(screenStartX + width), (int)(screenStartY + height) });
 }
 
 void adjustWindow(WindowsDesc* winDesc)
@@ -532,15 +593,19 @@ void adjustWindow(WindowsDesc* winDesc)
 		// Make the window borderless so that the client area can fill the screen.
 		SetWindowLong(hwnd, GWL_STYLE, WS_SYSMENU | WS_POPUP | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE);
 
-		// Get the settings of the primary display. We want the app to go into
+		// Get the settings of the durrent display index. We want the app to go into
 		// fullscreen mode on the display that supports Independent Flip.
-		DEVMODE devMode = {};
-		devMode.dmSize = sizeof(DEVMODE);
-		EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &devMode);
+		HMONITOR  currentMonitor = MonitorFromWindow((HWND)pApp->pWindow->handle.window, MONITOR_DEFAULTTOPRIMARY);
+		MONITORINFOEX info;
+		info.cbSize = sizeof(MONITORINFOEX);
+		bool infoRead = GetMonitorInfo(currentMonitor, &info);
+
+		pApp->mSettings.mWindowX = info.rcMonitor.left;
+		pApp->mSettings.mWindowY = info.rcMonitor.top;
 
 		SetWindowPos(
-			hwnd, HWND_TOPMOST, devMode.dmPosition.x, devMode.dmPosition.y, devMode.dmPosition.x + devMode.dmPelsWidth,
-			devMode.dmPosition.y + devMode.dmPelsHeight, SWP_FRAMECHANGED | SWP_NOACTIVATE);
+			hwnd, HWND_TOPMOST, info.rcMonitor.left, info.rcMonitor.top, info.rcMonitor.right - info.rcMonitor.left,
+			info.rcMonitor.bottom - info.rcMonitor.top, SWP_FRAMECHANGED | SWP_NOACTIVATE);
 
 		ShowWindow(hwnd, SW_MAXIMIZE);
 	}
@@ -675,6 +740,7 @@ static void onResize(WindowsDesc* wnd, int32_t newSizeX, int32_t newSizeY)
 	pApp->Load();
 }
 
+
 int WindowsMain(int argc, char** argv, IApp* app)
 {
 	extern bool MemAllocInit();
@@ -683,7 +749,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
 	if (!MemAllocInit())
 		return EXIT_FAILURE;
 
-#if TF_USE_MTUNER
+#if USE_MTUNER
 	rmemInit(0);
 #endif
 
@@ -691,6 +757,11 @@ int WindowsMain(int argc, char** argv, IApp* app)
 		return EXIT_FAILURE;
 
 	Log::Init();
+
+#ifdef FORGE_STACKTRACE_DUMP
+	if (!WindowsStackTrace::Init())
+		return EXIT_FAILURE;
+#endif
 
 	WindowClass wnd;
 
@@ -761,21 +832,27 @@ int WindowsMain(int argc, char** argv, IApp* app)
 			pSettings->mHeight = windowHeight;
 		}
 
-		int screenSizeX = GetSystemMetrics(SM_CXSCREEN);
-		int screenSizeY = GetSystemMetrics(SM_CYSCREEN);
+		int screenSizeX = monitor->defaultResolution.mWidth;
+		int screenSizeY = monitor->defaultResolution.mHeight;
 
 		// Percent ratio of requested size to display size.
 		float screenRatioX = 1.f - ((float)pSettings->mWidth / (float)screenSizeX);
 		float screenRatioY = 1.f - ((float)pSettings->mHeight / (float)screenSizeY);
 
 		//check if requested windowX and windowY fall in bounds else default to center or if the window is fullscreen
-		int windowX = pSettings->mWindowX;
-		if (windowX < (int)monitor->monitorRect.left || windowX >= (int)monitor->monitorRect.left + (int)monitor->defaultResolution.mWidth || pApp->pWindow->fullScreen)
-			pSettings->mWindowX = (int)(screenSizeX * screenRatioX * 0.5f);
+		int monitorLeft = monitor->monitorRect.left;
+		int monitorWidth = monitor->monitorRect.right - monitor->monitorRect.left;
 
-		int windowY = pSettings->mWindowY;
-		if (windowY < (int)monitor->monitorRect.top || windowY >= (int)monitor->monitorRect.top + (int)monitor->defaultResolution.mHeight || pApp->pWindow->fullScreen)
-			pSettings->mWindowY = (int)(screenSizeY * screenRatioY * 0.5f);
+		int monitorTop = monitor->monitorRect.top;
+		int monitorHeight = monitor->monitorRect.bottom - monitor->monitorRect.top;
+
+		pSettings->mWindowX = pSettings->mWindowX + monitor->monitorRect.left;
+		if (pSettings->mWindowX < monitorLeft || pSettings->mWindowX >= monitorLeft + monitorWidth || pApp->pWindow->fullScreen)
+			pSettings->mWindowX = monitorLeft + (int)(screenSizeX * screenRatioX * 0.5f);
+
+		pSettings->mWindowY = pSettings->mWindowY + monitor->monitorRect.top;
+		if (pSettings->mWindowY < monitorTop || pSettings->mWindowY >= monitorTop + monitorHeight || pApp->pWindow->fullScreen)
+			pSettings->mWindowY = monitorTop + (int)(screenSizeY * screenRatioY * 0.5f);
 
 		pApp->pWindow->windowedRect = { pSettings->mWindowX, pSettings->mWindowY, pSettings->mWindowX + (int)pSettings->mWidth, pSettings->mWindowY + (int)pSettings->mHeight };
 		//original client rect before adjustment
@@ -841,11 +918,16 @@ int WindowsMain(int argc, char** argv, IApp* app)
 	pApp->Exit();
 
 	wnd.Exit();
+
+#ifdef FORGE_STACKTRACE_DUMP
+	WindowsStackTrace::Exit();
+#endif
+
 	Log::Exit();
 
 	fsExitAPI();
 
-#if TF_USE_MTUNER
+#if USE_MTUNER
 	rmemUnload();
 	rmemShutDown();
 #endif

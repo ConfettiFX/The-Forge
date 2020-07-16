@@ -43,18 +43,18 @@ struct PsIn
 
 vertex PsIn stageMain(VsIn In                                       [[stage_in]],
                       uint instanceID                               [[instance_id]],
-                      constant ExecuteIndirectArgData& vsData                       [[buffer(UPDATE_FREQ_NONE)]],
-                      constant ExecuteIndirectArgDataPerFrame& vsDataPerFrame       [[buffer(UPDATE_FREQ_PER_FRAME)]]
+                      ExecuteIndirectArgData,
+                      ExecuteIndirectArgDataPerFrame
 )
 {
     
     PsIn result;
 
-    AsteroidStatic asteroidStatic = vsData.asteroidsStatic[instanceID];
-    AsteroidDynamic asteroidDynamic = vsData.asteroidsDynamic[instanceID];
+    AsteroidStatic asteroidStatic = asteroidsStatic[instanceID];
+    AsteroidDynamic asteroidDynamic = asteroidsDynamic[instanceID];
 
     float4x4 worldMatrix = asteroidDynamic.transform;
-    result.position = vsDataPerFrame.uniformBlock.viewProj * (worldMatrix * float4(In.position.xyz, 1.0f));
+    result.position = uniformBlock.viewProj * (worldMatrix * float4(In.position.xyz, 1.0f));
     result.posModel = In.position.xyz;
     result.normal = (worldMatrix * float4(In.normal.xyz,0)).xyz;
 

@@ -23,9 +23,6 @@
 		5C172FE421414CC60074EE71 /* MemoryTracking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D461A1FD9974F00564C8B /* MemoryTracking.cpp */; };
 		5C172FE521414CC60074EE71 /* CameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D20D92111F3879C4004B3A42 /* CameraController.cpp */; };
 		5C172FE721414CC60074EE71 /* MathTypes.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CBF1EF81FC5005AC8C7 /* MathTypes.h */; };
-		5C172FE821414CC60074EE71 /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCC1EF81FC5005AC8C7 /* Image.cpp */; };
-		5C172FE921414CC60074EE71 /* Image.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCD1EF81FC5005AC8C7 /* Image.h */; };
-		5C172FEA21414CC60074EE71 /* ImageEnums.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCE1EF81FC5005AC8C7 /* ImageEnums.h */; };
 		5C172FEB21414CC60074EE71 /* CommonShaderReflection.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F49214148830074EE71 /* CommonShaderReflection.cpp */; };
 		5C172FEE21414CC60074EE71 /* IRenderer.h in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F46214148830074EE71 /* IRenderer.h */; };
 		5C172FEF21414CC60074EE71 /* IShaderReflection.h in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F48214148830074EE71 /* IShaderReflection.h */; };
@@ -47,6 +44,7 @@
 		5C32AEDF246453F40066E921 /* ParallelPrimitives.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C32AEDD246453F40066E921 /* ParallelPrimitives.cpp */; };
 		5C32AEE0246453F40066E921 /* ParallelPrimitives.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C32AEDD246453F40066E921 /* ParallelPrimitives.cpp */; };
 		5C32AEE1246453F40066E921 /* ParallelPrimitives.h in Headers */ = {isa = PBXBuildFile; fileRef = 5C32AEDE246453F40066E921 /* ParallelPrimitives.h */; };
+		5C3EDDB8247873A3003C9434 /* MetalRaytracing.mm in Sources */ = {isa = PBXBuildFile; fileRef = 65F9793121ED9F9A008EC741 /* MetalRaytracing.mm */; };
 		5C512C55214155FE00E7A798 /* ImguiGUIDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C512C53214155FE00E7A798 /* ImguiGUIDriver.cpp */; };
 		5C512C56214155FE00E7A798 /* ImguiGUIDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C512C53214155FE00E7A798 /* ImguiGUIDriver.cpp */; };
 		5C512C602141561E00E7A798 /* imgui_draw.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C512C592141561E00E7A798 /* imgui_draw.cpp */; };
@@ -67,15 +65,13 @@
 		5C5582F621413D550019960B /* MemoryTracking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D461A1FD9974F00564C8B /* MemoryTracking.cpp */; };
 		5C5582F721413D550019960B /* CameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D20D92111F3879C4004B3A42 /* CameraController.cpp */; };
 		5C5582F921413D550019960B /* MathTypes.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CBF1EF81FC5005AC8C7 /* MathTypes.h */; };
-		5C5582FA21413D550019960B /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCC1EF81FC5005AC8C7 /* Image.cpp */; };
-		5C5582FB21413D550019960B /* Image.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCD1EF81FC5005AC8C7 /* Image.h */; };
-		5C5582FC21413D550019960B /* ImageEnums.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCE1EF81FC5005AC8C7 /* ImageEnums.h */; };
 		5C55830921413D550019960B /* tinyexr.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE11EF81FC5005AC8C7 /* tinyexr.cpp */; };
 		5C55830A21413D550019960B /* tinyexr.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE21EF81FC5005AC8C7 /* tinyexr.h */; };
 		5C55830B21413D550019960B /* Log.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE61EF81FC5005AC8C7 /* Log.cpp */; };
 		5C55830C21413D550019960B /* Log.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE71EF81FC5005AC8C7 /* Log.h */; };
 		5C55831021413D550019960B /* ThreadSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */; };
 		5C55831121413D550019960B /* Timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */; };
+		5CED8128247C65AE00266BCD /* MetalAvailabilityMacros.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CED8127247C65AE00266BCD /* MetalAvailabilityMacros.h */; };
 		650CCC3C2223C17A003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172FBF21414BE60074EE71 /* MetalPerformanceShaders.framework */; };
 		654D979421E922F400113964 /* ClipController.h in Headers */ = {isa = PBXBuildFile; fileRef = 654D978621E922F300113964 /* ClipController.h */; };
 		654D979521E922F400113964 /* Rig.h in Headers */ = {isa = PBXBuildFile; fileRef = 654D978721E922F300113964 /* Rig.h */; };
@@ -99,7 +95,6 @@
 		654D97BC21E92F9100113964 /* Rig.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 654D978F21E922F300113964 /* Rig.cpp */; };
 		654D97BD21E92F9300113964 /* SkeletonBatcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 654D978A21E922F300113964 /* SkeletonBatcher.cpp */; };
 		6562C7EE2207FAB300721714 /* MetalRaytracing.mm in Sources */ = {isa = PBXBuildFile; fileRef = 65F9793121ED9F9A008EC741 /* MetalRaytracing.mm */; };
-		65F9793221ED9F9B008EC741 /* MetalRaytracing.mm in Sources */ = {isa = PBXBuildFile; fileRef = 65F9793121ED9F9A008EC741 /* MetalRaytracing.mm */; };
 		65F9793721EDFA45008EC741 /* IRay.h in Headers */ = {isa = PBXBuildFile; fileRef = 65F9793621EDFA44008EC741 /* IRay.h */; };
 		65F9793C21EE0001008EC741 /* libgainputstatic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D1CEA920EAD160001BB8C4 /* libgainputstatic.a */; };
 		81856EF3229D725000F3A92B /* EASprintf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 81856EF1229D725000F3A92B /* EASprintf.cpp */; };
@@ -181,6 +176,7 @@
 		E9E1C3492339E2FD003544D5 /* ZipFileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9E1C3462339E2FD003544D5 /* ZipFileSystem.cpp */; };
 		E9E601CD233B099800B21FD6 /* macOSFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = E9E601C4233B098900B21FD6 /* macOSFileSystem.mm */; };
 		E9FECF7723333E3F00BA3DFB /* RingBuffer.h in Headers */ = {isa = PBXBuildFile; fileRef = D205E2831F9F9EC600040CCE /* RingBuffer.h */; };
+		FA7B2FA0249C15B4007B9D2F /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FA7B2F9F249C15B4007B9D2F /* IOKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -257,6 +253,7 @@
 		5CABF32C214151F500EFD76A /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		5CD2BBE92080FED8008E3A2C /* AppUI.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AppUI.cpp; path = ../../Middleware_3/UI/AppUI.cpp; sourceTree = "<group>"; };
 		5CD2BBEA2080FED8008E3A2C /* AppUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppUI.h; path = ../../Middleware_3/UI/AppUI.h; sourceTree = "<group>"; };
+		5CED8127247C65AE00266BCD /* MetalAvailabilityMacros.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MetalAvailabilityMacros.h; path = Metal/MetalAvailabilityMacros.h; sourceTree = "<group>"; };
 		650E6C1F21667E2C00F511AB /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/assimp.a"; sourceTree = "<group>"; };
 		650E6C2021667E2D00F511AB /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/zlibstatic.a"; sourceTree = "<group>"; };
 		650E6C2121667E2D00F511AB /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/IrrXML.a"; sourceTree = "<group>"; };
@@ -334,7 +331,7 @@
 		E98584E92334609200692529 /* FileSystemInternal.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FileSystemInternal.cpp; path = FileSystem/FileSystemInternal.cpp; sourceTree = "<group>"; usesTabs = 1; };
 		E9B6292B23388D7C009DD4AB /* UnixFileSystem.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = UnixFileSystem.cpp; path = FileSystem/UnixFileSystem.cpp; sourceTree = "<group>"; };
 		E9B6292C23388D7C009DD4AB /* UnixFileSystem.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UnixFileSystem.h; path = FileSystem/UnixFileSystem.h; sourceTree = "<group>"; usesTabs = 1; };
-		E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = basisu_transcoder.cpp; path = ../ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp; sourceTree = "<group>"; };
+		E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = basisu_transcoder.cpp; path = ../../../../Common_3/ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp; sourceTree = "<group>"; };
 		E9E1C3452339E2FC003544D5 /* ZipFileSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ZipFileSystem.h; path = FileSystem/ZipFileSystem.h; sourceTree = "<group>"; };
 		E9E1C3462339E2FD003544D5 /* ZipFileSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZipFileSystem.cpp; path = FileSystem/ZipFileSystem.cpp; sourceTree = "<group>"; };
 		E9E601BD233AFB0700B21FD6 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
@@ -346,15 +343,13 @@
 		E9E601CA233B098900B21FD6 /* iOSAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = iOSAppDelegate.h; sourceTree = "<group>"; };
 		E9E601CB233B098900B21FD6 /* macOSAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = macOSAppDelegate.h; sourceTree = "<group>"; };
 		EA463CBF1EF81FC5005AC8C7 /* MathTypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MathTypes.h; path = ../../../../Common_3/OS/Math/MathTypes.h; sourceTree = SOURCE_ROOT; };
-		EA463CCC1EF81FC5005AC8C7 /* Image.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Image.cpp; path = ../../../../Common_3/OS/Image/Image.cpp; sourceTree = SOURCE_ROOT; };
-		EA463CCD1EF81FC5005AC8C7 /* Image.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Image.h; path = ../../../../Common_3/OS/Image/Image.h; sourceTree = SOURCE_ROOT; };
-		EA463CCE1EF81FC5005AC8C7 /* ImageEnums.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ImageEnums.h; path = ../../../../Common_3/OS/Image/ImageEnums.h; sourceTree = SOURCE_ROOT; };
 		EA463CE11EF81FC5005AC8C7 /* tinyexr.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = tinyexr.cpp; path = ../../../../Common_3/ThirdParty/OpenSource/TinyEXR/tinyexr.cpp; sourceTree = SOURCE_ROOT; };
 		EA463CE21EF81FC5005AC8C7 /* tinyexr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = tinyexr.h; path = ../../../../Common_3/ThirdParty/OpenSource/TinyEXR/tinyexr.h; sourceTree = SOURCE_ROOT; };
 		EA463CE61EF81FC5005AC8C7 /* Log.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Log.cpp; path = ../../../../Common_3/OS/Logging/Log.cpp; sourceTree = SOURCE_ROOT; };
 		EA463CE71EF81FC5005AC8C7 /* Log.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Log.h; path = ../../../../Common_3/OS/Logging/Log.h; sourceTree = SOURCE_ROOT; };
 		EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ThreadSystem.cpp; path = ../../../../Common_3/OS/Core/ThreadSystem.cpp; sourceTree = SOURCE_ROOT; };
 		EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Timer.cpp; path = ../../../../Common_3/OS/Core/Timer.cpp; sourceTree = SOURCE_ROOT; };
+		FA7B2F9F249C15B4007B9D2F /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -373,6 +368,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FA7B2FA0249C15B4007B9D2F /* IOKit.framework in Frameworks */,
 				650CCC3C2223C17A003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
 				65F9793C21EE0001008EC741 /* libgainputstatic.a in Frameworks */,
 			);
@@ -384,6 +380,7 @@
 		5C172F1E214145400074EE71 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				FA7B2F9F249C15B4007B9D2F /* IOKit.framework */,
 				E967DF0E233B2C390032E4BA /* libzlibstatic_iOS.a */,
 				E967DF0A233B2BFC0032E4BA /* libassimp_iOS.a */,
 				E967DF0C233B2C340032E4BA /* libIrrXML_iOS.a */,
@@ -426,6 +423,14 @@
 				5C512C5E2141561E00E7A798 /* imgui.h */,
 			);
 			name = imgui;
+			sourceTree = "<group>";
+		};
+		5CA3338224A9C27100F26BD1 /* basisu */ = {
+			isa = PBXGroup;
+			children = (
+				E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */,
+			);
+			name = basisu;
 			sourceTree = "<group>";
 		};
 		5CD2BBB32080FCC1008E3A2C /* UI */ = {
@@ -581,6 +586,7 @@
 		B2EE056023F14BA400AB25DF /* Dependencies */ = {
 			isa = PBXGroup;
 			children = (
+				5CA3338224A9C27100F26BD1 /* basisu */,
 				B2DC6E9623F27C4B00D48312 /* zip */,
 			);
 			name = Dependencies;
@@ -680,17 +686,6 @@
 			name = Math;
 			sourceTree = "<group>";
 		};
-		EA463CD01EF81FC5005AC8C7 /* Image */ = {
-			isa = PBXGroup;
-			children = (
-				E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */,
-				EA463CCC1EF81FC5005AC8C7 /* Image.cpp */,
-				EA463CCD1EF81FC5005AC8C7 /* Image.h */,
-				EA463CCE1EF81FC5005AC8C7 /* ImageEnums.h */,
-			);
-			name = Image;
-			sourceTree = "<group>";
-		};
 		EA463CDC1EF81FC5005AC8C7 /* OS */ = {
 			isa = PBXGroup;
 			children = (
@@ -703,7 +698,6 @@
 				D2111E771F4457910014FFE6 /* MemoryManager */,
 				D20D920F1F3879A4004B3A42 /* Camera */,
 				EA463CCB1EF81FC5005AC8C7 /* Math */,
-				EA463CD01EF81FC5005AC8C7 /* Image */,
 				E98584E52334397C00692529 /* SystemRun.cpp */,
 			);
 			path = OS;
@@ -712,6 +706,7 @@
 		EA463CE01EF81FC5005AC8C7 /* Renderer */ = {
 			isa = PBXGroup;
 			children = (
+				5CED8127247C65AE00266BCD /* MetalAvailabilityMacros.h */,
 				65F9793621EDFA44008EC741 /* IRay.h */,
 				65F9793121ED9F9A008EC741 /* MetalRaytracing.mm */,
 				5C172F49214148830074EE71 /* CommonShaderReflection.cpp */,
@@ -796,6 +791,7 @@
 			files = (
 				5C172F52214148840074EE71 /* IShaderReflection.h in Headers */,
 				654D979621E922F400113964 /* ClipMask.h in Headers */,
+				5CED8128247C65AE00266BCD /* MetalAvailabilityMacros.h in Headers */,
 				B231A24D23F40207006D7450 /* GpuProfiler.h in Headers */,
 				E9FECF7723333E3F00BA3DFB /* RingBuffer.h in Headers */,
 				65F9793721EDFA45008EC741 /* IRay.h in Headers */,
@@ -951,12 +947,9 @@
 				81856F0D229D729000F3A92B /* intrusive_list.cpp in Sources */,
 				5C172FE521414CC60074EE71 /* CameraController.cpp in Sources */,
 				5C172FE721414CC60074EE71 /* MathTypes.h in Sources */,
-				5C172FE821414CC60074EE71 /* Image.cpp in Sources */,
 				654D97BD21E92F9300113964 /* SkeletonBatcher.cpp in Sources */,
-				5C172FE921414CC60074EE71 /* Image.h in Sources */,
 				B231A24F23F40207006D7450 /* ProfilerBase.cpp in Sources */,
 				6562C7EE2207FAB300721714 /* MetalRaytracing.mm in Sources */,
-				5C172FEA21414CC60074EE71 /* ImageEnums.h in Sources */,
 				5C172FEB21414CC60074EE71 /* CommonShaderReflection.cpp in Sources */,
 				E9BF1A28231861BD001F2264 /* basisu_transcoder.cpp in Sources */,
 				81856F05229D729000F3A92B /* red_black_tree.cpp in Sources */,
@@ -1028,6 +1021,7 @@
 				5C512C662141561E00E7A798 /* imgui.cpp in Sources */,
 				5C5582F621413D550019960B /* MemoryTracking.cpp in Sources */,
 				81856F04229D729000F3A92B /* red_black_tree.cpp in Sources */,
+				5C3EDDB8247873A3003C9434 /* MetalRaytracing.mm in Sources */,
 				5C5582F721413D550019960B /* CameraController.cpp in Sources */,
 				5C5582F921413D550019960B /* MathTypes.h in Sources */,
 				654D979721E922F400113964 /* ClipMask.cpp in Sources */,
@@ -1035,10 +1029,7 @@
 				5C512C55214155FE00E7A798 /* ImguiGUIDriver.cpp in Sources */,
 				654D979F21E922F400113964 /* AnimatedObject.cpp in Sources */,
 				B231A25023F40207006D7450 /* ProfilerWidgetsUI.cpp in Sources */,
-				5C5582FA21413D550019960B /* Image.cpp in Sources */,
 				B231A24B23F40207006D7450 /* GpuProfiler.cpp in Sources */,
-				5C5582FB21413D550019960B /* Image.h in Sources */,
-				5C5582FC21413D550019960B /* ImageEnums.h in Sources */,
 				81856F02229D729000F3A92B /* hashtable.cpp in Sources */,
 				81856F00229D729000F3A92B /* allocator_forge.cpp in Sources */,
 				654D979B21E922F400113964 /* Animation.cpp in Sources */,
@@ -1069,7 +1060,6 @@
 				81856F06229D729000F3A92B /* string.cpp in Sources */,
 				81856EF3229D725000F3A92B /* EASprintf.cpp in Sources */,
 				E967DE3C233B0A2C0032E4BA /* DarwinLog.cpp in Sources */,
-				65F9793221ED9F9B008EC741 /* MetalRaytracing.mm in Sources */,
 				B2DC6E9823F27C6600D48312 /* zip.cpp in Sources */,
 				5C55831021413D550019960B /* ThreadSystem.cpp in Sources */,
 				5C512C632141561E00E7A798 /* imgui_demo.cpp in Sources */,
@@ -1097,6 +1087,7 @@
 		5C172FCF21414C4A0074EE71 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "c++14";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_COMMA = NO;
@@ -1114,7 +1105,7 @@
 				);
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../../../Common_3/ThirdParty/OpenSource/Libraries/iOS";
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1127,6 +1118,7 @@
 		5C172FD021414C4A0074EE71 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				CLANG_CXX_LANGUAGE_STANDARD = "c++14";
 				CLANG_ENABLE_OBJC_WEAK = YES;
 				CLANG_WARN_COMMA = NO;
@@ -1142,7 +1134,7 @@
 				);
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../../../Common_3/ThirdParty/OpenSource/Libraries/iOS";
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1173,7 +1165,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../../../Common_3/ThirdParty/OpenSource/Libraries/macOS";
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				OTHER_LDFLAGS = "-lbz2";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1198,7 +1190,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../../../Common_3/ThirdParty/OpenSource/Libraries/macOS";
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				OTHER_LDFLAGS = "-lbz2";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1262,8 +1254,8 @@
 					"$(SRCROOT)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include",
 					"$(SRCROOT)/../../../../Common_3/ThirdParty/OpenSource/libzip-1.1.2/lib/**",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
@@ -1315,8 +1307,8 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = NO;
 				GCC_WARN_UNUSED_VARIABLE = NO;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
 				SYSTEM_HEADER_SEARCH_PATHS = "$(SRCROOT)/../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/include";

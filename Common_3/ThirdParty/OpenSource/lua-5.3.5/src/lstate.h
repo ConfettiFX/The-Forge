@@ -56,7 +56,7 @@ struct lua_longjmp;  /* defined in ldo.c */
 ** is thread safe
 */
 #if !defined(l_signalT)
-#if defined(ORBIS)
+#if defined(ORBIS) || defined(PROSPERO)
 #include <machine/signal.h>
 #else
 #include <signal.h>

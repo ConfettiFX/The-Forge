@@ -122,6 +122,13 @@ public:
 		bool		mQuit = false;
 		/// if default automated testing enabled
 		bool		mDefaultAutomatedTesting = true;
+
+#ifdef VK_USE_PLATFORM_ANDROID_KHR
+		bool		mDefaultVSyncEnabled = true;
+#else
+		bool		mDefaultVSyncEnabled = false;
+#endif
+
 #if defined(TARGET_IOS)
 		bool     mShowStatusBar = false;
 		float    mContentScaleFactor = 0.f;
@@ -135,51 +142,51 @@ public:
 	static const char** argv;
 };
 
-#if defined(_DURANGO)
-#define DEFINE_APPLICATION_MAIN(appClass)                     \
-	int IApp::argc;                                           \
-	const char** IApp::argv;                                  \
-	extern int DurangoMain(int argc, char** argv, IApp* app); \
-															  \
-	int main(int argc, char** argv)                           \
-	{                                                         \
-		IApp::argc = argc;                                    \
-		IApp::argv = (const char**)argv;                      \
-		appClass app;										  \
-		return DurangoMain(argc, argv, &app);                 \
+#if defined(XBOX)
+#define DEFINE_APPLICATION_MAIN(appClass)                         \
+	int IApp::argc;                                               \
+	const char** IApp::argv;                                      \
+	extern int DurangoMain(int argc, char** argv, IApp* app);     \
+                                                                  \
+	int main(int argc, char** argv)                               \
+	{                                                             \
+		IApp::argc = argc;                                        \
+		IApp::argv = (const char**)argv;                          \
+		appClass app;                                             \
+		return DurangoMain(argc, argv, &app);                     \
 	}
 #elif defined(_WIN32)
-#define DEFINE_APPLICATION_MAIN(appClass)                     \
-	int IApp::argc;                                           \
-	const char** IApp::argv;                                  \
-	extern int WindowsMain(int argc, char** argv, IApp* app); \
-															  \
-	int main(int argc, char** argv)                           \
-	{                                                         \
-		IApp::argc = argc;                                    \
-		IApp::argv = (const char**)argv;                      \
-		appClass app;                                         \
-		return WindowsMain(argc, argv, &app);                 \
+#define DEFINE_APPLICATION_MAIN(appClass)                         \
+	int IApp::argc;                                               \
+	const char** IApp::argv;                                      \
+	extern int WindowsMain(int argc, char** argv, IApp* app);     \
+															      \
+	int main(int argc, char** argv)                               \
+	{                                                             \
+		IApp::argc = argc;                                        \
+		IApp::argv = (const char**)argv;                          \
+		appClass app;                                             \
+		return WindowsMain(argc, argv, &app);                     \
 	}
 #elif defined(TARGET_IOS)
-#define DEFINE_APPLICATION_MAIN(appClass)                 \
-	int IApp::argc;                                       \
-	const char** IApp::argv;                              \
-	extern int iOSMain(int argc, char** argv, IApp* app); \
-														  \
-	int main(int argc, char** argv)                       \
-	{                                                     \
-		IApp::argc = argc;                                \
-		IApp::argv = (const char**)argv;                  \
-		appClass app;                                     \
-		return iOSMain(argc, argv, &app);                 \
+#define DEFINE_APPLICATION_MAIN(appClass)                         \
+	int IApp::argc;                                               \
+	const char** IApp::argv;                                      \
+	extern int iOSMain(int argc, char** argv, IApp* app);         \
+														          \
+	int main(int argc, char** argv)                               \
+	{                                                             \
+		IApp::argc = argc;                                        \
+		IApp::argv = (const char**)argv;                          \
+		appClass app;                                             \
+		return iOSMain(argc, argv, &app);                         \
 	}
 #elif defined(__APPLE__)
 #define DEFINE_APPLICATION_MAIN(appClass)                         \
 	int IApp::argc;                                               \
 	const char** IApp::argv;                                      \
 	extern int macOSMain(int argc, const char** argv, IApp* app); \
-																  \
+                                                                  \
 	int main(int argc, const char* argv[])                        \
 	{                                                             \
 		IApp::argc = argc;                                        \
@@ -188,49 +195,64 @@ public:
 		return macOSMain(argc, argv, &app);                       \
 	}
 #elif defined(__ANDROID__)
-#define DEFINE_APPLICATION_MAIN(appClass)           \
-	int IApp::argc;                                 \
-	const char** IApp::argv;                        \
-	extern int AndroidMain(void* param, IApp* app); \
-													\
-	void android_main(struct android_app* param)    \
-	{                                               \
-		IApp::argc = 0;                             \
-		IApp::argv = NULL;                          \
-		appClass app;                               \
-		AndroidMain(param, &app);                   \
+#define DEFINE_APPLICATION_MAIN(appClass)                         \
+	int IApp::argc;                                               \
+	const char** IApp::argv;                                      \
+	extern int AndroidMain(void* param, IApp* app);               \
+                                                                  \
+	void android_main(struct android_app* param)                  \
+	{                                                             \
+		IApp::argc = 0;                                           \
+		IApp::argv = NULL;                                        \
+		appClass app;                                             \
+		AndroidMain(param, &app);                                 \
 	}
 
 #elif defined(__linux__)
-#define DEFINE_APPLICATION_MAIN(appClass)                   \
-	int IApp::argc;                                         \
-	const char** IApp::argv;                                \
-	extern int LinuxMain(int argc, char** argv, IApp* app); \
-															\
-	int main(int argc, char** argv)                         \
-	{                                                       \
-		IApp::argc = argc;                                  \
-		IApp::argv = (const char**)argv;                    \
-		appClass app;                                       \
-		return LinuxMain(argc, argv, &app);                 \
+#define DEFINE_APPLICATION_MAIN(appClass)                         \
+	int IApp::argc;                                               \
+	const char** IApp::argv;                                      \
+	extern int LinuxMain(int argc, char** argv, IApp* app);       \
+                                                                  \
+	int main(int argc, char** argv)                               \
+	{                                                             \
+		IApp::argc = argc;                                        \
+		IApp::argv = (const char**)argv;                          \
+		appClass app;                                             \
+		return LinuxMain(argc, argv, &app);                       \
 	}
 #elif defined(NX64)
-#define DEFINE_APPLICATION_MAIN(appClass)                   \
-	extern void NxMain(IApp* app);					\
-                                                            \
-	extern "C" void nnMain()								\
-	{														\
-		appClass app;                                       \
-		NxMain(&app);									\
+#define DEFINE_APPLICATION_MAIN(appClass)                         \
+	int IApp::argc;                                               \
+	const char** IApp::argv;                                      \
+	extern void NxMain(IApp* app);                                \
+                                                                  \
+	extern "C" void nnMain()                                      \
+	{                                                             \
+		appClass app;                                             \
+		NxMain(&app);                                             \
 	}
 #elif defined(ORBIS)
-#define DEFINE_APPLICATION_MAIN(appClass)                   \
-	extern int OrbisMain(int argc, char** argv, IApp* app); \
-                                                            \
-	int main(int argc, char** argv)                         \
-	{                                                       \
-		appClass app;                                       \
-		return OrbisMain(argc, argv, &app);                 \
+#define DEFINE_APPLICATION_MAIN(appClass)                         \
+	int IApp::argc;                                               \
+	const char** IApp::argv;                                      \
+	extern int OrbisMain(int argc, char** argv, IApp* app);       \
+                                                                  \
+	int main(int argc, char** argv)                               \
+	{                                                             \
+		appClass app;                                             \
+		return OrbisMain(argc, argv, &app);                       \
+	}
+#elif defined(PROSPERO)
+#define DEFINE_APPLICATION_MAIN(appClass)                         \
+	int IApp::argc;                                               \
+	const char** IApp::argv;                                      \
+	extern int ProsperoMain(int argc, char** argv, IApp* app);    \
+                                                                  \
+	int main(int argc, char** argv)                               \
+	{                                                             \
+		appClass app;                                             \
+		return ProsperoMain(argc, argv, &app);                    \
 	}
 #else
 #endif

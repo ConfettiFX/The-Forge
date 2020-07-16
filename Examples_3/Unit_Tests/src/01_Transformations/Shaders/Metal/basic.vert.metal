@@ -54,34 +54,30 @@ struct VSOutput {
     float4 Color;
 };
 
-struct VSData {
-    constant UniformBlock0& uniformBlock [[id(0)]];
-};
-
-vertex VSOutput stageMain(VSInput input             [[stage_in]],
-                       uint InstanceID              [[instance_id]],
-                       constant VSData& vsData    [[buffer(UPDATE_FREQ_PER_FRAME)]]
+vertex VSOutput stageMain(VSInput input                     [[stage_in]],
+                       uint InstanceID                      [[instance_id]],
+                       constant UniformBlock0& uniformBlock [[buffer(0)]]
 )
 {
     VSOutput result;
-    float4x4 tempMat = vsData.uniformBlock.mvp * vsData.uniformBlock.toWorld[InstanceID];
+    float4x4 tempMat = uniformBlock.mvp * uniformBlock.toWorld[InstanceID];
     result.Position = tempMat * input.Position;
     
-    float4 normal = normalize(vsData.uniformBlock.toWorld[InstanceID] * float4(input.Normal.xyz, 0.0f)); // Assume uniform scaling
-    float4 pos = vsData.uniformBlock.toWorld[InstanceID] * float4(input.Position.xyz, 1.0f);
+    float4 normal = normalize(uniformBlock.toWorld[InstanceID] * float4(input.Normal.xyz, 0.0f)); // Assume uniform scaling
+    float4 pos = uniformBlock.toWorld[InstanceID] * float4(input.Position.xyz, 1.0f);
 
     float lightIntensity = 1.0f;
     float ambientCoeff = 0.4;
 
     float3 lightDir;
 
-    if (vsData.uniformBlock.color[InstanceID].w == 0) // Special case for Sun, so that it is lit from its top
+    if (uniformBlock.color[InstanceID].w == 0) // Special case for Sun, so that it is lit from its top
         lightDir = float3(0.0f, 1.0f, 0.0f);
     else
-        lightDir = normalize(vsData.uniformBlock.lightPosition - pos.xyz);
+        lightDir = normalize(uniformBlock.lightPosition - pos.xyz);
 
-    float3 baseColor = vsData.uniformBlock.color[InstanceID].xyz;
-    float3 blendedColor = vsData.uniformBlock.lightColor * baseColor * lightIntensity;
+    float3 baseColor = uniformBlock.color[InstanceID].xyz;
+    float3 blendedColor = uniformBlock.lightColor * baseColor * lightIntensity;
     float3 diffuse = blendedColor * max(dot(normal.xyz, lightDir), 0.0);
     float3 ambient = baseColor * ambientCoeff;
     result.Color = float4(diffuse + ambient, 1.0);

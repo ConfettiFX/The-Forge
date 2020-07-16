@@ -25,6 +25,7 @@
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/string.h"
 #include "../../../../Common_3/ThirdParty/OpenSource/EASTL/unordered_map.h"
+#include "../../../../Common_3/ThirdParty/OpenSource/EASTL/sort.h"
 
 //Interfaces
 #include "../../../../Common_3/OS/Interfaces/ICameraController.h"
@@ -77,11 +78,6 @@ Texture*			pTextureBlack = NULL;
 #else
 #define SHADOWMAP_RES 2048u
 #endif
-
-#if !defined(TARGET_IOS) && !defined(__ANDROID__) && !defined(ORBIS)
-#define USE_BASIS 1
-#endif
-
 //--------------------------------------------------------------------------------------------
 // STRUCT DEFINTIONS
 //--------------------------------------------------------------------------------------------
@@ -263,7 +259,7 @@ struct GLTFAsset
 		nodeTransformsBufferLoadDesc.mDesc.mElementCount = pData->mNodeCount;
 		nodeTransformsBufferLoadDesc.mDesc.mSize = pData->mNodeCount * sizeof(mat4);
 		nodeTransformsBufferLoadDesc.pData = nodeTransforms;
-		nodeTransformsBufferLoadDesc.mDesc.pDebugName = L"GLTF Node Transforms Buffer";
+		nodeTransformsBufferLoadDesc.mDesc.pName = "GLTF Node Transforms Buffer";
 		nodeTransformsBufferLoadDesc.ppBuffer = &pNodeTransformsBuffer;
 		addResource(&nodeTransformsBufferLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
 	}
@@ -317,7 +313,7 @@ struct GLTFAsset
 		materialBufferLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		materialBufferLoadDesc.mDesc.mStructStride = materialDataStride;
 		materialBufferLoadDesc.mDesc.mSize = pData->mMaterialCount * materialDataStride;
-		materialBufferLoadDesc.mDesc.pDebugName = L"GLTF Materials Buffer";
+		materialBufferLoadDesc.mDesc.pName = "GLTF Materials Buffer";
 		materialBufferLoadDesc.ppBuffer = &pMaterialBuffer;
 		addResource(&materialBufferLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
 
@@ -488,7 +484,7 @@ struct GLTFAsset
 
 struct FXAAINFO
 {
-	vec2 ScreenSize;
+	float2 ScreenSize;
 	uint Use;
 	uint padding00;
 };
@@ -500,8 +496,8 @@ Renderer*			pRenderer			= NULL;
 
 Queue*				pGraphicsQueue		= NULL;
 
-CmdPool*			pCmdPool			= NULL;
-Cmd**				ppCmds				= NULL;
+CmdPool*			pCmdPools[gImageCount];
+Cmd*				pCmds[gImageCount];
 
 SwapChain*			pSwapChain			= NULL;
 
@@ -575,12 +571,12 @@ UIApp				gAppUI;
 eastl::vector<uint32_t>	gDropDownWidgetData;
 eastl::vector<PathHandle> gModelFiles;
 
-#if defined(__ANDROID__) || defined(__LINUX__)
+#if defined(__ANDROID__) || defined(__linux__) || defined(ORBIS) || defined(PROSPERO)
 uint32_t			modelToLoadIndex					= 0;
 uint32_t			guiModelToLoadIndex					= 0;
 #endif
 
-const wchar_t*		gMissingTextureString				= L"MissingTexture";
+const char*		gMissingTextureString				= "MissingTexture";
 
 const char*                     gDefaultModelFile = "Lantern.gltf";
 PathHandle					    gModelFile;
@@ -598,13 +594,6 @@ TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
 class GLTFViewer : public IApp
 {
 public:
-	GLTFViewer()
-	{
-#ifdef TARGET_IOS
-		mSettings.mContentScaleFactor = 1.f;
-#endif
-	}
-	
 	static bool InitShaderResources()
 	{
 		// shader
@@ -765,6 +754,9 @@ public:
 		cmdBindPipeline(cmd, pPipelineShadowPass_NonOPtimized);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetsShadow[DESCRIPTOR_UPDATE_FREQ_NONE]);
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsShadow[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
+#ifdef ORBIS
+		cmdBindDescriptorSet(cmd, 0, gCurrentAsset.pMaterialSet);
+#endif
 		
 		const uint32_t stride = sizeof(float) * 5;
 		cmdBindVertexBuffer(cmd, 1, &pFloorVB, &stride, NULL);
@@ -832,12 +824,15 @@ public:
 		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
         
-		CmdPoolDesc cmdPoolDesc = {};
-		cmdPoolDesc.pQueue = pGraphicsQueue;
-		addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
-		CmdDesc cmdDesc = {};
-		cmdDesc.pPool = pCmdPool;
-		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+		}
         
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -933,32 +928,30 @@ public:
 		defaultTextureDesc.mStartState = RESOURCE_STATE_COMMON;
 		defaultTextureDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		defaultTextureDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-		defaultTextureDesc.pDebugName = gMissingTextureString;
+		defaultTextureDesc.pName = gMissingTextureString;
 		TextureLoadDesc defaultLoadDesc = {};
 		defaultLoadDesc.pDesc = &defaultTextureDesc;
-		RawImageData idata = {};
-		unsigned char blackData[64];
-		memset(blackData, 0, sizeof(unsigned char) * 64);
-        
-		idata.mArraySize = 1;
-		idata.mDepth = defaultTextureDesc.mDepth;
-		idata.mWidth = defaultTextureDesc.mWidth;
-		idata.mHeight = defaultTextureDesc.mHeight;
-		idata.mFormat = defaultTextureDesc.mFormat;
-		idata.mMipLevels = defaultTextureDesc.mMipLevels;
-		idata.pRawData = (uint8_t*)blackData;
-		defaultLoadDesc.pRawImageData = &idata;
-		
 		defaultLoadDesc.ppTexture = &pTextureBlack;
 		addResource(&defaultLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
-		
-#if defined(__ANDROID__) || defined(__LINUX__)
+
+		TextureUpdateDesc updateDesc = { pTextureBlack };
+		beginUpdateResource(&updateDesc);
+		memset(updateDesc.pMappedData, 0, 4 * 4 * sizeof(uint32_t));
+		endUpdateResource(&updateDesc, NULL);
+
+#if defined(__ANDROID__) || defined(__linux__) || defined(ORBIS) || defined(PROSPERO)
 		// Get list of Models
 		eastl::vector<eastl::string> filesToLoad;
 		eastl::vector<PathHandle> filesToLoadFullPath;
 		PathHandle meshDirectory = fsGetResourceDirEnumPath(RD_MESHES);
 		eastl::vector<PathHandle> filesInDirectory = fsGetFilesWithExtension(meshDirectory, "gltf");
-		
+
+		eastl::sort(filesInDirectory.begin(), filesInDirectory.end(), [](const PathHandle& a, const PathHandle& b)
+		{
+			return strstr(fsGetPathAsNativeString(a), "FlightHelmet")
+			> strstr(fsGetPathAsNativeString(b), "FlightHelmet");
+		});
+
 		//reduce duplicated filenames
 		for (size_t i = 0; i < filesInDirectory.size(); ++i)
 		{
@@ -1058,16 +1051,15 @@ public:
 		/************************************************************************/
 		// GUI
 		/************************************************************************/
-		GuiDesc guiDesc = {};
-		guiDesc.mStartSize = vec2(300.0f, 250.0f);
-		guiDesc.mStartPosition = vec2(100.0f, guiDesc.mStartSize.getY());
+		GuiDesc guiDesc = {};		
+		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.2f);
 		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 		
-#if !defined(TARGET_IOS) && !defined(_DURANGO)
+#if !defined(TARGET_IOS)
 		pGuiWindow->AddWidget(CheckboxWidget("Toggle VSync", &bToggleVSync));
 #endif
 		
-#if defined(__ANDROID__) || defined(__LINUX__)
+#if defined(__ANDROID__) || defined(__linux__) || defined(ORBIS) || defined(PROSPERO)
 		pGuiWindow->AddWidget(DropdownWidget("Models", &guiModelToLoadIndex, modelFileNames.data(), gDropDownWidgetData.data(), (uint32_t)gModelFiles.size()));
 #else
 		pGuiWindow->AddWidget(SeparatorWidget());
@@ -1087,9 +1079,8 @@ public:
 		
 		////////////////////////////////////////////////////////////////////////////////////////////
 		
-		guiDesc = {};
-		guiDesc.mStartSize = vec2(400.0f, 250.0f);
-		guiDesc.mStartPosition = vec2(mSettings.mWidth - guiDesc.mStartSize.getX(), guiDesc.mStartSize.getY());
+		guiDesc = {};		
+		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.35f);
 		pGuiGraphics = gAppUI.AddGuiComponent("Graphics Options", &guiDesc);
 		
 		pGuiGraphics->AddWidget(CheckboxWidget("Enable FXAA", &bToggleFXAA));
@@ -1189,6 +1180,8 @@ public:
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
+
+		waitForAllResourceLoads();
 		
 		return true;
 	}
@@ -1223,7 +1216,8 @@ public:
 			return false;
 		}
 		
-		asset.Init(modelFilePath, pRenderer, pDefaultSampler);
+		PathHandle parentDirectory = fsGetParentPath(modelFilePath);
+		asset.Init(parentDirectory, pRenderer, pDefaultSampler);
 		
 		pGuiWindow->RemoveWidget(pSelectLodWidget);
 		gMaxLod = max((int)validFileLists.size() - 1, 0);
@@ -1337,9 +1331,8 @@ public:
 	
 	static void RemoveModelDependentResources()
 	{
-		RemoveShaderResources();
-		
 		gCurrentAsset.removeResources();
+		RemoveShaderResources();
 		gCurrentAsset = GLTFAsset();
 	}
 	
@@ -1374,8 +1367,11 @@ public:
 		}
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
         
-		removeCmd_n(pRenderer, gImageCount, ppCmds);
-		removeCmdPool(pRenderer, pCmdPool);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeCmd(pRenderer, pCmds[i]);
+			removeCmdPool(pRenderer, pCmdPools[i]);
+		}
 
 		removeSampler(pRenderer, pDefaultSampler);
 		removeSampler(pRenderer, pBilinearClampSampler);
@@ -1391,7 +1387,7 @@ public:
 		removeQueue(pRenderer, pGraphicsQueue);
 		removeRenderer(pRenderer);
 		
-#if defined(__linux__) || defined(__ANDROID__)
+#if defined(__ANDROID__) || defined(__linux__) || defined(ORBIS) || defined(PROSPERO)
 		gModelFiles.set_capacity(0);
 		gDropDownWidgetData.set_capacity(0);
 #endif
@@ -1524,7 +1520,6 @@ public:
 			pipelineSettings.mSampleCount = pPostProcessRT->mSampleCount;
 			pipelineSettings.mSampleQuality = pPostProcessRT->mSampleQuality;
 			pipelineSettings.pRootSignature = pRootSignaturePostEffects;
-			pipelineSettings.pVertexLayout = &screenTriangle_VertexLayout;
 			pipelineSettings.pRasterizerState = &rasterizerStateDesc;
 			pipelineSettings.pShaderProgram = pVignetteShader;
 			addPipeline(pRenderer, &desc, &pVignettePipeline);
@@ -1542,7 +1537,6 @@ public:
 			pipelineSettings.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
 			pipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
 			pipelineSettings.pRootSignature = pRootSignaturePostEffects;
-			pipelineSettings.pVertexLayout = &screenTriangle_VertexLayout;
 			pipelineSettings.pRasterizerState = &rasterizerStateDesc;
 			pipelineSettings.pShaderProgram = pFXAAShader;
 			addPipeline(pRenderer, &desc, &pFXAAPipeline);
@@ -1566,59 +1560,64 @@ public:
 			addPipeline(pRenderer, &desc, &pWaterMarkPipeline);
 		}
 	}
+
+	bool mModelReload = false;
 	
 	bool Load()
 	{
-		if (!addSwapChain())
-			return false;
-		
-		if (!addRenderTargets())
-			return false;
-		
-		if (!addDepthBuffer())
-			return false;
-		
-		if (!gAppUI.Load(pSwapChain->ppRenderTargets))
-			return false;
-		
+		if (!mModelReload)
+		{
+			if (!addSwapChain())
+				return false;
+
+			if (!addRenderTargets())
+				return false;
+
+			if (!addDepthBuffer())
+				return false;
+
+			if (!gAppUI.Load(pSwapChain->ppRenderTargets))
+				return false;
+
 #if defined(TARGET_IOS) || defined(__ANDROID__)
-		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
-			return false;
+			if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
+				return false;
 #endif
 
-		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+			loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+
+			float wmHeight = min(mSettings.mWidth, mSettings.mHeight) * 0.09f;
+			float wmWidth = wmHeight * 2.8077f;
+
+			float widthGap = wmWidth * 2.0f / (float)mSettings.mWidth;
+			float heightGap = wmHeight * 2.0f / (float)mSettings.mHeight;
+
+			float pixelGap = 80.0f;
+			float widthRight = 1.0f - pixelGap / (float)mSettings.mWidth;
+			float heightDown = -1.0f + pixelGap / (float)mSettings.mHeight;
+
+			float screenWaterMarkPoints[] = {
+				widthRight - widthGap,	heightDown + heightGap, 0.5f, 0.0f, 0.0f,
+				widthRight - widthGap,	heightDown,				0.5f, 0.0f, 1.0f,
+				widthRight,				heightDown + heightGap, 0.5f, 1.0f, 0.0f,
+
+				widthRight,				heightDown + heightGap, 0.5f, 1.0f, 0.0f,
+				widthRight - widthGap,	heightDown,				0.5f, 0.0f, 1.0f,
+				widthRight,				heightDown,				0.5f, 1.0f, 1.0f
+			};
+
+			BufferLoadDesc screenQuadVbDesc = {};
+			screenQuadVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
+			screenQuadVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+			screenQuadVbDesc.mDesc.mSize = sizeof(float) * 5 * 6;
+			screenQuadVbDesc.pData = screenWaterMarkPoints;
+			screenQuadVbDesc.ppBuffer = &WaterMarkVB;
+			addResource(&screenQuadVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		}
 
 		InitModelDependentResources();
 		
 		LoadPipelines();
-		
-		float wmHeight = min(mSettings.mWidth, mSettings.mHeight) * 0.09f;
-		float wmWidth = wmHeight * 2.8077f;
-		
-		float widthGap = wmWidth * 2.0f / (float)mSettings.mWidth;
-		float heightGap = wmHeight * 2.0f / (float)mSettings.mHeight;
-		
-		float pixelGap = 80.0f;
-		float widthRight = 1.0f - pixelGap / (float)mSettings.mWidth;
-		float heightDown = -1.0f + pixelGap / (float)mSettings.mHeight;
-		
-		float screenWaterMarkPoints[] = {
-			widthRight - widthGap,	heightDown + heightGap, 0.5f, 0.0f, 0.0f,
-			widthRight - widthGap,	heightDown,				0.5f, 0.0f, 1.0f,
-			widthRight,				heightDown + heightGap, 0.5f, 1.0f, 0.0f,
-			
-			widthRight,				heightDown + heightGap, 0.5f, 1.0f, 0.0f,
-			widthRight - widthGap,	heightDown,				0.5f, 0.0f, 1.0f,
-			widthRight,				heightDown,				0.5f, 1.0f, 1.0f
-		};
-		
-		BufferLoadDesc screenQuadVbDesc = {};
-		screenQuadVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
-		screenQuadVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
-		screenQuadVbDesc.mDesc.mSize = sizeof(float) * 5 * 6;
-		screenQuadVbDesc.pData = screenWaterMarkPoints;
-		screenQuadVbDesc.ppBuffer = &WaterMarkVB;
-		addResource(&screenQuadVbDesc, NULL, LOAD_PRIORITY_NORMAL);
 		
 		return true;
 	}
@@ -1640,6 +1639,14 @@ public:
 		waitForFences(pRenderer, gImageCount, pRenderCompleteFences);
 		
 		RemoveModelDependentResources();
+		RemovePipelines();
+
+		if (mModelReload)
+		{
+			return;
+		}
+
+		removeResource(WaterMarkVB);
 
 		unloadProfilerUI();
 		gAppUI.Unload();
@@ -1647,10 +1654,6 @@ public:
 #if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Unload();
 #endif
-		
-		removeResource(WaterMarkVB);
-		
-		RemovePipelines();
 		
 		removeSwapChain(pRenderer, pSwapChain);
 		
@@ -1664,7 +1667,7 @@ public:
 	{
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 		
-#if !defined(__ANDROID__) && !defined(TARGET_IOS) && !defined(_DURANGO)
+#if !defined(__ANDROID__) && !defined(TARGET_IOS)
 		if (pSwapChain->mEnableVsync != bToggleVSync)
 		{
 			waitQueueIdle(pGraphicsQueue);
@@ -1734,7 +1737,7 @@ public:
 	void PostDrawUpdate()
 	{
 		
-#if defined(__ANDROID__) || defined(__LINUX__)
+#if defined(__ANDROID__) || defined(__linux__) || defined(ORBIS) || defined(PROSPERO)
 		if (guiModelToLoadIndex != modelToLoadIndex)
 		{
 			modelToLoadIndex = guiModelToLoadIndex;
@@ -1747,8 +1750,10 @@ public:
 			{
 				gModelFile = gGuiModelToLoad;
 				
+				mModelReload = true;
 				Unload();
 				Load();
+				mModelReload = false;
 			}
 			else
 			{
@@ -1804,14 +1809,17 @@ public:
 	
 	void Draw()
 	{
-		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
-		
+		uint32_t swapchainImageIndex;
+		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
+
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		Fence*      pNextFence = pRenderCompleteFences[gFrameIndex];
 		FenceStatus fenceStatus;
 		getFenceStatus(pRenderer, pNextFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pRenderer, 1, &pNextFence);
+
+		resetCmdPool(pRenderer, pCmdPools[gFrameIndex]);
 		
 		// Update uniform buffers
 		BufferUpdateDesc shaderCbv = { pUniformBuffer[gFrameIndex] };
@@ -1830,7 +1838,7 @@ public:
 							float((gBackroundColor >> 0) & 0xff)) / 255.0f;
 		
 		
-		Cmd* cmd = ppCmds[gFrameIndex];
+		Cmd* cmd = pCmds[gFrameIndex];
 		beginCmd(cmd);
 
 		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
@@ -1874,7 +1882,8 @@ public:
 			
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetsShaded[DESCRIPTOR_UPDATE_FREQ_NONE]);
 			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetsShaded[DESCRIPTOR_UPDATE_FREQ_PER_FRAME]);
-			
+			cmdBindDescriptorSet(cmd, 0, gCurrentAsset.pMaterialSet);
+
 			const uint32_t stride = sizeof(float) * 5;
 			cmdBindVertexBuffer(cmd, 1, &pFloorVB, &stride, NULL);
 			cmdBindIndexBuffer(cmd, pFloorIB, INDEX_TYPE_UINT16, 0);
@@ -1932,7 +1941,7 @@ public:
 		
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
 		
-		if (bVignetting) 
+		if (bVignetting)
 		{
 			LoadActionsDesc loadActions = {};
 			loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
@@ -1949,8 +1958,6 @@ public:
 			
 			cmdBindDescriptorSet(cmd, 0, pDescriptorSetVignette);
 			
-			const uint32_t stride = sizeof(float) * 5;
-			cmdBindVertexBuffer(cmd, 1, &TriangularVB, &stride, NULL);
 			cmdDraw(cmd, 3, 0);
 			
 			cmdBindRenderTargets(cmd, 0, NULL, 0, NULL, NULL, NULL, -1, -1);
@@ -1958,7 +1965,7 @@ public:
 			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 		}
         
-		pRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
+		pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
 		{
 			RenderTargetBarrier barriers[] =
 			{
@@ -1984,14 +1991,12 @@ public:
 			cmdBindPipeline(cmd, pFXAAPipeline);
 			
 			FXAAINFO FXAAinfo;
-			FXAAinfo.ScreenSize = vec2((float)mSettings.mWidth, (float)mSettings.mHeight);
+			FXAAinfo.ScreenSize = float2((float)mSettings.mWidth, (float)mSettings.mHeight);
 			FXAAinfo.Use = bToggleFXAA ? 1 : 0;
 			
 			cmdBindDescriptorSet(cmd, 0, bVignetting ? pDescriptorSetFXAA : pDescriptorSetVignette);
 			cmdBindPushConstants(cmd, pRootSignaturePostEffects, "FXAARootConstant", &FXAAinfo);
 			
-			const uint32_t stride = sizeof(float) * 5;
-			cmdBindVertexBuffer(cmd, 1, &TriangularVB, &stride, NULL);
 			cmdDraw(cmd, 3, 0);
 			
 			cmdBindRenderTargets(cmd, 0, NULL, 0, NULL, NULL, NULL, -1, -1);
@@ -2034,9 +2039,11 @@ public:
 			//gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 #endif
 
-                cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
 #if !defined(__ANDROID__)
-				cmdDrawGpuProfile(cmd, float2(8, 40), gGpuProfileToken);
+				float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
+				cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 30.f), gGpuProfileToken, &gFrameTimeDraw);
+#else
+				cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
 #endif
 
 				cmdDrawProfilerUI();
@@ -2048,9 +2055,9 @@ public:
 
 			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 		}
-		
+
 		cmdBindRenderTargets(cmd, 0, NULL, 0, NULL, NULL, NULL, -1, -1);
-		
+
 		RenderTargetBarrier finalBarriers = { pRenderTarget, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &finalBarriers);
 		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
@@ -2066,7 +2073,7 @@ public:
 		submitDesc.pSignalFence = pRenderCompleteFence;
 		queueSubmit(pGraphicsQueue, &submitDesc);
 		QueuePresentDesc presentDesc = {};
-		presentDesc.mIndex = gFrameIndex;
+		presentDesc.mIndex = swapchainImageIndex;
 		presentDesc.mWaitSemaphoreCount = 1;
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
@@ -2076,6 +2083,8 @@ public:
 		flipProfiler();
 		
 		PostDrawUpdate();
+
+		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
 	
 	const char* GetName() { return "08_GltfViewer"; }
@@ -2091,8 +2100,7 @@ public:
 		swapChainDesc.mImageCount = gImageCount;
 		
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
-		swapChainDesc.mEnableVsync = false;
-		
+		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 		
 		return pSwapChain != NULL;
@@ -2103,7 +2111,8 @@ public:
 		RenderTargetDesc RT = {};
 		RT.mArraySize = 1;
 		RT.mDepth = 1;
-		RT.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
+		RT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+		RT.mFormat = pSwapChain->ppRenderTargets[0]->mFormat;
 		
 		vec4 bgColor = vec4(float((gBackroundColor >> 24) & 0xff),
 							float((gBackroundColor >> 16) & 0xff),
@@ -2120,18 +2129,19 @@ public:
 		
 		RT.mSampleCount = SAMPLE_COUNT_1;
 		RT.mSampleQuality = 0;
-		RT.pDebugName = L"Render Target";
+		RT.pName = "Render Target";
 		addRenderTarget(pRenderer, &RT, &pForwardRT);
 		
 		RT = {};
 		RT.mArraySize = 1;
 		RT.mDepth = 1;
-		RT.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
+		RT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+		RT.mFormat = pSwapChain->ppRenderTargets[0]->mFormat;
 		RT.mWidth = mSettings.mWidth;
 		RT.mHeight = mSettings.mHeight;
 		RT.mSampleCount = SAMPLE_COUNT_1;
 		RT.mSampleQuality = 0;
-		RT.pDebugName = L"Post Process Render Target";
+		RT.pName = "Post Process Render Target";
 		addRenderTarget(pRenderer, &RT, &pPostProcessRT);
 		
 		return pForwardRT != NULL && pPostProcessRT != NULL;
@@ -2162,12 +2172,13 @@ public:
 		shadowRTDesc.mClearValue.depth = 0.0f;
 		shadowRTDesc.mClearValue.stencil = 0;
 		shadowRTDesc.mDepth = 1;
+		shadowRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		shadowRTDesc.mFormat = TinyImageFormat_D32_SFLOAT;
 		shadowRTDesc.mWidth = SHADOWMAP_RES;
 		shadowRTDesc.mHeight = SHADOWMAP_RES;
 		shadowRTDesc.mSampleCount = (SampleCount)SHADOWMAP_MSAA_SAMPLES;
 		shadowRTDesc.mSampleQuality = 0;    // don't need higher quality sample patterns as the texture will be blurred heavily
-		shadowRTDesc.pDebugName = L"Shadow Map RT";
+		shadowRTDesc.pName = "Shadow Map RT";
 		
 		addRenderTarget(pRenderer, &shadowRTDesc, &pShadowRT);
 		

@@ -44,7 +44,7 @@
 // number of draw calls to draw after triangle filtering and batch compaction.
 // This value number is stored in the last position of the indirect draw buffer.
 // So it depends on MAX_DRAWS_INDIRECT
-#define INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS 5
+#define INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS 8
 #define DRAW_COUNTER_SLOT_POS 				((MAX_DRAWS_INDIRECT-1)*INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS)
 #define DRAW_COUNTER_SLOT_OFFSET_IN_BYTES	(DRAW_COUNTER_SLOT_POS*sizeof(uint))
 
