@@ -27,7 +27,7 @@ freely, subject to the following restrictions:
 
 // Define backends depending on target platform //
 #ifdef _WIN32
-#ifdef _DURANGO
+#if defined(XBOX)
 #define WITH_XAUDIO2
 #else
 #define WITH_WINMM

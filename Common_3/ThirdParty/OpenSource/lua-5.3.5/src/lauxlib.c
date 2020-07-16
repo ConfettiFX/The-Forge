@@ -251,7 +251,7 @@ LUALIB_API int luaL_fileresult (lua_State *L, int stat, const char *fname) {
 
 #if !defined(l_inspectstat)	/* { */
 
-#if defined(LUA_USE_POSIX) && !defined(ORBIS)
+#if defined(LUA_USE_POSIX) && !defined(ORBIS) && !defined(PROSPERO)
 
 /*
 ** use appropriate macros to interpret 'pclose' return status

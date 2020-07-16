@@ -719,7 +719,7 @@ static const luaL_Reg iolib[] = {
   {"popen", io_popen},
 #endif
   {"read", io_read},
-#if !defined(ORBIS)
+#if !defined(ORBIS) && !defined(PROSPERO)
   {"tmpfile", io_tmpfile},
 #endif
   {"type", io_type},

@@ -87,7 +87,7 @@
 #include "../../../../OS/Interfaces/IOperatingSystem.h"
 #include "../../../../OS/Interfaces/ILog.h"
 
-#if !defined(WIN32) && !defined(DURANGO)
+#if !defined(WIN32) && !defined(XBOX)
 #include <unistd.h>
 #endif
 
@@ -191,7 +191,7 @@ extern void debugger(const char *message);
 #define m_assert(x) {}
 #endif
 #else	// Linux uses assert, which we can use safely, since it doesn't bring up a dialog within the program.
-#if defined(ORBIS)
+#if defined(ORBIS) || defined(PROSPERO)
 #ifdef MEMORY_DEBUG
 #define	m_assert(x) if (!(x)) __debugbreak()
 #else
@@ -202,7 +202,7 @@ extern void debugger(const char *message);
 #endif
 #define sprintf_s sprintf
 #define _unlink unlink
-#if !defined(ORBIS)
+#if !defined(ORBIS) && !defined(PROSPERO)
 #define localtime_s localtime_r
 #endif
 #define fopen_s(file,filename,mode) ((*file)=fopen(filename,mode))
@@ -240,7 +240,7 @@ static		unsigned int	releasedPattern = 0xdeadbeef; // Fill pattern for deallocat
 
 static	const	unsigned int	hashSize = 1 << hashBits;
 static	const	char		*allocationTypes[] = { "Unknown",
-"new",     "new[]",  "malloc",   "calloc", "memalign",
+"new",     "new[]",  "malloc",   "calloc",
 "realloc", "delete", "delete[]", "free" };
 static		sAllocUnit	*hashTable[hashSize];
 static		sAllocUnit	*reservoir;
@@ -472,39 +472,37 @@ static	sAllocUnit	*findAllocUnit(const void *reportedAddress)
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-static	size_t	calculateActualSize(const size_t reportedSize, const size_t alignment)
+static	size_t	calculateActualSize(const size_t reportedSize)
 {
 	// We use DWORDS as our padding, and a uint32_t is guaranteed to be 4 bytes, but an int is not (ANSI defines an int as
 	// being the standard word size for a processor; on a 32-bit machine, that's 4 bytes, but on a 64-bit machine, it's
 	// 8 bytes, which means an int can actually be larger than a uint32_t.)
 
-	return reportedSize + paddingSize * sizeof(uint32_t) * 2 + alignment;
+	return reportedSize + paddingSize * sizeof(uint32_t) * 2;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-static	size_t	calculateReportedSize(const size_t actualSize, const size_t alignment)
-{
-	// We use DWORDS as our padding, and a uint32_t is guaranteed to be 4 bytes, but an int is not (ANSI defines an int as
-	// being the standard word size for a processor; on a 32-bit machine, that's 4 bytes, but on a 64-bit machine, it's
-	// 8 bytes, which means an int can actually be larger than a uint32_t.)
-
-	return actualSize - alignment - paddingSize * sizeof(uint32_t) * 2;
-}
+//static	size_t	calculateReportedSize(const size_t actualSize)
+//{
+//	// We use DWORDS as our padding, and a uint32_t is guaranteed to be 4 bytes, but an int is not (ANSI defines an int as
+//	// being the standard word size for a processor; on a 32-bit machine, that's 4 bytes, but on a 64-bit machine, it's
+//	// 8 bytes, which means an int can actually be larger than a uint32_t.)
+//
+//	return actualSize - paddingSize * sizeof(uint32_t) * 2;
+//}
 
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-static	void	*calculateReportedAddress(const void *actualAddress, const size_t alignment)
+static	void	*calculateReportedAddress(const void *actualAddress)
 {
 	// We allow this...
 
 	if (!actualAddress) return NULL;
 
 	// JUst account for the padding
-	const char* ptr = reinterpret_cast<const char*>(actualAddress) + sizeof(uint32_t) * paddingSize + alignment;
-	assert((alignment & (alignment - 1)) == 0);
-	size_t mask = ~(alignment ? alignment - 1 : (size_t) 0u);
-	return reinterpret_cast<void*>(reinterpret_cast<char*>(((size_t)ptr) & mask));
+
+	return reinterpret_cast<void *>(const_cast<char *>(reinterpret_cast<const char *>(actualAddress) + sizeof(uint32_t) * paddingSize));
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -554,8 +552,8 @@ static	void	wipeWithPattern(sAllocUnit *allocUnit, uint32_t pattern, const unsig
 
 	// Write in the prefix/postfix bytes
 
-	uint32_t	*pre = reinterpret_cast<uint32_t *>(reinterpret_cast<char *>(allocUnit->reportedAddress) - paddingSize * sizeof(uint32_t));
-	uint32_t	*post = reinterpret_cast<uint32_t *>(reinterpret_cast<char *>(allocUnit->reportedAddress) + allocUnit->reportedSize);
+	uint32_t	*pre = reinterpret_cast<uint32_t *>(allocUnit->actualAddress);
+	uint32_t	*post = reinterpret_cast<uint32_t *>(reinterpret_cast<char *>(allocUnit->actualAddress) + allocUnit->actualSize - paddingSize * sizeof(uint32_t));
 	for (unsigned int i = 0; i < paddingSize; i++, pre++, post++)
 	{
 		*pre = prefixPattern;
@@ -571,9 +569,11 @@ static void		dumpLine(FILE* fileToWrite, const char* format, ...)
     va_copy(fileArgs, args);
     
     _OutputDebugStringV(format, args);
+	_OutputDebugString("\n");
 	if (fileToWrite != NULL)
 	{
 		vfprintf(fileToWrite, format, fileArgs);
+		fflush(fileToWrite);
 		fprintf(fileToWrite, "\n");
 	}
     va_end(args);
@@ -649,7 +649,7 @@ static	void	dumpLeakReport()
 		struct tm tme;
 #ifdef _WIN32
 		localtime_s(&tme, &t);
-#elif defined(ORBIS)
+#elif defined(ORBIS) || defined(PROSPERO)
 		localtime_s(&t, &tme);
 #else
 		localtime_s(&t, &tme);
@@ -897,6 +897,9 @@ void	*mmgrAllocator(const char *sourceFile, const unsigned int sourceLine, const
     reportedSize += sizeof(uint32_t) - 1;
     reportedSize &= ~(sizeof(uint32_t) - 1);
 
+	// Make sure alignment is valid
+	alignment = !alignment ? sizeof(void*) : alignment;
+
 	//if (!allocMutex)
 	//	allocMutex = CreateMutex();
 	//
@@ -968,7 +971,7 @@ void	*mmgrAllocator(const char *sourceFile, const unsigned int sourceLine, const
 		// Populate it with some real data
 
 		memset(au, 0, sizeof(sAllocUnit));
-		au->actualSize = calculateActualSize(reportedSize, alignment);
+		au->actualSize = calculateActualSize(reportedSize) + alignment;
 #ifdef RANDOM_FAILURE
 		double	a = rand();
 		double	b = RAND_MAX / 100.0 * RANDOM_FAILURE;
@@ -985,10 +988,20 @@ void	*mmgrAllocator(const char *sourceFile, const unsigned int sourceLine, const
 		au->actualAddress = malloc(au->actualSize);
 #endif
 		au->reportedSize = reportedSize;
-		au->reportedAddress = calculateReportedAddress(au->actualAddress, alignment);
+		au->reportedAddress = calculateReportedAddress(au->actualAddress);
+		au->alignment = alignment;
 		au->allocationType = allocationType;
 		au->sourceLine = sourceLine;
 		au->allocationNumber = currentAllocationCount;
+
+		// Make sure the address we return to user is aligned to the specified alignment
+		size_t offset = ((size_t)au->reportedAddress) % alignment;
+		if (offset)
+		{
+			au->reportedAddress = (uint8_t*)au->reportedAddress + (alignment - offset);
+		}
+
+		au->offset = offset;
 
 		if (sourceFile) strncpy_s(au->sourceFile, sourceFileStripper(sourceFile), sizeof(au->sourceFile) - 1);
 		else		strcpy_s(au->sourceFile, 2, "??");
@@ -1094,7 +1107,7 @@ void	*mmgrReallocator(const char *sourceFile, const unsigned int sourceLine, con
 		if (!reportedAddress)
 		{
 			MUTEX_UNLOCK(allocMutex);
-			return mmgrAllocator(sourceFile, sourceLine, sourceFunc, reallocationType, 0, reportedSize);
+			return mmgrAllocator(sourceFile, sourceLine, sourceFunc, reallocationType, sizeof(void*), reportedSize);
 		}
 
 		// Increase our allocation count
@@ -1111,6 +1124,8 @@ void	*mmgrReallocator(const char *sourceFile, const unsigned int sourceLine, con
 		// Locate the existing allocation unit
 
 		sAllocUnit	*au = findAllocUnit(reportedAddress);
+		const size_t alignment = au->alignment;
+		const size_t oldReportedSize = au->reportedSize;
 
 		// If you hit this assert, you tried to reallocate RAM that wasn't allocated by this memory manager.
 		m_assert(au != NULL);
@@ -1132,8 +1147,7 @@ void	*mmgrReallocator(const char *sourceFile, const unsigned int sourceLine, con
 		// realloc. In other words, you have a allocation/reallocation mismatch.
 		m_assert(au->allocationType == m_alloc_malloc ||
 			au->allocationType == m_alloc_calloc ||
-			au->allocationType == m_alloc_realloc ||
-			au->allocationType == m_alloc_memalign);
+			au->allocationType == m_alloc_realloc);
 
 		// If you hit this assert, then the "break on realloc" flag for this allocation unit is set (and will continue to be
 		// set until you specifically shut it off. Interrogate the 'au' variable to determine information about this
@@ -1149,8 +1163,15 @@ void	*mmgrReallocator(const char *sourceFile, const unsigned int sourceLine, con
 		// Do the reallocation
 
 		void	*oldReportedAddress = reportedAddress;
-		size_t	newActualSize = calculateActualSize(reportedSize, 0);
+		size_t	newActualSize = calculateActualSize(reportedSize) + alignment;
 		void	*newActualAddress = NULL;
+
+		// We need copy of old data in case the address we get from realloc has different alignment
+		// This would mean reportedAddress points to a different offset in memory
+		// Another solution is using memmove
+		void	*oldData = malloc(min(oldReportedSize, reportedSize));
+		memcpy(oldData, oldReportedAddress, min(oldReportedSize, reportedSize));
+
 #ifdef RANDOM_FAILURE
 		double	a = rand();
 		double	b = RAND_MAX / 100.0 * RANDOM_FAILURE;
@@ -1190,11 +1211,29 @@ void	*mmgrReallocator(const char *sourceFile, const unsigned int sourceLine, con
 
 		au->actualSize = newActualSize;
 		au->actualAddress = newActualAddress;
-		au->reportedSize = calculateReportedSize(newActualSize, 0);
-		au->reportedAddress = calculateReportedAddress(newActualAddress, 0);
+		au->reportedSize = reportedSize;
+		au->reportedAddress = calculateReportedAddress(newActualAddress);
 		au->allocationType = reallocationType;
 		au->sourceLine = sourceLine;
 		au->allocationNumber = currentAllocationCount;
+
+		// Make sure the address we return to user is aligned to the specified alignment
+		size_t offset = ((size_t)au->reportedAddress) % alignment;
+		if (offset)
+		{
+			au->reportedAddress = (uint8_t*)au->reportedAddress + (alignment - offset);
+		}
+
+		// Case where the new address has different alignment in which case we need to copy the old data as to respect realloc guarantees
+		if (offset != au->offset)
+		{
+			// Copy old data
+			memcpy(au->reportedAddress, oldData, min(oldReportedSize, reportedSize));
+			au->offset = offset;
+		}
+
+		free(oldData);
+
 		if (sourceFile) strncpy_s(au->sourceFile, sourceFileStripper(sourceFile), sizeof(au->sourceFile) - 1);
 		else		strcpy_s(au->sourceFile, 2, "??");
 		if (sourceFunc) strncpy_s(au->sourceFunc, sourceFunc, sizeof(au->sourceFunc) - 1);
@@ -1206,7 +1245,6 @@ void	*mmgrReallocator(const char *sourceFile, const unsigned int sourceLine, con
 		if (oldReportedAddress != au->reportedAddress)
 		{
 			// Remove this allocation unit from the hash table
-
 			{
 				size_t	hashIndex = (reinterpret_cast<size_t>(oldReportedAddress) >> 4) & (hashSize - 1);
 				if (hashTable[hashIndex] == au)
@@ -1326,7 +1364,6 @@ void	mmgrDeallocator(const char *sourceFile, const unsigned int sourceLine, cons
 				(deallocationType == m_alloc_free         && au->allocationType == m_alloc_malloc) ||
 				(deallocationType == m_alloc_free         && au->allocationType == m_alloc_calloc) ||
 				(deallocationType == m_alloc_free         && au->allocationType == m_alloc_realloc) ||
-				(deallocationType == m_alloc_free         && au->allocationType == m_alloc_memalign) ||
 				(deallocationType == m_alloc_unknown));
 
 			// If you hit this assert, then the "break on dealloc" flag for this allocation unit is set. Interrogate the 'au'
@@ -1401,8 +1438,8 @@ bool	mmgrValidateAllocUnit(const sAllocUnit *allocUnit)
 {
 	// Make sure the padding is untouched
 
-	uint32_t	*pre = reinterpret_cast<uint32_t *>(reinterpret_cast<char *>(allocUnit->reportedAddress) - paddingSize * sizeof(uint32_t));
-	uint32_t	*post = reinterpret_cast<uint32_t *>(reinterpret_cast<char *>(allocUnit->reportedAddress) + allocUnit->reportedSize);
+	uint32_t	*pre = reinterpret_cast<uint32_t *>(allocUnit->actualAddress);
+	uint32_t	*post = reinterpret_cast<uint32_t *>((char *)allocUnit->actualAddress + allocUnit->actualSize - paddingSize * sizeof(uint32_t));
 	bool	errorFlag = false;
 	for (unsigned int i = 0; i < paddingSize; i++, pre++, post++)
 	{

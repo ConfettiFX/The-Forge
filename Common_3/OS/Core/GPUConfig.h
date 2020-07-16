@@ -236,7 +236,6 @@ GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::stri
 	return foundLevel;
 }
 
-#if defined(AUTOMATED_TESTING) && defined(ACTIVE_TESTING_GPU)
 bool getActiveGpuConfig(GPUVendorPreset& pActiveGpu)
 {
 	FileStream* fh = fsOpenFileInResourceDirEnum(RD_GPU_CONFIG, "activeTestingGpu.cfg", FM_READ_BINARY);
@@ -257,6 +256,28 @@ bool getActiveGpuConfig(GPUVendorPreset& pActiveGpu)
 
 	return successFinal;
 }
-#endif
+
+void selectActiveGpu(GPUSettings* pGpuSettings, uint32_t* pGpuIndex, uint32_t gpuCount)
+{
+	GPUVendorPreset activeTestingPreset;
+	bool            activeTestingGpu = getActiveGpuConfig(activeTestingPreset);
+	if (activeTestingGpu)
+	{
+		for (uint32_t i = 0; i < gpuCount; i++)
+		{
+			if (strcmp(pGpuSettings[i].mGpuVendorPreset.mVendorId,activeTestingPreset.mVendorId)==0 &&
+				strcmp(pGpuSettings[i].mGpuVendorPreset.mModelId,activeTestingPreset.mModelId)==0)
+			{
+				//if revision ID is valid then use it to select active GPU
+				if (strcmp(pGpuSettings[i].mGpuVendorPreset.mRevisionId,"0x00")!=0 &&
+					strcmp(pGpuSettings[i].mGpuVendorPreset.mRevisionId,activeTestingPreset.mRevisionId)!=0)
+					continue;
+
+				*pGpuIndex = i;
+				break;
+			}
+		}
+	}
+}
 #endif
 #endif

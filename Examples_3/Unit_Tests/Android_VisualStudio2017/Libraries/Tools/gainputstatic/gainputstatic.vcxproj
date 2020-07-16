@@ -119,6 +119,7 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;ANDROID;GAINPUT_LIB_DYNAMIC=0;CMAKE_INTDIR="Debug";GAINPUT_BUILD_STATIC=ON;GAINPUT_BUILD_SHARED=OFF;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Disabled</ExceptionHandling>
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <WarningLevel>EnableAllWarnings</WarningLevel>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -131,6 +132,7 @@
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;ANDROID;GAINPUT_LIB_DYNAMIC=0;CMAKE_INTDIR="Release";GAINPUT_BUILD_STATIC=ON;GAINPUT_BUILD_SHARED=OFF;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ExceptionHandling>Disabled</ExceptionHandling>
       <AdditionalOptions>-Wno-c++14-extensions %(AdditionalOptions)</AdditionalOptions>
+      <WarningLevel>EnableAllWarnings</WarningLevel>
     </ClCompile>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

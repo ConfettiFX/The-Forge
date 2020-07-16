@@ -51,19 +51,17 @@ struct main_output
     float3 POSITION;
     float2 TEXCOORD;
 };
-struct ArgBuffer1
-{
-    constant Vertex_Shader::Uniforms_cbPerPass& cbPerPass [[id(0)]];
-};
 
 vertex main_output stageMain(
 	main_input inputData [[stage_in]],
-    constant ArgBuffer1& argBuffer1 [[buffer(UPDATE_FREQ_PER_FRAME)]])
+	constant float4x4* modelToWorldMatrices          [[buffer(0)]],
+	constant Vertex_Shader::Uniforms_cbPerPass& cbPerPass [[buffer(1)]]
+)
 {
     Vertex_Shader::VSInput input0;
     input0.Position = inputData.POSITION;
     input0.TexCoord = inputData.TEXCOORD0;
-    Vertex_Shader main(argBuffer1.cbPerPass);
+    Vertex_Shader main(cbPerPass);
     Vertex_Shader::VSOutput result = main.main(input0);
     main_output output;
     output.SV_POSITION = result.Position;

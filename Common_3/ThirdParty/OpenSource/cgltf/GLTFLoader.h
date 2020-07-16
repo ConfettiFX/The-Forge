@@ -782,23 +782,12 @@ void gltfLoadTextureAtIndex(GLTFContainer* pGLTF, const Path* path, size_t index
 	loadDesc.ppTexture = ppOutTexture;
 	loadDesc.mCreationFlag = isSRGB ? TEXTURE_CREATION_FLAG_SRGB : TEXTURE_CREATION_FLAG_NONE;
 
-	BinaryImageData imageData = {};
 	Path* imagePath = NULL;
-	if (image->buffer_view)
-	{
-		imageData.pExtension = image->uri;
-		imageData.mSize = (uint32_t)image->buffer_view->size;
-		imageData.pBinaryData = (unsigned char*)image->buffer_view->buffer->data + image->buffer_view->offset;
-	}
-	else
+	if (!image->buffer_view)
 	{
 		imagePath = gltfFindTexturePath(path, image);
-
+		loadDesc.pFilePath = imagePath;
+		addResource(&loadDesc, token, LOAD_PRIORITY_NORMAL);
+		fsFreePath(imagePath);
 	}
-	loadDesc.pFilePath = imagePath;
-	loadDesc.pBinaryImageData = &imageData;
-
-	addResource(&loadDesc, token, LOAD_PRIORITY_NORMAL);
-
-	fsFreePath(imagePath);
 }

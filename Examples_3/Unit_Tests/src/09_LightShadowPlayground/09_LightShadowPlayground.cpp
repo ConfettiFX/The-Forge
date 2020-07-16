@@ -264,21 +264,16 @@ struct ASMCpuSettings
 
 typedef struct BufferIndirectCommand
 {
-	// Metal does not use index buffer since there is no builtin primitive id
-#if defined(METAL)
-	IndirectDrawIndexArguments arg;
-#elif defined(ORBIS)
-	IndirectDrawIndexArguments arg;
-#else
+#if defined(DIRECT3D12)
 	// Draw ID is sent as indirect argument through root constant in DX12
-#if defined(DIRECT3D12)
 	uint32_t                   drawId;
-#endif
 	IndirectDrawIndexArguments arg;
-#if defined(DIRECT3D12)
-	uint32_t                   _pad0, _pad1;
+	uint32_t                   pad[2];
 #else
-	uint32_t _pad0, _pad1, _pad2;
+	IndirectDrawIndexArguments arg;
+#if !defined(ORBIS)
+	// Padding not supported on Orbis
+	uint32_t                   pad[3];
 #endif
 #endif
 } BufferIndirectCommand;
@@ -408,7 +403,7 @@ DescriptorSet* pDescriptorSetASMCopyDepthQuadPass[2] = { NULL };
 /************************************************************************/
 Shader* pShaderASMFillIndirection = NULL;
 Pipeline* pPipelineASMFillIndirection = NULL;
-#if defined(ORBIS)
+#if defined(ORBIS) || defined(PROSPERO)
 Shader* pShaderASMFillIndirectionFP16 = NULL;
 #endif
 RootSignature* pRootSignatureASMFillIndirection = NULL;
@@ -665,8 +660,8 @@ ProfileToken gGpuProfileToken;
 Renderer* pRenderer = NULL;
 
 Queue*   pGraphicsQueue = NULL;
-CmdPool* pCmdPool = NULL;
-Cmd**    ppCmds = NULL;
+CmdPool* pCmdPools[gImageCount];
+Cmd*     pCmds[gImageCount];
 
 SwapChain* pSwapChain = NULL;
 Fence*     pRenderCompleteFences[gImageCount] = { NULL };
@@ -709,7 +704,7 @@ static void setRenderTarget(
 }
 
 
-#if defined(_DURANGO)
+#if defined(XBOX)
 #include "../../../../Xbox/Common_3/Renderer/Direct3D12/Direct3D12X.h"
 #endif
 
@@ -2715,7 +2710,7 @@ public:
 				break;
 			}
 
-#if defined(_DURANGO)
+#if defined(XBOX)
 			//On Xbox somehow the texture is initialized with garbage value, so texture that isn't cleared every frame
 			//needs to be cleared at the begininng for xbox.
 			if (mDEMFirstTimeRender)
@@ -3211,7 +3206,7 @@ public:
 	ASMFrustum(const Config& cfg, bool useMRF, bool isPreRender) :
 		mIsPrerender(isPreRender),
 		m_cfg(cfg)
-#if defined(_DURANGO)
+#if defined(XBOX)
 		,mFirstTimeRender(true)
 #endif
 	{
@@ -3974,7 +3969,7 @@ private:
 	{
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
-#if defined(_DURANGO)
+#if defined(XBOX)
 		if (mFirstTimeRender)
 		{
 			loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
@@ -4086,7 +4081,7 @@ private:
 	}
 
 private:
-#if defined(_DURANGO)
+#if defined(XBOX)
 	bool mFirstTimeRender;
 #endif
 };
@@ -4210,7 +4205,7 @@ void ASMTileCache::RenderTiles(
 		copyDepthQuadLoadAction.mClearColorValues[0] = pRenderTargetASMDepthAtlas->mClearValue;
 		copyDepthQuadLoadAction.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
 
-#if defined(_DURANGO)
+#if defined(XBOX)
 		if (mDepthFirstTimeRender)
 		{
 			copyDepthQuadLoadAction.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
@@ -4699,8 +4694,7 @@ void SetupASMDebugTextures()
 
 		if (!pUIASMDebugTexturesWindow)
 		{
-			GuiDesc guiDesc = {};
-			guiDesc.mStartSize = vec2(guiDesc.mStartSize.getX(), guiDesc.mStartSize.getY());
+			GuiDesc guiDesc = {};			
 			guiDesc.mStartPosition.setY(screenSize.getY() - texSize.getY() - 50.f);
 			pUIASMDebugTexturesWindow = gAppUI.AddGuiComponent("ASM Debug Textures Info", &guiDesc);
 			ASSERT(pUIASMDebugTexturesWindow);
@@ -4874,14 +4868,6 @@ class LightShadowPlayground: public IApp
         
 		initThreadSystem(&pThreadSystem);
 
-		// Overwrite rootpath is required because Textures and meshes are not in /Textures and /Meshes.
-		// We need to set the modified root path so that filesystem can find the meshes and textures.
-        PathHandle mainDirPath = fsGetResourceDirEnumPath(RD_ROOT);
-#ifndef _DURANGO
-        PathHandle sdfDirPath = fsGetResourceDirEnumPath(RD_OTHER_FILES);
-        fsCreateDirectory(sdfDirPath);
-#endif
-
 		RendererDesc settings = { NULL };
 		initRenderer(GetName(), &settings, &pRenderer);
 
@@ -4892,12 +4878,15 @@ class LightShadowPlayground: public IApp
 
 		// Create the command pool and the command lists used to store GPU commands.
 		// One Cmd list per back buffer image is stored for triple buffering.
-		CmdPoolDesc cmdPoolDesc = {};
-		cmdPoolDesc.pQueue = pGraphicsQueue;
-		addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
-		CmdDesc cmdDesc = {};
-		cmdDesc.pPool = pCmdPool;
-		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+		}
 
 		addFence(pRenderer, &pTransitionFences);
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
@@ -4930,7 +4919,7 @@ class LightShadowPlayground: public IApp
 		vbConstantUBDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		vbConstantUBDesc.mDesc.mSize = sizeof(VisibilityBufferConstants);
 		vbConstantUBDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-		vbConstantUBDesc.mDesc.pDebugName = L"Visibility constant Buffer Desc";
+		vbConstantUBDesc.mDesc.pName = "Visibility constant Buffer Desc";
 		vbConstantUBDesc.pData = NULL;
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -5173,9 +5162,9 @@ class LightShadowPlayground: public IApp
 
 
 		ShaderLoadDesc visibilityBufferPassShaderDesc = {};
-		visibilityBufferPassShaderDesc.mStages[0] = { "visibilityBufferPass.vert", NULL, 0, RD_SHADER_SOURCES };
-		visibilityBufferPassShaderDesc.mStages[1] = { "visibilityBufferPass.frag", NULL, 0, RD_SHADER_SOURCES };
-#if defined(ORBIS)
+		visibilityBufferPassShaderDesc.mStages[0] = { "visibilityBufferPass.vert", NULL, 0, RD_SHADER_SOURCES, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_PS_PRIMITIVEID };
+		visibilityBufferPassShaderDesc.mStages[1] = { "visibilityBufferPass.frag", NULL, 0, RD_SHADER_SOURCES, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_PS_PRIMITIVEID };
+#if defined(ORBIS) || defined(PROSPERO)
 		// No SV_PrimitiveID in pixel shader on ORBIS. Only available in gs stage so we need
 		// a passthrough gs
 		visibilityBufferPassShaderDesc.mStages[2] = { "visibilityBufferPass.geom", NULL, 0, RD_SHADER_SOURCES };
@@ -5183,9 +5172,9 @@ class LightShadowPlayground: public IApp
 		addShader(pRenderer, &visibilityBufferPassShaderDesc, &pShaderVBBufferPass[GEOMSET_OPAQUE]);
 
 		ShaderLoadDesc visibilityBufferPassAlphaShaderDesc = {};
-		visibilityBufferPassAlphaShaderDesc.mStages[0] = { "visibilityBufferPassAlpha.vert", NULL, 0, RD_SHADER_SOURCES };
-		visibilityBufferPassAlphaShaderDesc.mStages[1] = { "visibilityBufferPassAlpha.frag", NULL, 0, RD_SHADER_SOURCES };
-#if defined(ORBIS)
+		visibilityBufferPassAlphaShaderDesc.mStages[0] = { "visibilityBufferPassAlpha.vert", NULL, 0, RD_SHADER_SOURCES, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_PS_PRIMITIVEID };
+		visibilityBufferPassAlphaShaderDesc.mStages[1] = { "visibilityBufferPassAlpha.frag", NULL, 0, RD_SHADER_SOURCES, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_PS_PRIMITIVEID };
+#if defined(ORBIS) || defined(PROSPERO)
 		// No SV_PrimitiveID in pixel shader on ORBIS. Only available in gs stage so we need
 		// a passthrough gs
 		visibilityBufferPassAlphaShaderDesc.mStages[2] = { "visibilityBufferPassAlpha.geom", NULL, 0, RD_SHADER_SOURCES };
@@ -5245,7 +5234,7 @@ class LightShadowPlayground: public IApp
 
 		addShader(pRenderer, &ASMCopyDepthQuadsShaderDesc, &pShaderASMCopyDepthQuadPass);
 		addShader(pRenderer, &ASMFillIndirectionShaderDesc, &pShaderASMFillIndirection);
-#if defined(ORBIS)
+#if defined(ORBIS) || defined(PROSPERO)
 		ShaderMacro fp16Macro = { "USE_OUTPUT_MODE_FP16" };
 		ASMFillIndirectionShaderDesc.mStages[1].mMacroCount = 1;
 		ASMFillIndirectionShaderDesc.mStages[1].pMacros = &fp16Macro;
@@ -5407,7 +5396,7 @@ class LightShadowPlayground: public IApp
 		meshConstantDesc.mDesc.mSize = meshConstantDesc.mDesc.mElementCount * meshConstantDesc.mDesc.mStructStride;
 		meshConstantDesc.ppBuffer = &pBufferMeshConstants;
 		meshConstantDesc.pData = meshConstants;
-		meshConstantDesc.mDesc.pDebugName = L"Mesh Constant desc";
+		meshConstantDesc.mDesc.pName = "Mesh Constant desc";
 		addResource(&meshConstantDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		conf_free(meshConstants);
@@ -5598,20 +5587,16 @@ class LightShadowPlayground: public IApp
 #if defined(DIRECT3D12)
 		IndirectArgumentDescriptor indirectArgs[2] = {};
 		indirectArgs[0].mType = INDIRECT_CONSTANT;
-		indirectArgs[0].mCount = 1;
 		indirectArgs[0].pName = "indirectRootConstant";
 		indirectArgs[1].mType = INDIRECT_DRAW_INDEX;
-		CommandSignatureDesc vbPassDesc = { pCmdPool, pRootSignatureVBPass, 2, indirectArgs };
+		CommandSignatureDesc vbPassDesc = { pRootSignatureVBPass, 2, indirectArgs };
 		addIndirectCommandSignature(pRenderer, &vbPassDesc, &pCmdSignatureVBPass);
 #else
 		// Indicate the renderer that we want to use non-indexed geometry.
 		IndirectArgumentDescriptor indirectArgs[1] = {};
-
 		indirectArgs[0].mType = INDIRECT_DRAW_INDEX;
-
-		CommandSignatureDesc vbPassDesc = { pCmdPool, pRootSignatureVBPass, 1, indirectArgs };	
+		CommandSignatureDesc vbPassDesc = { pRootSignatureVBPass, 1, indirectArgs };
 		addIndirectCommandSignature(pRenderer, &vbPassDesc, &pCmdSignatureVBPass);
-		
 #endif
 		/************************************************************************/
 		/************************************************************************/
@@ -5658,7 +5643,7 @@ class LightShadowPlayground: public IApp
 			materialPropDesc.mDesc.mStructStride;
 		materialPropDesc.pData = materialAlphaData;
 		materialPropDesc.ppBuffer = &pBufferMaterialProperty;
-		materialPropDesc.mDesc.pDebugName = L"Material Prop Desc";
+		materialPropDesc.mDesc.pName = "Material Prop Desc";
 		addResource(&materialPropDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		conf_free(materialAlphaData);
@@ -5697,7 +5682,7 @@ class LightShadowPlayground: public IApp
 		filterIbDesc.mDesc.mElementCount = pGeom->mIndexCount;
 		filterIbDesc.mDesc.mStructStride = sizeof(uint32_t);
 		filterIbDesc.mDesc.mSize = filterIbDesc.mDesc.mElementCount * filterIbDesc.mDesc.mStructStride;
-		filterIbDesc.mDesc.pDebugName = L"Filtered IB Desc";
+		filterIbDesc.mDesc.pName = "Filtered IB Desc";
 		filterIbDesc.pData = NULL;
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -5718,7 +5703,7 @@ class LightShadowPlayground: public IApp
 		{
 #if defined(DIRECT3D12)
 			indirectDrawArguments[i].drawId = i;
-#elif defined(ORBIS)
+#elif defined(ORBIS) || defined(PROSPERO)
 			indirectDrawArguments[i].arg.mStartInstance = i;
 #endif
 			if (i < gMeshCount)
@@ -5733,7 +5718,7 @@ class LightShadowPlayground: public IApp
 		filterIndirectDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT * (sizeof(BufferIndirectCommand) / sizeof(uint32_t));
 		filterIndirectDesc.mDesc.mStructStride = sizeof(uint32_t);
 		filterIndirectDesc.mDesc.mSize = filterIndirectDesc.mDesc.mElementCount * filterIndirectDesc.mDesc.mStructStride;
-		filterIndirectDesc.mDesc.pDebugName = L"Filtered Indirect Desc";
+		filterIndirectDesc.mDesc.pName = "Filtered Indirect Desc";
 		filterIndirectDesc.pData = indirectDrawArguments;
 
 		BufferLoadDesc uncompactedDesc = {};
@@ -5742,7 +5727,7 @@ class LightShadowPlayground: public IApp
 		uncompactedDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT;
 		uncompactedDesc.mDesc.mStructStride = sizeof(UncompactedDrawArguments);
 		uncompactedDesc.mDesc.mSize = uncompactedDesc.mDesc.mElementCount * uncompactedDesc.mDesc.mStructStride;
-		uncompactedDesc.mDesc.pDebugName = L"Uncompacted Draw Arguments Desc";
+		uncompactedDesc.mDesc.pName = "Uncompacted Draw Arguments Desc";
 		uncompactedDesc.pData = NULL;
 
 		BufferLoadDesc filterMaterialDesc = {};
@@ -5752,7 +5737,7 @@ class LightShadowPlayground: public IApp
 		filterMaterialDesc.mDesc.mStructStride = sizeof(uint32_t);
 		filterMaterialDesc.mDesc.mSize = filterMaterialDesc.mDesc.mElementCount 
 			* filterMaterialDesc.mDesc.mStructStride;
-		filterMaterialDesc.mDesc.pDebugName = L"Filtered Indirect Material Desc";
+		filterMaterialDesc.mDesc.pName = "Filtered Indirect Material Desc";
 		filterMaterialDesc.pData = NULL;
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -5858,7 +5843,7 @@ class LightShadowPlayground: public IApp
 		sdfVolumeTextureAtlasDesc.mMipLevels = 1;
 		sdfVolumeTextureAtlasDesc.mSampleCount = SAMPLE_COUNT_1;
 		sdfVolumeTextureAtlasDesc.mSampleQuality = 0;
-		sdfVolumeTextureAtlasDesc.pDebugName = L"SDF Volume Texture Atlas";
+		sdfVolumeTextureAtlasDesc.pName = "SDF Volume Texture Atlas";
 		sdfVolumeTextureAtlasDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		//sdfVolumeTextureAtlasDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
 
@@ -5871,19 +5856,16 @@ class LightShadowPlayground: public IApp
 		/*************************************************/
 
 		calculateCurSDFMeshesProgress();
-
-		float   dpiScale = getDpiScale().x;
-
+				
 		GuiDesc guiDesc2 = {};
-		guiDesc2.mStartPosition = vec2(700.0f / dpiScale, 450.0f / dpiScale);
+		guiDesc2.mStartPosition = vec2(mSettings.mWidth * 0.15f, mSettings.mHeight * 0.4f);
 		pLoadingGui = gAppUI.AddGuiComponent("Generating SDF", &guiDesc2);
 		ProgressBarWidget ProgressBar("               [ProgressBar]               ", &gSDFProgressValue, LightShadowPlayground::getMaxSDFMeshesProgress());
 		pLoadingGui->AddWidget(ProgressBar);
 
 		GuiDesc guiDesc = {};
 		
-		guiDesc.mStartPosition = vec2((float)mSettings.mWidth - 450, 0.0f) / dpiScale;
-		guiDesc.mStartSize = vec2(450, 600) / dpiScale;
+		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.4f);
 		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 		GuiController::addGui();
 
@@ -5967,7 +5949,7 @@ class LightShadowPlayground: public IApp
 		skyboxImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		skyboxImgDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
 		skyboxImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
-		skyboxImgDesc.pDebugName = L"skyboxImgBuff";
+		skyboxImgDesc.pName = "skyboxImgBuff";
 
 		TextureLoadDesc skyboxLoadDesc = {};
 		skyboxLoadDesc.pDesc = &skyboxImgDesc;
@@ -6010,7 +5992,7 @@ class LightShadowPlayground: public IApp
 		waitForToken(&token);
 
 		// Since this happens on iniatilization, use the first cmd/fence pair available.
-		Cmd* cmd = ppCmds[0];
+		Cmd* cmd = pCmds[0];
 
 		// Compute the BRDF Integration map.
 		beginCmd(cmd);
@@ -6142,7 +6124,7 @@ class LightShadowPlayground: public IApp
 	{
 		if (submitAndWait)
 		{
-			beginCmd(ppCmds[frameIdx]);
+			beginCmd(pCmds[frameIdx]);
 		}
 		
 		BufferBarrier barrier[] = { { pGeom->pVertexBuffers[0], RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE },
@@ -6153,7 +6135,7 @@ class LightShadowPlayground: public IApp
 			{ pBufferUncompactedDrawArguments[frameIdx][VIEW_SHADOW], RESOURCE_STATE_UNORDERED_ACCESS },
 			{ pBufferUncompactedDrawArguments[frameIdx][VIEW_CAMERA], RESOURCE_STATE_UNORDERED_ACCESS }
 		};
-		cmdResourceBarrier(ppCmds[frameIdx], 7, barrier, 0, NULL, 0, NULL);
+		cmdResourceBarrier(pCmds[frameIdx], 7, barrier, 0, NULL, 0, NULL);
 
 		BufferBarrier indirectDrawBarriers[gNumGeomSets * NUM_CULLING_VIEWPORTS] = {};
 		for (uint32_t i = 0, k = 0; i < gNumGeomSets; i++)
@@ -6166,7 +6148,7 @@ class LightShadowPlayground: public IApp
 				indirectDrawBarriers[k].mSplit = false;
 			}
 		}
-		cmdResourceBarrier(ppCmds[frameIdx], gNumGeomSets * NUM_CULLING_VIEWPORTS, indirectDrawBarriers, 0, NULL, 0, NULL);
+		cmdResourceBarrier(pCmds[frameIdx], gNumGeomSets * NUM_CULLING_VIEWPORTS, indirectDrawBarriers, 0, NULL, 0, NULL);
 
 		BufferBarrier filteredIndicesBarriers[NUM_CULLING_VIEWPORTS] = {};
 		for (uint32_t j = 0; j < NUM_CULLING_VIEWPORTS; j++)
@@ -6175,14 +6157,14 @@ class LightShadowPlayground: public IApp
 			filteredIndicesBarriers[j].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
 			filteredIndicesBarriers[j].mSplit = false;
 		}
-		cmdResourceBarrier(ppCmds[frameIdx], NUM_CULLING_VIEWPORTS, filteredIndicesBarriers, 0, NULL, 0, NULL);
+		cmdResourceBarrier(pCmds[frameIdx], NUM_CULLING_VIEWPORTS, filteredIndicesBarriers, 0, NULL, 0, NULL);
 
 		if (submitAndWait)
 		{
-			endCmd(ppCmds[frameIdx]);
+			endCmd(pCmds[frameIdx]);
 			QueueSubmitDesc submitDesc = {};
 			submitDesc.mCmdCount = 1;
-			submitDesc.ppCmds = &ppCmds[frameIdx];
+			submitDesc.ppCmds = &pCmds[frameIdx];
 			submitDesc.pSignalFence = pTransitionFences;
 			submitDesc.mSubmitDone = true;
 			queueSubmit(pGraphicsQueue, &submitDesc);
@@ -6380,7 +6362,7 @@ class LightShadowPlayground: public IApp
 		removeShader(pRenderer, pShaderIndirectAlphaDepthPass);
 
 		removeShader(pRenderer, pShaderASMFillIndirection);
-#if defined(ORBIS)
+#if defined(ORBIS) || defined(PROSPERO)
 		removeShader(pRenderer, pShaderASMFillIndirectionFP16);
 #endif
 		removeShader(pRenderer, pShaderASMGenerateDEM);
@@ -6434,8 +6416,11 @@ class LightShadowPlayground: public IApp
 		removeFence(pRenderer, pTransitionFences);
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
 
-		removeCmd_n(pRenderer, gImageCount, ppCmds);
-		removeCmdPool(pRenderer, pCmdPool);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeCmd(pRenderer, pCmds[i]);
+			removeCmdPool(pRenderer, pCmdPools[i]);
+		}
 
         exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
@@ -6652,24 +6637,22 @@ class LightShadowPlayground: public IApp
 
 			vbPassPipelineSettings.pShaderProgram = pShaderVBBufferPass[i];
 
-#if defined(_DURANGO)
+#if defined(XBOX)
 			ExtendedGraphicsPipelineDesc edescs[2] = {};
-
 			edescs[0].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_SHADER_LIMITS;
 			initExtendedGraphicsShaderLimits(&edescs[0].shaderLimitsDesc);
 			edescs[0].shaderLimitsDesc.maxWavesWithLateAllocParameterCache = 16;
 
 			edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_DEPTH_STENCIL_OPTIONS;
 			edescs[1].pixelShaderOptions.outOfOrderRasterization = PIXEL_SHADER_OPTION_OUT_OF_ORDER_RASTERIZATION_ENABLE_WATER_MARK_7;
+			edescs[1].pixelShaderOptions.depthBeforeShader = !i ? PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_ENABLE : PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_DEFAULT;
 
-			if (i == 0)
-				edescs[1].pixelShaderOptions.depthBeforeShader = PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_ENABLE;
-
-			addPipelineExt(pRenderer, &vbPassPipelineSettings, _countof(edescs), edescs, &pPipelineVBBufferPass[i]);
-#else
-			addPipeline(pRenderer, &desc, &pPipelineVBBufferPass[i]);
+			desc.mExtensionCount = 2;
+			desc.pPipelineExtensions = edescs;
 #endif
+			addPipeline(pRenderer, &desc, &pPipelineVBBufferPass[i]);
 
+			desc.mExtensionCount = 0;
 		}
 		desc.mGraphicsDesc = {};
 		GraphicsPipelineDesc& vbShadePipelineSettings = desc.mGraphicsDesc;
@@ -6683,22 +6666,21 @@ class LightShadowPlayground: public IApp
 		vbShadePipelineSettings.pColorFormats = &pRenderTargetIntermediate->mFormat;
 		vbShadePipelineSettings.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
 
-#if defined(_DURANGO) && 1
-		ExtendedGraphicsPipelineDesc edescs[2];
-		memset(edescs, 0, sizeof(edescs));
-
+#if defined(XBOX)
+		ExtendedGraphicsPipelineDesc edescs[2] = {};
 		edescs[0].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_SHADER_LIMITS;
 		initExtendedGraphicsShaderLimits(&edescs[0].shaderLimitsDesc);
 		//edescs[0].ShaderLimitsDesc.MaxWavesWithLateAllocParameterCache = 22;
 
 		edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_DEPTH_STENCIL_OPTIONS;
 		edescs[1].pixelShaderOptions.outOfOrderRasterization = PIXEL_SHADER_OPTION_OUT_OF_ORDER_RASTERIZATION_ENABLE_WATER_MARK_7;
-
 		edescs[1].pixelShaderOptions.depthBeforeShader = PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_ENABLE;
-		addPipelineExt(pRenderer, &vbShadePipelineSettings, _countof(edescs), edescs, &pPipelineVBShadeSrgb);
-#else
-		addPipeline(pRenderer, &desc, &pPipelineVBShadeSrgb);
+
+		desc.mExtensionCount = 2;
+		desc.pPipelineExtensions = edescs;
 #endif
+		addPipeline(pRenderer, &desc, &pPipelineVBShadeSrgb);
+		desc.mExtensionCount = 0;
 		desc.mGraphicsDesc = {};
 		
 		desc.mType = PIPELINE_TYPE_COMPUTE;
@@ -6708,9 +6690,6 @@ class LightShadowPlayground: public IApp
 		clearBufferPipelineSettings.pShaderProgram = pShaderClearBuffers;
 		clearBufferPipelineSettings.pRootSignature = pRootSignatureTriangleFiltering;
 		addPipeline(pRenderer, &desc, &pPipelineClearBuffers);
-
-
-
 
 		desc.mComputeDesc = {};
 		ComputePipelineDesc& triangleFilteringPipelineSettings = desc.mComputeDesc;
@@ -6923,17 +6902,13 @@ class LightShadowPlayground: public IApp
 		ASMFillLodClampPipelineDesc.mSampleCount = pRenderTargetASMLodClamp->mSampleCount;
 		ASMFillLodClampPipelineDesc.mSampleQuality = pRenderTargetASMLodClamp->mSampleQuality;
 		ASMFillLodClampPipelineDesc.pRootSignature = pRootSignatureASMFillLodClamp;
-#if defined(ORBIS)
+#if defined(ORBIS) || defined(PROSPERO)
 		ASMFillLodClampPipelineDesc.pShaderProgram = pShaderASMFillIndirectionFP16;
 #else
 		ASMFillLodClampPipelineDesc.pShaderProgram = pShaderASMFillIndirection;
 #endif
 		ASMFillLodClampPipelineDesc.pRasterizerState = &rasterStateCullNoneDesc;
 		addPipeline(pRenderer, &desc, &pPipelineASMFillLodClamp);
-
-		VertexLayout vertexLayoutCopyShaders = {};
-		vertexLayoutCopyShaders.mAttribCount = 0;
-
 		/************************************************************************/
 		// Setup Present pipeline
 		/************************************************************************/
@@ -6945,7 +6920,6 @@ class LightShadowPlayground: public IApp
 		pipelineSettingsFinalPass.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
 		pipelineSettingsFinalPass.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
 		pipelineSettingsFinalPass.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-		pipelineSettingsFinalPass.pVertexLayout = &vertexLayoutCopyShaders;
 		pipelineSettingsFinalPass.pRootSignature = pRootSignaturePresentPass;
 		pipelineSettingsFinalPass.pShaderProgram = pShaderPresentPass;
 
@@ -7810,7 +7784,7 @@ class LightShadowPlayground: public IApp
 			gVisibilityBufferConstants[gFrameIndex].mCullingViewports[VIEW_SHADOW].mSampleCount = 1;
 
 
-#if defined(DIRECT3D12) || defined(METAL) || defined(ORBIS)
+#if defined(DIRECT3D12) || defined(METAL) || defined(ORBIS) || defined(PROSPERO)
 			vec2 windowSize = vec2(gs_ASMDepthAtlasTextureWidth, gs_ASMDepthAtlasTextureHeight);
 			gVisibilityBufferConstants[gFrameIndex].mCullingViewports[VIEW_SHADOW].mWindowSize = v2ToF2(windowSize);
 #elif defined(VULKAN)
@@ -8034,6 +8008,8 @@ class LightShadowPlayground: public IApp
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
+		resetCmdPool(pRenderer, pCmdPools[gFrameIndex]);
+
 		UpdateInDraw();
 		if (gCurrentShadowType == SHADOW_TYPE_ASM)
 		{
@@ -8049,7 +8025,7 @@ class LightShadowPlayground: public IApp
 			gVisibilityBufferConstants[gFrameIndex].mCullingViewports[VIEW_SHADOW].mSampleCount = 1;
 
 			vec2 windowSize(ESM_SHADOWMAP_RES, ESM_SHADOWMAP_RES);
-#if defined(DIRECT3D12) || defined(METAL) || defined(ORBIS)
+#if defined(DIRECT3D12) || defined(METAL) || defined(ORBIS) || defined(PROSPERO)
 			gVisibilityBufferConstants[gFrameIndex].mCullingViewports[VIEW_SHADOW].mWindowSize = v2ToF2(windowSize);
 #elif defined(VULKAN)
 			gVisibilityBufferConstants[gFrameIndex].mCullingViewports[VIEW_SHADOW].mWindowSize = windowSize;
@@ -8116,7 +8092,7 @@ class LightShadowPlayground: public IApp
 		// Get command list to store rendering commands for this frame
 		{
 
-			Cmd* cmd = ppCmds[gFrameIndex];
+			Cmd* cmd = pCmds[gFrameIndex];
 			pRenderTargetScreen = pRenderTargetIntermediate;
 			beginCmd(cmd);
 
@@ -8307,10 +8283,10 @@ class LightShadowPlayground: public IApp
 #if !defined(TARGET_IOS)
 		cmdBindRenderTargets(cmd, 1, &pRenderTargetScreen, NULL, NULL, NULL, NULL, -1, -1);
 
-        cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
+        float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
 
 		// NOTE: Realtime GPU Profiling is not supported on Metal.
-        cmdDrawGpuProfile(cmd, float2(8.0f, 40.0f), gGpuProfileToken);
+        cmdDrawGpuProfile(cmd, float2(8.0f, txtSize.y + 30.f), gGpuProfileToken);
 		gAppUI.Gui(pGuiWindow);
 
 		if (gAppSettings.mIsGeneratingSDF)
@@ -8392,12 +8368,13 @@ class LightShadowPlayground: public IApp
 		depthRT.mArraySize = 1;
 		depthRT.mClearValue = depthStencilClear;
 		depthRT.mDepth = 1;
+		depthRT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
 		depthRT.mWidth = width;
 		depthRT.mHeight = height;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
-		depthRT.pDebugName = L"Depth RT";
+		depthRT.pName = "Depth RT";
 		depthRT.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
 #if defined(METAL)
 		depthRT.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
@@ -8413,12 +8390,13 @@ class LightShadowPlayground: public IApp
 		postProcRTDesc.mArraySize = 1;
 		postProcRTDesc.mClearValue = {{0.0f, 0.0f, 0.0f, 0.0f}};
 		postProcRTDesc.mDepth = 1;
+		postProcRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		postProcRTDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
 		postProcRTDesc.mHeight = mSettings.mHeight;
 		postProcRTDesc.mWidth = mSettings.mWidth;
 		postProcRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
 		postProcRTDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-		postProcRTDesc.pDebugName = L"pIntermediateRenderTarget";
+		postProcRTDesc.pName = "pIntermediateRenderTarget";
 		addRenderTarget(pRenderer, &postProcRTDesc, &pRenderTargetIntermediate);
 			   
 		/************************************************************************/
@@ -8428,12 +8406,13 @@ class LightShadowPlayground: public IApp
 		shadowRTDesc.mArraySize = 1;
 		shadowRTDesc.mClearValue.depth = lessEqualDepthStencilClear.depth;
 		shadowRTDesc.mDepth = 1;
+		shadowRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		shadowRTDesc.mFormat = TinyImageFormat_D32_SFLOAT;
 		shadowRTDesc.mWidth = ESM_SHADOWMAP_RES;
 		shadowRTDesc.mHeight = ESM_SHADOWMAP_RES;
 		shadowRTDesc.mSampleCount = (SampleCount)ESM_MSAA_SAMPLES;
 		shadowRTDesc.mSampleQuality = 0;  
-		shadowRTDesc.pDebugName = L"Shadow Map RT";
+		shadowRTDesc.pName = "Shadow Map RT";
 
 		addRenderTarget(pRenderer, &shadowRTDesc, &pRenderTargetShadowMap);
 
@@ -8454,7 +8433,7 @@ class LightShadowPlayground: public IApp
 		sdfMeshVisualizationRTDesc.mMipLevels = 1;
 		sdfMeshVisualizationRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		sdfMeshVisualizationRTDesc.mSampleQuality = 0;
-		sdfMeshVisualizationRTDesc.pDebugName = L"SDF Mesh Visualization RT";
+		sdfMeshVisualizationRTDesc.pName = "SDF Mesh Visualization RT";
 		addRenderTarget(pRenderer, &sdfMeshVisualizationRTDesc, &pRenderTargetSDFMeshVisualization);
 
 
@@ -8474,7 +8453,7 @@ class LightShadowPlayground: public IApp
 		sdfMeshShadowRTDesc.mMipLevels = 1;
 		sdfMeshShadowRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		sdfMeshShadowRTDesc.mSampleQuality = 0;
-		sdfMeshShadowRTDesc.pDebugName = L"SDF Mesh Shadow Pass RT";
+		sdfMeshShadowRTDesc.pName = "SDF Mesh Shadow Pass RT";
 		TextureLoadDesc sdfMeshShadowLoadDesc = {};
 		sdfMeshShadowLoadDesc.pDesc = &sdfMeshShadowRTDesc;
 		sdfMeshShadowLoadDesc.ppTexture = &pRenderTargetSDFMeshShadow;
@@ -8491,7 +8470,7 @@ class LightShadowPlayground: public IApp
 		upSampleSDFShadowRTDesc.mMipLevels = 1;
 		upSampleSDFShadowRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		upSampleSDFShadowRTDesc.mSampleQuality = 0;
-		upSampleSDFShadowRTDesc.pDebugName = L"Upsample SDF Mesh Shadow";
+		upSampleSDFShadowRTDesc.pName = "Upsample SDF Mesh Shadow";
 		addRenderTarget(pRenderer, &upSampleSDFShadowRTDesc, &pRenderTargetUpSampleSDFShadow);
 
 
@@ -8541,13 +8520,14 @@ class LightShadowPlayground: public IApp
 		vbRTDesc.mArraySize = 1;
 		vbRTDesc.mClearValue = colorClearWhite;
 		vbRTDesc.mDepth = 1;
+		vbRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		vbRTDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
 		vbRTDesc.mWidth = width;
 		vbRTDesc.mHeight = height;
 		vbRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		vbRTDesc.mSampleQuality = 0;
 		vbRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
-		vbRTDesc.pDebugName = L"VB RT";
+		vbRTDesc.pName = "VB RT";
 		addRenderTarget(pRenderer, &vbRTDesc, &pRenderTargetVBPass);
 
 
@@ -8565,7 +8545,7 @@ class LightShadowPlayground: public IApp
 		depthAtlasRTDesc.mHeight = gs_ASMDepthAtlasTextureHeight;
 		depthAtlasRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		depthAtlasRTDesc.mSampleQuality = 0;
-		depthAtlasRTDesc.pDebugName = L"ASM Depth Atlas RT";
+		depthAtlasRTDesc.pName = "ASM Depth Atlas RT";
 		depthAtlasRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 #if defined(METAL)
 		depthAtlasRTDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
@@ -8582,7 +8562,7 @@ class LightShadowPlayground: public IApp
 		DEMAtlasRTDesc.mHeight = gs_ASMDEMAtlasTextureHeight;
 		DEMAtlasRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		DEMAtlasRTDesc.mSampleQuality = 0;
-		DEMAtlasRTDesc.pDebugName = L"ASM DEM Atlas RT";
+		DEMAtlasRTDesc.pName = "ASM DEM Atlas RT";
 		DEMAtlasRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 #if defined(METAL)
 		DEMAtlasRTDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
@@ -8611,7 +8591,7 @@ class LightShadowPlayground: public IApp
 		indirectionRTDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
 #endif
 
-		indirectionRTDesc.pDebugName = L"ASM Indirection RT";
+		indirectionRTDesc.pName = "ASM Indirection RT";
 
 		for (int32_t i = 0; i <= gs_ASMMaxRefinement; ++i)
 		{
@@ -8632,7 +8612,7 @@ class LightShadowPlayground: public IApp
 		lodClampRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		lodClampRTDesc.mSampleQuality = 0;
 		lodClampRTDesc.mMipLevels = 1;
-		lodClampRTDesc.pDebugName = L"ASM Lod Clamp RT";
+		lodClampRTDesc.pName = "ASM Lod Clamp RT";
 		lodClampRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		
 #if defined(METAL)
@@ -8914,7 +8894,7 @@ class LightShadowPlayground: public IApp
 				vbShadeParams[6].ppBuffers = &pBufferRenderSettings[i];
 				vbShadeParams[7].pName = "ESMInputConstants";
 				vbShadeParams[7].ppBuffers = &pBufferESMUniform[i];
-#if defined(ORBIS)
+#if defined(ORBIS) || defined(PROSPERO)
 				vbShadeParams[8].pName = "indirectDrawArgsOpaque";
 				vbShadeParams[8].ppBuffers = &pIndirectBuffers[GEOMSET_OPAQUE];
 				vbShadeParams[9].pName = "indirectDrawArgsAlpha";

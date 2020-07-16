@@ -21,35 +21,23 @@ sampler uSamplerZip,texture2d<float> ZipTexture) :
 uSamplerZip(uSamplerZip),ZipTexture(ZipTexture) {}
 };
 
-struct FSData {
-    texture2d<float,access::sample> RightText   [[id(0)]];
-    texture2d<float,access::sample> LeftText    [[id(1)]];
-    texture2d<float,access::sample> TopText     [[id(2)]];
-    texture2d<float,access::sample> BotText     [[id(3)]];
-    texture2d<float,access::sample> FrontText   [[id(4)]];
-    texture2d<float,access::sample> BackText    [[id(5)]];
-    texture2d<float,access::sample> ZipTexture  [[id(6)]];
-    sampler uSampler0                           [[id(7)]];
-};
-
-
 struct main_input
 {
     float4 SV_POSITION [[position]];
     float2 TEXCOORD;
 };
 
-
 fragment float4 stageMain(
 	main_input inputData [[stage_in]],
-    sampler uSamplerZip [[sampler(0)]],
-    constant FSData& fsData   [[buffer(UPDATE_FREQ_NONE)]])
+	texture2d<float,access::sample> ZipTexture  [[texture(6)]],
+    sampler uSampler0                           [[sampler(0)]]
+)
 {
     Fragment_Shader::VSOutput input0;
     input0.Position = inputData.SV_POSITION;
     input0.texcoords = inputData.TEXCOORD;
     Fragment_Shader main(
-    fsData.uSampler0,
-    fsData.ZipTexture);
+    uSampler0,
+    ZipTexture);
     return main.main(input0);
 }

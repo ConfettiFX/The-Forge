@@ -34,6 +34,18 @@ void _OutputDebugStringV(const char* str, va_list args);
 
 void _PrintUnicode(const char* str, bool error = false);
 
+#ifdef _WIN32
+#define CHECK_HRESULT(exp)                                                     \
+{                                                                              \
+	HRESULT hres = (exp);                                                      \
+	if (!SUCCEEDED(hres))                                                      \
+	{                                                                          \
+		LOGF(eERROR, "%s: FAILED with HRESULT: %u", #exp, (uint32_t)hres);     \
+		ASSERT(false);                                                         \
+	}                                                                          \
+}
+#endif
+
 #if _MSC_VER >= 1400
 // To make MSVC 2005 happy
 #pragma warning(disable : 4996)
@@ -54,11 +66,7 @@ void _PrintUnicode(const char* str, bool error = false);
 #endif
 #else
 
-#if defined(NX64)
 #define ASSERT(b) (void)(b)
-#else
-#define ASSERT(b) assume(b)
-#endif
 
 #if _MSC_VER >= 1400
 #define IFASSERT(x) x

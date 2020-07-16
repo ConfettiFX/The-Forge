@@ -47,10 +47,11 @@ struct PsIn
 };
 
 fragment float4 stageMain(
-    PsIn In                                     [[stage_in]],
-    constant BasicArgData& fsData                     [[buffer(UPDATE_FREQ_NONE)]],
-    constant BasicArgDataPerBatch& fsDataPerBatch     [[buffer(UPDATE_FREQ_PER_BATCH)]],
-    constant RootConstantData& rootConstant     [[buffer(UPDATE_FREQ_USER)]]
+    PsIn In                                    [[stage_in]],
+	texture2d_array<float> uTex0               [[texture(0)]],
+	sampler uSampler0                          [[sampler(0)]],
+    constant InstanceData* instanceBuffer      [[buffer(0)]],
+    constant RootConstantData& rootConstant    [[buffer(1)]]
 )
 {
     const float3 lightDir = -normalize(float3(2,6,1));
@@ -64,14 +65,14 @@ fragment float4 stageMain(
     blendWeights = saturate((blendWeights - 0.2) * 7);
     blendWeights /= float3(blendWeights.x + blendWeights.y + blendWeights.z);
 
-    float3 coord1 = float3(uvw.yz, (float)fsDataPerBatch.instanceBuffer[rootConstant.index].textureID * 3 + 0);
-    float3 coord2 = float3(uvw.zx, (float)fsDataPerBatch.instanceBuffer[rootConstant.index].textureID * 3 + 1);
-    float3 coord3 = float3(uvw.xy, (float)fsDataPerBatch.instanceBuffer[rootConstant.index].textureID * 3 + 2);
+    float3 coord1 = float3(uvw.yz, (float)instanceBuffer[rootConstant.index].textureID * 3 + 0);
+    float3 coord2 = float3(uvw.zx, (float)instanceBuffer[rootConstant.index].textureID * 3 + 1);
+    float3 coord3 = float3(uvw.xy, (float)instanceBuffer[rootConstant.index].textureID * 3 + 2);
 
     float3 texColor = float3(0,0,0);
-    texColor += blendWeights.x * fsData.uTex0.sample(fsData.uSampler0, coord1.xy, uint(coord1.z)).xyz;
-    texColor += blendWeights.y * fsData.uTex0.sample(fsData.uSampler0, coord2.xy, uint(coord2.z)).xyz;
-    texColor += blendWeights.z * fsData.uTex0.sample(fsData.uSampler0, coord3.xy, uint(coord3.z)).xyz;
+    texColor += blendWeights.x * uTex0.sample(uSampler0, coord1.xy, uint(coord1.z)).xyz;
+    texColor += blendWeights.y * uTex0.sample(uSampler0, coord2.xy, uint(coord2.z)).xyz;
+    texColor += blendWeights.z * uTex0.sample(uSampler0, coord3.xy, uint(coord3.z)).xyz;
 
 	float coverage = saturate(In.position.z * 4000.0f);
 

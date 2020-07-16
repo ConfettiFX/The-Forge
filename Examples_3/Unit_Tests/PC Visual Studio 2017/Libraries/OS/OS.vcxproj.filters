@@ -28,9 +28,6 @@
     <Filter Include="OS\Logging">
       <UniqueIdentifier>{e9f61f6c-4ec4-41d1-a154-710706a4da00}</UniqueIdentifier>
     </Filter>
-    <Filter Include="OS\Image">
-      <UniqueIdentifier>{4694e646-4c9f-46f5-b1e7-597d3e699776}</UniqueIdentifier>
-    </Filter>
     <Filter Include="OS\Core">
       <UniqueIdentifier>{23e89b3d-85df-4ce5-bced-b544193c7fd1}</UniqueIdentifier>
     </Filter>
@@ -73,6 +70,9 @@
     <Filter Include="Dependencies\rmem">
       <UniqueIdentifier>{b4df5063-637c-4986-968c-c129bdde13c4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Dependencies\basisu">
+      <UniqueIdentifier>{a429a440-a05a-4264-9328-6e4a39cbba91}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFileSystem.h">
@@ -86,12 +86,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IThread.h">
       <Filter>OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\Image.h">
-      <Filter>OS\Image</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\Image\ImageEnums.h">
-      <Filter>OS\Image</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ICameraController.h">
       <Filter>OS\Interfaces</Filter>
@@ -198,13 +192,13 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerHTML.h">
       <Filter>OS\Profiler</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Windows\WindowsStackTraceDump.h">
+      <Filter>OS\Windows</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsBase.cpp">
       <Filter>OS\Windows</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\Image\Image.cpp">
-      <Filter>OS\Image</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Timer.cpp">
       <Filter>OS\Core</Filter>
@@ -308,9 +302,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\MemoryTracking\MemoryTracking.cpp">
       <Filter>OS\MemoryTracking</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp">
-      <Filter>OS\Image</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystemInternal.cpp">
       <Filter>OS\FileSystem</Filter>
     </ClCompile>
@@ -352,6 +343,12 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\rmem\src\rmem_lib.cpp">
       <Filter>Dependencies\rmem</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsStackTraceDump.cpp">
+      <Filter>OS\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp">
+      <Filter>Dependencies\basisu</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

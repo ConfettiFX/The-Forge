@@ -30,8 +30,8 @@
 void loadProfilerUI(UIApp* uiApp, int32_t width, int32_t height) {}
 void unloadProfilerUI() {}
 void cmdDrawProfilerUI() {}
-void cmdDrawGpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, ProfileToken nProfileToken, const TextDrawDesc* pDrawDesc) {}
-void cmdDrawCpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, const TextDrawDesc* pDrawDesc) {}
+float2 cmdDrawGpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, ProfileToken nProfileToken, const TextDrawDesc* pDrawDesc) {}
+float2 cmdDrawCpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, const TextDrawDesc* pDrawDesc) {}
 void toggleProfilerUI() {}
 #else
 
@@ -64,7 +64,7 @@ GpuProfiler* getGpuProfiler(ProfileToken nProfileToken);
 typedef struct GpuProfileDrawDesc
 {
     float        mChildIndent = 25.0f;
-    float        mHeightOffset = 20.0f;
+    float        mHeightOffset = 5.0f;
 } GpuProfileDrawDesc;
 
 static GpuProfileDrawDesc gDefaultGpuProfileDrawDesc = {};
@@ -716,7 +716,7 @@ void profileDrawDetailedMode(Profile& S)
       float endTime = frameTime + timer.mEndTime;
 
       float2 pos = float2(startWidthPixels + startTime * msToPixels, height );
-      float2 scale = float2(Vectormath::max((endTime - startTime), 0.05f) * msToPixels, timerHeight);
+      float2 scale = float2(max((endTime - startTime), 0.05f) * msToPixels, timerHeight);
       uint32_t color = (timerInfo.nColor | 0x7D000000);
 
       // Draw the timer bar and text.
@@ -766,11 +766,11 @@ void profileUpdatePlotModeData(Profile& S, int frameNum)
       {
         float referenceTime = profileUtilReferenceTimeFromEnum(gReferenceTime);
         float fTime = profileUtilRoundFloatByPrecision(fToMs * S.Frame[timerIndex].nTicks);
-        float percentY = Vectormath::clamp(fTime / referenceTime, 0.f, 1.f);
+        float percentY = clamp(fTime / referenceTime, 0.f, 1.f);
 				float x = (float)frameNum / FRAME_HISTORY_LEN * gCurrWindowSize.x;
         if (gPlotModeData[timerLocation].mEnabled)
         {
-          gPlotModeData[timerLocation].mTimeData[frameNum] = float2(Vectormath::clamp(x, widthOffsetLeft, gCurrWindowSize.x - widthOffsetRight), timeHeightEnd - percentY * timeHeight);
+          gPlotModeData[timerLocation].mTimeData[frameNum] = float2(clamp(x, widthOffsetLeft, gCurrWindowSize.x - widthOffsetRight), timeHeightEnd - percentY * timeHeight);
         }
         else
         {
@@ -795,7 +795,7 @@ void profileDrawPlotMode(Profile& S)
 
   float referenceTime = profileUtilReferenceTimeFromEnum(gReferenceTime);
   const float baseWidthOffset = gCurrWindowSize.x * 0.02f;
-  const float timelineCount = Vectormath::min(10.f, referenceTime);
+  const float timelineCount = min(10.f, referenceTime);
   const float timeHeightStart = gCurrWindowSize.y * 0.2f;
   const float timeHeightEnd = timeHeightStart + gCurrWindowSize.y * 0.4f;
   const float timeHeight = timeHeightEnd - timeHeightStart;
@@ -1051,7 +1051,7 @@ void exitProfilerUI()
     gUnloaded = true;
 }
 
-void drawGpuProfileRecursive(Cmd* pCmd, const GpuProfiler* pGpuProfiler, const TextDrawDesc* pDrawDesc, float2& origin, const uint32_t index)
+void drawGpuProfileRecursive(Cmd* pCmd, const GpuProfiler* pGpuProfiler, const TextDrawDesc* pDrawDesc, float2& origin, const uint32_t index, float2& curTotalTxtSizePx)
 {
     GpuTimer* pRoot = &pGpuProfiler->pGpuTimerPool[index];
     ASSERT(pRoot);
@@ -1069,7 +1069,12 @@ void drawGpuProfileRecursive(Cmd* pCmd, const GpuProfiler* pGpuProfiler, const T
     pAppUIRef->pImpl->pFontStash->drawText(
         pCmd, printableString.c_str(), pos.x, pos.y, pDrawDesc->mFontID, pDrawDesc->mFontColor,
         pDrawDesc->mFontSize, pDrawDesc->mFontSpacing, pDrawDesc->mFontBlur);
-    origin.y += pGpuDrawDesc->mHeightOffset;
+    
+    float2 textSizePx = pAppUIRef->MeasureText(printableString.c_str(), *pDrawDesc);
+    origin.y += textSizePx.y + pGpuDrawDesc->mHeightOffset;
+    textSizePx.x += pGpuDrawDesc->mChildIndent * pRoot->mDepth;
+    curTotalTxtSizePx.x = max(textSizePx.x, curTotalTxtSizePx.x);
+    curTotalTxtSizePx.y += textSizePx.y + pGpuDrawDesc->mHeightOffset;
 
 	// Metal only supports gpu timers on command buffer boundaries so all timers other than root will be zero
 #ifdef METAL
@@ -1079,39 +1084,47 @@ void drawGpuProfileRecursive(Cmd* pCmd, const GpuProfiler* pGpuProfiler, const T
     {
         if (pGpuProfiler->pGpuTimerPool[i].pParent == pRoot)
         {
-            drawGpuProfileRecursive(pCmd, pGpuProfiler, pDrawDesc, origin, i);
+            drawGpuProfileRecursive(pCmd, pGpuProfiler, pDrawDesc, origin, i, curTotalTxtSizePx);           
         }
     }
 #endif
 }
 
-void cmdDrawGpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, ProfileToken nProfileToken, const TextDrawDesc* pDrawDesc)
+float2 cmdDrawGpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, ProfileToken nProfileToken, const TextDrawDesc* pDrawDesc)
 {
     GpuProfiler* pGpuProfiler = getGpuProfiler(nProfileToken);
     if (!pGpuProfiler || !pAppUIRef)
     {
-        return;
+        return float2(0.f, 0.f);
     }
-    ASSERT(pAppUIRef); // Must be initialized through loadProfilerUI
+    ASSERT(pAppUIRef); // Must be initialized through loadProfilerUI   
     const TextDrawDesc* pDesc = pDrawDesc ? pDrawDesc : &gDefaultTextDrawDesc;
     float2                    pos = screenCoordsInPx;
+    const char titleStr[] = "-----GPU Times-----";
+
     pAppUIRef->pImpl->pFontStash->drawText(
-        pCmd, "-----GPU Times-----", pos.x, pos.y, pDesc->mFontID, pDesc->mFontColor, pDesc->mFontSize,
+        pCmd, titleStr, pos.x, pos.y, pDesc->mFontID, pDesc->mFontColor, pDesc->mFontSize,
         pDesc->mFontSpacing, pDesc->mFontBlur);
-    pos.y += gDefaultGpuProfileDrawDesc.mHeightOffset;
+       
+    float2 totalTextSizePx = pAppUIRef->MeasureText(titleStr, *pDesc);
+    pos.y += totalTextSizePx.y + gDefaultGpuProfileDrawDesc.mHeightOffset;
+    drawGpuProfileRecursive(pCmd, pGpuProfiler, pDesc, pos, 0, totalTextSizePx);
 
-
-    drawGpuProfileRecursive(pCmd, pGpuProfiler, pDesc, pos, 0);
+    return totalTextSizePx;
 }
 
-void cmdDrawCpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, const TextDrawDesc* pDrawDesc)
+float2 cmdDrawCpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, const TextDrawDesc* pDrawDesc)
 {
     if (!pAppUIRef)
-        return;
+        return float2(0.f, 0.f);
 
     ASSERT(pAppUIRef); // Must be initialized through loadProfilerUI
     const TextDrawDesc* pDesc = pDrawDesc ? pDrawDesc : &gDefaultTextDrawDesc;
-    pAppUIRef->DrawText(pCmd, screenCoordsInPx, eastl::string().sprintf("CPU %f ms", getCpuAvgFrameTime()).c_str(), pDesc);
+    eastl::string txt = eastl::string().sprintf("CPU %f ms", getCpuAvgFrameTime());
+    pAppUIRef->DrawText(pCmd, screenCoordsInPx, txt.c_str(), pDesc);
+
+    float2 totalTextSizePx = pAppUIRef->MeasureText(txt.c_str(), *pDesc);
+    return totalTextSizePx;
 }
 /// Draws the top menu and draws the selected timer mode.
 void profileLoadWidgetUI(Profile& S)
@@ -1286,10 +1299,10 @@ void loadProfilerUI(UIApp* uiApp, int32_t width, int32_t height)
 
   GuiDesc guiMenuDesc = {};
   float   dpiScale = getDpiScale().x;
-  guiMenuDesc.mStartSize = vec2(140.0f, 320.0f) / dpiScale;
-  guiMenuDesc.mStartPosition = vec2(width - 300.0f * dpiScale, height * 0.5f) / dpiScale;
+
+  guiMenuDesc.mStartPosition = vec2(width - 300.0f * dpiScale, height * 0.5f);
   
-  pMenuGuiComponent = pAppUIRef->AddGuiComponent("Micro profiler", &guiMenuDesc);
+  pMenuGuiComponent = pAppUIRef->AddGuiComponent("Micro Profiler", &guiMenuDesc);
   pMenuGuiComponent->AddWidget(CheckboxWidget("Toggle Profiler", &gProfilerWidgetUIEnabled));
   pMenuGuiComponent->AddWidget(SeparatorWidget());
   ButtonWidget dumpButtonWidget("Dump Profile");

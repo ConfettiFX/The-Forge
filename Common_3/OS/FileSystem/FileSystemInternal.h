@@ -36,6 +36,14 @@ void mmgrSetExecutableName(const char* name, size_t length);
 void mmgrSetLogFileDirectory(const char* directory);
 
 // MARK: - FileSystem
+typedef enum FileSystemKind
+{
+	FSK_SYSTEM = 0,
+	FSK_ZIP,
+	FSK_RESOURCE_BUNDLE,
+
+	FSK_DEFAULT = FSK_SYSTEM
+} FileSystemKind;
 
 struct FileSystem
 {

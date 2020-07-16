@@ -41,7 +41,7 @@
 */
 static const luaL_Reg loadedlibs[] = {
   {"_G", luaopen_base},
-#if !defined(ORBIS)
+#if !defined(ORBIS) && !defined(PROSPERO)
   {LUA_LOADLIBNAME, luaopen_package},
 #endif
   {LUA_COLIBNAME, luaopen_coroutine},

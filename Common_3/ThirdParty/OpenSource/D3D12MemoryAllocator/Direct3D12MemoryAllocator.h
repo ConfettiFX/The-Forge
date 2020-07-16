@@ -24,7 +24,7 @@
 
 /** \mainpage D3D12 Memory Allocator
 
-<b>Version 2.0.0-development</b> (2020-01-27)
+<b>Version 2.0.0-development</b> (2020-05-25)
 
 Copyright (c) 2019-2020 Advanced Micro Devices, Inc. All rights reserved. \n
 License: MIT
@@ -34,17 +34,18 @@ Documentation of all members: D3D12MemAlloc.h
 \section main_table_of_contents Table of contents
 
 - <b>User guide</b>
-    - \subpage quick_start
-        - [Project setup](@ref quick_start_project_setup)
-        - [Creating resources](@ref quick_start_creating_resources)
-        - [Mapping memory](@ref quick_start_mapping_memory)
+	- \subpage quick_start
+		- [Project setup](@ref quick_start_project_setup)
+		- [Creating resources](@ref quick_start_creating_resources)
+		- [Mapping memory](@ref quick_start_mapping_memory)
+	- \subpage reserving_memory
 - \subpage configuration
   - [Custom CPU memory allocator](@ref custom_memory_allocator)
 - \subpage general_considerations
   - [Thread safety](@ref general_considerations_thread_safety)
   - [Future plans](@ref general_considerations_future_plans)
   - [Features not supported](@ref general_considerations_features_not_supported)
-		
+
 \section main_see_also See also
 
 - [Product page on GPUOpen](https://gpuopen.com/gaming-product/d3d12-memory-allocator/)
@@ -139,12 +140,12 @@ allocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
 D3D12Resource* resource;
 D3D12MA::Allocation* allocation;
 HRESULT hr = allocator->CreateResource(
-    &allocationDesc,
-    &resourceDesc,
-    D3D12_RESOURCE_STATE_COPY_DEST,
-    NULL,
-    &allocation,
-    IID_PPV_ARGS(&resource));
+	&allocationDesc,
+	&resourceDesc,
+	D3D12_RESOURCE_STATE_COPY_DEST,
+	NULL,
+	&allocation,
+	IID_PPV_ARGS(&resource));
 \endcode
 
 You need to remember both resource and allocation objects and destroy them
@@ -219,12 +220,12 @@ allocationDesc.HeapType = D3D12_HEAP_TYPE_UPLOAD;
 D3D12Resource* resource;
 D3D12MA::Allocation* allocation;
 HRESULT hr = allocator->CreateResource(
-    &allocationDesc,
-    &resourceDesc,
-    D3D12_RESOURCE_STATE_GENERIC_READ,
-    NULL,
-    &allocation,
-    IID_PPV_ARGS(&resource));
+	&allocationDesc,
+	&resourceDesc,
+	D3D12_RESOURCE_STATE_GENERIC_READ,
+	NULL,
+	&allocation,
+	IID_PPV_ARGS(&resource));
 
 void* mappedPtr;
 hr = resource->Map(0, NULL, &mappedPtr);
@@ -233,6 +234,43 @@ memcpy(mappedPtr, bufData, bufSize);
 
 resource->Unmap(0, NULL);
 \endcode
+
+
+\page reserving_memory Reserving minimum amount of memory
+
+The library automatically allocates and frees memory heaps.
+It also applies some hysteresis so that it doesn't allocate and free entire heap
+when you repeatedly create and release a single resource.
+However, if you want to make sure certain number of bytes is always allocated as heaps in a specific pool,
+you can use functions designed for this purpose:
+
+- For default heaps use D3D12MA::Allocator::SetDefaultHeapMinBytes.
+- For custom heaps use D3D12MA::Pool::SetMinBytes.
+
+Default is 0. You can change this parameter any time.
+Setting it to higher value may cause new heaps to be allocated.
+If this allocation fails, the function returns appropriate error code, but the parameter remains set to the new value.
+Setting it to lower value may cause some empty heaps to be released.
+
+You can always call D3D12MA::Allocator::SetDefaultHeapMinBytes for 3 sets of heap flags separately:
+`D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS`, `D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES`, `D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES`.
+When ResourceHeapTier = 2, so that all types of resourced are kept together,
+these 3 values as simply summed up to calculate minimum amount of bytes for default pool with certain heap type.
+Alternatively, when ResourceHeapTier = 2, you can call this function with
+`D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES` = 0. This will set a single value for the default pool and
+will override the sum of those three.
+
+Reservation of minimum number of bytes interacts correctly with
+D3D12MA::POOL_DESC::MinBlockCount and D3D12MA::POOL_DESC::MaxBlockCount.
+For example, free blocks (heaps) of a custom pool will be released only when
+their number doesn't fall below `MinBlockCount` and their sum size doesn't fall below `MinBytes`.
+
+Some restrictions apply:
+
+- Setting `MinBytes` doesn't interact with memory budget. The allocator tries
+  to create additional heaps when necessary without checking if they will exceed the budget.
+- Resources created as committed don't count into the number of bytes compared with `MinBytes` set.
+  Only placed resources are considered.
 
 
 \page configuration Configuration
@@ -255,15 +293,15 @@ allocations. Example:
 
 void* CustomAllocate(size_t Size, size_t Alignment, void* pUserData)
 {
-    void* memory = _aligned_malloc(Size, Alignment);
-    // Your extra bookkeeping here...
-    return memory;
+	void* memory = _aligned_malloc(Size, Alignment);
+	// Your extra bookkeeping here...
+	return memory;
 }
 
 void CustomFree(void* pMemory, void* pUserData)
 {
-    // Your extra bookkeeping here...
-    _aligned_free(pMemory);
+	// Your extra bookkeeping here...
+	_aligned_free(pMemory);
 }
 
 (...)
@@ -300,9 +338,7 @@ Features planned for future releases:
 
 Near future: feature parity with [Vulkan Memory Allocator](https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/), including:
 
-- Custom memory pools
 - Alternative allocation algorithms: linear allocator, buddy allocator
-- JSON dump that can be visualized on a picture
 - Support for priorities using `ID3D12Device1::SetResidencyPriority`
 
 Later:
@@ -320,19 +356,50 @@ Features deliberately excluded from the scope of this library:
   `UPLOAD`, `DEFAULT`, `READBACK`.
 - Support for reserved (tiled) resources. We don't recommend using them.
 - Support for `ID3D12Device::Evict` and `MakeResident`. We don't recommend using them.
-
+- Handling CPU memory allocation failures. When dynamically creating small C++
+  objects in CPU memory (not the GPU memory), allocation failures are not
+  handled gracefully, because that would complicate code significantly and
+  is usually not needed in desktop PC applications anyway.
+  Success of an allocation is just checked with an assert.
+- Code free of any compiler warnings - especially those that would require complicating the code
+  just to please the compiler complaining about unused parameters, variables, or expressions being
+  constant in Relese configuration, e.g. because they are only used inside an assert.
+- This is a C++ library.
+  Bindings or ports to any other programming languages are welcomed as external projects and
+  are not going to be included into this repository.
 */
 
 // Define this macro to 0 to disable usage of DXGI 1.4 (needed for IDXGIAdapter3 and query for memory budget).
 #ifndef D3D12MA_DXGI_1_4
-    #define D3D12MA_DXGI_1_4 1
+#define D3D12MA_DXGI_1_4 1
 #endif
 
 // If using this library on a platform different than Windows PC, you should
 // include D3D12-compatible header before this library on your own and define this macro.
 #ifndef D3D12MA_D3D12_HEADERS_ALREADY_INCLUDED
-    #include <d3d12.h>
-    #include <dxgi.h>
+#include <d3d12.h>
+#include <dxgi.h>
+#endif
+
+/*
+When defined to value other than 0, the library will try to use
+D3D12_SMALL_RESOURCE_PLACEMENT_ALIGNMENT or D3D12_SMALL_MSAA_RESOURCE_PLACEMENT_ALIGNMENT
+for created textures when possible, which can save memory because some small textures
+may get their alignment 4K and their size a multiply of 4K instead of 64K.
+
+#define D3D12MA_USE_SMALL_RESOURCE_PLACEMENT_ALIGNMENT 0
+	Disables small texture alignment.
+#define D3D12MA_USE_SMALL_RESOURCE_PLACEMENT_ALIGNMENT 1
+	Enables conservative algorithm that will use small alignment only for some textures
+	that are surely known to support it.
+#define D3D12MA_USE_SMALL_RESOURCE_PLACEMENT_ALIGNMENT 2
+	Enables query for small alignment to D3D12 (based on Microsoft sample) which will
+	enable small alignment for more textures, but will also generate D3D Debug Layer
+	error #721 on call to ID3D12Device::GetResourceAllocationInfo, which you should just
+	ignore.
+*/
+#ifndef D3D12MA_USE_SMALL_RESOURCE_PLACEMENT_ALIGNMENT
+#define D3D12MA_USE_SMALL_RESOURCE_PLACEMENT_ALIGNMENT 1
 #endif
 
 /// \cond INTERNAL
@@ -352,467 +419,689 @@ Features deliberately excluded from the scope of this library:
 namespace D3D12MA
 {
 
-/// \cond INTERNAL
-class AllocatorPimpl;
-class NormalBlock;
-class BlockVector;
-class JsonWriter;
-/// \endcond
-
-/// Pointer to custom callback function that allocates CPU memory.
-typedef void* (*ALLOCATE_FUNC_PTR)(size_t Size, size_t Alignment, void* pUserData);
-/**
-\brief Pointer to custom callback function that deallocates CPU memory.
-
-`pMemory = null` should be accepted and ignored.
-*/
-typedef void (*FREE_FUNC_PTR)(void* pMemory, void* pUserData);
-
-/// Custom callbacks to CPU memory allocation functions.
-struct ALLOCATION_CALLBACKS
-{
-    /// %Allocation function.
-    ALLOCATE_FUNC_PTR pAllocate;
-    /// Dellocation function.
-    FREE_FUNC_PTR pFree;
-    /// Custom data that will be passed to allocation and deallocation functions as `pUserData` parameter.
-    void* pUserData;
-};
-
-/// \brief Bit flags to be used with ALLOCATION_DESC::Flags.
-typedef enum ALLOCATION_FLAGS
-{
-    /// Zero
-    ALLOCATION_FLAG_NONE = 0,
-
-    /**
-    Set this flag if the allocation should have its own dedicated memory allocation (committed resource with implicit heap).
-    
-    Use it for special, big resources, like fullscreen textures used as render targets.
-    */
-    ALLOCATION_FLAG_COMMITTED = 0x1,
-
-    /**
-    Set this flag to only try to allocate from existing memory heaps and never create new such heap.
-
-    If new allocation cannot be placed in any of the existing heaps, allocation
-    fails with `E_OUTOFMEMORY` error.
-
-    You should not use #ALLOCATION_FLAG_COMMITTED and
-    #ALLOCATION_FLAG_NEVER_ALLOCATE at the same time. It makes no sense.
-    */
-    ALLOCATION_FLAG_NEVER_ALLOCATE = 0x2,
-
-    /** Create allocation only if additional memory required for it, if any, won't exceed
-    memory budget. Otherwise return `E_OUTOFMEMORY`.
-    */
-    ALLOCATION_FLAG_WITHIN_BUDGET = 0x4,
-} ALLOCATION_FLAGS;
-
-/// \brief Parameters of created Allocation object. To be used with Allocator::CreateResource.
-struct ALLOCATION_DESC
-{
-    /// Flags.
-    ALLOCATION_FLAGS Flags;
-    /** \brief The type of memory heap where the new allocation should be placed.
-
-    It must be one of: `D3D12_HEAP_TYPE_DEFAULT`, `D3D12_HEAP_TYPE_UPLOAD`, `D3D12_HEAP_TYPE_READBACK`.
-    */
-    D3D12_HEAP_TYPE HeapType;
-
-	// CONFFX_BEGIN - Multi GPU
-	UINT             CreationNodeMask;
-	UINT             VisibleNodeMask;
-	// CONFFX_END
-
-	// CONFFX_BEGIN - Custom heap flags - For now only supports committed resources
-	D3D12_HEAP_FLAGS HeapFlags;
-	// CONFFX_END
-};
-
-/** \brief Represents single memory allocation.
-
-It may be either implicit memory heap dedicated to a single resource or a
-specific region of a bigger heap plus unique offset.
-
-To create such object, fill structure D3D12MA::ALLOCATION_DESC and call function
-Allocator::CreateResource.
-
-The object remembers size and some other information.
-To retrieve this information, use methods of this class.
-
-The object also remembers `ID3D12Resource` and "owns" a reference to it,
-so it calls `Release()` on the resource when destroyed.
-*/
-class Allocation
-{
-public:
-    /** \brief Deletes this object.
-
-    This function must be used instead of destructor, which is private.
-    There is no reference counting involved.
-    */
-    void Release();
-
-    /** \brief Returns offset in bytes from the start of memory heap.
-
-    If the Allocation represents committed resource with implicit heap, returns 0.
-    */
-    UINT64 GetOffset() const;
-
-    /** \brief Returns size in bytes of the resource.
-
-    Works also with committed resources.
-    */
-    UINT64 GetSize() const { return m_Size; }
-
-    /** \brief Returns D3D12 resource associated with this object.
-
-    Calling this method doesn't increment resource's reference counter.
-    */
-    ID3D12Resource* GetResource() const { return m_Resource; }
-
-    /** \brief Returns memory heap that the resource is created in.
-
-    If the Allocation represents committed resource with implicit heap, returns NULL.
-    */
-    ID3D12Heap* GetHeap() const;
-
-    /** \brief Associates a name with the allocation object. This name is for use in debug diagnostics and tools.
-
-    Internal copy of the string is made, so the memory pointed by the argument can be
-    changed of freed immediately after this call.
-
-    `Name` can be null.
-    */
-    void SetName(LPCWSTR Name);
-
-    /** \brief Returns the name associated with the allocation object.
-
-    Returned string points to an internal copy.
-
-    If no name was associated with the allocation, returns null.
-    */
-    LPCWSTR GetName() const { return m_Name; }
-
-private:
-    friend class AllocatorPimpl;
-    friend class BlockVector;
-    friend class JsonWriter;
-    template<typename T> friend void D3D12MA_DELETE(const ALLOCATION_CALLBACKS&, T*);
-    template<typename T> friend class PoolAllocator;
-
-    AllocatorPimpl* m_Allocator;
-    enum Type
-    {
-        TYPE_COMMITTED,
-        TYPE_PLACED,
-        TYPE_HEAP,
-        TYPE_COUNT
-    } m_Type;
-    UINT64 m_Size;
-    ID3D12Resource* m_Resource;
-    D3D12_RESOURCE_DIMENSION m_ResourceDimension;
-    D3D12_RESOURCE_FLAGS m_ResourceFlags;
-    D3D12_TEXTURE_LAYOUT m_TextureLayout;
-    UINT m_CreationFrameIndex;
-    wchar_t* m_Name;
-
-    union
-    {
-        struct
-        {
-            D3D12_HEAP_TYPE heapType;
-        } m_Committed;
-
-        struct
-        {
-            UINT64 offset;
-            NormalBlock* block;
-        } m_Placed;
-
-        struct
-        {
-            D3D12_HEAP_TYPE heapType;
-            ID3D12Heap* heap;
-        } m_Heap;
-    };
-
-    Allocation(AllocatorPimpl* allocator, UINT64 size);
-    ~Allocation();
-    void InitCommitted(D3D12_HEAP_TYPE heapType);
-    void InitPlaced(UINT64 offset, UINT64 alignment, NormalBlock* block);
-    void InitHeap(D3D12_HEAP_TYPE heapType, ID3D12Heap* heap);
-    void SetResource(ID3D12Resource* resource, const D3D12_RESOURCE_DESC* pResourceDesc);
-    void FreeName();
-
-    D3D12MA_CLASS_NO_COPY(Allocation)
-};
-
-/// \brief Bit flags to be used with ALLOCATOR_DESC::Flags.
-typedef enum ALLOCATOR_FLAGS
-{
-    /// Zero
-    ALLOCATOR_FLAG_NONE = 0,
-
-    /**
-    Allocator and all objects created from it will not be synchronized internally,
-    so you must guarantee they are used from only one thread at a time or
-    synchronized by you.
-
-    Using this flag may increase performance because internal mutexes are not used.
-    */
-    ALLOCATOR_FLAG_SINGLETHREADED = 0x1,
-
-    /**
-    Every allocation will have its own memory block.
-    To be used for debugging purposes.
-   */
-    ALLOCATOR_FLAG_ALWAYS_COMMITTED = 0x2,
-} ALLOCATOR_FLAGS;
-
-/// \brief Parameters of created Allocator object. To be used with CreateAllocator().
-struct ALLOCATOR_DESC
-{
-    /// Flags.
-    ALLOCATOR_FLAGS Flags;
-    
-    /** Direct3D device object that the allocator should be attached to.
-
-    Allocator is doing `AddRef`/`Release` on this object.
-    */
-    ID3D12Device* pDevice;
-    
-    /** \brief Preferred size of a single `ID3D12Heap` block to be allocated.
-    
-    Set to 0 to use default, which is currently 256 MiB.
-    */
-    UINT64 PreferredBlockSize;
-    
-    /** \brief Custom CPU memory allocation callbacks. Optional.
-
-    Optional, can be null. When specified, will be used for all CPU-side memory allocations.
-    */
-    const ALLOCATION_CALLBACKS* pAllocationCallbacks;
-
-    /** DXGI Adapter object that you use for D3D12 and this allocator.
-
-    Allocator is doing `AddRef`/`Release` on this object.
-    */
-    IDXGIAdapter* pAdapter;
-};
-
-/**
-\brief Number of D3D12 memory heap types supported.
-*/
-const UINT HEAP_TYPE_COUNT = 3;
-
-/**
-\brief Calculated statistics of memory usage in entire allocator.
-*/
-struct StatInfo
-{
-    /// Number of memory blocks (heaps) allocated.
-    UINT BlockCount;
-    /// Number of D3D12MA::Allocation objects allocated.
-    UINT AllocationCount;
-    /// Number of free ranges of memory between allocations.
-    UINT UnusedRangeCount;
-    /// Total number of bytes occupied by all allocations.
-    UINT64 UsedBytes;
-    /// Total number of bytes occupied by unused ranges.
-    UINT64 UnusedBytes;
-    UINT64 AllocationSizeMin;
-    UINT64 AllocationSizeAvg;
-    UINT64 AllocationSizeMax;
-    UINT64 UnusedRangeSizeMin;
-    UINT64 UnusedRangeSizeAvg;
-    UINT64 UnusedRangeSizeMax;
-};
-
-/**
-\brief General statistics from the current state of the allocator.
-*/
-struct Stats
-{
-    /// Total statistics from all heap types.
-    StatInfo Total;
-    /**
-    One StatInfo for each type of heap located at the following indices:
-    0 - DEFAULT, 1 - UPLOAD, 2 - READBACK.
-    */
-    StatInfo HeapType[HEAP_TYPE_COUNT];
-};
-
-/** \brief Statistics of current memory usage and available budget, in bytes, for GPU or CPU memory.
-*/
-struct Budget
-{
-    /** \brief Sum size of all memory blocks allocated from particular heap type, in bytes.
-    */
-    UINT64 BlockBytes;
-
-    /** \brief Sum size of all allocations created in particular heap type, in bytes.
-
-    Always less or equal than `BlockBytes`.
-    Difference `BlockBytes - AllocationBytes` is the amount of memory allocated but unused -
-    available for new allocations or wasted due to fragmentation.
-    */
-    UINT64 AllocationBytes;
-
-    /** \brief Estimated current memory usage of the program, in bytes.
-
-    Fetched from system using `IDXGIAdapter3::QueryVideoMemoryInfo` if enabled.
-
-    It might be different than `BlockBytes` (usually higher) due to additional implicit objects
-    also occupying the memory, like swapchain, pipeline state objects, descriptor heaps, command lists, or
-    memory blocks allocated outside of this library, if any.
-    */
-    UINT64 Usage;
-
-    /** \brief Estimated amount of memory available to the program, in bytes.
-
-    Fetched from system using `IDXGIAdapter3::QueryVideoMemoryInfo` if enabled.
-
-    It might be different (most probably smaller) than memory sizes reported in `DXGI_ADAPTER_DESC` due to factors
-    external to the program, like other programs also consuming system resources.
-    Difference `Budget - Usage` is the amount of additional memory that can probably
-    be allocated without problems. Exceeding the budget may result in various problems.
-    */
-    UINT64 Budget;
-};
-
-/**
-\brief Represents main object of this library initialized for particular `ID3D12Device`.
-
-Fill structure D3D12MA::ALLOCATOR_DESC and call function CreateAllocator() to create it.
-Call method Allocator::Release to destroy it.
-
-It is recommended to create just one object of this type per `ID3D12Device` object,
-right after Direct3D 12 is initialized and keep it alive until before Direct3D device is destroyed.
-*/
-class Allocator
-{
-public:
-    /** \brief Deletes this object.
-    
-    This function must be used instead of destructor, which is private.
-    There is no reference counting involved.
-    */
-    void Release();
-    
-    /// Returns cached options retrieved from D3D12 device.
-    const D3D12_FEATURE_DATA_D3D12_OPTIONS& GetD3D12Options() const;
-
-    /** \brief Allocates memory and creates a D3D12 resource (buffer or texture). This is the main allocation function.
-
-    The function is similar to `ID3D12Device::CreateCommittedResource`, but it may
-    really call `ID3D12Device::CreatePlacedResource` to assign part of a larger,
-    existing memory heap to the new resource, which is the main purpose of this
-    whole library.
-
-    If `ppvResource` is null, you receive only `ppAllocation` object from this function.
-    It holds pointer to `ID3D12Resource` that can be queried using function D3D12::Allocation::GetResource().
-    Reference count of the resource object is 1.
-    It is automatically destroyed when you destroy the allocation object.
-
-    If 'ppvResource` is not null, you receive pointer to the resource next to allocation object.
-    Reference count of the resource object is then 2, so you need to manually `Release` it
-    along with the allocation.
-
-    \param pAllocDesc   Parameters of the allocation.
-    \param pResourceDesc   Description of created resource.
-    \param InitialResourceState   Initial resource state.
-    \param pOptimizedClearValue   Optional. Either null or optimized clear value.
-    \param[out] ppAllocation   Filled with pointer to new allocation object created.
-    \param riidResource   IID of a resource to be created. Must be `__uuidof(ID3D12Resource)`.
-    \param[out] ppvResource   Optional. If not null, filled with pointer to new resouce created.
-    */
-    HRESULT CreateResource(
-        const ALLOCATION_DESC* pAllocDesc,
-        const D3D12_RESOURCE_DESC* pResourceDesc,
-        D3D12_RESOURCE_STATES InitialResourceState,
-        const D3D12_CLEAR_VALUE *pOptimizedClearValue,
-        Allocation** ppAllocation,
-        REFIID riidResource,
-        void** ppvResource);
-
-    /** \brief Allocates memory without creating any resource placed in it.
-
-    This function is similar to `ID3D12Device::CreateHeap`, but it may really assign
-    part of a larger, existing heap to the allocation.
-
-    If ResourceHeapTier = 1, `heapFlags` must be one of these values, depending on type
-    of resources you are going to create in this memory:
-    `D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS`,
-    `D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES`,
-    `D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES`.
-    If ResourceHeapTier = 2, `heapFlags` may be `D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES`.
-
-    `pAllocInfo->SizeInBytes` must be multiply of 64KB.
-    `pAllocInfo->Alignment` must be one of the legal values as described in documentation of `D3D12_HEAP_DESC`.
-
-    If you use #ALLOCATION_FLAG_COMMITTED you will get a separate memory block -
-    a heap that always has offset 0.
-    */
-    HRESULT AllocateMemory(
-        const ALLOCATION_DESC* pAllocDesc,
-        D3D12_HEAP_FLAGS heapFlags,
-		// CONFFX_BEGIN - Linked multi gpu
-		UINT creationNodeMask,
-		UINT visibleNodeMask,
+	/// \cond INTERNAL
+	class AllocatorPimpl;
+	class PoolPimpl;
+	class NormalBlock;
+	class BlockVector;
+	class JsonWriter;
+	/// \endcond
+
+	class Pool;
+	class Allocator;
+	struct StatInfo;
+
+	/// Pointer to custom callback function that allocates CPU memory.
+	typedef void* (*ALLOCATE_FUNC_PTR)(size_t Size, size_t Alignment, void* pUserData);
+	/**
+	\brief Pointer to custom callback function that deallocates CPU memory.
+
+	`pMemory = null` should be accepted and ignored.
+	*/
+	typedef void (*FREE_FUNC_PTR)(void* pMemory, void* pUserData);
+
+	/// Custom callbacks to CPU memory allocation functions.
+	struct ALLOCATION_CALLBACKS
+	{
+		/// %Allocation function.
+		ALLOCATE_FUNC_PTR pAllocate;
+		/// Dellocation function.
+		FREE_FUNC_PTR pFree;
+		/// Custom data that will be passed to allocation and deallocation functions as `pUserData` parameter.
+		void* pUserData;
+	};
+
+	/// \brief Bit flags to be used with ALLOCATION_DESC::Flags.
+	typedef enum ALLOCATION_FLAGS
+	{
+		/// Zero
+		ALLOCATION_FLAG_NONE = 0,
+
+		/**
+		Set this flag if the allocation should have its own dedicated memory allocation (committed resource with implicit heap).
+
+		Use it for special, big resources, like fullscreen textures used as render targets.
+		*/
+		ALLOCATION_FLAG_COMMITTED = 0x1,
+
+		/**
+		Set this flag to only try to allocate from existing memory heaps and never create new such heap.
+
+		If new allocation cannot be placed in any of the existing heaps, allocation
+		fails with `E_OUTOFMEMORY` error.
+
+		You should not use D3D12MA::ALLOCATION_FLAG_COMMITTED and
+		D3D12MA::ALLOCATION_FLAG_NEVER_ALLOCATE at the same time. It makes no sense.
+		*/
+		ALLOCATION_FLAG_NEVER_ALLOCATE = 0x2,
+
+		/** Create allocation only if additional memory required for it, if any, won't exceed
+		memory budget. Otherwise return `E_OUTOFMEMORY`.
+		*/
+		ALLOCATION_FLAG_WITHIN_BUDGET = 0x4,
+	} ALLOCATION_FLAGS;
+
+	/// \brief Parameters of created D3D12MA::Allocation object. To be used with Allocator::CreateResource.
+	struct ALLOCATION_DESC
+	{
+		/// Flags.
+		ALLOCATION_FLAGS Flags;
+		/** \brief The type of memory heap where the new allocation should be placed.
+
+		It must be one of: `D3D12_HEAP_TYPE_DEFAULT`, `D3D12_HEAP_TYPE_UPLOAD`, `D3D12_HEAP_TYPE_READBACK`.
+
+		When D3D12MA::ALLOCATION_DESC::CustomPool != NULL this member is ignored.
+		*/
+		D3D12_HEAP_TYPE HeapType;
+		/** \brief Additional heap flags to be used when allocating memory.
+
+		In most cases it can be 0.
+
+		- If you use D3D12MA::Allocator::CreateResource(), you don't need to care.
+		  Necessary flag `D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS`, `D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES`,
+		  or `D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES` is added automatically.
+		- If you use D3D12MA::Allocator::AllocateMemory(), you should specify one of those `ALLOW_ONLY` flags.
+		  Except when you validate that D3D12MA::Allocator::GetD3D12Options()`.ResourceHeapTier == D3D12_RESOURCE_HEAP_TIER_1` -
+		  then you can leave it 0.
+		- You can specify additional flags if needed. Then the memory will always be allocated as
+		  separate block using `D3D12Device::CreateCommittedResource` or `CreateHeap`, not as part of an existing larget block.
+
+		When D3D12MA::ALLOCATION_DESC::CustomPool != NULL this member is ignored.
+		*/
+		D3D12_HEAP_FLAGS ExtraHeapFlags;
+		/** \brief Custom pool to place the new resource in. Optional.
+
+		When not NULL, the resource will be created inside specified custom pool.
+		It will then never be created as committed.
+		*/
+		Pool* CustomPool;
+
+		// CONFFX_BEGIN - Multi GPU
+		UINT             CreationNodeMask;
+		UINT             VisibleNodeMask;
 		// CONFFX_END
-        const D3D12_RESOURCE_ALLOCATION_INFO* pAllocInfo,
-        Allocation** ppAllocation);
+	};
 
-    /** \brief Sets the index of the current frame.
+	/** \brief Represents single memory allocation.
 
-    This function is used to set the frame index in the allocator when a new game frame begins.
-    */
-    void SetCurrentFrameIndex(UINT frameIndex);
+	It may be either implicit memory heap dedicated to a single resource or a
+	specific region of a bigger heap plus unique offset.
 
-    /** \brief Retrieves statistics from the current state of the allocator.
-    */
-    void CalculateStats(Stats* pStats);
+	To create such object, fill structure D3D12MA::ALLOCATION_DESC and call function
+	Allocator::CreateResource.
 
-    /** \brief Retrieves information about current memory budget.
+	The object remembers size and some other information.
+	To retrieve this information, use methods of this class.
 
-    \param[out] pGpuBudget Optional, can be null.
-    \param[out] pCpuBudget Optional, can be null.
+	The object also remembers `ID3D12Resource` and "owns" a reference to it,
+	so it calls `Release()` on the resource when destroyed.
+	*/
+	class Allocation
+	{
+	public:
+		/** \brief Deletes this object.
 
-    This function is called "get" not "calculate" because it is very fast, suitable to be called
-    every frame or every allocation. For more detailed statistics use CalculateStats().
+		This function must be used instead of destructor, which is private.
+		There is no reference counting involved.
+		*/
+		void Release();
 
-    Note that when using allocator from multiple threads, returned information may immediately
-    become outdated.
-    */
-    void GetBudget(Budget* pGpuBudget, Budget* pCpuBudget);
+		/** \brief Returns offset in bytes from the start of memory heap.
 
-    /// Builds and returns statistics as a string in JSON format.
-    /** @param[out] ppStatsString Must be freed using Allocator::FreeStatsString.
-    */
-    void BuildStatsString(WCHAR** ppStatsString, BOOL DetailedMap);
+		If the Allocation represents committed resource with implicit heap, returns 0.
+		*/
+		UINT64 GetOffset() const;
 
-    /// Frees memory of a string returned from Allocator::BuildStatsString.
-    void FreeStatsString(WCHAR* pStatsString);
+		/** \brief Returns size in bytes of the resource.
 
-private:
-    friend HRESULT CreateAllocator(const ALLOCATOR_DESC*, Allocator**);
-    template<typename T> friend void D3D12MA_DELETE(const ALLOCATION_CALLBACKS&, T*);
+		Works also with committed resources.
+		*/
+		UINT64 GetSize() const { return m_Size; }
 
-    Allocator(const ALLOCATION_CALLBACKS& allocationCallbacks, const ALLOCATOR_DESC& desc);
-    ~Allocator();
-    
-    AllocatorPimpl* m_Pimpl;
-    
-    D3D12MA_CLASS_NO_COPY(Allocator)
-};
+		/** \brief Returns D3D12 resource associated with this object.
 
-/** \brief Creates new main Allocator object and returns it through `ppAllocator`.
+		Calling this method doesn't increment resource's reference counter.
+		*/
+		ID3D12Resource* GetResource() const { return m_Resource; }
 
-You normally only need to call it once and keep a single Allocator object for your `ID3D12Device`.
-*/
-HRESULT CreateAllocator(const ALLOCATOR_DESC* pDesc, Allocator** ppAllocator);
+		/** \brief Returns memory heap that the resource is created in.
+
+		If the Allocation represents committed resource with implicit heap, returns NULL.
+		*/
+		ID3D12Heap* GetHeap() const;
+
+		/** \brief Associates a name with the allocation object. This name is for use in debug diagnostics and tools.
+
+		Internal copy of the string is made, so the memory pointed by the argument can be
+		changed of freed immediately after this call.
+
+		`Name` can be null.
+		*/
+		void SetName(LPCWSTR Name);
+
+		/** \brief Returns the name associated with the allocation object.
+
+		Returned string points to an internal copy.
+
+		If no name was associated with the allocation, returns null.
+		*/
+		LPCWSTR GetName() const { return m_Name; }
+
+		/** \brief Returns `TRUE` if the memory of the allocation was filled with zeros when the allocation was created.
+
+		Returns `TRUE` only if the allocator is sure that the entire memory where the
+		allocation was created was filled with zeros at the moment the allocation was made.
+
+		Returns `FALSE` if the memory could potentially contain garbage data.
+		If it's a render-target or depth-stencil texture, it then needs proper
+		initialization with `ClearRenderTargetView`, `ClearDepthStencilView`, `DiscardResource`,
+		or a copy operation, as described on page:
+		[ID3D12Device::CreatePlacedResource method - Notes on the required resource initialization](https://docs.microsoft.com/en-us/windows/win32/api/d3d12/nf-d3d12-id3d12device-createplacedresource#notes-on-the-required-resource-initialization).
+		Please note that rendering a fullscreen triangle or quad to the texture as
+		a render target is not a proper way of initialization!
+
+		See also articles:
+		["Coming to DirectX 12: More control over memory allocation"](https://devblogs.microsoft.com/directx/coming-to-directx-12-more-control-over-memory-allocation/),
+		["Initializing DX12 Textures After Allocation and Aliasing"](https://asawicki.info/news_1724_initializing_dx12_textures_after_allocation_and_aliasing).
+		*/
+		BOOL WasZeroInitialized() const { return m_PackedData.WasZeroInitialized(); }
+
+	private:
+		friend class AllocatorPimpl;
+		friend class BlockVector;
+		friend class JsonWriter;
+		template<typename T> friend void D3D12MA_DELETE(const ALLOCATION_CALLBACKS&, T*);
+		template<typename T> friend class PoolAllocator;
+
+		enum Type
+		{
+			TYPE_COMMITTED,
+			TYPE_PLACED,
+			TYPE_HEAP,
+			TYPE_COUNT
+		};
+
+		AllocatorPimpl* m_Allocator;
+		UINT64 m_Size;
+		ID3D12Resource* m_Resource;
+		UINT m_CreationFrameIndex;
+		wchar_t* m_Name;
+
+		union
+		{
+			struct
+			{
+				D3D12_HEAP_TYPE heapType;
+			} m_Committed;
+
+			struct
+			{
+				UINT64 offset;
+				NormalBlock* block;
+			} m_Placed;
+
+			struct
+			{
+				D3D12_HEAP_TYPE heapType;
+				ID3D12Heap* heap;
+			} m_Heap;
+		};
+
+		struct PackedData
+		{
+		public:
+			PackedData() :
+				m_Type(0), m_ResourceDimension(0), m_ResourceFlags(0), m_TextureLayout(0), m_WasZeroInitialized(0) { }
+
+			Type GetType() const { return (Type)m_Type; }
+			D3D12_RESOURCE_DIMENSION GetResourceDimension() const { return (D3D12_RESOURCE_DIMENSION)m_ResourceDimension; }
+			D3D12_RESOURCE_FLAGS GetResourceFlags() const { return (D3D12_RESOURCE_FLAGS)m_ResourceFlags; }
+			D3D12_TEXTURE_LAYOUT GetTextureLayout() const { return (D3D12_TEXTURE_LAYOUT)m_TextureLayout; }
+			BOOL WasZeroInitialized() const { return (BOOL)m_WasZeroInitialized; }
+
+			void SetType(Type type);
+			void SetResourceDimension(D3D12_RESOURCE_DIMENSION resourceDimension);
+			void SetResourceFlags(D3D12_RESOURCE_FLAGS resourceFlags);
+			void SetTextureLayout(D3D12_TEXTURE_LAYOUT textureLayout);
+			void SetWasZeroInitialized(BOOL wasZeroInitialized) { m_WasZeroInitialized = wasZeroInitialized ? 1 : 0; }
+
+		private:
+			UINT m_Type : 2;               // enum Type
+			UINT m_ResourceDimension : 3;  // enum D3D12_RESOURCE_DIMENSION
+			UINT m_ResourceFlags : 24;     // flags D3D12_RESOURCE_FLAGS
+			UINT m_TextureLayout : 9;      // enum D3D12_TEXTURE_LAYOUT
+			UINT m_WasZeroInitialized : 1; // BOOL
+		} m_PackedData;
+
+		Allocation(AllocatorPimpl* allocator, UINT64 size, BOOL wasZeroInitialized);
+		~Allocation();
+		void InitCommitted(D3D12_HEAP_TYPE heapType);
+		void InitPlaced(UINT64 offset, UINT64 alignment, NormalBlock* block);
+		void InitHeap(D3D12_HEAP_TYPE heapType, ID3D12Heap* heap);
+		void SetResource(ID3D12Resource* resource, const D3D12_RESOURCE_DESC* pResourceDesc);
+		void FreeName();
+
+		D3D12MA_CLASS_NO_COPY(Allocation)
+	};
+
+	/// \brief Parameters of created D3D12MA::Pool object. To be used with D3D12MA::Allocator::CreatePool.
+	struct POOL_DESC
+	{
+		/** \brief The type of memory heap where allocations of this pool should be placed.
+
+		It must be one of: `D3D12_HEAP_TYPE_DEFAULT`, `D3D12_HEAP_TYPE_UPLOAD`, `D3D12_HEAP_TYPE_READBACK`.
+		*/
+		D3D12_HEAP_TYPE HeapType;
+		/** \brief Heap flags to be used when allocating heaps of this pool.
+
+		It should contain one of these values, depending on type of resources you are going to create in this heap:
+		`D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS`,
+		`D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES`,
+		`D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES`.
+		Except if ResourceHeapTier = 2, then it may be `D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES` = 0.
+
+		You can specify additional flags if needed.
+		*/
+		D3D12_HEAP_FLAGS HeapFlags;
+		/** \brief Size of a single heap (memory block) to be allocated as part of this pool, in bytes. Optional.
+
+		Specify nonzero to set explicit, constant size of memory blocks used by this pool.
+		Leave 0 to use default and let the library manage block sizes automatically.
+		Then sizes of particular blocks may vary.
+		*/
+		UINT64 BlockSize;
+		/** \brief Minimum number of heaps (memory blocks) to be always allocated in this pool, even if they stay empty. Optional.
+
+		Set to 0 to have no preallocated blocks and allow the pool be completely empty.
+		*/
+		UINT MinBlockCount;
+		/** \brief Maximum number of heaps (memory blocks) that can be allocated in this pool. Optional.
+
+		Set to 0 to use default, which is `UINT64_MAX`, which means no limit.
+
+		Set to same value as D3D12MA::POOL_DESC::MinBlockCount to have fixed amount of memory allocated
+		throughout whole lifetime of this pool.
+		*/
+		UINT MaxBlockCount;
+	};
+
+	/** \brief Custom memory pool
+
+	Represents a separate set of heaps (memory blocks) that can be used to create
+	D3D12MA::Allocation-s and resources in it. Usually there is no need to create custom
+	pools - creating resources in default pool is sufficient.
+
+	To create custom pool, fill D3D12MA::POOL_DESC and call D3D12MA::Allocator::CreatePool.
+	*/
+	class Pool
+	{
+	public:
+		/** \brief Deletes pool object, frees D3D12 heaps (memory blocks) managed by it. Allocations and resources must already be released!
+
+		It doesn't delete allocations and resources created in this pool. They must be all
+		released before calling this function!
+		*/
+		void Release();
+
+		/** \brief Returns copy of parameters of the pool.
+
+		These are the same parameters as passed to D3D12MA::Allocator::CreatePool.
+		*/
+		POOL_DESC GetDesc() const;
+
+		/** \brief Sets the minimum number of bytes that should always be allocated (reserved) in this pool.
+
+		See also: \subpage reserving_memory.
+		*/
+		HRESULT SetMinBytes(UINT64 minBytes);
+
+		/** \brief Retrieves statistics from the current state of this pool.
+		*/
+		void CalculateStats(StatInfo* pStats);
+
+		/** \brief Associates a name with the pool. This name is for use in debug diagnostics and tools.
+
+		Internal copy of the string is made, so the memory pointed by the argument can be
+		changed of freed immediately after this call.
+
+		`Name` can be NULL.
+		*/
+		void SetName(LPCWSTR Name);
+
+		/** \brief Returns the name associated with the pool object.
+
+		Returned string points to an internal copy.
+
+		If no name was associated with the allocation, returns NULL.
+		*/
+		LPCWSTR GetName() const;
+
+	private:
+		friend class Allocator;
+		friend class AllocatorPimpl;
+		template<typename T> friend void D3D12MA_DELETE(const ALLOCATION_CALLBACKS&, T*);
+
+		PoolPimpl* m_Pimpl;
+
+		Pool(Allocator* allocator, const POOL_DESC &desc);
+		~Pool();
+
+		D3D12MA_CLASS_NO_COPY(Pool)
+	};
+
+	/// \brief Bit flags to be used with ALLOCATOR_DESC::Flags.
+	typedef enum ALLOCATOR_FLAGS
+	{
+		/// Zero
+		ALLOCATOR_FLAG_NONE = 0,
+
+		/**
+		Allocator and all objects created from it will not be synchronized internally,
+		so you must guarantee they are used from only one thread at a time or
+		synchronized by you.
+
+		Using this flag may increase performance because internal mutexes are not used.
+		*/
+		ALLOCATOR_FLAG_SINGLETHREADED = 0x1,
+
+		/**
+		Every allocation will have its own memory block.
+		To be used for debugging purposes.
+	   */
+		ALLOCATOR_FLAG_ALWAYS_COMMITTED = 0x2,
+	} ALLOCATOR_FLAGS;
+
+	/// \brief Parameters of created Allocator object. To be used with CreateAllocator().
+	struct ALLOCATOR_DESC
+	{
+		/// Flags.
+		ALLOCATOR_FLAGS Flags;
+
+		/** Direct3D device object that the allocator should be attached to.
+
+		Allocator is doing `AddRef`/`Release` on this object.
+		*/
+		ID3D12Device* pDevice;
+
+		/** \brief Preferred size of a single `ID3D12Heap` block to be allocated.
+
+		Set to 0 to use default, which is currently 256 MiB.
+		*/
+		UINT64 PreferredBlockSize;
+
+		/** \brief Custom CPU memory allocation callbacks. Optional.
+
+		Optional, can be null. When specified, will be used for all CPU-side memory allocations.
+		*/
+		const ALLOCATION_CALLBACKS* pAllocationCallbacks;
+
+		/** DXGI Adapter object that you use for D3D12 and this allocator.
+
+		Allocator is doing `AddRef`/`Release` on this object.
+		*/
+		IDXGIAdapter* pAdapter;
+	};
+
+	/**
+	\brief Number of D3D12 memory heap types supported.
+	*/
+	const UINT HEAP_TYPE_COUNT = 3;
+
+	/**
+	\brief Calculated statistics of memory usage in entire allocator.
+	*/
+	struct StatInfo
+	{
+		/// Number of memory blocks (heaps) allocated.
+		UINT BlockCount;
+		/// Number of D3D12MA::Allocation objects allocated.
+		UINT AllocationCount;
+		/// Number of free ranges of memory between allocations.
+		UINT UnusedRangeCount;
+		/// Total number of bytes occupied by all allocations.
+		UINT64 UsedBytes;
+		/// Total number of bytes occupied by unused ranges.
+		UINT64 UnusedBytes;
+		UINT64 AllocationSizeMin;
+		UINT64 AllocationSizeAvg;
+		UINT64 AllocationSizeMax;
+		UINT64 UnusedRangeSizeMin;
+		UINT64 UnusedRangeSizeAvg;
+		UINT64 UnusedRangeSizeMax;
+	};
+
+	/**
+	\brief General statistics from the current state of the allocator.
+	*/
+	struct Stats
+	{
+		/// Total statistics from all heap types.
+		StatInfo Total;
+		/**
+		One StatInfo for each type of heap located at the following indices:
+		0 - DEFAULT, 1 - UPLOAD, 2 - READBACK.
+		*/
+		StatInfo HeapType[HEAP_TYPE_COUNT];
+	};
+
+	/** \brief Statistics of current memory usage and available budget, in bytes, for GPU or CPU memory.
+	*/
+	struct Budget
+	{
+		/** \brief Sum size of all memory blocks allocated from particular heap type, in bytes.
+		*/
+		UINT64 BlockBytes;
+
+		/** \brief Sum size of all allocations created in particular heap type, in bytes.
+
+		Always less or equal than `BlockBytes`.
+		Difference `BlockBytes - AllocationBytes` is the amount of memory allocated but unused -
+		available for new allocations or wasted due to fragmentation.
+		*/
+		UINT64 AllocationBytes;
+
+		/** \brief Estimated current memory usage of the program, in bytes.
+
+		Fetched from system using `IDXGIAdapter3::QueryVideoMemoryInfo` if enabled.
+
+		It might be different than `BlockBytes` (usually higher) due to additional implicit objects
+		also occupying the memory, like swapchain, pipeline state objects, descriptor heaps, command lists, or
+		memory blocks allocated outside of this library, if any.
+		*/
+		UINT64 UsageBytes;
+
+		/** \brief Estimated amount of memory available to the program, in bytes.
+
+		Fetched from system using `IDXGIAdapter3::QueryVideoMemoryInfo` if enabled.
+
+		It might be different (most probably smaller) than memory sizes reported in `DXGI_ADAPTER_DESC` due to factors
+		external to the program, like other programs also consuming system resources.
+		Difference `BudgetBytes - UsageBytes` is the amount of additional memory that can probably
+		be allocated without problems. Exceeding the budget may result in various problems.
+		*/
+		UINT64 BudgetBytes;
+	};
+
+	/**
+	\brief Represents main object of this library initialized for particular `ID3D12Device`.
+
+	Fill structure D3D12MA::ALLOCATOR_DESC and call function CreateAllocator() to create it.
+	Call method Allocator::Release to destroy it.
+
+	It is recommended to create just one object of this type per `ID3D12Device` object,
+	right after Direct3D 12 is initialized and keep it alive until before Direct3D device is destroyed.
+	*/
+	class Allocator
+	{
+	public:
+		/** \brief Deletes this object.
+
+		This function must be used instead of destructor, which is private.
+		There is no reference counting involved.
+		*/
+		void Release();
+
+		/// Returns cached options retrieved from D3D12 device.
+		const D3D12_FEATURE_DATA_D3D12_OPTIONS& GetD3D12Options() const;
+
+		/** \brief Allocates memory and creates a D3D12 resource (buffer or texture). This is the main allocation function.
+
+		The function is similar to `ID3D12Device::CreateCommittedResource`, but it may
+		really call `ID3D12Device::CreatePlacedResource` to assign part of a larger,
+		existing memory heap to the new resource, which is the main purpose of this
+		whole library.
+
+		If `ppvResource` is null, you receive only `ppAllocation` object from this function.
+		It holds pointer to `ID3D12Resource` that can be queried using function D3D12::Allocation::GetResource().
+		Reference count of the resource object is 1.
+		It is automatically destroyed when you destroy the allocation object.
+
+		If 'ppvResource` is not null, you receive pointer to the resource next to allocation object.
+		Reference count of the resource object is then 2, so you need to manually `Release` it
+		along with the allocation.
+
+		\param pAllocDesc   Parameters of the allocation.
+		\param pResourceDesc   Description of created resource.
+		\param InitialResourceState   Initial resource state.
+		\param pOptimizedClearValue   Optional. Either null or optimized clear value.
+		\param[out] ppAllocation   Filled with pointer to new allocation object created.
+		\param riidResource   IID of a resource to be created. Must be `__uuidof(ID3D12Resource)`.
+		\param[out] ppvResource   Optional. If not null, filled with pointer to new resouce created.
+		*/
+		HRESULT CreateResource(
+			const ALLOCATION_DESC* pAllocDesc,
+			const D3D12_RESOURCE_DESC* pResourceDesc,
+			D3D12_RESOURCE_STATES InitialResourceState,
+			const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+			Allocation** ppAllocation,
+			REFIID riidResource,
+			void** ppvResource);
+
+		/** \brief Allocates memory without creating any resource placed in it.
+
+		This function is similar to `ID3D12Device::CreateHeap`, but it may really assign
+		part of a larger, existing heap to the allocation.
+
+		`pAllocDesc->heapFlags` should contain one of these values, depending on type of resources you are going to create in this memory:
+		`D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS`,
+		`D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES`,
+		`D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES`.
+		Except if you validate that ResourceHeapTier = 2 - then `heapFlags`
+		may be `D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES` = 0.
+		Additional flags in `heapFlags` are allowed as well.
+
+		`pAllocInfo->SizeInBytes` must be multiply of 64KB.
+		`pAllocInfo->Alignment` must be one of the legal values as described in documentation of `D3D12_HEAP_DESC`.
+
+		If you use D3D12MA::ALLOCATION_FLAG_COMMITTED you will get a separate memory block -
+		a heap that always has offset 0.
+		*/
+		HRESULT AllocateMemory(
+			const ALLOCATION_DESC* pAllocDesc,
+			const D3D12_RESOURCE_ALLOCATION_INFO* pAllocInfo,
+			Allocation** ppAllocation);
+
+		/** \brief Creates a new resource in place of an existing allocation. This is useful for memory aliasing.
+
+		\param pAllocation Existing allocation indicating the memory where the new resource should be created.
+			It can be created using D3D12MA::Allocator::CreateResource and already have a resource bound to it,
+			or can be a raw memory allocated with D3D12MA::Allocator::AllocateMemory.
+			It must not be created as committed so that `ID3D12Heap` is available and not implicit.
+		\param AllocationLocalOffset Additional offset in bytes to be applied when allocating the resource.
+			Local from the start of `pAllocation`, not the beginning of the whole `ID3D12Heap`!
+			If the new resource should start from the beginning of the `pAllocation` it should be 0.
+		\param pResourceDesc Description of the new resource to be created.
+		\param InitialResourceState
+		\param pOptimizedClearValue
+		\param riidResource
+		\param[out] ppvResource Returns pointer to the new resource.
+			The resource is not bound with `pAllocation`.
+			This pointer must not be null - you must get the resource pointer and `Release` it when no longer needed.
+
+		Memory requirements of the new resource are checked for validation.
+		If its size exceeds the end of `pAllocation` or required alignment is not fulfilled
+		considering `pAllocation->GetOffset() + AllocationLocalOffset`, the function
+		returns `E_INVALIDARG`.
+		*/
+		HRESULT CreateAliasingResource(
+			Allocation* pAllocation,
+			UINT64 AllocationLocalOffset,
+			const D3D12_RESOURCE_DESC* pResourceDesc,
+			D3D12_RESOURCE_STATES InitialResourceState,
+			const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+			REFIID riidResource,
+			void** ppvResource);
+
+		/** \brief Creates custom pool.
+		*/
+		HRESULT CreatePool(
+			const POOL_DESC* pPoolDesc,
+			Pool** ppPool);
+
+		/** \brief Sets the minimum number of bytes that should always be allocated (reserved) in a specific default pool.
+
+		\param heapType Must be one of: `D3D12_HEAP_TYPE_DEFAULT`, `D3D12_HEAP_TYPE_UPLOAD`, `D3D12_HEAP_TYPE_READBACK`.
+		\param heapFlags Must be one of: `D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS`, `D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES`,
+			`D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES`. If ResourceHeapTier = 2, it can also be `D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES`.
+		\param minBytes Minimum number of bytes to keep allocated.
+
+		See also: \subpage reserving_memory.
+		*/
+		HRESULT SetDefaultHeapMinBytes(
+			D3D12_HEAP_TYPE heapType,
+			D3D12_HEAP_FLAGS heapFlags,
+			UINT64 minBytes);
+
+		/** \brief Sets the index of the current frame.
+
+		This function is used to set the frame index in the allocator when a new game frame begins.
+		*/
+		void SetCurrentFrameIndex(UINT frameIndex);
+
+		/** \brief Retrieves statistics from the current state of the allocator.
+		*/
+		void CalculateStats(Stats* pStats);
+
+		/** \brief Retrieves information about current memory budget.
+
+		\param[out] pGpuBudget Optional, can be null.
+		\param[out] pCpuBudget Optional, can be null.
+
+		This function is called "get" not "calculate" because it is very fast, suitable to be called
+		every frame or every allocation. For more detailed statistics use CalculateStats().
+
+		Note that when using allocator from multiple threads, returned information may immediately
+		become outdated.
+		*/
+		void GetBudget(Budget* pGpuBudget, Budget* pCpuBudget);
+
+		/// Builds and returns statistics as a string in JSON format.
+		/** @param[out] ppStatsString Must be freed using Allocator::FreeStatsString.
+		@param DetailedMap `TRUE` to include full list of allocations (can make the string quite long), `FALSE` to only return statistics.
+		*/
+		void BuildStatsString(WCHAR** ppStatsString, BOOL DetailedMap);
+
+		/// Frees memory of a string returned from Allocator::BuildStatsString.
+		void FreeStatsString(WCHAR* pStatsString);
+
+	private:
+		friend HRESULT CreateAllocator(const ALLOCATOR_DESC*, Allocator**);
+		template<typename T> friend void D3D12MA_DELETE(const ALLOCATION_CALLBACKS&, T*);
+		friend class Pool;
+
+		Allocator(const ALLOCATION_CALLBACKS& allocationCallbacks, const ALLOCATOR_DESC& desc);
+		~Allocator();
+
+		AllocatorPimpl* m_Pimpl;
+
+		D3D12MA_CLASS_NO_COPY(Allocator)
+	};
+
+	/** \brief Creates new main Allocator object and returns it through `ppAllocator`.
+
+	You normally only need to call it once and keep a single Allocator object for your `ID3D12Device`.
+	*/
+	HRESULT CreateAllocator(const ALLOCATOR_DESC* pDesc, Allocator** ppAllocator);
 
 } // namespace D3D12MA
 
@@ -822,44 +1111,42 @@ DEFINE_ENUM_FLAG_OPERATORS(D3D12MA::ALLOCATOR_FLAGS);
 /// \endcond
 
 #ifdef D3D12MA_IMPLEMENTATION
+//
+// Copyright (c) 2019-2020 Advanced Micro Devices, Inc. All rights reserved.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+//
+
+#ifndef D3D12MA_D3D12_HEADERS_ALREADY_INCLUDED
+#include <dxgi.h>
+#if D3D12MA_DXGI_1_4
+#include <dxgi1_4.h>
+#endif
+#endif
+
+#include <mutex>
+#include <atomic>
 #include <algorithm>
 #include <utility>
 #include <cstdlib>
+#include <malloc.h> // for _aligned_malloc, _aligned_free
 
-// CONFFX_BEGIN - Atomics
-#include "../../../OS/Core/Atomics.h"
-struct Atomic32
-{
-	Atomic32(const uint32_t val = 0) { tfrg_atomic32_store_relaxed(&mValue, val); }
-	uint32_t load() const { return tfrg_atomic32_load_relaxed(&mValue); }
-	uint32_t store(const uint32_t val) const { return tfrg_atomic32_store_relaxed(&mValue, val); }
-	uint32_t operator=(const uint32_t val) { return tfrg_atomic32_store_relaxed(&mValue, val); }
-	void operator+=(const uint32_t val) { tfrg_atomic32_add_relaxed(&mValue, val); }
-	void operator-=(const uint32_t val) { tfrg_atomic32_add_relaxed(&mValue, -(int32_t)val); }
-	void operator++() { tfrg_atomic32_add_relaxed(&mValue, 1); }
-	uint32_t operator+(const uint32_t val) const { return load() + val; }
-	uint32_t operator+(const Atomic32& val) const { return load() + val.load(); }
-	operator UINT() const { return load(); }
-
-	tfrg_atomic32_t mValue;
-};
-
-struct Atomic64
-{
-	Atomic64(uint64_t val = 0) { tfrg_atomic64_store_relaxed(&mValue, val); }
-	uint64_t load() const { return tfrg_atomic64_load_relaxed(&mValue); }
-	uint64_t store(const uint64_t val) const { return tfrg_atomic64_store_relaxed(&mValue, val); }
-	uint64_t operator=(const uint64_t val) { return tfrg_atomic64_store_relaxed(&mValue, val); }
-	void operator+=(const uint64_t val) { tfrg_atomic64_add_relaxed(&mValue, val); }
-	void operator-=(const uint64_t val) { tfrg_atomic64_add_relaxed(&mValue, -(int32_t)val); }
-	void operator++() { tfrg_atomic64_add_relaxed(&mValue, 1); }
-	uint64_t operator+(const uint64_t val) { return load() + val; }
-	uint64_t operator+(const Atomic64& val) { return load() + val.load(); }
-	operator UINT64() const { return load(); }
-
-	tfrg_atomic64_t mValue;
-};
-// CONFFX_END
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -936,7 +1223,9 @@ namespace D3D12MA
 
 	static void* Malloc(const ALLOCATION_CALLBACKS& allocs, size_t size, size_t alignment)
 	{
-		return (*allocs.pAllocate)(size, alignment, allocs.pUserData);
+		void* const result = (*allocs.pAllocate)(size, alignment, allocs.pUserData);
+		D3D12MA_ASSERT(result);
+		return result;
 	}
 	static void Free(const ALLOCATION_CALLBACKS& allocs, void* memory)
 	{
@@ -958,7 +1247,7 @@ namespace D3D12MA
 #define D3D12MA_NEW_ARRAY(allocs, type, count) new(D3D12MA::AllocateArray<type>((allocs), (count)))(type)
 
 	template<typename T>
-	static void D3D12MA_DELETE(const ALLOCATION_CALLBACKS& allocs, T* memory)
+	void D3D12MA_DELETE(const ALLOCATION_CALLBACKS& allocs, T* memory)
 	{
 		if (memory)
 		{
@@ -967,7 +1256,7 @@ namespace D3D12MA
 		}
 	}
 	template<typename T>
-	static void D3D12MA_DELETE_ARRAY(const ALLOCATION_CALLBACKS& allocs, T* memory, size_t count)
+	void D3D12MA_DELETE_ARRAY(const ALLOCATION_CALLBACKS& allocs, T* memory, size_t count)
 	{
 		if (memory)
 		{
@@ -1004,6 +1293,8 @@ namespace D3D12MA
         return false; \
     } } while(false)
 
+	const UINT NEW_BLOCK_SIZE_SHIFT_MAX = 3;
+
 	template<typename T>
 	static inline T D3D12MA_MIN(const T& a, const T& b)
 	{
@@ -1021,17 +1312,6 @@ namespace D3D12MA
 		T tmp = a; a = b; b = tmp;
 	}
 
-	class Mutex
-	{
-	public:
-		bool Init() { return m_Mutex.Init(); }
-		void Destroy() { m_Mutex.Destroy(); }
-		void Lock() { m_Mutex.Acquire(); }
-		void Unlock() { m_Mutex.Release(); }
-	private:
-		::Mutex m_Mutex;
-	};
-#define D3D12MA_MUTEX Mutex
 #ifndef D3D12MA_MUTEX
 	class Mutex
 	{
@@ -1067,11 +1347,11 @@ namespace D3D12MA
 	If providing your own implementation, you need to implement a subset of std::atomic.
 	*/
 #ifndef D3D12MA_ATOMIC_UINT32
-#define D3D12MA_ATOMIC_UINT32 Atomic32
+#define D3D12MA_ATOMIC_UINT32 std::atomic<UINT>
 #endif
 
 #ifndef D3D12MA_ATOMIC_UINT64
-#define D3D12MA_ATOMIC_UINT64 Atomic64
+#define D3D12MA_ATOMIC_UINT64 std::atomic<UINT64>
 #endif
 
 	// Aligns given value up to nearest multiply of align value. For example: AlignUp(11, 8) = 16.
@@ -1094,6 +1374,11 @@ namespace D3D12MA
 	static inline T RoundDiv(T x, T y)
 	{
 		return (x + (y / (T)2)) / y;
+	}
+	template <typename T>
+	static inline T DivideRoudingUp(T x, T y)
+	{
+		return (x + y - 1) / y;
 	}
 
 	/*
@@ -1361,6 +1646,207 @@ namespace D3D12MA
 			(flags & denyAllTexturesFlags) != denyAllTexturesFlags;
 		return canContainAnyTextures ?
 			D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT : D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+	}
+
+	static bool IsFormatCompressed(DXGI_FORMAT format)
+	{
+		switch (format)
+		{
+		case DXGI_FORMAT_BC1_TYPELESS:
+		case DXGI_FORMAT_BC1_UNORM:
+		case DXGI_FORMAT_BC1_UNORM_SRGB:
+		case DXGI_FORMAT_BC2_TYPELESS:
+		case DXGI_FORMAT_BC2_UNORM:
+		case DXGI_FORMAT_BC2_UNORM_SRGB:
+		case DXGI_FORMAT_BC3_TYPELESS:
+		case DXGI_FORMAT_BC3_UNORM:
+		case DXGI_FORMAT_BC3_UNORM_SRGB:
+		case DXGI_FORMAT_BC4_TYPELESS:
+		case DXGI_FORMAT_BC4_UNORM:
+		case DXGI_FORMAT_BC4_SNORM:
+		case DXGI_FORMAT_BC5_TYPELESS:
+		case DXGI_FORMAT_BC5_UNORM:
+		case DXGI_FORMAT_BC5_SNORM:
+		case DXGI_FORMAT_BC6H_TYPELESS:
+		case DXGI_FORMAT_BC6H_UF16:
+		case DXGI_FORMAT_BC6H_SF16:
+		case DXGI_FORMAT_BC7_TYPELESS:
+		case DXGI_FORMAT_BC7_UNORM:
+		case DXGI_FORMAT_BC7_UNORM_SRGB:
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	// Only some formats are supported. For others it returns 0.
+	static UINT GetBitsPerPixel(DXGI_FORMAT format)
+	{
+		switch (format)
+		{
+		case DXGI_FORMAT_R32G32B32A32_TYPELESS:
+		case DXGI_FORMAT_R32G32B32A32_FLOAT:
+		case DXGI_FORMAT_R32G32B32A32_UINT:
+		case DXGI_FORMAT_R32G32B32A32_SINT:
+			return 128;
+		case DXGI_FORMAT_R32G32B32_TYPELESS:
+		case DXGI_FORMAT_R32G32B32_FLOAT:
+		case DXGI_FORMAT_R32G32B32_UINT:
+		case DXGI_FORMAT_R32G32B32_SINT:
+			return 96;
+		case DXGI_FORMAT_R16G16B16A16_TYPELESS:
+		case DXGI_FORMAT_R16G16B16A16_FLOAT:
+		case DXGI_FORMAT_R16G16B16A16_UNORM:
+		case DXGI_FORMAT_R16G16B16A16_UINT:
+		case DXGI_FORMAT_R16G16B16A16_SNORM:
+		case DXGI_FORMAT_R16G16B16A16_SINT:
+			return 64;
+		case DXGI_FORMAT_R32G32_TYPELESS:
+		case DXGI_FORMAT_R32G32_FLOAT:
+		case DXGI_FORMAT_R32G32_UINT:
+		case DXGI_FORMAT_R32G32_SINT:
+			return 64;
+		case DXGI_FORMAT_R32G8X24_TYPELESS:
+		case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+		case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS:
+		case DXGI_FORMAT_X32_TYPELESS_G8X24_UINT:
+			return 64;
+		case DXGI_FORMAT_R10G10B10A2_TYPELESS:
+		case DXGI_FORMAT_R10G10B10A2_UNORM:
+		case DXGI_FORMAT_R10G10B10A2_UINT:
+		case DXGI_FORMAT_R11G11B10_FLOAT:
+			return 32;
+		case DXGI_FORMAT_R8G8B8A8_TYPELESS:
+		case DXGI_FORMAT_R8G8B8A8_UNORM:
+		case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
+		case DXGI_FORMAT_R8G8B8A8_UINT:
+		case DXGI_FORMAT_R8G8B8A8_SNORM:
+		case DXGI_FORMAT_R8G8B8A8_SINT:
+			return 32;
+		case DXGI_FORMAT_R16G16_TYPELESS:
+		case DXGI_FORMAT_R16G16_FLOAT:
+		case DXGI_FORMAT_R16G16_UNORM:
+		case DXGI_FORMAT_R16G16_UINT:
+		case DXGI_FORMAT_R16G16_SNORM:
+		case DXGI_FORMAT_R16G16_SINT:
+			return 32;
+		case DXGI_FORMAT_R32_TYPELESS:
+		case DXGI_FORMAT_D32_FLOAT:
+		case DXGI_FORMAT_R32_FLOAT:
+		case DXGI_FORMAT_R32_UINT:
+		case DXGI_FORMAT_R32_SINT:
+			return 32;
+		case DXGI_FORMAT_R24G8_TYPELESS:
+		case DXGI_FORMAT_D24_UNORM_S8_UINT:
+		case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
+		case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
+			return 32;
+		case DXGI_FORMAT_R8G8_TYPELESS:
+		case DXGI_FORMAT_R8G8_UNORM:
+		case DXGI_FORMAT_R8G8_UINT:
+		case DXGI_FORMAT_R8G8_SNORM:
+		case DXGI_FORMAT_R8G8_SINT:
+			return 16;
+		case DXGI_FORMAT_R16_TYPELESS:
+		case DXGI_FORMAT_R16_FLOAT:
+		case DXGI_FORMAT_D16_UNORM:
+		case DXGI_FORMAT_R16_UNORM:
+		case DXGI_FORMAT_R16_UINT:
+		case DXGI_FORMAT_R16_SNORM:
+		case DXGI_FORMAT_R16_SINT:
+			return 16;
+		case DXGI_FORMAT_R8_TYPELESS:
+		case DXGI_FORMAT_R8_UNORM:
+		case DXGI_FORMAT_R8_UINT:
+		case DXGI_FORMAT_R8_SNORM:
+		case DXGI_FORMAT_R8_SINT:
+		case DXGI_FORMAT_A8_UNORM:
+			return 8;
+		case DXGI_FORMAT_BC1_TYPELESS:
+		case DXGI_FORMAT_BC1_UNORM:
+		case DXGI_FORMAT_BC1_UNORM_SRGB:
+			return 4;
+		case DXGI_FORMAT_BC2_TYPELESS:
+		case DXGI_FORMAT_BC2_UNORM:
+		case DXGI_FORMAT_BC2_UNORM_SRGB:
+			return 8;
+		case DXGI_FORMAT_BC3_TYPELESS:
+		case DXGI_FORMAT_BC3_UNORM:
+		case DXGI_FORMAT_BC3_UNORM_SRGB:
+			return 8;
+		case DXGI_FORMAT_BC4_TYPELESS:
+		case DXGI_FORMAT_BC4_UNORM:
+		case DXGI_FORMAT_BC4_SNORM:
+			return 4;
+		case DXGI_FORMAT_BC5_TYPELESS:
+		case DXGI_FORMAT_BC5_UNORM:
+		case DXGI_FORMAT_BC5_SNORM:
+			return 8;
+		case DXGI_FORMAT_BC6H_TYPELESS:
+		case DXGI_FORMAT_BC6H_UF16:
+		case DXGI_FORMAT_BC6H_SF16:
+			return 8;
+		case DXGI_FORMAT_BC7_TYPELESS:
+		case DXGI_FORMAT_BC7_UNORM:
+		case DXGI_FORMAT_BC7_UNORM_SRGB:
+			return 8;
+		default:
+			return 0;
+		}
+	}
+
+	// This algorithm is overly conservative.
+	static bool CanUseSmallAlignment(const D3D12_RESOURCE_DESC& resourceDesc)
+	{
+		if (resourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+			return false;
+		if ((resourceDesc.Flags & (D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)) != 0)
+			return false;
+		if (resourceDesc.SampleDesc.Count > 1)
+			return false;
+		if (resourceDesc.DepthOrArraySize != 1)
+			return false;
+
+		UINT sizeX = (UINT)resourceDesc.Width;
+		UINT sizeY = resourceDesc.Height;
+		UINT bitsPerPixel = GetBitsPerPixel(resourceDesc.Format);
+		if (bitsPerPixel == 0)
+			return false;
+
+		if (IsFormatCompressed(resourceDesc.Format))
+		{
+			sizeX = DivideRoudingUp(sizeX / 4, 1u);
+			sizeY = DivideRoudingUp(sizeY / 4, 1u);
+			bitsPerPixel *= 16;
+		}
+
+		UINT tileSizeX = 0, tileSizeY = 0;
+		switch (bitsPerPixel)
+		{
+		case   8: tileSizeX = 64; tileSizeY = 64; break;
+		case  16: tileSizeX = 64; tileSizeY = 32; break;
+		case  32: tileSizeX = 32; tileSizeY = 32; break;
+		case  64: tileSizeX = 32; tileSizeY = 16; break;
+		case 128: tileSizeX = 16; tileSizeY = 16; break;
+		default: return false;
+		}
+
+		const UINT tileCount = DivideRoudingUp(sizeX, tileSizeX) * DivideRoudingUp(sizeY, tileSizeY);
+		return tileCount <= 16;
+	}
+
+	static D3D12_HEAP_FLAGS GetExtraHeapFlagsToIgnore()
+	{
+		D3D12_HEAP_FLAGS result =
+			D3D12_HEAP_FLAG_DENY_BUFFERS | D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES | D3D12_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES;
+		return result;
+	}
+
+	static inline bool IsHeapTypeValid(D3D12_HEAP_TYPE type)
+	{
+		return type == D3D12_HEAP_TYPE_DEFAULT ||
+			type == D3D12_HEAP_TYPE_UPLOAD ||
+			type == D3D12_HEAP_TYPE_READBACK;
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
@@ -1837,9 +2323,9 @@ namespace D3D12MA
 						UINT hexDigit = (val & 0xF000) >> 12;
 						val <<= 4;
 						if (hexDigit < 10)
-							m_SB.Add(L'0' + hexDigit);
+							m_SB.Add(L'0' + (WCHAR)hexDigit);
 						else
-							m_SB.Add(L'A' + hexDigit);
+							m_SB.Add(L'A' + (WCHAR)hexDigit);
 					}
 				}
 				break;
@@ -1948,7 +2434,7 @@ namespace D3D12MA
 	void JsonWriter::AddAllocationToObject(const Allocation& alloc)
 	{
 		WriteString(L"Type");
-		switch (alloc.m_ResourceDimension) {
+		switch (alloc.m_PackedData.GetResourceDimension()) {
 		case D3D12_RESOURCE_DIMENSION_UNKNOWN:
 			WriteString(L"UNKNOWN");
 			break;
@@ -1974,15 +2460,15 @@ namespace D3D12MA
 			WriteString(L"Name");
 			WriteString(name);
 		}
-		if (alloc.m_ResourceFlags)
+		if (alloc.m_PackedData.GetResourceFlags())
 		{
 			WriteString(L"Flags");
-			WriteNumber((UINT)alloc.m_ResourceFlags);
+			WriteNumber((UINT)alloc.m_PackedData.GetResourceFlags());
 		}
-		if (alloc.m_TextureLayout)
+		if (alloc.m_PackedData.GetTextureLayout())
 		{
 			WriteString(L"Layout");
-			WriteNumber((UINT)alloc.m_TextureLayout);
+			WriteNumber((UINT)alloc.m_PackedData.GetTextureLayout());
 		}
 		if (alloc.m_CreationFrameIndex)
 		{
@@ -2241,9 +2727,9 @@ namespace D3D12MA
 
 		private:
 			List<T>* m_pList;
-			List<T>::Item* m_pItem;
+			Item* m_pItem;
 
-			iterator(List<T>* pList, List<T>::Item* pItem) :
+			iterator(List<T>* pList, Item* pItem) :
 				m_pList(pList),
 				m_pItem(pItem)
 			{
@@ -2323,14 +2809,14 @@ namespace D3D12MA
 			}
 
 		private:
-			const_iterator(const List<T>* pList, const List<T>::Item* pItem) :
+			const_iterator(const List<T>* pList, const Item* pItem) :
 				m_pList(pList),
 				m_pItem(pItem)
 			{
 			}
 
 			const List<T>* m_pList;
-			const List<T>::Item* m_pItem;
+			const Item* m_pItem;
 
 			friend class List<T>;
 		};
@@ -2567,7 +3053,7 @@ namespace D3D12MA
 	}
 
 	template<typename T>
-	typename List<T>::Item* List<T>::InsertBefore(List<T>::Item* pItem, const T& value)
+	typename List<T>::Item* List<T>::InsertBefore(Item* pItem, const T& value)
 	{
 		Item* const newItem = InsertBefore(pItem);
 		newItem->Value = value;
@@ -2575,7 +3061,7 @@ namespace D3D12MA
 	}
 
 	template<typename T>
-	typename List<T>::Item* List<T>::InsertAfter(List<T>::Item* pItem, const T& value)
+	typename List<T>::Item* List<T>::InsertAfter(Item* pItem, const T& value)
 	{
 		Item* const newItem = InsertAfter(pItem);
 		newItem->Value = value;
@@ -2593,7 +3079,6 @@ namespace D3D12MA
 		D3D12MA_CLASS_NO_COPY(AllocationObjectAllocator);
 	public:
 		AllocationObjectAllocator(const ALLOCATION_CALLBACKS& allocationCallbacks);
-		~AllocationObjectAllocator();
 
 		template<typename... Types> Allocation* Allocate(Types... args);
 		void Free(Allocation* alloc);
@@ -2663,6 +3148,64 @@ namespace D3D12MA
 		UINT64 sumFreeSize; // Sum size of free items that overlap with proposed allocation.
 		UINT64 sumItemSize; // Sum size of items to make lost that overlap with proposed allocation.
 		SuballocationList::iterator item;
+		BOOL zeroInitialized;
+	};
+
+	/*
+	Keeps track of the range of bytes that are surely initialized with zeros.
+	Everything outside of it is considered uninitialized memory that may contain
+	garbage data.
+
+	The range is left-inclusive.
+	*/
+	class ZeroInitializedRange
+	{
+	public:
+		void Reset(UINT64 size)
+		{
+			D3D12MA_ASSERT(size > 0);
+			m_ZeroBeg = 0;
+			m_ZeroEnd = size;
+		}
+
+		BOOL IsRangeZeroInitialized(UINT64 beg, UINT64 end) const
+		{
+			D3D12MA_ASSERT(beg < end);
+			return m_ZeroBeg <= beg && end <= m_ZeroEnd;
+		}
+
+		void MarkRangeAsUsed(UINT64 usedBeg, UINT64 usedEnd)
+		{
+			D3D12MA_ASSERT(usedBeg < usedEnd);
+			// No new bytes marked.
+			if (usedEnd <= m_ZeroBeg || m_ZeroEnd <= usedBeg)
+			{
+				return;
+			}
+			// All bytes marked.
+			if (usedBeg <= m_ZeroBeg && m_ZeroEnd <= usedEnd)
+			{
+				m_ZeroBeg = m_ZeroEnd = 0;
+			}
+			// Some bytes marked.
+			else
+			{
+				const UINT64 remainingZeroBefore = usedBeg > m_ZeroBeg ? usedBeg - m_ZeroBeg : 0;
+				const UINT64 remainingZeroAfter = usedEnd < m_ZeroEnd ? m_ZeroEnd - usedEnd : 0;
+				D3D12MA_ASSERT(remainingZeroBefore > 0 || remainingZeroAfter > 0);
+				if (remainingZeroBefore > remainingZeroAfter)
+				{
+					m_ZeroEnd = usedBeg;
+				}
+				else
+				{
+					m_ZeroBeg = usedEnd;
+				}
+			}
+		}
+
+	private:
+		UINT64 m_ZeroBeg = 0, m_ZeroEnd = 0;
 	};
 
 	/*
@@ -2752,6 +3295,7 @@ namespace D3D12MA
 		// Suballocations that are free and have size greater than certain threshold.
 		// Sorted by size, ascending.
 		Vector<SuballocationList::iterator> m_FreeSuballocationsBySize;
+		ZeroInitializedRange m_ZeroInitializedRange;
 
 		bool ValidateFreeSuballocationList() const;
 
@@ -2763,7 +3307,8 @@ namespace D3D12MA
 			SuballocationList::const_iterator suballocItem,
 			UINT64* pOffset,
 			UINT64* pSumFreeSize,
-			UINT64* pSumItemSize) const;
+			UINT64* pSumItemSize,
+			BOOL *pZeroInitialized) const;
 		// Given free suballocation, it merges it with following one, which must also be free.
 		void MergeFreeWithNext(SuballocationList::iterator item);
 		// Releases given suballocation, making it free.
@@ -2819,8 +3364,8 @@ namespace D3D12MA
 		const D3D12_HEAP_TYPE m_HeapType;
 		const D3D12_HEAP_FLAGS m_HeapFlags;
 		// CONFFX_BEGIN - Linked multi gpu
-		UINT m_CreationNodeMask;
-		UINT m_VisibleNodeMask;
+		const UINT m_CreationNodeMask;
+		const UINT m_VisibleNodeMask;
 		// CONFFX_END
 		const UINT64 m_Size;
 		const UINT m_Id;
@@ -2904,14 +3449,28 @@ namespace D3D12MA
 		HRESULT Allocate(
 			UINT64 size,
 			UINT64 alignment,
-			const ALLOCATION_DESC& createInfo,
+			const ALLOCATION_DESC& allocDesc,
 			size_t allocationCount,
 			Allocation** pAllocations);
 
 		void Free(
 			Allocation* hAllocation);
 
-		void AddStats(Stats& outpStats);
+		HRESULT CreateResource(
+			UINT64 size,
+			UINT64 alignment,
+			const ALLOCATION_DESC& allocDesc,
+			const D3D12_RESOURCE_DESC& resourceDesc,
+			D3D12_RESOURCE_STATES InitialResourceState,
+			const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+			Allocation** ppAllocation,
+			REFIID riidResource,
+			void** ppvResource);
+
+		HRESULT SetMinBytes(UINT64 minBytes);
+
+		void AddStats(StatInfo& outStats);
+		void AddStats(Stats& outStats);
 
 		void WriteBlockInfoToJson(JsonWriter& json);
 
@@ -2923,6 +3482,7 @@ namespace D3D12MA
 		const size_t m_MinBlockCount;
 		const size_t m_MaxBlockCount;
 		const bool m_ExplicitBlockSize;
+		UINT64 m_MinBytes;
 		/* There can be at most one allocation that is completely empty - a
 		hysteresis to avoid pessimistic case of alternating creation and destruction
 		of a VkDeviceMemory. */
@@ -2932,6 +3492,7 @@ namespace D3D12MA
 		Vector<NormalBlock*> m_Blocks;
 		UINT m_NextBlockId;
 
+		UINT64 CalcSumBlockSize() const;
 		UINT64 CalcMaxBlockSize() const;
 
 		// Finds and removes given block from vector.
@@ -2944,13 +3505,14 @@ namespace D3D12MA
 		HRESULT AllocatePage(
 			UINT64 size,
 			UINT64 alignment,
-			const ALLOCATION_DESC& createInfo,
+			const ALLOCATION_DESC& allocDesc,
 			Allocation** pAllocation);
 
 		HRESULT AllocateFromBlock(
 			NormalBlock* pBlock,
 			UINT64 size,
 			UINT64 alignment,
+			ALLOCATION_FLAGS allocFlags,
 			// CONFFX_BEGIN - Linked multi gpu
 			const ALLOCATION_DESC& allocDesc,
 			// CONFFX_END
@@ -3022,6 +3584,7 @@ namespace D3D12MA
 		bool SupportsResourceHeapTier2() const { return m_D3D12Options.ResourceHeapTier >= D3D12_RESOURCE_HEAP_TIER_2; }
 		bool UseMutex() const { return m_UseMutex; }
 		AllocationObjectAllocator& GetAllocationObjectAllocator() { return m_AllocationObjectAllocator; }
+		bool HeapFlagsFulfillResourceHeapTier(D3D12_HEAP_FLAGS flags) const;
 
 		HRESULT CreateResource(
 			const ALLOCATION_DESC* pAllocDesc,
@@ -3034,13 +3597,22 @@ namespace D3D12MA
 
 		HRESULT AllocateMemory(
 			const ALLOCATION_DESC* pAllocDesc,
-			D3D12_HEAP_FLAGS heapFlags,
-			// CONFFX_BEGIN - Linked multi gpu
-			UINT creationNodeMask,
-			UINT visibleNodeMask,
-			// CONFFX_END
 			const D3D12_RESOURCE_ALLOCATION_INFO* pAllocInfo,
 			Allocation** ppAllocation);
+
+		HRESULT CreateAliasingResource(
+			Allocation* pAllocation,
+			UINT64 AllocationLocalOffset,
+			const D3D12_RESOURCE_DESC* pResourceDesc,
+			D3D12_RESOURCE_STATES InitialResourceState,
+			const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+			REFIID riidResource,
+			void** ppvResource);
+
+		HRESULT SetDefaultHeapMinBytes(
+			D3D12_HEAP_TYPE heapType,
+			D3D12_HEAP_FLAGS heapFlags,
+			UINT64 minBytes);
 
 		// Unregisters allocation from the collection of dedicated allocations.
 		// Allocation object must be deleted externally afterwards.
@@ -3067,6 +3639,7 @@ namespace D3D12MA
 
 	private:
 		friend class Allocator;
+		friend class Pool;
 
 		/*
 		Heuristics that decides whether a resource should better be placed in its own,
@@ -3092,8 +3665,17 @@ namespace D3D12MA
 		AllocationVectorType* m_pCommittedAllocations[HEAP_TYPE_COUNT];
 		D3D12MA_RW_MUTEX m_CommittedAllocationsMutex[HEAP_TYPE_COUNT];
 
+		typedef Vector<Pool*> PoolVectorType;
+		PoolVectorType* m_pPools[HEAP_TYPE_COUNT];
+		D3D12MA_RW_MUTEX m_PoolsMutex[HEAP_TYPE_COUNT];
+
 		// Default pools.
 		BlockVector* m_BlockVectors[DEFAULT_POOL_MAX_COUNT];
+
+		// # Used only when ResourceHeapTier = 1
+		UINT64 m_DefaultPoolTier1MinBytes[DEFAULT_POOL_MAX_COUNT]; // Default 0
+		UINT64 m_DefaultPoolHeapTypeMinBytes[HEAP_TYPE_COUNT]; // Default UINT64_MAX, meaning not set
+		D3D12MA_RW_MUTEX m_DefaultPoolMinBytesMutex;
 
 		// Allocates and registers new committed resource with implicit heap, as dedicated allocation.
 		// Creates and returns Allocation object.
@@ -3111,11 +3693,6 @@ namespace D3D12MA
 		// Creates and returns Allocation object.
 		HRESULT AllocateHeap(
 			const ALLOCATION_DESC* pAllocDesc,
-			D3D12_HEAP_FLAGS heapFlags,
-			// CONFFX_BEGIN - Linked multi gpu
-			UINT creationNodeMask,
-			UINT visibleNodeMask,
-			// CONFFX_END
 			const D3D12_RESOURCE_ALLOCATION_INFO& allocInfo,
 			Allocation** ppAllocation);
 
@@ -3138,7 +3715,15 @@ namespace D3D12MA
 		UINT CalcDefaultPoolCount() const;
 		UINT CalcDefaultPoolIndex(const ALLOCATION_DESC& allocDesc, const D3D12_RESOURCE_DESC& resourceDesc) const;
 		// This one returns UINT32_MAX if nonstandard heap flags are used and index cannot be calculcated.
-		UINT CalcDefaultPoolIndex(const ALLOCATION_DESC& allocDesc, const D3D12_HEAP_FLAGS heapFlags) const;
+		static UINT CalcDefaultPoolIndex(D3D12_HEAP_TYPE heapType, D3D12_HEAP_FLAGS heapFlags, bool supportsResourceHeapTier2);
+		UINT CalcDefaultPoolIndex(D3D12_HEAP_TYPE heapType, D3D12_HEAP_FLAGS heapFlags) const
+		{
+			return CalcDefaultPoolIndex(heapType, heapFlags, SupportsResourceHeapTier2());
+		}
+		UINT CalcDefaultPoolIndex(const ALLOCATION_DESC& allocDesc) const
+		{
+			return CalcDefaultPoolIndex(allocDesc.HeapType, allocDesc.ExtraHeapFlags);
+		}
 		void CalcDefaultPoolParams(D3D12_HEAP_TYPE& outHeapType, D3D12_HEAP_FLAGS& outHeapFlags, UINT index) const;
 
 		// Registers Allocation object in m_pCommittedAllocations.
@@ -3146,7 +3731,14 @@ namespace D3D12MA
 		// Unregisters Allocation object from m_pCommittedAllocations.
 		void UnregisterCommittedAllocation(Allocation* alloc, D3D12_HEAP_TYPE heapType);
 
+		// Registers Pool object in m_pPools.
+		void RegisterPool(Pool* pool, D3D12_HEAP_TYPE heapType);
+		// Unregisters Pool object from m_pPools.
+		void UnregisterPool(Pool* pool, D3D12_HEAP_TYPE heapType);
+
 		HRESULT UpdateD3D12Budget();
+
+		D3D12_RESOURCE_ALLOCATION_INFO GetResourceAllocationInfo(D3D12_RESOURCE_DESC& inOutResourceDesc) const;
 
 		// Writes object { } with data of given budget.
 		static void WriteBudgetToJson(JsonWriter& json, const Budget& budget);
@@ -3182,6 +3774,7 @@ namespace D3D12MA
 	void BlockMetadata_Generic::Init(UINT64 size)
 	{
 		BlockMetadata::Init(size);
+		m_ZeroInitializedRange.Reset(size);
 
 		m_FreeCount = 1;
 		m_SumFreeSize = size;
@@ -3332,7 +3925,8 @@ namespace D3D12MA
 					m_FreeSuballocationsBySize[index],
 					&pAllocationRequest->offset,
 					&pAllocationRequest->sumFreeSize,
-					&pAllocationRequest->sumItemSize))
+					&pAllocationRequest->sumItemSize,
+					&pAllocationRequest->zeroInitialized))
 				{
 					pAllocationRequest->item = m_FreeSuballocationsBySize[index];
 					return true;
@@ -3404,6 +3998,8 @@ namespace D3D12MA
 			++m_FreeCount;
 		}
 		m_SumFreeSize -= allocSize;
+
+		m_ZeroInitializedRange.MarkRangeAsUsed(request.offset, request.offset + allocSize);
 	}
 
 	void BlockMetadata_Generic::Free(const Allocation* allocation)
@@ -3460,14 +4056,16 @@ namespace D3D12MA
 		SuballocationList::const_iterator suballocItem,
 		UINT64* pOffset,
 		UINT64* pSumFreeSize,
-		UINT64* pSumItemSize) const
+		UINT64* pSumItemSize,
+		BOOL *pZeroInitialized) const
 	{
 		D3D12MA_ASSERT(allocSize > 0);
 		D3D12MA_ASSERT(suballocItem != m_Suballocations.cend());
-		D3D12MA_ASSERT(pOffset != NULL);
+		D3D12MA_ASSERT(pOffset != NULL && pZeroInitialized != NULL);
 
 		*pSumFreeSize = 0;
 		*pSumItemSize = 0;
+		*pZeroInitialized = FALSE;
 
 		const Suballocation& suballoc = *suballocItem;
 		D3D12MA_ASSERT(suballoc.type == SUBALLOCATION_TYPE_FREE);
@@ -3505,6 +4103,7 @@ namespace D3D12MA
 		}
 
 		// All tests passed: Success. pOffset is already filled.
+		*pZeroInitialized = m_ZeroInitializedRange.IsRangeZeroInitialized(*pOffset, *pOffset + allocSize);
 		return true;
 	}
 
@@ -3838,6 +4437,7 @@ namespace D3D12MA
 		m_MinBlockCount(minBlockCount),
 		m_MaxBlockCount(maxBlockCount),
 		m_ExplicitBlockSize(explicitBlockSize),
+		m_MinBytes(0),
 		m_HasEmptyBlock(false),
 		m_Blocks(hAllocator->GetAllocs()),
 		m_NextBlockId(0)
@@ -3877,7 +4477,7 @@ namespace D3D12MA
 	HRESULT BlockVector::Allocate(
 		UINT64 size,
 		UINT64 alignment,
-		const ALLOCATION_DESC& createInfo,
+		const ALLOCATION_DESC& allocDesc,
 		size_t allocationCount,
 		Allocation** pAllocations)
 	{
@@ -3891,7 +4491,7 @@ namespace D3D12MA
 				hr = AllocatePage(
 					size,
 					alignment,
-					createInfo,
+					allocDesc,
 					pAllocations + allocIndex);
 				if (FAILED(hr))
 				{
@@ -3907,7 +4507,7 @@ namespace D3D12MA
 			{
 				Free(pAllocations[allocIndex]);
 			}
-			memset(pAllocations, 0, sizeof(Allocation*) * allocationCount);
+			ZeroMemory(pAllocations, sizeof(Allocation*) * allocationCount);
 		}
 
 		return hr;
@@ -3916,7 +4516,7 @@ namespace D3D12MA
 	HRESULT BlockVector::AllocatePage(
 		UINT64 size,
 		UINT64 alignment,
-		const ALLOCATION_DESC& createInfo,
+		const ALLOCATION_DESC& allocDesc,
 		Allocation** pAllocation)
 	{
 		// Early reject: requested allocation size is larger that maximum block size for this block vector.
@@ -3929,118 +4529,115 @@ namespace D3D12MA
 		{
 			Budget budget = {};
 			m_hAllocator->GetBudgetForHeapType(budget, m_HeapType);
-			freeMemory = (budget.Usage < budget.Budget) ? (budget.Budget - budget.Usage) : 0;
+			freeMemory = (budget.UsageBytes < budget.BudgetBytes) ? (budget.BudgetBytes - budget.UsageBytes) : 0;
 		}
 
 		const bool canCreateNewBlock =
-			((createInfo.Flags & ALLOCATION_FLAG_NEVER_ALLOCATE) == 0) &&
+			((allocDesc.Flags & ALLOCATION_FLAG_NEVER_ALLOCATE) == 0) &&
 			(m_Blocks.size() < m_MaxBlockCount) &&
+			// Even if we don't have to stay within budget with this allocation, when the
+			// budget would be exceeded, we don't want to allocate new blocks, but always
+			// create resources as committed.
 			freeMemory >= size;
 
+		// 1. Search existing allocations
+		{
+			// Forward order in m_Blocks - prefer blocks with smallest amount of free space.
+			for (size_t blockIndex = 0; blockIndex < m_Blocks.size(); ++blockIndex)
+			{
+				NormalBlock* const pCurrBlock = m_Blocks[blockIndex];
+				D3D12MA_ASSERT(pCurrBlock);
+				HRESULT hr = AllocateFromBlock(
+					pCurrBlock,
+					size,
+					alignment,
+					allocDesc.Flags,
+					// CONFFX_BEGIN - Linked multi gpu
+					allocDesc,
+					// CONFFX_END
+					pAllocation);
+				if (SUCCEEDED(hr))
+				{
+					return hr;
+				}
+			}
+		}
+
+		// 2. Try to create new block.
 		if (canCreateNewBlock)
 		{
-			// 1. Search existing allocations. Try to allocate without making other allocations lost.
-			//ALLOCATION_FLAGS allocFlagsCopy = createInfo.Flags;
+			// Calculate optimal size for new block.
+			UINT64 newBlockSize = m_PreferredBlockSize;
+			UINT newBlockSizeShift = 0;
 
+			if (!m_ExplicitBlockSize)
 			{
+				// Allocate 1/8, 1/4, 1/2 as first blocks.
+				const UINT64 maxExistingBlockSize = CalcMaxBlockSize();
+				for (UINT i = 0; i < NEW_BLOCK_SIZE_SHIFT_MAX; ++i)
 				{
-					// Forward order in m_Blocks - prefer blocks with smallest amount of free space.
-					for (size_t blockIndex = 0; blockIndex < m_Blocks.size(); ++blockIndex)
+					const UINT64 smallerNewBlockSize = newBlockSize / 2;
+					if (smallerNewBlockSize > maxExistingBlockSize && smallerNewBlockSize >= size * 2)
 					{
-						NormalBlock* const pCurrBlock = m_Blocks[blockIndex];
-						D3D12MA_ASSERT(pCurrBlock);
-						HRESULT hr = AllocateFromBlock(
-							pCurrBlock,
-							size,
-							alignment,
-							// CONFFX_BEGIN - Linked multi gpu
-							createInfo,
-							// CONFFX_END
-							pAllocation);
-						if (SUCCEEDED(hr))
-						{
-							return hr;
-						}
+						newBlockSize = smallerNewBlockSize;
+						++newBlockSizeShift;
+					}
+					else
+					{
+						break;
 					}
 				}
 			}
 
-			// 2. Try to create new block.
-			if (canCreateNewBlock)
+			size_t newBlockIndex = 0;
+			HRESULT hr = newBlockSize <= freeMemory ?
+				// CONFFX_BEGIN - Linked multi gpu
+				CreateBlock(newBlockSize, allocDesc.CreationNodeMask, allocDesc.VisibleNodeMask, &newBlockIndex) : E_OUTOFMEMORY;
+			// CONFFX_END
+			// Allocation of this size failed? Try 1/2, 1/4, 1/8 of m_PreferredBlockSize.
+			if (!m_ExplicitBlockSize)
 			{
-				// Calculate optimal size for new block.
-				UINT64 newBlockSize = m_PreferredBlockSize;
-				UINT newBlockSizeShift = 0;
-				const UINT NEW_BLOCK_SIZE_SHIFT_MAX = 3;
-
-				if (!m_ExplicitBlockSize)
+				while (FAILED(hr) && newBlockSizeShift < NEW_BLOCK_SIZE_SHIFT_MAX)
 				{
-					// Allocate 1/8, 1/4, 1/2 as first blocks.
-					const UINT64 maxExistingBlockSize = CalcMaxBlockSize();
-					for (UINT i = 0; i < NEW_BLOCK_SIZE_SHIFT_MAX; ++i)
+					const UINT64 smallerNewBlockSize = newBlockSize / 2;
+					if (smallerNewBlockSize >= size)
 					{
-						const UINT64 smallerNewBlockSize = newBlockSize / 2;
-						if (smallerNewBlockSize > maxExistingBlockSize && smallerNewBlockSize >= size * 2)
-						{
-							newBlockSize = smallerNewBlockSize;
-							++newBlockSizeShift;
-						}
-						else
-						{
-							break;
-						}
-					}
-				}
-
-				size_t newBlockIndex = 0;
-				HRESULT hr = newBlockSize <= freeMemory ?
-					// CONFFX_BEGIN - Linked multi gpu
-					CreateBlock(newBlockSize, createInfo.CreationNodeMask, createInfo.VisibleNodeMask, &newBlockIndex) : E_OUTOFMEMORY;
-					// CONFFX_END
-				// Allocation of this size failed? Try 1/2, 1/4, 1/8 of m_PreferredBlockSize.
-				if (!m_ExplicitBlockSize)
-				{
-					while (FAILED(hr) && newBlockSizeShift < NEW_BLOCK_SIZE_SHIFT_MAX)
-					{
-						const UINT64 smallerNewBlockSize = newBlockSize / 2;
-						if (smallerNewBlockSize >= size)
-						{
-							newBlockSize = smallerNewBlockSize;
-							++newBlockSizeShift;
-							hr = newBlockSize <= freeMemory ?
-								// CONFFX_BEGIN - Linked multi gpu
-								CreateBlock(newBlockSize, createInfo.CreationNodeMask, createInfo.VisibleNodeMask, &newBlockIndex) : E_OUTOFMEMORY;
-								// CONFFX_END
-						}
-						else
-						{
-							break;
-						}
-					}
-				}
-
-				if (SUCCEEDED(hr))
-				{
-					NormalBlock* const pBlock = m_Blocks[newBlockIndex];
-					D3D12MA_ASSERT(pBlock->m_pMetadata->GetSize() >= size);
-
-					hr = AllocateFromBlock(
-						pBlock,
-						size,
-						alignment,
-						// CONFFX_BEGIN - Linked multi gpu
-						createInfo,
-						// CONFFX_END
-						pAllocation);
-					if (SUCCEEDED(hr))
-					{
-						return hr;
+						newBlockSize = smallerNewBlockSize;
+						++newBlockSizeShift;
+						hr = newBlockSize <= freeMemory ?
+							// CONFFX_BEGIN - Linked multi gpu
+							CreateBlock(newBlockSize, allocDesc.CreationNodeMask, allocDesc.VisibleNodeMask, &newBlockIndex) : E_OUTOFMEMORY;
+							// CONFFX_END
 					}
 					else
 					{
-						// Allocation from new block failed, possibly due to D3D12MA_DEBUG_MARGIN or alignment.
-						return E_OUTOFMEMORY;
+						break;
 					}
+				}
+			}
+
+			if (SUCCEEDED(hr))
+			{
+				NormalBlock* const pBlock = m_Blocks[newBlockIndex];
+				D3D12MA_ASSERT(pBlock->m_pMetadata->GetSize() >= size);
+
+				hr = AllocateFromBlock(
+					pBlock,
+					size,
+					alignment,
+					allocDesc.Flags,
+					// CONFFX_BEGIN - Linked multi gpu
+					allocDesc,
+					// CONFFX_END
+					pAllocation);
+				if (SUCCEEDED(hr))
+				{
+					return hr;
+				}
+				else
+				{
+					// Allocation from new block failed, possibly due to D3D12MA_DEBUG_MARGIN or alignment.
+					return E_OUTOFMEMORY;
 				}
 			}
 		}
@@ -4056,7 +4653,7 @@ namespace D3D12MA
 		{
 			Budget budget = {};
 			m_hAllocator->GetBudgetForHeapType(budget, m_HeapType);
-			budgetExceeded = budget.Usage >= budget.Budget;
+			budgetExceeded = budget.UsageBytes >= budget.BudgetBytes;
 		}
 
 		// Scope for lock.
@@ -4068,12 +4665,15 @@ namespace D3D12MA
 			pBlock->m_pMetadata->Free(hAllocation);
 			D3D12MA_HEAVY_ASSERT(pBlock->Validate());
 
-			const bool canDeleteBlock = m_Blocks.size() > m_MinBlockCount;
+			const size_t blockCount = m_Blocks.size();
+			const UINT64 sumBlockSize = CalcSumBlockSize();
 			// pBlock became empty after this deallocation.
 			if (pBlock->m_pMetadata->IsEmpty())
 			{
 				// Already has empty Allocation. We don't want to have two, so delete this one.
-				if ((m_HasEmptyBlock || budgetExceeded) && canDeleteBlock)
+				if ((m_HasEmptyBlock || budgetExceeded) &&
+					blockCount > m_MinBlockCount &&
+					sumBlockSize - pBlock->m_pMetadata->GetSize() >= m_MinBytes)
 				{
 					pBlockToDelete = pBlock;
 					Remove(pBlock);
@@ -4086,10 +4686,11 @@ namespace D3D12MA
 			}
 			// pBlock didn't become empty, but we have another empty block - find and free that one.
 			// (This is optional, heuristics.)
-			else if (m_HasEmptyBlock && canDeleteBlock)
+			else if (m_HasEmptyBlock && blockCount > m_MinBlockCount)
 			{
 				NormalBlock* pLastBlock = m_Blocks.back();
-				if (pLastBlock->m_pMetadata->IsEmpty() && m_Blocks.size() > m_MinBlockCount)
+				if (pLastBlock->m_pMetadata->IsEmpty() &&
+					sumBlockSize - pLastBlock->m_pMetadata->GetSize() >= m_MinBytes)
 				{
 					pBlockToDelete = pLastBlock;
 					m_Blocks.pop_back();
@@ -4108,6 +4709,56 @@ namespace D3D12MA
 		}
 	}
 
+	HRESULT BlockVector::CreateResource(
+		UINT64 size,
+		UINT64 alignment,
+		const ALLOCATION_DESC& allocDesc,
+		const D3D12_RESOURCE_DESC& resourceDesc,
+		D3D12_RESOURCE_STATES InitialResourceState,
+		const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+		Allocation** ppAllocation,
+		REFIID riidResource,
+		void** ppvResource)
+	{
+		HRESULT hr = Allocate(size, alignment, allocDesc, 1, ppAllocation);
+		if (SUCCEEDED(hr))
+		{
+			ID3D12Resource* res = NULL;
+			hr = m_hAllocator->GetDevice()->CreatePlacedResource(
+				(*ppAllocation)->m_Placed.block->GetHeap(),
+				(*ppAllocation)->GetOffset(),
+				&resourceDesc,
+				InitialResourceState,
+				pOptimizedClearValue,
+				riidResource,
+				(void**)&res);
+			if (SUCCEEDED(hr))
+			{
+				(*ppAllocation)->SetResource(res, &resourceDesc);
+				if (ppvResource != NULL)
+				{
+					res->AddRef();
+					*ppvResource = res;
+				}
+			}
+			else
+			{
+				SAFE_RELEASE(*ppAllocation);
+			}
+		}
+		return hr;
+	}
+
+	UINT64 BlockVector::CalcSumBlockSize() const
+	{
+		UINT64 result = 0;
+		for (size_t i = m_Blocks.size(); i--; )
+		{
+			result += m_Blocks[i]->m_pMetadata->GetSize();
+		}
+		return result;
+	}
+
 	UINT64 BlockVector::CalcMaxBlockSize() const
 	{
 		UINT64 result = 0;
@@ -4124,7 +4775,7 @@ namespace D3D12MA
 
 	void BlockVector::Remove(NormalBlock* pBlock)
 	{
-		for (UINT blockIndex = 0; blockIndex < m_Blocks.size(); ++blockIndex)
+		for (size_t blockIndex = 0; blockIndex < m_Blocks.size(); ++blockIndex)
 		{
 			if (m_Blocks[blockIndex] == pBlock)
 			{
@@ -4152,6 +4803,7 @@ namespace D3D12MA
 		NormalBlock* pBlock,
 		UINT64 size,
 		UINT64 alignment,
+		ALLOCATION_FLAGS allocFlags,
 		// CONFFX_BEGIN - Linked multi gpu
 		const ALLOCATION_DESC& allocDesc,
 		// CONFFX_END
@@ -4178,7 +4830,7 @@ namespace D3D12MA
 				m_HasEmptyBlock = false;
 			}
 
-			*pAllocation = m_hAllocator->GetAllocationObjectAllocator().Allocate(m_hAllocator, size);
+			*pAllocation = m_hAllocator->GetAllocationObjectAllocator().Allocate(m_hAllocator, size, currRequest.zeroInitialized);
 			pBlock->m_pMetadata->Alloc(currRequest, size, *pAllocation);
 			(*pAllocation)->InitPlaced(currRequest.offset, alignment, pBlock);
 			D3D12MA_HEAVY_ASSERT(pBlock->Validate());
@@ -4188,7 +4840,9 @@ namespace D3D12MA
 		return E_OUTOFMEMORY;
 	}
 
+	// CONFFX_BEGIN - Linked multi gpu
 	HRESULT BlockVector::CreateBlock(UINT64 blockSize, UINT creationNodeMask, UINT visibleNodeMask, size_t* pNewBlockIndex)
+	// CONFFX_END
 	{
 		NormalBlock* const pBlock = D3D12MA_NEW(m_hAllocator->GetAllocs(), NormalBlock)(
 			m_hAllocator,
@@ -4215,6 +4869,104 @@ namespace D3D12MA
 		}
 
 		return hr;
+	}
+
+	HRESULT BlockVector::SetMinBytes(UINT64 minBytes)
+	{
+		MutexLockWrite lock(m_Mutex, m_hAllocator->UseMutex());
+
+		if (minBytes == m_MinBytes)
+		{
+			return S_OK;
+		}
+
+		HRESULT hr = S_OK;
+		UINT64 sumBlockSize = CalcSumBlockSize();
+		size_t blockCount = m_Blocks.size();
+
+		// New minBytes is smaller - may be able to free some blocks.
+		if (minBytes < m_MinBytes)
+		{
+			m_HasEmptyBlock = false; // Will recalculate this value from scratch.
+			for (size_t blockIndex = blockCount; blockIndex--; )
+			{
+				NormalBlock* const block = m_Blocks[blockIndex];
+				const UINT64 size = block->m_pMetadata->GetSize();
+				const bool isEmpty = block->m_pMetadata->IsEmpty();
+				if (isEmpty &&
+					sumBlockSize - size >= minBytes &&
+					blockCount - 1 >= m_MinBlockCount)
+				{
+					D3D12MA_DELETE(m_hAllocator->GetAllocs(), block);
+					m_Blocks.remove(blockIndex);
+					sumBlockSize -= size;
+					--blockCount;
+				}
+				else
+				{
+					if (isEmpty)
+					{
+						m_HasEmptyBlock = true;
+					}
+				}
+			}
+		}
+		// New minBytes is larger - may need to allocate some blocks.
+		else
+		{
+			const UINT64 minBlockSize = m_PreferredBlockSize >> NEW_BLOCK_SIZE_SHIFT_MAX;
+			while (SUCCEEDED(hr) && sumBlockSize < minBytes)
+			{
+				if (blockCount < m_MaxBlockCount)
+				{
+					UINT64 newBlockSize = m_PreferredBlockSize;
+					if (!m_ExplicitBlockSize)
+					{
+						if (sumBlockSize + newBlockSize > minBytes)
+						{
+							newBlockSize = minBytes - sumBlockSize;
+						}
+						// Next one would be the last block to create and its size would be smaller than
+						// the smallest block size we want to use here, so make this one smaller.
+						else if (blockCount + 1 < m_MaxBlockCount &&
+							sumBlockSize + newBlockSize + minBlockSize > minBytes)
+						{
+							newBlockSize -= minBlockSize + sumBlockSize + m_PreferredBlockSize - minBytes;
+						}
+					}
+
+					hr = CreateBlock(newBlockSize, 1, 1, NULL);
+					if (SUCCEEDED(hr))
+					{
+						m_HasEmptyBlock = true;
+						sumBlockSize += newBlockSize;
+						++blockCount;
+					}
+				}
+				else
+				{
+					hr = E_INVALIDARG;
+				}
+			}
+		}
+
+		m_MinBytes = minBytes;
+		return hr;
+	}
+
+	void BlockVector::AddStats(StatInfo& outStats)
+	{
+		MutexLockRead lock(m_Mutex, m_hAllocator->UseMutex());
+
+		for (size_t i = 0; i < m_Blocks.size(); ++i)
+		{
+			const NormalBlock* const pBlock = m_Blocks[i];
+			D3D12MA_ASSERT(pBlock);
+			D3D12MA_HEAVY_ASSERT(pBlock->Validate());
+			StatInfo blockStatInfo;
+			pBlock->m_pMetadata->CalcAllocationStatInfo(blockStatInfo);
+			AddStatInfo(outStats, blockStatInfo);
+		}
 	}
 
 	void BlockVector::AddStats(Stats& outStats)
@@ -4258,6 +5010,157 @@ namespace D3D12MA
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
+	// Private class PoolPimpl
+
+	class PoolPimpl
+	{
+	public:
+		PoolPimpl(AllocatorPimpl* allocator, const POOL_DESC& desc);
+		HRESULT Init();
+		~PoolPimpl();
+
+		AllocatorPimpl* GetAllocator() const { return m_Allocator; }
+		const POOL_DESC& GetDesc() const { return m_Desc; }
+		BlockVector* GetBlockVector() { return m_BlockVector; }
+
+		HRESULT SetMinBytes(UINT64 minBytes) { return m_BlockVector->SetMinBytes(minBytes); }
+
+		void CalculateStats(StatInfo& outStats);
+
+		void SetName(LPCWSTR Name);
+		LPCWSTR GetName() const { return m_Name; }
+
+	private:
+		friend class Allocator;
+
+		AllocatorPimpl* m_Allocator; // Externally owned object.
+		POOL_DESC m_Desc;
+		BlockVector* m_BlockVector; // Owned object.
+		wchar_t* m_Name;
+
+		void FreeName();
+	};
+
+	PoolPimpl::PoolPimpl(AllocatorPimpl* allocator, const POOL_DESC& desc) :
+		m_Allocator(allocator),
+		m_Desc(desc),
+		m_BlockVector(NULL),
+		m_Name(NULL)
+	{
+		const bool explicitBlockSize = desc.BlockSize != 0;
+		const UINT64 preferredBlockSize = explicitBlockSize ? desc.BlockSize : D3D12MA_DEFAULT_BLOCK_SIZE;
+
+		D3D12_HEAP_FLAGS heapFlags = desc.HeapFlags;
+
+		UINT maxBlockCount = desc.MaxBlockCount != 0 ? desc.MaxBlockCount : UINT_MAX;
+
+		m_BlockVector = D3D12MA_NEW(allocator->GetAllocs(), BlockVector)(
+			allocator, desc.HeapType, heapFlags,
+			preferredBlockSize,
+			desc.MinBlockCount, maxBlockCount,
+			explicitBlockSize);
+	}
+
+	HRESULT PoolPimpl::Init()
+	{
+		return m_BlockVector->CreateMinBlocks();
+	}
+
+	PoolPimpl::~PoolPimpl()
+	{
+		FreeName();
+		D3D12MA_DELETE(m_Allocator->GetAllocs(), m_BlockVector);
+	}
+
+	void PoolPimpl::CalculateStats(StatInfo& outStats)
+	{
+		ZeroMemory(&outStats, sizeof(outStats));
+		outStats.AllocationSizeMin = UINT64_MAX;
+		outStats.UnusedRangeSizeMin = UINT64_MAX;
+
+		m_BlockVector->AddStats(outStats);
+
+		PostProcessStatInfo(outStats);
+	}
+
+	void PoolPimpl::SetName(LPCWSTR Name)
+	{
+		FreeName();
+
+		if (Name)
+		{
+			const size_t nameCharCount = wcslen(Name) + 1;
+			m_Name = D3D12MA_NEW_ARRAY(m_Allocator->GetAllocs(), WCHAR, nameCharCount);
+			memcpy(m_Name, Name, nameCharCount * sizeof(WCHAR));
+		}
+	}
+
+	void PoolPimpl::FreeName()
+	{
+		if (m_Name)
+		{
+			const size_t nameCharCount = wcslen(m_Name) + 1;
+			D3D12MA_DELETE_ARRAY(m_Allocator->GetAllocs(), m_Name, nameCharCount);
+			m_Name = NULL;
+		}
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
+	// Public class Pool implementation
+
+	void Pool::Release()
+	{
+		if (this == NULL)
+		{
+			return;
+		}
+
+		D3D12MA_DEBUG_GLOBAL_MUTEX_LOCK
+
+			D3D12MA_DELETE(m_Pimpl->GetAllocator()->GetAllocs(), this);
+	}
+
+	POOL_DESC Pool::GetDesc() const
+	{
+		return m_Pimpl->GetDesc();
+	}
+
+	HRESULT Pool::SetMinBytes(UINT64 minBytes)
+	{
+		return m_Pimpl->SetMinBytes(minBytes);
+	}
+
+	void Pool::CalculateStats(StatInfo* pStats)
+	{
+		D3D12MA_ASSERT(pStats);
+		D3D12MA_DEBUG_GLOBAL_MUTEX_LOCK
+			m_Pimpl->CalculateStats(*pStats);
+	}
+
+	void Pool::SetName(LPCWSTR Name)
+	{
+		D3D12MA_DEBUG_GLOBAL_MUTEX_LOCK
+			m_Pimpl->SetName(Name);
+	}
+
+	LPCWSTR Pool::GetName() const
+	{
+		return m_Pimpl->GetName();
+	}
+
+	Pool::Pool(Allocator* allocator, const POOL_DESC &desc) :
+		m_Pimpl(D3D12MA_NEW(allocator->m_Pimpl->GetAllocs(), PoolPimpl)(allocator->m_Pimpl, desc))
+	{
+	}
+
+	Pool::~Pool()
+	{
+		m_Pimpl->GetAllocator()->UnregisterPool(this, m_Pimpl->GetDesc().HeapType);
+
+		D3D12MA_DELETE(m_Pimpl->GetAllocator()->GetAllocs(), m_Pimpl);
+	}
+
+	////////////////////////////////////////////////////////////////////////////////
 	// Private class AllocatorPimpl implementation
 
 	AllocatorPimpl::AllocatorPimpl(const ALLOCATION_CALLBACKS& allocationCallbacks, const ALLOCATOR_DESC& desc) :
@@ -4278,11 +5181,19 @@ namespace D3D12MA
 		ZeroMemory(&m_D3D12Options, sizeof(m_D3D12Options));
 
 		ZeroMemory(m_pCommittedAllocations, sizeof(m_pCommittedAllocations));
+		ZeroMemory(m_pPools, sizeof(m_pPools));
 		ZeroMemory(m_BlockVectors, sizeof(m_BlockVectors));
+		ZeroMemory(m_DefaultPoolTier1MinBytes, sizeof(m_DefaultPoolTier1MinBytes));
+
+		for (UINT i = 0; i < HEAP_TYPE_COUNT; ++i)
+		{
+			m_DefaultPoolHeapTypeMinBytes[i] = UINT64_MAX;
+		}
 
 		for (UINT heapTypeIndex = 0; heapTypeIndex < HEAP_TYPE_COUNT; ++heapTypeIndex)
 		{
 			m_pCommittedAllocations[heapTypeIndex] = D3D12MA_NEW(GetAllocs(), AllocationVectorType)(GetAllocs());
+			m_pPools[heapTypeIndex] = D3D12MA_NEW(GetAllocs(), PoolVectorType)(GetAllocs());
 		}
 
 		m_Device->AddRef();
@@ -4350,12 +5261,38 @@ namespace D3D12MA
 
 		for (UINT i = HEAP_TYPE_COUNT; i--; )
 		{
+			if (m_pPools[i] && !m_pPools[i]->empty())
+			{
+				D3D12MA_ASSERT(0 && "Unfreed pools found!");
+			}
+
+			D3D12MA_DELETE(GetAllocs(), m_pPools[i]);
+		}
+
+		for (UINT i = HEAP_TYPE_COUNT; i--; )
+		{
 			if (m_pCommittedAllocations[i] && !m_pCommittedAllocations[i]->empty())
 			{
 				D3D12MA_ASSERT(0 && "Unfreed committed allocations found!");
 			}
 
 			D3D12MA_DELETE(GetAllocs(), m_pCommittedAllocations[i]);
+		}
+	}
+
+	bool AllocatorPimpl::HeapFlagsFulfillResourceHeapTier(D3D12_HEAP_FLAGS flags) const
+	{
+		if (SupportsResourceHeapTier2())
+		{
+			return true;
+		}
+		else
+		{
+			const bool allowBuffers = (flags & D3D12_HEAP_FLAG_DENY_BUFFERS) == 0;
+			const bool allowRtDsTextures = (flags & D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES) == 0;
+			const bool allowNonRtDsTextures = (flags & D3D12_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES) == 0;
+			const uint8_t allowedGroupCount = (allowBuffers ? 1 : 0) + (allowRtDsTextures ? 1 : 0) + (allowNonRtDsTextures ? 1 : 0);
+			return allowedGroupCount == 1;
 		}
 	}
 
@@ -4368,55 +5305,55 @@ namespace D3D12MA
 		REFIID riidResource,
 		void** ppvResource)
 	{
-		if (pAllocDesc->HeapType != D3D12_HEAP_TYPE_DEFAULT &&
-			pAllocDesc->HeapType != D3D12_HEAP_TYPE_UPLOAD &&
-			pAllocDesc->HeapType != D3D12_HEAP_TYPE_READBACK)
-		{
-			return E_INVALIDARG;
-		}
-
-		ALLOCATION_DESC finalAllocDesc = *pAllocDesc;
-
+		*ppAllocation = NULL;
 		if (ppvResource)
 		{
 			*ppvResource = NULL;
 		}
+
+		if (pAllocDesc->CustomPool == NULL)
+		{
+			if (!IsHeapTypeValid(pAllocDesc->HeapType))
+			{
+				return E_INVALIDARG;
+			}
+		}
+
+		ALLOCATION_DESC finalAllocDesc = *pAllocDesc;
 
 		// CONFFX_BEGIN - Linked multi gpu
 		// Can have only one bit set in creation node mask
 		D3D12MA_ASSERT(IsPow2(finalAllocDesc.CreationNodeMask));
 		// CONFFX_END
 
-		D3D12_RESOURCE_ALLOCATION_INFO resAllocInfo = m_Device->GetResourceAllocationInfo(0, 1, pResourceDesc);
+		D3D12_RESOURCE_DESC finalResourceDesc = *pResourceDesc;
+		D3D12_RESOURCE_ALLOCATION_INFO resAllocInfo = GetResourceAllocationInfo(finalResourceDesc);
 		resAllocInfo.Alignment = D3D12MA_MAX<UINT64>(resAllocInfo.Alignment, D3D12MA_DEBUG_ALIGNMENT);
+
+		// CONFFX_BEGIN - Xbox alignment fix
+#if defined(XBOX)
+		resAllocInfo.Alignment = pResourceDesc->SampleDesc.Count > 1 ?
+			D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT : D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT;
+#endif
+		// CONFFX_END
+
 		D3D12MA_ASSERT(IsPow2(resAllocInfo.Alignment));
 		D3D12MA_ASSERT(resAllocInfo.SizeInBytes > 0);
 
-		const UINT defaultPoolIndex = CalcDefaultPoolIndex(*pAllocDesc, *pResourceDesc);
-		BlockVector* blockVector = m_BlockVectors[defaultPoolIndex];
-		D3D12MA_ASSERT(blockVector);
-
-		const UINT64 preferredBlockSize = blockVector->GetPreferredBlockSize();
-		bool preferCommittedMemory =
-			m_AlwaysCommitted ||
-			// CONFFX_BEGIN - Custom heap flags
-			finalAllocDesc.HeapFlags != D3D12_HEAP_FLAG_NONE ||
-			// CONFFX_END
-			PrefersCommittedAllocation(*pResourceDesc) ||
-			// Heuristics: Allocate committed memory if requested size if greater than half of preferred block size.
-			resAllocInfo.SizeInBytes > preferredBlockSize / 2;
-		if (preferCommittedMemory &&
-			(finalAllocDesc.Flags & ALLOCATION_FLAG_NEVER_ALLOCATE) == 0)
+		if (pAllocDesc->CustomPool != NULL)
 		{
-			finalAllocDesc.Flags |= ALLOCATION_FLAG_COMMITTED;
-		}
+			if ((finalAllocDesc.Flags & ALLOCATION_FLAG_COMMITTED) != 0)
+			{
+				return E_INVALIDARG;
+			}
 
-		if ((finalAllocDesc.Flags & ALLOCATION_FLAG_COMMITTED) != 0)
-		{
-			return AllocateCommittedResource(
-				&finalAllocDesc,
-				pResourceDesc,
-				resAllocInfo,
+			BlockVector* blockVector = pAllocDesc->CustomPool->m_Pimpl->GetBlockVector();
+			D3D12MA_ASSERT(blockVector);
+			return blockVector->CreateResource(
+				resAllocInfo.SizeInBytes,
+				resAllocInfo.Alignment,
+				finalAllocDesc,
+				finalResourceDesc,
 				InitialResourceState,
 				pOptimizedClearValue,
 				ppAllocation,
@@ -4425,112 +5362,249 @@ namespace D3D12MA
 		}
 		else
 		{
-			HRESULT hr = blockVector->Allocate(
-				resAllocInfo.SizeInBytes,
-				resAllocInfo.Alignment,
-				finalAllocDesc,
-				1,
-				(Allocation**)ppAllocation);
-			if (SUCCEEDED(hr))
+			const UINT defaultPoolIndex = CalcDefaultPoolIndex(*pAllocDesc, finalResourceDesc);
+			const bool requireCommittedMemory = defaultPoolIndex == UINT32_MAX;
+			if (requireCommittedMemory)
 			{
-				ID3D12Resource* res = NULL;
-				hr = m_Device->CreatePlacedResource(
-					(*ppAllocation)->m_Placed.block->GetHeap(),
-					(*ppAllocation)->GetOffset(),
-					pResourceDesc,
+				return AllocateCommittedResource(
+					&finalAllocDesc,
+					&finalResourceDesc,
+					resAllocInfo,
 					InitialResourceState,
 					pOptimizedClearValue,
+					ppAllocation,
 					riidResource,
-					(void**)&res);
-				if (SUCCEEDED(hr))
-				{
-					(*ppAllocation)->SetResource(res, pResourceDesc);
-					if (ppvResource != NULL)
-					{
-						res->AddRef();
-						*ppvResource = res;
-					}
-					return hr;
-				}
-				else
-				{
-					SAFE_RELEASE(*ppAllocation);
-					return hr;
-				}
+					ppvResource);
 			}
 
-			return AllocateCommittedResource(
-				&finalAllocDesc,
-				pResourceDesc,
-				resAllocInfo,
-				InitialResourceState,
-				pOptimizedClearValue,
-				ppAllocation,
-				riidResource,
-				ppvResource);
+			BlockVector* const blockVector = m_BlockVectors[defaultPoolIndex];
+			D3D12MA_ASSERT(blockVector);
+
+			const UINT64 preferredBlockSize = blockVector->GetPreferredBlockSize();
+			bool preferCommittedMemory =
+				m_AlwaysCommitted ||
+				PrefersCommittedAllocation(finalResourceDesc) ||
+				// Heuristics: Allocate committed memory if requested size if greater than half of preferred block size.
+				resAllocInfo.SizeInBytes > preferredBlockSize / 2;
+			if (preferCommittedMemory &&
+				(finalAllocDesc.Flags & ALLOCATION_FLAG_NEVER_ALLOCATE) == 0)
+			{
+				finalAllocDesc.Flags |= ALLOCATION_FLAG_COMMITTED;
+			}
+
+			if ((finalAllocDesc.Flags & ALLOCATION_FLAG_COMMITTED) != 0)
+			{
+				return AllocateCommittedResource(
+					&finalAllocDesc,
+					&finalResourceDesc,
+					resAllocInfo,
+					InitialResourceState,
+					pOptimizedClearValue,
+					ppAllocation,
+					riidResource,
+					ppvResource);
+			}
+			else
+			{
+				HRESULT hr = blockVector->CreateResource(
+					resAllocInfo.SizeInBytes,
+					resAllocInfo.Alignment,
+					finalAllocDesc,
+					finalResourceDesc,
+					InitialResourceState,
+					pOptimizedClearValue,
+					ppAllocation,
+					riidResource,
+					ppvResource);
+				if (SUCCEEDED(hr))
+				{
+					return hr;
+				}
+
+				return AllocateCommittedResource(
+					&finalAllocDesc,
+					&finalResourceDesc,
+					resAllocInfo,
+					InitialResourceState,
+					pOptimizedClearValue,
+					ppAllocation,
+					riidResource,
+					ppvResource);
+			}
 		}
 	}
 
 	HRESULT AllocatorPimpl::AllocateMemory(
 		const ALLOCATION_DESC* pAllocDesc,
-		D3D12_HEAP_FLAGS heapFlags,
-		// CONFFX_BEGIN - Linked multi gpu
-		UINT creationNodeMask,
-		UINT visibleNodeMask,
-		// CONFFX_END
 		const D3D12_RESOURCE_ALLOCATION_INFO* pAllocInfo,
 		Allocation** ppAllocation)
 	{
-		if (pAllocDesc->HeapType != D3D12_HEAP_TYPE_DEFAULT &&
-			pAllocDesc->HeapType != D3D12_HEAP_TYPE_UPLOAD &&
-			pAllocDesc->HeapType != D3D12_HEAP_TYPE_READBACK)
-		{
-			return E_INVALIDARG;
-		}
+		*ppAllocation = NULL;
 
-		ALLOCATION_DESC finalAllocDesc = *pAllocDesc;
-
-		const UINT defaultPoolIndex = CalcDefaultPoolIndex(*pAllocDesc, heapFlags);
-		if (defaultPoolIndex == UINT32_MAX)
+		if (pAllocDesc->CustomPool != NULL)
 		{
-			return E_INVALIDARG;
-		}
-		BlockVector* blockVector = m_BlockVectors[defaultPoolIndex];
-		D3D12MA_ASSERT(blockVector);
-
-		const UINT64 preferredBlockSize = blockVector->GetPreferredBlockSize();
-		bool preferCommittedMemory =
-			m_AlwaysCommitted ||
-			// Heuristics: Allocate committed memory if requested size if greater than half of preferred block size.
-			pAllocInfo->SizeInBytes > preferredBlockSize / 2;
-		if (preferCommittedMemory &&
-			(finalAllocDesc.Flags & ALLOCATION_FLAG_NEVER_ALLOCATE) == 0)
-		{
-			finalAllocDesc.Flags |= ALLOCATION_FLAG_COMMITTED;
-		}
-
-		if ((finalAllocDesc.Flags & ALLOCATION_FLAG_COMMITTED) != 0)
-		{
-			// CONFFX_BEGIN - Linked multi gpu
-			return AllocateHeap(&finalAllocDesc, heapFlags, creationNodeMask, visibleNodeMask, *pAllocInfo, ppAllocation);
-			// CONFFX_END
+			BlockVector* const blockVector = pAllocDesc->CustomPool->m_Pimpl->GetBlockVector();
+			D3D12MA_ASSERT(blockVector);
+			return blockVector->Allocate(
+				pAllocInfo->SizeInBytes,
+				pAllocInfo->Alignment,
+				*pAllocDesc,
+				1,
+				(Allocation**)ppAllocation);
 		}
 		else
 		{
-			HRESULT hr = blockVector->Allocate(
-				pAllocInfo->SizeInBytes,
-				pAllocInfo->Alignment,
-				finalAllocDesc,
-				1,
-				(Allocation**)ppAllocation);
-			if (SUCCEEDED(hr))
+			if (!IsHeapTypeValid(pAllocDesc->HeapType))
 			{
-				return hr;
+				return E_INVALIDARG;
 			}
 
-			// CONFFX_BEGIN - Linked multi gpu
-			return AllocateHeap(&finalAllocDesc, heapFlags, creationNodeMask, visibleNodeMask, *pAllocInfo, ppAllocation);
-			// CONFFX_END
+			ALLOCATION_DESC finalAllocDesc = *pAllocDesc;
+
+			const UINT defaultPoolIndex = CalcDefaultPoolIndex(*pAllocDesc);
+			bool requireCommittedMemory = (defaultPoolIndex == UINT32_MAX);
+			if (requireCommittedMemory)
+			{
+				return AllocateHeap(&finalAllocDesc, *pAllocInfo, ppAllocation);
+			}
+
+			BlockVector* blockVector = m_BlockVectors[defaultPoolIndex];
+			D3D12MA_ASSERT(blockVector);
+
+			const UINT64 preferredBlockSize = blockVector->GetPreferredBlockSize();
+			const bool preferCommittedMemory =
+				m_AlwaysCommitted ||
+				// Heuristics: Allocate committed memory if requested size if greater than half of preferred block size.
+				pAllocInfo->SizeInBytes > preferredBlockSize / 2;
+			if (preferCommittedMemory &&
+				(finalAllocDesc.Flags & ALLOCATION_FLAG_NEVER_ALLOCATE) == 0)
+			{
+				finalAllocDesc.Flags |= ALLOCATION_FLAG_COMMITTED;
+			}
+
+			if ((finalAllocDesc.Flags & ALLOCATION_FLAG_COMMITTED) != 0)
+			{
+				return AllocateHeap(&finalAllocDesc, *pAllocInfo, ppAllocation);
+			}
+			else
+			{
+				HRESULT hr = blockVector->Allocate(
+					pAllocInfo->SizeInBytes,
+					pAllocInfo->Alignment,
+					finalAllocDesc,
+					1,
+					(Allocation**)ppAllocation);
+				if (SUCCEEDED(hr))
+				{
+					return hr;
+				}
+
+				return AllocateHeap(&finalAllocDesc, *pAllocInfo, ppAllocation);
+			}
+		}
+	}
+
+	HRESULT AllocatorPimpl::CreateAliasingResource(
+		Allocation* pAllocation,
+		UINT64 AllocationLocalOffset,
+		const D3D12_RESOURCE_DESC* pResourceDesc,
+		D3D12_RESOURCE_STATES InitialResourceState,
+		const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+		REFIID riidResource,
+		void** ppvResource)
+	{
+		*ppvResource = NULL;
+
+		D3D12_RESOURCE_DESC resourceDesc2 = *pResourceDesc;
+		D3D12_RESOURCE_ALLOCATION_INFO resAllocInfo = GetResourceAllocationInfo(resourceDesc2);
+		resAllocInfo.Alignment = D3D12MA_MAX<UINT64>(resAllocInfo.Alignment, D3D12MA_DEBUG_ALIGNMENT);
+		D3D12MA_ASSERT(IsPow2(resAllocInfo.Alignment));
+		D3D12MA_ASSERT(resAllocInfo.SizeInBytes > 0);
+
+		ID3D12Heap* const existingHeap = pAllocation->GetHeap();
+		const UINT64 existingOffset = pAllocation->GetOffset();
+		const UINT64 existingSize = pAllocation->GetSize();
+		const UINT64 newOffset = existingOffset + AllocationLocalOffset;
+
+		if (existingHeap == NULL ||
+			AllocationLocalOffset + resAllocInfo.SizeInBytes > existingSize ||
+			newOffset % resAllocInfo.Alignment != 0)
+		{
+			return E_INVALIDARG;
+		}
+
+		return m_Device->CreatePlacedResource(
+			existingHeap,
+			newOffset,
+			&resourceDesc2,
+			InitialResourceState,
+			pOptimizedClearValue,
+			riidResource,
+			ppvResource);
+	}
+
+	HRESULT AllocatorPimpl::SetDefaultHeapMinBytes(
+		D3D12_HEAP_TYPE heapType,
+		D3D12_HEAP_FLAGS heapFlags,
+		UINT64 minBytes)
+	{
+		if (!IsHeapTypeValid(heapType))
+		{
+			D3D12MA_ASSERT(0 && "Allocator::SetDefaultHeapMinBytes: Invalid heapType passed.");
+			return E_INVALIDARG;
+		}
+
+		if (SupportsResourceHeapTier2())
+		{
+			if (heapFlags != D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES &&
+				heapFlags != D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS &&
+				heapFlags != D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES &&
+				heapFlags != D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES)
+			{
+				D3D12MA_ASSERT(0 && "Allocator::SetDefaultHeapMinBytes: Invalid heapFlags passed.");
+				return E_INVALIDARG;
+			}
+
+			UINT64 newMinBytes = UINT64_MAX;
+
+			{
+				MutexLockWrite lock(m_DefaultPoolMinBytesMutex, m_UseMutex);
+
+				if (heapFlags == D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES)
+				{
+					m_DefaultPoolHeapTypeMinBytes[HeapTypeToIndex(heapType)] = minBytes;
+					newMinBytes = minBytes;
+				}
+				else
+				{
+					const UINT defaultPoolTier1Index = CalcDefaultPoolIndex(heapType, heapFlags, false);
+					m_DefaultPoolTier1MinBytes[defaultPoolTier1Index] = minBytes;
+
+					newMinBytes = m_DefaultPoolHeapTypeMinBytes[HeapTypeToIndex(heapType)];
+					if (newMinBytes == UINT64_MAX)
+					{
+						newMinBytes = m_DefaultPoolTier1MinBytes[CalcDefaultPoolIndex(heapType, D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS, false)] +
+							m_DefaultPoolTier1MinBytes[CalcDefaultPoolIndex(heapType, D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES, false)] +
+							m_DefaultPoolTier1MinBytes[CalcDefaultPoolIndex(heapType, D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES, false)];
+					}
+				}
+			}
+
+			const UINT defaultPoolIndex = CalcDefaultPoolIndex(heapType, D3D12_HEAP_FLAG_ALLOW_ALL_BUFFERS_AND_TEXTURES);
+			return m_BlockVectors[defaultPoolIndex]->SetMinBytes(newMinBytes);
+		}
+		else
+		{
+			if (heapFlags != D3D12_HEAP_FLAG_ALLOW_ONLY_BUFFERS &&
+				heapFlags != D3D12_HEAP_FLAG_ALLOW_ONLY_NON_RT_DS_TEXTURES &&
+				heapFlags != D3D12_HEAP_FLAG_ALLOW_ONLY_RT_DS_TEXTURES)
+			{
+				D3D12MA_ASSERT(0 && "Allocator::SetDefaultHeapMinBytes: Invalid heapFlags passed.");
+				return E_INVALIDARG;
+			}
+
+			const UINT defaultPoolIndex = CalcDefaultPoolIndex(heapType, heapFlags);
+			return m_BlockVectors[defaultPoolIndex]->SetMinBytes(minBytes);
 		}
 	}
 
@@ -4559,7 +5633,7 @@ namespace D3D12MA
 		{
 			Budget budget = {};
 			GetBudgetForHeapType(budget, pAllocDesc->HeapType);
-			if (budget.Usage + resAllocInfo.SizeInBytes > budget.Budget)
+			if (budget.UsageBytes + resAllocInfo.SizeInBytes > budget.BudgetBytes)
 			{
 				return E_OUTOFMEMORY;
 			}
@@ -4571,13 +5645,17 @@ namespace D3D12MA
 		heapProps.CreationNodeMask = pAllocDesc->CreationNodeMask;
 		heapProps.VisibleNodeMask = pAllocDesc->VisibleNodeMask;
 		// CONFFX_END
+
+		D3D12_HEAP_FLAGS heapFlags = pAllocDesc->ExtraHeapFlags;
+
 		ID3D12Resource* res = NULL;
 		HRESULT hr = m_Device->CreateCommittedResource(
-			&heapProps, pAllocDesc->HeapFlags, pResourceDesc, InitialResourceState,
+			&heapProps, heapFlags, pResourceDesc, InitialResourceState,
 			pOptimizedClearValue, riidResource, (void**)&res);
 		if (SUCCEEDED(hr))
 		{
-			Allocation* alloc = m_AllocationObjectAllocator.Allocate(this, resAllocInfo.SizeInBytes);
+			const BOOL wasZeroInitialized = TRUE;
+			Allocation* alloc = m_AllocationObjectAllocator.Allocate(this, resAllocInfo.SizeInBytes, wasZeroInitialized);
 			alloc->InitCommitted(pAllocDesc->HeapType);
 			alloc->SetResource(res, pResourceDesc);
 
@@ -4599,11 +5677,6 @@ namespace D3D12MA
 
 	HRESULT AllocatorPimpl::AllocateHeap(
 		const ALLOCATION_DESC* pAllocDesc,
-		D3D12_HEAP_FLAGS heapFlags,
-		// CONFFX_BEGIN - Linked multi gpu
-		UINT creationNodeMask,
-		UINT visibleNodeMask,
-		// CONFFX_END
 		const D3D12_RESOURCE_ALLOCATION_INFO& allocInfo,
 		Allocation** ppAllocation)
 	{
@@ -4618,18 +5691,20 @@ namespace D3D12MA
 		{
 			Budget budget = {};
 			GetBudgetForHeapType(budget, pAllocDesc->HeapType);
-			if (budget.Usage + allocInfo.SizeInBytes > budget.Budget)
+			if (budget.UsageBytes + allocInfo.SizeInBytes > budget.BudgetBytes)
 			{
 				return E_OUTOFMEMORY;
 			}
 		}
 
+		D3D12_HEAP_FLAGS heapFlags = pAllocDesc->ExtraHeapFlags;
+
 		D3D12_HEAP_DESC heapDesc = {};
 		heapDesc.SizeInBytes = allocInfo.SizeInBytes;
 		heapDesc.Properties.Type = pAllocDesc->HeapType;
 		// CONFFX_BEGIN - Linked multi gpu
-		heapDesc.Properties.CreationNodeMask = creationNodeMask;
-		heapDesc.Properties.VisibleNodeMask = visibleNodeMask;
+		heapDesc.Properties.CreationNodeMask = pAllocDesc->CreationNodeMask;
+		heapDesc.Properties.VisibleNodeMask = pAllocDesc->VisibleNodeMask;
 		// CONFFX_END
 		heapDesc.Alignment = allocInfo.Alignment;
 		heapDesc.Flags = heapFlags;
@@ -4638,7 +5713,8 @@ namespace D3D12MA
 		HRESULT hr = m_Device->CreateHeap(&heapDesc, __uuidof(*heap), (void**)&heap);
 		if (SUCCEEDED(hr))
 		{
-			(*ppAllocation) = m_AllocationObjectAllocator.Allocate(this, allocInfo.SizeInBytes);
+			const BOOL wasZeroInitialized = TRUE;
+			(*ppAllocation) = m_AllocationObjectAllocator.Allocate(this, allocInfo.SizeInBytes, wasZeroInitialized);
 			(*ppAllocation)->InitHeap(pAllocDesc->HeapType, heap);
 			RegisterCommittedAllocation(*ppAllocation, pAllocDesc->HeapType);
 
@@ -4663,6 +5739,12 @@ namespace D3D12MA
 
 	UINT AllocatorPimpl::CalcDefaultPoolIndex(const ALLOCATION_DESC& allocDesc, const D3D12_RESOURCE_DESC& resourceDesc) const
 	{
+		const D3D12_HEAP_FLAGS extraHeapFlags = allocDesc.ExtraHeapFlags & ~GetExtraHeapFlagsToIgnore();
+		if (extraHeapFlags != 0)
+		{
+			return UINT32_MAX;
+		}
+
 		UINT poolIndex = UINT_MAX;
 		switch (allocDesc.HeapType)
 		{
@@ -4690,10 +5772,16 @@ namespace D3D12MA
 		return poolIndex;
 	}
 
-	UINT AllocatorPimpl::CalcDefaultPoolIndex(const ALLOCATION_DESC& allocDesc, const D3D12_HEAP_FLAGS heapFlags) const
+	UINT AllocatorPimpl::CalcDefaultPoolIndex(D3D12_HEAP_TYPE heapType, D3D12_HEAP_FLAGS heapFlags, bool supportsResourceHeapTier2)
 	{
+		const D3D12_HEAP_FLAGS extraHeapFlags = heapFlags & ~GetExtraHeapFlagsToIgnore();
+		if (extraHeapFlags != 0)
+		{
+			return UINT32_MAX;
+		}
+
 		UINT poolIndex = UINT_MAX;
-		switch (allocDesc.HeapType)
+		switch (heapType)
 		{
 		case D3D12_HEAP_TYPE_DEFAULT:  poolIndex = 0; break;
 		case D3D12_HEAP_TYPE_UPLOAD:   poolIndex = 1; break;
@@ -4701,7 +5789,7 @@ namespace D3D12MA
 		default: D3D12MA_ASSERT(0);
 		}
 
-		if (!SupportsResourceHeapTier2())
+		if (!supportsResourceHeapTier2)
 		{
 			poolIndex *= 3;
 
@@ -4788,9 +5876,30 @@ namespace D3D12MA
 		D3D12MA_ASSERT(success);
 	}
 
+	void AllocatorPimpl::RegisterPool(Pool* pool, D3D12_HEAP_TYPE heapType)
+	{
+		const UINT heapTypeIndex = HeapTypeToIndex(heapType);
+
+		MutexLockWrite lock(m_PoolsMutex[heapTypeIndex], m_UseMutex);
+		PoolVectorType* const pools = m_pPools[heapTypeIndex];
+		D3D12MA_ASSERT(pools);
+		pools->InsertSorted(pool, PointerLess());
+	}
+
+	void AllocatorPimpl::UnregisterPool(Pool* pool, D3D12_HEAP_TYPE heapType)
+	{
+		const UINT heapTypeIndex = HeapTypeToIndex(heapType);
+
+		MutexLockWrite lock(m_PoolsMutex[heapTypeIndex], m_UseMutex);
+		PoolVectorType* const pools = m_pPools[heapTypeIndex];
+		D3D12MA_ASSERT(pools);
+		bool success = pools->RemoveSorted(pool, PointerLess());
+		D3D12MA_ASSERT(success);
+	}
+
 	void AllocatorPimpl::FreeCommittedMemory(Allocation* allocation)
 	{
-		D3D12MA_ASSERT(allocation && allocation->m_Type == Allocation::TYPE_COMMITTED);
+		D3D12MA_ASSERT(allocation && allocation->m_PackedData.GetType() == Allocation::TYPE_COMMITTED);
 		UnregisterCommittedAllocation(allocation, allocation->m_Committed.heapType);
 
 		const UINT64 allocationSize = allocation->GetSize();
@@ -4801,7 +5910,7 @@ namespace D3D12MA
 
 	void AllocatorPimpl::FreePlacedMemory(Allocation* allocation)
 	{
-		D3D12MA_ASSERT(allocation && allocation->m_Type == Allocation::TYPE_PLACED);
+		D3D12MA_ASSERT(allocation && allocation->m_PackedData.GetType() == Allocation::TYPE_PLACED);
 
 		NormalBlock* const block = allocation->m_Placed.block;
 		D3D12MA_ASSERT(block);
@@ -4813,7 +5922,7 @@ namespace D3D12MA
 
 	void AllocatorPimpl::FreeHeapMemory(Allocation* allocation)
 	{
-		D3D12MA_ASSERT(allocation && allocation->m_Type == Allocation::TYPE_HEAP);
+		D3D12MA_ASSERT(allocation && allocation->m_PackedData.GetType() == Allocation::TYPE_HEAP);
 		UnregisterCommittedAllocation(allocation, allocation->m_Heap.heapType);
 		SAFE_RELEASE(allocation->m_Heap.heap);
 
@@ -4838,7 +5947,7 @@ namespace D3D12MA
 	void AllocatorPimpl::CalculateStats(Stats& outStats)
 	{
 		// Init stats
-		memset(&outStats, 0, sizeof(outStats));
+		ZeroMemory(&outStats, sizeof(outStats));
 		outStats.Total.AllocationSizeMin = UINT64_MAX;
 		outStats.Total.UnusedRangeSizeMin = UINT64_MAX;
 		for (size_t i = 0; i < HEAP_TYPE_COUNT; i++)
@@ -4855,16 +5964,29 @@ namespace D3D12MA
 			pBlockVector->AddStats(outStats);
 		}
 
-		// Process committed allocations.
-		for (size_t i = 0; i < HEAP_TYPE_COUNT; ++i)
+		// Process custom pools
+		for (size_t heapTypeIndex = 0; heapTypeIndex < HEAP_TYPE_COUNT; ++heapTypeIndex)
 		{
-			StatInfo& heapStatInfo = outStats.HeapType[i];
-			MutexLockRead lock(m_CommittedAllocationsMutex[i], m_UseMutex);
-			const AllocationVectorType* const allocationVector = m_pCommittedAllocations[i];
-			D3D12MA_ASSERT(allocationVector);
-			for (size_t j = 0, count = allocationVector->size(); j < count; ++j)
+			MutexLockRead lock(m_PoolsMutex[heapTypeIndex], m_UseMutex);
+			const PoolVectorType* const poolVector = m_pPools[heapTypeIndex];
+			D3D12MA_ASSERT(poolVector);
+			for (size_t poolIndex = 0, count = poolVector->size(); poolIndex < count; ++poolIndex)
 			{
-				UINT64 size = (*allocationVector)[j]->GetSize();
+				Pool* pool = (*poolVector)[poolIndex];
+				pool->m_Pimpl->GetBlockVector()->AddStats(outStats);
+			}
+		}
+
+		// Process committed allocations.
+		for (size_t heapTypeIndex = 0; heapTypeIndex < HEAP_TYPE_COUNT; ++heapTypeIndex)
+		{
+			StatInfo& heapStatInfo = outStats.HeapType[heapTypeIndex];
+			MutexLockRead lock(m_CommittedAllocationsMutex[heapTypeIndex], m_UseMutex);
+			const AllocationVectorType* const allocationVector = m_pCommittedAllocations[heapTypeIndex];
+			D3D12MA_ASSERT(allocationVector);
+			for (size_t allocIndex = 0, count = allocationVector->size(); allocIndex < count; ++allocIndex)
+			{
+				UINT64 size = (*allocationVector)[allocIndex]->GetSize();
 				StatInfo statInfo = {};
 				statInfo.BlockCount = 1;
 				statInfo.AllocationCount = 1;
@@ -4912,27 +6034,27 @@ namespace D3D12MA
 
 					if (m_Budget.m_D3D12UsageLocal + outGpuBudget->BlockBytes > m_Budget.m_BlockBytesAtBudgetFetch[0])
 					{
-						outGpuBudget->Usage = m_Budget.m_D3D12UsageLocal +
+						outGpuBudget->UsageBytes = m_Budget.m_D3D12UsageLocal +
 							outGpuBudget->BlockBytes - m_Budget.m_BlockBytesAtBudgetFetch[0];
 					}
 					else
 					{
-						outGpuBudget->Usage = 0;
+						outGpuBudget->UsageBytes = 0;
 					}
-					outGpuBudget->Budget = m_Budget.m_D3D12BudgetLocal;
+					outGpuBudget->BudgetBytes = m_Budget.m_D3D12BudgetLocal;
 				}
 				if (outCpuBudget)
 				{
 					if (m_Budget.m_D3D12UsageNonLocal + outCpuBudget->BlockBytes > m_Budget.m_BlockBytesAtBudgetFetch[1] + m_Budget.m_BlockBytesAtBudgetFetch[2])
 					{
-						outCpuBudget->Usage = m_Budget.m_D3D12UsageNonLocal +
+						outCpuBudget->UsageBytes = m_Budget.m_D3D12UsageNonLocal +
 							outCpuBudget->BlockBytes - (m_Budget.m_BlockBytesAtBudgetFetch[1] + m_Budget.m_BlockBytesAtBudgetFetch[2]);
 					}
 					else
 					{
-						outCpuBudget->Usage = 0;
+						outCpuBudget->UsageBytes = 0;
 					}
-					outCpuBudget->Budget = m_Budget.m_D3D12BudgetNonLocal;
+					outCpuBudget->BudgetBytes = m_Budget.m_D3D12BudgetNonLocal;
 				}
 			}
 			else
@@ -4947,14 +6069,14 @@ namespace D3D12MA
 			if (outGpuBudget)
 			{
 				const UINT64 gpuMemorySize = m_AdapterDesc.DedicatedVideoMemory + m_AdapterDesc.DedicatedSystemMemory; // TODO: Is this right?
-				outGpuBudget->Usage = outGpuBudget->BlockBytes;
-				outGpuBudget->Budget = gpuMemorySize * 8 / 10; // 80% heuristics.
+				outGpuBudget->UsageBytes = outGpuBudget->BlockBytes;
+				outGpuBudget->BudgetBytes = gpuMemorySize * 8 / 10; // 80% heuristics.
 			}
 			if (outCpuBudget)
 			{
 				const UINT64 cpuMemorySize = m_AdapterDesc.SharedSystemMemory; // TODO: Is this right?
-				outCpuBudget->Usage = outCpuBudget->BlockBytes;
-				outCpuBudget->Budget = cpuMemorySize * 8 / 10; // 80% heuristics.
+				outCpuBudget->UsageBytes = outCpuBudget->BlockBytes;
+				outCpuBudget->BudgetBytes = cpuMemorySize * 8 / 10; // 80% heuristics.
 			}
 		}
 	}
@@ -5051,7 +6173,6 @@ namespace D3D12MA
 				json.WriteString(L"DefaultPools");
 				json.BeginObject();
 
-				D3D12MA_ASSERT(SupportsResourceHeapTier2());
 				if (SupportsResourceHeapTier2())
 				{
 					for (size_t heapType = 0; heapType < HEAP_TYPE_COUNT; ++heapType)
@@ -5179,6 +6300,38 @@ namespace D3D12MA
 #endif
 	}
 
+	D3D12_RESOURCE_ALLOCATION_INFO AllocatorPimpl::GetResourceAllocationInfo(D3D12_RESOURCE_DESC& inOutResourceDesc) const
+	{
+#if D3D12MA_USE_SMALL_RESOURCE_PLACEMENT_ALIGNMENT
+		if (inOutResourceDesc.Alignment == 0 &&
+			inOutResourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D &&
+			(inOutResourceDesc.Flags & (D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET | D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)) == 0
+#if D3D12MA_USE_SMALL_RESOURCE_PLACEMENT_ALIGNMENT == 1
+			&& CanUseSmallAlignment(inOutResourceDesc)
+#endif
+			)
+		{
+			/*
+			The algorithm here is based on Microsoft sample: "Small Resources Sample"
+			https://github.com/microsoft/DirectX-Graphics-Samples/tree/master/Samples/Desktop/D3D12SmallResources
+			*/
+			const UINT64 smallAlignmentToTry = inOutResourceDesc.SampleDesc.Count > 1 ?
+				D3D12_SMALL_MSAA_RESOURCE_PLACEMENT_ALIGNMENT :
+				D3D12_SMALL_RESOURCE_PLACEMENT_ALIGNMENT;
+			inOutResourceDesc.Alignment = smallAlignmentToTry;
+			const D3D12_RESOURCE_ALLOCATION_INFO smallAllocInfo = m_Device->GetResourceAllocationInfo(0, 1, &inOutResourceDesc);
+			// Check if alignment requested has been granted.
+			if (smallAllocInfo.Alignment == smallAlignmentToTry)
+			{
+				return smallAllocInfo;
+			}
+			inOutResourceDesc.Alignment = 0; // Restore original
+		}
+#endif // #if D3D12MA_USE_SMALL_RESOURCE_PLACEMENT_ALIGNMENT
+
+		return m_Device->GetResourceAllocationInfo(0, 1, &inOutResourceDesc);
+	}
+
 	void AllocatorPimpl::WriteBudgetToJson(JsonWriter& json, const Budget& budget)
 	{
 		json.BeginObject();
@@ -5187,16 +6340,44 @@ namespace D3D12MA
 			json.WriteNumber(budget.BlockBytes);
 			json.WriteString(L"AllocationBytes");
 			json.WriteNumber(budget.AllocationBytes);
-			json.WriteString(L"Usage");
-			json.WriteNumber(budget.Usage);
-			json.WriteString(L"Budget");
-			json.WriteNumber(budget.Budget);
+			json.WriteString(L"UsageBytes");
+			json.WriteNumber(budget.UsageBytes);
+			json.WriteString(L"BudgetBytes");
+			json.WriteNumber(budget.BudgetBytes);
 		}
 		json.EndObject();
 	}
 
 	////////////////////////////////////////////////////////////////////////////////
 	// Public class Allocation implementation
+
+	void Allocation::PackedData::SetType(Type type)
+	{
+		const UINT u = (UINT)type;
+		D3D12MA_ASSERT(u < (1u << 2));
+		m_Type = u;
+	}
+
+	void Allocation::PackedData::SetResourceDimension(D3D12_RESOURCE_DIMENSION resourceDimension)
+	{
+		const UINT u = (UINT)resourceDimension;
+		D3D12MA_ASSERT(u < (1u << 3));
+		m_ResourceDimension = u;
+	}
+
+	void Allocation::PackedData::SetResourceFlags(D3D12_RESOURCE_FLAGS resourceFlags)
+	{
+		const UINT u = (UINT)resourceFlags;
+		D3D12MA_ASSERT(u < (1u << 24));
+		m_ResourceFlags = u;
+	}
+
+	void Allocation::PackedData::SetTextureLayout(D3D12_TEXTURE_LAYOUT textureLayout)
+	{
+		const UINT u = (UINT)textureLayout;
+		D3D12MA_ASSERT(u < (1u << 9));
+		m_TextureLayout = u;
+	}
 
 	void Allocation::Release()
 	{
@@ -5209,7 +6390,7 @@ namespace D3D12MA
 
 			SAFE_RELEASE(m_Resource);
 
-		switch (m_Type)
+		switch (m_PackedData.GetType())
 		{
 		case TYPE_COMMITTED:
 			m_Allocator->FreeCommittedMemory(this);
@@ -5229,7 +6410,7 @@ namespace D3D12MA
 
 	UINT64 Allocation::GetOffset() const
 	{
-		switch (m_Type)
+		switch (m_PackedData.GetType())
 		{
 		case TYPE_COMMITTED:
 		case TYPE_HEAP:
@@ -5244,7 +6425,7 @@ namespace D3D12MA
 
 	ID3D12Heap* Allocation::GetHeap() const
 	{
-		switch (m_Type)
+		switch (m_PackedData.GetType())
 		{
 		case TYPE_COMMITTED:
 			return NULL;
@@ -5270,18 +6451,20 @@ namespace D3D12MA
 		}
 	}
 
-	Allocation::Allocation(AllocatorPimpl* allocator, UINT64 size) :
+	Allocation::Allocation(AllocatorPimpl* allocator, UINT64 size, BOOL wasZeroInitialized) :
 		m_Allocator{ allocator },
-		m_Type{ TYPE_COUNT },
 		m_Size{ size },
 		m_Resource{ NULL },
-		m_ResourceDimension{ D3D12_RESOURCE_DIMENSION_UNKNOWN },
-		m_ResourceFlags{ D3D12_RESOURCE_FLAG_NONE },
-		m_TextureLayout{ D3D12_TEXTURE_LAYOUT_UNKNOWN },
 		m_CreationFrameIndex{ allocator->GetCurrentFrameIndex() },
 		m_Name{ NULL }
 	{
 		D3D12MA_ASSERT(allocator);
+
+		m_PackedData.SetType(TYPE_COUNT);
+		m_PackedData.SetResourceDimension(D3D12_RESOURCE_DIMENSION_UNKNOWN);
+		m_PackedData.SetResourceFlags(D3D12_RESOURCE_FLAG_NONE);
+		m_PackedData.SetTextureLayout(D3D12_TEXTURE_LAYOUT_UNKNOWN);
+		m_PackedData.SetWasZeroInitialized(wasZeroInitialized);
 	}
 
 	Allocation::~Allocation()
@@ -5291,20 +6474,20 @@ namespace D3D12MA
 
 	void Allocation::InitCommitted(D3D12_HEAP_TYPE heapType)
 	{
-		m_Type = TYPE_COMMITTED;
+		m_PackedData.SetType(TYPE_COMMITTED);
 		m_Committed.heapType = heapType;
 	}
 
 	void Allocation::InitPlaced(UINT64 offset, UINT64 alignment, NormalBlock* block)
 	{
-		m_Type = TYPE_PLACED;
+		m_PackedData.SetType(TYPE_PLACED);
 		m_Placed.offset = offset;
 		m_Placed.block = block;
 	}
 
 	void Allocation::InitHeap(D3D12_HEAP_TYPE heapType, ID3D12Heap* heap)
 	{
-		m_Type = TYPE_HEAP;
+		m_PackedData.SetType(TYPE_HEAP);
 		m_Heap.heapType = heapType;
 		m_Heap.heap = heap;
 	}
@@ -5314,9 +6497,9 @@ namespace D3D12MA
 		D3D12MA_ASSERT(m_Resource == NULL);
 		D3D12MA_ASSERT(pResourceDesc);
 		m_Resource = resource;
-		m_ResourceDimension = pResourceDesc->Dimension;
-		m_ResourceFlags = pResourceDesc->Flags;
-		m_TextureLayout = pResourceDesc->Layout;
+		m_PackedData.SetResourceDimension(pResourceDesc->Dimension);
+		m_PackedData.SetResourceFlags(pResourceDesc->Flags);
+		m_PackedData.SetTextureLayout(pResourceDesc->Layout);
 	}
 
 	void Allocation::FreeName()
@@ -5335,12 +6518,6 @@ namespace D3D12MA
 	AllocationObjectAllocator::AllocationObjectAllocator(const ALLOCATION_CALLBACKS& allocationCallbacks) :
 		m_Allocator(allocationCallbacks, 1024)
 	{
-		m_Mutex.Init();
-	}
-
-	AllocationObjectAllocator::~AllocationObjectAllocator()
-	{
-		m_Mutex.Destroy();
 	}
 
 	template<typename... Types> Allocation* AllocationObjectAllocator::Allocate(Types... args)
@@ -5404,11 +6581,6 @@ namespace D3D12MA
 
 	HRESULT Allocator::AllocateMemory(
 		const ALLOCATION_DESC* pAllocDesc,
-		D3D12_HEAP_FLAGS heapFlags,
-		// CONFFX_BEGIN - Linked multi gpu
-		UINT creationNodeMask,
-		UINT visibleNodeMask,
-		// CONFFX_END
 		const D3D12_RESOURCE_ALLOCATION_INFO* pAllocInfo,
 		Allocation** ppAllocation)
 	{
@@ -5419,16 +6591,71 @@ namespace D3D12MA
 				pAllocInfo->Alignment == D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT ||
 				pAllocInfo->Alignment == D3D12_DEFAULT_MSAA_RESOURCE_PLACEMENT_ALIGNMENT) ||
 			pAllocInfo->SizeInBytes == 0 ||
-			pAllocInfo->SizeInBytes % (64ull * 1024) != 0 ||
-			(heapFlags & ~(D3D12_HEAP_FLAG_DENY_BUFFERS | D3D12_HEAP_FLAG_DENY_RT_DS_TEXTURES | D3D12_HEAP_FLAG_DENY_NON_RT_DS_TEXTURES)) != 0)
+			pAllocInfo->SizeInBytes % (64ull * 1024) != 0)
 		{
 			D3D12MA_ASSERT(0 && "Invalid arguments passed to Allocator::AllocateMemory.");
 			return E_INVALIDARG;
 		}
 		D3D12MA_DEBUG_GLOBAL_MUTEX_LOCK
-			// CONFFX_BEGIN - Linked multi gpu
-			return m_Pimpl->AllocateMemory(pAllocDesc, heapFlags, creationNodeMask, visibleNodeMask, pAllocInfo, ppAllocation);
-			// CONFFX_END
+			return m_Pimpl->AllocateMemory(pAllocDesc, pAllocInfo, ppAllocation);
+	}
+
+	HRESULT Allocator::CreateAliasingResource(
+		Allocation* pAllocation,
+		UINT64 AllocationLocalOffset,
+		const D3D12_RESOURCE_DESC* pResourceDesc,
+		D3D12_RESOURCE_STATES InitialResourceState,
+		const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+		REFIID riidResource,
+		void** ppvResource)
+	{
+		if (!pAllocation || !pResourceDesc || riidResource == IID_NULL || !ppvResource)
+		{
+			D3D12MA_ASSERT(0 && "Invalid arguments passed to Allocator::CreateAliasingResource.");
+			return E_INVALIDARG;
+		}
+		D3D12MA_DEBUG_GLOBAL_MUTEX_LOCK
+			return m_Pimpl->CreateAliasingResource(pAllocation, AllocationLocalOffset, pResourceDesc, InitialResourceState, pOptimizedClearValue, riidResource, ppvResource);
+	}
+
+	HRESULT Allocator::CreatePool(
+		const POOL_DESC* pPoolDesc,
+		Pool** ppPool)
+	{
+		if (!pPoolDesc || !ppPool ||
+			!IsHeapTypeValid(pPoolDesc->HeapType) ||
+			(pPoolDesc->MaxBlockCount > 0 && pPoolDesc->MaxBlockCount < pPoolDesc->MinBlockCount))
+		{
+			D3D12MA_ASSERT(0 && "Invalid arguments passed to Allocator::CreatePool.");
+			return E_INVALIDARG;
+		}
+		if (!m_Pimpl->HeapFlagsFulfillResourceHeapTier(pPoolDesc->HeapFlags))
+		{
+			D3D12MA_ASSERT(0 && "Invalid pPoolDesc->HeapFlags passed to Allocator::CreatePool. Did you forget to handle ResourceHeapTier=1?");
+			return E_INVALIDARG;
+		}
+		D3D12MA_DEBUG_GLOBAL_MUTEX_LOCK
+			*ppPool = D3D12MA_NEW(m_Pimpl->GetAllocs(), Pool)(this, *pPoolDesc);
+		HRESULT hr = (*ppPool)->m_Pimpl->Init();
+		if (SUCCEEDED(hr))
+		{
+			m_Pimpl->RegisterPool(*ppPool, pPoolDesc->HeapType);
+		}
+		else
+		{
+			D3D12MA_DELETE(m_Pimpl->GetAllocs(), *ppPool);
+			*ppPool = NULL;
+		}
+		return hr;
+	}
+
+	HRESULT Allocator::SetDefaultHeapMinBytes(
+		D3D12_HEAP_TYPE heapType,
+		D3D12_HEAP_FLAGS heapFlags,
+		UINT64 minBytes)
+	{
+		D3D12MA_DEBUG_GLOBAL_MUTEX_LOCK
+			return m_Pimpl->SetDefaultHeapMinBytes(heapType, heapFlags, minBytes);
 	}
 
 	void Allocator::SetCurrentFrameIndex(UINT frameIndex)

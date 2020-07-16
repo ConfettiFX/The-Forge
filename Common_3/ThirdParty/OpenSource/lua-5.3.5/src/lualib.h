@@ -44,7 +44,7 @@ LUAMOD_API int (luaopen_math) (lua_State *L);
 #define LUA_DBLIBNAME	"debug"
 LUAMOD_API int (luaopen_debug) (lua_State *L);
 
-#if !defined(ORBIS)
+#if !defined(ORBIS) && !defined(PROSPERO)
 #define LUA_LOADLIBNAME	"package"
 LUAMOD_API int (luaopen_package) (lua_State *L);
 #endif

@@ -52,20 +52,16 @@ struct Fragment_Shader
 	uTexture0(uTexture0),uSampler0(uSampler0) {}
 };
 
-struct FSData {
-    texture2d<float> uTexture0;
-    sampler uSampler0;
-};
-
 fragment float4 stageMain(
 						  Fragment_Shader::VSOutput input [[stage_in]],
-                          constant FSData& fsData [[buffer(UPDATE_FREQ_NONE)]]
+						  texture2d<float> uTexture0      [[texture(0)]],
+						  sampler uSampler0               [[sampler(0)]]
 )
 {
 	Fragment_Shader::VSOutput input0;
 	input0.pos = float4(input.pos.xyz, 1.0 / input.pos.w);
 	input0.color = input.color;
 	input0.uv = input.uv;
-	Fragment_Shader main(fsData.uTexture0, fsData.uSampler0);
+	Fragment_Shader main(uTexture0, uSampler0);
 	return main.main(input0);
 }

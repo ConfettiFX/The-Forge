@@ -38,7 +38,7 @@
 // For systems that don't have the __FUNCTION__ variable, we can just define it here
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-#if !defined _WIN32 && !defined DURANGO
+#if !defined _WIN32 && !defined XBOX
 #define	__FUNCTION__ __func__
 #endif
 
@@ -51,6 +51,7 @@ typedef	struct tag_au
 	size_t		actualSize;
 	size_t		reportedSize;
 	size_t		alignment;
+	size_t		offset;
 	void		*actualAddress;
 	void		*reportedAddress;
 	char		sourceFile[140];
@@ -88,7 +89,6 @@ enum
 	m_alloc_new_array,
 	m_alloc_malloc,
 	m_alloc_calloc,
-	m_alloc_memalign,
 	m_alloc_realloc,
 	m_alloc_delete,
 	m_alloc_delete_array,

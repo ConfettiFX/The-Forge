@@ -27,8 +27,12 @@
 #import <Cocoa/Cocoa.h>
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
+#import <IOKit/graphics/IOGraphicsLib.h>
 
 #include <ctime>
+
+#include <mach/clock.h>
+#include <mach/mach.h>
 
 #include "../../ThirdParty/OpenSource/EASTL/vector.h"
 #include "../../ThirdParty/OpenSource/rmem/inc/rmem.h"
@@ -47,7 +51,9 @@
 
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
 
-static float2      gRetinaScale = { 1.0f, 1.0f };
+float2      gRetinaScale = { 1.0f, 1.0f };
+MonitorDesc* gMonitors = nullptr;
+uint32_t gMonitorCount = 0;
 
 // Protocol abstracting the platform specific view in order to keep the Renderer class independent from platform
 @protocol RenderDestinationProvider
@@ -78,10 +84,15 @@ static float2      gRetinaScale = { 1.0f, 1.0f };
     metalLayer = [CAMetalLayer layer];
     metalLayer.device =  device;
     metalLayer.framebufferOnly = YES; //todo: optimized way
-    metalLayer.pixelFormat = hdr? MTLPixelFormatRGBA16Float : MTLPixelFormatBGRA8Unorm;
+    metalLayer.pixelFormat = hdr ? MTLPixelFormatRGBA16Float : MTLPixelFormatBGRA8Unorm;
     metalLayer.wantsExtendedDynamicRangeContent = hdr? true : false;
     metalLayer.drawableSize = CGSizeMake(self.frame.size.width, self.frame.size.height);
-    metalLayer.displaySyncEnabled = vsync;
+#if defined(ENABLE_DISPLAY_SYNC_TOGGLE)
+	if (@available(macOS 10.13, *))
+	{
+		metalLayer.displaySyncEnabled = vsync;
+	}
+#endif
     self.layer = metalLayer;
     
     [self setAutoresizingMask:NSViewWidthSizable|NSViewHeightSizable];
@@ -116,26 +127,208 @@ bool isCaptured = false;
 
 static WindowsDesc gCurrentWindow;
 
-
-// TODO: Add multiple window/monitor handling functionality to macOS.
-//static eastl::vector <MonitorDesc> gMonitors;
-//static eastl::unordered_map<void*, WindowsDesc*> gWindowMap;
-
 void adjustWindow(WindowsDesc* winDesc);
 
-#if !defined(METAL)
-// TODO: Add multiple monitor handling functionality.
 static void collectMonitorInfo()
 {
-	// TODO: Implement.
-	ASSERT(0);
+	uint32_t displayCount = 0;
+	CGError error = CGGetOnlineDisplayList(0, nil, &displayCount);
+	if(error != kCGErrorSuccess)
+	{
+		ASSERT(0);
+	}
+	
+	eastl::vector<CGDirectDisplayID> onlineDisplayIDs(displayCount);
+	
+	error = CGGetOnlineDisplayList(displayCount, onlineDisplayIDs.data(), &displayCount);
+	if(error != kCGErrorSuccess)
+	{
+		ASSERT(0);
+	}
+	
+	ASSERT(displayCount != 0);
+	
+	gMonitorCount = displayCount;
+	gMonitors = (MonitorDesc*)conf_calloc(displayCount, sizeof(MonitorDesc));
+	
+	CFMutableDictionaryRef matchingService = IOServiceMatching("IODisplayConnect");
+	
+	io_iterator_t serviceIterator = 0;
+	kern_return_t serviceError = IOServiceGetMatchingServices(kIOMasterPortDefault, matchingService, &serviceIterator);
+	if(serviceError != 0)
+	{
+		ASSERT(0);
+	}
+	
+	io_service_t service = 0;
+	uint32_t index = 0;
+	CGDirectDisplayID mainDisplayID = CGMainDisplayID();
+	while ((service = IOIteratorNext(serviceIterator)) != 0)
+	{
+		CFDictionaryRef infoDictionary =
+			(CFDictionaryRef)IODisplayCreateInfoDictionary(service,
+														   kIODisplayOnlyPreferredName);
+		
+		CFIndex vendorID, productID;
+		CFNumberGetValue((CFNumberRef)CFDictionaryGetValue(infoDictionary, CFSTR(kDisplayVendorID)),
+						 kCFNumberCFIndexType,
+						 &vendorID);
+		CFNumberGetValue((CFNumberRef)CFDictionaryGetValue(infoDictionary, CFSTR(kDisplayProductID)),
+						 kCFNumberCFIndexType,
+						 &productID);
+		
+		CGDirectDisplayID displayID = 0;
+		for(CGDirectDisplayID currentDisplayID : onlineDisplayIDs)
+		{
+			CFIndex currentVendorID = CGDisplayVendorNumber(currentDisplayID);
+			CFIndex currentProductID = CGDisplayModelNumber(currentDisplayID);
+			
+			if(currentVendorID == vendorID &&
+			   currentProductID == productID)
+			{
+				displayID = currentDisplayID;
+				break;
+			}
+		}
+		
+		if(displayID == 0) continue;
+		
+		MonitorDesc& display = gMonitors[index];
+		
+		display.displayID = displayID;
+		
+		CFDictionaryRef localizedNames =
+			(CFDictionaryRef)CFDictionaryGetValue(infoDictionary,
+												  CFSTR(kDisplayProductName));
+		void* key = nil;
+		CFDictionaryGetKeysAndValues(localizedNames, (const void **)&key, nil);
+		
+		NSString* displayName = (NSString*)CFDictionaryGetValue(localizedNames, key);
+		strcpy(display.publicDisplayName, displayName.UTF8String);
+		
+		id<MTLDevice> metalDevice = CGDirectDisplayCopyCurrentMetalDevice(displayID);
+		strcpy(display.publicAdapterName, metalDevice.name.UTF8String);
+		
+		CGRect displayBounds = CGDisplayBounds(displayID);
+		display.workRect =
+		{
+			(int32_t)displayBounds.origin.x,
+			(int32_t)displayBounds.origin.y,
+			(int32_t)displayBounds.size.width,
+			(int32_t)displayBounds.size.height
+		};
+		display.monitorRect = display.workRect;
+		
+		display.defaultResolution.mWidth = (uint32_t)CGDisplayPixelsWide(displayID);
+		display.defaultResolution.mHeight = (uint32_t)CGDisplayPixelsHigh(displayID);
+		
+		eastl::vector<Resolution> displayResolutions;
+		CFArrayRef displayModes = CGDisplayCopyAllDisplayModes(displayID, nil);
+		for(CFIndex i = 0; i < CFArrayGetCount(displayModes); ++i)
+		{
+			CGDisplayModeRef currentDisplayMode = (CGDisplayModeRef)CFArrayGetValueAtIndex(displayModes, i);
+			
+			Resolution displayResolution;
+			displayResolution.mWidth = (uint32_t)CGDisplayModeGetWidth(currentDisplayMode);
+			displayResolution.mHeight = (uint32_t)CGDisplayModeGetHeight(currentDisplayMode);
+			
+			displayResolutions.emplace_back(displayResolution);
+		}
+		
+		qsort(displayResolutions.data(),
+			  displayResolutions.size(),
+			  sizeof(Resolution),
+			  [](const void* lhs, const void* rhs)
+		{
+			Resolution* pLhs = (Resolution*)lhs;
+			Resolution* pRhs = (Resolution*)rhs;
+			if (pLhs->mHeight == pRhs->mHeight)
+				return (int)(pLhs->mWidth - pRhs->mWidth);
+			return (int)(pLhs->mHeight - pRhs->mHeight);
+		});
+		
+		display.resolutionCount = (uint32_t)displayResolutions.size();
+		display.resolutions = (Resolution*)conf_calloc(display.resolutionCount, sizeof(Resolution));
+		memcpy(display.resolutions, displayResolutions.data(), display.resolutionCount * sizeof(Resolution));
+		
+		CFRelease(displayModes);
+		
+		if(displayID == mainDisplayID && index != 0)
+		{
+			std::swap(gMonitors[0], gMonitors[index]);
+		}
+		
+		CFRelease(infoDictionary);
+		
+		++index;
+	}
 }
+
 void setResolution(const MonitorDesc* pMonitor, const Resolution* pMode)
 {
-	// TODO: Implement.
-	ASSERT(0);
+	ASSERT(pMonitor != nil);
+	ASSERT(pMode != nil);
+	
+	CGDirectDisplayID display = pMonitor->displayID;
+	CFArrayRef displayModes = CGDisplayCopyAllDisplayModes(display, nil);
+	
+	ASSERT(displayModes != nil);
+	
+	int64_t smallestDiff = std::numeric_limits<int64_t>::max();
+	CGDisplayModeRef bestMode = nil;
+	for(CFIndex i = 0; i < CFArrayGetCount(displayModes); ++i)
+	{
+		CGDisplayModeRef mode = (CGDisplayModeRef)CFArrayGetValueAtIndex(displayModes, i);
+		int64_t width = (int64_t)CGDisplayModeGetWidth(mode);
+		int64_t height = (int64_t)CGDisplayModeGetHeight(mode);
+		
+		int64_t desiredWidth = pMode->mWidth;
+		int64_t desiredHeight = pMode->mHeight;
+		
+		int64_t diffw = width - desiredWidth;
+		int64_t diffw2 = diffw * diffw;
+		
+		int64_t diffh = height - desiredHeight;
+		int64_t diffh2 = diffh * diffh;
+		
+		int64_t lenSq = diffw2 + diffh2;
+		if(smallestDiff > lenSq)
+		{
+			smallestDiff = lenSq;
+			bestMode = mode;
+		}
+	}
+	
+	ASSERT(bestMode != nil);
+	
+	size_t width = CGDisplayModeGetWidth(bestMode);
+	size_t height = CGDisplayModeGetHeight(bestMode);
+	if(pMode->mWidth == width && pMode->mHeight == height)
+	{
+		return;
+	}
+	
+	CGDisplayConfigRef configRef;
+	CGError error = CGBeginDisplayConfiguration(&configRef);
+	if(error != kCGErrorSuccess)
+	{
+		ASSERT(0);
+	}
+	
+	error = CGConfigureDisplayWithDisplayMode(configRef, display, bestMode, nil);
+	if(error != kCGErrorSuccess)
+	{
+		ASSERT(0);
+	}
+	
+	error = CGCompleteDisplayConfiguration(configRef, kCGConfigureForSession);
+	if(error != kCGErrorSuccess)
+	{
+		ASSERT(0);
+	}
+	
+	CFRelease(displayModes);
 }
-#endif
 
 void getRecommendedResolution(RectDesc* rect) { *rect = RectDesc{ 0, 0, 1920, 1080 }; }
 
@@ -157,7 +350,6 @@ void openWindow(const char* app_name, WindowsDesc* winDesc, id<MTLDevice> device
     [Window invalidateRestorableState];
     [Window makeKeyAndOrderFront: nil];
     [Window makeMainWindow];
-    winDesc->handle.window = (void*)CFBridgingRetain(Window);
     
     // Adjust window size to match retina scaling.
     CGFloat scale = [Window backingScaleFactor];
@@ -167,6 +359,7 @@ void openWindow(const char* app_name, WindowsDesc* winDesc, id<MTLDevice> device
     [Window setContentView: View];
     [Window setDelegate: View];
     View.delegate = delegateRenderProvider;
+    winDesc->handle.window = (void*)CFBridgingRetain(View);
 
     NSSize windowSize = CGSizeMake(ViewRect.size.width / gRetinaScale.x, ViewRect.size.height / gRetinaScale.y);
     [Window setContentSize:windowSize];
@@ -193,6 +386,15 @@ void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
 }
 
 void setWindowSize(WindowsDesc* winDesc, unsigned width, unsigned height) { setWindowRect(winDesc, { 0, 0, (int)width, (int)height }); }
+
+void toggleBorderless(WindowsDesc* winDesc, unsigned width, unsigned height)
+{
+	if (!winDesc->fullScreen)
+	{
+		winDesc->borderlessWindow = !winDesc->borderlessWindow;
+		setWindowSize(winDesc, width, height);
+	}
+}
 
 void toggleFullscreen(WindowsDesc* winDesc)
 {
@@ -243,18 +445,38 @@ void setMousePositionRelative(const WindowsDesc* winDesc, int32_t x, int32_t y)
 /************************************************************************/
 // Time Related Functions
 /************************************************************************/
+#ifdef MAC_OS_X_VERSION_10_12
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= MAC_OS_X_VERSION_10_12
+#define ENABLE_CLOCK_GETTIME
+#endif
+#endif
 
 unsigned getSystemTime()
 {
 	long            ms;    // Milliseconds
 	time_t          s;     // Seconds
 	struct timespec spec;
-
-	clock_gettime(_CLOCK_MONOTONIC, &spec);
-
+	
+#if defined(ENABLE_CLOCK_GETTIME)
+	if (@available(macOS 10.12, *))
+	{
+		clock_gettime(_CLOCK_MONOTONIC, &spec);
+	}
+	else
+#endif
+	{
+		// https://stackoverflow.com/questions/5167269/clock-gettime-alternative-in-mac-os-x
+		clock_serv_t cclock;
+		mach_timespec_t mts;
+		host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+		clock_get_time(cclock, &mts);
+		mach_port_deallocate(mach_task_self(), cclock);
+		spec.tv_sec = mts.tv_sec;
+		spec.tv_nsec = mts.tv_nsec;
+	}
+	
 	s = spec.tv_sec;
 	ms = round(spec.tv_nsec / 1.0e6);    // Convert nanoseconds to milliseconds
-
 	ms += s * 1000;
 
 	return (unsigned int)ms;
@@ -263,18 +485,42 @@ unsigned getSystemTime()
 int64_t getUSec()
 {
 	timespec ts;
-	clock_gettime(_CLOCK_MONOTONIC, &ts);
+	
+#if defined(ENABLE_CLOCK_GETTIME)
+	if (@available(macOS 10.12, *))
+	{
+		clock_gettime(_CLOCK_MONOTONIC, &ts);
+	}
+	else
+#endif
+	{
+		// https://stackoverflow.com/questions/5167269/clock-gettime-alternative-in-mac-os-x
+		clock_serv_t cclock;
+		mach_timespec_t mts;
+		host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+		clock_get_time(cclock, &mts);
+		mach_port_deallocate(mach_task_self(), cclock);
+		ts.tv_sec = mts.tv_sec;
+		ts.tv_nsec = mts.tv_nsec;
+	}
+	
 	long us = (ts.tv_nsec / 1000);
-	us += ts.tv_sec * 1e6;
+	us += ts.tv_sec * CLOCKS_PER_SEC;
 	return us;
 }
 
 int64_t getTimerFrequency()
 {
-    return 1;
+    return CLOCKS_PER_SEC;
 }
 
 unsigned getTimeSinceStart() { return (unsigned)time(NULL); }
+
+MonitorDesc* getMonitor(uint32_t index)
+{
+	ASSERT(gMonitorCount > index);
+	return &gMonitors[index];
+}
 
 float2 getDpiScale() { return gRetinaScale; }
 /************************************************************************/
@@ -286,6 +532,21 @@ static IApp* pApp = NULL;
 int macOSMain(int argc, const char** argv, IApp* app)
 {
 	pApp = app;
+	
+	NSDictionary* info = [[NSBundle mainBundle] infoDictionary];
+	NSString* minVersion = info[@"LSMinimumSystemVersion"];
+	NSArray* versionStr = [minVersion componentsSeparatedByString:@"."];
+	NSOperatingSystemVersion version = {};
+	version.majorVersion = versionStr.count > 0 ? [versionStr[0] integerValue] : 10;
+	version.minorVersion = versionStr.count > 1 ? [versionStr[1] integerValue] : 11;
+	version.patchVersion = versionStr.count > 2 ? [versionStr[2] integerValue] : 0;
+	if (![[NSProcessInfo processInfo] isOperatingSystemAtLeastVersion:version])
+	{
+		NSString* osVersion = [[NSProcessInfo processInfo] operatingSystemVersionString];
+		NSLog(@"Application requires at least macOS %@, but is being run on %@, and so is exiting", minVersion, osVersion);
+		return 0;
+	}
+	
 	return NSApplicationMain(argc, argv);
 }
 
@@ -405,6 +666,8 @@ uint32_t testingMaxFrameCount = 120;
 		fsInitAPI();
 		Log::Init();
 		
+		collectMonitorInfo();
+		
 		pSettings = &pApp->mSettings;
 
 		if (pSettings->mWidth == -1 || pSettings->mHeight == -1)
@@ -496,6 +759,17 @@ uint32_t testingMaxFrameCount = 120;
 
 - (void)shutdown
 {
+	for(int i = 0; i < gMonitorCount; ++i)
+	{
+		MonitorDesc& monitor = gMonitors[i];
+		conf_free(monitor.resolutions);
+	}
+	
+	if(gMonitorCount > 0)
+	{
+		conf_free(gMonitors);
+	}
+	
 	pApp->Unload();
 	pApp->Exit();
 	Log::Exit();

@@ -57,6 +57,7 @@ void Mutex::Acquire()
 	if(count == mSpinCount)
 	{
 		int r = pthread_mutex_lock(&pHandle);
+		UNREF_PARAM(r);
 		ASSERT(r == 0 && "Mutex::Acquire failed to take the lock");
 	}
 }
@@ -170,6 +171,7 @@ ThreadHandle create_thread(ThreadDesc* pData)
 {
 	pthread_t handle;
 	int       res = pthread_create(&handle, NULL, ThreadFunctionStatic, pData);
+	UNREF_PARAM(res);
 	ASSERT(res == 0);
 	return (ThreadHandle)handle;
 }

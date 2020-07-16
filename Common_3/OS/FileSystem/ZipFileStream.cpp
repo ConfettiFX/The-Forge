@@ -38,6 +38,12 @@ ZipFileStream::ZipFileStream(zip_t* source, FileMode mode, const Path* path):
 
 size_t ZipFileStream::Read(void* outputBuffer, size_t bufferSizeInBytes)
 {
+	if (!(mMode & FM_READ))
+	{
+		LOGF(eERROR, "Zip File not opened for reading");
+		return -1;
+	}
+
 	ssize_t bytesRead = zip_entry_noallocread(pSource, outputBuffer, (ssize_t)bufferSizeInBytes);
 	if (bytesRead == -1)
 	{
@@ -56,6 +62,12 @@ size_t ZipFileStream::Scan(const char* format, va_list args, int* bytesRead)
 
 size_t ZipFileStream::Write(const void* sourceBuffer, size_t byteCount)
 {
+	if (!(mMode & FM_WRITE))
+	{
+		LOGF(eERROR, "Zip File not opened for reading");
+		return -1;
+	}
+
 	int64_t bytesWritten = zip_entry_write(pSource, sourceBuffer, (ssize_t)byteCount);
 	if (bytesWritten == -1)
 	{

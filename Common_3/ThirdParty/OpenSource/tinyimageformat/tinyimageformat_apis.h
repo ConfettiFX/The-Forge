@@ -1677,7 +1677,7 @@ inline bool TinyImageFormat_MTLPixelFormatOnMac(TinyImageFormat_MTLPixelFormat f
 }
 
 	
-inline bool TinyImageFormat_MTLPixelFormatOnIOs(TinyImageFormat_MTLPixelFormat fmt) {
+inline bool TinyImageFormat_MTLPixelFormatOnIOS(TinyImageFormat_MTLPixelFormat fmt) {
 	switch(fmt) {
 	case TIF_MTLPixelFormatA8Unorm:
 	case TIF_MTLPixelFormatR8Unorm:

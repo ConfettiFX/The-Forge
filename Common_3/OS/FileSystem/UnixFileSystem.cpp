@@ -121,7 +121,7 @@ bool UnixFileSystem::CreateDirectory(const Path* directoryPath) const
 
 bool UnixFileSystem::FileExists(const Path* path) const
 {
-#if defined(ORBIS)
+#if defined(ORBIS) || defined(PROSPERO)
 	struct stat orbis_file_stats;
 	int32_t ret = stat(fsGetPathAsNativeString(path), &orbis_file_stats);
 	return ret == 0;

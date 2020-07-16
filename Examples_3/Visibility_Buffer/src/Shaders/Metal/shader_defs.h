@@ -63,7 +63,7 @@
 // number of draw calls to draw after triangle filtering and batch compaction.
 // This value number is stored in the last position of the indirect draw buffer.
 // So it depends on MAX_DRAWS_INDIRECT
-#define INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS 5
+#define INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS 8
 #define DRAW_COUNTER_SLOT_POS 				((MAX_DRAWS_INDIRECT-1)*INDIRECT_DRAW_ARGUMENTS_STRUCT_NUM_ELEMENTS)
 #define DRAW_COUNTER_SLOT_OFFSET_IN_BYTES	(DRAW_COUNTER_SLOT_POS*sizeof(uint))
 
@@ -87,14 +87,14 @@
 #define UNIT_DIFFUSEMAPS                  16
 
 // icb units
-#define UNIT_VBPASS_POSITION              0
-#define UNIT_VBPASS_TEXCOORD              1
-#define UNIT_VBPASS_TANGENT               3
-#define UNIT_VBPASS_NORMAL                2
-#define UNIT_VBPASS_UNIFORMS              5
-#define UNIT_VBPASS_TEXTURES              10
-#define UINT_VBPASS_DRAWID                6
-#define UINT_VBPASS_MAX                   10
+#define UNIT_VBPASS_POSITION              30
+#define UNIT_VBPASS_TEXCOORD              29
+#define UNIT_VBPASS_NORMAL                28
+#define UNIT_VBPASS_TANGENT               27
+#define UNIT_VBPASS_TEXTURES              0
+#define UNIT_VBPASS_UNIFORMS              1
+#define UINT_VBPASS_DRAWID                2
+#define UINT_VBPASS_MAX                   7
 
 #if MTL_SHADER
 typedef packed_float2 shader_packed_float2;

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5C05FC7A247BEBD600D4AF59 /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C512C4C2141556900E7A798 /* libThe-Forge_iOS.a */; };
 		5C512C402141555200E7A798 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C512C3E2141555200E7A798 /* AppDelegate.m */; };
 		5C512C512141559800E7A798 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C512C4A2141556900E7A798 /* libThe-Forge.a */; };
 		650CCC712223CD2E003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC702223CD2E003533D9 /* MetalPerformanceShaders.framework */; };
@@ -169,6 +170,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				650CCC732223CD3A003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
+				5C05FC7A247BEBD600D4AF59 /* libThe-Forge_iOS.a in Frameworks */,
 				D062DAD52211027700CF2B1B /* GameController.framework in Frameworks */,
 				D062DAD32211027000CF2B1B /* UIKit.framework in Frameworks */,
 				D062DAC52210FFED00CF2B1B /* Metal.framework in Frameworks */,
@@ -491,6 +493,7 @@
 		D062DACC2210FFED00CF2B1B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_WARN_COMMA = NO;
@@ -511,7 +514,7 @@
 					../,
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/14_WaveIntrinsics_iOS/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -531,6 +534,7 @@
 		D062DACD2210FFED00CF2B1B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_WARN_COMMA = NO;
@@ -549,7 +553,7 @@
 					../,
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/14_WaveIntrinsics_iOS/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -700,7 +704,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.14-WaveIntrinsics";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -738,7 +742,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.14-WaveIntrinsics";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

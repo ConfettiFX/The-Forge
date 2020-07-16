@@ -60,7 +60,7 @@
 	try { a } catch(...) { if ((c)->status == 0) (c)->status = -1; }
 #define luai_jmpbuf		int  /* dummy variable */
 
-#elif defined(LUA_USE_POSIX) && !defined(ORBIS)				/* }{ */
+#elif defined(LUA_USE_POSIX) && !defined(ORBIS) && !defined(PROSPERO)				/* }{ */
 
 /* in POSIX, try _longjmp/_setjmp (more efficient) */
 #define LUAI_THROW(L,c)		_longjmp((c)->b, 1)

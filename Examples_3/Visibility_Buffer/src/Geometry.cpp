@@ -1135,10 +1135,9 @@ void addClusterToBatchChunk(
 	smallBatchData->drawBatchStart = batchStart;
 }
 
-void createCubeBuffers(Renderer* pRenderer, CmdPool* cmdPool, Buffer** ppVertexBuffer, Buffer** ppIndexBuffer)
+void createCubeBuffers(Renderer* pRenderer, Buffer** ppVertexBuffer, Buffer** ppIndexBuffer)
 {
 	UNREF_PARAM(pRenderer);
-	UNREF_PARAM(cmdPool);
 	// Create vertex buffer
 	float vertexData[] = {
 		-1, -1, -1, 1, 1, -1, -1, 1, 1, 1, -1, 1, -1, 1, -1, 1, -1, -1, 1, 1, 1, -1, 1, 1, 1, 1, 1, 1, -1, 1, 1, 1,
@@ -1150,7 +1149,7 @@ void createCubeBuffers(Renderer* pRenderer, CmdPool* cmdPool, Buffer** ppVertexB
 	vbDesc.mDesc.mSize = sizeof(vertexData);
 	vbDesc.pData = vertexData;
 	vbDesc.ppBuffer = ppVertexBuffer;
-	vbDesc.mDesc.pDebugName = L"VB Desc";
+	vbDesc.mDesc.pName = "VB Desc";
 	addResource(&vbDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 	// Create index buffer
@@ -1164,6 +1163,6 @@ void createCubeBuffers(Renderer* pRenderer, CmdPool* cmdPool, Buffer** ppVertexB
 	ibDesc.mDesc.mSize = sizeof(indices);
 	ibDesc.pData = indices;
 	ibDesc.ppBuffer = ppIndexBuffer;
-	ibDesc.mDesc.pDebugName = L"IB Desc";
+	ibDesc.mDesc.pName = "IB Desc";
 	addResource(&ibDesc, NULL, LOAD_PRIORITY_NORMAL);
 }

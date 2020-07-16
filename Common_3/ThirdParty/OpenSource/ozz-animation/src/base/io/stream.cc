@@ -38,6 +38,7 @@
 
 #include "../../EASTL/numeric_limits.h"
 
+extern FileMode fsFileModeFromString(const char* modeStr);
 
 namespace ozz {
     namespace io {

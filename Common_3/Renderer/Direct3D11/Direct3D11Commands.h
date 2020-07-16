@@ -67,16 +67,16 @@ struct BindDescriptorsCmd
 {
 	DescriptorSet* pDescriptorSet;
 	void*          pDynamicCBVs;
-	uint8_t        mDynamicCBVCount;
-	uint8_t        mIndex;
+	uint32_t        mDynamicCBVCount;
+	uint32_t        mIndex;
 };
 
 struct BindPushConstantsCmd
 {
-	uint8_t mPushConstant[128];
-	uint8_t mBinding;
-	uint8_t mSize;
-	uint8_t mStage;
+	uint32_t mPushConstant[128];
+	uint32_t mBinding;
+	uint32_t mSize;
+	uint32_t mStage;
 };
 
 struct BindIndexBufferCmd
@@ -210,6 +210,15 @@ struct UpdateBufferCmd
 	uint64_t size;
 	Buffer*  pSrcBuffer;
 	Buffer*  pBuffer;
+};
+
+struct SubresourceDataDesc
+{
+	uint64_t mSrcOffset;
+	uint32_t mMipLevel;
+	uint32_t mArrayLayer;
+	uint32_t mRowPitch;
+	uint32_t mSlicePitch;
 };
 
 struct UpdateSubresourcesCmd

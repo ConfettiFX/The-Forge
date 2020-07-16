@@ -47,7 +47,7 @@
 
 // for cpu usage query
 #if defined(_WIN32)
-#if defined(_DURANGO)
+#if defined(XBOX)
 #else
 #include <Windows.h>
 #include <comdef.h>
@@ -83,7 +83,7 @@ struct ParticleData
 struct ThreadData
 {
 	CmdPool*          pCmdPool;
-	Cmd**             ppCmds;
+	Cmd*              pCmd;
 	RenderTarget*     pRenderTarget;
 	int               mStartPoint;
 	int               mDrawCount;
@@ -129,17 +129,19 @@ struct CpuGraph
 	ViewPortState mViewPort;                     //view port for different core
 };
 
-const int gTotalParticleCount = 2000000;
+int gTotalParticleCount = 2000000;
 uint32_t  gGraphWidth = 200;
 uint32_t  gGraphHeight = 100;
 
 Renderer* pRenderer = NULL;
 
-Queue*   pGraphicsQueue = NULL;
-CmdPool* pCmdPool = NULL;
-Cmd**    ppCmds = NULL;
-CmdPool* pGraphCmdPool = NULL;
-Cmd**    ppGraphCmds = NULL;
+Queue*    pGraphicsQueue = NULL;
+CmdPool*  pCmdPool[gImageCount] = { NULL };
+Cmd*      ppCmds[gImageCount] = { NULL };
+Cmd*      ppGraphCmds[gImageCount] = { NULL };
+
+Cmd**     ppThreadCmds[gImageCount] = { NULL };
+CmdPool** pThreadCmdPools[gImageCount] = { NULL };
 
 Fence*     pRenderCompleteFences[gImageCount] = { NULL };
 Semaphore* pImageAcquiredSemaphore = NULL;
@@ -170,9 +172,10 @@ VirtualJoystickUI gVirtualJoystick;
 Sampler* pSampler = NULL;
 Sampler* pSamplerSkyBox = NULL;
 uint32_t gFrameIndex = 0;
+bool	 bShowThreadsPlot = true;
 
 #if defined(_WIN32)
-#if defined(_DURANGO)
+#if defined(XBOX)
 #else
 IWbemServices* pService;
 IWbemLocator*  pLocator;
@@ -202,6 +205,7 @@ uint32_t     gSeed;
 float        gPaletteFactor;
 uint         gTextureIndex;
 
+GuiComponent* pGuiWindow;
 UIApp              gAppUI;
 ICameraController* pCameraController = NULL;
 
@@ -216,7 +220,7 @@ const char* pImageFileNames[] = { "Palette_Fire", "Palette_Purple", "Palette_Mut
 const char* pSkyBoxImageFileNames[] = { "Skybox_right1",  "Skybox_left2",  "Skybox_top3",
 										"Skybox_bottom4", "Skybox_front5", "Skybox_back6" };
 
-TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 18);
+TextDrawDesc gFrameTimeDraw = TextDrawDesc(0, 0xff00ffff, 14);
 
 class MultiThread: public IApp
 {
@@ -226,6 +230,12 @@ class MultiThread: public IApp
 #ifdef TARGET_IOS
 		mSettings.mContentScaleFactor = 1.f;
 #endif
+#ifdef ANDROID
+		//We reduce particles quantity for Android in order to keep 30fps
+		gTotalParticleCount = 750000;
+		bShowThreadsPlot = false;
+#endif // ANDROID
+
 	}
 	
 	bool Init()
@@ -271,25 +281,10 @@ class MultiThread: public IApp
 		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
 		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		CmdPoolDesc cmdPoolDesc = {};
-		cmdPoolDesc.pQueue = pGraphicsQueue;
-		addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
-		CmdDesc cmdDesc = {};
-		cmdDesc.pPool = pCmdPool;
-		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
-
-		addCmdPool(pRenderer, &cmdPoolDesc, &pGraphCmdPool);
-		cmdDesc.pPool = pGraphCmdPool;
-		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppGraphCmds);
 
 		// initial needed data for each thread
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 		{
-			// create cmd pools and and cmdbuffers for all thread
-			addCmdPool(pRenderer, &cmdPoolDesc, &pThreadData[i].pCmdPool);
-			cmdDesc.pPool = pThreadData[i].pCmdPool;
-			addCmd_n(pRenderer, &cmdDesc, gImageCount, &pThreadData[i].ppCmds);
-
 			// fill up the data for drawing point
 			pThreadData[i].mStartPoint = i * (gTotalParticleCount / gThreadCount);
 			pThreadData[i].mDrawCount = (gTotalParticleCount / gThreadCount);
@@ -307,8 +302,29 @@ class MultiThread: public IApp
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPool[i];
+			addCmd(pRenderer, &cmdDesc, &ppCmds[i]);
+
+			cmdDesc.pPool = pCmdPool[i];
+			addCmd(pRenderer, &cmdDesc, &ppGraphCmds[i]);
+
 			addFence(pRenderer, &pRenderCompleteFences[i]);
 			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
+
+			ppThreadCmds[i] = (Cmd**)conf_malloc(gThreadCount * sizeof(Cmd*));
+			pThreadCmdPools[i] = (CmdPool**)conf_malloc(gThreadCount * sizeof(CmdPool*));
+
+			for (uint32_t t = 0; t < gThreadCount; ++t)
+			{
+				// create cmd pools and and cmdbuffers for all thread
+				addCmdPool(pRenderer, &cmdPoolDesc, &pThreadCmdPools[i][t]);
+				cmdDesc.pPool = pThreadCmdPools[i][t];
+				addCmd(pRenderer, &cmdDesc, &ppThreadCmds[i][t]);
+			}
 		}
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
@@ -513,11 +529,6 @@ class MultiThread: public IApp
 
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
-		GuiDesc guiDesc = {};
-		float   dpiScale = getDpiScale().x;
-		guiDesc.mStartSize = vec2(140.0f / dpiScale, 320.0f / dpiScale);
-		guiDesc.mStartPosition = vec2(mSettings.mWidth - guiDesc.mStartSize.getX() * 4.1f, guiDesc.mStartSize.getY() * 0.5f);
-
 		// Initialize profiler
 		initProfiler(pRenderer, ppQueues, ppConstGpuProfileNames, pGpuProfiletokens, gCoresCount);
         conf_free(ppQueues);
@@ -537,6 +548,17 @@ class MultiThread: public IApp
 
 		if (!initInputSystem(pWindow))
 			return false;
+
+#if !defined(TARGET_IOS) && !defined(DURANGO) && !defined(ANDROID)
+		/************************************************************************/
+		// GUI
+		/************************************************************************/
+		GuiDesc guiDesc = {};
+		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.15f, mSettings.mHeight * 0.01f);
+		pGuiWindow = gAppUI.AddGuiComponent(GetName(), &guiDesc);
+		pGuiWindow->AddWidget(CheckboxWidget("Show threads plot", &bShowThreadsPlot));
+#endif
+
 
 		// App Actions
 		InputActionDesc actionDesc = { InputBindings::BUTTON_FULLSCREEN, [](InputActionContext* ctx) { toggleFullscreen(((IApp*)ctx->pUserData)->pWindow); return true; }, this };
@@ -663,19 +685,22 @@ class MultiThread: public IApp
 		{
 			removeFence(pRenderer, pRenderCompleteFences[i]);
 			removeSemaphore(pRenderer, pRenderCompleteSemaphores[i]);
+
+			removeCmd(pRenderer, ppCmds[i]);
+			removeCmd(pRenderer, ppGraphCmds[i]);
+			removeCmdPool(pRenderer, pCmdPool[i]);
+
+			for (uint32_t t = 0; t < gThreadCount; ++t)
+			{
+				removeCmd(pRenderer, ppThreadCmds[i][t]);
+				removeCmdPool(pRenderer, pThreadCmdPools[i][t]);
+			}
+
+			conf_free(ppThreadCmds[i]);
+			conf_free(pThreadCmdPools[i]);
 		}
+
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
-
-		removeCmd_n(pRenderer, gImageCount, ppCmds);
-		removeCmdPool(pRenderer, pCmdPool);
-		removeCmd_n(pRenderer, gImageCount, ppGraphCmds);
-		removeCmdPool(pRenderer, pGraphCmdPool);
-
-		for (uint32_t i = 0; i < gThreadCount; ++i)
-		{
-			removeCmd_n(pRenderer, gImageCount, pThreadData[i].ppCmds);
-			removeCmdPool(pRenderer, pThreadData[i].pCmdPool);
-		}
 
 		removeQueue(pRenderer, pGraphicsQueue);
 
@@ -890,9 +915,10 @@ class MultiThread: public IApp
 
 	void Draw()
 	{
-		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+		uint32_t swapchainImageIndex;
+		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
-		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
+		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
 		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
@@ -903,6 +929,8 @@ class MultiThread: public IApp
 			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
 		uint32_t frameIdx = gFrameIndex;
+
+		resetCmdPool(pRenderer, pCmdPool[frameIdx]);
 
 		SyncToken graphUpdateToken = {};
 
@@ -916,6 +944,8 @@ class MultiThread: public IApp
 		{
 			pThreadData[i].pRenderTarget = pRenderTarget;
 			pThreadData[i].mFrameIndex = frameIdx;
+			pThreadData[i].pCmdPool = pThreadCmdPools[gFrameIndex][i];
+			pThreadData[i].pCmd = ppThreadCmds[gFrameIndex][i];
 		}
 		addThreadSystemRangeTask(pThreadSystem, &MultiThread::ParticleThreadDraw, pThreadData, gThreadCount);
 		// simply record the screen cleaning command
@@ -958,78 +988,91 @@ class MultiThread: public IApp
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
 
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
-
-        cmdDrawCpuProfile(cmd, float2(8, 15), &gFrameTimeDraw);
-
-		gAppUI.DrawText(cmd, float2(8, 65), "CPU Times", NULL);
-
+				
+		const float yTxtOffset = 12.f;
+		const float	xTxtOffset = 8.f;
+		float yTxtOrig = yTxtOffset;
+		eastl::string mainThreadTxt = eastl::string().sprintf("CPU Main Thread - %f ms", getCpuAvgFrameTime());
+		float2 txtSizePx = gAppUI.MeasureText(mainThreadTxt.c_str(), gFrameTimeDraw);
+		
 		gAppUI.DrawText(
-			cmd, float2(8.f, 90.0f),
-			eastl::string().sprintf("Main Thread - %f ms", getCpuAvgFrameTime()).c_str(),
+			cmd, float2(xTxtOffset, yTxtOrig),
+			mainThreadTxt.c_str(),
 			&gFrameTimeDraw);
+		yTxtOrig += txtSizePx.y + yTxtOffset;
 
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 		{
 			gAppUI.DrawText(
-				cmd, float2(8.f, 115.0f + i * 25.0f),
-				eastl::string().sprintf("Particle Thread %u - %f ms", i, getCpuProfileAvgTime("Threads", "Cpu draw", &pThreadData[i].mThreadID)).c_str(),
+				cmd, float2(xTxtOffset, yTxtOrig),
+				eastl::string().sprintf("CPU Particle Thread %u - %f ms", i, getCpuProfileAvgTime("Threads", "Cpu draw", &pThreadData[i].mThreadID)).c_str(),
 				&gFrameTimeDraw);
+			yTxtOrig += txtSizePx.y + yTxtOffset;
 		}
 
 		for (uint32_t i = 0; i < gCoresCount; ++i)
 		{
-            cmdDrawGpuProfile(cmd, float2(8.f, (130 + gThreadCount * 25.0f) + i * 50.0f), pGpuProfiletokens[i]);
+			txtSizePx = cmdDrawGpuProfile(cmd, float2(xTxtOffset, yTxtOrig), pGpuProfiletokens[i], &gFrameTimeDraw);
+			yTxtOrig += txtSizePx.y + yTxtOffset;
 		}
 
+#if !defined(TARGET_IOS) && !defined(DURANGO) && !defined(ANDROID)
+		gAppUI.Gui(pGuiWindow);
+#endif
 		gAppUI.Draw(cmd);
 		cmdEndDebugMarker(cmd);
 
 		cmdEndGpuFrameProfile(cmd, pGpuProfiletokens[0]); // pGpuProfiletokens[0] is reserved for main thread
 		endCmd(cmd);
 
-		beginCmd(ppGraphCmds[frameIdx]);
-		for (uint i = 0; i < gCoresCount; ++i)
+		if (bShowThreadsPlot)
 		{
-			gGraphWidth = pRenderTarget->mWidth / 6;
-			gGraphHeight = (pRenderTarget->mHeight - 30 - gCoresCount * 10) / gCoresCount;
-			pCpuGraph[i].mViewPort.mOffsetX = pRenderTarget->mWidth - 10.0f - gGraphWidth;
-			pCpuGraph[i].mViewPort.mWidth = (float)gGraphWidth;
-			pCpuGraph[i].mViewPort.mOffsetY = 36 + i * (gGraphHeight + 4.0f);
-			pCpuGraph[i].mViewPort.mHeight = (float)gGraphHeight;
+			beginCmd(ppGraphCmds[frameIdx]);
+			for (uint i = 0; i < gCoresCount; ++i)
+			{
+				gGraphWidth = pRenderTarget->mWidth / 6;
+				gGraphHeight = (pRenderTarget->mHeight - 30 - gCoresCount * 10) / gCoresCount;
+				pCpuGraph[i].mViewPort.mOffsetX = pRenderTarget->mWidth - 10.0f - gGraphWidth;
+				pCpuGraph[i].mViewPort.mWidth = (float)gGraphWidth;
+				pCpuGraph[i].mViewPort.mOffsetY = 36 + i * (gGraphHeight + 4.0f);
+				pCpuGraph[i].mViewPort.mHeight = (float)gGraphHeight;
 
-			cmdBindRenderTargets(ppGraphCmds[frameIdx], 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
-			cmdSetViewport(
-				ppGraphCmds[frameIdx], pCpuGraph[i].mViewPort.mOffsetX, pCpuGraph[i].mViewPort.mOffsetY, pCpuGraph[i].mViewPort.mWidth,
-				pCpuGraph[i].mViewPort.mHeight, 0.0f, 1.0f);
-			cmdSetScissor(ppGraphCmds[frameIdx], 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
+				cmdBindRenderTargets(ppGraphCmds[frameIdx], 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
+				cmdSetViewport(
+					ppGraphCmds[frameIdx], pCpuGraph[i].mViewPort.mOffsetX, pCpuGraph[i].mViewPort.mOffsetY, pCpuGraph[i].mViewPort.mWidth,
+					pCpuGraph[i].mViewPort.mHeight, 0.0f, 1.0f);
+				cmdSetScissor(ppGraphCmds[frameIdx], 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
-			const uint32_t graphDataStride = sizeof(GraphVertex);                     // vec2(position) + vec4(color)
+				const uint32_t graphDataStride = sizeof(GraphVertex);                     // vec2(position) + vec4(color)
 
-			cmdBindPipeline(ppGraphCmds[frameIdx], pGraphTrianglePipeline);
-			cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &pBackGroundVertexBuffer[frameIdx], &graphDataStride, NULL);
-			cmdDraw(ppGraphCmds[frameIdx], 4, 0);
+				cmdBindPipeline(ppGraphCmds[frameIdx], pGraphTrianglePipeline);
+				cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &pBackGroundVertexBuffer[frameIdx], &graphDataStride, NULL);
+				cmdDraw(ppGraphCmds[frameIdx], 4, 0);
 
-			cmdBindPipeline(ppGraphCmds[frameIdx], pGraphLineListPipeline);
-			cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &pBackGroundVertexBuffer[frameIdx], &graphDataStride, NULL);
-			cmdDraw(ppGraphCmds[frameIdx], 38, 4);
+				cmdBindPipeline(ppGraphCmds[frameIdx], pGraphLineListPipeline);
+				cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &pBackGroundVertexBuffer[frameIdx], &graphDataStride, NULL);
+				cmdDraw(ppGraphCmds[frameIdx], 38, 4);
 
-			cmdBindPipeline(ppGraphCmds[frameIdx], pGraphTrianglePipeline);
-			cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &(pCpuGraph[i].mVertexBuffer[frameIdx]), &graphDataStride, NULL);
-			cmdDraw(ppGraphCmds[frameIdx], 2 * gSampleCount, 0);
+				cmdBindPipeline(ppGraphCmds[frameIdx], pGraphTrianglePipeline);
+				cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &(pCpuGraph[i].mVertexBuffer[frameIdx]), &graphDataStride, NULL);
+				cmdDraw(ppGraphCmds[frameIdx], 2 * gSampleCount, 0);
 
-			cmdBindPipeline(ppGraphCmds[frameIdx], pGraphLinePipeline);
-			cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &pCpuGraph[i].mVertexBuffer[frameIdx], &graphDataStride, NULL);
-			cmdDraw(ppGraphCmds[frameIdx], gSampleCount, 2 * gSampleCount);
+				cmdBindPipeline(ppGraphCmds[frameIdx], pGraphLinePipeline);
+				cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &pCpuGraph[i].mVertexBuffer[frameIdx], &graphDataStride, NULL);
+				cmdDraw(ppGraphCmds[frameIdx], gSampleCount, 2 * gSampleCount);
+			}
+			cmdSetViewport(ppGraphCmds[frameIdx], 0.0f, 0.0f, static_cast<float>(mSettings.mWidth), static_cast<float>(mSettings.mHeight), 0.0f, 1.0f);
+			cmdSetScissor(ppGraphCmds[frameIdx], 0, 0, mSettings.mWidth, mSettings.mHeight);
+
+			cmdBindRenderTargets(ppGraphCmds[frameIdx], 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+
+			barrier = { pRenderTarget, RESOURCE_STATE_PRESENT };
+			cmdResourceBarrier(ppGraphCmds[frameIdx], 0, NULL, 0, NULL, 1, &barrier);
+			endCmd(ppGraphCmds[frameIdx]);
 		}
-		cmdSetViewport(ppGraphCmds[frameIdx], 0.0f, 0.0f, static_cast<float>(mSettings.mWidth), static_cast<float>(mSettings.mHeight), 0.0f, 1.0f);
-		cmdSetScissor(ppGraphCmds[frameIdx], 0, 0, mSettings.mWidth, mSettings.mHeight);
+
 		cmdDrawProfilerUI();
 
-		cmdBindRenderTargets(ppGraphCmds[frameIdx], 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-
-		barrier = { pRenderTarget, RESOURCE_STATE_PRESENT };
-		cmdResourceBarrier(ppGraphCmds[frameIdx], 0, NULL, 0, NULL, 1, &barrier);
-		endCmd(ppGraphCmds[frameIdx]);
 		// wait all particle threads done
 		waitThreadSystemIdle(pThreadSystem);
 		// Wait till graph buffers have been uploaded to the gpu
@@ -1037,18 +1080,26 @@ class MultiThread: public IApp
 		/***************draw cpu graph*****************************/
 		/***************draw cpu graph*****************************/
 		// gather all command buffer, it is important to keep the screen clean command at the beginning
-		Cmd** allCmds = (Cmd**)alloca((gThreadCount + 2) * sizeof(Cmd*));
+		uint32_t cmdCount = gThreadCount + 1;
+		if (bShowThreadsPlot)
+		{
+			cmdCount++;
+		}
+		Cmd** allCmds = (Cmd**)alloca(cmdCount * sizeof(Cmd*));
 		allCmds[0] = cmd;
 
 		for (uint32_t i = 0; i < gThreadCount; ++i)
 		{
-			allCmds[i + 1] = pThreadData[i].ppCmds[frameIdx];
+			allCmds[i + 1] = pThreadData[i].pCmd;
 		}
-		allCmds[gThreadCount + 1] = ppGraphCmds[frameIdx];
+		if (bShowThreadsPlot)
+		{
+			allCmds[gThreadCount + 1] = ppGraphCmds[frameIdx];
+		}
 		// submit all command buffer
 
 		QueueSubmitDesc submitDesc = {};
-		submitDesc.mCmdCount = gThreadCount + 2;
+		submitDesc.mCmdCount = cmdCount;
 		submitDesc.mSignalSemaphoreCount = 1;
 		submitDesc.mWaitSemaphoreCount = 1;
 		submitDesc.ppCmds = allCmds;
@@ -1057,13 +1108,15 @@ class MultiThread: public IApp
 		submitDesc.pSignalFence = pRenderCompleteFence;
 		queueSubmit(pGraphicsQueue, &submitDesc);
 		QueuePresentDesc presentDesc = {};
-		presentDesc.mIndex = gFrameIndex;
+		presentDesc.mIndex = swapchainImageIndex;
 		presentDesc.mWaitSemaphoreCount = 1;
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
 		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
+
+		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
 
 	const char* GetName() { return "03_MultiThread"; }
@@ -1078,7 +1131,7 @@ class MultiThread: public IApp
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
-		swapChainDesc.mEnableVsync = false;
+		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;
@@ -1106,7 +1159,7 @@ class MultiThread: public IApp
 	void CalCpuUsage()
 	{
 #ifdef _WIN32
-#if defined(_DURANGO)
+#if defined(XBOX)
 #else
         HRESULT hr = NULL;
         ULONG   retVal;
@@ -1159,7 +1212,7 @@ class MultiThread: public IApp
         }
 
         pEnumerator->Release();
-#endif    //#if defined(_DURANGO)
+#endif    //#if defined(XBOX)
 #elif (__linux__)
 		eastl::vector<CPUData> entries;
 		entries.reserve(gCoresCount);
@@ -1184,6 +1237,10 @@ class MultiThread: public IApp
 			}
 			// Close the cpu stat file
 			fsCloseStream(fh);
+		}
+		else
+		{
+			return;
 		}
 
 		for (uint32_t i = 0; i < gCoresCount; i++)
@@ -1255,7 +1312,7 @@ class MultiThread: public IApp
 	{
 		gCoresCount = 0;
 #ifdef _WIN32
-#if defined(_DURANGO)
+#if defined(XBOX)
 		gCoresCount = Thread::GetNumCPUCores();
 #else
         IWbemClassObject*     pclassObj;
@@ -1328,7 +1385,7 @@ class MultiThread: public IApp
 		gCoresCount = numCPUsU;
 
 		CPUUsageLock = [[NSLock alloc] init];
-#elif defined(ORBIS) || defined(NX64)
+#elif defined(ORBIS) || defined(PROSPERO) || defined(NX64)
 		gCoresCount = Thread::GetNumCPUCores();
 #endif
 
@@ -1358,7 +1415,7 @@ class MultiThread: public IApp
 	void RemoveCpuUsage()
 	{
 		conf_free(pCpuData);
-#if (defined(_WIN32) && !defined(_DURANGO)) || defined(__linux__)
+#if (defined(_WIN32) && !defined(XBOX)) || defined(__linux__)
         conf_free(pOldTimeStamp);
         conf_free(pOldPprocUsage);
 #endif
@@ -1486,11 +1543,15 @@ class MultiThread: public IApp
         if(data.mThreadID ==  Thread::mainThreadID)
             data.mThreadID = Thread::GetCurrentThreadID();
         PROFILER_SET_CPU_SCOPE("Threads", "Cpu draw", 0xffffff);
-		Cmd*        cmd = data.ppCmds[data.mFrameIndex];
+		Cmd*        cmd = data.pCmd;
+		resetCmdPool(pRenderer, data.pCmdPool);
 		beginCmd(cmd);
 		cmdBeginGpuFrameProfile(cmd, pGpuProfiletokens[data.mThreadIndex + 1]); // pGpuProfiletokens[0] is reserved for main thread
 
-		cmdBindRenderTargets(cmd, 1, &data.pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
+		LoadActionsDesc loadActions = {};
+		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+		
+		cmdBindRenderTargets(cmd, 1, &data.pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)data.pRenderTarget->mWidth, (float)data.pRenderTarget->mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, data.pRenderTarget->mWidth, data.pRenderTarget->mHeight);
 

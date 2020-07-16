@@ -36,7 +36,7 @@ struct Vertex_Shader
 
 vertex Vertex_Shader::VsOut stageMain(
     Vertex_Shader::VsIn input                                        [[stage_in]],
-    constant Vertex_Shader::Uniforms_uRootConstants& uRootConstants  [[buffer(UPDATE_FREQ_USER)]])
+    constant Vertex_Shader::Uniforms_uRootConstants& uRootConstants  [[buffer(0)]])
 {
     Vertex_Shader::VsIn input0;
     input0.position = input.position;

@@ -112,8 +112,8 @@ ProfileToken   gGpuProfileToken;
 
 Renderer*    pRenderer = NULL;
 Queue*       pGraphicsQueue = NULL;
-CmdPool*     pCmdPool = NULL;
-Cmd**        ppCmds = NULL;
+CmdPool*     pCmdPools[gImageCount];
+Cmd*         pCmds[gImageCount];
 
 SwapChain* pSwapChain = NULL;
 Fence*     pRenderCompleteFences[gImageCount] = { NULL };
@@ -130,7 +130,7 @@ Fonts      gFonts;
 *************************************************************************/
 #if defined(TARGET_IOS) || defined(ANDROID)
 const int TextureAtlasDimension = 512;
-#elif defined(DURANGO)
+#elif defined(XBOX)
 const int TextureAtlasDimension = 1024;
 #else    // PC / LINUX / MAC
 const int TextureAtlasDimension = 2048;
@@ -227,7 +227,8 @@ float2       GetCenteredTextPosition(const char* pText, const TextDrawDesc& draw
 //static float gBiasX = 0.0f;
 //static float gBiasY = 0.0f;
 //static float2 gBias(0.0f, 0.0f);
-
+static const ClearValue gLightBackgroundColor = { { 1.0f, 1.0f, 1.0f, 1.0f } };
+static const ClearValue gDarkBackgroundColor = { { 0.05f, 0.05f, 0.05f, 1.0f } };
 /************************************************************************/
 /* APP IMPLEMENTATION
 *************************************************************************/
@@ -271,12 +272,15 @@ class FontRendering: public IApp
 		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
 		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		CmdPoolDesc cmdPoolDesc = {};
-		cmdPoolDesc.pQueue = pGraphicsQueue;
-		addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
-		CmdDesc cmdDesc = {};
-		cmdDesc.pPool = pCmdPool;
-		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+		}
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -301,10 +305,9 @@ class FontRendering: public IApp
 		gFonts.monoSpace = gAppUI.LoadFont("InconsolataLGC/Inconsolata-LGC.otf", fontRoot);
 		gFonts.monoSpaceBold = gAppUI.LoadFont("InconsolataLGC/Inconsolata-LGC-Bold.otf", fontRoot);
 
-		// setup the UI window
-		const float dpiScl = getDpiScale().x;
-		vec2        UIWndSize = vec2{ 250, 300 } / dpiScl;
-		vec2        UIWndPosition = vec2{ mSettings.mWidth * 0.02f, mSettings.mHeight * 0.8f } / dpiScl;
+		// setup the UI window		
+		vec2        UIWndSize = vec2{ 250, 300 };
+		vec2        UIWndPosition = vec2{ mSettings.mWidth * 0.01f, mSettings.mHeight * 0.5f };
 		GuiDesc     guiDesc(UIWndPosition, UIWndSize, TextDrawDesc());
 		pUIWindow = gAppUI.AddGuiComponent("Controls", &guiDesc);
 
@@ -353,8 +356,11 @@ class FontRendering: public IApp
 		}
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
 
-		removeCmd_n(pRenderer, gImageCount, ppCmds);
-		removeCmdPool(pRenderer, pCmdPool);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeCmd(pRenderer, pCmds[i]);
+			removeCmdPool(pRenderer, pCmdPools[i]);
+		}
 		exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
 		removeRenderer(pRenderer);
@@ -370,7 +376,8 @@ class FontRendering: public IApp
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
-		swapChainDesc.mEnableVsync = false;
+		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
+		swapChainDesc.mColorClearValue = gSceneData.theme ? gDarkBackgroundColor : gLightBackgroundColor;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 		if (!pSwapChain)
 			return false;
@@ -417,9 +424,10 @@ class FontRendering: public IApp
 
 	void Draw()
 	{
-		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+		uint32_t swapchainImageIndex;
+		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
-		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
+		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
 		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
@@ -429,23 +437,14 @@ class FontRendering: public IApp
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
+		resetCmdPool(pRenderer, pCmdPools[gFrameIndex]);
+
 		// simply record the screen cleaning command
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-		loadActions.mClearColorValues[0].r = 1.0f;
-		loadActions.mClearColorValues[0].g = 1.0f;
-		loadActions.mClearColorValues[0].b = 1.0f;
-		loadActions.mClearColorValues[0].a = 1.0f;
-		const float darkBackgroundColor = 0.05f;
-		if (gSceneData.theme)
-		{
-			loadActions.mClearColorValues[0].r = darkBackgroundColor;
-			loadActions.mClearColorValues[0].g = darkBackgroundColor;
-			loadActions.mClearColorValues[0].b = darkBackgroundColor;
-			loadActions.mClearColorValues[0].a = 1.0f;
-		}
+		loadActions.mClearColorValues[0] = gSceneData.theme ? gDarkBackgroundColor : gLightBackgroundColor;
 
-		Cmd* cmd = ppCmds[gFrameIndex];
+		Cmd* cmd = pCmds[gFrameIndex];
 		beginCmd(cmd);
 		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
@@ -474,9 +473,12 @@ class FontRendering: public IApp
 		TextDrawDesc uiTextDesc;    // default
 		uiTextDesc.mFontColor = gSceneData.theme ? 0xff21D8DE : 0xff444444;
 		uiTextDesc.mFontSize = 18;
-        cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &uiTextDesc);
+        
 #if !defined(__ANDROID__)
-        cmdDrawGpuProfile(cmd, float2(8, 40), gGpuProfileToken);
+		float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.f, 15.f), &uiTextDesc);
+        cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 30.f), gGpuProfileToken, &uiTextDesc);
+#else
+		cmdDrawCpuProfile(cmd, float2(8.f, 15.f), &uiTextDesc);
 #endif
 
 		if (gbShowSceneControlsUIWindow)
@@ -501,13 +503,15 @@ class FontRendering: public IApp
 		submitDesc.pSignalFence = pRenderCompleteFence;
 		queueSubmit(pGraphicsQueue, &submitDesc);
 		QueuePresentDesc presentDesc = {};
-		presentDesc.mIndex = gFrameIndex;
+		presentDesc.mIndex = swapchainImageIndex;
 		presentDesc.mWaitSemaphoreCount = 1;
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
 		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
+
+		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
 
 	const char* GetName() { return "05_FontRendering"; }

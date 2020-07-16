@@ -79,7 +79,7 @@ typedef uint64_t uint64;
 
 #if !defined(_WIN32)
 #define stricmp(a, b) strcasecmp(a, b)
-#if !defined(ORBIS)
+#if !defined(ORBIS) && !defined(PROSPERO)
 #define vsprintf_s vsnprintf
 #define strncpy_s strncpy
 #endif
@@ -90,15 +90,23 @@ typedef uint64_t uint64;
 typedef SSIZE_T ssize_t;
 #endif
 
-#if defined(_DURANGO)
+#if defined(XBOX)
 #define stricmp(a, b) _stricmp(a, b)
 #endif
 
+// #TODO: Fix - FORGE_DEBUG is a toggle (either it is defined or not defined) Setting it to zero or one
+// so it can be used with #if is not the right approach
 #ifndef FORGE_DEBUG
 #if defined(DEBUG) || defined(_DEBUG) || defined(AUTOMATED_TESTING)
-#define FORGE_DEBUG 1
-#else
-#define FORGE_DEBUG 0
+#define FORGE_DEBUG
+#endif
+#endif
+
+#ifndef FORGE_STACKTRACE_DUMP
+#ifdef AUTOMATED_TESTING
+#if defined(NX64) || (defined(_WINDOWS) && defined(_M_X64)) || defined(ORBIS)
+#define FORGE_STACKTRACE_DUMP
+#endif
 #endif
 #endif
 
@@ -110,6 +118,7 @@ typedef struct WindowHandle
 	Display*                 display;
 	Window                   window;
 	Atom                     xlib_wm_delete_window;
+    Colormap                 colormap;
 #elif defined(VK_USE_PLATFORM_XCB_KHR)
 	xcb_connection_t*        connection;
 	xcb_window_t             window;
@@ -161,7 +170,8 @@ typedef struct WindowsDesc
 	bool                      minimized;
 	bool                      hide;
 	bool                      noresizeFrame;
-	bool											borderlessWindow;
+	bool		 	  borderlessWindow;
+	bool			  overrideDefaultPosition;
 } WindowsDesc;
 
 typedef struct Resolution
@@ -172,28 +182,40 @@ typedef struct Resolution
 
 // Monitor data
 //
-typedef struct MonitorDesc
+typedef struct
 {
-	RectDesc monitorRect;
-	RectDesc workRect;
+	RectDesc          monitorRect;
+	RectDesc          workRect;
 	// This size matches the static size of DISPLAY_DEVICE.DeviceName
-#ifdef _WIN32
-	WCHAR adapterName[32];
-	WCHAR displayName[32];
-	WCHAR publicAdapterName[64];
-	WCHAR publicDisplayName[64];
+#if defined(_WIN32)
+	WCHAR             adapterName[32];
+	WCHAR             displayName[32];
+	WCHAR             publicAdapterName[128];
+	WCHAR             publicDisplayName[128];
+#elif defined(__APPLE__)
+#if defined(TARGET_IOS)
 #else
-	char  adapterName[32];
-	char  displayName[32];
-	char  publicAdapterName[64];
-	char  publicDisplayName[64];
+	CGDirectDisplayID displayID;
+	char              publicAdapterName[64];
+	char              publicDisplayName[64];
 #endif
-	bool modesPruned;
-	bool modeChanged;
-
-	Resolution  defaultResolution;
-	Resolution* resolutions;
-	uint32_t    resolutionCount;
+#elif defined(__linux__) && !defined(__ANDROID__)
+	Screen*           screen;
+	char              adapterName[32];
+	char              displayName[32];
+	char              publicAdapterName[64];
+	char              publicDisplayName[64];
+#else
+	char              adapterName[32];
+	char              displayName[32];
+	char              publicAdapterName[64];
+	char              publicDisplayName[64];
+#endif
+	Resolution*       resolutions;
+	Resolution        defaultResolution;
+	uint32_t          resolutionCount;
+	bool              modesPruned;
+	bool              modeChanged;
 } MonitorDesc;
 
 // Define some sized types

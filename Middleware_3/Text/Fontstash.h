@@ -28,6 +28,7 @@
 
 struct Renderer;
 struct RenderTarget;
+struct PipelineCache;
 
 extern ResourceDirEnum RD_MIDDLEWARE_TEXT;
 
@@ -52,10 +53,10 @@ typedef struct TextDrawDesc
 class Fontstash
 {
 public:
-	bool init(Renderer* pRenderer, uint32_t width, uint32_t height);
+	bool init(Renderer* pRenderer, uint32_t width, uint32_t height, uint32_t ringSizeBytes);
 	void exit();
 
-	bool load(RenderTarget** pRts, uint32_t count);
+	bool load(RenderTarget** pRts, uint32_t count, PipelineCache* pCache);
 	void unload();
 
 	//! Makes a font available to the font stash.

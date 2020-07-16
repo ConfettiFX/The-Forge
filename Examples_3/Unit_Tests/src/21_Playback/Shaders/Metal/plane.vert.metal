@@ -58,18 +58,14 @@ constant Uniforms_uniformBlock & uniformBlock) :
 uniformBlock(uniformBlock) {}
 };
 
-struct VSData {
-    constant Vertex_Shader::Uniforms_uniformBlock & uniformBlock;
-};
-
 vertex Vertex_Shader::VSOutput stageMain(
-    Vertex_Shader::VSInput input [[stage_in]],
-    constant VSData& vsData [[buffer(UPDATE_FREQ_PER_DRAW)]]
+    Vertex_Shader::VSInput input                                 [[stage_in]],
+    constant Vertex_Shader::Uniforms_uniformBlock & uniformBlock [[buffer(0)]]
 )
 {
     Vertex_Shader::VSInput input0;
     input0.Position = input.Position;
     input0.TexCoord = input.TexCoord;
-    Vertex_Shader main(vsData.uniformBlock);
+    Vertex_Shader main(uniformBlock);
     return main.main(input0);
 }

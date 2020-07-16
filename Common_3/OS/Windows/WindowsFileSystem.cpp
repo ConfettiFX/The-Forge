@@ -26,7 +26,7 @@
 
 #include <functional>
 
-#if !defined(_DURANGO)
+#if !defined(XBOX)
 #include "shlobj.h"
 #include "commdlg.h"
 #include <WinBase.h>
@@ -41,7 +41,7 @@
 #include "../Interfaces/IMemory.h"
 
 template <typename T>
-static inline T withUTF16Path(const Path* path, std::function<T(const wchar_t*)> function)
+static inline T withUTF16Path(const Path* path, T (*function)(const wchar_t*))
 {
 	wchar_t* buffer = (wchar_t*)alloca((path->mPathLength + 1) * sizeof(wchar_t));
 
@@ -102,7 +102,7 @@ struct WindowsFileSystem: public FileSystem
 	/// path is assumed to have storage for up to 16 characters.
 	bool FormRootPath(const char* absolutePathString, Path* path, size_t* pathComponentOffset) const override
 	{
-		if (absolutePathString[0] == '\\' && absolutePathString[0] == '\\') { // Network Paths
+		if (absolutePathString[0] == '\\' && absolutePathString[1] == '\\') { // Network Paths
 			(&path->mPathBufferOffset)[0] = '\\';
 			(&path->mPathBufferOffset)[1] = '\\';
 			(&path->mPathBufferOffset)[2] = 0;
@@ -218,13 +218,25 @@ struct WindowsFileSystem: public FileSystem
 	FileStream* OpenFile(const Path* filePath, FileMode mode) const override
 	{
 		FILE* fp;
-
-		const char * pathStr = fsGetPathAsNativeString(filePath);
+		
+		// Path utf-16 conversion
+		wchar_t* pathStr = (wchar_t*)alloca((filePath->mPathLength + 1) * sizeof(wchar_t));
+		size_t pathStrLength =
+			MultiByteToWideChar(CP_UTF8, 0, fsGetPathAsNativeString(filePath), (int)filePath->mPathLength, pathStr, (int)filePath->mPathLength);
+		pathStr[pathStrLength] = 0;
+		
+		// Mode string utf-16 conversion
+		const char * modeStr = fsFileModeToString(mode);
+		size_t len = strlen(modeStr);
+		wchar_t* modeWStr = (wchar_t*)alloca((len + 1) * sizeof(wchar_t));
+		size_t modeStrLength =
+			MultiByteToWideChar(CP_UTF8, 0, modeStr, (int)len, modeWStr, (int)len);
+		modeWStr[modeStrLength] = 0;
 
 		if (0 != (mode & FM_ALLOW_READ)) {
-			fp = _fsopen( pathStr, fsFileModeToString(mode), _SH_DENYWR);
+			fp = _wfsopen(pathStr, modeWStr, _SH_DENYWR);
 		} else {
-			fopen_s(&fp, pathStr, fsFileModeToString(mode));
+			_wfopen_s(&fp, pathStr, modeWStr);
 		}
 
 		if (fp)
@@ -233,7 +245,7 @@ struct WindowsFileSystem: public FileSystem
 		}
 		else
 		{
-			DLOGF(LogLevel::eERROR, "Error opening file: %s -- %s (error: %s)", fsGetPathAsNativeString(filePath), fsFileModeToString(mode), strerror(errno));
+			LOGF(LogLevel::eERROR, "Error opening file: %s -- %s (error: %s)", fsGetPathAsNativeString(filePath), fsFileModeToString(mode), strerror(errno));
 		}
 		return NULL;
 	}
@@ -245,11 +257,18 @@ struct WindowsFileSystem: public FileSystem
 			return false;
 		}
 
-		return withUTF16Path<bool>(sourcePath, [destinationPath, overwriteIfExists](const wchar_t* source) {
-			return withUTF16Path<bool>(destinationPath, [source, overwriteIfExists](const wchar_t* destination) {
-				return ::CopyFileW(source, destination, !overwriteIfExists) ? true : false;
-			});
-		});
+		// Source Path utf-16 conversion
+		wchar_t* sourcePathStr = (wchar_t*)alloca((sourcePath->mPathLength + 1) * sizeof(wchar_t));
+		size_t sourcePathStrLength =
+			MultiByteToWideChar(CP_UTF8, 0, fsGetPathAsNativeString(sourcePath), (int)sourcePath->mPathLength, sourcePathStr, (int)sourcePath->mPathLength);
+		sourcePathStr[sourcePathStrLength] = 0;
+		// Destination Path utf-16 conversion
+		wchar_t* destinationPathStr = (wchar_t*)alloca((destinationPath->mPathLength + 1) * sizeof(wchar_t));
+		size_t destinationPathStrLength =
+			MultiByteToWideChar(CP_UTF8, 0, fsGetPathAsNativeString(destinationPath), (int)destinationPath->mPathLength, destinationPathStr, (int)destinationPath->mPathLength);
+		destinationPathStr[destinationPathStrLength] = 0;
+
+		return ::CopyFileW(sourcePathStr, destinationPathStr, !overwriteIfExists) ? true : false;
 	}
 
 	void EnumerateFilesWithExtension(
@@ -460,16 +479,20 @@ void fsShowOpenFileDialog(
 	ofn.nMaxFileTitle = 0;
 	ofn.Flags = OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
-	withUTF16Path<void>(directory, [&ofn, outputBuffer, callback, userData](const wchar_t* directory) {
-		ofn.lpstrInitialDir = directory;
+	// Directory Path utf-16 conversion
+	wchar_t* directoryPathStr = (wchar_t*)alloca((directory->mPathLength + 1) * sizeof(wchar_t));
+	size_t directoryPathStrLength =
+		MultiByteToWideChar(CP_UTF8, 0, fsGetPathAsNativeString(directory), (int)directory->mPathLength, directoryPathStr, (int)directory->mPathLength);
+	directoryPathStr[directoryPathStrLength] = 0;
 
-		if (::GetOpenFileNameW(&ofn) == TRUE)
-		{
-			Path* path = fsCreatePathFromWideString(outputBuffer, wcslen(outputBuffer));
-			callback(path, userData);
-			fsFreePath(path);
-		}
-	});
+	ofn.lpstrInitialDir = directoryPathStr;
+
+	if (::GetOpenFileNameW(&ofn) == TRUE)
+	{
+		Path* path = fsCreatePathFromWideString(outputBuffer, wcslen(outputBuffer));
+		callback(path, userData);
+		fsFreePath(path);
+	}
 }
 
 void fsShowSaveFileDialog(
@@ -507,17 +530,21 @@ void fsShowSaveFileDialog(
 	ofn.lpstrFileTitle = NULL;
 	ofn.nMaxFileTitle = 0;
 	ofn.Flags = OFN_EXPLORER | OFN_NOCHANGEDIR;
+	
+	// Directory Path utf-16 conversion
+	wchar_t* directoryPathStr = (wchar_t*)alloca((directory->mPathLength + 1) * sizeof(wchar_t));
+	size_t directoryPathStrLength =
+		MultiByteToWideChar(CP_UTF8, 0, fsGetPathAsNativeString(directory), (int)directory->mPathLength, directoryPathStr, (int)directory->mPathLength);
+	directoryPathStr[directoryPathStrLength] = 0;
 
-	withUTF16Path<void>(directory, [&ofn, outputBuffer, callback, userData](const wchar_t* directory) {
-		ofn.lpstrInitialDir = directory;
+	ofn.lpstrInitialDir = directoryPathStr;
 
-		if (::GetSaveFileNameW(&ofn) == TRUE)
-		{
-			Path* path = fsCreatePathFromWideString(outputBuffer, wcslen(outputBuffer));
-			callback(path, userData);
-			fsFreePath(path);
-		}
-	});
+	if (::GetSaveFileNameW(&ofn) == TRUE)
+	{
+		Path* path = fsCreatePathFromWideString(outputBuffer, wcslen(outputBuffer));
+		callback(path, userData);
+		fsFreePath(path);
+	}
 }
 
 typedef struct FileWatcher
@@ -596,7 +623,7 @@ void fswThreadFunc(void* data)
 
 			utf8Name[outputLength] = 0;
 			Path* path = fsAppendPathComponent(fs->mWatchDir, utf8Name);
-			DLOGF(LogLevel::eINFO, "Monitoring activity of file: %s -- Action: %d", fsGetPathAsNativeString(path), fni->Action);
+			LOGF(LogLevel::eINFO, "Monitoring activity of file: %s -- Action: %d", fsGetPathAsNativeString(path), fni->Action);
 			fs->mCallback(path, action);
 			fsFreePath(path);
 

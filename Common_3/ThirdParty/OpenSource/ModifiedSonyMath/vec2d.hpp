@@ -828,6 +828,10 @@ public:
 	// Negate all elements of a 2-D vector
 	//
 	inline const IVector2 operator - () const;
+	
+	// true if x and y are equal
+	//
+	inline const bool operator == (const IVector2 &v) const;
 
 	// Construct x axis
 	//
@@ -986,6 +990,11 @@ inline IVector2 & IVector2::operator /= (int scalar)
 inline const IVector2 IVector2::operator - () const
 {
 	return IVector2(-mX, -mY);
+}
+
+inline const bool IVector2::operator == (const IVector2 &v)  const 
+{
+	return (getX() == v.getX() && getY() == v.getY()); 
 }
 
 inline const IVector2 IVector2::xAxis()

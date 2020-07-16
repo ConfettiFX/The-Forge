@@ -50,20 +50,17 @@ struct main_output
     float2 TEXCOORD;
 };
 
-struct VSData {
-    constant Vertex_Shader::Uniforms_UniformBlock& uniformBlock [[id(0)]];
-};
-
 vertex main_output stageMain(
 	main_input inputData [[stage_in]],
-    constant VSData& vsData    [[buffer(UPDATE_FREQ_PER_FRAME)]])
+    constant Vertex_Shader::Uniforms_UniformBlock& uniformBlock [[buffer(0)]]
+)
 {
     Vertex_Shader::VSInput input0;
     input0.Position = inputData.POSITION;
     input0.Normal = inputData.NORMAL;
     input0.TexCoords = inputData.TEXCOORD;
     Vertex_Shader main(
-    vsData.uniformBlock);
+    uniformBlock);
     Vertex_Shader::VSOutput result = main.main(input0);
     main_output output;
     output.SV_POSITION = result.Position;

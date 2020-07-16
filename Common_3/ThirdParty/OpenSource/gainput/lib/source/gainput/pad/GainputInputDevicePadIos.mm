@@ -338,13 +338,16 @@ void InputDevicePadImplIos::UpdateGamepad_(InputDeltaState* delta)
         HandleAxis(device_, state_, delta, PadButtonGravityY, motion.gravity.y);
         HandleAxis(device_, state_, delta, PadButtonGravityZ, motion.gravity.z);
         
-        const float gyroX = 2.0f * (motion.attitude.x * motion.attitude.z + motion.attitude.w * motion.attitude.y);
-        const float gyroY = 2.0f * (motion.attitude.y * motion.attitude.z - motion.attitude.w * motion.attitude.x);
-        const float gyroZ = 1.0f - 2.0f * (motion.attitude.x * motion.attitude.x + motion.attitude.y * motion.attitude.y);
-
-        HandleAxis(device_, state_, delta, PadButtonGyroscopeX, gyroX);
-        HandleAxis(device_, state_, delta, PadButtonGyroscopeY, gyroY);
-        HandleAxis(device_, state_, delta, PadButtonGyroscopeZ, gyroZ);
+		if (@available(iOS 11.0, *))
+		{
+			const float gyroX = 2.0f * (motion.attitude.x * motion.attitude.z + motion.attitude.w * motion.attitude.y);
+			const float gyroY = 2.0f * (motion.attitude.y * motion.attitude.z - motion.attitude.w * motion.attitude.x);
+			const float gyroZ = 1.0f - 2.0f * (motion.attitude.x * motion.attitude.x + motion.attitude.y * motion.attitude.y);
+			
+			HandleAxis(device_, state_, delta, PadButtonGyroscopeX, gyroX);
+			HandleAxis(device_, state_, delta, PadButtonGyroscopeY, gyroY);
+			HandleAxis(device_, state_, delta, PadButtonGyroscopeZ, gyroZ);
+		}
     }
 }
 

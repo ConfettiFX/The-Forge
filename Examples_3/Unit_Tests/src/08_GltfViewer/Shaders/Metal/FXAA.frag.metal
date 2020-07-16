@@ -195,23 +195,18 @@ texture2d<float> sceneTexture,sampler clampMiplessLinearSampler,constant Uniform
 sceneTexture(sceneTexture),clampMiplessLinearSampler(clampMiplessLinearSampler),FXAARootConstant(FXAARootConstant) {}
 };
 
-struct SceneTexture
-{
-    texture2d<float> sceneTexture [[id(0)]];
-    sampler clampMiplessLinearSampler [[id(1)]];
-};
-
 fragment float4 stageMain(
     Fragment_Shader::PSIn input [[stage_in]],
-    constant SceneTexture& argBufferStatic [[buffer(UPDATE_FREQ_NONE)]],
-    constant Fragment_Shader::Uniforms_FXAARootConstant & FXAARootConstant [[buffer(UPDATE_FREQ_USER)]])
+	texture2d<float> sceneTexture [[texture(0)]],
+    sampler clampMiplessLinearSampler [[sampler(0)]],
+    constant Fragment_Shader::Uniforms_FXAARootConstant & FXAARootConstant [[buffer(0)]])
 {
     Fragment_Shader::PSIn input0;
     input0.Position = float4(input.Position.xyz, 1.0 / input.Position.w);
     input0.TEXCOORD = input.TEXCOORD;
     Fragment_Shader main(
-    argBufferStatic.sceneTexture,
-    argBufferStatic.clampMiplessLinearSampler,
+    sceneTexture,
+    clampMiplessLinearSampler,
     FXAARootConstant);
     return main.main(input0);
 }

@@ -82,12 +82,17 @@
     <File Name="../../../../Common_3/OS/Linux/LinuxTime.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Dependencies">
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/zip/zip.cpp"/>
+	<VirtualDirectory Name="zip">
+		<File Name="../../../../Common_3/ThirdParty/OpenSource/zip/zip.cpp"/>
+	</VirtualDirectory>
     <VirtualDirectory Name="rmem">
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_lib.cpp" ExcludeProjConfig=""/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_hook.cpp" ExcludeProjConfig=""/>
-      <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_get_module_info.cpp" ExcludeProjConfig=""/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_get_module_info.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_hook.cpp"/>
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_lib.cpp"/>
     </VirtualDirectory>
+	<VirtualDirectory Name="basisu">
+		<File Name="../../../../Common_3/ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp"/>
+	</VirtualDirectory>
   </VirtualDirectory>
   <Dependencies Name="Debug">
     <Project Name="gainput"/>
@@ -123,7 +128,6 @@
         <IncludePath Value="."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="_DEBUG"/>
-        <Preprocessor Value="FORGE_DISABLE_ZIP"/>
       </Compiler>
       <Linker Options="" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>
@@ -165,7 +169,6 @@
         <IncludePath Value="."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>
-        <Preprocessor Value="FORGE_DISABLE_ZIP"/>
       </Compiler>
       <Linker Options="" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>

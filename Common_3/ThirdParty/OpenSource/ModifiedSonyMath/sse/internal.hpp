@@ -261,7 +261,7 @@ static inline __m128 sseSinf(SSEFloat4V x)
     // Use the cosine when the offset is odd and the sin
     // when the offset is even
     //
-#if defined(_DURANGO) || defined(ORBIS)
+#if defined(XBOX) || defined(ORBIS)
 
 	// _mm_cmpeq_ps returns inacurate results on XBOX. Casting to __m128i and then using _mm_cmpeq_epi32 fixes the problem.
 	res = sseSelect(cx, sx, _mm_castsi128_ps(_mm_cmpeq_epi32(_mm_castps_si128(_mm_and_ps(offset, sseUintToM128(0x1))), _mm_setzero_si128())));
@@ -332,7 +332,7 @@ static inline void sseSinfCosf(SSEFloat4V x, SSEFloat4V * s, SSEFloat4V * c)
     // Use the cosine when the offset is odd and the sin
     // when the offset is even
     //
-#if defined(_DURANGO) || defined(ORBIS)
+#if defined(XBOX) || defined(ORBIS)
 	// _mm_cmpeq_ps returns inacurate results on XBOX. Casting to __m128i and then using _mm_cmpeq_epi32 fixes the problem.
 	__m128 x1 = sseUintToM128(0x1);
 	SSEUint4V sinMask = (SSEUint4V)_mm_castsi128_ps(_mm_cmpeq_epi32(_mm_castps_si128(_mm_and_ps(offsetSin, x1)), _mm_setzero_si128()));
@@ -346,7 +346,7 @@ static inline void sseSinfCosf(SSEFloat4V x, SSEFloat4V * s, SSEFloat4V * c)
 
     // Flip the sign of the result when (offset mod 4) = 1 or 2
     //
-#if defined(_DURANGO) || defined(ORBIS)
+#if defined(XBOX) || defined(ORBIS)
 	__m128 x2 = sseUintToM128(0x2);
 	sinMask = (SSEUint4V)_mm_castsi128_ps(_mm_cmpeq_epi32(_mm_castps_si128(_mm_and_ps(offsetSin, x2)), _mm_setzero_si128()));
 	cosMask = (SSEUint4V)_mm_castsi128_ps(_mm_cmpeq_epi32(_mm_castps_si128(_mm_and_ps(offsetCos, x2)), _mm_setzero_si128()));

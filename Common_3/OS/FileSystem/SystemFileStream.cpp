@@ -29,19 +29,10 @@
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/IMemory.h"
 
-#if defined(_WIN64)
-
+#if defined(_WINDOWS)
 int fseeko(FILE* stream, ssize_t offset, int origin) { return _fseeki64(stream, offset, origin); }
 
 ssize_t ftello(FILE* stream) { return (ssize_t)_ftelli64(stream); }
-
-#elif defined(_WIN32)
-typedef int32_t off_t;
-
-int fseeko(FILE* stream, ssize_t offset, int origin) { return _fseek(stream, offset, origin); }
-
-ssize_t ftello(FILE* stream) { return (ssize_t)_ftell(stream); }
-
 #endif
 
 FileStream* fsCreateStreamFromFILE(FILE* file)

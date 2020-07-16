@@ -18,7 +18,7 @@
 
 #include "PIXEventsCommon.h"
 
-#if defined(XBOX) || defined(_XBOX_ONE) || defined(_DURANGO)
+#if defined(XBOX) || defined(_XBOX_ONE)
 # define PIX_XBOX
 #endif
 

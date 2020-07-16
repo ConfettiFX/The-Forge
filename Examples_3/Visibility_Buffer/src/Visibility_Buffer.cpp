@@ -43,21 +43,17 @@
 
 #include "Geometry.h"
 
-#ifdef _DURANGO
+#if defined(XBOX)
 #include "../../../Xbox/Common_3/Renderer/Direct3D12/Direct3D12X.h"
 #include "../../../Xbox/Common_3/Renderer/IESRAMManager.h"
-#endif
-
-#include "../../../Common_3/OS/Interfaces/IMemory.h"
-
-#if defined(_DURANGO)
 #define BEGINALLOCATION(X) esramBeginAllocation(pRenderer->pESRAMManager, X, esramGetCurrentOffset(pRenderer->pESRAMManager))
 #define ENDALLOCATION(X) esramEndAllocation(pRenderer->pESRAMManager)
-#define DIRECT3D12
 #else
 #define BEGINALLOCATION(X)
 #define ENDALLOCATION(X)
 #endif
+
+#include "../../../Common_3/OS/Interfaces/IMemory.h"
 
 #if !defined(METAL)
 #define MSAASAMPLECOUNT 2
@@ -197,20 +193,15 @@ float gTotalElpasedTime;
 
 typedef struct VisBufferIndirectCommand
 {
-#if defined(METAL)
-	IndirectDrawIndexArguments arg;
-#elif defined(ORBIS)
-	IndirectDrawIndexArguments arg;
-#else
+#if defined(DIRECT3D12)
 	// Draw ID is sent as indirect argument through root constant in DX12
-#if defined(DIRECT3D12)
 	uint32_t                   drawId;
-#endif
 	IndirectDrawIndexArguments arg;
-#if defined(DIRECT3D12)
-	uint32_t                   _pad0, _pad1;
+	uint32_t                   pad[2];
 #else
-	uint32_t _pad0, _pad1, _pad2;
+	IndirectDrawIndexArguments arg;
+#if !defined(ORBIS)
+	uint32_t                   pad[3];
 #endif
 #endif
 } VisBufferIndirectCommand;
@@ -390,12 +381,12 @@ Semaphore* pComputeCompleteSemaphores[gImageCount] = { NULL };
 // Queues and Command buffers
 /************************************************************************/
 Queue*   pGraphicsQueue = NULL;
-CmdPool* pCmdPool = NULL;
-Cmd**    ppCmds = NULL;
+CmdPool* pCmdPool[gImageCount] = { NULL };
+Cmd*     ppCmds[gImageCount] = { NULL };
 
 Queue*   pComputeQueue = NULL;
-CmdPool* pComputeCmdPool = NULL;
-Cmd**    ppComputeCmds = NULL;
+CmdPool* pComputeCmdPool[gImageCount] = { NULL };
+Cmd*     ppComputeCmds[gImageCount] = { NULL };
 /************************************************************************/
 // Swapchain
 /************************************************************************/
@@ -650,7 +641,7 @@ RenderTarget* pScreenRenderTarget = NULL;
 /************************************************************************/
 // Screen resolution UI data
 /************************************************************************/
-#if defined(_WIN32) && !defined(_DURANGO)
+#if defined(_WIN32) && !defined(XBOX)
 IWidget*                    gResolutionProperty = NULL;
 eastl::vector<Resolution>   gResolutions;
 uint32_t                    gResolutionIndex = 0;
@@ -665,6 +656,10 @@ struct ResolutionData
 
 static ResolutionData gGuiResolution;
 #endif
+
+ResourceDirEnum gPipelineCacheRD = RD_SHADER_BINARIES;
+const char* pPipelineCacheName = "PipelineCache.cache";
+PipelineCache* pPipelineCache = NULL;
 /************************************************************************/
 /************************************************************************/
 class VisibilityBuffer* pVisibilityBuffer = NULL;
@@ -716,7 +711,7 @@ void SetupDebugTexturesWindow()
 IWidget* addResolutionProperty(
 	GuiComponent* pUIManager, uint32_t& resolutionIndex, uint32_t resCount, Resolution* pResolutions, WidgetCallback onResolutionChanged)
 {
-#if defined(_WIN32) && !defined(_DURANGO)
+#if defined(_WIN32) && !defined(XBOX)
 	if (pUIManager)
 	{
 		ResolutionData& data = gGuiResolution;
@@ -754,7 +749,7 @@ public:
 #if defined(DIRECT3D12)
 	void SetHDRMetaData(float MaxOutputNits, float MinOutputNits, float MaxCLL, float MaxFALL)
 	{
-#if !defined(_DURANGO)
+#if !defined(XBOX)
 		// Clean the hdr metadata if the display doesn't support HDR
 
 		DXGI_COLOR_SPACE_TYPE colorSpace = DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709;
@@ -819,35 +814,42 @@ public:
 		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
 
-		// Create the command pool and the command lists used to store GPU commands.
-		// One Cmd list per back buffer image is stored for triple buffering.
-		CmdPoolDesc cmdPoolDesc = {};
-		cmdPoolDesc.pQueue = pGraphicsQueue;
-		addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
-		CmdDesc cmdDesc = {};
-		cmdDesc.pPool = pCmdPool;
-		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
-
 		QueueDesc computeQueueDesc = {};
 		computeQueueDesc.mType = QUEUE_TYPE_COMPUTE;
         computeQueueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &computeQueueDesc, &pComputeQueue);
 
-		// Create the command pool and the command lists used to store GPU commands.
-		// One Cmd list per back buffer image is stored for triple buffering.
-		cmdPoolDesc.pQueue = pComputeQueue;
-		addCmdPool(pRenderer, &cmdPoolDesc, &pComputeCmdPool);
-		cmdDesc.pPool = pComputeCmdPool;
-		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppComputeCmds);
-
 		addFence(pRenderer, &pTransitionFences);
 
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			// Create the command pool and the command lists used to store GPU commands.
+			// One Cmd list per back buffer image is stored for triple buffering.
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPool[i];
+			addCmd(pRenderer, &cmdDesc, &ppCmds[i]);
+
+			// Create the command pool and the command lists used to store GPU commands.
+			// One Cmd list per back buffer image is stored for triple buffering.
+			cmdPoolDesc.pQueue = pComputeQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pComputeCmdPool[i]);
+			cmdDesc.pPool = pComputeCmdPool[i];
+			addCmd(pRenderer, &cmdDesc, &ppComputeCmds[i]);
+		}
 		/************************************************************************/
 		// Initialize helper interfaces (resource loader, profiler)
 		/************************************************************************/
 		initResourceLoaderInterface(pRenderer);
+
+		PathHandle cachePath = fsGetPathInResourceDirEnum(gPipelineCacheRD, pPipelineCacheName);
+		PipelineCacheLoadDesc cacheDesc = {};
+		cacheDesc.pPath = cachePath;
+		addPipelineCache(pRenderer, &cacheDesc, &pPipelineCache);
 		/************************************************************************/
 		// Setup the UI components for text rendering, UI controls...
 		/************************************************************************/
@@ -1058,27 +1060,25 @@ public:
 #if defined(DIRECT3D12)
 		IndirectArgumentDescriptor indirectArgs[2] = {};
 		indirectArgs[0].mType = INDIRECT_CONSTANT;
-		indirectArgs[0].mCount = 1;
+		indirectArgs[0].pName = "indirectRootConstant";
 		indirectArgs[1].mType = INDIRECT_DRAW_INDEX;
 
-		CommandSignatureDesc vbPassDesc = { pCmdPool, pRootSignatureVBPass, 2, indirectArgs };
-		indirectArgs[0].pName = "indirectRootConstant";
+		CommandSignatureDesc vbPassDesc = { pRootSignatureVBPass, 2, indirectArgs };
 		addIndirectCommandSignature(pRenderer, &vbPassDesc, &pCmdSignatureVBPass);
 
-		CommandSignatureDesc deferredPassDesc = { pCmdPool, pRootSignatureDeferredPass, 2, indirectArgs };
+		CommandSignatureDesc deferredPassDesc = { pRootSignatureDeferredPass, 2, indirectArgs };
 		addIndirectCommandSignature(pRenderer, &deferredPassDesc, &pCmdSignatureDeferredPass);
 #else
 		// Indicate the renderer that we want to use non-indexed geometry.
 		IndirectArgumentDescriptor indirectArgs[1] = {};
-
 #if defined(METAL)
         indirectArgs[0].mType = INDIRECT_COMMAND_BUFFER;
 #else
 		indirectArgs[0].mType = INDIRECT_DRAW_INDEX;
 #endif
 
-		CommandSignatureDesc vbPassDesc = { pCmdPool, pRootSignatureVBPass, 1, indirectArgs };
-		CommandSignatureDesc deferredPassDesc = { pCmdPool, pRootSignatureDeferredPass, 1, indirectArgs };
+		CommandSignatureDesc vbPassDesc = { pRootSignatureVBPass, 1, indirectArgs };
+		CommandSignatureDesc deferredPassDesc = { pRootSignatureDeferredPass, 1, indirectArgs };
 		addIndirectCommandSignature(pRenderer, &vbPassDesc, &pCmdSignatureVBPass);
 		addIndirectCommandSignature(pRenderer, &deferredPassDesc, &pCmdSignatureDeferredPass);
 #endif
@@ -1086,12 +1086,12 @@ public:
 		
 #if defined(METAL)
         indirectArgs[0].mType = INDIRECT_COMMAND_BUFFER_OPTIMIZE;
-        CommandSignatureDesc icbOptimizationPassDesc = { pCmdPool, NULL, 1, indirectArgs };
+        CommandSignatureDesc icbOptimizationPassDesc = { NULL, 1, indirectArgs };
         addIndirectCommandSignature(pRenderer, &icbOptimizationPassDesc, &pCmdSignatureICBOptimize);
 #endif
         
 		// Create geometry for light rendering
-		createCubeBuffers(pRenderer, pCmdPool, &pVertexBufferCube, &pIndexBufferCube);
+		createCubeBuffers(pRenderer, &pVertexBufferCube, &pIndexBufferCube);
 
 		//Generate sky box vertex buffer
 		static const float skyBoxPoints[] =
@@ -1158,6 +1158,7 @@ public:
 		// Setup compute pipelines for triangle filtering
 		/************************************************************************/
 		PipelineDesc pipelineDesc = {};
+		pipelineDesc.pCache = pPipelineCache;
 		pipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
 		ComputePipelineDesc& pipelineSettings = pipelineDesc.mComputeDesc;
 		pipelineSettings.pShaderProgram = pShaderClearBuffers;
@@ -1295,7 +1296,7 @@ public:
 		CheckboxWidget localLight("Enable Random Point Lights", &gAppSettings.mRenderLocalLights);
 		pGuiWindow->AddWidget(localLight);
 
-#if defined(_WIN32) && !defined(_DURANGO)
+#if defined(_WIN32) && !defined(XBOX)
 		Resolution wantedResolutions[] = { { 3840, 2160 }, { 1920, 1080 }, { 1280, 720 }, { 1024, 768 } };
 		gResolutions.emplace_back(getMonitor(0)->defaultResolution);
 		for (uint32_t i = 0; i < sizeof(wantedResolutions) / sizeof(wantedResolutions[0]); ++i)
@@ -1388,7 +1389,7 @@ public:
 			gSCurveInfomation.UseSCurve = 1.0f;
 		}
 
-#if defined(_WIN32) && !defined(_DURANGO)
+#if defined(_WIN32) && !defined(XBOX)
 		if (!pWindow->fullScreen)
 			pGuiWindow->RemoveWidget(gResolutionProperty);
 #endif
@@ -1444,10 +1445,10 @@ public:
             indirectCommandBuffertDesc.mDesc.mICBMaxVertexBufferBind = UINT_VBPASS_MAX;
             indirectCommandBuffertDesc.mDesc.mICBMaxFragmentBufferBind = UINT_VBPASS_MAX;
             indirectCommandBuffertDesc.ppBuffer = &pIndirectCommandBufferShadow[j];
-            indirectCommandBuffertDesc.mDesc.pDebugName = L"Indirect Command Buffer Shadow";
+            indirectCommandBuffertDesc.mDesc.pName = "Indirect Command Buffer Shadow";
             addResource(&indirectCommandBuffertDesc, NULL, LOAD_PRIORITY_NORMAL);
             indirectCommandBuffertDesc.ppBuffer = &pIndirectCommandBufferCamera[j];
-            indirectCommandBuffertDesc.mDesc.pDebugName = L"Indirect Command Buffer Camera";
+            indirectCommandBuffertDesc.mDesc.pName = "Indirect Command Buffer Camera";
             addResource(&indirectCommandBuffertDesc, NULL, LOAD_PRIORITY_NORMAL);
         }
         
@@ -1466,14 +1467,14 @@ public:
         drawIDBufferDesc.mDesc.mSize = drawIDBufferDesc.mDesc.mElementCount * drawIDBufferDesc.mDesc.mStructStride;
         drawIDBufferDesc.ppBuffer = &pDrawIDBuffer;
         drawIDBufferDesc.pData = drawIds;
-        drawIDBufferDesc.mDesc.pDebugName = L"DrawId Buffer";
+        drawIDBufferDesc.mDesc.pName = "DrawId Buffer";
         addResource(&drawIDBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
 #endif
         
 		LOGF(LogLevel::eINFO, "Setup buffers : %f ms", setupBuffersTimer.GetUSec(true) / 1000.0f);
 
-#ifdef _DURANGO
-		// When async compute is on, we need to transition some resources in the graphics queue
+#if defined(XBOX)
+		// When async compute, we need to transition some resources in the graphics queue
 		// because they can't be transitioned by the compute queue (incompatible)
 		if (gAppSettings.mAsyncCompute)
 			setResourcesToComputeCompliantState(0, true);
@@ -1630,7 +1631,7 @@ public:
 		gSpecularMapsPacked.set_capacity(0);
 
 		gPositionsDirections.set_capacity(0);
-#if defined(_WIN32) && !defined(_DURANGO)
+#if defined(_WIN32) && !defined(XBOX)
 		gResolutions.set_capacity(0);
 		gGuiResolution.resNameContainer.set_capacity(0);
 		gGuiResolution.resNamePointers.set_capacity(0);
@@ -1644,18 +1645,26 @@ public:
 
 		removeFence(pRenderer, pTransitionFences);
 
-		removeCmd_n(pRenderer, gImageCount, ppCmds);
-		removeCmdPool(pRenderer, pCmdPool);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeCmd(pRenderer, ppCmds[i]);
+			removeCmdPool(pRenderer, pCmdPool[i]);
+			removeCmd(pRenderer, ppComputeCmds[i]);
+			removeCmdPool(pRenderer, pComputeCmdPool[i]);
+		}
+
 		removeQueue(pRenderer, pGraphicsQueue);
 
-		removeCmd_n(pRenderer, gImageCount, ppComputeCmds);
-		removeCmdPool(pRenderer, pComputeCmdPool);
 		removeQueue(pRenderer, pComputeQueue);
 
 		removeSampler(pRenderer, pSamplerTrilinearAniso);
 		removeSampler(pRenderer, pSamplerBilinear);
 		removeSampler(pRenderer, pSamplerPointClamp);
 		removeSampler(pRenderer, pSamplerBilinearClamp);
+
+		PathHandle cachePath = fsGetPathInResourceDirEnum(gPipelineCacheRD, pPipelineCacheName);
+		savePipelineCache(pRenderer, pPipelineCache, cachePath);
+		removePipelineCache(pRenderer, pPipelineCache);
 
 		exitResourceLoaderInterface(pRenderer);
 		
@@ -1787,6 +1796,7 @@ public:
 		/************************************************************************/
 		// Setup pipeline settings
 		PipelineDesc pipelineDesc = {};
+		pipelineDesc.pCache = pPipelineCache;
 		pipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
 		GraphicsPipelineDesc& shadowPipelineSettings = pipelineDesc.mGraphicsDesc;
 		shadowPipelineSettings = { 0 };
@@ -1844,23 +1854,22 @@ public:
 #endif
 			vbPassPipelineSettings.pShaderProgram = pShaderVisibilityBufferPass[i];
 
-#if defined(_DURANGO)
+#if defined(XBOX)
 			ExtendedGraphicsPipelineDesc edescs[2] = {};
-
 			edescs[0].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_SHADER_LIMITS;
 			initExtendedGraphicsShaderLimits(&edescs[0].shaderLimitsDesc);
 			edescs[0].shaderLimitsDesc.maxWavesWithLateAllocParameterCache = 16;
 
 			edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_DEPTH_STENCIL_OPTIONS;
 			edescs[1].pixelShaderOptions.outOfOrderRasterization = PIXEL_SHADER_OPTION_OUT_OF_ORDER_RASTERIZATION_ENABLE_WATER_MARK_7;
+			edescs[1].pixelShaderOptions.depthBeforeShader = !i ? PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_ENABLE : PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_DEFAULT;
 
-			if (i == 0)
-				edescs[1].pixelShaderOptions.depthBeforeShader = PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_ENABLE;
-
-			addPipelineExt(pRenderer, &vbPassPipelineSettings, _countof(edescs), edescs, &pPipelineVisibilityBufferPass[i]);
-#else
-			addPipeline(pRenderer, &pipelineDesc, &pPipelineVisibilityBufferPass[i]);
+			pipelineDesc.pPipelineExtensions = edescs;
+			pipelineDesc.mExtensionCount = sizeof(edescs) / sizeof(edescs[0]);
 #endif
+			addPipeline(pRenderer, &pipelineDesc, &pPipelineVisibilityBufferPass[i]);
+
+			pipelineDesc.mExtensionCount = 0;
 		}
 		/************************************************************************/
 		// Setup the resources needed for the Visibility Buffer Shade Pipeline
@@ -1895,23 +1904,22 @@ public:
 
 #endif
 
-#if defined(_DURANGO) && 1
-			ExtendedGraphicsPipelineDesc edescs[2];
-			memset(edescs, 0, sizeof(edescs));
-
+#if defined(XBOX)
+			ExtendedGraphicsPipelineDesc edescs[2] = {};
 			edescs[0].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_SHADER_LIMITS;
 			initExtendedGraphicsShaderLimits(&edescs[0].shaderLimitsDesc);
 			//edescs[0].ShaderLimitsDesc.MaxWavesWithLateAllocParameterCache = 22;
 
 			edescs[1].type = EXTENDED_GRAPHICS_PIPELINE_TYPE_DEPTH_STENCIL_OPTIONS;
 			edescs[1].pixelShaderOptions.outOfOrderRasterization = PIXEL_SHADER_OPTION_OUT_OF_ORDER_RASTERIZATION_ENABLE_WATER_MARK_7;
+			edescs[1].pixelShaderOptions.depthBeforeShader = !i ? PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_ENABLE : PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_DEFAULT;
 
-			if (i == 0)
-				edescs[1].pixelShaderOptions.depthBeforeShader = PIXEL_SHADER_OPTION_DEPTH_BEFORE_SHADER_ENABLE;
-			addPipelineExt(pRenderer, &vbShadePipelineSettings, _countof(edescs), edescs, &pPipelineVisibilityBufferShadeSrgb[i]);
-#else
-			addPipeline(pRenderer, &pipelineDesc, &pPipelineVisibilityBufferShadeSrgb[i]);
+			pipelineDesc.pPipelineExtensions = edescs;
+			pipelineDesc.mExtensionCount = sizeof(edescs) / sizeof(edescs[0]);
 #endif
+			addPipeline(pRenderer, &pipelineDesc, &pPipelineVisibilityBufferShadeSrgb[i]);
+
+			pipelineDesc.mExtensionCount = 0;
 		}
 		/************************************************************************/
 		// Setup the resources needed for the Deferred Pass Pipeline
@@ -2086,9 +2094,6 @@ public:
 		/************************************************************************/
 		// Setup Godray pipeline
 		/************************************************************************/
-		VertexLayout vertexLayoutCopyShaders = {};
-		vertexLayoutCopyShaders.mAttribCount = 0;
-
 		GraphicsPipelineDesc& pipelineSettingsGodRay = pipelineDesc.mGraphicsDesc;
 		pipelineSettingsGodRay = { 0 };
 		pipelineSettingsGodRay.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_LIST;
@@ -2097,7 +2102,6 @@ public:
 		pipelineSettingsGodRay.pColorFormats = &pRenderTargetGodRay[0]->mFormat;
 		pipelineSettingsGodRay.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
 		pipelineSettingsGodRay.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-		pipelineSettingsGodRay.pVertexLayout = &vertexLayoutCopyShaders;
 		pipelineSettingsGodRay.pRootSignature = pRootSigGodRayPass;
 		pipelineSettingsGodRay.pShaderProgram = pGodRayPass;
 		addPipeline(pRenderer, &pipelineDesc, &pPipelineGodRayPass);
@@ -2116,7 +2120,6 @@ public:
 		pipelineSettingsCurveConversion.pColorFormats = &pCurveConversionRenderTarget->mFormat;
 		pipelineSettingsCurveConversion.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
 		pipelineSettingsCurveConversion.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-		pipelineSettingsCurveConversion.pVertexLayout = &vertexLayoutCopyShaders;
 		pipelineSettingsCurveConversion.pRootSignature = pRootSigCurveConversionPass;
 		pipelineSettingsCurveConversion.pShaderProgram = pShaderCurveConversion;
 		addPipeline(pRenderer, &pipelineDesc, &pPipelineCurveConversionPass);
@@ -2133,7 +2136,6 @@ public:
 		pipelineSettingsFinalPass.pColorFormats = &pSwapChain->ppRenderTargets[0]->mFormat;
 		pipelineSettingsFinalPass.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
 		pipelineSettingsFinalPass.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-		pipelineSettingsFinalPass.pVertexLayout = &vertexLayoutCopyShaders;
 		pipelineSettingsFinalPass.pRootSignature = pRootSigPresentPass;
 		pipelineSettingsFinalPass.pShaderProgram = pShaderPresentPass;
 
@@ -2219,7 +2221,7 @@ public:
 			waitQueueIdle(pGraphicsQueue);
 			::toggleVSync(pRenderer, &pSwapChain);
 		}
-#if defined(_WIN32) && !defined(_DURANGO)
+#if defined(_WIN32) && !defined(XBOX)
 		if (gResolutionChange)
 		{
 			gResolutionChange = false;
@@ -2233,7 +2235,7 @@ public:
 		if (gWasColorSpace != gAppSettings.mCurrentSwapChainColorSpace || gWasDisplayColorRange != gAppSettings.mDisplayColorRange ||
 			gWasDisplaySignalRange != gAppSettings.mDisplaySignalRange)
 		{
-#if defined(DIRECT3D12) && !defined(_DURANGO)
+#if defined(DIRECT3D12) && !defined(XBOX)
 			if (gWasColorSpace != gAppSettings.mCurrentSwapChainColorSpace && gAppSettings.mOutputMode == OUTPUT_MODE_HDR10)
 			{
 				pVisibilityBuffer->Unload();
@@ -2251,7 +2253,7 @@ public:
 		{
 			waitForFences(pRenderer, gImageCount, pRenderCompleteFences);
 
-#if defined(_DURANGO)
+#if defined(XBOX)
 			//garuantee that every fence for each index has same value
 			if (pRenderCompleteFences[0]->mFenceValue == pRenderCompleteFences[1]->mFenceValue &&
 				pRenderCompleteFences[0]->mFenceValue == pRenderCompleteFences[2]->mFenceValue)
@@ -2273,7 +2275,7 @@ public:
 				}
 
 				gWasOutputMode = gAppSettings.mOutputMode;
-#if defined(_DURANGO)
+#if defined(XBOX)
 			}
 #endif
 		}
@@ -2372,6 +2374,7 @@ public:
 		/************************************************************************/
 			Cmd* computeCmd = ppComputeCmds[frameIdx];
 
+			resetCmdPool(pRenderer, pComputeCmdPool[frameIdx]);
 			beginCmd(computeCmd);
 			cmdBeginGpuFrameProfile(computeCmd, gComputeProfileToken);
 
@@ -2385,7 +2388,7 @@ public:
 			{
 				/************************************************************************/
 				// Synchronization
-		/************************************************************************/
+				/************************************************************************/
 				// Update Light clusters on the GPU
 				cmdBeginGpuTimestampQuery(computeCmd, gComputeProfileToken, "Compute Light Clusters");
 				BufferBarrier barriers[] = { { pLightClustersCount[frameIdx], RESOURCE_STATE_UNORDERED_ACCESS } };
@@ -2428,6 +2431,7 @@ public:
 			// Get command list to store rendering commands for this frame
 			graphicsCmd = ppCmds[frameIdx];
 			// Submit all render commands for this frame
+			resetCmdPool(pRenderer, pCmdPool[frameIdx]);
 			beginCmd(graphicsCmd);
 
 			cmdBeginGpuFrameProfile(graphicsCmd, gGraphicsProfileToken);
@@ -2495,7 +2499,7 @@ public:
 			drawScene(graphicsCmd, frameIdx);
 			drawSkybox(graphicsCmd, frameIdx);
 
-#ifdef _DURANGO
+#if defined(XBOX)
 			// When async compute is on, we need to transition some resources in the graphics queue
 			// because they can't be transitioned by the compute queue (incompatible)
 			if (gAppSettings.mAsyncCompute)
@@ -2571,7 +2575,7 @@ public:
 		++gFrameCount;
 	}
 
-	const char* GetName() { return "Visibility Buffer"; }
+	const char* GetName() { return "Visibility_Buffer"; }
 
 	bool addDescriptorSets()
 	{
@@ -2891,7 +2895,7 @@ public:
 						j == 0 ? &pFilterIndirectMaterialBuffer[i] : &pIndirectMaterialBufferAll;
 					vbShadeParamsPerFrame[4].pName = "filteredIndexBuffer";
 					vbShadeParamsPerFrame[4].ppBuffers = j == 0 ? &pFilteredIndexBuffer[i][VIEW_CAMERA] : &pGeom->pIndexBuffer;
-#if defined(ORBIS)
+#if defined(ORBIS) || defined(PROSPERO)
 					vbShadeParamsPerFrame[5].pName = "indirectDrawArgsOpaque";
 					vbShadeParamsPerFrame[5].ppBuffers = j == 0 ? &pIndirectBuffers[GEOMSET_OPAQUE] : &pIndirectDrawArgumentsBufferAll[GEOMSET_OPAQUE];
 					vbShadeParamsPerFrame[6].pName = "indirectDrawArgsAlpha";
@@ -3101,13 +3105,14 @@ public:
 		depthRT.mArraySize = 1;
 		depthRT.mClearValue = optimizedDepthClear;
 		depthRT.mDepth = 1;
+		depthRT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
 		depthRT.mHeight = height;
 		depthRT.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
 		depthRT.mSampleQuality = 0;
 		depthRT.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
 		depthRT.mWidth = width;
-		depthRT.pDebugName = L"Depth Buffer RT";
+		depthRT.pName = "Depth Buffer RT";
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 		/************************************************************************/
 		// Shadow pass render target
@@ -3116,13 +3121,14 @@ public:
 		shadowRTDesc.mArraySize = 1;
 		shadowRTDesc.mClearValue = optimizedDepthClear;
 		shadowRTDesc.mDepth = 1;
+		shadowRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		shadowRTDesc.mFormat = TinyImageFormat_D32_SFLOAT;
 		shadowRTDesc.mWidth = gShadowMapSize;
 		shadowRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		shadowRTDesc.mSampleQuality = 0;
 		//shadowRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
 		shadowRTDesc.mHeight = gShadowMapSize;
-		shadowRTDesc.pDebugName = L"Shadow Map RT";
+		shadowRTDesc.pName = "Shadow Map RT";
 		addRenderTarget(pRenderer, &shadowRTDesc, &pRenderTargetShadow);
 		/************************************************************************/
 		// Visibility buffer pass render target
@@ -3131,13 +3137,14 @@ public:
 		vbRTDesc.mArraySize = 1;
 		vbRTDesc.mClearValue = optimizedColorClearWhite;
 		vbRTDesc.mDepth = 1;
+		vbRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		vbRTDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
 		vbRTDesc.mHeight = height;
 		vbRTDesc.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
 		vbRTDesc.mSampleQuality = 0;
 		vbRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
 		vbRTDesc.mWidth = width;
-		vbRTDesc.pDebugName = L"VB RT";
+		vbRTDesc.pName = "VB RT";
 		addRenderTarget(pRenderer, &vbRTDesc, &pRenderTargetVBPass);
 		/************************************************************************/
 		// Deferred pass render targets
@@ -3146,12 +3153,13 @@ public:
 		deferredRTDesc.mArraySize = 1;
 		deferredRTDesc.mClearValue = optimizedColorClearBlack;
 		deferredRTDesc.mDepth = 1;
+		deferredRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		deferredRTDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
 		deferredRTDesc.mHeight = height;
 		deferredRTDesc.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
 		deferredRTDesc.mSampleQuality = 0;
 		deferredRTDesc.mWidth = width;
-		deferredRTDesc.pDebugName = L"G-Buffer RTs";
+		deferredRTDesc.pName = "G-Buffer RTs";
 		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
 		{
 			addRenderTarget(pRenderer, &deferredRTDesc, &pRenderTargetDeferredPass[i]);
@@ -3163,16 +3171,19 @@ public:
 		msaaRTDesc.mArraySize = 1;
 		msaaRTDesc.mClearValue = optimizedColorClearBlack;
 		msaaRTDesc.mDepth = 1;
+		msaaRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		msaaRTDesc.mFormat = gAppSettings.mOutputMode == OutputMode::OUTPUT_MODE_SDR ? TinyImageFormat_R8G8B8A8_UNORM : TinyImageFormat_R10G10B10A2_UNORM;
 		msaaRTDesc.mHeight = height;
 		msaaRTDesc.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
 		msaaRTDesc.mSampleQuality = 0;
 		msaaRTDesc.mWidth = width;
-		msaaRTDesc.pDebugName = L"MSAA RT";
+		msaaRTDesc.pName = "MSAA RT";
 		// Disabling compression data will avoid decompression phase before resolve pass.
 		// However, the shading pass will require more memory bandwidth.
 		// We measured with and without compression and without compression is faster in our case.
+#ifndef PROSPERO
 		msaaRTDesc.mFlags = TEXTURE_CREATION_FLAG_NO_COMPRESSION;
+#endif
 		addRenderTarget(pRenderer, &msaaRTDesc, &pRenderTargetMSAA);
 
 		/************************************************************************/
@@ -3182,12 +3193,13 @@ public:
 		aoRTDesc.mArraySize = 1;
 		aoRTDesc.mClearValue = optimizedColorClearBlack;
 		aoRTDesc.mDepth = 1;
+		aoRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		aoRTDesc.mFormat = TinyImageFormat_R8_UNORM;
 		aoRTDesc.mHeight = height;
 		aoRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		aoRTDesc.mSampleQuality = 0;
 		aoRTDesc.mWidth = width;
-		aoRTDesc.pDebugName = L"AO RT";
+		aoRTDesc.pName = "AO RT";
 		addRenderTarget(pRenderer, &aoRTDesc, &pRenderTargetAO);
 
 		/************************************************************************/
@@ -3197,12 +3209,13 @@ public:
 		postProcRTDesc.mArraySize = 1;
 		postProcRTDesc.mClearValue = {{0.0f, 0.0f, 0.0f, 0.0f}};
 		postProcRTDesc.mDepth = 1;
+		postProcRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		postProcRTDesc.mFormat = gAppSettings.mOutputMode == OutputMode::OUTPUT_MODE_SDR ? TinyImageFormat_R8G8B8A8_UNORM : TinyImageFormat_R10G10B10A2_UNORM;
 		postProcRTDesc.mHeight = mSettings.mHeight;
 		postProcRTDesc.mWidth = mSettings.mWidth;
 		postProcRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
 		postProcRTDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-		postProcRTDesc.pDebugName = L"pIntermediateRenderTarget";
+		postProcRTDesc.pName = "pIntermediateRenderTarget";
 		addRenderTarget(pRenderer, &postProcRTDesc, &pIntermediateRenderTarget);
 
 		/************************************************************************/
@@ -3212,6 +3225,7 @@ public:
 		RasterizerStateDesc rasterizerStateCullNoneDesc = { CULL_MODE_NONE };
 
 		PipelineDesc pipelineDesc = {};
+		pipelineDesc.pCache = pPipelineCache;
 		pipelineDesc.mType = PIPELINE_TYPE_GRAPHICS;
 		GraphicsPipelineDesc& resolvePipelineSettings = pipelineDesc.mGraphicsDesc;
 		resolvePipelineSettings = { 0 };
@@ -3235,16 +3249,17 @@ public:
 		GRRTDesc.mArraySize = 1;
 		GRRTDesc.mClearValue = {{0.0f, 0.0f, 0.0f, 1.0f}};
 		GRRTDesc.mDepth = 1;
+		GRRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		GRRTDesc.mFormat = gAppSettings.mOutputMode == OutputMode::OUTPUT_MODE_SDR ? TinyImageFormat_R8G8B8A8_UNORM : TinyImageFormat_R10G10B10A2_UNORM;
 		GRRTDesc.mHeight = mSettings.mHeight;
 		GRRTDesc.mWidth = mSettings.mWidth;
 		GRRTDesc.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
 		GRRTDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-		GRRTDesc.pDebugName = L"Sun RT";
+		GRRTDesc.pName = "Sun RT";
 		addRenderTarget(pRenderer, &GRRTDesc, &pRenderTargetSun);
 
 		GRRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
-		GRRTDesc.pDebugName = L"Sun Resolve RT";
+		GRRTDesc.pName = "Sun Resolve RT";
 		addRenderTarget(pRenderer, &GRRTDesc, &pRenderTargetSunResolved);
 
 		GraphicsPipelineDesc& resolveGodrayPipelineSettings = pipelineDesc.mGraphicsDesc;
@@ -3266,9 +3281,9 @@ public:
 		GRRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
 		GRRTDesc.mFormat = pSwapChain->ppRenderTargets[0]->mFormat;
 
-		GRRTDesc.pDebugName = L"GodRay RT A";
+		GRRTDesc.pName = "GodRay RT A";
 		addRenderTarget(pRenderer, &GRRTDesc, &pRenderTargetGodRay[0]);
-		GRRTDesc.pDebugName = L"GodRay RT B";
+		GRRTDesc.pName = "GodRay RT B";
 		addRenderTarget(pRenderer, &GRRTDesc, &pRenderTargetGodRay[1]);
 
 		/************************************************************************/
@@ -3278,12 +3293,13 @@ public:
 		postCurveConversionRTDesc.mArraySize = 1;
 		postCurveConversionRTDesc.mClearValue = {{0.0f, 0.0f, 0.0f, 0.0f}};
 		postCurveConversionRTDesc.mDepth = 1;
+		postCurveConversionRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		postCurveConversionRTDesc.mFormat = pSwapChain->ppRenderTargets[0]->mFormat;
 		postCurveConversionRTDesc.mHeight = mSettings.mHeight;
 		postCurveConversionRTDesc.mWidth = mSettings.mWidth;
 		postCurveConversionRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
 		postCurveConversionRTDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
-		postCurveConversionRTDesc.pDebugName = L"pCurveConversionRenderTarget";
+		postCurveConversionRTDesc.pName = "pCurveConversionRenderTarget";
 		addRenderTarget(pRenderer, &postCurveConversionRTDesc, &pCurveConversionRenderTarget);
 
 		/************************************************************************/
@@ -3360,11 +3376,11 @@ public:
 		shadowPassAlpha.mStages[0] = { "shadow_pass_alpha.vert", NULL, 0, RD_SHADER_SOURCES };
 		shadowPassAlpha.mStages[1] = { "shadow_pass_alpha.frag", NULL, 0, RD_SHADER_SOURCES };
 
-		vbPass.mStages[0] = { "visibilityBuffer_pass.vert", NULL, 0, RD_SHADER_SOURCES };
-		vbPass.mStages[1] = { "visibilityBuffer_pass.frag", NULL, 0, RD_SHADER_SOURCES };
-		vbPassAlpha.mStages[0] = { "visibilityBuffer_pass_alpha.vert", NULL, 0, RD_SHADER_SOURCES };
-		vbPassAlpha.mStages[1] = { "visibilityBuffer_pass_alpha.frag", NULL, 0, RD_SHADER_SOURCES };
-#if defined(ORBIS)
+		vbPass.mStages[0] = { "visibilityBuffer_pass.vert", NULL, 0, RD_SHADER_SOURCES, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_PS_PRIMITIVEID };
+		vbPass.mStages[1] = { "visibilityBuffer_pass.frag", NULL, 0, RD_SHADER_SOURCES, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_PS_PRIMITIVEID };
+		vbPassAlpha.mStages[0] = { "visibilityBuffer_pass_alpha.vert", NULL, 0, RD_SHADER_SOURCES, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_PS_PRIMITIVEID };
+		vbPassAlpha.mStages[1] = { "visibilityBuffer_pass_alpha.frag", NULL, 0, RD_SHADER_SOURCES, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_PS_PRIMITIVEID };
+#if defined(ORBIS) || defined(PROSPERO)
 		// No SV_PrimitiveID in pixel shader on ORBIS. Only available in gs stage so we need
 		// a passthrough gs
 		vbPass.mStages[2] = { "visibilityBuffer_pass.geom", NULL, 0, RD_SHADER_SOURCES };
@@ -3522,7 +3538,7 @@ public:
 		materialPropDesc.mDesc.mSize = materialPropDesc.mDesc.mElementCount * materialPropDesc.mDesc.mStructStride;
 		materialPropDesc.pData = alphaTestMaterials;
 		materialPropDesc.ppBuffer = &pMaterialPropertyBuffer;
-		materialPropDesc.mDesc.pDebugName = L"Material Prop Desc";
+		materialPropDesc.mDesc.pName = "Material Prop Desc";
 		addResource(&materialPropDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		conf_free(alphaTestMaterials);
@@ -3531,8 +3547,8 @@ public:
 		/************************************************************************/
 		const uint32_t numBatches = (const uint32_t)gMeshCount;
 		eastl::vector<uint32_t> materialIDPerDrawCall(MATERIAL_BUFFER_SIZE);
-		eastl::vector<VisBufferIndirectCommand> indirectArgsNoAlpha(MAX_DRAWS_INDIRECT, VisBufferIndirectCommand{ 0 });
-		eastl::vector<VisBufferIndirectCommand> indirectArgsAlpha(MAX_DRAWS_INDIRECT, VisBufferIndirectCommand{ 0 });
+		eastl::vector<VisBufferIndirectCommand> indirectArgsNoAlpha(MAX_DRAWS_INDIRECT, VisBufferIndirectCommand{ { 0 } });
+		eastl::vector<VisBufferIndirectCommand> indirectArgsAlpha(MAX_DRAWS_INDIRECT, VisBufferIndirectCommand{ { 0 } });
 		uint32_t iAlpha = 0, iNoAlpha = 0;
 		for (uint32_t i = 0; i < numBatches; ++i)
 		{
@@ -3545,7 +3561,7 @@ public:
 				indirectArgsAlpha[iAlpha].drawId = iAlpha;
 #endif
 				indirectArgsAlpha[iAlpha].arg = pScene->geom->pDrawArgs[i];
-#if defined(ORBIS)
+#if defined(ORBIS) || defined(PROSPERO)
 				// No drawId or gl_DrawId but instance id works as expected so use that as the draw id
 				indirectArgsAlpha[iAlpha].arg.mStartInstance = iAlpha;
 #endif
@@ -3559,7 +3575,7 @@ public:
 				indirectArgsNoAlpha[iNoAlpha].drawId = iNoAlpha;
 #endif
 				indirectArgsNoAlpha[iNoAlpha].arg = pScene->geom->pDrawArgs[i];
-#if defined(ORBIS)
+#if defined(ORBIS) || defined(PROSPERO)
 				indirectArgsNoAlpha[iNoAlpha].arg.mStartInstance = iNoAlpha;
 #endif
 				for (uint32_t j = 0; j < gNumViews; ++j)
@@ -3588,7 +3604,7 @@ public:
 			indirectBufferDesc.mDesc.mSize = indirectBufferDesc.mDesc.mElementCount * indirectBufferDesc.mDesc.mStructStride;
 			indirectBufferDesc.pData = i == 0 ? indirectArgsNoAlpha.data() : indirectArgsAlpha.data();
 			indirectBufferDesc.ppBuffer = &pIndirectDrawArgumentsBufferAll[i];
-			indirectBufferDesc.mDesc.pDebugName = L"Indirect Buffer Desc";
+			indirectBufferDesc.mDesc.pName = "Indirect Buffer Desc";
 			addResource(&indirectBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
@@ -3600,7 +3616,7 @@ public:
 		indirectDesc.mDesc.mSize = indirectDesc.mDesc.mElementCount * indirectDesc.mDesc.mStructStride;
 		indirectDesc.pData = materialIDPerDrawCall.data();
 		indirectDesc.ppBuffer = &pIndirectMaterialBufferAll;
-		indirectDesc.mDesc.pDebugName = L"Indirect Desc";
+		indirectDesc.mDesc.pName = "Indirect Desc";
 		addResource(&indirectDesc, NULL, LOAD_PRIORITY_NORMAL);
 
 		/************************************************************************/
@@ -3612,7 +3628,7 @@ public:
 		filterIbDesc.mDesc.mElementCount = pScene->geom->mIndexCount;
 		filterIbDesc.mDesc.mStructStride = sizeof(uint32_t);
 		filterIbDesc.mDesc.mSize = filterIbDesc.mDesc.mElementCount * filterIbDesc.mDesc.mStructStride;
-		filterIbDesc.mDesc.pDebugName = L"Filtered IB Desc";
+		filterIbDesc.mDesc.pName = "Filtered IB Desc";
 		filterIbDesc.pData = NULL;
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -3632,7 +3648,7 @@ public:
 #if defined(DIRECT3D12)
 			indirectDrawArguments[i].drawId = i;
 #endif
-#if defined(ORBIS)
+#if defined(ORBIS) || defined(PROSPERO)
 			indirectDrawArguments[i].arg.mStartInstance = i;
 #endif
 			if (i < gMeshCount)
@@ -3645,7 +3661,7 @@ public:
 		filterIndirectDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT * (sizeof(VisBufferIndirectCommand) / sizeof(uint32_t));
 		filterIndirectDesc.mDesc.mStructStride = sizeof(uint32_t);
 		filterIndirectDesc.mDesc.mSize = filterIndirectDesc.mDesc.mElementCount * filterIndirectDesc.mDesc.mStructStride;
-		filterIndirectDesc.mDesc.pDebugName = L"Filtered Indirect Desc";
+		filterIndirectDesc.mDesc.pName = "Filtered Indirect Desc";
 		filterIndirectDesc.pData = indirectDrawArguments;
 
 		BufferLoadDesc uncompactedDesc = {};
@@ -3654,7 +3670,7 @@ public:
 		uncompactedDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT;
 		uncompactedDesc.mDesc.mStructStride = sizeof(UncompactedDrawArguments);
 		uncompactedDesc.mDesc.mSize = uncompactedDesc.mDesc.mElementCount * uncompactedDesc.mDesc.mStructStride;
-		uncompactedDesc.mDesc.pDebugName = L"Uncompacted Draw Arguments Desc";
+		uncompactedDesc.mDesc.pName = "Uncompacted Draw Arguments Desc";
 		uncompactedDesc.pData = NULL;
 
 		BufferLoadDesc filterMaterialDesc = {};
@@ -3663,7 +3679,7 @@ public:
 		filterMaterialDesc.mDesc.mElementCount = MATERIAL_BUFFER_SIZE;
 		filterMaterialDesc.mDesc.mStructStride = sizeof(uint32_t);
 		filterMaterialDesc.mDesc.mSize = filterMaterialDesc.mDesc.mElementCount * filterMaterialDesc.mDesc.mStructStride;
-		filterMaterialDesc.mDesc.pDebugName = L"Filtered Indirect Material Desc";
+		filterMaterialDesc.mDesc.pName = "Filtered Indirect Material Desc";
 		filterMaterialDesc.pData = NULL;
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -3727,7 +3743,7 @@ public:
 		meshConstantDesc.mDesc.mSize = meshConstantDesc.mDesc.mElementCount * meshConstantDesc.mDesc.mStructStride;
 		meshConstantDesc.pData = meshConstants;
 		meshConstantDesc.ppBuffer = &pMeshConstantsBuffer;
-		meshConstantDesc.mDesc.pDebugName = L"Mesh Constant Desc";
+		meshConstantDesc.mDesc.pName = "Mesh Constant Desc";
 
 		addResource(&meshConstantDesc, NULL, LOAD_PRIORITY_NORMAL);
 
@@ -3743,7 +3759,7 @@ public:
 		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		ubDesc.pData = NULL;
-		ubDesc.mDesc.pDebugName = L"Uniform Buffer Desc";
+		ubDesc.mDesc.pName = "Uniform Buffer Desc";
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -3772,7 +3788,7 @@ public:
 		batchUb.mDesc.mStructStride = sizeof(LightData);
 		batchUb.pData = gLightData;
 		batchUb.ppBuffer = &pLightsBuffer;
-		batchUb.mDesc.pDebugName = L"Lights Desc";
+		batchUb.mDesc.pName = "Lights Desc";
 		addResource(&batchUb, NULL, LOAD_PRIORITY_NORMAL);
 
 		// Setup lights cluster data
@@ -3785,7 +3801,7 @@ public:
 		lightClustersCountBufferDesc.mDesc.mElementCount = LIGHT_CLUSTER_WIDTH * LIGHT_CLUSTER_HEIGHT;
 		lightClustersCountBufferDesc.mDesc.mStructStride = sizeof(uint32_t);
 		lightClustersCountBufferDesc.pData = lightClustersInitData;
-		lightClustersCountBufferDesc.mDesc.pDebugName = L"Light Cluster Count Buffer Desc";
+		lightClustersCountBufferDesc.mDesc.pName = "Light Cluster Count Buffer Desc";
 		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
 		{
 			lightClustersCountBufferDesc.ppBuffer = &pLightClustersCount[frameIdx];
@@ -3800,7 +3816,7 @@ public:
 		lightClustersDataBufferDesc.mDesc.mElementCount = LIGHT_COUNT * LIGHT_CLUSTER_WIDTH * LIGHT_CLUSTER_HEIGHT;
 		lightClustersDataBufferDesc.mDesc.mStructStride = sizeof(uint32_t);
 		lightClustersDataBufferDesc.pData = NULL;
-		lightClustersDataBufferDesc.mDesc.pDebugName = L"Light Cluster Data Buffer Desc";
+		lightClustersDataBufferDesc.mDesc.pName = "Light Cluster Data Buffer Desc";
 		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
 		{
 			lightClustersDataBufferDesc.ppBuffer = &pLightClusters[frameIdx];
@@ -3813,7 +3829,7 @@ public:
 		sunDataBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		sunDataBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		sunDataBufferDesc.pData = NULL;
-		sunDataBufferDesc.mDesc.pDebugName = L"Sun matrices Data Buffer Desc";
+		sunDataBufferDesc.mDesc.pName = "Sun matrices Data Buffer Desc";
 		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
 		{
 			sunDataBufferDesc.ppBuffer = &pUniformBufferSun[frameIdx];
@@ -3826,7 +3842,7 @@ public:
 		skyDataBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		skyDataBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		skyDataBufferDesc.pData = NULL;
-		skyDataBufferDesc.mDesc.pDebugName = L"Sky Uniforms";
+		skyDataBufferDesc.mDesc.pName = "Sky Uniforms";
 		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
 		{
 			skyDataBufferDesc.ppBuffer = &pUniformBufferSky[frameIdx];
@@ -4187,7 +4203,7 @@ public:
 			}
 		}
 
-#if defined(_WIN32) && !defined(_DURANGO)
+#if defined(_WIN32) && !defined(XBOX)
 		static bool wasFullscreen = pWindow->fullScreen;
 		if (pWindow->fullScreen != wasFullscreen)
 		{
@@ -4822,7 +4838,7 @@ public:
 
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Filter Triangles");
 		cmdBindPipeline(cmd, pPipelineTriangleFiltering);
-#if defined(METAL) || defined(ORBIS)
+#if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetTriangleFiltering[0]);
 #endif
 		cmdBindDescriptorSet(cmd, frameIdx * gNumStages + 1, pDescriptorSetTriangleFiltering[1]);
@@ -5043,7 +5059,7 @@ public:
 		/************************************************************************/
 		cmdBeginGpuTimestampQuery(cmd, pGpuProfiler, "Batch Compaction");
 		cmdBindPipeline(cmd, pPipelineBatchCompaction);
-#if defined(METAL) || defined(ORBIS)
+#if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetTriangleFiltering[0]);
 #endif
 		cmdBindDescriptorSet(cmd, frameIdx * gNumStages + 2, pDescriptorSetTriangleFiltering[1]);
@@ -5185,7 +5201,7 @@ public:
 		skyboxImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		skyboxImgDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
 		skyboxImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
-		skyboxImgDesc.pDebugName = L"skyboxImgBuff";
+		skyboxImgDesc.pName = "skyboxImgBuff";
 
 		SyncToken token = {};
 		TextureLoadDesc skyboxLoadDesc = {};
@@ -5221,6 +5237,7 @@ public:
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetPanoToCube[1]);
 
 		PipelineDesc pipelineDesc = {};
+		pipelineDesc.pCache = pPipelineCache;
 		pipelineDesc.mType = PIPELINE_TYPE_COMPUTE;
 		ComputePipelineDesc& pipelineSettings = pipelineDesc.mComputeDesc;
 		pipelineSettings = { 0 };
@@ -5398,7 +5415,7 @@ public:
 				cmd, 0.0f, 0.0f, (float)pRenderTargetGodRay[!(loop & 0x1)]->mWidth, (float)pRenderTargetGodRay[!(loop & 0x1)]->mHeight, 0.0f, 1.0f);
 			cmdSetScissor(cmd, 0, 0, pRenderTargetGodRay[!(loop & 0x1)]->mWidth, pRenderTargetGodRay[!(loop & 0x1)]->mHeight);
 
-#if defined(METAL) || defined(ORBIS)
+#if defined(METAL) || defined(ORBIS) || defined(PROSPERO)
 			cmdBindPipeline(cmd, pPipelineGodRayPass);
 #if defined(METAL)
 			cmdBindPushConstants(cmd, pRootSigGodRayPass, "RootConstantGodrayInfo", &gPerFrame[frameIdx].gGodrayInfo);

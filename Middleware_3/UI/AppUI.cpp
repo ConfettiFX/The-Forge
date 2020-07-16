@@ -408,13 +408,14 @@ IWidget* ColumnWidget::Clone() const
 // UI Implementation
 /************************************************************************/
 
-UIApp::UIApp(int32_t const fontAtlasSize, uint32_t const maxDynamicUIUpdatesPerBatch)
+UIApp::UIApp(int32_t const fontAtlasSize, uint32_t const maxDynamicUIUpdatesPerBatch, uint32_t fontstashRingSizeBytes)
 {
 	mFontAtlasSize = fontAtlasSize;
 	mMaxDynamicUIUpdatesPerBatch = maxDynamicUIUpdatesPerBatch;
+	mFontstashRingSizeBytes = fontstashRingSizeBytes;
 }
 
-bool UIApp::Init(Renderer* renderer)
+bool UIApp::Init(Renderer* renderer, PipelineCache* pCache)
 {
 	mShowDemoUiWindow = false;
 
@@ -422,6 +423,7 @@ bool UIApp::Init(Renderer* renderer)
 	pImpl->pRenderer = renderer;
 
 	pDriver = NULL;
+	pPipelineCache = pCache;
 
 	// Initialize the fontstash
 	//
@@ -432,7 +434,7 @@ bool UIApp::Init(Renderer* renderer)
 		mFontAtlasSize = 256;
 
 	pImpl->pFontStash = conf_new(Fontstash);
-	bool success = pImpl->pFontStash->init(renderer, mFontAtlasSize, mFontAtlasSize);
+	bool success = pImpl->pFontStash->init(renderer, mFontAtlasSize, mFontAtlasSize, mFontstashRingSizeBytes);
 
 	initGUIDriver(pImpl->pRenderer, &pDriver);
 	if (pCustomShader)
@@ -462,8 +464,8 @@ bool UIApp::Load(RenderTarget** rts, uint32_t count)
 	mWidth = (float)rts[0]->mWidth;
 	mHeight = (float)rts[0]->mHeight;
 
-	bool success = pDriver->load(rts, count);
-	success &= pImpl->pFontStash->load(rts, count);
+	bool success = pDriver->load(rts, count, pPipelineCache);
+	success &= pImpl->pFontStash->load(rts, count, pPipelineCache);
 
 	return success;
 }
@@ -514,6 +516,9 @@ GuiComponent* UIApp::AddGuiComponent(const char* pTitle, const GuiDesc* pDesc)
 	GuiComponent* pComponent = conf_placement_new<GuiComponent>(conf_calloc(1, sizeof(GuiComponent)));
 	pComponent->mHasCloseButton = false;
 	pComponent->mFlags = GUI_COMPONENT_FLAGS_ALWAYS_AUTO_RESIZE;
+#if defined(TARGET_IOS) || defined(__ANDROID__)
+	pComponent->mFlags |= GUI_COMPONENT_FLAGS_START_COLLAPSED;
+#endif
 
 	void* pFontBuffer = pImpl->pFontStash->getFontBuffer(pDesc->mDefaultTextDrawDesc.mFontID);
 	uint32_t fontBufferSize = pImpl->pFontStash->getFontBufferSize(pDesc->mDefaultTextDrawDesc.mFontID);
@@ -646,12 +651,11 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
     PathHandle joystickTexturePath = fsGetPathInResourceDirEnum((ResourceDirEnum)root, pJoystickTexture);
 	TextureLoadDesc loadDesc = {};
 	SyncToken token = {};
-    loadDesc.pFilePath = joystickTexturePath;
+	loadDesc.pFilePath = joystickTexturePath;
 	loadDesc.ppTexture = &pTexture;
-	loadDesc.mCreationFlag = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
 	addResource(&loadDesc, &token, LOAD_PRIORITY_HIGH);
 	waitForToken(&token);
-    
+	
 	if (!pTexture)
 	{
 		LOGF(LogLevel::eERROR, "Error loading texture file: %s", pJoystickTexture);
@@ -690,7 +694,7 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture, u
 	BufferLoadDesc vbDesc = {};
 	vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 	vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
-	vbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
+	vbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 	vbDesc.mDesc.mSize = 128 * 4 * sizeof(float4);
 	vbDesc.ppBuffer = &pMeshBuffer;
 	addResource(&vbDesc, NULL, LOAD_PRIORITY_NORMAL);

@@ -8713,7 +8713,7 @@ static void SettingsHandlerWindow_WriteAll(ImGuiContext* imgui_ctx, ImGuiSetting
 // #ConfettiChangesBegin
 
 // XBox doesn't have clipboard so we disable it
-#ifdef _DURANGO
+#if defined(XBOX)
 #define IMGUI_DISABLE_WIN32_DEFAULT_CLIPBOARD_FUNCTIONS
 #define IMGUI_DISABLE_WIN32_DEFAULT_IME_FUNCTIONS
 #endif

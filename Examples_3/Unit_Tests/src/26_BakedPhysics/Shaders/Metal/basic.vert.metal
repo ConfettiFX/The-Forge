@@ -61,14 +61,10 @@ struct Vertex_Shader
     Vertex_Shader(constant Uniforms_uniformBlock & uniformBlock) : uniformBlock(uniformBlock) {}
 };
 
-struct VSData {
-    constant Vertex_Shader::Uniforms_uniformBlock & uniformBlock;
-};
-
 vertex Vertex_Shader::VSOutput stageMain(
-    Vertex_Shader::VSInput input [[stage_in]],
-    uint InstanceID [[instance_id]],
-    constant VSData& vsData [[buffer(UPDATE_FREQ_PER_DRAW)]]
+    Vertex_Shader::VSInput input                                 [[stage_in]],
+    uint InstanceID                                              [[instance_id]],
+    constant Vertex_Shader::Uniforms_uniformBlock & uniformBlock [[buffer(0)]]
 )
 {
     Vertex_Shader::VSInput input0;
@@ -76,6 +72,6 @@ vertex Vertex_Shader::VSOutput stageMain(
     input0.Normal = input.Normal;
     uint InstanceID0;
     InstanceID0 = InstanceID;
-    Vertex_Shader main(vsData.uniformBlock);
+    Vertex_Shader main(uniformBlock);
     return main.main(input0, InstanceID0);
 }

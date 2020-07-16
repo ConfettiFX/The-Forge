@@ -32,14 +32,16 @@ class MemoryStream: public FileStream
 	size_t   mBufferSize;
 	size_t   mCursor;
 	bool     mReadOnly;
+	bool     mOwner;
 
 	public:
-	inline MemoryStream(uint8_t* buffer, size_t bufferSize, bool readOnly):
+	inline MemoryStream(uint8_t* buffer, size_t bufferSize, bool readOnly, bool owner):
 		FileStream(FileStreamType_MemoryStream, NULL),
 		pBuffer(buffer),
 		mBufferSize(bufferSize),
 		mCursor(0),
-		mReadOnly(readOnly)
+		mReadOnly(readOnly),
+		mOwner(owner)
 	{
 	}
 

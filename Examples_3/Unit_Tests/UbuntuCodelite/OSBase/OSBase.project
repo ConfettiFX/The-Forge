@@ -96,12 +96,17 @@
     <File Name="../../../../Common_3/OS/Linux/LinuxTime.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Dependencies">
-    <File Name="../../../../Common_3/ThirdParty/OpenSource/zip/zip.cpp"/>
+	<VirtualDirectory Name="zip">
+		<File Name="../../../../Common_3/ThirdParty/OpenSource/zip/zip.cpp"/>
+	</VirtualDirectory>
     <VirtualDirectory Name="rmem">
       <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_get_module_info.cpp"/>
       <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_hook.cpp"/>
       <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_lib.cpp"/>
     </VirtualDirectory>
+	<VirtualDirectory Name="basisu">
+		<File Name="../../../../Common_3/ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp"/>
+	</VirtualDirectory>
   </VirtualDirectory>
   <VirtualDirectory Name="FileSystem">
     <File Name="../../../../Common_3/OS/FileSystem/ZipFileSystem.h"/>
@@ -171,7 +176,7 @@
       </Completion>
     </Configuration>
     <Configuration Name="Release" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
-      <Compiler Options="-std=c++14;" C_Options="" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
+      <Compiler Options="-g;-std=c++14;" C_Options="-g" Assembler="" Required="yes" PreCompiledHeader="" PCHInCommandLine="no" PCHFlags="" PCHFlagsPolicy="0">
         <IncludePath Value="."/>
         <Preprocessor Value="VULKAN"/>
         <Preprocessor Value="NDEBUG"/>

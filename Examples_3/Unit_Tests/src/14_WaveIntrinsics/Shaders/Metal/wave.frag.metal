@@ -93,6 +93,11 @@ fragment float4 stageMain(
 	float4 outputColor;
 	float texP = texPattern(input.position.xy);
 	(outputColor = ((float4)(texP) * input.color));
+	
+#ifndef WAVE_OPS_SUPPORTED
+	return outputColor;
+#endif
+	
 	switch (fsDataPerFrame.SceneConstantBuffer.renderMode)
 	{
 		case 1:

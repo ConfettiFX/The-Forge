@@ -34,7 +34,7 @@ struct Fragment_Shader
         ((posLS).y *= float((-1)));
         ((posLS).xy = (((posLS).xy * float2(0.5)) + float2((float)0.5, (float)0.5)));
         float2 HalfGaps = float2((float)0.00048828124, (float)0.00048828124);
-        float2 Gaps = float2((float)0.0009765625, (float)0.0009765625);
+//        float2 Gaps = float2((float)0.0009765625, (float)0.0009765625);
         ((posLS).xy += HalfGaps);
         float shadowFactor = float(1.0);
         float shadowFilterSize = float(0.0016000000);
@@ -73,27 +73,30 @@ struct main_input
     float2 TEXCOORD;
 };
 
-struct ArgBuffer0
-{
-    const device float4x4* modelToWorldMatrices [[id(0)]];
-    sampler clampMiplessLinearSampler [[id(1)]];
-    texture2d<float> ShadowTexture [[id(2)]];
-};
-
-struct ArgBuffer1
-{
-    constant Fragment_Shader::Uniforms_cbPerPass& cbPerPass [[id(0)]];
-};
-
 fragment float4 stageMain(
 	main_input inputData [[stage_in]],
-    constant ArgBuffer0& argBuffer0 [[buffer(UPDATE_FREQ_NONE)]],
-    constant ArgBuffer1& argBuffer1 [[buffer(UPDATE_FREQ_PER_FRAME)]])
+	constant float4x4* modelToWorldMatrices          [[buffer(0)]],
+	sampler clampMiplessLinearSampler                [[sampler(0)]],
+	texture2d<float> ShadowTexture                   [[texture(0)]],
+
+	constant Fragment_Shader::Uniforms_cbPerPass& cbPerPass [[buffer(1)]],
+
+    texture2d<float> baseColorMap                    [[texture(1)]],
+    sampler baseColorSampler                         [[sampler(1)]],
+    texture2d<float> normalMap                       [[texture(2)]],
+    sampler normalMapSampler                         [[sampler(2)]],
+    texture2d<float> metallicRoughnessMap            [[texture(3)]],
+    sampler metallicRoughnessSampler                 [[sampler(3)]],
+    texture2d<float> occlusionMap                    [[texture(4)]],
+    sampler occlusionMapSampler                      [[sampler(4)]],
+    texture2d<float> emissiveMap                     [[texture(5)]],
+    sampler emissiveMapSampler                       [[sampler(5)]]
+)
 {
     Fragment_Shader::VSOutput input0;
     input0.Position = inputData.SV_POSITION;
     input0.WorldPos = inputData.POSITION;
     input0.TexCoord = inputData.TEXCOORD;
-    Fragment_Shader main(argBuffer1.cbPerPass, argBuffer0.ShadowTexture, argBuffer0.clampMiplessLinearSampler);
+    Fragment_Shader main(cbPerPass, ShadowTexture, clampMiplessLinearSampler);
     return main.main(input0);
 }

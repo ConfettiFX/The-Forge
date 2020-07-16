@@ -24,7 +24,7 @@ namespace eastl
 #include "Shaders/Metal/Shader_Defs.h"
 #include "Shaders/Metal/ASMConstant.h"
 #include "Shaders/Metal/SDF_Constant.h"
-#elif defined(DIRECT3D12) || defined(_DURANGO)
+#elif defined(DIRECT3D12) || defined(XBOX)
 #define NO_HLSL_DEFINITIONS
 #include "Shaders/D3D12/Shader_Defs.h"
 #include "Shaders/D3D12/ASMShader_Defs.h"
@@ -39,6 +39,11 @@ namespace eastl
 #include "../../../../PS4/Examples_3/Unit_Tests/src/09_LightShadowPlayground/Shaders/Shader_Defs.h"
 #include "../../../../PS4/Examples_3/Unit_Tests/src/09_LightShadowPlayground/Shaders/ASMShader_Defs.h"
 #include "../../../../PS4/Examples_3/Unit_Tests/src/09_LightShadowPlayground/Shaders/SDF_Constant.h"
+#elif defined(PROSPERO)
+#define NO_PROSPERO_DEFINITIONS
+#include "../../../../Prospero/Examples_3/Unit_Tests/src/09_LightShadowPlayground/Shaders/Shader_Defs.h"
+#include "../../../../Prospero/Examples_3/Unit_Tests/src/09_LightShadowPlayground/Shaders/ASMShader_Defs.h"
+#include "../../../../Prospero/Examples_3/Unit_Tests/src/09_LightShadowPlayground/Shaders/SDF_Constant.h"
 #endif
 
 

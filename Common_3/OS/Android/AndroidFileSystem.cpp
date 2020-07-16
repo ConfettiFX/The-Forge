@@ -24,7 +24,7 @@
 
 #ifdef __ANDROID__
 #include "../FileSystem/FileSystemInternal.h"
-#include "../FileSystem/UnixfileSystem.h"
+#include "../FileSystem/UnixFileSystem.h"
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/IOperatingSystem.h"
 #include <unistd.h>
@@ -252,8 +252,6 @@ public:
 		{
 			extension += 1;
 		}
-
-		size_t extensionLen = strlen(extension);
 
 		AAssetDir* assetDir = AAssetManager_openDir(pAssetManager, fsGetPathAsNativeString(directory));
 		while (const char* fileName = AAssetDir_getNextFileName(assetDir)) {

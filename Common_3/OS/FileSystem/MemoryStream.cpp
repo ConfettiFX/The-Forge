@@ -27,12 +27,15 @@
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/IMemory.h"
 
-FileStream* fsOpenReadOnlyMemory(const void* buffer, size_t bufferSize)
+FileStream* fsOpenReadOnlyMemory(const void* buffer, size_t bufferSize, bool owner)
 {
-	return conf_new(MemoryStream, (uint8_t*)buffer, bufferSize, true);
+	return conf_new(MemoryStream, (uint8_t*)buffer, bufferSize, true, owner);
 }
 
-FileStream* fsOpenReadWriteMemory(void* buffer, size_t bufferSize) { return conf_new(MemoryStream, (uint8_t*)buffer, bufferSize, false); }
+FileStream* fsOpenReadWriteMemory(void* buffer, size_t bufferSize, bool owner)
+{
+	return conf_new(MemoryStream, (uint8_t*)buffer, bufferSize, false, owner);
+}
 
 size_t MemoryStream::Read(void* outputBuffer, size_t bufferSizeInBytes)
 {
@@ -124,6 +127,11 @@ bool MemoryStream::IsAtEnd() const { return mCursor == mBufferSize; }
 
 bool MemoryStream::Close()
 {
+	if (mOwner)
+	{
+		conf_free(pBuffer);
+	}
+
 	conf_delete(this);
 	return true;
 }

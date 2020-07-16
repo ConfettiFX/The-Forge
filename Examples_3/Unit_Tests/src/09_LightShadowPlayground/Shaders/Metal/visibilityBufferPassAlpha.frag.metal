@@ -43,11 +43,11 @@ uint packVisBufData(bool opaque, uint drawId, uint triangleId)
 
 // Pixel shader for alpha tested geometry
 fragment float4 stageMain(
-    VSOutput input                              [[stage_in]],
-    uint primitiveID                            [[primitive_id]],
+    VSOutput input                               [[stage_in]],
+    uint primitiveID                             [[primitive_id]],
     constant ArgData& fsData                     [[buffer(UPDATE_FREQ_NONE)]],
     constant ArgDataPerFrame& fsDataPerFrame     [[buffer(UPDATE_FREQ_PER_FRAME)]],
-    constant uint& drawID                       [[buffer(UPDATE_FREQ_USER)]]
+    constant uint& drawID                        [[buffer(UPDATE_FREQ_USER)]]
 )
 {
 	uint matBaseSlot = BaseMaterialBuffer(true, VIEW_CAMERA);

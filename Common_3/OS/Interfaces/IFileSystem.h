@@ -71,9 +71,6 @@ void fsFreePath(Path* path);
 /// Returns a reference to the FileSystem that `path` references.
 FileSystem* fsGetPathFileSystem(const Path* path);
 
-/// Returns the number of UTF-8 codepoints comprising `path`.
-size_t fsGetPathLength(const Path* path);
-
 /// Appends `pathComponent` to `basePath`, returning a new Path for which the caller has ownership.
 /// `basePath` is assumed to be a directory.
 Path* fsAppendPathComponent(const Path* basePath, const char* pathComponent);
@@ -112,17 +109,9 @@ PathComponent fsGetPathFileName(const Path* path);
 /// The returned PathComponent's buffer is guaranteed to either be NULL or a NULL-terminated string.
 PathComponent fsGetPathExtension(const Path* path);
 
-/// Copies `path`'s lowercased path extension to buffer, writing at most maxLength UTF-8 codepoints.
-/// Returns the length of the full extension; if this is larger than maxLength only part of the extension was written.
-/// buffer will be null-terminated if there is sufficient space.
-size_t fsGetLowercasedPathExtension(const Path* path, char* buffer, size_t maxLength);
-
 /// Returns the native path string representing this path.
 /// The path string is guaranteed to live for as long as the Path object lives.
 const char* fsGetPathAsNativeString(const Path* path);
-                 
-/// Returns if the path contains a certain name in the directory
-bool fsPathContainsString(const Path* path, const char * str);
 
 /// Returns true if `pathA` and `pathB` point to the same file within the same FileSystem.
 bool fsPathsEqual(const Path* pathA, const Path* pathB);
@@ -172,10 +161,6 @@ time_t fsGetLastModifiedTime(const Path* filePath);
 /// `overwritesIfExists` is true. Returns true if the file was successfully copied and false otherwise.
 bool fsCopyFile(const Path* sourcePath, const Path* destinationPath, bool overwriteIfExists);
 
-/// Creates a directory at `directoryPath`, recursively creating parent directories if necessary.
-/// Returns true if the directory was able to be created.
-bool fsCreateDirectory(const Path* directoryPath);
-
 /// Deletes the file at `path`. Returns true if the file was successfully deleted.
 bool fsDeleteFile(const Path* path);
 
@@ -184,18 +169,6 @@ bool fsFileExists(const Path* path);
 
 /// Returns true if a file exists at `path` and that file is a directory.
 bool fsDirectoryExists(const Path* path);
-
-/// Enumerates all files with` in `directory`, calling `processFile` for each match.
-/// `processFile` should return true if enumerating should continue or false to stop early.
-void fsEnumerateFilesInDirectory(const Path* directory, bool (*processFile)(const Path*, void* userData), void* userData);
-
-/// Enumerates all files with the extension `extension` in `directory`, calling `processFile` for each match.
-/// `processFile` should return true if enumerating should continue or false to stop early.
-void fsEnumerateFilesWithExtension(const Path* directory, const char* extension, bool (*processFile)(const Path*, void* userData), void* userData);
-
-/// Enumerates all subdirectories of `directory`, calling `processDirectory` for each match.
-/// `processDirectory` should return true if enumerating should continue or false to stop early.
-void fsEnumerateSubDirectories(const Path* directory, bool (*processDirectory)(const Path*, void* userData), void* userData);
 
 // MARK: - Resource Directories
 
@@ -236,9 +209,6 @@ const char* fsGetDefaultRelativePathForResourceDirEnum(ResourceDirEnum resourceD
 /// Returns true if resources are bundled together with the application on the target platform. 
 bool fsPlatformUsesBundledResources(void);
 
-/// Copies the path to the root ResourceDirEnum for `fileSystem`, returning a new Path for which the caller has ownership.
-Path* fsGetResourceDirRootPath(void);
-
 /// Copies the path to `resourceDir` within `fileSystem`, returning a new Path for which the caller has ownership.
 Path* fsGetResourceDirEnumPath(ResourceDirEnum resourceDir);
 
@@ -254,13 +224,6 @@ bool fsFileExistsInResourceDirEnum(ResourceDirEnum resourceDir, const char* rela
 /// NOTE: This call is not thread-safe. It is the application's responsibility to ensure that
 /// no modifications to the file system are occurring at the time of this call.
 void fsSetResourceDirRootPath(const Path* path);
-
-/// Sets the absolute path for `resourceDir` to `path`. Future modifications through `fsSetResourceDirRootPath`
-/// do not affect `resourceDir` after this call.
-///
-/// NOTE: This call is not thread-safe. It is the application's responsibility to ensure that
-/// no modifications to the file system are occurring at the time of this call.
-void fsSetPathForResourceDirEnum(ResourceDirEnum resourceDir, const Path* path);
 
 /// Sets the relative path for `resourceDir` on `fileSystem` to `relativePath`, where the base path is the root resource directory path.
 /// If `fsSetResourceDirRootPath` is called after this function, this function must be called again to ensure `resourceDir`'s path
@@ -278,12 +241,6 @@ Path* fsGetLogFileDirectory(void);
 
 /// Copies the preferred path for output log files, returning a new Path for which the caller has ownership.
 Path* fsGetPreferredLogDirectory();
-
-/// Resets all resource directories (including the root) on `fileSystem` to their default values.
-///
-/// NOTE: This call is not thread-safe. It is the application's responsibility to ensure that
-/// no modifications to the file system are occurring at the time of this call.
-void fsResetResourceDirectories(void);
 
 // MARK: - FileStream
 
@@ -318,10 +275,6 @@ typedef enum FileMode
     FM_READ_APPEND_BINARY_ALLOW_READ = FM_READ | FM_APPEND | FM_BINARY | FM_ALLOW_READ
 } FileMode;
 
-/// Converts `modeStr` to a `FileMode` mask, where `modeStr` follows the C standard library conventions
-/// for `fopen` parameter strings.
-FileMode fsFileModeFromString(const char* modeStr);
-
 /// Converts `mode` to a string which is compatible with the C standard library conventions for `fopen`
 /// parameter strings.
 const char* fsFileModeToString(FileMode mode);
@@ -338,10 +291,10 @@ FileStream* fsOpenFileInResourceDirEnum(ResourceDirEnum resourceDir, const char 
 FileStream* fsCreateStreamFromFILE(FILE* file);
 
 /// Opens a read-only buffer as a FileStream, returning a stream that must be closed with `fsCloseStream`.
-FileStream* fsOpenReadOnlyMemory(const void *buffer, size_t bufferLengthInBytes);
+FileStream* fsOpenReadOnlyMemory(const void *buffer, size_t bufferLengthInBytes, bool owner);
 
 /// Opens a read-write buffer as a FileStream, returning a stream that must be closed with `fsCloseStream`.
-FileStream* fsOpenReadWriteMemory(void *buffer, size_t bufferLengthInBytes);
+FileStream* fsOpenReadWriteMemory(void *buffer, size_t bufferLengthInBytes, bool owner);
 
 /// Returns the underlying byte buffer for this stream if present, or NULL if the stream is not backed by a byte buffer.
 /// The returned buffer is owned by the stream.
@@ -453,17 +406,7 @@ void fsFreeFileWatcher(FileWatcher* fileWatcher);
 
 // MARK: - FileSystem
 
-typedef enum FileSystemKind
-{
-    FSK_SYSTEM = 0,
-    FSK_ZIP,
-    FSK_RESOURCE_BUNDLE,
-    
-    FSK_DEFAULT = FSK_SYSTEM
-} FileSystemKind;
-
 FileSystem* fsGetSystemFileSystem(void);
-FileSystemKind fsGetFileSystemKind(const FileSystem* fileSystem);
 
 typedef enum FileSystemFlags {
     FSF_CREATE_IF_NECESSARY = 1 << 0,
@@ -475,17 +418,9 @@ typedef enum FileSystemFlags {
 /// If rootPath is a compressed zip file, the file system will be the contents of the zip file.
 FileSystem* fsCreateFileSystemFromFileAtPath(const Path* rootPath, FileSystemFlags flags);
 
-/// If `fileSystem` is parented under another file system (e.g. is a zip file system), returns the path
-/// to the file system under its parent file system.
-/// Otherwise, returns NULL.
-Path* fsGetPathInParentFileSystem(const FileSystem* fileSystem);
-
 /// Decrements the reference count for `fileSystem`, freeing it if there are no outstanding references.
 /// NOTE: `Path`s and `FileStream`s hold references to their FileSystem.
 void fsFreeFileSystem(FileSystem* fileSystem);
-
-/// Returns true if the file system is read-only.
-bool fsFileSystemIsReadOnly(const FileSystem* fileSystem);
 
 #ifdef __cplusplus
 } // extern "C"
@@ -596,12 +531,6 @@ eastl::vector<PathHandle> fsGetFilesInDirectory(const Path* directory);
 
 /// Collects the results of calling `fsEnumerateFilesWithExtension` with `directory` and `extension` into an `eastl::vector<PathHandle>`.
 eastl::vector<PathHandle> fsGetFilesWithExtension(const Path* directory, const char* extension);
-
-/// Collects the results of calling `fsEnumerateSubdirectories` with `directory` into an `eastl::vector<PathHandle>`.
-eastl::vector<PathHandle> fsGetSubDirectories(const Path* directory);
-
-/// Sorts all path handles by their path name in alphabetic order
-void fsSortPathHandlesByName(eastl::vector<PathHandle>& pathHandles);
 
 #endif // defined(EASTL_VECTOR_H) && !defined(IFileSystem_h_STLVector)
 

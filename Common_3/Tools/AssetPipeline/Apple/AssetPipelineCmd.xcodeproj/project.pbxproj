@@ -13,7 +13,6 @@
 		B231A11923F2DBD5006D7450 /* AssetPipeline.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A11723F2DBD5006D7450 /* AssetPipeline.cpp */; };
 		B231A11A23F2DBD5006D7450 /* AssetPipelineCmd.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A11823F2DBD5006D7450 /* AssetPipelineCmd.cpp */; };
 		B231A11E23F2DBE9006D7450 /* TressFXAsset.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A11B23F2DBE9006D7450 /* TressFXAsset.cpp */; };
-		B231A12623F2DC86006D7450 /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A12523F2DC86006D7450 /* Image.cpp */; };
 		B231A13523F2DCA4006D7450 /* ZipFileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A12A23F2DCA3006D7450 /* ZipFileSystem.cpp */; };
 		B231A13623F2DCA4006D7450 /* SystemFileStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A12E23F2DCA3006D7450 /* SystemFileStream.cpp */; };
 		B231A13723F2DCA4006D7450 /* SystemRun.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A12F23F2DCA3006D7450 /* SystemRun.cpp */; };
@@ -106,9 +105,6 @@
 		B231A11B23F2DBE9006D7450 /* TressFXAsset.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = TressFXAsset.cpp; path = ../../../ThirdParty/OpenSource/TressFX/TressFXAsset.cpp; sourceTree = "<group>"; };
 		B231A11C23F2DBE9006D7450 /* TressFXAsset.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TressFXAsset.h; path = ../../../ThirdParty/OpenSource/TressFX/TressFXAsset.h; sourceTree = "<group>"; };
 		B231A11D23F2DBE9006D7450 /* TressFXFileFormat.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TressFXFileFormat.h; path = ../../../ThirdParty/OpenSource/TressFX/TressFXFileFormat.h; sourceTree = "<group>"; };
-		B231A12323F2DC86006D7450 /* Image.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Image.h; path = ../../../OS/Image/Image.h; sourceTree = "<group>"; };
-		B231A12423F2DC86006D7450 /* ImageHelper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ImageHelper.h; path = ../../../OS/Image/ImageHelper.h; sourceTree = "<group>"; };
-		B231A12523F2DC86006D7450 /* Image.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Image.cpp; path = ../../../OS/Image/Image.cpp; sourceTree = "<group>"; };
 		B231A12823F2DCA3006D7450 /* MemoryStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MemoryStream.h; path = ../../../OS/FileSystem/MemoryStream.h; sourceTree = "<group>"; };
 		B231A12923F2DCA3006D7450 /* ZipFileSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ZipFileSystem.h; path = ../../../OS/FileSystem/ZipFileSystem.h; sourceTree = "<group>"; };
 		B231A12A23F2DCA3006D7450 /* ZipFileSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZipFileSystem.cpp; path = ../../../OS/FileSystem/ZipFileSystem.cpp; sourceTree = "<group>"; };
@@ -231,19 +227,8 @@
 				B231A14823F2DCC7006D7450 /* Darwin */,
 				B231A13C23F2DCAC006D7450 /* Core */,
 				B231A12723F2DC8A006D7450 /* FileSystem */,
-				B231A12223F2DC67006D7450 /* Image */,
 			);
 			name = OS;
-			sourceTree = "<group>";
-		};
-		B231A12223F2DC67006D7450 /* Image */ = {
-			isa = PBXGroup;
-			children = (
-				B231A12523F2DC86006D7450 /* Image.cpp */,
-				B231A12323F2DC86006D7450 /* Image.h */,
-				B231A12423F2DC86006D7450 /* ImageHelper.h */,
-			);
-			name = Image;
 			sourceTree = "<group>";
 		};
 		B231A12723F2DC8A006D7450 /* FileSystem */ = {
@@ -485,7 +470,6 @@
 				B231A14523F2DCC1006D7450 /* FileSystem.cpp in Sources */,
 				B2B2F1FD2472F87F00B483FF /* rmem_lib.cpp in Sources */,
 				B231A15723F2DD07006D7450 /* MemoryTracking.cpp in Sources */,
-				B231A12623F2DC86006D7450 /* Image.cpp in Sources */,
 				B231A15123F2DCF0006D7450 /* DarwinLog.cpp in Sources */,
 				B231A13923F2DCA4006D7450 /* UnixFileSystem.cpp in Sources */,
 				B2B2F1F92472F85900B483FF /* rmem_get_module_info.cpp in Sources */,
@@ -551,7 +535,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -603,7 +587,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
@@ -613,6 +597,7 @@
 		B231A0F123F2DB2D006D7450 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
@@ -623,6 +608,7 @@
 					"$(inherited)",
 				);
 				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../../../ThirdParty/OpenSource/ozz-animation/include";
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				NA = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -631,11 +617,13 @@
 		B231A0F223F2DB2D006D7450 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
 				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
 				ENABLE_HARDENED_RUNTIME = YES;
 				HEADER_SEARCH_PATHS = "$(PROJECT_DIR)/../../../ThirdParty/OpenSource/ozz-animation/include";
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				NA = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};

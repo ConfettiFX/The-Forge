@@ -130,7 +130,7 @@ static time_t l_checktime (lua_State *L, int arg) {
         if (e != -1) close(e); \
         e = (e == -1); }
 
-#elif defined(ORBIS)
+#elif defined(ORBIS) || defined(PROSPERO)
 
 /* ISO C definitions */
 #define LUA_TMPNAMBUFSIZE	256
@@ -203,7 +203,7 @@ static int os_tmpname (lua_State *L) {
 
 
 static int os_getenv (lua_State *L) {
-#if defined(_DURANGO) || defined(ORBIS)
+#if defined(XBOX) || defined(ORBIS) || defined(PROSPERO)
   lua_pushnil(L);
 #else
   lua_pushstring(L, getenv(luaL_checkstring(L, 1)));  /* if NULL push nil */

@@ -1,6 +1,16 @@
 #ifndef argument_buffers_h
 #define argument_buffers_h
 
+struct IndirectDrawCommand
+{
+    uint indexCount;
+    uint instanceCount;
+    uint startIndex;
+    uint vertexOffset;
+    uint startInstance;
+    uint padding[3];
+};
+
 struct InstanceData
 {
     float4x4 mvp;
@@ -39,30 +49,15 @@ struct AsteroidStatic
     uint padding[3];
 };
 
-struct BasicArgData
-{
-    texture2d_array<float> uTex0;
-    sampler uSampler0;
-};
 
-struct BasicArgDataPerBatch
-{
-    constant InstanceData* instanceBuffer;
-};
+#define ExecuteIndirectArgData \
+    constant AsteroidStatic* asteroidsStatic   [[buffer(0)]],  \
+    constant AsteroidDynamic* asteroidsDynamic [[buffer(1)]],  \
+    texture2d_array<float> uTex0               [[texture(0)]], \
+    sampler uSampler0                          [[sampler(0)]]
 
-struct ExecuteIndirectArgData
-{
-    constant AsteroidStatic* asteroidsStatic;
-    constant AsteroidDynamic* asteroidsDynamic;
-	
-    texture2d_array<float> uTex0;
-    sampler uSampler0;
-};
-
-struct ExecuteIndirectArgDataPerFrame
-{
-    constant UniformBlockData& uniformBlock;
-};
+#define ExecuteIndirectArgDataPerFrame \
+    constant UniformBlockData& uniformBlock    [[buffer(2)]]
 
 
 #endif /* argument_buffers_h */

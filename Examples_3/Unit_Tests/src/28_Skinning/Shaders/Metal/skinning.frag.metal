@@ -26,19 +26,15 @@ struct Fragment_Shader
 	DiffuseTexture(DiffuseTexture), DefaultSampler(DefaultSampler){}
 };
 
-struct FSData {
-    texture2d<float> DiffuseTexture;
-    sampler DefaultSampler;
-};
-
 fragment float4 stageMain(Fragment_Shader::VSOutput input [[stage_in]],
-constant FSData& fsData [[buffer(UPDATE_FREQ_NONE)]]
+	texture2d<float> DiffuseTexture                       [[texture(0)]],
+	sampler DefaultSampler                                [[sampler(0)]]
 )
 {
     Fragment_Shader::VSOutput input0;
     input0.Position = float4(input.Position.xyz, 1.0 / input.Position.w);
     input0.Normal = normalize(input.Normal);
 	input0.UV = input.UV;
-    Fragment_Shader main(fsData.DiffuseTexture, fsData.DefaultSampler);
+    Fragment_Shader main(DiffuseTexture, DefaultSampler);
         return main.main(input0);
 }

@@ -313,9 +313,9 @@ bool           gToggleVSync = false;
 Renderer* pRenderer = NULL;
 UIApp     gAppUI;
 
-Queue*   pGraphicsQueue = NULL;
-CmdPool* pCmdPool = NULL;
-Cmd**    ppCmds = NULL;
+Queue* pGraphicsQueue = NULL;
+CmdPool* pCmdPools[gImageCount];
+Cmd* pCmds[gImageCount];
 
 SwapChain* pSwapChain = NULL;
 
@@ -325,42 +325,42 @@ RenderTarget* pSceneBuffer = NULL;
 RenderTarget* pReflectionBuffer = NULL;
 
 RenderTarget* pDepthBuffer = NULL;
-Fence*        pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*    pImageAcquiredSemaphore = NULL;
-Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
+Fence* pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore* pImageAcquiredSemaphore = NULL;
+Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-Shader*           pShaderBRDF = NULL;
-Pipeline*         pPipelineBRDF = NULL;
-RootSignature*    pRootSigBRDF = NULL;
-DescriptorSet*    pDescriptorSetBRDF[2] = { NULL };
+Shader* pShaderBRDF = NULL;
+Pipeline* pPipelineBRDF = NULL;
+RootSignature* pRootSigBRDF = NULL;
+DescriptorSet* pDescriptorSetBRDF[2] = { NULL };
 
-Buffer*           pSkyboxVertexBuffer = NULL;
-Shader*           pSkyboxShader = NULL;
-Pipeline*         pSkyboxPipeline = NULL;
-RootSignature*    pSkyboxRootSignature = NULL;
-DescriptorSet*    pDescriptorSetSkybox[2] = { NULL };
+Buffer* pSkyboxVertexBuffer = NULL;
+Shader* pSkyboxShader = NULL;
+Pipeline* pSkyboxPipeline = NULL;
+RootSignature* pSkyboxRootSignature = NULL;
+DescriptorSet* pDescriptorSetSkybox[2] = { NULL };
 
-Shader*           pPPR_ProjectionShader = NULL;
-RootSignature*    pPPR_ProjectionRootSignature = NULL;
-Pipeline*         pPPR_ProjectionPipeline = NULL;
-DescriptorSet*    pDescriptorSetPPR_Projection[2] = { NULL };
+Shader* pPPR_ProjectionShader = NULL;
+RootSignature* pPPR_ProjectionRootSignature = NULL;
+Pipeline* pPPR_ProjectionPipeline = NULL;
+DescriptorSet* pDescriptorSetPPR_Projection[2] = { NULL };
 
-Shader*           pPPR_ReflectionShader = NULL;
-RootSignature*    pPPR_ReflectionRootSignature = NULL;
-Pipeline*         pPPR_ReflectionPipeline = NULL;
-DescriptorSet*    pDescriptorSetPPR_Reflection[2] = { NULL };
+Shader* pPPR_ReflectionShader = NULL;
+RootSignature* pPPR_ReflectionRootSignature = NULL;
+Pipeline* pPPR_ReflectionPipeline = NULL;
+DescriptorSet* pDescriptorSetPPR_Reflection[2] = { NULL };
 
-Shader*           pPPR_HolePatchingShader = NULL;
-RootSignature*    pPPR_HolePatchingRootSignature = NULL;
-Pipeline*         pPPR_HolePatchingPipeline = NULL;
-DescriptorSet*    pDescriptorSetPPR__HolePatching[2] = { NULL };
+Shader* pPPR_HolePatchingShader = NULL;
+RootSignature* pPPR_HolePatchingRootSignature = NULL;
+Pipeline* pPPR_HolePatchingPipeline = NULL;
+DescriptorSet* pDescriptorSetPPR__HolePatching[2] = { NULL };
 
-Buffer*           pScreenQuadVertexBuffer = NULL;
+Buffer* pScreenQuadVertexBuffer = NULL;
 
-Shader*           pShaderGbuffers = NULL;
-Pipeline*         pPipelineGbuffers = NULL;
-RootSignature*    pRootSigGbuffers = NULL;
-DescriptorSet*    pDescriptorSetGbuffers[3] = { NULL };
+Shader* pShaderGbuffers = NULL;
+Pipeline* pPipelineGbuffers = NULL;
+RootSignature* pRootSigGbuffers = NULL;
+DescriptorSet* pDescriptorSetGbuffers[3] = { NULL };
 
 
 Texture* pSkybox = NULL;
@@ -396,33 +396,33 @@ enum
 Buffer* pSponzaBuffer;
 Buffer* pLionBuffer;
 
-Buffer*        pBufferUniformCamera[gImageCount] = { NULL };
+Buffer* pBufferUniformCamera[gImageCount] = { NULL };
 UniformCamData gUniformDataCamera;
 
 UniformCamData gUniformDataSky;
 
-Buffer*                pBufferUniformExtendedCamera[gImageCount] = { NULL };
+Buffer* pBufferUniformExtendedCamera[gImageCount] = { NULL };
 UniformExtendedCamData gUniformDataExtenedCamera;
 
 Buffer* pBufferUniformCameraSky[gImageCount] = { NULL };
 
-Buffer*           pBufferUniformPPRPro[gImageCount] = { NULL };
+Buffer* pBufferUniformPPRPro[gImageCount] = { NULL };
 UniformPPRProData gUniformPPRProData;
 
-Buffer*          pBufferUniformLights = NULL;
+Buffer* pBufferUniformLights = NULL;
 UniformLightData gUniformDataLights;
 
-Buffer*                     pBufferUniformDirectionalLights = NULL;
+Buffer* pBufferUniformDirectionalLights = NULL;
 UniformDirectionalLightData gUniformDataDirectionalLights;
 
-Buffer*              pBufferUniformPlaneInfo[gImageCount] = { NULL };
+Buffer* pBufferUniformPlaneInfo[gImageCount] = { NULL };
 UniformPlaneInfoData gUniformDataPlaneInfo;
 
-Shader*   pShaderPostProc = NULL;
+Shader* pShaderPostProc = NULL;
 Pipeline* pPipelinePostProc = NULL;
 
-Sampler*         pSamplerBilinear = NULL;
-Sampler*         pSamplerLinear = NULL;
+Sampler* pSamplerBilinear = NULL;
+Sampler* pSamplerLinear = NULL;
 
 Sampler* pSamplerNearest = NULL;
 
@@ -443,7 +443,7 @@ SyncToken gResourceSyncToken = {};
 const char* pTextureName[] = { "albedoMap", "normalMap", "metallicMap", "roughnessMap", "aoMap" };
 
 const char* gModelNames[2] = { "Sponza.gltf", "lion.gltf" };
-Geometry*   gModels[2];
+Geometry* gModels[2];
 uint32_t gMaterialIds[] =
 {
 	0, 3, 1, 4, 5, 6, 7, 8, 6, 9, 7, 6, 10, 5, 7, 5, 6,
@@ -465,12 +465,12 @@ void transitionRenderTargets()
 	for (uint32_t i = 0; i < gImageCount; ++i)
 		rtBarriers[i] = { pSwapChain->ppRenderTargets[i], RESOURCE_STATE_RENDER_TARGET };
 	rtBarriers[numBarriers - 1] = { pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE };
-	beginCmd(ppCmds[0]);
-	cmdResourceBarrier(ppCmds[0], 0, NULL, 0, NULL, numBarriers, rtBarriers);
-	endCmd(ppCmds[0]);
+	beginCmd(pCmds[0]);
+	cmdResourceBarrier(pCmds[0], 0, NULL, 0, NULL, numBarriers, rtBarriers);
+	endCmd(pCmds[0]);
 	QueueSubmitDesc submitDesc = {};
 	submitDesc.mCmdCount = 1;
-	submitDesc.ppCmds = &ppCmds[0];
+	submitDesc.ppCmds = &pCmds[0];
 	submitDesc.pSignalFence = pRenderCompleteFences[0];
 	submitDesc.mSubmitDone = true;
 	queueSubmit(pGraphicsQueue, &submitDesc);
@@ -480,19 +480,19 @@ void transitionRenderTargets()
 
 void assignSponzaTextures();
 
-class PixelProjectedReflections: public IApp
+class PixelProjectedReflections : public IApp
 {
 	size_t mProgressBarValue = 0, mProgressBarValueMax = 1024;
 	//size_t mAtomicProgress = 0;
 
-	public:
+public:
 	PixelProjectedReflections()
 	{
 #ifdef TARGET_IOS
 		mSettings.mContentScaleFactor = 1.f;
 #endif
 	}
-	
+
 	bool Init()
 	{
 		// FILE PATHS
@@ -501,14 +501,14 @@ class PixelProjectedReflections: public IApp
 		{
 			PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/10_PixelProjectedReflections");
 			fsSetResourceDirRootPath(resourceDirRoot);
-			
-			fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../../../Art/Sponza/Textures");
-			fsSetRelativePathForResourceDirEnum(RD_MESHES,          "../../../../Art/Sponza/Meshes");
-			fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
-			fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
-			fsSetRelativePathForResourceDirEnum(RD_OTHER_FILES,      "../../UnitTestResources/Textures");
-			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
-			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
+
+			fsSetRelativePathForResourceDirEnum(RD_TEXTURES, "../../../../Art/Sponza/Textures");
+			fsSetRelativePathForResourceDirEnum(RD_MESHES, "../../../../Art/Sponza/Meshes");
+			fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS, "../../UnitTestResources/Fonts");
+			fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS, "../../UnitTestResources/Animation");
+			fsSetRelativePathForResourceDirEnum(RD_OTHER_FILES, "../../UnitTestResources/Textures");
+			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT, "../../../../Middleware_3/Text");
+			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI, "../../../../Middleware_3/UI");
 		}
 
 		RendererDesc settings = { 0 };
@@ -520,19 +520,22 @@ class PixelProjectedReflections: public IApp
 #ifdef TARGET_IOS
 		gUseTexturesFallback = (pRenderer->pActiveGpuSettings->mArgumentBufferMaxTextures < TOTAL_IMGS);
 #endif
-		
+
 		QueueDesc queueDesc = {};
 		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
 		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
 
 		// Create command pool and create a cmd buffer for each swapchain image
-		CmdPoolDesc cmdPoolDesc = {};
-		cmdPoolDesc.pQueue = pGraphicsQueue;
-		addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
-		CmdDesc cmdDesc = {};
-		cmdDesc.pPool = pCmdPool;
-		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+		}
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -547,22 +550,19 @@ class PixelProjectedReflections: public IApp
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
 			return false;
 
-    // Create UI
-    if (!gAppUI.Init(pRenderer))
-      return false;
+		// Create UI
+		if (!gAppUI.Init(pRenderer))
+			return false;
 
-    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
-    GuiDesc guiDesc = {};
-    float   dpiScale = getDpiScale().x;
-    guiDesc.mStartSize = vec2(370.0f / dpiScale, 320.0f / dpiScale);
-    guiDesc.mStartPosition = vec2(0.0f, guiDesc.mStartSize.getY());
-
-    pGui = gAppUI.AddGuiComponent("Pixel-Projected Reflections", &guiDesc);
+		GuiDesc guiDesc = {};
+		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.25f);
+		pGui = gAppUI.AddGuiComponent("Pixel-Projected Reflections", &guiDesc);
 
 		initProfiler();
 
-        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 		ComputePBRMaps();
 
 		SamplerDesc samplerDesc = { FILTER_LINEAR,       FILTER_LINEAR,       MIPMAP_MODE_LINEAR,
@@ -579,7 +579,7 @@ class PixelProjectedReflections: public IApp
 		ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", totalImagesShaderMacroBuffer };
 		ShaderLoadDesc gBuffersShaderDesc = {};
 		gBuffersShaderDesc.mStages[0] = { "fillGbuffers.vert", NULL, 0, RD_SHADER_SOURCES };
-		
+
 		if (!gUseTexturesFallback)
 		{
 			gBuffersShaderDesc.mStages[1] = { "fillGbuffers.frag", &totalImagesShaderMacro, 1, RD_SHADER_SOURCES };
@@ -591,7 +591,7 @@ class PixelProjectedReflections: public IApp
 		addShader(pRenderer, &gBuffersShaderDesc, &pShaderGbuffers);
 
 		const char* pStaticSamplerNames[] = { "defaultSampler" };
-		Sampler*    pStaticSamplers[] = { pSamplerBilinear };
+		Sampler* pStaticSamplers[] = { pSamplerBilinear };
 
 		RootSignatureDesc gBuffersRootDesc = { &pShaderGbuffers, 1 };
 		gBuffersRootDesc.mStaticSamplerCount = 1;
@@ -609,7 +609,7 @@ class PixelProjectedReflections: public IApp
 		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0, RD_SHADER_SOURCES };
 		addShader(pRenderer, &skyboxShaderDesc, &pSkyboxShader);
 
-		const char*       pSkyboxamplerName = "skyboxSampler";
+		const char* pSkyboxamplerName = "skyboxSampler";
 		RootSignatureDesc skyboxRootDesc = { &pSkyboxShader, 1 };
 		skyboxRootDesc.mStaticSamplerCount = 1;
 		skyboxRootDesc.ppStaticSamplerNames = &pSkyboxamplerName;
@@ -623,7 +623,7 @@ class PixelProjectedReflections: public IApp
 		addShader(pRenderer, &brdfRenderSceneShaderDesc, &pShaderBRDF);
 
 		const char* pStaticSampler2Names[] = { "envSampler", "defaultSampler" };
-		Sampler*    pStaticSamplers2[] = { pSamplerBilinear, pSamplerNearest };
+		Sampler* pStaticSamplers2[] = { pSamplerBilinear, pSamplerNearest };
 
 		RootSignatureDesc brdfRootDesc = { &pShaderBRDF, 1 };
 		brdfRootDesc.mStaticSamplerCount = 2;
@@ -660,7 +660,7 @@ class PixelProjectedReflections: public IApp
 		addShader(pRenderer, &PPR_HolePatchingShaderDesc, &pPPR_HolePatchingShader);
 
 		const char* pStaticSamplerforHolePatchingNames[] = { "nearestSampler", "bilinearSampler" };
-		Sampler*    pStaticSamplersforHolePatching[] = { pSamplerNearest, pSamplerBilinear };
+		Sampler* pStaticSamplersforHolePatching[] = { pSamplerNearest, pSamplerBilinear };
 
 		RootSignatureDesc PPR_HolePatchingRootDesc = { &pPPR_HolePatchingShader, 1 };
 		PPR_HolePatchingRootDesc.mStaticSamplerCount = 2;
@@ -936,7 +936,7 @@ class PixelProjectedReflections: public IApp
 		static const char* enumRenderModeNames[] = { "Render Scene Only", "Render PPR Only", "Render Scene with PPR ",
 													 "Render Scene with exclusive PPR", NULL };
 
-#if !defined(TARGET_IOS) && !defined(_DURANGO)
+#if !defined(TARGET_IOS)
 		pGui->AddWidget(CheckboxWidget("Toggle VSync", &gToggleVSync));
 #endif
 
@@ -954,7 +954,7 @@ class PixelProjectedReflections: public IApp
 		pGui->AddWidget(SliderFloatWidget("Size of Main Plane", &gPlaneSize, 5.0f, 100.0f));
 
 		GuiDesc guiDesc2 = {};
-		guiDesc2.mStartPosition = vec2(700.0f / dpiScale, 450.0f / dpiScale);
+		guiDesc2.mStartPosition = vec2(mSettings.mWidth * 0.15f, mSettings.mHeight * 0.25f);
 		pLoadingGui = gAppUI.AddGuiComponent("Loading", &guiDesc2);
 
 		ProgressBarWidget ProgressBar("               [ProgressBar]               ", &mProgressBarValue, mProgressBarValueMax);
@@ -996,14 +996,14 @@ class PixelProjectedReflections: public IApp
 		{
 			loadTexture(i);
 		}
-		
+
 		for (size_t i = 0; i < 2; i += 1)
 		{
 			loadMesh(i);
 		}
 
 		gResourceSyncStartToken = getLastTokenCompleted();
-		
+
 		assignSponzaTextures();
 
 		if (!initInputSystem(pWindow))
@@ -1041,7 +1041,7 @@ class PixelProjectedReflections: public IApp
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
-		
+
 		// Prepare descriptor sets
 		DescriptorData skyParams[1] = {};
 		skyParams[0].pName = "skyboxTex";
@@ -1140,8 +1140,11 @@ class PixelProjectedReflections: public IApp
 		removeRootSignature(pRenderer, pRootSigGbuffers);
 
 		// Remove commands and command pool&
-		removeCmd_n(pRenderer, gImageCount, ppCmds);
-		removeCmdPool(pRenderer, pCmdPool);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeCmd(pRenderer, pCmds[i]);
+			removeCmdPool(pRenderer, pCmdPools[i]);
+		}
 
 		removeQueue(pRenderer, pGraphicsQueue);
 
@@ -1163,27 +1166,27 @@ class PixelProjectedReflections: public IApp
 
 	void ComputePBRMaps()
 	{
-		Texture*          pPanoSkybox = NULL;
-		Shader*           pPanoToCubeShader = NULL;
-		RootSignature*    pPanoToCubeRootSignature = NULL;
-		Pipeline*         pPanoToCubePipeline = NULL;
-		Shader*           pBRDFIntegrationShader = NULL;
-		RootSignature*    pBRDFIntegrationRootSignature = NULL;
-		Pipeline*         pBRDFIntegrationPipeline = NULL;
-		Shader*           pIrradianceShader = NULL;
-		RootSignature*    pIrradianceRootSignature = NULL;
-		Pipeline*         pIrradiancePipeline = NULL;
-		Shader*           pSpecularShader = NULL;
-		RootSignature*    pSpecularRootSignature = NULL;
-		Pipeline*         pSpecularPipeline = NULL;
-		Sampler*          pSkyboxSampler = NULL;
-		DescriptorSet*    pDescriptorSetBRDF = { NULL };
-		DescriptorSet*    pDescriptorSetPanoToCube[2] = { NULL };
-		DescriptorSet*    pDescriptorSetIrradiance = { NULL };
-		DescriptorSet*    pDescriptorSetSpecular[2] = { NULL };
+		Texture* pPanoSkybox = NULL;
+		Shader* pPanoToCubeShader = NULL;
+		RootSignature* pPanoToCubeRootSignature = NULL;
+		Pipeline* pPanoToCubePipeline = NULL;
+		Shader* pBRDFIntegrationShader = NULL;
+		RootSignature* pBRDFIntegrationRootSignature = NULL;
+		Pipeline* pBRDFIntegrationPipeline = NULL;
+		Shader* pIrradianceShader = NULL;
+		RootSignature* pIrradianceRootSignature = NULL;
+		Pipeline* pIrradiancePipeline = NULL;
+		Shader* pSpecularShader = NULL;
+		RootSignature* pSpecularRootSignature = NULL;
+		Pipeline* pSpecularPipeline = NULL;
+		Sampler* pSkyboxSampler = NULL;
+		DescriptorSet* pDescriptorSetBRDF = { NULL };
+		DescriptorSet* pDescriptorSetPanoToCube[2] = { NULL };
+		DescriptorSet* pDescriptorSetIrradiance = { NULL };
+		DescriptorSet* pDescriptorSetSpecular[2] = { NULL };
 
 		static const int skyboxIndex = 0;
-		const char*      skyboxNames[] =
+		const char* skyboxNames[] =
 		{
 			"LA_Helipad",
 		};
@@ -1218,7 +1221,7 @@ class PixelProjectedReflections: public IApp
 		skyboxImgDesc.mSampleCount = SAMPLE_COUNT_1;
 		skyboxImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		skyboxImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
-		skyboxImgDesc.pDebugName = L"skyboxImgBuff";
+		skyboxImgDesc.pName = "skyboxImgBuff";
 
 		TextureLoadDesc skyboxLoadDesc = {};
 		skyboxLoadDesc.pDesc = &skyboxImgDesc;
@@ -1235,7 +1238,7 @@ class PixelProjectedReflections: public IApp
 		irrImgDesc.mSampleCount = SAMPLE_COUNT_1;
 		irrImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		irrImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
-		irrImgDesc.pDebugName = L"irrImgBuff";
+		irrImgDesc.pName = "irrImgBuff";
 
 		TextureLoadDesc irrLoadDesc = {};
 		irrLoadDesc.pDesc = &irrImgDesc;
@@ -1252,7 +1255,7 @@ class PixelProjectedReflections: public IApp
 		specImgDesc.mSampleCount = SAMPLE_COUNT_1;
 		specImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		specImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
-		specImgDesc.pDebugName = L"specImgBuff";
+		specImgDesc.pName = "specImgBuff";
 
 		TextureLoadDesc specImgLoadDesc = {};
 		specImgLoadDesc.pDesc = &specImgDesc;
@@ -1306,7 +1309,7 @@ class PixelProjectedReflections: public IApp
 		addShader(pRenderer, &specularShaderDesc, &pSpecularShader);
 		addShader(pRenderer, &brdfIntegrationShaderDesc, &pBRDFIntegrationShader);
 
-		const char*       pStaticSamplerNames[] = { "skyboxSampler" };
+		const char* pStaticSamplerNames[] = { "skyboxSampler" };
 		RootSignatureDesc panoRootDesc = { &pPanoToCubeShader, 1 };
 		panoRootDesc.mStaticSamplerCount = 1;
 		panoRootDesc.ppStaticSamplerNames = pStaticSamplerNames;
@@ -1357,7 +1360,7 @@ class PixelProjectedReflections: public IApp
 		pipelineSettings.pRootSignature = pBRDFIntegrationRootSignature;
 		addPipeline(pRenderer, &desc, &pBRDFIntegrationPipeline);
 
-		Cmd* pCmd = ppCmds[0];
+		Cmd* pCmd = pCmds[0];
 
 		// Compute the BRDF Integration map.
 		beginCmd(pCmd);
@@ -1469,7 +1472,7 @@ class PixelProjectedReflections: public IApp
 		cmdResourceBarrier(pCmd, 0, NULL, 2, srvBarriers2, 0, NULL);
 
 		endCmd(pCmd);
-        
+
 		QueueSubmitDesc submitDesc = {};
 		submitDesc.mCmdCount = 1;
 		submitDesc.ppCmds = &pCmd;
@@ -1499,6 +1502,8 @@ class PixelProjectedReflections: public IApp
 		removeShader(pRenderer, pBRDFIntegrationShader);
 		removeResource(pPanoSkybox);
 		removeSampler(pRenderer, pSkyboxSampler);
+
+		resetCmdPool(pRenderer, pCmdPools[0]);
 	}
 
 	void loadMesh(size_t index)
@@ -1730,7 +1735,7 @@ class PixelProjectedReflections: public IApp
 	{
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
-#if !defined(TARGET_IOS) && !defined(_DURANGO)
+#if !defined(TARGET_IOS)
 		if (pSwapChain->mEnableVsync != gToggleVSync)
 		{
 			::toggleVSync(pRenderer, &pSwapChain);
@@ -1798,7 +1803,7 @@ class PixelProjectedReflections: public IApp
 		gUniformDataPlaneInfo.planeInfo[3].rotMat = basicMat.rotationX(0.01745329251994329576923690768489f * 90.0f);
 		;
 
-#if defined(DIRECT3D12) || defined(ORBIS)
+#if defined(DIRECT3D12) || defined(ORBIS) || defined(PROSPERO)
 
 		// Need to check why this should be transposed on DX12
 		// Even view or proj matrices work well....
@@ -1813,7 +1818,7 @@ class PixelProjectedReflections: public IApp
 		LoadPriority loadPriority = LOAD_PRIORITY_NORMAL;
 		SyncToken currentProgress = getLastTokenCompleted();
 		double progress = (double)(currentProgress.mWaitIndex[loadPriority] - gResourceSyncStartToken.mWaitIndex[loadPriority]) /
-											(double)(gResourceSyncToken.mWaitIndex[loadPriority] - gResourceSyncStartToken.mWaitIndex[loadPriority]);
+			(double)(gResourceSyncToken.mWaitIndex[loadPriority] - gResourceSyncStartToken.mWaitIndex[loadPriority]);
 		mProgressBarValue = (size_t)(mProgressBarValueMax * progress);
 
 		/************************************************************************/
@@ -1825,16 +1830,19 @@ class PixelProjectedReflections: public IApp
 	void Draw()
 	{
 		// This will acquire the next swapchain image
-		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+		uint32_t swapchainImageIndex;
+		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
 		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-		Fence*     pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		FenceStatus fenceStatus;
 		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pRenderer, 1, &pRenderCompleteFence);
+
+		resetCmdPool(pRenderer, pCmdPools[gFrameIndex]);
 
 		BufferUpdateDesc camBuffUpdateDesc = { pBufferUniformCamera[gFrameIndex] };
 		beginUpdateResource(&camBuffUpdateDesc);
@@ -1862,7 +1870,7 @@ class PixelProjectedReflections: public IApp
 		endUpdateResource(&planeInfoBuffUpdateDesc, NULL);
 
 		// Draw G-buffers
-		Cmd* cmd = ppCmds[gFrameIndex];
+		Cmd* cmd = pCmds[gFrameIndex];
 		beginCmd(cmd);
 
 		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
@@ -1876,7 +1884,7 @@ class PixelProjectedReflections: public IApp
 		}
 
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
-		loadActions.mClearDepth = {{1.0f, 0.0f}};    // Clear depth to the far plane and stencil to 0
+		loadActions.mClearDepth = { {1.0f, 0.0f} };    // Clear depth to the far plane and stencil to 0
 
 		// Transfer G-buffers to render target state for each buffer
 		RenderTargetBarrier barriers[DEFERRED_RT_COUNT + 2] = {};
@@ -1920,7 +1928,7 @@ class PixelProjectedReflections: public IApp
 		//so fallback to binding every texture for every draw call (max of 5 textures)
 
 		static bool prevDataLoaded = false;
-		
+
 		//SyncToken lastCompletedToken = getLastTokenCompleted();
 		bool dataLoaded = isTokenCompleted(&gResourceSyncToken);
 		if (dataLoaded)
@@ -1943,7 +1951,7 @@ class PixelProjectedReflections: public IApp
 				uint textureMaps;
 			} data;
 
-			
+
 			const uint32_t drawCount = (uint32_t)sponzaMesh.mDrawArgCount;
 
 			if (gUseTexturesFallback)
@@ -1953,12 +1961,12 @@ class PixelProjectedReflections: public IApp
 				cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetGbuffers[1]);
 				cmdBindDescriptorSet(cmd, 0, pDescriptorSetGbuffers[2]);
 				DescriptorData params[8] = {};
-				
+
 				for (uint32_t i = 0; i < drawCount; ++i)
 				{
 					int materialID = gMaterialIds[i];
 					materialID *= 5;    //because it uses 5 basic textures for redering BRDF
-					
+
 					for (int j = 0; j < 5; ++j)
 					{
 						params[j].pName = pTextureName[j];
@@ -1966,7 +1974,7 @@ class PixelProjectedReflections: public IApp
 					}
 					updateDescriptorSet(pRenderer, i, pDescriptorSetGbuffers[0], 5, params);
 					cmdBindDescriptorSet(cmd, i, pDescriptorSetGbuffers[0]);
-					
+
 					IndirectDrawIndexArguments& cmdData = sponzaMesh.pDrawArgs[i];
 					cmdDrawIndexed(cmd, cmdData.mIndexCount, cmdData.mStartIndex, cmdData.mVertexOffset);
 				}
@@ -1985,11 +1993,11 @@ class PixelProjectedReflections: public IApp
 					materialID *= 5;    //because it uses 5 basic textures for redering BRDF
 
 					data.textureMaps =
-						((gSponzaTextureIndexforMaterial[materialID + 0] & 0xFF) << 0)  |
-						((gSponzaTextureIndexforMaterial[materialID + 1] & 0xFF) << 8)  |
+						((gSponzaTextureIndexforMaterial[materialID + 0] & 0xFF) << 0) |
+						((gSponzaTextureIndexforMaterial[materialID + 1] & 0xFF) << 8) |
 						((gSponzaTextureIndexforMaterial[materialID + 2] & 0xFF) << 16) |
 						((gSponzaTextureIndexforMaterial[materialID + 3] & 0xFF) << 24);
-						
+
 					cmdBindPushConstants(cmd, pRootSigGbuffers, "cbTextureRootConstants", &data);
 					IndirectDrawIndexArguments& cmdData = sponzaMesh.pDrawArgs[i];
 					cmdDrawIndexed(cmd, cmdData.mIndexCount, cmdData.mStartIndex, cmdData.mVertexOffset);
@@ -2002,7 +2010,7 @@ class PixelProjectedReflections: public IApp
 			if (gUseTexturesFallback)
 			{
 				DescriptorData params[5] = {};
-				
+
 				params[0].pName = pTextureName[0];
 				params[0].ppTextures = &pMaterialTextures[81];
 
@@ -2017,7 +2025,7 @@ class PixelProjectedReflections: public IApp
 
 				params[4].pName = pTextureName[4];
 				params[4].ppTextures = &pMaterialTextures[0];
-				
+
 				updateDescriptorSet(pRenderer, drawCount + 1, pDescriptorSetGbuffers[0], 5, params);
 				cmdBindDescriptorSet(cmd, drawCount + 1, pDescriptorSetGbuffers[0]);
 			}
@@ -2031,9 +2039,9 @@ class PixelProjectedReflections: public IApp
 
 				cmdBindPushConstants(cmd, pRootSigGbuffers, "cbTextureRootConstants", &data);
 			}
-			
+
 			cmdBindDescriptorSet(cmd, 1, pDescriptorSetGbuffers[2]);
-			
+
 			Buffer* pLionVertexBuffers[] = { lionMesh.pVertexBuffers[0] };
 			cmdBindVertexBuffer(cmd, 1, pLionVertexBuffers, lionMesh.mVertexStrides, NULL);
 			cmdBindIndexBuffer(cmd, lionMesh.pIndexBuffer, lionMesh.mIndexType, 0);
@@ -2078,7 +2086,7 @@ class PixelProjectedReflections: public IApp
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetBRDF[1]);
 		cmdBindVertexBuffer(cmd, 1, &pScreenQuadVertexBuffer, &quadStride, NULL);
 		cmdDraw(cmd, 3, 0);
-//#endif
+		//#endif
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
@@ -2123,7 +2131,7 @@ class PixelProjectedReflections: public IApp
 		//End ReflectionPass
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
-		pRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
+		pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
 
 		barriers[0] = { pReflectionBuffer, RESOURCE_STATE_SHADER_RESOURCE };
 		barriers[1] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET };
@@ -2150,13 +2158,16 @@ class PixelProjectedReflections: public IApp
 		//End Pixel-Projected Reflections
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
+		loadActions = {};
+		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
-		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
+		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 
-        cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
-		cmdDrawGpuProfile(cmd, float2(8, 40), gGpuProfileToken);
+		float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
+		cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 30.f), gGpuProfileToken);
 
 		if (!dataLoaded)
 			gAppUI.Gui(pLoadingGui);
@@ -2188,13 +2199,15 @@ class PixelProjectedReflections: public IApp
 		submitDesc.pSignalFence = pRenderCompleteFence;
 		queueSubmit(pGraphicsQueue, &submitDesc);
 		QueuePresentDesc presentDesc = {};
-		presentDesc.mIndex = gFrameIndex;
+		presentDesc.mIndex = swapchainImageIndex;
 		presentDesc.mWaitSemaphoreCount = 1;
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
 		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
+
+		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
 
 	const char* GetName() { return "10_PixelProjectedReflections"; }
@@ -2204,7 +2217,7 @@ class PixelProjectedReflections: public IApp
 		// GBuffer
 		{
 			DescriptorData params[8] = {};
-			
+
 			if (!gUseTexturesFallback && dataLoaded)
 			{
 				params[0].pName = "textureMaps";
@@ -2322,7 +2335,7 @@ class PixelProjectedReflections: public IApp
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
-		swapChainDesc.mEnableVsync = false;
+		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;
@@ -2332,8 +2345,9 @@ class PixelProjectedReflections: public IApp
 	{
 		RenderTargetDesc sceneRT = {};
 		sceneRT.mArraySize = 1;
-		sceneRT.mClearValue = {{0.0f, 0.0f, 0.0f, 0.0f}};
+		sceneRT.mClearValue = { {0.0f, 0.0f, 0.0f, 0.0f} };
 		sceneRT.mDepth = 1;
+		sceneRT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		sceneRT.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
 
 		sceneRT.mHeight = mSettings.mHeight;
@@ -2341,7 +2355,7 @@ class PixelProjectedReflections: public IApp
 
 		sceneRT.mSampleCount = SAMPLE_COUNT_1;
 		sceneRT.mSampleQuality = 0;
-		sceneRT.pDebugName = L"Scene Buffer";
+		sceneRT.pName = "Scene Buffer";
 
 		addRenderTarget(pRenderer, &sceneRT, &pSceneBuffer);
 
@@ -2352,8 +2366,9 @@ class PixelProjectedReflections: public IApp
 	{
 		RenderTargetDesc RT = {};
 		RT.mArraySize = 1;
-		RT.mClearValue = {{0.0f, 0.0f, 0.0f, 0.0f}};
+		RT.mClearValue = { {0.0f, 0.0f, 0.0f, 0.0f} };
 		RT.mDepth = 1;
+		RT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		RT.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
 
 		RT.mHeight = mSettings.mHeight;
@@ -2361,7 +2376,7 @@ class PixelProjectedReflections: public IApp
 
 		RT.mSampleCount = SAMPLE_COUNT_1;
 		RT.mSampleQuality = 0;
-		RT.pDebugName = L"Reflection Buffer";
+		RT.pName = "Reflection Buffer";
 
 		addRenderTarget(pRenderer, &RT, &pReflectionBuffer);
 
@@ -2370,7 +2385,7 @@ class PixelProjectedReflections: public IApp
 
 	bool addGBuffers()
 	{
-		ClearValue optimizedColorClearBlack = {{0.0f, 0.0f, 0.0f, 0.0f}};
+		ClearValue optimizedColorClearBlack = { {0.0f, 0.0f, 0.0f, 0.0f} };
 
 		/************************************************************************/
 		// Deferred pass render targets
@@ -2379,12 +2394,12 @@ class PixelProjectedReflections: public IApp
 		deferredRTDesc.mArraySize = 1;
 		deferredRTDesc.mClearValue = optimizedColorClearBlack;
 		deferredRTDesc.mDepth = 1;
-
+		deferredRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		deferredRTDesc.mWidth = mSettings.mWidth;
 		deferredRTDesc.mHeight = mSettings.mHeight;
 		deferredRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		deferredRTDesc.mSampleQuality = 0;
-		deferredRTDesc.pDebugName = L"G-Buffer RTs";
+		deferredRTDesc.pName = "G-Buffer RTs";
 
 		for (uint32_t i = 0; i < DEFERRED_RT_COUNT; ++i)
 		{
@@ -2404,8 +2419,9 @@ class PixelProjectedReflections: public IApp
 		// Add depth buffer
 		RenderTargetDesc depthRT = {};
 		depthRT.mArraySize = 1;
-		depthRT.mClearValue = {{1.0f, 0}};
+		depthRT.mClearValue = { {1.0f, 0} };
 		depthRT.mDepth = 1;
+		depthRT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
 		depthRT.mHeight = mSettings.mHeight;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;

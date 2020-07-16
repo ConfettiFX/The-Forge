@@ -141,6 +141,8 @@ public:
 
 		//added
 		dialect_[VK_MULTIPLY] = KeyKpMultiply;
+		dialect_[VK_NUMLOCK] = KeyNumLock;
+		dialect_[VK_OEM_CLEAR] = KeyClear;
 
 		dialect_[0xff] = KeyFn; // Marked as "reserved".
 		

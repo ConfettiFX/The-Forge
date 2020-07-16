@@ -23,13 +23,37 @@
 */
 
 #include "FileSystemInternal.h"
-#ifndef FORGE_DISABLE_ZIP
 #include "ZipFileSystem.h"
-#endif
 
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/IMemory.h"
 #include "../../ThirdParty/OpenSource/EASTL/sort.h"
+
+#if defined(DIRECT3D12) && !defined(XBOX)
+#define SHADER_DIR "Shaders/D3D12"
+#elif defined(DIRECT3D11)
+#define SHADER_DIR "Shaders/D3D11"
+#elif defined(VULKAN)
+#define SHADER_DIR "Shaders/Vulkan"
+#elif defined(__APPLE__)
+#define SHADER_DIR "Shaders/Metal"
+#else
+#define SHADER_DIR "Shaders"
+#endif
+
+const char* gResourceDirEnumDefaults[RD_COUNT] = {
+	SHADER_DIR "/Binary/",    // RD_BinShaders
+	SHADER_DIR "/",           // RD_SHADER_SOURCES
+	"Textures/",              // RD_TEXTURES
+	"Meshes/",                // RD_MESHES
+	"Fonts/",                 // RD_BUILTIN_FONTS
+	"GPUCfg/",                // RD_GpuConfig
+	"Animation/",             // RD_ANIMATIONS
+	"Audio/",                 // RD_AUDIO
+};
+
+Path* gResourceDirEnumOverrides[RD_COUNT];
+Path* gLogFileDir;
 
 // MARK: - Initialization
 
@@ -68,7 +92,14 @@ bool fsInitAPI(void)
 
 void fsExitAPI(void)
 {
-	fsResetResourceDirectories();
+	for (size_t i = 0; i < RD_COUNT; i += 1)
+	{
+		fsFreePath(gResourceDirEnumOverrides[i]);    // fsFreePath checks for NULL
+	}
+	memset(gResourceDirEnumOverrides, 0, RD_COUNT * sizeof(Path*));
+
+	fsFreePath(gLogFileDir);
+	gLogFileDir = nullptr;
 }
 
 // MARK: - FileMode
@@ -198,12 +229,6 @@ FileSystem* fsGetPathFileSystem(const Path* path)
 { 
 	if (!path) { return NULL; }
 	return path->pFileSystem; 
-}
-
-size_t fsGetPathLength(const Path* path) 
-{ 
-	if (!path) { return 0; }
-	return path->mPathLength; 
 }
 
 Path* fsAppendPathComponent(const Path* basePath, const char* pathComponent)
@@ -568,29 +593,6 @@ PathComponent fsGetPathExtension(const Path* path)
 	return component;
 }
 
-size_t fsGetLowercasedPathExtension(const Path* path, char* buffer, size_t maxLength)
-{
-	if (!path) 
-	{ 
-		if (maxLength > 0) { *buffer = 0; }
-		return 0;
-	}
-
-	PathComponent extension = fsGetPathExtension(path);
-
-	size_t charsToWrite = min(maxLength, extension.length);
-	for (size_t i = 0; i < charsToWrite; i += 1)
-	{
-		buffer[i] = tolower(extension.buffer[i]);
-	}
-
-	if (charsToWrite < maxLength)
-	{
-		buffer[charsToWrite] = 0;
-	}
-	return extension.length;
-}
-
 eastl::string fsGetPathFileNameAndExtension(const Path* path)
 {
 	if (!path) { return { NULL, 0 }; }
@@ -609,12 +611,6 @@ const char* fsGetPathAsNativeString(const Path* path)
 	}
 	return &path->mPathBufferOffset;
 }
-
-bool fsPathContainsString(const Path* path, const char * str)
-{
-	return eastl::string(fsGetPathAsNativeString(path)).find(str) != eastl::string::npos;
-}
-
 
 #ifdef _WIN32
 #define strncasecmp _strnicmp
@@ -645,29 +641,19 @@ FileSystem::FileSystem(FileSystemKind kind): mKind(kind)
 	tfrg_atomicptr_store_relaxed(&mRefCount, 1);
 }
 
-FileSystemKind fsGetFileSystemKind(const FileSystem* fileSystem) { return fileSystem->mKind; }
-
 /// Creates a new file-system with its root at rootPath.
 /// If rootPath is a compressed zip file, the file system will be the contents of the zip file.
 FileSystem* fsCreateFileSystemFromFileAtPath(const Path* rootPath, FileSystemFlags flags)
 {
 	if (!rootPath) { return NULL; }
 
-#ifndef FORGE_DISABLE_ZIP
 	PathComponent extension = fsGetPathExtension(rootPath);
 	if (extension.length == 3 && stricmp("zip", extension.buffer) == 0)
 	{
 		return ZipFileSystem::CreateWithRootAtPath(rootPath, flags);
 	}
-#endif
-	return NULL;
-}
 
-Path* fsGetPathInParentFileSystem(const FileSystem* fileSystem)
-{
-	if (!fileSystem) { return NULL; }
-	
-	return fileSystem->CopyPathInParent();
+	return NULL;
 }
 
 void fsFreeFileSystem(FileSystem* fileSystem)
@@ -685,48 +671,25 @@ void fsFreeFileSystem(FileSystem* fileSystem)
 	}
 }
 
-FileStream* fsOpenFile(const Path* filePath, FileMode mode) 
-{ 
-	if (!filePath) { return NULL; }
-	return filePath->pFileSystem->OpenFile(filePath, mode); 
-}
-
-bool fsFileSystemIsReadOnly(const FileSystem* fileSystem) 
-{ 
-	if (!fileSystem) { return NULL; }
-	return fileSystem->IsReadOnly(); 
+bool fsCreateDirectory(const Path* directoryPath)
+{
+	if (!directoryPath) { return false; }
+	return directoryPath->pFileSystem->CreateDirectory(directoryPath);
 }
 
 // MARK: - Resource Directories
 
-#if defined(DIRECT3D12) && !defined(_DURANGO)
-#define SHADER_DIR "Shaders/D3D12"
-#elif defined(DIRECT3D11)
-#define SHADER_DIR "Shaders/D3D11"
-#elif defined(VULKAN)
-#define SHADER_DIR "Shaders/Vulkan"
-#elif defined(__APPLE__)
-#define SHADER_DIR "Shaders/Metal"
-#else
-#define SHADER_DIR "Shaders"
-#endif
+void fsSetPathForResourceDirEnum(ResourceDirEnum resourceDir, const Path* path)
+{
+	ASSERT(resourceDir != RD_ROOT || path != NULL);
 
-const char* gResourceDirEnumDefaults[RD_COUNT] = {
-	SHADER_DIR "/Binary/",    // RD_BinShaders
-	SHADER_DIR "/",           // RD_SHADER_SOURCES
-	"Textures/",              // RD_TEXTURES
-	"Meshes/",                // RD_MESHES
-	"Fonts/",                 // RD_BUILTIN_FONTS
-	"GPUCfg/",                // RD_GpuConfig
-	"Animation/",             // RD_ANIMATIONS
-	"Audio/",                 // RD_AUDIO
-};
+	if(!fsPlatformUsesBundledResources())
+	{
+		fsCreateDirectory(path);
+	}
 
-Path* gResourceDirEnumOverrides[RD_COUNT];
-Path* gLogFileDir;
-
-Path* fsGetResourceDirRootPath() { 
-	return fsCopyPath(gResourceDirEnumOverrides[RD_ROOT]); 
+	fsFreePath(gResourceDirEnumOverrides[resourceDir]);    // fsFreePath checks for NULL
+	gResourceDirEnumOverrides[resourceDir] = fsCopyPath(path);
 }
 
 void fsSetResourceDirRootPath(const Path* path) { 
@@ -747,12 +710,11 @@ Path* fsGetResourceDirEnumPath(ResourceDirEnum resourceDir)
 
 void fsSetRelativePathForResourceDirEnum(ResourceDirEnum resourceDir, const char* relativePath)
 {
-	Path* rootPath = fsGetResourceDirRootPath();
+	Path* rootPath = gResourceDirEnumOverrides[RD_ROOT];
 	Path* fullPath = fsAppendPathComponent(rootPath, relativePath);
 
 	fsSetPathForResourceDirEnum(resourceDir, fullPath);
 
-	fsFreePath(rootPath);
 	fsFreePath(fullPath);
 }
 
@@ -769,28 +731,6 @@ Path* fsGetLogFileDirectory()
 		gLogFileDir = fsGetPreferredLogDirectory();
 	}
 	return fsCopyPath(gLogFileDir);
-}
-
-void fsSetPathForResourceDirEnum(ResourceDirEnum resourceDir, const Path* path)
-{
-	ASSERT(resourceDir != RD_ROOT || path != NULL);
-
-	fsFreePath(gResourceDirEnumOverrides[resourceDir]);    // fsFreePath checks for NULL
-	gResourceDirEnumOverrides[resourceDir] = fsCopyPath(path);
-}
-
-// NOTE: not thread-safe. It is the application's responsibility to ensure that no modifications to the file system
-// are occurring at the time of this call.
-void fsResetResourceDirectories() 
-{ 
-	for (size_t i = 0; i < RD_COUNT; i += 1)
-	{
-		fsFreePath(gResourceDirEnumOverrides[i]);    // fsFreePath checks for NULL
-	}
-	memset(gResourceDirEnumOverrides, 0, RD_COUNT * sizeof(Path*));
-
-	fsFreePath(gLogFileDir);
-	gLogFileDir = nullptr;
 }
 
 const char* fsGetDefaultRelativePathForResourceDirEnum(ResourceDirEnum resourceDir) { return gResourceDirEnumDefaults[resourceDir]; }
@@ -883,12 +823,6 @@ bool fsCopyFile(const Path* sourcePath, const Path* destinationPath, bool overwr
 	}
 }
 
-bool fsCreateDirectory(const Path* directoryPath) 
-{ 
-	if (!directoryPath) { return false; }
-	return directoryPath->pFileSystem->CreateDirectory(directoryPath);
-}
-
 bool fsDeleteFile(const Path* path) 
 { 
 	if (!path) { return false; }
@@ -905,6 +839,18 @@ bool fsDirectoryExists(const Path* path)
 { 
 	if (!path) { return false; }
 	return path->pFileSystem->IsDirectory(path); 
+}
+
+FileStream* fsOpenFile(const Path* filePath, FileMode mode)
+{
+	if (!filePath) { return NULL; }
+	if (mode & FM_WRITE)
+	{
+		PathHandle parentDirectory = fsGetParentPath(filePath);
+		if (!fsDirectoryExists(parentDirectory))
+			fsCreateDirectory(parentDirectory);
+	}
+	return filePath->pFileSystem->OpenFile(filePath, mode);
 }
 
 void fsEnumerateFilesInDirectory(
@@ -955,19 +901,17 @@ eastl::vector<PathHandle> fsGetSubDirectories(const Path* directory)
 	return files;
 }
 
-void fsSortPathHandlesByName(eastl::vector<PathHandle>& pathHandles)
-{
-	eastl::sort(pathHandles.begin(), pathHandles.end(), [](PathHandle const & a, PathHandle const & b)
-	{
-		return strcmp(fsGetPathAsNativeString(a), fsGetPathAsNativeString(b)) < 0;
-	});
-}
-
 // MARK: - Resource Directory Utilities
 
 bool fsPlatformUsesBundledResources()
 {
-#if defined(__ANDROID__) || defined(_DURANGO) || defined(TARGET_IOS) || defined(NX64) || defined(FORGE_IGNORE_PSZBASE) || defined(ORBIS)
+#if defined(__ANDROID__) || \
+	defined(XBOX) || \
+	defined(TARGET_IOS) || \
+	defined(NX64) || \
+	defined(FORGE_IGNORE_PSZBASE) || \
+	defined(ORBIS) || \
+	defined(PROSPERO)
 	return true;
 #else
 	return false;

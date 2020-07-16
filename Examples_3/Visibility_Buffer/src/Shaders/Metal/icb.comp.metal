@@ -66,7 +66,7 @@ void cmdDrawIndexedPrimitive(
         cmd.set_vertex_buffer(vertexTexCoord,           UNIT_VBPASS_TEXCOORD);
         cmd.set_vertex_buffer(vertexTangent,            UNIT_VBPASS_TANGENT);
         cmd.set_vertex_buffer(vertexNormal,             UNIT_VBPASS_NORMAL);
-        cmd.set_vertex_buffer(&uniforms,                 UNIT_VBPASS_UNIFORMS);
+        cmd.set_vertex_buffer(&uniforms,                UNIT_VBPASS_UNIFORMS);
         cmd.set_fragment_buffer(texturesArgBuffer,      UNIT_VBPASS_TEXTURES);
         cmd.set_fragment_buffer(drawIDs + tid,          UINT_VBPASS_DRAWID);
         cmd.set_fragment_buffer(indirectMaterialBuffer, UNIT_INDIRECT_MATERIAL_RW);

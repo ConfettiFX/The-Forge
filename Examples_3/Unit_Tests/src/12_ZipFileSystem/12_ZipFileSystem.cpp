@@ -74,33 +74,33 @@ const uint32_t gImageCount = 3;
 ProfileToken   gGpuProfileToken;
 Renderer* pRenderer = NULL;
 
-Queue*   pGraphicsQueue = NULL;
-CmdPool* pCmdPool = NULL;
-Cmd**    ppCmds = NULL;
+Queue* pGraphicsQueue = NULL;
+CmdPool* pCmdPools[gImageCount];
+Cmd* pCmds[gImageCount];
 
-SwapChain*    pSwapChain = NULL;
+SwapChain* pSwapChain = NULL;
 RenderTarget* pDepthBuffer = NULL;
-Fence*        pRenderCompleteFences[gImageCount] = { NULL };
-Semaphore*    pImageAcquiredSemaphore = NULL;
-Semaphore*    pRenderCompleteSemaphores[gImageCount] = { NULL };
+Fence* pRenderCompleteFences[gImageCount] = { NULL };
+Semaphore* pImageAcquiredSemaphore = NULL;
+Semaphore* pRenderCompleteSemaphores[gImageCount] = { NULL };
 
-Shader*   pBasicShader = NULL;
+Shader* pBasicShader = NULL;
 Pipeline* pBasicPipeline = NULL;
 
-Shader*        pSkyboxShader = NULL;
-Buffer*        pSkyboxVertexBuffer = NULL;
-Pipeline*      pPipelineSkybox = NULL;
+Shader* pSkyboxShader = NULL;
+Buffer* pSkyboxVertexBuffer = NULL;
+Pipeline* pPipelineSkybox = NULL;
 RootSignature* pRootSignature = NULL;
-Sampler*       pSamplerSkybox = NULL;
-Texture*       pSkyboxTextures[6];
+Sampler* pSamplerSkybox = NULL;
+Texture* pSkyboxTextures[6];
 
 VirtualJoystickUI gVirtualJoystick;
 
 //Zip File Test Texture
-Texture *		pZipTexture[1];
-Shader*			pZipTextureShader = NULL;
-Buffer*			pZipTextureVertexBuffer = NULL;
-Pipeline*		pZipTexturePipeline = NULL;
+Texture* pZipTexture[1];
+Shader* pZipTextureShader = NULL;
+Buffer* pZipTextureVertexBuffer = NULL;
+Pipeline* pZipTexturePipeline = NULL;
 
 Buffer* pProjViewUniformBuffer[gImageCount] = { NULL };
 
@@ -150,26 +150,26 @@ public:
 
 	bool Init()
 	{
-        // FILE PATHS
-        PathHandle programDirectory = fsGetApplicationDirectory();
-        if (!fsPlatformUsesBundledResources())
-        {
-            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/12_ZipFileSystem");
-            fsSetResourceDirRootPath(resourceDirRoot);
+		// FILE PATHS
+		PathHandle programDirectory = fsGetApplicationDirectory();
+		if (!fsPlatformUsesBundledResources())
+		{
+			PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/12_ZipFileSystem");
+			fsSetResourceDirRootPath(resourceDirRoot);
 
-            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirEnum(RD_MESHES,          "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,   "../../UnitTestResources/Fonts");
-			fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirEnum(RD_OTHER_FILES,     "../../UnitTestResources/ZipFiles");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT, "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,   "../../../../Middleware_3/UI");
-        }
-        
+			fsSetRelativePathForResourceDirEnum(RD_TEXTURES, "../../UnitTestResources/Textures");
+			fsSetRelativePathForResourceDirEnum(RD_MESHES, "../../UnitTestResources/Meshes");
+			fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS, "../../UnitTestResources/Fonts");
+			fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS, "../../UnitTestResources/Animation");
+			fsSetRelativePathForResourceDirEnum(RD_OTHER_FILES, "../../UnitTestResources/ZipFiles");
+			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT, "../../../../Middleware_3/Text");
+			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI, "../../../../Middleware_3/UI");
+		}
+
 		// window and renderer setup
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
-		
+
 		//check for init success
 		if (!pRenderer)
 			return false;
@@ -178,12 +178,15 @@ public:
 		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
 		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		CmdPoolDesc cmdPoolDesc = {};
-		cmdPoolDesc.pQueue = pGraphicsQueue;
-		addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
-		CmdDesc cmdDesc = {};
-		cmdDesc.pPool = pCmdPool;
-		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
+		}
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -194,15 +197,15 @@ public:
 
 		initResourceLoaderInterface(pRenderer);
 
-        // Initialize microprofiler and its UI.
-        initProfiler();
-        
-        // Gpu profiler can only be added after initProfile.
-        gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
+		// Initialize microprofiler and its UI.
+		initProfiler();
+
+		// Gpu profiler can only be added after initProfile.
+		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
 
-        PathHandle zipFilePath = fsGetPathInResourceDirEnum(RD_OTHER_FILES, pZipFiles);
-        FileSystem* zipFileSystem = fsCreateFileSystemFromFileAtPath(zipFilePath, FSF_READ_ONLY);
+		PathHandle zipFilePath = fsGetPathInResourceDirEnum(RD_OTHER_FILES, pZipFiles);
+		FileSystem* zipFileSystem = fsCreateFileSystemFromFileAtPath(zipFilePath, FSF_READ_ONLY);
 
 		if (!zipFileSystem)
 		{
@@ -235,10 +238,10 @@ public:
 			LOGF(LogLevel::eERROR, "\"%s\": ERROR in searching for file.", pTextFileName[0]);
 			return false;
 		}
-        
-        ssize_t textFile0Size = fsGetStreamFileSize(textFile0Handle);
+
+		ssize_t textFile0Size = fsGetStreamFileSize(textFile0Handle);
 		char* pDataOfFile = (char*)conf_malloc((textFile0Size + 1) * sizeof(char));
-        ssize_t bytesRead = fsReadFromStream(textFile0Handle, pDataOfFile, textFile0Size);
+		ssize_t bytesRead = fsReadFromStream(textFile0Handle, pDataOfFile, textFile0Size);
 		fsCloseStream(textFile0Handle);
 
 		if (bytesRead != textFile0Size)
@@ -246,7 +249,7 @@ public:
 			LOGF(LogLevel::eERROR, "\"%s\": Error in reading file.", pTextFileName[0]);
 			return false;
 		}
-        pDataOfFile[textFile0Size] = 0;
+		pDataOfFile[textFile0Size] = 0;
 		gTextDataVector.clear();
 		gTextDataVector.push_back(pDataOfFile);
 
@@ -256,21 +259,21 @@ public:
 			conf_free(pDataOfFile);
 		}
 
-        PathHandle textureDescZipPath = fsCreatePath(zipFileSystem, pCubeTextureName[0]);
+		PathHandle textureDescZipPath = fsCreatePath(zipFileSystem, pCubeTextureName[0]);
 		//Load Zip file texture
 		TextureLoadDesc textureDescZip = {};
-        textureDescZip.pFilePath		= textureDescZipPath;
-		textureDescZip.ppTexture		= &pZipTexture[0];
+		textureDescZip.pFilePath = textureDescZipPath;
+		textureDescZip.ppTexture = &pZipTexture[0];
 		addResource(&textureDescZip, NULL, LOAD_PRIORITY_NORMAL);
-		
+
 		// Loads Skybox Textures
 		for (int i = 0; i < 6; ++i)
 		{
-            PathHandle textureDescPath = fsCreatePath(zipFileSystem, pSkyboxImageFileNames[i]);
-            
+			PathHandle textureDescPath = fsCreatePath(zipFileSystem, pSkyboxImageFileNames[i]);
+
 			TextureLoadDesc textureDesc = {};
-			textureDesc.pFilePath		= textureDescPath;
-			textureDesc.ppTexture		= &pSkyboxTextures[i];
+			textureDesc.pFilePath = textureDescPath;
+			textureDesc.ppTexture = &pSkyboxTextures[i];
 			addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
 		}
 
@@ -280,7 +283,7 @@ public:
 		loadDesc.ppGeometry = &pMesh;
 		loadDesc.pVertexLayout = &gVertexLayoutDefault;
 		addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
-		
+
 		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
 		{
 			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
@@ -296,11 +299,11 @@ public:
 		ShaderLoadDesc zipTextureShader = {};
 		zipTextureShader.mStages[0] = { "zipTexture.vert", NULL, 0, RD_SHADER_SOURCES };
 		zipTextureShader.mStages[1] = { "zipTexture.frag", NULL, 0, RD_SHADER_SOURCES };
-		
+
 		addShader(pRenderer, &skyShader, &pSkyboxShader);
 		addShader(pRenderer, &basicShader, &pBasicShader);
 		addShader(pRenderer, &zipTextureShader, &pZipTextureShader);
-		
+
 		SamplerDesc samplerDesc = { FILTER_LINEAR,
 									FILTER_LINEAR,
 									MIPMAP_MODE_NEAREST,
@@ -310,8 +313,8 @@ public:
 		addSampler(pRenderer, &samplerDesc, &pSamplerSkybox);
 
 		Shader* shaders[] = { pSkyboxShader, pBasicShader, pZipTextureShader };
-		
-		const char*       pStaticSamplers[] = { "uSampler0" };
+
+		const char* pStaticSamplers[] = { "uSampler0" };
 		RootSignatureDesc skyboxRootDesc = { &pSkyboxShader, 1 };
 		skyboxRootDesc.mStaticSamplerCount = 1;
 		skyboxRootDesc.ppStaticSamplerNames = pStaticSamplers;
@@ -319,7 +322,7 @@ public:
 		skyboxRootDesc.mShaderCount = 3;
 		skyboxRootDesc.ppShaders = shaders;
 		addRootSignature(pRenderer, &skyboxRootDesc, &pRootSignature);
-		
+
 		// Generate Cuboid Vertex Buffer
 
 		float widthCube = 1.0f;
@@ -371,7 +374,7 @@ public:
 			-widthCube,  heightCube,  depthCube  ,	 0.0f,  1.0f,  0.0f,	0.0f, 0.0f,
 			-widthCube,  heightCube, -depthCube  ,	 0.0f,  1.0f,  0.0f,	0.0f, 1.0f
 		};
-				
+
 		uint64_t       cubiodDataSize = 288 * sizeof(float);
 		BufferLoadDesc cubiodVbDesc = {};
 		cubiodVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
@@ -440,27 +443,19 @@ public:
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
 		GuiDesc guiDesc = {};
-		float   dpiScale = getDpiScale().x;
-		guiDesc.mStartSize = vec2(140.0f / dpiScale, 320.0f / dpiScale);
-		guiDesc.mStartPosition = vec2( mSettings.mWidth - guiDesc.mStartSize.getX() * 1.1f, guiDesc.mStartSize.getY() * 0.5f);
+		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.15f);
 
 		//--------------------------------
 
 		//Gui for Showing the Text of the File
-		guiDesc = {};
-		
-		guiDesc.mStartSize = vec2((float)mSettings.mWidth / 4, (float)mSettings.mHeight / 4);
-		guiDesc.mStartPosition = vec2(guiDesc.mStartSize.getX() * 0.6f, guiDesc.mStartSize.getY() * 0.2f);
-
 		pGui_TextData = gAppUI.AddGuiComponent("Opened Document", &guiDesc);
-
 		pGui_TextData->AddWidget(LabelWidget(gTextDataVector[0]));
-		
+
 		//--------------------------------
 
 
 
-		CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
+		//CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
 		vec3                   camPos{ 48.0f, 48.0f, 20.0f };
 		vec3                   lookAt{ 0 };
 
@@ -520,8 +515,8 @@ public:
 
 		gAppUI.Exit();
 
-    // Exit profile
-    exitProfiler();
+		// Exit profile
+		exitProfiler();
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -553,14 +548,17 @@ public:
 		}
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
 
-		removeCmd_n(pRenderer, gImageCount, ppCmds);
-		removeCmdPool(pRenderer, pCmdPool);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			removeCmd(pRenderer, pCmds[i]);
+			removeCmdPool(pRenderer, pCmdPools[i]);
+		}
 
 		exitResourceLoaderInterface(pRenderer);
 		removeQueue(pRenderer, pGraphicsQueue);
 		removeRenderer(pRenderer);
 	}
-    
+
 
 	void CreateDescriptorSets()
 	{
@@ -569,13 +567,13 @@ public:
 		setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetFrameUniforms);
 	}
-	
+
 	void DestroyDescriptorSets()
 	{
 		removeDescriptorSet(pRenderer, pDescriptorSetTextures);
 		removeDescriptorSet(pRenderer, pDescriptorSetFrameUniforms);
 	}
-	
+
 	void PrepareDescriptorSets()
 	{
 		// Skybox
@@ -594,12 +592,12 @@ public:
 			params[4].ppTextures = &pSkyboxTextures[4];
 			params[5].pName = "BackText";
 			params[5].ppTextures = &pSkyboxTextures[5];
-			
+
 			params[6].pName = "ZipTexture";
 			params[6].ppTextures = pZipTexture;
 			updateDescriptorSet(pRenderer, 0, pDescriptorSetTextures, 7, params);
 		}
-		
+
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			DescriptorData params[1] = {};
@@ -608,8 +606,8 @@ public:
 			updateDescriptorSet(pRenderer, i, pDescriptorSetFrameUniforms, 1, params);
 		}
 	}
-	
-	
+
+
 	bool Load()
 	{
 		if (!addSwapChain())
@@ -624,7 +622,7 @@ public:
 		if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 			return false;
 
-        loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
+		loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
 		//layout and pipeline for zip model draw
 		RasterizerStateDesc rasterizerStateDesc = {};
@@ -679,7 +677,7 @@ public:
 		vertexLayout = {};
 		vertexLayout.mAttribCount = 3;
 		vertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-        vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
+		vertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
 		vertexLayout.mAttribs[0].mBinding = 0;
 		vertexLayout.mAttribs[0].mLocation = 0;
 		vertexLayout.mAttribs[0].mOffset = 0;
@@ -694,7 +692,7 @@ public:
 		vertexLayout.mAttribs[2].mLocation = 2;
 		vertexLayout.mAttribs[2].mOffset = 6 * sizeof(float);
 
-        pipelineSettings.pRootSignature = pRootSignature;
+		pipelineSettings.pRootSignature = pRootSignature;
 		pipelineSettings.pDepthState = &depthStateDesc;
 		pipelineSettings.pRasterizerState = &cubeRasterizerStateDesc;
 		pipelineSettings.pShaderProgram = pZipTextureShader;
@@ -702,14 +700,14 @@ public:
 
 		CreateDescriptorSets();
 		PrepareDescriptorSets();
-		
+
 		return true;
 	}
 
 	void Unload()
 	{
 		waitQueueIdle(pGraphicsQueue);
-        unloadProfilerUI();
+		unloadProfilerUI();
 		gAppUI.Unload();
 
 #if defined(TARGET_IOS) || defined(__ANDROID__)
@@ -746,9 +744,9 @@ public:
 
 		// Projection and View Matrix
 		gUniformData.mProjectView = projMat * viewMat;
-		
+
 		//Model Matrix
-		mat4 trans = mat4::translation(vec3(15.0f,0.0f,22.0f));
+		mat4 trans = mat4::translation(vec3(15.0f, 0.0f, 22.0f));
 		mat4 scale = mat4::scale(vec3(5.0f));
 		gUniformData.mModelMatCapsule = trans * scale;
 
@@ -759,33 +757,36 @@ public:
 
 		mat4  mTranslationMat_Zip;
 		mat4  mScaleMat_Zip;
-		
+
 		mTranslationMat_Zip = mat4::translation(vec3(10.5f, 1.0f, 3.0f));
 		mScaleMat_Zip = mat4::scale(vec3(10.5f));
-		gUniformData.mModelMatCube		= mTranslationMat_Zip * mScaleMat_Zip;
+		gUniformData.mModelMatCube = mTranslationMat_Zip * mScaleMat_Zip;
 
 		viewMat.setTranslation(vec3(0));
 
-    /************************************************************************/
-    // Update GUI
-    /************************************************************************/
-    gAppUI.Update(deltaTime);  
+		/************************************************************************/
+		// Update GUI
+		/************************************************************************/
+		gAppUI.Update(deltaTime);
 
 	}
 
 	void Draw()
 	{
-		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+		uint32_t swapchainImageIndex;
+		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
-		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
-		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
+		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
+		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
 
 		// Stall if CPU is running "Swap Chain Buffer Count" frames ahead of GPU
 		FenceStatus fenceStatus;
 		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pRenderer, 1, &pRenderCompleteFence);
+
+		resetCmdPool(pRenderer, pCmdPools[gFrameIndex]);
 
 		// Update uniform buffers
 		BufferUpdateDesc viewProjCbv = { pProjViewUniformBuffer[gFrameIndex] };
@@ -796,18 +797,14 @@ public:
 		// simply record the screen cleaning command
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
-		loadActions.mClearColorValues[0].r = 1.0f;
-		loadActions.mClearColorValues[0].g = 1.0f;
-		loadActions.mClearColorValues[0].b = 0.0f;
-		loadActions.mClearColorValues[0].a = 0.0f;
 		loadActions.mLoadActionDepth = LOAD_ACTION_CLEAR;
 		loadActions.mClearDepth.depth = 1.0f;
 		loadActions.mClearDepth.stencil = 0;
 
-		Cmd* cmd = ppCmds[gFrameIndex];
+		Cmd* cmd = pCmds[gFrameIndex];
 		beginCmd(cmd);
 
-    cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
+		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
 		RenderTargetBarrier barriers[] = {
 				{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
@@ -819,71 +816,72 @@ public:
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
+		//// draw skybox
+#pragma region Skybox_Draw
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw skybox");
+		cmdBindPipeline(cmd, pPipelineSkybox);
 
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetFrameUniforms);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetTextures);
-		
-		//// draw skybox
-#pragma region Skybox_Draw
-	cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw skybox");
-		cmdBindPipeline(cmd, pPipelineSkybox);
 
 		const uint32_t skyboxStride = sizeof(float) * 4;
 		cmdBindVertexBuffer(cmd, 1, &pSkyboxVertexBuffer, &skyboxStride, NULL);
 		cmdDraw(cmd, 36, 0);
-    cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 #pragma endregion
 
-	////// draw Zip Model
+		////// draw Zip Model
 #pragma region Zip_Model_Draw
-	cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Zip Model");
-	cmdBindPipeline(cmd, pBasicPipeline);
-		
-	cmdBindVertexBuffer(cmd, 1, &pMesh->pVertexBuffers[0], &pMesh->mVertexStrides[0], NULL);
-	cmdBindIndexBuffer(cmd, pMesh->pIndexBuffer, pMesh->mIndexType, NULL);
-	cmdDrawIndexed(cmd, pMesh->mIndexCount, 0, 0);
-	cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Zip Model");
+		cmdBindPipeline(cmd, pBasicPipeline);
+
+		cmdBindVertexBuffer(cmd, 1, &pMesh->pVertexBuffers[0], &pMesh->mVertexStrides[0], NULL);
+		cmdBindIndexBuffer(cmd, pMesh->pIndexBuffer, pMesh->mIndexType, NULL);
+		cmdDrawIndexed(cmd, pMesh->mIndexCount, 0, 0);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 #pragma endregion
 
 
-	////draw Cube with Zip texture
+		////draw Cube with Zip texture
 #pragma region Cube_Zip_Texture_Draw
-	cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Zip File Texture");
-	cmdBindPipeline(cmd, pZipTexturePipeline);
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Zip File Texture");
+		cmdBindPipeline(cmd, pZipTexturePipeline);
 
-	const uint32_t cubeStride = sizeof(float) * 8;
-	cmdBindVertexBuffer(cmd, 1, &pZipTextureVertexBuffer, &cubeStride, NULL);
-	cmdDraw(cmd, 36, 0);
-	cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+		const uint32_t cubeStride = sizeof(float) * 8;
+		cmdBindVertexBuffer(cmd, 1, &pZipTextureVertexBuffer, &cubeStride, NULL);
+		cmdDraw(cmd, 36, 0);
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 #pragma endregion
-	
-    cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
-	{
-		LoadActionsDesc loadActions = {};
-		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
-			
-		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 
-		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
+		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
+		{
+			LoadActionsDesc loadActions = {};
+			loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 
-        cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
+			cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
+
+			gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
+
 #if !defined(__ANDROID__)
-    cmdDrawGpuProfile(cmd, float2(8, 40), gGpuProfileToken);
+			float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
+			cmdDrawGpuProfile(cmd, float2(8.f, txtSize.y + 30.f), gGpuProfileToken);
+#else
+			cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
 #endif
-    
-	gAppUI.Gui(pGui_TextData);
-			
-	cmdDrawProfilerUI();
 
-		gAppUI.Draw(cmd);
-		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-	}
-    cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+			gAppUI.Gui(pGui_TextData);
+
+			cmdDrawProfilerUI();
+
+			gAppUI.Draw(cmd);
+			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+		}
+		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 		barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
-    cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
+		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 		endCmd(cmd);
 
 		QueueSubmitDesc submitDesc = {};
@@ -896,15 +894,17 @@ public:
 		submitDesc.pSignalFence = pRenderCompleteFence;
 		queueSubmit(pGraphicsQueue, &submitDesc);
 		QueuePresentDesc presentDesc = {};
-		presentDesc.mIndex = gFrameIndex;
+		presentDesc.mIndex = swapchainImageIndex;
 		presentDesc.mWaitSemaphoreCount = 1;
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
 		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
+
+		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
-	
+
 	const char* GetName() { return "12_ZipFileSystem"; }
 
 	bool addSwapChain()
@@ -917,7 +917,7 @@ public:
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
-		swapChainDesc.mEnableVsync = false;
+		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;
@@ -936,7 +936,7 @@ public:
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
 		depthRT.mWidth = mSettings.mWidth;
-        depthRT.mFlags = TEXTURE_CREATION_FLAG_ON_TILE;
+		depthRT.mFlags = TEXTURE_CREATION_FLAG_ON_TILE;
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 
 		return pDepthBuffer != NULL;

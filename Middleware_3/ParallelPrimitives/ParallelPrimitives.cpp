@@ -109,6 +109,7 @@ ParallelPrimitives::ParallelPrimitives(Renderer* renderer) : pRenderer(renderer)
 	CommandSignatureDesc commandSignatureDesc = { };
 	commandSignatureDesc.mIndirectArgCount = 1;
 	commandSignatureDesc.pArgDescs = &argDescriptor;
+	commandSignatureDesc.mPacked = true;
 	addIndirectCommandSignature(pRenderer, &commandSignatureDesc, &pCommandSignature);
 }
 

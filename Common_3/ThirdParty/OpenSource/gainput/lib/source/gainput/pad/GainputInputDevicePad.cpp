@@ -25,6 +25,8 @@
 	#include "../../../../../../../../Stadia/Common_3/OS/Input/GainputInputDevicePadGGP.h"
 #elif defined(GAINPUT_PLATFORM_ORBIS)
 #include "../../../../../../../../PS4/Common_3/OS/Input/GainputInputDevicePadOrbis.h"
+#elif defined(GAINPUT_PLATFORM_PROSPERO)
+#include "../../../../../../../../Prospero/Common_3/OS/Input/GainputInputDevicePadProspero.h"
 #endif
 
 #include "GainputInputDevicePadNull.h"
@@ -153,6 +155,8 @@ InputDevicePad::InputDevicePad(InputManager& manager, DeviceId device, unsigned 
 	impl_ = manager.GetAllocator().New<InputDevicePadImplGGP>(manager, *this, index_, *state_, *previousState_);
 #elif defined(GAINPUT_PLATFORM_ORBIS)
 	impl_ = manager.GetAllocator().New<InputDevicePadImplOrbis>(manager, *this, index_, *state_, *previousState_);
+#elif defined(GAINPUT_PLATFORM_PROSPERO)
+	impl_ = manager.GetAllocator().New<InputDevicePadImplProspero>(manager, *this, index_, *state_, *previousState_);
 #endif
 
 	if (!impl_)

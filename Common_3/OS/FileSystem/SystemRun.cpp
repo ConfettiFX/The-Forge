@@ -32,7 +32,7 @@
 
 int systemRun(const char* command, const char** arguments, size_t argumentCount, const Path* stdOutFile)
 {
-#ifdef _DURANGO
+#if defined(XBOX)
 	ASSERT(!"UNIMPLEMENTED");
 	return -1;
 
@@ -50,11 +50,9 @@ int systemRun(const char* command, const char** arguments, size_t argumentCount,
 		sa.lpSecurityDescriptor = NULL;
 		sa.bInheritHandle = TRUE;
 
-		size_t   pathLength = fsGetPathLength(stdOutFile) + 1;
+		size_t   pathLength = strlen(fsGetPathAsNativeString(stdOutFile)) + 1;
 		wchar_t* buffer = (wchar_t*)alloca(pathLength * sizeof(wchar_t));
-
 		MultiByteToWideChar(CP_UTF8, 0, fsGetPathAsNativeString(stdOutFile), (int)pathLength, buffer, (int)pathLength);
-
 		stdOut = CreateFileW(buffer, GENERIC_ALL, FILE_SHARE_WRITE | FILE_SHARE_READ, &sa, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	}
 
@@ -104,6 +102,10 @@ int systemRun(const char* command, const char** arguments, size_t argumentCount,
 	ASSERT(false && "processRun is unsupported on NX");
 	return -1;
 #elif defined(ORBIS)
+	ASSERT(false && "processRun is unsupported on Orbis");
+	return -1;
+#elif defined(PROSPERO)
+	ASSERT(false && "processRun is unsupported on Prospero");
 	return -1;
 #else
 

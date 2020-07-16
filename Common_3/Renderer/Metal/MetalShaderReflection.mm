@@ -93,6 +93,7 @@ struct ShaderReflectionInfo
 	eastl::vector<BufferInfo>         buffers;
 	eastl::vector<SamplerInfo>        samplers;
 	eastl::vector<TextureInfo>        textures;
+	eastl::vector<BufferInfo> vertexAttributes;
 };
 
 int getSizeFromDataType(MTLDataType dataType)
@@ -167,75 +168,87 @@ int getSizeFromDataType(MTLDataType dataType)
 	return -1;
 }
 
+bool startsWith(const char* str, const char* preffix) { return strncmp(preffix, str, strlen(preffix)) == 0; }
+
+bool isInputVertexBuffer(const BufferInfo& bufferInfo, ShaderStage shaderStage)
+{
+	return (startsWith(bufferInfo.name, "vertexBuffer.") && shaderStage == SHADER_STAGE_VERT);
+}
+
 // Returns the total size of the struct
 uint32_t reflectShaderStruct(ShaderReflectionInfo* info, unsigned int bufferIndex, unsigned long parentOffset, MTLStructType* structObj)
 {
 	uint32_t totalSize = 0;
-	for (MTLStructMember* member in structObj.members)
+#if defined(ENABLE_ARGUMENT_BUFFERS)
+	if (@available(macOS 10.13, iOS 11.0, *))
 	{
-		BufferStructMember bufferMember;
-		strlcpy(bufferMember.name, [member.name UTF8String], MAX_REFLECT_STRING_LENGTH);
-		bufferMember.bufferIndex = bufferIndex;
-		bufferMember.offset = member.offset + parentOffset;
-		bufferMember.descriptor.mDataType = member.dataType;
-        bufferMember.descriptor.mArgumentIndex = (uint32_t)member.argumentIndex;
-        bufferMember.descriptor.mBufferIndex = bufferIndex;
-        bufferMember.descriptor.mTextureType = MTLTextureType1D;
-        bufferMember.descriptor.mAccessType = MTLArgumentAccessReadOnly;
-        bufferMember.descriptor.mAlignment = 0;
-        bufferMember.descriptor.mArrayLength = 0;
-        
-		//  process each MTLStructMember
-		if (member.dataType == MTLDataTypeStruct)
+		for (MTLStructMember* member in structObj.members)
 		{
-			MTLStructType* nestedStruct = member.structType;
-			if (nestedStruct != nil)
-				bufferMember.sizeInBytes = reflectShaderStruct(info, bufferIndex, bufferMember.offset, nestedStruct);
-			else
-				bufferMember.sizeInBytes = getSizeFromDataType(bufferMember.descriptor.mDataType);
-		}
-		else if (member.dataType == MTLDataTypeArray)
-		{
-            bufferMember.descriptor.mArrayLength = (uint32_t)member.arrayType.arrayLength;
-
-            bufferMember.descriptor.mDataType = member.arrayType.elementType;
-            
-			ASSERT(member.arrayType != nil);
-			int arrayLength = (int)member.arrayType.arrayLength;
-			if (member.arrayType.elementType == MTLDataTypeStruct)
+			BufferStructMember bufferMember;
+			strlcpy(bufferMember.name, [member.name UTF8String], MAX_REFLECT_STRING_LENGTH);
+			bufferMember.bufferIndex = bufferIndex;
+			bufferMember.offset = member.offset + parentOffset;
+			bufferMember.descriptor.mDataType = member.dataType;
+			bufferMember.descriptor.mArgumentIndex = (uint32_t)member.argumentIndex;
+			bufferMember.descriptor.mBufferIndex = bufferIndex;
+			bufferMember.descriptor.mTextureType = MTLTextureType1D;
+			bufferMember.descriptor.mAccessType = MTLArgumentAccessReadOnly;
+			bufferMember.descriptor.mAlignment = 0;
+			bufferMember.descriptor.mArrayLength = 0;
+			
+			//  process each MTLStructMember
+			if (member.dataType == MTLDataTypeStruct)
 			{
-				MTLStructType* nestedStruct = member.arrayType.elementStructType;
-				bufferMember.sizeInBytes = reflectShaderStruct(info, bufferIndex, bufferMember.offset, nestedStruct) * arrayLength;
+				MTLStructType* nestedStruct = member.structType;
+				if (nestedStruct != nil)
+					bufferMember.sizeInBytes = reflectShaderStruct(info, bufferIndex, bufferMember.offset, nestedStruct);
+				else
+					bufferMember.sizeInBytes = getSizeFromDataType(bufferMember.descriptor.mDataType);
+			}
+			else if (member.dataType == MTLDataTypeArray)
+			{
+				bufferMember.descriptor.mArrayLength = (uint32_t)member.arrayType.arrayLength;
+
+				bufferMember.descriptor.mDataType = member.arrayType.elementType;
+				
+				ASSERT(member.arrayType != nil);
+				int arrayLength = (int)member.arrayType.arrayLength;
+				if (member.arrayType.elementType == MTLDataTypeStruct)
+				{
+					MTLStructType* nestedStruct = member.arrayType.elementStructType;
+					bufferMember.sizeInBytes = reflectShaderStruct(info, bufferIndex, bufferMember.offset, nestedStruct) * arrayLength;
+				}
+				else
+				{
+					bufferMember.sizeInBytes = getSizeFromDataType(member.arrayType.elementType) * arrayLength;
+				}
+			}
+			else if (member.dataType == MTLDataTypeTexture)
+			{
+				bufferMember.descriptor.mAccessType = member.textureReferenceType.access;
+				bufferMember.descriptor.mTextureType = member.textureReferenceType.textureType;
+				
+				bufferMember.sizeInBytes = getSizeFromDataType(member.dataType);
+			}
+			else if (member.dataType == MTLDataTypePointer)
+			{
+				bufferMember.descriptor.mAccessType = member.pointerType.access;
+				bufferMember.descriptor.mAlignment = member.pointerType.alignment;
+				
+				bufferMember.sizeInBytes = getSizeFromDataType(member.dataType);
 			}
 			else
-            {
-				bufferMember.sizeInBytes = getSizeFromDataType(member.arrayType.elementType) * arrayLength;
-            }
-		}
-        else if (member.dataType == MTLDataTypeTexture)
-        {
-            bufferMember.descriptor.mAccessType = member.textureReferenceType.access;
-            bufferMember.descriptor.mTextureType = member.textureReferenceType.textureType;
-            
-            bufferMember.sizeInBytes = getSizeFromDataType(member.dataType);
-        }
-        else if (member.dataType == MTLDataTypePointer)
-        {
-            bufferMember.descriptor.mAccessType = member.pointerType.access;
-            bufferMember.descriptor.mAlignment = member.pointerType.alignment;
-            
-            bufferMember.sizeInBytes = getSizeFromDataType(member.dataType);
-        }
-		else
-		{
-			// member is neither struct nor array
-			// analyze it; no need to drill down further
-			bufferMember.sizeInBytes = getSizeFromDataType(member.dataType);
-		}
+			{
+				// member is neither struct nor array
+				// analyze it; no need to drill down further
+				bufferMember.sizeInBytes = getSizeFromDataType(member.dataType);
+			}
 
-		info->variableMembers.push_back(bufferMember);
-		totalSize += bufferMember.sizeInBytes;
+			info->variableMembers.push_back(bufferMember);
+			totalSize += bufferMember.sizeInBytes;
+		}
 	}
+#endif
 
 	return totalSize;
 }
@@ -247,6 +260,10 @@ void reflectShaderBufferArgument(ShaderReflectionInfo* info, MTLArgument* arg)
 		// We do this for constant buffer initialization. Constant buffers are always defined in structs,
 		// so we only care about structs here.
 		MTLStructType* theStruct = arg.bufferStructType;
+		if (!theStruct)
+		{
+			return;
+		}
 		reflectShaderStruct(info, (uint32_t)arg.index, 0, theStruct);
 	}
 	else if (arg.bufferDataType == MTLDataTypeArray)
@@ -261,7 +278,12 @@ void reflectShaderBufferArgument(ShaderReflectionInfo* info, MTLArgument* arg)
 	bufferInfo.sizeInBytes = arg.bufferDataSize;
     bufferInfo.alignment   = arg.bufferAlignment;
 	bufferInfo.isUAV = (arg.access == MTLArgumentAccessReadWrite || arg.access == MTLArgumentAccessWriteOnly);
-	bufferInfo.isArgBuffer = arg.bufferPointerType.elementIsArgumentBuffer;
+#if defined(ENABLE_ARGUMENT_BUFFERS)
+	if (@available(macOS 10.13, iOS 11.0, *))
+	{
+		bufferInfo.isArgBuffer = arg.bufferPointerType.elementIsArgumentBuffer;
+	}
+#endif
     
 	info->buffers.push_back(bufferInfo);
 }
@@ -339,14 +361,12 @@ uint32_t calculateNamePoolSize(const ShaderReflectionInfo* shaderReflectionInfo)
 		const SamplerInfo& sampler = shaderReflectionInfo->samplers[i];
 		namePoolSize += (uint32_t)strlen(sampler.name) + 1;
 	}
+	for (uint32_t i = 0; i < shaderReflectionInfo->vertexAttributes.size(); i++)
+	{
+		const BufferInfo& attr = shaderReflectionInfo->vertexAttributes[i];
+		namePoolSize += (uint32_t)strlen(attr.name) + 1;
+	}
 	return namePoolSize;
-}
-
-bool startsWith(const char* str, const char* preffix) { return strncmp(preffix, str, strlen(preffix)) == 0; }
-
-bool isInputVertexBuffer(const BufferInfo& bufferInfo, ShaderStage shaderStage)
-{
-	return (startsWith(bufferInfo.name, "vertexBuffer.") && shaderStage == SHADER_STAGE_VERT);
 }
 
 void addShaderResource(ShaderResource* pResources, uint32_t idx, DescriptorType type, uint32_t bindingPoint, size_t sizeInBytes, size_t alignment, ShaderStage shaderStage, char** ppCurrentName, char* name)
@@ -376,7 +396,7 @@ void mtl_createShaderReflection(
 
 	NSError* error = nil;
 
-	ShaderReflectionInfo* pReflectionInfo = nil;
+	ShaderReflectionInfo reflectionInfo;
 
 	// Setup temporary pipeline to get reflection data
 	if (shaderStage == SHADER_STAGE_COMP)
@@ -398,8 +418,7 @@ void mtl_createShaderReflection(
 			return;
 		}
 
-		pReflectionInfo = (ShaderReflectionInfo*)conf_calloc(1, sizeof(ShaderReflectionInfo));
-		reflectShader(pReflectionInfo, ref.arguments);
+		reflectShader(&reflectionInfo, ref.arguments);
 
 		// Note: Metal compute shaders don't specify the number of threads per group in the shader code.
 		// Instead this must be specified from the client API.
@@ -462,8 +481,15 @@ void mtl_createShaderReflection(
 
 		for (uint32_t i = 0; i < shader->mtlVertexShader.vertexAttributes.count; ++i)
 		{
-			MTLDataType type = shader->mtlVertexShader.vertexAttributes[i].attributeType;
-			uint32_t index = (uint32_t) shader->mtlVertexShader.vertexAttributes[i].attributeIndex;
+			MTLVertexAttribute* attr = shader->mtlVertexShader.vertexAttributes[i];
+			MTLDataType type = attr.attributeType;
+			uint32_t index = (uint32_t) attr.attributeIndex;
+			
+			BufferInfo attrRef = {};
+			attrRef.bufferIndex = index;
+			strlcpy(attrRef.name, [attr.name UTF8String], MAX_REFLECT_STRING_LENGTH);
+			attrRef.sizeInBytes = getSizeFromDataType(type);
+			reflectionInfo.vertexAttributes.emplace_back(attrRef);
 			
 			switch(type)
 			{
@@ -501,16 +527,21 @@ void mtl_createShaderReflection(
 					vertexDesc.attributes[index].format = MTLVertexFormatFloat;
 					break;
 			}
-			
+
 			vertexDesc.attributes[index].offset = 0;
 			vertexDesc.attributes[index].bufferIndex = 0;
 		}
 
 		vertexDesc.layouts[0].stride = MAX_VERTEX_ATTRIBS * sizeof(float);
 		vertexDesc.layouts[0].stepRate = 1;
-		vertexDesc.layouts[0].stepFunction = shader->mtlVertexShader.patchType != MTLPatchTypeNone
-												 ? MTLVertexStepFunctionPerPatchControlPoint
-												 : MTLVertexStepFunctionPerVertex;
+#if defined(ENABLE_TESSELLATION)
+		if (@available(macOS 10.12, iOS 10.0, *))
+		{
+			vertexDesc.layouts[0].stepFunction = shader->mtlVertexShader.patchType != MTLPatchTypeNone
+													 ? MTLVertexStepFunctionPerPatchControlPoint
+													 : MTLVertexStepFunctionPerVertex;
+		}
+#endif
 
 		renderPipelineDesc.vertexDescriptor = vertexDesc;
 
@@ -528,13 +559,11 @@ void mtl_createShaderReflection(
 
 		if (shaderStage == SHADER_STAGE_VERT)
 		{
-			pReflectionInfo = (ShaderReflectionInfo*)conf_calloc(1, sizeof(ShaderReflectionInfo));
-			reflectShader(pReflectionInfo, ref.vertexArguments);
+			reflectShader(&reflectionInfo, ref.vertexArguments);
 		}
 		else if (shaderStage == SHADER_STAGE_FRAG)
 		{
-			pReflectionInfo = (ShaderReflectionInfo*)conf_calloc(1, sizeof(ShaderReflectionInfo));
-			reflectShader(pReflectionInfo, ref.fragmentArguments);
+			reflectShader(&reflectionInfo, ref.fragmentArguments);
 		}
 		else
 		{
@@ -542,33 +571,27 @@ void mtl_createShaderReflection(
 		}
 	}
 
-	ASSERT(pReflectionInfo != nil);
-
 	// lets find out the size of the name pool we need
 	// also get number of resources while we are at it
-	uint32_t namePoolSize = calculateNamePoolSize(pReflectionInfo);
+	uint32_t namePoolSize = calculateNamePoolSize(&reflectionInfo);
 	uint32_t resourceCount = 0;
-	uint32_t variablesCount = (uint32_t)pReflectionInfo->variableMembers.size();
+	uint32_t variablesCount = (uint32_t)reflectionInfo.variableMembers.size();
 
-	eastl::vector<BufferInfo> vertexBuffers;
-
-	for (uint32_t i = 0; i < pReflectionInfo->buffers.size(); ++i)
+	for (uint32_t i = 0; i < reflectionInfo.buffers.size(); ++i)
 	{
-		const BufferInfo& bufferInfo = pReflectionInfo->buffers[i];
+		const BufferInfo& bufferInfo = reflectionInfo.buffers[i];
 		// The name of the vertex buffers declared as stage_in are internally named by Metal starting with preffix "vertexBuffer."
-		if (isInputVertexBuffer(bufferInfo, shaderStage))
-		{
-			vertexBuffers.push_back(bufferInfo);
-		}
-        else if (bufferInfo.isArgBuffer)
+		ASSERT(!isInputVertexBuffer(bufferInfo, shaderStage));
+		
+        if (bufferInfo.isArgBuffer)
         {
             // argument buffer
             ++resourceCount;
             
             // iterate over argument buffer fields
-            for (uint32_t i = 0; i < pReflectionInfo->variableMembers.size(); ++i)
+            for (uint32_t i = 0; i < reflectionInfo.variableMembers.size(); ++i)
             {
-                const BufferStructMember& bufferMember = pReflectionInfo->variableMembers[i];
+                const BufferStructMember& bufferMember = reflectionInfo.variableMembers[i];
                 
                 if (bufferMember.bufferIndex == bufferInfo.bufferIndex)
                     ++resourceCount;
@@ -580,8 +603,8 @@ void mtl_createShaderReflection(
         }
 	}
 
-	resourceCount += pReflectionInfo->textures.size();
-	resourceCount += pReflectionInfo->samplers.size();
+	resourceCount += reflectionInfo.textures.size();
+	resourceCount += reflectionInfo.samplers.size();
 
 	// we now have the size of the memory pool and number of resources
 	char* namePool = (char*)conf_calloc(namePoolSize, 1);
@@ -589,14 +612,14 @@ void mtl_createShaderReflection(
 
 	// start with the vertex input
 	VertexInput*   pVertexInputs = NULL;
-	const uint32_t vertexInputCount = (uint32_t)vertexBuffers.size();
+	const uint32_t vertexInputCount = (uint32_t)reflectionInfo.vertexAttributes.size();
 	if (shaderStage == SHADER_STAGE_VERT && vertexInputCount > 0)
 	{
 		pVertexInputs = (VertexInput*)conf_malloc(sizeof(VertexInput) * vertexInputCount);
 
-		for (uint32_t i = 0; i < vertexBuffers.size(); ++i)
+		for (uint32_t i = 0; i < reflectionInfo.vertexAttributes.size(); ++i)
 		{
-			const BufferInfo& vertexBufferInfo = vertexBuffers[i];
+			const BufferInfo& vertexBufferInfo = reflectionInfo.vertexAttributes[i];
 			pVertexInputs[i].size = (uint32_t)vertexBufferInfo.sizeInBytes;
 			pVertexInputs[i].name = pCurrentName;
 			pVertexInputs[i].name_size = (uint32_t)strlen(vertexBufferInfo.name);
@@ -614,9 +637,9 @@ void mtl_createShaderReflection(
 	{
 		pResources = (ShaderResource*)conf_calloc(resourceCount, sizeof(ShaderResource));
 		uint32_t resourceIdx = 0;
-		for (uint32_t i = 0; i < pReflectionInfo->buffers.size(); ++i)
+		for (uint32_t i = 0; i < reflectionInfo.buffers.size(); ++i)
 		{
-			const BufferInfo& bufferInfo = pReflectionInfo->buffers[i];
+			const BufferInfo& bufferInfo = reflectionInfo.buffers[i];
 			if (!isInputVertexBuffer(bufferInfo, shaderStage))
 			{
 				if (bufferInfo.isArgBuffer)
@@ -627,9 +650,9 @@ void mtl_createShaderReflection(
                     resourceIdxByBufferIdx[bufferInfo.bufferIndex] = resourceIdx++;
                     
                     // argument buffer fields
-                    for (uint32_t i = 0; i < pReflectionInfo->variableMembers.size(); ++i)
+                    for (uint32_t i = 0; i < reflectionInfo.variableMembers.size(); ++i)
                     {
-                        const BufferStructMember& bufferMember = pReflectionInfo->variableMembers[i];
+                        const BufferStructMember& bufferMember = reflectionInfo.variableMembers[i];
                         
                         if (bufferMember.bufferIndex == bufferInfo.bufferIndex)
                         {
@@ -691,9 +714,9 @@ void mtl_createShaderReflection(
             
             ASSERT(resourceCount + 1 > resourceIdx);
 		}
-		for (uint32_t i = 0; i < pReflectionInfo->textures.size(); ++i, ++resourceIdx)
+		for (uint32_t i = 0; i < reflectionInfo.textures.size(); ++i, ++resourceIdx)
 		{
-			const TextureInfo& texInfo = pReflectionInfo->textures[i];
+			const TextureInfo& texInfo = reflectionInfo.textures[i];
 			addShaderResource(
 				pResources, resourceIdx, texInfo.isUAV ? DESCRIPTOR_TYPE_RW_TEXTURE : DESCRIPTOR_TYPE_TEXTURE, texInfo.slotIndex,
 				0 /*size*/, 0, shaderStage, &pCurrentName, (char*)texInfo.name);
@@ -702,9 +725,9 @@ void mtl_createShaderReflection(
             pResources[resourceIdx].mIsArgumentBufferField = false;
 			//pResources[resourceIdx].mtlArgumentBufferType = RESOURCE_STATE_UNDEFINED;
 		}
-		for (uint32_t i = 0; i < pReflectionInfo->samplers.size(); ++i, ++resourceIdx)
+		for (uint32_t i = 0; i < reflectionInfo.samplers.size(); ++i, ++resourceIdx)
 		{
-			const SamplerInfo& samplerInfo = pReflectionInfo->samplers[i];
+			const SamplerInfo& samplerInfo = reflectionInfo.samplers[i];
 			addShaderResource(
 				pResources, resourceIdx, DESCRIPTOR_TYPE_SAMPLER, samplerInfo.slotIndex, 0 /*samplerInfo.sizeInBytes*/, 0, shaderStage,
 				&pCurrentName, (char*)samplerInfo.name);
@@ -720,7 +743,7 @@ void mtl_createShaderReflection(
 		pVariables = (ShaderVariable*)conf_malloc(sizeof(ShaderVariable) * variablesCount);
 		for (uint32_t i = 0; i < variablesCount; ++i)
 		{
-			const BufferStructMember& variable = pReflectionInfo->variableMembers[i];
+			const BufferStructMember& variable = reflectionInfo.variableMembers[i];
 
 			pVariables[i].offset = (uint32_t)variable.offset;
 			pVariables[i].size = variable.sizeInBytes;
@@ -749,11 +772,5 @@ void mtl_createShaderReflection(
 
 	pOutReflection->pVariables = pVariables;
 	pOutReflection->mVariableCount = variablesCount;
-
-	pReflectionInfo->variableMembers.~vector();
-	pReflectionInfo->buffers.~vector();
-	pReflectionInfo->samplers.~vector();
-	pReflectionInfo->textures.~vector();
-	conf_free(pReflectionInfo);
 }
 #endif    // #ifdef METAL

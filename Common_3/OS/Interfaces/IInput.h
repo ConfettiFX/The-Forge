@@ -232,7 +232,6 @@ typedef struct InputBindings
 		BUTTON_MOUSE_MIDDLE,
 		BUTTON_MOUSE_SCROLL_UP,
 		BUTTON_MOUSE_SCROLL_DOWN,
-		BUTTON_MOUSE_4,
 		BUTTON_MOUSE_5,
 		BUTTON_MOUSE_6,
 		BUTTON_MOUSE_7,
@@ -309,6 +308,7 @@ typedef struct InputActionContext
 
 	float2*          pPosition;
 	const bool*      pCaptured;
+	float		 mScrollValue;
 	uint32_t         mBinding;
 	/// What phase is the action currently in
 	uint8_t          mPhase;

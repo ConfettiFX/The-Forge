@@ -206,7 +206,7 @@ float intersectQJulia(inout float3 rO, float3 rD, float4 c, float epsilon)
 	// Intersection testing finishes if we're close enough to the surface
 	// (i.e., we're inside the epsilon isosurface of the distance estimator
 	// function) or have left the bounding sphere.
-
+	[unroll(64)]
 	while (dist >= epsilon && rd < BOUNDING_RADIUS_2)
 	{
 		float4 z = float4(rO, 0);         // iterate on the point at the current ray origin.  We

@@ -23,9 +23,6 @@
 		5C172FE421414CC60074EE71 /* MemoryTracking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D461A1FD9974F00564C8B /* MemoryTracking.cpp */; };
 		5C172FE521414CC60074EE71 /* CameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D20D92111F3879C4004B3A42 /* CameraController.cpp */; };
 		5C172FE721414CC60074EE71 /* MathTypes.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CBF1EF81FC5005AC8C7 /* MathTypes.h */; };
-		5C172FE821414CC60074EE71 /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCC1EF81FC5005AC8C7 /* Image.cpp */; };
-		5C172FE921414CC60074EE71 /* Image.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCD1EF81FC5005AC8C7 /* Image.h */; };
-		5C172FEA21414CC60074EE71 /* ImageEnums.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCE1EF81FC5005AC8C7 /* ImageEnums.h */; };
 		5C172FEB21414CC60074EE71 /* CommonShaderReflection.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F49214148830074EE71 /* CommonShaderReflection.cpp */; };
 		5C172FEE21414CC60074EE71 /* IRenderer.h in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F46214148830074EE71 /* IRenderer.h */; };
 		5C172FEF21414CC60074EE71 /* IShaderReflection.h in Sources */ = {isa = PBXBuildFile; fileRef = 5C172F48214148830074EE71 /* IShaderReflection.h */; };
@@ -62,13 +59,12 @@
 		5C5582F621413D550019960B /* MemoryTracking.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C91D461A1FD9974F00564C8B /* MemoryTracking.cpp */; };
 		5C5582F721413D550019960B /* CameraController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D20D92111F3879C4004B3A42 /* CameraController.cpp */; };
 		5C5582F921413D550019960B /* MathTypes.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CBF1EF81FC5005AC8C7 /* MathTypes.h */; };
-		5C5582FA21413D550019960B /* Image.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCC1EF81FC5005AC8C7 /* Image.cpp */; };
-		5C5582FB21413D550019960B /* Image.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCD1EF81FC5005AC8C7 /* Image.h */; };
-		5C5582FC21413D550019960B /* ImageEnums.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CCE1EF81FC5005AC8C7 /* ImageEnums.h */; };
 		5C55830B21413D550019960B /* Log.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE61EF81FC5005AC8C7 /* Log.cpp */; };
 		5C55830C21413D550019960B /* Log.h in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE71EF81FC5005AC8C7 /* Log.h */; };
 		5C55831021413D550019960B /* ThreadSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */; };
 		5C55831121413D550019960B /* Timer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EA463CEA1EF81FC5005AC8C7 /* Timer.cpp */; };
+		5CEE004824A9C4BD003A183A /* SystemRun.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CEE004724A9C4BC003A183A /* SystemRun.cpp */; };
+		5CEE004924A9C4BD003A183A /* SystemRun.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5CEE004724A9C4BC003A183A /* SystemRun.cpp */; };
 		650CCC3C2223C17A003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C172FBF21414BE60074EE71 /* MetalPerformanceShaders.framework */; };
 		654D979421E922F400113964 /* ClipController.h in Headers */ = {isa = PBXBuildFile; fileRef = 654D978621E922F300113964 /* ClipController.h */; };
 		654D979521E922F400113964 /* Rig.h in Headers */ = {isa = PBXBuildFile; fileRef = 654D978721E922F300113964 /* Rig.h */; };
@@ -146,7 +142,6 @@
 		B2E562B423F57C72008479DE /* zip.h in Headers */ = {isa = PBXBuildFile; fileRef = B2E562B223F57C71008479DE /* zip.h */; };
 		B2E562B523F57C7E008479DE /* zip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2E562B123F57C71008479DE /* zip.cpp */; };
 		B2E562B723F57C8B008479DE /* miniz.h in Headers */ = {isa = PBXBuildFile; fileRef = B2E562B623F57C8B008479DE /* miniz.h */; };
-		E95891EB2341596500B68D6A /* SystemRun.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E98584E52334397C00692529 /* SystemRun.cpp */; };
 		E967DE3A233B0A2C0032E4BA /* DarwinThread.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E967DE38233B0A2C0032E4BA /* DarwinThread.cpp */; };
 		E967DE3B233B0A2C0032E4BA /* DarwinThread.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E967DE38233B0A2C0032E4BA /* DarwinThread.cpp */; };
 		E967DE3C233B0A2C0032E4BA /* DarwinLog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E967DE39233B0A2C0032E4BA /* DarwinLog.cpp */; };
@@ -161,7 +156,6 @@
 		E967DF0F233B2C390032E4BA /* libzlibstatic_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E967DF0E233B2C390032E4BA /* libzlibstatic_iOS.a */; };
 		E967DF15233B2F610032E4BA /* iOSFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = E967DF14233B2F610032E4BA /* iOSFileSystem.mm */; };
 		E967DF16233B30AA0032E4BA /* CocoaFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = E967DE3E233B0A520032E4BA /* CocoaFileSystem.mm */; };
-		E98584E72334397C00692529 /* SystemRun.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E98584E52334397C00692529 /* SystemRun.cpp */; };
 		E98584EA2334609200692529 /* FileSystemInternal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E98584E92334609200692529 /* FileSystemInternal.cpp */; };
 		E98584EB2334609200692529 /* FileSystemInternal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E98584E92334609200692529 /* FileSystemInternal.cpp */; };
 		E9ABCE0923612D26002B8F5B /* ParallelPrimitives.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9ABCE0723612D26002B8F5B /* ParallelPrimitives.cpp */; };
@@ -255,6 +249,7 @@
 		5CABF32C214151F500EFD76A /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		5CD2BBE92080FED8008E3A2C /* AppUI.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = AppUI.cpp; path = ../../Middleware_3/UI/AppUI.cpp; sourceTree = "<group>"; };
 		5CD2BBEA2080FED8008E3A2C /* AppUI.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppUI.h; path = ../../Middleware_3/UI/AppUI.h; sourceTree = "<group>"; };
+		5CEE004724A9C4BC003A183A /* SystemRun.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SystemRun.cpp; path = FileSystem/SystemRun.cpp; sourceTree = "<group>"; };
 		650E6C1F21667E2C00F511AB /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/assimp.a"; sourceTree = "<group>"; };
 		650E6C2021667E2D00F511AB /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/zlibstatic.a"; sourceTree = "<group>"; };
 		650E6C2121667E2D00F511AB /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/IrrXML.a"; sourceTree = "<group>"; };
@@ -329,14 +324,13 @@
 		E967DF0C233B2C340032E4BA /* libIrrXML_iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libIrrXML_iOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		E967DF0E233B2C390032E4BA /* libzlibstatic_iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzlibstatic_iOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		E967DF14233B2F610032E4BA /* iOSFileSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = iOSFileSystem.mm; sourceTree = "<group>"; };
-		E98584E52334397C00692529 /* SystemRun.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SystemRun.cpp; path = FileSystem/SystemRun.cpp; sourceTree = "<group>"; };
 		E98584E82334604300692529 /* FileSystemInternal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FileSystemInternal.h; path = FileSystem/FileSystemInternal.h; sourceTree = "<group>"; usesTabs = 1; };
 		E98584E92334609200692529 /* FileSystemInternal.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FileSystemInternal.cpp; path = FileSystem/FileSystemInternal.cpp; sourceTree = "<group>"; usesTabs = 1; };
 		E9ABCE0723612D26002B8F5B /* ParallelPrimitives.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; name = ParallelPrimitives.cpp; path = ../../../../../Middleware_3/ParallelPrimitives/ParallelPrimitives.cpp; sourceTree = "<group>"; };
 		E9ABCE4923625D6F002B8F5B /* ParallelPrimitives.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ParallelPrimitives.h; path = ../../../../../Middleware_3/ParallelPrimitives/ParallelPrimitives.h; sourceTree = "<group>"; };
 		E9B6292B23388D7C009DD4AB /* UnixFileSystem.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = UnixFileSystem.cpp; path = FileSystem/UnixFileSystem.cpp; sourceTree = "<group>"; };
 		E9B6292C23388D7C009DD4AB /* UnixFileSystem.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UnixFileSystem.h; path = FileSystem/UnixFileSystem.h; sourceTree = "<group>"; usesTabs = 1; };
-		E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = basisu_transcoder.cpp; path = ../ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp; sourceTree = "<group>"; };
+		E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = basisu_transcoder.cpp; path = ../../../../Common_3/ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp; sourceTree = "<group>"; };
 		E9E1C3452339E2FC003544D5 /* ZipFileSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ZipFileSystem.h; path = FileSystem/ZipFileSystem.h; sourceTree = "<group>"; };
 		E9E1C3462339E2FD003544D5 /* ZipFileSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZipFileSystem.cpp; path = FileSystem/ZipFileSystem.cpp; sourceTree = "<group>"; };
 		E9E601BD233AFB0700B21FD6 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
@@ -348,9 +342,6 @@
 		E9E601CA233B098900B21FD6 /* iOSAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = iOSAppDelegate.h; sourceTree = "<group>"; };
 		E9E601CB233B098900B21FD6 /* macOSAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = macOSAppDelegate.h; sourceTree = "<group>"; };
 		EA463CBF1EF81FC5005AC8C7 /* MathTypes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MathTypes.h; path = ../../../../Common_3/OS/Math/MathTypes.h; sourceTree = SOURCE_ROOT; };
-		EA463CCC1EF81FC5005AC8C7 /* Image.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Image.cpp; path = ../../../../Common_3/OS/Image/Image.cpp; sourceTree = SOURCE_ROOT; };
-		EA463CCD1EF81FC5005AC8C7 /* Image.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Image.h; path = ../../../../Common_3/OS/Image/Image.h; sourceTree = SOURCE_ROOT; };
-		EA463CCE1EF81FC5005AC8C7 /* ImageEnums.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ImageEnums.h; path = ../../../../Common_3/OS/Image/ImageEnums.h; sourceTree = SOURCE_ROOT; };
 		EA463CE61EF81FC5005AC8C7 /* Log.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = Log.cpp; path = ../../../../Common_3/OS/Logging/Log.cpp; sourceTree = SOURCE_ROOT; };
 		EA463CE71EF81FC5005AC8C7 /* Log.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Log.h; path = ../../../../Common_3/OS/Logging/Log.h; sourceTree = SOURCE_ROOT; };
 		EA463CE91EF81FC5005AC8C7 /* ThreadSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ThreadSystem.cpp; path = ../../../../Common_3/OS/Core/ThreadSystem.cpp; sourceTree = SOURCE_ROOT; };
@@ -432,6 +423,30 @@
 			);
 			name = UI;
 			path = ../../../../Common_3/OS;
+			sourceTree = "<group>";
+		};
+		5CEE004424A9C3A4003A183A /* Dependencies */ = {
+			isa = PBXGroup;
+			children = (
+				5CEE004624A9C3B6003A183A /* basisu */,
+				5CEE004524A9C3AF003A183A /* zip */,
+			);
+			name = Dependencies;
+			sourceTree = "<group>";
+		};
+		5CEE004524A9C3AF003A183A /* zip */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = zip;
+			sourceTree = "<group>";
+		};
+		5CEE004624A9C3B6003A183A /* basisu */ = {
+			isa = PBXGroup;
+			children = (
+				E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */,
+			);
+			name = basisu;
 			sourceTree = "<group>";
 		};
 		654D978521E922C800113964 /* Animation */ = {
@@ -567,6 +582,7 @@
 		D205E2811F9F9C1500040CCE /* FileSystem */ = {
 			isa = PBXGroup;
 			children = (
+				5CEE004724A9C4BC003A183A /* SystemRun.cpp */,
 				B22E4F56231E050D00D94FD6 /* ZipFileStream.cpp */,
 				B22E4F57231E050D00D94FD6 /* ZipFileStream.h */,
 				B28035602319C01A006CE791 /* SystemFileStream.cpp */,
@@ -640,6 +656,7 @@
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
+				5CEE004424A9C3A4003A183A /* Dependencies */,
 				B2D1CEA320EAD15F001BB8C4 /* gainput.xcodeproj */,
 				B22D906C20E3F8BC0036B88E /* Middleware_3 */,
 				EA463CEC1EF81FC5005AC8C7 /* Common_3 */,
@@ -666,17 +683,6 @@
 			name = Math;
 			sourceTree = "<group>";
 		};
-		EA463CD01EF81FC5005AC8C7 /* Image */ = {
-			isa = PBXGroup;
-			children = (
-				E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */,
-				EA463CCC1EF81FC5005AC8C7 /* Image.cpp */,
-				EA463CCD1EF81FC5005AC8C7 /* Image.h */,
-				EA463CCE1EF81FC5005AC8C7 /* ImageEnums.h */,
-			);
-			name = Image;
-			sourceTree = "<group>";
-		};
 		EA463CDC1EF81FC5005AC8C7 /* OS */ = {
 			isa = PBXGroup;
 			children = (
@@ -689,8 +695,6 @@
 				D2111E771F4457910014FFE6 /* MemoryManager */,
 				D20D920F1F3879A4004B3A42 /* Camera */,
 				EA463CCB1EF81FC5005AC8C7 /* Math */,
-				EA463CD01EF81FC5005AC8C7 /* Image */,
-				E98584E52334397C00692529 /* SystemRun.cpp */,
 			);
 			path = OS;
 			sourceTree = "<group>";
@@ -920,8 +924,8 @@
 				5C172FDC21414CC60074EE71 /* AppUI.cpp in Sources */,
 				E9B6292423384CC9009DD4AB /* MemoryStream.cpp in Sources */,
 				5C512C672141561E00E7A798 /* imgui.cpp in Sources */,
+				5CEE004924A9C4BD003A183A /* SystemRun.cpp in Sources */,
 				5C172FDD21414CC60074EE71 /* AppUI.h in Sources */,
-				E98584E72334397C00692529 /* SystemRun.cpp in Sources */,
 				E967DE3B233B0A2C0032E4BA /* DarwinThread.cpp in Sources */,
 				E9B6292823386626009DD4AB /* ZipFileStream.cpp in Sources */,
 				E967DE48233B0D7E0032E4BA /* UnixFileSystem.cpp in Sources */,
@@ -939,12 +943,9 @@
 				81856F0D229D729000F3A92B /* intrusive_list.cpp in Sources */,
 				5C172FE521414CC60074EE71 /* CameraController.cpp in Sources */,
 				5C172FE721414CC60074EE71 /* MathTypes.h in Sources */,
-				5C172FE821414CC60074EE71 /* Image.cpp in Sources */,
 				654D97BD21E92F9300113964 /* SkeletonBatcher.cpp in Sources */,
-				5C172FE921414CC60074EE71 /* Image.h in Sources */,
 				B21B9D4C23F561A9003EBFAC /* ProfilerBase.cpp in Sources */,
 				6562C7EE2207FAB300721714 /* MetalRaytracing.mm in Sources */,
-				5C172FEA21414CC60074EE71 /* ImageEnums.h in Sources */,
 				5C172FEB21414CC60074EE71 /* CommonShaderReflection.cpp in Sources */,
 				E9BF1A28231861BD001F2264 /* basisu_transcoder.cpp in Sources */,
 				81856F05229D729000F3A92B /* red_black_tree.cpp in Sources */,
@@ -1020,10 +1021,8 @@
 				5C512C55214155FE00E7A798 /* ImguiGUIDriver.cpp in Sources */,
 				654D979F21E922F400113964 /* AnimatedObject.cpp in Sources */,
 				B21B9D4D23F561A9003EBFAC /* ProfilerWidgetsUI.cpp in Sources */,
-				5C5582FA21413D550019960B /* Image.cpp in Sources */,
+				5CEE004824A9C4BD003A183A /* SystemRun.cpp in Sources */,
 				B21B9D4823F561A9003EBFAC /* GpuProfiler.cpp in Sources */,
-				5C5582FB21413D550019960B /* Image.h in Sources */,
-				5C5582FC21413D550019960B /* ImageEnums.h in Sources */,
 				81856F02229D729000F3A92B /* hashtable.cpp in Sources */,
 				81856F00229D729000F3A92B /* allocator_forge.cpp in Sources */,
 				654D979B21E922F400113964 /* Animation.cpp in Sources */,
@@ -1034,7 +1033,6 @@
 				654D97A021E922F400113964 /* Clip.cpp in Sources */,
 				81856F0C229D729000F3A92B /* intrusive_list.cpp in Sources */,
 				654D979821E922F400113964 /* SkeletonBatcher.cpp in Sources */,
-				E95891EB2341596500B68D6A /* SystemRun.cpp in Sources */,
 				E9BF1A27231861BD001F2264 /* basisu_transcoder.cpp in Sources */,
 				E9B6292523385D33009DD4AB /* SystemFileStream.cpp in Sources */,
 				5C55830B21413D550019960B /* Log.cpp in Sources */,
@@ -1098,7 +1096,7 @@
 				);
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../../../Common_3/ThirdParty/OpenSource/Libraries/iOS";
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1126,7 +1124,7 @@
 				);
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../../../Common_3/ThirdParty/OpenSource/Libraries/iOS";
 				OTHER_LDFLAGS = "-ObjC";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1157,7 +1155,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../../../Common_3/ThirdParty/OpenSource/Libraries/macOS";
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				OTHER_LDFLAGS = "-lbz2";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -1182,7 +1180,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				LIBRARY_SEARCH_PATHS = "$(SRCROOT)/../../../../Common_3/ThirdParty/OpenSource/Libraries/macOS";
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				OTHER_LDFLAGS = "-lbz2";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;

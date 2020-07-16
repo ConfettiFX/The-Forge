@@ -177,55 +177,42 @@ struct main_input
     float2 TEXCOORD0;
 };
 
-
-struct ArgBuffer0
-{
-    constant float4x4* modelToWorldMatrices [[id(0)]];
-    sampler clampMiplessLinearSampler [[id(1)]];
-    texture2d<float> ShadowTexture [[id(2)]];
-};
-
-struct ArgBuffer1
-{
-    constant Uniforms_cbPerPass& cbPerPass [[id(0)]];
-};
-
 struct Uniforms_cbMaterialData
 {
     GLTFMaterialData materialData;
 };
 
-struct ArgBuffer3
-{
-    constant Uniforms_cbMaterialData& cbMaterialData [[id(0)]];
-    texture2d<float> baseColorMap [[id(1)]];
-    sampler baseColorSampler [[id(2)]];
-    texture2d<float> normalMap [[id(3)]];
-    sampler normalMapSampler [[id(4)]];
-    texture2d<float> metallicRoughnessMap [[id(5)]];
-    sampler metallicRoughnessSampler [[id(6)]];
-    texture2d<float> occlusionMap [[id(7)]];
-    sampler occlusionMapSampler [[id(8)]];
-    texture2d<float> emissiveMap [[id(9)]];
-    sampler emissiveMapSampler [[id(10)]];
-};
-
 fragment float4 stageMain(
 	main_input inputData [[stage_in]],
-    constant ArgBuffer0& argBuffer0 [[buffer(UPDATE_FREQ_NONE)]],
-    constant ArgBuffer1& argBuffer1 [[buffer(UPDATE_FREQ_PER_FRAME)]],
-    constant ArgBuffer3& argBuffer3 [[buffer(UPDATE_FREQ_PER_DRAW)]])
-{
-    constant GLTFMaterialData& materialData = argBuffer3.cbMaterialData.materialData;
+	constant float4x4* modelToWorldMatrices          [[buffer(0)]],
+	sampler clampMiplessLinearSampler                [[sampler(0)]],
+	texture2d<float> ShadowTexture                   [[texture(0)]],
 
-    float4 baseColor = sampleTexture(materialData.mBaseColorProperties, argBuffer3.baseColorMap, argBuffer3.baseColorSampler, materialData.mBaseColorFactor, inputData.TEXCOORD0);
-    float4 metallicRoughness = sampleTexture(materialData.mMetallicRoughnessProperties, argBuffer3.metallicRoughnessMap, argBuffer3.metallicRoughnessSampler, materialData.mMetallicRoughnessFactors, inputData.TEXCOORD0);
-    float ao = (sampleTexture(materialData.mOcclusionTextureProperties, argBuffer3.occlusionMap, argBuffer3.occlusionMapSampler, float4(1.0), inputData.TEXCOORD0)).x;
-    float3 emissive = (sampleTexture(materialData.mEmissiveTextureProperties, argBuffer3.emissiveMap, argBuffer3.emissiveMapSampler, float4(1.0), inputData.TEXCOORD0)).rgb;
+	constant Uniforms_cbPerPass& cbPerPass           [[buffer(1)]],
+
+    constant Uniforms_cbMaterialData& cbMaterialData [[buffer(2)]],
+    texture2d<float> baseColorMap                    [[texture(1)]],
+    sampler baseColorSampler                         [[sampler(1)]],
+    texture2d<float> normalMap                       [[texture(2)]],
+    sampler normalMapSampler                         [[sampler(2)]],
+    texture2d<float> metallicRoughnessMap            [[texture(3)]],
+    sampler metallicRoughnessSampler                 [[sampler(3)]],
+    texture2d<float> occlusionMap                    [[texture(4)]],
+    sampler occlusionMapSampler                      [[sampler(4)]],
+    texture2d<float> emissiveMap                     [[texture(5)]],
+    sampler emissiveMapSampler                       [[sampler(5)]]
+)
+{
+    constant GLTFMaterialData& materialData = cbMaterialData.materialData;
+
+    float4 baseColor = sampleTexture(materialData.mBaseColorProperties, baseColorMap, baseColorSampler, materialData.mBaseColorFactor, inputData.TEXCOORD0);
+    float4 metallicRoughness = sampleTexture(materialData.mMetallicRoughnessProperties, metallicRoughnessMap, metallicRoughnessSampler, materialData.mMetallicRoughnessFactors, inputData.TEXCOORD0);
+    float ao = (sampleTexture(materialData.mOcclusionTextureProperties, occlusionMap, occlusionMapSampler, float4(1.0), inputData.TEXCOORD0)).x;
+    float3 emissive = (sampleTexture(materialData.mEmissiveTextureProperties, emissiveMap, emissiveMapSampler, float4(1.0), inputData.TEXCOORD0)).rgb;
 
     emissive *= materialData.mEmissiveTextureProperties.mValueScale;
     ((emissive).gb *= materialData.mEmissiveGBScale);
-    float3 normal = getNormalFromMap(inputData.NORMAL, inputData.POSITION, inputData.TEXCOORD0, materialData, argBuffer3.normalMap, argBuffer3.normalMapSampler);
+    float3 normal = getNormalFromMap(inputData.NORMAL, inputData.POSITION, inputData.TEXCOORD0, materialData, normalMap, normalMapSampler);
     float3 metalness = float3((metallicRoughness).b, (metallicRoughness).b, (metallicRoughness).b);
     float roughness = (metallicRoughness).g;
     if (materialData.mAlphaMode == 1 && materialData.mAlphaCutoff < 1.0 && ((baseColor).a < materialData.mAlphaCutoff))
@@ -234,19 +221,19 @@ fragment float4 stageMain(
     }
     (roughness = clamp(0.020000000, 1.0, roughness));
     float3 N = normal;
-    float3 V = normalize(((argBuffer1.cbPerPass.camPos).xyz - inputData.POSITION));
+    float3 V = normalize(((cbPerPass.camPos).xyz - inputData.POSITION));
     float NoV = max((float)dot(N, V),(float)float(0.0));
     float3 result = float3((float)0.0, (float)0.0, (float)0.0);
     for (uint i = uint(0); (i < uint(1)); (++i))
     {
-        float3 L = normalize((argBuffer1.cbPerPass.lightDirection[i]).xyz);
+        float3 L = normalize((cbPerPass.lightDirection[i]).xyz);
         float3 H = normalize((V + L));
         float NoL = max((float)dot(N, L),(float)float(0.0));
-        (result += (ComputeLight((baseColor).rgb, (argBuffer1.cbPerPass.lightColor[i]).rgb, metalness, roughness, N, L, V, H, NoL, NoV) * float3(argBuffer1.cbPerPass.lightColor[i].a)));
+        (result += (ComputeLight((baseColor).rgb, (cbPerPass.lightColor[i]).rgb, metalness, roughness, N, L, V, H, NoL, NoV) * float3(cbPerPass.lightColor[i].a)));
     }
     (result *= float3(ao));
-    (result *= float3(CalcPCFShadowFactor(inputData.POSITION, argBuffer1.cbPerPass.shadowLightViewProj, argBuffer0.ShadowTexture, argBuffer0.clampMiplessLinearSampler)));
-    (result += (((baseColor).rgb * (argBuffer1.cbPerPass.lightColor[3]).rgb) * float3(argBuffer1.cbPerPass.lightColor[3].a)));
+    (result *= float3(CalcPCFShadowFactor(inputData.POSITION, cbPerPass.shadowLightViewProj, ShadowTexture, clampMiplessLinearSampler)));
+    (result += (((baseColor).rgb * (cbPerPass.lightColor[3]).rgb) * float3(cbPerPass.lightColor[3].a)));
     (result += emissive);
     return float4((result).r, (result).g, (result).b, (baseColor).a);
 }

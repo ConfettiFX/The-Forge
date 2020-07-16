@@ -36,14 +36,14 @@
 
 void _OutputDebugStringV(const char* str, va_list args)
 {
-#if FORGE_DEBUG
+#if defined(FORGE_DEBUG)
 	__android_log_vprint(ANDROID_LOG_INFO, "The-Forge", str, args);
 #endif
 }
 
 void _OutputDebugString(const char* str, ...)
 {
-#if FORGE_DEBUG
+#if defined(FORGE_DEBUG)
 	va_list arglist;
 	va_start(arglist, str);
 	__android_log_vprint(ANDROID_LOG_INFO, "The-Forge", str, arglist);

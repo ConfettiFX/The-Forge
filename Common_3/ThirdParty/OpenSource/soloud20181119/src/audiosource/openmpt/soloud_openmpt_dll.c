@@ -40,7 +40,7 @@ static dll_openmpt_module_read_float_stereo d_openmpt_module_read_float_stereo =
 
 static HMODULE openDll()
 {
-#ifdef _DURANGO
+#ifdef XBOX
 	HMODULE res = LoadLibrary(L"libopenmpt.dll");
 #else
 	HMODULE res = LoadLibraryA("libopenmpt.dll");

@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
+    <ClCompile Include="..\..\..\src\12_ZipFileSystem\12_ZipFileSystem.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\..\src\27_File_System\Shaders\Vulkan\basic.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\27_File_System\Shaders\Vulkan\basic.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\27_File_System\Shaders\Vulkan\skybox.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\27_File_System\Shaders\Vulkan\skybox.vert">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\27_File_System\Shaders\Vulkan\zipTexture.frag">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="..\..\..\src\27_File_System\Shaders\Vulkan\zipTexture.vert">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{05c683df-d609-403f-b728-570a5cf9e18a}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

@@ -24,7 +24,7 @@
 	#ifndef BASISU_NO_ITERATOR_DEBUG_LEVEL
 		//#define _HAS_ITERATOR_DEBUGGING 0
 
-		#if defined(_DEBUG) || defined(DEBUG)
+		#if defined(_DEBUG)
 			// This is madness, but we need to disable iterator debugging in debug builds or the encoder is unsable because MSVC's iterator debugging implementation is totally broken.
 			#ifndef _ITERATOR_DEBUG_LEVEL
 			// #define _ITERATOR_DEBUG_LEVEL 1

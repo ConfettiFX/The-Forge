@@ -189,6 +189,12 @@ static bool    windowReady = false;
 static bool    isActive = false;
 static int32_t handle_input(struct android_app* app, AInputEvent* event)
 {
+	if (AKeyEvent_getKeyCode(event) == AKEYCODE_BACK)
+	{
+		app->destroyRequested = 1;
+		return 1;
+	}
+
     if (gWindow.callbacks.onHandleMessage)
         return gWindow.callbacks.onHandleMessage(&gWindow, event);
     return 0;
@@ -203,16 +209,19 @@ void handle_cmd(android_app* app, int32_t cmd)
 		{
 			__android_log_print(ANDROID_LOG_VERBOSE, "the-forge-app", "init window");
 
+            int32_t screenWidth = ANativeWindow_getWidth(app->window);
+            int32_t screenHeight = ANativeWindow_getHeight(app->window);
+			            
 			IApp::Settings* pSettings = &pApp->mSettings;
-			gWindow.windowedRect = { 0, 0, ANativeWindow_getWidth(app->window), ANativeWindow_getHeight(app->window) };
+			gWindow.windowedRect = { 0, 0, screenWidth, screenHeight };
 			gWindow.fullScreen = pSettings->mFullScreen;
 			gWindow.maximized = false;
 			openWindow(pApp->GetName(), &gWindow);
 
 			gWindow.handle.window = reinterpret_cast<void*>(app->window);
 
-			pSettings->mWidth = ANativeWindow_getWidth(app->window);
-			pSettings->mHeight = ANativeWindow_getHeight(app->window);
+			pSettings->mWidth = screenWidth;
+			pSettings->mHeight = screenHeight;
 			pApp->pWindow = &gWindow;
 
 			// The window is being shown, mark it as ready.
@@ -372,10 +381,9 @@ int AndroidMain(void* param, IApp* app)
 
 #ifdef AUTOMATED_TESTING
 	__android_log_print(ANDROID_LOG_INFO, "The-Forge", "Success terminating application");
-	exit(0);
 #endif
 
-	return 0;
+	exit(0);
 }
 /************************************************************************/
 /************************************************************************/

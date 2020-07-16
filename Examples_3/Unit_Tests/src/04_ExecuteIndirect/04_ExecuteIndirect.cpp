@@ -76,6 +76,8 @@
 
 #include "../../../../Common_3/OS/Interfaces/IMemory.h"
 
+const uint32_t gImageCount = 3;
+
 #define MAX_LOD_OFFSETS 10
 
 Timer      gAccumTimer;
@@ -117,23 +119,23 @@ struct IndirectArguments
 {
 	//16 - byte aligned
 #if defined(DIRECT3D12)
-	uint32_t                   mDrawID;    // Currently setting a root constant only works with Dx
+	// Currently setting a root constant only works with Dx
+	uint32_t                   mDrawID;
 	IndirectDrawIndexArguments mDrawArgs;
-	uint32_t                   pad1, pad2;
-#elif defined(VULKAN)
+	uint32_t                   mPad[2];
+#else
 	IndirectDrawIndexArguments mDrawArgs;
-	uint32_t                   pad1, pad2, pad3;    // This one is just padding
-#elif defined(METAL)    // Padding messes up the expected indirect data layout on Metal.
-	IndirectDrawIndexArguments mDrawArgs;
-#elif defined(ORBIS)    // Padding messes up the expected indirect data layout on Orbis.
-	IndirectDrawIndexArguments mDrawArgs;
+#if !defined(ORBIS)
+	// Padding not supported on Orbis
+	uint32_t                   mPad[3];
+#endif
 #endif
 };
 
 struct Subset
 {
-	CmdPool*           pCmdPool;
-	Cmd**              ppCmds;
+	CmdPool*           pCmdPools[gImageCount];
+	Cmd*               pCmds[gImageCount];
 	Buffer*            pAsteroidInstanceBuffer;
 	Buffer*            pSubsetIndirect;
 	IndirectArguments* mIndirectArgs;
@@ -167,6 +169,8 @@ enum
 // 2.5k asteroids for switch debug because NX Cpu in debug mode can't loop over more objects at a practical speed for this demo.
 #if defined(NX64) && defined(NN_SDK_BUILD_DEBUG)
 const uint32_t gNumAsteroids = 2500U;
+#elif defined ANDROID
+const uint32_t gNumAsteroids = 10000U;
 #else
 const uint32_t gNumAsteroids = 50000U;    // 50000 is optimal.
 #endif
@@ -175,7 +179,6 @@ const uint32_t gNumSubsets = 1;           // 4 is optimal. Also equivalent to th
 const uint32_t gNumAsteroidsPerSubset = (gNumAsteroids + gNumSubsets - 1) / gNumSubsets;
 const uint32_t gTextureCount = 10;
 
-const uint32_t gImageCount = 3;
 ProfileToken   gGpuProfileToken;
 AsteroidSimulation      gAsteroidSim;
 eastl::vector<Subset>   gAsteroidSubsets;
@@ -189,12 +192,12 @@ int                     gPreviousRenderingMode = gRenderingMode;
 Renderer* pRenderer = NULL;
 
 Queue*      pGraphicsQueue = NULL;
-CmdPool*    pCmdPool = NULL;
-Cmd**       ppCmds = NULL;
-CmdPool*    pComputeCmdPool = NULL;
-Cmd**       ppComputeCmds = NULL;
-CmdPool*    pUICmdPool = NULL;
-Cmd**       ppUICmds = NULL;
+CmdPool*    pCmdPools[gImageCount];
+Cmd*        pCmds[gImageCount];
+CmdPool*    pComputeCmdPools[gImageCount];
+Cmd*        pComputeCmds[gImageCount];
+CmdPool*    pUICmdPools[gImageCount];
+Cmd*        pUICmds[gImageCount];
 
 SwapChain*    pSwapChain = NULL;
 RenderTarget* pDepthBuffer = NULL;
@@ -300,6 +303,7 @@ class ExecuteIndirect: public IApp
 #ifdef TARGET_IOS
 		mSettings.mContentScaleFactor = 1.f;
 #endif
+		gToggleVSync = mSettings.mDefaultVSyncEnabled;
 	}
 	
 	bool Init()
@@ -332,20 +336,24 @@ class ExecuteIndirect: public IApp
 		queueDesc.mType = QUEUE_TYPE_GRAPHICS;
 		queueDesc.mFlag = QUEUE_FLAG_INIT_MICROPROFILE;
 		addQueue(pRenderer, &queueDesc, &pGraphicsQueue);
-		CmdPoolDesc cmdPoolDesc = {};
-		cmdPoolDesc.pQueue = pGraphicsQueue;
-		addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPool);
-		CmdDesc cmdDesc = {};
-		cmdDesc.pPool = pCmdPool;
-		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppCmds);
 
-		addCmdPool(pRenderer, &cmdPoolDesc, &pUICmdPool);
-		cmdDesc.pPool = pUICmdPool;
-		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppUICmds);
+		for (uint32_t i = 0; i < gImageCount; ++i)
+		{
+			CmdPoolDesc cmdPoolDesc = {};
+			cmdPoolDesc.pQueue = pGraphicsQueue;
+			addCmdPool(pRenderer, &cmdPoolDesc, &pCmdPools[i]);
+			CmdDesc cmdDesc = {};
+			cmdDesc.pPool = pCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pCmds[i]);
 
-		addCmdPool(pRenderer, &cmdPoolDesc, &pComputeCmdPool);
-		cmdDesc.pPool = pComputeCmdPool;
-		addCmd_n(pRenderer, &cmdDesc, gImageCount, &ppComputeCmds);
+			addCmdPool(pRenderer, &cmdPoolDesc, &pUICmdPools[i]);
+			cmdDesc.pPool = pUICmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pUICmds[i]);
+
+			addCmdPool(pRenderer, &cmdPoolDesc, &pComputeCmdPools[i]);
+			cmdDesc.pPool = pComputeCmdPools[i];
+			addCmd(pRenderer, &cmdDesc, &pComputeCmds[i]);
+		}
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -558,21 +566,17 @@ class ExecuteIndirect: public IApp
 		/* Prepare execute indirect command signatures and buffers */
 
 #if defined(DIRECT3D12)
-		eastl::vector<IndirectArgumentDescriptor> indirectArgDescs(2);
-		indirectArgDescs[0] = {};
+		IndirectArgumentDescriptor indirectArgDescs[2] = {};
 		indirectArgDescs[0].mType = INDIRECT_CONSTANT;    // Root Constant
 		indirectArgDescs[0].pName = "rootConstant";
-		indirectArgDescs[0].mCount = 1;
-		indirectArgDescs[1] = {};
 		indirectArgDescs[1].mType = INDIRECT_DRAW_INDEX;    // Indirect Index Draw Arguments
 #else
-        // Metal and Vulkan doesn't allow constants as part of command signature
-        eastl::vector<IndirectArgumentDescriptor> indirectArgDescs(1);
-        indirectArgDescs[0] = {};
-        indirectArgDescs[0].mType = INDIRECT_DRAW_INDEX;    // Indirect Index Draw Arguments
+		// Metal and Vulkan doesn't allow constants as part of command signature
+		IndirectArgumentDescriptor indirectArgDescs[1] = {};
+		indirectArgDescs[0].mType = INDIRECT_DRAW_INDEX;    // Indirect Index Draw Arguments
 #endif
 
-		CommandSignatureDesc cmdSignatureDesc = { pCmdPool, pIndirectRoot, (uint32_t)indirectArgDescs.size(), indirectArgDescs.data() };
+		CommandSignatureDesc cmdSignatureDesc = { pIndirectRoot, sizeof(indirectArgDescs) / sizeof(indirectArgDescs[0]), indirectArgDescs };
 		addIndirectCommandSignature(pRenderer, &cmdSignatureDesc, &pIndirectCommandSignature);
 		addIndirectCommandSignature(pRenderer, &cmdSignatureDesc, &pIndirectSubsetCommandSignature);
 
@@ -633,7 +637,7 @@ class ExecuteIndirect: public IApp
 		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
 
 		GuiDesc guiDesc = {};
-		guiDesc.mStartPosition += vec2(0, 40.0f * getDpiScale().x);
+		guiDesc.mStartPosition += vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.5f);
 		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
 
         initProfiler();
@@ -643,7 +647,7 @@ class ExecuteIndirect: public IApp
 		static const uint32_t enumValues[] = { RenderingMode_Instanced, RenderingMode_ExecuteIndirect, RenderingMode_GPUUpdate, 0 };
 		/************************************************************************/
 		/************************************************************************/
-#if !defined(TARGET_IOS) && !defined(_DURANGO)
+#if !defined(TARGET_IOS)
 		pGui->AddWidget(CheckboxWidget("Toggle VSync", &gToggleVSync));
 #endif
 
@@ -870,17 +874,24 @@ class ExecuteIndirect: public IApp
 		removeSampler(pRenderer, pSkyBoxSampler);
 		removeSampler(pRenderer, pBasicSampler);
 
-		removeCmd_n(pRenderer, gImageCount, ppCmds);
-		removeCmd_n(pRenderer, gImageCount, ppUICmds);
-		removeCmd_n(pRenderer, gImageCount, ppComputeCmds);
-		removeCmdPool(pRenderer, pCmdPool);
-		removeCmdPool(pRenderer, pUICmdPool);
-		removeCmdPool(pRenderer, pComputeCmdPool);
 
-		for (uint32_t i = 0; i < gNumSubsets; i++)
+		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
-			removeCmd_n(pRenderer, gImageCount, gAsteroidSubsets[i].ppCmds);
-			removeCmdPool(pRenderer, gAsteroidSubsets[i].pCmdPool);
+			removeCmd(pRenderer, pCmds[i]);
+			removeCmd(pRenderer, pUICmds[i]);
+			removeCmd(pRenderer, pComputeCmds[i]);
+			removeCmdPool(pRenderer, pCmdPools[i]);
+			removeCmdPool(pRenderer, pUICmdPools[i]);
+			removeCmdPool(pRenderer, pComputeCmdPools[i]);
+		}
+
+		for (uint32_t i = 0; i < gNumSubsets; ++i)
+		{
+			for (uint32_t j = 0; j < gImageCount; ++j)
+			{
+				removeCmd(pRenderer, gAsteroidSubsets[i].pCmds[j]);
+				removeCmdPool(pRenderer, gAsteroidSubsets[i].pCmdPools[j]);
+			}
 		}
 
 		removeQueue(pRenderer, pGraphicsQueue);
@@ -974,6 +985,7 @@ class ExecuteIndirect: public IApp
 		postProcRTDesc.mArraySize = 1;
 		postProcRTDesc.mClearValue = {{0.0f, 0.0f, 0.0f, 0.0f}};
 		postProcRTDesc.mDepth = 1;
+		postProcRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		postProcRTDesc.mFormat = pSwapChain->ppRenderTargets[0]->mFormat;
 		postProcRTDesc.mHeight = mSettings.mHeight;
 		postProcRTDesc.mWidth = mSettings.mWidth;
@@ -1022,7 +1034,7 @@ class ExecuteIndirect: public IApp
 	{
 		updateInputSystem(mSettings.mWidth, mSettings.mHeight);
 
-#if !defined(TARGET_IOS) && !defined(_DURANGO)
+#if !defined(TARGET_IOS)
 		if (pSwapChain->mEnableVsync != gToggleVSync)
 		{
 			waitQueueIdle(pGraphicsQueue);
@@ -1070,9 +1082,10 @@ class ExecuteIndirect: public IApp
 		}
 
 		// Prepare images for frame buffers
-		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &gFrameIndex);
+		uint32_t swapchainImageIndex;
+		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
 
-		RenderTarget* pSwapchainRenderTarget = pSwapChain->ppRenderTargets[gFrameIndex];
+		RenderTarget* pSwapchainRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
 		RenderTarget* pSceneRenderTarget = gbPaniniEnabled ? pIntermediateRenderTarget : pSwapchainRenderTarget;
 		Semaphore*    pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
 		Fence*        pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
@@ -1082,6 +1095,14 @@ class ExecuteIndirect: public IApp
 		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
 		if (fenceStatus == FENCE_STATUS_INCOMPLETE)
 			waitForFences(pRenderer, 1, &pRenderCompleteFence);
+
+		resetCmdPool(pRenderer, pCmdPools[gFrameIndex]);
+		resetCmdPool(pRenderer, pComputeCmdPools[gFrameIndex]);
+		resetCmdPool(pRenderer, pUICmdPools[gFrameIndex]);
+		for (uint32_t i = 0; i < gNumSubsets; ++i)
+		{
+			resetCmdPool(pRenderer, gAsteroidSubsets[i].pCmdPools[gFrameIndex]);
+		}
 
 		// Update projection view matrices
 
@@ -1107,7 +1128,7 @@ class ExecuteIndirect: public IApp
 		/************************************************************************/
 		// Draw Skybox
 		/************************************************************************/
-		Cmd* cmd = ppCmds[gFrameIndex];
+		Cmd* cmd = pCmds[gFrameIndex];
 		beginCmd(cmd);
 		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
@@ -1167,7 +1188,7 @@ class ExecuteIndirect: public IApp
 				waitThreadSystemIdle(pThreadSystem);
 
 				for (int i = 0; i < gNumSubsets; i++)
-					allCmds.push_back(gAsteroidSubsets[i].ppCmds[gFrameIndex]);    // Asteroid Cmds
+					allCmds.push_back(gAsteroidSubsets[i].pCmds[gFrameIndex]);    // Asteroid Cmds
 			}
 			else
 			{
@@ -1175,7 +1196,7 @@ class ExecuteIndirect: public IApp
 				for (uint32_t i = 0; i < gNumSubsets; i++)
 				{
 					RenderSubset(i, viewProjMat, gFrameIndex, pSceneRenderTarget, pDepthBuffer, frameTime);
-					allCmds.push_back(gAsteroidSubsets[i].ppCmds[gFrameIndex]);    // Asteroid Cmds
+					allCmds.push_back(gAsteroidSubsets[i].pCmds[gFrameIndex]);    // Asteroid Cmds
 				}
 			}
 		}
@@ -1197,7 +1218,7 @@ class ExecuteIndirect: public IApp
 				computeUniformData.mIndexOffsets[i * 4] = gAsteroidSim.indexOffsets[i];
 #endif
 
-			cmd = ppComputeCmds[gFrameIndex];
+			cmd = pComputeCmds[gFrameIndex];
 			beginCmd(cmd);
 
 			BufferUpdateDesc computeUniformUpdate = { pComputeUniformBuffer[gFrameIndex] };
@@ -1245,7 +1266,7 @@ class ExecuteIndirect: public IApp
 		/************************************************************************/
 		// Draw PostProcess & UI
 		/************************************************************************/
-		cmd = ppUICmds[gFrameIndex];
+		cmd = pUICmds[gFrameIndex];
 		beginCmd(cmd);
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw PostProcess & UI");
 		LoadActionsDesc* pLoadAction = NULL;
@@ -1256,6 +1277,9 @@ class ExecuteIndirect: public IApp
 		swapChainClearAction.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
 		swapChainClearAction.mClearColorValues[0] = pSwapchainRenderTarget->mClearValue;
 
+		LoadActionsDesc swapChainLoadAction = {};
+		swapChainLoadAction.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+
 		if (gbPaniniEnabled)
 		{
 			RenderTargetBarrier barriers[] = {
@@ -1264,6 +1288,10 @@ class ExecuteIndirect: public IApp
 			};
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
 			pLoadAction = &swapChainClearAction;
+		}
+		else
+		{
+			pLoadAction = &swapChainLoadAction;
 		}
 
 		cmdBindRenderTargets(cmd, 1, &pSwapchainRenderTarget, NULL, pLoadAction, NULL, NULL, -1, -1);
@@ -1284,24 +1312,16 @@ class ExecuteIndirect: public IApp
 
 		gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
 
-        cmdDrawCpuProfile(cmd, float2(8, 15), &gFrameTimeDraw);
-
-		char buff[256] = "";
-		char modeStr[128] = "Instanced";
-		if (gRenderingMode == RenderingMode_ExecuteIndirect)
-			strcpy(modeStr, "ExecuteIndirect");
-		if (gRenderingMode == RenderingMode_GPUUpdate)
-			strcpy(modeStr, "GPU update");
-
-		sprintf(buff, "SPACE - Rendering mode - %s", modeStr);
-		gAppUI.DrawText(cmd, float2(8, 40), buff, NULL);
+		const float txtOffset = 8.f;
+		float txtOrigY = txtOffset;
+        float2 txtSize = cmdDrawCpuProfile(cmd, float2(txtOffset, txtOrigY), &gFrameTimeDraw);
+		txtOrigY += txtSize.y + txtOffset;
 
 #ifndef TARGET_IOS
-		gAppUI.DrawText(cmd, float2(8, 65), "F1 - Toggle UI", NULL);
 		gAppUI.Gui(pGui);
 #endif
 
-        cmdDrawGpuProfile(cmd, float2(8, 80), gGpuProfileToken);
+        cmdDrawGpuProfile(cmd, float2(txtOffset, txtOrigY), gGpuProfileToken, &gFrameTimeDraw);
 
 		cmdDrawProfilerUI();
 		gAppUI.Draw(cmd);
@@ -1328,13 +1348,15 @@ class ExecuteIndirect: public IApp
 		submitDesc.pSignalFence = pRenderCompleteFence;
 		queueSubmit(pGraphicsQueue, &submitDesc);
 		QueuePresentDesc presentDesc = {};
-		presentDesc.mIndex = gFrameIndex;
+		presentDesc.mIndex = swapchainImageIndex;
 		presentDesc.mWaitSemaphoreCount = 1;
 		presentDesc.ppWaitSemaphores = &pRenderCompleteSemaphore;
 		presentDesc.pSwapChain = pSwapChain;
 		presentDesc.mSubmitDone = true;
 		queuePresent(pGraphicsQueue, &presentDesc);
 		flipProfiler();
+
+		gFrameIndex = (gFrameIndex + 1) % gImageCount;
 	}
 
 	const char* GetName() { return "04_ExecuteIndirect"; }
@@ -1349,7 +1371,7 @@ class ExecuteIndirect: public IApp
 		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
-		swapChainDesc.mEnableVsync = false;
+		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;
@@ -1381,16 +1403,18 @@ class ExecuteIndirect: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 			rtBarriers[i] = { pSwapChain->ppRenderTargets[i], RESOURCE_STATE_RENDER_TARGET };
 		rtBarriers[numBarriers - 1] = { pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE };
-		beginCmd(ppCmds[0]);
-		cmdResourceBarrier(ppCmds[0], 0, NULL, 0, NULL, numBarriers, rtBarriers);
-		endCmd(ppCmds[0]);
+		beginCmd(pCmds[0]);
+		cmdResourceBarrier(pCmds[0], 0, NULL, 0, NULL, numBarriers, rtBarriers);
+		endCmd(pCmds[0]);
 		QueueSubmitDesc submitDesc = {};
 		submitDesc.mCmdCount = 1;
-		submitDesc.ppCmds = &ppCmds[0];
+		submitDesc.ppCmds = &pCmds[0];
 		submitDesc.pSignalFence = pRenderCompleteFences[0];
 		submitDesc.mSubmitDone = true;
 		queueSubmit(pGraphicsQueue, &submitDesc);
 		waitForFences(pRenderer, 1, &pRenderCompleteFences[0]);
+
+		resetCmdPool(pRenderer, pCmdPools[0]);
 #endif
 	}
 	/************************************************************************/
@@ -1422,7 +1446,7 @@ class ExecuteIndirect: public IApp
 
 		for (Vertex& vert : vertices)
 		{
-			float length = 1.f / sqrt(dot(vert.mNormal.getXYZ(), vert.mNormal.getXYZ()));
+			float length = 1.0f / sqrt(dot(vert.mNormal.getXYZ(), vert.mNormal.getXYZ()));
 
 			vert.mNormal *= length;
 		}
@@ -1636,12 +1660,15 @@ class ExecuteIndirect: public IApp
 				subset.mIndirectArgs[j].mDrawArgs.mVertexOffset = 0;
 			}
 
-			CmdPoolDesc cmdPoolDesc = {};
-			cmdPoolDesc.pQueue = pGraphicsQueue;
-			addCmdPool(pRenderer, &cmdPoolDesc, &subset.pCmdPool);
-			CmdDesc cmdDesc = {};
-			cmdDesc.pPool = subset.pCmdPool;
-			addCmd_n(pRenderer, &cmdDesc, gImageCount, &subset.ppCmds);
+			for (uint32_t j = 0; j < gImageCount; ++j)
+			{
+				CmdPoolDesc cmdPoolDesc = {};
+				cmdPoolDesc.pQueue = pGraphicsQueue;
+				addCmdPool(pRenderer, &cmdPoolDesc, &subset.pCmdPools[j]);
+				CmdDesc cmdDesc = {};
+				cmdDesc.pPool = subset.pCmdPools[j];
+				addCmd(pRenderer, &cmdDesc, &subset.pCmds[j]);
+			}
 
 			gAsteroidSubsets.push_back(subset);
 		}
@@ -1672,7 +1699,7 @@ class ExecuteIndirect: public IApp
 		uint32_t endIdx = min(startIdx + gNumAsteroidsPerSubset, gNumAsteroids);
 
 		Subset& subset = gAsteroidSubsets[index];
-		Cmd*    cmd = subset.ppCmds[frameIdx];
+		Cmd*    cmd = subset.pCmds[frameIdx];
 
 		beginCmd(cmd);
 

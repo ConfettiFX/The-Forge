@@ -16,7 +16,7 @@ struct Vertex_Shader
     struct Uniforms_uRootConstants
     {
         packed_float4 color;
-        packed_float2 scaleBias;
+        float2 scaleBias;
     };
     constant Uniforms_uRootConstants & uRootConstants;
     struct Uniforms_uniformBlock
@@ -40,9 +40,9 @@ struct Vertex_Shader
 };
 
 vertex Vertex_Shader::PsIn stageMain(
-                                     Vertex_Shader::VsIn In                                                  [[stage_in]],
-                                     constant Vertex_Shader::Uniforms_uniformBlock& uniformBlock_rootcbv     [[buffer(UPDATE_FREQ_USER + 1)]],
-                                     constant Vertex_Shader::Uniforms_uRootConstants& uRootConstants         [[buffer(UPDATE_FREQ_USER)]]
+                                     Vertex_Shader::VsIn In                                                   [[stage_in]],
+                                     constant Vertex_Shader::Uniforms_uRootConstants& uRootConstants       [[buffer(0)]],
+									 constant Vertex_Shader::Uniforms_uniformBlock& uniformBlock_rootcbv [[buffer(1)]]
 )
 {
     Vertex_Shader::VsIn In0;

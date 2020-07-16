@@ -5,7 +5,7 @@
 #endif
 
 #if (PROFILE_ENABLED)
-#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11) || defined(METAL) || defined(ORBIS)
+#if defined(DIRECT3D12) || defined(VULKAN) || defined(DIRECT3D11) || defined(METAL) || defined(ORBIS) || defined(PROSPERO)
 #define GPU_PROFILER_SUPPORTED 1
 #endif
 
@@ -60,10 +60,12 @@ void unloadProfilerUI();
 void cmdDrawProfilerUI();
 
 // Call once per frame before AppUI.Draw, draw requested Gpu profiler timers
-void cmdDrawGpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, ProfileToken nProfileToken, const TextDrawDesc* pDrawDesc = NULL);
+// Returns text dimensions so caller can align other UI elements
+float2 cmdDrawGpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, ProfileToken nProfileToken, const TextDrawDesc* pDrawDesc = NULL);
 
 // Call once per frame before AppUI.Draw, draw requested Cpu profile time
-void cmdDrawCpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, const TextDrawDesc* pDrawDesc = NULL);
+// Returns text dimensions so caller can align other UI elements
+float2 cmdDrawCpuProfile(Cmd* pCmd, const float2& screenCoordsInPx, const TextDrawDesc* pDrawDesc = NULL);
 
 // Toggle profiler display on/off.
 void toggleProfilerUI();

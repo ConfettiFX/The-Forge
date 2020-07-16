@@ -189,8 +189,8 @@
 		B21F76C921420E9400DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		B2CDF4DB20B760DE000DC071 /* Panini.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Panini.cpp; path = ../../../../Middleware_3/PaniniProjection/Panini.cpp; sourceTree = "<group>"; };
 		B2CDF4DC20B760DE000DC071 /* Panini.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Panini.h; path = ../../../../Middleware_3/PaniniProjection/Panini.h; sourceTree = "<group>"; };
-		B2CDF4DF20B760EB000DC071 /* panini_projection.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = panini_projection.frag.metal; path = ../../../../Middleware_3/PaniniProjection/Shaders/Metal/panini_projection.frag.metal; sourceTree = "<group>"; };
-		B2CDF4E020B760EB000DC071 /* panini_projection.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = panini_projection.vert.metal; path = ../../../../Middleware_3/PaniniProjection/Shaders/Metal/panini_projection.vert.metal; sourceTree = "<group>"; };
+		B2CDF4DF20B760EB000DC071 /* panini_projection.frag.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = panini_projection.frag.metal; path = ../../../../Middleware_3/PaniniProjection/Shaders/Metal/panini_projection.frag.metal; sourceTree = "<group>"; };
+		B2CDF4E020B760EB000DC071 /* panini_projection.vert.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = panini_projection.vert.metal; path = ../../../../Middleware_3/PaniniProjection/Shaders/Metal/panini_projection.vert.metal; sourceTree = "<group>"; };
 		D28782EF1F0A7F52004DC624 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = 04_ExecuteIndirect/Assets.xcassets; sourceTree = SOURCE_ROOT; };
 		D28782F11F0A7F98004DC624 /* 04_ExecuteIndirect.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 04_ExecuteIndirect.cpp; path = ../../src/04_ExecuteIndirect/04_ExecuteIndirect.cpp; sourceTree = SOURCE_ROOT; };
 		D2A520561F4ED89800C9B029 /* AsteroidSim.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = AsteroidSim.cpp; path = ../../../src/04_ExecuteIndirect/AsteroidSim.cpp; sourceTree = "<group>"; };
@@ -580,6 +580,7 @@
 		28A5AC92201F682F000E571F /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_WARN_COMMA = NO;
@@ -602,12 +603,12 @@
 					../,
 				);
 				INFOPLIST_FILE = 04_ExecuteIndirect_iOS/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-4-ExecuteIndirect-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -619,6 +620,7 @@
 		28A5AC93201F682F000E571F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
 				CLANG_WARN_COMMA = NO;
@@ -639,12 +641,12 @@
 					../,
 				);
 				INFOPLIST_FILE = 04_ExecuteIndirect_iOS/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				PRODUCT_BUNDLE_IDENTIFIER = "Confetti.-4-ExecuteIndirect-iOS";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -704,8 +706,8 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = NO;
 				GCC_WARN_UNUSED_VARIABLE = NO;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
@@ -756,8 +758,8 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = NO;
 				GCC_WARN_UNUSED_VARIABLE = NO;
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = macosx;
 			};
@@ -788,7 +790,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.04-ExecuteIndirect";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;
@@ -823,7 +825,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.04-ExecuteIndirect";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = macosx;

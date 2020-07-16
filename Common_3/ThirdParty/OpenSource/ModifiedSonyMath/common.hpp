@@ -1,4 +1,3 @@
-
 // ================================================================================================
 // -*- C++ -*-
 // File: vectormath/common.hpp
@@ -6,9 +5,7 @@
 // Created on: 30/12/16
 // Brief: Extra helper functions added to the Vectormath library.
 // ================================================================================================
-
-#ifndef VECTORMATH_COMMON_HPP
-#define VECTORMATH_COMMON_HPP
+#pragma once
 
 #define IMEMORY_FROM_HEADER
 #include "../../../OS/Interfaces/IMemory.h"
@@ -135,8 +132,15 @@ inline Matrix4 makeShadowMatrix(const Vector4 & plane, const Vector4 & light)
 // - Noise
 //****************************************************************************
 
+#if VECTORMATH_MODE_SCE
+namespace sce {
+	namespace Vectormath {
+		namespace Simd {
+			namespace Aos {
+#else
 namespace Vectormath
 {
+#endif
 // constants
 #define PI 3.14159265358979323846f
 static const float piDivTwo = 1.570796326794896619231f;        //!< pi/2 constant
@@ -639,19 +643,7 @@ inline const int4& operator*=(int4&a, int4& b) { return a = a * b; }
 inline const int4& operator/=(int4&a, const int4& b) { return a = a / b; }
 inline const int4& operator/=(int4& a, int b) { return a = a / b; }
 
-//----------------------------------------------------------------------------
-// int* to vec* conversions
-//----------------------------------------------------------------------------
-inline int2 iv2ToI2(const IVector2& v2) { return int2(v2.getX(), v2.getY()); }
-inline int3 iv3ToI3(const IVector3& v3) { return int3(v3.getX(), v3.getY(), v3.getZ()); }
-inline int4 iv4ToI4(const IVector4& v4) { return int4(v4.getX(), v4.getY(), v4.getZ(), v4.getW()); }
 
-//----------------------------------------------------------------------------
-// vec* to int* conversions
-//----------------------------------------------------------------------------
-inline IVector2 i2Toiv2(const int2& i2) { return IVector2(i2.x, i2.y); }
-inline IVector3 i3Toiv3(const int3& i3) { return IVector3(i3.x, i3.y, i3.z); }
-inline IVector4 i4Toiv4(const int4& i4) { return IVector4(i4.x, i4.y, i4.z, i4.w); }
 
 #endif
 
@@ -804,16 +796,6 @@ inline const uint4& operator/=(uint4& a, uint b) { return a = a / b; }
 //----------------------------------------------------------------------------
 // uint* to vec* conversions
 //----------------------------------------------------------------------------
-inline uint2 uv2ToU2(const UVector2& v2) { return uint2(v2.getX(), v2.getY()); }
-inline uint3 uv3ToU3(const UVector3& v3) { return uint3(v3.getX(), v3.getY(), v3.getZ()); }
-inline uint4 uv4ToU4(const UVector4& v4) { return uint4(v4.getX(), v4.getY(), v4.getZ(), v4.getW()); }
-
-//----------------------------------------------------------------------------
-// vec* to uint* conversions
-//----------------------------------------------------------------------------
-inline UVector2 u2Touv2(const uint2& u2) { return UVector2(u2.x, u2.y); }
-inline UVector3 u3Touv3(const uint3& u3) { return UVector3(u3.x, u3.y, u3.z); }
-inline UVector4 u4Touv4(const uint4& u4) { return UVector4(u4.x, u4.y, u4.z, u4.w); }
 
 #endif
 
@@ -823,6 +805,7 @@ inline UVector4 u4Touv4(const uint4& u4) { return UVector4(u4.x, u4.y, u4.z, u4.
 //	doing this to be able to instantiate vector min/max later
 #undef min
 #undef max
+
 //	use reference as argument since this function will be inlined anyway
 template <class T>
 constexpr T min(const T &x, const T &y) { return (x < y) ? x : y; }
@@ -1951,7 +1934,43 @@ inline const Frustum calculateFrustumPlanesFromRect(Matrix4 const& mvp,
 
 	return f;
 }
+#if VECTORMATH_MODE_SCE
+}}}}
+#else
 } // namespace Vectormath
-//========================================= #ConfettiMathExtensionsEnd ================================================
+#endif
 
-#endif // VECTORMATH_COMMON_HPP
+// These are added at the bottom because UVector/IVector are not included in VECTORMATH_MODE_SCE
+#ifdef Vectormath
+{
+#ifdef DEFINE_UNSIGNED_INT_X
+inline uint2 uv2ToU2(const UVector2& v2) { return uint2(v2.getX(), v2.getY()); }
+inline uint3 uv3ToU3(const UVector3& v3) { return uint3(v3.getX(), v3.getY(), v3.getZ()); }
+inline uint4 uv4ToU4(const UVector4& v4) { return uint4(v4.getX(), v4.getY(), v4.getZ(), v4.getW()); }
+
+//----------------------------------------------------------------------------
+// vec* to uint* conversions
+//----------------------------------------------------------------------------
+inline UVector2 u2Touv2(const uint2& u2) { return UVector2(u2.x, u2.y); }
+inline UVector3 u3Touv3(const uint3& u3) { return UVector3(u3.x, u3.y, u3.z); }
+inline UVector4 u4Touv4(const uint4& u4) { return UVector4(u4.x, u4.y, u4.z, u4.w); }
+#endif
+
+#ifdef DEFINE_INT_X
+//----------------------------------------------------------------------------
+// int* to vec* conversions
+//----------------------------------------------------------------------------
+inline int2 iv2ToI2(const IVector2& v2) { return int2(v2.getX(), v2.getY()); }
+inline int3 iv3ToI3(const IVector3& v3) { return int3(v3.getX(), v3.getY(), v3.getZ()); }
+inline int4 iv4ToI4(const IVector4& v4) { return int4(v4.getX(), v4.getY(), v4.getZ(), v4.getW()); }
+
+//----------------------------------------------------------------------------
+// vec* to int* conversions
+//----------------------------------------------------------------------------
+inline IVector2 i2Toiv2(const int2& i2) { return IVector2(i2.x, i2.y); }
+inline IVector3 i3Toiv3(const int3& i3) { return IVector3(i3.x, i3.y, i3.z); }
+inline IVector4 i4Toiv4(const int4& i4) { return IVector4(i4.x, i4.y, i4.z, i4.w); }
+#endif
+}
+#endif
+//========================================= #ConfettiMathExtensionsEnd ================================================

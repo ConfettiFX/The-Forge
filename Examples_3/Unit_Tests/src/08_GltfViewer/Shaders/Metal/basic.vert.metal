@@ -23,7 +23,7 @@ struct Vertex_Shader
         uint nodeIndex;
     };
     constant Uniforms_cbRootConstants& cbRootConstants;
-    const device float4x4* modelToWorldMatrices;
+    constant float4x4* modelToWorldMatrices;
     struct PsIn
     {
         float3 pos;
@@ -45,7 +45,7 @@ struct Vertex_Shader
         return Out;
     };
 
-    Vertex_Shader(constant Uniforms_cbPerPass& cbPerPass, constant Uniforms_cbRootConstants& cbRootConstants, const device float4x4* modelToWorldMatrices) :
+    Vertex_Shader(constant Uniforms_cbPerPass& cbPerPass, constant Uniforms_cbRootConstants& cbRootConstants, constant float4x4* modelToWorldMatrices) :
         cbPerPass(cbPerPass), cbRootConstants(cbRootConstants), modelToWorldMatrices(modelToWorldMatrices)
     {}
 };
@@ -64,29 +64,22 @@ struct main_output
     float2 TEXCOORD0;
     float4 SV_Position [[position]];
 };
-struct ArgBuffer0
-{
-    const device float4x4* modelToWorldMatrices [[id(0)]];
-    sampler clampMiplessLinearSampler [[id(1)]];
-    texture2d<float> ShadowTexture [[id(2)]];
-};
-
-struct ArgBuffer1
-{
-    constant Vertex_Shader::Uniforms_cbPerPass& cbPerPass [[id(0)]];
-};
 
 vertex main_output stageMain(
 	main_input inputData [[stage_in]],
-    constant ArgBuffer0& argBuffer0 [[buffer(UPDATE_FREQ_NONE)]],
-    constant ArgBuffer1& argBuffer1 [[buffer(UPDATE_FREQ_PER_FRAME)]],
-    constant Vertex_Shader::Uniforms_cbRootConstants& cbRootConstants [[buffer(UPDATE_FREQ_USER)]])
+	constant float4x4* modelToWorldMatrices          [[buffer(0)]],
+	sampler clampMiplessLinearSampler                [[sampler(0)]],
+	texture2d<float> ShadowTexture                   [[texture(0)]],
+
+	constant Vertex_Shader::Uniforms_cbPerPass& cbPerPass [[buffer(1)]],
+
+    constant Vertex_Shader::Uniforms_cbRootConstants& cbRootConstants [[buffer(3)]])
 {
     Vertex_Shader::VsIn In0;
     In0.position = inputData.POSITION;
     In0.normal = inputData.NORMAL;
     In0.texCoord = inputData.TEXCOORD0;
-    Vertex_Shader main(argBuffer1.cbPerPass, cbRootConstants, argBuffer0.modelToWorldMatrices);
+    Vertex_Shader main(cbPerPass, cbRootConstants, modelToWorldMatrices);
     Vertex_Shader::PsIn result = main.main(In0);
     main_output output;
     output.POSITION = result.pos;

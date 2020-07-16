@@ -71,7 +71,7 @@
 #define LUA_USE_READLINE	/* needs an extra library: -lreadline */
 #endif
 
-#if defined(ORBIS)
+#if defined(ORBIS) || defined(PROSPERO)
 #define LUA_USE_C89
 #define LUA_USE_DLOPEN		/* needs an extra library: -ldl */
 #endif

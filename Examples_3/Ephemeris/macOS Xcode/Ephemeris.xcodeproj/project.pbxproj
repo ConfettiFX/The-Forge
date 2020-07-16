@@ -1,0 +1,972 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 50;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		5C1E6763247BF2DE006F49D1 /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C1E6760247BF2D3006F49D1 /* libThe-Forge.a */; };
+		5C1E6792247BF7A5006F49D1 /* macOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C1E6791247BF7A5006F49D1 /* macOSAppDelegate.m */; };
+		5C1E6795247BF7B7006F49D1 /* iOSAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C1E6793247BF7B7006F49D1 /* iOSAppDelegate.m */; };
+		5CA80F4C21F0A0D000C99983 /* fontstash.frag.metal in Copy Files */ = {isa = PBXBuildFile; fileRef = 5CA80E2D21F09FCC00C99983 /* fontstash.frag.metal */; };
+		5CA80F4D21F0A0D000C99983 /* fontstash2D.vert.metal in Copy Files */ = {isa = PBXBuildFile; fileRef = 5CA80E2C21F09FCC00C99983 /* fontstash2D.vert.metal */; };
+		5CA80F4E21F0A0D000C99983 /* fontstash3D.vert.metal in Copy Files */ = {isa = PBXBuildFile; fileRef = 5CA80E2B21F09FCC00C99983 /* fontstash3D.vert.metal */; };
+		5CA80F4F21F0A0D000C99983 /* imgui.frag.metal in Copy Files */ = {isa = PBXBuildFile; fileRef = 5CA80E2121F09FBA00C99983 /* imgui.frag.metal */; };
+		5CA80F5021F0A0D000C99983 /* imgui.vert.metal in Copy Files */ = {isa = PBXBuildFile; fileRef = 5CA80E2221F09FBA00C99983 /* imgui.vert.metal */; };
+		5CA80F5121F0A0D000C99983 /* textured_mesh.frag.metal in Copy Files */ = {isa = PBXBuildFile; fileRef = 5CA80E2021F09FB900C99983 /* textured_mesh.frag.metal */; };
+		5CA80F5221F0A0D000C99983 /* textured_mesh.vert.metal in Copy Files */ = {isa = PBXBuildFile; fileRef = 5CA80E1F21F09FB900C99983 /* textured_mesh.vert.metal */; };
+		5CABF36E2141540E00EFD76A /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CABF36D2141540E00EFD76A /* GameController.framework */; };
+		5CBCE92F247BEFF4007A9C7C /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CBCE92C247BEFF3007A9C7C /* MetalPerformanceShaders.framework */; };
+		5CBCE930247BEFF4007A9C7C /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CBCE92D247BEFF3007A9C7C /* Metal.framework */; };
+		5CBCE931247BEFF4007A9C7C /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5CBCE92E247BEFF4007A9C7C /* MetalKit.framework */; };
+		650CCC432223C40F003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC422223C40F003533D9 /* MetalPerformanceShaders.framework */; };
+		6543D8EC22932F7A0098B17B /* Example.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6543D8EB22932F7A0098B17B /* Example.cpp */; };
+		6543D8F822932FC20098B17B /* Ephemeris.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6543D8F222932FC20098B17B /* Ephemeris.cpp */; };
+		6543D8F922932FC20098B17B /* Sky.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6543D8F322932FC20098B17B /* Sky.cpp */; };
+		6543D8FA22932FC20098B17B /* LocalTime.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6543D8F522932FC20098B17B /* LocalTime.cpp */; };
+		6543D90122932FD90098B17B /* HeightData.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6543D8FB22932FD80098B17B /* HeightData.cpp */; };
+		6543D90222932FD90098B17B /* Terrain.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6543D8FF22932FD90098B17B /* Terrain.cpp */; };
+		6543D90522932FEB0098B17B /* VolumetricClouds.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6543D90322932FEB0098B17B /* VolumetricClouds.cpp */; };
+		65C55CD2229734BF008456ED /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 65C55CD1229734BF008456ED /* Assets.xcassets */; };
+		B2087DD421421A13006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DD221421A13006F372D /* Metal.framework */; };
+		B21B9C0F23F4D9D8003EBFAC /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21B9C0E23F4D9D8003EBFAC /* IOKit.framework */; };
+		B21B9CC423F4DDD1003EBFAC /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21B9CC323F4DDD1003EBFAC /* QuartzCore.framework */; };
+		B21B9CC523F4DED1003EBFAC /* GameKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21B9C0C23F4D9AF003EBFAC /* GameKit.framework */; };
+		B21F76BE21420E7000DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76BB21420E7000DF2297 /* UIKit.framework */; };
+		B2AF9DD2235E579C001AD833 /* SpaceObjects.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2AF9DD0235E579C001AD833 /* SpaceObjects.cpp */; };
+		B2BF7EA222F8B2AA0095A0C8 /* Perlin.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2BF7EA122F8B2AA0095A0C8 /* Perlin.cpp */; };
+		B2E2519A22F0F1BB00E37226 /* Icosahedron.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2E2519722F0F1BB00E37226 /* Icosahedron.cpp */; };
+		C95132FF2010E68A002E584B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C95132FE2010E68A002E584B /* Assets.xcassets */; };
+		C95133022010E68A002E584B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C95133002010E68A002E584B /* LaunchScreen.storyboard */; };
+		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		5C1E675F247BF2D3006F49D1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5C1E6759247BF2D3006F49D1 /* The-Forge.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 5C5582E021413D180019960B;
+			remoteInfo = "The-Forge";
+		};
+		5C1E6761247BF2D3006F49D1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5C1E6759247BF2D3006F49D1 /* The-Forge.xcodeproj */;
+			proxyType = 2;
+			remoteGlobalIDString = 5C172FC821414C490074EE71;
+			remoteInfo = "The-Forge_iOS";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		97CF923E216FCDAE0036A63B /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Fonts;
+			dstSubfolderSpec = 7;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		97CF9240216FCDCB0036A63B /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Textures;
+			dstSubfolderSpec = 7;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		97CF9248216FCF6B0036A63B /* Copy Files */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Shaders/Metal;
+			dstSubfolderSpec = 7;
+			files = (
+				5CA80F4C21F0A0D000C99983 /* fontstash.frag.metal in Copy Files */,
+				5CA80F4D21F0A0D000C99983 /* fontstash2D.vert.metal in Copy Files */,
+				5CA80F4E21F0A0D000C99983 /* fontstash3D.vert.metal in Copy Files */,
+				5CA80F4F21F0A0D000C99983 /* imgui.frag.metal in Copy Files */,
+				5CA80F5021F0A0D000C99983 /* imgui.vert.metal in Copy Files */,
+				5CA80F5121F0A0D000C99983 /* textured_mesh.frag.metal in Copy Files */,
+				5CA80F5221F0A0D000C99983 /* textured_mesh.vert.metal in Copy Files */,
+			);
+			name = "Copy Files";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		5C1E6759247BF2D3006F49D1 /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
+		5C1E6790247BF7A5006F49D1 /* macOSAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = macOSAppDelegate.h; path = ../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
+		5C1E6791247BF7A5006F49D1 /* macOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = macOSAppDelegate.m; path = ../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
+		5C1E6793247BF7B7006F49D1 /* iOSAppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = iOSAppDelegate.m; path = ../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
+		5C1E6794247BF7B7006F49D1 /* iOSAppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = iOSAppDelegate.h; path = ../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
+		5CA80E1F21F09FB900C99983 /* textured_mesh.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = textured_mesh.vert.metal; path = ../../../Middleware_3/UI/Shaders/Metal/textured_mesh.vert.metal; sourceTree = "<group>"; };
+		5CA80E2021F09FB900C99983 /* textured_mesh.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = textured_mesh.frag.metal; path = ../../../Middleware_3/UI/Shaders/Metal/textured_mesh.frag.metal; sourceTree = "<group>"; };
+		5CA80E2121F09FBA00C99983 /* imgui.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = imgui.frag.metal; path = ../../../Middleware_3/UI/Shaders/Metal/imgui.frag.metal; sourceTree = "<group>"; };
+		5CA80E2221F09FBA00C99983 /* imgui.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = imgui.vert.metal; path = ../../../Middleware_3/UI/Shaders/Metal/imgui.vert.metal; sourceTree = "<group>"; };
+		5CA80E2B21F09FCC00C99983 /* fontstash3D.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash3D.vert.metal; path = ../../../Middleware_3/Text/Shaders/Metal/fontstash3D.vert.metal; sourceTree = "<group>"; };
+		5CA80E2C21F09FCC00C99983 /* fontstash2D.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash2D.vert.metal; path = ../../../Middleware_3/Text/Shaders/Metal/fontstash2D.vert.metal; sourceTree = "<group>"; };
+		5CA80E2D21F09FCC00C99983 /* fontstash.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash.frag.metal; path = ../../../Middleware_3/Text/Shaders/Metal/fontstash.frag.metal; sourceTree = "<group>"; };
+		5CABF36D2141540E00EFD76A /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
+		5CBCE92C247BEFF3007A9C7C /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.4.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
+		5CBCE92D247BEFF3007A9C7C /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.4.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
+		5CBCE92E247BEFF4007A9C7C /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.4.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
+		5CBCE93B247BF127007A9C7C /* FXAA.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = FXAA.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Shaders/Metal/FXAA.frag.metal"; sourceTree = "<group>"; };
+		5CBCE93C247BF127007A9C7C /* depthLinearization.comp.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = depthLinearization.comp.metal; path = "../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Shaders/Metal/depthLinearization.comp.metal"; sourceTree = "<group>"; };
+		5CBCE93D247BF127007A9C7C /* depthLinearization.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = depthLinearization.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Shaders/Metal/depthLinearization.frag.metal"; sourceTree = "<group>"; };
+		5CBCE93E247BF127007A9C7C /* Triangular.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = Triangular.vert.metal; path = "../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Shaders/Metal/Triangular.vert.metal"; sourceTree = "<group>"; };
+		5CBCE93F247BF127007A9C7C /* present.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = present.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Shaders/Metal/present.frag.metal"; sourceTree = "<group>"; };
+		5CBCE940247BF139007A9C7C /* RenderTerrain.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = RenderTerrain.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Metal/RenderTerrain.frag.metal"; sourceTree = "<group>"; };
+		5CBCE941247BF139007A9C7C /* GenNormalMap.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = GenNormalMap.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Metal/GenNormalMap.frag.metal"; sourceTree = "<group>"; };
+		5CBCE942247BF139007A9C7C /* RenderTerrain.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = RenderTerrain.vert.metal; path = "../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Metal/RenderTerrain.vert.metal"; sourceTree = "<group>"; };
+		5CBCE943247BF139007A9C7C /* GenNormalMap.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = GenNormalMap.vert.metal; path = "../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Metal/GenNormalMap.vert.metal"; sourceTree = "<group>"; };
+		5CBCE944247BF139007A9C7C /* LightingTerrain.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = LightingTerrain.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Metal/LightingTerrain.frag.metal"; sourceTree = "<group>"; };
+		5CBCE945247BF139007A9C7C /* terrain_argument_buffers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = terrain_argument_buffers.h; path = "../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Metal/terrain_argument_buffers.h"; sourceTree = "<group>"; };
+		5CBCE946247BF139007A9C7C /* terrain.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = terrain.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Metal/terrain.frag.metal"; sourceTree = "<group>"; };
+		5CBCE947247BF139007A9C7C /* terrain.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = terrain.vert.metal; path = "../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Metal/terrain.vert.metal"; sourceTree = "<group>"; };
+		5CBCE948247BF139007A9C7C /* LightingTerrain.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = LightingTerrain.vert.metal; path = "../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Metal/LightingTerrain.vert.metal"; sourceTree = "<group>"; };
+		5CBCE949247BF14A007A9C7C /* RenderSky.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = RenderSky.h; path = "../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/Metal/RenderSky.h"; sourceTree = "<group>"; };
+		5CBCE94A247BF14A007A9C7C /* RenderSky.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = RenderSky.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/Metal/RenderSky.frag.metal"; sourceTree = "<group>"; };
+		5CBCE94B247BF14A007A9C7C /* SkyCommon.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SkyCommon.h; path = "../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/Metal/SkyCommon.h"; sourceTree = "<group>"; };
+		5CBCE94C247BF14A007A9C7C /* Space.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = Space.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/Metal/Space.frag.metal"; sourceTree = "<group>"; };
+		5CBCE94D247BF14A007A9C7C /* RenderSky.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = RenderSky.vert.metal; path = "../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/Metal/RenderSky.vert.metal"; sourceTree = "<group>"; };
+		5CBCE94E247BF14A007A9C7C /* Space.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = Space.vert.metal; path = "../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/Metal/Space.vert.metal"; sourceTree = "<group>"; };
+		5CBCE94F247BF15A007A9C7C /* Aurora.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = Aurora.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Aurora.frag.metal"; sourceTree = "<group>"; };
+		5CBCE950247BF15A007A9C7C /* MilkyWay.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = MilkyWay.vert.metal; path = "../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/MilkyWay.vert.metal"; sourceTree = "<group>"; };
+		5CBCE951247BF15A007A9C7C /* Sun.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = Sun.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Sun.frag.metal"; sourceTree = "<group>"; };
+		5CBCE952247BF15A007A9C7C /* Sun.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = Sun.vert.metal; path = "../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Sun.vert.metal"; sourceTree = "<group>"; };
+		5CBCE953247BF15A007A9C7C /* Star.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = Star.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Star.frag.metal"; sourceTree = "<group>"; };
+		5CBCE954247BF15A007A9C7C /* Aurora.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = Aurora.vert.metal; path = "../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Aurora.vert.metal"; sourceTree = "<group>"; };
+		5CBCE955247BF15A007A9C7C /* MilkyWay.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = MilkyWay.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/MilkyWay.frag.metal"; sourceTree = "<group>"; };
+		5CBCE956247BF15A007A9C7C /* space_argument_buffers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = space_argument_buffers.h; path = "../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/space_argument_buffers.h"; sourceTree = "<group>"; };
+		5CBCE957247BF15A007A9C7C /* Aurora.comp.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = Aurora.comp.metal; path = "../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Aurora.comp.metal"; sourceTree = "<group>"; };
+		5CBCE958247BF15A007A9C7C /* Star.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = Star.vert.metal; path = "../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Metal/Star.vert.metal"; sourceTree = "<group>"; };
+		5CBCE959247BF169007A9C7C /* godrayAdd.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = godrayAdd.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/godrayAdd.frag.metal"; sourceTree = "<group>"; };
+		5CBCE95A247BF169007A9C7C /* compositeOverlay.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = compositeOverlay.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/compositeOverlay.frag.metal"; sourceTree = "<group>"; };
+		5CBCE95B247BF169007A9C7C /* volumetricCloud.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = volumetricCloud.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/volumetricCloud.frag.metal"; sourceTree = "<group>"; };
+		5CBCE95C247BF169007A9C7C /* postProcess.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = postProcess.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/postProcess.frag.metal"; sourceTree = "<group>"; };
+		5CBCE95D247BF169007A9C7C /* copyRT.comp.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = copyRT.comp.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/copyRT.comp.metal"; sourceTree = "<group>"; };
+		5CBCE95E247BF169007A9C7C /* reprojection.comp.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = reprojection.comp.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/reprojection.comp.metal"; sourceTree = "<group>"; };
+		5CBCE95F247BF169007A9C7C /* genLowTopFreq3Dtex.comp.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = genLowTopFreq3Dtex.comp.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/genLowTopFreq3Dtex.comp.metal"; sourceTree = "<group>"; };
+		5CBCE960247BF169007A9C7C /* genHighTopFreq3Dtex.comp.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = genHighTopFreq3Dtex.comp.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/genHighTopFreq3Dtex.comp.metal"; sourceTree = "<group>"; };
+		5CBCE961247BF169007A9C7C /* volumetricCloud.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = volumetricCloud.h; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/volumetricCloud.h"; sourceTree = "<group>"; };
+		5CBCE962247BF169007A9C7C /* volumetricCloudWithDepth.comp.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = volumetricCloudWithDepth.comp.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/volumetricCloudWithDepth.comp.metal"; sourceTree = "<group>"; };
+		5CBCE963247BF169007A9C7C /* volumetricCloud_2nd.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = volumetricCloud_2nd.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/volumetricCloud_2nd.frag.metal"; sourceTree = "<group>"; };
+		5CBCE964247BF169007A9C7C /* volumetricCloud_2ndWithDepth.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = volumetricCloud_2ndWithDepth.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/volumetricCloud_2ndWithDepth.frag.metal"; sourceTree = "<group>"; };
+		5CBCE965247BF169007A9C7C /* copyTexture.comp.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = copyTexture.comp.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/copyTexture.comp.metal"; sourceTree = "<group>"; };
+		5CBCE966247BF169007A9C7C /* gen3DtexMipmap.comp.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = gen3DtexMipmap.comp.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/gen3DtexMipmap.comp.metal"; sourceTree = "<group>"; };
+		5CBCE967247BF169007A9C7C /* postProcessWithBlur.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = postProcessWithBlur.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/postProcessWithBlur.frag.metal"; sourceTree = "<group>"; };
+		5CBCE968247BF169007A9C7C /* volumetricCloud.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = volumetricCloud.vert.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/volumetricCloud.vert.metal"; sourceTree = "<group>"; };
+		5CBCE969247BF169007A9C7C /* castShadow.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = castShadow.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/castShadow.frag.metal"; sourceTree = "<group>"; };
+		5CBCE96A247BF169007A9C7C /* copyWeatherTexture.comp.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = copyWeatherTexture.comp.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/copyWeatherTexture.comp.metal"; sourceTree = "<group>"; };
+		5CBCE96B247BF16A007A9C7C /* BlurHorizontal.comp.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = BlurHorizontal.comp.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/BlurHorizontal.comp.metal"; sourceTree = "<group>"; };
+		5CBCE96C247BF16A007A9C7C /* composite.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = composite.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/composite.frag.metal"; sourceTree = "<group>"; };
+		5CBCE96D247BF16A007A9C7C /* reprojection.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = reprojection.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/reprojection.frag.metal"; sourceTree = "<group>"; };
+		5CBCE96E247BF16A007A9C7C /* volumetricCloudWithDepth.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = volumetricCloudWithDepth.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/volumetricCloudWithDepth.frag.metal"; sourceTree = "<group>"; };
+		5CBCE96F247BF16A007A9C7C /* godray.frag.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = godray.frag.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/godray.frag.metal"; sourceTree = "<group>"; };
+		5CBCE970247BF16A007A9C7C /* HiZdownSamplingPR.comp.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = HiZdownSamplingPR.comp.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/HiZdownSamplingPR.comp.metal"; sourceTree = "<group>"; };
+		5CBCE971247BF16A007A9C7C /* HiZdownSampling.comp.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = HiZdownSampling.comp.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/HiZdownSampling.comp.metal"; sourceTree = "<group>"; };
+		5CBCE972247BF16A007A9C7C /* BlurVertical.comp.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = BlurVertical.comp.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/BlurVertical.comp.metal"; sourceTree = "<group>"; };
+		5CBCE973247BF16A007A9C7C /* volumetricCloud.comp.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = volumetricCloud.comp.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/volumetricCloud.comp.metal"; sourceTree = "<group>"; };
+		5CBCE974247BF16A007A9C7C /* Triangular.vert.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = Triangular.vert.metal; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Metal/Triangular.vert.metal"; sourceTree = "<group>"; };
+		650CCC422223C40F003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
+		6543D8EB22932F7A0098B17B /* Example.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Example.cpp; path = "../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Example.cpp"; sourceTree = "<group>"; };
+		6543D8F022932FC20098B17B /* SkyCommon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SkyCommon.h; path = "../../../../Custom-Middleware/Ephemeris/Sky/src/SkyCommon.h"; sourceTree = "<group>"; };
+		6543D8F122932FC20098B17B /* LocalTime.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LocalTime.h; path = "../../../../Custom-Middleware/Ephemeris/Sky/src/LocalTime.h"; sourceTree = "<group>"; };
+		6543D8F222932FC20098B17B /* Ephemeris.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Ephemeris.cpp; path = "../../../../Custom-Middleware/Ephemeris/Sky/src/Ephemeris.cpp"; sourceTree = "<group>"; };
+		6543D8F322932FC20098B17B /* Sky.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Sky.cpp; path = "../../../../Custom-Middleware/Ephemeris/Sky/src/Sky.cpp"; sourceTree = "<group>"; };
+		6543D8F422932FC20098B17B /* Ephemeris.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Ephemeris.h; path = "../../../../Custom-Middleware/Ephemeris/Sky/src/Ephemeris.h"; sourceTree = "<group>"; };
+		6543D8F522932FC20098B17B /* LocalTime.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = LocalTime.cpp; path = "../../../../Custom-Middleware/Ephemeris/Sky/src/LocalTime.cpp"; sourceTree = "<group>"; };
+		6543D8F622932FC20098B17B /* Location.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Location.h; path = "../../../../Custom-Middleware/Ephemeris/Sky/src/Location.h"; sourceTree = "<group>"; };
+		6543D8F722932FC20098B17B /* Sky.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Sky.h; path = "../../../../Custom-Middleware/Ephemeris/Sky/src/Sky.h"; sourceTree = "<group>"; };
+		6543D8FB22932FD80098B17B /* HeightData.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = HeightData.cpp; path = "../../../../Custom-Middleware/Ephemeris/Terrain/src/HeightData.cpp"; sourceTree = "<group>"; };
+		6543D8FC22932FD80098B17B /* Hemisphere.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Hemisphere.h; path = "../../../../Custom-Middleware/Ephemeris/Terrain/src/Hemisphere.h"; sourceTree = "<group>"; };
+		6543D8FD22932FD80098B17B /* HeightData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = HeightData.h; path = "../../../../Custom-Middleware/Ephemeris/Terrain/src/HeightData.h"; sourceTree = "<group>"; };
+		6543D8FE22932FD90098B17B /* Terrain.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Terrain.h; path = "../../../../Custom-Middleware/Ephemeris/Terrain/src/Terrain.h"; sourceTree = "<group>"; };
+		6543D8FF22932FD90098B17B /* Terrain.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Terrain.cpp; path = "../../../../Custom-Middleware/Ephemeris/Terrain/src/Terrain.cpp"; sourceTree = "<group>"; };
+		6543D90022932FD90098B17B /* Visibility.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Visibility.h; path = "../../../../Custom-Middleware/Ephemeris/Terrain/src/Visibility.h"; sourceTree = "<group>"; };
+		6543D90322932FEB0098B17B /* VolumetricClouds.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = VolumetricClouds.cpp; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/src/VolumetricClouds.cpp"; sourceTree = "<group>"; };
+		6543D90422932FEB0098B17B /* VolumetricClouds.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = VolumetricClouds.h; path = "../../../../Custom-Middleware/Ephemeris/VolumetricClouds/src/VolumetricClouds.h"; sourceTree = "<group>"; };
+		65C55CCF229734B2008456ED /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		65C55CD1229734BF008456ED /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		B2087DD121421A13006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
+		B2087DD221421A13006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
+		B21B9BF423F4D71E003EBFAC /* libgainputstatic.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libgainputstatic.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		B21B9BF623F4D72F003EBFAC /* libgainputstatic.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libgainputstatic.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		B21B9C0023F4D85E003EBFAC /* libzlibstatic.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzlibstatic.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		B21B9C0A23F4D99F003EBFAC /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
+		B21B9C0C23F4D9AF003EBFAC /* GameKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameKit.framework; path = System/Library/Frameworks/GameKit.framework; sourceTree = SDKROOT; };
+		B21B9C0E23F4D9D8003EBFAC /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
+		B21B9C1323F4DA3A003EBFAC /* libz.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.tbd; path = usr/lib/libz.tbd; sourceTree = SDKROOT; };
+		B21B9C8A23F4DBC8003EBFAC /* libzip.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libzip.a; path = ../../../../Common_3/ThirdParty/OpenSource/Libraries/macOS/libzip.a; sourceTree = "<group>"; };
+		B21B9C8B23F4DBDD003EBFAC /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
+		B21B9CC323F4DDD1003EBFAC /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		B21F76BB21420E7000DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
+		B26A8DA423F4CC4000C44F6B /* libgainputstatic.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libgainputstatic.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		B2AF9DD0235E579C001AD833 /* SpaceObjects.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = SpaceObjects.cpp; path = src/SpaceObjects.cpp; sourceTree = "<group>"; };
+		B2AF9DD1235E579C001AD833 /* SpaceObjects.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SpaceObjects.h; path = src/SpaceObjects.h; sourceTree = "<group>"; };
+		B2BF7EA022F8B2AA0095A0C8 /* Perlin.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Perlin.h; path = "../../../../Custom-Middleware/Ephemeris/src/Perlin.h"; sourceTree = "<group>"; };
+		B2BF7EA122F8B2AA0095A0C8 /* Perlin.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Perlin.cpp; path = "../../../../Custom-Middleware/Ephemeris/src/Perlin.cpp"; sourceTree = "<group>"; };
+		B2E2519722F0F1BB00E37226 /* Icosahedron.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Icosahedron.cpp; path = "../../../../Custom-Middleware/Ephemeris/Sky/src/Icosahedron.cpp"; sourceTree = "<group>"; };
+		B2E2519B22F0F1C800E37226 /* Icosahedron.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Icosahedron.h; path = "../../../../Custom-Middleware/Ephemeris/Sky/src/Icosahedron.h"; sourceTree = "<group>"; };
+		C95132ED2010E68A002E584B /* Ephemeris_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ephemeris_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C95132FE2010E68A002E584B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		C95133012010E68A002E584B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		C95133032010E68A002E584B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D2E631E01F3472DF005BFBA7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = Base; path = Base.lproj/MainMenu.xib; sourceTree = "<group>"; };
+		EA463C8B1EF81E8F005AC8C7 /* Ephemeris.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Ephemeris.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C95132EA2010E68A002E584B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5CBCE92F247BEFF4007A9C7C /* MetalPerformanceShaders.framework in Frameworks */,
+				B21F76BE21420E7000DF2297 /* UIKit.framework in Frameworks */,
+				5CBCE930247BEFF4007A9C7C /* Metal.framework in Frameworks */,
+				5CBCE931247BEFF4007A9C7C /* MetalKit.framework in Frameworks */,
+				5CABF36E2141540E00EFD76A /* GameController.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA463C881EF81E8F005AC8C7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B21B9CC523F4DED1003EBFAC /* GameKit.framework in Frameworks */,
+				B21B9CC423F4DDD1003EBFAC /* QuartzCore.framework in Frameworks */,
+				650CCC432223C40F003533D9 /* MetalPerformanceShaders.framework in Frameworks */,
+				5C1E6763247BF2DE006F49D1 /* libThe-Forge.a in Frameworks */,
+				B2087DD421421A13006F372D /* Metal.framework in Frameworks */,
+				B21B9C0F23F4D9D8003EBFAC /* IOKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		28A5ABEA201F482F000E571F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				5CBCE92D247BEFF3007A9C7C /* Metal.framework */,
+				5CBCE92E247BEFF4007A9C7C /* MetalKit.framework */,
+				5CBCE92C247BEFF3007A9C7C /* MetalPerformanceShaders.framework */,
+				B21B9CC323F4DDD1003EBFAC /* QuartzCore.framework */,
+				B21B9C8B23F4DBDD003EBFAC /* libbz2.tbd */,
+				B21B9C8A23F4DBC8003EBFAC /* libzip.a */,
+				B21B9C1323F4DA3A003EBFAC /* libz.tbd */,
+				B21B9C0E23F4D9D8003EBFAC /* IOKit.framework */,
+				B21B9C0C23F4D9AF003EBFAC /* GameKit.framework */,
+				B21B9C0A23F4D99F003EBFAC /* GameController.framework */,
+				B21B9C0023F4D85E003EBFAC /* libzlibstatic.a */,
+				B21B9BF623F4D72F003EBFAC /* libgainputstatic.a */,
+				B21B9BF423F4D71E003EBFAC /* libgainputstatic.a */,
+				B26A8DA423F4CC4000C44F6B /* libgainputstatic.a */,
+				650CCC422223C40F003533D9 /* MetalPerformanceShaders.framework */,
+				B2087DD221421A13006F372D /* Metal.framework */,
+				B2087DD121421A13006F372D /* MetalKit.framework */,
+				B21F76BB21420E7000DF2297 /* UIKit.framework */,
+				5CABF36D2141540E00EFD76A /* GameController.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		5C1E675A247BF2D3006F49D1 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				5C1E6760247BF2D3006F49D1 /* libThe-Forge.a */,
+				5C1E6762247BF2D3006F49D1 /* libThe-Forge_iOS.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		5CA80E0F21F09F4600C99983 /* CommonShaders */ = {
+			isa = PBXGroup;
+			children = (
+				5CA80E2D21F09FCC00C99983 /* fontstash.frag.metal */,
+				5CA80E2C21F09FCC00C99983 /* fontstash2D.vert.metal */,
+				5CA80E2B21F09FCC00C99983 /* fontstash3D.vert.metal */,
+				5CA80E2121F09FBA00C99983 /* imgui.frag.metal */,
+				5CA80E2221F09FBA00C99983 /* imgui.vert.metal */,
+				5CA80E2021F09FB900C99983 /* textured_mesh.frag.metal */,
+				5CA80E1F21F09FB900C99983 /* textured_mesh.vert.metal */,
+			);
+			name = CommonShaders;
+			sourceTree = "<group>";
+		};
+		5CBCE935247BF0EC007A9C7C /* Shaders */ = {
+			isa = PBXGroup;
+			children = (
+				5CBCE93A247BF109007A9C7C /* Example */,
+				5CBCE939247BF105007A9C7C /* Terrain */,
+				5CBCE938247BF0FF007A9C7C /* SpaceObjects */,
+				5CBCE937247BF0F7007A9C7C /* VolumetricClouds */,
+				5CBCE936247BF0F1007A9C7C /* Sky */,
+			);
+			name = Shaders;
+			sourceTree = "<group>";
+		};
+		5CBCE936247BF0F1007A9C7C /* Sky */ = {
+			isa = PBXGroup;
+			children = (
+				5CBCE94A247BF14A007A9C7C /* RenderSky.frag.metal */,
+				5CBCE949247BF14A007A9C7C /* RenderSky.h */,
+				5CBCE94D247BF14A007A9C7C /* RenderSky.vert.metal */,
+				5CBCE94B247BF14A007A9C7C /* SkyCommon.h */,
+				5CBCE94C247BF14A007A9C7C /* Space.frag.metal */,
+				5CBCE94E247BF14A007A9C7C /* Space.vert.metal */,
+			);
+			name = Sky;
+			sourceTree = "<group>";
+		};
+		5CBCE937247BF0F7007A9C7C /* VolumetricClouds */ = {
+			isa = PBXGroup;
+			children = (
+				5CBCE96B247BF16A007A9C7C /* BlurHorizontal.comp.metal */,
+				5CBCE972247BF16A007A9C7C /* BlurVertical.comp.metal */,
+				5CBCE969247BF169007A9C7C /* castShadow.frag.metal */,
+				5CBCE96C247BF16A007A9C7C /* composite.frag.metal */,
+				5CBCE95A247BF169007A9C7C /* compositeOverlay.frag.metal */,
+				5CBCE95D247BF169007A9C7C /* copyRT.comp.metal */,
+				5CBCE965247BF169007A9C7C /* copyTexture.comp.metal */,
+				5CBCE96A247BF169007A9C7C /* copyWeatherTexture.comp.metal */,
+				5CBCE966247BF169007A9C7C /* gen3DtexMipmap.comp.metal */,
+				5CBCE960247BF169007A9C7C /* genHighTopFreq3Dtex.comp.metal */,
+				5CBCE95F247BF169007A9C7C /* genLowTopFreq3Dtex.comp.metal */,
+				5CBCE96F247BF16A007A9C7C /* godray.frag.metal */,
+				5CBCE959247BF169007A9C7C /* godrayAdd.frag.metal */,
+				5CBCE971247BF16A007A9C7C /* HiZdownSampling.comp.metal */,
+				5CBCE970247BF16A007A9C7C /* HiZdownSamplingPR.comp.metal */,
+				5CBCE95C247BF169007A9C7C /* postProcess.frag.metal */,
+				5CBCE967247BF169007A9C7C /* postProcessWithBlur.frag.metal */,
+				5CBCE95E247BF169007A9C7C /* reprojection.comp.metal */,
+				5CBCE96D247BF16A007A9C7C /* reprojection.frag.metal */,
+				5CBCE974247BF16A007A9C7C /* Triangular.vert.metal */,
+				5CBCE963247BF169007A9C7C /* volumetricCloud_2nd.frag.metal */,
+				5CBCE964247BF169007A9C7C /* volumetricCloud_2ndWithDepth.frag.metal */,
+				5CBCE973247BF16A007A9C7C /* volumetricCloud.comp.metal */,
+				5CBCE95B247BF169007A9C7C /* volumetricCloud.frag.metal */,
+				5CBCE961247BF169007A9C7C /* volumetricCloud.h */,
+				5CBCE968247BF169007A9C7C /* volumetricCloud.vert.metal */,
+				5CBCE962247BF169007A9C7C /* volumetricCloudWithDepth.comp.metal */,
+				5CBCE96E247BF16A007A9C7C /* volumetricCloudWithDepth.frag.metal */,
+			);
+			name = VolumetricClouds;
+			sourceTree = "<group>";
+		};
+		5CBCE938247BF0FF007A9C7C /* SpaceObjects */ = {
+			isa = PBXGroup;
+			children = (
+				5CBCE957247BF15A007A9C7C /* Aurora.comp.metal */,
+				5CBCE94F247BF15A007A9C7C /* Aurora.frag.metal */,
+				5CBCE954247BF15A007A9C7C /* Aurora.vert.metal */,
+				5CBCE955247BF15A007A9C7C /* MilkyWay.frag.metal */,
+				5CBCE950247BF15A007A9C7C /* MilkyWay.vert.metal */,
+				5CBCE956247BF15A007A9C7C /* space_argument_buffers.h */,
+				5CBCE953247BF15A007A9C7C /* Star.frag.metal */,
+				5CBCE958247BF15A007A9C7C /* Star.vert.metal */,
+				5CBCE951247BF15A007A9C7C /* Sun.frag.metal */,
+				5CBCE952247BF15A007A9C7C /* Sun.vert.metal */,
+			);
+			name = SpaceObjects;
+			sourceTree = "<group>";
+		};
+		5CBCE939247BF105007A9C7C /* Terrain */ = {
+			isa = PBXGroup;
+			children = (
+				5CBCE941247BF139007A9C7C /* GenNormalMap.frag.metal */,
+				5CBCE943247BF139007A9C7C /* GenNormalMap.vert.metal */,
+				5CBCE944247BF139007A9C7C /* LightingTerrain.frag.metal */,
+				5CBCE948247BF139007A9C7C /* LightingTerrain.vert.metal */,
+				5CBCE940247BF139007A9C7C /* RenderTerrain.frag.metal */,
+				5CBCE942247BF139007A9C7C /* RenderTerrain.vert.metal */,
+				5CBCE945247BF139007A9C7C /* terrain_argument_buffers.h */,
+				5CBCE946247BF139007A9C7C /* terrain.frag.metal */,
+				5CBCE947247BF139007A9C7C /* terrain.vert.metal */,
+			);
+			name = Terrain;
+			sourceTree = "<group>";
+		};
+		5CBCE93A247BF109007A9C7C /* Example */ = {
+			isa = PBXGroup;
+			children = (
+				5CBCE93C247BF127007A9C7C /* depthLinearization.comp.metal */,
+				5CBCE93D247BF127007A9C7C /* depthLinearization.frag.metal */,
+				5CBCE93B247BF127007A9C7C /* FXAA.frag.metal */,
+				5CBCE93F247BF127007A9C7C /* present.frag.metal */,
+				5CBCE93E247BF127007A9C7C /* Triangular.vert.metal */,
+			);
+			name = Example;
+			sourceTree = "<group>";
+		};
+		6543D8EA22932EC80098B17B /* Ephemeris */ = {
+			isa = PBXGroup;
+			children = (
+				B2AF9DCF235E5783001AD833 /* SpaceObjects */,
+				B2BF7EA122F8B2AA0095A0C8 /* Perlin.cpp */,
+				B2BF7EA022F8B2AA0095A0C8 /* Perlin.h */,
+				6543D8EF22932F950098B17B /* VolumetricClouds */,
+				6543D8EE22932F8E0098B17B /* Terrain */,
+				6543D8ED22932F850098B17B /* Sky */,
+				6543D8EB22932F7A0098B17B /* Example.cpp */,
+			);
+			name = Ephemeris;
+			sourceTree = "<group>";
+		};
+		6543D8ED22932F850098B17B /* Sky */ = {
+			isa = PBXGroup;
+			children = (
+				B2E2519B22F0F1C800E37226 /* Icosahedron.h */,
+				B2E2519722F0F1BB00E37226 /* Icosahedron.cpp */,
+				6543D8F222932FC20098B17B /* Ephemeris.cpp */,
+				6543D8F422932FC20098B17B /* Ephemeris.h */,
+				6543D8F522932FC20098B17B /* LocalTime.cpp */,
+				6543D8F122932FC20098B17B /* LocalTime.h */,
+				6543D8F622932FC20098B17B /* Location.h */,
+				6543D8F322932FC20098B17B /* Sky.cpp */,
+				6543D8F722932FC20098B17B /* Sky.h */,
+				6543D8F022932FC20098B17B /* SkyCommon.h */,
+			);
+			name = Sky;
+			sourceTree = "<group>";
+		};
+		6543D8EE22932F8E0098B17B /* Terrain */ = {
+			isa = PBXGroup;
+			children = (
+				6543D8FB22932FD80098B17B /* HeightData.cpp */,
+				6543D8FD22932FD80098B17B /* HeightData.h */,
+				6543D8FC22932FD80098B17B /* Hemisphere.h */,
+				6543D8FF22932FD90098B17B /* Terrain.cpp */,
+				6543D8FE22932FD90098B17B /* Terrain.h */,
+				6543D90022932FD90098B17B /* Visibility.h */,
+			);
+			name = Terrain;
+			sourceTree = "<group>";
+		};
+		6543D8EF22932F950098B17B /* VolumetricClouds */ = {
+			isa = PBXGroup;
+			children = (
+				6543D90322932FEB0098B17B /* VolumetricClouds.cpp */,
+				6543D90422932FEB0098B17B /* VolumetricClouds.h */,
+			);
+			name = VolumetricClouds;
+			sourceTree = "<group>";
+		};
+		B2AF9DCF235E5783001AD833 /* SpaceObjects */ = {
+			isa = PBXGroup;
+			children = (
+				B2AF9DD0235E579C001AD833 /* SpaceObjects.cpp */,
+				B2AF9DD1235E579C001AD833 /* SpaceObjects.h */,
+			);
+			name = SpaceObjects;
+			path = "../../../../Custom-Middleware/Ephemeris/SpaceObjects";
+			sourceTree = "<group>";
+		};
+		C95132EE2010E68A002E584B /* Ephemeris_iOS */ = {
+			isa = PBXGroup;
+			children = (
+				5C1E6794247BF7B7006F49D1 /* iOSAppDelegate.h */,
+				5C1E6793247BF7B7006F49D1 /* iOSAppDelegate.m */,
+				C95132FE2010E68A002E584B /* Assets.xcassets */,
+				C95133002010E68A002E584B /* LaunchScreen.storyboard */,
+				C95133032010E68A002E584B /* Info.plist */,
+			);
+			path = Ephemeris_iOS;
+			sourceTree = "<group>";
+		};
+		EA463C821EF81E8F005AC8C7 = {
+			isa = PBXGroup;
+			children = (
+				5C1E6759247BF2D3006F49D1 /* The-Forge.xcodeproj */,
+				5CBCE935247BF0EC007A9C7C /* Shaders */,
+				6543D8EA22932EC80098B17B /* Ephemeris */,
+				5CA80E0F21F09F4600C99983 /* CommonShaders */,
+				EA463C941EF81E8F005AC8C7 /* Ephemeris */,
+				C95132EE2010E68A002E584B /* Ephemeris_iOS */,
+				EA463C8C1EF81E8F005AC8C7 /* Products */,
+				28A5ABEA201F482F000E571F /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		EA463C8C1EF81E8F005AC8C7 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				EA463C8B1EF81E8F005AC8C7 /* Ephemeris.app */,
+				C95132ED2010E68A002E584B /* Ephemeris_iOS.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		EA463C941EF81E8F005AC8C7 /* Ephemeris */ = {
+			isa = PBXGroup;
+			children = (
+				5C1E6790247BF7A5006F49D1 /* macOSAppDelegate.h */,
+				5C1E6791247BF7A5006F49D1 /* macOSAppDelegate.m */,
+				65C55CD1229734BF008456ED /* Assets.xcassets */,
+				65C55CCF229734B2008456ED /* Info.plist */,
+				D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */,
+			);
+			path = Ephemeris;
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		C95132EC2010E68A002E584B /* Ephemeris_iOS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C95133082010E68A002E584B /* Build configuration list for PBXNativeTarget "Ephemeris_iOS" */;
+			buildPhases = (
+				C95132E92010E68A002E584B /* Sources */,
+				C95132EA2010E68A002E584B /* Frameworks */,
+				C95132EB2010E68A002E584B /* Resources */,
+				97CF923E216FCDAE0036A63B /* CopyFiles */,
+				97CF9240216FCDCB0036A63B /* CopyFiles */,
+				97CF9248216FCF6B0036A63B /* Copy Files */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Ephemeris_iOS;
+			productName = 01_Transformations_iOS;
+			productReference = C95132ED2010E68A002E584B /* Ephemeris_iOS.app */;
+			productType = "com.apple.product-type.application";
+		};
+		EA463C8A1EF81E8F005AC8C7 /* Ephemeris */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EA463CAC1EF81E8F005AC8C7 /* Build configuration list for PBXNativeTarget "Ephemeris" */;
+			buildPhases = (
+				EA463C871EF81E8F005AC8C7 /* Sources */,
+				EA463C881EF81E8F005AC8C7 /* Frameworks */,
+				EA463C891EF81E8F005AC8C7 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Ephemeris;
+			productName = 02_Texture;
+			productReference = EA463C8B1EF81E8F005AC8C7 /* Ephemeris.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		EA463C831EF81E8F005AC8C7 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1020;
+				ORGANIZATIONNAME = "Confetti-FX";
+				TargetAttributes = {
+					C95132EC2010E68A002E584B = {
+						CreatedOnToolsVersion = 9.2;
+						DevelopmentTeam = BT67ZY58A8;
+						ProvisioningStyle = Automatic;
+					};
+					EA463C8A1EF81E8F005AC8C7 = {
+						CreatedOnToolsVersion = 8.3.3;
+						DevelopmentTeam = BT67ZY58A8;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = EA463C861EF81E8F005AC8C7 /* Build configuration list for PBXProject "Ephemeris" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = EA463C821EF81E8F005AC8C7;
+			productRefGroup = EA463C8C1EF81E8F005AC8C7 /* Products */;
+			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 5C1E675A247BF2D3006F49D1 /* Products */;
+					ProjectRef = 5C1E6759247BF2D3006F49D1 /* The-Forge.xcodeproj */;
+				},
+			);
+			projectRoot = "";
+			targets = (
+				EA463C8A1EF81E8F005AC8C7 /* Ephemeris */,
+				C95132EC2010E68A002E584B /* Ephemeris_iOS */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXReferenceProxy section */
+		5C1E6760247BF2D3006F49D1 /* libThe-Forge.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = "libThe-Forge.a";
+			remoteRef = 5C1E675F247BF2D3006F49D1 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+		5C1E6762247BF2D3006F49D1 /* libThe-Forge_iOS.a */ = {
+			isa = PBXReferenceProxy;
+			fileType = archive.ar;
+			path = "libThe-Forge_iOS.a";
+			remoteRef = 5C1E6761247BF2D3006F49D1 /* PBXContainerItemProxy */;
+			sourceTree = BUILT_PRODUCTS_DIR;
+		};
+/* End PBXReferenceProxy section */
+
+/* Begin PBXResourcesBuildPhase section */
+		C95132EB2010E68A002E584B /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C95133022010E68A002E584B /* LaunchScreen.storyboard in Resources */,
+				C95132FF2010E68A002E584B /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA463C891EF81E8F005AC8C7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */,
+				65C55CD2229734BF008456ED /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C95132E92010E68A002E584B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5C1E6795247BF7B7006F49D1 /* iOSAppDelegate.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EA463C871EF81E8F005AC8C7 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6543D8FA22932FC20098B17B /* LocalTime.cpp in Sources */,
+				B2E2519A22F0F1BB00E37226 /* Icosahedron.cpp in Sources */,
+				6543D90222932FD90098B17B /* Terrain.cpp in Sources */,
+				B2BF7EA222F8B2AA0095A0C8 /* Perlin.cpp in Sources */,
+				6543D90122932FD90098B17B /* HeightData.cpp in Sources */,
+				6543D8F822932FC20098B17B /* Ephemeris.cpp in Sources */,
+				5C1E6792247BF7A5006F49D1 /* macOSAppDelegate.m in Sources */,
+				6543D8EC22932F7A0098B17B /* Example.cpp in Sources */,
+				6543D8F922932FC20098B17B /* Sky.cpp in Sources */,
+				6543D90522932FEB0098B17B /* VolumetricClouds.cpp in Sources */,
+				B2AF9DD2235E579C001AD833 /* SpaceObjects.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		C95133002010E68A002E584B /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				C95133012010E68A002E584B /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D2E631E01F3472DF005BFBA7 /* Base */,
+			);
+			name = MainMenu.xib;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		C95133062010E68A002E584B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_WARN_COMMA = NO;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = NO;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				COMPRESS_PNG_FILES = NO;
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
+				DEVELOPMENT_TEAM = BT67ZY58A8;
+				FRAMEWORK_SEARCH_PATHS = "";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					METAL,
+					_DEBUG,
+					TARGET_IOS,
+					USE_MEMORY_TRACKING,
+				);
+				GCC_WARN_UNUSED_FUNCTION = NO;
+				HEADER_SEARCH_PATHS = "";
+				INFOPLIST_FILE = 01_Transformations_iOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				PRODUCT_BUNDLE_IDENTIFIER = "Conffeti.-1-Transformations-iOS";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRIP_PNG_TEXT = NO;
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
+				SYSTEM_HEADER_SEARCH_PATHS = "";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				USE_HEADERMAP = NO;
+			};
+			name = Debug;
+		};
+		C95133072010E68A002E584B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_WARN_COMMA = NO;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = NO;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				COMPRESS_PNG_FILES = NO;
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
+				DEVELOPMENT_TEAM = BT67ZY58A8;
+				FRAMEWORK_SEARCH_PATHS = "";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					METAL,
+					TARGET_IOS,
+				);
+				GCC_WARN_UNUSED_FUNCTION = NO;
+				HEADER_SEARCH_PATHS = "";
+				INFOPLIST_FILE = 01_Transformations_iOS/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				PRODUCT_BUNDLE_IDENTIFIER = "Conffeti.-1-Transformations-iOS";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRIP_PNG_TEXT = NO;
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
+				SYSTEM_HEADER_SEARCH_PATHS = "";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				USE_HEADERMAP = NO;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		EA463CAA1EF81E8F005AC8C7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = NO;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = NO;
+				"HEADER_SEARCH_PATHS[arch=*]" = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		EA463CAB1EF81E8F005AC8C7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = NO;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		EA463CAD1EF81E8F005AC8C7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_WARN_COMMA = NO;
+				COMBINE_HIDPI_IMAGES = YES;
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
+				DEVELOPMENT_TEAM = BT67ZY58A8;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					METAL,
+					_DEBUG,
+					USE_MEMORY_TRACKING,
+				);
+				GCC_WARN_UNUSED_FUNCTION = NO;
+				HEADER_SEARCH_PATHS = "";
+				INFOPLIST_FILE = "$(SRCROOT)/Ephemeris/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				OBJROOT = build;
+				ONLY_ACTIVE_ARCH = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.01-Transformations";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SYMROOT = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
+				SYSTEM_HEADER_SEARCH_PATHS = "";
+			};
+			name = Debug;
+		};
+		EA463CAE1EF81E8F005AC8C7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_WARN_COMMA = NO;
+				COMBINE_HIDPI_IMAGES = YES;
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
+				DEVELOPMENT_TEAM = BT67ZY58A8;
+				GCC_PREPROCESSOR_DEFINITIONS = METAL;
+				GCC_WARN_UNUSED_FUNCTION = NO;
+				HEADER_SEARCH_PATHS = "";
+				INFOPLIST_FILE = "$(SRCROOT)/Ephemeris/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				OBJROOT = build;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.01-Transformations";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SYMROOT = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
+				SYSTEM_FRAMEWORK_SEARCH_PATHS = "";
+				SYSTEM_HEADER_SEARCH_PATHS = "";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		C95133082010E68A002E584B /* Build configuration list for PBXNativeTarget "Ephemeris_iOS" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C95133062010E68A002E584B /* Debug */,
+				C95133072010E68A002E584B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EA463C861EF81E8F005AC8C7 /* Build configuration list for PBXProject "Ephemeris" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA463CAA1EF81E8F005AC8C7 /* Debug */,
+				EA463CAB1EF81E8F005AC8C7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EA463CAC1EF81E8F005AC8C7 /* Build configuration list for PBXNativeTarget "Ephemeris" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA463CAD1EF81E8F005AC8C7 /* Debug */,
+				EA463CAE1EF81E8F005AC8C7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = EA463C831EF81E8F005AC8C7 /* Project object */;
+}

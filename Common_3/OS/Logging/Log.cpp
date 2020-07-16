@@ -345,7 +345,7 @@ uint32_t Log::WritePreamble(char * buffer, uint32_t buffer_size, const char * fi
 		tm time_info;
 	#ifdef _WIN32
 		localtime_s(&time_info, &t);
-	#elif defined(ORBIS)
+	#elif defined(ORBIS) || defined(PROSPERO)
 		localtime_s(&t, &time_info);
 	#elif defined(NX64)
 		t = getTimeSinceStart();

@@ -107,6 +107,7 @@ void fsFreeFileWatcher(FileWatcher* fileWatcher) { LOGF(LogLevel::eERROR, "FileW
 
 typedef void (*ActionPickDocumentCallbackFn)(NSURL*, void*, void*);
 
+API_AVAILABLE(ios(11.0))
 @interface DocumentBrowserViewController: UIDocumentBrowserViewController<UIDocumentBrowserViewControllerDelegate>
 @property(nonnull) ActionPickDocumentCallbackFn actionDocumentPicked;
 @property(nonnull) NSString*                    defaultSaveFileExt;
@@ -266,6 +267,7 @@ void fsRegisterUTIForExtension(const char* extension, const char* uti)
 	gExtensionToUtiId[extensionStr] = [NSString stringWithUTF8String:uti];
 }
 
+API_AVAILABLE(ios(11.0))
 static void create_document_browser(
 	const char* title, void* callback, void* userData, NSArray* extList, NSString* defaultExt, bool allowDocumentCreation,
 	bool allowMultipleSelection)
@@ -299,45 +301,51 @@ void fsShowOpenFileDialog(
 	const char* title, const Path* directory, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
 	const char** fileExtensions, size_t fileExtensionCount)
 {
-	NSMutableArray* extensionsArray = [NSMutableArray arrayWithCapacity:fileExtensionCount];
-	if (fileExtensionCount > 0)
+	if (@available(iOS 11.0, *))
 	{
-		for (size_t i = 0; i < fileExtensionCount; i += 1)
+		NSMutableArray* extensionsArray = [NSMutableArray arrayWithCapacity:fileExtensionCount];
+		if (fileExtensionCount > 0)
 		{
-			NSString* extensionStr = [NSString stringWithUTF8String:fileExtensions[i]];
-			if (NSString* uti = gExtensionToUtiId[extensionStr])
+			for (size_t i = 0; i < fileExtensionCount; i += 1)
 			{
-				extensionStr = uti;
+				NSString* extensionStr = [NSString stringWithUTF8String:fileExtensions[i]];
+				if (NSString* uti = gExtensionToUtiId[extensionStr])
+				{
+					extensionStr = uti;
+				}
+				[extensionsArray addObject:extensionStr];
 			}
-			[extensionsArray addObject:extensionStr];
 		}
+		create_document_browser(title, (void*)callback, (void*)userData, extensionsArray, nil, false, false);
 	}
-	create_document_browser(title, (void*)callback, (void*)userData, extensionsArray, nil, false, false);
 }
 
 void fsShowSaveFileDialog(
 	const char* title, const Path* directory, FileDialogCallbackFn callback, void* userData, const char* fileDesc,
 	const char** fileExtensions, size_t fileExtensionCount)
 {
-	NSMutableArray* extensionsArray = [NSMutableArray arrayWithCapacity:fileExtensionCount];
-	if (fileExtensionCount > 0)
+	if (@available(iOS 11.0, *))
 	{
-		for (size_t i = 0; i < fileExtensionCount; i += 1)
+		NSMutableArray* extensionsArray = [NSMutableArray arrayWithCapacity:fileExtensionCount];
+		if (fileExtensionCount > 0)
 		{
-			NSString* extensionStr = [NSString stringWithUTF8String:fileExtensions[i]];
-			if (NSString* uti = gExtensionToUtiId[extensionStr])
+			for (size_t i = 0; i < fileExtensionCount; i += 1)
 			{
-				extensionStr = uti;
+				NSString* extensionStr = [NSString stringWithUTF8String:fileExtensions[i]];
+				if (NSString* uti = gExtensionToUtiId[extensionStr])
+				{
+					extensionStr = uti;
+				}
+				[extensionsArray addObject:extensionStr];
 			}
-			[extensionsArray addObject:extensionStr];
 		}
-	}
 
-	// Create default extension string
-	NSString* defaultExt = nil;
-	if ([extensionsArray count] > 0)
-	{
-		defaultExt = [@"." stringByAppendingString:extensionsArray[0]];
+		// Create default extension string
+		NSString* defaultExt = nil;
+		if ([extensionsArray count] > 0)
+		{
+			defaultExt = [@"." stringByAppendingString:extensionsArray[0]];
+		}
+		create_document_browser(title, (void*)callback, (void*)userData, extensionsArray, defaultExt, true, false);
 	}
-	create_document_browser(title, (void*)callback, (void*)userData, extensionsArray, defaultExt, true, false);
 }

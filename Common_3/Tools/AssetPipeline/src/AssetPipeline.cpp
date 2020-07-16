@@ -37,6 +37,8 @@
 #include "../../../ThirdParty/OpenSource/ozz-animation/include/ozz/animation/offline/skeleton_builder.h"
 #include "../../../ThirdParty/OpenSource/ozz-animation/include/ozz/animation/offline/animation_builder.h"
 
+#include "../../../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_base.h"
+
 // TressFX
 #include "../../../ThirdParty/OpenSource/TressFX/TressFXAsset.h"
 
@@ -44,22 +46,24 @@
 #define CGLTF_IMPLEMENTATION
 #include "../../../ThirdParty/OpenSource/cgltf/cgltf_write.h"
 
-#define IMAGE_CLASS_ALLOWED
-#include "../../../OS/Image/Image.h"
+#define TINYKTX_IMPLEMENTATION
+#include "../../../OS/Core/TextureContainers.h"
+
 #include "../../../OS/Interfaces/IOperatingSystem.h"
 #include "../../../OS/Interfaces/IFileSystem.h"
 #include "../../../OS/Interfaces/ILog.h"
 #include "../../../OS/Interfaces/IMemory.h"    //NOTE: this should be the last include in a .cpp
 
 typedef eastl::unordered_map<eastl::string, eastl::vector<PathHandle>> AnimationAssetMap;
+extern eastl::vector<PathHandle> fsGetSubDirectories(const Path* directory);
 
 struct NodeInfo
 {
-	eastl::string		mName;
+	eastl::string       mName;
 	int                 pParentNodeIndex;
-	eastl::vector<int>	mChildNodeIndices;
+	eastl::vector<int>  mChildNodeIndices;
 	bool                mUsedInSkeleton;
-	cgltf_node*			pNode;
+	cgltf_node*         pNode;
 };
 
 struct BoneInfo
@@ -77,9 +81,6 @@ bool AssetPipeline::ProcessAnimations(const Path* animationDirectory, const Path
 		LOGF(LogLevel::eERROR, "AnimationDirectory: \"%s\" does not exist.", animationDirectory);
 		return false;
 	}
-
-	// Check if output directory exists
-	bool outputDirExists = fsFileExists(outputDirectory);
 
 	// Check for assets containing animations in animationDirectory
     AnimationAssetMap                animationAssets;
@@ -152,7 +153,7 @@ bool AssetPipeline::ProcessAnimations(const Path* animationDirectory, const Path
 
         // Check if the skeleton is already up-to-date
         bool processSkeleton = true;
-        if (!settings->force && outputDirExists)
+        if (!settings->force)
         {
             time_t lastModified = fsGetLastModifiedTime(skinnedMesh);
             time_t lastProcessed = fsGetLastModifiedTime(skeletonOutput);
@@ -164,27 +165,6 @@ bool AssetPipeline::ProcessAnimations(const Path* animationDirectory, const Path
         ozz::animation::Skeleton skeleton;
         if (processSkeleton)
         {
-            // If output directory doesn't exist, create it.
-            if (!outputDirExists)
-            {
-                if (!fsCreateDirectory(outputDirectory))
-                {
-                    LOGF(LogLevel::eERROR, "Failed to create output directory %s.", fsGetPathAsNativeString(outputDirectory));
-                    return false;
-                }
-                outputDirExists = true;
-            }
-
-            if (!fsFileExists(skeletonOutputDir))
-            {
-                if (!fsCreateDirectory(skeletonOutputDir))
-                {
-                    LOGF(LogLevel::eERROR, "Failed to create output directory %s.", fsGetPathAsNativeString(skeletonOutputDir));
-                    success = false;
-                    continue;
-                }
-            }
-
             // Process the skeleton
             if (!CreateRuntimeSkeleton(skinnedMesh, it->first.c_str(), skeletonOutput, &skeleton, settings))
             {
@@ -207,19 +187,6 @@ bool AssetPipeline::ProcessAnimations(const Path* animationDirectory, const Path
 				return false;
         }
 
-        // If output directory doesn't exist, create it.
-        PathHandle animationOutputDir = fsAppendPathComponent(skeletonOutputDir, "animations");
-        if (!fsFileExists(animationOutputDir))
-        {
-            if (!fsCreateDirectory(animationOutputDir))
-            {
-                LOGF(LogLevel::eERROR, "Failed to create output directory %s.", fsGetPathAsNativeString(animationOutputDir));
-                success = false;
-                skeleton.Deallocate();
-                continue;
-            }
-        }
-
         // Process animations
         for (size_t i = 1; i < it->second.size(); ++i)
         {
@@ -233,7 +200,7 @@ bool AssetPipeline::ProcessAnimations(const Path* animationDirectory, const Path
 
             // Check if the animation is already up-to-date
             bool processAnimation = true;
-            if (!settings->force && outputDirExists && !processSkeleton)
+            if (!settings->force && !processSkeleton)
             {
                 time_t lastModified = fsGetLastModifiedTime(animationFile);
                 time_t lastProcessed = fsGetLastModifiedTime(animationOutput);
@@ -271,16 +238,6 @@ bool AssetPipeline::ProcessTextures(const Path* textureDirectory, const Path* ou
 		return false;
 	}
 
-	// If output directory doesn't exist, create it.
-	if (!fsFileExists(outputDirectory))
-	{
-		if (!fsCreateDirectory(outputDirectory))
-		{
-			LOGF(LogLevel::eERROR, "Failed to create output directory %s.", outputDirectory);
-			return false;
-		}
-	}
-
     PathHandle currentDir = fsGetApplicationDirectory();
 	currentDir = fsAppendPathComponent(currentDir, "ImageConvertTools/ImageConvertTool.py");
 	eastl::string cmd("python ");
@@ -295,7 +252,7 @@ bool AssetPipeline::ProcessTextures(const Path* textureDirectory, const Path* ou
 	eastl::string outputStr(fsGetPathAsNativeString(outputDirectory));
 	cmd.append(outputStr);
 
-#if !defined(TARGET_IOS) && !defined(__ANDROID__) && !defined(_DURANGO) && !defined(ORBIS)
+#if !defined(TARGET_IOS) && !defined(__ANDROID__) && !defined(XBOX) && !defined(ORBIS)
 	int result = system(cmd.c_str());
 	if (result)
 		return true;
@@ -306,24 +263,167 @@ bool AssetPipeline::ProcessTextures(const Path* textureDirectory, const Path* ou
 #endif
 }
 
+static bool SaveSVT(const Path* filePath, FileStream* pSrc, SVT_HEADER* pHeader)
+{
+	FileStream* fh = fsOpenFile(filePath, FM_WRITE_BINARY);
+
+	if (!fh)
+		return false;
+
+	//TODO: SVT should support any components somepoint
+	const uint32_t numberOfComponents = pHeader->mComponentCount;
+	const uint32_t pageSize = pHeader->mPageSize;
+
+	//Header
+	fsWriteToStream(fh, pHeader, sizeof(SVT_HEADER));
+
+	uint32_t mipPageCount = pHeader->mMipLevels - (uint32_t)log2f((float)pageSize);
+
+	// Allocate Pages
+	unsigned char** mipLevelPixels = (unsigned char**)conf_calloc(pHeader->mMipLevels, sizeof(unsigned char*));
+	unsigned char*** pagePixels = (unsigned char***)conf_calloc(mipPageCount + 1, sizeof(unsigned char**));
+
+	uint32_t* mipSizes = (uint32_t*)conf_calloc(pHeader->mMipLevels, sizeof(uint32_t));
+
+	for (uint32_t i = 0; i < pHeader->mMipLevels; ++i)
+	{
+		uint32_t mipSize = (pHeader->mWidth >> i) * (pHeader->mHeight >> i) * numberOfComponents;
+		mipSizes[i] = mipSize;
+		mipLevelPixels[i] = (unsigned char*)conf_calloc(mipSize, sizeof(unsigned char));
+		fsReadFromStream(pSrc, mipLevelPixels[i], mipSize);
+	}
+
+	// Store Mip data
+	for (uint32_t i = 0; i < mipPageCount; ++i)
+	{
+		uint32_t xOffset = pHeader->mWidth >> i;
+		uint32_t yOffset = pHeader->mHeight >> i;
+
+		// width and height in tiles
+		uint32_t tileWidth = xOffset / pageSize;
+		uint32_t tileHeight = yOffset / pageSize;
+
+		uint32_t xMipOffset = 0;
+		uint32_t yMipOffset = 0;
+		uint32_t pageIndex = 0;
+
+		uint32_t rowLength = xOffset * numberOfComponents;
+
+		pagePixels[i] = (unsigned char**)conf_calloc(tileWidth * tileHeight, sizeof(unsigned char*));
+
+		for (uint32_t j = 0; j < tileHeight; ++j)
+		{
+			for (uint32_t k = 0; k < tileWidth; ++k)
+			{
+				pagePixels[i][pageIndex] = (unsigned char*)conf_calloc(pageSize * pageSize, sizeof(unsigned char) * numberOfComponents);
+
+				for (uint32_t y = 0; y < pageSize; ++y)
+				{
+					for (uint32_t x = 0; x < pageSize; ++x)
+					{
+						uint32_t mipPageIndex = (y * pageSize + x) * numberOfComponents;
+						uint32_t mipIndex = rowLength * (y + yMipOffset) + (numberOfComponents)*(x + xMipOffset);
+
+						pagePixels[i][pageIndex][mipPageIndex + 0] = mipLevelPixels[i][mipIndex + 0];
+						pagePixels[i][pageIndex][mipPageIndex + 1] = mipLevelPixels[i][mipIndex + 1];
+						pagePixels[i][pageIndex][mipPageIndex + 2] = mipLevelPixels[i][mipIndex + 2];
+						pagePixels[i][pageIndex][mipPageIndex + 3] = mipLevelPixels[i][mipIndex + 3];
+					}
+				}
+
+				xMipOffset += pageSize;
+				pageIndex += 1;
+			}
+
+			xMipOffset = 0;
+			yMipOffset += pageSize;
+		}
+	}
+
+	uint32_t mipTailPageSize = 0;
+
+	pagePixels[mipPageCount] = (unsigned char**)conf_calloc(1, sizeof(unsigned char*));
+
+	// Calculate mip tail size
+	for (uint32_t i = mipPageCount; i < pHeader->mMipLevels - 1; ++i)
+	{
+		uint32_t mipSize = mipSizes[i];
+		mipTailPageSize += mipSize;
+	}
+
+	pagePixels[mipPageCount][0] = (unsigned char*)conf_calloc(mipTailPageSize, sizeof(unsigned char));
+
+	// Store mip tail data
+	uint32_t mipTailPageWrites = 0;
+	for (uint32_t i = mipPageCount; i < pHeader->mMipLevels - 1; ++i)
+	{
+		uint32_t mipSize = mipSizes[i];
+
+		for (uint32_t j = 0; j < mipSize; ++j)
+		{
+			pagePixels[mipPageCount][0][mipTailPageWrites++] = mipLevelPixels[i][j];
+		}
+	}
+
+	// Write mip data
+	for (uint32_t i = 0; i < mipPageCount; ++i)
+	{
+		// width and height in tiles
+		uint32_t mipWidth = (pHeader->mWidth >> i) / pageSize;
+		uint32_t mipHeight = (pHeader->mHeight >> i) / pageSize;
+
+		for (uint32_t j = 0; j < mipWidth * mipHeight; ++j)
+		{
+			fsWriteToStream(fh, pagePixels[i][j], pageSize * pageSize * numberOfComponents * sizeof(char));
+		}
+	}
+
+	// Write mip tail data
+	fsWriteToStream(fh, pagePixels[mipPageCount][0], mipTailPageSize * sizeof(char));
+
+	// free memory
+	conf_free(mipSizes);
+
+	for (uint32_t i = 0; i < mipPageCount; ++i)
+	{
+		// width and height in tiles
+		uint32_t mipWidth = (pHeader->mWidth >> i) / pageSize;
+		uint32_t mipHeight = (pHeader->mHeight >> i) / pageSize;
+		uint32_t pageIndex = 0;
+
+		for (uint32_t j = 0; j < mipHeight; ++j)
+		{
+			for (uint32_t k = 0; k < mipWidth; ++k)
+			{
+				conf_free(pagePixels[i][pageIndex]);
+				pageIndex += 1;
+			}
+		}
+
+		conf_free(pagePixels[i]);
+	}
+	conf_free(pagePixels[mipPageCount][0]);
+	conf_free(pagePixels[mipPageCount]);
+	conf_free(pagePixels);
+
+	for (uint32_t i = 0; i < pHeader->mMipLevels; ++i)
+	{
+		conf_free(mipLevelPixels[i]);
+	}
+	conf_free(mipLevelPixels);
+
+	fsCloseStream(fh);
+
+	return true;
+}
+
 bool AssetPipeline::ProcessVirtualTextures(const Path* textureDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings)
 {
-#if !defined(__linux__) && !defined(METAL)
 	// Check if directory exists
 	if (!fsFileExists(textureDirectory))
 	{
 		LOGF(LogLevel::eERROR, "textureDirectory: \"%s\" does not exist.", textureDirectory);
 		return false;
-	}
-
-	// If output directory doesn't exist, create it.
-	if (!fsFileExists(outputDirectory))
-	{
-		if (!fsCreateDirectory(outputDirectory))
-		{
-			LOGF(LogLevel::eERROR, "Failed to create output directory %s.", outputDirectory);
-			return false;
-		}
 	}
 
 	// Get all image files
@@ -336,13 +436,17 @@ bool AssetPipeline::ProcessVirtualTextures(const Path* textureDirectory, const P
 		
 		if (outputFile.size() > 0)
 		{
-			Image* pImage = conf_new(Image);
-			pImage->Init();
-
-			if (!pImage->LoadFromFile(ddsFilesInDirectory[i], NULL, NULL))
+			TextureDesc textureDesc = {};
+			FileStream* ddsFile = fsOpenFile(ddsFilesInDirectory[i], FM_READ_BINARY);
+			bool success = false;
+			if (ddsFile)
 			{
-				pImage->Destroy();
-				conf_delete(pImage);
+				success = loadDDSTextureDesc(ddsFile, &textureDesc);
+			}
+
+			if (!success)
+			{
+				fsCloseStream(ddsFile);
 				LOGF(LogLevel::eERROR, "Failed to load image %s.", outputFile.c_str());
 				continue;
 			}
@@ -351,62 +455,25 @@ bool AssetPipeline::ProcessVirtualTextures(const Path* textureDirectory, const P
 			outputFile.append(".svt");
 
 			PathHandle pathForSVT = fsCreatePath(fsGetSystemFileSystem(), outputFile.c_str());
+			SVT_HEADER header = {};
+			header.mComponentCount = 4;
+			header.mHeight = textureDesc.mHeight;
+			header.mMipLevels = textureDesc.mMipLevels;
+			header.mPageSize = 128;
+			header.mWidth = textureDesc.mWidth;
 
-			bool result = pImage->iSaveSVT(pathForSVT);
+			success = SaveSVT(pathForSVT, ddsFile, &header);
 
-			pImage->Destroy();
-			conf_delete(pImage);
+			fsCloseStream(ddsFile);
 
-			if (result == false)
+			if (!success)
 			{
 				LOGF(LogLevel::eERROR, "Failed to save sparse virtual texture %s.", outputFile.c_str());
-				return false;
-			}			
-		}
-	}
-
-	ddsFilesInDirectory.set_capacity(0);
-
-	eastl::vector<PathHandle> ktxFilesInDirectory;
-	ktxFilesInDirectory = fsGetFilesWithExtension(textureDirectory, ".ktx");
-
-	for (size_t i = 0; i < ktxFilesInDirectory.size(); ++i)
-	{
-		eastl::string outputFile = fsGetPathAsNativeString(ktxFilesInDirectory[i]);
-
-		if (outputFile.size() > 0)
-		{
-			Image* pImage = conf_new(Image);
-			pImage->Init();
-
-			if (!pImage->LoadFromFile(ktxFilesInDirectory[i], NULL, NULL))
-			{
-				pImage->Destroy();
-				conf_delete(pImage);
-				LOGF(LogLevel::eERROR, "Failed to load image %s.", outputFile.c_str());
 				continue;
 			}
-
-			outputFile.resize(outputFile.size() - 4);
-			outputFile.append(".svt");
-
-			PathHandle pathForSVT = fsCreatePath(fsGetSystemFileSystem(), outputFile.c_str());
-
-			bool result = pImage->iSaveSVT(pathForSVT);
-
-			pImage->Destroy();
-			conf_delete(pImage);
-
-			if (result == false)
-			{
-				LOGF(LogLevel::eERROR, "Failed to save sparse virtual texture %s.", outputFile.c_str());
-				return false;
-			}
 		}
 	}
 
-	ktxFilesInDirectory.set_capacity(0);
-#endif
 	return true;
 }
 
@@ -417,16 +484,6 @@ bool AssetPipeline::ProcessTFX(const Path* textureDirectory, const Path* outputD
 	{
 		LOGF(LogLevel::eERROR, "textureDirectory: \"%s\" does not exist.", textureDirectory);
 		return false;
-	}
-
-	// If output directory doesn't exist, create it.
-	if (!fsFileExists(outputDirectory))
-	{
-		if (!fsCreateDirectory(outputDirectory))
-		{
-			LOGF(LogLevel::eERROR, "Failed to create output directory %s.", outputDirectory);
-			return false;
-		}
 	}
 
 	cgltf_result result = cgltf_result_success;
@@ -803,7 +860,6 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 			if (node && node->mesh && node->skin)
 			{
 				cgltf_skin* skin = node->skin;
-				cgltf_mesh* mesh = node->mesh;
 
 				char jointRemaps[1024] = {};
 				uint32_t offset = 0;

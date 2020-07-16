@@ -22,7 +22,16 @@ typedef HRESULT (WINAPI *fnSHGetFolderPathW)(HWND hwnd, int csidl, HANDLE hToken
 #include <comdef.h>
 #endif
 
-#include <time.h>	//< time for composing output file name
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdocumentation"
+#endif
+
+#include <time.h>	// time for composing output file name
+
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 template <typename CHAR>
 static CHAR* printNumReverse(CHAR* _dst, int _num)

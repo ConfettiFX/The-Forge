@@ -23,6 +23,7 @@
 
 import os
 import os.path
+from pathlib import Path
 import shutil  #Used for deleting files within subdirectories
 import fnmatch #Checks for matching expression in name
 import time    #used for timing process in case one hangs without crashing
@@ -167,15 +168,18 @@ def RemoveTestingPreProcessor():
 		RemovePreprocessorFromFile("Common_3/OS/MemoryTracking/MemoryTracking.cpp", memTrackingDefines)
 	
 
-def ExecuteTimedCommand(cmdList,outStream=subprocess.PIPE):
+def ExecuteTimedCommand(cmdList, printStdout: bool):
 	try:		
 		if isinstance(cmdList, list): 
 			print("Executing Timed command: " + ' '.join(cmdList))
 		else:
 			print("Executing Timed command: " + cmdList)		
 		
+		captureOutput = (printStdout == False)
+
 		#10 minutes timeout
-		proc = subprocess.run(cmdList, capture_output=True, timeout=maxIdleTime)
+		proc = subprocess.run(cmdList, capture_output=captureOutput, timeout=maxIdleTime)
+
 		if proc.returncode != 0:
 			return proc.returncode
 	except subprocess.TimeoutExpired as timeout:
@@ -211,6 +215,12 @@ def ExecuteCommandWOutput(cmdList, printException = True):
 		return ""  #error return code
 	
 	return "" #success error code
+
+def XBoxCommand(cmdList, verbose=True):
+	if verbose:
+		print("Executing command: " + ' '.join(cmdList))
+	ls_lines = subprocess.check_output(cmdList).splitlines()
+	return [ line.decode('utf-8') for line in ls_lines]
 
 def ExecuteCommand(cmdList,outStream):
 	try:
@@ -268,11 +278,11 @@ def ExecuteBuild(cmdList, fileName, configuration, platform):
 	
 	return returnCode
 
-def ExecuteTest(cmdList, fileName, regularCommand, gpuLine = ""):
+def ExecuteTest(cmdList, fileName, regularCommand, gpuLine = "", printStdout: bool = False):
 	if regularCommand:
 		returnCode = ExecuteCommand(cmdList, None)
 	else:
-		returnCode = ExecuteTimedCommand(cmdList,None)
+		returnCode = ExecuteTimedCommand(cmdList, printStdout)
 	
 	if returnCode != 0:
 		print("FAILED TESTING ", fileName)
@@ -352,6 +362,19 @@ def GetMemLeakFile(exeFilePath):
 	memLeakFile = exeFileWithoutExt + ".memleaks"
 	return memLeakFile
 
+def GetLogFile(exeFilePath):
+	exeFileWithoutExt = exeFilePath.split('.')[0]
+	logFile = exeFileWithoutExt + ".log"
+	return logFile
+
+def tryPrintLog(logFilePath):
+	try:
+		if os.path.exists(logFilePath):
+			with open(logFilePath) as f:
+				print(f.read())
+	except TypeError:
+		print("Failed to print log file")
+
 """
 projRootFolder should be one of those:
 	-Unit_Tests
@@ -363,32 +386,40 @@ If No GPu's are left then it will recover the file
 """
 
 activeGpusConfiguration = """#
-#<vendor_id>, <model_id>, <sli_mode>
-0x10de; 0x1b81; false; Nvidia Geforce GTX 1070;
-0x10de; 0x1402; false; Nvidia Geforce GTX 950;
-0x1002; 0x687f; false; AMD Vega;
-0x1002; 0x67df; false; AMD Radeon RX 480;
+#<vendor_id>, <model_id>,<preset>,<device_name>, <revision_id>
+0x10de; 0x1b80; Ultra; Nvidia Geforce GTX 1080; 0xa1
+0x10de; 0x1402; Medium; Nvidia Geforce GTX 950; 0xa1
+0x1002; 0x67df; High; Radeon (TM) RX 480 Graphics; 0xc7
+0x1002; 0x687f; High; Radeon RX Vega; 0xc3
+0x1002; 0x699f; Medium; Radeon RX550/550 Series; 0xc7
+0x8086; 0x5912; Low; Intel(R) HD Graphics 630; 0x4
 """
 originalActiveGpuConfigLines = []
 def selectActiveGpuConfig(forgeDir, projRootFolder, projectName, runIndex):
 	global activeGpusConfiguration
 	global originalActiveGpuConfigLines
 	#remove file extension from project name
+	#print(projectName)
 	projectName = os.path.splitext(projectName)[0]
 	
 	#need to have
-	if "Aura" in projectName or "Visibility" in projectName:
-		filename = "/Examples_3/"+projRootFolder+"/src/GPUCfg/activeTestingGpu.cfg"
-	else:
+	if "Unit_Tests" in projRootFolder:
 		filename = "/Examples_3/"+projRootFolder+"/src/"+projectName+"/GPUCfg/activeTestingGpu.cfg"
-	
+	elif "Ephemeris" in projectName:
+		filename = "/../CustomMiddleware/Ephemeris/src/EphemerisExample/GPUCfg/activeTestingGpu.cfg"
+	else:
+		filename = "/Examples_3/"+projRootFolder+"/src/GPUCfg/activeTestingGpu.cfg"
+
+	filename = filename.replace("/",os.path.sep)
+
 	filename = forgeDir + filename
 	
 	#create active gpu config if it doesn't exist
 	#this is only valid for our internal testing rig
+	#this way we can commit activeTestGpu files
 	if not os.path.exists(filename):
-		with open(filename, 'w+') as f:
-			f.write(activeGpusConfiguration)
+		f = open(filename, "w+")
+		f.write(activeGpusConfiguration)
 		
 	removedMatch = False
 	foundMatch = False
@@ -458,6 +489,18 @@ def TestXcodeProjects(iosTesting, macOSTesting, iosDeviceId):
 	if macOSTesting:
 		appsToTest.extend(osxApps)
 
+	# Delete old crash report files
+	crashReportRoot = os.path.join(str(Path.home()), 'Library/Logs/DiagnosticReports')
+	for reportFilename in os.listdir(crashReportRoot):
+		fullPath = os.path.join(crashReportRoot, reportFilename)
+		try:
+			if os.path.isfile(fullPath) or os.path.islink(fullPath):
+				os.unlink(fullPath)
+			elif os.path.isdir(fullPath):
+				shutil.rmtree(fullPath)
+		except Exception as e:
+			print(f"Failed to delete {fullPath} due to {e.message}")
+
 	for app in appsToTest:
 		leaksDetected = False
 		#get working directory (excluding the xcodeproj in path)
@@ -472,6 +515,7 @@ def TestXcodeProjects(iosTesting, macOSTesting, iosDeviceId):
 		retCode = -1
 		# get the memory leak file path
 		memleakFile = GetMemLeakFile(filename)
+		logFile = GetLogFile(filename)
 
 		if "_iOS" in filename:
 			#if specific ios id was passed then run for that device
@@ -486,9 +530,23 @@ def TestXcodeProjects(iosTesting, macOSTesting, iosDeviceId):
 			command.append("-s METAL_DEVICE_WRAPPER_TYPE=1")
 
 			retCode = ExecuteTest(command, filename, True)
-			if retCode == 0:
-				bundleID = GetBundleIDFromIOSApp(filename + ".app")
-				if bundleID != "":
+
+			bundleID = GetBundleIDFromIOSApp(filename + ".app")
+
+			if bundleID != "":
+				# Downloads log and prints it
+				logDownloadCommand = ["ios-deploy","--bundle_id",bundleID,"--download=/Library/Application Support/"+logFile,"--to","./"]
+				if not iosDeviceId == "-1" or not iosDeviceId == "":
+					logDownloadCommand.append("--id")
+					logDownloadCommand.append(iosDeviceId)
+				logDownloaded = ExecuteCommand(logDownloadCommand, sys.stdout)
+				if logDownloaded == 0:
+					iosLogFile = "Library/Application Support/" + logFile
+					tryPrintLog(iosLogFile)
+				else:
+					print("[Error] Log file could not be downloaded for:" + bundleID)
+
+				if retCode == 0:
 					command = ["ios-deploy","--bundle_id",bundleID,"--download=/Library/Application Support/"+memleakFile,"--to","./"]
 					if not iosDeviceId == "-1" or not iosDeviceId == "":
 						command.append("--id")
@@ -500,12 +558,38 @@ def TestXcodeProjects(iosTesting, macOSTesting, iosDeviceId):
 						leaksDetected = FindMemoryLeaks("Library/Application Support/"+ memleakFile)
 					else:
 						print("[Error] Memleaks file could not be downloaded for:" + bundleID)
-				else:
-					print("[Error] Bundle ID NOT found:" + bundleID)
+			else:
+				print("[Error] Bundle ID NOT found:" + bundleID)
 				
 		else:
 			command = ["./" + filename + ".app/Contents/MacOS/" + filename]
 			retCode = ExecuteTest(command, filename, False)
+
+			tryPrintLog(logFile)
+			if retCode != 0:
+				loadedLog = False
+				for _ in range(200): # It takes a bit of time to generate a crash report. Try 200 times every second - meaining we wait total 200 seconds at max.
+					time.sleep(1)
+					for reportFilename in os.listdir(crashReportRoot):
+						fullPath = os.path.join(crashReportRoot, reportFilename)
+						try:
+							if os.path.isfile(fullPath) and filename in reportFilename and reportFilename.endswith(".crash"):
+								with open(fullPath) as f:
+									log = f.read()
+									begin = log.find('Crashed:') - 9
+									end = log.find('\n\n', begin)
+									log = log[begin:end]
+									print("***\nCrash Report\n***")
+									print(log)
+									loadedLog = True
+								break
+						except Exception as e:
+							print(f"Failed to print {fullPath} due to {e}")
+					if loadedLog:
+						break
+				if not loadedLog:
+					print("Failed to load crash report file")
+
 			leaksDetected = FindMemoryLeaks(memleakFile)
 		
 		if retCode == 0 and leaksDetected == True:
@@ -633,7 +717,7 @@ def BuildXcodeProjects(skipMacos, skipIos, skipIosCodeSigning, skipDebugBuild, s
 	#since our projects for macos are all under a macos Xcode folder we can search for
 	#that specific folder name to gather source folders containing project/workspace for xcode
 	#macSourceFolders = FindFolderPathByName("Examples_3/","macOS Xcode", -1)
-	xcodeProjects = [ "/Examples_3/Ephemeris/macOS Xcode/Ephemeris/Ephemeris.xcodeproj", 
+	xcodeProjects = [ "/Examples_3/Ephemeris/macOS Xcode/Ephemeris.xcodeproj", 
                 "/Examples_3/Visibility_Buffer/macOS Xcode/Visibility_Buffer.xcodeproj", 
 				"/Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace"]
 
@@ -787,12 +871,12 @@ def TestLinuxProjects():
 			for proj in ubuntuProjects:
 				leaksDetected = False	
 				exePath = os.path.join(os.getcwd(),proj,conf,proj)
-				command = [exePath]
-				retCode = ExecuteTest(command, proj ,False)
+				command = ["gdb", "-q", exePath, "-ex", "r", "-ex", "bt", "-ex", "print $_exitcode", "-batch", "-return-child-result"]
+				retCode = ExecuteTest(command, proj, False, "", True)
 
 				if retCode != 0:
 					errorOccured = True
-				
+
 				memleaksFilename = os.path.join(os.getcwd(),proj,conf,GetMemLeakFile(proj))
 				leaksDetected = FindMemoryLeaks(memleaksFilename)
 				
@@ -807,6 +891,23 @@ def TestLinuxProjects():
 	if errorOccured == True:
 		return -1
 	return 0
+
+#renames log file to use GPU name, that way multiple runs generate different files
+def AppendToLogFilename(logName, stringToAppend):
+	logNameWithoutExt = logName.split('.')[0]
+	#avoid path errors due to special chars
+	stringToAppend = stringToAppend.replace(" ", "_").replace("/","-").replace("\\","-")
+	newLogName = logNameWithoutExt + stringToAppend + ".log"
+	if os.path.exists(logName):
+		try:
+			if os.path.exists(newLogName):
+				print("Removing existing {0}".format(newLogName))
+				os.remove(newLogName)
+			os.rename(logName, newLogName)
+		except Exception as ex: 
+			print("Error Renaming {0} to {1}".format(logName, newLogName))
+			print(ex)
+
 
 def TestWindowsProjects(useActiveGpuConfig):
 	errorOccured = False
@@ -871,22 +972,30 @@ def TestWindowsProjects(useActiveGpuConfig):
 		if os.path.exists(memleakFile):
 			os.remove(memleakFile)
 		
-		if useActiveGpuConfig == True not in parentFolder:
+		if useActiveGpuConfig == True and "hlslparser" not in proj:
 			currentGpuRun = 0
 			resultGpu = selectActiveGpuConfig(currDir, parentFolder,origFilename,currentGpuRun)
 			while resultGpu['running'] == True:
 				retCode = ExecuteTest(command, filename, False, resultGpu['lineMatch'])
+				#rename log file to have gpu info in name
 				currentGpuRun += 1
+				AppendToLogFilename(origFilename.split(".")[0] + ".log", resultGpu['lineMatch'].split(";")[3])
 				resultGpu = selectActiveGpuConfig(currDir, parentFolder,origFilename,currentGpuRun)
 		else:
 			retCode = ExecuteTest(command, filename,False)
+		
+		logFile = GetLogFile(origFilename)
+		if os.path.exists(logFile):
+			with open(logFile) as f:
+				for line in f:
+					print(line, end="")
 		
 		leaksDetected = FindMemoryLeaks(memleakFile)
 		if retCode == 0 and leaksDetected == True:
 			lastSuccess = successfulTests.pop()
 			failedTests.append({'name':lastSuccess['name'], 'gpu':lastSuccess['gpu'], 'reason':"Memory Leaks"})
 			errorOccured = True
-		
+
 		if retCode != 0:
 			errorOccured = True
 				
@@ -902,8 +1011,8 @@ def TestXboxProjects():
 	
 	#Get console IP
 	consoleIP = ""
-	xdkDir = os.environ['DURANGOXDK'] + 'bin/'
-	command = [xdkDir+'xbconnect', '/QG']
+	gdkDir = os.environ['GameDK'] + 'bin/'
+	command = [gdkDir+'xbconnect', '/QG']
 	output = subprocess.Popen(command, stdin=None, stdout=subprocess.PIPE, stderr=FNULL)
 	output = output.communicate()[0]
 	connection = re.search(b'Connections at (.+?), ', output)
@@ -916,16 +1025,23 @@ def TestXboxProjects():
 			print ("Unable to connect to: "+consoleIP)
 			return 1
 
-	crashdump_path = '\\\\'+consoleIP+"\TitleScratch\LocalDumps"
+	#Test for DashBoard
+	pslist = subprocess.check_output([gdkDir+'xbtlist']).decode()
+	isDashboard = 'Xbox.Dashboard.native' in pslist
+	if not isDashboard:
+		print("WARNING: as of \'May 2020 GXDK\' using DevHome in CI is known to be unstable (this can crash the devkit).\n"
+		"Please set (in GDK Manager or web UI) \'Settings/Preference/Default Home Experience\' to \'Retail Home\'.")
+
+	crashdump_path = '\\\\'+consoleIP+"\SystemScratch\LocalDumps"
 	
 	#Clean all apps
 	print ("Cleaning XBox apps and data (this will reboot the console)")
-	command = [xdkDir+'xbcleanup', '/U /D /P /C /L']
+	command = [gdkDir+'xbcleanup', '/U /D /P /C /L']
 	output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
 	print ("Done cleaning...")
 
 	#Set console setting to genereate crash dumps
-	command = [xdkDir+'xbconfig','CrashDumpType=mini',"/X"+consoleIP]
+	command = [gdkDir+'xbconfig','CrashDumpType=mini',"/X"+consoleIP]
 	output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
 
 	try:
@@ -942,7 +1058,7 @@ def TestXboxProjects():
 	projects = GetFilesPathByExtension("Xbox/Examples_3","exe",False)
 	fileList = []
 	for proj in projects:
-		if "XBOXOne Visual Studio 2017" in proj:# and "Release" in proj:
+		if "XBOX Visual Studio 2017" in proj:# and "Release" in proj:
 			if "Loose" in proj:
 				fileList.append(os.path.dirname(proj))
 
@@ -950,14 +1066,14 @@ def TestXboxProjects():
 	appList = []
 	for filename in fileList:
 		#deploy app to xbox
-		command = [xdkDir+'xbapp',"deploy",filename,"/X"+consoleIP]
 		print ("Deploying: " + filename)
-		output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
-		output = output.decode('utf-8')
+		command = [gdkDir+'xbapp',"deploy",filename,"/X"+consoleIP]
+		output = XBoxCommand(command, False)
+
 		#Extract App Name from output
 		appName = "InvalidAppName"
-		for item in output.split("\n"):
-			if "App" in item:
+		for item in output:
+			if "Game" in item:
 				appName = item.strip()
 				appList.append(appName)
 				print ("Successfully deployed: " + appName)
@@ -969,18 +1085,18 @@ def TestXboxProjects():
 
 	#Launch the deployed apps
 	for appName in appList:
-		command = [xdkDir+'xbapp',"launch","/X"+consoleIP, appName]
-		print ("Executing command: " + ' '.join(command))
-		output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
+		
+		command = [gdkDir+'xbapp',"launch","/X"+consoleIP, appName]
+		output = XBoxCommand(command)
 
 		#Make sure app launches
 		isRunning = int(0)
-		command = [xdkDir+'xbapp',"query","/X"+consoleIP, appName]
-		output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
-		for s in output.split():
-			if s.isdigit():
-				isRunning = int(s)
-				print ("The operation completed successfully")
+		command = [gdkDir+'xbapp',"query","/X"+consoleIP, appName]
+		output = XBoxCommand(command, False)
+		
+		if 'running' in output[0]:
+			isRunning = 1
+			print ("The operation completed successfully")
 
 		if isRunning == 0:
 			errorOccured = True
@@ -990,18 +1106,18 @@ def TestXboxProjects():
 
 		#Check if app terminatese or times out
 		timeout = time.time() + float(maxIdleTime)
-		while isRunning != 0 and time.time() < timeout:
-			output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
-			for s in output.split():
-				if s.isdigit():
-					isRunning = int(s)
+		while (isRunning != 0 or b"0x8000000A" in output) and time.time() < timeout:
+			time.sleep(5)
+			output = XBoxCommand(command, False)
+			if 'unknown' in output[0]:
+				isRunning = 0
 
 		# Timeout Error
 		if isRunning != 0:
 			errorOccured = True
 			print ("Timeout: " + appName + "\n")
-			command = [xdkDir+'xbapp',"terminate","/X"+consoleIP, appName]
-			output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
+			command = [gdkDir+'xbapp',"terminate","/X"+consoleIP, appName]
+			output = XBoxCommand(command)
 			failedTests.append({'name':appName, 'gpu':"", 'reason':"Runtime failure"})
 		else:
 			testingComplete = True
@@ -1011,20 +1127,19 @@ def TestXboxProjects():
 			rc = 1
 			while rc != 0:
 				rc = subprocess.call(command, stdin=None, stdout=FNULL, stderr=FNULL)
-			output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
-			output = output.decode('utf-8').split('.exe')
+			output = XBoxCommand(command, False)
 			
-			#Check if a new crash dump was generated
-			if (len(output) - 1 > crashDumpCount):
+			# Check if a new crash dump was generated
+			currentCrashDumpCount = len( [line for line in output if '.exe' in line] )
+			if (currentCrashDumpCount > crashDumpCount):
 				crashDumpCount = len(output) - 1
 				testingComplete = False
 		
-			# get the memory leak file path
-			memleakPath = '\\\\'+consoleIP+'\\'
+			# # get the memory leak file path
+			memleakPath = '\\\\'+consoleIP+'\\'+'SystemScratch'+'\\'+'Titles'+'\\'
 			
 			appFileName = appName.split("!")[0]
-			appNameParts = appFileName.split('_')
-			memleakPath = memleakPath + appNameParts[0]+ "_1.0.0.0_x64__" + appNameParts[1]
+			memleakPath = memleakPath + appFileName
 			memleakPath = GetFilesPathByExtension(memleakPath,"exe",False)
 			memleakPath = memleakPath[0].split('.exe')[0]+".memleaks"
 			
@@ -1061,7 +1176,9 @@ def TestNintendoSwitchProjects():
 	switchToolsDir = os.environ['NINTENDO_SDK_ROOT'] + '/Tools/CommandLineTools/'
 	controlTargetExe = os.path.join(switchToolsDir, "ControlTarget.exe")
 	runOnTargetExe = os.path.join(switchToolsDir, "RunOnTarget.exe")
-	
+	dumpDirectory = os.path.join(str(Path.home()), "PyBuildSwitchDumps")
+	os.makedirs(dumpDirectory, exist_ok=True)
+
 	#get paths for exe in Loose folder
 	projects = GetFilesPathByExtension("./Switch/Examples_3","nspd",True)
 	fileList = []
@@ -1071,21 +1188,48 @@ def TestNintendoSwitchProjects():
 
 	#Launch the deployed apps
 	for proj in fileList:
+		readLogProc = subprocess.Popen([controlTargetExe, "read-log"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+
 		filename = proj.split(os.path.sep)[-1]
-		command = runOnTargetExe + ' "'+proj+'"'+ ' --failure-timeout '+str(maxIdleTime)+' --pattern-failure-exit "Assert|Break|Panic|Halt|Fatal|GpuCoreDumper"'
+		command = runOnTargetExe + ' "'+proj+'"'+ ' --failure-timeout '+str(maxIdleTime)+' --pattern-failure-exit "Assert|Break|Panic|Halt|Fatal|GpuCoreDumper"' + f' -- "{dumpDirectory}"'
 		if "Debug" in proj:
 			filename = "Debug_"+filename
 		else:
 			filename = "Release_"+filename
 		retCode = ExecuteTest(command, filename, False)
+
 		command = [controlTargetExe, "terminate"]
 		ExecuteCommand(command, None)
 		if retCode != 0:
 			command = [controlTargetExe, "reset"]
 			ExecuteCommand(command, None)
 			errorOccured = True
-		#print(output)
 		
+		try:
+			log = str(readLogProc.communicate(timeout=5)[0])
+		except subprocess.TimeoutExpired:
+			readLogProc.kill()
+			log = str(readLogProc.communicate()[0])
+		print(log)
+
+		if retCode != 0:
+			try:
+				print("***\nStack Trace\n***")
+				nssPath = proj.rsplit(".", 1)[0] + ".nss"
+				nssPath = os.path.abspath(nssPath)
+				addr2line = os.path.join(os.environ['NINTENDO_SDK_ROOT'], 'Compilers/NX/nx/aarch64/bin/aarch64-nintendo-nx-elf-addr2line.exe')
+				dumpFilePath = os.path.join(dumpDirectory, os.path.basename(proj).rsplit(".", 1)[0] + "_stack_trace.txt")
+				with open(os.path.join(dumpFilePath)) as f:
+					numLines = int(f.readline())
+					for _ in range(numLines):
+						offset = f.readline().strip()
+						if offset == "??":
+							print("?? (unknown symbol)")
+						else:
+							subprocess.run([addr2line, "-a", "-f", "-C", "-i", "-p", "-e", f"{nssPath}", offset])
+				print("\n\n")
+			except Exception as e:
+				print(f"Failed to print stack trace due to {e}")
 
 	if errorOccured == True:
 		return -1
@@ -1113,8 +1257,18 @@ def TestOrbisProjects():
 		# delete the memory leak file before execute the app
 		if os.path.exists(memleakFile):
 			os.remove(memleakFile)
-		command = ["orbis-run.exe" ,"/debug" ,"/kill" , "/workingDirectory:" , workingDir, "/elf", filename ]
+		command = ["orbis-run.exe", "/workingDirectory:" , workingDir, "/elf", filename]
 		retCode = ExecuteTest(command, os.path.splitext(os.path.basename(filename))[0], False)
+
+		logFilePath = os.path.join(workingDir, "Resources", "app.log")
+		logFileData = ""
+		try:
+			with open(logFilePath) as f:
+				logFileData = f.read()
+				print(logFileData)
+		except Exception as e:
+			print(f"Failed to load log file due to {e}")
+
 		leaksDetected = FindMemoryLeaks(memleakFile)
 		if retCode == 0 and leaksDetected == True:
 			lastSuccess = successfulTests.pop()
@@ -1122,12 +1276,141 @@ def TestOrbisProjects():
 			errorOccured = True
 
 		if retCode != 0:
+			processIdBegin = logFileData.find("Process ID: ")
+			if processIdBegin >= 0:
+				processIdStr = logFileData[processIdBegin + 12:processIdBegin + 20]
+				processId = int(processIdStr, base=16)
+
+				# Find the most recent orbisdmp file that matches process id
+				coredumpRoot = os.path.join("O:\\", "192.168.1.16", "data", "sce_coredumps")
+				coredumpDirectories = [d for d in os.listdir(coredumpRoot) if os.path.isdir(os.path.join(coredumpRoot, d))]
+				coredumpDirectories.sort(key=lambda x: int(x[len(x) - 10:]), reverse=True)
+				latestCoredumpDirectories = coredumpDirectories[:5]
+				targetDumpFile = None
+				for d in latestCoredumpDirectories:
+					dumpFiles = list(Path(os.path.join(coredumpRoot, d)).glob("*.orbisdmp"))
+					if len(dumpFiles) > 0:
+						dumpFile = dumpFiles[0]
+						dumpProcessId = int(dumpFile.name[23:31], base=16)
+						if processId == dumpProcessId:
+							targetDumpFile = dumpFile
+							break
+				
+				# Analyze coredump
+				if targetDumpFile != None:
+					print("\n***\nCrash Log\n***\n")
+					print(f"Dump file path: {targetDumpFile}")
+					try:
+						tempScriptFilename = "orbis_coreview_temp_script.txt"
+						with open(tempScriptFilename, "w+") as f:
+							f.write(f'corefile load "{str(targetDumpFile.absolute())}"\n')
+							f.write("thread list\n")
+							f.write("process analysis\n")
+							f.write("stack list\n")
+							f.write(".quit")
+						coreviewPath = os.path.join(os.environ["SCE_ROOT_DIR"], "ORBIS", "Tools", "Debugger", "bin", "x64", "orbis-coreview.exe")
+						coreviewResult = subprocess.run([coreviewPath, "--nologo", "--script", tempScriptFilename], capture_output=True)
+						crashLog = coreviewResult.stdout
+						crashLog = crashLog.decode(encoding='utf-16')
+						print(crashLog)
+						os.remove(tempScriptFilename)
+					except Exception as e:
+						print(f"Failed write a temporary coreview script file due to {e}")
+				else:
+					print("Couldn't find core dump file")
+
 			errorOccured = True
 
 	if errorOccured:
 		return -1
 
-	return 0		
+	return 0
+
+def TestProsperoProjects():
+	errorOccured = False
+	FNULL = open(os.devnull, 'w')
+	
+	#get paths for exe in Loose folder
+	projects = GetFilesPathByExtension("Prospero/Examples_3","elf",False)
+	fileList = []
+	workingDirList = []
+	errorOccured = False
+	for proj in projects:
+		if "Prospero Visual Studio 2017" in proj and "Release" in proj:
+			fileList.append(proj)
+			if "Unit_Tests" in proj:
+				workingDirList.append(os.path.dirname(os.path.dirname(os.path.dirname(proj))) + "/" + os.path.splitext(os.path.basename(proj))[0])
+			else:
+				workingDirList.append(os.path.dirname(os.path.dirname(os.path.dirname(proj))))
+
+	for filename, workingDir in zip(fileList, workingDirList):
+		workingDir = workingDir.replace('\\', '/')
+		filename = filename.replace('\\', '/')
+		appName = os.path.splitext(os.path.basename(filename))[0]
+		artifactDir = os.environ.get('TEMP') + "/The-Forge/Prospero/" + appName + "/"
+		memleakFile = artifactDir + "app.memleaks"
+		logFilePath = artifactDir + "app.log"
+		# delete the memory leak file before execute the app
+		if os.path.exists(memleakFile):
+			os.remove(memleakFile)
+		workingDirArg = "/workingDirectory:\"" + workingDir + "\""
+		elfArg = "/elf \"" + filename + "\""
+		command = "prospero-run.exe /debug " + workingDirArg + " " + elfArg
+		retCode = ExecuteTest(command, appName, False)
+
+		logFileData = ""
+		try:
+			with open(logFilePath) as f:
+				logFileData = f.read()
+				print(logFileData)
+		except Exception as e:
+			print(f"Failed to load log file due to {e}")
+
+		leaksDetected = FindMemoryLeaks(memleakFile)
+		if retCode == 0 and leaksDetected == True:
+			lastSuccess = successfulTests.pop()
+			failedTests.append({'name':lastSuccess['name'], 'gpu':lastSuccess['gpu'], 'reason':"Memory Leaks"})
+			errorOccured = True
+
+		if retCode != 0:
+			processDmpCmd = [ "prospero-ctrl", "process-dump", "trigger", appName + ".elf", artifactDir, "FULL" ]
+			ExecuteCommand(processDmpCmd, None)
+
+			targetDumpFile = None
+			dumpFiles = list(Path(artifactDir).glob("*.prosperodmp"))
+			if len(dumpFiles) > 0:
+				dumpFile = dumpFiles[0]
+				targetDumpFile = dumpFile
+			
+			# Analyze coredump
+			if targetDumpFile != None:
+				print("\n***\nCrash Log\n***\n")
+				print(f"Dump file path: {targetDumpFile}")
+				try:
+					tempScriptFilename = "prospero_coreview_temp_script.txt"
+					with open(tempScriptFilename, "w+") as f:
+						f.write(f'corefile load "{str(targetDumpFile.absolute())}"\n')
+						f.write("thread list\n")
+						f.write("process analysis\n")
+						f.write("stack list\n")
+						f.write(".quit")
+					coreviewPath = os.path.join(os.environ["SCE_ROOT_DIR"], "Prospero", "Tools", "Debugger", "bin", "x64", "prospero-coreview.exe")
+					coreviewResult = subprocess.run([coreviewPath, "--nologo", "--script", tempScriptFilename], capture_output=True)
+					crashLog = coreviewResult.stdout
+					crashLog = crashLog.decode(encoding='utf-16')
+					print(crashLog)
+					os.remove(tempScriptFilename)
+				except Exception as e:
+					print(f"Failed write a temporary coreview script file due to {e}")
+			else:
+				print("Couldn't find core dump file")
+
+			errorOccured = True
+
+	if errorOccured:
+		return -1
+
+	return 0    
 
 def AndroidADBCheckRunningProcess(adbCommand, processName, packageName):
 	output = processName
@@ -1344,7 +1627,7 @@ def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSB
 		skipAura = True
 	
 
-	xboxPlatform = "Durango"
+	xboxPlatform = "Gaming.Xbox.XboxOne.x64"
 
 	if isSwitch:
 		projects = GetFilesPathByExtension("./Switch/Examples_3/","sln",False)
@@ -1395,6 +1678,8 @@ def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSB
 	
 	for proj in fileList:
 		if "orbis" in proj.lower():
+			continue
+		elif "prospero" in proj.lower():
 			continue
 		#get current path for sln file
 		#strip the . from ./ in the path
@@ -1546,6 +1831,93 @@ def BuildOrbisProjects(skipDebug, skipRelease, printMSBuild):
 		return -1
 	return 0
 
+def BuildProsperoProjects(skipDebug, skipRelease, printMSBuild):
+	errorOccured = False
+	msBuildPath = FindMSBuild17()
+
+	configurations = ["Debug", "Release"]
+	platform = "Prospero"
+	
+	if skipDebug:
+		configurations.remove("Debug")
+		
+	if skipRelease:
+		configurations.remove("Release")
+
+	#xboxConfigurations = ["Debug","Release"]
+
+	if msBuildPath == "":
+		print("Could not find MSBuild 17, Is Visual Studio 17 installed ?")
+		sys.exit(-1)
+
+	projects = []#GetFilesPathByExtension("./Jenkins/","buildproj",False)
+	
+	#if MSBuild tasks were not found then parse all projects
+	if len(projects) == 0:
+		projects = GetFilesPathByExtension("./Prospero/Examples_3/","sln",False)
+
+	fileList = []
+	msbuildVerbosity = "/verbosity:minimal"
+	msbuildVerbosityClp = "/clp:ErrorsOnly;WarningsOnly;Summary"
+	
+	if printMSBuild:
+		msbuildVerbosity = "/verbosity:normal"
+		msbuildVerbosityClp = "/clp:Summary;PerformanceSummary"
+
+	for proj in projects:
+		if "Aura" in proj:
+			continue
+		if "Prospero" in proj:
+			fileList.append(proj)
+				
+	for proj in fileList:
+		#get current path for sln file
+		#strip the . from ./ in the path
+		#replace / by the os separator in case we need // or \\
+		rootPath = os.getcwd() + proj.strip('.')
+		rootPath = rootPath.replace("/",os.sep)
+		#need to get root folder of path by stripping the filename from path
+		rootPath = rootPath.split(os.sep)[0:-1]
+		rootPath = os.sep.join(rootPath)
+
+		#save root directory where python is executed from
+		currDir = os.getcwd()
+		#change working directory to sln file
+		os.chdir(rootPath)
+
+		#strip extension
+		filename = proj.split(os.sep)[-1]
+		
+		#hard code the configurations for Aura for now as it's not implemented for Vulkan runtime
+		if filename == "Aura.sln":
+			if "DebugVk" in configurations : configurations.remove("DebugVk")
+			if "ReleaseVk" in configurations : configurations.remove("ReleaseVk")
+			if "DebugDx11" in configurations : configurations.remove("DebugDx11")
+			if "ReleaseDx11" in configurations : configurations.remove("ReleaseDx11")
+		elif filename == "VisibilityBuffer.sln":
+			if "DebugDx11" in configurations : configurations.remove("DebugDx11")
+			if "ReleaseDx11" in configurations : configurations.remove("ReleaseDx11")
+		elif filename == "HLSLParser.sln":
+			configurations = ["Debug", "Release"]
+			
+		#for conf in configurations:
+		if ".sln" in filename:
+			for conf in configurations:
+				command = [msBuildPath ,filename,"/p:Configuration="+conf,"/p:Platform=" + platform,"/m","/p:BuildInParallel=false","/nr:false",msbuildVerbosityClp,msbuildVerbosity,"/t:Build"]
+				retCode = ExecuteBuild(command, filename,conf, platform)
+		else:
+			command = [msBuildPath ,filename,"/p:Platform=" + platform,"/m", "/nr:false",msbuildVerbosityClp,msbuildVerbosity,"/t:Build"]
+			retCode = ExecuteBuild(command, filename,"All Configurations", platform)
+		
+		if retCode != 0:
+			errorOccured = True
+				
+		os.chdir(currDir)
+
+	if errorOccured == True:
+		return -1
+	return 0
+
 #check memory leak file using regex
 #searchs for %d memory leaks found:
 #if it finds that string it will print the contents of the leaks file
@@ -1613,6 +1985,7 @@ def MainLogic():
 	parser.add_argument('--xboxonly', action="store_true", help='Enable xbox building')
 	parser.add_argument('--switchNX', action="store_true", help='Enable Switch building')
 	parser.add_argument('--orbis', action="store_true", default=False, help='Enable orbis building')
+	parser.add_argument('--prospero', action="store_true", default=False, help='Enable prospero building')
 	parser.add_argument("--skipiosbuild", action="store_true", default=False, help='Disable iOS building')
 	parser.add_argument("--skipmacosbuild", action="store_true", default=False, help='Disable Macos building')
 	parser.add_argument("--skipioscodesigning", action="store_true", default=False, help='Disable iOS code signing during build stage')
@@ -1652,13 +2025,13 @@ def MainLogic():
 	
 	returnCode = 0
 	
-	if (arguments.xbox is not True and arguments.xboxonly is not True) or "XboxOneXDKLatest" not in os.environ:
+	if (arguments.xbox is not True and arguments.xboxonly is not True) or "GXDKLatest" not in os.environ:
 		arguments.xbox = False
 		arguments.xboxonly = False
 	
 	#if we doing xbox only make sure the --xbox argument is enabled.
 	if arguments.xboxonly:
-		arguments.xbox = True
+		arguments.xbox = True 
 
 	setDefines = arguments.defines
 	setMemTracker = arguments.memtracking
@@ -1685,6 +2058,8 @@ def MainLogic():
 		elif systemOS == "Windows":
 			if arguments.orbis == True:
 				returnCode = TestOrbisProjects()
+			elif arguments.prospero == True:
+				returnCode = TestProsperoProjects()
 			elif arguments.xbox == True:
 				returnCode = TestXboxProjects()
 			elif arguments.switchNX == True:
@@ -1699,6 +2074,7 @@ def MainLogic():
 		#Clean before Building removing everything but the art folder
 		if arguments.clean == True:
 			print("Cleaning the repo")
+			os.environ["GIT_ASK_YESNO"] = "false"
 			ExecuteCommand(["git", "clean" , "--exclude=Art","--exclude=/**/OpenSource/*", "-fdx"],sys.stdout)
 			ExecuteCommand(["git", "submodule", "foreach", "--recursive","git clean -fdfx"], sys.stdout)
 		#Build for Mac OS (Darwin system)
@@ -1709,6 +2085,8 @@ def MainLogic():
 				returnCode = BuildAndroidProjects(arguments.skipdebugbuild, arguments.skipreleasebuild, arguments.printbuildoutput)
 			elif arguments.orbis:
 				returnCode = BuildOrbisProjects(arguments.skipdebugbuild, arguments.skipreleasebuild, arguments.printbuildoutput)
+			elif arguments.prospero:
+				returnCode = BuildProsperoProjects(arguments.skipdebugbuild, arguments.skipreleasebuild, arguments.printbuildoutput)
 			else:
 				returnCode = BuildWindowsProjects(arguments.xbox, arguments.xboxonly, arguments.skipdebugbuild, arguments.skipreleasebuild, arguments.printbuildoutput, arguments.skipaura, arguments.skipdx11, arguments.switchNX)
 		elif systemOS.lower() == "linux" or systemOS.lower() == "linux2":

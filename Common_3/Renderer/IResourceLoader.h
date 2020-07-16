@@ -33,11 +33,15 @@
 #include "../OS/Core/Atomics.h"
 #include "../OS/Interfaces/IFileSystem.h"
 #include "../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_base.h"
-#include "../Renderer/ResourceLoaderInternalTypes.h"
 
-typedef struct BufferUpdateDesc BufferUpdateDesc;
-typedef struct BufferLoadDesc BufferLoadDesc;
-typedef struct RenderMesh RenderMesh;
+typedef struct MappedMemoryRange
+{
+	uint8_t* pData;
+	Buffer*  pBuffer;
+	uint64_t mOffset;
+	uint64_t mSize;
+	uint32_t mFlags;
+} MappedMemoryRange;
 
 // MARK: - Resource Loading
 
@@ -63,58 +67,19 @@ typedef struct BufferLoadDesc
 	const void* pData;
 	BufferDesc  mDesc;
 	/// Force Reset buffer to NULL
-	bool mForceReset;
-	/// Whether to skip uploading any data to the buffer.
-	/// Automatically set to true if using addResource (rather than begin/endAddResource)
-	/// with pData = NULL and mForceReset = false
-	bool mSkipUpload;
-	
-	BufferUpdateInternalData mInternalData;
+	bool        mForceReset;
 } BufferLoadDesc;
-
-typedef struct RawImageData
-{
-	uint8_t* pRawData;
-	TinyImageFormat mFormat;
-	uint32_t mWidth, mHeight, mDepth, mArraySize, mMipLevels;
-	bool mMipsAfterSlices;
-	
-	// The stride between subsequent rows.
-	// If using a beginUpdateResource/endUpdateResource pair,
-	// copies to pRawData should use this stride.
-	// A stride of 0 means the data is tightly packed.
-	uint32_t mRowStride;
-} RawImageData;
-
-typedef struct BinaryImageData
-{
-    void* pBinaryData;
-    size_t mSize;
-    const char* pExtension;
-} BinaryImageData;
 
 typedef struct TextureLoadDesc
 {
-	Texture**    ppTexture;
-	
+	Texture**            ppTexture;
 	/// Load empty texture
-	TextureDesc* pDesc;
-    
-	/// Load texture from disk
-	const Path* pFilePath;
-	uint32_t    mNodeIndex;
-	/// Load texture from raw data
-	RawImageData* pRawImageData;
-	/// Load texture from binary data (with header)
-	BinaryImageData* pBinaryImageData;
-
-	// Following is ignored if pDesc != NULL.  pDesc->mFlags will be considered instead.
+	TextureDesc*         pDesc;
+	/// Load texture from a path
+	const Path*          pFilePath;
+	uint32_t             mNodeIndex;
+	/// Following is ignored if pDesc != NULL.  pDesc->mFlags will be considered instead.
 	TextureCreationFlags mCreationFlag;
-
-	struct
-	{
-		MappedMemoryRange mMappedRange;
-	} mInternalData;
 } TextureLoadDesc;
 
 typedef struct Geometry
@@ -163,6 +128,11 @@ typedef struct Geometry
 
 	uint32_t                    mPadA;
 	uint32_t                    mPadB;
+#if defined(_WINDOWS)
+#if !defined(_WIN64)
+	uint32_t                    mPadC;
+#endif
+#endif
 } Geometry;
 static_assert(sizeof(Geometry) % 16 == 0, "GLTFContainer size must be a multiple of 16");
 
@@ -213,29 +183,72 @@ typedef struct BufferUpdateDesc
 	/// endUpdateResource(&update, &token);
 	void*                    pMappedData;
 
-	// Internal
-	BufferUpdateInternalData mInternalData;
-} BufferUpdateDesc;
-
-typedef struct TextureUpdateDesc
-{
-	Texture* 		pTexture;
-	RawImageData* 	pRawImageData;
-	
-	void* pMappedData;
+	/// Internal
 	struct
 	{
 		MappedMemoryRange mMappedRange;
-	} mInternalData;
+	} mInternal;
+} BufferUpdateDesc;
+
+/// #NOTE: Only use for procedural textures which are created on CPU (noise textures, font texture, ...)
+typedef struct TextureUpdateDesc
+{
+	Texture*              pTexture;
+	uint32_t              mMipLevel;
+	uint32_t              mArrayLayer;
+
+	/// To be filled by the caller
+	/// Example:
+	/// BufferUpdateDesc update = { pTexture, 2, 1 };
+	/// beginUpdateResource(&update);
+	/// Row by row copy is required if mDstRowStride > mSrcRowStride. Single memcpy will work if mDstRowStride == mSrcRowStride
+	/// 2D
+	/// for (uint32_t r = 0; r < update.mRowCount; ++r)
+	///     memcpy(update.pMappedData + r * update.mDstRowStride, srcPixels + r * update.mSrcRowStride, update.mSrcRowStride);
+	/// 3D
+	/// for (uint32_t z = 0; z < depth; ++z)
+	/// {
+	///     uint8_t* dstData = update.pMappedData + update.mDstSliceStride * z;
+	///     uint8_t* srcData = srcPixels + update.mSrcSliceStride * z;
+	///     for (uint32_t r = 0; r < update.mRowCount; ++r)
+	///         memcpy(dstData + r * update.mDstRowStride, srcData + r * update.mSrcRowStride, update.mSrcRowStride);
+	/// }
+	/// endUpdateResource(&update, &token);
+	uint8_t*              pMappedData;
+	/// Size of each row in destination including padding - Needs to be respected otherwise texture data will be corrupted if dst row stride is not the same as src row stride
+	uint32_t              mDstRowStride;
+	/// Number of rows in this slice of the texture
+	uint32_t              mRowCount;
+	/// Src row stride for convenience (mRowCount * width * texture format size)
+	uint32_t              mSrcRowStride;
+	/// Size of each slice in destination including padding - Use for offsetting dst data updating 3D textures
+	uint32_t              mDstSliceStride;
+	/// Size of each slice in src - Use for offsetting src data when updating 3D textures
+	uint32_t              mSrcSliceStride;
+
+	/// Internal
+	struct
+	{
+		MappedMemoryRange mMappedRange;
+	} mInternal;
 } TextureUpdateDesc;
+
+typedef enum ShaderStageLoadFlags
+{
+	SHADER_STAGE_LOAD_FLAG_NONE = 0x0,
+	/// D3D12 only - Enable passing primitive id to pixel shader
+	SHADER_STAGE_LOAD_FLAG_ENABLE_PS_PRIMITIVEID = 0x1,
+} ShaderStageLoadFlags;
+MAKE_ENUM_FLAG(uint32_t, ShaderStageLoadFlags);
 
 typedef struct ShaderStageLoadDesc
 {
-	const char*         pFileName;
-	ShaderMacro*        pMacros;
-	uint32_t            mMacroCount;
-	ResourceDirEnum   mRoot;
-    const char*         pEntryPointName;
+	const char*          pFileName;
+	ShaderMacro*         pMacros;
+	uint32_t             mMacroCount;
+	ResourceDirEnum      mRoot;
+	const char*          pEntryPointName;
+	ShaderStageLoadFlags mFlags;
 } ShaderStageLoadDesc;
 
 typedef struct ShaderLoadDesc
@@ -243,6 +256,12 @@ typedef struct ShaderLoadDesc
 	ShaderStageLoadDesc mStages[SHADER_STAGE_COUNT];
 	ShaderTarget        mTarget;
 } ShaderLoadDesc;
+
+typedef struct PipelineCacheLoadDesc
+{
+	const Path*         pPath;
+	PipelineCacheFlags  mFlags;
+} PipelineCacheLoadDesc;
 
 typedef struct SyncToken
 {
@@ -306,3 +325,7 @@ void waitForToken(const SyncToken* token);
 
 /// Either loads the cached shader bytecode or compiles the shader to create new bytecode depending on whether source is newer than binary
 void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** pShader);
+
+/// Save/Load pipeline cache from disk
+void addPipelineCache(Renderer* pRenderer, const PipelineCacheLoadDesc* pDesc, PipelineCache** ppPipelineCache);
+void savePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache, const Path* pPath);

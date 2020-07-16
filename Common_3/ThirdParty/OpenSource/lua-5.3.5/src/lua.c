@@ -14,7 +14,7 @@
 
 #include "lprefix.h"
 
-#ifdef ORBIS
+#if defined(ORBIS) || defined(PROSPERO)
 #include <machine/signal.h>
 #include <sys/signal.h>
 #else

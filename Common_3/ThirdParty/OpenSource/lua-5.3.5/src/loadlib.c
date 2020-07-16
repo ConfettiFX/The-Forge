@@ -10,7 +10,7 @@
 
 #define loadlib_c
 #define LUA_LIB
-#ifndef ORBIS
+#if !defined(ORBIS) && !defined(PROSPERO)
 #include "lprefix.h"
 
 
@@ -149,7 +149,7 @@ static lua_CFunction lsys_sym (lua_State *L, void *lib, const char *sym) {
 
 #include <windows.h>
 
-#ifdef _DURANGO
+#if defined(XBOX)
 #include <WinBase.h>
 #endif
 
@@ -189,7 +189,7 @@ static void setprogdir (lua_State *L) {
 static void pusherror (lua_State *L) {
   int error = GetLastError();
   char buffer[128];
-#ifndef _DURANGO
+#if !defined(XBOX)
   if (FormatMessageA(FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM,
       NULL, error, 0, buffer, sizeof(buffer)/sizeof(char), NULL))
     lua_pushstring(L, buffer);
@@ -305,7 +305,7 @@ static void setpath (lua_State *L, const char *fieldname,
                                    const char *envname,
                                    const char *dft) {
   const char *nver = lua_pushfstring(L, "%s%s", envname, LUA_VERSUFFIX);
-#ifdef _DURANGO
+#if defined(XBOX)
   const char *path = NULL;  /* use versioned name */
 #else
   const char *path = getenv(nver);  /* use versioned name */
