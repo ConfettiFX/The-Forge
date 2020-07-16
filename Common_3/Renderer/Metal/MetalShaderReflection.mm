@@ -174,7 +174,7 @@ int getSizeFromDataType(MTLDataType dataType)
 	return -1;
 }
 
-bool startsWith(const char* str, const char* preffix) { return strncmp(preffix, str, strlen(preffix)) == 0; }
+bool startsWith(const char* str, const char* prefix) { return strncmp(prefix, str, strlen(prefix)) == 0; }
 
 bool isInputVertexBuffer(const BufferInfo& bufferInfo, ShaderStage shaderStage)
 {
@@ -592,7 +592,7 @@ void mtl_createShaderReflection(
 	for (uint32_t i = 0; i < reflectionInfo.buffers.size(); ++i)
 	{
 		const BufferInfo& bufferInfo = reflectionInfo.buffers[i];
-		// The name of the vertex buffers declared as stage_in are internally named by Metal starting with preffix "vertexBuffer."
+		// The name of the vertex buffers declared as stage_in are internally named by Metal starting with prefix "vertexBuffer."
 		ASSERT(!isInputVertexBuffer(bufferInfo, shaderStage));
 		
         if (bufferInfo.isArgBuffer)

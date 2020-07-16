@@ -1129,7 +1129,7 @@ typedef struct NullDescriptors
 	Sampler* pDefaultSampler;
 	Mutex    mSubmitMutex;
 
-	// #TODO - Remove after we have a better way to specifiy initial resource state
+	// #TODO - Remove after we have a better way to specify initial resource state
 	// Unlike DX12, Vulkan textures start in undefined layout.
 	// With this, we transition them to the specified layout so app code doesn't have to worry about this
 	Mutex    mInitialTransitionMutex;
@@ -2005,7 +2005,7 @@ void CreateInstance(const char* app_name,
 			if (layerFound == false)
 			{
 				internal_log(LOG_TYPE_WARN, userDefinedInstanceLayers[i], "vkinstance-layer-missing");
-				// deleate layer and get new index
+				// delete layer and get new index
 				i = (uint32_t)(
 					layerTemp.erase(layerTemp.begin() + i) - layerTemp.begin());
 			}
@@ -2046,7 +2046,7 @@ void CreateInstance(const char* app_name,
 							gDebugUtilsExtension = true;
 #endif
 						instanceExtensionCache[extension_count++] = wantedInstanceExtensions[k];
-						// clear wanted extenstion so we dont load it more then once
+						// clear wanted extension so we dont load it more then once
 						wantedInstanceExtensions[k] = "";
 						break;
 					}
@@ -2071,7 +2071,7 @@ void CreateInstance(const char* app_name,
 						if (strcmp(wantedInstanceExtensions[k], properties[j].extensionName) == 0)
 						{
 							instanceExtensionCache[extension_count++] = wantedInstanceExtensions[k];
-							// clear wanted extenstion so we dont load it more then once
+							// clear wanted extension so we dont load it more then once
 							//gVkWantedInstanceExtensions[k] = "";
 							if (strcmp(wantedInstanceExtensions[k], VK_KHR_DEVICE_GROUP_CREATION_EXTENSION_NAME) == 0)
 								gDeviceGroupCreationExtension = true;
@@ -2612,7 +2612,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	vkGetPhysicalDeviceFeatures2(pRenderer->mVulkan.pVkActiveGPU, &gpuFeatures2);
 #endif
 
-	// need a queue_priorite for each queue in the queue family we create
+	// need a queue_priority for each queue in the queue family we create
 	uint32_t queueFamiliesCount = queueFamilyPropertyCount[gpuIndex];
 	VkQueueFamilyProperties* queueFamiliesProperties = queueFamilyProperties[gpuIndex];
 	constexpr uint32_t kMaxQueueFamilies = 16;
@@ -3097,7 +3097,7 @@ void vk_addSemaphore(Renderer* pRenderer, Semaphore** ppSemaphore)
 	add_info.pNext = NULL;
 	add_info.flags = 0;
 	CHECK_VKRESULT(vkCreateSemaphore(pRenderer->mVulkan.pVkDevice, &add_info, &gVkAllocationCallbacks, &(pSemaphore->mVulkan.pVkSemaphore)));
-	// Set signal inital state.
+	// Set signal initial state.
 	pSemaphore->mVulkan.mSignaled = false;
 	
 	*ppSemaphore = pSemaphore;
@@ -5801,7 +5801,7 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
 		vs.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 		vs.pNext = NULL;
 		vs.flags = 0;
-		// we are using dynimic viewports but we must set the count to 1
+		// we are using dynamic viewports but we must set the count to 1
 		vs.viewportCount = 1;
 		vs.pViewports = NULL;
 		vs.scissorCount = 1;
@@ -7775,7 +7775,7 @@ void vk_addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppText
 			lastBlockExtent.height = ((extent.height % imageGranularity.height) ? extent.height % imageGranularity.height : imageGranularity.height);
 			lastBlockExtent.depth = ((extent.depth % imageGranularity.depth) ? extent.depth % imageGranularity.depth : imageGranularity.depth);
 
-			// Alllocate memory for some blocks
+			// Allocate memory for some blocks
 			uint32_t index = 0;
 			for (uint32_t z = 0; z < sparseBindCounts.depth; z++)
 			{
