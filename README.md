@@ -5,7 +5,7 @@ The Forge is a cross-platform rendering framework supporting
   * Windows 10 
      * with DirectX 12 / Vulkan 1.1
      * with DirectX Ray Tracing API
-     * DirectX 11 Fallback Layer for Windows 7 support (not extensively tested)
+     * DirectX 11 Fallback Layer for Windows 7 support
   * Linux Ubuntu 18.04 LTS with Vulkan 1.1 and RTX Ray Tracing API
 - Android Pie with Vulkan 1.1
 - macOS / iOS / iPad OS with Metal 2.2
