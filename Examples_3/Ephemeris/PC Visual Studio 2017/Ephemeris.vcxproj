@@ -286,8 +286,31 @@
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>set SHADER_DIR=D3D12
+if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
+if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
+
+:: Copy Fonts
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Resources\Fonts\*.otf" "$(OutDir)Fonts\"
+
+:: Copy Shader sources
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\Sky\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\SpaceObjects\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\Terrain\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\VolumetricClouds\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+
+:: Copy Textures
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Textures\*.dds" "$(OutDir)Textures\Sky\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Textures\*.dds" "$(OutDir)Textures\SpaceObjects\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Textures\*.dds" "$(OutDir)Textures\Terrain\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Textures\*.r32" "$(OutDir)Textures\Terrain\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Textures\*.dds" "$(OutDir)Textures\VolumetricClouds\"
+
+:: Copy GPUCfg file
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\GPUCfg\*.*" "$(OutDir)GPUCfg\"</Command>
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>
@@ -324,8 +347,31 @@
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>set SHADER_DIR=D3D12
+if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
+if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
+
+:: Copy Fonts
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Resources\Fonts\*.otf" "$(OutDir)Fonts\"
+
+:: Copy Shader sources
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\Sky\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\SpaceObjects\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\Terrain\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\VolumetricClouds\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+
+:: Copy Textures
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Textures\*.dds" "$(OutDir)Textures\Sky\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Textures\*.dds" "$(OutDir)Textures\SpaceObjects\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Textures\*.dds" "$(OutDir)Textures\Terrain\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Textures\*.r32" "$(OutDir)Textures\Terrain\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Textures\*.dds" "$(OutDir)Textures\VolumetricClouds\"
+
+:: Copy GPUCfg file
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\GPUCfg\*.*" "$(OutDir)GPUCfg\"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -372,8 +418,31 @@
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>set SHADER_DIR=D3D12
+if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
+if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
+
+:: Copy Fonts
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Resources\Fonts\*.otf" "$(OutDir)Fonts\"
+
+:: Copy Shader sources
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\Sky\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\SpaceObjects\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\Terrain\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\VolumetricClouds\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+
+:: Copy Textures
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Textures\*.dds" "$(OutDir)Textures\Sky\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Textures\*.dds" "$(OutDir)Textures\SpaceObjects\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Textures\*.dds" "$(OutDir)Textures\Terrain\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Textures\*.r32" "$(OutDir)Textures\Terrain\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Textures\*.dds" "$(OutDir)Textures\VolumetricClouds\"
+
+:: Copy GPUCfg file
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\GPUCfg\*.*" "$(OutDir)GPUCfg\"</Command>
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>
@@ -414,8 +483,31 @@
       <AdditionalDependencies>Xinput9_1_0.lib;ws2_32.lib;gainputstatic.lib;RendererDX12.lib;OS.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>set SHADER_DIR=D3D12
+if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
+if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
+
+:: Copy Fonts
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Resources\Fonts\*.otf" "$(OutDir)Fonts\"
+
+:: Copy Shader sources
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\Sky\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\SpaceObjects\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\Terrain\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\VolumetricClouds\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+
+:: Copy Textures
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Sky\resources\Textures\*.dds" "$(OutDir)Textures\Sky\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\SpaceObjects\resources\Textures\*.dds" "$(OutDir)Textures\SpaceObjects\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Textures\*.dds" "$(OutDir)Textures\Terrain\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\Terrain\resources\Textures\*.r32" "$(OutDir)Textures\Terrain\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\VolumetricClouds\resources\Textures\*.dds" "$(OutDir)Textures\VolumetricClouds\"
+
+:: Copy GPUCfg file
+xcopy /Y /S /D "$(ProjectDir)..\..\..\..\Custom-Middleware\Ephemeris\src\EphemerisExample\GPUCfg\*.*" "$(OutDir)GPUCfg\"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>

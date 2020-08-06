@@ -610,8 +610,8 @@ inline Vector4::Vector4(__m128 vf4)
     mVec128 = vf4;
 }
 
-//========================================= #ConfettiMathExtensionsBegin ================================================
-//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
 inline const Vector4 Vector4::fromVector4Int(const Vector4Int vecInt)
 {
@@ -620,8 +620,8 @@ inline const Vector4 Vector4::fromVector4Int(const Vector4Int vecInt)
 	return ret;
 }
 
-//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
 
 inline const Vector4 Vector4::xAxis()
 {
@@ -643,8 +643,8 @@ inline const Vector4 Vector4::wAxis()
     return Vector4(sseUnitVec0001());
 }
 
-//========================================= #ConfettiMathExtensionsBegin ================================================
-//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
 inline const Vector4 Vector4::zero()
 {
@@ -656,8 +656,8 @@ inline const Vector4 Vector4::one()
     return Vector4(_mm_setr_ps(1.0f, 1.0f, 1.0f, 1.0f));
 }
 
-//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
 
 inline const Vector4 lerp(float t, const Vector4 & vec0, const Vector4 & vec1)
 {
@@ -906,8 +906,8 @@ inline const Vector4 recipPerElem(const Vector4 & vec)
     return Vector4(_mm_rcp_ps(vec.get128()));
 }
 
-//========================================= #ConfettiMathExtensionsBegin ================================================
-//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
 inline const Vector4 sqrtPerElem(const Vector4 & vec)
 {
@@ -939,8 +939,8 @@ inline const Vector4 aCos(const Vector4& arg)
     return Vector4(sseACosf(arg.get128()));
 }
 
-//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
 
 inline const Vector4 absPerElem(const Vector4 & vec)
 {
@@ -1021,8 +1021,8 @@ inline const Vector4 select(const Vector4 & vec0, const Vector4 & vec1, const Bo
     return Vector4(sseSelect(vec0.get128(), vec1.get128(), select1.get128()));
 }
 
-//========================================= #ConfettiMathExtensionsBegin ================================================
-//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
 inline const Vector4Int cmpEq(const Vector4& a, const Vector4& b) {
     return _mm_castps_si128(_mm_cmpeq_ps(a.get128(), b.get128()));
@@ -1166,8 +1166,8 @@ inline void store3PtrU(const Vector4& v, float* f) {
     _mm_store_ss(f + 2, _mm_movehl_ps(v.get128(), v.get128()));
 }
 
-//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
 
 #ifdef VECTORMATH_DEBUG
 
@@ -1513,8 +1513,8 @@ inline void print(const Point3 & pnt, const char * name)
 
 #endif // VECTORMATH_DEBUG
 
-//========================================= #ConfettiMathExtensionsBegin ================================================
-//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
 #define SSE_SELECT_I(_b, _true, _false) \
   _mm_xor_si128(_false, _mm_and_si128(_b, _mm_xor_si128(_true, _false)))
@@ -1946,7 +1946,7 @@ inline Vector4Int CmpGe(const Vector4Int _a, const Vector4Int _b) {
       _mm_cmpeq_epi32(_mm_setzero_si128(), _mm_setzero_si128()));
 }
 
-//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
 // ========================================================
 // IVecIdx
 // ========================================================
@@ -2975,7 +2975,7 @@ inline void print(const UVector4 & vec, const char * name)
 }
 
 #endif // VECTORMATH_DEBUG
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
 
 } // namespace SSE
 } // namespace Vectormath

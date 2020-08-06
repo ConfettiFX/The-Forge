@@ -711,7 +711,7 @@ struct Profile
 	uint32_t nAutoClearFrames;
 	ProfileDumpType eDumpType;
 	uint32_t nDumpFrames;
-	Path* DumpPath;
+	const char* DumpFile;
 
 	int64_t nPauseTicks;
 

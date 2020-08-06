@@ -144,27 +144,34 @@ VertexLayout gVertexLayoutDefault = {};
 
 const char* pMTunerOut = "testout.txt";
 
+bool fsOpenZipFile(const ResourceDirectory resourceDir, const char* fileName, FileMode mode, IFileSystem* pOut);
+bool fsCloseZipFile(IFileSystem* pZip);
+
 class FileSystemUnitTest : public IApp
 {
 public:
 
 	bool Init()
 	{
-		// FILE PATHS
-		PathHandle programDirectory = fsGetApplicationDirectory();
-		if (!fsPlatformUsesBundledResources())
-		{
-			PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/12_ZipFileSystem");
-			fsSetResourceDirRootPath(resourceDirRoot);
+		ResourceDirectory RD_ZIP_TEXT = RD_MIDDLEWARE_3;
 
-			fsSetRelativePathForResourceDirEnum(RD_TEXTURES, "../../UnitTestResources/Textures");
-			fsSetRelativePathForResourceDirEnum(RD_MESHES, "../../UnitTestResources/Meshes");
-			fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS, "../../UnitTestResources/Fonts");
-			fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS, "../../UnitTestResources/Animation");
-			fsSetRelativePathForResourceDirEnum(RD_OTHER_FILES, "../../UnitTestResources/ZipFiles");
-			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT, "../../../../Middleware_3/Text");
-			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI, "../../../../Middleware_3/UI");
+		// FILE PATHS
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES, "ZipFiles");
+
+		IFileSystem zipFile = {};
+		if (!fsOpenZipFile(RD_OTHER_FILES, pZipFiles, FM_READ, &zipFile))
+		{
+			ASSERT("Failed to Open zip file");
+			return false;
 		}
+
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES,"CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG,     "GPUCfg");
+		fsSetPathForResourceDir(&zipFile,      RM_CONTENT, RD_ZIP_TEXT,       "");
+		fsSetPathForResourceDir(&zipFile,      RM_CONTENT, RD_TEXTURES,       "Textures");
+		fsSetPathForResourceDir(&zipFile,      RM_CONTENT, RD_MESHES,         "Meshes");
+		fsSetPathForResourceDir(&zipFile,      RM_CONTENT, RD_FONTS,          "Fonts");
 
 		// window and renderer setup
 		RendererDesc settings = { 0 };
@@ -203,16 +210,6 @@ public:
 		// Gpu profiler can only be added after initProfile.
 		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
-
-		PathHandle zipFilePath = fsGetPathInResourceDirEnum(RD_OTHER_FILES, pZipFiles);
-		FileSystem* zipFileSystem = fsCreateFileSystemFromFileAtPath(zipFilePath, FSF_READ_ONLY);
-
-		if (!zipFileSystem)
-		{
-			ASSERT("Failed to Open zip file");
-			return false;
-		}
-
 		gVertexLayoutDefault.mAttribCount = 3;
 		gVertexLayoutDefault.mAttribs[0].mSemantic = SEMANTIC_POSITION;
 		gVertexLayoutDefault.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
@@ -230,19 +227,17 @@ public:
 		gVertexLayoutDefault.mAttribs[2].mLocation = 2;
 		gVertexLayoutDefault.mAttribs[2].mOffset = 6 * sizeof(float);
 
-		PathHandle textFile0Path = fsCreatePath(zipFileSystem, pTextFileName[0]);
-		FileStream* textFile0Handle = fsOpenFile(textFile0Path, FM_READ);
-
-		if (!textFile0Handle)
+		FileStream textFile0Handle = {};
+		if (!fsOpenStreamFromPath(RD_ZIP_TEXT, pTextFileName[0], FM_READ, &textFile0Handle))
 		{
 			LOGF(LogLevel::eERROR, "\"%s\": ERROR in searching for file.", pTextFileName[0]);
 			return false;
 		}
 
-		ssize_t textFile0Size = fsGetStreamFileSize(textFile0Handle);
-		char* pDataOfFile = (char*)conf_malloc((textFile0Size + 1) * sizeof(char));
-		ssize_t bytesRead = fsReadFromStream(textFile0Handle, pDataOfFile, textFile0Size);
-		fsCloseStream(textFile0Handle);
+		ssize_t textFile0Size = fsGetStreamFileSize(&textFile0Handle);
+		char* pDataOfFile = (char*)tf_malloc((textFile0Size + 1) * sizeof(char));
+		ssize_t bytesRead = fsReadFromStream(&textFile0Handle, pDataOfFile, textFile0Size);
+		fsCloseStream(&textFile0Handle);
 
 		if (bytesRead != textFile0Size)
 		{
@@ -256,49 +251,45 @@ public:
 		//Free the data buffer which was malloc'ed
 		if (pDataOfFile != NULL)
 		{
-			conf_free(pDataOfFile);
+			tf_free(pDataOfFile);
 		}
 
-		PathHandle textureDescZipPath = fsCreatePath(zipFileSystem, pCubeTextureName[0]);
 		//Load Zip file texture
 		TextureLoadDesc textureDescZip = {};
-		textureDescZip.pFilePath = textureDescZipPath;
+		textureDescZip.pFileName = pCubeTextureName[0];
 		textureDescZip.ppTexture = &pZipTexture[0];
-		addResource(&textureDescZip, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&textureDescZip, NULL);
 
 		// Loads Skybox Textures
 		for (int i = 0; i < 6; ++i)
 		{
-			PathHandle textureDescPath = fsCreatePath(zipFileSystem, pSkyboxImageFileNames[i]);
-
 			TextureLoadDesc textureDesc = {};
-			textureDesc.pFilePath = textureDescPath;
+			textureDesc.pFileName = pSkyboxImageFileNames[i];
 			textureDesc.ppTexture = &pSkyboxTextures[i];
-			addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&textureDesc, NULL);
 		}
 
-		PathHandle modelFilePath = fsCreatePath(zipFileSystem, pModelFileName[0]);
 		GeometryLoadDesc loadDesc = {};
-		loadDesc.pFilePath = modelFilePath;
+		loadDesc.pFileName = pModelFileName[0];
 		loadDesc.ppGeometry = &pMesh;
 		loadDesc.pVertexLayout = &gVertexLayoutDefault;
-		addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&loadDesc, NULL);
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
 		{
 			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
 			return false;
 		}
 
 		ShaderLoadDesc skyShader = {};
-		skyShader.mStages[0] = { "skybox.vert", NULL, 0, RD_SHADER_SOURCES };
-		skyShader.mStages[1] = { "skybox.frag", NULL, 0, RD_SHADER_SOURCES };
+		skyShader.mStages[0] = { "skybox.vert", NULL, 0 };
+		skyShader.mStages[1] = { "skybox.frag", NULL, 0 };
 		ShaderLoadDesc basicShader = {};
-		basicShader.mStages[0] = { "basic.vert", NULL, 0, RD_SHADER_SOURCES };
-		basicShader.mStages[1] = { "basic.frag", NULL, 0, RD_SHADER_SOURCES };
+		basicShader.mStages[0] = { "basic.vert", NULL, 0 };
+		basicShader.mStages[1] = { "basic.frag", NULL, 0 };
 		ShaderLoadDesc zipTextureShader = {};
-		zipTextureShader.mStages[0] = { "zipTexture.vert", NULL, 0, RD_SHADER_SOURCES };
-		zipTextureShader.mStages[1] = { "zipTexture.frag", NULL, 0, RD_SHADER_SOURCES };
+		zipTextureShader.mStages[0] = { "zipTexture.vert", NULL, 0 };
+		zipTextureShader.mStages[1] = { "zipTexture.frag", NULL, 0 };
 
 		addShader(pRenderer, &skyShader, &pSkyboxShader);
 		addShader(pRenderer, &basicShader, &pBasicShader);
@@ -382,7 +373,7 @@ public:
 		cubiodVbDesc.mDesc.mSize = cubiodDataSize;
 		cubiodVbDesc.pData = CubePoints;
 		cubiodVbDesc.ppBuffer = &pZipTextureVertexBuffer;
-		addResource(&cubiodVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&cubiodVbDesc, NULL);
 
 		//Generate sky box vertex buffer
 		float skyBoxPoints[] = {
@@ -418,7 +409,7 @@ public:
 		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
 		skyboxVbDesc.pData = skyBoxPoints;
 		skyboxVbDesc.ppBuffer = &pSkyboxVertexBuffer;
-		addResource(&skyboxVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&skyboxVbDesc, NULL);
 
 		BufferLoadDesc ubDesc = {};
 		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -430,17 +421,14 @@ public:
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
-			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubDesc, NULL);
 		}
 		waitForAllResourceLoads();
-
-		// Close the Zip file
-		fsFreeFileSystem(zipFileSystem);
 
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 
 		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.15f);
@@ -496,6 +484,9 @@ public:
 		addInputAction(&actionDesc);
 		actionDesc = { InputBindings::BUTTON_NORTH, [](InputActionContext* ctx) { pCameraController->resetView(); return true; } };
 		addInputAction(&actionDesc);
+
+		// Close the Zip file
+		fsCloseZipFile(&zipFile);
 
 		return true;
 	}

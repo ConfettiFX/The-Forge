@@ -32,8 +32,6 @@
 
 typedef void (*WidgetCallback)();
 
-extern ResourceDirEnum RD_MIDDLEWARE_UI;
-
 struct Renderer;
 struct Texture;
 struct Shader;
@@ -110,7 +108,7 @@ public:
 			IWidget* pWidget = *it;
 			mGroupedWidgets.erase(it);
 			pWidget->~IWidget();
-			conf_free(pWidget);
+			tf_free(pWidget);
 		}
 	}
 
@@ -119,7 +117,7 @@ public:
 		for (size_t i = 0; i < mGroupedWidgets.size(); ++i)
 		{
 			mGroupedWidgets[i]->~IWidget();
-			conf_free(mGroupedWidgets[i]);
+			tf_free(mGroupedWidgets[i]);
 		}
 	}
 
@@ -829,7 +827,7 @@ typedef struct DynamicUIWidgets
 		for (size_t i = 0; i < mDynamicProperties.size(); ++i)
 		{
 			mDynamicProperties[i]->~IWidget();
-			conf_free(mDynamicProperties[i]);
+			tf_free(mDynamicProperties[i]);
 		}
 
 		mDynamicProperties.set_capacity(0);
@@ -915,7 +913,7 @@ class UIApp: public IMiddleware
 	void Update(float deltaTime);
 	void Draw(Cmd* cmd);
 
-	uint          LoadFont(const char* pFontPath, ResourceDirEnum root);
+	uint          LoadFont(const char* pFontPath);
 	GuiComponent* AddGuiComponent(const char* pTitle, const GuiDesc* pDesc);
 	void          RemoveGuiComponent(GuiComponent* pComponent);
 	void          RemoveAllGuiComponents();
@@ -972,7 +970,7 @@ class VirtualJoystickUI
 	{}
 
 	// Init resources
-	bool Init(Renderer* pRenderer, const char* pJoystickTexture, uint root);
+	bool Init(Renderer* pRenderer, const char* pJoystickTexture);
 	void Exit();
 	bool Load(RenderTarget* pScreenRT);
 	void Unload();

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<CodeLite_Project Name="OS" InternalType="Library" Version="10.0.0">
+<CodeLite_Project Name="OS" InternalType="Library" Version="11000">
   <Plugins>
     <Plugin Name="qmake">
       <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
@@ -96,35 +96,30 @@
     <File Name="../../../../Common_3/OS/Linux/LinuxTime.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Dependencies">
-	<VirtualDirectory Name="zip">
-		<File Name="../../../../Common_3/ThirdParty/OpenSource/zip/zip.cpp"/>
-	</VirtualDirectory>
     <VirtualDirectory Name="rmem">
       <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_get_module_info.cpp"/>
       <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_hook.cpp"/>
       <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_lib.cpp"/>
     </VirtualDirectory>
-	<VirtualDirectory Name="basisu">
-		<File Name="../../../../Common_3/ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp"/>
-	</VirtualDirectory>
+    <VirtualDirectory Name="basisu">
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp"/>
+    </VirtualDirectory>
   </VirtualDirectory>
   <VirtualDirectory Name="FileSystem">
-    <File Name="../../../../Common_3/OS/FileSystem/ZipFileSystem.h"/>
-    <File Name="../../../../Common_3/OS/FileSystem/ZipFileSystem.cpp"/>
-    <File Name="../../../../Common_3/OS/FileSystem/ZipFileStream.h"/>
-    <File Name="../../../../Common_3/OS/FileSystem/ZipFileStream.cpp"/>
-    <File Name="../../../../Common_3/OS/FileSystem/UnixFileSystem.h"/>
+    <File Name="../../../../Common_3/OS/FileSystem/FileSystem.cpp"/>
     <File Name="../../../../Common_3/OS/FileSystem/UnixFileSystem.cpp"/>
     <File Name="../../../../Common_3/OS/FileSystem/SystemRun.cpp"/>
-    <File Name="../../../../Common_3/OS/FileSystem/SystemFileStream.h"/>
-    <File Name="../../../../Common_3/OS/FileSystem/SystemFileStream.cpp"/>
-    <File Name="../../../../Common_3/OS/FileSystem/FileSystemInternal.h"/>
-    <File Name="../../../../Common_3/OS/FileSystem/FileSystemInternal.cpp"/>
-    <File Name="../../../../Common_3/OS/FileSystem/MemoryStream.cpp"/>
-    <File Name="../../../../Common_3/OS/FileSystem/MemoryStream.h"/>
   </VirtualDirectory>
   <Dependencies Name="Debug"/>
   <Dependencies Name="Release"/>
+  <VirtualDirectory Name="Profiler">
+    <File Name="../../../../Common_3/OS/Profiler/GpuProfiler.cpp"/>
+    <File Name="../../../../Common_3/OS/Profiler/GpuProfiler.h"/>
+    <File Name="../../../../Common_3/OS/Profiler/ProfilerBase.cpp"/>
+    <File Name="../../../../Common_3/OS/Profiler/ProfilerBase.h"/>
+    <File Name="../../../../Common_3/OS/Profiler/ProfilerHTML.h"/>
+    <File Name="../../../../Common_3/OS/Profiler/ProfilerWidgetsUI.cpp"/>
+  </VirtualDirectory>
   <Settings Type="Static Library">
     <GlobalSettings>
       <Compiler Options="" C_Options="" Assembler="">
@@ -217,12 +212,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <VirtualDirectory Name="Profiler">
-    <File Name="../../../../Common_3/OS/Profiler/GpuProfiler.cpp"/>
-    <File Name="../../../../Common_3/OS/Profiler/GpuProfiler.h"/>
-    <File Name="../../../../Common_3/OS/Profiler/ProfilerBase.cpp"/>
-    <File Name="../../../../Common_3/OS/Profiler/ProfilerBase.h"/>
-    <File Name="../../../../Common_3/OS/Profiler/ProfilerHTML.h"/>
-    <File Name="../../../../Common_3/OS/Profiler/ProfilerWidgetsUI.cpp"/>
-  </VirtualDirectory>
 </CodeLite_Project>

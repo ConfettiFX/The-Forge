@@ -171,13 +171,13 @@ void setDefaultTextures(Scene* pScene, int index)
 	m.alphaTested = false;
 
 	// default textures
-	pScene->textures[index] = (char*)conf_calloc(strlen(DEFAULT_ALBEDO) + 1, sizeof(char));
+	pScene->textures[index] = (char*)tf_calloc(strlen(DEFAULT_ALBEDO) + 1, sizeof(char));
 	strcpy(pScene->textures[index], DEFAULT_ALBEDO);
 
-	pScene->normalMaps[index] = (char*)conf_calloc(strlen(DEFAULT_NORMAL) + 1, sizeof(char));
+	pScene->normalMaps[index] = (char*)tf_calloc(strlen(DEFAULT_NORMAL) + 1, sizeof(char));
 	strcpy(pScene->normalMaps[index], DEFAULT_NORMAL);
 
-	pScene->specularMaps[index] = (char*)conf_calloc(strlen(DEFAULT_SPEC) + 1, sizeof(char));
+	pScene->specularMaps[index] = (char*)tf_calloc(strlen(DEFAULT_SPEC) + 1, sizeof(char));
 	strcpy(pScene->specularMaps[index], DEFAULT_SPEC);
 }
 
@@ -188,13 +188,13 @@ void setTextures(Scene* pScene, int index, const char* albedo, const char* specu
 	m.alphaTested = alpha;
 
 	// default textures
-	pScene->textures[index] = (char*)conf_calloc(strlen(albedo) + 1, sizeof(char));
+	pScene->textures[index] = (char*)tf_calloc(strlen(albedo) + 1, sizeof(char));
 	strcpy(pScene->textures[index], albedo);
 
-	pScene->specularMaps[index] = (char*)conf_calloc(strlen(specular) + 1, sizeof(char));
+	pScene->specularMaps[index] = (char*)tf_calloc(strlen(specular) + 1, sizeof(char));
 	strcpy(pScene->specularMaps[index], specular);
 
-	pScene->normalMaps[index] = (char*)conf_calloc(strlen(normal) + 1, sizeof(char));
+	pScene->normalMaps[index] = (char*)tf_calloc(strlen(normal) + 1, sizeof(char));
 	strcpy(pScene->normalMaps[index], normal);
 }
 
@@ -879,21 +879,21 @@ static void SetMaterials(Scene* pScene)
 		m.alphaTested = true;
 
 		// default textures
-		pScene->textures[i] = (char*)conf_calloc(strlen(DEFAULT_ALBEDO) + 1, sizeof(char));
+		pScene->textures[i] = (char*)tf_calloc(strlen(DEFAULT_ALBEDO) + 1, sizeof(char));
 		strcpy(pScene->textures[i], DEFAULT_ALBEDO);
 
-		pScene->normalMaps[i] = (char*)conf_calloc(strlen(DEFAULT_NORMAL) + 1, sizeof(char));
+		pScene->normalMaps[i] = (char*)tf_calloc(strlen(DEFAULT_NORMAL) + 1, sizeof(char));
 		strcpy(pScene->normalMaps[i], DEFAULT_NORMAL);
 
-		pScene->specularMaps[i] = (char*)conf_calloc(strlen(DEFAULT_SPEC) + 1, sizeof(char));
+		pScene->specularMaps[i] = (char*)tf_calloc(strlen(DEFAULT_SPEC) + 1, sizeof(char));
 		strcpy(pScene->specularMaps[i], DEFAULT_SPEC);
 	}
 }
 
 // Loads a scene and returns a Scene object with scene information
-Scene* loadScene(const Path* filePath, struct SyncToken* token, float scale, float offsetX, float offsetY, float offsetZ)
+Scene* loadScene(const char* fileName, SyncToken* token, float scale, float offsetX, float offsetY, float offsetZ)
 {
-	Scene* scene = (Scene*)conf_calloc(1, sizeof(Scene));
+	Scene* scene = (Scene*)tf_calloc(1, sizeof(Scene));
 
 	VertexLayout vertexLayout = {};
 	vertexLayout.mAttribCount = 4;
@@ -915,11 +915,11 @@ Scene* loadScene(const Path* filePath, struct SyncToken* token, float scale, flo
 	vertexLayout.mAttribs[3].mLocation = 3;
 
 	GeometryLoadDesc loadDesc = {};
-	loadDesc.pFilePath = filePath;
+	loadDesc.pFileName = fileName;
 	loadDesc.ppGeometry = &scene->geom;
 	loadDesc.pVertexLayout = &vertexLayout;
 	loadDesc.mFlags = GEOMETRY_LOAD_FLAG_SHADOWED;
-	addResource(&loadDesc, token, LOAD_PRIORITY_HIGH);
+	addResource(&loadDesc, token);
 
 	eastl::unordered_set<eastl::string> twoSidedMaterials;
 	SetTwoSidedMaterials(twoSidedMaterials);
@@ -929,10 +929,10 @@ Scene* loadScene(const Path* filePath, struct SyncToken* token, float scale, flo
 
 	waitForToken(token);
 
-	scene->materials = (Material*)conf_calloc(scene->geom->mDrawArgCount, sizeof(Material));
-	scene->textures = (char**)conf_calloc(scene->geom->mDrawArgCount, sizeof(char*));
-	scene->normalMaps = (char**)conf_calloc(scene->geom->mDrawArgCount, sizeof(char*));
-	scene->specularMaps = (char**)conf_calloc(scene->geom->mDrawArgCount, sizeof(char*));
+	scene->materials = (Material*)tf_calloc(scene->geom->mDrawArgCount, sizeof(Material));
+	scene->textures = (char**)tf_calloc(scene->geom->mDrawArgCount, sizeof(char*));
+	scene->normalMaps = (char**)tf_calloc(scene->geom->mDrawArgCount, sizeof(char*));
+	scene->specularMaps = (char**)tf_calloc(scene->geom->mDrawArgCount, sizeof(char*));
 
 	SetMaterials(scene);
 
@@ -945,35 +945,35 @@ void removeScene(Scene* scene)
 	{
 		if (scene->textures[i])
 		{
-			conf_free(scene->textures[i]);
+			tf_free(scene->textures[i]);
 			scene->textures[i] = NULL;
 		}
 
 		if (scene->normalMaps[i])
 		{
-			conf_free(scene->normalMaps[i]);
+			tf_free(scene->normalMaps[i]);
 			scene->normalMaps[i] = NULL;
 		}
 
 		if (scene->specularMaps[i])
 		{
-			conf_free(scene->specularMaps[i]);
+			tf_free(scene->specularMaps[i]);
 			scene->specularMaps[i] = NULL;
 		}
 	}
 
-	//conf_free(scene->positions);
-	//conf_free(scene->texCoords);
-	//conf_free(scene->normals);
-	//conf_free(scene->tangents);
-	//conf_free(scene->indices);
+	//tf_free(scene->positions);
+	//tf_free(scene->texCoords);
+	//tf_free(scene->normals);
+	//tf_free(scene->tangents);
+	//tf_free(scene->indices);
 
-	conf_free(scene->textures);
-	conf_free(scene->normalMaps);
-	conf_free(scene->specularMaps);
-	//conf_free(scene->meshes);
-	conf_free(scene->materials);
-	conf_free(scene);
+	tf_free(scene->textures);
+	tf_free(scene->normalMaps);
+	tf_free(scene->specularMaps);
+	//tf_free(scene->meshes);
+	tf_free(scene->materials);
+	tf_free(scene);
 }
 
 // Compute an array of clusters from the mesh vertices. Clusters are sub batches of the original mesh limited in number
@@ -998,8 +998,8 @@ void createClusters(bool twoSided, const Scene* pScene, IndirectDrawIndexArgumen
 	const int clusterCount = (triangleCount + CLUSTER_SIZE - 1) / CLUSTER_SIZE;
 
 	mesh->clusterCount = clusterCount;
-	mesh->clusterCompacts = (ClusterCompact*)conf_calloc(mesh->clusterCount, sizeof(ClusterCompact));
-	mesh->clusters = (Cluster*)conf_calloc(mesh->clusterCount, sizeof(Cluster));
+	mesh->clusterCompacts = (ClusterCompact*)tf_calloc(mesh->clusterCount, sizeof(ClusterCompact));
+	mesh->clusters = (Cluster*)tf_calloc(mesh->clusterCount, sizeof(Cluster));
 
 	for (int i = 0; i < clusterCount; ++i)
 	{
@@ -1114,8 +1114,8 @@ void createClusters(bool twoSided, const Scene* pScene, IndirectDrawIndexArgumen
 void destroyClusters(ClusterContainer* pMesh)
 {
 	// Destroy clusters
-	conf_free(pMesh->clusters);
-	conf_free(pMesh->clusterCompacts);
+	tf_free(pMesh->clusters);
+	tf_free(pMesh->clusterCompacts);
 }
 
 void addClusterToBatchChunk(
@@ -1187,14 +1187,14 @@ void GetSDFCustomSubMeshData(const eastl::string& strKey, SDFCustomSubMeshData& 
 	}
 }
 
-void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outMesh, float scale,
+void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const char* fileName, SDFMesh* outMesh, float scale,
 	float offsetX, bool generateSDFVolumeData,
 	BakedSDFVolumeInstances& sdfVolumeInstances,
 	GenerateVolumeDataFromFileFunc generateVolumeDataFromFileFunc)
 
 {
 	GLTFContainer* gltf = NULL;
-	gltfLoadContainer(filePath, GLTF_FLAG_LOAD_VERTICES, &gltf);
+	gltfLoadContainer(fileName, GLTF_FLAG_LOAD_VERTICES, &gltf);
 
 	uint32_t meshCount = (uint32_t)gltf->mMeshCount;
 
@@ -1350,8 +1350,8 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 					customSubMesh.mMeshName, alphaTestedMaterialMaps), alphaTestedImageMaps);
 			}*/
 
-			vertices = (Vertex*)conf_realloc(vertices, sizeof(Vertex) * (totalVertexCount + vertexCount));
-			indices = (uint32_t*)conf_realloc(indices, sizeof(uint32_t) * (totalIndexCount + indexCount));
+			vertices = (Vertex*)tf_realloc(vertices, sizeof(Vertex) * (totalVertexCount + vertexCount));
+			indices = (uint32_t*)tf_realloc(indices, sizeof(uint32_t) * (totalIndexCount + indexCount));
 
 
 			for (uint32_t j = 0; j < vertexCount; j++)
@@ -1435,8 +1435,8 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 
 				stackInstance.mMainMesh = &mesh;
 
-				vertices = (Vertex*)conf_realloc(vertices, sizeof(Vertex) * (totalVertexCount + vertexCount));
-				indices = (uint32_t*)conf_realloc(indices, sizeof(uint32_t) * (totalIndexCount + indexCount));
+				vertices = (Vertex*)tf_realloc(vertices, sizeof(Vertex) * (totalVertexCount + vertexCount));
+				indices = (uint32_t*)tf_realloc(indices, sizeof(uint32_t) * (totalIndexCount + indexCount));
 
 
 				for (uint32_t j = 0; j < vertexCount; j++)
@@ -1516,8 +1516,7 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 					SDF_DOUBLE_MAX_VOXEL_ONE_DIMENSION_Z);
 			}
 			
-            PathHandle meshPath = fsGetPathInResourceDirEnum(RD_OTHER_FILES, customSubMesh.mMeshName.c_str());
-			(*generateVolumeDataFromFileFunc)(&volumeData, meshPath, customSubMesh.mMeshName, customSubMesh.mTwoSidedWorldSpaceBias);
+			(*generateVolumeDataFromFileFunc)(&volumeData, customSubMesh.mMeshName, customSubMesh.mTwoSidedWorldSpaceBias);
 
 			if (volumeData)
 			{
@@ -1538,18 +1537,18 @@ void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SD
 	{
 		return;
 	}	
-	conf_free(vertices);
-	conf_free(indices);
+	tf_free(vertices);
+	tf_free(indices);
 
 	gltfUnloadContainer(gltf);
 }
 
-void loadSDFMesh(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outMesh, float scale,
+void loadSDFMesh(ThreadSystem* threadSystem, const char* fileName, SDFMesh* outMesh, float scale,
 	float offsetX, bool generateSDFVolumeData, BakedSDFVolumeInstances& sdfVolumeInstances,
 	GenerateVolumeDataFromFileFunc generateVolumeDataFromFileFunc)
 {
 	GLTFContainer* gltf = NULL;
-	gltfLoadContainer(filePath, GLTF_FLAG_LOAD_VERTICES, &gltf);
+	gltfLoadContainer(fileName, GLTF_FLAG_LOAD_VERTICES, &gltf);
 			
 	uint32_t meshCount = (uint32_t)gltf->mMeshCount;
 
@@ -1612,8 +1611,8 @@ void loadSDFMesh(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outM
 
 		mesh.mMeshInstances[i].mMainMesh = &mesh;
 
-		vertices = (Vertex*)conf_realloc(vertices, sizeof(Vertex) * (totalVertexCount + vertexCount));
-		indices = (uint32_t*)conf_realloc(indices, sizeof(uint32_t) * (totalIndexCount + indexCount));
+		vertices = (Vertex*)tf_realloc(vertices, sizeof(Vertex) * (totalVertexCount + vertexCount));
+		indices = (uint32_t*)tf_realloc(indices, sizeof(uint32_t) * (totalIndexCount + indexCount));
 
 		for (uint32_t j = 0; j < vertexCount; j++)
 		{
@@ -1672,8 +1671,7 @@ void loadSDFMesh(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outM
 					SDF_DOUBLE_MAX_VOXEL_ONE_DIMENSION_Z);
 			}
             
-			PathHandle meshPath = fsGetPathInResourceDirEnum(RD_OTHER_FILES, customSubMesh.mMeshName.c_str());
-			(*generateVolumeDataFromFileFunc)(&volumeData, meshPath, customSubMesh.mMeshName, customSubMesh.mTwoSidedWorldSpaceBias);
+			(*generateVolumeDataFromFileFunc)(&volumeData, customSubMesh.mMeshName, customSubMesh.mTwoSidedWorldSpaceBias);
 
 			if (volumeData)
 			{
@@ -1696,8 +1694,8 @@ void loadSDFMesh(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outM
 		return;
 	}
 
-	conf_free(vertices);
-	conf_free(indices);
+	tf_free(vertices);
+	tf_free(indices);
 
 	gltfUnloadContainer(gltf);
 }

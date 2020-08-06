@@ -209,16 +209,16 @@
   ],
   "images": [
     {
-      "uri": "Lantern_baseColor.basis"
+      "uri": "Lantern_baseColor"
     },
     {
-      "uri": "Lantern_roughnessMetallic.basis"
+      "uri": "Lantern_roughnessMetallic"
     },
     {
-      "uri": "Lantern_normal.basis"
+      "uri": "Lantern_normal"
     },
     {
-      "uri": "Lantern_emissive.basis"
+      "uri": "Lantern_emissive"
     }
   ],
   "meshes": [

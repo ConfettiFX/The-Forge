@@ -1223,7 +1223,7 @@ namespace ImGui
 //
 //// Helper: IM_NEW(), IM_PLACEMENT_NEW(), IM_DELETE() macros to call MemAlloc + Placement New, Placement Delete + MemFree
 
-#define IM_NEW(_TYPE) conf_placement_new<_TYPE>(ImGui::MemAlloc(sizeof(_TYPE)));
+#define IM_NEW(_TYPE) tf_placement_new<_TYPE>(ImGui::MemAlloc(sizeof(_TYPE)));
 template<typename T> void IM_DELETE(T* p) { if (p) { p->~T(); ImGui::MemFree(p); } }
 
 // Helper: Execute a block of code at maximum once a frame. Convenient if you want to quickly create an UI within deep-nested code that runs multiple times every frame.

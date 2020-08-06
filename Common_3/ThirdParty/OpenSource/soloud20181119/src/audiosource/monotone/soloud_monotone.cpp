@@ -368,9 +368,9 @@ namespace SoLoud
 	{
 		stop();
 
-		conf_free(mSong.mTitle);
-		conf_free(mSong.mComment);
-		conf_free(mSong.mPatternData);
+		tf_free(mSong.mTitle);
+		tf_free(mSong.mComment);
+		tf_free(mSong.mPatternData);
 
 		mSong.mTitle = 0;
 		mSong.mComment = 0;
@@ -386,7 +386,7 @@ namespace SoLoud
 	static char * mystrdup(const char *src)
 	{
 		int len = (int)strlen(src);
-		char * res = (char*)conf_malloc(sizeof(char) * len + 1);
+		char * res = (char*)tf_malloc(sizeof(char) * len + 1);
 		memcpy(res, src, len);
 		res[len] = 0;
 		return res;
@@ -452,7 +452,7 @@ namespace SoLoud
 		}
 		aFile->read(mSong.mOrder, 256);
 		int totalnotes = 64 * mSong.mTotalPatterns * mSong.mTotalTracks;
-		mSong.mPatternData = (unsigned int*)conf_malloc(sizeof(unsigned int) * totalnotes);
+		mSong.mPatternData = (unsigned int*)tf_malloc(sizeof(unsigned int) * totalnotes);
 		for (i = 0; i < totalnotes; i++)
 		{
 			aFile->read(temp, 2);
@@ -471,7 +471,7 @@ namespace SoLoud
 
 	AudioSourceInstance * Monotone::createInstance() 
 	{
-		return conf_new(MonotoneInstance, this);
+		return tf_new(MonotoneInstance, this);
 	}
 
 };

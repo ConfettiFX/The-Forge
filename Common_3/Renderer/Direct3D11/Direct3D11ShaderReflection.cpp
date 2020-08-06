@@ -142,13 +142,13 @@ void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 
 	//Allocate memory for the name pool
 	if (reflection.mNamePoolSize)
-		reflection.pNamePool = (char*)conf_calloc(reflection.mNamePoolSize, 1);
+		reflection.pNamePool = (char*)tf_calloc(reflection.mNamePoolSize, 1);
 	char* pCurrentName = reflection.pNamePool;
 
 	reflection.pVertexInputs = NULL;
 	if (shaderStage == SHADER_STAGE_VERT && reflection.mVertexInputsCount > 0)
 	{
-		reflection.pVertexInputs = (VertexInput*)conf_malloc(sizeof(VertexInput) * reflection.mVertexInputsCount);
+		reflection.pVertexInputs = (VertexInput*)tf_malloc(sizeof(VertexInput) * reflection.mVertexInputsCount);
 
 		for (UINT i = 0; i < shaderDesc.InputParameters; ++i)
 		{
@@ -175,7 +175,7 @@ void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 	reflection.pShaderResources = NULL;
 	if (reflection.mShaderResourceCount > 0)
 	{
-		reflection.pShaderResources = (ShaderResource*)conf_malloc(sizeof(ShaderResource) * reflection.mShaderResourceCount);
+		reflection.pShaderResources = (ShaderResource*)tf_malloc(sizeof(ShaderResource) * reflection.mShaderResourceCount);
 
 		for (uint32_t i = 0; i < reflection.mShaderResourceCount; ++i)
 		{
@@ -201,7 +201,7 @@ void d3d11_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize
 
 	if (reflection.mVariableCount > 0)
 	{
-		reflection.pVariables = (ShaderVariable*)conf_malloc(sizeof(ShaderVariable) * reflection.mVariableCount);
+		reflection.pVariables = (ShaderVariable*)tf_malloc(sizeof(ShaderVariable) * reflection.mVariableCount);
 
 		UINT v = 0;
 		for (UINT i = 0; i < shaderDesc.ConstantBuffers; ++i)

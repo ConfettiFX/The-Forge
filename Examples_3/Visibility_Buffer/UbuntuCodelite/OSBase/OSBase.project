@@ -6,19 +6,9 @@
     </Plugin>
   </Plugins>
   <VirtualDirectory Name="FileSystem">
-    <File Name="../../../../Common_3/OS/FileSystem/ZipFileSystem.h"/>
-    <File Name="../../../../Common_3/OS/FileSystem/ZipFileSystem.cpp"/>
-    <File Name="../../../../Common_3/OS/FileSystem/ZipFileStream.h"/>
-    <File Name="../../../../Common_3/OS/FileSystem/ZipFileStream.cpp"/>
-    <File Name="../../../../Common_3/OS/FileSystem/UnixFileSystem.h"/>
     <File Name="../../../../Common_3/OS/FileSystem/UnixFileSystem.cpp"/>
     <File Name="../../../../Common_3/OS/FileSystem/SystemRun.cpp"/>
-    <File Name="../../../../Common_3/OS/FileSystem/SystemFileStream.h"/>
-    <File Name="../../../../Common_3/OS/FileSystem/SystemFileStream.cpp"/>
-    <File Name="../../../../Common_3/OS/FileSystem/MemoryStream.h"/>
-    <File Name="../../../../Common_3/OS/FileSystem/MemoryStream.cpp"/>
-    <File Name="../../../../Common_3/OS/FileSystem/FileSystemInternal.h"/>
-    <File Name="../../../../Common_3/OS/FileSystem/FileSystemInternal.cpp"/>
+    <File Name="../../../../Common_3/OS/FileSystem/FileSystem.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Middleware_3">
     <VirtualDirectory Name="UI">
@@ -87,17 +77,17 @@
     <File Name="../../../../Common_3/OS/Linux/LinuxTime.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Dependencies">
-	<VirtualDirectory Name="zip">
-		<File Name="../../../../Common_3/ThirdParty/OpenSource/zip/zip.cpp"/>
-	</VirtualDirectory>
+    <VirtualDirectory Name="zip">
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/zip/zip.cpp"/>
+    </VirtualDirectory>
     <VirtualDirectory Name="rmem">
       <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_get_module_info.cpp"/>
       <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_hook.cpp"/>
       <File Name="../../../../Common_3/ThirdParty/OpenSource/rmem/src/rmem_lib.cpp"/>
     </VirtualDirectory>
-	<VirtualDirectory Name="basisu">
-		<File Name="../../../../Common_3/ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp"/>
-	</VirtualDirectory>
+    <VirtualDirectory Name="basisu">
+      <File Name="../../../../Common_3/ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp"/>
+    </VirtualDirectory>
   </VirtualDirectory>
   <Dependencies Name="Debug">
     <Project Name="gainput"/>

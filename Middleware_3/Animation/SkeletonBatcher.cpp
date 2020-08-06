@@ -63,7 +63,7 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
 		for (uint32_t j = 0; j < MAX_BATCHES; ++j)
 		{
 			ubDesc.ppBuffer = &mProjViewUniformBufferJoints[i][j];
-			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubDesc, NULL);
 
 			params[0].ppBuffers = &mProjViewUniformBufferJoints[i][j];
 			updateDescriptorSet(mRenderer, (i * (MAX_BATCHES * 2)) + (j * 2 + 0), pDescriptorSet, 1, params);
@@ -71,7 +71,7 @@ void SkeletonBatcher::Initialize(const SkeletonRenderDesc& skeletonRenderDesc)
 			if (mDrawBones)
 			{
 				ubDesc.ppBuffer = &mProjViewUniformBufferBones[i][j];
-				addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+				addResource(&ubDesc, NULL);
 
 				params[0].ppBuffers = &mProjViewUniformBufferBones[i][j];
 				updateDescriptorSet(mRenderer, (i * (MAX_BATCHES * 2)) + (j * 2 + 1), pDescriptorSet, 1, params);

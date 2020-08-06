@@ -12,7 +12,6 @@
     <File Name="../src/base/platform.cc"/>
     <File Name="../src/base/maths/simd_math_archive.cc"/>
     <File Name="../src/base/maths/soa_math_archive.cc"/>
-    <File Name="../src/base/io/stream.cc"/>
     <File Name="../src/base/containers/string_archive.cc"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
@@ -26,7 +25,6 @@
     <File Name="../include/ozz/base/gtest_helper.h"/>
     <File Name="../include/ozz/base/io/archive.h"/>
     <File Name="../include/ozz/base/io/archive_traits.h"/>
-    <File Name="../include/ozz/base/io/stream.h"/>
     <File Name="../include/ozz/base/maths/gtest_math_helper.h"/>
     <File Name="../include/ozz/base/maths/math_archive.h"/>
     <File Name="../include/ozz/base/maths/math_constant.h"/>

@@ -1109,6 +1109,7 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>Samples_GLFW</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <ProjectName>Visibility_Buffer</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'" Label="Configuration">
@@ -1202,6 +1203,24 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
+    <PostBuildEvent>
+      <Command>set SHADER_DIR=D3D12
+if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
+if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
+if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
+if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
+
+set ART=$(ProjectDir)..\..\..\Art\SanMiguel_3\
+
+xcopy /Y /S /D "%ART%\Meshes\*" "$(OutDir)Meshes\"
+xcopy /Y /S /D "%ART%\Textures\*.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\Resources\cameraPath.bin" "$(OutDir)"
+xcopy /Y /S /D "$(ProjectDir)..\Resources\Fonts\*" "$(OutDir)Fonts\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\Shaders\%SHADER_DIR%\*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "$(OutDir)GPUCfg\"</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <ClCompile>
@@ -1225,7 +1244,22 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)"</Command>
+      <Command>set SHADER_DIR=D3D12
+if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
+if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
+if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
+if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
+
+set ART=$(ProjectDir)..\..\..\Art\SanMiguel_3\
+
+xcopy /Y /S /D "%ART%\Meshes\*" "$(OutDir)Meshes\"
+xcopy /Y /S /D "%ART%\Textures\*.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\Resources\cameraPath.bin" "$(OutDir)"
+xcopy /Y /S /D "$(ProjectDir)..\Resources\Fonts\*" "$(OutDir)Fonts\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\Shaders\%SHADER_DIR%\*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "$(OutDir)GPUCfg\"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -1260,8 +1294,22 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <EntryPointName />
     </FxCompile>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>set SHADER_DIR=D3D12
+if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
+if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
+if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
+if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
+
+set ART=$(ProjectDir)..\..\..\Art\SanMiguel_3\
+
+xcopy /Y /S /D "%ART%\Meshes\*" "$(OutDir)Meshes\"
+xcopy /Y /S /D "%ART%\Textures\*.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\Resources\cameraPath.bin" "$(OutDir)"
+xcopy /Y /S /D "$(ProjectDir)..\Resources\Fonts\*" "$(OutDir)Fonts\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\Shaders\%SHADER_DIR%\*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "$(OutDir)GPUCfg\"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -1293,7 +1341,22 @@ $(VULKAN_SDK)\bin\glslangValidator.exe %(Identity)\..\config.conf -V %(Identity)
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>copy /Y "$(SolutionDir)\..\..\..\Common_3\ThirdParty\OpenSource\winpixeventruntime\bin\WinPixEventRuntime.dll" "$(TargetDir)"</Command>
+      <Command>set SHADER_DIR=D3D12
+if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
+if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
+if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
+if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
+
+set ART=$(ProjectDir)..\..\..\Art\SanMiguel_3\
+
+xcopy /Y /S /D "%ART%\Meshes\*" "$(OutDir)Meshes\"
+xcopy /Y /S /D "%ART%\Textures\*.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\Resources\cameraPath.bin" "$(OutDir)"
+xcopy /Y /S /D "$(ProjectDir)..\Resources\Fonts\*" "$(OutDir)Fonts\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\Shaders\%SHADER_DIR%\*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\GPUCfg\*" "$(OutDir)GPUCfg\"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>

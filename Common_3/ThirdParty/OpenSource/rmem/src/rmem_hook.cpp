@@ -110,7 +110,7 @@ MemoryHook::MemoryHook(void* _data)
 		for (uint32_t j=0; j<RMEM_STACK_TRACE_MAX; ++j)
 			m_stackTraces[i][j] = 0;
 
-	m_file					= NULL;
+	m_fileValid				= false;
 	m_bufferBytesWritten	= 0;
 	m_excessBufferPtr		= NULL;
 	m_excessBufferSize		= 0;
@@ -210,8 +210,7 @@ MemoryHook::MemoryHook(void* _data)
 	strcpy(m_fileName, "");
 //#endif 
 
-	fsGetExecutableName(m_fileName, 256);
-	strcat(m_fileName, ".MTuner");
+	strcat(m_fileName, "MemoryData.MTuner");
 
 	m_ignoreAllocs = false;
 }
@@ -228,7 +227,7 @@ MemoryHook::~MemoryHook()
 	// NOTE: If you're seeing this, it's probably because you didn't call
 	// rmemUnload() before calling rmemShutDown() while tracking your App's
 	// memory. Consider this a friendly reminder that you should do that.
-	if (m_file != NULL)
+	if (m_fileValid)
 		__debugbreak();
 
 #endif
@@ -241,12 +240,12 @@ void MemoryHook::flush()
 	size_t BytesToWrite = m_bufferBytesWritten;
 	m_bufferBytesWritten = 0;
 	writeToFile(s_tempBuffer, BytesToWrite);
-	if (m_file)
+	if (m_fileValid)
 	{
 		/// CONFFX BEGIN: Use The Forge file system for MTuner file write.
-		fsCloseStream(m_file);
+		fsCloseStream(&m_file);
 		/// CONFFX END
-		m_file = NULL;
+		m_fileValid = false;
 
 	}
 }
@@ -680,7 +679,7 @@ void MemoryHook::writeToFile(void* _ptr, size_t _bytesToWrite)
 
 	m_mutexWriteToFile.lock();
 
-	if (!m_file)
+	if (!m_fileValid)
 	{
 		/// CONFFX BEGIN: Use The Forge file system for MTuner file write.
 
@@ -688,13 +687,8 @@ void MemoryHook::writeToFile(void* _ptr, size_t _bytesToWrite)
 		m_ignoreAllocs = true;
 
 		//_bstr_t b(m_fileName);
-		PathHandle m_filePath = fsGetLogFileDirectory();
-		m_filePath = fsAppendPathComponent(m_filePath, m_fileName);
 
-		if (fsFileExists(m_filePath))
-			fsDeleteFile(m_filePath); 
-
-		m_file = fsOpenFile(m_filePath, FM_APPEND_BINARY_ALLOW_READ);
+		m_fileValid = fsOpenStreamFromPath(RD_LOG, m_fileName, FM_WRITE_BINARY_ALLOW_READ, &m_file);
 
 		// ISSUE FIX: Do not track creation of MTuner file itself. 
 		m_ignoreAllocs = false;
@@ -702,7 +696,7 @@ void MemoryHook::writeToFile(void* _ptr, size_t _bytesToWrite)
 		/// CONFFX END
 	}
 
-	if (m_file)
+	if (m_fileValid)
 	{
 		if (m_excessBufferPtr)
 		{
@@ -711,9 +705,9 @@ void MemoryHook::writeToFile(void* _ptr, size_t _bytesToWrite)
 
 			/// CONFFX BEGIN: Use The Forge file system for MTuner file write.
 
-			fsWriteToStream(m_file, &compressedSig, sizeof(uint32_t));
-			fsWriteToStream(m_file, &compSize, sizeof(uint32_t));
-			fsWriteToStream(m_file, m_bufferCompressed, compSize);
+			fsWriteToStream(&m_file, &compressedSig, sizeof(uint32_t));
+			fsWriteToStream(&m_file, &compSize, sizeof(uint32_t));
+			fsWriteToStream(&m_file, m_bufferCompressed, compSize);
 
 			/// CONFFX END
 
@@ -731,9 +725,9 @@ void MemoryHook::writeToFile(void* _ptr, size_t _bytesToWrite)
 
 		/// CONFFX BEGIN: Use The Forge file system for MTuner file write.
 
-		fsWriteToStream(m_file, &compressedSig, sizeof(uint32_t));
-		fsWriteToStream(m_file, &compSize, sizeof(uint32_t));
-		fsWriteToStream(m_file, m_bufferCompressed, compSize);
+		fsWriteToStream(&m_file, &compressedSig, sizeof(uint32_t));
+		fsWriteToStream(&m_file, &compSize, sizeof(uint32_t));
+		fsWriteToStream(&m_file, m_bufferCompressed, compSize);
 
 		/// CONNFX END
 #else
@@ -760,8 +754,8 @@ void MemoryHook::writeToFile(void* _ptr, size_t _bytesToWrite)
 
 	/// CONFFX BEGIN: Use The Forge file system for MTuner file write.
 
-	if (m_file)
-		fsFlushStream(m_file);
+	if (m_fileValid)
+		fsFlushStream(&m_file);
 
 	/// CONFFX END
 

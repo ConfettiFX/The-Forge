@@ -13,7 +13,6 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\src\base\containers\string_archive.cc" />
     <ClCompile Include="..\..\..\..\src\base\io\archive.cc" />
-    <ClCompile Include="..\..\..\..\src\base\io\stream.cc" />
     <ClCompile Include="..\..\..\..\src\base\maths\math_archive.cc" />
     <ClCompile Include="..\..\..\..\src\base\maths\simd_math_archive.cc" />
     <ClCompile Include="..\..\..\..\src\base\maths\soa_math_archive.cc" />

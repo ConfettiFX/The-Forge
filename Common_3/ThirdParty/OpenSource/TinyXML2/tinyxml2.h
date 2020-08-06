@@ -175,7 +175,7 @@ public:
 	~DynArray()
 	{
 		if ( mem != pool ) {
-			conf_free(mem);
+			tf_free(mem);
 		}
 	}
 	void Push( T t )
@@ -213,9 +213,9 @@ private:
 	void EnsureCapacity( int cap ) {
 		if ( cap > allocated ) {
 			int newAllocated = cap * 2;
-			T* newMem = (T*)conf_calloc(newAllocated, sizeof(T));
+			T* newMem = (T*)tf_calloc(newAllocated, sizeof(T));
 			memcpy( newMem, mem, sizeof(T)*size );	// warning: not using constructors, only works for PODs
-			if ( mem != pool ) conf_free(mem);
+			if ( mem != pool ) tf_free(mem);
 			mem = newMem;
 			allocated = newAllocated;
 		}
@@ -255,7 +255,7 @@ public:
 	~MemPoolT() {
 		// Delete the blocks.
 		for( int i=0; i<blockPtrs.Size(); ++i ) {
-			conf_free(blockPtrs[i]);
+			tf_free(blockPtrs[i]);
 		}
 	}
 
@@ -265,7 +265,7 @@ public:
 	virtual void* Alloc() {
 		if ( !root ) {
 			// Need a new block.
-			Block* block = (Block*)conf_calloc(1, sizeof(Block));
+			Block* block = (Block*)tf_calloc(1, sizeof(Block));
 			blockPtrs.Push( block );
 
 			for( int i=0; i<COUNT-1; ++i ) {

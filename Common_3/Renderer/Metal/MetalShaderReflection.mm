@@ -157,11 +157,17 @@ int getSizeFromDataType(MTLDataType dataType)
 		case MTLDataTypeBool2: return 2;
 		case MTLDataTypeBool3: return 3;
 		case MTLDataTypeBool4: return 4;
+#if defined(ENABLE_ARGUMENT_BUFFERS)
 		case MTLDataTypeTexture: return 8;
         case MTLDataTypePointer: return 8;
         case MTLDataTypeSampler: return 0;
+#if defined(ENABLE_INDIRECT_COMMAND_BUFFERS)
         case MTLDataTypeIndirectCommandBuffer: return 0;
+#endif
+#if defined(ENABLE_INDIRECT_COMMAND_BUFFER_INHERIT_PIPELINE)
         case MTLDataTypeRenderPipeline: return 0;
+#endif
+#endif
 		default: break;
 	}
 	ASSERT(0 && "Unknown metal type");
@@ -607,7 +613,7 @@ void mtl_createShaderReflection(
 	resourceCount += reflectionInfo.samplers.size();
 
 	// we now have the size of the memory pool and number of resources
-	char* namePool = (char*)conf_calloc(namePoolSize, 1);
+	char* namePool = (char*)tf_calloc(namePoolSize, 1);
 	char* pCurrentName = namePool;
 
 	// start with the vertex input
@@ -615,7 +621,7 @@ void mtl_createShaderReflection(
 	const uint32_t vertexInputCount = (uint32_t)reflectionInfo.vertexAttributes.size();
 	if (shaderStage == SHADER_STAGE_VERT && vertexInputCount > 0)
 	{
-		pVertexInputs = (VertexInput*)conf_malloc(sizeof(VertexInput) * vertexInputCount);
+		pVertexInputs = (VertexInput*)tf_malloc(sizeof(VertexInput) * vertexInputCount);
 
 		for (uint32_t i = 0; i < reflectionInfo.vertexAttributes.size(); ++i)
 		{
@@ -635,7 +641,7 @@ void mtl_createShaderReflection(
 	ShaderResource* pResources = NULL;
 	if (resourceCount > 0)
 	{
-		pResources = (ShaderResource*)conf_calloc(resourceCount, sizeof(ShaderResource));
+		pResources = (ShaderResource*)tf_calloc(resourceCount, sizeof(ShaderResource));
 		uint32_t resourceIdx = 0;
 		for (uint32_t i = 0; i < reflectionInfo.buffers.size(); ++i)
 		{
@@ -644,6 +650,7 @@ void mtl_createShaderReflection(
 			{
 				if (bufferInfo.isArgBuffer)
                 {
+#if defined(ENABLE_ARGUMENT_BUFFERS)
                     // argument buffer info
                     addShaderResource(pResources, resourceIdx, DESCRIPTOR_TYPE_ARGUMENT_BUFFER, bufferInfo.bufferIndex, bufferInfo.sizeInBytes, bufferInfo.alignment, shaderStage, &pCurrentName, (char*)bufferInfo.name);
                     
@@ -676,12 +683,16 @@ void mtl_createShaderReflection(
                                 case MTLDataTypePointer:
                                     descriptorType = DESCRIPTOR_TYPE_BUFFER;
                                     break;
+#if defined(ENABLE_INDIRECT_COMMAND_BUFFERS)
                                 case MTLDataTypeIndirectCommandBuffer:
                                     descriptorType = DESCRIPTOR_TYPE_INDIRECT_COMMAND_BUFFER;
                                     break;
+#endif
+#if defined(ENABLE_INDIRECT_COMMAND_BUFFER_INHERIT_PIPELINE)
                                 case MTLDataTypeRenderPipeline:
                                     descriptorType = DESCRIPTOR_TYPE_RENDER_PIPELINE_STATE;
                                     break;
+#endif
                                 default:
                                     ASSERT(0);
                                     descriptorType = DESCRIPTOR_TYPE_UNDEFINED;
@@ -696,6 +707,7 @@ void mtl_createShaderReflection(
                             resourceIdx++;
                         }
                     }
+#endif
                 }
                 else
                 {
@@ -740,7 +752,7 @@ void mtl_createShaderReflection(
 	// now do variables
 	if (variablesCount > 0)
 	{
-		pVariables = (ShaderVariable*)conf_malloc(sizeof(ShaderVariable) * variablesCount);
+		pVariables = (ShaderVariable*)tf_malloc(sizeof(ShaderVariable) * variablesCount);
 		for (uint32_t i = 0; i < variablesCount; ++i)
 		{
 			const BufferStructMember& variable = reflectionInfo.variableMembers[i];

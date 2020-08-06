@@ -11,6 +11,7 @@
 #define ENABLE_RAYTRACING
 #define ENABLE_INDIRECT_COMMAND_BUFFER_INHERIT_PIPELINE
 #define ENABLE_OS_PROC_MEMORY
+#define ENABLE_GPU_FAMILY
 #endif // __IPHONE_OS_VERSION_MAX_ALLOWED >= __IPHONE_13_0
 #endif // __IPHONE_13_0
 
@@ -59,6 +60,13 @@
 #define ENABLE_GPU_FAMILY_2
 #define ENABLE_GPU_FAMILY_1
 
+#if TARGET_IPHONE_SIMULATOR
+// Disable certain features to be able to run very simple tests on simulator
+#undef ENABLE_HEAPS
+#undef ENABLE_HEAP_PLACEMENT
+#undef ENABLE_DEPTH_CLIP_MODE
+#endif
+
 #else
 
 // macOS
@@ -69,6 +77,7 @@
 #define ENABLE_ARGUMENT_BUFFER_USE_STAGES
 #define ENABLE_GPU_TIMESTAMPS
 #define ENABLE_RAYTRACING
+#define ENABLE_GPU_FAMILY
 #endif // MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_15
 #endif // MAC_OS_X_VERSION_10_15
 

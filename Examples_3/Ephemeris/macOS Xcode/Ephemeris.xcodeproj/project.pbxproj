@@ -544,6 +544,7 @@
 				EA463C871EF81E8F005AC8C7 /* Sources */,
 				EA463C881EF81E8F005AC8C7 /* Frameworks */,
 				EA463C891EF81E8F005AC8C7 /* Resources */,
+				5C13A4FA24D1AD480023D339 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -637,6 +638,26 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		5C13A4FA24D1AD480023D339 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nSHD=\"Shaders/Metal\"\nASSETS=\"$SRCROOT/../../../../Custom-Middleware/$PROJECT_NAME\"\nSRC=\"$SRCROOT/../../../../Custom-Middleware/$PROJECT_NAME/src/EphemerisExample\"\nMID=\"$SRCROOT/../../../Middleware_3\"\n# Src\nmkdir -p \"$DST/Shaders/Sky\"\nmkdir -p \"$DST/Shaders/SpaceObjects\"\nmkdir -p \"$DST/Shaders/Terrain\"\nmkdir -p \"$DST/Shaders/VolumetricClouds\"\nrsync -u -r \"$SRC/$SHD/\" \"$DST/Shaders\"\nrsync -u -r \"$ASSETS/Sky/resources/$SHD/\" \"$DST/Shaders/Sky\"\nrsync -u -r \"$ASSETS/Terrain/resources/$SHD/\" \"$DST/Shaders/Terrain\"\nrsync -u -r \"$ASSETS/SpaceObjects/resources/$SHD/\" \"$DST/Shaders/SpaceObjects\"\nrsync -u -r \"$ASSETS/VolumetricClouds/resources/$SHD/\" \"$DST/Shaders/VolumetricClouds\"\nrsync -u -r \"$MID/Text/$SHD/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/UI/$SHD/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\n# Textures\nmkdir -p \"$DST/Textures/Sky\"\nmkdir -p \"$DST/Textures/SpaceObjects\"\nmkdir -p \"$DST/Textures/Terrain\"\nmkdir -p \"$DST/Textures/VolumetricClouds\"\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ASSETS/Sky/resources/Textures/\" \"$DST/Textures/Sky\"\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ASSETS/VolumetricClouds/resources/Textures/\" \"$DST/Textures/VolumetricClouds\"\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ASSETS/Terrain/resources/Textures/\" \"$DST/Textures/Terrain\"\nrsync -u -rv --include '*/' --include '*.r32' --exclude '*' --prune-empty-dirs \"$ASSETS/Terrain/resources/Textures/\" \"$DST/Textures/Terrain\"\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ASSETS/SpaceObjects/resources/Textures/\" \"$DST/Textures/SpaceObjects\"\n# Fonts\nrsync -u -r \"$ASSETS/Resources/Fonts/\" \"$DST/Fonts\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		C95132E92010E68A002E584B /* Sources */ = {

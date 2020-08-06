@@ -169,13 +169,13 @@ void setDefaultTextures(Scene* pScene, int index)
 	m.alphaTested = false;
 
 	// default textures
-	pScene->textures[index] = (char*)conf_calloc(strlen(DEFAULT_ALBEDO) + 1, sizeof(char));
+	pScene->textures[index] = (char*)tf_calloc(strlen(DEFAULT_ALBEDO) + 1, sizeof(char));
 	strcpy(pScene->textures[index], DEFAULT_ALBEDO);
 
-	pScene->normalMaps[index] = (char*)conf_calloc(strlen(DEFAULT_NORMAL) + 1, sizeof(char));
+	pScene->normalMaps[index] = (char*)tf_calloc(strlen(DEFAULT_NORMAL) + 1, sizeof(char));
 	strcpy(pScene->normalMaps[index], DEFAULT_NORMAL);
 
-	pScene->specularMaps[index] = (char*)conf_calloc(strlen(DEFAULT_SPEC) + 1, sizeof(char));
+	pScene->specularMaps[index] = (char*)tf_calloc(strlen(DEFAULT_SPEC) + 1, sizeof(char));
 	strcpy(pScene->specularMaps[index], DEFAULT_SPEC);
 }
 
@@ -186,13 +186,13 @@ void setTextures(Scene* pScene, int index, const char* albedo, const char* specu
 	m.alphaTested = alpha;
 
 	// default textures
-	pScene->textures[index] = (char*)conf_calloc(strlen(albedo) + 1, sizeof(char));
+	pScene->textures[index] = (char*)tf_calloc(strlen(albedo) + 1, sizeof(char));
 	strcpy(pScene->textures[index], albedo);
 
-	pScene->specularMaps[index] = (char*)conf_calloc(strlen(specular) + 1, sizeof(char));
+	pScene->specularMaps[index] = (char*)tf_calloc(strlen(specular) + 1, sizeof(char));
 	strcpy(pScene->specularMaps[index], specular);
 
-	pScene->normalMaps[index] = (char*)conf_calloc(strlen(normal) + 1, sizeof(char));
+	pScene->normalMaps[index] = (char*)tf_calloc(strlen(normal) + 1, sizeof(char));
 	strcpy(pScene->normalMaps[index], normal);
 }
 
@@ -877,21 +877,21 @@ static void SetMaterials(Scene* pScene)
 		m.alphaTested = true;
 
 		// default textures
-		pScene->textures[i] = (char*)conf_calloc(strlen(DEFAULT_ALBEDO) + 1, sizeof(char));
+		pScene->textures[i] = (char*)tf_calloc(strlen(DEFAULT_ALBEDO) + 1, sizeof(char));
 		strcpy(pScene->textures[i], DEFAULT_ALBEDO);
 
-		pScene->normalMaps[i] = (char*)conf_calloc(strlen(DEFAULT_NORMAL) + 1, sizeof(char));
+		pScene->normalMaps[i] = (char*)tf_calloc(strlen(DEFAULT_NORMAL) + 1, sizeof(char));
 		strcpy(pScene->normalMaps[i], DEFAULT_NORMAL);
 
-		pScene->specularMaps[i] = (char*)conf_calloc(strlen(DEFAULT_SPEC) + 1, sizeof(char));
+		pScene->specularMaps[i] = (char*)tf_calloc(strlen(DEFAULT_SPEC) + 1, sizeof(char));
 		strcpy(pScene->specularMaps[i], DEFAULT_SPEC);
 	}
 }
 
 // Loads a scene and returns a Scene object with scene information
-Scene* loadScene(const Path* filePath, float scale, float offsetX, float offsetY, float offsetZ)
+Scene* loadScene(const char* pFileName, float scale, float offsetX, float offsetY, float offsetZ)
 {
-	Scene* scene = (Scene*)conf_calloc(1, sizeof(Scene));
+	Scene* scene = (Scene*)tf_calloc(1, sizeof(Scene));
 
 	VertexLayout vertexLayout = {};
 	vertexLayout.mAttribCount = 4;
@@ -913,12 +913,12 @@ Scene* loadScene(const Path* filePath, float scale, float offsetX, float offsetY
 	vertexLayout.mAttribs[3].mLocation = 3;
 
 	GeometryLoadDesc loadDesc = {};
-	loadDesc.pFilePath = filePath;
+	loadDesc.pFileName = pFileName;
 	loadDesc.ppGeometry = &scene->geom;
 	loadDesc.pVertexLayout = &vertexLayout;
 	loadDesc.mFlags = GEOMETRY_LOAD_FLAG_SHADOWED;
 	SyncToken token = {};
-	addResource(&loadDesc, &token, LOAD_PRIORITY_HIGH);
+	addResource(&loadDesc, &token);
 
 	eastl::unordered_set<eastl::string> twoSidedMaterials;
 	SetTwoSidedMaterials(twoSidedMaterials);
@@ -928,10 +928,10 @@ Scene* loadScene(const Path* filePath, float scale, float offsetX, float offsetY
 
 	waitForToken(&token);
 
-	scene->materials = (Material*)conf_calloc(scene->geom->mDrawArgCount, sizeof(Material));
-	scene->textures = (char**)conf_calloc(scene->geom->mDrawArgCount, sizeof(char*));
-	scene->normalMaps = (char**)conf_calloc(scene->geom->mDrawArgCount, sizeof(char*));
-	scene->specularMaps = (char**)conf_calloc(scene->geom->mDrawArgCount, sizeof(char*));
+	scene->materials = (Material*)tf_calloc(scene->geom->mDrawArgCount, sizeof(Material));
+	scene->textures = (char**)tf_calloc(scene->geom->mDrawArgCount, sizeof(char*));
+	scene->normalMaps = (char**)tf_calloc(scene->geom->mDrawArgCount, sizeof(char*));
+	scene->specularMaps = (char**)tf_calloc(scene->geom->mDrawArgCount, sizeof(char*));
 
 	SetMaterials(scene);
 
@@ -944,35 +944,35 @@ void removeScene(Scene* scene)
 	{
 		if (scene->textures[i])
 		{
-			conf_free(scene->textures[i]);
+			tf_free(scene->textures[i]);
 			scene->textures[i] = NULL;
 		}
 
 		if (scene->normalMaps[i])
 		{
-			conf_free(scene->normalMaps[i]);
+			tf_free(scene->normalMaps[i]);
 			scene->normalMaps[i] = NULL;
 		}
 
 		if (scene->specularMaps[i])
 		{
-			conf_free(scene->specularMaps[i]);
+			tf_free(scene->specularMaps[i]);
 			scene->specularMaps[i] = NULL;
 		}
 	}
 
-	//conf_free(scene->positions);
-	//conf_free(scene->texCoords);
-	//conf_free(scene->normals);
-	//conf_free(scene->tangents);
-	//conf_free(scene->indices);
+	//tf_free(scene->positions);
+	//tf_free(scene->texCoords);
+	//tf_free(scene->normals);
+	//tf_free(scene->tangents);
+	//tf_free(scene->indices);
 
-	conf_free(scene->textures);
-	conf_free(scene->normalMaps);
-	conf_free(scene->specularMaps);
-	//conf_free(scene->meshes);
-	conf_free(scene->materials);
-	conf_free(scene);
+	tf_free(scene->textures);
+	tf_free(scene->normalMaps);
+	tf_free(scene->specularMaps);
+	//tf_free(scene->meshes);
+	tf_free(scene->materials);
+	tf_free(scene);
 }
 
 // Compute an array of clusters from the mesh vertices. Clusters are sub batches of the original mesh limited in number
@@ -997,8 +997,8 @@ void createClusters(bool twoSided, const Scene* pScene, IndirectDrawIndexArgumen
 	const int clusterCount = (triangleCount + CLUSTER_SIZE - 1) / CLUSTER_SIZE;
 
 	mesh->clusterCount = clusterCount;
-	mesh->clusterCompacts = (ClusterCompact*)conf_calloc(mesh->clusterCount, sizeof(ClusterCompact));
-	mesh->clusters = (Cluster*)conf_calloc(mesh->clusterCount, sizeof(Cluster));
+	mesh->clusterCompacts = (ClusterCompact*)tf_calloc(mesh->clusterCount, sizeof(ClusterCompact));
+	mesh->clusters = (Cluster*)tf_calloc(mesh->clusterCount, sizeof(Cluster));
 
 	for (int i = 0; i < clusterCount; ++i)
 	{
@@ -1113,8 +1113,8 @@ void createClusters(bool twoSided, const Scene* pScene, IndirectDrawIndexArgumen
 void destroyClusters(ClusterContainer* pMesh)
 {
 	// Destroy clusters
-	conf_free(pMesh->clusters);
-	conf_free(pMesh->clusterCompacts);
+	tf_free(pMesh->clusters);
+	tf_free(pMesh->clusterCompacts);
 }
 
 void addClusterToBatchChunk(
@@ -1150,7 +1150,7 @@ void createCubeBuffers(Renderer* pRenderer, Buffer** ppVertexBuffer, Buffer** pp
 	vbDesc.pData = vertexData;
 	vbDesc.ppBuffer = ppVertexBuffer;
 	vbDesc.mDesc.pName = "VB Desc";
-	addResource(&vbDesc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&vbDesc, NULL);
 
 	// Create index buffer
 	uint16_t indices[6 * 6] = {
@@ -1164,5 +1164,5 @@ void createCubeBuffers(Renderer* pRenderer, Buffer** ppVertexBuffer, Buffer** pp
 	ibDesc.pData = indices;
 	ibDesc.ppBuffer = ppIndexBuffer;
 	ibDesc.mDesc.pName = "IB Desc";
-	addResource(&ibDesc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&ibDesc, NULL);
 }

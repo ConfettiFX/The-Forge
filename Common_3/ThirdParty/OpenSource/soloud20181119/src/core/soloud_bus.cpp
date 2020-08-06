@@ -133,7 +133,7 @@ namespace SoLoud
 			mChannelHandle = 0;
 			mInstance = 0;
 		}
-		mInstance = conf_new(BusInstance, this);
+		mInstance = tf_new(BusInstance, this);
 		return mInstance;
 	}
 
@@ -230,7 +230,7 @@ namespace SoLoud
 		if (mInstance)
 		{
 			mSoloud->lockAudioMutex();
-			conf_delete(mInstance->mFilter[aFilterId]);
+			tf_delete(mInstance->mFilter[aFilterId]);
 			mInstance->mFilter[aFilterId] = 0;
 		
 			if (aFilter)

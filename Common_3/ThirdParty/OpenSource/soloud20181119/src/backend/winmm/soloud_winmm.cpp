@@ -107,19 +107,19 @@ namespace SoLoud
             waveOutUnprepareHeader(data->waveOut, &data->header[i], sizeof(WAVEHDR));
             if (0 != data->sampleBuffer[i])
             {
-                conf_free(data->sampleBuffer[i]);
+                tf_free(data->sampleBuffer[i]);
             }
         }
         waveOutClose(data->waveOut);
         CloseHandle(data->audioProcessingDoneEvent);
         CloseHandle(data->bufferEndEvent);
-        conf_delete(data);
+        tf_delete(data);
         aSoloud->mBackendData = 0;
     }
 
 	result winmm_init(Soloud *aSoloud, unsigned int aFlags, unsigned int aSamplerate, unsigned int aBuffer, unsigned int aChannels)
     {
-        SoLoudWinMMData *data = conf_new(SoLoudWinMMData);
+        SoLoudWinMMData *data = tf_new(SoLoudWinMMData);
         ZeroMemory(data, sizeof(SoLoudWinMMData));
         aSoloud->mBackendData = data;
         aSoloud->mBackendCleanupFunc = winMMCleanup;
@@ -151,7 +151,7 @@ namespace SoLoud
         data->buffer.init(data->samples*format.nChannels);
         for (int i=0;i<BUFFER_COUNT;++i) 
         {
-            data->sampleBuffer[i] = (short*)conf_malloc(sizeof(short)*data->samples*format.nChannels);
+            data->sampleBuffer[i] = (short*)tf_malloc(sizeof(short)*data->samples*format.nChannels);
             ZeroMemory(&data->header[i], sizeof(WAVEHDR));
             data->header[i].dwBufferLength = data->samples*sizeof(short)*format.nChannels;
             data->header[i].lpData = reinterpret_cast<LPSTR>(data->sampleBuffer[i]);

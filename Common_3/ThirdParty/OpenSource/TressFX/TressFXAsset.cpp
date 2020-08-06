@@ -100,18 +100,18 @@ void TressFXAsset::Clear()
 	m_numGuideVertices = 0;
 	m_numFollowStrandsPerGuide = 0;
 
-	conf_free(m_positions);
-	conf_free(m_strandUV);
-	conf_free(m_refVectors);
-	conf_free(m_globalRotations);
-	conf_free(m_localRotations);
-	conf_free(m_tangents);
-	conf_free(m_followRootOffsets);
-	conf_free(m_strandTypes);
-	conf_free(m_thicknessCoeffs);
-	conf_free(m_restLengths);
-	conf_free(m_triangleIndices);
-	conf_free(m_boneSkinningData);
+	tf_free(m_positions);
+	tf_free(m_strandUV);
+	tf_free(m_refVectors);
+	tf_free(m_globalRotations);
+	tf_free(m_localRotations);
+	tf_free(m_tangents);
+	tf_free(m_followRootOffsets);
+	tf_free(m_strandTypes);
+	tf_free(m_thicknessCoeffs);
+	tf_free(m_restLengths);
+	tf_free(m_triangleIndices);
+	tf_free(m_boneSkinningData);
 }
 
 //TODO: Remove Comments
@@ -168,7 +168,7 @@ bool TressFXAsset::LoadV4(TressFXTFXFileHeader* header, FileStream* fh)
 		// Just demonstrating the requirement for number of vertices here in case
 		// you are to make your own loader.
 
-	m_positions = conf_placement_new<float4>(conf_malloc(
+	m_positions = tf_placement_new<float4>(tf_malloc(
 		m_numTotalVertices * sizeof(float4)));    // size of m_positions = number of total vertices * sizeo of each position vector.
 
 	if (!m_positions)
@@ -198,8 +198,8 @@ bool TressFXAsset::LoadV4(TressFXTFXFileHeader* header, FileStream* fh)
 
 	// Read strand UVs
     fsSeekStream(fh, SBO_START_OF_FILE, header->offsetStrandUV);
-	m_strandUV = conf_placement_new<float2>(
-		conf_malloc(m_numTotalStrands * sizeof(float2)));    // If we call GenerateFollowHairs to generate follow hairs,
+	m_strandUV = tf_placement_new<float2>(
+		tf_malloc(m_numTotalStrands * sizeof(float2)));    // If we call GenerateFollowHairs to generate follow hairs,
 															 // m_strandUV will be re-allocated.
 
 	if (!m_strandUV)
@@ -220,7 +220,7 @@ bool TressFXAsset::LoadV4(TressFXTFXFileHeader* header, FileStream* fh)
 		m_strandUV[indexStrand] = m_strandUV[indexLastStrand];
 	}
 
-	m_followRootOffsets = conf_placement_new<float4>(conf_malloc(m_numTotalStrands * sizeof(float4)));
+	m_followRootOffsets = tf_placement_new<float4>(tf_malloc(m_numTotalStrands * sizeof(float4)));
 
 	// Fill m_followRootOffsets with zeros
 	memset(m_followRootOffsets, 0, m_numTotalStrands * sizeof(float4));
@@ -263,7 +263,7 @@ bool TressFXAsset::LoadV3(TressFXFileObject* header, FileStream* fh)
 		// Just demonstrating the requirement for number of vertices here in case
 		// you are to make your own loader.
 
-	m_positions = conf_placement_new<float4>(conf_malloc(
+	m_positions = tf_placement_new<float4>(tf_malloc(
 		m_numTotalVertices * sizeof(float4)));    // size of m_positions = number of total vertices * sizeo of each position vector.
 	if (!m_positions)
 	{
@@ -271,7 +271,7 @@ bool TressFXAsset::LoadV3(TressFXFileObject* header, FileStream* fh)
 		return false;
 	}
 
-	float3* vertexData = conf_placement_new<float3>(conf_malloc(m_numTotalVertices * sizeof(float3)));
+	float3* vertexData = tf_placement_new<float3>(tf_malloc(m_numTotalVertices * sizeof(float3)));
 	if (!vertexData)
 	{
 		Clear();
@@ -297,7 +297,7 @@ bool TressFXAsset::LoadV3(TressFXFileObject* header, FileStream* fh)
 		}
 	}
 
-	conf_free(vertexData);
+	tf_free(vertexData);
 
 	int numStrandsToMakeUp = m_numGuideStrands - numStrandsInFile;
 
@@ -314,8 +314,8 @@ bool TressFXAsset::LoadV3(TressFXFileObject* header, FileStream* fh)
 	// Read strand UVs
 	bool usingPerStrandTexCoords = header->perStrandTexCoordOffset != 0;
 
-	m_strandUV = conf_placement_new<float2>(
-		conf_malloc(m_numTotalStrands * sizeof(float2)));    // If we call GenerateFollowHairs to generate follow hairs,
+	m_strandUV = tf_placement_new<float2>(
+		tf_malloc(m_numTotalStrands * sizeof(float2)));    // If we call GenerateFollowHairs to generate follow hairs,
 															 // m_strandUV will be re-allocated.
 	if (!m_strandUV)
 	{
@@ -340,7 +340,7 @@ bool TressFXAsset::LoadV3(TressFXFileObject* header, FileStream* fh)
 		m_strandUV[indexStrand] = m_strandUV[indexLastStrand];
 	}
 
-	m_followRootOffsets = conf_placement_new<float4>(conf_malloc(m_numTotalStrands * sizeof(float4)));
+	m_followRootOffsets = tf_placement_new<float4>(tf_malloc(m_numTotalStrands * sizeof(float4)));
 
 	// Fill m_followRootOffsets with zeros
 	memset(m_followRootOffsets, 0, m_numTotalStrands * sizeof(float4));
@@ -376,11 +376,11 @@ bool TressFXAsset::GenerateFollowHairs(int numFollowHairsPerGuideHair, float tip
 	float2* strandUVGuide = m_strandUV;
 
 	// re-allocate all buffers
-	m_positions = conf_placement_new<float4>(conf_malloc(m_numTotalVertices * sizeof(float4)));
-	m_strandUV = conf_placement_new<float2>(conf_malloc(m_numTotalStrands * sizeof(float2)));
+	m_positions = tf_placement_new<float4>(tf_malloc(m_numTotalVertices * sizeof(float4)));
+	m_strandUV = tf_placement_new<float2>(tf_malloc(m_numTotalStrands * sizeof(float2)));
 
-	conf_free(m_followRootOffsets);
-	m_followRootOffsets = conf_placement_new<float4>(conf_malloc(m_numTotalStrands * sizeof(float4)));
+	tf_free(m_followRootOffsets);
+	m_followRootOffsets = tf_placement_new<float4>(tf_malloc(m_numTotalStrands * sizeof(float4)));
 
 	// If we have failed to allocate buffers, then clear the allocated ones and exit.
 	if (!m_positions || !m_strandUV || !m_followRootOffsets)
@@ -437,37 +437,37 @@ bool TressFXAsset::GenerateFollowHairs(int numFollowHairsPerGuideHair, float tip
 		}
 	}
 
-	conf_free(positionsGuide);
-	conf_free(strandUVGuide);
+	tf_free(positionsGuide);
+	tf_free(strandUVGuide);
 
 	return true;
 }
 
 bool TressFXAsset::ProcessAsset()
 {
-	conf_free(m_strandTypes);
-	m_strandTypes = conf_placement_new<int>(conf_malloc(m_numTotalStrands * sizeof(int)));
+	tf_free(m_strandTypes);
+	m_strandTypes = tf_placement_new<int>(tf_malloc(m_numTotalStrands * sizeof(int)));
 
-	conf_free(m_tangents);
-	m_tangents = conf_placement_new<float4>(conf_malloc(m_numTotalVertices * sizeof(float4)));
+	tf_free(m_tangents);
+	m_tangents = tf_placement_new<float4>(tf_malloc(m_numTotalVertices * sizeof(float4)));
 
-	conf_free(m_restLengths);
-	m_restLengths = conf_placement_new<float>(conf_malloc(m_numTotalVertices * sizeof(float)));
+	tf_free(m_restLengths);
+	m_restLengths = tf_placement_new<float>(tf_malloc(m_numTotalVertices * sizeof(float)));
 
-	conf_free(m_refVectors);
-	m_refVectors = conf_placement_new<float4>(conf_malloc(m_numTotalVertices * sizeof(float4)));
+	tf_free(m_refVectors);
+	m_refVectors = tf_placement_new<float4>(tf_malloc(m_numTotalVertices * sizeof(float4)));
 
-	conf_free(m_globalRotations);
-	m_globalRotations = conf_placement_new<float4>(conf_malloc(m_numTotalVertices * sizeof(float4)));
+	tf_free(m_globalRotations);
+	m_globalRotations = tf_placement_new<float4>(tf_malloc(m_numTotalVertices * sizeof(float4)));
 
-	conf_free(m_localRotations);
-	m_localRotations = conf_placement_new<float4>(conf_malloc(m_numTotalVertices * sizeof(float4)));
+	tf_free(m_localRotations);
+	m_localRotations = tf_placement_new<float4>(tf_malloc(m_numTotalVertices * sizeof(float4)));
 
-	conf_free(m_thicknessCoeffs);
-	m_thicknessCoeffs = conf_placement_new<float>(conf_malloc(m_numTotalVertices * sizeof(float)));
+	tf_free(m_thicknessCoeffs);
+	m_thicknessCoeffs = tf_placement_new<float>(tf_malloc(m_numTotalVertices * sizeof(float)));
 
-	conf_free(m_triangleIndices);
-	m_triangleIndices = conf_placement_new<int>(conf_malloc(GetNumHairTriangleIndices() * sizeof(int32)));
+	tf_free(m_triangleIndices);
+	m_triangleIndices = tf_placement_new<int>(tf_malloc(GetNumHairTriangleIndices() * sizeof(int32)));
 
 	// If we have failed to allocate buffers, then clear the allocated ones and exit.
 	if (!m_strandTypes || !m_tangents || !m_restLengths || !m_refVectors || !m_globalRotations || !m_localRotations || !m_thicknessCoeffs ||

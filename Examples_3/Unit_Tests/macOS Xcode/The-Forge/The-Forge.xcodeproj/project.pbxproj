@@ -131,6 +131,8 @@
 		B231A25023F40207006D7450 /* ProfilerWidgetsUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A24523F40207006D7450 /* ProfilerWidgetsUI.cpp */; };
 		B231A25123F40207006D7450 /* ProfilerWidgetsUI.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B231A24523F40207006D7450 /* ProfilerWidgetsUI.cpp */; };
 		B231A25323F40207006D7450 /* ProfilerHTML.h in Headers */ = {isa = PBXBuildFile; fileRef = B231A24723F40207006D7450 /* ProfilerHTML.h */; };
+		B245106E24CEEA5300FCDD20 /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B245106D24CEEA5300FCDD20 /* FileSystem.cpp */; };
+		B245106F24CF0AE700FCDD20 /* FileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B245106D24CEEA5300FCDD20 /* FileSystem.cpp */; };
 		B274041B22BC66AD00F7660D /* BaseComponent.h in Headers */ = {isa = PBXBuildFile; fileRef = B274041522BC66AD00F7660D /* BaseComponent.h */; };
 		B274041C22BC66AD00F7660D /* ComponentRepresentation.h in Headers */ = {isa = PBXBuildFile; fileRef = B274041622BC66AD00F7660D /* ComponentRepresentation.h */; };
 		B274041D22BC66AD00F7660D /* BaseComponent.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B274041722BC66AD00F7660D /* BaseComponent.cpp */; };
@@ -152,29 +154,14 @@
 		E967DE3C233B0A2C0032E4BA /* DarwinLog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E967DE39233B0A2C0032E4BA /* DarwinLog.cpp */; };
 		E967DE3D233B0A2C0032E4BA /* DarwinLog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E967DE39233B0A2C0032E4BA /* DarwinLog.cpp */; };
 		E967DE41233B0A520032E4BA /* CocoaFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = E967DE3E233B0A520032E4BA /* CocoaFileSystem.mm */; };
-		E967DE42233B0A520032E4BA /* CocoaFileSystem.h in Headers */ = {isa = PBXBuildFile; fileRef = E967DE3F233B0A520032E4BA /* CocoaFileSystem.h */; };
 		E967DE48233B0D7E0032E4BA /* UnixFileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9B6292B23388D7C009DD4AB /* UnixFileSystem.cpp */; };
 		E967DE49233B0DE50032E4BA /* iOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = E9E601C7233B098900B21FD6 /* iOSBase.mm */; };
 		E967DE4A233B0DEB0032E4BA /* macOSBase.mm in Sources */ = {isa = PBXBuildFile; fileRef = E9E601C9233B098900B21FD6 /* macOSBase.mm */; };
-		E967DF15233B2F610032E4BA /* iOSFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = E967DF14233B2F610032E4BA /* iOSFileSystem.mm */; };
 		E967DF16233B30AA0032E4BA /* CocoaFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = E967DE3E233B0A520032E4BA /* CocoaFileSystem.mm */; };
 		E98584E72334397C00692529 /* SystemRun.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E98584E52334397C00692529 /* SystemRun.cpp */; };
-		E98584EA2334609200692529 /* FileSystemInternal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E98584E92334609200692529 /* FileSystemInternal.cpp */; };
-		E98584EB2334609200692529 /* FileSystemInternal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E98584E92334609200692529 /* FileSystemInternal.cpp */; };
-		E9B6292323384CC9009DD4AB /* MemoryStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B28035622319C01A006CE791 /* MemoryStream.cpp */; };
-		E9B6292423384CC9009DD4AB /* MemoryStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B28035622319C01A006CE791 /* MemoryStream.cpp */; };
-		E9B6292523385D33009DD4AB /* SystemFileStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B28035602319C01A006CE791 /* SystemFileStream.cpp */; };
-		E9B6292623385D33009DD4AB /* SystemFileStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B28035602319C01A006CE791 /* SystemFileStream.cpp */; };
-		E9B6292723386626009DD4AB /* ZipFileStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B22E4F56231E050D00D94FD6 /* ZipFileStream.cpp */; };
-		E9B6292823386626009DD4AB /* ZipFileStream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B22E4F56231E050D00D94FD6 /* ZipFileStream.cpp */; };
 		E9B6292D23388D7D009DD4AB /* UnixFileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9B6292B23388D7C009DD4AB /* UnixFileSystem.cpp */; };
-		E9B6292E23388D7D009DD4AB /* UnixFileSystem.h in Headers */ = {isa = PBXBuildFile; fileRef = E9B6292C23388D7C009DD4AB /* UnixFileSystem.h */; };
 		E9BF1A27231861BD001F2264 /* basisu_transcoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */; };
 		E9BF1A28231861BD001F2264 /* basisu_transcoder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */; };
-		E9E1C3472339E2FD003544D5 /* ZipFileSystem.h in Headers */ = {isa = PBXBuildFile; fileRef = E9E1C3452339E2FC003544D5 /* ZipFileSystem.h */; };
-		E9E1C3482339E2FD003544D5 /* ZipFileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9E1C3462339E2FD003544D5 /* ZipFileSystem.cpp */; };
-		E9E1C3492339E2FD003544D5 /* ZipFileSystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9E1C3462339E2FD003544D5 /* ZipFileSystem.cpp */; };
-		E9E601CD233B099800B21FD6 /* macOSFileSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = E9E601C4233B098900B21FD6 /* macOSFileSystem.mm */; };
 		E9FECF7723333E3F00BA3DFB /* RingBuffer.h in Headers */ = {isa = PBXBuildFile; fileRef = D205E2831F9F9EC600040CCE /* RingBuffer.h */; };
 		FA7B2FA0249C15B4007B9D2F /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FA7B2F9F249C15B4007B9D2F /* IOKit.framework */; };
 /* End PBXBuildFile section */
@@ -286,14 +273,13 @@
 		81856EFF229D729000F3A92B /* fixed_pool.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = fixed_pool.cpp; path = OpenSource/EASTL/fixed_pool.cpp; sourceTree = "<group>"; };
 		81856F12229D72EF00F3A92B /* assert.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = assert.cpp; path = OpenSource/EASTL/assert.cpp; sourceTree = "<group>"; };
 		81FF8E292237A9D30009402D /* InputSystem.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = InputSystem.cpp; path = Input/InputSystem.cpp; sourceTree = "<group>"; };
-		B22E4F56231E050D00D94FD6 /* ZipFileStream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZipFileStream.cpp; path = FileSystem/ZipFileStream.cpp; sourceTree = "<group>"; };
-		B22E4F57231E050D00D94FD6 /* ZipFileStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ZipFileStream.h; path = FileSystem/ZipFileStream.h; sourceTree = "<group>"; usesTabs = 1; };
 		B231A24023F40207006D7450 /* ProfilerBase.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProfilerBase.h; sourceTree = "<group>"; };
 		B231A24223F40207006D7450 /* GpuProfiler.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = GpuProfiler.cpp; sourceTree = "<group>"; };
 		B231A24323F40207006D7450 /* GpuProfiler.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GpuProfiler.h; sourceTree = "<group>"; };
 		B231A24423F40207006D7450 /* ProfilerBase.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = ProfilerBase.cpp; sourceTree = "<group>"; };
 		B231A24523F40207006D7450 /* ProfilerWidgetsUI.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; path = ProfilerWidgetsUI.cpp; sourceTree = "<group>"; };
 		B231A24723F40207006D7450 /* ProfilerHTML.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ProfilerHTML.h; sourceTree = "<group>"; };
+		B245106D24CEEA5300FCDD20 /* FileSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = FileSystem.cpp; path = FileSystem/FileSystem.cpp; sourceTree = "<group>"; };
 		B25AC24020EFF14500ED50CF /* Fontstash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Fontstash.h; path = ../../Middleware_3/Text/Fontstash.h; sourceTree = "<group>"; };
 		B25AC24120EFF14500ED50CF /* Fontstash.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = Fontstash.cpp; path = ../../Middleware_3/Text/Fontstash.cpp; sourceTree = "<group>"; };
 		B274041522BC66AD00F7660D /* BaseComponent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = BaseComponent.h; path = ../../../../../Middleware_3/ECS/BaseComponent.h; sourceTree = "<group>"; };
@@ -302,10 +288,6 @@
 		B274041822BC66AD00F7660D /* EntityManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = EntityManager.h; path = ../../../../../Middleware_3/ECS/EntityManager.h; sourceTree = "<group>"; };
 		B274041922BC66AD00F7660D /* ComponentRepresentation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ComponentRepresentation.cpp; path = ../../../../../Middleware_3/ECS/ComponentRepresentation.cpp; sourceTree = "<group>"; };
 		B274041A22BC66AD00F7660D /* EntityManager.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = EntityManager.cpp; path = ../../../../../Middleware_3/ECS/EntityManager.cpp; sourceTree = "<group>"; };
-		B28035602319C01A006CE791 /* SystemFileStream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = SystemFileStream.cpp; path = FileSystem/SystemFileStream.cpp; sourceTree = "<group>"; };
-		B28035612319C01A006CE791 /* SystemFileStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = SystemFileStream.h; path = FileSystem/SystemFileStream.h; sourceTree = "<group>"; };
-		B28035622319C01A006CE791 /* MemoryStream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = MemoryStream.cpp; path = FileSystem/MemoryStream.cpp; sourceTree = "<group>"; };
-		B28035632319C01A006CE791 /* MemoryStream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MemoryStream.h; path = FileSystem/MemoryStream.h; sourceTree = "<group>"; };
 		B2B2F1C12472F7BF00B483FF /* rmem_get_module_info.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_get_module_info.cpp; path = OpenSource/rmem/src/rmem_get_module_info.cpp; sourceTree = "<group>"; };
 		B2B2F1C22472F7BF00B483FF /* rmem_hook.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_hook.cpp; path = OpenSource/rmem/src/rmem_hook.cpp; sourceTree = "<group>"; };
 		B2B2F1C52472F7D200B483FF /* rmem_lib.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = rmem_lib.cpp; path = OpenSource/rmem/src/rmem_lib.cpp; sourceTree = "<group>"; };
@@ -318,24 +300,16 @@
 		E967DE38233B0A2C0032E4BA /* DarwinThread.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DarwinThread.cpp; sourceTree = "<group>"; };
 		E967DE39233B0A2C0032E4BA /* DarwinLog.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = DarwinLog.cpp; sourceTree = "<group>"; };
 		E967DE3E233B0A520032E4BA /* CocoaFileSystem.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = CocoaFileSystem.mm; sourceTree = "<group>"; };
-		E967DE3F233B0A520032E4BA /* CocoaFileSystem.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = CocoaFileSystem.h; sourceTree = "<group>"; };
 		E967DF04233B2BEA0032E4BA /* libassimp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libassimp.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		E967DF06233B2BF00032E4BA /* libIrrXML.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libIrrXML.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		E967DF08233B2BF40032E4BA /* libzlibstatic.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzlibstatic.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		E967DF0A233B2BFC0032E4BA /* libassimp_iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libassimp_iOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		E967DF0C233B2C340032E4BA /* libIrrXML_iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libIrrXML_iOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		E967DF0E233B2C390032E4BA /* libzlibstatic_iOS.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; path = libzlibstatic_iOS.a; sourceTree = BUILT_PRODUCTS_DIR; };
-		E967DF14233B2F610032E4BA /* iOSFileSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = iOSFileSystem.mm; sourceTree = "<group>"; };
 		E98584E52334397C00692529 /* SystemRun.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = SystemRun.cpp; path = FileSystem/SystemRun.cpp; sourceTree = "<group>"; };
-		E98584E82334604300692529 /* FileSystemInternal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FileSystemInternal.h; path = FileSystem/FileSystemInternal.h; sourceTree = "<group>"; usesTabs = 1; };
-		E98584E92334609200692529 /* FileSystemInternal.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = FileSystemInternal.cpp; path = FileSystem/FileSystemInternal.cpp; sourceTree = "<group>"; usesTabs = 1; };
 		E9B6292B23388D7C009DD4AB /* UnixFileSystem.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = UnixFileSystem.cpp; path = FileSystem/UnixFileSystem.cpp; sourceTree = "<group>"; };
-		E9B6292C23388D7C009DD4AB /* UnixFileSystem.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = UnixFileSystem.h; path = FileSystem/UnixFileSystem.h; sourceTree = "<group>"; usesTabs = 1; };
 		E9BF1A26231861BC001F2264 /* basisu_transcoder.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = basisu_transcoder.cpp; path = ../../../../Common_3/ThirdParty/OpenSource/basis_universal/transcoder/basisu_transcoder.cpp; sourceTree = "<group>"; };
-		E9E1C3452339E2FC003544D5 /* ZipFileSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ZipFileSystem.h; path = FileSystem/ZipFileSystem.h; sourceTree = "<group>"; };
-		E9E1C3462339E2FD003544D5 /* ZipFileSystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ZipFileSystem.cpp; path = FileSystem/ZipFileSystem.cpp; sourceTree = "<group>"; };
 		E9E601BD233AFB0700B21FD6 /* libbz2.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libbz2.tbd; path = usr/lib/libbz2.tbd; sourceTree = SDKROOT; };
-		E9E601C4233B098900B21FD6 /* macOSFileSystem.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = macOSFileSystem.mm; sourceTree = "<group>"; };
 		E9E601C5233B098900B21FD6 /* iOSAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = iOSAppDelegate.m; sourceTree = "<group>"; };
 		E9E601C6233B098900B21FD6 /* macOSAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = macOSAppDelegate.m; sourceTree = "<group>"; };
 		E9E601C7233B098900B21FD6 /* iOSBase.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = iOSBase.mm; sourceTree = "<group>"; };
@@ -595,18 +569,8 @@
 		D205E2811F9F9C1500040CCE /* FileSystem */ = {
 			isa = PBXGroup;
 			children = (
-				B22E4F56231E050D00D94FD6 /* ZipFileStream.cpp */,
-				B22E4F57231E050D00D94FD6 /* ZipFileStream.h */,
-				B28035602319C01A006CE791 /* SystemFileStream.cpp */,
-				B28035612319C01A006CE791 /* SystemFileStream.h */,
-				B28035622319C01A006CE791 /* MemoryStream.cpp */,
-				B28035632319C01A006CE791 /* MemoryStream.h */,
-				E98584E82334604300692529 /* FileSystemInternal.h */,
-				E98584E92334609200692529 /* FileSystemInternal.cpp */,
+				B245106D24CEEA5300FCDD20 /* FileSystem.cpp */,
 				E9B6292B23388D7C009DD4AB /* UnixFileSystem.cpp */,
-				E9B6292C23388D7C009DD4AB /* UnixFileSystem.h */,
-				E9E1C3462339E2FD003544D5 /* ZipFileSystem.cpp */,
-				E9E1C3452339E2FC003544D5 /* ZipFileSystem.h */,
 			);
 			name = FileSystem;
 			path = ../../../../Common_3/OS;
@@ -635,9 +599,6 @@
 				E967DE39233B0A2C0032E4BA /* DarwinLog.cpp */,
 				E967DE38233B0A2C0032E4BA /* DarwinThread.cpp */,
 				E967DE3E233B0A520032E4BA /* CocoaFileSystem.mm */,
-				E967DE3F233B0A520032E4BA /* CocoaFileSystem.h */,
-				E9E601C4233B098900B21FD6 /* macOSFileSystem.mm */,
-				E967DF14233B2F610032E4BA /* iOSFileSystem.mm */,
 				E9E601C5233B098900B21FD6 /* iOSAppDelegate.m */,
 				E9E601C6233B098900B21FD6 /* macOSAppDelegate.m */,
 				E9E601C7233B098900B21FD6 /* iOSBase.mm */,
@@ -802,13 +763,10 @@
 				654D979A21E922F400113964 /* AnimatedObject.h in Headers */,
 				5C512C682141561E00E7A798 /* imgui.h in Headers */,
 				654D979421E922F400113964 /* ClipController.h in Headers */,
-				E9B6292E23388D7D009DD4AB /* UnixFileSystem.h in Headers */,
 				B274041B22BC66AD00F7660D /* BaseComponent.h in Headers */,
 				B231A24823F40207006D7450 /* ProfilerBase.h in Headers */,
 				B231A25323F40207006D7450 /* ProfilerHTML.h in Headers */,
 				654D979521E922F400113964 /* Rig.h in Headers */,
-				E967DE42233B0A520032E4BA /* CocoaFileSystem.h in Headers */,
-				E9E1C3472339E2FD003544D5 /* ZipFileSystem.h in Headers */,
 				5C172F56214148840074EE71 /* MetalMemoryAllocator.h in Headers */,
 				B274041C22BC66AD00F7660D /* ComponentRepresentation.h in Headers */,
 				5C512C652141561E00E7A798 /* imgui_internal.h in Headers */,
@@ -923,22 +881,20 @@
 			buildActionMask = 2147483647;
 			files = (
 				5C512C6A2141561E00E7A798 /* imgui_widgets.cpp in Sources */,
+				B245106F24CF0AE700FCDD20 /* FileSystem.cpp in Sources */,
 				5C172FD921414CC60074EE71 /* Fontstash.cpp in Sources */,
 				5C172FDA21414CC60074EE71 /* Fontstash.h in Sources */,
 				5C172FDC21414CC60074EE71 /* AppUI.cpp in Sources */,
-				E9B6292423384CC9009DD4AB /* MemoryStream.cpp in Sources */,
 				5C512C672141561E00E7A798 /* imgui.cpp in Sources */,
 				5C172FDD21414CC60074EE71 /* AppUI.h in Sources */,
 				E98584E72334397C00692529 /* SystemRun.cpp in Sources */,
 				E967DE3B233B0A2C0032E4BA /* DarwinThread.cpp in Sources */,
-				E9B6292823386626009DD4AB /* ZipFileStream.cpp in Sources */,
 				E967DE48233B0D7E0032E4BA /* UnixFileSystem.cpp in Sources */,
 				5C512C642141561E00E7A798 /* imgui_demo.cpp in Sources */,
 				81856EF6229D725000F3A92B /* EAMemory.cpp in Sources */,
 				5C172FE321414CC60074EE71 /* RingBuffer.h in Sources */,
 				B231A25123F40207006D7450 /* ProfilerWidgetsUI.cpp in Sources */,
 				654D97B821E92F8300113964 /* Animation.cpp in Sources */,
-				E9B6292623385D33009DD4AB /* SystemFileStream.cpp in Sources */,
 				81856F01229D729000F3A92B /* allocator_forge.cpp in Sources */,
 				81856F14229D72EF00F3A92B /* assert.cpp in Sources */,
 				654D97BA21E92F8A00113964 /* ClipController.cpp in Sources */,
@@ -956,7 +912,6 @@
 				81856F11229D729000F3A92B /* fixed_pool.cpp in Sources */,
 				E967DE49233B0DE50032E4BA /* iOSBase.mm in Sources */,
 				654D97B721E92F8100113964 /* AnimatedObject.cpp in Sources */,
-				E967DF15233B2F610032E4BA /* iOSFileSystem.mm in Sources */,
 				5C172FEE21414CC60074EE71 /* IRenderer.h in Sources */,
 				B274041E22BC66AD00F7660D /* BaseComponent.cpp in Sources */,
 				5C32AEE0246453F40066E921 /* ParallelPrimitives.cpp in Sources */,
@@ -971,7 +926,6 @@
 				5C172FF421414CC60074EE71 /* IResourceLoader.h in Sources */,
 				5C172FF521414CC60074EE71 /* tinyexr.cpp in Sources */,
 				B2DC6E9923F27C6600D48312 /* zip.cpp in Sources */,
-				E9E1C3492339E2FD003544D5 /* ZipFileSystem.cpp in Sources */,
 				81856F07229D729000F3A92B /* string.cpp in Sources */,
 				5C172FF621414CC60074EE71 /* tinyexr.h in Sources */,
 				81856F09229D729000F3A92B /* thread_support.cpp in Sources */,
@@ -982,7 +936,6 @@
 				E967DE3D233B0A2C0032E4BA /* DarwinLog.cpp in Sources */,
 				81FF8E2D2237A9D30009402D /* InputSystem.cpp in Sources */,
 				B274042122BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */,
-				E98584EB2334609200692529 /* FileSystemInternal.cpp in Sources */,
 				B2F2AACE23FA9C2B006A0A66 /* GpuProfiler.cpp in Sources */,
 				5C172FF821414CC60074EE71 /* Log.h in Sources */,
 				654D97BB21E92F8D00113964 /* ClipMask.cpp in Sources */,
@@ -999,7 +952,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				5C512C602141561E00E7A798 /* imgui_draw.cpp in Sources */,
-				E9B6292723386626009DD4AB /* ZipFileStream.cpp in Sources */,
 				81856F08229D729000F3A92B /* thread_support.cpp in Sources */,
 				81856F10229D729000F3A92B /* fixed_pool.cpp in Sources */,
 				5C5582EC21413D550019960B /* Fontstash.cpp in Sources */,
@@ -1013,7 +965,6 @@
 				5C512C692141561E00E7A798 /* imgui_widgets.cpp in Sources */,
 				B274042022BC66AD00F7660D /* ComponentRepresentation.cpp in Sources */,
 				81FF8E2C2237A9D30009402D /* InputSystem.cpp in Sources */,
-				E9B6292323384CC9009DD4AB /* MemoryStream.cpp in Sources */,
 				B2B2F1C62472F7D200B483FF /* rmem_lib.cpp in Sources */,
 				81856F0A229D729000F3A92B /* allocator_eastl.cpp in Sources */,
 				5C172F55214148840074EE71 /* MetalShaderReflection.mm in Sources */,
@@ -1031,17 +982,16 @@
 				B231A25023F40207006D7450 /* ProfilerWidgetsUI.cpp in Sources */,
 				B231A24B23F40207006D7450 /* GpuProfiler.cpp in Sources */,
 				81856F02229D729000F3A92B /* hashtable.cpp in Sources */,
+				B245106E24CEEA5300FCDD20 /* FileSystem.cpp in Sources */,
 				81856F00229D729000F3A92B /* allocator_forge.cpp in Sources */,
 				654D979B21E922F400113964 /* Animation.cpp in Sources */,
 				81856F0E229D729000F3A92B /* numeric_limits.cpp in Sources */,
-				E98584EA2334609200692529 /* FileSystemInternal.cpp in Sources */,
 				654D97A021E922F400113964 /* Clip.cpp in Sources */,
 				81856F0C229D729000F3A92B /* intrusive_list.cpp in Sources */,
 				654D979821E922F400113964 /* SkeletonBatcher.cpp in Sources */,
 				E95891EB2341596500B68D6A /* SystemRun.cpp in Sources */,
 				E9BF1A27231861BD001F2264 /* basisu_transcoder.cpp in Sources */,
 				5C55830921413D550019960B /* tinyexr.cpp in Sources */,
-				E9B6292523385D33009DD4AB /* SystemFileStream.cpp in Sources */,
 				5C55830A21413D550019960B /* tinyexr.h in Sources */,
 				5C32AEDF246453F40066E921 /* ParallelPrimitives.cpp in Sources */,
 				5C55830B21413D550019960B /* Log.cpp in Sources */,
@@ -1053,9 +1003,7 @@
 				654D979D21E922F400113964 /* Rig.cpp in Sources */,
 				B2B2F1C42472F7BF00B483FF /* rmem_hook.cpp in Sources */,
 				5C172F54214148840074EE71 /* MetalRenderer.mm in Sources */,
-				E9E1C3482339E2FD003544D5 /* ZipFileSystem.cpp in Sources */,
 				E967DE3A233B0A2C0032E4BA /* DarwinThread.cpp in Sources */,
-				E9E601CD233B099800B21FD6 /* macOSFileSystem.mm in Sources */,
 				B274041D22BC66AD00F7660D /* BaseComponent.cpp in Sources */,
 				81856F06229D729000F3A92B /* string.cpp in Sources */,
 				81856EF3229D725000F3A92B /* EASprintf.cpp in Sources */,

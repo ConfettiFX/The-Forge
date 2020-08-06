@@ -59,21 +59,15 @@ struct Vertex_Shader
     Vertex_Shader(constant Uniforms_uniformBlock & uniformBlock) : uniformBlock(uniformBlock) {}
 };
 
-struct VSDataPerDraw {
-    constant Vertex_Shader::Uniforms_uniformBlock& uniformBlock [[id(0)]];
-};
-
-vertex Vertex_Shader::VSOutput stageMain(
-                                         Vertex_Shader::VSInput input           [[stage_in]],
-                                         uint InstanceID                        [[instance_id]],
-                                         constant VSDataPerDraw& vsDataPerDraw  [[buffer(UPDATE_FREQ_PER_DRAW)]]
-)
-{
+vertex Vertex_Shader::VSOutput stageMain(Vertex_Shader::VSInput input [[stage_in]],
+    uint InstanceID                                                   [[instance_id]],
+    constant Vertex_Shader::Uniforms_uniformBlock & uniformBlock      [[buffer(0)]]
+) {
     Vertex_Shader::VSInput input0;
     input0.Position = input.Position;
     input0.Normal = input.Normal;
     uint InstanceID0;
     InstanceID0 = InstanceID;
-    Vertex_Shader main(vsDataPerDraw.uniformBlock);
+    Vertex_Shader main(uniformBlock);
     return main.main(input0, InstanceID0);
 }

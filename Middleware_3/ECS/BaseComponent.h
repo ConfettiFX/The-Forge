@@ -73,9 +73,9 @@ public:
 #define FORGE_IMPLEMENT_COMPONENT(Component_) \
 	eastl::hash<eastl::string> Component_::Component_##hashedStr; \
 	uint32_t Component_::Component_##typeHash = (uint32_t)Component_##hashedStr(eastl::string(#Component_)); \
-	Component_* Component_ ::clone() const { return conf_placement_new<Component_>(conf_calloc(1, sizeof(Component_)), *this); } \
-	FCR::ComponentRepresentation* Component_::createRepresentation() { return conf_placement_new<Component_##Representation>(conf_calloc(1, sizeof(Component_##Representation)), this); } \
-	void Component_::destroyRepresentation(FCR::ComponentRepresentation* pRep) { pRep->~ComponentRepresentation(); conf_free(pRep); } \
+	Component_* Component_ ::clone() const { return tf_placement_new<Component_>(tf_calloc(1, sizeof(Component_)), *this); } \
+	FCR::ComponentRepresentation* Component_::createRepresentation() { return tf_placement_new<Component_##Representation>(tf_calloc(1, sizeof(Component_##Representation)), this); } \
+	void Component_::destroyRepresentation(FCR::ComponentRepresentation* pRep) { pRep->~ComponentRepresentation(); tf_free(pRep); } \
 	uint32_t Component_::getTypeStatic() {  return Component_##typeHash; } \
 	uint32_t Component_::getType() const { return Component_::getTypeStatic(); } \
-	BaseComponent* Component_::GenerateComponent() { return conf_new(Component_); }
+	BaseComponent* Component_::GenerateComponent() { return tf_new(Component_); }

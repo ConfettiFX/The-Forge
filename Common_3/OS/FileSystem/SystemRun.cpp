@@ -30,7 +30,7 @@
 #include "../../ThirdParty/OpenSource/EASTL/string.h"
 #include "../../ThirdParty/OpenSource/EASTL/vector.h"
 
-int systemRun(const char* command, const char** arguments, size_t argumentCount, const Path* stdOutFile)
+int systemRun(const char* command, const char** arguments, size_t argumentCount, const char* stdOutFile)
 {
 #if defined(XBOX)
 	ASSERT(!"UNIMPLEMENTED");
@@ -50,9 +50,9 @@ int systemRun(const char* command, const char** arguments, size_t argumentCount,
 		sa.lpSecurityDescriptor = NULL;
 		sa.bInheritHandle = TRUE;
 
-		size_t   pathLength = strlen(fsGetPathAsNativeString(stdOutFile)) + 1;
+		size_t   pathLength = strlen(stdOutFile) + 1;
 		wchar_t* buffer = (wchar_t*)alloca(pathLength * sizeof(wchar_t));
-		MultiByteToWideChar(CP_UTF8, 0, fsGetPathAsNativeString(stdOutFile), (int)pathLength, buffer, (int)pathLength);
+		MultiByteToWideChar(CP_UTF8, 0, stdOutFile, (int)pathLength, buffer, (int)pathLength);
 		stdOut = CreateFileW(buffer, GENERIC_ALL, FILE_SHARE_WRITE | FILE_SHARE_READ, &sa, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	}
 

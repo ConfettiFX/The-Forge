@@ -241,31 +241,23 @@ class MultiThread: public IApp
 	bool Init()
 	{
         // FILE PATHS
-        PathHandle programDirectory = fsGetApplicationDirectory();
-        if (!fsPlatformUsesBundledResources())
-        {
-            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/03_MultiThread");
-            fsSetResourceDirRootPath(resourceDirRoot);
-            
-            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirEnum(RD_MESHES,             "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,     "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,     "../../../../Middleware_3/UI");
-        }
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES,	"Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES,	"CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG,		"GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES,			"Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS,			"Fonts");
         
 		InitCpuUsage();
 
 		// gThreadCount is the amount of secondary threads: the amount of physical cores except the main thread
 		gThreadCount = gCoresCount - 1;
-		pThreadData = (ThreadData*)conf_calloc(gThreadCount, sizeof(ThreadData));
+		pThreadData = (ThreadData*)tf_calloc(gThreadCount, sizeof(ThreadData));
 
 		// This information is per core
-        pGpuProfiletokens = (ProfileToken*)conf_calloc(gCoresCount, sizeof(ProfileToken));
-        eastl::string* ppGpuProfileNames = (eastl::string*)conf_calloc(gCoresCount, sizeof(eastl::string));
-        const char** ppConstGpuProfileNames = (const char**)conf_calloc(gCoresCount, sizeof(const char*));
-        Queue** ppQueues = (Queue**)conf_calloc(gCoresCount, sizeof(Queue*));
+        pGpuProfiletokens = (ProfileToken*)tf_calloc(gCoresCount, sizeof(ProfileToken));
+        eastl::string* ppGpuProfileNames = (eastl::string*)tf_calloc(gCoresCount, sizeof(eastl::string));
+        const char** ppConstGpuProfileNames = (const char**)tf_calloc(gCoresCount, sizeof(const char*));
+        Queue** ppQueues = (Queue**)tf_calloc(gCoresCount, sizeof(Queue*));
 
 		gGraphWidth = mSettings.mWidth / 6;    //200;
 		gGraphHeight = gCoresCount ? (mSettings.mHeight - 30 - gCoresCount * 10) / gCoresCount : 0;
@@ -315,8 +307,8 @@ class MultiThread: public IApp
 			addFence(pRenderer, &pRenderCompleteFences[i]);
 			addSemaphore(pRenderer, &pRenderCompleteSemaphores[i]);
 
-			ppThreadCmds[i] = (Cmd**)conf_malloc(gThreadCount * sizeof(Cmd*));
-			pThreadCmdPools[i] = (CmdPool**)conf_malloc(gThreadCount * sizeof(CmdPool*));
+			ppThreadCmds[i] = (Cmd**)tf_malloc(gThreadCount * sizeof(Cmd*));
+			pThreadCmdPools[i] = (CmdPool**)tf_malloc(gThreadCount * sizeof(CmdPool*));
 
 			for (uint32_t t = 0; t < gThreadCount; ++t)
 			{
@@ -334,39 +326,37 @@ class MultiThread: public IApp
 		// load all image to GPU
 		for (int i = 0; i < 5; ++i)
 		{
-            PathHandle path = fsGetPathInResourceDirEnum(RD_TEXTURES, pImageFileNames[i]);
 			TextureLoadDesc textureDesc = {};
-            textureDesc.pFilePath = path;
+			textureDesc.pFileName = pImageFileNames[i];
 			textureDesc.ppTexture = &pTextures[i];
-			addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&textureDesc, NULL);
 		}
 
 		for (int i = 0; i < 6; ++i)
 		{
-            PathHandle path = fsGetPathInResourceDirEnum(RD_TEXTURES, pSkyBoxImageFileNames[i]);
 			TextureLoadDesc textureDesc = {};
-			textureDesc.pFilePath = path;
+			textureDesc.pFileName = pSkyBoxImageFileNames[i];
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
-			addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&textureDesc, NULL);
 		}
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
 		{
 			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
 			return false;
 		}
 
 		ShaderLoadDesc graphShader = {};
-		graphShader.mStages[0] = { "Graph.vert", NULL, 0, RD_SHADER_SOURCES };
-		graphShader.mStages[1] = { "Graph.frag", NULL, 0, RD_SHADER_SOURCES };
+		graphShader.mStages[0] = { "Graph.vert", NULL, 0};
+		graphShader.mStages[1] = { "Graph.frag", NULL, 0};
 
 		ShaderLoadDesc particleShader = {};
-		particleShader.mStages[0] = { "Particle.vert", NULL, 0, RD_SHADER_SOURCES };
-		particleShader.mStages[1] = { "Particle.frag", NULL, 0, RD_SHADER_SOURCES };
+		particleShader.mStages[0] = { "Particle.vert", NULL, 0};
+		particleShader.mStages[1] = { "Particle.frag", NULL, 0};
 
 		ShaderLoadDesc skyShader = {};
-		skyShader.mStages[0] = { "Skybox.vert", NULL, 0, RD_SHADER_SOURCES };
-		skyShader.mStages[1] = { "Skybox.frag", NULL, 0, RD_SHADER_SOURCES };
+		skyShader.mStages[0] = { "Skybox.vert", NULL, 0};
+		skyShader.mStages[1] = { "Skybox.frag", NULL, 0};
 
 		addShader(pRenderer, &particleShader, &pShader);
 		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
@@ -449,7 +439,7 @@ class MultiThread: public IApp
 		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
 		skyboxVbDesc.pData = skyBoxPoints;
 		skyboxVbDesc.ppBuffer = &pSkyBoxVertexBuffer;
-		addResource(&skyboxVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&skyboxVbDesc, NULL);
 
 		BufferLoadDesc ubDesc = {};
 		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -460,9 +450,9 @@ class MultiThread: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
-			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubDesc, NULL);
 			ubDesc.ppBuffer = &pSkyboxUniformBuffer[i];
-			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubDesc, NULL);
 		}
 
 		// generate partcile data
@@ -472,7 +462,7 @@ class MultiThread: public IApp
 			RND_GEN(particleSeed);
 		}
 		uint32_t* seedArray = NULL;
-		seedArray = (uint32_t*)conf_malloc(gTotalParticleCount * sizeof(uint32_t));
+		seedArray = (uint32_t*)tf_malloc(gTotalParticleCount * sizeof(uint32_t));
 		for (int i = 0; i < gTotalParticleCount; ++i)
 		{
 			RND_GEN(particleSeed);
@@ -486,12 +476,12 @@ class MultiThread: public IApp
 		particleVbDesc.mDesc.mSize = parDataSize;
 		particleVbDesc.pData = seedArray;
 		particleVbDesc.ppBuffer = &pParticleVertexBuffer;
-		addResource(&particleVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&particleVbDesc, NULL);
 
 		uint32_t graphDataSize = sizeof(GraphVertex) * gSampleCount * 3;    // 2 vertex for tri, 1 vertex for line strip
 
 		//generate vertex buffer for all cores to draw cpu graph and setting up view port for each graph
-		pCpuGraph = (CpuGraph*)conf_malloc(sizeof(CpuGraph) * gCoresCount);
+		pCpuGraph = (CpuGraph*)tf_malloc(sizeof(CpuGraph) * gCoresCount);
 		for (uint i = 0; i < gCoresCount; ++i)
 		{
 			pCpuGraph[i].mViewPort.mOffsetX = mSettings.mWidth - 10.0f - gGraphWidth;
@@ -508,7 +498,7 @@ class MultiThread: public IApp
 				vbDesc.mDesc.mSize = graphDataSize;
 				vbDesc.pData = NULL;
 				vbDesc.ppBuffer = &pCpuGraph[i].mVertexBuffer[j];
-				addResource(&vbDesc, NULL, LOAD_PRIORITY_NORMAL);
+				addResource(&vbDesc, NULL);
 			}
 		}
 		graphDataSize = sizeof(GraphVertex) * gSampleCount;
@@ -521,19 +511,19 @@ class MultiThread: public IApp
 			vbDesc.mDesc.mSize = graphDataSize;
 			vbDesc.pData = NULL;
 			vbDesc.ppBuffer = &pBackGroundVertexBuffer[i];
-			addResource(&vbDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&vbDesc, NULL);
 		}
 
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 
 		// Initialize profiler
 		initProfiler(pRenderer, ppQueues, ppConstGpuProfileNames, pGpuProfiletokens, gCoresCount);
-        conf_free(ppQueues);
-        conf_free(ppConstGpuProfileNames);
-        conf_free(ppGpuProfileNames);
+        tf_free(ppQueues);
+        tf_free(ppConstGpuProfileNames);
+        tf_free(ppGpuProfileNames);
 
 		initThreadSystem(&pThreadSystem);
 
@@ -594,7 +584,7 @@ class MultiThread: public IApp
 
 		waitForAllResourceLoads();
 		LOGF(LogLevel::eINFO, "Load Time %lld", timer.GetUSec(false) / 1000);
-		conf_free(seedArray);
+		tf_free(seedArray);
 		
 		// Prepare descriptor sets
 		DescriptorData params[7] = {};
@@ -660,7 +650,7 @@ class MultiThread: public IApp
 				removeResource(pCpuGraph[i].mVertexBuffer[j]);
 		}
 
-		conf_free(pCpuGraph);
+		tf_free(pCpuGraph);
 
 		for (uint i = 0; i < 5; ++i)
 			removeResource(pTextures[i]);
@@ -696,8 +686,8 @@ class MultiThread: public IApp
 				removeCmdPool(pRenderer, pThreadCmdPools[i][t]);
 			}
 
-			conf_free(ppThreadCmds[i]);
-			conf_free(pThreadCmdPools[i]);
+			tf_free(ppThreadCmds[i]);
+			tf_free(pThreadCmdPools[i]);
 		}
 
 		removeSemaphore(pRenderer, pImageAcquiredSemaphore);
@@ -709,8 +699,8 @@ class MultiThread: public IApp
 
 		RemoveCpuUsage();
 
-		conf_free(pThreadData);
-        conf_free(pGpuProfiletokens);
+		tf_free(pThreadData);
+        tf_free(pGpuProfiletokens);
 	}
 
 	bool Load()
@@ -1025,9 +1015,9 @@ class MultiThread: public IApp
 		cmdEndGpuFrameProfile(cmd, pGpuProfiletokens[0]); // pGpuProfiletokens[0] is reserved for main thread
 		endCmd(cmd);
 
+		beginCmd(ppGraphCmds[frameIdx]);
 		if (bShowThreadsPlot)
 		{
-			beginCmd(ppGraphCmds[frameIdx]);
 			for (uint i = 0; i < gCoresCount; ++i)
 			{
 				gGraphWidth = pRenderTarget->mWidth / 6;
@@ -1061,15 +1051,15 @@ class MultiThread: public IApp
 				cmdBindVertexBuffer(ppGraphCmds[frameIdx], 1, &pCpuGraph[i].mVertexBuffer[frameIdx], &graphDataStride, NULL);
 				cmdDraw(ppGraphCmds[frameIdx], gSampleCount, 2 * gSampleCount);
 			}
-			cmdSetViewport(ppGraphCmds[frameIdx], 0.0f, 0.0f, static_cast<float>(mSettings.mWidth), static_cast<float>(mSettings.mHeight), 0.0f, 1.0f);
-			cmdSetScissor(ppGraphCmds[frameIdx], 0, 0, mSettings.mWidth, mSettings.mHeight);
-
-			cmdBindRenderTargets(ppGraphCmds[frameIdx], 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-
-			barrier = { pRenderTarget, RESOURCE_STATE_PRESENT };
-			cmdResourceBarrier(ppGraphCmds[frameIdx], 0, NULL, 0, NULL, 1, &barrier);
-			endCmd(ppGraphCmds[frameIdx]);
 		}
+		cmdSetViewport(ppGraphCmds[frameIdx], 0.0f, 0.0f, static_cast<float>(mSettings.mWidth), static_cast<float>(mSettings.mHeight), 0.0f, 1.0f);
+		cmdSetScissor(ppGraphCmds[frameIdx], 0, 0, mSettings.mWidth, mSettings.mHeight);
+
+		cmdBindRenderTargets(ppGraphCmds[frameIdx], 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
+
+		barrier = { pRenderTarget, RESOURCE_STATE_PRESENT };
+		cmdResourceBarrier(ppGraphCmds[frameIdx], 0, NULL, 0, NULL, 1, &barrier);
+		endCmd(ppGraphCmds[frameIdx]);
 
 		cmdDrawProfilerUI();
 
@@ -1080,11 +1070,7 @@ class MultiThread: public IApp
 		/***************draw cpu graph*****************************/
 		/***************draw cpu graph*****************************/
 		// gather all command buffer, it is important to keep the screen clean command at the beginning
-		uint32_t cmdCount = gThreadCount + 1;
-		if (bShowThreadsPlot)
-		{
-			cmdCount++;
-		}
+		uint32_t cmdCount = gThreadCount + 2;
 		Cmd** allCmds = (Cmd**)alloca(cmdCount * sizeof(Cmd*));
 		allCmds[0] = cmd;
 
@@ -1092,11 +1078,7 @@ class MultiThread: public IApp
 		{
 			allCmds[i + 1] = pThreadData[i].pCmd;
 		}
-		if (bShowThreadsPlot)
-		{
-			allCmds[gThreadCount + 1] = ppGraphCmds[frameIdx];
-		}
-		// submit all command buffer
+		allCmds[gThreadCount + 1] = ppGraphCmds[frameIdx];
 
 		QueueSubmitDesc submitDesc = {};
 		submitDesc.mCmdCount = cmdCount;
@@ -1213,30 +1195,27 @@ class MultiThread: public IApp
 
         pEnumerator->Release();
 #endif    //#if defined(XBOX)
-#elif (__linux__)
+#elif defined(__linux__) && !(__ANDROID__)
 		eastl::vector<CPUData> entries;
 		entries.reserve(gCoresCount);
 		// Open cpu stat file
 
-		PathHandle statPath = fsCreatePath(fsGetSystemFileSystem(), "/proc/stat");
-		FileStream* fh = fsOpenFile(statPath, FM_READ_BINARY);
+		FILE* fh = fopen("/proc/stat", "rb");
 
 		if (fh)
 		{
 			// While eof not detected, keep parsing the stat file
-			while (!fsStreamAtEnd(fh))
+			while (!feof(fh))
 			{
 				entries.emplace_back(CPUData());
 				CPUData& entry = entries.back();
 				char     dummyCpuName[256];    // dummy cpu name, not used.
-				int bytesRead;
-				fsScanFromStream(
-					fh, &bytesRead, "%s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu", &dummyCpuName[0], &entry.times[0], &entry.times[1],
+				fscanf(fh, "%s %zu %zu %zu %zu %zu %zu %zu %zu %zu %zu", &dummyCpuName[0], &entry.times[0], &entry.times[1],
 					&entry.times[2], &entry.times[3], &entry.times[4], &entry.times[5], &entry.times[6], &entry.times[7], &entry.times[8],
 					&entry.times[9]);
 			}
 			// Close the cpu stat file
-			fsCloseStream(fh);
+			fclose(fh);
 		}
 		else
 		{
@@ -1361,8 +1340,8 @@ class MultiThread: public IApp
 
         if (gCoresCount)
         {
-            pOldTimeStamp = (uint64_t*)conf_malloc(sizeof(uint64_t) * gCoresCount);
-            pOldPprocUsage = (uint64_t*)conf_malloc(sizeof(uint64_t) * gCoresCount);
+            pOldTimeStamp = (uint64_t*)tf_malloc(sizeof(uint64_t) * gCoresCount);
+            pOldPprocUsage = (uint64_t*)tf_malloc(sizeof(uint64_t) * gCoresCount);
         }
 #endif
 #elif defined(__linux__)
@@ -1370,8 +1349,8 @@ class MultiThread: public IApp
 		gCoresCount = numCPU;
 		if (gCoresCount)
 		{
-			pOldTimeStamp = (uint64_t*)conf_malloc(sizeof(uint64_t) * gCoresCount);
-			pOldPprocUsage = (uint64_t*)conf_malloc(sizeof(uint64_t) * gCoresCount);
+			pOldTimeStamp = (uint64_t*)tf_malloc(sizeof(uint64_t) * gCoresCount);
+			pOldPprocUsage = (uint64_t*)tf_malloc(sizeof(uint64_t) * gCoresCount);
 		}
 #elif defined(__APPLE__)
 		processor_info_array_t cpuInfo;
@@ -1389,7 +1368,7 @@ class MultiThread: public IApp
 		gCoresCount = Thread::GetNumCPUCores();
 #endif
 
-		pCpuData = (CpuGraphData*)conf_malloc(sizeof(CpuGraphData) * gCoresCount);
+		pCpuData = (CpuGraphData*)tf_malloc(sizeof(CpuGraphData) * gCoresCount);
 		for (uint i = 0; i < gCoresCount; ++i)
 		{
 			pCpuData[i].mSampleIdx = 0;
@@ -1403,7 +1382,7 @@ class MultiThread: public IApp
 
 		if (gCoresCount)
 		{
-			pCoresLoadData = (float*)conf_malloc(sizeof(float) * gCoresCount);
+			pCoresLoadData = (float*)tf_malloc(sizeof(float) * gCoresCount);
 			float zeroFloat = 0.0;
 			memset(pCoresLoadData, *(int*)&zeroFloat, sizeof(float) * gCoresCount);
 		}
@@ -1414,12 +1393,12 @@ class MultiThread: public IApp
 
 	void RemoveCpuUsage()
 	{
-		conf_free(pCpuData);
+		tf_free(pCpuData);
 #if (defined(_WIN32) && !defined(XBOX)) || defined(__linux__)
-        conf_free(pOldTimeStamp);
-        conf_free(pOldPprocUsage);
+        tf_free(pOldTimeStamp);
+        tf_free(pOldPprocUsage);
 #endif
-		conf_free(pCoresLoadData);
+		tf_free(pCoresLoadData);
 	}
 
 	void CpuGraphBackGroundUpdate(uint32_t frameIdx, SyncToken* token)
@@ -1509,7 +1488,7 @@ class MultiThread: public IApp
 
 		int index = graphData->mSampleIdx;
 		// fill up tri vertex
-		for (int i = 0; i < gSampleCount; ++i)
+		for (uint32_t i = 0; i < gSampleCount; ++i)
 		{
 			if (--index < 0)
 				index = gSampleCount - 1;
@@ -1523,7 +1502,7 @@ class MultiThread: public IApp
 
 		//line vertex
 		index = graphData->mSampleIdx;
-		for (int i = 0; i < gSampleCount; ++i)
+		for (uint32_t i = 0; i < gSampleCount; ++i)
 		{
 			if (--index < 0)
 				index = gSampleCount - 1;

@@ -141,7 +141,7 @@ void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, S
 	// we now have the size of the memory pool and number of resources
 	char* namePool = NULL;
 	if (namePoolSize)
-		namePool = (char*)conf_calloc(namePoolSize, 1);
+		namePool = (char*)tf_calloc(namePoolSize, 1);
 	char* pCurrentName = namePool;
 
 	pOutReflection->pEntryPoint = pCurrentName;
@@ -152,7 +152,7 @@ void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, S
 	// start with the vertex input
 	if (shaderStage == SHADER_STAGE_VERT && vertexInputCount > 0)
 	{
-		pVertexInputs = (VertexInput*)conf_malloc(sizeof(VertexInput) * vertexInputCount);
+		pVertexInputs = (VertexInput*)tf_malloc(sizeof(VertexInput) * vertexInputCount);
 
 		uint32_t j = 0;
 		for (uint32_t i = 0; i < cc.ShaderResourceCount; ++i)
@@ -178,8 +178,8 @@ void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, S
 	// continue with resources
 	if (resouceCount)
 	{
-		indexRemap = (uint32_t*)conf_malloc(sizeof(uint32_t) * cc.ShaderResourceCount);
-		pResources = (ShaderResource*)conf_malloc(sizeof(ShaderResource) * resouceCount);
+		indexRemap = (uint32_t*)tf_malloc(sizeof(uint32_t) * cc.ShaderResourceCount);
+		pResources = (ShaderResource*)tf_malloc(sizeof(ShaderResource) * resouceCount);
 
 		uint32_t j = 0;
 		for (uint32_t i = 0; i < cc.ShaderResourceCount; ++i)
@@ -216,7 +216,7 @@ void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, S
 	// now do variables
 	if (variablesCount)
 	{
-		pVariables = (ShaderVariable*)conf_malloc(sizeof(ShaderVariable) * variablesCount);
+		pVariables = (ShaderVariable*)tf_malloc(sizeof(ShaderVariable) * variablesCount);
 
 		uint32_t j = 0;
 		for (uint32_t i = 0; i < cc.UniformVariablesCount; ++i)
@@ -243,7 +243,7 @@ void vk_createShaderReflection(const uint8_t* shaderCode, uint32_t shaderSize, S
 		}
 	}
 
-	conf_free(indexRemap);
+	tf_free(indexRemap);
 	DestroyCrossCompiler(&cc);
 
 	// all refection structs should be built now

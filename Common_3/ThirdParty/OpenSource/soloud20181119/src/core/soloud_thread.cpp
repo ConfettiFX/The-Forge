@@ -41,7 +41,7 @@ namespace SoLoud
 
 		void * createMutex()
 		{
-			Mutex* m = conf_new(Mutex);
+			Mutex* m = tf_new(Mutex);
 			m->Init();
 			return (void*)m;
 		}
@@ -50,7 +50,7 @@ namespace SoLoud
 		{
 			Mutex* m = (Mutex*)aHandle;
 			m->Destroy();
-			conf_delete(m);
+			tf_delete(m);
 		}
 
 		void lockMutex(void *aHandle)
@@ -73,7 +73,7 @@ namespace SoLoud
 
         ThreadHandle createThread(ThreadFunction aThreadFunction, void *aParameter)
 		{
-			ThreadDesc* td = conf_new(ThreadDesc);
+			ThreadDesc* td = tf_new(ThreadDesc);
 			td->pFunc = aThreadFunction;
 			td->pData = aParameter;
 			ThreadHandle ret = create_thread(td);
@@ -91,7 +91,7 @@ namespace SoLoud
 			eastl::unordered_map<ThreadHandle, ThreadDesc*>::iterator it = gThreadDataToCleanup.find(aThreadHandle);
 			ASSERT(it != gThreadDataToCleanup.end());
 			destroy_thread(aThreadHandle);
-			conf_delete(it->second);
+			tf_delete(it->second);
 			gThreadDataToCleanup.erase(it);
 			if (gThreadDataToCleanup.empty())
 				gThreadDataToCleanup.clear(true);

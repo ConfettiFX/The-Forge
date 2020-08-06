@@ -1,5 +1,5 @@
-//========================================= #ConfettiMathExtensionsBegin ================================================
-//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
 /*
 * Copyright (c) 2018-2020 The Forge Interactive Inc.
@@ -260,5 +260,5 @@ inline SoaFloat4x4 operator-(const SoaFloat4x4& _a,
 
 #endif // VECTORMATH_SOA_FLOAT4X4_HPP
 
-//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================

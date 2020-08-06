@@ -77,7 +77,7 @@ public:
 } VECTORMATH_ALIGNED_TYPE_POST;
 
 
-//========================================= #ConfettiMathExtensionsStart ================================================
+//========================================= #TheForgeMathExtensionsStart ================================================
 
 // ========================================================
 // IVecIdx
@@ -111,7 +111,7 @@ public:
 	inline int operator -= (int scalar);
 
 } VECTORMATH_ALIGNED_TYPE_POST;
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
 
 } // namespace SSE
 } // namespace Vectormath

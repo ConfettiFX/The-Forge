@@ -97,7 +97,32 @@
         <StartupCommands/>
       </Debugger>
       <PreBuild/>
-      <PostBuild/>
+      <PostBuild>
+        <Command Enabled="no"># Src</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Shaders/Sky/</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Shaders/SpaceObjects/</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Shaders/VolumetricClouds/</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Shaders/Terrain/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/Sky/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/SpaceObjects/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/VolumetricClouds/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/Terrain/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
+        <Command Enabled="no"># Textures</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Textures/Sky/</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Textures/SpaceObjects/</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Textures/VolumetricClouds/</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Textures/Terrain/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/Sky/resources/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/Sky/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/SpaceObjects/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/VolumetricClouds/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/Terrain/resources/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/Terrain/</Command>
+        <Command Enabled="no"># Fonts</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/Resources/Fonts/ $(ProjectPath)/$(ConfigurationName)/Fonts/</Command>
+      </PostBuild>
       <CustomBuild Enabled="no">
         <RebuildCommand/>
         <CleanCommand/>
@@ -152,7 +177,32 @@
         <StartupCommands/>
       </Debugger>
       <PreBuild/>
-      <PostBuild/>
+      <PostBuild>
+        <Command Enabled="no"># Src</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Shaders/Sky/</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Shaders/SpaceObjects/</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Shaders/VolumetricClouds/</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Shaders/Terrain/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/Sky/resources/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/Sky/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/SpaceObjects/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/VolumetricClouds/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/Terrain/resources/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/Terrain/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/src/EphemerisExample/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
+        <Command Enabled="no"># Textures</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Textures/Sky/</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Textures/SpaceObjects/</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Textures/VolumetricClouds/</Command>
+        <Command Enabled="yes">mkdir -p $(ProjectPath)/$(ConfigurationName)/Textures/Terrain/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/Sky/resources/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/Sky/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/SpaceObjects/resources/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/SpaceObjects/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/VolumetricClouds/resources/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/VolumetricClouds/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/Terrain/resources/Textures/ $(ProjectPath)/$(ConfigurationName)/Textures/Terrain/</Command>
+        <Command Enabled="no"># Fonts</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../../Custom-Middleware/Ephemeris/Resources/Fonts/ $(ProjectPath)/$(ConfigurationName)/Fonts/</Command>
+      </PostBuild>
       <CustomBuild Enabled="no">
         <RebuildCommand/>
         <CleanCommand/>

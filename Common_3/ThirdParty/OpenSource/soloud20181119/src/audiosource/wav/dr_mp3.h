@@ -2126,13 +2126,13 @@ void drmp3dec_f32_to_s16(const float *in, drmp3_int16 *out, int num_samples)
 #endif
 #define DRMP3_ZERO_OBJECT(p) DRMP3_ZERO_MEMORY((p), sizeof(*(p)))
 #ifndef DRMP3_MALLOC
-#define DRMP3_MALLOC(sz) conf_malloc((sz))
+#define DRMP3_MALLOC(sz) tf_malloc((sz))
 #endif
 #ifndef DRMP3_REALLOC
-#define DRMP3_REALLOC(p, sz) conf_realloc((p), (sz))
+#define DRMP3_REALLOC(p, sz) tf_realloc((p), (sz))
 #endif
 #ifndef DRMP3_FREE
-#define DRMP3_FREE(p) conf_free((p))
+#define DRMP3_FREE(p) tf_free((p))
 #endif
 
 #define drmp3_assert        DRMP3_ASSERT

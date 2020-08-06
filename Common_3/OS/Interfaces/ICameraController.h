@@ -62,7 +62,7 @@ class ICameraController
 /// in its matrix, \c Z points at \c startLookAt and \c X is horizontal.
 ICameraController* createGuiCameraController(vec3 startPosition, vec3 startLookAt);
 
-/// \c createFpsCameraController does basic FPS-style god mode navigation; conf_free-look is constrained
+/// \c createFpsCameraController does basic FPS-style god mode navigation; tf_free-look is constrained
 /// to about +/- 88 degrees and WASD translates in the camera's local XZ plane.
 ICameraController* createFpsCameraController(vec3 startPosition, vec3 startLookAt);
 

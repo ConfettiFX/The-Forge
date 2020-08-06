@@ -1,5 +1,5 @@
-//========================================= #ConfettiMathExtensionsBegin ================================================
-//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
 /*
 * Copyright (c) 2018-2020 The Forge Interactive Inc.
@@ -48,5 +48,5 @@ inline SoaTransform SoaTransform::identity() {
 
 #endif // VECTORMATH_SOA_TRANSFORM_HPP
 
-//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================

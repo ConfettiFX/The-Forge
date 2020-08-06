@@ -116,7 +116,7 @@ typedef struct FilterBatchChunk
 
 // Exposed functions
 
-Scene* loadScene(const Path* filePath, float scale, float offsetX, float offsetY, float offsetZ);
+Scene* loadScene(const char* pFileName, float scale, float offsetX, float offsetY, float offsetZ);
 void   removeScene(Scene* scene);
 void   createClusters(bool twoSided, const Scene* pScene, IndirectDrawIndexArguments* draw, ClusterContainer* mesh);
 void   destroyClusters(ClusterContainer* mesh);

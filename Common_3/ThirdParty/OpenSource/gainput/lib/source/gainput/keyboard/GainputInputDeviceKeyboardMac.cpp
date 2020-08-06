@@ -163,10 +163,78 @@ void InputDeviceKeyboardImplMac::HandleKey(int keycode, bool isPressed, char * i
 		//manager_.EnqueueConcurrentChange(device_, nextState_, delta_, buttonId, isPressed);
 		HandleButton(device_, nextState_, delta_, buttonId, isPressed);
 		
-		if(inputChar && inputChar[0] != '\0' && isPressed)
-		{
-			textBuffer_[textCount_++] = (wchar_t)inputChar[0];
-		}
+        // Process character only on ANSI keys
+        if (keycode == kVK_ANSI_A                    ||
+            keycode == kVK_ANSI_S                    ||
+            keycode == kVK_ANSI_D                    ||
+            keycode == kVK_ANSI_F                    ||
+            keycode == kVK_ANSI_H                    ||
+            keycode == kVK_ANSI_G                    ||
+            keycode == kVK_ANSI_Z                    ||
+            keycode == kVK_ANSI_X                    ||
+            keycode == kVK_ANSI_C                    ||
+            keycode == kVK_ANSI_V                    ||
+            keycode == kVK_ANSI_B                    ||
+            keycode == kVK_ANSI_Q                    ||
+            keycode == kVK_ANSI_W                    ||
+            keycode == kVK_ANSI_E                    ||
+            keycode == kVK_ANSI_R                    ||
+            keycode == kVK_ANSI_Y                    ||
+            keycode == kVK_ANSI_T                    ||
+            keycode == kVK_ANSI_1                    ||
+            keycode == kVK_ANSI_2                    ||
+            keycode == kVK_ANSI_3                    ||
+            keycode == kVK_ANSI_4                    ||
+            keycode == kVK_ANSI_6                    ||
+            keycode == kVK_ANSI_5                    ||
+            keycode == kVK_ANSI_Equal                ||
+            keycode == kVK_ANSI_9                    ||
+            keycode == kVK_ANSI_7                    ||
+            keycode == kVK_ANSI_Minus                ||
+            keycode == kVK_ANSI_8                    ||
+            keycode == kVK_ANSI_0                    ||
+            keycode == kVK_ANSI_RightBracket         ||
+            keycode == kVK_ANSI_O                    ||
+            keycode == kVK_ANSI_U                    ||
+            keycode == kVK_ANSI_LeftBracket          ||
+            keycode == kVK_ANSI_I                    ||
+            keycode == kVK_ANSI_P                    ||
+            keycode == kVK_ANSI_L                    ||
+            keycode == kVK_ANSI_J                    ||
+            keycode == kVK_ANSI_Quote                ||
+            keycode == kVK_ANSI_K                    ||
+            keycode == kVK_ANSI_Semicolon            ||
+            keycode == kVK_ANSI_Backslash            ||
+            keycode == kVK_ANSI_Comma                ||
+            keycode == kVK_ANSI_Slash                ||
+            keycode == kVK_ANSI_N                    ||
+            keycode == kVK_ANSI_M                    ||
+            keycode == kVK_ANSI_Period               ||
+            keycode == kVK_ANSI_Grave                ||
+            keycode == kVK_ANSI_KeypadDecimal        ||
+            keycode == kVK_ANSI_KeypadMultiply       ||
+            keycode == kVK_ANSI_KeypadPlus           ||
+            keycode == kVK_ANSI_KeypadClear          ||
+            keycode == kVK_ANSI_KeypadDivide         ||
+            keycode == kVK_ANSI_KeypadEnter          ||
+            keycode == kVK_ANSI_KeypadMinus          ||
+            keycode == kVK_ANSI_KeypadEquals         ||
+            keycode == kVK_ANSI_Keypad0              ||
+            keycode == kVK_ANSI_Keypad1              ||
+            keycode == kVK_ANSI_Keypad2              ||
+            keycode == kVK_ANSI_Keypad3              ||
+            keycode == kVK_ANSI_Keypad4              ||
+            keycode == kVK_ANSI_Keypad5              ||
+            keycode == kVK_ANSI_Keypad6              ||
+            keycode == kVK_ANSI_Keypad7              ||
+            keycode == kVK_ANSI_Keypad8              ||
+            keycode == kVK_ANSI_Keypad9)
+        {
+            if(inputChar && inputChar[0] != '\0' && isPressed)
+            {
+                textBuffer_[textCount_++] = (wchar_t)inputChar[0];
+            }
+        }
 	}
 #ifdef GAINPUT_DEBUG
 	else

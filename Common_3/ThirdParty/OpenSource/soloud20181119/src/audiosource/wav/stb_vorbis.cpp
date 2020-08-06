@@ -917,13 +917,13 @@ static void *setup_malloc(vorb *f, int sz)
       f->setup_offset += sz;
       return p;
    }
-   return sz ? conf_malloc(sz) : NULL;
+   return sz ? tf_malloc(sz) : NULL;
 }
 
 static void setup_free(vorb *f, void *p)
 {
    if (f->alloc.alloc_buffer) return; // do nothing; setup mem is a stack
-   conf_free(p);
+   tf_free(p);
 }
 
 static void *setup_temp_malloc(vorb *f, int sz)
@@ -934,7 +934,7 @@ static void *setup_temp_malloc(vorb *f, int sz)
       f->temp_offset -= sz;
       return (char *) f->alloc.alloc_buffer + f->temp_offset;
    }
-   return conf_malloc(sz);
+   return tf_malloc(sz);
 }
 
 static void setup_temp_free(vorb *f, void *p, int sz)
@@ -943,7 +943,7 @@ static void setup_temp_free(vorb *f, void *p, int sz)
       f->temp_offset += (sz+3)&~3;
       return;
    }
-   conf_free(p);
+   tf_free(p);
 }
 
 #define CRC32_POLY    0x04c11db7   // from spec
@@ -5243,7 +5243,7 @@ int stb_vorbis_decode_filename(const char *filename, int *channels, int *sample_
       *sample_rate = v->sample_rate;
    offset = data_len = 0;
    total = limit;
-   data = (short *) conf_malloc(total * sizeof(*data));
+   data = (short *) tf_malloc(total * sizeof(*data));
    if (data == NULL) {
       stb_vorbis_close(v);
       return -2;
@@ -5256,9 +5256,9 @@ int stb_vorbis_decode_filename(const char *filename, int *channels, int *sample_
       if (offset + limit > total) {
          short *data2;
          total *= 2;
-         data2 = (short *) conf_realloc(data, total * sizeof(*data));
+         data2 = (short *) tf_realloc(data, total * sizeof(*data));
          if (data2 == NULL) {
-            conf_free(data);
+            tf_free(data);
             stb_vorbis_close(v);
             return -2;
          }
@@ -5283,7 +5283,7 @@ int stb_vorbis_decode_memory(const uint8 *mem, int len, int *channels, int *samp
       *sample_rate = v->sample_rate;
    offset = data_len = 0;
    total = limit;
-   data = (short *) conf_malloc(total * sizeof(*data));
+   data = (short *) tf_malloc(total * sizeof(*data));
    if (data == NULL) {
       stb_vorbis_close(v);
       return -2;
@@ -5296,9 +5296,9 @@ int stb_vorbis_decode_memory(const uint8 *mem, int len, int *channels, int *samp
       if (offset + limit > total) {
          short *data2;
          total *= 2;
-         data2 = (short *) conf_realloc(data, total * sizeof(*data));
+         data2 = (short *) tf_realloc(data, total * sizeof(*data));
          if (data2 == NULL) {
-            conf_free(data);
+            tf_free(data);
             stb_vorbis_close(v);
             return -2;
          }

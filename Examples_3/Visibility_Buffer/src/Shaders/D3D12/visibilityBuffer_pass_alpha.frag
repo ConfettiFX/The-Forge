@@ -25,10 +25,6 @@
 #include "shader_defs.h"
 #include "packing.h"
 
-#ifndef CONF_EARLY_DEPTH_STENCIL
-#define CONF_EARLY_DEPTH_STENCIL
-#endif
-
 ConstantBuffer<RootConstant> indirectRootConstant : register(b1);
 
 struct PsInAlphaTested
@@ -47,7 +43,6 @@ uint calculateOutputVBID(bool opaque, uint drawID, uint primitiveID)
     return (opaque) ? drawID_primID : (1 << 31) | drawID_primID;
 }
 
-CONF_EARLY_DEPTH_STENCIL
 float4 main(PsInAlphaTested In, uint primitiveId : SV_PrimitiveID) : SV_Target
 {
     uint matBaseSlot = BaseMaterialBuffer(true, VIEW_CAMERA); //1 is camera view, 0 is shadow map view

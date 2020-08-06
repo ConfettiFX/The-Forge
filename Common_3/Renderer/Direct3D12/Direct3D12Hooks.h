@@ -68,6 +68,8 @@ extern TinyImageFormat hook_get_recommended_swapchain_format(bool hintHDR);
 extern uint32_t hook_get_swapchain_image_index(SwapChain* pSwapChain);
 extern HRESULT hook_acquire_next_image(ID3D12Device* pDevice, SwapChain* pSwapChain);
 extern HRESULT hook_queue_present(Queue* pQueue, SwapChain* pSwapChain, uint32_t swapChainImageIndex);
+extern void hook_dispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+extern void hook_signal(Queue* pQueue, ID3D12Fence* pDxFence, uint64_t fenceValue);
 
 extern void hook_fill_gpu_desc(Renderer* pRenderer, D3D_FEATURE_LEVEL featureLevel, GpuDesc* pInOutDesc);
 extern void hook_modify_descriptor_heap_size(D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t* pInOutSize);

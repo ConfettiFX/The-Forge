@@ -1,5 +1,5 @@
-//========================================= #ConfettiMathExtensionsBegin ================================================
-//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
 /*
 * Copyright (c) 2018-2020 The Forge Interactive Inc.
@@ -185,5 +185,5 @@ inline Vector4Int operator==(const SoaQuaternion& _a,
 
 #endif // VECTORMATH_SOA_QUATERNION_HPP
 
-//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================

@@ -25,10 +25,6 @@
 #include "shader_defs.h"
 #include "packing.h"
 
-#ifndef CONF_EARLY_DEPTH_STENCIL
-#define CONF_EARLY_DEPTH_STENCIL
-#endif
-
 ConstantBuffer<RootConstant> indirectRootConstant : register(b1);
 
 struct PsInOpaque
@@ -43,7 +39,6 @@ uint calculateOutputVBID(bool opaque, uint drawID, uint primitiveID)
 }
 
 //#define __XBOX_FORCE_PS_ZORDER_EARLY_Z_THEN_RE_Z
-CONF_EARLY_DEPTH_STENCIL
 float4 main(PsInOpaque In, uint primitiveId : SV_PrimitiveID) : SV_Target
 {
     return unpackUnorm4x8(calculateOutputVBID(true, indirectRootConstant.drawId, primitiveId));

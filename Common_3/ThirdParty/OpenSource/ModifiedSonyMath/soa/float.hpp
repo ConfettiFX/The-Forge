@@ -1,5 +1,5 @@
-//========================================= #ConfettiMathExtensionsBegin ================================================
-//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
 /*
 * Copyright (c) 2018-2020 The Forge Interactive Inc.
@@ -607,5 +607,5 @@ inline SoaFloat2 Clamp(const SoaFloat2& _a, const SoaFloat2& _v,
 
 #endif // VECTORMATH_SOA_FLOAT_HPP
 
-//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================

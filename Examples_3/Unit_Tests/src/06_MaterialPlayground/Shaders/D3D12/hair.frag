@@ -227,7 +227,6 @@ float3 ComputeDiffuseSpecularFactors(float3 eyeDir, float3 lightDir, float3 tang
 
 
 	float3 diffuseSpecular = float3(Kd * diffuse, Ks1 * pow(primarySpecular, Ex1), Ks2 * pow(secundarySpecular, Ex2));
-	diffuseSpecular *= 0.07f;	// Reduce light intensity to account for extremely bright lights used in PBR
 	return diffuseSpecular;
 }
 
@@ -401,10 +400,6 @@ float4 main(VSOutputFullscreen input) : SV_TARGET
 	color.xyz /= color.w;
 	color.xyz *= alpha;
 	color.w = invAlpha;
-
-	color.rgb = color.rgb / (color.rgb + 1.0f);
-	float gammaCorr = 1.0f / 2.2f;
-	color.rgb = pow(color.rgb, gammaCorr);
 
 	return color;
 }

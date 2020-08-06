@@ -39,12 +39,12 @@ namespace SoLoud
 	{
 		mParent = aParent;
 		mSampleCount = 0;
-		mSID = conf_new(SIDsound, mParent->mModel, 0);
+		mSID = tf_new(SIDsound, mParent->mModel, 0);
 		mSID->setFrequency(0);
 		mSID->setSampleRate(TED_SOUND_CLOCK);		
 		mSID->setFrequency(1);
 
-		mTED = conf_new(TED);
+		mTED = tf_new(TED);
 		mTED->oscillatorInit();
 
 		mNextReg = 100; // NOP
@@ -114,8 +114,8 @@ namespace SoLoud
 
 	TedSidInstance::~TedSidInstance()
 	{
-		conf_delete(mSID);
-		conf_delete(mTED);
+		tf_delete(mSID);
+		tf_delete(mTED);
 	}
 
 	TedSid::TedSid()
@@ -130,26 +130,26 @@ namespace SoLoud
 	{
 		stop();
 		if (mFileOwned)
-			conf_delete(mFile);
+			tf_delete(mFile);
 	}
 
 	result TedSid::loadMem(unsigned char *aMem, unsigned int aLength, bool aCopy, bool aTakeOwnership)
 	{
 		if (!aMem || aLength == 0)
 			return INVALID_PARAMETER;
-		MemoryFile *mf = conf_new(MemoryFile);
+		MemoryFile *mf = tf_new(MemoryFile);
 		if (!mf)
 			return OUT_OF_MEMORY;
 		int res = mf->openMem(aMem, aLength, aCopy, aTakeOwnership);
 		if (res != SO_NO_ERROR)
 		{
-			conf_delete(mf);
+			tf_delete(mf);
 			return res;
 		}
 		res = loadFile(mf);
 		if (res != SO_NO_ERROR)
 		{
-			conf_delete(mf);
+			tf_delete(mf);
 			return res;
 		}
 		mFileOwned = aCopy || aTakeOwnership;
@@ -161,18 +161,18 @@ namespace SoLoud
 	{
 		if (!aFilename)
 			return INVALID_PARAMETER;
-		DiskFile *df = conf_new(DiskFile);
+		DiskFile *df = tf_new(DiskFile);
 		if (!df) return OUT_OF_MEMORY;
 		int res = df->open(aFilename);
 		if (res != SO_NO_ERROR)
 		{
-			conf_delete(df);
+			tf_delete(df);
 			return res;
 		}
 		res = loadFile(df);
 		if (res != SO_NO_ERROR)
 		{
-			conf_delete(df);
+			tf_delete(df);
 			return res;
 		}
 		mFileOwned = true;				
@@ -183,18 +183,18 @@ namespace SoLoud
 	{
 		if (!aFilename)
 			return INVALID_PARAMETER;
-		MemoryFile *mf = conf_new(MemoryFile);
+		MemoryFile *mf = tf_new(MemoryFile);
 		if (!mf) return OUT_OF_MEMORY;
 		int res = mf->openToMem(aFilename);
 		if (res != SO_NO_ERROR)
 		{
-			conf_delete(mf);
+			tf_delete(mf);
 			return res;
 		}
 		res = loadFile(mf);
 		if (res != SO_NO_ERROR)
 		{
-			conf_delete(mf);
+			tf_delete(mf);
 			return res;
 		}
 		mFileOwned = true;
@@ -205,18 +205,18 @@ namespace SoLoud
 	{
 		if (!aFile)
 			return INVALID_PARAMETER;
-		MemoryFile *mf = conf_new(MemoryFile);
+		MemoryFile *mf = tf_new(MemoryFile);
 		if (!mf) return OUT_OF_MEMORY;
 		int res = mf->openFileToMem(aFile);
 		if (res != SO_NO_ERROR)
 		{
-			conf_delete(mf);
+			tf_delete(mf);
 			return res;
 		}
 		res = loadFile(mf);
 		if (res != SO_NO_ERROR)
 		{
-			conf_delete(mf);
+			tf_delete(mf);
 			return res;
 		}
 		mFileOwned = true;
@@ -228,7 +228,7 @@ namespace SoLoud
 		if (aFile == NULL)
 			return INVALID_PARAMETER;
 		if (mFileOwned)
-			conf_delete(mFile);
+			tf_delete(mFile);
 		// Expect a file wih header and at least one reg write
 		if (aFile->length() < 4+4+2+2) return FILE_LOAD_FAILED;
 
@@ -251,7 +251,7 @@ namespace SoLoud
 
 	AudioSourceInstance * TedSid::createInstance() 
 	{
-		return conf_new(TedSidInstance, this);
+		return tf_new(TedSidInstance, this);
 	}
 
 };

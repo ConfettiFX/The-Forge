@@ -1390,9 +1390,9 @@ namespace {
 #define MZ_FREE(x) (void) x, ((void)0)
 #define MZ_REALLOC(p, x) NULL
 #else
-#define MZ_MALLOC(x) conf_malloc(x)
-#define MZ_FREE(x) conf_free(x)
-#define MZ_REALLOC(p, x) conf_realloc(p, x)
+#define MZ_MALLOC(x) tf_malloc(x)
+#define MZ_FREE(x) tf_free(x)
+#define MZ_REALLOC(p, x) tf_realloc(p, x)
 #endif
 
 #define MZ_MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -7850,7 +7850,7 @@ namespace {
 					for (int i = 0; i < pl->lit - 1; ++i)
 						pl->p[i] = p[i];
 
-					conf_delete(p);
+					tf_delete(p);
 				}
 				else {
 					pl->p = (int*)MZ_MALLOC(sizeof(int)*1);
@@ -7893,7 +7893,7 @@ namespace {
 	{
 		for (int i = 0; i < HUF_DECSIZE; i++) {
 			if (hdecod[i].p) {
-				conf_delete(hdecod[i].p);
+				tf_delete(hdecod[i].p);
 				hdecod[i].p = 0;
 			}
 		}

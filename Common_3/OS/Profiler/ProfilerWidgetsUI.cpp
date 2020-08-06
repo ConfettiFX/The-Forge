@@ -839,16 +839,16 @@ void profileDrawTimerMode(Profile& S)
 {
   // Create the table header.
   eastl::vector<IWidget*> header;
-  header.push_back(conf_placement_new<ColorLabelWidget>(conf_calloc(1, sizeof(ColorLabelWidget)), "Group/Timer", gLilacColor));
-  header.push_back(conf_placement_new<ColorLabelWidget>(conf_calloc(1, sizeof(ColorLabelWidget)), "Time", gLilacColor));
-  header.push_back(conf_placement_new<ColorLabelWidget>(conf_calloc(1, sizeof(ColorLabelWidget)), "Average Time", gLilacColor));
-  header.push_back(conf_placement_new<ColorLabelWidget>(conf_calloc(1, sizeof(ColorLabelWidget)), "Max Time", gLilacColor));
-  header.push_back(conf_placement_new<ColorLabelWidget>(conf_calloc(1, sizeof(ColorLabelWidget)), "Min Time", gLilacColor));
-  header.push_back(conf_placement_new<ColorLabelWidget>(conf_calloc(1, sizeof(ColorLabelWidget)), "Call Average", gLilacColor));
-  header.push_back(conf_placement_new<ColorLabelWidget>(conf_calloc(1, sizeof(ColorLabelWidget)), "Call Count", gLilacColor));
-  header.push_back(conf_placement_new<ColorLabelWidget>(conf_calloc(1, sizeof(ColorLabelWidget)), "Exclusive Time", gLilacColor));
-  header.push_back(conf_placement_new<ColorLabelWidget>(conf_calloc(1, sizeof(ColorLabelWidget)), "Exclusive Average", gLilacColor));
-  header.push_back(conf_placement_new<ColorLabelWidget>(conf_calloc(1, sizeof(ColorLabelWidget)), "Exclusive Max Time", gLilacColor));
+  header.push_back(tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(ColorLabelWidget)), "Group/Timer", gLilacColor));
+  header.push_back(tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(ColorLabelWidget)), "Time", gLilacColor));
+  header.push_back(tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(ColorLabelWidget)), "Average Time", gLilacColor));
+  header.push_back(tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(ColorLabelWidget)), "Max Time", gLilacColor));
+  header.push_back(tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(ColorLabelWidget)), "Min Time", gLilacColor));
+  header.push_back(tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(ColorLabelWidget)), "Call Average", gLilacColor));
+  header.push_back(tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(ColorLabelWidget)), "Call Count", gLilacColor));
+  header.push_back(tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(ColorLabelWidget)), "Exclusive Time", gLilacColor));
+  header.push_back(tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(ColorLabelWidget)), "Exclusive Average", gLilacColor));
+  header.push_back(tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(ColorLabelWidget)), "Exclusive Max Time", gLilacColor));
   gWidgetTable.push_back(header);
 
   // Add the header coloumn.
@@ -868,18 +868,18 @@ void profileDrawTimerMode(Profile& S)
       if (S.TimerInfo[timerIndex].nGroupIndex == groupIndex)
       {
         eastl::vector<IWidget*> timerCol;
-        timerCol.push_back(conf_placement_new<LabelWidget>(conf_calloc(1, sizeof(LabelWidget)), S.TimerInfo[timerIndex].pName));
+        timerCol.push_back(tf_placement_new<LabelWidget>(tf_calloc(1, sizeof(LabelWidget)), S.TimerInfo[timerIndex].pName));
         eastl::vector<char*> timeRowData;
         eastl::vector<float4*> timeColorData;
 
         // There are 9 time categories in the header above.
         for (uint32_t i = 0; i < 9; ++i)
         {
-          char* timeResult = (char*)conf_calloc(MAX_TIME_STR_LEN, sizeof(char));
+          char* timeResult = (char*)tf_calloc(MAX_TIME_STR_LEN, sizeof(char));
           strcpy(timeResult, "-");
-          float4* timeColor = (float4*)conf_calloc(1, sizeof(float4));
+          float4* timeColor = (float4*)tf_calloc(1, sizeof(float4));
           *timeColor = gNormalColor;
-          timerCol.push_back(conf_placement_new<DynamicTextWidget>(conf_calloc(1, sizeof(DynamicTextWidget)), "", timeResult, MAX_TIME_STR_LEN, timeColor));
+          timerCol.push_back(tf_placement_new<DynamicTextWidget>(tf_calloc(1, sizeof(DynamicTextWidget)), "", timeResult, MAX_TIME_STR_LEN, timeColor));
           timeRowData.push_back(timeResult);
           timeColorData.push_back(timeColor);
         }
@@ -1005,7 +1005,7 @@ void unloadProfilerUI()
   {
     for (uint32_t j = 0; j < gWidgetTable[i].size(); ++j)
     {
-        conf_delete(gWidgetTable[i][j]);
+        tf_delete(gWidgetTable[i][j]);
     }
   }
 
@@ -1014,15 +1014,15 @@ void unloadProfilerUI()
   {
     for (uint32_t j = 0; j < gTimerData[i].size(); ++j)
     {
-      conf_delete(gTimerData[i][j]);
-      conf_delete(gTimerColorData[i][j]);
+      tf_delete(gTimerData[i][j]);
+      tf_delete(gTimerColorData[i][j]);
     }
   }
 
   // Free any allocated graph data mem.
   for (uint32_t i = 0; i < gPlotModeData.size(); ++i)
   {
-    conf_delete(gPlotModeData[i].mTimeData);
+    tf_delete(gPlotModeData[i].mTimeData);
   }
 
   gWidgetTable.set_capacity(0);
@@ -1133,25 +1133,25 @@ void profileLoadWidgetUI(Profile& S)
   unloadProfilerUI();
 
   eastl::vector<IWidget*> topMenu;
-  topMenu.push_back(conf_placement_new<DropdownWidget>(conf_calloc(1, sizeof(DropdownWidget)), "Select Profile Mode", (uint32_t*)&gProfileMode, pProfileModesNames, gProfileModesValues, PROFILE_MODE_MAX));
-  topMenu.push_back(conf_placement_new<DropdownWidget>(conf_calloc(1, sizeof(DropdownWidget)), "Aggregate Frames", (uint32_t*)&gAggregateFrames, pAggregateFramesNames, gAggregateFramesValues, PROFILE_AGGREGATE_FRAMES_MAX));
-  topMenu.push_back(conf_placement_new<DropdownWidget>(conf_calloc(1, sizeof(DropdownWidget)), "Reference Times", (uint32_t*)&gReferenceTime, pReferenceTimesNames, gReferenceTimesValues, PROFILE_REFTIME_MAX));
+  topMenu.push_back(tf_placement_new<DropdownWidget>(tf_calloc(1, sizeof(DropdownWidget)), "Select Profile Mode", (uint32_t*)&gProfileMode, pProfileModesNames, gProfileModesValues, PROFILE_MODE_MAX));
+  topMenu.push_back(tf_placement_new<DropdownWidget>(tf_calloc(1, sizeof(DropdownWidget)), "Aggregate Frames", (uint32_t*)&gAggregateFrames, pAggregateFramesNames, gAggregateFramesValues, PROFILE_AGGREGATE_FRAMES_MAX));
+  topMenu.push_back(tf_placement_new<DropdownWidget>(tf_calloc(1, sizeof(DropdownWidget)), "Reference Times", (uint32_t*)&gReferenceTime, pReferenceTimesNames, gReferenceTimesValues, PROFILE_REFTIME_MAX));
   topMenu.back()->pOnEdited = ProfileCallbkReferenceTimeUpdated;
 
   // Don't dump frames to disk in detailed mode.
   if (gProfileMode == PROFILE_MODE_DETAILED)
   {
     gDumpFramesNow = true;
-    topMenu.push_back(conf_placement_new<DropdownWidget>(conf_calloc(1, sizeof(DropdownWidget)), "Dump Frames Detailed View", (uint32_t*)&gDumpFramesDetailedMode, pDumpFramesDetailedViewNames, gDumpFramesDetailedValues, PROFILE_DUMPFRAME_MAX));
+    topMenu.push_back(tf_placement_new<DropdownWidget>(tf_calloc(1, sizeof(DropdownWidget)), "Dump Frames Detailed View", (uint32_t*)&gDumpFramesDetailedMode, pDumpFramesDetailedViewNames, gDumpFramesDetailedValues, PROFILE_DUMPFRAME_MAX));
     topMenu.back()->pOnEdited = profileCallbkDumpFrames;
   }
   else
   {
-      topMenu.push_back(conf_placement_new<DropdownWidget>(conf_calloc(1, sizeof(DropdownWidget)), "Dump Frames To File", (uint32_t*)&gDumpFramesToFile, pDumpFramesToFileNames, gDumpFramesToFileValues, PROFILE_DUMPFILE_MAX));
+      topMenu.push_back(tf_placement_new<DropdownWidget>(tf_calloc(1, sizeof(DropdownWidget)), "Dump Frames To File", (uint32_t*)&gDumpFramesToFile, pDumpFramesToFileNames, gDumpFramesToFileValues, PROFILE_DUMPFILE_MAX));
       topMenu.back()->pOnEdited = profileCallbkDumpFramesToFile;
   }
 
-  topMenu.push_back(conf_placement_new<CheckboxWidget>(conf_calloc(1, sizeof(CheckboxWidget)), "Profiler Paused", &gProfilerPaused));
+  topMenu.push_back(tf_placement_new<CheckboxWidget>(tf_calloc(1, sizeof(CheckboxWidget)), "Profiler Paused", &gProfilerPaused));
   topMenu.back()->pOnEdited = profileCallbkPauseProfiler;
   pWidgetGuiComponent->AddWidget(ColumnWidget("topmenu", topMenu));
   gWidgetTable.push_back(topMenu);
@@ -1185,7 +1185,7 @@ void profileLoadWidgetUI(Profile& S)
         {
           PlotModeData graphTimer;
           graphTimer.mTimerInfo = timerIndex;
-          graphTimer.mTimeData = (float2*)conf_malloc(FRAME_HISTORY_LEN * sizeof(float2));
+          graphTimer.mTimeData = (float2*)tf_malloc(FRAME_HISTORY_LEN * sizeof(float2));
           graphTimer.mEnabled = false;
           uint32_t color = (S.TimerInfo[timerIndex].nColor | 0x7D000000);
           pWidgetGuiComponent->AddWidget(DrawCurveWidget("Curves", graphTimer.mTimeData, FRAME_HISTORY_LEN, 1.f, color));

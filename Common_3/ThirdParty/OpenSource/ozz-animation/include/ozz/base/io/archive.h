@@ -78,8 +78,9 @@
 // the user side.
 
 #include "../endianness.h"
-#include "stream.h"
 #include "../platform.h"
+
+#include "../../../../../../../OS/Interfaces/IFileSystem.h"
 
 #include <stdint.h>
 #include <cassert>
@@ -106,7 +107,7 @@ class OArchive {
  public:
   // Constructs an output archive from the Stream _stream that must be valid
   // and opened for writing.
-  explicit OArchive(Stream* _stream,
+  explicit OArchive(FileStream* _stream,
                     Endianness _endianness = GetNativeEndianness());
 
   // Returns true if an endian swap is required while writing.
@@ -114,7 +115,7 @@ class OArchive {
 
   // Saves _size bytes of binary data from _data.
   size_t SaveBinary(const void* _data, size_t _size) {
-    return stream_->Write(_data, _size);
+    return fsWriteToStream(stream_, _data, _size);
   }
 
   // Class type saving.
@@ -129,7 +130,7 @@ class OArchive {
 #define _OZZ_IO_PRIMITIVE_TYPE(_type)                             \
   void operator<<(_type _v) {                                     \
     _type v = endian_swap_ ? EndianSwapper<_type>::Swap(_v) : _v; \
-    OZZ_IF_DEBUG(size_t size =) stream_->Write(&v, sizeof(v));    \
+    OZZ_IF_DEBUG(size_t size =) fsWriteToStream(stream_, &v, sizeof(v));    \
     assert(size == sizeof(v));                                    \
   }
 
@@ -146,9 +147,6 @@ class OArchive {
   _OZZ_IO_PRIMITIVE_TYPE(float)
 #undef _OZZ_IO_PRIMITIVE_TYPE
 
-  // Returns output stream.
-  Stream* stream() const { return stream_; }
-
  private:
   template <typename _Ty>
   void SaveVersion() {
@@ -162,7 +160,7 @@ class OArchive {
   }
 
   // The output stream.
-  Stream* stream_;
+  FileStream* stream_;
 
   // Endian swap state, true if a conversion is required while writing.
   bool endian_swap_;
@@ -176,14 +174,14 @@ class IArchive {
   // Constructs an input archive from the Stream _stream that must be opened for
   // reading, at the same tell (position in the stream) as when it was passed to
   // the OArchive.
-  explicit IArchive(Stream* _stream);
+  explicit IArchive(FileStream* _stream);
 
   // Returns true if an endian swap is required while reading.
   bool endian_swap() const { return endian_swap_; }
 
   // Loads _size bytes of binary data to _data.
   size_t LoadBinary(void* _data, size_t _size) {
-    return stream_->Read(_data, _size);
+	  return fsReadFromStream(stream_, _data, _size);
   }
 
   // Class type loading.
@@ -202,7 +200,7 @@ class IArchive {
 #define _OZZ_IO_PRIMITIVE_TYPE(_type)                         \
   void operator>>(_type& _v) {                                \
     _type v;                                                  \
-    OZZ_IF_DEBUG(size_t size =) stream_->Read(&v, sizeof(v)); \
+    OZZ_IF_DEBUG(size_t size =) fsReadFromStream(stream_, &v, sizeof(v)); \
     assert(size == sizeof(v));                                \
     _v = endian_swap_ ? EndianSwapper<_type>::Swap(v) : v;    \
   }
@@ -226,14 +224,11 @@ class IArchive {
     // mean the file containing tag declaration is not included.
     OZZ_STATIC_ASSERT(internal::Tag<const _Ty>::kTagLength != 0);
 
-    int tell = stream_->FileTell();
+    ssize_t tell = fsGetStreamSeekPosition(stream_);
     bool valid = internal::Tagger<const _Ty>::Validate(*this);
-    stream_->Seek(tell, Stream::kSet);  // Rewinds before the tag test.
+    fsSeekStream(stream_, SeekBaseOffset::SBO_START_OF_FILE, tell);  // Rewinds before the tag test.
     return valid;
   }
-
-  // Returns input stream.
-  Stream* stream() const { return stream_; }
 
  private:
   template <typename _Ty>
@@ -246,7 +241,7 @@ class IArchive {
   }
 
   // The input stream.
-  Stream* stream_;
+  FileStream* stream_;
 
   // Endian swap state, true if a conversion is required while reading.
   bool endian_swap_;

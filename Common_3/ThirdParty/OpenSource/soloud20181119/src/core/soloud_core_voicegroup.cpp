@@ -40,7 +40,7 @@ namespace SoLoud
 		{
 			if (mVoiceGroup[i] == NULL)
 			{
-				mVoiceGroup[i] = (unsigned int*)conf_calloc(16, sizeof(unsigned int));
+				mVoiceGroup[i] = (unsigned int*)tf_calloc(16, sizeof(unsigned int));
 				if (mVoiceGroup[i] == NULL)
 				{
 					unlockAudioMutex();
@@ -63,7 +63,7 @@ namespace SoLoud
 			mVoiceGroupCount = 4;
 		}
 		mVoiceGroupCount *= 2;
-		unsigned int **vg = (unsigned int**)conf_calloc(mVoiceGroupCount, sizeof(unsigned int *));
+		unsigned int **vg = (unsigned int**)tf_calloc(mVoiceGroupCount, sizeof(unsigned int *));
 		if (vg == NULL)
 		{
 			mVoiceGroupCount = oldcount;
@@ -80,10 +80,10 @@ namespace SoLoud
 			vg[i] = NULL;
 		}
 
-		conf_free(mVoiceGroup);
+		tf_free(mVoiceGroup);
 		mVoiceGroup = vg;
 		i = oldcount;
-		mVoiceGroup[i] = (unsigned int*)conf_calloc(17, sizeof(unsigned int));
+		mVoiceGroup[i] = (unsigned int*)tf_calloc(17, sizeof(unsigned int));
 		if (mVoiceGroup[i] == NULL)
 		{
 			unlockAudioMutex();
@@ -103,7 +103,7 @@ namespace SoLoud
 		int c = aVoiceGroupHandle & 0xfff;
 		
 		lockAudioMutex();
-		conf_free(mVoiceGroup[c]);
+		tf_free(mVoiceGroup[c]);
 		mVoiceGroup[c] = NULL;
 		unlockAudioMutex();
 		return SO_NO_ERROR;
@@ -145,7 +145,7 @@ namespace SoLoud
 		}
 		
 		// Full group, allocate more memory
-		unsigned int * n = (unsigned int *)conf_calloc(mVoiceGroup[c][0] * 2 + 1, sizeof(unsigned int));
+		unsigned int * n = (unsigned int *)tf_calloc(mVoiceGroup[c][0] * 2 + 1, sizeof(unsigned int));
 		if (n == NULL)
 		{
 			unlockAudioMutex();
@@ -156,7 +156,7 @@ namespace SoLoud
 		n[n[0]] = aVoiceHandle;
 		n[n[0]+1] = 0;
 		n[0] *= 2;
-		conf_free(mVoiceGroup[c]);
+		tf_free(mVoiceGroup[c]);
 		mVoiceGroup[c] = n;
 		unlockAudioMutex();
 		return SO_NO_ERROR;

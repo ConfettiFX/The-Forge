@@ -61,17 +61,17 @@ namespace SoLoud
 
 	result AlignedFloatBuffer::init(unsigned int aFloats)
 	{
-		conf_free(mBasePtr);
+		tf_free(mBasePtr);
 		mBasePtr = 0;
 		mData = 0;
 		mFloats = aFloats;
 #ifdef DISABLE_SIMD
-		mBasePtr = (unsigned char*)conf_calloc(aFloats * sizeof(float), sizeof(unsigned char));
+		mBasePtr = (unsigned char*)tf_calloc(aFloats * sizeof(float), sizeof(unsigned char));
 		if (mBasePtr == NULL)
 			return OUT_OF_MEMORY;
 		mData = mBasePtr;
 #else
-		mBasePtr = (unsigned char*)conf_calloc(aFloats * sizeof(float) + 16, sizeof(unsigned char));
+		mBasePtr = (unsigned char*)tf_calloc(aFloats * sizeof(float) + 16, sizeof(unsigned char));
 		if (mBasePtr == NULL)
 			return OUT_OF_MEMORY;
 		mData = (float *)(((size_t)mBasePtr + 15)&~15);
@@ -86,7 +86,7 @@ namespace SoLoud
 
 	AlignedFloatBuffer::~AlignedFloatBuffer()
 	{
-		conf_free(mBasePtr);
+		tf_free(mBasePtr);
 	}
 
 	TinyAlignedFloatBuffer::TinyAlignedFloatBuffer()
@@ -175,11 +175,11 @@ namespace SoLoud
 		unsigned int i;
 		for (i = 0; i < FILTERS_PER_STREAM; i++)
 		{
-			conf_delete(mFilterInstance[i]);
+			tf_delete(mFilterInstance[i]);
 		}
 		for (i = 0; i < mVoiceGroupCount; i++)
-			conf_free(mVoiceGroup[i]);
-		conf_free(mVoiceGroup);
+			tf_free(mVoiceGroup[i]);
+		tf_free(mVoiceGroup);
 
 		for (i = 0; i < mMaxActiveVoices * 2; i++)
 		{
@@ -190,8 +190,8 @@ namespace SoLoud
 			if (mResampleDataOwner[i])
 				mResampleDataOwner[i]->~AudioSourceInstance();
 
-		conf_free(mResampleData);
-		conf_free(mResampleDataOwner);
+		tf_free(mResampleData);
+		tf_free(mResampleDataOwner);
 	}
 
 	void Soloud::deinit()
@@ -527,13 +527,13 @@ namespace SoLoud
 		mScratch.init(mScratchSize * MAX_CHANNELS);
 		mOutputScratch.init(mScratchSize * MAX_CHANNELS);
 
-		mResampleData = (AlignedFloatBuffer*)conf_malloc(mMaxActiveVoices * 2 * sizeof(AlignedFloatBuffer));
-		mResampleDataOwner = (AudioSourceInstance**)conf_malloc(mMaxActiveVoices * sizeof(AudioSourceInstance*));
+		mResampleData = (AlignedFloatBuffer*)tf_malloc(mMaxActiveVoices * 2 * sizeof(AlignedFloatBuffer));
+		mResampleDataOwner = (AudioSourceInstance**)tf_malloc(mMaxActiveVoices * sizeof(AudioSourceInstance*));
 
 		unsigned int i;
 		for (i = 0; i < mMaxActiveVoices * 2; i++)
 		{
-			conf_placement_new<AlignedFloatBuffer>(&mResampleData[i]);
+			tf_placement_new<AlignedFloatBuffer>(&mResampleData[i]);
 			mResampleData[i].init(SAMPLE_GRANULARITY * MAX_CHANNELS);
 		}
 		for (i = 0; i < mMaxActiveVoices; i++)

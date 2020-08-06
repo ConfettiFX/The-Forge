@@ -56,6 +56,19 @@ const uint32_t		gImageCount					= 3;
 const uint32_t		gLightCount					= 3;
 const uint32_t		gTotalLightCount			= gLightCount + 1;
 
+static const char* pModelNames[]				=
+{
+	"Lantern.gltf",
+	"FlightHelmet.gltf",
+	"Capsule.gltf",
+	"Cube.gltf",
+	"lion.gltf",
+	"matBall.gltf"
+};
+static const uint32_t gModelValues[]			= { 0, 1, 2, 3, 4, 5 };
+static uint32_t mModelSelected					= 0;
+static const uint32_t mModelCount				= 6;
+
 // Model Quantization Settings
 int					gCurrentLod					= 0;
 int					gMaxLod						= 5;
@@ -150,7 +163,7 @@ struct GLTFAsset
 	Buffer* pMaterialBuffer = NULL;
 	Sampler* pDefaultSampler = NULL;
 	
-	void Init(const Path* path, Renderer* renderer, Sampler* defaultSampler)
+	void Init(Renderer* renderer, Sampler* defaultSampler)
 	{
 		pRenderer = renderer;
 		pDefaultSampler = defaultSampler;
@@ -162,7 +175,7 @@ struct GLTFAsset
 		mTextures.resize(pData->pHandle->images_count);
 		SyncToken token = {};
 		for (uint32_t i = 0; i < pData->pHandle->images_count; ++i)
-			gltfLoadTextureAtIndex(pData, path, i, false, &token, &mTextures[i]);
+			gltfLoadTextureAtIndex(pData, i, false, &token, TEXTURE_CONTAINER_BASIS, &mTextures[i]);
 
 		if (pData->mNodeCount)
 			createNodeTransformsBuffer();
@@ -261,7 +274,7 @@ struct GLTFAsset
 		nodeTransformsBufferLoadDesc.pData = nodeTransforms;
 		nodeTransformsBufferLoadDesc.mDesc.pName = "GLTF Node Transforms Buffer";
 		nodeTransformsBufferLoadDesc.ppBuffer = &pNodeTransformsBuffer;
-		addResource(&nodeTransformsBufferLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&nodeTransformsBufferLoadDesc, NULL);
 	}
 	
 	void updateTextureProperties(const GLTFTextureView& textureView, GLTFTextureProperties& textureProperties)
@@ -315,7 +328,7 @@ struct GLTFAsset
 		materialBufferLoadDesc.mDesc.mSize = pData->mMaterialCount * materialDataStride;
 		materialBufferLoadDesc.mDesc.pName = "GLTF Materials Buffer";
 		materialBufferLoadDesc.ppBuffer = &pMaterialBuffer;
-		addResource(&materialBufferLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&materialBufferLoadDesc, NULL);
 
 		waitForAllResourceLoads();
 		
@@ -568,8 +581,6 @@ GuiComponent*		pGuiGraphics;
 IWidget*			pSelectLodWidget					= NULL;
 
 UIApp				gAppUI;
-eastl::vector<uint32_t>	gDropDownWidgetData;
-eastl::vector<PathHandle> gModelFiles;
 
 #if defined(__ANDROID__) || defined(__linux__) || defined(ORBIS) || defined(PROSPERO)
 uint32_t			modelToLoadIndex					= 0;
@@ -578,9 +589,8 @@ uint32_t			guiModelToLoadIndex					= 0;
 
 const char*		gMissingTextureString				= "MissingTexture";
 
-const char*                     gDefaultModelFile = "Lantern.gltf";
-PathHandle					    gModelFile;
-PathHandle					    gGuiModelToLoad;
+const char*					    gModelFile;
+uint32_t						gPreviousLoadedModel = mModelSelected;
 
 const uint			gBackroundColor = { 0xb2b2b2ff };
 static uint			gLightColor[gTotalLightCount] = { 0xffffffff, 0xffffffff, 0xffffffff, 0xffffff66 };
@@ -600,50 +610,50 @@ public:
 		
 		ShaderLoadDesc FloorShader = {};
 		
-		FloorShader.mStages[0] = { "floor.vert", NULL, 0, RD_SHADER_SOURCES };
+		FloorShader.mStages[0] = { "floor.vert", NULL, 0 };
 
 		addShader(pRenderer, &FloorShader, &pShaderZPass_NonOptimized);
 
 #if defined(__ANDROID__)
-		FloorShader.mStages[1] = { "floorMOBILE.frag", NULL, 0, RD_SHADER_SOURCES };
+		FloorShader.mStages[1] = { "floorMOBILE.frag", NULL, 0 };
 #else
-		FloorShader.mStages[1] = { "floor.frag", NULL, 0, RD_SHADER_SOURCES };
+		FloorShader.mStages[1] = { "floor.frag", NULL, 0 };
 #endif
 		
 		addShader(pRenderer, &FloorShader, &pFloorShader);
 		
 		ShaderLoadDesc MeshOptDemoShader = {};
 		
-		MeshOptDemoShader.mStages[0] = { "basic.vert", NULL, 0, RD_SHADER_SOURCES };
+		MeshOptDemoShader.mStages[0] = { "basic.vert", NULL, 0 };
 
 		addShader(pRenderer, &MeshOptDemoShader, &pShaderZPass);
 
 #if defined(__ANDROID__)
-		MeshOptDemoShader.mStages[1] = { "basicMOBILE.frag", NULL, 0, RD_SHADER_SOURCES };
+		MeshOptDemoShader.mStages[1] = { "basicMOBILE.frag", NULL, 0 };
 #else
-		MeshOptDemoShader.mStages[1] = { "basic.frag", NULL, 0, RD_SHADER_SOURCES };
+		MeshOptDemoShader.mStages[1] = { "basic.frag", NULL, 0 };
 #endif
 		
 		addShader(pRenderer, &MeshOptDemoShader, &pMeshOptDemoShader);
 		
 		ShaderLoadDesc VignetteShader = {};
 		
-		VignetteShader.mStages[0] = { "Triangular.vert", NULL, 0, RD_SHADER_SOURCES };
-		VignetteShader.mStages[1] = { "vignette.frag", NULL, 0, RD_SHADER_SOURCES };
+		VignetteShader.mStages[0] = { "Triangular.vert", NULL, 0 };
+		VignetteShader.mStages[1] = { "vignette.frag", NULL, 0 };
 		
 		addShader(pRenderer, &VignetteShader, &pVignetteShader);
 		
 		ShaderLoadDesc FXAAShader = {};
 		
-		FXAAShader.mStages[0] = { "Triangular.vert", NULL, 0, RD_SHADER_SOURCES };
-		FXAAShader.mStages[1] = { "FXAA.frag", NULL, 0, RD_SHADER_SOURCES };
+		FXAAShader.mStages[0] = { "Triangular.vert", NULL, 0 };
+		FXAAShader.mStages[1] = { "FXAA.frag", NULL, 0 };
 		
 		addShader(pRenderer, &FXAAShader, &pFXAAShader);
 		
 		ShaderLoadDesc WaterMarkShader = {};
 		
-		WaterMarkShader.mStages[0] = { "watermark.vert", NULL, 0, RD_SHADER_SOURCES };
-		WaterMarkShader.mStages[1] = { "watermark.frag", NULL, 0, RD_SHADER_SOURCES };
+		WaterMarkShader.mStages[0] = { "watermark.vert", NULL, 0 };
+		WaterMarkShader.mStages[1] = { "watermark.frag", NULL, 0 };
 		
 		addShader(pRenderer, &WaterMarkShader, &pWaterMarkShader);
 		
@@ -793,24 +803,13 @@ public:
 	
 	bool Init()
 	{
-#if defined(TARGET_IOS)
-		fsRegisterUTIForExtension("dyn.ah62d4rv4ge80s5dyq2", "gltf");
-#endif
-		
-        // FILE PATHS
-        PathHandle programDirectory = fsGetApplicationDirectory();
-        if (!fsPlatformUsesBundledResources())
-        {
-            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/08_GltfViewer");
-            fsSetResourceDirRootPath(resourceDirRoot);
-            
-            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirEnum(RD_MESHES,             "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,     "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,     "../../../../Middleware_3/UI");
-        }
+		// FILE PATHS
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES,  "Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG,      "GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES,        "Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS,           "Fonts");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES,          "Meshes");
 		
 		// window and renderer setup
 		RendererDesc settings = { 0 };
@@ -846,19 +845,17 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 		
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 		
 		initProfiler();
 
 		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
-#if defined(__ANDROID__) || defined(TARGET_IOS)
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
 		{
 			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
 			return false;
 		}
-#endif
 	
 		SamplerDesc defaultSamplerDesc = {
 			FILTER_LINEAR, FILTER_LINEAR, MIPMAP_MODE_LINEAR,
@@ -885,7 +882,7 @@ public:
 		floorVbDesc.mDesc.mSize = sizeof(float) * 5 * 4;
 		floorVbDesc.pData = floorPoints;
 		floorVbDesc.ppBuffer = &pFloorVB;
-		addResource(&floorVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&floorVbDesc, NULL);
 		
 		uint16_t floorIndices[] =
 		{
@@ -900,7 +897,7 @@ public:
 		indexBufferDesc.mDesc.mSize = sizeof(uint16_t) * 6;
 		indexBufferDesc.pData = floorIndices;
 		indexBufferDesc.ppBuffer = &pFloorIB;
-		addResource(&indexBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&indexBufferDesc, NULL);
 		
 		float screenTriangularPoints[] =
 		{
@@ -915,7 +912,7 @@ public:
 		screenQuadVbDesc.mDesc.mSize = sizeof(float) * 5 * 3;
 		screenQuadVbDesc.pData = screenTriangularPoints;
 		screenQuadVbDesc.ppBuffer = &TriangularVB;
-		addResource(&screenQuadVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&screenQuadVbDesc, NULL);
 		
 		TextureDesc defaultTextureDesc = {};
 		defaultTextureDesc.mArraySize = 1;
@@ -932,86 +929,14 @@ public:
 		TextureLoadDesc defaultLoadDesc = {};
 		defaultLoadDesc.pDesc = &defaultTextureDesc;
 		defaultLoadDesc.ppTexture = &pTextureBlack;
-		addResource(&defaultLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&defaultLoadDesc, NULL);
 
 		TextureUpdateDesc updateDesc = { pTextureBlack };
 		beginUpdateResource(&updateDesc);
 		memset(updateDesc.pMappedData, 0, 4 * 4 * sizeof(uint32_t));
 		endUpdateResource(&updateDesc, NULL);
 
-#if defined(__ANDROID__) || defined(__linux__) || defined(ORBIS) || defined(PROSPERO)
-		// Get list of Models
-		eastl::vector<eastl::string> filesToLoad;
-		eastl::vector<PathHandle> filesToLoadFullPath;
-		PathHandle meshDirectory = fsGetResourceDirEnumPath(RD_MESHES);
-		eastl::vector<PathHandle> filesInDirectory = fsGetFilesWithExtension(meshDirectory, "gltf");
-
-		eastl::sort(filesInDirectory.begin(), filesInDirectory.end(), [](const PathHandle& a, const PathHandle& b)
-		{
-			return strstr(fsGetPathAsNativeString(a), "FlightHelmet")
-			> strstr(fsGetPathAsNativeString(b), "FlightHelmet");
-		});
-
-		//reduce duplicated filenames
-		for (size_t i = 0; i < filesInDirectory.size(); ++i)
-		{
-			const PathHandle & file = filesInDirectory[i];
-			
-			eastl::string tempfile(fsGetPathAsNativeString(file));
-			
-			const char* first = strstr(tempfile.c_str(), "PQPM");
-			
-			bool bAlreadyLoaded = false;
-			
-			if (first != NULL)
-			{
-				for (size_t j = 0; j < filesToLoad.size(); ++j)
-				{
-					if (strstr(tempfile.c_str(), filesToLoad[j].c_str()) != NULL)
-					{
-						bAlreadyLoaded = true;
-						break;
-					}
-				}
-				
-				if (!bAlreadyLoaded)
-				{
-					int gap = first - tempfile.c_str();
-					tempfile.resize(gap);
-					filesToLoad.push_back(tempfile);
-					filesToLoadFullPath.push_back(file);
-				}
-			}
-			else
-			{
-				filesToLoad.push_back(tempfile);
-				filesToLoadFullPath.push_back(file);
-			}
-		}
-		
-		size_t modelFileCount = filesToLoadFullPath.size();
-		
-		eastl::vector<const char*> modelFileNames(modelFileCount);
-		gModelFiles.resize(modelFileCount);
-		gDropDownWidgetData.resize(modelFileCount);
-		
-		for (size_t i = 0; i < modelFileCount; ++i)
-		{
-			const PathHandle& file = filesToLoadFullPath[i];
-			
-			gModelFiles[i] = file;
-			modelFileNames[i] = fsGetPathFileName(gModelFiles[i]).buffer;
-			gDropDownWidgetData[i] = (uint32_t)i;
-		}
-		
-		gModelFile = gModelFiles[0];
-		gGuiModelToLoad = gModelFiles[0];
-		
-#else
-		PathHandle fullModelPath = fsGetPathInResourceDirEnum(RD_MESHES, gDefaultModelFile);
-		gModelFile = fullModelPath;
-		gGuiModelToLoad = fullModelPath;
-#endif
+		gModelFile = pModelNames[mModelSelected];
 		
 		BufferLoadDesc ubDesc = {};
 		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -1022,7 +947,7 @@ public:
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pUniformBuffer[i];
-			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubDesc, NULL);
 		}
 		
 		BufferLoadDesc subDesc = {};
@@ -1034,7 +959,7 @@ public:
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			subDesc.ppBuffer = &pShadowUniformBuffer[i];
-			addResource(&subDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&subDesc, NULL);
 		}
 		
 		ubDesc = {};
@@ -1046,7 +971,7 @@ public:
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pFloorUniformBuffer[i];
-			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubDesc, NULL);
 		}
 		/************************************************************************/
 		// GUI
@@ -1059,21 +984,13 @@ public:
 		pGuiWindow->AddWidget(CheckboxWidget("Toggle VSync", &bToggleVSync));
 #endif
 		
-#if defined(__ANDROID__) || defined(__linux__) || defined(ORBIS) || defined(PROSPERO)
-		pGuiWindow->AddWidget(DropdownWidget("Models", &guiModelToLoadIndex, modelFileNames.data(), gDropDownWidgetData.data(), (uint32_t)gModelFiles.size()));
-#else
 		pGuiWindow->AddWidget(SeparatorWidget());
-		
-		ButtonWidget loadModelButtonWidget("Load Model                                      ");
-		loadModelButtonWidget.pOnEdited = GLTFViewer::LoadNewModel;
-		pGuiWindow->AddWidget(loadModelButtonWidget);
+
+		DropdownWidget loadModelWidget("Load Model", &mModelSelected, pModelNames, gModelValues, mModelCount);
+
+		pGuiWindow->AddWidget(loadModelWidget);
 		
 		pGuiWindow->AddWidget(SeparatorWidget());
-		
-		//ButtonWidget loadLODButtonWidget("Load Model LOD");
-		//loadLODButtonWidget.pOnEdited = GLTFViewer::LoadLOD;
-		//pGuiWindow->AddWidget(loadLODButtonWidget);
-#endif
 		
 		pSelectLodWidget = pGuiWindow->AddWidget(SliderIntWidget("LOD", &gCurrentLod, 0, gMaxLod));
 		
@@ -1167,9 +1084,7 @@ public:
 		{
 			if (!gAppUI.IsFocused() && *ctx->pCaptured)
 			{
-#if defined(TARGET_IOS) || defined(__ANDROID__)
 				gVirtualJoystick.OnMove(index, ctx->mPhase != INPUT_ACTION_PHASE_CANCELED, ctx->pPosition);
-#endif
 				index ? pCameraController->onRotate(ctx->mFloat2) : pCameraController->onMove(ctx->mFloat2);
 			}
 			return true;
@@ -1186,42 +1101,31 @@ public:
 		return true;
 	}
 	
-	static bool LoadModel(GLTFAsset& asset, const Path* modelFilePath)
+	static bool LoadModel(GLTFAsset& asset, const char* modelFileName)
 	{
-		eastl::string modelFileName = fsPathComponentToString(fsGetPathFileName(modelFilePath));
-
-		eastl::vector<PathHandle> validFileLists;
-		eastl::vector<PathHandle> intermediateFileLists;
-		
-#if defined(TARGET_IOS)
-		PathHandle meshDirectory = fsGetParentPath(modelFilePath);
-#else
-		PathHandle meshDirectory = fsGetResourceDirEnumPath(RD_MESHES);
-#endif
-		eastl::vector<PathHandle> fileLists = fsGetFilesWithExtension(meshDirectory, "gltf");
-		
+		//eastl::vector<PathHandle> validFileLists;
+				
 		eastl::string fileNameOnly = modelFileName;
 
 		gCurrentAsset.removeResources();
 		
 		GeometryLoadDesc loadDesc = {};
 		loadDesc.ppGeometry = &gCurrentAsset.pGeom;
-		loadDesc.pFilePath = modelFilePath;
+		loadDesc.pFileName = modelFileName;
 		loadDesc.pVertexLayout = &gVertexLayoutModel;
-		addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&loadDesc, NULL);
 
-		uint32_t res = gltfLoadContainer(modelFilePath, GLTF_FLAG_CALCULATE_BOUNDS, &gCurrentAsset.pData);
+		uint32_t res = gltfLoadContainer(modelFileName, GLTF_FLAG_CALCULATE_BOUNDS, &gCurrentAsset.pData);
 		if (res)
 		{
 			return false;
 		}
 		
-		PathHandle parentDirectory = fsGetParentPath(modelFilePath);
-		asset.Init(parentDirectory, pRenderer, pDefaultSampler);
+		asset.Init(pRenderer, pDefaultSampler);
 		
 		pGuiWindow->RemoveWidget(pSelectLodWidget);
-		gMaxLod = max((int)validFileLists.size() - 1, 0);
-		pSelectLodWidget = pGuiWindow->AddWidget(SliderIntWidget("LOD", &gCurrentLod, 0, gMaxLod));
+		//gMaxLod = max((int)validFileLists.size() - 1, 0);
+		//pSelectLodWidget = pGuiWindow->AddWidget(SliderIntWidget("LOD", &gCurrentLod, 0, gMaxLod));
 		waitForAllResourceLoads();
 		return true;
 	}
@@ -1347,9 +1251,7 @@ public:
 		destroyCameraController(pCameraController);
 		destroyCameraController(pLightView);
 		
-#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Exit();
-#endif
 		
 		gAppUI.Exit();
 		
@@ -1387,13 +1289,7 @@ public:
 		removeQueue(pRenderer, pGraphicsQueue);
 		removeRenderer(pRenderer);
 		
-#if defined(__ANDROID__) || defined(__linux__) || defined(ORBIS) || defined(PROSPERO)
-		gModelFiles.set_capacity(0);
-		gDropDownWidgetData.set_capacity(0);
-#endif
-
 		gModelFile = NULL;
-		gGuiModelToLoad = NULL;
 	}
 	
 	static void LoadPipelines()
@@ -1579,10 +1475,8 @@ public:
 			if (!gAppUI.Load(pSwapChain->ppRenderTargets))
 				return false;
 
-#if defined(TARGET_IOS) || defined(__ANDROID__)
 			if (!gVirtualJoystick.Load(pSwapChain->ppRenderTargets[0]))
 				return false;
-#endif
 
 			loadProfilerUI(&gAppUI, mSettings.mWidth, mSettings.mHeight);
 
@@ -1612,7 +1506,7 @@ public:
 			screenQuadVbDesc.mDesc.mSize = sizeof(float) * 5 * 6;
 			screenQuadVbDesc.pData = screenWaterMarkPoints;
 			screenQuadVbDesc.ppBuffer = &WaterMarkVB;
-			addResource(&screenQuadVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&screenQuadVbDesc, NULL);
 		}
 
 		InitModelDependentResources();
@@ -1651,9 +1545,7 @@ public:
 		unloadProfilerUI();
 		gAppUI.Unload();
 		
-#if defined(TARGET_IOS) || defined(__ANDROID__)
 		gVirtualJoystick.Unload();
-#endif
 		
 		removeSwapChain(pRenderer, pSwapChain);
 		
@@ -1736,29 +1628,15 @@ public:
 	
 	void PostDrawUpdate()
 	{
-		
-#if defined(__ANDROID__) || defined(__linux__) || defined(ORBIS) || defined(PROSPERO)
-		if (guiModelToLoadIndex != modelToLoadIndex)
+		if (gPreviousLoadedModel != mModelSelected)
 		{
-			modelToLoadIndex = guiModelToLoadIndex;
-			gGuiModelToLoad = gModelFiles[modelToLoadIndex];
-		}
-#endif
-		if (!fsPathsEqual(gGuiModelToLoad, gModelFile))
-		{
-			if (fsFileExists(gGuiModelToLoad))
-			{
-				gModelFile = gGuiModelToLoad;
-				
-				mModelReload = true;
-				Unload();
-				Load();
-				mModelReload = false;
-			}
-			else
-			{
-				gGuiModelToLoad = gModelFile;
-			}
+			gPreviousLoadedModel = mModelSelected;
+			gModelFile = pModelNames[mModelSelected];
+			
+			mModelReload = true;
+			Unload();
+			Load();
+			mModelReload = false;
 		}
 		gCurrentLod = min(gCurrentLod, gMaxLod);
 		
@@ -1773,26 +1651,7 @@ public:
 //			gCurrentLod = 0;
 //		else
 //			gCurrentLod = min((int)log2(pow((float)distanceFromCamera, 0.6f) + 1.0f), gMaxLod);
-	}
-	
-	static void SelectModelFunc(const Path* path, void* pathPtr) {
-		PathHandle *outputPath = (PathHandle*)pathPtr;
-		
-		if (path) {
-			*outputPath = fsCopyPath(path);
-		}
-	}
-	
-	static void LoadNewModel()
-	{
-		eastl::vector<const char*> extFilter;
-		extFilter.push_back("gltf");
-		extFilter.push_back("glb");
-		
-		PathHandle meshDir = fsGetResourceDirEnumPath(RD_MESHES);
-		
-		fsShowOpenFileDialog("Select model to load", meshDir, SelectModelFunc, &gGuiModelToLoad, "Model File", &extFilter[0], extFilter.size());
-	}
+	}	
 	
 	static void LoadLOD()
 	{
@@ -1802,9 +1661,9 @@ public:
 		extFilter.push_back("gltf");
 		extFilter.push_back("glb");
 		
-		PathHandle meshDir = fsGetResourceDirEnumPath(RD_MESHES);
+		//PathHandle meshDir = fsGetResourceDirEnumPath(RD_MESHES);
 		
-		fsShowOpenFileDialog("Select model to load", meshDir, SelectModelFunc, &gGuiModelToLoad, "Model File", &extFilter[0], extFilter.size());
+	//	fsShowOpenFileDialog("Select model to load", meshDir, SelectModelFunc, &gGuiModelToLoad, "Model File", &extFilter[0], extFilter.size());
 	}
 	
 	void Draw()
@@ -2035,9 +1894,7 @@ public:
 			loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 			
 			cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
-#if defined(TARGET_IOS) || defined(__ANDROID__)
 			//gVirtualJoystick.Draw(cmd, { 1.0f, 1.0f, 1.0f, 1.0f });
-#endif
 
 #if !defined(__ANDROID__)
 				float2 txtSize = cmdDrawCpuProfile(cmd, float2(8.0f, 15.0f), &gFrameTimeDraw);
@@ -2062,7 +1919,7 @@ public:
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &finalBarriers);
 		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 		endCmd(cmd);
-		
+
 		QueueSubmitDesc submitDesc = {};
 		submitDesc.mCmdCount = 1;
 		submitDesc.mSignalSemaphoreCount = 1;

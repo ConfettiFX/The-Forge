@@ -75,8 +75,8 @@ class Quat;
 class Matrix3;
 class Matrix4;
 class Transform3;
-//========================================= #ConfettiMathExtensionsBegin ================================================
-//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 class AffineTransform; //CONFFX_TEST_BEGIN
 
 // ========================================================
@@ -91,8 +91,8 @@ typedef const __m128i _Vector4Int;
 static const float kNormalizationToleranceSq = 1e-6f;
 static const float kNormalizationToleranceEstSq = 2e-3f;
 
-//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
 
 
 // ========================================================
@@ -519,15 +519,15 @@ public:
     //
     explicit inline Vector4(__m128 vf4);
 
-    //========================================= #ConfettiMathExtensionsBegin ================================================
-    //========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+    //========================================= #TheForgeMathExtensionsBegin ================================================
+    //========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
     // Convert from integer vector to float vector.
     //
     static inline const Vector4 fromVector4Int(const Vector4Int vecInt);
 
-    //========================================= #ConfettiAnimationMathExtensionsEnd =======================================
-    //========================================= #ConfettiMathExtensionsEnd ================================================
+    //========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+    //========================================= #TheForgeMathExtensionsEnd ================================================
 
     // Get vector float data from a 4-D vector
     //
@@ -683,8 +683,8 @@ public:
     //
     static inline const Vector4 wAxis();
 
-    //========================================= #ConfettiMathExtensionsBegin ================================================
-    //========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+    //========================================= #TheForgeMathExtensionsBegin ================================================
+    //========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
     // Construct zero vector
     //
@@ -694,8 +694,8 @@ public:
     //
     static inline const Vector4 one();
 
-    //========================================= #ConfettiAnimationMathExtensionsEnd =======================================
-	//========================================= #ConfettiMathExtensionsEnd ================================================
+    //========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+	//========================================= #TheForgeMathExtensionsEnd ================================================
 
 } VECTORMATH_ALIGNED_TYPE_POST;
 
@@ -723,8 +723,8 @@ inline const Vector4 divPerElem(const Vector4 & vec0, const Vector4 & vec1);
 //
 inline const Vector4 recipPerElem(const Vector4 & vec);
 
-//========================================= #ConfettiMathExtensionsBegin ================================================
-//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
 // Compute the squareroot of a 4-D vector per element
 // NOTE:
@@ -755,8 +755,8 @@ inline const Vector4 rSqrtEstNR(const Vector4& v);
 //
 inline const Vector4 aCos(const Vector4& arg);
 
-//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
 
 // Compute the absolute value of a 4-D vector per element
 //
@@ -848,8 +848,8 @@ inline const Vector4 select(const Vector4 & vec0, const Vector4 & vec1, bool sel
 //
 inline const Vector4 select(const Vector4 & vec0, const Vector4 & vec1, const BoolInVec & select1);
 
-//========================================= #ConfettiMathExtensionsBegin ================================================
-//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
 // Per element "equal" comparison of _a and _b.
 inline const Vector4Int cmpEq(const Vector4& a, const Vector4& b);
@@ -921,8 +921,8 @@ inline void storePtrU(const Vector4& v, float* f);
 // f[2] = v.z
 inline void store3PtrU(const Vector4& v, float* f);
 
-//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
 
 #ifdef VECTORMATH_DEBUG
 
@@ -2089,7 +2089,7 @@ public:
     //
     static inline const Matrix4 orthographic(float left, float right, float bottom, float top, float zNear, float zFar);
 
-	//========================================= #ConfettiMathExtensionsBegin ================================================
+	//========================================= #TheForgeMathExtensionsBegin ================================================
 	// Construct an reversed orthographic projection matrix
 	//
 	static inline const Matrix4 orthographicReverseZ(float left, float right, float bottom, float top, float zNear, float zFar);
@@ -2105,7 +2105,7 @@ public:
 	static inline const Matrix4 cubeProjection(const float zNear, const float zFar);
 	static inline const Matrix4 cubeView(const unsigned int side);
 	static void inline extractFrustumClipPlanes(const Matrix4& vp, Vector4& rcp, Vector4& lcp, Vector4& tcp, Vector4& bcp, Vector4& fcp, Vector4& ncp, bool const normalizePlanes);
-	//========================================= #ConfettiMathExtensionsEnd ==================================================
+	//========================================= #TheForgeMathExtensionsEnd ==================================================
 } VECTORMATH_ALIGNED_TYPE_POST;
 
 // Multiply a 4x4 matrix by a scalar
@@ -2454,8 +2454,8 @@ inline void print(const Transform3 & tfrm, const char * name);
 
 #endif // VECTORMATH_DEBUG
 
-//========================================= #ConfettiMathExtensionsBegin ================================================
-//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
 //CONFFX_TEST_BEGIN
 // ========================================================
@@ -2918,7 +2918,7 @@ inline Vector4Int CmpGt(const Vector4Int _a, const Vector4Int _b);
 // Per element "greater than or equal" comparison of _a and _b.
 inline Vector4Int CmpGe(const Vector4Int _a, const Vector4Int _b);
 
-//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
 // ========================================================
 // A 3-D vector in array-of-structures format
 // ========================================================
@@ -3674,7 +3674,7 @@ inline void print(const UVector4 & vec, const char * name);
 
 #endif // VECTORMATH_DEBUG
 
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
 
 } // namespace SSE
 } // namespace Vectormath

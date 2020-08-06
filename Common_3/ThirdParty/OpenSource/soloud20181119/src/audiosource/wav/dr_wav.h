@@ -818,13 +818,13 @@ void drwav_free(void* pDataReturnedByOpenAndRead);
 #define DRWAV_ASSERT(expression)           ASSERT(expression)
 #endif
 #ifndef DRWAV_MALLOC
-#define DRWAV_MALLOC(sz)                   conf_malloc((sz))
+#define DRWAV_MALLOC(sz)                   tf_malloc((sz))
 #endif
 #ifndef DRWAV_REALLOC
-#define DRWAV_REALLOC(p, sz)               conf_realloc((p), (sz))
+#define DRWAV_REALLOC(p, sz)               tf_realloc((p), (sz))
 #endif
 #ifndef DRWAV_FREE
-#define DRWAV_FREE(p)                      conf_free((p))
+#define DRWAV_FREE(p)                      tf_free((p))
 #endif
 #ifndef DRWAV_COPY_MEMORY
 #define DRWAV_COPY_MEMORY(dst, src, sz)    memcpy((dst), (src), (sz))

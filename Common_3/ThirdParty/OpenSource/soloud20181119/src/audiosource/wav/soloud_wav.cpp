@@ -87,7 +87,7 @@ namespace SoLoud
 	Wav::~Wav()
 	{
 		stop();
-		conf_free(mData);
+		tf_free(mData);
 	}
 
 #define MAKEDWORD(a,b,c,d) (((d) << 24) | ((c) << 16) | ((b) << 8) | (a))
@@ -109,7 +109,7 @@ namespace SoLoud
 			return FILE_LOAD_FAILED;
 		}
 
-		mData = (float*)conf_calloc((unsigned int)(samples * decoder.channels), sizeof(float));
+		mData = (float*)tf_calloc((unsigned int)(samples * decoder.channels), sizeof(float));
 		mBaseSamplerate = (float)decoder.sampleRate;
 		mSampleCount = (unsigned int)samples;
 		mChannels = decoder.channels;
@@ -156,7 +156,7 @@ namespace SoLoud
 		{
 			mChannels = info.channels;
 		}
-		mData = (float*)conf_calloc(samples * mChannels, sizeof(float));
+		mData = (float*)tf_calloc(samples * mChannels, sizeof(float));
 		mSampleCount = samples;
 		samples = 0;
 		while(1)
@@ -196,7 +196,7 @@ namespace SoLoud
 			return FILE_LOAD_FAILED;
 		}
 
-		mData = (float*)conf_calloc((unsigned int)(samples * decoder.channels), sizeof(float));
+		mData = (float*)tf_calloc((unsigned int)(samples * decoder.channels), sizeof(float));
 		mBaseSamplerate = (float)decoder.sampleRate;
 		mSampleCount = (unsigned int)samples;
 		mChannels = decoder.channels;
@@ -238,7 +238,7 @@ namespace SoLoud
 			return FILE_LOAD_FAILED;
 		}
 
-		mData = (float*)conf_calloc((unsigned int)(samples * decoder->channels), sizeof(float));
+		mData = (float*)tf_calloc((unsigned int)(samples * decoder->channels), sizeof(float));
 		mBaseSamplerate = (float)decoder->sampleRate;
 		mSampleCount = (unsigned int)samples;
 		mChannels = decoder->channels;
@@ -265,7 +265,7 @@ namespace SoLoud
 
     result Wav::testAndLoadFile(MemoryFile *aReader)
     {
-		conf_free(mData);
+		tf_free(mData);
 		mData = 0;
 		mSampleCount = 0;
 		mChannels = 1;
@@ -332,7 +332,7 @@ namespace SoLoud
 
 	AudioSourceInstance *Wav::createInstance()
 	{
-		return conf_new(WavInstance, this);
+		return tf_new(WavInstance, this);
 	}
 
 	double Wav::getLength()
@@ -347,8 +347,8 @@ namespace SoLoud
 		if (aMem == 0 || aLength == 0 || aSamplerate <= 0 || aChannels < 1)
 			return INVALID_PARAMETER;
 		stop();
-		conf_free(mData);
-		mData = (float*)conf_calloc(aLength, sizeof(float));	
+		tf_free(mData);
+		mData = (float*)tf_calloc(aLength, sizeof(float));	
 		mSampleCount = aLength / aChannels;
 		mChannels = aChannels;
 		mBaseSamplerate = aSamplerate;
@@ -363,8 +363,8 @@ namespace SoLoud
 		if (aMem == 0 || aLength == 0 || aSamplerate <= 0 || aChannels < 1)
 			return INVALID_PARAMETER;
 		stop();
-		conf_free(mData);
-		mData = (float*)conf_calloc(aLength, sizeof(float));
+		tf_free(mData);
+		mData = (float*)tf_calloc(aLength, sizeof(float));
 		mSampleCount = aLength / aChannels;
 		mChannels = aChannels;
 		mBaseSamplerate = aSamplerate;
@@ -379,10 +379,10 @@ namespace SoLoud
 		if (aMem == 0 || aLength == 0 || aSamplerate <= 0 || aChannels < 1)
 			return INVALID_PARAMETER;
 		stop();
-		conf_free(mData);
+		tf_free(mData);
 		if (aCopy == true || aTakeOwndership == false)
 		{
-			mData = (float*)conf_calloc(aLength, sizeof(float));
+			mData = (float*)tf_calloc(aLength, sizeof(float));
 			memcpy(mData, aMem, sizeof(float) * aLength);
 		}
 		else

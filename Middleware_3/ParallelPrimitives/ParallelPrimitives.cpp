@@ -48,8 +48,6 @@
 #include "../../Common_3/OS/Interfaces/ILog.h"
 #include "../../Common_3/OS/Interfaces/IMemory.h"
 
-ResourceDirEnum RD_MIDDLEWARE_PARALLEL_PRIMITIVES = RD_MIDDLEWARE_3;
-
 ParallelPrimitives::PipelineComponents::PipelineComponents() : mNextSetIndex(0), pDescriptorSet(NULL), pShader(NULL), pPipeline(NULL), pRootSignature(NULL) {}
 
 void ParallelPrimitives::PipelineComponents::init(Renderer* renderer, const char* functionName) {
@@ -58,7 +56,6 @@ void ParallelPrimitives::PipelineComponents::init(Renderer* renderer, const char
 	ShaderLoadDesc shaderLoadDesc = {};
 	shaderLoadDesc.mStages[0].pFileName = "ParallelPrimitives.comp";
 	shaderLoadDesc.mStages[0].pEntryPointName = functionName;
-	shaderLoadDesc.mStages[0].mRoot = RD_MIDDLEWARE_PARALLEL_PRIMITIVES;
 	addShader(pRenderer, &shaderLoadDesc, &pShader);
 	
 	RootSignatureDesc rootSigDesc = {};
@@ -142,7 +139,7 @@ Buffer* ParallelPrimitives::temporaryBuffer(size_t length) {
 		bufferLoadDesc.mDesc.mSize = length;
 		bufferLoadDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		bufferLoadDesc.mDesc.mElementCount = length / sizeof(int32_t);
-		addResource(&bufferLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&bufferLoadDesc, NULL);
 	} else {
 		mTemporaryBuffers.erase_unsorted(bestBufferIt);
 	}

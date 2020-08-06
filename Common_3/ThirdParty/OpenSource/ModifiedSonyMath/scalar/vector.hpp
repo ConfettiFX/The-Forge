@@ -457,8 +457,8 @@ inline Vector4::Vector4(float scalar)
 	mW = scalar;
 }
 
-//========================================= #ConfettiMathExtensionsBegin ================================================
-//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
 inline const Vector4 Vector4::fromVector4Int(const Vector4Int vecInt)
 {
@@ -470,8 +470,8 @@ inline const Vector4 Vector4::fromVector4Int(const Vector4Int vecInt)
 	return ret;
 }
 
-//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
 
 inline const Vector4 Vector4::xAxis()
 {
@@ -493,8 +493,8 @@ inline const Vector4 Vector4::wAxis()
 	return Vector4(0.0f, 0.0f, 0.0f, 1.0f);
 }
 
-//========================================= #ConfettiMathExtensionsBegin ================================================
-//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
 inline const Vector4 Vector4::zero()
 {
@@ -511,8 +511,8 @@ inline const float * Vector4::getXPtr() const
 	return &mX;
 }
 
-//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
 
 
 inline const Vector4 lerp(float t, const Vector4 & vec0, const Vector4 & vec1)
@@ -725,8 +725,8 @@ inline const Vector4 sqrtPerElem(const Vector4 & vec)
 }
 
 
-//========================================= #ConfettiMathExtensionsBegin ================================================
-//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
 #define RCP_EST(_in, _out)                 \
 do {                                           \
@@ -840,8 +840,8 @@ inline const Vector4 rSqrtEstNR(const Vector4& v) {
   return ret;
 }
 
-//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
 
 inline const Vector4 rsqrtPerElem(const Vector4 & vec)
 {
@@ -954,8 +954,8 @@ inline const Vector4 select(const Vector4 & vec0, const Vector4 & vec1, bool sel
 				   (select1) ? vec1.getW() : vec0.getW());
 }
 
-//========================================= #ConfettiMathExtensionsBegin ================================================
-//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
 inline const Vector4Int cmpEq(const Vector4& a, const Vector4& b) {
 	const Vector4Int ret = {
@@ -1167,8 +1167,8 @@ inline void store3PtrU(const Vector4& v, float* f) {
 	f[2] = v.getZ();
 }
 
-//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
 
 
 #ifdef VECTORMATH_DEBUG
@@ -1470,8 +1470,8 @@ inline void print(const Point3 & pnt, const char * name)
 #endif // VECTORMATH_DEBUG
 
 
-//========================================= #ConfettiMathExtensionsBegin ================================================
-//========================================= #ConfettiAnimationMathExtensionsBegin =======================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
+//========================================= #TheForgeAnimationMathExtensionsBegin =======================================
 
 // ========================================================
 // Vector4Int
@@ -1977,7 +1977,7 @@ inline Vector4Int CmpGe(const Vector4Int& _a, const Vector4Int& _b) {
   return ret;
 }
 
-//========================================= #ConfettiAnimationMathExtensionsEnd =======================================
+//========================================= #TheForgeAnimationMathExtensionsEnd =======================================
 
 // ========================================================
 // IVector3
@@ -2900,7 +2900,7 @@ inline void print(const UVector4 & vec, const char * name)
 }
 
 #endif // VECTORMATH_DEBUG
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
 
 
 } // namespace Scalar

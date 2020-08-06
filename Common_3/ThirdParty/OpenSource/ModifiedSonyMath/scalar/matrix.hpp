@@ -964,8 +964,8 @@ inline const Matrix4 Matrix4::frustum(float left, float right, float bottom, flo
 }
 
 
-//========================================= #ConfettiMathExtensionsBegin ================================================
-// Note: If math library is updated, remember to add the below functions. search for #ConfettiMathExtensions
+//========================================= #TheForgeMathExtensionsBegin ================================================
+// Note: If math library is updated, remember to add the below functions. search for #TheForgeMathExtensions
 
 // PROJECTION MATRIX CONVENTION
 //----------------------------------------------------------------------------------------
@@ -1229,7 +1229,7 @@ inline const Matrix4 Matrix4::rotationXY(const float radiansX, const float radia
 		cosX *-sinY, sinX, cosX * cosY, 0,
 		0, 0, 0, 1);
 }
-//========================================= #ConfettiMathExtensionsEnd ==================================================
+//========================================= #TheForgeMathExtensionsEnd ==================================================
 
 inline const Matrix4 select(const Matrix4 & mat0, const Matrix4 & mat1, bool select1)
 {
@@ -1618,7 +1618,7 @@ inline void print(const Transform3 & tfrm, const char * name)
 #endif // VECTORMATH_DEBUG
 
 //CONFFX_TEST_BEGIN
-//========================================= #ConfettiMathExtensionsBegin ================================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
 
 // ========================================================
 // AffineTransform
@@ -1646,7 +1646,7 @@ inline void print(const AffineTransform & tfrm, const char * name)
 }
 
 #endif // VECTORMATH_DEBUG
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeMathExtensionsEnd ================================================
 //CONFFX_TEST_END
 
 // ========================================================

@@ -38,7 +38,7 @@
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/ITime.h"
 #include "../Interfaces/IThread.h"
-
+#include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/IMemory.h"
 
 #define _NET_WM_STATE_REMOVE 0
@@ -89,7 +89,7 @@ void getRecommendedResolution(RectDesc* rect)
 { 
     Screen* screen = XDefaultScreenOfDisplay(gDefaultDisplay);
 
-    *rect = { 0, 0, min(1920, WidthOfScreen(screen)), min(1080, HeightOfScreen(screen)) }; 
+	*rect = { 0, 0, min(1920, (int)(WidthOfScreen(screen)*0.75)), min(1080, (int)(HeightOfScreen(screen)*0.75)) };
 }
 
 void requestShutdown()
@@ -227,10 +227,10 @@ static void collectMonitorInfo()
     if (gMonitorCount == 0)
         return;
 
-    gMonitors = (MonitorDesc*)conf_calloc(gMonitorCount, sizeof(MonitorDesc));
+    gMonitors = (MonitorDesc*)tf_calloc(gMonitorCount, sizeof(MonitorDesc));
 
     if (gHasXRandr)
-        gDirtyModes = (DeviceMode*)conf_calloc(gMonitorCount, sizeof(DeviceMode));
+        gDirtyModes = (DeviceMode*)tf_calloc(gMonitorCount, sizeof(DeviceMode));
 
     for (uint32_t i = 0; i < gMonitorCount; ++i)
     {
@@ -265,7 +265,7 @@ static void collectMonitorInfo()
             ASSERT(screenSizes && numScreenSizes > 0);
 
             gMonitors[i].resolutionCount = numScreenSizes;
-            gMonitors[i].resolutions = (Resolution*)conf_calloc(numScreenSizes, sizeof(Resolution));
+            gMonitors[i].resolutions = (Resolution*)tf_calloc(numScreenSizes, sizeof(Resolution));
 
             int tail = 0;
             for (int j = 0; j < numScreenSizes; ++j)
@@ -295,7 +295,7 @@ static void collectMonitorInfo()
         else
         {
             gMonitors[i].resolutionCount = 1;
-            gMonitors[i].resolutions = (Resolution*)conf_calloc(1, sizeof(Resolution));
+            gMonitors[i].resolutions = (Resolution*)tf_calloc(1, sizeof(Resolution));
             gMonitors[i].resolutions[0] = { (uint32_t)width, (uint32_t)height };
             gMonitors[i].defaultResolution = gMonitors[i].resolutions[0];
         }
@@ -305,10 +305,10 @@ static void collectMonitorInfo()
 static void destroyMonitorInfo()
 {
     for (uint32_t i = 0; i < gMonitorCount; ++i)
-        conf_free(gMonitors[i].resolutions);
+        tf_free(gMonitors[i].resolutions);
 
-    conf_free(gMonitors);
-    conf_free(gDirtyModes);
+    tf_free(gMonitors);
+    tf_free(gDirtyModes);
 }
 
 static void restoreResolutions()
@@ -674,20 +674,25 @@ void closeWindow(const WindowsDesc* winDesc)
 
 int LinuxMain(int argc, char** argv, IApp* app)
 {
-	extern bool MemAllocInit();
+	extern bool MemAllocInit(const char*);
 	extern void MemAllocExit();
+	
+	FileSystemInitDesc fsDesc = {};
+	fsDesc.pAppName = app->GetName();
+	
+    if (!initFileSystem(&fsDesc))
+        return EXIT_FAILURE;
 
-	if (!MemAllocInit())
+    fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
+
+	if (!MemAllocInit(app->GetName()))
 		return EXIT_FAILURE;
 		
 #if TF_USE_MTUNER
 	rmemInit(0);
 #endif
 
-	if (!fsInitAPI())
-		return EXIT_FAILURE;
-
-	Log::Init();
+	Log::Init(app->GetName());
 	
 	pApp = app;
 
@@ -738,9 +743,12 @@ int LinuxMain(int argc, char** argv, IApp* app)
 	if (!pApp->Load())
 		return EXIT_FAILURE;
 
+	int64_t lastCounter = getUSec();
 	while (!gQuit)
 	{
-		float deltaTime = deltaTimer.GetMSec(true) / 1000.0f;
+		int64_t counter = getUSec();
+		float deltaTime = (float)(counter - lastCounter) / (float)1e6;
+		lastCounter = counter;
 
 		// if framerate appears to drop below about 6, assume we're at a breakpoint and simulate 20fps.
 		if (deltaTime > 0.15f)
@@ -771,8 +779,6 @@ int LinuxMain(int argc, char** argv, IApp* app)
 	
 	Log::Exit();
 
-	fsExitAPI();
-
 #if TF_USE_MTUNER
 	rmemUnload();
 	rmemShutDown();
@@ -780,6 +786,8 @@ int LinuxMain(int argc, char** argv, IApp* app)
 
 	MemAllocExit();
 
+	exitFileSystem();
+	
 	return 0;
 }
 /************************************************************************/

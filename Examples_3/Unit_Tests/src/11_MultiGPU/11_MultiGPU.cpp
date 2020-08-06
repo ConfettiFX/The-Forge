@@ -150,24 +150,12 @@ class MultiGPU : public IApp
 public:
 	bool Init()
 	{
-		// file paths
-		PathHandle programDirectory = fsGetApplicationDirectory();
-		FileSystem* fileSystem = fsGetPathFileSystem(programDirectory);
-		if (!fsPlatformUsesBundledResources())
-		{
-			PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/11_MultiGPU");
-			fsSetResourceDirRootPath(resourceDirRoot);
-
-			fsSetRelativePathForResourceDirEnum(RD_TEXTURES, "../../UnitTestResources/Textures");
-			fsSetRelativePathForResourceDirEnum(RD_MESHES, "../../UnitTestResources/Meshes");
-			fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS, "../../UnitTestResources/Fonts");
-			fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS, "../../UnitTestResources/Animation");
-			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT, "../../../../Middleware_3/Text");
-			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI, "../../../../Middleware_3/UI");
-#if !defined(TARGET_IOS)
-			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_PANINI, "../../../../Middleware_3/PaniniProjection");
-#endif
-		}
+		// FILE PATHS
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
 
 		gClearColor.r = 0.0f;
 		gClearColor.g = 0.0f;
@@ -210,7 +198,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.25f);
 		pGui = gAppUI.AddGuiComponent(GetName(), &guiDesc);
@@ -237,11 +225,11 @@ public:
 		addSemaphore(pRenderer, &pImageAcquiredSemaphore);
 
 		ShaderLoadDesc skyShader = {};
-		skyShader.mStages[0] = { "skybox.vert", NULL, 0, RD_SHADER_SOURCES };
-		skyShader.mStages[1] = { "skybox.frag", NULL, 0, RD_SHADER_SOURCES };
+		skyShader.mStages[0] = { "skybox.vert", NULL, 0 };
+		skyShader.mStages[1] = { "skybox.frag", NULL, 0 };
 		ShaderLoadDesc basicShader = {};
-		basicShader.mStages[0] = { "basic.vert", NULL, 0, RD_SHADER_SOURCES };
-		basicShader.mStages[1] = { "basic.frag", NULL, 0, RD_SHADER_SOURCES };
+		basicShader.mStages[0] = { "basic.vert", NULL, 0 };
+		basicShader.mStages[1] = { "basic.frag", NULL, 0 };
 
 		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
 		addShader(pRenderer, &basicShader, &pSphereShader);
@@ -333,14 +321,13 @@ public:
 
 			for (int i = 0; i < 6; ++i)
 			{
-				PathHandle filePath = fsGetPathInResourceDirEnum(RD_TEXTURES, pSkyBoxImageFileNames[i]);
-				textureDesc.pFilePath = filePath;
+				textureDesc.pFileName = pSkyBoxImageFileNames[i];
 				textureDesc.ppTexture = &pSkyBoxTextures[view][i];
 
 				if (!gMultiGPU && view > 0)
 					pSkyBoxTextures[view][i] = pSkyBoxTextures[0][i];
 				else
-					addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
+					addResource(&textureDesc, NULL);
 			}
 
 			sphereVbDesc.mDesc.mNodeIndex = view;
@@ -356,8 +343,8 @@ public:
 			}
 			else
 			{
-				addResource(&sphereVbDesc, NULL, LOAD_PRIORITY_NORMAL);
-				addResource(&skyboxVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+				addResource(&sphereVbDesc, NULL);
+				addResource(&skyboxVbDesc, NULL);
 			}
 		}
 
@@ -370,9 +357,9 @@ public:
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
-			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubDesc, NULL);
 			ubDesc.ppBuffer = &pSkyboxUniformBuffer[i];
-			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubDesc, NULL);
 		}
 
 		waitForAllResourceLoads();
@@ -581,7 +568,7 @@ public:
 		if (!gMultiGPURestart)
 		{
 			// Need to free memory;
-			conf_free(pSpherePoints);
+			tf_free(pSpherePoints);
 		}
 
 		gPanini.Exit();

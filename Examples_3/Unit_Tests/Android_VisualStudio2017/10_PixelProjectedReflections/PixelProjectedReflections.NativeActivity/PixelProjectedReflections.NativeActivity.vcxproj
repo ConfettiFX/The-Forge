@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
@@ -80,14 +80,20 @@
       </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\circlepad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\LA_Helipad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\TitilliumText\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\10_PixelProjectedReflections\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\Sponza\Textures\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y /exclude:$(ProjectDir)xcludedfileslist.txt
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\Sponza\Meshes\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Meshes\ /s /y</Command>
+      <Command>$(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\UnitTestResources\Textures $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures circlepad.ktx
+$(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\UnitTestResources\Textures $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures LA_Helipad.ktx
+$(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\UnitTestResources\Fonts\TitilliumText $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\TitilliumText\
+$(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\
+$(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\
+$(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\src\10_PixelProjectedReflections\Shaders\Vulkan $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\
+$(systemroot)\System32\Robocopy /S $(ProjectDir)..\..\..\..\..\Art\Sponza\Textures\ $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ *.ktx
+$(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\..\..\Art\Sponza\Meshes $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Meshes\
+$(systemroot)\System32\Robocopy $(VS_NdkRoot)\sources\third_party\vulkan\src\build-android\jniLibs\$(TargetArchAbi) $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\libs\$(TargetArchAbi) *.so
+if ERRORLEVEL 2 goto HandleError
+exit 0
+:HandleError
+exit %ERRORLEVEL%
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -110,14 +116,18 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\Sponza\Meshes\*.* $
       </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\circlepad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\LA_Helipad.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\TitilliumText\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\src\10_PixelProjectedReflections\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\Sponza\Textures\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y /exclude:$(ProjectDir)xcludedfileslist.txt
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Art\Sponza\Meshes\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Meshes\ /s /y</Command>
+      <Command>$(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\UnitTestResources\Textures $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures circlepad.ktx
+$(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\UnitTestResources\Textures $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures LA_Helipad.ktx
+$(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\UnitTestResources\Fonts\TitilliumText $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\TitilliumText\
+$(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\
+$(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\
+$(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\src\10_PixelProjectedReflections\Shaders\Vulkan $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\
+$(systemroot)\System32\Robocopy /S $(ProjectDir)..\..\..\..\..\Art\Sponza\Textures\ $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ *.ktx
+$(systemroot)\System32\Robocopy $(ProjectDir)..\..\..\..\..\Art\Sponza\Meshes $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Meshes\
+if ERRORLEVEL 2 goto HandleError
+exit 0
+:HandleError
+exit %ERRORLEVEL%</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

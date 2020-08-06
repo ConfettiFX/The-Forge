@@ -2,6 +2,9 @@
 #ifndef GAINPUTINPUTMANAGER_H_
 #define GAINPUTINPUTMANAGER_H_
 
+#if defined(GAINPUT_PLATFORM_ANDROID)
+struct ANativeActivity;
+#endif
 
 namespace gainput
 {
@@ -61,9 +64,9 @@ public:
 	 */
 	void HandleMessage(const MSG& msg);
 #endif
-#if defined(GAINPUT_PLATFORM_ANDROID)
+#if defined(GAINPUT_PLATFORM_ANDROID)	
 	/// [ANDROID ONLY] Lets the InputManager handle the given input event.
-	int32_t HandleInput(AInputEvent* event);
+	int32_t HandleInput(AInputEvent* event, ANativeActivity* activity);
 
 	struct DeviceInput
 	{

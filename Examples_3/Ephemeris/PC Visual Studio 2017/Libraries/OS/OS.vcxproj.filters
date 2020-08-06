@@ -156,22 +156,7 @@
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\EASTL\EAStdC\EASprintf.cpp">
       <Filter>Dependencies\EASTL\EAStdC</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystemInternal.cpp">
-      <Filter>OS\FileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\MemoryStream.cpp">
-      <Filter>OS\FileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemFileStream.cpp">
-      <Filter>OS\FileSystem</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemRun.cpp">
-      <Filter>OS\FileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileStream.cpp">
-      <Filter>OS\FileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.cpp">
       <Filter>OS\FileSystem</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\zip\zip.cpp">
@@ -200,6 +185,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp">
       <Filter>Dependencies\basisu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystem.cpp">
+      <Filter>OS\FileSystem</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -289,21 +277,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Windows\WindowsStackTraceDump.h">
       <Filter>OS\Windows</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystemInternal.h">
-      <Filter>OS\FileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\MemoryStream.h">
-      <Filter>OS\FileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemFileStream.h">
-      <Filter>OS\FileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileStream.h">
-      <Filter>OS\FileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.h">
-      <Filter>OS\FileSystem</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

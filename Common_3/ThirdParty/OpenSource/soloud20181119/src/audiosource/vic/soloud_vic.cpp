@@ -163,7 +163,7 @@ namespace SoLoud
 
 	AudioSourceInstance * Vic::createInstance() 
 	{
-		return conf_new(VicInstance, this);
+		return tf_new(VicInstance, this);
 	}
 
 };

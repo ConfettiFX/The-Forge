@@ -48,7 +48,7 @@ namespace SoLoud
 			copycount -= readcount;
 			if (mParent->mSource[mParent->mReadIndex]->hasEnded())
 			{
-				conf_delete(mParent->mSource[mParent->mReadIndex]);
+				tf_delete(mParent->mSource[mParent->mReadIndex]);
 				mParent->mSource[mParent->mReadIndex] = 0;
 				mParent->mReadIndex = (mParent->mReadIndex + 1) % SOLOUD_QUEUE_MAX;
 				mParent->mCount--;
@@ -82,7 +82,7 @@ namespace SoLoud
 			stop();
 			mInstance = 0;
 		}
-		mInstance = conf_new(QueueInstance, this);
+		mInstance = tf_new(QueueInstance, this);
 		return mInstance;
 	}
 

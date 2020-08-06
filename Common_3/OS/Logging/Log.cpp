@@ -35,9 +35,8 @@
 #define LOG_MESSAGE_OFFSET (LOG_PREAMBLE_SIZE + LOG_LEVEL_SIZE)
 
 static Log* pLogger = NULL;
-static bool gOnce = true;
 
-thread_local char Log::Buffer[MAX_BUFFER+2];
+thread_local char Log::Buffer[MAX_BUFFER + 2];
 bool Log::sConsoleLogging = true;
 
 eastl::string GetTimeStamp()
@@ -66,7 +65,7 @@ void log_write(void * user_data, const char* message)
 	FileStream* fh = (FileStream*)user_data;
     ASSERT(fh);
     
-    fsWriteToStreamString(fh, message);
+    fsWriteToStream(fh, message, strlen(message));
     fsFlushStream(fh);
 }
 
@@ -76,6 +75,7 @@ void log_close(void * user_data)
     FileStream* fh = (FileStream*)user_data;
     ASSERT(fh);
     fsCloseStream(fh);
+	tf_free(fh);
 }
 
 // Flush callback
@@ -87,19 +87,20 @@ void log_flush(void * user_data)
     fsFlushStream(fh);
 }
 
-void Log::Init(LogLevel level /* = LogLevel::eALL */)
+void Log::Init(const char* appName, LogLevel level /* = LogLevel::eALL */)
 {
 	if (!pLogger)
 	{
-		pLogger = conf_new(Log, level);
+		pLogger = tf_new(Log, appName, level);
 		pLogger->mLogMutex.Init();
+		pLogger->AddInitialLogFile(appName);
 	}
 }
 
 void Log::Exit()
 {
 	pLogger->mLogMutex.Destroy();
-	conf_delete(pLogger);
+	tf_delete(pLogger);
 	pLogger = NULL;
 }
 
@@ -153,15 +154,15 @@ void Log::AddFile(const char * filename, FileMode file_mode, LogLevel log_level)
 	if (filename == NULL)
 		return;
 	
-    PathHandle logFileDirectory = fsGetLogFileDirectory();
-    PathHandle path = fsAppendPathComponent(logFileDirectory, filename);
-    FileStream* fh = fsOpenFile(path, file_mode);
-	if (fh)//If the File Exists
+	FileStream fh = {};
+	if (fsOpenStreamFromPath(RD_LOG, filename, file_mode, &fh))//If the File Exists
 	{
-	
+		FileStream* user = (FileStream*)tf_malloc(sizeof(FileStream));
+		*user = fh;
 		// AddCallback will try to acquire mutex
-        
-		AddCallback(fsGetPathAsNativeString(path), log_level, fh, log_write, log_close, log_flush);
+		char path[FS_MAX_PATH] = { 0 };
+		fsAppendPathComponent(fsGetResourceDirectory(RD_LOG), filename, path);
+		AddCallback(path, log_level, user, log_write, log_close, log_flush);
 
 		{
 			MutexLock lock{ pLogger->mLogMutex }; // scope lock as Write will try to acquire mutex
@@ -175,8 +176,8 @@ void Log::AddFile(const char * filename, FileMode file_mode, LogLevel log_level)
 			if (pLogger->mRecordFile)
 				header += "                   file:line  ";
 			header += "  v |\n";
-            fsWriteToStream(fh, header.c_str(), header.size());
-            fsFlushStream(fh);
+            fsWriteToStream(&fh, header.c_str(), header.size());
+            fsFlushStream(&fh);
 			//file->Write(header.c_str(), (unsigned)header.size());
 			//file->Flush();
 		}
@@ -227,15 +228,6 @@ void Log::Write(uint32_t level, const char * filename, int line_number, const ch
 		}
 	}
 
-	bool do_once = false;
-	{
-		MutexLock lock{ pLogger->mLogMutex }; // scope lock as stack frames from calling AddInitialLogFile will attempt to lock mutex
-		do_once = gOnce;
-		gOnce = false;
-	}
-	if (do_once)
-		AddInitialLogFile();
-
 	uint32_t preable_end = WritePreamble(Buffer, LOG_PREAMBLE_SIZE, filename, line_number);
 
 	// Prepare indentation
@@ -281,15 +273,6 @@ void Log::Write(uint32_t level, const char * filename, int line_number, const ch
 
 void Log::WriteRaw(uint32_t level, bool error, const char* message, ...)
 {
-	bool do_once = false;
-	{
-		MutexLock lock{ pLogger->mLogMutex }; // scope lock as stack frames from calling AddInitialLogFile will attempt to lock mutex
-		do_once = gOnce;
-		gOnce = false;
-	}
-	if (do_once)
-		AddInitialLogFile();
-	
 	va_list args;
 	va_start(args, message);
 	vsnprintf(Buffer, MAX_BUFFER, message, args);
@@ -314,7 +297,7 @@ void Log::WriteRaw(uint32_t level, bool error, const char* message, ...)
 	}
 }
 
-void Log::AddInitialLogFile()
+void Log::AddInitialLogFile(const char* appName)
 {
 
 	// Add new file with executable name
@@ -322,8 +305,8 @@ void Log::AddInitialLogFile()
     const char *extension = ".log";
     const size_t extensionLength = strlen(extension);
     
-    char exeFileName[256];
-    fsGetExecutableName(exeFileName, 256 - extensionLength);
+	char exeFileName[FS_MAX_PATH] = { 0 };
+    strcpy(exeFileName, appName);
     
 	// Minimum length check
 	if (exeFileName[0] == 0 || exeFileName[1] == 0)
@@ -386,7 +369,7 @@ bool Log::CallbackExists(const char * id)
 	return false;
 }
 
-Log::Log(LogLevel level)
+Log::Log(const char* appName, LogLevel level)
 	: mLogLevel(level)
 	, mIndentation(0)
 	, mQuietMode(false)

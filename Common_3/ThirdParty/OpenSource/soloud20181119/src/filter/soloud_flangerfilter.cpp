@@ -47,9 +47,9 @@ namespace SoLoud
 
 		if (mBufferLength < mParam[FlangerFilter::DELAY] * aSamplerate)
 		{
-			conf_free(mBuffer);
+			tf_free(mBuffer);
 			mBufferLength = (int)ceil(mParam[FlangerFilter::DELAY] * aSamplerate);
-			mBuffer = (float*)conf_calloc(mBufferLength * aChannels, sizeof(float));
+			mBuffer = (float*)tf_calloc(mBufferLength * aChannels, sizeof(float));
 			if (mBuffer == NULL)
 			{
 				mBufferLength = 0;
@@ -82,7 +82,7 @@ namespace SoLoud
 
 	FlangerFilterInstance::~FlangerFilterInstance()
 	{
-		conf_free(mBuffer);
+		tf_free(mBuffer);
 	}
 
 	FlangerFilter::FlangerFilter()
@@ -105,6 +105,6 @@ namespace SoLoud
 
 	FilterInstance *FlangerFilter::createInstance()
 	{
-		return conf_new(FlangerFilterInstance, this);
+		return tf_new(FlangerFilterInstance, this);
 	}
 }

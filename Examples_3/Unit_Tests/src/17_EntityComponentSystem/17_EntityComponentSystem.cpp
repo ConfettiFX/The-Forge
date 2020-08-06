@@ -423,28 +423,19 @@ class EntityComponentSystem: public IApp
 	public:
 	bool Init()
 	{
-        // FILE PATHS
-        PathHandle programDirectory = fsGetApplicationDirectory();
-        if (!fsPlatformUsesBundledResources())
-        {
-            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/17_EntityComponentSystem");
-            fsSetResourceDirRootPath(resourceDirRoot);
-            
-            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirEnum(RD_MESHES,          "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
-        }
-        
+		// FILE PATHS
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
 
 		SpriteComponentRepresentation::BUILD_VAR_REPRESENTATIONS();
 		MoveComponentRepresentation::BUILD_VAR_REPRESENTATIONS();
 		PositionComponentRepresentation::BUILD_VAR_REPRESENTATIONS();
 		WorldBoundsComponentRepresentation::BUILD_VAR_REPRESENTATIONS();
 
-		pEntityManager = conf_new(EntityManager);
+		pEntityManager = tf_new(EntityManager);
 
 		// window and renderer setup
 		RendererDesc settings = { 0 };
@@ -479,7 +470,7 @@ class EntityComponentSystem: public IApp
 		if (!gAppUI.Init(pRenderer))
 		  return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 
 		initProfiler();
 
@@ -487,8 +478,8 @@ class EntityComponentSystem: public IApp
 
 		// TODO: rename to sprite
 		ShaderLoadDesc spriteShader = {};
-		spriteShader.mStages[0] = { "basic.vert", NULL, 0, RD_SHADER_SOURCES };
-		spriteShader.mStages[1] = { "basic.frag", NULL, 0, RD_SHADER_SOURCES };
+		spriteShader.mStages[0] = { "basic.vert", NULL, 0 };
+		spriteShader.mStages[1] = { "basic.frag", NULL, 0 };
 
 		addShader(pRenderer, &spriteShader, &pSpriteShader);
 
@@ -512,7 +503,7 @@ class EntityComponentSystem: public IApp
 		setDesc = { pRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
 		addDescriptorSet(pRenderer, &setDesc, &pDescriptorSetUniforms);
 
-		gSpriteData = (SpriteData*)conf_malloc(MaxSpriteCount * sizeof(SpriteData));
+		gSpriteData = (SpriteData*)tf_malloc(MaxSpriteCount * sizeof(SpriteData));
 
 		// Instance buffer
 		BufferLoadDesc spriteVbDesc = {};
@@ -527,7 +518,7 @@ class EntityComponentSystem: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			spriteVbDesc.ppBuffer = &pSpriteVertexBuffers[i];
-			addResource(&spriteVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&spriteVbDesc, NULL);
 		}
 
 		// Index buffer
@@ -541,14 +532,13 @@ class EntityComponentSystem: public IApp
 		spriteIBDesc.mDesc.mSize = sizeof(indices);
 		spriteIBDesc.pData = indices;
 		spriteIBDesc.ppBuffer = &pSpriteIndexBuffer;
-		addResource(&spriteIBDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&spriteIBDesc, NULL);
 
 		// Sprites texture
-        PathHandle spritesPath = fsGetPathInResourceDirEnum(RD_TEXTURES, "sprites");
 		TextureLoadDesc textureDesc = {};
 		textureDesc.ppTexture = &pSpriteTexture;
-		textureDesc.pFilePath = spritesPath;
-		addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
+		textureDesc.pFileName = "sprites";
+		addResource(&textureDesc, NULL);
 
 		initThreadSystem(&pThreadSystem);
 
@@ -564,10 +554,10 @@ class EntityComponentSystem: public IApp
 
 
 		// Create entities
-		pAvoidanceSystem = conf_new(AvoidanceSystem);
+		pAvoidanceSystem = tf_new(AvoidanceSystem);
 		pAvoidanceSystem->init();
 		
-		pMoveSystem = conf_new(MoveSystem);
+		pMoveSystem = tf_new(MoveSystem);
 
 		EntityId worldBoundsEntityId = pEntityManager->createEntity();
 		worldBoundsEntity = pEntityManager->getEntityById(worldBoundsEntityId);
@@ -636,10 +626,10 @@ class EntityComponentSystem: public IApp
 		shutdownThreadSystem(pThreadSystem);
 		
 		pAvoidanceSystem->exit();
-		conf_delete(pAvoidanceSystem);
-		conf_delete(pMoveSystem);
+		tf_delete(pAvoidanceSystem);
+		tf_delete(pMoveSystem);
 		
-		conf_delete(pEntityManager);
+		tf_delete(pEntityManager);
 
 		waitQueueIdle(pGraphicsQueue);
 
@@ -678,7 +668,7 @@ class EntityComponentSystem: public IApp
 		removeQueue(pRenderer, pGraphicsQueue);
 		removeRenderer(pRenderer);
 
-		conf_free(gSpriteData);
+		tf_free(gSpriteData);
 		gSpriteData = NULL;
 
 		AvoidanceSystem::removeAllObjects();

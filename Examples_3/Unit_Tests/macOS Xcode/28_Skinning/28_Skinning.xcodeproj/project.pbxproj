@@ -7,37 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		5C5A23AE21F0AD44006B09C7 /* fontstash.frag.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5C5A23A621F0AD3B006B09C7 /* fontstash.frag.metal */; };
-		5C5A23AF21F0AD44006B09C7 /* fontstash2D.vert.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5C5A23A721F0AD3B006B09C7 /* fontstash2D.vert.metal */; };
-		5C5A23B021F0AD44006B09C7 /* fontstash3D.vert.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5C5A23A521F0AD3B006B09C7 /* fontstash3D.vert.metal */; };
-		5C5A23B121F0AD44006B09C7 /* imgui.frag.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5C5A239921F0AD33006B09C7 /* imgui.frag.metal */; };
-		5C5A23B221F0AD44006B09C7 /* imgui.vert.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5C5A239C21F0AD33006B09C7 /* imgui.vert.metal */; };
-		5C5A23B321F0AD44006B09C7 /* textured_mesh.frag.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5C5A239A21F0AD33006B09C7 /* textured_mesh.frag.metal */; };
-		5C5A23B421F0AD44006B09C7 /* textured_mesh.vert.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = 5C5A239B21F0AD33006B09C7 /* textured_mesh.vert.metal */; };
 		650CCCB12223D082003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCCAF2223D082003533D9 /* MetalPerformanceShaders.framework */; };
 		650CCCB32223D08B003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCCB22223D08B003533D9 /* MetalPerformanceShaders.framework */; };
-		654D958921CDC12900113964 /* stormtrooper in CopyFiles */ = {isa = PBXBuildFile; fileRef = 654D958721CDC11800113964 /* stormtrooper */; };
 		65AC216E21CC62A500F7E103 /* ozz_animation offline.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B28C6F7321B227DA00FBA1BF /* ozz_animation offline.a */; };
 		B214AD3320E2DD620025F76B /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B214AD3120E2DD620025F76B /* Metal.framework */; };
 		B214AD3420E2DD620025F76B /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B214AD3220E2DD620025F76B /* MetalKit.framework */; };
 		B22D906920E2EDCE0036B88E /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906220E2EDCE0036B88E /* Metal.framework */; };
 		B22D906A20E2EDCE0036B88E /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B22D906820E2EDCE0036B88E /* MetalKit.framework */; };
-		B247268821B26F8200AA053C /* skinning.frag.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = B28C6C9121AF806500FBA1BF /* skinning.frag.metal */; };
-		B247268921B26F8200AA053C /* skinning.vert.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = B28C6C9221AF806500FBA1BF /* skinning.vert.metal */; };
-		B247268A21B26F8200AA053C /* basic.frag.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = B28C6C8B21AF7FFC00FBA1BF /* basic.frag.metal */; };
-		B247268B21B26F8200AA053C /* basic.vert.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = B28C6C8A21AF7FFC00FBA1BF /* basic.vert.metal */; };
-		B247268C21B26F8200AA053C /* plane.frag.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = B28C6C8921AF7FFC00FBA1BF /* plane.frag.metal */; };
-		B247268D21B26F8200AA053C /* plane.vert.metal in CopyFiles */ = {isa = PBXBuildFile; fileRef = B28C6C8C21AF7FFC00FBA1BF /* plane.vert.metal */; };
 		B2541CFD21751B5B00F702BB /* libThe-Forge_iOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B2541CFC21751B4E00F702BB /* libThe-Forge_iOS.a */; };
 		B2541CFE21751B6200F702BB /* libThe-Forge.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B2541CFA21751B4E00F702BB /* libThe-Forge.a */; };
 		B27D879A20E2E88B00081DB0 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B27D879920E2E88B00081DB0 /* GameController.framework */; };
-		B28C6CE621B0799600FBA1BF /* Stormtrooper_D.ktx in Copy Files */ = {isa = PBXBuildFile; fileRef = B28C6CE321B0799000FBA1BF /* Stormtrooper_D.ktx */; };
 		B2B73FC721754A3B00324803 /* 28_Skinning.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B73FC621754A3B00324803 /* 28_Skinning.cpp */; };
 		B2B73FE421754CB400324803 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = B2B73FE221754CB400324803 /* AppDelegate.m */; };
 		B2B73FEA2175504F00324803 /* 28_Skinning.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B2B73FC621754A3B00324803 /* 28_Skinning.cpp */; };
 		B2B7400F2175533E00324803 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = B2B7400E2175533E00324803 /* AppDelegate.m */; };
-		B2B740162175553800324803 /* TitilliumText in Copy Files */ = {isa = PBXBuildFile; fileRef = B2B740152175553800324803 /* TitilliumText */; };
-		B2B7406C21755F2C00324803 /* circlepad.ktx in Copy Files */ = {isa = PBXBuildFile; fileRef = B2B7406A21755F1200324803 /* circlepad.ktx */; };
 		B2C44078211E2563008F57D5 /* ozz_animation.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B23FA458211E24F70059929A /* ozz_animation.a */; };
 		B2C44079211E2563008F57D5 /* ozz_base.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B23FA45C211E24F70059929A /* ozz_base.a */; };
 		B2D1CEB420EAECDB001BB8C4 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2D1CEB320EAECDB001BB8C4 /* UIKit.framework */; };
@@ -45,7 +28,6 @@
 		D0296BEC211EE433000C9281 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D0296BEA211EE433000C9281 /* LaunchScreen.storyboard */; };
 		D0796AEA211ED7A70028AFFD /* ozz_animation_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0796AE7211ED7950028AFFD /* ozz_animation_IOS.a */; };
 		D0796AEB211ED7A70028AFFD /* ozz_base_IOS.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D0796AE9211ED7950028AFFD /* ozz_base_IOS.a */; };
-		D0A0FAFF21B27F670059AEDB /* circlepad.ktx in Resources */ = {isa = PBXBuildFile; fileRef = B2B7406A21755F1200324803 /* circlepad.ktx */; };
 		D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D28782EF1F0A7F52004DC624 /* Assets.xcassets */; };
 		D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = D2E631DF1F3472DF005BFBA7 /* MainMenu.xib */; };
 /* End PBXBuildFile section */
@@ -179,75 +161,9 @@
 		};
 /* End PBXContainerItemProxy section */
 
-/* Begin PBXCopyFilesBuildPhase section */
-		B2B740102175546000324803 /* Copy Files */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = Fonts;
-			dstSubfolderSpec = 7;
-			files = (
-				B2B740162175553800324803 /* TitilliumText in Copy Files */,
-			);
-			name = "Copy Files";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		B2B740172175554200324803 /* Copy Files */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = Textures;
-			dstSubfolderSpec = 7;
-			files = (
-				B28C6CE621B0799600FBA1BF /* Stormtrooper_D.ktx in Copy Files */,
-				B2B7406C21755F2C00324803 /* circlepad.ktx in Copy Files */,
-			);
-			name = "Copy Files";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		B2B74019217555AB00324803 /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = Shaders/Metal;
-			dstSubfolderSpec = 7;
-			files = (
-				5C5A23AE21F0AD44006B09C7 /* fontstash.frag.metal in CopyFiles */,
-				5C5A23AF21F0AD44006B09C7 /* fontstash2D.vert.metal in CopyFiles */,
-				5C5A23B021F0AD44006B09C7 /* fontstash3D.vert.metal in CopyFiles */,
-				5C5A23B121F0AD44006B09C7 /* imgui.frag.metal in CopyFiles */,
-				5C5A23B221F0AD44006B09C7 /* imgui.vert.metal in CopyFiles */,
-				5C5A23B321F0AD44006B09C7 /* textured_mesh.frag.metal in CopyFiles */,
-				5C5A23B421F0AD44006B09C7 /* textured_mesh.vert.metal in CopyFiles */,
-				B247268821B26F8200AA053C /* skinning.frag.metal in CopyFiles */,
-				B247268921B26F8200AA053C /* skinning.vert.metal in CopyFiles */,
-				B247268A21B26F8200AA053C /* basic.frag.metal in CopyFiles */,
-				B247268B21B26F8200AA053C /* basic.vert.metal in CopyFiles */,
-				B247268C21B26F8200AA053C /* plane.frag.metal in CopyFiles */,
-				B247268D21B26F8200AA053C /* plane.vert.metal in CopyFiles */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		B2B7401E217556D100324803 /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = Animation;
-			dstSubfolderSpec = 7;
-			files = (
-				654D958921CDC12900113964 /* stormtrooper in CopyFiles */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
-		5C5A239921F0AD33006B09C7 /* imgui.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = imgui.frag.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/imgui.frag.metal; sourceTree = "<group>"; };
-		5C5A239A21F0AD33006B09C7 /* textured_mesh.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = textured_mesh.frag.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/textured_mesh.frag.metal; sourceTree = "<group>"; };
-		5C5A239B21F0AD33006B09C7 /* textured_mesh.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = textured_mesh.vert.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/textured_mesh.vert.metal; sourceTree = "<group>"; };
-		5C5A239C21F0AD33006B09C7 /* imgui.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = imgui.vert.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/imgui.vert.metal; sourceTree = "<group>"; };
-		5C5A23A521F0AD3B006B09C7 /* fontstash3D.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash3D.vert.metal; path = ../../../../Middleware_3/Text/Shaders/Metal/fontstash3D.vert.metal; sourceTree = "<group>"; };
-		5C5A23A621F0AD3B006B09C7 /* fontstash.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash.frag.metal; path = ../../../../Middleware_3/Text/Shaders/Metal/fontstash.frag.metal; sourceTree = "<group>"; };
-		5C5A23A721F0AD3B006B09C7 /* fontstash2D.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash2D.vert.metal; path = ../../../../Middleware_3/Text/Shaders/Metal/fontstash2D.vert.metal; sourceTree = "<group>"; };
 		650CCCAF2223D082003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		650CCCB22223D08B003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
-		654D958721CDC11800113964 /* stormtrooper */ = {isa = PBXFileReference; lastKnownFileType = folder; path = stormtrooper; sourceTree = "<group>"; };
 		B214AD3120E2DD620025F76B /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		B214AD3220E2DD620025F76B /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B22D906220E2EDCE0036B88E /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
@@ -262,15 +178,12 @@
 		B28C6C8C21AF7FFC00FBA1BF /* plane.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = plane.vert.metal; path = ../../src/28_Skinning/Shaders/Metal/plane.vert.metal; sourceTree = "<group>"; };
 		B28C6C9121AF806500FBA1BF /* skinning.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = skinning.frag.metal; path = ../../src/28_Skinning/Shaders/Metal/skinning.frag.metal; sourceTree = "<group>"; };
 		B28C6C9221AF806500FBA1BF /* skinning.vert.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = skinning.vert.metal; path = ../../src/28_Skinning/Shaders/Metal/skinning.vert.metal; sourceTree = "<group>"; };
-		B28C6CE321B0799000FBA1BF /* Stormtrooper_D.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; path = Stormtrooper_D.ktx; sourceTree = "<group>"; };
 		B2B73F1721751BF900324803 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
 		B2B73FC621754A3B00324803 /* 28_Skinning.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 28_Skinning.cpp; path = ../../src/28_Skinning/28_Skinning.cpp; sourceTree = "<group>"; };
 		B2B73FE221754CB400324803 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.m; sourceTree = "<group>"; };
 		B2B73FE321754CB400324803 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
 		B2B7400C2175532600324803 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
 		B2B7400E2175533E00324803 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
-		B2B740152175553800324803 /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; path = TitilliumText; sourceTree = "<group>"; };
-		B2B7406A21755F1200324803 /* circlepad.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; path = circlepad.ktx; sourceTree = "<group>"; };
 		B2D1CEB320EAECDB001BB8C4 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		C95132ED2010E68A002E584B /* 28_Skinning_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 28_Skinning_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C95132FE2010E68A002E584B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -335,20 +248,6 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
-		5C5A239721F0AD24006B09C7 /* CommonShaders */ = {
-			isa = PBXGroup;
-			children = (
-				5C5A23A621F0AD3B006B09C7 /* fontstash.frag.metal */,
-				5C5A23A721F0AD3B006B09C7 /* fontstash2D.vert.metal */,
-				5C5A23A521F0AD3B006B09C7 /* fontstash3D.vert.metal */,
-				5C5A239921F0AD33006B09C7 /* imgui.frag.metal */,
-				5C5A239C21F0AD33006B09C7 /* imgui.vert.metal */,
-				5C5A239A21F0AD33006B09C7 /* textured_mesh.frag.metal */,
-				5C5A239B21F0AD33006B09C7 /* textured_mesh.vert.metal */,
-			);
-			name = CommonShaders;
-			sourceTree = "<group>";
-		};
 		B231A1A123F2E2AD006D7450 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -377,34 +276,6 @@
 				B2541CFC21751B4E00F702BB /* libThe-Forge_iOS.a */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		B2B73F602175468A00324803 /* Fonts */ = {
-			isa = PBXGroup;
-			children = (
-				B2B740152175553800324803 /* TitilliumText */,
-			);
-			name = Fonts;
-			path = ../../UnitTestResources/Fonts;
-			sourceTree = "<group>";
-		};
-		B2B73F70217546B700324803 /* Animation */ = {
-			isa = PBXGroup;
-			children = (
-				654D958721CDC11800113964 /* stormtrooper */,
-			);
-			name = Animation;
-			path = ../../UnitTestResources/Animation;
-			sourceTree = "<group>";
-		};
-		B2B73FC821754A5900324803 /* Textures */ = {
-			isa = PBXGroup;
-			children = (
-				B28C6CE321B0799000FBA1BF /* Stormtrooper_D.ktx */,
-				B2B7406A21755F1200324803 /* circlepad.ktx */,
-			);
-			name = Textures;
-			path = ../../UnitTestResources/Textures;
 			sourceTree = "<group>";
 		};
 		B2B7405621755BC200324803 /* Shaders */ = {
@@ -436,13 +307,9 @@
 			isa = PBXGroup;
 			children = (
 				B231A1A023F2E2AD006D7450 /* AssetPipelineCmd.xcodeproj */,
-				5C5A239721F0AD24006B09C7 /* CommonShaders */,
 				B2B7405621755BC200324803 /* Shaders */,
 				B2541CF321751B4E00F702BB /* The-Forge.xcodeproj */,
 				B23FA44B211E24F70059929A /* ozz.xcodeproj */,
-				B2B73F602175468A00324803 /* Fonts */,
-				B2B73FC821754A5900324803 /* Textures */,
-				B2B73F70217546B700324803 /* Animation */,
 				B2B73FC621754A3B00324803 /* 28_Skinning.cpp */,
 				EA463C941EF81E8F005AC8C7 /* 28_Skinning */,
 				C95132EE2010E68A002E584B /* 28_Skinning_iOS */,
@@ -483,10 +350,7 @@
 				C95132E92010E68A002E584B /* Sources */,
 				C95132EA2010E68A002E584B /* Frameworks */,
 				C95132EB2010E68A002E584B /* Resources */,
-				B2B740102175546000324803 /* Copy Files */,
-				B2B740172175554200324803 /* Copy Files */,
-				B2B74019217555AB00324803 /* CopyFiles */,
-				B2B7401E217556D100324803 /* CopyFiles */,
+				5C61B5B824D365C100EF5D20 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -509,6 +373,7 @@
 				EA463C881EF81E8F005AC8C7 /* Frameworks */,
 				EA463C891EF81E8F005AC8C7 /* Resources */,
 				B231A1B123F2E639006D7450 /* ShellScript */,
+				5C13A4F324D1ACBB0023D339 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -648,7 +513,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				D0296BEC211EE433000C9281 /* LaunchScreen.storyboard in Resources */,
-				D0A0FAFF21B27F670059AEDB /* circlepad.ktx in Resources */,
 				C95132FF2010E68A002E584B /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -665,6 +529,40 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		5C13A4F324D1ACBB0023D339 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\nrsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\n# Textures\nrsync -u -r \"$ASSETS/Textures/Stormtrooper_D.dds\" \"$DST/Textures/\"\n# Meshes\nrsync -u -rv --include '*/' --include '*.gltf' --include '*.bin' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Meshes/\"\n# Animations\nrsync -u -rv --include '*/' --include '*.ozz' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Animation/\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
+		};
+		5C61B5B824D365C100EF5D20 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\nrsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\n# Textures\nrsync -u -r \"$ASSETS/Textures/Stormtrooper_D.ktx\" \"$DST/Textures/\"\nrsync -u -r \"$ASSETS/Textures/circlepad.ktx\" \"$DST/Textures/\"\n# Meshes\nrsync -u -rv --include '*/' --include '*.gltf' --include '*.bin' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Meshes/\"\n# Animations\nrsync -u -rv --include '*/' --include '*.ozz' --exclude '*' --prune-empty-dirs \"$ASSETS/Animation/\" \"$DST/Animation/\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
+		};
 		654D957321CDBEBC00113964 /* ShellScript */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -801,7 +699,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -841,7 +739,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -990,7 +888,7 @@
 				CLANG_WARN_COMMA = NO;
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
@@ -1027,7 +925,7 @@
 				CLANG_WARN_COMMA = NO;
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,

@@ -92,14 +92,14 @@ namespace SoLoud
 		mFile = 0;
 		if (aParent->mMemFile)
 		{
-			MemoryFile *mf = conf_new(MemoryFile);
+			MemoryFile *mf = tf_new(MemoryFile);
 			mFile = mf;
 			mf->openMem(aParent->mMemFile->getMemPtr(), aParent->mMemFile->length(), false, false);
 		}
 		else
 		if (aParent->mFilename)
 		{
-			DiskFile *df = conf_new(DiskFile);
+			DiskFile *df = tf_new(DiskFile);
 			mFile = df;
 			df->open(aParent->mFilename);
 		}
@@ -122,7 +122,7 @@ namespace SoLoud
 				if (!mCodec.mWav)
 				{
 					if (mFile != mParent->mStreamFile)
-						conf_delete(mFile);
+						tf_delete(mFile);
 					mFile = 0;
 				}
 			}
@@ -136,7 +136,7 @@ namespace SoLoud
 				if (!mCodec.mOgg)
 				{
 					if (mFile != mParent->mStreamFile)
-						conf_delete(mFile);
+						tf_delete(mFile);
 					mFile = 0;
 				}
 				mOggFrameSize = 0;
@@ -150,27 +150,27 @@ namespace SoLoud
 				if (!mCodec.mFlac)
 				{
 					if (mFile != mParent->mStreamFile)
-						conf_delete(mFile);
+						tf_delete(mFile);
 					mFile = 0;
 				}
 			}
 			else
 			if (mParent->mFiletype == WAVSTREAM_MP3)
 			{
-				mCodec.mMp3 = conf_new(drmp3);
+				mCodec.mMp3 = tf_new(drmp3);
 				if (!drmp3_init(mCodec.mMp3, drmp3_read_func, drmp3_seek_func, (void*)mFile, NULL))
 				{
-					conf_delete(mCodec.mMp3);
+					tf_delete(mCodec.mMp3);
 					mCodec.mMp3 = 0;
 					if (mFile != mParent->mStreamFile)
-						conf_delete(mFile);
+						tf_delete(mFile);
 					mFile = 0;
 				}
 			}
 			else
 			{
 				if (mFile != mParent->mStreamFile)
-					conf_delete(mFile);
+					tf_delete(mFile);
 				mFile = NULL;
 				return;
 			}
@@ -197,7 +197,7 @@ namespace SoLoud
 			if (mCodec.mMp3)
 			{
 				drmp3_uninit(mCodec.mMp3);
-				conf_delete(mCodec.mMp3);
+				tf_delete(mCodec.mMp3);
 			}
 			break;
 		case WAVSTREAM_WAV:
@@ -208,7 +208,7 @@ namespace SoLoud
 		}
 		if (mFile != mParent->mStreamFile)
 		{
-			conf_delete(mFile);
+			tf_delete(mFile);
 		}
 	}
 
@@ -392,8 +392,8 @@ namespace SoLoud
 	WavStream::~WavStream()
 	{
 		stop();
-		conf_free(mFilename);
-		conf_delete(mMemFile);
+		tf_free(mFilename);
+		tf_delete(mMemFile);
 	}
 	
 #define MAKEDWORD(a,b,c,d) (((d) << 24) | ((c) << 16) | ((b) << 8) | (a))
@@ -492,8 +492,8 @@ namespace SoLoud
 
 	result WavStream::load(const char *aFilename)
 	{
-		conf_free(mFilename);
-		conf_delete(mMemFile);
+		tf_free(mFilename);
+		tf_delete(mMemFile);
 		mMemFile = 0;
 		mFilename = 0;
 		mSampleCount = 0;
@@ -503,7 +503,7 @@ namespace SoLoud
 			return res;
 		
 		int len = (int)strlen(aFilename);
-		mFilename = (char*)conf_malloc(sizeof(char) * len + 1);		
+		mFilename = (char*)tf_malloc(sizeof(char) * len + 1);		
 		memcpy(mFilename, aFilename, len);
 		mFilename[len] = 0;
 		
@@ -511,7 +511,7 @@ namespace SoLoud
 
 		if (res != SO_NO_ERROR)
 		{
-			conf_free(mFilename);
+			tf_free(mFilename);
 			mFilename = 0;
 			return res;
 		}
@@ -521,8 +521,8 @@ namespace SoLoud
 
 	result WavStream::loadMem(unsigned char *aData, unsigned int aDataLen, bool aCopy, bool aTakeOwnership)
 	{
-		conf_free(mFilename);
-		conf_delete(mMemFile);
+		tf_free(mFilename);
+		tf_delete(mMemFile);
 		mStreamFile = 0;
 		mMemFile = 0;
 		mFilename = 0;
@@ -531,11 +531,11 @@ namespace SoLoud
 		if (aData == NULL || aDataLen == 0)
 			return INVALID_PARAMETER;
 
-		MemoryFile *mf = conf_new(MemoryFile);
+		MemoryFile *mf = tf_new(MemoryFile);
 		int res = mf->openMem(aData, aDataLen, aCopy, aTakeOwnership);
 		if (res != SO_NO_ERROR)
 		{
-			conf_delete(mf);
+			tf_delete(mf);
 			return res;
 		}
 
@@ -543,7 +543,7 @@ namespace SoLoud
 
 		if (res != SO_NO_ERROR)
 		{
-			conf_delete(mf);
+			tf_delete(mf);
 			return res;
 		}
 
@@ -565,8 +565,8 @@ namespace SoLoud
 
 	result WavStream::loadFile(File *aFile)
 	{
-		conf_free(mFilename);
-		conf_delete(mMemFile);
+		tf_free(mFilename);
+		tf_delete(mMemFile);
 		mStreamFile = 0;
 		mMemFile = 0;
 		mFilename = 0;
@@ -586,18 +586,18 @@ namespace SoLoud
 
 	result WavStream::loadFileToMem(File *aFile)
 	{
-		conf_free(mFilename);
-		conf_delete(mMemFile);
+		tf_free(mFilename);
+		tf_delete(mMemFile);
 		mStreamFile = 0;
 		mMemFile = 0;
 		mFilename = 0;
 		mSampleCount = 0;
 
-		MemoryFile *mf = conf_new(MemoryFile);
+		MemoryFile *mf = tf_new(MemoryFile);
 		int res = mf->openFileToMem(aFile);
 		if (res != SO_NO_ERROR)
 		{
-			conf_delete(mf);
+			tf_delete(mf);
 			return res;
 		}
 
@@ -605,7 +605,7 @@ namespace SoLoud
 
 		if (res != SO_NO_ERROR)
 		{
-			conf_delete(mf);
+			tf_delete(mf);
 			return res;
 		}
 
@@ -647,7 +647,7 @@ namespace SoLoud
 
 	AudioSourceInstance *WavStream::createInstance()
 	{
-		return conf_new(WavStreamInstance, this);
+		return tf_new(WavStreamInstance, this);
 	}
 
 	double WavStream::getLength()

@@ -214,7 +214,6 @@ vec3 ComputeDiffuseSpecularFactors(vec3 eyeDir, vec3 lightDir, vec3 tangentDir)
 	float secundarySpecular = max(0.0f, secundaryCosTRL * cosTE + secundarySinTRL * sinTE);
 
 	vec3 diffuseSpecular = vec3(Kd * diffuse, Ks1 * pow(primarySpecular, Ex1), Ks2 * pow(secundarySpecular, Ex2));
-	diffuseSpecular *= 0.07f;	// Reduce light intensity to account for extremely bright lights used in PBR
 	return diffuseSpecular;
 }
 
@@ -447,10 +446,6 @@ void main()
 	color.xyz /= color.w;
 	color.xyz *= alpha;
 	color.w = invAlpha;
-
-	color.rgb = color.rgb / (color.rgb + vec3(1.0f, 1.0f, 1.0f));
-	float gammaCorr = 1.0f / 2.2f;
-	color.rgb = pow(color.rgb, vec3(gammaCorr));
 
 	FragColor = color;
 }

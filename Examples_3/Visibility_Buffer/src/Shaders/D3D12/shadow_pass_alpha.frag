@@ -25,10 +25,6 @@
 #include "packing.h"
 #include "shader_defs.h"
 
-#ifndef CONF_EARLY_DEPTH_STENCIL
-#define CONF_EARLY_DEPTH_STENCIL
-#endif
-
 struct PsInAlphaTested
 {
 	float4 position : SV_Position;
@@ -43,7 +39,6 @@ SamplerState textureFilter : register(s0);
 
 #define __XBOX_FORCE_PS_ZORDER_EARLY_Z_THEN_RE_Z
 
-CONF_EARLY_DEPTH_STENCIL
 void main(PsInAlphaTested In)
 {
     uint matBaseSlot = BaseMaterialBuffer(true, 0); //1 is camera view, 0 is shadow map view

@@ -22,316 +22,182 @@
  * under the License.
 */
 
-#ifndef IFileSystem_h
-#define IFileSystem_h
+#pragma once
 
 #include "../Interfaces/IOperatingSystem.h"
 
+#define FS_MAX_PATH 256
+
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-typedef struct FileSystem FileSystem;
-typedef struct Path Path;
-typedef struct FileStream FileStream;
-typedef void (*FileDialogCallbackFn)(const Path* path, void* userData);
-
-// A note on memory management for functions defined in this file:
-//
-// Any function that returns a pointer that does not have 'Get' in its
-// name must have its result freed using the appropriate function
-// (e.g. fsFreePath, fsFreeFileWatcher, fsFreeFileSystem, fsCloseStream).
-//
-// For functions whose names contain 'Get', the return value is guaranteed
-// to be valid only while its parent object (usually the first argument to the
-// function) lives.
-
-// MARK: - Initialization
-
-/// Initializes the FileSystem API
-bool fsInitAPI(void);
-
-/// Frees resources associated with the FileSystem API
-void fsExitAPI(void);
-
-// MARK: - Path Operations
-
-/// Creates a new Path from `absolutePathString`, where `absolutePathString` is a valid path from the root of
-/// `fileSystem`.
-///
-/// - Returns: The newly created path, or NULL if absolutePathString is not a valid path.
-Path* fsCreatePath(const FileSystem* fileSystem, const char* absolutePathString);
-
-/// Returns a copy of  `path` for which the caller has ownership.
-Path* fsCopyPath(const Path* path);
-
-/// Frees `path`'s memory, invalidating it for any future calls.
-void fsFreePath(Path* path);
-
-/// Returns a reference to the FileSystem that `path` references.
-FileSystem* fsGetPathFileSystem(const Path* path);
-
-/// Appends `pathComponent` to `basePath`, returning a new Path for which the caller has ownership.
-/// `basePath` is assumed to be a directory.
-Path* fsAppendPathComponent(const Path* basePath, const char* pathComponent);
-
-/// Appends `newExtension` to `basePath`, returning a new Path for which the caller has ownership.
-/// If `basePath` already has an extension, `newExtension` will be appended to the end.
-Path* fsAppendPathExtension(const Path* basePath, const char* newExtension);
-
-/// Appends `newExtension` to `basePath`, returning a new Path for which the caller has ownership.
-/// If `basePath` already has an extension, its previous extension will be replaced by `newExtension`.
-Path* fsReplacePathExtension(const Path* path, const char* newExtension);
-
-typedef struct PathComponent {
-    const char* buffer;
-    size_t length;
-} PathComponent;
-
-/// Splits `path`` path into its components and returns those components by reference.
-/// The `buffer` referenced in the out values is guaranteed to live for as long as the Path object lives.
-/// Parameters:
-/// - directoryName The PathComponent to fill with `path`'s parent directory name, if it exists. May be NULL.
-/// - fileName The PathComponent to fill with `path`'s file name. May be NULL.
-/// - extension The PathComponent to fill with `path`'s path extension, if it exists. May be NULL. The PathComponent's buffer is guaranteed to either be NULL or a NULL-terminated string.
-void fsGetPathComponents(const Path* path, PathComponent* directoryName, PathComponent* fileName, PathComponent* extension);
-
-/// Copies `path`'s parent path, returning a new Path for which the caller has ownership. May return NULL if `path` has no parent.
-Path* fsGetParentPath(const Path* path);
-
-/// Returns `path`'s directory name as a PathComponent. The return value is guaranteed to live for as long as `path` lives.
-PathComponent fsGetPathDirectoryName(const Path* path);
-
-/// Returns `path`'s file name as a PathComponent. The return value is guaranteed to live for as long as `path` lives.
-PathComponent fsGetPathFileName(const Path* path);
-
-/// Returns `path`'s extension, excluding the '.'. The return value is guaranteed to live for as long as `path` lives.
-/// The returned PathComponent's buffer is guaranteed to either be NULL or a NULL-terminated string.
-PathComponent fsGetPathExtension(const Path* path);
-
-/// Returns the native path string representing this path.
-/// The path string is guaranteed to live for as long as the Path object lives.
-const char* fsGetPathAsNativeString(const Path* path);
-
-/// Returns true if `pathA` and `pathB` point to the same file within the same FileSystem.
-bool fsPathsEqual(const Path* pathA, const Path* pathB);
-
-// MARK: - FileSystem-Independent Queries
-
-/// Copies the path for the directory containing either the executable (on most platforms) or the app bundle (on macOS),
-/// returning a new Path for which the caller has ownership.
-Path* fsGetApplicationDirectory(void);
-
-/// Copies the path to the currently running executable, returning a new Path for which the caller has ownership.
-Path* fsGetApplicationPath(void);
-
-/// Copies the executable name (excluding its extension) to `buffer`, writing at most `maxLength` UTF-8 codepoints.
-/// Returns the length of the full executable name; if this is larger than `maxLength` only part of the executable name was written.
-/// buffer will be null-terminated if there is sufficient space.
-size_t fsGetExecutableName(char* buffer, size_t maxLength);
-
-/// Copies the path to the preferences directory for `organisation` and `application`, returning a new Path for which the caller has ownership.
-/// The path may not exist in its underlying file system; call `fsCreateDirectory` to create it.
-Path* fsGetPreferencesDirectoryPath(const char* organisation, const char* application);
-
-/// Copies the path to the user's documents directory, returning a new Path for which the caller has ownership.
-Path* fsGetUserSpecificPath(void);
-
-/// Copies the path to the user's local app data directory, returning a new Path for which the caller has ownership.
-Path* fsGetAppTempDirectory(void);
-
-/// Displays an open file dialog for files in `directory`, calling `callback` for the selected file. The selection is filtered to only include files with extensions `fileExtensions` if `fileExtensionCount` is non-zero.
-void fsShowOpenFileDialog(const char* title, const Path* directory, FileDialogCallbackFn callback, void* userData, const char* fileDesc, const char** fileExtensions, size_t fileExtensionCount);
-
-/// Displays a save file dialog for files in `directory`, calling `callback` for the selected file. The selection is filtered to only include files with extensions `fileExtensions` if `fileExtensionCount` is non-zero.
-void fsShowSaveFileDialog(const char* title, const Path* directory, FileDialogCallbackFn callback, void* userData, const char* fileDesc, const char** fileExtensions, size_t fileExtensionCount);
-
-// MARK: - File and Directory Queries
-
-/// Gets the creation time of the file at `filePath`. Undefined if no file exists at `filePath`.
-time_t fsGetCreationTime(const Path* filePath);
-
-/// Gets the time of last access for the file at `filePath`. Undefined if no file exists at `filePath`.
-time_t fsGetLastAccessedTime(const Path* filePath);
-
-/// Gets the time of last modification for the file at `filePath`. Undefined if no file exists at `filePath`.
-time_t fsGetLastModifiedTime(const Path* filePath);
-
-/// Copies the file at `sourcePath` to `destinationPath`. If a file already exists at `destinationPath`, the file is only copied if
-/// `overwritesIfExists` is true. Returns true if the file was successfully copied and false otherwise.
-bool fsCopyFile(const Path* sourcePath, const Path* destinationPath, bool overwriteIfExists);
-
-/// Deletes the file at `path`. Returns true if the file was successfully deleted.
-bool fsDeleteFile(const Path* path);
-
-/// Returns true if a file (including directories) exists at `path`.
-bool fsFileExists(const Path* path);
-
-/// Returns true if a file exists at `path` and that file is a directory.
-bool fsDirectoryExists(const Path* path);
-
-// MARK: - Resource Directories
-
-typedef enum ResourceDirEnum
+typedef enum ResourceMount
 {
-    /// The main application's shader binaries folder
-    RD_SHADER_BINARIES = 0,
-    /// The main application's shader source directory
-    RD_SHADER_SOURCES,
-    /// The main application's texture source directory (TODO processed texture folder)
-    RD_TEXTURES,
-    RD_MESHES,
-    RD_BUILTIN_FONTS,
-    RD_GPU_CONFIG,
-    RD_ANIMATIONS,
-    RD_AUDIO,
-    RD_OTHER_FILES,
+	/// Installed game directory / bundle resource directory
+	RM_CONTENT = 0,
+	/// For storing debug data such as log files. To be used only during development
+	RM_DEBUG,
+	/// Save game data mount 0
+	RM_SAVE_0,
+	RM_COUNT,
+} ResourceMount;
 
-    // Libraries can have their own directories.
-    // Up to 100 libraries are supported.
-    ____rd_lib_counter_begin = RD_OTHER_FILES,
+typedef enum ResourceDirectory
+{
+	/// The main application's shader binaries directory
+	RD_SHADER_BINARIES = 0,
+	/// The main application's shader source directory
+	RD_SHADER_SOURCES,
 
-    // Add libraries here
-    RD_MIDDLEWARE_0,
-    RD_MIDDLEWARE_1,
-    RD_MIDDLEWARE_2,
-    RD_MIDDLEWARE_3,
+	RD_PIPELINE_CACHE,
+	/// The main application's texture source directory (TODO processed texture folder)
+	RD_TEXTURES,
+	RD_MESHES,
+	RD_FONTS,
+	RD_ANIMATIONS,
+	RD_AUDIO,
+	RD_GPU_CONFIG,
+	RD_LOG,
+	RD_SCRIPTS,
+	RD_OTHER_FILES,
 
-    ____rd_lib_counter_end = ____rd_lib_counter_begin + 99 * 3,
-    RD_ROOT,
-    RD_COUNT
-} ResourceDirEnum;
+	// Libraries can have their own directories.
+	// Up to 100 libraries are supported.
+	____rd_lib_counter_begin = RD_OTHER_FILES + 1,
 
-/// Gets the default relative path for `resourceDir``. For example, given `RD_SHADER_BINARIES`, the return value
-/// might be `Shaders/D3D12/Binary` for a DirectX 12 application.
-const char* fsGetDefaultRelativePathForResourceDirEnum(ResourceDirEnum resourceDir);
+	// Add libraries here
+	RD_MIDDLEWARE_0 = ____rd_lib_counter_begin,
+	RD_MIDDLEWARE_1,
+	RD_MIDDLEWARE_2,
+	RD_MIDDLEWARE_3,
+	RD_MIDDLEWARE_4,
+	RD_MIDDLEWARE_5,
+	RD_MIDDLEWARE_6,
+	RD_MIDDLEWARE_7,
+	RD_MIDDLEWARE_8,
+	RD_MIDDLEWARE_9,
+	RD_MIDDLEWARE_10,
+	RD_MIDDLEWARE_11,
+	RD_MIDDLEWARE_12,
+	RD_MIDDLEWARE_13,
+	RD_MIDDLEWARE_14,
+	RD_MIDDLEWARE_15,
 
-/// Returns true if resources are bundled together with the application on the target platform. 
-bool fsPlatformUsesBundledResources(void);
-
-/// Copies the path to `resourceDir` within `fileSystem`, returning a new Path for which the caller has ownership.
-Path* fsGetResourceDirEnumPath(ResourceDirEnum resourceDir);
-
-/// Forms a path by appending `relativePath` to the path for `resourceDir` in `fileSystem`, returning a new Path for which the caller has ownership.
-Path* fsGetPathInResourceDirEnum(ResourceDirEnum resourceDir, const char* relativePath);
-
-/// Returns true if a file exists at `relativePath` within `resourceDir` on `fileSystem`.
-bool fsFileExistsInResourceDirEnum(ResourceDirEnum resourceDir, const char* relativePath);
-
-/// Sets the root resource directory path (which all other resource directory paths are by default relative to) to `path`.
-/// Equivalent to calling fsSetPathForResourceDirEnum with RD_ROOT.
-///fsGetResourceDirRootPath
-/// NOTE: This call is not thread-safe. It is the application's responsibility to ensure that
-/// no modifications to the file system are occurring at the time of this call.
-void fsSetResourceDirRootPath(const Path* path);
-
-/// Sets the relative path for `resourceDir` on `fileSystem` to `relativePath`, where the base path is the root resource directory path.
-/// If `fsSetResourceDirRootPath` is called after this function, this function must be called again to ensure `resourceDir`'s path
-/// is relative to the new root path.
-///
-/// NOTE: This call is not thread-safe. It is the application's responsibility to ensure that
-/// no modifications to the file system are occurring at the time of this call.
-void fsSetRelativePathForResourceDirEnum(ResourceDirEnum resourceDir, const char* relativePath);
-
-/// Sets the preferred path for output log files.
-void fsSetLogFileDirectory(const Path* path);
-
-/// Copies the current path for output log files, returning a new Path for which the caller has ownership.
-Path* fsGetLogFileDirectory(void);
-
-/// Copies the preferred path for output log files, returning a new Path for which the caller has ownership.
-Path* fsGetPreferredLogDirectory();
-
-// MARK: - FileStream
+	____rd_lib_counter_end = ____rd_lib_counter_begin + 99 * 2,
+	RD_COUNT
+} ResourceDirectory;
 
 typedef enum SeekBaseOffset
 {
-    SBO_START_OF_FILE = 0,
-    SBO_CURRENT_POSITION,
-    SBO_END_OF_FILE,
+	SBO_START_OF_FILE = 0,
+	SBO_CURRENT_POSITION,
+	SBO_END_OF_FILE,
 } SeekBaseOffset;
 
 typedef enum FileMode
 {
-    FM_READ = 1 << 0,
-    FM_WRITE = 1 << 1,
-    FM_APPEND = 1 << 2,
-    FM_BINARY = 1 << 3,
-    FM_ALLOW_READ = 1 << 4, // Read Access to Other Processes, Usefull for Log System
-    FM_READ_WRITE = FM_READ | FM_WRITE,
-    FM_READ_APPEND = FM_READ | FM_APPEND,
-    FM_WRITE_BINARY = FM_WRITE | FM_BINARY,
-    FM_READ_BINARY = FM_READ | FM_BINARY,
-    FM_APPEND_BINARY = FM_APPEND | FM_BINARY,
-    FM_READ_WRITE_BINARY = FM_READ | FM_WRITE | FM_BINARY,
-    FM_READ_APPEND_BINARY = FM_READ | FM_APPEND | FM_BINARY,
-    FM_WRITE_ALLOW_READ = FM_WRITE | FM_ALLOW_READ,
-    FM_APPEND_ALLOW_READ = FM_READ | FM_ALLOW_READ,
-    FM_READ_WRITE_ALLOW_READ = FM_READ | FM_WRITE | FM_ALLOW_READ,
-    FM_READ_APPEND_ALLOW_READ = FM_READ | FM_APPEND | FM_ALLOW_READ,
-    FM_WRITE_BINARY_ALLOW_READ = FM_WRITE | FM_BINARY | FM_ALLOW_READ,
-    FM_APPEND_BINARY_ALLOW_READ = FM_APPEND | FM_BINARY | FM_ALLOW_READ,
-    FM_READ_WRITE_BINARY_ALLOW_READ = FM_READ | FM_WRITE | FM_BINARY | FM_ALLOW_READ,
-    FM_READ_APPEND_BINARY_ALLOW_READ = FM_READ | FM_APPEND | FM_BINARY | FM_ALLOW_READ
+	FM_READ = 1 << 0,
+	FM_WRITE = 1 << 1,
+	FM_APPEND = 1 << 2,
+	FM_BINARY = 1 << 3,
+	FM_ALLOW_READ = 1 << 4, // Read Access to Other Processes, Usefull for Log System
+	FM_READ_WRITE = FM_READ | FM_WRITE,
+	FM_READ_APPEND = FM_READ | FM_APPEND,
+	FM_WRITE_BINARY = FM_WRITE | FM_BINARY,
+	FM_READ_BINARY = FM_READ | FM_BINARY,
+	FM_APPEND_BINARY = FM_APPEND | FM_BINARY,
+	FM_READ_WRITE_BINARY = FM_READ | FM_WRITE | FM_BINARY,
+	FM_READ_APPEND_BINARY = FM_READ | FM_APPEND | FM_BINARY,
+	FM_WRITE_ALLOW_READ = FM_WRITE | FM_ALLOW_READ,
+	FM_APPEND_ALLOW_READ = FM_READ | FM_ALLOW_READ,
+	FM_READ_WRITE_ALLOW_READ = FM_READ | FM_WRITE | FM_ALLOW_READ,
+	FM_READ_APPEND_ALLOW_READ = FM_READ | FM_APPEND | FM_ALLOW_READ,
+	FM_WRITE_BINARY_ALLOW_READ = FM_WRITE | FM_BINARY | FM_ALLOW_READ,
+	FM_APPEND_BINARY_ALLOW_READ = FM_APPEND | FM_BINARY | FM_ALLOW_READ,
+	FM_READ_WRITE_BINARY_ALLOW_READ = FM_READ | FM_WRITE | FM_BINARY | FM_ALLOW_READ,
+	FM_READ_APPEND_BINARY_ALLOW_READ = FM_READ | FM_APPEND | FM_BINARY | FM_ALLOW_READ
 } FileMode;
 
-/// Converts `mode` to a string which is compatible with the C standard library conventions for `fopen`
-/// parameter strings.
-const char* fsFileModeToString(FileMode mode);
+typedef struct IFileSystem IFileSystem;
 
+typedef struct MemoryStream
+{
+	uint8_t* pBuffer;
+	size_t   mCursor;
+	bool     mOwner;
+} MemoryStream;
+
+typedef struct FileStream
+{
+	IFileSystem*      pIO;
+	union
+	{
+		FILE*         pFile;
+#if defined(__ANDROID__)
+		AAsset*       pAsset;
+#elif defined(NX64)
+		FileNX        mStruct;
+#endif
+		MemoryStream  mMemory;
+		void*         pUser;
+	};
+	ssize_t           mSize;
+	FileMode          mMode;
+} FileStream;
+
+typedef struct FileSystemInitDesc
+{
+	const char* pAppName;
+	void*       pPlatformData;
+} FileSystemInitDesc;
+
+typedef struct IFileSystem
+{
+	bool        (*Open)(IFileSystem* pIO, const ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut);
+	bool        (*Close)(FileStream* pFile);
+	size_t      (*Read)(FileStream* pFile, void* outputBuffer, size_t bufferSizeInBytes);
+	size_t      (*Write)(FileStream* pFile, const void* sourceBuffer, size_t byteCount);
+	bool        (*Seek)(FileStream* pFile, SeekBaseOffset baseOffset, ssize_t seekOffset);
+	ssize_t     (*GetSeekPosition)(const FileStream* pFile);
+	ssize_t     (*GetFileSize)(const FileStream* pFile);
+	bool        (*Flush)(FileStream* pFile);
+	bool        (*IsAtEnd)(const FileStream* pFile);
+	const char* (*GetResourceMount)(ResourceMount mount);
+
+	void*       pUser;
+} IFileSystem;
+
+/// Default file system using C File IO or Bundled File IO (Android) based on the ResourceDirectory
+extern IFileSystem* pSystemFileIO;
+/************************************************************************/
+// MARK: - Initialization
+/************************************************************************/
+/// Initializes the FileSystem API
+bool initFileSystem(FileSystemInitDesc* pDesc);
+
+/// Frees resources associated with the FileSystem API
+void exitFileSystem();
+/************************************************************************/
+// MARK: - File IO
+/************************************************************************/
 /// Opens the file at `filePath` using the mode `mode`, returning a new FileStream that can be used
 /// to read from or modify the file. May return NULL if the file could not be opened.
-FileStream* fsOpenFile(const Path* filePath, FileMode mode);
+bool fsOpenStreamFromPath(const ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut);
 
-/// Opens the file at `relativePath` within `resourceDir` using the mode `mode`, returning
-/// a new FileStream that can be used to read from or modify the file. May return NULL if the file could not be opened.
-FileStream* fsOpenFileInResourceDirEnum(ResourceDirEnum resourceDir, const char *relativePath, FileMode mode);
+/// Opens a memory buffer as a FileStream, returning a stream that must be closed with `fsCloseStream`.
+bool fsOpenStreamFromMemory(const void* buffer, size_t bufferSize, FileMode mode, bool owner, FileStream* pOut);
 
-/// Opens a FILE* as a FileStream. The caller 
-FileStream* fsCreateStreamFromFILE(FILE* file);
+/// Closes and invalidates the file stream.
+bool fsCloseStream(FileStream* stream);
 
-/// Opens a read-only buffer as a FileStream, returning a stream that must be closed with `fsCloseStream`.
-FileStream* fsOpenReadOnlyMemory(const void *buffer, size_t bufferLengthInBytes, bool owner);
-
-/// Opens a read-write buffer as a FileStream, returning a stream that must be closed with `fsCloseStream`.
-FileStream* fsOpenReadWriteMemory(void *buffer, size_t bufferLengthInBytes, bool owner);
-
-/// Returns the underlying byte buffer for this stream if present, or NULL if the stream is not backed by a byte buffer.
-/// The returned buffer is owned by the stream.
-/// It is an error to write to the returned buffer if the stream is read-only.
-void* fsGetStreamBufferIfPresent(FileStream* stream);
-
-/// Reads at most `bufferSizeInBytes` bytes from the file and copies them into outputBuffer.
 /// Returns the number of bytes read.
 size_t fsReadFromStream(FileStream* stream, void* outputBuffer, size_t bufferSizeInBytes);
-
-size_t __fsScanFromStream(FileStream* stream, int* bytesRead, const char* format, ...);
-
-/// Reads formatted data from `stream`, returning the items of the argument list successfully filled.
-/// The second argument must be a pointer to an int that will contain the number of bytes read.
-/// See `fscanf` in the C standard library for reference.
-/// NOTE: this is defined as a macro so we can append %n to the format string, allowing us
-/// to get the number of bytes read back from the underlying C function.
-#define fsScanFromStream(S, bytesRead, FMT, ...) ( \
-    (__fsScanFromStream(S, bytesRead, FMT "%n", __VA_ARGS__, bytesRead)))
 
 /// Reads at most `bufferSizeInBytes` bytes from sourceBuffer and writes them into the file.
 /// Returns the number of bytes written.
 size_t fsWriteToStream(FileStream* stream, const void* sourceBuffer, size_t byteCount);
-
-/// Writes the C string pointed by `format` to the stream. If` format` includes format specifiers
-/// (subsequences beginning with %), the additional arguments following format are formatted and
-/// inserted in the resulting string replacing their respective specifiers.
-/// Returns the total number of characters written.
-/// See `fprintf` in the C standard library for reference.
-size_t fsPrintToStream(FileStream* stream, const char* format, ...);
-
-/// Writes the C string pointed by `format` to the stream. If` format` includes format specifiers
-/// (subsequences beginning with %), the additional arguments following format are formatted and
-/// inserted in the resulting string replacing their respective specifiers.
-/// Returns the total number of characters written.
-/// See `vfprintf` in the C standard library for reference.
-size_t fsPrintToStreamV(FileStream* stream, const char* format, va_list args);
 
 /// Seeks to the specified position in the file, using `baseOffset` as the reference offset.
 bool fsSeekStream(FileStream* stream, SeekBaseOffset baseOffset, ssize_t seekOffset);
@@ -343,219 +209,121 @@ ssize_t fsGetStreamSeekPosition(const FileStream* stream);
 ssize_t fsGetStreamFileSize(const FileStream* stream);
 
 /// Flushes all writes to the file stream to the underlying subsystem.
-void fsFlushStream(FileStream* stream);
+bool fsFlushStream(FileStream* stream);
 
 /// Returns whether the current seek position is at the end of the file stream.
 bool fsStreamAtEnd(const FileStream* stream);
+/************************************************************************/
+// MARK: - Minor filename manipulation
+/************************************************************************/
+/// Appends `pathComponent` to `basePath`, returning a new Path for which the caller has ownership.
+/// `basePath` is assumed to be a directory.
+void fsAppendPathComponent(const char* basePath, const char* pathComponent, char* output);
 
-/// Closes and invalidates the file stream.
-bool fsCloseStream(FileStream* stream);
+/// Appends `newExtension` to `basePath`, returning a new Path for which the caller has ownership.
+/// If `basePath` already has an extension, `newExtension` will be appended to the end.
+void fsAppendPathExtension(const char* basePath, const char* newExtension, char* output);
 
-// MARK: FileStream Typed Reads
+/// Appends `newExtension` to `basePath`, returning a new Path for which the caller has ownership.
+/// If `basePath` already has an extension, its previous extension will be replaced by `newExtension`.
+void fsReplacePathExtension(const char* path, const char* newExtension, char* output);
 
-int64_t         fsReadFromStreamInt64(FileStream* stream);
-int32_t         fsReadFromStreamInt32(FileStream* stream);
-int16_t         fsReadFromStreamInt16(FileStream* stream);
-int8_t          fsReadFromStreamInt8(FileStream* stream);
-uint64_t        fsReadFromStreamUInt64(FileStream* stream);
-uint32_t        fsReadFromStreamUInt32(FileStream* stream);
-uint16_t        fsReadFromStreamUInt16(FileStream* stream);
-uint8_t         fsReadFromStreamUInt8(FileStream* stream);
-bool            fsReadFromStreamBool(FileStream* stream);
-float           fsReadFromStreamFloat(FileStream* stream);
-double          fsReadFromStreamDouble(FileStream* stream);
+/// Copies `path`'s parent path, returning a new Path for which the caller has ownership. May return NULL if `path` has no parent.
+void fsGetParentPath(const char* path, char* output);
 
-size_t          fsReadFromStreamString(FileStream* stream, char* buffer, size_t maxLength);
-size_t          fsReadFromStreamLine(FileStream* stream, char* buffer, size_t maxLength);
+/// Returns `path`'s file name as a PathComponent. The return value is guaranteed to live for as long as `path` lives.
+void fsGetPathFileName(const char* path, char* output);
 
-// MARK: FileStream Typed Writes
+/// Returns `path`'s extension, excluding the '.'. The return value is guaranteed to live for as long as `path` lives.
+/// The returned PathComponent's buffer is guaranteed to either be NULL or a NULL-terminated string.
+void fsGetPathExtension(const char* path, char* output);
+/************************************************************************/
+// MARK: - Directory queries
+/************************************************************************/
+/// Returns location set for resource directory in fsSetPathForResourceDir
+const char* fsGetResourceDirectory(ResourceDirectory resourceDir);
 
-bool            fsWriteToStreamInt64(FileStream* stream, int64_t value);
-bool            fsWriteToStreamInt32(FileStream* stream, int32_t value);
-bool            fsWriteToStreamInt16(FileStream* stream, int16_t value);
-bool            fsWriteToStreamInt8(FileStream* stream, int8_t value);
-bool            fsWriteToStreamUInt64(FileStream* stream, uint64_t value);
-bool            fsWriteToStreamUInt32(FileStream* stream, uint32_t value);
-bool            fsWriteToStreamUInt16(FileStream* stream, uint16_t value);
-bool            fsWriteToStreamUInt8(FileStream* stream, uint8_t value);
-bool            fsWriteToStreamBool(FileStream* stream, bool value);
-bool            fsWriteToStreamFloat(FileStream* stream, float value);
-bool            fsWriteToStreamDouble(FileStream* stream, double value);
-bool            fsWriteToStreamString(FileStream* stream, const char* value);
-bool            fsWriteToStreamLine(FileStream* stream, const char* value);
+/// Sets the relative path for `resourceDir` on `fileSystem` to `relativePath`, where the base path is the root resource directory path.
+/// If `fsSetResourceDirRootPath` is called after this function, this function must be called again to ensure `resourceDir`'s path
+/// is relative to the new root path.
+///
+/// NOTE: This call is not thread-safe. It is the application's responsibility to ensure that
+/// no modifications to the file system are occurring at the time of this call.
+void fsSetPathForResourceDir(IFileSystem* pIO, ResourceMount mount, ResourceDirectory resourceDir, const char* bundledFolder);
+/************************************************************************/
+// MARK: - File Queries
+/************************************************************************/
+/// Gets the time of last modification for the file at `filePath`. Undefined if no file exists at `filePath`.
+time_t fsGetLastModifiedTime(ResourceDirectory resourceDir, const char* fileName);
+/************************************************************************/
+// MARK: - FileMode
+/************************************************************************/
+static inline FileMode fsFileModeFromString(const char* modeStr)
+{
+	if (strcmp(modeStr, "r") == 0)
+	{
+		return FM_READ;
+	}
+	if (strcmp(modeStr, "w") == 0)
+	{
+		return FM_WRITE;
+	}
+	if (strcmp(modeStr, "a") == 0)
+	{
+		return FM_APPEND;
+	}
+	if (strcmp(modeStr, "rb") == 0)
+	{
+		return FM_READ_BINARY;
+	}
+	if (strcmp(modeStr, "wb") == 0)
+	{
+		return FM_WRITE_BINARY;
+	}
+	if (strcmp(modeStr, "ab") == 0)
+	{
+		return FM_APPEND_BINARY;
+	}
+	if (strcmp(modeStr, "r+") == 0)
+	{
+		return FM_READ_WRITE;
+	}
+	if (strcmp(modeStr, "a+") == 0)
+	{
+		return FM_READ_APPEND;
+	}
+	if (strcmp(modeStr, "rb+") == 0)
+	{
+		return FM_READ_WRITE_BINARY;
+	}
+	if (strcmp(modeStr, "ab+") == 0)
+	{
+		return FM_READ_APPEND_BINARY;
+	}
 
-// MARK: - FileWatcher
+	return (FileMode)0;
+}
 
-typedef struct FileWatcher FileWatcher;
-
-typedef void (*FileWatcherCallback)(const Path* path, uint32_t action);
-
-typedef enum FileWatcherEventMask {
-    FWE_MODIFIED = 1 << 0,
-    FWE_ACCESSED = 1 << 1,
-    FWE_CREATED = 1 << 2,
-    FWE_DELETED = 1 << 3,
-} FileWatcherEventMask;
-
-/// Creates a new FileWatcher that watches for changes specified by `eventMask` at `path` and calls `callback` when changes occur.
-/// The return value must have `fsFreeFileWatcher` called to free it.
-FileWatcher* fsCreateFileWatcher(const Path* path, FileWatcherEventMask eventMask, FileWatcherCallback callback);
-
-/// Invalidates and frees `fileWatcher.
-void fsFreeFileWatcher(FileWatcher* fileWatcher);
-
-// MARK: - FileSystem
-
-FileSystem* fsGetSystemFileSystem(void);
-
-typedef enum FileSystemFlags {
-    FSF_CREATE_IF_NECESSARY = 1 << 0,
-    FSF_OVERWRITE = 1 << 1,
-    FSF_READ_ONLY = 1 << 2,
-} FileSystemFlags;
-
-/// Creates a new file-system with its root at rootPath.
-/// If rootPath is a compressed zip file, the file system will be the contents of the zip file.
-FileSystem* fsCreateFileSystemFromFileAtPath(const Path* rootPath, FileSystemFlags flags);
-
-/// Decrements the reference count for `fileSystem`, freeing it if there are no outstanding references.
-/// NOTE: `Path`s and `FileStream`s hold references to their FileSystem.
-void fsFreeFileSystem(FileSystem* fileSystem);
-
+/// Converts `mode` to a string which is compatible with the C standard library conventions for `fopen`
+/// parameter strings.
+static inline FORGE_CONSTEXPR const char* fsFileModeToString(FileMode mode)
+{
+	mode = (FileMode)(mode & ~FM_ALLOW_READ);
+	switch (mode)
+	{
+	case FM_READ: return "r";
+	case FM_WRITE: return "w";
+	case FM_APPEND: return "a";
+	case FM_READ_BINARY: return "rb";
+	case FM_WRITE_BINARY: return "wb";
+	case FM_APPEND_BINARY: return "ab";
+	case FM_READ_WRITE: return "r+";
+	case FM_READ_APPEND: return "a+";
+	case FM_READ_WRITE_BINARY: return "rb+";
+	case FM_READ_APPEND_BINARY: return "ab+";
+	default: return "r";
+	}
+}
 #ifdef __cplusplus
 } // extern "C"
 #endif
-
-// MARK: - C++ Extras
-
-#ifdef __cplusplus
-// These types are only defined in C++, so conditionalise them out unless we're importing this from a C++ source file.
-
-float2          fsReadFromStreamFloat2(FileStream* stream);
-float3          fsReadFromStreamFloat3(FileStream* stream);
-float3          fsReadFromStreamPackedFloat3(FileStream* stream, float maxAbsCoord);
-float4          fsReadFromStreamFloat4(FileStream* stream);
-
-bool            fsWriteToStreamFloat2(FileStream* stream, float2 value);
-bool            fsWriteToStreamFloat3(FileStream* stream, float3 value);
-bool            fsWriteToStreamPackedFloat3(FileStream* stream, float3 value, float maxAbsCoord);
-bool            fsWriteToStreamFloat4(FileStream* stream, float4 value);
-
-template<typename T>
-static inline T fsReadFromStreamType(FileStream* stream) {
-    T result;
-    fsReadFromStream(stream, &result, sizeof(T));
-    return result;
-}
-
-template<typename T>
-static inline bool fsWriteToStreamType(FileStream* stream, T value) {
-    return fsWriteToStream(stream, &value, sizeof(T)) == sizeof(T);
-}
-
-/// PathHandle is a RAII wrapper for `Path`.
-/// Any function that returns a `Path*` may have its result assigned to a `PathHandle`,
-/// and that path will automatically be freed when the PathHandle goes out of scope.
-class PathHandle {
-private:
-    Path* pPath;
-    
-public:
-    inline PathHandle() : pPath(nullptr) {}
-    
-    inline PathHandle(Path *path) : pPath(path) {}
-    
-    inline PathHandle(const FileSystem* fileSystem, const char* absolutePathString) : pPath(fsCreatePath(fileSystem, absolutePathString)) {}
-    
-    inline PathHandle(const PathHandle& other) : pPath(fsCopyPath(other.pPath)) {}
-    
-    inline void Release() { //NOTE(Erfan): reason = release static PathHandles before MemLeak Detection -> Find Better 
-        fsFreePath(pPath);
-        pPath = nullptr;
-    }
-
-    inline ~PathHandle() {
-        Release();
-    }
-    
-    inline operator const Path*() const { return pPath; }
-    
-    inline PathHandle& operator=( const PathHandle& other ) {
-        fsFreePath(pPath);
-        pPath = fsCopyPath(other.pPath);
-        return *this;
-    }
-    
-    inline operator bool() const {
-        return pPath != nullptr;
-    }
-    
-    inline bool operator==(const PathHandle& other) const {
-        return fsPathsEqual(pPath, other.pPath);
-    }
-};
-
-#endif // ifdef __cplusplus
-
-#if TARGET_OS_IPHONE
-void fsRegisterUTIForExtension(const char* uti, const char* extension);
-#endif
-
-#endif // ifndef IFileSystem_h
-
-// We define a couple of extras for if EASTL's string type is defined.
-// This is under a separate include guard in case this header is included transitively,
-// EASTL is included, and then this header is included again.
-
-#if defined(EASTL_STRING_H) && !defined(IFileSystem_h_STLString)
-#define IFileSystem_h_STLString
-
-eastl::string fsReadFromStreamSTLString(FileStream* stream);
-eastl::string fsReadFromStreamSTLLine(FileStream* stream);
-
-/// Forms an `eastl::string` from `pathComponent`
-inline eastl::string fsPathComponentToString(PathComponent pathComponent) {
-    return eastl::string(pathComponent.buffer, pathComponent.length);
-}
-
-/// Returns `path`'s file name and extension as a string. The return value is guaranteed to live for as long as `path` lives.
-eastl::string fsGetPathFileNameAndExtension(const Path* path);
-
-#endif // defined(EASTL_STRING_H) && !defined(IFileSystem_h_STLString)
-
-#if defined(EASTL_VECTOR_H) && !defined(IFileSystem_h_STLVector)
-#define IFileSystem_h_STLVector
-
-/// Collects the results of calling `fsEnumerateFilesWithExtension` with `directory` and `extension` into an `eastl::vector<PathHandle>`.
-eastl::vector<PathHandle> fsGetFilesInDirectory(const Path* directory);
-
-/// Collects the results of calling `fsEnumerateFilesWithExtension` with `directory` and `extension` into an `eastl::vector<PathHandle>`.
-eastl::vector<PathHandle> fsGetFilesWithExtension(const Path* directory, const char* extension);
-
-#endif // defined(EASTL_VECTOR_H) && !defined(IFileSystem_h_STLVector)
-
-#if defined(EASTL_FUNCTIONAL_H) && !defined(IFileSystem_h_STLFunctional)
-#define IFileSystem_h_STLFunctional
-
-namespace eastl {
-
-  template <>
-  struct hash<PathHandle>
-  {
-    std::size_t inline operator()(const PathHandle& k) const
-    {
-        const char* s = fsGetPathAsNativeString(k);
-        const FileSystem* fs = fsGetPathFileSystem(k);
-        
-        size_t h = eastl::hash<const FileSystem*>()(fs);
-        
-        while (*s) {
-            h = (h * 54059) ^ (s[0] * 76963);
-            s++;
-        }
-        return h;
-    }
-  };
-}
-
-#endif // defined(EASTL_FUNCTIONAL_H) && !defined(IFileSystem_h_STLFunctional)

@@ -175,10 +175,10 @@
 *  Memory routines
 **************************************/
 #include <stdlib.h>       /* malloc, calloc, free */
-/// CONFFX BEGIN: Replace raw mem calls with conf_ variants.
-#define ALLOC(s)          conf_malloc(s)
-#define ALLOC_AND_ZERO(s) conf_calloc(1,s)
-#define FREEMEM(p)        conf_free(p)
+/// CONFFX BEGIN: Replace raw mem calls with tf_ variants.
+#define ALLOC(s)          tf_malloc(s)
+#define ALLOC_AND_ZERO(s) tf_calloc(1,s)
+#define FREEMEM(p)        tf_free(p)
 /// CONFFX END
 #include <string.h>       /* memset, memcpy */
 #define MEM_INIT(p,v,s)   memset((p),(v),(s))

@@ -465,6 +465,7 @@ void transitionRenderTargets()
 	for (uint32_t i = 0; i < gImageCount; ++i)
 		rtBarriers[i] = { pSwapChain->ppRenderTargets[i], RESOURCE_STATE_RENDER_TARGET };
 	rtBarriers[numBarriers - 1] = { pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE };
+	resetCmdPool(pRenderer, pCmdPools[0]);
 	beginCmd(pCmds[0]);
 	cmdResourceBarrier(pCmds[0], 0, NULL, 0, NULL, numBarriers, rtBarriers);
 	endCmd(pCmds[0]);
@@ -496,20 +497,12 @@ public:
 	bool Init()
 	{
 		// FILE PATHS
-		PathHandle programDirectory = fsGetApplicationDirectory();
-		if (!fsPlatformUsesBundledResources())
-		{
-			PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/10_PixelProjectedReflections");
-			fsSetResourceDirRootPath(resourceDirRoot);
-
-			fsSetRelativePathForResourceDirEnum(RD_TEXTURES, "../../../../Art/Sponza/Textures");
-			fsSetRelativePathForResourceDirEnum(RD_MESHES, "../../../../Art/Sponza/Meshes");
-			fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS, "../../UnitTestResources/Fonts");
-			fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS, "../../UnitTestResources/Animation");
-			fsSetRelativePathForResourceDirEnum(RD_OTHER_FILES, "../../UnitTestResources/Textures");
-			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT, "../../../../Middleware_3/Text");
-			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI, "../../../../Middleware_3/UI");
-		}
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
 
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
@@ -547,14 +540,14 @@ public:
 
 		initResourceLoaderInterface(pRenderer);
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
 			return false;
 
 		// Create UI
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 
 		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.25f);
@@ -578,15 +571,15 @@ public:
 		sprintf(totalImagesShaderMacroBuffer, "%i", TOTAL_IMGS);
 		ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", totalImagesShaderMacroBuffer };
 		ShaderLoadDesc gBuffersShaderDesc = {};
-		gBuffersShaderDesc.mStages[0] = { "fillGbuffers.vert", NULL, 0, RD_SHADER_SOURCES };
+		gBuffersShaderDesc.mStages[0] = { "fillGbuffers.vert", NULL, 0 };
 
 		if (!gUseTexturesFallback)
 		{
-			gBuffersShaderDesc.mStages[1] = { "fillGbuffers.frag", &totalImagesShaderMacro, 1, RD_SHADER_SOURCES };
+			gBuffersShaderDesc.mStages[1] = { "fillGbuffers.frag", &totalImagesShaderMacro, 1 };
 		}
 		else
 		{
-			gBuffersShaderDesc.mStages[1] = { "fillGbuffers_iOS.frag", NULL, 0, RD_SHADER_SOURCES };
+			gBuffersShaderDesc.mStages[1] = { "fillGbuffers_iOS.frag", NULL, 0 };
 		}
 		addShader(pRenderer, &gBuffersShaderDesc, &pShaderGbuffers);
 
@@ -605,8 +598,8 @@ public:
 		addRootSignature(pRenderer, &gBuffersRootDesc, &pRootSigGbuffers);
 
 		ShaderLoadDesc skyboxShaderDesc = {};
-		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0, RD_SHADER_SOURCES };
-		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0, RD_SHADER_SOURCES };
+		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0 };
+		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0 };
 		addShader(pRenderer, &skyboxShaderDesc, &pSkyboxShader);
 
 		const char* pSkyboxamplerName = "skyboxSampler";
@@ -618,8 +611,8 @@ public:
 
 		//BRDF
 		ShaderLoadDesc brdfRenderSceneShaderDesc = {};
-		brdfRenderSceneShaderDesc.mStages[0] = { "renderSceneBRDF.vert", NULL, 0, RD_SHADER_SOURCES };
-		brdfRenderSceneShaderDesc.mStages[1] = { "renderSceneBRDF.frag", NULL, 0, RD_SHADER_SOURCES };
+		brdfRenderSceneShaderDesc.mStages[0] = { "renderSceneBRDF.vert", NULL, 0 };
+		brdfRenderSceneShaderDesc.mStages[1] = { "renderSceneBRDF.frag", NULL, 0 };
 		addShader(pRenderer, &brdfRenderSceneShaderDesc, &pShaderBRDF);
 
 		const char* pStaticSampler2Names[] = { "envSampler", "defaultSampler" };
@@ -633,7 +626,7 @@ public:
 
 		//PPR_Projection
 		ShaderLoadDesc PPR_ProjectionShaderDesc = {};
-		PPR_ProjectionShaderDesc.mStages[0] = { "PPR_Projection.comp", NULL, 0, RD_SHADER_SOURCES };
+		PPR_ProjectionShaderDesc.mStages[0] = { "PPR_Projection.comp", NULL, 0 };
 		addShader(pRenderer, &PPR_ProjectionShaderDesc, &pPPR_ProjectionShader);
 
 		RootSignatureDesc PPR_PRootDesc = { &pPPR_ProjectionShader, 1 };
@@ -641,8 +634,8 @@ public:
 
 		//PPR_Reflection
 		ShaderLoadDesc PPR_ReflectionShaderDesc = {};
-		PPR_ReflectionShaderDesc.mStages[0] = { "PPR_Reflection.vert", NULL, 0, RD_SHADER_SOURCES };
-		PPR_ReflectionShaderDesc.mStages[1] = { "PPR_Reflection.frag", NULL, 0, RD_SHADER_SOURCES };
+		PPR_ReflectionShaderDesc.mStages[0] = { "PPR_Reflection.vert", NULL, 0 };
+		PPR_ReflectionShaderDesc.mStages[1] = { "PPR_Reflection.frag", NULL, 0 };
 
 		addShader(pRenderer, &PPR_ReflectionShaderDesc, &pPPR_ReflectionShader);
 
@@ -654,8 +647,8 @@ public:
 
 		//PPR_HolePatching
 		ShaderLoadDesc PPR_HolePatchingShaderDesc = {};
-		PPR_HolePatchingShaderDesc.mStages[0] = { "PPR_Holepatching.vert", NULL, 0, RD_SHADER_SOURCES };
-		PPR_HolePatchingShaderDesc.mStages[1] = { "PPR_Holepatching.frag", NULL, 0, RD_SHADER_SOURCES };
+		PPR_HolePatchingShaderDesc.mStages[0] = { "PPR_Holepatching.vert", NULL, 0 };
+		PPR_HolePatchingShaderDesc.mStages[1] = { "PPR_Holepatching.frag", NULL, 0 };
 
 		addShader(pRenderer, &PPR_HolePatchingShaderDesc, &pPPR_HolePatchingShader);
 
@@ -715,7 +708,7 @@ public:
 		sponza_buffDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		sponza_buffDesc.pData = NULL;
 		sponza_buffDesc.ppBuffer = &pSponzaBuffer;
-		addResource(&sponza_buffDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&sponza_buffDesc, NULL);
 
 		BufferLoadDesc lion_buffDesc = {};
 		lion_buffDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -724,7 +717,7 @@ public:
 		lion_buffDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		lion_buffDesc.pData = NULL;
 		lion_buffDesc.ppBuffer = &pLionBuffer;
-		addResource(&lion_buffDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&lion_buffDesc, NULL);
 
 		//Generate sky box vertex buffer
 		float skyBoxPoints[] = {
@@ -760,7 +753,7 @@ public:
 		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
 		skyboxVbDesc.pData = skyBoxPoints;
 		skyboxVbDesc.ppBuffer = &pSkyboxVertexBuffer;
-		addResource(&skyboxVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&skyboxVbDesc, NULL);
 
 		float screenQuadPoints[] = {
 			-1.0f, 3.0f, 0.5f, 0.0f, -1.0f, -1.0f, -1.0f, 0.5f, 0.0f, 1.0f, 3.0f, -1.0f, 0.5f, 2.0f, 1.0f,
@@ -773,7 +766,7 @@ public:
 		screenQuadVbDesc.mDesc.mSize = screenQuadDataSize;
 		screenQuadVbDesc.pData = screenQuadPoints;
 		screenQuadVbDesc.ppBuffer = &pScreenQuadVertexBuffer;
-		addResource(&screenQuadVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&screenQuadVbDesc, NULL);
 
 		// Uniform buffer for camera data
 		BufferLoadDesc ubCamDesc = {};
@@ -786,9 +779,9 @@ public:
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubCamDesc.ppBuffer = &pBufferUniformCamera[i];
-			addResource(&ubCamDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubCamDesc, NULL);
 			ubCamDesc.ppBuffer = &pBufferUniformCameraSky[i];
-			addResource(&ubCamDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubCamDesc, NULL);
 		}
 
 		// Uniform buffer for extended camera data
@@ -802,7 +795,7 @@ public:
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubECamDesc.ppBuffer = &pBufferUniformExtendedCamera[i];
-			addResource(&ubECamDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubECamDesc, NULL);
 		}
 
 		// Uniform buffer for PPR's properties
@@ -816,7 +809,7 @@ public:
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubPPR_ProDesc.ppBuffer = &pBufferUniformPPRPro[i];
-			addResource(&ubPPR_ProDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubPPR_ProDesc, NULL);
 		}
 
 		// Uniform buffer for light data
@@ -827,7 +820,7 @@ public:
 		ubLightsDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NONE;
 		ubLightsDesc.pData = NULL;
 		ubLightsDesc.ppBuffer = &pBufferUniformLights;
-		addResource(&ubLightsDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&ubLightsDesc, NULL);
 
 		// Uniform buffer for DirectionalLight data
 		BufferLoadDesc ubDLightsDesc = {};
@@ -837,7 +830,7 @@ public:
 		ubDLightsDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NONE;
 		ubDLightsDesc.pData = NULL;
 		ubDLightsDesc.ppBuffer = &pBufferUniformDirectionalLights;
-		addResource(&ubDLightsDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&ubDLightsDesc, NULL);
 
 		// Uniform buffer for extended camera data
 		BufferLoadDesc ubPlaneInfoDesc = {};
@@ -850,7 +843,7 @@ public:
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubPlaneInfoDesc.ppBuffer = &pBufferUniformPlaneInfo[i];
-			addResource(&ubPlaneInfoDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubPlaneInfoDesc, NULL);
 		}
 
 		waitForAllResourceLoads();
@@ -1205,11 +1198,10 @@ public:
 
 		// Load the skybox panorama texture.
 		SyncToken token = {};
-		PathHandle panoramaFilePath = fsGetPathInResourceDirEnum(RD_OTHER_FILES, skyboxNames[skyboxIndex]);
 		TextureLoadDesc panoDesc = {};
-		panoDesc.pFilePath = panoramaFilePath;
+		panoDesc.pFileName = skyboxNames[skyboxIndex];
 		panoDesc.ppTexture = &pPanoSkybox;
-		addResource(&panoDesc, &token, LOAD_PRIORITY_HIGH);
+		addResource(&panoDesc, &token);
 
 		TextureDesc skyboxImgDesc = {};
 		skyboxImgDesc.mArraySize = 6;
@@ -1226,7 +1218,7 @@ public:
 		TextureLoadDesc skyboxLoadDesc = {};
 		skyboxLoadDesc.pDesc = &skyboxImgDesc;
 		skyboxLoadDesc.ppTexture = &pSkybox;
-		addResource(&skyboxLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&skyboxLoadDesc, NULL);
 
 		TextureDesc irrImgDesc = {};
 		irrImgDesc.mArraySize = 6;
@@ -1243,7 +1235,7 @@ public:
 		TextureLoadDesc irrLoadDesc = {};
 		irrLoadDesc.pDesc = &irrImgDesc;
 		irrLoadDesc.ppTexture = &pIrradianceMap;
-		addResource(&irrLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&irrLoadDesc, NULL);
 
 		TextureDesc specImgDesc = {};
 		specImgDesc.mArraySize = 6;
@@ -1260,7 +1252,7 @@ public:
 		TextureLoadDesc specImgLoadDesc = {};
 		specImgLoadDesc.pDesc = &specImgDesc;
 		specImgLoadDesc.ppTexture = &pSpecularMap;
-		addResource(&specImgLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&specImgLoadDesc, NULL);
 
 		// Create empty texture for BRDF integration map.
 		TextureLoadDesc brdfIntegrationLoadDesc = {};
@@ -1276,11 +1268,11 @@ public:
 		brdfIntegrationDesc.mHostVisible = false;
 		brdfIntegrationLoadDesc.pDesc = &brdfIntegrationDesc;
 		brdfIntegrationLoadDesc.ppTexture = &pBRDFIntegrationMap;
-		addResource(&brdfIntegrationLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&brdfIntegrationLoadDesc, NULL);
 
 		// Load pre-processing shaders.
 		ShaderLoadDesc panoToCubeShaderDesc = {};
-		panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", NULL, 0, RD_SHADER_SOURCES };
+		panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", NULL, 0 };
 
 		GPUPresetLevel presetLevel = pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel;
 		uint32_t       importanceSampleCounts[GPUPresetLevel::GPU_PRESET_COUNT] = { 0, 0, 64, 128, 256, 1024 };
@@ -1296,13 +1288,13 @@ public:
 		ShaderMacro    irradianceSampleMacro = { "SAMPLE_DELTA", irradianceSampleDeltaBuffer };
 
 		ShaderLoadDesc brdfIntegrationShaderDesc = {};
-		brdfIntegrationShaderDesc.mStages[0] = { "BRDFIntegration.comp", &importanceSampleMacro, 1, RD_SHADER_SOURCES };
+		brdfIntegrationShaderDesc.mStages[0] = { "BRDFIntegration.comp", &importanceSampleMacro, 1 };
 
 		ShaderLoadDesc irradianceShaderDesc = {};
-		irradianceShaderDesc.mStages[0] = { "computeIrradianceMap.comp", &irradianceSampleMacro, 1, RD_SHADER_SOURCES };
+		irradianceShaderDesc.mStages[0] = { "computeIrradianceMap.comp", &irradianceSampleMacro, 1 };
 
 		ShaderLoadDesc specularShaderDesc = {};
-		specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", &importanceSampleMacro, 1, RD_SHADER_SOURCES };
+		specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", &importanceSampleMacro, 1 };
 
 		addShader(pRenderer, &panoToCubeShaderDesc, &pPanoToCubeShader);
 		addShader(pRenderer, &irradianceShaderDesc, &pIrradianceShader);
@@ -1363,6 +1355,7 @@ public:
 		Cmd* pCmd = pCmds[0];
 
 		// Compute the BRDF Integration map.
+		resetCmdPool(pRenderer, pCmdPools[0]);
 		beginCmd(pCmd);
 
 		TextureBarrier uavBarriers[4] = {
@@ -1509,21 +1502,19 @@ public:
 	void loadMesh(size_t index)
 	{
 		//Load Sponza
-		PathHandle sceneFullPath = fsGetPathInResourceDirEnum(RD_MESHES, gModelNames[index]);
 		GeometryLoadDesc loadDesc = {};
-		loadDesc.pFilePath = sceneFullPath;
+		loadDesc.pFileName = gModelNames[index];
 		loadDesc.ppGeometry = &gModels[index];
 		loadDesc.pVertexLayout = &gVertexLayoutModel;
-		addResource(&loadDesc, &gResourceSyncToken, LOAD_PRIORITY_NORMAL);
+		addResource(&loadDesc, &gResourceSyncToken);
 	}
 
 	void loadTexture(size_t index)
 	{
-		PathHandle texturePath = fsGetPathInResourceDirEnum(RD_TEXTURES, pMaterialImageFileNames[index]);
 		TextureLoadDesc textureDesc = {};
-		textureDesc.pFilePath = texturePath;
+		textureDesc.pFileName = pMaterialImageFileNames[index];
 		textureDesc.ppTexture = &pMaterialTextures[index];
-		addResource(&textureDesc, &gResourceSyncToken, LOAD_PRIORITY_NORMAL);
+		addResource(&textureDesc, &gResourceSyncToken);
 	}
 
 	bool Load()
@@ -1815,10 +1806,9 @@ public:
 
 #endif
 
-		LoadPriority loadPriority = LOAD_PRIORITY_NORMAL;
 		SyncToken currentProgress = getLastTokenCompleted();
-		double progress = (double)(currentProgress.mWaitIndex[loadPriority] - gResourceSyncStartToken.mWaitIndex[loadPriority]) /
-			(double)(gResourceSyncToken.mWaitIndex[loadPriority] - gResourceSyncStartToken.mWaitIndex[loadPriority]);
+		double progress = (double)(currentProgress - gResourceSyncStartToken) /
+			(double)(gResourceSyncToken - gResourceSyncStartToken);
 		mProgressBarValue = (size_t)(mProgressBarValueMax * progress);
 
 		/************************************************************************/
@@ -2459,7 +2449,7 @@ public:
 
 		IntermediateBufferDesc.pData = gInitializeVal.data();
 		IntermediateBufferDesc.ppBuffer = &pIntermediateBuffer;
-		addResource(&IntermediateBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&IntermediateBufferDesc, NULL);
 
 		return pIntermediateBuffer != NULL;
 	}

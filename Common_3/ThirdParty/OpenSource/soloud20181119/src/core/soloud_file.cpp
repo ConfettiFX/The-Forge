@@ -56,22 +56,22 @@ namespace SoLoud
 
 	unsigned int DiskFile::read(unsigned char *aDst, unsigned int aBytes)
 	{
-        return (unsigned int)fsReadFromStream(mForgeFile, aDst, aBytes);
+        return (unsigned int)fsReadFromStream(&mForgeFile, aDst, aBytes);
 	}
 
 	unsigned int DiskFile::length()
 	{
-        return (unsigned int)fsGetStreamFileSize(mForgeFile);
+        return (unsigned int)fsGetStreamFileSize(&mForgeFile);
 	}
 
 	void DiskFile::seek(int aOffset)
 	{
-        fsSeekStream(mForgeFile, SBO_START_OF_FILE, aOffset);
+        fsSeekStream(&mForgeFile, SBO_START_OF_FILE, aOffset);
 	}
 
 	unsigned int DiskFile::pos()
 	{
-        return (unsigned int)fsGetStreamSeekPosition(mForgeFile);
+        return (unsigned int)fsGetStreamSeekPosition(&mForgeFile);
 	}
 
 	FILE *DiskFile::getFilePtr()
@@ -81,8 +81,8 @@ namespace SoLoud
 
 	DiskFile::~DiskFile()
 	{
-        if (mForgeFile)
-            fsCloseStream(mForgeFile);
+        if (mForgeFile.pIO)
+            fsCloseStream(&mForgeFile);
 	}
 
 	DiskFile::DiskFile()
@@ -95,16 +95,16 @@ namespace SoLoud
 		if (!aFilename)
 			return INVALID_PARAMETER;	
 
-        mForgeFile = fsOpenFileInResourceDirEnum(RD_AUDIO, aFilename, FM_READ_BINARY);
+       
 
-		if(!mForgeFile)
+		if(!fsOpenStreamFromPath(RD_AUDIO, aFilename, FM_READ_BINARY, &mForgeFile))
 			return FILE_NOT_FOUND;
 		return SO_NO_ERROR;
 	}
 
 	int DiskFile::eof()
 	{
-        return fsStreamAtEnd(mForgeFile) ? 1 : 0;
+        return fsStreamAtEnd(&mForgeFile) ? 1 : 0;
 	}
 
 
@@ -148,7 +148,7 @@ namespace SoLoud
 	MemoryFile::~MemoryFile()
 	{
 		if (mDataOwned)
-			conf_free(mDataPtr);
+			tf_free(mDataPtr);
 	}
 
 	MemoryFile::MemoryFile()
@@ -165,7 +165,7 @@ namespace SoLoud
 			return INVALID_PARAMETER;
 
 		if (mDataOwned)
-			conf_free(mDataPtr);
+			tf_free(mDataPtr);
 		mDataPtr = 0;
 		mOffset = 0;
 
@@ -174,7 +174,7 @@ namespace SoLoud
 		if (aCopy)
 		{
 			mDataOwned = true;
-			mDataPtr = (unsigned char*)conf_calloc(aDataLength, sizeof(unsigned char));
+			mDataPtr = (unsigned char*)tf_calloc(aDataLength, sizeof(unsigned char));
 			if (mDataPtr == NULL)
 				return OUT_OF_MEMORY;
 			memcpy(mDataPtr, aData, aDataLength);
@@ -191,7 +191,7 @@ namespace SoLoud
 		if (!aFile)
 			return INVALID_PARAMETER;
 		if (mDataOwned)
-			conf_free(mDataPtr);
+			tf_free(mDataPtr);
 		mDataPtr = 0;
 		mOffset = 0;
 
@@ -201,7 +201,7 @@ namespace SoLoud
 			return res;
 
 		mDataLength = df.length();
-		mDataPtr = (unsigned char*)conf_calloc(mDataLength, sizeof(unsigned char));
+		mDataPtr = (unsigned char*)tf_calloc(mDataLength, sizeof(unsigned char));
 		if (mDataPtr == NULL)
 			return OUT_OF_MEMORY;
 		df.read(mDataPtr, mDataLength);
@@ -214,12 +214,12 @@ namespace SoLoud
 		if (!aFile)
 			return INVALID_PARAMETER;
 		if (mDataOwned)
-			conf_free(mDataPtr);
+			tf_free(mDataPtr);
 		mDataPtr = 0;
 		mOffset = 0;
 
 		mDataLength = aFile->length();
-		mDataPtr = (unsigned char*)conf_calloc(mDataLength, sizeof(unsigned char));
+		mDataPtr = (unsigned char*)tf_calloc(mDataLength, sizeof(unsigned char));
 		if (mDataPtr == NULL)
 			return OUT_OF_MEMORY;
 		aFile->read(mDataPtr, mDataLength);
@@ -278,17 +278,17 @@ extern "C"
 	int Soloud_Filehack_fclose(Soloud_Filehack *f)
 	{
 		SoLoud::File *fp = (SoLoud::File *)f;
-		conf_delete(fp);
+		tf_delete(fp);
 		return 0;
 	}
 
 	Soloud_Filehack * Soloud_Filehack_fopen(const char *aFilename, char *aMode)
 	{
-		SoLoud::DiskFile *df = conf_new(SoLoud::DiskFile);
+		SoLoud::DiskFile *df = tf_new(SoLoud::DiskFile);
 		int res = df->open(aFilename);
 		if (res != SoLoud::SO_NO_ERROR)
 		{
-			conf_delete(df);
+			tf_delete(df);
 			df = 0;
 		}
 		return (Soloud_Filehack*)df;

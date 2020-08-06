@@ -7,11 +7,11 @@ struct Vertex_Output
 Texture2D Texture00 : register(t0);
 Texture2D Texture01;
 Texture2D Texture10 : register(t1, space1);
-Texture2D Texture11 : register(space1);
-SamplerState Sampler00 : register(space2);
+Texture2D Texture11 : register(t2, space1);
+SamplerState Sampler00 : register(s2, space2);
 SamplerState Sampler01 : register(s3, space2);
 SamplerState Sampler10 : register(s5);
-SamplerState Sampler11 : register(space1);
+SamplerState Sampler11 : register(s6, space1);
 
 struct RCB
 {

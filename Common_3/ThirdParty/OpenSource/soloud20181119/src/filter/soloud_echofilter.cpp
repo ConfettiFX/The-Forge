@@ -45,7 +45,7 @@ namespace SoLoud
 		if (mBuffer == 0)
 		{
 			mBufferLength = (int)ceil(mParent->mDelay * aSamplerate);
-			mBuffer = (float*)conf_calloc(mBufferLength * aChannels, sizeof(float));
+			mBuffer = (float*)tf_calloc(mBufferLength * aChannels, sizeof(float));
 			unsigned int i;
 			for (i = 0; i < mBufferLength * aChannels; i++)
 			{
@@ -77,7 +77,7 @@ namespace SoLoud
 
 	EchoFilterInstance::~EchoFilterInstance()
 	{
-		conf_free(mBuffer);
+		tf_free(mBuffer);
 	}
 
 	EchoFilter::EchoFilter()
@@ -102,6 +102,6 @@ namespace SoLoud
 
 	FilterInstance *EchoFilter::createInstance()
 	{
-		return conf_new(EchoFilterInstance, this);
+		return tf_new(EchoFilterInstance, this);
 	}
 }

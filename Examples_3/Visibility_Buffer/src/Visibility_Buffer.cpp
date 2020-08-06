@@ -657,7 +657,6 @@ struct ResolutionData
 static ResolutionData gGuiResolution;
 #endif
 
-ResourceDirEnum gPipelineCacheRD = RD_SHADER_BINARIES;
 const char* pPipelineCacheName = "PipelineCache.cache";
 PipelineCache* pPipelineCache = NULL;
 /************************************************************************/
@@ -775,19 +774,14 @@ public:
 	bool Init()
 	{
 		// FILE PATHS
-		PathHandle programDirectory = fsGetApplicationDirectory();
-		if (!fsPlatformUsesBundledResources())
-		{
-			PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src");
-			fsSetResourceDirRootPath(resourceDirRoot);
-
-			fsSetRelativePathForResourceDirEnum(RD_TEXTURES, "../../../Art/SanMiguel_3/Textures");
-			fsSetRelativePathForResourceDirEnum(RD_MESHES, "../../../Art/SanMiguel_3/Meshes");
-			fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS, "../Resources/Fonts");
-			fsSetRelativePathForResourceDirEnum(RD_OTHER_FILES, "../Resources");
-			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT, "../../../Middleware_3/Text");
-			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI, "../../../Middleware_3/UI");
-		}
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES,  "Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_PIPELINE_CACHE,  "PipelineCaches");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG,      "GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES,        "Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS,           "Fonts");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES,          "Meshes");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_OTHER_FILES,     "");
 
 		initThreadSystem(&pThreadSystem);
 
@@ -801,10 +795,13 @@ public:
 		if (!pRenderer)
 			return false;
 
-		//Camera Walking
-		FileStream* fh = fsOpenFileInResourceDirEnum(RD_OTHER_FILES, "cameraPath.bin", FM_READ_BINARY);
-		fsReadFromStream(fh, gCameraPathData, sizeof(float3) * 29084);
-		fsCloseStream(fh);
+		// Camera Walking
+		FileStream fh = {};
+		if (fsOpenStreamFromPath(RD_OTHER_FILES, "cameraPath.bin", FM_READ_BINARY, &fh))
+		{
+			fsReadFromStream(&fh, gCameraPathData, sizeof(float3) * 29084);
+			fsCloseStream(&fh);
+		}
 
 		gCameraPoints = (uint)29084 / 2;
 		gTotalElpasedTime = (float)gCameraPoints * 0.00833f;
@@ -846,9 +843,8 @@ public:
 		/************************************************************************/
 		initResourceLoaderInterface(pRenderer);
 
-		PathHandle cachePath = fsGetPathInResourceDirEnum(gPipelineCacheRD, pPipelineCacheName);
 		PipelineCacheLoadDesc cacheDesc = {};
-		cacheDesc.pPath = cachePath;
+		cacheDesc.pFileName = pPipelineCacheName;
 		addPipelineCache(pRenderer, &cacheDesc, &pPipelineCache);
 		/************************************************************************/
 		// Setup the UI components for text rendering, UI controls...
@@ -856,7 +852,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 
 		initProfiler();
 
@@ -907,15 +903,14 @@ public:
 		/************************************************************************/
 		HiresTimer      sceneLoadTimer;
 
-		PathHandle sceneFullPath = fsGetPathInResourceDirEnum(RD_MESHES, gSceneName);
-		Scene* pScene = loadScene(sceneFullPath, 50.0f, -20.0f, 0.0f, 0.0f);
+		Scene* pScene = loadScene(gSceneName, 50.0f, -20.0f, 0.0f, 0.0f);
 		if (!pScene)
 			return false;
 		LOGF(LogLevel::eINFO, "Load scene : %f ms", sceneLoadTimer.GetUSec(true) / 1000.0f);
 
 		gMeshCount = pScene->geom->mDrawArgCount;
 		gMaterialCount = pScene->geom->mDrawArgCount;
-		pMeshes = (ClusterContainer*)conf_malloc(gMeshCount * sizeof(ClusterContainer));
+		pMeshes = (ClusterContainer*)tf_malloc(gMeshCount * sizeof(ClusterContainer));
 		pGeom = pScene->geom;
 		/************************************************************************/
 		// Texture loading
@@ -927,18 +922,15 @@ public:
 		for (uint32_t i = 0; i < (uint32_t)gDiffuseMaps.size(); ++i)
 		{
 			TextureLoadDesc desc = {};
-			desc.pFilePath = fsGetPathInResourceDirEnum(RD_TEXTURES, pScene->textures[i]);
+			desc.pFileName = pScene->textures[i];
 			desc.ppTexture = &gDiffuseMaps[i];
-			addResource(&desc, NULL, LOAD_PRIORITY_NORMAL);
-			fsFreePath((Path*)desc.pFilePath);
-			desc.pFilePath = fsGetPathInResourceDirEnum(RD_TEXTURES, pScene->normalMaps[i]);
+			addResource(&desc, NULL);
+			desc.pFileName = pScene->normalMaps[i];
 			desc.ppTexture = &gNormalMaps[i];
-			addResource(&desc, NULL, LOAD_PRIORITY_NORMAL);
-			fsFreePath((Path*)desc.pFilePath);
-			desc.pFilePath = fsGetPathInResourceDirEnum(RD_TEXTURES, pScene->specularMaps[i]);
+			addResource(&desc, NULL);
+			desc.pFileName = pScene->specularMaps[i];
 			desc.ppTexture = &gSpecularMaps[i];
-			addResource(&desc, NULL, LOAD_PRIORITY_NORMAL);
-			fsFreePath((Path*)desc.pFilePath);
+			addResource(&desc, NULL);
 		}
 		/************************************************************************/
 		// Cluster creation
@@ -952,7 +944,7 @@ public:
 			createClusters(material->twoSided, pScene, pScene->geom->pDrawArgs + i, mesh);
 		}
 
-		conf_free(pScene->geom->pShadow);
+		tf_free(pScene->geom->pShadow);
 		LOGF(LogLevel::eINFO, "Load clusters : %f ms", clusterTimer.GetUSec(true) / 1000.0f);
 		/************************************************************************/
 		// Setup root signatures
@@ -1129,7 +1121,7 @@ public:
 		skyboxVbDesc.pData = skyBoxPoints;
 		skyboxVbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		skyboxVbDesc.ppBuffer = &pSkyboxVertexBuffer;
-		addResource(&skyboxVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&skyboxVbDesc, NULL);
 
 		gVertexLayoutSun.mAttribCount = 3;
 		gVertexLayoutSun.mAttribs[0].mSemantic = SEMANTIC_POSITION;
@@ -1148,12 +1140,11 @@ public:
 		gVertexLayoutSun.mAttribs[2].mLocation = 2;
 		gVertexLayoutSun.mAttribs[2].mOffset = sizeof(float3) * 2;
 
-		PathHandle sunFullPath = fsGetPathInResourceDirEnum(RD_MESHES, gSunName);
 		GeometryLoadDesc loadDesc = {};
-		loadDesc.pFilePath = sunFullPath;
+		loadDesc.pFileName = gSunName;
 		loadDesc.ppGeometry = &pSun;
 		loadDesc.pVertexLayout = &gVertexLayoutSun;
-		addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&loadDesc, NULL);
 		/************************************************************************/
 		// Setup compute pipelines for triangle filtering
 		/************************************************************************/
@@ -1410,9 +1401,9 @@ public:
 		waitThreadSystemIdle(pThreadSystem);
 		waitForAllResourceLoads();
 		
-		gDiffuseMapsStorage = (Texture*)conf_malloc(sizeof(Texture) * gDiffuseMaps.size());
-		gNormalMapsStorage = (Texture*)conf_malloc(sizeof(Texture) * gNormalMaps.size());
-		gSpecularMapsStorage = (Texture*)conf_malloc(sizeof(Texture) * gSpecularMaps.size());
+		gDiffuseMapsStorage = (Texture*)tf_malloc(sizeof(Texture) * gDiffuseMaps.size());
+		gNormalMapsStorage = (Texture*)tf_malloc(sizeof(Texture) * gNormalMaps.size());
+		gSpecularMapsStorage = (Texture*)tf_malloc(sizeof(Texture) * gSpecularMaps.size());
 
 		for (uint32_t i = 0; i < (uint32_t)gDiffuseMaps.size(); ++i)
 		{
@@ -1446,10 +1437,10 @@ public:
             indirectCommandBuffertDesc.mDesc.mICBMaxFragmentBufferBind = UINT_VBPASS_MAX;
             indirectCommandBuffertDesc.ppBuffer = &pIndirectCommandBufferShadow[j];
             indirectCommandBuffertDesc.mDesc.pName = "Indirect Command Buffer Shadow";
-            addResource(&indirectCommandBuffertDesc, NULL, LOAD_PRIORITY_NORMAL);
+            addResource(&indirectCommandBuffertDesc, NULL);
             indirectCommandBuffertDesc.ppBuffer = &pIndirectCommandBufferCamera[j];
             indirectCommandBuffertDesc.mDesc.pName = "Indirect Command Buffer Camera";
-            addResource(&indirectCommandBuffertDesc, NULL, LOAD_PRIORITY_NORMAL);
+            addResource(&indirectCommandBuffertDesc, NULL);
         }
         
         // drawId buffer for ICB
@@ -1468,7 +1459,7 @@ public:
         drawIDBufferDesc.ppBuffer = &pDrawIDBuffer;
         drawIDBufferDesc.pData = drawIds;
         drawIDBufferDesc.mDesc.pName = "DrawId Buffer";
-        addResource(&drawIDBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+        addResource(&drawIDBufferDesc, NULL);
 #endif
         
 		LOGF(LogLevel::eINFO, "Setup buffers : %f ms", setupBuffersTimer.GetUSec(true) / 1000.0f);
@@ -1617,10 +1608,10 @@ public:
 			removeResource(gSpecularMaps[i]);
 		}
 
-		conf_free(gDiffuseMapsStorage);
-		conf_free(gNormalMapsStorage);
-		conf_free(gSpecularMapsStorage);
-		conf_free(pMeshes);
+		tf_free(gDiffuseMapsStorage);
+		tf_free(gNormalMapsStorage);
+		tf_free(gSpecularMapsStorage);
+		tf_free(pMeshes);
 
 		gDiffuseMaps.set_capacity(0);
 		gNormalMaps.set_capacity(0);
@@ -1662,8 +1653,9 @@ public:
 		removeSampler(pRenderer, pSamplerPointClamp);
 		removeSampler(pRenderer, pSamplerBilinearClamp);
 
-		PathHandle cachePath = fsGetPathInResourceDirEnum(gPipelineCacheRD, pPipelineCacheName);
-		savePipelineCache(pRenderer, pPipelineCache, cachePath);
+		PipelineCacheSaveDesc saveDesc = {};
+		saveDesc.pFileName = pPipelineCacheName;
+		savePipelineCache(pRenderer, pPipelineCache, &saveDesc);
 		removePipelineCache(pRenderer, pPipelineCache);
 
 		exitResourceLoaderInterface(pRenderer);
@@ -3368,50 +3360,50 @@ public:
 
 #if defined(METAL)
 		ShaderLoadDesc icbGeneratorShaderDesc = {};
-		icbGeneratorShaderDesc.mStages[0] = { "icb.comp", NULL, 0, RD_SHADER_SOURCES };
+		icbGeneratorShaderDesc.mStages[0] = { "icb.comp", NULL, 0 };
 		addShader(pRenderer, &icbGeneratorShaderDesc, &pShaderICBGenerator);
 #endif
 
-		shadowPass.mStages[0] = { "shadow_pass.vert", NULL, 0, RD_SHADER_SOURCES };
-		shadowPassAlpha.mStages[0] = { "shadow_pass_alpha.vert", NULL, 0, RD_SHADER_SOURCES };
-		shadowPassAlpha.mStages[1] = { "shadow_pass_alpha.frag", NULL, 0, RD_SHADER_SOURCES };
+		shadowPass.mStages[0] = { "shadow_pass.vert", NULL, 0 };
+		shadowPassAlpha.mStages[0] = { "shadow_pass_alpha.vert", NULL, 0 };
+		shadowPassAlpha.mStages[1] = { "shadow_pass_alpha.frag", NULL, 0 };
 
-		vbPass.mStages[0] = { "visibilityBuffer_pass.vert", NULL, 0, RD_SHADER_SOURCES, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_PS_PRIMITIVEID };
-		vbPass.mStages[1] = { "visibilityBuffer_pass.frag", NULL, 0, RD_SHADER_SOURCES, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_PS_PRIMITIVEID };
-		vbPassAlpha.mStages[0] = { "visibilityBuffer_pass_alpha.vert", NULL, 0, RD_SHADER_SOURCES, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_PS_PRIMITIVEID };
-		vbPassAlpha.mStages[1] = { "visibilityBuffer_pass_alpha.frag", NULL, 0, RD_SHADER_SOURCES, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_PS_PRIMITIVEID };
+		vbPass.mStages[0] = { "visibilityBuffer_pass.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_PS_PRIMITIVEID };
+		vbPass.mStages[1] = { "visibilityBuffer_pass.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_PS_PRIMITIVEID };
+		vbPassAlpha.mStages[0] = { "visibilityBuffer_pass_alpha.vert", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_PS_PRIMITIVEID };
+		vbPassAlpha.mStages[1] = { "visibilityBuffer_pass_alpha.frag", NULL, 0, NULL, SHADER_STAGE_LOAD_FLAG_ENABLE_PS_PRIMITIVEID };
 #if defined(ORBIS) || defined(PROSPERO)
 		// No SV_PrimitiveID in pixel shader on ORBIS. Only available in gs stage so we need
 		// a passthrough gs
-		vbPass.mStages[2] = { "visibilityBuffer_pass.geom", NULL, 0, RD_SHADER_SOURCES };
-		vbPassAlpha.mStages[2] = { "visibilityBuffer_pass_alpha.geom", NULL, 0, RD_SHADER_SOURCES };
+		vbPass.mStages[2] = { "visibilityBuffer_pass.geom", NULL, 0 };
+		vbPassAlpha.mStages[2] = { "visibilityBuffer_pass_alpha.geom", NULL, 0 };
 #endif
 
-		deferredPass.mStages[0] = { "deferred_pass.vert", NULL, 0, RD_SHADER_SOURCES };
-		deferredPass.mStages[1] = { "deferred_pass.frag", NULL, 0, RD_SHADER_SOURCES };
-		deferredPassAlpha.mStages[0] = { "deferred_pass.vert", NULL, 0, RD_SHADER_SOURCES };
-		deferredPassAlpha.mStages[1] = { "deferred_pass_alpha.frag", NULL, 0, RD_SHADER_SOURCES };
+		deferredPass.mStages[0] = { "deferred_pass.vert", NULL, 0 };
+		deferredPass.mStages[1] = { "deferred_pass.frag", NULL, 0 };
+		deferredPassAlpha.mStages[0] = { "deferred_pass.vert", NULL, 0 };
+		deferredPassAlpha.mStages[1] = { "deferred_pass_alpha.frag", NULL, 0 };
 
 		for (uint32_t i = 0; i < 2; ++i)
 		{
 			shadingMacros[i][1].value = useAoMacroBuffer[i];    //USE_AMBIENT_OCCLUSION
-			vbShade[i].mStages[0] = { "visibilityBuffer_shade.vert", NULL, 0, RD_SHADER_SOURCES };
-			vbShade[i].mStages[1] = { "visibilityBuffer_shade.frag", shadingMacros[i], 2, RD_SHADER_SOURCES };
+			vbShade[i].mStages[0] = { "visibilityBuffer_shade.vert", NULL, 0 };
+			vbShade[i].mStages[1] = { "visibilityBuffer_shade.frag", shadingMacros[i], 2 };
 
-			deferredShade[i].mStages[0] = { "deferred_shade.vert", NULL, 0, RD_SHADER_SOURCES };
-			deferredShade[i].mStages[1] = { "deferred_shade.frag", shadingMacros[i], 2, RD_SHADER_SOURCES };
+			deferredShade[i].mStages[0] = { "deferred_shade.vert", NULL, 0 };
+			deferredShade[i].mStages[1] = { "deferred_shade.frag", shadingMacros[i], 2 };
 		}
 
-		deferredPointlights.mStages[0] = { "deferred_shade_pointlight.vert", shadingMacros[0], 1, RD_SHADER_SOURCES };
-		deferredPointlights.mStages[1] = { "deferred_shade_pointlight.frag", shadingMacros[0], 1, RD_SHADER_SOURCES };
+		deferredPointlights.mStages[0] = { "deferred_shade_pointlight.vert", shadingMacros[0], 1 };
+		deferredPointlights.mStages[1] = { "deferred_shade_pointlight.frag", shadingMacros[0], 1 };
 
 		// Resolve shader
-		resolvePass.mStages[0] = { "resolve.vert", shadingMacros[0], 1, RD_SHADER_SOURCES };
-		resolvePass.mStages[1] = { "resolve.frag", shadingMacros[0], 1, RD_SHADER_SOURCES };
+		resolvePass.mStages[0] = { "resolve.vert", shadingMacros[0], 1 };
+		resolvePass.mStages[1] = { "resolve.frag", shadingMacros[0], 1 };
 
 		// Resolve shader
-		resolveGodrayPass.mStages[0] = { "resolve.vert", shadingMacros[0], 1, RD_SHADER_SOURCES };
-		resolveGodrayPass.mStages[1] = { "resolveGodray.frag", shadingMacros[0], 1, RD_SHADER_SOURCES };
+		resolveGodrayPass.mStages[0] = { "resolve.vert", shadingMacros[0], 1 };
+		resolveGodrayPass.mStages[1] = { "resolveGodray.frag", shadingMacros[0], 1 };
 
 		// HDAO post-process shader
 		for (uint32_t i = 0; i < 4; ++i)
@@ -3419,43 +3411,43 @@ public:
 			sprintf(hdaoMacroBuffer[i], "%u", (i + 1));
 			hdaoMacros[i][0] = shadingMacros[0][0];
 			hdaoMacros[i][1] = { "AO_QUALITY", hdaoMacroBuffer[i] };
-			ao[i].mStages[0] = { "HDAO.vert", hdaoMacros[i], 2, RD_SHADER_SOURCES };
-			ao[i].mStages[1] = { "HDAO.frag", hdaoMacros[i], 2, RD_SHADER_SOURCES };
+			ao[i].mStages[0] = { "HDAO.vert", hdaoMacros[i], 2 };
+			ao[i].mStages[1] = { "HDAO.frag", hdaoMacros[i], 2 };
 		}
 
 		// Triangle culling compute shader
-		triangleCulling.mStages[0] = { "triangle_filtering.comp", 0, NULL, RD_SHADER_SOURCES };
+		triangleCulling.mStages[0] = { "triangle_filtering.comp", 0, NULL };
 		// Batch compaction compute shader
-		batchCompaction.mStages[0] = { "batch_compaction.comp", 0, NULL, RD_SHADER_SOURCES };
+		batchCompaction.mStages[0] = { "batch_compaction.comp", 0, NULL };
 		// Clear buffers compute shader
-		clearBuffer.mStages[0] = { "clear_buffers.comp", 0, NULL, RD_SHADER_SOURCES };
+		clearBuffer.mStages[0] = { "clear_buffers.comp", 0, NULL };
 		// Clear light clusters compute shader
-		clearLights.mStages[0] = { "clear_light_clusters.comp", 0, NULL, RD_SHADER_SOURCES };
+		clearLights.mStages[0] = { "clear_light_clusters.comp", 0, NULL };
 		// Cluster lights compute shader
-		clusterLights.mStages[0] = { "cluster_lights.comp", 0, NULL, RD_SHADER_SOURCES };
+		clusterLights.mStages[0] = { "cluster_lights.comp", 0, NULL };
 
 		ShaderLoadDesc sunShaderDesc = {};
-		sunShaderDesc.mStages[0] = { "sun.vert", NULL, 0, RD_SHADER_SOURCES };
-		sunShaderDesc.mStages[1] = { "sun.frag", NULL, 0, RD_SHADER_SOURCES };
+		sunShaderDesc.mStages[0] = { "sun.vert", NULL, 0 };
+		sunShaderDesc.mStages[1] = { "sun.frag", NULL, 0 };
 		addShader(pRenderer, &sunShaderDesc, &pSunPass);
 
 		ShaderLoadDesc godrayShaderDesc = {};
-		godrayShaderDesc.mStages[0] = { "display.vert", NULL, 0, RD_SHADER_SOURCES };
-		godrayShaderDesc.mStages[1] = { "godray.frag", NULL, 0, RD_SHADER_SOURCES };
+		godrayShaderDesc.mStages[0] = { "display.vert", NULL, 0 };
+		godrayShaderDesc.mStages[1] = { "godray.frag", NULL, 0 };
 		addShader(pRenderer, &godrayShaderDesc, &pGodRayPass);
 
 		ShaderLoadDesc CurveConversionShaderDesc = {};
-		CurveConversionShaderDesc.mStages[0] = { "display.vert", NULL, 0, RD_SHADER_SOURCES };
-		CurveConversionShaderDesc.mStages[1] = { "CurveConversion.frag", NULL, 0, RD_SHADER_SOURCES };
+		CurveConversionShaderDesc.mStages[0] = { "display.vert", NULL, 0 };
+		CurveConversionShaderDesc.mStages[1] = { "CurveConversion.frag", NULL, 0 };
 		addShader(pRenderer, &CurveConversionShaderDesc, &pShaderCurveConversion);
 
 		ShaderLoadDesc presentShaderDesc = {};
-		presentShaderDesc.mStages[0] = { "display.vert", NULL, 0, RD_SHADER_SOURCES };
-		presentShaderDesc.mStages[1] = { "display.frag", NULL, 0, RD_SHADER_SOURCES };
+		presentShaderDesc.mStages[0] = { "display.vert", NULL, 0 };
+		presentShaderDesc.mStages[1] = { "display.frag", NULL, 0 };
 
 		ShaderLoadDesc skyboxShaderDesc = {};
-		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0, RD_SHADER_SOURCES };
-		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0, RD_SHADER_SOURCES };
+		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0 };
+		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0 };
 
 		addShader(pRenderer, &presentShaderDesc, &pShaderPresentPass);
 
@@ -3524,7 +3516,7 @@ public:
 		/************************************************************************/
 		// Material props
 		/************************************************************************/
-		uint32_t* alphaTestMaterials = (uint32_t*)conf_malloc(gMaterialCount * sizeof(uint32_t));
+		uint32_t* alphaTestMaterials = (uint32_t*)tf_malloc(gMaterialCount * sizeof(uint32_t));
 		for (uint32_t i = 0; i < gMaterialCount; ++i)
 		{
 			alphaTestMaterials[i] = pScene->materials[i].alphaTested ? 1 : 0;
@@ -3539,9 +3531,9 @@ public:
 		materialPropDesc.pData = alphaTestMaterials;
 		materialPropDesc.ppBuffer = &pMaterialPropertyBuffer;
 		materialPropDesc.mDesc.pName = "Material Prop Desc";
-		addResource(&materialPropDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&materialPropDesc, NULL);
 
-		conf_free(alphaTestMaterials);
+		tf_free(alphaTestMaterials);
 		/************************************************************************/
 		// Indirect draw arguments to draw all triangles
 		/************************************************************************/
@@ -3605,7 +3597,7 @@ public:
 			indirectBufferDesc.pData = i == 0 ? indirectArgsNoAlpha.data() : indirectArgsAlpha.data();
 			indirectBufferDesc.ppBuffer = &pIndirectDrawArgumentsBufferAll[i];
 			indirectBufferDesc.mDesc.pName = "Indirect Buffer Desc";
-			addResource(&indirectBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&indirectBufferDesc, NULL);
 		}
 
 		BufferLoadDesc indirectDesc = {};
@@ -3617,7 +3609,7 @@ public:
 		indirectDesc.pData = materialIDPerDrawCall.data();
 		indirectDesc.ppBuffer = &pIndirectMaterialBufferAll;
 		indirectDesc.mDesc.pName = "Indirect Desc";
-		addResource(&indirectDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&indirectDesc, NULL);
 
 		/************************************************************************/
 		// Indirect buffers for culling
@@ -3636,12 +3628,12 @@ public:
 			for (uint32_t j = 0; j < gNumViews; ++j)
 			{
 				filterIbDesc.ppBuffer = &pFilteredIndexBuffer[i][j];
-				addResource(&filterIbDesc, NULL, LOAD_PRIORITY_NORMAL);
+				addResource(&filterIbDesc, NULL);
 			}
 		}
 
 		VisBufferIndirectCommand* indirectDrawArguments =
-			(VisBufferIndirectCommand*)conf_malloc(MAX_DRAWS_INDIRECT * sizeof(VisBufferIndirectCommand));
+			(VisBufferIndirectCommand*)tf_malloc(MAX_DRAWS_INDIRECT * sizeof(VisBufferIndirectCommand));
 		memset(indirectDrawArguments, 0, MAX_DRAWS_INDIRECT * sizeof(VisBufferIndirectCommand));
 		for (uint32_t i = 0; i < MAX_DRAWS_INDIRECT; ++i)
 		{
@@ -3685,22 +3677,22 @@ public:
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			filterMaterialDesc.ppBuffer = &pFilterIndirectMaterialBuffer[i];
-			addResource(&filterMaterialDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&filterMaterialDesc, NULL);
 
 			for (uint32_t view = 0; view < gNumViews; ++view)
 			{
 				uncompactedDesc.ppBuffer = &pUncompactedDrawArgumentsBuffer[i][view];
-				addResource(&uncompactedDesc, NULL, LOAD_PRIORITY_NORMAL);
+				addResource(&uncompactedDesc, NULL);
 
 				for (uint32_t geom = 0; geom < gNumGeomSets; ++geom)
 				{
 					filterIndirectDesc.ppBuffer = &pFilteredIndirectDrawArgumentsBuffer[i][geom][view];
-					addResource(&filterIndirectDesc, NULL, LOAD_PRIORITY_NORMAL);
+					addResource(&filterIndirectDesc, NULL);
 				}
 			}
 		}
 
-		conf_free(indirectDrawArguments);
+		tf_free(indirectDrawArguments);
 		/************************************************************************/
 		// Triangle filtering buffers
 		/************************************************************************/
@@ -3714,7 +3706,7 @@ public:
 			{
 				const uint32_t bufferSize = BATCH_COUNT * sizeof(FilterBatchData);
 				bufferSizeTotal += bufferSize;
-				pFilterBatchChunk[i][j] = (FilterBatchChunk*)conf_malloc(sizeof(FilterBatchChunk));
+				pFilterBatchChunk[i][j] = (FilterBatchChunk*)tf_malloc(sizeof(FilterBatchChunk));
 				pFilterBatchChunk[i][j]->currentBatchCount = 0;
 				pFilterBatchChunk[i][j]->currentDrawCallCount = 0;
 			}
@@ -3725,7 +3717,7 @@ public:
 		// Mesh constants
 		/************************************************************************/
 		// create mesh constants buffer
-		MeshConstants* meshConstants = (MeshConstants*)conf_malloc(gMeshCount * sizeof(MeshConstants));
+		MeshConstants* meshConstants = (MeshConstants*)tf_malloc(gMeshCount * sizeof(MeshConstants));
 
 		for (uint32_t i = 0; i < gMeshCount; ++i)
 		{
@@ -3745,9 +3737,9 @@ public:
 		meshConstantDesc.ppBuffer = &pMeshConstantsBuffer;
 		meshConstantDesc.mDesc.pName = "Mesh Constant Desc";
 
-		addResource(&meshConstantDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&meshConstantDesc, NULL);
 
-		conf_free(meshConstants);
+		tf_free(meshConstants);
 
 		/************************************************************************/
 		// Per Frame Constant Buffers
@@ -3764,7 +3756,7 @@ public:
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pPerFrameUniformBuffers[i];
-			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubDesc, NULL);
 		}
 		/************************************************************************/
 		// Lighting buffers
@@ -3789,7 +3781,7 @@ public:
 		batchUb.pData = gLightData;
 		batchUb.ppBuffer = &pLightsBuffer;
 		batchUb.mDesc.pName = "Lights Desc";
-		addResource(&batchUb, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&batchUb, NULL);
 
 		// Setup lights cluster data
 		uint32_t       lightClustersInitData[LIGHT_CLUSTER_WIDTH * LIGHT_CLUSTER_HEIGHT] = {};
@@ -3805,7 +3797,7 @@ public:
 		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
 		{
 			lightClustersCountBufferDesc.ppBuffer = &pLightClustersCount[frameIdx];
-			addResource(&lightClustersCountBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&lightClustersCountBufferDesc, NULL);
 		}
 
 		BufferLoadDesc lightClustersDataBufferDesc = {};
@@ -3820,7 +3812,7 @@ public:
 		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
 		{
 			lightClustersDataBufferDesc.ppBuffer = &pLightClusters[frameIdx];
-			addResource(&lightClustersDataBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&lightClustersDataBufferDesc, NULL);
 		}
 
 		BufferLoadDesc sunDataBufferDesc = {};
@@ -3833,7 +3825,7 @@ public:
 		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
 		{
 			sunDataBufferDesc.ppBuffer = &pUniformBufferSun[frameIdx];
-			addResource(&sunDataBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&sunDataBufferDesc, NULL);
 		}
 
 		BufferLoadDesc skyDataBufferDesc = {};
@@ -3846,7 +3838,7 @@ public:
 		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
 		{
 			skyDataBufferDesc.ppBuffer = &pUniformBufferSky[frameIdx];
-			addResource(&skyDataBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&skyDataBufferDesc, NULL);
 		}
 		/************************************************************************/
 		/************************************************************************/
@@ -3903,7 +3895,7 @@ public:
 		{
 			for (uint32_t j = 0; j < gSmallBatchChunkCount; ++j)
 			{
-				conf_free(pFilterBatchChunk[i][j]);
+				tf_free(pFilterBatchChunk[i][j]);
 			}
 
 		}
@@ -4852,7 +4844,7 @@ public:
 			Mesh* drawBatch = &pMeshes[i];
 			maxClusterCount = max(maxClusterCount, drawBatch->clusterCount);
 		}
-		Cluster** temporaryClusters = (Cluster**)conf_malloc(sizeof(Cluster) * maxClusterCount);
+		Cluster** temporaryClusters = (Cluster**)tf_malloc(sizeof(Cluster) * maxClusterCount);
 #endif
 
 		for (uint32_t i = 0; i < gMeshCount; ++i)
@@ -4977,7 +4969,7 @@ public:
 
 		}
 #if SORT_CLUSTERS
-		conf_free(temporaryClusters);
+		tf_free(temporaryClusters);
 #endif
 
 #else
@@ -5207,19 +5199,17 @@ public:
 		TextureLoadDesc skyboxLoadDesc = {};
 		skyboxLoadDesc.pDesc = &skyboxImgDesc;
 		skyboxLoadDesc.ppTexture = &pSkybox;
-		addResource(&skyboxLoadDesc, &token, LOAD_PRIORITY_HIGH);
+		addResource(&skyboxLoadDesc, &token);
 
 		// Load the skybox panorama texture.
-		PathHandle skyboxPath = fsGetPathInResourceDirEnum(RD_TEXTURES, "daytime");
 		TextureLoadDesc panoDesc = {};
-		panoDesc.pFilePath = skyboxPath;
-		//panoDesc.pFilename = "LA_Helipad.hdr";
+		panoDesc.pFileName = "daytime";
 		panoDesc.ppTexture = &pPanoSkybox;
-		addResource(&panoDesc, &token, LOAD_PRIORITY_HIGH);
+		addResource(&panoDesc, &token);
 
 		// Load pre-processing shaders.
 		ShaderLoadDesc panoToCubeShaderDesc = {};
-		panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", NULL, 0, RD_SHADER_SOURCES };
+		panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", NULL, 0 };
 
 		addShader(pRenderer, &panoToCubeShaderDesc, &pPanoToCubeShader);
 

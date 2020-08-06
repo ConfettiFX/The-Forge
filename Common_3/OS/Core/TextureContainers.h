@@ -517,7 +517,8 @@ if (!(exp))                   \
 	RETURN_IF_FAILED((ddsDataSize > (sizeof(uint32_t) + sizeof(DDS_HEADER))));
 
 	// DDS files always start with the same magic number ("DDS ")
-	uint32_t dwMagicNumber = fsReadFromStreamUInt32(pStream);
+	uint32_t dwMagicNumber = 0;
+	fsReadFromStream(pStream, &dwMagicNumber, sizeof(dwMagicNumber));
 	RETURN_IF_FAILED(dwMagicNumber == DDS_MAGIC);
 
 	DDS_HEADER headerStruct = {};
@@ -653,8 +654,8 @@ if (!(exp))                   \
 	TinyKtx_Callbacks callbacks
 	{
 		[](void* user, char const* msg) { LOGF(eERROR, msg); },
-		[](void* user, size_t size) { return conf_malloc(size); },
-		[](void* user, void* memory) { conf_free(memory); },
+		[](void* user, size_t size) { return tf_malloc(size); },
+		[](void* user, void* memory) { tf_free(memory); },
 		[](void* user, void* buffer, size_t byteCount) { return fsReadFromStream((FileStream*)user, buffer, (ssize_t)byteCount); },
 		[](void* user, int64_t offset) { return fsSeekStream((FileStream*)user, SBO_START_OF_FILE, (ssize_t)offset); },
 		[](void *user) { return (int64_t)fsGetStreamSeekPosition((FileStream*)user); }
@@ -704,14 +705,9 @@ static bool loadBASISTextureDesc(FileStream* pStream, TextureDesc* pOutDesc, voi
 
 	basist::etc1_global_selector_codebook sel_codebook(basist::g_global_selector_cb_size, basist::g_global_selector_cb);
 
-	void* basisData = fsGetStreamBufferIfPresent(pStream);
 	size_t memSize = (size_t)fsGetStreamFileSize(pStream);
-
-	if (!basisData)
-	{
-		basisData = conf_malloc(memSize);
-		fsReadFromStream(pStream, basisData, memSize);
-	}
+	void* basisData = tf_malloc(memSize);
+	fsReadFromStream(pStream, basisData, memSize);
 
 	basist::basisu_transcoder decoder(&sel_codebook);
 
@@ -789,7 +785,7 @@ static bool loadBASISTextureDesc(FileStream* pStream, TextureDesc* pOutDesc, voi
 		textureDesc.mWidth, textureDesc.mHeight, textureDesc.mDepth, 1, 1,
 		0, textureDesc.mMipLevels,
 		0, textureDesc.mArraySize);
-	void* startData = conf_malloc(requiredSize);
+	void* startData = tf_malloc(requiredSize);
 	uint8_t* data = (uint8_t*)startData;
 
 	for (uint32_t s = 0; s < fileinfo.m_total_images; ++s)
@@ -813,11 +809,8 @@ static bool loadBASISTextureDesc(FileStream* pStream, TextureDesc* pOutDesc, voi
 			if (!decoder.get_image_level_info(basisData, (uint32_t)memSize, level_info, s, m))
 			{
 				LOGF(LogLevel::eERROR, "Failed retrieving image level information (%u %u)!\n", s, m);
-				if (!fsGetStreamBufferIfPresent(pStream))
-				{
-					conf_free(basisData);
-					conf_free(startData);
-				}
+				tf_free(basisData);
+				tf_free(startData);
 				return false;
 			}
 
@@ -825,12 +818,8 @@ static bool loadBASISTextureDesc(FileStream* pStream, TextureDesc* pOutDesc, voi
 				(uint32_t)(rowPitchInBlocks * imageinfo.m_num_blocks_y), basisTextureFormat, 0, rowPitchInBlocks))
 			{
 				LOGF(LogLevel::eERROR, "Failed transcoding image level (%u %u)!", s, m);
-
-				if (!fsGetStreamBufferIfPresent(pStream))
-				{
-					conf_free(basisData);
-					conf_free(startData);
-				}
+				tf_free(basisData);
+				tf_free(startData);
 				return false;
 			}
 
@@ -854,7 +843,7 @@ static bool loadBASISTextureDesc(FileStream* pStream, TextureDesc* pOutDesc, voi
 		}
 	}
 
-	conf_free(basisData);
+	tf_free(basisData);
 
 	*ppOutData = startData;
 	*pOutDataSize = requiredSize;

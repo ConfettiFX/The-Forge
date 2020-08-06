@@ -4,12 +4,11 @@
 #include <stdio.h>  // vsnprintf
 #include <string.h> // strcmp, strcasecmp
 #include <stdlib.h>	// strtod, strtol
-
-#include "../../../../../OS/Interfaces/ILog.h"
+#include <assert.h>
 
 void PARSER_ENGINE_ASSERT()
 {
-	ASSERT(0);
+	assert(0);
 }
 
 // Engine/String.cpp

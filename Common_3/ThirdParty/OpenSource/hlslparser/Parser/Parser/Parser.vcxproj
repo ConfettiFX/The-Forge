@@ -87,10 +87,10 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>FORGE_IGNORE_PSZBASE;_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
     </ClCompile>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) $(SolutionDir)..\Debug\$(TargetName).exe</Command>
+      <Command>copy "$(TargetPath)" "$(SolutionDir)..\Debug\$(TargetName).exe"</Command>
     </PostBuildEvent>
     <Link>
       <AdditionalDependencies>kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -104,7 +104,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>TEST_PARSER;FORGE_IGNORE_PSZBASE;_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>TEST_PARSER;_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
     </ClCompile>
     <PostBuildEvent>
       <Command>
@@ -124,7 +124,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>FORGE_IGNORE_PSZBASE;_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -134,8 +134,8 @@
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) $(SolutionDir)..\Web\WebTranslator\WebTranslator\wwwroot\app\$(TargetName).exe
-copy $(TargetPath) $(SolutionDir)..\Release\$(TargetName).exe</Command>
+      <Command>copy "$(TargetPath)" "$(SolutionDir)..\Web\WebTranslator\WebTranslator\wwwroot\app\$(TargetName).exe"
+copy "$(TargetPath)" "$(SolutionDir)..\Release\$(TargetName).exe"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseTest|x64'">
@@ -146,7 +146,7 @@ copy $(TargetPath) $(SolutionDir)..\Release\$(TargetName).exe</Command>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
-      <PreprocessorDefinitions>TEST_PARSER;FORGE_IGNORE_PSZBASE;_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>TEST_PARSER;_MBCS;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -161,17 +161,15 @@ copy $(TargetPath) $(SolutionDir)..\Release\$(TargetName).exe</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\..\..\OS\FileSystem\FileSystemInternal.cpp" />
-    <ClCompile Include="..\..\..\..\..\OS\FileSystem\MemoryStream.cpp" />
-    <ClCompile Include="..\..\..\..\..\OS\FileSystem\SystemFileStream.cpp" />
-    <ClCompile Include="..\..\..\..\..\OS\FileSystem\SystemRun.cpp" />
-    <ClCompile Include="..\..\..\..\..\OS\FileSystem\ZipFileStream.cpp" />
-    <ClCompile Include="..\..\..\..\..\OS\FileSystem\ZipFileSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\OS\Core\Timer.cpp" />
+    <ClCompile Include="..\..\..\..\..\OS\FileSystem\FileSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\OS\Logging\Log.cpp" />
     <ClCompile Include="..\..\..\..\..\OS\MemoryTracking\MemoryTracking.cpp" />
+    <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsBase.cpp" />
     <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsFileSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsLog.cpp" />
     <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsThread.cpp" />
+    <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsTime.cpp" />
     <ClCompile Include="..\..\..\EASTL\allocator_forge.cpp" />
     <ClCompile Include="..\..\..\EASTL\assert.cpp" />
     <ClCompile Include="..\..\..\EASTL\EAStdC\EAMemory.cpp" />
@@ -183,10 +181,6 @@ copy $(TargetPath) $(SolutionDir)..\Release\$(TargetName).exe</Command>
     <ClCompile Include="..\..\..\EASTL\red_black_tree.cpp" />
     <ClCompile Include="..\..\..\EASTL\string.cpp" />
     <ClCompile Include="..\..\..\EASTL\thread_support.cpp" />
-    <ClCompile Include="..\..\..\rmem\src\rmem_get_module_info.cpp" />
-    <ClCompile Include="..\..\..\rmem\src\rmem_hook.cpp" />
-    <ClCompile Include="..\..\..\rmem\src\rmem_lib.cpp" />
-    <ClCompile Include="..\..\..\zip\zip.cpp" />
     <ClCompile Include="CodeWriter.cpp" />
     <ClCompile Include="Engine.cpp" />
     <ClCompile Include="FullTokenizer.cpp" />
@@ -211,13 +205,6 @@ copy $(TargetPath) $(SolutionDir)..\Release\$(TargetName).exe</Command>
     <ClCompile Include="StringLibrary.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\..\..\OS\FileSystem\FileSystemInternal.h" />
-    <ClInclude Include="..\..\..\..\..\OS\FileSystem\MemoryStream.h" />
-    <ClInclude Include="..\..\..\..\..\OS\FileSystem\SystemFileStream.h" />
-    <ClInclude Include="..\..\..\..\..\OS\FileSystem\ZipFileStream.h" />
-    <ClInclude Include="..\..\..\..\..\OS\FileSystem\ZipFileSystem.h" />
-    <ClInclude Include="..\..\..\zip\miniz.h" />
-    <ClInclude Include="..\..\..\zip\zip.h" />
     <ClInclude Include="CodeWriter.h" />
     <ClInclude Include="Engine.h" />
     <ClInclude Include="FullTokenizer.h" />

@@ -628,7 +628,7 @@ namespace SoLoud
 
 	AudioSourceInstance * Sfxr::createInstance() 
 	{
-		return conf_new(SfxrInstance, this);
+		return tf_new(SfxrInstance, this);
 	}
 
 };

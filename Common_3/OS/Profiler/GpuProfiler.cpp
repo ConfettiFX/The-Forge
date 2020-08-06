@@ -47,10 +47,6 @@ GpuProfiler* getGpuProfiler(ProfileToken nProfileToken) { return NULL; }
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/ITime.h"
 #include "../Interfaces/IMemory.h"
-#if __linux__
-#include <linux/limits.h>    //PATH_MAX declaration
-#define MAX_PATH PATH_MAX
-#endif
 
 extern void mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
 extern void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
@@ -162,10 +158,10 @@ double getAverageGpuTime(struct GpuProfiler* pGpuProfiler, struct GpuTimer* pGpu
 
 void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfiler, const char * pName)
 {
-	GpuProfiler* pGpuProfiler = (GpuProfiler*)conf_calloc(1, sizeof(*pGpuProfiler));
+	GpuProfiler* pGpuProfiler = (GpuProfiler*)tf_calloc(1, sizeof(*pGpuProfiler));
 	ASSERT(pGpuProfiler);
 
-	conf_placement_new<GpuProfiler>(pGpuProfiler);
+	tf_placement_new<GpuProfiler>(pGpuProfiler);
 	pGpuProfiler->mReset = true;
     pGpuProfiler->pRenderer = pRenderer;
     strncpy(pGpuProfiler->mGroupName, pName, 256);
@@ -194,7 +190,7 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
 		BufferLoadDesc loadDesc = {};
 		loadDesc.mDesc = bufDesc;
 		loadDesc.ppBuffer = &pGpuProfiler->pReadbackBuffer[i];
-		addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&loadDesc, NULL);
 	}
 
 	getTimestampFrequency(pQueue, &pGpuProfiler->mGpuTimeStampFrequency);
@@ -204,7 +200,7 @@ void addGpuProfiler(Renderer* pRenderer, Queue* pQueue, GpuProfiler** ppGpuProfi
 	pGpuProfiler->pLog->nGpu = 1;
     pGpuProfiler->pLog->nGpuToken = getProfileToken(pGpuProfiler->mProfilerIndex, 0);
 
-	pGpuProfiler->pGpuTimerPool = (GpuTimer*)conf_calloc(GpuProfiler::MAX_TIMERS, sizeof(*pGpuProfiler->pGpuTimerPool));
+	pGpuProfiler->pGpuTimerPool = (GpuTimer*)tf_calloc(GpuProfiler::MAX_TIMERS, sizeof(*pGpuProfiler->pGpuTimerPool));
 	pGpuProfiler->pCurrentNode = &pGpuProfiler->pGpuTimerPool[0];
 	pGpuProfiler->mCurrentPoolIndex = 0;
 
@@ -222,8 +218,8 @@ void removeGpuProfiler(struct GpuProfiler* pGpuProfiler)
 
 	ProfileRemoveThreadLog(pGpuProfiler->pLog);
 
-	conf_free(pGpuProfiler->pGpuTimerPool);
-	conf_free(pGpuProfiler);
+	tf_free(pGpuProfiler->pGpuTimerPool);
+	tf_free(pGpuProfiler);
 }
 
 ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, const char* pName, bool addMarker = true, const float3& color = { 1,1,0 }, bool isRoot = false)
@@ -320,9 +316,9 @@ void cmdEndGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfiler, bool i
 
 void initGpuProfilers()
 {
-    gGpuProfilerContainer = (GpuProfilerContainer*)conf_calloc(1, sizeof(*gGpuProfilerContainer));
+    gGpuProfilerContainer = (GpuProfilerContainer*)tf_calloc(1, sizeof(*gGpuProfilerContainer));
     ASSERT(gGpuProfilerContainer);
-    conf_placement_new<GpuProfilerContainer>(gGpuProfilerContainer);
+    tf_placement_new<GpuProfilerContainer>(gGpuProfilerContainer);
 }
 
 void exitGpuProfilers()
@@ -336,7 +332,7 @@ void exitGpuProfilers()
         }
     }
     gGpuProfilerContainer->mSize = 0;
-    conf_free(gGpuProfilerContainer);
+    tf_free(gGpuProfilerContainer);
 }
 
 ProfileToken addGpuProfiler(Renderer* pRenderer, Queue* pQueue, const char* pName)

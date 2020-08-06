@@ -978,6 +978,7 @@ typedef struct DEFINE_ALIGNED(Texture, 64)
 	/// Contains resource allocation info such as parent heap, offset in heap
 	D3D12MA::Allocation*         pDxAllocation;
 	uint64_t                     mHandleCount : 24;
+	uint64_t                     mUavStartIndex : 1;
 	uint32_t                     mDescriptorSize;
 #endif
 #if defined(VULKAN)
@@ -2240,9 +2241,10 @@ typedef struct GPUSettings
 #ifdef METAL
     uint32_t            mArgumentBufferMaxTextures;
 #endif
-	uint32_t            mMultiDrawIndirect     : 1;
-	uint32_t            mROVsSupported         : 1;
-	uint32_t            mTessellationSupported : 1;
+	uint32_t            mMultiDrawIndirect       : 1;
+	uint32_t            mROVsSupported           : 1;
+	uint32_t            mTessellationSupported   : 1;
+	uint32_t            mGeometryShaderSupported : 1;
 #ifdef METAL
 	uint32_t            mHeaps : 1;
 	uint32_t            mPlacementHeaps : 1;

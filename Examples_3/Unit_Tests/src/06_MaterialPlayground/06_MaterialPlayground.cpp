@@ -640,8 +640,8 @@ TextDrawDesc		gMaterialPropDraw = TextDrawDesc(0, 0xffaaaaaa, 32);
 
 // light
 const int			gShadowMapDimensions = 2048;
-uint				gDirectionalLightColor = 0xff5b21ff;
-float				gDirectionalLightIntensity = 40.0f;
+uint				gDirectionalLightColor = 0xffb475ff;
+float				gDirectionalLightIntensity = 10.0f;
 float3				gDirectionalLightPosition = float3(-33.030f, 9.09f, 100.0f);
 float				gAmbientLightIntensity = 0.01f;
 float				gEnvironmentLightingIntensity = 0.35f;
@@ -736,8 +736,8 @@ class MaterialPlayground: public IApp
 		float* pBonePoints;
 		~StagingData()
 		{
-			conf_free(pJointPoints);
-			conf_free(pBonePoints);
+			tf_free(pJointPoints);
+			tf_free(pBonePoints);
 		}
 	};
 	StagingData* pStagingData;
@@ -745,20 +745,14 @@ class MaterialPlayground: public IApp
 	bool Init()
 	{
         // FILE PATHS
-		PathHandle programDirectory = fsGetApplicationDirectory();
-        if (!fsPlatformUsesBundledResources())
-        {
-            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/06_MaterialPlayground");
-            fsSetResourceDirRootPath(resourceDirRoot);
-            
-            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirEnum(RD_MESHES,          "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirEnum(RD_OTHER_FILES,      "../../../../Art");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
-        }
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_ANIMATIONS, "Animation");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SCRIPTS, "Scripts");
 
 		initThreadSystem(&pIOThreads);
 
@@ -802,10 +796,10 @@ class MaterialPlayground: public IApp
 		gLuaManager.Init();
 		initResourceLoaderInterface(pRenderer);
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
 			return false;
 
-		pStagingData = conf_new(StagingData);
+		pStagingData = tf_new(StagingData);
 		// CREATE RENDERING RESOURCES
 		//
 		CreateShaders();
@@ -826,7 +820,7 @@ class MaterialPlayground: public IApp
 		waitThreadSystemIdle(pIOThreads);
 		waitForAllResourceLoads();
 
-		conf_delete(pStagingData);
+		tf_delete(pStagingData);
 
 		InitializeUniformBuffers();
 
@@ -835,7 +829,7 @@ class MaterialPlayground: public IApp
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 
         initProfiler();
         gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
@@ -887,8 +881,7 @@ class MaterialPlayground: public IApp
 			state->PushResultInteger(gbAnimateCamera ? 1 : 0);
 			return 1;    // return amount of arguments
 		});
-        PathHandle updateCameraPath = fsGetPathInResourceDirEnum(RD_MIDDLEWARE_2, "updateCamera.lua");
-		gbLuaScriptingSystemLoadedSuccessfully = gLuaManager.SetUpdatableScript(updateCameraPath, "Update", "Exit");
+		gbLuaScriptingSystemLoadedSuccessfully = gLuaManager.SetUpdatableScript("updateCamera.lua", "Update", "Exit");
 
 		// SET MATERIAL LIGHTING MODELS
 		//
@@ -1104,7 +1097,7 @@ class MaterialPlayground: public IApp
 		// update the texture config (position and all other variables are 
 		// set during initialization and they dont change during Update()).
 		//
-		for (int i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
+		for (uint32_t i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
 		{
 			UniformObjData& objUniform = gUniformDataMatBall[i];
 
@@ -1394,7 +1387,7 @@ class MaterialPlayground: public IApp
 
 			// DRAW THE LABEL PLATES
 			//
-			for (int j = 0; j < MATERIAL_INSTANCE_COUNT; ++j)
+			for (uint32_t j = 0; j < MATERIAL_INSTANCE_COUNT; ++j)
 			{
 				cmdBindDescriptorSet(cmd, 1 + j, pDescriptorSetShadow[1]);
 				cmdDrawIndexed(cmd, gMeshes[MESH_CUBE]->mIndexCount, 0, 0);
@@ -1404,7 +1397,7 @@ class MaterialPlayground: public IApp
 			//
 			cmdBindVertexBuffer(cmd, 1, &gMeshes[MESH_MAT_BALL]->pVertexBuffers[0], &gMeshes[MESH_MAT_BALL]->mVertexStrides[0], NULL);
 			cmdBindIndexBuffer(cmd, gMeshes[MESH_MAT_BALL]->pIndexBuffer, gMeshes[MESH_MAT_BALL]->mIndexType, 0);
-			for (int i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
+			for (uint32_t i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
 			{
 				cmdBindDescriptorSet(cmd, 1 + MATERIAL_INSTANCE_COUNT + (gFrameIndex * MATERIAL_INSTANCE_COUNT + i), pDescriptorSetShadow[1]);
 				cmdDrawIndexed(cmd, gMeshes[MESH_MAT_BALL]->mIndexCount, 0, 0);
@@ -1471,7 +1464,7 @@ class MaterialPlayground: public IApp
 
 			// DRAW THE LABEL PLATES
 			//
-			for (int j = 0; j < MATERIAL_INSTANCE_COUNT; ++j)
+			for (uint32_t j = 0; j < MATERIAL_INSTANCE_COUNT; ++j)
 			{
 				cmdBindDescriptorSet(cmd, 1 + j, pDescriptorSetBRDF[2]);
 				cmdDrawIndexed(cmd, gMeshes[MESH_CUBE]->mIndexCount, 0, 0);
@@ -1483,7 +1476,7 @@ class MaterialPlayground: public IApp
 			// DRAW THE MATERIAL BALLS
 			//
 #if 1    // toggle for rendering objects
-			for (int i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
+			for (uint32_t i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
 			{
 				const uint32_t index = 1 + MATERIAL_INSTANCE_COUNT + (gFrameIndex * MATERIAL_BRDF_COUNT * MATERIAL_INSTANCE_COUNT) + (GuiController::currentMaterialType * MATERIAL_INSTANCE_COUNT) + i;
 				cmdBindDescriptorSet(cmd, index, pDescriptorSetBRDF[2]);
@@ -1936,7 +1929,7 @@ class MaterialPlayground: public IApp
 
 		if (GuiController::currentMaterialType != MATERIAL_HAIR)
 		{
-			for (int i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
+			for (uint32_t i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
 			{
 				gAppUI.DrawTextInWorldSpace(cmd, ppMaterialNames[i], gTextWorldMats[i], gTextProjView, &gMaterialPropDraw);
 			}
@@ -2079,18 +2072,18 @@ class MaterialPlayground: public IApp
 		ShaderMacro lightMacros[] = { pointLightsShaderMacro, directionalLightsShaderMacro };
 
 		ShaderLoadDesc skyboxShaderDesc = {};
-		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0, RD_SHADER_SOURCES };
-		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0, RD_SHADER_SOURCES };
+		skyboxShaderDesc.mStages[0] = { "skybox.vert", NULL, 0};
+		skyboxShaderDesc.mStages[1] = { "skybox.frag", NULL, 0};
 		addShader(pRenderer, &skyboxShaderDesc, &pShaderSkybox);
 
 		ShaderLoadDesc brdfRenderSceneShaderDesc = {};
-		brdfRenderSceneShaderDesc.mStages[0] = { "renderSceneBRDF.vert", lightMacros, 2, RD_SHADER_SOURCES };
-		brdfRenderSceneShaderDesc.mStages[1] = { "renderSceneBRDF.frag", lightMacros, 2, RD_SHADER_SOURCES };
+		brdfRenderSceneShaderDesc.mStages[0] = { "renderSceneBRDF.vert", lightMacros, 2};
+		brdfRenderSceneShaderDesc.mStages[1] = { "renderSceneBRDF.frag", lightMacros, 2};
 		addShader(pRenderer, &brdfRenderSceneShaderDesc, &pShaderBRDF);
 
 		ShaderLoadDesc shadowPassShaderDesc = {};
-		shadowPassShaderDesc.mStages[0] = { "renderSceneShadows.vert", NULL, 0, RD_SHADER_SOURCES };
-		shadowPassShaderDesc.mStages[1] = { "renderSceneShadows.frag", NULL, 0, RD_SHADER_SOURCES };
+		shadowPassShaderDesc.mStages[0] = { "renderSceneShadows.vert", NULL, 0};
+		shadowPassShaderDesc.mStages[1] = { "renderSceneShadows.frag", NULL, 0};
 		addShader(pRenderer, &shadowPassShaderDesc, &pShaderShadowPass);
 
 
@@ -2103,78 +2096,78 @@ class MaterialPlayground: public IApp
 		shaderMacros[2] = directionalLightsShaderMacro;
 		shaderMacros[3] = { "SHORT_CUT_CLEAR", "" };
 		ShaderLoadDesc hairClearShaderDesc = {};
-		hairClearShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, macroCount, RD_SHADER_SOURCES };
-		hairClearShaderDesc.mStages[1] = { "hair.frag", shaderMacros, macroCount, RD_SHADER_SOURCES };
+		hairClearShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, macroCount};
+		hairClearShaderDesc.mStages[1] = { "hair.frag", shaderMacros, macroCount};
 		addShader(pRenderer, &hairClearShaderDesc, &pShaderHairClear);
 
 		shaderMacros[3] = { "SHORT_CUT_DEPTH_PEELING", "" };
 		ShaderLoadDesc hairDepthPeelingShaderDesc = {};
-		hairDepthPeelingShaderDesc.mStages[0] = { "hair.vert", shaderMacros, macroCount, RD_SHADER_SOURCES };
-		hairDepthPeelingShaderDesc.mStages[1] = { "hair.frag", shaderMacros, macroCount, RD_SHADER_SOURCES };
+		hairDepthPeelingShaderDesc.mStages[0] = { "hair.vert", shaderMacros, macroCount};
+		hairDepthPeelingShaderDesc.mStages[1] = { "hair.frag", shaderMacros, macroCount};
 		addShader(pRenderer, &hairDepthPeelingShaderDesc, &pShaderHairDepthPeeling);
 
 		shaderMacros[3] = { "SHORT_CUT_RESOLVE_DEPTH", "" };
 		ShaderLoadDesc hairDepthResolveShaderDesc = {};
-		hairDepthResolveShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, macroCount, RD_SHADER_SOURCES };
-		hairDepthResolveShaderDesc.mStages[1] = { "hair.frag", shaderMacros, macroCount, RD_SHADER_SOURCES };
+		hairDepthResolveShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, macroCount};
+		hairDepthResolveShaderDesc.mStages[1] = { "hair.frag", shaderMacros, macroCount};
 		addShader(pRenderer, &hairDepthResolveShaderDesc, &pShaderHairDepthResolve);
 
 		shaderMacros[3] = { "SHORT_CUT_FILL_COLOR", "" };
 		ShaderLoadDesc hairFillColorShaderDesc = {};
-		hairFillColorShaderDesc.mStages[0] = { "hair.vert", shaderMacros, macroCount, RD_SHADER_SOURCES };
-		hairFillColorShaderDesc.mStages[1] = { "hair.frag", shaderMacros, macroCount, RD_SHADER_SOURCES };
+		hairFillColorShaderDesc.mStages[0] = { "hair.vert", shaderMacros, macroCount};
+		hairFillColorShaderDesc.mStages[1] = { "hair.frag", shaderMacros, macroCount};
 		addShader(pRenderer, &hairFillColorShaderDesc, &pShaderHairFillColors);
 
 		shaderMacros[3] = { "SHORT_CUT_RESOLVE_COLOR", "" };
 		ShaderLoadDesc hairColorResolveShaderDesc = {};
-		hairColorResolveShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, macroCount, RD_SHADER_SOURCES };
-		hairColorResolveShaderDesc.mStages[1] = { "hair.frag", shaderMacros, macroCount, RD_SHADER_SOURCES };
+		hairColorResolveShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, macroCount};
+		hairColorResolveShaderDesc.mStages[1] = { "hair.frag", shaderMacros, macroCount};
 		addShader(pRenderer, &hairColorResolveShaderDesc, &pShaderHairResolveColor);
 
 		shaderMacros[3] = { "HAIR_SHADOW", "" };
 		ShaderLoadDesc hairShadowShaderDesc = {};
-		hairShadowShaderDesc.mStages[0] = { "hair.vert", shaderMacros, macroCount, RD_SHADER_SOURCES };
-		hairShadowShaderDesc.mStages[1] = { "hair.frag", shaderMacros, macroCount, RD_SHADER_SOURCES };
+		hairShadowShaderDesc.mStages[0] = { "hair.vert", shaderMacros, macroCount};
+		hairShadowShaderDesc.mStages[1] = { "hair.frag", shaderMacros, macroCount};
 		addShader(pRenderer, &hairShadowShaderDesc, &pShaderHairShadow);
 
 		shaderMacros[3] = { "HAIR_INTEGRATE", "" };
 		ShaderLoadDesc hairIntegrateShaderDesc = {};
-		hairIntegrateShaderDesc.mStages[0] = { "hair.comp", shaderMacros, macroCount, RD_SHADER_SOURCES };
+		hairIntegrateShaderDesc.mStages[0] = { "hair.comp", shaderMacros, macroCount};
 		addShader(pRenderer, &hairIntegrateShaderDesc, &pShaderHairIntegrate);
 
 		shaderMacros[3] = { "HAIR_SHOCK_PROPAGATION", "" };
 		ShaderLoadDesc hairShockPropagationShaderDesc = {};
-		hairShockPropagationShaderDesc.mStages[0] = { "hair.comp", shaderMacros, macroCount, RD_SHADER_SOURCES };
+		hairShockPropagationShaderDesc.mStages[0] = { "hair.comp", shaderMacros, macroCount};
 		addShader(pRenderer, &hairShockPropagationShaderDesc, &pShaderHairShockPropagation);
 
 		shaderMacros[3] = { "HAIR_LOCAL_CONSTRAINTS", "" };
 		ShaderLoadDesc hairLocalConstraintsShaderDesc = {};
-		hairLocalConstraintsShaderDesc.mStages[0] = { "hair.comp", shaderMacros, macroCount, RD_SHADER_SOURCES };
+		hairLocalConstraintsShaderDesc.mStages[0] = { "hair.comp", shaderMacros, macroCount};
 		addShader(pRenderer, &hairLocalConstraintsShaderDesc, &pShaderHairLocalConstraints);
 
 		shaderMacros[3] = { "HAIR_LENGTH_CONSTRAINTS", "" };
 		ShaderLoadDesc hairLengthConstraintsShaderDesc = {};
-		hairLengthConstraintsShaderDesc.mStages[0] = { "hair.comp", shaderMacros, macroCount, RD_SHADER_SOURCES };
+		hairLengthConstraintsShaderDesc.mStages[0] = { "hair.comp", shaderMacros, macroCount};
 		addShader(pRenderer, &hairLengthConstraintsShaderDesc, &pShaderHairLengthConstraints);
 
 		shaderMacros[3] = { "HAIR_UPDATE_FOLLOW_HAIRS", "" };
 		ShaderLoadDesc hairUpdateFollowHairsShaderDesc = {};
-		hairUpdateFollowHairsShaderDesc.mStages[0] = { "hair.comp", shaderMacros, macroCount, RD_SHADER_SOURCES };
+		hairUpdateFollowHairsShaderDesc.mStages[0] = { "hair.comp", shaderMacros, macroCount};
 		addShader(pRenderer, &hairUpdateFollowHairsShaderDesc, &pShaderHairUpdateFollowHairs);
 
 		shaderMacros[3] = { "HAIR_PRE_WARM", "" };
 		ShaderLoadDesc hairPreWarmShaderDesc = {};
-		hairPreWarmShaderDesc.mStages[0] = { "hair.comp", shaderMacros, macroCount, RD_SHADER_SOURCES };
+		hairPreWarmShaderDesc.mStages[0] = { "hair.comp", shaderMacros, macroCount};
 		addShader(pRenderer, &hairPreWarmShaderDesc, &pShaderHairPreWarm);
 
 		ShaderLoadDesc showCapsulesShaderDesc = {};
-		showCapsulesShaderDesc.mStages[0] = { "showCapsules.vert", NULL, 0, RD_SHADER_SOURCES };
-		showCapsulesShaderDesc.mStages[1] = { "showCapsules.frag", NULL, 0, RD_SHADER_SOURCES };
+		showCapsulesShaderDesc.mStages[0] = { "showCapsules.vert", NULL, 0};
+		showCapsulesShaderDesc.mStages[1] = { "showCapsules.frag", NULL, 0};
 		addShader(pRenderer, &showCapsulesShaderDesc, &pShaderShowCapsules);
 
 		ShaderLoadDesc skeletonShaderDesc = {};
-		skeletonShaderDesc.mStages[0] = { "skeleton.vert", NULL, 0, RD_SHADER_SOURCES };
-		skeletonShaderDesc.mStages[1] = { "skeleton.frag", NULL, 0, RD_SHADER_SOURCES };
+		skeletonShaderDesc.mStages[0] = { "skeleton.vert", NULL, 0};
+		skeletonShaderDesc.mStages[1] = { "skeleton.frag", NULL, 0};
 		addShader(pRenderer, &skeletonShaderDesc, &pShaderSkeleton);
 #endif
 	}
@@ -2795,8 +2788,7 @@ class MaterialPlayground: public IApp
 			return 0;    //return amount of arguments that we want to send back to script
 		});
         
-        PathHandle loadModelsPath = fsGetPathInResourceDirEnum(RD_MIDDLEWARE_2, "loadModels.lua");
-		gLuaManager.AddAsyncScript(loadModelsPath, [&modelsAreLoaded](ScriptState state) { modelsAreLoaded = true; });
+		gLuaManager.AddAsyncScript("loadModels.lua", [&modelsAreLoaded](ScriptState state) { modelsAreLoaded = true; });
 
 		while (!modelsAreLoaded)
 			Thread::Sleep(0);
@@ -2824,9 +2816,8 @@ class MaterialPlayground: public IApp
 
 			return 0;
 		});
-        
-        PathHandle loadTexturesPath = fsGetPathInResourceDirEnum(RD_MIDDLEWARE_2, "loadTextures.lua");
-		gLuaManager.AddAsyncScript(loadTexturesPath, [&texturesAreLoaded](ScriptState state) { texturesAreLoaded = true; });
+       
+		gLuaManager.AddAsyncScript("loadTextures.lua", [&texturesAreLoaded](ScriptState state) { texturesAreLoaded = true; });
         
 		while (!texturesAreLoaded)
 			Thread::Sleep(0);
@@ -2848,9 +2839,8 @@ class MaterialPlayground: public IApp
 			return 0;
 		});
         
-        PathHandle loadGroundTexturesPath = fsGetPathInResourceDirEnum(RD_MIDDLEWARE_2, "loadGroundTextures.lua");
 		gLuaManager.AddAsyncScript(
-			loadGroundTexturesPath, [&groundTexturesAreLoaded](ScriptState state) { groundTexturesAreLoaded = true; });
+			"loadGroundTextures.lua", [&groundTexturesAreLoaded](ScriptState state) { groundTexturesAreLoaded = true; });
 
 		while (!groundTexturesAreLoaded)
 			Thread::Sleep(0);
@@ -2863,21 +2853,19 @@ class MaterialPlayground: public IApp
 	static void LoadMaterialTexturesTask(void* data, uintptr_t i)
 	{
         StagingData*    pTaskData = (StagingData*)data;
-        PathHandle path = fsGetPathInResourceDirEnum(RD_OTHER_FILES, pTaskData->mMaterialNamesStorage[i].c_str());
 		TextureLoadDesc desc = {};
-        desc.pFilePath = path;
+        desc.pFileName = pTaskData->mMaterialNamesStorage[i].c_str();
 		desc.ppTexture = &gTextureMaterialMaps[i];
-		addResource(&desc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&desc, NULL);
 	}
 
 	static void LoadGroundTexturesTask(void* data, uintptr_t i)
 	{
         StagingData*    pTaskData = (StagingData*)data;
-        PathHandle path = fsGetPathInResourceDirEnum(RD_OTHER_FILES, pTaskData->mGroundNamesStorage[i].c_str());
 		TextureLoadDesc desc = {};
-        desc.pFilePath = path;
+        desc.pFileName = pTaskData->mGroundNamesStorage[i].c_str();
 		desc.ppTexture = &gTextureMaterialMapsGround[i];
-		addResource(&desc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&desc, NULL);
 	}
 
 	void ComputePBRMaps()
@@ -2921,11 +2909,10 @@ class MaterialPlayground: public IApp
 
 		// Load the skybox panorama texture.
 		SyncToken       token = {};
-        PathHandle skyboxPath = fsGetPathInResourceDirEnum(RD_TEXTURES, skyboxNames[skyboxIndex]);
 		TextureLoadDesc panoDesc = {};
-		panoDesc.pFilePath = skyboxPath;
+		panoDesc.pFileName = skyboxNames[skyboxIndex];
 		panoDesc.ppTexture = &pPanoSkybox;
-		addResource(&panoDesc, &token, LOAD_PRIORITY_HIGH);
+		addResource(&panoDesc, &token);
 
 		TextureDesc skyboxImgDesc = {};
 		skyboxImgDesc.mArraySize = 6;
@@ -2942,7 +2929,7 @@ class MaterialPlayground: public IApp
 		TextureLoadDesc skyboxLoadDesc = {};
 		skyboxLoadDesc.pDesc = &skyboxImgDesc;
 		skyboxLoadDesc.ppTexture = &pTextureSkybox;
-		addResource(&skyboxLoadDesc, &token, LOAD_PRIORITY_HIGH);
+		addResource(&skyboxLoadDesc, &token);
 
 		TextureDesc irrImgDesc = {};
 		irrImgDesc.mArraySize = 6;
@@ -2959,7 +2946,7 @@ class MaterialPlayground: public IApp
 		TextureLoadDesc irrLoadDesc = {};
 		irrLoadDesc.pDesc = &irrImgDesc;
 		irrLoadDesc.ppTexture = &pTextureIrradianceMap;
-		addResource(&irrLoadDesc, &token, LOAD_PRIORITY_HIGH);
+		addResource(&irrLoadDesc, &token);
 
 		TextureDesc specImgDesc = {};
 		specImgDesc.mArraySize = 6;
@@ -2976,7 +2963,7 @@ class MaterialPlayground: public IApp
 		TextureLoadDesc specImgLoadDesc = {};
 		specImgLoadDesc.pDesc = &specImgDesc;
 		specImgLoadDesc.ppTexture = &pTextureSpecularMap;
-		addResource(&specImgLoadDesc, &token, LOAD_PRIORITY_HIGH);
+		addResource(&specImgLoadDesc, &token);
 
 		// Create empty texture for BRDF integration map.
 		TextureLoadDesc brdfIntegrationLoadDesc = {};
@@ -2992,11 +2979,11 @@ class MaterialPlayground: public IApp
 		brdfIntegrationDesc.mHostVisible = false;
 		brdfIntegrationLoadDesc.pDesc = &brdfIntegrationDesc;
 		brdfIntegrationLoadDesc.ppTexture = &pTextureBRDFIntegrationMap;
-		addResource(&brdfIntegrationLoadDesc, &token, LOAD_PRIORITY_HIGH);
+		addResource(&brdfIntegrationLoadDesc, &token);
 
 		// Load pre-processing shaders.
 		ShaderLoadDesc panoToCubeShaderDesc = {};
-		panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", NULL, 0, RD_SHADER_SOURCES };
+		panoToCubeShaderDesc.mStages[0] = { "panoToCube.comp", NULL, 0};
 
 		GPUPresetLevel presetLevel = pRenderer->pActiveGpuSettings->mGpuVendorPreset.mPresetLevel;
 		uint32_t       importanceSampleCounts[GPUPresetLevel::GPU_PRESET_COUNT] = { 0, 0, 64, 128, 256, 1024 };
@@ -3012,13 +2999,13 @@ class MaterialPlayground: public IApp
 		ShaderMacro    irradianceSampleMacro = { "SAMPLE_DELTA", irradianceSampleDeltaBuffer };
 
 		ShaderLoadDesc brdfIntegrationShaderDesc = {};
-		brdfIntegrationShaderDesc.mStages[0] = { "BRDFIntegration.comp", &importanceSampleMacro, 1, RD_SHADER_SOURCES };
+		brdfIntegrationShaderDesc.mStages[0] = { "BRDFIntegration.comp", &importanceSampleMacro, 1};
 
 		ShaderLoadDesc irradianceShaderDesc = {};
-		irradianceShaderDesc.mStages[0] = { "computeIrradianceMap.comp", &irradianceSampleMacro, 1, RD_SHADER_SOURCES };
+		irradianceShaderDesc.mStages[0] = { "computeIrradianceMap.comp", &irradianceSampleMacro, 1};
 
 		ShaderLoadDesc specularShaderDesc = {};
-		specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", &importanceSampleMacro, 1, RD_SHADER_SOURCES };
+		specularShaderDesc.mStages[0] = { "computeSpecularMap.comp", &importanceSampleMacro, 1};
 
 		addShader(pRenderer, &panoToCubeShaderDesc, &pPanoToCubeShader);
 		addShader(pRenderer, &irradianceShaderDesc, &pIrradianceShader);
@@ -3224,17 +3211,16 @@ class MaterialPlayground: public IApp
 
 	void LoadModel(uintptr_t i)
 	{
-		PathHandle modelFilePath = fsGetPathInResourceDirEnum(RD_MESHES, pStagingData->mModelList[i].c_str());
 		GeometryLoadDesc loadDesc = {};
-		loadDesc.pFilePath = modelFilePath;
+		loadDesc.pFileName = pStagingData->mModelList[i].c_str();
 		loadDesc.ppGeometry = &gMeshes[i];
 		loadDesc.pVertexLayout = &gVertexLayoutDefault;
-		addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&loadDesc, NULL);
 	}
 
 	void DestroyModels()
 	{
-		for (int i = 0; i < gMeshes.size(); ++i)
+		for (size_t i = 0; i < gMeshes.size(); ++i)
 			removeResource(gMeshes[i]);
 
 		gMeshes.set_capacity(0);
@@ -3288,7 +3274,7 @@ class MaterialPlayground: public IApp
 		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
 		skyboxVbDesc.pData = skyBoxPoints;
 		skyboxVbDesc.ppBuffer = &pVertexBufferSkybox;
-		addResource(&skyboxVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&skyboxVbDesc, NULL);
 
 #if !defined(DIRECT3D11)
 		// Load hair models
@@ -3435,7 +3421,7 @@ class MaterialPlayground: public IApp
 		jointVbDesc.mDesc.mSize = jointDataSize;
 		jointVbDesc.pData = pStagingData->pJointPoints;
 		jointVbDesc.ppBuffer = &pVertexBufferSkeletonJoint;
-		addResource(&jointVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&jointVbDesc, NULL);
 
 		// Generate bone vertex buffer
 		generateBonePoints(&pStagingData->pBonePoints, &gVertexCountSkeletonBone, boneWidthRatio);
@@ -3447,7 +3433,7 @@ class MaterialPlayground: public IApp
 		boneVbDesc.mDesc.mSize = boneDataSize;
 		boneVbDesc.pData = pStagingData->pBonePoints;
 		boneVbDesc.ppBuffer = &pVertexBufferSkeletonBone;
-		addResource(&boneVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&boneVbDesc, NULL);
 	}
 
 	void DestroyResources()
@@ -3468,7 +3454,7 @@ class MaterialPlayground: public IApp
 		surfaceUBDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		surfaceUBDesc.pData = NULL;
 		surfaceUBDesc.ppBuffer = &pUniformBufferGroundPlane;
-		addResource(&surfaceUBDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&surfaceUBDesc, NULL);
 
 		// Nameplate uniform buffers
 		BufferLoadDesc nameplateUBDesc = {};
@@ -3477,16 +3463,16 @@ class MaterialPlayground: public IApp
 		nameplateUBDesc.mDesc.mSize = sizeof(UniformObjData);
 		nameplateUBDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		nameplateUBDesc.pData = NULL;
-		for (int i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
+		for (uint32_t i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
 		{
 			nameplateUBDesc.ppBuffer = &pUniformBufferNamePlates[i];
-			addResource(&nameplateUBDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&nameplateUBDesc, NULL);
 		}
 
 		// Create a uniform buffer per mat ball
 		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
 		{
-			for (int i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
+			for (uint32_t i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
 			{
 				BufferLoadDesc matBallUBDesc = {};
 				matBallUBDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -3495,7 +3481,7 @@ class MaterialPlayground: public IApp
 				matBallUBDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 				matBallUBDesc.pData = NULL;
 				matBallUBDesc.ppBuffer = &pUniformBufferMatBall[frameIdx][i];
-				addResource(&matBallUBDesc, NULL, LOAD_PRIORITY_NORMAL);
+				addResource(&matBallUBDesc, NULL);
 			}
 		}
 
@@ -3509,18 +3495,18 @@ class MaterialPlayground: public IApp
 		for (uint i = 0; i < gImageCount; ++i)
 		{
 			cameraUBDesc.ppBuffer = &pUniformBufferCamera[i];
-			addResource(&cameraUBDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&cameraUBDesc, NULL);
 			cameraUBDesc.ppBuffer = &pUniformBufferCameraSkybox[i];
-			addResource(&cameraUBDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&cameraUBDesc, NULL);
 			cameraUBDesc.ppBuffer = &pUniformBufferCameraShadowPass[i];
-			addResource(&cameraUBDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&cameraUBDesc, NULL);
 
 			for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 			{
 				for (int j = 0; j < MAX_NUM_DIRECTIONAL_LIGHTS; ++j)
 				{
 					cameraUBDesc.ppBuffer = &pUniformBufferCameraHairShadows[i][hairType][j];
-					addResource(&cameraUBDesc, NULL, LOAD_PRIORITY_NORMAL);
+					addResource(&cameraUBDesc, NULL);
 				}
 			}
 		}
@@ -3534,7 +3520,7 @@ class MaterialPlayground: public IApp
 		lightsUBDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		lightsUBDesc.pData = NULL;
 		lightsUBDesc.ppBuffer = &pUniformBufferPointLights;
-		addResource(&lightsUBDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&lightsUBDesc, NULL);
 
 		// Uniform buffer for directional light data
 		BufferLoadDesc directionalLightBufferDesc = {};
@@ -3544,7 +3530,7 @@ class MaterialPlayground: public IApp
 		directionalLightBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		directionalLightBufferDesc.pData = NULL;
 		directionalLightBufferDesc.ppBuffer = &pUniformBufferDirectionalLights;
-		addResource(&directionalLightBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&directionalLightBufferDesc, NULL);
 
 		// Uniform buffer for hair data
 		BufferLoadDesc hairGlobalBufferDesc = {};
@@ -3554,27 +3540,27 @@ class MaterialPlayground: public IApp
 		hairGlobalBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		hairGlobalBufferDesc.pData = NULL;
 		hairGlobalBufferDesc.ppBuffer = &pUniformBufferHairGlobal;
-		addResource(&hairGlobalBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&hairGlobalBufferDesc, NULL);
 	}
 
 	void DestroyUniformBuffers()
 	{
-		for (uint i = 0; i < gImageCount; ++i)
+		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			removeResource(pUniformBufferCameraSkybox[i]);
 			removeResource(pUniformBufferCamera[i]);
 			removeResource(pUniformBufferCameraShadowPass[i]);
-			for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
+			for (uint32_t hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 			{
-				for (int j = 0; j < MAX_NUM_DIRECTIONAL_LIGHTS; ++j)
+				for (uint32_t j = 0; j < MAX_NUM_DIRECTIONAL_LIGHTS; ++j)
 					removeResource(pUniformBufferCameraHairShadows[i][hairType][j]);
 			}
-			for (int j = 0; j < MATERIAL_INSTANCE_COUNT; ++j)
+			for (uint32_t j = 0; j < MATERIAL_INSTANCE_COUNT; ++j)
 				removeResource(pUniformBufferMatBall[i][j]);
 		}
 
 		removeResource(pUniformBufferGroundPlane);
-		for (int j = 0; j < MATERIAL_INSTANCE_COUNT; ++j)
+		for (uint32_t j = 0; j < MATERIAL_INSTANCE_COUNT; ++j)
 			removeResource(pUniformBufferNamePlates[j]);
 
 		removeResource(pUniformBufferPointLights);
@@ -3598,7 +3584,7 @@ class MaterialPlayground: public IApp
 		offsetX = 8.0f;
 		scaleVal = 4.0f;
 
-		for (int i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
+		for (uint32_t i = 0; i < MATERIAL_INSTANCE_COUNT; ++i)
 		{
 			mat4 modelmat =
 				mat4::translation(vec3(baseX - i - offsetX * i, baseY, baseZ)) * mat4::scale(vec3(scaleVal)) * mat4::rotationY(PI);
@@ -3700,14 +3686,13 @@ class MaterialPlayground: public IApp
 		layout.mAttribs[6].mSemantic = SEMANTIC_TEXCOORD7;
 		layout.mAttribs[6].mBinding = 9;
 
-        PathHandle filePath = fsGetPathInResourceDirEnum(RD_OTHER_FILES, tfxFile);
 		SyncToken token = {};
 		GeometryLoadDesc loadDesc = {};
-		loadDesc.pFilePath = filePath;
+		loadDesc.pFileName = tfxFile;
 		loadDesc.pVertexLayout = &layout;
 		loadDesc.mFlags = GEOMETRY_LOAD_FLAG_STRUCTURED_BUFFERS;
 		loadDesc.ppGeometry = &hairBuffer.pGeom;
-		addResource(&loadDesc, &token, LOAD_PRIORITY_HIGH);
+		addResource(&loadDesc, &token);
 		waitForToken(&token);
 
 		hairBuffer.pBufferTriangleIndices = hairBuffer.pGeom->pIndexBuffer;
@@ -3735,7 +3720,7 @@ class MaterialPlayground: public IApp
 				(DescriptorType)(DESCRIPTOR_TYPE_RW_BUFFER | (i == 0 ? DESCRIPTOR_TYPE_BUFFER : 0));
 			vertexPositionsBufferDesc.mDesc.pName = "Hair simulation vertex positions";
 			vertexPositionsBufferDesc.ppBuffer = &hairBuffer.pBufferHairSimulationVertexPositions[i];
-			addResource(&vertexPositionsBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&vertexPositionsBufferDesc, NULL);
 		}
 
 		BufferLoadDesc hairShadingBufferDesc = {};
@@ -3747,7 +3732,7 @@ class MaterialPlayground: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			hairShadingBufferDesc.ppBuffer = &hairBuffer.pUniformBufferHairShading[i];
-			addResource(&hairShadingBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&hairShadingBufferDesc, NULL);
 		}
 
 		BufferLoadDesc hairSimulationBufferDesc = {};
@@ -3759,7 +3744,7 @@ class MaterialPlayground: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			hairSimulationBufferDesc.ppBuffer = &hairBuffer.pUniformBufferHairSimulation[i];
-			addResource(&hairSimulationBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&hairSimulationBufferDesc, NULL);
 		}
 
 		hairBuffer.mUniformDataHairShading.mColorBias = shadingParameters->mColorBias;
@@ -3824,24 +3809,24 @@ class MaterialPlayground: public IApp
 	static void SetHairColor(HairBuffer* hairBuffer, HairColor hairColor)
 	{
 		// Fill these variables for each hair color
-		float4 rootColor = float4(0.015f, 0.005f, 0.0f, 1.0f);
-		float4 strandColor = float4(0.1025f, 0.075f, 0.065f, 1.0f);
+		float4 rootColor = float4(0.06f, 0.02f, 0.0f, 1.0f);
+		float4 strandColor = float4(0.41f, 0.3f, 0.26f, 1.0f);
 		float kDiffuse = 0.14f;
 		float kSpecular1 = 0.03f;
-		float kExponent1 = 24.0f;
+		float kExponent1 = 12.0f;
 		float kSpecular2 = 0.02f;
-		float kExponent2 = 40.0f;
+		float kExponent2 = 20.0f;
 
 		// Fill variables
 		if (hairColor == HAIR_COLOR_BROWN)
 		{
-			rootColor = float4(0.015f, 0.005f, 0.0f, 1.0f);
-			strandColor = float4(0.1025f, 0.075f, 0.065f, 1.0f);
+			rootColor = float4(0.06f, 0.02f, 0.0f, 1.0f);
+			strandColor = float4(0.41f, 0.3f, 0.26f, 1.0f);
 			kDiffuse = 0.14f;
 			kSpecular1 = 0.03f;
-			kExponent1 = 24.0f;
+			kExponent1 = 12.0f;
 			kSpecular2 = 0.02f;
-			kExponent2 = 40.0f;
+			kExponent2 = 20.0f;
 		}
 		else if (hairColor == HAIR_COLOR_BLONDE)
 		{
@@ -3856,12 +3841,12 @@ class MaterialPlayground: public IApp
 		else if (hairColor == HAIR_COLOR_BLACK)
 		{
 			rootColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
-			strandColor = float4(0.01f, 0.0075f, 0.005f, 1.0f);
+			strandColor = float4(0.04f, 0.03f, 0.02f, 1.0f);
 			kDiffuse = 0.14f;
-			kSpecular1 = 0.005f;
-			kExponent1 = 24.0f;
-			kSpecular2 = 0.005f;
-			kExponent2 = 40.0f;
+			kSpecular1 = 0.03f;
+			kExponent1 = 12.0f;
+			kSpecular2 = 0.02f;
+			kExponent2 = 20.0f;
 		}
 		else if (hairColor == HAIR_COLOR_RED)
 		{
@@ -3916,19 +3901,16 @@ class MaterialPlayground: public IApp
 		gSkeletonBatcher.Initialize(skeletonRenderDesc);
 
 		// Load rigs
-        PathHandle rigPath = fsGetPathInResourceDirEnum(RD_ANIMATIONS, "stickFigure/skeleton.ozz");
 		for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 		{
-			gAnimationRig[hairType].Initialize(rigPath);
+			gAnimationRig[hairType].Initialize(RD_ANIMATIONS, "stickFigure/skeleton.ozz");
 			gSkeletonBatcher.AddRig(&gAnimationRig[hairType]);
 		}
 
 		// Load clips
-        PathHandle neckCrackPath = fsGetPathInResourceDirEnum(RD_ANIMATIONS, "stickFigure/animations/neckCrack.ozz");
-		gAnimationClipNeckCrack.Initialize(neckCrackPath, &gAnimationRig[0]);
+		gAnimationClipNeckCrack.Initialize(RD_ANIMATIONS, "stickFigure/animations/neckCrack.ozz", &gAnimationRig[0]);
         
-        PathHandle standPath = fsGetPathInResourceDirEnum(RD_ANIMATIONS, "stickFigure/animations/stand.ozz");
-		gAnimationClipStand.Initialize(standPath, &gAnimationRig[0]);
+		gAnimationClipStand.Initialize(RD_ANIMATIONS, "stickFigure/animations/stand.ozz", &gAnimationRig[0]);
 
 		for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 		{
@@ -3991,14 +3973,6 @@ class MaterialPlayground: public IApp
 		skyboxVertexLayout.mAttribs[0].mBinding = 0;
 		skyboxVertexLayout.mAttribs[0].mLocation = 0;
 		skyboxVertexLayout.mAttribs[0].mOffset = 0;
-
-		VertexLayout shadowPassVertexLayout = {};
-		shadowPassVertexLayout.mAttribCount = 1;
-		shadowPassVertexLayout.mAttribs[0].mSemantic = SEMANTIC_POSITION;
-		shadowPassVertexLayout.mAttribs[0].mFormat = TinyImageFormat_R32G32B32_SFLOAT;
-		shadowPassVertexLayout.mAttribs[0].mBinding = 0;
-		shadowPassVertexLayout.mAttribs[0].mLocation = 0;
-		shadowPassVertexLayout.mAttribs[0].mOffset = 0;
 
 		VertexLayout skeletonVertexLayout = {};
 		skeletonVertexLayout.mAttribCount = 2;
@@ -4262,7 +4236,7 @@ class MaterialPlayground: public IApp
 		pipelineSettings.pShaderProgram = pShaderShowCapsules;
 		pipelineSettings.pVertexLayout = &gVertexLayoutDefault;
 		pipelineSettings.pRasterizerState = &rasterizerStateCullNoneDesc;
-		pipelineSettings.pBlendState = &blendStateAddDesc;
+		pipelineSettings.pBlendState = &blendStateDesc;
 		addPipeline(pRenderer, &graphicsPipelineDesc, &pPipelineShowCapsules);
 
 		pipelineSettings = {};
@@ -4347,7 +4321,7 @@ class MaterialPlayground: public IApp
 		TextureLoadDesc hairDepthsTextureLoadDesc = {};
 		hairDepthsTextureLoadDesc.pDesc = &hairDepthsTextureDesc;
 		hairDepthsTextureLoadDesc.ppTexture = &pTextureHairDepth;
-		addResource(&hairDepthsTextureLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&hairDepthsTextureLoadDesc, NULL);
 #else
 		BufferLoadDesc hairDepthsBufferLoadDesc = {};
 		hairDepthsBufferLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER | DESCRIPTOR_TYPE_RW_BUFFER;
@@ -4358,7 +4332,7 @@ class MaterialPlayground: public IApp
 		hairDepthsBufferLoadDesc.mDesc.mSize = hairDepthsBufferLoadDesc.mDesc.mElementCount * hairDepthsBufferLoadDesc.mDesc.mStructStride;
 		hairDepthsBufferLoadDesc.mDesc.pName = "Hair depths buffer";
 		hairDepthsBufferLoadDesc.ppBuffer = &pBufferHairDepth;
-		addResource(&hairDepthsBufferLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&hairDepthsBufferLoadDesc, NULL);
 #endif
 
 		RenderTargetDesc fillColorsRenderTargetDesc = {};

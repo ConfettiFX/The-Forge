@@ -60,6 +60,6 @@ void _FailedAssert(const char* file, int line, const char* statement)
 	}
 }
 
-void _PrintUnicode(const char* str, bool error) { printf(str); }
+void _PrintUnicode(const char* str, bool error) { printf("%s", str); }
 
 #endif    // ifdef __linux__

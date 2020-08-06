@@ -81,7 +81,7 @@ inline Matrix4 makeShadowMatrix(const Vector4 & plane, const Vector4 & light)
 
 } // namespace Vectormath
 
-//========================================= #ConfettiMathExtensionsBegin ================================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
 
 #include <math.h>
 #include <stdint.h>
@@ -1123,7 +1123,7 @@ inline void generateSpherePoints(float **ppPoints, int *pNumberOfPoints, int num
 	float numSlices = (float)numberOfDivisions;
 
 	uint32_t numberOfPoints = numberOfDivisions * numberOfDivisions * 6;
-	float3* pPoints = (float3*)conf_malloc(numberOfPoints * sizeof(float3) * 2);
+	float3* pPoints = (float3*)tf_malloc(numberOfPoints * sizeof(float3) * 2);
 	uint32_t vertexCounter = 0;
 
 	for (int i = 0; i < numberOfDivisions; i++)
@@ -1170,7 +1170,7 @@ inline void generateSpherePoints(float **ppPoints, int *pNumberOfPoints, int num
 inline void generateCuboidPoints(float **ppPoints, int *pNumberOfPoints, float width = 1.f, float height = 1.f, float depth = 1.f, Vector3 center = Vector3{ 0.f,0.f,0.f })
 {
 	uint32_t numberOfPoints = 6 * 6;
-	float3* pPoints = (float3*)conf_malloc(numberOfPoints * sizeof(float3) * 2);
+	float3* pPoints = (float3*)tf_malloc(numberOfPoints * sizeof(float3) * 2);
 	uint32_t vertexCounter = 0;
 
 	Vector3 topLeftFrontPoint = Vector3{ -width / 2, height / 2, depth / 2 } +center;
@@ -1300,7 +1300,7 @@ inline void generateCuboidPoints(float **ppPoints, int *pNumberOfPoints, float w
 inline void generateBonePoints(float **ppPoints, int *pNumberOfPoints, float widthRatio)
 {
 	uint32_t numberOfPoints = 8 * 3;
-	float3* pPoints = (float3*)conf_malloc(numberOfPoints * sizeof(float3) * 2);
+	float3* pPoints = (float3*)tf_malloc(numberOfPoints * sizeof(float3) * 2);
 	uint32_t vertexCounter = 0;
 
 	Vector3 origin		= Vector3{ 0.f, 0.f, 0.f };
@@ -1973,4 +1973,4 @@ inline IVector4 i4Toiv4(const int4& i4) { return IVector4(i4.x, i4.y, i4.z, i4.w
 #endif
 }
 #endif
-//========================================= #ConfettiMathExtensionsEnd ================================================
+//========================================= #TheForgeMathExtensionsEnd ================================================

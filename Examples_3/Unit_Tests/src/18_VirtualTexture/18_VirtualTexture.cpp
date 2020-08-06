@@ -169,7 +169,7 @@ UniformBlock				gUniformDataSky;
 eastl::vector<PlanetInfoStruct>		gPlanetInfoData;
 UniformVirtualTextureInfo			gUniformVirtualTextureInfo[gNumPlanets];
 
-char*								gPlanetName[] = {"8k_sun.svt", "8k_mercury.svt", "8k_venus.svt", "8k_earth.svt", "16k_moon.svt", "8k_mars.svt", "8k_jupiter.svt", "8k_saturn.svt" };
+const char*								gPlanetName[] = {"8k_sun", "8k_mercury", "8k_venus", "8k_earth", "16k_moon", "8k_mars", "8k_jupiter", "8k_saturn" };
 
 Geometry*			pSphere;
 Geometry*			pSaturn;
@@ -191,21 +191,14 @@ class VirtualTextureTest : public IApp
 public:
 	bool Init()
 	{
-        // FILE PATHS
-        PathHandle programDirectory = fsGetApplicationDirectory();
-        if (!fsPlatformUsesBundledResources())
-        {
-            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/18_VirtualTexture");
-            fsSetResourceDirRootPath(resourceDirRoot);
-            
-            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,				"../../../../Art/SparseTextures");
-            fsSetRelativePathForResourceDirEnum(RD_MESHES,					"../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,		"../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,			"../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,	"../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,		"../../../../Middleware_3/UI");
-        }
-        
+		// FILE PATHS
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES,  "Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG,      "GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES,        "Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS,           "Fonts");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES,          "Meshes");
+
 		// window and renderer setup
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
@@ -274,15 +267,14 @@ public:
 		for (int i = 1; i < gNumPlanets; ++i)
 		{
 			TextureLoadDesc textureLoadDesc = {};
-			PathHandle virtualTexturePath = fsGetPathInResourceDirEnum(RD_TEXTURES, gPlanetName[i]);
-
-			textureLoadDesc.pFilePath = virtualTexturePath;
+			textureLoadDesc.mContainer = TEXTURE_CONTAINER_SVT;
+			textureLoadDesc.pFileName = gPlanetName[i];
 			textureLoadDesc.ppTexture = &pVirtualTexture[i];
-			addResource(&textureLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&textureLoadDesc, NULL);
 		}
 		
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
 		{
 			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
 			return false;
@@ -292,14 +284,14 @@ public:
 		//skyShader.mStages[0] = { "skybox.vert", NULL, 0, RD_SHADER_SOURCES };
 		//skyShader.mStages[1] = { "skybox.frag", NULL, 0, RD_SHADER_SOURCES };
 		ShaderLoadDesc basicShader = {};
-		basicShader.mStages[0] = { "basic.vert", NULL, 0, RD_SHADER_SOURCES };
-		basicShader.mStages[1] = { "basic.frag", NULL, 0, RD_SHADER_SOURCES };
+		basicShader.mStages[0] = { "basic.vert", NULL, 0 };
+		basicShader.mStages[1] = { "basic.frag", NULL, 0 };
 		ShaderLoadDesc debugShader = {};
-		debugShader.mStages[0] = { "debug.vert", NULL, 0, RD_SHADER_SOURCES };
-		debugShader.mStages[1] = { "debug.frag", NULL, 0, RD_SHADER_SOURCES };
+		debugShader.mStages[0] = { "debug.vert", NULL, 0 };
+		debugShader.mStages[1] = { "debug.frag", NULL, 0 };
 		ShaderLoadDesc sunShader = {};
-		sunShader.mStages[0] = { "basic.vert", NULL, 0, RD_SHADER_SOURCES };
-		sunShader.mStages[1] = { "sun.frag", NULL, 0, RD_SHADER_SOURCES };
+		sunShader.mStages[0] = { "basic.vert", NULL, 0 };
+		sunShader.mStages[1] = { "sun.frag", NULL, 0 };
 
 		//addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
 		addShader(pRenderer, &basicShader, &pSphereShader);
@@ -331,12 +323,12 @@ public:
 
 
 		ShaderLoadDesc clearPageCountsShader = {};
-		clearPageCountsShader.mStages[0] = { "clearPageCounts.comp", NULL, 0, RD_SHADER_SOURCES };
+		clearPageCountsShader.mStages[0] = { "clearPageCounts.comp", NULL, 0 };
 
 		addShader(pRenderer, &clearPageCountsShader, &pClearPageCountsShader);
 
 		ShaderLoadDesc fillPageShader = {};
-		fillPageShader.mStages[0] = { "fillPage.comp", NULL, 0, RD_SHADER_SOURCES };
+		fillPageShader.mStages[0] = { "fillPage.comp", NULL, 0 };
 
 		addShader(pRenderer, &fillPageShader, &pFillPageShader);
 
@@ -367,7 +359,7 @@ public:
 		addResource(&sphereVbDesc);
 		
 		// Need to free memory;
-		conf_free(pSpherePoints);
+		tf_free(pSpherePoints);
 		*/
 
 		gVertexLayoutDefault.mAttribCount = 3;
@@ -392,17 +384,15 @@ public:
 //						Load Models
 /////////////////////////////////////
 		{
-			PathHandle sceneFullPath = fsGetPathInResourceDirEnum(RD_MESHES, "sphereHires.gltf");
 			GeometryLoadDesc loadDesc = {};
-			loadDesc.pFilePath = sceneFullPath;
+			loadDesc.pFileName = "sphereHires.gltf";
 			loadDesc.ppGeometry = &pSphere;
 			loadDesc.pVertexLayout = &gVertexLayoutDefault;
-			addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&loadDesc, NULL);
 
-			sceneFullPath = fsGetPathInResourceDirEnum(RD_MESHES, "saturn.gltf");
-			loadDesc.pFilePath = sceneFullPath;
+			loadDesc.pFileName = "saturn.gltf";
 			loadDesc.ppGeometry = &pSaturn;
-			addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&loadDesc, NULL);
 		}
 ///////////////////////////////////
 
@@ -415,9 +405,9 @@ public:
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
-			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubDesc, NULL);
 			ubDesc.ppBuffer = &pSkyboxUniformBuffer[i];
-			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubDesc, NULL);
 		}
 
 		for (uint32_t i = 0; i < gNumPlanets; ++i)
@@ -429,7 +419,7 @@ public:
 			//vtInfoDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 			vtInfoDesc.pData = NULL;
 			vtInfoDesc.ppBuffer = &pVirtualTextureInfo[i];
-			addResource(&vtInfoDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&vtInfoDesc, NULL);
 
 			BufferLoadDesc ptInfoDesc = {};
 			ptInfoDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -438,7 +428,7 @@ public:
 			//ptInfoDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 			ptInfoDesc.pData = NULL;
 			ptInfoDesc.ppBuffer = &pPageCountInfo[i];
-			addResource(&ptInfoDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ptInfoDesc, NULL);
 		}
 
 		BufferLoadDesc debugInfoDesc = {};
@@ -448,7 +438,7 @@ public:
 		debugInfoDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		debugInfoDesc.pData = NULL;
 		debugInfoDesc.ppBuffer = &pDebugInfo;
-		addResource(&debugInfoDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&debugInfoDesc, NULL);
 
 		// Setup planets (Rotation speeds are relative to Earth's, some values randomly given)
 
@@ -580,7 +570,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 
 		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.25f);
