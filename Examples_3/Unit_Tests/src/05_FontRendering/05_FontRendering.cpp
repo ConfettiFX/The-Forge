@@ -247,19 +247,11 @@ class FontRendering: public IApp
 	bool Init()
 	{
         // FILE PATHS
-        PathHandle programDirectory = fsGetApplicationDirectory();
-        if (!fsPlatformUsesBundledResources())
-        {
-            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/05_FontRendering");
-            fsSetResourceDirRootPath(resourceDirRoot);
-            
-            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirEnum(RD_MESHES,             "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,     "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,     "../../../../Middleware_3/UI");
-        }
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES,	"Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES,	"CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG,		"GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES,			"Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS,			"Fonts");
         
 		// window and renderer setup
 		RendererDesc rendererDesc = { 0 };
@@ -298,12 +290,11 @@ class FontRendering: public IApp
 			return false;    // report?
 
 		// load the fonts
-		const ResourceDirEnum fontRoot = ResourceDirEnum::RD_BUILTIN_FONTS;
-		gFonts.titilliumBold = gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", fontRoot);
-		gFonts.comicRelief = gAppUI.LoadFont("ComicRelief/ComicRelief.ttf", fontRoot);
-		gFonts.crimsonSerif = gAppUI.LoadFont("Crimson/Crimson-Roman.ttf", fontRoot);
-		gFonts.monoSpace = gAppUI.LoadFont("InconsolataLGC/Inconsolata-LGC.otf", fontRoot);
-		gFonts.monoSpaceBold = gAppUI.LoadFont("InconsolataLGC/Inconsolata-LGC-Bold.otf", fontRoot);
+		gFonts.titilliumBold = gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
+		gFonts.comicRelief = gAppUI.LoadFont("ComicRelief/ComicRelief.ttf");
+		gFonts.crimsonSerif = gAppUI.LoadFont("Crimson/Crimson-Roman.ttf");
+		gFonts.monoSpace = gAppUI.LoadFont("InconsolataLGC/Inconsolata-LGC.otf");
+		gFonts.monoSpaceBold = gAppUI.LoadFont("InconsolataLGC/Inconsolata-LGC-Bold.otf");
 
 		// setup the UI window		
 		vec2        UIWndSize = vec2{ 250, 300 };

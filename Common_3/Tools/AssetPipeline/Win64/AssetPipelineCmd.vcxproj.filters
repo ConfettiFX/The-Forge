@@ -18,6 +18,9 @@
     <ClCompile Include="..\src\AssetPipeline.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\FileSystem\WindowsToolsFileSystem.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\ThirdParty\OpenSource\TressFX\TressFXAsset.h">
@@ -27,6 +30,12 @@
       <Filter>Source Files\TressFX</Filter>
     </ClInclude>
     <ClInclude Include="..\src\AssetPipeline.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\ozz-animation\include\ozz\base\io\archive.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\FileSystem\IToolFileSystem.h">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -175,22 +175,22 @@ bool checkForActiveGPU(eastl::string line, GPUVendorPreset& pActiveGpu)
 //Reads the gpu config and sets the preset level of all available gpu's
 void setGPUPresetLevel(Renderer* pRenderer, uint32_t gpuCount, GPUSettings* pGpuSettings)
 {
-	FileStream* fh = fsOpenFileInResourceDirEnum(RD_GPU_CONFIG, "gpu.cfg", FM_READ);
-	if (!fh)
+	FileStream fh = {};
+	if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "gpu.cfg", FM_READ, &fh))
 	{
 		LOGF(LogLevel::eWARNING, "gpu.cfg could not be found, setting preset to Low as a default.");
 		return;
 	}
 
     char configStr[2048];
-	while (!fsStreamAtEnd(fh))
+	while (!fsStreamAtEnd(&fh))
 	{
-        fsReadFromStreamLine(fh, configStr, 2048);
+		fsReadFromStream(&fh, configStr, 2048);
 		checkForPresetLevel(configStr, pRenderer, gpuCount, pGpuSettings);
 		// Do something with the tok
-	}
+	}	
 
-    fsCloseStream(fh);
+    fsCloseStream(&fh);
 }
 #endif
 
@@ -205,14 +205,44 @@ GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::stri
 }
 #endif
 
-
 #if !defined(METAL) && !defined(__ANDROID__) && !defined(NX64)
+static eastl::string fsReadFromStreamSTLLine(FileStream* stream)
+{
+	eastl::string result;
+
+	while (!fsStreamAtEnd(stream))
+	{
+		char nextChar = 0;
+		fsReadFromStream(stream, &nextChar, sizeof(nextChar));
+		if (nextChar == 0 || nextChar == '\n')
+		{
+			break;
+		}
+		if (nextChar == '\r')
+		{
+			char newLine = 0;
+			fsReadFromStream(stream, &newLine, sizeof(newLine));
+			if (newLine == '\n')
+			{
+				break;
+			}
+			else
+			{
+				// We're not looking at a "\r\n" sequence, so add the '\r' to the buffer.
+				fsSeekStream(stream, SBO_CURRENT_POSITION, -1);
+			}
+		}
+		result.push_back(nextChar);
+	}
+
+	return result;
+}
+
 //Reads the gpu config and sets the preset level of all available gpu's
 GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::string modelId, const eastl::string revId)
 {
-
-	FileStream* fh = fsOpenFileInResourceDirEnum(RD_GPU_CONFIG, "gpu.cfg", FM_READ_BINARY);
-	if (!fh)
+	FileStream fh = {};
+	if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "gpu.cfg", FM_READ, &fh))
 	{
 		LOGF(LogLevel::eWARNING, "gpu.cfg could not be found, setting preset to Low as a default.");
 		return GPU_PRESET_LOW;
@@ -220,9 +250,9 @@ GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::stri
 
 	GPUPresetLevel foundLevel = GPU_PRESET_LOW;
 
-	while (!fsStreamAtEnd(fh))
+	while (!fsStreamAtEnd(&fh))
 	{
-		eastl::string  gpuCfgString = fsReadFromStreamSTLLine(fh);
+		eastl::string  gpuCfgString = fsReadFromStreamSTLLine(&fh);
 		GPUPresetLevel level = getSinglePresetLevel(gpuCfgString, vendorId, modelId, revId);
 		// Do something with the tok
 		if (level != GPU_PRESET_NONE)
@@ -232,27 +262,27 @@ GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::stri
 		}
 	}
 
-	fsCloseStream(fh);
+	fsCloseStream(&fh);
 	return foundLevel;
 }
 
 bool getActiveGpuConfig(GPUVendorPreset& pActiveGpu)
 {
-	FileStream* fh = fsOpenFileInResourceDirEnum(RD_GPU_CONFIG, "activeTestingGpu.cfg", FM_READ_BINARY);
-	if (!fh)
+	FileStream fh = {};
+	if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "activeTestingGpu.cfg", FM_READ, &fh))
 	{
 		LOGF(LogLevel::eINFO, "activeTestingGpu.cfg could not be found, Using default GPU.");
 		return false;
 	}
 
 	bool successFinal = false;
-	while (!fsStreamAtEnd(fh) && !successFinal)
+	while (!fsStreamAtEnd(&fh) && !successFinal)
 	{
-		eastl::string gpuCfgString = fsReadFromStreamSTLLine(fh);
+		eastl::string gpuCfgString = fsReadFromStreamSTLLine(&fh);
 		successFinal = checkForActiveGPU(gpuCfgString, pActiveGpu);
 	}
 
-	fsCloseStream(fh);
+	fsCloseStream(&fh);
 
 	return successFinal;
 }

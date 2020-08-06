@@ -29,7 +29,7 @@
 #include "../../Common_3/OS/Interfaces/IMiddleware.h"
 #include "../../Common_3/OS/Interfaces/IFileSystem.h"
 
-extern ResourceDirEnum RD_MIDDLEWARE_PANINI;
+extern ResourceDirectory RD_MIDDLEWARE_PANINI;
 
 // forward decls
 struct Texture;

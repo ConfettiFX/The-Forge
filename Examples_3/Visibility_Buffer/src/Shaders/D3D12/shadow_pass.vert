@@ -25,10 +25,6 @@
 #include "packing.h"
 #include "shader_defs.h"
 
-#ifndef CONF_EARLY_DEPTH_STENCIL
-#define CONF_EARLY_DEPTH_STENCIL
-#endif
-
 struct VsInOpaque
 {
     float3 position : POSITION;

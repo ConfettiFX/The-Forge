@@ -42,8 +42,7 @@
 #include <stdint.h>
 typedef uint64_t uint64;
 #endif
-#endif
-#if defined(__ANDROID__)
+#elif defined(__ANDROID__)
 #include <android_native_app_glue.h>
 #include <android/log.h>
 #elif defined(__linux__) && !defined(VK_USE_PLATFORM_GGP)
@@ -53,6 +52,8 @@ typedef uint64_t uint64;
 // X11 defines primitive types which conflict with Forge libraries
 #undef Bool
 #endif
+#elif defined(NX64)
+#include "../../../Switch/Common_3/OS/NX/NXTypes.h"
 #endif
 
 #ifdef _WIN32
@@ -61,8 +62,16 @@ typedef uint64_t uint64;
 #define FORGE_CALLCONV
 #endif
 
+#ifdef __cplusplus
+#define FORGE_CONSTEXPR constexpr
+#else
+#define FORGE_CONSTEXPR
+#endif
+
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+
 #include "../../OS/Math/MathTypes.h"
 
 // For time related functions such as getting localtime
@@ -124,6 +133,9 @@ typedef struct WindowHandle
 	xcb_window_t             window;
 	xcb_screen_t*            screen;
 	xcb_intern_atom_reply_t* atom_wm_delete_window;
+#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
+	ANativeWindow*           window;
+	ANativeActivity*         activity;
 #else
 	void*                    window;    //hWnd
 #endif
@@ -291,7 +303,7 @@ bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes);
 typedef struct Path Path;
 
 /// @param stdOutFile The file to which the output of the command should be written. May be NULL.
-int systemRun(const char *command, const char **arguments, size_t argumentCount, const Path* stdOutFile);
+int systemRun(const char *command, const char **arguments, size_t argumentCount, const char* stdOutFile);
 
 
 //

@@ -155,42 +155,42 @@
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(SolutionDir)\..\..\..;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);;$(VULKAN_SDK)\Lib;$(LibraryPath)</LibraryPath>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(SolutionDir)\..\..\..;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath);</LibraryPath>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx11|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(SolutionDir)\..\..\..;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);;$(LibraryPath);</LibraryPath>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(SolutionDir)\..\..\..;$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);;$(VULKAN_SDK)\Lib;$(LibraryPath);</LibraryPath>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(SolutionDir)\..\..\..;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath);</LibraryPath>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(SolutionDir)\..\..\..;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);;$(LibraryPath);</LibraryPath>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <ClCompile>
@@ -225,8 +225,32 @@
       </Outputs>
     </CustomBuildStep>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>set SHADER_DIR=D3D12
+if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
+if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
+if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
+if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
+
+:: Copy Art files
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Hair\*.gltf" "$(OutDir)Meshes\Hair\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Hair\*.bin" "$(OutDir)Meshes\Hair\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\PBR\*.dds" "$(OutDir)Textures\PBR\"
+
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Meshes\*.gltf" "$(OutDir)Meshes\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Meshes\*.bin" "$(OutDir)Meshes\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\Skybox_*.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\circlepad.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\LA_Helipad.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\*.lua" "$(OutDir)Scripts\"
+
+xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
@@ -251,8 +275,32 @@
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>set SHADER_DIR=D3D12
+if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
+if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
+if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
+if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
+
+:: Copy Art files
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Hair\*.gltf" "$(OutDir)Meshes\Hair\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Hair\*.bin" "$(OutDir)Meshes\Hair\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\PBR\*.dds" "$(OutDir)Textures\PBR\"
+
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Meshes\*.gltf" "$(OutDir)Meshes\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Meshes\*.bin" "$(OutDir)Meshes\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\Skybox_*.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\circlepad.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\LA_Helipad.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\*.lua" "$(OutDir)Scripts\"
+
+xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -289,8 +337,32 @@
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>set SHADER_DIR=D3D12
+if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
+if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
+if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
+if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
+
+:: Copy Art files
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Hair\*.gltf" "$(OutDir)Meshes\Hair\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Hair\*.bin" "$(OutDir)Meshes\Hair\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\PBR\*.dds" "$(OutDir)Textures\PBR\"
+
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Meshes\*.gltf" "$(OutDir)Meshes\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Meshes\*.bin" "$(OutDir)Meshes\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\Skybox_*.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\circlepad.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\LA_Helipad.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\*.lua" "$(OutDir)Scripts\"
+
+xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -344,8 +416,32 @@
       </Outputs>
     </CustomBuildStep>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>set SHADER_DIR=D3D12
+if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
+if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
+if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
+if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
+
+:: Copy Art files
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Hair\*.gltf" "$(OutDir)Meshes\Hair\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Hair\*.bin" "$(OutDir)Meshes\Hair\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\PBR\*.dds" "$(OutDir)Textures\PBR\"
+
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Meshes\*.gltf" "$(OutDir)Meshes\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Meshes\*.bin" "$(OutDir)Meshes\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\Skybox_*.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\circlepad.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\LA_Helipad.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\*.lua" "$(OutDir)Scripts\"
+
+xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
@@ -374,8 +470,32 @@
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>set SHADER_DIR=D3D12
+if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
+if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
+if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
+if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
+
+:: Copy Art files
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Hair\*.gltf" "$(OutDir)Meshes\Hair\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Hair\*.bin" "$(OutDir)Meshes\Hair\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\PBR\*.dds" "$(OutDir)Textures\PBR\"
+
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Meshes\*.gltf" "$(OutDir)Meshes\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Meshes\*.bin" "$(OutDir)Meshes\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\Skybox_*.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\circlepad.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\LA_Helipad.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\*.lua" "$(OutDir)Scripts\"
+
+xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -416,8 +536,32 @@
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>set SHADER_DIR=D3D12
+if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
+if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
+if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
+if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
+
+:: Copy Art files
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Hair\*.gltf" "$(OutDir)Meshes\Hair\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\Hair\*.bin" "$(OutDir)Meshes\Hair\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\PBR\*.dds" "$(OutDir)Textures\PBR\"
+
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Meshes\*.gltf" "$(OutDir)Meshes\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Meshes\*.bin" "$(OutDir)Meshes\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Animation\*.ozz" "$(OutDir)Animation\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\Skybox_*.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\circlepad.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Textures\LA_Helipad.dds" "$(OutDir)Textures\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\*.lua" "$(OutDir)Scripts\"
+
+xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>

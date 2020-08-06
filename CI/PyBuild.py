@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Copyright (c) 2018 Confetti Interactive Inc.
+# Copyright (c) 2018 The Forge Interactive Inc.
 # 
 # This file is part of The-Forge
 # (see https://github.com/ConfettiFX/The-Forge).
@@ -212,15 +212,22 @@ def ExecuteCommandWOutput(cmdList, printException = True):
 			print("Failed executing command: " + ' '.join(cmdList))
 			print(ex)
 			print("-------------------------------------")
-		return ""  #error return code
+		return ""  #return error
 	
-	return "" #success error code
+	return ""
 
 def XBoxCommand(cmdList, verbose=True):
 	if verbose:
-		print("Executing command: " + ' '.join(cmdList))
-	ls_lines = subprocess.check_output(cmdList).splitlines()
-	return [ line.decode('utf-8') for line in ls_lines]
+		print("Executing command: " + ' '.join(cmdList))		
+	try:
+		ls_lines = subprocess.check_output(cmdList).splitlines()
+		return [ line.decode('utf-8') for line in ls_lines]
+	except Exception as ex:
+		print("-------------------------------------")
+		print("Failed Executing command: " + ' '.join(cmdList))
+		print(ex)
+		print("-------------------------------------")
+		return [""] 
 
 def ExecuteCommand(cmdList,outStream):
 	try:
@@ -406,7 +413,7 @@ def selectActiveGpuConfig(forgeDir, projRootFolder, projectName, runIndex):
 	if "Unit_Tests" in projRootFolder:
 		filename = "/Examples_3/"+projRootFolder+"/src/"+projectName+"/GPUCfg/activeTestingGpu.cfg"
 	elif "Ephemeris" in projectName:
-		filename = "/../CustomMiddleware/Ephemeris/src/EphemerisExample/GPUCfg/activeTestingGpu.cfg"
+		filename = "/../Custom-Middleware/Ephemeris/src/EphemerisExample/GPUCfg/activeTestingGpu.cfg"
 	else:
 		filename = "/Examples_3/"+projRootFolder+"/src/GPUCfg/activeTestingGpu.cfg"
 
@@ -418,6 +425,10 @@ def selectActiveGpuConfig(forgeDir, projRootFolder, projectName, runIndex):
 	#this is only valid for our internal testing rig
 	#this way we can commit activeTestGpu files
 	if not os.path.exists(filename):
+		#check if GPUCfg folder exists, if not create it.
+		dirName = os.path.dirname(filename)
+		if not os.path.exists(dirName):
+			os.makedirs(dirName)
 		f = open(filename, "w+")
 		f.write(activeGpusConfiguration)
 		
@@ -908,6 +919,14 @@ def AppendToLogFilename(logName, stringToAppend):
 			print("Error Renaming {0} to {1}".format(logName, newLogName))
 			print(ex)
 
+def ReadWindowsLogAndLeaks(logFilename, memleakFile):
+	logFile = GetLogFile(logFilename)
+	if os.path.exists(logFile):
+		with open(logFile) as f:
+			for line in f:
+				print(line, end="")
+	
+	return FindMemoryLeaks(memleakFile)
 
 def TestWindowsProjects(useActiveGpuConfig):
 	errorOccured = False
@@ -978,19 +997,14 @@ def TestWindowsProjects(useActiveGpuConfig):
 			while resultGpu['running'] == True:
 				retCode = ExecuteTest(command, filename, False, resultGpu['lineMatch'])
 				#rename log file to have gpu info in name
+				leaksDetected = ReadWindowsLogAndLeaks(GetLogFile(origFilename), memleakFile)
 				currentGpuRun += 1
 				AppendToLogFilename(origFilename.split(".")[0] + ".log", resultGpu['lineMatch'].split(";")[3])
 				resultGpu = selectActiveGpuConfig(currDir, parentFolder,origFilename,currentGpuRun)
 		else:
 			retCode = ExecuteTest(command, filename,False)
-		
-		logFile = GetLogFile(origFilename)
-		if os.path.exists(logFile):
-			with open(logFile) as f:
-				for line in f:
-					print(line, end="")
-		
-		leaksDetected = FindMemoryLeaks(memleakFile)
+			leaksDetected = ReadWindowsLogAndLeaks(GetLogFile(origFilename), memleakFile)
+
 		if retCode == 0 and leaksDetected == True:
 			lastSuccess = successfulTests.pop()
 			failedTests.append({'name':lastSuccess['name'], 'gpu':lastSuccess['gpu'], 'reason':"Memory Leaks"})
@@ -1040,6 +1054,9 @@ def TestXboxProjects():
 	output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
 	print ("Done cleaning...")
 
+	command = [gdkDir+'xbconfig','EnableKernelDebugging=true',"/X"+consoleIP]
+	output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
+
 	#Set console setting to genereate crash dumps
 	command = [gdkDir+'xbconfig','CrashDumpType=mini',"/X"+consoleIP]
 	output = subprocess.check_output(command, None, stderr = subprocess.STDOUT)
@@ -1064,6 +1081,7 @@ def TestXboxProjects():
 
 	#Deploy Loose folders and store app names
 	appList = []
+	appRootList = []
 	for filename in fileList:
 		#deploy app to xbox
 		print ("Deploying: " + filename)
@@ -1076,6 +1094,7 @@ def TestXboxProjects():
 			if "Game" in item:
 				appName = item.strip()
 				appList.append(appName)
+				appRootList.append(filename)
 				print ("Successfully deployed: " + appName)
 		if appName == "InvalidAppName":
 			print ("Failed to deploy: " + filename)
@@ -1083,9 +1102,25 @@ def TestXboxProjects():
 			errorOccured = True
 		print ("")
 
+	homePackageName = "Xbox.Dashboard_1000.19041.3533.0_x64__8wekyb3d8bbwe" if isDashboard == True else "Microsoft.Xbox.DevHome_100.2006.3001.0_x64__8wekyb3d8bbwe"
 	#Launch the deployed apps
-	for appName in appList:
-		
+	for appName, appRoot in zip(appList, appRootList):
+		appFileName = appName.split("!")[0]
+
+		#wait for home to run. something is probably wrong by that point
+		command = [gdkDir+'xbapp', "query", homePackageName]
+		timeout = time.time() + float(maxIdleTime)
+		backAtHome = False
+		while (backAtHome != True) and time.time() < timeout:
+			time.sleep(1)
+			output = XBoxCommand(command, False)
+			if 'running' in output[0]:
+				backAtHome = True
+		if backAtHome == False:
+			print("Xbox did not go back to home before launching.")
+			print("Aborting test as it will fail.")
+			return -1
+
 		command = [gdkDir+'xbapp',"launch","/X"+consoleIP, appName]
 		output = XBoxCommand(command)
 
@@ -1096,13 +1131,31 @@ def TestXboxProjects():
 		
 		if 'running' in output[0]:
 			isRunning = 1
-			print ("The operation completed successfully")
+			print("The operation completed successfully")
 
 		if isRunning == 0:
 			errorOccured = True
 			print ("The operation failed")
 			failedTests.append({'name':appName, 'gpu':"", 'reason':"Failed to launch app"})
 			continue
+
+		queryCommand = [gdkDir + 'xbapp', "querygameos"]
+		queryOutput = XBoxCommand(queryCommand, False)
+		queryOutput = "\n".join(queryOutput)
+		print(queryOutput)
+		#Query process id
+		pid = None
+		pidBegin = queryOutput.find("pid: ")
+		if pidBegin != -1:
+			pidBegin += 5
+			pidEnd = queryOutput.find("\n", pidBegin)
+			if pidEnd != -1:
+				pid = queryOutput[pidBegin:pidEnd].strip()
+
+		if pid != None:
+			print(f"Pid of {appName}: {pid}")
+		else:
+			print(f"Failed to parse pid from the output of {queryCommand}")
 
 		#Check if app terminatese or times out
 		timeout = time.time() + float(maxIdleTime)
@@ -1138,7 +1191,6 @@ def TestXboxProjects():
 			# # get the memory leak file path
 			memleakPath = '\\\\'+consoleIP+'\\'+'SystemScratch'+'\\'+'Titles'+'\\'
 			
-			appFileName = appName.split("!")[0]
 			memleakPath = memleakPath + appFileName
 			memleakPath = GetFilesPathByExtension(memleakPath,"exe",False)
 			memleakPath = memleakPath[0].split('.exe')[0]+".memleaks"
@@ -1155,6 +1207,42 @@ def TestXboxProjects():
 				errorOccured = True
 				print ("Application Terminated Early: " + appName + "\n")
 				failedTests.append({'name': appName, 'gpu': "", 'reason': "Runtime failure"})
+		
+		logFilePath = GetFilesPathByExtension(f"\\\\{consoleIP}\\SystemScratch\\Titles\\{appFileName}", "exe", False)[0].split(".exe")[0] + ".log"
+		if os.path.exists(logFilePath) and os.path.isfile(logFilePath):
+			with open(logFilePath) as f:
+				print(f.read())
+
+		def toCommandString(command) -> str:
+			quotedCommand = [f'"{x}"' for x in command]
+			return f"& {' '.join(quotedCommand)}"
+
+		if testingComplete == False:
+			def ExecuteCdb(commands: str, timeout: int, parseParagraph: bool = False, prefixToParse: str = None) -> str:
+				cdbPath = os.path.join("C:\\Program Files (x86)\\Windows Kits\\10\\Debuggers\\x64\\kd.exe")
+				gdkSymbolPath = os.path.join(os.getenv("GXDKLatest"), "gameKit\\symbols")
+				titlesPath = '\\\\'+consoleIP+'\\'+'SystemScratch'+'\\'+'Titles'+'\\'
+				titlesPath = titlesPath + appName.split("!")[0]
+				exeName = GetFilesPathByExtension(titlesPath, "exe", False)[0].split("\\")
+				exeName = exeName[len(exeName) - 1]
+				dumpFilePath = f"{crashdump_path}\\{exeName}.{pid}.dmp"
+				cdbCommand = [cdbPath, "-z", dumpFilePath, "-y", gdkSymbolPath, "-i", appRoot, "-c", f"{commands};qd"]
+				print(f"Executing CDB Command: {toCommandString(cdbCommand)}")
+				cdbOutput = subprocess.run(cdbCommand, capture_output=True, universal_newlines=True, timeout=timeout).stdout
+				if parseParagraph and prefixToParse != None:
+					parseBegin = cdbOutput.find(prefixToParse)
+					if parseBegin >= 0:
+						parseBegin += len(prefixToParse)
+						parseEnd = cdbOutput.find("\n\n", parseBegin)
+					if parseBegin == -1 or parseEnd == -1:
+						print(f"Failed to find '{prefixToParse}' in the text below:\n{cdbOutput}")
+						return None
+					return cdbOutput[parseBegin:parseEnd]
+				return cdbOutput
+			
+			print("Stack Trace:")
+			stackOutput = ExecuteCdb("!sym noisy;.lines -e;.reload /f;!analyze -v", 60, True, "STACK_TEXT:")
+			print(stackOutput)
 
 	#Copy crash dumps to PC and delete them from the console
 	command = ["xcopy", crashdump_path, "C:\\dumptemp\\", "/s", "/e"]
@@ -1242,25 +1330,22 @@ def TestOrbisProjects():
 	#get paths for exe in Loose folder
 	projects = GetFilesPathByExtension("PS4/Examples_3","elf",False)
 	fileList = []
-	workingDirList = []
 	errorOccured = False
 	for proj in projects:
 		if "PS4 Visual Studio 2017" in proj and "Release" in proj:
 			fileList.append(proj)
-			if "Unit_Tests" in proj:
-				workingDirList.append(os.path.dirname(os.path.dirname(os.path.dirname(proj))) + "/" + os.path.splitext(os.path.basename(proj))[0])
-			else:
-				workingDirList.append(os.path.dirname(os.path.dirname(os.path.dirname(proj))))
 
-	for filename, workingDir in zip(fileList, workingDirList):
-		memleakFile = workingDir + "/Resources/app.memleaks"
+	for filename in fileList:
+		workingDir = os.path.dirname(filename)
+		appName = os.path.splitext(os.path.basename(filename))[0]
+		memleakFile = os.path.join(workingDir, appName + ".memleaks")
+		logFilePath = os.path.join(workingDir, appName + ".log")
 		# delete the memory leak file before execute the app
 		if os.path.exists(memleakFile):
 			os.remove(memleakFile)
-		command = ["orbis-run.exe", "/workingDirectory:" , workingDir, "/elf", filename]
-		retCode = ExecuteTest(command, os.path.splitext(os.path.basename(filename))[0], False)
+		command = ["orbis-run.exe", "/elf", filename]
+		retCode = ExecuteTest(command, appName, False)
 
-		logFilePath = os.path.join(workingDir, "Resources", "app.log")
 		logFileData = ""
 		try:
 			with open(logFilePath) as f:
@@ -1333,29 +1418,23 @@ def TestProsperoProjects():
 	#get paths for exe in Loose folder
 	projects = GetFilesPathByExtension("Prospero/Examples_3","elf",False)
 	fileList = []
-	workingDirList = []
 	errorOccured = False
 	for proj in projects:
 		if "Prospero Visual Studio 2017" in proj and "Release" in proj:
 			fileList.append(proj)
-			if "Unit_Tests" in proj:
-				workingDirList.append(os.path.dirname(os.path.dirname(os.path.dirname(proj))) + "/" + os.path.splitext(os.path.basename(proj))[0])
-			else:
-				workingDirList.append(os.path.dirname(os.path.dirname(os.path.dirname(proj))))
 
-	for filename, workingDir in zip(fileList, workingDirList):
-		workingDir = workingDir.replace('\\', '/')
-		filename = filename.replace('\\', '/')
+	for filename in fileList:
+		workingDir = os.path.dirname(filename)
 		appName = os.path.splitext(os.path.basename(filename))[0]
-		artifactDir = os.environ.get('TEMP') + "/The-Forge/Prospero/" + appName + "/"
-		memleakFile = artifactDir + "app.memleaks"
-		logFilePath = artifactDir + "app.log"
+		memleakFile = os.path.join(workingDir, appName + ".memleaks")
+		logFilePath = os.path.join(workingDir, appName + ".log")
+		elfName = appName + ".elf"
+		dumpDir = os.path.join(workingDir, "coredump")
 		# delete the memory leak file before execute the app
 		if os.path.exists(memleakFile):
 			os.remove(memleakFile)
-		workingDirArg = "/workingDirectory:\"" + workingDir + "\""
 		elfArg = "/elf \"" + filename + "\""
-		command = "prospero-run.exe /debug " + workingDirArg + " " + elfArg
+		command = "prospero-run.exe /debug " + elfArg
 		retCode = ExecuteTest(command, appName, False)
 
 		logFileData = ""
@@ -1373,11 +1452,13 @@ def TestProsperoProjects():
 			errorOccured = True
 
 		if retCode != 0:
-			processDmpCmd = [ "prospero-ctrl", "process-dump", "trigger", appName + ".elf", artifactDir, "FULL" ]
+			if not os.path.exists(dumpDir):
+				os.mkdir(dumpDir)
+			processDmpCmd = [ "prospero-ctrl", "process-dump", "trigger", elfName, dumpDir, "FULL" ]
 			ExecuteCommand(processDmpCmd, None)
 
 			targetDumpFile = None
-			dumpFiles = list(Path(artifactDir).glob("*.prosperodmp"))
+			dumpFiles = list(Path(dumpDir).glob("*.prosperodmp"))
 			if len(dumpFiles) > 0:
 				dumpFile = dumpFiles[0]
 				targetDumpFile = dumpFile
@@ -1404,6 +1485,9 @@ def TestProsperoProjects():
 					print(f"Failed write a temporary coreview script file due to {e}")
 			else:
 				print("Couldn't find core dump file")
+				
+			processKillCmd = [ "prospero-ctrl", "process", "kill", "/process:" + elfName ]
+			ExecuteCommand(processKillCmd, None)
 
 			errorOccured = True
 
@@ -1471,7 +1555,7 @@ def TestAndroidProjects():
 		grepPSCommand = ["adb", "shell", "ps","| grep", fullAppName]
 		installCommand = ["adb", "install", "-r", apkName]
 		runCommand = ["adb", "shell", "am", "start", "-W", "-n", fullAppName + "/android.app.NativeActivity"]
-		stopAppCommand = ["adb", "shell", "am", "force-stop" , apkName]
+		stopAppCommand = ["adb", "shell", "am", "force-stop" , fullAppName]
 		logCatCommand = ["adb", "logcat","-d", "-s", "The-Forge", "the-forge-app"]
 		clearLogCatCommand = ["adb", "logcat", "-c"]
 		
@@ -1718,7 +1802,7 @@ def BuildWindowsProjects(xboxDefined, xboxOnly, skipDebug, skipRelease, printMSB
 			currPlatform = switchPlatform
 		else:
 			currPlatform = pcPlatform
-		
+
 		#for conf in configurations:
 		if ".sln" in filename:
 			for conf in configurations:
@@ -2005,6 +2089,7 @@ def MainLogic():
 	parser.add_argument('--skipdx11', action="store_true", help='If enabled, will skip building DX11.')
 	parser.add_argument('--xcodederiveddatapath', type=str, default='Null', help = 'Uses a specific path relative to root of project for derived data. If null then it uses the default location for derived data')
 	parser.add_argument('--preserveworkingdir', action="store_true", help='If enabled, will keep working directory as is instead of changing it to path of PyBuild.')
+	parser.add_argument('--defineonly', action="store_true", help='If enabled, will set defines and exit.')
 	#TODO: remove the test in parse_args
 	arguments = parser.parse_args()
 	
@@ -2037,6 +2122,11 @@ def MainLogic():
 	setMemTracker = arguments.memtracking
 	if setDefines == True or setMemTracker == True:
 		AddTestingPreProcessor(arguments.gpuselection)
+
+	# workaround to just set defines and avoid the signal handler to revert those changes
+	if arguments.defineonly:
+		signal.signal(signal.SIGINT, signal.default_int_handler)
+		sys.exit(0)
 
 	#PRE_BUILD step
 	#if only the prebuild argument is provided but Art folder exists then PRE_BUILd isn't run

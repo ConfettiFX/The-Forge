@@ -5,10 +5,6 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
     <Filter Include="Source Files\mcpp-master">
       <UniqueIdentifier>{ef74b0b7-5825-45ad-ba10-9823e2d928e7}</UniqueIdentifier>
     </Filter>
@@ -20,12 +16,6 @@
     </Filter>
     <Filter Include="OS">
       <UniqueIdentifier>{553e2610-3910-4bae-b7ee-7bfe0a3fc12e}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="zip">
-      <UniqueIdentifier>{910b2ab7-6cdd-477b-9201-b30b282b7711}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="rmem">
-      <UniqueIdentifier>{4a3dd752-711a-4b08-9766-826c4f9f380a}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -131,6 +121,15 @@
     <ClCompile Include="..\..\..\..\..\OS\MemoryTracking\MemoryTracking.cpp">
       <Filter>OS</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\..\..\OS\FileSystem\FileSystem.cpp">
+      <Filter>OS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\OS\Logging\Log.cpp">
+      <Filter>OS</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsBase.cpp">
+      <Filter>OS</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsFileSystem.cpp">
       <Filter>OS</Filter>
     </ClCompile>
@@ -140,38 +139,11 @@
     <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsThread.cpp">
       <Filter>OS</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\OS\Logging\Log.cpp">
+    <ClCompile Include="..\..\..\..\..\OS\Windows\WindowsTime.cpp">
       <Filter>OS</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\OS\FileSystem\FileSystemInternal.cpp">
+    <ClCompile Include="..\..\..\..\..\OS\Core\Timer.cpp">
       <Filter>OS</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\OS\FileSystem\MemoryStream.cpp">
-      <Filter>OS</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\OS\FileSystem\SystemFileStream.cpp">
-      <Filter>OS</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\OS\FileSystem\SystemRun.cpp">
-      <Filter>OS</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\OS\FileSystem\ZipFileStream.cpp">
-      <Filter>OS</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\OS\FileSystem\ZipFileSystem.cpp">
-      <Filter>OS</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\zip\zip.cpp">
-      <Filter>zip</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\rmem\src\rmem_get_module_info.cpp">
-      <Filter>rmem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\rmem\src\rmem_hook.cpp">
-      <Filter>rmem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\rmem\src\rmem_lib.cpp">
-      <Filter>rmem</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -214,27 +186,6 @@
     <ClInclude Include="mcpp-master\mcpp_lib.h">
       <Filter>Source Files\mcpp-master</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\..\..\..\OS\FileSystem\FileSystemInternal.h">
-      <Filter>OS</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\OS\FileSystem\MemoryStream.h">
-      <Filter>OS</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\OS\FileSystem\SystemFileStream.h">
-      <Filter>OS</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\OS\FileSystem\ZipFileStream.h">
-      <Filter>OS</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\OS\FileSystem\ZipFileSystem.h">
-      <Filter>OS</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\zip\miniz.h">
-      <Filter>zip</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\zip\zip.h">
-      <Filter>zip</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="mcpp-master\mcpp.gyp">
@@ -242,6 +193,8 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Natvis Include="..\..\..\EASTL\EASTL.natvis" />
+    <Natvis Include="..\..\..\EASTL\EASTL.natvis">
+      <Filter>eastl</Filter>
+    </Natvis>
   </ItemGroup>
 </Project>

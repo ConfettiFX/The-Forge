@@ -27,9 +27,6 @@
     <ClCompile Include="..\..\..\..\src\base\io\archive.cc">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\src\base\io\stream.cc">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\src\base\containers\string_archive.cc">
       <Filter>Source Files</Filter>
     </ClCompile>

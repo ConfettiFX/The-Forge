@@ -161,7 +161,7 @@ namespace SoLoud
         }
         if (0 != data->voiceCb)
         {
-            conf_delete(data->voiceCb);
+            tf_delete(data->voiceCb);
         }
         if (0 != data->masteringVoice)
         {
@@ -175,12 +175,12 @@ namespace SoLoud
         {
             if (0 != data->buffer[i])
             {
-                conf_free(data->buffer[i]);
+                tf_free(data->buffer[i]);
             }
         }
         CloseHandle(data->bufferEndEvent);
         CloseHandle(data->audioProcessingDoneEvent);
-        conf_delete(data);
+        tf_delete(data);
         aSoloud->mBackendData = 0;
         CoUninitialize();
     }
@@ -191,7 +191,7 @@ namespace SoLoud
         {
             return UNKNOWN_ERROR;
         }
-        XAudio2Data *data = conf_new(XAudio2Data);
+        XAudio2Data *data = tf_new(XAudio2Data);
         ZeroMemory(data, sizeof(XAudio2Data));
         aSoloud->mBackendData = data;
         aSoloud->mBackendCleanupFunc = xaudio2Cleanup;
@@ -222,7 +222,7 @@ namespace SoLoud
         {
             return UNKNOWN_ERROR;
         }
-        data->voiceCb = conf_new(VoiceCallback, data->bufferEndEvent);
+        data->voiceCb = tf_new(VoiceCallback, data->bufferEndEvent);
         if (FAILED(data->xaudio2->CreateSourceVoice(&data->sourceVoice, 
                    &format, 0, 2.f, data->voiceCb)))
         {
@@ -231,7 +231,7 @@ namespace SoLoud
         data->bufferLengthBytes = aBuffer * format.nChannels * sizeof(float);
         for (int i=0;i<BUFFER_COUNT;++i)
         {
-            data->buffer[i] = (float*)conf_calloc(aBuffer * format.nChannels, sizeof(float));
+            data->buffer[i] = (float*)tf_calloc(aBuffer * format.nChannels, sizeof(float));
         }
         data->samples = aBuffer;
         data->soloud = aSoloud;

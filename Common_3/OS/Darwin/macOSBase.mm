@@ -45,7 +45,7 @@
 #include "../Interfaces/IApp.h"
 #include "../Interfaces/IMemory.h"
 
-#define CONFETTI_WINDOW_CLASS L"confetti"
+#define FORGE_WINDOW_CLASS L"The Forge"
 #define MAX_KEYS 256
 #define MAX_CURSOR_DELTA 200
 
@@ -149,7 +149,7 @@ static void collectMonitorInfo()
 	ASSERT(displayCount != 0);
 	
 	gMonitorCount = displayCount;
-	gMonitors = (MonitorDesc*)conf_calloc(displayCount, sizeof(MonitorDesc));
+	gMonitors = (MonitorDesc*)tf_calloc(displayCount, sizeof(MonitorDesc));
 	
 	CFMutableDictionaryRef matchingService = IOServiceMatching("IODisplayConnect");
 	
@@ -248,7 +248,7 @@ static void collectMonitorInfo()
 		});
 		
 		display.resolutionCount = (uint32_t)displayResolutions.size();
-		display.resolutions = (Resolution*)conf_calloc(display.resolutionCount, sizeof(Resolution));
+		display.resolutions = (Resolution*)tf_calloc(display.resolutionCount, sizeof(Resolution));
 		memcpy(display.resolutions, displayResolutions.data(), display.resolutionCount * sizeof(Resolution));
 		
 		CFRelease(displayModes);
@@ -350,6 +350,8 @@ void openWindow(const char* app_name, WindowsDesc* winDesc, id<MTLDevice> device
     [Window invalidateRestorableState];
     [Window makeKeyAndOrderFront: nil];
     [Window makeMainWindow];
+    [Window setReleasedWhenClosed: NO];
+	[NSApp activateIgnoringOtherApps:YES];
     
     // Adjust window size to match retina scaling.
     CGFloat scale = [Window backingScaleFactor];
@@ -653,18 +655,32 @@ uint32_t testingMaxFrameCount = 120;
 - (nonnull instancetype)initWithMetalDevice:(nonnull id<MTLDevice>)device
 				  renderDestinationProvider:(nonnull id<RenderDestinationProvider>)renderDestinationProvider
 {
+#define EXIT_IF_FAILED(cond) if (!(cond)) exit(1);
+	
 	self = [super init];
 	if (self)
 	{
-		extern bool MemAllocInit();
-		MemAllocInit();
+		extern bool MemAllocInit(const char*);
+		if (!MemAllocInit(pApp->GetName()))
+		{
+			NSLog(@"Failed to initialize memory manager");
+			exit(1);
+		}
 		
-		#if TF_USE_MTUNER
+#if TF_USE_MTUNER
 			rmemInit(0);
-		#endif
+#endif
 		
-		fsInitAPI();
-		Log::Init();
+		FileSystemInitDesc fsDesc = {};
+		fsDesc.pAppName = pApp->GetName();
+		if(!initFileSystem(&fsDesc))
+		{
+			NSLog(@"Failed to initialize filesystem");
+			exit(1);
+		}
+		
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
+		Log::Init(pApp->GetName());
 		
 		collectMonitorInfo();
 		
@@ -762,19 +778,19 @@ uint32_t testingMaxFrameCount = 120;
 	for(int i = 0; i < gMonitorCount; ++i)
 	{
 		MonitorDesc& monitor = gMonitors[i];
-		conf_free(monitor.resolutions);
+		tf_free(monitor.resolutions);
 	}
 	
 	if(gMonitorCount > 0)
 	{
-		conf_free(gMonitors);
+		tf_free(gMonitors);
 	}
 	
 	pApp->Unload();
 	pApp->Exit();
 	Log::Exit();
 
-	fsExitAPI();
+	exitFileSystem();
 	
 	#if TF_USE_MTUNER
 		rmemUnload();
@@ -783,6 +799,8 @@ uint32_t testingMaxFrameCount = 120;
 	
 	extern void MemAllocExit();
 	MemAllocExit();
+	
+
 }
 @end
 /************************************************************************/

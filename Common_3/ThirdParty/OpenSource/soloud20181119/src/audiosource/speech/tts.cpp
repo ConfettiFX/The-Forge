@@ -1165,7 +1165,7 @@ static void guess_word(darray *arg, char *word)
 static int NRL(const char *s, int n, darray *phone)
 {
 	int old = phone->getSize();
-	char *word = (char *) conf_malloc(n + 3);
+	char *word = (char *) tf_malloc(n + 3);
 	char *d = word;
 	*d++ = ' ';
 
@@ -1183,7 +1183,7 @@ static int NRL(const char *s, int n, darray *phone)
 
 	*d = '\0';
 	guess_word(phone, word);
-	conf_free(word);
+	tf_free(word);
 	return phone->getSize() - old;
 }
 

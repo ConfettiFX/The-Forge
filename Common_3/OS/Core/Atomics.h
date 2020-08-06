@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Confetti Interactive Inc.
+ * Copyright (c) 2019 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).

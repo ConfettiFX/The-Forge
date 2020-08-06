@@ -90,7 +90,7 @@ StrPair::~StrPair()
 void StrPair::Reset()
 {
 	if ( flags & NEEDS_DELETE ) {
-		conf_free(start);
+		tf_free(start);
 	}
 	flags = 0;
 	start = 0;
@@ -102,7 +102,7 @@ void StrPair::SetStr( const char* str, int flags )
 {
 	Reset();
 	size_t len = strlen( str );
-	start = (char*)conf_calloc(len+1, sizeof(char));
+	start = (char*)tf_calloc(len+1, sizeof(char));
 	memcpy( start, str, len+1 );
 	end = start + len;
 	this->flags = flags | NEEDS_DELETE;
@@ -411,34 +411,34 @@ char* XMLDocument::Identify( char* p, XMLNode** node )
 #pragma warning (pop)
 #endif
 	if ( XMLUtil::StringEqual( p, xmlHeader, xmlHeaderLen ) ) {
-		returnNode = conf_placement_new<XMLDeclaration>(commentPool.Alloc(), this);
+		returnNode = tf_placement_new<XMLDeclaration>(commentPool.Alloc(), this);
 		returnNode->memPool = &commentPool;
 		p += xmlHeaderLen;
 	}
 	else if ( XMLUtil::StringEqual( p, commentHeader, commentHeaderLen ) ) {
-		returnNode = conf_placement_new<XMLComment>(commentPool.Alloc(), this);
+		returnNode = tf_placement_new<XMLComment>(commentPool.Alloc(), this);
 		returnNode->memPool = &commentPool;
 		p += commentHeaderLen;
 	}
 	else if ( XMLUtil::StringEqual( p, cdataHeader, cdataHeaderLen ) ) {
-		XMLText* text = conf_placement_new<XMLText>(textPool.Alloc(), this);
+		XMLText* text = tf_placement_new<XMLText>(textPool.Alloc(), this);
 		returnNode = text;
 		returnNode->memPool = &textPool;
 		p += cdataHeaderLen;
 		text->SetCData( true );
 	}
 	else if ( XMLUtil::StringEqual( p, dtdHeader, dtdHeaderLen ) ) {
-		returnNode = conf_placement_new<XMLUnknown>(commentPool.Alloc(), this);
+		returnNode = tf_placement_new<XMLUnknown>(commentPool.Alloc(), this);
 		returnNode->memPool = &commentPool;
 		p += dtdHeaderLen;
 	}
 	else if ( XMLUtil::StringEqual( p, elementHeader, elementHeaderLen ) ) {
-		returnNode = conf_placement_new<XMLElement>(elementPool.Alloc(), this);
+		returnNode = tf_placement_new<XMLElement>(elementPool.Alloc(), this);
 		returnNode->memPool = &elementPool;
 		p += elementHeaderLen;
 	}
 	else {
-		returnNode = conf_placement_new<XMLText>(textPool.Alloc(), this);
+		returnNode = tf_placement_new<XMLText>(textPool.Alloc(), this);
 		returnNode->memPool = &textPool;
 		p = start;	// Back it up, all the text counts.
 	}
@@ -1109,7 +1109,7 @@ XMLAttribute* XMLElement::FindOrCreateAttribute( const char* name )
 		}
 	}
 	if ( !attrib ) {
-		attrib = conf_placement_new<XMLAttribute>(document->attributePool.Alloc());
+		attrib = tf_placement_new<XMLAttribute>(document->attributePool.Alloc());
 		attrib->memPool = &document->attributePool;
 		if ( last ) {
 			last->next = attrib;
@@ -1157,7 +1157,7 @@ char* XMLElement::ParseAttributes( char* p )
 
 		// attribute.
 		if ( XMLUtil::IsAlpha( *p ) ) {
-			XMLAttribute* attrib = conf_placement_new<XMLAttribute>(document->attributePool.Alloc());
+			XMLAttribute* attrib = tf_placement_new<XMLAttribute>(document->attributePool.Alloc());
 			attrib->memPool = &document->attributePool;
 
 			p = attrib->ParseDeep( p, document->ProcessEntities() );
@@ -1298,7 +1298,7 @@ XMLDocument::XMLDocument( bool _processEntities ) :
 XMLDocument::~XMLDocument()
 {
 	DeleteChildren();
-	conf_free(charBuffer);
+	tf_free(charBuffer);
 
 #if 0
 	textPool.Trace( "text" );
@@ -1320,7 +1320,7 @@ void XMLDocument::InitDocument()
 	errorStr1 = 0;
 	errorStr2 = 0;
 
-	conf_free(charBuffer);
+	tf_free(charBuffer);
 	charBuffer = 0;
 
 }
@@ -1328,7 +1328,7 @@ void XMLDocument::InitDocument()
 
 XMLElement* XMLDocument::NewElement( const char* name )
 {
-	XMLElement* ele = conf_placement_new<XMLElement>(elementPool.Alloc(), this);
+	XMLElement* ele = tf_placement_new<XMLElement>(elementPool.Alloc(), this);
 	ele->memPool = &elementPool;
 	ele->SetName( name );
 	return ele;
@@ -1337,7 +1337,7 @@ XMLElement* XMLDocument::NewElement( const char* name )
 
 XMLComment* XMLDocument::NewComment( const char* str )
 {
-	XMLComment* comment = conf_placement_new<XMLComment>(commentPool.Alloc(), this);
+	XMLComment* comment = tf_placement_new<XMLComment>(commentPool.Alloc(), this);
 	comment->memPool = &commentPool;
 	comment->SetValue( str );
 	return comment;
@@ -1346,7 +1346,7 @@ XMLComment* XMLDocument::NewComment( const char* str )
 
 XMLText* XMLDocument::NewText( const char* str )
 {
-	XMLText* text = conf_placement_new<XMLText>(textPool.Alloc(), this);
+	XMLText* text = tf_placement_new<XMLText>(textPool.Alloc(), this);
 	text->memPool = &textPool;
 	text->SetValue( str );
 	return text;
@@ -1355,7 +1355,7 @@ XMLText* XMLDocument::NewText( const char* str )
 
 XMLDeclaration* XMLDocument::NewDeclaration( const char* str )
 {
-	XMLDeclaration* dec = conf_placement_new<XMLDeclaration>(commentPool.Alloc(), this);
+	XMLDeclaration* dec = tf_placement_new<XMLDeclaration>(commentPool.Alloc(), this);
 	dec->memPool = &commentPool;
 	dec->SetValue( str ? str : "xml version=\"1.0\" encoding=\"UTF-8\"" );
 	return dec;
@@ -1364,7 +1364,7 @@ XMLDeclaration* XMLDocument::NewDeclaration( const char* str )
 
 XMLUnknown* XMLDocument::NewUnknown( const char* str )
 {
-	XMLUnknown* unk = conf_placement_new<XMLUnknown>(commentPool.Alloc(), this);
+	XMLUnknown* unk = tf_placement_new<XMLUnknown>(commentPool.Alloc(), this);
 	unk->memPool = &commentPool;
 	unk->SetValue( str );
 	return unk;
@@ -1392,7 +1392,7 @@ int XMLDocument::LoadFile(const Path* filePath)
 	}
     size_t length = fsGetStreamFileSize(fileStream);
 
-    data = (char*)conf_calloc(length, sizeof(char));
+    data = (char*)tf_calloc(length, sizeof(char));
 	bytesRead = fsReadFromStream(fileStream, data, length);
 	fsCloseStream(fileStream);
 
@@ -1402,12 +1402,12 @@ int XMLDocument::LoadFile(const Path* filePath)
 #endif
 	if ( data == NULL ) {
 		SetError( XML_ERROR_FILE_NOT_FOUND, fsGetPathAsNativeString(filePath), 0 );
-        conf_free(data);
+        tf_free(data);
 		return errorID;
 	}else
     {
         LoadFileData( data, bytesRead );
-		conf_free(data);
+		tf_free(data);
     }
 
 	return errorID;
@@ -1442,7 +1442,7 @@ int XMLDocument::LoadFileData( const char* dataIn, size_t size )
 		return errorID;
 	}
 
-	charBuffer = (char*)conf_calloc(size + 1, sizeof(char));
+	charBuffer = (char*)tf_calloc(size + 1, sizeof(char));
     charBuffer[size] = 0;
 
 	/*size_t read = fread( charBuffer, 1, size, fp );
@@ -1479,7 +1479,7 @@ int XMLDocument::LoadFile(FileStream* fileStream)
 		return errorID;
 	}
 
-	charBuffer = (char*)conf_calloc(size + 1, sizeof(char));
+	charBuffer = (char*)tf_calloc(size + 1, sizeof(char));
 	size_t read = fsReadFromStream(fileStream, charBuffer, size);
 	if ( read != size ) {
 		SetError( XML_ERROR_FILE_READ_ERROR, 0, 0 );
@@ -1550,7 +1550,7 @@ int XMLDocument::Parse( const char* p )
 	}
 
 	size_t len = strlen( p );
-	charBuffer = (char*)conf_calloc(len + 1, sizeof(char));
+	charBuffer = (char*)tf_calloc(len + 1, sizeof(char));
 	memcpy( charBuffer, p, len+1 );
 
 	

@@ -52,6 +52,6 @@ namespace SoLoud
 
 	FilterInstance *RobotizeFilter::createInstance()
 	{
-		return conf_new(RobotizeFilterInstance, this);
+		return tf_new(RobotizeFilterInstance, this);
 	}
 }

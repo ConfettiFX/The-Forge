@@ -232,7 +232,7 @@
 //   Inline sort     :  6.54 s     5.65 s
 //   New rasterizer  :  5.63 s     5.00 s
 
-// #ConfettiExtensionsBegin
+// #TheForgeExtensionsBegin
 // Eliminate  'unused function' warnings
 //#if defined(TARGET_IOS) || defined(METAL)
 #if defined(__APPLE__)
@@ -240,7 +240,7 @@
 #else
 #define UNUSED_WARNING_FIX
 #endif
-// #ConfettiExtensionsEnd
+// #TheForgeExtensionsEnd
 
 //////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////

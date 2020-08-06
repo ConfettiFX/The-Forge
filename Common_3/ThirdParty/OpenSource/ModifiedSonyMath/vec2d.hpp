@@ -736,7 +736,7 @@ inline void print(const Point2 & pnt, const char * name)
 
 #endif // VECTORMATH_DEBUG
 
-//========================================= #ConfettiMathExtensionsBegin ================================================
+//========================================= #TheForgeMathExtensionsBegin ================================================
 
 // ========================================================
 // A 2-D unpadded vector (sizeof = 8 bytes)
@@ -1439,7 +1439,7 @@ inline float Matrix2::getElem(int col, int row) const
 	return getCol(col)[row];
 }
 #endif
-//========================================= #ConfettiMathExtensionsEnd ==================================================
+//========================================= #TheForgeMathExtensionsEnd ==================================================
 
 } // namespace Vectormath
 

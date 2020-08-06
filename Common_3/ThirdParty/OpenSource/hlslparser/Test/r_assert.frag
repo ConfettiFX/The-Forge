@@ -6,8 +6,8 @@ struct ColorData
 	uint4 color[RT_COUNT];
 };
 
-Texture2D<uint> Mask : register(space0);
-StructuredBuffer<ColorData> ColorDataSRV : register(space0);
+Texture2D<uint> Mask : register(t0, space0);
+StructuredBuffer<ColorData> ColorDataSRV : register(t1, space0);
 
 float4 UnpackRGBA(uint packedInput)
 {

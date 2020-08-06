@@ -187,7 +187,7 @@ Texture*                pAsteroidTex = NULL;
 bool                    gUseThreads = true;
 bool                    gToggleVSync = false;
 uint32_t                gRenderingMode = RenderingMode_GPUUpdate;
-int                     gPreviousRenderingMode = gRenderingMode;
+uint32_t                gPreviousRenderingMode = gRenderingMode;
 
 Renderer* pRenderer = NULL;
 
@@ -309,22 +309,11 @@ class ExecuteIndirect: public IApp
 	bool Init()
 	{
         // FILE PATHS
-        PathHandle programDirectory = fsGetApplicationDirectory();
-        if (!fsPlatformUsesBundledResources())
-        {
-            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/04_ExecuteIndirect");
-            fsSetResourceDirRootPath(resourceDirRoot);
-            
-            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,           "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirEnum(RD_MESHES,             "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,       "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,       "../../../../Middleware_3/UI");
-#if !defined(TARGET_IOS)
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_PANINI,  "../../../../Middleware_3/PaniniProjection");
-#endif
-        }
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES,	"Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES,	"CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG,		"GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES,			"Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS,			"Fonts");
 		
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
@@ -366,14 +355,13 @@ class ExecuteIndirect: public IApp
 
 		for (int i = 0; i < 6; ++i)
 		{
-            PathHandle texturePath = fsGetPathInResourceDirEnum(RD_TEXTURES, pSkyBoxImageFileNames[i]);
 			TextureLoadDesc textureDesc = {};
-            textureDesc.pFilePath = texturePath;
+            textureDesc.pFileName = pSkyBoxImageFileNames[i];
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
-			addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&textureDesc, NULL);
 		}
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
 		{
 			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
 			return false;
@@ -395,19 +383,19 @@ class ExecuteIndirect: public IApp
 		addSampler(pRenderer, &samplerDesc, &pSkyBoxSampler);
 
 		ShaderLoadDesc instanceShader = {};
-		instanceShader.mStages[0] = { "basic.vert", NULL, 0, RD_SHADER_SOURCES };
-		instanceShader.mStages[1] = { "basic.frag", NULL, 0, RD_SHADER_SOURCES };
+		instanceShader.mStages[0] = { "basic.vert", NULL, 0};
+		instanceShader.mStages[1] = { "basic.frag", NULL, 0};
 
 		ShaderLoadDesc indirectShader = {};
-		indirectShader.mStages[0] = { "ExecuteIndirect.vert", NULL, 0, RD_SHADER_SOURCES };
-		indirectShader.mStages[1] = { "ExecuteIndirect.frag", NULL, 0, RD_SHADER_SOURCES };
+		indirectShader.mStages[0] = { "ExecuteIndirect.vert", NULL, 0};
+		indirectShader.mStages[1] = { "ExecuteIndirect.frag", NULL, 0};
 
 		ShaderLoadDesc skyShader = {};
-		skyShader.mStages[0] = { "skybox.vert", NULL, 0, RD_SHADER_SOURCES };
-		skyShader.mStages[1] = { "skybox.frag", NULL, 0, RD_SHADER_SOURCES };
+		skyShader.mStages[0] = { "skybox.vert", NULL, 0};
+		skyShader.mStages[1] = { "skybox.frag", NULL, 0};
 
 		ShaderLoadDesc gpuUpdateShader = {};
-		gpuUpdateShader.mStages[0] = { "ComputeUpdate.comp", NULL, 0, RD_SHADER_SOURCES };
+		gpuUpdateShader.mStages[0] = { "ComputeUpdate.comp", NULL, 0};
 
 		addShader(pRenderer, &instanceShader, &pBasicShader);
 		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
@@ -459,7 +447,7 @@ class ExecuteIndirect: public IApp
 		eastl::vector<uint16_t> indices;
 		uint32_t                  numVerticesPerMesh;
 		gAsteroidSim.numLODs = 3;
-		gAsteroidSim.indexOffsets = (int*)conf_calloc(gAsteroidSim.numLODs + 2, sizeof(int));
+		gAsteroidSim.indexOffsets = (int*)tf_calloc(gAsteroidSim.numLODs + 2, sizeof(int));
 
 		CreateAsteroids(vertices, indices, gAsteroidSim.numLODs, 1000, 123, numVerticesPerMesh, gAsteroidSim.indexOffsets);
 		gAsteroidSim.Init(123, gNumAsteroids, 1000, numVerticesPerMesh, gTextureCount);
@@ -476,7 +464,7 @@ class ExecuteIndirect: public IApp
 		bufDesc.mDesc.mSize = skyBoxDataSize;
 		bufDesc.pData = skyBoxPoints;
 		bufDesc.ppBuffer = &pSkyBoxVertexBuffer;
-		addResource(&bufDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&bufDesc, NULL);
 
 		bufDesc = {};
 		bufDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -487,9 +475,9 @@ class ExecuteIndirect: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			bufDesc.ppBuffer = &pIndirectUniformBuffer[i];
-			addResource(&bufDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&bufDesc, NULL);
 			bufDesc.ppBuffer = &pSkyboxUniformBuffer[i];
-			addResource(&bufDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&bufDesc, NULL);
 		}
 
 		bufDesc = {};
@@ -500,10 +488,10 @@ class ExecuteIndirect: public IApp
 		bufDesc.mDesc.mElementCount = gNumAsteroidsPerSubset;
 		bufDesc.mDesc.mStructStride = sizeof(UniformBasic);
 		bufDesc.mDesc.mSize = bufDesc.mDesc.mElementCount * bufDesc.mDesc.mStructStride;
-		for (int i = 0; i < gNumSubsets; i++)
+		for (uint32_t i = 0; i < gNumSubsets; i++)
 		{
 			bufDesc.ppBuffer = &gAsteroidSubsets[i].pAsteroidInstanceBuffer;
-			addResource(&bufDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&bufDesc, NULL);
 		}
 
 		bufDesc = {};
@@ -516,7 +504,7 @@ class ExecuteIndirect: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			bufDesc.ppBuffer = &pComputeUniformBuffer[i];
-			addResource(&bufDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&bufDesc, NULL);
 		}
 
 		// Vertex Buffer
@@ -526,7 +514,7 @@ class ExecuteIndirect: public IApp
 		bufDesc.mDesc.mSize = sizeof(Vertex) * (uint32_t)vertices.size();
 		bufDesc.pData = vertices.data();
 		bufDesc.ppBuffer = &pAsteroidVertexBuffer;
-		addResource(&bufDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&bufDesc, NULL);
 
 		// Index Buffer
 		bufDesc = {};
@@ -535,7 +523,7 @@ class ExecuteIndirect: public IApp
 		bufDesc.mDesc.mSize = sizeof(uint16_t) * (uint32_t)indices.size();
 		bufDesc.pData = indices.data();
 		bufDesc.ppBuffer = &pAsteroidIndexBuffer;
-		addResource(&bufDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&bufDesc, NULL);
 
 		// Static Asteroid RW Buffer
 		bufDesc = {};
@@ -548,7 +536,7 @@ class ExecuteIndirect: public IApp
 		bufDesc.mDesc.pCounterBuffer = NULL;
 		bufDesc.pData = gAsteroidSim.asteroidsStatic.data();
 		bufDesc.ppBuffer = &pStaticAsteroidBuffer;
-		addResource(&bufDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&bufDesc, NULL);
 
 		// Dynamic Asteroid RW Buffer
 		bufDesc = {};
@@ -561,7 +549,7 @@ class ExecuteIndirect: public IApp
 		bufDesc.mDesc.pCounterBuffer = NULL;
 		bufDesc.pData = gAsteroidSim.asteroidsDynamic.data();
 		bufDesc.ppBuffer = &pDynamicAsteroidBuffer;
-		addResource(&bufDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&bufDesc, NULL);
 
 		/* Prepare execute indirect command signatures and buffers */
 
@@ -582,9 +570,9 @@ class ExecuteIndirect: public IApp
 
 		// initialize argument data
 		IndirectArguments* indirectInit =
-			(IndirectArguments*)conf_calloc(gNumAsteroids, sizeof(IndirectArguments));    // For use with compute shader
+			(IndirectArguments*)tf_calloc(gNumAsteroids, sizeof(IndirectArguments));    // For use with compute shader
 		IndirectArguments* indirectSubsetInit =
-			(IndirectArguments*)conf_calloc(gNumAsteroidsPerSubset, sizeof(IndirectArguments));    // For use with multithreading subsets
+			(IndirectArguments*)tf_calloc(gNumAsteroidsPerSubset, sizeof(IndirectArguments));    // For use with multithreading subsets
 		for (uint32_t i = 0; i < gNumAsteroids; i++)
 		{
 #if defined(DIRECT3D12)
@@ -618,23 +606,23 @@ class ExecuteIndirect: public IApp
 		indirectBufDesc.mDesc.mSize = indirectBufDesc.mDesc.mStructStride * indirectBufDesc.mDesc.mElementCount;
 		indirectBufDesc.pData = indirectInit;
 		indirectBufDesc.ppBuffer = &pIndirectBuffer;
-		addResource(&indirectBufDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&indirectBufDesc, NULL);
 
 		indirectBufDesc.mDesc.mElementCount = gNumAsteroidsPerSubset;
 		indirectBufDesc.mDesc.mSize = sizeof(IndirectArguments) * gNumAsteroidsPerSubset;
 
 		indirectBufDesc.pData = indirectSubsetInit;
-		for (int i = 0; i < gNumSubsets; i++)
+		for (uint32_t i = 0; i < gNumSubsets; i++)
 		{
 			indirectBufDesc.ppBuffer = &(gAsteroidSubsets[i].pSubsetIndirect);
-			addResource(&indirectBufDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&indirectBufDesc, NULL);
 		}
 
 		/* UI and Camera Setup */
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 
 		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition += vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.5f);
@@ -718,8 +706,8 @@ class ExecuteIndirect: public IApp
 		addInputAction(&actionDesc);
 
 		waitForAllResourceLoads();
-		conf_free(indirectInit);
-		conf_free(indirectSubsetInit);
+		tf_free(indirectInit);
+		tf_free(indirectSubsetInit);
 		
 		// Prepare descriptor sets
 		DescriptorData skyboxParams[6] = {};
@@ -850,11 +838,11 @@ class ExecuteIndirect: public IApp
 		for (uint32_t i = 0; i < gNumSubsets; i++)
 		{
 			removeResource(gAsteroidSubsets[i].pAsteroidInstanceBuffer);
-			conf_free(gAsteroidSubsets[i].mIndirectArgs);
+			tf_free(gAsteroidSubsets[i].mIndirectArgs);
 			removeResource(gAsteroidSubsets[i].pSubsetIndirect);
 		}
 
-		conf_free(gAsteroidSim.indexOffsets);
+		tf_free(gAsteroidSim.indexOffsets);
 
 		removeIndirectCommandSignature(pRenderer, pIndirectCommandSignature);
 		removeIndirectCommandSignature(pRenderer, pIndirectSubsetCommandSignature);
@@ -1173,7 +1161,7 @@ class ExecuteIndirect: public IApp
 			if (gUseThreads)
 			{
 				// With Multithreading
-				for (int i = 0; i < gNumSubsets; i++)
+				for (uint32_t i = 0; i < gNumSubsets; i++)
 				{
 					gThreadData[i].mDeltaTime = frameTime;
 					gThreadData[i].mIndex = i;
@@ -1187,7 +1175,7 @@ class ExecuteIndirect: public IApp
 				// wait for all threads to finish
 				waitThreadSystemIdle(pThreadSystem);
 
-				for (int i = 0; i < gNumSubsets; i++)
+				for (uint32_t i = 0; i < gNumSubsets; i++)
 					allCmds.push_back(gAsteroidSubsets[i].pCmds[gFrameIndex]);    // Asteroid Cmds
 			}
 			else
@@ -1244,8 +1232,10 @@ class ExecuteIndirect: public IApp
 			BufferBarrier srvBarrier = { pIndirectBuffer, RESOURCE_STATE_INDIRECT_ARGUMENT };
 			cmdResourceBarrier(cmd, 1, &srvBarrier, 0, NULL, 0, NULL);
 
+			LoadActionsDesc loadActionLoad = {};
+			loadActionLoad.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
 			// Execute indirect
-			cmdBindRenderTargets(cmd, 1, &pSceneRenderTarget, pDepthBuffer, NULL, NULL, NULL, -1, -1);
+			cmdBindRenderTargets(cmd, 1, &pSceneRenderTarget, pDepthBuffer, &loadActionLoad, NULL, NULL, -1, -1);
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSceneRenderTarget->mWidth, (float)pSceneRenderTarget->mHeight, 0.0f, 1.0f);
 			cmdSetScissor(cmd, 0, 0, pSceneRenderTarget->mWidth, pSceneRenderTarget->mHeight);
 
@@ -1646,7 +1636,7 @@ class ExecuteIndirect: public IApp
 		{
 			Subset subset;
 
-			subset.mIndirectArgs = (IndirectArguments*)conf_calloc(gNumAsteroidsPerSubset, sizeof(IndirectArguments));
+			subset.mIndirectArgs = (IndirectArguments*)tf_calloc(gNumAsteroidsPerSubset, sizeof(IndirectArguments));
 
 			for (uint32_t j = 0; j < gNumAsteroidsPerSubset; j++)
 			{

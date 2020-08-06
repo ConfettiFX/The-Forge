@@ -6,7 +6,7 @@ inline void utils_caps_builder(Renderer* pRenderer)
 	// for metal this is a case of going through each family and looking up the info off apple documentation
 	// we start low and go higher, add things as we go
 	// data from https://developer.apple.com/metal/Metal-Feature-Set-Tables.pdf
-	pRenderer->pCapBits = (GPUCapBits*)conf_calloc(1, sizeof(GPUCapBits));
+	pRenderer->pCapBits = (GPUCapBits*)tf_calloc(1, sizeof(GPUCapBits));
 
 	// all pixel formats that metal support it claims can be sampled from if they exist on the platform
 	// this is however a lie when compressed texture formats

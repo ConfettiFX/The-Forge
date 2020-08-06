@@ -2581,7 +2581,7 @@ void ImGui::SetAllocatorFunctions(void* (*alloc_func)(size_t sz, void* user_data
 
 ImGuiContext* ImGui::CreateContext(ImFontAtlas* shared_font_atlas)
 {
-    ImGuiContext* ctx = conf_placement_new<ImGuiContext>(ImGui::MemAlloc(sizeof(ImGuiContext)), shared_font_atlas);
+    ImGuiContext* ctx = tf_placement_new<ImGuiContext>(ImGui::MemAlloc(sizeof(ImGuiContext)), shared_font_atlas);
     if (GImGui == NULL)
         SetCurrentContext(ctx);
     Initialize(ctx);
@@ -4116,7 +4116,7 @@ static ImGuiWindow* CreateNewWindow(const char* name, float2 size, ImGuiWindowFl
     ImGuiContext& g = *GImGui;
 
     // Create window the first time
-    ImGuiWindow* window = conf_placement_new<ImGuiWindow>(ImGui::MemAlloc(sizeof(ImGuiWindow)), &g, name);
+    ImGuiWindow* window = tf_placement_new<ImGuiWindow>(ImGui::MemAlloc(sizeof(ImGuiWindow)), &g, name);
     window->Flags = flags;
     g.WindowsById.SetVoidPtr(window->ID, window);
 
@@ -8530,16 +8530,14 @@ ImGuiWindowSettings* ImGui::FindWindowSettings(ImGuiID id)
 
 void ImGui::LoadIniSettingsFromDisk(const char* ini_filename)
 {
-    PathHandle path = fsCreatePath(fsGetSystemFileSystem(), ini_filename);
-    FileStream* fh = fsOpenFile(path, FM_READ_APPEND);
-
-	if (fh)
+	FileStream fh = {};
+	if (fsOpenStreamFromPath(RD_LOG, ini_filename, FM_READ_APPEND, &fh))
 	{
-        ssize_t fileSize = fsGetStreamFileSize(fh);
-        char *fileContents = (char*)ImGui::MemAlloc(fileSize);
-        fsReadFromStreamString(fh, fileContents, fileSize);
+		ssize_t fileSize = fsGetStreamFileSize(&fh);
+		char* fileContents = (char*)ImGui::MemAlloc(fileSize);
+		fsReadFromStream(&fh, fileContents, fileSize);
 		LoadIniSettingsFromMemory(fileContents, (size_t)fileSize);
-        fsCloseStream(fh);
+		fsCloseStream(&fh);
 	}
 }
 
@@ -8621,13 +8619,12 @@ void ImGui::SaveIniSettingsToDisk(const char* ini_filename)
     size_t ini_data_size = 0;
     const char* ini_data = SaveIniSettingsToMemory(&ini_data_size);
     
-    PathHandle path = fsCreatePath(fsGetSystemFileSystem(), ini_filename);
-    FileStream* fh = fsOpenFile(path, FM_WRITE);
-    
-	if (!fh)
+   // PathHandle path = fsCreatePath(fsGetSystemFileSystem(), ini_filename);
+	FileStream fh = {};
+	if (!fsOpenStreamFromPath(RD_LOG, ini_filename, FM_WRITE, &fh))
 		return;
-    fsWriteToStream(fh, ini_data, ini_data_size);
-    fsCloseStream(fh);
+    fsWriteToStream(&fh, ini_data, ini_data_size);
+    fsCloseStream(&fh);
 }
 
 // Call registered handlers (e.g. SettingsHandlerWindow_WriteAll() + custom handlers) to write their stuff into a text buffer
@@ -8710,14 +8707,14 @@ static void SettingsHandlerWindow_WriteAll(ImGuiContext* imgui_ctx, ImGuiSetting
 // PLATFORM DEPENDENT HELPERS
 //-----------------------------------------------------------------------------
 
-// #ConfettiChangesBegin
+// #TheForgeChangesBegin
 
 // XBox doesn't have clipboard so we disable it
 #if defined(XBOX)
 #define IMGUI_DISABLE_WIN32_DEFAULT_CLIPBOARD_FUNCTIONS
 #define IMGUI_DISABLE_WIN32_DEFAULT_IME_FUNCTIONS
 #endif
-// #ConfettiChangesEnd
+// #TheForgeChangesEnd
 
 #if defined(_WIN32) && !defined(_WINDOWS_) && (!defined(IMGUI_DISABLE_WIN32_DEFAULT_CLIPBOARD_FUNCTIONS) || !defined(IMGUI_DISABLE_WIN32_DEFAULT_IME_FUNCTIONS))
 #ifndef WIN32_LEAN_AND_MEAN

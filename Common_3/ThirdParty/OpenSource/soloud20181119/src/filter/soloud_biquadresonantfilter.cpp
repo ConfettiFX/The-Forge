@@ -178,6 +178,6 @@ namespace SoLoud
 
 	BiquadResonantFilterInstance *BiquadResonantFilter::createInstance()
 	{
-		return conf_new(BiquadResonantFilterInstance, this);
+		return tf_new(BiquadResonantFilterInstance, this);
 	}
 }

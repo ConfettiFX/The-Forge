@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Confetti Interactive Inc.
+ * Copyright (c) 2019 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -111,9 +111,9 @@ static void taskThreadFunc(void* pThreadData)
 	pThreadSystem->mQueueMutex.Release();
 }
 
-void initThreadSystem(ThreadSystem** ppThreadSystem, uint32_t numRequestedThreads, int preferredCore, const char* threadName)
+void initThreadSystem(ThreadSystem** ppThreadSystem, uint32_t numRequestedThreads, int preferredCore, bool migrateEnabled, const char* threadName)
 {
-	ThreadSystem* pThreadSystem = conf_new(ThreadSystem);
+	ThreadSystem* pThreadSystem = tf_new(ThreadSystem);
 
 	uint32_t numThreads = max<uint32_t>(Thread::GetNumCPUCores() - 1, 1);
 	uint32_t numLoaders = min<uint32_t>(numThreads, min<uint32_t>(numRequestedThreads, MAX_LOAD_THREADS));
@@ -135,6 +135,7 @@ void initThreadSystem(ThreadSystem** ppThreadSystem, uint32_t numRequestedThread
 		pThreadSystem->mThreadDescs[i].hThread = &pThreadSystem->mThreadType[i];
 		pThreadSystem->mThreadDescs[i].preferredCore = preferredCore;
 		pThreadSystem->mThreadDescs[i].pThreadName = threadName;
+		pThreadSystem->mThreadDescs[i].migrateEnabled = migrateEnabled;
 #endif
 
 		pThreadSystem->mThread[i] = create_thread(&pThreadSystem->mThreadDescs[i]);
@@ -189,7 +190,7 @@ void shutdownThreadSystem(ThreadSystem* pThreadSystem)
 	pThreadSystem->mQueueCond.Destroy();
 	pThreadSystem->mIdleCond.Destroy();
 	pThreadSystem->mQueueMutex.Destroy();
-	conf_delete(pThreadSystem);
+	tf_delete(pThreadSystem);
 }
 
 bool isThreadSystemIdle(ThreadSystem* pThreadSystem)

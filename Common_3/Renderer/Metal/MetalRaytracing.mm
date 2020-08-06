@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018 Confetti Interactive Inc.
+ * Copyright (c) 2018 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -328,7 +328,7 @@ bool isRaytracingSupported(Renderer* pRenderer)
 API_AVAILABLE(macos(10.14), ios(12.0))
 bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 {
-	Raytracing* pRaytracing = conf_new(Raytracing);
+	Raytracing* pRaytracing = tf_new(Raytracing);
 	// Create a raytracer for our Metal device
 	pRaytracing->pIntersector = [[MPSRayIntersector alloc] initWithDevice: pRenderer->pDevice];
 	
@@ -338,7 +338,7 @@ bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 	pRaytracing->pIntersector.rayMaskOptions = MPSRayMaskOptionPrimitive;
 	pRaytracing->pRenderer = pRenderer;
 	
-	pRaytracing->pParallelPrimitives = conf_new(ParallelPrimitives, pRenderer);
+	pRaytracing->pParallelPrimitives = tf_new(ParallelPrimitives, pRenderer);
 	
 	NSString* classificationShaderSource = [NSString stringWithUTF8String:pClassificationShader];
 	NSError* error = nil;
@@ -416,7 +416,7 @@ void createVertexAndIndexBuffers(Raytracing* pRaytracing, const AccelerationStru
 	vbDesc.mDesc.mSize = vbSize;
 	vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 	vbDesc.ppBuffer = pVb;
-	addResource(&vbDesc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&vbDesc, NULL);
 	
 	unsigned vbOffset = 0;
 	unsigned ibOffset = 0;
@@ -434,7 +434,7 @@ void createVertexAndIndexBuffers(Raytracing* pRaytracing, const AccelerationStru
 		ibDesc.mDesc.mSize = ibSize;
 		ibDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		ibDesc.ppBuffer = pIb;
-		addResource(&ibDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&ibDesc, NULL);
 		
 		ibUpdateDesc = { *pIb };
 		beginUpdateResource(&ibUpdateDesc);
@@ -522,7 +522,7 @@ void createInstanceIDBuffer(Raytracing* pRaytracing, const AccelerationStructure
 	bufferDesc.mDesc.mSize = bufferSize;
 	bufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 	bufferDesc.ppBuffer = pBuffer;
-	addResource(&bufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&bufferDesc, NULL);
 	
 	BufferUpdateDesc updateDesc = { *pBuffer };
 	beginUpdateResource(&updateDesc);
@@ -604,7 +604,7 @@ void createInstancesMaskBuffer(Raytracing* pRaytracing, const AccelerationStruct
 	maskDesc.mDesc.mSize = instanceBufferLength;
 	maskDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 	maskDesc.ppBuffer = pMask;
-	addResource(&maskDesc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&maskDesc, NULL);
 	
 	BufferUpdateDesc maskUpdateDesc = { *pMask };
 	beginUpdateResource(&maskUpdateDesc);
@@ -626,7 +626,7 @@ void createHitGroupIndicesBuffer (Raytracing* pRaytracing, const AccelerationStr
 	bufferDesc.mDesc.mSize = instanceBufferLength;
 	bufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 	bufferDesc.ppBuffer = pBuffer;
-	addResource(&bufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&bufferDesc, NULL);
 	
 	BufferUpdateDesc updateDesc = { *pBuffer };
 	beginUpdateResource(&updateDesc);
@@ -648,9 +648,9 @@ void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructu
 	ASSERT(pRaytracing->pIntersector);
 	ASSERT(ppAccelerationStructure);
 	
-	AccelerationStructure* AS = (AccelerationStructure*)conf_malloc(sizeof(AccelerationStructure));
+	AccelerationStructure* AS = (AccelerationStructure*)tf_malloc(sizeof(AccelerationStructure));
 	memset(AS, 0, sizeof(*AS));
-	conf_placement_new<eastl::vector<uint32_t> >(&AS->mActiveHitGroups);
+	tf_placement_new<eastl::vector<uint32_t> >(&AS->mActiveHitGroups);
 	AS->pBottomAS = [[NSMutableArray alloc] init];
 	
 	//pDesc->mFlags. Just ignore this
@@ -753,12 +753,12 @@ void removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
 	ASSERT(pRaytracing);
 	pRaytracing->mClassificationPipeline = nil;
 	pRaytracing->mClassificationArgumentEncoder = nil;
-	conf_delete(pRaytracing->pParallelPrimitives);
+	tf_delete(pRaytracing->pParallelPrimitives);
 	pRaytracing->pParallelPrimitives = NULL;
 	pRaytracing->pIntersector = nil;
 	pRaytracing->~Raytracing();
 	memset(pRaytracing, 0, sizeof(*pRaytracing));
-	conf_free(pRaytracing);
+	tf_free(pRaytracing);
 }
 
 API_AVAILABLE(macos(10.14), ios(12.0))
@@ -795,13 +795,13 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppGen
 	Raytracing* pRaytracing = pDesc->pRaytracing;
 	ASSERT(pRaytracing);
 	
-	Pipeline* pGenericPipeline =(Pipeline*)conf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
+	Pipeline* pGenericPipeline =(Pipeline*)tf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
 	ASSERT(pGenericPipeline);
 	
 	pGenericPipeline->pShader = pDesc->pRayGenShader;
 	pGenericPipeline->mType = PIPELINE_TYPE_RAYTRACING;
 	
-	RaytracingPipeline* pPipeline = (RaytracingPipeline*)conf_calloc(1, sizeof(RaytracingPipeline));
+	RaytracingPipeline* pPipeline = (RaytracingPipeline*)tf_calloc(1, sizeof(RaytracingPipeline));
 	memset(pPipeline, 0, sizeof(*pPipeline));
 	
 	pGenericPipeline->pRaytracingPipeline = pPipeline;
@@ -831,16 +831,16 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppGen
 #else
 	MTLResourceOptions options = MTLResourceStorageModeShared;
 #endif
-	pPipeline->pHitGroupShaders = (HitGroupShaders*)conf_calloc(pDesc->mHitGroupCount, sizeof(HitGroupShaders));
-	pPipeline->mHitGroupNames = (char**)conf_calloc(pDesc->mHitGroupCount, sizeof(char*));
-	pPipeline->pHitGroupShaderCounts = (HitGroupShaders*)conf_calloc(pDesc->mHitGroupCount, sizeof(HitGroupShaders));
+	pPipeline->pHitGroupShaders = (HitGroupShaders*)tf_calloc(pDesc->mHitGroupCount, sizeof(HitGroupShaders));
+	pPipeline->mHitGroupNames = (char**)tf_calloc(pDesc->mHitGroupCount, sizeof(char*));
+	pPipeline->pHitGroupShaderCounts = (HitGroupShaders*)tf_calloc(pDesc->mHitGroupCount, sizeof(HitGroupShaders));
 	
 	memset(pPipeline->pHitGroupShaderCounts, 0, pDesc->mHitGroupCount * sizeof(HitGroupShaders));
 	
 	for (uint32_t i = 0; i < pDesc->mHitGroupCount; ++i)
 	{
 		const char* groupName = pDesc->pHitGroups[i].pHitGroupName;
-		pPipeline->mHitGroupNames[i] = (char*)conf_calloc(strlen(groupName) + 1, sizeof(char));
+		pPipeline->mHitGroupNames[i] = (char*)tf_calloc(strlen(groupName) + 1, sizeof(char));
 		memcpy(pPipeline->mHitGroupNames[i], groupName, strlen(groupName) + 1);
 	}
 	
@@ -922,8 +922,8 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppGen
 		}
 	}
 	
-	pPipeline->mMissGroupNames = (char**)conf_calloc(pDesc->mMissShaderCount, sizeof(char*));
-	pPipeline->pMissShaderIndices = (uint16_t*)conf_calloc(pDesc->mMissShaderCount + 1, sizeof(uint16_t));
+	pPipeline->mMissGroupNames = (char**)tf_calloc(pDesc->mMissShaderCount, sizeof(char*));
+	pPipeline->pMissShaderIndices = (uint16_t*)tf_calloc(pDesc->mMissShaderCount + 1, sizeof(uint16_t));
 	
 	for (uint32_t i = 0; i < pDesc->mMissShaderCount; ++i)
 	{
@@ -948,7 +948,7 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppGen
 		addSubFunctions(computeDescriptor, pDesc->ppMissShaders[i]->mtlLibrary, pPipeline->mMetalPipelines);
 		
 		const char* groupName = pDesc->ppMissShaders[i]->pEntryNames[0];
-		pPipeline->mMissGroupNames[i] = (char*)conf_calloc(strlen(groupName) + 1, sizeof(char));
+		pPipeline->mMissGroupNames[i] = (char*)tf_calloc(strlen(groupName) + 1, sizeof(char));
 		memcpy(pPipeline->mMissGroupNames[i], groupName, strlen(groupName) + 1);
 	}
 	pPipeline->pMissShaderIndices[pDesc->mMissShaderCount] = (uint16_t)pPipeline->mMetalPipelines.count;
@@ -995,29 +995,29 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppGen
 	loadDesc.mDesc.mSize = 4 * sizeof(uint32_t);
 	for (uint32_t i = 0; i < 2; i += 1) {
 		loadDesc.ppBuffer = &pPipeline->pRayCountBuffer[i];
-		addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&loadDesc, NULL);
 	}
 	
 	loadDesc.mDesc.mSize = pPipeline->mMaxRaysCount * sizeof(uint32_t);
 	loadDesc.ppBuffer = &pPipeline->pPathHitGroupsBuffer;
-	addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&loadDesc, NULL);
 	
 	loadDesc.ppBuffer = &pPipeline->pSortedPathHitGroupsBuffer;
-	addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&loadDesc, NULL);
 	
 	loadDesc.ppBuffer = &pPipeline->pPathIndicesBuffer;
-	addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&loadDesc, NULL);
 	
 	loadDesc.ppBuffer = &pPipeline->pSortedPathIndicesBuffer;
-	addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&loadDesc, NULL);
 	
 	loadDesc.mDesc.mSize = pPipeline->mMetalPipelines.count * sizeof(uint32_t);
 	loadDesc.ppBuffer = &pPipeline->pHitGroupsOffsetBuffer;
-	addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&loadDesc, NULL);
 	
 	loadDesc.mDesc.mSize = pPipeline->mMetalPipelines.count * 8 * sizeof(uint32_t);
 	loadDesc.ppBuffer = &pPipeline->pHitGroupIndirectArgumentsBuffer;
-	addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&loadDesc, NULL);
 	
 	NSInteger pathCallStackHeadersLength = (sizeof(int16_t) + 2 * sizeof(uint8_t)) * pPipeline->mMaxRaysCount;
 	NSInteger pathCallStackFunctionsLength = pPipeline->mMaxTraceRecursionDepth * pPipeline->mMaxRaysCount * sizeof(int16_t);
@@ -1052,17 +1052,17 @@ void removeRaytracingPipeline(RaytracingPipeline* pPipeline)
 	ASSERT(pPipeline);
 	
 	pPipeline->mMetalPipelines = nil;
-	conf_free(pPipeline->pHitGroupShaders);
-	conf_free(pPipeline->pHitGroupShaderCounts);
-	conf_free(pPipeline->pMissShaderIndices);
+	tf_free(pPipeline->pHitGroupShaders);
+	tf_free(pPipeline->pHitGroupShaderCounts);
+	tf_free(pPipeline->pMissShaderIndices);
 	
 	for (uint32_t i = 0; i < pPipeline->mHitGroupCount; ++i)
-		conf_free(pPipeline->mHitGroupNames[i]);
-	conf_free(pPipeline->mHitGroupNames);
+		tf_free(pPipeline->mHitGroupNames[i]);
+	tf_free(pPipeline->mHitGroupNames);
 	
 	for (uint32_t i = 0; i < pPipeline->mMissShaderCount; ++i)
-		conf_free(pPipeline->mMissGroupNames[i]);
-	conf_free(pPipeline->mMissGroupNames);
+		tf_free(pPipeline->mMissGroupNames[i]);
+	tf_free(pPipeline->mMissGroupNames);
 	
 	pPipeline->mIntersector = nil;
 	pPipeline->mRaysBuffer = nil;
@@ -1084,7 +1084,7 @@ void removeRaytracingPipeline(RaytracingPipeline* pPipeline)
 //	pPipeline->~RaytracingPipeline();
 //	memset(pPipeline, 0, sizeof(*pPipeline));
 	
-	conf_free(pPipeline);
+	tf_free(pPipeline);
 }
 
 API_AVAILABLE(macos(10.14), ios(12.0))
@@ -1102,7 +1102,7 @@ void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure*
 	removeResource(pAccelerationStructure->mHitGroupIndices);
 	
 	pAccelerationStructure->~AccelerationStructure();
-	conf_free(pAccelerationStructure);
+	tf_free(pAccelerationStructure);
 }
 
 API_AVAILABLE(macos(10.14), ios(12.0))
@@ -1112,7 +1112,7 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 	ASSERT(pDesc);
 	ASSERT(ppTable);
 	
-	RaytracingShaderTable* table = (RaytracingShaderTable*)conf_calloc(1, sizeof(RaytracingShaderTable));
+	RaytracingShaderTable* table = (RaytracingShaderTable*)tf_calloc(1, sizeof(RaytracingShaderTable));
 	memset(table, 0, sizeof(RaytracingShaderTable));
 	
 	table->pPipeline = pDesc->pPipeline;
@@ -1124,7 +1124,7 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 	// FIXME: is it even valid to specify a different ray gen for the shader table than was used for the RaytracingPipeline?
 	table->mRayGenPipeline = pPipeline->mMetalPipelines[0];
 	
-	table->pHitGroupIndices = (uint32_t*)conf_calloc(pDesc->mHitGroupCount, sizeof(uint32_t));
+	table->pHitGroupIndices = (uint32_t*)tf_calloc(pDesc->mHitGroupCount, sizeof(uint32_t));
 	table->mHitGroupCount = pDesc->mHitGroupCount;
 	for (uint32_t i = 0; i < pDesc->mHitGroupCount; i += 1)
 	{
@@ -1145,7 +1145,7 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 	hitGroupDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 	hitGroupDesc.mDesc.mSize = sizeof(HitGroupShaders) * pDesc->mHitGroupCount;
 	hitGroupDesc.ppBuffer = &table->mHitGroupShadersBuffer;
-	addResource(&hitGroupDesc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&hitGroupDesc, NULL);
 
 	BufferUpdateDesc hitGroupUpdateDesc = { table->mHitGroupShadersBuffer };
 	beginUpdateResource(&hitGroupUpdateDesc);
@@ -1158,7 +1158,7 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 	
 	endUpdateResource(&hitGroupUpdateDesc, NULL);
 	
-	table->pMissShaderIndices = (uint32_t*)conf_calloc(pDesc->mMissShaderCount, sizeof(uint32_t));
+	table->pMissShaderIndices = (uint32_t*)tf_calloc(pDesc->mMissShaderCount, sizeof(uint32_t));
 	table->mMissShaderCount = pDesc->mMissShaderCount;
 	for (uint32_t i = 0; i < pDesc->mMissShaderCount; i += 1)
 	{
@@ -1178,7 +1178,7 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 	table->mMissShaderIndicesSize = sizeof(uint16_t) * pDesc->mMissShaderCount;
 	if (table->mMissShaderIndicesSize)
 	{
-		table->mMissShaderIndicesBuffer = (uint16_t*)conf_malloc(sizeof(uint16_t) * pDesc->mMissShaderCount);
+		table->mMissShaderIndicesBuffer = (uint16_t*)tf_malloc(sizeof(uint16_t) * pDesc->mMissShaderCount);
 		for (uint32_t i = 0; i < pDesc->mMissShaderCount; i += 1)
 		{
 			table->mMissShaderIndicesBuffer[i] = pPipeline->pMissShaderIndices[table->pMissShaderIndices[i]];
@@ -1195,14 +1195,14 @@ void removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable*
 	
 	pTable->mRayGenPipeline = nil;
 	removeResource(pTable->mHitGroupShadersBuffer);
-	conf_free(pTable->mMissShaderIndicesBuffer);
+	tf_free(pTable->mMissShaderIndicesBuffer);
 	
-	conf_free(pTable->pMissShaderIndices);
-	conf_free(pTable->pHitGroupIndices);
+	tf_free(pTable->pMissShaderIndices);
+	tf_free(pTable->pHitGroupIndices);
 	
 	pTable->~RaytracingShaderTable();
 	memset(pTable, 0, sizeof(*pTable));
-	conf_free(pTable);
+	tf_free(pTable);
 }
 
 API_AVAILABLE(macos(10.14), ios(12.0))
@@ -1467,7 +1467,7 @@ void addSSVGFDenoiser(Renderer* pRenderer, SSVGFDenoiser** ppDenoiser)
 {
 	if (@available(macOS 10.15, iOS 13, *))
 	{
-		SSVGFDenoiser *denoiser = (SSVGFDenoiser*)conf_calloc(1, sizeof(SSVGFDenoiser));
+		SSVGFDenoiser *denoiser = (SSVGFDenoiser*)tf_calloc(1, sizeof(SSVGFDenoiser));
 		denoiser->mtlDenoiser = [[MPSSVGFDenoiser alloc] initWithDevice:pRenderer->pDevice];
 		*ppDenoiser = denoiser;
 	}
@@ -1485,7 +1485,7 @@ void removeSSVGFDenoiser(SSVGFDenoiser* pDenoiser)
 	}
 	
 	pDenoiser->mtlDenoiser = nil;
-	conf_free(pDenoiser);
+	tf_free(pDenoiser);
 }
 
 void clearSSVGFDenoiserTemporalHistory(SSVGFDenoiser* pDenoiser)

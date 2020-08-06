@@ -202,26 +202,9 @@ public:
 			KeySym keySym = XkbKeycodeToKeysym(keyEvent.display, keyEvent.keycode, 0, 0);
 			const bool pressed = event.type == KeyPress;
 
-			// Handle key repeat
-			if (event.type == KeyRelease && XPending(keyEvent.display))
-			{
-				XEvent nextEvent;
-				XPeekEvent(keyEvent.display, &nextEvent);
-				if (nextEvent.type == KeyPress
-					&& nextEvent.xkey.keycode == event.xkey.keycode
-					&& nextEvent.xkey.time == event.xkey.time)
-				{
-					XNextEvent(keyEvent.display, &nextEvent);
-					return;
-				}
-			}
-
 			if (dialect_.count(keySym))
 			{
-				const DeviceButtonId buttonId = dialect_[keySym];
-				HandleButton(device_, nextState_, delta_, buttonId, pressed);
-				
-				if (textInputEnabled_)
+				if (textInputEnabled_ && pressed)
 				{
 					char buf[32];
 					int len = XLookupString(&keyEvent, buf, 32, 0, 0);
@@ -230,6 +213,9 @@ public:
 						textBuffer_[textCount_++] = (wchar_t)buf[0];
 					}
 				}
+
+				const DeviceButtonId buttonId = dialect_[keySym];
+				HandleButton(device_, nextState_, delta_, buttonId, pressed);
 			}
 #ifdef GAINPUT_DEBUG
 			else

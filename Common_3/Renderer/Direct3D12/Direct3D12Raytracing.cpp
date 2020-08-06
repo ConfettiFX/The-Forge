@@ -108,9 +108,12 @@ bool initRaytracing(Renderer* pRenderer, Raytracing** ppRaytracing)
 	ASSERT(pRenderer);
 	ASSERT(ppRaytracing);
 
-	if (!isRaytracingSupported(pRenderer)) return false;
+	if (!isRaytracingSupported(pRenderer))
+	{
+		return false;
+	}
 
-	Raytracing* pRaytracing = (Raytracing*)conf_calloc(1, sizeof(*pRaytracing));
+	Raytracing* pRaytracing = (Raytracing*)tf_calloc(1, sizeof(*pRaytracing));
 	ASSERT(pRaytracing);
 
 	pRaytracing->pRenderer = pRenderer;
@@ -128,7 +131,7 @@ void removeRaytracing(Renderer* pRenderer, Raytracing* pRaytracing)
 	if (pRaytracing->pDxrDevice)
 		pRaytracing->pDxrDevice->Release();
 
-	conf_free(pRaytracing);
+	tf_free(pRaytracing);
 }
 
 HRESULT createBottomAS(Raytracing* pRaytracing, const AccelerationStructureDescTop* pDesc, uint32_t* pScratchBufferSize, AccelerationStructureBottom* pOut)
@@ -142,7 +145,7 @@ HRESULT createBottomAS(Raytracing* pRaytracing, const AccelerationStructureDescT
 
 	blas.mDescCount = pDesc->mBottomASDesc->mDescCount;
 	blas.mFlags = util_to_dx_acceleration_structure_build_flags(pDesc->mBottomASDesc->mFlags);
-	blas.pGeometryDescs = (D3D12_RAYTRACING_GEOMETRY_DESC*)conf_calloc(blas.mDescCount, sizeof(D3D12_RAYTRACING_GEOMETRY_DESC));
+	blas.pGeometryDescs = (D3D12_RAYTRACING_GEOMETRY_DESC*)tf_calloc(blas.mDescCount, sizeof(D3D12_RAYTRACING_GEOMETRY_DESC));
 	for (uint32_t j = 0; j < blas.mDescCount; ++j)
 	{
 		AccelerationStructureGeometryDesc* pGeom = &pDesc->mBottomASDesc->pGeometryDescs[j];
@@ -162,7 +165,7 @@ HRESULT createBottomAS(Raytracing* pRaytracing, const AccelerationStructureDescT
 			ibDesc.mDesc.mSize = (pGeom->mIndexType == INDEX_TYPE_UINT32 ? sizeof(uint32_t) : sizeof(uint16_t)) * pGeom->mIndexCount;
 			ibDesc.pData = pGeom->mIndexType == INDEX_TYPE_UINT32 ? (void*)pGeom->pIndices32 : (void*)pGeom->pIndices16;
 			ibDesc.ppBuffer = &blas.pIndexBuffer;
-			addResource(&ibDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ibDesc, NULL);
 
 			pGeomD3D12->Triangles.IndexBuffer = blas.pIndexBuffer->mDxGpuAddress;
 			pGeomD3D12->Triangles.IndexCount = (UINT)ibDesc.mDesc.mSize /
@@ -179,7 +182,7 @@ HRESULT createBottomAS(Raytracing* pRaytracing, const AccelerationStructureDescT
 		vbDesc.mDesc.mSize = sizeof(float3) * pGeom->mVertexCount;
 		vbDesc.pData = pGeom->pVertexArray;
 		vbDesc.ppBuffer = &blas.pVertexBuffer;
-		addResource(&vbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&vbDesc, NULL);
 
 		pGeomD3D12->Triangles.VertexBuffer.StartAddress = blas.pVertexBuffer->mDxGpuAddress;
 		pGeomD3D12->Triangles.VertexBuffer.StrideInBytes = (UINT)sizeof(float3);
@@ -314,7 +317,7 @@ void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructu
 	ASSERT(pDesc);
 	ASSERT(ppAccelerationStructure);
 
-	AccelerationStructure* pAccelerationStructure = (AccelerationStructure*)conf_calloc(1, sizeof(*pAccelerationStructure));
+	AccelerationStructure* pAccelerationStructure = (AccelerationStructure*)tf_calloc(1, sizeof(*pAccelerationStructure));
 	ASSERT(pAccelerationStructure);
 
 	uint32_t scratchBottomBufferSize = 0;
@@ -336,7 +339,7 @@ void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructu
 	scratchBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
 	scratchBufferDesc.mDesc.mSize = pAccelerationStructure->mScratchBufferSize;
 	scratchBufferDesc.ppBuffer = &pAccelerationStructure->pScratchBuffer;
-	addResource(&scratchBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&scratchBufferDesc, NULL);
 
 	*ppAccelerationStructure = pAccelerationStructure;
 }
@@ -355,8 +358,8 @@ void removeAccelerationStructure(Raytracing* pRaytracing, AccelerationStructure*
 	if (pAccelerationStructure->mBottomAS.pIndexBuffer)
 		removeBuffer(pRaytracing->pRenderer, pAccelerationStructure->mBottomAS.pIndexBuffer);
 
-	conf_free(pAccelerationStructure->mBottomAS.pGeometryDescs);
-	conf_free(pAccelerationStructure);
+	tf_free(pAccelerationStructure->mBottomAS.pGeometryDescs);
+	tf_free(pAccelerationStructure);
 }
 
 static const uint64_t gShaderIdentifierSize = D3D12_SHADER_IDENTIFIER_SIZE_IN_BYTES;
@@ -371,13 +374,13 @@ void FillShaderIdentifiers(	const char *const * pRecords, uint32_t shaderCount,
 
 		const char* pRecordName = pRecords[i];
 		const void* pIdentifier = NULL;
-		WCHAR* pName = (WCHAR*)conf_calloc(strlen(pRecordName) + 1, sizeof(WCHAR));
+		WCHAR* pName = (WCHAR*)tf_calloc(strlen(pRecordName) + 1, sizeof(WCHAR));
 		mbstowcs(pName, pRecordName, strlen(pRecordName));
 
 		pIdentifier = pRtsoProps->GetShaderIdentifier(pName);
 
 		ASSERT(pIdentifier);
-		conf_free(pName);
+		tf_free(pName);
 
 		uint64_t currentPosition = maxShaderTableSize * index++;
 		memcpy((uint8_t*)pTable->pBuffer->pCpuMappedAddress + currentPosition, pIdentifier, gShaderIdentifierSize);
@@ -486,8 +489,8 @@ void addRaytracingShaderTable(Raytracing* pRaytracing, const RaytracingShaderTab
 	ASSERT(ppTable);
 	ASSERT(pDesc->pRayGenShader);
 
-	RaytracingShaderTable* pTable = (RaytracingShaderTable*)conf_calloc(1, sizeof(*pTable));
-	conf_placement_new<RaytracingShaderTable>((void*)pTable);
+	RaytracingShaderTable* pTable = (RaytracingShaderTable*)tf_calloc(1, sizeof(*pTable));
+	tf_placement_new<RaytracingShaderTable>((void*)pTable);
 	ASSERT(pTable);
 
 	pTable->pPipeline = pDesc->pPipeline;
@@ -549,7 +552,7 @@ void removeRaytracingShaderTable(Raytracing* pRaytracing, RaytracingShaderTable*
 	removeBuffer(pRaytracing->pRenderer, pTable->pBuffer);
 
 	pTable->~RaytracingShaderTable();
-	conf_free(pTable);
+	tf_free(pTable);
 }
 
 /************************************************************************/
@@ -718,7 +721,7 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 	ASSERT(pDesc);
 	ASSERT(ppPipeline);
 
-	Pipeline* pPipeline = (Pipeline*)conf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
+	Pipeline* pPipeline = (Pipeline*)tf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
 	ASSERT(pPipeline);
 
 	pPipeline->mType = PIPELINE_TYPE_RAYTRACING;
@@ -753,7 +756,7 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 	eastl::vector<LPCWSTR> missShadersEntries(pDesc->mMissShaderCount);
 	for (uint32_t i = 0; i < pDesc->mMissShaderCount; ++i)
 	{
-		D3D12_EXPORT_DESC* pMissExportDesc = (D3D12_EXPORT_DESC*)conf_calloc(1, sizeof(*pMissExportDesc));
+		D3D12_EXPORT_DESC* pMissExportDesc = (D3D12_EXPORT_DESC*)tf_calloc(1, sizeof(*pMissExportDesc));
 		pMissExportDesc->ExportToRename = NULL;
 		pMissExportDesc->Flags = D3D12_EXPORT_FLAG_NONE;
 
@@ -777,7 +780,7 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 	{
 		if (pDesc->pHitGroups[i].pIntersectionShader)
 		{
-			D3D12_EXPORT_DESC* pIntersectionExportDesc = (D3D12_EXPORT_DESC*)conf_calloc(1, sizeof(*pIntersectionExportDesc));
+			D3D12_EXPORT_DESC* pIntersectionExportDesc = (D3D12_EXPORT_DESC*)tf_calloc(1, sizeof(*pIntersectionExportDesc));
 			pIntersectionExportDesc->ExportToRename = NULL;
 			pIntersectionExportDesc->Flags = D3D12_EXPORT_FLAG_NONE;
 			pIntersectionExportDesc->Name = pDesc->pHitGroups[i].pIntersectionShader->pEntryNames[0];
@@ -794,7 +797,7 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 		}
 		if (pDesc->pHitGroups[i].pAnyHitShader)
 		{
-			D3D12_EXPORT_DESC* pAnyHitExportDesc = (D3D12_EXPORT_DESC*)conf_calloc(1, sizeof(*pAnyHitExportDesc));
+			D3D12_EXPORT_DESC* pAnyHitExportDesc = (D3D12_EXPORT_DESC*)tf_calloc(1, sizeof(*pAnyHitExportDesc));
 			pAnyHitExportDesc->ExportToRename = NULL;
 			pAnyHitExportDesc->Flags = D3D12_EXPORT_FLAG_NONE;
 			pAnyHitExportDesc->Name = pDesc->pHitGroups[i].pAnyHitShader->pEntryNames[0];
@@ -811,7 +814,7 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 		}
 		if (pDesc->pHitGroups[i].pClosestHitShader)
 		{
-			D3D12_EXPORT_DESC* pClosestHitExportDesc = (D3D12_EXPORT_DESC*)conf_calloc(1, sizeof(*pClosestHitExportDesc));
+			D3D12_EXPORT_DESC* pClosestHitExportDesc = (D3D12_EXPORT_DESC*)tf_calloc(1, sizeof(*pClosestHitExportDesc));
 			pClosestHitExportDesc->ExportToRename = NULL;
 			pClosestHitExportDesc->Flags = D3D12_EXPORT_FLAG_NONE;
 			pClosestHitExportDesc->Name = pDesc->pHitGroups[i].pClosestHitShader->pEntryNames[0];
@@ -842,7 +845,7 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 	{
 		const RaytracingHitGroup* pHitGroup = &pDesc->pHitGroups[i];
 		ASSERT(pDesc->pHitGroups[i].pHitGroupName);
-		hitGroupNames[i] = (WCHAR*)conf_calloc(strlen(pDesc->pHitGroups[i].pHitGroupName) + 1, sizeof(WCHAR));
+		hitGroupNames[i] = (WCHAR*)tf_calloc(strlen(pDesc->pHitGroups[i].pHitGroupName) + 1, sizeof(WCHAR));
 		mbstowcs(hitGroupNames[i], pDesc->pHitGroups[i].pHitGroupName, strlen(pDesc->pHitGroups[i].pHitGroupName));
 
 		if (pHitGroup->pAnyHitShader)
@@ -980,10 +983,10 @@ void addRaytracingPipeline(const RaytracingPipelineDesc* pDesc, Pipeline** ppPip
 	// Clean up
 	/************************************************************************/
 	for (uint32_t i = 0; i < (uint32_t)exportDesc.size(); ++i)
-		conf_free(exportDesc[i]);
+		tf_free(exportDesc[i]);
 
 	for (uint32_t i = 0; i < (uint32_t)hitGroupNames.size(); ++i)
-		conf_free(hitGroupNames[i]);
+		tf_free(hitGroupNames[i]);
 	/************************************************************************/
 	/************************************************************************/
 

@@ -25,11 +25,11 @@
 #pragma once
 
 #include "../../Common_3/OS/Math/MathTypes.h"
+#include "../../Common_3/OS/Interfaces/IFileSystem.h"
 
 #include "../../Common_3/ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/animation.h"
 #include "../../Common_3/ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/sampling_job.h"
 #include "../../Common_3/ThirdParty/OpenSource/ozz-animation/include/ozz/base/memory/allocator.h"
-#include "../../Common_3/ThirdParty/OpenSource/ozz-animation/include/ozz/base/io/stream.h"
 #include "../../Common_3/ThirdParty/OpenSource/ozz-animation/include/ozz/base/io/archive.h"
 
 #include "Rig.h"
@@ -40,7 +40,7 @@ class Clip
 {
 	public:
 	// Set up a clip associated with a rig and read from an ozz animation file path
-	void Initialize(const Path* animationPath, Rig* rig);
+	void Initialize(const ResourceDirectory resourceDir, const char* fileName, Rig* rig);
 
 	// Must be called to clean up if the clip was initialized
 	void Destroy();
@@ -53,7 +53,7 @@ class Clip
 
 	private:
 	// Load a clip from an ozz animation file
-	bool LoadClip(const Path* animationPath);
+	bool LoadClip(const ResourceDirectory resourceDir, const char* fileName);
 
 	// Runtime animation.
 	ozz::animation::Animation mAnimation;

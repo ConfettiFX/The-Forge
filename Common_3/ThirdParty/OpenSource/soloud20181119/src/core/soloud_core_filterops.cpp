@@ -35,7 +35,7 @@ namespace SoLoud
 			return;
 
 		lockAudioMutex();
-		conf_delete(mFilterInstance[aFilterId]);
+		tf_delete(mFilterInstance[aFilterId]);
 		mFilterInstance[aFilterId] = 0;
 		
 		mFilter[aFilterId] = aFilter;

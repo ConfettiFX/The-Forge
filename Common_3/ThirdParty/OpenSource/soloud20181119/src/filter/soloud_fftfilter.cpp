@@ -63,9 +63,9 @@ namespace SoLoud
 
 		if (mInputBuffer == 0)
 		{
-			mInputBuffer = (float*)conf_calloc(512 * aChannels, sizeof(float));
-			mMixBuffer = (float*)conf_calloc(512 * aChannels, sizeof(float));
-			mTemp = (float*)conf_calloc(256, sizeof(float));
+			mInputBuffer = (float*)tf_calloc(512 * aChannels, sizeof(float));
+			mMixBuffer = (float*)tf_calloc(512 * aChannels, sizeof(float));
+			mTemp = (float*)tf_calloc(256, sizeof(float));
 			memset(mInputBuffer, 0x2f, sizeof(float) * 512 * aChannels);
 			memset(mMixBuffer, 0, sizeof(float) * 512 * aChannels);
 		}
@@ -128,9 +128,9 @@ namespace SoLoud
 
 	FFTFilterInstance::~FFTFilterInstance()
 	{
-		conf_free(mTemp);
-		conf_free(mInputBuffer);
-		conf_free(mMixBuffer);
+		tf_free(mTemp);
+		tf_free(mInputBuffer);
+		tf_free(mMixBuffer);
 	}
 
 	FFTFilter::FFTFilter()
@@ -139,6 +139,6 @@ namespace SoLoud
 
 	FilterInstance *FFTFilter::createInstance()
 	{
-		return conf_new(FFTFilterInstance, this);
+		return tf_new(FFTFilterInstance, this);
 	}
 }

@@ -227,20 +227,14 @@ class JointAttachment: public IApp
 	bool Init()
 	{
         // FILE PATHS
-        PathHandle programDirectory = fsGetApplicationDirectory();
-        if (!fsPlatformUsesBundledResources())
-        {
-            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/23_JointAttachment");
-            fsSetResourceDirRootPath(resourceDirRoot);
-            
-            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirEnum(RD_MESHES,             "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,     "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,         "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,     "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,     "../../../../Middleware_3/UI");
-        }
-        
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES,  "Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG,      "GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES,        "Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES,          "Meshes");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS,           "Fonts");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_ANIMATIONS,      "Animation");
+
 		// WINDOW AND RENDERER SETUP
 		//
 		RendererDesc settings = { 0 };
@@ -275,7 +269,7 @@ class JointAttachment: public IApp
 		//
 		initResourceLoaderInterface(pRenderer);
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
 			return false;
 
         // INITIALIZE THE USER INTERFACE
@@ -283,7 +277,7 @@ class JointAttachment: public IApp
         if (!gAppUI.Init(pRenderer))
           return false;
 
-        gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+        gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 
 		initProfiler();
 
@@ -292,11 +286,11 @@ class JointAttachment: public IApp
 		// INITIALIZE PIPILINE STATES
 		//
 		ShaderLoadDesc planeShader = {};
-		planeShader.mStages[0] = { "plane.vert", NULL, 0, RD_SHADER_SOURCES };
-		planeShader.mStages[1] = { "plane.frag", NULL, 0, RD_SHADER_SOURCES };
+		planeShader.mStages[0] = { "plane.vert", NULL, 0 };
+		planeShader.mStages[1] = { "plane.frag", NULL, 0 };
 		ShaderLoadDesc basicShader = {};
-		basicShader.mStages[0] = { "basic.vert", NULL, 0, RD_SHADER_SOURCES };
-		basicShader.mStages[1] = { "basic.frag", NULL, 0, RD_SHADER_SOURCES };
+		basicShader.mStages[0] = { "basic.vert", NULL, 0 };
+		basicShader.mStages[1] = { "basic.frag", NULL, 0 };
 
 		addShader(pRenderer, &planeShader, &pPlaneDrawShader);
 		addShader(pRenderer, &basicShader, &pSkeletonShader);
@@ -324,7 +318,7 @@ class JointAttachment: public IApp
 		jointVbDesc.mDesc.mSize = jointDataSize;
 		jointVbDesc.pData = pJointPoints;
 		jointVbDesc.ppBuffer = &pJointVertexBuffer;
-		addResource(&jointVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&jointVbDesc, NULL);
 
 		// Generate bone vertex buffer
 		float* pBonePoints;
@@ -337,7 +331,7 @@ class JointAttachment: public IApp
 		boneVbDesc.mDesc.mSize = boneDataSize;
 		boneVbDesc.pData = pBonePoints;
 		boneVbDesc.ppBuffer = &pBoneVertexBuffer;
-		addResource(&boneVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&boneVbDesc, NULL);
 
 		// Generate attached object vertex buffer
 		float* pCuboidPoints;
@@ -350,7 +344,7 @@ class JointAttachment: public IApp
 		cuboidVbDesc.mDesc.mSize = cuboidDataSize;
 		cuboidVbDesc.pData = pCuboidPoints;
 		cuboidVbDesc.ppBuffer = &pCuboidVertexBuffer;
-		addResource(&cuboidVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&cuboidVbDesc, NULL);
 
 		//Generate plane vertex buffer
 		float planePoints[] = { -10.0f, 0.0f, -10.0f, 1.0f, 0.0f, 0.0f, -10.0f, 0.0f, 10.0f,  1.0f, 1.0f, 0.0f,
@@ -364,7 +358,7 @@ class JointAttachment: public IApp
 		planeVbDesc.mDesc.mSize = planeDataSize;
 		planeVbDesc.pData = planePoints;
 		planeVbDesc.ppBuffer = &pPlaneVertexBuffer;
-		addResource(&planeVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&planeVbDesc, NULL);
 
 		BufferLoadDesc ubDescPlane = {};
 		ubDescPlane.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -375,7 +369,7 @@ class JointAttachment: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDescPlane.ppBuffer = &pPlaneUniformBuffer[i];
-			addResource(&ubDescPlane, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubDescPlane, NULL);
 		}
 
 		BufferLoadDesc ubDescCuboid = {};
@@ -387,7 +381,7 @@ class JointAttachment: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDescCuboid.ppBuffer = &pCuboidUniformBuffer[i];
-			addResource(&ubDescCuboid, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubDescCuboid, NULL);
 		}
 
 		/************************************************************************/
@@ -411,22 +405,17 @@ class JointAttachment: public IApp
 		skeletonRenderDesc.mJointVertexStride = sizeof(float) * 6;
 		gSkeletonBatcher.Initialize(skeletonRenderDesc);
 
-        
 		// RIGS
 		//
-		PathHandle fullPath = fsGetPathInResourceDirEnum(RD_ANIMATIONS, gStickFigureName);
-
 		// Initialize the rig with the path to its ozz file and its rendering details
-		gStickFigureRig.Initialize(fullPath);
+		gStickFigureRig.Initialize(RD_ANIMATIONS, gStickFigureName);
 
 		// Add the rig to the list of skeletons to render
 		gSkeletonBatcher.AddRig(&gStickFigureRig);
 
 		// CLIPS
 		//
-		fullPath = fsGetPathInResourceDirEnum(RD_ANIMATIONS, gWalkClipName);
-
-		gWalkClip.Initialize(fullPath, &gStickFigureRig);
+		gWalkClip.Initialize(RD_ANIMATIONS, gWalkClipName, &gStickFigureRig);
 
 		// CLIP CONTROLLERS
 		//
@@ -647,9 +636,9 @@ class JointAttachment: public IApp
 		waitForAllResourceLoads();
 
 		// Need to free memory;
-		conf_free(pJointPoints);
-		conf_free(pBonePoints);
-		conf_free(pCuboidPoints);
+		tf_free(pJointPoints);
+		tf_free(pBonePoints);
+		tf_free(pCuboidPoints);
 
 		// Prepare descriptor sets
 		for (uint32_t i = 0; i < gImageCount; ++i)

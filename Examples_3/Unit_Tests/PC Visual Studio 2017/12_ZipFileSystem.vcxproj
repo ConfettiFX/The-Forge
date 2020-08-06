@@ -27,25 +27,29 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\27_File_System\Shaders\D3D11\basic.frag" />
-    <None Include="..\src\27_File_System\Shaders\D3D11\basic.vert" />
-    <None Include="..\src\27_File_System\Shaders\D3D11\skybox.frag" />
-    <None Include="..\src\27_File_System\Shaders\D3D11\skybox.vert" />
-    <None Include="..\src\27_File_System\Shaders\D3D12\basic.frag" />
-    <None Include="..\src\27_File_System\Shaders\D3D12\basic.vert" />
-    <None Include="..\src\27_File_System\Shaders\D3D12\skybox.frag" />
-    <None Include="..\src\27_File_System\Shaders\D3D12\skybox.vert" />
-    <None Include="..\src\27_File_System\Shaders\D3D12\zipTexture.frag" />
-    <None Include="..\src\27_File_System\Shaders\D3D12\zipTexture.vert" />
-    <None Include="..\src\27_File_System\Shaders\Vulkan\basic.frag" />
-    <None Include="..\src\27_File_System\Shaders\Vulkan\basic.vert" />
-    <None Include="..\src\27_File_System\Shaders\Vulkan\skybox.frag" />
-    <None Include="..\src\27_File_System\Shaders\Vulkan\skybox.vert" />
-    <None Include="..\src\27_File_System\Shaders\Vulkan\zipTexture.frag" />
-    <None Include="..\src\27_File_System\Shaders\Vulkan\zipTexture.vert" />
+    <ClCompile Include="..\..\..\Common_3\OS\FileSystem\ZipFileSystem.cpp" />
+    <ClCompile Include="..\..\..\Common_3\ThirdParty\OpenSource\zip\zip.cpp" />
+    <ClCompile Include="..\src\12_ZipFileSystem\12_ZipFileSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\12_ZipFileSystem\12_ZipFileSystem.cpp" />
+    <None Include="..\src\12_ZipFileSystem\Shaders\D3D11\basic.frag" />
+    <None Include="..\src\12_ZipFileSystem\Shaders\D3D11\basic.vert" />
+    <None Include="..\src\12_ZipFileSystem\Shaders\D3D11\skybox.frag" />
+    <None Include="..\src\12_ZipFileSystem\Shaders\D3D11\skybox.vert" />
+    <None Include="..\src\12_ZipFileSystem\Shaders\D3D11\zipTexture.frag" />
+    <None Include="..\src\12_ZipFileSystem\Shaders\D3D11\zipTexture.vert" />
+    <None Include="..\src\12_ZipFileSystem\Shaders\D3D12\basic.frag" />
+    <None Include="..\src\12_ZipFileSystem\Shaders\D3D12\basic.vert" />
+    <None Include="..\src\12_ZipFileSystem\Shaders\D3D12\skybox.frag" />
+    <None Include="..\src\12_ZipFileSystem\Shaders\D3D12\skybox.vert" />
+    <None Include="..\src\12_ZipFileSystem\Shaders\D3D12\zipTexture.frag" />
+    <None Include="..\src\12_ZipFileSystem\Shaders\D3D12\zipTexture.vert" />
+    <None Include="..\src\12_ZipFileSystem\Shaders\Vulkan\basic.frag" />
+    <None Include="..\src\12_ZipFileSystem\Shaders\Vulkan\basic.vert" />
+    <None Include="..\src\12_ZipFileSystem\Shaders\Vulkan\skybox.frag" />
+    <None Include="..\src\12_ZipFileSystem\Shaders\Vulkan\skybox.vert" />
+    <None Include="..\src\12_ZipFileSystem\Shaders\Vulkan\zipTexture.frag" />
+    <None Include="..\src\12_ZipFileSystem\Shaders\Vulkan\zipTexture.vert" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{66C74525-1E43-483E-8DAE-A7C5836FDBDF}</ProjectGuid>
@@ -121,42 +125,42 @@
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath);</LibraryPath>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath);</LibraryPath>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugDx11|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath);</LibraryPath>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseVk|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(VULKAN_SDK)\Include;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(VULKAN_SDK)\Lib;$(LibraryPath);</LibraryPath>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath);</LibraryPath>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ReleaseDx11|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(SolutionDir)\$(Platform)\$(Configuration)\Intermediate\$(ProjectName)\</IntDir>
     <IncludePath>$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)\$(Platform)\$(Configuration);$(LibraryPath);</LibraryPath>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">
     <ClCompile>
@@ -183,8 +187,19 @@
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>set SHADER_DIR=D3D12
+if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
+if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
+if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
+if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
+
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\ZipFiles\*.zip" "$(OutDir)ZipFiles\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg"
+
+xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>
@@ -221,8 +236,19 @@
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>set SHADER_DIR=D3D12
+if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
+if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
+if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
+if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
+
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\ZipFiles\*.zip" "$(OutDir)ZipFiles\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg"
+
+xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -263,8 +289,19 @@
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>set SHADER_DIR=D3D12
+if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
+if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
+if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
+if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
+
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\ZipFiles\*.zip" "$(OutDir)ZipFiles\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg"
+
+xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -312,8 +349,19 @@
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
     </Manifest>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>set SHADER_DIR=D3D12
+if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
+if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
+if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
+if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
+
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\ZipFiles\*.zip" "$(OutDir)ZipFiles\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg"
+
+xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <CustomBuildStep>
       <Command>
@@ -355,8 +403,19 @@
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>set SHADER_DIR=D3D12
+if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
+if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
+if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
+if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
+
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\ZipFiles\*.zip" "$(OutDir)ZipFiles\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg"
+
+xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
@@ -402,8 +461,19 @@
       <AdditionalOptions>/ignore:4099</AdditionalOptions>
     </Link>
     <PostBuildEvent>
-      <Command>
-      </Command>
+      <Command>set SHADER_DIR=D3D12
+if $(Configuration) == DebugDx11 set SHADER_DIR=D3D11
+if $(Configuration) == ReleaseDx11 set SHADER_DIR=D3D11
+if $(Configuration) == DebugVk set SHADER_DIR=Vulkan
+if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
+
+xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\ZipFiles\*.zip" "$(OutDir)ZipFiles\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\UI\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Middleware_3\Text\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\Shaders\%SHADER_DIR%\*.*" "$(OutDir)Shaders\"
+xcopy /Y /S /D "$(ProjectDir)..\src\$(ProjectName)\GPUCfg\*.*" "$(OutDir)GPUCfg"
+
+xcopy /Y /D "$(SolutionDir)$(Platform)\$(Configuration)\*.dll" "$(OutDir)"</Command>
     </PostBuildEvent>
     <Manifest>
       <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>

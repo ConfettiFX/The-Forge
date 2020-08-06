@@ -50,7 +50,7 @@
 #include "WindowsStackTraceDump.h"
 #endif
 
-#define CONFETTI_WINDOW_CLASS L"confetti"
+#define FORGE_WINDOW_CLASS L"The Forge"
 #define MAX_KEYS 256
 
 #define GETX(l) ((int)LOWORD(l))
@@ -220,7 +220,7 @@ static void collectMonitorInfo()
 	if (monitorCount)
 	{
 		gMonitorCount = monitorCount;
-		gMonitors = (MonitorDesc*)conf_calloc(monitorCount, sizeof(MonitorDesc));
+		gMonitors = (MonitorDesc*)tf_calloc(monitorCount, sizeof(MonitorDesc));
 		for (int adapterIndex = 0;; ++adapterIndex)
 		{
 			if (!EnumDisplayDevicesW(NULL, adapterIndex, &adapter, 0))
@@ -280,7 +280,7 @@ static void collectMonitorInfo()
 		if (currentMonitor)
 		{
 			monitorCount = 1;
-			gMonitors = (MonitorDesc*)conf_calloc(monitorCount, sizeof(MonitorDesc));
+			gMonitors = (MonitorDesc*)tf_calloc(monitorCount, sizeof(MonitorDesc));
 
 			MONITORINFOEXW info;
 			info.cbSize = sizeof(MONITORINFOEXW);
@@ -342,7 +342,7 @@ static void collectMonitorInfo()
 		});
 
 		pMonitor->resolutionCount = (uint32_t)displays.size();
-		pMonitor->resolutions = (Resolution*)conf_calloc(pMonitor->resolutionCount, sizeof(Resolution));
+		pMonitor->resolutions = (Resolution*)tf_calloc(pMonitor->resolutionCount, sizeof(Resolution));
 		memcpy(pMonitor->resolutions, displays.data(), pMonitor->resolutionCount * sizeof(Resolution));
 	}
 }
@@ -359,7 +359,7 @@ void setResolution(const MonitorDesc* pMonitor, const Resolution* pMode)
 
 void getRecommendedResolution(RectDesc* rect)
 {
-	*rect = { 0, 0, min(1920, GetSystemMetrics(SM_CXSCREEN)), min(1080, GetSystemMetrics(SM_CYSCREEN)) };
+	*rect = { 0, 0, min(1920, (int)(GetSystemMetrics(SM_CXSCREEN)*0.75)), min(1080, (int)(GetSystemMetrics(SM_CYSCREEN)*0.75)) };
 }
 
 void requestShutdown() { PostQuitMessage(0); }
@@ -378,7 +378,7 @@ public:
 			gWindowClass.hInstance = instance;
 			gWindowClass.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 			gWindowClass.hCursor = LoadCursor(NULL, IDC_ARROW);
-			gWindowClass.lpszClassName = CONFETTI_WINDOW_CLASS;
+			gWindowClass.lpszClassName = FORGE_WINDOW_CLASS;
 
 			bool success = RegisterClassW(&gWindowClass) != 0;
 
@@ -409,9 +409,9 @@ public:
 	void Exit()
 	{
 		for (uint32_t i = 0; i < gMonitorCount; ++i)
-			conf_free(gMonitors[i].resolutions);
+			tf_free(gMonitors[i].resolutions);
 
-		conf_free(gMonitors);
+		tf_free(gMonitors);
 	}
 };
 
@@ -437,10 +437,9 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 	// Always open in adjusted windowed mode. Adjust to full screen after opening.
 	RectDesc& rect = winDesc->windowedRect;
 
-	WCHAR app[MAX_PATH];
+	WCHAR app[FS_MAX_PATH] = {};
 	size_t charConverted = 0;
-	mbstowcs_s(&charConverted, app, app_name, MAX_PATH);
-
+	mbstowcs_s(&charConverted, app, app_name, FS_MAX_PATH);
 
 	//
 	int windowY = rect.top;
@@ -453,7 +452,7 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 		windowY = CW_USEDEFAULT;
 
 	HWND hwnd = CreateWindowW(
-		CONFETTI_WINDOW_CLASS,
+		FORGE_WINDOW_CLASS,
 		app,
 		windowStyle | ((winDesc->hide) ? 0 : WS_VISIBLE) | WS_BORDER,
 		windowX, windowY,
@@ -743,20 +742,25 @@ static void onResize(WindowsDesc* wnd, int32_t newSizeX, int32_t newSizeY)
 
 int WindowsMain(int argc, char** argv, IApp* app)
 {
-	extern bool MemAllocInit();
+	extern bool MemAllocInit(const char*);
 	extern void MemAllocExit();
 
-	if (!MemAllocInit())
+	if (!MemAllocInit(app->GetName()))
 		return EXIT_FAILURE;
+
+	FileSystemInitDesc fsDesc = {};
+	fsDesc.pAppName = app->GetName();
+
+	if (!initFileSystem(&fsDesc))
+		return EXIT_FAILURE;
+
+	fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
 
 #if USE_MTUNER
 	rmemInit(0);
 #endif
-
-	if (!fsInitAPI())
-		return EXIT_FAILURE;
-
-	Log::Init();
+	
+	Log::Init(app->GetName());
 
 #ifdef FORGE_STACKTRACE_DUMP
 	if (!WindowsStackTrace::Init())
@@ -925,7 +929,7 @@ int WindowsMain(int argc, char** argv, IApp* app)
 
 	Log::Exit();
 
-	fsExitAPI();
+	exitFileSystem();
 
 #if USE_MTUNER
 	rmemUnload();

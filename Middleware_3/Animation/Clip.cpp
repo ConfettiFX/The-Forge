@@ -24,9 +24,15 @@
 
 #include "Clip.h"
 
-void Clip::Initialize(const Path* animationPath, Rig* rig) { LoadClip(animationPath); }
+void Clip::Initialize(const ResourceDirectory resourceDir, const char* fileName, Rig* rig)
+{
+	LoadClip(resourceDir, fileName);
+}
 
-void Clip::Destroy() { mAnimation.Deallocate(); }
+void Clip::Destroy()
+{
+	mAnimation.Deallocate();
+}
 
 bool Clip::Sample(ozz::animation::SamplingCache* cacheInput, ozz::Range<SoaTransform>& localTransOutput, float timeRatio)
 {
@@ -44,22 +50,25 @@ bool Clip::Sample(ozz::animation::SamplingCache* cacheInput, ozz::Range<SoaTrans
 	return true;
 }
 
-bool Clip::LoadClip(const Path* animationPath)
+bool Clip::LoadClip(const ResourceDirectory resourceDir, const char* fileName)
 {
-	ozz::io::File file(animationPath, FM_READ_BINARY);
-	if (!file.opened())
+	FileStream file = {};
+	if (!fsOpenStreamFromPath(resourceDir, fileName, FM_READ_BINARY, &file))
 	{
-		LOGF(eERROR, "Cannot open file ");
+		LOGF(eERROR, "Cannot open skeleton file");
 		return false;
 	}
+
+	ssize_t size = fsGetStreamFileSize(&file);
+	void* data = tf_malloc(size);
+	fsReadFromStream(&file, data, (size_t)size);
+	fsCloseStream(&file);
 
 	// Archive is doing a lot of freads from disk which is slow on some platforms and also generally not good
 	// So we just read the entire file once into a mem stream so the freads from IArchive are actually
 	// only reading from system memory instead of disk or network
-	ozz::io::MemoryStream memStream;
-	memStream.Resize(file.Size());
-	memStream.end_ = (int)file.Size();
-	file.Read(memStream.buffer_, file.Size());
+	FileStream memStream = {};
+	fsOpenStreamFromMemory(data, size, FM_READ, true, &memStream);
 
 	ozz::io::IArchive archive(&memStream);
 	if (!archive.TestTag<ozz::animation::Animation>())
@@ -69,5 +78,8 @@ bool Clip::LoadClip(const Path* animationPath)
 	}
 
 	archive >> mAnimation;
+
+	fsCloseStream(&memStream);
+
 	return true;
 }

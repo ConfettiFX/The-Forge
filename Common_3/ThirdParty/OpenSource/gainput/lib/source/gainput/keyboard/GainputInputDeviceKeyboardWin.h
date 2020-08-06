@@ -159,6 +159,7 @@ public:
 		delta_ = delta;
 		*state_ = nextState_;
 		textCount_ = 0;
+		memset(textBuffer_, 0, sizeof(textBuffer_));
 	}
 
 	bool IsTextInputEnabled() const { return textInputEnabled_; }
@@ -197,7 +198,7 @@ public:
 			unsigned char scancode = ((unsigned char*)&msg.lParam)[2];
 			unsigned int virtualKey = MapVirtualKey(scancode, MAPVK_VSC_TO_VK);
 
-			if (dialect_.count(virtualKey))
+			if (dialect_.count(virtualKey) || dialect_.count(charKey))
 			{
 				textBuffer_[textCount_++] = charKey;
 			}
@@ -281,11 +282,6 @@ public:
 		{
 			const DeviceButtonId buttonId = dialect_[winKey];
 			HandleButton(device_, nextState_, delta_, buttonId, pressed);
-
-			if (winKey >= VK_NUMPAD0 && winKey <= VK_NUMPAD9)
-				textBuffer_[textCount_++] = (wchar_t)('0' + (winKey - VK_NUMPAD0));
-			else if (winKey == VK_DECIMAL)
-				textBuffer_[textCount_++] = (wchar_t)'.';
 		}
 	}
 

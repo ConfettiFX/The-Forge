@@ -23,6 +23,9 @@
 */
 
 #include <sys/sysctl.h>
+#include <time.h>
+#include <mach/clock.h>
+#include <mach/mach.h>
 
 #include "../Interfaces/IThread.h"
 #include "../Interfaces/IOperatingSystem.h"
@@ -88,16 +91,23 @@ void ConditionVariable::Destroy()
 void ConditionVariable::Wait(const Mutex& mutex, uint32_t ms)
 {
 	pthread_mutex_t* mutexHandle = (pthread_mutex_t*)&mutex.pHandle;
+	
 	if (ms == TIMEOUT_INFINITE)
 	{
 		pthread_cond_wait(&pHandle, mutexHandle);
 	}
 	else
 	{
-		timespec ts;
-		ts.tv_sec = ms / 1000;
-		ts.tv_nsec = (ms % 1000) * 1000;
-		pthread_cond_timedwait(&pHandle, mutexHandle, &ts);
+		struct timespec time;
+		clock_serv_t cclock;
+		mach_timespec_t mts;
+		host_get_clock_service(mach_host_self(), CALENDAR_CLOCK, &cclock);
+		clock_get_time(cclock, &mts);
+		mach_port_deallocate(mach_task_self(), cclock);
+		time.tv_sec = mts.tv_sec + ms / 1000;
+		time.tv_nsec = mts.tv_nsec + (ms % 1000) * 1000;
+		
+		pthread_cond_timedwait(&pHandle, mutexHandle, &time);
 	}
 }
 
@@ -127,7 +137,9 @@ void Thread::SetMainThread()
 
 ThreadID Thread::GetCurrentThreadID()
 {
-	return pthread_self();
+	uint64_t threadID;
+	pthread_threadid_np(pthread_self(), &threadID);
+	return (ThreadID)threadID;
 }
 
 void Thread::GetCurrentThreadName(char * buffer, int buffer_size)

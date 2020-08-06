@@ -164,7 +164,7 @@ eastl::unordered_map<Cmd*, eastl::vector<CachedCmd> >         gCachedCmds;
 #define SAFE_FREE(p_var)  \
 	if (p_var)            \
 	{                     \
-		conf_free(p_var); \
+		tf_free(p_var); \
 	}
 
 #if defined(__cplusplus)
@@ -873,7 +873,7 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 
 					//save gpu name (Some situtations this can show description instead of name)
 					//char sName[MAX_PATH];
-					wcstombs(gpuDesc[gpuCount].mName, desc.Description, MAX_PATH);
+					wcstombs(gpuDesc[gpuCount].mName, desc.Description, FS_MAX_PATH);
 					++gpuCount;
 					SAFE_RELEASE(pRenderer->pDxDevice);
 
@@ -950,7 +950,8 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 #else
 		gpuSettings[i].mROVsSupported = false;
 #endif
-		gpuSettings[i].mTessellationSupported = gpuDesc[i].mMaxSupportedFeatureLevel >= D3D_FEATURE_LEVEL_11_0 ? true : false;
+		gpuSettings[i].mTessellationSupported = gpuDesc[i].mMaxSupportedFeatureLevel >= D3D_FEATURE_LEVEL_11_0;
+		gpuSettings[i].mGeometryShaderSupported = gpuDesc[i].mMaxSupportedFeatureLevel >= D3D_FEATURE_LEVEL_10_0;
 		gpuSettings[i].mWaveOpsSupportFlags = WAVE_OPS_SUPPORT_FLAG_NONE;
 
 		// Determine root signature size for this gpu driver
@@ -973,7 +974,7 @@ static bool AddDevice(Renderer* pRenderer, const RendererDesc* pDesc)
 	// Get the latest and greatest feature level gpu
 	gpuDesc[gpuIndex].pGpu->QueryInterface(&pRenderer->pDxActiveGPU);
 	ASSERT(pRenderer->pDxActiveGPU != NULL);
-	pRenderer->pActiveGpuSettings = (GPUSettings*)conf_malloc(sizeof(GPUSettings));
+	pRenderer->pActiveGpuSettings = (GPUSettings*)tf_malloc(sizeof(GPUSettings));
 	*pRenderer->pActiveGpuSettings = gpuSettings[gpuIndex];
 	pRenderer->mLinkedNodeCount = 1;
 	pRenderer->mPartialUpdateConstantBufferSupported = gpuDesc[gpuIndex].mFeatureDataOptions.ConstantBufferPartialUpdate;
@@ -1232,7 +1233,7 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 	ASSERT(settings->mShaderTarget <= shader_target_5_0);
 
 
-	Renderer* pRenderer = (Renderer*)conf_calloc_memalign(1, alignof(Renderer), sizeof(Renderer));
+	Renderer* pRenderer = (Renderer*)tf_calloc_memalign(1, alignof(Renderer), sizeof(Renderer));
 	ASSERT(pRenderer);
 
 	pRenderer->mGpuMode = settings->mGpuMode;
@@ -1240,7 +1241,7 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 	pRenderer->mEnableGpuBasedValidation = settings->mEnableGPUBasedValidation;
 	pRenderer->mApi = RENDERER_API_D3D11;
 
-	pRenderer->pName = (char*)conf_calloc(strlen(appName) + 1, sizeof(char));
+	pRenderer->pName = (char*)tf_calloc(strlen(appName) + 1, sizeof(char));
 	strcpy(pRenderer->pName, appName);
 
 	// Initialize the D3D11 bits
@@ -1308,7 +1309,7 @@ void addFence(Renderer* pRenderer, Fence** ppFence)
 	ASSERT(ppFence);
 
 	//create a Fence and ASSERT that it is valid
-	Fence* pFence = (Fence*)conf_calloc(1, sizeof(Fence));
+	Fence* pFence = (Fence*)tf_calloc(1, sizeof(Fence));
 	ASSERT(pFence);
 
 	D3D11_QUERY_DESC desc = {};
@@ -1358,7 +1359,7 @@ void addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 	// DX11 doesn't use queues -- so just create a dummy object for the client
 	// NOTE: We will still use it to reference the renderer in the queue and to be able to generate
 	// a dependency graph to serialize parallel GPU workload.
-	Queue* pQueue = (Queue*)conf_calloc(1, sizeof(Queue));
+	Queue* pQueue = (Queue*)tf_calloc(1, sizeof(Queue));
 	ASSERT(pQueue);
 
 	// Provided description for queue creation.
@@ -1390,7 +1391,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	ASSERT(ppSwapChain);
 	ASSERT(pDesc->mImageCount <= MAX_SWAPCHAIN_IMAGES);
 
-	SwapChain* pSwapChain = (SwapChain*)conf_calloc(1, sizeof(SwapChain) + pDesc->mImageCount * sizeof(RenderTarget*));
+	SwapChain* pSwapChain = (SwapChain*)tf_calloc(1, sizeof(SwapChain) + pDesc->mImageCount * sizeof(RenderTarget*));
 	ASSERT(pSwapChain);
 
 	pSwapChain->mDxSyncInterval = pDesc->mEnableVsync ? 1 : 0;
@@ -1408,7 +1409,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	desc.SampleDesc.Count = 1;    // If multisampling is needed, we'll resolve it later
 	desc.SampleDesc.Quality = 0;
 	desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	desc.BufferCount = max(1u, pDesc->mImageCount - 1);
+	desc.BufferCount = max(1u, pDesc->mImageCount); // Count includes the front buffer so 1+2 is triple buffering.
 	desc.OutputWindow = hwnd;
 	desc.Windowed = TRUE;
 	desc.Flags = 0;
@@ -1417,6 +1418,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 #if WINVER > _WIN32_WINNT_WINBLUE
 		DXGI_SWAP_EFFECT_FLIP_DISCARD,
 #endif
+		DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
 		DXGI_SWAP_EFFECT_DISCARD,
 		DXGI_SWAP_EFFECT_SEQUENTIAL
 	};
@@ -1504,7 +1506,7 @@ void addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppCmdPo
 	ASSERT(ppCmdPool);
 
 	// initialize to zero
-	CmdPool* pCmdPool = (CmdPool*)conf_calloc(1, sizeof(CmdPool));
+	CmdPool* pCmdPool = (CmdPool*)tf_calloc(1, sizeof(CmdPool));
 	ASSERT(pCmdPool);
 
 	pCmdPool->pQueue = pDesc->pQueue;
@@ -1528,7 +1530,7 @@ void addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
 	ASSERT(ppCmd);
 
 	//allocate new command
-	Cmd* pCmd = (Cmd*)conf_calloc_memalign(1, alignof(Cmd), sizeof(Cmd));
+	Cmd* pCmd = (Cmd*)tf_calloc_memalign(1, alignof(Cmd), sizeof(Cmd));
 	ASSERT(pCmd);
 
 	//set command pool of new command
@@ -1557,7 +1559,7 @@ void addCmd_n(Renderer* pRenderer, const CmdDesc* pDesc, uint32_t cmdCount, Cmd*
 	ASSERT(cmdCount);
 	ASSERT(pppCmd);
 
-	Cmd** ppCmds = (Cmd**)conf_calloc(cmdCount, sizeof(Cmd*));
+	Cmd** ppCmds = (Cmd**)tf_calloc(cmdCount, sizeof(Cmd*));
 	ASSERT(ppCmds);
 
 	//add n new cmds to given pool
@@ -1606,7 +1608,7 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 
 	size_t totalSize = sizeof(RenderTarget);
 	totalSize += numRTVs * sizeof(ID3D11DepthStencilView*);
-	RenderTarget* pRenderTarget = (RenderTarget*)conf_calloc_memalign(1, alignof(RenderTarget), totalSize);
+	RenderTarget* pRenderTarget = (RenderTarget*)tf_calloc_memalign(1, alignof(RenderTarget), totalSize);
 	ASSERT(pRenderTarget);
 
 	if (isDepth)
@@ -1755,7 +1757,7 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampl
 	ASSERT(ppSampler);
 
 	// initialize to zero
-	Sampler* pSampler = (Sampler*)conf_calloc_memalign(1, alignof(Sampler), sizeof(Sampler));
+	Sampler* pSampler = (Sampler*)tf_calloc_memalign(1, alignof(Sampler), sizeof(Sampler));
 	ASSERT(pSampler);
 
 	//add sampler to gpu
@@ -1795,7 +1797,7 @@ void removeSampler(Renderer* pRenderer, Sampler* pSampler)
 // Shader Functions
 /************************************************************************/
 void compileShader(
-	Renderer* pRenderer, ShaderTarget shaderTarget, ShaderStage stage, const Path* filePath, uint32_t codeSize, const char* code,
+	Renderer* pRenderer, ShaderTarget shaderTarget, ShaderStage stage, const char* fileName, uint32_t codeSize, const char* code,
 	bool, uint32_t macroCount, ShaderMacro* pMacros, BinaryShaderStageDesc* pOut, const char* pEntryPoint)
 {
 #if defined(ENABLE_GRAPHICS_DEBUG)
@@ -1853,20 +1855,20 @@ void compileShader(
 	ID3DBlob*       compiled_code = NULL;
 	ID3DBlob*       error_msgs = NULL;
 	HRESULT         hres = D3DCompile2(
-        code, (size_t)codeSize, fsGetPathAsNativeString(filePath), macros, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint, target, compile_flags, 0, 0, NULL,
+        code, (size_t)codeSize, fileName, macros, D3D_COMPILE_STANDARD_FILE_INCLUDE, entryPoint, target, compile_flags, 0, 0, NULL,
         0, &compiled_code, &error_msgs);
 	if (FAILED(hres))
 	{
-		char* msg = (char*)conf_calloc(error_msgs->GetBufferSize() + 1, sizeof(*msg));
+		char* msg = (char*)tf_calloc(error_msgs->GetBufferSize() + 1, sizeof(*msg));
 		ASSERT(msg);
 		memcpy(msg, error_msgs->GetBufferPointer(), error_msgs->GetBufferSize());
-		eastl::string error = eastl::string(fsGetPathAsNativeString(filePath)) + " " + msg;
+		eastl::string error = eastl::string(fileName) + " " + msg;
 		LOGF(eERROR, error.c_str());
 		SAFE_FREE(msg);
 	}
 	ASSERT(SUCCEEDED(hres));
 
-	char* pByteCode = (char*)conf_malloc(compiled_code->GetBufferSize());
+	char* pByteCode = (char*)tf_malloc(compiled_code->GetBufferSize());
 	memcpy(pByteCode, compiled_code->GetBufferPointer(), compiled_code->GetBufferSize());
 
 	pOut->mByteCodeSize = (uint32_t)compiled_code->GetBufferSize();
@@ -1880,7 +1882,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 	ASSERT(pDesc && pDesc->mStages);
 	ASSERT(ppShaderProgram);
 
-	Shader* pShaderProgram = (Shader*)conf_calloc(1, sizeof(Shader) + sizeof(PipelineReflection));
+	Shader* pShaderProgram = (Shader*)tf_calloc(1, sizeof(Shader) + sizeof(PipelineReflection));
 	ASSERT(pShaderProgram);
 
 	pShaderProgram->mStages = pDesc->mStages;
@@ -2064,7 +2066,7 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 		((BufferDesc*)pDesc)->mDescriptors = pDesc->mDescriptors & (DescriptorType)~DESCRIPTOR_TYPE_RW_BUFFER;
 
 	// initialize to zero
-	Buffer* pBuffer = (Buffer*)conf_calloc_memalign(1, alignof(Buffer), sizeof(Buffer));
+	Buffer* pBuffer = (Buffer*)tf_calloc_memalign(1, alignof(Buffer), sizeof(Buffer));
 	ASSERT(pBuffer);
 
 	uint64_t allocationSize = pDesc->mSize;
@@ -2233,7 +2235,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 	if (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE)
 		totalSize += pDesc->mMipLevels * sizeof(ID3D11UnorderedAccessView*);
 
-	Texture* pTexture = (Texture*)conf_calloc_memalign(1, alignof(Texture), totalSize);
+	Texture* pTexture = (Texture*)tf_calloc_memalign(1, alignof(Texture), totalSize);
 	ASSERT(pTexture);
 
 	if (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE)
@@ -2695,7 +2697,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 	totalSize += shaderResources.size() * sizeof(DescriptorInfo);
 	totalSize += sizeof(DescriptorIndexMap);
 
-	RootSignature* pRootSignature = (RootSignature*)conf_calloc_memalign(1, alignof(RootSignature), totalSize);
+	RootSignature* pRootSignature = (RootSignature*)tf_calloc_memalign(1, alignof(RootSignature), totalSize);
 	ASSERT(pRootSignature);
 
 	if ((uint32_t)shaderResources.size())
@@ -2706,7 +2708,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 	pRootSignature->pDescriptors = (DescriptorInfo*)(pRootSignature + 1);
 	pRootSignature->pDescriptorNameToIndexMap = (DescriptorIndexMap*)(pRootSignature->pDescriptors + pRootSignature->mDescriptorCount);
 	ASSERT(pRootSignature->pDescriptorNameToIndexMap);
-	conf_placement_new<DescriptorIndexMap>(pRootSignature->pDescriptorNameToIndexMap);
+	tf_placement_new<DescriptorIndexMap>(pRootSignature->pDescriptorNameToIndexMap);
 
 	pRootSignature->mPipelineType = pipelineType;
 	pRootSignature->pDescriptorNameToIndexMap->mMap = indexMap.mMap;
@@ -2802,9 +2804,9 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 	pRootSignature->mDynamicCbvCount = dynamicCbvCount;
 
 	pRootSignature->mStaticSamplerCount = (uint32_t)staticSamplers.size();
-	pRootSignature->ppStaticSamplers = (ID3D11SamplerState**)conf_calloc(staticSamplers.size(), sizeof(ID3D11SamplerState*));
-	pRootSignature->pStaticSamplerStages = (ShaderStage*)conf_calloc(staticSamplers.size(), sizeof(ShaderStage));
-	pRootSignature->pStaticSamplerSlots = (uint32_t*)conf_calloc(staticSamplers.size(), sizeof(uint32_t));
+	pRootSignature->ppStaticSamplers = (ID3D11SamplerState**)tf_calloc(staticSamplers.size(), sizeof(ID3D11SamplerState*));
+	pRootSignature->pStaticSamplerStages = (ShaderStage*)tf_calloc(staticSamplers.size(), sizeof(ShaderStage));
+	pRootSignature->pStaticSamplerSlots = (uint32_t*)tf_calloc(staticSamplers.size(), sizeof(uint32_t));
 	for (uint32_t i = 0; i < pRootSignature->mStaticSamplerCount; ++i)
 	{
 		pRootSignature->ppStaticSamplers[i] = staticSamplers[i].second->pSamplerState;
@@ -2836,7 +2838,7 @@ void addPipeline(Renderer* pRenderer, const GraphicsPipelineDesc* pDesc, Pipelin
 	const Shader*       pShaderProgram = pDesc->pShaderProgram;
 	const VertexLayout* pVertexLayout = pDesc->pVertexLayout;
 
-	Pipeline* pPipeline = (Pipeline*)conf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
+	Pipeline* pPipeline = (Pipeline*)tf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
 	ASSERT(pPipeline);
 
 	pPipeline->mType = PIPELINE_TYPE_GRAPHICS;
@@ -3002,7 +3004,7 @@ void addPipeline(Renderer* pRenderer, const PipelineDesc* pDesc, Pipeline** ppPi
 		ASSERT(pDesc->mComputeDesc.pShaderProgram);
 		ASSERT(pDesc->mComputeDesc.pRootSignature);
 
-		Pipeline* pPipeline = (Pipeline*)conf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
+		Pipeline* pPipeline = (Pipeline*)tf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
 		ASSERT(ppPipeline);
 		pPipeline->mType = PIPELINE_TYPE_COMPUTE;
 		pPipeline->pDxComputeShader = pDesc->mComputeDesc.pShaderProgram->pDxComputeShader;
@@ -3113,7 +3115,7 @@ void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, Descr
 		totalSize += pRootSignature->mCbvCount * sizeof(CBV);
 	}
 
-	DescriptorSet* pDescriptorSet = (DescriptorSet*)conf_calloc_memalign(1, alignof(DescriptorSet), totalSize);
+	DescriptorSet* pDescriptorSet = (DescriptorSet*)tf_calloc_memalign(1, alignof(DescriptorSet), totalSize);
 	pDescriptorSet->mMaxSets = pDesc->mMaxSets;
 	pDescriptorSet->pRootSignature = pRootSignature;
 
@@ -3142,7 +3144,7 @@ void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, Descr
 		if (pRootSignature->mDynamicCbvCount)
 		{
 			pDescriptorSet->pDynamicCBVsCapacity[i] = 16;
-			pDescriptorSet->pDynamicCBVs[i] = (CBV*)conf_calloc(pDescriptorSet->pDynamicCBVsCapacity[i], sizeof(CBV));
+			pDescriptorSet->pDynamicCBVs[i] = (CBV*)tf_calloc(pDescriptorSet->pDynamicCBVsCapacity[i], sizeof(CBV));
 		}
 	}
 
@@ -3316,7 +3318,7 @@ void updateDescriptorSet(Renderer* pRenderer, uint32_t index, DescriptorSet* pDe
 				if ((dynamicCbvCount + 1) >= pDescriptorSet->pDynamicCBVsCapacity[index])
 				{
 					pDescriptorSet->pDynamicCBVsCapacity[index] <<= 1;
-					pDescriptorSet->pDynamicCBVs[index] = (CBV*)conf_realloc(pDescriptorSet->pDynamicCBVs[index], pDescriptorSet->pDynamicCBVsCapacity[index] * sizeof(CBV));
+					pDescriptorSet->pDynamicCBVs[index] = (CBV*)tf_realloc(pDescriptorSet->pDynamicCBVs[index], pDescriptorSet->pDynamicCBVsCapacity[index] * sizeof(CBV));
 				}
 
 				pDescriptorSet->pDynamicCBVs[index][dynamicCbvCount++] = cbv;
@@ -3551,7 +3553,7 @@ void cmdBindDescriptorSet(Cmd* pCmd, uint32_t index, DescriptorSet* pDescriptorS
 		// Create descriptor pool for storing the descriptor data
 		if (!pCmd->pDescriptorCache)
 		{
-			pCmd->pDescriptorCache = (uint8_t*)conf_calloc(1024, sizeof(CBV));
+			pCmd->pDescriptorCache = (uint8_t*)tf_calloc(1024, sizeof(CBV));
 		}
 		cmd.mBindDescriptorSetCmd.mDynamicCBVCount = (uint32_t)(pDescriptorSet->pDynamicCBVsCount[index] - pDescriptorSet->pDynamicCBVsPrevCount[index]);
 		cmd.mBindDescriptorSetCmd.pDynamicCBVs = (CBV*)(pCmd->pDescriptorCache + pCmd->mDescriptorCacheOffset);
@@ -3671,9 +3673,9 @@ void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, co
 	cmd.pCmd = pCmd;
 	cmd.sType = CMD_TYPE_cmdBindVertexBuffer;
 	cmd.mBindVertexBufferCmd.bufferCount = bufferCount;
-	cmd.mBindVertexBufferCmd.ppBuffers = (ID3D11Buffer**)conf_calloc(bufferCount, sizeof(ID3D11Buffer*));
-	cmd.mBindVertexBufferCmd.pOffsets = (uint32_t*)conf_calloc(bufferCount, sizeof(uint32_t));
-	cmd.mBindVertexBufferCmd.pStrides = (uint32_t*)conf_calloc(bufferCount, sizeof(uint32_t));
+	cmd.mBindVertexBufferCmd.ppBuffers = (ID3D11Buffer**)tf_calloc(bufferCount, sizeof(ID3D11Buffer*));
+	cmd.mBindVertexBufferCmd.pOffsets = (uint32_t*)tf_calloc(bufferCount, sizeof(uint32_t));
+	cmd.mBindVertexBufferCmd.pStrides = (uint32_t*)tf_calloc(bufferCount, sizeof(uint32_t));
 	for (uint32_t i = 0; i < bufferCount; ++i)
 	{
 		cmd.mBindVertexBufferCmd.ppBuffers[i] = ppBuffers[i]->pDxResource;
@@ -4126,9 +4128,9 @@ void queueSubmit(
 						0, cmd.mBindVertexBufferCmd.bufferCount, cmd.mBindVertexBufferCmd.ppBuffers, cmd.mBindVertexBufferCmd.pStrides,
 						cmd.mBindVertexBufferCmd.pOffsets);
 
-					conf_free(cmd.mBindVertexBufferCmd.ppBuffers);
-					conf_free(cmd.mBindVertexBufferCmd.pStrides);
-					conf_free(cmd.mBindVertexBufferCmd.pOffsets);
+					tf_free(cmd.mBindVertexBufferCmd.ppBuffers);
+					tf_free(cmd.mBindVertexBufferCmd.pStrides);
+					tf_free(cmd.mBindVertexBufferCmd.pOffsets);
 					break;
 				}
 				case CMD_TYPE_cmdDraw:
@@ -4371,7 +4373,7 @@ void addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool** p
 	ASSERT(pDesc);
 	ASSERT(ppQueryPool);
 
-	QueryPool* pQueryPool = (QueryPool*)conf_calloc(1, sizeof(QueryPool) + pDesc->mQueryCount * sizeof(ID3D11Query*));
+	QueryPool* pQueryPool = (QueryPool*)tf_calloc(1, sizeof(QueryPool) + pDesc->mQueryCount * sizeof(ID3D11Query*));
 	ASSERT(pQueryPool);
 
 	pQueryPool->mCount = pDesc->mQueryCount;

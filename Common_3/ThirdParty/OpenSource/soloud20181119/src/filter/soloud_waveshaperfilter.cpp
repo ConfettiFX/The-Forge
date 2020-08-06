@@ -83,6 +83,6 @@ namespace SoLoud
 
 	WaveShaperFilterInstance *WaveShaperFilter::createInstance()
 	{
-		return conf_new(WaveShaperFilterInstance, this);
+		return tf_new(WaveShaperFilterInstance, this);
 	}
 }

@@ -26,125 +26,93 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "UnixFileSystem.h"
-#include "SystemFileStream.h"
-
+#include "../Interfaces/IFileSystem.h"
 #include "../Interfaces/ILog.h"
-#include "../Interfaces/IMemory.h"
 
-bool UnixFileSystem::IsReadOnly() const { return false; }
-
-char UnixFileSystem::GetPathDirectorySeparator() const { return '/'; }
-
-size_t UnixFileSystem::GetDefaultRootPathLength() const
-{
-	return 1;    // A single /
-}
-
-size_t UnixFileSystem::GetRootPathLength(const Path * path) const
-{
-	return GetDefaultRootPathLength();
-}
-
-bool UnixFileSystem::FormRootPath(const char* absolutePathString, Path* path, size_t* pathComponentOffset) const
-{
-	if (absolutePathString[0] != GetPathDirectorySeparator())
-	{
-		// Unix root paths must start with a /
-		return false;
-	}
-
-	(&path->mPathBufferOffset)[0] = '/';
-	path->mPathLength = 1;
-	*pathComponentOffset = 1;
-
-	return true;
-}
-
-FileStream* UnixFileSystem::OpenFile(const Path* filePath, FileMode mode) const
-{
-	FILE* file = fopen(fsGetPathAsNativeString(filePath), fsFileModeToString(mode));
-	if (!file)
-	{
-		return NULL;
-	}
-
-	return conf_new(SystemFileStream, file, mode, filePath);
-}
-
-time_t UnixFileSystem::GetCreationTime(const Path* filePath) const
-{
-	struct stat fileInfo = {};
-
-	stat(fsGetPathAsNativeString(filePath), &fileInfo);
-	return fileInfo.st_ctime;
-}
-
-time_t UnixFileSystem::GetLastAccessedTime(const Path* filePath) const
-{
-	struct stat fileInfo = {};
-
-	stat(fsGetPathAsNativeString(filePath), &fileInfo);
-	return fileInfo.st_atime;
-}
-
-time_t UnixFileSystem::GetLastModifiedTime(const Path* filePath) const
-{
-	struct stat fileInfo = {};
-
-	stat(fsGetPathAsNativeString(filePath), &fileInfo);
-	return fileInfo.st_mtime;
-}
-
-bool UnixFileSystem::CreateDirectory(const Path* directoryPath) const
-{
-	if (IsDirectory(directoryPath))
-	{
-		return false;
-	}
-
-	// Recursively create all parent directories.
-	if (Path* parentPath = fsGetParentPath(directoryPath))
-	{
-		CreateDirectory(parentPath);
-        fsFreePath(parentPath);
-	}
-
-	if (mkdir(fsGetPathAsNativeString(directoryPath), 0777) != 0)
-	{
-		LOGF(LogLevel::eINFO, "Unable to create directory at %s: %s", fsGetPathAsNativeString(directoryPath), strerror(errno));
-		return false;
-	}
-
-	return true;
-}
-
-bool UnixFileSystem::FileExists(const Path* path) const
-{
-#if defined(ORBIS) || defined(PROSPERO)
-	struct stat orbis_file_stats;
-	int32_t ret = stat(fsGetPathAsNativeString(path), &orbis_file_stats);
-	return ret == 0;
-#else
-	return access(fsGetPathAsNativeString(path), F_OK) != -1;
-#endif
-}
-
-bool UnixFileSystem::IsDirectory(const Path* path) const
+static bool fsDirectoryExists(const char* path)
 {
 	struct stat s;
-	if (stat(fsGetPathAsNativeString(path), &s))
+	if (stat(path, &s))
+	{
 		return false;
+	}
+
 	return (s.st_mode & S_IFDIR) != 0;
 }
 
-bool UnixFileSystem::DeleteFile(const Path* path) const
+static bool fsCreateDirectory(const char* path)
 {
-	if (remove(fsGetPathAsNativeString(path)) != 0)
+	if (fsDirectoryExists(path)) // Check if directory already exists
 	{
-		LOGF(LogLevel::eINFO, "Unable to delete file at %s: %s", fsGetPathAsNativeString(path), strerror(errno));
+		return true;
+	}
+
+	char parentPath[FS_MAX_PATH] = { 0 };
+	fsGetParentPath(path, parentPath);
+
+	// Recursively create all parent directories.
+	if (parentPath[0] != 0)
+	{
+		fsCreateDirectory(parentPath);
+	}
+
+	if (mkdir(path, 0777) != 0)
+	{
+		LOGF(LogLevel::eINFO, "Unable to create directory at %s: %s", path, strerror(errno));
 		return false;
 	}
 
 	return true;
 }
+
+bool fsCreateDirectory(ResourceDirectory resourceDir)
+{
+	return fsCreateDirectory(fsGetResourceDirectory(resourceDir));
+}
+
+time_t fsGetLastModifiedTime(ResourceDirectory resourceDir, const char* fileName)
+{
+	const char* resourcePath = fsGetResourceDirectory(resourceDir);
+	char filePath[FS_MAX_PATH] = { 0 };
+	fsAppendPathComponent(resourcePath, fileName, filePath);
+
+	struct stat fileInfo = {};
+	stat(filePath, &fileInfo);
+	return fileInfo.st_mtime;
+}
+
+bool UnixOpenFile(ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut)
+{
+	const char* resourcePath = fsGetResourceDirectory(resourceDir);
+	char filePath[FS_MAX_PATH] = {};
+	fsAppendPathComponent(resourcePath, fileName, filePath);
+	const char* modeStr = fsFileModeToString(mode);
+
+	FILE* file = fopen(filePath, modeStr);
+	if (!file)
+	{
+		LOGF(LogLevel::eERROR, "Error opening file: %s -- %s (error: %s)", filePath, modeStr, strerror(errno));
+		return false;
+	}
+
+	*pOut = {};
+	pOut->pFile = file;
+	pOut->mMode = mode;
+	pOut->pIO = pSystemFileIO;
+
+	pOut->mSize = -1;
+	if (fseek(pOut->pFile, 0, SEEK_END) == 0)
+	{
+		pOut->mSize = ftell(pOut->pFile);
+		rewind(pOut->pFile);
+	}
+
+	return true;
+}
+
+#if !defined(__ANDROID__)
+bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut)
+{
+	return UnixOpenFile(resourceDir, fileName, mode, pOut);
+}
+#endif

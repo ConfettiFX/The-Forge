@@ -138,21 +138,13 @@ public:
 
 	bool Init()
 	{
-        // FILE PATHS
-        PathHandle programDirectory = fsGetApplicationDirectory();
-        if (!fsPlatformUsesBundledResources())
-        {
-            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/01_Transformations");
-            fsSetResourceDirRootPath(resourceDirRoot);
+		// FILE PATHS
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
 
-            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,         "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirEnum(RD_MESHES,           "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,       "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
-        }
-        
 		// window and renderer setup
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
@@ -184,25 +176,24 @@ public:
 		// Loads Skybox Textures
 		for (int i = 0; i < 6; ++i)
 		{
-            PathHandle textureFilePath = fsGetPathInResourceDirEnum(RD_TEXTURES, pSkyBoxImageFileNames[i]);
 			TextureLoadDesc textureDesc = {};
-			textureDesc.pFilePath = textureFilePath;
+			textureDesc.pFileName = pSkyBoxImageFileNames[i];
 			textureDesc.ppTexture = &pSkyBoxTextures[i];
-			addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&textureDesc, NULL);
 		}
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
 		{
 			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
 			return false;
 		}
 
 		ShaderLoadDesc skyShader = {};
-		skyShader.mStages[0] = { "skybox.vert", NULL, 0, RD_SHADER_SOURCES };
-		skyShader.mStages[1] = { "skybox.frag", NULL, 0, RD_SHADER_SOURCES };
+		skyShader.mStages[0] = { "skybox.vert", NULL, 0};
+		skyShader.mStages[1] = { "skybox.frag", NULL, 0};
 		ShaderLoadDesc basicShader = {};
-		basicShader.mStages[0] = { "basic.vert", NULL, 0, RD_SHADER_SOURCES };
-		basicShader.mStages[1] = { "basic.frag", NULL, 0, RD_SHADER_SOURCES };
+		basicShader.mStages[0] = { "basic.vert", NULL, 0};
+		basicShader.mStages[1] = { "basic.frag", NULL, 0};
 
 		addShader(pRenderer, &skyShader, &pSkyBoxDrawShader);
 		addShader(pRenderer, &basicShader, &pSphereShader);
@@ -241,7 +232,7 @@ public:
 		sphereVbDesc.mDesc.mSize = sphereDataSize;
 		sphereVbDesc.pData = pSpherePoints;
 		sphereVbDesc.ppBuffer = &pSphereVertexBuffer;
-		addResource(&sphereVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&sphereVbDesc, NULL);
 
 		//Generate sky box vertex buffer
 		float skyBoxPoints[] = {
@@ -277,7 +268,7 @@ public:
 		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
 		skyboxVbDesc.pData = skyBoxPoints;
 		skyboxVbDesc.ppBuffer = &pSkyBoxVertexBuffer;
-		addResource(&skyboxVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&skyboxVbDesc, NULL);
 
 		BufferLoadDesc ubDesc = {};
 		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -288,9 +279,9 @@ public:
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pProjViewUniformBuffer[i];
-			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubDesc, NULL);
 			ubDesc.ppBuffer = &pSkyboxUniformBuffer[i];
-			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubDesc, NULL);
 		}
 
 		// Setup planets (Rotation speeds are relative to Earth's, some values randomly given)
@@ -397,7 +388,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 
 		CameraMotionParameters cmp{ 160.0f, 600.0f, 200.0f };
 		vec3                   camPos{ 48.0f, 48.0f, 20.0f };
@@ -463,7 +454,7 @@ public:
 		waitForAllResourceLoads();
 
 		// Need to free memory;
-		conf_free(pSpherePoints);
+		tf_free(pSpherePoints);
 		
 		// Prepare descriptor sets
 		DescriptorData params[6] = {};

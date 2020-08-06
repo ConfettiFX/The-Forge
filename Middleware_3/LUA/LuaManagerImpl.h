@@ -38,7 +38,7 @@ struct ScriptTaskInfo
 {
 	lua_State*           luaState;
 	Mutex*               mutex;
-    PathHandle           scriptPath;
+    const char*          scriptFile;
 	ScriptDoneCallback   callback;
 	IScriptCallbackWrap* callbackLambda;
 };
@@ -48,15 +48,15 @@ class LuaManagerImpl
 	public:
 	LuaManagerImpl();
 	~LuaManagerImpl();
-	bool RunScript(const Path* scriptPath);
-	void AddAsyncScript(const Path* scriptPath, ScriptDoneCallback callback);
-	void AddAsyncScript(const Path* scriptPath);
-	void AddAsyncScript(const Path* scriptPath, IScriptCallbackWrap* callbackLambda);
+	bool RunScript(const char* scriptFile);
+	void AddAsyncScript(const char* scriptFile, ScriptDoneCallback callback);
+	void AddAsyncScript(const char* scriptFile);
+	void AddAsyncScript(const char* scriptFile, IScriptCallbackWrap* callbackLambda);
 
 	void SetFunction(ILuaFunctionWrap* wrap);
 
 	//updateFunctionName - function that will be called on Update()
-	bool SetUpdatableScript(const Path* scriptPath, const char* updateFunctionName, const char* exitFunctionName);
+	bool SetUpdatableScript(const char* scriptFile, const char* updateFunctionName, const char* exitFunctionName);
 	bool ReloadUpdatableScript();
 
 	//updateFunctionName - function that will be called.
@@ -74,7 +74,7 @@ class LuaManagerImpl
 
 	eastl::vector<ILuaFunctionWrap*> m_Functions;
 	eastl::string                    m_UpdateFunctonName;
-    PathHandle                       m_UpdatableScriptPath;
+	const char*                      m_UpdatableScriptFile;
 	eastl::string                    m_UpdatableScriptExitName;
 
 	uint32_t m_AsyncScriptsCounter;

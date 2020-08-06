@@ -102,7 +102,13 @@
     <Project Name="SpirVTools"/>
     <Project Name="Renderer"/>
     <Project Name="OS"/>
-
+    <Project Name="gainput"/>
+    <Project Name="EASTL"/>
+  </Dependencies>
+  <Dependencies Name="Debug">
+    <Project Name="SpirVTools"/>
+    <Project Name="Renderer"/>
+    <Project Name="OS"/>
     <Project Name="gainput"/>
     <Project Name="EASTL"/>
   </Dependencies>
@@ -111,11 +117,7 @@
       <Compiler Options="" C_Options="" Assembler="">
         <IncludePath Value="."/>
       </Compiler>
-      <Linker Options="">
-
-        
-
-      </Linker>
+      <Linker Options=""/>
       <ResourceCompiler Options=""/>
     </GlobalSettings>
     <Configuration Name="Debug" CompilerType="GCC" DebuggerType="GNU gdb debugger" Type="Executable" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="prepend" BuildResWithGlobalSettings="append">
@@ -133,7 +135,6 @@
         <LibraryPath Value="$(ProjectPath)/../Renderer/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Debug/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Debug/"/>
-
         <Library Value="libOS.a"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
@@ -142,7 +143,6 @@
         <Library Value="libvulkan.so"/>
         <Library Value="libgainput.a"/>
         <Library Value="libEASTL.a"/>
-
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Debug" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
@@ -157,7 +157,14 @@
       </Debugger>
       <PreBuild/>
       <PostBuild>
-        <Command Enabled="yes"/>
+        <Command Enabled="no"># Src</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
+        <Command Enabled="no"># Animations</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Audio/ $(ProjectPath)/$(ConfigurationName)/Audio/</Command>
+        <Command Enabled="no"># Fonts</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Fonts/ $(ProjectPath)/$(ConfigurationName)/Fonts/</Command>
       </PostBuild>
       <CustomBuild Enabled="no">
         <RebuildCommand/>
@@ -194,7 +201,6 @@
         <LibraryPath Value="$(ProjectPath)/../Renderer/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../SpirVTools/Release/"/>
         <LibraryPath Value="$(ProjectPath)/../../../../Common_3/ThirdParty/OpenSource/EASTL/Linux/Release/"/>
-
         <Library Value="libOS.a"/>
         <Library Value="libRenderer.a"/>
         <Library Value="libOS.a"/>
@@ -203,7 +209,6 @@
         <Library Value="libvulkan.so"/>
         <Library Value="libgainput.a"/>
         <Library Value="libEASTL.a"/>
-
       </Linker>
       <ResourceCompiler Options="" Required="no"/>
       <General OutputFile="$(IntermediateDirectory)/$(ProjectName)" IntermediateDirectory="./Release" Command="./$(ProjectName)" CommandArguments="" UseSeparateDebugArgs="no" DebugArguments="" WorkingDirectory="$(IntermediateDirectory)" PauseExecWhenProcTerminates="yes" IsGUIProgram="no" IsEnabled="yes"/>
@@ -217,7 +222,16 @@
         <StartupCommands/>
       </Debugger>
       <PreBuild/>
-      <PostBuild/>
+      <PostBuild>
+        <Command Enabled="no"># Src</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/UI/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../../../Middleware_3/Text/Shaders/Vulkan/ $(ProjectPath)/$(ConfigurationName)/Shaders/</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../src/$(ProjectName)/GPUCfg/ $(ProjectPath)/$(ConfigurationName)/GPUCfg/</Command>
+        <Command Enabled="no"># Animations</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Audio/ $(ProjectPath)/$(ConfigurationName)/Audio/</Command>
+        <Command Enabled="no"># Fonts</Command>
+        <Command Enabled="yes">rsync -u -r $(WorkspacePath)/../UnitTestResources/Fonts/ $(ProjectPath)/$(ConfigurationName)/Fonts/</Command>
+      </PostBuild>
       <CustomBuild Enabled="no">
         <RebuildCommand/>
         <CleanCommand/>
@@ -240,13 +254,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <Dependencies Name="Debug">
-    <Project Name="SpirVTools"/>
-    <Project Name="Renderer"/>
-    <Project Name="OS"/>
-
-    <Project Name="gainput"/>
-    <Project Name="EASTL"/>
-
-  </Dependencies>
 </CodeLite_Project>

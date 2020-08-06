@@ -53,21 +53,21 @@ typedef struct GPURingBufferOffset
 
 static inline void addGPURingBuffer(Renderer* pRenderer, const BufferDesc* pBufferDesc, GPURingBuffer** ppRingBuffer)
 {
-	GPURingBuffer* pRingBuffer = (GPURingBuffer*)conf_calloc(1, sizeof(GPURingBuffer));
+	GPURingBuffer* pRingBuffer = (GPURingBuffer*)tf_calloc(1, sizeof(GPURingBuffer));
 	pRingBuffer->pRenderer = pRenderer;
 	pRingBuffer->mMaxBufferSize = pBufferDesc->mSize;
 	pRingBuffer->mBufferAlignment = sizeof(float[4]);
 	BufferLoadDesc loadDesc = {};
 	loadDesc.mDesc = *pBufferDesc;
 	loadDesc.ppBuffer = &pRingBuffer->pBuffer;
-	addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&loadDesc, NULL);
 
 	*ppRingBuffer = pRingBuffer;
 }
 
 static inline void addUniformGPURingBuffer(Renderer* pRenderer, uint32_t requiredUniformBufferSize, GPURingBuffer** ppRingBuffer, bool const ownMemory = false, ResourceMemoryUsage memoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU)
 {
-	GPURingBuffer* pRingBuffer = (GPURingBuffer*)conf_calloc(1, sizeof(GPURingBuffer));
+	GPURingBuffer* pRingBuffer = (GPURingBuffer*)tf_calloc(1, sizeof(GPURingBuffer));
 	pRingBuffer->pRenderer = pRenderer;
 
 	const uint32_t uniformBufferAlignment = (uint32_t)pRenderer->pActiveGpuSettings->mUniformBufferAlignment;
@@ -91,7 +91,7 @@ static inline void addUniformGPURingBuffer(Renderer* pRenderer, uint32_t require
 	BufferLoadDesc loadDesc = {};
 	loadDesc.mDesc = ubDesc;
 	loadDesc.ppBuffer = &pRingBuffer->pBuffer;
-	addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&loadDesc, NULL);
 
 	*ppRingBuffer = pRingBuffer;
 }
@@ -99,7 +99,7 @@ static inline void addUniformGPURingBuffer(Renderer* pRenderer, uint32_t require
 static inline void removeGPURingBuffer(GPURingBuffer* pRingBuffer)
 {
 	removeResource(pRingBuffer->pBuffer);
-	conf_free(pRingBuffer);
+	tf_free(pRingBuffer);
 }
 
 static inline void resetGPURingBuffer(GPURingBuffer* pRingBuffer)

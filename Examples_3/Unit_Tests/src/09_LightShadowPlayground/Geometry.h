@@ -192,7 +192,7 @@ struct Vertex
 };
 
 
-typedef bool (*GenerateVolumeDataFromFileFunc) (SDFVolumeData**, const Path*, const eastl::string&, float);
+typedef bool (*GenerateVolumeDataFromFileFunc) (SDFVolumeData**, const eastl::string&, float);
 
 
 void adjustAABB(AABB* ownerAABB, const vec3& point);
@@ -204,19 +204,19 @@ vec3 calculateAABBCenter(const AABB* ownerAABB);
 void alignAABB(AABB* ownerAABB, float alignment);
 
 void destroyClusters(ClusterContainer* pMesh);
-Scene* loadScene(const Path* fileName, struct SyncToken* token, float scale, float offsetX, float offsetY, float offsetZ);
+Scene* loadScene(const char* fileName, SyncToken* token, float scale, float offsetX, float offsetY, float offsetZ);
 	
 void   removeScene(Scene* scene);
 
 void   createClusters(bool twoSided, const Scene* scene, IndirectDrawIndexArguments* draw, ClusterContainer* subMesh);
 
 
-void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outMesh, float scale,
+void loadSDFMeshAlphaTested(ThreadSystem* threadSystem, const char* fileName, SDFMesh* outMesh, float scale,
 	float offsetX, bool generateSDFVolumeData,
 	BakedSDFVolumeInstances& sdfMeshInstances, 
 	GenerateVolumeDataFromFileFunc generateVolumeDataFromFileFunc);
 
-void loadSDFMesh(ThreadSystem* threadSystem, const Path* filePath, SDFMesh* outMesh, float scale,
+void loadSDFMesh(ThreadSystem* threadSystem, const char* fileName, SDFMesh* outMesh, float scale,
 	float offsetX, bool generateSDFVolumeData, BakedSDFVolumeInstances& sdfMeshInstances,
 	GenerateVolumeDataFromFileFunc generateVolumeDataFromFileFunc);
 

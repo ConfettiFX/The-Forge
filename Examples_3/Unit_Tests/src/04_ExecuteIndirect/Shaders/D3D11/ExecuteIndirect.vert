@@ -24,11 +24,11 @@
 
 //--------------------------------------------------------------------------------------------
 //
-// Copyright (C) 2009 - 2016 Confetti Interactive Inc.
+// Copyright (C) 2009 - 2016 The Forge Interactive Inc.
 // All rights reserved.
 //
 // This source may not be distributed and/or modified without expressly written permission
-// from Confetti Interactive Inc.
+// from The Forge Interactive Inc.
 //
 //--------------------------------------------------------------------------------------------
 

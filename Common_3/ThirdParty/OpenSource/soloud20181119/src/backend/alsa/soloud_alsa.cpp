@@ -96,19 +96,19 @@ namespace SoLoud
         snd_pcm_close(data->alsaDeviceHandle);
         if (0 != data->sampleBuffer)
         {
-            conf_free(data->sampleBuffer);
+            tf_free(data->sampleBuffer);
         }
         if (0 != data->buffer)
         {
-            conf_free(data->buffer);
+            tf_free(data->buffer);
         }
-        conf_delete(data);
+        tf_delete(data);
         aSoloud->mBackendData = 0;
     }
 
     result alsa_init(Soloud *aSoloud, unsigned int aFlags, unsigned int aSamplerate, unsigned int aBuffer, unsigned int aChannels)
     {
-        ALSAData *data = conf_new(ALSAData);
+        ALSAData *data = tf_new(ALSAData);
         memset(data, 0, sizeof(ALSAData));
         aSoloud->mBackendData = data;
         aSoloud->mBackendCleanupFunc = alsaCleanup;
@@ -154,8 +154,8 @@ namespace SoLoud
         snd_pcm_hw_params_get_channels(params, &val);
         data->channels = val;
 
-        data->buffer = (float*)conf_calloc(data->samples*data->channels, sizeof(float));
-        data->sampleBuffer = (short*)conf_calloc(data->samples*data->channels, sizeof(short));
+        data->buffer = (float*)tf_calloc(data->samples*data->channels, sizeof(float));
+        data->sampleBuffer = (short*)tf_calloc(data->samples*data->channels, sizeof(short));
         aSoloud->postinit(aSamplerate, data->samples * data->channels, aFlags, 2);
         data->threadHandle = Thread::createThread(alsaThread, data);
         if (0 == data->threadHandle)

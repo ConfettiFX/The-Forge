@@ -3,7 +3,7 @@
   <Project Name="OS" Path="OSBase/OSBase.project" Active="No"/>
   <Project Name="Renderer" Path="Renderer/Renderer.project" Active="No"/>
   <Project Name="SpirVTools" Path="SpirVTools/SpirVTools.project" Active="No"/>
-  <Project Name="01_Transformation" Path="01_Transformation/01_Transformation.project" Active="No"/>
+  <Project Name="01_Transformations" Path="01_Transformations/01_Transformations.project" Active="Yes"/>
   <Project Name="02_Compute" Path="02_Compute/02_Compute.project" Active="No"/>
   <Project Name="03_MultiThread" Path="03_MultiThread/03_MultiThread.project" Active="No"/>
   <Project Name="04_ExecuteIndirect" Path="04_ExecuteIndirect/04_ExecuteIndirect.project" Active="No"/>
@@ -13,6 +13,7 @@
   <Project Name="09_LightShadowPlayground" Path="09_LightShadowPlayground/09_LightShadowPlayground.project" Active="No"/>
   <Project Name="09a_HybridRaytracing" Path="09a_HybridRaytracing/09a_HybridRaytracing.project" Active="No"/>
   <Project Name="10_PixelProjectedReflections" Path="10_PixelProjectedReflections/10_PixelProjectedReflections.project" Active="No"/>
+  <Project Name="12_ZipFileSystem" Path="12_ZipFileSystem/12_ZipFileSystem.project" Active="No"/>
   <Project Name="13_UserInterface" Path="13_UserInterface/13_UserInterface.project" Active="No"/>
   <Project Name="14_WaveIntrinsics" Path="14_WaveIntrinsics/14_WaveIntrinsics.project" Active="No"/>
   <Project Name="15_Transparency" Path="15_Transparency/15_Transparency.project" Active="No"/>
@@ -26,7 +27,7 @@
   <Project Name="25_AdditiveBlending" Path="25_AdditiveBlending/25_AdditiveBlending.project" Active="No"/>
   <Project Name="26_BakedPhysics" Path="26_BakedPhysics/26_BakedPhysics.project" Active="No"/>
   <Project Name="27_MultiThread" Path="27_MultiThread/27_MultiThread.project" Active="No"/>
-  <Project Name="28_Skinning" Path="28_Skinning/28_Skinning.project" Active="Yes"/>
+  <Project Name="28_Skinning" Path="28_Skinning/28_Skinning.project" Active="No"/>
   <Project Name="gainput" Path="../../../Common_3/ThirdParty/OpenSource/gainput/Ubuntu/lib/gainput.project" Active="No"/>
   <Project Name="LuaManager" Path="LuaManager/LuaManager.project" Active="No"/>
   <Project Name="ozz_base" Path="../../../Common_3/ThirdParty/OpenSource/ozz-animation/Ubuntu/ozz_base.project" Active="No"/>
@@ -46,7 +47,7 @@
       <Project Name="Renderer" ConfigName="Debug"/>
       <Project Name="gainput" ConfigName="Debug"/>
       <Project Name="OS" ConfigName="Debug"/>
-      <Project Name="01_Transformation" ConfigName="Debug"/>
+      <Project Name="01_Transformations" ConfigName="Debug"/>
       <Project Name="02_Compute" ConfigName="Debug"/>
       <Project Name="03_MultiThread" ConfigName="Debug"/>
       <Project Name="04_ExecuteIndirect" ConfigName="Debug"/>
@@ -57,6 +58,7 @@
       <Project Name="09_LightShadowPlayground" ConfigName="Debug"/>
       <Project Name="09a_HybridRaytracing" ConfigName="Debug"/>
       <Project Name="10_PixelProjectedReflections" ConfigName="Debug"/>
+      <Project Name="12_ZipFileSystem" ConfigName="Debug"/>
       <Project Name="13_UserInterface" ConfigName="Debug"/>
       <Project Name="14_WaveIntrinsics" ConfigName="Debug"/>
       <Project Name="15_Transparency" ConfigName="Debug"/>
@@ -107,6 +109,7 @@
       <Project Name="15_Transparency" ConfigName="Release"/>
       <Project Name="14_WaveIntrinsics" ConfigName="Release"/>
       <Project Name="13_UserInterface" ConfigName="Release"/>
+      <Project Name="12_ZipFileSystem" ConfigName="Release"/>
       <Project Name="10_PixelProjectedReflections" ConfigName="Release"/>
       <Project Name="09a_HybridRaytracing" ConfigName="Release"/>
       <Project Name="09_LightShadowPlayground" ConfigName="Release"/>
@@ -116,7 +119,7 @@
       <Project Name="04_ExecuteIndirect" ConfigName="Release"/>
       <Project Name="03_MultiThread" ConfigName="Release"/>
       <Project Name="02_Compute" ConfigName="Release"/>
-      <Project Name="01_Transformation" ConfigName="Release"/>
+      <Project Name="01_Transformations" ConfigName="Release"/>
       <Project Name="08_GltfViewer" ConfigName="Release"/>
       <Project Name="AssetPipelineCmd" ConfigName="Release"/>
       <Project Name="29_InverseKinematic" ConfigName="Release"/>

@@ -36,7 +36,7 @@ namespace eastl
 	struct has_equality<vec4> : eastl::false_type {};
 }
 
-ResourceDirEnum RD_MIDDLEWARE_PANINI = RD_MIDDLEWARE_2;
+ResourceDirectory RD_MIDDLEWARE_PANINI = RD_MIDDLEWARE_2;
 /************************************************************************/
 /* HELPER FUNCTIONS
 ************************************************************************/
@@ -78,7 +78,7 @@ void createTessellatedQuadBuffers(
 	vbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 	vbDesc.pData = vertices.data();
 	vbDesc.ppBuffer = ppVertexBuffer;
-	addResource(&vbDesc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&vbDesc, NULL);
 
 	// Tessellate the quad
 	eastl::vector<uint16_t> indices(numQuads * 6);
@@ -122,7 +122,7 @@ void createTessellatedQuadBuffers(
 	ibDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
 	ibDesc.pData = indices.data();
 	ibDesc.ppBuffer = ppIndexBuffer;
-	addResource(&ibDesc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&ibDesc, NULL);
 }
 /************************************************************************/
 /* INTERFACE FUNCTIONS
@@ -136,8 +136,8 @@ bool Panini::Init(Renderer* renderer, PipelineCache* pCache)
 	// SHADER
 	//----------------------------------------------------------------------------------------------------------------
 	ShaderLoadDesc paniniPass = {};
-	paniniPass.mStages[0] = { "panini_projection.vert", NULL, 0, RD_MIDDLEWARE_PANINI };
-	paniniPass.mStages[1] = { "panini_projection.frag", NULL, 0, RD_MIDDLEWARE_PANINI };
+	paniniPass.mStages[0] = { "panini_projection.vert", NULL, 0 };
+	paniniPass.mStages[1] = { "panini_projection.frag", NULL, 0 };
 	addShader(pRenderer, &paniniPass, &pShader);
 
 	// SAMPLERS & STATES
@@ -227,7 +227,7 @@ void Panini::Update(float deltaTime)
 void Panini::Draw(Cmd* cmd)
 {
 	ASSERT(cmd);
-	ASSERT(mIndex != -1);
+	ASSERT(mIndex != UINT32_MAX);
 	ASSERT(pDescriptorSet);
 
 	//beginCmd(cmd);	// beginCmd() and endCmd() should be handled by the caller App

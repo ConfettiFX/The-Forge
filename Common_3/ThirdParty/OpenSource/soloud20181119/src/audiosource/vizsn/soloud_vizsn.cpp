@@ -499,7 +499,7 @@ namespace SoLoud
 
 	AudioSourceInstance * Vizsn::createInstance()
 	{
-		return conf_new(VizsnInstance, this);
+		return tf_new(VizsnInstance, this);
 	}
 
 	void Vizsn::setText(char *aText)
@@ -507,9 +507,9 @@ namespace SoLoud
 		if (!aText)
 			return;
 		stop();
-		conf_free(mText);
+		tf_free(mText);
 		int len = (int)strlen(aText);
-		mText = (char*)conf_calloc(len + 3, sizeof(char));
+		mText = (char*)tf_calloc(len + 3, sizeof(char));
 		memcpy(mText+1, aText, len);
 		mText[0] = P_CLR;
 		int i;

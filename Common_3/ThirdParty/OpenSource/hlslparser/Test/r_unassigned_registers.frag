@@ -7,7 +7,7 @@ struct Vertex_Output
 Texture2D Texture00 : register(t0);
 Texture2D Texture01[2];
 Texture2D Texture10[20] : register(t1, space1);
-Texture2D Texture11 : register(space1);
+Texture2D Texture11 : register(t21, space1);
 SamplerState Sampler00;
 SamplerState Sampler01[2] : register(s3);
 SamplerState Sampler10 : register(s5);

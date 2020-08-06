@@ -64,9 +64,6 @@
     <Filter Include="Utils">
       <UniqueIdentifier>{f6c4d317-0683-49d8-98da-c8e3ec613e69}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Dependencies\zip">
-      <UniqueIdentifier>{94561365-2e90-4140-bacd-276c1b9c04cb}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Dependencies\rmem">
       <UniqueIdentifier>{b4df5063-637c-4986-968c-c129bdde13c4}</UniqueIdentifier>
     </Filter>
@@ -167,21 +164,6 @@
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IInput.h">
       <Filter>OS\Interfaces</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystemInternal.h">
-      <Filter>OS\FileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemFileStream.h">
-      <Filter>OS\FileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileStream.h">
-      <Filter>OS\FileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.h">
-      <Filter>OS\FileSystem</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\MemoryStream.h">
-      <Filter>OS\FileSystem</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Profiler\GpuProfiler.h">
       <Filter>OS\Profiler</Filter>
@@ -302,26 +284,11 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\MemoryTracking\MemoryTracking.cpp">
       <Filter>OS\MemoryTracking</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystemInternal.cpp">
-      <Filter>OS\FileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemFileStream.cpp">
-      <Filter>OS\FileSystem</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemRun.cpp">
-      <Filter>OS\FileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileStream.cpp">
       <Filter>OS\FileSystem</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Windows\WindowsFileSystem.cpp">
       <Filter>OS\Windows</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.cpp">
-      <Filter>OS\FileSystem</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\MemoryStream.cpp">
-      <Filter>OS\FileSystem</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\GpuProfiler.cpp">
       <Filter>OS\Profiler</Filter>
@@ -331,9 +298,6 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerWidgetsUI.cpp">
       <Filter>OS\Profiler</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\zip\zip.cpp">
-      <Filter>Dependencies\zip</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\rmem\src\rmem_get_module_info.cpp">
       <Filter>Dependencies\rmem</Filter>
@@ -349,6 +313,9 @@
     </ClCompile>
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\basis_universal\transcoder\basisu_transcoder.cpp">
       <Filter>Dependencies\basisu</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystem.cpp">
+      <Filter>OS\FileSystem</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -20,9 +20,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\src\02_Compute\Shaders\Vulkan\display.frag">
-      <Filter>Shaders\Vulkan</Filter>
-    </None>
     <None Include="..\src\02_Compute\Shaders\D3D12\compute.comp">
       <Filter>Shaders\D3D12</Filter>
     </None>
@@ -38,6 +35,9 @@
       <Filter>Shaders\Vulkan</Filter>
     </CustomBuild>
     <CustomBuild Include="..\src\02_Compute\Shaders\Vulkan\display.vert">
+      <Filter>Shaders\Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\02_Compute\Shaders\Vulkan\display.frag">
       <Filter>Shaders\Vulkan</Filter>
     </CustomBuild>
   </ItemGroup>

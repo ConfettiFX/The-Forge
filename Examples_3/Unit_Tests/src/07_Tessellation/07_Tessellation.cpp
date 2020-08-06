@@ -232,19 +232,11 @@ class Tessellation: public IApp
 	bool Init()
 	{
 		// FILE PATHS
-		PathHandle programDirectory = fsGetApplicationDirectory();
-		if (!fsPlatformUsesBundledResources())
-		{
-			PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/07_Tessellation");
-			fsSetResourceDirRootPath(resourceDirRoot);
-
-			fsSetRelativePathForResourceDirEnum(RD_TEXTURES, "../../UnitTestResources/Textures");
-			fsSetRelativePathForResourceDirEnum(RD_MESHES, "../../UnitTestResources/Meshes");
-			fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS, "../../UnitTestResources/Fonts");
-			fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS, "../../UnitTestResources/Animation");
-			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT, "../../../../Middleware_3/Text");
-			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI, "../../../../Middleware_3/UI");
-		}
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES,	"Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES,	"CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG,		"GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES,			"Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS,			"Fonts");
 
 		initNoise();
 
@@ -291,7 +283,7 @@ class Tessellation: public IApp
 
 		initResourceLoaderInterface(pRenderer);
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
 		{
 			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
 			return false;
@@ -301,17 +293,17 @@ class Tessellation: public IApp
 		{
 #if !defined(METAL)
 			ShaderLoadDesc grassShader = {};
-			grassShader.mStages[0] = { "grass.vert", NULL, 0, RD_SHADER_SOURCES };
-			grassShader.mStages[1] = { "grass.frag", NULL, 0, RD_SHADER_SOURCES };
-			grassShader.mStages[2] = { "grass.tesc", NULL, 0, RD_SHADER_SOURCES };
-			grassShader.mStages[3] = { "grass.tese", NULL, 0, RD_SHADER_SOURCES };
+			grassShader.mStages[0] = { "grass.vert", NULL, 0 };
+			grassShader.mStages[1] = { "grass.frag", NULL, 0 };
+			grassShader.mStages[2] = { "grass.tesc", NULL, 0 };
+			grassShader.mStages[3] = { "grass.tese", NULL, 0 };
 #else
 			ShaderLoadDesc grassVertexHullShader = {};
-			grassVertexHullShader.mStages[0] = { "grass_verthull.comp", NULL, 0, RD_SHADER_SOURCES };
+			grassVertexHullShader.mStages[0] = { "grass_verthull.comp", NULL, 0 };
 
 			ShaderLoadDesc grassShader = {};
-			grassShader.mStages[0] = { "grass.domain.vert", NULL, 0, RD_SHADER_SOURCES };
-			grassShader.mStages[1] = { "grass.frag", NULL, 0, RD_SHADER_SOURCES };
+			grassShader.mStages[0] = { "grass.domain.vert", NULL, 0 };
+			grassShader.mStages[1] = { "grass.frag", NULL, 0 };
 #endif
 
 			addShader(pRenderer, &grassShader, &pGrassShader);
@@ -343,7 +335,7 @@ class Tessellation: public IApp
 		}
 
 		ShaderLoadDesc computeShader = {};
-		computeShader.mStages[0] = { "compute.comp", NULL, 0, RD_SHADER_SOURCES };
+		computeShader.mStages[0] = { "compute.comp", NULL, 0 };
 		addShader(pRenderer, &computeShader, &pComputeShader);
 
 		RootSignatureDesc computeRootDesc = { &pComputeShader, 1 };
@@ -378,7 +370,7 @@ class Tessellation: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubGrassDesc.ppBuffer = &pGrassUniformBuffer[i];
-			addResource(&ubGrassDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubGrassDesc, NULL);
 		}
 
 		BufferLoadDesc sbBladeDesc = {};
@@ -391,7 +383,7 @@ class Tessellation: public IApp
 
 		sbBladeDesc.pData = gBlades.data();
 		sbBladeDesc.ppBuffer = &pBladeStorageBuffer;
-		addResource(&sbBladeDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&sbBladeDesc, NULL);
 
 		BufferLoadDesc sbCulledBladeDesc = {};
 		sbCulledBladeDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_VERTEX_BUFFER;
@@ -403,7 +395,7 @@ class Tessellation: public IApp
 
 		sbCulledBladeDesc.pData = gBlades.data();
 		sbCulledBladeDesc.ppBuffer = &pCulledBladeStorageBuffer;
-		addResource(&sbCulledBladeDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&sbCulledBladeDesc, NULL);
 
 		BufferLoadDesc sbBladeNumDesc = {};
 		sbBladeNumDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_INDIRECT_BUFFER;
@@ -415,7 +407,7 @@ class Tessellation: public IApp
 
 		sbBladeNumDesc.pData = &indirectDraw;
 		sbBladeNumDesc.ppBuffer = &pBladeNumBuffer;
-		addResource(&sbBladeNumDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&sbBladeNumDesc, NULL);
 
 #ifdef METAL
 		BufferLoadDesc tessFactorBufferDesc = {};
@@ -427,7 +419,7 @@ class Tessellation: public IApp
 		tessFactorBufferDesc.mDesc.mSize = NUM_BLADES * sizeof(PatchTess);
 		tessFactorBufferDesc.pData = NULL;
 		tessFactorBufferDesc.ppBuffer = &pTessFactorsBuffer;
-		addResource(&tessFactorBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&tessFactorBufferDesc, NULL);
 
 		BufferLoadDesc hullOutputBufferDesc = {};
 		hullOutputBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
@@ -438,7 +430,7 @@ class Tessellation: public IApp
 		hullOutputBufferDesc.mDesc.mSize = NUM_BLADES * sizeof(HullOut);
 		hullOutputBufferDesc.pData = NULL;
 		hullOutputBufferDesc.ppBuffer = &pHullOutputBuffer;
-		addResource(&hullOutputBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&hullOutputBufferDesc, NULL);
 #endif
 
 		IndirectArgumentDescriptor indirectArgDescs[1] = {};
@@ -460,7 +452,7 @@ class Tessellation: public IApp
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 		pGui = gAppUI.AddGuiComponent("Tessellation Properties", &guiDesc);
 
 		if (pRenderer->pActiveGpuSettings->mTessellationSupported)

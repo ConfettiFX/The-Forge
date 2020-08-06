@@ -189,21 +189,13 @@ class UserInterfaceUnitTest : public IApp
 public:
 	bool Init()
 	{
-        // FILE PATHS
-        PathHandle programDirectory = fsGetApplicationDirectory();
-        if (!fsPlatformUsesBundledResources())
-        {
-            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/13_UserInterface");
-            fsSetResourceDirRootPath(resourceDirRoot);
-            
-            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirEnum(RD_MESHES,          "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
-        }
-        
+		// FILE PATHS
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
+
 		// WINDOW AND RENDERER SETUP
 		//
 		RendererDesc settings = { 0 };
@@ -238,11 +230,10 @@ public:
 		//
 		initResourceLoaderInterface(pRenderer);
 
-        PathHandle spritesPath = fsGetPathInResourceDirEnum(RD_TEXTURES, "sprites");
 		TextureLoadDesc textureDesc = {};
 		textureDesc.ppTexture = &pSpriteTexture;
-		textureDesc.pFilePath = spritesPath;
-		addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
+		textureDesc.pFileName = "sprites";
+		addResource(&textureDesc, NULL);
 
 		waitForAllResourceLoads();
 
@@ -254,7 +245,7 @@ public:
 			return false;
 		}
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 
 		// Add the GUI Panels/Windows
 		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 16 };
@@ -281,9 +272,6 @@ public:
 			pStandaloneControlsGUIWindow->mContextualMenuLabels.emplace_back(sContextMenuItems[i]);
 		pStandaloneControlsGUIWindow->mContextualMenuCallbacks.push_back(fnItem1Callback);
 		pStandaloneControlsGUIWindow->mContextualMenuCallbacks.push_back(fnItem2Callback);
-
-		// Let's show the UI demo window
-		gAppUI.mShowDemoUiWindow = true;
 
 		{
 			// Drop Down

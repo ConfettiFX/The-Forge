@@ -15,19 +15,19 @@ Entity::~Entity()
 	for (ComponentMap::iterator it = mComponents.begin(); it != mComponents.end(); ++it)
 	{
 		it->second->~BaseComponent();
-		conf_free(it->second);
+		tf_free(it->second);
 	}
 
 	for (eastl::pair<uint32_t, FCR::ComponentRepresentation*> repMap_iter : mComponentRepresentations)
 	{
 		repMap_iter.second->~ComponentRepresentation();
-		conf_free(repMap_iter.second);
+		tf_free(repMap_iter.second);
 	}
 }
 
 Entity* Entity::clone() const
 {
-	Entity* new_entity = conf_placement_new<Entity>(conf_calloc(1, sizeof(Entity)));
+	Entity* new_entity = tf_placement_new<Entity>(tf_calloc(1, sizeof(Entity)));
 	
 	for (ComponentMap::const_iterator it = mComponents.begin(); it != mComponents.end(); ++it)
 	{
@@ -122,7 +122,7 @@ void EntityManager::reset()
 
 EntityId EntityManager::createEntity()
 {
-	Entity* new_entity = conf_placement_new<Entity>(conf_calloc(1, sizeof(Entity)));
+	Entity* new_entity = tf_placement_new<Entity>(tf_calloc(1, sizeof(Entity)));
 
 	EntityId id = 0;
 	{
@@ -173,7 +173,7 @@ void EntityManager::deleteEntity(EntityId id)
 		mEntities.erase(entities_iter);
 	}
 	entity->~Entity();
-	conf_free(entity);
+	tf_free(entity);
 }
 
 

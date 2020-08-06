@@ -91,10 +91,10 @@ inline void ProfileThreadStart(ProfileThread* pThread, ProfileThreadFunc Func)
 	static ThreadDesc desc[5];
 	static int count = 0;
 #if defined(_WIN32)
-	*pThread = static_cast<ProfileThread>(conf_malloc(sizeof(ThreadHandle)));
+	*pThread = static_cast<ProfileThread>(tf_malloc(sizeof(ThreadHandle)));
 #else
 	// Need to check if this actually works right
-  *pThread = static_cast<ProfileThread>(conf_malloc(sizeof(ThreadHandle)));
+  *pThread = static_cast<ProfileThread>(tf_malloc(sizeof(ThreadHandle)));
 #endif
 	desc[count].pFunc = Func;
 	desc[count].pData = *pThread;
@@ -103,7 +103,7 @@ inline void ProfileThreadStart(ProfileThread* pThread, ProfileThreadFunc Func)
 inline void ProfileThreadJoin(ProfileThread* pThread)
 {
 	join_thread(**pThread);
-	conf_free(*pThread);
+	tf_free(*pThread);
 	*pThread = nullptr;
 }
 #endif
@@ -334,12 +334,12 @@ PROFILE_API void ProfileRemoveThreadLog(ProfileThreadLog * pLog)
 
 		if (pLog->Log)
 		{
-			conf_free(pLog->Log);
+			tf_free(pLog->Log);
 			S.nMemUsage -= sizeof(ProfileLogEntry) * PROFILE_BUFFER_SIZE;
 		}
 
 		pLog->~ProfileThreadLog();
-		conf_free(pLog);
+		tf_free(pLog);
 		S.nMemUsage -= sizeof(ProfileThreadLog);
 	}
 }
@@ -354,7 +354,7 @@ ProfileThreadLog* ProfileCreateThreadLog(const char* pName)
 		if (!S.Pool[i])
 		{
 			nLogIndex = i;
-			pLog = static_cast<ProfileThreadLog *>(conf_malloc(sizeof(ProfileThreadLog)));
+			pLog = static_cast<ProfileThreadLog *>(tf_malloc(sizeof(ProfileThreadLog)));
 			memset(pLog, 0, sizeof(ProfileThreadLog));
 			S.nMemUsage += sizeof(ProfileThreadLog);
 			S.Pool[i] = pLog;
@@ -417,12 +417,12 @@ void ProfileOnThreadExit()
 
 		if (pLog->Log)
 		{
-			conf_free(pLog->Log);
+			tf_free(pLog->Log);
 			S.nMemUsage -= sizeof(ProfileLogEntry) * PROFILE_BUFFER_SIZE;
 		}
 
 		pLog->~ProfileThreadLog();
-		conf_free(pLog);
+		tf_free(pLog);
 		S.nMemUsage -= sizeof(ProfileThreadLog);
 
 		ProfileSetThreadLog(0);
@@ -744,7 +744,7 @@ inline void ProfileLogPut(ProfileToken nToken_, uint64_t nTick, uint64_t nBegin,
 	{
 		if (!pLog->Log)
 		{
-			pLog->Log = static_cast<ProfileLogEntry *>(conf_malloc(sizeof(ProfileLogEntry) * PROFILE_BUFFER_SIZE));
+			pLog->Log = static_cast<ProfileLogEntry *>(tf_malloc(sizeof(ProfileLogEntry) * PROFILE_BUFFER_SIZE));
 			memset(pLog->Log, 0, sizeof(ProfileLogEntry) * PROFILE_BUFFER_SIZE);
 			S.nMemUsage += sizeof(ProfileLogEntry) * PROFILE_BUFFER_SIZE;
 		}
@@ -795,7 +795,7 @@ uint64_t ProfileAllocateLabel(const char* pName)
 		pLabelBuffer = (char*)tfrg_atomicptr_load_relaxed(&S.LabelBuffer);
 		if (!pLabelBuffer)
 		{
-			pLabelBuffer = static_cast<char *>(conf_malloc(PROFILE_LABEL_BUFFER_SIZE + PROFILE_LABEL_MAX_LEN));
+			pLabelBuffer = static_cast<char *>(tf_malloc(PROFILE_LABEL_BUFFER_SIZE + PROFILE_LABEL_MAX_LEN));
 			memset(pLabelBuffer, 0, PROFILE_LABEL_BUFFER_SIZE + PROFILE_LABEL_MAX_LEN);
 			S.nMemUsage += PROFILE_LABEL_BUFFER_SIZE + PROFILE_LABEL_MAX_LEN;
             tfrg_atomicptr_store_release((tfrg_atomic64_t*)&S.LabelBuffer, *pLabelBuffer);
@@ -1809,11 +1809,11 @@ int ProfileFormatCounter(int eFormat, int64_t nCounter, char* pOut, uint32_t nBu
 	return nLen;
 }
 
-void ProfileDumpFile(const Path* pPath, ProfileDumpType eType, uint32_t nFrames)
+void ProfileDumpFile(const char* pDumpFile, ProfileDumpType eType, uint32_t nFrames)
 {
 	Profile & S = g_Profile;
-	
-	S.DumpPath = fsCopyPath(pPath);
+
+	S.DumpFile = pDumpFile;
 	S.nDumpFileNextFrame = 1;
 	S.eDumpType = eType;
 	S.nDumpFrames = nFrames;
@@ -2045,7 +2045,7 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 
 	uint32_t nNumTimers = S.nTotalTimers;
 	uint32_t nBlockSize = 2 * nNumTimers;
-    float* pTimers = (float*)conf_calloc(nBlockSize * 9, sizeof(float));
+    float* pTimers = (float*)tf_calloc(nBlockSize * 9, sizeof(float));
 	float* pAverage = pTimers + nBlockSize;
 	float* pMax = pTimers + 2 * nBlockSize;
 	float* pMin = pTimers + 3 * nBlockSize;
@@ -2246,7 +2246,7 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 #endif
 
 
-	uint32_t* nTimerCounter = (uint32_t*)conf_calloc(S.nTotalTimers, sizeof(uint32_t));
+	uint32_t* nTimerCounter = (uint32_t*)tf_calloc(S.nTotalTimers, sizeof(uint32_t));
 	memset(nTimerCounter, 0, sizeof(uint32_t) * S.nTotalTimers);
 
 	ProfilePrintf(CB, Handle, "var Frames = Array(%d);\n", nNumFrames);
@@ -2453,7 +2453,7 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 		CB(Handle, g_ProfileHtml_end_sizes[i] - 1, g_ProfileHtml_end[i]);
 	}
 
-	uint32_t* nGroupCounter = (uint32_t*)conf_calloc(S.nGroupCount, sizeof(uint32_t));
+	uint32_t* nGroupCounter = (uint32_t*)tf_calloc(S.nGroupCount, sizeof(uint32_t));
 
 	memset(nGroupCounter, 0, sizeof(uint32_t) * S.nGroupCount);
 	for (uint32_t i = 0; i < S.nTotalTimers; ++i)
@@ -2462,8 +2462,8 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 		nGroupCounter[nGroupIndex] += nTimerCounter[i];
 	}
 
-	uint32_t* nGroupCounterSort = (uint32_t*)conf_calloc(S.nGroupCount, sizeof(uint32_t));
-	uint32_t* nTimerCounterSort = (uint32_t*)conf_calloc(S.nTotalTimers, sizeof(uint32_t));
+	uint32_t* nGroupCounterSort = (uint32_t*)tf_calloc(S.nGroupCount, sizeof(uint32_t));
+	uint32_t* nTimerCounterSort = (uint32_t*)tf_calloc(S.nTotalTimers, sizeof(uint32_t));
 	for (uint32_t i = 0; i < S.nGroupCount; ++i)
 	{
 		nGroupCounterSort[i] = i;
@@ -2503,11 +2503,11 @@ void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, cons
 	S.nActiveGroup = nActiveGroup;
 	S.nRunning = nRunning;
 
-    conf_free(nTimerCounterSort);
-    conf_free(nGroupCounterSort);
-    conf_free(nGroupCounter);
-    conf_free(nTimerCounter);
-    conf_free(pTimers);
+    tf_free(nTimerCounterSort);
+    tf_free(nGroupCounterSort);
+    tf_free(nGroupCounter);
+    tf_free(nTimerCounter);
+    tf_free(pTimers);
 
 #if PROFILE_DEBUG
 	int64_t nTicksEnd = P_TICK();
@@ -2532,18 +2532,16 @@ void ProfileDumpToFile(Renderer* pRenderer)
     MutexLock lock(ProfileMutex());
 	Profile & S = g_Profile;
 	
-    FileStream* fh = fsOpenFile(S.DumpPath, FM_WRITE);
-
-	if (fh)
+	FileStream fh = {};
+	if (fsOpenStreamFromPath(RD_LOG, S.DumpFile, FM_WRITE, &fh))
 	{
 		if (S.eDumpType == ProfileDumpTypeHtml)
-			ProfileDumpHtml(ProfileWriteFile, fh, S.nDumpFrames, 0, pRenderer);
+			ProfileDumpHtml(ProfileWriteFile, &fh, S.nDumpFrames, 0, pRenderer);
 		else if (S.eDumpType == ProfileDumpTypeCsv)
-			ProfileDumpCsv(ProfileWriteFile, fh, S.nDumpFrames);
+			ProfileDumpCsv(ProfileWriteFile, &fh, S.nDumpFrames);
 
-        fsCloseStream(fh);
+        fsCloseStream(&fh);
 	}
-    fsFreePath(S.DumpPath);
 }
 
 void dumpProfileData(Renderer* pRenderer, const char* appName, uint32_t nMaxFrames)
@@ -2554,69 +2552,67 @@ void dumpProfileData(Renderer* pRenderer, const char* appName, uint32_t nMaxFram
     eastl::string tempName = eastl::string().sprintf("%s", appName) + eastl::string(R"(Profile-%Y-%m-%d-%H.%M.%S.html)");
     char name[128] = {};
     strftime(name, sizeof(name), tempName.c_str(), localtime(&t));
-    PathHandle dumpPath = fsAppendPathComponent(PathHandle(fsGetLogFileDirectory()), name);
-    FileStream* fh = fsOpenFile(dumpPath, FM_WRITE);
-    if (fh)
+	FileStream fh = {};
+    if (fsOpenStreamFromPath(RD_LOG, name, FM_WRITE, &fh))
     {
-        ProfileDumpHtml(ProfileWriteFile, fh, nMaxFrames, 0, pRenderer);
-        fsCloseStream(fh);
+        ProfileDumpHtml(ProfileWriteFile, &fh, nMaxFrames, 0, pRenderer);
+        fsCloseStream(&fh);
     }
 }
 
 void dumpBenchmarkData(Renderer* pRenderer, IApp::Settings* pSettings, const char* appName)
 {
-    time_t t = time(0);
-    eastl::string tempName = eastl::string().sprintf("%s", appName) + eastl::string(R"(Benchmark-%Y-%m-%d-%H.%M.%S.txt)");
-    char name[128] = {};
-    strftime(name, sizeof(name), tempName.c_str(), localtime(&t));
-    PathHandle dumpPath = fsAppendPathComponent(PathHandle(fsGetLogFileDirectory()), name);
-    FileStream* statsFile = fsOpenFile(dumpPath, FM_WRITE);
-    if (statsFile)
-    {
-        fsPrintToStream(statsFile, "{\n");
+    //time_t t = time(0);
+    //eastl::string tempName = eastl::string().sprintf("%s", appName) + eastl::string(R"(Benchmark-%Y-%m-%d-%H.%M.%S.txt)");
+    //char name[128] = {};
+    //strftime(name, sizeof(name), tempName.c_str(), localtime(&t));
+    //FileStream* statsFile = fsOpenFile(RD_LOG, name, FM_WRITE);
+    //if (statsFile)
+    //{
+    //    fsPrintToStream(statsFile, "{\n");
 
-        fsPrintToStream(statsFile, "\"Application\": \"%s\", \n", pRenderer->pName);
-        fsPrintToStream(statsFile, "\"Width\": %d, \n", pSettings->mWidth);
-        fsPrintToStream(statsFile, "\"Height\": %d, \n\n", pSettings->mHeight);
-        fsPrintToStream(statsFile, "\"GpuName\": \"%s\", \n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mGpuName);
-        fsPrintToStream(statsFile, "\"VendorID\": \"%s\", \n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId);
-        fsPrintToStream(statsFile, "\"ModelID\": \"%s\", \n\n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId);
-        const Profile& S = *ProfileGet();
-        for (uint32_t groupIndex = 0; groupIndex < S.nGroupCount; ++groupIndex)
-        {
-            if (S.GroupInfo[groupIndex].Type != ProfileTokenTypeGpu)
-                continue;
+    //    fsPrintToStream(statsFile, "\"Application\": \"%s\", \n", pRenderer->pName);
+    //    fsPrintToStream(statsFile, "\"Width\": %d, \n", pSettings->mWidth);
+    //    fsPrintToStream(statsFile, "\"Height\": %d, \n\n", pSettings->mHeight);
+    //    fsPrintToStream(statsFile, "\"GpuName\": \"%s\", \n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mGpuName);
+    //    fsPrintToStream(statsFile, "\"VendorID\": \"%s\", \n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mVendorId);
+    //    fsPrintToStream(statsFile, "\"ModelID\": \"%s\", \n\n", pRenderer->pActiveGpuSettings->mGpuVendorPreset.mModelId);
+    //    const Profile& S = *ProfileGet();
+    //    for (uint32_t groupIndex = 0; groupIndex < S.nGroupCount; ++groupIndex)
+    //    {
+    //        if (S.GroupInfo[groupIndex].Type != ProfileTokenTypeGpu)
+    //            continue;
 
-            for (uint32_t timerIndex = 0; timerIndex < S.nTotalTimers; ++timerIndex)
-            {
-                if (strcmp(S.TimerInfo[timerIndex].pName, S.GroupInfo[groupIndex].pName) == 0)
-                {
-                    fsPrintToStream(statsFile, "\"%s\": { \n", S.GroupInfo[groupIndex].pName);
-                    float fToMs = ProfileTickToMsMultiplier(getGpuProfileTicksPerSecond(S.GroupInfo[groupIndex].nGpuProfileToken));
-                    uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
-                    uint32_t nAggregateCount = S.Aggregate[timerIndex].nCount ? S.Aggregate[timerIndex].nCount : 1;
-                    float fAverage = fToMs * (S.Aggregate[timerIndex].nTicks / nAggregateFrames);
-                    float fMax = fToMs * (S.AggregateMax[timerIndex]);
-                    float fMin = fToMs * (S.AggregateMin[timerIndex]);
-                    fsPrintToStream(statsFile, "\"Average\": %0.4f, \n", fAverage);
-                    fsPrintToStream(statsFile, "\"Min\": %0.4f, \n", fMin);
-                    fsPrintToStream(statsFile, "\"Max\": %0.4f, \n", fMax);
-                    fsPrintToStream(statsFile, "\"Frames\": %d \n", nAggregateCount);
-                    fsPrintToStream(statsFile, "}, \n\n");
-                    break;
-                }
-            }
-        }
-        fsPrintToStream(statsFile, "\"Cpu\": { \n");
-        fsPrintToStream(statsFile, "\"Average\": %0.4f, \n", getCpuAvgFrameTime());
-        fsPrintToStream(statsFile, "\"Min\": %0.4f, \n", getCpuMinFrameTime());
-        fsPrintToStream(statsFile, "\"Max\": %0.4f, \n", getCpuMaxFrameTime());
-        fsPrintToStream(statsFile, "\"Frames\": %d \n", S.nAggregateFrames);
-        fsPrintToStream(statsFile, "} \n");
-        fsPrintToStream(statsFile, "}");
+    //        for (uint32_t timerIndex = 0; timerIndex < S.nTotalTimers; ++timerIndex)
+    //        {
+    //            if (strcmp(S.TimerInfo[timerIndex].pName, S.GroupInfo[groupIndex].pName) == 0)
+    //            {
+    //                fsPrintToStream(statsFile, "\"%s\": { \n", S.GroupInfo[groupIndex].pName);
+    //                float fToMs = ProfileTickToMsMultiplier(getGpuProfileTicksPerSecond(S.GroupInfo[groupIndex].nGpuProfileToken));
+    //                uint32_t nAggregateFrames = S.nAggregateFrames ? S.nAggregateFrames : 1;
+    //                uint32_t nAggregateCount = S.Aggregate[timerIndex].nCount ? S.Aggregate[timerIndex].nCount : 1;
+    //                float fAverage = fToMs * (S.Aggregate[timerIndex].nTicks / nAggregateFrames);
+    //                float fMax = fToMs * (S.AggregateMax[timerIndex]);
+    //                float fMin = fToMs * (S.AggregateMin[timerIndex]);
+    //                fsPrintToStream(statsFile, "\"Average\": %0.4f, \n", fAverage);
+    //                fsPrintToStream(statsFile, "\"Min\": %0.4f, \n", fMin);
+    //                fsPrintToStream(statsFile, "\"Max\": %0.4f, \n", fMax);
+    //                fsPrintToStream(statsFile, "\"Frames\": %d \n", nAggregateCount);
+    //                fsPrintToStream(statsFile, "}, \n\n");
+    //                break;
+    //            }
+    //        }
+    //    }
+    //    fsPrintToStream(statsFile, "\"Cpu\": { \n");
+    //    fsPrintToStream(statsFile, "\"Average\": %0.4f, \n", getCpuAvgFrameTime());
+    //    fsPrintToStream(statsFile, "\"Min\": %0.4f, \n", getCpuMinFrameTime());
+    //    fsPrintToStream(statsFile, "\"Max\": %0.4f, \n", getCpuMaxFrameTime());
+    //    fsPrintToStream(statsFile, "\"Frames\": %d \n", S.nAggregateFrames);
+    //    fsPrintToStream(statsFile, "} \n");
+    //    fsPrintToStream(statsFile, "}");
 
-        fsCloseStream(statsFile);
-    }
+    //    fsCloseStream(statsFile);
+    //}
 }
 
 #if PROFILE_WEBSERVER
@@ -3153,7 +3149,7 @@ void ProfileTraceThread(void* unused)
 	while (!S.bContextSwitchStop)
 	{
 		PathHandle path = fsCreatePath(fsGetSystemFileSystem(), "\\\\.\\pipe\\microprofile-contextswitch");
-		FileStream* fh = fsOpenFile(path, FM_WRITE_BINARY);
+		FileStream* fh = fsOpenStreamFromPath(path, FM_WRITE_BINARY);
 	
 		if(!fh)
 		{
@@ -3203,7 +3199,7 @@ void ProfileTraceThread(void*)
 	{
 		FileSystem* fileSystem = fsGetSystemFileSystem();
 		PathHandle path = fsCreatePath(fileSystem, "/tmp/microprofile-contextswitch");
-		FileStream* fh = fsOpenFile(path, FM_READ);
+		FileStream* fh = fsOpenStreamFromPath(path, FM_READ);
 		if(!fh)
 		{
 			usleep(1000000);

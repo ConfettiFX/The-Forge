@@ -27,11 +27,11 @@ bool WindowsStackTrace::Init()
 
 	SetUnhandledExceptionFilter(&dumpStackTrace);
 
-	pInst = conf_new(WindowsStackTrace);
+	pInst = tf_new(WindowsStackTrace);
 	pInst->mDbgHelpMutex.Init();
 	pInst->mUsedMemorySize = 0;
 	pInst->mPreallocatedMemorySize = 1024LL * 1024LL;
-	pInst->pPreallocatedMemory = conf_calloc(1, pInst->mPreallocatedMemorySize);
+	pInst->pPreallocatedMemory = tf_calloc(1, pInst->mPreallocatedMemorySize);
 
 	return true;
 }
@@ -40,9 +40,9 @@ void WindowsStackTrace::Exit()
 {
 	if (pInst)
 	{
-		conf_free(pInst->pPreallocatedMemory);
+		tf_free(pInst->pPreallocatedMemory);
 		pInst->mDbgHelpMutex.Destroy();
-		conf_delete(pInst);
+		tf_delete(pInst);
 		pInst = NULL;
 	}
 }

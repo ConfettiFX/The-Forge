@@ -52,6 +52,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\ThirdParty\OpenSource\TressFX\TressFXAsset.cpp" />
+    <ClCompile Include="..\..\FileSystem\WindowsToolsFileSystem.cpp" />
     <ClCompile Include="..\src\AssetPipeline.cpp" />
     <ClCompile Include="..\src\AssetPipelineCmd.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='DebugVk|x64'">false</ExcludedFromBuild>
@@ -63,8 +64,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\..\..\ThirdParty\OpenSource\ozz-animation\include\ozz\base\io\archive.h" />
     <ClInclude Include="..\..\..\ThirdParty\OpenSource\TressFX\TressFXAsset.h" />
     <ClInclude Include="..\..\..\ThirdParty\OpenSource\TressFX\TressFXFileFormat.h" />
+    <ClInclude Include="..\..\FileSystem\IToolFileSystem.h" />
     <ClInclude Include="..\src\AssetPipeline.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
@@ -313,7 +316,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>false</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;TOOLS_FILESYSTEM;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>

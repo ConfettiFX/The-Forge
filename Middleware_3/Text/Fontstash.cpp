@@ -48,8 +48,6 @@
 
 #include "../../Common_3/OS/Interfaces/IMemory.h"
 
-ResourceDirEnum RD_MIDDLEWARE_TEXT = RD_MIDDLEWARE_0;
-
 class _Impl_FontStash
 {
 public:
@@ -82,7 +80,7 @@ public:
 		TextureLoadDesc loadDesc = {};
 		loadDesc.ppTexture = &pCurrentTexture;
 		loadDesc.pDesc = &desc;
-		addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&loadDesc, NULL);
 
 		// create FONS context
 		FONSparams params;
@@ -124,11 +122,11 @@ public:
 		addShaderBinary(pRenderer, &binaryShaderDesc, &pShaders[1]);
 #else
 		ShaderLoadDesc text2DShaderDesc = {};
-		text2DShaderDesc.mStages[0] = { "fontstash2D.vert", NULL, 0, RD_MIDDLEWARE_TEXT };
-		text2DShaderDesc.mStages[1] = { "fontstash.frag", NULL, 0, RD_MIDDLEWARE_TEXT };
+		text2DShaderDesc.mStages[0] = { "fontstash2D.vert", NULL, 0, NULL };
+		text2DShaderDesc.mStages[1] = { "fontstash.frag", NULL, 0, NULL};
 		ShaderLoadDesc text3DShaderDesc = {};
-		text3DShaderDesc.mStages[0] = { "fontstash3D.vert", NULL, 0, RD_MIDDLEWARE_TEXT };
-		text3DShaderDesc.mStages[1] = { "fontstash.frag", NULL, 0, RD_MIDDLEWARE_TEXT };
+		text3DShaderDesc.mStages[0] = { "fontstash3D.vert", NULL, 0, NULL };
+		text3DShaderDesc.mStages[1] = { "fontstash.frag", NULL, 0, NULL };
 
 		addShader(pRenderer, &text2DShaderDesc, &pShaders[0]);
 		addShader(pRenderer, &text3DShaderDesc, &pShaders[1]);
@@ -176,7 +174,7 @@ public:
 
 		// unload font buffers
 		for (unsigned int i = 0; i < (uint32_t)mFontBuffers.size(); i++)
-			conf_free(mFontBuffers[i]);
+			tf_free(mFontBuffers[i]);
 
 		removeDescriptorSet(pRenderer, pDescriptorSets);
 		removeRootSignature(pRenderer, pRootSignature);
@@ -308,7 +306,7 @@ public:
 
 bool Fontstash::init(Renderer* renderer, uint32_t width, uint32_t height, uint32_t ringSizeBytes)
 {
-	impl = conf_placement_new<_Impl_FontStash>(conf_calloc(1, sizeof(_Impl_FontStash)));
+	impl = tf_placement_new<_Impl_FontStash>(tf_calloc(1, sizeof(_Impl_FontStash)));
 	impl->mDpiScale = getDpiScale();
 	impl->mDpiScaleMin = min(impl->mDpiScale.x, impl->mDpiScale.y);
 
@@ -325,7 +323,7 @@ void Fontstash::exit()
 {
 	impl->exit();
 	impl->~_Impl_FontStash();
-	conf_free(impl);
+	tf_free(impl);
 }
 
 bool Fontstash::load(RenderTarget** pRts, uint32_t count, PipelineCache* pCache)
@@ -338,24 +336,28 @@ void Fontstash::unload()
 	impl->unload();
 }
 
-int Fontstash::defineFont(const char* identification, const char* filename, ResourceDirEnum root)
+int Fontstash::defineFont(const char* identification, const char* pFontPath)
 {
 	FONScontext* fs = impl->pContext;
 	
-    PathHandle filePath = fsGetPathInResourceDirEnum(root, filename);
-    FileStream* fh = fsOpenFile(filePath, FM_READ_BINARY);
-    ssize_t bytes = fsGetStreamFileSize(fh);
-	void*    buffer = conf_malloc(bytes);
-    fsReadFromStream(fh, buffer, bytes);
-    
-	// add buffer to font buffers for cleanup
-	impl->mFontBuffers.emplace_back(buffer);
-	impl->mFontBufferSizes.emplace_back((uint32_t)bytes);
-	impl->mFontNames.emplace_back(fsPathComponentToString(fsGetPathFileName(filePath)));
-    
-    fsCloseStream(fh);
+	FileStream fh = {};
+	if (fsOpenStreamFromPath(RD_FONTS, pFontPath, FM_READ_BINARY, &fh))
+	{
+		ssize_t bytes = fsGetStreamFileSize(&fh);
+		void*    buffer = tf_malloc(bytes);
+		fsReadFromStream(&fh, buffer, bytes);
 
-	return fonsAddFontMem(fs, identification, (unsigned char*)buffer, (int)bytes, 0);
+		// add buffer to font buffers for cleanup
+		impl->mFontBuffers.emplace_back(buffer);
+		impl->mFontBufferSizes.emplace_back((uint32_t)bytes);
+		impl->mFontNames.emplace_back(pFontPath);
+
+		fsCloseStream(&fh);
+
+		return fonsAddFontMem(fs, identification, (unsigned char*)buffer, (int)bytes, 0);
+	}
+
+	return INT32_MAX;
 }
 
 void* Fontstash::getFontBuffer(uint32_t index)
@@ -479,6 +481,11 @@ void _Impl_FontStash::fonsImplementationRenderText(
 
 	if (ctx->mUpdateTexture)
 	{
+		// #TODO: Investigate - Causes hang on low-mid end Android phones (tested on Samsung Galaxy A50s)
+#ifndef __ANDROID__
+		waitQueueIdle(pCmd->pQueue);
+#endif
+
 		SyncToken token = {};
 		TextureUpdateDesc updateDesc = {};
 		updateDesc.pTexture = ctx->pCurrentTexture;

@@ -29,6 +29,9 @@
 #include "../../../ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/skeleton.h"
 #include "../../../ThirdParty/OpenSource/ozz-animation/include/ozz/animation/runtime/animation.h"
 
+extern ResourceDirectory RD_INPUT;
+extern ResourceDirectory RD_OUTPUT;
+
 struct ProcessAssetsSettings
 {
 	bool quiet;                  // Only output warnings.
@@ -44,15 +47,14 @@ struct ProcessAssetsSettings
 class AssetPipeline
 {
 public:
-	static bool ProcessAnimations(const Path* animationDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings);
+	static bool ProcessAnimations(ProcessAssetsSettings* settings);
 	static bool CreateRuntimeSkeleton(
-		const Path* skeletonAsset, const char* skeletonName, const Path* skeletonOutput, ozz::animation::Skeleton* skeleton,
+		const  char* skeletonAsset, const char* skeletonName, const char* skeletonOutput, ozz::animation::Skeleton* skeleton,
 		ProcessAssetsSettings* settings);
 	static bool CreateRuntimeAnimation(
-		const Path* animationAsset, ozz::animation::Skeleton* skeleton, const char* skeletonName, const char* animationName,
-		const Path* animationOutput, ProcessAssetsSettings* settings);
+		const char* animationAsset, ozz::animation::Skeleton* skeleton, const char* skeletonName, const char* animationName,
+		const char* animationOutput, ProcessAssetsSettings* settings);
 
-	static bool ProcessTextures(const Path* textureDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings);
-	static bool ProcessVirtualTextures(const Path* textureDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings);
-	static bool ProcessTFX(const Path* tfxDirectory, const Path* outputDirectory, ProcessAssetsSettings* settings);
+	static bool ProcessVirtualTextures(ProcessAssetsSettings* settings);
+	static bool ProcessTFX(ProcessAssetsSettings* settings);
 };

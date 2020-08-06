@@ -36,18 +36,19 @@
 #import <MetalKit/MetalKit.h>
 #include <MetalPerformanceShaders/MetalPerformanceShaders.h>
 
-#ifdef TARGET_IOS
-#include <os/proc.h>
-// Fallback if os_proc_available_memory not available
-#import <mach/mach.h>
-#import <mach/mach_host.h>
-#endif
-
 #include "../../ThirdParty/OpenSource/EASTL/unordered_map.h"
 #include "../../ThirdParty/OpenSource/EASTL/unordered_set.h"
 #include "../../ThirdParty/OpenSource/EASTL/string_hash_map.h"
 
 #import "../IRenderer.h"
+
+#ifdef ENABLE_OS_PROC_MEMORY
+#include <os/proc.h>
+#endif
+
+// Fallback if os_proc_available_memory not available
+#include <mach/mach.h>
+#include <mach/mach_host.h>
 
 #include "MetalMemoryAllocatorImpl.h"
 
@@ -79,7 +80,7 @@ VkAllocationCallbacks gMtlAllocationCallbacks =
 	size_t                                      alignment,
 	VkSystemAllocationScope                     allocationScope)
 	{
-		return conf_memalign(alignment, size);
+		return tf_memalign(alignment, size);
 	},
 	// pfnReallocation
 	[](
@@ -89,14 +90,14 @@ VkAllocationCallbacks gMtlAllocationCallbacks =
 	size_t                                      alignment,
 	VkSystemAllocationScope                     allocationScope)
 	{
-		return conf_realloc(pOriginal, size);
+		return tf_realloc(pOriginal, size);
 	},
 	// pfnFree
 	[](
 		void*                                       pUserData,
 		void*                                       pMemory)
 	{
-		conf_free(pMemory);
+		tf_free(pMemory);
 	},
 	// pfnInternalAllocation
 	[](
@@ -226,7 +227,7 @@ namespace RENDERER_CPP_NAMESPACE {
 #define SAFE_FREE(p_var)         \
 	if (p_var)                   \
 	{                            \
-		conf_free((void*)p_var); \
+		tf_free((void*)p_var); \
 	}
 
 #if defined(__cplusplus)
@@ -481,7 +482,7 @@ void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, Descr
 		totalSize += pDesc->mMaxSets * pRootSignature->mRootSamplerCount * sizeof(RootDescriptorHandle);
 	}
     
-    DescriptorSet* pDescriptorSet = (DescriptorSet*)conf_calloc_memalign(1, alignof(DescriptorSet), totalSize);
+    DescriptorSet* pDescriptorSet = (DescriptorSet*)tf_calloc_memalign(1, alignof(DescriptorSet), totalSize);
     ASSERT(pDescriptorSet);
     
     pDescriptorSet->pRootSignature = pRootSignature;
@@ -1362,13 +1363,15 @@ void vkGetPhysicalDeviceMemoryProperties(VkPhysicalDevice physicalDevice, VkPhys
 	{
 		pMemoryProperties->memoryHeaps[0].size = os_proc_available_memory();
 	}
-	else
 #endif
+	
+	if (pMemoryProperties->memoryHeaps[0].size <= 0)
 	{
 		pMemoryProperties->memoryHeaps[0].size = util_get_free_memory();
-		if (UINT64_MAX == pMemoryProperties->memoryHeaps[0].size)
+		if (pMemoryProperties->memoryHeaps[0].size <= 0)
 		{
 			pMemoryProperties->memoryHeaps[0].size = [[NSProcessInfo processInfo] physicalMemory];
+			ASSERT(pMemoryProperties->memoryHeaps[0].size > 0);
 		}
 	}
 #else
@@ -1418,16 +1421,18 @@ VkResult vkAllocateMemory(VkDevice device, const VkMemoryAllocateInfo* pAllocate
 	}
 #endif
 	
-#if defined(ENABLE_HEAP_RESOURCE_OPTIONS)
 	if (@available(macOS 10.15, iOS 13.0, *))
 	{
+#if defined(ENABLE_HEAP_RESOURCE_OPTIONS)
 		[heapDesc setResourceOptions:resourceOptions];
-	}
-#else
-	// Fallback on earlier versions
-	[heapDesc setStorageMode:storageMode];
-	[heapDesc setCpuCacheMode:cacheMode];
 #endif
+	}
+	else
+	{
+		// Fallback on earlier versions
+		[heapDesc setStorageMode:storageMode];
+		[heapDesc setCpuCacheMode:cacheMode];
+	}
 	
 	// We cannot create heap with MTLStorageModeShared in macOS
 	// Instead we allocate a big buffer which acts as our heap
@@ -1436,7 +1441,7 @@ VkResult vkAllocateMemory(VkDevice device, const VkMemoryAllocateInfo* pAllocate
 	if (RESOURCE_MEMORY_USAGE_GPU_ONLY == pAllocateInfo->memoryTypeIndex)
 #endif
 	{
-		VkDeviceMemory_T* memory = (VkDeviceMemory_T*)conf_calloc(1, sizeof(VkDeviceMemory_T));
+		VkDeviceMemory_T* memory = (VkDeviceMemory_T*)tf_calloc(1, sizeof(VkDeviceMemory_T));
 		memory->pHeap = [device->pDevice newHeapWithDescriptor:heapDesc];
 		*pMemory = memory;
 		
@@ -1450,7 +1455,7 @@ VkResult vkAllocateMemory(VkDevice device, const VkMemoryAllocateInfo* pAllocate
 			{
 				device->mHeapCapacity <<= 1;
 			}
-			NOREFS id<MTLHeap>* heaps = (NOREFS id<MTLHeap>*)conf_calloc(device->mHeapCapacity, sizeof(id<MTLHeap>));
+			NOREFS id<MTLHeap>* heaps = (NOREFS id<MTLHeap>*)tf_calloc(device->mHeapCapacity, sizeof(id<MTLHeap>));
 			for (uint32_t i = 0; i < device->mHeapCount; ++i)
 			{
 				heaps[i] = device->pHeaps[i];
@@ -1465,7 +1470,7 @@ VkResult vkAllocateMemory(VkDevice device, const VkMemoryAllocateInfo* pAllocate
 #ifndef TARGET_IOS
 	if (!(*pMemory) && (RESOURCE_MEMORY_USAGE_GPU_ONLY != pAllocateInfo->memoryTypeIndex))
 	{
-		VkDeviceMemory_T* memory = (VkDeviceMemory_T*)conf_calloc(1, sizeof(VkDeviceMemory_T));
+		VkDeviceMemory_T* memory = (VkDeviceMemory_T*)tf_calloc(1, sizeof(VkDeviceMemory_T));
 		memory->pHeap = [device->pDevice newBufferWithLength:pAllocateInfo->allocationSize options:resourceOptions];
 		*pMemory = memory;
 	}
@@ -1563,10 +1568,13 @@ static VmaAllocationInfo util_render_alloc(Renderer* pRenderer, ResourceMemoryUs
 // Fallback to relying on automatic placement of resources through MTLHeap
 // VMA is of no use here as we cannot specify the offset to create a certain
 // resource in the heap
-static uint32_t util_find_heap_with_space(Renderer* pRenderer, MTLStorageMode storageMode, ResourceMemoryUsage memUsage, MTLSizeAndAlign sizeAlign)
+static uint32_t util_find_heap_with_space(Renderer* pRenderer, ResourceMemoryUsage memUsage, MTLSizeAndAlign sizeAlign)
 {
 	// No heaps available which fulfill our requirements. Create a new heap
 	uint32_t index = pRenderer->mHeapCount;
+	
+	MTLStorageMode storageMode = gMemoryStorageModes[memUsage];
+	MTLCPUCacheMode cacheMode = gMemoryCacheModes[memUsage];
 
 	if (@available(macOS 10.13, iOS 10.0, *))
 	{
@@ -1574,7 +1582,7 @@ static uint32_t util_find_heap_with_space(Renderer* pRenderer, MTLStorageMode st
 		
 		for (uint32_t i = 0; i < pRenderer->mHeapCount; ++i)
 		{
-			if ([pRenderer->pHeaps[i] storageMode] == storageMode)
+			if ([pRenderer->pHeaps[i] storageMode] == storageMode && [pRenderer->pHeaps[i] cpuCacheMode] == cacheMode)
 			{
 				uint64_t maxAllocationSize = [pRenderer->pHeaps[i] maxAvailableSizeWithAlignment:sizeAlign.align];
 				
@@ -1610,6 +1618,7 @@ static uint32_t util_find_heap_with_space(Renderer* pRenderer, MTLStorageMode st
 		allocInfo.allocationSize = max((uint64_t)sizeAlign.size, newBlockSize);
 		allocInfo.memoryTypeIndex = memUsage;
 		VkResult res = vkAllocateMemory(pRenderer, &allocInfo, NULL, &heap);
+		SAFE_FREE(heap);
 		UNREF_PARAM(res);
 		ASSERT(VK_SUCCESS == res);
 	}
@@ -1620,10 +1629,10 @@ static uint32_t util_find_heap_with_space(Renderer* pRenderer, MTLStorageMode st
 
 void initRenderer(const char* appName, const RendererDesc* settings, Renderer** ppRenderer)
 {
-	Renderer* pRenderer = (Renderer*)conf_calloc_memalign(1, alignof(Renderer), sizeof(*pRenderer));
+	Renderer* pRenderer = (Renderer*)tf_calloc_memalign(1, alignof(Renderer), sizeof(*pRenderer));
 	ASSERT(pRenderer);
 
-	pRenderer->pName = (char*)conf_calloc(strlen(appName) + 1, sizeof(char));
+	pRenderer->pName = (char*)tf_calloc(strlen(appName) + 1, sizeof(char));
 	memcpy(pRenderer->pName, appName, strlen(appName));
 	
 	pRenderer->mGpuMode = settings->mGpuMode;
@@ -1689,6 +1698,7 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 		}
 #endif
 		gpuSettings[0].mTessellationSupported = true;
+		gpuSettings[0].mGeometryShaderSupported = false;
 		gpuSettings[0].mWaveLaneCount = queryThreadExecutionWidth(pRenderer);
 		
 		// Wave ops crash the compiler on this gpu
@@ -1715,7 +1725,8 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 			}
 			else
 			{
-#ifdef TARGET_IOS
+#if defined(TARGET_IOS)
+#if defined(ENABLE_GPU_FAMILY)
 				if (@available(macOS 10.15, iOS 13.0, *))
 				{
 					// iOS caps
@@ -1739,6 +1750,7 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 				{
 					gpuSettings[0].mArgumentBufferMaxTextures = 31;
 				}
+#endif
 #else
 				gpuSettings[0].mArgumentBufferMaxTextures = 128;
 #endif
@@ -1746,33 +1758,45 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 		}
 #endif
 		
-		// Placement heap support
+		// Heap and Placement heap support
 #if defined(ENABLE_HEAPS)
-#if defined(ENABLE_HEAP_PLACEMENT)
 #if defined(TARGET_IOS)
-		// Placement heaps supported on all iOS devices. Only restriction is iOS version which is covered by the ENABLE preprocessor
-		gpuSettings[0].mPlacementHeaps = 1;
-		gpuSettings[0].mHeaps = 1;
+		// Heaps and Placement heaps supported on all iOS devices. Only restriction is iOS version
+		if (@available(iOS 10.0, *))
+		{
+			gpuSettings[0].mHeaps = 1;
+			
+#if defined(ENABLE_HEAP_PLACEMENT)
+			if (@available(iOS 13.0, *))
+			{
+				gpuSettings[0].mPlacementHeaps = 1;
+			}
+#endif
+		}
 #else
 		// Disable heaps on low power devices due to driver bugs
-		gpuSettings[0].mHeaps = [pRenderer->pDevice isLowPower] ? 0 : 1;
-		if (gpuSettings[0].mHeaps)
+		if (@available(macOS 10.13, *))
 		{
-			if (@available(macOS 10.14, *))
+			gpuSettings[0].mHeaps = [pRenderer->pDevice isLowPower] ? 0 : 1;
+			if (gpuSettings[0].mHeaps)
 			{
-				gpuSettings[0].mPlacementHeaps = ([pRenderer->pDevice supportsFeatureSet:MTLFeatureSet_macOS_GPUFamily2_v1] ? 1 : 0);
+#if defined(ENABLE_HEAP_PLACEMENT)
+				if (@available(macOS 10.14, *))
+				{
+					gpuSettings[0].mPlacementHeaps = ([pRenderer->pDevice supportsFeatureSet:MTLFeatureSet_macOS_GPUFamily2_v1] ? 1 : 0);
+				}
+#endif
 			}
 		}
 #endif
 #endif
-#endif
 		
-		pRenderer->pActiveGpuSettings = (GPUSettings*)conf_malloc(sizeof(GPUSettings));
+		pRenderer->pActiveGpuSettings = (GPUSettings*)tf_malloc(sizeof(GPUSettings));
 		*pRenderer->pActiveGpuSettings = gpuSettings[0];
 		
 		if (!pRenderer->pActiveGpuSettings->mPlacementHeaps)
 		{
-			pRenderer->pHeapMutex = (Mutex*)conf_malloc(sizeof(Mutex));
+			pRenderer->pHeapMutex = (Mutex*)tf_malloc(sizeof(Mutex));
 			pRenderer->pHeapMutex->Init();
 		}
 		
@@ -1803,39 +1827,42 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 #endif
 		
 		// Create allocator
-#if defined(ENABLE_HEAPS)
-		if (@available(macOS 10.13, iOS 10.0, *))
+#if defined(ENABLE_HEAP_PLACEMENT)
+		if (pRenderer->pActiveGpuSettings->mPlacementHeaps)
 		{
-			VmaAllocatorCreateInfo createInfo = {};
-			VmaVulkanFunctions vulkanFunctions = {};
-			// Only 3 relevant functions for our memory allocation. The rest are there to just keep VMA from asserting failure
-			vulkanFunctions.vkAllocateMemory = vkAllocateMemory;
-			vulkanFunctions.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
-			vulkanFunctions.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
-			// Stub
-			vulkanFunctions.vkBindBufferMemory = vkBindBufferMemory;
-			vulkanFunctions.vkBindImageMemory = vkBindImageMemory;
-			vulkanFunctions.vkCreateBuffer = vkCreateBuffer;
-			vulkanFunctions.vkCreateImage = vkCreateImage;
-			vulkanFunctions.vkDestroyBuffer = vkDestroyBuffer;
-			vulkanFunctions.vkDestroyImage = vkDestroyImage;
-			vulkanFunctions.vkFreeMemory = vkFreeMemory;
-			vulkanFunctions.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
-			vulkanFunctions.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
-			vulkanFunctions.vkMapMemory = vkMapMemory;
-			vulkanFunctions.vkUnmapMemory = vkUnmapMemory;
-			vulkanFunctions.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
-			vulkanFunctions.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
-			vulkanFunctions.vkCmdCopyBuffer = vkCmdCopyBuffer;
+			if (@available(macOS 10.15, iOS 13.0, *))
+			{
+				VmaAllocatorCreateInfo createInfo = {};
+				VmaVulkanFunctions vulkanFunctions = {};
+				// Only 3 relevant functions for our memory allocation. The rest are there to just keep VMA from asserting failure
+				vulkanFunctions.vkAllocateMemory = vkAllocateMemory;
+				vulkanFunctions.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+				vulkanFunctions.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+				// Stub
+				vulkanFunctions.vkBindBufferMemory = vkBindBufferMemory;
+				vulkanFunctions.vkBindImageMemory = vkBindImageMemory;
+				vulkanFunctions.vkCreateBuffer = vkCreateBuffer;
+				vulkanFunctions.vkCreateImage = vkCreateImage;
+				vulkanFunctions.vkDestroyBuffer = vkDestroyBuffer;
+				vulkanFunctions.vkDestroyImage = vkDestroyImage;
+				vulkanFunctions.vkFreeMemory = vkFreeMemory;
+				vulkanFunctions.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
+				vulkanFunctions.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
+				vulkanFunctions.vkMapMemory = vkMapMemory;
+				vulkanFunctions.vkUnmapMemory = vkUnmapMemory;
+				vulkanFunctions.vkFlushMappedMemoryRanges = vkFlushMappedMemoryRanges;
+				vulkanFunctions.vkInvalidateMappedMemoryRanges = vkInvalidateMappedMemoryRanges;
+				vulkanFunctions.vkCmdCopyBuffer = vkCmdCopyBuffer;
 
-			createInfo.pVulkanFunctions = &vulkanFunctions;
-			createInfo.pAllocationCallbacks = &gMtlAllocationCallbacks;
-			createInfo.device = pRenderer;
-			createInfo.physicalDevice = pRenderer;
-			createInfo.instance = pRenderer;
-			VkResult result = vmaCreateAllocator(&createInfo, &pRenderer->pVmaAllocator);
-			UNREF_PARAM(result);
-			ASSERT(VK_SUCCESS == result);
+				createInfo.pVulkanFunctions = &vulkanFunctions;
+				createInfo.pAllocationCallbacks = &gMtlAllocationCallbacks;
+				createInfo.device = pRenderer;
+				createInfo.physicalDevice = pRenderer;
+				createInfo.instance = pRenderer;
+				VkResult result = vmaCreateAllocator(&createInfo, &pRenderer->pVmaAllocator);
+				UNREF_PARAM(result);
+				ASSERT(VK_SUCCESS == result);
+			}
 		}
 #endif
 
@@ -1855,7 +1882,7 @@ void initRenderer(const char* appName, const RendererDesc* settings, Renderer** 
 #endif
 		};
 		pRenderer->mBuiltinShaderDefinesCount = sizeof(rendererShaderDefines) / sizeof(rendererShaderDefines[0]);
-		pRenderer->pBuiltinShaderDefines = (ShaderMacro*)conf_calloc(pRenderer->mBuiltinShaderDefinesCount, sizeof(ShaderMacro));
+		pRenderer->pBuiltinShaderDefines = (ShaderMacro*)tf_calloc(pRenderer->mBuiltinShaderDefinesCount, sizeof(ShaderMacro));
 		for (uint32_t i = 0; i < pRenderer->mBuiltinShaderDefinesCount; ++i)
 		{
 			pRenderer->pBuiltinShaderDefines[i] = rendererShaderDefines[i];
@@ -1875,7 +1902,10 @@ void removeRenderer(Renderer* pRenderer)
 #if defined(ENABLE_HEAPS)
 	if (@available(macOS 10.13, iOS 10.0, *))
 	{
-		vmaDestroyAllocator(pRenderer->pVmaAllocator);
+		if (pRenderer->pActiveGpuSettings->mPlacementHeaps)
+		{
+			vmaDestroyAllocator(pRenderer->pVmaAllocator);
+		}
 	}
 #endif
 
@@ -1906,7 +1936,7 @@ void addFence(Renderer* pRenderer, Fence** ppFence)
 	ASSERT(pRenderer->pDevice != nil);
 	ASSERT(ppFence);
 	
-	Fence* pFence = (Fence*)conf_calloc(1, sizeof(Fence));
+	Fence* pFence = (Fence*)tf_calloc(1, sizeof(Fence));
 	ASSERT(pFence);
 
 	pFence->pMtlSemaphore = dispatch_semaphore_create(0);
@@ -1928,7 +1958,7 @@ void addSemaphore(Renderer* pRenderer, Semaphore** ppSemaphore)
 	ASSERT(pRenderer);
 	ASSERT(ppSemaphore);
 	
-	Semaphore* pSemaphore = (Semaphore*)conf_calloc(1, sizeof(Semaphore));
+	Semaphore* pSemaphore = (Semaphore*)tf_calloc(1, sizeof(Semaphore));
 	ASSERT(pSemaphore);
 
 #if defined(ENABLE_EVENT_SEMAPHORE)
@@ -1960,7 +1990,7 @@ void addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 	ASSERT(pDesc);
 	ASSERT(ppQueue);
 	
-	Queue* pQueue = (Queue*)conf_calloc(1, sizeof(Queue));
+	Queue* pQueue = (Queue*)tf_calloc(1, sizeof(Queue));
 	ASSERT(pQueue);
 
 	pQueue->mNodeIndex = pDesc->mNodeIndex;
@@ -1998,7 +2028,7 @@ void addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppCmdPo
 	ASSERT(pRenderer->pDevice != nil);
 	ASSERT(ppCmdPool);
 	
-	CmdPool* pCmdPool = (CmdPool*)conf_calloc(1, sizeof(CmdPool));
+	CmdPool* pCmdPool = (CmdPool*)tf_calloc(1, sizeof(CmdPool));
 	ASSERT(pCmdPool);
 
 	pCmdPool->pQueue = pDesc->pQueue;
@@ -2018,7 +2048,7 @@ void addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
 	ASSERT(pRenderer->pDevice != nil);
 	ASSERT(ppCmd);
 	
-	Cmd* pCmd = (Cmd*)conf_calloc_memalign(1, alignof(Cmd), sizeof(Cmd));
+	Cmd* pCmd = (Cmd*)tf_calloc_memalign(1, alignof(Cmd), sizeof(Cmd));
 	ASSERT(pCmd);
 
 	pCmd->pRenderer = pRenderer;
@@ -2045,7 +2075,7 @@ void addCmd_n(Renderer* pRenderer, const CmdDesc* pDesc, uint32_t cmdCount, Cmd*
 	ASSERT(cmdCount);
 	ASSERT(pppCmd);
 
-	Cmd** ppCmds = (Cmd**)conf_calloc(cmdCount, sizeof(Cmd*));
+	Cmd** ppCmds = (Cmd**)tf_calloc(cmdCount, sizeof(Cmd*));
 	ASSERT(ppCmds);
 
 	//add n new cmds to given pool
@@ -2103,7 +2133,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	ASSERT(pDesc);
 	ASSERT(ppSwapChain);
 
-	SwapChain* pSwapChain = (SwapChain*)conf_calloc(1, sizeof(SwapChain) + pDesc->mImageCount * sizeof(RenderTarget*));
+	SwapChain* pSwapChain = (SwapChain*)tf_calloc(1, sizeof(SwapChain) + pDesc->mImageCount * sizeof(RenderTarget*));
 	ASSERT(pSwapChain);
 
 	pSwapChain->ppRenderTargets = (RenderTarget**)(pSwapChain + 1);
@@ -2192,7 +2222,7 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 	ASSERT((pDesc->mDescriptors & DESCRIPTOR_TYPE_INDIRECT_COMMAND_BUFFER) || pDesc->mSize > 0);
 	ASSERT(pRenderer->pDevice != nil);
     
-	Buffer* pBuffer = (Buffer*)conf_calloc_memalign(1, alignof(Buffer), sizeof(Buffer));
+	Buffer* pBuffer = (Buffer*)tf_calloc_memalign(1, alignof(Buffer), sizeof(Buffer));
 	ASSERT(pBuffer);
 
 	uint64_t allocationSize = pDesc->mSize;
@@ -2285,10 +2315,9 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 				}
 				else
 				{
-					MTLStorageMode storageMode = gMemoryStorageModes[pDesc->mMemoryUsage];
 					// If placement heaps are not supported we cannot use VMA
 					// Instead we have to rely on MTLHeap automatic placement
-					uint32_t heapIndex = util_find_heap_with_space(pRenderer, storageMode, pDesc->mMemoryUsage, sizeAlign);
+					uint32_t heapIndex = util_find_heap_with_space(pRenderer, pDesc->mMemoryUsage, sizeAlign);
 						
 					// Fallback on earlier versions
 					pBuffer->mtlBuffer = [pRenderer->pHeaps[heapIndex] newBufferWithLength:allocationSize options:resourceOptions];
@@ -2412,7 +2441,7 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 
 	((RenderTargetDesc*)pDesc)->mMipLevels = max(1U, pDesc->mMipLevels);
 
-	RenderTarget* pRenderTarget = (RenderTarget*)conf_calloc_memalign(1, alignof(RenderTarget), sizeof(RenderTarget));
+	RenderTarget* pRenderTarget = (RenderTarget*)tf_calloc_memalign(1, alignof(RenderTarget), sizeof(RenderTarget));
 	ASSERT(pRenderTarget);
 
 	TextureDesc rtDesc = {};
@@ -2460,7 +2489,7 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampl
 	ASSERT(pDesc->mCompareFunc < MAX_COMPARE_MODES);
 	ASSERT(ppSampler);
 	
-	Sampler* pSampler = (Sampler*)conf_calloc_memalign(1, alignof(Sampler), sizeof(Sampler));
+	Sampler* pSampler = (Sampler*)tf_calloc_memalign(1, alignof(Sampler), sizeof(Sampler));
 	ASSERT(pSampler);
 
 	MTLSamplerDescriptor* samplerDesc = [[MTLSamplerDescriptor alloc] init];
@@ -2512,7 +2541,7 @@ void addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShaderPr
 	ASSERT(pRenderer->pDevice != nil);
 	ASSERT(ppShaderProgram);
 	
-	Shader* pShaderProgram = (Shader*)conf_calloc(1, sizeof(Shader) + sizeof(PipelineReflection));
+	Shader* pShaderProgram = (Shader*)tf_calloc(1, sizeof(Shader) + sizeof(PipelineReflection));
 	ASSERT(pShaderProgram);
 
 	pShaderProgram->mStages = pDesc->mStages;
@@ -2632,7 +2661,7 @@ void addShader(Renderer* pRenderer, const ShaderDesc* pDesc, Shader** ppShaderPr
 		}
 	}
 	
-	pShaderProgram->pEntryNames = (char**)conf_calloc(reflectionCount, sizeof(char*));
+	pShaderProgram->pEntryNames = (char**)tf_calloc(reflectionCount, sizeof(char*));
 	memcpy(pShaderProgram->pEntryNames, entryNames, reflectionCount * sizeof(char*));
 	createPipelineReflection(stageReflections, reflectionCount, pShaderProgram->pReflection);
 	
@@ -2656,7 +2685,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 	ASSERT(pDesc && pDesc->mStages);
 	ASSERT(ppShaderProgram);
 
-	Shader* pShaderProgram = (Shader*)conf_calloc(1, sizeof(Shader) + sizeof(PipelineReflection));
+	Shader* pShaderProgram = (Shader*)tf_calloc(1, sizeof(Shader) + sizeof(PipelineReflection));
 	ASSERT(pShaderProgram);
 
 	pShaderProgram->mStages = pDesc->mStages;
@@ -2716,7 +2745,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 		}
 	}
 	
-	pShaderProgram->pEntryNames = (char**)conf_calloc(reflectionCount, sizeof(char*));
+	pShaderProgram->pEntryNames = (char**)tf_calloc(reflectionCount, sizeof(char*));
 	memcpy(pShaderProgram->pEntryNames, entryNames, reflectionCount * sizeof(char*));
 
 	createPipelineReflection(pShaderProgram->pReflection->mStageReflections, reflectionCount, pShaderProgram->pReflection);
@@ -2906,7 +2935,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 	size_t totalSize = sizeof(RootSignature);
 	totalSize += shaderResources.size() * sizeof(DescriptorInfo);
 	totalSize += sizeof(DescriptorIndexMap);
-	RootSignature* pRootSignature = (RootSignature*)conf_calloc_memalign(1, alignof(RootSignature), totalSize);
+	RootSignature* pRootSignature = (RootSignature*)tf_calloc_memalign(1, alignof(RootSignature), totalSize);
 	ASSERT(pRootSignature);
 
 	pRootSignature->mPipelineType = pipelineType;
@@ -2914,7 +2943,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 	pRootSignature->pDescriptors = (DescriptorInfo*)(pRootSignature + 1);
 	pRootSignature->pDescriptorNameToIndexMap = (DescriptorIndexMap*)(pRootSignature->pDescriptors + shaderResources.size());
 	ASSERT(pRootSignature->pDescriptorNameToIndexMap);
-	conf_placement_new<DescriptorIndexMap>(pRootSignature->pDescriptorNameToIndexMap);
+	tf_placement_new<DescriptorIndexMap>(pRootSignature->pDescriptorNameToIndexMap);
         
 	// Collect all shader resources in the given shaders
 	{
@@ -3078,7 +3107,7 @@ void addGraphicsPipelineImpl(Renderer* pRenderer, const GraphicsPipelineDesc* pD
 	ASSERT(pDesc->pRootSignature);
 	ASSERT(ppPipeline);
 	
-	Pipeline* pPipeline = (Pipeline*)conf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
+	Pipeline* pPipeline = (Pipeline*)tf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
 	ASSERT(pPipeline);
 
 	pPipeline->mType = PIPELINE_TYPE_GRAPHICS;
@@ -3241,7 +3270,7 @@ void addComputePipelineImpl(Renderer* pRenderer, const ComputePipelineDesc* pDes
 	ASSERT(pDesc->pRootSignature);
 	ASSERT(ppPipeline);
 	
-	Pipeline* pPipeline = (Pipeline*)conf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
+	Pipeline* pPipeline = (Pipeline*)tf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
 	ASSERT(pPipeline);
 
 	pPipeline->mType = PIPELINE_TYPE_COMPUTE;
@@ -3333,7 +3362,7 @@ void addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc
 	ASSERT(pRenderer != nil);
 	ASSERT(pDesc != nil);
 
-	CommandSignature* pCommandSignature = (CommandSignature*)conf_calloc(1, sizeof(CommandSignature));
+	CommandSignature* pCommandSignature = (CommandSignature*)tf_calloc(1, sizeof(CommandSignature));
 	ASSERT(pCommandSignature);
 	
 	pCommandSignature->mDrawType = pDesc->pArgDescs[0].mType;
@@ -3686,7 +3715,7 @@ void cmdBindVertexBuffer(Cmd* pCmd, uint32_t bufferCount, Buffer** ppBuffers, co
 	// When using a poss-tessellation vertex shader, the first vertex buffer bound is used as the tessellation factors buffer.
 	uint32_t startIdx = 0;
 #if defined(ENABLE_TESSELLATION)
-	if (@available(macOS 10.12, iOS 12.0, *))
+	if (@available(macOS 10.12, iOS 10.0, *))
 	{
 		if (pCmd->pShader && pCmd->pShader->mTessellation)
 		{
@@ -3773,27 +3802,45 @@ void cmdDrawIndexed(Cmd* pCmd, uint32_t indexCount, uint32_t firstIndex, uint32_
 
 	if (!pCmd->pShader->mTessellation)
 	{
-		//only ios devices supporting gpu family 3_v1 and above can use baseVertex and baseInstance
-		//if lower than 3_v1 render without base info but artifacts will occur if used.
 #ifdef TARGET_IOS
-		if ([pCmd->pRenderer->pDevice supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v1])
-#endif
+		if (!firstVertex)
 		{
 			[pCmd->mtlRenderEncoder drawIndexedPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
 											   indexCount:indexCount
 												indexType:indexType
 											  indexBuffer:indexBuffer
-										indexBufferOffset:offset
-											instanceCount:1
-											   baseVertex:firstVertex
-											 baseInstance:0];
+										indexBufferOffset:offset];
 		}
-#ifdef TARGET_IOS
 		else
 		{
-			LOGF(LogLevel::eERROR, "Current device does not support ios gpuFamily 3_v1 feature set.");
-			return;
+			//only ios devices supporting gpu family 3_v1 and above can use baseVertex and baseInstance
+			//if lower than 3_v1 render without base info but artifacts will occur if used.
+			if ([pCmd->pRenderer->pDevice supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v1])
+			{
+				[pCmd->mtlRenderEncoder drawIndexedPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
+												   indexCount:indexCount
+													indexType:indexType
+												  indexBuffer:indexBuffer
+											indexBufferOffset:offset
+												instanceCount:1
+												   baseVertex:firstVertex
+												 baseInstance:0];
+			}
+			else
+			{
+				LOGF(LogLevel::eERROR, "Current device does not support firstVertex and firstInstance (3_v1 feature set)");
+				return;
+			}
 		}
+#else
+		[pCmd->mtlRenderEncoder drawIndexedPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
+										   indexCount:indexCount
+											indexType:indexType
+										  indexBuffer:indexBuffer
+									indexBufferOffset:offset
+										instanceCount:1
+										   baseVertex:firstVertex
+										 baseInstance:0];
 #endif
 	}
 #if defined(ENABLE_TESSELLATION)
@@ -3826,6 +3873,38 @@ void cmdDrawIndexedInstanced(
 
 	if (!pCmd->pShader->mTessellation)
 	{
+#ifdef TARGET_IOS
+		if (firstInstance || firstVertex)
+		{
+			//only ios devices supporting gpu family 3_v1 and above can use baseVertex and baseInstance
+			//if lower than 3_v1 render without base info but artifacts will occur if used.
+			if ([pCmd->pRenderer->pDevice supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily3_v1])
+			{
+				[pCmd->mtlRenderEncoder drawIndexedPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
+												   indexCount:indexCount
+													indexType:indexType
+												  indexBuffer:indexBuffer
+											indexBufferOffset:offset
+												instanceCount:instanceCount
+												   baseVertex:firstVertex
+												 baseInstance:firstInstance];
+			}
+			else
+			{
+				LOGF(LogLevel::eERROR, "Current device does not support firstVertex and firstInstance (3_v1 feature set)");
+				return;
+			}
+		}
+		else
+		{
+			[pCmd->mtlRenderEncoder drawIndexedPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
+											   indexCount:indexCount
+												indexType:indexType
+											  indexBuffer:indexBuffer
+										indexBufferOffset:offset
+											instanceCount:instanceCount];
+		}
+#else
 		[pCmd->mtlRenderEncoder drawIndexedPrimitives:(MTLPrimitiveType)pCmd->mSelectedPrimitiveType
 										   indexCount:indexCount
 											indexType:indexType
@@ -3834,6 +3913,7 @@ void cmdDrawIndexedInstanced(
 										instanceCount:instanceCount
 										   baseVertex:firstVertex
 										 baseInstance:firstInstance];
+#endif
 	}
 #if defined(ENABLE_TESSELLATION)
 	else if (@available(macOS 10.12, iOS 10.0, *))    // Tessellated draw version.
@@ -3983,6 +4063,7 @@ void cmdExecuteIndirect(
 							  indirectBufferOffset:indirectBufferOffset];
 			}
 		}
+#if defined(ENABLE_TESSELLATION)
 		else if (@available(macOS 10.12, iOS 10.0, *))   // Tessellated draw version.
 		{
 			for (uint32_t i = 0; i < maxCommandCount; i++)
@@ -4016,6 +4097,7 @@ void cmdExecuteIndirect(
 #endif
 			}
 		}
+#endif
 	}
 	else if (pCommandSignature->mDrawType == INDIRECT_DRAW_INDEX)
 	{
@@ -4039,6 +4121,7 @@ void cmdExecuteIndirect(
 										 indirectBufferOffset:indirectBufferOffset];
 			}
 		}
+#if defined(ENABLE_TESSELLATION)
 		else if (@available(macOS 10.12, iOS 10.0, *))    // Tessellated draw version.
 		{
 			for (uint32_t i = 0; i < maxCommandCount; ++i)
@@ -4074,6 +4157,7 @@ void cmdExecuteIndirect(
 #endif
 			}
 		}
+#endif
 	}
 	else if (pCommandSignature->mDrawType == INDIRECT_DISPATCH)
 	{
@@ -4378,13 +4462,13 @@ void queuePresent(Queue* pQueue, const QueuePresentDesc* pDesc)
 			// after committing a command buffer no more commands can be encoded on it: create a new command buffer for future commands
 			pSwapChain->presentCommandBuffer = [pQueue->mtlCommandQueue commandBuffer];
 			
-	#ifndef TARGET_IOS
+#ifndef TARGET_IOS
 			[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable];
-	#else
+#else
 			//[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable
 			//							 afterMinimumDuration:1.0 / 120.0];
 			[pSwapChain->presentCommandBuffer presentDrawable:pSwapChain->mMTKDrawable];
-	#endif
+#endif
 
 			pSwapChain->ppRenderTargets[pSwapChain->mIndex]->pTexture->mtlTexture = nil;
 			pSwapChain->mMTKDrawable = nil;
@@ -4451,7 +4535,6 @@ void getRawTextureHandle(Renderer* pRenderer, Texture* pTexture, void** ppHandle
 /************************************************************************/
 // Debug Marker Implementation
 /************************************************************************/
-
 void cmdBeginDebugMarker(Cmd* pCmd, float r, float g, float b, const char* pName)
 {
 #if defined(ENABLE_COMMAND_BUFFER_DEBUG_MARKERS)
@@ -4497,12 +4580,10 @@ void getTimestampFrequency(Queue* pQueue, double* pFrequency)
     
 void addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool** ppQueryPool)
 {
-	QueryPool* pQueryPool = (QueryPool*)conf_calloc(1, sizeof(QueryPool));
+	QueryPool* pQueryPool = (QueryPool*)tf_calloc(1, sizeof(QueryPool));
 	ASSERT(pQueryPool);
 
 	pQueryPool->mCount = pDesc->mQueryCount;
-    
-    // currently this is just a dummy struct for iOS GPU frame counters
     pQueryPool->mGpuTimestampStart = DBL_MAX;
     pQueryPool->mGpuTimestampEnd = DBL_MIN;
 
@@ -4623,7 +4704,7 @@ void util_track_color_attachment(Cmd* pCmd, id<MTLResource> resource)
 				pCmd->mColorAttachmentCapacity <<= 1;
 			}
 			
-			NOREFS id<MTLResource>* resources = (NOREFS id<MTLResource>*)conf_calloc(
+			NOREFS id<MTLResource>* resources = (NOREFS id<MTLResource>*)tf_calloc(
 				 pCmd->mColorAttachmentCapacity, sizeof(id<MTLResource>));
 			for (uint32_t i = 0; i < pCmd->mColorAttachmentCount; ++i)
 			{
@@ -4932,7 +5013,7 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 	if (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE)
 		totalSize += pDesc->mMipLevels * sizeof(id<MTLTexture>);
 
-	Texture* pTexture = (Texture*)conf_calloc_memalign(1, alignof(Texture), totalSize);
+	Texture* pTexture = (Texture*)tf_calloc_memalign(1, alignof(Texture), totalSize);
 	ASSERT(pTexture);
 	
 	void* mem = (pTexture + 1);
@@ -5087,7 +5168,7 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 		}
 
 		// For memoryless textures, we dont need any backing memory
-#if defined(TARGET_IOS) && defined(ENABLE_MEMORYLESS_TEXTURES)
+#if defined(ENABLE_MEMORYLESS_TEXTURES)
 		if (@available(iOS 10.0, *))
 		{
 			if (pDesc->mFlags & TEXTURE_CREATION_FLAG_ON_TILE)
@@ -5112,22 +5193,23 @@ void add_texture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppText
 				{
 					MTLSizeAndAlign sizeAlign = [pRenderer->pDevice heapTextureSizeAndAlignWithDescriptor:textureDesc];
 				
+					// Need to check mPlacementHeaps since it depends on gpu family as well as macOS/iOS version
 					if (pRenderer->pActiveGpuSettings->mPlacementHeaps)
 					{
-#if defined(ENABLE_HEAP_PLACEMENT)
 						if (@available(macOS 10.15, iOS 13.0, *))
 						{
+#if defined(ENABLE_HEAP_PLACEMENT)
 							VmaAllocationInfo allocInfo = util_render_alloc(pRenderer, RESOURCE_MEMORY_USAGE_GPU_ONLY, sizeAlign.size, sizeAlign.align, &pTexture->pAllocation);
 
 							pTexture->mtlTexture = [allocInfo.deviceMemory->pHeap newTextureWithDescriptor:textureDesc offset:allocInfo.offset];
-						}
 #endif
+						}
 					}
 					else
 					{
 						// If placement heaps are not supported we cannot use VMA
 						// Instead we have to rely on MTLHeap automatic placement
-						uint32_t heapIndex = util_find_heap_with_space(pRenderer, textureDesc.storageMode, RESOURCE_MEMORY_USAGE_GPU_ONLY, sizeAlign);
+						uint32_t heapIndex = util_find_heap_with_space(pRenderer, RESOURCE_MEMORY_USAGE_GPU_ONLY, sizeAlign);
 						
 						pTexture->mtlTexture = [pRenderer->pHeaps[heapIndex] newTextureWithDescriptor:textureDesc];
 					}

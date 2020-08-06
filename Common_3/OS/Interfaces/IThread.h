@@ -29,12 +29,13 @@
 #define _THREAD_H_
 
 #if defined(_WIN32)
-typedef unsigned ThreadID;
+typedef unsigned long ThreadID;
 #elif defined(NX64)
-#include "NXTypes.h"
 #else
 #include <pthread.h>
+#if !defined(__APPLE__) || defined(TARGET_IOS)
 #define ThreadID pthread_t
+#endif
 #endif
 
 #define TIMEOUT_INFINITE UINT32_MAX
@@ -103,6 +104,7 @@ struct ThreadDesc
 	void *pThreadStack;
 	const char* pThreadName;
 	int preferredCore;
+	bool migrateEnabled;
 #endif
 	/// Work item description and thread index (Main thread => 0)
 	ThreadFunction pFunc;

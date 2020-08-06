@@ -22,17 +22,10 @@
  * under the License.
 */
 
-// ***************************************************
-// NOTE:
-// "IRenderer.h" MUST be included before this header!
-// ***************************************************
-
 #pragma once
 
 #include "../Renderer/IRenderer.h"
 #include "../OS/Core/Atomics.h"
-#include "../OS/Interfaces/IFileSystem.h"
-#include "../ThirdParty/OpenSource/tinyimageformat/tinyimageformat_base.h"
 
 typedef struct MappedMemoryRange
 {
@@ -43,23 +36,26 @@ typedef struct MappedMemoryRange
 	uint32_t mFlags;
 } MappedMemoryRange;
 
-// MARK: - Resource Loading
-
-typedef enum LoadPriority
+typedef enum TextureContainerType
 {
-	// This load priority is only used for updates that
-	// have their data stored in GPU memory (e.g. from an
-	// updateResource call).
-	LOAD_PRIORITY_UPDATE = 0,
-	
-	// LoadPriorities High, Normal, and Low are for loads
-	// where the data is not already stored in GPU memory.
-	LOAD_PRIORITY_HIGH,
-	LOAD_PRIORITY_NORMAL,
-	LOAD_PRIORITY_LOW,
-	
-	LOAD_PRIORITY_COUNT
-} LoadPriority;
+	/// Use whatever container is designed for that platform
+	/// Windows, macOS, Linux - TEXTURE_CONTAINER_DDS
+	/// iOS, Android          - TEXTURE_CONTAINER_KTX
+	TEXTURE_CONTAINER_DEFAULT = 0,
+	/// Explicit container types
+	/// .dds
+	TEXTURE_CONTAINER_DDS,
+	/// .ktx
+	TEXTURE_CONTAINER_KTX,
+	/// .gnf
+	TEXTURE_CONTAINER_GNF,
+	/// .basis
+	TEXTURE_CONTAINER_BASIS,
+	/// .svt
+	TEXTURE_CONTAINER_SVT,
+} TextureContainerType;
+
+// MARK: - Resource Loading
 
 typedef struct BufferLoadDesc
 {
@@ -75,11 +71,14 @@ typedef struct TextureLoadDesc
 	Texture**            ppTexture;
 	/// Load empty texture
 	TextureDesc*         pDesc;
-	/// Load texture from a path
-	const Path*          pFilePath;
+	/// Filename without extension. Extension will be determined based on mContainer
+	const char*          pFileName;
+	/// The index of the GPU in SLI/Cross-Fire that owns this texture
 	uint32_t             mNodeIndex;
 	/// Following is ignored if pDesc != NULL.  pDesc->mFlags will be considered instead.
 	TextureCreationFlags mCreationFlag;
+	/// The texture file format (dds/ktx/...)
+	TextureContainerType mContainer;
 } TextureLoadDesc;
 
 typedef struct Geometry
@@ -128,10 +127,8 @@ typedef struct Geometry
 
 	uint32_t                    mPadA;
 	uint32_t                    mPadB;
-#if defined(_WINDOWS)
-#if !defined(_WIN64)
+#if defined(_WINDOWS) && !defined(_WIN64)
 	uint32_t                    mPadC;
-#endif
 #endif
 } Geometry;
 static_assert(sizeof(Geometry) % 16 == 0, "GLTFContainer size must be a multiple of 16");
@@ -149,8 +146,8 @@ typedef struct GeometryLoadDesc
 {
 	/// Output geometry
 	Geometry**        ppGeometry;
-	/// Path to geometry container
-	const Path*       pFilePath;
+	/// Filename of geometry container
+	const char*       pFileName;
 	/// Loading flags
 	GeometryLoadFlags mFlags;
 	/// Linked gpu node
@@ -186,7 +183,7 @@ typedef struct BufferUpdateDesc
 	/// Internal
 	struct
 	{
-		MappedMemoryRange mMappedRange;
+		MappedMemoryRange    mMappedRange;
 	} mInternal;
 } BufferUpdateDesc;
 
@@ -246,7 +243,6 @@ typedef struct ShaderStageLoadDesc
 	const char*          pFileName;
 	ShaderMacro*         pMacros;
 	uint32_t             mMacroCount;
-	ResourceDirEnum      mRoot;
 	const char*          pEntryPointName;
 	ShaderStageLoadFlags mFlags;
 } ShaderStageLoadDesc;
@@ -259,14 +255,16 @@ typedef struct ShaderLoadDesc
 
 typedef struct PipelineCacheLoadDesc
 {
-	const Path*         pPath;
+	const char*         pFileName;
 	PipelineCacheFlags  mFlags;
 } PipelineCacheLoadDesc;
 
-typedef struct SyncToken
+typedef struct PipelineCacheSaveDesc
 {
-	uint64_t mWaitIndex[LOAD_PRIORITY_COUNT];
-} SyncToken;
+	const char*         pFileName;
+} PipelineCacheSaveDesc;
+
+typedef uint64_t SyncToken;
 
 typedef struct ResourceLoaderDesc
 {
@@ -290,9 +288,9 @@ void exitResourceLoaderInterface(Renderer* pRenderer);
 
 /// If token is NULL, the resource will be available when allResourceLoadsCompleted() returns true.
 /// If token is non NULL, the resource will be available after isTokenCompleted(token) returns true.
-void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token, LoadPriority priority);
-void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token, LoadPriority priority);
-void addResource(GeometryLoadDesc* pGeomDesc, SyncToken* token, LoadPriority priority);
+void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token);
+void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token);
+void addResource(GeometryLoadDesc* pGeomDesc, SyncToken* token);
 
 void beginUpdateResource(BufferUpdateDesc* pBufferDesc);
 void beginUpdateResource(TextureUpdateDesc* pTextureDesc);
@@ -328,4 +326,4 @@ void addShader(Renderer* pRenderer, const ShaderLoadDesc* pDesc, Shader** pShade
 
 /// Save/Load pipeline cache from disk
 void addPipelineCache(Renderer* pRenderer, const PipelineCacheLoadDesc* pDesc, PipelineCache** ppPipelineCache);
-void savePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache, const Path* pPath);
+void savePipelineCache(Renderer* pRenderer, PipelineCache* pPipelineCache, PipelineCacheSaveDesc* pDesc);

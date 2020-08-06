@@ -64,7 +64,7 @@ namespace SoLoud
 		virtual FILE * getFilePtr();
 
 	protected:
-		FileStream* mForgeFile;
+		FileStream mForgeFile;
 	};
 
 	class MemoryFile : public File

@@ -321,7 +321,7 @@ VkAllocationCallbacks gVkAllocationCallbacks =
 	size_t                                      alignment,
 	VkSystemAllocationScope                     allocationScope)
 	{
-		return conf_memalign(alignment, size);
+		return tf_memalign(alignment, size);
 	},
 	// pfnReallocation
 	[](
@@ -331,14 +331,14 @@ VkAllocationCallbacks gVkAllocationCallbacks =
 	size_t                                      alignment,
 	VkSystemAllocationScope                     allocationScope)
 	{
-		return conf_realloc(pOriginal, size);
+		return tf_realloc(pOriginal, size);
 	},
 	// pfnFree
 	[](
 		void*                                       pUserData,
 		void*                                       pMemory)
 	{
-		conf_free(pMemory);
+		tf_free(pMemory);
 	},
 	// pfnInternalAllocation
 	[](
@@ -377,7 +377,7 @@ VkAllocationCallbacks gVkAllocationCallbacks =
 #define SAFE_FREE(p_var)         \
 	if (p_var)                   \
 	{                            \
-		conf_free((void*)p_var); \
+		tf_free((void*)p_var); \
 	}
 
 #if defined(__cplusplus)
@@ -400,8 +400,8 @@ API_INTERFACE void FORGE_CALLCONV cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, ui
 // clang-format on
 
 //+1 for Acceleration Structure
-#define CONF_DESCRIPTOR_TYPE_RANGE_SIZE (VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT + 2)
-static uint32_t gDescriptorTypeRangeSize = (CONF_DESCRIPTOR_TYPE_RANGE_SIZE - 1);
+#define FORGE_DESCRIPTOR_TYPE_RANGE_SIZE (VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT + 2)
+static uint32_t gDescriptorTypeRangeSize = (FORGE_DESCRIPTOR_TYPE_RANGE_SIZE - 1);
 
 static void removeVirtualTexture(Renderer* pRenderer, VirtualTexture* pTexture);
 /************************************************************************/
@@ -428,16 +428,16 @@ static void add_descriptor_pool(
 	Renderer* pRenderer, uint32_t numDescriptorSets, VkDescriptorPoolCreateFlags flags, VkDescriptorPoolSize* pPoolSizes,
 	uint32_t numPoolSizes, DescriptorPool** ppPool)
 {
-	DescriptorPool* pPool = (DescriptorPool*)conf_calloc(1, sizeof(*pPool));
+	DescriptorPool* pPool = (DescriptorPool*)tf_calloc(1, sizeof(*pPool));
 	pPool->mFlags = flags;
 	pPool->mNumDescriptorSets = numDescriptorSets;
 	pPool->mUsedDescriptorSetCount = 0;
 	pPool->pDevice = pRenderer->pVkDevice;
-	pPool->pMutex = (Mutex*)conf_calloc(1, sizeof(Mutex));
+	pPool->pMutex = (Mutex*)tf_calloc(1, sizeof(Mutex));
 	pPool->pMutex->Init();
 
 	pPool->mPoolSizeCount = numPoolSizes;
-	pPool->pPoolSizes = (VkDescriptorPoolSize*)conf_calloc(numPoolSizes, sizeof(VkDescriptorPoolSize));
+	pPool->pPoolSizes = (VkDescriptorPoolSize*)tf_calloc(numPoolSizes, sizeof(VkDescriptorPoolSize));
 	for (uint32_t i = 0; i < numPoolSizes; ++i)
 		pPool->pPoolSizes[i] = pPoolSizes[i];
 
@@ -477,7 +477,7 @@ static void remove_descriptor_pool(Renderer* pRenderer, DescriptorPool* pPool)
 	pPool->mDescriptorPools.~vector();
 
 	pPool->pMutex->Destroy();
-	conf_free(pPool->pMutex);
+	tf_free(pPool->pMutex);
 	SAFE_FREE(pPool->pPoolSizes);
 	SAFE_FREE(pPool);
 }
@@ -616,7 +616,7 @@ typedef struct FrameBuffer
 
 static void add_render_pass(Renderer* pRenderer, const RenderPassDesc* pDesc, RenderPass** ppRenderPass)
 {
-	RenderPass* pRenderPass = (RenderPass*)conf_calloc(1, sizeof(*pRenderPass));
+	RenderPass* pRenderPass = (RenderPass*)tf_calloc(1, sizeof(*pRenderPass));
 	pRenderPass->mDesc = *pDesc;
 	/************************************************************************/
 	// Add render pass
@@ -634,17 +634,17 @@ static void add_render_pass(Renderer* pRenderer, const RenderPassDesc* pDesc, Re
 
 	// Fill out attachment descriptions and references
 	{
-		attachments = (VkAttachmentDescription*)conf_calloc(colorAttachmentCount + depthAttachmentCount, sizeof(*attachments));
+		attachments = (VkAttachmentDescription*)tf_calloc(colorAttachmentCount + depthAttachmentCount, sizeof(*attachments));
 		ASSERT(attachments);
 
 		if (colorAttachmentCount > 0)
 		{
-			color_attachment_refs = (VkAttachmentReference*)conf_calloc(colorAttachmentCount, sizeof(*color_attachment_refs));
+			color_attachment_refs = (VkAttachmentReference*)tf_calloc(colorAttachmentCount, sizeof(*color_attachment_refs));
 			ASSERT(color_attachment_refs);
 		}
 		if (depthAttachmentCount > 0)
 		{
-			depth_stencil_attachment_ref = (VkAttachmentReference*)conf_calloc(1, sizeof(*depth_stencil_attachment_ref));
+			depth_stencil_attachment_ref = (VkAttachmentReference*)tf_calloc(1, sizeof(*depth_stencil_attachment_ref));
 			ASSERT(depth_stencil_attachment_ref);
 		}
 
@@ -733,7 +733,7 @@ static void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, F
 {
 	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
 
-	FrameBuffer* pFrameBuffer = (FrameBuffer*)conf_calloc(1, sizeof(*pFrameBuffer));
+	FrameBuffer* pFrameBuffer = (FrameBuffer*)tf_calloc(1, sizeof(*pFrameBuffer));
 	ASSERT(pFrameBuffer);
 
 	uint32_t colorAttachmentCount = pDesc->mRenderTargetCount;
@@ -769,7 +769,7 @@ static void add_framebuffer(Renderer* pRenderer, const FrameBufferDesc* pDesc, F
 	uint32_t attachment_count = colorAttachmentCount;
 	attachment_count += depthAttachmentCount;
 
-	VkImageView* pImageViews = (VkImageView*)conf_calloc(attachment_count, sizeof(*pImageViews));
+	VkImageView* pImageViews = (VkImageView*)tf_calloc(attachment_count, sizeof(*pImageViews));
 	ASSERT(pImageViews);
 
 	VkImageView* iter_attachments = pImageViews;
@@ -1124,7 +1124,7 @@ typedef struct NullDescriptors
 
 static void add_default_resources(Renderer* pRenderer)
 {
-	pRenderer->pNullDescriptors = (NullDescriptors*)conf_calloc(1, sizeof(NullDescriptors));
+	pRenderer->pNullDescriptors = (NullDescriptors*)tf_calloc(1, sizeof(NullDescriptors));
 	pRenderer->pNullDescriptors->mSubmitMutex.Init();
 
 	for (uint32_t i = 0; i < pRenderer->mLinkedNodeCount; ++i)
@@ -1540,7 +1540,8 @@ VkImageLayout util_to_vk_image_layout(ResourceState usage)
 }
 
 // Determines pipeline stages involved for given accesses
-VkPipelineStageFlags util_determine_pipeline_stage_flags(VkAccessFlags accessFlags, QueueType queueType)
+VkPipelineStageFlags
+util_determine_pipeline_stage_flags(Renderer* pRenderer, VkAccessFlags accessFlags, QueueType queueType)
 {
 	VkPipelineStageFlags flags = 0;
 
@@ -1555,12 +1556,21 @@ VkPipelineStageFlags util_determine_pipeline_stage_flags(VkAccessFlags accessFla
 		{
 			flags |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
 			flags |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-			flags |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
-			flags |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
-			flags |= VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
+			if(pRenderer->pActiveGpuSettings->mGeometryShaderSupported)
+			{
+				flags |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+			}
+			if(pRenderer->pActiveGpuSettings->mTessellationSupported)
+			{
+				flags |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
+				flags |= VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
+			}
 			flags |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 #ifdef ENABLE_RAYTRACING
-			flags |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV;
+			if (pRenderer->mRaytracingExtension)
+			{
+				flags |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_NV;
+			}
 #endif
 		}
 
@@ -1930,7 +1940,7 @@ void CreateInstance(const char* app_name,
 			const char* layer_name = layerTemp[i];
 			uint32_t    count = 0;
 			vkEnumerateInstanceExtensionProperties(layer_name, &count, NULL);
-			VkExtensionProperties* properties = count ? (VkExtensionProperties*)conf_calloc(count, sizeof(*properties)) : NULL;
+			VkExtensionProperties* properties = count ? (VkExtensionProperties*)tf_calloc(count, sizeof(*properties)) : NULL;
 			ASSERT(properties != NULL || count == 0);
 			vkEnumerateInstanceExtensionProperties(layer_name, &count, properties);
 			for (uint32_t j = 0; j < count; ++j)
@@ -1961,7 +1971,7 @@ void CreateInstance(const char* app_name,
 			vkEnumerateInstanceExtensionProperties(layer_name, &count, NULL);
 			if (count > 0)
 			{
-				VkExtensionProperties* properties = (VkExtensionProperties*)conf_calloc(count, sizeof(*properties));
+				VkExtensionProperties* properties = (VkExtensionProperties*)tf_calloc(count, sizeof(*properties));
 				ASSERT(properties != NULL);
 				vkEnumerateInstanceExtensionProperties(layer_name, &count, properties);
 				for (uint32_t j = 0; j < count; ++j)
@@ -2045,7 +2055,9 @@ void CreateInstance(const char* app_name,
 			}
 		}
 #else
+#if defined(__ANDROID__)
 		if (vkCreateDebugReportCallbackEXT)
+#endif
 		{
 			DECLARE_ZERO(VkDebugReportCallbackCreateInfoEXT, create_info);
 			create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
@@ -2251,7 +2263,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 
 		// Get queue family properties
 		vkGetPhysicalDeviceQueueFamilyProperties(gpus[i], &queueFamilyPropertyCount[i], NULL);
-		queueFamilyProperties[i] = (VkQueueFamilyProperties*)conf_calloc(queueFamilyPropertyCount[i], sizeof(VkQueueFamilyProperties));
+		queueFamilyProperties[i] = (VkQueueFamilyProperties*)tf_calloc(queueFamilyPropertyCount[i], sizeof(VkQueueFamilyProperties));
 		vkGetPhysicalDeviceQueueFamilyProperties(gpus[i], &queueFamilyPropertyCount[i], queueFamilyProperties[i]);
 
 		gpuSettings[i] = {};
@@ -2287,6 +2299,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 		gpuSettings[i].mROVsSupported = (bool)fragmentShaderInterlockFeatures.fragmentShaderPixelInterlock;
 #endif
 		gpuSettings[i].mTessellationSupported = gpuFeatures[i].features.tessellationShader;
+		gpuSettings[i].mGeometryShaderSupported = gpuFeatures[i].features.geometryShader;
 
 		//save vendor and model Id as string
 		sprintf(gpuSettings[i].mGpuVendorPreset.mModelId, "%#x", gpuProperties[i].properties.deviceID);
@@ -2327,7 +2340,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	}
 
 #if defined(AUTOMATED_TESTING) && defined(ACTIVE_TESTING_GPU) && !defined(__ANDROID__) && !defined(NX64)
-	selectActiveGpu(gpuSettings, gpuIndex, gpuCount);
+	selectActiveGpu(gpuSettings, &gpuIndex, gpuCount);
 #endif
 
 	// If we don't own the instance or device, then we need to set the gpuIndex to the correct physical device
@@ -2351,8 +2364,8 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 
 	ASSERT(gpuIndex != UINT32_MAX);
 	pRenderer->pVkActiveGPU = gpus[gpuIndex];
-	pRenderer->pVkActiveGPUProperties = (VkPhysicalDeviceProperties2*)conf_malloc(sizeof(VkPhysicalDeviceProperties2));
-	pRenderer->pActiveGpuSettings = (GPUSettings*)conf_malloc(sizeof(GPUSettings));
+	pRenderer->pVkActiveGPUProperties = (VkPhysicalDeviceProperties2*)tf_malloc(sizeof(VkPhysicalDeviceProperties2));
+	pRenderer->pActiveGpuSettings = (GPUSettings*)tf_malloc(sizeof(GPUSettings));
 	*pRenderer->pVkActiveGPUProperties = gpuProperties[gpuIndex];
 	*pRenderer->pActiveGpuSettings = gpuSettings[gpuIndex];
 	ASSERT(VK_NULL_HANDLE != pRenderer->pVkActiveGPU);
@@ -2412,7 +2425,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 		vkEnumerateDeviceExtensionProperties(pRenderer->pVkActiveGPU, layer_name, &count, NULL);
 		if (count > 0)
 		{
-			VkExtensionProperties* properties = (VkExtensionProperties*)conf_calloc(count, sizeof(*properties));
+			VkExtensionProperties* properties = (VkExtensionProperties*)tf_calloc(count, sizeof(*properties));
 			ASSERT(properties != NULL);
 			vkEnumerateDeviceExtensionProperties(pRenderer->pVkActiveGPU, layer_name, &count, properties);
 			for (uint32_t j = 0; j < count; ++j)
@@ -2452,7 +2465,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 						{
 							pRenderer->mRaytracingExtension = 1;
 							gNVRayTracingExtension = true;
-							gDescriptorTypeRangeSize = CONF_DESCRIPTOR_TYPE_RANGE_SIZE;
+							gDescriptorTypeRangeSize = FORGE_DESCRIPTOR_TYPE_RANGE_SIZE;
 						}
 #endif
 						break;
@@ -2489,12 +2502,12 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 	VkDeviceQueueCreateInfo queue_create_infos[4] = {};
 
 	const uint32_t maxQueueFlag = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT | VK_QUEUE_SPARSE_BINDING_BIT | VK_QUEUE_PROTECTED_BIT;
-	pRenderer->pAvailableQueueCount = (uint32_t**)conf_malloc(pRenderer->mLinkedNodeCount * sizeof(uint32_t*));
-	pRenderer->pUsedQueueCount = (uint32_t**)conf_malloc(pRenderer->mLinkedNodeCount * sizeof(uint32_t*));
+	pRenderer->pAvailableQueueCount = (uint32_t**)tf_malloc(pRenderer->mLinkedNodeCount * sizeof(uint32_t*));
+	pRenderer->pUsedQueueCount = (uint32_t**)tf_malloc(pRenderer->mLinkedNodeCount * sizeof(uint32_t*));
 	for (uint32_t i = 0; i < pRenderer->mLinkedNodeCount; ++i)
 	{
-		pRenderer->pAvailableQueueCount[i] = (uint32_t*)conf_calloc(maxQueueFlag, sizeof(uint32_t));
-		pRenderer->pUsedQueueCount[i] = (uint32_t*)conf_calloc(maxQueueFlag, sizeof(uint32_t));
+		pRenderer->pAvailableQueueCount[i] = (uint32_t*)tf_calloc(maxQueueFlag, sizeof(uint32_t));
+		pRenderer->pUsedQueueCount[i] = (uint32_t*)tf_calloc(maxQueueFlag, sizeof(uint32_t));
 	}
 
 	for (uint32_t i = 0; i < queueFamiliesCount; i++)
@@ -2642,7 +2655,7 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 	ASSERT(pDesc);
 	ASSERT(ppRenderer);
 
-	Renderer* pRenderer = (Renderer*)conf_calloc_memalign(1, alignof(Renderer), sizeof(Renderer));
+	Renderer* pRenderer = (Renderer*)tf_calloc_memalign(1, alignof(Renderer), sizeof(Renderer));
 	ASSERT(pRenderer);
 
 	pRenderer->mGpuMode = pDesc->mGpuMode;
@@ -2650,7 +2663,7 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 	pRenderer->mEnableGpuBasedValidation = pDesc->mEnableGPUBasedValidation;
 	pRenderer->mApi = RENDERER_API_VULKAN;
 
-	pRenderer->pName = (char*)conf_calloc(strlen(appName) + 1, sizeof(char));
+	pRenderer->pName = (char*)tf_calloc(strlen(appName) + 1, sizeof(char));
 	strcpy(pRenderer->pName, appName);
 
 	// Initialize the Vulkan internal bits
@@ -2681,7 +2694,7 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 
 #if defined(ENABLE_GRAPHICS_DEBUG)
 		// this turns on all validation layers
-		instanceLayers[instanceLayerCount++] = "VK_LAYER_LUNARG_standard_validation";
+		instanceLayers[instanceLayerCount++] = "VK_LAYER_KHRONOS_validation";
 #endif
 
 		// this turns on render doc layer for gpu capture
@@ -2774,7 +2787,7 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 		vmaCreateAllocator(&createInfo, &pRenderer->pVmaAllocator);
 	}
 
-	VkDescriptorPoolSize descriptorPoolSizes[CONF_DESCRIPTOR_TYPE_RANGE_SIZE] =
+	VkDescriptorPoolSize descriptorPoolSizes[FORGE_DESCRIPTOR_TYPE_RANGE_SIZE] =
 	{
 		{ VK_DESCRIPTOR_TYPE_SAMPLER, 1024 },
 		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1 },
@@ -2791,14 +2804,14 @@ void initRenderer(const char* appName, const RendererDesc* pDesc, Renderer** ppR
 #ifdef VK_NV_RAY_TRACING_SPEC_VERSION
 	if (gNVRayTracingExtension)
 	{
-		descriptorPoolSizes[CONF_DESCRIPTOR_TYPE_RANGE_SIZE - 1] = { VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV, 1024 };
+		descriptorPoolSizes[FORGE_DESCRIPTOR_TYPE_RANGE_SIZE - 1] = { VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_NV, 1024 };
 	}
 #endif
 	add_descriptor_pool(pRenderer, 8192, (VkDescriptorPoolCreateFlags)0, descriptorPoolSizes, gDescriptorTypeRangeSize, &pRenderer->pDescriptorPool);
-	pRenderPassMutex = (Mutex*)conf_calloc(1, sizeof(Mutex));
+	pRenderPassMutex = (Mutex*)tf_calloc(1, sizeof(Mutex));
 	pRenderPassMutex->Init();
-	gRenderPassMap = conf_placement_new<eastl::hash_map<ThreadID, RenderPassMap> >(conf_malloc(sizeof(*gRenderPassMap)));
-	gFrameBufferMap = conf_placement_new<eastl::hash_map<ThreadID, FrameBufferMap> >(conf_malloc(sizeof(*gFrameBufferMap)));
+	gRenderPassMap = tf_placement_new<eastl::hash_map<ThreadID, RenderPassMap> >(tf_malloc(sizeof(*gRenderPassMap)));
+	gFrameBufferMap = tf_placement_new<eastl::hash_map<ThreadID, FrameBufferMap> >(tf_malloc(sizeof(*gFrameBufferMap)));
 
 	VkPhysicalDeviceFeatures2KHR gpuFeatures = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR };
 	vkGetPhysicalDeviceFeatures2KHR(pRenderer->pVkActiveGPU, &gpuFeatures);
@@ -2890,7 +2903,7 @@ void addFence(Renderer* pRenderer, Fence** ppFence)
 	ASSERT(ppFence);
 	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
 
-	Fence* pFence = (Fence*)conf_calloc(1, sizeof(Fence));
+	Fence* pFence = (Fence*)tf_calloc(1, sizeof(Fence));
 	ASSERT(pFence);
 
 	DECLARE_ZERO(VkFenceCreateInfo, add_info);
@@ -2922,7 +2935,7 @@ void addSemaphore(Renderer* pRenderer, Semaphore** ppSemaphore)
 	ASSERT(ppSemaphore);
 	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
 
-	Semaphore* pSemaphore = (Semaphore*)conf_calloc(1, sizeof(Semaphore));
+	Semaphore* pSemaphore = (Semaphore*)tf_calloc(1, sizeof(Semaphore));
 	ASSERT(pSemaphore);
 
 	DECLARE_ZERO(VkSemaphoreCreateInfo, add_info);
@@ -2960,7 +2973,7 @@ void addQueue(Renderer* pRenderer, QueueDesc* pDesc, Queue** ppQueue)
 	util_find_queue_family_index(pRenderer, nodeIndex, pDesc->mType, &queueProps, &queueFamilyIndex, &queueIndex);
 	++pRenderer->pUsedQueueCount[nodeIndex][queueProps.queueFlags];
 
-	Queue* pQueue = (Queue*)conf_calloc(1, sizeof(Queue));
+	Queue* pQueue = (Queue*)tf_calloc(1, sizeof(Queue));
 	ASSERT(pQueue);
 
 	pQueue->mVkQueueFamilyIndex = queueFamilyIndex;
@@ -2997,7 +3010,7 @@ void addCmdPool(Renderer* pRenderer, const CmdPoolDesc* pDesc, CmdPool** ppCmdPo
 	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
 	ASSERT(ppCmdPool);
 
-	CmdPool* pCmdPool = (CmdPool*)conf_calloc(1, sizeof(CmdPool));
+	CmdPool* pCmdPool = (CmdPool*)tf_calloc(1, sizeof(CmdPool));
 	ASSERT(pCmdPool);
 
 	pCmdPool->pQueue = pDesc->pQueue;
@@ -3035,7 +3048,7 @@ void addCmd(Renderer* pRenderer, const CmdDesc* pDesc, Cmd** ppCmd)
 	ASSERT(VK_NULL_HANDLE != pDesc->pPool);
 	ASSERT(ppCmd);
 
-	Cmd* pCmd = (Cmd*)conf_calloc_memalign(1, alignof(Cmd), sizeof(Cmd));
+	Cmd* pCmd = (Cmd*)tf_calloc_memalign(1, alignof(Cmd), sizeof(Cmd));
 	ASSERT(pCmd);
 
 	pCmd->pRenderer = pRenderer;
@@ -3075,7 +3088,7 @@ void addCmd_n(Renderer* pRenderer, const CmdDesc* pDesc, uint32_t cmdCount, Cmd*
 	ASSERT(cmdCount);
 	ASSERT(pppCmd);
 
-	Cmd** ppCmds = (Cmd**)conf_calloc(cmdCount, sizeof(Cmd*));
+	Cmd** ppCmds = (Cmd**)tf_calloc(cmdCount, sizeof(Cmd*));
 	ASSERT(ppCmds);
 
 	//add n new cmds to given pool
@@ -3165,7 +3178,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	add_info.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
 	add_info.pNext = NULL;
 	add_info.flags = 0;
-	add_info.window = (ANativeWindow*)pDesc->mWindowHandle.window;
+	add_info.window = pDesc->mWindowHandle.window;
 	CHECK_VKRESULT(vkCreateAndroidSurfaceKHR(pRenderer->pVkInstance, &add_info, &gVkAllocationCallbacks, &vkSurface));
 #elif defined(VK_USE_PLATFORM_GGP)
 	extern VkResult ggpCreateSurface(VkInstance, VkSurfaceKHR* surface);
@@ -3208,7 +3221,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	CHECK_VKRESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(pRenderer->pVkActiveGPU, vkSurface, &surfaceFormatCount, NULL));
 
 	// Allocate and get surface formats
-	formats = (VkSurfaceFormatKHR*)conf_calloc(surfaceFormatCount, sizeof(*formats));
+	formats = (VkSurfaceFormatKHR*)tf_calloc(surfaceFormatCount, sizeof(*formats));
 	CHECK_VKRESULT(vkGetPhysicalDeviceSurfaceFormatsKHR(pRenderer->pVkActiveGPU, vkSurface, &surfaceFormatCount, formats));
 
 	if ((1 == surfaceFormatCount) && (VK_FORMAT_UNDEFINED == formats[0].format))
@@ -3357,6 +3370,25 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 		pre_transform = caps.currentTransform;
 	}
 
+	VkCompositeAlphaFlagBitsKHR compositeAlphaFlags[] =
+	{
+		VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
+		VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+		VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
+		VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
+	};
+	VkCompositeAlphaFlagBitsKHR composite_alpha = VK_COMPOSITE_ALPHA_FLAG_BITS_MAX_ENUM_KHR;
+	for (VkCompositeAlphaFlagBitsKHR flag : compositeAlphaFlags)
+	{
+		if (caps.supportedCompositeAlpha & flag)
+		{
+			composite_alpha = flag;
+			break;
+		}
+	}
+
+	ASSERT(composite_alpha != VK_COMPOSITE_ALPHA_FLAG_BITS_MAX_ENUM_KHR);
+
 	VkSwapchainKHR vkSwapchain;
 	DECLARE_ZERO(VkSwapchainCreateInfoKHR, swapChainCreateInfo);
 	swapChainCreateInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -3373,7 +3405,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	swapChainCreateInfo.queueFamilyIndexCount = queue_family_index_count;
 	swapChainCreateInfo.pQueueFamilyIndices = queue_family_indices;
 	swapChainCreateInfo.preTransform = pre_transform;
-	swapChainCreateInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	swapChainCreateInfo.compositeAlpha = composite_alpha;
 	swapChainCreateInfo.presentMode = present_mode;
 	swapChainCreateInfo.clipped = VK_TRUE;
 	swapChainCreateInfo.oldSwapchain = 0;
@@ -3391,7 +3423,7 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 
 	CHECK_VKRESULT(vkGetSwapchainImagesKHR(pRenderer->pVkDevice, vkSwapchain, &imageCount, images));
 
-	SwapChain* pSwapChain = (SwapChain*)conf_calloc(1, sizeof(SwapChain) + imageCount * sizeof(RenderTarget*) + sizeof(SwapChainDesc));
+	SwapChain* pSwapChain = (SwapChain*)tf_calloc(1, sizeof(SwapChain) + imageCount * sizeof(RenderTarget*) + sizeof(SwapChainDesc));
 	pSwapChain->ppRenderTargets = (RenderTarget**)(pSwapChain + 1);
 	pSwapChain->pDesc = (SwapChainDesc*)(pSwapChain->ppRenderTargets + imageCount);
 	ASSERT(pSwapChain);
@@ -3448,7 +3480,7 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 	ASSERT(pDesc->mSize > 0);
 	ASSERT(VK_NULL_HANDLE != pRenderer->pVkDevice);
 
-	Buffer* pBuffer = (Buffer*)conf_calloc_memalign(1, alignof(Buffer), sizeof(Buffer));
+	Buffer* pBuffer = (Buffer*)tf_calloc_memalign(1, alignof(Buffer), sizeof(Buffer));
 	ASSERT(ppBuffer);
 
 	uint64_t allocationSize = pDesc->mSize;
@@ -3623,7 +3655,7 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 
 	size_t totalSize = sizeof(Texture);
 	totalSize += (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE ? (pDesc->mMipLevels * sizeof(VkImageView)) : 0);
-	Texture* pTexture = (Texture*)conf_calloc_memalign(1, alignof(Texture), totalSize);
+	Texture* pTexture = (Texture*)tf_calloc_memalign(1, alignof(Texture), totalSize);
 	ASSERT(pTexture);
 
 	if (pDesc->mDescriptors & DESCRIPTOR_TYPE_RW_TEXTURE)
@@ -3951,7 +3983,7 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 		numRTVs *= depthOrArraySize;
 	size_t totalSize = sizeof(RenderTarget);
 	totalSize += numRTVs * sizeof(VkImageView);
-	RenderTarget* pRenderTarget = (RenderTarget*)conf_calloc_memalign(1, alignof(RenderTarget), totalSize);
+	RenderTarget* pRenderTarget = (RenderTarget*)tf_calloc_memalign(1, alignof(RenderTarget), totalSize);
 	ASSERT(pRenderTarget);
 
 	pRenderTarget->pVkSliceDescriptors = (VkImageView*)(pRenderTarget + 1);
@@ -4092,7 +4124,7 @@ void addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** ppSampl
 	ASSERT(pDesc->mCompareFunc < MAX_COMPARE_MODES);
 	ASSERT(ppSampler);
 
-	Sampler* pSampler = (Sampler*)conf_calloc_memalign(1, alignof(Sampler), sizeof(Sampler));
+	Sampler* pSampler = (Sampler*)tf_calloc_memalign(1, alignof(Sampler), sizeof(Sampler));
 	ASSERT(pSampler);
 
 	DECLARE_ZERO(VkSamplerCreateInfo, add_info);
@@ -4182,7 +4214,7 @@ void addDescriptorSet(Renderer* pRenderer, const DescriptorSetDesc* pDesc, Descr
 		totalSize += pDesc->mMaxSets * sizeof(SizeOffset);
 	}
 
-	DescriptorSet* pDescriptorSet = (DescriptorSet*)conf_calloc_memalign(1, alignof(DescriptorSet), totalSize);
+	DescriptorSet* pDescriptorSet = (DescriptorSet*)tf_calloc_memalign(1, alignof(DescriptorSet), totalSize);
 
 	pDescriptorSet->pRootSignature = pRootSignature;
 	pDescriptorSet->mUpdateFrequency = updateFreq;
@@ -4613,7 +4645,7 @@ void addShaderBinary(Renderer* pRenderer, const BinaryShaderDesc* pDesc, Shader*
 
 	totalSize += counter * sizeof(VkShaderModule);
 	totalSize += counter * sizeof(char*);
-	Shader* pShaderProgram = (Shader*)conf_calloc(1, totalSize);
+	Shader* pShaderProgram = (Shader*)tf_calloc(1, totalSize);
 	pShaderProgram->mStages = pDesc->mStages;
 	pShaderProgram->pReflection = (PipelineReflection*)(pShaderProgram + 1);
 	pShaderProgram->pShaderModules = (VkShaderModule*)(pShaderProgram->pReflection + 1);
@@ -4900,13 +4932,13 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 	size_t totalSize = sizeof(RootSignature);
 	totalSize += shaderResources.size() * sizeof(DescriptorInfo);
 	totalSize += sizeof(DescriptorIndexMap);
-	RootSignature* pRootSignature = (RootSignature*)conf_calloc_memalign(1, alignof(RootSignature), totalSize);
+	RootSignature* pRootSignature = (RootSignature*)tf_calloc_memalign(1, alignof(RootSignature), totalSize);
 	ASSERT(pRootSignature);
 
 	pRootSignature->pDescriptors = (DescriptorInfo*)(pRootSignature + 1);
 	pRootSignature->pDescriptorNameToIndexMap = (DescriptorIndexMap*)(pRootSignature->pDescriptors + shaderResources.size());
 	ASSERT(pRootSignature->pDescriptorNameToIndexMap);
-	conf_placement_new<DescriptorIndexMap>(pRootSignature->pDescriptorNameToIndexMap);
+	tf_placement_new<DescriptorIndexMap>(pRootSignature->pDescriptorNameToIndexMap);
 
 	if ((uint32_t)shaderResources.size())
 	{
@@ -5099,15 +5131,15 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 	{
 		if (pRootSignature->mVkDescriptorCounts[setIndex])
 		{
-			pRootSignature->pUpdateTemplateData[setIndex] = (void**)conf_calloc(pRenderer->mLinkedNodeCount, sizeof(DescriptorUpdateData*));
+			pRootSignature->pUpdateTemplateData[setIndex] = (void**)tf_calloc(pRenderer->mLinkedNodeCount, sizeof(DescriptorUpdateData*));
 
 			const UpdateFrequencyLayoutInfo& layout = layouts[setIndex];
-			VkDescriptorUpdateTemplateEntry* pEntries = (VkDescriptorUpdateTemplateEntry*)conf_malloc(pRootSignature->mVkDescriptorCounts[setIndex] * sizeof(VkDescriptorUpdateTemplateEntry));
+			VkDescriptorUpdateTemplateEntry* pEntries = (VkDescriptorUpdateTemplateEntry*)tf_malloc(pRootSignature->mVkDescriptorCounts[setIndex] * sizeof(VkDescriptorUpdateTemplateEntry));
 			uint32_t entryCount = 0;
 
 			for (uint32_t nodeIndex = 0; nodeIndex < pRenderer->mLinkedNodeCount; ++nodeIndex)
 			{
-				pRootSignature->pUpdateTemplateData[setIndex][nodeIndex] = conf_calloc(pRootSignature->mVkCumulativeDescriptorCounts[setIndex], sizeof(DescriptorUpdateData));
+				pRootSignature->pUpdateTemplateData[setIndex][nodeIndex] = tf_calloc(pRootSignature->mVkCumulativeDescriptorCounts[setIndex], sizeof(DescriptorUpdateData));
 			}
 
 			// Fill the write descriptors with default values during initialize so the only thing we change in cmdBindDescriptors is the the VkBuffer / VkImageView objects
@@ -5216,7 +5248,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 			createInfo.templateType = VK_DESCRIPTOR_UPDATE_TEMPLATE_TYPE_DESCRIPTOR_SET_KHR;
 			CHECK_VKRESULT(vkCreateDescriptorUpdateTemplateKHR(pRenderer->pVkDevice, &createInfo, &gVkAllocationCallbacks, &pRootSignature->mUpdateTemplates[setIndex]));
 
-			conf_free(pEntries);
+			tf_free(pEntries);
 		}
 		else if (VK_NULL_HANDLE != pRootSignature->mVkDescriptorSetLayouts[setIndex])
 		{
@@ -5266,7 +5298,7 @@ static void addGraphicsPipeline(Renderer* pRenderer, const PipelineDesc* pMainDe
 	ASSERT(pDesc->pShaderProgram);
 	ASSERT(pDesc->pRootSignature);
 
-	Pipeline* pPipeline = (Pipeline*)conf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
+	Pipeline* pPipeline = (Pipeline*)tf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
 	ASSERT(pPipeline);
 
 	const Shader*       pShaderProgram = pDesc->pShaderProgram;
@@ -5523,7 +5555,7 @@ static void addComputePipeline(Renderer* pRenderer, const PipelineDesc* pMainDes
 	ASSERT(pRenderer->pVkDevice != VK_NULL_HANDLE);
 	ASSERT(pDesc->pShaderProgram->pShaderModules[0] != VK_NULL_HANDLE);
 
-	Pipeline* pPipeline = (Pipeline*)conf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
+	Pipeline* pPipeline = (Pipeline*)tf_calloc_memalign(1, alignof(Pipeline), sizeof(Pipeline));
 	ASSERT(pPipeline);
 	pPipeline->mType = PIPELINE_TYPE_COMPUTE;
 
@@ -5609,7 +5641,7 @@ void addPipelineCache(Renderer* pRenderer, const PipelineCacheDesc* pDesc, Pipel
 	ASSERT(pDesc);
 	ASSERT(ppPipelineCache);
 
-	PipelineCache* pPipelineCache = (PipelineCache*)conf_calloc(1, sizeof(PipelineCache));
+	PipelineCache* pPipelineCache = (PipelineCache*)tf_calloc(1, sizeof(PipelineCache));
 	ASSERT(pPipelineCache);
 
 	VkPipelineCacheCreateInfo psoCacheCreateInfo = { VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
@@ -6008,7 +6040,6 @@ void cmdResourceBarrier(Cmd* pCmd,
 			pBufferBarrier->srcAccessMask = util_to_vk_access_flags((ResourceState)pBuffer->mCurrentState);
 			pBufferBarrier->dstAccessMask = util_to_vk_access_flags(pTrans->mNewState);
 
-
 			pBuffer->mCurrentState = pTrans->mNewState;
 		}
 		else if (pTrans->mNewState == RESOURCE_STATE_UNORDERED_ACCESS)
@@ -6182,8 +6213,8 @@ void cmdResourceBarrier(Cmd* pCmd,
 		}
 	}
 
-	VkPipelineStageFlags srcStageMask = util_determine_pipeline_stage_flags(srcAccessFlags, (QueueType)pCmd->mType);
-	VkPipelineStageFlags dstStageMask = util_determine_pipeline_stage_flags(dstAccessFlags, (QueueType)pCmd->mType);
+	VkPipelineStageFlags srcStageMask = util_determine_pipeline_stage_flags(pCmd->pRenderer, srcAccessFlags, (QueueType)pCmd->mType);
+	VkPipelineStageFlags dstStageMask = util_determine_pipeline_stage_flags(pCmd->pRenderer, dstAccessFlags, (QueueType)pCmd->mType);
 
 	if (bufferBarrierCount || imageBarrierCount)
 	{
@@ -6537,7 +6568,7 @@ void addIndirectCommandSignature(Renderer* pRenderer, const CommandSignatureDesc
 	ASSERT(pDesc);
 	ASSERT(ppCommandSignature);
 
-	CommandSignature* pCommandSignature = (CommandSignature*)conf_calloc(1, sizeof(CommandSignature));
+	CommandSignature* pCommandSignature = (CommandSignature*)tf_calloc(1, sizeof(CommandSignature));
 	ASSERT(pCommandSignature);
 
 	for (uint32_t i = 0; i < pDesc->mIndirectArgCount; ++i)    // counting for all types;
@@ -6638,7 +6669,7 @@ void addQueryPool(Renderer* pRenderer, const QueryPoolDesc* pDesc, QueryPool** p
 	ASSERT(pDesc);
 	ASSERT(ppQueryPool);
 
-	QueryPool* pQueryPool = (QueryPool*)conf_calloc(1, sizeof(QueryPool));
+	QueryPool* pQueryPool = (QueryPool*)tf_calloc(1, sizeof(QueryPool));
 	ASSERT(ppQueryPool);
 
 	pQueryPool->mType = util_to_vk_query_type(pDesc->mType);
@@ -7200,7 +7231,7 @@ void fillVirtualTextureLevel(Cmd* pCmd, Texture* pTexture, uint32_t mipLevel)
 void addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture, void* pImageData)
 {
 	ASSERT(pCmd);
-	Texture* pTexture = (Texture*)conf_calloc_memalign(1, alignof(Texture), sizeof(*pTexture) + sizeof(VirtualTexture));
+	Texture* pTexture = (Texture*)tf_calloc_memalign(1, alignof(Texture), sizeof(*pTexture) + sizeof(VirtualTexture));
 	ASSERT(pTexture);
 
 	Renderer* pRenderer = pCmd->pRenderer;
@@ -7319,13 +7350,13 @@ void addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture
 	// The mip tail contains all mip levels > sparseMemoryReq.imageMipTailFirstLod
 	bool singleMipTail = sparseMemoryReq.formatProperties.flags & VK_SPARSE_IMAGE_FORMAT_SINGLE_MIPTAIL_BIT;
 
-	pTexture->pSvt->pPages = (eastl::vector<VirtualTexturePage>*)conf_calloc(1, sizeof(eastl::vector<VirtualTexturePage>));
-	pTexture->pSvt->pSparseImageMemoryBinds = (eastl::vector<VkSparseImageMemoryBind>*)conf_calloc(1, sizeof(eastl::vector<VkSparseImageMemoryBind>));
-	pTexture->pSvt->pOpaqueMemoryBinds = (eastl::vector<VkSparseMemoryBind>*)conf_calloc(1, sizeof(eastl::vector<VkSparseMemoryBind>));
+	pTexture->pSvt->pPages = (eastl::vector<VirtualTexturePage>*)tf_calloc(1, sizeof(eastl::vector<VirtualTexturePage>));
+	pTexture->pSvt->pSparseImageMemoryBinds = (eastl::vector<VkSparseImageMemoryBind>*)tf_calloc(1, sizeof(eastl::vector<VkSparseImageMemoryBind>));
+	pTexture->pSvt->pOpaqueMemoryBinds = (eastl::vector<VkSparseMemoryBind>*)tf_calloc(1, sizeof(eastl::vector<VkSparseMemoryBind>));
 
-	conf_placement_new<decltype(pTexture->pSvt->pPages)>(pTexture->pSvt->pPages);
-	conf_placement_new<decltype(pTexture->pSvt->pSparseImageMemoryBinds)>(pTexture->pSvt->pSparseImageMemoryBinds);
-	conf_placement_new<decltype(pTexture->pSvt->pOpaqueMemoryBinds)>(pTexture->pSvt->pOpaqueMemoryBinds);
+	tf_placement_new<decltype(pTexture->pSvt->pPages)>(pTexture->pSvt->pPages);
+	tf_placement_new<decltype(pTexture->pSvt->pSparseImageMemoryBinds)>(pTexture->pSvt->pSparseImageMemoryBinds);
+	tf_placement_new<decltype(pTexture->pSvt->pOpaqueMemoryBinds)>(pTexture->pSvt->pOpaqueMemoryBinds);
 
 	eastl::vector<VkSparseMemoryBind>* pOpaqueMemoryBinds = (eastl::vector<VkSparseMemoryBind>*)pTexture->pSvt->pOpaqueMemoryBinds;
 
@@ -7520,7 +7551,7 @@ void removeVirtualTexture(Renderer* pRenderer, VirtualTexture* pSvt)
 		removeBuffer(pRenderer, pSvt->mPageCounts);
 
 	if (pSvt->mVirtualImageData)
-		conf_free(pSvt->mVirtualImageData);
+		tf_free(pSvt->mVirtualImageData);
 }
 
 void cmdUpdateVirtualTexture(Cmd* cmd, Texture* pTexture)

@@ -56,8 +56,8 @@ extern "C" {
 
 		uint8_t* buff = getMemoryHookBuffer();
 
-		// CONFFX BEGIN: Replace rmemPlacementNew with conf_placement_new.
-		conf_placement_new<rmem::MemoryHook>((void*)buff, _data);
+		// CONFFX BEGIN: Replace rmemPlacementNew with tf_placement_new.
+		tf_placement_new<rmem::MemoryHook>((void*)buff, _data);
 		// CONFFX END
 
 		hook = (rmem::MemoryHook*)buff;

@@ -18,15 +18,15 @@ class LuaManager
 	template <class T>
 	void SetFunction(const char* functionName, T function);
 
-	bool RunScript(const Path* scriptPath);
-	void AddAsyncScript(const Path* scriptPath, ScriptDoneCallback callback);
-	void AddAsyncScript(const Path* scriptPath);
+	bool RunScript(const char* scriptFile);
+	void AddAsyncScript(const char* scriptFile, ScriptDoneCallback callback);
+	void AddAsyncScript(const char* scriptFile);
 
 	template <class T>
-	void AddAsyncScript(const Path* scriptPath, T callbackLambda);
+	void AddAsyncScript(const char* scriptFile, T callbackLambda);
 
 	//updateFunctionName - function that will be called on Update()
-	bool SetUpdatableScript(const Path* scriptPath, const char* updateFunctionName, const char* exitFunctionName);
+	bool SetUpdatableScript(const char* scriptFile, const char* updateFunctionName, const char* exitFunctionName);
 	bool ReloadUpdatableScript();
 	//updateFunctionName - function that will be called.
 	//If nullptr then function from SetUpdateScript arg is used.
@@ -36,23 +36,23 @@ class LuaManager
 	LuaManagerImpl* m_Impl;
 
 	void SetFunction(ILuaFunctionWrap* wrap);
-	void AddAsyncScript(const Path* scriptPath, IScriptCallbackWrap* callbackLambda);
+	void AddAsyncScript(const char* scriptFile, IScriptCallbackWrap* callbackLambda);
 };
 
 template <typename T>
 void LuaManager::SetFunction(const char* functionName, T function)
 {
-	LuaFunctionWrap<T>* functionWrap = (LuaFunctionWrap<T>*)conf_calloc(1, sizeof(LuaFunctionWrap<T>));
-	conf_placement_new<LuaFunctionWrap<T> >(functionWrap, function, functionName);
+	LuaFunctionWrap<T>* functionWrap = (LuaFunctionWrap<T>*)tf_calloc(1, sizeof(LuaFunctionWrap<T>));
+	tf_placement_new<LuaFunctionWrap<T> >(functionWrap, function, functionName);
 	SetFunction(functionWrap);
 }
 
 template <class T>
-void LuaManager::AddAsyncScript(const Path* scriptPath, T callbackLambda)
+void LuaManager::AddAsyncScript(const char* scriptFile, T callbackLambda)
 {
-	IScriptCallbackWrap* lambdaWrap = (IScriptCallbackWrap*)conf_calloc(1, sizeof(ScriptCallbackWrap<T>));
-	conf_placement_new<ScriptCallbackWrap<T> >(lambdaWrap, callbackLambda);
-	AddAsyncScript(scriptPath, lambdaWrap);
+	IScriptCallbackWrap* lambdaWrap = (IScriptCallbackWrap*)tf_calloc(1, sizeof(ScriptCallbackWrap<T>));
+	tf_placement_new<ScriptCallbackWrap<T> >(lambdaWrap, callbackLambda);
+	AddAsyncScript(scriptFile, lambdaWrap);
 }
 
 #include "../../Common_3/ThirdParty/OpenSource/FluidStudios/MemoryManager/nommgr.h"

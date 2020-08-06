@@ -500,7 +500,7 @@ void AddParticleSystem(vec3 position, vec4 color, vec3 translucency = vec3(0.0f)
 	particleBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 	particleBufferDesc.mDesc.mSize = sizeof(ParticleVertex) * 6 * MAX_NUM_PARTICLES;
 	particleBufferDesc.ppBuffer = &pParticleBuffer;
-	addResource(&particleBufferDesc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&particleBufferDesc, NULL);
 
 	gScene.mParticleSystems.push_back(ParticleSystem{
 		pParticleBuffer,
@@ -629,21 +629,14 @@ class Transparency: public IApp
 public:
 	bool Init() override
 	{
-        // FILE PATHS
-        PathHandle programDirectory = fsGetApplicationDirectory();
-        if (!fsPlatformUsesBundledResources())
-        {
-            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/15_Transparency");
-            fsSetResourceDirRootPath(resourceDirRoot);
-            
-            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirEnum(RD_MESHES,          "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
-        }
-        
+		// FILE PATHS
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
+
 		RendererDesc settings = { NULL };
 		initRenderer(GetName(), &settings, &pRenderer);
 
@@ -672,7 +665,7 @@ public:
 
 		LoadModels();
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
 			return false;
 
 		CreateSamplers();
@@ -688,7 +681,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 
 		initProfiler();
         gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
@@ -2017,73 +2010,72 @@ public:
 
 		// Skybox shader
 		ShaderLoadDesc skyboxShaderDesc = {};
-		skyboxShaderDesc.mStages[0] = { "skybox.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
-		skyboxShaderDesc.mStages[1] = { "skybox.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		skyboxShaderDesc.mStages[0] = { "skybox.vert", shaderMacros, numShaderMacros };
+		skyboxShaderDesc.mStages[1] = { "skybox.frag", shaderMacros, numShaderMacros };
 		addShader(pRenderer, &skyboxShaderDesc, &pShaderSkybox);
 
 #if USE_SHADOWS != 0
 		// Shadow mapping shader
 		ShaderLoadDesc shadowShaderDesc = {};
-		shadowShaderDesc.mStages[0] = { "shadow.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
-		shadowShaderDesc.mStages[1] = { "shadow.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		shadowShaderDesc.mStages[0] = { "shadow.vert", shaderMacros, numShaderMacros };
+		shadowShaderDesc.mStages[1] = { "shadow.frag", shaderMacros, numShaderMacros };
 		addShader(pRenderer, &shadowShaderDesc, &pShaderShadow);
 
 		// Gaussian blur shader
 		ShaderLoadDesc blurShaderDesc = {};
-		blurShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
-		blurShaderDesc.mStages[1] = { "gaussianBlur.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		blurShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros };
+		blurShaderDesc.mStages[1] = { "gaussianBlur.frag", shaderMacros, numShaderMacros };
 		addShader(pRenderer, &blurShaderDesc, &pShaderGaussianBlur);
 
 #if PT_USE_CAUSTICS != 0
 		// Stochastic shadow mapping shader
 		ShaderLoadDesc stochasticShadowShaderDesc = {};
-		stochasticShadowShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
-		stochasticShadowShaderDesc.mStages[1] = { "stochasticShadow.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		stochasticShadowShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros };
+		stochasticShadowShaderDesc.mStages[1] = { "stochasticShadow.frag", shaderMacros, numShaderMacros };
 		addShader(pRenderer, &stochasticShadowShaderDesc, &pShaderPTShadow);
 
 		// Downsample shader
 		ShaderLoadDesc downsampleShaderDesc = {};
-		downsampleShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
-		downsampleShaderDesc.mStages[1] = { "downsample.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		downsampleShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros };
+		downsampleShaderDesc.mStages[1] = { "downsample.frag", shaderMacros, numShaderMacros };
 		addShader(pRenderer, &downsampleShaderDesc, &pShaderPTDownsample);
 
 		// Shadow map copy shader
 		ShaderLoadDesc copyShadowDepthShaderDesc = {};
-		copyShadowDepthShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
-		copyShadowDepthShaderDesc.mStages[1] = { "copy.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		copyShadowDepthShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros };
+		copyShadowDepthShaderDesc.mStages[1] = { "copy.frag", shaderMacros, numShaderMacros };
 		addShader(pRenderer, &copyShadowDepthShaderDesc, &pShaderPTCopyShadowDepth);
 #endif
 #endif
 
 		// Forward shading shader
 		ShaderLoadDesc forwardShaderDesc = {};
-		forwardShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
-		forwardShaderDesc.mStages[1] = { "forward.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		forwardShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros };
+		forwardShaderDesc.mStages[1] = { "forward.frag", shaderMacros, numShaderMacros };
 		addShader(pRenderer, &forwardShaderDesc, &pShaderForward);
 
 		// WBOIT shade shader
 		ShaderLoadDesc wboitShadeShaderDesc = {};
-		wboitShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
-		wboitShadeShaderDesc.mStages[1] = { "weightedBlendedOIT.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		wboitShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros };
+		wboitShadeShaderDesc.mStages[1] = { "weightedBlendedOIT.frag", shaderMacros, numShaderMacros };
 		addShader(pRenderer, &wboitShadeShaderDesc, &pShaderWBOITShade);
 
 		// WBOIT composite shader
 		ShaderLoadDesc wboitCompositeShaderDesc = {};
-		wboitCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
-		wboitCompositeShaderDesc.mStages[1] = { "weightedBlendedOITComposite.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		wboitCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros };
+		wboitCompositeShaderDesc.mStages[1] = { "weightedBlendedOITComposite.frag", shaderMacros, numShaderMacros };
 		addShader(pRenderer, &wboitCompositeShaderDesc, &pShaderWBOITComposite);
 
 		// WBOIT Volition shade shader
 		ShaderLoadDesc wboitVolitionShadeShaderDesc = {};
-		wboitVolitionShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
-		wboitVolitionShadeShaderDesc.mStages[1] = { "weightedBlendedOITVolition.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		wboitVolitionShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros };
+		wboitVolitionShadeShaderDesc.mStages[1] = { "weightedBlendedOITVolition.frag", shaderMacros, numShaderMacros };
 		addShader(pRenderer, &wboitVolitionShadeShaderDesc, &pShaderWBOITVShade);
 
 		// WBOIT Volition composite shader
 		ShaderLoadDesc wboitVolitionCompositeShaderDesc = {};
-		wboitVolitionCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
-		wboitVolitionCompositeShaderDesc.mStages[1] = { "weightedBlendedOITVolitionComposite.frag", shaderMacros, numShaderMacros,
-														RD_SHADER_SOURCES };
+		wboitVolitionCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros };
+		wboitVolitionCompositeShaderDesc.mStages[1] = { "weightedBlendedOITVolitionComposite.frag", shaderMacros, numShaderMacros };
 		addShader(pRenderer, &wboitVolitionCompositeShaderDesc, &pShaderWBOITVComposite);
 
 		// PT shade shader
@@ -2092,26 +2084,26 @@ public:
 			ptShaderMacros[i] = shaderMacros[i];
 		ptShaderMacros[numShaderMacros] = { "PHENOMENOLOGICAL_TRANSPARENCY", "" };
 		ShaderLoadDesc ptShadeShaderDesc = {};
-		ptShadeShaderDesc.mStages[0] = { "forward.vert", ptShaderMacros, numShaderMacros + 1, RD_SHADER_SOURCES };
-		ptShadeShaderDesc.mStages[1] = { "phenomenologicalTransparency.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		ptShadeShaderDesc.mStages[0] = { "forward.vert", ptShaderMacros, numShaderMacros + 1 };
+		ptShadeShaderDesc.mStages[1] = { "phenomenologicalTransparency.frag", shaderMacros, numShaderMacros };
 		addShader(pRenderer, &ptShadeShaderDesc, &pShaderPTShade);
 
 		// PT composite shader
 		ShaderLoadDesc ptCompositeShaderDesc = {};
-		ptCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
-		ptCompositeShaderDesc.mStages[1] = { "phenomenologicalTransparencyComposite.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		ptCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros };
+		ptCompositeShaderDesc.mStages[1] = { "phenomenologicalTransparencyComposite.frag", shaderMacros, numShaderMacros };
 		addShader(pRenderer, &ptCompositeShaderDesc, &pShaderPTComposite);
 
 #if PT_USE_DIFFUSION != 0
 		// PT copy depth shader
 		ShaderLoadDesc ptCopyShaderDesc = {};
-		ptCopyShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
-		ptCopyShaderDesc.mStages[1] = { "copy.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		ptCopyShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros };
+		ptCopyShaderDesc.mStages[1] = { "copy.frag", shaderMacros, numShaderMacros };
 		addShader(pRenderer, &ptCopyShaderDesc, &pShaderPTCopyDepth);
 
 		// PT generate mips shader
 		ShaderLoadDesc ptGenMipsShaderDesc = {};
-		ptGenMipsShaderDesc.mStages[0] = { "generateMips.comp", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+		ptGenMipsShaderDesc.mStages[0] = { "generateMips.comp", shaderMacros, numShaderMacros };
 		addShader(pRenderer, &ptGenMipsShaderDesc, &pShaderPTGenMips);
 #endif
 
@@ -2120,20 +2112,20 @@ public:
 		{
 			// AOIT shade shader
 			ShaderLoadDesc aoitShadeShaderDesc = {};
-			aoitShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
-			aoitShadeShaderDesc.mStages[1] = { "adaptiveOIT.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+			aoitShadeShaderDesc.mStages[0] = { "forward.vert", shaderMacros, numShaderMacros };
+			aoitShadeShaderDesc.mStages[1] = { "adaptiveOIT.frag", shaderMacros, numShaderMacros };
 			addShader(pRenderer, &aoitShadeShaderDesc, &pShaderAOITShade);
 
 			// AOIT composite shader
 			ShaderLoadDesc aoitCompositeShaderDesc = {};
-			aoitCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
-			aoitCompositeShaderDesc.mStages[1] = { "adaptiveOITComposite.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+			aoitCompositeShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros };
+			aoitCompositeShaderDesc.mStages[1] = { "adaptiveOITComposite.frag", shaderMacros, numShaderMacros };
 			addShader(pRenderer, &aoitCompositeShaderDesc, &pShaderAOITComposite);
 
 			// AOIT clear shader
 			ShaderLoadDesc aoitClearShaderDesc = {};
-			aoitClearShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
-			aoitClearShaderDesc.mStages[1] = { "adaptiveOITClear.frag", shaderMacros, numShaderMacros, RD_SHADER_SOURCES };
+			aoitClearShaderDesc.mStages[0] = { "fullscreen.vert", shaderMacros, numShaderMacros };
+			aoitClearShaderDesc.mStages[1] = { "adaptiveOITClear.frag", shaderMacros, numShaderMacros };
 			addShader(pRenderer, &aoitClearShaderDesc, &pShaderAOITClear);
 		}
 #endif
@@ -2680,7 +2672,7 @@ public:
 		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
 		skyboxVbDesc.pData = gSkyboxPointArray;
 		skyboxVbDesc.ppBuffer = &pBufferSkyboxVertex;
-		addResource(&skyboxVbDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&skyboxVbDesc, NULL);
 
 #if USE_SHADOWS != 0
 		const uint shadowMapResolution = 1024;
@@ -2773,12 +2765,11 @@ public:
 	{
 		static const char* modelNames[MESH_COUNT] = { "cube.gltf", "sphere.gltf", "plane.gltf", "lion.gltf" };
 
-		PathHandle modelPath = fsGetPathInResourceDirEnum(RD_MESHES, modelNames[m]);
 		GeometryLoadDesc loadDesc = {};
-		loadDesc.pFilePath = modelPath;
+		loadDesc.pFileName = modelNames[m];
 		loadDesc.ppGeometry = &pMeshes[m];
 		loadDesc.pVertexLayout = &vertexLayoutDefault;
-		addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&loadDesc, NULL);
 	}
 
 	void LoadModels()
@@ -2826,11 +2817,10 @@ public:
 
 		for (int i = 0; i < TEXTURE_COUNT; ++i)
 		{
-            PathHandle path = fsGetPathInResourceDirEnum(RD_TEXTURES, textureNames[i]);
 			TextureLoadDesc textureDesc = {};
-			textureDesc.pFilePath = path;
+			textureDesc.pFileName = textureNames[i];
 			textureDesc.ppTexture = &pTextures[i];
-			addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&textureDesc, NULL);
 		}
 	}
 
@@ -2851,7 +2841,7 @@ public:
 		for (int i = 0; i < gImageCount; ++i)
 		{
 			materialUBDesc.ppBuffer = &pBufferMaterials[i];
-			addResource(&materialUBDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&materialUBDesc, NULL);
 		}
 
 		BufferLoadDesc ubDesc = {};
@@ -2863,12 +2853,12 @@ public:
 		for (int i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pBufferOpaqueObjectTransforms[i];
-			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubDesc, NULL);
 		}
 		for (int i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pBufferTransparentObjectTransforms[i];
-			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubDesc, NULL);
 		}
 
 		BufferLoadDesc skyboxDesc = {};
@@ -2880,7 +2870,7 @@ public:
 		for (int i = 0; i < gImageCount; ++i)
 		{
 			skyboxDesc.ppBuffer = &pBufferSkyboxUniform[i];
-			addResource(&skyboxDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&skyboxDesc, NULL);
 		}
 
 		BufferLoadDesc camUniDesc = {};
@@ -2892,7 +2882,7 @@ public:
 		for (int i = 0; i < gImageCount; ++i)
 		{
 			camUniDesc.ppBuffer = &pBufferCameraUniform[i];
-			addResource(&camUniDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&camUniDesc, NULL);
 		}
 
 		BufferLoadDesc camLightUniDesc = {};
@@ -2904,7 +2894,7 @@ public:
 		for (int i = 0; i < gImageCount; ++i)
 		{
 			camLightUniDesc.ppBuffer = &pBufferCameraLightUniform[i];
-			addResource(&camLightUniDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&camLightUniDesc, NULL);
 		}
 
 		BufferLoadDesc lightUniformDesc = {};
@@ -2916,7 +2906,7 @@ public:
 		for (int i = 0; i < gImageCount; ++i)
 		{
 			lightUniformDesc.ppBuffer = &pBufferLightUniform[i];
-			addResource(&lightUniformDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&lightUniformDesc, NULL);
 		}
 		BufferLoadDesc wboitSettingsDesc = {};
 		wboitSettingsDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -2927,7 +2917,7 @@ public:
 		for (int i = 0; i < gImageCount; ++i)
 		{
 			wboitSettingsDesc.ppBuffer = &pBufferWBOITSettings[i];
-			addResource(&wboitSettingsDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&wboitSettingsDesc, NULL);
 		}
 	}
 
@@ -3086,7 +3076,7 @@ public:
 			TextureLoadDesc aoitClearMaskTextureLoadDesc = {};
 			aoitClearMaskTextureLoadDesc.pDesc = &aoitClearMaskTextureDesc;
 			aoitClearMaskTextureLoadDesc.ppTexture = &pTextureAOITClearMask;
-			addResource(&aoitClearMaskTextureLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&aoitClearMaskTextureLoadDesc, NULL);
 
 #if AOIT_NODE_COUNT != 2
 			BufferLoadDesc aoitDepthDataLoadDesc = {};
@@ -3098,7 +3088,7 @@ public:
 			aoitDepthDataLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_BUFFER;
 			aoitDepthDataLoadDesc.mDesc.pName = "AOIT Depth Data";
 			aoitDepthDataLoadDesc.ppBuffer = &pBufferAOITDepthData;
-			addResource(&aoitDepthDataLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&aoitDepthDataLoadDesc, NULL);
 #endif
 
 			BufferLoadDesc aoitColorDataLoadDesc = {};
@@ -3110,7 +3100,7 @@ public:
 			aoitColorDataLoadDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_BUFFER;
 			aoitColorDataLoadDesc.mDesc.pName = "AOIT Color Data";
 			aoitColorDataLoadDesc.ppBuffer = &pBufferAOITColorData;
-			addResource(&aoitColorDataLoadDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&aoitColorDataLoadDesc, NULL);
 		}
 #endif
 

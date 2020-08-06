@@ -47,17 +47,17 @@ namespace SoLoud
 	result FilterInstance::initParams(int aNumParams)
 	{		
 		mNumParams = aNumParams;
-		conf_free(mParam);
-		conf_free(mParamFader);
-		mParam = (float*)conf_calloc(mNumParams, sizeof(float));
-		mParamFader = (Fader*)conf_calloc(mNumParams, sizeof(Fader));
+		tf_free(mParam);
+		tf_free(mParamFader);
+		mParam = (float*)tf_calloc(mNumParams, sizeof(float));
+		mParamFader = (Fader*)tf_calloc(mNumParams, sizeof(Fader));
 		for (unsigned int i = 0; i < mNumParams; ++i)
-			conf_placement_new<Fader>(&mParamFader[i]);
+			tf_placement_new<Fader>(&mParamFader[i]);
 
 		if (mParam == NULL || mParamFader == NULL)
 		{
-			conf_free(mParam);
-			conf_free(mParamFader);
+			tf_free(mParam);
+			tf_free(mParamFader);
 			mParam = NULL;
 			mParamFader = NULL;
 			mNumParams = 0;
@@ -90,8 +90,8 @@ namespace SoLoud
 
 	FilterInstance::~FilterInstance()
 	{
-		conf_free(mParam);
-		conf_free(mParamFader);
+		tf_free(mParam);
+		tf_free(mParamFader);
 	}
 
 	void FilterInstance::setFilterParameter(unsigned int aAttributeId, float aValue)

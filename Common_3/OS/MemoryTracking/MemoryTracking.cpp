@@ -53,17 +53,17 @@
 // Just include the cpp here so we don't have to add it to the all projects
 #include "../../ThirdParty/OpenSource/FluidStudios/MemoryManager/mmgr.cpp"
 
-void* conf_malloc_internal(size_t size, const char *f, int l, const char *sf)
+void* tf_malloc_internal(size_t size, const char *f, int l, const char *sf)
 {
-	return conf_memalign_internal(MIN_ALLOC_ALIGNMENT, size, f, l, sf);
+	return tf_memalign_internal(MIN_ALLOC_ALIGNMENT, size, f, l, sf);
 }
 
-void* conf_calloc_internal(size_t count, size_t size, const char *f, int l, const char *sf) 
+void* tf_calloc_internal(size_t count, size_t size, const char *f, int l, const char *sf) 
 {
-	return conf_calloc_memalign_internal(count, MIN_ALLOC_ALIGNMENT, size, f, l, sf);
+	return tf_calloc_memalign_internal(count, MIN_ALLOC_ALIGNMENT, size, f, l, sf);
 }
 
-void* conf_memalign_internal(size_t align, size_t size, const char *f, int l, const char *sf)
+void* tf_memalign_internal(size_t align, size_t size, const char *f, int l, const char *sf)
 {
 	void* pMemAlign = mmgrAllocator(f, l, sf, m_alloc_malloc, align, size);
 
@@ -74,7 +74,7 @@ void* conf_memalign_internal(size_t align, size_t size, const char *f, int l, co
 	return pMemAlign;
 }
 
-void* conf_calloc_memalign_internal(size_t count, size_t align, size_t size, const char *f, int l, const char *sf)
+void* tf_calloc_memalign_internal(size_t count, size_t align, size_t size, const char *f, int l, const char *sf)
 {
 	size = ALIGN_TO(size, align);
 
@@ -87,7 +87,7 @@ void* conf_calloc_memalign_internal(size_t count, size_t align, size_t size, con
 	return pMemAlign;
 }
 
-void* conf_realloc_internal(void* ptr, size_t size, const char *f, int l, const char *sf) 
+void* tf_realloc_internal(void* ptr, size_t size, const char *f, int l, const char *sf) 
 {
 	void* pRealloc = mmgrReallocator(f, l, sf, m_alloc_realloc, size, ptr);
 
@@ -98,7 +98,7 @@ void* conf_realloc_internal(void* ptr, size_t size, const char *f, int l, const 
 	return pRealloc;
 }
 
-void conf_free_internal(void* ptr, const char *f, int l, const char *sf)
+void tf_free_internal(void* ptr, const char *f, int l, const char *sf)
 {
 	// If using MTuner, report free to rmem.
 	MTUNER_FREE(0, ptr);
@@ -108,7 +108,7 @@ void conf_free_internal(void* ptr, const char *f, int l, const char *sf)
 
 #else // defined(USE_MEMORY_TRACKING) || defined(USE_MTUNER)
 
-bool MemAllocInit()
+bool MemAllocInit(const char* appName)
 {
 	// No op but this is where you would initialize your memory allocator and bookkeeping data in a real world scenario
 	return true;
@@ -119,10 +119,7 @@ void MemAllocExit()
 	// Return all allocated memory to the OS. Analyze memory usage, dump memory leaks, ...
 }
 
-void mmgrSetLogFileDirectory(const char* directory) {}
-void mmgrSetExecutableName(const char* name, size_t length) {}
-
-void* conf_malloc(size_t size)
+void* tf_malloc(size_t size)
 {
 #ifdef _MSC_VER
 	void* ptr = _aligned_malloc(size, MIN_ALLOC_ALIGNMENT);
@@ -135,11 +132,11 @@ void* conf_malloc(size_t size)
 	return ptr;
 }
 
-void* conf_calloc(size_t count, size_t size)
+void* tf_calloc(size_t count, size_t size)
 {
 #ifdef _MSC_VER
 	size_t sz = count * size;
-	void* ptr = conf_malloc(sz);
+	void* ptr = tf_malloc(sz);
 	memset(ptr, 0, sz);
 #else
 	void* ptr = calloc(count, size);
@@ -149,7 +146,7 @@ void* conf_calloc(size_t count, size_t size)
 	return ptr;
 }
 
-void* conf_memalign(size_t alignment, size_t size)
+void* tf_memalign(size_t alignment, size_t size)
 {
 #ifdef _MSC_VER
 	void* ptr = _aligned_malloc(size, alignment);
@@ -167,7 +164,7 @@ void* conf_memalign(size_t alignment, size_t size)
 	return ptr;
 }
 
-void* conf_calloc_memalign(size_t count, size_t alignment, size_t size)
+void* tf_calloc_memalign(size_t count, size_t alignment, size_t size)
 {
 	size_t alignedArrayElementSize = ALIGN_TO(size, alignment);
 	size_t totalBytes = count * alignedArrayElementSize;
@@ -188,7 +185,7 @@ void* conf_calloc_memalign(size_t count, size_t alignment, size_t size)
 	return ptr;
 }
 
-void* conf_realloc(void* ptr, size_t size)
+void* tf_realloc(void* ptr, size_t size)
 {
 #ifdef _MSC_VER
 	void* reallocPtr = _aligned_realloc(ptr, size, MIN_ALLOC_ALIGNMENT);
@@ -201,7 +198,7 @@ void* conf_realloc(void* ptr, size_t size)
 	return reallocPtr;
 }
 
-void conf_free(void* ptr)
+void tf_free(void* ptr)
 {
 	MTUNER_FREE(0, ptr);
 
@@ -212,16 +209,16 @@ void conf_free(void* ptr)
 #endif
 }
 
-void* conf_malloc_internal(size_t size, const char *f, int l, const char *sf) { return conf_malloc(size); }
+void* tf_malloc_internal(size_t size, const char *f, int l, const char *sf) { return tf_malloc(size); }
 
-void* conf_memalign_internal(size_t align, size_t size, const char *f, int l, const char *sf) { return conf_memalign(align, size); }
+void* tf_memalign_internal(size_t align, size_t size, const char *f, int l, const char *sf) { return tf_memalign(align, size); }
 
-void* conf_calloc_internal(size_t count, size_t size, const char *f, int l, const char *sf) { return conf_calloc(count, size); }
+void* tf_calloc_internal(size_t count, size_t size, const char *f, int l, const char *sf) { return tf_calloc(count, size); }
 
-void* conf_calloc_memalign_internal(size_t count, size_t align, size_t size, const char *f, int l, const char *sf) { return conf_calloc_memalign(count, align, size); }
+void* tf_calloc_memalign_internal(size_t count, size_t align, size_t size, const char *f, int l, const char *sf) { return tf_calloc_memalign(count, align, size); }
 
-void* conf_realloc_internal(void* ptr, size_t size, const char *f, int l, const char *sf) { return conf_realloc(ptr, size); }
+void* tf_realloc_internal(void* ptr, size_t size, const char *f, int l, const char *sf) { return tf_realloc(ptr, size); }
 
-void conf_free_internal(void* ptr, const char *f, int l, const char *sf) { conf_free(ptr); }
+void tf_free_internal(void* ptr, const char *f, int l, const char *sf) { tf_free(ptr); }
 
 #endif // defined(USE_MEMORY_TRACKING) || defined(USE_MTUNER)

@@ -1,6 +1,6 @@
 #pragma once
 /*
- * Copyright (c) 2019 Confetti Interactive Inc.
+ * Copyright (c) 2019 The Forge Interactive Inc.
  *
  * This file is part of The-Forge
  * (see https://github.com/ConfettiFX/The-Forge).
@@ -46,7 +46,7 @@ enum
 
 struct ThreadSystem;
 
-void initThreadSystem(ThreadSystem** ppThreadSystem, uint32_t numRequestedThreads = MAX_LOAD_THREADS, int preferreCore = 0, const char* threadName = "");
+void initThreadSystem(ThreadSystem** ppThreadSystem, uint32_t numRequestedThreads = MAX_LOAD_THREADS, int preferreCore = 0, bool migrateEnabled = true, const char* threadName = "");
 
 void shutdownThreadSystem(ThreadSystem* pThreadSystem);
 

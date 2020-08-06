@@ -4,7 +4,7 @@
 
 inline void utils_caps_builder(Renderer* pRenderer)
 {
-	pRenderer->pCapBits = (GPUCapBits*)conf_calloc(1, sizeof(GPUCapBits));
+	pRenderer->pCapBits = (GPUCapBits*)tf_calloc(1, sizeof(GPUCapBits));
 
 	for (uint32_t i = 0; i < TinyImageFormat_Count;++i) {
 		VkFormatProperties formatSupport;

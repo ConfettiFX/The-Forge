@@ -30,12 +30,8 @@
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Camera\CameraController.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Core\Timer.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystemInternal.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\MemoryStream.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemFileStream.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemRun.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileStream.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Input\InputSystem.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\GpuProfiler.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Profiler\ProfilerBase.cpp" />
@@ -63,7 +59,6 @@
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\rmem\src\rmem_get_module_info.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\rmem\src\rmem_hook.cpp" />
     <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\rmem\src\rmem_lib.cpp" />
-    <ClCompile Include="..\..\..\..\..\Common_3\ThirdParty\OpenSource\zip\zip.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\AnimatedObject.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Animation.cpp" />
     <ClCompile Include="..\..\..\..\..\Middleware_3\Animation\Clip.cpp" />
@@ -79,11 +74,6 @@
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\GPUConfig.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\RingBuffer.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Core\ThreadSystem.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\FileSystemInternal.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\MemoryStream.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\SystemFileStream.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileStream.h" />
-    <ClInclude Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IApp.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\ICameraController.h" />
     <ClInclude Include="..\..\..\..\..\Common_3\OS\Interfaces\IFileSystem.h" />

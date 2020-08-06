@@ -91,6 +91,6 @@ namespace SoLoud
 
 	LofiFilterInstance *LofiFilter::createInstance()
 	{
-		return conf_new(LofiFilterInstance, this);
+		return tf_new(LofiFilterInstance, this);
 	}
 }

@@ -14,6 +14,9 @@
 
 #include <string.h>
 #include <sys/types.h>
+ // CONFFX_CHANGE - Custom File IO
+#include "../../../OS/Interfaces/IFileSystem.h"
+// CONFFX_END
 
 #ifdef __cplusplus
 extern "C" {
@@ -69,7 +72,6 @@ struct zip_t;
 /**
  * Opens zip archive with compression level using the given mode.
  *
- * @param path zip archive path.
  * @param level compression level (0-9 are the standard zlib-style levels).
  * @param mode file access mode.
  *        - 'r': opens a file for reading/extracting (the file must exists).
@@ -79,7 +81,7 @@ struct zip_t;
  * @return the zip archive handler or NULL on error
  */
 // CONFFX_BEGIN - Custom File IO
-extern struct zip_t *zip_open(const struct Path* path, int level, char mode);
+extern struct zip_t *zip_open(ResourceDirectory resourceDir, const char* zippath, int level, char mode);
 // CONFFX_END
 
 /**
@@ -299,7 +301,7 @@ extern int zip_total_entries(struct zip_t *zip);
  * @return the return code - 0 on success, negative number (< 0) on error.
  */
 // CONFFX_CHANGE - Custom File IO
-extern int zip_create(const Path *zippath, const char *filenames[], size_t len);
+extern int zip_create(ResourceDirectory resourceDir, const char* zippath, const char *filenames[], size_t len);
 
 /**
  * Extracts a zip archive file into directory.

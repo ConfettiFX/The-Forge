@@ -66,7 +66,7 @@ void genTextures(uint32_t texture_count, Texture** pOutTexture)
 	TextureLoadDesc textureDesc = {};
 	textureDesc.pDesc = &desc;
 	textureDesc.ppTexture = pOutTexture;
-	addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&textureDesc, NULL);
 
 	for (uint32_t t = 0; t < texture_count; ++t)
 	{

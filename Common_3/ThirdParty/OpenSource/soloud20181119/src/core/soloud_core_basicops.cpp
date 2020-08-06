@@ -48,7 +48,7 @@ namespace SoLoud
 		if (ch < 0) 
 		{
 			unlockAudioMutex();
-			conf_delete(instance);
+			tf_delete(instance);
 			return UNKNOWN_ERROR;
 		}
 		if (!aSound.mAudioSourceID)

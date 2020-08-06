@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2018 Confetti Interactive Inc.
+* Copyright (c) 2018 The Forge Interactive Inc.
 *
 * This file is part of The-Forge
 * (see https://github.com/ConfettiFX/The-Forge).
@@ -448,11 +448,10 @@ bool LoadSponza()
 {
 	for (int i = 0; i < TOTAL_IMGS; ++i)
 	{
-		PathHandle texturePath = fsGetPathInResourceDirEnum(RD_TEXTURES, pMaterialImageFileNames[i]);
 		TextureLoadDesc textureDesc = {};
-		textureDesc.pFilePath = texturePath;
+		textureDesc.pFileName = pMaterialImageFileNames[i];
 		textureDesc.ppTexture = &pMaterialTextures[i];
-		addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&textureDesc, NULL);
 	}
 
 	VertexLayout vertexLayout = {};
@@ -479,13 +478,12 @@ bool LoadSponza()
 	vertexLayout.mAttribs[2].mOffset = 0;
 
 	SyncToken token = {};
-	PathHandle sceneFullPath = fsGetPathInResourceDirEnum(RD_MESHES, gModel_Sponza_File);
 	GeometryLoadDesc loadDesc = {};
-	loadDesc.pFilePath = sceneFullPath;
+	loadDesc.pFileName = gModel_Sponza_File;
 	loadDesc.ppGeometry = &SponzaProp.pGeom;
 	loadDesc.pVertexLayout = &vertexLayout;
 	loadDesc.mFlags = GEOMETRY_LOAD_FLAG_SHADOWED;
-	addResource(&loadDesc, &token, LOAD_PRIORITY_HIGH);
+	addResource(&loadDesc, &token);
 
 	waitForToken(&token);
 
@@ -506,7 +504,7 @@ bool LoadSponza()
 	desc.mDesc.mSize = totalPrimitiveCount * sizeof(uint32_t);
 	desc.mDesc.mElementCount = totalPrimitiveCount;
 	desc.ppBuffer = &SponzaProp.pMaterialIdStream;
-	addResource(&desc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&desc, NULL);
 
 	BufferUpdateDesc updateDesc = {};
 	updateDesc.pBuffer = SponzaProp.pMaterialIdStream;
@@ -535,7 +533,7 @@ bool LoadSponza()
         desc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
         desc.pData = &data;
         desc.ppBuffer = &SponzaProp.pConstantBuffer;
-        addResource(&desc, NULL, LOAD_PRIORITY_NORMAL);
+        addResource(&desc, NULL);
     }
 	
 	AssignSponzaTextures();
@@ -544,7 +542,7 @@ bool LoadSponza()
 	desc.mDesc.mElementCount = (uint32_t)gSponzaTextureIndexForMaterial.size();
 	desc.ppBuffer = &SponzaProp.pMaterialTexturesStream;
 	desc.pData = gSponzaTextureIndexForMaterial.data();
-	addResource(&desc, NULL, LOAD_PRIORITY_NORMAL);
+	addResource(&desc, NULL);
 	
 	return true;
 }
@@ -560,7 +558,7 @@ void UnloadSponza()
 
 	gSponzaTextureIndexForMaterial.set_capacity(0);
 	
-	conf_free(SponzaProp.pGeom->pShadow);
+	tf_free(SponzaProp.pGeom->pShadow);
 	
 	removeResource(SponzaProp.pGeom);
 	removeResource(SponzaProp.pMaterialIdStream);
@@ -621,22 +619,14 @@ public:
 	
 	bool Init()
 	{
-        // FILE PATHS
-        PathHandle programDirectory = fsGetApplicationDirectory();
-        if (!fsPlatformUsesBundledResources())
-        {
-            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/16_Raytracing");
-            fsSetResourceDirRootPath(resourceDirRoot);
-            
-			fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        				 "../../../../Art/Sponza/Textures");
-			fsSetRelativePathForResourceDirEnum(RD_MESHES,          				 "../../../../Art/Sponza/Meshes");
-            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,   				 "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,      				 "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT, 				 "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,   				 "../../../../Middleware_3/UI");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_3, 					 "../../../../Middleware_3/ParallelPrimitives");
-        }
-        
+		// FILE PATHS
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
+
 		if (!initInputSystem(pWindow))
 			return false;
 
@@ -674,7 +664,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 
         const char* ppGpuProfilerName[1] = { "Graphics" };
         initProfiler(pRenderer, &pQueue, ppGpuProfilerName, &gGpuProfileToken, 1);
@@ -691,8 +681,8 @@ public:
         /************************************************************************/
 		ShaderMacro denoiserMacro  = { "DENOISER_ENABLED", USE_DENOISER ? "1" : "0" };
         ShaderLoadDesc displayShader = {};
-        displayShader.mStages[0] = { "DisplayTexture.vert", &denoiserMacro, 1, RD_SHADER_SOURCES };
-        displayShader.mStages[1] = { "DisplayTexture.frag", &denoiserMacro, 1, RD_SHADER_SOURCES };
+        displayShader.mStages[0] = { "DisplayTexture.vert", &denoiserMacro, 1 };
+        displayShader.mStages[1] = { "DisplayTexture.frag", &denoiserMacro, 1 };
         addShader(pRenderer, &displayShader, &pDisplayTextureShader);
         
         SamplerDesc samplerDesc = { FILTER_NEAREST,
@@ -846,19 +836,19 @@ public:
 			
 			ShaderMacro denoiserMacro  = { "DENOISER_ENABLED", USE_DENOISER ? "1" : "0" };
             ShaderLoadDesc desc = {};
-            desc.mStages[0] = { "RayGen.rgen", &denoiserMacro, 1, RD_SHADER_SOURCES, "rayGen"};
+            desc.mStages[0] = { "RayGen.rgen", &denoiserMacro, 1, "rayGen" };
 #ifndef DIRECT3D11
             desc.mTarget = shader_target_6_3;
 #endif
             addShader(pRenderer, &desc, &pShaderRayGen);
             
-            desc.mStages[0] = { "ClosestHit.rchit", &denoiserMacro, 1, RD_SHADER_SOURCES, "chs"};
+            desc.mStages[0] = { "ClosestHit.rchit", &denoiserMacro, 1, "chs" };
             addShader(pRenderer, &desc, &pShaderClosestHit);
             
-            desc.mStages[0] = { "Miss.rmiss", &denoiserMacro, 1, RD_SHADER_SOURCES, "miss"};
+            desc.mStages[0] = { "Miss.rmiss", &denoiserMacro, 1, "miss" };
             addShader(pRenderer, &desc, &pShaderMiss);
             
-            desc.mStages[0] = { "MissShadow.rmiss", &denoiserMacro, 1, RD_SHADER_SOURCES, "missShadow"};
+            desc.mStages[0] = { "MissShadow.rmiss", &denoiserMacro, 1, "missShadow" };
             addShader(pRenderer, &desc, &pShaderMissShadow);
         }
 		
@@ -917,7 +907,7 @@ public:
 		for (uint32_t i = 0; i < gImageCount; i++)
 		{
 			ubDesc.ppBuffer = &pRayGenConfigBuffer[i];
-			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubDesc, NULL);
 		}
 
 		DescriptorSetDesc setDesc = { pDisplayTextureSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
@@ -1040,12 +1030,12 @@ public:
 		TextureLoadDesc loadDesc = {};
 		loadDesc.pDesc = &uavDesc;
 		loadDesc.ppTexture = &pComputeOutput;
-		addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&loadDesc, NULL);
 		
 #if USE_DENOISER
 		uavDesc.mFormat = TinyImageFormat_B10G10R10A2_UNORM;
 		loadDesc.ppTexture = &pAlbedoTexture;
-		addResource(&loadDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&loadDesc, NULL);
 #endif
 
 		SwapChainDesc swapChainDesc = {};
@@ -1085,8 +1075,8 @@ public:
 			addRenderTarget(pRenderer, &rtDesc, &pDepthRenderTarget);
 			
 			ShaderLoadDesc denoiserShader = {};
-			denoiserShader.mStages[0] = { "DenoiserInputsPass.vert", NULL, 0, RD_SHADER_SOURCES };
-			denoiserShader.mStages[1] = { "DenoiserInputsPass.frag", NULL, 0, RD_SHADER_SOURCES };
+			denoiserShader.mStages[0] = { "DenoiserInputsPass.vert", NULL, 0 };
+			denoiserShader.mStages[1] = { "DenoiserInputsPass.frag", NULL, 0 };
 			addShader(pRenderer, &denoiserShader, &pDenoiserInputsShader);
 			
 			RootSignatureDesc rootSignature = {};
@@ -1141,7 +1131,7 @@ public:
 			for (uint32_t i = 0; i < gImageCount; i++)
 			{
 				ubDesc.ppBuffer = &pDenoiserInputsUniformBuffer[i];
-				addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+				addResource(&ubDesc, NULL);
 			}
 			
 			DescriptorSetDesc setDesc = { pDenoiserInputsRootSignature, DESCRIPTOR_UPDATE_FREQ_PER_FRAME, gImageCount };
@@ -1180,14 +1170,7 @@ public:
         addPipeline(pRenderer, &graphicsPipelineDesc, &pDisplayTexturePipeline);
 		/************************************************************************/
 		/************************************************************************/
-		
-#ifdef TARGET_IOS
-		ResourceDirEnum circlePadDirectory = RD_ROOT;
-#else
-		ResourceDirEnum circlePadDirectory = RD_TEXTURES;
-#endif
-		
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", circlePadDirectory))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
 			return false;
 		
 		if (!gAppUI.Load(pSwapChain->ppRenderTargets))

@@ -292,26 +292,27 @@ typedef enum GLTFFlags
 	GLTF_FLAG_CALCULATE_BOUNDS = 0x2,
 } GLTFFlags;
 
-static uint32_t gltfLoadContainer(const Path* pPath, GLTFFlags flags, GLTFContainer** ppGLTF)
+static uint32_t gltfLoadContainer(const char* pFileName, GLTFFlags flags, GLTFContainer** ppGLTF)
 {
-	FileStream* file = fsOpenFile(pPath, FM_READ_BINARY);
-	if (!file)
+	FileStream file = {};
+
+	if (!fsOpenStreamFromPath(RD_MESHES, pFileName, FM_READ_BINARY, &file))
 	{
-		LOGF(eERROR, "Failed to open gltf file %s", fsGetPathFileName(pPath).buffer);
+		LOGF(eERROR, "Failed to open gltf file %s", pFileName);
 		ASSERT(false);
 		return -1;
 	}
 
-	ssize_t fileSize = fsGetStreamFileSize(file);
-	void* fileData = conf_malloc(fileSize);
-	fsReadFromStream(file, fileData, fileSize);
-	fsCloseStream(file);
+	ssize_t fileSize = fsGetStreamFileSize(&file);
+	void* fileData = tf_malloc(fileSize);
+	fsReadFromStream(&file, fileData, fileSize);
+	fsCloseStream(&file);
 
 	cgltf_result result = cgltf_result_invalid_gltf;
 	cgltf_options options = {};
 	cgltf_data* data = NULL;
-	options.memory_alloc = [](void* user, cgltf_size size) { return conf_malloc(size); };
-	options.memory_free = [](void* user, void* ptr) { conf_free(ptr); };
+	options.memory_alloc = [](void* user, cgltf_size size) { return tf_malloc(size); };
+	options.memory_free = [](void* user, void* ptr) { tf_free(ptr); };
 	result = cgltf_parse(&options, fileData, fileSize, &data);
 
 	if (cgltf_result_success != result)
@@ -343,28 +344,27 @@ static uint32_t gltfLoadContainer(const Path* pPath, GLTFFlags flags, GLTFContai
 
 		if (strncmp(uri, "data:", 5) != 0 && !strstr(uri, "://"))
 		{
-			Path* parent = fsGetParentPath(pPath);
-			Path* path = fsAppendPathComponent(parent, uri);
-			FileStream* fs = fsOpenFile(path, FM_READ_BINARY);
-			if (fs)
+			char binFile[FS_MAX_PATH] = {};
+			char parentPath[FS_MAX_PATH] = {};
+			fsGetParentPath(pFileName, parentPath);
+			fsAppendPathComponent(parentPath, uri, binFile);
+			FileStream fs = {};	
+			if (fsOpenStreamFromPath(RD_MESHES, binFile, FM_READ_BINARY, &fs))
 			{
-				ASSERT(fsGetStreamFileSize(fs) >= (ssize_t)data->buffers[i].size);
-
-				data->buffers[i].data = conf_malloc(data->buffers[i].size);
-				fsReadFromStream(fs, data->buffers[i].data, data->buffers[i].size);
+				ASSERT(fsGetStreamFileSize(&fs) >= (ssize_t)data->buffers[i].size);
+				data->buffers[i].data = tf_malloc(data->buffers[i].size);
+				fsReadFromStream(&fs, data->buffers[i].data, data->buffers[i].size);
+				fsCloseStream(&fs);
 			}
-			fsCloseStream(fs);
-			fsFreePath(path);
-			fsFreePath(parent);
 		}
 	}
 
-	result = cgltf_load_buffers(&options, data, fsGetPathAsNativeString(pPath));
+	result = cgltf_load_buffers(&options, data, pFileName);
 	if (cgltf_result_success != result)
 	{
-		LOGF(eERROR, "Failed to load buffers from gltf file %s with error %u", fsGetPathFileName(pPath).buffer, (uint32_t)result);
+		LOGF(eERROR, "Failed to load buffers from gltf file %s with error %u", pFileName, (uint32_t)result);
 		ASSERT(false);
-		conf_free(fileData);
+		tf_free(fileData);
 		return result;
 	}
 
@@ -433,7 +433,7 @@ static uint32_t gltfLoadContainer(const Path* pPath, GLTFFlags flags, GLTFContai
 			totalSize += vertexCount * strides[i];
 		totalSize += indexCount * sizeof(uint32_t);
 	}
-	GLTFContainer* pGLTF = (GLTFContainer*)conf_calloc(1, totalSize);
+	GLTFContainer* pGLTF = (GLTFContainer*)tf_calloc(1, totalSize);
 	ASSERT(pGLTF);
 
 	pGLTF->pHandle = data;
@@ -738,36 +738,10 @@ static void gltfUnloadContainer(GLTFContainer* pGLTF)
 {
 	ASSERT(pGLTF);
 	cgltf_free(pGLTF->pHandle);
-	conf_free(pGLTF);
+	tf_free(pGLTF);
 }
 
-static Path* gltfFindTexturePath(const Path* path, const cgltf_image* image)
-{
-	// First, check whether the texture exists with the specified extension in the scene directory (as per glTF spec).
-	Path* candidatePath = fsAppendPathComponent(path, image->uri);
-
-	if (fsFileExists(candidatePath))
-		return candidatePath;
-	else
-		fsFreePath(candidatePath);
-
-	// If it's not there, try the textures directory.
-	candidatePath = fsGetPathInResourceDirEnum(RD_TEXTURES, image->uri);
-
-	if (fsFileExists(candidatePath))
-		return candidatePath;
-
-	// Delete the extension and let the image loader load whatever format it can find in
-	// the textures directory
-
-	Path* pathWithExtension = candidatePath;
-	candidatePath = fsReplacePathExtension(candidatePath, "");
-	fsFreePath(pathWithExtension);
-
-	return candidatePath;
-}
-
-void gltfLoadTextureAtIndex(GLTFContainer* pGLTF, const Path* path, size_t index, bool isSRGB, struct SyncToken* token, Texture** ppOutTexture)
+void gltfLoadTextureAtIndex(GLTFContainer* pGLTF, size_t index, bool isSRGB, SyncToken* token, TextureContainerType container, Texture** ppOutTexture)
 {
 	if (!pGLTF)
 	{
@@ -781,13 +755,11 @@ void gltfLoadTextureAtIndex(GLTFContainer* pGLTF, const Path* path, size_t index
 	TextureLoadDesc loadDesc = {};
 	loadDesc.ppTexture = ppOutTexture;
 	loadDesc.mCreationFlag = isSRGB ? TEXTURE_CREATION_FLAG_SRGB : TEXTURE_CREATION_FLAG_NONE;
+	loadDesc.mContainer = container;
 
-	Path* imagePath = NULL;
 	if (!image->buffer_view)
 	{
-		imagePath = gltfFindTexturePath(path, image);
-		loadDesc.pFilePath = imagePath;
-		addResource(&loadDesc, token, LOAD_PRIORITY_NORMAL);
-		fsFreePath(imagePath);
+		loadDesc.pFileName = image->uri;
+		addResource(&loadDesc, token);
 	}
 }

@@ -61,6 +61,6 @@ namespace SoLoud
 
 	FilterInstance *BassboostFilter::createInstance()
 	{
-		return conf_new(BassboostFilterInstance, this);
+		return tf_new(BassboostFilterInstance, this);
 	}
 }

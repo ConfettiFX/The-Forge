@@ -103,7 +103,7 @@ namespace SoLoud
 		int i;
 		for (i = 0; i < FILTERS_PER_STREAM; i++)
 		{		
-			conf_delete(mFilter[i]);
+			tf_delete(mFilter[i]);
 		}		
 	}
 

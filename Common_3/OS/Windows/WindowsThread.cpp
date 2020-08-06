@@ -58,14 +58,14 @@ void Mutex::Release()
 
 bool ConditionVariable::Init(const char* name)
 {
-	pHandle = (CONDITION_VARIABLE*)conf_calloc(1, sizeof(CONDITION_VARIABLE));
+	pHandle = (CONDITION_VARIABLE*)tf_calloc(1, sizeof(CONDITION_VARIABLE));
 	InitializeConditionVariable((PCONDITION_VARIABLE)pHandle);
 	return true;
 }
 
 void ConditionVariable::Destroy()
 {
-	conf_free(pHandle);
+	tf_free(pHandle);
 }
 
 void ConditionVariable::Wait(const Mutex& mutex, uint32_t ms)

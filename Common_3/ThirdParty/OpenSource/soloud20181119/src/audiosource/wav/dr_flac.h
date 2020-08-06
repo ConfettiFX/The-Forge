@@ -1001,13 +1001,13 @@ static DRFLAC_INLINE drflac_bool32 drflac_has_sse41()
 #define DRFLAC_ASSERT(expression)           ASSERT(expression)
 #endif
 #ifndef DRFLAC_MALLOC
-#define DRFLAC_MALLOC(sz)                   conf_malloc((sz))
+#define DRFLAC_MALLOC(sz)                   tf_malloc((sz))
 #endif
 #ifndef DRFLAC_REALLOC
-#define DRFLAC_REALLOC(p, sz)               conf_realloc((p), (sz))
+#define DRFLAC_REALLOC(p, sz)               tf_realloc((p), (sz))
 #endif
 #ifndef DRFLAC_FREE
-#define DRFLAC_FREE(p)                      conf_free((p))
+#define DRFLAC_FREE(p)                      tf_free((p))
 #endif
 #ifndef DRFLAC_COPY_MEMORY
 #define DRFLAC_COPY_MEMORY(dst, src, sz)    memcpy((dst), (src), (sz))

@@ -184,20 +184,12 @@ public:
 	bool Init()
 	{
         // FILE PATHS
-        PathHandle programDirectory = fsGetApplicationDirectory();
-        if (!fsPlatformUsesBundledResources())
-        {
-            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/31_Audio");
-            fsSetResourceDirRootPath(resourceDirRoot);
-            
-            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirEnum(RD_MESHES,          "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirEnum(RD_AUDIO,           "../../UnitTestResources/Audio");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
-        }
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES,	"Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES,	"CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG,		"GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES,			"Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS,			"Fonts");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_AUDIO,			"Audio");
         
 		// WINDOW AND RENDERER SETUP
 		//
@@ -240,7 +232,7 @@ public:
 			return false;
 		}
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 
 		// Add the GUI Panels/Windows
 		const TextDrawDesc UIPanelWindowTitleTextDesc = { 0, 0xffff00ff, 16 };
@@ -294,7 +286,7 @@ public:
 		}
 
 		// Init the audio data
-		pGlobal = conf_new(GlobalAudio);
+		pGlobal = tf_new(GlobalAudio);
 		pGlobal->mSoLoud.init();
 				
 		SoLoud::result res = pGlobal->mBgWavObj.load(gWavBgTestFile);
@@ -350,7 +342,7 @@ public:
 		removeQueue(pRenderer, pGraphicsQueue);
 		removeRenderer(pRenderer);
 
-		conf_delete(pGlobal);
+		tf_delete(pGlobal);
 	}
 
 	bool Load()

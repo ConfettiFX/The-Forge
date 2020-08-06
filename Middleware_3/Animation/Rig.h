@@ -47,7 +47,7 @@ class Rig
 {
 	public:
 	// Sets up the rig by loading the skeleton from an ozz skeleton file
-	void Initialize(const Path* skeletonFilePath);
+	void Initialize(const ResourceDirectory resourceDir, const char* fileName);
 
 	// Must be called to clean up the object if it was initialized
 	void Destroy();
@@ -143,7 +143,7 @@ class Rig
 
 	private:
 	// Load a runtime skeleton from a skeleton.ozz file
-	bool LoadSkeleton(const Path* filePath);
+	bool LoadSkeleton(const ResourceDirectory resourceDir, const char* fileName);
 
 	// Runtime skeleton.
 	ozz::animation::Skeleton mSkeleton;

@@ -32,8 +32,6 @@
     <CustomBuild Include="..\src\01_Transformations\Shaders\Vulkan\skybox.vert">
       <Filter>Shaders\Vulkan</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\src\01_Transformations\Shaders\Vulkan\profile.frag" />
-    <CustomBuild Include="..\src\01_Transformations\Shaders\Vulkan\profile.vert" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\01_Transformations\Shaders\D3D12\skybox.vert">

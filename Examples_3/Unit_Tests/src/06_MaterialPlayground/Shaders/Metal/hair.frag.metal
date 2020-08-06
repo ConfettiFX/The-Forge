@@ -159,7 +159,6 @@ float3 ComputeDiffuseSpecularFactors(float3 eyeDir, float3 lightDir, float3 tang
 	float secundarySpecular = max(0.0f, secundaryCosTRL * cosTE + secundarySinTRL * sinTE);
 
 	float3 diffuseSpecular = float3(hair.Kd * diffuse, hair.Ks1 * pow(primarySpecular, hair.Ex1), hair.Ks2 * pow(secundarySpecular, hair.Ex2));
-	diffuseSpecular *= 0.07f;	// Reduce light intensity to account for extremely bright lights used in PBR
 	return diffuseSpecular;
 }
 
@@ -367,9 +366,6 @@ fragment float4 stageMain(
 	float3 eyeDir = normalize(worldPos.xyz - vsDataPerFrame.cbCamera.CamPos);
 
 	float3 color = HairShading(worldPos.xyz, -eyeDir, normalize(input.Tangent.xyz), input.Color.rgb, vsData.cbPointLights, vsData.cbDirectionalLights, vsDataPerBatch.cbDirectionalLightShadowCameras, vsDataPerBatch.DirectionalLightShadowMaps, vsData.PointSampler, vsDataPerDraw.cbHair);
-	color.rgb = color.rgb / (color.rgb + 1.0f);
-	float gammaCorr = 1.0f / 2.2f;
-	color.rgb = pow(color.rgb, gammaCorr);
 
 	return float4(color.rgb * alpha, alpha);
 }

@@ -3,6 +3,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\..\..\..\Common_3\OS\Android\android_native_app_glue.c" />
     <ClCompile Include="..\..\..\src\12_ZipFileSystem\12_ZipFileSystem.cpp" />
+    <ClCompile Include="..\..\..\..\..\Common_3\OS\FileSystem\ZipFileSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\..\src\27_File_System\Shaders\Vulkan\basic.frag">

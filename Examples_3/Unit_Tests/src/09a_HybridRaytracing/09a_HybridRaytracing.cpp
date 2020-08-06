@@ -595,7 +595,7 @@ void sortAlongAxis(eastl::vector<AABBox>& bboxData, int begin, int end, int axis
 //  else
 //	  sortAlongAxis(bboxData, begin, end, 2);
 //
-//  BVHNode* node = (BVHNode*)conf_placement_new<BVHNode>(conf_calloc(1, sizeof(BVHNode)));
+//  BVHNode* node = (BVHNode*)tf_placement_new<BVHNode>(tf_calloc(1, sizeof(BVHNode)));
 //
 //  node->BoundingBox.Expand(minBounds);
 //  node->BoundingBox.Expand(maxBounds);
@@ -710,7 +710,7 @@ BVHNode* createBVHNodeSHA(eastl::vector<AABBox>& bboxData, int begin, int end, f
 
 	calculateBounds(bboxData, begin, end, minBounds, maxBounds);
 
-	BVHNode* node = (BVHNode*)conf_placement_new<BVHNode>(conf_calloc(1, sizeof(BVHNode)));
+	BVHNode* node = (BVHNode*)tf_placement_new<BVHNode>(tf_calloc(1, sizeof(BVHNode)));
 
 	node->BoundingBox.Expand(minBounds);
 	node->BoundingBox.Expand(maxBounds);
@@ -828,7 +828,7 @@ void deleteBVHTree(BVHNode* node)
 		if (node->Right)
 			deleteBVHTree(node->Right);
 		node->~BVHNode();
-		conf_free(node);
+		tf_free(node);
 	}
 }
 
@@ -851,19 +851,12 @@ public:
 	bool Init()
 	{
 		// FILE PATHS
-		PathHandle programDirectory = fsGetApplicationDirectory();
-		if (!fsPlatformUsesBundledResources())
-		{
-			PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/09a_HybridRaytracing");
-			fsSetResourceDirRootPath(resourceDirRoot);
-
-			fsSetRelativePathForResourceDirEnum(RD_TEXTURES, "../../../../Art/Sponza/Textures");
-			fsSetRelativePathForResourceDirEnum(RD_MESHES, "../../../../Art/Sponza/Meshes");
-			fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS, "../../UnitTestResources/Fonts");
-			fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS, "../../UnitTestResources/Animation");
-			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT, "../../../../Middleware_3/Text");
-			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI, "../../../../Middleware_3/UI");
-		}
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_MESHES, "Meshes");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
 
 		// window and renderer setup
 		RendererDesc settings = { 0 };
@@ -882,23 +875,23 @@ public:
 
 		//Gbuffer pass
 		RenderPassData* pass =
-			conf_placement_new<RenderPassData>(conf_calloc(1, sizeof(RenderPassData)), pRenderer, pGraphicsQueue, gImageCount);
+			tf_placement_new<RenderPassData>(tf_calloc(1, sizeof(RenderPassData)), pRenderer, pGraphicsQueue, gImageCount);
 		RenderPasses.insert(eastl::pair<RenderPass::Enum, RenderPassData*>(RenderPass::GBuffer, pass));
 
 		//Shadow pass
-		pass = conf_placement_new<RenderPassData>(conf_calloc(1, sizeof(RenderPassData)), pRenderer, pGraphicsQueue, gImageCount);
+		pass = tf_placement_new<RenderPassData>(tf_calloc(1, sizeof(RenderPassData)), pRenderer, pGraphicsQueue, gImageCount);
 		RenderPasses.insert(eastl::pair<RenderPass::Enum, RenderPassData*>(RenderPass::RaytracedShadows, pass));
 
 		//Lighting pass
-		pass = conf_placement_new<RenderPassData>(conf_calloc(1, sizeof(RenderPassData)), pRenderer, pGraphicsQueue, gImageCount);
+		pass = tf_placement_new<RenderPassData>(tf_calloc(1, sizeof(RenderPassData)), pRenderer, pGraphicsQueue, gImageCount);
 		RenderPasses.insert(eastl::pair<RenderPass::Enum, RenderPassData*>(RenderPass::Lighting, pass));
 
 		//Composite pass
-		pass = conf_placement_new<RenderPassData>(conf_calloc(1, sizeof(RenderPassData)), pRenderer, pGraphicsQueue, gImageCount);
+		pass = tf_placement_new<RenderPassData>(tf_calloc(1, sizeof(RenderPassData)), pRenderer, pGraphicsQueue, gImageCount);
 		RenderPasses.insert(eastl::pair<RenderPass::Enum, RenderPassData*>(RenderPass::Composite, pass));
 
 		//Copy to backbuffer
-		pass = conf_placement_new<RenderPassData>(conf_calloc(1, sizeof(RenderPassData)), pRenderer, pGraphicsQueue, gImageCount);
+		pass = tf_placement_new<RenderPassData>(tf_calloc(1, sizeof(RenderPassData)), pRenderer, pGraphicsQueue, gImageCount);
 		RenderPasses.insert(eastl::pair<RenderPass::Enum, RenderPassData*>(RenderPass::CopyToBackbuffer, pass));
 
 		for (uint32_t i = 0; i < gImageCount; ++i)
@@ -913,7 +906,7 @@ public:
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 
 		initProfiler();
 		gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
@@ -926,34 +919,34 @@ public:
 
 			ShaderMacro    totalImagesShaderMacro = { "TOTAL_IMGS", totalImagesShaderMacroBuffer };
 			ShaderLoadDesc shaderGPrepass = {};
-			shaderGPrepass.mStages[0] = { "gbufferPass.vert", NULL, 0, RD_SHADER_SOURCES };
+			shaderGPrepass.mStages[0] = { "gbufferPass.vert", NULL, 0 };
 #ifndef TARGET_IOS
-			shaderGPrepass.mStages[1] = { "gbufferPass.frag", &totalImagesShaderMacro, 1, RD_SHADER_SOURCES };
+			shaderGPrepass.mStages[1] = { "gbufferPass.frag", &totalImagesShaderMacro, 1 };
 #else
 			//separate fragment gbuffer pass for iOs that does not use bindless textures
-			shaderGPrepass.mStages[1] = { "gbufferPass_iOS.frag", NULL, 0, RD_SHADER_SOURCES };
+			shaderGPrepass.mStages[1] = { "gbufferPass_iOS.frag", NULL, 0 };
 #endif
 			addShader(pRenderer, &shaderGPrepass, &RenderPasses[RenderPass::GBuffer]->pShader);
 
 			//shader for Shadow pass
 			ShaderLoadDesc shadowsShader = {};
-			shadowsShader.mStages[0] = { "raytracedShadowsPass.comp", NULL, 0, RD_SHADER_SOURCES };
+			shadowsShader.mStages[0] = { "raytracedShadowsPass.comp", NULL, 0 };
 			addShader(pRenderer, &shadowsShader, &RenderPasses[RenderPass::RaytracedShadows]->pShader);
 
 			//shader for Lighting pass
 			ShaderLoadDesc lightingShader = {};
-			lightingShader.mStages[0] = { "lightingPass.comp", NULL, 0, RD_SHADER_SOURCES };
+			lightingShader.mStages[0] = { "lightingPass.comp", NULL, 0 };
 			addShader(pRenderer, &lightingShader, &RenderPasses[RenderPass::Lighting]->pShader);
 
 			//shader for Composite pass
 			ShaderLoadDesc compositeShader = {};
-			compositeShader.mStages[0] = { "compositePass.comp", NULL, 0, RD_SHADER_SOURCES };
+			compositeShader.mStages[0] = { "compositePass.comp", NULL, 0 };
 			addShader(pRenderer, &compositeShader, &RenderPasses[RenderPass::Composite]->pShader);
 
 			//Load shaders for copy to backbufferpass
 			ShaderLoadDesc copyShader = {};
-			copyShader.mStages[0] = { "display.vert", NULL, 0, RD_SHADER_SOURCES };
-			copyShader.mStages[1] = { "display.frag", NULL, 0, RD_SHADER_SOURCES };
+			copyShader.mStages[0] = { "display.vert", NULL, 0 };
+			copyShader.mStages[1] = { "display.frag", NULL, 0 };
 			addShader(pRenderer, &copyShader, &RenderPasses[RenderPass::CopyToBackbuffer]->pShader);
 		}
 
@@ -1055,7 +1048,7 @@ public:
 				for (uint32_t i = 0; i < gImageCount; ++i)
 				{
 					ubDesc.ppBuffer = &RenderPasses[RenderPass::GBuffer]->pPerPassCB[i];
-					addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+					addResource(&ubDesc, NULL);
 				}
 			}
 
@@ -1070,7 +1063,7 @@ public:
 				for (uint32_t i = 0; i < gImageCount; ++i)
 				{
 					ubDesc.ppBuffer = &RenderPasses[RenderPass::RaytracedShadows]->pPerPassCB[i];
-					addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+					addResource(&ubDesc, NULL);
 				}
 			}
 
@@ -1085,7 +1078,7 @@ public:
 				for (uint32_t i = 0; i < gImageCount; ++i)
 				{
 					ubDesc.ppBuffer = &RenderPasses[RenderPass::Lighting]->pPerPassCB[i];
-					addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+					addResource(&ubDesc, NULL);
 				}
 			}
 
@@ -1100,12 +1093,12 @@ public:
 				for (uint32_t i = 0; i < gImageCount; ++i)
 				{
 					ubDesc.ppBuffer = &RenderPasses[RenderPass::Composite]->pPerPassCB[i];
-					addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+					addResource(&ubDesc, NULL);
 				}
 			}
 		}
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
 			return false;
 
 		GuiDesc guiDesc = {};
@@ -1237,7 +1230,7 @@ public:
 			removeRootSignature(pRenderer, pass->pRootSignature);
 
 			pass->~RenderPassData();
-			conf_free(pass);
+			tf_free(pass);
 		}
 
 		RenderPasses.clear(true);
@@ -1453,11 +1446,10 @@ public:
 		//adding material textures
 		for (int i = 0; i < TOTAL_IMGS; ++i)
 		{
-			PathHandle texturePath = fsGetPathInResourceDirEnum(RD_TEXTURES, pMaterialImageFileNames[i]);
 			TextureLoadDesc textureDesc = {};
-			textureDesc.pFilePath = texturePath;
+			textureDesc.pFileName = pMaterialImageFileNames[i];
 			textureDesc.ppTexture = &pMaterialTextures[i];
-			addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&textureDesc, NULL);
 		}
 
 		{
@@ -1486,13 +1478,12 @@ public:
 
 		SponzaProp.WorldMatrix = mat4::identity();
 
-		PathHandle sceneFullPath = fsGetPathInResourceDirEnum(RD_MESHES, gModel_Sponza_File);
 		GeometryLoadDesc loadDesc = {};
-		loadDesc.pFilePath = sceneFullPath;
+		loadDesc.pFileName = gModel_Sponza_File;
 		loadDesc.ppGeometry = &SponzaProp.Geom;
 		loadDesc.pVertexLayout = &gVertexLayoutGPrepass;
 		loadDesc.mFlags = GEOMETRY_LOAD_FLAG_SHADOWED;
-		addResource(&loadDesc, token, LOAD_PRIORITY_HIGH);
+		addResource(&loadDesc, token);
 
 		//set constant buffer for sponza
 		{
@@ -1506,7 +1497,7 @@ public:
 			desc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 			desc.pData = &data;
 			desc.ppBuffer = &SponzaProp.pConstantBuffer;
-			addResource(&desc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&desc, NULL);
 		}
 
 		AssignSponzaTextures();
@@ -1523,7 +1514,7 @@ public:
 
 		addPropToPrimitivesAABBList(triBBoxes, SponzaProp);
 
-		conf_free(SponzaProp.Geom->pShadow);
+		tf_free(SponzaProp.Geom->pShadow);
 
 		int count = (int)triBBoxes.size();
 		//BVHNode* bvhRoot = createBVHNode(triBBoxes, 0, count-1);
@@ -1532,7 +1523,7 @@ public:
 		gWholeSceneBBox = bvhRoot->BoundingBox;
 
 		const int maxNoofElements = 1000000;
-		uint8* bvhTreeNodes = (uint8*)conf_malloc(maxNoofElements * sizeof(BVHLeafBBox));
+		uint8* bvhTreeNodes = (uint8*)tf_malloc(maxNoofElements * sizeof(BVHLeafBBox));
 
 		int dataOffset = 0;
 		int index = 0;
@@ -1554,9 +1545,9 @@ public:
 		desc.mDesc.mStructStride = sizeof(float4);
 		desc.pData = bvhTreeNodes;
 		desc.ppBuffer = &BVHBoundingBoxesBuffer;
-		addResource(&desc, &token, LOAD_PRIORITY_HIGH);
+		addResource(&desc, &token);
 		waitForToken(&token);
-		conf_free(bvhTreeNodes);
+		tf_free(bvhTreeNodes);
 		deleteBVHTree(bvhRoot);
 	}
 
@@ -1627,7 +1618,7 @@ public:
 
 				Texture* pTexture;
 				textureDesc.ppTexture = &pTexture;
-				addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
+				addResource(&textureDesc, NULL);
 
 				RenderPasses[RenderPass::RaytracedShadows]->Textures.push_back(pTexture);
 			}
@@ -1650,7 +1641,7 @@ public:
 
 				Texture* pTexture;
 				textureDesc.ppTexture = &pTexture;
-				addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
+				addResource(&textureDesc, NULL);
 
 				RenderPasses[RenderPass::Lighting]->Textures.push_back(pTexture);
 			}
@@ -1673,7 +1664,7 @@ public:
 
 				Texture* pTexture;
 				textureDesc.ppTexture = &pTexture;
-				addResource(&textureDesc, NULL, LOAD_PRIORITY_NORMAL);
+				addResource(&textureDesc, NULL);
 
 				RenderPasses[RenderPass::Composite]->Textures.push_back(pTexture);
 			}

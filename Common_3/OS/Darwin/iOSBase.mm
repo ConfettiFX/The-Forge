@@ -45,7 +45,7 @@
 
 #include "../Interfaces/IMemory.h"
 
-#define CONFETTI_WINDOW_CLASS L"confetti"
+#define FORGE_WINDOW_CLASS L"The Forge"
 #define MAX_KEYS 256
 
 #define elementsOf(a) (sizeof(a) / sizeof((a)[0]))
@@ -414,15 +414,27 @@ uint32_t testingMaxFrameCount = 120;
 	self = [super init];
 	if (self)
 	{
-		extern bool MemAllocInit();
-		MemAllocInit();
+		extern bool MemAllocInit(const char*);
+		if (!MemAllocInit(pApp->GetName()))
+		{
+			NSLog(@"Failed to initialize memory manager");
+			exit(1);
+		}
 
 		//#if TF_USE_MTUNER
 		//	rmemInit(0);
 		//#endif
 		
-		fsInitAPI();
-		Log::Init();
+		FileSystemInitDesc fsDesc = {};
+		fsDesc.pAppName = pApp->GetName();
+		if(!initFileSystem(&fsDesc))
+		{
+			NSLog(@"Failed to initialize filesystem");
+			exit(1);
+		}
+		
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
+		Log::Init(pApp->GetName());
 		
 		pSettings = &pApp->mSettings;
 
@@ -513,7 +525,7 @@ uint32_t testingMaxFrameCount = 120;
 	pApp->Exit();
 	Log::Exit();
 	extern void MemAllocExit();
-	fsExitAPI();
+	exitFileSystem();
 
 	//#if TF_USE_MTUNER
 	//	rmemUnload();

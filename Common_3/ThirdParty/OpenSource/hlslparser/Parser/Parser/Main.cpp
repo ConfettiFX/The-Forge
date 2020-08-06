@@ -15,6 +15,8 @@
 #define NOMINMAX
 #include <Windows.h>
 
+#include "../../../../../OS/Interfaces/IFileSystem.h"
+
 
 eastl::string ReadFile(const char* fileName)
 {
@@ -349,14 +351,22 @@ int ParserMain( int argc, char* argv[] )
 
 int main(int argc, char** argv)
 {
-	extern bool MemAllocInit();
+	extern bool MemAllocInit(const char*);
 	extern void MemAllocExit();
 
-	if (!MemAllocInit())
+	if (!MemAllocInit("HLSLParser"))
 		return EXIT_FAILURE;
+
+	FileSystemInitDesc fsDesc = {};
+	fsDesc.pAppName = "HLSLParser";
+	if (!initFileSystem(&fsDesc))
+		return EXIT_FAILURE;
+
+	fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG, RD_LOG, "");
 
 	int ret = ParserMain(argc, argv);
 
+	exitFileSystem();
 	MemAllocExit();
 
 	return ret;

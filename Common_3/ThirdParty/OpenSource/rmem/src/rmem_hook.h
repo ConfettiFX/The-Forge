@@ -36,9 +36,10 @@ namespace rmem {
 			Mutex		m_mutexWriteToFile;
 			char		m_fileName[256];
 
-			FileStream* m_file; 
+			FileStream  m_file;
 			size_t		m_excessBufferSize;
 			int64_t		m_startTime;
+			bool        m_fileValid;
 
 			enum Enum
 			{

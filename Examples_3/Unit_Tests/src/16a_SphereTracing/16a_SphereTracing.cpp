@@ -86,26 +86,20 @@ class SphereTracing: public IApp
 	{
 #ifdef TARGET_IOS
 		mSettings.mContentScaleFactor = 1.f;
+#elif ANDROID
+		gFrameTimeDraw.mFontSize = 8;
 #endif
 	}
 	
 	bool Init()
 	{
-        // FILE PATHS
-        PathHandle programDirectory = fsGetApplicationDirectory();
-        if (!fsPlatformUsesBundledResources())
-        {
-            PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/16a_SphereTracing");
-            fsSetResourceDirRootPath(resourceDirRoot);
-            
-            fsSetRelativePathForResourceDirEnum(RD_TEXTURES,        "../../UnitTestResources/Textures");
-            fsSetRelativePathForResourceDirEnum(RD_MESHES,          "../../UnitTestResources/Meshes");
-            fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS,    "../../UnitTestResources/Fonts");
-            fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS,      "../../UnitTestResources/Animation");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT,  "../../../../Middleware_3/Text");
-            fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI,    "../../../../Middleware_3/UI");
-        }
-        
+		// FILE PATHS
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
+
 		// window and renderer setup
 		RendererDesc settings = { 0 };
 		initRenderer(GetName(), &settings, &pRenderer);
@@ -139,21 +133,21 @@ class SphereTracing: public IApp
     if (!gAppUI.Init(pRenderer))
       return false;
 
-    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+    gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 
 		initProfiler();
 
         gGpuProfileToken = addGpuProfiler(pRenderer, pGraphicsQueue, "Graphics");
 
-		if (!gVirtualJoystick.Init(pRenderer, "circlepad", RD_TEXTURES))
+		if (!gVirtualJoystick.Init(pRenderer, "circlepad"))
 		{
 			LOGF(LogLevel::eERROR, "Could not initialize Virtual Joystick.");
 			return false;
 		}
 
 		ShaderLoadDesc rtDemoShader = {};
-		rtDemoShader.mStages[0] = { "fstri.vert", NULL, 0, RD_SHADER_SOURCES };
-		rtDemoShader.mStages[1] = { "rt.frag", NULL, 0, RD_SHADER_SOURCES };
+		rtDemoShader.mStages[0] = { "fstri.vert", NULL, 0 };
+		rtDemoShader.mStages[1] = { "rt.frag", NULL, 0 };
 
 		addShader(pRenderer, &rtDemoShader, &pRTDemoShader);
 
@@ -175,7 +169,7 @@ class SphereTracing: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pUniformBuffer[i];
-			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubDesc, NULL);
 		}
 		/************************************************************************/
 		// GUI
@@ -337,7 +331,7 @@ class SphereTracing: public IApp
 		/************************************************************************/
 		// Scene Update
 		/************************************************************************/
-		gUniformData.res = vec4((float)mSettings.mWidth, (float)mSettings.mHeight, 0.0f, 0.0f);
+		gUniformData.res = vec4(mSettings.mWidth * mSettings.mContentScaleFactor, mSettings.mHeight * mSettings.mContentScaleFactor, 0.0f, 0.0f);
 		mat4 viewMat = pCameraController->getViewMatrix();
 		gUniformData.invView = inverse(viewMat);
 
@@ -454,12 +448,11 @@ class SphereTracing: public IApp
 		swapChainDesc.mWindowHandle = pWindow->handle;
 		swapChainDesc.mPresentQueueCount = 1;
 		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
-		swapChainDesc.mWidth = mSettings.mWidth;
-		swapChainDesc.mHeight = mSettings.mHeight;
+		swapChainDesc.mWidth = uint32_t(mSettings.mWidth * mSettings.mContentScaleFactor);
+		swapChainDesc.mHeight = uint32_t(mSettings.mHeight * mSettings.mContentScaleFactor);
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
-		swapChainDesc.mEnableVsync = false;
-
+		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;
 		::addSwapChain(pRenderer, &swapChainDesc, &pSwapChain);
 
 		return pSwapChain != NULL;

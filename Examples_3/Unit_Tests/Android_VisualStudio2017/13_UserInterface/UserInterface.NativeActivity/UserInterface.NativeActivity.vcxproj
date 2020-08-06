@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
@@ -80,10 +80,11 @@
       </Command>
     </PreBuildEvent>
     <PostBuildEvent>
-      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\sprites.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\TitilliumText\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y</Command>
+      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\sprites.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y /d
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\TitilliumText\ /s /y /d
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y /d
+$(systemroot)\System32\xcopy $(VS_NdkRoot)\sources\third_party\vulkan\src\build-android\jniLibs\$(TargetArchAbi)\*.so $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\libs\$(TargetArchAbi)\ /s /y /d</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -108,8 +109,8 @@ $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shade
     <PostBuildEvent>
       <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Textures\sprites.ktx $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\ /s /y
 $(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Fonts\TitilliumText\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Fonts\TitilliumText\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y
-$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\Vulkan\ /s /y</Command>
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\UI\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y
+$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\..\..\Middleware_3\Text\Shaders\Vulkan\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Shaders\ /s /y</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

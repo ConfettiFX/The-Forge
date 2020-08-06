@@ -79,7 +79,7 @@ public:
 
 ICameraController* createFpsCameraController(vec3 startPosition, vec3 startLookAt)
 {
-	FpsCameraController* cc = conf_placement_new<FpsCameraController>(conf_calloc(1, sizeof(FpsCameraController)));
+	FpsCameraController* cc = tf_placement_new<FpsCameraController>(tf_calloc(1, sizeof(FpsCameraController)));
 	cc->moveTo(startPosition);
 	cc->lookAt(startLookAt);
 
@@ -93,7 +93,7 @@ ICameraController* createFpsCameraController(vec3 startPosition, vec3 startLookA
 void destroyCameraController(ICameraController* pCamera)
 {
 	pCamera->~ICameraController();
-	conf_free(pCamera);
+	tf_free(pCamera);
 }
 
 void FpsCameraController::setMotionParameters(const CameraMotionParameters& cmp)
@@ -268,7 +268,7 @@ public:
 
 ICameraController* createGuiCameraController(vec3 startPosition, vec3 startLookAt)
 {
-	GuiCameraController* cc = conf_placement_new<GuiCameraController>(conf_calloc(1, sizeof(GuiCameraController)));
+	GuiCameraController* cc = tf_placement_new<GuiCameraController>(tf_calloc(1, sizeof(GuiCameraController)));
 	cc->moveTo(startPosition);
 	cc->lookAt(startLookAt);
 	cc->startPosition = startPosition;
@@ -279,5 +279,5 @@ ICameraController* createGuiCameraController(vec3 startPosition, vec3 startLookA
 void destroyGuiCameraController(ICameraController* pCamera)
 {
 	pCamera->~ICameraController();
-	conf_free(pCamera);
+	tf_free(pCamera);
 }

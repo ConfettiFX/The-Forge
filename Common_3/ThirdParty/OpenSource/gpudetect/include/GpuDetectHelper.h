@@ -99,7 +99,7 @@ static int initGpuDriverVersion(const char* selectedAdapter, char* driverVersion
 	subKeyMaxLength += 1; // include the null character
 
 	bool foundSubkey = false;
-	LPSTR subKeyName = (LPSTR)conf_malloc(subKeyMaxLength);
+	LPSTR subKeyName = (LPSTR)tf_malloc(subKeyMaxLength);
 
 	for (DWORD i = 0; i < numEntries; ++i)
 	{
@@ -149,7 +149,7 @@ static int initGpuDriverVersion(const char* selectedAdapter, char* driverVersion
 
 	returnCode = ::RegCloseKey(dxKeyHandle);
 	ASSERT(returnCode == ERROR_SUCCESS);
-	conf_free(subKeyName);
+	tf_free(subKeyName);
 	return ERROR_SUCCESS;
 }
 

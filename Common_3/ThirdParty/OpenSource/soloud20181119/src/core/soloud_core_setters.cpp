@@ -77,17 +77,17 @@ namespace SoLoud
 		for (i = 0; i < mMaxActiveVoices; i++)
 			if (mResampleDataOwner[i])
 				mResampleDataOwner[i]->~AudioSourceInstance();
-		conf_free(mResampleData);
-		conf_free(mResampleDataOwner);
+		tf_free(mResampleData);
+		tf_free(mResampleDataOwner);
 
 		mMaxActiveVoices = aVoiceCount;
 
-		mResampleData = (AlignedFloatBuffer*)conf_malloc(aVoiceCount * 2 * sizeof(AlignedFloatBuffer));
-		mResampleDataOwner = (AudioSourceInstance**)conf_malloc(aVoiceCount * sizeof(AudioSourceInstance*));
+		mResampleData = (AlignedFloatBuffer*)tf_malloc(aVoiceCount * 2 * sizeof(AlignedFloatBuffer));
+		mResampleDataOwner = (AudioSourceInstance**)tf_malloc(aVoiceCount * sizeof(AudioSourceInstance*));
 		
 		for (i = 0; i < aVoiceCount * 2; i++)
 		{
-			conf_placement_new<AlignedFloatBuffer>(&mResampleData[i]);
+			tf_placement_new<AlignedFloatBuffer>(&mResampleData[i]);
 			mResampleData[i].init(SAMPLE_GRANULARITY * MAX_CHANNELS);
 		}
 		for (i = 0; i < aVoiceCount; i++)

@@ -16,40 +16,10 @@
 		5C0F3AEC21418C010088BBB0 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5C0F3AEB21418C010088BBB0 /* GameController.framework */; };
 		5C0F3AF121418C1F0088BBB0 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C0F3AEF21418C1F0088BBB0 /* AppDelegate.m */; };
 		5C0F3AF421418C290088BBB0 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 5C0F3AF321418C290088BBB0 /* AppDelegate.m */; };
-		5CA80FA121F0A21100C99983 /* fontstash.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80ED521F0A06000C99983 /* fontstash.frag.metal */; };
-		5CA80FA221F0A21100C99983 /* fontstash2D.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80ED421F0A06000C99983 /* fontstash2D.vert.metal */; };
-		5CA80FA321F0A21100C99983 /* fontstash3D.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80ED321F0A06000C99983 /* fontstash3D.vert.metal */; };
-		5CA80FA421F0A21100C99983 /* imgui.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80EC921F0A05800C99983 /* imgui.frag.metal */; };
-		5CA80FA521F0A21100C99983 /* imgui.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80ECA21F0A05800C99983 /* imgui.vert.metal */; };
-		5CA80FA621F0A21100C99983 /* textured_mesh.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80EC821F0A05800C99983 /* textured_mesh.frag.metal */; };
-		5CA80FA721F0A21100C99983 /* textured_mesh.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = 5CA80EC721F0A05800C99983 /* textured_mesh.vert.metal */; };
 		650CCC652223CB56003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC642223CB56003533D9 /* MetalPerformanceShaders.framework */; };
 		650CCC672223CB6C003533D9 /* MetalPerformanceShaders.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 650CCC662223CB6C003533D9 /* MetalPerformanceShaders.framework */; };
-		971BCF2821701A4E007F2B2F /* compositePass.comp.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = D0108A03213E6B510038EA0F /* compositePass.comp.metal */; };
-		971BCF2921701A4E007F2B2F /* display.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = D0108A04213E6B510038EA0F /* display.frag.metal */; };
-		971BCF2A21701A4E007F2B2F /* display.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = D0108A02213E6B510038EA0F /* display.vert.metal */; };
-		971BCF2B21701A4E007F2B2F /* gbufferPass_iOS.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = B262F4A92141CAFC00B12385 /* gbufferPass_iOS.frag.metal */; };
-		971BCF2C21701A4E007F2B2F /* gbufferPass.frag.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = D0108A06213E6B520038EA0F /* gbufferPass.frag.metal */; };
-		971BCF2D21701A4E007F2B2F /* gbufferPass.vert.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = D0108A07213E6B520038EA0F /* gbufferPass.vert.metal */; };
-		971BCF2E21701A4E007F2B2F /* lightingPass.comp.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = D0108A09213E6B520038EA0F /* lightingPass.comp.metal */; };
-		971BCF2F21701A4E007F2B2F /* raytracedShadowsPass.comp.metal in Copy Shaders */ = {isa = PBXBuildFile; fileRef = D0108A08213E6B520038EA0F /* raytracedShadowsPass.comp.metal */; };
-		971BCF3021701A4E007F2B2F /* raytracingCommon.h in Copy Shaders */ = {isa = PBXBuildFile; fileRef = D0108A05213E6B520038EA0F /* raytracingCommon.h */; };
-		971BCF3321701A8C007F2B2F /* TitilliumText in Copy Fonts */ = {isa = PBXBuildFile; fileRef = 28A5AE30201F7D9E000E571F /* TitilliumText */; };
-		971BCF3421701A9C007F2B2F /* lion in Copy Textures */ = {isa = PBXBuildFile; fileRef = B2F8B4D42141D09E00C20D67 /* lion */; };
-		971BCF3521701A9C007F2B2F /* SponzaPBR_Textures in Copy Textures */ = {isa = PBXBuildFile; fileRef = B20A6316213F8DC900FE4944 /* SponzaPBR_Textures */; };
-		971BCF3621701A9C007F2B2F /* skybox in Copy Textures */ = {isa = PBXBuildFile; fileRef = B256247620EC3277007C672A /* skybox */; };
-		971BCF3721701A9C007F2B2F /* rect.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = B256247120EC31BC007C672A /* rect.ktx */; };
-		971BCF3821701A9C007F2B2F /* Warehouse-with-lights.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = B23CFB8320EC313A0053944B /* Warehouse-with-lights.ktx */; };
-		971BCF3921701A9C007F2B2F /* circlepad.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = 281FA9ED20333E9200CD5D9C /* circlepad.ktx */; };
-		971BCF3A21701A9C007F2B2F /* environment_sky.ktx in Copy Textures */ = {isa = PBXBuildFile; fileRef = 28A5AE32201F7DB4000E571F /* environment_sky.ktx */; };
 		B2087DF721421A6E006F372D /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DF521421A6E006F372D /* MetalKit.framework */; };
 		B2087DF821421A6E006F372D /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B2087DF621421A6E006F372D /* Metal.framework */; };
-		B217E2B023F5A1EB00C95904 /* Sponza.gltf in Resources */ = {isa = PBXBuildFile; fileRef = B217E2AD23F5A1EA00C95904 /* Sponza.gltf */; };
-		B217E2B223F5A1EB00C95904 /* lion.gltf in Resources */ = {isa = PBXBuildFile; fileRef = B217E2AE23F5A1EA00C95904 /* lion.gltf */; };
-		B217E2B423F5A1EB00C95904 /* Sponza.bin in Resources */ = {isa = PBXBuildFile; fileRef = B217E2AF23F5A1EB00C95904 /* Sponza.bin */; };
-		B217E2B623F5A20200C95904 /* lion.gltf in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B217E2AE23F5A1EA00C95904 /* lion.gltf */; };
-		B217E2B723F5A20400C95904 /* Sponza.bin in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B217E2AF23F5A1EB00C95904 /* Sponza.bin */; };
-		B217E2B823F5A20600C95904 /* Sponza.gltf in Copy Meshes */ = {isa = PBXBuildFile; fileRef = B217E2AD23F5A1EA00C95904 /* Sponza.gltf */; };
 		B21F76EE21420EE900DF2297 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76EB21420EE900DF2297 /* UIKit.framework */; };
 		B21F76EF21420EE900DF2297 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76EC21420EE900DF2297 /* MetalKit.framework */; };
 		B21F76F021420EE900DF2297 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B21F76ED21420EE900DF2297 /* Metal.framework */; };
@@ -88,84 +58,11 @@
 		};
 /* End PBXContainerItemProxy section */
 
-/* Begin PBXCopyFilesBuildPhase section */
-		971BCF2721701A18007F2B2F /* Copy Shaders */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = Shaders/Metal;
-			dstSubfolderSpec = 7;
-			files = (
-				5CA80FA121F0A21100C99983 /* fontstash.frag.metal in Copy Shaders */,
-				5CA80FA221F0A21100C99983 /* fontstash2D.vert.metal in Copy Shaders */,
-				5CA80FA321F0A21100C99983 /* fontstash3D.vert.metal in Copy Shaders */,
-				5CA80FA421F0A21100C99983 /* imgui.frag.metal in Copy Shaders */,
-				5CA80FA521F0A21100C99983 /* imgui.vert.metal in Copy Shaders */,
-				5CA80FA621F0A21100C99983 /* textured_mesh.frag.metal in Copy Shaders */,
-				5CA80FA721F0A21100C99983 /* textured_mesh.vert.metal in Copy Shaders */,
-				971BCF2821701A4E007F2B2F /* compositePass.comp.metal in Copy Shaders */,
-				971BCF2921701A4E007F2B2F /* display.frag.metal in Copy Shaders */,
-				971BCF2A21701A4E007F2B2F /* display.vert.metal in Copy Shaders */,
-				971BCF2B21701A4E007F2B2F /* gbufferPass_iOS.frag.metal in Copy Shaders */,
-				971BCF2C21701A4E007F2B2F /* gbufferPass.frag.metal in Copy Shaders */,
-				971BCF2D21701A4E007F2B2F /* gbufferPass.vert.metal in Copy Shaders */,
-				971BCF2E21701A4E007F2B2F /* lightingPass.comp.metal in Copy Shaders */,
-				971BCF2F21701A4E007F2B2F /* raytracedShadowsPass.comp.metal in Copy Shaders */,
-				971BCF3021701A4E007F2B2F /* raytracingCommon.h in Copy Shaders */,
-			);
-			name = "Copy Shaders";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		971BCF3121701A75007F2B2F /* Copy Fonts */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = Fonts;
-			dstSubfolderSpec = 7;
-			files = (
-				971BCF3321701A8C007F2B2F /* TitilliumText in Copy Fonts */,
-			);
-			name = "Copy Fonts";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		971BCF3221701A78007F2B2F /* Copy Textures */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = Textures;
-			dstSubfolderSpec = 7;
-			files = (
-				971BCF3421701A9C007F2B2F /* lion in Copy Textures */,
-				971BCF3521701A9C007F2B2F /* SponzaPBR_Textures in Copy Textures */,
-				971BCF3621701A9C007F2B2F /* skybox in Copy Textures */,
-				971BCF3721701A9C007F2B2F /* rect.ktx in Copy Textures */,
-				971BCF3821701A9C007F2B2F /* Warehouse-with-lights.ktx in Copy Textures */,
-				971BCF3921701A9C007F2B2F /* circlepad.ktx in Copy Textures */,
-				971BCF3A21701A9C007F2B2F /* environment_sky.ktx in Copy Textures */,
-			);
-			name = "Copy Textures";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		971BCF3B21701AAB007F2B2F /* Copy Meshes */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = Meshes;
-			dstSubfolderSpec = 7;
-			files = (
-				B217E2B623F5A20200C95904 /* lion.gltf in Copy Meshes */,
-				B217E2B723F5A20400C95904 /* Sponza.bin in Copy Meshes */,
-				B217E2B823F5A20600C95904 /* Sponza.gltf in Copy Meshes */,
-			);
-			name = "Copy Meshes";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
-		281FA9ED20333E9200CD5D9C /* circlepad.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = circlepad.ktx; path = ../../../UnitTestResources/Textures/circlepad.ktx; sourceTree = "<group>"; };
 		28A5AE08201F7D41000E571F /* 09a_HybridRaytracing_iOS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 09a_HybridRaytracing_iOS.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		28A5AE19201F7D41000E571F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		28A5AE1C201F7D41000E571F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		28A5AE1E201F7D41000E571F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		28A5AE30201F7D9E000E571F /* TitilliumText */ = {isa = PBXFileReference; lastKnownFileType = folder; name = TitilliumText; path = ../../../UnitTestResources/Fonts/TitilliumText; sourceTree = "<group>"; };
-		28A5AE32201F7DB4000E571F /* environment_sky.ktx */ = {isa = PBXFileReference; lastKnownFileType = image.ktx; name = environment_sky.ktx; path = ../../../UnitTestResources/Textures/environment_sky.ktx; sourceTree = "<group>"; };
 		28EE9FF6201B30B200D42AD7 /* 09a_HybridRaytracing.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.objcpp; fileEncoding = 4; name = 09a_HybridRaytracing.cpp; path = ../../../src/09a_HybridRaytracing/09a_HybridRaytracing.cpp; sourceTree = "<group>"; usesTabs = 1; };
 		5C0F3ADE21418BD20088BBB0 /* The-Forge.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = "The-Forge.xcodeproj"; path = "../The-Forge/The-Forge.xcodeproj"; sourceTree = "<group>"; };
 		5C0F3AEB21418C010088BBB0 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS11.4.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
@@ -173,32 +70,17 @@
 		5C0F3AF021418C1F0088BBB0 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/macOSAppDelegate.h; sourceTree = "<group>"; };
 		5C0F3AF221418C290088BBB0 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.h; sourceTree = "<group>"; };
 		5C0F3AF321418C290088BBB0 /* AppDelegate.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = AppDelegate.m; path = ../../../../../Common_3/OS/Darwin/iOSAppDelegate.m; sourceTree = "<group>"; };
-		5CA80EC721F0A05800C99983 /* textured_mesh.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = textured_mesh.vert.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/textured_mesh.vert.metal; sourceTree = "<group>"; };
-		5CA80EC821F0A05800C99983 /* textured_mesh.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = textured_mesh.frag.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/textured_mesh.frag.metal; sourceTree = "<group>"; };
-		5CA80EC921F0A05800C99983 /* imgui.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = imgui.frag.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/imgui.frag.metal; sourceTree = "<group>"; };
-		5CA80ECA21F0A05800C99983 /* imgui.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = imgui.vert.metal; path = ../../../../Middleware_3/UI/Shaders/Metal/imgui.vert.metal; sourceTree = "<group>"; };
-		5CA80ED321F0A06000C99983 /* fontstash3D.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash3D.vert.metal; path = ../../../../Middleware_3/Text/Shaders/Metal/fontstash3D.vert.metal; sourceTree = "<group>"; };
-		5CA80ED421F0A06000C99983 /* fontstash2D.vert.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash2D.vert.metal; path = ../../../../Middleware_3/Text/Shaders/Metal/fontstash2D.vert.metal; sourceTree = "<group>"; };
-		5CA80ED521F0A06000C99983 /* fontstash.frag.metal */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = fontstash.frag.metal; path = ../../../../Middleware_3/Text/Shaders/Metal/fontstash.frag.metal; sourceTree = "<group>"; };
 		650CCC642223CB56003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = SDKROOT; };
 		650CCC662223CB6C003533D9 /* MetalPerformanceShaders.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalPerformanceShaders.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.1.sdk/System/Library/Frameworks/MetalPerformanceShaders.framework; sourceTree = DEVELOPER_DIR; };
 		B2087DF521421A6E006F372D /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		B2087DF621421A6E006F372D /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
-		B20A6316213F8DC900FE4944 /* SponzaPBR_Textures */ = {isa = PBXFileReference; lastKnownFileType = folder; name = SponzaPBR_Textures; path = ../../../../../Art/Sponza/Textures/SponzaPBR_Textures; sourceTree = "<group>"; };
 		B20A6318213F8E2800FE4944 /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/assimp.a"; sourceTree = "<group>"; };
 		B20A6319213F8E2800FE4944 /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/zlibstatic.a"; sourceTree = "<group>"; };
 		B20A631A213F8E2900FE4944 /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/iOS-build/IrrXML.a"; sourceTree = "<group>"; };
-		B217E2AD23F5A1EA00C95904 /* Sponza.gltf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = Sponza.gltf; path = ../../../../../Art/Sponza/Meshes/Sponza.gltf; sourceTree = "<group>"; };
-		B217E2AE23F5A1EA00C95904 /* lion.gltf */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = lion.gltf; path = ../../../../../Art/Sponza/Meshes/lion.gltf; sourceTree = "<group>"; };
-		B217E2AF23F5A1EB00C95904 /* Sponza.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = Sponza.bin; path = ../../../../../Art/Sponza/Meshes/Sponza.bin; sourceTree = "<group>"; };
 		B21F76EB21420EE900DF2297 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76EC21420EE900DF2297 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
 		B21F76ED21420EE900DF2297 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS12.0.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
-		B23CFB8320EC313A0053944B /* Warehouse-with-lights.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Warehouse-with-lights.ktx"; path = "../../../UnitTestResources/Textures/Warehouse-with-lights.ktx"; sourceTree = "<group>"; };
-		B256247120EC31BC007C672A /* rect.ktx */ = {isa = PBXFileReference; lastKnownFileType = file; name = rect.ktx; path = ../../../UnitTestResources/Textures/rect.ktx; sourceTree = "<group>"; };
-		B256247620EC3277007C672A /* skybox */ = {isa = PBXFileReference; lastKnownFileType = folder; name = skybox; path = ../../../UnitTestResources/Textures/skybox; sourceTree = "<group>"; };
 		B262F4A92141CAFC00B12385 /* gbufferPass_iOS.frag.metal */ = {isa = PBXFileReference; explicitFileType = sourcecode.metal; fileEncoding = 4; name = gbufferPass_iOS.frag.metal; path = ../../../src/09a_HybridRaytracing/Shaders/Metal/gbufferPass_iOS.frag.metal; sourceTree = "<group>"; };
-		B2F8B4D42141D09E00C20D67 /* lion */ = {isa = PBXFileReference; lastKnownFileType = folder; name = lion; path = ../../../../../Art/Sponza/Textures/lion; sourceTree = "<group>"; };
 		D01089FC213CC5CB0038EA0F /* zlibstatic.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = zlibstatic.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/zlibstatic.a"; sourceTree = "<group>"; };
 		D01089FD213CC5CC0038EA0F /* assimp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = assimp.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/assimp.a"; sourceTree = "<group>"; };
 		D01089FE213CC5CC0038EA0F /* IrrXML.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = IrrXML.a; path = "../../../../Common_3/ThirdParty/OpenSource/assimp/4.1.0/macOS-build/IrrXML.a"; sourceTree = "<group>"; };
@@ -298,30 +180,6 @@
 			path = 09a_HybridRaytracing_iOS;
 			sourceTree = "<group>";
 		};
-		28A5AE2E201F7D89000E571F /* Textures */ = {
-			isa = PBXGroup;
-			children = (
-				B2F8B4D42141D09E00C20D67 /* lion */,
-				B20A6316213F8DC900FE4944 /* SponzaPBR_Textures */,
-				B256247620EC3277007C672A /* skybox */,
-				B256247120EC31BC007C672A /* rect.ktx */,
-				B23CFB8320EC313A0053944B /* Warehouse-with-lights.ktx */,
-				281FA9ED20333E9200CD5D9C /* circlepad.ktx */,
-				28A5AE32201F7DB4000E571F /* environment_sky.ktx */,
-			);
-			name = Textures;
-			path = 09a_HybridRaytracing_iOS;
-			sourceTree = "<group>";
-		};
-		28A5AE2F201F7D91000E571F /* Fonts */ = {
-			isa = PBXGroup;
-			children = (
-				28A5AE30201F7D9E000E571F /* TitilliumText */,
-			);
-			name = Fonts;
-			path = 09a_HybridRaytracing_iOS;
-			sourceTree = "<group>";
-		};
 		5C0F3ADF21418BD20088BBB0 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -331,39 +189,10 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		5CA80E1821F09F8700C99983 /* CommonShaders */ = {
-			isa = PBXGroup;
-			children = (
-				5CA80ED521F0A06000C99983 /* fontstash.frag.metal */,
-				5CA80ED421F0A06000C99983 /* fontstash2D.vert.metal */,
-				5CA80ED321F0A06000C99983 /* fontstash3D.vert.metal */,
-				5CA80EC921F0A05800C99983 /* imgui.frag.metal */,
-				5CA80ECA21F0A05800C99983 /* imgui.vert.metal */,
-				5CA80EC821F0A05800C99983 /* textured_mesh.frag.metal */,
-				5CA80EC721F0A05800C99983 /* textured_mesh.vert.metal */,
-			);
-			name = CommonShaders;
-			sourceTree = "<group>";
-		};
-		B20A6264213F8D6400FE4944 /* Meshes */ = {
-			isa = PBXGroup;
-			children = (
-				B217E2AE23F5A1EA00C95904 /* lion.gltf */,
-				B217E2AF23F5A1EB00C95904 /* Sponza.bin */,
-				B217E2AD23F5A1EA00C95904 /* Sponza.gltf */,
-			);
-			name = Meshes;
-			path = 09a_HybridRaytracing_iOS;
-			sourceTree = "<group>";
-		};
 		EA463C821EF81E8F005AC8C7 = {
 			isa = PBXGroup;
 			children = (
-				5CA80E1821F09F8700C99983 /* CommonShaders */,
 				5C0F3ADE21418BD20088BBB0 /* The-Forge.xcodeproj */,
-				B20A6264213F8D6400FE4944 /* Meshes */,
-				28A5AE2F201F7D91000E571F /* Fonts */,
-				28A5AE2E201F7D89000E571F /* Textures */,
 				28A5AE2D201F7D82000E571F /* Shaders */,
 				EA463C941EF81E8F005AC8C7 /* 09a_HybridRaytracing */,
 				28A5AE09201F7D41000E571F /* 09a_HybridRaytracing_iOS */,
@@ -404,10 +233,7 @@
 				28A5AE04201F7D41000E571F /* Sources */,
 				28A5AE05201F7D41000E571F /* Frameworks */,
 				28A5AE06201F7D41000E571F /* Resources */,
-				971BCF2721701A18007F2B2F /* Copy Shaders */,
-				971BCF3121701A75007F2B2F /* Copy Fonts */,
-				971BCF3221701A78007F2B2F /* Copy Textures */,
-				971BCF3B21701AAB007F2B2F /* Copy Meshes */,
+				5CC5020324D2E05F003B62CC /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -426,6 +252,7 @@
 				EA463C871EF81E8F005AC8C7 /* Sources */,
 				EA463C881EF81E8F005AC8C7 /* Frameworks */,
 				EA463C891EF81E8F005AC8C7 /* Resources */,
+				5CC5020224D2DFD4003B62CC /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -515,14 +342,48 @@
 			buildActionMask = 2147483647;
 			files = (
 				D28782F01F0A7F52004DC624 /* Assets.xcassets in Resources */,
-				B217E2B023F5A1EB00C95904 /* Sponza.gltf in Resources */,
-				B217E2B423F5A1EB00C95904 /* Sponza.bin in Resources */,
-				B217E2B223F5A1EB00C95904 /* lion.gltf in Resources */,
 				D2E631E11F3472DF005BFBA7 /* MainMenu.xib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		5CC5020224D2DFD4003B62CC /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH/Resources\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nART=\"$SRCROOT/../../../../Art/Sponza\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\nrsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\n# Textures\nrsync -u -rv --include '*/' --include '*.dds' --exclude '*' --prune-empty-dirs \"$ART/Textures/\" \"$DST/Textures/\"\n# Meshes\nrsync -u -r \"$ART/Meshes/\" \"$DST/Meshes\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
+		};
+		5CC5020324D2E05F003B62CC /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "DST=\"$CONFIGURATION_BUILD_DIR/$CONTENTS_FOLDER_PATH\"\nASSETS=\"$SRCROOT/../../UnitTestResources\"\nART=\"$SRCROOT/../../../../Art/Sponza\"\nSRC=\"$SRCROOT/../../src/$PROJECT_NAME\"\nMID=\"$SRCROOT/../../../../Middleware_3\"\n# Src\nrsync -u -r \"$SRC/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/Text/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$MID/UI/Shaders/Metal/\" \"$DST/Shaders\"\nrsync -u -r \"$SRC/GPUCfg/\" \"$DST/GPUCfg\"\n# Textures\nrsync -u -rv --include '*/' --include '*.ktx' --exclude '*' --prune-empty-dirs \"$ART/Textures/\" \"$DST/Textures/\"\nrsync -u -r \"$ASSETS/Textures/circlepad.ktx\" \"$DST/Textures/\"\n# Meshes\nrsync -u -r \"$ART/Meshes/\" \"$DST/Meshes\"\n# Fonts\nrsync -u -r \"$ASSETS/Fonts/\" \"$DST/Fonts\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		28A5AE04201F7D41000E571F /* Sources */ = {
@@ -589,7 +450,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
 				ENABLE_BITCODE = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -632,7 +493,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				COMPRESS_PNG_FILES = NO;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
 				ENABLE_BITCODE = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
@@ -782,7 +643,7 @@
 				CLANG_WARN_COMMA = NO;
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,
@@ -821,7 +682,7 @@
 				CLANG_WARN_COMMA = NO;
 				CODE_SIGN_IDENTITY = "-";
 				COMBINE_HIDPI_IMAGES = YES;
-				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/../Bin/$(CONFIGURATION)/";
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/Bin/$(CONFIGURATION)/";
 				DEVELOPMENT_TEAM = BT67ZY58A8;
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					METAL,

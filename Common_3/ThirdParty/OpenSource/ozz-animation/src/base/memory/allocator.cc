@@ -78,7 +78,7 @@ class HeapAllocator : public Allocator {
   void* Allocate(size_t _size, size_t _alignment) {
 	  // Allocates enough memory to store the header + required alignment space.
 	  const size_t to_allocate = _size + sizeof(Header) + _alignment - 1;
-	  char* unaligned = reinterpret_cast<char*>(conf_malloc(to_allocate));
+	  char* unaligned = reinterpret_cast<char*>(tf_malloc(to_allocate));
 
 	  if (!unaligned) {
 		  return NULL;
@@ -109,11 +109,11 @@ class HeapAllocator : public Allocator {
 	  Header* old_header = reinterpret_cast<Header*>(
 		  reinterpret_cast<char*>(_block) - sizeof(Header));
 
-	  unaligned = reinterpret_cast<char*>(conf_realloc(old_header->unaligned, to_allocate));
+	  unaligned = reinterpret_cast<char*>(tf_realloc(old_header->unaligned, to_allocate));
 
 	  if (!unaligned) {
 		  if (_block) {
-			  conf_free(old_header->unaligned);
+			  tf_free(old_header->unaligned);
 		  }
 		  return NULL;
 	  }
@@ -137,7 +137,7 @@ class HeapAllocator : public Allocator {
 	  if (_block) {
 		  Header* header = reinterpret_cast<Header*>(
 			  reinterpret_cast<char*>(_block) - sizeof(Header));
-		  conf_free(header->unaligned);
+		  tf_free(header->unaligned);
 
 		  // Deallocation completed.
 	  }

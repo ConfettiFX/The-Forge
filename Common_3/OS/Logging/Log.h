@@ -81,10 +81,10 @@ public:
 		uint32_t mLevel;
 	};
 
-	Log(LogLevel level = LogLevel::eALL);
+	Log(const char* appName, LogLevel level = LogLevel::eALL);
 	~Log();
 
-	static void Init(LogLevel level = LogLevel::eALL);
+	static void Init(const char* appName, LogLevel level = LogLevel::eALL);
 	static void Exit();
 
 	static void SetLevel(LogLevel level);
@@ -108,7 +108,7 @@ public:
 	static void WriteRaw(uint32_t level, bool error, const char* message, ...);
 
 private:
-	static void AddInitialLogFile();
+	static void AddInitialLogFile(const char* appName);
 	static uint32_t WritePreamble(char * buffer, uint32_t buffer_size, const char * file, int line);
 	static bool CallbackExists(const char * id);
 

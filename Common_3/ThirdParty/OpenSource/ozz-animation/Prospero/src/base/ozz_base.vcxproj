@@ -89,7 +89,6 @@
     <ClCompile Include="..\..\..\src\base\io\archive.cc" />
     <ClInclude Include="..\..\..\include\ozz\base\io\archive_traits.h" />
     <ClInclude Include="..\..\..\include\ozz\base\io\stream.h" />
-    <ClCompile Include="..\..\..\src\base\io\stream.cc" />
     <ClInclude Include="..\..\..\include\ozz\base\maths\gtest_math_helper.h" />
     <ClInclude Include="..\..\..\include\ozz\base\maths\math_ex.h" />
     <ClInclude Include="..\..\..\include\ozz\base\maths\math_constant.h" />

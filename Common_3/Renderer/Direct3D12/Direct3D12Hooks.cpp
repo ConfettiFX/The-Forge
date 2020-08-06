@@ -119,6 +119,16 @@ HRESULT hook_queue_present(Queue*, SwapChain* pSwapChain, uint32_t)
 	return pSwapChain->pDxSwapChain->Present(pSwapChain->mDxSyncInterval, 0);
 }
 
+void hook_dispatch(Cmd* pCmd, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+{
+	pCmd->pDxCmdList->Dispatch(groupCountX, groupCountY, groupCountZ);
+}
+
+void hook_signal(Queue* pQueue, ID3D12Fence* pDxFence, uint64_t fenceValue)
+{
+	pQueue->pDxQueue->Signal(pDxFence, fenceValue);
+}
+
 extern void hook_fill_gpu_desc(Renderer* pRenderer, D3D_FEATURE_LEVEL featureLevel, GpuDesc* pInOutDesc)
 {
 	// Query the level of support of Shader Model.

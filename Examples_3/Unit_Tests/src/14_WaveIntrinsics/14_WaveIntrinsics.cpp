@@ -140,19 +140,11 @@ class WaveIntrinsics: public IApp
 	bool Init()
 	{
 		// FILE PATHS
-		PathHandle programDirectory = fsGetApplicationDirectory();
-		if (!fsPlatformUsesBundledResources())
-		{
-			PathHandle resourceDirRoot = fsAppendPathComponent(programDirectory, "../../../src/14_WaveIntrinsics");
-			fsSetResourceDirRootPath(resourceDirRoot);
-
-			fsSetRelativePathForResourceDirEnum(RD_TEXTURES, "../../UnitTestResources/Textures");
-			fsSetRelativePathForResourceDirEnum(RD_MESHES, "../../UnitTestResources/Meshes");
-			fsSetRelativePathForResourceDirEnum(RD_BUILTIN_FONTS, "../../UnitTestResources/Fonts");
-			fsSetRelativePathForResourceDirEnum(RD_ANIMATIONS, "../../UnitTestResources/Animation");
-			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_TEXT, "../../../../Middleware_3/Text");
-			fsSetRelativePathForResourceDirEnum(RD_MIDDLEWARE_UI, "../../../../Middleware_3/UI");
-		}
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_SHADER_SOURCES, "Shaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_DEBUG,   RD_SHADER_BINARIES, "CompiledShaders");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_GPU_CONFIG, "GPUCfg");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_TEXTURES, "Textures");
+		fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_FONTS, "Fonts");
 
 		// window and renderer setup
 		RendererDesc settings = { 0 };
@@ -196,15 +188,15 @@ class WaveIntrinsics: public IApp
 		if (gWaveOpsSupported)
 		{
 			ShaderLoadDesc waveShader = {};
-			waveShader.mStages[0] = { "wave.vert", NULL, 0, RD_SHADER_SOURCES };
-			waveShader.mStages[1] = { "wave.frag", NULL, 0, RD_SHADER_SOURCES };
+			waveShader.mStages[0] = { "wave.vert", NULL, 0 };
+			waveShader.mStages[1] = { "wave.frag", NULL, 0 };
 			waveShader.mTarget = shader_target_6_0;
 			addShader(pRenderer, &waveShader, &pShaderWave);
 		}
 
 		ShaderLoadDesc magnifyShader = {};
-		magnifyShader.mStages[0] = { "magnify.vert", NULL, 0, RD_SHADER_SOURCES };
-		magnifyShader.mStages[1] = { "magnify.frag", NULL, 0, RD_SHADER_SOURCES };
+		magnifyShader.mStages[0] = { "magnify.vert", NULL, 0 };
+		magnifyShader.mStages[1] = { "magnify.frag", NULL, 0 };
 		addShader(pRenderer, &magnifyShader, &pShaderMagnify);
 
 		SamplerDesc samplerDesc = { FILTER_NEAREST,      FILTER_NEAREST,      MIPMAP_MODE_NEAREST,
@@ -237,7 +229,7 @@ class WaveIntrinsics: public IApp
 		triangleColorDesc.mDesc.mSize = sizeof(triangleVertices);
 		triangleColorDesc.pData = triangleVertices;
 		triangleColorDesc.ppBuffer = &pVertexBufferTriangle;
-		addResource(&triangleColorDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&triangleColorDesc, NULL);
 
 		// Define the geometry for a rectangle.
 		Vertex2 quadVertices[] = { { { -1.0f, -1.0f, 0.0f }, { 0.0f, 1.0f } }, { { -1.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } },
@@ -252,7 +244,7 @@ class WaveIntrinsics: public IApp
 		quadUVDesc.mDesc.mSize = sizeof(quadVertices);
 		quadUVDesc.pData = quadVertices;
 		quadUVDesc.ppBuffer = &pVertexBufferQuad;
-		addResource(&quadUVDesc, NULL, LOAD_PRIORITY_NORMAL);
+		addResource(&quadUVDesc, NULL);
 
 		BufferLoadDesc ubDesc = {};
 		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -263,7 +255,7 @@ class WaveIntrinsics: public IApp
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			ubDesc.ppBuffer = &pUniformBuffer[i];
-			addResource(&ubDesc, NULL, LOAD_PRIORITY_NORMAL);
+			addResource(&ubDesc, NULL);
 		}
 
 		waitForAllResourceLoads();
@@ -271,7 +263,7 @@ class WaveIntrinsics: public IApp
 		if (!gAppUI.Init(pRenderer))
 			return false;
 
-		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf", RD_BUILTIN_FONTS);
+		gAppUI.LoadFont("TitilliumText/TitilliumText-Bold.otf");
 		GuiDesc guiDesc = {};
 		guiDesc.mStartPosition = vec2(mSettings.mWidth * 0.01f, mSettings.mHeight * 0.05f);
 		pGui = gAppUI.AddGuiComponent("Render Modes", &guiDesc);

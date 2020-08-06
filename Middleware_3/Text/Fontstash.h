@@ -30,8 +30,6 @@ struct Renderer;
 struct RenderTarget;
 struct PipelineCache;
 
-extern ResourceDirEnum RD_MIDDLEWARE_TEXT;
-
 typedef struct TextDrawDesc
 {
 	TextDrawDesc(uint font = 0, uint32_t color = 0xffffffff, float size = 15.0f, float spacing = 0.0f, float blur = 0.0f):
@@ -63,7 +61,7 @@ public:
 	//! - Fonts can not be undefined in a FontStash due to its dynamic nature (once packed into an atlas, they cannot be unpacked, unless it is fully rebuilt)
 	//! - Defined fonts will automatically be unloaded when the Fontstash is destroyed.
 	//! - When it is paramount to be able to unload individual fonts, use multiple fontstashes.
-	int defineFont(const char* identification, const char* filename, ResourceDirEnum root);
+	int defineFont(const char* identification, const char* pFontPath);
 
 	void*       getFontBuffer(uint32_t index);
 	uint32_t    getFontBufferSize(uint32_t index);

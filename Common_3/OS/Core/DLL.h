@@ -23,7 +23,7 @@
 */
 
 #ifdef DLL_EXPORT
-#define CONFETTI_DLLAPI __declspec(dllexport)
+#define FORGE_DLLAPI __declspec(dllexport)
 #else
-#define CONFETTI_DLLAPI
+#define FORGE_DLLAPI
 #endif
