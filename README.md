@@ -5,7 +5,7 @@ The Forge is a cross-platform rendering framework supporting
   * Windows 10 
      * with DirectX 12 / Vulkan 1.1
      * with DirectX Ray Tracing API
-     * DirectX 11 Fallback Layer for Windows 7 support
+     * DirectX 11 Fallback Layer for Windows 7 support (not extensively tested)
   * Linux Ubuntu 18.04 LTS with Vulkan 1.1 and RTX Ray Tracing API
 - Android Pie with Vulkan 1.1
 - macOS / iOS / iPad OS with Metal 2.2
@@ -55,6 +55,26 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 * macOS [![Build Status](https://travis-ci.org/ConfettiFX/The-Forge.svg?branch=master)](https://travis-ci.org/ConfettiFX/The-Forge)
 
 # News
+
+
+## Release 1.45 - July 29th, 2020 - TressFX | File System Rewrite
+* TressFX: we upgraded TressFX a bit and retuned the lighting. 
+
+Here are the screenshots:
+![Black hair](Screenshots/TressFX/black_new.png) 
+
+![Blond hair](Screenshots/TressFX/blone_new.png) 
+
+![Brown hair](Screenshots/TressFX/brown_new.png) 
+
+![Red hair](Screenshots/TressFX/red_new.png) 
+
+* File system: our old file system was designed more for tools or Windows applications than for games. It consumed more memory than the whole rendering system and used Windows file methods extensively. That is the opposite of what you want in a game. It took us now several months to correct the mistake and come up with a file system that is tailored towards games. That means that the interface changed substantially. Thanks to all those who pointed this out. Sometimes it takes a couple of iterations to land on a design that is efficient.
+If you look at the new interface there are still path related functions in there. They will be removed step-by-step.
+Please check out the new file system interface and let us know what you think.
+
+* Android Vulkan: validation layer is now supported
+
 
 ## Release 1.44 - July 16th, 2020 - Android | Linux
 * Mobile Devices: DPI scaling is properly handled now so we shouldn't see messed up UI anymore on mobile devices
@@ -265,7 +285,7 @@ int pthread_getname_np(pthread_t _pthread, char* _buf, size_t _n) _INTRODUCED_IN
 #endif / _ANDROID_API_ >= 26 /
 ```
 
-At the moment, the Android run-time does not support the following unit tests due to -what we consider- driver bugs:
+At the moment, the Android run-time does not support the following unit tests due to -what we consider- driver bugs or lack of support:
 * 08_Procedural
 * 09a_HybridRayTracing
 * 16_RayTracing 
