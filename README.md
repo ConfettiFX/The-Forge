@@ -57,7 +57,59 @@ The Forge Interactive Inc. is a [Khronos member](https://www.khronos.org/members
 # News
 
 
-## Release 1.45 - July 29th, 2020 - TressFX | File System Rewrite
+## Release 1.46 - October 1st, 2020 - Supergiant's Hades | Windows Management | AMD FX Stochastic SS Reflection
+* [Supergiant's Hades](https://www.supergiantgames.com/games/hades/) we are working with Supergiant since 2014. One of the on-going challenges was that their run-time was written in C#. At the beginning of last year, we suggested to help them in building a new cross-platform game engine in C/C++ from scratch with The Forge. The project started in April 2019 and the first version of this new engine launched in May this year. Hades was then released for Microsoft Windows, macOS, and Nintendo Switch on September 17, 2020. The game can run on all platforms supported by The Forge.
+
+Here is a screenshot of Hades running on Switch:
+
+![Supergiant Hades](Screenshots/Supergiant_Hades.jpg)
+
+Here is an article by [Forbes](https://www.forbes.com/sites/davidthier/2020/09/27/you-need-to-play-the-game-at-the-top-of-the-nintendo-switch-charts/#6e9128ba2f80) about Hades being at the top of the Nintendo Switch Charts.
+Hades is also a technology showcase for Intel's integrated GPUs on macOS and Windows. The target group of the game seems to often own those GPUs.
+
+* Windows management: there is a new functional test named 32_Window that demonstrates windows management on Windows, Linux and macOS. 
+  * The window layout, position, and size are now driven by the client dimensions, meaning that
+the values that the client demands are the exact values the client area will be represented with, regardless of the window style. This allows for much greater flexibility
+and consistency, especially when working with a fullscreen window. 
+  * Multi-monitor support has also been improved significantly, offering smooth consistent transitions between client displays and guaranteeing correct window behavior and data retention. Media layer functionality has been expanded, allowing the client to control mouse positioning, mouse visibility, and mouse visual representation. 
+  * It is now possible to create independent mouse cursors to further customize the application.
+
+Here are the screenshots:
+
+Windows:
+![Windows Management for Windows](Screenshots/32_Window_Win.png)
+
+macOS:
+![Windows Management for macOS](Screenshots/32_Window_macOS.png)
+
+Linux:
+![Windows Management for Linux](Screenshots/32_Window_Linux.jpg)
+
+* Screen-Space reflections: we renamed the functional test "10_PixelProjectedReflections" to 10_ScreenSpaceReflections. You have now two choices: you can pick either Pixel Projected Reflections or AMD's FX Stochastic Screen Space Reflection. We just made AMD's FX code cross-platform. It runs now on Windows, Linux, macOS, Switch, PS and XBOX.
+
+Here are the screenshots:
+
+Windows final scene:
+![AMD FX Stochastic Screen Space Reflections](Screenshots/SSSR/SSSR_Scene_with_reflections.png)
+
+Without denoising:
+![AMD FX Stochastic Screen Space Reflections before denoise](Screenshots/SSSR/SSSR_Reflections_only_defore_denoise.png)
+
+With denoising:
+![AMD FX Stochastic Screen Space Reflections before denoise](Screenshots/SSSR/SSSR_Reflections_with_denoise.png)
+
+PS4:
+![AMD FX Stochastic Screen Space Reflections on PS4](Screenshots/SSSR/SSSR_on_PS4.png)
+
+macOS:
+![AMD FX Stochastic Screen Space Reflections on macOS](Screenshots/SSSR/SSSR_on_macOS.png)
+
+* Resolved GitHub issues:
+  * Issue #183 - VERTEX_ATTRIB_RATE_INSTANCE ignored on macOS 10.12, iOS 10.0
+
+
+
+## Release 1.45 - August 6th, 2020 - TressFX | File System Rewrite
 * TressFX: we upgraded TressFX a bit and retuned the lighting. 
 
 Here are the screenshots:
