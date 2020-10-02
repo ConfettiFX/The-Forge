@@ -1,0 +1,167 @@
+#version 450
+#extension GL_EXT_samplerless_texture_functions : require
+#extension GL_GOOGLE_include_directive : enable
+
+#include "SSSR_Common.h"
+
+layout(set = 0, binding = 1, rgba16f) uniform readonly image2D g_temporally_denoised_reflections;
+layout(set = 0, binding = 2) uniform texture2D g_roughness;
+layout(set = 0, binding = 3, rgba16f) uniform writeonly image2D g_denoised_reflections;
+layout(set = 0, binding = 4) buffer g_tile_list
+{
+    uint g_tile_list_Data[];
+};
+layout(set = 0, binding = 5) uniform texture2D g_normal;
+layout(set = 0, binding = 6) uniform texture2D g_depth_buffer;
+layout(set = 0, binding = 7) uniform sampler g_linear_sampler;
+
+shared uint g_shared_0[12][12];
+shared uint g_shared_1[12][12];
+
+void LoadFromGroupSharedMemory(ivec2 idx, out mediump vec3 radiance, out mediump float roughness)
+{
+    uvec2 tmp;
+    tmp.x = g_shared_0[idx.x][idx.y];
+    tmp.y = g_shared_1[idx.x][idx.y];
+
+    mediump vec4 min16tmp = vec4(UnpackFloat16(tmp.x), UnpackFloat16(tmp.y));
+    radiance = min16tmp.xyz;
+    roughness = min16tmp.w;
+}
+
+void StoreInGroupSharedMemory(ivec2 idx, vec3 radiance, float roughness)
+{
+    vec4 tmp = vec4(radiance, roughness);
+    g_shared_0[idx.x][idx.y] = PackFloat16(tmp.xy);
+    g_shared_1[idx.x][idx.y] = PackFloat16(tmp.zw);
+}
+
+vec3 LoadRadiance(ivec2 idx)
+{
+    return imageLoad(g_temporally_denoised_reflections, idx).xyz;
+}
+
+float LoadRoughnessValue(ivec2 idx)
+{
+    return FfxSssrUnpackRoughness(texelFetch(g_roughness, idx, 0));
+}
+
+mediump vec4 ResolveScreenspaceReflections(ivec2 gtid, mediump float center_roughness)
+{
+    mediump vec3 sum = vec3(0.0);
+    mediump float total_weight = 0.0;
+
+    mediump vec3 param_1;
+    mediump float param_2;
+
+    for (int dy = -2; dy <= 2; dy++)
+    {
+        for (int dx = -2; dx <= 2; dx++)
+        {
+            ivec2 texel_coords = gtid + ivec2(dx, dy);
+
+            mediump vec3 radiance;
+            mediump float roughness;
+            LoadFromGroupSharedMemory(texel_coords, radiance, roughness);
+
+            mediump float weight = GetEdgeStoppingRoughnessWeightFP16(center_roughness, roughness, 0.001, 0.01);
+            sum += radiance * weight;
+            total_weight += weight;
+        }
+    }
+
+    sum /= max(total_weight, 0.0001);
+    return vec4(sum, 1.0);
+}
+
+void LoadWithOffset(ivec2 did, ivec2 offset, out vec3 radiance, out float roughness)
+{
+    did += offset;
+    radiance = LoadRadiance(did);
+    roughness = LoadRoughnessValue(did);
+}
+
+void StoreWithOffset(ivec2 gtid, ivec2 offset, vec3 radiance, float roughness)
+{
+    gtid += offset;
+    StoreInGroupSharedMemory(gtid, radiance, roughness);
+}
+
+void InitializeGroupSharedMemory(ivec2 did, ivec2 gtid)
+{
+    ivec2 offset_0 = ivec2(0);
+    if (gtid.x < 4)
+    {
+        offset_0 = ivec2(8, 0);
+    }
+    else if (gtid.y >= 4)
+    {
+        offset_0 = ivec2(4);
+    }
+    else
+    {
+        offset_0 = -gtid;
+    }
+
+    ivec2 offset_1 = ivec2(0);
+    if (gtid.y < 4)
+    {
+        offset_1 = ivec2(0, 8);
+    }
+    else
+    {
+        offset_1 = -gtid;
+    }
+
+    vec3 radiance_0;
+    float roughness_0;
+
+    vec3 radiance_1;
+    float roughness_1;
+
+    vec3 radiance_2;
+    float roughness_2;
+
+    did -= ivec2(2);
+    LoadWithOffset(did, ivec2(0), radiance_0, roughness_0);
+    LoadWithOffset(did, offset_0, radiance_1, roughness_1);
+    LoadWithOffset(did, offset_1, radiance_2, roughness_2);
+
+    StoreWithOffset(gtid, ivec2(0), radiance_0, roughness_0);
+    if (gtid.x < 4 || gtid.y >= 4)
+    {
+        StoreWithOffset(gtid, offset_0, radiance_1, roughness_1);
+    }
+    if (gtid.y < 4)
+    {
+        StoreWithOffset(gtid, offset_1, radiance_2, roughness_2);
+    }
+}
+
+void Resolve(ivec2 did, ivec2 gtid)
+{
+    InitializeGroupSharedMemory(did, gtid);
+    barrier();
+
+    gtid += 2;
+
+    mediump vec3 center_radiance;
+    mediump float center_roughness;
+    LoadFromGroupSharedMemory(gtid, center_radiance, center_roughness);
+
+    if (!IsGlossy(center_roughness) || IsMirrorReflection(center_roughness))
+    {
+        return;
+    }
+
+    imageStore(g_denoised_reflections, did, ResolveScreenspaceReflections(gtid, center_roughness));
+}
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+void main()
+{
+    uint packed_base_coords = g_tile_list_Data[gl_WorkGroupID.x];
+    uvec2 base_coords = Unpack(packed_base_coords);
+    uvec2 coords = base_coords + gl_LocalInvocationID.xy;
+    Resolve(ivec2(coords), ivec2(gl_LocalInvocationID.xy));
+}

@@ -32,10 +32,10 @@
 // Uncomment this to enable render doc capture support
 //#define USE_RENDER_DOC
 
-// Debug Utils Extension is still WIP and does not work with all Validation Layers
-// Disable this to use the old debug report and debug marker extensions
-// Debug Utils requires the Nightly Build of RenderDoc
-//#define USE_DEBUG_UTILS_EXTENSION
+// Debug Utils Extension not present on many Android devices
+#if !defined(__ANDROID__)
+#define USE_DEBUG_UTILS_EXTENSION
+#endif
 /************************************************************************/
 /************************************************************************/
 #if defined(_WIN32)
@@ -390,13 +390,10 @@ VkAllocationCallbacks gVkAllocationCallbacks =
 VkSampleCountFlagBits util_to_vk_sample_count(SampleCount sampleCount);
 
 // clang-format off
-API_INTERFACE void FORGE_CALLCONV addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** pp_buffer);
-API_INTERFACE void FORGE_CALLCONV removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
-API_INTERFACE void FORGE_CALLCONV addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
-API_INTERFACE void FORGE_CALLCONV removeTexture(Renderer* pRenderer, Texture* pTexture);
-API_INTERFACE void FORGE_CALLCONV mapBuffer(Renderer* pRenderer, Buffer* pBuffer, ReadRange* pRange);
-API_INTERFACE void FORGE_CALLCONV unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
-API_INTERFACE void FORGE_CALLCONV cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
+void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer);
+void removeBuffer(Renderer* pRenderer, Buffer* pBuffer);
+void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTexture);
+void removeTexture(Renderer* pRenderer, Texture* pTexture);
 // clang-format on
 
 //+1 for Acceleration Structure
@@ -932,17 +929,12 @@ static VkBool32 VKAPI_PTR internal_debug_report_callback(
 	}
 	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
 	{
-		// Code 64 is vkCmdClearAttachments issued before any draws
-		// We ignore this since we dont use load store actions
-		// Instead we clear the attachments in the DirectX way
-		if (messageCode == 64)
-			return VK_FALSE;
-
 		LOGF(LogLevel::eWARNING, "[%s] : %s (%i)", pLayerPrefix, pMessage, messageCode);
 	}
 	else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
 	{
 		LOGF(LogLevel::eERROR, "[%s] : %s (%i)", pLayerPrefix, pMessage, messageCode);
+		ASSERT(false);
 	}
 
 	return VK_FALSE;
@@ -967,6 +959,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL internal_debug_report_callback(
 	else if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
 	{
 		LOGF(LogLevel::eERROR, "[%s] : %s (%i)", pLayerPrefix, pMessage, messageCode);
+		ASSERT(false);
 	}
 	
 	return VK_FALSE;
@@ -1259,27 +1252,27 @@ static void add_default_resources(Renderer* pRenderer)
 	// Transition resources
 	beginCmd(cmd);
 
-	eastl::vector<BufferBarrier> bufferBarriers;
-	eastl::vector<TextureBarrier> textureBarriers;
+	BufferBarrier bufferBarriers[MAX_LINKED_GPUS * 2] = {};
+	uint32_t bufferBarrierCount = 0;
+	TextureBarrier textureBarriers[MAX_LINKED_GPUS * TEXTURE_DIM_COUNT * 2] = {};
+	uint32_t textureBarrierCount = 0;
 
 	for (uint32_t i = 0; i < pRenderer->mLinkedNodeCount; ++i)
 	{
 		for (uint32_t dim = 0; dim < TEXTURE_DIM_COUNT; ++dim)
 		{
 			if (pRenderer->pNullDescriptors->pDefaultTextureSRV[i][dim])
-				textureBarriers.push_back(TextureBarrier{ pRenderer->pNullDescriptors->pDefaultTextureSRV[i][dim], RESOURCE_STATE_SHADER_RESOURCE });
+				textureBarriers[textureBarrierCount++] = { pRenderer->pNullDescriptors->pDefaultTextureSRV[i][dim], RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_SHADER_RESOURCE };
 
 			if (pRenderer->pNullDescriptors->pDefaultTextureUAV[i][dim])
-				textureBarriers.push_back(TextureBarrier{ pRenderer->pNullDescriptors->pDefaultTextureUAV[i][dim], RESOURCE_STATE_UNORDERED_ACCESS });
+				textureBarriers[textureBarrierCount++] = { pRenderer->pNullDescriptors->pDefaultTextureUAV[i][dim], RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_UNORDERED_ACCESS };
 		}
 
-		bufferBarriers.push_back(BufferBarrier{ pRenderer->pNullDescriptors->pDefaultBufferSRV[i], RESOURCE_STATE_SHADER_RESOURCE, false });
-		bufferBarriers.push_back(BufferBarrier{ pRenderer->pNullDescriptors->pDefaultBufferUAV[i], RESOURCE_STATE_UNORDERED_ACCESS, false });
+		bufferBarriers[bufferBarrierCount++] = { pRenderer->pNullDescriptors->pDefaultBufferSRV[i], RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_SHADER_RESOURCE };
+		bufferBarriers[bufferBarrierCount++] = { pRenderer->pNullDescriptors->pDefaultBufferUAV[i], RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_UNORDERED_ACCESS };
 	}
 
-	uint32_t bufferBarrierCount = (uint32_t)bufferBarriers.size();
-	uint32_t textureBarrierCount = (uint32_t)textureBarriers.size();
-	cmdResourceBarrier(cmd, bufferBarrierCount, bufferBarriers.data(), textureBarrierCount, textureBarriers.data(), 0, NULL);
+	cmdResourceBarrier(cmd, bufferBarrierCount, bufferBarriers, textureBarrierCount, textureBarriers, 0, NULL);
 	endCmd(cmd);
 
 	QueueSubmitDesc submitDesc = {};
@@ -1319,7 +1312,7 @@ static void remove_default_resources(Renderer* pRenderer)
 /************************************************************************/
 // Globals
 /************************************************************************/
-static tfrg_atomic64_t gRenderTargetIds = 1;
+static tfrg_atomic32_t gRenderTargetIds = 1;
 /************************************************************************/
 // Internal utility functions
 /************************************************************************/
@@ -1491,7 +1484,7 @@ VkAccessFlags util_to_vk_access_flags(ResourceState state)
 	{
 		ret |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 	}
-	if ((state & RESOURCE_STATE_SHADER_RESOURCE) || (state & RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE))
+	if (state & RESOURCE_STATE_SHADER_RESOURCE)
 	{
 		ret |= VK_ACCESS_SHADER_READ_BIT;
 	}
@@ -1527,7 +1520,7 @@ VkImageLayout util_to_vk_image_layout(ResourceState usage)
 	if (usage & RESOURCE_STATE_UNORDERED_ACCESS)
 		return VK_IMAGE_LAYOUT_GENERAL;
 
-	if ((usage & RESOURCE_STATE_SHADER_RESOURCE) || (usage & RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE))
+	if (usage & RESOURCE_STATE_SHADER_RESOURCE)
 		return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
 	if (usage & RESOURCE_STATE_PRESENT)
@@ -1935,7 +1928,7 @@ void CreateInstance(const char* app_name,
 		}
 		const uint32_t wanted_extension_count = (uint32_t)wantedInstanceExtensions.size();
 		// Layer extensions
-		for (uint32_t i = 0; i < layerTemp.size(); ++i)
+		for (size_t i = 0; i < layerTemp.size(); ++i)
 		{
 			const char* layer_name = layerTemp[i];
 			uint32_t    count = 0;
@@ -2097,7 +2090,6 @@ static void RemoveInstance(Renderer* pRenderer)
 	}
 #endif
 
-
 	vkDestroyInstance(pRenderer->pVkInstance, &gVkAllocationCallbacks);
 }
 
@@ -2111,7 +2103,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 
 #if VK_KHR_device_group_creation
 	VkDeviceGroupDeviceCreateInfoKHR                    deviceGroupInfo = { VK_STRUCTURE_TYPE_DEVICE_GROUP_DEVICE_CREATE_INFO_KHR };
-	eastl::vector<VkPhysicalDeviceGroupPropertiesKHR>   props;
+	VkPhysicalDeviceGroupPropertiesKHR                  props[MAX_LINKED_GPUS] = {};
 
 	pRenderer->mLinkedNodeCount = 1;
 	if (pRenderer->mGpuMode == GPU_MODE_LINKED && gDeviceGroupCreationExtension)
@@ -2123,13 +2115,12 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 		vkEnumeratePhysicalDeviceGroupsKHR(pRenderer->pVkInstance, &deviceGroupCount, NULL);
 
 		// Allocate and initialize structures to query the device groups
-		props.resize(deviceGroupCount);
 		for (uint32_t i = 0; i < deviceGroupCount; ++i)
 		{
 			props[i].sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_GROUP_PROPERTIES_KHR;
 			props[i].pNext = NULL;
 		}
-		vk_res = vkEnumeratePhysicalDeviceGroupsKHR(pRenderer->pVkInstance, &deviceGroupCount, props.data());
+		vk_res = vkEnumeratePhysicalDeviceGroupsKHR(pRenderer->pVkInstance, &deviceGroupCount, props);
 		ASSERT(VK_SUCCESS == vk_res);
 
 		// If the first device group has more than one physical device. create
@@ -2411,7 +2402,7 @@ static bool AddDevice(const RendererDesc* pDesc, Renderer* pRenderer)
 		const char*                  layer_name = NULL;
 		uint32_t                     initialCount = sizeof(gVkWantedDeviceExtensions) / sizeof(gVkWantedDeviceExtensions[0]);
 		const uint32_t               userRequestedCount = (uint32_t)pDesc->mDeviceExtensionCount;
-		eastl::vector<const char*> wantedDeviceExtensions(initialCount + userRequestedCount);
+		eastl::vector<const char*>   wantedDeviceExtensions(initialCount + userRequestedCount);
 		for (uint32_t i = 0; i < initialCount; ++i)
 		{
 			wantedDeviceExtensions[i] = gVkWantedDeviceExtensions[i];
@@ -3438,12 +3429,43 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 	descColor.mSampleCount = SAMPLE_COUNT_1;
 	descColor.mSampleQuality = 0;
 
+	RenderTargetBarrier barriers[MAX_SWAPCHAIN_IMAGES] = {};
+
 	// Populate the vk_image field and add the Vulkan texture objects
 	for (uint32_t i = 0; i < imageCount; ++i)
 	{
 		descColor.pNativeHandle = (void*)images[i];
 		addRenderTarget(pRenderer, &descColor, &pSwapChain->ppRenderTargets[i]);
+		barriers[i] = { pSwapChain->ppRenderTargets[i], RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_PRESENT };
 	}
+
+	Queue* queue = NULL;
+	CmdPool* cmdPool = NULL;
+	Cmd* cmd = NULL;
+	Fence* fence = NULL;
+	QueueDesc queueDesc = {};
+	queueDesc.mType = QUEUE_TYPE_GRAPHICS;
+	addQueue(pRenderer, &queueDesc, &queue);
+	CmdPoolDesc cmdPoolDesc = {};
+	cmdPoolDesc.pQueue = queue;
+	addCmdPool(pRenderer, &cmdPoolDesc, &cmdPool);
+	CmdDesc cmdDesc = {};
+	cmdDesc.pPool = cmdPool;
+	addCmd(pRenderer, &cmdDesc, &cmd);
+	addFence(pRenderer, &fence);
+	beginCmd(cmd);
+	cmdResourceBarrier(cmd, 0, NULL, 0, NULL, imageCount, barriers);
+	endCmd(cmd);
+	QueueSubmitDesc submitDesc = {};
+	submitDesc.mCmdCount = 1;
+	submitDesc.ppCmds = &cmd;
+	submitDesc.pSignalFence = fence;
+	queueSubmit(queue, &submitDesc);
+	waitForFences(pRenderer, 1, &fence);
+	removeFence(pRenderer, fence);
+	removeCmd(pRenderer, cmd);
+	removeCmdPool(pRenderer, cmdPool);
+	removeQueue(pRenderer, queue);
 	/************************************************************************/
 	/************************************************************************/
 	*pSwapChain->pDesc = *pDesc;
@@ -3549,8 +3571,6 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 		/************************************************************************/
 		/************************************************************************/
 	}
-
-	pBuffer->mCurrentState = RESOURCE_STATE_UNDEFINED;
 	/************************************************************************/
 	// Set descriptor data
 	/************************************************************************/
@@ -3835,8 +3855,6 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 			/************************************************************************/
 			/************************************************************************/
 		}
-
-		pTexture->mCurrentState = RESOURCE_STATE_UNDEFINED;
 	}
 	/************************************************************************/
 	// Create image view
@@ -3989,7 +4007,7 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 	pRenderTarget->pVkSliceDescriptors = (VkImageView*)(pRenderTarget + 1);
 
 	// Monotonically increasing thread safe id generation
-	pRenderTarget->mId = tfrg_atomic64_add_relaxed(&gRenderTargetIds, 1);
+	pRenderTarget->mId = tfrg_atomic32_add_relaxed(&gRenderTargetIds, 1);
 
 	TextureDesc textureDesc = {};
 	textureDesc.mArraySize = pDesc->mArraySize;
@@ -4036,6 +4054,8 @@ void addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderT
 			}
 		}
 	}
+
+	textureDesc.pName = pDesc->pName;
 
 	addTexture(pRenderer, &textureDesc, &pRenderTarget->pTexture);
 
@@ -4809,13 +4829,13 @@ void removeShader(Renderer* pRenderer, Shader* pShaderProgram)
 typedef struct UpdateFrequencyLayoutInfo
 {
 	/// Array of all bindings in the descriptor set
-	eastl::vector<VkDescriptorSetLayoutBinding> mBindings;
+	eastl::vector<VkDescriptorSetLayoutBinding> mBindings{};
 	/// Array of all descriptors in this descriptor set
-	eastl::vector<DescriptorInfo*> mDescriptors;
+	eastl::vector<DescriptorInfo*> mDescriptors{};
 	/// Array of all descriptors marked as dynamic in this descriptor set (applicable to DESCRIPTOR_TYPE_UNIFORM_BUFFER)
-	eastl::vector<DescriptorInfo*> mDynamicDescriptors;
+	eastl::vector<DescriptorInfo*> mDynamicDescriptors{};
 	/// Hash map to get index of the descriptor in the root signature
-	eastl::hash_map<DescriptorInfo*, uint32_t> mDescriptorIndexMap;
+	eastl::hash_map<DescriptorInfo*, uint32_t> mDescriptorIndexMap{};
 } UpdateFrequencyLayoutInfo;
 
 void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatureDesc, RootSignature** ppRootSignature)
@@ -4824,8 +4844,10 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 	ASSERT(pRootSignatureDesc);
 	ASSERT(ppRootSignature);
 
-	eastl::vector<UpdateFrequencyLayoutInfo> layouts(DESCRIPTOR_UPDATE_FREQ_COUNT);
-	eastl::vector<DescriptorInfo*>           pushConstantDescriptors;
+	static constexpr uint32_t                kMaxLayoutCount = DESCRIPTOR_UPDATE_FREQ_COUNT;
+	UpdateFrequencyLayoutInfo                layouts[kMaxLayoutCount] = {};
+	VkPushConstantRange                      pushConstants[SHADER_STAGE_COUNT] = {};
+	uint32_t                                 pushConstantCount = 0;
 	eastl::vector<ShaderResource>            shaderResources;
 	eastl::hash_map<eastl::string, Sampler*> staticSamplerMap;
 
@@ -5027,24 +5049,22 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 
 			pDesc->mVkStages = util_to_vk_shader_stage_flags(pRes->used_stages);
 			setIndex = 0;
-			pushConstantDescriptors.emplace_back(pDesc);
+			pDesc->mIndexInParent = pushConstantCount++;
+
+			pushConstants[pDesc->mIndexInParent] = {};
+			pushConstants[pDesc->mIndexInParent].offset = 0;
+			pushConstants[pDesc->mIndexInParent].size = pDesc->mSize;
+			pushConstants[pDesc->mIndexInParent].stageFlags = pDesc->mVkStages;
 		}
 
 		layouts[setIndex].mDescriptorIndexMap[pDesc] = i;
 	}
 
-	pRootSignature->mVkPushConstantCount = (uint32_t)pushConstantDescriptors.size();
-
-	// Create push constant ranges
-	for (uint32_t i = 0; i < pRootSignature->mVkPushConstantCount; ++i)
-	{
-		DescriptorInfo*      pDesc = pushConstantDescriptors[i];
-		pDesc->mIndexInParent = i;
-	}
+	pRootSignature->mVkPushConstantCount = pushConstantCount;
 
 	// Create descriptor layouts
 	// Put most frequently changed params first
-	for (uint32_t i = (uint32_t)layouts.size(); i-- > 0U;)
+	for (uint32_t i = kMaxLayoutCount; i-- > 0U;)
 	{
 		UpdateFrequencyLayoutInfo& layout = layouts[i];
 
@@ -5062,7 +5082,7 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 		bool createLayout = layout.mBindings.size() > 0;
 		// Check if we need to create an empty layout in case there is an empty set between two used sets
 		// Example: set = 0 is used, set = 2 is used. In this case, set = 1 needs to exist even if it is empty
-		if (!createLayout && i < layouts.size() - 1)
+		if (!createLayout && i < kMaxLayoutCount - 1)
 		{
 			createLayout = pRootSignature->mVkDescriptorSetLayouts[i + 1] != VK_NULL_HANDLE;
 		}
@@ -5080,7 +5100,9 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 		}
 
 		if (!layouts[i].mBindings.size())
+		{
 			continue;
+		}
 
 		pRootSignature->mVkDescriptorCounts[i] = (uint32_t)layout.mDescriptors.size();
 
@@ -5103,26 +5125,24 @@ void addRootSignature(Renderer* pRenderer, const RootSignatureDesc* pRootSignatu
 	/************************************************************************/
 	// Pipeline layout
 	/************************************************************************/
-	eastl::vector<VkDescriptorSetLayout> descriptorSetLayouts;
-	eastl::vector<VkPushConstantRange>   pushConstants(pRootSignature->mVkPushConstantCount);
+	VkDescriptorSetLayout descriptorSetLayouts[kMaxLayoutCount] = {};
+	uint32_t              descriptorSetLayoutCount = 0;
 	for (uint32_t i = 0; i < DESCRIPTOR_UPDATE_FREQ_COUNT; ++i)
-		if (pRootSignature->mVkDescriptorSetLayouts[i])
-			descriptorSetLayouts.emplace_back(pRootSignature->mVkDescriptorSetLayouts[i]);
-	for (uint32_t i = 0; i < pRootSignature->mVkPushConstantCount; ++i)
 	{
-		pushConstants[i].offset = 0;
-		pushConstants[i].size = pushConstantDescriptors[i]->mSize;
-		pushConstants[i].stageFlags = pushConstantDescriptors[i]->mVkStages;
+		if (pRootSignature->mVkDescriptorSetLayouts[i])
+		{
+			descriptorSetLayouts[descriptorSetLayoutCount++] = pRootSignature->mVkDescriptorSetLayouts[i];
+		}
 	}
 
 	DECLARE_ZERO(VkPipelineLayoutCreateInfo, add_info);
 	add_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	add_info.pNext = NULL;
 	add_info.flags = 0;
-	add_info.setLayoutCount = (uint32_t)descriptorSetLayouts.size();
-	add_info.pSetLayouts = descriptorSetLayouts.data();
+	add_info.setLayoutCount = descriptorSetLayoutCount;
+	add_info.pSetLayouts = descriptorSetLayouts;
 	add_info.pushConstantRangeCount = pRootSignature->mVkPushConstantCount;
-	add_info.pPushConstantRanges = pushConstants.data();
+	add_info.pPushConstantRanges = pushConstants;
 	CHECK_VKRESULT(vkCreatePipelineLayout(pRenderer->pVkDevice, &add_info, &gVkAllocationCallbacks, &(pRootSignature->pPipelineLayout)));
 	/************************************************************************/
 	// Update templates
@@ -5748,8 +5768,11 @@ void cmdBindRenderTargets(
 	if (!renderTargetCount && !pDepthStencil)
 		return;
 
-	uint64_t renderPassHash = 0;
-	uint64_t frameBufferHash = 0;
+	size_t renderPassHash = 0;
+	size_t frameBufferHash = 0;
+
+	RenderTargetBarrier barriers[MAX_RENDER_TARGET_ATTACHMENTS + 1] = {};
+	uint32_t barrierCount = 0;
 
 	// Generate hash for render pass and frame buffer
 	// NOTE:
@@ -5764,8 +5787,13 @@ void cmdBindRenderTargets(
 			(uint32_t)ppRenderTargets[i]->mSampleCount,
 			pLoadActions ? (uint32_t)pLoadActions->mLoadActionsColor[i] : 0,
 		};
-		renderPassHash = eastl::mem_hash<uint32_t>()(hashValues, 3, renderPassHash);
-		frameBufferHash = eastl::mem_hash<uint64_t>()(&ppRenderTargets[i]->mId, 1, frameBufferHash);
+		renderPassHash = tf_mem_hash<uint32_t>(hashValues, 3, renderPassHash);
+		frameBufferHash = tf_mem_hash<uint32_t>(&ppRenderTargets[i]->mId, 1, frameBufferHash);
+
+		if (0 == ppRenderTargets[i]->mUsed++)
+		{
+			barriers[barrierCount++] = { ppRenderTargets[i], RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_RENDER_TARGET };
+		}
 	}
 	if (pDepthStencil)
 	{
@@ -5775,17 +5803,22 @@ void cmdBindRenderTargets(
 			pLoadActions ? (uint32_t)pLoadActions->mLoadActionDepth : 0,
 			pLoadActions ? (uint32_t)pLoadActions->mLoadActionStencil : 0,
 		};
-		renderPassHash = eastl::mem_hash<uint32_t>()(hashValues, 4, renderPassHash);
-		frameBufferHash = eastl::mem_hash<uint64_t>()(&pDepthStencil->mId, 1, frameBufferHash);
+		renderPassHash = tf_mem_hash<uint32_t>(hashValues, 4, renderPassHash);
+		frameBufferHash = tf_mem_hash<uint32_t>(&pDepthStencil->mId, 1, frameBufferHash);
+
+		if (0 == pDepthStencil->mUsed++)
+		{
+			barriers[barrierCount++] = { pDepthStencil, RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_DEPTH_WRITE };
+		}
 	}
 	if (pColorArraySlices)
-		frameBufferHash = eastl::mem_hash<uint32_t>()(pColorArraySlices, renderTargetCount, frameBufferHash);
+		frameBufferHash = tf_mem_hash<uint32_t>(pColorArraySlices, renderTargetCount, frameBufferHash);
 	if (pColorMipSlices)
-		frameBufferHash = eastl::mem_hash<uint32_t>()(pColorMipSlices, renderTargetCount, frameBufferHash);
+		frameBufferHash = tf_mem_hash<uint32_t>(pColorMipSlices, renderTargetCount, frameBufferHash);
 	if (depthArraySlice != -1)
-		frameBufferHash = eastl::mem_hash<uint32_t>()(&depthArraySlice, 1, frameBufferHash);
+		frameBufferHash = tf_mem_hash<uint32_t>(&depthArraySlice, 1, frameBufferHash);
 	if (depthMipSlice != -1)
-		frameBufferHash = eastl::mem_hash<uint32_t>()(&depthMipSlice, 1, frameBufferHash);
+		frameBufferHash = tf_mem_hash<uint32_t>(&depthMipSlice, 1, frameBufferHash);
 
 	SampleCount sampleCount = SAMPLE_COUNT_1;
 
@@ -5877,6 +5910,11 @@ void cmdBindRenderTargets(
 			clearValues[renderTargetCount].depthStencil = { pLoadActions->mClearDepth.depth, pLoadActions->mClearDepth.stencil };
 			++clearValueCount;
 		}
+	}
+
+	if (barrierCount)
+	{
+		cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, barrierCount, barriers);
 	}
 
 	DECLARE_ZERO(VkRenderPassBeginInfo, begin_info);
@@ -6031,18 +6069,8 @@ void cmdResourceBarrier(Cmd* pCmd,
 		Buffer*        pBuffer = pTrans->pBuffer;
 		VkBufferMemoryBarrier* pBufferBarrier = NULL;
 
-		if (!(pTrans->mNewState & pBuffer->mCurrentState))
-		{
-			pBufferBarrier = &bufferBarriers[bufferBarrierCount++];
-			pBufferBarrier->sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-			pBufferBarrier->pNext = NULL;
-
-			pBufferBarrier->srcAccessMask = util_to_vk_access_flags((ResourceState)pBuffer->mCurrentState);
-			pBufferBarrier->dstAccessMask = util_to_vk_access_flags(pTrans->mNewState);
-
-			pBuffer->mCurrentState = pTrans->mNewState;
-		}
-		else if (pTrans->mNewState == RESOURCE_STATE_UNORDERED_ACCESS)
+		if (RESOURCE_STATE_UNORDERED_ACCESS == pTrans->mCurrentState &&
+			RESOURCE_STATE_UNORDERED_ACCESS == pTrans->mNewState)
 		{
 			pBufferBarrier = &bufferBarriers[bufferBarrierCount++];
 			pBufferBarrier->sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -6050,6 +6078,15 @@ void cmdResourceBarrier(Cmd* pCmd,
 
 			pBufferBarrier->srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
 			pBufferBarrier->dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+		}
+		else
+		{
+			pBufferBarrier = &bufferBarriers[bufferBarrierCount++];
+			pBufferBarrier->sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+			pBufferBarrier->pNext = NULL;
+
+			pBufferBarrier->srcAccessMask = util_to_vk_access_flags(pTrans->mCurrentState);
+			pBufferBarrier->dstAccessMask = util_to_vk_access_flags(pTrans->mNewState);
 		}
 
 		if (pBufferBarrier)
@@ -6078,26 +6115,15 @@ void cmdResourceBarrier(Cmd* pCmd,
 			dstAccessFlags |= pBufferBarrier->dstAccessMask;
 		}
 	}
+
 	for (uint32_t i = 0; i < numTextureBarriers; ++i)
 	{
 		TextureBarrier* pTrans = &pTextureBarriers[i];
 		Texture*        pTexture = pTrans->pTexture;
 		VkImageMemoryBarrier* pImageBarrier = NULL;
 
-		if (!(pTrans->mNewState & pTexture->mCurrentState))
-		{
-			pImageBarrier = &imageBarriers[imageBarrierCount++];
-			pImageBarrier->sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-			pImageBarrier->pNext = NULL;
-
-			pImageBarrier->srcAccessMask = util_to_vk_access_flags((ResourceState)pTexture->mCurrentState);
-			pImageBarrier->dstAccessMask = util_to_vk_access_flags(pTrans->mNewState);
-			pImageBarrier->oldLayout = util_to_vk_image_layout((ResourceState)pTexture->mCurrentState);
-			pImageBarrier->newLayout = util_to_vk_image_layout(pTrans->mNewState);
-
-			pTexture->mCurrentState = pTrans->mNewState;
-		}
-		else if (pTrans->mNewState == RESOURCE_STATE_UNORDERED_ACCESS)
+		if (RESOURCE_STATE_UNORDERED_ACCESS == pTrans->mCurrentState &&
+			RESOURCE_STATE_UNORDERED_ACCESS == pTrans->mNewState)
 		{
 			pImageBarrier = &imageBarriers[imageBarrierCount++];
 			pImageBarrier->sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -6114,6 +6140,17 @@ void cmdResourceBarrier(Cmd* pCmd,
 			pImageBarrier->dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
 			pImageBarrier->oldLayout = VK_IMAGE_LAYOUT_GENERAL;
 			pImageBarrier->newLayout = VK_IMAGE_LAYOUT_GENERAL;
+		}
+		else
+		{
+			pImageBarrier = &imageBarriers[imageBarrierCount++];
+			pImageBarrier->sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+			pImageBarrier->pNext = NULL;
+
+			pImageBarrier->srcAccessMask = util_to_vk_access_flags(pTrans->mCurrentState);
+			pImageBarrier->dstAccessMask = util_to_vk_access_flags(pTrans->mNewState);
+			pImageBarrier->oldLayout = util_to_vk_image_layout(pTrans->mCurrentState);
+			pImageBarrier->newLayout = util_to_vk_image_layout(pTrans->mNewState);
 		}
 
 		if (pImageBarrier)
@@ -6145,26 +6182,15 @@ void cmdResourceBarrier(Cmd* pCmd,
 			dstAccessFlags |= pImageBarrier->dstAccessMask;
 		}
 	}
+
 	for (uint32_t i = 0; i < numRtBarriers; ++i)
 	{
 		RenderTargetBarrier* pTrans = &pRtBarriers[i];
 		Texture*        pTexture = pTrans->pRenderTarget->pTexture;
 		VkImageMemoryBarrier* pImageBarrier = NULL;
 
-		if (!(pTrans->mNewState & pTexture->mCurrentState))
-		{
-			pImageBarrier = &imageBarriers[imageBarrierCount++];
-			pImageBarrier->sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-			pImageBarrier->pNext = NULL;
-
-			pImageBarrier->srcAccessMask = util_to_vk_access_flags((ResourceState)pTexture->mCurrentState);
-			pImageBarrier->dstAccessMask = util_to_vk_access_flags(pTrans->mNewState);
-			pImageBarrier->oldLayout = util_to_vk_image_layout((ResourceState)pTexture->mCurrentState);
-			pImageBarrier->newLayout = util_to_vk_image_layout(pTrans->mNewState);
-
-			pTexture->mCurrentState = pTrans->mNewState;
-		}
-		else if (pTrans->mNewState == RESOURCE_STATE_UNORDERED_ACCESS)
+		if (RESOURCE_STATE_UNORDERED_ACCESS == pTrans->mCurrentState &&
+			RESOURCE_STATE_UNORDERED_ACCESS == pTrans->mNewState)
 		{
 			pImageBarrier = &imageBarriers[imageBarrierCount++];
 			pImageBarrier->sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -6181,6 +6207,17 @@ void cmdResourceBarrier(Cmd* pCmd,
 			pImageBarrier->dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
 			pImageBarrier->oldLayout = VK_IMAGE_LAYOUT_GENERAL;
 			pImageBarrier->newLayout = VK_IMAGE_LAYOUT_GENERAL;
+		}
+		else
+		{
+			pImageBarrier = &imageBarriers[imageBarrierCount++];
+			pImageBarrier->sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+			pImageBarrier->pNext = NULL;
+
+			pImageBarrier->srcAccessMask = util_to_vk_access_flags(pTrans->mCurrentState);
+			pImageBarrier->dstAccessMask = util_to_vk_access_flags(pTrans->mNewState);
+			pImageBarrier->oldLayout = pTrans->pRenderTarget->mUsed++ ? util_to_vk_image_layout(pTrans->mCurrentState) : VK_IMAGE_LAYOUT_UNDEFINED;
+			pImageBarrier->newLayout = util_to_vk_image_layout(pTrans->mNewState);
 		}
 
 		if (pImageBarrier)
@@ -6722,9 +6759,14 @@ void cmdEndQuery(Cmd* pCmd, QueryPool* pQueryPool, QueryDesc* pQuery)
 
 void cmdResolveQuery(Cmd* pCmd, QueryPool* pQueryPool, Buffer* pReadbackBuffer, uint32_t startQuery, uint32_t queryCount)
 {
+	VkQueryResultFlags flags = VK_QUERY_RESULT_64_BIT;
+#ifdef ANDROID
+	flags |= VK_QUERY_RESULT_WITH_AVAILABILITY_BIT;
+#else
+	flags |= VK_QUERY_RESULT_WAIT_BIT;
+#endif
 	vkCmdCopyQueryPoolResults(
-		pCmd->pVkCmdBuf, pQueryPool->pVkQueryPool, startQuery, queryCount, pReadbackBuffer->pVkBuffer, 0, sizeof(uint64_t),
-		VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT);
+		pCmd->pVkCmdBuf, pQueryPool->pVkQueryPool, startQuery, queryCount, pReadbackBuffer->pVkBuffer, 0, sizeof(uint64_t), flags);
 }
 /************************************************************************/
 // Memory Stats Implementation
@@ -7071,10 +7113,6 @@ void releasePage(Cmd* pCmd, Texture* pTexture)
 void fillVirtualTexture(Cmd* pCmd, Texture* pTexture, Fence* pFence)
 {
 	Renderer* pRenderer = pCmd->pRenderer;
-	TextureBarrier barriers[] = {
-					{ pTexture, RESOURCE_STATE_COPY_DEST }
-	};
-	cmdResourceBarrier(pCmd, 0, NULL, 1, barriers, 0, NULL);
 
 	eastl::vector<VirtualTexturePage>* pPageTable = (eastl::vector<VirtualTexturePage>*)pTexture->pSvt->pPages;
 	eastl::vector<VkSparseImageMemoryBind>* pImageMemory = (eastl::vector<VkSparseImageMemoryBind>*)pTexture->pSvt->pSparseImageMemoryBinds;
@@ -7479,11 +7517,8 @@ void addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture
 
 	CHECK_VKRESULT(vkCreateImageView(pRenderer->pVkDevice, &view, &gVkAllocationCallbacks, &pTexture->pVkSRVDescriptor));
 
-	eastl::vector<TextureBarrier> textureBarriers;
-
-	textureBarriers.push_back(TextureBarrier{ pTexture, RESOURCE_STATE_COPY_DEST });
-	uint32_t textureBarrierCount = (uint32_t)textureBarriers.size();
-	cmdResourceBarrier(pCmd, 0, NULL, textureBarrierCount, textureBarriers.data(), 0, NULL);
+	TextureBarrier textureBarriers[] = { { pTexture, RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_COPY_DEST } };
+	cmdResourceBarrier(pCmd, 0, NULL, 1, textureBarriers, 0, NULL);
 
 	// Fill smallest (non-tail) mip map level
 	fillVirtualTextureLevel(pCmd, pTexture, TiledMiplevel - 1);
@@ -7494,7 +7529,6 @@ void addVirtualTexture(Cmd* pCmd, const TextureDesc * pDesc, Texture** ppTexture
 	pTexture->mWidth = pDesc->mWidth;
 	pTexture->mHeight = pDesc->mHeight;
 	pTexture->mDepth = pDesc->mDepth;
-	pTexture->mCurrentState = RESOURCE_STATE_UNDEFINED;
 
 	*ppTexture = pTexture;
 }

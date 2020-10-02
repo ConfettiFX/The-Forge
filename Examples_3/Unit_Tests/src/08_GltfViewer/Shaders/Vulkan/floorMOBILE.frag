@@ -57,9 +57,10 @@ layout(location = 0) out vec4 rast_FragData0;
 layout(UPDATE_FREQ_NONE, binding = 14) uniform texture2D ShadowTexture;
 layout(UPDATE_FREQ_NONE, binding = 7) uniform sampler clampMiplessLinearSampler;
 
-layout(std140, UPDATE_FREQ_PER_FRAME, binding = 2) uniform ShadowUniformBuffer
+layout(std140, UPDATE_FREQ_PER_FRAME, binding = 0) uniform cbPerPass
 {
-	uniform mat4    LightViewProj;
+	mat4 projView;
+	layout(column_major) mat4 shadowLightViewProj;
 };
 
 struct VSOutput
@@ -79,7 +80,7 @@ float random(vec3 seed, vec3 freq)
 
 float CalcPCFShadowFactor(vec3 worldPos)
 {
-	vec4 posLS = LightViewProj * vec4(worldPos.xyz, 1.0);
+	vec4 posLS = shadowLightViewProj * vec4(worldPos.xyz, 1.0);
 	posLS /= posLS.w;
 	posLS.y *= -1;
 	posLS.xy = posLS.xy * 0.5 + vec2(0.5, 0.5);

@@ -33,6 +33,7 @@
 /************************************************************************/
 // MARK: - File Watcher
 /************************************************************************/
+#if defined(_WIN32) || defined(__APPLE__) || defined(__linux__)
 typedef struct FileWatcher FileWatcher;
 
 typedef void (*FileWatcherCallback)(const char* fileName, uint32_t action);
@@ -51,6 +52,7 @@ FileWatcher* fsCreateFileWatcher(const char* path, FileWatcherEventMask eventMas
 
 /// Invalidates and frees `fileWatcher.
 void fsFreeFileWatcher(FileWatcher* fileWatcher);
+#endif
 /************************************************************************/
 // MARK: - File iteration
 /************************************************************************/

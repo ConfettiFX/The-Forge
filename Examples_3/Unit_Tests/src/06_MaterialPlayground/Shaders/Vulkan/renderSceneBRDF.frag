@@ -397,7 +397,8 @@ void main()
 	// Environment Lighting
 	if (bUseEnvironmentLight != 0)
 	{
-		Lo += EnvironmentBRDF(N, V, _albedo, _roughness, _metalness) * vec3(_ao, _ao, _ao) * fEnvironmentLightIntensity;
+		float aoWithIntensity = _ao  * fAOIntensity + (1.0f - fAOIntensity);
+		Lo += EnvironmentBRDF(N, V, _albedo, _roughness, _metalness) * vec3(aoWithIntensity, aoWithIntensity, aoWithIntensity) * fEnvironmentLightIntensity;
 	}
 	else
 	{

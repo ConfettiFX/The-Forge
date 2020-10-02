@@ -56,23 +56,9 @@ typedef uint64_t uint64;
 #include "../../../Switch/Common_3/OS/NX/NXTypes.h"
 #endif
 
-#ifdef _WIN32
-#define FORGE_CALLCONV __cdecl
-#else
-#define FORGE_CALLCONV
-#endif
-
-#ifdef __cplusplus
-#define FORGE_CONSTEXPR constexpr
-#else
-#define FORGE_CONSTEXPR
-#endif
-
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-
-#include "../../OS/Math/MathTypes.h"
 
 // For time related functions such as getting localtime
 #include <time.h>
@@ -82,21 +68,16 @@ typedef uint64_t uint64;
 #include <limits.h>
 #include <stddef.h>
 
-#ifndef _WIN32
-#include <unistd.h>
-#endif
+#include "../Core/Compiler.h"
+#include "../Math/MathTypes.h"
 
 #if !defined(_WIN32)
+#include <unistd.h>
 #define stricmp(a, b) strcasecmp(a, b)
 #if !defined(ORBIS) && !defined(PROSPERO)
 #define vsprintf_s vsnprintf
 #define strncpy_s strncpy
 #endif
-#endif
-
-#if defined(_MSC_VER) && !defined(NX64)
-#include <BaseTsd.h>
-typedef SSIZE_T ssize_t;
 #endif
 
 #if defined(XBOX)
@@ -118,8 +99,6 @@ typedef SSIZE_T ssize_t;
 #endif
 #endif
 #endif
-
-typedef void* IconHandle;
 
 typedef struct WindowHandle
 {
@@ -153,37 +132,24 @@ inline int getRectWidth(const RectDesc& rect) { return rect.right - rect.left; }
 
 inline int getRectHeight(const RectDesc& rect) { return rect.bottom - rect.top; }
 
-struct WindowsDesc;
-
-struct WindowCallbacks
+typedef struct
 {
-	void    (*onResize)(WindowsDesc* window, int32_t newSizeX, int32_t newSizeY);
-	void	(*setCursor)();
-	int32_t (*onHandleMessage)(WindowsDesc* window, void* msg);
-};
-
-typedef struct WindowsDesc
-{
-	WindowHandle              handle;    //hWnd
-
-	WindowCallbacks           callbacks;
-
-	RectDesc                  windowedRect;
-	RectDesc                  fullscreenRect;
-	RectDesc                  clientRect;
-	IconHandle                bigIcon;
-	IconHandle                smallIcon;
-
-	uint32_t                  windowsFlags;
-	bool                      fullScreen;
-	bool                      cursorTracked;
-	bool                      iconified;
-	bool                      maximized;
-	bool                      minimized;
-	bool                      hide;
-	bool                      noresizeFrame;
-	bool		 	  borderlessWindow;
-	bool			  overrideDefaultPosition;
+	WindowHandle handle;
+	RectDesc windowedRect;
+	RectDesc fullscreenRect;
+	RectDesc clientRect;
+	uint32_t windowsFlags;
+	bool fullScreen;
+	bool cursorTracked;
+	bool iconified;
+	bool maximized;
+	bool minimized;
+	bool hide;
+	bool noresizeFrame;
+	bool borderlessWindow;
+	bool overrideDefaultPosition;
+	bool centered;
+	bool forceLowDPI;
 } WindowsDesc;
 
 typedef struct Resolution
@@ -198,6 +164,8 @@ typedef struct
 {
 	RectDesc          monitorRect;
 	RectDesc          workRect;
+    uint2             dpi;
+    uint2             physicalSize;
 	// This size matches the static size of DISPLAY_DEVICE.DeviceName
 #if defined(_WIN32)
 	WCHAR             adapterName[32];
@@ -230,50 +198,12 @@ typedef struct
 	bool              modeChanged;
 } MonitorDesc;
 
-// Define some sized types
-typedef uint8_t uint8;
-typedef int8_t  int8;
-
-typedef uint16_t uint16;
-typedef int16_t  int16;
-
-typedef uint32_t uint32;
-typedef int32_t  int32;
-
-typedef ptrdiff_t intptr;
-
-#ifdef _WIN32
-typedef signed __int64   int64;
-typedef unsigned __int64 uint64;
-#elif defined(__APPLE__)
-typedef unsigned long DWORD;
-typedef unsigned int UINT;
-typedef long long int int64;
-//typedef bool BOOL;
-#elif defined(__linux__)
-typedef unsigned long DWORD;
-typedef unsigned int UINT;
-typedef int64_t int64;
-typedef uint64_t uint64;
-#elif defined(NX64)
-typedef unsigned long DWORD;
-typedef unsigned int UINT;
-typedef long long int int64;
-typedef uint64_t uint64;
-#else
-typedef signed long long   int64;
-typedef unsigned long long uint64;
-#endif
-
-typedef uint8        ubyte;
-typedef uint16       ushort;
-typedef unsigned int uint;
-#ifndef _WIN32
-typedef const char * LPCSTR, *PCSTR;
-#endif
-
 // API functions
 void requestShutdown();
+
+// Custom processing of OS pipe messages
+typedef int32_t(*CustomMessageProcessor)(WindowsDesc* pWindow, void* msg);
+void setCustomMessageProcessor(CustomMessageProcessor proc);
 
 // Window handling
 void openWindow(const char* app_name, WindowsDesc* winDesc);
@@ -286,21 +216,28 @@ void showWindow(WindowsDesc* winDesc);
 void hideWindow(WindowsDesc* winDesc);
 void maximizeWindow(WindowsDesc* winDesc);
 void minimizeWindow(WindowsDesc* winDesc);
+void centerWindow(WindowsDesc* winDesc);
 
+// Mouse and cursor handling
+void* createCursor(const char* path);
+void setCursor(void* cursor);
+void showCursor();
+void hideCursor();
+bool isCursorInsideTrackingArea();
 void setMousePositionRelative(const WindowsDesc* winDesc, int32_t x, int32_t y);
+void setMousePositionAbsolute(int32_t x, int32_t y);
 
 void getRecommendedResolution(RectDesc* rect);
 // Sets video mode for specified display
 void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes);
 
 MonitorDesc* getMonitor(uint32_t index);
+uint32_t     getMonitorCount();
 float2       getDpiScale();
 
 bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes);
 
 // Shell commands
-
-typedef struct Path Path;
 
 /// @param stdOutFile The file to which the output of the command should be written. May be NULL.
 int systemRun(const char *command, const char **arguments, size_t argumentCount, const char* stdOutFile);

@@ -56,11 +56,6 @@ layout(location = 1) out vec4 tesc_v2;
 layout(location = 2) out vec4 tesc_up;
 layout(location = 3) out vec4 tesc_widthDir;
 
-out gl_PerVertex
-{
-    vec4 gl_Position;
-};
-
 void main()
 {
 	vec4 V0 = world * vec4(v0.xyz, 1.0);

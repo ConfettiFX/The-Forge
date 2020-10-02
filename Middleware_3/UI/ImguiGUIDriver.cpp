@@ -352,26 +352,39 @@ static uint ToUintColor(float4 color)
 	return c;
 }
 
-void IWidget::ProcessCallbacks()
+void IWidget::ProcessCallbacks(bool deferred)
 {
-  mHovered = ImGui::IsItemHovered();
+	if (!deferred)
+	{
+		mHovered = ImGui::IsItemHovered();
+		mActive = ImGui::IsItemActive();
+		mFocused = ImGui::IsItemFocused();
+		mEdited = ImGui::IsItemEdited();
+		mDeactivated = ImGui::IsItemDeactivated();
+		mDeactivatedAfterEdit = ImGui::IsItemDeactivatedAfterEdit();
+	}
+
+	if (mDeferred != deferred)
+	{
+		return;
+	}
   
   if (pOnHover && mHovered) 
     pOnHover();
   
-	if (pOnActive && ImGui::IsItemActive())
+	if (pOnActive && mActive)
 		pOnActive();
 
-	if (pOnFocus && ImGui::IsItemFocused())
+	if (pOnFocus && mFocused)
 		pOnFocus();
 
-	if (pOnEdited && ImGui::IsItemEdited())
+	if (pOnEdited && mEdited)
 		pOnEdited();
 
-	if (pOnDeactivated && ImGui::IsItemDeactivated())
+	if (pOnDeactivated && mDeactivated)
 		pOnDeactivated();
 
-	if (pOnDeactivatedAfterEdit && ImGui::IsItemDeactivatedAfterEdit())
+	if (pOnDeactivatedAfterEdit && mDeactivatedAfterEdit)
 		pOnDeactivatedAfterEdit();
 }
 
@@ -951,7 +964,6 @@ bool ImguiGUIDriver::addFont(void* pFontBuffer, uint32_t fontBufferSize, void* p
 	textureDesc.pName = "ImGui Font Texture";
 	loadDesc.pDesc = &textureDesc;
 	loadDesc.ppTexture = &pTexture;
-	loadDesc.mCreationFlag = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
 	addResource(&loadDesc, &token);
 	waitForToken(&token);
 
@@ -1139,8 +1151,12 @@ bool ImguiGUIDriver::update(GUIUpdate* pGuiUpdate)
 					ImGui::SetWindowCollapsed(true, ImGuiCond_Once);
 
 				for (uint32_t i = 0; i < propCount; ++i)
-					if (pProps[i])
+				{
+					if (pProps[i] != nullptr)
+					{
 						pProps[i]->Draw();
+					}
+				}
 
 				ret = ret || ImGui::GetIO().WantCaptureMouse;
 			}
@@ -1161,6 +1177,24 @@ bool ImguiGUIDriver::update(GUIUpdate* pGuiUpdate)
 		}
 	}
 	ImGui::EndFrame();
+
+	if (mActive)
+	{
+		for (uint32_t compIndex = 0; compIndex < pGuiUpdate->componentCount; ++compIndex)
+		{
+			GuiComponent*                           pComponent = pGuiUpdate->pGuiComponents[compIndex];
+			IWidget**                               pProps = pComponent->mWidgets.data();
+			uint32_t                                propCount = (uint32_t)pComponent->mWidgets.size();
+
+			for (uint32_t i = 0; i < propCount; ++i)
+			{
+				if (pProps[i] != nullptr)
+				{
+					pProps[i]->ProcessCallbacks(true);
+				}
+			}
+		}
+	}
 		
 	if (!io.MouseDown[0])
 	{

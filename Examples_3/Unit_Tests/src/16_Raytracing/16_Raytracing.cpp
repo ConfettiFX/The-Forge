@@ -501,6 +501,7 @@ bool LoadSponza()
 	BufferLoadDesc desc = {};
 	desc.mDesc.mDescriptors = DESCRIPTOR_TYPE_BUFFER_RAW;
 	desc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+	desc.mDesc.mStartState = RESOURCE_STATE_COMMON;
 	desc.mDesc.mSize = totalPrimitiveCount * sizeof(uint32_t);
 	desc.mDesc.mElementCount = totalPrimitiveCount;
 	desc.ppBuffer = &SponzaProp.pMaterialIdStream;
@@ -903,6 +904,7 @@ public:
 		BufferLoadDesc ubDesc = {};
 		ubDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+		ubDesc.mDesc.mStartState = RESOURCE_STATE_COMMON;
 		ubDesc.mDesc.mSize = sizeof(ShadersConfigBlock);
 		for (uint32_t i = 0; i < gImageCount; i++)
 		{
@@ -1021,7 +1023,7 @@ public:
 		uavDesc.mHeight = mSettings.mHeight;
 		uavDesc.mMipLevels = 1;
 		uavDesc.mSampleCount = SAMPLE_COUNT_1;
-		uavDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;// RESOURCE_STATE_UNORDERED_ACCESS;
+		uavDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		uavDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 		uavDesc.mWidth = mSettings.mWidth;
 #ifdef METAL
@@ -1380,11 +1382,10 @@ public:
 			RenderTarget* depthNormalTarget = pDepthNormalRenderTarget[mPathTracingData.mFrameIndex & 0x1];
 			
 			RenderTargetBarrier barriers[] = {
-				{ pDepthRenderTarget, RESOURCE_STATE_RENDER_TARGET },
-				{ depthNormalTarget, RESOURCE_STATE_RENDER_TARGET },
-				{ pMotionVectorRenderTarget, RESOURCE_STATE_RENDER_TARGET },
+				{ pDepthRenderTarget, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+				{ depthNormalTarget, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+				{ pMotionVectorRenderTarget, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
 			};
-			
 			cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 3, barriers);
 			
 			RenderTarget* denoiserRTs[] = { depthNormalTarget, pMotionVectorRenderTarget };
@@ -1417,7 +1418,7 @@ public:
 		// Transition UAV texture so raytracing shader can write to it
 		/************************************************************************/
 		cmdBeginGpuTimestampQuery(pCmd, gGpuProfileToken, "Path Trace Scene");
-		TextureBarrier uavBarrier = { pComputeOutput, RESOURCE_STATE_UNORDERED_ACCESS };
+		TextureBarrier uavBarrier = { pComputeOutput, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
 		cmdResourceBarrier(pCmd, 0, NULL, 1, &uavBarrier, 0, NULL);
 		/************************************************************************/
 		// Perform raytracing
@@ -1451,10 +1452,10 @@ public:
 		/************************************************************************/
 		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
 		TextureBarrier copyBarriers[] = {
-			{ pComputeOutput, RESOURCE_STATE_SHADER_RESOURCE },
+			{ pComputeOutput, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
 		};
 		RenderTargetBarrier rtCopyBarriers[] = {
-			{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
+			{ pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
 		};
 		cmdResourceBarrier(pCmd, 0, NULL, 1, copyBarriers, 1, rtCopyBarriers);
 		
@@ -1515,7 +1516,7 @@ public:
 		gAppUI.Draw(pCmd);
 		cmdBindRenderTargets(pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-		RenderTargetBarrier presentBarrier = { pRenderTarget, RESOURCE_STATE_PRESENT };
+		RenderTargetBarrier presentBarrier = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(pCmd, 0, NULL, 0, NULL, 1, &presentBarrier);
 
 		cmdEndGpuFrameProfile(pCmd, gGpuProfileToken);

@@ -1454,7 +1454,7 @@ public:
         drawIDBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER | DESCRIPTOR_TYPE_BUFFER;
         drawIDBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
         drawIDBufferDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT * 2;
-        drawIDBufferDesc.mDesc.mStructStride = sizeof(uint32);
+        drawIDBufferDesc.mDesc.mStructStride = sizeof(uint32_t);
         drawIDBufferDesc.mDesc.mSize = drawIDBufferDesc.mDesc.mElementCount * drawIDBufferDesc.mDesc.mStructStride;
         drawIDBufferDesc.ppBuffer = &pDrawIDBuffer;
         drawIDBufferDesc.pData = drawIds;
@@ -1463,13 +1463,6 @@ public:
 #endif
         
 		LOGF(LogLevel::eINFO, "Setup buffers : %f ms", setupBuffersTimer.GetUSec(true) / 1000.0f);
-
-#if defined(XBOX)
-		// When async compute, we need to transition some resources in the graphics queue
-		// because they can't be transitioned by the compute queue (incompatible)
-		if (gAppSettings.mAsyncCompute)
-			setResourcesToComputeCompliantState(0, true);
-#endif
 
 		LOGF(LogLevel::eINFO, "Total Load Time : %f ms", timer.GetUSec(true) / 1000.0f);
 
@@ -2363,7 +2356,7 @@ public:
 		{
 			/************************************************************************/
 			// Triangle filtering async compute pass
-		/************************************************************************/
+			/************************************************************************/
 			Cmd* computeCmd = ppComputeCmds[frameIdx];
 
 			resetCmdPool(pRenderer, pComputeCmdPool[frameIdx]);
@@ -2383,7 +2376,7 @@ public:
 				/************************************************************************/
 				// Update Light clusters on the GPU
 				cmdBeginGpuTimestampQuery(computeCmd, gComputeProfileToken, "Compute Light Clusters");
-				BufferBarrier barriers[] = { { pLightClustersCount[frameIdx], RESOURCE_STATE_UNORDERED_ACCESS } };
+				BufferBarrier barriers[] = { { pLightClustersCount[frameIdx], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS } };
 				cmdResourceBarrier(computeCmd, 1, barriers, 0, NULL, 0, NULL);
 				computeLightClusters(computeCmd, frameIdx);
 				cmdEndGpuTimestampQuery(computeCmd, gComputeProfileToken);
@@ -2444,10 +2437,10 @@ public:
 			{
 				// Update Light clusters on the GPU
 				cmdBeginGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken, "Compute Light Clusters");
-				BufferBarrier barriers[] = { { pLightClustersCount[frameIdx], RESOURCE_STATE_UNORDERED_ACCESS } };
+				BufferBarrier barriers[] = { { pLightClustersCount[frameIdx], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS } };
 				cmdResourceBarrier(graphicsCmd, 1, barriers, 0, NULL, 0, NULL);
 				computeLightClusters(graphicsCmd, frameIdx);
-				barriers[0] = { pLightClusters[frameIdx], RESOURCE_STATE_UNORDERED_ACCESS };
+				barriers[0] = { pLightClusters[frameIdx], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
 				cmdResourceBarrier(graphicsCmd, 1, barriers, 0, NULL, 0, NULL);
 				cmdEndGpuTimestampQuery(graphicsCmd, gGraphicsProfileToken);
 			}
@@ -2462,9 +2455,9 @@ public:
 
 			// Transition swapchain buffer to be used as a render target
 			RenderTargetBarrier barriers[] = {
-				{ pScreenRenderTarget, RESOURCE_STATE_RENDER_TARGET },
-				{ pRenderTargetMSAA, RESOURCE_STATE_RENDER_TARGET },
-				{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE },
+				{ pScreenRenderTarget, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+				{ pRenderTargetMSAA, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+				{ pDepthBuffer, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE },
 			};
 			cmdResourceBarrier(graphicsCmd, 0, NULL, 0, NULL, 3, barriers);
 
@@ -2476,27 +2469,21 @@ public:
 				for (uint32_t i = 0; i < gNumViews; ++i)
 				{
 					barriers2[index++] = { pFilteredIndirectDrawArgumentsBuffer[frameIdx][GEOMSET_ALPHATESTED][i],
-						RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE };
+						RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
 					barriers2[index++] = { pFilteredIndirectDrawArgumentsBuffer[frameIdx][GEOMSET_OPAQUE][i],
-						RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE };
+						RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
 					barriers2[index++] = { pFilteredIndexBuffer[frameIdx][i],
-						RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_SHADER_RESOURCE };
+						RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
 				}
-				barriers2[index++] = { pFilterIndirectMaterialBuffer[frameIdx], RESOURCE_STATE_SHADER_RESOURCE };
-				barriers2[index++] = { pLightClusters[frameIdx], RESOURCE_STATE_SHADER_RESOURCE };
-				barriers2[index++] = { pLightClustersCount[frameIdx], RESOURCE_STATE_SHADER_RESOURCE };
+				barriers2[index++] = { pFilterIndirectMaterialBuffer[frameIdx], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE };
+				barriers2[index++] = { pLightClusters[frameIdx], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
+				barriers2[index++] = { pLightClustersCount[frameIdx], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
 				cmdResourceBarrier(graphicsCmd, numBarriers, barriers2, 0, NULL, 0, NULL);
 			}
 
 			drawScene(graphicsCmd, frameIdx);
 			drawSkybox(graphicsCmd, frameIdx);
 
-#if defined(XBOX)
-			// When async compute is on, we need to transition some resources in the graphics queue
-			// because they can't be transitioned by the compute queue (incompatible)
-			if (gAppSettings.mAsyncCompute)
-				setResourcesToComputeCompliantState(frameIdx, false);
-#else
 			if (gAppSettings.mFilterTriangles)
 			{
 				const uint32_t numBarriers = (gNumGeomSets * gNumViews) + gNumViews + 1 + 2;
@@ -2505,17 +2492,21 @@ public:
 				for (uint32_t i = 0; i < gNumViews; ++i)
 				{
 					barriers2[index++] = { pFilteredIndirectDrawArgumentsBuffer[frameIdx][GEOMSET_ALPHATESTED][i],
-						RESOURCE_STATE_UNORDERED_ACCESS };
+						RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
 					barriers2[index++] = { pFilteredIndirectDrawArgumentsBuffer[frameIdx][GEOMSET_OPAQUE][i],
-						RESOURCE_STATE_UNORDERED_ACCESS };
-					barriers2[index++] = { pFilteredIndexBuffer[frameIdx][i], RESOURCE_STATE_UNORDERED_ACCESS };
+						RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
+					barriers2[index++] = { pFilteredIndexBuffer[frameIdx][i],
+						RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
 				}
-				barriers2[index++] = { pFilterIndirectMaterialBuffer[frameIdx], RESOURCE_STATE_UNORDERED_ACCESS };
-				barriers2[index++] = { pLightClusters[frameIdx], RESOURCE_STATE_UNORDERED_ACCESS };
-				barriers2[index++] = { pLightClustersCount[frameIdx], RESOURCE_STATE_UNORDERED_ACCESS };
+				barriers2[index++] = { pFilterIndirectMaterialBuffer[frameIdx],
+					RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
+				barriers2[index++] = { pLightClusters[frameIdx],
+					RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
+				barriers2[index++] = { pLightClustersCount[frameIdx],
+					RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
 				cmdResourceBarrier(graphicsCmd, numBarriers, barriers2, 0, NULL, 0, NULL);
 			}
-#endif
+
 			if (gAppSettings.mEnableGodray)
 			{
 				drawGodray(graphicsCmd, frameIdx);
@@ -3099,6 +3090,7 @@ public:
 		depthRT.mDepth = 1;
 		depthRT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
+		depthRT.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		depthRT.mHeight = height;
 		depthRT.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
 		depthRT.mSampleQuality = 0;
@@ -3115,6 +3107,7 @@ public:
 		shadowRTDesc.mDepth = 1;
 		shadowRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		shadowRTDesc.mFormat = TinyImageFormat_D32_SFLOAT;
+		shadowRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		shadowRTDesc.mWidth = gShadowMapSize;
 		shadowRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		shadowRTDesc.mSampleQuality = 0;
@@ -3131,6 +3124,7 @@ public:
 		vbRTDesc.mDepth = 1;
 		vbRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		vbRTDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
+		vbRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		vbRTDesc.mHeight = height;
 		vbRTDesc.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
 		vbRTDesc.mSampleQuality = 0;
@@ -3147,6 +3141,7 @@ public:
 		deferredRTDesc.mDepth = 1;
 		deferredRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		deferredRTDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
+		deferredRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		deferredRTDesc.mHeight = height;
 		deferredRTDesc.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
 		deferredRTDesc.mSampleQuality = 0;
@@ -3165,6 +3160,7 @@ public:
 		msaaRTDesc.mDepth = 1;
 		msaaRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		msaaRTDesc.mFormat = gAppSettings.mOutputMode == OutputMode::OUTPUT_MODE_SDR ? TinyImageFormat_R8G8B8A8_UNORM : TinyImageFormat_R10G10B10A2_UNORM;
+		msaaRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		msaaRTDesc.mHeight = height;
 		msaaRTDesc.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
 		msaaRTDesc.mSampleQuality = 0;
@@ -3187,13 +3183,13 @@ public:
 		aoRTDesc.mDepth = 1;
 		aoRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		aoRTDesc.mFormat = TinyImageFormat_R8_UNORM;
+		aoRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		aoRTDesc.mHeight = height;
 		aoRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		aoRTDesc.mSampleQuality = 0;
 		aoRTDesc.mWidth = width;
 		aoRTDesc.pName = "AO RT";
 		addRenderTarget(pRenderer, &aoRTDesc, &pRenderTargetAO);
-
 		/************************************************************************/
 		// Intermediate render target
 		/************************************************************************/
@@ -3203,13 +3199,13 @@ public:
 		postProcRTDesc.mDepth = 1;
 		postProcRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		postProcRTDesc.mFormat = gAppSettings.mOutputMode == OutputMode::OUTPUT_MODE_SDR ? TinyImageFormat_R8G8B8A8_UNORM : TinyImageFormat_R10G10B10A2_UNORM;
+		postProcRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		postProcRTDesc.mHeight = mSettings.mHeight;
 		postProcRTDesc.mWidth = mSettings.mWidth;
 		postProcRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
 		postProcRTDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
 		postProcRTDesc.pName = "pIntermediateRenderTarget";
 		addRenderTarget(pRenderer, &postProcRTDesc, &pIntermediateRenderTarget);
-
 		/************************************************************************/
 		// Setup MSAA resolve pipeline
 		/************************************************************************/
@@ -3232,17 +3228,16 @@ public:
 		resolvePipelineSettings.pShaderProgram = pShaderResolve;
 		addPipeline(pRenderer, &pipelineDesc, &pPipelineResolve);
 		addPipeline(pRenderer, &pipelineDesc, &pPipelineResolvePost);
-
 		/************************************************************************/
 		// GodRay render target
 		/************************************************************************/
-
 		RenderTargetDesc GRRTDesc = {};
 		GRRTDesc.mArraySize = 1;
 		GRRTDesc.mClearValue = {{0.0f, 0.0f, 0.0f, 1.0f}};
 		GRRTDesc.mDepth = 1;
 		GRRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		GRRTDesc.mFormat = gAppSettings.mOutputMode == OutputMode::OUTPUT_MODE_SDR ? TinyImageFormat_R8G8B8A8_UNORM : TinyImageFormat_R10G10B10A2_UNORM;
+		GRRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		GRRTDesc.mHeight = mSettings.mHeight;
 		GRRTDesc.mWidth = mSettings.mWidth;
 		GRRTDesc.mSampleCount = (SampleCount)MSAASAMPLECOUNT;
@@ -3277,23 +3272,22 @@ public:
 		addRenderTarget(pRenderer, &GRRTDesc, &pRenderTargetGodRay[0]);
 		GRRTDesc.pName = "GodRay RT B";
 		addRenderTarget(pRenderer, &GRRTDesc, &pRenderTargetGodRay[1]);
-
 		/************************************************************************/
 		// Color Conversion render target
 		/************************************************************************/
 		RenderTargetDesc postCurveConversionRTDesc = {};
 		postCurveConversionRTDesc.mArraySize = 1;
-		postCurveConversionRTDesc.mClearValue = {{0.0f, 0.0f, 0.0f, 0.0f}};
+		postCurveConversionRTDesc.mClearValue = { { 0.0f, 0.0f, 0.0f, 0.0f } };
 		postCurveConversionRTDesc.mDepth = 1;
 		postCurveConversionRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		postCurveConversionRTDesc.mFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		postCurveConversionRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		postCurveConversionRTDesc.mHeight = mSettings.mHeight;
 		postCurveConversionRTDesc.mWidth = mSettings.mWidth;
 		postCurveConversionRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
 		postCurveConversionRTDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
 		postCurveConversionRTDesc.pName = "pCurveConversionRenderTarget";
 		addRenderTarget(pRenderer, &postCurveConversionRTDesc, &pCurveConversionRenderTarget);
-
 		/************************************************************************/
 		/************************************************************************/
 
@@ -3610,7 +3604,6 @@ public:
 		indirectDesc.ppBuffer = &pIndirectMaterialBufferAll;
 		indirectDesc.mDesc.pName = "Indirect Desc";
 		addResource(&indirectDesc, NULL);
-
 		/************************************************************************/
 		// Indirect buffers for culling
 		/************************************************************************/
@@ -3620,6 +3613,7 @@ public:
 		filterIbDesc.mDesc.mElementCount = pScene->geom->mIndexCount;
 		filterIbDesc.mDesc.mStructStride = sizeof(uint32_t);
 		filterIbDesc.mDesc.mSize = filterIbDesc.mDesc.mElementCount * filterIbDesc.mDesc.mStructStride;
+		filterIbDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		filterIbDesc.mDesc.pName = "Filtered IB Desc";
 		filterIbDesc.pData = NULL;
 
@@ -3653,6 +3647,7 @@ public:
 		filterIndirectDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT * (sizeof(VisBufferIndirectCommand) / sizeof(uint32_t));
 		filterIndirectDesc.mDesc.mStructStride = sizeof(uint32_t);
 		filterIndirectDesc.mDesc.mSize = filterIndirectDesc.mDesc.mElementCount * filterIndirectDesc.mDesc.mStructStride;
+		filterIndirectDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		filterIndirectDesc.mDesc.pName = "Filtered Indirect Desc";
 		filterIndirectDesc.pData = indirectDrawArguments;
 
@@ -3662,6 +3657,7 @@ public:
 		uncompactedDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT;
 		uncompactedDesc.mDesc.mStructStride = sizeof(UncompactedDrawArguments);
 		uncompactedDesc.mDesc.mSize = uncompactedDesc.mDesc.mElementCount * uncompactedDesc.mDesc.mStructStride;
+		uncompactedDesc.mDesc.mStartState = RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 		uncompactedDesc.mDesc.pName = "Uncompacted Draw Arguments Desc";
 		uncompactedDesc.pData = NULL;
 
@@ -3671,6 +3667,7 @@ public:
 		filterMaterialDesc.mDesc.mElementCount = MATERIAL_BUFFER_SIZE;
 		filterMaterialDesc.mDesc.mStructStride = sizeof(uint32_t);
 		filterMaterialDesc.mDesc.mSize = filterMaterialDesc.mDesc.mElementCount * filterMaterialDesc.mDesc.mStructStride;
+		filterMaterialDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		filterMaterialDesc.mDesc.pName = "Filtered Indirect Material Desc";
 		filterMaterialDesc.pData = NULL;
 
@@ -3807,6 +3804,7 @@ public:
 		lightClustersDataBufferDesc.mDesc.mFirstElement = 0;
 		lightClustersDataBufferDesc.mDesc.mElementCount = LIGHT_COUNT * LIGHT_CLUSTER_WIDTH * LIGHT_CLUSTER_HEIGHT;
 		lightClustersDataBufferDesc.mDesc.mStructStride = sizeof(uint32_t);
+		lightClustersDataBufferDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		lightClustersDataBufferDesc.pData = NULL;
 		lightClustersDataBufferDesc.mDesc.pName = "Light Cluster Data Buffer Desc";
 		for (uint32_t frameIdx = 0; frameIdx < gImageCount; ++frameIdx)
@@ -3926,56 +3924,6 @@ public:
 		/************************************************************************/
 		/************************************************************************/
 	}
-
-	void setResourcesToComputeCompliantState(uint32_t frameIdx, bool submitAndWait)
-	{
-		if (submitAndWait)
-			beginCmd(ppCmds[frameIdx]);
-
-		BufferBarrier barrier[] = { { pGeom->pVertexBuffers[0], RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE },
-			{ pGeom->pIndexBuffer, RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE },
-			{ pMeshConstantsBuffer, RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE },
-			{ pMaterialPropertyBuffer, RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE },
-			{ pFilterIndirectMaterialBuffer[frameIdx], RESOURCE_STATE_UNORDERED_ACCESS },
-			{ pUncompactedDrawArgumentsBuffer[frameIdx][VIEW_SHADOW], RESOURCE_STATE_UNORDERED_ACCESS },
-			{ pUncompactedDrawArgumentsBuffer[frameIdx][VIEW_CAMERA], RESOURCE_STATE_UNORDERED_ACCESS },
-			{ pLightClustersCount[frameIdx],
-				RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE } };
-		cmdResourceBarrier(ppCmds[frameIdx], 8, barrier, 0, NULL, 0, NULL);
-
-		BufferBarrier indirectDrawBarriers[gNumGeomSets * gNumViews] = {};
-		for (uint32_t i = 0, k = 0; i < gNumGeomSets; i++)
-		{
-			for (uint32_t j = 0; j < gNumViews; j++, k++)
-			{
-				indirectDrawBarriers[k].pBuffer = pFilteredIndirectDrawArgumentsBuffer[frameIdx][i][j];
-				indirectDrawBarriers[k].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
-				indirectDrawBarriers[k].mSplit = false;
-			}
-		}
-		cmdResourceBarrier(ppCmds[frameIdx], gNumGeomSets * gNumViews, indirectDrawBarriers, 0, NULL, 0, NULL);
-
-		BufferBarrier filteredIndicesBarriers[gNumViews] = {};
-		for (uint32_t j = 0; j < gNumViews; j++)
-		{
-			filteredIndicesBarriers[j].pBuffer = pFilteredIndexBuffer[frameIdx][j];
-			filteredIndicesBarriers[j].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
-			filteredIndicesBarriers[j].mSplit = false;
-		}
-		cmdResourceBarrier(ppCmds[frameIdx], gNumViews, filteredIndicesBarriers, 0, NULL, 0, NULL);
-
-		if (submitAndWait)
-		{
-			endCmd(ppCmds[frameIdx]);
-			QueueSubmitDesc submitDesc = {};
-			submitDesc.mCmdCount = 1;
-			submitDesc.ppCmds = ppCmds;
-			submitDesc.pSignalFence = pTransitionFences;
-			queueSubmit(pGraphicsQueue, &submitDesc);
-			waitForFences(pRenderer, 1, &pTransitionFences);
-		}
-	}
-
 	/************************************************************************/
 	// Scene update
 	/************************************************************************/
@@ -4541,7 +4489,7 @@ public:
 	void resolveMSAA(Cmd* cmd, RenderTarget* msaaRT, RenderTarget* destRT)
 	{
 		// transition world render target to be used as input texture in post process pass
-		RenderTargetBarrier barrier = { msaaRT, RESOURCE_STATE_SHADER_RESOURCE };
+		RenderTargetBarrier barrier = { msaaRT, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
 
 		// Set load actions to clear the screen to black
@@ -4559,11 +4507,6 @@ public:
 
 	void resolveGodrayMSAA(Cmd* cmd, RenderTarget* msaaRT, RenderTarget* destRT)
 	{
-		// transition world render target to be used as input texture in post process pass
-		RenderTargetBarrier barrier[] = { { msaaRT, RESOURCE_STATE_SHADER_RESOURCE },
-			{ destRT, RESOURCE_STATE_RENDER_TARGET } };
-
-		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barrier);
 		// Set load actions to clear the screen to black
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_CLEAR;
@@ -4792,7 +4735,7 @@ public:
 		/************************************************************************/
 		BufferBarrier uavBarriers[gNumViews] = {};
 		for (uint32_t i = 0; i < gNumViews; ++i)
-			uavBarriers[i] = { pUncompactedDrawArgumentsBuffer[frameIdx][i], RESOURCE_STATE_UNORDERED_ACCESS };
+			uavBarriers[i] = { pUncompactedDrawArgumentsBuffer[frameIdx][i], RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
 		cmdResourceBarrier(cmd, gNumViews, uavBarriers, 0, NULL, 0, NULL);
 		/************************************************************************/
 		// Clear previous indirect arguments
@@ -4813,9 +4756,9 @@ public:
 		uint32_t index = 0;
 		for (uint32_t i = 0; i < gNumViews; ++i)
 		{
-			clearBarriers[index++] = { pUncompactedDrawArgumentsBuffer[frameIdx][i], RESOURCE_STATE_UNORDERED_ACCESS };
-			clearBarriers[index++] = { pFilteredIndirectDrawArgumentsBuffer[frameIdx][GEOMSET_ALPHATESTED][i], RESOURCE_STATE_UNORDERED_ACCESS };
-			clearBarriers[index++] = { pFilteredIndirectDrawArgumentsBuffer[frameIdx][GEOMSET_OPAQUE][i], RESOURCE_STATE_UNORDERED_ACCESS };
+			clearBarriers[index++] = { pUncompactedDrawArgumentsBuffer[frameIdx][i], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
+			clearBarriers[index++] = { pFilteredIndirectDrawArgumentsBuffer[frameIdx][GEOMSET_ALPHATESTED][i], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
+			clearBarriers[index++] = { pFilteredIndirectDrawArgumentsBuffer[frameIdx][GEOMSET_OPAQUE][i], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
 		}
 		cmdResourceBarrier(cmd, numBarriers, clearBarriers, 0, NULL, 0, NULL);
 		cmdEndGpuTimestampQuery(cmd, pGpuProfiler);
@@ -5044,7 +4987,7 @@ public:
 		// Synchronization
 		/************************************************************************/
 		for (uint32_t i = 0; i < gNumViews; ++i)
-			uavBarriers[i] = { pUncompactedDrawArgumentsBuffer[frameIdx][i], RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE };
+			uavBarriers[i] = { pUncompactedDrawArgumentsBuffer[frameIdx][i], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE };
 		cmdResourceBarrier(cmd, gNumViews, uavBarriers, 0, NULL, 0, NULL);
 		/************************************************************************/
 		// Batch compaction
@@ -5072,21 +5015,21 @@ public:
 		if (gAppSettings.mRenderMode == RENDERMODE_VISBUFF)
 		{
 			RenderTargetBarrier rtBarriers[] = {
-				{ pRenderTargetVBPass, RESOURCE_STATE_RENDER_TARGET },
-				{ pRenderTargetShadow, RESOURCE_STATE_DEPTH_WRITE },
-				{ pRenderTargetAO, RESOURCE_STATE_RENDER_TARGET },
+				{ pRenderTargetVBPass, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+				{ pRenderTargetShadow, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE },
+				{ pRenderTargetAO, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
 			};
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 3, rtBarriers);
 		}
 		else if (gAppSettings.mRenderMode == RENDERMODE_DEFERRED)
 		{
 			RenderTargetBarrier rtBarriers[] = {
-				{ pRenderTargetDeferredPass[DEFERRED_RT_ALBEDO], RESOURCE_STATE_RENDER_TARGET },
-				{ pRenderTargetDeferredPass[DEFERRED_RT_NORMAL], RESOURCE_STATE_RENDER_TARGET },
-				{ pRenderTargetDeferredPass[DEFERRED_RT_SPECULAR], RESOURCE_STATE_RENDER_TARGET },
-				{ pRenderTargetDeferredPass[DEFERRED_RT_SIMULATION], RESOURCE_STATE_RENDER_TARGET },
-				{ pRenderTargetShadow, RESOURCE_STATE_DEPTH_WRITE },
-				{ pRenderTargetAO, RESOURCE_STATE_RENDER_TARGET },
+				{ pRenderTargetDeferredPass[DEFERRED_RT_ALBEDO], RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+				{ pRenderTargetDeferredPass[DEFERRED_RT_NORMAL], RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+				{ pRenderTargetDeferredPass[DEFERRED_RT_SPECULAR], RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+				{ pRenderTargetDeferredPass[DEFERRED_RT_SIMULATION], RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+				{ pRenderTargetShadow, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE },
+				{ pRenderTargetAO, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
 			};
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, DEFERRED_RT_COUNT + 2, rtBarriers);
 		}
@@ -5099,9 +5042,9 @@ public:
 			cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "VB Filling Pass");
 			drawVisibilityBufferPass(cmd, gGraphicsProfileToken, frameIdx);
 			RenderTargetBarrier barriers[] = {
-				{ pRenderTargetVBPass, RESOURCE_STATE_SHADER_RESOURCE },
-				{ pRenderTargetShadow, RESOURCE_STATE_SHADER_RESOURCE },
-				{ pDepthBuffer, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pRenderTargetVBPass, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
+				{ pRenderTargetShadow, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
+				{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
 			};
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 3, barriers);
 			cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);
@@ -5115,7 +5058,7 @@ public:
 
 			cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "VB Shading Pass");
 
-			RenderTargetBarrier aoBarrier = { pRenderTargetAO, RESOURCE_STATE_SHADER_RESOURCE };
+			RenderTargetBarrier aoBarrier = { pRenderTargetAO, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &aoBarrier);
 
 			drawVisibilityBufferShade(cmd, frameIdx);
@@ -5129,12 +5072,12 @@ public:
 			cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);
 
 			RenderTargetBarrier barriers[] = {
-				{ pRenderTargetDeferredPass[DEFERRED_RT_ALBEDO], RESOURCE_STATE_SHADER_RESOURCE },
-				{ pRenderTargetDeferredPass[DEFERRED_RT_NORMAL], RESOURCE_STATE_SHADER_RESOURCE },
-				{ pRenderTargetDeferredPass[DEFERRED_RT_SPECULAR], RESOURCE_STATE_SHADER_RESOURCE },
-				{ pRenderTargetDeferredPass[DEFERRED_RT_SIMULATION], RESOURCE_STATE_SHADER_RESOURCE },
-				{ pDepthBuffer, RESOURCE_STATE_SHADER_RESOURCE },
-				{ pRenderTargetShadow, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pRenderTargetDeferredPass[DEFERRED_RT_ALBEDO], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
+				{ pRenderTargetDeferredPass[DEFERRED_RT_NORMAL], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
+				{ pRenderTargetDeferredPass[DEFERRED_RT_SPECULAR], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
+				{ pRenderTargetDeferredPass[DEFERRED_RT_SIMULATION], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
+				{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
+				{ pRenderTargetShadow, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
 			};
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, DEFERRED_RT_COUNT + 2, barriers);
 
@@ -5147,7 +5090,7 @@ public:
 
 			cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "Shading Pass");
 
-			RenderTargetBarrier aoBarrier = { pRenderTargetAO, RESOURCE_STATE_SHADER_RESOURCE };
+			RenderTargetBarrier aoBarrier = { pRenderTargetAO, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE };
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &aoBarrier);
 
 			drawDeferredShade(cmd, frameIdx);
@@ -5191,7 +5134,6 @@ public:
 		skyboxImgDesc.mMipLevels = gSkyboxMips;
 		skyboxImgDesc.mSampleCount = SAMPLE_COUNT_1;
 		skyboxImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
-		skyboxImgDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
 		skyboxImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
 		skyboxImgDesc.pName = "skyboxImgBuff";
 
@@ -5243,9 +5185,6 @@ public:
 		// Compute the BRDF Integration map.
 		beginCmd(cmd);
 
-		TextureBarrier uavBarriers[1] = { { pSkybox, RESOURCE_STATE_UNORDERED_ACCESS } };
-		cmdResourceBarrier(cmd, 0, NULL, 1, uavBarriers, 0, NULL);
-
 		DescriptorData params[2] = {};
 
 		// Store the panorama texture inside a cubemap.
@@ -5277,13 +5216,8 @@ public:
 				max(1u, (uint32_t)(data.textureSize >> i) / pThreadGroupSize[1]), 6);
 		}
 
-		TextureBarrier srvBarriers[1] = { { pSkybox, RESOURCE_STATE_SHADER_RESOURCE } };
+		TextureBarrier srvBarriers[1] = { { pSkybox, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_PIXEL_SHADER_RESOURCE } };
 		cmdResourceBarrier(cmd, 0, NULL, 1, srvBarriers, 0, NULL);
-
-		/************************************************************************/
-		/************************************************************************/
-		TextureBarrier srvBarriers2[1] = { { pSkybox, RESOURCE_STATE_SHADER_RESOURCE } };
-		cmdResourceBarrier(cmd, 0, NULL, 1, srvBarriers2, 0, NULL);
 
 		endCmd(cmd);
 
@@ -5308,10 +5242,6 @@ public:
 	{
 		cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "Draw Skybox");
 
-		// Transfer our render target to a render target state
-		RenderTargetBarrier barrier[] = { { pScreenRenderTarget, RESOURCE_STATE_RENDER_TARGET } };
-		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barrier);
-
 		cmdBindRenderTargets(cmd, 1, &pScreenRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pScreenRenderTarget->mWidth, (float)pScreenRenderTarget->mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pScreenRenderTarget->mWidth, pScreenRenderTarget->mHeight);
@@ -5332,9 +5262,10 @@ public:
 
 	void drawGodray(Cmd* cmd, uint frameIdx)
 	{
-		RenderTargetBarrier barrierThree[3] = { { pScreenRenderTarget, RESOURCE_STATE_SHADER_RESOURCE },
-			{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE },
-			{ pRenderTargetSun, RESOURCE_STATE_RENDER_TARGET }
+		RenderTargetBarrier barrierThree[3] = {
+			{ pScreenRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
+			{ pDepthBuffer, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE },
+			{ pRenderTargetSun, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET }
 		};
 
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 3, barrierThree);
@@ -5358,15 +5289,21 @@ public:
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-		RenderTargetBarrier barrier2[] = { { pRenderTargetSun, RESOURCE_STATE_SHADER_RESOURCE },
-			{ pRenderTargetGodRay[0], RESOURCE_STATE_RENDER_TARGET } };
-		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barrier2);
+		RenderTargetBarrier barrier2[] = {
+			{ pRenderTargetSun, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
+			{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
+			{ pRenderTargetGodRay[0], RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+#if (MSAASAMPLECOUNT > 1)
+			{ pRenderTargetSunResolved, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+#endif
+		};
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, sizeof(barrier2) / sizeof(barrier2[0]), barrier2);
 
 #if (MSAASAMPLECOUNT > 1)
 		// Pixel Puzzle needs the unresolved MSAA texture
 		cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "GR Resolve Pass");
 		resolveGodrayMSAA(cmd, pRenderTargetSun, pRenderTargetSunResolved);
-		RenderTargetBarrier barrier33[] = { { pRenderTargetSunResolved, RESOURCE_STATE_SHADER_RESOURCE } };
+		RenderTargetBarrier barrier33[] = { { pRenderTargetSunResolved, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE } };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barrier33);
 		cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);
 #endif
@@ -5388,12 +5325,12 @@ public:
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-		RenderTargetBarrier barrier3[] = { { pRenderTargetGodRay[0], RESOURCE_STATE_SHADER_RESOURCE } };
+		RenderTargetBarrier barrier3[] = { { pRenderTargetGodRay[0], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE } };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barrier3);
 
 		for (uint loop = 0; loop < gAppSettings.gGodrayInteration - 1; loop++)
 		{
-			RenderTargetBarrier barrier2[] = { { pRenderTargetGodRay[!(loop & 0x1)], RESOURCE_STATE_RENDER_TARGET } };
+			RenderTargetBarrier barrier2[] = { { pRenderTargetGodRay[!(loop & 0x1)], RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET } };
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barrier2);
 
 			//LoadActionsDesc loadActions = {};
@@ -5417,7 +5354,7 @@ public:
 
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-			RenderTargetBarrier barrier3[] = { { pRenderTargetGodRay[!(loop & 0x1)], RESOURCE_STATE_SHADER_RESOURCE } };
+			RenderTargetBarrier barrier3[] = { { pRenderTargetGodRay[!(loop & 0x1)], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE } };
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barrier3);
 		}
 
@@ -5429,9 +5366,10 @@ public:
 		cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "Curve Conversion");
 
 		// Transfer our render target to a render target state
-		RenderTargetBarrier barrierCurveConversion[] = { { pScreenRenderTarget, RESOURCE_STATE_SHADER_RESOURCE },
-			{ pCurveConversionRenderTarget, RESOURCE_STATE_RENDER_TARGET } };
-		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barrierCurveConversion);
+		RenderTargetBarrier barrierCurveConversion[] = {
+			{ pCurveConversionRenderTarget, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET }
+		};
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barrierCurveConversion);
 
 		cmdBindRenderTargets(cmd, 1, &pCurveConversionRenderTarget, NULL, NULL, NULL, NULL, -1, -1);
 
@@ -5455,7 +5393,10 @@ public:
 	{
 		cmdBeginGpuTimestampQuery(cmd, gGraphicsProfileToken, "Present Image");
 
-		RenderTargetBarrier barrier[] = { { pSrc, RESOURCE_STATE_SHADER_RESOURCE }, { pDstCol, RESOURCE_STATE_RENDER_TARGET } };
+		RenderTargetBarrier barrier[] = {
+			{ pSrc, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
+			{ pDstCol, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET }
+		};
 
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barrier);
 
@@ -5469,7 +5410,7 @@ public:
 		cmdDraw(cmd, 3, 0);
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-		RenderTargetBarrier barrierPresent = { pDstCol, RESOURCE_STATE_PRESENT };
+		RenderTargetBarrier barrierPresent = { pDstCol, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrierPresent);
 
 		cmdEndGpuTimestampQuery(cmd, gGraphicsProfileToken);

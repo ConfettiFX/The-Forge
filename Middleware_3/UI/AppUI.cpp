@@ -42,17 +42,6 @@ extern void removeGUIDriver(GUIDriver* pDriver);
 
 static TextDrawDesc       gDefaultTextDrawDesc = TextDrawDesc(0, 0xffffffff, 16);
 
-static void CloneCallbacks(IWidget* pSrc, IWidget* pDst)
-{
-	// Clone the callbacks
-	pDst->pOnActive = pSrc->pOnActive;
-	pDst->pOnHover = pSrc->pOnHover;
-	pDst->pOnFocus = pSrc->pOnFocus;
-	pDst->pOnEdited = pSrc->pOnEdited;
-	pDst->pOnDeactivated = pSrc->pOnDeactivated;
-	pDst->pOnDeactivatedAfterEdit = pSrc->pOnDeactivatedAfterEdit;
-}
-
 IWidget* CollapsingHeaderWidget::Clone() const
 {
 	CollapsingHeaderWidget* pWidget =
@@ -62,8 +51,7 @@ IWidget* CollapsingHeaderWidget::Clone() const
 	for (size_t i = 0; i < mGroupedWidgets.size(); ++i)
 		pWidget->AddSubWidget(*mGroupedWidgets[i]);
 
-	// Clone the callbacks
-	CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
 	return pWidget;
 }
@@ -73,8 +61,7 @@ IWidget* DebugTexturesWidget::Clone() const
 	DebugTexturesWidget* pWidget = tf_placement_new<DebugTexturesWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel);
 	pWidget->SetTextures(this->mTextures, mTextureDisplaySize);
 
-	// Clone the callbacks
-	CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
 	return pWidget;
 }
@@ -83,38 +70,34 @@ IWidget* LabelWidget::Clone() const
 {
 	LabelWidget* pWidget = tf_placement_new<LabelWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel);
 
-	// Clone the callbacks
-	CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
 	return pWidget;
 }
 
 IWidget* ColorLabelWidget::Clone() const
 {
-  ColorLabelWidget* pWidget = tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mColor);
+	ColorLabelWidget* pWidget = tf_placement_new<ColorLabelWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mColor);
 
-  // Clone the callbacks
-  CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
-  return pWidget;
+	return pWidget;
 }
 
 IWidget* HorizontalSpaceWidget::Clone() const
 {
-  HorizontalSpaceWidget* pWidget = tf_placement_new<HorizontalSpaceWidget>(tf_calloc(1, sizeof(*pWidget)));
+	HorizontalSpaceWidget* pWidget = tf_placement_new<HorizontalSpaceWidget>(tf_calloc(1, sizeof(*pWidget)));
 
-  // Clone the callbacks
-  CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
-  return pWidget;
+	return pWidget;
 }
 
 IWidget* ButtonWidget::Clone() const
 {
 	ButtonWidget* pWidget = tf_placement_new<ButtonWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel);
 
-	// Clone the callbacks
-	CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
 	return pWidget;
 }
@@ -123,20 +106,18 @@ IWidget* SeparatorWidget::Clone() const
 {
 	SeparatorWidget* pWidget = tf_placement_new<SeparatorWidget>(tf_calloc(1, sizeof(*pWidget)));
 
-	// Clone the callbacks
-	CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
 	return pWidget;
 }
 
 IWidget* VerticalSeparatorWidget::Clone() const
 {
-  VerticalSeparatorWidget* pWidget = tf_placement_new<VerticalSeparatorWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLineCount);
+	VerticalSeparatorWidget* pWidget = tf_placement_new<VerticalSeparatorWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLineCount);
 
-  // Clone the callbacks
-  CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
-  return pWidget;
+	return pWidget;
 }
 
 IWidget* SliderFloatWidget::Clone() const
@@ -144,8 +125,7 @@ IWidget* SliderFloatWidget::Clone() const
 	SliderFloatWidget* pWidget = tf_placement_new<SliderFloatWidget>(
 		tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
 
-	// Clone the callbacks
-	CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
 	return pWidget;
 }
@@ -155,8 +135,7 @@ IWidget* SliderFloat2Widget::Clone() const
 	SliderFloat2Widget* pWidget = tf_placement_new<SliderFloat2Widget>(
 		tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
 
-	// Clone the callbacks
-	CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
 	return pWidget;
 }
@@ -166,8 +145,7 @@ IWidget* SliderFloat3Widget::Clone() const
 	SliderFloat3Widget* pWidget = tf_placement_new<SliderFloat3Widget>(
 		tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
 
-	// Clone the callbacks
-	CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
 	return pWidget;
 }
@@ -177,8 +155,7 @@ IWidget* SliderFloat4Widget::Clone() const
 	SliderFloat4Widget* pWidget = tf_placement_new<SliderFloat4Widget>(
 		tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
 
-	// Clone the callbacks
-	CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
 	return pWidget;
 }
@@ -188,8 +165,7 @@ IWidget* SliderIntWidget::Clone() const
 	SliderIntWidget* pWidget = tf_placement_new<SliderIntWidget>(
 		tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
 
-	// Clone the callbacks
-	CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
 	return pWidget;
 }
@@ -199,8 +175,7 @@ IWidget* SliderUintWidget::Clone() const
 	SliderUintWidget* pWidget = tf_placement_new<SliderUintWidget>(
 		tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mMin, this->mMax, this->mStep, this->mFormat);
 
-	// Clone the callbacks
-	CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
 	return pWidget;
 }
@@ -210,8 +185,7 @@ IWidget* RadioButtonWidget::Clone() const
 	RadioButtonWidget* pWidget =
 		tf_placement_new<RadioButtonWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mRadioId);
 
-	// Clone the callbacks
-	CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
 	return pWidget;
 }
@@ -224,8 +198,7 @@ IWidget* DropdownWidget::Clone() const
 	DropdownWidget* pWidget = tf_placement_new<DropdownWidget>(
 		tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, ppNames, this->mValues.data(), (uint32_t)this->mValues.size());
 
-	// Clone the callbacks
-	CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
 	return pWidget;
 }
@@ -235,8 +208,7 @@ IWidget* ProgressBarWidget::Clone() const
 	ProgressBarWidget* pWidget =
 		tf_placement_new<ProgressBarWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, mMaxProgress);
 
-	// Clone the callbacks
-	CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
 	return pWidget;
 }
@@ -245,39 +217,35 @@ IWidget* ColorSliderWidget::Clone() const
 {
 	ColorSliderWidget* pWidget = tf_placement_new<ColorSliderWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData);
 
-	// Clone the callbacks
-	CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
 	return pWidget;
 }
 
 IWidget* HistogramWidget::Clone() const
 {
-  HistogramWidget* pWidget = tf_placement_new<HistogramWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pValues, this->mCount, this->mMinScale, this->mMaxScale, this->mHistogramSize, this->mHistogramTitle);
+	HistogramWidget* pWidget = tf_placement_new<HistogramWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pValues, this->mCount, this->mMinScale, this->mMaxScale, this->mHistogramSize, this->mHistogramTitle);
 
-  // Clone the callbacks
-  CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
-  return pWidget;
+	return pWidget;
 }
 
 
 IWidget* PlotLinesWidget::Clone() const
 {
-  PlotLinesWidget* pWidget = tf_placement_new<PlotLinesWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mValues, this->mNumValues, this->mScaleMin, this->mScaleMax, this->mPlotScale, this->mTitle);
+	PlotLinesWidget* pWidget = tf_placement_new<PlotLinesWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mValues, this->mNumValues, this->mScaleMin, this->mScaleMax, this->mPlotScale, this->mTitle);
 
-  // Clone the callbacks
-  CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
-  return pWidget;
+	return pWidget;
 }
 
 IWidget* ColorPickerWidget::Clone() const
 {
 	ColorPickerWidget* pWidget = tf_placement_new<ColorPickerWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData);
 
-	// Clone the callbacks
-	CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
 	return pWidget;
 }
@@ -287,117 +255,106 @@ IWidget* TextboxWidget::Clone() const
 	TextboxWidget* pWidget =
 		tf_placement_new<TextboxWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mLength, this->mAutoSelectAll);
 
-	// Clone the callbacks
-	CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
 	return pWidget;
 }
 
 IWidget* DynamicTextWidget::Clone() const
 {
-  DynamicTextWidget* pWidget =
-    tf_placement_new<DynamicTextWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mLength, this->pColor);
+	DynamicTextWidget* pWidget =
+		tf_placement_new<DynamicTextWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mLength, this->pColor);
 
-  // Clone the callbacks
-  CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
-  return pWidget;
+	return pWidget;
 }
 
 
 IWidget* FilledRectWidget::Clone() const
 {
-  FilledRectWidget* pWidget =
-    tf_placement_new<FilledRectWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mPos, this->mScale, this->mColor);
+	FilledRectWidget* pWidget =
+		tf_placement_new<FilledRectWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mPos, this->mScale, this->mColor);
 
-  // Clone the callbacks
-  CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
-  return pWidget;
+	return pWidget;
 }
 
 IWidget* DrawTextWidget::Clone() const
 {
-  DrawTextWidget* pWidget =
-    tf_placement_new<DrawTextWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mPos,this->mColor);
+	DrawTextWidget* pWidget =
+		tf_placement_new<DrawTextWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mPos, this->mColor);
 
-  // Clone the callbacks
-  CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
-  return pWidget;
+	return pWidget;
 }
 
 IWidget* DrawTooltipWidget::Clone() const
 {
-  DrawTooltipWidget* pWidget =
-    tf_placement_new<DrawTooltipWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mShowTooltip, this->mText);
+	DrawTooltipWidget* pWidget =
+		tf_placement_new<DrawTooltipWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mShowTooltip, this->mText);
 
-  // Clone the callbacks
-  CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
-  return pWidget;
+	return pWidget;
 }
 
 IWidget* DrawLineWidget::Clone() const
 {
-  DrawLineWidget* pWidget =
-    tf_placement_new<DrawLineWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mPos1, this->mPos2, this->mColor, this->mAddItem);
+	DrawLineWidget* pWidget =
+		tf_placement_new<DrawLineWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mPos1, this->mPos2, this->mColor, this->mAddItem);
 
-  // Clone the callbacks
-  CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
-  return pWidget;
+	return pWidget;
 }
 
 IWidget* DrawCurveWidget::Clone() const
 {
-  DrawCurveWidget* pWidget =
-    tf_placement_new<DrawCurveWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mPos, this->mNumPoints, this->mThickness, this->mColor);
+	DrawCurveWidget* pWidget =
+		tf_placement_new<DrawCurveWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mPos, this->mNumPoints, this->mThickness, this->mColor);
 
-  // Clone the callbacks
-  CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
-  return pWidget;
+	return pWidget;
 }
 
 IWidget* CheckboxWidget::Clone() const
 {
 	CheckboxWidget* pWidget = tf_placement_new<CheckboxWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData);
 
-	// Clone the callbacks
-	CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
 	return pWidget;
 }
 
 IWidget* OneLineCheckboxWidget::Clone() const
 {
-  OneLineCheckboxWidget* pWidget = tf_placement_new<OneLineCheckboxWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mColor);
+	OneLineCheckboxWidget* pWidget = tf_placement_new<OneLineCheckboxWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->pData, this->mColor);
 
-  // Clone the callbacks
-  CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
-  return pWidget;
+	return pWidget;
 }
 
 IWidget* CursorLocationWidget::Clone() const
 {
-  CursorLocationWidget* pWidget = tf_placement_new<CursorLocationWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mLocation);
+	CursorLocationWidget* pWidget = tf_placement_new<CursorLocationWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mLocation);
 
-  // Clone the callbacks
-  CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
-  return pWidget;
+	return pWidget;
 }
 
 IWidget* ColumnWidget::Clone() const
 {
-  ColumnWidget* pWidget = tf_placement_new<ColumnWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mPerColumnWidgets);
+	ColumnWidget* pWidget = tf_placement_new<ColumnWidget>(tf_calloc(1, sizeof(*pWidget)), this->mLabel, this->mPerColumnWidgets);
 
-  // Clone the callbacks
-  CloneCallbacks((IWidget*)this, pWidget);
+	CloneBase(pWidget);
 
-  return pWidget;
+	return pWidget;
 }
 /************************************************************************/
 // UI Implementation
@@ -454,7 +411,7 @@ void UIApp::Exit()
 }
 
 bool UIApp::Load(RenderTarget** rts, uint32_t count)
-{ 
+{
 	ASSERT(rts && rts[0]);
 	mWidth = (float)rts[0]->mWidth;
 	mHeight = (float)rts[0]->mHeight;
@@ -521,11 +478,11 @@ GuiComponent* UIApp::AddGuiComponent(const char* pTitle, const GuiDesc* pDesc)
 		pDriver->addFont(pFontBuffer, fontBufferSize, NULL, pDesc->mDefaultTextDrawDesc.mFontSize, &pComponent->pFont);
 
 	pComponent->mInitialWindowRect = { pDesc->mStartPosition.getX(), pDesc->mStartPosition.getY(), pDesc->mStartSize.getX(),
-									   pDesc->mStartSize.getY() };
+										 pDesc->mStartSize.getY() };
 
 	pComponent->mActive = true;
 	pComponent->mTitle = pTitle;
-    pComponent->mAlpha = 1.0f;
+	pComponent->mAlpha = 1.0f;
 	pImpl->mComponents.emplace_back(pComponent);
 
 	return pComponent;
@@ -649,7 +606,7 @@ bool VirtualJoystickUI::Init(Renderer* renderer, const char* pJoystickTexture)
 	loadDesc.ppTexture = &pTexture;
 	addResource(&loadDesc, &token);
 	waitForToken(&token);
-	
+
 	if (!pTexture)
 	{
 		LOGF(LogLevel::eERROR, "Error loading texture file: %s", pJoystickTexture);
@@ -730,8 +687,8 @@ bool VirtualJoystickUI::Load(RenderTarget* pScreenRT)
 	vertexLayout.mAttribs[1].mFormat = TinyImageFormat_R32G32_SFLOAT;
 	vertexLayout.mAttribs[1].mBinding = 0;
 	vertexLayout.mAttribs[1].mLocation = 1;
-    vertexLayout.mAttribs[1].mOffset = TinyImageFormat_BitSizeOfBlock(TinyImageFormat_R32G32_SFLOAT) / 8;
-	
+	vertexLayout.mAttribs[1].mOffset = TinyImageFormat_BitSizeOfBlock(TinyImageFormat_R32G32_SFLOAT) / 8;
+
 	BlendStateDesc blendStateDesc = {};
 	blendStateDesc.mSrcFactors[0] = BC_SRC_ALPHA;
 	blendStateDesc.mDstFactors[0] = BC_ONE_MINUS_SRC_ALPHA;
@@ -753,7 +710,7 @@ bool VirtualJoystickUI::Load(RenderTarget* pScreenRT)
 	desc.mType = PIPELINE_TYPE_GRAPHICS;
 	GraphicsPipelineDesc& pipelineDesc = desc.mGraphicsDesc;
 	pipelineDesc.mPrimitiveTopo = PRIMITIVE_TOPO_TRI_STRIP;
-    pipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
+	pipelineDesc.mDepthStencilFormat = TinyImageFormat_UNDEFINED;
 	pipelineDesc.mRenderTargetCount = 1;
 	pipelineDesc.mSampleCount = pScreenRT->mSampleCount;
 	pipelineDesc.mSampleQuality = pScreenRT->mSampleQuality;
@@ -789,19 +746,19 @@ bool VirtualJoystickUI::OnMove(uint32_t id, bool press, const float2* vec)
 	if (!vec) return false;
 
 
-    if (!mSticks[id].mPressed)
-    {
-        mSticks[id].mStartPos = *vec;
-        mSticks[id].mCurrPos = *vec;
-    }
-    else
-    {
-        mSticks[id].mCurrPos = *vec;
-    }
-    mSticks[id].mPressed = press;
-    return true;
+	if (!mSticks[id].mPressed)
+	{
+		mSticks[id].mStartPos = *vec;
+		mSticks[id].mCurrPos = *vec;
+	}
+	else
+	{
+		mSticks[id].mCurrPos = *vec;
+	}
+	mSticks[id].mPressed = press;
+	return true;
 #else
-    return false;
+	return false;
 #endif
 }
 
@@ -834,7 +791,7 @@ void VirtualJoystickUI::Draw(Cmd* pCmd, const float4& color)
 		{
 			float2 joystickSize = float2(extSide);
 			float2 joystickCenter = mSticks[i].mStartPos - float2(0.0f, mRenderSize.y * 0.1f);
-            float2 joystickPos = joystickCenter - joystickSize * 0.5f;
+			float2 joystickPos = joystickCenter - joystickSize * 0.5f;
 
 			const uint32_t vertexStride = sizeof(float4);
 			BufferUpdateDesc updateDesc = { pMeshBuffer, bufferOffset };

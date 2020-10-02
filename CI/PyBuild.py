@@ -729,7 +729,7 @@ def BuildXcodeProjects(skipMacos, skipIos, skipIosCodeSigning, skipDebugBuild, s
 	#that specific folder name to gather source folders containing project/workspace for xcode
 	#macSourceFolders = FindFolderPathByName("Examples_3/","macOS Xcode", -1)
 	xcodeProjects = [ "/Examples_3/Ephemeris/macOS Xcode/Ephemeris.xcodeproj", 
-                "/Examples_3/Visibility_Buffer/macOS Xcode/Visibility_Buffer.xcodeproj", 
+				"/Examples_3/Visibility_Buffer/macOS Xcode/Visibility_Buffer.xcodeproj",
 				"/Examples_3/Unit_Tests/macOS Xcode/Unit_Tests.xcworkspace"]
 
 
@@ -1046,6 +1046,19 @@ def TestXboxProjects():
 		print("WARNING: as of \'May 2020 GXDK\' using DevHome in CI is known to be unstable (this can crash the devkit).\n"
 		"Please set (in GDK Manager or web UI) \'Settings/Preference/Default Home Experience\' to \'Retail Home\'.")
 
+	#get correct dashboard package name
+	homePackageName = "Xbox.Dashboard_8wekyb3d8bbwe!Xbox.Dashboard.Application" if isDashboard == True else "Microsoft.Xbox.DevHome_100.2006.3001.0_x64__8wekyb3d8bbwe"
+	applist = subprocess.check_output([gdkDir+'xbapp', "list", "/includesystem"]).decode().splitlines()
+	for line in applist:
+		if isDashboard == True and "Dashboard" in line and "Application" in line:
+			homePackageName = line.strip()
+			print(line) 
+			break
+		elif isDashboard == False and "DevHome" in line and "Application" in line:
+			homePackageName = line.strip()
+			print(line) 
+			break
+	
 	crashdump_path = '\\\\'+consoleIP+"\SystemScratch\LocalDumps"
 	
 	#Clean all apps
@@ -1102,68 +1115,56 @@ def TestXboxProjects():
 			errorOccured = True
 		print ("")
 
-	homePackageName = "Xbox.Dashboard_1000.19041.3533.0_x64__8wekyb3d8bbwe" if isDashboard == True else "Microsoft.Xbox.DevHome_100.2006.3001.0_x64__8wekyb3d8bbwe"
 	#Launch the deployed apps
 	for appName, appRoot in zip(appList, appRootList):
 		appFileName = appName.split("!")[0]
 
 		#wait for home to run. something is probably wrong by that point
-		command = [gdkDir+'xbapp', "query", homePackageName]
-		timeout = time.time() + float(maxIdleTime)
+		command = [gdkDir+'xbapp', "query","/X"+consoleIP, homePackageName]
+		commandLaunchHome = [gdkDir+'xbapp', "launch","/X"+consoleIP, homePackageName]
+		timeout = time.time() + float(60)
 		backAtHome = False
+		print("Waiting for Dashboard to run.")
 		while (backAtHome != True) and time.time() < timeout:
-			time.sleep(1)
 			output = XBoxCommand(command, False)
 			if 'running' in output[0]:
 				backAtHome = True
+			else:
+				XBoxCommand(commandLaunchHome, True)
+				time.sleep(0.5)
+
 		if backAtHome == False:
 			print("Xbox did not go back to home before launching.")
 			print("Aborting test as it will fail.")
 			return -1
+		print("Dashboard running")
 
 		command = [gdkDir+'xbapp',"launch","/X"+consoleIP, appName]
 		output = XBoxCommand(command)
-
+		print(output)
 		#Make sure app launches
-		isRunning = int(0)
-		command = [gdkDir+'xbapp',"query","/X"+consoleIP, appName]
-		output = XBoxCommand(command, False)
-		
-		if 'running' in output[0]:
-			isRunning = 1
-			print("The operation completed successfully")
-
-		if isRunning == 0:
+		if len(output) < 2 or not "successfully" in output[1]:
 			errorOccured = True
+			command = [gdkDir+'xbapp',"terminate","/X"+consoleIP, appName]
+			output = XBoxCommand(command)
 			print ("The operation failed")
 			failedTests.append({'name':appName, 'gpu':"", 'reason':"Failed to launch app"})
 			continue
 
-		queryCommand = [gdkDir + 'xbapp', "querygameos"]
-		queryOutput = XBoxCommand(queryCommand, False)
-		queryOutput = "\n".join(queryOutput)
-		print(queryOutput)
-		#Query process id
-		pid = None
-		pidBegin = queryOutput.find("pid: ")
-		if pidBegin != -1:
-			pidBegin += 5
-			pidEnd = queryOutput.find("\n", pidBegin)
-			if pidEnd != -1:
-				pid = queryOutput[pidBegin:pidEnd].strip()
 
-		if pid != None:
-			print(f"Pid of {appName}: {pid}")
-		else:
-			print(f"Failed to parse pid from the output of {queryCommand}")
+		command = [gdkDir+'xbapp',"query","/X"+consoleIP, appName]
+		isRunning = int(1)
 
 		#Check if app terminatese or times out
+		print("Waiting for App to terminate")
 		timeout = time.time() + float(maxIdleTime)
 		while (isRunning != 0 or b"0x8000000A" in output) and time.time() < timeout:
-			time.sleep(5)
 			output = XBoxCommand(command, False)
 			if 'unknown' in output[0]:
+				print("App successfully terminated.")
 				isRunning = 0
+			else:
+				time.sleep(0.7)
 
 		# Timeout Error
 		if isRunning != 0:

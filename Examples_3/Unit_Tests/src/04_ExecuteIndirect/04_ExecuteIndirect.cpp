@@ -175,7 +175,11 @@ const uint32_t gNumAsteroids = 10000U;
 const uint32_t gNumAsteroids = 50000U;    // 50000 is optimal.
 #endif
 
+#if defined(PROSPERO)
+const uint32_t gNumSubsets = 4;           // To avoid overflowing command buffer memory of 1MB
+#else
 const uint32_t gNumSubsets = 1;           // 4 is optimal. Also equivalent to the number of threads used.
+#endif
 const uint32_t gNumAsteroidsPerSubset = (gNumAsteroids + gNumSubsets - 1) / gNumSubsets;
 const uint32_t gTextureCount = 10;
 
@@ -488,6 +492,7 @@ class ExecuteIndirect: public IApp
 		bufDesc.mDesc.mElementCount = gNumAsteroidsPerSubset;
 		bufDesc.mDesc.mStructStride = sizeof(UniformBasic);
 		bufDesc.mDesc.mSize = bufDesc.mDesc.mElementCount * bufDesc.mDesc.mStructStride;
+		bufDesc.mDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		for (uint32_t i = 0; i < gNumSubsets; i++)
 		{
 			bufDesc.ppBuffer = &gAsteroidSubsets[i].pAsteroidInstanceBuffer;
@@ -965,16 +970,13 @@ class ExecuteIndirect: public IApp
 		pipelineSettings.pShaderProgram = pSkyBoxDrawShader;
 		addPipeline(pRenderer, &desc, &pSkyBoxDrawPipeline);
 
-#if defined(VULKAN)
-		transitionRenderTargets();
-#endif
-
 		RenderTargetDesc postProcRTDesc = {};
 		postProcRTDesc.mArraySize = 1;
 		postProcRTDesc.mClearValue = {{0.0f, 0.0f, 0.0f, 0.0f}};
 		postProcRTDesc.mDepth = 1;
 		postProcRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		postProcRTDesc.mFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		postProcRTDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		postProcRTDesc.mHeight = mSettings.mHeight;
 		postProcRTDesc.mWidth = mSettings.mWidth;
 		postProcRTDesc.mSampleCount = SAMPLE_COUNT_1;
@@ -1008,8 +1010,8 @@ class ExecuteIndirect: public IApp
 		removePipeline(pRenderer, pIndirectPipeline);
 
 		removeRenderTarget(pRenderer, pDepthBuffer);
-		removeSwapChain(pRenderer, pSwapChain);
 		removeRenderTarget(pRenderer, pIntermediateRenderTarget);
+		removeSwapChain(pRenderer, pSwapChain);
 
 #if !defined(TARGET_IOS)
 		gPanini.Unload();
@@ -1134,11 +1136,12 @@ class ExecuteIndirect: public IApp
 		*(UniformViewProj*)skyboxUniformUpdate.pMappedData = viewProjUniformData;
 		endUpdateResource(&skyboxUniformUpdate, NULL);
 
-		RenderTargetBarrier barrier = { pSceneRenderTarget, RESOURCE_STATE_RENDER_TARGET };
+		ResourceState sceneRtState = gbPaniniEnabled ? RESOURCE_STATE_PIXEL_SHADER_RESOURCE : RESOURCE_STATE_PRESENT;
+		RenderTargetBarrier barrier = { pSceneRenderTarget, sceneRtState, RESOURCE_STATE_RENDER_TARGET };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
 
 		cmdBindRenderTargets(cmd, 1, &pSceneRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSceneRenderTarget->mWidth, (float)pSceneRenderTarget->mHeight, 0.0f, 1.0f);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSceneRenderTarget->mWidth, (float)pSceneRenderTarget->mHeight, 1.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pSceneRenderTarget->mWidth, pSceneRenderTarget->mHeight);
 
         cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
@@ -1148,7 +1151,7 @@ class ExecuteIndirect: public IApp
 		const uint32_t skyboxStride = sizeof(float) * 4;
         cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, &skyboxStride, NULL);
 		cmdDraw(cmd, 36, 0);
-
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pSceneRenderTarget->mWidth, (float)pSceneRenderTarget->mHeight, 0.0f, 1.0f);
 		endCmd(cmd);
 
 		allCmds.push_back(cmd);
@@ -1217,7 +1220,7 @@ class ExecuteIndirect: public IApp
 			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "GPU Culling");
 
 			// Update dynamic asteroid positions using compute shader
-			BufferBarrier uavBarrier = { pIndirectBuffer, RESOURCE_STATE_UNORDERED_ACCESS };
+			BufferBarrier uavBarrier = { pIndirectBuffer, RESOURCE_STATE_INDIRECT_ARGUMENT, RESOURCE_STATE_UNORDERED_ACCESS };
 			cmdResourceBarrier(cmd, 1, &uavBarrier, 0, NULL, 0, NULL);
 
             cmdBindPipeline(cmd, pComputePipeline);
@@ -1229,7 +1232,7 @@ class ExecuteIndirect: public IApp
 
 			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Asteroid rendering");
 
-			BufferBarrier srvBarrier = { pIndirectBuffer, RESOURCE_STATE_INDIRECT_ARGUMENT };
+			BufferBarrier srvBarrier = { pIndirectBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_INDIRECT_ARGUMENT };
 			cmdResourceBarrier(cmd, 1, &srvBarrier, 0, NULL, 0, NULL);
 
 			LoadActionsDesc loadActionLoad = {};
@@ -1273,8 +1276,8 @@ class ExecuteIndirect: public IApp
 		if (gbPaniniEnabled)
 		{
 			RenderTargetBarrier barriers[] = {
-				{ pIntermediateRenderTarget, RESOURCE_STATE_SHADER_RESOURCE },
-				{ pSwapchainRenderTarget, RESOURCE_STATE_RENDER_TARGET },
+				{ pSwapchainRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
+				{ pIntermediateRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
 			};
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
 			pLoadAction = &swapChainClearAction;
@@ -1318,7 +1321,7 @@ class ExecuteIndirect: public IApp
 		cmdEndDebugMarker(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		barrier = { pSwapchainRenderTarget, RESOURCE_STATE_PRESENT };
+		barrier = { pSwapchainRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
 		endCmd(cmd);
 		allCmds.push_back(cmd);
@@ -1375,6 +1378,7 @@ class ExecuteIndirect: public IApp
 		depthRT.mClearValue.depth = 0.0f;
 		depthRT.mDepth = 1;
 		depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
+		depthRT.mStartState = RESOURCE_STATE_DEPTH_WRITE;
 		depthRT.mHeight = mSettings.mHeight;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
@@ -1382,30 +1386,6 @@ class ExecuteIndirect: public IApp
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
 
 		return pDepthBuffer != NULL;
-	}
-
-	void transitionRenderTargets()
-	{
-#if defined(VULKAN)
-		// Transition render targets to desired state
-		const uint32_t numBarriers = gImageCount + 1;
-		RenderTargetBarrier rtBarriers[numBarriers] = {};
-		for (uint32_t i = 0; i < gImageCount; ++i)
-			rtBarriers[i] = { pSwapChain->ppRenderTargets[i], RESOURCE_STATE_RENDER_TARGET };
-		rtBarriers[numBarriers - 1] = { pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE };
-		beginCmd(pCmds[0]);
-		cmdResourceBarrier(pCmds[0], 0, NULL, 0, NULL, numBarriers, rtBarriers);
-		endCmd(pCmds[0]);
-		QueueSubmitDesc submitDesc = {};
-		submitDesc.mCmdCount = 1;
-		submitDesc.ppCmds = &pCmds[0];
-		submitDesc.pSignalFence = pRenderCompleteFences[0];
-		submitDesc.mSubmitDone = true;
-		queueSubmit(pGraphicsQueue, &submitDesc);
-		waitForFences(pRenderer, 1, &pRenderCompleteFences[0]);
-
-		resetCmdPool(pRenderer, pCmdPools[0]);
-#endif
 	}
 	/************************************************************************/
 	// Asteroid Mesh Creation
@@ -1685,6 +1665,9 @@ class ExecuteIndirect: public IApp
 	static void RenderSubset(
 		unsigned index, const mat4& viewProj, uint32_t frameIdx, RenderTarget* pRenderTarget, RenderTarget* pDepthBuffer, float deltaTime)
 	{
+        LoadActionsDesc loadActionLoad = {};
+        loadActionLoad.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
+
 		uint32_t startIdx = index * gNumAsteroidsPerSubset;
 		uint32_t endIdx = min(startIdx + gNumAsteroidsPerSubset, gNumAsteroids);
 
@@ -1730,7 +1713,7 @@ class ExecuteIndirect: public IApp
 			endUpdateResource(&uniformUpdate, NULL);
 
 			// Render all asteroids
-			cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, NULL, NULL, NULL, -1, -1);
+			cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActionLoad, NULL, NULL, -1, -1);
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
 			cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
@@ -1785,8 +1768,6 @@ class ExecuteIndirect: public IApp
 			}
 
 			// Update indirect arguments
-			BufferBarrier barrier = { subset.pSubsetIndirect, RESOURCE_STATE_COMMON };
-			cmdResourceBarrier(cmd, 1, &barrier, 0, NULL, 0, NULL);
 			endUpdateResource(&indirectBufferUpdate, NULL);
 
 			BufferUpdateDesc dynamicBufferUpdate = { pDynamicAsteroidBuffer, sizeof(AsteroidDynamic) * startIdx };
@@ -1795,7 +1776,7 @@ class ExecuteIndirect: public IApp
 			endUpdateResource(&dynamicBufferUpdate, NULL);
 
 			//// Execute Indirect Draw
-			cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, NULL, NULL, NULL, -1, -1);
+			cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActionLoad, NULL, NULL, -1, -1);
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
 			cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 

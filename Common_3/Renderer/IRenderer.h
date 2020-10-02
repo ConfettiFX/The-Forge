@@ -211,6 +211,7 @@ typedef enum ResourceState
 	RESOURCE_STATE_DEPTH_WRITE = 0x10,
 	RESOURCE_STATE_DEPTH_READ = 0x20,
 	RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE = 0x40,
+	RESOURCE_STATE_PIXEL_SHADER_RESOURCE = 0x80,
 	RESOURCE_STATE_SHADER_RESOURCE = 0x40 | 0x80,
 	RESOURCE_STATE_STREAM_OUT = 0x100,
 	RESOURCE_STATE_INDIRECT_ARGUMENT = 0x200,
@@ -582,7 +583,7 @@ typedef union ClearValue
 	struct
 	{
 		float  depth;
-		uint32 stencil;
+		uint32_t stencil;
 	};
 } ClearValue;
 
@@ -653,8 +654,10 @@ typedef enum GPUPresetLevel
 typedef struct BufferBarrier
 {
 	Buffer*        pBuffer;
+	ResourceState  mCurrentState;
 	ResourceState  mNewState;
-	uint8_t        mSplit : 1;
+	uint8_t        mBeginOnly : 1;
+	uint8_t        mEndOnly : 1;
 	uint8_t        mAcquire : 1;
 	uint8_t        mRelease : 1;
 	uint8_t        mQueueType : 5;
@@ -663,8 +666,10 @@ typedef struct BufferBarrier
 typedef struct TextureBarrier
 {
 	Texture*       pTexture;
+	ResourceState  mCurrentState;
 	ResourceState  mNewState;
-	uint8_t        mSplit : 1;
+	uint8_t        mBeginOnly : 1;
+	uint8_t        mEndOnly : 1;
 	uint8_t        mAcquire : 1;
 	uint8_t        mRelease : 1;
 	uint8_t        mQueueType : 5;
@@ -673,8 +678,10 @@ typedef struct TextureBarrier
 typedef struct RenderTargetBarrier
 {
 	RenderTarget*  pRenderTarget;
+	ResourceState  mCurrentState;
 	ResourceState  mNewState;
-	uint8_t        mSplit : 1;
+	uint8_t        mBeginOnly : 1;
+	uint8_t        mEndOnly : 1;
 	uint8_t        mAcquire : 1;
 	uint8_t        mRelease : 1;
 	uint8_t        mQueueType : 5;
@@ -832,10 +839,6 @@ typedef struct DEFINE_ALIGNED(Buffer, 64)
 	uint64_t                         mDescriptors : 20;
 	uint64_t                         mMemoryUsage : 3;
 	uint64_t                         mNodeIndex : 4;
-	/// Current state of the buffer
-	uint64_t                         mCurrentState : 16;
-	/// State of the buffer before mCurrentState (used for state tracking during a split barrier)
-	uint64_t                         mPreviousState : 16;
 } Buffer;
 // One cache line
 COMPILE_ASSERT(sizeof(Buffer) == 8 * sizeof(uint64_t));
@@ -863,8 +866,6 @@ typedef struct TextureDesc
 	TinyImageFormat mFormat;
 	/// Optimized clear value (recommended to use this same value when clearing the rendertarget)
 	ClearValue mClearValue;
-	/// What type of queue the buffer is owned by
-	QueueType mQueueType;
 	/// What state will the texture get created in
 	ResourceState mStartState;
 	/// Descriptor creation
@@ -1019,9 +1020,6 @@ typedef struct DEFINE_ALIGNED(Texture, 64)
 #endif
 	VirtualTexture*              pSvt;
 	/// Current state of the buffer
-	uint32_t                     mCurrentState : 16;
-	/// State of the buffer before mCurrentState (used for state tracking during a split barrier)
-	uint32_t                     mPreviousState : 16;
 	uint32_t                     mWidth : 16;
 	uint32_t                     mHeight : 16;
 	uint32_t                     mDepth : 16;
@@ -1056,6 +1054,8 @@ typedef struct RenderTargetDesc
 	SampleCount mSampleCount;
 	/// Internal image format
 	TinyImageFormat mFormat;
+	/// What state will the texture get created in
+	ResourceState mStartState;
 	/// Optimized clear value (recommended to use this same value when clearing the rendertarget)
 	ClearValue mClearValue;
 	/// The image quality level. The higher the quality, the lower the performance. The valid range is between zero and the value appropriate for mSampleCount
@@ -1087,7 +1087,8 @@ typedef struct DEFINE_ALIGNED(RenderTarget, 64)
 #if defined(VULKAN)
 	VkImageView                   pVkDescriptor;
 	VkImageView*                  pVkSliceDescriptors;
-	uint64_t                      mId;
+	uint32_t                      mId;
+	volatile uint32_t             mUsed;
 #endif
 #if defined(METAL)
 	uint64_t                      mPadA[3];
@@ -1279,7 +1280,6 @@ typedef struct DEFINE_ALIGNED(RootSignature, 64)
 	uint16_t                   mDxSamplerDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
 	uint8_t                    mDxRootDescriptorCounts[DESCRIPTOR_UPDATE_FREQ_COUNT];
 	uint32_t                   mDxRootConstantCount;
-	ID3DBlob*                  pDxSerializedRootSignatureString;
 	uint64_t                   mPadA;
 	uint64_t                   mPadB;
 #endif
@@ -2057,6 +2057,8 @@ typedef struct SwapChainDesc
 	ClearValue mColorClearValue;
 	/// Set whether swap chain will be presented using vsync
 	bool mEnableVsync;
+	/// We can toggle to using FLIP model if app desires.
+	bool mUseFlipSwapEffect;
 } SwapChainDesc;
 
 typedef struct SwapChain
@@ -2271,7 +2273,9 @@ typedef struct DEFINE_ALIGNED(Renderer, 64)
 	uint64_t                        mPadA;
 #endif
 	ID3D12Debug*                    pDXDebug;
-	uint32_t                        mPadB;
+#if defined(_WINDOWS)
+	ID3D12InfoQueue*                pDxDebugValidation;
+#endif
 #endif
 #if defined(DIRECT3D11)
 	IDXGIFactory1*                  pDXGIFactory;
@@ -2445,8 +2449,8 @@ API_INTERFACE void FORGE_CALLCONV removeCmd_n(Renderer* pRenderer, uint32_t cmd_
 // All buffer, texture loading handled by resource system -> IResourceLoader.*
 //
 
-API_INTERFACE void FORGE_CALLCONV addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* p_desc, RenderTarget** p_render_target);
-API_INTERFACE void FORGE_CALLCONV removeRenderTarget(Renderer* pRenderer, RenderTarget* p_render_target);
+API_INTERFACE void FORGE_CALLCONV addRenderTarget(Renderer* pRenderer, const RenderTargetDesc* pDesc, RenderTarget** ppRenderTarget);
+API_INTERFACE void FORGE_CALLCONV removeRenderTarget(Renderer* pRenderer, RenderTarget* pRenderTarget);
 API_INTERFACE void FORGE_CALLCONV addSampler(Renderer* pRenderer, const SamplerDesc* pDesc, Sampler** p_sampler);
 API_INTERFACE void FORGE_CALLCONV removeSampler(Renderer* pRenderer, Sampler* p_sampler);
 

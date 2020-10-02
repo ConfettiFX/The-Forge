@@ -63,6 +63,7 @@ void genTextures(uint32_t texture_count, Texture** pOutTexture)
 	desc.mMipLevels = 1;
 	desc.mSampleCount = SAMPLE_COUNT_1;
 	desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+	desc.mStartState = RESOURCE_STATE_COMMON;
 	TextureLoadDesc textureDesc = {};
 	textureDesc.pDesc = &desc;
 	textureDesc.ppTexture = pOutTexture;

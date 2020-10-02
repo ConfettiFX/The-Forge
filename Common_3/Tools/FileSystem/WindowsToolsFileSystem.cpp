@@ -24,7 +24,6 @@
 
 #include "shlobj.h"
 #include "commdlg.h"
-#include <WinBase.h>
 
 #include "IToolFileSystem.h"
 
@@ -64,6 +63,7 @@ static void FormatFileExtensionsFilter(const char* fileDesc, const char** fileEx
 	}
 }
 
+#if defined(_WINDOWS) || defined(__APPLE__) || defined(__linux__)
 typedef struct FileWatcher
 {
 	char                mPath[FS_MAX_PATH];
@@ -139,8 +139,13 @@ void fswThreadFunc(void* data)
 				continue;
 			}
 
+			char fullPathToFile[256] = { 0 };
+			strcat(fullPathToFile, fs->mPath);
+			strcat(fullPathToFile, "\\");
+			strcat(fullPathToFile, utf8Name);
+
 			LOGF(LogLevel::eINFO, "Monitoring activity of file: %s -- Action: %d", fs->mPath, fni->Action);
-			fs->mCallback(fs->mPath, action);
+			fs->mCallback(fullPathToFile, action);
 
 			if (!fni->NextEntryOffset)
 				break;
@@ -194,6 +199,7 @@ void fsFreeFileWatcher(FileWatcher* fileWatcher)
 	CloseHandle(fileWatcher->hExitEvt);
 	tf_free(fileWatcher);
 }
+#endif
 
 void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirectory, const char* extension, eastl::vector<eastl::string>& out)
 {
@@ -221,8 +227,10 @@ void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirec
 	}
 
 	uint32_t extensionOffset = (hasPattern) ? 1 : 3;
-	wchar_t buffer[FS_MAX_PATH] = {};
-	size_t utf16Len = mbstowcs(buffer, directory, FS_MAX_PATH);
+	size_t filePathLen = strlen(directory);
+	wchar_t* buffer = (wchar_t*)alloca((FS_MAX_PATH) * sizeof(wchar_t));
+	size_t utf16Len = MultiByteToWideChar(CP_UTF8, 0, directory, (int)filePathLen, buffer, (int)filePathLen);
+	buffer[utf16Len] = 0;
 
 	buffer[utf16Len + 0] = '\\';
 	buffer[utf16Len + 1] = '*';
@@ -241,7 +249,7 @@ void fsGetFilesWithExtension(ResourceDirectory resourceDir, const char* subDirec
 		do
 		{
 			char utf8Name[FS_MAX_PATH] = {};
-			wcstombs(utf8Name, fd.cFileName, FS_MAX_PATH);
+			WideCharToMultiByte(CP_UTF8, 0, fd.cFileName, -1, utf8Name, MAX_PATH, NULL, NULL);
 
 			char result[FS_MAX_PATH] = {};
 			fsAppendPathComponent(subDirectory, utf8Name, result);
@@ -273,8 +281,7 @@ void fsGetSubDirectories(ResourceDirectory resourceDir, const char* subDirectory
 			if (!wcschr(fd.cFileName, '.'))
 			{
 				char utf8Name[FS_MAX_PATH] = {};
-				wcstombs(utf8Name, fd.cFileName, FS_MAX_PATH);
-
+				WideCharToMultiByte(CP_UTF8, 0, fd.cFileName, -1, utf8Name, MAX_PATH, NULL, NULL);
 				char result[FS_MAX_PATH] = {};
 				fsAppendPathComponent(subDirectory, utf8Name, result);
 				out.push_back(result);

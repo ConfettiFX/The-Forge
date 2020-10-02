@@ -12,7 +12,7 @@
   <Project Name="06_MaterialPlayground" Path="06_MaterialPlayground/06_MaterialPlayground.project" Active="No"/>
   <Project Name="09_LightShadowPlayground" Path="09_LightShadowPlayground/09_LightShadowPlayground.project" Active="No"/>
   <Project Name="09a_HybridRaytracing" Path="09a_HybridRaytracing/09a_HybridRaytracing.project" Active="No"/>
-  <Project Name="10_PixelProjectedReflections" Path="10_PixelProjectedReflections/10_PixelProjectedReflections.project" Active="No"/>
+  <Project Name="10_ScreenSpaceReflections" Path="10_ScreenSpaceReflections/10_ScreenSpaceReflections.project" Active="No"/>
   <Project Name="12_ZipFileSystem" Path="12_ZipFileSystem/12_ZipFileSystem.project" Active="No"/>
   <Project Name="13_UserInterface" Path="13_UserInterface/13_UserInterface.project" Active="No"/>
   <Project Name="14_WaveIntrinsics" Path="14_WaveIntrinsics/14_WaveIntrinsics.project" Active="No"/>
@@ -39,6 +39,7 @@
   <Project Name="AssetPipelineCmd" Path="../../../Common_3/Tools/AssetPipeline/Linux/AssetPipelineCmd.project" Active="No"/>
   <Project Name="29_InverseKinematic" Path="29_InverseKinematic/29_InverseKinematic.project" Active="No"/>
   <Project Name="18_VirtualTexture" Path="18_VirtualTexture/18_VirtualTexture.project" Active="No"/>
+  <Project Name="32_Window" Path="32_Window/32_Window.project" Active="Yes"/>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug" Selected="yes">
       <Environment/>
@@ -57,7 +58,7 @@
       <Project Name="06_MaterialPlayground" ConfigName="Debug"/>
       <Project Name="09_LightShadowPlayground" ConfigName="Debug"/>
       <Project Name="09a_HybridRaytracing" ConfigName="Debug"/>
-      <Project Name="10_PixelProjectedReflections" ConfigName="Debug"/>
+      <Project Name="10_ScreenSpaceReflections" ConfigName="Debug"/>
       <Project Name="12_ZipFileSystem" ConfigName="Debug"/>
       <Project Name="13_UserInterface" ConfigName="Debug"/>
       <Project Name="14_WaveIntrinsics" ConfigName="Debug"/>
@@ -82,6 +83,7 @@
       <Project Name="AssetPipelineCmd" ConfigName="Debug"/>
       <Project Name="29_InverseKinematic" ConfigName="Debug"/>
       <Project Name="18_VirtualTexture" ConfigName="Debug"/>
+      <Project Name="32_Window" ConfigName="Debug"/>
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release" Selected="no">
       <Environment/>
@@ -110,7 +112,7 @@
       <Project Name="14_WaveIntrinsics" ConfigName="Release"/>
       <Project Name="13_UserInterface" ConfigName="Release"/>
       <Project Name="12_ZipFileSystem" ConfigName="Release"/>
-      <Project Name="10_PixelProjectedReflections" ConfigName="Release"/>
+      <Project Name="10_ScreenSpaceReflections" ConfigName="Release"/>
       <Project Name="09a_HybridRaytracing" ConfigName="Release"/>
       <Project Name="09_LightShadowPlayground" ConfigName="Release"/>
       <Project Name="07_Tessellation" ConfigName="Release"/>
@@ -124,6 +126,7 @@
       <Project Name="AssetPipelineCmd" ConfigName="Release"/>
       <Project Name="29_InverseKinematic" ConfigName="Release"/>
       <Project Name="18_VirtualTexture" ConfigName="Release"/>
+      <Project Name="32_Window" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>
 </CodeLite_Workspace>

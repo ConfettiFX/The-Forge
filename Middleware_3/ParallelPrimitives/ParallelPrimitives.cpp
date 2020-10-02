@@ -172,7 +172,7 @@ void ParallelPrimitives::scanExclusiveAddWG(Cmd* pCmd, Buffer* input, Buffer* ou
 	
 
 	BufferBarrier barriers[] = {
-		{ output, RESOURCE_STATE_UNORDERED_ACCESS, false },
+		{ output, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false },
 	};
 	cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 }
@@ -213,8 +213,8 @@ void ParallelPrimitives::scanExclusiveAddTwoLevel(Cmd* pCmd, Buffer* input, Buff
 		cmdDispatch(pCmd, (uint32_t)bottomLevelScanGroupCount, 1, 1);
 
 		BufferBarrier barriers[] = {
-			{ output, RESOURCE_STATE_UNORDERED_ACCESS, false },
-			{ devicePartSums, RESOURCE_STATE_UNORDERED_ACCESS, false }
+			{ output, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false },
+			{ devicePartSums, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false }
 		};
 		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	}
@@ -235,7 +235,7 @@ void ParallelPrimitives::scanExclusiveAddTwoLevel(Cmd* pCmd, Buffer* input, Buff
 		cmdDispatch(pCmd, topLevelScanGroupCount, 1, 1);
 		
 		BufferBarrier barriers[] = {
-			{ devicePartSums, RESOURCE_STATE_UNORDERED_ACCESS, false }
+			{ devicePartSums, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false }
 		};
 		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	}
@@ -257,7 +257,7 @@ void ParallelPrimitives::scanExclusiveAddTwoLevel(Cmd* pCmd, Buffer* input, Buff
 		cmdDispatch(pCmd, bottomLevelDistributeGroupCount, 1, 1);
 		
 		BufferBarrier barriers[] = {
-			{ output, RESOURCE_STATE_UNORDERED_ACCESS, false }
+			{ output, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false }
 		};
 		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	}
@@ -305,8 +305,8 @@ void ParallelPrimitives::scanExclusiveAddThreeLevel(Cmd* pCmd, Buffer* input, Bu
 		cmdDispatch(pCmd, bottomLevelScanGroupCount, 1, 1);
 		
 		BufferBarrier barriers[] = {
-			{ output, RESOURCE_STATE_UNORDERED_ACCESS, false },
-			{ devicePartSumsBottomLevel, RESOURCE_STATE_UNORDERED_ACCESS, false },
+			{ output, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false },
+			{ devicePartSumsBottomLevel, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false },
 		};
 		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	}
@@ -330,8 +330,8 @@ void ParallelPrimitives::scanExclusiveAddThreeLevel(Cmd* pCmd, Buffer* input, Bu
 		cmdDispatch(pCmd, midLevelScanGroupCount, 1, 1);
 		
 		BufferBarrier barriers[] = {
-			{ devicePartSumsBottomLevel, RESOURCE_STATE_UNORDERED_ACCESS, false },
-			{ devicePartSumsMidLevel, RESOURCE_STATE_UNORDERED_ACCESS, false },
+			{ devicePartSumsBottomLevel, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false },
+			{ devicePartSumsMidLevel, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false },
 		};
 		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	}
@@ -353,7 +353,7 @@ void ParallelPrimitives::scanExclusiveAddThreeLevel(Cmd* pCmd, Buffer* input, Bu
 		cmdDispatch(pCmd, topLevelScanGroupCount, 1, 1);
 		
 		BufferBarrier barriers[] = {
-			{ devicePartSumsMidLevel, RESOURCE_STATE_UNORDERED_ACCESS, false },
+			{ devicePartSumsMidLevel, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false },
 		};
 		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	}
@@ -375,7 +375,7 @@ void ParallelPrimitives::scanExclusiveAddThreeLevel(Cmd* pCmd, Buffer* input, Bu
 		cmdDispatch(pCmd, midLevelDistributeGroupCount, 1, 1);
 		
 		BufferBarrier barriers[] = {
-			{ devicePartSumsBottomLevel, RESOURCE_STATE_UNORDERED_ACCESS, false },
+			{ devicePartSumsBottomLevel, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false },
 		};
 		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	}
@@ -397,7 +397,7 @@ void ParallelPrimitives::scanExclusiveAddThreeLevel(Cmd* pCmd, Buffer* input, Bu
 		cmdDispatch(pCmd, bottomLevelDistributeGroupCount, 1, 1);
 		
 		BufferBarrier barriers[] = {
-			{ output, RESOURCE_STATE_UNORDERED_ACCESS, false },
+			{ output, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false },
 		};
 		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	}
@@ -470,7 +470,7 @@ void ParallelPrimitives::sortRadixKeysValues(Cmd* pCmd, Buffer* inputKeys, Buffe
 			cmdDispatch(pCmd, blockCount, 1, 1);
 
 			BufferBarrier barriers[] = {
-				{ deviceHistograms, RESOURCE_STATE_UNORDERED_ACCESS, false },
+				{ deviceHistograms, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false },
 			};
 			cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 		}
@@ -504,8 +504,8 @@ void ParallelPrimitives::sortRadixKeysValues(Cmd* pCmd, Buffer* inputKeys, Buffe
 			cmdDispatch(pCmd, blockCount, 1, 1);
 			
 			BufferBarrier barriers[] = {
-				{ toKeys, RESOURCE_STATE_UNORDERED_ACCESS, false },
-				{ toVals, RESOURCE_STATE_UNORDERED_ACCESS, false },
+				{ toKeys, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false },
+				{ toVals, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false },
 			};
 			cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 		}
@@ -587,7 +587,7 @@ void ParallelPrimitives::sortRadix(Cmd* pCmd, Buffer* inputKeys, Buffer* outputK
 			cmdDispatch(pCmd, blockCount, 1, 1);
 			
 			BufferBarrier barriers[] = {
-				{ deviceHistograms, RESOURCE_STATE_UNORDERED_ACCESS, false },
+				{ deviceHistograms, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false },
 			};
 			cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 		}
@@ -616,7 +616,7 @@ void ParallelPrimitives::sortRadix(Cmd* pCmd, Buffer* inputKeys, Buffer* outputK
 			cmdDispatch(pCmd, blockCount, 1, 1);
 			
 			BufferBarrier barriers[] = {
-				{ toKeys, RESOURCE_STATE_UNORDERED_ACCESS, false },
+				{ toKeys, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false },
 			};
 			cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 		}
@@ -677,7 +677,7 @@ void ParallelPrimitives::generateOffsetBuffer(Cmd* pCmd, Buffer* sortedCategoryI
 		cmdExecuteIndirect(pCmd, pCommandSignature, 1, sortedIndicesCount.pBuffer, 4, NULL, 0);
 		
 		BufferBarrier barriers[] = {
-			{ outputBuffer, RESOURCE_STATE_UNORDERED_ACCESS, false },
+			{ outputBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false },
 		};
 		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	}
@@ -694,8 +694,8 @@ void ParallelPrimitives::generateOffsetBuffer(Cmd* pCmd, Buffer* sortedCategoryI
 		cmdExecuteIndirect(pCmd, pCommandSignature, 1, sortedIndicesCount.pBuffer, 4, NULL, 0);
 		
 		BufferBarrier barriers[] = {
-			{ outputBuffer, RESOURCE_STATE_UNORDERED_ACCESS, false },
-			{ totalCountOutputBuffer, RESOURCE_STATE_UNORDERED_ACCESS, false },
+			{ outputBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false },
+			{ totalCountOutputBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false },
 		};
 		cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	}
@@ -739,7 +739,7 @@ void ParallelPrimitives::generateIndirectArgumentsFromOffsetBuffer(Cmd* pCmd, Bu
 	cmdDispatch(pCmd, blockCount, 1, 1);
 
 	BufferBarrier barriers[] = {
-		{ outIndirectArgumentsBuffer, RESOURCE_STATE_UNORDERED_ACCESS, false },
+		{ outIndirectArgumentsBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS, false },
 	};
 	cmdResourceBarrier(pCmd, sizeof(barriers) / sizeof(barriers[0]), barriers, 0, NULL, 0, NULL);
 	

@@ -33,23 +33,19 @@
 
 void _OutputDebugStringV(const char* str, va_list args)
 {
-#if defined(FORGE_DEBUG)
     const unsigned BUFFER_SIZE = 4096;
     char           buf[BUFFER_SIZE];
 
     vsprintf_s(buf, BUFFER_SIZE, str, args);
 	OutputDebugStringA(buf);
-#endif
 }
 
 void _OutputDebugString(const char* str, ...)
 {
-#if defined(FORGE_DEBUG)
 	va_list arglist;
 	va_start(arglist, str);
 	_OutputDebugStringV(str, arglist);
 	va_end(arglist);
-#endif
 }
 
 void _FailedAssert(const char* file, int line, const char* statement)

@@ -151,6 +151,7 @@ typedef struct FileSystemInitDesc
 {
 	const char* pAppName;
 	void*       pPlatformData;
+	const char* pResourceMounts[RM_COUNT] = {};
 } FileSystemInitDesc;
 
 typedef struct IFileSystem

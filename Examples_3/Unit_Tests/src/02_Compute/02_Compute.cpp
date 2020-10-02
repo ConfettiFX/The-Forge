@@ -515,10 +515,10 @@ class Compute: public IApp
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 		TextureBarrier barriers[] = {
-			{ pTextureComputeOutput, RESOURCE_STATE_SHADER_RESOURCE },
+			{ pTextureComputeOutput, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE },
 		};
 		RenderTargetBarrier rtBarriers[] = {
-			{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
+			{ pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
 		};
 		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, 1, rtBarriers);
 
@@ -545,8 +545,8 @@ class Compute: public IApp
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-		rtBarriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
-		barriers[0] = { pTextureComputeOutput, RESOURCE_STATE_UNORDERED_ACCESS };
+		rtBarriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
+		barriers[0] = { pTextureComputeOutput, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
 		cmdResourceBarrier(cmd, 0, NULL, 1, barriers, 1, rtBarriers);
 
 		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);

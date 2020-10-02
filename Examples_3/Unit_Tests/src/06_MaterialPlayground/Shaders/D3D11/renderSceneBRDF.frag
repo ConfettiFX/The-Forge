@@ -421,7 +421,8 @@ float4 main(VSOutput input) : SV_TARGET
 	// Environment Lighting
 	if (bUseEnvironmentLight != 0)
 	{
-		Lo += EnvironmentBRDF(N, V, _albedo, _roughness, _metalness) * float3(_ao, _ao, _ao) * fEnvironmentLightIntensity;
+		float aoWithIntensity = _ao  * fAOIntensity + (1.0f - fAOIntensity);
+		Lo += EnvironmentBRDF(N, V, _albedo, _roughness, _metalness) * float3(aoWithIntensity, aoWithIntensity, aoWithIntensity) * fEnvironmentLightIntensity;
 	}
 	else
 	{

@@ -27,13 +27,13 @@ namespace MT
 	namespace internal
 	{
 		// Prime numbers for linear congruential generator seed
-		static const uint32 primeNumbers[] = {
+		static const uint32_t primeNumbers[] = {
 			128473, 135349, 159499, 173839, 209213, 241603, 292709, 314723,
 			343943, 389299, 419473, 465169, 518327, 649921, 748271, 851087,
 			862171, 974551, 1002973, 1034639, 1096289, 1153123, 1251037, 1299269,
 			1272941, 1252151, 1231091, 1206761, 1185469, 1169933, 1141351, 1011583 };
 
-		uint32 GetPrimeNumber(uint32 index)
+		uint32_t GetPrimeNumber(uint32_t index)
 		{
 			return primeNumbers[index % MT_ARRAY_SIZE(primeNumbers)];
 		}
@@ -76,7 +76,7 @@ namespace MT
 			return sizeof(internal::GroupedTask) * TASK_BUFFER_CAPACITY;
 		}
 
-		void ThreadContext::SetThreadIndex(uint32 threadIndex)
+		void ThreadContext::SetThreadIndex(uint32_t threadIndex)
 		{
 			workerIndex = threadIndex;
 			random.SetSeed( GetPrimeNumber(threadIndex) );
@@ -116,7 +116,7 @@ namespace MT
 			}
 		}
 
-		void ThreadContext::NotifyTaskExecuteStateChanged(MT::Color::Type debugColor, const mt_char* debugID, TaskExecuteState::Type type, int32 fiberIndex)
+		void ThreadContext::NotifyTaskExecuteStateChanged(MT::Color::Type debugColor, const mt_char* debugID, TaskExecuteState::Type type, int32_t fiberIndex)
 		{
 			if (IProfilerEventListener* eventListener = taskScheduler->GetProfilerEventListener())
 			{
@@ -124,7 +124,7 @@ namespace MT
 			}
 		}
 
-		void ThreadContext::NotifyThreadCreated(uint32 threadIndex)
+		void ThreadContext::NotifyThreadCreated(uint32_t threadIndex)
 		{
 			if (IProfilerEventListener* eventListener = taskScheduler->GetProfilerEventListener())
 			{
@@ -132,7 +132,7 @@ namespace MT
 			}
 		}
 
-		void ThreadContext::NotifyThreadStarted(uint32 threadIndex)
+		void ThreadContext::NotifyThreadStarted(uint32_t threadIndex)
 		{
 			if (IProfilerEventListener* eventListener = taskScheduler->GetProfilerEventListener())
 			{
@@ -140,7 +140,7 @@ namespace MT
 			}
 		}
 
-		void ThreadContext::NotifyThreadStoped(uint32 threadIndex)
+		void ThreadContext::NotifyThreadStoped(uint32_t threadIndex)
 		{
 			if (IProfilerEventListener* eventListener = taskScheduler->GetProfilerEventListener())
 			{
@@ -148,7 +148,7 @@ namespace MT
 			}
 		}
 
-		void ThreadContext::NotifyThreadIdleStarted(uint32 threadIndex)
+		void ThreadContext::NotifyThreadIdleStarted(uint32_t threadIndex)
 		{
 			if (IProfilerEventListener* eventListener = taskScheduler->GetProfilerEventListener())
 			{
@@ -156,7 +156,7 @@ namespace MT
 			}
 		}
 
-		void ThreadContext::NotifyThreadIdleFinished(uint32 threadIndex)
+		void ThreadContext::NotifyThreadIdleFinished(uint32_t threadIndex)
 		{
 			if (IProfilerEventListener* eventListener = taskScheduler->GetProfilerEventListener())
 			{

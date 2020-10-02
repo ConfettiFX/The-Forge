@@ -29,6 +29,8 @@
 #define AOIT_UNORDERED_ACCESS
 #include "AOIT.h"
 
+layout (location = 0) in vec4 iUV;
+
 void main()
 {
 	ivec2 pixelAddr = ivec2(gl_FragCoord.xy);

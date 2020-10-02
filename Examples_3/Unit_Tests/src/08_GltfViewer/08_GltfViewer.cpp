@@ -60,8 +60,8 @@ static const char* pModelNames[]				=
 {
 	"Lantern.gltf",
 	"FlightHelmet.gltf",
-	"Capsule.gltf",
-	"Cube.gltf",
+	"capsule.gltf",
+	"cube.gltf",
 	"lion.gltf",
 	"matBall.gltf"
 };
@@ -750,7 +750,7 @@ public:
         
 		RenderTargetBarrier barriers[] =
 		{
-			{ pShadowRT, RESOURCE_STATE_DEPTH_WRITE },
+			{ pShadowRT, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE },
 		};
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 		
@@ -1721,11 +1721,10 @@ public:
 
 			RenderTargetBarrier barriers[] =
 			{
-				{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
-				{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE },
-				{ pShadowRT, RESOURCE_STATE_SHADER_RESOURCE }
+				{ pRenderTarget, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+				{ pShadowRT, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE }
 			};
-			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 3, barriers);
+			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
             
 			cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
@@ -1794,8 +1793,8 @@ public:
 
 		pRenderTarget = pPostProcessRT;
 		RenderTargetBarrier barriers[] = {
-			{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
-			{ pForwardRT, RESOURCE_STATE_SHADER_RESOURCE }
+			{ pRenderTarget, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+			{ pForwardRT, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE }
 		};
 		
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
@@ -1828,8 +1827,8 @@ public:
 		{
 			RenderTargetBarrier barriers[] =
 			{
-				{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
-				{ pPostProcessRT, RESOURCE_STATE_SHADER_RESOURCE }
+				{ pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
+				{ pPostProcessRT, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE }
 			};
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
 			
@@ -1915,7 +1914,7 @@ public:
 
 		cmdBindRenderTargets(cmd, 0, NULL, 0, NULL, NULL, NULL, -1, -1);
 
-		RenderTargetBarrier finalBarriers = { pRenderTarget, RESOURCE_STATE_PRESENT };
+		RenderTargetBarrier finalBarriers = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &finalBarriers);
 		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 		endCmd(cmd);
@@ -1970,6 +1969,7 @@ public:
 		RT.mDepth = 1;
 		RT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		RT.mFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		RT.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		
 		vec4 bgColor = vec4(float((gBackroundColor >> 24) & 0xff),
 							float((gBackroundColor >> 16) & 0xff),
@@ -1994,6 +1994,7 @@ public:
 		RT.mDepth = 1;
 		RT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		RT.mFormat = pSwapChain->ppRenderTargets[0]->mFormat;
+		RT.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		RT.mWidth = mSettings.mWidth;
 		RT.mHeight = mSettings.mHeight;
 		RT.mSampleCount = SAMPLE_COUNT_1;
@@ -2013,17 +2014,16 @@ public:
 		depthRT.mClearValue.stencil = 0;
 		depthRT.mDepth = 1;
 		depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
+		depthRT.mStartState = RESOURCE_STATE_DEPTH_WRITE;
 		depthRT.mHeight = mSettings.mHeight;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
 		depthRT.mWidth = mSettings.mWidth;
 		depthRT.mFlags = TEXTURE_CREATION_FLAG_ON_TILE;
 		addRenderTarget(pRenderer, &depthRT, &pDepthBuffer);
-		
 		/************************************************************************/
 		// Shadow Map Render Target
 		/************************************************************************/
-		
 		RenderTargetDesc shadowRTDesc = {};
 		shadowRTDesc.mArraySize = 1;
 		shadowRTDesc.mClearValue.depth = 0.0f;
@@ -2031,12 +2031,12 @@ public:
 		shadowRTDesc.mDepth = 1;
 		shadowRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		shadowRTDesc.mFormat = TinyImageFormat_D32_SFLOAT;
+		shadowRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		shadowRTDesc.mWidth = SHADOWMAP_RES;
 		shadowRTDesc.mHeight = SHADOWMAP_RES;
 		shadowRTDesc.mSampleCount = (SampleCount)SHADOWMAP_MSAA_SAMPLES;
 		shadowRTDesc.mSampleQuality = 0;    // don't need higher quality sample patterns as the texture will be blurred heavily
 		shadowRTDesc.pName = "Shadow Map RT";
-		
 		addRenderTarget(pRenderer, &shadowRTDesc, &pShadowRT);
 		
 		return pDepthBuffer != NULL && pShadowRT != NULL;

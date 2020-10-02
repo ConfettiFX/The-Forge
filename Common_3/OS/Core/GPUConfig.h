@@ -1,215 +1,14 @@
 #pragma once
 
-#ifndef TARGET_IOS
-#include "../../ThirdParty/OpenSource/EASTL/string.h"
 #include "../Interfaces/ILog.h"
 #include "../Interfaces/IFileSystem.h"
 #include "../../Renderer/IRenderer.h"
 
-bool parseConfigLine(
-	eastl::string line, eastl::string& vendorId, eastl::string& deviceId, eastl::string& revId, eastl::string& deviceName,
-    eastl::string& presetLevel)
+#include <regex>
+
+static void fsReadFromStreamLine(FileStream* stream, char* pOutLine)
 {
-	auto parseNext = [](eastl::string line, size_t& it) {
-		if (it == eastl::string::npos) return eastl::string();
-		size_t prev = it;
-		it = line.find_first_of(';', it);
-		it += (it != eastl::string::npos);
-		return line.substr(prev, it == eastl::string::npos ? eastl::string::npos : it - prev - 1);
-	};
-
-	line.trim();
-	//don't parse if commented line
-	if (line.empty() || line.at(0) == '#')
-		return false;
-
-	size_t pos = 0;
-
-	vendorId = parseNext(line, pos);
-	if (pos == eastl::string::npos)
-		return false;
-
-	deviceId = parseNext(line, pos);
-	if (pos == eastl::string::npos)
-		return false;
-
-	presetLevel = parseNext(line, pos);
-	deviceName = parseNext(line, pos);
-	revId = parseNext(line, pos);
-
-	vendorId.trim();
-	vendorId.make_lower();
-	deviceId.trim();
-	deviceId.make_lower();
-	presetLevel.trim();
-	presetLevel.make_lower();
-	deviceName.trim();
-	revId.trim();
-
-	if (revId.empty())
-		revId = "0x00";
-
-	return true;
-}
-
-GPUPresetLevel stringToPresetLevel(eastl::string& presetLevel)
-{
-	if (presetLevel == "office")
-		return GPU_PRESET_OFFICE;
-	if (presetLevel == "low")
-		return GPU_PRESET_LOW;
-	if (presetLevel == "medium")
-		return GPU_PRESET_MEDIUM;
-	if (presetLevel == "high")
-		return GPU_PRESET_HIGH;
-	if (presetLevel == "ultra")
-		return GPU_PRESET_ULTRA;
-
-	return GPU_PRESET_NONE;
-}
-
-const char* presetLevelToString(GPUPresetLevel preset)
-{
-	switch (preset)
-	{
-	case GPU_PRESET_NONE: return "";
-	case GPU_PRESET_OFFICE: return "office";
-	case GPU_PRESET_LOW: return "low";
-	case GPU_PRESET_MEDIUM: return "medium";
-	case GPU_PRESET_HIGH: return "high";
-	case GPU_PRESET_ULTRA: return "ultra";
-	default: return NULL;
-	}
-}
-
-#if !defined(METAL) && !defined(NX64)
-GPUPresetLevel getSinglePresetLevel(eastl::string line, const eastl::string& inVendorId, const eastl::string& inModelId, const eastl::string& inRevId)
-{
-	eastl::string vendorId;
-	eastl::string deviceId;
-	eastl::string presetLevel;
-	eastl::string gpuName;
-	eastl::string revisionId;
-
-	if (!parseConfigLine(line, vendorId, deviceId, revisionId, gpuName, presetLevel))
-		return GPU_PRESET_NONE;
-
-	//check if current vendor line is one of the selected gpu's
-	//compare both ModelId and VendorId
-	if (inVendorId == vendorId && inModelId == deviceId)
-	{
-		//if we have a revision Id then we want to match it as well
-		if (inRevId != "0x00" && revisionId != "0x00" && inRevId != revisionId)
-			return GPU_PRESET_NONE;
-
-		return stringToPresetLevel(presetLevel);
-	}
-
-	return GPU_PRESET_NONE;
-}
-#endif
-
-#if !defined(__ANDROID__) && !defined(NX64)
-//TODO: Add name matching as well.
-void checkForPresetLevel(eastl::string line, Renderer* pRenderer, uint32_t gpuCount, GPUSettings* pGpuSettings)
-{
-	eastl::string vendorId;
-	eastl::string deviceId;
-	eastl::string presetLevel;
-	eastl::string gpuName;
-	eastl::string revisionId;
-
-	if (!parseConfigLine(line, vendorId, deviceId, revisionId, gpuName, presetLevel))
-		return;
-
-	//search if any of the current gpu's match the current gpu cfg entry
-	for (uint32_t i = 0; i < gpuCount; i++)
-	{
-		GPUSettings* currentSettings = &pGpuSettings[i];
-		//check if current vendor line is one of the selected gpu's
-		//compare both ModelId and VendorId
-		if (strcmp(currentSettings->mGpuVendorPreset.mVendorId, vendorId.c_str()) == 0 &&
-			strcmp(currentSettings->mGpuVendorPreset.mModelId, deviceId.c_str()) == 0)
-		{
-			//if we have a revision Id then we want to match it as well
-			if (strcmp(currentSettings->mGpuVendorPreset.mRevisionId, "0x00") != 0 && revisionId.compare("0x00") != 0 &&
-				strcmp(currentSettings->mGpuVendorPreset.mRevisionId, revisionId.c_str()) == 0)
-				continue;
-
-			currentSettings->mGpuVendorPreset.mPresetLevel = stringToPresetLevel(presetLevel);
-
-			//Extra information for GPU
-			//Not all gpu's will have that info in the gpu.cfg file
-			strncpy(currentSettings->mGpuVendorPreset.mGpuName, gpuName.c_str(), MAX_GPU_VENDOR_STRING_LENGTH);
-		}
-	}
-}
-#endif
-
-#if !defined(METAL) && !defined(__ANDROID__) && !defined(NX64)
-bool checkForActiveGPU(eastl::string line, GPUVendorPreset& pActiveGpu)
-{
-	eastl::string vendorId;
-	eastl::string deviceId;
-	eastl::string presetLevel;
-	eastl::string gpuName;
-	eastl::string revisionId;
-
-	if (!parseConfigLine(line, vendorId, deviceId, revisionId, gpuName, presetLevel))
-		return false;
-
-	strncpy(pActiveGpu.mModelId, deviceId.c_str(), MAX_GPU_VENDOR_STRING_LENGTH);
-	strncpy(pActiveGpu.mVendorId, vendorId.c_str(), MAX_GPU_VENDOR_STRING_LENGTH);
-	strncpy(pActiveGpu.mGpuName, gpuName.c_str(), MAX_GPU_VENDOR_STRING_LENGTH);
-	strncpy(pActiveGpu.mRevisionId, revisionId.c_str(), MAX_GPU_VENDOR_STRING_LENGTH);
-
-	//TODO: Hardcoded for now as its only used for automated testing
-	//We will want to test with different presets
-	pActiveGpu.mPresetLevel = GPU_PRESET_ULTRA;
-
-	return true;
-}
-#endif
-
-#if !defined(__ANDROID__) && !defined(NX64)
-//Reads the gpu config and sets the preset level of all available gpu's
-void setGPUPresetLevel(Renderer* pRenderer, uint32_t gpuCount, GPUSettings* pGpuSettings)
-{
-	FileStream fh = {};
-	if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "gpu.cfg", FM_READ, &fh))
-	{
-		LOGF(LogLevel::eWARNING, "gpu.cfg could not be found, setting preset to Low as a default.");
-		return;
-	}
-
-    char configStr[2048];
-	while (!fsStreamAtEnd(&fh))
-	{
-		fsReadFromStream(&fh, configStr, 2048);
-		checkForPresetLevel(configStr, pRenderer, gpuCount, pGpuSettings);
-		// Do something with the tok
-	}	
-
-    fsCloseStream(&fh);
-}
-#endif
-
-
-#if defined(__ANDROID__) || defined(NX64)
-//Reads the gpu config and sets the preset level of all available gpu's
-GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::string modelId, const eastl::string revId)
-{
-	LOGF(LogLevel::eINFO, "No gpu.cfg support. Preset set to Low");
-	GPUPresetLevel foundLevel = GPU_PRESET_LOW;
-	return foundLevel;
-}
-#endif
-
-#if !defined(METAL) && !defined(__ANDROID__) && !defined(NX64)
-static eastl::string fsReadFromStreamSTLLine(FileStream* stream)
-{
-	eastl::string result;
-
+	uint32_t charIndex = 0;
 	while (!fsStreamAtEnd(stream))
 	{
 		char nextChar = 0;
@@ -232,14 +31,193 @@ static eastl::string fsReadFromStreamSTLLine(FileStream* stream)
 				fsSeekStream(stream, SBO_CURRENT_POSITION, -1);
 			}
 		}
-		result.push_back(nextChar);
+		pOutLine[charIndex++] = nextChar;
 	}
 
-	return result;
+	pOutLine[charIndex] = 0;
+}
+
+inline GPUPresetLevel stringToPresetLevel(const char* presetLevel)
+{
+	if (!stricmp(presetLevel, "office"))
+		return GPU_PRESET_OFFICE;
+	if (!stricmp(presetLevel, "low"))
+		return GPU_PRESET_LOW;
+	if (!stricmp(presetLevel, "medium"))
+		return GPU_PRESET_MEDIUM;
+	if (!stricmp(presetLevel, "high"))
+		return GPU_PRESET_HIGH;
+	if (!stricmp(presetLevel, "ultra"))
+		return GPU_PRESET_ULTRA;
+
+	return GPU_PRESET_NONE;
+}
+
+inline const char* presetLevelToString(GPUPresetLevel preset)
+{
+	switch (preset)
+	{
+	case GPU_PRESET_NONE: return "";
+	case GPU_PRESET_OFFICE: return "office";
+	case GPU_PRESET_LOW: return "low";
+	case GPU_PRESET_MEDIUM: return "medium";
+	case GPU_PRESET_HIGH: return "high";
+	case GPU_PRESET_ULTRA: return "ultra";
+	default: return NULL;
+	}
+}
+
+bool parseConfigLine(
+	const char* pLine,
+	const char* pInVendorId,
+	const char* pInModelId,
+	char pOutVendorId[MAX_GPU_VENDOR_STRING_LENGTH],
+	char pOutModelId[MAX_GPU_VENDOR_STRING_LENGTH],
+	char pOutRevisionId[MAX_GPU_VENDOR_STRING_LENGTH],
+	char pOutModelName[MAX_GPU_VENDOR_STRING_LENGTH],
+    GPUPresetLevel* pOutPresetLevel)
+{
+	//     VendorId;         ModelId;        Preset;             Name;               RevisionId (optional); Codename (can be null)
+	// ([0xA-Fa-f0-9]+); ([0xA-Fa-f0-9]+); ([A-Za-z]); ([A-Za-z0-9 /\\(\\);]+)[; ]*([0xA-Fa-f0-9]*)
+	char buffer[128] = {};
+	sprintf(
+		buffer,
+		"%s; %s; ([A-Za-z]+); ([A-Za-z0-9 /\\(\\);]+)[; ]*([0xA-Fa-f0-9]*)",
+		// If input is unspecified it means we need to fill it
+		pInVendorId ? pInVendorId : "([0xA-Fa-f0-9]+)",
+		pInModelId ? pInModelId : "([0xA-Fa-f0-9]+)");
+
+	const uint32_t presetIndex   = pInVendorId ? 1 : 3;
+	const uint32_t gpuNameIndex  = pInVendorId ? 2 : 4;
+	const uint32_t revisionIndex = pInVendorId ? 3 : 5;
+
+	std::regex expr(buffer, std::regex::optimize);
+	std::cmatch match;
+	if (std::regex_match(pLine, match, expr))
+	{
+		if (!pInVendorId)
+		{
+			strncpy(pOutVendorId, match[1].first, match[1].second - match[1].first);
+			strncpy(pOutModelId, match[2].first, match[2].second - match[2].first);
+		}
+
+		char presetLevel[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+		strncpy(presetLevel, match[presetIndex].first,   match[presetIndex].second -   match[presetIndex].first);
+		strncpy(pOutModelName,  match[gpuNameIndex].first,  match[gpuNameIndex].second -  match[gpuNameIndex].first);
+		strncpy(pOutRevisionId,  match[revisionIndex].first, match[revisionIndex].second - match[revisionIndex].first);
+
+		*pOutPresetLevel = stringToPresetLevel(presetLevel);
+		return true;
+	}
+
+	*pOutPresetLevel = GPU_PRESET_LOW;
+	return false;
+}
+
+GPUPresetLevel getSinglePresetLevel(const char* line, const char* inVendorId, const char* inModelId, const char* inRevId)
+{
+	char vendorId[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+	char deviceId[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+	GPUPresetLevel presetLevel = {};
+	char gpuName[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+	char revisionId[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+
+	//check if current vendor line is one of the selected gpu's
+	if (!parseConfigLine(line, inVendorId, inModelId, vendorId, deviceId, revisionId, gpuName, &presetLevel))
+		return GPU_PRESET_NONE;
+
+	//if we have a revision Id then we want to match it as well
+	if (stricmp(inRevId, "0x00") && strlen(revisionId) && stricmp(revisionId, "0x00") && stricmp(inRevId, revisionId))
+		return GPU_PRESET_NONE;
+
+	return presetLevel;
+}
+
+//TODO: Add name matching as well.
+void checkForPresetLevel(const char* line, Renderer* pRenderer, uint32_t gpuCount, GPUSettings* pGpuSettings)
+{
+	char vendorId[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+	char deviceId[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+	GPUPresetLevel presetLevel = {};
+	char gpuName[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+	char revisionId[MAX_GPU_VENDOR_STRING_LENGTH] = {};
+
+	//search if any of the current gpu's match the current gpu cfg entry
+	for (uint32_t i = 0; i < gpuCount; i++)
+	{
+		GPUSettings* currentSettings = &pGpuSettings[i];
+
+		//check if current vendor line is one of the selected gpu's
+		if (!parseConfigLine(line,
+			currentSettings->mGpuVendorPreset.mVendorId,
+			currentSettings->mGpuVendorPreset.mModelId,
+			vendorId, deviceId, revisionId, gpuName, &presetLevel))
+			return;
+
+		//if we have a revision Id then we want to match it as well
+		if (strcmp(currentSettings->mGpuVendorPreset.mRevisionId, "0x00") != 0 &&
+			strlen(revisionId) && strcmp(revisionId, "0x00") != 0 &&
+			strcmp(currentSettings->mGpuVendorPreset.mRevisionId, revisionId) == 0)
+			continue;
+
+		currentSettings->mGpuVendorPreset.mPresetLevel = presetLevel;
+
+		//Extra information for GPU
+		//Not all gpu's will have that info in the gpu.cfg file
+		strncpy(currentSettings->mGpuVendorPreset.mGpuName, gpuName, MAX_GPU_VENDOR_STRING_LENGTH);
+	}
+}
+
+bool checkForActiveGPU(const char* line, GPUVendorPreset& pActiveGpu)
+{
+	if (!parseConfigLine(
+		line,
+		NULL, NULL,
+		pActiveGpu.mVendorId,
+		pActiveGpu.mModelId,
+		pActiveGpu.mRevisionId,
+		pActiveGpu.mGpuName,
+		&pActiveGpu.mPresetLevel))
+		return false;
+
+	// #TODO: Hardcoded for now as its only used for automated testing
+	// We will want to test with different presets
+	pActiveGpu.mPresetLevel = GPU_PRESET_ULTRA;
+
+	return true;
+}
+
+//Reads the gpu config and sets the preset level of all available gpu's
+void setGPUPresetLevel(Renderer* pRenderer, uint32_t gpuCount, GPUSettings* pGpuSettings)
+{
+	FileStream fh = {};
+	if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "gpu.cfg", FM_READ, &fh))
+	{
+		LOGF(LogLevel::eWARNING, "gpu.cfg could not be found, setting preset to Low as a default.");
+		return;
+	}
+
+	char configStr[1024] = {};
+	while (!fsStreamAtEnd(&fh))
+	{
+		fsReadFromStreamLine(&fh, configStr);
+		checkForPresetLevel(configStr, pRenderer, gpuCount, pGpuSettings);
+		// Do something with the tok
+	}
+
+	fsCloseStream(&fh);
 }
 
 //Reads the gpu config and sets the preset level of all available gpu's
 GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::string modelId, const eastl::string revId)
+{
+	LOGF(LogLevel::eINFO, "No gpu.cfg support. Preset set to Low");
+	GPUPresetLevel foundLevel = GPU_PRESET_LOW;
+	return foundLevel;
+}
+
+//Reads the gpu config and sets the preset level of all available gpu's
+GPUPresetLevel getGPUPresetLevel(const char* vendorId, const char* modelId, const char* revId)
 {
 	FileStream fh = {};
 	if (!fsOpenStreamFromPath(RD_GPU_CONFIG, "gpu.cfg", FM_READ, &fh))
@@ -250,9 +228,10 @@ GPUPresetLevel getGPUPresetLevel(const eastl::string vendorId, const eastl::stri
 
 	GPUPresetLevel foundLevel = GPU_PRESET_LOW;
 
+	char gpuCfgString[1024] = {};
 	while (!fsStreamAtEnd(&fh))
 	{
-		eastl::string  gpuCfgString = fsReadFromStreamSTLLine(&fh);
+		fsReadFromStreamLine(&fh, gpuCfgString);
 		GPUPresetLevel level = getSinglePresetLevel(gpuCfgString, vendorId, modelId, revId);
 		// Do something with the tok
 		if (level != GPU_PRESET_NONE)
@@ -276,9 +255,10 @@ bool getActiveGpuConfig(GPUVendorPreset& pActiveGpu)
 	}
 
 	bool successFinal = false;
+	char gpuCfgString[1024] = {};
 	while (!fsStreamAtEnd(&fh) && !successFinal)
 	{
-		eastl::string gpuCfgString = fsReadFromStreamSTLLine(&fh);
+		fsReadFromStreamLine(&fh, gpuCfgString);
 		successFinal = checkForActiveGPU(gpuCfgString, pActiveGpu);
 	}
 
@@ -309,5 +289,3 @@ void selectActiveGpu(GPUSettings* pGpuSettings, uint32_t* pGpuIndex, uint32_t gp
 		}
 	}
 }
-#endif
-#endif

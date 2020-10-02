@@ -2,12 +2,10 @@
 #include <metal_stdlib>
 using namespace metal;
 
+#include "argument_buffers.h"
+
 struct Fragment_Shader
 {
-#ifndef MAX_NUM_OBJECTS
-#define MAX_NUM_OBJECTS 64
-#endif
-
 #define SPECULAR_EXP 10.0
 #if USE_SHADOWS!=0
     texture2d<float> VSM;
@@ -51,44 +49,10 @@ struct Fragment_Shader
         return shadow;
     };
 #endif
-    
-    struct Material
-    {
-        float4 Color;
-        float4 Transmission;
-        float RefractionRatio;
-        float Collimation;
-		float2 Padding;
-        uint TextureFlags;
-        uint AlbedoTexID;
-        uint MetallicTexID;
-        uint RoughnessTexID;
-        uint EmissiveTexID;
-    };
-    struct Uniforms_LightUniformBlock
-    {
-        float4x4 lightViewProj;
-        float4 lightDirection;
-        float4 lightColor;
-    };
+
     constant Uniforms_LightUniformBlock & LightUniformBlock;
-    struct Uniforms_CameraUniform
-    {
-        float4x4 camViewProj;
-        float4x4 camViewMat;
-        float4 camClipInfo;
-        float4 camPosition;
-    };
     constant Uniforms_CameraUniform & CameraUniform;
-    struct Uniforms_MaterialUniform
-    {
-        Material Materials[MAX_NUM_OBJECTS];
-    };
     constant Uniforms_MaterialUniform & MaterialUniform;
-    struct Uniforms_MaterialTextures
-    {
-        array<texture2d<float, access::sample>, MAX_NUM_TEXTURES> Textures;
-    };
     constant texture2d<float, access::sample>* MaterialTextures;
     sampler LinearSampler;
     float4 Shade(uint matID, float2 uv, float3 worldPos, float3 normal)
@@ -183,30 +147,9 @@ VSMRed(VSMRed),VSMGreen(VSMGreen),VSMBlue(VSMBlue),
 LightUniformBlock(LightUniformBlock),CameraUniform(CameraUniform),MaterialUniform(MaterialUniform),MaterialTextures(MaterialTextures),LinearSampler(LinearSampler) {}
 };
 
-struct FSData {
-#if USE_SHADOWS!=0
-    texture2d<float> VSM;
-    sampler VSMSampler;
-#if PT_USE_CAUSTICS!=0
-    texture2d<float> VSMRed;
-    texture2d<float> VSMGreen;
-    texture2d<float> VSMBlue;
-#endif
-#endif
-    sampler LinearSampler;
-    constant array<texture2d<float, access::sample>, MAX_NUM_TEXTURES>& MaterialTextures;
-};
-
-struct FSDataPerFrame {
-    constant Fragment_Shader::Uniforms_LightUniformBlock & LightUniformBlock;
-    constant Fragment_Shader::Uniforms_CameraUniform & CameraUniform;
-    constant Fragment_Shader::Uniforms_MaterialUniform & MaterialUniform;
-};
-
 fragment Fragment_Shader::PSOutput stageMain(
     Fragment_Shader::VSOutput input [[stage_in]],
-    constant FSData& fsData [[buffer(UPDATE_FREQ_NONE)]],
-    constant FSDataPerFrame& fsDataPerFrame [[buffer(UPDATE_FREQ_PER_FRAME)]],
+    DECLARE_ARG_DATA()
 )
 {
     Fragment_Shader::VSOutput input0;
@@ -217,18 +160,18 @@ fragment Fragment_Shader::PSOutput stageMain(
     input0.MatID = input.MatID;
     Fragment_Shader main(
 #if USE_SHADOWS!=0
-    fsData.VSM,
-    fsData.VSMSampler,
+    VSM,
+    VSMSampler,
 #if PT_USE_CAUSTICS!=0
-    fsData.VSMRed,
-    fsData.VSMGreen,
-    fsData.VSMBlue,
+    VSMRed,
+    VSMGreen,
+    VSMBlue,
 #endif
 #endif
     fsDataPerFrame.LightUniformBlock,
     fsDataPerFrame.CameraUniform,
     fsDataPerFrame.MaterialUniform,
-    fsData.MaterialTextures,
-    fsData.LinearSampler);
+	fsData.MaterialTextures,
+    LinearSampler);
     return main.main(input0);
 }

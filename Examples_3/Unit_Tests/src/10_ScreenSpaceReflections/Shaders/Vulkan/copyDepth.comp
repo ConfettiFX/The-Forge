@@ -1,0 +1,27 @@
+#version 450
+#extension GL_EXT_samplerless_texture_functions : require
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(set = 0, binding = 0) uniform texture2D Source;
+layout(set = 0, binding = 1, r32f) uniform writeonly image2D Destination;
+
+void _main(uvec3 did)
+{
+    uvec2 sizeQueryTemp = uvec2(textureSize(Source, 0));
+    uvec2 screen_size;
+    screen_size.x = sizeQueryTemp.x;
+    screen_size.y = sizeQueryTemp.y;
+    if ((did.x < screen_size.x) && (did.y < screen_size.y))
+    {
+        float storeTemp = texelFetch(Source, ivec2(did.xy), 0).x;
+        imageStore(Destination, ivec2(did.xy), vec4(storeTemp));
+    }
+}
+
+void main()
+{
+    uvec3 did = gl_GlobalInvocationID;
+    uvec3 param = did;
+    _main(param);
+}
+

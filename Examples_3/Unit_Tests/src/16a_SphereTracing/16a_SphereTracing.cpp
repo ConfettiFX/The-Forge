@@ -86,8 +86,6 @@ class SphereTracing: public IApp
 	{
 #ifdef TARGET_IOS
 		mSettings.mContentScaleFactor = 1.f;
-#elif ANDROID
-		gFrameTimeDraw.mFontSize = 8;
 #endif
 	}
 	
@@ -331,7 +329,7 @@ class SphereTracing: public IApp
 		/************************************************************************/
 		// Scene Update
 		/************************************************************************/
-		gUniformData.res = vec4(mSettings.mWidth * mSettings.mContentScaleFactor, mSettings.mHeight * mSettings.mContentScaleFactor, 0.0f, 0.0f);
+		gUniformData.res = vec4(float(mSettings.mWidth), float(mSettings.mHeight), 0.0f, 0.0f);
 		mat4 viewMat = pCameraController->getViewMatrix();
 		gUniformData.invView = inverse(viewMat);
 
@@ -381,7 +379,7 @@ class SphereTracing: public IApp
 		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
 		RenderTargetBarrier barriers[] = {
-			{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
+			{ pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
 		};
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
@@ -414,7 +412,7 @@ class SphereTracing: public IApp
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndDebugMarker(cmd);
 
-		barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
+		barriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 		endCmd(cmd);
@@ -448,8 +446,8 @@ class SphereTracing: public IApp
 		swapChainDesc.mWindowHandle = pWindow->handle;
 		swapChainDesc.mPresentQueueCount = 1;
 		swapChainDesc.ppPresentQueues = &pGraphicsQueue;
-		swapChainDesc.mWidth = uint32_t(mSettings.mWidth * mSettings.mContentScaleFactor);
-		swapChainDesc.mHeight = uint32_t(mSettings.mHeight * mSettings.mContentScaleFactor);
+		swapChainDesc.mWidth = mSettings.mWidth;
+		swapChainDesc.mHeight = mSettings.mHeight;
 		swapChainDesc.mImageCount = gImageCount;
 		swapChainDesc.mColorFormat = getRecommendedSwapchainFormat(true);
 		swapChainDesc.mEnableVsync = mSettings.mDefaultVSyncEnabled;

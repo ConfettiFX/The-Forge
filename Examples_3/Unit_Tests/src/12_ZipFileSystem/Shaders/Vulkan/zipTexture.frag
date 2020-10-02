@@ -37,7 +37,6 @@ layout (set=0, binding=8) uniform sampler   uSampler0;
 
 layout(location = 0) in vec4 Color;
 layout(location = 1) in vec2 out_texCoords;
-layout(location = 2) in vec2 frameTime;
 
 void main (void)
 {

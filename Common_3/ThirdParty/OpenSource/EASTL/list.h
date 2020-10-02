@@ -592,7 +592,7 @@ namespace eastl
 
 	template <typename T, typename Pointer, typename Reference>
 	inline ListIterator<T, Pointer, Reference>::ListIterator(const ListNodeBase* pNode) EA_NOEXCEPT
-		: mpNode(static_cast<node_type*>((ListNode<T>*)const_cast<ListNodeBase*>(pNode))) // All this casting is in the name of making runtime debugging much easier on the user.
+		: mpNode(const_cast<node_type*>(reinterpret_cast<const node_type*>(pNode))) // All this casting is in the name of making runtime debugging much easier on the user.
 	{
 		// Empty
 	}
@@ -784,8 +784,8 @@ namespace eastl
 	template <typename T, typename Allocator>
 	inline void ListBase<T, Allocator>::DoInit() EA_NOEXCEPT
 	{
-		mNode.mpNext = (ListNode<T>*)&mNode;
-		mNode.mpPrev = (ListNode<T>*)&mNode;
+		mNode.mpNext = static_cast<base_node_type*>(&mNode);
+		mNode.mpPrev = static_cast<base_node_type*>(&mNode);
 	}
 
 

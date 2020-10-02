@@ -341,7 +341,7 @@
 				28A5AB89201F3A77000E571F /* TitilliumText */,
 			);
 			name = Fonts;
-			path = 26_Audio_iOS;
+			path = 31_Audio_iOS;
 			sourceTree = "<group>";
 		};
 		28A5ABEA201F482F000E571F /* Frameworks */ = {
@@ -939,7 +939,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				PRODUCT_BUNDLE_IDENTIFIER = "Conffeti.-31-Audio-iOS";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.31-Audio.ios";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRIP_PNG_TEXT = NO;
@@ -980,7 +980,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 10.14;
-				PRODUCT_BUNDLE_IDENTIFIER = "Conffeti.-31-Audio-iOS";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.confetti.Unit-Tests.31-Audio.ios";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				STRIP_PNG_TEXT = NO;

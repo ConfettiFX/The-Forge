@@ -77,7 +77,7 @@ namespace MT
 		Fiber & schedulerFiber = threadContext->schedulerFiber;
 
 #ifdef MT_INSTRUMENTED_BUILD		
-		threadContext->NotifyTaskExecuteStateChanged( currentTask.debugColor, currentTask.debugID, TaskExecuteState::SUSPEND, (int32)fiberIndex);
+		threadContext->NotifyTaskExecuteStateChanged( currentTask.debugColor, currentTask.debugID, TaskExecuteState::SUSPEND, (int32_t)fiberIndex);
 #endif
 
 		// Yielding, so reset thread context
@@ -87,7 +87,7 @@ namespace MT
 		Fiber::SwitchTo(fiber, schedulerFiber);
 
 #ifdef MT_INSTRUMENTED_BUILD
-		threadContext->NotifyTaskExecuteStateChanged( currentTask.debugColor, currentTask.debugID, TaskExecuteState::RESUME, (int32)fiberIndex);
+		threadContext->NotifyTaskExecuteStateChanged( currentTask.debugColor, currentTask.debugID, TaskExecuteState::RESUME, (int32_t)fiberIndex);
 #endif
 	}
 
@@ -110,7 +110,7 @@ namespace MT
 		Fiber & schedulerFiber = threadContext->schedulerFiber;
 
 #ifdef MT_INSTRUMENTED_BUILD
-		threadContext->NotifyTaskExecuteStateChanged( currentTask.debugColor, currentTask.debugID, TaskExecuteState::SUSPEND, (int32)fiberIndex);
+		threadContext->NotifyTaskExecuteStateChanged( currentTask.debugColor, currentTask.debugID, TaskExecuteState::SUSPEND, (int32_t)fiberIndex);
 #endif
 
 		// Yielding, so reset thread context
@@ -120,13 +120,13 @@ namespace MT
 		Fiber::SwitchTo(fiber, schedulerFiber);
 
 #ifdef MT_INSTRUMENTED_BUILD
-		threadContext->NotifyTaskExecuteStateChanged( currentTask.debugColor, currentTask.debugID, TaskExecuteState::RESUME, (int32)fiberIndex);
+		threadContext->NotifyTaskExecuteStateChanged( currentTask.debugColor, currentTask.debugID, TaskExecuteState::RESUME, (int32_t)fiberIndex);
 #endif
 
 	}
 
 
-	void FiberContext::RunAsync(TaskGroup taskGroup, const TaskHandle* taskHandleArray, uint32 taskHandleCount)
+	void FiberContext::RunAsync(TaskGroup taskGroup, const TaskHandle* taskHandleArray, uint32_t taskHandleCount)
 	{
 		MT_ASSERT(taskHandleCount < (internal::TASK_BUFFER_CAPACITY - 1), "Too many tasks per one Run.");
 		MT_ASSERT(threadContext, "ThreadContext is nullptr");
@@ -137,7 +137,7 @@ namespace MT
 
 		ArrayView<internal::GroupedTask> buffer(threadContext->descBuffer, taskHandleCount);
 
-		uint32 bucketCount = MT::Min((uint32)scheduler.GetWorkersCount(), taskHandleCount);
+		uint32_t bucketCount = MT::Min((uint32_t)scheduler.GetWorkersCount(), taskHandleCount);
 		ArrayView<internal::TaskBucket>	buckets(MT_ALLOCATE_ON_STACK(sizeof(internal::TaskBucket) * bucketCount), bucketCount);
 
 		internal::DistibuteDescriptions(taskGroup, taskHandleArray, buffer, buckets);
@@ -145,7 +145,7 @@ namespace MT
 	}
 
 
-	void FiberContext::RunSubtasksAndYield(TaskGroup taskGroup, const TaskHandle* taskHandleArray, uint32 taskHandleCount)
+	void FiberContext::RunSubtasksAndYield(TaskGroup taskGroup, const TaskHandle* taskHandleArray, uint32_t taskHandleCount)
 	{
 		MT_ASSERT(taskHandleCount < (internal::TASK_BUFFER_CAPACITY - 1), "Too many tasks per one Run.");
 		MT_ASSERT(threadContext, "ThreadContext is nullptr");
@@ -155,7 +155,7 @@ namespace MT
 
 		ArrayView<internal::GroupedTask> buffer(threadContext->descBuffer, taskHandleCount);
 
-		uint32 bucketCount = MT::Min((uint32)scheduler.GetWorkersCount(), taskHandleCount);
+		uint32_t bucketCount = MT::Min((uint32_t)scheduler.GetWorkersCount(), taskHandleCount);
 		ArrayView<internal::TaskBucket> buckets(MT_ALLOCATE_ON_STACK(sizeof(internal::TaskBucket) * bucketCount), bucketCount);
 
 		internal::DistibuteDescriptions(taskGroup, taskHandleArray, buffer, buckets);

@@ -80,7 +80,7 @@ namespace gainput
 
 #define MAX_DEVICES 16U
 
-uint32_t MAX_INPUT_GAMEPADS = 1;
+uint32_t MAX_INPUT_GAMEPADS = 4;
 uint32_t MAX_INPUT_MULTI_TOUCHES = 4;
 uint32_t MAX_INPUT_ACTIONS = 128;
 
@@ -938,6 +938,15 @@ struct InputSystemImpl : public gainput::InputListener
 #endif
 
 			[mainView addSubview : newView];
+		
+#ifdef TARGET_IOS
+#else
+			NSWindow* window = [newView window];
+			BOOL madeFirstResponder = [window makeFirstResponder:newView];
+			if (!madeFirstResponder)
+				return false;
+#endif
+			
 			pGainputView = (__bridge void*)newView;
 		}
 #endif
@@ -1467,47 +1476,20 @@ struct InputSystemImpl : public gainput::InputListener
 					for (uint32_t i = 0; i < pControl->mAxisCount; ++i)
 						equal = equal && (pControl->mValue[i] == pControl->mNewValue[i]);
 
-					if ((((pControl->mStarted >> axis) & 0x1) == 0) && !equal)
-					{
-						pControl->mStarted |= (1 << axis);
-						pControl->mValue[axis] = pControl->mNewValue[axis];
+					pControl->mPerformed |= (1 << axis);
+					pControl->mValue[axis] = pControl->mNewValue[axis];
 
-						if (pControl->mStarted == pControl->mTarget && pDesc->pFunction)
-						{
-							ctx.mPhase = INPUT_ACTION_PHASE_STARTED;
-							ctx.mFloat3 = pControl->mValue;
-							executeNext = pDesc->pFunction(&ctx) && executeNext;
-						}
+					if (pControl->mPerformed == pControl->mTarget && pDesc->pFunction)
+					{
+						ctx.mPhase = INPUT_ACTION_PHASE_PERFORMED;
+						ctx.mFloat3 = pControl->mValue;
+						executeNext = pDesc->pFunction(&ctx) && executeNext;
 					}
 
-					if (pControl->mStarted != pControl->mTarget)
+					if (pControl->mPerformed != pControl->mTarget)
 						continue;
 
-					pControl->mValue[axis] = pControl->mNewValue[axis];
-					pControl->mPerformed |= (1 << axis);
-
-					if (pControl->mPerformed == pControl->mTarget)
-					{
-						pControl->mPerformed = 0;
-
-						bool zero = true;
-						for (uint32_t i = 0; i < pControl->mAxisCount; ++i)
-							zero = zero && (pControl->mValue[i] == 0.0f);
-						if (zero)
-						{
-							pControl->mStarted = 0;
-							pControl->mNewValue = float3(0.0f);
-							ctx.mPhase = INPUT_ACTION_PHASE_CANCELED;
-							if (pDesc->pFunction)
-								executeNext = pDesc->pFunction(&ctx) && executeNext;
-						}
-						else if (pDesc->pFunction)
-						{
-							ctx.mPhase = INPUT_ACTION_PHASE_PERFORMED;
-							ctx.mFloat3 = pControl->mValue;
-							executeNext = pDesc->pFunction(&ctx) && executeNext;
-						}
-					}
+					pControl->mPerformed = 0;
 					break;
 				}
 #if TOUCH_INPUT
@@ -1651,8 +1633,12 @@ static void ResetInputStates()
 }
 #endif
 
-static int32_t InputSystemHandleMessage(WindowsDesc* pWindow, void* msg)
+int32_t InputSystemHandleMessage(WindowsDesc* pWindow, void* msg)
 {
+	if (pInputSystem == nullptr)
+	{
+		return 0;
+	}
 #if defined(_WIN32) && !defined(XBOX)
 	pInputSystem->pInputManager->HandleMessage(*(MSG*)msg);
 	if ((*(MSG*)msg).message == WM_ACTIVATEAPP && (*(MSG*)msg).wParam == WA_INACTIVE)
@@ -1671,8 +1657,9 @@ static int32_t InputSystemHandleMessage(WindowsDesc* pWindow, void* msg)
 bool initInputSystem(WindowsDesc* window)
 {
 	pInputSystem = tf_new(InputSystemImpl);
-	if (window)
-		window->callbacks.onHandleMessage = InputSystemHandleMessage;
+
+	setCustomMessageProcessor(InputSystemHandleMessage);
+
 	return pInputSystem->Init(window);
 }
 
@@ -1680,10 +1667,7 @@ void exitInputSystem()
 {
 	ASSERT(pInputSystem);
 
-	if (pInputSystem->pWindow)
-	{
-		pInputSystem->pWindow->callbacks.onHandleMessage = NULL;
-	}
+	setCustomMessageProcessor(nullptr);
 
 	pInputSystem->Exit();
 	tf_delete(pInputSystem);

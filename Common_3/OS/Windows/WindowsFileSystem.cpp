@@ -47,29 +47,50 @@ static inline T withUTF16Path(const char* path, T(*function)(const wchar_t*))
 	return function(buffer);
 }
 
-char gResourceMounts[RM_COUNT][FS_MAX_PATH];
+
 
 #ifndef XBOX
+static bool gInitialized = false;
+static const char* gResourceMounts[RM_COUNT];
+const char* getResourceMount(ResourceMount mount) {
+	return gResourceMounts[mount];
+}
+
+static char gApplicationPath[FS_MAX_PATH] = {};
+static char gDocumentsPath[FS_MAX_PATH] = {};
+
 bool initFileSystem(FileSystemInitDesc* pDesc)
 {
-	if (!pDesc->pAppName)
+	if (gInitialized)
 	{
-		return false;
+		LOGF(LogLevel::eWARNING, "FileSystem already initialized.");
+		return true;
 	}
+	ASSERT(pDesc);
+	pSystemFileIO->GetResourceMount = getResourceMount;
 
-	// Get application directory and name
-	char applicationPath[FS_MAX_PATH] = {};
-	GetModuleFileNameA(0, applicationPath, FS_MAX_PATH);
-	fsGetParentPath(applicationPath, gResourceMounts[RM_CONTENT]);
-	fsGetParentPath(applicationPath, gResourceMounts[RM_DEBUG]);
+	// Get application directory
+	wchar_t utf16Path[FS_MAX_PATH];
+	GetModuleFileNameW(0, utf16Path, FS_MAX_PATH);
+	char applicationFilePath[FS_MAX_PATH] = {};
+	WideCharToMultiByte(CP_UTF8, 0, utf16Path, -1, applicationFilePath, MAX_PATH, NULL, NULL);
+	fsGetParentPath(applicationFilePath, gApplicationPath);
+	gResourceMounts[RM_CONTENT] = gApplicationPath;
+	gResourceMounts[RM_DEBUG] = gApplicationPath;
 
 	// Get user directory
 	PWSTR userDocuments = NULL;
-	char documentsPath[FS_MAX_PATH] = {};
 	SHGetKnownFolderPath(FOLDERID_Documents, 0, NULL, &userDocuments);
-	wcstombs(documentsPath, userDocuments, FS_MAX_PATH);
+	WideCharToMultiByte(CP_UTF8, 0, userDocuments, -1, gDocumentsPath, MAX_PATH, NULL, NULL);
 	CoTaskMemFree(userDocuments);
-	fsAppendPathComponent(documentsPath, pDesc->pAppName, gResourceMounts[RM_SAVE_0]);
+	gResourceMounts[RM_SAVE_0] = gDocumentsPath;
+
+	// Override Resource mounts
+	for (uint32_t i = 0; i < RM_COUNT; ++i)
+	{
+		if (pDesc->pResourceMounts[i])
+			gResourceMounts[i] = pDesc->pResourceMounts[i];
+	}
 
 	//// Get app data directory
 	//char appData[FS_MAX_PATH] = {};
@@ -80,11 +101,13 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
 	//WideCharToMultiByte(CP_UTF8, 0, localAppdata, (int)pathLength, appData, utf8Length, NULL, NULL);
 	//CoTaskMemFree(localAppdata);
 
+	gInitialized = true;
 	return true;
 }
 
 void exitFileSystem(void)
 {
+	gInitialized = false;
 }
 #endif
 
@@ -147,8 +170,11 @@ bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileM
 	fsAppendPathComponent(resourcePath, fileName, filePath);
 
 	// Path utf-16 conversion
-	wchar_t pathStr[FS_MAX_PATH] = {};
-	mbstowcs(pathStr, filePath, FS_MAX_PATH);
+	size_t filePathLen = strlen(filePath);
+	wchar_t* pathStr = (wchar_t*)alloca((filePathLen + 1) * sizeof(wchar_t));
+	size_t pathStrLength =
+		MultiByteToWideChar(CP_UTF8, 0, filePath, (int)filePathLen, pathStr, (int)filePathLen);
+	pathStr[pathStrLength] = 0;
 
 	// Mode string utf-16 conversion
 	const char* modeStr = fsFileModeToString(mode);

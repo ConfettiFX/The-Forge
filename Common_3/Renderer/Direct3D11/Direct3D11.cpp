@@ -1048,15 +1048,16 @@ static void RemoveDevice(Renderer* pRenderer)
 	pRenderer->pDxDevice->QueryInterface(&pDebugDevice);
 	SAFE_RELEASE(pRenderer->pDxDevice);
 
-	// Debug device is released first so report live objects don't show its ref as a warning.
 	if (pDebugDevice)
 	{
 #if WINVER > _WIN32_WINNT_WINBLUE
 		pDebugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL | D3D11_RLDO_IGNORE_INTERNAL);
+		pDebugDevice->Release();
 #else
+		// Debug device is released first so report live objects don't show its ref as a warning.
+		pDebugDevice->Release();
 		pDebugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
 #endif
-		pDebugDevice->Release();
 	}
 #else
 	SAFE_RELEASE(pRenderer->pDxDevice);
@@ -1425,8 +1426,10 @@ void addSwapChain(Renderer* pRenderer, const SwapChainDesc* pDesc, SwapChain** p
 
 	HRESULT hres = E_FAIL;
 	IDXGISwapChain* swapchain = NULL; 
-	uint32_t i = 0;
-	for (; i < (sizeof swapEffects / sizeof DXGI_SWAP_EFFECT); ++i)
+	uint32_t swapEffectsCount = (sizeof swapEffects / sizeof DXGI_SWAP_EFFECT);
+	uint32_t i = pDesc->mUseFlipSwapEffect ? 0 : swapEffectsCount - 2;
+
+	for (; i < swapEffectsCount; ++i)
 	{
 		desc.SwapEffect = swapEffects[i];
 		hres = pRenderer->pDXGIFactory->CreateSwapChain(pRenderer->pDxDevice, &desc, &swapchain);
@@ -2087,8 +2090,6 @@ void addBuffer(Renderer* pRenderer, const BufferDesc* pDesc, Buffer** ppBuffer)
 
 	CHECK_HRESULT_DEVICE(pRenderer->pDxDevice, pRenderer->pDxDevice->CreateBuffer(&desc, NULL, &pBuffer->pDxResource));
 
-	pBuffer->mCurrentState = pDesc->mStartState;
-
 	if ((pDesc->mDescriptors & DESCRIPTOR_TYPE_BUFFER) &&
 		!(pDesc->mFlags & BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION))
 	{
@@ -2349,8 +2350,6 @@ void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** ppTextu
 		default:
 			break;
 		}
-
-		pTexture->mCurrentState = pDesc->mStartState;
 	}
 	else
 	{

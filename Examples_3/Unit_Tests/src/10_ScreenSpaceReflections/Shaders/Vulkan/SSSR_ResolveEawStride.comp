@@ -1,0 +1,76 @@
+#version 450
+#extension GL_EXT_samplerless_texture_functions : require
+#extension GL_GOOGLE_include_directive : enable
+
+#include "SSSR_Common.h"
+
+layout(set = 0, binding = 1, rgba16f) uniform readonly image2D g_temporally_denoised_reflections;
+layout(set = 0, binding = 2) uniform texture2D g_roughness;
+layout(set = 0, binding = 3, rgba16f) uniform writeonly image2D g_denoised_reflections;
+layout(set = 0, binding = 4) buffer g_tile_list
+{
+    uint g_tile_list_Data[];
+};
+layout(set = 0, binding = 5) uniform texture2D g_normal;
+layout(set = 0, binding = 6) uniform texture2D g_depth_buffer;
+layout(set = 0, binding = 7) uniform sampler g_linear_sampler;
+
+mediump vec3 LoadRadiance(ivec2 idx)
+{
+    return imageLoad(g_temporally_denoised_reflections, idx).xyz;
+}
+
+mediump float LoadRoughnessValue(ivec2 idx)
+{
+    return FfxSssrUnpackRoughness(texelFetch(g_roughness, idx, 0));
+}
+
+mediump float GetRoughnessRadiusWeight(mediump float roughness_p, mediump float roughness_q, mediump float dist)
+{
+    return 1.0 - smoothstep(10.0 * roughness_p, 500.0 * roughness_p, dist);
+}
+
+mediump vec4 ResolveScreenspaceReflections(ivec2 did, mediump float center_roughness)
+{
+    mediump vec3 sum = vec3(0.0);
+    mediump float total_weight = 0.0;
+
+    for (int dy = -2; dy <= 2; dy++)
+    {
+        for (int dx = -2; dx <= 2; dx++)
+        {
+            ivec2 texel_coords = did + (ivec2(FFX_SSSR_EAW_STRIDE) * ivec2(dx, dy));
+
+            mediump vec3 radiance = LoadRadiance(texel_coords);
+            mediump float roughness = LoadRoughnessValue(texel_coords);
+
+            mediump float weight = GetEdgeStoppingRoughnessWeightFP16(center_roughness, roughness, 0.001, 0.01)
+                * GetRoughnessRadiusWeight(center_roughness, roughness, length(vec2(texel_coords - did)));
+            sum += radiance * weight;
+            total_weight += weight;
+        }
+    }
+    sum /= max(total_weight, 0.0001);
+    return vec4(sum, 1.0);
+}
+
+void Resolve(ivec2 did)
+{
+    mediump vec3 center_radiance = LoadRadiance(did);
+    mediump float center_roughness = LoadRoughnessValue(did);
+    if (!IsGlossy(center_roughness) || IsMirrorReflection(center_roughness))
+    {
+        return;
+    }
+    imageStore(g_denoised_reflections, did, ResolveScreenspaceReflections(did, center_roughness));
+}
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+void main()
+{
+    uvec2 group_thread_id = uvec2(gl_LocalInvocationID.xy);
+    uint packed_base_coords = g_tile_list_Data[gl_WorkGroupID.x];
+    uvec2 base_coords = Unpack(packed_base_coords);
+    uvec2 coords = base_coords + group_thread_id;
+    Resolve(ivec2(coords));
+}

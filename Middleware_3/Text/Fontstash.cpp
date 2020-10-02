@@ -516,7 +516,7 @@ void _Impl_FontStash::fonsImplementationRenderText(
 	endUpdateResource(&update, NULL);
 
 	// extract color
-	ubyte* colorByte = (ubyte*)colors;
+	uint8_t* colorByte = (uint8_t*)colors;
 	float4 color;
 	for (int i = 0; i < 4; i++)
 		color[i] = ((float)colorByte[i]) / 255.0f;

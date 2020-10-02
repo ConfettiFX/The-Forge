@@ -270,18 +270,23 @@ void d3d12_createShaderReflection(ID3D12ShaderReflection* d3d12reflection, Shade
 			d3d12reflection->GetInputParameterDesc(i, &paramDesc);
 
 			//Get the length of the semantic name
-			eastl::string inputNameWithIndex = paramDesc.SemanticName;
-			bool hasParamIndex = paramDesc.SemanticIndex > 0 || inputNameWithIndex == "TEXCOORD";
-			inputNameWithIndex += hasParamIndex ? eastl::to_string(paramDesc.SemanticIndex) : "";
+			bool hasParamIndex = paramDesc.SemanticIndex > 0 || !strcmp(paramDesc.SemanticName, "TEXCOORD");
 			uint32_t len = (uint32_t)strlen(paramDesc.SemanticName) + (hasParamIndex ? 1 : 0);
+
+			if (hasParamIndex)
+			{
+				sprintf(pCurrentName, "%s%u", paramDesc.SemanticName, paramDesc.SemanticIndex);
+			}
+			else
+			{
+				sprintf(pCurrentName, "%s", paramDesc.SemanticName);
+			}
 
 			reflection.pVertexInputs[i].name = pCurrentName;
 			reflection.pVertexInputs[i].name_size = len;
 			reflection.pVertexInputs[i].size = (uint32_t)log2(paramDesc.Mask + 1) * sizeof(uint8_t[4]);
 
 			//Copy over the name into the name pool
-			memcpy(pCurrentName, inputNameWithIndex.c_str(), len);
-			pCurrentName[len] = '\0';    //add a null terminator
 			pCurrentName += len + 1;     //move the name pointer through the name pool
 		}
 	}

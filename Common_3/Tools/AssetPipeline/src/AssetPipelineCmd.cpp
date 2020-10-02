@@ -26,7 +26,6 @@ void PrintHelp()
 }
 
 ResourceDirectory RD_APPLICATION = RD_MIDDLEWARE_0;
-extern char gResourceMounts[RM_COUNT][FS_MAX_PATH];
 
 int AssetPipelineCmd(int argc, char** argv)
 {
@@ -53,8 +52,6 @@ int AssetPipelineCmd(int argc, char** argv)
 		return 1;
 	}
 
-	strcpy(gResourceMounts[RM_CONTENT], argv[2]);
-	strcpy(gResourceMounts[RM_SAVE_0], argv[3]);
 	fsSetPathForResourceDir(pSystemFileIO, RM_CONTENT, RD_INPUT, "");
 	fsSetPathForResourceDir(pSystemFileIO, RM_SAVE_0, RD_OUTPUT, "");
 
@@ -131,6 +128,12 @@ int main(int argc, char** argv)
 
 	FileSystemInitDesc fsDesc = {};
 	fsDesc.pAppName = gApplicationName;
+
+	if (argc >= 4)
+	{
+		fsDesc.pResourceMounts[RM_CONTENT] = argv[2];
+		fsDesc.pResourceMounts[RM_SAVE_0] = argv[3];
+	}
 
 	if (!initFileSystem(&fsDesc))
 		return EXIT_FAILURE;
