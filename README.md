@@ -685,11 +685,11 @@ Based on request we are providing a Ray Tracing Benchmark in 16_RayTracing. It a
 
 Windows DirectX 12 DXR, GeForce RTX 2070 Super, 3840x1600, NVIDIA Driver 441.99
 
-![Windows DXR output of Ray Tracing Benchmark](Screenshots/16_Path_Tracer_Profile_DX.png) 
+![Windows DXR output of Ray Tracing Benchmark](Screenshots/16_Path_Tracer_Profile_DX.PNG) 
 
 Windows Vulkan RTX, GeForce RTX 2070 Super, 3840x1600, NVIDIA Driver 441.99
 
-![Windows RTX output of Ray Tracing Benchmark](Screenshots/16_Path_Tracer_Profile.png) 
+![Windows RTX output of Ray Tracing Benchmark](Screenshots/16_Path_Tracer_Profile.PNG) 
 
 
 ## Microprofiler
