@@ -37,7 +37,7 @@ typedef struct ResourceDirectoryInfo
 } ResourceDirectoryInfo;
 
 static ResourceDirectoryInfo gResourceDirectories[RD_COUNT] = {};
-extern char                  gResourceMounts[RM_COUNT][FS_MAX_PATH];
+
 /************************************************************************/
 // Memory Stream Functions
 /************************************************************************/
@@ -247,10 +247,6 @@ bool FileStreamIsAtEnd(const FileStream* pFile)
 	return feof(pFile->pFile) != 0;
 }
 
-const char* FileStreamGetResourceMount(ResourceMount mount)
-{
-	return gResourceMounts[mount];
-}
 /************************************************************************/
 // File IO
 /************************************************************************/
@@ -277,8 +273,7 @@ static IFileSystem gSystemFileIO =
 	FileStreamGetSeekPosition,
 	FileStreamGetSize,
 	FileStreamFlush,
-	FileStreamIsAtEnd,
-	FileStreamGetResourceMount
+	FileStreamIsAtEnd
 };
 
 IFileSystem* pSystemFileIO = &gSystemFileIO;
@@ -381,6 +376,7 @@ void fsAppendPathComponent(const char* basePath, const char* pathComponent, char
 
 	strncpy(output, basePath, baseLength);
 	size_t newPathLength = baseLength;
+	output[baseLength] = '\0';
 
 	if (componentLength == 0)
 	{
@@ -396,7 +392,7 @@ void fsAppendPathComponent(const char* basePath, const char* pathComponent, char
 		// Append a trailing slash to the directory.
 		strncat(output, &directorySeparator, 1);
 		newPathLength += 1;
-		output[newPathLength] = 0;
+		output[newPathLength] = '\0';
 	}
 
 	// ./ or .\ means current directory
@@ -410,7 +406,7 @@ void fsAppendPathComponent(const char* basePath, const char* pathComponent, char
 			// We've encountered a new directory.
 			strncat(output, &directorySeparator, 1);
 			newPathLength += 1;
-			output[newPathLength] = 0;
+			output[newPathLength] = '\0';
 			continue;
 		}
 		else if (pathComponent[i] == '.')
@@ -438,7 +434,7 @@ void fsAppendPathComponent(const char* basePath, const char* pathComponent, char
 					}
 
 					// Backtrack until we come to the next directory separator
-					for (; newPathLength >= 0; newPathLength -= 1)
+					for (; newPathLength > 0; newPathLength -= 1)
 					{
 						if (output[newPathLength - 1] == directorySeparator)
 						{
@@ -454,7 +450,7 @@ void fsAppendPathComponent(const char* basePath, const char* pathComponent, char
 
 		output[newPathLength] = pathComponent[i];
 		newPathLength += 1;
-		output[newPathLength] = 0;
+		output[newPathLength] = '\0';
 	}
 
 	if (output[newPathLength - 1] == directorySeparator)
@@ -613,6 +609,12 @@ void fsGetPathExtension(const char* path, char* output)
 	}
 	dotLocation += 1;
 	const size_t extensionLength = strlen(dotLocation);
+	const char directorySeparator = fsGetDirectorySeparator();
+	const char forwardSlash = '/';    // Forward slash is accepted on all platforms as a path component.
+	if (extensionLength == 0 || dotLocation[0] == forwardSlash || dotLocation[0] == directorySeparator) // Make sure it is not "../"
+	{
+		return;
+	}
 	strncpy(output, dotLocation, extensionLength);
 	output[extensionLength] = '\0';
 }
@@ -643,8 +645,11 @@ void fsSetPathForResourceDir(IFileSystem* pIO, ResourceMount mount, ResourceDire
 	ASSERT(pIO);
 	ResourceDirectoryInfo* dir = &gResourceDirectories[resourceDir];
 
-	LOGF_IF(LogLevel::eERROR, strlen(dir->mPath) != 0, "Resource directory already set on:'%s'", gResourceDirectories[resourceDir]);
-	ASSERT(strlen(dir->mPath) == 0);
+	if (strlen(dir->mPath) != 0)
+	{
+		LOGF(LogLevel::eWARNING, "Resource directory {%d} already set on:'%s'", resourceDir, dir->mPath);
+		return;
+	}
 
 	if (RM_CONTENT == mount)
 	{

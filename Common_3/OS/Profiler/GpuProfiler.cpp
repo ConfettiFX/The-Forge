@@ -247,9 +247,9 @@ ProfileToken cmdBeginGpuTimestampQuery(Cmd* pCmd, struct GpuProfiler* pGpuProfil
         node->mEndGpuTime = 0;
         node->mToken = getProfileToken(pGpuProfiler->mProfilerIndex, pGpuProfiler->mCurrentPoolIndex);
         memset(node->mGpuHistory, 0, sizeof(node->mGpuHistory));
-        uint32 scope_color = static_cast<uint32>(color.getX() * 255) << 16
-            | static_cast<uint32>(color.getY() * 255) << 8
-            | static_cast<uint32>(color.getZ() * 255);
+        uint32_t scope_color = static_cast<uint32_t>(color.getX() * 255) << 16
+            | static_cast<uint32_t>(color.getY() * 255) << 8
+            | static_cast<uint32_t>(color.getZ() * 255);
 
         node->mMicroProfileToken = ProfileGetToken(pGpuProfiler->mGroupName, pName, scope_color, ProfileTokenTypeGpu);
 

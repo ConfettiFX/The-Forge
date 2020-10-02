@@ -1,0 +1,223 @@
+#version 450
+#extension GL_EXT_samplerless_texture_functions : require
+#extension GL_KHR_shader_subgroup_basic : require
+#extension GL_KHR_shader_subgroup_shuffle : require
+#extension GL_GOOGLE_include_directive : enable
+
+#include "SSSR_Common.h"
+
+const ivec2 reuse_offsets[15] = ivec2[](
+    ivec2(0, 1),
+    ivec2(-2, 1),
+    ivec2(2, -3),
+    ivec2(-3, 0),
+    ivec2(1, 2),
+    ivec2(-1, -2),
+    ivec2(3, 0),
+    ivec2(-3, 3),
+    ivec2(0, -3),
+    ivec2(-1, -1),
+    ivec2(2, 1),
+    ivec2(-2, -2),
+    ivec2(1, 0),
+    ivec2(0, 2),
+    ivec2(3, -1));
+
+layout(set = 0, binding = 1, r16f) uniform image2D g_ray_lengths;
+layout(set = 0, binding = 2, rgba16f) uniform readonly image2D g_intersection_result;
+layout(set = 0, binding = 3) uniform texture2D g_normal;
+layout(set = 0, binding = 4) uniform texture2D g_depth_buffer;
+layout(set = 0, binding = 5, r16f) uniform readonly image2D g_has_ray;
+layout(set = 0, binding = 6) uniform texture2D g_roughness;
+layout(set = 0, binding = 7, rgba16f) uniform writeonly image2D g_spatially_denoised_reflections;
+layout(set = 0, binding = 8) buffer g_tile_list
+{
+    uint g_tile_list_Data[];
+};
+
+shared uint g_shared_0[17][17];
+shared uint g_shared_1[17][17];
+shared uint g_shared_2[17][17];
+shared uint g_shared_3[17][17];
+shared float g_shared_depth[17][17];
+
+mediump vec4 LoadRadianceFromGroupSharedMemory(ivec2 idx)
+{
+    uvec2 tmp;
+    tmp.x = g_shared_0[idx.x][idx.y];
+    tmp.y = g_shared_1[idx.x][idx.y];
+    return vec4(UnpackFloat16(tmp.x), UnpackFloat16(tmp.y));
+}
+
+mediump vec3 LoadNormalFromGroupSharedMemory(ivec2 idx)
+{
+    uvec2 tmp;
+    tmp.x = g_shared_2[idx.x][idx.y];
+    tmp.y = g_shared_3[idx.x][idx.y];
+    return vec4(UnpackFloat16(tmp.x), UnpackFloat16(tmp.y)).xyz;
+}
+
+float LoadDepthFromGroupSharedMemory(ivec2 idx)
+{
+    return g_shared_depth[idx.x][idx.y];
+}
+
+void StoreInGroupSharedMemory(ivec2 idx, mediump vec4 radiance, mediump vec3 normal, float depth)
+{
+    g_shared_0[idx.x][idx.y] = PackFloat16(radiance.xy);
+    g_shared_1[idx.x][idx.y] = PackFloat16(radiance.zw);
+    g_shared_2[idx.x][idx.y] = PackFloat16(normal.xy);
+    g_shared_3[idx.x][idx.y] = PackFloat16(vec2(normal.z, 0.0));
+    g_shared_depth[idx.x][idx.y] = depth;
+}
+
+mediump float LoadRayLengthFP16(ivec2 idx)
+{
+    return imageLoad(g_ray_lengths, idx).x;
+}
+
+mediump vec3 LoadRadianceFP16(ivec2 idx)
+{
+    return imageLoad(g_intersection_result, idx).xyz;
+}
+
+mediump vec3 LoadNormalFP16(ivec2 idx)
+{
+    return FfxSssrUnpackNormals(texelFetch(g_normal, idx, 0));
+}
+
+float LoadDepth(ivec2 idx)
+{
+    return FfxSssrUnpackDepth(texelFetch(g_depth_buffer, idx, 0).x);
+}
+
+bool LoadHasRay(ivec2 idx)
+{
+    return imageLoad(g_has_ray, idx).x != 0.0;
+}
+
+void LoadWithOffset(ivec2 did, ivec2 offset, out mediump float ray_length, out mediump vec3 radiance, out mediump vec3 normal, out float depth, out bool has_ray)
+{
+    did += offset;
+    ray_length = LoadRayLengthFP16(did);
+    radiance = LoadRadianceFP16(did);
+    normal = LoadNormalFP16(did);
+    depth = LoadDepth(did);
+    has_ray = LoadHasRay(did);
+}
+
+void StoreWithOffset(ivec2 gtid, ivec2 offset, mediump float ray_length, mediump vec3 radiance, mediump vec3 normal, float depth)
+{
+    gtid += offset;
+    StoreInGroupSharedMemory(gtid, vec4(radiance, ray_length), normal, depth);
+}
+
+void InitializeGroupSharedMemory(ivec2 did, ivec2 gtid)
+{
+    uint samples_per_quad = g_samples_per_quad;
+
+    ivec2 offset_0 = ivec2(0);
+    ivec2 offset_1 = ivec2(8, 0);
+    ivec2 offset_2 = ivec2(0, 8);
+    ivec2 offset_3 = ivec2(8);
+
+    mediump float ray_length_0;
+    mediump vec3 radiance_0;
+    mediump vec3 normal_0;
+    float depth_0;
+    bool has_ray_0;
+
+    mediump float ray_length_1;
+    mediump vec3 radiance_1;
+    mediump vec3 normal_1;
+    float depth_1;
+    bool has_ray_1;
+
+    mediump float ray_length_2;
+    mediump vec3 radiance_2;
+    mediump vec3 normal_2;
+    float depth_2;
+    bool has_ray_2;
+
+    mediump float ray_length_3;
+    mediump vec3 radiance_3;
+    mediump vec3 normal_3;
+    float depth_3;
+    bool has_ray_3;
+
+    did -= 4;
+    LoadWithOffset(did, offset_0, ray_length_0, radiance_0, normal_0, depth_0, has_ray_0);
+    LoadWithOffset(did, offset_1, ray_length_1, radiance_1, normal_1, depth_1, has_ray_1);
+    LoadWithOffset(did, offset_2, ray_length_2, radiance_2, normal_2, depth_2, has_ray_2);
+    LoadWithOffset(did, offset_3, ray_length_3, radiance_3, normal_3, depth_3, has_ray_3);
+
+    uint base_lane_index = GetBaseLane(gl_SubgroupInvocationID, samples_per_quad);
+    bool is_base_ray = base_lane_index == gl_SubgroupInvocationID;
+    uint lane_index_0 = (has_ray_0 || is_base_ray) ? gl_SubgroupInvocationID : base_lane_index;
+    uint lane_index_1 = (has_ray_1 || is_base_ray) ? gl_SubgroupInvocationID : base_lane_index;
+    uint lane_index_2 = (has_ray_2 || is_base_ray) ? gl_SubgroupInvocationID : base_lane_index;
+    uint lane_index_3 = (has_ray_3 || is_base_ray) ? gl_SubgroupInvocationID : base_lane_index;
+
+    radiance_0 = subgroupShuffle(radiance_0, lane_index_0);
+    radiance_1 = subgroupShuffle(radiance_1, lane_index_1);
+    radiance_2 = subgroupShuffle(radiance_2, lane_index_2);
+    radiance_3 = subgroupShuffle(radiance_3, lane_index_3);
+
+    ray_length_0 = subgroupShuffle(ray_length_0, lane_index_0);
+    ray_length_1 = subgroupShuffle(ray_length_1, lane_index_1);
+    ray_length_2 = subgroupShuffle(ray_length_2, lane_index_2);
+    ray_length_3 = subgroupShuffle(ray_length_3, lane_index_3);
+
+    StoreWithOffset(gtid, offset_0, ray_length_0, radiance_0, normal_0, depth_0);
+    StoreWithOffset(gtid, offset_1, ray_length_1, radiance_1, normal_1, depth_1);
+    StoreWithOffset(gtid, offset_2, ray_length_2, radiance_2, normal_2, depth_2);
+    StoreWithOffset(gtid, offset_3, ray_length_3, radiance_3, normal_3, depth_3);
+}
+
+mediump vec3 ResolveScreenspaceReflections(ivec2 gtid, mediump vec3 center_radiance, mediump vec3 center_normal, float center_depth)
+{
+    mediump vec3 accumulated_radiance = center_radiance;
+    float accumulated_weight = 1.0;
+
+    for (int i = 0; i < 15; i++)
+    {
+        ivec2 new_idx = gtid + reuse_offsets[i];
+        mediump vec3 normal = LoadNormalFromGroupSharedMemory(new_idx);
+        float depth = LoadDepthFromGroupSharedMemory(new_idx);
+        mediump vec4 radiance = LoadRadianceFromGroupSharedMemory(new_idx);
+        float weight = 1.0 * GetEdgeStoppingNormalWeight(center_normal, normal, 64.0) * Gaussian(center_depth, depth, 0.02);
+
+        accumulated_weight += weight;
+        accumulated_radiance += radiance.xyz * weight;
+    }
+    accumulated_radiance /= max(accumulated_weight, 0.00001);
+    return accumulated_radiance;
+}
+
+void Resolve(ivec2 did, ivec2 gtid)
+{
+    float center_roughness = LoadRoughness(did, g_roughness);
+    InitializeGroupSharedMemory(did, gtid);
+    barrier();
+
+    if (!IsGlossy(center_roughness) || IsMirrorReflection(center_roughness))
+    {
+        return;
+    }
+
+    gtid += ivec2(4);
+    mediump vec4 center_radiance = LoadRadianceFromGroupSharedMemory(gtid);
+    mediump vec3 center_normal = LoadNormalFromGroupSharedMemory(gtid);
+    float center_depth = LoadDepthFromGroupSharedMemory(gtid);
+    imageStore(g_spatially_denoised_reflections, did, vec4(ResolveScreenspaceReflections(gtid, center_radiance.xyz, center_normal, center_depth), 1.0));
+    imageStore(g_ray_lengths, did, vec4(center_radiance.w));
+}
+
+layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+void main()
+{
+    uint packed_base_coords = g_tile_list_Data[gl_WorkGroupID.x];
+    ivec2 base_coords = ivec2(Unpack(packed_base_coords));
+    ivec2 group_thread_id_2d = ivec2(RemapLane8x8(gl_LocalInvocationID.x));
+    Resolve(base_coords + group_thread_id_2d, group_thread_id_2d);
+}

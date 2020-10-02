@@ -11,16 +11,6 @@
 
 #include "../../OS/Interfaces/IMemory.h"
 
-#define CHECK_VKRESULT(exp)                                                    \
-{                                                                              \
-	VkResult vkres = (exp);                                                    \
-	if (VK_SUCCESS != vkres)                                                   \
-	{                                                                          \
-		LOGF(eERROR, "%s: FAILED with VkResult: %u", #exp, (uint32_t)vkres);   \
-		ASSERT(false);                                                         \
-	}                                                                          \
-}
-
 #ifdef ENABLE_RAYTRACING
 
 extern VkAllocationCallbacks gVkAllocationCallbacks;
@@ -397,6 +387,7 @@ void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructu
 	scratchBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
 	scratchBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 	scratchBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
+	scratchBufferDesc.mDesc.mStartState = RESOURCE_STATE_COMMON;
 	scratchBufferDesc.mDesc.mSize = pAccelerationStructure->mScratchBufferSize;
 	scratchBufferDesc.ppBuffer = &pAccelerationStructure->pScratchBuffer;
 	addResource(&scratchBufferDesc, NULL);

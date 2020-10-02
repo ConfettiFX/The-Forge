@@ -82,6 +82,10 @@ static int          gXRandrMajor;
 static int          gXRandrMinor;
 static DeviceMode*  gDirtyModes;
 static uint32_t     gDirtyModeCount;
+static bool 		gCursorInsideRectangle = false;
+static Cursor      	gInvisibleCursor = {};
+static Cursor      	gCursor = {};
+
 
 void adjustWindow(WindowsDesc* winDesc);
 
@@ -239,11 +243,22 @@ static void collectMonitorInfo()
         int width = WidthOfScreen(screen);
         int height = HeightOfScreen(screen);
 
+        int physWidth = XWidthMMOfScreen(screen);
+        int physHeight = XHeightMMOfScreen(screen);
+
         ASSERT(width >= 0 && height >= 0);
+        ASSERT(physWidth >= 0 && physHeight >= 0);
 
         gMonitors[i].screen = screen;
+        gMonitors[i].physicalSize = { (uint32_t)physWidth, (uint32_t)physHeight };
         gMonitors[i].monitorRect = { 0, 0, width, height };
         gMonitors[i].workRect = { 0, 0, width, height };
+
+        float vdpi = width * 25.4 / physWidth;
+        float hdpi = height * 25.4 / physHeight;
+
+        gMonitors[i].dpi.x = (int)(vdpi + 0.5);
+        gMonitors[i].dpi.y = (int)(hdpi + 0.5);
 
         // TODO: Is it possible to get the names in X11?
         sprintf(gMonitors[i].adapterName, "Screen %u", (unsigned)i);
@@ -297,7 +312,17 @@ static void collectMonitorInfo()
             gMonitors[i].resolutionCount = 1;
             gMonitors[i].resolutions = (Resolution*)tf_calloc(1, sizeof(Resolution));
             gMonitors[i].resolutions[0] = { (uint32_t)width, (uint32_t)height };
-            gMonitors[i].defaultResolution = gMonitors[i].resolutions[0];
+        }
+
+        for (uint32_t j = 0; j < gMonitors[i].resolutionCount; ++i)
+        {
+            Resolution res = gMonitors[i].resolutions[j];
+
+            if (res.mWidth == width && res.mHeight == height)
+            {
+                gMonitors[i].defaultResolution = res;
+                break;
+            }
         }
     }
 }
@@ -412,10 +437,16 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 			ButtonPressMask |            //Mouse click
 			ButtonReleaseMask |          //Mouse release
 			StructureNotifyMask |        //Resize
-			PointerMotionMask            //Mouse movement
+			PointerMotionMask   |        //Mouse movement
+			LeaveWindowMask		|		 //Mouse leave window
+			EnterWindowMask				 //Mouse enter window
 	);
 	XMapWindow(winDesc->handle.display, winDesc->handle.window);
 	XFlush(winDesc->handle.display);
+	if(winDesc->centered)
+	{
+		centerWindow(winDesc);
+	}
 	winDesc->handle.xlib_wm_delete_window = XInternAtom(winDesc->handle.display, "WM_DELETE_WINDOW", False);
 	XSetWMProtocols(winDesc->handle.display, winDesc->handle.window, &winDesc->handle.xlib_wm_delete_window, 1);
 	
@@ -429,6 +460,17 @@ void openWindow(const char* app_name, WindowsDesc* winDesc)
 
 	double baseDpi = 96.0;
 	gRetinaScale = (float)(PlatformGetMonitorDPI(winDesc->handle.display) / baseDpi);
+	
+	// Create invisible cursor that will be used when mouse is hidden
+	Pixmap      bitmapEmpty = {};
+	XColor      emptyColor = {};
+	static char emptyData[] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+	emptyColor.red = emptyColor.green = emptyColor.blue = 0;
+	bitmapEmpty = XCreateBitmapFromData(winDesc->handle.display, winDesc->handle.window, emptyData, 8, 8);
+	gInvisibleCursor = XCreatePixmapCursor(winDesc->handle.display, bitmapEmpty, bitmapEmpty, &emptyColor, &emptyColor, 0, 0);
+	
+	gCursor = XCreateFontCursor(winDesc->handle.display, 68);
+	setCursor(&gCursor);
 }
 
 void setWindowRect(WindowsDesc* winDesc, const RectDesc& rect)
@@ -486,13 +528,13 @@ void toggleBorderless(WindowsDesc* winDesc, unsigned width, unsigned height)
 
 void showWindow(WindowsDesc* winDesc)
 {
-    winDesc->hide = true;
+    winDesc->hide = false;
 	XMapWindow(winDesc->handle.display, winDesc->handle.window);
 }
 
 void hideWindow(WindowsDesc* winDesc)
 {
-    winDesc->hide = false;
+    winDesc->hide = true;
     XUnmapWindow(winDesc->handle.display, winDesc->handle.window);
 }
 
@@ -518,28 +560,83 @@ void maximizeWindow(WindowsDesc* winDesc)
 
 void minimizeWindow(WindowsDesc* winDesc)
 {
-    Atom wmState = XInternAtom(gWindow.handle.display, "_NET_WM_STATE", False);
-    Atom maxHorz = XInternAtom(gWindow.handle.display, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
-    Atom maxVert = XInternAtom(gWindow.handle.display, "_NET_WM_STATE_MAXIMIZED_VERT", False);
+    Atom wmState = XInternAtom(winDesc->handle.display, "_NET_WM_STATE", False);
+    Atom maxHorz = XInternAtom(winDesc->handle.display, "_NET_WM_STATE_MAXIMIZED_HORZ", False);
+    Atom maxVert = XInternAtom(winDesc->handle.display, "_NET_WM_STATE_MAXIMIZED_VERT", False);
 
     XEvent xev = {};
     xev.type = ClientMessage;
-    xev.xclient.window = gWindow.handle.window;
+    xev.xclient.window = winDesc->handle.window;
     xev.xclient.message_type = wmState;
     xev.xclient.format = 32;
     xev.xclient.data.l[0] = _NET_WM_STATE_REMOVE;
     xev.xclient.data.l[1] = maxHorz;
     xev.xclient.data.l[2] = maxVert;
 
-    XSendEvent(gWindow.handle.display, DefaultRootWindow(gWindow.handle.display), False, SubstructureNotifyMask, &xev);
+    XSendEvent(winDesc->handle.display, DefaultRootWindow(winDesc->handle.display), False, SubstructureNotifyMask, &xev);
 
     winDesc->maximized = false;
+}
+
+void centerWindow(WindowsDesc* winDesc)
+{
+	uint32_t fsHalfWidth = getRectWidth(winDesc->fullscreenRect) >> 1;
+	uint32_t fsHalfHeight = getRectHeight(winDesc->fullscreenRect) >> 1;
+	uint32_t windowHalfWidth = getRectWidth(winDesc->windowedRect) >> 1;
+	uint32_t windowHalfHeight = getRectHeight(winDesc->windowedRect) >> 1;
+	uint32_t X = fsHalfWidth - windowHalfWidth;
+	uint32_t Y = fsHalfHeight - windowHalfHeight;
+	
+	XMoveWindow(winDesc->handle.display, winDesc->handle.window, X, Y);
+	XFlush(winDesc->handle.display);
+}
+
+void* createCursor(const char* path)
+{
+	Pixmap      bitmap = {};
+	unsigned int bitmap_width, bitmap_height;
+	int hotspot_x, hotspot_y;
+	XColor foregroundColor = {};
+	foregroundColor.red = foregroundColor.green = foregroundColor.blue = 65535;
+	XColor backgroundColor = {};
+	backgroundColor.red = backgroundColor.green = backgroundColor.blue = 0;
+	XReadBitmapFile(gWindow.handle.display, gWindow.handle.window, path, &bitmap_width, &bitmap_height, &bitmap, &hotspot_x, &hotspot_y);
+	Cursor* cursor = (Cursor*)tf_malloc(sizeof(Cursor));
+	*cursor = XCreatePixmapCursor(gWindow.handle.display, bitmap, bitmap, &backgroundColor, &foregroundColor, hotspot_x, hotspot_y);
+	return cursor;
+}
+
+void setCursor(void* cursor)
+{
+	Cursor* linuxCursor = (Cursor*)cursor;
+	XDefineCursor(gWindow.handle.display, gWindow.handle.window, *linuxCursor);
+}
+
+void showCursor()
+{
+	XUndefineCursor(gWindow.handle.display, gWindow.handle.window);
+	XDefineCursor(gWindow.handle.display, gWindow.handle.window, gCursor);
+}
+
+void hideCursor()
+{
+	XDefineCursor(gWindow.handle.display, gWindow.handle.window, gInvisibleCursor);
+}
+
+bool isCursorInsideTrackingArea()
+{
+	return gCursorInsideRectangle;
 }
 
 void setMousePositionRelative(const WindowsDesc* winDesc, int32_t x, int32_t y)
 {
     XWarpPointer(winDesc->handle.display, winDesc->handle.window, None, 0, 0, 0, 0, x, y);
     XFlush(winDesc->handle.display);
+}
+
+void setMousePositionAbsolute(int32_t x, int32_t y)
+{
+	// TODO
 }
 
 void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes)
@@ -602,10 +699,32 @@ void setResolution(const MonitorDesc* pMonitor, const Resolution* pRes)
     XRRFreeScreenResources(screenRes);
 }
 
+bool getResolutionSupport(const MonitorDesc* pMonitor, const Resolution* pRes)
+{
+	for (uint32_t i = 0; i < pMonitor->resolutionCount; ++i)
+	{
+		if (pMonitor->resolutions[i].mWidth == pRes->mWidth && pMonitor->resolutions[i].mHeight == pRes->mHeight)
+			return true;
+	}
+
+	return false;
+}
+
 MonitorDesc* getMonitor(uint32_t index)
 {
     ASSERT(index < gMonitorCount);
     return &gMonitors[index];
+}
+
+uint32_t getMonitorCount()
+{
+    return gMonitorCount;
+}
+
+static CustomMessageProcessor sCustomProc = nullptr;
+void setCustomMessageProcessor(CustomMessageProcessor proc)
+{
+	sCustomProc = proc;
 }
 
 bool handleMessages(WindowsDesc* winDesc)
@@ -617,8 +736,10 @@ bool handleMessages(WindowsDesc* winDesc)
 	{
 		XNextEvent(winDesc->handle.display, &event);
 		
-		if (winDesc->callbacks.onHandleMessage)
-            winDesc->callbacks.onHandleMessage(winDesc, &event);
+		if (sCustomProc != nullptr)
+		{
+			sCustomProc(winDesc, &event);
+		}
 			
 		switch (event.type)
 		{
@@ -629,6 +750,16 @@ bool handleMessages(WindowsDesc* winDesc)
                     quit = true;
                 }
 				break;
+			case LeaveNotify:
+			{
+				gCursorInsideRectangle = false;
+				break;
+			}
+			case EnterNotify:
+			{
+				gCursorInsideRectangle = true;
+				break;
+			}
 			case DestroyNotify:
 			{
 				LOGF(LogLevel::eINFO, "Destroying the window");
@@ -637,14 +768,15 @@ bool handleMessages(WindowsDesc* winDesc)
 			case ConfigureNotify:
 			{
 				// Handle Resize event
+                if (event.xconfigure.width != (int)pApp->mSettings.mWidth ||
+                    event.xconfigure.height != (int)pApp->mSettings.mHeight)
 				{
 					RectDesc rect = { 0 };
 					rect = { (int)event.xconfigure.x, (int)event.xconfigure.y, (int)event.xconfigure.width + (int)event.xconfigure.x,
 							 (int)event.xconfigure.height + (int)event.xconfigure.y };
 					winDesc->windowedRect = rect;
 
-					if (winDesc->callbacks.onResize)
-						winDesc->callbacks.onResize(winDesc, getRectWidth(rect), getRectHeight(rect));
+					onResize(winDesc, getRectWidth(rect), getRectHeight(rect));
 				}
 				break;
 			}
@@ -721,8 +853,6 @@ int LinuxMain(int argc, char** argv, IApp* app)
 		pSettings->mWidth = getRectWidth(rect);
 		pSettings->mHeight = getRectHeight(rect);
 	}
-
-	gWindow.callbacks.onResize = onResize;
 
 	gWindow.windowedRect = { 0, 0, (int)pSettings->mWidth, (int)pSettings->mHeight };
 	gWindow.fullScreen = pSettings->mFullScreen;

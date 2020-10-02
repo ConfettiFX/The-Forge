@@ -122,17 +122,22 @@ public:
 		bool		mQuit = false;
 		/// if default automated testing enabled
 		bool		mDefaultAutomatedTesting = true;
+		
+		/// if the window is positioned in the center of the screen
+		bool        mCentered = true;
+
+		/// Force lowDPI settings for this window
+		bool mForceLowDPI = false;
 
 #ifdef VK_USE_PLATFORM_ANDROID_KHR
 		bool		mDefaultVSyncEnabled = true;
-		float		mContentScaleFactor = .25f;
-#elif defined(TARGET_IOS)
-		bool		mDefaultVSyncEnabled = false;
-		float    	mContentScaleFactor = 0.f;
-		bool     	mShowStatusBar = false;
 #else
 		bool		mDefaultVSyncEnabled = false;
-		float		mContentScaleFactor = 1.f;
+#endif
+
+#if defined(TARGET_IOS)
+		bool     mShowStatusBar = false;
+		float    mContentScaleFactor = 0.f;
 #endif
 	} mSettings;
 

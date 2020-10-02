@@ -51,7 +51,7 @@ vec4 MulMat(mat4 lhs, vec4 rhs)
 
 #define NUM_SHADOW_SAMPLES 4
 
-const float NUM_SHADOW_SAMPLES_INV = 0.125;
+const float NUM_SHADOW_SAMPLES_INV = .03125;
 const float shadowSamples[NUM_SHADOW_SAMPLES * 8] =
 {
 	-0.1746646, -0.7913184,

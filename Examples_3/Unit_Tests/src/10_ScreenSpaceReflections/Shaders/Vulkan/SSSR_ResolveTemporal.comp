@@ -1,0 +1,171 @@
+#version 450
+#extension GL_EXT_samplerless_texture_functions : require
+#extension GL_GOOGLE_include_directive : enable
+
+#include "SSSR_Common.h"
+
+layout(set = 0, binding = 1) uniform texture2D g_depth_buffer;
+layout(set = 0, binding = 2, rgba16f) uniform readonly image2D g_temporally_denoised_reflections_history;
+layout(set = 0, binding = 3) uniform texture2D g_normal_history;
+layout(set = 0, binding = 4) uniform texture2D g_roughness_history;
+layout(set = 0, binding = 5) uniform texture2D g_normal;
+layout(set = 0, binding = 6, rgba16f) uniform image2D g_spatially_denoised_reflections;
+layout(set = 0, binding = 7, r16f) uniform readonly image2D g_ray_lengths;
+layout(set = 0, binding = 8) uniform texture2D g_motion_vectors;
+layout(set = 0, binding = 9) uniform texture2D g_roughness;
+layout(set = 0, binding = 10, rgba16f) uniform writeonly image2D g_temporally_denoised_reflections;
+layout(set = 0, binding = 11, r16f) uniform writeonly image2D g_temporal_variance;
+layout(set = 0, binding = 12) buffer g_tile_list
+{
+    uint g_tile_list_Data[];
+};
+
+vec3 ClipAABB(vec3 aabb_min, vec3 aabb_max, vec3 prev_sample)
+{
+    vec3 aabb_center = (aabb_max + aabb_min) * 0.5;
+    vec3 extent_clip = (aabb_max - aabb_min) * 0.5 + 0.001;
+
+    vec3 color_vector = prev_sample - aabb_center;
+
+    vec3 color_vector_clip = color_vector / extent_clip;
+
+    color_vector_clip = abs(color_vector_clip);
+    float max_abs_unit = max(max(color_vector_clip.x, color_vector_clip.y), color_vector_clip.z);
+
+    if (max_abs_unit > 1.0)
+    {
+        return aabb_center + color_vector / max_abs_unit;
+    }
+    else
+    {
+        return prev_sample;
+    }
+}
+
+vec3 EstimateStdDeviation(ivec2 did)
+{
+    vec3 color_sum = vec3(0.0);
+    vec3 color_sum_squared = vec3(0.0);
+
+    int radius = 1;
+    float weight = (radius * 2.0 + 1.0) * (radius * 2.0 + 1.0);
+
+    for (int dx = -radius; dx <= radius; dx++)
+    {
+        for (int dy = -radius; dy <= radius; dy++)
+        {
+            ivec2 texel_coords = did + ivec2(dx, dy);
+            vec3 value = imageLoad(g_spatially_denoised_reflections, texel_coords).xyz;
+            color_sum += value;
+            color_sum_squared += value * value;
+        }
+    }
+
+    vec3 color_std = (color_sum_squared - color_sum * color_sum / weight) / (weight - 1.0);
+    return sqrt(max(color_std, vec3(0.0)));
+}
+
+vec2 GetSurfaceReprojection(ivec2 did, vec2 uv, vec2 motion_vector)
+{
+    vec2 history_uv = uv - motion_vector;
+    return history_uv;
+}
+
+vec2 GetHitPositionReprojection(ivec2 did, vec2 uv, float reflected_ray_length)
+{
+    float z = FfxSssrUnpackDepth(texelFetch(g_depth_buffer, did, 0).x);
+    vec3 view_space_ray = CreateViewSpaceRay(vec3(uv, z)).direction;
+
+    float surface_depth = length(view_space_ray);
+    float ray_length = surface_depth + reflected_ray_length;
+
+    view_space_ray /= vec3(surface_depth);
+    view_space_ray *= ray_length;
+    vec3 world_hit_position = (g_inv_view * vec4(view_space_ray, 1.0)).xyz;
+    vec3 prev_hit_position = ProjectPosition(world_hit_position, g_prev_view_proj);
+    vec2 history_uv = prev_hit_position.xy;
+    return history_uv;
+}
+
+float SampleHistory(vec2 uv, uvec2 image_size, vec3 normal, float roughness, vec3 radiance_min, vec3 radiance_max, out vec3 radiance)
+{
+    ivec2 texel_coords = ivec2(image_size * uv);
+    radiance = imageLoad(g_temporally_denoised_reflections_history,texel_coords).xyz;
+    radiance = ClipAABB(radiance_min, radiance_max, radiance);
+
+    vec3 history_normal = LoadNormal(texel_coords, g_normal_history);
+    float history_roughness = LoadRoughness(texel_coords, g_roughness_history);
+
+    float main_accumulation_factor = 0.90 + 0.1 * g_temporal_stability_factor;
+    float accumulation_speed = main_accumulation_factor
+        * GetEdgeStoppingNormalWeight(normal, history_normal, 8.0)
+        * GetEdgeStoppingRoughnessWeight(roughness, history_roughness, 0.001, 0.01)
+        * GetRoughnessAccumulationWeight(roughness);
+
+    return clamp(accumulation_speed, 0.0, 1.0);
+}
+
+float ComputeTemporalVariance(vec3 history_radiance, vec3 radiance)
+{
+    float history_luminance = Luminance(history_radiance);
+    float luminance = Luminance(radiance);
+    return abs(history_luminance - luminance) / max(max(history_luminance, luminance), 0.00001);
+}
+
+vec4 ResolveScreenspaceReflections(ivec2 did, vec2 uv, uvec2 image_size, float roughness)
+{
+    vec3 normal = LoadNormal(did, g_normal);
+    vec3 radiance = imageLoad(g_spatially_denoised_reflections, did).xyz;
+    vec3 radiance_history = imageLoad(g_temporally_denoised_reflections_history, did).xyz;
+    float ray_length = imageLoad(g_ray_lengths, did).x;
+
+    vec2 motion_vector = FfxSssrUnpackMotionVectors(texelFetch(g_motion_vectors, did, 0).xy);
+    vec3 color_std = EstimateStdDeviation(did);
+    color_std *= (dot(motion_vector, motion_vector) == 0.0) ? 8.0 : 2.2;
+
+    vec3 radiance_min = radiance - color_std;
+    vec3 radiance_max = radiance + color_std;
+
+    vec2 surface_reprojection_uv = GetSurfaceReprojection(did, uv, motion_vector);
+
+    vec2 hit_reprojection_uv = GetHitPositionReprojection(did, uv, ray_length);
+
+    vec2 reprojection_uv = (roughness < 0.05) ? hit_reprojection_uv : surface_reprojection_uv;
+
+    vec3 reprojection = vec3(0.0);
+    float weight = 0.0;
+    if (all(greaterThan(reprojection_uv, vec2(0.0))) && all(lessThan(reprojection_uv, vec2(1.0))))
+    {
+        weight = SampleHistory(reprojection_uv, image_size, normal, roughness, radiance_min, radiance_max, reprojection);
+    }
+
+    radiance = mix(radiance, reprojection, vec3(weight));
+    float temporal_variance = ComputeTemporalVariance(radiance_history, radiance) > FFX_SSSR_TEMPORAL_VARIANCE_THRESHOLD ? 1 : 0;
+    return vec4(radiance, temporal_variance);
+}
+
+void Resolve(ivec2 did)
+{
+    float roughness = LoadRoughness(did, g_roughness);
+    if (!IsGlossy(roughness) || IsMirrorReflection(roughness))
+    {
+        return;
+    }
+
+    uvec2 image_size = imageSize(g_temporally_denoised_reflections);
+    vec2 uv = vec2(did.x + 0.5, did.y + 0.5) / image_size;
+
+    vec4 resolve = ResolveScreenspaceReflections(did, uv, image_size, roughness);
+    imageStore(g_temporally_denoised_reflections, did, vec4(resolve.xyz, 1.0));
+    imageStore(g_temporal_variance, did, vec4(resolve.w));
+}
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+void main()
+{
+    uvec2 group_thread_id = gl_LocalInvocationID.xy;
+    uint packed_base_coords = g_tile_list_Data[gl_WorkGroupID.x];
+    uvec2 base_coords = Unpack(packed_base_coords);
+    uvec2 coords = base_coords + group_thread_id;
+    Resolve(ivec2(coords));
+}

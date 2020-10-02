@@ -30,41 +30,56 @@
 
 #include "../Interfaces/IMemory.h"
 
-char gResourceMounts[RM_COUNT][FS_MAX_PATH] = {};
-		
+static bool gInitialized = false;
+static const char* gResourceMounts[RM_COUNT];
+const char* getResourceMount(ResourceMount mount) {
+	return gResourceMounts[mount];
+}
+
+static NSURL* gSaveUrl;
+static NSURL* gDebugUrl;
+static char gApplicationPath[FS_MAX_PATH] = {};
+
 bool initFileSystem(FileSystemInitDesc* pDesc)
 {
-	if (!pDesc)
+	if (gInitialized)
 	{
-		return false;
+		LOGF(LogLevel::eWARNING, "FileSystem already initialized.");
+		return true;
 	}
-	
-	// Get application directory
-	strcpy(gResourceMounts[RM_CONTENT], [[[[NSBundle mainBundle] resourceURL] relativePath] UTF8String]);
-	
-	// Get save directory
+	ASSERT(pDesc);
+	pSystemFileIO->GetResourceMount = getResourceMount;
+
     NSFileManager* fileManager = [NSFileManager defaultManager];
-	[fileManager changeCurrentDirectoryPath:[[NSBundle mainBundle] bundlePath]];
-	
+	// Get application directory
+	gResourceMounts[RM_CONTENT] = [[[[NSBundle mainBundle] resourceURL] relativePath] UTF8String];
+		
+	if(!pDesc->pResourceMounts[RM_CONTENT])
+	{
+		[fileManager changeCurrentDirectoryPath:[[NSBundle mainBundle] bundlePath]];
+	}
+
+	// Get save directory
     NSError* error = nil;
-    NSURL* url = [fileManager URLForDirectory:NSDocumentDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:true error:&error];
+    gSaveUrl = [fileManager URLForDirectory:NSDocumentDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:true error:&error];
+
     if (!error)
 	{
-		fsAppendPathComponent([[url path] UTF8String], pDesc->pAppName, gResourceMounts[RM_SAVE_0]);
+		gResourceMounts[RM_SAVE_0] = [[gSaveUrl path] UTF8String];
     }
 	else
 	{
 		LOGF(LogLevel::eERROR, "Error retrieving user documents directory: %s", [[error description] UTF8String]);
 		return false;
 	}
-	
+
 	// Get debug directory
 #ifdef TARGET_IOS
 	// Place log files in the application support directory on iOS.
-	url = [fileManager URLForDirectory:NSApplicationSupportDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:true error:&error];
+	gDebugUrl = [fileManager URLForDirectory:NSApplicationSupportDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:true error:&error];
 	if (!error)
 	{
-		strcpy(gResourceMounts[RM_DEBUG], [[url path] UTF8String]);
+		gResourceMounts[RM_DEBUG] = [[gDebugUrl path] UTF8String];
 	}
 	else
 	{
@@ -72,12 +87,22 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
 	}
 #else
 	const char* path = [[[NSBundle mainBundle] bundlePath] UTF8String];
-	fsGetParentPath(path, gResourceMounts[RM_DEBUG]);
+	fsGetParentPath(path, gApplicationPath);
+	gResourceMounts[RM_DEBUG] = gApplicationPath;
 #endif
 
+	// Override Resource mounts
+	for (uint32_t i = 0; i < RM_COUNT; ++i)
+	{
+		if (pDesc->pResourceMounts[i])
+			gResourceMounts[i] = pDesc->pResourceMounts[i];
+	}
+
+	gInitialized = true;
 	return true;
 }
 
 void exitFileSystem()
 {
+	gInitialized = false;
 }

@@ -467,7 +467,7 @@ bool TressFXAsset::ProcessAsset()
 	m_thicknessCoeffs = tf_placement_new<float>(tf_malloc(m_numTotalVertices * sizeof(float)));
 
 	tf_free(m_triangleIndices);
-	m_triangleIndices = tf_placement_new<int>(tf_malloc(GetNumHairTriangleIndices() * sizeof(int32)));
+	m_triangleIndices = tf_placement_new<int>(tf_malloc(GetNumHairTriangleIndices() * sizeof(int32_t)));
 
 	// If we have failed to allocate buffers, then clear the allocated ones and exit.
 	if (!m_strandTypes || !m_tangents || !m_restLengths || !m_refVectors || !m_globalRotations || !m_localRotations || !m_thicknessCoeffs ||

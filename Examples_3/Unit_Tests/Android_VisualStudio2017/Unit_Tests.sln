@@ -340,9 +340,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GltfViewer.NativeActivity",
 		{5E22FFEA-7871-4E40-96B0-269809340C5F} = {5E22FFEA-7871-4E40-96B0-269809340C5F}
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "10_PixelProjectedReflections", "10_PixelProjectedReflections", "{AACFCE53-2195-466E-86D4-84DA63A184F6}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "10_ScreenSpaceReflections", "10_ScreenSpaceReflections", "{AACFCE53-2195-466E-86D4-84DA63A184F6}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PixelProjectedReflections.NativeActivity", "10_PixelProjectedReflections\PixelProjectedReflections.NativeActivity\PixelProjectedReflections.NativeActivity.vcxproj", "{3743292B-3776-4A32-A305-8AE1EAB3D787}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ScreenSpaceReflections.NativeActivity", "10_ScreenSpaceReflections\ScreenSpaceReflections.NativeActivity\ScreenSpaceReflections.NativeActivity.vcxproj", "{3743292B-3776-4A32-A305-8AE1EAB3D787}"
 	ProjectSection(ProjectDependencies) = postProject
 		{12D02C10-8FB1-485A-827A-B489CBD8B88F} = {12D02C10-8FB1-485A-827A-B489CBD8B88F}
 		{3062376A-EA3D-4573-9A3F-CEFDBE63C3AA} = {3062376A-EA3D-4573-9A3F-CEFDBE63C3AA}
@@ -350,7 +350,7 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PixelProjectedReflections.N
 		{5E22FFEA-7871-4E40-96B0-269809340C5F} = {5E22FFEA-7871-4E40-96B0-269809340C5F}
 	EndProjectSection
 EndProject
-Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "PixelProjectedReflections.Packaging", "10_PixelProjectedReflections\PixelProjectedReflections.Packaging\PixelProjectedReflections.Packaging.androidproj", "{EE9B31DC-65DF-4E8D-BBF4-7623B7522488}"
+Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "ScreenSpaceReflections.Packaging", "10_ScreenSpaceReflections\ScreenSpaceReflections.Packaging\ScreenSpaceReflections.Packaging.androidproj", "{EE9B31DC-65DF-4E8D-BBF4-7623B7522488}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "29_InverseKinematic", "29_InverseKinematic", "{35AB2208-85FF-4E42-A583-8281E7756712}"
 EndProject

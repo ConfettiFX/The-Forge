@@ -1,0 +1,39 @@
+#version 450
+
+layout(std430, set = 0, binding = 0) coherent buffer g_tile_counter
+{
+    uint g_tile_counter_Data[];
+};
+
+layout(std430, set = 0, binding = 1) coherent buffer g_ray_counter
+{
+    uint g_ray_counter_Data[];
+};
+
+layout(std430, set = 0, binding = 2) buffer g_intersect_args
+{
+    uint g_intersect_args_Data[];
+};
+
+layout(std430, set = 0, binding = 3) buffer g_denoiser_args
+{
+    uint g_denoiser_args_Data[];
+};
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+void main()
+{
+    uint tile_counter = g_tile_counter_Data[0];
+    uint ray_counter = g_ray_counter_Data[0];
+
+    g_intersect_args_Data[0] = (ray_counter + 63u) / 64u;
+    g_intersect_args_Data[1] = 1u;
+    g_intersect_args_Data[2] = 1u;
+
+    g_denoiser_args_Data[0] = tile_counter;
+    g_denoiser_args_Data[1] = 1u;
+    g_denoiser_args_Data[2] = 1u;
+
+    g_tile_counter_Data[0] = 0u;
+    g_ray_counter_Data[0] = 0u;
+}

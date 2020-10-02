@@ -495,6 +495,7 @@ class MultiThread: public IApp
 				vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 				vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 				vbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NONE;
+				vbDesc.mDesc.mStartState = RESOURCE_STATE_COMMON;
 				vbDesc.mDesc.mSize = graphDataSize;
 				vbDesc.pData = NULL;
 				vbDesc.ppBuffer = &pCpuGraph[i].mVertexBuffer[j];
@@ -508,6 +509,7 @@ class MultiThread: public IApp
 			vbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 			vbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 			vbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NONE;
+			vbDesc.mDesc.mStartState = RESOURCE_STATE_COMMON;
 			vbDesc.mDesc.mSize = graphDataSize;
 			vbDesc.pData = NULL;
 			vbDesc.ppBuffer = &pBackGroundVertexBuffer[i];
@@ -961,19 +963,21 @@ class MultiThread: public IApp
 		*(mat4*)skyboxViewProjCbv.pMappedData = gSkyboxProjectView;
 		endUpdateResource(&skyboxViewProjCbv, NULL);
 
-		RenderTargetBarrier barrier = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET };
+		RenderTargetBarrier barrier = { pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
+
 		//// draw skybox
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 1.0f, 1.0f);
         cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSet);
 		cmdBindDescriptorSet(cmd, gFrameIndex * 2 + 0, pDescriptorSetUniforms);
-
 		const uint32_t skyboxStride = sizeof(float) * 4;
 		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, &skyboxStride, NULL);
 		cmdDraw(cmd, 36, 0);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
 
 		cmdBeginDebugMarker(cmd, 0, 1, 0, "Draw UI");
 
@@ -1057,7 +1061,7 @@ class MultiThread: public IApp
 
 		cmdBindRenderTargets(ppGraphCmds[frameIdx], 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-		barrier = { pRenderTarget, RESOURCE_STATE_PRESENT };
+		barrier = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(ppGraphCmds[frameIdx], 0, NULL, 0, NULL, 1, &barrier);
 		endCmd(ppGraphCmds[frameIdx]);
 

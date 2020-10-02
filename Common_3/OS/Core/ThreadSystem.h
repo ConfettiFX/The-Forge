@@ -41,12 +41,13 @@ static void memberTaskFunc0(void* userData, size_t)
 
 enum
 {
-	MAX_LOAD_THREADS = 16
+	MAX_LOAD_THREADS = 16,
+	MAX_SYSTEM_TASKS = 128
 };
 
 struct ThreadSystem;
 
-void initThreadSystem(ThreadSystem** ppThreadSystem, uint32_t numRequestedThreads = MAX_LOAD_THREADS, int preferreCore = 0, bool migrateEnabled = true, const char* threadName = "");
+void initThreadSystem(ThreadSystem** ppThreadSystem, uint32_t numRequestedThreads = MAX_LOAD_THREADS, int preferreCore = 0, bool migrateEnabled = true ,const char* threadName = "");
 
 void shutdownThreadSystem(ThreadSystem* pThreadSystem);
 
@@ -55,6 +56,8 @@ void addThreadSystemRangeTask(ThreadSystem* pThreadSystem, TaskFunc task, void* 
 void addThreadSystemTask(ThreadSystem* pThreadSystem, TaskFunc task, void* user, uintptr_t index = 0);
 
 uint32_t getThreadSystemThreadCount(ThreadSystem* pThreadSystem);
+
+bool assistThreadSystemTasks(ThreadSystem* pThreadSystem, uint32_t* pIds, size_t count);
 
 bool assistThreadSystem(ThreadSystem* pThreadSystem);
 

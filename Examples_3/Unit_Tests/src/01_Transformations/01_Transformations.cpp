@@ -726,10 +726,9 @@ public:
 		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
 		RenderTargetBarrier barriers[] = {
-			{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
-			{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE },
+			{ pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
 		// simply record the screen cleaning command
 		LoadActionsDesc loadActions = {};
@@ -746,11 +745,13 @@ public:
 
 		// draw skybox
 		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Skybox");
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 1.0f, 1.0f);
 		cmdBindPipeline(cmd, pSkyBoxDrawPipeline);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetTexture);
 		cmdBindDescriptorSet(cmd, gFrameIndex * 2 + 0, pDescriptorSetUniforms);
 		cmdBindVertexBuffer(cmd, 1, &pSkyBoxVertexBuffer, &skyboxVbStride, NULL);
 		cmdDraw(cmd, 36, 0);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 		////// draw planets
@@ -782,7 +783,7 @@ public:
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
     cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
-		barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
+		barriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
     cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
@@ -836,6 +837,7 @@ public:
 		depthRT.mClearValue.stencil = 0;
 		depthRT.mDepth = 1;
 		depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
+		depthRT.mStartState = RESOURCE_STATE_DEPTH_WRITE;
 		depthRT.mHeight = mSettings.mHeight;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;

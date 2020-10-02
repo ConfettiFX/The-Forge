@@ -335,7 +335,7 @@ typedef struct InputActionDesc
 	InputBindings::GestureDesc* pGesture;
 } InputActionDesc;
 
-bool          initInputSystem(struct WindowsDesc* pWindow);
+bool          initInputSystem(WindowsDesc* pWindow);
 void          exitInputSystem();
 void          updateInputSystem(uint32_t width, uint32_t height);
 InputAction*  addInputAction(const InputActionDesc* pDesc);

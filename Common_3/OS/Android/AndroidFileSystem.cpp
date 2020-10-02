@@ -97,8 +97,11 @@ static IFileSystem gBundledFileIO =
 	AssetStreamIsAtEnd
 };
 
-char gResourceMounts[RM_COUNT][FS_MAX_PATH];
-
+static bool gInitialized = false;
+static const char* gResourceMounts[RM_COUNT];
+const char* GetResourceMount(ResourceMount mount) {
+	return gResourceMounts[mount];
+}
 bool fsIsBundledResourceDir(ResourceDirectory resourceDir);
 
 static ANativeActivity* pNativeActivity = NULL;
@@ -106,26 +109,36 @@ static AAssetManager* pAssetManager = NULL;
 
 bool initFileSystem(FileSystemInitDesc* pDesc)
 {
-	if (!pDesc)
+	if (gInitialized)
 	{
-		return false;
+		LOGF(LogLevel::eWARNING, "FileSystem already initialized.");
+		return true;
 	}
+	ASSERT(pDesc);
+	pSystemFileIO->GetResourceMount = GetResourceMount;
 
 	pNativeActivity = (ANativeActivity*)pDesc->pPlatformData;
 	ASSERT(pNativeActivity);
 
 	pAssetManager = pNativeActivity->assetManager;
+	gResourceMounts[RM_CONTENT] = "\0";
+	gResourceMounts[RM_DEBUG] = pNativeActivity->externalDataPath;
+	gResourceMounts[RM_SAVE_0] = pNativeActivity->internalDataPath;
 
-	gResourceMounts[RM_CONTENT][0] = '\0';
-	strncpy(gResourceMounts[RM_DEBUG], pNativeActivity->externalDataPath, strlen(pNativeActivity->externalDataPath));
-	strncpy(gResourceMounts[RM_SAVE_0], pNativeActivity->internalDataPath, strlen(pNativeActivity->internalDataPath));
+	// Override Resource mounts
+	for (uint32_t i = 0; i < RM_COUNT; ++i)
+	{
+		if (pDesc->pResourceMounts[i])
+			gResourceMounts[i] = pDesc->pResourceMounts[i];
+	}
 
+	gInitialized = true;
 	return true;
 }
 
 void exitFileSystem()
 {
-
+	gInitialized = false;
 }
 
 bool PlatformOpenFile(ResourceDirectory resourceDir, const char* fileName, FileMode mode, FileStream* pOut)

@@ -1,0 +1,117 @@
+#version 450
+#extension GL_KHR_shader_subgroup_basic : require
+#extension GL_EXT_samplerless_texture_functions : require
+#extension GL_KHR_shader_subgroup_ballot : require
+#extension GL_KHR_shader_subgroup_vote : require
+#extension GL_GOOGLE_include_directive : enable
+
+#include "SSSR_Common.h"
+
+layout(set = 0, binding = 1) uniform texture2D g_roughness;
+layout(set = 0, binding = 2, r16f) uniform image2D g_temporal_variance;
+layout(set = 0, binding = 3) buffer g_tile_list
+{
+    uint g_tile_list_Data[];
+};
+
+layout(set = 0, binding = 4) buffer g_ray_list
+{
+    uint g_ray_list_Data[];
+};
+
+layout(set = 0, binding = 5) coherent buffer g_tile_counter
+{
+    uint g_tile_counter_Data[];
+};
+
+layout(set = 0, binding = 6) coherent buffer g_ray_counter
+{
+    uint g_ray_counter_Data[];
+};
+layout(set = 0, binding = 7, rgba16f) uniform writeonly image2D g_temporally_denoised_reflections;
+layout(set = 0, binding = 8, r16f) uniform writeonly image2D g_ray_lengths;
+layout(set = 0, binding = 9, rgba16f) uniform readonly writeonly image2D g_temporally_denoised_reflections_history;
+layout(set = 0, binding = 10, rgba16f) uniform writeonly image2D g_denoised_reflections;
+
+shared uint g_ray_count;
+shared uint g_denoise_count;
+shared uint g_ray_base_index;
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+void main()
+{
+    bool is_first_lane_of_wave = subgroupElect();
+    bool is_first_lane_of_threadgroup = gl_LocalInvocationIndex == 0u;
+
+    uvec2 screen_size = uvec2(textureSize(g_roughness, 0));
+
+    bool needs_ray = !((gl_GlobalInvocationID.x >= screen_size.x) || (gl_GlobalInvocationID.y >= screen_size.y));
+
+    float roughness = FfxSssrUnpackRoughness(texelFetch(g_roughness, ivec2(gl_GlobalInvocationID.xy), 0));
+    needs_ray = needs_ray && IsGlossy(roughness);
+
+    bool needs_denoiser = needs_ray && (!IsMirrorReflection(roughness));
+
+    bool is_base_ray = IsBaseRay(gl_GlobalInvocationID.xy, g_samples_per_quad);
+    needs_ray = needs_ray && (!needs_denoiser || is_base_ray);
+
+    if (g_temporal_variance_guided_tracing_enabled != 0u && needs_denoiser && !needs_ray)
+    {
+        float temporal_variance = imageLoad(g_temporal_variance, ivec2(gl_GlobalInvocationID.xy)).x;
+        bool has_temporal_variance = temporal_variance != 0.0;
+
+        needs_ray = needs_ray || has_temporal_variance;
+    }
+
+    if (is_first_lane_of_threadgroup)
+    {
+        g_ray_count = 0u;
+        g_denoise_count = 0u;
+    }
+    barrier();
+
+    uint local_ray_index_in_wave = subgroupBallotInclusiveBitCount(subgroupBallot(needs_ray));
+    uint wave_ray_count = subgroupBallotBitCount(subgroupBallot(needs_ray));
+    bool wave_needs_denoiser = subgroupAny(needs_denoiser);
+    uint wave_count = wave_needs_denoiser ? 1 : 0;
+
+    uint local_ray_index_of_wave;
+    if (is_first_lane_of_wave)
+    {
+        local_ray_index_of_wave = atomicAdd(g_ray_count, wave_ray_count);
+        atomicAdd(g_denoise_count, wave_count);
+    }
+    local_ray_index_of_wave = subgroupBroadcastFirst(local_ray_index_of_wave);
+
+    barrier();
+
+    if (is_first_lane_of_threadgroup)
+    {
+        bool must_denoise = g_denoise_count > 0u;
+        uint denoise_count = must_denoise ? 1 : 0;
+        uint ray_count = g_ray_count;
+
+        uint tile_index = atomicAdd(g_tile_counter_Data[0], denoise_count);
+        uint ray_base_index = atomicAdd(g_ray_counter_Data[0], ray_count);
+
+        int cleaned_index = must_denoise ? int(tile_index) : -1;
+        if (must_denoise)
+        {
+            g_tile_list_Data[cleaned_index] = Pack(gl_GlobalInvocationID.xy);
+        }
+        g_ray_base_index = ray_base_index;
+    }
+    barrier();
+
+    ivec2 target = needs_ray ? ivec2(-1, -1) : ivec2(gl_GlobalInvocationID.xy);
+    int ray_index = needs_ray ? int(g_ray_base_index + local_ray_index_of_wave + local_ray_index_in_wave) : -1;
+
+    if (needs_ray)
+    {
+        g_ray_list_Data[ray_index] = Pack(gl_GlobalInvocationID.xy);
+        imageStore(g_temporally_denoised_reflections, target, vec4(0.0));
+        imageStore(g_ray_lengths, target, vec4(0.0));
+    }
+    imageStore(g_denoised_reflections, ivec2(gl_GlobalInvocationID.xy), vec4(0.0));
+    imageStore(g_temporal_variance, ivec2(gl_GlobalInvocationID.xy), vec4(float(needs_ray ? (1u - g_skip_denoiser) : 0u)));
+}

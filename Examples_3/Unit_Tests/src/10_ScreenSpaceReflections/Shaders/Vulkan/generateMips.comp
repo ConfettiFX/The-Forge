@@ -1,0 +1,27 @@
+#version 450
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+layout(push_constant) uniform RootConstant_Block
+{
+	uvec2 MipSize;
+} RootConstant;
+
+layout(set = 0, binding = 1, r32f, UPDATE_FREQ_PER_DRAW) uniform readonly image2D Source;
+layout(set = 0, binding = 2, r32f, UPDATE_FREQ_PER_DRAW) uniform writeonly image2D Destination;
+
+void main()
+{
+    uvec3 id = gl_GlobalInvocationID;
+    if ((id.x < RootConstant.MipSize.x) && (id.y < RootConstant.MipSize.y))
+    {
+        float color = 1.0;
+        for (int x = 0; x < 2; x++)
+        {
+            for (int y = 0; y < 2; y++)
+            {
+                color = min(color, imageLoad(Source, ivec2((id.xy * uvec2(2u)) + uvec2(uint(x), uint(y)))).x);
+            }
+        }
+        imageStore(Destination, ivec2(id.xy), vec4(color));
+    }
+}

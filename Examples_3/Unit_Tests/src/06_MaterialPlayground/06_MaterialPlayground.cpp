@@ -1351,11 +1351,10 @@ class MaterialPlayground: public IApp
 
 		RenderTargetBarrier barriers[] =
 		{
-			{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
-			{ pRenderTargetDepth, RESOURCE_STATE_DEPTH_WRITE },
-			{ pRenderTargetShadowMap, RESOURCE_STATE_DEPTH_WRITE }
+			{ pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
+			{ pRenderTargetShadowMap, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE }
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 3, barriers);
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
 
 
 		// DRAW DIRECTIONAL SHADOW MAP
@@ -1416,7 +1415,7 @@ class MaterialPlayground: public IApp
 		loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
-		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 1.0f, 1.0f);
 		cmdSetScissor(cmd, 0, 0, pRenderTarget->mWidth, pRenderTarget->mHeight);
 
 		if (gDrawSkybox)    // TODO: do we need this condition?
@@ -1428,6 +1427,7 @@ class MaterialPlayground: public IApp
 			cmdBindVertexBuffer(cmd, 1, &pVertexBufferSkybox, &skyboxStride, NULL);
 			cmdDraw(cmd, 36, 0);
 		}
+		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);	// Skybox Pass
 
 
@@ -1435,7 +1435,7 @@ class MaterialPlayground: public IApp
 		//
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-		RenderTargetBarrier shadowTexBarrier = { pRenderTargetShadowMap, RESOURCE_STATE_SHADER_RESOURCE };
+		RenderTargetBarrier shadowTexBarrier = { pRenderTargetShadowMap, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &shadowTexBarrier);
 
 		loadActions.mLoadActionsColor[0] = LOAD_ACTION_LOAD;
@@ -1519,7 +1519,7 @@ class MaterialPlayground: public IApp
 					for (int j = 0; j < 3; ++j)
 					{
 						bufferBarriers[j].pBuffer = gHair[k].pBufferHairSimulationVertexPositions[j];
-						bufferBarriers[j].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
+						bufferBarriers[j].mCurrentState = bufferBarriers[j].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
 					}
 					cmdResourceBarrier(cmd, 3, bufferBarriers, 0, NULL, 0, NULL);
 
@@ -1533,7 +1533,7 @@ class MaterialPlayground: public IApp
 						for (int j = 0; j < 3; ++j)
 						{
 							bufferBarriers[j].pBuffer = gHair[k].pBufferHairSimulationVertexPositions[j];
-							bufferBarriers[j].mNewState = (ResourceState)gHair[k].pBufferHairSimulationVertexPositions[j]->mCurrentState;
+							bufferBarriers[j].mCurrentState = bufferBarriers[j].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
 						}
 						cmdResourceBarrier(cmd, 3, bufferBarriers, 0, NULL, 0, NULL);
 					}
@@ -1545,7 +1545,7 @@ class MaterialPlayground: public IApp
 					for (int j = 0; j < 3; ++j)
 					{
 						bufferBarriers[j].pBuffer = gHair[k].pBufferHairSimulationVertexPositions[j];
-						bufferBarriers[j].mNewState = (ResourceState)gHair[k].pBufferHairSimulationVertexPositions[j]->mCurrentState;
+						bufferBarriers[j].mCurrentState = bufferBarriers[j].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
 					}
 					cmdResourceBarrier(cmd, 3, bufferBarriers, 0, NULL, 0, NULL);
 
@@ -1558,7 +1558,7 @@ class MaterialPlayground: public IApp
 						for (int j = 0; j < 3; ++j)
 						{
 							bufferBarriers[j].pBuffer = gHair[k].pBufferHairSimulationVertexPositions[j];
-							bufferBarriers[j].mNewState = (ResourceState)gHair[k].pBufferHairSimulationVertexPositions[j]->mCurrentState;
+							bufferBarriers[j].mCurrentState = bufferBarriers[j].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
 						}
 						cmdResourceBarrier(cmd, 3, bufferBarriers, 0, NULL, 0, NULL);
 					}
@@ -1572,7 +1572,7 @@ class MaterialPlayground: public IApp
 						for (int j = 0; j < 3; ++j)
 						{
 							bufferBarriers[j].pBuffer = gHair[k].pBufferHairSimulationVertexPositions[j];
-							bufferBarriers[j].mNewState = (ResourceState)gHair[k].pBufferHairSimulationVertexPositions[j]->mCurrentState;
+							bufferBarriers[j].mCurrentState = bufferBarriers[j].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
 						}
 
 						for (int j = 0; j < (int)gHair[k].mUniformDataHairSimulation.mLocalConstraintIterations; ++j)
@@ -1585,6 +1585,7 @@ class MaterialPlayground: public IApp
 					cmdBindPipeline(cmd, pPipelineHairLengthConstraints);
 
 					bufferBarriers[0].pBuffer = gHair[k].pBufferHairVertexTangents;
+					bufferBarriers[0].mCurrentState = RESOURCE_STATE_SHADER_RESOURCE;
 					bufferBarriers[0].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
 					cmdResourceBarrier(cmd, 1, bufferBarriers, 0, NULL, 0, NULL);
 
@@ -1592,8 +1593,10 @@ class MaterialPlayground: public IApp
 					cmdDispatch(cmd, dispatchGroupCountPerVertex, 1, 1);
 
 					bufferBarriers[0].pBuffer = gHair[k].pBufferHairSimulationVertexPositions[0];
+					bufferBarriers[0].mCurrentState = RESOURCE_STATE_UNORDERED_ACCESS;
 					bufferBarriers[0].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
 					bufferBarriers[1].pBuffer = gHair[k].pBufferHairVertexTangents;
+					bufferBarriers[1].mCurrentState = RESOURCE_STATE_UNORDERED_ACCESS;
 					bufferBarriers[1].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
 					cmdResourceBarrier(cmd, 2, bufferBarriers, 0, NULL, 0, NULL);
 
@@ -1603,6 +1606,7 @@ class MaterialPlayground: public IApp
 						cmdBindPipeline(cmd, pPipelineHairUpdateFollowHairs);
 
 						bufferBarriers[0].pBuffer = gHair[k].pBufferHairVertexTangents;
+						bufferBarriers[0].mCurrentState = RESOURCE_STATE_SHADER_RESOURCE;
 						bufferBarriers[0].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
 						cmdResourceBarrier(cmd, 1, bufferBarriers, 0, NULL, 0, NULL);
 
@@ -1610,8 +1614,10 @@ class MaterialPlayground: public IApp
 						cmdDispatch(cmd, dispatchGroupCountPerVertex, 1, 1);
 
 						bufferBarriers[0].pBuffer = gHair[k].pBufferHairSimulationVertexPositions[0];
-						bufferBarriers[0].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
+						bufferBarriers[0].mCurrentState = RESOURCE_STATE_UNORDERED_ACCESS;
+						bufferBarriers[0].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
 						bufferBarriers[1].pBuffer = gHair[k].pBufferHairVertexTangents;
+						bufferBarriers[1].mCurrentState = RESOURCE_STATE_UNORDERED_ACCESS;
 						bufferBarriers[1].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
 						cmdResourceBarrier(cmd, 2, bufferBarriers, 0, NULL, 0, NULL);
 					}
@@ -1652,6 +1658,7 @@ class MaterialPlayground: public IApp
 				{
 					cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 					rtBarriers[0].pRenderTarget = pRenderTargetHairShadows[hairType][i];
+					rtBarriers[0].mCurrentState = RESOURCE_STATE_SHADER_RESOURCE;
 					rtBarriers[0].mNewState = RESOURCE_STATE_DEPTH_WRITE;
 					cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, rtBarriers);
 
@@ -1692,10 +1699,12 @@ class MaterialPlayground: public IApp
 
 #ifndef METAL
 			textureBarriers[0].pTexture = pTextureHairDepth;
+			textureBarriers[0].mCurrentState = RESOURCE_STATE_SHADER_RESOURCE;
 			textureBarriers[0].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
 			cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 0, NULL);
 #else
 			bufferBarrier[0].pBuffer = pBufferHairDepth;
+			bufferBarrier[0].mCurrentState = RESOURCE_STATE_SHADER_RESOURCE;
 			bufferBarrier[0].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
 			cmdResourceBarrier(cmd, 1, bufferBarrier, 0, NULL, 0, NULL);
 #endif
@@ -1719,6 +1728,7 @@ class MaterialPlayground: public IApp
 
 			// Draw hair - depth peeling and alpha accumulaiton
 			rtBarriers[0].pRenderTarget = pRenderTargetDepthPeeling;
+			rtBarriers[0].mCurrentState = RESOURCE_STATE_SHADER_RESOURCE;
 			rtBarriers[0].mNewState = RESOURCE_STATE_RENDER_TARGET;
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, rtBarriers);
 
@@ -1766,10 +1776,12 @@ class MaterialPlayground: public IApp
 			// Draw hair - depth resolve
 #ifndef METAL
 			textureBarriers[0].pTexture = pTextureHairDepth;
+			textureBarriers[0].mCurrentState = RESOURCE_STATE_UNORDERED_ACCESS;
 			textureBarriers[0].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
 			cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 0, NULL);
 #else
 			bufferBarrier[0].pBuffer = pBufferHairDepth;
+			bufferBarrier[0].mCurrentState = RESOURCE_STATE_UNORDERED_ACCESS;
 			bufferBarrier[0].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
 			cmdResourceBarrier(cmd, 1, bufferBarrier, 0, NULL, 0, NULL);
 #endif
@@ -1787,6 +1799,7 @@ class MaterialPlayground: public IApp
 
 			// Draw hair - fill colors
 			rtBarriers[0].pRenderTarget = pRenderTargetFillColors;
+			rtBarriers[0].mCurrentState = RESOURCE_STATE_SHADER_RESOURCE;
 			rtBarriers[0].mNewState = RESOURCE_STATE_RENDER_TARGET;
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, rtBarriers);
 
@@ -1798,6 +1811,7 @@ class MaterialPlayground: public IApp
 				for (int i = 0; i < MAX_NUM_DIRECTIONAL_LIGHTS; ++i)
 				{
 					rtBarriers[i].pRenderTarget = pRenderTargetHairShadows[hairType][i];
+					rtBarriers[i].mCurrentState = RESOURCE_STATE_DEPTH_WRITE;
 					rtBarriers[i].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
 				}
 				cmdResourceBarrier(cmd, 0, NULL, 0, NULL, MAX_NUM_DIRECTIONAL_LIGHTS, rtBarriers);
@@ -1846,8 +1860,10 @@ class MaterialPlayground: public IApp
 
 			// Draw hair - color resolve
 			rtBarriers[0].pRenderTarget = pRenderTargetFillColors;
+			rtBarriers[0].mCurrentState = RESOURCE_STATE_RENDER_TARGET;
 			rtBarriers[0].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
 			rtBarriers[1].pRenderTarget = pRenderTargetDepthPeeling;
+			rtBarriers[1].mCurrentState = RESOURCE_STATE_RENDER_TARGET;
 			rtBarriers[1].mNewState = RESOURCE_STATE_SHADER_RESOURCE;
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, rtBarriers);
 
@@ -1968,7 +1984,7 @@ class MaterialPlayground: public IApp
 		// PRESENT THE GFX QUEUE
 		//
 		// Transition our texture to present state
-		barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
+		barriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 		endCmd(cmd);
@@ -2974,6 +2990,7 @@ class MaterialPlayground: public IApp
 		brdfIntegrationDesc.mArraySize = 1;
 		brdfIntegrationDesc.mMipLevels = 1;
 		brdfIntegrationDesc.mFormat = TinyImageFormat_R32G32_SFLOAT;
+		brdfIntegrationDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		brdfIntegrationDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 		brdfIntegrationDesc.mSampleCount = SAMPLE_COUNT_1;
 		brdfIntegrationDesc.mHostVisible = false;
@@ -3070,14 +3087,6 @@ class MaterialPlayground: public IApp
 		// Compute the BRDF Integration map.
 		beginCmd(pCmd);
 
-		TextureBarrier uavBarriers[4] = {
-			{ pTextureSkybox, RESOURCE_STATE_UNORDERED_ACCESS },
-			{ pTextureIrradianceMap, RESOURCE_STATE_UNORDERED_ACCESS },
-			{ pTextureSpecularMap, RESOURCE_STATE_UNORDERED_ACCESS },
-			{ pTextureBRDFIntegrationMap, RESOURCE_STATE_UNORDERED_ACCESS },
-		};
-		cmdResourceBarrier(pCmd, 0, NULL, 4, uavBarriers, 0, NULL);
-
 		cmdBindPipeline(pCmd, pBRDFIntegrationPipeline);
 		DescriptorData params[2] = {};
 		params[0].pName = "dstTexture";
@@ -3089,7 +3098,7 @@ class MaterialPlayground: public IApp
 			pCmd, gBRDFIntegrationSize / pThreadGroupSize[0], gBRDFIntegrationSize / pThreadGroupSize[1],
 			pThreadGroupSize[2]);
 
-		TextureBarrier srvBarrier[1] = { { pTextureBRDFIntegrationMap, RESOURCE_STATE_SHADER_RESOURCE } };
+		TextureBarrier srvBarrier[1] = { { pTextureBRDFIntegrationMap, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE } };
 
 		cmdResourceBarrier(pCmd, 0, NULL, 1, srvBarrier, 0, NULL);
 
@@ -3122,7 +3131,7 @@ class MaterialPlayground: public IApp
 				max(1u, (uint32_t)(rootConstantData.textureSize >> i) / pThreadGroupSize[1]), 6);
 		}
 
-		TextureBarrier srvBarriers[1] = { { pTextureSkybox, RESOURCE_STATE_SHADER_RESOURCE } };
+		TextureBarrier srvBarriers[1] = { { pTextureSkybox, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE } };
 		cmdResourceBarrier(pCmd, 0, NULL, 1, srvBarriers, 0, NULL);
 		/************************************************************************/
 		// Compute sky irradiance
@@ -3171,8 +3180,10 @@ class MaterialPlayground: public IApp
 		}
 		/************************************************************************/
 		/************************************************************************/
-		TextureBarrier srvBarriers2[2] = { { pTextureIrradianceMap, RESOURCE_STATE_SHADER_RESOURCE },
-										   { pTextureSpecularMap, RESOURCE_STATE_SHADER_RESOURCE } };
+		TextureBarrier srvBarriers2[2] = {
+			{ pTextureIrradianceMap, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE },
+			{ pTextureSpecularMap, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE }
+		};
 		cmdResourceBarrier(pCmd, 0, NULL, 2, srvBarriers2, 0, NULL);
 
 		endCmd(pCmd);
@@ -3272,6 +3283,7 @@ class MaterialPlayground: public IApp
 		skyboxVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
+		skyboxVbDesc.mDesc.mStartState = RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 		skyboxVbDesc.pData = skyBoxPoints;
 		skyboxVbDesc.ppBuffer = &pVertexBufferSkybox;
 		addResource(&skyboxVbDesc, NULL);
@@ -3419,6 +3431,7 @@ class MaterialPlayground: public IApp
 		jointVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		jointVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		jointVbDesc.mDesc.mSize = jointDataSize;
+		jointVbDesc.mDesc.mStartState = RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 		jointVbDesc.pData = pStagingData->pJointPoints;
 		jointVbDesc.ppBuffer = &pVertexBufferSkeletonJoint;
 		addResource(&jointVbDesc, NULL);
@@ -3431,6 +3444,7 @@ class MaterialPlayground: public IApp
 		boneVbDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_VERTEX_BUFFER;
 		boneVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		boneVbDesc.mDesc.mSize = boneDataSize;
+		boneVbDesc.mDesc.mStartState = RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 		boneVbDesc.pData = pStagingData->pBonePoints;
 		boneVbDesc.ppBuffer = &pVertexBufferSkeletonBone;
 		addResource(&boneVbDesc, NULL);
@@ -3712,6 +3726,7 @@ class MaterialPlayground: public IApp
 		vertexPositionsBufferDesc.mDesc.mFormat = TinyImageFormat_UNDEFINED;
 		vertexPositionsBufferDesc.mDesc.mSize =
 			vertexPositionsBufferDesc.mDesc.mElementCount * vertexPositionsBufferDesc.mDesc.mStructStride;
+		vertexPositionsBufferDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		vertexPositionsBufferDesc.mDesc.pName = "Hair vertex positions";
 
 		for (int i = 0; i < 3; ++i)
@@ -4292,6 +4307,7 @@ class MaterialPlayground: public IApp
 		depthPeelingRenderTargetDesc.mMipLevels = 1;
 		depthPeelingRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
 		depthPeelingRenderTargetDesc.mFormat = TinyImageFormat_R16_SFLOAT;
+		depthPeelingRenderTargetDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
         depthPeelingRenderTargetDesc.mClearValue.r = 1.0f;
         depthPeelingRenderTargetDesc.mClearValue.g = 1.0f;
         depthPeelingRenderTargetDesc.mClearValue.b = 1.0f;
@@ -4311,6 +4327,7 @@ class MaterialPlayground: public IApp
 		hairDepthsTextureDesc.mMipLevels = 1;
 		hairDepthsTextureDesc.mSampleCount = SAMPLE_COUNT_1;
 		hairDepthsTextureDesc.mFormat = TinyImageFormat_R32_UINT;
+		hairDepthsTextureDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
         hairDepthsTextureDesc.mClearValue.r = 1.0f;
         hairDepthsTextureDesc.mClearValue.g = 1.0f;
         hairDepthsTextureDesc.mClearValue.b = 1.0f;
@@ -4343,6 +4360,7 @@ class MaterialPlayground: public IApp
 		fillColorsRenderTargetDesc.mMipLevels = 1;
 		fillColorsRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
 		fillColorsRenderTargetDesc.mFormat = TinyImageFormat_R16G16B16A16_SFLOAT;
+		fillColorsRenderTargetDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
         fillColorsRenderTargetDesc.mClearValue.r = 0.0f;
         fillColorsRenderTargetDesc.mClearValue.g = 0.0f;
         fillColorsRenderTargetDesc.mClearValue.b = 0.0f;
@@ -4361,6 +4379,7 @@ class MaterialPlayground: public IApp
 		hairShadowRenderTargetDesc.mMipLevels = 1;
 		hairShadowRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
 		hairShadowRenderTargetDesc.mFormat = TinyImageFormat_D16_UNORM;
+		hairShadowRenderTargetDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
         hairShadowRenderTargetDesc.mClearValue.depth = 1.0f;
         hairShadowRenderTargetDesc.mClearValue.stencil = 0;
 		hairShadowRenderTargetDesc.mSampleQuality = 0;
@@ -4370,7 +4389,9 @@ class MaterialPlayground: public IApp
 		for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
 		{
 			for (int i = 0; i < MAX_NUM_DIRECTIONAL_LIGHTS; ++i)
+			{
 				addRenderTarget(pRenderer, &hairShadowRenderTargetDesc, &pRenderTargetHairShadows[hairType][i]);
+			}
 		}
 
 		RenderTargetDesc depthRenderTargetDesc = {};
@@ -4379,6 +4400,7 @@ class MaterialPlayground: public IApp
         depthRenderTargetDesc.mClearValue.stencil = 0;
 		depthRenderTargetDesc.mDepth = 1;
 		depthRenderTargetDesc.mFormat = TinyImageFormat_D32_SFLOAT;
+		depthRenderTargetDesc.mStartState = RESOURCE_STATE_DEPTH_WRITE;
 		depthRenderTargetDesc.mHeight = mSettings.mHeight;
 		depthRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
 		depthRenderTargetDesc.mSampleQuality = 0;
@@ -4394,6 +4416,7 @@ class MaterialPlayground: public IApp
 		shadowPassRenderTargetDesc.mDepth = 1;
 		shadowPassRenderTargetDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		shadowPassRenderTargetDesc.mFormat = TinyImageFormat_D32_SFLOAT;
+		shadowPassRenderTargetDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		shadowPassRenderTargetDesc.mHeight = gShadowMapDimensions;
 		shadowPassRenderTargetDesc.mWidth  = gShadowMapDimensions;
 		shadowPassRenderTargetDesc.mSampleCount = SAMPLE_COUNT_1;
@@ -4420,21 +4443,25 @@ class MaterialPlayground: public IApp
 
 	void DestroyRenderTargets()
 	{
-		removeRenderTarget(pRenderer, pRenderTargetDepthPeeling);
+		removeSwapChain(pRenderer, pSwapChain);
+		removeRenderTarget(pRenderer, pRenderTargetShadowMap);
+		removeRenderTarget(pRenderer, pRenderTargetDepth);
+
+		for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
+		{
+			for (int i = 0; i < MAX_NUM_DIRECTIONAL_LIGHTS; ++i)
+				removeRenderTarget(pRenderer, pRenderTargetHairShadows[hairType][i]);
+		}
+
+		removeRenderTarget(pRenderer, pRenderTargetFillColors);
+
 #ifndef METAL
 		removeResource(pTextureHairDepth);
 #else
 		removeResource(pBufferHairDepth);
 #endif
-		removeRenderTarget(pRenderer, pRenderTargetFillColors);
-		for (uint hairType = 0; hairType < HAIR_TYPE_COUNT; ++hairType)
-		{
-			for (int i = 0; i < MAX_NUM_DIRECTIONAL_LIGHTS; ++i)
-				removeRenderTarget(pRenderer, pRenderTargetHairShadows[hairType][0]);
-		}
-		removeRenderTarget(pRenderer, pRenderTargetDepth);
-		removeRenderTarget(pRenderer, pRenderTargetShadowMap);
-		removeSwapChain(pRenderer, pSwapChain);
+
+		removeRenderTarget(pRenderer, pRenderTargetDepthPeeling);
 	}
 };
 

@@ -29,6 +29,8 @@
 #define AOIT_ORDERED_ACCESS
 #include "AOIT.h"
 
+layout (location = 0) in vec4 iUV;
+
 layout(location = 0) out vec4 oColor;
 
 void main()

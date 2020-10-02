@@ -72,5 +72,22 @@
 #define NOREFS __unsafe_unretained
 #endif
 
+#ifdef _WIN32
+#define FORGE_CALLCONV __cdecl
+#else
+#define FORGE_CALLCONV
+#endif
+
+#ifdef __cplusplus
+#define FORGE_CONSTEXPR constexpr
+#else
+#define FORGE_CONSTEXPR
+#endif
+
+#if defined(_MSC_VER) && !defined(NX64)
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+
 // Generates a compile error if the expression evaluates to false
 #define COMPILE_ASSERT(exp) static_assert((exp), #exp)

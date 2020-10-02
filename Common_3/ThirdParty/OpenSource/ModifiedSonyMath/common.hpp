@@ -970,6 +970,15 @@ static inline uint64_t round_up_64(uint64_t value, uint64_t multiple) { return (
 static inline uint32_t round_down(uint32_t value, uint32_t multiple) { return value  - value % multiple; }
 static inline uint64_t round_down_64(uint64_t value, uint64_t multiple) { return value - value % multiple; }
 
+template<typename T>
+static inline size_t tf_mem_hash(const T* mem, size_t size, size_t prev = 2166136261U)
+{
+	uint32_t result = (uint32_t)prev; // Intentionally uint32_t instead of size_t, so the behavior is the same
+									  // regardless of size.
+	while (size--)
+		result = (result * 16777619) ^ *mem++;
+	return (size_t)result;
+}
 
 //----------------------------------------------------------------------------
 // Color conversions / packing / unpacking

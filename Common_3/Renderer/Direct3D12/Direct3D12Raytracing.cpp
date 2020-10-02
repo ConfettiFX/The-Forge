@@ -336,6 +336,7 @@ void addAccelerationStructure(Raytracing* pRaytracing, const AccelerationStructu
 	BufferLoadDesc scratchBufferDesc = {};
 	scratchBufferDesc.mDesc.mDescriptors = DESCRIPTOR_TYPE_RW_BUFFER;
 	scratchBufferDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
+	scratchBufferDesc.mDesc.mStartState = RESOURCE_STATE_COMMON;
 	scratchBufferDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_NO_DESCRIPTOR_VIEW_CREATION;
 	scratchBufferDesc.mDesc.mSize = pAccelerationStructure->mScratchBufferSize;
 	scratchBufferDesc.ppBuffer = &pAccelerationStructure->pScratchBuffer;
@@ -370,17 +371,17 @@ void FillShaderIdentifiers(	const char *const * pRecords, uint32_t shaderCount,
 {
 	for (uint32_t i = 0; i < shaderCount; ++i)
 	{
-		eastl::hash_set<uint32_t> addedTables;
+		//eastl::hash_set<uint32_t> addedTables;
 
 		const char* pRecordName = pRecords[i];
 		const void* pIdentifier = NULL;
-		WCHAR* pName = (WCHAR*)tf_calloc(strlen(pRecordName) + 1, sizeof(WCHAR));
+		WCHAR* pName = (WCHAR*)alloca((strlen(pRecordName) + 1) * sizeof(WCHAR));
+		pName[strlen(pRecordName)] = 0;
 		mbstowcs(pName, pRecordName, strlen(pRecordName));
 
 		pIdentifier = pRtsoProps->GetShaderIdentifier(pName);
 
 		ASSERT(pIdentifier);
-		tf_free(pName);
 
 		uint64_t currentPosition = maxShaderTableSize * index++;
 		memcpy((uint8_t*)pTable->pBuffer->pCpuMappedAddress + currentPosition, pIdentifier, gShaderIdentifierSize);

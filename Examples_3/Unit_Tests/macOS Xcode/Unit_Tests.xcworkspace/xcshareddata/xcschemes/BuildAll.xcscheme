@@ -253,9 +253,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "EA463C8A1EF81E8F005AC8C7"
-               BuildableName = "10_PixelProjectedReflections.app"
-               BlueprintName = "10_PixelProjectedReflections"
-               ReferencedContainer = "container:10_PixelProjectedReflections/10_PixelProjectedReflections.xcodeproj">
+               BuildableName = "10_ScreenSpaceReflections.app"
+               BlueprintName = "10_ScreenSpaceReflections"
+               ReferencedContainer = "container:10_ScreeSpaceReflections/10_ScreenSpaceReflections.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -267,9 +267,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "C95132EC2010E68A002E584B"
-               BuildableName = "10_PixelProjectedReflections_iOS.app"
-               BlueprintName = "10_PixelProjectedReflections_iOS"
-               ReferencedContainer = "container:10_PixelProjectedReflections/10_PixelProjectedReflections.xcodeproj">
+               BuildableName = "10_ScreenSpaceReflections_iOS.app"
+               BlueprintName = "10_ScreenSpaceReflections_iOS"
+               ReferencedContainer = "container:10_ScreeSpaceReflections/10_ScreenSpaceReflections.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
          <BuildActionEntry
@@ -713,6 +713,8 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
+      <Testables>
+      </Testables>
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
@@ -722,8 +724,8 @@
             ReferencedContainer = "container:01_Transformations/01_Transformations.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
-      <Testables>
-      </Testables>
+      <AdditionalOptions>
+      </AdditionalOptions>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
@@ -744,6 +746,8 @@
             ReferencedContainer = "container:01_Transformations/01_Transformations.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
+      <AdditionalOptions>
+      </AdditionalOptions>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"

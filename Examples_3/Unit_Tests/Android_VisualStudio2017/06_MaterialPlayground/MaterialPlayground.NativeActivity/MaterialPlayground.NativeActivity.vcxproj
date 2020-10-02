@@ -75,7 +75,8 @@
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Textures\LA_Helipad.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\" /s /y /d
+      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Animation\stickFigure\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Animation\stickFigure\ /s /y
+$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Textures\LA_Helipad.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Textures\circlepad.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Meshes\capsule.gltf" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Meshes\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Meshes\cube.gltf" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Meshes\" /s /y /d
@@ -110,7 +111,8 @@ $(systemroot)\System32\xcopy "$(VS_NdkRoot)\sources\third_party\vulkan\src\build
       <AdditionalLibraryDirectories>$(SolutionDir)..\..\..\Common_3\ThirdParty\OpenSource\Libraries\Android-$(Platform);$(SolutionDir)$(Platform)\$(Configuration)\;$(VS_Ndkroot)\sources\third_party\shaderc\libs\$(UseOfStl)\$(TargetArchAbi);$(LibraryPath);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
     <PostBuildEvent>
-      <Command>$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Textures\LA_Helipad.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\" /s /y /d
+      <Command>$(systemroot)\System32\xcopy $(ProjectDir)..\..\..\UnitTestResources\Animation\stickFigure\*.* $(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Animation\stickFigure\ /s /y
+$(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Textures\LA_Helipad.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Textures\circlepad.ktx" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Textures\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Meshes\capsule.gltf" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Meshes\" /s /y /d
 $(systemroot)\System32\xcopy "$(ProjectDir)..\..\..\UnitTestResources\Meshes\cube.gltf" "$(SolutionDir)$(Platform)\$(Configuration)\$(RootNameSpace)\assets\Meshes\" /s /y /d

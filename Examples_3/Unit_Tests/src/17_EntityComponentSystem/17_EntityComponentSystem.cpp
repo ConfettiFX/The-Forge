@@ -829,7 +829,7 @@ class EntityComponentSystem: public IApp
 		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
 		RenderTargetBarrier barriers[] = {
-			{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
+			{ pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
 		};
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
@@ -870,7 +870,7 @@ class EntityComponentSystem: public IApp
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndDebugMarker(cmd);
 
-		barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
+		barriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
 		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);

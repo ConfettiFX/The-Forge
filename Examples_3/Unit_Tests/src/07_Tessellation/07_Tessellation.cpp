@@ -392,6 +392,7 @@ class Tessellation: public IApp
 		sbCulledBladeDesc.mDesc.mStructStride = sizeof(Blade);
 		sbCulledBladeDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		sbCulledBladeDesc.mDesc.mSize = NUM_BLADES * sizeof(Blade);
+		sbCulledBladeDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 
 		sbCulledBladeDesc.pData = gBlades.data();
 		sbCulledBladeDesc.ppBuffer = &pCulledBladeStorageBuffer;
@@ -404,6 +405,7 @@ class Tessellation: public IApp
 		sbBladeNumDesc.mDesc.mStructStride = sizeof(BladeDrawIndirect);
 		sbBladeNumDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		sbBladeNumDesc.mDesc.mSize = sizeof(BladeDrawIndirect);
+		sbBladeNumDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 
 		sbBladeNumDesc.pData = &indirectDraw;
 		sbBladeNumDesc.ppBuffer = &pBladeNumBuffer;
@@ -757,10 +759,6 @@ class Tessellation: public IApp
 			addPipeline(pRenderer, &desc, &pGrassPipelineForWireframe);
 		}
 
-#if defined(VULKAN)
-		transitionRenderTargets();
-#endif
-
 		return true;
 	}
 
@@ -780,8 +778,8 @@ class Tessellation: public IApp
 			removePipeline(pRenderer, pGrassPipelineForWireframe);
 		}
 
-		removeSwapChain(pRenderer, pSwapChain);
 		removeRenderTarget(pRenderer, pDepthBuffer);
+		removeSwapChain(pRenderer, pSwapChain);
 	}
 
 	void Update(float deltaTime)
@@ -887,13 +885,6 @@ class Tessellation: public IApp
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
 #ifdef METAL
-		BufferBarrier metalSRVBarriers[] =
-		{
-			{ pBladeNumBuffer, RESOURCE_STATE_INDIRECT_ARGUMENT },
-			{ pCulledBladeStorageBuffer, RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER },
-		};
-		cmdResourceBarrier(cmd, 2, metalSRVBarriers, 0, NULL, 0, NULL);
-
 		if (pRenderer->pActiveGpuSettings->mTessellationSupported)
 		{
 			// On Metal, we have to run the grass_vertexHull compute shader before running the post-tesselation shaders.
@@ -905,11 +896,11 @@ class Tessellation: public IApp
 #endif
 		
 		RenderTargetBarrier barriers[] = {
-			{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
+			{ pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
 		};
 		BufferBarrier srvBarriers[] = {
-			{ pBladeNumBuffer, RESOURCE_STATE_INDIRECT_ARGUMENT },
-			{ pCulledBladeStorageBuffer, RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER },
+			{ pBladeNumBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_INDIRECT_ARGUMENT },
+			{ pCulledBladeStorageBuffer, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER },
 		};
 		cmdResourceBarrier(cmd, 2, srvBarriers, 0, NULL, 1, barriers);
 
@@ -945,8 +936,8 @@ class Tessellation: public IApp
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 		BufferBarrier uavBarriers[] = {
-			{ pBladeNumBuffer, RESOURCE_STATE_UNORDERED_ACCESS },
-			{ pCulledBladeStorageBuffer, RESOURCE_STATE_UNORDERED_ACCESS },
+			{ pBladeNumBuffer, RESOURCE_STATE_INDIRECT_ARGUMENT, RESOURCE_STATE_UNORDERED_ACCESS },
+			{ pCulledBladeStorageBuffer, RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER, RESOURCE_STATE_UNORDERED_ACCESS },
 		};
 		cmdResourceBarrier(cmd, 2, uavBarriers, 0, NULL, 0, NULL);
 
@@ -981,7 +972,7 @@ class Tessellation: public IApp
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-		barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
+		barriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
 		endCmd(cmd);
@@ -1034,6 +1025,7 @@ class Tessellation: public IApp
 		depthRT.mClearValue = {{0.0f, 0}};
 		depthRT.mDepth = 1;
 		depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
+		depthRT.mStartState = RESOURCE_STATE_DEPTH_WRITE;
 		depthRT.mHeight = mSettings.mHeight;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
@@ -1079,21 +1071,6 @@ class Tessellation: public IApp
 			gBlades.push_back(currentBlade);
 		}
 	}
-#if defined(VULKAN)
-	void transitionRenderTargets()
-	{
-		RenderTargetBarrier barrier = { pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE };
-		beginCmd(pCmds[0]);
-		cmdResourceBarrier(pCmds[0], 0, NULL, 0, NULL, 1, &barrier);
-		endCmd(pCmds[0]);
-		QueueSubmitDesc submitDesc = {};
-		submitDesc.mCmdCount = 1;
-		submitDesc.ppCmds = pCmds;
-		submitDesc.pSignalFence = pRenderCompleteFences[0];
-		queueSubmit(pGraphicsQueue, &submitDesc);
-		waitForFences(pRenderer, 1, &pRenderCompleteFences[0]);
-	}
-#endif
 };
 
 DEFINE_APPLICATION_MAIN(Tessellation)

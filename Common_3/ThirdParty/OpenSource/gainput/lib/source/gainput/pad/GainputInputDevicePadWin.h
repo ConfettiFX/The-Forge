@@ -93,9 +93,10 @@ public:
 		}
 #endif
 
-		if (xstate.dwPacketNumber == lastPacketNumber_)
+		if (xstate.dwPacketNumber == lastPacketNumber_ || lastPacketNumber_ == ULONG_MAX)
 		{
 			// Not changed
+			lastPacketNumber_ = xstate.dwPacketNumber;
 			return;
 		}
 

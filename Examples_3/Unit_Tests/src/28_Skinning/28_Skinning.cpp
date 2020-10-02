@@ -490,7 +490,7 @@ class Skinning: public IApp
 		// SETUP THE MAIN CAMERA
 		//
 		CameraMotionParameters cmp{ 50.0f, 75.0f, 150.0f };
-		vec3                   camPos{ 3.0f, 3.0f, -5.0f };
+		vec3                   camPos{ -3.0f, 3.0f, 5.0f };
 		vec3                   lookAt{ 0.0f, 1.0f, 0.0f };
 
 		pCameraController = createFpsCameraController(camPos, lookAt);
@@ -735,7 +735,7 @@ class Skinning: public IApp
 		rasterizerStateDesc.mCullMode = CULL_MODE_NONE;
 
 		RasterizerStateDesc skeletonRasterizerStateDesc = {};
-		skeletonRasterizerStateDesc.mCullMode = CULL_MODE_BACK;
+		skeletonRasterizerStateDesc.mCullMode = CULL_MODE_FRONT;
 
 		DepthStateDesc depthStateDesc = {};
 		depthStateDesc.mDepthTest = true;
@@ -864,10 +864,12 @@ class Skinning: public IApp
 		gSkeletonBatcher.SetSharedUniforms(projViewMat, lightPos, lightColor);
 
 		for (uint i = 0; i < pGeom->mJointCount; ++i)
-			gUniformDataBones.mBoneMatrix[i] = gStickFigureRig.GetJointWorldMat(pGeom->pJointRemaps[i]) *
-			mat4::scale(vec3(1, 1, -1)) *
-			pGeom->pInverseBindPoses[i];
+		{
+			gUniformDataBones.mBoneMatrix[i] = //mat4::scale(vec3(1, 1, -1)) *
+				gStickFigureRig.GetJointWorldMat(pGeom->pJointRemaps[i]) * 
+				pGeom->pInverseBindPoses[i];
 
+		}
 		/************************************************************************/
 		// Plane
 		/************************************************************************/
@@ -923,11 +925,10 @@ class Skinning: public IApp
 		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
 		RenderTargetBarrier barriers[] =    // wait for resource transition
-			{
-				{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
-				{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE },
-			};
-		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
+		{
+			{ pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
+		};
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
 		// bind and clear the render target
 		LoadActionsDesc loadActions = {};    // render target clean command
@@ -1000,7 +1001,7 @@ class Skinning: public IApp
 
 		// PRESENT THE GRPAHICS QUEUE
 		//
-		barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
+		barriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 		endCmd(cmd);
@@ -1054,6 +1055,7 @@ class Skinning: public IApp
         depthRT.mClearValue.stencil = 0;
 		depthRT.mDepth = 1;
 		depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
+		depthRT.mStartState = RESOURCE_STATE_DEPTH_WRITE;
 		depthRT.mHeight = mSettings.mHeight;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;

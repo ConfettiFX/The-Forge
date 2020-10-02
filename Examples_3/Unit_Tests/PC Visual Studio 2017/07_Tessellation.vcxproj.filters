@@ -40,9 +40,17 @@
     <CustomBuild Include="..\src\07_Tessellation\Shaders\Vulkan\grass.vert">
       <Filter>Shaders\Vulkan</Filter>
     </CustomBuild>
-    <CustomBuild Include="..\src\07_Tessellation\Shaders\Vulkan\compute.comp" />
-    <CustomBuild Include="..\src\07_Tessellation\Shaders\Vulkan\grass.tesc" />
-    <CustomBuild Include="..\src\07_Tessellation\Shaders\Vulkan\grass.tese" />
-    <CustomBuild Include="..\src\07_Tessellation\Shaders\Vulkan\grass.frag" />
+    <CustomBuild Include="..\src\07_Tessellation\Shaders\Vulkan\grass.tese">
+      <Filter>Shaders\Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\07_Tessellation\Shaders\Vulkan\compute.comp">
+      <Filter>Shaders\Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\07_Tessellation\Shaders\Vulkan\grass.frag">
+      <Filter>Shaders\Vulkan</Filter>
+    </CustomBuild>
+    <CustomBuild Include="..\src\07_Tessellation\Shaders\Vulkan\grass.tesc">
+      <Filter>Shaders\Vulkan</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

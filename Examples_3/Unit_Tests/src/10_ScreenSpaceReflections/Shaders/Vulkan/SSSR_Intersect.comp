@@ -1,0 +1,298 @@
+#version 450
+#extension GL_EXT_samplerless_texture_functions : require
+#extension GL_KHR_shader_subgroup_ballot : require
+#extension GL_GOOGLE_include_directive : enable
+
+#include "SSSR_Common.h"
+
+layout(row_major, set = 0, binding = 1) buffer g_sobol_buffer
+{
+    uint g_sobol_buffer_Data[];
+};
+layout(row_major, set = 0, binding = 2) buffer g_ranking_tile_buffer
+{
+    uint g_ranking_tile_buffer_Data[];
+};
+layout(row_major, set = 0, binding = 3) buffer g_scrambling_tile_buffer
+{
+    uint g_scrambling_tile_buffer_Data[];
+};
+layout(set = 0, binding = 4) uniform texture2D g_depth_buffer_hierarchy;
+layout(set = 0, binding = 5) uniform texture2D g_normal;
+layout(set = 0, binding = 6, rgba16f) uniform writeonly image2D g_intersection_result;
+layout(set = 0, binding = 7) uniform texture2D g_roughness;
+layout(set = 0, binding = 8) uniform texture2D g_lit_scene;
+layout(set = 0, binding = 9) uniform textureCube g_environment_map;
+layout(set = 0, binding = 10) uniform sampler g_environment_map_sampler;
+layout(set = 0, binding = 11, r16f) uniform writeonly image2D g_ray_lengths;
+layout(set = 0, binding = 12, rgba16f) uniform writeonly image2D g_denoised_reflections;
+layout(set = 0, binding = 13) buffer g_ray_list
+{
+    uint g_ray_list_Data[];
+};
+
+float SampleRandomNumber(in uint pixel_i, in uint pixel_j, in uint sample_index, in uint sample_dimension)
+{
+    pixel_i &= 127u;
+    pixel_j &= 127u;
+    sample_index &= 255u;
+    sample_dimension &= 255u;
+
+    uint ranked_sample_index = sample_index ^ g_ranking_tile_buffer_Data[sample_dimension + (pixel_i + pixel_j * 128u) * 8u];
+
+    uint value = g_sobol_buffer_Data[sample_dimension + ranked_sample_index * 256u];
+
+    value ^= g_scrambling_tile_buffer_Data[(sample_dimension % 8u) + (pixel_i + pixel_j * 128u) * 8u];
+
+    return (value + 0.5) / 256.0;
+}
+
+vec2 SampleRandomVector2(uvec2 pixel)
+{
+    return vec2(
+        mod(SampleRandomNumber(pixel.x, pixel.y, 0u, 0u) + (g_frame_index & 255u) * FFX_SSSR_GOLDEN_RATIO, 1.0),
+        mod(SampleRandomNumber(pixel.x, pixel.y, 0u, 1u) + (g_frame_index & 255u) * FFX_SSSR_GOLDEN_RATIO, 1.0));
+}
+
+vec3 sampleGGXVNDF(vec3 Ve, float alpha_x, float alpha_y, float U1, float U2)
+{
+    vec3 Vh = normalize(vec3(alpha_x * Ve.x, alpha_y * Ve.y, Ve.z));
+
+    float lensq = (Vh.x * Vh.x) + (Vh.y * Vh.y);
+    vec3 T1 = lensq > 0.0 ? vec3(-Vh.y, Vh.x, 0.0) * inversesqrt(lensq) : vec3(1.0, 0.0, 0.0);
+    vec3 T2 = cross(Vh, T1);
+
+    float r = sqrt(U1);
+    float phi = 2 * FFX_SSSR_PI * U2;
+    float t1 = r * cos(phi);
+    float t2 = r * sin(phi);
+    float s = 0.5 * (1.0 + Vh.z);
+    t2 = (1.0 - s) * sqrt(1.0 - t1 * t1) + s * t2;
+
+    vec3 Nh = T1 * t1 + T2 * t2 + Vh * sqrt(max(0.0, 1.0 - t1 * t1 - t2 * t2));
+    vec3 Ne = normalize(vec3(alpha_x * Nh.x, alpha_y * Nh.y, max(0.0, Nh.z)));
+    return Ne;
+}
+
+vec3 Sample_GGX_VNDF_Ellipsoid(vec3 Ve, float alpha_x, float alpha_y, float U1, float U2)
+{
+    return sampleGGXVNDF(Ve, alpha_x, alpha_y, U1, U2);
+}
+
+vec3 Sample_GGX_VNDF_Hemisphere(vec3 Ve, float alpha, float U1, float U2)
+{
+    return Sample_GGX_VNDF_Ellipsoid(Ve, alpha, alpha, U1, U2);
+}
+
+mat3 CreateTBN(vec3 N)
+{
+    vec3 U;
+    if (abs(N.z) > 0.0)
+    {
+        float k = sqrt(N.y * N.y + N.z * N.z);
+        U.x = 0.0; U.y = (-N.z) / k; U.z = N.y / k;
+    }
+    else
+    {
+        float k_1 = sqrt(N.x * N.x + N.y * N.y);
+        U.x = N.y / k_1; U.y = (-N.x) / k_1; U.z = 0.0;
+    }
+    mat3 TBN;
+    TBN[0] = U;
+    TBN[1] = cross(N, U);
+    TBN[2] = N;
+    return transpose(TBN);
+}
+
+vec3 SampleReflectionVector(vec3 view_direction, vec3 normal, float roughness, ivec2 did)
+{
+    mat3 tbn_transform = CreateTBN(normal);
+    vec3 view_direction_tbn = tbn_transform * -view_direction;
+
+    vec2 u = SampleRandomVector2(did);
+
+    vec3 sampled_normal_tbn = Sample_GGX_VNDF_Hemisphere(view_direction_tbn, roughness, u.x, u.y);
+
+    vec3 reflected_direction_tbn = reflect(-view_direction_tbn, sampled_normal_tbn);
+
+    mat3 inv_tbn_transform = transpose(tbn_transform);
+    return inv_tbn_transform * reflected_direction_tbn;
+}
+
+vec2 GetMipResolution(vec2 screen_dimensions, int mip_level)
+{
+    return screen_dimensions * pow(0.5, mip_level);
+}
+
+float LoadDepth(vec2 idx, int mip)
+{
+    return FfxSssrUnpackDepth(texelFetch(g_depth_buffer_hierarchy, ivec2(idx), mip).x);
+}
+
+void InitialAdvanceRay(vec3 origin, vec3 direction, vec3 inv_direction, vec2 current_mip_resolution, vec2 current_mip_resolution_inv, vec2 floor_offset, vec2 uv_offset, out vec3 position, out float current_t)
+{
+    vec2 current_mip_position = current_mip_resolution * origin.xy;
+
+    vec2 xy_plane = floor(current_mip_position) + floor_offset;
+    xy_plane = xy_plane * current_mip_resolution_inv + uv_offset;
+
+    vec2 t = (xy_plane - origin.xy) * inv_direction.xy;
+    current_t = min(t.x, t.y);
+    position = origin + (direction * current_t);
+}
+
+bool AdvanceRay(vec3 origin, vec3 direction, vec3 inv_direction, vec2 current_mip_position, vec2 current_mip_resolution_inv, vec2 floor_offset, vec2 uv_offset, float surface_z, inout vec3 position, inout float current_t)
+{
+    vec2 xy_plane = floor(current_mip_position) + floor_offset;
+    xy_plane = (xy_plane * current_mip_resolution_inv) + uv_offset;
+    vec3 boundary_planes = vec3(xy_plane, surface_z);
+
+    vec3 t = (boundary_planes - origin) * inv_direction;
+
+    t.z = (direction.z > 0.0) ? t.z : FFX_SSSR_FLOAT_MAX;
+
+    float t_min = min(min(t.x, t.y), t.z);
+
+    bool above_surface = surface_z > position.z;
+
+    bool skipped_tile = t_min != t.z && above_surface;
+
+    current_t = above_surface ? t_min : current_t;
+
+    position = origin + (direction * current_t);
+
+    return skipped_tile;
+}
+
+vec3 HierarchicalRaymarch(vec3 origin, vec3 direction, bool is_mirror, vec2 screen_size, out bool valid_hit)
+{
+    int most_detailed_mip = is_mirror ? 0 : int(g_most_detailed_mip);
+
+    vec3 inv_direction = mix(1.0 / direction, vec3(FFX_SSSR_FLOAT_MAX), equal(direction,vec3(0.0)));
+
+    int current_mip = most_detailed_mip;
+
+    vec2 current_mip_resolution = GetMipResolution(screen_size, current_mip);
+    vec2 current_mip_resolution_inv = 1.0 / current_mip_resolution;
+
+    vec2 uv_offset = 0.005 * exp2(most_detailed_mip) / screen_size;
+    uv_offset = mix(uv_offset, -uv_offset, lessThan(direction.xy, vec2(0.0)));
+
+    vec2 floor_offset = mix(vec2(1), vec2(0), lessThan(direction.xy, vec2(0.0)));
+
+    vec3 position;
+    float current_t;
+    InitialAdvanceRay(origin, direction, inv_direction, current_mip_resolution, current_mip_resolution_inv, floor_offset, uv_offset, position, current_t);
+
+    uint min_traversal_occupancy = g_min_traversal_occupancy;
+    uint max_traversal_intersections = g_max_traversal_intersections;
+
+    bool exit_due_to_low_occupancy = false;
+    int i = 0;
+    while (i < max_traversal_intersections && current_mip >= most_detailed_mip && !exit_due_to_low_occupancy)
+    {
+        vec2 current_mip_position = current_mip_resolution * position.xy;
+        float surface_z = LoadDepth(current_mip_position, current_mip);
+        bool skipped_tile = AdvanceRay(origin, direction, inv_direction, current_mip_position, current_mip_resolution_inv, floor_offset, uv_offset, surface_z, position, current_t);
+        current_mip += skipped_tile ? 1 : -1;
+        current_mip_resolution *= skipped_tile ? 0.5 : 2.0;
+        current_mip_resolution_inv *= skipped_tile ? 2.0 : 0.5;
+        ++i;
+
+        exit_due_to_low_occupancy = !is_mirror && subgroupBallotBitCount(subgroupBallot(true)) <= min_traversal_occupancy;
+    }
+
+    valid_hit = i < max_traversal_intersections;
+
+    return position;
+}
+
+float ValidateHit(vec3 hit, Ray reflected_ray, vec3 world_space_ray_direction, vec2 screen_size)
+{
+    if (any(lessThan(hit.xy, vec2(0.0))) || any(greaterThan(hit.xy, vec2(1.0))))
+    {
+        return 0.0;
+    }
+
+    ivec2 texel_coords = ivec2(screen_size * hit.xy);
+    float surface_z = LoadDepth(texel_coords / 2, 1);
+    if (surface_z == 1.0)
+    {
+        return 0.0;
+    }
+
+    vec3 hit_normal = LoadNormal(texel_coords, g_normal);
+    if (dot(hit_normal, world_space_ray_direction) > 0.0)
+    {
+        return 0.0;
+    }
+
+    vec3 view_space_surface = CreateViewSpaceRay(vec3(hit.xy, surface_z)).origin;
+    vec3 view_space_hit = CreateViewSpaceRay(hit).origin;
+    float _distance = length(view_space_surface - view_space_hit);
+
+    vec2 fov = vec2(screen_size.y / screen_size.x, 1.0) * 0.05;
+    vec2 border = smoothstep(vec2(0.0), fov, hit.xy) * (1.0 - smoothstep(1.0 - fov, vec2(1.0), hit.xy));
+    float vignette = border.x * border.y;
+
+    float confidence = 1.0 - smoothstep(0.0, g_depth_buffer_thickness, _distance);
+    confidence *= confidence;
+
+    return vignette * confidence;
+}
+
+void Intersect(ivec2 did)
+{
+    uvec2 screen_size = imageSize(g_intersection_result);
+
+    uint skip_denoiser = g_skip_denoiser;
+
+    vec2 uv = (did + 0.5) / screen_size;
+    vec3 world_space_normal = LoadNormal(did, g_normal);
+    float roughness = LoadRoughness(did, g_roughness);
+    bool is_mirror = IsMirrorReflection(roughness);
+
+    int most_detailed_mip = int(is_mirror ? 0u : g_most_detailed_mip);
+    vec2 mip_resolution = GetMipResolution(screen_size, most_detailed_mip);
+    float z = LoadDepth(uv * mip_resolution, most_detailed_mip);
+
+    Ray screen_space_ray;
+    screen_space_ray.origin = vec3(uv, z);
+
+    Ray view_space_ray = CreateViewSpaceRay(screen_space_ray.origin);
+
+    vec3 view_space_surface_normal = (g_view * vec4(normalize(world_space_normal), 0.0)).xyz;
+    vec3 view_space_reflected_direction = SampleReflectionVector(view_space_ray.direction, view_space_surface_normal, roughness, did);
+    screen_space_ray.direction = ProjectDirection(view_space_ray.origin, view_space_reflected_direction, screen_space_ray.origin, g_proj);
+
+    bool valid_hit;
+    vec3 hit = HierarchicalRaymarch(screen_space_ray.origin, screen_space_ray.direction, is_mirror, screen_size, valid_hit);
+    vec3 world_space_reflected_direction = (g_inv_view * vec4(view_space_reflected_direction, 0.0)).xyz;
+    float confidence = valid_hit ? ValidateHit(hit, screen_space_ray, world_space_reflected_direction, screen_size) : 0.0;
+
+    vec3 world_space_origin = InvProjectPosition(screen_space_ray.origin, g_inv_view_proj);
+    vec3 world_space_hit = InvProjectPosition(hit, g_inv_view_proj);
+    vec3 world_space_ray = world_space_hit - world_space_origin;
+
+    vec3 reflection_radiance = vec3(0.0);
+    if (confidence > 0.0)
+    {
+        reflection_radiance = FfxSssrUnpackSceneRadiance(texelFetch(g_lit_scene, ivec2(screen_size * hit.xy), 0));
+    }
+
+    vec3 environment_lookup = textureLod(samplerCube(g_environment_map, g_environment_map_sampler), world_space_reflected_direction, 0.0).xyz;
+    reflection_radiance *= confidence;
+    imageStore(g_intersection_result, did, vec4(reflection_radiance, 1.0));
+    imageStore(g_ray_lengths, did, vec4(length(world_space_ray)));
+    ivec2 idx = is_mirror || (skip_denoiser != 0u) ? did : ivec2(-1);
+    imageStore(g_denoised_reflections, idx, vec4(reflection_radiance, 1.0));
+}
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+void main()
+{
+    uint ray_index = (gl_WorkGroupID.x * 64u) + gl_LocalInvocationIndex;
+    uint packed_coords = g_ray_list_Data[ray_index];
+    uvec2 coords = Unpack(packed_coords);
+    Intersect(ivec2(coords));
+}

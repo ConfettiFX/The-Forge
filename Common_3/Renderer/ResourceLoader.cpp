@@ -78,6 +78,7 @@ extern void unmapBuffer(Renderer* pRenderer, Buffer* pBuffer);
 extern void addTexture(Renderer* pRenderer, const TextureDesc* pDesc, Texture** pp_texture);
 extern void addVirtualTexture(Cmd* pCmd, const TextureDesc* pDesc, Texture** ppTexture, void* pImageData);
 extern void removeTexture(Renderer* pRenderer, Texture* p_texture);
+
 extern void cmdUpdateBuffer(Cmd* pCmd, Buffer* pBuffer, uint64_t dstOffset, Buffer* pSrcBuffer, uint64_t srcOffset, uint64_t size);
 extern void cmdUpdateSubresource(Cmd* pCmd, Texture* pTexture, Buffer* pSrcBuffer, const struct SubresourceDataDesc* pSubresourceDesc);
 /************************************************************************/
@@ -110,17 +111,17 @@ static inline ResourceState util_determine_resource_start_state(bool uav)
 		return RESOURCE_STATE_SHADER_RESOURCE;
 }
 
-static inline ResourceState util_determine_resource_start_state(const Buffer* pBuffer)
+static inline ResourceState util_determine_resource_start_state(const BufferDesc* pDesc)
 {
 	// Host visible (Upload Heap)
-	if (pBuffer->mMemoryUsage == RESOURCE_MEMORY_USAGE_CPU_ONLY || pBuffer->mMemoryUsage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU)
+	if (pDesc->mMemoryUsage == RESOURCE_MEMORY_USAGE_CPU_ONLY || pDesc->mMemoryUsage == RESOURCE_MEMORY_USAGE_CPU_TO_GPU)
 	{
 		return RESOURCE_STATE_GENERIC_READ;
 	}
 	// Device Local (Default Heap)
-	else if (pBuffer->mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY)
+	else if (pDesc->mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY)
 	{
-		DescriptorType usage = (DescriptorType)pBuffer->mDescriptors;
+		DescriptorType usage = (DescriptorType)pDesc->mDescriptors;
 
 		// Try to limit number of states used overall to avoid sync complexities
 		if (usage & DESCRIPTOR_TYPE_RW_BUFFER)
@@ -659,7 +660,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
 		texUpdateDesc.mBaseArrayLayer, texUpdateDesc.mLayerCount);
 
 #if defined(VULKAN)
-	TextureBarrier barrier = { texture, RESOURCE_STATE_COPY_DEST };
+	TextureBarrier barrier = { texture, RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_COPY_DEST };
 	cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
 #endif
 
@@ -766,7 +767,7 @@ static UploadFunctionResult updateTexture(Renderer* pRenderer, CopyEngine* pCopy
 	}
 
 #if defined(VULKAN)
-	barrier = { texture, RESOURCE_STATE_SHADER_RESOURCE };
+	barrier = { texture, RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE };
 	cmdResourceBarrier(cmd, 0, NULL, 1, &barrier, 0, NULL);
 #endif
 
@@ -922,7 +923,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 					void* data = tf_malloc(dataSize);
 					fsReadFromStream(&stream, data, dataSize);
 
-					textureDesc.mStartState = RESOURCE_STATE_COMMON;
+					textureDesc.mStartState = RESOURCE_STATE_COPY_DEST;
 					textureDesc.mFlags |= pTextureDesc->mCreationFlag;
 					textureDesc.mNodeIndex = pTextureDesc->mNodeIndex;
 					addVirtualTexture(acquireCmd(pCopyEngine, activeSet), &textureDesc, pTextureDesc->ppTexture, data);
@@ -940,6 +941,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 					visDesc.mDesc.mStructStride = sizeof(uint);
 					visDesc.mDesc.mElementCount = (uint64_t)pPageTable->size();
 					visDesc.mDesc.mSize = visDesc.mDesc.mStructStride * visDesc.mDesc.mElementCount;
+					visDesc.mDesc.mStartState = RESOURCE_STATE_COMMON;
 					visDesc.mDesc.pName = "Vis Buffer for Sparse Texture";
 					visDesc.ppBuffer = &(*pTextureDesc->ppTexture)->pSvt->mVisibility;
 					addResource(&visDesc, NULL);
@@ -950,6 +952,7 @@ static UploadFunctionResult loadTexture(Renderer* pRenderer, CopyEngine* pCopyEn
 					prevVisDesc.mDesc.mStructStride = sizeof(uint);
 					prevVisDesc.mDesc.mElementCount = (uint64_t)pPageTable->size();
 					prevVisDesc.mDesc.mSize = prevVisDesc.mDesc.mStructStride * prevVisDesc.mDesc.mElementCount;
+					prevVisDesc.mDesc.mStartState = RESOURCE_STATE_COMMON;
 					prevVisDesc.mDesc.pName = "Prev Vis Buffer for Sparse Texture";
 					prevVisDesc.ppBuffer = &(*pTextureDesc->ppTexture)->pSvt->mPrevVisibility;
 					addResource(&prevVisDesc, NULL);
@@ -1029,16 +1032,6 @@ static UploadFunctionResult updateBuffer(Renderer* pRenderer, CopyEngine* pCopyE
 
 	MappedMemoryRange range = bufUpdateDesc.mInternal.mMappedRange;
 	cmdUpdateBuffer(pCmd, pBuffer, bufUpdateDesc.mDstOffset, range.pBuffer, range.mOffset, range.mSize);
-
-	ResourceState state = util_determine_resource_start_state(pBuffer);
-#if defined(XBOX)
-	// Xbox One needs explicit resource transitions
-	BufferBarrier bufferBarriers[] = { { pBuffer, state } };
-	cmdResourceBarrier(pCmd, 1, bufferBarriers, 0, NULL, 0, NULL);
-#else
-	// Resource will automatically transition so just set the next state without a barrier
-	pBuffer->mCurrentState = state;
-#endif
 
 	return UPLOAD_FUNCTION_RESULT_COMPLETED;
 }
@@ -1765,7 +1758,7 @@ static void queueBufferBarrier(ResourceLoader* pLoader, Buffer* pBuffer, Resourc
 
 	SyncToken t = tfrg_atomic64_add_relaxed(&pLoader->mTokenCounter, 1) + 1;
 
-	pLoader->mRequestQueue[nodeIndex].emplace_back(UpdateRequest{ BufferBarrier{ pBuffer, state } });
+	pLoader->mRequestQueue[nodeIndex].emplace_back(UpdateRequest{ BufferBarrier{ pBuffer, RESOURCE_STATE_UNDEFINED, state } });
 	pLoader->mRequestQueue[nodeIndex].back().mWaitIndex = t;
 	pLoader->mQueueMutex.Release();
 	pLoader->mQueueCond.WakeOne();
@@ -1779,7 +1772,7 @@ static void queueTextureBarrier(ResourceLoader* pLoader, Texture* pTexture, Reso
 
 	SyncToken t = tfrg_atomic64_add_relaxed(&pLoader->mTokenCounter, 1) + 1;
 
-	pLoader->mRequestQueue[nodeIndex].emplace_back(UpdateRequest{ TextureBarrier{ pTexture, state } });
+	pLoader->mRequestQueue[nodeIndex].emplace_back(UpdateRequest{ TextureBarrier{ pTexture, RESOURCE_STATE_UNDEFINED, state } });
 	pLoader->mRequestQueue[nodeIndex].back().mWaitIndex = t;
 	pLoader->mQueueMutex.Release();
 	pLoader->mQueueCond.WakeOne();
@@ -1817,9 +1810,15 @@ void exitResourceLoaderInterface(Renderer* pRenderer)
 void addResource(BufferLoadDesc* pBufferDesc, SyncToken* token)
 {
 	uint64_t stagingBufferSize = pResourceLoader->pCopyEngines[0].bufferSize;
-	ASSERT(stagingBufferSize > 0);
-
 	bool update = pBufferDesc->pData || pBufferDesc->mForceReset;
+
+	ASSERT(stagingBufferSize > 0);
+	if (RESOURCE_MEMORY_USAGE_GPU_ONLY == pBufferDesc->mDesc.mMemoryUsage && !pBufferDesc->mDesc.mStartState && !update)
+	{
+		pBufferDesc->mDesc.mStartState = util_determine_resource_start_state(&pBufferDesc->mDesc);
+		LOGF(eWARNING, "Buffer start state not provided. Determined the start state as (%u) based on the provided BufferDesc",
+			(uint32_t)pBufferDesc->mDesc.mStartState);
+	}
 
 	if (pBufferDesc->mDesc.mMemoryUsage == RESOURCE_MEMORY_USAGE_GPU_ONLY && update)
 	{
@@ -1889,6 +1888,8 @@ void addResource(TextureLoadDesc* pTextureDesc, SyncToken* token)
 
 	if (!pTextureDesc->pFileName && pTextureDesc->pDesc)
 	{
+		ASSERT(pTextureDesc->pDesc->mStartState);
+
 		// If texture is supposed to be filled later (UAV / Update later / ...) proceed with the mStartState provided by the user in the texture description
 		addTexture(pResourceLoader->pRenderer, pTextureDesc->pDesc, pTextureDesc->ppTexture);
 
@@ -1922,14 +1923,14 @@ void addResource(GeometryLoadDesc* pDesc, SyncToken* token)
 	queueGeometryLoad(pResourceLoader, &updateDesc, token);
 }
 
-void removeResource(Texture* pTexture)
-{
-	removeTexture(pResourceLoader->pRenderer, pTexture);
-}
-
 void removeResource(Buffer* pBuffer)
 {
 	removeBuffer(pResourceLoader->pRenderer, pBuffer);
+}
+
+void removeResource(Texture* pTexture)
+{
+	removeTexture(pResourceLoader->pRenderer, pTexture);
 }
 
 void removeResource(Geometry* pGeom)
@@ -2503,7 +2504,7 @@ bool check_for_byte_code(Renderer* pRenderer, const char* binaryShaderPath, time
 	// If source code is loaded from a package, its timestamp will be zero. Else check that binary is not older
 	// than source
 	time_t dstTimeStamp = fsGetLastModifiedTime(RD_SHADER_BINARIES, binaryShaderPath);
-	if (sourceTimeStamp && dstTimeStamp < sourceTimeStamp)
+	if (!sourceTimeStamp || (dstTimeStamp < sourceTimeStamp))
 		return false;
 
 	FileStream fh = {};

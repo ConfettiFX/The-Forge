@@ -24,6 +24,9 @@
 
 #include "AssetPipeline.h"
 
+// Math
+#include "../../../ThirdParty/OpenSource/ModifiedSonyMath/vectormath.hpp"
+
 // Tiny stl
 #include "../../../ThirdParty/OpenSource/EASTL/string.h"
 #include "../../../ThirdParty/OpenSource/EASTL/vector.h"
@@ -735,6 +738,21 @@ static uint32_t FindJoint(ozz::animation::Skeleton* skeleton, const char* name)
 	return UINT_MAX;
 }
 
+static bool isTrsDecomposable(Matrix4 matrix) {
+	if (matrix.getCol0().getW() != 0.0 ||
+		matrix.getCol1().getW() != 0.0 ||
+		matrix.getCol2().getW() != 0.0 ||
+		matrix.getCol3().getW() != 1.0) {
+		return false;
+	}
+
+	if (determinant(matrix) == 0.0) {
+		return false;
+	}
+
+	return true;
+}
+
 bool AssetPipeline::CreateRuntimeSkeleton(
 	const char* skeletonAsset, const char* skeletonName, const char* skeletonOutput, ozz::animation::Skeleton* skeleton,
 	ProcessAssetsSettings* settings)
@@ -756,7 +774,8 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 	// Gather node info
 	// Used to mark nodes that should be included in the skeleton
 	eastl::vector<NodeInfo> nodeData(1);
-	nodeData[0] = { data->nodes[0].name, -1, {}, false, &data->nodes[0] };
+	size_t startIndex = data->nodes_count - 1;
+	nodeData[0] = { data->nodes[startIndex].name, -1, {}, false, &data->nodes[startIndex] };
 
 	const int queueSize = 128;
 	int       nodeQueue[queueSize] = {};    // Simple queue because tinystl doesn't have one
@@ -837,9 +856,45 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 
 		// Create joint from node
 		ozz::animation::offline::RawSkeleton::Joint joint;
-		joint.transform.translation = vec3(node->translation[0], node->translation[1], node->translation[2]);
-		joint.transform.rotation = Quat(node->rotation[0], node->rotation[1], node->rotation[2], node->rotation[3]);
-		joint.transform.scale = vec3(node->scale[0], node->scale[1], node->scale[2]) * (boneInfo.mParentNodeIndex == -1 ? 0.01f : 1.f);
+
+		if (!node->has_matrix)
+		{
+			joint.transform.translation = vec3(node->translation[0], node->translation[1], node->translation[2]);
+			joint.transform.rotation = Quat(node->rotation[0], node->rotation[1], node->rotation[2], node->rotation[3]);
+			joint.transform.scale = vec3(node->scale[0], node->scale[1], node->scale[2]);// *(boneInfo.mParentNodeIndex == -1 ? 0.01f : 1.f);
+		}
+		else
+		{
+			// Matrix Decomposition
+			Matrix4 mat;
+			mat.setCol0(vec4(node->matrix[0], node->matrix[1], node->matrix[2], node->matrix[3]));
+			mat.setCol1(vec4(node->matrix[4], node->matrix[5], node->matrix[6], node->matrix[7]));
+			mat.setCol2(vec4(node->matrix[8], node->matrix[9], node->matrix[10], node->matrix[11]));
+			mat.setCol3(vec4(node->matrix[12], node->matrix[13], node->matrix[14], node->matrix[15]));
+
+			if (isTrsDecomposable(mat))
+			{
+				// extract translation
+				joint.transform.translation = mat.getTranslation();
+
+				// extract the scaling factors from columns of the matrix
+				Matrix3 upperMat = mat.getUpper3x3();
+				vec3 pScaling = vec3(length(upperMat.getCol0()), length(upperMat.getCol1()), length(upperMat.getCol2()));
+
+				// and the sign of the scaling 
+				if (determinant(mat) < 0) pScaling = -pScaling;
+				joint.transform.scale = pScaling;//*(boneInfo.mParentNodeIndex == -1 ? 0.01f : 1.f);
+
+				// and remove all scaling from the matrix 
+				if (pScaling.getX()) upperMat.setCol0(upperMat.getCol0() / pScaling.getX());
+				if (pScaling.getY()) upperMat.setCol1(upperMat.getCol1() / pScaling.getY());
+				if (pScaling.getZ()) upperMat.setCol2(upperMat.getCol2() / pScaling.getZ());
+
+				// and generate the rotation quaternion from it
+				joint.transform.rotation = Quat(upperMat);
+			}
+		}
+
 		joint.name = nodeInfo->mName.c_str();
 
 		// Add node to raw skeleton
@@ -934,10 +989,13 @@ bool AssetPipeline::CreateRuntimeSkeleton(
 				{
 					const cgltf_node* jointNode = skin->joints[j];
 					uint32_t jointIndex = FindJoint(skeleton, jointNode->name);
-					offset += sprintf(jointRemaps + offset, "%u, ", jointIndex);
+					if (j == 0)
+						offset += sprintf(jointRemaps + offset, "%u", jointIndex);
+					else
+						offset += sprintf(jointRemaps + offset, ", %u", jointIndex);
 				}
 
-				offset += sprintf(jointRemaps + offset, "],");
+				offset += sprintf(jointRemaps + offset, " ]");
 				skin->extras.start_offset = size;
 				size += (uint32_t)strlen(jointRemaps) + 1;
 				skin->extras.end_offset = size - 1;
@@ -1061,23 +1119,6 @@ bool AssetPipeline::CreateRuntimeAnimation(
 					}
 				}
 			}
-		}
-
-		if (!rootFound)
-		{
-			// Scale root of animation from centimeters to meters
-			if (track->scales.empty())
-			{
-				track->scales.resize(1, { 0.f, Vector3(1.0f) });
-			}
-
-			for (uint j = 0; j < (uint)track->translations.size(); ++j)
-				track->translations[j].value *= 0.01f;
-
-			for (uint j = 0; j < track->scales.size(); ++j)
-				track->scales[j].value *= 0.01f;
-
-			rootFound = true;
 		}
 
 		if (!track->translations.empty())

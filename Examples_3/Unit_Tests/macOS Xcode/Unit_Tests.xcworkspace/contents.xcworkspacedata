@@ -35,7 +35,7 @@
          location = "group:09a_HybridRaytracing/09a_HybridRaytracing.xcodeproj">
       </FileRef>
       <FileRef
-         location = "group:10_PixelProjectedReflections/10_PixelProjectedReflections.xcodeproj">
+         location = "group:10_ScreeSpaceReflections/10_ScreenSpaceReflections.xcodeproj">
       </FileRef>
       <FileRef
          location = "group:12_ZipFileSystem/12_ZipFileSystem.xcodeproj">

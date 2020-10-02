@@ -400,7 +400,7 @@ PROFILE_API uint32_t ProfileContextSwitchGatherThreads(uint32_t nContextSwitchSt
 
 PROFILE_API const char* ProfileGetProcessName(ProfileProcessIdType nId, char* Buffer, uint32_t nSize);
 
-PROFILE_API void ProfileDumpFile(const Path* pPath, ProfileDumpType eType, uint32_t nFrames);
+PROFILE_API void ProfileDumpFile(const char* pPath, ProfileDumpType eType, uint32_t nFrames);
 
 typedef void ProfileWriteCallback(void* Handle, size_t size, const char* pData);
 PROFILE_API void ProfileDumpHtml(ProfileWriteCallback CB, void* Handle, int nMaxFrames, const char* pHost, Renderer* pRenderer);

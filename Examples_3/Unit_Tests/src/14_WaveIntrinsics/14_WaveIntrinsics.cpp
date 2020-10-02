@@ -528,8 +528,8 @@ class WaveIntrinsics: public IApp
 		beginCmd(cmd);
 
 		RenderTargetBarrier rtBarrier[] = {
-			{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
-			{ pScreenRenderTarget, RESOURCE_STATE_RENDER_TARGET },
+			{ pRenderTarget, RESOURCE_STATE_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+			{ pScreenRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
 		};
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, rtBarrier);
 
@@ -554,7 +554,7 @@ class WaveIntrinsics: public IApp
 		// magnify
 		cmdBeginDebugMarker(cmd, 1, 0, 1, "Magnify");
 		RenderTargetBarrier srvBarrier[] = {
-			{ pRenderTarget, RESOURCE_STATE_SHADER_RESOURCE },
+			{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PIXEL_SHADER_RESOURCE },
 		};
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, srvBarrier);
 
@@ -582,7 +582,7 @@ class WaveIntrinsics: public IApp
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 		cmdEndDebugMarker(cmd);
 
-		RenderTargetBarrier presentBarrier = { pScreenRenderTarget, RESOURCE_STATE_PRESENT };
+		RenderTargetBarrier presentBarrier = { pScreenRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &presentBarrier);
 		endCmd(cmd);
 
@@ -633,6 +633,7 @@ class WaveIntrinsics: public IApp
 		rtDesc.mDepth = 1;
 		rtDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		rtDesc.mFormat = getRecommendedSwapchainFormat(true);
+		rtDesc.mStartState = RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 		rtDesc.mHeight = mSettings.mHeight;
 		rtDesc.mSampleCount = SAMPLE_COUNT_1;
 		rtDesc.mSampleQuality = 0;

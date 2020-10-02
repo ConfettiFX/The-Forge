@@ -289,6 +289,8 @@ constexpr uint32_t gImageCount = 3;
 const char* gSceneName = "SanMiguel.gltf";
 
 
+static bool shouldExitSDFGeneration = false;
+
 /************************************************************************/
 // Render targets
 /************************************************************************/
@@ -552,7 +554,7 @@ Buffer* pBufferSDFVolumeData[gImageCount] = { NULL };
 /************************************************************************/
 
 RenderTarget* pRenderTargetSDFMeshVisualization = NULL;
-Texture* pRenderTargetSDFMeshShadow = NULL;
+Texture* pTextureSDFMeshShadow = NULL;
 
 RenderTarget* pRenderTargetUpSampleSDFShadow = NULL;
 
@@ -578,8 +580,8 @@ eastl::vector<Texture*> gSpecularMapsPacked;
 /************************************************************************/
 struct
 {
-	uint32 mFilterWidth = 2U;
-	float mEsmControl = 100.f;
+	uint32_t mFilterWidth = 2U;
+	float    mEsmControl = 100.f;
 } gEsmCpuSettings;
 
 struct
@@ -716,7 +718,8 @@ struct Ray
 	Ray(const vec3& startPos,
 		const vec3& dir)
 		:startPos(startPos),
-		dir(dir)
+		dir(dir),
+		invDir(vec3(1.f / dir.getX(), 1.f / dir.getY(), 1.f / dir.getZ()))
 	{
 	}
 
@@ -725,13 +728,9 @@ struct Ray
 		return startPos + (dir * t);
 	}
 
-	vec3 GetInvDir() const
-	{
-		return vec3(1.f / dir.getX(), 1.f / dir.getY(), 1.f / dir.getZ());
-	}
-
 	vec3 startPos;
 	vec3 dir;
+	vec3 invDir;
 };
 
 
@@ -979,7 +978,7 @@ void BVHTreeIntersectRayAux(BVHNode* rootNode, BVHNode* node,
 
 	if (node->BoundingBox.InstanceID < 0.f)
 	{
-		bool intersects = RayIntersectsBox(ray.startPos, ray.GetInvDir(),
+		bool intersects = RayIntersectsBox(ray.startPos, ray.invDir,
 			node->BoundingBox.mAABB.minBounds, node->BoundingBox.mAABB.maxBounds);
 
 		if (intersects)
@@ -1632,13 +1631,13 @@ void DoCalculateMeshSDFTask(void* dataPtr, uintptr_t index)
 			vec3 voxelPos = vec3(offsettedIndex.getX() * sdfVoxelSize.getX(),
 				offsettedIndex.getY() * sdfVoxelSize.getY(), offsettedIndex.getZ() * sdfVoxelSize.getZ()) + sdfVolumeBounds.minBounds;
 
-			int32 outIndex = (zIndex * sdfVolumeDimension.getY() *
+			int32_t outIndex = (zIndex * sdfVolumeDimension.getY() *
 				sdfVolumeDimension.getX() + yIndex * sdfVolumeDimension.getX() + xIndex);
 
 
 			float minDistance = sdfVolumeMaxDist;
-			int32 hit = 0;
-			int32 hitBack = 0;
+			int32_t hit = 0;
+			int32_t hitBack = 0;
 
 			for (int32_t sampleIndex = 0; sampleIndex < directionsList.size(); ++sampleIndex)
 			{
@@ -1649,7 +1648,7 @@ void DoCalculateMeshSDFTask(void* dataPtr, uintptr_t index)
 
 			
 				bool intersectWithBbox = RayIntersectsBox(newRay.startPos, 
-					newRay.GetInvDir(), sdfVolumeBounds.minBounds, sdfVolumeBounds.maxBounds);
+					newRay.invDir, sdfVolumeBounds.minBounds, sdfVolumeBounds.maxBounds);
 
 				//if we pass the cheap bbox testing
 				if (intersectWithBbox)
@@ -1750,7 +1749,7 @@ bool GenerateVolumeDataFromFile(SDFVolumeData** outVolumeDataPP, const eastl::st
 	outVolumeData.mTwoSidedWorldSpaceBias = twoSidedWorldSpaceBias;
 	/*
 	only uses the minimum & maximum of SDF if we ever want to quantized the SDF data
-	for (int32 index = 0; index < outVolumeData.mSDFVolumeList.size(); ++index)
+	for (int32_t index = 0; index < outVolumeData.mSDFVolumeList.size(); ++index)
 	{
 		const float volumeSpaceDist = outVolumeData.mSDFVolumeList[index];
 		outVolumeData.mDistMinMax.setX(fmin(volumeSpaceDist, outVolumeData.mDistMinMax.getX()));
@@ -1767,10 +1766,13 @@ void GenerateVolumeDataFromMesh(ThreadSystem* threadSystem, SDFMesh* mainMesh, S
 	const eastl::string& subMeshName, float twoSidedWorldSpaceBias = 0.4f,
 	const ivec3& specialMaxVoxelValue = ivec3(0))
 {
+	if (shouldExitSDFGeneration) return;
+	
 	if (GenerateVolumeDataFromFile(outVolumeDataPP, subMeshName, twoSidedWorldSpaceBias))
 	{
 		return;
 	}
+
 
 	LOGF(LogLevel::eINFO, "Generating SDF binary data for %s", subMeshName.c_str());
 
@@ -1865,7 +1867,7 @@ void GenerateVolumeDataFromMesh(ThreadSystem* threadSystem, SDFMesh* mainMesh, S
 	SDFVolumeData::SampleDirectionsList sampleDirectionsList;
 
 	int32_t thetaStep = (int32_t)floor((sqrt((float)numVoxelDistanceSample / (PI * 2.f))));
-	int32 phiStep = (int32_t)floor((float)thetaStep * PI);
+	int32_t phiStep = (int32_t)floor((float)thetaStep * PI);
 
 
 	sampleDirectionsList.reserve(thetaStep * phiStep * 2);
@@ -1888,11 +1890,15 @@ void GenerateVolumeDataFromMesh(ThreadSystem* threadSystem, SDFMesh* mainMesh, S
 
 	for (int32_t zIndex = 0; zIndex < finalSDFVolumeDimension.getZ(); ++zIndex)
 	{
+		if (shouldExitSDFGeneration) break;
+
 		calculateMeshSDFTask.mZIndex = zIndex;
 		DoCalculateMeshSDFTask(&calculateMeshSDFTask, 0);
 	}
 
 	DeleteBVHTree(bvhTree.mRootNode);
+
+	if (shouldExitSDFGeneration) return;
 
 	FileStream portDataFile = {};
 	fsOpenStreamFromPath(RD_OTHER_FILES, subMeshName.c_str(), FM_WRITE_BINARY, &portDataFile);
@@ -1916,7 +1922,7 @@ void GenerateVolumeDataFromMesh(ThreadSystem* threadSystem, SDFMesh* mainMesh, S
 
 	//we can probably move the calculation of the minimum & maximum distance of the SDF value
 	//into the CalculateMeshSDFValue function
-	for (int32 index = 0; index < outVolumeData.mSDFVolumeList.size(); ++index)
+	for (int32_t index = 0; index < outVolumeData.mSDFVolumeList.size(); ++index)
 	{
 		const float volumeSpaceDist = outVolumeData.mSDFVolumeList[index];
 		minVolumeDist = fmin(volumeSpaceDist, minVolumeDist);
@@ -2721,13 +2727,12 @@ public:
 			}
 
 #if defined(XBOX)
-			//On Xbox somehow the texture is initialized with garbage value, so texture that isn't cleared every frame
+			//On Xbox the texture is initialized with garbage value, so texture that isn't cleared every frame
 			//needs to be cleared at the begininng for xbox.
 			if (mDEMFirstTimeRender)
 			{
-				RenderTargetBarrier demRenderTargetBarrier[] = { {pRenderTargetASMDEMAtlas, RESOURCE_STATE_RENDER_TARGET} };
+				RenderTargetBarrier demRenderTargetBarrier[] = { {pRenderTargetASMDEMAtlas, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET} };
 				cmdResourceBarrier(pCurCmd, 0, NULL, 0, NULL, 1, demRenderTargetBarrier);
-
 
 				LoadActionsDesc clearDEMLoadActions = {};
 				clearDEMLoadActions.mClearColorValues[0] = pRenderTargetASMDEMAtlas->mClearValue;
@@ -2746,8 +2751,8 @@ public:
 			cmdBeginGpuTimestampQuery(pCurCmd, gGpuProfileToken, "DEM Atlas To Color");
 
 			RenderTargetBarrier asmAtlasToColorBarrier[] = {
-				{  demWorkBufferColor, RESOURCE_STATE_RENDER_TARGET },
-				{ pRenderTargetASMDEMAtlas, RESOURCE_STATE_SHADER_RESOURCE} };
+				{ demWorkBufferColor, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+				{ pRenderTargetASMDEMAtlas, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE } };
 
 			cmdResourceBarrier(pCurCmd, 0, NULL, 0, NULL, 2, asmAtlasToColorBarrier);
 
@@ -2793,10 +2798,9 @@ public:
 			colorToAtlasLoadAction.mLoadActionStencil = LOAD_ACTION_DONTCARE;
 			colorToAtlasLoadAction.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 
-
 			RenderTargetBarrier asmColorToAtlasBarriers[] = {
-				{  demWorkBufferColor, RESOURCE_STATE_SHADER_RESOURCE },
-				{ pRenderTargetASMDEMAtlas, RESOURCE_STATE_RENDER_TARGET} };
+				{  demWorkBufferColor, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pRenderTargetASMDEMAtlas, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET} };
 
 			cmdResourceBarrier(pCurCmd, 0, NULL, 0, NULL, 2, asmColorToAtlasBarriers);
 
@@ -4014,11 +4018,6 @@ private:
 		uint32_t firstQuad = 0;
 		uint32_t numQuads = 0;
 
-		RenderTargetBarrier* targetBarriers = (RenderTargetBarrier*)alloca((m_cfg.m_maxRefinement + 1) * sizeof(RenderTargetBarrier));
-		for (int32_t mip = m_cfg.m_maxRefinement; mip >= 0; --mip)
-			targetBarriers[mip] = { m_indirectionTexturesMips[mip], RESOURCE_STATE_RENDER_TARGET };
-		cmdResourceBarrier(curRendererContext->m_pCmd, 0, NULL, 0, NULL, m_cfg.m_maxRefinement + 1, targetBarriers);
-
 		for (int32_t mip = m_cfg.m_maxRefinement; mip >= 0; --mip)
 		{
 			numQuads += m_quadsCnt[mip];
@@ -4063,7 +4062,7 @@ private:
 
 		
 		RenderTargetBarrier lodBarrier[] = {
-			{lodClampTexture, RESOURCE_STATE_RENDER_TARGET} };
+			{lodClampTexture, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET} };
 
 		cmdResourceBarrier(pCurCmd, 0, NULL, 0, NULL, 1, lodBarrier);
 
@@ -4095,8 +4094,6 @@ private:
 	bool mFirstTimeRender;
 #endif
 };
-
-
 
 void ASMTileCache::RenderTiles(
 	uint32_t numTiles,
@@ -4143,11 +4140,10 @@ void ASMTileCache::RenderTiles(
 
 		if (tilesToRender > 0)
 		{
-			RenderTargetBarrier textureBarriers[] = { {
-					workBufferDepth, RESOURCE_STATE_DEPTH_WRITE} };
-
-			BufferBarrier bufferBarriers[] = { {pGeom->pVertexBuffers[0], RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER} };
-			cmdResourceBarrier(pCurCmd, 1, bufferBarriers, 0, NULL, 1, textureBarriers);
+			RenderTargetBarrier textureBarriers[] = {
+				{ workBufferDepth, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE }
+			};
+			cmdResourceBarrier(pCurCmd, 0, NULL, 0, NULL, 1, textureBarriers);
 
 			setRenderTarget(context.m_pRendererContext->m_pCmd, 0, NULL,
 				workBufferDepth, &loadActions, vec2(0.f, 0.f), vec2((float)workBufferDepth->mWidth, (float)workBufferDepth->mHeight));
@@ -4205,8 +4201,8 @@ void ASMTileCache::RenderTiles(
 		cmdBindRenderTargets(curRendererContext->m_pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 		RenderTargetBarrier copyDepthBarrier[] = {
-			{ pRenderTargetASMDepthAtlas, RESOURCE_STATE_RENDER_TARGET },
-			{ workBufferDepth, RESOURCE_STATE_SHADER_RESOURCE }
+			{ pRenderTargetASMDepthAtlas, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
+			{ workBufferDepth, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE }
 		};
 
 		cmdResourceBarrier(pCurCmd, 0, NULL, 0, NULL, 2, copyDepthBarrier);
@@ -4259,16 +4255,15 @@ void ASMTileCache::RenderTiles(
 		i += tilesToRender;
 
 		cmdBindRenderTargets(curRendererContext->m_pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-}
+	}
+
+	RenderTargetBarrier asmCopyDEMBarrier[] = {
+		{ pRenderTargetASMDepthAtlas, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE }
+	};
+	cmdResourceBarrier(pCurCmd, 0, NULL, 0, NULL, 1, asmCopyDEMBarrier);
 
 	if (numCopyDEMQuads > 0)
 	{
-
-		RenderTargetBarrier asmCopyDEMBarrier[] = { {  pRenderTargetASMDEMAtlas, RESOURCE_STATE_RENDER_TARGET},
-		{pRenderTargetASMDepthAtlas, RESOURCE_STATE_SHADER_RESOURCE} };
-
-		cmdResourceBarrier(pCurCmd, 0, NULL, 0, NULL, 2, asmCopyDEMBarrier);
-
 		LoadActionsDesc copyDEMQuadLoadAction = {};
 		copyDEMQuadLoadAction.mClearColorValues[0] = pRenderTargetASMDepthAtlas->mClearValue;
 		copyDEMQuadLoadAction.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
@@ -4281,8 +4276,6 @@ void ASMTileCache::RenderTiles(
 			&copyDEMQuadLoadAction, vec2(0.f, 0.f), vec2((float)pRenderTargetASMDEMAtlas->mWidth,
 			(float)pRenderTargetASMDEMAtlas->mHeight));
 
-	
-
 		BufferUpdateDesc copyDEMQuadUpdateUbDesc = { pBufferASMCopyDEMPackedQuadsUniform[gFrameIndex] };
 		beginUpdateResource(&copyDEMQuadUpdateUbDesc);
 		memcpy(copyDEMQuadUpdateUbDesc.pMappedData, &copyDEMQuads[0], sizeof(SCopyQuad) * numCopyDEMQuads);
@@ -4294,8 +4287,8 @@ void ASMTileCache::RenderTiles(
 		cmdDraw(pCurCmd, numCopyDEMQuads * 6, 0);
 
 		cmdBindRenderTargets(curRendererContext->m_pCmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-
 	}
+
 	tf_free(copyDepthQuads);
 }
 
@@ -4305,7 +4298,6 @@ void ASMTileCacheEntry::PrepareRender(const ASMSShadowMapPrepareRenderContext& c
 		vec2((static_cast<float> (gs_ASMTileSize) / static_cast<float>(m_viewport.w)))
 	);
 }
-
 
 class ASM
 {
@@ -4934,9 +4926,6 @@ class LightShadowPlayground: public IApp
 		ubDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		ubDesc.mDesc.mSize = sizeof(MeshInfoUniformBlock);
 		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-#if defined(METAL)
-		ubDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
-#endif
 		ubDesc.pData = NULL;
 
 		for (uint32_t j = 0; j < MESH_COUNT; ++j)
@@ -4979,9 +4968,6 @@ class LightShadowPlayground: public IApp
 		asmAtlasQuadsUbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		asmAtlasQuadsUbDesc.mDesc.mSize = sizeof(ASMAtlasQuadsUniform);
 		asmAtlasQuadsUbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-#if defined(METAL)
-		asmAtlasQuadsUbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
-#endif
 		asmAtlasQuadsUbDesc.pData = NULL;
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -5002,9 +4988,6 @@ class LightShadowPlayground: public IApp
 		asmPackedAtlasQuadsUbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		asmPackedAtlasQuadsUbDesc.mDesc.mSize = sizeof(ASMPackedAtlasQuadsUniform) * 2;
 		asmPackedAtlasQuadsUbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-#if defined(METAL)
-		asmPackedAtlasQuadsUbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
-#endif
 		for (uint32_t i = 0; i < gs_ASMMaxRefinement + 1; ++i)
 		{
 			for (uint32_t k = 0; k < gImageCount; ++k)
@@ -5039,9 +5022,6 @@ class LightShadowPlayground: public IApp
 		asmDataUbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_CPU_TO_GPU;
 		asmDataUbDesc.mDesc.mSize = sizeof(ASMUniformBlock);
 		asmDataUbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-#if defined(METAL)
-		asmDataUbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
-#endif
 		
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
@@ -5055,9 +5035,6 @@ class LightShadowPlayground: public IApp
 		camUniDesc.mDesc.mSize = sizeof(CameraUniform);
 		camUniDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT ;
 		camUniDesc.pData = &gCameraUniformData;
-#if defined(METAL)
-		camUniDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT | BUFFER_CREATION_FLAG_OWN_MEMORY_BIT;
-#endif
 		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			camUniDesc.ppBuffer = &pBufferCameraUniform[i];
@@ -5095,7 +5072,7 @@ class LightShadowPlayground: public IApp
 		meshSDFUniformDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		meshSDFUniformDesc.pData = NULL;
 
-		for (uint32 i = 0; i < gImageCount; ++i)
+		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			meshSDFUniformDesc.ppBuffer = &pBufferMeshSDFConstants[i];
 			addResource(&meshSDFUniformDesc, NULL);
@@ -5109,7 +5086,7 @@ class LightShadowPlayground: public IApp
 		updateSDFVolumeTextureAtlasUniformDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		updateSDFVolumeTextureAtlasUniformDesc.pData = NULL;
 
-		for (uint32 i = 0; i < gImageCount; ++i)
+		for (uint32_t i = 0; i < gImageCount; ++i)
 		{
 			updateSDFVolumeTextureAtlasUniformDesc.ppBuffer = 
 				&pBufferUpdateSDFVolumeTextureAtlasConstants[i];
@@ -5683,6 +5660,7 @@ class LightShadowPlayground: public IApp
 		filterIbDesc.mDesc.mElementCount = pGeom->mIndexCount;
 		filterIbDesc.mDesc.mStructStride = sizeof(uint32_t);
 		filterIbDesc.mDesc.mSize = filterIbDesc.mDesc.mElementCount * filterIbDesc.mDesc.mStructStride;
+		filterIbDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		filterIbDesc.mDesc.pName = "Filtered IB Desc";
 		filterIbDesc.pData = NULL;
 
@@ -5719,6 +5697,7 @@ class LightShadowPlayground: public IApp
 		filterIndirectDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT * (sizeof(BufferIndirectCommand) / sizeof(uint32_t));
 		filterIndirectDesc.mDesc.mStructStride = sizeof(uint32_t);
 		filterIndirectDesc.mDesc.mSize = filterIndirectDesc.mDesc.mElementCount * filterIndirectDesc.mDesc.mStructStride;
+		filterIndirectDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		filterIndirectDesc.mDesc.pName = "Filtered Indirect Desc";
 		filterIndirectDesc.pData = indirectDrawArguments;
 
@@ -5728,6 +5707,7 @@ class LightShadowPlayground: public IApp
 		uncompactedDesc.mDesc.mElementCount = MAX_DRAWS_INDIRECT;
 		uncompactedDesc.mDesc.mStructStride = sizeof(UncompactedDrawArguments);
 		uncompactedDesc.mDesc.mSize = uncompactedDesc.mDesc.mElementCount * uncompactedDesc.mDesc.mStructStride;
+		uncompactedDesc.mDesc.mStartState = RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
 		uncompactedDesc.mDesc.pName = "Uncompacted Draw Arguments Desc";
 		uncompactedDesc.pData = NULL;
 
@@ -5736,8 +5716,9 @@ class LightShadowPlayground: public IApp
 		filterMaterialDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		filterMaterialDesc.mDesc.mElementCount = MATERIAL_BUFFER_SIZE;
 		filterMaterialDesc.mDesc.mStructStride = sizeof(uint32_t);
-		filterMaterialDesc.mDesc.mSize = filterMaterialDesc.mDesc.mElementCount 
+		filterMaterialDesc.mDesc.mSize = filterMaterialDesc.mDesc.mElementCount
 			* filterMaterialDesc.mDesc.mStructStride;
+		filterMaterialDesc.mDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
 		filterMaterialDesc.mDesc.pName = "Filtered Indirect Material Desc";
 		filterMaterialDesc.pData = NULL;
 
@@ -5845,8 +5826,7 @@ class LightShadowPlayground: public IApp
 		sdfVolumeTextureAtlasDesc.mSampleCount = SAMPLE_COUNT_1;
 		sdfVolumeTextureAtlasDesc.mSampleQuality = 0;
 		sdfVolumeTextureAtlasDesc.pName = "SDF Volume Texture Atlas";
-		sdfVolumeTextureAtlasDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
-		//sdfVolumeTextureAtlasDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
+		sdfVolumeTextureAtlasDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 
 		TextureLoadDesc sdfVolumeTextureAtlasLoadDesc = {};
 		sdfVolumeTextureAtlasLoadDesc.pDesc = &sdfVolumeTextureAtlasDesc;
@@ -5948,7 +5928,6 @@ class LightShadowPlayground: public IApp
 		skyboxImgDesc.mMipLevels = gSkyboxMips;
 		skyboxImgDesc.mSampleCount = SAMPLE_COUNT_1;
 		skyboxImgDesc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
-		skyboxImgDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
 		skyboxImgDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE_CUBE | DESCRIPTOR_TYPE_RW_TEXTURE;
 		skyboxImgDesc.pName = "skyboxImgBuff";
 
@@ -5997,9 +5976,6 @@ class LightShadowPlayground: public IApp
 		// Compute the BRDF Integration map.
 		beginCmd(cmd);
 
-		TextureBarrier uavBarriers[1] = { { pTextureSkybox, RESOURCE_STATE_UNORDERED_ACCESS } };
-		cmdResourceBarrier(cmd, 0, NULL, 1, uavBarriers, 0, NULL);
-
 		DescriptorData params[1] = {};
 
 		// Store the panorama texture inside a cubemap.
@@ -6032,7 +6008,7 @@ class LightShadowPlayground: public IApp
 				max(1u, (uint32_t)(data.textureSize >> i) / pThreadGroupSize[1]), 6);
 		}
 
-		TextureBarrier srvBarriers[1] = { { pTextureSkybox, RESOURCE_STATE_SHADER_RESOURCE } };
+		TextureBarrier srvBarriers[1] = { { pTextureSkybox, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE } };
 		cmdResourceBarrier(cmd, 0, NULL, 1, srvBarriers, 0, NULL);
 		/************************************************************************/
 		/************************************************************************/
@@ -6104,7 +6080,7 @@ class LightShadowPlayground: public IApp
 		skyboxVbDesc.mDesc.mMemoryUsage = RESOURCE_MEMORY_USAGE_GPU_ONLY;
 		skyboxVbDesc.mDesc.mSize = skyBoxDataSize;
 		skyboxVbDesc.pData = skyBoxPoints;
-		skyboxVbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_OWN_MEMORY_BIT | BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
+		skyboxVbDesc.mDesc.mFlags = BUFFER_CREATION_FLAG_PERSISTENT_MAP_BIT;
 		skyboxVbDesc.ppBuffer = &pBufferSkyboxVertex;
 		addResource(&skyboxVbDesc, NULL);
 
@@ -6119,59 +6095,6 @@ class LightShadowPlayground: public IApp
 			addResource(&skyboxUBDesc, NULL);
 		}
 	}
-	//
-	void setResourcesToComputeCompliantState(uint32_t frameIdx, bool submitAndWait)
-	{
-		if (submitAndWait)
-		{
-			beginCmd(pCmds[frameIdx]);
-		}
-		
-		BufferBarrier barrier[] = { { pGeom->pVertexBuffers[0], RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE },
-			{ pGeom->pIndexBuffer, RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE },
-			{ pBufferMeshConstants, RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE },
-			{ pBufferMaterialProperty, RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE },
-			{ pBufferFilterIndirectMaterial[frameIdx], RESOURCE_STATE_UNORDERED_ACCESS },
-			{ pBufferUncompactedDrawArguments[frameIdx][VIEW_SHADOW], RESOURCE_STATE_UNORDERED_ACCESS },
-			{ pBufferUncompactedDrawArguments[frameIdx][VIEW_CAMERA], RESOURCE_STATE_UNORDERED_ACCESS }
-		};
-		cmdResourceBarrier(pCmds[frameIdx], 7, barrier, 0, NULL, 0, NULL);
-
-		BufferBarrier indirectDrawBarriers[gNumGeomSets * NUM_CULLING_VIEWPORTS] = {};
-		for (uint32_t i = 0, k = 0; i < gNumGeomSets; i++)
-		{
-			for (uint32_t j = 0; j < NUM_CULLING_VIEWPORTS; j++, k++)
-			{
-				indirectDrawBarriers[k].pBuffer = 
-					pBufferFilteredIndirectDrawArguments[frameIdx][i][j];
-				indirectDrawBarriers[k].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
-				indirectDrawBarriers[k].mSplit = false;
-			}
-		}
-		cmdResourceBarrier(pCmds[frameIdx], gNumGeomSets * NUM_CULLING_VIEWPORTS, indirectDrawBarriers, 0, NULL, 0, NULL);
-
-		BufferBarrier filteredIndicesBarriers[NUM_CULLING_VIEWPORTS] = {};
-		for (uint32_t j = 0; j < NUM_CULLING_VIEWPORTS; j++)
-		{
-			filteredIndicesBarriers[j].pBuffer = pBufferFilteredIndex[frameIdx][j];
-			filteredIndicesBarriers[j].mNewState = RESOURCE_STATE_UNORDERED_ACCESS;
-			filteredIndicesBarriers[j].mSplit = false;
-		}
-		cmdResourceBarrier(pCmds[frameIdx], NUM_CULLING_VIEWPORTS, filteredIndicesBarriers, 0, NULL, 0, NULL);
-
-		if (submitAndWait)
-		{
-			endCmd(pCmds[frameIdx]);
-			QueueSubmitDesc submitDesc = {};
-			submitDesc.mCmdCount = 1;
-			submitDesc.ppCmds = &pCmds[frameIdx];
-			submitDesc.pSignalFence = pTransitionFences;
-			submitDesc.mSubmitDone = true;
-			queueSubmit(pGraphicsQueue, &submitDesc);
-			waitForFences(pRenderer, 1, &pTransitionFences);
-		}
-	}
-
 
 	void RemoveRenderTargetsAndSwapChain()
 	{
@@ -6185,26 +6108,26 @@ class LightShadowPlayground: public IApp
 			removeRenderTarget(pRenderer, pRenderTargetASMIndirection[i]);
 			removeRenderTarget(pRenderer, pRenderTargetASMPrerenderIndirection[i]);
 		}
+
 		removeRenderTarget(pRenderer, pRenderTargetASMLodClamp);
 		removeRenderTarget(pRenderer, pRenderTargetASMPrerenderLodClamp);
-
 
 		removeRenderTarget(pRenderer, pRenderTargetVBPass);
 
 		removeRenderTarget(pRenderer, pRenderTargetDepth);
 		removeRenderTarget(pRenderer, pRenderTargetShadowMap);
 
+		removeResource(pTextureSDFMeshShadow);
 		removeRenderTarget(pRenderer, pRenderTargetSDFMeshVisualization);
-		removeResource(pRenderTargetSDFMeshShadow);
 		removeRenderTarget(pRenderer, pRenderTargetUpSampleSDFShadow);
 
 		removeSwapChain(pRenderer, pSwapChain);
-
-
-		
 	}
+
 	void Exit() override
 	{
+		shouldExitSDFGeneration = true;
+
 		exitInputSystem();
 		shutdownThreadSystem(pThreadSystem);
 
@@ -7251,34 +7174,6 @@ class LightShadowPlayground: public IApp
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 	}
 
-	static void drawSkybox(Cmd* cmd)
-	{
-		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Skybox");
-
-		BufferUpdateDesc updateDesc = { pBufferSkyboxUniform[gFrameIndex] };
-		beginUpdateResource(&updateDesc);
-		*(UniformDataSkybox*)updateDesc.pMappedData = gUniformDataSky;
-		endUpdateResource(&updateDesc, NULL);
-
-		// Transfer our render target to a render target state
-		RenderTargetBarrier barrier[] = { { pRenderTargetScreen, RESOURCE_STATE_RENDER_TARGET } };
-		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barrier);
-
-		setRenderTarget(cmd, 1, &pRenderTargetScreen, NULL, NULL);
-
-		// Draw the skybox
-		const uint32_t skyboxStride = sizeof(float) * 4;
-		cmdBindPipeline(cmd, pPipelineSkybox);
-		cmdBindDescriptorSet(cmd, 0, pDescriptorSetSkybox[0]);
-		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSkybox[1]);
-		cmdBindVertexBuffer(cmd, 1, &pBufferSkyboxVertex, &skyboxStride, NULL);
-		cmdDraw(cmd, 36, 0);
-
-		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-
-		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
-	}
-
 	static void drawSDFVolumeTextureAtlas(Cmd* cmd, SDFVolumeTextureNode* node)
 	{
 		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw update texture atlas");
@@ -7298,9 +7193,6 @@ class LightShadowPlayground: public IApp
 		beginUpdateResource(&meshSDFConstantUpdate);
 		*(UpdateSDFVolumeTextureAtlasConstants*)meshSDFConstantUpdate.pMappedData = gUpdateSDFVolumeTextureAtlasConstants;
 		endUpdateResource(&meshSDFConstantUpdate, NULL);
-	
-		TextureBarrier textureBarriers[] = { { pTextureSDFVolumeAtlas, RESOURCE_STATE_UNORDERED_ACCESS } };
-		cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 0, NULL);
 
 		cmdBindPipeline(cmd, pPipelineUpdateSDFVolumeTextureAtlas);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetUpdateSDFVolumeTextureAtlas[0]);
@@ -7319,25 +7211,6 @@ class LightShadowPlayground: public IApp
 	void drawSDFMeshVisualizationOnScene(Cmd* cmd)
 	{
 		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Visualize SDF Geometry On The Scene");
-		RenderTargetBarrier rtBarriers[] = 
-		{ 
-			{
-				pRenderTargetSDFMeshVisualization,
-				RESOURCE_STATE_UNORDERED_ACCESS
-			},
-			{
-				pRenderTargetDepth,
-				RESOURCE_STATE_SHADER_RESOURCE
-			}
-		};
-		TextureBarrier textureBarriers[] =
-		{
-			{
-				pTextureSDFVolumeAtlas,
-				RESOURCE_STATE_SHADER_RESOURCE
-			},
-		};
-		cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 2, rtBarriers);
 
 		cmdBindPipeline(cmd, pPipelineSDFMeshVisualization);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetSDFMeshVisualization[0]);
@@ -7350,38 +7223,17 @@ class LightShadowPlayground: public IApp
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 	}
 
-
 	void drawSDFMeshShadow(Cmd* cmd)
 	{
 		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw SDF mesh shadow");
-		
-		RenderTargetBarrier rtBarriers[] =
-		{
-			{
-				pRenderTargetDepth,
-				RESOURCE_STATE_SHADER_RESOURCE
-			}
-		};
-		TextureBarrier textureBarriers[] =
-		{
-			{
-				pRenderTargetSDFMeshShadow,
-				RESOURCE_STATE_UNORDERED_ACCESS
-			},
-			{
-				pTextureSDFVolumeAtlas,
-				RESOURCE_STATE_SHADER_RESOURCE
-			},
-		};
-		cmdResourceBarrier(cmd, 0, NULL, 2, textureBarriers, 1, rtBarriers);
 
 		cmdBindPipeline(cmd, pPipelineSDFMeshShadow);
 		cmdBindDescriptorSet(cmd, 0, pDescriptorSetSDFMeshShadow[0]);
 		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSDFMeshShadow[1]);
 
 		cmdDispatch(cmd,
-			(uint32_t) ceil ((float)(pRenderTargetSDFMeshShadow->mWidth) / (float)(SDF_MESH_SHADOW_THREAD_X) ),
-			(uint32_t) ceil ((float)(pRenderTargetSDFMeshShadow->mHeight) / (float)(SDF_MESH_SHADOW_THREAD_Y) ),
+			(uint32_t)ceil((float)(pTextureSDFMeshShadow->mWidth) / (float)(SDF_MESH_SHADOW_THREAD_X) ),
+			(uint32_t)ceil((float)(pTextureSDFMeshShadow->mHeight) / (float)(SDF_MESH_SHADOW_THREAD_Y) ),
 			1);
 		
 
@@ -7394,23 +7246,13 @@ class LightShadowPlayground: public IApp
 		
 		RenderTargetBarrier rtBarriers[] =
 		{
-			{
-				pRenderTargetDepth,
-				RESOURCE_STATE_SHADER_RESOURCE
-			},
-			{
-				pRenderTargetUpSampleSDFShadow,
-				RESOURCE_STATE_RENDER_TARGET
-			}
+			{ pRenderTargetUpSampleSDFShadow, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET }
 		};
 		TextureBarrier textureBarriers[] =
 		{
-			{
-				pRenderTargetSDFMeshShadow,
-				RESOURCE_STATE_SHADER_RESOURCE
-			},
+			{ pTextureSDFMeshShadow, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE },
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 2, rtBarriers);
+		cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 1, rtBarriers);
 
 		LoadActionsDesc loadActions = {};
 		loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
@@ -7441,7 +7283,7 @@ class LightShadowPlayground: public IApp
 		/************************************************************************/
 		BufferBarrier uavBarriers[NUM_CULLING_VIEWPORTS] = {};
 		for (uint32_t i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
-			uavBarriers[i] = { pBufferUncompactedDrawArguments[frameIdx][i], RESOURCE_STATE_UNORDERED_ACCESS };
+			uavBarriers[i] = { pBufferUncompactedDrawArguments[frameIdx][i], RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
 		cmdResourceBarrier(cmd, NUM_CULLING_VIEWPORTS, uavBarriers, 0, NULL, 0, NULL);
 		/************************************************************************/
 		// Clear previous indirect arguments
@@ -7462,9 +7304,9 @@ class LightShadowPlayground: public IApp
 		uint32_t index = 0;
 		for (uint32_t i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 		{
-			clearBarriers[index++] = { pBufferUncompactedDrawArguments[frameIdx][i], RESOURCE_STATE_UNORDERED_ACCESS };
-			clearBarriers[index++] = { pBufferFilteredIndirectDrawArguments[frameIdx][GEOMSET_ALPHATESTED][i], RESOURCE_STATE_UNORDERED_ACCESS };
-			clearBarriers[index++] = { pBufferFilteredIndirectDrawArguments[frameIdx][GEOMSET_OPAQUE][i], RESOURCE_STATE_UNORDERED_ACCESS };
+			clearBarriers[index++] = { pBufferUncompactedDrawArguments[frameIdx][i], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
+			clearBarriers[index++] = { pBufferFilteredIndirectDrawArguments[frameIdx][GEOMSET_ALPHATESTED][i], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
+			clearBarriers[index++] = { pBufferFilteredIndirectDrawArguments[frameIdx][GEOMSET_OPAQUE][i], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_UNORDERED_ACCESS };
 		}
 		cmdResourceBarrier(cmd, numBarriers, clearBarriers, 0, NULL, 0, NULL);
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
@@ -7543,7 +7385,7 @@ class LightShadowPlayground: public IApp
 		// Synchronization
 		/************************************************************************/
 		for (uint32_t i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
-			uavBarriers[i] = { pBufferUncompactedDrawArguments[frameIdx][i], RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE };
+			uavBarriers[i] = { pBufferUncompactedDrawArguments[frameIdx][i], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE };
 		cmdResourceBarrier(cmd, NUM_CULLING_VIEWPORTS, uavBarriers, 0, NULL, 0, NULL);
 		/************************************************************************/
 		// Batch compaction
@@ -7611,11 +7453,8 @@ class LightShadowPlayground: public IApp
 
 	void drawVisibilityBufferPass(Cmd* cmd)
 	{
-		RenderTargetBarrier barriers[] = { 
-			{ pRenderTargetVBPass, RESOURCE_STATE_RENDER_TARGET },
-			{ pRenderTargetDepth, RESOURCE_STATE_DEPTH_WRITE} };
-
-		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
+		RenderTargetBarrier barriers[] = { { pRenderTargetVBPass, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET } };
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
 		const char* profileNames[gNumGeomSets] = { "VB pass Opaque", "VB pass Alpha" };
 		LoadActionsDesc loadActions = {};
@@ -7680,37 +7519,26 @@ class LightShadowPlayground: public IApp
 		if (gCurrentShadowType == SHADOW_TYPE_ASM)
 			updateASMUniform();
 
-		RenderTarget* esmShadowMap = pRenderTargetShadowMap;
 		Buffer* pIndirectBuffers[gNumGeomSets] = { NULL };
 		for (uint32_t i = 0; i < gNumGeomSets; ++i)
 		{
 			pIndirectBuffers[i] = pBufferFilteredIndirectDrawArguments[frameIdx][i][VIEW_CAMERA];
 		}
 
-		BufferBarrier bufferBarriers[] =
-		{
-			{ pBufferMeshConstants, RESOURCE_STATE_SHADER_RESOURCE },
-			{ pGeom->pVertexBuffers[0], RESOURCE_STATE_SHADER_RESOURCE },
-			{ pIndirectBuffers[0], RESOURCE_STATE_SHADER_RESOURCE },
-			{ pIndirectBuffers[1], RESOURCE_STATE_SHADER_RESOURCE } ,
-			{ pBufferFilterIndirectMaterial[frameIdx], RESOURCE_STATE_SHADER_RESOURCE }
-		};
 #if ENABLE_SDF_SHADOW_DOWNSAMPLE
 		RenderTarget* sdfShadowTexture = pRenderTargetUpSampleSDFShadow;
 		RenderTargetBarrier rtBarriers[] = {
-			{ sdfShadowTexture, RESOURCE_STATE_SHADER_RESOURCE },
-			{ esmShadowMap, RESOURCE_STATE_SHADER_RESOURCE },
-			{ pRenderTargetVBPass, RESOURCE_STATE_SHADER_RESOURCE }
+			{ pRenderTargetVBPass, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE },
+			{ sdfShadowTexture, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE },
 		};
-		cmdResourceBarrier(cmd, 5, bufferBarriers, 0, NULL, 3, rtBarriers);
+		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, gCurrentShadowType == SHADOW_TYPE_MESH_BAKED_SDF ? 2 : 1, rtBarriers);
 #else
-		Texture* sdfShadowTexture = pRenderTargetSDFMeshShadow;
-		TextureBarrier textureBarriers[] = { { sdfShadowTexture, RESOURCE_STATE_SHADER_RESOURCE } };
+		Texture* sdfShadowTexture = pTextureSDFMeshShadow;
+		TextureBarrier textureBarriers[] = { { sdfShadowTexture, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE } };
 		RenderTargetBarrier rtBarriers[] = {
-			{ esmShadowMap, RESOURCE_STATE_SHADER_RESOURCE },
-			{ pRenderTargetVBPass, RESOURCE_STATE_SHADER_RESOURCE }
+			{ pRenderTargetVBPass, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE }
 		};
-		cmdResourceBarrier(cmd, 5, bufferBarriers, 1, textureBarriers, 2, rtBarriers);
+		cmdResourceBarrier(cmd, 0, NULL, 1, textureBarriers, 1, rtBarriers);
 #endif
 
 		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "VB Shade Pass");
@@ -7731,7 +7559,24 @@ class LightShadowPlayground: public IApp
 
 		cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 		
-		drawSkybox(cmd);
+		{
+			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw Skybox");
+
+			BufferUpdateDesc updateDesc = { pBufferSkyboxUniform[gFrameIndex] };
+			beginUpdateResource(&updateDesc);
+			*(UniformDataSkybox*)updateDesc.pMappedData = gUniformDataSky;
+			endUpdateResource(&updateDesc, NULL);
+
+			// Draw the skybox
+			const uint32_t skyboxStride = sizeof(float) * 4;
+			cmdBindPipeline(cmd, pPipelineSkybox);
+			cmdBindDescriptorSet(cmd, 0, pDescriptorSetSkybox[0]);
+			cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetSkybox[1]);
+			cmdBindVertexBuffer(cmd, 1, &pBufferSkyboxVertex, &skyboxStride, NULL);
+			cmdDraw(cmd, 36, 0);
+
+			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
+		}
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 	}
@@ -7834,48 +7679,10 @@ class LightShadowPlayground: public IApp
 		endUpdateResource(&asmUpdateUbDesc, NULL);
 	}
 
-	   
-	void drawQuad(Cmd* cmd)
-	{
-		RenderTarget* toDisplayTexture = pRenderTargetASMDepthAtlas;
-		RenderTargetBarrier quadBarriers[] = {
-		{
-			toDisplayTexture, RESOURCE_STATE_SHADER_RESOURCE},
-			{pRenderTargetDepth, RESOURCE_STATE_DEPTH_WRITE}
-		};
-
-		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, quadBarriers);
-
-		LoadActionsDesc loadActions = {};
-		loadActions.mLoadActionsColor[0] = LOAD_ACTION_DONTCARE;
-		loadActions.mClearColorValues[0].r = 0.0f;
-		loadActions.mClearColorValues[0].g = 0.0f;
-		loadActions.mClearColorValues[0].b = 0.0f;
-		loadActions.mClearColorValues[0].a = 0.0f;
-		loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
-		loadActions.mClearDepth.depth = 1.0f;
-		loadActions.mClearDepth.stencil = 0;
-
-		setRenderTarget(cmd, 1, &pRenderTargetScreen, pRenderTargetDepth, &loadActions);
-
-		const uint32_t quadStride = sizeof(float) * 6;
-		cmdBindPipeline(cmd, pPipelineQuad);
-		cmdBindVertexBuffer(cmd, 1, &pBufferQuadVertex, &quadStride, NULL);
-		cmdBindDescriptorSet(cmd, 0, pDescriptorSetQuad[0]);
-		cmdBindDescriptorSet(cmd, gFrameIndex, pDescriptorSetQuad[1]);
-
-		cmdDraw(cmd, 6, 0);
-
-		setRenderTarget(cmd, 0, NULL, NULL, NULL);
-
-	}
-
 	void UpdateInDraw()
 	{
 		// update camera with time
 			mat4 viewMat = pCameraController->getViewMatrix();
-
-		
 			/************************************************************************/
 			// Update Camera
 			/************************************************************************/
@@ -8076,7 +7883,6 @@ class LightShadowPlayground: public IApp
 			endUpdateResource(&esmBlurCbv, NULL);
 		}
 
-
 		BufferUpdateDesc quadUniformCbv = { pBufferQuadUniform[gFrameIndex] };
 		beginUpdateResource(&quadUniformCbv);
 		*(QuadDataUniform*)quadUniformCbv.pMappedData = gQuadUniformData;
@@ -8091,12 +7897,9 @@ class LightShadowPlayground: public IApp
 		/************************************************************************/
 		// Get command list to store rendering commands for this frame
 		{
-
 			Cmd* cmd = pCmds[gFrameIndex];
 			pRenderTargetScreen = pRenderTargetIntermediate;
 			beginCmd(cmd);
-
-
 
 			cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
@@ -8112,17 +7915,46 @@ class LightShadowPlayground: public IApp
 				for (uint32_t i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 				{
 					barriers2[index++] = { pBufferFilteredIndirectDrawArguments[gFrameIndex][GEOMSET_ALPHATESTED][i],
-						RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE };
+						RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE };
 					barriers2[index++] = { pBufferFilteredIndirectDrawArguments[gFrameIndex][GEOMSET_OPAQUE][i],
-						RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE };
+						RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE };
 					barriers2[index++] = { pBufferFilteredIndex[gFrameIndex][i],
-						RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_SHADER_RESOURCE };
+						RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_SHADER_RESOURCE };
 				}
-				barriers2[index++] = { pBufferFilterIndirectMaterial[gFrameIndex], RESOURCE_STATE_SHADER_RESOURCE };
+				barriers2[index++] = { pBufferFilterIndirectMaterial[gFrameIndex], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE };
 				cmdResourceBarrier(cmd, index, barriers2, 0, NULL, 0, NULL);
 			}
 			RenderTargetBarrier barriers[16] = {};
 			uint32_t barrierCount = 0;
+
+#if defined(VULKAN)
+			if (!pRenderTargetASMLodClamp->mUsed)
+			{
+				barriers[barrierCount++] = { pRenderTargetASMLodClamp, RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_SHADER_RESOURCE };
+				barriers[barrierCount++] = { pRenderTargetASMPrerenderLodClamp, RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_SHADER_RESOURCE };
+				barriers[barrierCount++] = { pRenderTargetUpSampleSDFShadow, RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_SHADER_RESOURCE };
+				for (uint32_t i = 0; i <= gs_ASMMaxRefinement; ++i)
+				{
+					barriers[barrierCount++] = { pRenderTargetASMIndirection[i], RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_SHADER_RESOURCE };
+					barriers[barrierCount++] = { pRenderTargetASMPrerenderIndirection[i], RESOURCE_STATE_UNDEFINED, RESOURCE_STATE_SHADER_RESOURCE };
+				}
+				cmdResourceBarrier(cmd, 0, NULL, 0, NULL, barrierCount, barriers);
+				barrierCount = 0;
+			}
+#endif
+
+			barriers[barrierCount++] = { pRenderTargetShadowMap, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE };
+			barriers[barrierCount++] = { pRenderTargetASMDEMAtlas, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET };
+			for (int32_t i = 0; i <= gs_ASMMaxRefinement; ++i)
+			{
+				barriers[barrierCount++] = { pASM->m_longRangeShadows->m_indirectionTexturesMips[i], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET };
+				if (pASM->m_longRangePreRender->IsValid())
+				{
+					barriers[barrierCount++] = { pASM->m_longRangePreRender->m_indirectionTexturesMips[i], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET };
+				}
+			}
+			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, barrierCount, barriers);
+			barrierCount = 0;
 
 			if (gCurrentShadowType == SHADOW_TYPE_ASM)
 			{
@@ -8133,28 +7965,27 @@ class LightShadowPlayground: public IApp
 			}
 			else if (gCurrentShadowType == SHADOW_TYPE_ESM)
 			{
-				barriers[0] = { pRenderTargetShadowMap, RESOURCE_STATE_DEPTH_WRITE };
-				cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
-
 				drawEsmShadowMap(cmd);
-
-				barriers[0] = { pRenderTargetShadowMap, RESOURCE_STATE_SHADER_RESOURCE };
-				cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 			}
+
+			barriers[barrierCount++] = { pRenderTargetShadowMap, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE };
 			// Draw To Screen
-			barriers[barrierCount++] = { pRenderTargetScreen, RESOURCE_STATE_RENDER_TARGET };
-			barriers[barrierCount++] = { pRenderTargetASMDepthPass, RESOURCE_STATE_SHADER_RESOURCE };
-			barriers[barrierCount++] = { pRenderTargetASMDepthAtlas, RESOURCE_STATE_SHADER_RESOURCE };
+			barriers[barrierCount++] = { pRenderTargetScreen, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET };
 
 			for (int32_t i = 0; i <= gs_ASMMaxRefinement; ++i)
 			{
-				barriers[barrierCount++] = { pRenderTargetASMIndirection[i], RESOURCE_STATE_SHADER_RESOURCE };
-				barriers[barrierCount++] = { pRenderTargetASMPrerenderIndirection[i], RESOURCE_STATE_SHADER_RESOURCE };
+				barriers[barrierCount++] = { pASM->m_longRangeShadows->m_indirectionTexturesMips[i], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
+				if (pASM->m_longRangePreRender->IsValid())
+				{
+					barriers[barrierCount++] = { pASM->m_longRangePreRender->m_indirectionTexturesMips[i], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
+				}
 			}
 
-			barriers[barrierCount++] = { pASM->m_longRangePreRender->m_lodClampTexture, RESOURCE_STATE_SHADER_RESOURCE };
-			barriers[barrierCount++] = { pRenderTargetASMDEMAtlas, RESOURCE_STATE_SHADER_RESOURCE };
-
+			if (pASM->m_longRangePreRender->IsValid())
+			{
+				barriers[barrierCount++] = { pASM->m_longRangePreRender->m_lodClampTexture, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
+			}
+			barriers[barrierCount++] = { pRenderTargetASMDEMAtlas, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, barrierCount, barriers);
 
 			if (gCurrentShadowType == SHADOW_TYPE_ASM || gCurrentShadowType == SHADOW_TYPE_ESM)
@@ -8165,6 +7996,9 @@ class LightShadowPlayground: public IApp
 			else if (gCurrentShadowType == SHADOW_TYPE_MESH_BAKED_SDF)
 			{
 				SDFVolumeTextureNode* volumeTextureNode = pSDFVolumeTextureAtlas->ProcessQueuedNode();
+
+				TextureBarrier uavBarriers[] = { { pTextureSDFVolumeAtlas, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS } };
+				cmdResourceBarrier(cmd, 0, NULL, 1, uavBarriers, 0, NULL);
 
 				if (volumeTextureNode)
 				{
@@ -8189,12 +8023,19 @@ class LightShadowPlayground: public IApp
 					}
 				}
 
+				barriers[0] = { pRenderTargetDepth, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE };
+				barriers[1] = { pRenderTargetSDFMeshVisualization, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
+				TextureBarrier textureBarriers[] =
+				{
+					{ pTextureSDFMeshShadow, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS },
+					{ pTextureSDFVolumeAtlas, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE },
+				};
+				cmdResourceBarrier(cmd, 0, NULL, 2, textureBarriers, 2, barriers);
 
 				if (gBakedSDFMeshSettings.mDrawSDFMeshVisualization)
 				{
 					drawSDFMeshVisualizationOnScene(cmd);
 				}
-				
 				else
 				{
 					drawSDFMeshShadow(cmd);
@@ -8203,6 +8044,10 @@ class LightShadowPlayground: public IApp
 					upSampleSDFShadow(cmd);
 #endif
 				}
+
+				barriers[0] = { pRenderTargetDepth, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE };
+				barriers[1] = { pRenderTargetSDFMeshVisualization, RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE };
+				cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
 
 				drawVisibilityBufferShade(cmd, gFrameIndex);
 			}
@@ -8224,29 +8069,27 @@ class LightShadowPlayground: public IApp
 				pSrcRT = pRenderTargetScreen;
 			}
 
-			RenderTargetBarrier barrier[] =
-			{
-				{ pSrcRT, RESOURCE_STATE_SHADER_RESOURCE },
-				{ pDstRT, RESOURCE_STATE_RENDER_TARGET } };
-
-			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barrier);
+			barriers[0] = { pDstRT, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET };
+			barriers[1] = { pSrcRT, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE };
+			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, index == 1 ? 1 : 2, barriers);
 			presentImage(cmd, pSrcRT->pTexture, index, pDstRT);
 
 			drawGUI(cmd, presentIndex);
 			{
 				const uint32_t numBarriers = (gNumGeomSets * NUM_CULLING_VIEWPORTS) + NUM_CULLING_VIEWPORTS + 1;
 				uint32_t index = 0;
-				RenderTargetBarrier barrierPresent = { pDstRT, RESOURCE_STATE_PRESENT };
+				RenderTargetBarrier barrierPresent = { pDstRT, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 				BufferBarrier barriers2[numBarriers] = {};
 				for (uint32_t i = 0; i < NUM_CULLING_VIEWPORTS; ++i)
 				{
 					barriers2[index++] = { pBufferFilteredIndirectDrawArguments[gFrameIndex][GEOMSET_ALPHATESTED][i],
-						RESOURCE_STATE_UNORDERED_ACCESS };
+						RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
 					barriers2[index++] = { pBufferFilteredIndirectDrawArguments[gFrameIndex][GEOMSET_OPAQUE][i],
-						RESOURCE_STATE_UNORDERED_ACCESS };
-					barriers2[index++] = { pBufferFilteredIndex[gFrameIndex][i], RESOURCE_STATE_UNORDERED_ACCESS };
+						RESOURCE_STATE_INDIRECT_ARGUMENT | RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
+					barriers2[index++] = { pBufferFilteredIndex[gFrameIndex][i],
+						RESOURCE_STATE_INDEX_BUFFER | RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
 				}
-				barriers2[index++] = { pBufferFilterIndirectMaterial[gFrameIndex], RESOURCE_STATE_UNORDERED_ACCESS };
+				barriers2[index++] = { pBufferFilterIndirectMaterial[gFrameIndex], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
 				cmdResourceBarrier(cmd, numBarriers, barriers2, 0, NULL, 1, &barrierPresent);
 			}
 			cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
@@ -8276,7 +8119,6 @@ class LightShadowPlayground: public IApp
 
 	void drawGUI(Cmd* cmd, uint32_t frameIdx)
 	{
-
 		cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Draw UI");
 
 		pRenderTargetScreen = pSwapChain->ppRenderTargets[frameIdx];
@@ -8370,19 +8212,14 @@ class LightShadowPlayground: public IApp
 		depthRT.mDepth = 1;
 		depthRT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
+		depthRT.mStartState = RESOURCE_STATE_DEPTH_WRITE;
 		depthRT.mWidth = width;
 		depthRT.mHeight = height;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;
 		depthRT.pName = "Depth RT";
 		depthRT.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
-#if defined(METAL)
-		depthRT.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-#endif
 		addRenderTarget(pRenderer, &depthRT, &pRenderTargetDepth);
-
-		
-
 		/************************************************************************/
 		// Intermediate render target
 		/************************************************************************/
@@ -8392,13 +8229,13 @@ class LightShadowPlayground: public IApp
 		postProcRTDesc.mDepth = 1;
 		postProcRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		postProcRTDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
+		postProcRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		postProcRTDesc.mHeight = mSettings.mHeight;
 		postProcRTDesc.mWidth = mSettings.mWidth;
 		postProcRTDesc.mSampleCount = pSwapChain->ppRenderTargets[0]->mSampleCount;
 		postProcRTDesc.mSampleQuality = pSwapChain->ppRenderTargets[0]->mSampleQuality;
 		postProcRTDesc.pName = "pIntermediateRenderTarget";
 		addRenderTarget(pRenderer, &postProcRTDesc, &pRenderTargetIntermediate);
-			   
 		/************************************************************************/
 		// Shadow Map Render Target
 		/************************************************************************/
@@ -8408,26 +8245,23 @@ class LightShadowPlayground: public IApp
 		shadowRTDesc.mDepth = 1;
 		shadowRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		shadowRTDesc.mFormat = TinyImageFormat_D32_SFLOAT;
+		shadowRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		shadowRTDesc.mWidth = ESM_SHADOWMAP_RES;
 		shadowRTDesc.mHeight = ESM_SHADOWMAP_RES;
 		shadowRTDesc.mSampleCount = (SampleCount)ESM_MSAA_SAMPLES;
 		shadowRTDesc.mSampleQuality = 0;  
 		shadowRTDesc.pName = "Shadow Map RT";
-
 		addRenderTarget(pRenderer, &shadowRTDesc, &pRenderTargetShadowMap);
-
-
-
 		/*************************************/
 		//SDF mesh visualization render target
 		/*************************************/
-
 		RenderTargetDesc sdfMeshVisualizationRTDesc = {};
 		sdfMeshVisualizationRTDesc.mArraySize = 1;
 		sdfMeshVisualizationRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 		sdfMeshVisualizationRTDesc.mClearValue = colorClearBlack;
 		sdfMeshVisualizationRTDesc.mDepth = 1;
 		sdfMeshVisualizationRTDesc.mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
+		sdfMeshVisualizationRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		sdfMeshVisualizationRTDesc.mWidth = mSettings.mWidth / SDF_SHADOW_DOWNSAMPLE_VALUE;
 		sdfMeshVisualizationRTDesc.mHeight = mSettings.mHeight / SDF_SHADOW_DOWNSAMPLE_VALUE;
 		sdfMeshVisualizationRTDesc.mMipLevels = 1;
@@ -8436,13 +8270,13 @@ class LightShadowPlayground: public IApp
 		sdfMeshVisualizationRTDesc.pName = "SDF Mesh Visualization RT";
 		addRenderTarget(pRenderer, &sdfMeshVisualizationRTDesc, &pRenderTargetSDFMeshVisualization);
 
-
 		TextureDesc sdfMeshShadowRTDesc = {};
 		sdfMeshShadowRTDesc.mArraySize = 1;
 		sdfMeshShadowRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 		sdfMeshShadowRTDesc.mClearValue = colorClearBlack;
 		sdfMeshShadowRTDesc.mDepth = 1;
 		sdfMeshShadowRTDesc.mFormat = TinyImageFormat_R32G32_SFLOAT;
+		sdfMeshShadowRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 #if ENABLE_SDF_SHADOW_DOWNSAMPLE
 		sdfMeshShadowRTDesc.mWidth = mSettings.mWidth / SDF_SHADOW_DOWNSAMPLE_VALUE;
 		sdfMeshShadowRTDesc.mHeight = mSettings.mHeight / SDF_SHADOW_DOWNSAMPLE_VALUE;
@@ -8456,15 +8290,15 @@ class LightShadowPlayground: public IApp
 		sdfMeshShadowRTDesc.pName = "SDF Mesh Shadow Pass RT";
 		TextureLoadDesc sdfMeshShadowLoadDesc = {};
 		sdfMeshShadowLoadDesc.pDesc = &sdfMeshShadowRTDesc;
-		sdfMeshShadowLoadDesc.ppTexture = &pRenderTargetSDFMeshShadow;
+		sdfMeshShadowLoadDesc.ppTexture = &pTextureSDFMeshShadow;
 		addResource(&sdfMeshShadowLoadDesc, NULL);
-
 
 		RenderTargetDesc upSampleSDFShadowRTDesc = {};
 		upSampleSDFShadowRTDesc.mArraySize = 1;
 		upSampleSDFShadowRTDesc.mClearValue = colorClearBlack;
 		upSampleSDFShadowRTDesc.mDepth = 1;
 		upSampleSDFShadowRTDesc.mFormat = TinyImageFormat_R16_SFLOAT;
+		upSampleSDFShadowRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		upSampleSDFShadowRTDesc.mWidth = mSettings.mWidth;
 		upSampleSDFShadowRTDesc.mHeight = mSettings.mHeight;
 		upSampleSDFShadowRTDesc.mMipLevels = 1;
@@ -8472,47 +8306,40 @@ class LightShadowPlayground: public IApp
 		upSampleSDFShadowRTDesc.mSampleQuality = 0;
 		upSampleSDFShadowRTDesc.pName = "Upsample SDF Mesh Shadow";
 		addRenderTarget(pRenderer, &upSampleSDFShadowRTDesc, &pRenderTargetUpSampleSDFShadow);
-
-
 		/************************************************************************/
 		// ASM Depth Pass Render Target
 		/************************************************************************/
-
 		RenderTargetDesc ASMDepthPassRT = {};
 		ASMDepthPassRT.mArraySize = 1;
 		ASMDepthPassRT.mClearValue.depth = depthStencilClear.depth;
 		ASMDepthPassRT.mDepth = 1;
 		ASMDepthPassRT.mFormat = TinyImageFormat_D32_SFLOAT;
+		ASMDepthPassRT.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		ASMDepthPassRT.mMipLevels = 1;
 		ASMDepthPassRT.mSampleCount = SAMPLE_COUNT_1;
 		ASMDepthPassRT.mSampleQuality = 0;
 		ASMDepthPassRT.mWidth = ASM_WORK_BUFFER_DEPTH_PASS_WIDTH;
 		ASMDepthPassRT.mHeight = ASM_WORK_BUFFER_DEPTH_PASS_HEIGHT;
 		ASMDepthPassRT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-#if defined(METAL)
-		ASMDepthPassRT.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-#endif
+		ASMDepthPassRT.pName = "ASM Depth Pass RT";
 		addRenderTarget(pRenderer, &ASMDepthPassRT, &pRenderTargetASMDepthPass);
-
-
 		/*************************************************************************/
 		// ASM Color Pass Render Target
 		/*************************************************************************/
-
 		RenderTargetDesc ASMColorPassRT = {};
 		ASMColorPassRT.mArraySize = 1;
 		ASMColorPassRT.mClearValue = colorClearWhite;
 		ASMColorPassRT.mDepth = 1;
 		ASMColorPassRT.mFormat = TinyImageFormat_R32_SFLOAT;
+		ASMColorPassRT.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		ASMColorPassRT.mMipLevels = 1;
 		ASMColorPassRT.mSampleCount = SAMPLE_COUNT_1;
 		ASMColorPassRT.mSampleQuality = 0;
 		ASMColorPassRT.mWidth = ASM_WORK_BUFFER_COLOR_PASS_WIDTH;
 		ASMColorPassRT.mHeight = ASM_WORK_BUFFER_COLOR_PASS_HEIGHT;
 		ASMColorPassRT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
+		ASMColorPassRT.pName = "ASM Depth Pass RT";
 		addRenderTarget(pRenderer, &ASMColorPassRT, &pRenderTargetASMColorPass);
-
-
 		/************************************************************************/
 		// Visibility buffer Pass Render Target
 		/************************************************************************/
@@ -8522,6 +8349,7 @@ class LightShadowPlayground: public IApp
 		vbRTDesc.mDepth = 1;
 		vbRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		vbRTDesc.mFormat = TinyImageFormat_R8G8B8A8_UNORM;
+		vbRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		vbRTDesc.mWidth = width;
 		vbRTDesc.mHeight = height;
 		vbRTDesc.mSampleCount = SAMPLE_COUNT_1;
@@ -8529,73 +8357,58 @@ class LightShadowPlayground: public IApp
 		vbRTDesc.mFlags = TEXTURE_CREATION_FLAG_ESRAM;
 		vbRTDesc.pName = "VB RT";
 		addRenderTarget(pRenderer, &vbRTDesc, &pRenderTargetVBPass);
-
-
-
 		/************************************************************************/
 		// ASM Depth Atlas Render Target
 		/************************************************************************/
-
 		RenderTargetDesc depthAtlasRTDesc = {};
 		depthAtlasRTDesc.mArraySize = 1;
 		depthAtlasRTDesc.mClearValue = colorClearBlack;
 		depthAtlasRTDesc.mDepth = 1;
 		depthAtlasRTDesc.mFormat = TinyImageFormat_R32_SFLOAT;
+		depthAtlasRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		depthAtlasRTDesc.mWidth = gs_ASMDepthAtlasTextureWidth;
 		depthAtlasRTDesc.mHeight = gs_ASMDepthAtlasTextureHeight;
 		depthAtlasRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		depthAtlasRTDesc.mSampleQuality = 0;
 		depthAtlasRTDesc.pName = "ASM Depth Atlas RT";
 		depthAtlasRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-#if defined(METAL)
-		depthAtlasRTDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-#endif
 		addRenderTarget(pRenderer, &depthAtlasRTDesc, &pRenderTargetASMDepthAtlas);
-
 
 		RenderTargetDesc DEMAtlasRTDesc = {};
 		DEMAtlasRTDesc.mArraySize = 1;
 		DEMAtlasRTDesc.mClearValue = colorClearBlack;
 		DEMAtlasRTDesc.mDepth = 1;
 		DEMAtlasRTDesc.mFormat = TinyImageFormat_R32_SFLOAT;
+		DEMAtlasRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		DEMAtlasRTDesc.mWidth = gs_ASMDEMAtlasTextureWidth;
 		DEMAtlasRTDesc.mHeight = gs_ASMDEMAtlasTextureHeight;
 		DEMAtlasRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		DEMAtlasRTDesc.mSampleQuality = 0;
 		DEMAtlasRTDesc.pName = "ASM DEM Atlas RT";
 		DEMAtlasRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-#if defined(METAL)
-		DEMAtlasRTDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-#endif
-		
 		addRenderTarget(pRenderer, &DEMAtlasRTDesc, &pRenderTargetASMDEMAtlas);
-
 		/************************************************************************/
 		// ASM Indirection texture Render Target
 		/************************************************************************/
-
-		uint32 indirectionTextureSize = (1 << gs_ASMMaxRefinement) * gsASMIndexSize;
+		uint32_t indirectionTextureSize = (1 << gs_ASMMaxRefinement) * gsASMIndexSize;
 
 		RenderTargetDesc indirectionRTDesc = {};
 		indirectionRTDesc.mArraySize = 1;
 		indirectionRTDesc.mClearValue = colorClearBlack;
 		indirectionRTDesc.mDepth = 1;
 		indirectionRTDesc.mFormat = TinyImageFormat_R32G32B32A32_SFLOAT;
+		indirectionRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		indirectionRTDesc.mWidth = indirectionTextureSize;
 		indirectionRTDesc.mHeight = indirectionTextureSize;
 		indirectionRTDesc.mSampleCount = SAMPLE_COUNT_1;
 		indirectionRTDesc.mSampleQuality = 0;
 		indirectionRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 		indirectionRTDesc.mMipLevels = 1;
-#if defined(METAL)
-		indirectionRTDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-#endif
-
 		indirectionRTDesc.pName = "ASM Indirection RT";
 
 		for (int32_t i = 0; i <= gs_ASMMaxRefinement; ++i)
 		{
-			uint32 mewIndirectionTextureSize = (indirectionTextureSize >> i);
+			uint32_t mewIndirectionTextureSize = (indirectionTextureSize >> i);
 			indirectionRTDesc.mWidth = mewIndirectionTextureSize;
 			indirectionRTDesc.mHeight = mewIndirectionTextureSize;
 			addRenderTarget(pRenderer, &indirectionRTDesc, &pRenderTargetASMIndirection[i]);
@@ -8607,6 +8420,7 @@ class LightShadowPlayground: public IApp
 		lodClampRTDesc.mClearValue = colorClearWhite;
 		lodClampRTDesc.mDepth = 1;
 		lodClampRTDesc.mFormat = TinyImageFormat_R16_SFLOAT;
+		lodClampRTDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		lodClampRTDesc.mWidth = indirectionTextureSize;
 		lodClampRTDesc.mHeight = indirectionTextureSize;
 		lodClampRTDesc.mSampleCount = SAMPLE_COUNT_1;
@@ -8614,13 +8428,9 @@ class LightShadowPlayground: public IApp
 		lodClampRTDesc.mMipLevels = 1;
 		lodClampRTDesc.pName = "ASM Lod Clamp RT";
 		lodClampRTDesc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
-		
-#if defined(METAL)
-		lodClampRTDesc.mFlags = TEXTURE_CREATION_FLAG_OWN_MEMORY_BIT;
-#endif
-
 		addRenderTarget(pRenderer, &lodClampRTDesc, &pRenderTargetASMLodClamp);
 		addRenderTarget(pRenderer, &lodClampRTDesc, &pRenderTargetASMPrerenderLodClamp);
+
 		return true;
 	}
 
@@ -8811,7 +8621,7 @@ class LightShadowPlayground: public IApp
 #if ENABLE_SDF_SHADOW_DOWNSAMPLE
 			Texture* sdfShadowTexture = pRenderTargetUpSampleSDFShadow->pTexture;
 #else
-			Texture* sdfShadowTexture = pRenderTargetSDFMeshShadow;
+			Texture* sdfShadowTexture = pTextureSDFMeshShadow;
 #endif
 			Texture* esmShadowMap = pRenderTargetShadowMap->pTexture;
 
@@ -9071,7 +8881,7 @@ class LightShadowPlayground: public IApp
 		{
 			DescriptorData params[3] = {};
 			params[0].pName = "OutTexture";
-			params[0].ppTextures = &pRenderTargetSDFMeshShadow;
+			params[0].ppTextures = &pTextureSDFMeshShadow;
 			params[1].pName = "SDFVolumeTextureAtlas";
 			params[1].ppTextures = &pTextureSDFVolumeAtlas;
 			params[2].pName = "DepthTexture";
@@ -9092,7 +8902,7 @@ class LightShadowPlayground: public IApp
 		{
 			DescriptorData params[3] = {};
 			params[0].pName = "SDFShadowTexture";
-			params[0].ppTextures = &pRenderTargetSDFMeshShadow;
+			params[0].ppTextures = &pTextureSDFMeshShadow;
 			params[1].pName = "DepthTexture";
 			params[1].ppTextures = &pRenderTargetDepth->pTexture;
 			updateDescriptorSet(pRenderer, 0, pDescriptorSetUpsampleSDFShadow[0], 2, params);

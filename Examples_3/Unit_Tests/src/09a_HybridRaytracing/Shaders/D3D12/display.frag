@@ -41,7 +41,7 @@ float3 ACESFilm(float3 x)
 	return saturate((x*(a*x + b)) / (x*(c*x + d) + e));
 }
 
-float3 main(PsIn In) : SV_Target
+float4 main(PsIn In) : SV_Target
 {
 	float3 colour = inputRT[In.position.xy].xyz;
 
@@ -52,5 +52,5 @@ float3 main(PsIn In) : SV_Target
 	
 	colour = pow(abs(colour), 1 / 2.2);
 
-    return colour;
+    return float4(colour, 1.0);
 }

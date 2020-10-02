@@ -89,7 +89,7 @@ ProfileToken                gGpuProfileToken;
 const int					gSphereResolution = 30;    // Increase for higher resolution spheres
 const float					gSphereDiameter = 0.5f;
 const uint					gNumPlanets = 8;        // Sun, Mercury -> Neptune, Pluto, Moon
-const uint					gTimeOffset = 2400000;    // For visually better starting locations
+const uint					gTimeOffset = 1000000;    // For visually better starting locations
 const float					gRotSelfScale = 0.0004f;
 const float					gRotOrbitYScale = 0.001f;
 const float					gRotOrbitZScale = 0.00001f;
@@ -974,7 +974,7 @@ public:
 		/************************************************************************/
 		// Scene Update
 		/************************************************************************/
-		static float currentTime = gTimeOffset;
+		static float currentTime = 0.0f;
 
 		if(!gPlay)
 			deltaTime =	0.0f;
@@ -1101,20 +1101,19 @@ public:
 		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
 		RenderTargetBarrier barriers[] = {
-			{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
-			{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE }
+			{ pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET },
 		};
 
 		TextureBarrier barriers2[] = {
-					{ pVirtualTexture[1], RESOURCE_STATE_SHADER_RESOURCE },
-					{ pVirtualTexture[2], RESOURCE_STATE_SHADER_RESOURCE },
-					{ pVirtualTexture[3], RESOURCE_STATE_SHADER_RESOURCE },
-					{ pVirtualTexture[4], RESOURCE_STATE_SHADER_RESOURCE },
-					{ pVirtualTexture[5], RESOURCE_STATE_SHADER_RESOURCE },
-					{ pVirtualTexture[6], RESOURCE_STATE_SHADER_RESOURCE },
-					{ pVirtualTexture[7], RESOURCE_STATE_SHADER_RESOURCE }
+			{ pVirtualTexture[1], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE },
+			{ pVirtualTexture[2], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE },
+			{ pVirtualTexture[3], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE },
+			{ pVirtualTexture[4], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE },
+			{ pVirtualTexture[5], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE },
+			{ pVirtualTexture[6], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE },
+			{ pVirtualTexture[7], RESOURCE_STATE_COPY_DEST, RESOURCE_STATE_SHADER_RESOURCE }
 		};
-		cmdResourceBarrier(cmd, 0, NULL, 7, barriers2, 2, barriers);
+		cmdResourceBarrier(cmd, 0, NULL, 7, barriers2, 1, barriers);
 //#if defined(VULKAN)
 		//cmdResourceBarrier(cmd, 0, NULL, (uint32_t)virtualTextureBarrier.size(), virtualTextureBarrier.data());
 //#endif
@@ -1187,7 +1186,7 @@ public:
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
     cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
-		barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
+		barriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 	}
     cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
@@ -1311,6 +1310,17 @@ public:
 			Cmd* pCmdVirtualTexture = pVirtualTextureCmds[gFrameIndex];
 			beginCmd(pCmdVirtualTexture);
 
+			TextureBarrier barriers2[] = {
+				{ pVirtualTexture[1], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST },
+				{ pVirtualTexture[2], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST },
+				{ pVirtualTexture[3], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST },
+				{ pVirtualTexture[4], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST },
+				{ pVirtualTexture[5], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST },
+				{ pVirtualTexture[6], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST },
+				{ pVirtualTexture[7], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_COPY_DEST }
+			};
+			cmdResourceBarrier(pCmdVirtualTexture, 0, NULL, 7, barriers2, 0, NULL);
+
 			for (int i = 1; i < gNumPlanets; ++i)
 			{
 				cmdUpdateVirtualTexture(pCmdVirtualTexture, pVirtualTexture[i]);
@@ -1355,6 +1365,7 @@ public:
 		depthRT.mClearValue.stencil = 0;
 		depthRT.mDepth = 1;
 		depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
+		depthRT.mStartState = RESOURCE_STATE_DEPTH_WRITE;
 		depthRT.mHeight = mSettings.mHeight;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;

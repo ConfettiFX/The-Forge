@@ -216,6 +216,7 @@ if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
 :: Copy Art files
 xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\SanMiguel_3\Textures\*.dds" "$(OutDir)Textures\"
 xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\SanMiguel_3\Meshes\*" "$(OutDir)Meshes\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\SDF\*" "$(OutDir)SDF\"
 
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
@@ -271,6 +272,7 @@ if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
 :: Copy Art files
 xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\SanMiguel_3\Textures\*.dds" "$(OutDir)Textures\"
 xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\SanMiguel_3\Meshes\*" "$(OutDir)Meshes\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\SDF\*" "$(OutDir)SDF\"
 
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
@@ -336,6 +338,7 @@ if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
 :: Copy Art files
 xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\SanMiguel_3\Textures\*.dds" "$(OutDir)Textures\"
 xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\SanMiguel_3\Meshes\*" "$(OutDir)Meshes\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\SDF\*" "$(OutDir)SDF\"
 
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"
@@ -395,6 +398,7 @@ if $(Configuration) == ReleaseVk set SHADER_DIR=Vulkan
 :: Copy Art files
 xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\SanMiguel_3\Textures\*.dds" "$(OutDir)Textures\"
 xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\SanMiguel_3\Meshes\*" "$(OutDir)Meshes\"
+xcopy /Y /S /D "$(ProjectDir)..\..\..\Art\SDF\*" "$(OutDir)SDF\"
 
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.ttf" "$(OutDir)Fonts\"
 xcopy /Y /S /D "$(ProjectDir)..\UnitTestResources\Fonts\*.otf" "$(OutDir)Fonts\"

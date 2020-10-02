@@ -468,8 +468,11 @@ public:
 #if !defined(TARGET_IOS)
 		pGui->AddWidget(CheckboxWidget("Toggle VSync", &gToggleVSync));
 #endif
-
-		pGui->AddWidget(CheckboxWidget("Enable Multi GPU", &gMultiGPU));
+		// Show this checkbox only when multiple GPUs are present
+		if (pRenderer->mLinkedNodeCount > 1)
+		{
+			pGui->AddWidget(CheckboxWidget("Enable Multi GPU", &gMultiGPU));
+		}
 		pGui->AddWidget(SliderFloatWidget("Camera Horizontal FoV", &gPaniniParams.FoVH, 30.0f, 179.0f, 1.0f));
 		pGui->AddWidget(SliderFloatWidget("Panini D Parameter", &gPaniniParams.D, 0.0f, 1.0f, 0.001f));
 		pGui->AddWidget(SliderFloatWidget("Panini S Parameter", &gPaniniParams.S, 0.0f, 1.0f, 0.001f));
@@ -848,10 +851,9 @@ public:
 			cmdBeginGpuFrameProfile(cmd, gGpuProfilerTokens[i]);
 
 			RenderTargetBarrier barriers[] = {
-				{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET },
-				{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE },
+				{ pRenderTarget, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET },
 			};
-			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 2, barriers);
+			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 			cmdBindRenderTargets(cmd, 1, &pRenderTarget, pDepthBuffer, &loadActions, NULL, NULL, -1, -1);
 
 			cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
@@ -879,7 +881,7 @@ public:
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
 			RenderTargetBarrier srvBarriers[] = {
-				{ pRenderTarget, RESOURCE_STATE_SHADER_RESOURCE },
+				{ pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE },
 			};
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, srvBarriers);
 
@@ -889,11 +891,8 @@ public:
 				loadActions.mLoadActionDepth = LOAD_ACTION_DONTCARE;
 
 				RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
-				RenderTargetBarrier barriers[1 + gViewCount] = {};
-				for (uint32_t i = 0; i < gViewCount; ++i)
-					barriers[i] = { pRenderTargets[gFrameIndex][i], RESOURCE_STATE_SHADER_RESOURCE };
-				barriers[gViewCount] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET };
-				cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1 + gViewCount, barriers);
+				RenderTargetBarrier barriers[] = { { pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET } };
+				cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
 				cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 
@@ -930,7 +929,7 @@ public:
 
 				cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
 
-				barriers[0] = { pRenderTarget, RESOURCE_STATE_PRESENT };
+				barriers[0] = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 				cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 				cmdEndGpuTimestampQuery(cmd, gGpuProfilerTokens[i]);
 			}
@@ -1015,6 +1014,7 @@ public:
 		colorRT.mClearValue = gClearColor;
 		colorRT.mDepth = 1;
 		colorRT.mFormat = getRecommendedSwapchainFormat(true);
+		colorRT.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		colorRT.mHeight = mSettings.mHeight;
 		colorRT.mSampleCount = SAMPLE_COUNT_1;
 		colorRT.mSampleQuality = 0;
@@ -1026,6 +1026,7 @@ public:
 		depthRT.mClearValue = gClearDepth;
 		depthRT.mDepth = 1;
 		depthRT.mFormat = TinyImageFormat_D16_UNORM;
+		depthRT.mStartState = RESOURCE_STATE_DEPTH_WRITE;
 		depthRT.mHeight = mSettings.mHeight;
 		depthRT.mSampleCount = SAMPLE_COUNT_1;
 		depthRT.mSampleQuality = 0;

@@ -158,6 +158,8 @@ MonitorDesc* getMonitor(uint32_t index)
 
 float2 getDpiScale() { return gRetinaScale; }
 
+void setCustomMessageProcessor(CustomMessageProcessor proc) { }
+
 /************************************************************************/
 // App Entrypoint
 /************************************************************************/

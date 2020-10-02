@@ -224,6 +224,7 @@ struct PropData
 };
 
 typedef eastl::unordered_map<RenderPass::Enum, RenderPassData*> RenderPassMap;
+typedef eastl::pair<const RenderPass::Enum, RenderPassData*> RenderPassPair;
 
 Renderer* pRenderer = NULL;
 Queue* pGraphicsQueue = NULL;
@@ -765,7 +766,7 @@ BVHNode* createBVHNodeSHA(eastl::vector<AABBox>& bboxData, int begin, int end, f
 	return node;
 }
 
-void writeBVHTree(BVHNode* root, BVHNode* node, uint8* bboxData, int& dataOffset, int& index)
+void writeBVHTree(BVHNode* root, BVHNode* node, uint8_t* bboxData, int& dataOffset, int& index)
 {
 	if (node)
 	{
@@ -1523,7 +1524,7 @@ public:
 		gWholeSceneBBox = bvhRoot->BoundingBox;
 
 		const int maxNoofElements = 1000000;
-		uint8* bvhTreeNodes = (uint8*)tf_malloc(maxNoofElements * sizeof(BVHLeafBBox));
+		uint8_t* bvhTreeNodes = (uint8_t*)tf_malloc(maxNoofElements * sizeof(BVHLeafBBox));
 
 		int dataOffset = 0;
 		int index = 0;
@@ -1543,6 +1544,7 @@ public:
 		desc.mDesc.mFlags = BUFFER_CREATION_FLAG_NONE;
 		desc.mDesc.mElementCount = desc.mDesc.mSize / sizeof(float4);
 		desc.mDesc.mStructStride = sizeof(float4);
+		desc.mDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 		desc.pData = bvhTreeNodes;
 		desc.ppBuffer = &BVHBoundingBoxesBuffer;
 		addResource(&desc, &token);
@@ -1569,6 +1571,7 @@ public:
 				rtDesc.mHeight = mSettings.mHeight;
 				rtDesc.mSampleCount = SAMPLE_COUNT_1;
 				rtDesc.mSampleQuality = 0;
+				rtDesc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 
 				rtDesc.pName = "G-Buffer RTs";
 
@@ -1593,6 +1596,7 @@ public:
 				depthRT.mDepth = 1;
 				depthRT.mDescriptors = DESCRIPTOR_TYPE_TEXTURE;
 				depthRT.mFormat = TinyImageFormat_D32_SFLOAT;
+				depthRT.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 				depthRT.mHeight = mSettings.mHeight;
 				depthRT.mSampleCount = SAMPLE_COUNT_1;
 				depthRT.mSampleQuality = 0;
@@ -1610,7 +1614,7 @@ public:
 				desc.mArraySize = 1;
 				desc.mMipLevels = 1;
 				desc.mFormat = TinyImageFormat_R8_UNORM;
-				desc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+				desc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 				desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 				desc.mSampleCount = SAMPLE_COUNT_1;
 				desc.mHostVisible = false;
@@ -1633,7 +1637,7 @@ public:
 				desc.mArraySize = 1;
 				desc.mMipLevels = 1;
 				desc.mFormat = TinyImageFormat_B10G11R11_UFLOAT;
-				desc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+				desc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 				desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 				desc.mSampleCount = SAMPLE_COUNT_1;
 				desc.mHostVisible = false;
@@ -1656,7 +1660,7 @@ public:
 				desc.mArraySize = 1;
 				desc.mMipLevels = 1;
 				desc.mFormat = TinyImageFormat_B10G11R11_UFLOAT;
-				desc.mStartState = RESOURCE_STATE_UNORDERED_ACCESS;
+				desc.mStartState = RESOURCE_STATE_SHADER_RESOURCE;
 				desc.mDescriptors = DESCRIPTOR_TYPE_TEXTURE | DESCRIPTOR_TYPE_RW_TEXTURE;
 				desc.mSampleCount = SAMPLE_COUNT_1;
 				desc.mHostVisible = false;
@@ -1909,6 +1913,15 @@ public:
 		eastl::vector<Cmd*> allCmds;
 		uint32_t swapchainImageIndex;
 		acquireNextImage(pRenderer, pSwapChain, pImageAcquiredSemaphore, NULL, &swapchainImageIndex);
+
+		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
+		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
+		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
+		FenceStatus   fenceStatus;
+		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
+		if (FENCE_STATUS_INCOMPLETE == fenceStatus)
+			waitForFences(pRenderer, 1, &pRenderCompleteFence);
+
 		/************************************************************************/
 		// Update uniform buffers
 		/************************************************************************/
@@ -1934,15 +1947,8 @@ public:
 		/************************************************************************/
 		// Rendering
 		/************************************************************************/
-		RenderTarget* pRenderTarget = pSwapChain->ppRenderTargets[swapchainImageIndex];
-		Semaphore* pRenderCompleteSemaphore = pRenderCompleteSemaphores[gFrameIndex];
-		Fence* pRenderCompleteFence = pRenderCompleteFences[gFrameIndex];
-		FenceStatus   fenceStatus;
-		getFenceStatus(pRenderer, pRenderCompleteFence, &fenceStatus);
-		if (FENCE_STATUS_INCOMPLETE == fenceStatus)
-			waitForFences(pRenderer, 1, &pRenderCompleteFence);
 
-		for (auto& kv : RenderPasses)
+		for (RenderPassPair& kv : RenderPasses)
 		{
 			RenderPassData* pass = kv.second;
 			resetCmdPool(pRenderer, pass->pCmdPools[gFrameIndex]);
@@ -1969,10 +1975,10 @@ public:
 
 			// Transfer G-buffers to render target state for each buffer
 			RenderTargetBarrier* barriers = (RenderTargetBarrier*)alloca((RenderPasses[RenderPass::GBuffer]->RenderTargets.size() + 1) * sizeof(*barriers));
-			barriers[0] = { pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE };
+			barriers[0] = { pDepthBuffer, RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_DEPTH_WRITE };
 			for (uint32_t i = 0; i < RenderPasses[RenderPass::GBuffer]->RenderTargets.size(); ++i)
 			{
-				barriers[1 + i] = { RenderPasses[RenderPass::GBuffer]->RenderTargets[i], RESOURCE_STATE_RENDER_TARGET };
+				barriers[1 + i] = { RenderPasses[RenderPass::GBuffer]->RenderTargets[i], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_RENDER_TARGET };
 			}
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, (uint32_t)RenderPasses[RenderPass::GBuffer]->RenderTargets.size() + 1, barriers);
 
@@ -2045,11 +2051,11 @@ public:
 
 			// Transfer DepthBuffer and normals to SRV State
 			RenderTargetBarrier barriers[] = {
-				{ pDepthBuffer, RESOURCE_STATE_SHADER_RESOURCE },
-				{ RenderPasses[RenderPass::GBuffer]->RenderTargets[GBufferRT::Normals], RESOURCE_STATE_SHADER_RESOURCE },
-				{ RenderPasses[RenderPass::GBuffer]->RenderTargets[GBufferRT::Albedo], RESOURCE_STATE_SHADER_RESOURCE },
+				{ pDepthBuffer, RESOURCE_STATE_DEPTH_WRITE, RESOURCE_STATE_SHADER_RESOURCE },
+				{ RenderPasses[RenderPass::GBuffer]->RenderTargets[GBufferRT::Normals], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE },
+				{ RenderPasses[RenderPass::GBuffer]->RenderTargets[GBufferRT::Albedo], RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_SHADER_RESOURCE },
 			};
-			TextureBarrier uav = { RenderPasses[RenderPass::RaytracedShadows]->Textures[0], RESOURCE_STATE_UNORDERED_ACCESS };
+			TextureBarrier uav = { RenderPasses[RenderPass::RaytracedShadows]->Textures[0], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS };
 			cmdResourceBarrier(cmd, 0, NULL, 1, &uav, 3, barriers);
 
 			cmdBindPipeline(cmd, RenderPasses[RenderPass::RaytracedShadows]->pPipeline);
@@ -2076,8 +2082,8 @@ public:
 			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Lighting Pass");
 
 			// Transfer shadowbuffer to SRV and lightbuffer to UAV states
-			TextureBarrier barriers[] = { { RenderPasses[RenderPass::RaytracedShadows]->Textures[0], RESOURCE_STATE_SHADER_RESOURCE },
-										  { RenderPasses[RenderPass::Lighting]->Textures[0], RESOURCE_STATE_UNORDERED_ACCESS } };
+			TextureBarrier barriers[] = { { RenderPasses[RenderPass::RaytracedShadows]->Textures[0], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE },
+										  { RenderPasses[RenderPass::Lighting]->Textures[0], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS } };
 			cmdResourceBarrier(cmd, 0, NULL, 2, barriers, 0, NULL);
 
 			cmdBindPipeline(cmd, RenderPasses[RenderPass::Lighting]->pPipeline);
@@ -2103,8 +2109,8 @@ public:
 			cmdBeginGpuTimestampQuery(cmd, gGpuProfileToken, "Composite Pass");
 
 			// Transfer albedo and lighting to SRV State
-			TextureBarrier barriers[] = { { RenderPasses[RenderPass::Lighting]->Textures[0], RESOURCE_STATE_SHADER_RESOURCE },
-										  { RenderPasses[RenderPass::Composite]->Textures[0], RESOURCE_STATE_UNORDERED_ACCESS } };
+			TextureBarrier barriers[] = { { RenderPasses[RenderPass::Lighting]->Textures[0], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE },
+										  { RenderPasses[RenderPass::Composite]->Textures[0], RESOURCE_STATE_SHADER_RESOURCE, RESOURCE_STATE_UNORDERED_ACCESS } };
 			cmdResourceBarrier(cmd, 0, NULL, 2, barriers, 0, NULL);
 
 			cmdBindPipeline(cmd, RenderPasses[RenderPass::Composite]->pPipeline);
@@ -2117,8 +2123,8 @@ public:
 
 			cmdEndGpuTimestampQuery(cmd, gGpuProfileToken);
 
-			RenderTargetBarrier rtBarrier = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET };
-			barriers[0] = { RenderPasses[RenderPass::Composite]->Textures[0], RESOURCE_STATE_SHADER_RESOURCE };
+			RenderTargetBarrier rtBarrier = { pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET };
+			barriers[0] = { RenderPasses[RenderPass::Composite]->Textures[0], RESOURCE_STATE_UNORDERED_ACCESS, RESOURCE_STATE_SHADER_RESOURCE };
 
 			cmdResourceBarrier(cmd, 0, NULL, 1, barriers, 1, &rtBarrier);
 
@@ -2161,7 +2167,7 @@ public:
 			cmdEndDebugMarker(cmd);
 
 			cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-			RenderTargetBarrier barriers[] = { { pRenderTarget, RESOURCE_STATE_PRESENT } };
+			RenderTargetBarrier barriers[] = { { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT } };
 			cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, barriers);
 
 			cmdEndGpuFrameProfile(cmd, gGpuProfileToken);

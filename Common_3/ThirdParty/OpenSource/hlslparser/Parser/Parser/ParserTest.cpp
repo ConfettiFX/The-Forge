@@ -663,8 +663,8 @@ int ParserTest()
 	// 10
 	if (1)
 	{
-		eastl::string srcDir = srcBaseDir + "10_PixelProjectedReflections/Shaders/D3D12/";
-		eastl::string dstDir = dstBaseDir + "built/10_PixelProjectedReflections/";
+		eastl::string srcDir = srcBaseDir + "10_ScreenSpaceReflections/Shaders/D3D12/";
+		eastl::string dstDir = dstBaseDir + "built/10_ScreenSpaceReflections/";
 
 
 		eastl::vector < eastl::string > macroLhs, macroRhs;

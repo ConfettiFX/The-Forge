@@ -32,30 +32,45 @@
 #include <fcntl.h>           //for open and O_* enums
 #include <dirent.h>
 
-char gResourceMounts[RM_COUNT][FS_MAX_PATH];
+static bool gInitialized = false;
+static const char* gResourceMounts[RM_COUNT];
+const char* getResourceMount(ResourceMount mount) {
+	return gResourceMounts[mount];
+}
+
+static char gApplicationPath[FS_MAX_PATH] = {};
+static const char* gHomedir;
 
 bool initFileSystem(FileSystemInitDesc* pDesc)
-{
-	if (!pDesc->pAppName)
+{	
+	if (gInitialized)
 	{
-		return false;
+		LOGF(LogLevel::eWARNING, "FileSystem already initialized.");
+		return true;
 	}
-	
-	// Get application directory and name
-	char applicationPath[FS_MAX_PATH] = {};
-	readlink("/proc/self/exe", applicationPath, FS_MAX_PATH);
-	fsGetParentPath(applicationPath, gResourceMounts[RM_CONTENT]);
-	fsGetParentPath(applicationPath, gResourceMounts[RM_DEBUG]);
+	ASSERT(pDesc);
+	pSystemFileIO->GetResourceMount = getResourceMount;
+
+	// Get application directory
+	char applicationFilePath[FS_MAX_PATH] = {};
+	readlink("/proc/self/exe", applicationFilePath, FS_MAX_PATH);
+	fsGetParentPath(applicationFilePath, gApplicationPath);
+	gResourceMounts[RM_CONTENT] = gApplicationPath;
+	gResourceMounts[RM_DEBUG] = gApplicationPath;
 
 	// Get user directory
-	const char* homedir;
-	if ((homedir = getenv("HOME")) == NULL)
+	if ((gHomedir = getenv("HOME")) == NULL)
 	{
-		homedir = getpwuid(getuid())->pw_dir;
+		gHomedir = getpwuid(getuid())->pw_dir;
 	}
-	char userDir[FS_MAX_PATH] = { "Documents/"};
-	strncat(userDir, pDesc->pAppName, strlen(pDesc->pAppName));
-	fsAppendPathComponent(homedir, userDir, gResourceMounts[RM_SAVE_0]);
+	gResourceMounts[RM_SAVE_0] = gHomedir;
+
+	// Override Resource mounts
+	for (uint32_t i = 0; i < RM_COUNT; ++i)
+	{
+		if (pDesc->pResourceMounts[i])
+			gResourceMounts[i] = pDesc->pResourceMounts[i];
+	}
 
 	// Get temp directory
 	//const char* tempdir;
@@ -65,10 +80,11 @@ bool initFileSystem(FileSystemInitDesc* pDesc)
 	//}
 	//fsAppendPathComponent(tempdir, "tmp", gTempDirectory);
 
+	gInitialized = true;
 	return true;
 }
 
 void exitFileSystem(void)
 {
-
+	gInitialized = false;
 }

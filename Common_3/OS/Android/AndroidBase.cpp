@@ -22,8 +22,6 @@
  * under the License.
 */
 
-#ifdef __ANDROID__
-
 #include <ctime>
 #include <unistd.h>
 #include <android/configuration.h>
@@ -184,6 +182,12 @@ void handleMessages(WindowsDesc* winDesc) { return; }
 
 void onStart(ANativeActivity* activity) { printf("start\b"); }
 
+static CustomMessageProcessor sCustomProc = nullptr;
+void setCustomMessageProcessor(CustomMessageProcessor proc)
+{
+	sCustomProc = proc;
+}
+
 static bool    windowReady = false;
 static bool    isActive = false;
 static int32_t handle_input(struct android_app* app, AInputEvent* event)
@@ -194,9 +198,12 @@ static int32_t handle_input(struct android_app* app, AInputEvent* event)
 		return 1;
 	}
 
-    if (gWindow.callbacks.onHandleMessage)
-        return gWindow.callbacks.onHandleMessage(&gWindow, event);
-    return 0;
+	if (sCustomProc != nullptr)
+	{
+		sCustomProc(&gWindow, event);
+	}
+	
+	return 0;
 }
 
 // Process the next main command.
@@ -389,4 +396,3 @@ int AndroidMain(void* param, IApp* app)
 }
 /************************************************************************/
 /************************************************************************/
-#endif

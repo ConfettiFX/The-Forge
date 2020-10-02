@@ -439,7 +439,7 @@ class FontRendering: public IApp
 		beginCmd(cmd);
 		cmdBeginGpuFrameProfile(cmd, gGpuProfileToken);
 
-		RenderTargetBarrier barrier = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET };
+		RenderTargetBarrier barrier = { pRenderTarget, RESOURCE_STATE_PRESENT, RESOURCE_STATE_RENDER_TARGET };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
 		cmdBindRenderTargets(cmd, 1, &pRenderTarget, NULL, &loadActions, NULL, NULL, -1, -1);
 		cmdSetViewport(cmd, 0.0f, 0.0f, (float)pRenderTarget->mWidth, (float)pRenderTarget->mHeight, 0.0f, 1.0f);
@@ -479,7 +479,7 @@ class FontRendering: public IApp
 		gAppUI.Draw(cmd);
 
 		cmdBindRenderTargets(cmd, 0, NULL, NULL, NULL, NULL, NULL, -1, -1);
-		barrier = { pRenderTarget, RESOURCE_STATE_PRESENT };
+		barrier = { pRenderTarget, RESOURCE_STATE_RENDER_TARGET, RESOURCE_STATE_PRESENT };
 		cmdResourceBarrier(cmd, 0, NULL, 0, NULL, 1, &barrier);
 		cmdEndGpuFrameProfile(cmd, gGpuProfileToken);
 		endCmd(cmd);
