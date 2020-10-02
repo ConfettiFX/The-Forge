@@ -730,6 +730,17 @@ Confetti will prepare releases when all the platforms are stable and running and
 # Products
 We would appreciate it if you could send us a link in case your product uses The Forge. Here are the ones we received so far:
 
+## Supergiant Games Hades
+[Supergiant's Hades](https://www.supergiantgames.com/games/hades/) we are working with Supergiant since 2014. One of the on-going challenges was that their run-time was written in C#. At the beginning of last year, we suggested to help them in building a new cross-platform game engine in C/C++ from scratch with The Forge. The project started in April 2019 and the first version of this new engine launched in May this year. Hades was then released for Microsoft Windows, macOS, and Nintendo Switch on September 17, 2020. The game can run on all platforms supported by The Forge.
+
+Here is a screenshot of Hades running on Switch:
+
+![Supergiant Hades](Screenshots/Supergiant_Hades.jpg)
+
+Here is an article by [Forbes](https://www.forbes.com/sites/davidthier/2020/09/27/you-need-to-play-the-game-at-the-top-of-the-nintendo-switch-charts/#6e9128ba2f80) about Hades being at the top of the Nintendo Switch Charts.
+Hades is also a technology showcase for Intel's integrated GPUs on macOS and Windows. The target group of the game seems to often own those GPUs.
+
+
 ## StarVR One SDK
 The Forge is used to build the StarVR One SDK:
 
